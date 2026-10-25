@@ -1,9 +1,9 @@
 'use strict';
-const log = require('../../telemetry/log');
 const { _stringify } = require('./safetyLeaves');
 const { PII_SCAN_WINDOW, _detectPii, _scanText } = require('./safetyScan');
 const { mintTokensFor, tokenizeIntoVault, egressMode, maskTokens, prepareForEgress, restoreForRunState, logEgress } = require('./safetyEgress');
 const { GuardrailBlockError, guardToolInput, guardToolOutput, guardAiInput, guardAiOutput } = require('./safetyGuard');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * Safety / monitoring backbone for the automation runner.
@@ -54,7 +54,7 @@ async function resolveAutomationPolicy(ctx, { honourAutomationOptOut = true } = 
     try {
         const { resolveOrgShield } = require('../privacy/orgShield');
         shield = await resolveOrgShield(ctx.orgId);
-    } catch (err) { log.debug('fail-open', err); }
+    } catch (err) { fallback('core/automationRunner/safety:resolveAutomationPolicy', err); /* fail-open */ }
 
     // Org-level opt-out: the org admin can exclude automations from the
     // Privacy Shield (Settings → Organisation → Privacy Shield → "Apply to
@@ -89,12 +89,13 @@ async function resolveAutomationPolicy(ctx, { honourAutomationOptOut = true } = 
     }
 
     let aiConfig = {};
-    try { aiConfig = (await require('../aiAgent').getAIConfig()) || {}; } catch (err) { log.debug('tolerate', err); }
+    try { aiConfig = (await require('../aiAgent').getAIConfig()) || {}; } catch (err) { fallback('core/automationRunner/safety:resolveAutomationPolicy#2', err); /* tolerate */ }
 
     const override = (ctx.definition && ctx.definition.safety) || {};
 
     const piiEnabled = !!(aiConfig.piiDetectionEnabled || (shield && shield.enabled) || override.scanEnabled);
     // strictest action wins; override may only tighten relative to the org shield.
+    /** @type {Record<string, number>} */
     const STRICTNESS = { block: 3, tokenize: 2, redact: 1, off: 0 };
     const baseAction = (shield && shield.piiDetectionAction) || aiConfig.piiDetectionAction || 'block';
     const overrideAction = override.action || null;
@@ -135,6 +136,9 @@ async function resolveAutomationPolicy(ctx, { honourAutomationOptOut = true } = 
     return policy;
 }
 
+/**
+ * @param {{ id: string; }} step
+ */
 function buildAuditBase(ctx, step, { source = 'automation' } = {}) {
     return {
         organization_id: ctx.orgId || null,
@@ -215,6 +219,7 @@ function buildPiiSummary(entries, { source = 'guard', degraded = false } = {}) {
  * the same answer as "there is nothing here" and must never be collapsed into it.
  *
  * @returns {{ entities, degraded, degradedReason, degradedCategories, overflow }}
+ * @param {string} text
  */
 async function scanTextForPii(text, policy) {
     return _scanText(String(text ?? ''), policy || {});
@@ -270,3 +275,43 @@ module.exports = {
     maskTokens,
     logEgress,
 };
+
+/** @typedef {ReturnType<typeof import('./tokenVault').createTokenVault>} TokenVault */
+
+/** @typedef {Awaited<ReturnType<typeof import('../privacy/orgShield').resolveOrgShield>>} OrgShield */
+
+/** @typedef {{ name: string, pattern: string }} RegexRule */
+
+/**
+ * The run's resolved safety policy (resolveAutomationPolicy).
+ * @typedef {{ shield: OrgShield | null, orgId: string | null, piiEnabled: boolean, action: string,
+ *   regexRules: RegexRule[], monitorIntegrations: boolean,
+ *   scope: { toolInput?: boolean, toolOutput?: boolean, userInput?: boolean, agentOutput?: boolean },
+ *   privacyScope: string, confidence: number, categories: string[] | null, failureMode: string,
+ *   largeInputPolicy: string, disabledForAutomations?: boolean }} SafetyPolicy
+ */
+
+/** What the scanners read of a policy (callers may hand in a partial one).
+ * @typedef {{ categories?: string[] | null, confidence?: number, shield?: OrgShield | null }} ScanPolicy
+ */
+
+/**
+ * The run context, as far as the safety layer reads and memoizes on it.
+ * @typedef {{ orgId?: string, userId?: string, automationTitle?: string, automationId?: string, runId?: string,
+ *   nextcloudUrl?: string, definition?: object,
+ *   tokenVault?: TokenVault, _ephemeralTokenVault?: TokenVault, _safetyPolicy?: SafetyPolicy,
+ *   _guardrailSeen?: Set<string> }} SafetyCtx
+ */
+
+/** One detected span, in detectPii / tokenizeText shape.
+ * @typedef {import('../privacy/piiDetection/scanCache').PiiEntity} PiiEntity
+ */
+
+/** @typedef {{ entities: PiiEntity[], degraded: boolean, degradedReason: string | null, degradedCategories: string[] | null, overflow: boolean }} RawDetection */
+
+/**
+ * @template [T=unknown]
+ * @typedef {{ value: T, tokenMap: Record<string, string> | null, blocked: boolean, categories: string[], markers: string[], wouldBlock?: boolean }} GuardResult
+ */
+
+/** @typedef {ReturnType<typeof buildAuditBase>} AuditBase */

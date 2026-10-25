@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The writer of `automation_usage` for one STUDIO APP (P4 part C).
  *
@@ -95,6 +96,8 @@ const REASONS = Object.freeze({
  *                    entries?:Array, unset?:number, error?:string, which?:string}>}
  *   `ok:false` betekent ALTIJD "laat de index staan" — nooit "schrijf een lege
  *   lijst". Het onderscheid staat in `reason`.
+ * @param {string} appId
+ * @param {UsageDeps} [deps]
  */
 async function collectAppAutomationUsage(appId, deps = {}) {
     if (!appId) return { ok: false, reason: 'no-id' };
@@ -107,7 +110,7 @@ async function collectAppAutomationUsage(appId, deps = {}) {
     } catch (e) {
         // A READ ERROR is not a vanished app. Were this read as 'no-app', a database
         // hiccup would clear the index of an app that simply exists.
-        return { ok: false, reason: 'unreadable-app', error: e.message };
+        return { ok: false, reason: 'unreadable-app', error: /** @type {Error} */ (e).message };
     }
     if (!app) return { ok: false, reason: 'no-app' };
     if (!app.userId) return { ok: false, reason: 'no-owner' };
@@ -169,6 +172,8 @@ async function collectAppAutomationUsage(appId, deps = {}) {
  *
  * Never throws. The answer says whether ANYTHING was written and why not:
  * `ok:false` means that the existing rows were left in place.
+ * @param {string} appId
+ * @param {UsageDeps} [deps]
  */
 async function reconcileAppAutomationUsage(appId, deps = {}) {
     const log = deps.log || console;
@@ -196,7 +201,7 @@ async function reconcileAppAutomationUsage(appId, deps = {}) {
 
         if (!collected.ok) {
             // Regel 1: zeggen, niet wissen.
-            log.warn(`[${LABEL}] ${appId}: automation usage index left as-is — ${REASONS[collected.reason] || collected.reason}`);
+            log.warn(`[${LABEL}] ${appId}: automation usage index left as-is — ${/** @type {Record<string, string>} */ (REASONS)[collected.reason] || collected.reason}`);
             return { ok: false, reason: collected.reason, written: 0 };
         }
 
@@ -240,7 +245,7 @@ async function reconcileAppAutomationUsage(appId, deps = {}) {
             unset: collected.unset || 0,
         };
     } catch (e) {
-        log.warn(`[${LABEL}] ${appId}: automation usage index left as-is — ${REASONS.failed} (${e.message})`);
+        log.warn(`[${LABEL}] ${appId}: automation usage index left as-is — ${REASONS.failed} (${/** @type {Error} */ (e).message})`);
         return { ok: false, reason: 'failed', written: 0 };
     }
 }
@@ -265,7 +270,10 @@ const _pending = new Map();
  */
 const _purgeEpoch = new Map();
 
-/** Cancel a running pass (the app is being deleted). */
+/**
+ * Cancel a running pass (the app is being deleted).
+ * @param {string} appId
+ */
 function cancelPendingReconcile(appId) {
     const timer = _pending.get(appId);
     if (!timer) return false;
@@ -301,6 +309,8 @@ function reconcileAppAutomationUsageDetached(appId, deps = {}) {
  *
  * First cancel the pending pass: otherwise it could write the rows back again right
  * after they were cleaned up. Never throws; a deletion must not fail over an index.
+ * @param {string} appId
+ * @param {UsageDeps} [deps]
  */
 async function purgeAppAutomationUsage(appId, deps = {}) {
     if (!appId) return 0;
@@ -315,7 +325,7 @@ async function purgeAppAutomationUsage(appId, deps = {}) {
         // The deletion itself has already happened; throwing here would give the user a 500
         // over an app that IS gone. The rows then stay in place — annoying, but visible in the
         // log, and the next reconcile on that id cleans them up via the safety net.
-        (deps.log || console).warn(`[${LABEL}] ${appId}: automation usage purge failed — ${e.message}`);
+        (deps.log || console).warn(`[${LABEL}] ${appId}: automation usage purge failed — ${/** @type {Error} */ (e).message}`);
         return 0;
     }
 }
@@ -344,6 +354,7 @@ async function purgeAppAutomationUsage(appId, deps = {}) {
 const BACKFILL_BATCH = 25;
 let _backfillRunning = false;
 
+/** @param {UsageDeps} [deps] */
 async function backfillAutomationUsage(deps = {}) {
     if (_backfillRunning) return { ok: true, reason: 'already-running', indexed: 0 };
     _backfillRunning = true;
@@ -364,14 +375,17 @@ async function backfillAutomationUsage(deps = {}) {
         }
         return { ok: true, reason: 'backfilled', indexed, failed };
     } catch (e) {
-        log.warn(`[${LABEL}] automation usage backfill failed — ${e.message}`);
+        log.warn(`[${LABEL}] automation usage backfill failed — ${/** @type {Error} */ (e).message}`);
         return { ok: false, reason: 'failed', indexed, failed };
     } finally {
         _backfillRunning = false;
     }
 }
 
-/** Same pass, but detached: a read does not wait for it. */
+/**
+ * Same pass, but detached: a read does not wait for it.
+ * @param {UsageDeps} [deps]
+ */
 function backfillAutomationUsageDetached(deps = {}) {
     Promise.resolve()
         .then(() => backfillAutomationUsage(deps))
@@ -391,3 +405,10 @@ module.exports = {
     RECONCILE_DEBOUNCE_MS,
     REASONS,
 };
+
+/**
+ * De injecteerbare randen (tests): winkels, logger, en de tijd/hoeveelheid van een pass.
+ * @typedef {{ studioAppStore?: typeof import('../stores/studioAppStore'), automationRefs?: typeof import('./automationRefs'),
+ *   automationUsageStore?: typeof import('../stores/automationUsageStore'), log?: Pick<Console, 'warn'>,
+ *   limit?: number, delayMs?: number }} UsageDeps
+ */

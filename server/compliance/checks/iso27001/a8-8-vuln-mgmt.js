@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * ISO 27001 A.8.8 — management of technical vulnerabilities: open Dependabot
  * alerts from the github connector snapshots. A critical/high finding left
@@ -28,6 +28,9 @@ module.exports = {
     remediationKey: 'compliance.checks.iso_vuln_mgmt.fix',
     remediationLink: 'admin/compliance/iso_connectors',
 
+    /**
+     * @param {string} orgId
+     */
     async evaluate(orgId) {
         const read = await readConnectorSnapshots(orgId, 'github', 'GitHub connector not enabled — link a token and list your repositories under ISO 27001 → Connectors.');
         if (read.result) return read.result;
@@ -42,6 +45,7 @@ module.exports = {
             open_total: r.dependabot?.open_total ?? null,
         }));
         const visible = rows.filter(r => r.alerts_accessible);
+        /** @type {Record<string, unknown>} */
         const evidence = {
             repos: rows,
             repos_monitored: rows.length,

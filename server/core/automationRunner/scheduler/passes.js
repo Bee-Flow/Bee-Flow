@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('pg').PoolClient} PoolClient */
+// @typecheck noImplicitAny
 /**
  * The runner's lock-guarded background passes (extracted from ./ticks.js,
  * which mounts them): event polling and subscription renewal, Talk
@@ -18,6 +19,7 @@ const { pool } = require('../../../db');
 const { runnerPort } = require('../featurePorts');
 const { reapOrphanFormUploads, reapExpiredGeneratedFiles, reapExpiredRunTables } = require('./reapers');
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 /**
  * Run `run` only when this pod takes the advisory lock `key`; another pod
@@ -29,6 +31,7 @@ const log = require('../../../telemetry/log');
  */
 async function underAdvisoryLock(key, label, run) {
     let acquired = false;
+    /** @type {PoolClient} */
     let client;
     try {
         client = await pool.connect();
@@ -37,10 +40,10 @@ async function underAdvisoryLock(key, label, run) {
         if (!acquired) return; // another pod owns this tick
         await run();
     } catch (e) {
-        log.error(`[AutomationRunner] ${label} error:`, e.message);
+        log.error(`[AutomationRunner] ${label} error:`, /** @type {Error} */ (e).message);
     } finally {
         if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [key]); } catch (err) { log.debug('lock release is best-effort', err); }
+            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [key]); } catch (err) { bestEffort('core/automationRunner/scheduler/passes:underAdvisoryLock', err); /* lock release is best-effort */ }
             client.release();
         }
     }
@@ -93,7 +96,7 @@ async function processTeamsAutoImport() {
     try {
         await teamsAutoImport.processDue();
     } catch (e) {
-        log.error('[AutomationRunner] teams auto-import ingest error:', e.message);
+        log.error('[AutomationRunner] teams auto-import ingest error:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -110,7 +113,7 @@ async function processRunRetention() {
             try {
                 await runnerPort('periodicJobs').purgeTrashPass();
             } catch (e) {
-                log.warn('[AutomationRunner] trash purge failed:', e.message);
+                log.warn('[AutomationRunner] trash purge failed:', /** @type {Error} */ (e).message);
             }
             // Monitoring ledgers and the PII scan ledger do NOT ride this tick:
             // chat and DLP fill them whether or not Automations is installed, so
@@ -128,7 +131,7 @@ async function processRunRetention() {
                 const n = await require('../../../stores/automationStore').deleteExpiredFormSessions(500);
                 if (n) log.info(`[AutomationRunner] reaped ${n} expired form session(s)`);
             } catch (e) {
-                log.warn('[AutomationRunner] form-session reap failed:', e.message);
+                log.warn('[AutomationRunner] form-session reap failed:', /** @type {Error} */ (e).message);
             }
     });
 }
@@ -166,7 +169,7 @@ async function processQueuedFormWork() {
     try {
         await runnerPort('formQueue').recoverPending();
     } catch (e) {
-        log.warn('[AutomationRunner] form-queue recovery failed:', e.message);
+        log.warn('[AutomationRunner] form-queue recovery failed:', /** @type {Error} */ (e).message);
     }
 }
 

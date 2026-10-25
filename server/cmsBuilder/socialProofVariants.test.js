@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 const test = require('node:test');
 const assert = require('node:assert');
 const { BLOCK_VARIANTS, BLOCK_DEFAULTS } = require('../i18n/defaults/cmsDefaults');

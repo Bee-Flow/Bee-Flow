@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Redirect tools of the CMS MCP server: list, set and delete the 301/302
  * redirects of a site. Same access model as every other CMS tool (dispatch.js
@@ -63,7 +63,15 @@ const REDIRECT_TOOLS = [
 ];
 
 /**
-/** The host of an external target, never the full URL (it may carry a token in its query). */
+ * @typedef {import('./handlerKit').ToolArgs} ToolArgs
+ * @typedef {import('./handlerKit').McpCtx} McpCtx
+ * @typedef {Record<string, any>} Redirect
+ */
+
+/**
+ * The host of an external target, never the full URL (it may carry a token in its query).
+ * @param {unknown} to
+ */
 function hostOf(to) {
     try { return new URL(String(to)).hostname; } catch { return null; }
 }
@@ -73,7 +81,13 @@ function hostOf(to) {
  */
 function createRedirectHandlers(deps) {
     const { cmsStore, resolveSite } = deps;
-    /** Ids and addresses only; the target is recorded as a host when external. */
+    /**
+     * Ids and addresses only; the target is recorded as a host when external.
+     * @param {string} action
+     * @param {string} siteId
+     * @param {Redirect} redirect
+     * @param {McpCtx} [ctx]
+     */
     const audit = async (action, siteId, redirect, ctx) => {
         if (!deps.audit) return;
         await deps.audit(action, 'cms_redirect', redirect.id, ctx?.userId, null, {
@@ -82,6 +96,7 @@ function createRedirectHandlers(deps) {
         }, ctx?.orgId || null);
     };
 
+    /** @param {ToolArgs} args */
     async function listRedirects(args) {
         const site = await resolveSite(args);
         if (site.error) return err(site.error);
@@ -89,6 +104,10 @@ function createRedirectHandlers(deps) {
         return { result: { siteId: site.siteId, count: doc.redirects.length, redirects: doc.redirects, allowedHosts: doc.allowedHosts } };
     }
 
+    /**
+     * @param {ToolArgs} args
+     * @param {McpCtx} ctx
+     */
     async function setRedirect(args, ctx) {
         const unknown = Object.keys(args).filter((k) => !['siteId', 'from', 'to', 'status', 'external'].includes(k));
         if (unknown.length) return err(`Unknown field: ${unknown.slice(0, 5).join(', ')}.`, { _fixHint: 'Send from, to, status and external.' });
@@ -102,23 +121,27 @@ function createRedirectHandlers(deps) {
             await audit('cms.redirect.set.mcp', site.siteId, entry, ctx);
             return { result: { siteId: site.siteId, redirect: entry, count: redirects.length, note: 'Draft only: visitors get it after cms_publish.' } };
         } catch (e) {
-            if (e instanceof RedirectError) return err(e.message, { code: e.code });
+            if (e instanceof RedirectError) return err(/** @type {Error} */ (e).message, { code: e.code });
             throw e;
         }
     }
 
+    /**
+     * @param {ToolArgs} args
+     * @param {McpCtx} ctx
+     */
     async function deleteRedirect(args, ctx) {
         const site = await resolveSite(args);
         if (site.error) return err(site.error);
         const doc = await cmsStore.getRedirects(site.siteId, { fresh: true });
         let target = null;
-        if (typeof args.id === 'string' && args.id) target = doc.redirects.find((r) => r.id === args.id);
+        if (typeof args.id === 'string' && args.id) target = doc.redirects.find((/** @type {Redirect} */ r) => r.id === args.id);
         else if (typeof args.from === 'string' && args.from) {
             const want = `/${args.from.trim().replace(/^\/+/, '').replace(/\/+$/, '').toLowerCase()}`;
-            target = doc.redirects.find((r) => r.from === want);
+            target = doc.redirects.find((/** @type {Redirect} */ r) => r.from === want);
         }
         if (!target) {
-            const list = doc.redirects.slice(0, 15).map((r) => r.from).join(', ') || 'none';
+            const list = doc.redirects.slice(0, 15).map((/** @type {Redirect} */ r) => r.from).join(', ') || 'none';
             return err('No such redirect in this site.', { _fixHint: `Pass from or id. Redirects: ${list}. cms_list_redirects lists them all.` });
         }
         await cmsStore.removeRedirect(site.siteId, target.id);

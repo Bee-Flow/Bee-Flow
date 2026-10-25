@@ -116,6 +116,7 @@ function patchForm(node, patchedForm) {
     if (!patchedForm || typeof patchedForm !== 'object' || Array.isArray(patchedForm)) return null;
     const built = buildForm(patchedForm);
     const merged = node.form && typeof node.form === 'object' ? { ...node.form } : buildForm({});
+    /** @type {string[]} */
     const touched = [];
     for (const key of Object.keys(patchedForm)) {
         if (!(key in built)) continue;
@@ -134,7 +135,9 @@ function applyUpdateTrigger(draft, args = {}) {
     if (patch.kind !== undefined && patch.kind !== node.kind) {
         return { error: 'A trigger cannot change kind in place — remove it and add a new one (or builder_propose_trigger for the primary).' };
     }
+    /** @type {string[]} */
     const changed = [];
+    /** @type {string[]} */
     const warnings = [];
     if (patch.label !== undefined) {
         const l = cleanLabel(patch.label);
@@ -204,3 +207,7 @@ function applyRemoveTrigger(draft, id) {
 }
 
 module.exports = { buildTriggerNode, applyAddTrigger, applyUpdateTrigger, applyRemoveTrigger, allTriggers, defaultLabel };
+
+/** @typedef {Record<string, any>} TriggerNode  a trigger as stored: the kind decides which other keys it carries */
+
+/** @typedef {Omit<import('./draftGraph').DraftGraph, 'trigger' | 'triggers'> & { trigger?: TriggerNode, triggers?: TriggerNode[] }} TriggerDraft */

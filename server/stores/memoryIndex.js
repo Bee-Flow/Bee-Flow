@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * memoryIndex — the search indexes on `user_memories`: the weighted tsvector
  * (`search_vector`), the pgvector columns (`embedding_<dim>`) and the
@@ -88,7 +88,10 @@ async function ensureIndexSchema() {
     }
 }
 
-/** True when the typed vector column for `dim` exists. */
+/**
+ * True when the typed vector column for `dim` exists.
+ * @param {number} dim
+ */
 function hasVectorColumn(dim) {
     const col = vectorColumn(dim);
     return !!col && vectorCols.has(col);
@@ -101,6 +104,7 @@ function vectorColumnNames() { return [...vectorCols]; }
  * dimension is unusable, or the DDL was refused. The HNSW index is NOT made
  * here: below the backfill job's threshold an exact scan is correct and an ANN
  * index applies the owner filter after the scan (see the job).
+ * @param {number} dim
  */
 async function ensureVectorColumn(dim) {
     if (!validateDim(dim) || !(await probePgvector())) return false;
@@ -111,7 +115,7 @@ async function ensureVectorColumn(dim) {
         vectorCols.add(col);
         return true;
     } catch (e) {
-        log.warn(`[MemoryStore] could not create ${col}:`, e.message);
+        log.warn(`[MemoryStore] could not create ${col}:`, /** @type {Error} */ (e).message);
         return false;
     }
 }
@@ -120,6 +124,8 @@ async function ensureVectorColumn(dim) {
  * Store a PLAINTEXT row's vector in the typed column (guarded in SQL against a
  * sealed row) and clear the other dimensions' stale vectors. Returns whether a
  * row was written.
+ * @param {string} memoryId
+ * @param {number[]} vector
  */
 async function writeVector(memoryId, vector) {
     const literal = vectorLiteral(vector);
@@ -143,7 +149,10 @@ async function scrubSealedIndexes() {
     return res?.rowCount || 0;
 }
 
-/** Count a failed embed so the backfill stops retrying a hopeless row. */
+/**
+ * Count a failed embed so the backfill stops retrying a hopeless row.
+ * @param {string} memoryId
+ */
 async function noteEmbedFailure(memoryId) {
     await run(
         `UPDATE user_memories SET embed_attempts = COALESCE(embed_attempts, 0) + 1, embed_failed_at = NOW() WHERE id = $1`,

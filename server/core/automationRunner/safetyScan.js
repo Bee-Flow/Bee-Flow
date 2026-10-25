@@ -1,4 +1,5 @@
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // The GLiNER detector caps each request; scan long text in overlapping
 // windows so PII past the single-request cap isn't silently skipped and
@@ -122,7 +123,7 @@ async function _scanText(text, policy) {
                 log.info('[safety] allowlist kept spans unredacted:', JSON.stringify(byCat));
             }
             entities = filtered.entities;
-        } catch (err) { log.debug('allowlist unavailable — keep the raw detections', err); }
+        } catch (err) { fallback('core/automationRunner/safetyScan:_scanText', err); /* allowlist unavailable — keep the raw detections */ }
     }
 
     return {

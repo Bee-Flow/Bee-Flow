@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * One id per request, on the response header and on every log line the
@@ -14,10 +14,18 @@ const { runWithRequestId } = require('../../telemetry/log');
 
 const ID_SHAPE = /^[A-Za-z0-9._-]{1,128}$/;
 
+/**
+ * @param {string | string[] | undefined} header
+ */
 function requestIdFrom(header) {
     return typeof header === 'string' && ID_SHAPE.test(header) ? header : randomUUID();
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 function withRequestId(req, res, next) {
     const id = requestIdFrom(req.headers['x-request-id']);
     req.id = id;

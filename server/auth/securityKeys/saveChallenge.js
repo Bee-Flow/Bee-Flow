@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Save the session that now holds a WebAuthn challenge, before the options go
@@ -8,7 +8,7 @@
 const { HttpError } = require('../../shared/httpErrors');
 
 /**
- * @param {{ session: { save: (cb: (err?: Error) => void) => void } }} req
+ * @param {{ session: { save: (cb: (err?: Error) => void) => unknown } }} req
  * @param {{ warn: Function }} log
  * @returns {Promise<void>}
  */

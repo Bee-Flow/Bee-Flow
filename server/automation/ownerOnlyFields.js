@@ -35,6 +35,10 @@ function connectionsChanged(storedDefinition, nextDefinition) {
     return resolveRunPolicy(storedDefinition).connections !== resolveRunPolicy(nextDefinition).connections;
 }
 
+/**
+ * @param {{ id: string; definition?: object; }} existing
+ * @param {string} userId
+ */
 function logConnectionsChange(existing, nextDefinition, userId) {
     if (!connectionsChanged(existing.definition, nextDefinition)) return;
     const from = resolveRunPolicy(existing.definition).connections;

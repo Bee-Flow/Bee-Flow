@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * The sessions a connector runs under (the owner's, or a viewer's, built
  * headless) and the default dependency graph runConnector overrides in tests.
@@ -7,6 +6,7 @@
 'use strict';
 
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // ── Headless user session (mirrors core/webpageBridgeAuth.buildAuthorSession) ─
 // Duplicated rather than imported so connectors keep working if that module
@@ -22,17 +22,20 @@ const log = require('../../telemetry/log');
 // `required.length === 0` shortcut, which returns a TRUTHY object with a null
 // accessToken — and the Google client then reports a connected account as "not
 // connected". See core/enabledIntegrations.js for the full trap.
+/**
+ * @param {string} userId
+ */
 async function defaultBuildUserSession(userId, fallbackOrgId = null, { include = [], providerHint = null } = {}) {
     const userStore = require('../../stores/userStore');
     const automationAuth = require('../../auth/automationAuth');
     const { resolveEnabledIntegrations } = require('../../core/integrations/enabledIntegrations');
-    const user = await userStore.getUser(userId).catch(() => null);
+    const user = await userStore.getUser(userId).catch((e) => fallback('appStudio/connectors/session:defaultBuildUserSession', e, null));
     const orgId = user?.organizationId || fallbackOrgId || null;
 
     let enabled = include;
     try {
         enabled = await resolveEnabledIntegrations(userId, orgId, { include });
-    } catch (err) { log.debug('best-effort — `include` alone still covers the dispatched tool', err); }
+    } catch (err) { fallback('appStudio/connectors/session:defaultBuildUserSession#2', err); /* best-effort — `include` alone still covers the dispatched tool */ }
 
     // `groups` rides along so viewer-mode grant resolution can honor
     // group-scoped lends (resolveConnectionForRun's runningUserGroups).
@@ -61,7 +64,7 @@ async function defaultBuildUserSession(userId, fallbackOrgId = null, { include =
             };
         }
     } catch (err) {
-        log.warn(`[Connectors] buildUserAuth failed for user ${userId}: ${err.message}`);
+        log.warn(`[Connectors] buildUserAuth failed for user ${userId}: ${/** @type {Error} */ (err).message}`);
     }
 
     // Legacy session fallback — the same backstop the runner
@@ -83,7 +86,7 @@ async function defaultBuildUserSession(userId, fallbackOrgId = null, { include =
                 if (sess?.accessToken) return sess;
             }
         } catch (err) {
-            log.warn(`[Connectors] legacy session lookup failed for user ${userId}: ${err.message}`);
+            log.warn(`[Connectors] legacy session lookup failed for user ${userId}: ${/** @type {Error} */ (err).message}`);
         }
     }
 
@@ -119,9 +122,15 @@ function defaultDeps() {
         isPrivateTarget: (...a) => require('../../utils/isPrivateTarget').isPrivateTarget(...a),
         buildOwnerSession: defaultBuildOwnerSession,
         buildUserSession: defaultBuildUserSession,
-        getIntegrationTools: (a) => require('../../core/integrations/integrationTools').getIntegrationTools(a),
+        getIntegrationTools: (/** @type {{ userId: string; session: Object; isAdmin?: boolean | undefined; enabledAppsOverride?: string[] | null | undefined; extraEnabledApps?: string[] | null | undefined; }} */ a) => require('../../core/integrations/integrationTools').getIntegrationTools(a),
         resolveConnectionForRun: (...a) => require('../../stores/integrationConnectionStore').resolveConnectionForRun(...a),
     };
 }
 
 module.exports = { defaultBuildUserSession, defaultBuildOwnerSession, defaultDeps };
+
+/**
+ * @typedef {{ include?: string[], providerHint?: string | null }} SessionOpts
+ */
+
+/** @typedef {ReturnType<typeof defaultDeps>} ConnectorDeps */

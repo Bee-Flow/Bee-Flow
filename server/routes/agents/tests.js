@@ -119,11 +119,17 @@ const { worded } = require('../../core/http/schemaParts');
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
+/**
+ * @param {string} name
+ */
 const whole = (name) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })
     .int(`${name} must be a whole number.`).optional();
 const RunsQuery = z.object({ limit: whole('limit') }).strict();
 
 const QUESTION_TEXT = 'Write the question this agent should answer.';
+/**
+ * @param {string} name
+ */
 const listOf = (name) => z.array(worded(`${name} is a list of phrases.`), { error: typeError({ invalid: `${name} is a list of phrases.` }) }).optional();
 
 /** The five things a test may check. Anything else is a typo, not a check. */
@@ -260,7 +266,7 @@ router.get('/:id/tests/runs', requirePermission('manage_agents'), editLimiter, v
             limit: Number.isFinite(asked) && asked > 0 ? asked : undefined,
         });
     } catch (e) {
-        log.warn('[agents/tests] run history unreadable:', e.message);
+        log.warn('[agents/tests] run history unreadable:', /** @type {Error} */ (e).message);
         return res.json({ runs: [], runsUnknown: true, keep: sandbox.TEST_RUNS_KEEP });
     }
     res.json({
@@ -298,7 +304,7 @@ router.post('/:id/tests', requirePermission('manage_agents'), editLimiter, valid
             const access = await resolveConversationAccess(wanted, gate.userId, 'agent');
             if (access && access.canRead) fromConversationId = wanted;
         } catch (e) {
-            log.warn('[agents/tests] conversation check failed, dropping the link:', e.message);
+            log.warn('[agents/tests] conversation check failed, dropping the link:', /** @type {Error} */ (e).message);
         }
     }
 
@@ -325,6 +331,7 @@ router.put('/:id/tests/:testId', requirePermission('manage_agents'), editLimiter
     const gate = await requireEditableAgent(req, res);
     if (!gate) return;
 
+    /** @type {{ name?: string; question?: string; expect?: { mustMention: string[]; mustNotMention: string[]; toolsExpected: string[]; rulesExpected: string[]; notes: string; } }} */
     const patch = {};
     if (req.body.name !== undefined) patch.name = String(req.body.name || '').trim().slice(0, sandbox.LIMITS.name);
     if (req.body.question !== undefined) {
@@ -390,6 +397,7 @@ router.post('/:id/tests/suggest', requirePermission('manage_agents'), suggestLim
     if (!modelId) return;
 
     const startMs = Date.now();
+    /** @type {{ mustMention: string[]; notes: string; } | null} */
     let parsed = null;
     try {
         const llmClient = require('../../core/llm/llmClient');
@@ -402,7 +410,7 @@ router.post('/:id/tests/suggest', requirePermission('manage_agents'), suggestLim
         parsed = suggest.parseSuggestion(out?.structured);
         await logSuggestUsage({ userId: gate.userId, userOrgId: orgId, modelId, usage: out?.usage, startMs });
     } catch (e) {
-        log.warn('[agents/tests] suggestion call failed:', e.message);
+        log.warn('[agents/tests] suggestion call failed:', /** @type {Error} */ (e).message);
         parsed = null;
     }
 
@@ -428,3 +436,5 @@ module.exports.requireEditableAgent = requireEditableAgent;
 module.exports.versionInfo = versionInfo;
 module.exports.runOneTest = runOneTest;
 module.exports.buildTestResultRecord = buildTestResultRecord;
+
+/** @typedef {import('express').Router & { requireEditableAgent: typeof requireEditableAgent, versionInfo: typeof versionInfo, runOneTest: typeof runOneTest, buildTestResultRecord: typeof buildTestResultRecord }} TestsRouter */

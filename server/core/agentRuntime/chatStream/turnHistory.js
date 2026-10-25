@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * The turn's two message arrays, and the one place they are written.
  *
@@ -30,7 +31,14 @@ const log = require('../../../telemetry/log');
 // optimistic-lock support, queue writes per conversation in-process so the
 // last-write-wins behaviour is at least intra-process ordered.
 // ─────────────────────────────────────────────────────────────────
+/** @type {Map<string, Promise<unknown>>} */
 const _convWriteChains = new Map();
+/**
+ * @template T
+ * @param {string} convId
+ * @param {() => Promise<T>} fn
+ * @returns {Promise<T>}
+ */
 async function _serializeConversationWrite(convId, fn) {
     const prev = _convWriteChains.get(convId) || Promise.resolve();
     // Chain so the next call waits for the previous one regardless of result.
@@ -47,6 +55,9 @@ async function _serializeConversationWrite(convId, fn) {
     }
 }
 
+/**
+ * @param {{ agent: import('./turnState').AgentRow, userId: string, userMessage: string, userAuth: import('./turnState').UserAuth, messageMetadata: import('./turnState').MessageMetadata, modelToUse: string, conversation: import('./turnState').ConversationRow, isEphemeral: boolean, historyOverride: import('./turnState').ChatMessage[] | null, onEvent: import('./turnState').OnEvent, _sharedThread: Awaited<ReturnType<typeof import('../sharedThread').setupSharedThreadTurnLock>>['_sharedThread'] }} opts
+ */
 async function assembleTurnHistory({
     agent, userId, userMessage, userAuth, messageMetadata, modelToUse,
     conversation, isEphemeral, historyOverride, onEvent, _sharedThread,
@@ -78,7 +89,9 @@ async function assembleTurnHistory({
     //
     // `durableMessages` is const deliberately: it makes `durableMessages = x`
     // a syntax error rather than a silent regression.
+    /** @type {import('./turnState').ChatMessage[]} */
     let messages;
+    /** @type {import('./turnState').ChatMessage[]} */
     const durableMessages = [];
     // Map of live-attachment object → its persisted sidecar so processAttachments()
     // can write extracted text back onto the sidecar (replay across turns).
@@ -98,11 +111,11 @@ async function assembleTurnHistory({
 
         // Prompt side: graft the sidecars back on so hydrateHistoryAttachments
         // can still replay extractedText for earlier turns.
-        messages = [...mergeAttachmentSidecars(historyOverride, dbMessages)];
+        messages = [.../** @type {import('./turnState').ChatMessage[]} */ (mergeAttachmentSidecars(historyOverride, dbMessages))];
 
         // Durable side: prefer the rich DB row wholesale. Content stays the
         // client's where there is no match — their truncation is authoritative.
-        durableMessages.push(...alignClientToDb(historyOverride, dbMessages).map(({ client, dbMatch }) =>
+        durableMessages.push(...alignClientToDb(historyOverride, dbMessages).map(/** @param {{ client: { role?: any, content?: any, attachments?: any[] }, dbMatch?: any }} m */ ({ client, dbMatch }) =>
             dbMatch || {
                 role: client.role,
                 content: client.content,
@@ -188,7 +201,7 @@ async function assembleTurnHistory({
             needsSummarization(messages, compactionOpts)
                 ? await withPhase(onEvent, 'compacting', null, runCompaction)
                 : await runCompaction();
-        messages = compactedMessages;
+        messages = /** @type {import('./turnState').ChatMessage[]} */ (compactedMessages);
         if (didSummarize && newSummary && conversation?.id) {
             // Fire-and-forget — the next turn picks it up even if this write
             // races with the message persistence.

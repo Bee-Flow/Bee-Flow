@@ -13,6 +13,7 @@ const {
     findTable, buildServerScope, resolveBinding, resolveValues, coerceRecordId, coerceText,
 } = require('./shared');
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 // ── request_approval — a durable approval request, no run behind it ──
 // Creation acts as the app OWNER (the row's owner_id, its org anchor, the
@@ -61,7 +62,7 @@ async function requestApprovalStep(app, model, step, ctx) {
         try {
             const userStore = require('../../stores/userStore');
             orgId = (await userStore.getUser(app.userId))?.organizationId || null;
-        } catch (err) { log.debug('consumer account', err); }
+        } catch (err) { fallback('appStudio/actionExecutor/approvalStep:requestApprovalStep', err); /* consumer account */ }
     }
 
     // Assignee / panel: runtime org-membership checks, invalid → dropped (the
@@ -153,7 +154,7 @@ async function requestApprovalStep(app, model, step, ctx) {
         const out = [];
         for (const d of list.slice(0, APP_APPROVAL_MAX_ATTACHMENTS)) {
             if (!d || typeof d !== 'object' || d.kind !== 'studio_attachment' || typeof d.fileId !== 'string') continue;
-            const row = await studioAppDataStore.getAttachment(d.fileId, app.id, app.userId).catch(() => null);
+            const row = await studioAppDataStore.getAttachment(d.fileId, app.id, app.userId).catch((e) => fallback('appStudio/actionExecutor/approvalStep:requestApprovalStep#2', e, null));
             if (!row || row.quarantined || !row.scanned) {
                 log.warn(`[ActionExecutor] request_approval attachment ${d.fileId} is not a clean file of app ${app.id} — dropped`);
                 continue;
@@ -246,7 +247,7 @@ async function requestApprovalStep(app, model, step, ctx) {
         approvalId: approval.id, runId: null, stepId: null,
         decidedBy: ctx.viewerId != null ? String(ctx.viewerId) : null,
         decision: 'requested', source: 'app',
-    }).catch(() => {});
+    }).catch((e) => bestEffort('appStudio/actionExecutor/approvalStep:requestApprovalStep#3', e));
     require('../../automation/approvalEvents').dispatchApprovalRequested(approval);
 
     // Bell the deciders — assignee/group, else the owner (same fan-out shape
@@ -262,7 +263,7 @@ async function requestApprovalStep(app, model, step, ctx) {
                 title: `🔔 Approval needed: ${app.name || 'App'}`,
                 message: prompt.slice(0, 500),
                 link: targets.link,
-            }).catch(() => {});
+            }).catch((e) => bestEffort('appStudio/actionExecutor/approvalStep:requestApprovalStep#4', e));
         }
     } catch (e) {
         log.warn(`[ActionExecutor] request_approval notify failed: ${e.message}`);

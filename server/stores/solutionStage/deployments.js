@@ -29,6 +29,8 @@ function makeAdmissionReads(db, ready) {
     /**
      * A plain read of the (stage, request_key) row, or null: what the runner
      * uses to answer a repeated request without paging through the history.
+     * @param {string} stageProjectId
+     * @param {string} requestKey
      */
     async function getDeploymentByRequestKey(stageProjectId, requestKey) {
         await ready();
@@ -131,7 +133,10 @@ function makeAdmissionReads(db, ready) {
 
 /** Claim, lease, heartbeat and status transitions. */
 function makeLeases(db, ready) {
-    /** Take a queued or approved row: it moves to preparing under this worker's lease. One claimer wins. */
+    /**
+     * Take a queued or approved row: it moves to preparing under this worker's lease. One claimer wins.
+     * @param {number} [leaseMs]
+     */
     async function claimDeployment(id, workerId, leaseMs = DEFAULT_LEASE_MS) {
         await ready();
         const r = await db.query(
@@ -151,6 +156,7 @@ function makeLeases(db, ready) {
      * stamp and the old error go, the report stays. The stage's one-active
      * index refuses it with 409 stage_busy when another deployment has taken
      * the stage since. Null when the row is not in that status.
+     * @param {number} [leaseMs]
      */
     async function retryConverge(id, workerId, leaseMs = DEFAULT_LEASE_MS) {
         await ready();
@@ -176,6 +182,7 @@ function makeLeases(db, ready) {
      * Take over an in-flight row whose lease ran out (a crashed worker). One
      * replica wins. A row without a lease is not taken: the store never puts
      * one in flight without a lease (claimDeployment, transitionDeployment).
+     * @param {number} [leaseMs]
      */
     async function reclaimExpired(id, workerId, leaseMs = DEFAULT_LEASE_MS) {
         await ready();
@@ -189,7 +196,10 @@ function makeLeases(db, ready) {
         return mapDeployment(r.rows[0]);
     }
 
-    /** Extend this worker's lease; false when it no longer holds the row. */
+    /**
+     * Extend this worker's lease; false when it no longer holds the row.
+     * @param {number} [leaseMs]
+     */
     async function heartbeat(id, workerId, leaseMs = DEFAULT_LEASE_MS) {
         await ready();
         const r = await db.query(
@@ -210,12 +220,17 @@ function makeLeases(db, ready) {
      * by a second worker while the first still runs it.
      *
      * @returns {Promise<ReturnType<typeof mapDeployment>>} the row, or null when it was not in a from-status
+     * @param {string} toStatus
      */
     async function transitionDeployment(id, fromStatuses, toStatus, patch = {}, { client = null } = {}) {
         await ready();
         const from = Array.isArray(fromStatuses) ? fromStatuses : [fromStatuses];
         const params = [id, from, toStatus];
         const set = ['status = $3'];
+        /**
+         * @param {string} expr
+         * @param {string | number | null} value
+         */
         const add = (expr, value) => { params.push(value); set.push(expr.replace('?', `$${params.length}`)); };
         if (patch.report !== undefined) add('report = ?::jsonb', json(patch.report));
         if (patch.error !== undefined) add('error = ?::jsonb', json(patch.error));
@@ -234,7 +249,10 @@ function makeLeases(db, ready) {
         return mapDeployment(r.rows[0]);
     }
 
-    /** Rows a worker may claim (queued or approved), oldest first. */
+    /**
+     * Rows a worker may claim (queued or approved), oldest first.
+     * @param {Date} [now]
+     */
     async function listClaimable(now = new Date(), { limit = 20 } = {}) {
         await ready();
         const r = await db.query(
@@ -245,7 +263,10 @@ function makeLeases(db, ready) {
         return r.rows.map(mapDeployment);
     }
 
-    /** In-flight rows whose lease ran out by `now`. */
+    /**
+     * In-flight rows whose lease ran out by `now`.
+     * @param {Date} [now]
+     */
     async function listExpiredLeases(now = new Date(), { limit = 20 } = {}) {
         await ready();
         const r = await db.query(
@@ -360,7 +381,7 @@ function makeApprovals(db, ready) {
                 const moved = await recordDeploymentDecision({ id: row.approval_id, status, deploymentId: row.id });
                 if (moved) out.applied++;
             } catch (err) {
-                log.warn(`[solutionStageStore] reconcile of ${row.id} failed: ${err?.message}`);
+                log.warn(`[solutionStageStore] reconcile of ${row.id} failed: ${/** @type {Error} */ (err)?.message}`);
             }
         }
         return out;
@@ -421,6 +442,10 @@ function makeJournal(db, ready) {
         await ready();
         const params = [deploymentId, Number(seq)];
         const set = ['updated_at = NOW()'];
+        /**
+         * @param {string} expr
+         * @param {string | null} value
+         */
         const add = (expr, value) => { params.push(value); set.push(expr.replace('?', `$${params.length}`)); };
         if (patch.status !== undefined) add('status = ?', patch.status);
         if (patch.entityId !== undefined) add('entity_id = ?', patch.entityId);
@@ -464,3 +489,7 @@ function makeDeploymentsStore(db, { ready }) {
 module.exports = {
     makeDeploymentsStore, mapDeployment, ACTIVE_STATUSES, IN_FLIGHT_STATUSES, TERMINAL_STATUSES, DEFAULT_LEASE_MS,
 };
+
+/** @typedef {import('./deploymentModel').Queryable} Queryable */
+
+/** @typedef {import('./deploymentModel').StageDb} StageDb */

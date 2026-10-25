@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * AI Config — the model cost table: public read, admin config view and
  * cost updates/resets.
@@ -37,6 +37,9 @@ const requireAdmin = requireAdminUser(isAdminUser);
 // setModelCost stores Number(input): "2,5" became NaN, '' became a free model.
 
 const COSTS_TEXT = 'costs must be an array of { model, input, output }';
+/**
+ * @param {string} which
+ */
 const price = (which) => z.number({ error: typeError({ invalid: `The ${which} price is a number (per million tokens).` }) })
     .nonnegative(`The ${which} price cannot be negative.`);
 
@@ -64,7 +67,7 @@ const CostsBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), 
 // ─── Model Costs ─────────────────────────────────────────────────
 // GET /model-costs is a public read (auth/accessRegistry.sweep.test.js).
 
-router.get('/model-costs', async (req, res) => {
+router.get('/model-costs', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     try {
         const { getAllModelCosts } = require('../../../core/llm/modelCosts');
         res.json(getAllModelCosts());
@@ -74,7 +77,7 @@ router.get('/model-costs', async (req, res) => {
     }
 });
 
-router.get('/model-costs-config', requireAuth, async (req, res) => {
+router.get('/model-costs-config', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { getModelCostsForConfig } = require('../../../core/llm/modelCosts');
     const { getAllCachedModelIds } = require('../../../core/aiAgent');
     const usageStore = require('../../../stores/usageStore');
@@ -82,7 +85,7 @@ router.get('/model-costs-config', requireAuth, async (req, res) => {
     // Provider models come as { id, providerName, providerType } objects
     const providerModels = await getAllCachedModelIds();
     // Used models come as plain strings (model IDs from usage log)
-    const usedModels = (await usageStore.getUsageModels()).map(id => ({ id, providerName: null }));
+    const usedModels = (await usageStore.getUsageModels()).map(id => ({ id, providerName: /** @type {string | null} */ (null) }));
 
     // Combine: provider models first (with provider info), then used models
     const allEntries = [...providerModels, ...usedModels];
@@ -90,7 +93,7 @@ router.get('/model-costs-config', requireAuth, async (req, res) => {
     res.json({ costs: getModelCostsForConfig(allEntries) });
 });
 
-router.post('/model-costs', requireAuth, requireAdmin, validate({ body: CostsBody }), async (req, res) => {
+router.post('/model-costs', requireAuth, requireAdmin, validate({ body: CostsBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { setModelCost, resetModelCost } = require('../../../core/llm/modelCosts');
 
     // One at a time, in the order sent; a write that fails ends the request

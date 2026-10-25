@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck strict
 /**
  * Migration: Dutch translations for Settings → Verbindingen.
  *

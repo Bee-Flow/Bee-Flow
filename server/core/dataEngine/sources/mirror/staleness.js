@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * When does a mirror need another look, and who gives it one?
  *
@@ -24,11 +25,17 @@ const { nextRunFor } = require('../../../scheduling/nextRun');
 const { DEFAULT_MINUTES, MIN_MIRROR_MINUTES, LIVE_STALE_MS, KICK_DEBOUNCE_MS } = require('./constants');
 const log = require('../../../../telemetry/log');
 
+/** @type {(source?: object) => { everyMinutes: number, live: boolean }} */
 function scheduleOf() {
     return { everyMinutes: MIN_MIRROR_MINUTES, live: true };
 }
 
-/** When the ticker should look again — null for a schedule of "never". */
+/**
+ * When the ticker should look again — null for a schedule of "never".
+ * @param {{ everyMinutes?: number, live?: boolean } | null | undefined} schedule
+ * @param {number} fromTs
+ * @param {number} consecutiveErrors
+ */
 function nextRunAtFor(schedule, fromTs, consecutiveErrors) {
     const { everyMinutes: every } = scheduleOf({ schedule });
     if (every === 0 && !consecutiveErrors) return null;
@@ -44,6 +51,10 @@ function nextRunAtFor(schedule, fromTs, consecutiveErrors) {
  * when the owner switched refresh-on-open off; yes when it was never
  * refreshed, when something marked it stale, or when the last successful
  * pass is older than LIVE_STALE_MS.
+ *
+ * @param {{ status?: string, lastSuccessAt?: string, staleReason?: string }} [syncState]
+ * @param {{ refreshOnView?: boolean }} [source]
+ * @param {number} [now]
  */
 function isStale(syncState, source, now = Date.now()) {
     if (source && source.refreshOnView === false) return false;
@@ -68,10 +79,10 @@ const _kicks = new Map();
  * lands on the sync state for the owner to see.
  *
  * @param {object} deps
- * @param {(table:object, opts:object) => Promise} deps.syncRows
+ * @param {(table:object, opts:object) => Promise<unknown>} deps.syncRows
  * @param {(table:object) => boolean} deps.isMirror   "is this one of mine?"
  * @param {string} deps.TAG                           log prefix
- * @returns {(datatable:object, opts?:{reason?:string, delayMs?:number}) => boolean}
+ * @returns {(datatable:{ id:string, scope?:{kind:'org'|'user',id:string}, syncState?:object, source?:object }, opts?:{reason?:string, delayMs?:number}) => boolean}
  *   whether a refresh was scheduled
  */
 function makeKickStale({ syncRows, isMirror, TAG }) {

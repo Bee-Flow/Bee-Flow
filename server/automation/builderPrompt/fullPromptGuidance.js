@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Fixed guidance blocks of the FULL builder system prompt

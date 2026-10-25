@@ -47,6 +47,9 @@ const NEXTCLOUD_ACTIVITY_TOOLS = [
 
 const ACTIVITY_FILTERS = ['all', 'self', 'by'];
 
+/**
+ * @param {string} baseUrl
+ */
 function activityApi(baseUrl) {
     // Activity app's OCS API v2. The `cloud/activity` namespace does not exist
     // (404s on every call) — the real endpoint lives under the app's own route,
@@ -78,6 +81,10 @@ function mapActivity(a) {
     };
 }
 
+/**
+ * @param {string} toolName
+ * @param {string} userId
+ */
 async function executeNextcloudActivityTool(toolName, args, userId, session) {
     const ctx = await ncClient.resolveAuth(session, userId);
     const { baseUrl, fetch: ncFetch, authError } = ctx;
@@ -126,6 +133,9 @@ async function executeNextcloudActivityTool(toolName, args, userId, session) {
     }
 }
 
+/**
+ * @param {string} toolName
+ */
 function isNextcloudActivityTool(toolName) {
     return typeof toolName === 'string' && toolName.startsWith('nextcloud_activity_');
 }
@@ -135,3 +145,8 @@ module.exports = {
     executeNextcloudActivityTool,
     isNextcloudActivityTool,
 };
+
+/**
+ * One entry of the Activity OCS v2 answer.
+ * @typedef {{ activity_id?: number, id?: number, type?: string, subject?: string, subject_prepared?: string, message?: string, message_prepared?: string, user?: string, object_type?: string, object_id?: number, object_name?: string, link?: string, icon?: string, datetime?: string, affecteduser?: string }} NcActivity
+ */

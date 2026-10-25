@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Google Meet → Meeting Notes settings (org + user dual scope).
  *
@@ -31,7 +31,12 @@
  */
 
 const configStore = require('../../stores/configStore');
+const { fallback } = require('../../utils/bestEffort');
 
+/**
+ * @type {{ autoImport: boolean, autoRecordConfig: boolean, importScope: string, language: string,
+ *   lookbackHours: number, excludedEventIds: string[], excludedMeetingCodes: string[] }}
+ */
 const DEFAULTS = {
     autoImport: false,
     autoRecordConfig: false,
@@ -46,14 +51,21 @@ const DEFAULTS = {
 const SCOPE_MEET_READONLY = 'https://www.googleapis.com/auth/meetings.space.readonly';
 const SCOPE_MEET_SETTINGS = 'https://www.googleapis.com/auth/meetings.space.settings';
 
+/** @param {string | null | undefined} scopeString */
 function scopeSet(scopeString) {
     return new Set(String(scopeString || '').split(/\s+/).filter(Boolean));
 }
 
-/** True when the stored OAuth scope string grants Meet read access (exact match). */
+/**
+ * True when the stored OAuth scope string grants Meet read access (exact match).
+ * @param {string | null | undefined} scopeString
+ */
 function hasMeetScopes(scopeString) { return scopeSet(scopeString).has(SCOPE_MEET_READONLY); }
 
-/** True when the stored OAuth scope string grants Meet space settings (spaces.patch). */
+/**
+ * True when the stored OAuth scope string grants Meet space settings (spaces.patch).
+ * @param {string | null | undefined} scopeString
+ */
 function hasSettingsScope(scopeString) { return scopeSet(scopeString).has(SCOPE_MEET_SETTINGS); }
 
 /**
@@ -62,6 +74,8 @@ function hasSettingsScope(scopeString) { return scopeSet(scopeString).has(SCOPE_
  * OR an 'active' vault credential; scopes come from the stored credential's
  * scope string — live-session-only users without a vault row have an unknown
  * scope, reported as false so the UI hints a (re)connect.
+ * @param {{ session?: Express.Session | null,
+ *   credential?: { status?: string, scope?: string | null } | null }} [opts]
  */
 function deriveConnectionStatus({ session = null, credential = null } = {}) {
     const liveGoogle = !!(session && session.oauthProvider === 'google' && session.accessToken);
@@ -74,32 +88,39 @@ function deriveConnectionStatus({ session = null, credential = null } = {}) {
     };
 }
 
+/** @param {string} orgId */
 function orgKey(orgId) { return `org_gmeet_notes_${orgId}`; }
+/** @param {string} userId */
 function userKey(userId) { return `user_gmeet_notes_${userId}`; }
 
+/** @param {unknown} v */
 function asImportScope(v) { return v === 'calendar' ? 'calendar' : 'organizer'; }
+/** @param {unknown} v */
 function asLanguage(v) { return (typeof v === 'string' && v.trim()) ? v.trim() : 'nl'; }
+/** @param {unknown} v */
 function asLookback(v) {
     const n = Number(v);
     if (!Number.isFinite(n)) return DEFAULTS.lookbackHours;
     return Math.min(Math.max(Math.round(n), 1), 168);
 }
+/** @param {unknown} v */
 function asStrArray(v) { return Array.isArray(v) ? v.filter(x => typeof x === 'string' && x) : []; }
 
 /**
  * Resolve effective settings. Org value wins per scalar field, else user, else
  * default. Exclusion arrays are the union of org + user.
+ * @param {{ orgId?: string | null, userId?: string | null }} [opts]
  */
 async function resolveGmeetNotesSettings({ orgId = null, userId = null } = {}) {
-    const org = orgId ? await configStore.getConfig(orgKey(orgId)).catch(() => null) : null;
-    const user = userId ? await configStore.getConfig(userKey(userId)).catch(() => null) : null;
+    const org = orgId ? await configStore.getConfig(orgKey(orgId)).catch((e) => fallback('core/meetingNotes/gmeetNotesSettings:resolveGmeetNotesSettings', e, null)) : null;
+    const user = userId ? await configStore.getConfig(userKey(userId)).catch((e) => fallback('core/meetingNotes/gmeetNotesSettings:resolveGmeetNotesSettings#2', e, null)) : null;
     // `null` = "no opinion — inherit". Without it the documented user fallback
     // was dead code: sanitizePatch coerces every field, so an org doc always
     // carried every key and `k in org` was always true. An admin who merely
     // opened the org settings page silently overrode every member's own choice
     // with the form defaults, with no way to hand a setting back.
-    const has = (doc, k) => doc && k in doc && doc[k] !== null && doc[k] !== undefined;
-    const pick = (k) => has(org, k) ? org[k]
+    const has = (/** @type {Record<string, unknown> | null} */ doc, /** @type {string} */ k) => doc && k in doc && doc[k] !== null && doc[k] !== undefined;
+    const pick = (/** @type {keyof typeof DEFAULTS} */ k) => has(org, k) ? org[k]
         : has(user, k) ? user[k]
         : DEFAULTS[k];
     return {
@@ -113,11 +134,13 @@ async function resolveGmeetNotesSettings({ orgId = null, userId = null } = {}) {
     };
 }
 
+/** @param {string} orgId */
 async function getOrgSettings(orgId) {
     const stored = orgId ? await configStore.getConfig(orgKey(orgId)) : null;
     return { ...DEFAULTS, ...(stored || {}) };
 }
 
+/** @param {string} userId */
 async function getUserSettings(userId) {
     const stored = userId ? await configStore.getConfig(userKey(userId)) : null;
     return { ...DEFAULTS, ...(stored || {}) };
@@ -128,15 +151,19 @@ async function getUserSettings(userId) {
  * that is simply ABSENT keeps the old coercion, so an existing client posting a
  * partial body behaves exactly as before and only a caller that deliberately
  * sends null opts in.
+ * @template T, R
+ * @param {T | null} value
+ * @param {(v: T) => R} coerce
  */
 function orNull(value, coerce) {
     return value === null ? null : coerce(value);
 }
 
+/** @param {Record<string, unknown>} patch */
 function sanitizePatch(patch) {
     return {
-        autoImport: orNull(patch.autoImport, v => !!v),
-        autoRecordConfig: orNull(patch.autoRecordConfig, v => !!v),
+        autoImport: orNull(patch.autoImport, (/** @type {unknown} */ v) => !!v),
+        autoRecordConfig: orNull(patch.autoRecordConfig, (/** @type {unknown} */ v) => !!v),
         importScope: orNull(patch.importScope, asImportScope),
         language: orNull(patch.language, asLanguage),
         lookbackHours: orNull(patch.lookbackHours, asLookback),
@@ -145,6 +172,11 @@ function sanitizePatch(patch) {
     };
 }
 
+/**
+ * @param {string} orgId
+ * @param {Record<string, unknown>} patch
+ * @param {string | null} [updatedBy]
+ */
 async function saveOrgSettings(orgId, patch, updatedBy) {
     const config = {
         ...sanitizePatch(patch),
@@ -155,6 +187,10 @@ async function saveOrgSettings(orgId, patch, updatedBy) {
     return config;
 }
 
+/**
+ * @param {string} userId
+ * @param {Record<string, unknown>} patch
+ */
 async function saveUserSettings(userId, patch) {
     const config = {
         ...sanitizePatch(patch),

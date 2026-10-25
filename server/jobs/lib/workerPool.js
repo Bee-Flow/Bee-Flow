@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The two halves of a "scan what is due, work it off" job, shared by
  * jobs/datatableNcSync.js and jobs/studioAppConnectorSync.js.
@@ -20,6 +20,7 @@
 
 const metrics = require('../../telemetry/metrics');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * @template T
@@ -71,7 +72,7 @@ function createLockedTick({ pool, lockKey, job, label, run }) {
             log.warn(`[${label}] tick error:`, /** @type {any} */ (e).message);
         } finally {
             if (client) {
-                try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [lockKey]); } catch (err) { log.debug('best-effort', err); }
+                try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [lockKey]); } catch (err) { bestEffort('jobs/lib/workerPool:createLockedTick', err); /* best-effort */ }
                 client.release();
             }
             if (acquired) metrics.recordJobRun({ job, status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });

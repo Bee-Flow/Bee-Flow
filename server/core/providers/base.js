@@ -18,6 +18,7 @@ const { stripInternalFields } = require('../../utils/messageUtils');
 const { parseGemmaArgs } = require('../llm/leakedToolCalls');
 const log = require('../../telemetry/log');
 const { normalizeUsage } = require('./usageNormalizer');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 // Parity with claude.js (`?? DEFAULT_MAX_TOKENS`). Without a default, a
 // caller that passed no cap let a self-hosted model generate until its
@@ -64,6 +65,7 @@ class BaseProvider {
      * Get auth headers for this provider.
      */
     getHeaders(apiKey) {
+        /** @type {{ "Content-Type": string; Authorization?: string }} */
         const headers = { 'Content-Type': 'application/json' };
         if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
         return headers;
@@ -167,6 +169,7 @@ class BaseProvider {
     _stallWatchdog(timeoutMs) {
         const ms = Number(timeoutMs) || 0;
         const controller = ms > 0 ? new AbortController() : null;
+        /** @type {NodeJS.Timeout | null} */
         let timer = null;
         const arm = () => {
             if (!controller) return;
@@ -180,6 +183,8 @@ class BaseProvider {
     /**
      * OTel provider-error counter. Best-effort, and the classified status
      * only: never the error body, which may echo prompt content.
+     * @param {string} model
+     * @param {number} status
      */
     _recordHttpError(model, status) {
         try {
@@ -187,7 +192,7 @@ class BaseProvider {
                 provider: this.name, model,
                 errorType: `http_${Math.floor(status / 100)}xx`,
             });
-        } catch (err) { log.debug('telemetry is best-effort', err); }
+        } catch (err) { bestEffort('core/providers/base:BaseProvider._recordHttpError', err); /* telemetry is best-effort */ }
     }
 
     /**
@@ -410,7 +415,7 @@ class BaseProvider {
                     // tell the model what happened to its call.
                     const loose = parseGemmaArgs(typeof tc.arguments === 'string' ? tc.arguments : '');
                     if (loose && typeof loose === 'object') {
-                        log.warn(`[${this.name}] Repaired tool_use ${tc.name}: arguments were not valid JSON (${e.message}); read with the loose parser`);
+                        log.warn(`[${this.name}] Repaired tool_use ${tc.name}: arguments were not valid JSON (${/** @type {Error} */ (e).message}); read with the loose parser`);
                         input = loose;
                         repaired = true;
                     } else {
@@ -423,12 +428,12 @@ class BaseProvider {
                         // told. Announce it separately; consumers that don't listen
                         // are unaffected, and the ones that do (the builders) can
                         // ask for just that call again.
-                        log.warn(`[${this.name}] Dropping tool_use ${tc.name}: invalid JSON args (${e.message})`);
+                        log.warn(`[${this.name}] Dropping tool_use ${tc.name}: invalid JSON args (${/** @type {Error} */ (e).message})`);
                         onEvent('tool_use_invalid', {
                             id: tc.id,
                             name: tc.name,
                             arguments: typeof tc.arguments === 'string' ? tc.arguments : '',
-                            error: e.message,
+                            error: /** @type {Error} */ (e).message,
                         });
                         continue;
                     }
@@ -609,7 +614,7 @@ class BaseProvider {
                     if (finishReason === 'tool_calls' || finishReason === 'stop') {
                         flushToolCalls();
                     }
-                } catch (e) { log.debug('Skip malformed JSON chunks', e); }
+                } catch (e) { fallback('core/providers/base:BaseProvider._parseSseStream', e); /* Skip malformed JSON chunks */ }
             }
         }
 
@@ -641,3 +646,10 @@ class BaseProvider {
 }
 
 module.exports = BaseProvider;
+
+/**
+ * @typedef {import('../../utils/messageUtils').WireMessage} WireMessage
+ * @typedef {{ id?: string, index?: number | null, type?: string, function?: { name?: string, arguments?: string } }} ToolCall
+ * @typedef {{ maxTokens?: number, max_tokens?: number, temperature?: number, stream?: boolean, tools?: unknown[], toolChoice?: unknown, extraBody?: Record<string, unknown> }} BodyOptions
+ * @typedef {(type: string, data: Record<string, unknown>) => void} OnEvent
+ */

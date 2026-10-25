@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Google API batch requests: many API calls in ONE HTTP request.
  *
@@ -28,7 +28,7 @@
 const crypto = require('crypto');
 const { refreshAccessToken } = require('./googleClient');
 const { parseRetryAfter, backoffDelay, sleep } = require('../core/http/retryAfter');
-const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const GMAIL_BATCH_ENDPOINT = 'https://gmail.googleapis.com/batch/gmail/v1';
 /** Google's hard limit: 101 parts fail the whole batch with 400. */
@@ -130,7 +130,7 @@ function parsePart(chunk) {
     /** @type {any} */
     let body = bodyText;
     if (bodyText && (headers['content-type'] || '').includes('json')) {
-        try { body = JSON.parse(bodyText); } catch (err) { log.debug('keep the text', err); }
+        try { body = JSON.parse(bodyText); } catch (err) { fallback('integrations/googleBatch:parsePart', err); /* keep the text */ }
     }
     // We send `<x>`; Google answers `<response-x>`.
     const contentId = (mime['content-id'] || '').replace(/^<|>$/g, '').replace(/^response-/, '');
@@ -230,6 +230,7 @@ async function googleBatch(session, requests, opts = {}) {
         for (let attempt = 0; pending.length > 0; attempt++) {
             if (signal?.aborted) throw new Error('Run cancelled');
             if (beforePart) for (const r of pending) await beforePart(r);
+            /** @type {Map<string, BatchPart>} */
             let parts;
             try {
                 parts = await send(pending);
@@ -242,6 +243,7 @@ async function googleBatch(session, requests, opts = {}) {
                 for (const r of pending) results.set(r.id, { status: 0, headers: {}, body: { error: { message } } });
                 return;
             }
+            /** @type {BatchRequest[]} */
             const again = [];
             let expired = false;
             let throttled = false;
@@ -291,6 +293,7 @@ async function googleBatch(session, requests, opts = {}) {
     async function send(pending) {
         for (let attempt = 0; ; attempt++) {
             const boundary = `batch_${crypto.randomUUID()}`;
+            /** @type {Response} */
             let response;
             let answer = '';
             try {
@@ -330,7 +333,7 @@ async function googleBatch(session, requests, opts = {}) {
             }
             if (response.status === 401) throw new Error('NOT_CONNECTED');
             let message = `Google batch request failed: ${response.status}`;
-            try { message = JSON.parse(text)?.error?.message || message; } catch (err) { log.debug('not JSON', err); }
+            try { message = JSON.parse(text)?.error?.message || message; } catch (err) { fallback('integrations/googleBatch:send', err); /* not JSON */ }
             throw new Error(message);
         }
     }

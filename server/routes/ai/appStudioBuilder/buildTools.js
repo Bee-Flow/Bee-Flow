@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * App Studio Builder build loop: running one round's tool calls. Each call is
  * applied (the plan tool is the route's own), annotated, reported over SSE,
@@ -19,6 +19,20 @@ const { dataModelEvent } = require('./dataModelEvent');
 const { parseToolArgs, renderValidationNote, truncateJson, RECOVERED_CALL_HINT, REPAIRED_CALL_HINT } = require('./turnLoop');
 const log = require('../../../telemetry/log');
 
+/**
+ * @typedef {import('./turnClosing').BuilderTurn} BuilderTurn
+ * @typedef {import('./buildRound').BuildCtx} BuildCtx
+ * @typedef {import('./buildRound').LoopState} LoopState
+ * @typedef {import('./buildRound').RepeatedStop} RepeatedStop
+ * @typedef {NonNullable<import('./buildRound').RoundResponse['toolCalls']>[number] & { _recovered?: boolean, _recoveredFrom?: string }} RoundToolCall
+ * @typedef {import('./toolCallEvents').ToolResult & {
+ *   validation?: { ok?: boolean, errors?: unknown[], warnings?: unknown[] },
+ *   plan?: unknown, presented?: boolean, _repeated?: number,
+ *   alreadyAdded?: RepeatedStop['alreadyAdded'],
+ *   _plan?: { markedDone: number[], next: string|null },
+ * }} CallResult
+ */
+
 const TOOL_REFUSAL_STREAK_MAX = 4; // consecutive refusals of one tool that end the turn (rung 3b)
 
 /**
@@ -27,12 +41,16 @@ const TOOL_REFUSAL_STREAK_MAX = 4; // consecutive refusals of one tool that end 
  * resend reset 0/6 twice); the cheap markDone form flips items. The echo
  * carries the LIST with indices: it is the model's only cross-round memory
  * of its plan.
+ * @param {import('../../../appStudio/builderTools').ToolArgs} args
+ * @param {BuildCtx} ctx
+ * @returns {CallResult}
  */
 function setPlan(args, ctx) {
     const { draftWrap, send } = ctx;
     if (Array.isArray(args.todos) && args.todos.length) {
         const merged = mergePlanTodos(draftWrap._todos || [], args.todos);
         draftWrap._todos = merged.todos;
+        /** @type {CallResult} */
         const toolResult = planEcho(merged.todos);
         if (merged.unchanged) toolResult.note = 'Plan unchanged — these items were already recorded; done flags kept. Do not resend the plan; continue with `next`.';
         else send('plan', { todos: merged.todos });
@@ -44,7 +62,11 @@ function setPlan(args, ctx) {
     return planEcho(todos);
 }
 
-/** The hints a recovered (written, not made) or repaired (cut-off) call carries in its result. */
+/**
+ * The hints a recovered (written, not made) or repaired (cut-off) call carries in its result.
+ * @param {RoundToolCall} tc
+ * @param {CallResult} toolResult
+ */
 function addCallHints(tc, toolResult) {
     if (tc._recovered && toolResult && typeof toolResult === 'object') {
         // The model never made this call: it wrote it. Say so where it reads:
@@ -63,6 +85,10 @@ function addCallHints(tc, toolResult) {
  * Tick the checklist from what the call DID. The small local models never
  * send markDone; the owner watched a finished app sit at 0/6. Additive only,
  * and `_plan` rides the result so the model reads its progress.
+ * @param {string} name
+ * @param {import('../../../appStudio/builderTools').ToolArgs} args
+ * @param {CallResult} toolResult
+ * @param {BuildCtx} ctx
  */
 function tickPlanFromCall(name, args, toolResult, ctx) {
     const { draftWrap, send } = ctx;
@@ -76,7 +102,14 @@ function tickPlanFromCall(name, args, toolResult, ctx) {
     }
 }
 
-/** Persist + emit after a successful call, per tool; returns whether the draft mutated. */
+/**
+ * Persist + emit after a successful call, per tool; returns whether the draft mutated.
+ * @param {BuilderTurn} turn
+ * @param {string} name
+ * @param {CallResult} toolResult
+ * @param {BuildCtx} ctx
+ * @returns {Promise<boolean>}
+ */
 async function afterSuccessfulCall(turn, name, toolResult, ctx) {
     const { send, sendError, draftWrap, approvedPlanForTurn, writeCheckpoint } = ctx;
     let mutated = false;
@@ -114,7 +147,13 @@ async function afterSuccessfulCall(turn, name, toolResult, ctx) {
     return mutated;
 }
 
-/** app_finalize: a finalized draft, or the validation that stopped it. */
+/**
+ * app_finalize: a finalized draft, or the validation that stopped it.
+ * @param {BuilderTurn} turn
+ * @param {boolean} ok
+ * @param {CallResult} toolResult
+ * @param {BuildCtx} ctx
+ */
 function reportFinalize(turn, ok, toolResult, ctx) {
     const { send, draftWrap } = ctx;
     if (ok && toolResult.finalized) {
@@ -132,6 +171,10 @@ function reportFinalize(turn, ok, toolResult, ctx) {
  * (2026-09-13): the same TOOL refused round after round with slightly
  * different arguments never trips the identical-resend count, so refusals
  * are also counted per tool name, reset by a success of that tool.
+ * @param {string} name
+ * @param {boolean} ok
+ * @param {CallResult} toolResult
+ * @param {LoopState} ls
  */
 function trackRefusals(name, ok, toolResult, ls) {
     if (toolResult && typeof toolResult === 'object' && toolResult._repeated >= 3) {
@@ -155,6 +198,11 @@ function trackRefusals(name, ok, toolResult, ls) {
  * content). The user ALWAYS gets it as an SSE image event; the model gets it
  * as a user image message after this round, and only when it can see.
  * Returns the tool message content to use instead, or null.
+ * @param {string} name
+ * @param {CallResult} toolResult
+ * @param {BuildCtx} ctx
+ * @param {LoopState} ls
+ * @returns {string|null}
  */
 function screenshotContent(name, toolResult, ctx, ls) {
     if (!(name === 'app_screenshot' && toolResult && typeof toolResult === 'object')) return null;
@@ -166,12 +214,20 @@ function screenshotContent(name, toolResult, ctx, ls) {
     return String(toolResult.content || 'Screenshot captured.');
 }
 
-/** Run one tool call of the round; returns whether the draft mutated. */
+/**
+ * Run one tool call of the round; returns whether the draft mutated.
+ * @param {BuilderTurn} turn
+ * @param {RoundToolCall} tc
+ * @param {BuildCtx} ctx
+ * @param {LoopState} ls
+ * @returns {Promise<boolean>}
+ */
 async function runToolCall(turn, tc, ctx, ls) {
     const { send, draftWrap, messages } = ctx;
     turn.toolCallCount += 1;
     const name = tc.function.name;
     const { args, truncated } = parseToolArgs(tc.function.arguments, name);
+    /** @type {CallResult} */
     let toolResult;
     if (truncated) {
         toolResult = { error: `Your arguments for ${name} were not valid JSON (likely truncated mid-call). Resend just THIS single tool call with complete, valid JSON arguments.` };
@@ -212,7 +268,13 @@ async function runToolCall(turn, tc, ctx, ls) {
     return mutated;
 }
 
-/** Run the round's tool calls in order; returns whether the draft mutated. Stops at a broken save. */
+/**
+ * Run the round's tool calls in order; returns whether the draft mutated. Stops at a broken save.
+ * @param {BuilderTurn} turn
+ * @param {RoundToolCall[]} toolCalls
+ * @param {BuildCtx} ctx
+ * @param {LoopState} ls
+ */
 async function runRoundTools(turn, toolCalls, ctx, ls) {
     let mutatedThisIter = false;
     for (const tc of toolCalls) {
@@ -227,6 +289,7 @@ async function runRoundTools(turn, toolCalls, ctx, ls) {
  * change the builder REFUSED three times, and (2026-09-13) a batch the model
  * kept resending after it had landed: those components exist once, and
  * saying "refused" about them would be false.
+ * @param {RepeatedStop} repeatedStop
  */
 function repeatedStopMessage(repeatedStop) {
     const dup = repeatedStop.alreadyAdded;
@@ -243,6 +306,8 @@ function repeatedStopMessage(repeatedStop) {
  * message so it can actually SEE the screen and iterate. The array-content
  * message never reaches the persisted history: sanitizeHistory keeps string
  * content only.
+ * @param {BuildCtx['messages']} messages
+ * @param {LoopState} ls
  */
 function flushVisionImages(messages, ls) {
     if (!ls.pendingVisionImages.length) return;
@@ -262,6 +327,9 @@ function flushVisionImages(messages, ls) {
  * framed role:'user' report (NOT role:'system': system messages get hoisted
  * or concatenated by the Claude/Gemini adapters and would invalidate the
  * prompt cache mid-turn).
+ * @param {BuilderTurn} turn
+ * @param {BuildCtx} ctx
+ * @param {LoopState} ls
  */
 function validateAfterMutation(turn, ctx, ls) {
     const { draftWrap, send, messages } = ctx;

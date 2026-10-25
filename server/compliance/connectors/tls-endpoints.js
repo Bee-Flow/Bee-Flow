@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * TLS endpoint probe (credential-less) — certificate expiry and protocol
  * version for the org's public endpoints (A.8.24 cryptography in transit).
@@ -11,9 +11,15 @@
 const tls = require('node:tls');
 const log = require('../../telemetry/log');
 
-let _isPrivateHostname = null;
-try { _isPrivateHostname = require('../../utils/ssrfGuard').isPrivateHostname; } catch (err) { log.debug('optional', err); }
 
+let _isPrivateHostname = null;
+try { _isPrivateHostname = require('../../utils/ssrfGuard').isPrivateHostname; } catch (err) { if (err?.code !== 'MODULE_NOT_FOUND') throw err; log.debug('optional', err); }
+
+/**
+ * @param {string} host
+ * @param {number} [port]
+ * @param {number} [timeoutMs]
+ */
 function _probe(host, port = 443, timeoutMs = 8000) {
     return new Promise((resolve) => {
         const socket = tls.connect({ host, port, servername: host, timeout: timeoutMs, rejectUnauthorized: false }, () => {
@@ -45,6 +51,7 @@ module.exports = {
     credential: null,
     settingsHint: 'endpoints: ["beeflow.nl", "app.beeflow.nl"]',
 
+    /** @param {import('./index').CollectArgs} args */
     async collect({ settings }) {
         const endpoints = (Array.isArray(settings?.endpoints) ? settings.endpoints : [])
             .map(e => String(e).replace(/^https?:\/\//, '').replace(/[/:].*$/, '').trim().toLowerCase())

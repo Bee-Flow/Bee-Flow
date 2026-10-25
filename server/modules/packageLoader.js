@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Package loader — the lifecycle engine for DOWNLOADABLE remote modules.
  *
@@ -45,7 +45,16 @@ const moduleEntitlements = require('./entitlements');
 const hostApiFactory = require('./hostApi');
 
 // Lazy requires — cycle-safety (index.js ↔ registry ↔ this) + test overrides.
-let _hubClient, _store, _pkgStore, _registry, _beta, _runtime, _verify, _installStore, _logBuffer, _audit;
+let /** @type {typeof import('./hubClient') | undefined} */ _hubClient,
+    /** @type {typeof import('../stores/platformModuleStore') | undefined} */ _store,
+    /** @type {typeof import('../stores/platformModulePackageStore') | undefined} */ _pkgStore,
+    /** @type {typeof import('../core/entitlements/capabilityRegistry') | undefined} */ _registry,
+    /** @type {typeof import('../core/entitlements/betaFeatures') | undefined} */ _beta,
+    /** @type {typeof import('./index') | undefined} */ _runtime,
+    /** @type {typeof import('../license/verify') | undefined} */ _verify,
+    /** @type {typeof import('../stores/platformModuleInstallStore') | undefined} */ _installStore,
+    /** @type {typeof import('./moduleLogBuffer') | undefined} */ _logBuffer,
+    /** @type {typeof import('./moduleAudit') | undefined} */ _audit;
 function hubClient() { return _hubClient || (_hubClient = require('./hubClient')); }
 function store() { return _store || (_store = require('../stores/platformModuleStore')); }
 function packageStore() { return _pkgStore || (_pkgStore = require('../stores/platformModulePackageStore')); }
@@ -89,6 +98,9 @@ const HOST_API_VERSION = hostApiFactory.HOST_API_VERSION;
  * Route /api/mod/<moduleId>/… to that module's router. Unknown or inactive
  * (removed / lapsed entitlement) ids 404-conceal. The module segment is
  * stripped so the module router sees paths relative to its own mount.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
 async function dispatchRouter(req, res, next) {
     try {
@@ -109,7 +121,7 @@ async function dispatchRouter(req, res, next) {
         const origUrl = req.url;
         req.url = rest;
         const restore = () => { req.url = origUrl; };
-        return entry.handle(req, res, (err) => { restore(); return next(err); });
+        return entry.handle(req, res, /** @param {unknown} err */ (err) => { restore(); return next(err); });
     } catch (e) {
         return res.status(404).json({ error: 'not_found' });
     }

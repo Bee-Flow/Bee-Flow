@@ -12,7 +12,7 @@ function schemas(prefix) {
 async function execute(name,args,wrap) {
     try { return await executeRead(name,args,wrap); }
     catch (e) {
-        log.warn('document discovery failed', { tool: name, error: e.message });
+        log.warn('document discovery failed', { tool: name, error: /** @type {Error} */ (e).message });
         return {error:'Could not read the document library. Please retry.',code:e.errorClass || 'document_discovery_failed'};
     }
 }
@@ -33,6 +33,7 @@ async function executeRead(name,args,wrap) {
     wrap._documentContracts[doc.id] = contract;
     wrap._documents ||= [];
     wrap._documents = [...wrap._documents.filter(d => d.id !== doc.id),{...contract,id:doc.id}];
+    /** @type {string | null} */
     let bodyHtml;
     if (args.sectionId) {
         const section = contract.sections.find(s => s.id === args.sectionId);
@@ -48,6 +49,7 @@ async function executeRead(name,args,wrap) {
 // Runs before mutation, including batch tools, so failed inspection never leaves
 // a partially wired document step behind. Existing non-document edits are untouched.
 function inspectBindings(args,wrap, prefix) {
+    /** @type {string} */
     let error;
     function walk(value) {
         if (!value || typeof value !== 'object' || error) return;
@@ -95,7 +97,15 @@ function inspectBindings(args,wrap, prefix) {
         }
         Object.values(value).forEach(walk);
     }
-    try { walk(args); } catch (e) { error=e.message; }
+    try { walk(args); } catch (e) { error=/** @type {Error} */ (e).message; }
     return error ? {error} : null;
 }
 module.exports = { schemas,execute,inspectBindings };
+
+/**
+ * @typedef {ReturnType<typeof getContract>} Contract
+ * @typedef {{ userId?: string, _documentContracts?: Record<string, Contract & { versionId?: string }>,
+ *   _documents?: Array<{ id: string, versionId?: string }>, _documentDiscoveryRequired?: boolean }} DiscoveryWrap
+ * @typedef {{ query?: string, offset?: number, limit?: number, documentId?: string, versionId?: string,
+ *   sectionId?: string, includeBody?: boolean }} DiscoveryArgs
+ */

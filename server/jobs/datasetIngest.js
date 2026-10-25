@@ -36,6 +36,7 @@ const rsidIndex = require('../core/datasets/rsidIndex');
 require('../core/datasets/bgzf');
 const { recordJobRun } = require('../telemetry/metrics');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const LOCK_KEY = 0xBEEFDA7A;
 const INTERVAL_MS = 15 * 1000;
@@ -142,7 +143,7 @@ async function ingestOne(ds) {
 
     try {
         heartbeat = setInterval(() => {
-            datasetFileStore.heartbeatClaim(ds.id, claimant).then((ok) => { if (!ok) claimLost = true; }).catch(() => {});
+            datasetFileStore.heartbeatClaim(ds.id, claimant).then((ok) => { if (!ok) claimLost = true; }).catch((e) => bestEffort('jobs/datasetIngest:ingestOne', e));
         }, HEARTBEAT_MS);
         heartbeat.unref?.();
 
@@ -170,7 +171,7 @@ async function ingestOne(ds) {
                 datasetFileStore.updateProgress(ds.id, {
                     pct,
                     note: `${variantCount.toLocaleString('en-US')} variants indexed`,
-                }).catch(() => {});
+                }).catch((e) => bestEffort('jobs/datasetIngest:onProgress', e));
             },
         });
 
@@ -200,18 +201,18 @@ async function ingestOne(ds) {
 
         // The raw upload has served its purpose — the re-encoded artifact is
         // the canonical copy. Deleting it is part of the AV story.
-        await storageStore.deleteFile(ds.rawKey).catch(() => {});
+        await storageStore.deleteFile(ds.rawKey).catch((e) => bestEffort('jobs/datasetIngest:ingestOne#2', e));
         await datasetFileStore.clearRawKey(ds.id);
         log.info(`[DatasetIngest] ready: ${ds.id} (${result.stats.variantCount} variants, ${result.stats.blockCount} blocks)`);
         return { ok: true };
     } catch (e) {
         const msg = e?.message || 'ingest failed';
         log.warn(`[DatasetIngest] failed: ${ds.id} — ${msg}`);
-        await datasetFileStore.markFailed(ds.id, msg).catch(() => {});
+        await datasetFileStore.markFailed(ds.id, msg).catch((e) => bestEffort('jobs/datasetIngest:ingestOne#3', e));
         // Partial artifacts are noise — clean them; the raw stays for the TTL
         // window so a platform bug can be diagnosed and the ingest retried.
-        if (dataUploadId) await storageStore.abortMultipartUpload(dataKey, dataUploadId).catch(() => {});
-        await storageStore.deleteFile(indexKey).catch(() => {});
+        if (dataUploadId) await storageStore.abortMultipartUpload(dataKey, dataUploadId).catch((e) => bestEffort('jobs/datasetIngest:ingestOne#4', e));
+        await storageStore.deleteFile(indexKey).catch((e) => bestEffort('jobs/datasetIngest:ingestOne#5', e));
         return { ok: false, error: msg };
     } finally {
         if (heartbeat) clearInterval(heartbeat);
@@ -223,7 +224,7 @@ async function ingestOne(ds) {
 async function sweepFailedRaws() {
     const stale = await datasetFileStore.listFailedRawSweep(FAILED_RAW_TTL_H);
     for (const ds of stale) {
-        await storageStore.deleteFile(ds.rawKey).catch(() => {});
+        await storageStore.deleteFile(ds.rawKey).catch((e) => bestEffort('jobs/datasetIngest:sweepFailedRaws', e));
         await datasetFileStore.clearRawKey(ds.id);
         log.info(`[DatasetIngest] swept failed raw: ${ds.id}`);
     }
@@ -270,7 +271,7 @@ async function processTick({ mayIngest = null } = {}) {
         log.warn('[DatasetIngest] tick error:', e.message);
     } finally {
         if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { log.debug('best-effort', err); }
+            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { bestEffort('jobs/datasetIngest:processTick', err); /* best-effort */ }
             client.release();
         }
         if (acquired && didWork) recordJobRun({ job: 'dataset_ingest', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });

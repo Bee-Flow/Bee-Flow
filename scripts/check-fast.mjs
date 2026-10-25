@@ -14,7 +14,9 @@
  *   - scripts/i18n-key-guard.mjs against the merge-base with origin/main (ci.yml
  *     runs it against the pull request's base);
  *   - scripts/scan-secrets.sh --range <merge-base>..HEAD, the commit scan of
- *     the required `scan` context (secret-scan.yml).
+ *     the required `scan` context (secret-scan.yml);
+ *   - scripts/check-new-code-types.mjs: a server file added since the merge-base is
+ *     .mts or carries `// @typecheck strict`.
  *
  * Nothing is installed and nothing is fetched: a stale origin/main only moves
  * the merge-base back. The full test suites, eslint and the builds stay in CI.
@@ -105,7 +107,7 @@ function git(root, args) {
 }
 
 /**
- * The two gates that compare against main. Both need the merge-base of HEAD
+ * The gates that compare against main. Both need the merge-base of HEAD
  * and origin/main; without it they are listed with the reason they skip.
  */
 export function branchGates(root, gitFn = git) {
@@ -130,6 +132,12 @@ export function branchGates(root, gitFn = git) {
             skipWhen: (res) => (res.code === 2 && /needs gitleaks/.test(res.output)
                 ? 'gitleaks is not installed, and --range has no regex fallback; CI\'s scan context runs it'
                 : null),
+        },
+        {
+            name: 'new-code-types',
+            command: `node scripts/check-new-code-types.mjs --base ${base ?? '<merge-base>'}`,
+            bash: false,
+            skip,
         },
     ];
 }

@@ -13,31 +13,53 @@ const { Readable } = require('node:stream');
 const { compareRuns } = require('./runCompare');
 
 const T = '2026-10-01T10:00:00.000Z';
+/**
+ * @param {string} id
+ * @param {Record<string, unknown>} [over]
+ */
 const run = (id, over = {}) => ({
     id, automationId: 'a1', version: 3, mode: 'dry_run', triggerKind: 'dry_run', status: 'success',
     startedAt: T, userId: 'u1', startedByUserId: 'u1', rootRunId: id, ...over,
 });
+/**
+ * @param {string} runId
+ * @param {string} stepId
+ * @param {unknown} output
+ * @param {Record<string, unknown>} [over]
+ */
 const row = (runId, stepId, output, over = {}) => ({
-    runId, stepId, stepType: 'set_variable', parentStepId: null, branchIndex: null, attempts: 1,
-    status: 'success', output, error: null, ...over,
+    runId, stepId, stepType: 'set_variable', parentStepId: /** @type {string | null} */ (null), branchIndex: /** @type {number | null} */ (null), attempts: 1,
+    status: 'success', output, error: /** @type {string | null} */ (null), ...over,
 });
 
+/**
+ * @param {{ steps?: Record<string, any[]>, files?: any[], fullOutputs?: Record<string, unknown>, definitions?: Record<string, unknown> }} [data]
+ */
 function fakeStore({ steps = {}, files = [], fullOutputs = {}, definitions = {} } = {}) {
     return {
-        getRunStepsForChain: async (id) => steps[id] || [],
-        listGeneratedFilesForRuns: async (ids) => files.filter(f => ids.includes(f.runId)),
-        getGeneratedFileForRuns: async (id, ids) => files.find(f => f.id === id && ids.includes(f.runId)) || null,
-        getRunFullOutput: async (runId, stepId, attempts) => fullOutputs[`${runId}/${stepId}/${attempts}`] ?? null,
-        getVersionDefinition: async (aid, v) => definitions[`${aid}@${v}`] || null,
+        getRunStepsForChain: async (/** @type {string} */ id) => steps[id] || [],
+        listGeneratedFilesForRuns: async (/** @type {string[]} */ ids) => files.filter((f) => ids.includes(f.runId)),
+        getGeneratedFileForRuns: async (/** @type {string} */ id, /** @type {string[]} */ ids) => files.find((f) => f.id === id && ids.includes(f.runId)) || null,
+        getRunFullOutput: async (/** @type {string} */ runId, /** @type {string} */ stepId, /** @type {number} */ attempts) => fullOutputs[`${runId}/${stepId}/${attempts}`] ?? null,
+        getVersionDefinition: async (/** @type {string} */ aid, /** @type {number} */ v) => definitions[`${aid}@${v}`] || null,
     };
 }
 const noStorage = { streamFile: async () => { throw new Error('no bytes'); } };
 
+/**
+ * @param {ReturnType<typeof fakeStore>} store
+ * @param {Record<string, unknown>} [over]
+ * @param {Record<string, unknown>} [deps]
+ */
 const compare = (store, over = {}, deps = {}) => compareRuns({
     runA: run('A'), runB: run('B'), legsA: [run('A')], legsB: [run('B')], viewerId: 'u1', ...over,
 }, { store, storage: noStorage, ...deps });
 
-const stepOf = (res, id) => res.steps.find(s => s.stepId === id);
+/**
+ * @param {Awaited<ReturnType<typeof compare>>} res
+ * @param {string} id
+ */
+const stepOf = (res, id) => res.steps.find((s) => s.stepId === id);
 
 test('identical runs are the same; the header carries both runs', async () => {
     const out = [row('A', 's1', { v: 1 }), row('A', 's2', { w: [1, 2] })];
@@ -123,6 +145,11 @@ test('an error text that differs is a change on $error', async () => {
     assert.deepStrictEqual(stepOf(res, 's').changes, [{ path: '$error', change: 'changed', before: '"bad input"', after: '"timeout"' }]);
 });
 
+/**
+ * @param {string} runId
+ * @param {string} stepId
+ * @param {boolean} [withRef]
+ */
 const sentinel = (runId, stepId, withRef = true) => ({
     __truncated__: true, originalBytes: 999999, headSample: '{',
     ...(withRef ? { fullOutputRef: { runId, stepId, attempts: 1 } } : {}),
@@ -170,6 +197,7 @@ test('a leg on the starter\'s own connections is never opened for another viewer
 });
 
 test('the step cap truncates the result', async () => {
+    /** @param {string} id */
     const many = (id) => Array.from({ length: 10 }, (_, i) => row(id, `s${i}`, i));
     const res = await compare(fakeStore({ steps: { A: many('A'), B: many('B') } }), {}, { caps: { maxSteps: 4 } });
     assert.strictEqual(res.steps.length, 4);
@@ -195,16 +223,23 @@ test('ignorePaths are honoured and a change cap marks the step', async () => {
 
 // ── generated files ──────────────────────────────────────────────────
 
+/**
+ * @param {string} id
+ * @param {string} runId
+ * @param {Record<string, unknown>} [over]
+ */
 const file = (id, runId, over = {}) => ({
     id, runId, automationId: 'a1', stepId: 'doc', storageKey: `k/${id}`, filename: 'report.pdf',
     mimeType: 'application/pdf', size: 4, createdAt: T, ...over,
 });
+/** @param {Record<string, Buffer>} blobs */
 const storageOf = (blobs) => ({
-    streamFile: async (key) => {
+    streamFile: async (/** @type {string} */ key) => {
         if (!(key in blobs)) throw new Error('missing');
         return { stream: Readable.from([blobs[key]]), contentLength: blobs[key].length };
     },
 });
+/** @param {string} fileId */
 const handle = (fileId) => ({ kind: 'generated_file', fileId });
 
 test('generated files are paired by step and compared; a handle in an output is compared by content', async () => {
@@ -257,6 +292,7 @@ test('files of another automation in the same runs are not summarised', async ()
 test('a version definition that cannot be read is logged and the step type alone decides', async () => {
     const log = require('../../telemetry/log');
     const original = log.debug;
+    /** @type {string[]} */
     const lines = [];
     log.debug = (line) => { lines.push(String(line)); };
     try {

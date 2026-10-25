@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Webpage chat: the builder's system prompt (routes/ai/webpageChat.js).
  *
@@ -26,6 +26,7 @@ const BF_ELEMENTS_PROMPT = vocabularyPromptLines().map(line => `• ${line}`).jo
 // Mode-aware planning rule (the turn's chatMode). The propose_webpage_plan
 // tool is only EXPOSED in ask/plan modes — in auto mode it isn't even
 // present in the tool list, so the AI literally cannot stop and ask.
+/** @param {string} chatMode */
 function planningRuleFor(chatMode) {
     return chatMode === 'plan'
         ? `MODE: PLAN.
@@ -45,6 +46,8 @@ For very large changes you can still narrate your approach in a sentence or two 
  * The system prompt of one turn. `runtimeBlock` comes from
  * integrations/webpageFramework (it carries the three slot files), the rest
  * from ./context.js.
+ * @param {{ webpage: import('./toolLoop').Webpage, today: string, runtimeBlock: string, planningRule: string,
+ *   sourceSummary: string, searchAvailable: boolean, kbContext: string, selectionContext: string, timezone: string }} args
  */
 function webpageSystemPrompt({
     webpage, today, runtimeBlock, planningRule, sourceSummary, searchAvailable, kbContext, selectionContext, timezone,

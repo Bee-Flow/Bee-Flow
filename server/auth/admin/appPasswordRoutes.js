@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Admin Routes — Nextcloud app-password management for the caller's own
  * account. Split out of auth/adminRoutes.js; mounted there in the original
@@ -39,6 +39,7 @@ const SaveAppPasswordBody = z.object({
 // either unparseable or refused by the SSRF target policy (see
 // integrations/nextcloudTarget.js). Callers surface `error` verbatim; it names
 // the env flag a self-hoster needs for a LAN address.
+/** @param {unknown} raw */
 function normalizeNextcloudUrl(raw) {
     if (!raw || !String(raw).trim()) return null;
     let value = String(raw).trim();
@@ -67,6 +68,7 @@ function normalizeNextcloudUrl(raw) {
 // from token presence alone made the UI offer Nextcloud's auto-create flow to
 // Google-connected users — which POSTs their GOOGLE token as a Bearer to the
 // org's Nextcloud host. The provider tag is the only safe discriminator.
+/** @param {import('express').Request} req */
 function isNextcloudOAuthSession(req) {
     return req.session?.oauthProvider === 'nextcloud' && !!req.session?.accessToken;
 }
@@ -158,7 +160,7 @@ router.post('/save-app-password', requireAuth, validate({ body: SaveAppPasswordB
     }
 
     const userId = req.session.user?.id;
-    await userStore.storeAppPassword(userId, username, password, nextcloudUrl);
+    await userStore.storeAppPassword(userId, username, password, /** @type {string | null} */ (nextcloudUrl));
     res.json({ success: true, message: 'App password saved securely' });
 });
 

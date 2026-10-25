@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * runDurations.js — how long the recent legs of an automation took.
  *
@@ -19,7 +19,7 @@ const LIMIT_MAX = 100;
  * finished or paused on a form. Newest first. Uses idx_automation_runs_aid_started.
  *
  * @param {string} automationId
- * @param {{ limit?: number, query?: Function|null }} [opts]  `query` is an injected reader (tests)
+ * @param {{ limit?: number, query?: typeof getAll | null }} [opts]  `query` is an injected reader (tests)
  * @returns {Promise<number[]>}
  */
 async function recentLegDurations(automationId, { limit = LIMIT_DEFAULT, query = null } = {}) {

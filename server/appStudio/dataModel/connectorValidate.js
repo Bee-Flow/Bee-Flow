@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio data model — the persisted-shape gate for model.connectors[]: url
  * templates, chains, sync blocks (children + dependents) and the mailbox kind.
@@ -38,7 +39,12 @@ const {
 // A REST url TEMPLATE: https-only, host fixed by the owner (never templated),
 // and every {placeholder} must be a declared param. Mirrors the runtime guards
 // in connectors.js runRestConnector so what validates here also runs there.
+/**
+ * @param {string} where
+ * @param {string[]} errors
+ */
 function validateConnectorUrl(url, declaredKeys, where, errors) {
+    /** @type {URL} */
     let probeUrl;
     try {
         const probe = String(url).replace(/\{[a-zA-Z0-9_]+\}/g, '0');
@@ -69,6 +75,8 @@ function validateConnectorUrl(url, declaredKeys, where, errors) {
  * `argsFrom` maps a parameter of the follow-up tool to a path on the CURRENT
  * row. Nothing here can name a credential — the same inline-secret refusal that
  * guards the top level is applied to every step's fixedArgs by the caller.
+ * @param {string} where
+ * @param {string[]} errors
  */
 function validateConnectorChain(chain, where, errors) {
     if (chain === undefined) return;
@@ -136,6 +144,10 @@ function validateConnectorChain(chain, where, errors) {
 // only selects the schedule floor (see minSyncMinutes). `tablesById` (also
 // trailing, also optional) carries the tables' field metadata — dependents are
 // validated against real columns, which a bare id-set cannot answer.
+/**
+ * @param {string} where
+ * @param {string[]} errors
+ */
 function validateConnectorSync(sync, tableIds, where, errors, kind = null, tablesById = null) {
     if (sync === undefined) return;
     if (!isPlainObject(sync)) { errors.push(`${where}.sync must be an object`); return; }
@@ -183,6 +195,7 @@ function validateConnectorSync(sync, tableIds, where, errors, kind = null, table
         } else if (sch.cron !== undefined && sch.cron !== null) {
             // Validated with the SAME parser the automation scheduler uses, so a
             // cron the editor accepts is one the job can actually schedule.
+            /** @type {string | null} */
             let next = null;
             try { next = require('../../automation/cron').nextRunAt(String(sch.cron), typeof sch.tz === 'string' ? sch.tz : undefined); } catch { next = null; }
             if (!next) errors.push(`${sw}.cron "${sch.cron}" is not a valid 5-field cron expression`);
@@ -349,6 +362,7 @@ function validateConnectorSync(sync, tableIds, where, errors, kind = null, table
  *     params, maxRows ≤ the runtime ceiling
  *   • NO inline secrets — the only credential reference allowed is
  *     auth.credentialProvider (resolved server-side from the owner's store)
+ * @param {string[]} errors
  */
 function validateConnectors(model, errors) {
     if (model.connectors === undefined) return;
@@ -460,6 +474,7 @@ function validateConnectors(model, errors) {
         // behaviour cannot drift apart. It lives in ./retentionPlan (a pure leaf),
         // so neither this module nor connectorSync has to require the other.
         if (isPlainObject(c.sync) && Number.isInteger(c.sync.retentionDays) && c.sync.retentionDays > 0) {
+            /** @type {{ days: number; steps: Array<object>; unreachable: string[]; } | null} */
             let plan = null;
             try { plan = planRetention(model, c); } catch { plan = null; }
             if (plan && plan.unreachable.length) {
@@ -525,6 +540,8 @@ function validateConnectors(model, errors) {
  *     a Graph URL path, so anything else is a traversal primitive;
  *   • query may not contain a double quote — it is wrapped in Graph's
  *     $search="..." and would otherwise break out of the literal.
+ * @param {string} where
+ * @param {string[]} errors
  */
 function validateMailboxConnector(c, where, errors) {
     if (!MAILBOX_PROVIDERS.includes(c.provider)) {
@@ -629,3 +646,15 @@ function validateMailboxConnector(c, where, errors) {
 }
 
 module.exports = { validateConnectors };
+
+/**
+ * The persisted shapes as this gate reads them. The input is untrusted (an
+ * author or the AI wrote it), so every field is optional and every one is
+ * checked with `typeof` before it is believed.
+ * @typedef {{ tableId?: string, level?: number, parentLevel?: number, relationField?: string, keyField?: string, mode?: string, retentionField?: string, retentionCascade?: boolean }} SyncChildCfg
+ * @typedef {{ tableId?: string, retentionField?: string, retentionCascade?: boolean, parentTableId?: string, relationField?: string }} SyncDependentCfg
+ * @typedef {{ tableId?: string, mode?: string, keyField?: string, incremental?: { field?: string, param?: string | null, format?: string } | null, schedule?: { cron?: string | null, tz?: string, everyMinutes?: number } | null, refreshOnView?: boolean, retentionField?: string, retentionDays?: number | null, children?: SyncChildCfg[], dependents?: SyncDependentCfg[] }} SyncCfg
+ * @typedef {{ tool?: string, argsFrom?: Record<string, unknown>, fixedArgs?: Record<string, unknown>, expand?: string | null, ownTable?: boolean, merge?: string, alias?: string }} ChainStepCfg
+ * @typedef {{ id?: string, kind?: string, name?: string, params?: Array<{ key?: string, type?: unknown }>, headers?: Record<string, unknown>, chain?: ChainStepCfg[], auth?: { type?: string, header?: string, credentialProvider?: unknown, [k: string]: unknown }, sync?: SyncCfg, tool?: string, fixedArgs?: Record<string, unknown>, integrationId?: string, runAs?: string, rowsPath?: string, automationId?: string, url?: string, maxRows?: number, nextPagePath?: string, provider?: string, mode?: string, address?: string, sharedMode?: string | null, folder?: string, query?: string, lookbackDays?: number, maxPerRun?: number, groupIntoThreads?: boolean, [k: string]: unknown }} ConnectorCfg
+ * @typedef {{ id?: string, key: string, fields?: Array<{ key?: string, type?: string, relation?: { table?: string } }> }} ConnectorTableCfg
+ */

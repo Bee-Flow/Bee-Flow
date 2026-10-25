@@ -111,3 +111,8 @@ module.exports = {
     withClosingPhases,
     summarise,
 };
+
+/**
+ * @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/playbookStore').getPlaybook>>>} PlaybookRow
+ * @typedef {import('../../playbooks/lifecycle').Phase} Phase
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Self-service tokens for the Bee Flow MCP server (routes/mcpServer.js).
  *
@@ -43,12 +43,13 @@ const NO_BODY = z.preprocess(
     z.object({}, { error: onUnknownKeys(ONLY_YOURS, () => ONLY_YOURS) }).strict(),
 );
 
+/** @param {import('express').Request} req */
 function callerId(req) {
     return req.session?.user?.id || null;
 }
 
 /** Whether a token exists, and how to point a client at it. Never the value. */
-router.get('/token', validate({ query: NO_QUERY }), async (req, res) => {
+router.get('/token', validate({ query: NO_QUERY }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const userId = callerId(req);
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
     // A revoked token leaves a random value behind (see DELETE below), so
@@ -87,7 +88,7 @@ router.get('/token', validate({ query: NO_QUERY }), async (req, res) => {
  * previous one — there is deliberately no way to hold two, so a leaked token
  * is revoked by minting again.
  */
-router.post('/token', validate({ query: NO_QUERY, body: NO_BODY }), async (req, res) => {
+router.post('/token', validate({ query: NO_QUERY, body: NO_BODY }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const userId = callerId(req);
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
     const { token, random } = mintToken(userId);
@@ -108,7 +109,7 @@ router.post('/token', validate({ query: NO_QUERY, body: NO_BODY }), async (req, 
  * this purpose (authenticateToken compares against it and can never match) and
  * avoids adding a delete path to a store whose whole surface is write-once.
  */
-router.delete('/token', validate({ query: NO_QUERY, body: NO_BODY }), async (req, res) => {
+router.delete('/token', validate({ query: NO_QUERY, body: NO_BODY }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const userId = callerId(req);
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
     const { random } = mintToken(userId);

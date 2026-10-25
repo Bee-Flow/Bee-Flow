@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * One link check of a site draft: the internal links always, the external URLs
  * only when `external` is true. Used by the admin route, the CMS MCP tool and
@@ -42,10 +42,10 @@ async function runLinkCheck(siteId, options, deps) {
     ]);
     const entries = payload.site?.pages || [];
     const known = {
-        pageIds: new Set(entries.map((p) => p.id)),
-        slugs: new Set(entries.map((p) => p.slug).filter(Boolean)),
-        postSlugs: new Set(posts.map((p) => p.slug).filter(Boolean)),
-        redirectFroms: new Set(redirects.redirects.map((r) => r.from)),
+        pageIds: new Set(entries.map(/** @param {import('../../stores/cms/shared').PageIndexEntry} p */ (p) => p.id)),
+        slugs: new Set(entries.map(/** @param {import('../../stores/cms/shared').PageIndexEntry} p */ (p) => p.slug).filter(Boolean)),
+        postSlugs: new Set(posts.map(/** @param {{ slug?: string }} p */ (p) => p.slug).filter(Boolean)),
+        redirectFroms: new Set(redirects.redirects.map(/** @param {{ from: string }} r */ (r) => r.from)),
     };
     const { problems, external, checked } = checkInternalLinks(collectLinks(payload), known);
 
@@ -73,6 +73,7 @@ function summarise(report) {
  * The problems as validation warnings (the shape cms_publish already returns),
  * capped so one broken menu does not bury the answer.
  * @param {{ problems: any[] }} report
+ * @param {number} [cap]
  */
 function asValidationWarnings(report, cap = 20) {
     const shown = report.problems.slice(0, cap).map((p) => ({

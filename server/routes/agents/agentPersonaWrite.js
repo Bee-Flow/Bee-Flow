@@ -36,6 +36,8 @@ const log = require('../../telemetry/log');
  * offers an automation only to the agents it is bound to, so a hand-off to an
  * unbound one would put "hand off via <tool>" in the prompt for a tool that never
  * exists. See `ensureHandoffBinding` for when a missing binding is made here.
+ * @param {string} automationId
+ * @param {{ actorId: string | null; session: object | null; newSelection: boolean; }} [opts]
  */
 async function verifyHandoffAutomation(agent, automationId, opts = {}) {
     if (!automationId || !agent || !agent.owner_id) return null;
@@ -54,7 +56,7 @@ async function verifyHandoffAutomation(agent, automationId, opts = {}) {
     } catch (e) {
         // "I could not check" is not "yes". No grant, no prompt line promising
         // a hand-off, and the persona keeps the mode but loses the id.
-        log.warn(`[Agents] hand-off automation ${automationId} could not be verified:`, e.message);
+        log.warn(`[Agents] hand-off automation ${automationId} could not be verified:`, /** @type {Error} */ (e).message);
         return null;
     }
 }

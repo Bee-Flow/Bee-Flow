@@ -28,7 +28,7 @@ async function readableDocument(rawPanel, userId, deps = {}) {
         const doc = await (deps.documentStore || documentStore).getDocument(panel.id, userId);
         return doc || null;
     } catch (e) {
-        log.warn('[sidePanelDocument] lookup failed:', e.message);
+        log.warn('[sidePanelDocument] lookup failed:', /** @type {Error} */ (e).message);
         return null;
     }
 }

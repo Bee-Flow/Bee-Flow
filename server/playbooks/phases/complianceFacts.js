@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * What is ACTUALLY true about what the playbook built — the half of the
  * compliance review that does IO.
@@ -68,6 +68,20 @@ const SAMPLE_CHARS = detector.SAMPLE_CHARS;
 const CATEGORY_KIND = detector.KIND_OF_CATEGORY;
 
 /**
+ * @typedef {{
+ *   detectPii: typeof import('../../core/privacy/piiDetection').detectPii,
+ *   getSettings: typeof import('../../stores/complianceStore').getSettings,
+ *   signalsFromDefinition: ((definition: unknown, meta?: { title?: string, description?: string }) => AiActSignals) | null,
+ * }} FactsDeps
+ * @typedef {{ contains_ai?: boolean, customer_facing?: boolean, generates_content?: boolean, disclosure_present?: boolean,
+ *   annex_iii_hint?: boolean, annex_iii_categories?: string[], annex_iii_questions?: Array<{ hint?: boolean, article?: string } | null>,
+ *   [k: string]: unknown }} AiActSignals  What compliance/aiAct/signals.js `signalsFromDefinition` returns (the fields read here).
+ * @typedef {{ id?: string | null, title?: string, description?: string, definition?: unknown }} AutomationLike
+ * @typedef {{ lawfulBasis?: string | null, retentionDays?: number | string | null, retentionField?: string | null,
+ *   subjectColumn?: string | null, rowScope?: string | null }} TablePrivacy
+ */
+
+/**
  * The real collaborators, with room for the caller to add or replace one.
  *
  * The AI Act detector is deliberately NOT wired here. It lives in
@@ -75,26 +89,36 @@ const CATEGORY_KIND = detector.KIND_OF_CATEGORY;
  * one feature never requires another (layering.test.js; ARCHITECTURE.md: for
  * playbooks/ the route does that glue). routes/playbooks.js passes it in.
  * Without it the AI Act facts are null — "not detected", never "no AI".
+ * @param {Partial<FactsDeps>} [overrides]
+ * @returns {FactsDeps}
  */
 function defaultDeps(overrides = {}) {
     return {
+        /** @param {Parameters<typeof import('../../core/privacy/piiDetection').detectPii>} a */
         detectPii: (...a) => require('../../core/privacy/piiDetection').detectPii(...a),
+        /** @param {Parameters<typeof import('../../stores/complianceStore').getSettings>} a */
         getSettings: (...a) => require('../../stores/complianceStore').getSettings(...a),
         signalsFromDefinition: null,
         ...overrides,
     };
 }
 
-/** The guard's categories for one column's values, as our kinds. */
+/**
+ * The guard's categories for one column's values, as our kinds.
+ * @param {Parameters<typeof detector.kindsFromCategories>[0]} entities
+ */
 function kindsOf(entities) {
     return detector.kindsFromCategories(entities);
 }
 
-/** The guard call the value scan makes, with this product's priority on it. */
+/**
+ * The guard call the value scan makes, with this product's priority on it.
+ * @param {Pick<FactsDeps, 'detectPii'>} deps
+ */
 function scanWith(deps) {
     // 'bulk' keeps a table scan behind interactive chat traffic — a review is
     // never the thing a person is waiting on a token for.
-    return (text) => deps.detectPii(text, null, undefined, { priority: 'bulk' });
+    return /** @param {string} text */ (text) => deps.detectPii(text, null, undefined, { priority: 'bulk' });
 }
 
 /**
@@ -107,6 +131,8 @@ function scanWith(deps) {
  * Each column it does return says how much of it was looked at: `sampled`
  * cells, `matched` cells, `byKind` and `rate`. See
  * core/privacy/personalColumns.js for why a count and not just a yes.
+ * @param {Parameters<typeof detector.byValue>[0]} [input]
+ * @param {Pick<FactsDeps, 'detectPii'>} [deps]
  */
 async function personalColumnsByValue({ fields = [], rows = [] } = {}, deps = defaultDeps()) {
     const found = await detector.byValue({ fields, rows }, { scan: scanWith(deps) });
@@ -119,6 +145,8 @@ async function personalColumnsByValue({ fields = [], rows = [] } = {}, deps = de
  * Carries the `id` as well as the title: a playbook regularly builds two
  * automations both called "Untitled automation", and keying these signals by
  * title gave the second one the first one's answer.
+ * @param {Array<AutomationLike | null>} [automations]
+ * @param {Pick<FactsDeps, 'signalsFromDefinition'>} [deps]
  */
 function aiActFacts(automations = [], deps = defaultDeps()) {
     const out = [];
@@ -137,7 +165,11 @@ function aiActFacts(automations = [], deps = defaultDeps()) {
     return out;
 }
 
-/** The organisation's own compliance settings — legal bases, retention, a DPO. */
+/**
+ * The organisation's own compliance settings — legal bases, retention, a DPO.
+ * @param {string | null} orgId
+ * @param {Pick<FactsDeps, 'getSettings'>} [deps]
+ */
 async function orgFacts(orgId, deps = defaultDeps()) {
     let settings = null;
     try { settings = await deps.getSettings(orgId); } catch { settings = null; }
@@ -157,6 +189,9 @@ async function orgFacts(orgId, deps = defaultDeps()) {
  * Everything the review could not know by itself, in one object.
  * `table.privacy` is the datatable row's own metadata as `datatableStore`
  * hands it back (camelCase).
+ * @param {{ table?: { fields?: Parameters<typeof detector.byValue>[0]['fields'] } | null, rows?: Parameters<typeof detector.byValue>[0]['rows'],
+ *   automations?: Array<AutomationLike | null>, orgId?: string | null, privacy?: TablePrivacy | null }} [input]
+ * @param {FactsDeps} [deps]
  */
 async function enrich({ table = null, rows = [], automations = [], orgId = null, privacy = null } = {}, deps = defaultDeps()) {
     const fields = (table && table.fields) || [];

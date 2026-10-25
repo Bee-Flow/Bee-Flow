@@ -97,3 +97,5 @@ require('./sources').register(router, deps);
 require('./versions').register(router, deps);
 
 module.exports = router;
+
+/** @typedef {{ upload: { single(field: string): import('express').RequestHandler } }} WebpageRouteDeps */

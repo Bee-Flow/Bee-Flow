@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Apps API Routes - CRUD for App Marketplace.
  *
@@ -68,6 +68,7 @@ const { requireAuth } = require('../auth/permissions');
 
 // Build the audience entity shape that `canSeePublished` expects, mapping
 // the apps schema (`created_by`) to the generic `owner_id` field.
+/** @param {NonNullable<Awaited<ReturnType<typeof import('../stores/appStore').getApp>>>} app */
 function asAudienceEntity(app) {
     return {
         owner_id: app.created_by,
@@ -78,7 +79,7 @@ function asAudienceEntity(app) {
 }
 
 // GET /apps — list apps the current user is allowed to see
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const userId = req.session.user.id;
     const orgIds = await resolveUserOrgIds(req);
     const userGroups = await resolveUserGroups(userId);
@@ -87,13 +88,13 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 // GET /apps/mine — list apps created by current user (drafts included)
-router.get('/mine', requireAuth, async (req, res) => {
+router.get('/mine', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const apps = await appStore.getAppsByUser(req.session.user.id);
     res.json(apps);
 });
 
 // GET /apps/:id — single-app read, audience-gated
-router.get('/:id', requireAuth, async (req, res) => {
+router.get('/:id', requireAuth, async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const app = await appStore.getApp(req.params.id);
     if (!app) {
         return res.status(404).json({ error: 'App not found' });
@@ -108,15 +109,16 @@ router.get('/:id', requireAuth, async (req, res) => {
 });
 
 // POST /apps — create/publish a new app, scoped to the caller's org
-router.post('/', requireAuth, validate({ body: CreateAppBody }), async (req, res) => {
+router.post('/', requireAuth, validate({ body: CreateAppBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { name, description, code, thumbnail, sharedGroups, isPublished } = req.body;
     const userId = req.session.user.id;
-    const username = req.session.user.username || userId;
+    const username = /** @type {string} */ (req.session.user.username) || userId;
 
     // Auto-assign the user's first organization. Apps without an org are
     // only visible to super admins, so the marketplace would feel broken
     // for the creator if we left it null.
     const orgIds = await resolveUserOrgIds(req);
+    /** @type {string | null} */
     let assignOrgId = null;
     if (orgIds === null) {
         const user = await userStore.getUser(userId);
@@ -137,7 +139,7 @@ router.post('/', requireAuth, validate({ body: CreateAppBody }), async (req, res
 });
 
 // PUT /apps/:id — update an app (owner only, must stay in same org)
-router.put('/:id', requireAuth, validate({ body: UpdateAppBody }), async (req, res) => {
+router.put('/:id', requireAuth, validate({ body: UpdateAppBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const { name, description, code, thumbnail, isPublished, sharedGroups } = req.body;
     const appId = req.params.id;
     const userId = req.session.user.id;
@@ -162,6 +164,11 @@ router.put('/:id', requireAuth, validate({ body: UpdateAppBody }), async (req, r
 
     // A field the body leaves out keeps its value; `null` clears the two
     // that may be empty. sharedGroups left out is preserved by the store.
+    /**
+     * @template T
+     * @param {T | undefined} value
+     * @param {T} current
+     */
     const keep = (value, current) => (value === undefined ? current : value);
     const success = await appStore.updateApp(
         appId,
@@ -180,7 +187,7 @@ router.put('/:id', requireAuth, validate({ body: UpdateAppBody }), async (req, r
 });
 
 // DELETE /apps/:id — delete an app (owner only)
-router.delete('/:id', requireAuth, async (req, res) => {
+router.delete('/:id', requireAuth, async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const appId = req.params.id;
     const existing = await appStore.getApp(appId);
     if (!existing) {

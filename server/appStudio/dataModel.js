@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio v2 — DATA MODEL contract (single source of truth).
  *

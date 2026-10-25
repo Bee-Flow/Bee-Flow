@@ -152,12 +152,16 @@ function stepNumbers(graph) {
 
 // ── Labels ───────────────────────────────────────────────────────────────
 
+/** @type {Record<string, string>} */
 const APP_NAMES = {
     nextcloud: 'Nextcloud', gmail: 'Gmail', gcal: 'Google Calendar', calendar: 'Calendar', drive: 'Google Drive',
     msgraph: 'Microsoft 365', outlook: 'Outlook', teams: 'Teams', slack: 'Slack', github: 'GitHub',
     webpage: 'Web page', knowledge: 'Knowledge base', support: 'Support', talk: 'Talk', deck: 'Deck',
 };
 
+/**
+ * @param {string} s
+ */
 function sentence(s) {
     const words = String(s || '')
         .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
@@ -167,7 +171,10 @@ function sentence(s) {
     return words ? words.charAt(0).toUpperCase() + words.slice(1) : '';
 }
 
-/** 'nextcloud_upload_file' → 'Nextcloud · Upload file'. */
+/**
+ * 'nextcloud_upload_file' → 'Nextcloud · Upload file'.
+ * @param {string} tool
+ */
 function toolLabel(tool) {
     if (typeof tool !== 'string' || !tool) return null;
     const [head, ...rest] = tool.split('_');
@@ -176,12 +183,14 @@ function toolLabel(tool) {
     return `${app} · ${sentence(rest.join('_'))}`;
 }
 
+/** @type {Record<string, string>} */
 const TRIGGER_LABELS = {
     manual: 'Start manually', schedule: 'On a schedule', webhook: 'Webhook', form: 'Form filled in',
     app_event: 'Something in an app', agent_call: 'Called by an agent', layer_input: 'Flowlet input',
     email: 'E-mail received', file: 'New file',
 };
 
+/** @type {Record<string, string>} */
 const STEP_TYPE_LABELS = {
     ai_step: 'AI step', ai_tool: 'AI tool', data_extraction: 'Extract data', condition: 'Condition', switch: 'Switch',
     loop: 'For each', parallel: 'In parallel', code: 'Code', notification: 'Notification', approval: 'Approval',
@@ -214,6 +223,7 @@ function nodeLabel(node, isTrigger) {
 
 // Setting codes and English labels. Key = the dotted path inside the step;
 // the code defaults to the last segment.
+/** @type {Record<string, string>} */
 const SETTING_LABELS = {
     type: 'Step type', label: 'Name', prompt: 'Instruction', instructions: 'Instructions', tool: 'Action',
     modelTier: 'Model', model: 'Model', agentId: 'Agent', skillIds: 'Skills', disabledAgentSkillIds: 'Agent skills',
@@ -245,6 +255,9 @@ function settingOf(pathParts) {
 
 // ── Values as short readable text ──────────────────────────────────────
 
+/**
+ * @param {string} s
+ */
 function cut(s) {
     const t = String(s).replace(/\s+/g, ' ').trim();
     return t.length > MAX_TEXT ? `${t.slice(0, MAX_TEXT - 1)}…` : t;
@@ -253,6 +266,13 @@ function cut(s) {
 const BINDING_KINDS = new Set(['literal', 'ref', 'template', 'expr']);
 function isBinding(v) { return isObject(v) && BINDING_KINDS.has(v.kind) && ('value' in v || 'path' in v); }
 
+/**
+ * @typedef {Object} MakeRendererArgs
+ * @property {{ agent?: Record<string, string>; datatable?: Record<string, string>; knowledgeBase?: Record<string, string>; } | undefined} [names]
+ */
+/**
+ * @param {MakeRendererArgs} [param0]
+ */
 function makeRenderer({ labels = new Map(), names = {} } = {}) {
     // Read with the runner's grammar (validate/refPaths.js), so `steps["read"]…`
     // and a `}` inside a quoted key render like any other path; the part
@@ -260,6 +280,10 @@ function makeRenderer({ labels = new Map(), names = {} } = {}) {
     const refText = (raw) => {
         const p = String(raw || '').trim();
         const { root, tokens } = refHead(p);
+        /**
+         * @param {number} n
+         * @param {string} label
+         */
         const tail = (n, label) => {
             const split = splitPathHead(p, n);
             return split && split.rest ? `${label} › ${split.rest}` : label;
@@ -273,6 +297,9 @@ function makeRenderer({ labels = new Map(), names = {} } = {}) {
         if (root === 'loop' && tokens.length > 1) return tail(2, 'Current item');
         return p;
     };
+    /**
+     * @param {string} s
+     */
     const templateText = (s) => replaceTemplate(String(s), (inner) => `‹${refText(inner)}›`);
 
     const render = (v, key) => {
@@ -350,7 +377,10 @@ function indexNodes(def) {
     return { nodes, labels };
 }
 
-/** Plain objects are compared one level deeper; anything else is one setting. */
+/**
+ * Plain objects are compared one level deeper; anything else is one setting.
+ * @param {number} depth
+ */
 function diffSettings(a, b, parts, out, depth) {
     if (stable(a) === stable(b)) return;
     if (depth < 2 && isObject(a) && isObject(b) && !isBinding(a) && !isBinding(b)) {
@@ -447,6 +477,7 @@ function fieldDiff(prevDef, nextDef, opts = {}) {
         for (const d of ld) changes.push(changedEntry({ stepId: `layer:${lk}`, stepNumber: null, stepLabel: `Flowlet ${title}`, layer: lk }, d));
     }
 
+    /** @type {Record<string, number>} */
     const ORDER = { added: 0, removed: 1, changed: 2, moved: 3 };
     return changes.sort((a, b) => {
         const na = a.stepNumber ?? Number.MAX_SAFE_INTEGER;
@@ -580,3 +611,18 @@ module.exports = {
     describeText,
     describeVersion,
 };
+
+/**
+ * @typedef {Record<string, any>} Obj  a step, trigger, graph or setting object as stored (loose JSON)
+ * @typedef {string | number | boolean | null | undefined | Obj} Value  a setting value as stored
+ * @typedef {{ parts: string[], before: Value, after: Value }} SettingDiff  one changed setting
+ * @typedef {{ from: string, label: string | null, caseName: string | null }} Incoming
+ * @typedef {{ id: string, layer: string | null, node: Obj, isTrigger: boolean, parentId: string | null,
+ *   label: string, layerTitle: string | null, number: number | null, incoming: Incoming[] }} NodeInfo
+ * @typedef {{ stepId: string | null, stepNumber: number | null, stepLabel: string, layer?: string, isTrigger?: boolean,
+ *   change: 'added' | 'removed' | 'changed' | 'moved', setting: string | null, settingLabel: string | null,
+ *   path: string | null, before: string | null, after: string | null,
+ *   beforeText?: string | null, afterText?: string | null, textTruncated?: true }} Change  one field-level change
+ * @typedef {Pick<Change, 'stepId' | 'stepNumber' | 'stepLabel'> & { layer?: string, isTrigger?: boolean }} Head  who a change belongs to
+ * @typedef {{ code: string, params: Record<string, string | number | null> }} Entry  a description entry
+ */

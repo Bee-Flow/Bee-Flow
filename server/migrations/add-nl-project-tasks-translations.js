@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck strict
 /**
  * Dutch for project tasks (2026-10): the Tasks tab (list and board, filters,
  * priority, labels, checklist), the task form, making tasks from a meeting's
@@ -522,6 +523,7 @@ const NL_TRANSLATIONS = {
     'project_tasks.work_item_type': 'Type werkitem',
 };
 
+/** @type {string[]} */
 const SAME_AS_ENGLISH = [];
 
 async function up({ languageStore = require('../stores/languageStore') } = {}) {

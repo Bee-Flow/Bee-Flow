@@ -176,3 +176,5 @@ function stablePrefixLength(messages) {
 }
 
 module.exports = { composeTurnMessages, stablePrefixLength, attachmentSummaryText };
+
+/** @typedef {import('../../../utils/messageUtils').WireMessage} WireMessage */

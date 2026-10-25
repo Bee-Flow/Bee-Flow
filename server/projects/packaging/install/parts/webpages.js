@@ -49,7 +49,7 @@ async function installWebpages(entities, ctx, report) {
             await ctx.stamp({ ref: entity.ref, kind: 'webpage', entityId: created.id, payload: entity.files || {} });
             report.installed.webpages.push({ ref: entity.ref, id: created.id, name: entity.name });
         } catch (err) {
-            report.skipped.push({ ref: entity.ref, kind: 'webpage', why: err.message });
+            report.skipped.push({ ref: entity.ref, kind: 'webpage', why: /** @type {Error} */ (err).message });
         }
     }
 }

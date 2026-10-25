@@ -9,7 +9,7 @@
 const { baseNameOf, classify, zipEntryPath, folderOf } = require('./naming');
 const { hasField, fileEntryAsAttachment } = require('./attachmentRows');
 const { MAX_ZIP_ENTRIES, MAX_ARCHIVE_DEPTH, MAX_ZIP_TOTAL_BYTES, MAX_TOTAL_FILES } = require('./limits');
-const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 async function expandArchives(app, model, state, { attTable, fileField, poRe, writeRecord, writeViewer, ctx, mailbox }) {
     const { files } = state;
@@ -25,6 +25,7 @@ async function expandArchives(app, model, state, { attTable, fileField, poRe, wr
     // on the customer's own line list, and every file for it was forgotten.
     // It produces no project line (files decide which lines exist), so the
     // only thing standing between that plate and silence is saying its name.
+    /** @type {string[]} */
     const emptyFolders = [];
     // A QUEUE, not a list: an archive may hold an archive, and the entries of
     // the inner one are files of this same conversation. `prefix` keeps their
@@ -89,7 +90,7 @@ async function expandArchives(app, model, state, { attTable, fileField, poRe, wr
                     await writeRecord(app, model, attTable, { entries: entries.length }, {
                         viewer: writeViewer(ctx), recordId: zipFile.rowId,
                     });
-                } catch (err) { log.debug('a progress denominator is never worth failing an intake for', err); }
+                } catch (err) { bestEffort('appStudio/fileIntake/archives:expandArchives', err); /* a progress denominator is never worth failing an intake for */ }
             }
             let totalBytes = 0;
             for (const entry of entries) {
@@ -122,6 +123,7 @@ async function expandArchives(app, model, state, { attTable, fileField, poRe, wr
                     report.refusedEntries.push({ name: entryPath, reason: 'file limit for one intake reached' });
                     continue;
                 }
+                /** @type {Buffer<ArrayBufferLike>} */
                 let bytes;
                 try { bytes = await entry.read(); } catch {
                     report.refusedEntries.push({ name: entryPath, reason: 'could not read the entry' });
@@ -179,7 +181,7 @@ async function expandArchives(app, model, state, { attTable, fileField, poRe, wr
                     }
                 } catch (e) {
                     if (e && e.status === 409 && e.code === 'quota_exceeded') { state.quotaHit = e; break; }
-                    report.refusedEntries.push({ name: entryPath, reason: e && e.message ? String(e.message).slice(0, 200) : 'refused' });
+                    report.refusedEntries.push({ name: entryPath, reason: e && /** @type {Error} */ (e).message ? String(/** @type {Error} */ (e).message).slice(0, 200) : 'refused' });
                 }
             }
         }

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Contacts API routes — execute contact actions after user approval
  * Handles both Google Contacts and Microsoft Contacts (via _provider field).
@@ -31,6 +31,9 @@ const { worded } = require('../../core/http/schemaParts');
 // The session gate stays AHEAD of the schema: an unauthenticated caller must
 // still read 401, not a 400 about its body.
 
+/**
+ * @param {string} what
+ */
 const text = (what) => worded(`${what} must be text.`).nullish();
 
 const ACTION_TEXT = 'action is create or update.';
@@ -60,6 +63,11 @@ const ContactsAction = z.object({
     jobTitle: text('jobTitle'),
 }).strict();
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 const requireOAuthSession = (req, res, next) => {
     if (!req.session?.accessToken) return res.status(401).json({ error: 'Not authenticated' });
     next();
@@ -70,7 +78,7 @@ const requireOAuthSession = (req, res, next) => {
  * Execute a contacts action (create/update) after user approval.
  * Routes to Google or Microsoft contacts based on _provider field.
  */
-router.post('/execute', requireOAuthSession, validate({ body: ContactsAction }), async (req, res) => {
+router.post('/execute', requireOAuthSession, validate({ body: ContactsAction }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const action = req.body;
 
     let result;

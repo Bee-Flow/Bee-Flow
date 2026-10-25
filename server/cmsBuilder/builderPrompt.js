@@ -26,6 +26,7 @@ const { THEME_PRESETS } = require('../i18n/defaults/themePresets');
 // ---------------------------------------------------------------------------
 
 function renderCatalogText() {
+    /** @type {string[]} */
     const lines = [];
     for (const t of BLOCK_TYPES) {
         lines.push(`### ${t.type} — ${t.label} (${t.category})`);
@@ -131,6 +132,10 @@ Begin now.`;
 // model gets the outline + an instruction to cms_get_page.
 const PAGE_JSON_CAP = 12 * 1024;
 
+/**
+ * @param {string} s
+ * @param {number} [max]
+ */
 function q(s, max = 48) {
     const str = String(s ?? '');
     return JSON.stringify(str.length > max ? `${str.slice(0, max)}…` : str);
@@ -140,7 +145,10 @@ function isPlainObject(v) {
     return v !== null && typeof v === 'object' && !Array.isArray(v);
 }
 
-/** One line per block: `blk_x hero "Your headline here" [disabled]`. */
+/**
+ * One line per block: `blk_x hero "Your headline here" [disabled]`.
+ * @param {string} [indent]
+ */
 function blockOutlineLine(b, indent = '    ') {
     const bits = [`${indent}${b.id} ${b.type}`];
     const c = isPlainObject(b.content) ? b.content : {};
@@ -169,6 +177,7 @@ function navLinkSummary(link) {
 /**
  * One line per header-nav item WITH its id (the model addresses items by id
  * when replacing the menu): `[nav_ab12] "Pricing" → page pg_x (+2 children)`.
+ * @param {string} [indent]
  */
 function navItemLine(item, indent = '    ') {
     if (!isPlainObject(item)) return `${indent}(malformed nav item)`;
@@ -206,6 +215,7 @@ function renderDraftState(draftWrap, context = null) {
     const pages = Array.isArray(site.pages) ? site.pages : [];
     const cache = draftWrap.pages instanceof Map ? draftWrap.pages : new Map();
 
+    /** @type {string[]} */
     const lines = [];
     const locales = Array.isArray(draftWrap.locales) && draftWrap.locales.length ? draftWrap.locales.join(',') : '(none)';
     lines.push(`site ${q(site.name)} id=${site.id} defaultLocale=${draftWrap.defaultLocale || 'en'} locales=${locales} pages=${pages.length}`);
@@ -219,6 +229,7 @@ function renderDraftState(draftWrap, context = null) {
     else for (const item of nav) lines.push(navItemLine(item));
 
     for (const entry of pages) {
+        /** @type {string[]} */
         const flags = [];
         if (entry.isHomepage) flags.push('HOMEPAGE');
         if (entry.hideHeader) flags.push('hideHeader');

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck strict
 /**
  * Dutch for security keys (2026-09-26): a YubiKey or another FIDO2 key as a
  * second factor, on its own or next to an authenticator app. Covers the card

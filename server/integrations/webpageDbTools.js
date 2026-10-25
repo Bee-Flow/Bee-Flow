@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Webpage DB Tools
  *
@@ -74,6 +74,9 @@ const WEBPAGE_DB_TOOLS = [
 ];
 
 const TOOL_NAMES = new Set(WEBPAGE_DB_TOOLS.map(t => t.function.name));
+/**
+ * @param {string} name
+ */
 function isDbTool(name) {
     return TOOL_NAMES.has(name);
 }
@@ -83,6 +86,9 @@ function isDbTool(name) {
  * operations include `_action: 'webpage_db_update'` so the chat handler can
  * SSE-broadcast a "DB changed" signal (the file explorer uses this to refresh
  * the data.db size badge).
+ * @param {string} toolName
+ * @param {{ sql?: string, params?: unknown }} args
+ * @param {{ webpageId: string, userId: string }} ctx
  */
 async function executeDbTool(toolName, args, { webpageId, userId }) {
     if (!userId || !webpageId) {

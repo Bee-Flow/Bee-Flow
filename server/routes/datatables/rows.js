@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The rows themselves — ungated by licence (the drain exemption).
  *
@@ -34,12 +34,16 @@ const { worded, bodyOf, choice, idText } = require('./schemas');
 //
 // The Studio sends exactly these seven (datatablesApi.listRows).
 const NUM_TEXT = 'limit is a number of rows.';
+/**
+ * @param {string} name
+ * @param {string} what
+ */
 const one = (name, what) => worded(`${name} is ${what}.`).trim().min(1, `${name} is ${what}.`).optional();
 const ListQuery = z.object({
     // JSON on the wire; rowDescriptor.readFilters parses it and resolves
     // every field key against THIS table's declared columns.
     filters: one('filters', 'a list of {field, op, value} as JSON'),
-    match: choice(queryCompiler.MATCH_MODES, 'Rows match all of the conditions, or any of them').optional(),
+    match: choice(/** @type {readonly [string, ...string[]]} */ (queryCompiler.MATCH_MODES), 'Rows match all of the conditions, or any of them').optional(),
     sort: one('sort', 'a column of this table'),
     dir: choice(['asc', 'desc'], 'Sort ascending or descending').optional(),
     q: worded('q is the text to look for.').optional(),
@@ -95,6 +99,7 @@ const ExportQuery = z.object({}).strict();
 /**
  * The route table. Handler bodies live in rowHandlers.js (one row, a page, a
  * selection) and rowTransfer.js (the bulk import and the CSV export).
+ * @param {import('express').IRouter} router
  */
 function register(router) {
     router.get('/:id/rows', requireDatatableGrade('viewer'), validate({ query: ListQuery }), H.listRows);

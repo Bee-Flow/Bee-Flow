@@ -25,7 +25,7 @@
  * an outcome must never take a run down.
  */
 
-const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const OUTCOME_CODES = Object.freeze([
     'success', 'stopped_at', 'waiting_approval', 'waiting_form', 'waiting_confirm', 'cancelled',
@@ -42,7 +42,11 @@ const MAX_WHERE = 120;
 const MAX_FIELDS = 2;
 const MAX_WHO = 3;
 
-/** One line, trimmed, capped. Null for anything that is not a usable scalar. */
+/**
+ * One line, trimmed, capped. Null for anything that is not a usable scalar.
+ * @param {string} value
+ * @param {number} [max]
+ */
 function clip(value, max = MAX_TEXT) {
     if (value == null) return null;
     if (typeof value === 'number') return Number.isFinite(value) ? String(value) : null;
@@ -52,6 +56,9 @@ function clip(value, max = MAX_TEXT) {
     return s.length > max ? `${s.slice(0, max - 1)}…` : s;
 }
 
+/**
+ * @param {string} id
+ */
 function humanize(id) {
     const s = String(id || '').replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
     return s ? s.charAt(0).toUpperCase() + s.slice(1) : null;
@@ -66,6 +73,9 @@ function indexDefinition(definition) {
     const byId = new Map();
     const triggerIds = new Set();
     const seen = new Set();
+    /**
+     * @param {number} depth
+     */
     const walk = (node, depth) => {
         if (!node || typeof node !== 'object' || depth > 12 || seen.has(node)) return;
         seen.add(node);
@@ -90,6 +100,7 @@ function indexDefinition(definition) {
 /**
  * The label a person gave a step, else a readable stand-in. Recorded ids of
  * layer sub-steps carry a `parent/child` prefix; the last segment is the node.
+ * @param {string} stepId
  */
 function stepLabel(index, stepId, stepType = null) {
     if (!stepId) return null;
@@ -100,7 +111,10 @@ function stepLabel(index, stepId, stepType = null) {
     return humanize(node?.type || stepType || stepId);
 }
 
-/** The last row per step id (the final attempt), in the order steps started. */
+/**
+ * The last row per step id (the final attempt), in the order steps started.
+ * @param {object[]} steps
+ */
 function finalRows(steps) {
     const order = [];
     const last = new Map();
@@ -170,6 +184,7 @@ function describeOutput(output) {
         return { kind: 'list', count: declared ?? items.length, noun: nounForItems(items, key) };
     }
 
+    /** @type {string[]} */
     const fields = [];
     for (const k of FIELD_KEYS) {
         if (fields.length >= MAX_FIELDS) break;
@@ -194,6 +209,9 @@ function whereOf(row) {
 }
 
 // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- /s$/ is one literal at the end: linear
+/**
+ * @param {string} noun
+ */
 const singular = (noun, n) => (n === 1 && /s$/.test(noun) ? noun.replace(/s$/, '') : noun);
 
 // ── Why a run stopped, in plain words ───────────────────────────────────
@@ -255,6 +273,7 @@ function reasonFor(err = {}, where = null) {
     if (isPlainObject(info) && typeof info.code === 'string' && clip(info.title)) {
         return { reasonCode: info.code, reason: lowerFirst(stripDot(clip(info.title, 120))) };
     }
+    /** @type {string | null} */
     let code = null;
     if (err.ncCode && NC_REASON[err.ncCode]) code = NC_REASON[err.ncCode];
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a fixed, anchored phrase: linear
@@ -267,10 +286,19 @@ function reasonFor(err = {}, where = null) {
     return { reasonCode: code, reason };
 }
 
+/**
+ * @param {string | null} s
+ */
 function stripDot(s) { return s ? s.replace(/[.\s]+$/, '') : s; }
+/**
+ * @param {string} s
+ */
 function lowerFirst(s) { return s && /^[A-Z][a-z]/.test(s) ? s.charAt(0).toLowerCase() + s.slice(1) : s; }
 
-/** "Anna", "Anna, Bas and Cor", "Anna, Bas, Cor and 2 more". */
+/**
+ * "Anna", "Anna, Bas and Cor", "Anna, Bas, Cor and 2 more".
+ * @param {string[]} names
+ */
 function joinNames(names) {
     const list = (names || []).map(n => clip(n, 60)).filter(Boolean);
     const unique = [...new Set(list)];
@@ -282,6 +310,10 @@ function joinNames(names) {
     return `${head.slice(0, -1).join(', ')} and ${head[head.length - 1]}`;
 }
 
+/**
+ * @param {string} code
+ * @param {string} text
+ */
 const outcome = (code, params, text) => ({ code, params, text });
 
 /**
@@ -344,6 +376,9 @@ function buildRunOutcome(input = {}) {
 
     // success (and anything else that finished without failing).
     const handled = Number(input.handledErrorCount) || 0;
+    /**
+     * @param {string} text
+     */
     const withHandled = (text) => (handled > 0 ? `${text} (${handled} step error${handled === 1 ? '' : 's'} handled)` : text);
     const meaningful = rows.filter(r => DONE_STATUSES.has(r.status) && !QUIET_TYPES.has(r.stepType));
     let chosen = null;
@@ -379,6 +414,7 @@ function buildRunOutcome(input = {}) {
  * Who an approval waits on, as seat references: the panel/stage seats, else
  * the single assignee (user or group), else the owner (an unassigned approval
  * goes to the owner).
+ * @param {string | null | undefined} ownerId
  */
 function approvalSeats(approval, ownerId) {
     if (approval && Array.isArray(approval.approvers) && approval.approvers.length) {
@@ -408,6 +444,7 @@ async function resolveRunOutcome(input, deps = {}) {
     try {
         if (typeof deps.getRunSteps === 'function' && input.runId) steps = await deps.getRunSteps(input.runId) || [];
     } catch (_) { steps = []; }
+    /** @type {string[]} */
     let waitingOn = [];
     if (input.status === 'awaiting_approval') {
         const seats = approvalSeats(input.approval, input.ownerId);
@@ -417,7 +454,7 @@ async function resolveRunOutcome(input, deps = {}) {
                     ? (deps.nameOfUser ? await deps.nameOfUser(seat.userId) : null)
                     : (deps.nameOfGroup ? await deps.nameOfGroup(seat.groupId) : null);
                 if (name) waitingOn.push(name);
-            } catch (err) { log.debug('a name we cannot read is left out, not guessed', err); }
+            } catch (err) { fallback('automation/runOutcome:resolveRunOutcome', err); /* a name we cannot read is left out, not guessed */ }
         }
     }
     try {
@@ -482,3 +519,9 @@ module.exports = {
     joinNames,
     QUIET_TYPES,
 };
+
+/** @typedef {Record<string, any>} JsonObject  a JSON object read off a recorded database row (step output, step input, outcome params) */
+
+/** @typedef {{ stepId?: string, parentStepId?: string|null, stepType?: string, status?: string, attempts?: number, output?: unknown, input?: unknown, errorClass?: string|null, errorInfo?: unknown }} StepRow  a recorded step row (rowToRunStep shape) */
+
+/** @typedef {{ approvers?: Array<{ userId?: string, groupId?: string }>, assigneeUserId?: string, assigneeGroupId?: string }} ApprovalSeats */

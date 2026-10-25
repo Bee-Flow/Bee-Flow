@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * SQL the chat store shares between its delete paths.
  */

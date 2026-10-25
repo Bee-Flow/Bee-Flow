@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Memory Tools — the user's own long-term memory (stores/memoryStore.js) as two
  * tools a chat agent or an automation step can call.
@@ -71,17 +71,30 @@ const MEMORY_TOOLS = [
     },
 ];
 
+/**
+ * @param {string} toolName
+ */
 function isMemoryTool(toolName) {
     return toolName === 'memory_search' || toolName === 'memory_remember';
 }
 
+/**
+ * @param {unknown} v
+ * @param {number} min
+ * @param {number} max
+ * @param {number} dflt
+ */
 function clampInt(v, min, max, dflt) {
     const n = Number(v);
     if (!Number.isFinite(n)) return dflt;
     return Math.max(min, Math.min(max, Math.round(n)));
 }
 
-/** What the model is told about one write; it relays this to the user. */
+/**
+ * What the model is told about one write; it relays this to the user.
+ * @param {{ action?: string, id?: string, supersededId?: string | null, reason?: string }} r  memoryWriter.writeMemory's answer
+ * @param {{ type: string, content: string }} written
+ */
 function rememberResult(r, { type, content }) {
     const base = { type, content, action: r.action };
     switch (r.action) {
@@ -110,6 +123,7 @@ function rememberResult(r, { type, content }) {
     }
 }
 
+/** @param {Awaited<ReturnType<typeof import('../stores/memoryStore').findRelevantMemories>>[number]} m */
 function publicShape(m) {
     return {
         id: m.id,
@@ -123,6 +137,13 @@ function publicShape(m) {
     };
 }
 
+/**
+ * @param {string} toolName
+ * @param {{ query?: string, limit?: number | string, types?: unknown, type?: string, content?: string, importance?: number | string,
+ *   subject?: string, attribute?: string, value?: unknown, evidence?: string }} [args]
+ * @param {{ userId?: string, orgId?: string | null, agentId?: string | null, conversationId?: string | null,
+ *   memoryReadEnabled?: boolean, memoryWriteEnabled?: boolean, session?: unknown }} [context]
+ */
 async function executeMemoryTool(toolName, args = {}, context = {}) {
     const userId = context.userId;
     if (!userId) return { error: 'memory tools need a signed-in user' };
@@ -137,11 +158,11 @@ async function executeMemoryTool(toolName, args = {}, context = {}) {
     });
 
     if (toolName === 'memory_search') {
-        if (!policy.read) return { memories: [], count: 0, disabled: true, reason: policy.reason, message: `${MEMORY_OFF_MESSAGE}: nothing was searched.` };
+        if (!policy.read) return { memories: /** @type {ReturnType<typeof publicShape>[]} */ ([]), count: 0, disabled: true, reason: policy.reason, message: `${MEMORY_OFF_MESSAGE}: nothing was searched.` };
         const query = String(args.query || '').trim();
         if (!query) return { error: 'query is required' };
         const limit = clampInt(args.limit, 1, 20, 8);
-        const types = Array.isArray(args.types) ? args.types.filter(t => MEMORY_TYPES.includes(t)) : null;
+        const types = Array.isArray(args.types) ? args.types.filter((/** @type {string} */ t) => MEMORY_TYPES.includes(t)) : null;
         // A generous token budget, then trim by type and count here — the store
         // ranks by relevance already.
         const found = await getMemoryStore().findRelevantMemories(userId, context.agentId || null, query, 1500, null, { includeGeneral: true, includeSensitive: policy.sensitive === true, search: true });
@@ -172,6 +193,7 @@ async function executeMemoryTool(toolName, args = {}, context = {}) {
                 conversationId: context.conversationId || null, origin: 'tool',
             },
         );
+        /** @type {string[]} */
         const adjusted = [];
         if (fullContent.length > content.length) adjusted.push(`the content was shortened to ${content.length} characters`);
         if (importance !== askedImportance) adjusted.push(`importance ${askedImportance} was limited to ${importance}`);

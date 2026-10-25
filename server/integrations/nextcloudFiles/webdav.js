@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Nextcloud WebDAV plumbing shared by the file tools — the multistatus XML
  * parser, the PROPFIND body, path building and the binary upload helper.
@@ -6,7 +6,23 @@
 
 const ncClient = require('../nextcloudClient');
 const { XMLParser } = require('fast-xml-parser');
-const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
+
+/**
+ * What nextcloudTools.js hands every file-family handler.
+ * @typedef {object} FilesToolCtx
+ * @property {string} baseUrl
+ * @property {import('../nextcloudClient.types').NcAuth['fetch']} ncFetch
+ * @property {string} authError
+ * @property {string} uid
+ * @property {string} root
+ * @property {Partial<Express.Session>} [session]
+ * @property {string | null} [mode]
+ * @property {string | null} [publicBaseUrl]
+ * @property {string} [userId]
+ * @property {string | null} [orgId]
+ * @property {{ runId: string, rootRunId?: string } | null} [runScope]
+ */
 
 const MAX_TEXT_BYTES = 200 * 1024;          // 200 KB cap on file reads
 const REQUEST_TIMEOUT_MS = ncClient.REQUEST_TIMEOUT_MS;
@@ -25,13 +41,23 @@ const xmlParser = new XMLParser({
 // props is the merged successful prop bag. Sabre/DAV returns either an array
 // or a single object for response/propstat depending on cardinality, so this
 // flattens both shapes.
+/**
+ * The prop bag is the XML parser's output (string leaves, nested objects for
+ * elements such as resourcetype), as untyped as a raw database row.
+ * @typedef {Record<string, any>} DavProps
+ */
+/**
+ * @param {string} xml
+ * @returns {Array<{ href: string, props: DavProps, status: string }>}
+ */
 function parseMultistatus(xml) {
     const parsed = xmlParser.parse(xml);
     const ms = parsed?.multistatus;
     if (!ms) return [];
     const responses = Array.isArray(ms.response) ? ms.response : (ms.response ? [ms.response] : []);
-    return responses.map((r) => {
+    return responses.map((/** @type {{ href?: string, status?: string, propstat?: unknown }} */ r) => {
         const propstats = Array.isArray(r.propstat) ? r.propstat : (r.propstat ? [r.propstat] : []);
+        /** @type {DavProps} */
         const props = {};
         for (const ps of propstats) {
             // Only merge 2xx propstat blocks; 404s carry empty placeholders.
@@ -43,6 +69,7 @@ function parseMultistatus(xml) {
     });
 }
 
+/** @param {DavProps} props */
 function isCollectionProp(props) {
     const rt = props.resourcetype;
     if (!rt) return false;
@@ -73,6 +100,10 @@ const PROPFIND_BODY = `<?xml version="1.0"?>
 
 // ─── Helpers ──────────────────────────────────────────────────────
 
+/**
+ * @param {string} root
+ * @param {string} [path]
+ */
 function joinDavPath(root, path) {
     const cleaned = String(path || '/').replace(/^\/+/, '').replace(/\/+$/, '');
     if (!cleaned) return root + '/';
@@ -89,6 +120,11 @@ function joinDavPath(root, path) {
 // auto-mkcol). MKCOL is idempotent enough: 201=created, 405=already exists —
 // both fine. We walk parents in order so a 409 (missing grandparent) can't
 // happen. Best-effort: a failure here surfaces later as the PUT's own error.
+/**
+ * @param {import('../nextcloudClient.types').NcAuth['fetch']} ncFetch
+ * @param {string} root
+ * @param {string} filePath
+ */
 async function ensureParentFolders(ncFetch, root, filePath) {
     const segs = String(filePath || '').replace(/^\/+/, '').split('/');
     segs.pop(); // drop the filename
@@ -96,9 +132,14 @@ async function ensureParentFolders(ncFetch, root, filePath) {
     for (const seg of segs) {
         if (!seg) continue;
         acc += `/${seg}`;
-        try { await ncFetch(joinDavPath(root, acc), { method: 'MKCOL' }); } catch (err) { log.debug('best-effort', err); }
+        try { await ncFetch(joinDavPath(root, acc), { method: 'MKCOL' }); } catch (err) { bestEffort('integrations/nextcloudFiles/webdav:ensureParentFolders', err); /* best-effort */ }
     }
 }
+
+/**
+ * Either `{ error }` or the upload summary.
+ * @typedef {{ error?: string, success?: boolean, path?: string, contentType?: string, bytes?: number, created?: boolean, updated?: boolean, fileId?: string }} UploadResult
+ */
 
 // Upload a binary Buffer to a WebDAV path (PUT), creating parent folders first.
 // Mirrors nextcloud_upload_file but for generated office files. `OC-Total-Length`
@@ -110,6 +151,16 @@ async function ensureParentFolders(ncFetch, root, filePath) {
 // passes `wantFileId` and gets one PROPFIND when the header is missing (the
 // connector hop does not forward it). Header access is defensive: the fake
 // responses in older tests carry no `headers` at all.
+/**
+ * @param {import('../nextcloudClient.types').NcAuth['fetch']} ncFetch
+ * @param {string} root
+ * @param {string} path
+ * @param {Buffer} buffer
+ * @param {string} contentType
+ * @param {string} authError
+ * @param {{ wantFileId?: boolean, baseUrl?: string, uid?: string }} [opts]
+ * @returns {Promise<UploadResult>}
+ */
 async function uploadBinaryFile(ncFetch, root, path, buffer, contentType, authError, opts = {}) {
     await ensureParentFolders(ncFetch, root, path);
     const res = await ncFetch(joinDavPath(root, path), {
@@ -129,12 +180,16 @@ async function uploadBinaryFile(ncFetch, root, path, buffer, contentType, authEr
             fileId = stat && stat.fileId ? String(stat.fileId) : null;
         } catch (_) { fileId = null; }
     }
+    /** @type {UploadResult} */
     const out = { success: true, path, contentType, bytes: buffer.length, created: res.status === 201, updated: res.status === 204 };
     if (fileId) out.fileId = fileId;
     return out;
 }
 
-/** The numeric file id out of an `OC-FileId` header value, or null. */
+/**
+ * The numeric file id out of an `OC-FileId` header value, or null.
+ * @param {string | null | undefined} value
+ */
 function parseOcFileId(value) {
     const v = String(value || '').trim();
     const m = /^(\d{8})/.exec(v);
@@ -143,7 +198,14 @@ function parseOcFileId(value) {
     return Number.isFinite(n) && n > 0 ? String(n) : null;
 }
 
-/** One file's PROPFIND entry (Depth 0), or null when Nextcloud has no such path. */
+/**
+ * One file's PROPFIND entry (Depth 0), or null when Nextcloud has no such path.
+ * @param {import('../nextcloudClient.types').NcAuth['fetch']} ncFetch
+ * @param {string} root
+ * @param {string} path
+ * @param {string} baseUrl
+ * @param {string} uid
+ */
 async function statFile(ncFetch, root, path, baseUrl, uid) {
     const res = await ncFetch(joinDavPath(root, path), {
         method: 'PROPFIND',
@@ -156,6 +218,11 @@ async function statFile(ncFetch, root, path, baseUrl, uid) {
     return entries[0] || null;
 }
 
+/**
+ * @param {string} href
+ * @param {string} baseUrl
+ * @param {string} uid
+ */
 function relativeFromRoot(href, baseUrl, uid) {
     // Convert WebDAV href like "/remote.php/dav/files/alice/Documents/foo.md"
     // to "/Documents/foo.md" (the user-facing path).
@@ -170,6 +237,11 @@ function relativeFromRoot(href, baseUrl, uid) {
     }
 }
 
+/**
+ * @param {string} xml
+ * @param {string} baseUrl
+ * @param {string} uid
+ */
 function parsePropfind(xml, baseUrl, uid) {
     return parseMultistatus(xml).map(({ href, props }) => {
         if (!href) return null;

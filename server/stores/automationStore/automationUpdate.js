@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The column write of automationStore.updateAutomation (split out of
  * automations.js): which fields map to which columns, and the definition
@@ -31,9 +31,13 @@ const UPDATE_FIELD_MAP = Object.freeze({
     folderId: 'folder_id',
 });
 
-/** The column write for `updates`, and its definition serialised once. */
+/**
+ * The column write for `updates`, and its definition serialised once.
+ * @param {Record<string, unknown>} updates
+ */
 function buildAutomationUpdate(updates) {
     const write = { ...updates };
+    /** @type {string | null} */
     let definitionJson = null;
     if (updates.definition !== undefined) {
         // Never coerce a falsy definition into `{}`. An empty object is
@@ -48,6 +52,7 @@ function buildAutomationUpdate(updates) {
         definitionJson = JSON.stringify(v);
         write.definition = definitionJson;
     }
+    /** @param {Record<string, unknown>} w */
     const buildFor = (w) => buildUpdate({
         table: 'automations',
         updates: w,

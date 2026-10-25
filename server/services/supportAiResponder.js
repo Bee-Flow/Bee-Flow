@@ -24,6 +24,7 @@ const { chatWithAgent } = require('../core/agentRuntime');
 const { quickKBSearch } = require('../core/agentRuntime/knowledgeSearch');
 const { buildSupportToolset, makeActionPolicy } = require('../integrations/supportTools');
 const log = require('../telemetry/log');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const ESCALATE_RE = /\[ESCALATE(?::\s*([^\]]+))?\]/i;
 const RESOLVED_RE = /\[RESOLVED\]/i;
@@ -390,7 +391,7 @@ async function _maybeAutoAssign(threadId) {
         try {
             const inbox = await require('../stores/supportInboxStore').getInbox(thread.inbox_id);
             sharedGroups = Array.isArray(inbox?.shared_groups) ? inbox.shared_groups : [];
-        } catch (err) { log.debug('default open', err); }
+        } catch (err) { fallback('services/supportAiResponder:_maybeAutoAssign', err); /* default open */ }
     }
     const { pickNextAssignee } = require('./supportAutoAssigner');
     const next = await pickNextAssignee(thread.organization_id || null, { sharedGroups });
@@ -568,12 +569,12 @@ async function runAiAutoResponder(threadId, opts = {}) {
         }
 
         // Fire-and-forget tag + category suggestion (never blocks the reply).
-        Promise.resolve().then(() => _autoTag(thread, lastRequester.body, finalBody)).catch(() => {});
+        Promise.resolve().then(() => _autoTag(thread, lastRequester.body, finalBody)).catch((e) => bestEffort('services/supportAiResponder:runAiAutoResponder', e));
 
         // Reflect a tool-driven resolve so the caller fires KB-ingest / delivery.
         let resolvedOut = aiResolved;
         if (actionStatusChanged) {
-            const fresh = await supportStore.getThread(threadId).catch(() => null);
+            const fresh = await supportStore.getThread(threadId).catch((e) => fallback('services/supportAiResponder:runAiAutoResponder#2', e, null));
             if (fresh && fresh.status === 'resolved') resolvedOut = true;
         }
 
@@ -605,3 +606,9 @@ async function runAiAutoResponder(threadId, opts = {}) {
     }
 }
 module.exports = { runAiAutoResponder };
+
+/**
+ * @typedef {{ agentId?: string|null, kbIds?: string[], replyMode?: string, autoresolveThreshold?: number, v2Enabled?: boolean, toolsEnabled?: boolean, enabledToolIds?: string[], operatorUserId?: string|null, operatorOrgId?: string|null, orgId?: string|null }} SupportAiConfig
+ * @typedef {NonNullable<Awaited<ReturnType<typeof supportStore.getThread>>>} SupportThread
+ * @typedef {Awaited<ReturnType<typeof supportStore.getThreadMessages>>} SupportMessages
+ */

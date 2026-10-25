@@ -47,7 +47,10 @@ const COLLECTION_URL_RE = [
 
 const HOSTNAME_RE = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 
-/** Lowercase, no trailing dot; '' for anything that is not a string. */
+/**
+ * Lowercase, no trailing dot; '' for anything that is not a string.
+ * @param {string} host
+ */
 function normaliseHost(host) {
     if (typeof host !== 'string') return '';
     return host.trim().toLowerCase().replace(/\.$/, '');
@@ -56,6 +59,7 @@ function normaliseHost(host) {
 /**
  * Is `entry` a valid allowedHosts entry? A host name, or `*.` plus a host name
  * with at least one dot (`*.com` would allow a whole top-level domain).
+ * @param {string} entry
  */
 function isValidHostEntry(entry) {
     const e = normaliseHost(entry);
@@ -67,9 +71,13 @@ function isValidHostEntry(entry) {
     return HOSTNAME_RE.test(e);
 }
 
-/** The valid entries of an allowedHosts list, normalised and de-duplicated. */
+/**
+ * The valid entries of an allowedHosts list, normalised and de-duplicated.
+ * @param {string[]} list
+ */
 function cleanHostList(list) {
     if (!Array.isArray(list)) return [];
+    /** @type {string[]} */
     const out = [];
     for (const raw of list) {
         const e = normaliseHost(raw);
@@ -78,7 +86,11 @@ function cleanHostList(list) {
     return out;
 }
 
-/** Does `host` match one entry (a host name or a `*.domain` wildcard)? */
+/**
+ * Does `host` match one entry (a host name or a `*.domain` wildcard)?
+ * @param {string} host
+ * @param {string} entry
+ */
 function hostMatchesEntry(host, entry) {
     const h = normaliseHost(host);
     const e = normaliseHost(entry);
@@ -87,12 +99,20 @@ function hostMatchesEntry(host, entry) {
     return h === e;
 }
 
-/** Is `host` listed in `manifest` (host names and wildcards)? */
+/**
+ * Is `host` listed in `manifest` (host names and wildcards)?
+ * @param {string} host
+ * @param {string[]} manifest
+ */
 function hostListed(host, manifest) {
     return (manifest || []).some((entry) => hostMatchesEntry(host, entry));
 }
 
-/** Does `host` sit on `domain` or one of its sub-domains? */
+/**
+ * Does `host` sit on `domain` or one of its sub-domains?
+ * @param {string} host
+ * @param {string} domain
+ */
 function onDomain(host, domain) {
     const h = normaliseHost(host);
     return h === domain || h.endsWith(`.${domain}`);
@@ -107,6 +127,7 @@ function hostsInText(text) {
     const out = new Set();
     const s = String(text || '');
     const re = /\b[a-z][a-z0-9+.-]*:\/\/([^\s/?#'"`<>\\]+)/gi;
+    /** @type {RegExpExecArray | null} */
     let m;
     while ((m = re.exec(s)) !== null) {
         let authority = m[1];
@@ -123,6 +144,8 @@ function hostsInText(text) {
  * on a host boundary: before it a dot (a sub-domain) or a non-host character;
  * after it anything but more host (`webhook.site.example` is another domain,
  * `webhook.site.` at the end of a sentence is not).
+ * @param {string} text
+ * @param {readonly string[]} domains
  */
 function mentionsDomain(text, domains) {
     const s = String(text || '').toLowerCase();
@@ -140,13 +163,19 @@ function mentionsDomain(text, domains) {
     return null;
 }
 
-/** Does the text name a mining pool or the stratum protocol? */
+/**
+ * Does the text name a mining pool or the stratum protocol?
+ * @param {string} text
+ */
 function mentionsMining(text) {
     if (STRATUM_RE.test(String(text || ''))) return true;
     return mentionsDomain(text, MINING_DOMAINS) !== null;
 }
 
-/** Does the text name a collection endpoint (request bin, tunnel, chat webhook)? */
+/**
+ * Does the text name a collection endpoint (request bin, tunnel, chat webhook)?
+ * @param {string} text
+ */
 function mentionsCollection(text) {
     const s = String(text || '');
     if (COLLECTION_URL_RE.some((re) => re.test(s))) return true;
@@ -161,6 +190,8 @@ function mentionsCollection(text) {
  *   partial   more text follows at run time; the host is known only when the
  *             prefix already runs past it (`https://api.x.com/` + id), never
  *             when the next piece could still extend it (`https://api.x` + tld).
+ * @param {string} text
+ * @param {boolean} complete
  */
 function hostOfUrlPrefix(text, complete) {
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored scheme://host prefix with negated classes: linear

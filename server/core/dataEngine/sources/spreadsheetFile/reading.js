@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * READING one worksheet through a FileApi — the same way for the wizard's
  * describe and for the refresh pass, so the columns the linker saw are the
@@ -46,6 +47,8 @@ const DRIVE_SEP = '|';
  * The FileRef a wire `{ provider, fileId, driveId?, path? }` names. On
  * Nextcloud the id IS the path; on OneDrive a composite id carries the
  * drive; Google's is the file id.
+ * @param {string} provider
+ * @param {{ fileId?: string|null, driveId?: string|null, path?: string|null, name?: string|null }} [wire]
  */
 function fileRefOf(provider, { fileId = null, driveId = null, path = null, name = null } = {}) {
     if (!PROVIDERS.includes(provider)) {
@@ -67,7 +70,10 @@ function fileRefOf(provider, { fileId = null, driveId = null, path = null, name 
     return { provider, fileId: id, driveId: drive, path: path || null, name: name || null };
 }
 
-/** The id a client uses for a FileRef: the path on Nextcloud, `drive|item` for a foreign OneDrive item. */
+/**
+ * The id a client uses for a FileRef: the path on Nextcloud, `drive|item` for a foreign OneDrive item.
+ * @param {import('./providers').FileRef|null} ref
+ */
 function wireIdOf(ref) {
     if (!ref) return null;
     if (ref.provider === 'nextcloud_files') return ref.path || null;
@@ -75,7 +81,11 @@ function wireIdOf(ref) {
     return ref.fileId || null;
 }
 
-/** The key two mirrors of one file share, whatever the storage: provider + file identity. */
+/**
+ * The key two mirrors of one file share, whatever the storage: provider + file identity.
+ * @param {string} provider
+ * @param {import('./providers').FileRef|null} file
+ */
 function fileKeyOf(provider, file) {
     if (!file) return `${provider}|`;
     if (provider === 'nextcloud_files') return `${provider}|${file.path || file.id || file.fileId || ''}`;
@@ -85,10 +95,21 @@ function fileKeyOf(provider, file) {
 // ─── Reading ────────────────────────────────────────────────────────────
 
 /**
+ * The reader contract: one worksheet as header + rows.
+ * @typedef {{ sheet?: string|null, header: Array<string|null>, rows: Array<Array<unknown>>, rowNumbers: number[],
+ *             formulaCols: Set<number>, dateCols: Set<number>, numFmts: Map<number, string>,
+ *             lastDataRow: number, truncated: boolean, warnings: string[], csv?: object }} SheetRead
+ */
+
+/**
  * A cells-API matrix (rows 1..n of the sheet, typed values) → the reader
  * contract. Rows above `headerRow` are ignored; the header runs to its
  * last non-empty cell; blank data rows are dropped; `maxRows` data rows are
  * kept and one more sets `truncated`.
+ *
+ * @param {Array<Array<unknown>>} matrix
+ * @param {{ headerRow?: number, maxRows?: number, maxCols?: number, dateCols?: Set<number>, formulaCols?: Set<number>, sheet?: string|null }} [opts]
+ * @returns {SheetRead}
  */
 function fromMatrix(matrix, { headerRow = 1, maxRows, maxCols, dateCols = new Set(), formulaCols = new Set(), sheet = null } = {}) {
     const h = Math.max(1, Number(headerRow) || 1);
@@ -134,7 +155,12 @@ function fromMatrix(matrix, { headerRow = 1, maxRows, maxCols, dateCols = new Se
     return { sheet, header, rows, rowNumbers, formulaCols: formulas, dateCols: dates, numFmts: new Map(), lastDataRow, truncated, warnings };
 }
 
-/** The tab list of a file: `[{ id, name, index, rows, cols, hidden }]` (a csv has one unnamed tab). */
+/**
+ * The tab list of a file: `[{ id, name, index, rows, cols, hidden }]` (a csv has one unnamed tab).
+ * @param {import('./providers').FileApi} api
+ * @param {import('./providers').FileProbe} probe
+ * @param {{ viaCells?: boolean }} opts
+ */
 async function listSheetsOf(api, probe, { viaCells }) {
     if (viaCells) {
         const tabs = await api.cells.listSheets(probe.file);
@@ -146,14 +172,19 @@ async function listSheetsOf(api, probe, { viaCells }) {
     const buffer = await bytesOf(api, probe);
     const key = cache.keyOf(probe.file.provider, fileIdOf(probe.file), probe.marker);
     const tabs = await cache.parsed(key, 'sheets', () => formats.listSheets(buffer, probe.format), { size: 2048 });
-    return tabs.map(s => ({ id: null, name: s.name, index: s.index, rows: s.rows, cols: s.cols, hidden: !!s.hidden }));
+    return tabs.map((/** @type {Awaited<ReturnType<typeof formats.listSheets>>[number]} */ s) => ({ id: /** @type {string|null} */ (null), name: s.name, index: s.index, rows: s.rows, cols: s.cols, hidden: !!s.hidden }));
 }
 
+/** @param {import('./providers').FileRef} file */
 function fileIdOf(file) {
     return file.provider === 'nextcloud_files' ? (file.path || '') : (file.fileId || file.id || '');
 }
 
-/** The file's bytes at the probed version — cached, one download in flight. */
+/**
+ * The file's bytes at the probed version — cached, one download in flight.
+ * @param {import('./providers').FileApi} api
+ * @param {import('./providers').FileProbe} probe
+ */
 async function bytesOf(api, probe) {
     if (probe.size != null && probe.size > formats.MAX_FILE_BYTES) {
         throw new SpreadsheetSourceError(413, 'spreadsheet_too_large',
@@ -166,15 +197,12 @@ async function bytesOf(api, probe) {
 
 /**
  * One worksheet, by cells or by bytes.
- * @param {object} api        a FileApi
- * @param {object} probe      api.probe()'s answer (marker, format, file, size, name)
- * @param {object} opts
- * @param {string|null} opts.sheet     tab name (null = the first)
- * @param {number} opts.headerRow
- * @param {number} opts.rowCap         data rows to keep; one more is read to learn `truncated`
- * @param {number} [opts.maxCols]
- * @param {boolean} opts.viaCells
- * @returns {Promise<object>} the reader contract
+ * @param {import('./providers').FileApi} api
+ * @param {import('./providers').FileProbe} probe      api.probe()'s answer (marker, format, file, size, name)
+ * @param {{ sheet?: string|null, headerRow?: number, rowCap?: number, maxCols?: number, viaCells?: boolean }} opts
+ *   sheet    tab name (null = the first)
+ *   rowCap   data rows to keep; one more is read to learn `truncated`
+ * @returns {Promise<SheetRead>} the reader contract
  */
 async function readSheetOf(api, probe, { sheet = null, headerRow = 1, rowCap, maxCols = formats.MAX_COLS, viaCells }) {
     const cap = Math.max(1, Math.min(formats.MAX_ROWS, Number(rowCap) || formats.MAX_ROWS));
@@ -200,6 +228,10 @@ async function readSheetOf(api, probe, { sheet = null, headerRow = 1, rowCap, ma
     return cache.parsed(key, subKey, () => formats.readSheet(buffer, { format: probe.format, sheet, headerRow, maxRows: cap + 1, maxCols }));
 }
 
+/**
+ * @param {import('./providers').FileApi} api
+ * @param {import('./providers').FileProbe} probe
+ */
 async function firstTab(api, probe) {
     const tabs = await api.cells.listSheets(probe.file);
     const first = tabs.find(t => !t.hidden) || tabs[0];
@@ -207,7 +239,11 @@ async function firstTab(api, probe) {
     return first.name;
 }
 
-/** Does this file read (and write) by cells on this api? Asks the storage once per api instance where it must. */
+/**
+ * Does this file read (and write) by cells on this api? Asks the storage once per api instance where it must.
+ * @param {import('./providers').FileApi} api
+ * @param {import('./providers').FileProbe} probe
+ */
 async function cellsAvailable(api, probe) {
     if (!api.cells || typeof api.cells.available !== 'function') return false;
     if (probe.format === 'gsheet') return true;
@@ -229,6 +265,9 @@ async function cellsAvailable(api, probe) {
  * pointing at the wrong sheet rows (the next update-by-id would then drop
  * a live row). In key mode the copy stores no row number, so a shift is
  * genuinely nothing — pass `null` there.
+ * @param {Array<unknown>|null} header
+ * @param {Array<Array<unknown>>|null} rows
+ * @param {number[]|null} [rowNumbers]
  */
 function contentHashOf(header, rows, rowNumbers = null) {
     const h = crypto.createHash('sha256');
@@ -244,7 +283,10 @@ function contentHashOf(header, rows, rowNumbers = null) {
 
 // ─── Write mode ─────────────────────────────────────────────────────────
 
-/** What a row written from Bee Flow loses in the file, per mechanism. */
+/**
+ * What a row written from Bee Flow loses in the file, per mechanism.
+ * @type {Readonly<Record<string, string[]>>}
+ */
 const CAVEATS = Object.freeze({
     sheets_api: [],
     graph_workbook: [],
@@ -255,13 +297,14 @@ const CAVEATS = Object.freeze({
 
 /**
  * How (and whether) rows can be written back into this file.
- * @param {object} facts   { provider, format, owned, writable, workbook, sharedOptIn }
+ * @param {{ provider?: string, format?: string, owned?: boolean, writable?: boolean, workbook?: boolean, sharedOptIn?: boolean }} [facts]
  * @returns {{ mode:string, reason:string|null, caveats:string[], sharedOptIn:boolean }}
  */
 function writeModeFor({ provider, format, owned = false, writable = true, workbook = false, sharedOptIn = false } = {}) {
     const optIn = sharedOptIn === true;
-    const none = (reason) => ({ mode: 'none', reason, caveats: [], sharedOptIn: optIn });
-    if (formats.READ_ONLY_REASON[format]) return none(formats.READ_ONLY_REASON[format]);
+    /** @param {string} reason */
+    const none = (reason) => ({ mode: 'none', reason, caveats: /** @type {string[]} */ ([]), sharedOptIn: optIn });
+    if (/** @type {Readonly<Record<string, string>>} */ (formats.READ_ONLY_REASON)[format]) return none(/** @type {Readonly<Record<string, string>>} */ (formats.READ_ONLY_REASON)[format]);
     if (format !== 'gsheet' && format !== 'xlsx' && format !== 'csv') return none('format');
     if (writable === false) return none('no_permission');
     if (!owned && !optIn) return none('not_owned');

@@ -44,3 +44,7 @@ function patchBindingMap(graph, step, patch, next, { feAfter, draftWrap, inputsM
 }
 
 module.exports = { patchBindingMap };
+
+/** @typedef {import('../../draftGraph').DraftGraph} DraftGraph */
+
+/** @typedef {import('../../pendingDatatables').DraftWrap} DraftWrap */

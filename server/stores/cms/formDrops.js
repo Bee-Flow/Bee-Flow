@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // How many submissions a website form dropped silently, per form block and
 // reason. The honeypot and minimum-age drops answer 200 on purpose (a probe
 // must not learn which signal caught it), so without a count an admin could
@@ -20,7 +20,7 @@ const count = (v) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? Mat
  */
 async function countFormDrop(blockId, kind) {
     try {
-        await configStore.mutateConfig(`${KEY_PREFIX}${blockId}`, (current) => {
+        await configStore.mutateConfig(`${KEY_PREFIX}${blockId}`, /** @param {unknown} current */ (current) => {
             const cur = current && typeof current === 'object' ? /** @type {Record<string, unknown>} */ (current) : {};
             return { honeypot: count(cur.honeypot), tooFast: count(cur.tooFast), [kind]: count(cur[kind]) + 1 };
         });
@@ -39,7 +39,7 @@ async function getFormDrops(blockIds) {
     /** @type {Record<string, FormDrops>} */
     const out = {};
     for (const id of blockIds) {
-        const row = rows[`${KEY_PREFIX}${id}`];
+        const row = /** @type {Record<string, unknown>} */ (rows)[`${KEY_PREFIX}${id}`];
         const r = row && typeof row === 'object' ? /** @type {Record<string, unknown>} */ (row) : {};
         out[id] = { honeypot: count(r.honeypot), tooFast: count(r.tooFast) };
     }

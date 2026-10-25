@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Memoises exactly one pure function: the guard's verdict for one segment,
  * under one detection policy, from one identified engine.
@@ -30,6 +30,7 @@ const { segmentText } = require('./segmentText');
 const { isCustomTypeId } = require('../privacy/customTypes/ids');
 const { displayNameFor } = require('../privacy/customTypes/registry');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // Bump to invalidate every row: covers the marshalling AND the segmentation
 // rule, neither of which is otherwise visible in the key. The one-line rollback.
@@ -39,6 +40,7 @@ const DISABLED = String(process.env.PII_LEDGER_DISABLED || '').toLowerCase() ===
 const MAX_REQUEST_CHARS = Math.max(1000, Number(process.env.PII_GUARD_WINDOW_CHARS || 8000));
 const WINDOW_OVERLAP_CHARS = 256;
 
+/** @type {NonSharedBuffer | null} */
 let _hmacKey = null;
 function hmacKey() {
     if (_hmacKey) return _hmacKey;
@@ -58,6 +60,7 @@ function hmacKey() {
 }
 
 /** Digest of the category vocabulary, so a later alias fix invalidates by itself. */
+/** @type {string | null} */
 let _catTableDigest = null;
 function categoryTableDigest() {
     if (_catTableDigest) return _catTableDigest;
@@ -69,6 +72,17 @@ function categoryTableDigest() {
     return _catTableDigest;
 }
 
+/**
+ * @typedef {Object} ScanKeyArgs
+ * @property {string} text
+ * @property {string[] | undefined} [categories]
+ * @property {number | undefined} threshold
+ * @property {string} engineFingerprint
+ * @property {string | undefined} [scope]
+ */
+/**
+ * @param {ScanKeyArgs} param0
+ */
 function scanKey({ text, categories, threshold, engineFingerprint, scope }) {
     // `null` categories ("everything the guard knows") is a DIFFERENT request
     // from an explicit list of all ids — keep them distinguishable.
@@ -88,12 +102,24 @@ function scanKey({ text, categories, threshold, engineFingerprint, scope }) {
 // the admin's words and can change, so it is looked up again on the way out.
 // `ac` keeps the categories a merged span also carried (tool blocking reads
 // them); both are absent for a built-in-only row, which packs as it always did.
+/**
+ * @typedef {{ offset: number, length: number, category: string, label?: string, confidence?: number,
+ *            alsoCategories?: string[] }} LedgerEntity
+ * @typedef {{ o: number, l: number, c: string, lb?: string, cf?: number, ac?: string[] }} PackedEntity
+ * @typedef {{ guardAbsent?: boolean, hasPii?: boolean, entities?: LedgerEntity[], degraded?: boolean,
+ *            degradedReason?: string, engineFingerprint?: string } | null} DetectResult
+ */
+/** @param {LedgerEntity} e */
 const _pack = e => ({
     o: e.offset, l: e.length, c: e.category,
     ...(e.label && e.label !== e.category && !isCustomTypeId(e.category) ? { lb: e.label } : {}),
     ...(Number.isFinite(e.confidence) ? { cf: Math.round(e.confidence * 1000) / 1000 } : {}),
     ...(Array.isArray(e.alsoCategories) && e.alsoCategories.length ? { ac: e.alsoCategories } : {}),
 });
+/**
+ * @param {PackedEntity} r
+ * @param {number} shift
+ */
 const _unpack = (r, shift) => ({
     offset: r.o + shift, length: r.l, category: r.c,
     label: r.lb || (isCustomTypeId(r.c) ? displayNameFor(r.c) : r.c),
@@ -104,12 +130,12 @@ const _unpack = (r, shift) => ({
 /**
  * Detect PII over `text`, reusing previously memoised segment verdicts.
  *
- * @returns {Promise<{entities:Array, degraded:boolean, degradedReason:string|null,
+ * @returns {Promise<{entities:LedgerEntity[], degraded:boolean, degradedReason:string|null,
  *                    stats:{segments:number,hits:number,fresh:number}}>}
  *   Entity offsets are absolute against `text`. `degraded` is true when any
  *   segment could not be scanned — the caller applies its own failure policy,
  *   exactly as it does for a direct detectPii call.
- * @param text
+ * @param {string} text
  * @param {{ categories?: string[], threshold?: number, scope?: string, detect?: Function }} [opts]
  */
 async function detectWithLedger(text, { categories, threshold, scope, detect } = {}) {
@@ -127,16 +153,27 @@ async function detectWithLedger(text, { categories, threshold, scope, detect } =
     const engineFingerprint = probe && probe.engineFingerprint;
     const usable = !DISABLED && typeof engineFingerprint === 'string' && engineFingerprint.length > 0;
 
+    /** @type {LedgerEntity[]} */
     const entities = [];
     let degraded = false;
+    /** @type {string | null} */
     let degradedReason = null;
 
+    /**
+     * @param {LedgerEntity[]} list
+     * @param {{ start: number; end: number; scanStart: number; scanText: string; }} seg
+     */
     const push = (list, seg) => {
         for (const e of list) {
             if (!Number.isFinite(e.offset) || !Number.isFinite(e.length)) continue;
             entities.push({ ...e, offset: e.offset + seg.scanStart });
         }
     };
+    /**
+     * @param {DetectResult} result
+     * @param {{ start: number; end: number; scanStart: number; scanText: string; }} seg
+     * @returns {LedgerEntity[] | null}
+     */
     const absorb = (result, seg) => {
         if (result && result.guardAbsent) {
             // No guard, but the org's own words/patterns ran in Node. A
@@ -181,7 +218,7 @@ async function detectWithLedger(text, { categories, threshold, scope, detect } =
         let cached = new Map();
         if (usable) {
             try { cached = await ledgerStore.getMany(keys) || new Map(); } catch (err) {
-                log.warn(`[ScanLedger] read failed, scanning fresh: ${err.message}`);
+                log.warn(`[ScanLedger] read failed, scanning fresh: ${/** @type {Error} */ (err).message}`);
             }
         }
 
@@ -212,7 +249,7 @@ async function detectWithLedger(text, { categories, threshold, scope, detect } =
         }
     }
 
-    if (toWrite.length > 0) ledgerStore.putMany(toWrite).catch(() => { /* memoisation is best-effort */ });
+    if (toWrite.length > 0) ledgerStore.putMany(toWrite).catch((e) => bestEffort('core/dlp/scanLedger:detectWithLedger', e));
 
     return { entities, degraded, degradedReason, stats };
 }

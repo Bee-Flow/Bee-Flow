@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Dutch for the Compliance Center UI, round 2 (Oct 2026): the strings the
  * eleven UI packages added (rail, header, check expansion, requests and
@@ -39,7 +40,10 @@ const DATA_SHA256 = '2fba75a6560cf10f6369097a0f0dbe7a7c8978f501626fbd95975885730
 const NL_TRANSLATIONS = Object.freeze({ ...DATA.translations });
 const NL_REWORDED = Object.freeze({ ...DATA.reworded });
 
-/** The mutation itself, on a copy of the 'nl' blob. Pure, so the store's mutator may run it more than once. */
+/**
+ * The mutation itself, on a copy of the 'nl' blob. Pure, so the store's mutator may run it more than once.
+ * @param {Record<string, string>} merged
+ */
 function applyNl(merged) {
     let added = 0;
     let reworded = 0;

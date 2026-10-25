@@ -94,6 +94,9 @@ const PublishBody = bodyOf({
     sharedGroups: idList(GROUPS_TEXT).optional(),
 });
 
+/**
+ * @param {number} seconds
+ */
 function formatDuration(seconds) {
     if (!seconds) return '0:00';
     const h = Math.floor(seconds / 3600);
@@ -159,7 +162,7 @@ router.patch('/:id', requireAuth, validate({ body: PatchBody, query: NO_QUERY })
         // on these as strings; a nested object here is what made a single
         // bad row able to throw the whole library list.
         const cleaned = tags
-            .map((t) => (typeof t === 'string' ? t.trim().slice(0, 80) : ''))
+            .map((/** @type {string} */ t) => (typeof t === 'string' ? t.trim().slice(0, 80) : ''))
             .filter(Boolean);
         updates.tags = [...new Set(cleaned)].slice(0, 50);
     }
@@ -194,6 +197,7 @@ router.post('/:id/regenerate-summary', requireAuth, validate({ body: RegenerateB
     // EMPTY. The summary is overwritten here; leaving a stamp of the previous
     // template in place would paste a template name onto text that template never
     // wrote. An empty stamp is therefore not a "forgotten field" but the answer.
+    /** @type {string} */
     let templatePrompt;
     let stamp;
     if (templateId) {
@@ -447,7 +451,7 @@ router.delete('/:id', requireAuth, validate({ body: NOTHING, query: DeleteQuery 
     if (!deleted) return res.status(404).json({ error: 'Not found' });
     // A task that linked this meeting keeps existing; the link goes (in every project).
     try { await require('../../stores/projectTaskStore').dropLinksTo(null, 'meeting', req.params.id); }
-    catch (err) { log.warn(`[Transcriptions] task links to meeting ${req.params.id} not dropped: ${err.message}`); }
+    catch (err) { log.warn(`[Transcriptions] task links to meeting ${req.params.id} not dropped: ${/** @type {Error} */ (err).message}`); }
     res.json({ success: true });
 });
 
@@ -493,7 +497,7 @@ router.patch('/:id/publish', requireAuth, validate({ body: PublishBody, query: N
         try {
             cleanedGroups = await validateSharedGroupsForOrg(orgIdForValidation, sharedGroups);
         } catch (err) {
-            return res.status(400).json({ error: err.message || 'Invalid shared groups' });
+            return res.status(400).json({ error: /** @type {Error} */ (err).message || 'Invalid shared groups' });
         }
     }
 
@@ -502,3 +506,5 @@ router.patch('/:id/publish', requireAuth, validate({ body: PublishBody, query: N
 });
 
 module.exports = router;
+
+/** @typedef {{ actionItems: object[], decisions: object[], questions: object[], tags: string[] }} UsableArtifacts  what `artifactsUsable` lets through */

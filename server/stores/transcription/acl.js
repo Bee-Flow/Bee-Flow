@@ -103,3 +103,5 @@ function createProjectAcl({ projectRoleOf }) {
 }
 
 module.exports = { buildReadAcl, readAclClauses, createProjectAcl };
+
+/** @typedef {{ orgIds?: string[], userGroupIds?: string[], isSuperAdmin?: boolean }} ReadAclCtx */

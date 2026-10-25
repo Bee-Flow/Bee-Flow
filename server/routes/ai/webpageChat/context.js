@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Webpage chat: what one turn tells the model before the first round
  * (routes/ai/webpageChat.js). The knowledge-base grounding (stripped against
@@ -20,6 +20,12 @@ const { slotFilename } = require('./tools');
 /**
  * Emits the kb_search / kb_sources / building_prompt events. Returns the
  * system prompt and what the tool loop needs of the same facts.
+ * @param {{ send: import('./toolLoop').Send, webpage: import('./toolLoop').Webpage, message: string, userId: string,
+ *   readySources: import('./toolLoop').WebpageSources, timezone: string, chatMode: string,
+ *   htmlContent: string | null | undefined, cssContent: string | null | undefined, jsContent: string | null | undefined,
+ *   webpageSelection: { text?: unknown, file?: string, action?: string } | null | undefined,
+ *   toolPiiGate: typeof import('../../../core/privacy/toolPiiGate'),
+ *   _psShield: Awaited<ReturnType<typeof import('../../../core/privacy/orgShield').resolveShieldFor>> | null }} args
  */
 async function buildTurnContext({
     send, webpage, message, userId, readySources, timezone, chatMode,
@@ -27,6 +33,7 @@ async function buildTurnContext({
 }) {
     // KB search for grounding
     let kbContext = '';
+    /** @type {Array<{ title?: string, content?: string, score?: number }>} */
     let citationSources = [];
     const kbIds = webpage.knowledgeBaseIds || [];
     if (kbIds.length > 0) {
@@ -66,6 +73,11 @@ async function buildTurnContext({
     const css = cssContent || '';
     const js = jsContent || '';
 
+    /**
+     * @param {string} slot
+     * @param {string} language
+     * @param {string} content
+     */
     function slotBlock(slot, language, content) {
         const filename = slotFilename(slot);
         if (!content || !content.trim()) {

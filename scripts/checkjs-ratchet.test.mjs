@@ -50,7 +50,7 @@ test('fewer checked files than the floor fails', () => {
 
 test('at or over the floor passes', () => {
     assert.strictEqual(run(sandbox({ files: { 'a.js': CHECKED }, floor: 1 })).code, 0);
-    assert.match(run(sandbox({ files: { 'a.js': CHECKED, 'b.js': CHECKED }, floor: 1 })).stdout, /over the floor of 1/);
+    assert.match(run(sandbox({ files: { 'a.js': CHECKED, 'b.js': CHECKED }, floor: 1 })).stdout, /over the floors/);
 });
 
 test('--update raises the floor and never lowers it', () => {
@@ -80,4 +80,29 @@ test('the directive counts after a header comment, not in the middle of a file, 
 test('--list names the folders still unchecked, most first', () => {
     const r = run(sandbox({ files: { 'core/a.js': PLAIN, 'core/b.js': PLAIN, 'utils/c.js': PLAIN, 'utils/d.js': CHECKED }, floor: 1 }), ['--list']);
     assert.match(r.stdout, /2 {2}core\/\n\s+1 {2}utils\//);
+});
+
+const NIA = "// @typecheck noImplicitAny\nmodule.exports = 1;\n";
+const STRICT = "// @typecheck strict\nmodule.exports = 1;\n";
+const floors = (dir) => JSON.parse(fs.readFileSync(path.join(dir, 'pkg/.checkjs-ratchet.json'), 'utf8'));
+
+test('levels are counted separately: strict counts as noImplicitAny, both as checked', () => {
+    const dir = sandbox({ files: { 'a.js': CHECKED, 'b.js': NIA, 'c.js': STRICT, 'd.mts': STRICT, 'e.test.js': STRICT } });
+    run(dir);
+    assert.deepStrictEqual([floors(dir).checkedFiles, floors(dir).noImplicitAnyFiles, floors(dir).strictFiles], [4, 3, 2]);
+});
+
+test('a file that drops a level fails the floor of the level it left', () => {
+    const dir = sandbox({ files: { 'a.js': CHECKED, 'b.js': NIA } });
+    fs.writeFileSync(path.join(dir, 'pkg/.checkjs-ratchet.json'), JSON.stringify({ checkedFiles: 2, noImplicitAnyFiles: 2, strictFiles: 0 }));
+    const r = run(dir);
+    assert.strictEqual(r.code, 1);
+    assert.match(r.stderr, /1 files carry \/\/ @typecheck noImplicitAny \(or strict\), the floor is 2/);
+});
+
+test('an old floor file without the level keys still passes, and --update adds them', () => {
+    const dir = sandbox({ files: { 'a.js': NIA }, floor: 1 });
+    assert.strictEqual(run(dir).code, 0);
+    run(dir, ['--update']);
+    assert.strictEqual(floors(dir).noImplicitAnyFiles, 1);
 });

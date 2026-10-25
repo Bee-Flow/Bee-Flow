@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 // Self-contained HTML for a Bee Flow AI certificate. All CSS inline, no external
 // fetches — rendered to PNG/PDF by certificateRenderer.js via Playwright.
 //
@@ -5,12 +6,18 @@
 //   cream #FFFDF7 · honey wash #FFF3D6 · amber #F59E0B · deep honey #B45309 ·
 //   gold foil #D4A017 · ink #1A1A1A · grey #6B7280.
 
+/**
+ * @param {string | undefined} s
+ */
 function esc(s) {
     return String(s == null ? '' : s)
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+/**
+ * @param {string | number | Date | undefined} iso
+ */
 function fmtDate(iso) {
     try {
         const d = new Date(iso);
@@ -31,9 +38,8 @@ const LOGO = `
 </svg>`;
 
 /**
- * @param {object} record  issued certificate record (recipientName, orgName,
- *                         title, level, courses[], serial, issuedAt)
- * @param {object} opts    { verifyUrl?: string|null, variant: 'share'|'print' }
+ * @param {{ recipientName?: string, orgName?: string, title?: string, level?: string, courses?: { title?: string, [key: string]: unknown }[], serial?: string, issuedAt?: string|number|Date, [key: string]: unknown }} record  issued certificate record
+ * @param {{ verifyUrl?: string|null, variant?: 'share'|'print' }} [opts]
  */
 function buildCertificateHtml(record, opts = {}) {
     const { verifyUrl = null, variant = 'share' } = opts;

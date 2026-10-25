@@ -1,3 +1,4 @@
+// @typecheck strict
 'use strict';
 /**
  * Direct chat → chat signals (core/privacy/chatSignals.js).
@@ -25,9 +26,12 @@
  */
 
 const chatSignals = require('../../../core/privacy/chatSignals');
-const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
-/** The marker and the switch the composer sent; anything else reads as absent. */
+/**
+ * The marker and the switch the composer sent; anything else reads as absent.
+ * @param {import('express').Request} req
+ */
 function _fromBody(req) {
     const body = req && req.body && typeof req.body === 'object' ? req.body : {};
     return {
@@ -46,7 +50,7 @@ function _providerOf(config) {
  * turn counts under exactly the org whose notice the person saw), then count.
  * @param {any} req
  * @param {string} userId
- * @param {object} turn everything countTurn needs except the org key
+ * @param {Omit<Parameters<typeof import('../../../core/privacy/chatSignals').countTurn>[0], 'orgKey' | 'userId'>} turn everything countTurn needs except the org key
  */
 function _countLater(req, userId, turn) {
     void (async () => {
@@ -55,7 +59,7 @@ function _countLater(req, userId, turn) {
             orgId = await require('../../../core/llm/modelResolver').resolveEffectiveOrgId(req, { userId });
         } catch (_) { orgId = null; }
         chatSignals.countTurn({ ...turn, orgKey: chatSignals.directOrgKey(orgId), userId });
-    })().catch(() => {});
+    })().catch((e) => bestEffort('routes/ai/directChat/chatSignalsTurn:_countLater', e));
 }
 
 /**
@@ -90,7 +94,7 @@ function countDirectTurn({ req, userId, chatSignal, config }) {
             allowlistedHosts: hosts,
             dryRun: false,
         });
-    } catch (err) { log.debug('counting never touches the turn', err); }
+    } catch (err) { bestEffort('routes/ai/directChat/chatSignalsTurn:countDirectTurn', err); /* counting never touches the turn */ }
     return undefined;
 }
 
@@ -115,7 +119,7 @@ function countFixedTurn({ req, userId, surface = 'direct', outcome = 'unscanned'
             allowlistedHosts: [],
             dryRun: false,
         });
-    } catch (err) { log.debug('counting never touches the turn', err); }
+    } catch (err) { bestEffort('routes/ai/directChat/chatSignalsTurn:countFixedTurn', err); /* counting never touches the turn */ }
     return undefined;
 }
 

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Automation runs, in the project feed.
  *
@@ -48,13 +48,22 @@ const RUN_KINDS = new Map([
     ['run.failed', 'automation.run.failed'],
 ]);
 
+/** @typedef {{ projectId: string | null, title: string }} RunContext */
+/** @typedef {import('../runEventBus').RunEvent} RunEvent */
+
 // runId -> { projectId, title }
+/** @type {Map<string, RunContext>} */
 const _runContext = new Map();
 const MAX_TRACKED_RUNS = 5000;
 
 let _started = false;
+/** @type {() => void | null} */
 let _detach = null;
 
+/**
+ * @param {string | undefined} runId
+ * @param {RunContext} ctx
+ */
 function _remember(runId, ctx) {
     if (!runId) return;
     // Insertion-ordered, so the oldest key is the first one. Evicting costs a
@@ -66,17 +75,27 @@ function _remember(runId, ctx) {
     _runContext.set(runId, ctx);
 }
 
+/**
+ * @param {string | undefined} automationId
+ * @returns {Promise<RunContext>}
+ */
 async function _lookup(automationId) {
     if (!automationId) return { projectId: null, title: '' };
     try {
         const automation = await require('../../stores/automationStore').getAutomation(automationId);
         return { projectId: automation?.projectId || null, title: automation?.title || '' };
     } catch (err) {
-        log.warn('[ProjectFeed] could not resolve a run\'s project:', err.message);
+        log.warn('[ProjectFeed] could not resolve a run\'s project:', /** @type {Error} */ (err).message);
         return { projectId: null, title: '' };
     }
 }
 
+/**
+ * @param {string} type
+ * @param {string | undefined} runId
+ * @param {string | undefined} automationId
+ * @returns {Promise<RunContext>}
+ */
 async function _contextFor(type, runId, automationId) {
     if (type !== 'run.started') {
         const remembered = runId ? _runContext.get(runId) : null;
@@ -101,6 +120,9 @@ async function _contextFor(type, runId, automationId) {
  * can quote an integration's response, and the project feed is read by every
  * member of the project rather than by the automation's owner alone. The class
  * is enough to render "this failed, and how"; the detail stays on the run.
+ *
+ * @param {RunEvent} event
+ * @param {RunContext} ctx
  */
 function _payload(event, ctx) {
     return {
@@ -114,6 +136,7 @@ function _payload(event, ctx) {
     };
 }
 
+/** @param {RunEvent} event */
 async function _handle(event) {
     const kind = RUN_KINDS.get(event?.type);
     if (!kind) return;                      // step.* and anything new: not ours
@@ -136,7 +159,7 @@ function start() {
     const { onAny } = require('../runEventBus');
     // The bus is synchronous and does not await handlers, so an async handler
     // that rejected would surface as an unhandled rejection. Swallow here.
-    _detach = onAny((event) => {
+    _detach = onAny((/** @type {RunEvent} */ event) => {
         _handle(event).catch(err =>
             log.warn('[ProjectFeed] run bridge failed:', err.message));
     });

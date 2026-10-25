@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Route → requirement registry.
  *

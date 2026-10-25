@@ -16,11 +16,11 @@
 
 const { SpreadsheetSourceError, fromHttp } = require('../errors');
 const { formatOf } = require('./index');
-const log = require('../../../../../telemetry/log');
 const {
     provider, DATE_FORMAT_RE, TIME_FORMAT_RE,
     colLetter, parseAddress, markerEquals, graphError, workbookValue, needsTextFormat, workbookFormat,
 } = require('./oneDriveFormat');
+const { bestEffort, fallback } = require('../../../../../utils/bestEffort');
 
 const jsonBody = (body) => ({ headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 const wbPath = async (g, file) => `${await g.itemPath(file)}/workbook`;
@@ -65,7 +65,7 @@ async function withSession(g, file, fn) {
     try {
         return await fn({ wb, headers });
     } finally {
-        await g.call(`${wb}/closeSession`, { method: 'POST', headers }, { what: 'workbook', file, okStatuses: [200, 204] }).catch(() => { /* best effort */ });
+        await g.call(`${wb}/closeSession`, { method: 'POST', headers }, { what: 'workbook', file, okStatuses: [200, 204] }).catch((e) => bestEffort('core/dataEngine/sources/spreadsheetFile/providers/oneDriveWorkbook:withSession', e));
     }
 }
 
@@ -81,7 +81,7 @@ async function listSheets(g, file) {
             const a = parseAddress(used.address);
             rowCount = a ? a.last.row : (used.rowCount != null ? used.rowCount : null);
             colCount = a ? a.last.col + 1 : (used.columnCount != null ? used.columnCount : null);
-        } catch (err) { log.debug('an empty sheet answers 404 for usedRange', err); }
+        } catch (err) { fallback('core/dataEngine/sources/spreadsheetFile/providers/oneDriveWorkbook:listSheets', err); /* an empty sheet answers 404 for usedRange */ }
         out.push({ id: ws.id, name: ws.name, index: ws.position || 0, rowCount, colCount, hidden: ws.visibility !== undefined && ws.visibility !== 'Visible' });
     }
     return out;
@@ -269,3 +269,20 @@ function makeWorkbookCells(g) {
 }
 
 module.exports = { makeWorkbookCells };
+
+/** @typedef {import('./oneDrive').GraphCtx} GraphCtx */
+
+/** @typedef {import('./index').FileRef} FileRef */
+
+/** @typedef {import('./oneDriveFormat').GraphMarker} GraphMarker */
+
+/** @typedef {string | { id?: string, name?: string }} SheetRef a sheet name, or a worksheet as listSheets returns it */
+
+/** @typedef {{ col: number|string, value: unknown, type: string }} CellWrite */
+
+/** @typedef {{ wb: string, headers: Record<string, string> }} WorkbookSession */
+
+/**
+ * @template {unknown[]} A
+ * @typedef {A extends [unknown, ...infer R] ? R : never} DropCtx the parameters after `g`
+ */

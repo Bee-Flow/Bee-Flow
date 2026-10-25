@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The cells of a SPREADSHEET document, kept in a datatable.
  *
@@ -55,7 +55,12 @@ const CELL_RE = /^([A-Z])([1-9][0-9]{0,4})$/;
 
 const { HttpError } = require('../http/errors');
 
-/** A refusal the route passes through as-is (status, code, message). */
+/**
+ * A refusal the route passes through as-is (status, code, message).
+ * @param {number} status
+ * @param {string} code
+ * @param {string} message
+ */
 function sheetError(status, code, message) {
     return new HttpError(status, code, message);
 }
@@ -104,7 +109,10 @@ function groupWrite(cells) {
     return byRow;
 }
 
-/** Datatable rows → `{ cells: { A1: … }, rows }` (rows = the last row with anything in it). */
+/**
+ * Datatable rows → `{ cells: { A1: … }, rows }` (rows = the last row with anything in it).
+ * @param {Record<string, any>[]} rows
+ */
 function cellsOfRows(rows) {
     /** @type {Record<string, string>} */
     const cells = {};
@@ -145,7 +153,13 @@ function makeSheetCells(deps = {}) {
     const spec = () => (deps.spec || require('../dataEngine/dataModel/managedTables').managedKindSpec)('document_sheet');
     const drop = (/** @type {string} */ id, /** @type {any} */ scope) => (deps.drop || require('../../stores/datatableDbStore').dropDatatable)(id, scope);
 
-    /** The owner's table, resolved as the owner. A missing one is the sheet's own 410. */
+    /**
+     * The owner's table, resolved as the owner. A missing one is the sheet's own 410.
+     * @param {string} ownerUserId
+     * @param {string} datatableId
+     * @param {string} [needed]
+     * @returns {Promise<import('../dataEngine/datatableRuntime').ResolvedTable>}
+     */
     async function open(ownerUserId, datatableId, needed = 'viewer') {
         try {
             return await runtime().resolveForPrincipal(datatableId, await principalFor(ownerUserId), { needed });
@@ -174,9 +188,14 @@ function makeSheetCells(deps = {}) {
         });
     }
 
-    /** Every row of the sheet, in row order, up to MAX_SHEET_ROWS. */
+    /**
+     * Every row of the sheet, in row order, up to MAX_SHEET_ROWS.
+     * @param {import('../dataEngine/datatableRuntime').ResolvedTable} resolved
+     * @returns {Promise<Record<string, any>[]>}
+     */
     async function readAllRows(resolved) {
         const out = [];
+        /** @type {string | null} */
         let cursor = null;
         for (;;) {
             const page = await runtime().readRows(resolved, {
@@ -199,7 +218,11 @@ function makeSheetCells(deps = {}) {
         return { ...cellsOfRows(await readAllRows(resolved)), columns: COLUMN_KEYS.length };
     }
 
-    /** The current rows with these numbers, by number. */
+    /**
+     * The current rows with these numbers, by number.
+     * @param {import('../dataEngine/datatableRuntime').ResolvedTable} resolved
+     * @param {number[]} numbers
+     */
     async function rowsByNumber(resolved, numbers) {
         /** @type {Map<number, any>} */
         const found = new Map();
@@ -213,7 +236,13 @@ function makeSheetCells(deps = {}) {
         return found;
     }
 
-    /** Write one row's changed columns, retrying on a colleague's write to the same row. */
+    /**
+     * Write one row's changed columns, retrying on a colleague's write to the same row.
+     * @param {import('../dataEngine/datatableRuntime').ResolvedTable} resolved
+     * @param {number} rowNo
+     * @param {Record<string, string|null>} values
+     * @param {Record<string, any> | null} current
+     */
     async function writeRow(resolved, rowNo, values, current) {
         let row = current;
         for (let attempt = 0; attempt < ROW_RETRIES; attempt++) {

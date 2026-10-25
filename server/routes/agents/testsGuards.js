@@ -43,7 +43,10 @@ async function requireEditableAgent(req, res) {
     return { agent, views, userId };
 }
 
-/** What the run reports about the agent it actually exercised. */
+/**
+ * What the run reports about the agent it actually exercised.
+ * @param {{ draft: object; runtime: object; }} views
+ */
 function versionInfo(views) {
     const agent = views.draft || {};
     const publishedVersion = Number(agent.published_version) || 0;
@@ -95,7 +98,7 @@ async function resolveOrgOrRefuse(req) {
             orgId: orgIds && orgIds.size > 0 ? Array.from(orgIds)[0] : null,
         };
     } catch (e) {
-        log.error('[agents/tests] could not resolve the workspace:', e.message);
+        log.error('[agents/tests] could not resolve the workspace:', /** @type {Error} */ (e).message);
         throw new HttpError(503, 'org_check_failed', 'Could not check your workspace right now. Try again.');
     }
 }
@@ -118,11 +121,16 @@ async function checkPlanOrRefuse(res, { orgId, userId }) {
         }
         return true;
     } catch (e) {
-        log.error('[agents/tests] subscription check failed:', e.message);
+        log.error('[agents/tests] subscription check failed:', /** @type {Error} */ (e).message);
         throw new HttpError(503, 'limit_check_failed', 'Could not check your plan limits right now. Try again.');
     }
 }
 
+/**
+ * @typedef {Object} ResolveFastTierOrRefuseArgs
+ * @property {string | null} orgId
+ * @property {string} userId
+ */
 /**
  * The fast tier that reads an agent's answers — for grading, or for proposing
  * what a test should expect.
@@ -136,14 +144,16 @@ async function checkPlanOrRefuse(res, { orgId, userId }) {
  * per case instead of a null the caller has to interpret.
  *
  * @returns {Promise<string|null>} null once answered.
+ * @param {ResolveFastTierOrRefuseArgs} param0
  */
 async function resolveFastTierOrRefuse({ orgId, userId, what }) {
+    /** @type {string | null} */
     let modelId = null;
     try {
         const { resolveModelForTierName } = require('../../core/llm/modelResolver');
         modelId = await resolveModelForTierName('fast', { userOrgId: orgId, userId });
     } catch (e) {
-        log.error(`[agents/tests] ${what.label} model unreadable:`, e.message);
+        log.error(`[agents/tests] ${what.label} model unreadable:`, /** @type {Error} */ (e).message);
         throw new HttpError(503, what.unreadableCode, what.unreadableError);
     }
     if (!modelId) {
@@ -197,7 +207,7 @@ async function logTestModelUsage({ userId, userOrgId, modelId, usage, startMs, a
             organization_id: userOrgId || null,
         });
     } catch (e) {
-        log.warn(`[agents/tests] failed to log ${source} usage:`, e.message);
+        log.warn(`[agents/tests] failed to log ${source} usage:`, /** @type {Error} */ (e).message);
     }
 }
 

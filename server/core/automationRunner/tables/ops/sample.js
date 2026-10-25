@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * sample: the first rows, or a random but repeatable pick. The generator is
@@ -8,7 +8,7 @@
 const crypto = require('node:crypto');
 const { tableError } = require('./values');
 
-/** mulberry32 over the first 32 bits of sha256(seed). */
+/** mulberry32 over the first 32 bits of sha256(seed). @param {unknown} seed */
 function createPrng(seed) {
     let a = crypto.createHash('sha256').update(String(seed)).digest().readUInt32BE(0);
     return function next() {
@@ -19,6 +19,11 @@ function createPrng(seed) {
     };
 }
 
+/**
+ * @param {import('./index').TableOp & ReturnType<typeof import('../../../automationModel/tableOps/normalize').byOp.sample>} op
+ * @param {import('./index').OpInput} input
+ * @param {import('./index').OpCtx} ctx
+ */
 function apply(op, input, ctx) {
     const hasN = op.n !== null;
     const hasP = op.percent !== null;

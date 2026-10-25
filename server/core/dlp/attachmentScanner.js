@@ -694,3 +694,16 @@ module.exports = {
     _resolveFailureMode,
     _resolveAction,             // exported for tests
 };
+
+/**
+ * @typedef {Awaited<ReturnType<typeof import('../privacy/orgShield').resolveOrgShield>>} AttachmentOrgShield
+ * @typedef {{ category: string, label?: string, text?: string, offset?: number, length?: number,
+ *            page?: number | null, [k: string]: unknown }} AttachmentFinding
+ * @typedef {{ byCategory: Record<string, number>, count: number, mentions?: number,
+ *            pages: Record<string, Record<string, number>>, filename?: string, cacheHit?: boolean,
+ *            overflow?: boolean, timeout?: boolean, degraded?: boolean, degradedReason?: string | null,
+ *            scannedPages?: number, totalPages?: number | null, reason?: string | null, held?: boolean,
+ *            scanMs?: number, truncated?: boolean, sentChars?: number, totalChars?: number }} AttachmentScanSummary
+ * @typedef {{ action: string, reason?: string | null, text: string | null, findings: AttachmentFinding[],
+ *            summary: AttachmentScanSummary, tokenMap: Record<string, string> | null }} AttachmentScanResult
+ */

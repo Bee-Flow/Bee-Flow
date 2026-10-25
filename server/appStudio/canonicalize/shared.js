@@ -16,6 +16,9 @@ function isObject(v) { return v !== null && typeof v === 'object' && !Array.isAr
 
 // JSON-semantics deep copy (functions/undefined dropped, depth-capped) so
 // kept values never alias the caller's object graph.
+/**
+ * @param {number} [depth]
+ */
 function deepCopy(v, depth = 0) {
     if (v === null || typeof v !== 'object') {
         return typeof v === 'function' ? undefined : v;
@@ -30,6 +33,12 @@ function deepCopy(v, depth = 0) {
     return out;
 }
 
+/**
+ * @param {string} str
+ * @param {number} maxLen
+ * @param {string} path
+ * @param {(arg0: string, path: string, arg2: string) => void} push
+ */
 function truncate(str, maxLen, path, push) {
     if (typeof str !== 'string' || str.length <= maxLen) return str;
     push('string.truncated', path, `String of ${str.length} chars truncated to the ${maxLen}-char limit.`);

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Customer-object webhooks: the VAT/tax-id and customer-profile mirrors that
  * keep the local organisation row in step with what the customer maintains in
@@ -10,6 +11,7 @@ const userStore = require('../../stores/userStore');
 const { findSubscriptionTargetByCustomerId } = require('./webhookShared');
 const appPaths = require('../../utils/appPaths');
 const log = require('../../telemetry/log');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 /**
  * customer.tax_id.created / updated / deleted — keep the org's stored VAT in
@@ -17,6 +19,8 @@ const log = require('../../telemetry/log');
  * stripe_customer_id → organization. Consumers don't have a VAT field so
  * they're skipped. Failures are audit-logged but never surface as 5xx (we
  * always 200 the webhook).
+ * @param {{ customer?: string | null, value?: string, type?: string } | null | undefined} taxIdObj
+ * @param {string} eventType
  */
 async function handleCustomerTaxIdChange(taxIdObj, eventType) {
     try {
@@ -54,6 +58,7 @@ async function handleCustomerTaxIdChange(taxIdObj, eventType) {
  * Today we only need to mirror address changes that affect tax calculation:
  * specifically, sync `organizations.email` when the billing email is changed
  * via the customer portal. Light touch — most fields stay Stripe-owned.
+ * @param {{ id: string, email?: string | null, phone?: string | null, address?: { line1?: string | null, line2?: string | null, postal_code?: string | null, city?: string | null, country?: string | null } | null }} customer
  */
 async function handleCustomerUpdated(customer) {
     try {
@@ -64,6 +69,7 @@ async function handleCustomerUpdated(customer) {
         );
         if (!subs?.length) return;
         const orgId = subs[0].organization_id;
+        /** @type {{ email?: string, phone?: string, address?: string, billingLine2?: string, billingPostalCode?: string, billingCity?: string, billingCountry?: string }} */
         const updates = {};
         if (customer.email) updates.email = customer.email;
         if (customer.phone) updates.phone = customer.phone;
@@ -99,6 +105,7 @@ async function handleCustomerUpdated(customer) {
  * abandoned mid-3DS. Audit the failure and email the customer so they
  * don't only find out at the next invoice. claimNotification deduplicates
  * webhook replays.
+ * @param {{ id: string, customer?: string | null, last_setup_error?: { message?: string } | null }} setupIntent
  */
 async function handleSetupIntentFailed(setupIntent) {
     try {
@@ -128,11 +135,11 @@ async function handleSetupIntentFailed(setupIntent) {
         let displayName = null;
         let orgName = null;
         if (target.scope === 'consumer') {
-            const u = await userStore.getUser(target.id).catch(() => null);
+            const u = await userStore.getUser(target.id).catch((e) => fallback('stripe/customer:userLookup', e, null));
             recipientEmail = u?.email || null;
             displayName = u?.displayName || u?.username || null;
         } else {
-            const org = await userStore.getOrganization(target.id).catch(() => null);
+            const org = await userStore.getOrganization(target.id).catch((e) => fallback('stripe/customer:orgLookup', e, null));
             orgName = org?.name || null;
             recipientEmail = org?.email || null;
         }
@@ -141,9 +148,9 @@ async function handleSetupIntentFailed(setupIntent) {
         const clientHost = appPaths.clientHost();
         let portalUrl = `${clientHost}${appPaths.legacyBillingSettingsPath()}`;
         try {
-            const portal = await stripeService.createPortalSession(customerId, portalUrl);
+            const portal = /** @type {{ url: string }} */ (await stripeService.createPortalSession(customerId, portalUrl));
             if (portal?.url) portalUrl = portal.url;
-        } catch (err) { log.debug('fall back', err); }
+        } catch (err) { bestEffort('stripe/customer:portalSession', err); }
 
         const { sendPaymentFailedEmail } = require('../../utils/emailService');
         await sendPaymentFailedEmail({
@@ -161,6 +168,7 @@ async function handleSetupIntentFailed(setupIntent) {
 /**
  * setup_intent.succeeded — Card saved successfully. Audit only; no email
  * (Stripe sends its own confirmation if the customer opts in).
+ * @param {{ id: string, customer?: string | null, payment_method?: string | null }} setupIntent
  */
 async function handleSetupIntentSucceeded(setupIntent) {
     try {
@@ -185,6 +193,7 @@ async function handleSetupIntentSucceeded(setupIntent) {
  * customer.deleted — Stripe customer was removed (rare; usually triggered
  * manually by an admin). Null the local stripe_customer_id so the next
  * checkout creates a fresh customer instead of failing on an invalid id.
+ * @param {{ id: string }} customer
  */
 async function handleCustomerDeleted(customer) {
     const target = await userStore.findSubscriptionByStripeCustomerId(customer.id);

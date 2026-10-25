@@ -21,6 +21,7 @@ const { applySpeakerSummaries } = require('../../core/meetingNotes/summaryHelper
 const { transcribeStoredAudio, analyseTranscript } = require('./reprocessPipeline');
 const { validate } = require('../../core/http/validate');
 const { NOTHING, NO_QUERY } = require('./schemas');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── Reprocess failed transcription ───────────────────────
 //
@@ -37,7 +38,9 @@ router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_Q
     // on all outcomes are written to the note, never to the HTTP response.
     let transcriptionId = null;
     let prevStatus = null;
+    /** @type {string | null} */
     let userId = null;
+    /** @type {{ path: string | null; cleanup?: () => void; fromStorage?: boolean; cached?: boolean; reason?: string; }} */
     let audioSource = null; // { path, cleanup } — may be a temp file streamed from object storage
     try {
         userId = req.session.user.id;
@@ -77,7 +80,7 @@ router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_Q
                 ownerId: transcription.ownerId || userId,
                 audioPath: audioSource.path,
                 audioStorageKey: transcription.audioStorageKey,
-            }).catch(() => {});
+            }).catch((e) => bestEffort('routes/transcriptions/reprocess:anon', e));
         }
         const audioPath = audioSource.path;
 
@@ -165,7 +168,8 @@ router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_Q
         });
     } catch (err) {
         if (err instanceof HttpError && !transcriptionId) throw err;
-        log.error('[Transcriptions] Reprocess error:', err.message);
+        log.error('[Transcriptions] Reprocess error:', /** @type {Error} */ (err).message);
+        /** @type {HttpError | null} */
         let failure = null;
         try {
             if (transcriptionId) {
@@ -179,7 +183,7 @@ router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_Q
                 // its error over a note another run has already completed.
                 const outcome = prevStatus === 'completed'
                     ? { status: 'completed' }
-                    : { status: 'failed', summary: `Transcription failed: ${err.message}` };
+                    : { status: 'failed', summary: `Transcription failed: ${/** @type {Error} */ (err).message}` };
                 const wrote = await transcriptionStore.finishProcessing(transcriptionId, userId, outcome);
                 if (!wrote) {
                     log.warn(`[Transcriptions] Reprocess of ${transcriptionId} failed but the claim was already lost — leaving the note alone`);
@@ -188,7 +192,7 @@ router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_Q
                 failure = new HttpError(500, 'reprocess_failed', 'Reprocessing failed');
             }
         } catch (dbErr) {
-            log.error('[Transcriptions] Failed to record reprocess failure:', dbErr.message);
+            log.error('[Transcriptions] Failed to record reprocess failure:', /** @type {Error} */ (dbErr).message);
         }
         if (failure) throw failure;
     } finally {
@@ -198,3 +202,5 @@ router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_Q
 });
 
 module.exports = router;
+
+/** @typedef {{ actionItems: object[], decisions: object[], questions: object[], tags: string[] }} UsableArtifacts  what `artifactsUsable` lets through */

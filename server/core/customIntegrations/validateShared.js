@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The shared pieces of custom-integration definition validation
  * (./validateCustomIntegration.js): limits, patterns, the header deny-list,
@@ -7,6 +7,7 @@
  * ({ pushE, pushW, pushLint }) — see makeReporter.
  */
 
+/** @type {typeof import('./ssrfGuard') | null} */
 let ssrfGuard = null;
 try {
     ssrfGuard = require('./ssrfGuard');
@@ -73,8 +74,30 @@ const INJECTION_PHRASES = [
 // The only two paths where '{{credential.*}}' is legal.
 const VALUE_TEMPLATE_PATHS = new Set(['auth.valueTemplate', 'mcp.valueTemplate']);
 
+/**
+ * @typedef {{ code: string, path: string, message: string, hint?: string, severity?: string }} ValidationRecord
+ * @typedef {ReturnType<typeof makeReporter>} Reporter
+ * @typedef {{ placeholders: { name: string, path: string }[], tooDeep: string[] }} BodyPlaceholders
+ *
+ * The shapes a definition is expected to have. Validation checks each field,
+ * so a field the code only inspects stays `unknown`.
+ * @typedef {{ type?: string, description?: unknown, enum?: unknown, items?: ParamSchema }} ParamSchema
+ * @typedef {{ type?: string, properties?: Record<string, ParamSchema>, required?: unknown, additionalProperties?: unknown, description?: unknown }} ToolParameters
+ * @typedef {{ style?: string, maxPageSize?: number, pageParam?: unknown, sizeParam?: unknown }} ToolPagination
+ * @typedef {{ name?: string, description?: string, method?: string, parameters?: ToolParameters, pathTemplate?: string, query?: Record<string, unknown>, headers?: Record<string, unknown>, body?: { mode?: unknown, template?: unknown }, readOnly?: unknown, pagination?: ToolPagination, resultPath?: unknown }} RestToolDef
+ * @typedef {{ source?: unknown, docsUrl?: unknown, notes?: unknown }} MetaBlock
+ * @typedef {{ baseUrl?: unknown, defaultHeaders?: Record<string, unknown>, timeoutMs?: number, maxResponseChars?: number }} RestApiBlock
+ * @typedef {{ type?: string, credentials?: unknown, valueTemplate?: unknown, header?: unknown, queryParam?: unknown }} RestAuthBlock
+ * @typedef {{ url?: unknown, authStyle?: string, credentials?: unknown, header?: unknown, valueTemplate?: unknown, toolAllowList?: unknown }} McpDefBlock
+ */
+
+/** @param {unknown} x */
 function isObject(x) { return x && typeof x === 'object' && !Array.isArray(x); }
 
+/**
+ * @param {unknown} name
+ * @param {{ forAuth?: boolean }} [opts]
+ */
 function isDeniedHeader(name, { forAuth = false } = {}) {
     const n = String(name).toLowerCase();
     // auth.header / mcp.header is where the credential is injected, so
@@ -84,6 +107,7 @@ function isDeniedHeader(name, { forAuth = false } = {}) {
     return DENIED_HEADER_PREFIXES.some(p => n.startsWith(p));
 }
 
+/** @param {unknown} text */
 function findInjectionPhrases(text) {
     const lower = String(text).toLowerCase();
     return INJECTION_PHRASES.filter(p => lower.includes(p));
@@ -97,6 +121,7 @@ function findInjectionPhrases(text) {
  * never feed it a DNS name). Names get the full resolving check at request
  * time; here we only reject ones that can never be public (no dot, e.g.
  * 'localhost'/'intranet', or *.localhost).
+ * @param {string} hostname
  */
 function hostIsForbidden(hostname) {
     if (!ssrfGuard) return false;
@@ -122,6 +147,9 @@ function hostIsForbidden(hostname) {
 /**
  * Walk the whole definition and report every string (or key) containing
  * '{{credential.' outside the two sanctioned valueTemplate paths.
+ * @param {unknown} value
+ * @param {string} path
+ * @param {string[]} out
  */
 function findCredentialLeaks(value, path, out) {
     if (typeof value === 'string') {
@@ -136,7 +164,7 @@ function findCredentialLeaks(value, path, out) {
         for (const k of Object.keys(value)) {
             const childPath = path ? `${path}.${k}` : k;
             if (k.includes('{{credential.')) out.push(childPath);
-            findCredentialLeaks(value[k], childPath, out);
+            findCredentialLeaks(/** @type {Record<string, unknown>} */ (value)[k], childPath, out);
         }
     }
 }
@@ -144,6 +172,10 @@ function findCredentialLeaks(value, path, out) {
 /**
  * Collect exact-match "{param}" string leaves from a JSON body template.
  * Strings that merely *contain* braces are literals per the spec.
+ * @param {unknown} node
+ * @param {string} path
+ * @param {number} depth
+ * @param {BodyPlaceholders} out
  */
 function collectBodyPlaceholders(node, path, depth, out) {
     if (depth > MAX_BODY_TEMPLATE_DEPTH) { out.tooDeep.push(path); return; }
@@ -157,7 +189,7 @@ function collectBodyPlaceholders(node, path, depth, out) {
         return;
     }
     if (node && typeof node === 'object') {
-        for (const k of Object.keys(node)) collectBodyPlaceholders(node[k], `${path}.${k}`, depth + 1, out);
+        for (const k of Object.keys(node)) collectBodyPlaceholders(/** @type {Record<string, unknown>} */ (node)[k], `${path}.${k}`, depth + 1, out);
     }
     // number / boolean / null leaves are literals.
 }
@@ -169,14 +201,21 @@ function collectBodyPlaceholders(node, path, depth, out) {
  * @param {boolean} strict
  */
 function makeReporter(strict) {
+    /** @type {ValidationRecord[]} */
     const errors = [];
+    /** @type {ValidationRecord[]} */
     const warnings = [];
-    const pushE = (rec) => errors.push({ ...rec, severity: 'error' });
-    const pushW = (rec) => warnings.push({ ...rec, severity: 'warning' });
-    const pushLint = (rec) => (strict ? pushE(rec) : pushW(rec));
+    const pushE = (/** @type {ValidationRecord} */ rec) => errors.push({ ...rec, severity: 'error' });
+    const pushW = (/** @type {ValidationRecord} */ rec) => warnings.push({ ...rec, severity: 'warning' });
+    const pushLint = (/** @type {ValidationRecord} */ rec) => (strict ? pushE(rec) : pushW(rec));
     return { errors, warnings, pushE, pushW, pushLint };
 }
 
+/**
+ * @param {Reporter} r
+ * @param {unknown} raw
+ * @param {{ path: string, codePrefix: string, allowQuery: boolean, requiredLabel: string }} opts
+ */
 function checkHttpsUrl(r, raw, { path, codePrefix, allowQuery, requiredLabel }) {
     if (typeof raw !== 'string' || !raw) {
         r.pushE({ code: `${codePrefix}_invalid`, path, message: `${requiredLabel} is required and must be a string URL.`, hint: 'Provide an absolute https URL.' });
@@ -204,6 +243,13 @@ function checkHttpsUrl(r, raw, { path, codePrefix, allowQuery, requiredLabel }) 
     }
 }
 
+/**
+ * @param {Reporter} r
+ * @param {Record<string, unknown>} map
+ * @param {string} basePath
+ * @param {{ tooMany: string, name: string, denied: string, value: string }} codes
+ * @param {string} labelPrefix
+ */
 function checkHeaderMap(r, map, basePath, codes, labelPrefix) {
     const names = Object.keys(map);
     if (names.length > MAX_HEADER_ENTRIES) {
@@ -225,9 +271,17 @@ function checkHeaderMap(r, map, basePath, codes, labelPrefix) {
     }
 }
 
+/**
+ * @param {Reporter} r
+ * @param {string} vt
+ * @param {Set<string>} declaredKeys
+ * @param {string} path
+ * @param {string} codePrefix
+ */
 function checkValueTemplate(r, vt, declaredKeys, path, codePrefix) {
+    /** @type {string[]} */
     const refs = [];
-    const leftover = vt.replace(CREDENTIAL_REF_RE, (m, key) => { refs.push(key); return ''; });
+    const leftover = vt.replace(CREDENTIAL_REF_RE, (/** @type {string} */ m, /** @type {string} */ key) => { refs.push(key); return ''; });
     if (leftover.includes('{{') || leftover.includes('}}')) {
         r.pushE({ code: `${codePrefix}.value_template_invalid`, path, message: 'valueTemplate may only contain literal text plus {{credential.<key>}} references.', hint: 'Check for typos in the {{credential.…}} syntax; keys must match ^[a-z][a-z0-9_]{0,40}$.' });
     }
@@ -241,6 +295,13 @@ function checkValueTemplate(r, vt, declaredKeys, path, codePrefix) {
     }
 }
 
+/**
+ * @param {Reporter} r
+ * @param {unknown} creds
+ * @param {string} basePath
+ * @param {string} codePrefix
+ * @returns {Set<string>}
+ */
 function checkCredentialList(r, creds, basePath, codePrefix) {
     const declared = new Set();
     if (creds === undefined) return declared;
@@ -275,6 +336,15 @@ function checkCredentialList(r, creds, basePath, codePrefix) {
     return declared;
 }
 
+/**
+ * @param {Reporter} r
+ * @param {number | undefined} v
+ * @param {number} lo
+ * @param {number} hi
+ * @param {string} path
+ * @param {string} code
+ * @param {string} label
+ */
 function checkIntRange(r, v, lo, hi, path, code, label) {
     if (v === undefined) return;
     if (!Number.isInteger(v) || v < lo || v > hi) {

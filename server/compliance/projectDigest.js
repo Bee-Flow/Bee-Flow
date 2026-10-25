@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -27,6 +27,7 @@
 const findingState = require('./findingState');
 const { complianceSectionPath } = require('../utils/appPaths');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 // Upper bound on the findings one digest looks at: the count in the message
 // is exact up to here, and a sweep with more than this many brand-new project
@@ -44,20 +45,24 @@ function _defaults() {
 }
 
 /**
- * @param {object} [overrides] complianceStore, registry, frameworkPolicy,
+ * @param {Partial<ReturnType<typeof _defaults>>} [overrides] complianceStore, registry, frameworkPolicy,
  *   notices ({notify}), now
  */
 function makeProjectDigest(overrides = {}) {
+    /** @type {ReturnType<typeof _defaults> | null} */
     let _d = null;
     const d = () => (_d || (_d = { ..._defaults(), ...overrides }));
 
-    /** The open, undecided project findings of an org, with their fingerprints. */
+    /**
+     * The open, undecided project findings of an org, with their fingerprints.
+     * @param {string} orgId
+     */
     async function openFindings(orgId) {
         const { complianceStore, registry, frameworkPolicy } = d();
         const [latest, active, states] = await Promise.all([
             complianceStore.getLatestPerCheck(orgId),
             frameworkPolicy.activeRegulations(orgId),
-            complianceStore.listFindingStates ? complianceStore.listFindingStates(orgId).catch(() => []) : [],
+            complianceStore.listFindingStates ? complianceStore.listFindingStates(orgId).catch((e) => fallback('compliance/projectDigest:openFindings', e, [])) : [],
         ]);
         const index = findingState.indexStates(states);
         const out = [];
@@ -78,6 +83,7 @@ function makeProjectDigest(overrides = {}) {
 
     /**
      * Send today's digest for one org if there is anything new. Never throws.
+     * @param {string} orgId
      * @returns {Promise<{sent: boolean, count?: number, reason?: string}>}
      */
     async function sendDigest(orgId) {
@@ -110,7 +116,7 @@ function makeProjectDigest(overrides = {}) {
             }
             return { sent: true, count: fresh.length };
         } catch (e) {
-            log.warn(`[ComplianceProjectDigest] org="${orgId}" digest skipped:`, e?.message || e);
+            log.warn(`[ComplianceProjectDigest] org="${orgId}" digest skipped:`, /** @type {Error} */ (e)?.message || e);
             return { sent: false, reason: 'error' };
         }
     }

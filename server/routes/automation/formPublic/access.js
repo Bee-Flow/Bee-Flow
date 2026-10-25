@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Who may open a hosted form, and what a token or a session id resolves to.
  *
@@ -11,6 +11,7 @@
 
 const automationStore = require('../../../stores/automationStore');
 const { audienceAdmits, needsGroups } = require('../../../automation/formAudience');
+const { fallback } = require('../../../utils/bestEffort');
 
 /**
  * Whether a form is servable to anonymous visitors.
@@ -26,7 +27,10 @@ const PUBLIC_FORMS_ENABLED = false;
 // Session-id shape gate, same discipline as the token: cheap reject before any DB work.
 const SESSION_RE = /^[a-f0-9]{24,64}$/;
 
-/** No caching, no indexing — a form URL is a credential. */
+/**
+ * No caching, no indexing — a form URL is a credential.
+ * @param {import('express').Response} res
+ */
 function privateHeaders(res) {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.set('X-Robots-Tag', 'noindex, nofollow');
@@ -37,6 +41,8 @@ function privateHeaders(res) {
  * null. A closed/draft automation and an unknown token look the SAME from the
  * outside (404): the token is the credential, so probing must not distinguish
  * "wrong token" from "form paused".
+ * @param {import('express').Request<{ token: string }>} req
+ * @param {import('express').Response} res
  */
 async function loadForm(req, res) {
     const token = String(req.params.token || '');
@@ -77,6 +83,8 @@ async function loadForm(req, res) {
  * organisation, or only the people and groups the owner shared it with.
  * The rule itself is the store's `audienceAdmits`, so the visitor gate and
  * the `canOpen` flag of GET /api/automation/forms cannot drift apart.
+ * @param {import('express').Request} req
+ * @param {NonNullable<Awaited<ReturnType<typeof automationStore.getFormPage>>>} page
  */
 async function callerMayOpen(req, page) {
     const caller = req.session?.user;
@@ -98,6 +106,8 @@ async function callerMayOpen(req, page) {
  * Everything is derived at read time from the run row + its step rows: the
  * session carries no status of its own, so there is no second state machine to
  * fall out of sync with the runner.
+ * @param {NonNullable<Awaited<ReturnType<typeof loadForm>>>} found
+ * @param {string} sid
  */
 async function loadSession(found, sid) {
     if (!SESSION_RE.test(String(sid || ''))) return null;
@@ -119,6 +129,7 @@ async function loadSession(found, sid) {
  * child and finalises the parent to 'success' — and reading the session's own
  * run then would tell the visitor "done" while the automation is still going.
  * Newest leg of the same journey, always.
+ * @param {NonNullable<Awaited<ReturnType<typeof automationStore.getFormSession>>>} session
  */
 async function currentRunFor(session) {
     if (!session?.runId) return null;
@@ -132,14 +143,19 @@ async function currentRunFor(session) {
  * This is the access boundary for downloads: a visitor may fetch a document
  * their OWN journey produced, and nothing else. Holding a file id proves
  * nothing on its own.
+ * @param {NonNullable<Awaited<ReturnType<typeof automationStore.getFormSession>>>} session
  */
 async function journeyRunIds(session) {
     if (!session?.runId) return [];
-    const runs = await automationStore.getRunsInChain(session.runId).catch(() => []);
+    const runs = await automationStore.getRunsInChain(session.runId).catch((e) => fallback('routes/automation/formPublic/access:journeyRunIds', e, []));
     return runs.map(r => r.id);
 }
 
-/** The rendered page the given session's run is waiting on, or null. */
+/**
+ * The rendered page the given session's run is waiting on, or null.
+ * @param {NonNullable<Awaited<ReturnType<typeof automationStore.getFormSession>>>} session
+ * @param {Awaited<ReturnType<typeof currentRunFor>>} [currentRun]
+ */
 async function pendingPageFor(session, currentRun = null) {
     if (!session?.runId) return null;
     const run = currentRun || await currentRunFor(session);

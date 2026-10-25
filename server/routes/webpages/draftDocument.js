@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * A webpage's draft as one ready-to-run HTML document, for every framework.
  *
@@ -24,7 +25,7 @@
  * client. `html` is set only when `status` is 'ready'.
  */
 
-const rateLimit = require('express-rate-limit');
+const rateLimit = /** @type {typeof import('express-rate-limit').rateLimit} */ (/** @type {unknown} */ (require('express-rate-limit')));
 
 const webpageStore = require('../../stores/webpageStore');
 const { resolveAudienceContext } = require('../../auth/audience');
@@ -57,7 +58,11 @@ const draftDocumentLimiter = rateLimit({
     message: { error: 'Too many preview requests, please wait a moment.' },
 });
 
-/** The owner's row, or one the requester may read as a published reader. */
+/**
+ * The owner's row, or one the requester may read as a published reader.
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {string} userId
+ */
 async function findReadableWebpage(req, userId) {
     const own = await webpageStore.getWebpage(req.params.id, userId);
     if (own) return own;
@@ -72,13 +77,15 @@ async function findReadableWebpage(req, userId) {
  * The API origin the document's bridges call: the origin this request came in
  * on, which is the address the client itself reaches the server at (behind
  * the ingress, `trust proxy` makes req.protocol the forwarded one).
+ * @param {import('express').Request} req
  */
 function requestOrigin(req) {
     return `${req.protocol}://${req.get('host') || ''}`;
 }
 
+/** @type {(router: import('express').Router, deps?: import('./index').WebpageRouteDeps) => void} shared multipart gate is passed by index.js */
 function register(router) {
-    router.get('/:id/draft-document', requireAuth, draftDocumentLimiter, validate({ query: NO_QUERY }), async (req, res) => {
+    router.get('/:id/draft-document', requireAuth, draftDocumentLimiter, validate({ query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
         const userId = req.session.user.id;
         const webpage = await findReadableWebpage(req, userId);
         if (!webpage) throw new HttpError(404, 'not_found', 'Webpage not found');

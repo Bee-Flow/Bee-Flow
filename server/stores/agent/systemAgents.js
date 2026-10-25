@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * System Agents — Registry-driven seeding and single getter
  *
@@ -20,19 +20,21 @@ const log = require('../../telemetry/log');
 /**
  * Load a prompt from its markdown file on disk.
  * Returns the raw text content, trimmed.
+ * @param {string} filename
  */
 function loadPromptFile(filename) {
     const filePath = path.join(PROMPTS_DIR, filename);
     try {
         return fs.readFileSync(filePath, 'utf-8').trim();
     } catch (err) {
-        log.error(`[SystemAgents] Failed to load prompt file ${log.nameForLog(filename)}:`, err.message);
+        log.error(`[SystemAgents] Failed to load prompt file ${log.nameForLog(filename)}:`, /** @type {Error} */ (err).message);
         return '';
     }
 }
 
 /**
  * Compute a short content hash for change detection.
+ * @param {string} text
  */
 function hashContent(text) {
     return crypto.createHash('sha256').update(text).digest('hex').slice(0, 16);

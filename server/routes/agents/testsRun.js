@@ -22,6 +22,10 @@ const MAX_ANSWER_STREAMED = 8000;
 const MAX_GRADE_TOKENS = 400;
 
 /**
+ * @typedef {Object} BuildTestResultRecordArgs
+ * @property {number} index
+ */
+/**
  * Split one graded turn into what is STORED (`item`, written to
  * `agent_test_runs.results`, not an encrypted column) and what is only
  * STREAMED to whoever is watching the run live (`event`).
@@ -32,6 +36,7 @@ const MAX_GRADE_TOKENS = 400;
  * customer the answer did — bounding its length bounded how MUCH of a name
  * landed in that column, not whether one did. `item` must never carry either;
  * `event` is what gives the watcher the fuller picture.
+ * @param {BuildTestResultRecordArgs} param0
  */
 function buildTestResultRecord({ verdict, test, facts, index, turn }) {
     // What is STORED. `verdict.reason` is written by testSandbox from a
@@ -59,8 +64,15 @@ function buildTestResultRecord({ verdict, test, facts, index, turn }) {
 }
 
 /**
+ * @typedef {Object} RunOneTestArgs
+ * @property {string} userId
+ * @property {string | null} [orgId]
+ * @property {AbortSignal} signal
+ */
+/**
  * One test: a real turn, then the facts, then — only if the facts left
  * anything open — the grader.
+ * @param {RunOneTestArgs} param0
  */
 async function runOneTest({ agentId, test, userId, userAuth, orgId, timezone, signal, testAs = null }) {
     const agentRuntime = require('../../core/agentRuntime');
@@ -106,14 +118,15 @@ async function runOneTest({ agentId, test, userId, userAuth, orgId, timezone, si
             : ((replaced && replaced.trim()) ? replaced : collected);
         return { answer: answer || '', toolsUsed, withheld, error: null };
     } catch (err) {
-        log.warn(`[agents/tests] turn failed for test "${test.name}":`, err.message);
-        return { answer: '', toolsUsed, withheld, error: err.message };
+        log.warn(`[agents/tests] turn failed for test "${test.name}":`, /** @type {Error} */ (err).message);
+        return { answer: '', toolsUsed, withheld, error: /** @type {Error} */ (err).message };
     }
 }
 
 async function runTests(req, res) {
     let headersSent = false;
     let sendEvent = () => {};
+    /** @type {() => void | null} */
     let stopHeartbeat = null;
 
     try {
@@ -209,6 +222,7 @@ async function runTests(req, res) {
             } else if (sandbox.decidedByFacts(facts)) {
                 verdict = sandbox.verdictFor(facts, null);
             } else {
+                /** @type {{ pass: boolean; reason: string; decidedBy: string | undefined; } | null} */
                 let graded = null;
                 const startMs = Date.now();
                 try {
@@ -222,7 +236,7 @@ async function runTests(req, res) {
                     graded = sandbox.parseGrading(out?.structured);
                     await logGradeUsage({ userId, userOrgId: orgId, modelId: gradeModelId, usage: out?.usage, startMs });
                 } catch (e) {
-                    log.warn('[agents/tests] grading failed:', e.message);
+                    log.warn('[agents/tests] grading failed:', /** @type {Error} */ (e).message);
                     graded = null;
                 }
                 verdict = sandbox.verdictFor(facts, graded);
@@ -276,7 +290,7 @@ async function runTests(req, res) {
                 total: items.length,
             });
         } catch (e) {
-            log.error('[agents/tests] recordTestRun failed:', e.message);
+            log.error('[agents/tests] recordTestRun failed:', /** @type {Error} */ (e).message);
             sendEvent('error', { error: 'The tests ran, but the result could not be saved.', code: 'not_saved' });
         }
 
@@ -287,7 +301,7 @@ async function runTests(req, res) {
         if (!(err instanceof HttpError)) log.error('[agents/tests] run error:', err);
         if (stopHeartbeat) stopHeartbeat();
         if (headersSent) {
-            sendEvent('error', { error: err.message, code: 'run_failed' });
+            sendEvent('error', { error: /** @type {Error} */ (err).message, code: 'run_failed' });
             return res.end();
         }
         if (err instanceof HttpError) throw err;

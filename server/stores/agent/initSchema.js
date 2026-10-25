@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Agent Schema Init - Shared PostgreSQL table creation for all agent sub-modules
  * Uses a promise singleton to prevent concurrent CREATE TABLE races.
@@ -7,6 +7,7 @@
 const base = require('./initSchema.base');
 const agents = require('./initSchema.agents');
 
+/** @type {Promise<void> | null} */
 let initPromise = null;
 
 const { AGENT_CATEGORY_NAME_INDEX_SQL } = agents;

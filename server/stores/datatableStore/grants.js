@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -21,7 +21,10 @@ const { assertScope } = require('./scope');
 const { initDB } = require('./schema');
 const { rowToGrant } = require('./rowMappers');
 
-/** The grants for one table. */
+/**
+ * The grants for one table.
+ * @param {string} datatableId
+ */
 async function listGrants(datatableId) {
     await initDB();
     if (!datatableId) throw new Error('listGrants requires a datatableId');
@@ -35,7 +38,8 @@ async function listGrants(datatableId) {
 /**
  * Grants for MANY tables in one round trip — what a list endpoint needs so it
  * does not fan out one query per table.
- * @returns {Promise<Map<string, Array>>} datatableId → grants
+ * @param {string[]} datatableIds
+ * @returns {Promise<Map<string, ReturnType<typeof rowToGrant>[]>>} datatableId → grants
  */
 async function listGrantsForTables(datatableIds) {
     await initDB();
@@ -45,7 +49,7 @@ async function listGrantsForTables(datatableIds) {
         `SELECT * FROM datatable_grants WHERE datatable_id = ANY($1::text[])`,
         [ids],
     );
-    const out = new Map(ids.map(id => [id, []]));
+    const out = new Map(ids.map(id => /** @type {[string, ReturnType<typeof rowToGrant>[]]} */ ([id, []])));
     for (const r of (res || [])) {
         if (!out.has(r.datatable_id)) out.set(r.datatable_id, []);
         out.get(r.datatable_id).push(rowToGrant(r));
@@ -59,6 +63,9 @@ async function listGrantsForTables(datatableIds) {
  * The INSERT is guarded on the table living in `scope`, exactly as
  * reconcileUsage is: a caller holding the wrong scope writes nothing rather
  * than attaching a grant to a stranger's table.
+ * @param {string} datatableId
+ * @param {{ kind: string, id: string }} scope
+ * @param {{ granteeType: string, granteeId: string, grade: string, grantedBy?: string | null }} grant
  */
 async function addGrant(datatableId, scope, { granteeType, granteeId, grade, grantedBy }) {
     await initDB();
@@ -76,6 +83,10 @@ async function addGrant(datatableId, scope, { granteeType, granteeId, grade, gra
     return listGrants(datatableId);
 }
 
+/**
+ * @param {string} datatableId
+ * @param {string} grantId
+ */
 async function removeGrant(datatableId, grantId) {
     await initDB();
     await run(`DELETE FROM datatable_grants WHERE id = $1 AND datatable_id = $2`, [grantId, datatableId]);

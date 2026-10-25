@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * GDPR Art. 32(1)(d) — "regularly testing, assessing and evaluating the
  * effectiveness" of security measures.
@@ -35,13 +35,13 @@
 
 const { getOne } = require('../../../db');
 const configStore = require('../../../stores/configStore');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const WINDOW_DAYS = 30;
 const MIN_TRAFFIC = 25; // below this, silence is expected, not suspicious
 // undefined_table / undefined_column: this install has no such ledger yet.
 // Every other SQLSTATE (a timeout, a dropped connection, a permission error)
 // means the ledger exists and the count FAILED — which is not zero.
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
 /**
  * The org id under which the platform files everything that belongs to NO
@@ -155,6 +155,9 @@ const USER_ORG = `NULLIF(u."organizationId", '')`;
  * Returns `count: null` when the number could not be established, with
  * `missing` telling the caller which kind of "unknown" it is. `null` is never
  * collapsed to 0 by the caller.
+ * @param {string} table
+ * @param {string} orgId
+ * @returns {Promise<{ count: number | null, unattributed: number | null, missing: boolean, error_code: string | null }>}
  */
 async function _countInWindow(table, orgId) {
     const scoped = !!orgId;
@@ -194,9 +197,9 @@ async function _countInWindow(table, orgId) {
     `;
     try {
         const row = await getOne(sql, scoped ? [orgId] : []);
-        return { count: row?.c ?? 0, unattributed: row?.unattributed ?? 0, missing: false, error_code: null };
+        return { count: row?.c ?? 0, unattributed: row?.unattributed ?? 0, missing: false, error_code: /** @type {string | null} */ (null) };
     } catch (e) {
-        if (NOT_PROVISIONED.has(e?.code)) {
+        if (isMissingTable(e)) {
             return { count: null, unattributed: null, missing: true, error_code: e.code };
         }
         // Only the SQLSTATE — a driver message can echo query values into the
@@ -205,6 +208,9 @@ async function _countInWindow(table, orgId) {
     }
 }
 
+/**
+ * @param {string} orgId
+ */
 async function _dlpEnabled(orgId) {
     const shield = (await configStore.getConfig(`org_privacy_shield_${orgId}`)) || {};
     if (shield.enabled) return true;
@@ -227,6 +233,7 @@ module.exports = {
     descriptionKey: 'compliance.checks.gdpr_art32_eff.desc',
     remediationKey: 'compliance.checks.gdpr_art32_eff.fix',
     remediationLink: 'admin/security/guardrails',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const enabled = await _dlpEnabled(orgId);
         if (!enabled) {

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Configuration of the ONE shared S3 client (stores/storageStore.js).
  */

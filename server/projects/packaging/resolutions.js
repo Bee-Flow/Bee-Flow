@@ -132,7 +132,11 @@ function normalizeResolutions(raw) {
     return out;
 }
 
-/** A step's address inside one bundled automation. `null` layer = the root graph. */
+/**
+ * A step's address inside one bundled automation. `null` layer = the root graph.
+ * @param {string | null} stepId
+ * @param {string | null | undefined} layerKey
+ */
 function addressOf(stepId, layerKey) {
     return `${layerKey || ''}\u0000${stepId}`;
 }
@@ -267,11 +271,18 @@ function applyStepResolutions(definition, ref, resolutions) {
 // A connection slot of a stage (`connection:cn_1`) can never collide with one
 // of these: it has no second colon.
 
+/**
+ * @param {string} prefix
+ */
 function stepSlot(prefix, row) {
     return `${prefix}:${row.ref}:${row.layerKey || ''}/${row.stepId}`;
 }
 
-/** The identity of one applied connection/approver row (`applyStepResolutions` `applied`). */
+/**
+ * The identity of one applied connection/approver row (`applyStepResolutions` `applied`).
+ * @param {string} kind
+ * @param {{ kind: string; ref: string; stepId: string; layerKey?: string | null; }} row
+ */
 function appliedKey(kind, row) {
     return `${kind}\u0000${row.ref}\u0000${addressOf(row.stepId, row.layerKey)}`;
 }
@@ -362,3 +373,11 @@ module.exports = {
     bindingsToResolutions,
     isEmptyResolutions,
 };
+
+/**
+ * @typedef {{ userId: string } | { groupId: string }} Seat
+ * @typedef {{ key: string, datatableId?: string, create?: boolean }} TableResolution
+ * @typedef {{ ref: string, stepId: string, layerKey: string | null, connectionId: string }} ConnectionResolution
+ * @typedef {{ ref: string, stepId: string, layerKey: string | null, seat: Seat, connectionId?: undefined }} ApproverResolution
+ * @typedef {{ tables: TableResolution[], connections: ConnectionResolution[], approvers: ApproverResolution[] }} Resolutions
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Validation of the optional `timezone` and `epochUnit` fields of a datetime
  * step. Both are optional; absent means UTC and "auto".

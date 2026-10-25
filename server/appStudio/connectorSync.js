@@ -91,6 +91,7 @@ function syncError(status, message, code) {
  * rather than two that drift.
  */
 const { nextRunFor: coreNextRunFor } = require('../core/scheduling/nextRun');
+const { bestEffort } = require('../utils/bestEffort');
 
 /**
  * The cadence floor for a connector kind. A mailbox may poll every 2 minutes;
@@ -226,7 +227,7 @@ function coerceForField(value, field) {
                 try {
                     const parsed = JSON.parse(value);
                     if (Array.isArray(parsed) || isPlainObject(parsed)) return parsed;
-                } catch (err) { log.debug('not JSON — fall through', err); }
+                } catch (err) { bestEffort('appStudio/connectorSync:coerceForField', err); /* not JSON — fall through */ }
             }
             return String(value);
         }
@@ -311,7 +312,7 @@ async function collectExpiredFiles(app, table, where, whereParams, deps) {
  * break the other — hence the refcount over the remaining ledger.
  */
 async function purgeAttachments(app, fileIds, deps) {
-    const before = await deps.listAttachments(app.id, app.userId).catch(() => []);
+    const before = await deps.listAttachments(app.id, app.userId);
     const byId = new Map((before || []).map((a) => [a.id, a]));
 
     const shas = new Set();
@@ -319,16 +320,15 @@ async function purgeAttachments(app, fileIds, deps) {
         const row = byId.get(id);
         if (!row) continue;
         shas.add(row.sha256);
-        await deps.deleteAttachment(id, app.id, app.userId).catch(() => {});
+        await deps.deleteAttachment(id, app.id, app.userId);
     }
     if (!shas.size) return;
 
-    const after = await deps.listAttachments(app.id, app.userId).catch(() => null);
-    if (!after) return; // could not confirm — leave the blob rather than orphan a live row
-    const stillUsed = new Set(after.map((a) => a.sha256));
+    const after = await deps.listAttachments(app.id, app.userId); // a failure leaves the blob rather than orphans a live row
+    const stillUsed = new Set((after || []).map((a) => a.sha256));
     for (const sha of shas) {
         if (stillUsed.has(sha)) continue;
-        await deps.deleteFile(deps.buildAttachmentKey(app.userId, app.id, sha)).catch(() => {});
+        await deps.deleteFile(deps.buildAttachmentKey(app.userId, app.id, sha));
     }
 }
 
@@ -408,7 +408,7 @@ async function writeGrain(app, model, table, rows, { mode, keyField: keyPath, vi
             const ids = await deps.writeRecordBatch(app, model, table, rows.map(toValues), { viewer });
             inserted = ids.length;
             ids.forEach((id, i) => { recordIdByRowIndex[i] = id; });
-            await deps.setRowCount(app.id, table.key, inserted, app.userId).catch(() => {});
+            await deps.setRowCount(app.id, table.key, inserted, app.userId).catch((e) => bestEffort('appStudio/connectorSync:writeGrain', e));
         }
         return { inserted, updated, recordIdByRowIndex };
     }
@@ -667,7 +667,7 @@ async function syncConnector(app, model, connector, { reason = 'manual', force =
             }),
             error: err?.message || String(err),
             consecutiveErrors,
-        }).catch(() => {});
+        }).catch((e) => bestEffort('appStudio/connectorSync:syncConnector', e));
         throw err;
     }
 }
@@ -690,3 +690,25 @@ module.exports = {
     // so one test can assert the real wiring resolves.
     _defaultDeps: defaultDeps,
 };
+
+/** @typedef {{ id: string, userId: string, organizationId?: string }} SyncApp */
+
+/** @typedef {{ tableId?: string, level?: number, parentLevel?: number, mode?: string, keyField?: string, relationField?: string, retentionField?: string, retentionCascade?: boolean }} SyncChild */
+
+/** @typedef {{ tableId?: string, retentionField?: string, retentionCascade?: boolean, parentTableId?: string, relationField?: string }} SyncDependent */
+
+/** @typedef {{ cron?: string | null, tz?: string, everyMinutes?: number }} SyncSchedule */
+
+/** @typedef {{ tableId?: string, mode?: string, keyField?: string, incremental?: { param?: string | null, format?: string, field?: string } | null, schedule?: SyncSchedule | null, refreshOnView?: boolean, retentionField?: string, retentionDays?: number | null, children?: SyncChild[], dependents?: SyncDependent[] }} SyncBlock */
+
+/** @typedef {{ id?: string, kind?: string, sync?: SyncBlock }} SyncConnector */
+
+/** @typedef {{ id?: string, key: string, fields?: Array<{ key?: string, sourcePath?: string, type?: string }> }} SyncTable */
+
+/** @typedef {Awaited<ReturnType<SyncDeps['listAttachments']>>} LedgerRows */
+
+/** @typedef {Record<string, unknown> & { _parentIndex?: number }} SyncRow  one upstream row, as the connector returned it */
+
+/** @typedef {ReturnType<typeof defaultDeps>} SyncDeps */
+
+/** @typedef {{ level: number, mode: string, table: SyncTable, column?: string, relationField?: string, parentTable?: SyncTable, sweepNull?: boolean }} RetentionStep */

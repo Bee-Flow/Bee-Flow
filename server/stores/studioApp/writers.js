@@ -13,7 +13,7 @@ const { setStudioAppPublished, setStudioAppAudience, publishDefinitionWith } = r
 const { deleteStudioApp } = require('./deleteApp');
 const { restoreVersion } = require('./versions');
 const { setBuilderSession } = require('./builderSession');
-const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const { run, getOne, getAll, getClient, withTransaction } = dep('db');
 
@@ -94,7 +94,7 @@ function reindexAutomationUsage(appId) {
     if (!appId) return;
     try {
         dep('automationUsageSync')().reconcileAppAutomationUsageDetached(appId);
-    } catch (err) { log.debug('An index must never bring a write down.', err); }
+    } catch (err) { bestEffort('stores/studioApp/writers:reindexAutomationUsage', err); /* An index must never bring a write down. */ }
 }
 
 async function createStudioAppIndexed(args) {

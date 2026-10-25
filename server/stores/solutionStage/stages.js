@@ -72,6 +72,7 @@ function makeStagesStore(db, { ready, projectStore, valuesMemo = new Map() }) {
      * conversations or team chats is refused, as PUT /:id/kind refuses it. The
      * registry kinds and project files (projects/kindChange.refusedContent) are
      * the route's check: a store may not require projects/.
+     * @param {string} devId
      */
     async function assertNoChatHoldings(devId) {
         const row = (await db.query('SELECT kind, kind_guessed FROM projects WHERE id = $1', [devId])).rows[0];
@@ -187,6 +188,7 @@ function makeStagesStore(db, { ready, projectStore, valuesMemo = new Map() }) {
     async function updateStageSettings(stageProjectId, expectedVersion, patch = {}, { client = null } = {}) {
         await ready();
         const q = client || db;
+        /** @type {string[]} */
         const set = [];
         /** @type {any[]} */
         const params = [stageProjectId, Number(expectedVersion)];
@@ -365,3 +367,7 @@ function makeStagesStore(db, { ready, projectStore, valuesMemo = new Map() }) {
 }
 
 module.exports = { makeStagesStore, mapStage, STAGES, BUSY_STATUSES, stageLockSql };
+
+/** @typedef {import('./deploymentModel').Queryable} Queryable */
+
+/** @typedef {import('./deploymentModel').StageDb} StageDb */

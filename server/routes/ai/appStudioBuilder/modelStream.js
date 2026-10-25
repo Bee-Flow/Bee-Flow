@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * App Studio Builder — one model round on the wire.
  *
@@ -10,6 +11,7 @@ const { streamWithRetry: sharedStreamWithRetry } = require('../builderShared');
 
 // THIS route's SSE thinking shapes: no partId on start/stop; deltas go out
 // as { delta } (the frontend renders a single rolling thinking bubble).
+/** @type {import('../builderShared').BuilderThinkingEmitter} */
 const APP_SSE_THINKING = {
     start: (send, part) => send('thinking_start', { partId: part && part.partId }),
     delta: (send, { text, partId }) => send('thinking', { delta: text, partId }),
@@ -18,6 +20,14 @@ const APP_SSE_THINKING = {
 
 // Retry/assembly shell shared with the automation builder (builderShared.js);
 // this wrapper pins the route's thinking emitter and log prefix.
+/**
+ * @param {Parameters<typeof sharedStreamWithRetry>[0]} adapter
+ * @param {Parameters<typeof sharedStreamWithRetry>[1]} cfg
+ * @param {string} modelId
+ * @param {Parameters<typeof sharedStreamWithRetry>[3]} messages
+ * @param {Parameters<typeof sharedStreamWithRetry>[4]} options
+ * @param {import('../builderShared').BuilderStreamOptions} [opts]
+ */
 function streamWithRetry(adapter, cfg, modelId, messages, options, opts = {}) {
     return sharedStreamWithRetry(adapter, cfg, modelId, messages, options, {
         emitThinking: APP_SSE_THINKING,

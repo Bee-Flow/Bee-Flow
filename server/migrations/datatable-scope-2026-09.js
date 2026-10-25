@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: address a datatable by a SCOPE, not by an organisation (2026-09).
  *
@@ -36,14 +37,21 @@
 
 const { getOne, run } = require('../db');
 
-/** A text[] as node-postgres or pglite hands it back, as a JS array. */
+/**
+ * A text[] as node-postgres or pglite hands it back, as a JS array.
+ * @param {unknown} v
+ */
 function toArray(v) {
     if (Array.isArray(v)) return v;
     if (typeof v === 'string') return v.replace(/^\{|\}$/g, '').split(',').filter(Boolean);
     return [];
 }
 
-/** Does the primary key of `table` already cover exactly `cols`? */
+/**
+ * Does the primary key of `table` already cover exactly `cols`?
+ * @param {string} table
+ * @param {string[]} cols
+ */
 async function pkCovers(table, cols) {
     const r = await getOne(
         `SELECT array_agg(a.attname::text ORDER BY a.attname) AS cols
@@ -60,7 +68,7 @@ async function pkCovers(table, cols) {
 async function up() {
     // A fresh install reaches this migration with no datatable tables at all —
     // datatableStore.createSchema already creates them in the scoped shape.
-    const probe = await getOne(`SELECT to_regclass('datatable_models') AS t`).catch(() => null);
+    const probe = await getOne(`SELECT to_regclass('datatable_models') AS t`).catch(/** @returns {null} */ () => null);
     if (!probe?.t) return;
 
     // 1. The columns. `scope_id` starts nullable so the backfill has somewhere
@@ -136,12 +144,12 @@ async function up() {
     //    forgot to update deleteOrganization", and this half becomes impossible
     //    to forget. Valid only now that the column is nullable: a personal
     //    table has no organisation to point at.
-    const orgs = await getOne(`SELECT to_regclass('organizations') AS t`).catch(() => null);
+    const orgs = await getOne(`SELECT to_regclass('organizations') AS t`).catch(/** @returns {null} */ () => null);
     if (orgs?.t) {
         const fk = await getOne(
             `SELECT 1 AS present FROM pg_constraint
               WHERE conname = 'fk_datatables_organization' AND conrelid = 'datatables'::regclass`,
-        ).catch(() => null);
+        ).catch(/** @returns {null} */ () => null);
         if (!fk?.present) {
             // NOT VALID would skip the scan of existing rows, but it would also
             // leave rows naming a deleted organisation behind for ever. The

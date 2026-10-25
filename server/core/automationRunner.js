@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Automation Runner — DAG-based execution engine for the conversational
  * automation builder.

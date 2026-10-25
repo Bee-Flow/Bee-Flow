@@ -169,3 +169,7 @@ module.exports = {
     EMAIL_TEMPLATE_LOCALE_DEFAULTS,
     getDefaultEmailTemplate,
 };
+
+/**
+ * @typedef {{ subject: string, title: string, intro: string, body: string, ctaLabel: string, footer?: string }} EmailTemplateCopy
+ */

@@ -79,6 +79,8 @@ function matchGmailMailFilter(payload, filter) {
  * `/Invoices/x.pdf` and `/Invoices` but NOT the sibling `/InvoicesOld/x.pdf`.
  * `prefix` is expected pre-normalised to a single leading slash and no
  * trailing slash. Matching is case-sensitive (Nextcloud paths are).
+ * @param {string} path
+ * @param {string} prefix
  */
 function isPathInFolder(path, prefix) {
     if (typeof path !== 'string') return false;
@@ -464,6 +466,7 @@ function asTagList(v) {
  * A key counts as "answered by me" only when the VALUE has a shape that this matcher can read. `tags: {any:[…]}`
  * is not an empty tag wish, it is an UNREADABLE one — that should not silently disappear but should pass through
  * to `matchFilter`, where it narrows.
+ * @param {string} key
  */
 function meetingKeyIsReadable(key, value) {
     if (key === 'tags') return Array.isArray(value) || typeof value === 'string';
@@ -508,6 +511,10 @@ function matchMeetingProcessedFilter(payload, filter) {
     return true;
 }
 
+/**
+ * @param {string} provider
+ * @param {string} event
+ */
 function pickMatcher(provider, event) {
     if (provider === 'support' && event === 'ticket.resolved') return matchSupportTicketResolvedFilter;
     if (provider === 'meeting-notes' && event === 'meeting.processed') return matchMeetingProcessedFilter;
@@ -555,3 +562,7 @@ function pickMatcher(provider, event) {
 }
 
 module.exports = { matchGmailMailFilter, matchGmailLabelFilter, matchCalendarChangedFilter, matchCalendarUpcomingFilter, matchDriveFileNewFilter, matchSheetsChangedFilter, matchNextcloudFileFilter, matchNextcloudShareFilter, matchNextcloudShareGenericFilter, matchNextcloudActivityFilter, matchNextcloudNotificationFilter, matchNextcloudCommentFilter, matchNextcloudTagFilter, matchNextcloudFormsSubmittedFilter, matchNextcloudTablesRowFilter, matchSupportTicketResolvedFilter, matchMeetingProcessedFilter, matchNextcloudCalendarFilter, matchNextcloudCalendarUpcomingFilter, matchNextcloudDeckCardFilter, matchNextcloudDeckCardMovedFilter, matchNextcloudTalkMessageFilter, matchNextcloudTalkReactionFilter, matchNextcloudTaskFilter, matchNextcloudUserStatusFilter, containsCI, pickMatcher };
+
+/** @typedef {Record<string, any>} TriggerPayload  an event payload: loose provider JSON, shape differs per provider */
+
+/** @typedef {Record<string, any>} TriggerFilter  a trigger's filter as authored: loose JSON, keys differ per event */

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Phase `fill` — run the automation once so the table has rows before the app
  * is built on it. Mirrors routes/automation/runs.js: `executeAutomation`
@@ -11,24 +12,40 @@
 
 const { copyFor } = require('../copy');
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 const RESPONSE_TIMEOUT_MS = 60_000;
 const STALE_MS = 15 * 60_000;
 const TERMINAL_RUN = new Set(['success', 'error', 'skipped', 'cancelled', 'failed']);
 
+/**
+ * @typedef {{ [k: string]: unknown, datatableId?: string, datatableScope?: { kind: string, id: string },
+ *   runId?: string, rowsBefore?: number, rowCount?: number, runStatus?: string | null }} FillArtifacts
+ * @typedef {{
+ *   automationStore: Pick<typeof import('../../stores/automationStore'), 'getAutomation' | 'getRun'>,
+ *   runner: Pick<typeof import('../../core/automationRunner'), 'executeAutomation'>,
+ *   datatableStore: Pick<typeof import('../../stores/datatableStore'), 'getDatatable'>,
+ *   timeoutMs?: number,
+ * }} FillDeps
+ */
+
+/**
+ * @param {FillArtifacts | null | undefined} artifacts
+ * @param {Pick<FillDeps, 'datatableStore'>} deps
+ */
 async function currentRowCount(artifacts, deps) {
     const { datatableStore } = deps;
     const id = artifacts && artifacts.datatableId;
     const scope = artifacts && artifacts.datatableScope;
     if (!id || !scope) return null;
-    const table = await datatableStore.getDatatable(id, scope).catch(() => null);
+    const table = await datatableStore.getDatatable(id, scope).catch((e) => fallback('playbooks/phases/fillPhase:currentRowCount', e, null));
     return table ? (Number(table.rowCount) || 0) : null;
 }
 
 /**
- * @param {{ playbook, phase, tableArtifacts, automationId, onRunCreated }} ctx
- * @param {object} deps  { automationStore, runner, datatableStore, timeoutMs? }
- * @returns {Promise<{ ok:false, code, error } | { ok:true, run: object|null, runId: string|null, timedOut: boolean, rowsBefore: number|null }>}
+ * @param {{ playbook: { userId: string }, tableArtifacts: FillArtifacts | null | undefined, automationId: string | null | undefined, onRunCreated?: (run: Record<string, any>) => void }} ctx
+ * @param {FillDeps} deps
+ * @returns {Promise<{ ok:false, code: string, error: string } | { ok:true, run: object|null, runId: string|null, timedOut: boolean, rowsBefore: number|null, runPromise: Promise<unknown> }>}
  */
 async function startFillPhase({ playbook, automationId, tableArtifacts, onRunCreated }, deps) {
     const { automationStore, runner } = deps;
@@ -44,8 +61,10 @@ async function startFillPhase({ playbook, automationId, tableArtifacts, onRunCre
     const rowsBefore = await currentRowCount(tableArtifacts, deps);
     let runId = null;
     let timedOut = false;
+    /** @type {NodeJS.Timeout} */
     let guardTimer;
     const guard = new Promise((resolve) => { guardTimer = setTimeout(() => { timedOut = true; resolve(null); }, timeoutMs); });
+    /** @type {Error | null} */
     let runError = null;
     // Cleared however this ends (a run that beat the guard, a runner that threw):
     // left armed, the timer would hold this closure for the rest of the minute.
@@ -57,9 +76,9 @@ async function startFillPhase({ playbook, automationId, tableArtifacts, onRunCre
             startedByUserId: playbook.userId,
             onRunCreated: (run) => {
                 runId = run && run.id ? run.id : null;
-                if (typeof onRunCreated === 'function') { try { onRunCreated(run); } catch (err) { log.debug('observer', err); } }
+                if (typeof onRunCreated === 'function') { try { onRunCreated(run); } catch (err) { bestEffort('playbooks/phases/fillPhase:onRunCreated', err); /* observer */ } }
             },
-        }).catch((e) => { runError = e; log.error('[playbooks/fill] run error:', e && e.message); return null; });
+        }).catch(/** @param {Error} e @returns {null} */ (e) => { runError = e; log.error('[playbooks/fill] run error:', e && e.message); return null; });
         const run = await Promise.race([runPromise, guard]);
         // A rejection before the runner ever created a run row used to come back as
         // `{ ok: true, runId: null }`, which the route persisted as `running` — and
@@ -83,6 +102,10 @@ async function startFillPhase({ playbook, automationId, tableArtifacts, onRunCre
  * changed (still running, not stale); else `{ status, artifacts, summary?,
  * error? }` for the caller to apply. `locale` is the playbook's — the summary
  * is read by the person, not by a model.
+ * @param {{ artifacts?: FillArtifacts, startedAt?: string } | null | undefined} phase
+ * @param {Pick<FillDeps, 'automationStore' | 'datatableStore'>} deps
+ * @param {number} [now]
+ * @param {{ locale?: string | null }} [opts]
  */
 async function refreshFillPhase(phase, deps, now = Date.now(), { locale = null } = {}) {
     const copy = copyFor(locale);
@@ -93,7 +116,7 @@ async function refreshFillPhase(phase, deps, now = Date.now(), { locale = null }
     // The stale guard sits ABOVE the id check on purpose: a phase whose run was
     // never created has nothing to poll, and used to be polled for ever.
     if (!art.runId) return stale ? { status: 'failed', artifacts: art, error: copy.runNeverStarted } : null;
-    const run = await automationStore.getRun(art.runId).catch(() => null);
+    const run = await automationStore.getRun(art.runId).catch((e) => fallback('playbooks/phases/fillPhase:refreshFillPhase', e, null));
     const rowCount = await currentRowCount(art, deps);
     const rowsBefore = Number.isFinite(art.rowsBefore) ? art.rowsBefore : 0;
     const added = rowCount == null ? null : Math.max(0, rowCount - rowsBefore);

@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: give every already-published webpage the snapshot its audience
  * reads (W2 publish lifecycle).

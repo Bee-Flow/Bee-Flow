@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * memoryScoring — pure ranking maths for memory retrieval.
  *
@@ -10,6 +10,16 @@
  */
 
 /**
+ * @typedef {{ type?: string, subject?: string | null, attribute?: string | null, value?: string | null,
+ *   content?: string | null, importance?: number | null, updated_at?: string | Date | null,
+ *   [key: string]: unknown }} MemoryLike
+ */
+
+/**
+ * @typedef {{ memory: MemoryLike, score: number, relevant?: boolean, vector?: number[] | null }} ScoredMemory
+ */
+
+/**
  * How much a memory's kind is worth before any relevance signal.
  *
  * Standing instructions outrank everything because they are about HOW to
@@ -17,6 +27,7 @@
  * whose text they share no words with. `context` is lowest because it is the
  * catch-all the extractor reaches for when nothing else fits.
  */
+/** @type {Record<string, number>} */
 const TYPE_BASE_SCORES = {
     instruction: 100,
     person: 80,
@@ -38,6 +49,7 @@ const DEFAULT_TYPE_SCORE = 20;
  * plain fact goes stale faster; `context` (what the person was busy with)
  * is only useful for about a month.
  */
+/** @type {Record<string, number>} */
 const HALF_LIFE_DAYS = {
     instruction: 365,
     preference: 365,
@@ -88,6 +100,7 @@ const LEG_WEIGHTS = { vec: 1.0, fts: 0.8, base: 0.4 };
  *
  * Keep this in step with `formatMemoriesForPrompt`; `memoryScoring.test.js`
  * asserts they agree.
+ * @param {MemoryLike} memory
  */
 function renderedLength(memory) {
     return renderedBullet(memory).length;
@@ -102,6 +115,7 @@ function renderedLength(memory) {
  * approximating it is the point — `memoryScoring.test.js` renders both and
  * compares, so a fourth form added to the renderer fails this file rather than
  * quietly putting the budget back out of step with the prompt.
+ * @param {MemoryLike | null | undefined} memory
  */
 function renderedBullet(memory) {
     if (!memory) return '';
@@ -193,8 +207,16 @@ const KEYWORD_OVERLAP_MIN = 0.3;
 /** Two memories at or above this cosine are the same thing said twice. */
 const DUPLICATE_COSINE = 0.95;
 
+/**
+ * @param {unknown} t
+ * @returns {string}
+ */
 const normalisedText = (t) => String(t ?? '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 
+/**
+ * @param {number[]} a
+ * @param {number[]} b
+ */
 function _cos(a, b) {
     if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length || a.length === 0) return 0;
     let dot = 0; let na = 0; let nb = 0;
@@ -202,20 +224,23 @@ function _cos(a, b) {
     return na && nb ? dot / Math.sqrt(na * nb) : 0;
 }
 
+/**
+ * @param {MemoryLike} memory
+ * @param {number} max
+ */
 function _clip(memory, max) {
     const content = String(memory.content ?? '');
     return content.length > max ? { ...memory, content: content.slice(0, max - 1) + '…' } : memory;
 }
 
 /**
- * @param {Array<{memory: any, score: number, relevant?: boolean, vector?: number[]|null}>} items
- * @param {number} charLimit
- * @returns {any[]} memories with `why: 'profile' | 'relevant'`, profile first
- */
-/**
  * `profile: false` + a larger `relevantMax` is the explicit-search mode of the
  * memory_search tool: the model asked for more, so no profile padding and a
  * wider relevant cap, still relevance-only and de-duplicated.
+ * @param {Array<ScoredMemory>} items
+ * @param {number} charLimit
+ * @param {{ profile?: boolean, relevantMax?: number }} [options]
+ * @returns {Array<MemoryLike & { why: string }>} memories with `why: 'profile' | 'relevant'`, profile first
  */
 function selectTiers(items, charLimit, { profile = true, relevantMax = RELEVANT_MAX } = {}) {
     const sorted = (items || [])
@@ -223,12 +248,23 @@ function selectTiers(items, charLimit, { profile = true, relevantMax = RELEVANT_
         .map((i, idx) => ({ ...i, _i: idx }))
         .sort((a, b) => (b.score - a.score) || (a._i - b._i));
 
+    /** @type {Array<MemoryLike & { why: string }>} */
     const out = [];
     const taken = new Set();
+    /** @type {Array<{ text: string, vector: number[] | null }>} */
     const seen = [];   // { text, vector }
     let chars = 0;
+    /**
+     * @param {ScoredMemory} item
+     * @param {string} text
+     */
     const isDuplicate = (item, text) => seen.some(s => s.text === text
         || (s.vector && item.vector && _cos(s.vector, item.vector) >= DUPLICATE_COSINE));
+    /**
+     * @param {ScoredMemory} item
+     * @param {string} why
+     * @param {number} max
+     */
     const take = (item, why, max) => {
         const text = normalisedText(item.memory.content);
         if (isDuplicate(item, text)) return false;
@@ -242,6 +278,10 @@ function selectTiers(items, charLimit, { profile = true, relevantMax = RELEVANT_
         return true;
     };
 
+    /**
+     * @param {{ memory: MemoryLike, _i: number }} a
+     * @param {{ memory: MemoryLike, _i: number }} b
+     */
     const byImportance = (a, b) =>
         ((b.memory.importance ?? 0.5) - (a.memory.importance ?? 0.5))
         || (new Date(b.memory.updated_at || 0).getTime() - new Date(a.memory.updated_at || 0).getTime())
@@ -265,7 +305,11 @@ function selectTiers(items, charLimit, { profile = true, relevantMax = RELEVANT_
     return out;
 }
 
-/** Share of a memory's words longer than 3 characters that occur in the (lower-cased) message. */
+/**
+ * Share of a memory's words longer than 3 characters that occur in the (lower-cased) message.
+ * @param {unknown} content
+ * @param {string} lowerMsg
+ */
 function keywordOverlap(content, lowerMsg) {
     const words = String(content || '').toLowerCase().split(/\s+/).filter(w => w.length > 3);
     if (!words.length || !lowerMsg) return 0;

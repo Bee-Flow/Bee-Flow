@@ -9,6 +9,7 @@
 const userStore = require('../../stores/userStore');
 const configStore = require('../../stores/configStore');
 const { userHasBetaFeature } = require('./betaFeatures');
+const { fallback } = require('../../utils/bestEffort');
 
 const STANDARD_TIER_KEYS = ['fast', 'standard', 'swarm', 'thinking', 'writer', 'pro'];
 
@@ -16,9 +17,9 @@ const STANDARD_TIER_KEYS = ['fast', 'standard', 'swarm', 'thinking', 'writer', '
 // loadMergedCustomTiers in routes/ai/config.js — kept here so the validator
 // doesn't depend on the route file.
 async function loadMergedCustomTiersForOrg(orgId) {
-    const global = (await configStore.getConfig('custom_chat_model_tiers').catch(() => [])) || [];
+    const global = (await configStore.getConfig('custom_chat_model_tiers').catch((e) => fallback('core/entitlements/userTiers:loadMergedCustomTiersForOrg', e, []))) || [];
     const org = orgId
-        ? (await configStore.getConfig(`custom_chat_model_tiers_org_${orgId}`).catch(() => [])) || []
+        ? (await configStore.getConfig(`custom_chat_model_tiers_org_${orgId}`).catch((e) => fallback('core/entitlements/userTiers:loadMergedCustomTiersForOrg#2', e, []))) || []
         : [];
     const byId = new Map();
     for (const t of (Array.isArray(global) ? global : [])) if (t && t.id) byId.set(t.id, t);
@@ -32,13 +33,17 @@ async function loadMergedCustomTiersForOrg(orgId) {
  * is permitted when the person is in no group, or one of their groups lists
  * no tiers at all, or lists this one. Ids are the names the editor stores.
  * @returns {Promise<{ user: any, tierPermittedByGroups: (tierId: string) => boolean }>}
+ * @param {string} userId
  */
 async function loadGroupTierRule(userId) {
-    const user = await userStore.getUser(userId).catch(() => null);
+    const user = await userStore.getUser(userId).catch((e) => fallback('core/entitlements/userTiers:loadGroupTierRule', e, null));
     const userGroupIds = Array.isArray(user?.groups) ? user.groups : [];
-    const allGroups = await userStore.getAllGroups().catch(() => []);
+    const allGroups = await userStore.getAllGroups().catch((e) => fallback('core/entitlements/userTiers:loadGroupTierRule#2', e, []));
     const userGroups = allGroups.filter(g => userGroupIds.includes(g.id));
 
+    /**
+     * @param {string} tierId
+     */
     const tierPermittedByGroups = (tierId) => {
         if (userGroups.length === 0) return true;
         return userGroups.some(g => {
@@ -49,6 +54,15 @@ async function loadGroupTierRule(userId) {
     return { user, tierPermittedByGroups };
 }
 
+/**
+ * @typedef {Object} GetPermittedTierKeysArgs
+ * @property {string | undefined} [userId]
+ * @property {Express.Session} [session]
+ * @property {string} [taskType]
+ */
+/**
+ * @param {GetPermittedTierKeysArgs} param0
+ */
 async function getPermittedTierKeys({ userId, session, taskType = 'direct_chat' }) {
     if (!userId) return new Set();
 
@@ -79,7 +93,7 @@ async function getPermittedTierKeys({ userId, session, taskType = 'direct_chat' 
     // checkbox in the admin UIs, so filtering would silently strip tiers from
     // live automations. Tighten once ChatModelTiersConfig/OrgCustomTiersPanel
     // grow that checkbox.
-    const customTiers = await loadMergedCustomTiersForOrg(userOrgId).catch(() => []);
+    const customTiers = await loadMergedCustomTiersForOrg(userOrgId).catch((e) => fallback('core/entitlements/userTiers:getPermittedTierKeys', e, []));
     for (const t of customTiers) {
         if (!t || !t.id) continue;
         if (taskType && taskType !== 'automation'

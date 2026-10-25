@@ -38,12 +38,18 @@ const ROOT_LIST_ALIASES = ['items', 'children', 'nodes', 'entries', 'elements'];
 // Entry-shaped keys that have no meaning at the root of the call.
 const ROOT_DEBRIS_KEYS = ['type', 'props', 'style', 'children', 'tempId', 'visibleWhen', 'enabledWhen'];
 // container → card: container's looks mapped onto card's (formSpecs.js).
+/** @type {Record<string, string>} */
 const CONTAINER_TO_CARD_LOOK = { panel: 'default', tinted: 'tinted', outlined: 'flat', plain: 'flat' };
 // Entry keys that are legitimately NOT props (see definitionTools COMPONENT_ENTRY_KEYS).
 const ENTRY_OWN_KEYS = new Set(['type', 'props', 'style', 'children', 'tempId', 'visibleWhen', 'enabledWhen', 'readOnly', 'visibleToRoles', 'computed', 'validations']);
 
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
+/**
+ * @param {string} at
+ * @param {number} [depth]
+ * @param {string[]} notes
+ */
 function normaliseEntry(entry, at, notes, depth = 0) {
     if (!isObject(entry)) return entry;
     const out = { ...entry };
@@ -55,6 +61,7 @@ function normaliseEntry(entry, at, notes, depth = 0) {
     // field), so a node field found in props can only be a nesting slip.
     if (isObject(out.props)) {
         const props = { ...out.props };
+        /** @type {string[]} */
         const lifted = [];
         for (const k of ENTRY_OWN_KEYS) {
             if (k === 'props') continue;
@@ -100,6 +107,7 @@ function normaliseEntry(entry, at, notes, depth = 0) {
         const stray = Object.keys(out).filter((k) => !ENTRY_OWN_KEYS.has(k) && Object.prototype.hasOwnProperty.call(spec.props, k));
         if (stray.length) {
             const props = isObject(out.props) ? { ...out.props } : {};
+            /** @type {string[]} */
             const moved = [];
             for (const k of stray) {
                 if (!(k in props)) { props[k] = out[k]; moved.push(k); }
@@ -119,6 +127,7 @@ function normaliseEntry(entry, at, notes, depth = 0) {
  * @returns {{ args: object, notes: string[], garbled: boolean }}
  */
 function normaliseAddComponentsArgs(rawArgs) {
+    /** @type {string[]} */
     const notes = [];
     const a = isObject(rawArgs) ? { ...rawArgs } : {};
     if ((a.parentId === undefined || a.parentId === null || a.parentId === '')) {
@@ -155,3 +164,8 @@ function normaliseAddComponentsArgs(rawArgs) {
 }
 
 module.exports = { normaliseAddComponentsArgs, normaliseEntry, ROOT_PARENT_ALIASES, ROOT_LIST_ALIASES, COMPONENT_TYPE_ALIASES };
+
+/**
+ * One model-authored component entry (or the call's root), read defensively.
+ * @typedef {{ [k: string]: unknown, type?: string, props?: Record<string, unknown>, children?: unknown[] }} EntryObject
+ */

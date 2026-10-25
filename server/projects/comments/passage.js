@@ -30,6 +30,7 @@
 'use strict';
 
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const SECTION_CHARS = 6000;
 const WHOLE_ITEM_CHARS = 6000;
@@ -56,6 +57,9 @@ function visibleText(line) {
         .trim();
 }
 
+/**
+ * @param {string | undefined} s
+ */
 const collapse = (s) => String(s || '').replace(/\s+/g, ' ').trim();
 
 /**
@@ -76,7 +80,11 @@ function flatten(lines) {
     return { text, starts };
 }
 
-/** The last line whose visible text starts at or before `offset`. */
+/**
+ * The last line whose visible text starts at or before `offset`.
+ * @param {number[]} starts
+ * @param {number} offset
+ */
 function lineAt(starts, offset) {
     let found = 0;
     for (let i = 0; i < starts.length; i++) {
@@ -90,6 +98,7 @@ function lineAt(starts, offset) {
  * @param {string} hay @param {string} needle
  */
 function occurrences(hay, needle) {
+    /** @type {number[]} */
     const at = [];
     if (!needle) return at;
     let i = hay.indexOf(needle);
@@ -189,7 +198,7 @@ function sectionHtmlOf(html, sectionId, domParser) {
             if (el.getAttribute('data-doc-section') === sectionId) return el.innerHTML;
         }
     } catch (err) {
-        log.debug(`[ProjectComments] section lookup failed: ${err && err.message}`);
+        bestEffort('projects/comments/passage:sectionHtmlOf', err); // [ProjectComments] section lookup failed:
     }
     return '';
 }
@@ -227,7 +236,11 @@ function makeItemReader(deps = {}) {
     let Parser = null;
     const domParser = () => Parser || (Parser = makeParser());
 
-    /** The co-edited state when a live co-editing document exists, else null. */
+    /**
+     * The co-edited state when a live co-editing document exists, else null.
+     * @param {string} kind
+     * @param {string} id
+     */
     async function liveMarkdown(kind, id) {
         const facade = collab();
         if (!facade || typeof facade.isActive !== 'function' || typeof facade.readMarkdown !== 'function') return null;
@@ -236,7 +249,7 @@ function makeItemReader(deps = {}) {
             const md = await facade.readMarkdown(kind, id);
             return typeof md === 'string' ? md : null;
         } catch (err) {
-            log.warn(`[ProjectComments] live ${kind} text unavailable, reading the stored copy: ${err && err.message}`);
+            log.warn(`[ProjectComments] live ${kind} text unavailable, reading the stored copy: ${err && /** @type {Error} */ (err).message}`);
             return null;
         }
     }

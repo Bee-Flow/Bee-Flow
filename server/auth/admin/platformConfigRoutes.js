@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Admin Routes — deployment-wide configuration (super-admin only): default
  * org integrations, connector provisioning mode and the free-email-domain
@@ -47,22 +47,23 @@ const FreeEmailDomainsBody = z.object({
 // === Default Integrations Config (Super Admin Only) ===
 
 const configStore = require('../../stores/configStore');
-const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 router.get('/default-integrations', requireSuperAdmin, async (req, res) => {
     const defaults = await configStore.getConfig('default_org_integrations') || null;
     // Include installed MCP servers
+    /** @type {{ id: string, label: string, category: string, icon: string }[]} */
     let mcpIntegrations = [];
     try {
         const mcpStore = require('../../stores/mcpStore');
         const mcpServers = await mcpStore.listServers();
-        mcpIntegrations = mcpServers.map(s => ({
+        mcpIntegrations = mcpServers.map((/** @type {Record<string, any>} */ s) => ({
             id: `mcp:${s.id}`,
             label: s.name,
             category: 'MCP servers',
             icon: s.icon || '🔌',
         }));
-    } catch (e) { log.debug('mcpStore not available', e); }
+    } catch (e) { fallback('platformConfig:mcp-integrations', e); }
     res.json({ integrations: [...ALL_INTEGRATIONS, ...mcpIntegrations], defaults });
 });
 

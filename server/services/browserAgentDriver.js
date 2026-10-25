@@ -22,6 +22,7 @@ const path = require('path');
 
 const { resolveModelForTier } = require('../core/llm/modelResolver');
 const log = require('../telemetry/log');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const PROMPT_PATH = path.join(__dirname, '..', 'prompts', 'browse-web-prompt.md');
 const DEFAULT_MAX_STEPS = parseInt(process.env.BROWSER_AGENT_MAX_STEPS || '8', 10);
@@ -220,7 +221,7 @@ async function _executeTool(page, name, input, { extracted, allowedHosts = null 
             // the secure PDF path as well (which never hits the route hook).
             if (allowedHosts) {
                 let host = null;
-                try { host = new URL(url).hostname; } catch (err) { log.debug('goto will fail it', err); }
+                try { host = new URL(url).hostname; } catch (err) { fallback('services/browserAgentDriver:_executeTool', err); /* goto will fail it */ }
                 if (host && !hostAllowed(host, allowedHosts)) {
                     return { ok: false, error: `domain_not_allowed: ${host}. This app only permits: ${allowedHosts.join(', ')}.` };
                 }
@@ -258,11 +259,11 @@ async function _executeTool(page, name, input, { extracted, allowedHosts = null 
                 }
                 throw navErr;
             }
-            await page.waitForLoadState('networkidle', { timeout: 6000 }).catch(() => {});
+            await page.waitForLoadState('networkidle', { timeout: 6000 }).catch((e) => bestEffort('services/browserAgentDriver:_executeTool#2', e));
             return { ok: true, url: page.url(), title: await page.title().catch(() => '') };
         }
         case 'pw_snapshot': {
-            const snap = await page.accessibility.snapshot({ interestingOnly: true }).catch(() => null);
+            const snap = await page.accessibility.snapshot({ interestingOnly: true }).catch((e) => fallback('services/browserAgentDriver:_executeTool#3', e, null));
             return { ok: true, tree: _flattenA11y(snap).slice(0, 6000) };
         }
         case 'pw_get_text': {
@@ -275,7 +276,7 @@ async function _executeTool(page, name, input, { extracted, allowedHosts = null 
         case 'pw_click': {
             const loc = await _resolveLocator(page, input || {});
             await loc.first().click({ timeout: STEP_TIMEOUT_MS });
-            await page.waitForLoadState('domcontentloaded', { timeout: 4000 }).catch(() => {});
+            await page.waitForLoadState('domcontentloaded', { timeout: 4000 }).catch((e) => bestEffort('services/browserAgentDriver:_executeTool#4', e));
             return { ok: true, url: page.url() };
         }
         case 'pw_type': {
@@ -290,7 +291,7 @@ async function _executeTool(page, name, input, { extracted, allowedHosts = null 
         case 'pw_scroll': {
             const sel = String(input?.selector || '').trim();
             if (sel) {
-                await page.locator(sel).first().scrollIntoViewIfNeeded({ timeout: STEP_TIMEOUT_MS }).catch(() => {});
+                await page.locator(sel).first().scrollIntoViewIfNeeded({ timeout: STEP_TIMEOUT_MS }).catch((e) => bestEffort('services/browserAgentDriver:_executeTool#5', e));
             } else {
                 const dir = input?.direction || 'down';
                 await page.evaluate((d) => {
@@ -298,7 +299,7 @@ async function _executeTool(page, name, input, { extracted, allowedHosts = null 
                     else if (d === 'top') window.scrollTo(0, 0);
                     else if (d === 'up') window.scrollBy(0, -window.innerHeight * 0.9);
                     else window.scrollBy(0, window.innerHeight * 0.9);
-                }, dir).catch(() => {});
+                }, dir).catch((e) => bestEffort('services/browserAgentDriver:_executeTool#6', e));
             }
             await page.waitForTimeout(400);
             return { ok: true };
@@ -327,7 +328,7 @@ function _makeFrameEmitter(page, onFrame) {
         try {
             const buf = await page.screenshot({ type: 'jpeg', quality: 55, fullPage: false, timeout: 5000 });
             onFrame(buf.toString('base64'));
-        } catch (err) { log.debug('page may have navigated — drop the frame', err); }
+        } catch (err) { bestEffort('services/browserAgentDriver:_makeFrameEmitter', err); /* page may have navigated — drop the frame */ }
     };
 }
 
@@ -346,19 +347,19 @@ function _summarizeAction(name, input) {
  *
  * @param {object} args
  * @param {string} args.task            — what the assistant wants read/found/done
- * @param {string|null} [args.startUrl] — optional URL to open first
+ * @param {string|null} [args.startUrl] - optional URL to open first
  * @param {string} args.userId
  * @param {string|null} [args.orgId]
  * @param {(b64:string)=>void} [args.onFrame]
  * @param {(a:{tool,summary,step})=>void} [args.onAction]
  * @param {()=>boolean} [args.isCancelled]
- * @param {string[]|null} [args.allowedHosts] — when set, NAVIGATION is confined
+ * @param {string[]|null} [args.allowedHosts] - when set, NAVIGATION is confined
  *   to these hosts (case-insensitive exact or dot-suffix match: "example.com"
  *   also allows "www.example.com"). Enforced in the route hook AND as a
  *   pw_navigate pre-check so the model gets a readable refusal instead of a
  *   net error. Subresources (a page's own CDN assets) stay unconstrained —
  *   the allowlist scopes where the AGENT may go, not how a page renders.
- * @param {number|null} [args.maxSteps] — per-call step cap, clamped to the ceiling.
+ * @param {number|null} [args.maxSteps] - per-call step cap, clamped to the ceiling.
  * @returns {Promise<{status, answer, visitedUrls, steps, error?}>}
  */
 async function runBrowseTask({ task, startUrl = null, userId = null, orgId = null, onFrame = null, onAction = null, isCancelled = null, allowedHosts = null, maxSteps = null }) {

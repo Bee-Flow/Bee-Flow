@@ -25,6 +25,7 @@ const { resolveUserOrgFromReq } = require('./shared');
 // users who connected Google via the connector).
 
 // Stable failure codes shared with the UI → HTTP status for /from-gmeet.
+/** @type {Record<string, number>} */
 const GMEET_ERROR_STATUS = {
     not_connected: 400,
     needs_reauth: 401,
@@ -36,6 +37,10 @@ const GMEET_ERROR_STATUS = {
     unsupported_edition: 400,
 };
 
+/**
+ * @param {string} message
+ * @param {string} code
+ */
 function gmeetError(message, code) {
     const e = new Error(message);
     e.code = code;
@@ -56,7 +61,7 @@ async function resolveGmeetSession(req) {
     try {
         const automationCredentialStore = require('../../stores/automationCredentialStore');
         cred = await automationCredentialStore.getCredential(userId, 'google');
-    } catch (err) { log.debug('vault unavailable → session-only', err); }
+    } catch (err) { fallbackSwallowed('routes/transcriptions/gmeet:resolveGmeetSession', err); /* vault unavailable → session-only */ }
     const connection = deriveConnectionStatus({ session: req.session, credential: cred });
 
     if (req.session.oauthProvider === 'google' && req.session.accessToken) {
@@ -82,6 +87,7 @@ async function resolveGmeetSession(req) {
 
 const { validate } = require('../../core/http/validate');
 const { worded, bodyOf, bool, NO_QUERY } = require('./schemas');
+const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 
 // ── Wat de Meet-routes mogen dragen ─────────────────────────────────
 //
@@ -147,8 +153,9 @@ router.get('/gmeet-meetings', requireAuth, validate({ query: NO_QUERY }), async 
         try {
             const t = await transcriptionStore.getTranscriptionByMeetMeetingCode(m.meetingCode, userId);
             if (t) importedNoteId = t.id;
-        } catch (err) { log.debug('ignore', err); }
+        } catch (err) { fallbackSwallowed('routes/transcriptions/gmeet:anon', err); /* ignore */ }
 
+        /** @type {string} */
         let status;
         if (importedNoteId) status = 'imported';
         else if (excluded) status = 'excluded';
@@ -231,7 +238,7 @@ router.patch('/gmeet-meetings/:eventId', requireAuth, validate({ body: GmeetPref
                 }
             }
         } catch (err) {
-            log.warn('[Transcriptions] gmeet auto-record config failed:', err.message);
+            log.warn('[Transcriptions] gmeet auto-record config failed:', /** @type {Error} */ (err).message);
             autoRecordingConfig = 'error';
         }
     }
@@ -291,12 +298,12 @@ router.get('/gmeet-recordings', requireAuth, validate({ query: NO_QUERY }), asyn
                 if (rec.recordingName) recordingState = 'available';
                 else if (rec.notReady) recordingState = 'processing';
             }
-        } catch (err) { log.debug('best-effort — leave \'none\'', err); }
+        } catch (err) { fallbackSwallowed('routes/transcriptions/gmeet:anon#2', err); /* best-effort — leave 'none' */ }
         let importedNoteId = null;
         try {
             const t = await transcriptionStore.getTranscriptionByMeetMeetingCode(m.meetingCode, userId);
             if (t) importedNoteId = t.id;
-        } catch (err) { log.debug('ignore', err); }
+        } catch (err) { fallbackSwallowed('routes/transcriptions/gmeet:anon#3', err); /* ignore */ }
         items.push({
             eventId: m.eventId,
             meetingCode: m.meetingCode,
@@ -343,7 +350,7 @@ router.post('/from-gmeet', requireAuth, validate({ body: FromGmeetBody, query: N
         try {
             const recent = await listRecentlyEndedMeetMeetings({ session, lookbackHours: 24 * 7 });
             meeting = recent.find(m => (event_id && m.eventId === event_id) || (meetingCode && m.meetingCode === meetingCode)) || null;
-        } catch (err) { log.debug('best-effort — a code-only import can still proceed', err); }
+        } catch (err) { fallbackSwallowed('routes/transcriptions/gmeet:anon#4', err); /* best-effort — a code-only import can still proceed */ }
         if (meeting && !meetingCode) meetingCode = meeting.meetingCode;
         if (!meetingCode) {
             const e = gmeetError('Provide a Google Meet link, meeting code or calendar event id of a recently ended meeting', 'bad_request');
@@ -388,7 +395,7 @@ router.post('/from-gmeet', requireAuth, validate({ body: FromGmeetBody, query: N
     } catch (err) {
         const status = err.status || GMEET_ERROR_STATUS[err.code];
         if (!status || status >= 500) throw err; // unclassified: the terminal handler logs it and answers generically
-        res.status(status).json({ error: err.message, ...(err.code ? { code: err.code } : {}) });
+        res.status(status).json({ error: /** @type {Error} */ (err).message, ...(err.code ? { code: err.code } : {}) });
     }
 });
 

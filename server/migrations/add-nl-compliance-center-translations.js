@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck strict
 /**
  * Dutch for the Compliance Center redesign (2026-09-14): the 300 px rail, the
  * section headers and their tabs, the overview cards, the check table, the
@@ -34,7 +35,7 @@ const MAP_PATH = path.join(__dirname, 'data', 'compliance-center-nl.json');
 function loadMap() {
     try { return JSON.parse(fs.readFileSync(MAP_PATH, 'utf8')); }
     catch (e) {
-        console.warn(`[Migration] add-nl-compliance-center-translations: no NL map at ${MAP_PATH} (${e.message}) — nothing to seed`);
+        console.warn(`[Migration] add-nl-compliance-center-translations: no NL map at ${MAP_PATH} (${/** @type {Error} */ (e).message}) — nothing to seed`);
         return {};
     }
 }

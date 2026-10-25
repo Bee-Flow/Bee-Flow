@@ -54,6 +54,11 @@ opaque.ready.then(() => {
 // account. Answered here rather than thrown as an HttpError: the terminal
 // handler logs every 5xx at error level, and this one is already reported once
 // at boot — per request it would give anonymous callers a log-write lever.
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 function ensureReady(req, res, next) {
     if (!opaqueReady) {
         return res.status(503).json({ error: 'OPAQUE not ready — WASM loading' });
@@ -93,7 +98,7 @@ buildFakeRecords().catch((err) => {
  */
 const { validate } = require('../core/http/validate');
 
-router.post('/register/start', ensureReady, requireAuth, opaqueRegisterLimiter, validate({ body: RegisterStartBody }), async (req, res) => {
+router.post('/register/start', ensureReady, requireAuth, opaqueRegisterLimiter, validate({ body: RegisterStartBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { registrationRequest } = req.body;
 
     const username = req.session.user.id;
@@ -115,7 +120,7 @@ router.post('/register/start', ensureReady, requireAuth, opaqueRegisterLimiter, 
  *   3. Wrapped DEK with KEK (AES-256-GCM)
  *   4. Generated recovery key, wrapped DEK with it
  */
-router.post('/register/finish', requireAuth, opaqueRegisterLimiter, validate({ body: RegisterFinishBody }), async (req, res) => {
+router.post('/register/finish', requireAuth, opaqueRegisterLimiter, validate({ body: RegisterFinishBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { registrationRecord, wrappedDEK, recoveryWrappedDEK, kekSalt } = req.body;
 
     // The account being migrated is the CALLER'S, taken from the session
@@ -203,7 +208,7 @@ router.post('/register/finish', requireAuth, opaqueRegisterLimiter, validate({ b
  * Step 1: Client starts login, sends startLoginRequest
  * Server responds with loginResponse + user's wrappedDEK (for client-side unwrap)
  */
-router.post('/login/start', ensureReady, opaqueLoginLimiter, validate({ body: LoginStartBody }), async (req, res) => {
+router.post('/login/start', ensureReady, opaqueLoginLimiter, validate({ body: LoginStartBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const startedAt = Date.now();
     const { username, startLoginRequest } = req.body;
 
@@ -259,7 +264,9 @@ router.post('/login/start', ensureReady, opaqueLoginLimiter, validate({ body: Lo
             userId: usable ? user.id : null,
         });
 
+        /** @type {{ iv: string; authTag: string; data: string; } | null} */
         let wrappedDEK = null;
+        /** @type {{ iv: string; authTag: string; data: string; } | null} */
         let recoveryWrappedDEK = null;
         if (usable) {
             wrappedDEK = readEnvelope(user.wrappedDEK);
@@ -281,7 +288,7 @@ router.post('/login/start', ensureReady, opaqueLoginLimiter, validate({ body: Lo
             recoveryWrappedDEK
         });
     } catch (err) {
-        log.error('[OPAQUE] Login start failed:', err.message);
+        log.error('[OPAQUE] Login start failed:', /** @type {Error} */ (err).message);
         // The reserved slot has to be waited out here too. Recording the
         // failure and then answering immediately took the slot and threw the
         // wait away, which left this path faster than every other failure on
@@ -307,7 +314,7 @@ router.post('/login/start', ensureReady, opaqueLoginLimiter, validate({ body: Lo
  *   3. Unwrapped DEK with KEK
  *   4. Optionally sends encrypted DEK for server-side session use
  */
-router.post('/login/finish', opaqueLoginLimiter, validate({ body: LoginFinishBody }), async (req, res) => {
+router.post('/login/finish', opaqueLoginLimiter, validate({ body: LoginFinishBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const startedAt = Date.now();
     const { loginId, finishLoginRequest, encryptedDEK } = req.body;
 
@@ -322,6 +329,9 @@ router.post('/login/finish', opaqueLoginLimiter, validate({ body: LoginFinishBod
     // account and a protocol error are the same event to a caller: same status,
     // same body, same floor, and all counted against the identifier the start
     // step was given.
+    /**
+     * @param {string | null} logLine
+     */
     const fail = async (logLine) => {
         if (logLine) log.warn(`[OPAQUE] ${logLine}`);
         recordAuthEvent({ kind: 'opaque_login', status: 'fail' });
@@ -379,6 +389,7 @@ router.post('/login/finish', opaqueLoginLimiter, validate({ body: LoginFinishBod
 
         // If client sent encrypted DEK for server-side use (Option B from plan):
         // The DEK is encrypted with the OPAQUE sessionKey — decrypt it for session storage
+        /** @type {string | null} */
         let dek = null;
         if (encryptedDEK) {
             try {
@@ -394,7 +405,7 @@ router.post('/login/finish', opaqueLoginLimiter, validate({ body: LoginFinishBod
                 decrypted += decipher.final('utf8');
                 dek = decrypted;
             } catch (dekErr) {
-                log.error('[OPAQUE] Failed to decrypt DEK from client:', dekErr.message);
+                log.error('[OPAQUE] Failed to decrypt DEK from client:', /** @type {Error} */ (dekErr).message);
                 // Don't fail login — client still holds DEK
             }
         }
@@ -415,7 +426,7 @@ router.post('/login/finish', opaqueLoginLimiter, validate({ body: LoginFinishBod
             sessionKey // Client needs this for encrypting DEK to send back
         });
     } catch (err) {
-        return await fail(`Login finish failed: ${err.message}`);
+        return await fail(`Login finish failed: ${/** @type {Error} */ (err).message}`);
     }
 });
 
@@ -426,7 +437,7 @@ router.post('/login/finish', opaqueLoginLimiter, validate({ body: LoginFinishBod
 /**
  * SSO PIN registration start — user sets their encryption PIN via OPAQUE
  */
-router.post('/pin/register/start', ensureReady, requireAuth, opaqueRegisterLimiter, validate({ body: RegisterStartBody }), async (req, res) => {
+router.post('/pin/register/start', ensureReady, requireAuth, opaqueRegisterLimiter, validate({ body: RegisterStartBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { registrationRequest } = req.body;
 
     const userId = req.session.user.id;
@@ -443,7 +454,7 @@ router.post('/pin/register/start', ensureReady, requireAuth, opaqueRegisterLimit
 /**
  * SSO PIN registration finish
  */
-router.post('/pin/register/finish', requireAuth, opaqueRegisterLimiter, validate({ body: PinRegisterFinishBody }), async (req, res) => {
+router.post('/pin/register/finish', requireAuth, opaqueRegisterLimiter, validate({ body: PinRegisterFinishBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { registrationRecord, wrappedDEK, recoveryWrappedDEK } = req.body;
 
     const userId = req.session.user.id;
@@ -489,7 +500,7 @@ router.post('/pin/register/finish', requireAuth, opaqueRegisterLimiter, validate
 /**
  * SSO PIN login start
  */
-router.post('/pin/login/start', ensureReady, requireAuth, opaqueLoginLimiter, validate({ body: PinLoginStartBody }), async (req, res) => {
+router.post('/pin/login/start', ensureReady, requireAuth, opaqueLoginLimiter, validate({ body: PinLoginStartBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { startLoginRequest } = req.body;
 
     const userId = req.session.user.id;
@@ -522,7 +533,7 @@ router.post('/pin/login/start', ensureReady, requireAuth, opaqueLoginLimiter, va
 /**
  * SSO PIN login finish
  */
-router.post('/pin/login/finish', requireAuth, opaqueLoginLimiter, validate({ body: LoginFinishBody }), async (req, res) => {
+router.post('/pin/login/finish', requireAuth, opaqueLoginLimiter, validate({ body: LoginFinishBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { loginId, finishLoginRequest, encryptedDEK } = req.body;
 
     const pending = await getPendingLogin(loginId);
@@ -560,7 +571,7 @@ router.post('/pin/login/finish', requireAuth, opaqueLoginLimiter, validate({ bod
                 decrypted += decipher.final('utf8');
                 req.session.encryptionKey = decrypted;
             } catch (dekErr) {
-                log.error('[OPAQUE] Failed to decrypt PIN DEK from client:', dekErr.message);
+                log.error('[OPAQUE] Failed to decrypt PIN DEK from client:', /** @type {Error} */ (dekErr).message);
             }
         }
 
@@ -571,7 +582,7 @@ router.post('/pin/login/finish', requireAuth, opaqueLoginLimiter, validate({ bod
             res.json({ success: true, sessionKey });
         });
     } catch (err) {
-        log.error('[OPAQUE] PIN login finish failed:', err.message);
+        log.error('[OPAQUE] PIN login finish failed:', /** @type {Error} */ (err).message);
         res.status(401).json({ error: 'Incorrect PIN' });
     }
 });
@@ -579,7 +590,7 @@ router.post('/pin/login/finish', requireAuth, opaqueLoginLimiter, validate({ bod
 /**
  * Check if user has OPAQUE registration (for frontend routing)
  */
-router.get('/status', requireAuth, async (req, res) => {
+router.get('/status', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const user = await userStore.getUser(req.session.user?.id);
     res.json({
         kdfMode: user?.kdfMode || 'legacy_argon2',

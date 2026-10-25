@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Login Routes — invitation tokens on the public side: validation, the
  * path-style redeem landing that hides the token from the URL, and the

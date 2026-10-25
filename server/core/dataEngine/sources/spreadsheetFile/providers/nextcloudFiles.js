@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Nextcloud Files (WebDAV) as a spreadsheet-mirror storage.
  *
@@ -36,6 +37,25 @@
 const { SpreadsheetSourceError, fromHttp } = require('../errors');
 const { formatOf, isSpreadsheetName } = require('./index');
 
+/** @typedef {import('./index').FileRef} FileRef */
+/**
+ * A webdav.parsePropfind entry (integrations/nextcloudFiles/webdav.js).
+ * @typedef {{ name?: string, path: string, type?: string, size?: number, contentType?: string|null, modified?: string|null,
+ *             fileId?: string|number|null, etag?: string|null, permissions?: string|null, ownerId?: string|null }} NcEntry
+ */
+/** @typedef {{ etag: string|null, modified: string|null, size: number|null, fileId: string|null }} NcMarker */
+/**
+ * The context makeApi builds (see "The FileApi's operations").
+ * @typedef {{ d: ReturnType<typeof deps>, auth: NcAuth, baseUrl: string, uid: string, root: string,
+ *             guardCtx: { userId: string, session: object|null, orgId: string|null },
+ *             linkBase: () => Promise<string|null>,
+ *             propfind: (path: string, depth: string) => Promise<Response>,
+ *             assertScope: (toolName: string, path: string, file?: { path?: string|null }) => Promise<void>,
+ *             stat: (file: FileRef) => Promise<NcEntry>,
+ *             probe: (file: FileRef) => Promise<{ marker: NcMarker, name: string, size: number|null, mimeType: string|null, format: string|null, path: string, webUrl: string|null, owned: boolean, writable: boolean, file: FileRef }> }} NcCtx
+ */
+/** @typedef {{ baseUrl: string, uid: string, fetch: (url: string, init?: object) => Promise<Response>, authError?: string, session?: { connectorOrgId?: string, user?: { organizationId?: string } }, mode?: string, publicBaseUrl?: string }} NcAuth */
+
 const provider = 'nextcloud_files';
 const oauthProvider = 'nextcloud';
 const integrationAppIds = ['nextcloud'];
@@ -44,6 +64,7 @@ const DOWNLOAD_TIMEOUT_MS = 60_000;
 const SEARCH_LIMIT = 50;
 
 const { integrationClient } = require('../../../../integrations/integrationClients');
+const { fallback } = require('../../../../../utils/bestEffort');
 
 function deps() {
     return {
@@ -58,24 +79,37 @@ function deps() {
 
 // ─── Small helpers ──────────────────────────────────────────────────────
 
+/**
+ * @param {string} p
+ */
 function normalizePath(p) {
     const s = ('/' + String(p || '')).replace(/\/+/g, '/').replace(/\/+$/, '');
     return s || '/';
 }
 
-/** The ref a refusal carries. On Nextcloud the wire id IS the path (what the browser hands out and a wizard keys on). */
+/**
+ * The ref a refusal carries. On Nextcloud the wire id IS the path (what the browser hands out and a wizard keys on).
+ * @param {{ path?: string|null }} file
+ */
 function refOf(file) {
     const path = file && file.path || null;
     return { provider, fileId: path, path };
 }
 
-/** RFC 1123 (getlastmodified) → ISO, or null when unparsable. */
+/**
+ * RFC 1123 (getlastmodified) → ISO, or null when unparsable.
+ * @param {string | number | Date} rfc
+ */
 function isoOf(rfc) {
     if (!rfc) return null;
     const d = new Date(rfc);
     return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
+/**
+ * @param {NcEntry} entry
+ * @returns {NcMarker}
+ */
 function markerOf(entry) {
     return {
         etag: entry.etag || null,
@@ -85,11 +119,19 @@ function markerOf(entry) {
     };
 }
 
+/**
+ * @param {{ etag?: string|null }} a
+ * @param {{ etag?: string|null }} b
+ */
 function markerEquals(a, b) {
     return !!a && !!b && a.etag != null && a.etag === b.etag;
 }
 
-/** A parsePropfind entry → FileRef. Non-spreadsheet files are dropped. `linkBase` is the public URL (null = no deep link). */
+/**
+ * A parsePropfind entry → FileRef. Non-spreadsheet files are dropped. `linkBase` is the public URL (null = no deep link).
+ * @param {NcEntry} entry
+ * @param {{ baseUrl: string, uid: string, linkBase?: string|null }} opts
+ */
 function toFileRef(entry, { baseUrl, uid, linkBase = baseUrl }) {
     if (!entry) return null;
     const isFolder = entry.type === 'folder';
@@ -100,7 +142,7 @@ function toFileRef(entry, { baseUrl, uid, linkBase = baseUrl }) {
     return {
         provider,
         fileId: entry.fileId != null ? String(entry.fileId) : null,
-        driveId: null,
+        driveId: /** @type {string|null} */ (null),
         path,
         name: entry.name || path.split('/').pop() || '',
         mimeType: entry.contentType || null,
@@ -118,6 +160,10 @@ function toFileRef(entry, { baseUrl, uid, linkBase = baseUrl }) {
     };
 }
 
+/**
+ * @param {{ path?: string|null }} source
+ * @param {string} verb
+ */
 function scopeDenied(source, verb) {
     return new SpreadsheetSourceError(403, 'nc_scope_denied',
         verb === 'write'
@@ -131,7 +177,11 @@ function scopeDenied(source, verb) {
 // They take the context `n` makeApi builds:
 //   { d, auth, baseUrl, uid, root, guardCtx, linkBase(), propfind(), assertScope(), stat(), probe() }
 
-/** One folder, listed whole through the scope guard (WebDAV has no pages). */
+/**
+ * One folder, listed whole through the scope guard (WebDAV has no pages).
+ * @param {NcCtx} n
+ * @param {{ view?: string, path?: string, parentId?: string|null, q?: string|null, pageToken?: string|null }} [opts]
+ */
 async function listFolder(n, { view = 'mine', path = '/', parentId = null, q = null, pageToken = null } = {}) {
     void pageToken;   // WebDAV lists a folder whole
     if (view === 'shared') {
@@ -148,7 +198,7 @@ async function listFolder(n, { view = 'mine', path = '/', parentId = null, q = n
         const all = n.d.webdav.parsePropfind(await res.text(), n.baseUrl, n.uid);
         // The first entry is the folder itself — the same shape as the
         // list tool, so the guard's filter finds `items` and each `path`.
-        const items = all.filter((e) => normalizePath(e.path) !== folder);
+        const items = all.filter((/** @type {NcEntry} */ e) => normalizePath(e.path) !== folder);
         return { path: folder, count: items.length, items };
     });
     if (answer && answer.error) {
@@ -156,12 +206,16 @@ async function listFolder(n, { view = 'mine', path = '/', parentId = null, q = n
         throw new SpreadsheetSourceError(503, 'spreadsheet_unavailable', String(answer.error).slice(0, 200), { ref: { provider, path: folder } });
     }
     const base = await n.linkBase();
-    const items = (answer.items || []).map((e) => toFileRef(e, { baseUrl: n.baseUrl, uid: n.uid, linkBase: base })).filter(Boolean);
-    items.sort((a, b) => (a.isFolder === b.isFolder ? a.name.localeCompare(b.name) : (a.isFolder ? -1 : 1)));
+    const items = (answer.items || []).map((/** @type {NcEntry} */ e) => toFileRef(e, { baseUrl: n.baseUrl, uid: n.uid, linkBase: base })).filter(Boolean);
+    items.sort((/** @type {FileRef} */ a, /** @type {FileRef} */ b) => (a.isFolder === b.isFolder ? a.name.localeCompare(b.name) : (a.isFolder ? -1 : 1)));
     return { items, nextPageToken: null };
 }
 
-/** The files search provider, through the scope guard; spreadsheets only. */
+/**
+ * The files search provider, through the scope guard; spreadsheets only.
+ * @param {NcCtx} n
+ * @param {string|null} q
+ */
 async function searchFiles(n, q) {
     const term = String(q || '').trim();
     if (!term) return { items: [], nextPageToken: null };
@@ -169,13 +223,13 @@ async function searchFiles(n, q) {
         const url = `${n.baseUrl}/ocs/v2.php/search/providers/files/search?term=${encodeURIComponent(term)}&limit=${SEARCH_LIMIT}&format=json`;
         const res = await n.auth.fetch(url, { headers: { 'OCS-APIRequest': 'true', 'Accept': 'application/json' } });
         if (!res.ok) throw fromHttp(provider, res.status, await res.text().catch(() => ''), 'search');
-        const data = await res.json().catch(() => null);
+        const data = /** @type {{ ocs?: { data?: { entries?: Array<{ title?: string, attributes?: { path?: string, fileId?: string|number } }> } } }|null} */ (await res.json().catch(/** @returns {null} */ () => null));
         const entries = (data && data.ocs && data.ocs.data && data.ocs.data.entries) || [];
-        const items = entries.map((e) => ({
+        const items = entries.map((/** @type {{ title?: string, attributes?: { path?: string, fileId?: string|number } }} */ e) => ({
             name: e.title || '',
             path: (e.attributes && e.attributes.path) || null,
             fileId: (e.attributes && e.attributes.fileId) || null,
-        })).filter((e) => e.path && isSpreadsheetName(e.name));
+        })).filter((/** @type {{ name: string, path: string|null }} */ e) => e.path && isSpreadsheetName(e.name));
         return { query: term, count: items.length, items };
     });
     if (answer && answer.error) {
@@ -183,29 +237,35 @@ async function searchFiles(n, q) {
         throw new SpreadsheetSourceError(503, 'spreadsheet_unavailable', String(answer.error).slice(0, 200));
     }
     const base = await n.linkBase();
-    const items = (answer.items || []).map((e) => {
+    const items = (answer.items || []).map((/** @type {{ name: string, path: string, fileId: string|number|null }} */ e) => {
         const path = normalizePath(e.path);
         return {
-            provider, fileId: e.fileId != null ? String(e.fileId) : null, driveId: null, path,
-            name: e.name || path.split('/').pop(), mimeType: null, format: formatOf({ name: e.name }),
-            size: null, modifiedAt: null, etag: null,
+            provider, fileId: e.fileId != null ? String(e.fileId) : null, driveId: /** @type {string|null} */ (null), path,
+            name: e.name || path.split('/').pop(), mimeType: /** @type {string|null} */ (null), format: formatOf({ name: e.name }),
+            size: /** @type {number|null} */ (null), modifiedAt: /** @type {string|null} */ (null), etag: /** @type {string|null} */ (null),
             webUrl: base && e.fileId != null ? `${base}/f/${e.fileId}` : null,
             parentId: path.slice(0, path.lastIndexOf('/')) || '/', isFolder: false, owned: false,
         };
     });
-    return { items, nextPageToken: null };
+    return { items, nextPageToken: /** @type {string|null} */ (null) };
 }
 
+/**
+ * @param {NcCtx} n
+ * @param {FileRef} file
+ * @param {{ maxBytes?: number|null }} [opts]
+ */
 async function downloadFile(n, file, { maxBytes = null } = {}) {
     const p = await n.probe(file);
     if (maxBytes && p.size != null && p.size > maxBytes) {
         throw new SpreadsheetSourceError(413, 'spreadsheet_too_large', `"${p.name}" is ${Math.round(p.size / 1048576)} MB; the limit is ${Math.round(maxBytes / 1048576)} MB.`, { ref: refOf(file) });
     }
+    /** @type {Response} */
     let res;
     try {
         res = await n.auth.fetch(n.d.webdav.joinDavPath(n.root, p.path), { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) });
     } catch (e) {
-        throw new SpreadsheetSourceError(503, 'spreadsheet_unavailable', `Nextcloud did not deliver the file (${e && e.name === 'TimeoutError' ? 'timeout' : 'network error'}).`, { ref: refOf(file) });
+        throw new SpreadsheetSourceError(503, 'spreadsheet_unavailable', `Nextcloud did not deliver the file (${e && /** @type {Error} */ (e).name === 'TimeoutError' ? 'timeout' : 'network error'}).`, { ref: refOf(file) });
     }
     if (res.status === 404) throw new SpreadsheetSourceError(404, 'spreadsheet_not_found', `Nextcloud no longer has ${p.path}.`, { ref: refOf(file) });
     if (!res.ok) throw fromHttp(provider, res.status, await res.text().catch(() => ''), 'file', { ref: refOf(file) });
@@ -220,24 +280,30 @@ async function downloadFile(n, file, { maxBytes = null } = {}) {
  * PUT the new bytes over the file, guarded by `If-Match: <etag>`. The
  * new etag comes from the response header; Nextcloud omits it on some
  * paths (the connector hop, older Sabre), then one PROPFIND fetches it.
+ * @param {NcCtx} n
+ * @param {FileRef} file
+ * @param {Buffer} buffer
+ * @param {{ ifMatch?: Partial<NcMarker>|null, contentType?: string|null }} [opts]
  */
 async function uploadFile(n, file, buffer, { ifMatch = null, contentType = null } = {}) {
     const path = normalizePath(file && file.path);
     if (!file || !file.path) throw new SpreadsheetSourceError(422, 'spreadsheet_rejected', 'A Nextcloud file needs a path.');
     await n.assertScope('nextcloud_upload_file', path, file);
     const format = file.format || formatOf({ name: file.name || path });
+    /** @type {Record<string, string>} */
     const headers = {
-        'Content-Type': contentType || n.d.officegen.CONTENT_TYPES[format] || 'application/octet-stream',
+        'Content-Type': contentType || /** @type {Record<string, string>} */ (n.d.officegen.CONTENT_TYPES)[format] || 'application/octet-stream',
         'OC-Total-Length': String(buffer.length),
     };
     if (ifMatch && ifMatch.etag) headers['If-Match'] = ifMatch.etag;
+    /** @type {Response} */
     let res;
     try {
         res = await n.auth.fetch(n.d.webdav.joinDavPath(n.root, path), {
             method: 'PUT', headers, body: buffer, signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
         });
     } catch (e) {
-        throw new SpreadsheetSourceError(503, 'spreadsheet_unavailable', `Nextcloud did not take the upload (${e && e.name === 'TimeoutError' ? 'timeout' : 'network error'}).`, { ref: refOf(file) });
+        throw new SpreadsheetSourceError(503, 'spreadsheet_unavailable', `Nextcloud did not take the upload (${e && /** @type {Error} */ (e).name === 'TimeoutError' ? 'timeout' : 'network error'}).`, { ref: refOf(file) });
     }
     if (!res.ok && res.status !== 201 && res.status !== 204) {
         throw fromHttp(provider, res.status, await res.text().catch(() => ''), 'file', { ref: refOf(file) });
@@ -252,8 +318,8 @@ async function uploadFile(n, file, buffer, { ifMatch = null, contentType = null 
 // ─── The FileApi ────────────────────────────────────────────────────────
 
 /**
- * @param {object} auth  resolveAuth's answer: { baseUrl, uid, fetch, authError? }
- * @param {object} ctx   { userId, session, orgId } — who the scope guard asks about
+ * @param {NcAuth} auth  resolveAuth's answer
+ * @param {{ userId?: string, session?: { connectorOrgId?: string, user?: { organizationId?: string } }, orgId?: string }} [ctx]   who the scope guard asks about
  */
 function makeApi(auth, ctx = {}) {
     const d = deps();
@@ -269,7 +335,11 @@ function makeApi(auth, ctx = {}) {
     // mirror ships as its `ncUrl` — and ships null when there is none; any
     // other auth's baseUrl is the public URL already.
     const proxied = auth.mode === 'connector' || /\/apps\/app_api\/proxy\//.test(String(baseUrl || ''));
+    /**
+     * @param {string} u
+     */
     const trim = (u) => (u ? String(u).replace(/\/+$/, '') : null);
+    /** @type {Promise<string | null>} */
     let linkBasePromise = null;
     function linkBase() {
         if (!linkBasePromise) {
@@ -280,17 +350,26 @@ function makeApi(auth, ctx = {}) {
                 if (!orgId) return null;
                 const org = await require('../../../../../stores/userStore').getOrganization(orgId);
                 return trim(org && (org.nc_base_url || org.ncBaseUrl));
-            })().catch(() => null);
+            })().catch((e) => fallback('core/dataEngine/sources/spreadsheetFile/providers/nextcloudFiles:linkBase', e, null));
         }
         return linkBasePromise;
     }
 
+    /**
+     * @param {string} toolName
+     * @param {string} path
+     * @param {{ path?: string|null }} [file]
+     */
     async function assertScope(toolName, path, file) {
         if (!guardCtx.userId) return;   // no principal → nothing to gate on (a test double)
         const denial = await d.guard.checkToolCall({ toolName, toolArgs: { path }, userId: guardCtx.userId, orgId: scopeOrg() });
         if (denial) throw scopeDenied(file || { path }, toolName === 'nextcloud_upload_file' ? 'write' : 'read');
     }
 
+    /**
+     * @param {string} path
+     * @param {string} depth
+     */
     async function propfind(path, depth) {
         const dav = d.webdav.joinDavPath(root, path);
         const url = depth === '1' ? (dav.endsWith('/') ? dav : `${dav}/`) : dav;
@@ -301,7 +380,11 @@ function makeApi(auth, ctx = {}) {
         });
     }
 
-    /** PROPFIND Depth 0 → the entry, or a spreadsheet_not_found. */
+    /**
+     * PROPFIND Depth 0 → the entry, or a spreadsheet_not_found.
+     * @param {FileRef} file
+     * @returns {Promise<NcEntry>}
+     */
     async function stat(file) {
         const path = normalizePath(file && file.path);
         if (!file || !file.path) throw new SpreadsheetSourceError(422, 'spreadsheet_rejected', 'A Nextcloud file needs a path.');
@@ -314,6 +397,7 @@ function makeApi(auth, ctx = {}) {
         return entry;
     }
 
+    /** @param {FileRef} file */
     async function probe(file) {
         const entry = await stat(file);
         const ref = toFileRef(entry, { baseUrl, uid, linkBase: await linkBase() });
@@ -334,7 +418,10 @@ function makeApi(auth, ctx = {}) {
         };
     }
 
-    /** Identity on Nextcloud IS the path; this is probe() by another name. */
+    /**
+     * Identity on Nextcloud IS the path; this is probe() by another name.
+     * @param {string} path
+     */
     async function resolveByPath(path) {
         try {
             return (await probe({ path })).file;
@@ -347,15 +434,21 @@ function makeApi(auth, ctx = {}) {
     const n = { d, auth, baseUrl, uid, root, guardCtx, linkBase, propfind, assertScope, stat, probe };
     return {
         provider,
+        /** @param {Parameters<typeof listFolder>[1]} [opts] */
         list: (opts) => listFolder(n, opts),
         probe,
+        /** @param {FileRef} file @param {Parameters<typeof downloadFile>[2]} [opts] */
         download: (file, opts) => downloadFile(n, file, opts),
+        /** @param {FileRef} file @param {Buffer} buffer @param {Parameters<typeof uploadFile>[3]} [opts] */
         upload: (file, buffer, opts) => uploadFile(n, file, buffer, opts),
         markerEquals, resolveByPath, root, baseUrl, uid,
     };
 }
 
 /** Cheap and network-free: connector binding, OAuth session or app password. */
+/**
+ * @param {{ userId?: string, session?: object|null }} [opts]
+ */
 async function isConnected({ userId, session = null } = {}) {
     const { ncClient } = deps();
     const connected = await ncClient.isConnected(session, userId).catch(() => false);

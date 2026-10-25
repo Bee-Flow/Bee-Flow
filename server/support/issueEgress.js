@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * What may leave Bee Flow for a YouTrack issue — and nothing else.
  *
@@ -61,7 +62,10 @@ const MAX_DESCRIPTION = 20_000;
 
 const { clientHost, adminSupportTicketPath } = require('../utils/appPaths');
 
-/** The staff-only deep link. An opaque id behind the admin_support gate. */
+/**
+ * The staff-only deep link. An opaque id behind the admin_support gate.
+ * @param {string} threadId
+ */
 function staffTicketUrl(threadId) {
     return `${clientHost()}${adminSupportTicketPath(threadId)}`;
 }
@@ -74,10 +78,11 @@ function staffTicketUrl(threadId) {
  * `support_threads` (requester_email, requester_name, requester_org_name,
  * requester_ip, requester_ua, …) is unreachable from here by construction.
  *
- * @param {object}  p.thread          a support_threads row
+ * @param {object}  p
+ * @param {{ id?: string, ticket_ref?: string, source?: string, created_at?: string|Date, subject?: string }} p.thread          a support_threads row
  * @param {string}  p.summary         the agent's issue title
- * @param {string}  p.description     the agent's problem description
- * @param {boolean} p.includeSubject  admin setting; appends the ticket subject
+ * @param {string}  [p.description]   the agent's problem description
+ * @param {boolean} [p.includeSubject]  admin setting; appends the ticket subject
  * @returns {{summary: string, description: string, ticketRef: string, url: string}}
  */
 function buildIssuePayload({ thread, summary, description = '', includeSubject = false }) {
@@ -112,7 +117,10 @@ function buildIssuePayload({ thread, summary, description = '', includeSubject =
     };
 }
 
-/** Escape a literal for use inside a RegExp. */
+/**
+ * Escape a literal for use inside a RegExp.
+ * @param {unknown} v
+ */
 function reEscape(v) {
     return String(v).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -142,9 +150,15 @@ const NAME_PARTICLES = new Set([
  *                 as a whole word hits the customer and not much else. That is
  *                 what lets the floor drop to two characters, which matters
  *                 because Dutch first names are short.
+ * @param {{ requester_email?: string, requester_org_name?: string, requester_ip?: string, requester_name?: string } | null} thread
  */
 function knownIdentifiers(thread) {
+    /** @type {{ value: string; label: string; mode: string; }[]} */
     const out = [];
+    /**
+     * @param {unknown} v
+     * @param {string} label
+     */
     const substring = (v, label) => {
         const s = String(v || '').trim();
         if (s.length >= 4) out.push({ value: s, label, mode: 'substring' });
@@ -175,6 +189,8 @@ function knownIdentifiers(thread) {
  * Does `haystack` contain this identifier? Unicode-aware word boundaries, so a
  * name with diacritics ("José", "Müller") behaves like any other — JS's own
  * \b is ASCII-only and would split those in the middle.
+ * @param {string} haystack
+ * @param {{ value: string, mode: string }} ident
  */
 function identifierPresent(haystack, { value, mode }) {
     if (mode === 'word') {
@@ -187,12 +203,15 @@ function identifierPresent(haystack, { value, mode }) {
 /**
  * Screen free text before it leaves.
  *
- * @returns {{ok: boolean, scanned: boolean, findings: Array<{category: string, label: string, count: number}>}}
+ * @returns {Promise<{ok: boolean, scanned: boolean, findings: Array<{category: string, label: string, count: number}>}>}
  *   `ok:false` means do not send. `scanned:false` means the PII guard was not
  *   available and only the exact-match pass ran — record that, because it is
  *   the difference between "checked and clean" and "could not check".
+ * @param {string} text
+ * @param {{ thread?: { requester_email?: string, requester_org_name?: string, requester_ip?: string, requester_name?: string } | null }} [opts]
  */
 async function screenText(text, { thread = null } = {}) {
+    /** @type {Array<{category: string, label: string, count: number}>} */
     const findings = [];
     const haystack = String(text || '');
     if (!haystack.trim()) return { ok: true, scanned: true, findings };
@@ -232,14 +251,17 @@ async function screenText(text, { thread = null } = {}) {
             }
         }
     } catch (err) {
-        log.warn('[SupportEgress] PII scan failed:', err.message);
+        log.warn('[SupportEgress] PII scan failed:', /** @type {Error} */ (err).message);
         scanned = false;
     }
 
     return { ok: findings.length === 0, scanned, findings };
 }
 
-/** One line an agent can act on: what was found and where. */
+/**
+ * One line an agent can act on: what was found and where.
+ * @param {Array<{category: string, label: string, count: number}>} [findings]
+ */
 function describeFindings(findings = []) {
     if (!findings.length) return '';
     return findings

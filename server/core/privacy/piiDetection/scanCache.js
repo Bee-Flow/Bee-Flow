@@ -45,6 +45,11 @@ const cache = new Map();
  * for the rest of the TTL. `customKey` overrides it (a scan against types
  * passed in directly, not the registry). A list without custom ids gets
  * exactly the key it always had.
+ * @param {string} channel
+ * @param {string} text
+ * @param {string[]} enabledCategories
+ * @param {number} confidenceThreshold
+ * @param {string | null} [customKey]
  */
 function cacheKey(channel, text, enabledCategories, confidenceThreshold, customKey = null) {
     const digest = crypto.createHash('sha256').update(text, 'utf8').digest('hex');
@@ -60,6 +65,9 @@ function cacheKey(channel, text, enabledCategories, confidenceThreshold, customK
     return key;
 }
 
+/**
+ * @param {string} key
+ */
 function cacheGet(key) {
     const entry = cache.get(key);
     if (!entry) return null;
@@ -72,6 +80,9 @@ function cacheGet(key) {
     return entry.result;
 }
 
+/**
+ * @param {string} key
+ */
 function cacheSet(key, result) {
     if (cache.size >= CACHE_MAX) {
         const oldest = cache.keys().next().value;
@@ -123,3 +134,12 @@ module.exports = {
     _inflightScans,
     _cloneScanResult,
 };
+
+/**
+ * @typedef {{ category?: string, label?: string, text?: string, subCategory?: string | null, confidence?: number,
+ *   offset?: number, length?: number, alsoCategories?: string[] }} PiiEntity
+ * @typedef {{ hasPii?: boolean, entities?: PiiEntity[], redactedText?: string, degraded?: boolean,
+ *   degradedReason?: string | null, degradedCategories?: string[] | null, processedChars?: number | null,
+ *   totalChars?: number | null, tierMode?: string | null, engineFingerprint?: string | null,
+ *   customEntities?: PiiEntity[] }} PiiScanResult
+ */

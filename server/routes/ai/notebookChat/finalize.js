@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Notebook chat: the end of one turn (routes/ai/notebookChat.js), in the
  * order the route runs it: the answer restored for display, the "Privacy
@@ -15,6 +16,20 @@ const guardrailEventStore = require('../../../stores/guardrailEventStore');
 const { checkRegexPatterns } = require('../../../core/privacy/guardrails');
 const dlpRunner = require('../../../core/dlp/dlpRunner');
 const { canonicalHtml } = require('../../../agents/notebooks/aiDocWriter');
+const { fallback, bestEffort } = require('../../../utils/bestEffort');
+
+/**
+ * @typedef {(event: string, data: unknown) => void} Send
+ * @typedef {ReturnType<typeof import('../../../core/dlp/untokeniseStream').createUntokeniser>} Untokeniser
+ * @typedef {import('./inputGates').TokenisationInfo} TokenisationInfo
+ * @typedef {{ html: string, markdown: string | null }} DocSnapshot
+ * @typedef {ReturnType<typeof import('../../../agents/notebooks/aiDocWriter').makeAiDocWriter>} AiDocWriter
+ * @typedef {{ currentDocContent: string, currentDocMd: string | null, written: boolean,
+ *   persistAiDocWrite: AiDocWriter['write'], aiContributors: AiDocWriter['contributors'],
+ *   aiLastWrite: DocSnapshot | null, aiVersionDoc: DocSnapshot | null }} TurnDoc
+ * @typedef {import('../notebookChat').RouterExports['seams']} Seams
+ * @typedef {NonNullable<Awaited<ReturnType<typeof import('../../../stores/notebookStore').getNotebook>>>} Notebook
+ */
 
 /**
  * Un-tokenise the final answer for display.
@@ -23,6 +38,8 @@ const { canonicalHtml } = require('../../../agents/notebooks/aiDocWriter');
  * streaming un-tokeniser missed). `fullContent` stays TOKENIZED for storage
  * (restored on reload via the persisted map); `displayContent` is what the
  * user sees. Mirrors directChat's end-of-stream content_replace.
+ * @param {{ _untok: Untokeniser, fullContent: string, notebookId: string, docPiiTokenMap: Record<string, string> | null,
+ *   piiTokenMap: Record<string, string> | null, send: Send }} turn
  * @returns {string} displayContent
  */
 function restoreForDisplay({ _untok, fullContent, notebookId, docPiiTokenMap, piiTokenMap, send }) {
@@ -51,7 +68,8 @@ function restoreForDisplay({ _untok, fullContent, notebookId, docPiiTokenMap, pi
  * `_untok`; surface exactly those (token → real) so the user can SEE what
  * was tokenised. Falls back to the notebook vault's protected-state badge.
  * Skipped when input PII already populated the panel above.
- * @returns {object|null} the panel info, as given or newly built
+ * @param {{ _assistantTokenisationInfo: TokenisationInfo | null, _untok: Untokeniser, notebookId: string, modelId: string, send: Send }} turn
+ * @returns {TokenisationInfo | null} the panel info, as given or newly built
  */
 function buildPrivacyPanel({ _assistantTokenisationInfo, _untok, notebookId, modelId, send }) {
     try {
@@ -90,7 +108,7 @@ function buildPrivacyPanel({ _assistantTokenisationInfo, _untok, notebookId, mod
                 }
             }
         }
-    } catch (err) { log.debug('the panel is best-effort — never break the turn', err); }
+    } catch (err) { fallback('routes/ai/notebookChat/finalize:buildPrivacyPanel', err); /* the panel is best-effort — never break the turn */ }
     return _assistantTokenisationInfo;
 }
 
@@ -103,12 +121,13 @@ function buildPrivacyPanel({ _assistantTokenisationInfo, _untok, notebookId, mod
  * already shows them real — this brings the document to parity). Re-run
  * the drift-tolerant restore on the TOKEN-space mirror with the final
  * (hydrated) map and re-persist + re-emit only when it actually changed.
+ * @param {{ doc: TurnDoc, notebook: Notebook, notebookId: string, userId: string, send: Send, seams: Seams }} turn
  */
 async function finishAiDocument({ doc, notebook, notebookId, userId, send, seams }) {
     if (!doc.written) return;
     try {
         const { restoreTokensInRichText } = require('../../../core/privacy/piiDetection');
-        const _finalMap = (await dlpRunner.getConversationTokenMapAsync(notebookId).catch(() => null))
+        const _finalMap = (await dlpRunner.getConversationTokenMapAsync(notebookId).catch((e) => fallback('routes/ai/notebookChat/finalize:finishAiDocument', e, null)))
             || dlpRunner.getConversationTokenMap(notebookId) || {};
         if (Object.keys(_finalMap).length) {
             const realHtml = restoreTokensInRichText(doc.currentDocContent, _finalMap);
@@ -117,7 +136,7 @@ async function finishAiDocument({ doc, notebook, notebookId, userId, send, seams
                 // Same rule as the mid-turn write: over the version this
                 // turn wrote, never over someone's newer save.
                 const saved = await doc.persistAiDocWrite(realHtml, realMd, { snapshot: false })
-                    .catch(e => { log.error('[NotebookChat] end-of-turn doc re-restore persist failed:', e.message); return { ok: false }; });
+                    .catch(/** @param {Error} e @returns {Awaited<ReturnType<AiDocWriter['write']>>} */ e => { log.error('[NotebookChat] end-of-turn doc re-restore persist failed:', e.message); return { ok: false }; });
                 if (saved.ok) {
                     doc.aiLastWrite = { html: realHtml, markdown: realMd };
                     doc.aiVersionDoc = saved.html ? { html: saved.html, markdown: null } : doc.aiLastWrite;
@@ -151,6 +170,8 @@ async function finishAiDocument({ doc, notebook, notebookId, userId, send, seams
  * Check the model's response for guardrail violations; apply redaction
  * or warning. Mirrors directChat.js:3753. Runs against the RESTORED text
  * (displayContent) — regex rules match real values, not `[person_1]`.
+ * @param {{ regexConfig: ReturnType<typeof import('../../../core/privacy/orgShield').mergeWithOrgShield>, displayContent: string,
+ *   send: Send, userOrgForTiers: string | null, userId: string, notebookId: string }} turn
  */
 function checkOutputRegex({ regexConfig, displayContent, send, userOrgForTiers, userId, notebookId }) {
     if (regexConfig?.enabled && regexConfig?.scope?.agentOutput && displayContent) {
@@ -166,7 +187,7 @@ function checkOutputRegex({ regexConfig, displayContent, send, userOrgForTiers, 
                     try {
                         const regex = new RegExp(rule.pattern, 'gi');
                         redactedOutput = redactedOutput.replace(regex, `[REDACTED: ${rule.name}]`);
-                    } catch (e) { log.debug('skip invalid patterns', e); }
+                    } catch (e) { fallback('routes/ai/notebookChat/finalize:checkOutputRegex', e); /* skip invalid patterns */ }
                 }
                 send('content_redact', {
                     originalMessage: displayContent.slice(0, 500),
@@ -183,7 +204,7 @@ function checkOutputRegex({ regexConfig, displayContent, send, userOrgForTiers, 
                     direction: 'output',
                     action_taken: 'redacted',
                     source: 'notebook',
-                }).catch(() => {});
+                }).catch((e) => bestEffort('routes/ai/notebookChat/finalize:checkOutputRegex#2', e));
             } else {
                 // Block: emit violation warning
                 send('guardrail_violation', { rules: ruleNames, autoDeleteSeconds: 5 });
@@ -196,7 +217,7 @@ function checkOutputRegex({ regexConfig, displayContent, send, userOrgForTiers, 
                     direction: 'output',
                     action_taken: 'blocked',
                     source: 'notebook',
-                }).catch(() => {});
+                }).catch((e) => bestEffort('routes/ai/notebookChat/finalize:checkOutputRegex#3', e));
             }
         }
     }
@@ -210,6 +231,9 @@ function checkOutputRegex({ regexConfig, displayContent, send, userOrgForTiers, 
  * survives a refresh / notebook switch / restart. This is the Dutch-law
  * drafting record for legal matters. Best-effort: a persist failure must
  * never break the response the user just received.
+ * @param {{ req: import('express').Request, message: string, attachments: Array<{ name?: string, filename?: string }>,
+ *   notebookId: string, userId: string, piiTokenMap: Record<string, string> | null, _userPiiCategories: string[],
+ *   fullContent: string, modelId: string, modelTier: string, _assistantTokenisationInfo: TokenisationInfo | null, send: Send }} turn
  */
 async function persistTurn({ req, message, attachments, notebookId, userId, piiTokenMap, _userPiiCategories, fullContent, modelId, modelTier, _assistantTokenisationInfo, send }) {
     try {
@@ -225,6 +249,7 @@ async function persistTurn({ req, message, attachments, notebookId, userId, piiT
         // /conversation returns them and the client reads them). Assistant
         // `content` stays TOKENISED here and is restored on load via the
         // persisted notebook token map (mirrors directChat).
+        /** @type {{ role: string, content: string, createdAt: string, attachments?: unknown[], piiTokenizedCount?: number, piiCategories?: string[] }} */
         const userMsg = {
             role: 'user',
             content: userContent,
@@ -235,12 +260,13 @@ async function persistTurn({ req, message, attachments, notebookId, userId, piiT
             userMsg.piiTokenizedCount = Object.keys(piiTokenMap).length;
             userMsg.piiCategories = _userPiiCategories;
         }
+        /** @type {{ role: string, content: string, createdAt: string, modelId: string, modelTier: string, tokenisationInfo?: TokenisationInfo }} */
         const assistantMsg = { role: 'assistant', content: fullContent || '', createdAt: nowIso, modelId, modelTier };
         if (_assistantTokenisationInfo) assistantMsg.tokenisationInfo = _assistantTokenisationInfo;
         const turn = [userMsg, assistantMsg];
         await notebookConversationStore.appendMessages(notebookId, userId, encryptionKey, turn);
         // Chat is activity: bump the card's recency so the overview reorders.
-        notebookStore.touchActivity(notebookId, 'chat').catch(() => {});
+        notebookStore.touchActivity(notebookId, 'chat').catch((e) => bestEffort('routes/ai/notebookChat/finalize:persistTurn', e));
     } catch (persistErr) {
         if (persistErr.code === 'HISTORY_LOCKED') {
             // Backstop for a stale client that sends despite the locked

@@ -25,6 +25,9 @@ const {
 // Canonicalization
 // ---------------------------------------------------------------------------
 
+/**
+ * @param {string} fallbackPrefix
+ */
 function slugifyKey(input, fallbackPrefix) {
     let s = String(input || '').toLowerCase().trim()
         .replace(/[^a-z0-9]+/g, '_')
@@ -35,6 +38,10 @@ function slugifyKey(input, fallbackPrefix) {
     return s;
 }
 
+/**
+ * @param {boolean} dflt
+ * @param {string | number | boolean | undefined} v
+ */
 function boolish(v, dflt) {
     if (v === undefined) return dflt;
     return v === true || v === 1 || v === '1' || v === 'true';
@@ -48,6 +55,7 @@ function boolish(v, dflt) {
  * invalid entries — validateDataModel is responsible for rejecting those.
  */
 function canonicalizeDataModel(model) {
+    /** @type {string[]} */
     const repairs = [];
     const src = isPlainObject(model) ? model : {};
     const out = { modelVersion: 1, tables: [], roles: [], roleMapping: { default: 'app', byGroup: {} } };
@@ -197,6 +205,7 @@ function canonicalizeDataModel(model) {
  * delegated mailbox; Gmail cannot address anything but the authenticated user,
  * so its "shared" is mail delivered to a team alias. Deriving it here means the
  * UI and the runtime can never disagree about which of those the author got.
+ * @param {string[]} repairs
  */
 function canonicalizeMailboxConnector(conn, repairs) {
     if (!MAILBOX_MODES.includes(conn.mode)) conn.mode = 'personal';
@@ -259,3 +268,14 @@ function emptyDataModel() {
 }
 
 module.exports = { canonicalizeDataModel, emptyDataModel };
+
+/**
+ * The model as canonicalize reads it: every key may be missing or of the wrong
+ * kind (the input is whatever an author or the AI sent), which is why each one
+ * is checked before it is trusted.
+ * @typedef {{ id?: string, key?: string, name?: string, type?: string, required?: boolean, unique?: boolean, options?: unknown[], [k: string]: unknown }} CanonField
+ * @typedef {{ id?: string, key?: string, name?: string, icon?: string | null, source?: { kind?: string, datatableId?: string, mode?: string } | null, fields?: CanonField[], access?: { default?: string, roles?: Record<string, unknown>, rowFilters?: Record<string, unknown> }, [k: string]: unknown }} CanonTable
+ * @typedef {{ mode?: string, keyField?: string, retentionDays?: number, incremental?: { field?: string, format?: string }, children?: Array<{ relationField?: string, retentionField?: string, retentionCascade?: boolean, [k: string]: unknown }>, [k: string]: unknown }} CanonSync
+ * @typedef {{ id?: string, kind?: string, name?: string, params?: unknown, provider?: string, mode?: string, folder?: string, address?: string, lookbackDays?: number, maxPerRun?: number, includeBody?: boolean, includeAttachmentMeta?: boolean, groupIntoThreads?: boolean, runAs?: string, integrationId?: string, sharedMode?: string, sync?: CanonSync, [k: string]: unknown }} CanonConnector
+ * @typedef {{ modelVersion?: number, tables?: CanonTable[], roles?: Array<{ key?: string, label?: unknown }>, roleMapping?: { default?: string | null, byGroup?: Record<string, string> }, connectors?: CanonConnector[], directory?: { orgMembers?: boolean } }} CanonModel
+ */

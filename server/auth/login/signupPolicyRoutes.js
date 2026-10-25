@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Login Routes — platform signup policy: the instance-wide signup/waitlist/MFA
  * and geo toggles, plus the waitlist queue itself. Platform scope, never org
@@ -7,6 +7,7 @@
 
 const express = require('express');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
@@ -20,6 +21,9 @@ const { z, typeError } = require('../../utils/zod');
 const LOGIN_METHODS = ['password', 'google', 'microsoft'];
 const GEO_MODES = ['off', 'allowlist', 'blocklist'];
 
+/**
+ * @param {string} name
+ */
 const flag = (name) => z.boolean({ error: typeError({ invalid: `${name} must be true or false.` }) }).optional();
 
 /**
@@ -27,6 +31,8 @@ const flag = (name) => z.boolean({ error: typeError({ invalid: `${name} must be 
  * enough: zod reports a value that is a string but not a member as
  * `invalid_enum_value`, whose default message quotes the whole option list
  * back at the caller. The errorMap covers every issue this schema can raise.
+ * @param {string[]} values
+ * @param {string} message
  */
 const wordedEnum = (values, message) => z.enum(values, { error: () => message });
 
@@ -74,7 +80,7 @@ const SignupSettingsBody = z.object({
 // Instance-wide signup policy: org/consumer signup toggles, waitlist, MFA
 // enforcement and geo blocking. One installation has one answer, so this is
 // platform scope — never org scope.
-router.get('/admin/signup-settings', requireSuperAdmin, async (req, res) => {
+router.get('/admin/signup-settings', requireSuperAdmin, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgEnabled = (await configStore.getConfig('signup_org_enabled')) ?? true;
     const consumerEnabled = (await configStore.getConfig('signup_consumer_enabled')) ?? false;
     const waitlistEnabled = (await configStore.getConfig('signup_waitlist_enabled')) ?? false;
@@ -82,7 +88,7 @@ router.get('/admin/signup-settings', requireSuperAdmin, async (req, res) => {
     // Whether the platform can actually send the verification email — the UI
     // uses this to warn that the toggle is a no-op without service email.
     let serviceEmailConfigured = false;
-    try { serviceEmailConfigured = (await require('../../utils/emailService').getServiceEmailConfig()).configured; } catch (err) { log.debug('ignore', err); }
+    try { serviceEmailConfigured = (await require('../../utils/emailService').getServiceEmailConfig()).configured; } catch (err) { fallback('signupPolicy:service-email', err); }
     const requireMfaForPasswordAccounts = (await configStore.getConfig('require_mfa_for_password_accounts')) ?? true;
     const consumerLoginMethods = (await configStore.getConfig('consumer_login_methods')) ?? ['password', 'google', 'microsoft'];
     const access = await getSignupAccessConfig();
@@ -116,7 +122,7 @@ router.get('/admin/signup-settings', requireSuperAdmin, async (req, res) => {
     });
 });
 
-router.put('/admin/signup-settings', requireSuperAdmin, validate({ body: SignupSettingsBody }), async (req, res) => {
+router.put('/admin/signup-settings', requireSuperAdmin, validate({ body: SignupSettingsBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { allowOrgSignups, allowConsumerSignups, waitlistEnabled, emailVerificationEnabled, requireMfaForPasswordAccounts, consumerLoginMethods,
             orgDirectoryPublic, connectorOnly, geoMode, geoCountries, geoBlockUnknown, geoApplyConnector } = req.body;
 
@@ -180,7 +186,7 @@ router.put('/admin/signup-settings', requireSuperAdmin, validate({ body: SignupS
 });
 
 // ── Waitlist Management ──────────────────────────────────────
-router.get('/admin/waitlist', requireSuperAdmin, async (req, res) => {
+router.get('/admin/waitlist', requireSuperAdmin, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const allUsers = await userStore.getAllUsers();
     const waitlisted = allUsers
         .filter(u => u.status === 'waitlist')
@@ -195,8 +201,8 @@ router.get('/admin/waitlist', requireSuperAdmin, async (req, res) => {
     res.json(waitlisted);
 });
 
-router.post('/admin/waitlist/:userId/approve', requireSuperAdmin, async (req, res) => {
-    const user = await userStore.getUser(req.params.userId);
+router.post('/admin/waitlist/:userId/approve', requireSuperAdmin, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
+    const user = await userStore.getUser(/** @type {string} */ (req.params.userId));
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.status !== 'waitlist') return res.status(400).json({ error: 'User is not on the waitlist' });
 
@@ -209,15 +215,15 @@ router.post('/admin/waitlist/:userId/approve', requireSuperAdmin, async (req, re
             const { sendWaitlistApprovedEmail } = require('../../utils/emailService');
             await sendWaitlistApprovedEmail({ email: user.email, displayName: user.displayName || user.username });
         } catch (emailErr) {
-            log.error('[Auth] Failed to send approval email:', emailErr.message);
+            log.error('[Auth] Failed to send approval email:', /** @type {Error} */ (emailErr).message);
         }
     }
 
     res.json({ success: true });
 });
 
-router.post('/admin/waitlist/:userId/reject', requireSuperAdmin, async (req, res) => {
-    const user = await userStore.getUser(req.params.userId);
+router.post('/admin/waitlist/:userId/reject', requireSuperAdmin, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
+    const user = await userStore.getUser(/** @type {string} */ (req.params.userId));
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.status !== 'waitlist') return res.status(400).json({ error: 'User is not on the waitlist' });
 

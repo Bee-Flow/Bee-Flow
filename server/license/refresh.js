@@ -25,6 +25,7 @@ const store = require('./store');
 const verify = require('./verify');
 const { ADMIN_ISSUER } = require('./adminIssuance');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 // Refresh is opt-in: leave LICENSE_REFRESH_URL unset and no pings happen at
 // all. The JWT exp/signature remain the source of truth. This avoids the
@@ -126,7 +127,7 @@ async function refreshOne(lic) {
         try {
             const expMs = lic.expiresAt ? new Date(lic.expiresAt).getTime() : null;
             if (Number.isFinite(expMs) && expMs <= Date.now()) graceWindow = 0;
-        } catch (err) { log.debug('fall through to default grace', err); }
+        } catch (err) { bestEffort('license/refresh:graceWindow', err); /* default grace */ }
         await store.markRefreshFailure(lic.id, { graceWindowSeconds: graceWindow });
         log.info(`[License Refresh] license.refresh.expired license_id=${lic.id} grace_window_s=${graceWindow}`);
         return { ok: true, status: 'expired', graceWindow };
@@ -230,7 +231,7 @@ async function crlTick() {
         }
         const newSince = Number.isFinite(body.next_since) ? body.next_since : since;
         if (newSince > since) {
-            try { await configStore.setConfig(CRL_CONFIG_KEY, newSince); } catch (err) { log.debug('best effort', err); }
+            try { await configStore.setConfig(CRL_CONFIG_KEY, newSince); } catch (err) { bestEffort('license/refresh:crlCursor', err); }
         }
         _health.crl.lastSince = newSince;
         _health.crl.lastProcessed = processed;

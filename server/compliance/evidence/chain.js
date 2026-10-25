@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Evidence hash chain — link computation + verification.
  *
@@ -53,6 +54,7 @@ function linkHash(prevHash, payloadHash) {
 
 // node-postgres returns BIGINT as a string (no int8 type parser is installed
 // in db.js); COUNT(*)::int comes back as a number. Normalise both.
+/** @param {unknown} v */
 function toInt(v) {
     if (v === null || v === undefined) return null;
     const n = Number(v);
@@ -61,6 +63,7 @@ function toInt(v) {
 
 // JSONB is parsed by node-postgres by default; a JSON-typed (not JSONB)
 // column or a stub could hand us the text instead. Both must hash the same.
+/** @param {unknown} payload */
 function parsePayload(payload) {
     if (typeof payload === 'string') {
         try { return JSON.parse(payload); } catch { return payload; }
@@ -68,6 +71,7 @@ function parsePayload(payload) {
     return payload;
 }
 
+/** @param {{ code?: string } | null | undefined} err */
 function isMissingColumnError(err) {
     return err && err.code === PG_UNDEFINED_COLUMN;
 }
@@ -78,7 +82,7 @@ function isMissingColumnError(err) {
  * @param {string} orgId
  * @param {object} [opts]
  * @param {number} [opts.limit=2000]  max chained rows loaded (the newest ones)
- * @param {object} [opts.db]          db module (`getOne`, `getAll`); injected by tests
+ * @param {{ getOne: typeof import('../../db').getOne, getAll: typeof import('../../db').getAll }} [opts.db]          db module (`getOne`, `getAll`); injected by tests
  * @returns {Promise<{
  *   ok: boolean|null,
  *   reason?: 'columns_missing',
@@ -91,7 +95,7 @@ function isMissingColumnError(err) {
  *   head: { seq: number, hash: string }|null,
  *   window: { limit: number, from_seq: number, to_seq: number }|null,
  *   latest_captured_at: string|Date|null,
- *   write_failures: { count, first_at, last_at, recent[] }|null,
+ *   write_failures: { count: number, first_at: string, last_at: string, recent: object[] }|null,
  *   checked_at: string
  * }>}
  *   `ok` is false on the first break, null when the chain columns do not
@@ -164,6 +168,7 @@ async function verifyChain(orgId, { limit = 2000, db = require('../../db') } = {
     }
 
     let verified = 0;
+    /** @type {{ seq: number, reason: 'link'|'gap'|'content' } | null} */
     let firstBreak = null;
     let prev = null; // previous row in the window, already verified
     for (const raw of window || []) {
@@ -173,6 +178,7 @@ async function verifyChain(orgId, { limit = 2000, db = require('../../db') } = {
             prev_hash: raw.prev_hash || null,
             payload_hash: raw.payload_hash || null,
         };
+        /** @type {'link'|'gap'|'content'|null} */
         let reason = null;
         if (prev && row.seq !== prev.seq + 1) {
             // Contiguity: seq must step by exactly one. The first row of the

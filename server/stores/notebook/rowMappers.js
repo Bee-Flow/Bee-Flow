@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * stores/notebook/rowMappers.js — notebook and source rows to API shape.
  * Split out of stores/notebookStore.js.
@@ -9,6 +9,9 @@ const { parseJSONObject: parseJSON } = require('../lib/json');
 // ── Row Mappers ─────────────────────────────────────────────────────
 
 
+/**
+ * @param {Record<string, any>} r
+ */
 function mapNotebookRow(r) {
     return {
         id: r.id,
@@ -39,6 +42,9 @@ function mapNotebookRow(r) {
     };
 }
 
+/**
+ * @param {Record<string, any>} r
+ */
 function mapSourceRow(r) {
     return {
         id: r.id,

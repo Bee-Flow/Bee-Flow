@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Reranking via the local llama.cpp router (bge-reranker-v2-m3 on the GPU).
  *
@@ -29,6 +29,7 @@ const DEFAULT_URL = 'http://host.docker.internal:8080';
 const DEFAULT_MODEL = 'bge-reranker-v2-m3';
 const TIMEOUT_MS = Number(process.env.LLAMACPP_RERANK_TIMEOUT_MS) || 15_000;
 
+/** @param {number} x */
 function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
 
 async function getSettings() {
@@ -89,7 +90,7 @@ async function rerankLlamaCpp(query, documents, topN) {
         scored.sort((a, b) => b.relevance_score - a.relevance_score);
         return scored;
     } catch (err) {
-        log.warn(`[LlamaCppRerank] unavailable (${err.message})`);
+        log.warn(`[LlamaCppRerank] unavailable (${/** @type {Error} */ (err).message})`);
         return [];
     }
 }

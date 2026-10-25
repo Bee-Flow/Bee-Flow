@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Nextcloud Connector: the branches of POST /auth/connector/bootstrap once
  * the caller's Nextcloud has been verified (auth/connectorBootstrap.js does the
@@ -47,6 +47,8 @@ const NC_SUBJECT_PROBLEM_CODES = [
     'bootstrap.org_create_failed',
     'bootstrap.admin_email_conflict',
 ];
+
+/** @typedef {NonNullable<Awaited<ReturnType<typeof userStore.getOrganization>>>} OrgRow */
 
 /**
  * @typedef {object} BootstrapContext
@@ -163,7 +165,10 @@ async function redeemPairingCode(ctx) {
 }
 
 // 1. Returning bind — instance id already mapped → idempotent return.
-/** @param {BootstrapContext} ctx */
+/**
+ * @param {BootstrapContext} ctx
+ * @param {OrgRow} org
+ */
 async function returningBind(ctx, org) {
     const { req, res, nc, ncInstanceId, ncBaseUrl, ncAdminUid, ncAdminEmail, ncAdminDisplayName, connectorCallbackUrl } = ctx;
     try {
@@ -227,7 +232,10 @@ async function findVerificationOrg(ctx) {
     return verifyOrg;
 }
 
-/** @param {BootstrapContext} ctx */
+/**
+ * @param {BootstrapContext} ctx
+ * @param {OrgRow} verifyOrg
+ */
 async function startEmailVerification(ctx, verifyOrg) {
     const { req, res, nc, ncInstanceId, ncBaseUrl, ncAdminUid, ncAdminEmail, ncAdminDisplayName, connectorCallbackUrl } = ctx;
     const activeCount = await userStore.countActivePendingNcVerificationsForOrg(verifyOrg.id);

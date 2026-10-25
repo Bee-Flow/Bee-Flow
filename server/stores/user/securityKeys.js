@@ -21,6 +21,7 @@ const { initDB } = require('./schema');
  * @property {boolean} backedUp
  * @property {string} createdAt
  * @property {string|null} lastUsedAt
+ * @param {string} raw
  */
 
 function parseTransports(raw) {

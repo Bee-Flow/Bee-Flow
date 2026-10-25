@@ -14,6 +14,7 @@
 const { createToolMemo } = require('./toolMemo');
 const log = require('../../telemetry/log');
 const { writeRunOutcome, withLastOutput } = require('./runFinalize');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** The `ctx` of one run (container steps shallow-copy it). */
 function buildRunContext({
@@ -184,20 +185,20 @@ async function guardTriggerPayload(deps, { triggerPayload, triggerKind, ctx, run
                 await automationStore.updateRun(run.id, {
                     status: 'error', finishedAt: new Date().toISOString(),
                     durationMs: Date.now() - startedAt,
-                    error: e.message, errorClass: 'guardrail_blocked',
-                    summary: `Failed: ${e.message}`,
-                }).catch(() => {});
+                    error: /** @type {Error} */ (e).message, errorClass: 'guardrail_blocked',
+                    summary: `Failed: ${/** @type {Error} */ (e).message}`,
+                }).catch((e) => bestEffort('core/automationRunner/runContext:guardTriggerPayload', e));
                 await writeRunOutcome(deps, {
                     runId: run.id, status: 'error', definition: automation.definition,
-                    error: { message: e.message, errorClass: 'guardrail_blocked' },
+                    error: { message: /** @type {Error} */ (e).message, errorClass: 'guardrail_blocked' },
                 });
                 if (ownsMarker) {
                     await automationStore.updateAutomation(automation.id, {
                         lastStatus: 'error', lastRunAt: new Date().toISOString(),
-                    }, automation.userId).catch(() => {});
-                    await automationStore.releaseAutomation(automation.id).catch(() => {});
+                    }, automation.userId).catch((e) => bestEffort('core/automationRunner/runContext:guardTriggerPayload#2', e));
+                    await automationStore.releaseAutomation(automation.id).catch((e) => bestEffort('core/automationRunner/runContext:guardTriggerPayload#3', e));
                 }
-                emitLifecycle('run.failed', { status: 'error', errorClass: 'guardrail_blocked', error: e.message, durationMs: Date.now() - startedAt });
+                emitLifecycle('run.failed', { status: 'error', errorClass: 'guardrail_blocked', error: /** @type {Error} */ (e).message, durationMs: Date.now() - startedAt });
                 return { blocked: true, row: withLastOutput(await automationStore.getRun(run.id).catch(() => ({ ...run, status: 'error' })), null) };
             }
             throw e;
@@ -207,3 +208,10 @@ async function guardTriggerPayload(deps, { triggerPayload, triggerKind, ctx, run
 }
 
 module.exports = { buildRunContext, recordResumeBoundary, guardTriggerPayload };
+
+/**
+ * @typedef {import('./runSetup').RunAutomation} RunAutomation
+ * @typedef {import('./runSetup').RunRow} RunRow
+ * @typedef {import('./runSetup').RunDeps} RunDeps
+ * @typedef {Awaited<ReturnType<typeof import('./runSetup').buildRunState>>} RunState
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Zero-knowledge envelope encryption: the primitives.
  *
@@ -22,6 +22,9 @@ const argon2 = require('argon2');
 const log = require('../telemetry/log');
 
 // sodium-native for guaranteed memory zeroing (sodium_memzero)
+/**
+ * @type {{ sodium_memzero: (arg0: Buffer<ArrayBufferLike>) => void; } | null}
+ */
 let sodium;
 try {
     sodium = require('sodium-native');
@@ -161,6 +164,8 @@ async function deriveKEK_PIN(pin, salt) {
 /**
  * Derive KEK with LEGACY Argon2 params (for backward-compatible unlock).
  * Only used as fallback during migration.
+ * @param {string} password
+ * @param {import('buffer').WithImplicitCoercion<string>} salt
  */
 async function deriveKEK_LEGACY(password, salt) {
     const saltBuffer = Buffer.isBuffer(salt) ? salt : Buffer.from(salt, 'base64');
@@ -244,11 +249,11 @@ function unwrapDEK(wrappedDEK, key, context) {
         return dek;
     } catch (err) {
         // Expected: wrong key or tampered ciphertext
-        if (err.message?.includes('Unsupported state') || err.code === 'ERR_CRYPTO_AEAD_TAG') {
+        if (/** @type {Error} */ (err).message?.includes('Unsupported state') || err.code === 'ERR_CRYPTO_AEAD_TAG') {
             return null;
         }
         // Unexpected error — log for debugging
-        log.error('[Crypto] Unexpected unwrapDEK error:', err.message);
+        log.error('[Crypto] Unexpected unwrapDEK error:', /** @type {Error} */ (err).message);
         return null;
     }
 }

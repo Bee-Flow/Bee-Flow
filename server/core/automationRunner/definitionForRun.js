@@ -87,11 +87,23 @@ function withWorkingSettings(live, working) {
     return out;
 }
 
-/** True when this run executes the working copy. */
+/**
+ * @typedef {Object} IsTestRunArgs
+ * @property {string | undefined} [mode]
+ * @property {string | null | undefined} [triggerKind]
+ * @property {boolean | undefined} [isTest]
+ */
+/**
+ * True when this run executes the working copy.
+ * @param {IsTestRunArgs} [param0]
+ */
 function isTestRun({ mode = 'live', triggerKind = null, isTest = false } = {}) {
     return !!isTest || mode === 'dry_run' || TEST_TRIGGER_KINDS.has(triggerKind);
 }
 
+/**
+ * @param {string} k
+ */
 const hasOwn = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 
 /** The live copy of a row, or null when it has none (never live, or not carried). */
@@ -218,3 +230,10 @@ function liveHasTrigger(automation, triggerStepId) {
 }
 
 module.exports = { definitionForRun, automationForRun, isTestRun, liveHasTrigger, triggersOf, withWorkingSettings, managedNotDeployedError, TEST_TRIGGER_KINDS, SETTINGS_KEYS };
+
+/**
+ * A store row (or a synthetic one) as far as choosing its copy goes.
+ * @typedef {{ id?: string, kind?: string, definition?: object, version?: number|null,
+ *             liveDefinition?: object|null, liveVersion?: number|null, runsLiveVersion?: boolean,
+ *             workingVersion?: number|null }} RunAutomation
+ */

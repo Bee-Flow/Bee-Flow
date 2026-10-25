@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Local KB Ingestion — bypasses the search-service for chunking + embedding.
  *

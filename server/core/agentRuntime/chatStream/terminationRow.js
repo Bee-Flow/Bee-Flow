@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The row every termination log of a streaming turn writes.
  *
@@ -14,6 +14,9 @@
  */
 const testChatMod = require('../testChat');
 
+/**
+ * @param {{ messageMetadata: import('./turnState').MessageMetadata }} opts
+ */
 function attachmentTelemetry({ messageMetadata }) {
     // Attachment metadata — counts + bytes only, helps explain large-input
     // terminations (e.g. user uploads a big PDF and the model runs out of
@@ -40,6 +43,9 @@ function attachmentTelemetry({ messageMetadata }) {
     return { _termAttachmentCount, _termAttachmentBytes };
 }
 
+/**
+ * @param {{ userId: string, agent: import('./turnState').AgentRow, agentId: string, modelToUse: string, messageMetadata: import('./turnState').MessageMetadata, conversation: import('./turnState').ConversationRow, iterations: number, _chatStartTime: number, _termPromptTokens: number, _termCompletionTokens: number, _termAttachmentCount: number, _termAttachmentBytes: number }} opts
+ */
 function terminationBase({
     userId, agent, agentId, modelToUse, messageMetadata, conversation,
     iterations, _chatStartTime, _termPromptTokens, _termCompletionTokens,

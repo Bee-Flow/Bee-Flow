@@ -1,4 +1,4 @@
-// @typecheck
+/** @typedef {import('../mirror/syncPipeline').MirrorSiblings} MirrorSiblings */
 /**
  * The relations a link request declares, in Nextcloud-native terms (table and
  * column ids), turned into per-mirror declared relations. Extracted from
@@ -13,9 +13,11 @@ const columns = require('./columns');
  * Turn the request's Nextcloud-native relation triples into per-mirror
  * declared relations (columns.js shape). A side that names a table not in
  * this call or this scope is a warning, not a failure.
+ * @param {MirrorSiblings} siblings
  */
 function resolveDeclared(relations, created, siblings) {
     const byTable = new Map();
+    /** @type {string[]} */
     const warnings = [];
     const mirrorByNcTable = new Map();
     for (const m of siblings.byId.values()) {
@@ -73,3 +75,7 @@ function guessFieldId(mirror, ncColumnId) {
 }
 
 module.exports = { resolveDeclared, guessFieldId };
+
+/** @typedef {import('../mirror/linking').MirrorTable & { _ncColumnTypes?: Record<string, string> }} NcMirror */
+
+/** @typedef {{ ncTableId?: number|string, ncColumnId?: number|string }} NcSide */

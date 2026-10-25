@@ -39,7 +39,7 @@ async function extendJourneyTablesForPause(store, run, deadline) {
         return await store.extendRunTableExpiry(ids, new Date(at + RESUME_MARGIN_MS));
     } catch (e) {
         // Best effort, like the attachment snapshot: a failure never takes the pause down.
-        log.warn(`[tables] could not extend the tables of run ${run.id} for its pause: ${e.message}`);
+        log.warn(`[tables] could not extend the tables of run ${run.id} for its pause: ${/** @type {Error} */ (e).message}`);
         return 0;
     }
 }

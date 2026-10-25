@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Support Tools — read-only lookups the Bee Flow Support AI agent may call
  * while drafting a customer reply. Exposed only to the system support agent
@@ -8,10 +9,9 @@
  * args and always re-derive the thread from that context, so the model cannot
  * pivot to another customer's data. Every tool is strictly read-only.
  */
-// @typecheck
 const supportStore = require('../stores/supportStore');
 const userStore = require('../stores/userStore');
-const log = require('../telemetry/log');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 const SUPPORT_TOOLS = [
     {
@@ -142,6 +142,7 @@ const SUPPORT_ACTION_TOOLS = [
 // config for full mode"). Each level lists the action tool names it exposes; the
 // 'resolved' status value is additionally gated to the 'full' level inside the
 // executor. Read tools are always available when 'builtin:read' is enabled.
+/** @type {Record<string, string[]>} */
 const ACTION_LEVELS = {
     none: [],
     low: ['support_set_priority', 'support_add_tag', 'support_set_category'],
@@ -151,6 +152,9 @@ const ACTION_LEVELS = {
         'support_set_status', 'support_request_more_info', 'support_assign_to_teammate', 'support_escalate_to_human'],
 };
 
+/**
+ * @param {string | undefined} replyMode
+ */
 function actionLevelForMode(replyMode) {
     if (replyMode === 'autonomous') return 'full';
     if (replyMode === 'auto_confident') return 'mid';
@@ -161,10 +165,16 @@ function actionLevelForMode(replyMode) {
 const _READ_NAMES = new Set(SUPPORT_TOOLS.map(t => t.function.name));
 const _ACTION_NAMES = new Set(SUPPORT_ACTION_TOOLS.map(t => t.function.name));
 
+/**
+ * @param {string} toolName
+ */
 function isSupportTool(toolName) {
     return _READ_NAMES.has(toolName) || _ACTION_NAMES.has(toolName);
 }
 
+/**
+ * @param {string} toolName
+ */
 function isSupportActionTool(toolName) {
     return _ACTION_NAMES.has(toolName);
 }
@@ -189,7 +199,10 @@ function buildSupportToolset({ enabledToolIds, toolsEnabled, replyMode } = {}) {
     return { tools, actionLevel };
 }
 
-/** Per-run policy object the executor mutates (budget + clobber signalling). */
+/**
+ * Per-run policy object the executor mutates (budget + clobber signalling).
+ * @param {{ actionLevel?: string, budget?: number }} [opts]
+ */
 function makeActionPolicy({ actionLevel = 'none', budget = 5 } = {}) {
     return {
         actionLevel,
@@ -200,29 +213,56 @@ function makeActionPolicy({ actionLevel = 'none', budget = 5 } = {}) {
     };
 }
 
-/** Best-effort live refresh after an action (tenant SSE is inbox-scoped). */
+/** @typedef {ReturnType<typeof makeActionPolicy>} ActionPolicy */
+/** A support_threads row. @typedef {Record<string, any>} SupportThread */
+/**
+ * @typedef {{ userId?: string, session?: unknown, supportThreadId?: string,
+ *   userAuth?: { supportThreadId?: string, supportActionPolicy?: ActionPolicy },
+ *   supportActionPolicy?: ActionPolicy | null }} SupportContext
+ */
+/**
+ * The tool arguments as the model sends them.
+ * @typedef {{ priority?: string, tag?: string, category?: string, status?: string, userId?: string,
+ *   reason?: string, limit?: unknown, query?: string, topK?: unknown }} SupportArgs
+ */
+
+/**
+ * Best-effort live refresh after an action (tenant SSE is inbox-scoped).
+ * @param {SupportThread} thread
+ */
 function _emitThreadUpdated(thread) {
     try {
         if (!thread?.inbox_id) return;
         const { supportEvents } = require('../support/events');
         supportEvents.emit('event', { event: 'thread_updated', data: { threadId: thread.id, inboxId: thread.inbox_id } });
-    } catch (err) { log.debug('non-fatal', err); }
+    } catch (err) { bestEffort('integrations/supportTools:_emitThreadUpdated', err); /* non-fatal */ }
 }
 
+/**
+ * @param {SupportContext} context
+ */
 async function _resolveThread(context) {
     const threadId = context?.supportThreadId || context?.userAuth?.supportThreadId || null;
     if (!threadId) return null;
     return supportStore.getThread(threadId);
 }
 
+/**
+ * @param {string} threadId
+ * @param {string} tool
+ * @param {object} [payload]
+ */
 async function _recordAction(threadId, tool, payload = {}) {
     try {
         await supportStore.recordThreadEvent(/** @type {any} */ ({ threadId, actorKind: 'ai', action: 'ai_action', payload: { tool, ...payload } }));
-    } catch (err) { log.debug('audit is best-effort', err); }
+    } catch (err) { bestEffort('integrations/supportTools:_recordAction', err); /* audit is best-effort */ }
 }
 
 // The group ACL on the thread's inbox ([] = open). Used so AI assignment/
 // escalation never strands a ticket on a teammate who can't access the inbox.
+/**
+ * @param {SupportThread} thread
+ */
 async function _inboxSharedGroups(thread) {
     if (!thread?.inbox_id) return [];
     try {
@@ -235,6 +275,10 @@ async function _inboxSharedGroups(thread) {
  * Execute a MUTATING support tool. Enforces the per-run action policy (level +
  * budget), audits every change, and signals status clobber so the responder can
  * yield. Never sends customer email.
+ * @param {string} toolName
+ * @param {SupportArgs} args
+ * @param {SupportContext} context
+ * @param {SupportThread} thread
  */
 async function executeSupportActionTool(toolName, args, context, thread) {
     const policy = context?.supportActionPolicy || context?.userAuth?.supportActionPolicy || null;
@@ -279,6 +323,7 @@ async function executeSupportActionTool(toolName, args, context, thread) {
                 ? ['awaiting_user', 'awaiting_agent', 'resolved']
                 : ['awaiting_user', 'awaiting_agent'];
             if (!allowedValues.includes(status)) return { error: `Status "${status}" not permitted at this level.` };
+            /** @type {{ status: string, resolved_at?: string }} */
             const patch = { status };
             if (status === 'resolved' && thread.status !== 'resolved') patch.resolved_at = new Date().toISOString();
             await supportStore.updateThread(thread.id, patch);
@@ -298,7 +343,7 @@ async function executeSupportActionTool(toolName, args, context, thread) {
             const userId = String(args.userId || '').trim();
             if (!userId) return { error: 'userId required' };
             const { _eligibleStaffForOrg } = require('../services/supportAutoAssigner');
-            const eligible = await _eligibleStaffForOrg(thread.organization_id || null).catch(() => []);
+            const eligible = await _eligibleStaffForOrg(thread.organization_id || null).catch((e) => fallback('integrations/supportTools:executeSupportActionTool', e, []));
             if (!eligible.includes(userId)) return { error: 'Not an eligible teammate for this organisation.' };
             // On a group-restricted inbox the assignee must be able to work it,
             // otherwise the ticket is stranded with someone who'd be 403'd.
@@ -306,7 +351,7 @@ async function executeSupportActionTool(toolName, args, context, thread) {
             if (sharedGroups.length) {
                 const access = require('../support/access');
                 const g = await access.userGroupsFor(userId);
-                if (!g.some(x => sharedGroups.includes(x))) {
+                if (!g.some((/** @type {string} */ x) => sharedGroups.includes(x))) {
                     return { error: 'That teammate does not have access to this inbox.' };
                 }
             }
@@ -317,7 +362,7 @@ async function executeSupportActionTool(toolName, args, context, thread) {
         }
         case 'support_escalate_to_human': {
             const reason = String(args.reason || 'escalated by AI').slice(0, 200);
-            await supportStore.appendMessage({ threadId: thread.id, authorKind: 'system', body: `AI handed off to a human agent (${reason}).` }).catch(() => {});
+            await supportStore.appendMessage({ threadId: thread.id, authorKind: 'system', body: `AI handed off to a human agent (${reason}).` }).catch((e) => bestEffort('integrations/supportTools:executeSupportActionTool#2', e));
             await supportStore.updateThread(thread.id, { status: 'awaiting_agent', ai_handled: true, ai_escalated_reason: reason });
             policy.statusChangedByTool = true;
             try {
@@ -328,7 +373,7 @@ async function executeSupportActionTool(toolName, args, context, thread) {
                     const next = await pickNextAssignee(thread.organization_id || null, { sharedGroups });
                     if (next) await supportStore.updateThread(thread.id, { assignee_user_id: next, auto_assigned: true });
                 }
-            } catch (err) { log.debug('auto-assign best-effort', err); }
+            } catch (err) { bestEffort('integrations/supportTools:executeSupportActionTool#3', err); /* auto-assign best-effort */ }
             await _recordAction(thread.id, toolName, { reason });
             result = { ok: true };
             break;
@@ -343,6 +388,11 @@ async function executeSupportActionTool(toolName, args, context, thread) {
     return result || { ok: true };
 }
 
+/**
+ * @param {string} toolName
+ * @param {SupportArgs} [args]
+ * @param {SupportContext} [context]
+ */
 async function executeSupportTool(toolName, args = {}, context = {}) {
     const thread = await _resolveThread(context);
     if (!thread) return { error: 'No support thread context available.' };
@@ -362,7 +412,7 @@ async function executeSupportTool(toolName, args = {}, context = {}) {
                         role = role || user.role || null;
                         accountCreatedAt = user.createdAt || user.created_at || null;
                     }
-                } catch (err) { log.debug('best-effort', err); }
+                } catch (err) { fallback('integrations/supportTools:executeSupportTool', err); /* best-effort */ }
             }
             return {
                 name: thread.requester_name || null,
@@ -403,7 +453,7 @@ async function executeSupportTool(toolName, args = {}, context = {}) {
             }
         }
         case 'support_list_recent_threads_for_requester': {
-            const limit = Math.min(Math.max(parseInt(args.limit, 10) || 10, 1), 10);
+            const limit = Math.min(Math.max(parseInt(/** @type {string} */ (args.limit), 10) || 10, 1), 10);
             const threads = await supportStore.listThreads({
                 requesterEmail: thread.requester_email,
                 limit,
@@ -420,12 +470,12 @@ async function executeSupportTool(toolName, args = {}, context = {}) {
         case 'support_search_knowledge_base': {
             const query = (args.query || '').toString().trim();
             if (!query) return { error: 'query required' };
-            const topK = Math.min(Math.max(parseInt(args.topK, 10) || 4, 1), 8);
+            const topK = Math.min(Math.max(parseInt(/** @type {string} */ (args.topK), 10) || 4, 1), 8);
             try {
                 const { quickKBSearch } = require('../core/agentRuntime/knowledgeSearch');
                 const agentStore = require('../stores/agentStore');
                 const agent = await agentStore.getAgent('system-bee-flow-support');
-                const kbIds = Array.isArray(agent?.config?.knowledge_base_ids) ? agent.config.knowledge_base_ids : [];
+                const kbIds = Array.isArray(/** @type {{ knowledge_base_ids?: string[] }} */ (agent?.config)?.knowledge_base_ids) ? /** @type {{ knowledge_base_ids?: string[] }} */ (agent.config).knowledge_base_ids : [];
                 const aiUserId = `support-ai:${thread.id}`;
                 const hits = await quickKBSearch(aiUserId, kbIds, query, { topK });
                 return (/** @type {any[]} */ (hits) || []).map(h => ({ title: h.title, content: h.content, score: h.score, source: h.source_uri }));

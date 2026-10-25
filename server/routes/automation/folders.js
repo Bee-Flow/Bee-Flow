@@ -53,11 +53,11 @@ function registerFolderRoutes(router) {
     // Folder ids in the URL and the body are untrusted: every handler loads the
     // folder in the CALLER's organisation first, and another organisation's
     // folder answers 404 like one that does not exist.
-    router.get('/folders', async (req, res) => {
+    router.get('/folders', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         res.json({ folders: await automationStore.listFolders(await orgOf(req), req.session.user.id) });
     });
 
-    router.post('/folders', validate({ body: FolderBody }), async (req, res, next) => {
+    router.post('/folders', validate({ body: FolderBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
         try {
             const folder = await automationStore.createFolder({
                 organizationId: await orgOf(req),
@@ -72,7 +72,7 @@ function registerFolderRoutes(router) {
         }
     });
 
-    router.put('/folders/:folderId', validate({ body: FolderPatch }), async (req, res, next) => {
+    router.put('/folders/:folderId', validate({ body: FolderPatch }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
         try {
             const orgId = await orgOf(req);
             const existing = await automationStore.getFolderInOrg(req.params.folderId, orgId);
@@ -88,12 +88,12 @@ function registerFolderRoutes(router) {
         }
     });
 
-    router.delete('/folders/:folderId', async (req, res) => {
+    router.delete('/folders/:folderId', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const existing = await automationStore.getFolderInOrg(req.params.folderId, await orgOf(req));
         if (!existing) return res.status(404).json({ error: 'Not found' });
         // Detaches, never deletes: the folder may hold automations belonging to
         // colleagues this user cannot see. Its subfolders move up one level.
-        const { detached, reparented } = await automationStore.deleteFolder(req.params.folderId);
+        const { detached, reparented } = await automationStore.deleteFolder(existing.id);
         return res.json({ success: true, detached, reparented });
     });
 }

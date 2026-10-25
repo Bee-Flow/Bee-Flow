@@ -18,6 +18,7 @@ const { persistedMemoryUsed } = require('../memory/memoryUsed');
 const {
     stripToolCallMarkup, restoreToolHistoryTokens, persistedThinking, synthesiseTokenisationInfo,
 } = require('./assistantMessageExtras');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // The PII detector and the DLP runner, lazily, for ./assistantMessageExtras
 // (which stays out of the server's large import cycle).
@@ -92,7 +93,10 @@ async function finalizeStreamTurn(turn) {
     };
 }
 
-/** The assistant message with its persisted metadata, before tokenisation info. */
+/**
+ * The assistant message with its persisted metadata, before tokenisation info.
+ * @param {string} fullResponse
+ */
 function buildAssistantMessage(turn, fullResponse) {
     const {
         messageMetadata, conversation, _emailDrafts, _calendarDrafts, _linkedInDrafts, _mapEmbeds,
@@ -182,10 +186,10 @@ async function scheduleMemoryExtraction(turn) {
                 log.error('[AgentRuntime] Memory extraction failed:', err.message);
                 // Surface to the client so operators can see persistent extraction
                 // failures rather than silently losing all memory writes.
-                try { onEvent('memory_extraction_failed', { error: err.message }); } catch (err) { log.debug('ignore', err); }
+                try { onEvent('memory_extraction_failed', { error: err.message }); } catch (err) { bestEffort('core/agentRuntime/finalizeTurn:scheduleMemoryExtraction', err); /* ignore */ }
             });
     } catch (memErr) {
-        log.error('[AgentRuntime] Memory extractor load failed:', memErr.message);
+        log.error('[AgentRuntime] Memory extractor load failed:', /** @type {Error} */ (memErr).message);
     }
 }
 
@@ -233,9 +237,13 @@ function scheduleRedactionRewrite(turn) {
             await _serializeConversationWrite(conversation.id, () => agentStore.updateConversation(conversation.id, updatedMessages, userAuth.encryptionKey, userAuth.userId));
             log.info(`[RegexGuard] Server-side persistence completed for conversation ${conversation.id}`);
         } catch (redactErr) {
-            log.error('[RegexGuard] Server-side persistence failed:', redactErr.message);
+            log.error('[RegexGuard] Server-side persistence failed:', /** @type {Error} */ (redactErr).message);
         }
     });
 }
 
 module.exports = { finalizeStreamTurn };
+
+/**
+ * @typedef {Pick<import('./chatStream/turnLoop').LoopTurn, 'onEvent' | 'messageMetadata' | 'conversation' | '_ut' | '_captureRaw' | '_userPrivacyMeta' | 'userSave' | 'durableMessages' | 'messages' | 'persistDurable' | 'isEphemeral' | 'agent' | 'agentId' | 'userId' | 'processedUserMessage' | 'userMessage' | 'userAuth' | 'extractMemoriesEnabled' | 'validProjectId' | 'modelToUse' | 'memoryPolicy' | 'memoryUsed' | '_kbSources' | '_assistantTokenisationInfo' | 'guardrailViolation'> & { fullResponse: string, useNativeAdapter: boolean, _emailDrafts: Record<string, unknown>[], _calendarDrafts: Record<string, unknown>[], _linkedInDrafts: Record<string, unknown>[], _mapEmbeds: Record<string, unknown>[], _audioFiles: Record<string, unknown>[], _generatedFiles?: Record<string, unknown>[], _pendingToolCalls?: Record<string, unknown>[], _toolHistory: import('./assistantMessageExtras').ToolHistoryEntry[], _thinkingParts: import('./assistantMessageExtras').ThinkingPart[], _thinking: string, _rawResponseBuffer: string, toolCalls: Record<string, unknown>[], _serializeConversationWrite: typeof import('./chatStream/turnHistory')._serializeConversationWrite }} FinalizeTurn  the final answer and everything the turn collected
+ */

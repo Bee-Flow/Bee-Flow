@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Tenant Support Inbox API (Studio → Support).
  *
@@ -38,6 +39,7 @@ const OAuth = require('./support/inboxOAuth');
 const Threads = require('./support/inboxThreads');
 const Settings = require('./support/inboxSettings');
 const Writes = require('./support/inboxOrgWrites');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 // ── Permission gate (all routes) ──────────────────────────────────────────────
 router.use(async (req, res, next) => {
@@ -57,10 +59,13 @@ router.use(async (req, res, next) => {
  * agent of the caller with no organisation, or a system agent. Before this
  * any agent id was stored, another tenant's included, and its system prompt
  * and pinned tool parameters then drafted this tenant's replies.
+ * @param {string | null | undefined} agentId
+ * @param {string} organizationId
+ * @param {ReturnType<typeof getUserId>} userId
  */
 async function agentUsableByInbox(agentId, organizationId, userId) {
     if (!agentId) return true;
-    const agent = await agentStore.getAgent(agentId).catch(() => null);
+    const agent = await agentStore.getAgent(agentId).catch((e) => fallback('routes/supportInbox:agentUsableByInbox', e, null));
     if (!agent) return false;
     if (agent.owner_id === 'system') return true;
     if (agent.organization_id) return agent.organization_id === organizationId;
@@ -95,7 +100,7 @@ router.post('/inboxes', validate({ body: S.CreateInboxBody }), async (req, res) 
     res.json({ inbox });
 });
 
-router.patch('/inboxes/:id', validate({ body: S.PatchInboxBody }), async (req, res) => {
+router.patch('/inboxes/:id', validate({ body: S.PatchInboxBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const inbox = await loadInboxInScope(req, res, req.params.id);
     if (!inbox) return;
     if (!(await agentUsableByInbox(req.body.default_agent_id, inbox.organization_id, getUserId(req)))) return res.status(400).json(AGENT_REFUSED);
@@ -105,7 +110,7 @@ router.patch('/inboxes/:id', validate({ body: S.PatchInboxBody }), async (req, r
     // string / null clears the operator (allowed).
     if (typeof req.body?.operator_user_id === 'string' && req.body.operator_user_id.trim()) {
         const { _eligibleStaffForOrg } = require('../services/supportAutoAssigner');
-        const eligible = await _eligibleStaffForOrg(inbox.organization_id).catch(() => []);
+        const eligible = await _eligibleStaffForOrg(inbox.organization_id).catch((e) => fallback('routes/supportInbox:anon', e, []));
         const op = req.body.operator_user_id.trim();
         if (!Array.isArray(eligible) || !eligible.includes(op)) {
             return res.status(400).json({ error: "Operator must be a support-capable member of this inbox's organisation." });
@@ -116,7 +121,7 @@ router.patch('/inboxes/:id', validate({ body: S.PatchInboxBody }), async (req, r
         const groups = Array.isArray(inbox.shared_groups) ? inbox.shared_groups : [];
         if (groups.length) {
             const opGroups = await access.userGroupsFor(op);
-            if (!opGroups.some(g => groups.includes(g))) {
+            if (!opGroups.some(/** @param {string} g */ g =>groups.includes(g))) {
                 return res.status(400).json({ error: 'Operator must belong to a group that has access to this inbox.' });
             }
         }
@@ -154,7 +159,7 @@ router.delete('/inboxes/:id', async (req, res) => {
     // firing on a dead inbox_id filter after the mailbox is gone.
     if (inbox.kb_ingest_automation_id) {
         const { teardownAutomation } = require('../automation/provisionAutomation');
-        await teardownAutomation(inbox.kb_ingest_automation_id).catch(() => {});
+        await teardownAutomation(inbox.kb_ingest_automation_id).catch((e) => bestEffort('routes/supportInbox:anon#2', e));
     }
     const { purgedThreads } = await supportInboxStore.deleteInbox(req.params.id, inbox.organization_id);
     audit.emit(req, { organizationId: inbox.organization_id, inboxId: inbox.id, action: 'inbox_deleted', payload: { provider: inbox.provider, emailAddress: inbox.email_address || null, purgedThreads } });
@@ -169,6 +174,10 @@ router.delete('/inboxes/:id', async (req, res) => {
  * support-ticket-to-kb template, bound to this inbox + chosen KB, and activate
  * it. Idempotent: re-uses the stored automation id when present. Returns the
  * automation id + any non-blocking warnings.
+ * @param {Awaited<ReturnType<typeof loadInboxInScope>>} inbox
+ * @param {ReturnType<typeof getUserId>} userId
+ * @param {import('express').Request['session']} session
+ * @param {string} kbId
  */
 async function ensureKbAutomation(inbox, userId, session, kbId) {
     const templates = require('../automation/templates');
@@ -187,7 +196,7 @@ async function ensureKbAutomation(inbox, userId, session, kbId) {
     // in `inputs` — the legacy `knowledge_base_ingest` action is still matched
     // so an automation provisioned before the migration keeps working when this
     // panel re-saves it.
-    const ingestStep = (def.steps || []).find(s => s.type === 'knowledge_write' || s.tool === 'knowledge_base_ingest');
+    const ingestStep = (def.steps || []).find(/** @param {{ type?: string, tool?: string }} s */ s => s.type === 'knowledge_write' || s.tool === 'knowledge_base_ingest');
     if (!ingestStep) throw new Error('KB-ingestion template is missing its ingest step');
     if (ingestStep.type === 'knowledge_write') {
         ingestStep.knowledgeBaseId = kbId;
@@ -197,7 +206,7 @@ async function ensureKbAutomation(inbox, userId, session, kbId) {
     }
 
     let automationId = inbox.kb_ingest_automation_id || null;
-    const existing = automationId ? await automationStore.getAutomation(automationId).catch(() => null) : null;
+    const existing = automationId ? await automationStore.getAutomation(automationId).catch((e) => fallback('routes/supportInbox:ensureKbAutomation', e, null)) : null;
     if (existing) {
         // goLive: this provisioned automation runs what Support settings wrote
         // (handoff 5 live split), never a pending working copy.
@@ -221,7 +230,7 @@ async function ensureKbAutomation(inbox, userId, session, kbId) {
     return { automationId, warnings };
 }
 
-router.put('/inboxes/:id/kb-automation', validate({ body: S.KbAutomationBody }), async (req, res) => {
+router.put('/inboxes/:id/kb-automation', validate({ body: S.KbAutomationBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const inbox = await loadInboxInScope(req, res, req.params.id);
     if (!inbox) return;
     const userId = getUserId(req);
@@ -229,7 +238,7 @@ router.put('/inboxes/:id/kb-automation', validate({ body: S.KbAutomationBody }),
     const { teardownAutomation } = require('../automation/provisionAutomation');
 
     if (!enabled) {
-        if (inbox.kb_ingest_automation_id) await teardownAutomation(inbox.kb_ingest_automation_id).catch(() => {});
+        if (inbox.kb_ingest_automation_id) await teardownAutomation(inbox.kb_ingest_automation_id).catch((e) => bestEffort('routes/supportInbox:anon#3', e));
         // Keep kb id so re-enabling pre-selects the previous KB.
         const updated = await supportInboxStore.setKbAutomation(req.params.id, { enabled: false, automationId: null }, inbox.organization_id);
         audit.emit(req, { organizationId: inbox.organization_id, inboxId: inbox.id, action: 'kb_automation_changed', payload: { enabled: false } });
@@ -252,7 +261,7 @@ router.put('/inboxes/:id/kb-automation', validate({ body: S.KbAutomationBody }),
         provisioned = await ensureKbAutomation(inbox, userId, req.session, knowledgeBaseId);
     } catch (e) {
         // Activation/validation failure — do NOT mark enabled (keep state consistent).
-        return res.status(400).json({ error: e.message, details: e.details || null });
+        return res.status(400).json({ error: /** @type {Error} */ (e).message, details: e.details || null });
     }
     const updated = await supportInboxStore.setKbAutomation(
         req.params.id, { enabled: true, kbId: knowledgeBaseId, automationId: provisioned.automationId }, inbox.organization_id
@@ -263,7 +272,7 @@ router.put('/inboxes/:id/kb-automation', validate({ body: S.KbAutomationBody }),
 
 // ── Historical response-time scan (aggregate-only, on-demand) ─────────────────
 
-router.post('/inboxes/:id/scan', validate({ body: S.ScanBody }), async (req, res) => {
+router.post('/inboxes/:id/scan', validate({ body: S.ScanBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const inbox = await loadInboxInScope(req, res, req.params.id);
     if (!inbox) return;
     if (!inbox.connected) return res.status(400).json({ error: 'Connect the mailbox before scanning.' });
@@ -279,7 +288,7 @@ router.post('/inboxes/:id/scan', validate({ body: S.ScanBody }), async (req, res
     audit.emit(req, { organizationId: inbox.organization_id, inboxId: inbox.id, action: 'scan_started', payload: { windowDays: days } });
     // Best-effort immediate kick (the lease prevents double-run with the drain
     // tick); only when this process is the configured scan runner.
-    if (process.env.SUPPORT_SCAN_IN_API !== 'false') { scanOneDue().catch(() => {}); }
+    if (process.env.SUPPORT_SCAN_IN_API !== 'false') { scanOneDue().catch((e) => bestEffort('routes/supportInbox:anon#4', e)); }
     res.json({ inbox: updated });
 });
 

@@ -11,9 +11,13 @@ const { isObject, pickClosestId } = require('./helpers');
  * bodies / parallel branches. Mirror of collectCallLayerSteps for the
  * external-Step reference (a call_block points at a stored kind='block' row
  * by blockId rather than an inline layers key).
+ * @param {string} [pathPrefix]
  */
 function collectCallBlockSteps(graph, pathPrefix = '') {
     const out = [];
+    /**
+     * @param {string} basePath
+     */
     const walk = (steps, basePath) => {
         if (!Array.isArray(steps)) return;
         for (let i = 0; i < steps.length; i++) {
@@ -38,6 +42,7 @@ function collectCallBlockSteps(graph, pathPrefix = '') {
  * must resolve and every required Step param must be bound; when absent (a
  * catalog-free pass, e.g. import), only structural checks run — same pattern
  * as availableTools for integration_action.
+ * @param {(value: { code: string; severity: string; path: string; message: string; hint: string; }) => void} pushE
  */
 function validateCallBlockStep(step, at, availableBlocks, pushE) {
     const stepId = step.id || '(no id)';

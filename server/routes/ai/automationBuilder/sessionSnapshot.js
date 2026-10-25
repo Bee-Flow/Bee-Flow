@@ -37,7 +37,7 @@ const NoQuery = z.object({}).strict();
 // GET the persisted builder-session snapshot for an automation. Used by
 // the client on mount to rehydrate chat history + draft + last validation
 // after a refresh or SSE drop. Mirror to the SSE `resume` event payload.
-router.get('/session/:automationId', requireAuth, validate({ query: NoQuery }), async (req, res) => {
+router.get('/session/:automationId', requireAuth, validate({ query: NoQuery }), async (/** @type {import('express').Request<{ automationId: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const userId = req.session.user.id;
     const snapshot = await automationStore.getBuilderSession(req.params.automationId, userId);
     if (!snapshot) return res.status(404).json({ error: 'No builder session for this automation' });
@@ -57,6 +57,7 @@ router.get('/session/:automationId', requireAuth, validate({ query: NoQuery }), 
 //   applyProposal -> { ok, outcome:'applied', definition: object|null, createdDatatables: [{ref,id,key,name}] }
 //   discardProposal -> { ok, outcome:'discarded', keptDatatables: [{id,name}] }
 //   rejectPlan -> { ok, outcome:'rejected' }
+/** @type {Record<string, { key: string, kind: string, status: string }>} */
 const REVIEW_OUTCOMES = {
     applyProposal: { key: 'proposal', kind: 'proposal', status: 'applied' },
     discardProposal: { key: 'proposal', kind: 'proposal', status: 'discarded' },
@@ -65,7 +66,7 @@ const REVIEW_OUTCOMES = {
 router.post('/session/:automationId/review', requireAuth, requireActiveOrgForMutations(), validate({ query: NoQuery, body: z.object({
     action: z.enum(Object.keys(REVIEW_OUTCOMES)),
     revisionId: z.string().min(1).max(200),
-}).strict() }), async (req, res, next) => {
+}).strict() }), async (/** @type {import('express').Request<{ automationId: string }>} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
     try {
         const userId = req.session.user.id;
         const snapshot = await automationStore.getBuilderSession(req.params.automationId, userId);

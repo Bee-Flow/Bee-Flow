@@ -143,7 +143,7 @@ async function searchConversationRows(spec, deps, userId, query, filters, encryp
                 }
             } catch (e) {
                 // One unreadable conversation must not fail the whole search.
-                log.error(`${logTag} Search decrypt error for`, conv.id, '-', e.message);
+                log.error(`${logTag} Search decrypt error for`, conv.id, '-', /** @type {Error} */ (e).message);
             }
         }
     }

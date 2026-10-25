@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Swarms — discovery + (later) custom-swarm CRUD.
  *

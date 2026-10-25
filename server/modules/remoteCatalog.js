@@ -240,3 +240,14 @@ module.exports = {
     listMarketplace,
     DEFAULT_INVALID_GRACE_MS,
 };
+
+/**
+ * @typedef {Awaited<ReturnType<typeof import('../stores/platformModuleStore').getState>>} ModuleRow
+ * @typedef {{ kind?: string, active?: boolean, unit_amount?: number, amount?: number, currency?: string,
+ *   billing_interval?: string, price_id?: string }} HubPrice
+ * @typedef {{ version?: string, yanked?: boolean, channel?: string }} HubVersion
+ * @typedef {{ module_id?: string, name?: string, description?: string, category?: string, icon?: string,
+ *   vendor?: string, latest_version?: string, min_product_version?: string, prices?: HubPrice[],
+ *   channels?: Record<string, string>, install_count?: number | string, versions?: HubVersion[] }} HubModule
+ * @typedef {{ now?: number, graceMs?: number, graceInvalidMs?: number }} EntitlementStateOpts
+ */

@@ -38,7 +38,7 @@ const KEY_POST_INFIX = '_post_';
 const KEY_POSTS_SUFFIX = '_posts';
 
 const { POST_STATUSES, POST_LIMITS } = require('./postLimits');
-const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // Path segments the blog itself claims under /blog/… (feed, tag and paging
 // URLs), so no post may take them.
@@ -498,7 +498,7 @@ async function restorePosts(siteId, posts, translations = {}, { now = Date.now()
             if (!/^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/.test(locale) || !isPlainObject(override)) continue;
             try {
                 await configStore.setConfig(postLocaleKey(siteId, newPostId, locale), sanitizePostOverride(override));
-            } catch (err) { log.debug('oversized translation: skipped', err); }
+            } catch (err) { bestEffort('stores/cms/posts:restorePosts', err); /* oversized translation: skipped */ }
         }
     }
     return { idMap, count: docs.length };
@@ -515,3 +515,11 @@ module.exports = {
     getPostLocaleOverride, setPostLocaleOverride, deletePostLocaleOverride,
     collectPostLocaleOverrides, restorePosts,
 };
+
+/** @typedef {{ metaTitle: string, metaDescription: string, ogImage: string, noIndex: boolean }} PostSeo */
+
+/** @typedef {{ version: number, id: string, slug: string, title: string, excerpt: string, body: string, coverImage: string, coverAlt: string, authorName: string, tags: string[], status: string, publishedAt: string | null, seo: PostSeo, createdAt: string, updatedAt: string, [k: string]: any }} PostDoc */
+
+/** @typedef {{ id: string, slug: string }} PostIndexEntry */
+
+/** @typedef {{ version: number, posts: PostIndexEntry[] }} PostsIndex */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Dictation — speak instead of type, anywhere in the product.
  *
@@ -48,6 +48,7 @@ const { requireAuth } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
 const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
+const { bestEffort } = require('../utils/bestEffort');
 
 const router = express.Router();
 
@@ -71,7 +72,7 @@ const MAX_BYTES = 25 * 1024 * 1024;
 const upload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: MAX_BYTES, files: 1 },
-    fileFilter: (req, file, cb) => {
+    fileFilter: (/** @type {import('express').Request} */ req, /** @type {{ mimetype?: string }} */ file, /** @type {(err: Error | null, accept: boolean) => void} */ cb) => {
         const ok = /^audio\//i.test(file.mimetype || '') || /^video\/webm/i.test(file.mimetype || '');
         // MediaRecorder in Chrome labels its output video/webm even for an
         // audio-only track, so that one non-audio type has to be allowed.
@@ -80,7 +81,7 @@ const upload = multer({
 });
 
 router.post('/', requireAuth, (req, res, next) => {
-    upload.single('audio')(req, res, (err) => {
+    upload.single('audio')(req, res, (/** @type {(Error & { code?: string }) | undefined} */ err) => {
         if (!err) return next();
         const tooBig = err.code === 'LIMIT_FILE_SIZE';
         return res.status(tooBig ? 413 : 400).json({
@@ -122,7 +123,7 @@ router.post('/', requireAuth, (req, res, next) => {
         log.error('[Dictate] failed:', err.message);
         throw new HttpError(500, 'dictation_failed', 'Could not transcribe that recording.');
     } finally {
-        try { await fs.promises.unlink(tmpPath); } catch (err) { log.debug('never written', err); }
+        try { await fs.promises.unlink(tmpPath); } catch (err) { bestEffort('routes/dictate:anon', err); /* never written */ }
     }
 });
 

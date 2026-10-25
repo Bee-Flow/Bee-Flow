@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Withings connector routes — mounted at /api/integrations/withings.
  *
@@ -38,10 +39,12 @@ const configStore = require('../../stores/configStore');
 const automationCredentialStore = require('../../stores/automationCredentialStore');
 const automationAuth = require('../../auth/automationAuth');
 const { OAUTH_PROVIDERS, requireAuth } = require('../../auth/permissions');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 const PROVIDER = 'withings';
 const TOKEN_TIMEOUT_MS = 20000;
 
+/** @param {import('express').Request} req */
 function buildRedirectUri(req) {
     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
     const host = req.headers['x-forwarded-host'] || req.headers.host;
@@ -52,10 +55,12 @@ function buildRedirectUri(req) {
 // per-user scope so the connection outlives the session (upsertCredential needs
 // a non-empty orgId to derive a key). Same rule as the Google connector — the
 // two must agree or a user's vault rows would land under two different keys.
+/** @param {{ organizationId?: string | null, id?: string } | null | undefined} user */
 function resolveVaultOrgId(user) {
     return user?.organizationId || `user:${user?.id}`;
 }
 
+/** @param {unknown} received @param {unknown} expected */
 function statesMatch(received, expected) {
     if (typeof received !== 'string' || typeof expected !== 'string') return false;
     if (!received || !expected || received.length !== expected.length) return false;
@@ -150,7 +155,7 @@ router.get('/callback', async (req, res) => {
             const errText = await tokenRes.text().catch(() => '');
             throw new Error(`Token exchange failed: ${tokenRes.status} ${errText.slice(0, 300)}`);
         }
-        const payload = await tokenRes.json().catch(() => null);
+        const payload = await tokenRes.json().catch(/** @returns {null} */ () => null);
         if (!payload) throw new Error('Withings returned a non-JSON token response');
         // Shared unwrapper: status must be 0 and the tokens live under `body`.
         const tokenData = automationAuth.readWithingsBody(payload, 'token exchange');
@@ -159,7 +164,7 @@ router.get('/callback', async (req, res) => {
         }
 
         const userStore = require('../../stores/userStore');
-        const user = await userStore.getUser(userId).catch(() => null);
+        const user = await userStore.getUser(userId).catch((e) => fallback('routes/integrations/withings:anon', e, null));
         const orgId = resolveVaultOrgId({ ...user, id: userId });
         await automationCredentialStore.upsertCredential({
             userId,
@@ -219,11 +224,11 @@ router.get('/status', requireAuth, async (req, res) => {
     const { clientId, clientSecret } = await automationAuth.withingsClientConfig();
     const configured = !!(clientId && clientSecret);
 
-    const cred = await automationCredentialStore.getCredential(userId, PROVIDER).catch(() => null);
+    const cred = await automationCredentialStore.getCredential(userId, PROVIDER).catch((e) => fallback('routes/integrations/withings:anon#2', e, null));
     const connected = cred?.status === 'active';
     const needsReauth = !connected && cred?.status === 'needs_reauth';
     const withingsUserId = (connected || needsReauth)
-        ? await configStore.getConfig(`withings_userid_user_${userId}`).catch(() => null)
+        ? await configStore.getConfig(`withings_userid_user_${userId}`).catch((e) => fallback('routes/integrations/withings:anon#3', e, null))
         : null;
 
     res.json({ configured, connected, needsReauth, withingsUserId: withingsUserId || null, scope: cred?.scope || null });
@@ -240,7 +245,7 @@ router.post('/disconnect', requireAuth, async (req, res) => {
     // 'unknown_provider' and the local delete is what actually cuts access.
     const { revokeProviderCredential } = require('../../auth/oauthRoutes');
     const result = await revokeProviderCredential(userId, PROVIDER);
-    await configStore.deleteConfig(`withings_userid_user_${userId}`).catch(() => {});
+    await configStore.deleteConfig(`withings_userid_user_${userId}`).catch((e) => bestEffort('routes/integrations/withings:anon#4', e));
 
     log.info(`[WithingsConnector] Disconnected for user ${userId}`);
     res.json({ success: true, hadCredential: result.found });
@@ -253,6 +258,7 @@ function openerTargetOrigin() {
     return /^https?:\/\//i.test(host) ? host.replace(/\/+$/, '') : `https://${host}`;
 }
 
+/** @param {string} message @param {boolean} success */
 function callbackHTML(message, success) {
     return `<!DOCTYPE html>
 <html><head><title>Withings</title>

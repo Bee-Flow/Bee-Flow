@@ -33,6 +33,7 @@ const router = express.Router();
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const { fallback } = require('../../utils/bestEffort');
 
 // -- What a caller may send ------------------------------------------
 //
@@ -60,8 +61,17 @@ const { worded } = require('../../core/http/schemaParts');
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
+/**
+ * @param {string} name
+ */
 const text = (name) => worded(`${name} must be text.`).optional();
+/**
+ * @param {string} name
+ */
 const id = (name) => worded(`${name} must be an id.`).trim().min(1, `${name} must be an id.`).nullish();
+/**
+ * @param {string} name
+ */
 const flag = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) }).optional();
 
 const MESSAGE_TEXT = 'Message is required';
@@ -177,7 +187,7 @@ async function userCanAccessPublishedAgent(agent, userId, req) {
                 : (() => { try { return JSON.parse(user.groups || '[]'); } catch (_) { return []; } })();
             userDirectOrgId = user.organizationId || null;
         }
-    } catch (err) { log.debug('treat as no groups', err); }
+    } catch (err) { fallback('routes/agents/chat:userCanAccessPublishedAgent', err); /* treat as no groups */ }
 
     // Resolve the full set of org IDs the user belongs to
     const resolvedOrgIds = await resolveUserOrgIds(req);
@@ -314,7 +324,7 @@ router.get('/:id/embed', embedLimiter, async (req, res) => {
         starterPrompts = typeof agent.starter_prompts === 'string'
             ? JSON.parse(agent.starter_prompts)
             : (agent.starter_prompts || []);
-    } catch (e) { log.debug('starter prompts are not valid JSON, show none', e); }
+    } catch (e) { fallback('routes/agents/chat:anon', e); /* starter prompts are not valid JSON, show none */ }
 
     return res.json({
         id: agent.id,
@@ -444,12 +454,13 @@ router.post('/:id/chat/stream', streamLimiter, validate({ body: TurnBody }), asy
             canEdit = await canModifyAgent(agent, userId, req);
         } catch (e) {
             // An edit check that could not run is not permission to simulate.
-            log.error('[AgentChat] test-mode edit check failed:', e.message);
+            log.error('[AgentChat] test-mode edit check failed:', /** @type {Error} */ (e).message);
             // One failed check refuses BOTH affordances when both have been
             // requested. `code` remains the strongest (a test chat serves the draft), but
             // `codes` names every refused affordance — otherwise a client that handles
             // the A1c contract (`test_as_check_failed`) misses precisely the case in which
             // it ALSO sent `test: true`.
+            /** @type {string[]} */
             const _refused = [];
             if (wantsTest) _refused.push(testChatMod.TEST_CHAT_CODES.checkFailed);
             if (req.body?.asGroup) _refused.push('test_as_check_failed');
@@ -562,13 +573,13 @@ router.post('/:id/chat/stream', streamLimiter, validate({ body: TurnBody }), asy
         markEnded();
         res.end();
     } catch (error) {
-        if (error.name === 'AbortError' || abortController.signal.aborted) {
+        if (/** @type {Error} */ (error).name === 'AbortError' || abortController.signal.aborted) {
             log.info('[agents] Agent execution aborted by client');
         } else {
             log.error('Agent streaming chat error:', error);
             const classified = error._classified || {};
             sendEvent('error', {
-                error: error.message,
+                error: /** @type {Error} */ (error).message,
                 errorType: classified.retryable ? 'transient' : 'permanent'
             });
         }
@@ -605,6 +616,7 @@ router.post('/describe-building', requireAuth, helperLimiter, validate({ body: D
         const config = await getAIConfig();
         // Defence-in-depth: refuse if the configured AI URL isn't a normal http(s)
         // endpoint. Prevents accidental SSRF if the config is ever tenant-influenced.
+        /** @type {URL} */
         let parsedAiUrl;
         try {
             parsedAiUrl = new URL(config.url);

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * No PII span may cross a line or a table cell (BFSF-299), Node side.
  *
@@ -58,6 +58,7 @@ function splitAtCellBreaks(entities, text, { particles }) {
             continue;
         }
         let pos = start;
+        /** @type {number[][]} */
         const cuts = [];
         CELL_BREAK_RE_G.lastIndex = 0;
         for (const m of text.slice(start, end).matchAll(CELL_BREAK_RE_G)) {

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Dutch for the redirect manager of the website editor (cms_redirects.*): the
  * Redirects entry of the navigator and its inspector.
@@ -27,7 +28,10 @@ const NL_TRANSLATIONS = Object.freeze({ ...DATA.translations });
 /** Keys whose Dutch is the English text itself; deliberately not seeded. */
 const SAME_AS_ENGLISH = Object.freeze([...DATA.sameAsEnglish]);
 
-/** The mutation itself, on a copy of the 'nl' blob. Pure, so the store's mutator may run it more than once. */
+/**
+ * The mutation itself, on a copy of the 'nl' blob. Pure, so the store's mutator may run it more than once.
+ * @param {Record<string, string>} merged
+ */
 function applyNl(merged) {
     let added = 0;
     for (const [key, value] of Object.entries(NL_TRANSLATIONS)) {

@@ -224,3 +224,13 @@ function applyAddComponents(draftWrap, rawArgs) {
 }
 
 module.exports = { applyAddComponents };
+
+/**
+ * @typedef {{ id: string, type: string, tempId?: string, name?: string }} AddedNode
+ * @typedef {{ id: string, type: string, sig?: string, shellSig?: string|null, parentNodeId?: string|null }} LandedNode
+ * @typedef {{ type?: string, tempId?: string, parentId?: string, children?: object[] }} BatchEntry
+ * @typedef {{ at: string, entry: BatchEntry, raw?: BatchEntry }} BatchItem
+ * @typedef {{ failed: Array<{ path: string, error: string }>, fragments: number, debrisKeys: number, lifted: number, built: Map<string, { id: string }>, nodes: LandedNode[], parentNodeId: string|null }} BatchReport
+ * What one batch landed, remembered for the turn (see finishBatch).
+ * @typedef {{ added: AddedNode[], ids: Record<string, string>, parentId?: string, dupes: number, failedPaths?: string[], partial?: boolean, nodes?: LandedNode[] }} BatchRecord
+ */

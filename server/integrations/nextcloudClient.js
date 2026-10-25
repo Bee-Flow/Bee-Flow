@@ -127,7 +127,7 @@ async function refreshAccessToken(session) {
         _refreshInFlight.set(session, promise);
         // Clear on settle either way: a failed refresh must not pin the
         // rejection for the life of the session.
-        promise.catch(() => {}).finally(() => _refreshInFlight.delete(session));
+        promise.catch((e) => fallback('integrations/nextcloudClient:refreshAccessToken', e)).finally(() => _refreshInFlight.delete(session));
     }
     return promise;
 }
@@ -165,7 +165,7 @@ async function _doRefreshAccessToken(session) {
         try {
             const parsed = JSON.parse(body);
             if (typeof parsed?.error === 'string' && /^[a-z_]{1,40}$/.test(parsed.error)) code = parsed.error;
-        } catch (err) { log.debug('non-JSON body — status alone is the signal', err); }
+        } catch (err) { fallback('integrations/nextcloudClient:_doRefreshAccessToken', err); /* non-JSON body — status alone is the signal */ }
         log.error(`[Nextcloud] Token refresh failed (${response.status})${code ? `: ${code}` : ''}`);
         throw new Error('Nextcloud token refresh failed — user must re-authenticate');
     }
@@ -249,6 +249,7 @@ async function resolveUid(session, baseUrl) {
 // Retry-After (integer seconds or HTTP-date) as ms, and whether a body can be
 // sent again: the same rules for every client (core/http/retryAfter.js).
 const { parseRetryAfter, isReplayableBody } = require('../core/http/retryAfter');
+const { fallback } = require('../utils/bestEffort');
 
 const RETRY_STATUS = new Set([429, 503]);
 const MAX_RETRIES = 2;
@@ -481,7 +482,7 @@ async function isConnected(session, userId) {
         const userStore = require('../stores/userStore');
         const creds = await userStore.getAppPassword(userId);
         if (creds && creds.username && creds.password) return true;
-    } catch (err) { log.debug('fall through to the binding check', err); }
+    } catch (err) { fallback('integrations/nextcloudClient:isConnectedAppPassword', err); /* the binding check decides */ }
     // DB-backed binding: an NC-org user in a standalone/bridged session is
     // still connected (the connector routes their calls) even though the
     // session carries none of the connector extras.

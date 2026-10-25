@@ -26,7 +26,10 @@ const {
 const MAX_SHAPE_CHARS = 400;
 const MAX_SCHEMA_HINT_CHARS = 600;
 
-/** A key as the shape writes it: bare when it reads as a name, else quoted. */
+/**
+ * A key as the shape writes it: bare when it reads as a name, else quoted.
+ * @param {string} k
+ */
 const shapeKey = (k) => (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(k) ? k : JSON.stringify(k));
 
 /**
@@ -35,6 +38,9 @@ const shapeKey = (k) => (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(k) ? k : JSON.stringi
  * cannot swamp the message.
  */
 function schemaShape(schema) {
+    /**
+     * @param {number} depth
+     */
     const walk = (s, depth) => {
         if (!isObject(s) || depth > 6) return 'string';
         if (s.type === 'array') return s.items ? `[${walk(s.items, depth + 1)}]` : '[]';
@@ -62,6 +68,9 @@ function flatSchemaHint(fields) {
     return `outputSchema: {"type":"object","properties":{${fields.slice(0, 3).map(f => `${JSON.stringify(f)}:{"type":"string"}`).join(',')}}}. Numbers as {"type":"number"}.`;
 }
 
+/**
+ * @param {string} at
+ */
 function checkAiStep(ctx, step, at) {
     const { pushE, pushW, trigger, refIds, availableAgents, fieldsReadFromStep, inferredOutputOf } = ctx;
     if (step.type === 'ai_step') {
@@ -308,6 +317,9 @@ function checkAiStep(ctx, step, at) {
     }
 }
 
+/**
+ * @param {string} at
+ */
 function checkDataExtraction(ctx, step, at) {
     const { pushE, pushW, fieldsReadFromStep } = ctx;
     if (step.type === 'data_extraction') {

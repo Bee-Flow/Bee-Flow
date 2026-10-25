@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Which encryption tier a BRAND-NEW organisation starts on.
  *
@@ -38,6 +38,7 @@
 
 const { defaultTier, invalidatePolicyCache } = require('./encryptionPolicy');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 /**
  * Raise a freshly created organisation to the operator's configured default
@@ -51,6 +52,9 @@ const log = require('../telemetry/log');
  * @returns {Promise<{tier: string, applied: boolean, reason: string}>}
  */
 async function applyDefaultEncryptionTier(orgId, deps = {}) {
+    /**
+     * @param {string} reason
+     */
     const NONE = (reason) => ({ tier: 'none', applied: false, reason });
 
     if (!orgId || typeof orgId !== 'string') return NONE('no_org_id');
@@ -66,13 +70,14 @@ async function applyDefaultEncryptionTier(orgId, deps = {}) {
     // happen, on every single org creation.
     if (!wanted || wanted === 'none') return NONE('default_is_none');
 
+    /** @type {Awaited<ReturnType<typeof import('./encryptionAvailability').getEncryptionAvailability>> | undefined} */
     let availability;
     try {
         const getAvailability = deps.getEncryptionAvailability
             || require('./encryptionAvailability').getEncryptionAvailability;
         availability = await getAvailability(orgId);
     } catch (e) {
-        log.error(`[Encryption] Availability check failed for new org '${orgId}' — starting on 'none' rather than a tier this server may not honour: ${e.message}`);
+        log.error(`[Encryption] Availability check failed for new org '${orgId}' — starting on 'none' rather than a tier this server may not honour: ${/** @type {Error} */ (e).message}`);
         return NONE('availability_threw');
     }
 
@@ -98,11 +103,11 @@ async function applyDefaultEncryptionTier(orgId, deps = {}) {
             return NONE('update_returned_false');
         }
     } catch (e) {
-        log.error(`[Encryption] Could not store tier '${wanted}' on new org '${orgId}' — it remains on 'none': ${e.message}`);
+        log.error(`[Encryption] Could not store tier '${wanted}' on new org '${orgId}' — it remains on 'none': ${/** @type {Error} */ (e).message}`);
         return NONE('update_threw');
     }
 
-    try { invalidatePolicyCache(orgId); } catch (err) { log.debug('non-fatal', err); }
+    try { invalidatePolicyCache(orgId); } catch (err) { bestEffort('stores/initialTier:applyDefaultEncryptionTier', err); /* non-fatal */ }
 
     // Same persistent trail the admin route writes, so "who put this org on
     // this tier" has one answer whether a human or the default did it.
@@ -114,7 +119,7 @@ async function applyDefaultEncryptionTier(orgId, deps = {}) {
             { tier: wanted, scope: null, source: 'BEEFLOW_DEFAULT_ENCRYPTION_TIER' },
             orgId,
         );
-    } catch (err) { log.debug('logAccessAudit already swallows; belt and braces', err); }
+    } catch (err) { bestEffort('stores/initialTier:applyDefaultEncryptionTier#2', err); /* logAccessAudit already swallows; belt and braces */ }
 
     log.info(`[Encryption] New org '${orgId}' starts on tier '${wanted}' (BEEFLOW_DEFAULT_ENCRYPTION_TIER).`);
     return { tier: wanted, applied: true, reason: 'applied' };

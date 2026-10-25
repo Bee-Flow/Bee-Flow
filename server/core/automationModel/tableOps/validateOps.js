@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Field checks per operation. Each checker gets the raw op `r` (what was
@@ -11,13 +11,30 @@ const { SALT_VAR_RE, COLUMN_NAME_MAX_CHARS, isBinding, bindingBlank } = require(
 const { normalizeRules } = require('./rules');
 const { AGG_FNS } = require('./normalize');
 
+/**
+ * Reports one issue: severity, code, path under the op, sentence, optional hint.
+ * @typedef {(severity: string, code: string, sub: string, message: string, hint?: string) => void} AddIssue
+ */
+/**
+ * The raw op as typed; the fields compared against a fixed list are text.
+ * @typedef {{ how?: string, onDuplicate?: string, mode?: string, percent?: string, match?: string,
+ *   [key: string]: unknown }} RawOp
+ */
+/** @typedef {typeof import('./normalize').byOp} ByOp */
+
 const E = 'error';
 const W = 'warning';
 
+/** @param {unknown} src */
 const exprProblem = (src) => {
     try { parseExpr(String(src)); return null; } catch (e) { return String(e?.message || e).slice(0, 200); }
 };
 
+/**
+ * @param {RawOp} r
+ * @param {ReturnType<ByOp['join']>} n
+ * @param {AddIssue} add
+ */
 function join(r, n, add) {
     if (bindingBlank(n.with)) add(E, 'join_with_missing', '.with', 'pick the table to join with.', 'Choose a table from an earlier step, or a list of rows.');
     if (r.how !== undefined && !['left', 'inner'].includes(r.how)) add(E, 'join_how_invalid', '.how', 'choose "left" (keep every row) or "inner" (only rows with a match).');
@@ -30,6 +47,11 @@ function join(r, n, add) {
     });
 }
 
+/**
+ * @param {RawOp} r
+ * @param {ReturnType<ByOp['pseudonymise']>} n
+ * @param {AddIssue} add
+ */
 function pseudonymise(r, n, add) {
     if (!n.columns.length) add(E, 'pseudonymise_columns_missing', '.columns', 'pick the columns that identify a person.', 'Their values are replaced by a code that cannot be traced back.');
     if (n.columns.length > 10) add(E, 'pseudonymise_columns_too_many', '.columns', 'pick at most 10 columns.');
@@ -42,6 +64,11 @@ function pseudonymise(r, n, add) {
     }
 }
 
+/**
+ * @param {RawOp} r
+ * @param {ReturnType<ByOp['derive']>} n
+ * @param {AddIssue} add
+ */
 function derive(r, n, add) {
     if (!n.columns.length) add(E, 'derive_columns_missing', '.columns', 'add at least one column to calculate.');
     if (n.columns.length > 20) add(E, 'derive_columns_too_many', '.columns', 'add at most 20 columns in one step.', 'Use a second step for the rest.');
@@ -63,8 +90,13 @@ function derive(r, n, add) {
     });
 }
 
+/**
+ * @param {ReturnType<ByOp['bucket']>} n
+ * @param {AddIssue} add
+ */
 function bandChecks(n, add) {
     if (!n.bands.length) add(E, 'bucket_bands_invalid', '.bands', 'add at least one band.', 'Each band has a label and a lowest and/or highest value.');
+    /** @type {{ j: number, lo: number, hi: number }[]} */
     const usable = [];
     n.bands.forEach((b, j) => {
         if (!b.label) add(E, 'bucket_bands_invalid', `.bands[${j}].label`, `band ${j + 1} needs a label.`);
@@ -80,6 +112,11 @@ function bandChecks(n, add) {
     }
 }
 
+/**
+ * @param {RawOp} r
+ * @param {ReturnType<ByOp['bucket']>} n
+ * @param {AddIssue} add
+ */
 function bucket(r, n, add) {
     if (!n.column) add(E, 'bucket_column_missing', '.column', 'pick the column to sort into groups.');
     if (r.mode !== undefined && !['bands', 'quantiles', 'values'].includes(r.mode)) add(E, 'bucket_mode_invalid', '.mode', 'choose bands, equal parts or listed values.');
@@ -96,6 +133,11 @@ function bucket(r, n, add) {
     }
 }
 
+/**
+ * @param {RawOp} r
+ * @param {ReturnType<ByOp['group']>} n
+ * @param {AddIssue} add
+ */
 function group(r, n, add) {
     if (n.by.length > 5) add(E, 'group_by_too_many', '.by', 'group by at most 5 columns.');
     if (!n.aggregates.length) add(E, 'group_aggregate_invalid', '.aggregates', 'pick at least one value to calculate.', 'For example a count, or the sum of a column.');
@@ -114,6 +156,11 @@ function group(r, n, add) {
     if (r.minN !== undefined && Number(r.minN) < 0) add(E, 'group_min_n_invalid', '.minN', 'the minimum group size cannot be negative.');
 }
 
+/**
+ * @param {RawOp} r
+ * @param {ReturnType<ByOp['pivot']>} n
+ * @param {AddIssue} add
+ */
 function pivot(r, n, add) {
     if (!n.rows) add(E, 'pivot_rows_missing', '.rows', 'pick the column that makes the rows.');
     if (!n.columns) add(E, 'pivot_columns_missing', '.columns', 'pick the column that makes the columns.');
@@ -123,6 +170,11 @@ function pivot(r, n, add) {
     if (n.percent !== 'none' && n.value.fn === 'mean') add(W, 'pivot_percent_mean', '.percent', 'percentages of an average are not meaningful and are ignored.', 'Use a count or a sum for percentages.');
 }
 
+/**
+ * @param {RawOp} r
+ * @param {ReturnType<ByOp['filter']>} n
+ * @param {AddIssue} add
+ */
 function filter(r, n, add) {
     if (r.match !== undefined && !['all', 'any'].includes(r.match)) add(E, 'filter_match_invalid', '.match', 'choose "all" or "any".');
     const { errors } = normalizeRules(n.rules);
@@ -134,6 +186,11 @@ function filter(r, n, add) {
     if (!n.rules.length && !n.rulesFrom && !n.expr) add(W, 'filter_empty', '', 'no rule is set, so every row is kept.');
 }
 
+/**
+ * @param {RawOp} r
+ * @param {ReturnType<ByOp['select']>} n
+ * @param {AddIssue} add
+ */
 function select(r, n, add) {
     if (n.keep && n.drop) add(E, 'select_conflict', '', 'choose either the columns to keep or the columns to drop, not both.');
     n.rename.forEach((x, j) => {
@@ -144,6 +201,11 @@ function select(r, n, add) {
     if (!n.keep && !n.drop && !n.rename.length) add(W, 'select_empty', '', 'nothing is kept, dropped or renamed, so the columns stay as they are.');
 }
 
+/**
+ * @param {RawOp} r
+ * @param {ReturnType<ByOp['sample']>} n
+ * @param {AddIssue} add
+ */
 function sample(r, n, add) {
     const { n: gotN, percent: gotP } = n._given;
     if (gotN === gotP) {
@@ -156,6 +218,11 @@ function sample(r, n, add) {
     if (r.mode !== undefined && !['first', 'random'].includes(r.mode)) add(E, 'sample_mode_invalid', '.mode', 'choose first rows or a random sample.');
 }
 
+/**
+ * @param {RawOp} r
+ * @param {ReturnType<ByOp['groups']>} n
+ * @param {AddIssue} add
+ */
 function groups(r, n, add) {
     if (!n.splits.length) add(E, 'groups_splits_missing', '.splits', 'pick at least one column to split on.');
     if (n.splits.length > 10) add(E, 'groups_splits_too_many', '.splits', 'split on at most 10 columns.');
@@ -168,6 +235,11 @@ function groups(r, n, add) {
     }
 }
 
+/**
+ * @param {RawOp} r
+ * @param {ReturnType<ByOp['describe']>} n
+ * @param {AddIssue} add
+ */
 function describe(r, n, add) {
     if (r.columns !== undefined && r.columns !== null && !Array.isArray(r.columns)) add(E, 'describe_columns_invalid', '.columns', 'the columns must be a list.');
 }

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The guard that runs on an uploaded workbook package (xlsx, xlsm, ods) BEFORE
  * the spreadsheet parser sees a single byte of it.
@@ -43,6 +43,9 @@ function sourceError(errorClass, message) {
     return Object.assign(new Error(message), { errorClass });
 }
 
+/**
+ * @param {string} message
+ */
 function rejected(message) {
     return sourceError('table_source_rejected', message);
 }
@@ -74,7 +77,11 @@ function declaredSizes(entry) {
     };
 }
 
-/** The checks that need only the zip's own declarations. */
+/**
+ * The checks that need only the zip's own declarations.
+ * @param {JSZip.JSZipObject[]} entries
+ * @param {number} maxUncompressedBytes
+ */
 function checkDeclarations(entries, maxUncompressedBytes) {
     if (entries.length > MAX_ENTRIES) {
         throw rejected(`This file holds more than ${MAX_ENTRIES.toLocaleString('en-US')} parts, which is not a normal workbook, so it was not opened.`);
@@ -110,7 +117,11 @@ const NEEDLE_TAIL = Math.max(...FORBIDDEN_BYTES.map(b => b.length)) - 1;
 function inflateStreaming(entry, onChunk) {
     return new Promise((resolve, reject) => {
         let settled = false;
+        /** @type {import('jszip').JSZipStreamHelper<Uint8Array> | undefined} */
         let helper;
+        /**
+         * @param {Error & { errorClass: string; }} err
+         */
         const fail = (err) => {
             if (settled) return;
             settled = true;
@@ -148,6 +159,8 @@ function inflateStreaming(entry, onChunk) {
  * the moment it passes its declared size, the running total passes the cap, or
  * the ratio cap. XML parts are also scanned for a DOCTYPE or ENTITY, across
  * chunk borders, without being kept in memory.
+ * @param {JSZip.JSZipObject[]} entries
+ * @param {number} maxUncompressedBytes
  */
 async function scanParts(entries, maxUncompressedBytes) {
     let running = 0;
@@ -178,7 +191,10 @@ async function scanParts(entries, maxUncompressedBytes) {
     }
 }
 
-/** The container kind from the package's own markers. */
+/**
+ * The container kind from the package's own markers.
+ * @param {JSZip} zip
+ */
 async function packageKind(zip) {
     const mimetype = zip.file('mimetype');
     if (mimetype) {
@@ -208,6 +224,7 @@ async function assertSafePackage(buffer, limits = {}) {
     if (declared !== null && declared > MAX_ENTRIES) {
         throw rejected(`This file holds more than ${MAX_ENTRIES.toLocaleString('en-US')} parts, which is not a normal workbook, so it was not opened.`);
     }
+    /** @type {JSZip} */
     let zip;
     try {
         zip = await JSZip.loadAsync(buffer);

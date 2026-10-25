@@ -1,3 +1,4 @@
+// @typecheck strict
 // English GUI defaults — namespace "automation_editor": every key whose part before the first "." is "automation_editor".
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.

@@ -83,12 +83,17 @@ const NOTES_SCHEMA = {
     additionalProperties: false,
 };
 
-/** Trim, de-duplicate and cap a list of git subject lines. */
+/**
+ * Trim, de-duplicate and cap a list of git subject lines.
+ * @param {string | string[] | undefined} input
+ * @param {number} [cap]
+ */
 function normaliseLines(input, cap = MAX_SUBJECTS) {
     const arr = Array.isArray(input)
         ? input
         : String(input || '').split('\n');
     const seen = new Set();
+    /** @type {string[]} */
     const out = [];
     for (const raw of arr) {
         const s = String(raw || '').trim();
@@ -118,6 +123,7 @@ function coerceDraft(parsed) {
     const obj = (parsed && typeof parsed === 'object') ? parsed : {};
     const rawItems = Array.isArray(obj.items) ? obj.items : [];
 
+    /** @type {{ kind: string; title: string; body: string; }[]} */
     const items = [];
     for (const it of rawItems) {
         if (!it || typeof it !== 'object') continue;
@@ -154,6 +160,7 @@ function stripFence(text) {
  * PR titles come FIRST because they carry most of the signal. Measured on this
  * repo: ~61% of commits use a conventional-commit prefix but only ~4% reference
  * a BFSF issue id, so issue ids are not a usable grouping key — merge titles are.
+ * @param {ReleaseMaterial} [material]
  */
 function buildUserPayload(material = {}) {
     const commits = normaliseLines(material.commitSubjects);
@@ -174,6 +181,7 @@ function buildUserPayload(material = {}) {
 }
 
 /** Customer-facing headings. The stored `kind` stays machine-readable. */
+/** @type {Record<string, string>} */
 const KIND_HEADINGS = {
     feature: 'New',
     improvement: 'Improved',
@@ -191,6 +199,7 @@ function renderMarkdown(draft = {}) {
     const { title, lead, items } = coerceDraft(draft);
     if (!title && !lead && !items.length) return '';
 
+    /** @type {string[]} */
     const out = [];
     if (title) out.push(`## ${title}`, '');
     if (lead) out.push(lead, '');
@@ -221,3 +230,10 @@ module.exports = {
     buildUserPayload,
     renderMarkdown,
 };
+
+/**
+ * One release range's raw git material.
+ * @typedef {{ commitSubjects?: string[] | string, prTitles?: string[] | string, diffstat?: string,
+ *   services?: string, version?: string, modelTier?: string }} ReleaseMaterial
+ * @typedef {{ title: string, lead: string, items: Array<{ kind: string, title: string, body: string }> }} ReleaseDraft
+ */

@@ -62,6 +62,7 @@ const {
     SIZE_TTL_MS, toDollarParams, normalizeRows, dateOnlyString, mapPgError, normalizeParams,
 } = require('./pgAppEngineHelpers');
 const { makeTx, makeStatements, makeMigration } = require('./pgAppEnginePartsTx');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** schema inspection + the cached on-disk size. */
 function makeInspect({ schemaFor, runQuery, logPrefix, sizeCache, mirrorSizeFn, withAppTx }) {
@@ -154,7 +155,7 @@ function makeLifecycle({ getClient, schemaIdent, assertOwnership, clearMetaFn, s
             }
             await client.query('COMMIT');
         } catch (err) {
-            try { await client.query('ROLLBACK'); } catch (_) { log.debug('connection already broken, the original error is rethrown', _); }
+            try { await client.query('ROLLBACK'); } catch (_) { bestEffort('stores/lib/pgAppEngine:reset', _); /* connection already broken, the original error is rethrown */ }
             throw mapPgError(err);
         } finally {
             client.release();

@@ -1,3 +1,4 @@
+/** @typedef {import('qs').ParsedQs} ParsedQs */
 const express = require('express');
 const agentStore = require('../../stores/agentStore');
 require('../../core/agentRuntime');
@@ -28,7 +29,14 @@ const { worded } = require('../../core/http/schemaParts');
 // other spelling did the same thing.
 
 const SOURCE_TEXT = 'source is "agent" or "direct".';
+/**
+ * @param {string} name
+ * @param {string} what
+ */
 const one = (name, what) => worded(`${name} is ${what}.`).trim().min(1, `${name} is ${what}.`).optional();
+/**
+ * @param {string} name
+ */
 const whole = (name) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })
     .int(`${name} must be a whole number.`).optional();
 
@@ -74,6 +82,7 @@ router.get('/conversations/search', validate({ query: SearchQuery }), async (req
         }
     }
 
+    /** @type {{ agentId?: string | ParsedQs | (string | ParsedQs)[]; startDate?: string | ParsedQs | (string | ParsedQs)[]; endDate?: string | ParsedQs | (string | ParsedQs)[] }} */
     const filters = {};
     if (agentId) filters.agentId = agentId;
     if (startDate) filters.startDate = startDate;

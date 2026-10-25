@@ -44,6 +44,7 @@ const {
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded, orEmpty } = require('../../core/http/schemaParts');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── What a caller may send ──────────────────────────────────────────
 
@@ -103,8 +104,8 @@ const DeleteQuery = orEmpty(z.object({
  * holds no managed base, so it reports none and refuses nothing. The real
  * store always has both.
  */
-const managedOf = (kbId) => (typeof kbStore.managedPayload === 'function' ? kbStore.managedPayload(kbId) : null);
-const assertKbDeletable = (kbId) => (typeof kbStore.assertKbWrite === 'function' ? kbStore.assertKbWrite(kbId, ['delete']) : null);
+const managedOf = (/** @type {string} */ kbId) => (typeof kbStore.managedPayload === 'function' ? kbStore.managedPayload(kbId) : null);
+const assertKbDeletable = (/** @type {string} */ kbId) => (typeof kbStore.assertKbWrite === 'function' ? kbStore.assertKbWrite(kbId, ['delete']) : null);
 
 /**
  * Get a single KB with documents
@@ -212,7 +213,7 @@ router.patch('/:id', requireAuth, requirePermission('manage_knowledge'), validat
         ...(cleanedContexts ? { usageContexts: cleanedContexts } : {}),
         ...(adoptOrgId ? { organizationId: adoptOrgId } : {}),
     });
-    kbStore.snapshotKBVersion(kb.id, getUserId(req), adoptOrgId ? 'moved_to_organisation' : 'metadata_update').catch(() => {});
+    kbStore.snapshotKBVersion(kb.id, getUserId(req), adoptOrgId ? 'moved_to_organisation' : 'metadata_update').catch((e) => bestEffort('routes/knowledgeBases/detail:anon', e));
     res.json(updated);
 });
 
@@ -246,7 +247,7 @@ router.patch('/:id/publish', requireAuth, validate({ body: PublishBody }), async
     const updated = await kbStore.setPublished(kb.id, isPublished, cleanedGroups);
     // Snapshot for audit/rollback. Fire-and-forget — versioning failure
     // must not unwind a successful publish.
-    kbStore.snapshotKBVersion(kb.id, userId, isPublished ? 'publish' : 'unpublish').catch(() => {});
+    kbStore.snapshotKBVersion(kb.id, userId, isPublished ? 'publish' : 'unpublish').catch((e) => bestEffort('routes/knowledgeBases/detail:anon#2', e));
     res.json({ success: true, kb: updated });
 });
 

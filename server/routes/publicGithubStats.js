@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * GET /api/public/github-stats — live repository facts for the marketing
  * site's `github-stats` block (stars, latest release).
@@ -46,10 +47,17 @@ const TTL_MS = 24 * 60 * 60 * 1000;
 // limit within minutes and adds a round trip to a page that gets nothing back.
 const FAILURE_TTL_MS = 10 * 60 * 1000;
 
+/** @typedef {{ stars: number | null, forks: number | null, latestRelease: { tag: string, publishedAt: string | null } | null, url: string }} GithubStats */
+
+/** @type {{ at: number, data: GithubStats | null, releaseUnknown: boolean }} */
 let cache = { at: 0, data: null, releaseUnknown: false };
 let failedAt = 0;
+/** @type {Promise<{ data: GithubStats, releaseUnknown: boolean }> | null} */
 let inFlight = null; // dedupes a cold-cache stampede into one upstream fetch
 
+/** @returns {Promise<{ tag_name?: string, published_at?: string, stargazers_count?: number, forks_count?: number, html_url?: string }>} the repository or the release document, each uses its own fields
+ * @param {string} url
+ */
 async function fetchJson(url) {
     const res = await fetch(url, {
         headers: {
@@ -73,6 +81,8 @@ async function fetchJson(url) {
  * not. Those used to be caught as "no release" and cached for the full 24h,
  * so the release chip vanished from the site for a day. Now the previous tag
  * is carried over and the copy is kept only as long as a failure is.
+ * @param {GithubStats | null} previous
+ * @returns {Promise<{ data: GithubStats, releaseUnknown: boolean }>}
  */
 async function loadStats(previous) {
     const repo = await fetchJson(`https://api.github.com/repos/${REPO}`);

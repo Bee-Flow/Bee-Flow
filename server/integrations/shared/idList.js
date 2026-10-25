@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * A list of ids from whatever a step or a model hands a bulk tool: an array
  * of ids, an array of records that carry an `id` (a search's `results`), a

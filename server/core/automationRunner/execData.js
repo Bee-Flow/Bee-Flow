@@ -12,6 +12,7 @@ const { usageLogFields } = require('../providers/usageNormalizer');
 const { COLLECTION_OP_MAX_ITEMS } = require('./shared');
 const { resolveArrayRef, skippedArrayRef } = require('./execCollections');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── n8n-style utility steps ─────────────────────────────
 //
@@ -547,7 +548,7 @@ async function execParseJson(step, ctx, runState, mode) {
             conversation_id: ctx.automationId,
             // Normalised by the adapter (cache read/write included).
             ...usageLogFields(result.usage),
-        }).catch(() => {});
+        }).catch((e) => bestEffort('core/automationRunner/execData:execParseJson', e));
     } catch (_) { log.warn('could not record AI usage of the data step', _); }
 
     const piiSummary = safety.buildPiiSummary(aiOut.categories || []);
@@ -562,3 +563,23 @@ module.exports = {
     buildParseJsonAiTool, buildParseJsonAiMessages, applyParseJsonAiResult,
     applyParseJsonAiItems, resolveParseJsonItems, buildParseJsonRow,
 };
+
+/** @typedef {import('../automationModel/bind').BindRunState} BindRunState */
+
+/** @typedef {{ kind?: string, value?: unknown } | string | number | boolean | null | unknown[]} SetBinding */
+
+/** @typedef {{ op?: string, target?: string, start?: number, keys?: string[], from?: string, to?: string, key?: string, direction?: string }} SetOperation */
+
+/** @typedef {{ name: string, path?: string, description?: string, fallback?: unknown }} ParseJsonField */
+
+/**
+ * The config fields the set step reads.
+ * @typedef {{ id?: string, arrayRef?: string, fields?: Record<string, SetBinding>, operations?: SetOperation[], [key: string]: unknown }} SetStep
+ */
+
+/**
+ * The config fields the parse_json step reads.
+ * @typedef {{ id?: string, fields?: ParseJsonField[], sourceRef?: string, mode?: string, itemsRef?: string }} ParseJsonStep
+ */
+
+/** @typedef {Record<string, unknown>} SetRow */

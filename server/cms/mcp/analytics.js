@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * The website-analytics tools of the CMS MCP server (read-only, super admin).
  *
@@ -35,7 +36,10 @@ const MAX_SERIES_POINTS = 400;
 const NAME_MAX = 120;
 const EMAIL_RE = /[^\s/@?#&=]+@[^\s/@?#&=]+\.[^\s/@?#&=]+/g;
 
-/** Metric types a caller may ask for -> Umami's dimension name (null = derived). */
+/**
+ * Metric types a caller may ask for -> Umami's dimension name (null = derived).
+ * @type {Readonly<Record<string, string | null>>}
+ */
 const METRIC_TYPES = Object.freeze({
     url: 'path',
     entry: null,
@@ -56,28 +60,43 @@ const PATH_LIKE = new Set(['url', 'entry']);
 
 const VITALS = ['lcp', 'inp', 'cls', 'fcp', 'ttfb'];
 
+/** @type {Record<string, string>} */
 const NOT_AVAILABLE = {
     disabled: 'Website analytics is switched off on this installation, so there is nothing to read. An operator turns it on in the CMS analytics settings.',
     unconfigured: 'Website analytics is switched on but the analytics service (Umami) has no credentials yet, so there is nothing to read. An operator sets them in the CMS analytics settings.',
     unprovisioned: 'No site is being tracked yet. Publish a site while analytics is on, then give it a few minutes and ask again.',
 };
 
+/** @param {unknown} v */
 const num = (v) => {
     const n = Number(v);
     return Number.isFinite(n) ? n : 0;
 };
+/**
+ * @param {unknown} n
+ * @param {number} [digits]
+ */
 const round = (n, digits = 1) => {
     const f = 10 ** digits;
     return Math.round(num(n) * f) / f;
 };
+/** @param {unknown} v */
 const maybeNum = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? null : Number(v));
+/**
+ * @param {string} error
+ * @param {Record<string, unknown>} [extra]
+ */
 const err = (error, extra = {}) => ({ result: { error, ...extra } });
 
 // ── allow-listed value sanitisers ───────────────────────────────────────
 
+/** @param {unknown} s */
 const scrub = (s) => String(s ?? '').replace(EMAIL_RE, '[removed]');
 
-/** A page path: no scheme or host, no ?query, no #hash. */
+/**
+ * A page path: no scheme or host, no ?query, no #hash.
+ * @param {unknown} raw
+ */
 function cleanPath(raw) {
     let s = String(raw ?? '').trim();
     if (/^[a-z][a-z0-9+.-]*:\/\//i.test(s)) {
@@ -90,7 +109,10 @@ function cleanPath(raw) {
     return scrub(s).slice(0, NAME_MAX);
 }
 
-/** A referrer reduced to its domain ('' = direct). */
+/**
+ * A referrer reduced to its domain ('' = direct).
+ * @param {unknown} raw
+ */
 function cleanReferrer(raw) {
     const s = String(raw ?? '').trim();
     if (!s) return '';
@@ -98,9 +120,14 @@ function cleanReferrer(raw) {
     return scrub(host.split('@').pop()).slice(0, NAME_MAX);
 }
 
+/** @param {unknown} raw */
 const cleanLabel = (raw) => scrub(String(raw ?? '').trim()).slice(0, NAME_MAX);
 
-/** {name, count} rows from Umami's [{x, y}], names cleaned and merged, biggest first. */
+/**
+ * {name, count} rows from Umami's [{x, y}], names cleaned and merged, biggest first.
+ * @param {unknown} rows
+ * @param {(raw: unknown) => string} clean
+ */
 function toNameCounts(rows, clean) {
     const merged = new Map();
     for (const row of Array.isArray(rows) ? rows : []) {
@@ -119,6 +146,7 @@ const SOCIAL = /(^|\.)(facebook|instagram|twitter|x|t|linkedin|reddit|youtube|pi
 const EMAIL = /(^|\.)(mail|outlook|gmail|superhuman|hey)\./i;
 const AI = /(^|\.)(chatgpt|openai|perplexity|claude|anthropic|copilot|gemini)\./i;
 
+/** @param {string} host */
 function channelOf(host) {
     if (!host) return 'Direct';
     if (SEARCH.test(host)) return 'Search';
@@ -130,7 +158,12 @@ function channelOf(host) {
 
 // ── Umami response readers ──────────────────────────────────────────────
 
+/** @param {any} s */
 const statNow = (s) => (s && typeof s === 'object' ? num(s.value) : num(s));
+/**
+ * @param {any} stats
+ * @param {string} key
+ */
 function statPrev(stats, key) {
     const s = stats?.[key];
     if (s && typeof s === 'object' && s.prev !== undefined) return maybeNum(s.prev);
@@ -139,6 +172,7 @@ function statPrev(stats, key) {
     return maybeNum(cmp && typeof cmp === 'object' ? cmp.value : cmp);
 }
 
+/** @param {any} active */
 function readActive(active) {
     if (Array.isArray(active)) return num(active[0]?.x ?? active.length);
     if (active && typeof active === 'object') return num(active.visitors ?? active.x);
@@ -159,7 +193,10 @@ function createAnalyticsHandlers(deps) {
     const { analytics, umami, siteIdRe } = deps;
     const now = deps.now || Date.now;
 
-    /** Window from `range` or `startAt`/`endAt`, or an error result. */
+    /**
+     * Window from `range` or `startAt`/`endAt`, or an error result.
+     * @param {Record<string, any>} args
+     */
     function windowOf(args) {
         const hasAbs = args.startAt !== undefined || args.endAt !== undefined;
         if (hasAbs) {
@@ -176,6 +213,10 @@ function createAnalyticsHandlers(deps) {
         return { window: rangeToWindow(range, { now: now() }), range };
     }
 
+    /**
+     * @param {{ startAt: number, endAt: number, unit?: string }} w
+     * @param {string} range
+     */
     const rangeInfo = (w, range) => ({
         range,
         from: new Date(w.startAt).toISOString(),
@@ -185,7 +226,8 @@ function createAnalyticsHandlers(deps) {
 
     /**
      * Preflight + window shared by every data tool.
-     * @returns {Promise<{ stop: object } | { target: object, window: object, range: string }>}
+     * @param {Record<string, any>} args
+     * @returns {Promise<{ stop?: object, target?: { websiteId: string, siteId: string, [k: string]: unknown }, window?: { startAt: number, endAt: number, unit: string, [k: string]: unknown }, range?: string }>}
      */
     async function prepare(args) {
         if (args.siteId !== undefined && args.siteId !== null && args.siteId !== ''
@@ -202,7 +244,11 @@ function createAnalyticsHandlers(deps) {
         return { target: pre.target, window: win.window, range: win.range };
     }
 
-    /** Run a handler body; an upstream failure becomes a plain sentence, never Umami's text. */
+    /**
+     * Run a handler body; an upstream failure becomes a plain sentence, never Umami's text.
+     * @param {string} tool
+     * @param {() => Promise<any>} fn
+     */
     async function guarded(tool, fn) {
         try {
             return await fn();
@@ -212,6 +258,7 @@ function createAnalyticsHandlers(deps) {
         }
     }
 
+    /** @param {Record<string, any>} args */
     async function status(args) {
         if (args.siteId !== undefined && args.siteId !== null && args.siteId !== ''
             && (typeof args.siteId !== 'string' || !siteIdRe.test(args.siteId))) {
@@ -241,6 +288,7 @@ function createAnalyticsHandlers(deps) {
         });
     }
 
+    /** @param {Record<string, any>} args */
     async function overview(args) {
         const p = await prepare(args);
         if (p.stop) return p.stop;
@@ -255,7 +303,7 @@ function createAnalyticsHandlers(deps) {
             const prevTime = statPrev(stats, 'totaltime');
             const prevBounceRate = prevVisits > 0 && prevBounces !== null ? (prevBounces / prevVisits) * 100 : null;
             const prevAvgVisit = prevVisits > 0 && prevTime !== null ? prevTime / prevVisits : null;
-            const pair = (current, previous, digits = 0) => ({
+            const pair = (/** @type {number | null} */ current, /** @type {number | null} */ previous, digits = 0) => ({
                 value: current === null ? null : round(current, digits),
                 previous: previous === null ? null : round(previous, digits),
             });
@@ -274,6 +322,7 @@ function createAnalyticsHandlers(deps) {
         });
     }
 
+    /** @param {Record<string, any>} args */
     async function pageviews(args) {
         const p = await prepare(args);
         if (p.stop) return p.stop;
@@ -281,7 +330,7 @@ function createAnalyticsHandlers(deps) {
             const { startAt, endAt, unit } = p.window;
             const raw = await umami.getPageviews(p.target.websiteId, { startAt, endAt, unit, timezone: 'UTC' });
             const byTime = new Map();
-            const put = (rows, key) => {
+            const put = (/** @type {unknown} */ rows, /** @type {string} */ key) => {
                 for (const row of Array.isArray(rows) ? rows : []) {
                     const t = String(row?.x ?? '').slice(0, 25);
                     if (!t) continue;
@@ -295,6 +344,7 @@ function createAnalyticsHandlers(deps) {
         });
     }
 
+    /** @param {Record<string, any>} args */
     async function metrics(args) {
         const type = String(args.type ?? '');
         if (!Object.prototype.hasOwnProperty.call(METRIC_TYPES, type)) {
@@ -317,7 +367,7 @@ function createAnalyticsHandlers(deps) {
                     type: 'breakdown', websiteId, window: p.window, extra: { fields: ['path'] },
                 }));
                 const list = Array.isArray(report) ? report : (Array.isArray(report?.data) ? report.data : []);
-                rows = toNameCounts(list.map((r) => ({ x: r?.path, y: r?.visits })), cleanPath);
+                rows = toNameCounts(list.map((/** @type {Record<string, any>} */ r) => ({ x: r?.path, y: r?.visits })), cleanPath);
             } else if (type === 'channel') {
                 const [referrers, stats] = await Promise.all([
                     umami.getMetrics(websiteId, { type: 'referrer', startAt, endAt, limit: 500 }),
@@ -353,6 +403,7 @@ function createAnalyticsHandlers(deps) {
         });
     }
 
+    /** @param {Record<string, any>} args */
     async function realtime(args) {
         // Realtime has no window; skip the range validation but keep the rest.
         const p = await prepare({ siteId: args.siteId });
@@ -377,6 +428,7 @@ function createAnalyticsHandlers(deps) {
         });
     }
 
+    /** @param {Record<string, any>} args */
     async function vitals(args) {
         const p = await prepare(args);
         if (p.stop) return p.stop;
@@ -390,6 +442,7 @@ function createAnalyticsHandlers(deps) {
                 const message = 'No web-vitals samples in this period. Vitals arrive when a visitor leaves a page or after ten seconds on it, so a quiet period can have none.';
                 return { result: { ...base, available: false, message }, text: message };
             }
+            /** @type {Record<string, any>} */
             const metricsOut = {};
             for (const id of VITALS) {
                 const v = report.summary[id];
@@ -397,8 +450,8 @@ function createAnalyticsHandlers(deps) {
                 else if (typeof v === 'number') metricsOut[id] = { p50: null, p75: v, p95: null };
             }
             const pages = (Array.isArray(report.pages) ? report.pages : [])
-                .map((pg) => ({ path: cleanPath(pg?.name), lcpP75Ms: maybeNum(pg?.p75), samples: num(pg?.count) }))
-                .sort((a, b) => num(b.lcpP75Ms) - num(a.lcpP75Ms))
+                .map((/** @type {Record<string, any>} */ pg) => ({ path: cleanPath(pg?.name), lcpP75Ms: maybeNum(pg?.p75), samples: num(pg?.count) }))
+                .sort((/** @type {{ lcpP75Ms: number | null }} */ a, /** @type {{ lcpP75Ms: number | null }} */ b) => num(b.lcpP75Ms) - num(a.lcpP75Ms))
                 .slice(0, 10);
             return {
                 result: {

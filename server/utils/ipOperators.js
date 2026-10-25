@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * IP → operator (cloud / hosting company) — small static table.
  *
@@ -14,6 +14,9 @@
  */
 
 // Convert an IPv4 dotted string to a 32-bit number for range checks.
+/**
+ * @param {string} ip
+ */
 function ipv4ToInt(ip) {
     const parts = (ip || '').split('.');
     if (parts.length !== 4) return null;
@@ -26,6 +29,9 @@ function ipv4ToInt(ip) {
     return n;
 }
 
+/**
+ * @param {string} cidr
+ */
 function cidrToRange(cidr) {
     const [ip, bitsStr] = cidr.split('/');
     const base = ipv4ToInt(ip);
@@ -52,6 +58,7 @@ const OPERATORS = [
 // order so that overlapping ranges resolve to the more specific operator —
 // e.g. OpenAI's /24 inside Cloudflare's /13 stays "OpenAI". Linear scan because
 // the table is small (~70 entries) and overlapping ranges defeat binary search.
+/** @type {{ name: string; start: number; end: number; }[]} */
 const RANGES = [];
 for (const op of OPERATORS) {
     for (const cidr of op.cidrs || []) {
@@ -65,6 +72,7 @@ RANGES.sort((a, b) => (a.end - a.start) - (b.end - b.start));
 /**
  * Look up the operator for an IPv4. Returns the operator name string, or null
  * (also for IPv6, which this table does not cover).
+ * @param {string} ip
  */
 function operatorForIp(ip) {
     const n = ipv4ToInt(ip);

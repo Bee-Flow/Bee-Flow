@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Decrypt Anomaly Detection
  * 
@@ -9,6 +9,7 @@
  * Lightweight in-memory — resets on server restart (acceptable for alerting).
  */
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const ALERT_THRESHOLD = 50;     // decrypts per minute before alerting
 const WINDOW_MS = 60000;        // 1 minute sliding window
@@ -81,7 +82,7 @@ function trackDecrypt(userId, conversationId = null) {
                 source: 'bulk_decrypt',
                 summary: `Bulk decrypt anomaly: ${entry.count} decrypt operations within a minute`,
             });
-        } catch (err) { log.debug('best-effort', err); }
+        } catch (err) { bestEffort('decryptAudit:breach-signal', err); }
     }
 }
 

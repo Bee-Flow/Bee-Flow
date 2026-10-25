@@ -117,7 +117,10 @@ function makeInstallsStore({ db, ready, handle, inTransaction }) {
         });
     }
 
-    /** Every ledger row of a Solution, retired ones included, in ref order per kind. */
+    /**
+     * Every ledger row of a Solution, retired ones included, in ref order per kind.
+     * @param {string} solutionId
+     */
     async function refsFor(solutionId, { client = null } = {}) {
         await ready();
         if (!isNonEmptyString(solutionId)) return [];

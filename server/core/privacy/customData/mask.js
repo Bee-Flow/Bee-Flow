@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Keyed, shape-preserving look-alikes of an admin's real examples.
@@ -46,6 +46,8 @@ const KEEP_FIXED_MAX_ITEMS = 2;
 
 /**
  * The per-org mask key. Tests inject their own key instead.
+ * @param {string} orgId
+ * @param {{ master?: string }} [opts]
  * @returns {Buffer}
  */
 function maskKeyFor(orgId, { master = process.env.MASTER_ENCRYPTION_KEY } = {}) {
@@ -53,7 +55,11 @@ function maskKeyFor(orgId, { master = process.env.MASTER_ENCRYPTION_KEY } = {}) 
     return Buffer.from(crypto.hkdfSync('sha256', String(master), String(orgId || ''), MASK_INFO, 32));
 }
 
-/** A deterministic byte stream: block 0 is the HMAC itself, later blocks append their index. */
+/**
+ * A deterministic byte stream: block 0 is the HMAC itself, later blocks append their index.
+ * @param {crypto.BinaryLike | crypto.KeyObject} key
+ * @param {string} message
+ */
 function byteStream(key, message) {
     let block = crypto.createHmac('sha256', key).update(message).digest();
     let blockIndex = 0;
@@ -70,7 +76,12 @@ function byteStream(key, message) {
     };
 }
 
-/** Uniform pick from `alphabet` minus `exclude`, by rejection sampling on the stream. */
+/**
+ * Uniform pick from `alphabet` minus `exclude`, by rejection sampling on the stream.
+ * @param {() => number} nextByte
+ * @param {string} alphabet
+ * @param {string} exclude
+ */
 function pick(nextByte, alphabet, exclude) {
     const choices = exclude && alphabet.includes(exclude) ? alphabet.replace(exclude, '') : alphabet;
     const n = choices.length;
@@ -81,14 +92,22 @@ function pick(nextByte, alphabet, exclude) {
     }
 }
 
-/** ASCII fold of one letter: strip diacritics, keep a single A-Z/a-z or nothing. */
+/**
+ * ASCII fold of one letter: strip diacritics, keep a single A-Z/a-z or nothing.
+ * @param {string} ch
+ */
 function asciiFold(ch) {
     const base = ch.normalize('NFD').replace(/\p{M}+/gu, '');
     return /^[A-Za-z]$/.test(base) ? base : '';
 }
 
-/** Code-unit ranges of every occurrence of each keepFixed part in `value`. */
+/**
+ * Code-unit ranges of every occurrence of each keepFixed part in `value`.
+ * @param {string} value
+ * @param {unknown} keepFixed
+ */
 function fixedRanges(value, keepFixed) {
+    /** @type {number[][]} */
     const ranges = [];
     for (const part of Array.isArray(keepFixed) ? keepFixed : []) {
         if (typeof part !== 'string' || !part) continue;
@@ -103,7 +122,11 @@ function fixedRanges(value, keepFixed) {
     return ranges;
 }
 
-/** Is there anything in `value` (outside keepFixed) that masking changes? */
+/**
+ * Is there anything in `value` (outside keepFixed) that masking changes?
+ * @param {string} value
+ * @param {unknown} keepFixed
+ */
 function hasMaskable(value, keepFixed) {
     const ranges = fixedRanges(value, keepFixed);
     let unit = 0;
@@ -118,6 +141,8 @@ function hasMaskable(value, keepFixed) {
 /**
  * One look-alike for one value. Pure given (key, orgId, typeId, value, counter).
  * Returns the value unchanged when nothing in it is maskable.
+ * @param {string} value
+ * @param {{ key: Buffer, orgId?: string | null, typeId?: string | null, keepFixed?: string[], counter?: number }} opts
  */
 function maskExample(value, { key, orgId, typeId, keepFixed = [], counter = 0 }) {
     const str = String(value ?? '');
@@ -146,10 +171,15 @@ function maskExample(value, { key, orgId, typeId, keepFixed = [], counter = 0 })
     return out;
 }
 
+/**
+ * @param {string} s
+ */
 const cpLength = (s) => Array.from(s).length;
 
 /**
  * Look-alikes for a whole example set, collision-free (see the header).
+ * @param {unknown} examples
+ * @param {{ key: Buffer, orgId?: string | null, typeId?: string | null, keepFixed?: string[] }} opts
  * @returns {Array<{ example: string, lookalike: string|null }>} in input order;
  *   lookalike null when the example cannot be disguised.
  */
@@ -157,6 +187,9 @@ function maskExamples(examples, { key, orgId, typeId, keepFixed = [] }) {
     const list = (Array.isArray(examples) ? examples : []).map((e) => String(e));
     const lowerExamples = list.map((e) => e.toLowerCase());
     const taken = new Set();
+    /**
+     * @param {string} candidate
+     */
     const clashes = (candidate) => {
         const low = candidate.toLowerCase();
         if (taken.has(low)) return true;
@@ -183,11 +216,17 @@ function maskExamples(examples, { key, orgId, typeId, keepFixed = [] }) {
 const LETTER_RX = /\p{L}/gu;
 const FIXED_CHAR_RX = /^[\p{L}\p{P}\p{S}\p{Zs}]+$/u;
 
+/**
+ * @param {string} s
+ */
 function letterCount(s) {
     return (s.match(LETTER_RX) || []).length;
 }
 
-/** The shape rule every keepFixed part obeys, proposed or sent. */
+/**
+ * The shape rule every keepFixed part obeys, proposed or sent.
+ * @param {string} part
+ */
 function keepFixedShapeOk(part) {
     return typeof part === 'string'
         && part.length >= 1 && part.length <= KEEP_FIXED_MAX_CHARS
@@ -195,6 +234,9 @@ function keepFixedShapeOk(part) {
         && letterCount(part) >= 1 && letterCount(part) <= KEEP_FIXED_MAX_LETTERS;
 }
 
+/**
+ * @param {string[]} values
+ */
 function commonPrefix(values) {
     const cps = values.map((v) => Array.from(v));
     const out = [];
@@ -206,7 +248,10 @@ function commonPrefix(values) {
     return out;
 }
 
-/** The leading run of letters/punctuation/symbols of a code-point list. */
+/**
+ * The leading run of letters/punctuation/symbols of a code-point list.
+ * @param {string[]} cps
+ */
 function formatRun(cps) {
     const run = [];
     for (const ch of cps) {
@@ -220,11 +265,14 @@ function formatRun(cps) {
  * The server's keepFixed proposal: only for pattern types with at least two
  * examples, the shared letter/punctuation prefix and/or suffix of ALL
  * examples, when it has at most 4 letters and leaves something to mask.
+ * @param {unknown} examples
+ * @param {string} method
  */
 function proposeKeepFixed(examples, method) {
     if (method !== 'pattern') return [];
     const list = (Array.isArray(examples) ? examples : []).filter((e) => typeof e === 'string' && e);
     if (list.length < 2) return [];
+    /** @type {string[]} */
     const out = [];
     const prefix = formatRun(commonPrefix(list));
     const reversed = list.map((e) => Array.from(e).reverse().join(''));
@@ -242,10 +290,14 @@ function proposeKeepFixed(examples, method) {
  * shape rule, a prefix or suffix of at least two examples, never a whole
  * example, at most two. Anything else is ignored rather than refused: the
  * preview shows exactly what is sent, so an ignored part is visible there.
+ * @param {unknown} keepFixed
+ * @param {unknown} examples
+ * @param {string} method
  */
 function acceptedKeepFixed(keepFixed, examples, method) {
     if (method !== 'pattern' || !Array.isArray(keepFixed)) return [];
     const list = (Array.isArray(examples) ? examples : []).filter((e) => typeof e === 'string' && e);
+    /** @type {string[]} */
     const out = [];
     for (const part of keepFixed) {
         if (out.length >= KEEP_FIXED_MAX_ITEMS) break;

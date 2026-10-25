@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Security keys (WebAuthn / FIDO2 — YubiKey and the like) as a second factor.
  * Wires the real dependencies into the two routers:
@@ -27,7 +27,10 @@ const { resolveRelyingParty } = require('./relyingParty');
 const { createSecurityKeyManagementRouter } = require('./managementRoutes');
 const { createSecurityKeyLoginRouter } = require('./loginRoutes');
 
-/** The relying party this request's ceremony is for (see relyingParty.js). */
+/**
+ * The relying party this request's ceremony is for (see relyingParty.js).
+ * @param {import('express').Request} req
+ */
 const relyingPartyOf = (req) => resolveRelyingParty(req.headers.origin);
 
 const managementRouter = createSecurityKeyManagementRouter({

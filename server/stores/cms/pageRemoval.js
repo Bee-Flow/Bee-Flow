@@ -19,6 +19,9 @@ const { mutateProject } = require('./projects');
 //      drop the whole item when its link points at the deleted page.
 //   2. Direct link objects on a parent property (e.g. logo.link): replace
 //      with an inert anchor link so the parent's shape stays valid.
+/**
+ * @param {string} deletedPageId
+ */
 function stripPageRefsToDeleted(node, deletedPageId) {
     if (Array.isArray(node)) {
         return node
@@ -29,6 +32,7 @@ function stripPageRefsToDeleted(node, deletedPageId) {
             .map(item => stripPageRefsToDeleted(item, deletedPageId));
     }
     if (!isPlainObject(node)) return node;
+    /** @type {Record<string, { kind: string; anchor: string; }>} */
     const out = {};
     for (const [k, v] of Object.entries(node)) {
         if (isPlainObject(v) && v.kind === 'page' && v.pageId === deletedPageId) {

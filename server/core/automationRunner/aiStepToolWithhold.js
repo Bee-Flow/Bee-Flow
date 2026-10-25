@@ -87,7 +87,7 @@ function _appsOutsideAgentContext() {
             if (Array.isArray(contexts) && !contexts.includes('agent')) out.add(entry.app);
         }
     } catch (e) {
-        log.warn('[AutomationRunner] tool registry unreadable while checking agent context:', e && e.message);
+        log.warn('[AutomationRunner] tool registry unreadable while checking agent context:', e && /** @type {Error} */ (e).message);
     }
     _nonAgentApps = out;
     return out;
@@ -153,6 +153,7 @@ const WITHHOLD_REASONS = Object.freeze(['permission', 'confirm', 'unavailable'])
  * Step 0 — apps that do not exist in an agent context. See
  * `_appsOutsideAgentContext`: no agent owner was ever asked about these apps,
  * so their silence is not a yes.
+ * @param {(arg0: string | null, arg1: string) => void} drop
  */
 function _dropOutsideAgentContext(list, drop) {
     const candidates = [];
@@ -167,6 +168,7 @@ function _dropOutsideAgentContext(list, drop) {
  * Step 1 — attribution. A registry that cannot be read cannot say which app
  * owns a name, and the answer to an unanswerable question is not "all of
  * them". Only tools that carry their own identity stay.
+ * @param {(arg0: string | null, arg1: string) => void} drop
  */
 function _dropUnattributable(candidates, drop) {
     let degraded = false;
@@ -192,6 +194,7 @@ function _dropUnattributable(candidates, drop) {
  * mean an unattended step gets the full toolbelt on the strength of a require
  * that threw. The same function, on the DEFINITION (so MCP and custom tools
  * are attributed on their own id), and it can only narrow.
+ * @param {(arg0: string | null, arg1: string) => void} drop
  */
 function _dropUngranted(candidates, toolsConfig, drop) {
     if (!toolsConfig) return candidates;
@@ -245,9 +248,15 @@ function withholdConfirmTools(tools, agentConfig) {
     for (const t of Array.isArray(tools) ? tools : []) {
         if (_toolName(t)) list.push(t);
     }
+    /** @type {string[]} */
     const withheld = [];
+    /** @type {Record<string, string>} */
     const reasons = {};
     // The first reason wins: it names the first obstacle, not a later one.
+    /**
+     * @param {string} reason
+     * @param {string | null} name
+     */
     const drop = (name, reason) => {
         if (!name) return;
         if (!(name in reasons)) reasons[name] = WITHHOLD_REASONS.includes(reason) ? reason : 'unavailable';
@@ -267,7 +276,9 @@ function withholdConfirmTools(tools, agentConfig) {
     // the ungated `ask` (a `sends` tool on an agent nobody curated) is still
     // in it, with the value 'ask'. One keep-rule therefore covers both: only
     // an explicit 'direct' stays.
+    /** @type {Map<string, string> | null} */
     let confirmByTool = null;
+    /** @type {string | null} */
     let policyError = null;
     try {
         const automationConfirms = toolPolicy.automationConfirmsFor(candidates, agentConfig);
@@ -279,7 +290,7 @@ function withholdConfirmTools(tools, agentConfig) {
         });
         confirmByTool = policy && policy.confirmByTool;
     } catch (e) {
-        policyError = e && e.message ? e.message : 'tool policy unavailable';
+        policyError = e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : 'tool policy unavailable';
     }
     if (!(confirmByTool instanceof Map)) {
         // No readable verdict ⇒ no tools. A policy that cannot be built is not
@@ -308,3 +319,10 @@ module.exports = {
     _startsAutomation,
     _toolName,
 };
+
+/**
+ * A tool definition as this deduction reads it.
+ * @typedef {import('../agentRuntime/toolPolicy/appIndex').ToolDef & { __automation?: { id?: string }, __step?: { id?: string } }} WithholdTool
+ */
+
+/** @typedef {import('../agentRuntime/toolPolicy/configShape').ToolsConfig} ToolsConfig */

@@ -21,6 +21,7 @@ const { z, onUnknownKeys, typeError } = require('../../utils/zod');
 const { badRequest } = require('../../shared/httpErrors');
 const { parseCidrList } = require('./ipMatch');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const MAX_LIST = 500;
 
@@ -115,7 +116,7 @@ async function getOrgMcpPolicy(orgId) {
 async function saveOrgMcpPolicy(orgId, policy, actorId) {
     if (!orgId) throw badRequest('no_organization', 'This account has no organisation to set a policy for.');
     const next = normalizePolicy(policy);
-    const before = await getOrgMcpPolicy(orgId).catch(() => null);
+    const before = await getOrgMcpPolicy(orgId).catch((e) => fallback('mcpOrgPolicy:previous', e, null));
     await deps.configStore.setSecret(storageKey(orgId), JSON.stringify(next), {
         orgId, userId: actorId || null, integration: 'mcp_access',
     });

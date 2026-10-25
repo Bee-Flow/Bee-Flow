@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Memory embedding backfill — brings `user_memories` onto the pgvector columns
  * and keeps them on the dimension the ACTIVE embedding provider produces.
@@ -56,6 +56,7 @@ const { validateDim, vectorColumn, tsvectorExpr } = require('../stores/memoryVec
 const { ENVELOPE_LIKE } = require('../stores/memoryCrypto');
 const { recordJobRun } = require('../telemetry/metrics');
 const log = require('../telemetry/log');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 // Namespaced so it cannot collide with another job's advisory lock.
 const LOCK_KEY = 887401;
@@ -73,6 +74,7 @@ const MAX_EMBED_ATTEMPTS = 5;
 // memoryStore.ensureVectorColumn.
 const ANN_INDEX_THRESHOLD = 50_000;
 
+/** @type {NodeJS.Timeout | null} */
 let _timer = null;
 let _inFlight = false;
 
@@ -90,7 +92,10 @@ async function probeActiveDim() {
     return probe.dim;
 }
 
-/** Phase 1 — fill missing tsvectors. No provider involved. */
+/**
+ * Phase 1 — fill missing tsvectors. No provider involved.
+ * @param {number} deadline
+ */
 async function fillLexical(deadline) {
     let filled = 0;
     while (Date.now() < deadline) {
@@ -117,6 +122,8 @@ async function fillLexical(deadline) {
  * `embedding::text::vector` works because a JSONB number array renders in
  * exactly the literal form pgvector parses. Rows adopted here cost nothing and
  * are indistinguishable afterwards from freshly embedded ones.
+ * @param {number} dim
+ * @param {number} deadline
  */
 async function adoptExisting(dim, deadline) {
     const col = vectorColumn(dim);
@@ -148,6 +155,8 @@ async function adoptExisting(dim, deadline) {
  *
  * These are the genuinely stranded rows: written under a provider that is no
  * longer configured. Everything else was handled for free above.
+ * @param {number} dim
+ * @param {number} deadline
  */
 async function reembedStale(dim, deadline) {
     const col = vectorColumn(dim);
@@ -204,6 +213,7 @@ async function reembedStale(dim, deadline) {
  *
  * On its own client: `db.js` serialises DDL through a schema queue, and
  * `CREATE INDEX CONCURRENTLY` cannot run inside a transaction block.
+ * @param {number} dim
  */
 async function maybeCreateAnnIndex(dim) {
     const col = vectorColumn(dim);
@@ -251,7 +261,7 @@ async function getBackfillStatus() {
                    FROM user_memories WHERE status = 'active'`,
             );
             embedded = r?.n || 0;
-        } catch (err) { log.debug('column not created yet', err); }
+        } catch (err) { fallback('jobs/memoryEmbeddingBackfill:getBackfillStatus', err); /* column not created yet */ }
     }
     return {
         activeDim: dim,
@@ -271,7 +281,7 @@ async function runOnce({ dryRun = false } = {}) {
     const t0 = Date.now();
     const deadline = t0 + MAX_RUN_MS;
     let ok = true;
-    const summary = { scrubbed: 0, lexical: 0, adopted: 0, embedded: 0, failed: 0, dim: null };
+    const summary = { scrubbed: 0, lexical: 0, adopted: 0, embedded: 0, failed: 0, dim: /** @type {number | null} */ (null) };
 
     try {
         client = await pool.connect();
@@ -312,7 +322,7 @@ async function runOnce({ dryRun = false } = {}) {
     } finally {
         if (client) {
             try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); }
-            catch (err) { log.debug('best-effort', err); }
+            catch (err) { bestEffort('jobs/memoryEmbeddingBackfill:runOnce', err); /* best-effort */ }
             client.release();
         }
         if (acquired) recordJobRun({ job: 'memory_embedding_backfill', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });

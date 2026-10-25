@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Direct Chat end-of-turn: building the rows and meta that persist a turn.
  * The user row (privacy metadata, token map), the assistant tokenisation
@@ -9,18 +10,26 @@
 
 const { persistedMemoryUsed } = require('../../../core/memory/memoryUsed');
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 const TOKEN_CATEGORY = /^\[([a-z0-9_]+)_\d+\]$/;
 
-/** A restore function over the conversation token map, or identity (render-layer best-effort). */
+/** @typedef {ReturnType<typeof import('./turnState').createTurnState>} Turn */
+/** @typedef {import('../../../core/conversation/historyMerge').HistoryMessage} HistoryMessage */
+
+/**
+ * A restore function over the conversation token map, or identity (render-layer best-effort).
+ * @param {string} convId
+ * @returns {(s: string) => string}
+ */
 function conversationRestorer(convId) {
     try {
         const { restoreTokens } = require('../../../core/privacy/piiDetection');
         const convMap = require('../../../core/dlp/dlpRunner').getConversationTokenMap(convId);
         if (convMap && Object.keys(convMap).length > 0) {
-            return (s) => (typeof s === 'string' ? restoreTokens(s, convMap) : s);
+            return (/** @type {string} */ s) => (typeof s === 'string' ? restoreTokens(s, convMap) : s);
         }
-    } catch (err) { log.debug('render-layer best-effort', err); }
+    } catch (err) { bestEffort('routes/ai/directChat/finalizeRows:conversationRestorer', err); /* render-layer best-effort */ }
     return (s) => s;
 }
 
@@ -31,14 +40,17 @@ function conversationRestorer(convId) {
  * because DB content is PII-tokenized ([email_1]) while the client sends
  * restored text: the old exact match silently degraded rows to bare
  * {role, content}, wiping attachment sidecars and timestamps.
+ * @param {HistoryMessage[] | undefined} history
+ * @param {HistoryMessage[]} dbMessages
+ * @returns {HistoryMessage[]}
  */
 function persistenceBase(history, dbMessages) {
     if (!(history && Array.isArray(history) && history.length < dbMessages.length)) return dbMessages;
     const { alignClientToDb } = require('../../../core/conversation/historyMerge');
     const savedMessages = alignClientToDb(history, dbMessages).map(({ client: h, dbMatch }) =>
         dbMatch || {
-            role: h.role,
-            content: h.content,
+            role: /** @type {{ role?: string }} */ (h).role,
+            content: /** @type {{ content?: unknown }} */ (h).content,
             timestamp: new Date().toISOString(),
             ...(Array.isArray(h.attachments) && h.attachments.length > 0 ? { attachments: h.attachments } : {}),
         });
@@ -46,7 +58,12 @@ function persistenceBase(history, dbMessages) {
     return savedMessages;
 }
 
+/**
+ * @param {Pick<Turn, 'moderationViolation' | 'tokenizedMessage' | 'persistedAttachments' | '_userPrivacyMeta' | 'piiTokenMap'>} p
+ * @returns {Record<string, unknown>}
+ */
 function buildUserRow({ moderationViolation, tokenizedMessage, persistedAttachments, _userPrivacyMeta, piiTokenMap }) {
+    /** @type {Record<string, unknown>} */
     const userSave = { role: 'user', content: moderationViolation ? '[Message removed - policy violation]' : tokenizedMessage, timestamp: new Date().toISOString() };
     if (persistedAttachments.length > 0) userSave.attachments = persistedAttachments;
     if (_userPrivacyMeta) Object.assign(userSave, _userPrivacyMeta);
@@ -60,11 +77,16 @@ function buildUserRow({ moderationViolation, tokenizedMessage, persistedAttachme
     return userSave;
 }
 
-/** The badge for tokens the un-tokeniser swapped back this turn, or the vault's protected state. */
+/**
+ * The badge for tokens the un-tokeniser swapped back this turn, or the vault's protected state.
+ * @param {Pick<Turn, '_streamUntok' | 'convId' | 'modelId' | 'send'>} p
+ */
 function restoredTokensInfo({ _streamUntok, convId, modelId, send }) {
     const replaced = _streamUntok.getReplacedTokens();
     if (replaced && replaced.size > 0) {
+        /** @type {Record<string, string>} */
         const tokenMap = {};
+        /** @type {Set<string>} */
         const catSet = new Set();
         let totalCount = 0;
         for (const [token, info] of replaced) {
@@ -93,6 +115,7 @@ function restoredTokensInfo({ _streamUntok, convId, modelId, send }) {
     const convMap = dlpRunner.getConversationTokenMap(convId) || {};
     const convEntries = Object.entries(convMap);
     if (convEntries.length === 0) return null;
+    /** @type {Set<string>} */
     const catSet = new Set();
     for (const [tok] of convEntries) {
         const m = TOKEN_CATEGORY.exec(tok);
@@ -116,12 +139,15 @@ function restoredTokensInfo({ _streamUntok, convId, modelId, send }) {
  * in so the chat UI renders a per-file badge ("3 emails, 1 IBAN redacted from
  * invoice.pdf p.2"); with no redaction this turn, restored tokens (or the
  * vault state) are synthesised into the same shape so the badge still shows.
+ * @param {Pick<Turn, '_assistantTokenisationInfo' | '_turnAttachmentSummaries' | '_streamUntok' | 'convId' | 'modelId' | 'send'>} p
  */
 function resolveTokenisationInfo({ _assistantTokenisationInfo, _turnAttachmentSummaries, _streamUntok, convId, modelId, send }) {
+    /** @type {Partial<import('../../../core/agentRuntime/inputPiiGate').PiiTokenisationInfo> & { attachments?: typeof _turnAttachmentSummaries }} */
     let info = _assistantTokenisationInfo;
     if (Array.isArray(_turnAttachmentSummaries) && _turnAttachmentSummaries.length > 0) {
         if (!info) {
             const aggCount = _turnAttachmentSummaries.reduce((a, s) => a + (s.count || 0), 0);
+            /** @type {Set<string>} */
             const aggCats = new Set();
             for (const s of _turnAttachmentSummaries) {
                 for (const c of Object.keys(s.byCategory || {})) aggCats.add(c);
@@ -143,7 +169,10 @@ function resolveTokenisationInfo({ _assistantTokenisationInfo, _turnAttachmentSu
     return info;
 }
 
-/** Thinking for the saved row, PII tokens restored (display-only; BFSF-253). */
+/**
+ * Thinking for the saved row, PII tokens restored (display-only; BFSF-253).
+ * @param {Pick<Turn, 'thinkingParts' | 'thinkingContent' | 'convId'>} p
+ */
 function persistedThinking({ thinkingParts, thinkingContent, convId }) {
     // Prefer the structured parts (signatures + timing) over the flat string,
     // which stays as a fallback for providers without start/stop events.
@@ -171,6 +200,8 @@ function persistedThinking({ thinkingParts, thinkingContent, convId }) {
  * string args are captured from raw tool output (may hold `[person_N]`) and
  * shown in the "How I got this answer" panel; the AI never reads toolHistory
  * back, so this is purely a user-render concern. Mutates in place.
+ * @param {Turn['collectedToolHistory']} collectedToolHistory
+ * @param {string} convId
  */
 function restoreToolHistory(collectedToolHistory, convId) {
     try {
@@ -187,10 +218,14 @@ function restoreToolHistory(collectedToolHistory, convId) {
                 }
             }
         }
-    } catch (err) { log.debug('render-layer best-effort', err); }
+    } catch (err) { bestEffort('routes/ai/directChat/finalizeRows:restoreToolHistory', err); /* render-layer best-effort */ }
 }
 
-/** Media, drafts and tool history produced this turn, on the assistant row. */
+/**
+ * Media, drafts and tool history produced this turn, on the assistant row.
+ * @param {Record<string, unknown>} assistantSave
+ * @param {Pick<Turn, 'generatedImages' | 'generatedAudio' | 'generatedFiles' | 'collectedEmailDrafts' | 'collectedCalendarDrafts' | 'collectedMapEmbeds' | 'collectedToolHistory' | 'convId'>} t
+ */
 function attachTurnOutputs(assistantSave, t) {
     const { generatedImages, generatedAudio, generatedFiles, collectedEmailDrafts, collectedCalendarDrafts, collectedMapEmbeds, collectedToolHistory, convId } = t;
     if (generatedImages.length > 0) {
@@ -212,7 +247,11 @@ function attachTurnOutputs(assistantSave, t) {
     }
 }
 
-/** Session-skill bootstrap header and the per-turn pipeline snapshot. */
+/**
+ * Session-skill bootstrap header and the per-turn pipeline snapshot.
+ * @param {Record<string, unknown>} assistantSave
+ * @param {Pick<Turn, 'bootstrappedSessionSkills' | 'sessionSkills' | 'activatedSessionSkillIds' | 'completedSessionSkillIds' | 'sessionSkillsCompletions'>} p
+ */
 function attachSessionSkills(assistantSave, { bootstrappedSessionSkills, sessionSkills, activatedSessionSkillIds, completedSessionSkillIds, sessionSkillsCompletions }) {
     // Record the bootstrap so the UI can render a "Created N chat-local
     // skills" header above this assistant reply when reloaded.
@@ -239,8 +278,13 @@ function attachSessionSkills(assistantSave, { bootstrappedSessionSkills, session
     }
 }
 
+/**
+ * @param {Turn & { tokenisationInfo: ReturnType<typeof resolveTokenisationInfo> }} t
+ * @returns {Record<string, unknown>}
+ */
 function buildAssistantRow(t) {
     const { fullContent, modelId, resolvedTier, modelTier, tokenisationInfo, memoryUsed } = t;
+    /** @type {Record<string, unknown>} */
     const assistantSave = { role: 'assistant', content: fullContent, timestamp: new Date().toISOString() };
     // Persist the concrete model + tier so the "How I got this answer" panel
     // renders the right pill after a reload. `modelTier` is what the user
@@ -262,8 +306,13 @@ function buildAssistantRow(t) {
     return assistantSave;
 }
 
-/** Conversation meta: response chaining, summary watermark, skills, tool groups. */
+/**
+ * Conversation meta: response chaining, summary watermark, skills, tool groups.
+ * @param {Turn} t
+ * @returns {Record<string, unknown>}
+ */
 function buildUpdateMeta(t) {
+    /** @type {Record<string, unknown>} */
     const updateMeta = {};
     if (t.lastResponseId) {
         updateMeta.lastResponseId = t.lastResponseId;

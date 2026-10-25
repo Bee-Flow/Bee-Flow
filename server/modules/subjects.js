@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Grant-subject resolution — the ONE place that knows which subject ids a
  * module grant may be bound to on this install.
@@ -13,11 +13,15 @@
 
 'use strict';
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 // Lazy requires (cycle-safety + test require.cache overrides).
-let _hubClient, _licenseStore, _configStore;
+let /** @type {typeof import('./hubClient') | undefined} */ _hubClient, /** @type {typeof import('../license/store') | undefined} */ _licenseStore, /** @type {typeof import('../stores/configStore') | undefined} */ _configStore;
+/** @returns {typeof import('./hubClient')} */
 function hubClient() { return _hubClient || (_hubClient = require('./hubClient')); }
+/** @returns {typeof import('../license/store')} */
 function licenseStore() { return _licenseStore || (_licenseStore = require('../license/store')); }
+/** @returns {typeof import('../stores/configStore')} */
 function configStore() { return _configStore || (_configStore = require('../stores/configStore')); }
 
 const LICENSE_ID_HISTORY_KEY = 'beeflow_license_id_history';
@@ -30,23 +34,24 @@ const HISTORY_MAX = 5;
  */
 async function subjectIds() {
     const ids = [];
-    try { const iid = await hubClient().getInstallId(); if (iid) ids.push(iid); } catch (err) { log.debug('not connected', err); }
+    try { const iid = await hubClient().getInstallId(); if (iid) ids.push(iid); } catch (err) { bestEffort('modules/subjects:installId', err); }
     try {
         const active = await licenseStore().getActiveLicenseForServer();
         if (active && active.id && !ids.includes(active.id)) ids.push(active.id);
-    } catch (err) { log.debug('unlicensed', err); }
+    } catch (err) { bestEffort('modules/subjects:activeLicense', err); }
     try {
         const history = await configStore().getConfig(LICENSE_ID_HISTORY_KEY);
         for (const id of (Array.isArray(history) ? history : [])) {
             if (id && !ids.includes(id)) ids.push(id);
         }
-    } catch (err) { log.debug('no history', err); }
+    } catch (err) { bestEffort('modules/subjects:licenseHistory', err); }
     return ids;
 }
 
 /**
  * Record a superseded server license id (called by license activation when a
  * different licence replaces the active one). Deduped, newest-first, capped.
+ * @param {string} licenseId
  */
 async function recordSupersededLicenseId(licenseId) {
     if (!licenseId) return;

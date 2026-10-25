@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * GDPR Art. 15 — Right of access by the data subject.
  *
@@ -20,6 +20,7 @@ module.exports = {
     descriptionKey: 'compliance.checks.gdpr_art15.desc',
     remediationKey: 'compliance.checks.gdpr_art15.fix',
     remediationLink: 'admin/compliance/dsr',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         let stats;
         try {

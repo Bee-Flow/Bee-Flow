@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * App Studio Builder — the prompt for one turn.
  *
@@ -25,12 +25,28 @@ const { composeAppTurnMessages } = require('./turnMessages');
 const { renderDraftStateNote, renderApprovedPlanNote, renderPlanPolicyNote, renderEditorContextNote } = require('./turnNotes');
 const { renderBlindImageNote, renderUserImageFraming, renderVisionUnsupportedNotice } = require('./inboundImages');
 const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
 /**
  * Everything the build loop reads about "what the model is being asked":
  * { profile, sys, tools, toolNameSet, history, approvedPlanForTurn, composed,
  * messages }. Mutates the draftWrap with the keyed owner catalogs the tools
  * check against at write time.
+ * @param {{
+ *   send: import('../builderShared').BuilderSend,
+ *   userId: string,
+ *   modelId: string,
+ *   resolvedTier: string,
+ *   draftWrap: import('../../../appStudio/builderTools').BuilderDraft & { _documentDiscoveryRequired?: boolean },
+ *   priorSnapshot?: { messages?: Array<{ role?: string, content?: unknown }>, pendingPlan?: { plan?: unknown }, approvedPlan?: unknown }|null,
+ *   isApproval?: boolean,
+ *   planApproval?: { planId?: string, action: 'approve', plan?: unknown },
+ *   planMode?: string,
+ *   editorContext?: import('./turnNotes').EditorContext|null,
+ *   inboundImages: Array<{ dataUrl: string, mimeType: string, bytes: number }>,
+ *   modelSupportsVision?: boolean,
+ *   effectiveMessage: string,
+ * }} opts
  */
 async function assembleTurnPrompt({
     send, userId, modelId, resolvedTier, draftWrap, priorSnapshot, isApproval, planApproval, planMode,
@@ -53,6 +69,7 @@ async function assembleTurnPrompt({
     // the folded user message (renderOwnerContextNote; out of the system
     // prompt since 2026-09-17 so the prefix is one text for every user).
     // Best-effort.
+    /** @type {import('../../../appStudio/builderPrompt').AutomationRow[]} */
     let automationRows = [];
     try {
         const automationStore = require('../../../stores/automationStore');
@@ -60,6 +77,7 @@ async function assembleTurnPrompt({
         automationRows = (rows || []).slice(0, 100).map((a) => {
             const trigger = a?.definition?.trigger || {};
             const kind = trigger.kind || a.triggerType || 'manual';
+            /** @type {import('../../../appStudio/builderPrompt').AutomationRow} */
             const row = {
                 id: a.id,
                 title: a.title,
@@ -77,11 +95,12 @@ async function assembleTurnPrompt({
         // a run_automation naming an automation the owner does not have is
         // refused when it is written, not at finalize.
         draftWrap._ownedAutomations = new Map((rows || []).map((a) => [a.id, { isActive: !!a.isActive }]));
-    } catch (err) { log.debug('prompt renders the empty-state line', err); }
+    } catch (err) { fallback('routes/ai/appStudioBuilder/promptAssembly:assembleTurnPrompt', err); /* prompt renders the empty-state line */ }
 
     // Owner's designed documents — rendered into the same note, and for the
     // same reason: the core tool menu has no list tools, so a document a
     // small model cannot discover is one it invents an id for.
+    /** @type {Awaited<ReturnType<typeof import('../../../automation/builderDocumentCatalog').buildDocumentCatalogForUser>>} */
     let documentRows = [];
     draftWrap._documentDiscoveryRequired = true;
     try {
@@ -90,7 +109,7 @@ async function assembleTurnPrompt({
         // The keyed list for the tool-time check: a fill_document naming a
         // document the owner does not have is refused when it is written.
         draftWrap._documents = documentRows;
-    } catch (err) { log.debug('prompt renders the empty-state line; the gate stays permissive', err); }
+    } catch (err) { fallback('routes/ai/appStudioBuilder/promptAssembly:assembleTurnPrompt#2', err); /* prompt renders the empty-state line; the gate stays permissive */ }
 
     const sys = buildSystemPrompt({
         toolset: profile.toolset === 'core' ? 'core' : 'full',
@@ -102,7 +121,7 @@ async function assembleTurnPrompt({
     // reduced core subset; every capable model (Claude-4.5-class and up)
     // gets the FULL menu, app_screenshot included.
     const tools = selectToolMenu(profile, TOOL_SCHEMAS);
-    const toolNameSet = new Set(tools.map((t) => (t && t.function && t.function.name) || t.name).filter(Boolean));
+    const toolNameSet = new Set(tools.map((/** @type {{ function?: { name?: string }, name?: string }} */ t) => (t && t.function && t.function.name) || t.name).filter(Boolean));
 
     // Prior conversation from the persisted snapshot (server-owned — the
     // client does not resend history). Few-shot policy and the history
@@ -120,7 +139,7 @@ async function assembleTurnPrompt({
     //    turn, so without re-rendering the model forgets the plan). ──
     let approvedPlanForTurn = null;
     if (isApproval) {
-        const bounded = boundPlanArtifact(planApproval.plan || {});
+        const bounded = boundPlanArtifact(/** @type {import('../../../appStudio/builderTools').ToolArgs} */ (planApproval.plan || {}));
         approvedPlanForTurn = (!bounded.error && bounded.plan)
             || priorSnapshot?.pendingPlan?.plan
             || priorSnapshot?.approvedPlan

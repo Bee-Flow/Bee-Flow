@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * CSV, read and edited BYTE-FAITHFULLY — a hand parser, no dependency.
  *
@@ -48,9 +49,16 @@ const PROBE_ROWS = 50;
 // The `'` a formula-shaped text was written with (see the header): one
 // apostrophe, and only in front of a trigger character.
 const QUOTE_PREFIX = "'";
+/** @typedef {{ raw?: string, fields: string[] }} CsvRecord */
+/** @typedef {{ delimiter: string, quote: string, bom: boolean, eol: string, encoding: string, decimal: string }} CsvDialect */
+/** @typedef {{ op: string, row?: number, cells?: Record<string, unknown> }} RowOp */
+
 const QUOTE_PREFIXED_RE = new RegExp(`^${QUOTE_PREFIX}(?=${FORMULA_TRIGGER_RE.source.slice(1)})`);
 
-/** The cell as the mirror reads it: the write-side `'` in front of a formula trigger taken off again. */
+/**
+ * The cell as the mirror reads it: the write-side `'` in front of a formula trigger taken off again.
+ * @param {string} f
+ */
 function unprefixField(f) {
     return QUOTE_PREFIXED_RE.test(f) ? f.slice(QUOTE_PREFIX.length) : f;
 }
@@ -67,7 +75,10 @@ const CP1252_ENCODE = new Map(CP1252_HIGH.map((cp, i) => [cp, 0x80 + i]));
 // Bytes ↔ text
 // ---------------------------------------------------------------------------
 
-/** Buffer → { text, encoding, bom } — utf-8 unless the bytes say otherwise. */
+/**
+ * Buffer → { text, encoding, bom } — utf-8 unless the bytes say otherwise.
+ * @param {Buffer | string | null | undefined} buffer
+ */
 function decode(buffer) {
     const buf = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer || '');
     if (buf.length >= 3 && buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) {
@@ -86,6 +97,7 @@ function decode(buffer) {
     }
 }
 
+/** @param {string} text */
 function encodeCp1252(text) {
     const out = Buffer.alloc(text.length);
     for (let i = 0; i < text.length; i += 1) {
@@ -97,7 +109,11 @@ function encodeCp1252(text) {
     return out;
 }
 
-/** text → Buffer in the file's own encoding, BOM restored. */
+/**
+ * text → Buffer in the file's own encoding, BOM restored.
+ * @param {string} text
+ * @param {{ encoding?: string, bom?: boolean }} [opts]
+ */
 function encode(text, { encoding = 'utf-8', bom = false } = {}) {
     if (encoding === 'utf-16le') return Buffer.concat([bom ? Buffer.from([0xff, 0xfe]) : Buffer.alloc(0), Buffer.from(text, 'utf16le')]);
     if (encoding === 'utf-16be') return Buffer.concat([bom ? Buffer.from([0xfe, 0xff]) : Buffer.alloc(0), Buffer.from(text, 'utf16le').swap16()]);
@@ -112,10 +128,15 @@ function encode(text, { encoding = 'utf-8', bom = false } = {}) {
 /**
  * RFC-4180 records with their original text. `raw` includes the record's own
  * line ending (none on a last record the file did not terminate).
- * @returns {{ records:Array<{raw:string, fields:string[]}>, truncated:boolean }}
+ * @param {string} text
+ * @param {string} delimiter
+ * @param {{ maxRecords?: number, maxCells?: number }} [opts]
+ * @returns {{ records:Array<{raw?:string, fields:string[]}>, truncated:boolean }}
  */
 function parseRecords(text, delimiter, { maxRecords = Infinity, maxCells = Infinity } = {}) {
+    /** @type {CsvRecord[]} */
     const records = [];
+    /** @type {string[]} */
     let fields = [];
     let field = '';
     let quoted = false;
@@ -123,7 +144,7 @@ function parseRecords(text, delimiter, { maxRecords = Infinity, maxCells = Infin
     let cellCount = 0;
     let i = 0;
     const n = text.length;
-    const endRecord = (end) => {
+    const endRecord = (/** @type {number} */ end) => {
         fields.push(field);
         cellCount += fields.length;
         records.push({ raw: text.slice(recStart, end), fields });
@@ -155,6 +176,7 @@ function parseRecords(text, delimiter, { maxRecords = Infinity, maxCells = Infin
     return { records, truncated: !consumedAll };
 }
 
+/** @param {CsvRecord | null | undefined} rec */
 function isBlankRecord(rec) {
     return !rec || rec.fields.every(f => f === '' || f.trim() === '');
 }
@@ -163,6 +185,7 @@ function isBlankRecord(rec) {
 // Sniffing
 // ---------------------------------------------------------------------------
 
+/** @param {string} text */
 function sniffEol(text) {
     const lf = text.indexOf('\n');
     if (lf > 0 && text[lf - 1] === '\r') return '\r\n';
@@ -175,8 +198,10 @@ function sniffEol(text) {
  * record into the same number of fields), the widest on a tie, tab first.
  * `conclusive` is false when no delimiter splits anything (a one-column
  * file, an empty one): the ',' answered then is a default, not a finding.
+ * @param {string} text
  */
 function sniffDelimiterDetailed(text) {
+    /** @type {{ delimiter: string, consistent: number, width: number } | null} */
     let best = null;
     for (const d of DELIMITERS) {
         const recs = parseRecords(text, d, { maxRecords: SNIFF_RECORDS }).records.filter(r => !isBlankRecord(r));
@@ -191,6 +216,7 @@ function sniffDelimiterDetailed(text) {
     return best ? { delimiter: best.delimiter, conclusive: true } : { delimiter: ',', conclusive: false };
 }
 
+/** @param {string} text */
 function sniffDelimiter(text) {
     return sniffDelimiterDetailed(text).delimiter;
 }
@@ -201,7 +227,11 @@ const DOT_DECIMAL_RE = /^-?\d{1,3}(,\d{3})*\.\d+$/;
 // a lone separator followed by three digits), so no evidence either way.
 const GROUPED_INTEGER_RE = /^-?\d{1,3}([.,]\d{3})+$/;
 
-/** The decimal mark the first records use; `conclusive` is false when they hold no decimal number at all. */
+/**
+ * The decimal mark the first records use; `conclusive` is false when they hold no decimal number at all.
+ * @param {CsvRecord[]} records
+ * @returns {{ decimal: '.'|',', conclusive: boolean }}
+ */
 function sniffDecimalDetailed(records) {
     let comma = 0;
     let dot = 0;
@@ -216,6 +246,10 @@ function sniffDecimalDetailed(records) {
     return { decimal: comma > dot ? ',' : '.', conclusive: comma + dot > 0 };
 }
 
+/**
+ * @param {CsvRecord[]} records
+ * @returns {'.'|','}
+ */
 function sniffDecimal(records) {
     return sniffDecimalDetailed(records).decimal;
 }
@@ -223,6 +257,8 @@ function sniffDecimal(records) {
 /**
  * Everything the writer must reproduce: encoding, BOM, EOL, delimiter,
  * quote and decimal — `source.csv` in the mirror's source JSON.
+ * @param {Buffer} buffer
+ * @returns {CsvDialect}
  */
 function sniff(buffer) {
     const { text, encoding, bom } = decode(buffer);
@@ -239,12 +275,16 @@ function sniff(buffer) {
  * Read a CSV as header + data rows — the same shape sheetjs.readSheet gives
  * (every cell a string or null; no dates, formulas or number formats to
  * report), plus `csv` = the sniffed facts.
+ * @param {Buffer} buffer
+ * @param {{ headerRow?: number, maxRows: number, maxCols: number, maxCells?: number }} opts
+ * @returns {Promise<Omit<import('./sheetjs').SheetRead, 'sheet'> & { sheet: string | null, csv: CsvDialect }>}
  */
 async function readSheet(buffer, { headerRow = 1, maxRows, maxCols, maxCells = Infinity }) {
     const h = Math.max(1, Number(headerRow) || 1);
     const csv = sniff(buffer);
     const { text } = decode(buffer);
     const { records, truncated: cut } = parseRecords(text, csv.delimiter, { maxRecords: h + maxRows + PROBE_ROWS, maxCells });
+    /** @type {string[]} */
     const warnings = [];
     const headerRec = records[h - 1];
     if (!headerRec || isBlankRecord(headerRec)) {
@@ -259,7 +299,9 @@ async function readSheet(buffer, { headerRow = 1, maxRows, maxCols, maxCells = I
         span = maxCols;
     }
     const header = headerRec.fields.slice(0, span).map(f => (f === '' ? null : f));
+    /** @type {unknown[][]} */
     const rows = [];
+    /** @type {number[]} */
     const rowNumbers = [];
     let lastDataRow = h;
     let beyond = false;
@@ -297,9 +339,14 @@ async function readSheet(buffer, { headerRow = 1, maxRows, maxCols, maxCells = I
 // Writing
 // ---------------------------------------------------------------------------
 
-const pad = (n) => String(n).padStart(2, '0');
+const pad = (/** @type {number} */ n) => String(n).padStart(2, '0');
 
-/** A Date in the column's own spelling ('dd-mm-yyyy', 'yyyy-mm-dd', …), with the clock when it has one. */
+/**
+ * A Date in the column's own spelling ('dd-mm-yyyy', 'yyyy-mm-dd', …), with the clock when it has one.
+ * @param {Date} d
+ * @param {unknown} dateFormat
+ * @param {boolean} [withTime]
+ */
 function formatDate(d, dateFormat, withTime) {
     const p = partsOf(d);
     const fmt = String(dateFormat || 'yyyy-mm-dd').toLowerCase();
@@ -315,8 +362,8 @@ function formatDate(d, dateFormat, withTime) {
 /**
  * One value (the write codec's output) as the text this file spells it in.
  * @param {*} value            string | number | boolean | Date | null
- * @param {object} [column]    the columnMap entry ({ type, dateFormat })
- * @param {object} [csv]       the sniffed facts ({ decimal })
+ * @param {{ type?: string, dateFormat?: string }} [column]    the columnMap entry
+ * @param {{ decimal?: string }} [csv]       the sniffed facts
  */
 function formatField(value, column = {}, csv = {}) {
     if (isBlank(value)) return '';
@@ -332,13 +379,21 @@ function formatField(value, column = {}, csv = {}) {
     return formulaShaped(s, column.type || 'text') ? QUOTE_PREFIX + s : s;
 }
 
-/** Quote when the field would otherwise not survive a parse. */
+/**
+ * Quote when the field would otherwise not survive a parse.
+ * @param {string} s
+ * @param {string} delimiter
+ */
 function quoteField(s, delimiter) {
     const needs = s.includes(delimiter) || s.includes(QUOTE) || s.includes('\r') || s.includes('\n') || /^\s|\s$/.test(s);
     return needs ? `${QUOTE}${s.replace(/"/g, '""')}${QUOTE}` : s;
 }
 
-/** Records → bytes: untouched records verbatim, touched ones re-serialised. */
+/**
+ * Records → bytes: untouched records verbatim, touched ones re-serialised.
+ * @param {CsvRecord[]} records
+ * @param {CsvDialect} csv
+ */
 function serialise(records, csv) {
     const parts = records.map((r) => (
         typeof r.raw === 'string' ? r.raw : r.fields.map(f => quoteField(f, csv.delimiter)).join(csv.delimiter) + csv.eol
@@ -371,7 +426,9 @@ function serialise(records, csv) {
  * and the ops do not apply (409 spreadsheet_conflict). `maxCols` is the
  * reader's column cap, so a wider file compares at the width it was read.
  *
- * @returns {{ buffer:Buffer, appended:number[], lastDataRow:number, csv:object }}
+ * @param {Buffer} buffer
+ * @param {{ headerRow?: number, ops?: RowOp[], columns?: Record<string, { type?: string, dateFormat?: string }>, csv?: { delimiter?: string, decimal?: string } | null, expectSpan?: number | null, maxCols?: number }} opts
+ * @returns {Promise<{ buffer:Buffer, appended:number[], lastDataRow:number, csv:CsvDialect }>}
  */
 async function editInPlace(buffer, { headerRow = 1, ops = [], columns = {}, csv: known = null, expectSpan = null, maxCols = Infinity }) {
     const h = Math.max(1, Number(headerRow) || 1);
@@ -401,8 +458,8 @@ async function editInPlace(buffer, { headerRow = 1, ops = [], columns = {}, csv:
         return last;
     };
 
-    const touch = (rec) => { delete rec.raw; };
-    const setCells = (rec, cellsByCol) => {
+    const touch = (/** @type {CsvRecord} */ rec) => { delete rec.raw; };
+    const setCells = (/** @type {CsvRecord} */ rec, /** @type {Record<string, unknown> | undefined} */ cellsByCol) => {
         for (const [colKey, value] of Object.entries(cellsByCol || {})) {
             const col = Number(colKey);
             if (!Number.isInteger(col) || col < 0 || col >= span) {
@@ -413,7 +470,7 @@ async function editInPlace(buffer, { headerRow = 1, ops = [], columns = {}, csv:
         }
         touch(rec);
     };
-    const rowOf = (op) => {
+    const rowOf = (/** @type {{ row?: number }} */ op) => {
         const row = Number(op.row);
         const rec = Number.isInteger(row) && row > h ? records[row - 1] : null;
         if (!rec || isBlankRecord(rec)) {
@@ -431,6 +488,7 @@ async function editInPlace(buffer, { headerRow = 1, ops = [], columns = {}, csv:
         records.splice(row - 1, 1);
     }
 
+    /** @type {number[]} */
     const appended = [];
     for (const op of list.filter(o => o && o.op === 'append')) {
         const at = lastDataRowOf();                    // 1-based row of the last data record

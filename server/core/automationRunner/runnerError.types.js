@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Shared shapes for the automation runner.
  *

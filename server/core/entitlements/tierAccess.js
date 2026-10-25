@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -35,6 +35,7 @@ const AUTO = 'auto';
 const TIER_NOT_PERMITTED = 'tier_not_permitted';
 
 // Names the permitted set does not use, mapped to the one it does.
+/** @type {Readonly<Record<string, string>>} */
 const PERMISSION_NAME = Object.freeze({ deep_thinking: 'pro', smart: 'thinking' });
 
 // Where `auto` lands when its own policy found nothing this person may use:
@@ -42,7 +43,10 @@ const PERMISSION_NAME = Object.freeze({ deep_thinking: 'pro', smart: 'thinking' 
 // default tier. Keys not listed follow alphabetically.
 const CHEAPEST_FIRST = Object.freeze(['fast', 'thinking', 'writer', 'standard', 'pro', 'deep_thinking', 'smart']);
 
-/** The name a tier goes by in the permitted set, or null for no name at all. */
+/**
+ * The name a tier goes by in the permitted set, or null for no name at all.
+ * @param {unknown} tier
+ */
 function permissionNameOf(tier) {
     if (typeof tier !== 'string') return null;
     const trimmed = tier.trim();
@@ -51,20 +55,28 @@ function permissionNameOf(tier) {
     return PERMISSION_NAME[bare] || bare;
 }
 
-/** A tier `auto` may land on: never itself, never swarm, never a custom tier. */
+/**
+ * A tier `auto` may land on: never itself, never swarm, never a custom tier.
+ * @param {unknown} key
+ * @returns {key is string}
+ */
 function autoMayPick(key) {
     return typeof key === 'string' && key !== AUTO && key !== 'swarm' && !key.startsWith('custom:');
 }
 
+/** @param {{ modelId?: unknown } | null | undefined} entry */
 function isConfigured(entry) {
     return !!(entry && typeof entry.modelId === 'string' && entry.modelId);
 }
 
-/** The cheapest of `keys` that `auto` may land on, or null when there is none. */
+/**
+ * The cheapest of `keys` that `auto` may land on, or null when there is none.
+ * @param {Iterable<string> | null | undefined} keys
+ */
 function cheapestTier(keys) {
     const pool = [...(keys || [])].filter(autoMayPick);
     if (!pool.length) return null;
-    const rank = (k) => {
+    const rank = (/** @type {string} */ k) => {
         const i = CHEAPEST_FIRST.indexOf(k);
         return i === -1 ? CHEAPEST_FIRST.length : i;
     };
@@ -77,17 +89,24 @@ function cheapestTier(keys) {
  */
 function tierAccessOf(permitted) {
     const keys = new Set(permitted instanceof Set || Array.isArray(permitted) ? permitted : []);
-    const allowsNamed = (tier) => {
+    const allowsNamed = (/** @type {unknown} */ tier) => {
         const name = permissionNameOf(tier);
         return !!name && name !== AUTO && keys.has(name);
     };
     const autoPool = [...keys].filter(autoMayPick);
     return {
-        /** An explicit pick: may this person run on `tier`? */
+        /**
+         * An explicit pick: may this person run on `tier`?
+         * @param {unknown} tier
+         */
         allows(tier) {
             return tier === AUTO ? autoPool.length > 0 : allowsNamed(tier);
         },
-        /** The entries of a tier map this person may use. */
+        /**
+         * The entries of a tier map this person may use.
+         * @template V
+         * @param {Record<string, V> | null | undefined} tiers
+         */
         narrow(tiers) {
             return Object.fromEntries(Object.entries(tiers || {}).filter(([k]) => allowsNamed(k)));
         },
@@ -95,6 +114,8 @@ function tierAccessOf(permitted) {
          * What `auto` may choose from in a tier map: this person's configured
          * tiers, minus custom and swarm. `refused` when the map has tiers
          * `auto` could use and none of them is this person's.
+         * @template {{ modelId?: unknown } | null | undefined} V
+         * @param {Record<string, V> | null | undefined} tiers
          */
         autoChoice(tiers) {
             const eligible = Object.entries(tiers || {}).filter(([k, v]) => autoMayPick(k) && isConfigured(v));
@@ -111,6 +132,7 @@ function tierAccessOf(permitted) {
          * the name it was given; `auto` and no tier at all the cheapest tier
          * they may use, `fast` when it is theirs. A custom tier is never
          * chosen FOR somebody. Null means refuse.
+         * @param {string|null|undefined} tier
          */
         choose(tier) {
             if (tier === undefined || tier === null || tier === AUTO) return cheapestTier(autoPool);
@@ -146,6 +168,7 @@ async function groupTierGateFor({ userId } = {}) {
     const { loadGroupTierRule } = require('./userTiers');
     const { tierPermittedByGroups } = await loadGroupTierRule(userId);
     return {
+        /** @param {unknown} tier */
         allows(tier) {
             const name = permissionNameOf(tier);
             return !!name && tierPermittedByGroups(name);
@@ -153,7 +176,10 @@ async function groupTierGateFor({ userId } = {}) {
     };
 }
 
-/** The refusal, in the words every caller gives. */
+/**
+ * The refusal, in the words every caller gives.
+ * @param {unknown} tier
+ */
 function tierRefusal(tier) {
     return { status: 403, code: TIER_NOT_PERMITTED, error: `Tier "${String(tier).slice(0, 60)}" is not available on your account.` };
 }

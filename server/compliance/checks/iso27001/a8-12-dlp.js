@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * ISO 27001 A.8.11 / A.8.12 — Data masking and data leakage prevention.
  *
@@ -23,12 +23,12 @@
 
 const { getOne } = require('../../../db');
 const configStore = require('../../../stores/configStore');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const WINDOW_DAYS = 30;
 const MIN_TRAFFIC = 25; // below this, a silent guardrail log proves nothing
 // Not provisioned on this install (undefined table or column). Every other
 // SQLSTATE is a count that FAILED, which is not zero.
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 // The bucket the platform files org-less rows under (routes/compliance/shared.js
 // resolveOrgId); it is not a tenant.
 const NO_ORG_ORG_ID = 'default';
@@ -37,13 +37,20 @@ const NO_ORG_ORG_ID = 'default';
 const NO_ORG = "(t.organization_id IS NULL OR t.organization_id = '')";
 const MEMBER_ORG = 'NULLIF(u."organizationId", \'\')';
 
-/** SQL: the row `t` (joined to its user `u`) belongs to the org in $1. */
+/**
+ * SQL: the row `t` (joined to its user `u`) belongs to the org in $1.
+ * @param {string} orgId
+ */
 function _belongs(orgId) {
     const own = `(t.organization_id = $1 OR (${NO_ORG} AND ${MEMBER_ORG} = $1))`;
     return orgId === NO_ORG_ORG_ID ? `(${own} OR (${NO_ORG} AND ${MEMBER_ORG} IS NULL))` : own;
 }
 
-/** SQL: FROM and WHERE of one ledger's rows in the window that belong to the org. */
+/**
+ * SQL: FROM and WHERE of one ledger's rows in the window that belong to the org.
+ * @param {string} table
+ * @param {string} orgId
+ */
 function _from(table, orgId) {
     return `FROM ${table} t
             LEFT JOIN users u ON u.id = t.user_id
@@ -52,16 +59,24 @@ function _from(table, orgId) {
               AND ${_belongs(orgId)}`;
 }
 
-/** One count query: its row, `missing` when not provisioned, `failed` (the SQLSTATE) otherwise. */
+/**
+ * One count query: its row, `missing` when not provisioned, `failed` (the SQLSTATE) otherwise.
+ * @param {string} sql
+ * @param {string} scope
+ * @returns {Promise<{ row: Record<string, any> | null, missing?: boolean, failed?: string }>}
+ */
 async function _read(sql, scope) {
     try {
         return { row: (await getOne(sql, [scope])) || null };
     } catch (e) {
-        if (NOT_PROVISIONED.has(e?.code)) return { row: null, missing: true };
+        if (isMissingTable(e)) return { row: null, missing: true };
         return { row: null, failed: e?.code || 'unknown' };
     }
 }
 
+/**
+ * @param {string} scope
+ */
 async function _guardrailStats(scope) {
     const r = await _read(`
         SELECT
@@ -73,6 +88,9 @@ async function _guardrailStats(scope) {
     return { total_events: 0, blocked_events: 0, redacted_events: 0, ...(r.row || {}), missing: !!r.missing, failed: r.failed || null };
 }
 
+/**
+ * @param {string} scope
+ */
 async function _aiCallCount(scope) {
     const r = await _read(`SELECT COUNT(*)::int AS c ${_from('ai_usage_log', scope)}`, scope);
     // A ledger that does not exist has no traffic to judge, as before.
@@ -91,6 +109,9 @@ module.exports = {
     descriptionKey: 'compliance.checks.iso_dlp.desc',
     remediationKey: 'compliance.checks.iso_dlp.fix',
     remediationLink: 'admin/security/guardrails',
+    /**
+     * @param {string} orgId
+     */
     async evaluate(orgId) {
         const shield = (await configStore.getConfig(`org_privacy_shield_${orgId || 'default'}`)) || {};
         const ai = (await configStore.getConfig('ai')) || {};
@@ -113,6 +134,7 @@ module.exports = {
         const trafficRead = await _aiCallCount(scope);
         const traffic = trafficRead.count;
 
+        /** @type {Record<string, unknown>} */
         const evidence = {
             window_days: WINDOW_DAYS,
             regex_guardrails: regexEnabled,

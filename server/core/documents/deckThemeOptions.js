@@ -132,6 +132,9 @@ function normaliseTemplate(input) {
         const image = typeof v.image === 'string' && DATA_IMAGE_RE.test(v.image.replace(/\s+/g, '')) ? v.image.replace(/\s+/g, '') : '';
         const overlays = (Array.isArray(v.overlays) ? v.overlays : []).slice(0, MAX_TEMPLATE_OVERLAYS).map((o) => {
             if (!o || typeof o !== 'object' || typeof o.image !== 'string' || !DATA_IMAGE_RE.test(o.image.replace(/\s+/g, ''))) return null;
+            /**
+             * @param {string} k
+             */
             const n = (k) => Math.max(-1, Math.min(2, Number(o[k]) || 0));
             const w = n('w'); const h = n('h');
             return w > 0 && h > 0 ? { image: o.image.replace(/\s+/g, ''), x: n('x'), y: n('y'), w, h } : null;
@@ -170,11 +173,18 @@ function templateTitleInset(template) {
 
 // ── Colour maths ────────────────────────────────────────────────────────
 
+/**
+ * @param {string} value
+ */
 function isHex(value) {
     return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(String(value ?? '').trim());
 }
 
-/** `#abc` / `#AABBCC` → `#AABBCC`; anything else → fallback. */
+/**
+ * `#abc` / `#AABBCC` → `#AABBCC`; anything else → fallback.
+ * @param {string | null} [fallback]
+ * @param {string | null} value
+ */
 function normHex(value, fallback = null) {
     const t = String(value ?? '').trim();
     if (!isHex(t)) return fallback;
@@ -183,6 +193,9 @@ function normHex(value, fallback = null) {
     return `#${full.toUpperCase()}`;
 }
 
+/**
+ * @param {string | null} hex
+ */
 function hexToRgb(hex) {
     const h = normHex(hex, '#000000').slice(1);
     return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
@@ -193,7 +206,10 @@ function rgbToHex([r, g, b]) {
     return `#${[r, g, b].map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('').toUpperCase()}`;
 }
 
-/** WCAG relative luminance, 0 (black) … 1 (white). */
+/**
+ * WCAG relative luminance, 0 (black) … 1 (white).
+ * @param {string | null} hex
+ */
 function luminance(hex) {
     const [r, g, b] = hexToRgb(hex).map((v) => {
         const c = v / 255;
@@ -202,7 +218,11 @@ function luminance(hex) {
     return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
-/** WCAG contrast ratio between two colours, 1 … 21. */
+/**
+ * WCAG contrast ratio between two colours, 1 … 21.
+ * @param {string} a
+ * @param {string | null} b
+ */
 function contrastRatio(a, b) {
     const la = luminance(a);
     const lb = luminance(b);
@@ -210,11 +230,19 @@ function contrastRatio(a, b) {
     return (hi + 0.05) / (lo + 0.05);
 }
 
+/**
+ * @param {string | null} hex
+ */
 function isDark(hex) {
     return luminance(hex) < 0.35;
 }
 
-/** Mix `hex` towards `towards` by `amount` (0..1). */
+/**
+ * Mix `hex` towards `towards` by `amount` (0..1).
+ * @param {string | null} hex
+ * @param {string | null} towards
+ * @param {number} amount
+ */
 function mix(hex, towards, amount) {
     const a = hexToRgb(hex);
     const b = hexToRgb(towards);
@@ -230,6 +258,7 @@ function rgbToHsl([r, g, b]) {
     if (max === min) return [0, 0, l];
     const d = max - min;
     const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    /** @type {number} */
     let h;
     if (max === rr) h = ((gg - bb) / d + (gg < bb ? 6 : 0));
     else if (max === gg) h = (bb - rr) / d + 2;
@@ -243,6 +272,9 @@ function hslToRgb([h, s, l]) {
     if (s === 0) return [l * 255, l * 255, l * 255];
     const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
     const p = 2 * l - q;
+    /**
+     * @param {number} t
+     */
     const f = (t) => {
         let tt = t; if (tt < 0) tt += 1; if (tt > 1) tt -= 1;
         if (tt < 1 / 6) return p + (q - p) * 6 * tt;
@@ -253,7 +285,11 @@ function hslToRgb([h, s, l]) {
     return [f(hh + 1 / 3) * 255, f(hh) * 255, f(hh - 1 / 3) * 255];
 }
 
-/** Rotate a colour's hue by `degrees`, keeping saturation and lightness. */
+/**
+ * Rotate a colour's hue by `degrees`, keeping saturation and lightness.
+ * @param {number} degrees
+ * @param {string | null} hex
+ */
 function rotateHue(hex, degrees) {
     const [h, s, l] = rgbToHsl(hexToRgb(hex));
     return rgbToHex(hslToRgb([h + degrees, Math.max(s, 0.35), Math.min(Math.max(l, 0.3), 0.65)]));
@@ -266,6 +302,9 @@ const MIN_CONTRAST = 4.5;
 /**
  * A text colour that READS on `background`: the preferred colour when it
  * clears 4.5:1, otherwise whichever safe ink contrasts more.
+ * @param {string} background
+ * @param {string | null} [preferred]
+ * @param {number} [minimum]
  */
 function readableOn(background, preferred = null, minimum = MIN_CONTRAST) {
     const bg = normHex(background, SAFE_LIGHT);
@@ -276,9 +315,18 @@ function readableOn(background, preferred = null, minimum = MIN_CONTRAST) {
 
 // ── OKLab (for the chart palette's lightness band) ─────────────────────
 
+/**
+ * @param {number} c
+ */
 function srgbToLinear(c) { const v = c / 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }
+/**
+ * @param {number} v
+ */
 function linearToSrgb(v) { const c = v <= 0.0031308 ? v * 12.92 : 1.055 * (v ** (1 / 2.4)) - 0.055; return Math.max(0, Math.min(255, Math.round(c * 255))); }
 
+/**
+ * @param {string | null} hex
+ */
 function hexToOklab(hex) {
     const [r, g, b] = hexToRgb(hex).map(srgbToLinear);
     const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
@@ -298,7 +346,10 @@ function oklabToHex([L, a, b]) {
     ]);
 }
 
-/** OKLCH hue (degrees) and chroma of a colour. */
+/**
+ * OKLCH hue (degrees) and chroma of a colour.
+ * @param {string} hex
+ */
 function oklch(hex) {
     const [L, a, b] = hexToOklab(hex);
     return { L, C: Math.hypot(a, b), h: ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360 };
@@ -308,6 +359,8 @@ function oklch(hex) {
  * The colour with its hue kept and its OKLCH lightness moved inside the
  * band a categorical mark needs (light surface ≈ 0.43–0.77, dark ≈ 0.48–0.67)
  * — the "snap to passing" step of the data-viz colour formula.
+ * @param {string | null} hex
+ * @param {boolean} dark
  */
 function snapToBand(hex, dark) {
     const [lo, hi] = dark ? [0.5, 0.66] : [0.45, 0.72];
@@ -338,7 +391,11 @@ const CATEGORICAL_ORDERS = Object.freeze({
     dark: { 0: [1, 6, 3, 4, 5], 1: [0, 2, 6, 3, 4], 2: [0, 1, 6, 3, 4], 3: [0, 1, 6, 4, 5], 4: [3, 0, 1, 6, 2], 5: [0, 1, 6, 3, 4], 6: [1, 0, 3, 4, 5], 7: [0, 1, 6, 3, 4], grey: [1, 0, 3, 6, 5] },
 });
 
-/** Which of the eight families a colour belongs to (nearest OKLCH hue), or 'grey'. */
+/**
+ * Which of the eight families a colour belongs to (nearest OKLCH hue), or 'grey'.
+ * @param {string | null} hex
+ * @param {boolean} dark
+ */
 function hueFamily(hex, dark) {
     const { h, C } = oklch(hex);
     if (C < 0.04) return 'grey';
@@ -357,6 +414,9 @@ function hueFamily(hex, dark) {
  * (its hue kept, lightness and chroma snapped into the categorical band),
  * then the validated order for its hue family. Each is checked to show on
  * the surface; the sub-3:1 ones rely on the value labels the charts carry.
+ * @param {string} text
+ * @param {string | null} accent
+ * @param {string | null} background
  */
 function chartColorsFor(accent, background, text) {
     const bg = normHex(background, SAFE_LIGHT);
@@ -375,7 +435,11 @@ function chartColorsFor(accent, background, text) {
     return base.map((c) => (contrastRatio(c, bg) < 1.5 ? mix(c, text, 0.5) : c));
 }
 
-/** A muted variant of `text` that still reads on `background` (≥ 3:1). */
+/**
+ * A muted variant of `text` that still reads on `background` (≥ 3:1).
+ * @param {string} text
+ * @param {string | null} background
+ */
 function mutedOn(background, text) {
     const bg = normHex(background, SAFE_LIGHT);
     const ink = normHex(text, SAFE_DARK);
@@ -386,6 +450,9 @@ function mutedOn(background, text) {
 
 // ── Normalisation ───────────────────────────────────────────────────────
 
+/**
+ * @param {string | null} fallback
+ */
 function pickEnum(value, table, fallback) {
     const v = typeof value === 'string' ? value.trim() : '';
     return Object.prototype.hasOwnProperty.call(table, v) ? v : fallback;
@@ -494,6 +561,7 @@ function resolveDeckTheme(base, deck = null, overrides = null) {
     const bandColor = titleStyle === 'band' ? accent : null;
     // A title in a band reads on the band; a plain/rule title reads on the slide
     // and prefers the accent, unless the slide IS the accent.
+    /** @type {string} */
     let titleColor;
     if (titleStyle === 'band') titleColor = readableOn(bandColor);
     else if (!template && preset.titleColor === 'accent' && contrastRatio(accent, background) >= 3) titleColor = accent;
@@ -656,3 +724,10 @@ module.exports = {
     mix,
     normHex,
 };
+
+/**
+ * @typedef {{ preset?: string, accent?: string, background?: string, text?: string, titleFont?: string,
+ *   bodyFont?: string, coverStyle?: string, tableStyle?: string, logoPlacement?: string, slideNumbers?: boolean,
+ *   brandOnSlides?: boolean, footerText?: string, template?: 'none' | NonNullable<ReturnType<typeof normaliseTemplate>>,
+ *   logo?: string }} DeckOverrides
+ */

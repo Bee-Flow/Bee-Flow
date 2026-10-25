@@ -16,7 +16,12 @@ const { normalizeQuery, splitQueryFromUrl, urlHasBracketQuery } = require('../..
  */
 function checkQueryPlaceholders(query, draft, draftWrap, forEach) {
     if (!query) return { query, notes: [], error: null };
+    /** @type {string[]} */
     const notes = [];
+    /**
+     * @param {string} text
+     * @param {string} label
+     */
     const one = (text, label) => {
         const t = checkTextPlaceholders(text, draft, { draftWrap, label });
         if (t.error) return { error: t.error };
@@ -64,14 +69,16 @@ function liftUrlQuery(url, query) {
  * `askOnce` in exactly the two shapes the runtime reads: `true` (reuse within
  * the run) or `{ acrossRuns?, ttlSeconds? }` (that, plus the wider promise).
  * Anything else is absent, which is off.
- *
+ * 
  * Lives here rather than in stepEditing so BOTH paths can reach it — that file
  * already requires this one, so the reverse would be a cycle — and so an added
  * step and a patched one are byte-identical.
+ * @param {boolean} value
  */
 function normalizeAskOnce(value) {
     if (value === true) return true;
     if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+    /** @type {{ acrossRuns?: boolean; ttlSeconds?: number }} */
     const out = {};
     if (value.acrossRuns === true) out.acrossRuns = true;
     const ttl = Number(value.ttlSeconds);
@@ -238,3 +245,9 @@ module.exports = {
     applyAddNotification,
     applyAddKnowledgeWrite,
 };
+
+/** @typedef {import('../draftGraph').DraftGraph} DraftGraph */
+
+/** @typedef {import('../pendingDatatables').DraftWrap} DraftWrap */
+
+/** @typedef {{ mode?: string, json?: string, arrayFormat?: string, items?: Array<{ key: string, value: string }> }} QueryShape  a step's stored `query` */

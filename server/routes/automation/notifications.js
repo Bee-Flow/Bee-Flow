@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * An automation's notifications, as the Settings page shows them
  * (Studio → Automations handoff 5):
@@ -23,13 +24,14 @@ const { makeAutomationAccess } = require('../../automation/access');
 const {
     NOTIFICATION_DEFAULTS, normalizeNotificationSettings,
 } = require('../../automation/notificationDefaults');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * @param {object} [overrides]
- * @param {object}   [overrides.store]         automationStore surface (getAutomation)
- * @param {object}   [overrides.events]        notificationEvents store (listRecentNotificationEvents)
- * @param {Function} [overrides.getUser]       (id) => user row
- * @param {Function} [overrides.hasPermission] (userId, perm, session) => bool
+ * @param {typeof import('../../stores/automationStore')} [overrides.store]         automationStore surface (getAutomation)
+ * @param {typeof import('../../stores/automationStore/notificationEvents')} [overrides.events]        notificationEvents store (listRecentNotificationEvents)
+ * @param {(id: string) => Promise<any>} [overrides.getUser]       (id) => user row
+ * @param {(userId: string, permission: string, session?: any) => Promise<boolean>} [overrides.hasPermission] (userId, perm, session) => bool
  * @param {Function} [overrides.emailConfigured] async () => bool
  * @param {Function} [overrides.talkStatus]    async ({ orgId, settings }) => { room, bot }
  */
@@ -44,14 +46,14 @@ function makeNotificationsRouter(overrides = {}) {
         ...(overrides.hasPermission ? { hasPermission: overrides.hasPermission } : {}),
     });
     const emailConfigured = overrides.emailConfigured || (async () => {
-        const cfg = await require('../../utils/emailService').getServiceEmailConfig().catch(() => null);
+        const cfg = await require('../../utils/emailService').getServiceEmailConfig().catch((e) => fallback('routes/automation/notifications:makeNotificationsRouter', e, null));
         return !!cfg?.configured;
     });
-    const talkStatus = overrides.talkStatus || (async ({ orgId, settings }) => {
+    const talkStatus = overrides.talkStatus || (/** @param {{ orgId: string | null, settings: ReturnType<typeof normalizeNotificationSettings> }} opts */ async ({ orgId, settings }) => {
         const delivery = require('../../automation/approvalDelivery');
         const room = settings.onApproval.talkRoom || settings.onError.talkRoom || settings.onSuccess.talkRoom
-            || await delivery.resolveTalkRoom({ orgId }).catch(() => null);
-        const bot = orgId ? !!(await require('../../integrations/nextcloudTalkBot').getBotSecret(orgId).catch(() => null)) : false;
+            || await delivery.resolveTalkRoom({ orgId }).catch((e) => fallback('routes/automation/notifications:makeNotificationsRouter#2', e, null));
+        const bot = orgId ? !!(await require('../../integrations/nextcloudTalkBot').getBotSecret(orgId).catch((e) => fallback('routes/automation/notifications:makeNotificationsRouter#3', e, null))) : false;
         return { room: room || null, bot };
     });
 
@@ -62,13 +64,13 @@ function makeNotificationsRouter(overrides = {}) {
         if (!acc) return undefined;
 
         const settings = normalizeNotificationSettings(a.definition?.notificationSettings);
-        const owner = await Promise.resolve(getUser(a.userId)).catch(() => null);
+        const owner = await Promise.resolve(getUser(a.userId)).catch((e) => fallback('routes/automation/notifications:makeNotificationsRouter#4', e, null));
         const orgId = a.organizationId || owner?.organizationId || null;
 
         const [mail, talk, recent] = await Promise.all([
             Promise.resolve(emailConfigured()).catch(() => false),
-            Promise.resolve(talkStatus({ orgId, settings })).catch(() => ({ room: null, bot: false })),
-            Promise.resolve(events().listRecentNotificationEvents(a.id, { limit: 20 })).catch((e) => {
+            Promise.resolve(talkStatus({ orgId, settings })).catch(() => /** @type {{ room: string | null, bot: boolean }} */ ({ room: null, bot: false })),
+            Promise.resolve(events().listRecentNotificationEvents(a.id, { limit: 20 })).catch(/** @param {Error} e @returns {never[]} */ (e) => {
                 log.warn(`[automation notifications] recent events for ${a.id}: ${e.message}`);
                 return [];
             }),

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * DLP decision endpoint — receives the user's choice (redact / block / allow)
  * from the client modal and unblocks the paused chat stream.
@@ -36,7 +37,11 @@ const { requireAuth } = require('../auth/permissions');
 // review never produces hundreds of manual marks in one message.
 const MAX_MANUAL_ADDITIONS = 200;
 
-/** A whole number with one sentence for every way it can be wrong. */
+/**
+ * A whole number with one sentence for every way it can be wrong.
+ * @param {string} message
+ * @param {number} min
+ */
 const whole = (message, min) => z.number({ error: message })
     .int(message).min(min, message);
 
@@ -63,7 +68,7 @@ const DecisionBody = z.object({
         .max(MAX_MANUAL_ADDITIONS, MARKS_TEXT).optional(),
 }, { error: typeError({ required: BODY_TEXT, invalid: BODY_TEXT }) }).strict();
 
-router.post('/', requireAuth, validate({ body: DecisionBody }), async (req, res) => {
+router.post('/', requireAuth, validate({ body: DecisionBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { decisionId, choice, rememberForConversation, manualAdditions } = req.body;
     const ok = decisionQueue.resolve(decisionId, {
         choice,
@@ -82,7 +87,7 @@ const TouchBody = z.object({
 
 // Heartbeat: the review UI POSTs here while it is open so a person editing
 // their redaction is never expired mid-review (see decisionQueue.touch).
-router.post('/touch', requireAuth, validate({ body: TouchBody }), async (req, res) => {
+router.post('/touch', requireAuth, validate({ body: TouchBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const ok = decisionQueue.touch(req.body.decisionId, req.session.user.id);
     if (!ok) {
         return res.status(404).json({ error: 'Decision not found, expired, or not owned by this user.' });

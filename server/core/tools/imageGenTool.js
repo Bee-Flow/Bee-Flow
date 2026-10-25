@@ -37,7 +37,10 @@ function isImageGenTool(name) {
     return name === 'generate_image';
 }
 
-async function executeImageGenTool(args, imageGenSettings, send, req) {
+/**
+ * @param {(arg0: string, arg1: { data: string; mimeType: string | null; }) => void} send
+ */
+async function executeImageGenTool(args, imageGenSettings, send, /** @type {import('express').Request} */ req) {
     const googleApiKey = await configStore.getSecret('google_api_key');
     if (!googleApiKey) {
         return { error: 'Image generation is not available — the API key is not configured. Tell the user that image generation is currently unavailable and ask them to contact an administrator. Do NOT attempt to generate images using code, HTML, Canvas, WebGL, SVG, or any other workaround.' };
@@ -61,6 +64,7 @@ async function executeImageGenTool(args, imageGenSettings, send, req) {
     send('image', { data: result.imageBase64, mimeType: result.mimeType });
 
     // Save image to RustFS (or local disk as fallback)
+    /** @type {string | null} */
     let imageUrl = null;
     try {
         const crypto = require('crypto');
@@ -83,7 +87,7 @@ async function executeImageGenTool(args, imageGenSettings, send, req) {
             log.info(`[ImageGen Tool] Saved to disk: ${imageUrl}`);
         }
     } catch (e) {
-        log.warn('[ImageGen Tool] Failed to save image to disk:', e.message);
+        log.warn('[ImageGen Tool] Failed to save image to disk:', /** @type {Error} */ (e).message);
     }
 
     // Log usage
@@ -99,7 +103,7 @@ async function executeImageGenTool(args, imageGenSettings, send, req) {
             source: 'image_generation',
         });
     } catch (e) {
-        log.warn('[ImageGen Tool] Failed to log usage:', e.message);
+        log.warn('[ImageGen Tool] Failed to log usage:', /** @type {Error} */ (e).message);
     }
 
     return {

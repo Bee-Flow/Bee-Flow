@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: Cowork — scheduled work with a real execution history.
  *

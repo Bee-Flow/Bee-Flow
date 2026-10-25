@@ -64,6 +64,10 @@ const PRACTICE_TOOL = {
     },
 };
 
+/**
+ * @param {number} maxLen
+ * @param {string} value
+ */
 function cleanString(value, maxLen) {
     if (typeof value !== 'string') return null;
     const s = value.trim();
@@ -91,6 +95,7 @@ function validatePracticeItems(parsed, allowedLessonIds = []) {
         if (!question || !explanation) continue;
 
         const rawChoices = Array.isArray(raw.choices) ? raw.choices.slice(0, MAX_CHOICES) : [];
+        /** @type {{ id: string; label: string; correct: boolean; }[]} */
         const choices = [];
         for (const c of rawChoices) {
             const label = cleanString(c?.label, MAX_LABEL_CHARS);
@@ -109,6 +114,9 @@ function validatePracticeItems(parsed, allowedLessonIds = []) {
 
 // Strip an item down to what the client may see: no `correct`, no explanation
 // (the explanation arrives with the grade, so it can't spoil the answer).
+/**
+ * @param {string} id
+ */
 function publicPracticeItem(item, id) {
     return {
         id,

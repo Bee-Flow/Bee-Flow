@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * routes/compliance/sbom — streams the located artefact with the right
  * content type and an attachment filename; 404 when none ships.

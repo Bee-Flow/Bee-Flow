@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Project comment threads: the handler bodies of the routes. Threads (list,
  * start, read, AI mode, delete, resolve/reopen) and comments (reply, edit,
@@ -15,23 +15,41 @@ const {
     BACKOFF_DISMISSALS, PAUSE_MS, isAutomatic, threadEvent, presentComment, presentThread, storeRefusal,
 } = require('./commentsPresent');
 
+/** @typedef {import('./commentsContext').CommentsCtx} Ctx */
+/** @typedef {import('express').Request<{ id: string, threadId: string, commentId?: string }>} Req */
+/** @typedef {import('express').Response} Res */
+
 // ── Threads ───────────────────────────────────────────────────────────────
 
+/**
+ * @param {Ctx} ctx
+ * @param {Req} req
+ * @param {Res} res
+ */
 async function listThreads(ctx, req, res) {
     const project = await ctx.loadProject(req);
-    const { targetType, targetId, status = 'all' } = req.query;
+    const { targetType, targetId, status = 'all' } = /** @type {{ targetType: string, targetId: string, status?: string }} */ (req.query);
     await ctx.assertTarget(project, targetType, targetId);
     const rows = await ctx.store().listThreads(project.id, { targetType, targetId, status });
     const box = await ctx.commentCrypto().forProject(project);
-    const feedback = await ctx.myFeedback(ctx.userIdOf(req), rows.flatMap((t) => t.comments));
+    const feedback = await ctx.myFeedback(ctx.userIdOf(req), rows.flatMap((/** @type {{ comments: import('./commentsContext').CommentRow[] }} */ t) => t.comments));
     res.json({
-        threads: rows.map((t) => presentThread(box, t, t.comments, new Map(), feedback)),
+        threads: rows.map((/** @type {import('./commentsContext').CommentThread & { comments: import('./commentsContext').CommentRow[] }} */ t) => presentThread(box, t, t.comments, new Map(), feedback)),
         role: req.projectRole,
         aiPolicy: await ctx.aiPolicyFor(project),
     });
 }
 
-/** The feed events (and the bell) for a person's new comment. */
+/**
+ * The feed events (and the bell) for a person's new comment.
+ * @param {Ctx} ctx
+ * @param {import('./commentsContext').CommentProject} project
+ * @param {import('./commentsContext').CommentThread} thread
+ * @param {string} userId
+ * @param {string} kind
+ * @param {import('./commentsContext').CommentRow} comment
+ * @param {string[]} kept
+ */
 async function announceComment(ctx, project, thread, userId, kind, comment, kept) {
     await ctx.emit(project.id, threadEvent(kind, userId, thread, { commentId: comment.id, seq: comment.seq, authorKind: 'user' }));
     if (kept.length > 0) {
@@ -40,6 +58,11 @@ async function announceComment(ctx, project, thread, userId, kind, comment, kept
     }
 }
 
+/**
+ * @param {Ctx} ctx
+ * @param {Req} req
+ * @param {Res} res
+ */
 async function createThread(ctx, req, res) {
     const userId = ctx.userIdOf(req);
     const project = await ctx.loadProject(req);
@@ -85,7 +108,7 @@ async function createThread(ctx, req, res) {
             targetType: 'comment_thread', targetId: thread.id, itemType: targetType, itemId: targetId,
         });
     } catch (err) {
-        log.warn(`[ProjectComments] activity not recorded: ${err && err.message}`);
+        log.warn(`[ProjectComments] activity not recorded: ${err && /** @type {Error} */ (err).message}`);
     }
     await announceComment(ctx, project, thread, userId, 'comment.thread.created', comment, kept);
     if (thread.aiMode === 'auto') ctx.aiModeChanged(project);
@@ -93,14 +116,25 @@ async function createThread(ctx, req, res) {
     res.status(201).json({ thread: presentThread(box, thread, [comment], new Map([[comment.id, content]])), ai });
 }
 
+/**
+ * @param {Ctx} ctx
+ * @param {Req} req
+ * @param {Res} res
+ */
 async function getThread(ctx, req, res) {
     const project = await ctx.loadProject(req);
     const thread = await ctx.loadThread(project, req.params.threadId);
     const box = await ctx.commentCrypto().forProject(project);
+    /** @type {number | null} */
     const beforeSeq = typeof req.query.before === 'number' ? req.query.before : null;
     res.json({ thread: await ctx.fullThread(box, thread, ctx.userIdOf(req), { beforeSeq }), role: req.projectRole });
 }
 
+/**
+ * @param {Ctx} ctx
+ * @param {Req} req
+ * @param {Res} res
+ */
 async function updateThread(ctx, req, res) {
     const userId = ctx.userIdOf(req);
     const project = await ctx.loadProject(req);
@@ -122,6 +156,11 @@ async function updateThread(ctx, req, res) {
     res.json({ thread: await ctx.fullThread(box, updated, userId) });
 }
 
+/**
+ * @param {Ctx} ctx
+ * @param {Req} req
+ * @param {Res} res
+ */
 async function deleteThread(ctx, req, res) {
     const userId = ctx.userIdOf(req);
     const project = await ctx.loadProject(req);
@@ -140,6 +179,12 @@ async function deleteThread(ctx, req, res) {
     res.json({ success: true });
 }
 
+/**
+ * @param {Ctx} ctx
+ * @param {Req} req
+ * @param {Res} res
+ * @param {string} status
+ */
 async function changeStatus(ctx, req, res, status) {
     const userId = ctx.userIdOf(req);
     const project = await ctx.loadProject(req);
@@ -154,6 +199,11 @@ async function changeStatus(ctx, req, res, status) {
 
 // ── Comments ──────────────────────────────────────────────────────────────
 
+/**
+ * @param {Ctx} ctx
+ * @param {Req} req
+ * @param {Res} res
+ */
 async function reply(ctx, req, res) {
     const userId = ctx.userIdOf(req);
     const project = await ctx.loadProject(req);
@@ -189,13 +239,23 @@ async function reply(ctx, req, res) {
     res.status(201).json({ comment: presentComment(box, comment, content), ai, thread: { id: thread.id, status: current.status } });
 }
 
-/** A comment of this thread, or a 404. */
+/**
+ * A comment of this thread, or a 404.
+ * @param {Ctx} ctx
+ * @param {import('./commentsContext').CommentThread} thread
+ * @param {string} commentId
+ */
 async function loadComment(ctx, thread, commentId) {
     const comment = await ctx.store().getComment(thread.id, commentId);
     if (!comment) throw notFound('comment_not_found', 'This comment does not exist in this thread.');
     return comment;
 }
 
+/**
+ * @param {Ctx} ctx
+ * @param {Req} req
+ * @param {Res} res
+ */
 async function editComment(ctx, req, res) {
     const userId = ctx.userIdOf(req);
     const project = await ctx.loadProject(req);
@@ -215,7 +275,7 @@ async function editComment(ctx, req, res) {
     });
     if (!updated) throw conflict('comment_deleted', 'This comment was deleted and can no longer be edited.');
     await ctx.emit(project.id, threadEvent('comment.updated', userId, thread, { commentId: updated.id, seq: updated.seq }));
-    const added = kept.filter((id) => !comment.mentions.includes(id));
+    const added = kept.filter((/** @type {string} */ id) =>!comment.mentions.includes(id));
     if (added.length > 0) {
         await ctx.emit(project.id, threadEvent('comment.mention', userId, thread, { commentId: updated.id, mentionedUserIds: added }));
         await ctx.notifyMentions(project, thread, userId, added);
@@ -223,6 +283,11 @@ async function editComment(ctx, req, res) {
     res.json({ comment: presentComment(box, updated, content) });
 }
 
+/**
+ * @param {Ctx} ctx
+ * @param {Req} req
+ * @param {Res} res
+ */
 async function deleteComment(ctx, req, res) {
     const userId = ctx.userIdOf(req);
     const project = await ctx.loadProject(req);
@@ -238,6 +303,11 @@ async function deleteComment(ctx, req, res) {
     res.json({ success: true });
 }
 
+/**
+ * @param {Ctx} ctx
+ * @param {Req} req
+ * @param {Res} res
+ */
 async function commentFeedback(ctx, req, res) {
     const userId = ctx.userIdOf(req);
     const project = await ctx.loadProject(req);

@@ -81,7 +81,7 @@ async function backfillTrialHistory() {
              WHERE trial_used_at IS NOT NULL AND email IS NOT NULL AND TRIM(email) <> ''
             ON CONFLICT (scope, email_normalized) DO NOTHING`);
     } catch (e) {
-        log.warn('[UserStore] backfillTrialHistory failed:', e.message);
+        log.warn('[UserStore] backfillTrialHistory failed:', /** @type {Error} */ (e).message);
     }
 }
 

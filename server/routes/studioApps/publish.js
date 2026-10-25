@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Publish, the Nextcloud app menu, and the publish-version history (routes/studioApps/).
  *
@@ -31,7 +31,7 @@ const router = express.Router();
 
 // ── Publish (org/group visibility; freezes the draft) ───────────────
 
-router.patch('/:id/publish', requireAuth, requireManageApps, validate({ body: PublishBody }), async (req, res) => {
+router.patch('/:id/publish', requireAuth, requireManageApps, validate({ body: PublishBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const userId = req.session.user.id;
     const app = await studioAppStore.getStudioApp(req.params.id);
     if (!app) return res.status(404).json({ error: 'App not found' });
@@ -74,7 +74,7 @@ router.patch('/:id/publish', requireAuth, requireManageApps, validate({ body: Pu
             userStore,
             validateSharedGroupsForOrg,
             // The publication audit row (appStudio/publicationAudit.js).
-            audit: { auditPublishChange: (entry) => publicationAudit.auditPublishChange(entry) },
+            audit: { auditPublishChange: (/** @type {Parameters<typeof publicationAudit.auditPublishChange>[0]} */ entry) => publicationAudit.auditPublishChange(entry) },
             notifyMenuChange: (orgId, meta) => nextcloudMenuSync.notifyMenuChange(orgId, meta),
         },
     });
@@ -109,7 +109,7 @@ router.patch('/:id/publish', requireAuth, requireManageApps, validate({ body: Pu
  * and the dialog can say "reload Nextcloud to see it" only when that is true,
  * and "within a few minutes" (the poll backstop) when it is not.
  */
-router.patch('/:id/nextcloud-menu', requireAuth, requireManageApps, validate({ body: NextcloudMenuBody }), async (req, res) => {
+router.patch('/:id/nextcloud-menu', requireAuth, requireManageApps, validate({ body: NextcloudMenuBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const userId = req.session.user.id;
     const app = await studioAppStore.getStudioApp(req.params.id);
     if (!app) return res.status(404).json({ error: 'App not found' });
@@ -154,7 +154,7 @@ router.patch('/:id/nextcloud-menu', requireAuth, requireManageApps, validate({ b
 
 // ── Publish-version history (owner-only) ────────────────────────────
 
-router.get('/:id/versions', requireAuth, async (req, res) => {
+router.get('/:id/versions', requireAuth, /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const userId = req.session.user.id;
     const app = await studioAppStore.getStudioApp(req.params.id);
     if (!app || app.userId !== userId) return res.status(404).json({ error: 'App not found' });
@@ -162,7 +162,7 @@ router.get('/:id/versions', requireAuth, async (req, res) => {
     res.json({ versions });
 });
 
-router.post('/:id/versions/:versionId/restore', requireAuth, requireManageApps, async (req, res) => {
+router.post('/:id/versions/:versionId/restore', requireAuth, requireManageApps, /** @param {import('express').Request<{ id: string, versionId: string }>} req */ async (req, res) => {
     const userId = req.session.user.id;
     // restoreVersion is scoped to app AND owner; it bumps definition_version
     // so open editors' CAS saves conflict instead of clobbering the restore.

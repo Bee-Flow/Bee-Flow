@@ -269,6 +269,7 @@ function summariseDefinitionDiff(defA, defB) {
     };
 }
 
-module.exports = router;
+/** @typedef {import('express').Router & { provisionForm: typeof provisionForm }} VersionsRouterExports */
+module.exports = /** @type {VersionsRouterExports} */ (router);
 // A restore and a duplicate provision a form the same way (actions.js).
-module.exports.provisionForm = provisionForm;
+/** @type {VersionsRouterExports} */ (module.exports).provisionForm = provisionForm;

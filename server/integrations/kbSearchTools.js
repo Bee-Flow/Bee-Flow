@@ -1,3 +1,4 @@
+/** @typedef {import('../core/llm/webSearchInferenceResolver').InferenceEntry} InferenceEntry */
 /**
  * Knowledge Base Search Tool
  *
@@ -12,6 +13,7 @@ const { getServiceHeaders } = require('../core/serviceAuth');
 const { recordSidecarCall } = require('../telemetry/metrics');
 const { toCitation } = require('../core/kb/citation');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 /** @type {Array<Record<string, any>>} */ const KB_SEARCH_TOOLS = [
     {
@@ -129,7 +131,7 @@ async function executeKbFetchTool(args, context = {}) {
                 hits.push({ chunk_id: r.chunk_id, title: r.title || '', section: '', content: r.content || '' });
             }
         } catch (err) {
-            log.warn('[KBFetch] DB fallback failed:', err.message);
+            log.warn('[KBFetch] DB fallback failed:', /** @type {Error} */ (err).message);
         }
     }
 
@@ -140,6 +142,9 @@ async function executeKbFetchTool(args, context = {}) {
     return { chunks: hits };
 }
 
+/**
+ * @param {string} toolName
+ */
 async function executeKbSearchTool(toolName, args, context = {}) {
     if (toolName === 'kb_fetch') {
         return await executeKbFetchTool(args, context);
@@ -201,7 +206,7 @@ async function executeKbSearchTool(toolName, args, context = {}) {
             userId, testAs: context.testAs || null, context: 'kb_search', agentId,
         });
     } catch (e) {
-        log.warn('[KBSearch] Could not load agent config:', e.message);
+        log.warn('[KBSearch] Could not load agent config:', /** @type {Error} */ (e).message);
         // A failure here must not leave a wider list than the one it was
         // meant to narrow.
         kbIds = [];
@@ -245,12 +250,14 @@ async function executeKbSearchTool(toolName, args, context = {}) {
             // Resolve the admin's Web-Search Inference Routing config so the
             // search-service knows which backend to use per task. Falls back
             // to the service's own env defaults when unresolved.
+            /** @type {{ embed: InferenceEntry; rerank: InferenceEntry; cleanup: InferenceEntry; } | null} */
             let inferenceRouting = null;
             try {
                 const { resolveInferenceTargetsWithSecrets } = require('../core/llm/webSearchInferenceResolver');
                 inferenceRouting = await resolveInferenceTargetsWithSecrets();
-            } catch (err) { log.debug('non-fatal', err); }
+            } catch (err) { fallback('integrations/kbSearchTools:executeKbSearchTool', err); /* non-fatal */ }
             const sidecarT0 = Date.now();
+            /** @type {Response} */
             let searchRes;
             try {
                 searchRes = await fetch(`${searchUrl}/tools/kb-search`, {
@@ -296,7 +303,7 @@ async function executeKbSearchTool(toolName, args, context = {}) {
                     log.info(`[KBSearch] Orphan filter: removed ${before - chunks.length} orphaned chunks`);
                 }
             } catch (filterErr) {
-                log.warn('[KBSearch] Orphan filter failed, skipping:', filterErr.message);
+                log.warn('[KBSearch] Orphan filter failed, skipping:', /** @type {Error} */ (filterErr).message);
             }
         }
 
@@ -433,11 +440,14 @@ async function executeKbSearchTool(toolName, args, context = {}) {
         return payload;
 
     } catch (err) {
-        log.error(`[KBSearch] Error:`, err.message);
-        return { error: `Knowledge base search unavailable: ${err.message}` };
+        log.error(`[KBSearch] Error:`, /** @type {Error} */ (err).message);
+        return { error: `Knowledge base search unavailable: ${/** @type {Error} */ (err).message}` };
     }
 }
 
+/**
+ * @param {string} toolName
+ */
 function isKbSearchTool(toolName) {
     return toolName === 'kb_search' || toolName === 'kb_fetch';
 }
@@ -447,3 +457,8 @@ module.exports = {
     executeKbSearchTool,
     isKbSearchTool,
 };
+
+/**
+ * @typedef {{ query?: string, top_k?: number | string, chunk_ids?: string[] }} KbSearchArgs
+ * @typedef {{ conversationId?: string, userId?: string, agentId?: string, testAs?: unknown }} KbSearchContext  testAs: the raw "Test as" metadata (core/agentRuntime/testAs.js coerces it)
+ */

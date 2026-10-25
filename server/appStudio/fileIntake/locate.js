@@ -36,6 +36,7 @@ function resolveIntakeSource(model, step, ctx, { resolveBinding, scope, connecto
 
 /** The purchase-order filename pattern, guarded against catastrophic backtracking. */
 function compilePoPattern(step) {
+    /** @type {RegExp} */
     let poRe;
     try {
         const src = step.poPattern && typeof step.poPattern === 'string' ? step.poPattern : DEFAULT_PO_PATTERN;

@@ -1,4 +1,6 @@
 // @typecheck
+const { fallback } = require('../../../utils/bestEffort');
+
 /**
  * Builder tools — which catalog tool the model meant, and whether this user
  * may run it: the name read out of whatever key it arrived under, the refusal
@@ -25,7 +27,6 @@
  * means "we were not told", which is different from "the user does not have
  * it" — the distinction buildCatalogForUser now refuses to blur.
  */
-const log = require('../../../telemetry/log');
 
 function availableListHint(available) {
     if (!available) return '';
@@ -121,7 +122,7 @@ function unknownToolError(tool, draftWrap, { label = null } = {}) {
         if (!isStepType(tool)) {
             const { findOwnerOfTool } = require('../../toolRegistry');
             let owner = null;
-            try { owner = findOwnerOfTool(tool); } catch (err) { log.debug('registry hiccup — treat as unknown', err); }
+            try { owner = findOwnerOfTool(tool); } catch (err) { fallback('automation/builderTools/stepBuilders/toolResolution:unknownToolError', err); /* registry hiccup — treat as unknown */ }
             const list = availableListHint(available);
             if (owner) {
                 return {
@@ -185,3 +186,5 @@ module.exports = {
     unknownToolError,
     findDuplicateAction,
 };
+
+/** @typedef {import('../stepEditing/typeChange').BuilderWrap} BuilderWrap */

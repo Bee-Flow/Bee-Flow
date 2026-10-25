@@ -44,6 +44,7 @@ function resolveForEachItems(fe, runState, list) {
     if (firstWild < 0 || (!parents.length && list.length)) return { scopes: null, noMatch: null };
     const walked = walkTrail(tokens, runState);
     if (!walked || !walked.entries) return { scopes: null, noMatch: null };
+    /** @type {{ outer: string; count: number; } | null} */
     let noMatch = null;
     if (list.length === 0 && walked.dead) {
         const outer = formatPath(tokens.slice(0, firstWild));

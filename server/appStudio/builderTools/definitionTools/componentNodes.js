@@ -166,3 +166,8 @@ module.exports = {
     COMPONENT_ENTRY_KEYS,
     buildComponentNode,
 };
+
+/**
+ * A node as this tool builds it, before the canonicalizer sees it.
+ * @typedef {{ id: string, type: string, props: Record<string, unknown>, style: Record<string, unknown>, visible: boolean, children?: BuiltNode[], [k: string]: unknown }} BuiltNode
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * OAuth shared helpers — automation-vault upsert, return-URL resolution, the
  * constant-time CSRF-state comparison and the popup redirect page.
@@ -17,6 +17,7 @@ const log = require('../../telemetry/log');
  * encrypted, refresh-capable copy of the user's credentials even after their
  * web session expires. Failures are logged and swallowed — the user's login
  * must not break because the vault write hiccupped.
+ * @param {{ userId?: string, orgId?: string, provider?: string, tokenData?: { access_token?: string, refresh_token?: string, expires_in?: number | string, scope?: string } }} opts
  */
 async function _vaultUpsertSafe({ userId, orgId, provider, tokenData }) {
     if (!userId || !orgId || !provider || !tokenData) return;
@@ -51,6 +52,7 @@ async function _vaultUpsertSafe({ userId, orgId, provider, tokenData }) {
 }
 
 // Helper to get return URL from referer or environment
+/** @param {import('express').Request} req */
 function getReturnUrl(req) {
     const referer = req.get('Referer');
 
@@ -80,6 +82,8 @@ function getReturnUrl(req) {
  * attacker replay an authorization code they minted themselves into a victim's
  * browser via a top-level GET to the callback — login CSRF. Length is compared
  * before timingSafeEqual because that throws on a length mismatch.
+ * @param {unknown} received
+ * @param {unknown} expected
  */
 function oauthStatesMatch(received, expected) {
     if (typeof received !== 'string' || typeof expected !== 'string') return false;
@@ -117,6 +121,7 @@ const NATIVE_APP_REDIRECTS = new Map([
 /**
  * Resolve a native handoff key to its fixed redirect target, or null.
  * Never returns anything the caller supplied.
+ * @param {unknown} key
  */
 function resolveNativeAppRedirect(key) {
     if (typeof key !== 'string' || !key) return null;
@@ -127,6 +132,7 @@ function resolveNativeAppRedirect(key) {
  * The redirect target stored in the session, checked again where it is used:
  * returns the map's own literal when the value is one of the fixed targets,
  * otherwise null. Never returns the value it was given.
+ * @param {unknown} value
  */
 function knownNativeAppRedirect(value) {
     for (const target of NATIVE_APP_REDIRECTS.values()) if (target === value) return target;
@@ -136,6 +142,10 @@ function knownNativeAppRedirect(value) {
 // When popup=1 (embedded iframe mode), we serve an intermediate HTML page
 // instead of a 302 redirect. This cleans the Referer header and severs the
 // iframe->popup->provider relationship so Google/Microsoft don't block it.
+/**
+ * @param {import('express').Response} res
+ * @param {string} url
+ */
 function popupRedirect(res, url) {
     res.setHeader('Referrer-Policy', 'no-referrer');
     res.send(`<!DOCTYPE html><html><head>

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * NIS2 Art. 21(2)(d) — supply-chain security, seen from the supplier side:
  * customers in NIS2 scope send supplier questionnaires, and the ISO evidence
@@ -23,19 +23,23 @@
 
 const { getAll, getOne } = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const REQUIRED_SLUGS = ['supplier-security', 'incident-response', 'business-continuity', 'information-security-policy'];
 const SWEEP_FRESH_DAYS = 7;
 const BUNDLE_ACTIONS = ['evidence_bundle_exported', 'evidence_bundle_generated'];
 const DAY = 86400 * 1000;
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
+/** @param {Record<string, any> | null | undefined} settings */
 function _notRelevant(settings) {
     let rel = settings && settings.framework_relevance;
     if (typeof rel === 'string') { try { rel = JSON.parse(rel); } catch { rel = null; } }
     return !!rel && rel.nis2 === 'not_relevant';
 }
 
+/**
+ * @param {string | number | Date} v
+ */
 function _iso(v) {
     if (!v) return null;
     const t = new Date(v).getTime();
@@ -59,6 +63,7 @@ module.exports = {
     remediationLink: 'admin/compliance/soa',
     REQUIRED_SLUGS,
     BUNDLE_ACTIONS,
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const settings = await complianceStore.getSettings(orgId);
         if (_notRelevant(settings)) {
@@ -84,10 +89,10 @@ module.exports = {
                       WHERE organization_id = $1 AND payload->>'action' = ANY($2)) AS last_bundle_export_at
             `, [orgId, BUNDLE_ACTIONS]);
         } catch (e) {
-            if (NOT_PROVISIONED.has(e?.code)) {
+            if (isMissingTable(e)) {
                 return {
                     status: 'warn',
-                    evidence: { provisioned: false, missing: e.code },
+                    evidence: { provisioned: false, missing: e.code ?? 'missing_table' },
                     details: 'The ISO 27001 registers (policies, SoA, sweeps) are not provisioned yet — open Compliance → Policies and → SoA once to seed them.',
                 };
             }
@@ -102,6 +107,7 @@ module.exports = {
         const sweepFresh = sweepAgeDays !== null && sweepAgeDays <= SWEEP_FRESH_DAYS;
         const lastBundleExportAt = _iso(facts?.last_bundle_export_at);
 
+        /** @type {string[]} */
         const missing = [];
         if (policiesMissing.length) missing.push(`published policies (${policiesMissing.join(', ')})`);
         if (soaEntries === 0) missing.push('a seeded Statement of Applicability');

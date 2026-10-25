@@ -57,6 +57,7 @@ const WARN_FRACTION = 0.9;
  * `errorClass` rides along for the runner, whose on_error branches match on
  * that rather than on an HTTP code — validate/constants.js promises authors a
  * datatable step "fails on … a quota", and until this existed it did not.
+ * @param {string} message
  */
 function quotaError(message, { limit, used }) {
     const e = new Error(message);
@@ -68,6 +69,11 @@ function quotaError(message, { limit, used }) {
     return e;
 }
 
+/**
+ * @param {string} what
+ * @param {number} used
+ * @param {number} limit
+ */
 function warn(what, used, limit) {
     if (used < limit * WARN_FRACTION) return;
     log.warn(`[datatableLimits] ${what}: ${used} of ${limit} (${Math.round((used / limit) * 100)}%)`);

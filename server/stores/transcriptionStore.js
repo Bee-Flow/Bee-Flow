@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Transcription Store — PostgreSQL-backed meeting transcription history.
  *

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Named MCP access tokens: the `mcp_tokens` table.
  *
@@ -40,9 +40,15 @@ async function _initDB() {
     log.info('[McpTokenStore] PostgreSQL initialized');
 }
 
+/**
+ * @param {string | number | Date} v
+ */
 const iso = (v) => (v ? new Date(v).toISOString() : null);
 
-/** Row → the record shape the rest of the server uses. Never carries the hash. */
+/**
+ * Row → the record shape the rest of the server uses. Never carries the hash.
+ * @param {import('pg').QueryResultRow | null | undefined} row
+ */
 function toRecord(row) {
     if (!row) return null;
     return {
@@ -64,6 +70,9 @@ function toRecord(row) {
 
 const COLUMNS = 'id, user_id, org_id, name, scopes, ip_allowlist, expires_at, last_used_at, created_at, revoked_at, disabled_at';
 
+/**
+ * @param {{ id: string, userId: string, orgId?: string | null, name: string, secretHash: string, scopes: Record<string, unknown>, ipAllowlist?: string[] | null, expiresAt?: Date | string | null }} t
+ */
 async function insert({ id, userId, orgId, name, secretHash, scopes, ipAllowlist, expiresAt }) {
     await initDB();
     const row = await getOne(
@@ -75,12 +84,18 @@ async function insert({ id, userId, orgId, name, secretHash, scopes, ipAllowlist
     return toRecord(row);
 }
 
+/**
+ * @param {string} userId
+ */
 async function listByUser(userId) {
     await initDB();
     const rows = await getAll(`SELECT ${COLUMNS} FROM mcp_tokens WHERE user_id = $1 ORDER BY created_at DESC`, [userId]);
     return rows.map(toRecord);
 }
 
+/**
+ * @param {string} userId
+ */
 async function countActiveByUser(userId) {
     await initDB();
     const row = await getOne(
@@ -90,14 +105,21 @@ async function countActiveByUser(userId) {
     return row ? Number(row.n) : 0;
 }
 
-/** The record plus its stored hash, for the constant-time compare. */
+/**
+ * The record plus its stored hash, for the constant-time compare.
+ * @param {string} id
+ */
 async function getWithHash(id) {
     await initDB();
     const row = await getOne(`SELECT ${COLUMNS}, secret_hash FROM mcp_tokens WHERE id = $1`, [id]);
     return row ? { record: toRecord(row), secretHash: row.secret_hash } : null;
 }
 
-/** Revoke one of `userId`'s tokens (idempotent). Null when it is not theirs. */
+/**
+ * Revoke one of `userId`'s tokens (idempotent). Null when it is not theirs.
+ * @param {string} userId
+ * @param {string} id
+ */
 async function revoke(userId, id) {
     await initDB();
     const row = await getOne(
@@ -112,6 +134,9 @@ async function revoke(userId, id) {
  * Switch one of `userId`'s tokens off or back on. Null when it is not theirs.
  * A revoked token is left alone: the row comes back unchanged and the caller
  * decides what that means.
+ * @param {string} userId
+ * @param {string} id
+ * @param {boolean} enabled
  */
 async function setEnabled(userId, id, enabled) {
     await initDB();
@@ -126,6 +151,9 @@ async function setEnabled(userId, id, enabled) {
     return toRecord(row);
 }
 
+/**
+ * @param {string} id
+ */
 async function touch(id) {
     await initDB();
     await run('UPDATE mcp_tokens SET last_used_at = NOW() WHERE id = $1', [id]);

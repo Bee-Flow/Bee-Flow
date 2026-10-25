@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Nextcloud Connector: proof that the caller's Nextcloud is the instance it
  * claims to be (the capabilities round-trip every bootstrap and diagnose call
@@ -14,6 +14,10 @@ const { nextcloudFetch } = require('../../integrations/nextcloudTarget');
 // X-Beeflow-NC-Instance-Id matches the value we re-derive here. Keyed on the NC
 // host (not the NC version) so it doesn't drift across upgrades and silently
 // re-provision a duplicate org.
+/**
+ * @param {string} ncBaseUrl
+ * @param {string | null | undefined} themingName
+ */
 function stableInstanceIdFallback(ncBaseUrl, themingName) {
     const host = ncHostFromUrl(ncBaseUrl);
     if (host) return `nc-host:${host}`;
@@ -32,6 +36,10 @@ function stableInstanceIdFallback(ncBaseUrl, themingName) {
 // is re-checked at connect time. A self-host whose Nextcloud sits on a LAN
 // address opts in with NEXTCLOUD_ALLOW_PRIVATE_HOSTS=1. A refusal surfaces as
 // "unreachable", the same branch as any other connection failure.
+/**
+ * @param {string} ncBaseUrl
+ * @param {string} expectedInstanceId
+ */
 async function verifyNcInstance(ncBaseUrl, expectedInstanceId) {
     const url = `${ncBaseUrl}/ocs/v2.php/cloud/capabilities?format=json`;
     let res;

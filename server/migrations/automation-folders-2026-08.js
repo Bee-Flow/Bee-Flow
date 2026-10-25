@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: folders for automations (2026-08).
  *

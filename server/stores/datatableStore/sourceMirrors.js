@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -34,13 +34,22 @@ const KIND_LIST = SOURCE_KINDS.map(k => `'${k}'`).join(', ');
 // One-release alias: the first kind, for callers that still name it.
 const MIRROR_KIND = SOURCE_KINDS[0];
 
+/**
+ * @param {string} kind
+ * @param {string} who
+ */
 function assertSourceKind(kind, who) {
     if (kind !== null && kind !== undefined && !SOURCE_KINDS.includes(kind)) {
         throw new Error(`${who}: unknown source kind ${String(kind)}`);
     }
 }
 
-/** Replace a mirror's `source` block whole. Scoped, like every other write. */
+/**
+ * Replace a mirror's `source` block whole. Scoped, like every other write.
+ * @param {string} id
+ * @param {{ kind: string, id: string }} scope
+ * @param {Record<string, unknown> | null} source
+ */
 async function setSource(id, scope, source) {
     await initDB();
     assertScope(scope, 'setSource');
@@ -65,6 +74,8 @@ async function setSource(id, scope, source) {
  * ticker holds only ids, and the row is the authority on which tenant it
  * belongs to — the caller gets the whole row back and reads the scope off it.
  * The `managed_kind` guard means an ordinary table can never be "claimed".
+ * @param {string} id
+ * @param {{ staleMs?: number }} opts
  */
 async function claimSourceSync(id, { staleMs = 10 * 60 * 1000 } = {}) {
     await initDB();
@@ -98,6 +109,8 @@ async function claimSourceSync(id, { staleMs = 10 * 60 * 1000 } = {}) {
  * must not clear the mark or the next tick would believe the copy current.
  * The cast is fine here: an UPDATE may use `::timestamptz`; only an INDEX
  * expression must stay IMMUTABLE.
+ * @param {string} id
+ * @param {Record<string, unknown>} patch
  */
 async function finishSourceSync(id, patch) {
     await initDB();
@@ -123,6 +136,8 @@ async function finishSourceSync(id, patch) {
  * running (`status`, `startedAt` stay as they are): a write-through records
  * the file's new marker and content hash so the next probe reads
  * "unchanged" instead of re-downloading what it just wrote.
+ * @param {string} id
+ * @param {Record<string, unknown>} patch
  */
 async function patchSyncState(id, patch) {
     await initDB();
@@ -142,6 +157,8 @@ async function patchSyncState(id, patch) {
  * Move the ticker's next look at a mirror — after a schedule change — without
  * touching anything else about a pass that may be running right now
  * (finishSourceSync would clear its claim).
+ * @param {string} id
+ * @param {string} nextRunAt
  */
 async function setSourceNextRun(id, nextRunAt) {
     await initDB();
@@ -162,6 +179,8 @@ async function setSourceNextRun(id, nextRunAt) {
  * tick runs a full pass regardless of the schedule. Never touches `status`:
  * a pass that is running keeps running (and finishSourceSync keeps this mark
  * when it was set after the claim).
+ * @param {string} id
+ * @param {string} reason
  */
 async function markSourceStale(id, reason) {
     await initDB();
@@ -185,6 +204,7 @@ async function markSourceStale(id, reason) {
  * mirror that has never been refreshed (its first pass died with the
  * process) and is due; a NULL `nextRunAt` INSIDE a state is a schedule of
  * "never" and is not.
+ * @param {number} [limit]
  */
 async function listDueSourceSyncs(limit = 20) {
     await initDB();
@@ -207,6 +227,8 @@ async function listDueSourceSyncs(limit = 20) {
  * the signed event came from, never wider: a personal mirror linked by a member
  * of that org carries `organization_id` NULL and is deliberately NOT reached
  * here — it refreshes on open and on schedule like any other.
+ * @param {string} organizationId
+ * @param {number} ncTableId
  */
 async function listNcMirrorsForTable(organizationId, ncTableId) {
     await initDB();
@@ -224,6 +246,8 @@ async function listNcMirrorsForTable(organizationId, ncTableId) {
  * Every mirror of `kind` in ONE organisation whose source is file `fileId`
  * at `provider` — the file-event fan-out (idx_datatables_source_file). The
  * same organisation narrowing as listNcMirrorsForTable, for the same reason.
+ * @param {string} organizationId
+ * @param {{ kind: string, provider: string, fileId: string }} ref
  */
 async function listSourceMirrorsByRef(organizationId, { kind, provider, fileId }) {
     await initDB();
@@ -242,6 +266,8 @@ async function listSourceMirrorsByRef(organizationId, { kind, provider, fileId }
  * The same fan-out by the file's PATH — for a delete event, which carries no
  * id. Unindexed on purpose: deletes and renames are rare, and an index on a
  * path nobody else asks by would cost every write.
+ * @param {string} organizationId
+ * @param {{ kind: string, provider: string, path: string }} ref
  */
 async function listSourceMirrorsByPath(organizationId, { kind, provider, path }) {
     await initDB();
@@ -261,6 +287,8 @@ async function listSourceMirrorsByPath(organizationId, { kind, provider, path })
  * "something changed in this person's drive" hint, which names no file.
  * Unscoped like the ticker's question: the hint is a platform event about
  * the linker, and each mirror row says which tenant it belongs to.
+ * @param {string} userId
+ * @param {string} provider
  */
 async function listSourceMirrorsByLinker(userId, provider) {
     await initDB();
@@ -278,6 +306,8 @@ async function listSourceMirrorsByLinker(userId, provider) {
  * Every mirror in one scope — "already linked" checks and relation targets.
  * All kinds unless `kind` narrows it: a relation may point at a mirror of
  * another kind, but "is this Nextcloud table already linked" is asked of one.
+ * @param {{ kind: string, id: string }} scope
+ * @param {{ kind?: string | null }} opts
  */
 async function listSourceMirrorsInScope(scope, { kind = null } = {}) {
     await initDB();
@@ -306,6 +336,9 @@ const finishNcSync = finishSourceSync;
 const setNcNextRun = setSourceNextRun;
 const markNcStale = markSourceStale;
 const listDueNcSyncs = listDueSourceSyncs;
+/**
+ * @param {{ kind: string, id: string }} scope
+ */
 const listNcMirrorsInScope = (scope) => listSourceMirrorsInScope(scope, { kind: MIRROR_KIND });
 
 module.exports = {

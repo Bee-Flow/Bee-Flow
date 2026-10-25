@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The indexes a refresh builds over a mirror's RELATION TARGETS, so every
  * fetched row can be given its derived columns in memory (rows.js):
@@ -35,14 +35,19 @@ const { synthesizeAccess } = require('../../../../auth/datatableAccess');
 const { ownerFilter } = require('./access');
 const { PG } = require('./constants');
 
-/** (id, value) pairs of ONE column of a mirror in this scope, or null when unreadable. */
+/**
+ * (id, value) pairs of ONE column of a mirror in this scope, or null when unreadable.
+ * @param {{ kind: string; id: string; }} scope
+ * @param {string} targetDatatableId
+ * @param {string | undefined} fieldId
+ */
 async function readColumn(scope, targetDatatableId, fieldId) {
     const table = await datatableStore.getDatatable(targetDatatableId, scope);
-    if (!table) return { rows: null, why: 'target table is gone' };
+    if (!table) return { rows: /** @type {Array<Record<string, unknown>> | null} */ (null), why: 'target table is gone' };
     const meta = await datatableStore.getTableMeta(scope, targetDatatableId);
-    if (!meta) return { rows: null, why: 'target table has no columns' };
-    const field = (meta.fields || []).find(f => f && f.id === fieldId);
-    if (!field) return { rows: null, why: 'target column is gone' };
+    if (!meta) return { rows: /** @type {Array<Record<string, unknown>> | null} */ (null), why: 'target table has no columns' };
+    const field = (meta.fields || []).find((/** @type {{ id?: string, key?: string }} */ f) => f && f.id === fieldId);
+    if (!field) return { rows: /** @type {Array<Record<string, unknown>> | null} */ (null), why: 'target column is gone' };
     const withAccess = { ...meta, access: synthesizeAccess(table) };
     const { sql, params } = queryCompiler.compileKeyValues(withAccess, field.key, ownerFilter(withAccess, 'read'), PG);
     const scopeKey = datatableDbStore.scopeKey(scope);
@@ -56,11 +61,12 @@ async function readColumn(scope, targetDatatableId, fieldId) {
  * @param {object} [hooks]
  * @param {(rel:object, target:object) => string|null} [hooks.labelFieldFor]
  *   for an 'nc' relation: the target mirror's field that holds the label
- * @returns {Promise<{ relationIndexes:Map, labelIndexes:Map, warnings:string[] }>}
+ * @returns {Promise<{ relationIndexes:Map<string, Map<string, string>>, labelIndexes:Map<string, Map<string, string>>, warnings:string[] }>}
  */
 async function buildRelationIndexes(scope, source, { labelFieldFor = null } = {}) {
     const relationIndexes = new Map();
     const labelIndexes = new Map();
+    /** @type {string[]} */
     const warnings = [];
     for (const rel of (source && source.relations) || []) {
         if (!rel || !rel.fieldId || !rel.targetDatatableId) continue;

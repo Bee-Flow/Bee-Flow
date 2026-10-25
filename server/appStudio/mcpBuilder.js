@@ -435,3 +435,5 @@ module.exports = {
     APPLESS_TOOLS,
     _test: { toMcpTool, takeScreenshotBudget, SHOT_MAX_PER_WINDOW, _shotBudget },
 };
+
+/** @typedef {import('./builderTools').BuilderDraft} BuilderDraft */

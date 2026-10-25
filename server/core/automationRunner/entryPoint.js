@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -16,11 +16,17 @@ const { automationForRun } = require('./definitionForRun');
  * manages that is the LIVE copy (test runs included), so a trigger that exists
  * only in the working copy is not offered. Throws managed_part_not_deployed
  * (409) when it has no live copy.
+ * @param {Parameters<typeof automationForRun>[0] & Parameters<typeof isManagedAutomation>[0]} a
  */
 async function entryDefinitionOf(a) {
     if (!await isManagedAutomation(a)) return a.definition;
     return automationForRun(a, { mode: 'live', managed: true }).definition;
 }
+
+/**
+ * A trigger node as far as an entry point and its caller read it.
+ * @typedef {{ id?: string, kind?: string, appEvent?: { provider?: string, event?: string, filter?: unknown } }} EntryTrigger
+ */
 
 /**
  * Resolve an optional `triggerStepId` (the entry point a test run should use)
@@ -29,6 +35,8 @@ async function entryDefinitionOf(a) {
  * to hand the runner (null for the primary, so an automation without additional
  * triggers behaves exactly as before). A wrong id is a 400, never a silent
  * fall-back to the primary: the caller asked to test a specific root.
+ * @param {{ trigger?: EntryTrigger, triggers?: EntryTrigger[] } | null | undefined} def
+ * @param {string | null | undefined} triggerStepId
  */
 function resolveTriggerStepId(def, triggerStepId) {
     const known = [def?.trigger, ...(Array.isArray(def?.triggers) ? def.triggers : [])].filter(t => t && t.id);

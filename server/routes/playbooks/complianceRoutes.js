@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * WHAT A PERSON DOES WITH THE COMPLIANCE REVIEW.
  *
@@ -70,6 +71,7 @@ const RegisterBody = bodyOf({
 });
 const { kindOf, firstOfKind, localeOf } = require('./phaseList');
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 /**
  * The six legal bases Art. 6 gives, and the cap the datatables route applies.
@@ -90,6 +92,15 @@ const MAX_RETENTION_DAYS = 3650;
 // (owner, 2026-09-17).
 const RETENTION_SYSTEM_FIELDS = Object.freeze(['created_at', 'updated_at']);
 
+/**
+ * @typedef {{ code: string, title?: string, subject?: string, why?: string, fix?: string, framework?: string, severity?: string, article?: string, source?: string }} ComplianceFinding
+ * @typedef {import('../../playbooks/lifecycle').PhaseArtifacts & { datatableScope?: { kind: string, id: string }, fields?: Array<{ key: string, name?: string, type?: string }> }} TableArtifacts
+ */
+
+/**
+ * @param {{ lawfulBasis?: unknown, retentionDays?: unknown, retentionField?: unknown, subjectColumn?: unknown }} reg
+ * @param {unknown} fields
+ */
 function validateRegistration(reg, fields) {
     const keys = new Set([
         ...RETENTION_SYSTEM_FIELDS,
@@ -123,6 +134,10 @@ function validateRegistration(reg, fields) {
     return { patch };
 }
 
+/**
+ * @param {import('express').IRouter} router
+ * @param {import('./index').PlaybookRouteCtx} ctx
+ */
 function register(router, ctx) {
     const { d, flow, requireManageApps, runLimiter } = ctx;
     const { load, phaseTier } = flow;
@@ -134,7 +149,7 @@ function register(router, ctx) {
      * presses Apply, and the calls go out through the endpoints that already
      * own and audit those writes — the same separation the access phase has.
      */
-    router.post('/:id/phases/:key/resolve-plan', requireManageApps, runLimiter, async (req, res) => {
+    router.post('/:id/phases/:key/resolve-plan', requireManageApps, runLimiter, async (/** @type {import('express').Request<{ id: string, key: string }>} */ req, /** @type {import('express').Response} */ res) => {
         try {
             const pb = await load(req, res);
             if (!pb) return;
@@ -143,10 +158,10 @@ function register(router, ctx) {
             const parsed = check(res, ResolvePlanBody, req.body, 'bad_patch');
             if (!parsed.ok) return;
             const code = parsed.value.code;
-            const findings = Array.isArray(cur.artifacts && cur.artifacts.findings) ? cur.artifacts.findings : [];
+            const findings = Array.isArray(cur.artifacts && cur.artifacts.findings) ? /** @type {ComplianceFinding[]} */ (cur.artifacts.findings) : [];
             const finding = findings.find((f) => f && f.code === code) || null;
             if (!finding) return sendErr(res, 404, 'unknown_finding', 'That finding is not on this review.');
-            const facts = (cur.artifacts && cur.artifacts.facts) || null;
+            const facts = /** @type {{ automations?: Array<{ id?: string } | null> } | null} */ ((cur.artifacts && cur.artifacts.facts) || null);
             if (!facts) return sendErr(res, 409, 'artifacts_missing', 'This review has no facts to work from.');
             // The planner's tier: the playbook's, measured against the
             // owner's list now (phaseFlow.phaseTier).
@@ -158,8 +173,8 @@ function register(router, ctx) {
             // `!orgId || !x.organizationId || …` read a consumer's playbook as
             // "no filter" and let consumers and global groups into every org's.
             const [groups, users] = await Promise.all([
-                d.userStore.getAllGroups().catch(() => []),
-                d.userStore.getAllUsers().catch(() => []),
+                d.userStore.getAllGroups().catch((e) => fallback('routes/playbooks/complianceRoutes:register', e, [])),
+                d.userStore.getAllUsers().catch((e) => fallback('routes/playbooks/complianceRoutes:register#2', e, [])),
             ]);
             const directory = directoryFor(pb, req.session, groups || [], users || []);
             // The automations' definitions, read once and only for the ids this
@@ -170,7 +185,7 @@ function register(router, ctx) {
                 try {
                     const row = await d.automationStore.getAutomation(a.id);
                     if (row && row.userId === pb.userId) defs.set(a.id, row.definition || null);
-                } catch (err) { log.debug('one unreadable automation is not the end of the plan', err); }
+                } catch (err) { bestEffort('routes/playbooks/complianceRoutes:register#3', err); /* one unreadable automation is not the end of the plan */ }
             }
 
             const out = await d.planResolve({
@@ -180,17 +195,17 @@ function register(router, ctx) {
                 facts,
                 locale: localeOf(pb) || 'en',
                 directory: {
-                    groups: directory.groups.map((g) => ({ id: g.id, name: g.name })),
-                    people: directory.users.map((u) => ({ id: u.id, name: u.name || u.fullName || '', email: u.email || '' })),
+                    groups: directory.groups.map((/** @type {{ id: string, name: string }} */ g) => ({ id: g.id, name: g.name })),
+                    people: directory.users.map((/** @type {{ id: string, name?: string, fullName?: string, email?: string }} */ u) => ({ id: u.id, name: u.name || u.fullName || '', email: u.email || '' })),
                 },
                 definitionOf: (id) => defs.get(id) || null,
                 userId: pb.userId,
                 userOrgId: pb.organizationId,
             });
-            if (!out.ok) return sendErr(res, 422, out.code, out.error);
+            if (!out.ok) return sendErr(res, 422, /** @type {Extract<typeof out, { ok: false }>} */ (out).code, /** @type {Extract<typeof out, { ok: false }>} */ (out).error);
             res.json({ plan: out.plan });
         } catch (e) {
-            log.error('[Playbooks] resolve plan failed:', e.message);
+            log.error('[Playbooks] resolve plan failed:', /** @type {Error} */ (e).message);
             sendErr(res, 500, 'internal', 'Could not work that out');
         }
     });
@@ -205,7 +220,7 @@ function register(router, ctx) {
      * person deserves to know which before they press Register, so this reads
      * and answers — it writes nothing (owner, 2026-09-16).
      */
-    router.post('/:id/phases/:key/retention-preview', requireManageApps, runLimiter, async (req, res) => {
+    router.post('/:id/phases/:key/retention-preview', requireManageApps, runLimiter, async (/** @type {import('express').Request<{ id: string, key: string }>} */ req, /** @type {import('express').Response} */ res) => {
         try {
             const pb = await load(req, res);
             if (!pb) return;
@@ -214,6 +229,7 @@ function register(router, ctx) {
             const parsed = check(res, RetentionPreviewBody, req.body, 'bad_retention_field');
             if (!parsed.ok) return;
             const body = parsed.value;
+            /** @type {TableArtifacts} */
             const tableArt = (firstOfKind(pb.phases, 'table') || {}).artifacts || {};
             if (!tableArt.datatableId) return sendErr(res, 409, 'artifacts_missing', 'This playbook has no table.');
             const fields = Array.isArray(tableArt.fields) ? tableArt.fields : [];
@@ -263,8 +279,8 @@ function register(router, ctx) {
                 outsideWindow: outside,
             });
         } catch (e) {
-            if (e && e.status) return sendErr(res, e.status, e.code || 'refused', e.message);
-            log.error('[Playbooks] retention preview failed:', e.message);
+            if (e && e.status) return sendErr(res, e.status, e.code || 'refused', /** @type {Error} */ (e).message);
+            log.error('[Playbooks] retention preview failed:', /** @type {Error} */ (e).message);
             return sendErr(res, 500, 'server_error', 'Could not read the table.');
         }
     });
@@ -285,7 +301,7 @@ function register(router, ctx) {
      * Partial success is reported, never rolled back silently: a risk that
      * could not be written must not un-register the table.
      */
-    router.post('/:id/phases/:key/register', requireManageApps, runLimiter, async (req, res) => {
+    router.post('/:id/phases/:key/register', requireManageApps, runLimiter, async (/** @type {import('express').Request<{ id: string, key: string }>} */ req, /** @type {import('express').Response} */ res) => {
         try {
             const pb = await load(req, res);
             if (!pb) return;
@@ -296,10 +312,13 @@ function register(router, ctx) {
             const body = parsed.value;
             const orgId = pb.organizationId || 'default';
             const userId = pb.userId;
+            /** @type {string[]} */
             const written = [];
+            /** @type {{ what: string; error: string; }[]} */
             const failed = [];
 
             // 1. the table
+            /** @type {TableArtifacts} */
             const tableArt = (firstOfKind(pb.phases, 'table') || {}).artifacts || {};
             const reg = isObject(body.registration) ? body.registration : {};
             // What was really written, and -- if something was asked and not
@@ -307,6 +326,7 @@ function register(router, ctx) {
             // it used to spread the request into `registered`, so a refused legal
             // basis sat on the hash chain as a registration that never happened.
             let registeredPatch = null;
+            /** @type {string | null} */
             let notRegistered = null;
             // `retentionField` counts too: a registration naming only the date
             // column was skipped without a word.
@@ -321,7 +341,7 @@ function register(router, ctx) {
                         written.push('processing_register');
                         registeredPatch = check.patch;
                     } catch (e) {
-                        failed.push({ what: 'processing_register', error: e.message });
+                        failed.push({ what: 'processing_register', error: /** @type {Error} */ (e).message });
                         notRegistered = 'the table could not be updated';
                     }
                 }
@@ -329,7 +349,7 @@ function register(router, ctx) {
 
             // 2. the risks the person kept
             const keep = Array.isArray(body.risks) ? body.risks.slice(0, 20) : [];
-            const findings = Array.isArray(cur.artifacts && cur.artifacts.findings) ? cur.artifacts.findings : [];
+            const findings = Array.isArray(cur.artifacts && cur.artifacts.findings) ? /** @type {ComplianceFinding[]} */ (cur.artifacts.findings) : [];
             let risks = 0;
             for (const code of keep) {
                 const f = findings.find((x) => x && x.code === code);
@@ -347,7 +367,7 @@ function register(router, ctx) {
                     }, userId);
                     risks += 1;
                 } catch (e) {
-                    failed.push({ what: `risk:${code}`, error: e.message });
+                    failed.push({ what: `risk:${code}`, error: /** @type {Error} */ (e).message });
                 }
             }
             if (risks) written.push(`risks:${risks}`);
@@ -372,7 +392,7 @@ function register(router, ctx) {
                 });
                 written.push('evidence');
             } catch (e) {
-                failed.push({ what: 'evidence', error: e.message });
+                failed.push({ what: 'evidence', error: /** @type {Error} */ (e).message });
             }
 
             // The three writes above have already happened. If THIS write loses
@@ -381,6 +401,10 @@ function register(router, ctx) {
             // and the panel invited a second one — a second evidence row on the
             // chain. Re-read and merge once instead.
             const stamp = { at: new Date(d.now()).toISOString(), written, risks, table: tableArt.datatableId || null };
+            /**
+             * @param {import('../../playbooks/lifecycle').Phase[]} list
+             * @param {string} key
+             */
             const withStamp = (list, key) => list.map((p) => (p.key === key
                 ? { ...p, artifacts: { ...(p.artifacts || {}), registered: stamp } }
                 : p));
@@ -396,7 +420,7 @@ function register(router, ctx) {
             }
             res.json({ playbook: saved.ok ? saved.playbook : pb, written, failed });
         } catch (e) {
-            log.error('[Playbooks] register failed:', e.message);
+            log.error('[Playbooks] register failed:', /** @type {Error} */ (e).message);
             sendErr(res, 500, 'internal', 'Could not register it');
         }
     });

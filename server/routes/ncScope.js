@@ -27,7 +27,7 @@ const { validate } = require('../core/http/validate');
 const { HttpError } = require('../core/http/errors');
 const { z, typeError } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
-const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -59,7 +59,7 @@ const MAX_SELECTED = 200;
 const MAX_ID_LEN = 500;
 
 /** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
-const bodyOf = (shape) => z.preprocess(
+const bodyOf = (/** @type {{ integrations?: import("zod").ZodObject<{ [x: string]: import("zod").ZodOptional<import("zod").ZodNullable<import("zod").ZodObject<{ mode: import("zod").ZodEnum<{ all: "all"; selected: "selected"; off: "off"; }>; selected: import("zod").ZodOptional<import("zod").ZodArray<import("zod").ZodUnion<readonly [import("zod").ZodString, import("zod").ZodNumber]>>>; }, import("zod/v4/core").$strict>>>; }, import("zod/v4/core").$strict>; }} */ shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape, { error: typeError({ invalid: 'Send the settings as a JSON object.' }) }).strict(),
 );
@@ -165,10 +165,13 @@ router.post('/reset', requireAuth, validate({ body: NoBody }), async (req, res) 
     res.json({ integrations: presentScope(doc), updatedAt: null, reset: true });
 });
 
+/**
+ * @param {string} userId
+ */
 function _invalidateGuardCache(userId) {
     try {
         require('../core/integrations/ncScopeGuard').invalidateScopeCache(userId);
-    } catch (err) { log.debug('guard cache is 15s anyway', err); }
+    } catch (err) { bestEffort('routes/ncScope:_invalidateGuardCache', err); /* guard cache is 15s anyway */ }
 }
 
 // ── Resource discovery for the pickers ──────────────────────────────────────
@@ -190,6 +193,10 @@ const RESOURCE_CACHE_MAX = 500;
 // Entries were only ever replaced, never removed, so every (user, integration,
 // path) ever listed stayed in memory (BFSF-381). Each insert drops expired
 // entries, then the oldest ones while the map is over its cap.
+/**
+ * @param {string} key
+ * @param {number} [now]
+ */
 function cacheResource(key, data, now = Date.now()) {
     for (const [k, v] of _resourceCache) {
         if (now - v.at >= RESOURCE_CACHE_TTL_MS) _resourceCache.delete(k);
@@ -222,7 +229,7 @@ router.get('/resources/:integrationId', requireAuth, resourceLimiter, validate({
             // nextcloud_list_files → { path, count, items: [{ name, path,
             // type: 'folder'|'file', … }] } (parsePropfind).
             const items = (result?.items || [])
-                .filter(f => f?.type === 'folder')
+                .filter((/** @type {{ type: string; }} */ f) => f?.type === 'folder')
                 .map(f => ({ id: f.path, label: f.name, hasChildren: true }));
             data = { kind: spec.kind, path: result?.path || path, resources: items };
         } else {

@@ -108,8 +108,9 @@ function answer(res, e) {
  * The scope a request addresses — the same words and the same chain as
  * POST /: `organisation` (default when the account has one) or `personal`.
  * Returns the scope, or answers the refusal itself and returns null.
+ * @param {string | ParsedQs | (string | ParsedQs)[] | undefined} wanted
  */
-async function resolveScope(req, res, principal, wanted) {
+async function resolveScope(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, principal, wanted) {
     if (wanted !== undefined && wanted !== 'organisation' && wanted !== 'personal') {
         res.status(400).json({ error: 'A table belongs either to your organisation or to this account', code: 'bad_scope' });
         return null;
@@ -197,3 +198,5 @@ function makeNextcloudRouter({ publicTable }) {
 }
 
 module.exports = makeNextcloudRouter;
+
+/** @typedef {import('qs').ParsedQs} ParsedQs */

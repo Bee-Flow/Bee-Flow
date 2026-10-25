@@ -175,3 +175,7 @@ module.exports = {
     groundingOf,
     hasKnowledgeSource,
 };
+
+/**
+ * @typedef {{ knowledge_base_ids?: unknown, tools?: unknown } | null | undefined} GroundingConfig
+ */

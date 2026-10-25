@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Resolve the externally-reachable base URL of this server.
  *

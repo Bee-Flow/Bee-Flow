@@ -1,5 +1,10 @@
-// @typecheck
+// @typecheck strict
 'use strict';
+
+/**
+ * @typedef {{ core?: string[], beta?: string[], integration?: string[], [kind: string]: string[] | undefined }} KindLists
+ * @typedef {{ listCapabilities: () => { id: string, kind: string, userFacing?: boolean, groupTogglable?: boolean, groupScoped?: boolean }[] }} CapabilityRegistry
+ */
 
 // What an "All members" save stores for the ids it could not decide itself.
 // Split out of featureAccessRoutes.js, which is at its size budget.
@@ -20,6 +25,12 @@ const { BETA_FEATURES } = require('../../core/entitlements/betaFeatures');
 // not (or no longer) a group-scoped beta is kept as-is for the same reason.
 // "Decided by this save" = in the org's access AND listed in the matrix (the
 // filtered list): a beta of an inactive module is not shown, so not chosen.
+/**
+ * @param {string} orgId
+ * @param {KindLists} bound
+ * @param {string[]} chosenBeta
+ * @param {CapabilityRegistry} registry
+ */
 async function nextBetaEveryone(orgId, bound, chosenBeta, registry) {
     const scopedIds = BETA_FEATURES.filter(f => f.groupScoped).map(f => f.id);
     const scopedSet = new Set(scopedIds);
@@ -27,6 +38,7 @@ async function nextBetaEveryone(orgId, bound, chosenBeta, registry) {
     const inBound = new Set((bound.beta || []).filter(id => shown.has(id)));
     const chosen = new Set(chosenBeta);
     const stored = await userStore.getOrgBetaEveryone(orgId);
+    /** @type {string[]} */
     const next = [];
     for (const id of scopedIds) {
         if (inBound.has(id)) { if (chosen.has(id)) next.push(id); continue; }
@@ -44,7 +56,14 @@ async function nextBetaEveryone(orgId, bound, chosenBeta, registry) {
 // module is inactive) keeps its previous state, like nextBetaEveryone, so it is
 // as the admin left it when the menu or module brings it back. A never-chosen
 // list (null) counts as "nothing revoked" for that carry-over.
+/**
+ * @param {string} orgId
+ * @param {KindLists} bound
+ * @param {KindLists} chosen
+ * @param {CapabilityRegistry} registry
+ */
 async function nextEveryoneRevoked(orgId, bound, chosen, registry) {
+    /** @type {Set<string>} */
     const decidable = new Set();
     for (const cap of registry.listCapabilities()) {
         if (!cap.userFacing || !cap.groupTogglable || cap.groupScoped) continue;

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The text edits behind notebook_insert and notebook_replace, as pure functions
  * of the current Markdown: no I/O, so the matching strategies can be read and
@@ -8,8 +8,13 @@
 
 const log = require('../telemetry/log');
 
-/** Where `insertContent` goes: the start, the end, or after the text `afterText` (exact, then whitespace-normalised, else appended). */
+/**
+ * Where `insertContent` goes: the start, the end, or after the text `afterText` (exact, then whitespace-normalised, else appended).
+ * @param {string} currentContent
+ * @param {{ position?: string, afterText?: string, insertContent?: string }} edit
+ */
 function insertIntoContent(currentContent, { position, afterText, insertContent }) {
+    /** @type {string} */
     let newContent;
 
     if (position === 'start') {
@@ -26,7 +31,7 @@ function insertIntoContent(currentContent, { position, afterText, insertContent 
             newContent = currentContent.slice(0, idx) + '\n\n' + insertContent + currentContent.slice(idx);
         } else {
             // Try whitespace-normalized match
-            const normalizeWs = (t) => t.replace(/\r\n/g, '\n').replace(/[ \t]+/g, ' ').trim();
+            const normalizeWs = (/** @type {string} */ t) => t.replace(/\r\n/g, '\n').replace(/[ \t]+/g, ' ').trim();
             const afterNorm = normalizeWs(afterText);
             const lines = currentContent.split('\n');
             let matchEnd = -1;
@@ -54,7 +59,11 @@ function insertIntoContent(currentContent, { position, afterText, insertContent 
     return { newContent };
 }
 
-/** Replace `findText` (exact, then whitespace-normalised, then Markdown-stripped match), optionally narrowed to a section. */
+/**
+ * Replace `findText` (exact, then whitespace-normalised, then Markdown-stripped match), optionally narrowed to a section.
+ * @param {string} currentContent
+ * @param {{ findText?: string, replaceText?: string, sectionHeading?: string }} edit
+ */
 function replaceInContent(currentContent, { findText, replaceText, sectionHeading }) {
     const { parseSections } = require('./notebookReadModes');
     let searchContent = currentContent;
@@ -72,6 +81,7 @@ function replaceInContent(currentContent, { findText, replaceText, sectionHeadin
         }
     }
 
+    /** @type {string} */
     let newContent;
 
     // Strategy 1: Exact match
@@ -84,6 +94,9 @@ function replaceInContent(currentContent, { findText, replaceText, sectionHeadin
         }
     } else {
         // Strategy 2: Whitespace-normalized match
+        /**
+         * @param {string} t
+         */
         const normalizeWs = (t) => t.replace(/\r\n/g, '\n').replace(/[ \t]+/g, ' ').trim();
         const findNorm = normalizeWs(findText);
 
@@ -118,6 +131,9 @@ function replaceInContent(currentContent, { findText, replaceText, sectionHeadin
             newContent = [before, replaceText, after].filter(p => p !== '').join('\n');
         } else {
             // Strategy 3: Strip-markdown matching
+            /**
+             * @param {string} t
+             */
             const stripMd = (t) => t
                 .replace(/\*\*(.+?)\*\*/g, '$1')
                 .replace(/__(.+?)__/g, '$1')

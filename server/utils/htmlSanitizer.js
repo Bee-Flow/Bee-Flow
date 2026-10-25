@@ -15,7 +15,7 @@
 
 const createDOMPurify = require('dompurify');
 const { JSDOM } = require('jsdom');
-const log = require('../telemetry/log');
+const { fallback } = require('./bestEffort');
 
 let purifyInstance = null;
 
@@ -121,7 +121,7 @@ function sanitizePlainText(value, { maxLen = DEFAULT_TEXT_MAX } = {}) {
     try {
         const { sanitizeUnicode } = require('./unicodeSanitizer');
         text = sanitizeUnicode(text).clean ?? text;
-    } catch (err) { log.debug('optional helper — never block a write on it', err); }
+    } catch (err) { fallback('utils/htmlSanitizer:sanitizePlainText', err); /* optional helper — never block a write on it */ }
 
     text = text.replace(/\s+/g, ' ').trim();
     return maxLen > 0 ? text.slice(0, maxLen) : text;
@@ -148,3 +148,5 @@ module.exports = {
     sanitizePlainText,
     sanitizePlainTextFields,
 };
+
+/** @typedef {{ nodeType: number, tagName?: string, textContent: string, childNodes: Iterable<DomNode> }} DomNode */

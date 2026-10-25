@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Transcriptions — speaker editing.
  *
@@ -16,7 +16,7 @@ const { toContextBias, identifySpeakerNames, applySpeakerNames } = require('../.
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, NO_QUERY } = require('./schemas');
-const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // ── What a speaker edit may carry ───────────────────────────────────
 //
@@ -54,7 +54,7 @@ const ReidentifyBody = bodyOf({
 // string is rebuilt from segments so it stays in sync with the labels.
 // Owner-only.
 
-router.patch('/:id/speakers', requireAuth, validate({ body: SpeakersBody, query: NO_QUERY }), async (req, res) => {
+router.patch('/:id/speakers', requireAuth, validate({ body: SpeakersBody, query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
     const userId = req.session.user.id;
     const { renames = {}, merges = [] } = req.body;
 
@@ -91,6 +91,7 @@ router.patch('/:id/speakers', requireAuth, validate({ body: SpeakersBody, query:
         renameOf.set(oldName, newName.trim());
     }
 
+    /** @param {string} name */
     const remap = (name) => {
         const merged = mergeOf.get(name) ?? name;
         // A rename keyed on the original name wins; otherwise a rename that
@@ -117,7 +118,7 @@ router.patch('/:id/speakers', requireAuth, validate({ body: SpeakersBody, query:
     }
 
     // Rewrite segments.
-    const segments = (transcription.segments || []).map(seg => ({
+    const segments = (transcription.segments || []).map(/** @param {StoredSegment} seg */ seg => ({
         ...seg,
         speaker: remap(seg.speaker || seg.speakerId),
     }));
@@ -126,6 +127,7 @@ router.patch('/:id/speakers', requireAuth, validate({ body: SpeakersBody, query:
     // A row the user touched becomes `manual`: their correction is the most
     // authoritative signal there is, and must survive a later reprocess or
     // auto re-identify. Untouched rows keep whatever named them.
+    /** @type {Record<string, { id: string, speakingSeconds: number, segments: number, source?: string }>} */
     const collected = {};
     for (const s of (transcription.speakers || [])) {
         const newId = remap(s.id);
@@ -137,6 +139,7 @@ router.patch('/:id/speakers', requireAuth, validate({ body: SpeakersBody, query:
         collected[newId].speakingSeconds += Number(s.speakingSeconds || 0);
         collected[newId].segments += Number(s.segments || 0);
     }
+    /** @param {number | null | undefined} secs */
     const fmtTime = (secs) => {
         if (secs == null) return '00:00';
         const h = Math.floor(secs / 3600);
@@ -153,7 +156,7 @@ router.patch('/:id/speakers', requireAuth, validate({ body: SpeakersBody, query:
     // Rebuild the transcript string from segments so it stays in sync
     // with the new labels. Matches the format used at create time.
     const transcript = segments
-        .map(s => `[${s.speaker}] ${fmtTime(s.start)} - ${fmtTime(s.end)}: ${s.text || ''}`)
+        .map(/** @param {StoredSegment} s */ s => `[${s.speaker}] ${fmtTime(s.start)} - ${fmtTime(s.end)}: ${s.text || ''}`)
         .join('\n');
 
     await transcriptionStore.updateTranscription(req.params.id, userId, {
@@ -176,7 +179,7 @@ router.patch('/:id/speakers', requireAuth, validate({ body: SpeakersBody, query:
 // strongest signal is a roster, so an optional `attendees` list (names of who
 // was in the room) is accepted and, when given, drives the mapping. Owner-only.
 
-router.post('/:id/reidentify-speakers', requireAuth, validate({ body: ReidentifyBody, query: NO_QUERY }), async (req, res) => {
+router.post('/:id/reidentify-speakers', requireAuth, validate({ body: ReidentifyBody, query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
     const userId = req.session.user.id;
     const userOrgId = await resolveUserOrgFromReq(req);
     const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
@@ -184,6 +187,7 @@ router.post('/:id/reidentify-speakers', requireAuth, validate({ body: Reidentify
     if (!transcription) return res.status(404).json({ error: 'Not found' });
     if (!transcription.isOwner) return res.status(403).json({ error: 'Only the owner can re-identify speakers' });
 
+    /** @type {StoredSegment[]} */
     const segments = Array.isArray(transcription.segments) ? transcription.segments : [];
     if (!segments.length) return res.status(400).json({ error: 'No transcript segments to work from' });
 
@@ -196,10 +200,11 @@ router.post('/:id/reidentify-speakers', requireAuth, validate({ body: Reidentify
     const roster = suppliedRoster.length ? suppliedRoster : (transcription.attendees || []);
 
     let userName = null;
-    try { const { getUser } = require('../../stores/userStore'); const u = await getUser(userId); userName = u?.firstName || u?.displayName || null; } catch (_) { log.debug('user lookup failed, the user name is omitted', _); }
+    try { const { getUser } = require('../../stores/userStore'); const u = await getUser(userId); userName = u?.firstName || u?.displayName || null; } catch (_) { fallback('routes/transcriptions/speakers:anon', _); /* user lookup failed, the user name is omitted */ }
 
     // The stored speakers rows carry the speaking-time stats the model uses
     // to tell real participants from short diarization fragments.
+    /** @type {StoredSpeaker[]} */
     const speakerRows = Array.isArray(transcription.speakers) && transcription.speakers.length
         ? transcription.speakers
         : segments.map(s => ({ id: s.speaker || s.speakerId }));
@@ -209,6 +214,7 @@ router.post('/:id/reidentify-speakers', requireAuth, validate({ body: Reidentify
     // settled by a voiceprint (or corrected by hand) are locked, and their
     // names are handed to the model as roster context so the remaining
     // speakers are resolved with that knowledge rather than against it.
+    /** @type {Record<string, string>} */
     const lockedNames = {};
     for (const s of speakerRows) {
         if (s && s.id && (s.source === 'voiceprint' || s.source === 'manual')) lockedNames[s.id] = s.id;
@@ -221,6 +227,7 @@ router.post('/:id/reidentify-speakers', requireAuth, validate({ body: Reidentify
     // Tom on one row, then every OTHER row is, by construction, not Tom.
     // Without this a cheap text-only re-run could merge them back together.
     const voiceprintNames = speakerRows.filter(s => s?.source === 'voiceprint').map(s => s.id);
+    /** @type {Record<string, string[]>} */
     const ruledOutNames = {};
     if (voiceprintNames.length) {
         for (const s of speakerRows) {
@@ -265,3 +272,7 @@ router.post('/:id/reidentify-speakers', requireAuth, validate({ body: Reidentify
 });
 
 module.exports = router;
+
+/** @typedef {import('../../core/meetingNotes/transcriptArtifacts').MergedTranscriptSegment} StoredSegment */
+
+/** @typedef {{ id: string, source?: string, speakingSeconds?: number, segments?: number }} StoredSpeaker */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Release Notes Store — customer-facing changelog entries.
  *
@@ -74,6 +74,9 @@ async function _initDB() {
     }
 }
 
+/**
+ * @param {DbRow.ReleaseNotes | null} r
+ */
 function rowToEntry(r) {
     if (!r) return null;
     return {
@@ -99,6 +102,7 @@ function rowToEntry(r) {
  * Deliberately destructive of its own previous content: a dev build recomputes
  * the whole range since the last release, so the newest draft supersedes the
  * last rather than appending to it. Publishing status is preserved — see below.
+ * @param {{ title?: string, lead?: string, items?: unknown[], fromSha?: string | null, toSha?: string | null, services?: string | null, channel?: string }} opts
  */
 async function upsertUnreleased({ title = '', lead = '', items = [], fromSha = null, toSha = null, services = null, channel = 'dev' }) {
     await initDB();
@@ -138,6 +142,7 @@ async function upsertUnreleased({ title = '', lead = '', items = [], fromSha = n
  * which is what lets the next dev build open a fresh Unreleased entry. When no
  * rolling entry exists (first ever release, or every dev build failed), the
  * supplied material becomes the versioned entry directly.
+ * @param {{ version: string, title?: string, lead?: string, items?: unknown[], fromSha?: string | null, toSha?: string | null, services?: string | null }} opts
  */
 async function finaliseRelease({ version, title = '', lead = '', items = [], fromSha = null, toSha = null, services = null }) {
     await initDB();
@@ -174,6 +179,9 @@ async function getUnreleased() {
     return rowToEntry(rows[0]);
 }
 
+/**
+ * @param {string} id
+ */
 async function getById(id) {
     await initDB();
     const { rows } = await pool.query('SELECT * FROM release_notes WHERE id = $1', [id]);
@@ -213,11 +221,15 @@ async function listPublished({ limit = 20 } = {}) {
 const ENTRY_COLUMNS = {
     title: 'title',
     lead: 'lead',
-    items: { col: 'items', cast: 'jsonb', transform: (v) => JSON.stringify(v) },
-    version: { col: 'version', transform: (v) => v || null },
+    items: { col: 'items', cast: 'jsonb', transform: /** @param {unknown} v */ (v) => JSON.stringify(v) },
+    version: { col: 'version', transform: /** @param {string | null} v */ (v) => v || null },
 };
 
-/** Editorial changes from the admin panel. Status is NOT settable here. */
+/**
+ * Editorial changes from the admin panel. Status is NOT settable here.
+ * @param {string} id
+ * @param {{ title?: string, lead?: string, items?: unknown[], version?: string | null }} fields
+ */
 async function updateEntry(id, { title, lead, items, version }) {
     await initDB();
     const built = buildUpdate({
@@ -233,7 +245,10 @@ async function updateEntry(id, { title, lead, items, version }) {
     return rowToEntry(rows[0]);
 }
 
-/** The human gate. Idempotent: re-publishing keeps the original timestamp. */
+/**
+ * The human gate. Idempotent: re-publishing keeps the original timestamp.
+ * @param {string} id
+ */
 async function publishEntry(id) {
     await initDB();
     const { rows } = await pool.query(
@@ -246,7 +261,10 @@ async function publishEntry(id) {
     return rowToEntry(rows[0]);
 }
 
-/** Pull an entry back out of public view without deleting it. */
+/**
+ * Pull an entry back out of public view without deleting it.
+ * @param {string} id
+ */
 async function unpublishEntry(id) {
     await initDB();
     const { rows } = await pool.query(
@@ -257,6 +275,9 @@ async function unpublishEntry(id) {
     return rowToEntry(rows[0]);
 }
 
+/**
+ * @param {string} id
+ */
 async function deleteEntry(id) {
     await initDB();
     const { rowCount } = await pool.query('DELETE FROM release_notes WHERE id = $1', [id]);

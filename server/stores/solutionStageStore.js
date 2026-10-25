@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Solution stage store: UAT and PRD stages of a Solution, their deployments
  * (history, lock and journal), bindings, variables and part options.

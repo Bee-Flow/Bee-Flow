@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The Nextcloud Tables ADAPTER — what the shared mirror engine (../mirror)
  * asks a source kind, answered in Nextcloud's terms.
@@ -27,11 +27,19 @@ const { isSourceError } = require('../mirror/errors');
 
 const TAG = '[NextcloudTable]';
 
+/** @typedef {{ ncTableId?: number, ncViewId?: number, ncTitle?: string, ncEmoji?: string, ncBaseUrl?: string, refreshOnView?: boolean }} NcSource */
+/** @typedef {import('./columns').NcColumn} NcColumn */
+/** @typedef {Parameters<typeof fieldsFromNcColumns>[1]} DeriveCtx */
+
+/** @param {NcSource} source */
 function refOf(source) {
     return source.ncViewId ? { viewId: source.ncViewId, tableId: source.ncTableId } : { tableId: source.ncTableId };
 }
 
-/** Everything the columns derivation needs to know about the other mirrors in this scope. */
+/**
+ * Everything the columns derivation needs to know about the other mirrors in this scope.
+ * @param {{ kind: string, id: string }} scope
+ */
 async function siblingsOf(scope) {
     // Every mirror in the scope, whatever its kind: a match relation may
     // point at a spreadsheet mirror. The Nextcloud-native maps are built
@@ -62,24 +70,37 @@ const adapter = {
         return { ...own, isSourceError, Err: own.NextcloudSourceError };
     },
 
+    /**
+     * @param {{ linkedByUserId?: string; ncTableId?: number; ncInstanceId?: string; }} source
+     * @param {{ orgId?: string | null; fresh?: boolean; } | undefined} opts
+     */
     resolveLinker(source, opts) {
         return require('./linkerAuth').resolveLinker(source, opts);
     },
+    /** @param {Parameters<typeof import('./ncApi').forLinker>[0]} auth */
     apiFor(auth) {
         return require('./ncApi').forLinker(auth);
     },
     siblingsOf,
 
-    /** Columns now; rows page by page when the pipeline asks. */
+    /**
+     * Columns now; rows page by page when the pipeline asks.
+     * @param {ReturnType<typeof import('./ncApi').forLinker>} api
+     * @param {{ source: NcSource }} table
+     */
     async open(api, table) {
         const ref = refOf(table.source);
         const columns = await api.getColumns(ref);
         return {
             columns,
-            page: (limit, offset) => api.listRows(ref, { limit, offset }),
+            page: (/** @type {number} */ limit, /** @type {number} */ offset) => api.listRows(ref, { limit, offset }),
         };
     },
 
+    /**
+     * @param {NcColumn[]} columns
+     * @param {{ existingFields?: DeriveCtx['existingFields'], siblings: { linkedTargets: Map<number, string>, linkedViews: Map<number, string> }, declaredRelations?: DeriveCtx['declaredRelations'] }} opts
+     */
     deriveFields(columns, { existingFields, siblings, declaredRelations }) {
         return fieldsFromNcColumns(columns, {
             existingFields,
@@ -89,12 +110,20 @@ const adapter = {
         });
     },
 
-    /** A row without an id cannot be a mirror row (null = skipped). */
+    /**
+     * A row without an id cannot be a mirror row (null = skipped).
+     * @param {Parameters<typeof mirrorRowFromNc>[0] | null | undefined} raw
+     * @param {Parameters<typeof mirrorRowFromNc>[1]} ctx
+     */
     rowFromSource(raw, ctx) {
         if (!raw || raw.id === undefined || raw.id === null) return null;
         return mirrorRowFromNc(raw, ctx);
     },
 
+    /**
+     * @param {Parameters<typeof import('./relations').labelFieldFor>[0]} rel
+     * @param {Parameters<typeof import('./relations').labelFieldFor>[1]} target
+     */
     labelFieldFor(rel, target) {
         return require('./relations').labelFieldFor(rel, target);
     },
@@ -108,6 +137,8 @@ const adapter = {
             /**
              * PUT /:id/source — the one setting a Nextcloud mirror has. There
              * is no schedule to set: a mirror is live (mirror/staleness.js).
+             * @param {NcSource} source
+             * @param {{ refreshOnView?: unknown, [k: string]: unknown } | null | undefined} body
              */
             applySettings(source, body) {
                 const next = { ...source };
@@ -127,7 +158,10 @@ const adapter = {
     },
     get events() { return require('./events'); },
 
-    /** The kind-specific half of the public projection (routes keep the envelope). */
+    /**
+     * The kind-specific half of the public projection (routes keep the envelope).
+     * @param {NcSource} source
+     */
     publicSource(source) {
         return {
             ncTableId: source.ncTableId,

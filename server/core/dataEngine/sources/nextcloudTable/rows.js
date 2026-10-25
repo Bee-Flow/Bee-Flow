@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * One Nextcloud row → one mirror row: `{ id, values }`.
  *
@@ -15,8 +16,8 @@ const { deriveRow, fieldsByIdOf } = require('../mirror/rows');
 const { cellToLocal } = require('./values');
 
 /**
- * @param {object} ncRow                {id, data:[{columnId, value}]}
- * @param {object} ctx                  see mirror/rows.deriveRow (readCell is supplied here)
+ * @param {{ id: string|number, data?: Array<{ columnId: string|number, value?: unknown }> }} ncRow
+ * @param {Omit<Parameters<typeof deriveRow>[1], 'readCell'>} ctx   see mirror/rows.deriveRow (readCell is supplied here)
  */
 function mirrorRowFromNc(ncRow, ctx) {
     const byColumnId = new Map();

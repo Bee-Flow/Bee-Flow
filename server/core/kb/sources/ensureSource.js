@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Find — or create — the `kb_sources` row an ingest hangs its document off.
  *
@@ -37,6 +37,11 @@
  * @returns {Promise<object|null>} the mapped source row, or null when unavailable
  */
 const log = require('../../../telemetry/log');
+/**
+ * @param {string} kbId
+ * @param {string} kind
+ * @param {{ name?: string, config?: Record<string, unknown>, configMatch?: Record<string, unknown> | null, createdBy?: string | null }} [opts]
+ */
 async function ensureKbSource(kbId, kind, { name = '', config = {}, configMatch = null, createdBy = null } = {}) {
     if (!kbId || !kind) return null;
     try {
@@ -45,7 +50,7 @@ async function ensureKbSource(kbId, kind, { name = '', config = {}, configMatch 
         if (existing) return existing;
         return await kbSourcesStore.create({ knowledgeBaseId: kbId, kind, name, config, createdBy });
     } catch (e) {
-        log.warn(`[KB] Could not attach a '${kind}' source to KB ${kbId}: ${e.message}`);
+        log.warn(`[KB] Could not attach a '${kind}' source to KB ${kbId}: ${/** @type {Error} */ (e).message}`);
         return null;
     }
 }

@@ -239,3 +239,14 @@ module.exports = {
     isBlank,
     emptyValue,
 };
+
+/**
+ * @typedef {import('./formTriggerContract').FormField} FormField
+ * @typedef {{ kind: 'app_pick', source: string, app: string, recordId: string, title: string }} Pick  one picked record
+ * @typedef {{ kind: 'form_upload', fileId: string }} Upload  a claimed upload descriptor
+ * @typedef {{ ok: true, isFile?: false, isPick?: false, error?: undefined, value: string | number | boolean | string[] }
+ *   | { ok: true, isFile: true, isPick?: false, error?: undefined, value: Upload }
+ *   | { ok: true, isPick: true, isFile?: false, error?: undefined, value: Pick | Pick[] | null }
+ *   | { ok: false, isFile?: undefined, isPick?: undefined, error: string, value?: undefined }} Coerced  the outcome of coercing one answer
+
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Multi-provider OAuth login — GET /login/:provider mints the CSRF state and
  * the PKCE pair and builds the authorize URL for Google, Microsoft and

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Shared `status`/`pii` document-filter validation.
  *

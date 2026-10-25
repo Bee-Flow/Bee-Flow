@@ -61,6 +61,7 @@ const { batchTooLarge, rpcBatchTooLarge } = require('../auth/mcpAccess/batch');
 const { scopeAllowsTool, filterToolsByScope } = require('../auth/mcpAccess/scopes');
 
 const { NOTEBOOK_TOOLS } = require('../integrations/notebookToolNames');
+const { fallback } = require('../utils/bestEffort');
 // The datatable row tools live in their own module; this file only lists and dispatches them.
 const datatableTools = require('./mcpDatatableTools');
 
@@ -72,11 +73,12 @@ const router = express.Router();
  * Build the caller's tool list. `loadSession` is the same offline-session
  * builder unattended automations use, so a connector-bound user reaches Nextcloud
  * through the ExApp proxy exactly as they would in a scheduled automation.
+ * @param {string} userId
  */
 async function toolsForUser(userId) {
     const { loadSession } = require('../automation/triggerBus');
     const { getIntegrationTools } = require('../core/integrations/integrationTools');
-    const session = await loadSession(userId).catch(() => null);
+    const session = await loadSession(userId).catch((e) => fallback('routes/mcpServer:toolsForUser', e, null));
     return { tools: toolListFrom(await getIntegrationTools({ userId, session })), session };
 }
 
@@ -130,10 +132,18 @@ function toMcpTool(fn) {
 
 const PROTOCOL_VERSION = '2025-06-18';
 
+/**
+ * @param {string | number | null | undefined} id
+ */
 function rpcResult(id, result) {
     return { jsonrpc: '2.0', id, result };
 }
 
+/**
+ * @param {string | number | null | undefined} id
+ * @param {number} code
+ * @param {string} message
+ */
 function rpcError(id, code, message) {
     return { jsonrpc: '2.0', id, error: { code, message } };
 }
@@ -206,7 +216,7 @@ function parseToolCall(params) {
 /**
  * @param {any} [deps]  test seam: `{ toolsForUser, datatableTools }`. The real one needs
  *                         Postgres, and this router's tests run without it.
- * @param {{ token?: { id?: string|null, scopes?: any } }|null} [access]  what the access gate
+ * @param {{ token?: { id?: string|null, name?: string, legacy?: boolean, scopes?: any } }|null} [access]  what the access gate
  *                         resolved for this request. Its token's scopes narrow
  *                         tools/list and are re-checked on tools/call. Absent
  *                         (unit tests calling this directly) = no narrowing.
@@ -301,7 +311,7 @@ async function handleRpc(message, userId, deps = {}, access = null) {
                 return rpcResult(id, { content: [{ type: 'text', text }], isError });
             } catch (err) {
                 return rpcResult(id, {
-                    content: [{ type: 'text', text: `Tool execution failed: ${err.message}` }],
+                    content: [{ type: 'text', text: `Tool execution failed: ${/** @type {Error} */ (err).message}` }],
                     isError: true,
                 });
             }
@@ -330,7 +340,7 @@ router.post('/', express.json({ limit: '4mb' }), async (req, res) => {
             const out = await handleRpc(message, userId, {}, access);
             if (out) responses.push(out);
         } catch (err) {
-            log.error('[MCP server] handler error:', err.message);
+            log.error('[MCP server] handler error:', /** @type {Error} */ (err).message);
             // Only a request is answered — not even an error goes back to a notification.
             if (classifyRpc(message).kind === 'request') responses.push(rpcError(message.id, -32603, 'Internal error'));
         }
@@ -360,3 +370,7 @@ module.exports = Object.assign(router, {
     SECRET_KEY,
     PROTOCOL_VERSION,
 });
+
+/** @typedef {{ name: string, description?: string, parameters?: unknown }} FunctionDef */
+
+/** @typedef {{ type?: string, function?: FunctionDef }} ToolDef */

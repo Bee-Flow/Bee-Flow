@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Static HTML accessibility lint — the cheap half of the EAA Art. 4 check.
  *
@@ -37,6 +37,12 @@
 
 const cheerio = require('cheerio');
 
+/**
+ * @typedef {import('cheerio').CheerioAPI} CheerioAPI
+ * @typedef {import('domhandler').AnyNode} DomNode
+ * @typedef {import('cheerio').Cheerio<DomNode>} DomSelection
+ */
+
 const VERSION = '1.0.0';
 const MAX_SAMPLES = 10;
 const SNIPPET_MAX = 160;
@@ -71,23 +77,32 @@ const RULES = {
 
 const SKIPPED_INPUT_TYPES = new Set(['hidden', 'submit', 'button', 'image', 'reset']);
 
+/** @param {unknown} s */
 function _norm(s) {
     return String(s || '').replace(/\s+/g, ' ').trim();
 }
 
+/** @param {unknown} s */
 function _scrub(s) {
     return String(s || '').replace(EMAIL_RE, '[email]');
 }
 
+/**
+ * @param {DomSelection} $el
+ * @param {string} name
+ * @returns {string | null}
+ */
 function _attr($el, name) {
     const v = $el.attr(name);
     return v === undefined || v === null ? null : String(v);
 }
 
+/** @param {DomSelection} $el */
 function _hidden($el) {
     return _norm(_attr($el, 'aria-hidden')).toLowerCase() === 'true';
 }
 
+/** @param {DomSelection} $el */
 function _presentational($el) {
     const role = _norm(_attr($el, 'role')).toLowerCase();
     return role === 'presentation' || role === 'none';
@@ -97,6 +112,9 @@ function _presentational($el) {
  * Text referenced by aria-labelledby: the concatenated text of every id the
  * attribute names. `byId` is built once per document (ids may contain
  * characters a CSS selector would choke on).
+ * @param {CheerioAPI} $
+ * @param {DomSelection} $el
+ * @param {Map<string, string>} byId
  */
 function _labelledbyText($, $el, byId) {
     const ref = _norm(_attr($el, 'aria-labelledby'));
@@ -104,7 +122,12 @@ function _labelledbyText($, $el, byId) {
     return ref.split(/\s+/).map(id => byId.get(id) || '').join(' ').trim();
 }
 
-/** Accessible-name approximation for links and buttons. */
+/**
+ * Accessible-name approximation for links and buttons.
+ * @param {CheerioAPI} $
+ * @param {DomNode} el
+ * @param {Map<string, string>} byId
+ */
 function _accessibleName($, el, byId) {
     const $el = $(el);
     const ariaLabel = _norm(_attr($el, 'aria-label'));
@@ -124,6 +147,11 @@ function _accessibleName($, el, byId) {
     return '';
 }
 
+/**
+ * @param {CheerioAPI} $
+ * @param {DomNode} el
+ * @param {Map<string, string>} byId
+ */
 function _controlHasLabel($, el, byId) {
     const $el = $(el);
     if (_norm(_attr($el, 'aria-label'))) return true;
@@ -140,10 +168,17 @@ function _controlHasLabel($, el, byId) {
 }
 
 class Collector {
+    /** @param {CheerioAPI} $ */
     constructor($) {
         this.$ = $;
+        /** @type {Map<string, { count: number, samples: string[] }>} */
         this.findings = new Map(); // rule → { count, samples[] }
     }
+    /**
+     * @param {string} rule
+     * @param {DomNode | null | undefined} el
+     * @param {string} [note]
+     */
     add(rule, el, note) {
         let f = this.findings.get(rule);
         if (!f) { f = { count: 0, samples: [] }; this.findings.set(rule, f); }
@@ -153,6 +188,7 @@ class Collector {
             f.samples.push(_scrub(note ? (snippet ? `${note}: ${snippet}` : note) : snippet));
         }
     }
+    /** @param {DomNode} el */
     snippet(el) {
         let html = '';
         try { html = this.$.html(el); } catch { html = ''; }
@@ -340,10 +376,12 @@ function lint(html, opts = {}) {
         c.add('table-headers', el);
     });
 
+    /** @type {{ rule: string, wcag: string, count: number, samples: string[] }[]} */
     const errors = [];
+    /** @type {{ rule: string, wcag: string, count: number, samples: string[] }[]} */
     const warnings = [];
     for (const [rule, f] of c.findings) {
-        const def = RULES[rule];
+        const def = /** @type {Record<string, { wcag: string, level: string }>} */ (RULES)[rule];
         const entry = { rule, wcag: def.wcag, count: f.count, samples: f.samples };
         (def.level === 'error' ? errors : warnings).push(entry);
     }

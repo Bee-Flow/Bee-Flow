@@ -94,3 +94,9 @@ function stepEffect(step, ctx = {}, _seen = new Set()) {
 }
 
 module.exports = { stepEffect };
+
+/**
+ * The fields of a workflow step that decide its effect.
+ * @typedef {{ type?: string, tool?: string, method?: string, op?: string, tools?: string[], allowTools?: boolean,
+ *   agentId?: unknown, branches?: EffectStep[][], body?: EffectStep[], layerKey?: string }} EffectStep
+ */

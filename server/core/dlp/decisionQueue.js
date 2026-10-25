@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * In-memory queue of pending DLP decisions.
  *
@@ -17,6 +17,11 @@
 
 const crypto = require('crypto');
 
+/**
+ * @typedef {{ resolve: (d: Decision) => void, reject: (e: Error) => void, timeoutId: ReturnType<typeof setTimeout> | null,
+ *   userId: string | null, conversationId: string | null, createdAt: number, timeoutMs: number }} PendingEntry
+ */
+/** @type {Map<string, PendingEntry>} */
 const _pending = new Map(); // decisionId → { resolve, reject, timeoutId, userId, conversationId, createdAt, timeoutMs }
 
 // Reviewing a finding list and marking spans takes minutes, not seconds —
@@ -48,7 +53,9 @@ function _generateId() {
  */
 function register({ conversationId, userId, timeoutMs = DEFAULT_TIMEOUT_MS } = /** @type {any} */ ({})) {
     const decisionId = _generateId();
+    /** @type {Promise<Decision>} */
     const promise = new Promise((resolve, reject) => {
+        /** @type {PendingEntry} */
         const entry = {
             resolve,
             reject,
@@ -64,6 +71,10 @@ function register({ conversationId, userId, timeoutMs = DEFAULT_TIMEOUT_MS } = /
     return { decisionId, promise };
 }
 
+/**
+ * @param {string} decisionId
+ * @param {PendingEntry} entry
+ */
 function _armTimeout(decisionId, entry) {
     return setTimeout(() => {
         _pending.delete(decisionId);
@@ -98,8 +109,9 @@ function touch(decisionId, callerUserId) {
  *
  * @param {string} decisionId
  * @param {object} decision
- * @param {string} decision.choice  'redact' | 'block' | 'allow'
+ * @param {'redact'|'block'|'allow'} decision.choice  'redact' | 'block' | 'allow'
  * @param {boolean} [decision.rememberForConversation]
+ * @param {Array<{offset:number,length:number}>} [decision.manualAdditions]
  * @param {string} callerUserId
  * @returns {boolean}
  */
@@ -115,6 +127,8 @@ function resolve(decisionId, decision, callerUserId) {
 
 /**
  * Reject a pending decision (e.g. if the conversation is deleted mid-flight).
+ * @param {string} decisionId
+ * @param {string} reason
  */
 function reject(decisionId, reason) {
     const entry = _pending.get(decisionId);

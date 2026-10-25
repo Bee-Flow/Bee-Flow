@@ -25,7 +25,7 @@
  */
 
 const complianceStore = require('../stores/complianceStore');
-const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const MEMO_MS = Number(process.env.COMPLIANCE_MARKING_MEMO_MS) > 0 ? Number(process.env.COMPLIANCE_MARKING_MEMO_MS) : 60_000;
 const FOOTER_KEY = 'compliance.marking_footer';
@@ -40,6 +40,9 @@ const _memo = new Map(); // orgId → { at, value: { settings, orgName, locale }
 
 function _now() { return Date.now(); }
 
+/**
+ * @param {string} orgId
+ */
 async function _orgName(orgId) {
     try {
         const userStore = require('../stores/userStore');
@@ -63,16 +66,22 @@ async function _defaultLocale() {
     }
 }
 
+/**
+ * @param {string | number | null} locale
+ */
 async function _dictionaryFooter(locale) {
     try {
         const languageStore = require('../stores/languageStore');
         const strings = await languageStore.getEffectiveGUIStrings(locale);
         const v = strings && strings[FOOTER_KEY];
         if (typeof v === 'string' && v.trim()) return v;
-    } catch (err) { log.debug('dictionary unavailable → fallback below', err); }
+    } catch (err) { bestEffort('compliance/marking:_dictionaryFooter', err); /* dictionary unavailable → fallback below */ }
     return FOOTER_DEFAULTS[locale] || FOOTER_DEFAULTS.en;
 }
 
+/**
+ * @param {string} orgId
+ */
 async function _context(orgId) {
     const hit = _memo.get(orgId);
     if (hit && _now() - hit.at < MEMO_MS) return hit.value;
@@ -91,6 +100,9 @@ async function _context(orgId) {
     return value;
 }
 
+/**
+ * @param {string} orgName
+ */
 function _render(template, orgName) {
     const text = String(template || '').replace(/\{\s*org\s*\}/g, orgName || '').replace(/\s+/g, ' ').trim();
     return text.slice(0, MAX_FOOTER);

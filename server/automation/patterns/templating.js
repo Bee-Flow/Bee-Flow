@@ -128,6 +128,7 @@ function maskPlain(text) {
     return s.replace(/\s+/g, ' ').trim();
 }
 
+/** @type {Record<string, string>} */
 const CONTACT_WORDS = { url: 'a link', email: 'an email address', domain: 'a website' };
 
 /**
@@ -141,6 +142,9 @@ const CONTACT_WORDS = { url: 'a link', email: 'an email address', domain: 'a web
  * @returns {string}
  */
 function maskContacts(text, { words = false } = {}) {
+    /**
+     * @param {string} k
+     */
     const ph = (k) => (words ? CONTACT_WORDS[k] : `<${k}>`);
     let s = String(text ?? '');
     s = s.replace(URL_RE, ph('url'));
@@ -201,6 +205,7 @@ function templateIdOf(template) {
  * @returns {string[]}
  */
 function tokenize(template) {
+    /** @type {string[]} */
     const out = [];
     for (const raw of String(template ?? '').split(/\s+/)) {
         if (!raw) continue;
@@ -225,9 +230,16 @@ function jaccard(a, b) {
     return inter / (A.size + B.size - inter);
 }
 
+/**
+ * @param {string} t
+ */
 const isPlaceholder = (t) => PLACEHOLDER_RE.test(t);
 
-/** Positional similarity for equal-length token lists (Drain's simSeq). */
+/**
+ * Positional similarity for equal-length token lists (Drain's simSeq).
+ * @param {string[]} a
+ * @param {string[]} b
+ */
 function positionalSim(a, b) {
     let same = 0;
     for (let i = 0; i < a.length; i++) {
@@ -323,9 +335,13 @@ contract document bestand bestanden map gedeeld uitnodiging welkom bedankt graag
 uren salaris begroting nieuwsbrief melding storing
 `.split(/\s+/).filter(Boolean));
 
+/** @type {Record<string, string>} */
 const CATEGORY_PLACEHOLDER = { Person: '<name>', Organization: '<org>', Email: '<email>', URL: '<url>' };
 
-/** Deterministic fallback: no guard, so mask anything that could be a name. */
+/**
+ * Deterministic fallback: no guard, so mask anything that could be a name.
+ * @param {string} template
+ */
 function fallbackMask(template) {
     const parts = String(template ?? '').split(/\s+/).filter(Boolean);
     let first = true;
@@ -343,7 +359,10 @@ function fallbackMask(template) {
     return collapseRepeats(out.join(' '));
 }
 
-/** "<name> <name>" → "<name>": a full name is one placeholder, not two. */
+/**
+ * "<name> <name>" → "<name>": a full name is one placeholder, not two.
+ * @param {string} s
+ */
 function collapseRepeats(s) {
     return s.replace(/(<(?:name|org)>)(?:\s+\1)+/g, '$1');
 }
@@ -380,6 +399,7 @@ async function maskNames(templates, opts = {}) {
         return { templates: list.map(fallbackMask), method: 'fallback', categories: [] };
     }
     // Line start offsets in the joined text.
+    /** @type {number[]} */
     const starts = [];
     let pos = 0;
     for (const t of list) { starts.push(pos); pos += t.length + 1; }

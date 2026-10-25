@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
+/** @typedef {import('qs').ParsedQs} ParsedQs */
 /**
  * Automation Builder — "Find repeating work": the scan (POST /suggest, SSE),
  * the sources it can read (GET /suggest/sources), the viewer's last scan
@@ -62,6 +63,7 @@ const { asToolExecutor } = require('../../../automation/patterns/scanReader');
 const { integrationOf } = require('../../../automation/patterns/ideation');
 const { fingerprintTitle } = require('../../../automation/suggestions');
 const { usageLogFields } = require('../../../core/providers/usageNormalizer');
+const { fallback: fallbackSwallowed, bestEffort } = require('../../../utils/bestEffort');
 
 const MODES = ['patterns', 'ideas'];
 const FOCUS_MAX_CHARS = 2000;
@@ -70,6 +72,10 @@ const INTEGRATIONS_TEXT = 'integrationIds is a list of app ids, like ["gmail", "
 const SOURCES_TEXT = 'sources is a list of source ids, like ["mail", "files"] — or [] for all of them.';
 const MODE_TEXT = 'mode is patterns or ideas.';
 const TIMEZONE_TEXT = 'timezone is an IANA zone name, like Europe/Amsterdam.';
+/**
+ * @param {string} text
+ * @param {number} max
+ */
 const idList = (text, max) => z.array(worded(text).trim().min(1, text).max(100, text), { error: typeError({ invalid: text }) }).max(max, text);
 
 const SuggestBody = z.object({
@@ -146,7 +152,7 @@ async function loadTools(d, req) {
         const r = await d.getIntegrationTools({ userId: req.session.user.id, session: req.session, isAdmin: !!req.session?.isAdmin, automationStep: true });
         tools = Array.isArray(r?.tools) ? r.tools : [];
     } catch (err) {
-        log.warn('[RepeatingWork] could not load the user\'s tools:', err?.message);
+        log.warn('[RepeatingWork] could not load the user\'s tools:', /** @type {Error} */ (err)?.message);
     }
     const names = new Set();
     const integrationIds = new Set();
@@ -168,10 +174,16 @@ async function recordUsage(d, { userId, orgId, modelId, usage, mode, startedAt }
             model: modelId, ...usageLogFields(usage), source: 'pattern_scan', duration_ms: d.now() - startedAt,
         });
     } catch (err) {
-        log.warn('[RepeatingWork] usage not logged:', err?.message);
+        log.warn('[RepeatingWork] usage not logged:', /** @type {Error} */ (err)?.message);
     }
 }
 
+/**
+ * @typedef {Object} CachedScanArgs
+ * @property {string} scopeKey
+ * @property {string} cacheKey
+ * @property {string} userId
+ */
 /**
  * @param {Record<string, any>|null} [deps] collaborators to replace (tests)
  */
@@ -180,7 +192,10 @@ function createSuggestionsRouter(deps = null) {
     const router = express.Router();
 
     const hasBeta = (req) => d.userHasBetaFeature(req.session.user.id, 'automations', req.session);
-    /** The Automations beta gate, ahead of the schema so a 403 stays a 403. */
+    /**
+     * The Automations beta gate, ahead of the schema so a 403 stays a 403.
+     * @param {NextFunction} next
+     */
     const requireAutomationsBeta = async (req, res, next) => {
         if (!await hasBeta(req)) {
             return res.status(403).json({ error: 'The Automations beta is not enabled for your organisation.' });
@@ -188,11 +203,18 @@ function createSuggestionsRouter(deps = null) {
         return next();
     };
 
+    /**
+     * @param {string | ParsedQs | (string | ParsedQs)[]} mode
+     * @param {string} userId
+     */
     const suppressFor = (mode, suggestions, userId) => (mode === 'ideas'
         ? d.suppressIdeas(suggestions, { userId })
         : d.suppressSuggestions(suggestions, { userId, now: d.now() }));
 
-    /** A fresh cache hit, re-checked against the user's feedback; null on a miss or a store hiccup. */
+    /**
+     * A fresh cache hit, re-checked against the user's feedback; null on a miss or a store hiccup.
+     * @param {CachedScanArgs} param0
+     */
     async function cachedScan({ scopeKey, cacheKey, mode, userId }) {
         try {
             // The clock that set expiresAt on the write decides freshness on the read.
@@ -200,7 +222,7 @@ function createSuggestionsRouter(deps = null) {
             if (!hit || !Array.isArray(hit.suggestions)) return null;
             return { ...hit, suggestions: await suppressFor(mode, hit.suggestions, userId) };
         } catch (err) {
-            log.warn('[RepeatingWork] cache read failed, scanning live:', err?.message);
+            log.warn('[RepeatingWork] cache read failed, scanning live:', /** @type {Error} */ (err)?.message);
             return null;
         }
     }
@@ -248,7 +270,7 @@ function createSuggestionsRouter(deps = null) {
             const scopeKey = d.scanCache.deriveScopeKey({ userId });
             const cacheKey = scanCacheKey({ userId, mode, sources: keyList, focus, now: d.now(), timeZone: mode === 'patterns' ? timeZone : null });
             let eu = false;
-            try { eu = !!(await d.isEUModeActive({ userOrgId: orgId, userId }))?.isEU; } catch (err) { log.debug('transparency only', err); }
+            try { eu = !!(await d.isEUModeActive({ userOrgId: orgId, userId }))?.isEU; } catch (err) { fallbackSwallowed('routes/ai/automationBuilder/suggestions:createSuggestionsRouter', err); /* transparency only */ }
 
             if (!force) {
                 const hit = await cachedScan({ scopeKey, cacheKey, mode, userId });
@@ -309,17 +331,17 @@ function createSuggestionsRouter(deps = null) {
                     model: modelId, eu, expiresAt: new Date(d.now() + CACHE_TTL_MS),
                 });
             } catch (err) {
-                log.warn('[RepeatingWork] cache write failed:', err?.message);
+                log.warn('[RepeatingWork] cache write failed:', /** @type {Error} */ (err)?.message);
             }
             sendEvent('done', { suggestions, summary, reason: reason || undefined, cached: false, scannedAt, ...framing });
             finish();
         } catch (e) {
-            if (!signal.aborted) log.error('[RepeatingWork] scan failed:', e?.message);
+            if (!signal.aborted) log.error('[RepeatingWork] scan failed:', /** @type {Error} */ (e)?.message);
             try {
                 sendEvent('error', { error: mode === 'ideas'
                     ? 'Could not generate ideas right now. Please try again.'
                     : 'Could not finish the scan right now. Please try again.' });
-            } catch (err) { log.debug('stream gone', err); }
+            } catch (err) { bestEffort('routes/ai/automationBuilder/suggestions:createSuggestionsRouter#2', err); /* stream gone */ }
             finish();
         }
     });
@@ -341,7 +363,7 @@ function createSuggestionsRouter(deps = null) {
             if (!last || !Array.isArray(last.suggestions)) return res.status(204).end();
             suggestions = await suppressFor(mode, last.suggestions, userId);
         } catch (err) {
-            log.warn('[RepeatingWork] last scan unavailable:', err?.message);
+            log.warn('[RepeatingWork] last scan unavailable:', /** @type {Error} */ (err)?.message);
             return res.status(204).end();
         }
         const stored = typeof last.integrationIds === 'string' ? last.integrationIds.split(',').filter(Boolean) : [];
@@ -404,7 +426,7 @@ function createSuggestionsRouter(deps = null) {
                 });
             } catch (err) {
                 // The feedback row already hides it from the next scan.
-                log.warn('[RepeatingWork] cached result not stripped:', err?.message);
+                log.warn('[RepeatingWork] cached result not stripped:', /** @type {Error} */ (err)?.message);
             }
         }
         res.json({ ok: true });
@@ -417,9 +439,17 @@ function createSuggestionsRouter(deps = null) {
 // (a test after createSuggestionsRouter) loads no auth, store or model code.
 /** @type {import('express').Router|null} */
 let defaultRouter = null;
+/**
+ * @param {NextFunction} next
+ */
 function suggestionsRouter(req, res, next) {
     if (!defaultRouter) defaultRouter = createSuggestionsRouter();
     return defaultRouter(req, res, next);
 }
 
 module.exports = Object.assign(suggestionsRouter, { createSuggestionsRouter });
+
+/**
+ * @typedef {{ [K in keyof typeof LOADERS]: ReturnType<(typeof LOADERS)[K]> }} SuggestDeps
+ * @typedef {Parameters<typeof usageLogFields>[0]} ScanUsage
+ */

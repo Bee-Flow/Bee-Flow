@@ -19,6 +19,7 @@ const { getAdapter } = require('../core/providers');
 // and never hard-fails (CPU fallback) when no embedding model is configured.
 const { dispatchEmbedTexts } = require('../core/embed/dispatch');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const SERPER_URL = 'https://google.serper.dev/search';
 const PAGE_FETCH_TIMEOUT_MS = 12000;
@@ -270,7 +271,7 @@ async function executeNodeSearchTool(toolName, args) {
     if (!query) return { error: 'query is required' };
 
     let defaults = {};
-    try { defaults = (await configStore.getConfig('agent_search_defaults')) || {}; } catch (_) { log.debug('no stored search defaults, use the built-in ones', _); }
+    try { defaults = (await configStore.getConfig('agent_search_defaults')) || {}; } catch (_) { fallback('integrations/nodeSearchTools:executeNodeSearchTool', _); /* no stored search defaults, use the built-in ones */ }
 
     const searchMode = ['web', 'web_fast', 'kb', 'auto'].includes(mode) ? mode : (defaults.mode || 'web');
     if (searchMode === 'kb' || searchMode === 'auto') {
@@ -372,3 +373,10 @@ module.exports = {
     PAGE_FETCH_TIMEOUT_MS,
     PAGE_BYTE_CAP,
 };
+
+/**
+ * One search hit, enriched along the way (page text, cleaned markdown, rerank score).
+ * @typedef {{ title: string, url: string, snippet: string, content?: string, markdown?: string, score?: number }} SearchResult
+ * @typedef {{ max_results?: string, fetch_top_n?: string, detail_level?: string, max_tokens_markdown?: string }} SearchModeDefaults
+ * @typedef {{ mode?: string, web?: SearchModeDefaults, web_fast?: SearchModeDefaults }} AgentSearchDefaults
+ */

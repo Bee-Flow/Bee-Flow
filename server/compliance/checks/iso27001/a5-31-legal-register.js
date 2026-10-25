@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * ISO 27001 A.5.31 — legal, statutory, regulatory and contractual
  * requirements: is the legal register this hub scores against still current?
@@ -21,16 +21,19 @@
 
 const frameworks = require('../../frameworks');
 const frameworkPolicy = require('../../frameworkPolicy');
-const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 const FAIL_AFTER_DAYS = 365;
 
+/**
+ * @param {string} orgId
+ */
 async function _activeFrameworks(orgId) {
     try {
         const regs = await frameworkPolicy.activeRegulations(orgId || 'default');
         const list = [...regs].map(code => frameworks.byRegulation(code)).filter(Boolean);
         if (list.length) return { list, scope: 'active' };
-    } catch (err) { log.debug('the policy could not be read: judge the whole catalogue', err); }
+    } catch (err) { bestEffort('compliance/checks/iso27001/a5-31-legal-register:_activeFrameworks', err); /* the policy could not be read: judge the whole catalogue */ }
     return { list: frameworks.listBuiltin(), scope: 'catalogue' };
 }
 
@@ -46,12 +49,19 @@ module.exports = {
     descriptionKey: 'compliance.checks.iso_legal_register.desc',
     remediationKey: 'compliance.checks.iso_legal_register.fix',
     remediationLink: 'admin/compliance/frameworks',
+    /**
+     * @param {string} orgId
+     * @param {unknown} _subject
+     */
     async evaluate(orgId, _subject, { now = Date.now() } = {}) {
         const { list, scope } = await _activeFrameworks(orgId);
         const rows = list.map(fw => ({ id: fw.id, ...frameworks.legalReview(fw, now) }));
         const stale = rows.filter(r => r.stale);
         const expired = rows.filter(r => r.age_days === null || r.age_days > FAIL_AFTER_DAYS);
         const review = frameworks.catalogueReview(now, list);
+        /**
+         * @param {{ verified_on: string | null; age_days: number | null; stale: boolean; stale_after_days: number; sources: number; id: string; }[]} rs
+         */
         const names = (rs) => rs.map(r => frameworks.byId(r.id)?.regulation || r.id).join(', ');
         const evidence = {
             scope,

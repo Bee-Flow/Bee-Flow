@@ -472,3 +472,9 @@ module.exports = {
     KINDS, CONFIDENCE, SCANNABLE_TYPES,
     SAMPLE_ROWS, SAMPLE_CHARS, MAX_CELL_CHARS, MATCH_RATE_FLOOR,
 };
+
+/**
+ * @typedef {{ key: string, name?: string, type?: string }} ColumnField
+ * @typedef {{ category?: string, offset?: number, text?: string }} GuardEntityLike
+ * @typedef {{ value: string, start: number, end: number }} SampledCell
+ */

@@ -17,9 +17,15 @@
  * allowed" (a hard zero).
  */
 const log = require('../telemetry/log');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 function userStore() { return require('../stores/userStore'); }
 
+/**
+ * @param {string[] | null | undefined} allowList
+ * @param {string[]} requested
+ * @returns {string[]}
+ */
 function intersect(allowList, requested) {
     if (allowList == null) return [...new Set(requested)]; // unrestricted
     const allow = new Set(allowList);
@@ -35,6 +41,9 @@ function intersect(allowList, requested) {
  *   - 'reset'   (default): replace org list with plan allow-list.
  *   - 'intersect': keep only the org's current enables that fit the cap.
  *     Used on plan *downgrade* when the admin asked not to widen the org.
+ * @param {string} orgId
+ * @param {string} planId
+ * @param {{ mode?: 'reset' | 'intersect' }} [opts]
  */
 async function applyPlanToOrg(orgId, planId, { mode = 'reset' } = {}) {
     const store = userStore();
@@ -69,6 +78,7 @@ async function applyPlanToOrg(orgId, planId, { mode = 'reset' } = {}) {
  * Compute the integration and beta-feature caps that apply to an org,
  * given its current subscription's plan. Returns `null` for either list
  * when the plan doesn't define one (= unrestricted).
+ * @param {string} orgId
  */
 async function getOrgCaps(orgId) {
     const store = userStore();
@@ -88,12 +98,18 @@ async function getOrgCaps(orgId) {
 /**
  * Filter a requested set of integration / beta-feature IDs against the
  * org's plan cap. Pass-through when the cap is null (unrestricted).
+ * @param {string[]} requested
+ * @param {string[] | null | undefined} cap
  */
 function applyCap(requested, cap) {
     if (cap == null) return [...new Set(requested)];
     return intersect(cap, requested);
 }
 
+/**
+ * @typedef {Object} AuditPlanCapDriftArgs
+ * @property {boolean} [trim]
+ */
 /**
  * Walk every active org subscription and report any beta-feature or
  * integration that the org has enabled but its current plan no longer
@@ -105,10 +121,11 @@ function applyCap(requested, cap) {
  * so compliance retains a record. Read-only by default — pass
  * `{ trim: true }` to also save the trimmed lists back via
  * setOrgEnabledBetaFeatures / setOrgEnabledIntegrations.
+ * @param {AuditPlanCapDriftArgs} [param0]
  */
 async function auditPlanCapDrift({ trim = false } = {}) {
     const store = userStore();
-    const subs = await store.getAllOrgSubscriptions().catch(() => []);
+    const subs = await store.getAllOrgSubscriptions().catch((e) => fallback('services/planEntitlements:auditPlanCapDrift', e, []));
     let scanned = 0;
     let drifted = 0;
     let trimmed = 0;
@@ -119,8 +136,8 @@ async function auditPlanCapDrift({ trim = false } = {}) {
         if (sub.status !== 'active') continue;
         scanned++;
         const caps = await getOrgCaps(sub.organization_id).catch(() => ({ integrations: null, betaFeatures: null }));
-        const enabledIntegrations = await store.getOrgEnabledIntegrations(sub.organization_id).catch(() => []);
-        const enabledBeta = await store.getOrgEnabledBetaFeatures(sub.organization_id).catch(() => []);
+        const enabledIntegrations = await store.getOrgEnabledIntegrations(sub.organization_id).catch((e) => fallback('services/planEntitlements:auditPlanCapDrift#2', e, []));
+        const enabledBeta = await store.getOrgEnabledBetaFeatures(sub.organization_id).catch((e) => fallback('services/planEntitlements:auditPlanCapDrift#3', e, []));
         const trimmedIntegrations = caps.integrations == null ? enabledIntegrations : intersect(caps.integrations, enabledIntegrations);
         const trimmedBeta = caps.betaFeatures == null ? enabledBeta : intersect(caps.betaFeatures, enabledBeta);
         const lostIntegrations = enabledIntegrations.filter(id => !trimmedIntegrations.includes(id));
@@ -145,7 +162,7 @@ async function auditPlanCapDrift({ trim = false } = {}) {
                 { plan_id: sub.plan_id, lost_integrations: lostIntegrations, lost_beta_features: lostBeta, trimmed: trim },
                 sub.organization_id,
             );
-        } catch (err) { log.debug('audit best-effort', err); }
+        } catch (err) { bestEffort('services/planEntitlements:auditPlanCapDrift#4', err); /* audit best-effort */ }
 
         if (trim) {
             try {
@@ -153,7 +170,7 @@ async function auditPlanCapDrift({ trim = false } = {}) {
                 if (lostBeta.length > 0) await store.setOrgEnabledBetaFeatures(sub.organization_id, trimmedBeta);
                 trimmed++;
             } catch (e) {
-                log.warn(`[PlanCapDrift] trim failed for org=${sub.organization_id}: ${e.message}`);
+                log.warn(`[PlanCapDrift] trim failed for org=${sub.organization_id}: ${/** @type {Error} */ (e).message}`);
             }
         }
     }

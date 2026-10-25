@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Webpage Builder Tools — used by directChat so the regular AI chat can create
  * and edit webpages without the user being in the dedicated Webpages editor.
@@ -17,6 +17,7 @@ const { resolveFramework } = require('./webpageFramework');
 const { scheduleThumbnail } = require('../core/webpages/webpageThumbnailGenerator');
 const log = require('../telemetry/log');
 const { sanitizeMetadata, countLines, slotTooLarge } = require('./webpageMetadataInput');
+const { fallback } = require('../utils/bestEffort');
 
 const BUILDER_TOOLS = [
     {
@@ -130,6 +131,9 @@ const BUILDER_TOOLS = [
 
 const BUILDER_TOOL_NAMES = new Set(BUILDER_TOOLS.map(t => t.function.name));
 
+/**
+ * @param {string} toolName
+ */
 function isBuilderTool(toolName) {
     return BUILDER_TOOL_NAMES.has(toolName);
 }
@@ -148,6 +152,9 @@ function isBuilderTool(toolName) {
 async function executeBuilderTool(toolName, args, ctx) {
     const { userId, readSlots } = ctx;
 
+    /**
+     * @param {string} webpageId
+     */
     function readSetFor(webpageId) {
         if (!readSlots) return null;
         if (!readSlots.has(webpageId)) readSlots.set(webpageId, new Set());
@@ -168,7 +175,7 @@ async function executeBuilderTool(toolName, args, ctx) {
     if (toolName === 'webpage_file_read') {
         const { webpageId, file } = args;
         if (!webpageId) return { result: { error: 'webpageId is required.' } };
-        const webpage = await webpageStore.getWebpage(webpageId, userId).catch(() => null);
+        const webpage = await webpageStore.getWebpage(webpageId, userId).catch((e) => fallback('integrations/webpageBuilderTools:executeBuilderTool', e, null));
         if (!webpage) return { result: { error: `Webpage ${webpageId} not found.` } };
         const files = await webpageStore.readAllSlots(userId, webpageId);
         const docResult = executeWebpageDocTool('webpage_file_read', { file }, files, { readSlots: readSetFor(webpageId) });
@@ -188,7 +195,7 @@ async function executeBuilderTool(toolName, args, ctx) {
     if (toolName === 'webpage_set_metadata') {
         const { webpageId } = args;
         if (!webpageId) return { result: { error: 'webpageId is required.' } };
-        const webpage = await webpageStore.getWebpage(webpageId, userId).catch(() => null);
+        const webpage = await webpageStore.getWebpage(webpageId, userId).catch((e) => fallback('integrations/webpageBuilderTools:executeBuilderTool#2', e, null));
         if (!webpage) return { result: { error: `Webpage ${webpageId} not found.` } };
         const { updates, warnings } = sanitizeMetadata(args);
         if (Object.keys(updates).length === 0) {
@@ -215,7 +222,7 @@ async function executeBuilderTool(toolName, args, ctx) {
     if (toolName === 'webpage_file_write') {
         const { webpageId, file, content, title } = args;
         if (!webpageId) return { result: { error: 'webpageId is required.' } };
-        const webpage = await webpageStore.getWebpage(webpageId, userId).catch(() => null);
+        const webpage = await webpageStore.getWebpage(webpageId, userId).catch((e) => fallback('integrations/webpageBuilderTools:executeBuilderTool#3', e, null));
         if (!webpage) return { result: { error: `Webpage ${webpageId} not found.` } };
 
         const tooLarge = slotTooLarge(content);
@@ -249,7 +256,7 @@ async function executeBuilderTool(toolName, args, ctx) {
                     validationNote = formatToolWarning(violations);
                 }
             } catch (valErr) {
-                log.warn('[WebpageBuilder] Post-write validation failed (skipping):', valErr.message);
+                log.warn('[WebpageBuilder] Post-write validation failed (skipping):', /** @type {Error} */ (valErr).message);
             }
         }
 
@@ -266,7 +273,7 @@ async function executeBuilderTool(toolName, args, ctx) {
     if (toolName === 'webpage_file_replace' || toolName === 'webpage_file_patch') {
         const { webpageId, file } = args;
         if (!webpageId) return { result: { error: 'webpageId is required.' } };
-        const webpage = await webpageStore.getWebpage(webpageId, userId).catch(() => null);
+        const webpage = await webpageStore.getWebpage(webpageId, userId).catch((e) => fallback('integrations/webpageBuilderTools:executeBuilderTool#4', e, null));
         if (!webpage) return { result: { error: `Webpage ${webpageId} not found.` } };
 
         // Read current content from RustFS — pass through to the doc tool

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Rate limiters for the App Studio action-run bridge (server/routes/studioAppsRun.js).
  *
@@ -102,6 +102,7 @@ const DATASET_QUERY_RPM = parseInt(process.env.STUDIO_APP_DATASET_QUERY_RPM, 10)
 // from monopolising the shared browser pool the whole chat product also uses.
 const BROWSE_RPM = parseInt(process.env.STUDIO_APP_BROWSE_RPM, 10) || 4;
 
+/** @param {import('express').Request<{ id: string }>} req */
 function actionRunKey(req) {
     const userId = req.session?.user?.id || 'anon';
     const appId = req.params?.id || 'unknown';

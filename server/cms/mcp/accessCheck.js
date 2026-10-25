@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The access decision for an upload URL, asked again at PUT time.
  *
@@ -13,7 +13,7 @@
  *
  * Collaborators are injected; routes/mcpCms.js wires the real ones.
  *
- * @returns {(bound: object, ip: string) => Promise<{ ok: true } | { ok: false, reason: string }>}
+ * @returns {(bound: { legacy?: boolean, tokenId?: string, userId?: string, orgId?: string|null }, ip: string) => Promise<{ ok: true } | { ok: false, reason: string }>}
  */
 
 'use strict';
@@ -30,7 +30,7 @@
  * @param {(user: object) => Promise<boolean>} deps.isAdmin
  */
 function createAccessCheck(deps) {
-    return async function checkAccess(bound, ip) {
+    return async function checkAccess(/** @type {{ legacy?: boolean, tokenId?: string, userId?: string, orgId?: string|null }} */ bound, /** @type {string} */ ip) {
         try {
             // Upload URLs are not issued to legacy tokens (cms_request_upload says so),
             // so a ticket without a named token behind it is not honoured.
@@ -58,7 +58,7 @@ function createAccessCheck(deps) {
             if (!(await deps.isAdmin(user))) return { ok: false, reason: 'not_cms_admin' };
             return { ok: true };
         } catch (err) {
-            return { ok: false, reason: `check_failed: ${err.message}` };
+            return { ok: false, reason: `check_failed: ${/** @type {Error} */ (err).message}` };
         }
     };
 }

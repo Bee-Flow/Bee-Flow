@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Account erasure, the collaborative-project half.
  *
@@ -31,6 +31,7 @@
 'use strict';
 
 const log = require('../../telemetry/log');
+const { isMissingTable } = require('../../utils/isMissingTable');
 
 /**
  * @param {string} userId
@@ -107,6 +108,7 @@ async function eraseOwnedProjects(userId, opts = {}) {
     try {
         ids = await listOwned(userId);
     } catch (e) {
+        if (isMissingTable(e)) return report; // no projects table: nothing owned
         log.error('[UserStore] listing owned projects failed:', /** @type {Error} */ (e).message);
         report.failed += 1;
         return report;

@@ -48,6 +48,7 @@ const { CapabilityKind: KIND } = registry;
 const { buildKey } = require('../../utils/buildInfo');
 const _metrics = require('../../telemetry/httpMetrics');
 const { recordFeatureGate } = require('../../telemetry/metrics');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 const UPGRADE_URL = process.env.LICENSE_UPGRADE_URL || 'https://beeflow.nl/pricing';
 const RESOLUTION_CACHE_TTL_MS = parseInt(process.env.ENTITLEMENT_CACHE_TTL_MS || '30000', 10);
@@ -303,7 +304,7 @@ async function consumerBetaAllow(_userId) {
         const cfg = await configStore().getConfig('default_consumer_beta_features');
         if (Array.isArray(cfg)) return cfg;
         if (typeof cfg === 'string') { try { return JSON.parse(cfg); } catch (_) { return []; } }
-    } catch (err) { log.debug('none', err); }
+    } catch (err) { bestEffort('core/entitlements/entitlements:consumerBetaAllow', err); /* none */ }
     return [];
 }
 
@@ -419,7 +420,7 @@ async function buildOrgGrant({ mode, orgId, ceiling }) {
         try {
             const r = await userStore().getOrgEveryoneRevoked(orgId);
             if (Array.isArray(r)) revoked = new Set(r);
-        } catch (err) { log.debug('fail open', err); }
+        } catch (err) { fallback('core/entitlements/entitlements:orgEveryoneRevoked', err); }
     }
     for (const id of ceiling.beta) {
         const cap = registry.getCapability(id);
@@ -526,7 +527,7 @@ async function resolveEntitlements({ userId = null, orgId = null, session = null
             const u = (session?.user?.id === userId && session.user.organizationId)
                 ? session.user : await userStore().getUser(userId);
             orgId = u?.organizationId || null;
-        } catch (err) { log.debug('genuine consumer / lookup failure → stay null', err); }
+        } catch (err) { fallback('core/entitlements/entitlements:resolveEntitlements', err); /* genuine consumer / lookup failure → stay null */ }
     }
 
     const tc = await resolveTierContext({ userId, orgId, session, req, tierHint });
@@ -765,3 +766,12 @@ module.exports = {
     _resetSingleOrgCache: () => { _singleOrgCache = { value: null, expiresAt: 0 }; },
     _buildOrgGrant: buildOrgGrant, // test-only: the org-grant composition
 };
+
+/**
+ * @typedef {import('./betaFeatures').SessionLike} SessionLike
+ * @typedef {{ core: Set<string>, beta: Set<string>, integration: Set<string>, [kind: string]: Set<string> }} KindSets
+ * @typedef {{ core: string[], beta: string[], integration: string[], [kind: string]: string[] }} KindArrays
+ * @typedef {{ userId?: string|null, orgId?: string|null, session?: SessionLike|null,
+ *   req?: { session?: SessionLike } | null, tierHint?: string|null }} ResolveInput
+ * @typedef {{ _sets?: { effective?: KindSets, ceiling?: KindSets }, effective?: KindArrays, degraded?: boolean } | null} SnapshotLike
+ */

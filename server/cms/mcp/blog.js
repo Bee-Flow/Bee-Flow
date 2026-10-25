@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Blog tools of the CMS MCP server: list, read, write and delete posts, edit a
  * post's Markdown body in place, translate it, and set the blog index heading.
@@ -22,6 +22,12 @@
 'use strict';
 
 const { safeUrl, sanitizeMediaRef } = require('../../core/cms/blogMarkdown');
+
+/**
+ * @typedef {import('./handlerKit').ToolArgs} ToolArgs
+ * @typedef {import('./handlerKit').McpCtx} McpCtx
+ * @typedef {Record<string, any>} Post  one blog post as the store holds it
+ */
 
 const SITE_ID_PROP = Object.freeze({
     type: 'string',
@@ -169,19 +175,30 @@ const BLOG_TOOLS = [
     },
 ];
 
+/** @param {unknown} v */
 const isPlainObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
+/**
+ * @param {string} error
+ * @param {Record<string, unknown>} [extra]
+ */
 const err = (error, extra = {}) => ({ result: { error, ...extra } });
 
-/** Advice an agent can act on: what the post is missing or what will not render. */
+/**
+ * Advice an agent can act on: what the post is missing or what will not render.
+ * @param {Post} post
+ */
 function postWarnings(post) {
+    /** @type {string[]} */
     const out = [];
     if (!post.excerpt) out.push('No excerpt: the index and search results use the first lines of the body instead. Set excerpt for a better teaser.');
     if (post.coverImage && !post.coverAlt) out.push('The cover image has no coverAlt; describe it for screen readers.');
     if (!post.body || !post.body.trim()) out.push('The body is empty.');
     if ((post.seo?.metaDescription || post.excerpt || '').length > 155) out.push('The description is longer than 155 characters; search engines cut it off.');
     if ((post.seo?.metaTitle || post.title || '').length > 60) out.push('The title is longer than 60 characters; set seo.metaTitle for search results.');
+    /** @type {string[]} */
     const dropped = [];
     const re = /!?\[[^\]]*\]\(\s*<?([^)\s>]+)/g;
+    /** @type {RegExpExecArray | null} */
     let m;
     while ((m = re.exec(post.body || '')) && dropped.length < 5) {
         const isImage = m[0].startsWith('!');
@@ -193,6 +210,10 @@ function postWarnings(post) {
     return out;
 }
 
+/**
+ * @param {Post} post
+ * @param {number} now
+ */
 function visibleNow(post, now) {
     if (post.status !== 'published' && post.status !== 'scheduled') return false;
     const t = Date.parse(post.publishedAt || '');
@@ -207,6 +228,7 @@ function createBlogHandlers(deps) {
     const now = deps.now || Date.now;
     const budget = new Map();
 
+    /** @param {string} userId */
     function takeWriteBudget(userId) {
         const t = now();
         const entry = budget.get(userId);
@@ -217,11 +239,15 @@ function createBlogHandlers(deps) {
     }
     const budgetSpent = () => err(`Blog write budget spent (${WRITE_MAX_PER_WINDOW} changes per ${WRITE_WINDOW_MS / 60000} minutes). Wait a few minutes, and batch edits (bodyEdits takes up to ${BODY_EDITS_MAX} at once).`);
 
-    const storeError = (e) => {
+    const storeError = (/** @type {any} */ e) => {
         if (e && e.name === 'PostError') return err(e.message, { code: e.code });
         throw e;
     };
 
+    /**
+     * @param {string} siteId
+     * @param {ToolArgs} args
+     */
     async function findPost(siteId, args) {
         if (typeof args.postId === 'string' && args.postId) {
             const post = await cmsStore.getPost(siteId, args.postId, { fresh: true });
@@ -232,22 +258,31 @@ function createBlogHandlers(deps) {
         }
         return null;
     }
+    /**
+     * @param {string} siteId
+     * @param {ToolArgs} args
+     */
     async function notFoundHint(siteId, args) {
         const posts = await cmsStore.listPosts(siteId, { fresh: true });
-        const list = posts.slice(0, 15).map(p => `${p.id} (${p.slug})`).join(', ') || 'none yet';
+        const list = posts.slice(0, 15).map((/** @type {Post} */ p) => `${p.id} (${p.slug})`).join(', ') || 'none yet';
         return err(`No post ${JSON.stringify(String(args.postId || args.slug || '').slice(0, 60))} in this site.`, { _fixHint: `Pass postId or slug. Posts: ${list}. cms_list_posts lists them all.` });
     }
 
-    /** Copy only the post fields an agent may set; reject anything else by name. */
+    /**
+     * Copy only the post fields an agent may set; reject anything else by name.
+     * @param {ToolArgs} args
+     * @param {Set<string>} allowed
+     */
     function pickFields(args, allowed) {
         const unknown = Object.keys(args).filter(k => !allowed.has(k));
         if (unknown.length) {
             return { error: err(`Unknown field${unknown.length > 1 ? 's' : ''}: ${unknown.slice(0, 5).join(', ')}.`, { _fixHint: `Valid fields: ${[...allowed].join(', ')}.` }) };
         }
+        /** @type {Record<string, any>} */
         const out = {};
         for (const k of Object.keys(POST_PROPS)) if (args[k] !== undefined) out[k] = args[k];
         if (out.seo !== undefined && !isPlainObject(out.seo)) return { error: err('seo must be an object.') };
-        if (out.tags !== undefined && (!Array.isArray(out.tags) || out.tags.length > 10 || out.tags.some(t => typeof t !== 'string'))) {
+        if (out.tags !== undefined && (!Array.isArray(out.tags) || out.tags.length > 10 || out.tags.some((/** @type {unknown} */ t) => typeof t !== 'string'))) {
             return { error: err('tags must be a list of at most 10 short words.') };
         }
         for (const k of ['title', 'slug', 'excerpt', 'body', 'coverImage', 'coverAlt', 'authorName', 'status', 'publishedAt']) {
@@ -259,6 +294,10 @@ function createBlogHandlers(deps) {
         return { fields: out };
     }
 
+    /**
+     * @param {Post} post
+     * @param {Record<string, unknown>} [translations]
+     */
     function shape(post, translations) {
         return {
             id: post.id, slug: post.slug, path: `/blog/${post.slug}`,
@@ -270,6 +309,7 @@ function createBlogHandlers(deps) {
         };
     }
 
+    /** @param {ToolArgs} args */
     async function listPosts(args) {
         const site = await resolveSite(args);
         if (site.error) return err(site.error);
@@ -280,21 +320,22 @@ function createBlogHandlers(deps) {
         const all = await cmsStore.listPosts(site.siteId, { fresh: true });
         const translations = await cmsStore.collectPostLocaleOverrides(site.siteId, { fresh: true });
         const filtered = all
-            .filter(p => !args.status || p.status === args.status)
-            .filter(p => !tag || (p.tags || []).some(t => t.toLowerCase() === tag))
-            .filter(p => !search || `${p.title} ${p.slug} ${p.excerpt}`.toLowerCase().includes(search));
+            .filter((/** @type {Post} */ p) => !args.status || p.status === args.status)
+            .filter((/** @type {Post} */ p) => !tag || (p.tags || []).some((/** @type {string} */ t) => t.toLowerCase() === tag))
+            .filter((/** @type {Post} */ p) => !search || `${p.title} ${p.slug} ${p.excerpt}`.toLowerCase().includes(search));
         return {
             result: {
                 siteId: site.siteId,
                 total: filtered.length,
                 offset,
-                posts: filtered.slice(offset, offset + limit).map(p => shape(p, translations[p.id] || {})),
+                posts: filtered.slice(offset, offset + limit).map((/** @type {Post} */ p) => shape(p, translations[p.id] || {})),
                 blogSettings: cmsStore.sanitizeBlogSettings(site.project.blog),
                 note: 'Edits are drafts; cms_publish makes them live. Public URLs: /blog and /blog/<slug> (and /<locale>/blog/<slug> for a translation).',
             },
         };
     }
 
+    /** @param {ToolArgs} args */
     async function getPost(args) {
         const site = await resolveSite(args);
         if (site.error) return err(site.error);
@@ -316,6 +357,10 @@ function createBlogHandlers(deps) {
     }
 
     const CREATE_FIELDS = new Set(['siteId', ...Object.keys(POST_PROPS)]);
+    /**
+     * @param {ToolArgs} args
+     * @param {McpCtx} ctx
+     */
     async function createPost(args, ctx) {
         const picked = pickFields(args, CREATE_FIELDS);
         if (picked.error) return picked.error;
@@ -331,6 +376,10 @@ function createBlogHandlers(deps) {
     }
 
     const UPDATE_FIELDS = new Set(['siteId', 'postId', ...Object.keys(POST_PROPS), 'bodyEdits', 'appendBody']);
+    /**
+     * @param {ToolArgs} args
+     * @param {McpCtx} ctx
+     */
     async function updatePost(args, ctx) {
         const rest = { ...args };
         const edits = rest.bodyEdits;
@@ -391,6 +440,10 @@ function createBlogHandlers(deps) {
         };
     }
 
+    /**
+     * @param {ToolArgs} args
+     * @param {McpCtx} ctx
+     */
     async function deletePost(args, ctx) {
         const site = await resolveSite(args);
         if (site.error) return err(site.error);
@@ -402,6 +455,10 @@ function createBlogHandlers(deps) {
         return { result: { siteId: site.siteId, deleted: { id: post.id, slug: post.slug }, note: 'Removed from the draft; the live site drops it at the next cms_publish.' } };
     }
 
+    /**
+     * @param {ToolArgs} args
+     * @param {McpCtx} ctx
+     */
     async function setPostTranslation(args, ctx) {
         const locale = String(args.locale || '').toLowerCase();
         if (!cmsStore.isValidLocale(locale)) return err(`"${String(args.locale).slice(0, 20)}" is not a language code such as "nl".`);
@@ -426,6 +483,10 @@ function createBlogHandlers(deps) {
         return { result: { siteId: site.siteId, postId: post.id, locale, saved: true, fields: Object.keys(saved).filter(k => k !== 'version'), path: `/${locale}/blog/${post.slug}` } };
     }
 
+    /**
+     * @param {ToolArgs} args
+     * @param {McpCtx} ctx
+     */
     async function updateBlogSettings(args, ctx) {
         const known = new Set(['siteId', 'title', 'description', 'postsPerPage']);
         const unknown = Object.keys(args).filter(k => !known.has(k));
@@ -442,7 +503,7 @@ function createBlogHandlers(deps) {
         const site = await resolveSite(args);
         if (site.error) return err(site.error);
         if (!takeWriteBudget(ctx.userId)) return budgetSpent();
-        const merge = (base, patch) => {
+        const merge = (/** @type {Record<string, string>} */ base, /** @type {Record<string, unknown> | undefined} */ patch) => {
             const out = { ...base };
             for (const [loc, v] of Object.entries(patch || {})) {
                 if (typeof v !== 'string' || !v.trim()) delete out[loc];
@@ -450,7 +511,7 @@ function createBlogHandlers(deps) {
             }
             return out;
         };
-        const { site: saved } = await cmsStore.mutateProject(site.siteId, (project) => {
+        const { site: saved } = await cmsStore.mutateProject(site.siteId, (/** @type {Record<string, any>} */ project) => {
             const current = cmsStore.sanitizeBlogSettings(project.blog);
             project.blog = {
                 title: merge(current.title, args.title),

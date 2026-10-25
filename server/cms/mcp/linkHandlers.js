@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The link-check tool of the CMS MCP server: cms_check_links. Internal links
  * are resolved against the site's own pages, posts and redirects (no network).
@@ -31,9 +31,18 @@ const LINK_TOOLS = [
 ];
 
 /**
+ * @typedef {import('./handlerKit').ToolArgs} ToolArgs
+ * @typedef {import('./handlerKit').McpCtx} McpCtx
+ */
+
+/**
  * @param {{ deps: any, cmsStore: any, resolveSite: (args: any) => Promise<any>, takeBudget?: Function }} kit
  */
 function createLinkHandlers({ deps, cmsStore, resolveSite }) {
+    /**
+     * @param {ToolArgs} args
+     * @param {McpCtx} ctx
+     */
     async function checkLinks(args, ctx) {
         const unknown = Object.keys(args).filter((k) => !['siteId', 'external'].includes(k));
         if (unknown.length) return err(`Unknown field: ${unknown.slice(0, 5).join(', ')}.`, { _fixHint: 'Send siteId and external.' });

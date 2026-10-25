@@ -169,7 +169,7 @@ function wrapWithRedisCache(pgStore, redis) {
  *
  * @param {any} liveStore - the store object handed to express-session
  * @param {any} pgStore   - the connect-pg-simple store
- * @param {any} redis     - the shared ioredis client, or null without Redis
+ * @param {{ status: string; once: (arg0: string, arg1: () => void) => void; }} redis     - the shared ioredis client, or null without Redis
  * @returns {boolean} whether activation is pending or done
  */
 function installRedisCacheWhenReady(liveStore, pgStore, redis) {
@@ -187,17 +187,32 @@ function installRedisCacheWhenReady(liveStore, pgStore, redis) {
     return true;
 }
 
+/** The PG rows are gone but a cached copy could not be removed: the session stays valid until its TTL. */
+class CacheEvictionError extends Error {}
+
+/** Remove busted sessions from the Redis cache; a failure must reach the caller, never leave a revoked session usable. */
+async function evictCached(r, sids) {
+    if (!r || !sids.length) return;
+    const keys = sids.map(sid => `${CACHE_PREFIX}${sid}`);
+    try {
+        await r.unlink(...keys).catch(() => r.del(...keys));
+    } catch (err) {
+        throw new CacheEvictionError(`session cache eviction failed: ${err.message}`);
+    }
+}
+
 /**
  * Bust all live sessions for a given user. Used after the user's license is
  * revoked, their role is downgraded, or their account is deleted — without
  * this, the existing cookie still validates for up to 30 days.
  *
  * Returns the number of sessions destroyed (PG row count).
+ * `db` is the test seam (pool + getRedis, as db.js exports them).
  */
-async function bustSessionsForUser(userId) {
+async function bustSessionsForUser(userId, { db = require('../db') } = {}) {
     if (!userId) return 0;
     try {
-        const { pool, getRedis } = require('../db');
+        const { pool, getRedis } = db;
         const result = await pool.query(
             `DELETE FROM user_sessions
                    WHERE sess::jsonb -> 'user' ->> 'id' = $1
@@ -205,19 +220,14 @@ async function bustSessionsForUser(userId) {
             [String(userId)]
         );
         const sids = (result.rows || []).map(r => r.sid);
-        const r = getRedis();
-        if (r && sids.length) {
-            try {
-                const keys = sids.map(sid => `${CACHE_PREFIX}${sid}`);
-                await r.unlink(...keys).catch(() => r.del(...keys).catch(() => { }));
-            } catch (err) { log.debug('best-effort', err); }
-        }
+        await evictCached(getRedis(), sids);
         if (sids.length) {
             log.info(`[SessionCache] bust.user user_id=${userId} sessions=${sids.length}`);
         }
         return sids.length;
     } catch (e) {
         log.error('[SessionCache] bustSessionsForUser error:', e.message);
+        if (e instanceof CacheEvictionError) throw e;
         return 0;
     }
 }
@@ -227,10 +237,10 @@ async function bustSessionsForUser(userId) {
  * license revocation. Walks `users."organizationId"` to enumerate IDs, then
  * delegates per-user to bustSessionsForUser so the Redis bust happens too.
  */
-async function bustSessionsForOrg(organizationId) {
+async function bustSessionsForOrg(organizationId, { db = require('../db') } = {}) {
     if (!organizationId) return 0;
     try {
-        const { pool } = require('../db');
+        const { pool, getRedis } = db;
         const result = await pool.query(
             `DELETE FROM user_sessions
                    WHERE sess::jsonb -> 'user' ->> 'organizationId' = $1
@@ -239,20 +249,14 @@ async function bustSessionsForOrg(organizationId) {
             [String(organizationId)]
         );
         const sids = (result.rows || []).map(r => r.sid);
-        const { getRedis } = require('../db');
-        const r = getRedis();
-        if (r && sids.length) {
-            try {
-                const keys = sids.map(sid => `${CACHE_PREFIX}${sid}`);
-                await r.unlink(...keys).catch(() => r.del(...keys).catch(() => { }));
-            } catch (err) { log.debug('best-effort', err); }
-        }
+        await evictCached(getRedis(), sids);
         if (sids.length) {
             log.info(`[SessionCache] bust.org org_id=${organizationId} sessions=${sids.length}`);
         }
         return sids.length;
     } catch (e) {
         log.error('[SessionCache] bustSessionsForOrg error:', e.message);
+        if (e instanceof CacheEvictionError) throw e;
         return 0;
     }
 }

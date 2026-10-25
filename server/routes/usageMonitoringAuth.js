@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Authorization for the monitoring read endpoints (/api/usage/guardrails/*,
  * /api/usage/integrations/*).
@@ -32,8 +32,12 @@
 
 const { resolveUserOrgIds, isOrgAdminRole } = require('../auth');
 const userStore = require('../stores/userStore');
+const { fallback } = require('../utils/bestEffort');
 
-async function requireMonitoringScope(req, res, next) {
+/**
+ * @param {NextFunction} next
+ */
+async function requireMonitoringScope(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, next) {
     if (!req.session?.isAuthenticated || !req.session?.user) {
         return res.status(401).json({ error: 'Not authenticated' });
     }
@@ -58,7 +62,7 @@ async function requireMonitoringScope(req, res, next) {
         // deliberately org-blind for them), so "super admin with an org"
         // is only knowable from their own user record. Without this, the
         // platform operator got 403 on every monitoring dashboard.
-        const admin = await userStore.getUser(req.session.user.id).catch(() => null);
+        const admin = await userStore.getUser(req.session.user.id).catch((e) => fallback('routes/usageMonitoringAuth:requireMonitoringScope', e, null));
         orgId = admin?.organizationId || null;
     }
     if (!orgId) return res.status(403).json({ error: 'No organisation context' });
@@ -78,3 +82,5 @@ async function requireMonitoringScope(req, res, next) {
 }
 
 module.exports = { requireMonitoringScope };
+
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */

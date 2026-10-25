@@ -34,12 +34,19 @@ const LOOPS = new Set(['ForStatement', 'ForInStatement', 'ForOfStatement', 'Whil
 const FUNCTIONS = new Set(['FunctionDeclaration', 'FunctionExpression', 'ArrowFunctionExpression']);
 const SECRET_RES = SECRET_PATTERNS.map(({ re }) => new RegExp(re.source, re.flags.replace('g', '')));
 
+/**
+ * @param {string} n
+ */
 const isInternalName = (n) => typeof n === 'string' && (n.startsWith('__host') || n.startsWith('__bf') || INTERNAL_NAMES.has(n));
 
-/** Every name the code binds anywhere (variables, functions, params, classes, catch). */
+/**
+ * Every name the code binds anywhere (variables, functions, params, classes, catch).
+ * @param {import('acorn').AnyNode} ast
+ */
 function declaredNames(ast) {
+    /** @type {Set<string>} */
     const names = new Set();
-    const addPattern = (p) => forEachNode(p, (n, parent) => {
+    const addPattern = (/** @type {import('acorn').Pattern} */ p) => forEachNode(p, (n, parent) => {
         if (n.type !== 'Identifier') return;
         // In `{ a: b }` only `b` is bound; in `{ a = 1 }` the key is the binding.
         if (parent && parent.type === 'Property' && parent.key === n && !parent.shorthand) return;
@@ -49,15 +56,19 @@ function declaredNames(ast) {
     });
     forEachNode(ast, (n) => {
         if (n.type === 'VariableDeclarator') addPattern(n.id);
-        else if (FUNCTIONS.has(n.type)) { if (n.id) names.add(n.id.name); n.params.forEach(addPattern); }
+        else if (FUNCTIONS.has(n.type)) { if ((/** @type {import('acorn').Function} */ (n)).id) names.add((/** @type {import('acorn').Function} */ (n)).id.name); (/** @type {import('acorn').Function} */ (n)).params.forEach(addPattern); }
         else if ((n.type === 'ClassDeclaration' || n.type === 'ClassExpression') && n.id) names.add(n.id.name);
         else if (n.type === 'CatchClause' && n.param) addPattern(n.param);
     });
     return names;
 }
 
-/** `const k = <init>` bindings (never reassigned by definition), for the folder. */
+/**
+ * `const k = <init>` bindings (never reassigned by definition), for the folder.
+ * @param {import('acorn').AnyNode} ast
+ */
 function constBindings(ast) {
+    /** @type {Map<string, import('acorn').AnyNode>} */
     const consts = new Map();
     forEachNode(ast, (n) => {
         if (n.type !== 'VariableDeclaration' || n.kind !== 'const') return;
@@ -66,14 +77,20 @@ function constBindings(ast) {
     return consts;
 }
 
-/** A static or foldable property name of a MemberExpression, else undefined. */
+/**
+ * A static or foldable property name of a MemberExpression, else undefined.
+ * @param {import('acorn').MemberExpression} member
+ * @param {ReturnType<typeof makeFolder>} fold
+ */
 function propName(member, fold) {
     if (!member.computed) return member.property.type === 'Identifier' ? member.property.name : undefined;
     const v = fold(member.property);
     return typeof v === 'string' ? v : undefined;
 }
 
+/** @param {string} s */
 function entropy(s) {
+    /** @type {Map<string, number>} */
     const counts = new Map();
     for (const ch of s) counts.set(ch, (counts.get(ch) || 0) + 1);
     let h = 0;
@@ -81,9 +98,13 @@ function entropy(s) {
     return h;
 }
 
-/** Does `body` (not counting nested functions) contain a way out of a loop? */
+/**
+ * Does `body` (not counting nested functions) contain a way out of a loop?
+ * @param {import('acorn').AnyNode} body
+ */
 function hasExit(body) {
     let exit = false;
+    /** @param {import('acorn').AnyNode} node */
     const walk = (node) => {
         if (!node || exit || typeof node.type !== 'string') return;
         if (['BreakStatement', 'ReturnStatement', 'ThrowStatement', 'AwaitExpression', 'YieldExpression'].includes(node.type)) { exit = true; return; }
@@ -98,10 +119,11 @@ function hasExit(body) {
     return exit;
 }
 
+/** @param {import('acorn').AnyNode} node */
 const mentionsClock = (node) => {
     let clock = false;
     forEachNode(node, (n) => {
-        if (n.type === 'MemberExpression' && !n.computed && n.property.name === 'now'
+        if (n.type === 'MemberExpression' && !n.computed && (/** @type {import('acorn').Identifier | import('acorn').PrivateIdentifier} */ (n.property)).name === 'now'
             && n.object.type === 'Identifier' && (n.object.name === 'Date' || n.object.name === 'performance')) clock = true;
         if (n.type === 'NewExpression' && n.callee.type === 'Identifier' && n.callee.name === 'Date') clock = true;
     });
@@ -109,41 +131,59 @@ const mentionsClock = (node) => {
 };
 
 /**
- * @param {object} ast        acorn Program
+ * @param {import('acorn').Program} ast        acorn Program
  * @param {string} src        the source (for line lengths and escapes)
  * @param {{ inputsName?: string, ctxName?: string, allowedTools?: string[], allowedHosts?: string[] }} [opts]
  * @returns {{ findings: object[], facts: any }}
  */
 function detect(ast, src, { inputsName = 'inputs', ctxName = 'ctx', allowedTools = [], allowedHosts = [] } = {}) {
     const declared = declaredNames(ast);
+    /**
+     * @param {string} name
+     */
     const isFree = (name) => !declared.has(name);
     const fold = makeFolder({ consts: constBindings(ast), isFree });
+    /** @type {import('./rules').CodeSafetyFinding[]} */
     const findings = [];
+    /**
+     * @param {string} ruleId
+     * @param {import('acorn').AnyNode} node
+     */
     const raise = (ruleId, node) => findings.push(makeFinding(ruleId, node));
 
+    /** @type {Map<import('acorn').AnyNode, import('acorn').AnyNode | null>} */
     const parents = new Map();
     forEachNode(ast, (n, parent) => { parents.set(n, parent); });
+    /** @param {import('acorn').AnyNode} n */
     const ancestors = function* (n) { for (let p = parents.get(n); p; p = parents.get(p)) yield p; };
+    /** @param {import('acorn').AnyNode} n */
     const insideLoop = (n) => {
         let child = n;
         for (const p of ancestors(n)) {
             if (LOOPS.has(p.type)) return true;
-            if (FUNCTIONS.has(child.type) && p.type === 'CallExpression' && p.arguments.includes(child)
+            if (FUNCTIONS.has(child.type) && p.type === 'CallExpression' && p.arguments.includes(/** @type {import('acorn').Expression} */ (child))
                 && p.callee.type === 'MemberExpression' && ITERATING_METHODS.has(propName(p.callee, fold))) return true;
             child = p;
         }
         return false;
     };
     // A free reference: an Identifier read as a value (not a property key, not a binding).
+    /**
+     * @param {import('acorn').Identifier} n
+     * @param {import('acorn').AnyNode | null} parent
+     */
     const isReference = (n, parent) => {
         if (!parent) return true;
         if (parent.type === 'MemberExpression' && parent.property === n && !parent.computed) return false;
-        if ((parent.type === 'Property' || parent.type === 'MethodDefinition' || parent.type === 'PropertyDefinition') && parent.key === n && !parent.computed) return parent.shorthand === true;
+        if ((parent.type === 'Property' || parent.type === 'MethodDefinition' || parent.type === 'PropertyDefinition') && parent.key === n && !parent.computed) return (/** @type {{ shorthand?: boolean }} */ (parent)).shorthand === true;
+
         if (parent.type === 'LabeledStatement' || parent.type === 'BreakStatement' || parent.type === 'ContinueStatement') return false;
         return true;
     };
+    /** @param {import('acorn').AnyNode} node */
     const isCtx = (node) => node && node.type === 'Identifier' && node.name === ctxName;
 
+    /** @type {{ hosts: Set<string>, dynamicHosts: boolean, tools: Set<string>, inputsRead: Set<string>, usesHttp: boolean, usesDb: boolean, httpInLoop: boolean }} */
     const facts = { hosts: new Set(), dynamicHosts: false, tools: new Set(), inputsRead: new Set(), usesHttp: false, usesDb: false, httpInLoop: false };
     const allowedToolSet = new Set(allowedTools || []);
 
@@ -231,6 +271,7 @@ function detect(ast, src, { inputsName = 'inputs', ctxName = 'ctx', allowedTools
                 const t = n.left;
                 if (t.type !== 'MemberExpression') break;
                 // Builtin.prototype.x = ..., Builtin.prototype = ...
+                /** @type {import('acorn').Expression | import('acorn').Super} */
                 let base = t;
                 while (base.type === 'MemberExpression') {
                     if (propName(base, fold) === 'prototype' && base.object.type === 'Identifier' && BUILTINS.has(base.object.name) && isFree(base.object.name)) { raise('builtin-tampering', n); break; }
@@ -293,23 +334,33 @@ function detect(ast, src, { inputsName = 'inputs', ctxName = 'ctx', allowedTools
     };
 }
 
-/** The host a ctx.http(url, ...) call reaches, when the code decides it. */
+/**
+ * The host a ctx.http(url, ...) call reaches, when the code decides it.
+ * @param {import('acorn').Expression | import('acorn').SpreadElement} arg
+ * @param {ReturnType<typeof makeFolder>} fold
+ */
 function hostOfCall(arg, fold) {
     if (!arg) return null;
     const whole = fold(arg);
     if (typeof whole === 'string') return hostOfUrlPrefix(whole, true);
     // `https://api.x.com/items/${id}` or 'https://api.x.com/' + id: the known prefix.
+    /** @type {import('acorn').AnyNode} */
     let head = arg;
     while (head.type === 'BinaryExpression' && head.operator === '+') head = head.left;
+    /** @type {string | undefined} */
     let prefix;
     if (head.type === 'TemplateLiteral') prefix = head.quasis[0].value.cooked;
     else { const v = fold(head); prefix = typeof v === 'string' ? v : undefined; }
     return typeof prefix === 'string' ? hostOfUrlPrefix(prefix, false) : null;
 }
 
+/** @param {import('./rules').CodeSafetyFinding[]} findings */
 function dedupe(findings) {
+    /** @type {Set<string>} */
     const seen = new Set();
+    /** @type {import('./rules').CodeSafetyFinding[]} */
     const out = [];
+
     for (const f of findings) {
         const key = `${f.ruleId}:${f.line}`;
         if (seen.has(key)) continue;

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * THE TWO WAYS PAST A PHASE THAT DID NOT WORK.
  *
@@ -38,11 +38,15 @@ const RetryBody = bodyOf({
 const { kindOf } = require('./phaseList');
 const log = require('../../telemetry/log');
 
+/**
+ * @param {import('express').IRouter} router
+ * @param {import('./index').PlaybookRouteCtx} ctx
+ */
 function register(router, ctx) {
     const { d, flow, requireManageApps } = ctx;
     const { resolveRecipe, approvalsAllowed, load, withBrief, prepareNext, persist } = flow;
 
-    router.post('/:id/phases/:key/skip', requireManageApps, async (req, res) => {
+    router.post('/:id/phases/:key/skip', requireManageApps, async (/** @type {import('express').Request<{ id: string, key: string }>} */ req, /** @type {import('express').Response} */ res) => {
         try {
             const pb = await load(req, res);
             if (!pb) return;
@@ -69,13 +73,13 @@ function register(router, ctx) {
             const saved = await persist(res, pb, { phases, currentPhase: lifecycle.currentPhaseKey(phases), status }, pb.version);
             if (saved) res.json({ playbook: saved });
         } catch (e) {
-            if (e.code === 'illegal_transition') return sendErr(res, 409, 'illegal_transition', e.message, { from: e.from, to: e.to });
-            log.error('[Playbooks] skip failed:', e.message);
+            if (e.code === 'illegal_transition') return sendErr(res, 409, 'illegal_transition', /** @type {Error} */ (e).message, { from: e.from, to: e.to });
+            log.error('[Playbooks] skip failed:', /** @type {Error} */ (e).message);
             sendErr(res, 500, 'internal', 'Could not skip the phase');
         }
     });
 
-    router.post('/:id/phases/:key/retry', requireManageApps, async (req, res) => {
+    router.post('/:id/phases/:key/retry', requireManageApps, async (/** @type {import('express').Request<{ id: string, key: string }>} */ req, /** @type {import('express').Response} */ res) => {
         try {
             const pb = await load(req, res);
             if (!pb) return;
@@ -99,8 +103,8 @@ function register(router, ctx) {
             const saved = await persist(res, pb, { phases, currentPhase: key, status: 'active' }, pb.version);
             if (saved) res.json({ playbook: saved });
         } catch (e) {
-            if (e.code === 'illegal_transition') return sendErr(res, 409, 'illegal_transition', e.message, { from: e.from, to: e.to });
-            log.error('[Playbooks] retry failed:', e.message);
+            if (e.code === 'illegal_transition') return sendErr(res, 409, 'illegal_transition', /** @type {Error} */ (e).message, { from: e.from, to: e.to });
+            log.error('[Playbooks] retry failed:', /** @type {Error} */ (e).message);
             sendErr(res, 500, 'internal', 'Could not retry the phase');
         }
     });

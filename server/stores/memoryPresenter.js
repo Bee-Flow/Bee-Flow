@@ -35,10 +35,13 @@ function makeMemoryPresenter(db) {
         const projectIds = uniq(rows.map((r) => r.project_id));
         const convIds = uniq(rows.map((r) => r.source_conversation_id));
         const authorIds = uniq(rows.filter((r) => r.project_id).map((r) => r.user_id));
+        /**
+         * @param {string} sql
+         */
         const safe = async (ids, sql) => {
             if (ids.length === 0) return [];
             try { return await db().getAll(sql, [ids]); } catch (err) {
-                log.warn('[memoryQueries] enrichment lookup failed:', err.message);
+                log.warn('[memoryQueries] enrichment lookup failed:', /** @type {Error} */ (err).message);
                 return [];
             }
         };

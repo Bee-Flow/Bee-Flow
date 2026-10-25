@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The organisation MCP library: what an org admin sees and does in
  * Settings → Organisation → MCP library.
@@ -36,6 +37,7 @@ const { isLibraryRow, runningDefinition } = require('./gate');
 const def = require('./definition');
 
 const deps = require('./deps');
+const { bestEffort, fallback } = require('../../../utils/bestEffort');
 
 const store = () => deps.store();
 const connStore = () => deps.connStore();
@@ -44,8 +46,18 @@ const mcpStore = () => deps.mcpStore();
 const entitlements = () => deps.entitlements();
 const mcpClient = () => deps.mcpClient();
 
-const capIdOf = (integrationId) => `custom:${integrationId}`;
-const providerOf = (integrationId) => `custom:${integrationId}`;
+/**
+ * @typedef {NonNullable<Awaited<ReturnType<typeof import('../../../stores/orgCustomIntegrationStore').getById>>>} LibraryRow
+ * @typedef {{ specVersion?: number, meta?: { source?: string, catalogId?: string, docsUrl?: string }, mcp?: import('./definition').LibraryMcpBlock }} LibraryDefinition
+ * @typedef {Awaited<ReturnType<typeof import('../../../stores/userStore').getAllGroups>>[number]} OrgGroup
+ * @typedef {Awaited<ReturnType<typeof import('../../../stores/integrationConnectionStore').listGrants>>[number]} ConnectionGrant
+ * @typedef {Awaited<ReturnType<typeof getPolicy>>} LibraryPolicy
+ * @typedef {{ mode?: string, groupIds?: string[] } | null | undefined} AccessInput
+ * @typedef {{ id?: string, name?: string, description?: string | null, icon?: string | null, category?: string | null, transport?: string, status?: string, enabled?: boolean, tools_cache?: unknown, required_credentials?: unknown }} ServerWideRow
+ */
+
+const capIdOf = (/** @type {string} */ integrationId) => `custom:${integrationId}`;
+const providerOf = (/** @type {string} */ integrationId) => `custom:${integrationId}`;
 
 /**
  * The library's own copy of a row's definition. Every library change goes
@@ -53,12 +65,15 @@ const providerOf = (integrationId) => `custom:${integrationId}`;
  * `definition` is always the newest: equal to the activated snapshot for a
  * running server, and ahead of it for a switched-off one whose tools were
  * changed. What RUNS is still the activated snapshot (gate.runningDefinition).
+ * @param {LibraryRow} row
+ * @returns {LibraryDefinition}
  */
 function libraryDefinition(row) {
     if (row && row.definition && row.definition.mcp) return row.definition;
-    return runningDefinition(row) || {};
+    return /** @type {LibraryDefinition} */ (runningDefinition(row) || {});
 }
 
+/** @type {Record<string, string>} */
 const POLICY_REFUSAL = {
     policy_off: 'Your server administrator has switched off installing MCP servers for organisations.',
     not_official: 'Only the official servers in the library can be installed on this server.',
@@ -67,12 +82,24 @@ const POLICY_REFUSAL = {
     invalid_url: 'That is not a valid https address.',
 };
 
+/**
+ * @param {LibraryPolicy} policy
+ * @param {string} url
+ */
 function assertPolicyAllows(policy, url) {
     const verdict = checkUrl(policy, url);
     if (!verdict.allowed) throw new HttpError(403, `policy_${verdict.reason}`, POLICY_REFUSAL[verdict.reason] || 'Not allowed.');
     return verdict;
 }
 
+/**
+ * @param {string} verb
+ * @param {string} integrationId
+ * @param {string | null | undefined} actorUserId
+ * @param {string} orgId
+ * @param {Record<string, unknown> | null} oldValues
+ * @param {Record<string, unknown> | null} newValues
+ */
 async function audit(verb, integrationId, actorUserId, orgId, oldValues, newValues) {
     try {
         await userStore().logAccessAudit(`mcp_library.${verb}`, 'custom_integration', integrationId, actorUserId || null, oldValues || null, newValues || null, orgId);
@@ -81,16 +108,23 @@ async function audit(verb, integrationId, actorUserId, orgId, oldValues, newValu
     }
 }
 
+/** @param {string} orgId */
 async function invalidate(orgId) {
-    try { entitlements().registry.invalidateCustomIntegrationCache(orgId); } catch (err) { log.debug('best effort', err); }
-    try { await entitlements().invalidateForOrg(orgId); } catch (err) { log.debug('best effort', err); }
+    try { entitlements().registry.invalidateCustomIntegrationCache(orgId); } catch (err) { bestEffort('core/customIntegrations/mcpLibrary/service:invalidate', err); /* best effort */ }
+    try { await entitlements().invalidateForOrg(orgId); } catch (err) { bestEffort('core/customIntegrations/mcpLibrary/service:invalidate#2', err); /* best effort */ }
 }
 
+/** @param {string} orgId */
 async function orgGroups(orgId) {
     const all = await userStore().getAllGroups();
     return (all || []).filter(g => g && g.organizationId === orgId);
 }
 
+/**
+ * @param {string} capId
+ * @param {string[]} orgList
+ * @param {OrgGroup[]} groups
+ */
 function readAccess(capId, orgList, groups) {
     const groupIds = groups
         .filter(g => Array.isArray(g.granted_capabilities) && g.granted_capabilities.includes(capId))
@@ -104,7 +138,11 @@ function readAccess(capId, orgList, groups) {
  * THIS org; anything else is refused, not skipped). Writes the org list and
  * every org group that changes.
  */
-/** Refuse an access choice naming no group, or a group outside this org. */
+/**
+ * Refuse an access choice naming no group, or a group outside this org.
+ * @param {OrgGroup[]} groups
+ * @param {AccessInput} access
+ */
 function checkAccess(groups, access) {
     const mode = access && access.mode === 'groups' ? 'groups' : 'everyone';
     const chosen = new Set(mode === 'groups' ? (access.groupIds || []) : []);
@@ -118,6 +156,11 @@ function checkAccess(groups, access) {
     return { mode, chosen };
 }
 
+/**
+ * @param {string} orgId
+ * @param {string} capId
+ * @param {AccessInput} access
+ */
 async function applyAccess(orgId, capId, access) {
     const us = userStore();
     const groups = await orgGroups(orgId);
@@ -126,40 +169,57 @@ async function applyAccess(orgId, capId, access) {
     const orgList = await us.getOrgEnabledIntegrations(orgId);
     const hasOrg = orgList.includes(capId);
     if (mode === 'everyone' && !hasOrg) await us.setOrgEnabledIntegrations(orgId, [...orgList, capId]);
-    if (mode === 'groups' && hasOrg) await us.setOrgEnabledIntegrations(orgId, orgList.filter(x => x !== capId));
+    if (mode === 'groups' && hasOrg) await us.setOrgEnabledIntegrations(orgId, orgList.filter((/** @type {string} */ x) => x !== capId));
 
     for (const g of groups) {
         const current = Array.isArray(g.granted_capabilities) ? g.granted_capabilities : [];
         const has = current.includes(capId);
         const want = chosen.has(g.id);
         if (has === want) continue;
-        await us.updateGroup(g.id, { grantedCapabilities: want ? [...current, capId] : current.filter(x => x !== capId) });
+        await us.updateGroup(g.id, { grantedCapabilities: want ? [...current, capId] : current.filter((/** @type {string} */ x) => x !== capId) });
     }
     return { mode, groupIds: [...chosen] };
 }
 
-/** Remove `capId` from the org list and every org group (uninstall). */
+/**
+ * Remove `capId` from the org list and every org group (uninstall).
+ * @param {string} orgId
+ * @param {string} capId
+ */
 async function revokeAccess(orgId, capId) {
     const us = userStore();
     const orgList = await us.getOrgEnabledIntegrations(orgId);
-    if (orgList.includes(capId)) await us.setOrgEnabledIntegrations(orgId, orgList.filter(x => x !== capId));
+    if (orgList.includes(capId)) await us.setOrgEnabledIntegrations(orgId, orgList.filter((/** @type {string} */ x) => x !== capId));
     for (const g of await orgGroups(orgId)) {
         const current = Array.isArray(g.granted_capabilities) ? g.granted_capabilities : [];
-        if (current.includes(capId)) await us.updateGroup(g.id, { grantedCapabilities: current.filter(x => x !== capId) });
+        if (current.includes(capId)) await us.updateGroup(g.id, { grantedCapabilities: current.filter((/** @type {string} */ x) => x !== capId) });
     }
 }
 
-/** The org-wide lend grant of a server's shared key, if there is one. */
+/**
+ * The org-wide lend grant of a server's shared key, if there is one.
+ * @param {ConnectionGrant[] | null | undefined} grants
+ * @param {string} integrationId
+ */
 function sharedGrantFor(grants, integrationId) {
     const provider = providerOf(integrationId);
     return (grants || []).find(g => g.provider === provider && g.grantee_type === 'org' && !g.revoked_at) || null;
 }
 
+/**
+ * @param {string} orgId
+ * @returns {Promise<ConnectionGrant[]>}
+ */
 async function listOrgGrants(orgId) {
     try { return await connStore().listGrants({ orgId }); } catch (_) { return []; }
 }
 
-/** The decrypted shared key (lent connection), else the admin's own, else none. */
+/**
+ * The decrypted shared key (lent connection), else the admin's own, else none.
+ * @param {LibraryRow} row
+ * @param {string} actorUserId
+ * @param {import('./definition').LibraryAuth} auth
+ */
 async function resolveAdminSecret(row, actorUserId, auth) {
     if (auth.authStyle === 'none') return null;
     const cs = connStore();
@@ -192,8 +252,12 @@ async function upsertOwnConnection(/** @type {{row: any, userId: any, auth: any,
     return created.id;
 }
 
+/**
+ * @param {LibraryRow} row
+ * @returns {import('./definition').LibraryAuth}
+ */
 function authOfRow(row) {
-    const mcp = libraryDefinition(row).mcp || {};
+    const mcp = libraryDefinition(row).mcp || /** @type {Partial<import('./definition').LibraryMcpBlock>} */ ({});
     if (mcp.authStyle === 'none' || !mcp.valueTemplate) return { authStyle: 'none', credential: null };
     const cred = Array.isArray(mcp.credentials) && mcp.credentials[0] ? mcp.credentials[0] : null;
     return {
@@ -206,15 +270,19 @@ function authOfRow(row) {
 
 // ── Shapes ───────────────────────────────────────────────────────────
 
+/**
+ * @param {LibraryRow} row
+ * @param {{ orgList: string[], groups: OrgGroup[], grants: ConnectionGrant[], policy: LibraryPolicy }} ctx
+ */
 function shapeInstalled(row, { orgList, groups, grants, policy }) {
     const d = libraryDefinition(row);
-    const mcp = d.mcp || {};
-    const meta = d.meta || {};
+    const mcp = d.mcp || /** @type {Partial<import('./definition').LibraryMcpBlock>} */ ({});
+    const meta = d.meta || /** @type {LibraryDefinition['meta']} */ ({});
     const allow = Array.isArray(mcp.toolAllowList) ? new Set(mcp.toolAllowList) : null;
     const discovered = Array.isArray(mcp.discoveredTools) ? mcp.discoveredTools : [];
     const tools = discovered.map(t => ({ ...t, enabled: allow ? allow.has(t.name) : true }));
     let host = null;
-    try { host = new URL(mcp.url).hostname; } catch (err) { log.debug('shown as unknown', err); }
+    try { host = new URL(mcp.url).hostname; } catch (err) { fallback('core/customIntegrations/mcpLibrary/service:shapeInstalled', err); /* shown as unknown */ }
     const auth = authOfRow(row);
     const verdict = checkUrl(policy, mcp.url);
     const capId = capIdOf(row.id);
@@ -244,7 +312,13 @@ function shapeInstalled(row, { orgList, groups, grants, policy }) {
     };
 }
 
+/**
+ * @param {string} orgId
+ * @param {string[]} orgList
+ * @param {OrgGroup[]} groups
+ */
 async function listServerWide(orgId, orgList, groups) {
+    /** @type {ServerWideRow[]} */
     let servers = [];
     try { servers = (await mcpStore().listServers()) || []; } catch (_) { return []; }
     servers = servers.filter(s => s && s.enabled !== false);
@@ -253,7 +327,7 @@ async function listServerWide(orgId, orgList, groups) {
     try {
         const snap = await entitlements().resolveEntitlements({ userId: null, orgId });
         available = new Set((snap.orgAvailable && snap.orgAvailable.integration) || []);
-    } catch (err) { log.debug('nothing is available when the resolver is down', err); }
+    } catch (err) { fallback('core/customIntegrations/mcpLibrary/service:listServerWide', err); /* nothing is available when the resolver is down */ }
     return servers.map(s => {
         const capId = `mcp:${s.id}`;
         const tools = Array.isArray(s.tools_cache) ? s.tools_cache : [];
@@ -277,11 +351,13 @@ async function listServerWide(orgId, orgList, groups) {
 
 // ── Reads ────────────────────────────────────────────────────────────
 
+/** @param {string} orgId */
 async function libraryRows(orgId) {
     const rows = await store().listForOrg(orgId);
     return (rows || []).filter(r => isLibraryRow(r));
 }
 
+/** @param {{ orgId: string, isServerAdmin?: boolean }} opts */
 async function getLibrary({ orgId, isServerAdmin = false }) {
     const [policy, rows, orgList, groups, grants] = await Promise.all([
         getPolicy(), libraryRows(orgId), userStore().getOrgEnabledIntegrations(orgId), orgGroups(orgId), listOrgGrants(orgId),
@@ -308,7 +384,10 @@ async function getLibrary({ orgId, isServerAdmin = false }) {
 
 // ── Probe ────────────────────────────────────────────────────────────
 
-/** Check an endpoint before installing: connect, list tools, store nothing. */
+/**
+ * Check an endpoint before installing: connect, list tools, store nothing.
+ * @param {{ catalogId?: string | null, url?: string | null, auth?: import('./definition').CustomAuthInput | null, credential?: unknown }} input
+ */
 async function probe({ catalogId, url, auth, credential }) {
     def.checkCredentialValue(credential);
     const target = def.resolveTarget({ catalogId, url, auth });
@@ -325,6 +404,9 @@ async function probe({ catalogId, url, auth, credential }) {
  * admin's key, then create, store the key, activate, lend and grant. A
  * failure after the row exists removes everything it made, so a failed
  * install leaves nothing half-done behind.
+ * @param {{ orgId: string, actorUserId: string, input: InstallInput }} args
+ *
+ * @typedef {{ catalogId?: string | null, url?: string | null, auth?: import('./definition').CustomAuthInput | null, credential?: string | null, credentialMode?: string, tools?: string[] | null, access?: AccessInput, name?: unknown, description?: unknown }} InstallInput
  */
 async function install({ orgId, actorUserId, input }) {
     const { catalogId = null, url = null, auth = null, credential = null, credentialMode = 'shared', tools = null, access } = input;
@@ -413,6 +495,9 @@ async function install({ orgId, actorUserId, input }) {
  * Re-read the tools with the server's key and freeze `definition` with a
  * fresh tools cache. The allow-list decides which tools agents get; a tool
  * the server stopped offering simply drops out.
+ * @param {LibraryRow} row
+ * @param {LibraryDefinition} definition
+ * @param {string} actorUserId
  */
 async function reactivate(row, definition, actorUserId) {
     // Every definition the library freezes is validated as strictly as the
@@ -439,9 +524,13 @@ async function reactivate(row, definition, actorUserId) {
     return updated;
 }
 
+/**
+ * @param {{ orgId: string, row: LibraryRow, actorUserId: string, patch: { tools?: unknown, enabled?: boolean, credentialMode?: string, access?: AccessInput } }} args
+ */
 async function update({ orgId, row, actorUserId, patch }) {
     const policy = await getPolicy();
     let current = row;
+    /** @type {Record<string, unknown>} */
     const changes = {};
 
     if (Array.isArray(patch.tools)) {
@@ -506,6 +595,7 @@ async function update({ orgId, row, actorUserId, patch }) {
  * Ask the server again which tools it has. Known tools keep their on/off
  * state; tools that are new since the last look stay OFF until an admin
  * switches them on, so a server cannot hand agents a new capability on its own.
+ * @param {{ orgId: string, row: LibraryRow, actorUserId: string }} args
  */
 async function refresh({ orgId, row, actorUserId }) {
     const policy = await getPolicy();
@@ -544,6 +634,7 @@ async function refresh({ orgId, row, actorUserId }) {
  * Replace the organisation's shared key. The new key is tried against the
  * server first; a key the server refuses is not stored. Every pooled session
  * is closed so nothing keeps talking with the old key.
+ * @param {{ orgId: string, row: LibraryRow, actorUserId: string, value: unknown }} args
  */
 async function setSharedCredential({ orgId, row, actorUserId, value }) {
     def.checkCredentialValue(value);
@@ -573,7 +664,11 @@ async function setSharedCredential({ orgId, row, actorUserId, value }) {
 
 // ── Remove ───────────────────────────────────────────────────────────
 
-/** Deactivate, close sessions, revoke access, delete every key, delete the row. */
+/**
+ * Deactivate, close sessions, revoke access, delete every key, delete the row.
+ * @param {string} orgId
+ * @param {LibraryRow} row
+ */
 async function removeEverything(orgId, row) {
     const s = store();
     await s.deactivate(row.id);
@@ -584,11 +679,12 @@ async function removeEverything(orgId, row) {
     await invalidate(orgId);
 }
 
+/** @param {{ orgId: string, row: LibraryRow, actorUserId: string }} args */
 async function uninstall({ orgId, row, actorUserId }) {
     await removeEverything(orgId, row);
     const d = libraryDefinition(row);
     let host = null;
-    try { host = new URL(d.mcp.url).hostname; } catch (err) { log.debug('unknown', err); }
+    try { host = new URL(d.mcp.url).hostname; } catch (err) { fallback('core/customIntegrations/mcpLibrary/service:uninstall', err); /* unknown */ }
     await audit('uninstall', row.id, actorUserId, orgId, { name: row.name, host, status: row.status }, null);
     return { removed: true };
 }
@@ -599,9 +695,10 @@ async function uninstall({ orgId, row, actorUserId }) {
  * Whether everyone in this organisation uses a server the server
  * administrator installed. Only servers inside the org's access (its plan or
  * licence, and the server admin's access menu) can be switched on.
+ * @param {{ orgId: string, serverId: string, actorUserId: string, access: AccessInput }} args
  */
 async function setServerWideAccess({ orgId, serverId, actorUserId, access }) {
-    const server = await mcpStore().getServer(serverId).catch(() => null);
+    const server = await mcpStore().getServer(serverId).catch((e) => fallback('core/customIntegrations/mcpLibrary/service:setServerWideAccess', e, null));
     if (!server || server.enabled === false) throw new HttpError(404, 'server_not_found', 'That server is not installed on this server.');
     const capId = `mcp:${serverId}`;
     const turningOn = access && access.mode !== 'nobody';
@@ -626,10 +723,14 @@ async function setServerWideAccess({ orgId, serverId, actorUserId, access }) {
     return applied;
 }
 
-/** The library row `id` of `orgId`, or null (also for another org's or a builder row). */
+/**
+ * The library row `id` of `orgId`, or null (also for another org's or a builder row).
+ * @param {string} orgId
+ * @param {string} id
+ */
 async function loadOrgRow(orgId, id) {
     const s = store();
-    const row = await s.getById(id).catch(() => null);
+    const row = await s.getById(id).catch((e) => fallback('core/customIntegrations/mcpLibrary/service:loadOrgRow', e, null));
     if (!row || row.orgId !== s.resolveOrgId(orgId) || !isLibraryRow(row)) return null;
     return row;
 }

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The pdfkit conventions this codebase already had, in one place.
  *
@@ -31,6 +31,8 @@
 
 const PDFDocument = require('pdfkit');
 
+/** @typedef {InstanceType<typeof PDFDocument>} PdfDoc */
+
 // The platform's document palette (slate). Shared so two generated documents
 // cannot drift into two different greys.
 const INK = '#0f172a';
@@ -58,11 +60,16 @@ function newDoc({ landscape = false, margins, size = 'A4', info } = {}) {
     return doc;
 }
 
-/** The finished bytes. Resolves on 'end', so call `doc.end()` (or `finish()`). */
+/**
+ * The finished bytes. Resolves on 'end', so call `doc.end()` (or `finish()`).
+ * @param {PdfDoc} doc
+ * @returns {Promise<Buffer>}
+ */
 function collect(doc) {
     return new Promise((resolve, reject) => {
+        /** @type {Buffer[]} */
         const chunks = [];
-        doc.on('data', (c) => chunks.push(c));
+        doc.on('data', (/** @type {Buffer} */ c) => chunks.push(c));
         doc.on('end', () => resolve(Buffer.concat(chunks)));
         doc.on('error', reject);
     });
@@ -73,6 +80,9 @@ function collect(doc) {
  *
  * columns: [{ label, width, key, bold?, align?, color?: (row) => hex }]
  * Cell text is `row[key]`, already stringified by the caller.
+ * @template {Record<string, unknown>} R
+ * @param {PdfDoc} doc
+ * @param {{ columns: { label: string, width: number, key: string, bold?: boolean, align?: string, color?: (row: R) => string }[], rows: R[], fontSize?: number, zebra?: boolean }} opts
  */
 function table(doc, { columns, rows, fontSize = 8, zebra = false }) {
     const left = doc.page.margins.left;
@@ -123,6 +133,9 @@ function table(doc, { columns, rows, fontSize = 8, zebra = false }) {
  * flowing, it competes with the content for the bottom margin and wins or loses
  * by fractions of a point; drawn here it cannot, because every page already
  * exists and `lineBreak: false` forbids asking for another.
+ * @param {PdfDoc} doc
+ * @param {string} text
+ * @param {{ pageNumbers?: boolean, fontSize?: number }} [opts]
  */
 function footer(doc, text, { pageNumbers = true, fontSize = 7.5 } = {}) {
     const range = doc.bufferedPageRange();

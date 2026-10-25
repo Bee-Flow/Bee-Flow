@@ -34,6 +34,7 @@ const { makeAutomationAccess } = require('../access');
 const { makeJourneyReader } = require('../journeyReader');
 const { isCallerRun } = require('../../core/automationModel/callerRunVisibility');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const FINISHED = new Set(['success', 'error', 'cancelled']);
 
@@ -64,7 +65,7 @@ function makeRunDataAccess(overrides = {}) {
             throw new HttpError(409, 'caller_run_not_capturable',
                 'This run used the connections of the person who started it, so its data cannot be saved as test data.');
         }
-        const latest = await store().getLatestRunInChain(run.id).catch(() => null);
+        const latest = await store().getLatestRunInChain(run.id).catch((e) => fallback('automation/testing/runDataAccess:assertCapturable', e, null));
         const status = (latest || run).status;
         if (!FINISHED.has(status)) throw new HttpError(409, 'run_not_finished', 'This run has not finished yet.');
     }

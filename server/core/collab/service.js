@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The co-editing operations the HTTP routes call: open a document, sync,
  * append a client's updates, relay presence, and attach a project stream.

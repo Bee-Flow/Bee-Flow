@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck strict
 /**
  * Migration: Dutch translations for the new full-page signup wizard, MFA
  * (TOTP), self-service password reset, change-password, and the Security

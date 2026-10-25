@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Encryption for team chats: every title and message body is sealed with the
  * PROJECT key before it reaches the database, and opened after it leaves.
@@ -76,6 +76,9 @@ function isAllZero(key) {
     return !key.some((b) => b !== 0);
 }
 
+/**
+ * @param {string} [what]
+ */
 function keyUnavailable(what) {
     return new HttpError(503, PROJECT_KEY_UNAVAILABLE, keyUnavailableText(what));
 }
@@ -115,15 +118,28 @@ function makeChatCrypto(deps = {}) {
 
         /** @type {Map<string, Buffer>} */
         const perChat = new Map();
+        /** @param {string} chatId */
         const keyFor = (chatId) => {
             let k = perChat.get(chatId);
             if (!k) { k = chatKey(key, chatId); perChat.set(chatId, k); }
             return k;
         };
 
+        /**
+         * @param {string} chatId
+         * @param {string} recordId
+         * @param {'content'|'title'} field
+         * @param {unknown} plaintext
+         */
         const seal = (chatId, recordId, field, plaintext) =>
             JSON.stringify(buildEnvelope(String(plaintext), keyFor(chatId), fieldAad(project.id, chatId, recordId, field)));
 
+        /**
+         * @param {string} chatId
+         * @param {string} recordId
+         * @param {'content'|'title'} field
+         * @param {string} stored
+         */
         const open = (chatId, recordId, field, stored) => {
             if (!isEnvelope(stored)) throw new FieldDecryptError(`Team chat ${field} is not sealed`);
             return openEnvelope(stored, keyFor(chatId), fieldAad(project.id, chatId, recordId, field));

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The cheap rules in front of the relevance gate: no model call, no I/O, just
  * the facts the caller already holds. They run twice:
@@ -56,6 +56,9 @@ const SKIP = Object.freeze({
     BUSY: 'busy',
 });
 
+/**
+ * @param {string} iso
+ */
 const timeOf = (iso) => {
     const t = typeof iso === 'number' ? iso : Date.parse(String(iso || ''));
     return Number.isFinite(t) ? t : 0;
@@ -85,6 +88,7 @@ function isAcknowledgement(text) {
  */
 function humansAlternating(recent, message) {
     const at = timeOf(message.createdAt);
+    /** @type {(string | null)[]} */
     const turns = [];
     for (const m of recent) {
         if (timeOf(m.createdAt) > at) break;
@@ -151,6 +155,9 @@ function capReached(caps, policy, now) {
  * @returns {{ ok: boolean, reason?: string }}  `reason` is set whenever `ok` is false
  */
 function preGate(p) {
+    /**
+     * @param {string} reason
+     */
     const no = (reason) => ({ ok: false, reason });
     const { stage, now, message, recent = [], policy } = p;
     const triggerKind = p.triggerKind || 'quiet';

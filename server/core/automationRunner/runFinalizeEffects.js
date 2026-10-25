@@ -15,6 +15,7 @@
 const holidays = require('../scheduling/holidays');
 const { automationRunPath, automationRunStepPath } = require('../../utils/appPaths');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * A run entered through a SECONDARY schedule advances ITS OWN row
@@ -26,6 +27,7 @@ const log = require('../../telemetry/log');
 async function advanceSecondarySchedule(deps, { automation, schedule, rootStepId, runStatus, finishedAt }) {
     const { automationStore, notifyRunEvent } = deps;
     if (!schedule?.id || typeof automationStore.advanceSchedule !== 'function') return;
+    /** @type {string | null} */
     let next = null;
     // schedule.skipHolidays (handoff 5) is read from the definition this run executed.
     try { next = holidays.nextScheduledRunAt(schedule.cron, schedule.tz || 'Europe/Amsterdam', Date.now(), { skipHolidays: holidays.scheduleSkipsHolidays(automation.definition, rootStepId) }); } catch (_) { next = null; }
@@ -38,7 +40,7 @@ async function advanceSecondarySchedule(deps, { automation, schedule, rootStepId
             title: `⏸️ A schedule went idle: ${automation.title}`,
             message: `The extra schedule "${schedule.cron}" has no upcoming run time, so it will not fire again. Edit that trigger and save to re-arm it. The automation's other triggers are unaffected.`,
         });
-    } catch (err) { log.debug('notification failure is non-fatal', err); }
+    } catch (err) { bestEffort('core/automationRunner/runFinalizeEffects:advanceSecondarySchedule', err); /* notification failure is non-fatal */ }
 }
 
 /**
@@ -63,7 +65,7 @@ async function releaseMarker(deps, { automation, firstRunNeedsConfirm, runStatus
             await automationStore.resetAttempts(automation.id);
         }
     } catch (e) {
-        log.warn(`[AutomationRunner] release/update failed for ${automation.id}: ${e.message}`);
+        log.warn(`[AutomationRunner] release/update failed for ${automation.id}: ${/** @type {Error} */ (e).message}`);
     }
 }
 
@@ -135,7 +137,7 @@ async function notifyRunEnd(deps, end) {
         }
         // No notification for cancelled runs — the user initiated the cancel
         // so they already know. The run history shows the status.
-    } catch (err) { log.debug('notification failure is non-fatal', err); }
+    } catch (err) { bestEffort('core/automationRunner/runFinalizeEffects:notifyRunEnd', err); /* notification failure is non-fatal */ }
 }
 
 /**
@@ -172,10 +174,18 @@ async function advancePrimarySchedule(deps, { automation, firstRunNeedsConfirm, 
                 title: `⏸️ Schedule disabled: ${automation.title}`,
                 message: `The schedule "${automation.scheduleCron}" has no upcoming run time, so the automation was paused. Edit the schedule and re-activate it.`,
             });
-        } catch (err) { log.debug('notification failure is non-fatal', err); }
+        } catch (err) { bestEffort('core/automationRunner/runFinalizeEffects:advancePrimarySchedule', err); /* notification failure is non-fatal */ }
     } catch (e) {
-        log.warn(`[AutomationRunner] Cron advance failed for ${automation.id}: ${e.message}`);
+        log.warn(`[AutomationRunner] Cron advance failed for ${automation.id}: ${/** @type {Error} */ (e).message}`);
     }
 }
 
 module.exports = { releaseMarker, notifyRunEnd, advancePrimarySchedule };
+
+/**
+ * @typedef {import('./runSetup').RunAutomation} RunAutomation
+ * @typedef {import('./runSetup').RunRow} RunRow
+ * @typedef {import('./runSetup').RunDeps} RunDeps
+ * @typedef {{ id?: string, cron?: string, tz?: string } | null} ScheduleRow  the secondary schedule a run entered through
+ * @typedef {Awaited<ReturnType<typeof import('./approvalLifecycle').createApprovalOnPause>>} ApprovalRow
+ */

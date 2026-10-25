@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Package loader: the entitlement gates.
  *
@@ -13,6 +13,7 @@
 const { deps, grantKeyResolver } = require('./packageState');
 const { _safeSeg } = require('./packageStaging');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const { hubClient, moduleEntitlements, subjects, configStore } = deps;
 
@@ -25,13 +26,16 @@ function _subjectIds() {
  * Require a currently-valid, signature-verified grant for `moduleId`. Returns
  * the entitlement + verified payload so the caller can persist the timestamp
  * gate. Throws HubError('not_entitled') when no valid grant exists.
+ * @param {string} moduleId
+ * @param {import('./packageVerify').PackageManifest} manifest
+ * @param {{ now?: number }} [opts]
  */
 async function _entitlementGate(moduleId, manifest, { now = Math.floor(Date.now() / 1000) } = {}) {
     const { HubError } = hubClient();
     let list;
     try { ({ entitlements: list } = await hubClient().fetchEntitlements()); }
-    catch (e) { if (e && e.code) throw e; throw new HubError('hub_unavailable', e.message); }
-    const ent = (list || []).find(e => e && e.module_id === moduleId);
+    catch (e) { if (e && e.code) throw e; throw new HubError('hub_unavailable', /** @type {Error} */ (e).message); }
+    const ent = (list || []).find((/** @type {{ module_id: string; }} */ e) => e && e.module_id === moduleId);
     if (!ent || !ent.grant_token) throw new HubError('not_entitled', `no entitlement grant for ${moduleId}`);
     const subjectIds = await _subjectIds();
     const res = await moduleEntitlements().verifyModuleGrant(ent.grant_token, {
@@ -56,9 +60,21 @@ async function _entitlementGate(moduleId, manifest, { now = Math.floor(Date.now(
 // ── Sideload + offline grants (M3.1 — air-gapped installs) ─────────────────
 const OFFLINE_GRANT_CONFIG_PREFIX = 'beeflow_hub_offline_grant_';
 
+/**
+ * @param {string} moduleId
+ */
 function _offlineGrantKey(moduleId) { return `${OFFLINE_GRANT_CONFIG_PREFIX}${_safeSeg(moduleId)}`; }
 
-/** Validate a parsed `.bfgrant` file's envelope (signature verified separately). */
+/**
+ * @typedef {{ format?: string, format_version?: number | string, module_id?: string, grant_token?: string,
+ *   subject?: string, kind?: string, kid?: string, expires_at?: string, note?: string }} GrantFile
+ * @typedef {{ kind: string, status: string, exp: number | null, entitlement_id: string | null,
+ *   source?: string, grantToken?: string, current_period_end?: string | null }} GateEntitlement
+ */
+/**
+ * Validate a parsed `.bfgrant` file's envelope (signature verified separately).
+ * @param {GrantFile} g
+ */
 function _validateGrantFile(g) {
     if (!g || typeof g !== 'object') return 'bad_grant_file';
     if (g.format !== 'beeflow-offline-grant') return 'bad_grant_format';
@@ -71,6 +87,8 @@ function _validateGrantFile(g) {
 /**
  * Verify + stash an offline `.bfgrant` for a module. Works pre-install (the
  * grant waits in configStore) and post-402 (activate-staged picks it up).
+ * @param {string} moduleId
+ * @param {GrantFile} grantFile
  */
 async function applyOfflineGrant(moduleId, grantFile) {
     const bad = _validateGrantFile(grantFile);
@@ -114,6 +132,10 @@ async function applyOfflineGrant(moduleId, grantFile) {
  * (absent ⇒ paid), (3) the hub when connected. No match ⇒
  * offline_grant_required (→ 402); the package stays staged for a later
  * activate-staged once a grant arrives.
+ * @param {string} moduleId
+ * @param {import('./packageVerify').PackageManifest} manifest
+ * @param {Record<string, any> | null} signedPayload the verified JWS payload claims
+ * @returns {Promise<{ entitlement: GateEntitlement }>}
  */
 async function _sideloadEntitlementGate(moduleId, manifest, signedPayload) {
     let stash = null;
@@ -139,7 +161,7 @@ async function _sideloadEntitlementGate(moduleId, manifest, signedPayload) {
     }
     try {
         if (await hubClient().isConnected()) return await _entitlementGate(moduleId, manifest);
-    } catch (err) { log.debug('fall through to 402', err); }
+    } catch (err) { bestEffort('modules/packageEntitlement:_sideloadEntitlementGate', err); /* fall through to 402 */ }
     const e = new Error('offline_grant_required');
     e.code = 'offline_grant_required';
     throw e;

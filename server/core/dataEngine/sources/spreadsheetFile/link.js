@@ -57,12 +57,12 @@ const { inferColumns } = require('./infer');
 const sync = require('./sync');
 const { KIND, PROVIDERS } = require('./index');
 const { resolveDeclared } = require('./linkRelations');
-const log = require('../../../../telemetry/log');
 const { MAX_CRUMB_DEPTH, deps, rejected, callerApi, linkedIn, browse } = require('./linkBrowse');
 const { wireRef } = require('./linkRef');
 const { applySettings } = require('./linkSettings');
 const { storageLimiter, spendStorageBudget, relink } = require('./linkRelink');
 const { clampHeaderRow, cellText, openForCaller, sourceBlock, planTable } = require('./linkPlan');
+const { fallback, bestEffort } = require('../../../../utils/bestEffort');
 
 const TAG = '[SpreadsheetFile]';
 const MAX_TABLES_PER_LINK = 10;
@@ -85,6 +85,7 @@ async function providers(session, principal, scope) {
     for (const provider of PROVIDERS) {
         let mod;
         try { mod = d.providers.providerFor(provider); } catch (_) { continue; }
+        /** @type {{ connected: boolean; reason: string; }} */
         let status;
         try {
             status = await mod.isConnected({ userId, session });
@@ -175,8 +176,12 @@ async function linkSpreadsheets({ scope, principal, session, tables, relations =
     await spendStorageBudget(principal);
     const spec = managedKindSpec(KIND);
     const siblings = await sync.siblingsOf(scope);
+    /** @type {string[]} */
     const warnings = [];
     const apis = new Map();
+    /**
+     * @param {string} provider
+     */
     const apiFor = async (provider) => {
         if (!apis.has(provider)) apis.set(provider, await callerApi(session, principal, provider));
         return apis.get(provider);
@@ -202,7 +207,7 @@ async function linkSpreadsheets({ scope, principal, session, tables, relations =
     }
 
     const d = deps();
-    const org = principal.orgId ? await d.userStore.getOrganization(principal.orgId).catch(() => null) : null;
+    const org = principal.orgId ? await d.userStore.getOrganization(principal.orgId).catch((e) => fallback('core/dataEngine/sources/spreadsheetFile/link:linkSpreadsheets', e, null)) : null;
     const ncInstanceId = org ? (org.nc_instance_id || org.ncInstanceId || null) : null;
 
     // ── create every table, empty ───────────────────────────────────
@@ -249,7 +254,7 @@ function setRelations(datatable, relations) {
 /** DELETE /:id: the mirror is gone; forget what was held about the link. */
 async function unlinked(table) {
     const source = (table && table.source) || {};
-    try { require('./linkerAuth').forget(source.linkedByUserId); } catch (err) { log.debug('memo only', err); }
+    try { require('./linkerAuth').forget(source.linkedByUserId); } catch (err) { bestEffort('core/dataEngine/sources/spreadsheetFile/link:unlinked', err); /* memo only */ }
     const file = source.file || {};
     cache.forget(`${source.provider}|${source.provider === 'nextcloud_files' ? (file.path || '') : (file.id || '')}`);
 }
@@ -261,3 +266,18 @@ module.exports = {
     // it on browse/describe; link and relink spend it through spendStorageBudget.
     storageLimiter, spendStorageBudget,
 };
+
+/** @typedef {import('./credentials').SessionLike & { isAdmin?: boolean }} CallerSession */
+
+/** @typedef {{ userId?: string, orgId?: string|null }} Principal */
+
+/** @typedef {import('../mirror/linking').MirrorScope} Scope */
+
+/** @typedef {Awaited<ReturnType<typeof reading.listSheetsOf>>[number]} Tab */
+
+/** @typedef {Awaited<ReturnType<typeof callerApi>>} CallerCtx */
+
+/**
+ * A spreadsheet mirror's `source` block, as sourceBlock writes it.
+ * @typedef {{ provider?: string, format?: string, file?: { id?: string, driveId?: string, path?: string, name?: string, webUrl?: string }, sheet?: { id?: string|null, name?: string|null, index?: number }, headerRow?: number, identity?: { mode?: string, keyFieldId?: unknown }, owned?: boolean, write?: { mode?: string, sharedOptIn?: boolean }, ncInstanceId?: string|null, linkedByUserId?: string, rowCap?: number, refreshOnView?: boolean, columnMap?: Record<string, import('./columns').ColumnMapEntry>, [k: string]: unknown }} SheetSource
+ */

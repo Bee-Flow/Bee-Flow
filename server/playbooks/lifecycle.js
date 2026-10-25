@@ -162,3 +162,17 @@ module.exports = {
     composeBriefFor,
     designBefore,
 };
+
+/**
+ * @typedef {{ [k: string]: unknown, datatableId?: string, datatableKey?: string, datatableName?: string,
+ *   mapping?: Record<string, string>, isMirror?: boolean, hasStatus?: boolean, previous?: { [k: string]: unknown, datatableId?: string },
+ *   design?: import('./phases/designPhase').Design, appId?: string, automationId?: string }} PhaseArtifacts
+ * @typedef {{ [k: string]: unknown, key: string, kind?: string, status: string, artifacts?: PhaseArtifacts,
+ *   startedAt?: string, attempt?: number }} Phase
+ * @typedef {{ [k: string]: unknown, phases?: Phase[], userId?: string, title?: string,
+ *   options?: { [k: string]: unknown, locale?: string, folderPath?: string, inputs?: { folderPath?: string },
+ *     automationTitle?: string, approverGroupId?: string } }} PlaybookLike
+ * @typedef {{ id: string, key: string, name: string, mapping: Record<string, string>, isMirror?: boolean, hasStatus?: boolean }} BriefTableLike
+ * @typedef {{ hasTable?: boolean, schemaMapping: (locale?: string) => Record<string, string>,
+ *   composeBrief: (key: string, ctx: { table: BriefTableLike | null, options: PlaybookLike['options'], playbook: PlaybookLike }) => string | null }} RecipeLike
+ */

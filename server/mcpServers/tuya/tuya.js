@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Tuya MCP — pure helpers.
  *
@@ -27,6 +27,7 @@ const crypto = require('node:crypto');
  * Tuya data centers. EU is the default: this is a GDPR-first product and the
  * Central Europe cluster keeps device data inside the EEA.
  */
+/** @type {Record<string, string>} */
 const DATA_CENTERS = {
     eu: 'https://openapi.tuyaeu.com',       // Central Europe
     weu: 'https://openapi-weaz.tuyaeu.com', // Western Europe
@@ -71,9 +72,16 @@ const LOCK_NAME_HINT = /\b(lock|slot|deurslot|garage|gate|poort|hek|safe|kluis|b
  */
 const DEVICE_SECRET_FIELDS = ['local_key', 'ip'];
 
+/**
+ * @param {string | undefined} v
+ */
 const isTruthy = (v) => /^(1|true|yes|on)$/i.test(String(v ?? '').trim());
 
-/** Resolve a data-center base URL from a region code, with an explicit override. */
+/**
+ * Resolve a data-center base URL from a region code, with an explicit override.
+ * @param {string} region
+ * @param {string | undefined} override
+ */
 function resolveBaseUrl(region, override) {
     const explicit = String(override || '').trim().replace(/\/+$/, '');
     if (explicit) return explicit;
@@ -92,6 +100,7 @@ function resolveBaseUrl(region, override) {
  * Every value can come from either the per-user credentials the MCP manager
  * injects or from operator env on the API container — the manager merges the
  * two, user first, so operator values act as defaults.
+ * @param {NodeJS.ProcessEnv} [env]
  */
 function readConfig(env = process.env) {
     const region = String(env.TUYA_REGION || '').trim().toLowerCase() || DEFAULT_REGION;
@@ -111,7 +120,10 @@ function readConfig(env = process.env) {
     };
 }
 
-/** Throw a user-actionable error when the per-user credentials are missing. */
+/**
+ * Throw a user-actionable error when the per-user credentials are missing.
+ * @param {ReturnType<typeof readConfig>} config
+ */
 function requireCredentials(config) {
     if (!config.accessId || !config.accessSecret) {
         throw new Error(
@@ -121,13 +133,21 @@ function requireCredentials(config) {
     return config;
 }
 
-/** Clamp a caller-supplied result limit into a sane range. */
+/**
+ * Clamp a caller-supplied result limit into a sane range.
+ * @param {number} [fallback]
+ * @param {number} [max]
+ * @param {unknown} value
+ */
 function clampLimit(value, fallback = DEFAULT_LIMIT, max = MAX_LIMIT) {
     const n = parseInt(String(value ?? '').trim(), 10);
     if (!Number.isFinite(n) || n <= 0) return fallback;
     return Math.min(n, max);
 }
 
+/**
+ * @param {string} input
+ */
 const sha256Hex = (input) => crypto.createHash('sha256').update(input ?? '', 'utf8').digest('hex');
 
 /**
@@ -135,6 +155,8 @@ const sha256Hex = (input) => crypto.createHash('sha256').update(input ?? '', 'ut
  *
  * The sorted form goes into stringToSign *and* onto the wire — sending the
  * params in a different order than they were signed fails with "sign invalid".
+ * @param {string} path
+ * @param {Record<string, unknown> | null} [query]
  */
 function canonicalUrl(path, query = {}) {
     const entries = Object.entries(query || {})
@@ -153,6 +175,8 @@ function canonicalUrl(path, query = {}) {
  *
  * `url` must already be canonical (see `canonicalUrl`). `t` and `nonce` are
  * parameters rather than generated here so the unit tests can pin a vector.
+ *
+ * @param {{ method: string, url: string, body?: string, accessId: string, accessSecret: string, accessToken?: string, t: number, nonce?: string }} parts
  */
 function signRequest({ method, url, body = '', accessId, accessSecret, accessToken = '', t, nonce }) {
     const verb = String(method || 'GET').toUpperCase();
@@ -165,6 +189,7 @@ function signRequest({ method, url, body = '', accessId, accessSecret, accessTok
     const str = `${accessId}${accessToken}${timestamp}${once}${stringToSign}`;
     const sign = crypto.createHmac('sha256', accessSecret).update(str, 'utf8').digest('hex').toUpperCase();
 
+    /** @type {{ client_id: string; sign: string; t: string; sign_method: string; nonce: string; access_token?: string; "Content-Type"?: string }} */
     const headers = {
         client_id: accessId,
         sign,
@@ -179,6 +204,9 @@ function signRequest({ method, url, body = '', accessId, accessSecret, accessTok
 /**
  * Strip credentials out of a string before it leaves the process — Tuya echoes
  * request details back in some error payloads.
+ * @param {string} [accessToken]
+ * @param {unknown} message
+ * @param {{ accessSecret?: string }} [config]
  */
 function scrubSecrets(message, config = {}, accessToken = '') {
     let out = String(message ?? '');
@@ -188,15 +216,23 @@ function scrubSecrets(message, config = {}, accessToken = '') {
     return out;
 }
 
-/** Is this a lock, safe, access controller or gate opener? */
+/**
+ * Is this a lock, safe, access controller or gate opener?
+ * @typedef {{ id?: string, device_id?: string, name?: string, category?: string, product_name?: string, product_id?: string, online?: boolean, model?: string, [k: string]: unknown }} TuyaDevice
+ * @param {TuyaDevice} [device]
+ */
 function isLockDevice(device = {}) {
     const category = String(device.category || '').trim().toLowerCase();
     if (LOCK_CATEGORIES.has(category)) return true;
     return LOCK_NAME_HINT.test(`${device.product_name || ''} ${device.name || ''}`);
 }
 
-/** Project a raw Tuya device onto the fields we are willing to hand to a model. */
+/**
+ * Project a raw Tuya device onto the fields we are willing to hand to a model.
+ * @param {TuyaDevice} [device]
+ */
 function summarizeDevice(device = {}) {
+    /** @type {Record<string, string | boolean | null>} */
     const summary = {
         id: device.id || device.device_id || null,
         name: device.name || '',
@@ -235,6 +271,8 @@ function filterDevices(devices, { query, online, category } = {}) {
  * Returns `{ device, candidates }`. An ambiguous name yields `device: null` and
  * the candidate list, so the caller can ask instead of guessing which lamp to
  * switch off.
+ * @param {TuyaDevice[] | null | undefined} devices
+ * @param {unknown} reference
  */
 function matchDevice(devices, reference) {
     const list = Array.isArray(devices) ? devices : [];
@@ -254,7 +292,14 @@ function matchDevice(devices, reference) {
     return { device: null, candidates: partial };
 }
 
-/** Tuya returns a spec's `values` as a JSON *string*; parse it defensively. */
+/**
+ * Tuya returns a spec's `values` as a JSON *string*; parse it defensively.
+ * @typedef {{ min?: number, max?: number, step?: number, scale?: unknown, unit?: string, h?: TuyaSpecValues, s?: TuyaSpecValues, v?: TuyaSpecValues, range?: string[] }} TuyaSpecValues
+ * @typedef {{ code?: string, type?: string, values?: unknown }} TuyaSpecEntry
+ * @typedef {{ status?: TuyaSpecEntry[], functions?: TuyaSpecEntry[] }} TuyaSpecification
+ * @param {unknown} values
+ * @returns {TuyaSpecValues}
+ */
 function parseSpecValues(values) {
     if (values && typeof values === 'object') return values;
     try {
@@ -270,6 +315,8 @@ function parseSpecValues(values) {
  *
  * Tuya reports brightness as a raw integer in a per-product range (commonly
  * 10-1000), which is meaningless to a model — it wants "set it to 40%".
+ * @param {unknown} percent
+ * @param {{ values?: unknown } & TuyaSpecValues} [spec]
  */
 function percentToRaw(percent, spec = {}) {
     const { min = 0, max = 100, step = 1 } = parseSpecValues(spec.values ?? spec);
@@ -281,6 +328,10 @@ function percentToRaw(percent, spec = {}) {
     return Math.min(max, Math.max(min, Math.round(stepped)));
 }
 
+/**
+ * @param {unknown} raw
+ * @param {{ values?: unknown } & TuyaSpecValues} [spec]
+ */
 function rawToPercent(raw, spec = {}) {
     const { min = 0, max = 100 } = parseSpecValues(spec.values ?? spec);
     if (max === min) return null;
@@ -293,6 +344,8 @@ function rawToPercent(raw, spec = {}) {
  * Decorate raw status data points with what the product spec says they mean.
  * `scale` is a power of ten the device applies before reporting — a temperature
  * of 23.5 °C arrives as 235 with scale 1.
+ * @param {{ code: string, value: unknown }[] | null | undefined} status
+ * @param {TuyaSpecification} [specification]
  */
 function summarizeStatus(status, specification = {}) {
     const specs = new Map();
@@ -301,6 +354,7 @@ function summarizeStatus(status, specification = {}) {
     }
 
     return (Array.isArray(status) ? status : []).map((point) => {
+        /** @type {{ code: string, value: unknown, type?: string | null, unit?: string, display?: number, percent?: number }} */
         const out = { code: point.code, value: point.value };
         const spec = specs.get(point.code);
         if (!spec) return out;
@@ -324,6 +378,7 @@ function summarizeStatus(status, specification = {}) {
 /**
  * Find the code that turns a device on and off. Products disagree: a plug uses
  * `switch_1`, a lamp `switch_led`, a fan plain `switch`.
+ * @param {TuyaSpecification} [specification]
  */
 function findSwitchCode(specification = {}) {
     const functions = Array.isArray(specification.functions) ? specification.functions : [];
@@ -339,6 +394,9 @@ function findSwitchCode(specification = {}) {
 /**
  * Check commands against the device's instruction set before sending them.
  * An unknown spec (some products return none) is not a reason to refuse.
+ * @param {unknown} commands
+ * @param {TuyaSpecification} [specification]
+ * @returns {{ code: string, value: unknown }[]}
  */
 function validateCommands(commands, specification = {}) {
     const list = Array.isArray(commands) ? commands : [];
@@ -364,7 +422,13 @@ function validateCommands(commands, specification = {}) {
     return list;
 }
 
-/** Hide the write tools when the operator has pinned this server to read-only. */
+/**
+ * Hide the write tools when the operator has pinned this server to read-only.
+ * @template {{ name: string }} T
+ * @param {T[]} tools
+ * @param {{ readOnly?: boolean }} [config]
+ * @returns {T[]}
+ */
 function allowedTools(tools, config = {}) {
     if (!config.readOnly) return tools;
     return tools.filter((tool) => !WRITE_TOOLS.includes(tool.name));

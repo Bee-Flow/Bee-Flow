@@ -45,6 +45,10 @@ const PERIOD_RE = /^(\d{4})-(0[1-9]|1[0-2])$/;
 
 const INVOICE_TYPES = ['periodic', 'purchase', 'credit_note'];
 
+/**
+ * @param {string} name
+ * @param {string} description
+ */
 function fn(name, description, parameters) {
     return { type: 'function', function: { name, description, parameters } };
 }
@@ -80,6 +84,9 @@ const SCALEWAY_BILLING_TOOLS = [
 
 const TOOL_NAMES = new Set(SCALEWAY_BILLING_TOOLS.map(t => t.function.name));
 
+/**
+ * @param {string} toolName
+ */
 function isScalewayBillingTool(toolName) {
     return TOOL_NAMES.has(toolName);
 }
@@ -101,7 +108,11 @@ function parsePeriod(value) {
     return m ? { year: Number(m[1]), month: Number(m[2]) } : null;
 }
 
-/** First instant of a month, as RFC 3339; month may overflow into the next year. */
+/**
+ * First instant of a month, as RFC 3339; month may overflow into the next year.
+ * @param {number} year
+ * @param {number} month
+ */
 function monthStartIso(year, month) {
     return new Date(Date.UTC(year, month - 1, 1)).toISOString();
 }
@@ -115,6 +126,7 @@ function monthStartIso(year, month) {
  * filter(s) are after the end of the current billing month"), so the upper
  * bound is clamped to the running month's last second. That leaves the running
  * month out, which costs nothing: its invoice is only issued next month.
+ * @param {Date} [now]
  */
 function periodWindow(args, now = new Date()) {
     const to = args.periodTo != null && args.periodTo !== '' ? parsePeriod(args.periodTo) : null;
@@ -194,6 +206,9 @@ function describeError(err) {
     return msg.length > MAX_ERROR_MESSAGE_CHARS ? `${msg.slice(0, MAX_ERROR_MESSAGE_CHARS)}…` : msg;
 }
 
+/**
+ * @param {Buffer<ArrayBuffer>} buffer
+ */
 function isPdf(buffer) {
     return buffer.length >= 5 && buffer.subarray(0, 5).toString('latin1') === '%PDF-';
 }
@@ -211,6 +226,11 @@ function isPdf(buffer) {
  */
 async function runScalewayBillingTool(toolName, args, creds, deps) {
     const headers = { 'X-Auth-Token': creds.secretKey, Accept: 'application/json' };
+    /**
+     * @param {string} path
+     * @param {string | globalThis.URLSearchParams | string[][] | Record<string, string>} [query]
+     * @param {number} [timeoutMs]
+     */
     const get = (path, query, timeoutMs = REQUEST_TIMEOUT_MS) => {
         const qs = query ? `?${new URLSearchParams(query).toString()}` : '';
         return deps.request(`${API_BASE}${path}${qs}`, {
@@ -229,6 +249,7 @@ async function runScalewayBillingTool(toolName, args, creds, deps) {
             // voided invoice (number 0) FIRST even under invoice_number_desc, so
             // page_size = limit would hand back fewer than `limit` real invoices.
             // A page of 100 covers eight years of monthly bills.
+            /** @type {{ billing_period_start_after: string; billing_period_start_before: string; order_by: string; page: string; page_size: string; organization_id?: string }} */
             const query = {
                 billing_period_start_after: after,
                 billing_period_start_before: before,
@@ -286,6 +307,9 @@ async function runScalewayBillingTool(toolName, args, creds, deps) {
 
 // ─── Wiring: credentials and the run's file store ───────────────
 
+/**
+ * @param {string} userId
+ */
 async function getScalewayBillingCredentials(userId) {
     const configStore = require('../stores/configStore');
     const secretKey = await configStore.getSecret(`scaleway_billing_secret_key_user_${userId}`);
@@ -298,6 +322,7 @@ async function getScalewayBillingCredentials(userId) {
  * Re-validate stored credentials before they reach a header or a query: the
  * save path validates too, but an older build or a restored backup must never be
  * able to inject one.
+ * @param {{ secretKey: string; orgId: string | null; }} creds
  */
 function assertValidCredentials(creds) {
     if (!SECRET_KEY_RE.test(creds.secretKey)) {
@@ -308,7 +333,11 @@ function assertValidCredentials(creds) {
     }
 }
 
-/** A keepFile bound to the automation run, or null when there is no run to keep it for. */
+/**
+ * A keepFile bound to the automation run, or null when there is no run to keep it for.
+ * @param {string} userId
+ * @param {{ automationId?: string | null; runScope?: { runId: string; rootRunId?: string; } | null; }} ctx
+ */
 function keepFileForRun(userId, ctx) {
     const runId = ctx && ctx.runScope && ctx.runScope.runId;
     if (!runId || !ctx.automationId) return null;
@@ -348,7 +377,7 @@ async function executeScalewayBillingTool(toolName, args, userId, ctx = {}) {
             keepFile: keepFileForRun(userId, ctx),
         });
     } catch (err) {
-        log.warn(`[ScalewayBilling] ${toolName} failed: ${err.message}`);
+        log.warn(`[ScalewayBilling] ${toolName} failed: ${/** @type {Error} */ (err).message}`);
         return { error: `Scaleway: ${describeError(err)}` };
     }
 }
@@ -371,3 +400,14 @@ module.exports = {
     clampLimit,
     MAX_LIMIT,
 };
+
+/** @typedef {import('url').URLSearchParams} URLSearchParams */
+
+/**
+ * A raw Scaleway invoice (billing API JSON).
+ * @typedef {{ id?: string, number?: number | string, billing_period?: string, billingPeriod?: string,
+ *   start_date?: string, issued_date?: string, due_date?: string, type?: string, state?: string,
+ *   total_taxed?: ScalewayMoney, total_untaxed?: ScalewayMoney, total_tax?: ScalewayMoney }} ScalewayInvoice
+ */
+
+/** @typedef {{ currency_code?: string, units?: number | string, nanos?: number }} ScalewayMoney */

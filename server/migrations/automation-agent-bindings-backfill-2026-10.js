@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Backfill: link the agent_call automations that already have an explicit
  * agent to that agent (2026-10).
@@ -55,12 +56,19 @@ const MARKER_TABLE = 'automation_agent_bindings_backfill_done';
 
 /** @typedef {{ query: (sql: string, params?: any[]) => Promise<{rows: any[], rowCount?: number}> }} Db */
 
+/**
+ * @param {Db} db
+ * @param {string} table
+ */
 async function tableExists(db, table) {
     const { rows } = await db.query(`SELECT to_regclass($1) AS t`, [`public.${table}`]);
     return !!(rows[0] && rows[0].t);
 }
 
-/** A JSON column, whichever way the driver or the column type hands it over. */
+/**
+ * A JSON column, whichever way the driver or the column type hands it over.
+ * @param {string} v
+ */
 function asObject(v) {
     if (v && typeof v === 'object' && !Array.isArray(v)) return v;
     if (typeof v === 'string' && v.trim().startsWith('{')) {
@@ -72,7 +80,10 @@ function asObject(v) {
     return null;
 }
 
-/** The automation ids one agent row names, in any of the three places. */
+/**
+ * The automation ids one agent row names, in any of the three places.
+ * @param {Record<string, any>} agent
+ */
 function chosenAutomationIds(agent) {
     const ids = new Set();
     for (const raw of [agent.config, agent.published_config]) {
@@ -117,6 +128,7 @@ async function up({ db } = {}) {
     // Inserts and marker in ONE statement: a data-modifying CTE runs whether or
     // not the main query reads it, and the statement commits or fails whole, so
     // there is never a marker without its inserts or the other way round.
+    /** @param {{ automationId: string, agentId: string }[]} pairs */
     const commit = async (pairs) => {
         const res = await conn.query(
             `WITH ins AS (

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio template — Quote intake (a cutting shop's inbox-to-quote loop).
  *
@@ -820,7 +820,7 @@ module.exports = {
                                         id: 'cmp_qiprevstep', type: 'stepper',
                                         props: {
                                             value: { kind: 'formula', expr: 'vars.status' },
-                                            steps: STATUS_TONES.map((s) => ({ value: s.value, label: s.label, icon: null })),
+                                            steps: STATUS_TONES.map((s) => ({ value: s.value, label: s.label, icon: /** @type {string | null} */ (null) })),
                                             orientation: 'horizontal', tone: 'primary', showLabels: true,
                                         },
                                         style: { span: 12, size: 'sm' },
@@ -956,7 +956,7 @@ module.exports = {
                                 id: 'cmp_qistep', type: 'stepper',
                                 props: {
                                     value: { kind: 'formula', expr: 'vars.status' },
-                                    steps: STATUS_TONES.map((s) => ({ value: s.value, label: s.label, icon: null })),
+                                    steps: STATUS_TONES.map((s) => ({ value: s.value, label: s.label, icon: /** @type {string | null} */ (null) })),
                                     orientation: 'horizontal', tone: 'primary', showLabels: true,
                                 },
                                 style: { span: 12, size: 'md' },

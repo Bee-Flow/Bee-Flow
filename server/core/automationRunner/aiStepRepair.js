@@ -70,3 +70,5 @@ function applyFallback({ step, rel, runState, errors }) {
 }
 
 module.exports = { buildRepairMessages, makeCheckReport, applyFallback };
+
+/** @typedef {{ code: string, path: string, message: string, modelValue: string }} AiCheckError */

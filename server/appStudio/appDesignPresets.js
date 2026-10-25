@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App design presets (server entry point). The data lives in
  * server/shared/appDefinition/designPresets.mjs, shared with the editor's

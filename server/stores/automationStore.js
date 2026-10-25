@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Automation Store — PostgreSQL-backed automation definitions, runs, and triggers.
  *

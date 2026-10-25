@@ -18,6 +18,7 @@ const { featureModule } = require('../featureModules');
 const crypto = require('crypto');
 const webpageStore = require('../../stores/webpageStore');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const DEBOUNCE_MS = 2000;
 const RENDER_TIMEOUT_MS = 15000;
@@ -28,6 +29,11 @@ const THUMB_DIMS = { width: 640, height: 400 };
 // the pending timer so only one render fires per debounce window.
 const pending = new Map();
 
+/**
+ * @param {unknown} html
+ * @param {unknown} css
+ * @param {unknown} js
+ */
 function composeDoc(html, css, js) {
     const safeHtml = typeof html === 'string' ? html : '';
     const safeCss = typeof css === 'string' ? css : '';
@@ -64,8 +70,9 @@ ${scriptTag}
 </body></html>`;
 }
 
+/** @param {{ userId: string, webpageId: string }} args */
 async function renderThumbnail({ userId, webpageId }) {
-    const wp = await webpageStore.getWebpage(webpageId, userId).catch(() => null);
+    const wp = await webpageStore.getWebpage(webpageId, userId).catch((e) => fallback('core/webpages/webpageThumbnailGenerator:renderThumbnail', e, null));
     if (!wp) return; // page was deleted before the render fired
     const slots = await webpageStore.readAllSlots(userId, webpageId);
     if (!slots.html && !slots.css && !slots.js) {
@@ -108,7 +115,7 @@ async function renderThumbnail({ userId, webpageId }) {
                 .toBuffer();
         } catch (sharpErr) {
             // No sharp available — store the raw PNG. Bigger but still works.
-            log.warn('[Thumbnail] sharp resize skipped:', sharpErr.message);
+            log.warn('[Thumbnail] sharp resize skipped:', /** @type {Error} */ (sharpErr).message);
         }
 
         const sha = crypto.createHash('sha256').update(resized).digest('hex');
@@ -119,7 +126,7 @@ async function renderThumbnail({ userId, webpageId }) {
         });
         log.info(`[Thumbnail] rendered ${webpageId} (${resized.length} bytes, sha ${sha.slice(0, 8)})`);
     } catch (err) {
-        log.warn(`[Thumbnail] render failed for ${webpageId}: ${err.message}`);
+        log.warn(`[Thumbnail] render failed for ${webpageId}: ${/** @type {Error} */ (err).message}`);
     }
 }
 
@@ -127,6 +134,7 @@ async function renderThumbnail({ userId, webpageId }) {
  * Debounced fire-and-forget — caller doesn't await. Subsequent calls within
  * the debounce window replace the pending timer so only one render runs per
  * burst.
+ * @param {{ userId: string, webpageId: string, delayMs?: number }} args
  */
 function scheduleThumbnail({ userId, webpageId, delayMs = DEBOUNCE_MS }) {
     if (!userId || !webpageId) return;

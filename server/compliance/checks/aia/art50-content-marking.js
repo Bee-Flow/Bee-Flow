@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * EU AI Act Art. 50(2) — AI-generated content is marked in a machine-readable
  * format and detectable as artificially generated.
@@ -45,15 +45,23 @@ function _signals() {
     return require('../../aiAct/signals');
 }
 
-/** Days from `now` until the deadline, rounded up; 0 or negative once it has passed. */
+/**
+ * Days from `now` until the deadline, rounded up; 0 or negative once it has passed.
+ * @param {Date} deadlineAt
+ * @param {Date} [now]
+ */
 function daysUntil(deadlineAt, now = new Date()) {
     return Math.ceil((deadlineAt.getTime() - now.getTime()) / DAY_MS);
 }
 
+/**
+ * @param {Date} d
+ */
 function formatDeadline(d) {
     return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 }
 
+/** @param {string} orgId */
 async function _markingEnabled(orgId) {
     const settings = await complianceStore.getSettings(orgId);
     return !!(settings && settings.ai_content_marking_enabled);
@@ -83,6 +91,7 @@ module.exports = {
      * Past SUBJECT_LIMIT every subject carries `capped: true`: the list is then
      * a window, and the runner must not retire what fell outside it.
      */
+    /** @param {string} orgId */
     async listSubjects(orgId) {
         const rows = await _signals().listGeneratingAutomations(orgId);
         const capped = rows.length > SUBJECT_LIMIT;
@@ -97,6 +106,11 @@ module.exports = {
         }));
     },
 
+    /**
+     * @param {string} orgId
+     * @param {{ id?: string, generating?: { id: string, signal: string, aiStepIds: string[] }[], aiStepIds?: string[], is_active?: boolean } | null} subject
+     * @param {{ now?: Date }} [opts]
+     */
     async evaluate(orgId, subject, { now = new Date() } = {}) {
         const enabled = await _markingEnabled(orgId);
         const due = deadline();

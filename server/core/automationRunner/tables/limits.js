@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Caps for table data. Every one is an environment variable with a generous
  * default, and 0 means unlimited (the one exception is `minGroupFloor`, a
@@ -22,7 +22,11 @@ function capFromEnv(name, fallback, env = process.env) {
     return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
 }
 
-/** True when `cap` is on (> 0) and `value` is past it. */
+/**
+ * True when `cap` is on (> 0) and `value` is past it.
+ * @param {number} value
+ * @param {number} cap
+ */
 function exceeds(value, cap) {
     return cap > 0 && value > cap;
 }
@@ -31,6 +35,10 @@ function exceeds(value, cap) {
  * @param {Record<string, string|undefined>} [env]
  */
 function tableLimits(env = process.env) {
+    /**
+     * @param {string} name
+     * @param {number} fallback
+     */
     const cap = (name, fallback) => capFromEnv(name, fallback, env);
     return {
         maxRows: cap('AUTOMATION_TABLE_MAX_ROWS', 1_000_000),

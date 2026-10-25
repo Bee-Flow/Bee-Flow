@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Sanitization Utility
  * Redacts sensitive fields from objects before sending to client
@@ -59,6 +59,7 @@ function sanitize(obj, depth = 0) {
     }
 
     // Handle objects
+    /** @type {Record<string, string>} */
     const sanitized = {};
     for (const [key, value] of Object.entries(obj)) {
         if (isSensitiveField(key)) {

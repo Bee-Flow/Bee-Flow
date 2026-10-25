@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Organization Memory API
  *
@@ -21,10 +22,12 @@ const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
+const { bestEffort } = require('../utils/bestEffort');
 
 // `.strict()`: a misspelled field must be refused, not dropped under a 200.
 // maxPerUser is clamped by the policy module (50..10000), but it has to be a
 // number to begin with.
+/** @template {import('zod').ZodRawShape} T @param {T} shape */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape, { error: typeError({ invalid: 'Send the settings as a JSON object.' }) }).strict(),
@@ -57,25 +60,33 @@ function makeDefaultDeps() {
     };
 }
 
+/** @param {ReturnType<typeof makeDefaultDeps> | null} [deps] */
 function createOrgMemoryRouter(deps = null) {
     const d = deps || makeDefaultDeps();
     const { requireAuth, getOrgMemorySettings, setOrgMemorySettings, memoryStore, memoryQueries, userStore } = d;
     const BATCH = 25;
     const router = express.Router();
 
+    /** @param {import('express').Request<{ orgId: string }>} req */
     async function requireAdminOf(req) {
         if (!(await d.isOrgAdmin(req, req.params.orgId))) {
             throw new HttpError(403, 'forbidden', 'Only organization admins can manage memory settings');
         }
     }
 
-    /** Never throws: an audit gap must not block the admin action. */
+    /**
+     * Never throws: an audit gap must not block the admin action.
+     * @param {string} action
+     * @param {import('express').Request<{ orgId: string }>} req
+     * @param {Parameters<typeof userStore.logAccessAudit>[4]} before
+     * @param {Parameters<typeof userStore.logAccessAudit>[5]} after
+     */
     async function audit(action, req, before, after) {
         try {
             await userStore.logAccessAudit(
                 action, 'organization', req.params.orgId, req.session?.user?.id || 'system', before, after, req.params.orgId,
             );
-        } catch (err) { log.debug('logAccessAudit already swallows; belt and braces', err); }
+        } catch (err) { bestEffort('routes/orgMemory:audit', err); /* logAccessAudit already swallows; belt and braces */ }
     }
 
     /**
@@ -84,6 +95,7 @@ function createOrgMemoryRouter(deps = null) {
      * has to say yes again. One bounded pass in batches (configStore has no
      * multi-key delete, and its cache must see each change). A failure is
      * logged, not thrown: the deletion above already made the flags inert.
+     * @param {string} orgId
      */
     async function clearSensitiveOptIns(orgId) {
         try {
@@ -98,7 +110,7 @@ function createOrgMemoryRouter(deps = null) {
         }
     }
 
-    router.get('/:orgId', requireAuth, async (req, res) => {
+    router.get('/:orgId', requireAuth, async (/** @type {import('express').Request<{ orgId: string }>} */ req, /** @type {import('express').Response} */ res) => {
         await requireAdminOf(req);
         const [settings, stats] = await Promise.all([
             getOrgMemorySettings(req.params.orgId),
@@ -107,7 +119,7 @@ function createOrgMemoryRouter(deps = null) {
         res.json({ settings, stats });
     });
 
-    router.put('/:orgId', requireAuth, validate({ body: SettingsBody }), async (req, res) => {
+    router.put('/:orgId', requireAuth, validate({ body: SettingsBody }), async (/** @type {import('express').Request<{ orgId: string }, any, import('zod').infer<typeof SettingsBody>>} */ req, /** @type {import('express').Response} */ res) => {
         await requireAdminOf(req);
         const { orgId } = req.params;
         const before = await getOrgMemorySettings(orgId);
@@ -124,7 +136,7 @@ function createOrgMemoryRouter(deps = null) {
         res.json({ settings, stats, deletedSensitive });
     });
 
-    router.post('/:orgId/clear', requireAuth, validate({ body: ClearBody }), async (req, res) => {
+    router.post('/:orgId/clear', requireAuth, validate({ body: ClearBody }), async (/** @type {import('express').Request<{ orgId: string }>} */ req, /** @type {import('express').Response} */ res) => {
         await requireAdminOf(req);
         const { orgId } = req.params;
         const deleted = await memoryStore.deleteMemoriesForOrg(orgId);
@@ -139,4 +151,4 @@ function createOrgMemoryRouter(deps = null) {
 const router = createOrgMemoryRouter();
 
 module.exports = router;
-module.exports.createOrgMemoryRouter = createOrgMemoryRouter;
+/** @type {import('express').Router & Record<string, unknown>} */ (module.exports).createOrgMemoryRouter = createOrgMemoryRouter;

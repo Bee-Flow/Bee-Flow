@@ -66,3 +66,5 @@ module.exports = {
     isShareLinkable,
     attachShareUrls,
 };
+
+/** @typedef {{ revokedAt?: string | Date | null, expiresAt?: string | Date | null }} ShareTimes */

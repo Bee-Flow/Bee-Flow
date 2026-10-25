@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -39,7 +39,12 @@ async function readConnectorSnapshots(orgId, connector, notEnabledDetails) {
     return { config, snaps };
 }
 
-/** The warn for an enabled connector without usable snapshots; `counts` defaults to `{ snapshots: 0 }`. */
+/**
+ * The warn for an enabled connector without usable snapshots.
+ * @param {string} connector
+ * @param {string} details
+ * @param {Record<string, number>} [counts] evidence counters; defaults to `{ snapshots: 0 }`
+ */
 function noSnapshotYet(connector, details, counts = { snapshots: 0 }) {
     return {
         status: 'warn',

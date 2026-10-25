@@ -44,6 +44,7 @@ const sbomLocator = require('../../lib/sbomLocator');
 const { APP_BUILD_SHA } = require('../../../utils/buildInfo');
 const { APP_VERSION } = require('../../../version');
 const telemetryLog = require('../../../telemetry/log');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const GRACE_DAYS = 7;
 const DAY_MS = 86400e3;
@@ -51,7 +52,7 @@ const SUBJECT_LIMIT = 200;
 const PLATFORM_SUBJECT_ID = 'platform';
 
 function _isNotProvisioned(e) {
-    return e && (e.code === '42703' || e.code === '42P01');
+    return isMissingTable(e);
 }
 
 function _ts(value) {
@@ -338,3 +339,5 @@ module.exports = {
 };
 
 Object.assign(module.exports, { _test: { _recordBuild, _orgSubject, _evaluateOrgSubject, GRACE_DAYS, PLATFORM_SUBJECT_ID } });
+
+/** @typedef {{ id: string, label?: string, name?: string, kind?: string, entity_id?: string, release_count?: number, last_release_at?: string | null, last_version?: string | null, updated_at?: string | null, published_version_id?: string | null, org_subjects?: number, not_provisioned?: string[] }} ReleaseSubject */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Automation evolution tools — an automation looks at its own run history, proposes a
  * change to its own definition, and (after a human approved it) applies it.
@@ -16,8 +16,12 @@
 const { AUTOMATION_EVOLUTION_TOOLS } = require('./automationEvolutionToolDefs');
 
 const NAMES = new Set(AUTOMATION_EVOLUTION_TOOLS.map(t => t.function.name));
+/**
+ * @param {string} toolName
+ */
 function isAutomationEvolutionTool(toolName) { return NAMES.has(toolName); }
 
+/** @param {Awaited<ReturnType<typeof import('../stores/automationStore').getEvolution>>} row */
 function publicRow(row) {
     if (!row) return null;
     return {
@@ -29,10 +33,17 @@ function publicRow(row) {
 function defaultDeps() {
     return {
         svc: require('../automation/evolution'),
-        getEvolution: (id) => require('../stores/automationStore').getEvolution(id),
+        getEvolution: (/** @type {string} */ id) => require('../stores/automationStore').getEvolution(id),
     };
 }
 
+/**
+ * @param {string} toolName
+ * @param {{ days?: number, plan?: Parameters<typeof import('../automation/evolution').validatePlan>[0],
+ *   rationale?: string, expectedEffect?: string, risk?: string, canaryRuns?: number, evolutionId?: string }} [args]
+ * @param {{ automationId?: string, userId?: string, orgId?: string, autoSend?: boolean }} [context]
+ * @param {ReturnType<typeof defaultDeps>} [deps]
+ */
 async function executeAutomationEvolutionTool(toolName, args = {}, context = {}, deps = defaultDeps()) {
     const { svc, getEvolution } = deps;
     const automationId = context.automationId || null;
@@ -51,7 +62,7 @@ async function executeAutomationEvolutionTool(toolName, args = {}, context = {},
         try {
             const row = await svc.proposeEvolution({ automationId, userId, rationale: args.rationale, expectedEffect: args.expectedEffect, risk: args.risk, plan: args.plan, canaryRuns: args.canaryRuns });
             return publicRow(row);
-        } catch (e) { return { error: e.message }; }
+        } catch (e) { return { error: /** @type {Error} */ (e).message }; }
     }
     if (toolName === 'automation_apply_evolution') {
         const id = String(args.evolutionId || '').trim();
@@ -63,7 +74,7 @@ async function executeAutomationEvolutionTool(toolName, args = {}, context = {},
             if (row.automationId !== automationId) return { error: 'That proposal belongs to a different automation — an automation can only apply its own.' };
             const out = await svc.applyEvolution(id, { userId });
             return publicRow(out);
-        } catch (e) { return { error: e.message }; }
+        } catch (e) { return { error: /** @type {Error} */ (e).message }; }
     }
     return { error: `Unknown tool: ${toolName}` };
 }

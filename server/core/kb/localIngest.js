@@ -8,6 +8,8 @@ const { getClient } = require('../../db');
 const log = require('../../telemetry/log');
 const { chunkText, estimateTokens } = require('./chunking');
 const { ensureKBChunksTable, isPgvectorAvailable } = require('./kbChunksSchema');
+const { bestEffort } = require('../../utils/bestEffort');
+const { isMissingTable } = require('../../utils/isMissingTable');
 
 // Collaborators that sit in the server's large import cycle are handed in by
 // the barrel (localKBIngest.js) through wire(), so this module imports none of
@@ -28,6 +30,9 @@ function wire(deps) {
 // node-search pipeline can share the exact same Azure-aware chain.
 
 // ── Embedding cost tracking (lazy-loaded) ────────────────────────────
+/**
+ * @param {number} totalTokensEstimate
+ */
 function _trackEmbeddingCost(totalTokensEstimate) {
     try {
         const { computeEmbeddingCost } = loadAzureServiceCosts();
@@ -38,7 +43,7 @@ function _trackEmbeddingCost(totalTokensEstimate) {
             tokens: totalTokensEstimate,
             estimated_cost: cost,
             source: 'kb_upload',
-        }).catch(() => {});
+        }).catch((e) => bestEffort('core/kb/localIngest:_trackEmbeddingCost', e));
         if (cost > 0) log.info(`[LocalKBIngest] 💰 Embedding cost: $${cost.toFixed(6)} (~${totalTokensEstimate} tokens)`);
     } catch (_) { log.warn('could not record embedding usage', _); }
 }
@@ -79,7 +84,7 @@ async function ingestLocally(tenantId, kbId, docId, content, options = {}) {
         try {
             require('../documents/pageOffsets').stampChunkPages(chunks, pages);
         } catch (e) {
-            log.warn(`[LocalKBIngest] Page stamping skipped: ${e.message}`);
+            log.warn(`[LocalKBIngest] Page stamping skipped: ${/** @type {Error} */ (e).message}`);
         }
     }
     log.info(`[LocalKBIngest] Chunked into ${chunks.length} pieces`);
@@ -147,7 +152,7 @@ async function ingestLocally(tenantId, kbId, docId, content, options = {}) {
                 `UPDATE documents SET original_content = $1 WHERE id = $2::uuid`,
                 [content, docId]
             );
-        } catch (err) { log.debug('Column may not exist yet — ignore, migration handles it', err); }
+        } catch (err) { if (!isMissingTable(err)) throw err; log.debug('Column may not exist yet — ignore, migration handles it', err); }
 
         // Issue #9: Batch INSERT — 10 chunks per statement to reduce round-trips
         const BATCH_SIZE = 10;
@@ -155,7 +160,9 @@ async function ingestLocally(tenantId, kbId, docId, content, options = {}) {
             const batch = chunks.slice(batchStart, batchStart + BATCH_SIZE);
             const hasVectors = isPgvectorAvailable() && embeddings.length > 0;
 
+            /** @type {string[]} */
             const values = [];
+            /** @type {(string | number | null | undefined)[]} */
             const params = [];
             let paramIdx = 1;
 
@@ -279,7 +286,7 @@ async function purgeOrphanedChunks() {
             client.release();
         }
     } catch (err) {
-        log.warn('[LocalKBIngest] Orphan purge failed:', err.message);
+        log.warn('[LocalKBIngest] Orphan purge failed:', /** @type {Error} */ (err).message);
         return 0;
     }
 }

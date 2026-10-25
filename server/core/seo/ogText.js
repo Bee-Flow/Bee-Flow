@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Text as SVG outlines, for the generated share image (core/seo/ogCard.js).
@@ -43,12 +43,19 @@ function face(name) {
     return f;
 }
 
-/** Control characters and line breaks become spaces; runs of space collapse. */
+/**
+ * Control characters and line breaks become spaces; runs of space collapse.
+ * @param {string | undefined} text
+ */
 function clean(text) {
     return String(text ?? '').replace(/[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/gu, ' ').replace(/\s+/g, ' ').trim();
 }
 
-/** Width in px of `text` set at `size` px. @param {'heading' | 'body'} name */
+/**
+ * Width in px of `text` set at `size` px. @param {'heading' | 'body'} name
+ * @param {string} text
+ * @param {number} size
+ */
 function measure(name, text, size) {
     const f = face(name);
     return (f.layout(clean(text)).advanceWidth * size) / f.unitsPerEm;
@@ -65,6 +72,10 @@ const MAX_CHARS = 200;
  * limit, so the cost is bounded whatever the text.
  * @param {'heading' | 'body'} name
  * @returns {{ lines: string[], truncated: boolean }}
+ * @param {string} text
+ * @param {number} size
+ * @param {number} maxWidth
+ * @param {number} maxLines
  */
 function wrapLines(name, text, size, maxWidth, maxLines) {
     const all = clean(text);
@@ -73,6 +84,9 @@ function wrapLines(name, text, size, maxWidth, maxLines) {
     /** @type {string[]} */
     const lines = [];
     let line = '';
+    /**
+     * @param {string} str
+     */
     const fits = (str) => measure(name, str, size) <= maxWidth;
     const full = () => lines.length >= maxLines;
     outer: for (let word of words) {
@@ -105,20 +119,34 @@ function wrapLines(name, text, size, maxWidth, maxLines) {
     return { lines, truncated };
 }
 
-/** @param {'heading' | 'body'} name @returns {string[]} */
+/**
+ * @param {'heading' | 'body'} name @returns {string[]}
+ * @param {string} text
+ * @param {number} size
+ * @param {number} maxWidth
+ * @param {number} maxLines
+ */
 const wrap = (name, text, size, maxWidth, maxLines) => wrapLines(name, text, size, maxWidth, maxLines).lines;
 
+/**
+ * @param {number} v
+ */
 const n = (v) => (Math.round(v * 10) / 10).toString();
 
 /**
  * SVG path data for `text`, left edge at x, baseline at y.
  * @param {'heading' | 'body'} name
+ * @param {string} text
+ * @param {number} size
+ * @param {number} x
+ * @param {number} y
  */
 function textPath(name, text, size, x, y) {
     const f = face(name);
     const scale = size / f.unitsPerEm;
     const run = f.layout(clean(text));
     let pen = x;
+    /** @type {string[]} */
     const out = [];
     run.glyphs.forEach((glyph, i) => {
         const pos = run.positions[i];
@@ -126,7 +154,7 @@ function textPath(name, text, size, x, y) {
             const ox = pen + pos.xOffset * scale;
             const oy = y - pos.yOffset * scale;
             for (const { command, args } of glyph.path.commands) {
-                const pts = args.map((v, k) => n(k % 2 === 0 ? ox + v * scale : oy - v * scale));
+                const pts = args.map((/** @type {number} */ v, /** @type {number} */ k) => n(k % 2 === 0 ? ox + v * scale : oy - v * scale));
                 if (command === 'moveTo') out.push(`M${pts[0]} ${pts[1]}`);
                 else if (command === 'lineTo') out.push(`L${pts[0]} ${pts[1]}`);
                 else if (command === 'quadraticCurveTo') out.push(`Q${pts[0]} ${pts[1]} ${pts[2]} ${pts[3]}`);

@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Multi-page forms — the visitor's session across pages.
  *

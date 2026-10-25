@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * A Nextcloud push event → the mirror(s) it is about, patched in place.
  *
@@ -35,11 +35,17 @@ const { resolveLinker } = require('./linkerAuth');
 const ncApi = require('./ncApi');
 const { mirrorRowFromNc, fieldsByIdOf } = require('./rows');
 const { buildRelationIndexes } = require('./relations');
-const log = require('../../../../telemetry/log');
+const { bestEffort, fallback: fallbackSwallowed } = require('../../../../utils/bestEffort');
 
 const PG = { dialect: 'pg' };
 const EVENTS = new Set(['tables.row.added', 'tables.row.updated', 'tables.row.deleted']);
 
+/** @typedef {NonNullable<ReturnType<typeof import('../../../../stores/datatableStore/rowMappers').rowToDatatable>>} Mirror */
+
+/**
+ * @param {Parameters<typeof accessFilter.compileAccessFilter>[0]} meta
+ * @param {string} action
+ */
 function ownerFilter(meta, action) {
     return accessFilter.compileAccessFilter(meta, 'owner', { id: null }, action, PG);
 }
@@ -73,9 +79,9 @@ async function onTablesEvent({ orgId, event, payload }) {
                 await upsertRow(mirror, rowId);
             }
             out.patched += 1;
-            await datatableStore.markSourceStale(mirror.id, null).catch(() => {});
+            await datatableStore.markSourceStale(mirror.id, null).catch((e) => bestEffort('core/dataEngine/sources/nextcloudTable/events:onTablesEvent', e));
         } catch (e) {
-            try { await fallback(mirror, 'event'); out.kicked += 1; } catch (err) { log.debug('the schedule will', err); }
+            try { await fallback(mirror, 'event'); out.kicked += 1; } catch (err) { fallbackSwallowed('core/dataEngine/sources/nextcloudTable/events:onTablesEvent#2', err); /* the schedule will */ }
         }
     }
 
@@ -83,16 +89,21 @@ async function onTablesEvent({ orgId, event, payload }) {
     // that may be wrong.
     try {
         for (const mirror of mirrors) await staleDependents(mirror);
-    } catch (err) { log.debug('best-effort', err); }
+    } catch (err) { bestEffort('core/dataEngine/sources/nextcloudTable/events:onTablesEvent#3', err); /* best-effort */ }
     return out;
 }
 
+/** @param {Mirror} mirror */
 async function metaOf(mirror) {
     const meta = await datatableStore.getTableMeta(mirror.scope, mirror.id);
     if (!meta) throw new Error('mirror has no columns yet');
     return { ...meta, access: synthesizeAccess(mirror) };
 }
 
+/**
+ * @param {Mirror} mirror
+ * @param {number} rowId
+ */
 async function upsertRow(mirror, rowId) {
     const { auth } = await resolveLinker(mirror.source, { orgId: mirror.organizationId || null });
     const api = ncApi.forLinker(auth);
@@ -117,6 +128,10 @@ async function upsertRow(mirror, rowId) {
     if ((res.changes || 0) > 0) await datatableStore.bumpAfterWrite(mirror.id, mirror.scope, existed ? 0 : 1);
 }
 
+/**
+ * @param {Mirror} mirror
+ * @param {number} rowId
+ */
 async function deleteRow(mirror, rowId) {
     const meta = await metaOf(mirror);
     const scopeKey = datatableDbStore.scopeKey(mirror.scope);
@@ -125,6 +140,10 @@ async function deleteRow(mirror, rowId) {
     if ((res.changes || 0) > 0) await datatableStore.bumpAfterWrite(mirror.id, mirror.scope, -res.changes);
 }
 
+/**
+ * @param {Mirror} mirror
+ * @param {string} reason
+ */
 async function fallback(mirror, reason) {
     await datatableStore.markSourceStale(mirror.id, reason);
     const fresh = await datatableStore.getDatatable(mirror.id, mirror.scope);
@@ -136,12 +155,13 @@ async function fallback(mirror, reason) {
 /**
  * Mirrors in the same scope whose relations point at `mirror` — of ANY kind:
  * a spreadsheet mirror matching a column of this table is a dependent too.
+ * @param {Mirror} mirror
  */
 async function staleDependents(mirror) {
     const siblings = await datatableStore.listSourceMirrorsInScope(mirror.scope);
     for (const s of siblings) {
         if (s.id === mirror.id) continue;
-        const points = ((s.source && s.source.relations) || []).some(r => r && r.targetDatatableId === mirror.id);
+        const points = ((s.source && s.source.relations) || []).some((/** @type {{ targetDatatableId?: string }} */ r) => r && r.targetDatatableId === mirror.id);
         if (points) await fallback(s, 'relations');
     }
 }

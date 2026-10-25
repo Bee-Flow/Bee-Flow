@@ -1,4 +1,3 @@
-// @typecheck
 'use strict';
 
 /**

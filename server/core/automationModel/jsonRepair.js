@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Rescue JSON that a language model very nearly wrote correctly.
  *
@@ -29,8 +29,12 @@
 
 'use strict';
 
-/** Strip a leading ```json / ``` fence and its closing fence, if both are there. */
-const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
+
+/**
+ * Strip a leading ```json / ``` fence and its closing fence, if both are there.
+ * @param {string} text
+ */
 
 function stripFence(text) {
     const t = String(text).trim();
@@ -47,6 +51,7 @@ function stripFence(text) {
  * only way to know whether a newline is "inside a string" is to have counted
  * the quotes before it — and to have honoured the backslash escapes, so that
  * a `\"` in the middle of a sentence does not read as the end of the string.
+ * @param {string} text
  */
 function escapeControlChars(text) {
     let out = '';
@@ -96,6 +101,7 @@ function escapeControlChars(text) {
  * Returns `{ ok, value, repaired }` — `repaired` says whether the rescue was
  * needed, so a caller can log that its model is producing malformed JSON
  * instead of never finding out.
+ * @param {string} text
  */
 function parseJsonish(text) {
     if (typeof text !== 'string' || !text.trim()) return { ok: false, repaired: false };
@@ -103,7 +109,7 @@ function parseJsonish(text) {
     const direct = stripFence(text);
     try {
         return { ok: true, value: JSON.parse(direct), repaired: false };
-    } catch (err) { log.debug('fall through to the repair', err); }
+    } catch (err) { bestEffort('core/automationModel/jsonRepair:parseJsonish', err); /* fall through to the repair */ }
 
     try {
         return { ok: true, value: JSON.parse(escapeControlChars(direct)), repaired: true };

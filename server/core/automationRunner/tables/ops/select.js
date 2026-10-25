@@ -1,10 +1,18 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /** select: keep, drop and rename columns. Lazy. */
 
 const { tableError, requireColumn, uniqueKey } = require('./values');
 
+/**
+ * @param {import('./index').TableOp & ReturnType<typeof import('../../../automationModel/tableOps/normalize').byOp.select>} op
+ * @param {import('./index').OpInput} input
+ * @param {import('./index').OpCtx} ctx
+ */
 function apply(op, input, ctx) {
+    /**
+     * @param {string} field
+     */
     const where = (field) => ({ opId: op.id, field });
     if (op.keep && op.drop) throw tableError('table_op_invalid', 'Choose either the columns to keep or the columns to drop, not both.', where('keep'));
     let picked = input.columns;
@@ -34,6 +42,7 @@ function apply(op, input, ctx) {
     async function* rows() {
         for await (const row of input.rows()) {
             await ctx.tick();
+            /** @type {Record<string, unknown>} */
             const out = {};
             for (const m of mapping) out[m.to] = row[m.from] === undefined ? null : row[m.from];
             yield out;

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Subscription-lifecycle webhooks: customer.subscription.created/updated,
  * trial_will_end and customer.subscription.deleted — plus the two idempotent
@@ -10,15 +11,36 @@ const userStore = require('../../stores/userStore');
 const { getSubscriberType, verifyMetadataMatchesLocal, stripOverriddenFields } = require('./webhookShared');
 const appPaths = require('../../utils/appPaths');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
+
+/**
+ * The fields of a Stripe subscription (as delivered, unexpanded, in a webhook)
+ * that these handlers read.
+ * @typedef {{
+ *   id: string,
+ *   status: string,
+ *   customer?: string,
+ *   metadata?: Record<string, string> | null,
+ *   items?: { data?: Array<{ quantity?: number, price?: { id?: string, product?: string, nickname?: string | null, unit_amount?: number | null, currency?: string, recurring?: { interval?: string } | null } | null }> },
+ *   current_period_start?: number,
+ *   current_period_end?: number | null,
+ *   billing_cycle_anchor?: number,
+ *   trial_end?: number | null,
+ *   cancel_at_period_end?: boolean,
+ *   cancel_at?: number | null,
+ * }} WebhookSubscription
+ */
 
 /**
  * customer.subscription.updated — Plan change, trial ending, status change
+ * @param {WebhookSubscription} subscription
  */
 async function handleSubscriptionUpdated(subscription) {
     const subscriberType = getSubscriberType(subscription.metadata);
 
     // past_due no longer collapses to 'active' — customers behind on payments
     // surface as past_due so dunning + cron suspension can take effect.
+    /** @type {Record<string, string>} */
     const statusMap = {
         active: 'active',
         past_due: 'past_due',
@@ -30,6 +52,7 @@ async function handleSubscriptionUpdated(subscription) {
         unpaid: 'suspended',
     };
 
+    /** @type {Record<string, string>} */
     const paymentStatusMap = {
         active: 'paid',
         past_due: 'past_due',
@@ -41,6 +64,7 @@ async function handleSubscriptionUpdated(subscription) {
         unpaid: 'failed',
     };
 
+    /** @type {{ status: string, payment_status: string, stripe_subscription_id: string, stripe_seat_quantity?: number, billing_cycle_start?: string, plan_id?: string, trial_end_date?: string, cancel_at_period_end?: boolean, cancel_at?: string | null, current_period_end?: string | null }} */
     const updateData = {
         status: statusMap[subscription.status] || 'active',
         payment_status: paymentStatusMap[subscription.status] || subscription.status,
@@ -165,7 +189,7 @@ async function handleSubscriptionUpdated(subscription) {
         }
         // Snapshot the local row before the write so we can detect a plan_id
         // transition (e.g. a scheduled downgrade reaching its period boundary).
-        const priorSub = await userStore.getOrgSubscription(orgId).catch(() => null);
+        const priorSub = await userStore.getOrgSubscription(orgId);
         const priorPlanId = priorSub?.plan_id || null;
         const strippedUpdate = stripOverriddenFields(updateData);
         const result = await userStore.setOrgSubscriptionRespectingOverride(orgId, updateData, strippedUpdate);
@@ -203,6 +227,7 @@ async function handleSubscriptionUpdated(subscription) {
  * ends. Persist an audit row, then send the customer a "trial ending" email
  * with a portal link to add a payment method. The send is gated by
  * `notifications_sent` so re-delivered webhooks don't double-send.
+ * @param {WebhookSubscription} subscription
  */
 async function handleTrialWillEnd(subscription) {
     const subscriberType = getSubscriberType(subscription.metadata);
@@ -226,6 +251,9 @@ async function handleTrialWillEnd(subscription) {
 // FIRST and only sends if the claim succeeded; that way a webhook redelivery
 // after a partial failure doesn't re-spam the customer. Failures are
 // swallowed: a missing email or a transient SMTP error must not 5xx Stripe.
+/**
+ * @param {{ scope: string, orgId?: string, userId?: string, subscription: { id?: string, customer?: string }, trialEndIso: string|null }} p
+ */
 async function _sendTrialEndingEmailOnce({ scope, orgId, userId, subscription, trialEndIso }) {
     try {
         const targetType = scope === 'consumer' ? 'consumer' : 'organization';
@@ -237,15 +265,13 @@ async function _sendTrialEndingEmailOnce({ scope, orgId, userId, subscription, t
         if (!claimed) return; // already sent for this subscription
 
         // Resolve recipient and display name.
-        let recipientEmail = null;
-        let displayName = null;
-        let orgName = null;
+        let recipientEmail = null, displayName = null, orgName = null;
         if (scope === 'consumer') {
             try {
                 const u = await userStore.getUser(userId);
                 recipientEmail = u?.email || null;
                 displayName = u?.displayName || u?.username || null;
-            } catch (_) { log.debug('user lookup failed, the next recipient option is tried', _); }
+            } catch (_) { bestEffort('stripe/subscription:trialUserLookup', _); }
         } else {
             // Org: prefer the org-admin who initiated checkout (metadata) or
             // the first org_admin user; fall back to the org's billing email.
@@ -260,7 +286,7 @@ async function _sendTrialEndingEmailOnce({ scope, orgId, userId, subscription, t
                 );
                 const adminEmails = (admins || []).map(a => a.email).filter(Boolean);
                 if (adminEmails.length > 0) recipientEmail = adminEmails[0];
-            } catch (_) { log.debug('org admin lookup failed, the notice has no recipient', _); }
+            } catch (_) { bestEffort('stripe/subscription:trialOrgAdminLookup', _); }
         }
         if (!recipientEmail) {
             log.warn(`[Stripe Webhook] trial_will_end: no recipient email found for ${targetType}=${targetId}`);
@@ -274,7 +300,7 @@ async function _sendTrialEndingEmailOnce({ scope, orgId, userId, subscription, t
         let portalUrl = `${clientHost}${appPaths.legacyBillingSettingsPath()}`;
         try {
             if (subscription.customer) {
-                const portal = await stripeService.createPortalSession(subscription.customer, portalUrl);
+                const portal = /** @type {{ url: string }} */ (await stripeService.createPortalSession(subscription.customer, portalUrl));
                 if (portal?.url) portalUrl = portal.url;
             }
         } catch (e) {
@@ -304,6 +330,7 @@ async function _sendTrialEndingEmailOnce({ scope, orgId, userId, subscription, t
  * per-subscription notification slot first so a webhook redelivery never
  * re-sends. All failures are swallowed — a notification must never 5xx Stripe.
  */
+/** @param {WebhookSubscription} subscription */
 async function _notifyAdminNewSubscriptionOnce(subscription) {
     try {
         const configStore = require('../../stores/configStore');
@@ -330,9 +357,9 @@ async function _notifyAdminNewSubscriptionOnce(subscription) {
         // Resolve a friendly customer name.
         let targetName = null;
         if (scope === 'consumer') {
-            try { const u = await userStore.getUser(targetId); targetName = u?.displayName || u?.username || u?.email || null; } catch (_) { log.debug('customer name lookup failed, the notice omits it', _); }
+            try { const u = await userStore.getUser(targetId); targetName = u?.displayName || u?.username || u?.email || null; } catch (_) { bestEffort('stripe/subscription:customerNameLookup', _); }
         } else {
-            try { const org = await userStore.getOrganization(targetId); targetName = org?.name || null; } catch (_) { log.debug('organization name lookup failed, the notice omits it', _); }
+            try { const org = await userStore.getOrganization(targetId); targetName = org?.name || null; } catch (_) { bestEffort('stripe/subscription:orgNameLookup', _); }
         }
 
         // Resolve plan details. Prefer the matched BeeFlow plan (by Stripe
@@ -349,7 +376,7 @@ async function _notifyAdminNewSubscriptionOnce(subscription) {
                 interval = plan.billing_interval || (priceObj?.recurring?.interval === 'year' ? 'yearly' : 'monthly');
                 trialDays = plan.trial_days || null;
             }
-        } catch (_) { log.debug('plan lookup failed, the notice uses the Stripe price data', _); }
+        } catch (_) { bestEffort('stripe/subscription:planLookup', _); }
         if (!planName && priceObj) {
             planName = priceObj.nickname || 'Subscription';
             if (typeof priceObj.unit_amount === 'number') price = priceObj.unit_amount / 100;
@@ -377,6 +404,7 @@ async function _notifyAdminNewSubscriptionOnce(subscription) {
 /**
  * customer.subscription.deleted — Subscription cancelled or expired
  */
+/** @param {WebhookSubscription} subscription */
 async function handleSubscriptionDeleted(subscription) {
     const subscriberType = getSubscriberType(subscription.metadata);
 
@@ -426,13 +454,17 @@ async function handleSubscriptionDeleted(subscription) {
     }
 }
 
+/**
+ * @param {string} orgId
+ * @param {WebhookSubscription} _subscription
+ */
 async function handleSubscriptionDeletedForOrg(orgId, _subscription) {
     // BFSF-226: a no-card trial that ends without payment (or any never-paid
     // subscription) should drop the org back to the capped Free plan rather than
     // be left `cancelled` (locked-out / unlimited if the row is later cleared).
     // A previously-paid subscription that the customer actively cancelled keeps
     // the cancelled state. "Never paid" = local payment_status was never 'paid'.
-    const existing = await userStore.getOrgSubscription(orgId).catch(() => null);
+    const existing = await userStore.getOrgSubscription(orgId);
     const everPaid = existing?.payment_status === 'paid';
     if (!everPaid) {
         const downgraded = await userStore.downgradeOrgToFreePlan(orgId, { changedBy: 'stripe_webhook', reason: 'trial_ended_no_payment' });
@@ -450,6 +482,10 @@ async function handleSubscriptionDeletedForOrg(orgId, _subscription) {
     log.info(`[Stripe Webhook] Subscription cancelled for org ${orgId}`);
 }
 
+/**
+ * @param {string} userId
+ * @param {WebhookSubscription} _subscription
+ */
 async function handleSubscriptionDeletedForConsumer(userId, _subscription) {
     await userStore.setConsumerSubscription(userId, {
         status: 'cancelled',

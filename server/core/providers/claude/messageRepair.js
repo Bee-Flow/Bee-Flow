@@ -96,3 +96,8 @@ function repairToolPairs(messages) {
 }
 
 module.exports = { mergeToolResultRuns, repairToolPairs };
+
+/**
+ * @typedef {{ type?: string, id?: string, tool_use_id?: string }} Block
+ * @typedef {{ role?: string, content?: string | Block[], [k: string]: unknown }} Msg
+ */

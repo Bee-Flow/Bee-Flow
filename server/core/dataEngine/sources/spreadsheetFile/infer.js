@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * What kind of column is this? — decided ONCE, in the wizard.
  *
@@ -59,6 +60,7 @@ const DAY_FIRST_TIME_RE = /^(\d{1,2}[-/.]\d{1,2}[-/.]\d{4})[T ]+\d{1,2}:\d{2}(:\
  * The second value is the date spelling a string used (for csv write-back);
  * `guessed` says both halves of the day/month pair fit, so that spelling is
  * the default rather than a finding.
+ * @param {unknown} raw
  */
 function classifyCell(raw) {
     if (raw instanceof Date) return { cls: cells.hasTime(raw) ? 'datetime' : 'date', dateFormat: null };
@@ -82,22 +84,32 @@ function classifyCell(raw) {
     return { cls: 'text', dateFormat: null };
 }
 
-/** A cell as the wizard shows it in the samples column. */
+/**
+ * One column as the wizard shows it.
+ * @typedef {{ col: number, letter: string, header: unknown, name: string, key: string, type: string, formula: boolean,
+ *   blankHeader: boolean, duplicateHeader: boolean, samples: string[], nonEmpty: number, empties: number, distinct: number,
+ *   unique: boolean, numFmt?: string, format?: string, dateFormat?: string }} InferredColumn
+ */
+
+/**
+ * A cell as the wizard shows it in the samples column.
+ * @param {unknown} raw
+ */
 function sampleText(raw) {
     if (raw instanceof Date) return cells.hasTime(raw) ? cells.isoDateTime(raw) : cells.isoDate(raw);
     return String(raw);
 }
 
 /**
- * @param {Array} header     the header cells (raw)
- * @param {Array<Array>} rows  the data rows (raw cells), the FULL read
+ * @param {Array<unknown>} header     the header cells (raw)
+ * @param {Array<Array<unknown>>} rows  the data rows (raw cells), the FULL read
  * @param {object} [opts]
  * @param {Set<number>} [opts.dateCols]     columns where the reader saw a date number format
  * @param {Set<number>} [opts.formulaCols]  columns where the reader saw a formula
  * @param {Map<number,string>} [opts.numFmts]  dominant Excel number format per column
  * @param {number} [opts.sampleRows]
  * @param {number} [opts.threshold]
- * @returns {{ columns:Array, keyCandidates:number[], warnings:string[] }}
+ * @returns {{ columns:InferredColumn[], keyCandidates:number[], warnings:string[] }}
  */
 function inferColumns(header, rows, {
     dateCols = new Set(), formulaCols = new Set(), numFmts = new Map(),
@@ -110,6 +122,7 @@ function inferColumns(header, rows, {
     }
     const data = (Array.isArray(rows) ? rows : []).filter(r => !isBlankRow(r));
     const sample = data.slice(0, sampleRows);
+    /** @type {string[]} */
     const warnings = [];
     const used = new Set();
     const columns = [];
@@ -118,6 +131,7 @@ function inferColumns(header, rows, {
     for (const d of described) {
         const col = d.col;
         // Pass 1: classes over the sample.
+        /** @type {Record<string, number>} */
         const tally = { date: 0, datetime: 0, bool: 0, number: 0, text: 0 };
         const dateFormats = new Map();        // spellings the cells PROVED
         const guessedFormats = new Map();     // spellings that were the default for an ambiguous pair
@@ -142,7 +156,7 @@ function inferColumns(header, rows, {
         let strays = 0;
         if (sampled > 0) {
             const dates = tally.date + tally.datetime;
-            const best = [['number', tally.number], ['bool', tally.bool], ['dates', dates]]
+            const best = /** @type {Array<[string, number]>} */ ([['number', tally.number], ['bool', tally.bool], ['dates', dates]])
                 .sort((a, b) => b[1] - a[1])[0];
             if (best[1] / sampled >= threshold) {
                 type = best[0] === 'dates' ? (tally.datetime > 0 ? 'datetime' : 'date') : best[0];
@@ -155,6 +169,7 @@ function inferColumns(header, rows, {
         let nonEmpty = 0;
         let empties = 0;
         const distinct = new Set();
+        /** @type {string[]} */
         const samples = [];
         const seenSamples = new Set();
         for (const r of data) {
@@ -173,6 +188,7 @@ function inferColumns(header, rows, {
         const key = keyFromTitle(d.blankHeader ? `col_${d.letter.toLowerCase()}` : d.name, col + 1, used);
         used.add(key);
 
+        /** @type {InferredColumn} */
         const column = {
             col, letter: d.letter, header: d.header, name: d.name, key, type,
             formula, blankHeader: d.blankHeader, duplicateHeader: d.duplicateHeader,
@@ -201,6 +217,9 @@ function inferColumns(header, rows, {
     return { columns, keyCandidates, warnings };
 }
 
+/**
+ * @param {string} type
+ */
 function typeWord(type) {
     return type === 'bool' ? 'yes/no value' : type === 'datetime' ? 'date and time' : type;
 }

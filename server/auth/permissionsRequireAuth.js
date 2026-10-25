@@ -15,6 +15,7 @@ const { HttpError } = require('../shared/httpErrors');
 const { getRedis } = require('../db');
 const { buildKey } = require('../utils/buildInfo');
 const { USER_CHECK_TTL, _makeBoundedMap, _userExistsCache } = require('./permissionsCache');
+const { bestEffort } = require('../utils/bestEffort');
 
 // ─── "Last seen" throttle (B15) ──────────────────────────────────────────────
 // users.last_seen_at is the single source for "when did we last see this
@@ -62,7 +63,7 @@ function noteUserSeen(userId) {
             if (won !== 'OK') return;   // another pod already stamped this window
         }
         await dep('userStoreNow').touchLastSeen(userId);
-    }).catch(() => { /* never let an activity clock break a request */ });
+    }).catch((e) => bestEffort('auth/requireAuth:lastSeen', e)); // never let an activity clock break a request
 }
 
 // Middleware to check authentication
@@ -95,7 +96,7 @@ const requireAuth = async (req, res, next) => {
             try {
                 const val = await r.get(cacheKey);
                 if (val !== null) exists = val === '1';
-            } catch (err) { log.debug('Redis error — fall through to DB', err); }
+            } catch (err) { bestEffort('auth/requireAuth:userExistsCacheRead', err); } // fall through to the DB
         } else {
             const cached = _userExistsCache.get(userId);
             const now = Date.now();
@@ -111,7 +112,7 @@ const requireAuth = async (req, res, next) => {
                 const user = await userStore.getUser(userId);
                 exists = !!user;
                 if (r) {
-                    try { await r.set(cacheKey, exists ? '1' : '0', 'EX', USER_CHECK_TTL); } catch (_) { log.debug('user-exists cache write failed, the next request looks the user up again', _); }
+                    try { await r.set(cacheKey, exists ? '1' : '0', 'EX', USER_CHECK_TTL); } catch (_) { bestEffort('auth/requireAuth:userExistsCacheWrite', _); }
                 } else {
                     _userExistsCache.set(userId, { exists, ts: Date.now() });
                 }
@@ -133,7 +134,11 @@ const requireAuth = async (req, res, next) => {
 
         // ── Revalidate isAdmin flag (prevent stale elevation after demotion) ──
         // Piggyback on the user-exists check — we already fetched the user above
-        // Re-check every USER_CHECK_TTL seconds alongside the existence check
+        // Re-check every USER_CHECK_TTL seconds alongside the existence check.
+        // A failed lookup must not keep an elevation it can no longer confirm: an
+        // admin session answers 503 until the database is back (a demoted admin
+        // would otherwise keep isAdmin for the length of the outage), a plain
+        // session has nothing to lose and carries on.
         try {
             const user = await userStore.getUser(userId);
             if (user) {
@@ -144,7 +149,13 @@ const requireAuth = async (req, res, next) => {
                     req.session.user.isAdmin = shouldBeAdmin;
                 }
             }
-        } catch (err) { log.debug('DB error — don\'t block the request', err); }
+        } catch (err) {
+            if (req.session.isAdmin || req.session.user?.isAdmin || req.session.user?.role === 'admin') {
+                log.error('[Auth] admin re-check failed, refusing the elevated session:', /** @type {Error} */ (err)?.message);
+                return next(new HttpError(503, 'auth_unavailable', 'auth_unavailable'));
+            }
+            bestEffort('auth/requireAuth:adminRecheck', err);
+        }
 
         // Only here, at the bottom of the authenticated path: an anonymous
         // request has already been turned away with a 401 above, and a session

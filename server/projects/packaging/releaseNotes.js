@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What changed between two versions of a Blueprint — "What changed".
  *
@@ -180,9 +181,20 @@ const TOOL = Object.freeze({
     },
 });
 
+/**
+ * @typedef {{ path: string, change: string, count?: number, value?: string|number|boolean }} Fact
+ */
+
+/**
+ * @param {unknown} v
+ * @returns {v is Record<string, unknown>}
+ */
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
-/** Dezelfde hasher als de upgrade. Laat geladen, net als daar. */
+/**
+ * Dezelfde hasher als de upgrade. Laat geladen, net als daar.
+ * @param {unknown} payload
+ */
 function hashOf(payload) {
     const { hashDefinition } = require('../../appStudio/templateUpgrade');
     return hashDefinition(payload);
@@ -192,13 +204,17 @@ function hashOf(payload) {
 
 /** The name that goes into the note row. Automations are called `title`, tables also have a `key`. */
 function nameOf(entity) {
-    const raw = [entity?.name, entity?.title, entity?.key, entity?.ref]
-        .find(v => typeof v === 'string' && v.trim());
+    const raw = /** @type {string | undefined} */ ([entity?.name, entity?.title, entity?.key, entity?.ref]
+        .find(v => typeof v === 'string' && v.trim()));
     return (raw || '').trim().slice(0, MAX_NAME_CHARS);
 }
 
+/**
+ * @param {object | null | undefined} manifest
+ * @param {string} pluralKind
+ */
 function entityList(manifest, pluralKind) {
-    const list = manifest?.solution?.entities?.[pluralKind];
+    const list = /** @type {{ solution?: { entities?: Record<string, unknown> } } | null | undefined} */ (manifest)?.solution?.entities?.[pluralKind];
     return Array.isArray(list) ? list.filter(isObject) : [];
 }
 
@@ -209,6 +225,7 @@ function entityList(manifest, pluralKind) {
  * (see capture.js). Refs are POSITIONAL, so a maker who reorders entities sees a shift as "changed". That is the safe side of
  * the error: this diff may call something changed wrongly, but never call it unchanged wrongly.
  *
+ * @param {{ previousManifest?: object|null, manifest?: object }} [args]
  * @returns {Array<{kind:string, entityId:string, name:string, change:'added'|'changed'|'unchanged', text:null}>}
  */
 function diffEntities({ previousManifest = null, manifest } = {}) {
@@ -222,6 +239,7 @@ function diffEntities({ previousManifest = null, manifest } = {}) {
         for (const entity of entityList(manifest, plural)) {
             const ref = typeof entity.ref === 'string' ? entity.ref : '';
             const before = ref ? previousByRef.get(ref) : undefined;
+            /** @type {'added'|'changed'|'unchanged'} */
             let change = 'added';
             if (before !== undefined) change = hashOf(before) === hashOf(entity) ? 'unchanged' : 'changed';
             notes.push({
@@ -246,6 +264,7 @@ function summaryMissing(note) {
 
 // ── Laag 2a: wat het model te zien krijgt ──────────────────────────────────
 
+/** @param {string} key */
 function safeKey(key) {
     return KEY_RE.test(key) ? key : '*';
 }
@@ -259,12 +278,20 @@ function safeValue(value, path) {
     return undefined;
 }
 
+/**
+ * @param {unknown} a
+ * @param {unknown} b
+ */
 function sameJson(a, b) {
     if (a === undefined && b === undefined) return true;
     if (a === undefined || b === undefined) return false;
     return hashOf(a) === hashOf(b);
 }
 
+/**
+ * @param {Fact[]} facts
+ * @param {Fact} fact
+ */
 function pushFact(facts, fact) {
     if (facts.length >= MAX_FACTS) return;
     const key = JSON.stringify(fact);
@@ -272,7 +299,12 @@ function pushFact(facts, fact) {
     facts.push(fact);
 }
 
-/** Multiset-telling van de waarden op één toegelaten pad binnen een array. */
+/**
+ * Multiset-telling van de waarden op één toegelaten pad binnen een array.
+ * @param {unknown} list
+ * @param {string|null} key
+ * @param {string} path
+ */
 function valueCounts(list, key, path) {
     const counts = new Map();
     for (const item of (Array.isArray(list) ? list : [])) {
@@ -290,6 +322,11 @@ function valueCounts(list, key, path) {
  * Inserting one step at the front would otherwise shift every following element and produce a wall of "changed" where nothing
  * has changed. A count plus the permitted values ("two steps added: send_email, condition") says what a release note needs, and
  * cannot describe an index shift as content by mistake.
+ *
+ * @param {unknown[]} before
+ * @param {unknown[]} after
+ * @param {string} path
+ * @param {Fact[]} facts
  */
 function arrayFacts(before, after, path, facts) {
     const arrayPath = `${path}[]`;
@@ -324,12 +361,20 @@ function arrayFacts(before, after, path, facts) {
     if (facts.length === start) pushFact(facts, { path: arrayPath, change: 'changed' });
 }
 
+/**
+ * @param {unknown} before
+ * @param {unknown} after
+ * @param {string} path
+ * @param {number} depth
+ * @param {Fact[]} facts
+ */
 function walk(before, after, path, depth, facts) {
     if (facts.length >= MAX_FACTS) return;
     if (sameJson(before, after)) return;
 
     if (before === undefined || after === undefined) {
         const present = before === undefined ? after : before;
+        /** @type {Fact} */
         const fact = { path, change: before === undefined ? 'added' : 'removed' };
         const value = safeValue(present, path);
         if (value !== undefined) fact.value = value;
@@ -349,6 +394,7 @@ function walk(before, after, path, depth, facts) {
         return;
     }
 
+    /** @type {Fact} */
     const fact = { path, change: 'changed' };
     const value = safeValue(after, path);
     if (value !== undefined) fact.value = value;
@@ -359,10 +405,15 @@ function walk(before, after, path, depth, facts) {
  * Everything about one changed entity that may go to the model — or null if nothing describable changed.
  *
  * Built from FIELD_ALLOW and not by removing keys from the entity: a field that is added next year would otherwise leak along by itself.
+ *
+ * @param {string} kind
+ * @param {unknown} before
+ * @param {unknown} after
  */
 function modelPayload(kind, before, after) {
-    const allowed = FIELD_ALLOW[kind];
+    const allowed = /** @type {Record<string, readonly string[]>} */ (FIELD_ALLOW)[kind];
     if (!allowed) return null;
+    /** @type {Fact[]} */
     const facts = [];
     for (const field of allowed) {
         walk(
@@ -387,9 +438,17 @@ function modelPayload(kind, before, after) {
  * Exported for precisely that reason, to be testable: a promise that never settles should here come out as a rejection within `ms`, and the timer is
  * cleared as soon as the promise does settle (otherwise a successful call keeps the event loop open for `ms` — visible in a test run without
  * --test-force-exit).
+ *
+ * @template T
+ * @param {Promise<T>} promise
+ * @param {number} ms
+ * @param {string} label
+ * @returns {Promise<T>}
  */
 function withTimeout(promise, ms, label) {
+    /** @type {ReturnType<typeof setTimeout> | undefined} */
     let timer;
+    /** @type {Promise<never>} */
     const timeout = new Promise((_, reject) => {
         timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
     });
@@ -404,6 +463,7 @@ function normalise(structured) {
     return summary.slice(0, MAX_TEXT_CHARS);
 }
 
+/** @param {string} language */
 function systemPrompt(language) {
     return [
         'You write one-line change notes for a packaged Solution, for the people who will install the new version.',
@@ -421,6 +481,8 @@ function systemPrompt(language) {
  *
  * NEVER THROWS. No provider, no configured model, an unreadable config, a time-out, a refused tool, unparseable arguments: all null.
  * Null means "we could not write it down", never "nothing has changed" — `change` remains the only source for that.
+ *
+ * @param {{ kind?: string, before?: object, after?: object, language?: string, userOrgId?: string|null, userId?: string|null, modelId?: string|null, timeoutMs?: number, deps?: { llmClient?: any, resolveModelForTierName?: (tier: string, opts: { userOrgId?: string|null, userId?: string|null }) => Promise<string|null> } }} [args]
  */
 async function summariseChange({ kind, before, after, language = 'English', userOrgId = null, userId = null, modelId = undefined, timeoutMs = TIMEOUT_MS, deps = {} } = {}) {
     try {
@@ -466,6 +528,9 @@ async function summariseChange({ kind, before, after, language = 'English', user
  * Vul `text` op de gewijzigde regels. Muteert de meegegeven notes en geeft ze
  * terug. Gooit niet, en houdt niets tegen: wat na de deadline of boven
  * MAX_SUMMARIES komt houdt gewoon `text: null`.
+ *
+ * @param {Array<{ kind?: string, entityId?: string, change?: string, text?: string|null }>} notes
+ * @param {{ previousManifest?: object|null, manifest?: object, language?: string, userOrgId?: string|null, userId?: string|null, timeoutMs?: number, deps?: { llmClient?: any, resolveModelForTierName?: (tier: string, opts: { userOrgId?: string|null, userId?: string|null }) => Promise<string|null> }, deadlineMs?: number, now?: () => number }} [args]
  */
 async function describeChanges(notes, { previousManifest = null, manifest, language = 'English', userOrgId = null, userId = null, timeoutMs = TIMEOUT_MS, deps = {}, deadlineMs = DEADLINE_MS, now = () => Date.now() } = {}) {
     const list = Array.isArray(notes) ? notes : [];
@@ -530,15 +595,18 @@ async function describeChanges(notes, { previousManifest = null, manifest, langu
  * that they are not there.
  *
  * `maxBytes` has the same default as `blueprintStore.MAX_NOTES_BYTES`; the store itself is not called here, because that opens a pool on require.
+ *
+ * @param {Array<{ change?: string, text?: string|null }>} notes
+ * @param {{ maxBytes?: number }} [opts]
  */
 function releaseNotesPayload(notes, { maxBytes = MAX_NOTES_ENVELOPE_BYTES } = {}) {
     const rows = (Array.isArray(notes) ? notes : []).filter(n => n && typeof n === 'object');
-    const fits = (payload) => Buffer.byteLength(JSON.stringify(payload), 'utf8') <= maxBytes;
+    const fits = (/** @type {unknown} */ payload) => Buffer.byteLength(JSON.stringify(payload), 'utf8') <= maxBytes;
 
     let payload = { entities: rows, omitted: 0, textsDropped: false };
     if (fits(payload)) return payload;
 
-    const stripped = rows.map(n => ({ ...n, text: null }));
+    const stripped = rows.map(n => ({ ...n, text: /** @type {string|null} */ (null) }));
     payload = { entities: stripped, omitted: 0, textsDropped: true };
     if (fits(payload)) return payload;
 
@@ -554,6 +622,8 @@ function releaseNotesPayload(notes, { maxBytes = MAX_NOTES_ENVELOPE_BYTES } = {}
  * The notes for one release: the exact boolean diff, with a sentence on the changed lines where that succeeded.
  *
  * Does not throw. Should the text layer fall over in its entirety, the exact added/changed/unchanged are still there — publishing can always go ahead.
+ *
+ * @param {{ previousManifest?: object|null, manifest?: object, language?: string, userOrgId?: string|null, userId?: string|null, timeoutMs?: number, deps?: { llmClient?: any, resolveModelForTierName?: (tier: string, opts: { userOrgId?: string|null, userId?: string|null }) => Promise<string|null> }, deadlineMs?: number, now?: () => number }} [args]
  */
 async function buildReleaseNotes({ previousManifest = null, manifest, language = 'English', userOrgId = null, userId = null, timeoutMs = TIMEOUT_MS, deps = {}, deadlineMs = DEADLINE_MS, now = () => Date.now() } = {}) {
     const notes = diffEntities({ previousManifest, manifest });

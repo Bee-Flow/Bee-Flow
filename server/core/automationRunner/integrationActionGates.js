@@ -16,6 +16,7 @@ const log = require('../../telemetry/log');
 // The built-in step-type table is automation/'s, reached through ./featurePorts.js.
 const { runnerPort } = require('./featurePorts');
 const { permittedCatalog } = require('./toolIdentity');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * Throws when `step.tool` is no longer in the user's CURRENT allowed tool set.
@@ -94,7 +95,7 @@ async function resolveLendingIdentity(step, ctx, deps) {
             });
             if (ov) { stepUserId = ov.integrationUserId; stepOrgId = ov.integrationOrgId; lentConnection = ov; }
         }
-    } catch (err) { log.debug('fail closed to bring-your-own', err); }
+    } catch (err) { fallback('core/automationRunner/integrationActionGates:resolveLendingIdentity', err); /* fail closed to bring-your-own */ }
     return { stepUserId, stepOrgId, stepSession: ctx.session, lentConnection };
 }
 
@@ -154,3 +155,37 @@ async function resolveDurableTier({ memo, memoEligible, step, stepOrgId, callIde
 }
 
 module.exports = { assertStepToolPermitted, resolveLendingIdentity, resolveDurableTier };
+
+/**
+ * What execAi.js hands the integration-action modules (its integrationActionDeps).
+ * @typedef {object} IntegrationActionDeps
+ * @property {typeof import('./safety')} safety
+ * @property {typeof import('./integrationCachePolicy').envFlagOn} envFlagOn
+ * @property {typeof import('./shared').isEmptyToolResult} isEmptyToolResult
+ * @property {typeof import('./shared').isToolErrorResult} isToolErrorResult
+ * @property {typeof import('./shared').isEnvironmentToolError} isEnvironmentToolError
+ * @property {typeof import('./shared').enrichNextcloudError} enrichNextcloudError
+ * @property {typeof import('./shared').stepInputsSynthetic} stepInputsSynthetic
+ * @property {() => typeof import('./integrationCachePolicy')} integrationCachePolicy
+ * @property {() => typeof import('../tools/toolDispatcher')} toolDispatcher
+ * @property {() => typeof import('../integrations/integrationTools')} integrationTools
+ * @property {() => typeof import('../integrations/connectionResolution')} connectionResolution
+ */
+
+/**
+ * The run context as the integration-action step reads and extends it.
+ * @typedef {ReturnType<typeof import('./runContext').buildRunContext> & {
+ *   allowedToolNames?: Set<string> | null,
+ *   resourceOwnerUserId?: string | null,
+ *   __runCtx?: { orgId?: string | null, groups?: string[] },
+ *   callerOnly?: Awaited<ReturnType<typeof import('./callerConnections').applyCallerOnly>>['identity'],
+ *   session?: unknown,
+ *   userAuth?: Record<string, unknown>,
+ *   _dryRunFallbackLogged?: Set<string>,
+ * }} IntegrationCtx
+ */
+
+/**
+ * The integration-action step as the definition stores it.
+ * @typedef {{ id?: string, tool: string, inputs?: Record<string, unknown>, askOnce?: boolean | { ttlSeconds?: unknown, acrossRuns?: boolean } }} IntegrationStep
+ */

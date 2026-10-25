@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Webpage screenshot tool — lets the Webpages builder AI render the current
  * page in a real headless browser and SEE it (Claude is vision-capable), plus
@@ -35,10 +35,21 @@ const WEBPAGE_SCREENSHOT_TOOL = {
 };
 
 const SCREENSHOT_TOOL_NAMES = new Set(['webpage_screenshot']);
+/**
+ * @param {string} name
+ */
 function isScreenshotTool(name) { return SCREENSHOT_TOOL_NAMES.has(name); }
 
+/**
+ * @param {number} n
+ * @param {number} lo
+ * @param {number} hi
+ */
 function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
 
+/**
+ * @param {{ width?: number | string; height?: number | string; viewport?: string; fullPage?: boolean; }} args
+ */
 function pickViewport(args) {
     const w = Number(args?.width);
     const h = Number(args?.height);
@@ -49,11 +60,19 @@ function pickViewport(args) {
     return ['desktop', 'tablet', 'mobile'].includes(preset) ? preset : 'desktop';
 }
 
+/**
+ * @param {string | { width: number; height: number; }} vp
+ */
 function viewportLabel(vp) {
     if (typeof vp === 'string') return vp.charAt(0).toUpperCase() + vp.slice(1);
     return `${vp.width}×${vp.height}`;
 }
 
+/**
+ * @param {Awaited<ReturnType<typeof captureWebpage>>} r
+ * @param {string} vpLabel
+ * @param {boolean} modelSupportsVision
+ */
 function formatDiagnostics(r, vpLabel, modelSupportsVision) {
     const parts = [`${vpLabel} (${r.width}×${r.height}) screenshot captured.`];
     if (modelSupportsVision) {
@@ -76,6 +95,11 @@ function formatDiagnostics(r, vpLabel, modelSupportsVision) {
 const _lastCall = new Map();
 const MIN_INTERVAL_MS = 1500;
 
+/**
+ * @param {string} toolName
+ * @param {{ width?: number|string, height?: number|string, viewport?: string, fullPage?: boolean }} args
+ * @param {{ webpageId?: string, userId?: string, modelSupportsVision?: boolean }} [ctx]
+ */
 /**
  * @param {string} toolName
  * @param {Record<string, any>} args
@@ -112,7 +136,7 @@ async function executeScreenshotTool(toolName, args, { webpageId, userId, modelS
             _screenshotViewport: viewportLabel(viewport),
         };
     } catch (err) {
-        return { content: `Could not capture a screenshot: ${err.message}. The render engine may be temporarily unavailable — this does not indicate a problem with your code. Try again shortly.` };
+        return { content: `Could not capture a screenshot: ${/** @type {Error} */ (err).message}. The render engine may be temporarily unavailable — this does not indicate a problem with your code. Try again shortly.` };
     }
 }
 

@@ -29,6 +29,7 @@
 
 const { encodeCategories } = require('../privacy/piiCategories');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // Stores, lazily required (each one opens the DB pool when loaded). Tests
 // swap them through __setDepsForTests instead of reaching into the module cache.
@@ -45,9 +46,12 @@ const GLINER_SCAN_CAP = 5000;        // default single-call GLiNER slice (caller
 
 // ── Detached-work tracking ─────────────────────────────────────────────
 const _pending = new Set();
+/**
+ * @param {Promise<void>} promise
+ */
 function _track(promise) {
     _pending.add(promise);
-    promise.catch(() => {}).finally(() => _pending.delete(promise));
+    promise.catch((e) => fallback('core/integrations/integrationLogging:_track', e)).finally(() => _pending.delete(promise));
     return promise;
 }
 
@@ -66,6 +70,9 @@ const CTX_TTL_MS = 5 * 60 * 1000;
 // looks it up (cached per slug) and hands it to resolveIntegration as ctx.
 const _cintCache = new Map(); // slug → { value, at }
 
+/**
+ * @param {string} toolName
+ */
 async function _resolveCustomIntegration(toolName) {
     const slug = String(toolName).slice('cint_'.length).split('_')[0];
     if (!slug) return null;
@@ -101,6 +108,13 @@ async function _orgForUser(userId) {
     return orgId;
 }
 
+/**
+ * @typedef {Object} _resolveIntegrationCtxArgs
+ * @property {string | null} [toolName]
+ */
+/**
+ * @param {_resolveIntegrationCtxArgs} param0
+ */
 async function _resolveIntegrationCtx({ userId, orgId, session, toolName = null }) {
     const ctx = {
         // Session carries the Nextcloud base URL when the NC connector is active.
@@ -125,7 +139,7 @@ async function _resolveIntegrationCtx({ userId, orgId, session, toolName = null 
         if (userId && typeof configStore.getSecret === 'function') {
             ctx.youtrackUrl = (await configStore.getSecret(`youtrack_url_user_${userId}`)) || null;
         }
-    } catch (err) { log.debug('endpoint resolution is best-effort', err); }
+    } catch (err) { fallback('core/integrations/integrationLogging:_resolveIntegrationCtx', err); /* endpoint resolution is best-effort */ }
     _ctxCache.set(key, { ctx, at: Date.now() });
     if (_ctxCache.size > 500) _ctxCache.delete(_ctxCache.keys().next().value);
     return { ...ctx, ...custom };
@@ -135,6 +149,7 @@ async function _resolveIntegrationCtx({ userId, orgId, session, toolName = null 
  * The name of the MCP server behind an mcp_ tool, for its child-process peer.
  * `mcp__<server>__<tool>` names it exactly; `mcp_<server>_<tool>` only up to
  * the first underscore, which is what the ledger label has always used.
+ * @param {string} toolName
  */
 function _mcpServerName(toolName, meta) {
     if (toolName.startsWith('mcp__')) return toolName.split('__')[1] || 'mcp';
@@ -149,6 +164,8 @@ function _mcpServerName(toolName, meta) {
  *     says so (host = the server name, no address, basis 'child_process');
  *   - the legacy `is_local` flag is set on a copy for local integrations, as
  *     it always was, for the store that still reads it.
+ * @param {string} toolName
+ * @param {boolean} blocked
  */
 function _probeForRow(probe, toolName, meta, blocked) {
     let out = probe || null;
@@ -206,6 +223,7 @@ function _stringifyPayload(toolArgs, result) {
 function logToolEgress(o) {
     // Stringify synchronously: callers mutate tool results after this call
     // (kb dedup and friends), and an audit row must reflect what the call saw.
+    /** @type {string | null} */
     let payloadText = null;
     try { payloadText = _stringifyPayload(o.toolArgs, o.result); } catch (_) { payloadText = ''; }
 
@@ -240,6 +258,7 @@ function logToolEgress(o) {
             // Content scanning — gated by the org toggle; the row is not.
             const monitor = shield?.monitorIntegrations === true;
             let scanLevel = 'none';
+            /** @type {string[]} */
             const categories = [];
             if (monitor && payloadText) {
                 scanLevel = 'basic';
@@ -247,7 +266,7 @@ function logToolEgress(o) {
                     const { scanOutputForPii } = require('./integrationToolMap');
                     const quick = scanOutputForPii(payloadText);
                     if (quick) categories.push(...quick.split(','));
-                } catch (err) { log.debug('sniff is best-effort', err); }
+                } catch (err) { fallback('core/integrations/integrationLogging:logToolEgress', err); /* sniff is best-effort */ }
                 try {
                     const threshold = typeof shield?.piiDetectionConfidenceThreshold === 'number'
                         ? shield.piiDetectionConfidenceThreshold : 0.7;
@@ -265,7 +284,7 @@ function logToolEgress(o) {
                             categories.push(e.category || e.label);
                         }
                     }
-                } catch (err) { log.debug('GLiNER unavailable → stay at \'basic\'', err); }
+                } catch (err) { fallback('core/integrations/integrationLogging:logToolEgress#2', err); /* GLiNER unavailable → stay at 'basic' */ }
             }
 
             const probe = _probeForRow(o.probe, o.toolName, meta, !!o.blocked);
@@ -310,7 +329,7 @@ function logToolEgress(o) {
                 grant_id: ids.grant_id || null,
             });
         } catch (e) {
-            log.error('[IntegrationLogging] egress row failed:', e.message);
+            log.error('[IntegrationLogging] egress row failed:', /** @type {Error} */ (e).message);
         }
     })());
 }

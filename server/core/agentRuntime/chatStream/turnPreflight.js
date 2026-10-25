@@ -24,11 +24,11 @@ const { resolveMemoryContext, injectProjectAndKnowledgeContext } = require('../c
 const { resolveMemoryPolicy } = require('../../memory/memoryPolicy');
 const { createUntokenisingEventWrapper } = require('../streamUntokeniser');
 const chatSignals = require('../../privacy/chatSignals');
-const log = require('../../../telemetry/log');
 const {
     resolveAndPrewarmShield, buildPromptWithMemory, hydrateTokenVault, runGuardrailsPhase,
     dropWebSearchOnUpload, runAgentDlpPreflight, dlpBlockError,
 } = require('./preflightSteps');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 // What ./preflightSteps works with, handed in: it all sits in the server's
 // large import cycle, which that module stays out of. The DLP modules stay
@@ -39,6 +39,9 @@ const STEP_DEPS = {
     dlpPreflight: () => require('../../dlp/dlpPreflight'),
 };
 
+/**
+ * @param {{ agent: import('./turnState').AgentRow, agentId: string, userId: string, userMessage: string, userAuth: import('./turnState').UserAuth, messageMetadata: import('./turnState').MessageMetadata, modelToUse: string, conversation: import('./turnState').ConversationRow, messages: import('./turnState').ChatMessage[], validProjectId: string | null, validProject: Record<string, any> | null, onEvent: import('./turnState').OnEvent, tools: import('./turnState').ToolDef[] } & Pick<Awaited<ReturnType<typeof import('./turnSetup').setupTurn>>, 'globalConfig' | 'config' | 'isStandardTier'> & Pick<Awaited<ReturnType<typeof import('./turnHistory').assembleTurnHistory>>, 'userSave' | 'promptUserMsg'>} opts
+ */
 async function runTurnPreflight({
     agent, agentId, userId, userMessage, userAuth, messageMetadata, globalConfig,
     config, modelToUse, conversation, messages, tools, validProjectId, validProject,
@@ -65,7 +68,9 @@ async function runTurnPreflight({
     // Privacy / DLP metadata accumulators — attached to the saved user/assistant
     // messages just before persistence so the redaction badge and "How I got this
     // answer" panel survive a page refresh.
+    /** @type {import('../inputPiiGate').PiiGateOut['userPrivacyMeta'] | Awaited<ReturnType<typeof runAgentDlpPreflight>>['userPrivacyMeta']} */
     let _userPrivacyMeta = guardrailsResult.userPrivacyMeta || null;
+    /** @type {import('../inputPiiGate').PiiTokenisationInfo | import('../attachmentIntake').AttachmentTokenisationInfo | Awaited<ReturnType<typeof runAgentDlpPreflight>>['assistantTokenisationInfo'] | null} */
     let _assistantTokenisationInfo = guardrailsResult.assistantTokenisationInfo || null;
 
     tools = dropWebSearchOnUpload({ tools, disableSearchOnUpload: guardrailsResult.disableSearchOnUpload, messageMetadata, conversation });
@@ -84,6 +89,7 @@ async function runTurnPreflight({
     // ============ PRE-FLIGHT DLP (interactive outbound scanner) ============
     // dlpShield was resolved first (before memory retrieval) so the guard scan
     // could be pre-warmed; reused here unchanged.
+    /** @type {Awaited<ReturnType<typeof runAgentDlpPreflight>> | null} */
     let dlp = null;
     const _recordSignal = () => recordChatSignal({ userId, messageMetadata, agent, config, dlpShield, dlp, piiReport: guardrailsResult?.piiReport || null });
     if (dlpShield?.dlpEnabled) {
@@ -111,6 +117,7 @@ async function runTurnPreflight({
     const _captureRaw = _eventWrapper._captureRaw;
 
     // KB source references accumulator (declared early because performKnowledgeSearch emits before the main loop)
+    /** @type {import('./turnState').KbSource[]} */
     const _kbSources = [];
     // Chunk identities already sent to the LLM/UI this turn. When the agent
     // runs multiple kb_search calls with overlapping results, dedup here
@@ -143,6 +150,7 @@ async function runTurnPreflight({
  * agent without an org) not at all. Test chats and "Test as" previews are dry
  * runs. The recorder gets no agent, conversation or message; `userId` serves
  * its objection lookup only.
+ * @param {{ userId: string, messageMetadata: import('./turnState').MessageMetadata, agent: import('./turnState').AgentRow, config: Awaited<ReturnType<typeof import('./turnSetup').setupTurn>>['config'], dlpShield: Awaited<ReturnType<typeof resolveAndPrewarmShield>>, dlp: Awaited<ReturnType<typeof runAgentDlpPreflight>> | null, piiReport: import('../../privacy/piiDetection/validate').PiiGateReport | null }} opts
  */
 function recordChatSignal({ userId, messageMetadata, agent, config, dlpShield, dlp, piiReport }) {
     try {
@@ -168,7 +176,7 @@ function recordChatSignal({ userId, messageMetadata, agent, config, dlpShield, d
             allowlistedHosts: Array.isArray(dlpShield?.dlpAllowlistedHosts) ? dlpShield.dlpAllowlistedHosts : [],
             dryRun: testChatMod.isDryRunTurn(messageMetadata) || !!messageMetadata?.testAs,
         });
-    } catch (err) { log.debug('counting never touches the turn', err); }
+    } catch (err) { bestEffort('core/agentRuntime/chatStream/turnPreflight:recordChatSignal', err); /* counting never touches the turn */ }
 }
 
 module.exports = { runTurnPreflight };

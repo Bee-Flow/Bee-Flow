@@ -1,4 +1,4 @@
-// @typecheck
+/** @typedef {import('qs').ParsedQs} ParsedQs */
 /**
  * Integration Activity Store — the ledger of outbound tool/integration calls,
  * for data-sovereignty monitoring (Privacy Shield, Art-30/44 evidence).
@@ -70,7 +70,7 @@ async function _doInit() {
             (SELECT col_description(a.attrelid, a.attnum) FROM pg_attribute a
               WHERE a.attrelid = to_regclass('integration_activity_log')
                 AND a.attname = 'location_state') AS location_note
-    `).catch(() => null);
+    `).catch((e) => fallback('stores/integrationActivityStore:_doInit', e, null));
     if (probe && probe.col && probe.tbl && !probe.retired) {
         if (!schema.locationBackfillDone(probe.location_note)) schema.startLocationBackfill();
         return;
@@ -133,6 +133,14 @@ log.info('[IntegrationActivityStore] Initialized (PostgreSQL)');
 const _transferSignalCache = new Map(); // `${orgId}:${operator}` -> last emit ts
 const TRANSFER_SIGNAL_TTL_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * @typedef {Object} _signalExternalTransferArgs
+ * @property {string | null} [operator]
+ * @property {string | null} [countryCode]
+ */
+/**
+ * @param {_signalExternalTransferArgs} param0
+ */
 function _signalExternalTransfer({ orgId, operator, countryCode }) {
     if (!orgId) return;
     const key = `${orgId}:${operator || 'unknown'}`;
@@ -149,9 +157,12 @@ function _signalExternalTransfer({ orgId, operator, countryCode }) {
     // caller is the egress write path.
     _claimAndEmitTransferSignal(orgId, `external_transfer:${operator || 'unknown'}`, {
         orgId, operator: operator || null, country_code: countryCode || null,
-    }).catch(() => {});
+    }).catch((e) => bestEffort('stores/integrationActivityStore:_signalExternalTransfer', e));
 }
 
+/**
+ * @param {string} signalKey
+ */
 async function _claimAndEmitTransferSignal(orgId, signalKey, payload) {
     let claimed = true;
     try {
@@ -177,7 +188,7 @@ async function _claimAndEmitTransferSignal(orgId, signalKey, payload) {
         // module scope here would create a boot cycle via runner → checks.
         const events = require('../compliance/events');
         events.emit(events.EVENTS.EXTERNAL_TRANSFER_DETECTED, payload);
-    } catch (err) { log.debug('compliance bus is best-effort', err); }
+    } catch (err) { bestEffort('stores/integrationActivityStore:_claimAndEmitTransferSignal', err); /* compliance bus is best-effort */ }
 }
 
 /**
@@ -202,7 +213,10 @@ function _legacySource(primary, state) {
     return primary.basis;
 }
 
-/** Column → value, in INSERT order. Built as pairs so the two can never drift apart. */
+/**
+ * Column → value, in INSERT order. Built as pairs so the two can never drift apart.
+ * @param {{ row: PeerLocation; primary: PeerLocation | null; peers: PeerLocation[]; }} loc
+ */
 function _insertRow(event, loc, probe) {
     const row = loc.row;
     const primary = loc.primary;
@@ -305,7 +319,7 @@ async function logIntegrationActivity(event) {
             });
         }
     } catch (e) {
-        log.error('[IntegrationActivityStore] Failed to log:', e.message);
+        log.error('[IntegrationActivityStore] Failed to log:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -317,8 +331,14 @@ const LOCATION_STATES = ['local', 'eu', 'outside', 'via_network', 'unknown'];
 const LOCATION_COLUMNS = `${LOC_STATE} AS location_state, ${LOC_BASIS} AS location_basis,
             city, region, lat, lon, asn, as_org, network, edge_pop`;
 
+/**
+ * @param {ActivityFilters | undefined} filters
+ * @param {number} [startIdx]
+ */
 function buildFilters(filters, startIdx = 1) {
+    /** @type {string[]} */
     const conditions = [];
+    /** @type {(string | string[])[]} */
     const params = [];
     let idx = startIdx;
     if (filters?.startDate) { conditions.push(`timestamp >= $${idx++}`); params.push(filters.startDate); }
@@ -356,6 +376,9 @@ function buildFilters(filters, startIdx = 1) {
 
 // ============ Queries ============
 
+/**
+ * @param {ActivityFilters} [filters]
+ */
 async function getIntegrationSummary(filters = {}) {
     await initDB();
     const { where, params } = buildFilters(filters);
@@ -373,6 +396,10 @@ async function getIntegrationSummary(filters = {}) {
     `, params);
 }
 
+/**
+ * @param {string} [interval]
+ * @param {ActivityFilters} [filters]
+ */
 async function getIntegrationTimeline(filters = {}, interval = 'day') {
     await initDB();
     const { where, params } = buildFilters(filters);
@@ -401,6 +428,8 @@ async function getIntegrationTimeline(filters = {}, interval = 'day') {
  *
  * For pii: rows without detected PII categories don't contribute — the
  * denominator is "calls where any PII was detected", not "all calls".
+ * @param {string | ParsedQs | (string | ParsedQs)[]} dimension
+ * @param {ActivityFilters} [filters]
  */
 async function getSovereigntyByDimension(dimension, filters = {}) {
     await initDB();
@@ -469,6 +498,9 @@ async function getSovereigntyByDimension(dimension, filters = {}) {
     throw new Error(`Unknown sovereignty dimension: ${dimension}`);
 }
 
+/**
+ * @param {ActivityFilters} [filters]
+ */
 async function getIntegrationByType(filters = {}) {
     await initDB();
     const { where, params } = buildFilters(filters);
@@ -486,6 +518,9 @@ async function getIntegrationByType(filters = {}) {
     `, params);
 }
 
+/**
+ * @param {ActivityFilters} [filters]
+ */
 async function getIntegrationByTool(filters = {}) {
     await initDB();
     const { where, params } = buildFilters(filters);
@@ -504,6 +539,9 @@ async function getIntegrationByTool(filters = {}) {
     `, params);
 }
 
+/**
+ * @param {ActivityFilters} [filters]
+ */
 async function getIntegrationByUser(filters = {}) {
     await initDB();
     const { where, params } = buildFilters(filters);
@@ -522,6 +560,9 @@ async function getIntegrationByUser(filters = {}) {
     `, params);
 }
 
+/**
+ * @param {ActivityFilters} [filters]
+ */
 async function getIntegrationPiiSummary(filters = {}) {
     await initDB();
     const { where, params } = buildFilters(filters);
@@ -545,6 +586,9 @@ async function getIntegrationPiiSummary(filters = {}) {
     `, params);
 }
 
+/**
+ * @param {ActivityFilters} [filters]
+ */
 async function getIntegrationServers(filters = {}) {
     await initDB();
     const { where, params } = buildFilters(filters);
@@ -573,6 +617,10 @@ async function getIntegrationServers(filters = {}) {
     `, params);
 }
 
+/**
+ * @param {number} [limit]
+ * @param {ActivityFilters} [filters]
+ */
 async function getRecentIntegrationActivity(limit = 50, filters = {}) {
     await initDB();
     // Built on the shared buildFilters ON PURPOSE: the old hand-rolled WHERE
@@ -614,10 +662,13 @@ async function getRecentIntegrationActivity(limit = 50, filters = {}) {
  * describe the whole call; `peers` lists every host when there was more than
  * one. A row from before the location rework reads its state from the legacy
  * flags (LOC_STATE) with basis 'backfill'.
+ * @param {number} [limit]
  */
 async function getEgressLog(filters = {}, limit = 200) {
     await initDB();
+    /** @type {string[]} */
     const conditions = [];
+    /** @type {string[]} */
     const params = [];
     let idx = 1;
     if (filters.organizationId) { conditions.push(`organization_id = $${idx++}`); params.push(filters.organizationId); }
@@ -698,6 +749,7 @@ async function getEgressLogForRun(runId) {
 /**
  * Operator-level summary — group by operator name (Google / Microsoft / Cloudflare / …)
  * with a count, distinct-IP count, and last-seen timestamp.
+ * @param {ActivityFilters} [filters]
  */
 async function getOperatorSummary(filters = {}) {
     await initDB();
@@ -738,6 +790,7 @@ async function getIntegrationOverview(filters = {}, interval = 'day', { normaliz
 
 // "Find repeating work" reads, per user (integrationManualActivity.js).
 const manualActivity = require('./integrationManualActivity').defaultReader(initDB);
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 module.exports = {
     logIntegrationActivity,
@@ -762,3 +815,30 @@ module.exports = {
     // Awaitable init entry point for migrateDb.
     initDB,
 };
+
+/**
+ * @typedef {{ startDate?: string | Date, endDate?: string | Date, organizationId?: string | null, userId?: string | null,
+ *   integrationType?: string, agentId?: string, piiCategory?: string, euOnly?: boolean, localOnly?: boolean,
+ *   locationState?: string, excludeDryRun?: boolean, manualOnly?: boolean, beforeId?: number }} ActivityFilters
+ */
+
+/** @typedef {import('../core/http/egressCapture').PeerInput} ProbePeer */
+
+/**
+ * The egress capture's snapshot of one call: `peers` in the current shape, or the
+ * old single-peer fields from a replica not yet on the new capture.
+ * @typedef {{ peers?: readonly ProbePeer[], peer_ip?: string, peer_ip_source?: string, tls_servername?: string | null,
+ *   hostname?: string, connect_ms?: number, is_local?: boolean }} EgressProbe
+ */
+
+/**
+ * One outbound call to log.
+ * @typedef {{ timestamp?: string, organization_id?: string | null, user_id?: string | null, agent_id?: string | null,
+ *   agent_name?: string | null, conversation_id?: string | null, tool_name?: string, integration_type?: string | null,
+ *   server_endpoint?: string | null, data_direction?: string, data_categories?: string | null,
+ *   pii_categories_detected?: string | null, pii_scan_enabled?: boolean, pii_scan_level?: string,
+ *   data_summary?: string | null, source?: string, model?: string | null, automation_id?: string | null,
+ *   run_id?: string | null, step_id?: string | null, is_dry_run?: boolean, acting_user_id?: string | null,
+ *   connection_id?: string | null, grant_id?: string | null, status?: string, error_message?: string | null,
+ *   duration_ms?: number, served_from_cache?: boolean, is_local_hint?: boolean, probe?: EgressProbe | null }} ActivityEvent
+ */

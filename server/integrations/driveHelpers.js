@@ -1,10 +1,30 @@
+// @typecheck noImplicitAny
 /**
  * Pure helpers of the Drive tools (driveTools.js): MIME inference, the file
  * shape handed to the model, and the paged "recent files" query.
  */
 
+/**
+ * The Drive v3 file fields these tools ask for (googleapis is untyped for the check: types/shims).
+ * @typedef {{ id?: string, name?: string, mimeType?: string, size?: string, modifiedTime?: string, createdTime?: string,
+ *   webViewLink?: string, iconLink?: string, parents?: string[], shared?: boolean, description?: string,
+ *   owners?: Array<{ emailAddress?: string }>, sharingUser?: { emailAddress?: string },
+ *   permissions?: Array<{ role?: string, type?: string, emailAddress?: string, displayName?: string }>,
+ *   ownedByMe?: boolean, lastModifyingUser?: { me?: boolean } }} DriveFile
+ * The part of a googleapis drive v3 client these tools call.
+ * @typedef {{ files: {
+ *   list(params: object): Promise<{ data: { files?: DriveFile[], nextPageToken?: string } }>,
+ *   get(params: object): Promise<{ data: DriveFile }>,
+ *   get(params: object, options: { responseType: 'arraybuffer' }): Promise<{ data: ArrayBuffer }>,
+ *   get(params: object, options: { responseType: 'text' }): Promise<{ data: string }>,
+ *   update(params: object): Promise<{ data: DriveFile }>,
+ *   create(params: object): Promise<{ data: DriveFile }>,
+ *   export(params: object): Promise<{ data: unknown }> } }} DriveClient
+ */
+
 // ─── MIME inference ────────────────────────────────────────────
 
+/** @type {Record<string, string>} */
 const EXT_TO_MIME = {
     pdf: 'application/pdf',
     png: 'image/png',
@@ -25,6 +45,7 @@ const EXT_TO_MIME = {
     pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 };
 
+/** @param {{ mimeArg?: string, handleMime?: string, filename?: string }} params */
 function inferMimeType({ mimeArg, handleMime, filename }) {
     if (mimeArg) return mimeArg;
     if (handleMime) return handleMime;
@@ -34,6 +55,7 @@ function inferMimeType({ mimeArg, handleMime, filename }) {
 
 // ─── Format File ───────────────────────────────────────────────
 
+/** @param {DriveFile} file */
 function formatFile(file) {
     return {
         id: file.id,
@@ -64,10 +86,12 @@ const RECENT_MAX_PAGES = 4;
  * lastModifyingUser.me flag, so a caller can keep only the user's own edits
  * without any name or address passing through.
  *
- * @param {object} drive - a googleapis drive v3 client (injected in tests)
- * @param {object} args - { since?, maxResults? }
+ * @param {{ files: { list(params: object): Promise<{ data: { files?: Array<{ id?: string, name?: string, mimeType?: string, parents?: string[], modifiedTime?: string, createdTime?: string, ownedByMe?: boolean, lastModifyingUser?: { me?: boolean } }>, nextPageToken?: string } }> } }} drive - a googleapis drive v3 client (injected in tests)
+ * @param {{ since?: string|number|null, maxResults?: number|string }} [args] - { since?, maxResults? }
+ * @param {{ now?: number }} [options]
  */
 async function listRecentDriveFiles(drive, args, { now = Date.now() } = {}) {
+    /** @type {string} */
     let sinceIso;
     if (args?.since === undefined || args?.since === null || args?.since === '') {
         sinceIso = new Date(now - RECENT_DEFAULT_DAYS * 86400000).toISOString();
@@ -79,6 +103,7 @@ async function listRecentDriveFiles(drive, args, { now = Date.now() } = {}) {
     const want = Math.min(Math.max(parseInt(args?.maxResults) || 50, 1), RECENT_MAX_RESULTS);
 
     const files = [];
+    /** @type {string | undefined} */
     let pageToken;
     let pages = 0;
     do {

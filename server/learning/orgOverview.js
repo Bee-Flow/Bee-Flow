@@ -14,13 +14,17 @@ const { getUserPermissions } = require('../auth/permissions');
 const { resolveCapabilitySet } = require('../core/entitlements/entitlements');
 const { COURSES, buildVisibleByCourse } = require('./courseCatalog');
 const { completedCourses, computeEarnedBadges, lessonDone } = require('./completion');
-const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
+const { isPlatformOperator } = require('../auth/platformOperator');
 
 const CACHE_TTL_MS = 60_000;
 const cache = new Map(); // orgId → { value, ts }
 
 // The org's human members: direct organizationId match or membership of one of
 // the org's groups. Excludes the system admin row and pending invites.
+/**
+ * @param {string | undefined} orgId
+ */
 async function orgMembers(orgId) {
     const [users, allGroups] = await Promise.all([
         userStore.getAllUsers(),
@@ -30,16 +34,19 @@ async function orgMembers(orgId) {
         (allGroups || []).filter((g) => g.organizationId === orgId).map((g) => g.id),
     );
     return (users || []).filter((u) => {
-        if (!u || u.isSystem || u.id === 'admin') return false;
+        if (!u || u.isSystem || isPlatformOperator(u)) return false;
         if (u.status === 'pending') return false;
         if (u.organizationId === orgId) return true;
+        /** @type {string[]} */
         let groups = [];
-        try { groups = Array.isArray(u.groups) ? u.groups : JSON.parse(u.groups || '[]'); } catch (err) { log.debug('ignore', err); }
+        try { groups = Array.isArray(u.groups) ? u.groups : JSON.parse(u.groups || '[]'); } catch (err) { fallback('learning/orgOverview:orgMembers', err); /* ignore */ }
         return groups.some((gid) => orgGroupIds.has(gid));
     });
 }
 
+/** @param {import('./completion').ProgressMap | null | undefined} progress */
 function lastActivity(progress) {
+    /** @type {string | null} */
     let latest = null;
     for (const entry of Object.values(progress || {})) {
         const at = entry?.completedAt;
@@ -48,6 +55,9 @@ function lastActivity(progress) {
     return latest;
 }
 
+/**
+ * @param {string | undefined} orgId
+ */
 async function buildOrgOverview(orgId) {
     const members = await orgMembers(orgId);
     const ids = members.map((u) => u.id);
@@ -66,7 +76,7 @@ async function buildOrgOverview(orgId) {
     try {
         const capSet = await resolveCapabilitySet({ orgId });
         if (capSet && !capSet.degraded) hasFeature = (id) => capSet.has(id);
-    } catch (err) { log.debug('strict fallback', err); }
+    } catch (err) { fallback('learning/orgOverview:buildOrgOverview', err); /* strict fallback */ }
     const visibleByUser = {};
     await Promise.all(members.map(async (u) => {
         try {
@@ -74,7 +84,7 @@ async function buildOrgOverview(orgId) {
             if (Array.isArray(perms) && hasFeature) {
                 visibleByUser[u.id] = buildVisibleByCourse(perms, hasFeature);
             }
-        } catch (err) { log.debug('strict fallback for this member', err); }
+        } catch (err) { fallback('learning/orgOverview:buildOrgOverview#2', err); /* strict fallback for this member */ }
     }));
 
     const totals = { members: members.length, coursesCompleted: 0, badges: 0, certificatesIssued: 0, activeLast30d: 0 };
@@ -125,6 +135,9 @@ async function buildOrgOverview(orgId) {
 
 // 60s TTL cache — the panel polls/re-mounts freely and the underlying data
 // changes at human learning speed. No invalidation needed at this staleness.
+/**
+ * @param {string | undefined} orgId
+ */
 async function getOrgOverview(orgId) {
     const hit = cache.get(orgId);
     if (hit && Date.now() - hit.ts < CACHE_TTL_MS) return hit.value;

@@ -35,6 +35,7 @@
 
 const pd = require('../../projects/projectData');
 const signals = require('../../projects/personalDataSignals');
+const { fallback } = require('../../../utils/bestEffort');
 
 const DEFAULT_REVIEW_DAYS = 180;
 const DAY_MS = 24 * 3600 * 1000;
@@ -175,7 +176,7 @@ module.exports = {
                 if (pd.isNotProvisioned(e)) return [];
                 throw e;
             }),
-            deps.complianceStore.getSettings(orgId).catch(() => ({})),
+            deps.complianceStore.getSettings(orgId).catch((e) => fallback('compliance/checks/gdpr/art30-project-personal-data:evaluate', e, {})),
         ]);
         const reviewDays = Number(settings?.datatable_review_days) > 0 ? Number(settings.datatable_review_days) : DEFAULT_REVIEW_DAYS;
         return verdict({

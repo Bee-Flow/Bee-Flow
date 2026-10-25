@@ -35,9 +35,11 @@ module.exports = {
     descriptionKey: 'compliance.checks.gdpr_art28.desc',
     remediationKey: 'compliance.checks.gdpr_art28.fix',
     remediationLink: 'admin/compliance/ropa',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         // A failed read is not "no ledger yet": that answer is not_applicable
         // and leaves the score. Only the SQLSTATE travels into the evidence.
+        /** @type {{ operator: string; is_eu: boolean; calls: number; country_code?: string | null; }[] | null} */
         let operators;
         try {
             operators = await observedOperators.fromActivityLog(orgId);
@@ -58,7 +60,7 @@ module.exports = {
         if (!operators.length) {
             return {
                 status: 'not_applicable',
-                evidence: { operators: [] },
+                evidence: { operators: /** @type {string[]} */ ([]) },
                 details: 'No outbound processor traffic observed in the last 30 days.',
             };
         }

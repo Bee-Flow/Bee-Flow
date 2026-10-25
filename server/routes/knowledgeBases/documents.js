@@ -33,6 +33,7 @@ const { statusFilter, piiFilter } = require('./docFilters');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded, orEmpty } = require('../../core/http/schemaParts');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── What a caller may send ──────────────────────────────────────────
 
@@ -43,6 +44,8 @@ const NoBody = orEmpty(z.object({}, { error: typeError({ invalid: 'This request 
  * A page size or offset. Out of range is clamped — a page size of 1000 is
  * still a page, and the response says which limit it applied — but a value
  * that is not a whole number is refused rather than read as the default.
+ * @param {string} name
+ * @param {{ min: number, max: number, fallback: number }} bounds
  */
 function pageNumber(name, { min, max, fallback }) {
     const text = `${name} is a whole number.`;
@@ -51,7 +54,10 @@ function pageNumber(name, { min, max, fallback }) {
         .prefault(String(fallback));
 }
 
-/** What `(metadata->>'date')::timestamptz` will take: an ISO date, optionally with a time. */
+/**
+ * What `(metadata->>'date')::timestamptz` will take: an ISO date, optionally with a time.
+ * @param {string} name
+ */
 function isoDate(name) {
     const text = `${name} is a date, written as YYYY-MM-DD.`;
     return worded(text).trim()
@@ -147,7 +153,7 @@ router.post('/:id/documents/bulk-delete', requireAuth, requirePermission('manage
             // deleteDocumentChunks). To preserve the per-user audit ID,
             // explicitly call snapshot first with the user id; the store
             // then skips its own redundant snapshot via skipSnapshot.
-            await kbStore.snapshotDocumentVersion(docId, userId).catch(() => {});
+            await kbStore.snapshotDocumentVersion(docId, userId).catch((e) => bestEffort('routes/knowledgeBases/documents:anon', e));
             await deleteDocumentChunks(kb.id, doc.id, kb.tenant_id, { skipSnapshot: true });
             deleted++;
         } catch (err) {
@@ -284,7 +290,7 @@ router.delete('/:id/documents/:docId', requireAuth, requirePermission('manage_kn
     }
 
     // Snapshot with the user id, then have the store skip its own.
-    await kbStore.snapshotDocumentVersion(doc.id, getUserId(req)).catch(() => {});
+    await kbStore.snapshotDocumentVersion(doc.id, getUserId(req)).catch((e) => bestEffort('routes/knowledgeBases/documents:anon#2', e));
     await deleteDocumentChunks(kb.id, doc.id, kb.tenant_id, { skipSnapshot: true });
     res.json({ success: true });
 });

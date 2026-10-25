@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('url').URL} URL */
+// @typecheck strict
 /**
  * Which relying party a WebAuthn ceremony is for: the origin the browser is on
  * and the RP ID the key is bound to.
@@ -25,10 +26,16 @@ const DEFAULT_ALLOWED_ORIGINS = 'http://localhost:5173';
 
 const IPV4 = /^\d{1,3}(\.\d{1,3}){3}$/;
 
+/**
+ * @param {string | undefined} origin
+ */
 function normaliseOrigin(origin) {
     return String(origin || '').trim().replace(/\/+$/, '');
 }
 
+/**
+ * @param {Record<string, string | undefined>} env
+ */
 function allowedOrigins(env) {
     return String(env.CORS_ORIGIN || DEFAULT_ALLOWED_ORIGINS)
         .split(',')
@@ -36,7 +43,10 @@ function allowedOrigins(env) {
         .filter(Boolean);
 }
 
-/** A host[:port] setting (CLIENT_PUBLIC_HOST carries a port in dev) → hostname. */
+/**
+ * A host[:port] setting (CLIENT_PUBLIC_HOST carries a port in dev) → hostname.
+ * @param {string | undefined} value
+ */
 function hostnameOf(value) {
     const raw = String(value || '').trim();
     if (!raw) return '';
@@ -51,6 +61,7 @@ function hostnameOf(value) {
  * WebAuthn only runs in a secure context, and an RP ID must be a domain name.
  * https anywhere; plain http only on localhost, which browsers treat as secure.
  * An IP address is refused on both counts: browsers reject it as an RP ID.
+ * @param {URL} url
  */
 function isWebAuthnCapable(url) {
     const host = url.hostname.toLowerCase();
@@ -71,6 +82,7 @@ function resolveRelyingParty(originHeader, env = process.env) {
     if (!origin) return null;
     if (!allowedOrigins(env).includes(origin)) return null;
 
+    /** @type {URL} */
     let url;
     try { url = new URL(origin); } catch (_) { return null; }
     if (!isWebAuthnCapable(url)) return null;

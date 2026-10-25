@@ -18,6 +18,7 @@ const { hasPermission } = require('../../../auth/permissions');
 const { evaluateNotebookWriteGate } = require('./notebookWriteGate');
 const { encryptionOpts } = require('./shared');
 const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
 async function assembleToolStack({ req, send, userId, conversationId, resolvedTier, attachments, history, disabledMedia, webSearchEnabled, disableSearchOnUpload, message, notebookspaceContent, activeSkillIds, userOrgForTiers }) {
         // ─── Progressive tool disclosure: prior activations ─────────────
@@ -34,7 +35,7 @@ async function assembleToolStack({ req, send, userId, conversationId, resolvedTi
                 if (Array.isArray(_convGroups?.activatedToolGroups)) {
                     activatedToolGroups = new Set(_convGroups.activatedToolGroups);
                 }
-            } catch (err) { log.debug('non-fatal — fall back to no pre-activations', err); }
+            } catch (err) { fallback('routes/ai/directChat/toolStackAssembly:assembleToolStack', err); /* non-fatal — fall back to no pre-activations */ }
         }
 
         // ─── Skill-scoped app enablement ─────────────────────────
@@ -49,7 +50,7 @@ async function assembleToolStack({ req, send, userId, conversationId, resolvedTi
             try {
                 const _skillMeta = await agentStore.getDirectConversationMeta(conversationId, userId, encryptionOpts(req));
                 if (Array.isArray(_skillMeta?.activatedSkillIds)) activatedLibrarySkillIds = [..._skillMeta.activatedSkillIds];
-            } catch (err) { log.debug('best-effort — worst case dynamic skill apps need re-activation', err); }
+            } catch (err) { fallback('routes/ai/directChat/toolStackAssembly:assembleToolStack#2', err); /* best-effort — worst case dynamic skill apps need re-activation */ }
         }
         let skillApps = { allowedApps: [], dynamicSkillApps: new Map(), mergedIds: [] };
         try {
@@ -315,3 +316,5 @@ async function assembleToolStack({ req, send, userId, conversationId, resolvedTi
 }
 
 module.exports = { assembleToolStack };
+
+/** @typedef {import('../../../core/agentRuntime/chatStream/turnState').ToolDef | import('../../../core/tools/toolDisclosure').DisclosableTool} DirectChatTool */

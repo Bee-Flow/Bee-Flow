@@ -102,7 +102,7 @@ async function execGuard(step, ctx, runState, mode) {
             // Handing back the ORIGINAL here would be the worst possible
             // failure: a field the author believes is masked, isn't.
             output.masked = null;
-            output.maskError = e.message;
+            output.maskError = /** @type {Error} */ (e).message;
             output.degraded = true;
             output.degradedReason = output.degradedReason || 'mask_failed';
         }
@@ -130,7 +130,7 @@ async function execGuard(step, ctx, runState, mode) {
                 output.vaultSize = ctx?.tokenVault?.size ?? null;
             } catch (e) {
                 output.text = null;
-                output.hideError = e.message;
+                output.hideError = /** @type {Error} */ (e).message;
                 output.degraded = true;
                 output.degradedReason = output.degradedReason || 'hide_failed';
             }
@@ -295,12 +295,17 @@ async function execUntokenize(step, ctx, runState) {
 // safety.js's _TOKEN_RE: a category key may itself contain underscores.
 const _PLACEHOLDER_RE = /\[([a-z0-9_]+)_(\d+)\]/g;
 
+/**
+ * @param {string} value
+ */
 function unresolvedTokens(value) {
     const found = new Set();
+    /** @type {string} */
     let json;
     try { json = typeof value === 'string' ? value : JSON.stringify(value); } catch { return found; }
     if (typeof json !== 'string') return found;
     _PLACEHOLDER_RE.lastIndex = 0;
+    /** @type {RegExpExecArray | null} */
     let m;
     while ((m = _PLACEHOLDER_RE.exec(json))) found.add(m[0]);
     return found;

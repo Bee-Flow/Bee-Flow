@@ -140,6 +140,9 @@ async function getUsageByAgent(filters = {}) {
     `, params));
 }
 
+/**
+ * @param {string} [interval]
+ */
 async function getUsageTimeline(filters = {}, interval = 'day') {
     await initDB();
     const { where, params } = buildFilters(filters, 1, true);
@@ -178,9 +181,14 @@ async function getToolUsage(filters = {}) {
     `, params);
 }
 
+/**
+ * @param {number} [limit]
+ */
 async function getRecentCalls(limit = 50, filters = {}) {
     await initDB();
+    /** @type {string[]} */
     const conditions = [];
+    /** @type {string[]} */
     const params = [];
     let idx = 1;
 
@@ -227,6 +235,9 @@ async function getRecentCalls(limit = 50, filters = {}) {
     `, [...params, limit]);
 }
 
+/**
+ * @param {string} [interval]
+ */
 async function getCostTimeline(filters = {}, interval = 'day') {
     await initDB();
     const { where, params } = buildFilters(filters, 1, true);

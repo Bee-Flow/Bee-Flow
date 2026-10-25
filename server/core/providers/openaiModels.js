@@ -571,3 +571,40 @@ module.exports = {
     getDeprecation,
     listCatalogModels,
 };
+
+/**
+ * The catalog.
+ *
+ * Field notes:
+ *   efforts              — null means "not a reasoning model" (no `reasoning`
+ *                          param, no `reasoning_effort`).
+ *   toolsRequireResponses— true when Chat Completions accepts the model for
+ *                          text but rejects tool calls (gpt-6-astra).
+ *   temperature          — false when the model rejects temperature/top_p.
+ *   verbosity            — the GPT-5-only output-length knob; dropped in 5.6+.
+ *   price.cachedInput    — explicit per-model cached-read rate. Stored rather
+ *                          than derived, because the discount is NOT uniform:
+ *                          0.1x on the GPT-5/5.6/6 line, 0.25x on o4-mini,
+ *                          0.5x on o3-mini.
+ * @typedef {object} OpenAIModelEntry
+ * @property {string} [name]
+ * @property {string} [cat]
+ * @property {string} [family]
+ * @property {string} [desc]
+ * @property {number} [context]
+ * @property {number} [maxInput]
+ * @property {number} [maxOutput]
+ * @property {readonly string[] | null} [efforts]
+ * @property {string | null} [defaultEffort]
+ * @property {boolean} [vision]
+ * @property {boolean} [tools]
+ * @property {boolean} [toolsRequireResponses]
+ * @property {boolean} [audio]
+ * @property {boolean} [temperature]
+ * @property {boolean} [verbosity]
+ * @property {string} [cacheTtlParam]
+ * @property {{ input: number, cachedInput: number, output: number }} [price]
+ * @property {string} [cutoff]
+ * @property {string} [released]
+ * @property {{ sunset: string, replacement: string }} [deprecated]
+ */

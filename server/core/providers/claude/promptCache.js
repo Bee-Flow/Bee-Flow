@@ -167,3 +167,8 @@ function applyPromptCacheBreakpoints(normalized) {
 }
 
 module.exports = { applyPromptCacheBreakpoints };
+
+/**
+ * @typedef {{ type?: string, text?: string, cache_control?: { type: string } }} Block
+ * @typedef {{ role?: string, content?: string | Block[] }} Msg
+ */

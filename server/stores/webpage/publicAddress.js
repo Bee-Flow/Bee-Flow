@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The ADDRESS of a public page, and which share serves that address.
  *
@@ -63,6 +63,7 @@ const MINT_ATTEMPTS = 5;
  * Deliberately ASCII-only. A slug with accents or Cyrillic does not survive being cut and pasted
  * through an e-mail client unscathed, and an address that changes on the way is not an address.
  * Yields '' if nothing usable remains — the caller then fills in only the suffix.
+ * @param {string} name
  */
 function slugifyName(name) {
     if (typeof name !== 'string') return '';
@@ -76,7 +77,10 @@ function slugifyName(name) {
         .replace(/-+$/g, '');
 }
 
-/** `SUFFIX_LENGTH` tekens uit crypto.randomBytes, gelijkmatig over het alfabet. */
+/**
+ * `SUFFIX_LENGTH` tekens uit crypto.randomBytes, gelijkmatig over het alfabet.
+ * @param {Buffer | Uint8Array | null} [bytes]
+ */
 function randomSuffix(bytes = null) {
     // 32 is a divisor of 256, so `% 32` on a random byte is evenly distributed — no modulo bias,
     // no rejection loop needed.
@@ -91,6 +95,8 @@ function randomSuffix(bytes = null) {
 /**
  * The full address part for a page with this name.
  * ALWAYS with a suffix — there is no call that yields a bare name slug, because that would be guessable.
+ * @param {string} name
+ * @param {{ bytes?: Buffer | Uint8Array | null }} [opts]
  */
 function mintSlug(name, { bytes = null } = {}) {
     const readable = slugifyName(name);
@@ -102,6 +108,7 @@ function mintSlug(name, { bytes = null } = {}) {
  * How an address is read from a URL. The same normalisation as when minting, so that
  * `/w/Prijslijst-K3F9…` finds the same row as `/w/prijslijst-k3f9…`, and an address with junk
  * around it finds nothing instead of almost-something.
+ * @param {unknown} raw
  */
 function normalizeSlug(raw) {
     if (typeof raw !== 'string') return '';
@@ -122,6 +129,9 @@ function normalizeSlug(raw) {
  * The UPDATE is owner-scoped AND only sets when there is still nothing there (`slug IS NULL`), so
  * that two concurrent calls do not overwrite each other's address: the second touches 0 rows and
  * then reads the address of the first.
+ * @param {string} webpageId
+ * @param {string} ownerId
+ * @param {string} name
  */
 async function ensureSlug(webpageId, ownerId, name) {
     await initDB();
@@ -162,6 +172,7 @@ async function ensureSlug(webpageId, ownerId, name) {
 /**
  * The address → the page. Anonymous path: NO user scope, because the visitor has none. It therefore
  * also returns only what the viewer needs.
+ * @param {unknown} rawSlug
  */
 async function resolveSlug(rawSlug) {
     await initDB();
@@ -180,7 +191,11 @@ async function resolveSlug(rawSlug) {
     };
 }
 
-/** Het adres van één pagina (eigenaar-gescoped), of null. */
+/**
+ * Het adres van één pagina (eigenaar-gescoped), of null.
+ * @param {string} webpageId
+ * @param {string} ownerId
+ */
 async function getAddress(webpageId, ownerId) {
     await initDB();
     if (!webpageId || !ownerId) return null;
@@ -195,6 +210,9 @@ async function getAddress(webpageId, ownerId) {
 /**
  * Point the address at this share — or at nothing (`null`), which means "not public". The slug stays;
  * only the pointer goes away.
+ * @param {string} webpageId
+ * @param {string} ownerId
+ * @param {string} shareId
  */
 async function setCanonicalShare(webpageId, ownerId, shareId) {
     await initDB();
@@ -213,6 +231,7 @@ async function setCanonicalShare(webpageId, ownerId, shareId) {
  * On share id, not on page id: an owner who withdraws his third separate share must not lose the
  * address. Touches 0 rows if the pointer already pointed somewhere else — that is the good outcome,
  * not an error.
+ * @param {string} shareId
  */
 async function clearCanonicalShare(shareId) {
     await initDB();

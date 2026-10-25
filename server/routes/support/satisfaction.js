@@ -1,3 +1,4 @@
+/** @typedef {import('express-serve-static-core').Router} Router */
 /**
  * Customer satisfaction: the staff-facing CSAT + SLA dashboard aggregates and
  * the public landing page the star/dispute links in the resolution email hit.
@@ -21,6 +22,9 @@ const { _shortId, requireStaffSupport, _csatHtml, _emit, notifyStaff } = require
 const { threadReadLimiter } = require('./rateLimits');
 const log = require('../../telemetry/log');
 
+/**
+ * @param {Router} router
+ */
 function register(router) {
     // ──────────────────────────────────────────────────────────────────────────
     // GET /insights — CSAT + SLA dashboard aggregates (staff)
@@ -86,7 +90,7 @@ function register(router) {
             _emit('thread_updated', { threadId: thread.id });
             res.redirect(303, `${req.baseUrl}/csat/${encodeURIComponent(thread.id)}/done?score=${numScore}`); // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- same-origin path built server-side, id URI-encoded
         } catch (err) {
-            log.error(`[Support] GET /csat/:threadId error (id=${_shortId(req.params.threadId)}):`, err.message);
+            log.error(`[Support] GET /csat/:threadId error (id=${_shortId(req.params.threadId)}):`, /** @type {Error} */ (err).message);
             res.status(500).send(_csatHtml({ error: 'Something went wrong.' }));
         }
     });

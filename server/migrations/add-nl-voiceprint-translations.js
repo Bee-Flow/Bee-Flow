@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck strict
 /**
  * Migration: Dutch translations for the voice-profile (pyannoteAI voiceprint)
  * strings — personal enrollment UI + the Art. 9 biometric consent label.

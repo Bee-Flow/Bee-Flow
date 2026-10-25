@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — server-side AI runtime.
  *
@@ -30,6 +31,7 @@ const llmClient = require('../core/llm/llmClient');
 const usageStore = require('../stores/usageStore');
 const { usageLogFields } = require('../core/providers/usageNormalizer');
 const log = require('../telemetry/log');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 // ── Caps (defence-in-depth; the attachment quota is the real byte backstop) ──
 const MAX_KB_IDS = 10;
@@ -72,6 +74,7 @@ const SCHEMA_FIELD_TYPES = ['string', 'number', 'boolean', 'date', 'array', 'obj
  * Unlike native documents this fails OPEN: guessing "cannot see" blinds the
  * model on a task that may be entirely visual, while guessing "can see" costs
  * at worst one rejected request.
+ * @param {string} modelId
  */
 async function modelSupportsVision(modelId) {
     if (!modelId) return false;
@@ -83,11 +86,14 @@ async function modelSupportsVision(modelId) {
         if (adapter && adapter !== baseAdapter && typeof adapter.supportsVision === 'function') {
             return !!adapter.supportsVision(modelId);
         }
-    } catch (err) { log.debug('not attached to a configured provider — fall back to the name', err); }
+    } catch (err) { bestEffort('appStudio/aiRuntime:modelSupportsVision', err); /* not attached to a configured provider — fall back to the name */ }
     return visionByModelName(modelId);
 }
 
-/** Last-resort name check, mirroring the per-provider supportsVision regexes. */
+/**
+ * Last-resort name check, mirroring the per-provider supportsVision regexes.
+ * @param {string} modelId
+ */
 function visionByModelName(modelId) {
     if (/claude|anthropic/i.test(modelId)) {
         const { describeClaudeModel } = require('../core/providers/claudeModels');
@@ -100,6 +106,10 @@ function visionByModelName(modelId) {
     return /gpt-4o|gpt-4\.1|gpt-4\.5|gpt-5|o4|gemini/i.test(modelId);
 }
 
+/**
+ * @param {number} t0
+ * @param {string} source
+ */
 function usageEntry(app, modelId, usage, t0, source) {
     return {
         user_id: app.userId,
@@ -118,9 +128,13 @@ function usageEntry(app, modelId, usage, t0, source) {
     };
 }
 
+/**
+ * @param {number} t0
+ * @param {string} source
+ */
 function logUsage(app, modelId, usage, t0, source) {
     // Never let billing bookkeeping break a step (matches studioAppsRun).
-    try { usageStore.logUsage(usageEntry(app, modelId, usage, t0, source)).catch(() => {}); } catch (err) { log.debug('ignore', err); }
+    try { usageStore.logUsage(usageEntry(app, modelId, usage, t0, source)).catch((e) => bestEffort('appStudio/aiRuntime:logUsage', e)); } catch (err) { bestEffort('appStudio/aiRuntime:logUsage#2', err); /* ignore */ }
 }
 
 /**
@@ -129,6 +143,7 @@ function logUsage(app, modelId, usage, t0, source) {
  * model supports vision (so extraction can decide text-vs-image). A tier the
  * owner hasn't configured, or 'auto', falls back to a configured tier — never
  * silently to the global default. Throws { status:400 } when no model exists.
+ * @param {string | undefined} tierName
  */
 async function resolveOwnerModel(app, tierName) {
     const { getUserTierMap, getTierConfig, canonicalTierName } = require('../core/llm/modelResolver');
@@ -159,7 +174,7 @@ async function resolveOwnerModel(app, tierName) {
 
     let modelId = tiers[resolved]?.modelId || null;
     if (!modelId) {
-        const globalConfig = await require('../core/aiAgent').getAIConfig().catch(() => null);
+        const globalConfig = await require('../core/aiAgent').getAIConfig().catch((e) => fallback('appStudio/aiRuntime:resolveOwnerModel', e, null));
         modelId = globalConfig?.model || null;
     }
     if (!modelId) {
@@ -300,6 +315,7 @@ function parseNumberish(value) {
 
     const lastDot = digits.lastIndexOf('.');
     const lastComma = digits.lastIndexOf(',');
+    /** @type {string | null} */
     let decimalSep = null;
     if (lastDot >= 0 && lastComma >= 0) {
         decimalSep = lastDot > lastComma ? '.' : ',';
@@ -430,7 +446,7 @@ function toolTables(tools) {
             const s = typeof out === 'string' ? out : JSON.stringify(out);
             return s.length > MAX_TOOL_RESULT_CHARS ? `${s.slice(0, MAX_TOOL_RESULT_CHARS)}…[truncated]` : s;
         } catch (e) {
-            return `Error: ${e?.message || 'tool failed'}`;
+            return `Error: ${/** @type {Error} */ (e)?.message || 'tool failed'}`;
         }
     };
     return { defs, executeTool };
@@ -477,6 +493,7 @@ async function runStructuredWithTools(app, model, { system, user, parameters, to
  * is logged when the final usage arrives.
  */
 async function streamChat(app, model, { system, messages }, onEvent) {
+    /** @type {{ role: string; content: string; }[]} */
     const full = [];
     if (system && String(system).trim()) full.push({ role: 'system', content: String(system).slice(0, MAX_SYSTEM_CHARS) });
     for (const m of (Array.isArray(messages) ? messages : [])) full.push(m);
@@ -522,6 +539,7 @@ async function groundWithKB(app, /** @type {{knowledgeBaseIds?: any, query?: any
     if (!requested.length || !q) return { context: '', chunks: [] };
 
     const viewerId = viewer?.id || null;
+    /** @type {string[]} */
     let kbIds = [];
     if (viewerId) {
         const { filterKbIdsForUser } = require('../core/kb/kbVisibility');
@@ -536,7 +554,7 @@ async function groundWithKB(app, /** @type {{knowledgeBaseIds?: any, query?: any
     if (!kbIds.length) return { context: '', chunks: [] };
 
     const { quickKBSearch } = require('../core/agentRuntime/knowledgeSearch');
-    const chunks = await quickKBSearch(app.userId, kbIds, q, { topK }).catch(() => []);
+    const chunks = await quickKBSearch(app.userId, kbIds, q, { topK }).catch((e) => fallback('appStudio/aiRuntime:groundWithKB', e, []));
     if (!chunks || !chunks.length) return { context: '', chunks: [] };
 
     const context = chunks
@@ -547,6 +565,9 @@ async function groundWithKB(app, /** @type {{knowledgeBaseIds?: any, query?: any
 
 // ── Document extraction (owner attachment ledger → text/vision blocks) ────────
 
+/**
+ * @param {Readable} stream
+ */
 function streamToBuffer(stream) {
     return new Promise((resolve, reject) => {
         const chunks = [];
@@ -740,3 +761,15 @@ module.exports = {
     _loadAttachment: loadAttachment,
     _usageEntry: usageEntry,
 };
+
+/** @typedef {import('stream').Readable} Readable */
+
+/** @typedef {{ id: string, userId: string, organizationId?: string | null, name?: string }} AppRef */
+
+/** @typedef {{ name: string, type: string, description: string, required: boolean }} SchemaField */
+
+/** @typedef {string | object[]} UserContent  plain text, or content blocks */
+
+/** @typedef {{ name: string, type: string, content: string }} LoadedAttachment */
+
+/** @typedef {Awaited<ReturnType<typeof resolveOwnerModel>>} OwnerModel */

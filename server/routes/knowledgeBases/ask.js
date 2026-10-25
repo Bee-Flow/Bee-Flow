@@ -59,6 +59,7 @@ const { z } = require('../../utils/zod');
 // (routes/notebooksGenerate.js records the same lesson).
 const { TIER_DEFAULTS } = require('../../core/llm/modelResolver');
 const { toCitations } = require('../../core/kb/citation');
+const { fallback } = require('../../utils/bestEffort');
 
 /** How many passages to retrieve. Eight is what the artboard's list shows. */
 const ASK_TOP_K = 8;
@@ -77,6 +78,9 @@ const AskBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.
 router.post('/:id/ask', requireAuth, validate({ body: AskBody }), async (req, res, next) => {
     // Null until the stream is open: before that, an error is still a status.
     let sse = null;
+    /**
+     * @param {string} event
+     */
     const send = (event, data) => {
         if (!sse) return;
         sse.send(event, data);
@@ -95,11 +99,12 @@ router.post('/:id/ask', requireAuth, validate({ body: AskBody }), async (req, re
 
         // ── Retrieve ────────────────────────────────────────────────
         const { quickKBSearch } = require('../../core/agentRuntime/knowledgeSearch');
+        /** @type {{ title: string; content: string; score: number; }[]} */
         let chunks = [];
         try {
             chunks = await quickKBSearch(userId, [kb.id], question, { topK: ASK_TOP_K, session: req.session }) || [];
         } catch (e) {
-            log.warn('[KB/ask] search failed:', e.message);
+            log.warn('[KB/ask] search failed:', /** @type {Error} */ (e).message);
             throw new HttpError(502, 'kb_search_failed', 'Could not search this knowledge base right now.');
         }
 
@@ -110,7 +115,7 @@ router.post('/:id/ask', requireAuth, validate({ body: AskBody }), async (req, re
         try {
             const rows = await require('../../stores/kbSources').listByKb(kb.id);
             sourcesById = new Map((rows || []).map(s => [s.id, s]));
-        } catch (err) { log.debug('no kb_sources on this install', err); }
+        } catch (err) { fallback('routes/knowledgeBases/ask:anon', err); /* no kb_sources on this install */ }
 
         const citations = toCitations(chunks, { kind: 'kb_chunk' }).map(c => ({
             ...c,
@@ -181,11 +186,11 @@ ${fenced}`;
         send('done', {});
         res.end();
     } catch (e) {
-        log.error('[KB/ask] error:', e.message);
+        log.error('[KB/ask] error:', /** @type {Error} */ (e).message);
         if (sse) {
             // The headers are out; a 500 is no longer available, so the error
             // has to travel as an event or the client waits for ever.
-            send('error', { error: e.message });
+            send('error', { error: /** @type {Error} */ (e).message });
             res.end();
         } else {
             next(e);

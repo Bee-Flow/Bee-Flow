@@ -42,7 +42,7 @@
 
 const configStore = require('../../stores/configStore');
 const { NC_INTEGRATIONS, NC_INTEGRATION_ID_SET } = require('./ncIntegrationCatalog');
-const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const MODES = new Set(['all', 'selected', 'off']);
 const MAX_SELECTED = 200;
@@ -265,7 +265,7 @@ async function _audit({ userId, orgId, updatedBy: _updatedBy, summary, scope = '
             action_taken: summary.slice(0, 1000),
             source: 'nc_scope',
         });
-    } catch (err) { log.debug('audit is best-effort — never block the setting change', err); }
+    } catch (err) { bestEffort('core/integrations/ncScope:_audit', err); /* audit is best-effort — never block the setting change */ }
 }
 
 /**
@@ -339,3 +339,8 @@ module.exports = {
     _userKey: userKey,
     _orgKey: orgKey,
 };
+
+/**
+ * @typedef {{ mode: string, selected?: string[] }} ScopeEntry  one integration's stored scope
+ * @typedef {Record<string, ScopeEntry>} ScopeMap  integration id → its scope
+ */

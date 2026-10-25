@@ -9,6 +9,7 @@
 
 const studioAppDataStore = require('../../stores/studioAppDataStore');
 const { buildServerScope, resolveBinding, coerceRecordId, writeViewer } = require('./shared');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── generate_file ───────────────────────────────────────────────────
 
@@ -186,7 +187,7 @@ async function generateFileStep(app, model, step, ctx) {
     const { scanBuffer } = require('../../middleware/uploadGuard');
     const verdict = await scanBuffer(buffer);
     if (!verdict.clean) {
-        await storageStore.deleteFile(key).catch(() => {});
+        await storageStore.deleteFile(key).catch((e) => bestEffort('appStudio/actionExecutor/fileStep:generateFileStep', e));
         return { ok: false, error: 'The generated file failed a malware scan and was discarded' };
     }
 
@@ -208,7 +209,7 @@ async function generateFileStep(app, model, step, ctx) {
     } catch (e) {
         // Never orphan a blob behind a failed ledger write — same healing the
         // mailbox redemption does.
-        await storageStore.deleteFile(key).catch(() => {});
+        await storageStore.deleteFile(key).catch((e) => bestEffort('appStudio/actionExecutor/fileStep:generateFileStep#2', e));
         throw e;
     }
 

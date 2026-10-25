@@ -1,4 +1,3 @@
-// @typecheck
 'use strict';
 /**
  * Which organisation a project belongs to, and who belongs to it.
@@ -30,7 +29,7 @@ async function projectOrgOf(project) {
         const scope = await orgScope({ session: { user: { id: project.ownerId } } });
         return scope.homeOrgId || scope.orgId || '';
     } catch (err) {
-        log.warn('[Projects] owner organisation unavailable:', err.message);
+        log.warn('[Projects] owner organisation unavailable:', /** @type {Error} */ (err).message);
         return '';
     }
 }

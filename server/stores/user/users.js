@@ -9,6 +9,7 @@ const log = require('../../telemetry/log');
 const { eraseSuggestionTraces, stagesRunBy, assertNotStageRunAs, eraseCmsUploadTickets, deleteUser } = require('./usersDelete');
 const { sanitizeUserNames, isNewCredential, createUser, SeatCapExceededError, createUserWithSeatCheck } = require('./usersCreate');
 const { setSeatSync } = require('./seatSyncPort');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // Stripe seat sync for usersCreate.js / usersDelete.js (they must not require the
 // billing services: see seatSyncPort.js). Required lazily, as before.
@@ -108,6 +109,7 @@ async function getUserAvatarsByIds(ids) {
  *
  * Inactive accounts are left out: assigning work to someone who has left is a
  * bug you find out about weeks later.
+ * @param {number} [limit]
  */
 async function getOrgMembersForDirectory(organizationId, limit = 500) {
     if (!organizationId) return [];
@@ -212,6 +214,9 @@ async function getUserByNcUid(organizationId, ncUid) {
 // while the account runs or owns a stage; an org admin can detach or remove
 // the stages first.
 
+/**
+ * @param {string} userId
+ */
 async function updateUser(userId, updates) {
     await initDB();
     const existing = await getOne('SELECT * FROM users WHERE id = $1', [userId]);
@@ -305,7 +310,7 @@ async function updateUser(userId, updates) {
                     try {
                         const { syncSeatQuantityForOrg } = require('../../services/stripeService');
                         await syncSeatQuantityForOrg(existing.organizationId);
-                    } catch (err) { log.debug('best-effort', err); }
+                    } catch (err) { bestEffort('stores/user/users:updateUser', err); /* best-effort */ }
                 });
             }
         }

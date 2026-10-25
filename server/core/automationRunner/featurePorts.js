@@ -45,7 +45,10 @@ function registerRunnerPorts(map) {
     }
 }
 
-/** The port, or a thrown Error naming what was not loaded. */
+/**
+ * The port, or a thrown Error naming what was not loaded.
+ * @param {string} name
+ */
 function runnerPort(name) {
     const port = ports.get(name);
     if (!port) {

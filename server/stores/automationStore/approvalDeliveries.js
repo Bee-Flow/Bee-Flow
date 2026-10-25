@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * approvalDeliveries.js — the ledger of approval cards sent OUT of the app.
  *
@@ -27,6 +27,22 @@ const { fromJsonb } = require('./rowMappers');
 /** Channels this ledger knows. Mirrors notificationDefaults.VALID_CHANNELS. */
 const DELIVERY_CHANNELS = Object.freeze(['nc_talk', 'nc_notification']);
 
+/**
+ * @typedef {object} DeliveryRow
+ * @property {string} id
+ * @property {string} approval_id
+ * @property {string | null} [stage]
+ * @property {string} channel
+ * @property {string | null} [organization_id]
+ * @property {unknown} external_ref
+ * @property {string | null} [user_id]
+ * @property {string | null} [nc_uid]
+ * @property {string | null} [status]
+ * @property {string | null} [error]
+ * @property {string | Date} created_at
+ */
+
+/** @param {DeliveryRow | null} r */
 function rowToDelivery(r) {
     if (!r) return null;
     return {
@@ -91,6 +107,8 @@ async function recordApprovalDelivery({
  * THE inbound routing lookup: which approval does this Talk message belong to?
  * Both halves of the key come from the reaction webhook, and both are matched
  * exactly — a reaction on any other message resolves to null.
+ * @param {string} roomToken
+ * @param {string | number} messageId
  */
 async function getApprovalDeliveryForTalkMessage(roomToken, messageId) {
     if (!roomToken || messageId == null || messageId === '') return null;
@@ -112,6 +130,7 @@ async function getApprovalDeliveryForTalkMessage(roomToken, messageId) {
  * POLLING fallback (Nextcloud 24–30, where a bot gets no reaction webhooks) —
  * bounded by "still waiting for a decision", so it shrinks to nothing the
  * moment the queue is empty rather than growing with history.
+ * @param {number} [limit]
  */
 async function getPendingTalkDeliveries(limit = 200) {
     const rows = await getAll(
@@ -128,7 +147,10 @@ async function getPendingTalkDeliveries(limit = 200) {
     return rows.map(rowToDelivery);
 }
 
-/** Everything sent for one approval, oldest first — the audit/support view. */
+/**
+ * Everything sent for one approval, oldest first — the audit/support view.
+ * @param {string} approvalId
+ */
 async function getApprovalDeliveries(approvalId) {
     if (!approvalId) return [];
     const rows = await getAll(

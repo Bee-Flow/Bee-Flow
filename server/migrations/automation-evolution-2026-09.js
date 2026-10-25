@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: routine evolution proposals (2026-09).
  *

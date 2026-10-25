@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * A form's answers (managed_kind = 'form_answers').
  *
@@ -22,6 +22,8 @@ const { z } = require('../../utils/zod');
 const { worded, bodyOf, ConfirmBreakingQuery } = require('./schemas');
 const log = require('../../telemetry/log');
 
+/** @typedef {import('./grade').DatatableRequest} DatatableRequest */
+
 // ── What the dashboard may ask for ──────────────────────────────────
 //
 // A calendar day, `YYYY-MM-DD`, and strictly so. summary.resolveRange tests
@@ -38,12 +40,13 @@ const SummaryQuery = z.object({ from: day(), to: day() }).strict();
 const NOTHING = bodyOf({});
 const NO_QUERY = z.object({}).strict();
 
+/** @param {DatatableRequest} req @param {import('express').Response} res @param {import('express').NextFunction} next */
 function requireAnswersTable(req, res, next) {
     if (!isDefinitionManagedKind(req.datatable.managedKind)) return res.status(404).json({ error: 'Not found' });
     next();
 }
 
-/** The automation behind an answers table, as the dashboard names it. */
+/** The automation behind an answers table, as the dashboard names it. @param {DatatableRequest} req */
 async function formOf(req) {
     const automationId = req.datatable.source?.automationId || null;
     if (!automationId) return null;
@@ -70,15 +73,16 @@ async function formOf(req) {
     }
 }
 
+/** @param {import('express').Router} router */
 function register(router) {
     router.get('/:id/answers/summary', requireDatatableGrade('viewer'), requireAnswersTable,
-        validate({ query: SummaryQuery }), async (req, res) => {
+        validate({ query: SummaryQuery }), async (/** @type {DatatableRequest} */ req, /** @type {import('express').Response} */ res) => {
         try {
             const { meta, filter } = await metaAndFilter(req, 'read');
             const formAnswers = require('../../automation/formAnswers');
             const summary = await formAnswers.summary.answersSummary({
                 table: req.datatable, meta, filter, scopeKey: req.datatableScopeKey,
-                range: { from: req.query.from, to: req.query.to },
+                range: { from: /** @type {string} */ (req.query.from), to: /** @type {string} */ (req.query.to) },
                 lookupUsers: (ids) => require('../../stores/userStore').getUserAvatarsByIds(ids),
             });
             const form = await formOf(req);
@@ -101,7 +105,7 @@ function register(router) {
      * restate the shape and would have to be kept in step with the compiler's
      * vocabulary in two places.
      */
-    router.post('/:id/aggregate', requireDatatableGrade('viewer'), async (req, res) => {
+    router.post('/:id/aggregate', requireDatatableGrade('viewer'), async (/** @type {DatatableRequest} */ req, /** @type {import('express').Response} */ res) => {
         try {
             const { meta, filter } = await metaAndFilter(req, 'read');
             const formAnswers = require('../../automation/formAnswers');
@@ -122,7 +126,7 @@ function register(router) {
         requireManageForOrgScope(),
         requireAnswersTable,
         validate({ query: ConfirmBreakingQuery }),
-        async (req, res) => {
+        async (/** @type {DatatableRequest} */ req, /** @type {import('express').Response} */ res) => {
             try {
                 const entry = req.datatable.source?.columnMap?.[req.params.fieldId];
                 if (!entry) return res.status(404).json({ error: 'No such column', code: 'unknown_field' });
@@ -134,7 +138,7 @@ function register(router) {
                 }
                 const meta = await datatableStore.getTableMeta(req.datatableScope, req.datatable.id);
                 const stored = (meta && meta.fields) || [];
-                const next = stored.filter(f => f.id !== req.params.fieldId);
+                const next = stored.filter((/** @type {{ id: string }} */ f) => f.id !== req.params.fieldId);
                 const breaking = await breakingColumnUsage(req.datatable.id, stored, next);
                 if (breaking.length && !confirmedBreaking(req)) {
                     return res.status(409).json({ error: 'Automations still use the column you are removing', code: 'breaking_change', breaking });
@@ -153,7 +157,7 @@ function register(router) {
         requireManageForOrgScope(),
         requireAnswersTable,
         validate({ body: NOTHING, query: NO_QUERY }),
-        async (req, res) => {
+        async (/** @type {DatatableRequest} */ req, /** @type {import('express').Response} */ res) => {
             try {
                 if (req.datatable.source?.linked !== false) {
                     return res.status(409).json({

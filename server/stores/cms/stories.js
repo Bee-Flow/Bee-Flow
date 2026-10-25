@@ -49,7 +49,10 @@ function str(v, max) {
     return typeof v === 'string' ? v.replace(/[\u0000-\u001F\u007F]/g, ' ').trim().slice(0, max) : '';
 }
 
-/** The URL form of a sector: lowercase ASCII letters, digits and single dashes. */
+/**
+ * The URL form of a sector: lowercase ASCII letters, digits and single dashes.
+ * @param {string} raw
+ */
 function sectorSlug(raw) {
     return String(raw || '')
         .normalize('NFKD')
@@ -202,7 +205,7 @@ async function fillCustomerStories(siteId, page, locale) {
             block.content = { ...c, items: stories.map((s) => ({ ...s, cta: { label: s.title || s.customer, href: s.href } })) };
         }
     } catch (err) {
-        log.warn('[CMS] customer stories could not be inlined:', err instanceof Error ? err.message : String(err));
+        log.warn('[CMS] customer stories could not be inlined:', err instanceof Error ? /** @type {Error} */ (err).message : String(err));
     }
 }
 

@@ -28,6 +28,7 @@ const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const pd = require('../../compliance/projects/projectData');
 const { hasSpecialKinds } = require('../../compliance/projects/personalDataSignals');
+const { fallback } = require('../../utils/bestEffort');
 
 const LAWFUL_BASES = Object.freeze(['consent', 'contract', 'legal_obligation', 'vital_interests', 'public_task', 'legitimate_interests']);
 const LIST_LIMIT = 500;
@@ -57,7 +58,7 @@ function _defaults() {
         resolveOrgId: (req) => require('./shared').resolveOrgId(req),
         rerun: (orgId, projectId) => require('../../compliance/runner')
             .runOne(orgId, 'GDPR-Art30-project-personal-data', { runType: 'event', subjectId: `project:${projectId}` })
-            .catch(() => { /* a framework switched off, or the project lost its signal: nothing to re-judge */ }),
+            .catch((e) => fallback('routes/compliance/projectRegistrations:rerun', e)),
     };
 }
 

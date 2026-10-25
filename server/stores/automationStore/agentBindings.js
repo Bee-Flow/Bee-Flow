@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * automation_agent_bindings: which agents may call an `agent_call` automation.
  * The table comes from migrations/automation-agent-bindings-2026-10.js; who may
@@ -13,6 +13,16 @@
 const crypto = require('crypto');
 const { AUTOMATION_SELECT } = require('./lifecycle');
 
+/**
+ * @typedef {object} BindingRow
+ * @property {string} id
+ * @property {string} automation_id
+ * @property {string} agent_id
+ * @property {string | null} [created_by]
+ * @property {string | Date | null} created_at
+ */
+
+/** @param {BindingRow | null} r */
 function rowToBinding(r) {
     if (!r) return null;
     return {
@@ -34,7 +44,10 @@ function rowToBinding(r) {
 function makeAgentBindingsStore(db, { ready = async () => {} } = {}) {
     const { rowToAutomation } = require('./rowMappers');
 
-    /** Every binding of one automation, oldest first. */
+    /**
+     * Every binding of one automation, oldest first.
+     * @param {string} automationId
+     */
     async function listBindingsForAutomation(automationId) {
         await ready();
         const r = await db.query(
@@ -49,6 +62,7 @@ function makeAgentBindingsStore(db, { ready = async () => {} } = {}) {
      * runner executes). Trashed automations and Steps/flowlets are left out; whether
      * a row is ACTIVE and still an agent trigger is for the caller to read off
      * the mapped row, so a dispatch can say which of the two it was.
+     * @param {string} agentId
      */
     async function listAutomationsBoundToAgent(agentId) {
         await ready();
@@ -65,7 +79,11 @@ function makeAgentBindingsStore(db, { ready = async () => {} } = {}) {
         return r.rows.map((row) => rowToAutomation(row));
     }
 
-    /** Is this agent bound to this automation right now? */
+    /**
+     * Is this agent bound to this automation right now?
+     * @param {string} automationId
+     * @param {string} agentId
+     */
     async function hasAgentBinding(automationId, agentId) {
         await ready();
         if (!automationId || !agentId) return false;
@@ -110,7 +128,10 @@ function makeAgentBindingsStore(db, { ready = async () => {} } = {}) {
         return listBindingsForAutomation(automationId);
     }
 
-    /** Drop every binding that names this agent (it was deleted). Answers how many. */
+    /**
+     * Drop every binding that names this agent (it was deleted). Answers how many.
+     * @param {string} agentId
+     */
     async function deleteBindingsForAgent(agentId) {
         await ready();
         if (!agentId) return 0;

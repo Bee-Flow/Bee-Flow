@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Small helpers the pattern sources share: time parsing, abort checks, the

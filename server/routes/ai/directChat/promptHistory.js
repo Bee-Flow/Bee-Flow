@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Direct Chat prompt assembly: the conversation history. Which history the
  * turn replays (the client's, with the persisted attachment sidecars grafted
@@ -7,6 +7,7 @@
  * behaviour unchanged.
  */
 
+/** @typedef {import('../../../core/conversation/historyMerge').HistoryMessage} HistoryMessage */
 const agentStore = require('../../../stores/agentStore');
 const { encryptionOpts } = require('./shared');
 const log = require('../../../telemetry/log');
@@ -20,6 +21,7 @@ const log = require('../../../telemetry/log');
  *     to the persisted message rows. This eliminates the class of bugs where
  *     the client's in-memory history drifts from the durable record (e.g.
  *     tool messages stripped, page reload).
+ * @param {{ req: import('express').Request, userId: string, conversationId?: string | null, history?: HistoryMessage[] }} params
  */
 async function resolveHistory({ req, userId, conversationId, history }) {
     let resolvedHistory = Array.isArray(history) ? history : null;
@@ -41,7 +43,7 @@ async function resolveHistory({ req, userId, conversationId, history }) {
                 resolvedHistory = mergeAttachmentSidecars(resolvedHistory, persisted.messages);
             }
         } catch (mergeErr) {
-            log.warn('[DirectChat] Attachment sidecar merge failed:', mergeErr.message);
+            log.warn('[DirectChat] Attachment sidecar merge failed:', /** @type {Error} */ (mergeErr).message);
         }
     }
     if ((!resolvedHistory || resolvedHistory.length === 0) && conversationId) {
@@ -55,7 +57,7 @@ async function resolveHistory({ req, userId, conversationId, history }) {
                 log.info(`[DirectChat] No client history — loaded ${resolvedHistory.length} persisted messages from DB`);
             }
         } catch (loadErr) {
-            log.warn('[DirectChat] Failed to load persisted history:', loadErr.message);
+            log.warn('[DirectChat] Failed to load persisted history:', /** @type {Error} */ (loadErr).message);
         }
     }
     return { resolvedHistory, clientHistoryProvided };
@@ -66,11 +68,15 @@ async function resolveHistory({ req, userId, conversationId, history }) {
  * the hydrator can rebuild multimodal content (images stay visible across
  * turns). Stripping sidecar fields here is what used to make the AI "lose"
  * uploaded images one turn after the upload.
+ * @param {HistoryMessage[]} messages
+ * @param {HistoryMessage[] | null} resolvedHistory
+ * @param {string} userId
  */
 async function appendHistory(messages, resolvedHistory, userId) {
     if (!(resolvedHistory && resolvedHistory.length > 0)) return;
     for (const msg of resolvedHistory) {
         if (msg.role === 'user' || msg.role === 'assistant') {
+            /** @type {HistoryMessage} */
             const entry = { role: msg.role, content: msg.content };
             if (Array.isArray(msg.attachments) && msg.attachments.length > 0) {
                 entry.attachments = msg.attachments;
@@ -82,7 +88,7 @@ async function appendHistory(messages, resolvedHistory, userId) {
         const { hydrateHistoryAttachments } = require('../../../core/agentRuntime/historyHydrator');
         await hydrateHistoryAttachments(messages, { userId, skipLast: false });
     } catch (hydrateErr) {
-        log.warn('[DirectChat] History hydration failed:', hydrateErr.message);
+        log.warn('[DirectChat] History hydration failed:', /** @type {Error} */ (hydrateErr).message);
     }
 }
 

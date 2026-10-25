@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The two timers of a periodic job: one pass `bootDelayMs` after start (a
  * short-lived replica may never see its first interval, and a pod that just
@@ -17,6 +17,8 @@
 
 'use strict';
 
+const { bestEffort } = require('../../utils/bestEffort');
+
 /**
  * @param {{ bootDelayMs: number, intervalMs: number, run: (when: 'initial'|'scheduled') => unknown }} opts
  * @returns {{ start: () => boolean, stop: () => void }}
@@ -27,7 +29,7 @@ function periodicTimer({ bootDelayMs, intervalMs, run }) {
     /** @type {ReturnType<typeof setInterval>|null} */
     let interval = null;
     /** @param {'initial'|'scheduled'} when */
-    const tick = (when) => { Promise.resolve().then(() => run(when)).catch(() => {}); };
+    const tick = (when) => { Promise.resolve().then(() => run(when)).catch((e) => bestEffort('jobs/lib/periodicTimer:tick', e)); };
     return {
         start() {
             if (interval) return false;

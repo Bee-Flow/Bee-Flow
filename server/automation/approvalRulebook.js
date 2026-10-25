@@ -22,6 +22,7 @@ function isRunless(approval) {
  * decides it, in any shape (single, panel, stage chain). A row without a
  * recorded requester falls back to its owner (the Solution owner, who is the
  * requester in v1), so a missing column fails closed.
+ * @param {string} userId
  */
 function isOwnDeploymentRequest(approval, userId) {
     if (!userId) return false;
@@ -187,7 +188,10 @@ function voteSummary(v) {
  * its own state (done / current / waiting / skipped) — because "where is this
  * and who is it on" is the question the surface exists to answer.
  */
-/** Approvals a rule needs over `seats` votable seats (the evaluatePanel arithmetic). */
+/**
+ * Approvals a rule needs over `seats` votable seats (the evaluatePanel arithmetic).
+ * @param {number} seats
+ */
 function neededVotes(rule, quorum, seats) {
     if (rule === 'quorum') return Math.min(Math.max(Number(quorum) || 1, 1), seats);
     return rule === 'first' ? 1 : seats;
@@ -210,6 +214,7 @@ function panelProgress(approval, votes) {
                 const approvals = stageVotes.filter(v => v.decision === 'approve').length;
                 const seatCount = (st.approvers || []).length;
                 const idx = order.indexOf(st.key);
+                /** @type {string} */
                 let state;
                 if (st.skipped) state = 'skipped';
                 else if (terminal) state = stageVotes.length ? 'done' : 'never_reached';
@@ -318,3 +323,64 @@ module.exports = {
     hasStages, currentStage, isSeatedInStage, isChainParticipant, evaluateStage, seatIndexFor,
     evaluatePanel, mergeVoteAnswers, voteSummary, neededVotes, panelProgress, canDecide, canView,
 };
+
+/** @typedef {{ userId?: string|null, groupId?: string|null }} ApprovalSeat  one seat of a panel or stage */
+
+/**
+ * @typedef {import('../core/automationModel/approvalStages').ApprovalStage & { remindAfterHours?: number }} ApprovalStage
+ *   one stage of a chain: the stored shape is always cleanStages' output
+ *   (key, name, description, approvers, rule, quorum, skipped)
+ */
+
+/**
+ * @typedef {object} ApprovalViewer  who is asking
+ * @property {string} [userId]
+ * @property {string[]} [groupIds]
+ * @property {(orgId: string) => boolean} [isOrgAdminOfOrg]
+ */
+
+/**
+ * @typedef {object} ApprovalVote  one cast vote, as the store maps it (rowToVote)
+ * @property {string} [id]
+ * @property {string} [approvalId]
+ * @property {string} [stage]
+ * @property {number|null} [seatIndex]
+ * @property {string} [voterId]
+ * @property {string|null} [voterName]
+ * @property {string} [decision]
+ * @property {string|null} [reason]
+ * @property {unknown} [answers]
+ * @property {string|Date} [createdAt]
+ */
+
+/**
+ * @typedef {object} ApprovalLike  the parts of an approval row this rulebook reads
+ * @property {string|null} [source]
+ * @property {string|null} [requestedBy]
+ * @property {string|null} [ownerId]
+ * @property {string|null} [organizationId]
+ * @property {string|null} [status]
+ * @property {string|null} [stage]
+ * @property {ApprovalSeat[]|null} [approvers]
+ * @property {ApprovalStage[]|null} [stages]
+ * @property {string|null} [approvalRule]
+ * @property {number|null} [quorumCount]
+ * @property {string|null} [finalApproverUserId]
+ * @property {string|null} [finalApproverGroupId]
+ * @property {string|null} [assigneeUserId]
+ * @property {string|null} [assigneeGroupId]
+ * @property {string|Date|null} [escalatedAt]
+ * @property {string|null} [escalateToUserId]
+ * @property {string|null} [escalateToGroupId]
+ */
+
+/**
+/** @typedef {{ set?: Record<string, Record<string, unknown>>, tableId?: string, recordId?: string }} OnDecidedHook  an app's on_decided hook */
+
+/**
+ * @typedef {Omit<NonNullable<ReturnType<typeof import('../stores/automationStore/approvals')._approvalsTest.rowToApproval>>,
+ *   'approvers'|'stages'|'answers'|'context'|'onDecided'> & {
+ *   approvers: ApprovalSeat[]|null, stages: ApprovalStage[]|null,
+ *   answers: Record<string, unknown>|null, context: Record<string, unknown>|null, onDecided: OnDecidedHook|null }} Approval
+ *   an approval as the store hands it over (rowToApproval), its jsonb columns typed
+ */

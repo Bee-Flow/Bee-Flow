@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * stores/memoryPrompt.js — the <memories> block of the system prompt; pure, no
  * database. Split out of stores/memoryStore.js.
@@ -9,6 +9,9 @@
 // of its own inside the prompt.
 // Angle brackets become typographic ones, so a note cannot write a tag (such as
 // the one that closes this block).
+/**
+ * @param {unknown} value
+ */
 function oneLine(value) {
     return String(value ?? '')
         .replace(/[\u0000-\u001f\u007f\u2028\u2029]+/g, ' ')
@@ -16,6 +19,10 @@ function oneLine(value) {
         .replace(/ {2,}/g, ' ').trim();
 }
 
+/**
+ * @param {Array<{ type: string, content?: unknown, subject?: unknown, attribute?: unknown, value?: unknown }> | null | undefined} memories
+ * @param {{ searchToolAvailable?: boolean }} [opts]
+ */
 function formatMemoriesForPrompt(memories, { searchToolAvailable = false } = {}) {
     if (!memories || memories.length === 0) return '';
 

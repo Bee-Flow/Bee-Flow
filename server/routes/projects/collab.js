@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Real-time co-editing routes — the HTTP half of the Yjs sync protocol. The
  * other half (server → client) rides on the project stream
@@ -48,12 +48,12 @@ const S = require('./collabSchemas');
 
 /**
  * @param {object} [deps]
- * @param {Function} [deps.requireProjectRole]  (minRole) => middleware named requireProjectRoleMw
+ * @param {(minRole: string) => import('express').RequestHandler} [deps.requireProjectRole]  (minRole) => middleware named requireProjectRoleMw
  * @param {any}   [deps.collab]              core/collab instance (openDoc, sync, applyClientUpdates, awareness)
- * @param {Function} [deps.openLimiter]
- * @param {Function} [deps.syncLimiter]
- * @param {Function} [deps.updatesLimiter]
- * @param {Function} [deps.awarenessLimiter]
+ * @param {import('express').RequestHandler} [deps.openLimiter]
+ * @param {import('express').RequestHandler} [deps.syncLimiter]
+ * @param {import('express').RequestHandler} [deps.updatesLimiter]
+ * @param {import('express').RequestHandler} [deps.awarenessLimiter]
  * @param {number}   [deps.maxBodyBytes]
  * @param {(req: any, res: any, next: (err?: unknown) => void) => unknown} [deps.requireNotebooks]
  *        the notebooks gates (notebookGate.makeNotebookGate())
@@ -66,8 +66,8 @@ function makeCollabRouter(deps = {}) {
     const collab = () => deps.collab || require('../../core/collab').instance();
     const maxBodyBytes = deps.maxBodyBytes || require('../../core/collab/limits').defaultLimits().maxBodyBytes;
 
-    const limiter = (opts) => require('../../utils/perUserRateLimit').perUserRateLimit(opts);
-    const perDoc = (req) => `${req.session?.user?.id || req.ip}:${req.params?.docId || req.params?.id || ''}`;
+    const limiter = (/** @type {Parameters<typeof import('../../utils/perUserRateLimit').perUserRateLimit>[0]} */ opts) => require('../../utils/perUserRateLimit').perUserRateLimit(opts);
+    const perDoc = (/** @type {import('express').Request} */ req) => `${req.session?.user?.id || req.ip}:${req.params?.docId || req.params?.id || ''}`;
     // Named, so the ceilings hold across replicas. A typing session sends a
     // batch every few hundred milliseconds; these leave room for that and a
     // second tab, and stop a runaway loop.
@@ -76,11 +76,11 @@ function makeCollabRouter(deps = {}) {
     const updatesLimiter = deps.updatesLimiter || limiter({
         windowMs: 10_000, max: 100, name: 'collab-updates', keyFn: perDoc,
         // Charged per update in the batch, not per request.
-        costFn: (req) => (Array.isArray(req.body?.updates) ? req.body.updates.length : 1),
+        costFn: (/** @type {import('express').Request} */ req) => (Array.isArray(req.body?.updates) ? req.body.updates.length : 1),
     });
     const awarenessLimiter = deps.awarenessLimiter || limiter({ windowMs: 10_000, max: 60, name: 'collab-awareness', keyFn: perDoc });
 
-    const userIdOf = (req) => req.session?.user?.id;
+    const userIdOf = (/** @type {import('express').Request} */ req) => req.session?.user?.id;
 
     // The notebooks gates, bound on first use; they run only for a notebook.
     const { makeNotebookGate, makeNotebookKindGate } = require('./notebookGate');
@@ -96,12 +96,18 @@ function makeCollabRouter(deps = {}) {
      * A 413 with its code, answered here: the terminal handler words every
      * 413 as a generic "body too large", and the client needs to tell
      * UPDATE_TOO_LARGE (split the batch) from DOC_TOO_LARGE (stop typing).
+     * @param {import('express').Response} res
+     * @param {InstanceType<typeof HttpError>} err
      */
     function tooLarge(res, err) {
         return res.status(413).json({ error: err.message, code: err.code });
     }
 
-    /** Run a handler; a coded 413 is answered directly, anything else goes on. */
+    /**
+     * Run a handler; a coded 413 is answered directly, anything else goes on.
+     * @param {(req: import('express').Request<{ id: string, docId: string }>, res: import('express').Response) => Promise<void>} fn
+     * @returns {import('express').RequestHandler<{ id: string, docId: string }>}
+     */
     const handle = (fn) => async (req, res, next) => {
         try {
             await fn(req, res);
@@ -111,7 +117,12 @@ function makeCollabRouter(deps = {}) {
         }
     };
 
-    /** Refuse a body that is too large before anything reads it further. */
+    /**
+     * Refuse a body that is too large before anything reads it further.
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
+     * @param {import('express').NextFunction} next
+     */
     function collabBodyGuard(req, res, next) {
         const len = Number(req.get('content-length') || 0);
         if (Number.isFinite(len) && len > maxBodyBytes) {

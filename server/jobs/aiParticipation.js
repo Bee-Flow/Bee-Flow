@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The background half of the AI that decides by itself when to take part:
  * every TICK_MS it claims the watches that came due (projects/participation)
@@ -29,6 +29,7 @@
 
 const crypto = require('crypto');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const TICK_MS = 5_000;
 const BOOT_DELAY_MS = 20_000;
@@ -52,17 +53,22 @@ function makeParticipationJob(deps = {}) {
     const concurrency = Number.isInteger(deps.concurrency) && deps.concurrency > 0 ? deps.concurrency : CONCURRENCY;
     const now = deps.now || (() => Date.now());
     const newId = deps.newId || (() => crypto.randomUUID());
-    const recordJobRun = deps.recordJobRun || ((run) => require('../telemetry/metrics').recordJobRun(run));
+    const recordJobRun = deps.recordJobRun || ((/** @type {Parameters<typeof import('../telemetry/metrics').recordJobRun>[0]} */ run) => require('../telemetry/metrics').recordJobRun(run));
 
     let inFlight = 0;
     let ticking = false;
     let lastPrune = -Infinity;
     /** @type {Set<Promise<void>>} */
     const running = new Set();
+    /** @type {NodeJS.Timeout | null} */
     let timer = null;
+    /** @type {NodeJS.Timeout | null} */
     let bootTimer = null;
 
-    /** One watch, to its end; the claim is always closed. */
+    /**
+     * One watch, to its end; the claim is always closed.
+     * @param {ReturnType<typeof import('../stores/projectAiParticipationStore').rowToWatch>} watch
+     */
     function launch(watch) {
         inFlight += 1;
         const started = now();
@@ -73,15 +79,15 @@ function makeParticipationJob(deps = {}) {
                 if (outcome && outcome.skipReason === 'error') status = 'error';
             } catch (err) {
                 status = 'error';
-                log.warn(`[AiParticipation] watch ${watch.id} crashed: ${err && err.message}`);
+                log.warn(`[AiParticipation] watch ${watch.id} crashed: ${err && /** @type {Error} */ (err).message}`);
             } finally {
                 try {
                     await store().finishWatch(watch.id, watch.claimId, 'done');
                 } catch (err) {
-                    log.warn(`[AiParticipation] watch ${watch.id} not closed; the reaper will: ${err && err.message}`);
+                    log.warn(`[AiParticipation] watch ${watch.id} not closed; the reaper will: ${err && /** @type {Error} */ (err).message}`);
                 }
                 inFlight -= 1;
-                try { recordJobRun({ job: 'ai_participation', status, durationMs: now() - started }); } catch (err) { log.debug('metrics are optional', err); }
+                try { recordJobRun({ job: 'ai_participation', status, durationMs: now() - started }); } catch (err) { bestEffort('jobs/aiParticipation:launch', err); /* metrics are optional */ }
             }
         })();
         running.add(work);
@@ -106,7 +112,7 @@ function makeParticipationJob(deps = {}) {
                         log.info(`[AiParticipation] pruned ${pruned.decisions} decision(s), ${pruned.watches} watch(es), ${pruned.feedback} feedback row(s)`);
                     }
                 } catch (err) {
-                    log.warn(`[AiParticipation] prune failed: ${err && err.message}`);
+                    log.warn(`[AiParticipation] prune failed: ${err && /** @type {Error} */ (err).message}`);
                 }
             }
             const eng = engine();
@@ -117,7 +123,7 @@ function makeParticipationJob(deps = {}) {
             for (const watch of due) launch(watch);
             return { claimed: due.length, reaped };
         } catch (err) {
-            log.warn(`[AiParticipation] tick failed: ${err && err.message}`);
+            log.warn(`[AiParticipation] tick failed: ${err && /** @type {Error} */ (err).message}`);
             return { claimed: 0, error: true };
         } finally {
             ticking = false;
@@ -140,9 +146,9 @@ function makeParticipationJob(deps = {}) {
             ? deps.gate(tick)
             : require('../modules').moduleGatedTick('projects', tick, 'aiParticipation');
         log.info(`[AiParticipation] started: every ${TICK_MS / 1000}s, up to ${concurrency} at a time`);
-        timer = setInterval(() => { Promise.resolve(gated()).catch(() => {}); }, TICK_MS);
+        timer = setInterval(() => { Promise.resolve(gated()).catch((e) => bestEffort('jobs/aiParticipation:start', e)); }, TICK_MS);
         timer.unref?.();
-        bootTimer = setTimeout(() => { Promise.resolve(gated()).catch(() => {}); }, BOOT_DELAY_MS);
+        bootTimer = setTimeout(() => { Promise.resolve(gated()).catch((e) => bestEffort('jobs/aiParticipation:start#2', e)); }, BOOT_DELAY_MS);
         bootTimer.unref?.();
     }
 
@@ -156,6 +162,7 @@ function makeParticipationJob(deps = {}) {
     return { tick, drain, start, stop, inFlight: () => inFlight };
 }
 
+/** @type {ReturnType<typeof makeParticipationJob> | null} */
 let shared = null;
 function defaultJob() {
     if (!shared) shared = makeParticipationJob();

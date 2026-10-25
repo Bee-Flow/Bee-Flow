@@ -343,3 +343,8 @@ module.exports = {
     sendDsrExtensionEmail,
     sendDsrResultEmail,
 };
+
+/**
+ * @typedef {{ subject?: string, title?: string, intro?: string, body?: string, ctaLabel?: string, footer?: string }} EmailTemplateFields
+ * @typedef {{ verifyUrl?: string, loginUrl?: string, cta?: string, [k: string]: unknown }} EmailVars
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * EU AI Act Art. 13 — Transparency / information to users.
  * Ensures each published agent has a meaningful description so users can
@@ -13,12 +13,12 @@
 
 const { getAll } = require('../../../db');
 const pd = require('../../projects/projectData');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const MIN_DESCRIPTION_CHARS = 30;
 
 // undefined_table / undefined_column: the register is not provisioned yet.
 // Any other SQLSTATE is a FAILED read, never "nothing to assess".
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
 module.exports = {
     id: 'AIA-Art13-transparency',
@@ -31,6 +31,7 @@ module.exports = {
     descriptionKey: 'compliance.checks.aia_art13.desc',
     remediationKey: 'compliance.checks.aia_art13.fix',
     remediationLink: 'admin/agents',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const scope = orgId || pd.NO_ORG_ORG_ID;
         let agents = [];
@@ -40,7 +41,7 @@ module.exports = {
                 FROM agents WHERE is_published = TRUE AND ${pd.orgMatch('organization_id')}
             `, [scope]);
         } catch (e) {
-            if (NOT_PROVISIONED.has(e?.code)) {
+            if (isMissingTable(e)) {
                 return { status: 'not_applicable', evidence: { agents_table: false }, details: 'No agents table yet.' };
             }
             // Only the SQLSTATE goes into the evidence: a driver message can
@@ -71,6 +72,7 @@ module.exports = {
             return { status: 'not_applicable', evidence: {}, details: 'No agents in this organization.' };
         }
 
+        /** @type {string} */
         let status;
         if (missing.length === 0) status = 'pass';
         else if (missing.length < applicable) status = 'warn';

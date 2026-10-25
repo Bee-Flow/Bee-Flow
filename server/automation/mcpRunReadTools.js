@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * What the run-read tools look like to an MCP client (mcpRunReads.js): the

@@ -53,7 +53,10 @@ function normalizeHarness(harness) {
     });
 }
 
-/** The harness a run executes under: only a dry run has one. */
+/**
+ * The harness a run executes under: only a dry run has one.
+ * @param {string} mode
+ */
 function harnessFor(mode, harness) {
     return mode === 'dry_run' ? normalizeHarness(harness) : null;
 }

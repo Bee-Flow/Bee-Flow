@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Dependency-free, total semver comparison for module compatibility gates.
  *
@@ -34,6 +34,9 @@ function parse(v) {
     }
 
     const nums = core.split('.');
+    /**
+     * @param {string} x
+     */
     const toInt = (x) => {
         const n = parseInt(x, 10);
         return Number.isFinite(n) && n >= 0 ? n : 0;
@@ -53,6 +56,8 @@ function parse(v) {
  * are compared dot-by-dot (numeric < numeric numerically, numeric < alnum,
  * alnum lexically, and a shorter run of identifiers sorts lower).
  * @returns {-1|0|1}
+ * @param {string} a
+ * @param {string} b
  */
 function comparePrerelease(a, b) {
     if (a === b) return 0;
@@ -87,6 +92,8 @@ function comparePrerelease(a, b) {
 /**
  * Compare versions a and b. Returns -1 if a < b, 1 if a > b, 0 if equal.
  * @returns {-1|0|1}
+ * @param {string} a
+ * @param {string} b
  */
 function compare(a, b) {
     const pa = parse(a);
@@ -97,15 +104,37 @@ function compare(a, b) {
     return comparePrerelease(pa.prerelease, pb.prerelease);
 }
 
+/**
+ * @param {string} a
+ * @param {string} b
+ */
 function gt(a, b) { return compare(a, b) > 0; }
+/**
+ * @param {string} a
+ * @param {string} b
+ */
 function lt(a, b) { return compare(a, b) < 0; }
+/**
+ * @param {string} a
+ * @param {string} b
+ */
 function gte(a, b) { return compare(a, b) >= 0; }
+/**
+ * @param {string} a
+ * @param {string} b
+ */
 function lte(a, b) { return compare(a, b) <= 0; }
+/**
+ * @param {string} a
+ * @param {string} b
+ */
 function eq(a, b) { return compare(a, b) === 0; }
 
 /**
  * True when `version` satisfies a minimum. A null/undefined/'' minimum means
  * "no lower bound" and always passes.
+ * @param {string} version
+ * @param {string|null|undefined} minVersion
  */
 function satisfiesMin(version, minVersion) {
     if (minVersion == null || minVersion === '') return true;
@@ -115,18 +144,28 @@ function satisfiesMin(version, minVersion) {
 /**
  * True when `version` satisfies a maximum. A null/undefined/'' maximum means
  * "no upper bound" and always passes.
+ * @param {string} version
+ * @param {string|null|undefined} maxVersion
  */
 function satisfiesMax(version, maxVersion) {
     if (maxVersion == null || maxVersion === '') return true;
     return lte(version, maxVersion);
 }
 
-/** Same MAJOR? (update-pin 'major' allows 1.2.3 → 1.9.0, not → 2.0.0) */
+/**
+ * Same MAJOR? (update-pin 'major' allows 1.2.3 → 1.9.0, not → 2.0.0)
+ * @param {string} a
+ * @param {string} b
+ */
 function sameMajor(a, b) {
     return parse(a).major === parse(b).major;
 }
 
-/** Same MAJOR.MINOR? (update-pin 'minor' allows 1.2.3 → 1.2.9, not → 1.3.0) */
+/**
+ * Same MAJOR.MINOR? (update-pin 'minor' allows 1.2.3 → 1.2.9, not → 1.3.0)
+ * @param {string} a
+ * @param {string} b
+ */
 function sameMinor(a, b) {
     const pa = parse(a);
     const pb = parse(b);

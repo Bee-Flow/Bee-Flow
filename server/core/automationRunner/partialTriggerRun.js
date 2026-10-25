@@ -13,7 +13,7 @@ const automationStore = require('../../stores/automationStore');
 const { resolveTriggerPayload } = require('./execution');
 const { callerOnlyUserId } = require('./callerConnections');
 const { resolveRunPolicy } = require('./runPolicy');
-const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 async function runTriggerOnly({ automation, triggerId, triggerNode, triggerPayload, triggerKind, startedByUserId }) {
     // This branch synthesizes its own run and never reaches
@@ -52,14 +52,14 @@ async function runTriggerOnly({ automation, triggerId, triggerNode, triggerPaylo
             // steps, so no secret bridge can have populated any secrets.
             secretValues: [],
         });
-    } catch (err) { log.debug('recordRunStep is best-effort here', err); }
+    } catch (err) { bestEffort('core/automationRunner/partialTriggerRun:runTriggerOnly', err); /* recordRunStep is best-effort here */ }
     await automationStore.updateRun(run.id, {
         status: 'success',
         startedAt: nowIso,
         finishedAt: nowIso,
         output: triggerOutput,
         summary: 'Trigger step (no downstream execution)',
-    }).catch(() => {});
+    }).catch((e) => bestEffort('core/automationRunner/partialTriggerRun:runTriggerOnly#2', e));
     return { ...run, status: 'success', output: triggerOutput };
 }
 

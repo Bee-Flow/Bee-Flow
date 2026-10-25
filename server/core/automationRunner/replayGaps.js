@@ -19,7 +19,10 @@
 
 const { AutomationError } = require('../automationErrors');
 
-/** Every step reachable from `fromStepId` along the definition's edges. */
+/**
+ * Every step reachable from `fromStepId` along the definition's edges.
+ * @param {string} fromStepId
+ */
 function stepsAfter(definition, fromStepId) {
     const out = new Set();
     if (!fromStepId) return out;
@@ -46,6 +49,7 @@ function stepsAfter(definition, fromStepId) {
  * Dotted and bracketed forms both count; `steps.ai_1` does not match
  * `steps.ai_10`. Deliberately generous: a false "yes" fails a resume that
  * could have limped on, a false "no" is the silent data loss this exists for.
+ * @param {string} stepId
  */
 function readsStep(step, stepId) {
     if (!step || !stepId) return false;
@@ -53,6 +57,7 @@ function readsStep(step, stepId) {
     // In the serialized step a quote inside a string is escaped (\"), hence
     // the optional backslash before the bracket form's quotes.
     const re = new RegExp(`steps(?:\\.${esc}(?![\\w-])|\\[\\s*\\\\?['"]${esc}\\\\?['"]\\s*\\])`);
+    /** @type {string} */
     let text;
     try { text = JSON.stringify(step); } catch { return true; }
     return re.test(text || '');
@@ -77,6 +82,9 @@ function gapsReadAfterPause(definition, fromStepId, gaps) {
     return out;
 }
 
+/**
+ * @param {number} n
+ */
 function formatBytes(n) {
     if (!Number.isFinite(n) || n <= 0) return null;
     if (n >= 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;

@@ -23,7 +23,7 @@
  * Pure: no I/O, no dependencies.
  */
 
-const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const CHART_TYPES = Object.freeze(['column', 'bar', 'line', 'area', 'pie', 'donut']);
 const CHART_TYPE_ALIASES = Object.freeze({
@@ -83,17 +83,28 @@ function isNumeric(value) {
     return parseNumber(value) !== null;
 }
 
+/**
+ * @param {string} text
+ * @param {number} max
+ */
 function clip(text, max) {
     const s = String(text ?? '').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '').trim();
     return s.length > max ? `${s.slice(0, max - 1).trimEnd()}…` : s;
 }
 
+/**
+ * @param {string} value
+ * @param {string} [fallback]
+ */
 function chartType(value, fallback = 'column') {
     const v = typeof value === 'string' ? value.trim().toLowerCase() : '';
     if (CHART_TYPES.includes(v)) return v;
     return CHART_TYPE_ALIASES[v] || fallback;
 }
 
+/**
+ * @param {boolean} [fallback]
+ */
 function toBool(value, fallback = false) {
     if (value === undefined || value === null || value === '') return fallback;
     if (typeof value === 'boolean') return value;
@@ -102,16 +113,25 @@ function toBool(value, fallback = false) {
 
 // ── Source shapes → { labels, series } ─────────────────────────────────
 
+/**
+ * @param {string} text
+ */
 function splitList(text) {
     return String(text).split(/[,;|\t]/).map((s) => s.trim()).filter((s) => s !== '');
 }
 
+/**
+ * @param {string} text
+ */
 function namedColumns(text) {
     if (Array.isArray(text)) return text.map((t) => String(t).trim()).filter(Boolean);
     return typeof text === 'string' && text.trim() ? splitList(text) : [];
 }
 
-/** Rows of objects → labels + series, by named columns or by auto-detection. */
+/**
+ * Rows of objects → labels + series, by named columns or by auto-detection.
+ * @param {string[]} warnings
+ */
 function fromRows(rows, { labels: labelCol = null, values: valueCols = [] } = {}, warnings) {
     const list = rows.filter((r) => r && typeof r === 'object' && !Array.isArray(r));
     if (!list.length) return null;
@@ -134,7 +154,10 @@ function fromRows(rows, { labels: labelCol = null, values: valueCols = [] } = {}
     return { labels, series };
 }
 
-/** A matrix (first row = header) → labels from the first column, series per numeric column. */
+/**
+ * A matrix (first row = header) → labels from the first column, series per numeric column.
+ * @param {string[]} warnings
+ */
 function fromMatrix(matrix, opts, warnings) {
     const rows = matrix.filter(Array.isArray);
     if (rows.length < 2) return null;
@@ -146,7 +169,10 @@ function fromMatrix(matrix, opts, warnings) {
     }, warnings);
 }
 
-/** `{ columns, rows }` (the deck's own table shape, rows as arrays or objects). */
+/**
+ * `{ columns, rows }` (the deck's own table shape, rows as arrays or objects).
+ * @param {string[]} warnings
+ */
 function fromTable(table, opts, warnings) {
     const columns = Array.isArray(table.columns) ? table.columns.map((c) => (typeof c === 'object' && c ? String(c.label ?? c.name ?? c.key ?? '') : String(c ?? ''))) : [];
     const rows = Array.isArray(table.rows) ? table.rows : [];
@@ -154,7 +180,10 @@ function fromTable(table, opts, warnings) {
     return fromMatrix([columns, ...rows.filter(Array.isArray)], opts, warnings);
 }
 
-/** `{ labels, series:[{name, values}] }` or `{ labels, values }` (one series). */
+/**
+ * `{ labels, series:[{name, values}] }` or `{ labels, values }` (one series).
+ * @param {string[]} _warnings
+ */
 function fromSpec(spec, _warnings) {
     const labels = Array.isArray(spec.labels) ? spec.labels.map((l) => clip(l, CHART_LIMITS.maxLabelChars)) : null;
     let series = [];
@@ -183,6 +212,9 @@ function fromSpec(spec, _warnings) {
 const RE_TABLE_ROW = /^\s*\|.*\|\s*$/;
 const RE_TABLE_SEP = /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/;
 
+/**
+ * @param {string} line
+ */
 function splitTableRow(line) {
     let s = line.trim();
     if (s.startsWith('|')) s = s.slice(1);
@@ -194,20 +226,25 @@ function splitTableRow(line) {
  * The text forms: JSON, a markdown table, or the ```chart line grammar —
  * `key: value` settings, `labels: a, b, c`, and `Name: 1, 2, 3` series (or
  * `Label: value` per line when no labels line is given).
+ * @param {string} text
+ * @param {string[]} warnings
  */
 function fromText(text, opts, warnings) {
     const raw = String(text ?? '').replace(/\r\n?/g, '\n').trim();
     if (!raw) return null;
     if (/^[[{]/.test(raw)) {
-        try { return fromAny(JSON.parse(raw), opts, warnings); } catch (err) { log.debug('not JSON: fall through to the line grammar', err); }
+        try { return fromAny(JSON.parse(raw), opts, warnings); } catch (err) { bestEffort('core/documents/deckChart:fromText', err); /* not JSON: fall through to the line grammar */ }
     }
     const lines = raw.split('\n').map((l) => l.trim()).filter(Boolean);
     if (lines.length >= 2 && RE_TABLE_ROW.test(lines[0]) && RE_TABLE_SEP.test(lines[1])) {
         const matrix = [splitTableRow(lines[0]), ...lines.slice(2).filter((l) => RE_TABLE_ROW.test(l)).map(splitTableRow)];
         return fromMatrix(matrix, opts, warnings);
     }
+    /** @type {Record<string, string>} */
     const settings = {};
+    /** @type {string[] | null} */
     let labels = null;
+    /** @type {string[][]} */
     const pairs = [];
     for (const line of lines) {
         const m = /^([^:]+?)\s*:\s*(.*)$/.exec(line);
@@ -237,6 +274,9 @@ function fromText(text, opts, warnings) {
     return data;
 }
 
+/**
+ * @param {string[]} warnings
+ */
 function fromAny(value, opts, warnings) {
     if (value === null || value === undefined) return null;
     if (typeof value === 'string') return fromText(value, opts, warnings);
@@ -322,7 +362,7 @@ function statsFromAny(input, warnings = []) {
     if (typeof input === 'string') {
         items = input.replace(/\r\n?/g, '\n').split('\n').map((l) => l.trim()).filter(Boolean);
         if (items.length === 1 && /^[[{]/.test(items[0])) {
-            try { return statsFromAny(JSON.parse(items[0]), warnings); } catch (err) { log.debug('keep the line', err); }
+            try { return statsFromAny(JSON.parse(items[0]), warnings); } catch (err) { bestEffort('core/documents/deckChart:statsFromAny', err); /* keep the line */ }
         }
     } else if (Array.isArray(input)) {
         items = input;
@@ -330,8 +370,10 @@ function statsFromAny(input, warnings = []) {
         if (Array.isArray(input.items) || Array.isArray(input.stats)) return statsFromAny(input.items || input.stats, warnings);
         items = Object.entries(input).map(([label, value]) => ({ label, value }));
     }
+    /** @type {({ value: string; label: string; delta: string | null; icon: string | null; })[]} */
     const tiles = [];
     for (const it of items) {
+        /** @type {{ value: string; label: string; delta: string | null; icon: string | null; }} */
         let tile = null;
         if (typeof it === 'string' || typeof it === 'number') {
             const parts = String(it).replace(/^[-*+]\s+/, '').split('|').map((p) => p.trim());
@@ -354,7 +396,12 @@ function statsFromAny(input, warnings = []) {
  * a step become its text.
  */
 function stepsFromAny(input, warnings = []) {
+    /** @type {({ title: string; text: string | null; })[]} */
     const out = [];
+    /**
+     * @param {string} title
+     * @param {string} text
+     */
     const push = (title, text) => {
         const t = clip(title, STEPS_LIMITS.maxTitleChars);
         if (t) out.push({ title: t, text: text ? clip(text, STEPS_LIMITS.maxTextChars) : null });

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Compliance subject review — re-judge ONE thing the moment it changes,
  * instead of waiting for the next sweep.
@@ -58,6 +58,7 @@
 // Env override is for the tests and for a box whose checks are slow — not a
 // tuning knob for production.
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 const DEBOUNCE_MS = parseInt(process.env.COMPLIANCE_SUBJECT_REVIEW_DEBOUNCE_MS || '5000', 10);
 
 // key -> { timer, kind, orgId, subjectId, reason }. A key present here has a
@@ -77,6 +78,11 @@ const _again = new Set();
 // automations would then share one debounce slot and one of them would never be
 // reviewed. The kind is part of the key, so an automation and a project that
 // happen to share an id never share a slot either.
+/**
+ * @param {string} kind
+ * @param {string} orgId
+ * @param {string} subjectId
+ */
 function _key(kind, orgId, subjectId) {
     return JSON.stringify([String(kind), String(orgId), String(subjectId)]);
 }
@@ -90,6 +96,7 @@ function _key(kind, orgId, subjectId) {
  * `<source>:<id>` and so holds the same automation as `automation:<id>`. Asking
  * with only one spelling silently reviews only half of what applies to it,
  * which looks exactly like working.
+ * @param {string} automationId
  */
 function subjectSpellings(automationId) {
     const id = String(automationId);
@@ -101,17 +108,26 @@ function subjectSpellings(automationId) {
  * project checks list `project:<id>`; the bare id is asked too, for the same
  * reason as above — a check written later that forgets the prefix must still
  * be found.
+ * @param {string} projectId
  */
 function projectSpellings(projectId) {
     const id = String(projectId);
     return [`project:${id}`, id];
 }
 
+/** @type {Readonly<Record<string, { spellings: (id: string) => string[], noun: string }>>} */
 const KINDS = Object.freeze({
     automation: { spellings: subjectSpellings, noun: 'automation' },
     project: { spellings: projectSpellings, noun: 'project' },
 });
 
+/**
+ * @param {string} key
+ * @param {string} reason
+ * @param {string} kind
+ * @param {string} orgId
+ * @param {string} subjectId
+ */
 async function _run(key, kind, orgId, subjectId, reason) {
     if (_running.has(key)) { _again.add(key); return; }
     _running.add(key);
@@ -131,13 +147,18 @@ async function _run(key, kind, orgId, subjectId, reason) {
         // already been told so; the worst this may cost is a verdict that
         // waits for the next scheduled sweep after all, which is where we
         // were before this module existed.
-        log.warn(`[ComplianceSubjectReview] ${reason} review of ${noun} ${subjectId} failed: ${e.message}`);
+        log.warn(`[ComplianceSubjectReview] ${reason} review of ${noun} ${subjectId} failed: ${/** @type {Error} */ (e).message}`);
     } finally {
         _running.delete(key);
         if (_again.delete(key)) _queue(kind, orgId, subjectId, { reason });
     }
 }
 
+/**
+ * @param {string} kind
+ * @param {string} orgId
+ * @param {string} subjectId
+ */
 function _queue(kind, orgId, subjectId, { reason = 'activation' } = {}) {
     try {
         if (!orgId || subjectId == null || String(subjectId).trim() === '') return;
@@ -145,7 +166,7 @@ function _queue(kind, orgId, subjectId, { reason = 'activation' } = {}) {
         if (_armed.has(key)) return;   // a review is already coming — it will read the final state
         const timer = setTimeout(() => {
             _armed.delete(key);
-            _run(key, kind, orgId, subjectId, reason).catch(() => { /* _run never rejects */ });
+            _run(key, kind, orgId, subjectId, reason).catch((e) => bestEffort('compliance/subjectReview:_queue', e));
         }, DEBOUNCE_MS);
         // unref: a pending review must never be the reason a worker or a test
         // run refuses to exit. Losing it on shutdown costs one verdict that
@@ -153,7 +174,7 @@ function _queue(kind, orgId, subjectId, { reason = 'activation' } = {}) {
         if (timer.unref) timer.unref();
         _armed.set(key, { timer, kind, orgId, subjectId, reason });
     } catch (e) {
-        log.warn(`[ComplianceSubjectReview] could not queue a review of ${KINDS[kind]?.noun || kind} ${subjectId}: ${e.message}`);
+        log.warn(`[ComplianceSubjectReview] could not queue a review of ${KINDS[kind]?.noun || kind} ${subjectId}: ${/** @type {Error} */ (e).message}`);
     }
 }
 
@@ -164,6 +185,8 @@ function _queue(kind, orgId, subjectId, { reason = 'activation' } = {}) {
  * automation's own organisation, falling back to its OWNER's, which is the
  * COALESCE the checks themselves scope by. Without one there is no per-source
  * check that could match it, so there is nothing to do.
+ * @param {string} orgId
+ * @param {string} automationId
  */
 function reviewAutomation(orgId, automationId, opts = {}) {
     _queue('automation', orgId, automationId, opts);
@@ -173,6 +196,8 @@ function reviewAutomation(orgId, automationId, opts = {}) {
  * Queue a compliance review of one collaborative project — its members, a
  * chat's AI mode or its files changed (compliance/events.js PROJECT_CHANGED).
  * Returns immediately, always; never touches the request that caused it.
+ * @param {string} orgId
+ * @param {string} projectId
  */
 function reviewProject(orgId, projectId, opts = {}) {
     _queue('project', orgId, projectId, opts);

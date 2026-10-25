@@ -20,10 +20,14 @@
 // adapters' shared 'done' payload carries: OpenAI-compatible runtimes
 // (llama.cpp, vLLM, Ollama) say 'length', Anthropic 'max_tokens', the OpenAI
 // Responses API 'max_output_tokens', Google 'MAX_TOKENS'.
-const log = require('../../telemetry/log');
+
+const { fallback } = require('../../utils/bestEffort');
 
 const TRUNCATION_STOP_REASONS = new Set(['length', 'max_tokens', 'max_output_tokens', 'MAX_TOKENS']);
 
+/**
+ * @param {string | null} reason
+ */
 function isTruncatedStop(reason) {
     return typeof reason === 'string' && TRUNCATION_STOP_REASONS.has(reason);
 }
@@ -66,6 +70,7 @@ const EMPTY_REPLY_PLACEHOLDER = '(reply contained neither a tool call nor a mess
  * A reply with nothing in it for the person: empty, or only punctuation and
  * whitespace (the local model ended two playbook turns with a bare "." —
  * measured 2026-09-13). Such a round is not "done".
+ * @param {string | null} content
  */
 function isBlankReply(content) {
     if (typeof content !== 'string') return true;
@@ -115,6 +120,8 @@ function emptyReplyRetryMessages(content, thinkingForReplay, { notePrefix, rejec
  * read `<name> API error <status>: <body>`; when the body is the usual
  * `{error:{message}}` JSON, that message is what the user needs to see (e.g. a
  * chat template refusing the request shape). Otherwise the raw tail, trimmed.
+ * @param {string | undefined} message
+ * @param {number} [max]
  */
 function providerErrorExcerpt(message, max = 240) {
     const raw = String(message || '');
@@ -124,7 +131,7 @@ function providerErrorExcerpt(message, max = 240) {
         const j = JSON.parse(body);
         const inner = j && (j.error?.message || j.message || j.error);
         if (typeof inner === 'string' && inner.trim()) text = inner;
-    } catch (err) { log.debug('not JSON — use the raw tail', err); }
+    } catch (err) { fallback('core/llm/toolLoop:providerErrorExcerpt', err); /* not JSON — use the raw tail */ }
     text = text.replace(/\s+/g, ' ').trim();
     return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }
@@ -133,6 +140,7 @@ function providerErrorExcerpt(message, max = 240) {
  * The HTTP status an adapter error carries, or null. Adapter messages read
  * `<name> API error <status>: …`; a 4xx that is not 408/429 is the provider
  * refusing the request itself — resending it verbatim cannot help.
+ * @param {{ status?: number; statusCode?: number; message?: string; }} err
  */
 function providerErrorStatus(err) {
     const m = /API error (\d{3})/.exec(String(err && err.message || err || ''));
@@ -145,6 +153,7 @@ function providerErrorStatus(err) {
  * Field names follow the adapters' shared 'done' payload shape
  * (prompt_tokens / completion_tokens / cached_tokens / cache_creation_tokens);
  * anything missing counts as 0 so a partial payload never NaNs the totals.
+ * @param {{ prompt: number; completion: number; cached: number; cacheCreation: number; rounds: number; }} totals
  */
 function accumulateUsage(totals, u) {
     if (!totals || !u || typeof u !== 'object') return totals;

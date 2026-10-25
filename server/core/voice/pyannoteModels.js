@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Which pyannoteAI models to use, and why.
  *
@@ -85,7 +85,10 @@ function pickTranscriptionModel(language, override = null) {
     return PARAKEET_LANGUAGES.has(base) ? PARAKEET : WHISPER_TURBO;
 }
 
-/** True when `model` is one pyannoteAI accepts (for admin-input validation). */
+/**
+ * True when `model` is one pyannoteAI accepts (for admin-input validation).
+ * @param {string} model
+ */
 function isValidTranscriptionModel(model) {
     return TRANSCRIPTION_MODELS.includes(String(model || '').trim());
 }

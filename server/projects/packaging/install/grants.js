@@ -29,6 +29,7 @@ function safeInstallGrants(entity, refMap, unresolved = []) {
     const { DEFAULT_BRIDGE_GRANTS } = require('../../../stores/webpage/bridgeGrants');
     const asked = (entity && typeof entity.bridgeGrants === 'object' && entity.bridgeGrants) || {};
 
+    /** @type {({ label?: string | undefined; automationId: string; })[]} */
     const automations = [];
     for (const grant of (Array.isArray(asked.automations) ? asked.automations : [])) {
         const pointer = grant && grant.automationId;
@@ -64,6 +65,7 @@ function safeInstallGrants(entity, refMap, unresolved = []) {
     }
 
     // The page's agent: one in this bundle, by `$ref`, or none.
+    /** @type {{ agentId: string; } | null} */
     let agent = null;
     const ap = asked.agent && asked.agent.agentId;
     if (ap && typeof ap === 'object' && typeof ap.$ref === 'string') {

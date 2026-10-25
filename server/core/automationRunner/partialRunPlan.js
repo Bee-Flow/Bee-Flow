@@ -125,3 +125,10 @@ async function executePartial(execute, automation, opts, { seed, plan, staleFrom
 }
 
 module.exports = { planPartialExecution, seedOptions, describePlan, emptyPlan, enforceSeedPlan, executePartial };
+
+/**
+ * @typedef {ReturnType<typeof planPartialExecution>} PartialPlan
+ * @typedef {ReturnType<typeof seedOptions>} SeedOptions
+ * @typedef {ReturnType<typeof describePlan>} RerunPlan
+ * @typedef {Awaited<ReturnType<typeof import('./replaySeeding').seedReplayState>>['runsWindow'][number]} SeedRun
+ */

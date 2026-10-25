@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * A Flowlet's declared input types, checked where the call enters it.
  *

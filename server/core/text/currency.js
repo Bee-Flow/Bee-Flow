@@ -18,6 +18,7 @@
 
 const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const FX_TTL_MS = 5 * 60_000;
 const FX_STALE_TTL_MS = 24 * 60 * 60_000; // last-good rate retained for 24h
@@ -27,10 +28,17 @@ const _missingRateWarned = new Set();
 const _alertThrottle = new Map();  // key → lastAt
 const ALERT_THROTTLE_MS = 5 * 60_000;
 
+/**
+ * @param {string} currencyCode
+ */
 function _configKeyFor(currencyCode) {
     return `currency_fx_usd_${currencyCode.toLowerCase()}`;
 }
 
+/**
+ * @param {string} kind
+ * @param {{ currency: string; error: string; }} payload
+ */
 function _emitAlert(kind, payload) {
     const key = `${kind}:${JSON.stringify(payload)}`;
     const last = _alertThrottle.get(key) || 0;
@@ -60,6 +68,7 @@ async function getUsdToCurrencyRate(targetCurrency, opts = {}) {
     const hit = _fxCache.get(c);
     if (hit && hit.expiresAt > Date.now()) return hit.rate;
 
+    /** @type {number | null} */
     let rate = null;
     let lookupFailed = false;
     try {
@@ -68,7 +77,7 @@ async function getUsdToCurrencyRate(targetCurrency, opts = {}) {
         if (Number.isFinite(parsed) && parsed > 0) rate = parsed;
     } catch (e) {
         lookupFailed = true;
-        _emitAlert('fx_rate_lookup_failed', { currency: c, error: e.message });
+        _emitAlert('fx_rate_lookup_failed', { currency: c, error: /** @type {Error} */ (e).message });
     }
 
     if (rate !== null) {
@@ -106,7 +115,7 @@ async function getUsdToCurrencyRate(targetCurrency, opts = {}) {
  * keys that don't look like valid 3-letter currency codes.
  */
 async function getAllConfiguredRates() {
-    const keys = await configStore.listKeysWithPrefix('currency_fx_usd_').catch(() => null);
+    const keys = await configStore.listKeysWithPrefix('currency_fx_usd_').catch((e) => fallback('core/text/currency:getAllConfiguredRates', e, null));
     if (Array.isArray(keys)) {
         const out = {};
         for (const k of keys) {
@@ -120,6 +129,7 @@ async function getAllConfiguredRates() {
     }
     // Fallback when the key listing fails: probe common currencies.
     const candidates = ['eur', 'gbp', 'usd', 'sek', 'nok', 'dkk', 'chf', 'cad', 'aud', 'jpy'];
+    /** @type {Record<string, number>} */
     const out = {};
     for (const code of candidates) {
         const raw = await configStore.getConfig(_configKeyFor(code.toUpperCase()));
@@ -133,6 +143,7 @@ async function getAllConfiguredRates() {
  * Admin helper: persist a USD→<currency> rate. `currencyCode` is a 3-letter
  * ISO code; `rate` is a positive Number. Caller is responsible for audit
  * logging and PAYG-cache invalidation.
+ * @param {string} currencyCode
  */
 async function setUsdToCurrencyRate(currencyCode, rate) {
     const c = String(currencyCode || '').toUpperCase();

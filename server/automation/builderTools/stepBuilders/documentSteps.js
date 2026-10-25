@@ -69,6 +69,7 @@ function applyAddFillDocument(draft, args, draftWrap) {
     if (!documentId) {
         return { error: 'documentId is required — pick one of the documents in the "Documents you may fill" block. If the user has none, tell them to design it in Studio → Documents first (or use builder_add_generate_document for plain text).' };
     }
+    /** @type {string[]} */
     const notes = [];
     const catalog = draftWrap?._documents;
     if (Array.isArray(catalog)) {
@@ -132,6 +133,9 @@ function clampDocumentTtl(v) {
 // SLIDE_LAYOUTS); 'auto' is the absence of a choice and is not stored.
 const SLIDE_LAYOUT_CHOICES = new Set(['title', 'section', 'bullets', 'two_column', 'cards', 'table', 'image', 'quote', 'chart', 'stats', 'timeline', 'closing']);
 
+/**
+ * @param {string} v
+ */
 const COLOUR_OR_TEMPLATE = (v) => typeof v === 'string' && v.trim() && (/\{\{/.test(v) || /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v.trim())) ? v.trim() : undefined;
 
 /** The deck-look fields of a presentation step, each only when valid. */
@@ -278,3 +282,22 @@ module.exports = {
     applyAddSlide,
     applyAddPresentation,
 };
+
+/** @typedef {import('../pendingDatatables').DraftWrap} DraftWrap */
+
+/** @typedef {import('../draftGraph').DraftGraph} DraftGraph */
+
+/** @typedef {import('../refCheck').BuilderWrap} BuilderWrap */
+
+/** @typedef {import('./inputBindings').Placement} Placement */
+
+/** @typedef {import('./inputBindings').Binding} Binding */
+
+/** @typedef {{ type?: unknown, data?: unknown, series?: unknown, labels?: unknown, values?: unknown, stacked?: boolean, unit?: unknown }} SlideChartArgs */
+
+/** @typedef {{ chart?: SlideChartArgs | string, stats?: unknown, style?: string }} SlideVisualArgs */
+
+/** @typedef {{ preset?: string, accent?: unknown, background?: unknown, font?: unknown, titleFont?: unknown, coverStyle?: string, tableStyle?: string,
+ *   logoPlacement?: string, logo?: unknown, footerText?: unknown, slideNumbers?: unknown, template?: unknown }} DeckLookArgs */
+
+/** @typedef {{ format?: string, expiresInDays?: unknown, fileName?: unknown, title?: unknown }} DocFileArgs */

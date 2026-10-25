@@ -36,7 +36,7 @@ async function charge(userId, cost) {
  */
 async function caller(userId) {
     const { resolveDatatablePrincipalForUser } = require('../auth/datatableAccess');
-    /** @type {any} */
+    /** @type {{ userId?: string, identityError?: string, orgId?: string|null }} */
     const principal = await resolveDatatablePrincipalForUser(userId);
     if (!principal.userId || principal.identityError) throw new Error(principal.identityError || 'unknown account');
     const user = await require('../stores/userStore').getUser(userId);

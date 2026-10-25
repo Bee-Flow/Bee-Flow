@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The theme defaults every App Studio template spreads into its
  * definition's theme (see ../templates.js).

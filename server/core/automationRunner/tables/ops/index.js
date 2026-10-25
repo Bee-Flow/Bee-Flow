@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * The table operation engine: runs a list of normalised operations over a
@@ -17,6 +17,22 @@
 
 const { tableError, createTicker, iterate } = require('./values');
 
+/** @typedef {{ key: string, label?: string, type?: string }} TableColumn */
+/** @typedef {Record<string, unknown>} TableRow */
+/** @typedef {{ id: string, op: string, enabled?: boolean, unknown?: boolean }} TableOp */
+/** @typedef {{ columns: TableColumn[], provenance?: Record<string, string>|null, rows: () => AsyncIterable<TableRow> }} OpInput */
+/** @typedef {{ columns: TableColumn[], rows: () => AsyncIterable<TableRow>, segments?: unknown, description?: unknown }} OpOutput */
+/**
+ * @typedef {{ opId: string, op: string, enabled: boolean, ok: boolean, inputRows: number, outputRows: number,
+ *   columns: string[], warnings: string[], unmatched?: number, error?: { code: string, field: string, message: string } }} OpStat
+ */
+/**
+ * @typedef {{ runState: import('../../../automationModel/bind').BindRunState, limits: ReturnType<typeof import('../limits').tableLimits>, mode: string, minGroupFloor: number,
+ *   resolveTable: (binding: unknown, opId?: string) => Promise<{ columns: TableColumn[], rows: Parameters<typeof import('./values').iterate<TableRow>>[0] }>,
+ *   tick: () => Promise<void>, warn: (message: string, code?: string) => void, stat: OpStat }} OpCtx
+ */
+
+/** @type {Record<string, () => { apply: (op: TableOp, input: OpInput, ctx: OpCtx) => OpOutput|Promise<OpOutput> }>} */
 const OPS = {
     join: () => require('./join'),
     pseudonymise: () => require('./pseudonymise'),
@@ -31,14 +47,24 @@ const OPS = {
     describe: () => require('./describe'),
 };
 
+/** @param {TableColumn[]} columns */
 const keysOf = (columns) => columns.map((c) => c.key);
 
+/**
+ * @param {OpStat} stat
+ * @param {{ errorClass?: string, field?: string, message?: string }} err
+ */
 function fail(stat, err) {
     stat.ok = false;
     stat.error = { code: err.errorClass || 'table_op_invalid', field: err.field || '', message: String(err.message || err) };
 }
 
-/** Count rows into stat[field] (restarting per pass) and pin errors to the operation they came from. */
+/** Count rows into stat[field] (restarting per pass) and pin errors to the operation they came from.
+ * @param {AsyncIterable<TableRow>} rows
+ * @param {OpStat} stat
+ * @param {'inputRows'|'outputRows'} field
+ * @param {TableOp} [op]
+ */
 async function* flow(rows, stat, field, op) {
     stat[field] = 0;
     try {
@@ -55,6 +81,7 @@ async function* flow(rows, stat, field, op) {
     }
 }
 
+/** @param {() => AsyncIterable<TableRow>} rows */
 async function* sourceRows(rows) {
     try { yield* iterate(rows); } catch (err) {
         if (err && typeof err === 'object' && err.opId === undefined) err.opId = null;
@@ -62,6 +89,10 @@ async function* sourceRows(rows) {
     }
 }
 
+/**
+ * @param {() => AsyncIterable<TableRow>} rows
+ * @param {number} maxRows
+ */
 async function* capRows(rows, maxRows) {
     let n = 0;
     for await (const row of rows()) {
@@ -86,8 +117,11 @@ async function runTableOps(args) {
     const resolveTable = args.resolveTable || (async () => { throw tableError('table_op_invalid', 'No table can be looked up here.'); });
     const list = Array.isArray(ops) ? ops : [];
     const opStats = [];
+    /** @type {string[]} */
     const warnings = [];
+    /** @type {string[]} */
     const warningCodes = [];
+    /** @param {string} text @param {string} [code] */
     const addWarning = (text, code) => {
         if (!warnings.includes(text)) warnings.push(text);
         if (code && !warningCodes.includes(code)) warningCodes.push(code);
@@ -109,9 +143,11 @@ async function runTableOps(args) {
 
     for (let i = 0; i <= last; i++) {
         const op = list[i];
+        /** @type {OpStat} */
         const stat = { opId: op.id, op: op.op, enabled: op.enabled !== false, ok: true, inputRows: 0, outputRows: 0, columns: keysOf(cur.columns), warnings: [] };
         opStats.push(stat);
         if (!stat.enabled) continue;
+        /** @param {string} message @param {string} [code] */
         const warn = (message, code) => {
             if (!stat.warnings.includes(message)) stat.warnings.push(message);
             addWarning(`Step ${i + 1} (${op.op}): ${message}`, code);

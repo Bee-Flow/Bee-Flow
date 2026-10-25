@@ -21,6 +21,7 @@ const { userIdOf } = require('../studio/shared');
 const { z, sendErr, isObject, localeOfRequest, worded, closedObject, bodyOf, localeCode, tierName, check, MAX_TITLE, MAX_FOLDER, MAX_DESCRIPTION, MAX_BRIEF, TABLE_MODES, CLIENT_STATUSES, onUnknownKeys, typeError } = require('./contract');
 const { kindOf, localeOf, withClosingPhases, summarise } = require('./phaseList');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // Server-run phases whose POST owns the whole run: table (seconds), design
 // (90 s model budget), compliance (reads + a 12 s review budget). A phase of
@@ -109,17 +110,17 @@ function register(router, ctx) {
     const { d, flow, requireManageApps } = ctx;
     const { resolveRecipe, approvalsAllowed, resolveOwnerOrgId, load, prepareNext, persist } = flow;
 
-    router.get('/', async (req, res) => {
+    router.get('/', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         try {
             const rows = await d.playbookStore.listPlaybooksForUser(userIdOf(req), { limit: 100 });
             res.json({ playbooks: rows.map((pb) => summarise(pb, resolveRecipe(pb))) });
         } catch (e) {
-            log.error('[Playbooks] list failed:', e.message);
+            log.error('[Playbooks] list failed:', /** @type {Error} */ (e).message);
             sendErr(res, 500, 'internal', 'Could not list playbooks');
         }
     });
 
-    router.post('/', requireManageApps, async (req, res) => {
+    router.post('/', requireManageApps, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         try {
             const parsed = check(res, CreateBody, req.body, 'bad_options');
             if (!parsed.ok) return;
@@ -178,7 +179,7 @@ function register(router, ctx) {
             const organizationId = await resolveOwnerOrgId(userId);
             let approverGroupId = null;
             if (typeof o.approverGroupId === 'string' && o.approverGroupId) {
-                const all = await d.userStore.getAllGroups().catch(() => []);
+                const all = await d.userStore.getAllGroups().catch((e) => fallback('routes/playbooks/playbookRoutes:register', e, []));
                 const g = (all || []).find((x) => x.id === o.approverGroupId);
                 if (!g || (organizationId && g.organizationId && g.organizationId !== organizationId)) return sendErr(res, 400, 'bad_options', 'That approver group is not in your organisation.');
                 approverGroupId = g.id;
@@ -197,18 +198,18 @@ function register(router, ctx) {
             const pb = await d.playbookStore.createPlaybook({ userId, organizationId, recipeId: recipe.RECIPE_ID, recipe: recipeDoc, title, options, phases, currentPhase: phases[0] ? phases[0].key : null });
             res.status(201).json({ playbook: pb });
         } catch (e) {
-            log.error('[Playbooks] create failed:', e.message);
+            log.error('[Playbooks] create failed:', /** @type {Error} */ (e).message);
             sendErr(res, 500, 'internal', 'Could not create the playbook');
         }
     });
 
     // ── read (refreshes a running fill, fails a server phase whose run died) ──
 
-    router.get('/:id', async (req, res) => {
+    router.get('/:id', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         try {
             let pb = await load(req, res);
             if (!pb) return;
-            const fill = (pb.phases || []).find((p) => kindOf(p) === 'fill' && p.status === 'running') || null;
+            const fill = (pb.phases || []).find((/** @type {lifecycle.Phase | null} */ p) => kindOf(p) === 'fill' && p.status === 'running') || null;
             if (fill) {
                 const change = await refreshFillPhase(fill, d, d.now(), { locale: localeOf(pb) });
                 if (change) {
@@ -233,7 +234,7 @@ function register(router, ctx) {
             }
             res.json({ playbook: pb });
         } catch (e) {
-            log.error('[Playbooks] get failed:', e.message);
+            log.error('[Playbooks] get failed:', /** @type {Error} */ (e).message);
             sendErr(res, 500, 'internal', 'Could not load the playbook');
         }
     });
@@ -248,7 +249,7 @@ function register(router, ctx) {
      * SERVER runs. Those checks are below, each with its own 409 and its own
      * code, and a value schema in front of them would answer first and say less.
      */
-    router.patch('/:id', requireManageApps, async (req, res) => {
+    router.patch('/:id', requireManageApps, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         try {
             const pb = await load(req, res);
             if (!pb) return;
@@ -347,9 +348,9 @@ function register(router, ctx) {
             const saved = await persist(res, pb, { phases, currentPhase, status, title }, pb.version);
             if (saved) res.json({ playbook: saved });
         } catch (e) {
-            if (e.code === 'illegal_transition') return sendErr(res, 409, 'illegal_transition', e.message, { from: e.from, to: e.to });
-            if (e.code === 'artifacts_missing') return sendErr(res, 409, 'artifacts_missing', e.message);
-            log.error('[Playbooks] patch failed:', e.message);
+            if (e.code === 'illegal_transition') return sendErr(res, 409, 'illegal_transition', /** @type {Error} */ (e).message, { from: e.from, to: e.to });
+            if (e.code === 'artifacts_missing') return sendErr(res, 409, 'artifacts_missing', /** @type {Error} */ (e).message);
+            log.error('[Playbooks] patch failed:', /** @type {Error} */ (e).message);
             sendErr(res, 500, 'internal', 'Could not update the playbook');
         }
     });
@@ -363,16 +364,21 @@ function register(router, ctx) {
 function registerDelete(router, ctx) {
     const { d, requireManageApps } = ctx;
 
-    router.delete('/:id', requireManageApps, async (req, res) => {
+    router.delete('/:id', requireManageApps, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         try {
             const gone = await d.playbookStore.deletePlaybook(req.params.id, userIdOf(req));
             if (!gone) return sendErr(res, 404, 'not_found', 'Not found');
             res.status(204).end();
         } catch (e) {
-            log.error('[Playbooks] delete failed:', e.message);
+            log.error('[Playbooks] delete failed:', /** @type {Error} */ (e).message);
             sendErr(res, 500, 'internal', 'Could not delete the playbook');
         }
     });
 }
 
 module.exports = { register, registerDelete };
+
+/**
+ * @typedef {import('../../playbooks/lifecycle').Phase} Phase
+ * @typedef {{ titleFor?: (locale: string) => string, tableTitleFor?: (locale: string) => string }} LocalisedTitles
+ */

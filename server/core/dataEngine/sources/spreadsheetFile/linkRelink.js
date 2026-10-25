@@ -3,6 +3,7 @@ const { perUserRateLimit } = require('../../../../utils/perUserRateLimit');
 const reading = require('./reading');
 const { deps, rejected, callerApi } = require('./linkBrowse');
 const { wireRef } = require('./linkRef');
+const { fallback } = require('../../../../utils/bestEffort');
 
 /** The per-user bucket every storage-reaching call spends (see the header). */
 const storageLimiter = perUserRateLimit({ windowMs: 60_000, max: 30 });
@@ -93,7 +94,7 @@ async function relink(datatable, principal, session, body = {}) {
         sharedOptIn: keptOptIn || (body && body.sharedWriteOptIn === true),
     });
     const d = deps();
-    const org = principal.orgId ? await d.userStore.getOrganization(principal.orgId).catch(() => null) : null;
+    const org = principal.orgId ? await d.userStore.getOrganization(principal.orgId).catch((e) => fallback('core/dataEngine/sources/spreadsheetFile/linkRelink:relink', e, null)) : null;
     const ncInstanceId = provider === 'nextcloud_files'
         ? (org ? (org.nc_instance_id || org.ncInstanceId || source.ncInstanceId || null) : (source.ncInstanceId || null))
         : null;

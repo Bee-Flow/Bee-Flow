@@ -93,6 +93,9 @@ async function deleteDataset(id, appId, ownerId) {
 // scope key, the params hash, and the table's data_version. A hit is only
 // returned when the data_version still matches AND the row hasn't expired.
 
+/**
+ * @param {string | number} dataVersion
+ */
 async function getCache(datasetId, viewerScopeKey, paramsHash, dataVersion) {
     await initDB();
     const r = await getOne(

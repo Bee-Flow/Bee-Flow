@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The Fireflies GraphQL transport and input rules: errors shown to the caller
  * are fixed sentences (an upstream body or message can carry personal data),

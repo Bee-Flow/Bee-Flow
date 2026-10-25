@@ -1,7 +1,10 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
-/** LIKE wildcards in user text are literal. */
+/**
+ * LIKE wildcards in user text are literal.
+ * @param {string} w
+ */
 const escapeLike = (w) => w.replace(/[\\%_]/g, '\\$&');
 
 /**
@@ -20,6 +23,9 @@ const escapeLike = (w) => w.replace(/[\\%_]/g, '\\$&');
 function librarySearch(query, everyWord, bind) {
     const text = String(query || '').slice(0, 200).trim();
     const words = everyWord ? text.split(/\s+/).filter(Boolean).slice(0, 8) : [];
+    /**
+     * @param {string} p
+     */
     const clause = (p) => `(d.name ILIKE ${p} OR d.description ILIKE ${p})`;
     if (words.length > 1) {
         const clauses = words.map((w) => clause(bind('%' + escapeLike(w) + '%')));

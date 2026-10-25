@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * ISO 27001 A.5.28 / A.5.36 — Collection of evidence & compliance with the
  * organisation's own monitoring.
@@ -35,6 +35,7 @@ const WINDOW_ROWS = 5000;
 // The scheduler sweeps every 6 h — a week of silence means the loop is broken.
 const FRESH_DAYS = 7;
 
+/** @type {Record<string, string>} */
 const BREAK_REASON = {
     gap: 'a gap in the sequence (a row is missing)',
     link: 'a link that does not hash to its predecessor (a row was rewritten or reordered)',
@@ -53,6 +54,10 @@ module.exports = {
     descriptionKey: 'compliance.checks.iso_evidence_integrity.desc',
     remediationKey: 'compliance.checks.iso_evidence_integrity.fix',
     remediationLink: null,
+    /**
+     * @param {string} orgId
+     * @returns {Promise<{ status: 'pass'|'warn'|'fail', details: string, evidence: Partial<Awaited<ReturnType<typeof verifyChain>>> & { window_rows: number, ledger_reachable?: boolean, error_name?: string, error_code?: string, age_days?: number, fresh_days?: number } }>}
+     */
     async evaluate(orgId) {
         const org = orgId || 'default';
         let report;

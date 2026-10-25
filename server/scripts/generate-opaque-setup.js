@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck
+// @typecheck strict
 /**
  * Print a fresh OPAQUE server setup for OPAQUE_SERVER_SETUP.
  *

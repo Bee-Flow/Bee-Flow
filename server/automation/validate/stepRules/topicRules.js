@@ -27,11 +27,17 @@ function ruleExprsOf(step) {
     return [];
 }
 
+/**
+ * @param {string} src
+ */
 function parseQuietly(src) {
     if (typeof src !== 'string' || !src.trim()) return null;
     try { return parseExpr(src, { host: TOPIC_HOST_SPEC }); } catch { return null; }
 }
 
+/**
+ * @param {string} at
+ */
 function checkTopics(ctx, step, at) {
     const { pushE, topicClassifier } = ctx;
     const exprs = ruleExprsOf(step);
@@ -55,3 +61,8 @@ function checkTopics(ctx, step, at) {
 }
 
 module.exports = { checkTopics };
+
+/**
+ * @typedef {import('./stepContext').StepCtx} StepCtx
+ * @typedef {import('./stepContext').StepDef} StepDef
+ */

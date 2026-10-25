@@ -12,14 +12,14 @@
 
 const { badRequest, conflict } = require('../../core/http/errors');
 const { taskEvent, sealList, checkDates, canContain } = require('./tasksPresent');
-const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 /** Assignees must be on the project right now. */
 async function checkedAssignees(ctx, projectId, ids) {
     const unique = [...new Set(ids || [])];
     for (const id of unique) {
         let role = null;
-        try { role = await ctx.getProjectRole(id, projectId); } catch (err) { log.debug('unknown is not a member', err); }
+        try { role = await ctx.getProjectRole(id, projectId); } catch (err) { fallback('routes/projects/tasksRules:checkedAssignees', err); /* unknown is not a member */ }
         if (!role) throw badRequest('assignee_not_member', 'You can only give a task to a member of this project.');
     }
     return unique;
@@ -151,7 +151,7 @@ async function announceCreated(ctx, project, userId, task, assigneeIds) {
  * task's `source` to its item: ids are positions and shift when the summary is regenerated. A meeting that
  * cannot be read gives no texts, and its tasks are keyed by id alone.
  */
-function meetingTexts(ctx, req, project) {
+function meetingTexts(ctx, /** @type {import('express').Request} */ req, project) {
     const seen = new Map();
     return async (meetingId) => {
         if (!seen.has(meetingId)) {
@@ -168,3 +168,15 @@ const alreadyATask = () => conflict('already_a_task', 'This meeting item is alre
 module.exports = {
     checkedAssignees, checkedLinks, checkedHierarchy, prepareTask, announceAssigned, announceCreated, meetingTexts, alreadyATask,
 };
+
+/** @typedef {ReturnType<typeof import('./tasksContext').makeTasksContext>} TasksCtx */
+
+/** @typedef {Awaited<ReturnType<TasksCtx['boxFor']>>} TaskBox */
+
+/** @typedef {Awaited<ReturnType<TasksCtx['loadProject']>>} TaskProject */
+
+/** @typedef {{ kind: string, id: string, chatId?: string, relation?: 'depends_on' }} TaskLink */
+
+/** @typedef {NonNullable<ReturnType<typeof import('../../stores/projectTaskStore').rowToTask>>} TaskRow */
+
+/** @typedef {{ id: string, text: string }} ActionItem */

@@ -79,7 +79,10 @@ const CORE_PRUNE = {
 
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
-/** The schema node at a dotted path of property names, `items` allowed as a segment. */
+/**
+ * The schema node at a dotted path of property names, `items` allowed as a segment.
+ * @param {string} path
+ */
 function nodeAt(schema, path) {
     let cur = schema;
     for (const seg of path.split('.')) {
@@ -90,6 +93,9 @@ function nodeAt(schema, path) {
     return isObject(cur) ? cur : null;
 }
 
+/**
+ * @param {string} where
+ */
 function applyKeepDrop(node, rule, where) {
     if (!isObject(node)) throw new Error(`schemasCore: ${where} is not a schema node`);
     if ((rule.keep || rule.drop) && !isObject(node.properties)) {
@@ -163,3 +169,8 @@ function deepFreeze(v) {
 }
 
 module.exports = { projectCoreToolSchemas, CORE_PRUNE, nodeAt };
+
+/**
+ * @typedef {{ keep?: string[], drop?: string[], description?: string }} PruneNode
+ * @typedef {PruneNode & { batchOnly?: { key: string }, at?: Record<string, PruneNode> }} PruneRule
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Automation Builder — a round that ended without a tool call: a truncated
  * reply, unparseable arguments, a blank reply, prose on an empty draft, a
@@ -16,6 +16,17 @@ const { isTruncatedStop, truncationRetryMessages, emptyReplyRetryMessages, isBla
 // try, and each attempt costs a full round on a single-slot box.
 const INVALID_ARGS_MAX_RETRIES = 2;
 
+/**
+ * @param {import('./turnSetup').BuilderTurn} turn
+ * @param {import('./buildLoop').BuildLoopState} loop
+ * @param {{
+ *   iter: number,
+ *   response: Awaited<ReturnType<typeof import('./modelStream').streamWithRetry>>,
+ *   thinkingForReplay: Parameters<typeof truncationRetryMessages>[1],
+ *   recoveredRound: ReturnType<typeof import('../../../core/llm/leakedToolCalls').recoverLeakedToolCalls>|null,
+ * }} roundState
+ * @returns {'continue'|'break'}
+ */
 function afterToolLessRound(turn, loop, { iter, response, thinkingForReplay, recoveredRound }) {
     const { send, messages, draftWrap, turnMode, approvedPlan, answerTurn, profile } = turn;
     // No tool calls. Either the assistant produced its final message —
@@ -113,9 +124,9 @@ function afterToolLessRound(turn, loop, { iter, response, thinkingForReplay, rec
     // An approved build is finished when its checklist is. A model that
     // stops with items open (the owner's "I can't remove steps") gets one
     // push to finish them, mark them done, or say what blocks it.
-    if (approvedPlan && !loop.buildGuardUsed && !turn.lastFinalized && (draftWrap._todos || []).some(t => !t.done)) {
+    if (approvedPlan && !loop.buildGuardUsed && !turn.lastFinalized && (draftWrap._todos || []).some((/** @type {{ text: string, done: boolean }} */ t) => !t.done)) {
         loop.buildGuardUsed = true;
-        const open = draftWrap._todos.map((t, i) => (t.done ? null : `${i}) ${t.text}`)).filter(Boolean).join('; ');
+        const open = draftWrap._todos.map((/** @type {{ text: string, done: boolean }} */ t, /** @type {number} */ i) => (t.done ? null : `${i}) ${t.text}`)).filter(Boolean).join('; ');
         log.warn(`[AutomationBuilder] round ${iter} ended an approved build with open plan steps — nudging once`);
         messages.push({ role: 'assistant', content: response.content });
         messages.push({

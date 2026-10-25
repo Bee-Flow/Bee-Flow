@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * The one fetch the n8n integration uses.
@@ -16,21 +16,31 @@ const { fetch: undiciFetch, Agent } = require('undici');
 // `=== '1'` and nothing looser, so "0" and "false" keep verification on.
 const N8N_ALLOW_INSECURE_TLS = process.env.N8N_ALLOW_INSECURE_TLS === '1';
 
+/** @type {import('undici').Agent | null} */
 let insecureAgent = null;
 
 function allowInsecureTls() {
     return N8N_ALLOW_INSECURE_TLS;
 }
 
+/**
+ * @param {string} url
+ * @param {RequestInit} [init]
+ */
 function n8nFetch(url, init = {}) {
     if (!N8N_ALLOW_INSECURE_TLS || !String(url).startsWith('https://')) return fetch(url, init);
     // HTTP/1.1 only, as before undici 8 (which offers h2 by default).
     // nosemgrep: problem-based-packs.insecure-transport.js-node.bypass-tls-verification.bypass-tls-verification -- operator opt-in (N8N_ALLOW_INSECURE_TLS=1, exactly '1') for a self-signed n8n; verification stays on otherwise
     insecureAgent ||= new Agent({ allowH2: false, connect: { rejectUnauthorized: false } });
-    return undiciFetch(url, { ...init, dispatcher: insecureAgent });
+    // Node's global fetch IS undici; its RequestInit only differs by the duplicated undici-types package.
+    return undiciFetch(url, /** @type {import('undici').RequestInit} */ ({ ...init, dispatcher: insecureAgent }));
 }
 
-/** A multipart body from plain fields and buffers, as n8n's webhook expects. */
+/**
+ * A multipart body from plain fields and buffers, as n8n's webhook expects.
+ * @param {Record<string, unknown>} [fields]
+ * @param {Array<{ content: Buffer | string, encoding?: BufferEncoding, fieldName?: string, mimeType?: string, name?: string }>} [files]
+ */
 function multipartBody(fields = {}, files = []) {
     const form = new FormData();
     for (const [key, value] of Object.entries(fields)) {
@@ -38,7 +48,7 @@ function multipartBody(fields = {}, files = []) {
     }
     for (const file of files) {
         const bytes = Buffer.isBuffer(file.content) ? file.content : Buffer.from(file.content, file.encoding || 'base64');
-        form.append(file.fieldName || 'file', new Blob([bytes], { type: file.mimeType || 'application/octet-stream' }), file.name);
+        form.append(file.fieldName || 'file', new Blob([/** @type {Uint8Array<ArrayBuffer>} */ (bytes)], { type: file.mimeType || 'application/octet-stream' }), file.name);
     }
     return form;
 }

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The integration tool families, registered with core's tool dispatcher.
  *
@@ -55,9 +55,26 @@ const { isTranscriptionTool, executeTranscriptionTool } = require('./transcripti
 const { isSupportTool, executeSupportTool } = require('./supportTools');
 const { isWebpageAutomationTool, executeWebpageAutomationTool } = require('./webpageAutomationTools');
 const { executeNextcloudFamilyTool, executeGuardedNextcloudTool, executeCheckedNextcloudTool, isNextcloudFamilyToolName } = require('./nextcloudToolFamily');
-const log = require('../telemetry/log');
 
-/** The org a document tool files its output under. */
+/**
+ * The dispatcher's context, with the fields these families read named.
+ * @typedef {import('../core/tools/toolFamilyRegistry').ToolContext & {
+ *   session?: Express.Session, attachments?: unknown[], supportThreadId?: string,
+ *   memoryReadEnabled?: boolean, memoryWriteEnabled?: boolean, testAs?: unknown,
+ *   userAuth?: { supportThreadId?: string, supportActionPolicy?: import('./supportTools').ActionPolicy },
+ * }} ToolCtx
+ */
+/** @typedef {Record<string, unknown>} ToolArgs */
+/**
+ * @typedef {{ name: string, order: number, isTool: (n: string) => boolean,
+ *   execute: (n: string, a: ToolArgs, ctx: ToolCtx) => unknown,
+ *   parseName?: (n: string) => unknown, executeFamily?: unknown }} IntegrationToolFamily
+ */
+
+/**
+ * The org a document tool files its output under.
+ * @param {ToolCtx} ctx
+ */
 function documentOrgId({ orgId, session }) {
     return orgId || session?.connectorOrgId || session?.user?.organizationId || null;
 }
@@ -79,6 +96,11 @@ function documentOrgId({ orgId, session }) {
 // turn working automations into refusals, which is a policy change and not
 // this fix's business. So `unattended` can be set explicitly and only
 // falls back to autoSend when it wasn't.
+/**
+ * @param {string} toolName
+  * @param {ToolArgs} toolArgs
+ * @param {ToolCtx} context
+ */
 async function executeCustomIntegration(toolName, toolArgs, context) {
     return await require('./customIntegrationRunner').executeCustomIntegrationTool(toolName, toolArgs, {
         userId: context.userId,
@@ -91,6 +113,11 @@ async function executeCustomIntegration(toolName, toolArgs, context) {
 // the file lands where the user asked and the reply gets a webUrl. A
 // Nextcloud that is not connected answers with its own error, and the
 // deck is then built locally with that error alongside — never lost.
+/**
+ * @param {string} toolName
+ * @param {ToolArgs} toolArgs
+ * @param {ToolCtx} context
+ */
 async function executeCreatePresentation(toolName, toolArgs, context) {
     const { userId, session } = context;
     const { executePresentationTool } = require('./presentationTools');
@@ -101,7 +128,7 @@ async function executeCreatePresentation(toolName, toolArgs, context) {
     const { nextcloudPath, fileName, ...rest } = toolArgs;
     const path = /\.(pptx|odp)$/i.test(ncPath) ? ncPath : `${ncPath.replace(/\/+$/, '')}/${String(fileName || rest.title || 'presentation').replace(/\.pptx$/i, '')}.pptx`;
     // Through the scope guard, exactly like a direct nextcloud_* call.
-    const nc = await executeCheckedNextcloudTool('nextcloud_create_presentation', { ...rest, path }, context);
+    const nc = /** @type {{ error?: string } | null} */ (await executeCheckedNextcloudTool('nextcloud_create_presentation', { ...rest, path }, context));
     if (nc && !nc.error) return nc;
     /** @type {{ error?: string, message?: string }} */
     const local = await executePresentationTool(toolArgs, { userId, session, orgId: documentOrgId(context) });
@@ -111,6 +138,11 @@ async function executeCreatePresentation(toolName, toolArgs, context) {
 // ─── Word (.docx) and Excel (.xlsx) files ─────────────────────
 // Built in-process, then a download link, OneDrive or Nextcloud (after its
 // scope guard): integrations/officeFileDelivery.js.
+/**
+ * @param {string} toolName
+  * @param {ToolArgs} toolArgs
+ * @param {ToolCtx} context
+ */
 async function executeOfficeFile(toolName, toolArgs, context) {
     const { userId, session } = context;
     const { executeOfficeFileTool } = require('./officeFileDelivery');
@@ -123,6 +155,11 @@ async function executeOfficeFile(toolName, toolArgs, context) {
 // the write/execute bucket is permission-gated via modify_n8n_workflows.
 // Non-LLM callers (pipelines, schedules) also flow through here, so we
 // re-check writes as defense-in-depth vs. the registration-time filter.
+/**
+ * @param {string} toolName
+  * @param {ToolArgs} toolArgs
+ * @param {ToolCtx} context
+ */
 async function executeN8nWorkflow(toolName, toolArgs, context) {
     const { userId, session, orgId } = context;
     if (userId && getN8nToolPermission(toolName) === 'modify_n8n_workflows') {
@@ -143,6 +180,11 @@ async function executeN8nWorkflow(toolName, toolArgs, context) {
 // browser container, so its socket would put "local" on a call that
 // went to the web. The pages the browser read are recorded instead,
 // by host (basis 'browser'); their addresses live in that container.
+/**
+ * @param {string} toolName
+  * @param {ToolArgs} toolArgs
+ * @param {ToolCtx} context
+ */
 async function executeBrowseWeb(toolName, toolArgs, context) {
     const { send, userId, orgId } = context;
     const { outsideProbe } = require('../core/http/egressCapture');
@@ -155,10 +197,13 @@ async function executeBrowseWeb(toolName, toolArgs, context) {
  * The hosts a browse_web call read, as egress peers of the current probe:
  * the start URL, and the "Pages read" list executeBrowseWebTool appends. Only
  * that list is parsed, never the answer above it (page text can say anything).
+ * @param {unknown} startUrl
+ * @param {unknown} answer
  */
 function recordBrowserPeers(startUrl, answer) {
     try {
         const { recordPeer } = require('../core/http/egressCapture');
+        /** @type {string[]} */
         const urls = [];
         if (typeof startUrl === 'string' && startUrl.trim()) urls.push(startUrl.trim());
         const text = typeof answer === 'string' ? answer : '';
@@ -167,15 +212,17 @@ function recordBrowserPeers(startUrl, answer) {
             for (const m of text.slice(marker).matchAll(/^- (https?:\/\/\S+)$/gm)) urls.push(m[1]);
         }
         for (const u of urls) {
+            /** @type {string | null} */
             let host = null;
             try { host = new URL(u).hostname; } catch (_) { continue; }
             recordPeer({ host, ip: null, basis: 'browser', method: 'GET', sentBody: false });
         }
-    } catch (err) { log.debug('a missing peer must never fail the browse', err); }
+    } catch (err) { fallback('integrations/toolFamilies:recordBrowserPeers', err); /* a missing peer must never fail the browse */ }
 }
 
 // ─── Notebook Tools (formerly Workspace) ───────────────────────
 const { NOTEBOOK_TOOLS } = require('./notebookToolNames');
+const { fallback } = require('../utils/bestEffort');
 
 /**
  * BFSF-207 backstop: notebook tools are entitlement-gated at registration;
@@ -183,12 +230,14 @@ const { NOTEBOOK_TOOLS } = require('./notebookToolNames');
  * registration's org resolution (the user's own org — context.orgId is absent
  * in agent chat and may be the LENDER's org under connection lending).
  * Returns the refusal, or null when the user may use notebooks.
+ * @param {string} userId
+ * @param {Express.Session} session
  */
 async function notebookRefusal(userId, session) {
     try {
         const { hasCapability } = require('../core/entitlements/entitlements');
         let resolveOrgId = null;
-        try { resolveOrgId = (await require('../stores/userStore').getUser(userId))?.organizationId || null; } catch (_) { log.debug('user lookup failed, the capability check runs without an org', _); }
+        try { resolveOrgId = (await require('../stores/userStore').getUser(userId))?.organizationId || null; } catch (_) { fallback('integrations/toolFamilies:notebookRefusal', _); /* user lookup failed, the capability check runs without an org */ }
         const ok = !!userId
             && await hasCapability('notebooks', { userId, orgId: resolveOrgId, session })
             && await hasPermission(userId, 'use_notebooks', session);
@@ -201,6 +250,11 @@ async function notebookRefusal(userId, session) {
     }
 }
 
+/**
+ * @param {string} toolName
+ * @param {ToolArgs} toolArgs
+ * @param {ToolCtx} context
+ */
 async function executeNotebook(toolName, toolArgs, context) {
     const { userId, session } = context;
     const refusal = await notebookRefusal(userId, session);
@@ -217,6 +271,11 @@ async function executeNotebook(toolName, toolArgs, context) {
 }
 
 // ─── Memory ────────────────────────────────────────────────────
+/**
+ * @param {string} toolName
+ * @param {ToolArgs} toolArgs
+ * @param {ToolCtx} context
+ */
 async function executeMemory(toolName, toolArgs, context) {
     const { userId, orgId, agentId, session } = context;
     return await require('./memoryTools').executeMemoryTool(toolName, toolArgs, {
@@ -241,6 +300,11 @@ async function executeMemory(toolName, toolArgs, context) {
 //
 // It is not an identity and it never widens anything — `visibleKbIdsFor`
 // only removes bases from a list the real person may already read.
+/**
+ * @param {string} toolName
+ * @param {ToolArgs} toolArgs
+ * @param {ToolCtx} context
+ */
 async function executeKbSearch(toolName, toolArgs, context) {
     return await executeKbSearchTool(toolName, toolArgs, {
         userId: context.userId,
@@ -256,6 +320,11 @@ async function executeKbSearch(toolName, toolArgs, context) {
 // the vault credential). Graph must then get a Microsoft-only shim,
 // never this session's foreign token; a Microsoft session passes
 // through unchanged. `autoSend` follows gmail_compose exactly.
+/**
+ * @param {string} toolName
+  * @param {ToolArgs} toolArgs
+ * @param {ToolCtx} context
+ */
 async function executeOutlook(toolName, toolArgs, context) {
     const { session, userId } = context;
     const { resolveMicrosoftSession } = require('../auth/microsoftSessionHydration');
@@ -263,16 +332,25 @@ async function executeOutlook(toolName, toolArgs, context) {
     return await executeOutlookTool(toolName, toolArgs, msSession, { autoSend: !!context.autoSend });
 }
 
-/** Families whose executor takes (toolName, toolArgs, userId). */
+/**
+ * Families whose executor takes (toolName, toolArgs, userId).
+ * @param {(n: string, a: ToolArgs, userId: string) => unknown} execute
+ * @returns {IntegrationToolFamily['execute']}
+ */
 const byUser = execute => (name, args, ctx) => execute(name, args, ctx.userId);
-/** Families whose executor takes (toolName, toolArgs, session). */
+/**
+ * Families whose executor takes (toolName, toolArgs, session).
+ * @param {(n: string, a: ToolArgs, session: Express.Session) => unknown} execute
+ * @returns {IntegrationToolFamily['execute']}
+ */
 const bySession = execute => (name, args, ctx) => execute(name, args, ctx.session);
 
+/** @type {IntegrationToolFamily[]} */
 const INTEGRATION_TOOL_FAMILIES = [
     // `parseName` gives core's progressive disclosure the cint_<slug>_<tool> grammar.
-    { name: 'custom_integration', order: 0, isTool: n => require('./customIntegrationRunner').isCustomIntegrationTool(n), execute: executeCustomIntegration, parseName: n => require('./customIntegrationRunner').parsePrefixedName(n) },
-    { name: 'create_presentation', order: 40, isTool: n => n === 'create_presentation', execute: executeCreatePresentation },
-    { name: 'create_word_document', order: 50, isTool: n => n === 'create_word_document' || n === 'create_spreadsheet', execute: executeOfficeFile },
+    { name: 'custom_integration', order: 0, isTool: (/** @type {string} */ n) => require('./customIntegrationRunner').isCustomIntegrationTool(n), execute: executeCustomIntegration, parseName: (/** @type {string} */ n) => require('./customIntegrationRunner').parsePrefixedName(n) },
+    { name: 'create_presentation', order: 40, isTool: (/** @type {string} */ n) => n === 'create_presentation', execute: executeCreatePresentation },
+    { name: 'create_word_document', order: 50, isTool: (/** @type {string} */ n) => n === 'create_word_document' || n === 'create_spreadsheet', execute: executeOfficeFile },
     { name: 'fireflies', order: 100, isTool: isFirefliesTool, execute: byUser(executeFirefliesTool) },
     { name: 'regex_generator', order: 110, isTool: isRegexGeneratorTool, execute: (n, a) => executeRegexGeneratorTool(n, a) },
     { name: 'youtrack', order: 120, isTool: isYouTrackTool, execute: byUser(executeYouTrackTool) },

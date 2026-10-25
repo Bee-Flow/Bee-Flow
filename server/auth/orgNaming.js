@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Display-name helpers for auto-provisioned Nextcloud organisations.
  *
@@ -9,6 +9,9 @@
  */
 
 // Hostname of a Nextcloud base URL, for display. https://nc.e380.net/ → nc.e380.net.
+/**
+ * @param {string} ncBaseUrl
+ */
 function ncHostFromUrl(ncBaseUrl) {
     try {
         return new URL(ncBaseUrl).host || null;
@@ -21,6 +24,10 @@ function ncHostFromUrl(ncBaseUrl) {
 // Qualifies the instance's theming name with its host so the admin list can
 // tell otherwise-identical "Nextcloud" orgs apart, e.g. "Nextcloud (nc.e380.net)".
 // Skips the suffix when the name already carries the host (custom-themed instances).
+/**
+ * @param {string} themingName
+ * @param {string} ncBaseUrl
+ */
 function buildAutoOrgName(themingName, ncBaseUrl) {
     const base = (themingName || 'Nextcloud').trim() || 'Nextcloud';
     const host = ncHostFromUrl(ncBaseUrl);

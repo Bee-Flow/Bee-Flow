@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * A table id the model wrote that is not a table — but names one.
  *
@@ -19,7 +19,10 @@
 
 const { keyFromTitle } = require('../../core/dataEngine/sources/mirror/keys');
 
-/** `tbl_suppliers_01` → `suppliers`; `Suppliers` → `suppliers`; `tbl_ab12cd` → `ab12cd`. */
+/**
+ * `tbl_suppliers_01` → `suppliers`; `Suppliers` → `suppliers`; `tbl_ab12cd` → `ab12cd`.
+ * @param {string} id
+ */
 function tableHandle(id) {
     return String(id == null ? '' : id)
         .trim()

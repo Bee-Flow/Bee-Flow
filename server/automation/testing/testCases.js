@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Test cases on a code step or a custom node: the domain logic behind
  * routes/automation/testCases.js, with its dependencies injected.
@@ -28,9 +28,13 @@ const { runCodeOnce } = require('./codeTestRun');
 
 const fixtureMaxBytes = () => envCap('AUTOMATION_TEST_FIXTURE_MAX_BYTES', 1024 * 1024);
 
+/**
+ * @param {unknown} v
+ * @returns {v is Record<string, any>}
+ */
 const isObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 
-/** Refusal code of codeTestRun to the reason a result reports. */
+/** @type {Record<string, string>} Refusal code of codeTestRun to the reason a result reports. */
 const REASON_OF = Object.freeze({
     code_syntax_error: 'code_syntax_error',
     code_blocked: 'code_blocked',
@@ -42,17 +46,23 @@ const REASON_OF = Object.freeze({
  * The code step `stepId` in a definition: a root step, a loop or parallel body
  * step, or a step of any layer. Only a step of type 'code' qualifies.
  *
+ * @param {any} definition
+ * @param {string} stepId
  * @returns {any|null}
  */
 function findCodeStep(definition, stepId) {
+    /** @type {any} */
     let found = null;
-    walkAllSteps(definition, (s) => {
+    walkAllSteps(definition, (/** @type {any} */ s) => {
         if (!found && s && s.id === stepId && s.type === 'code') found = s;
     });
     return found;
 }
 
-/** The input names a code step reads (its `inputs` keys), without the secret declaration. */
+/**
+ * The input names a code step reads (its `inputs` keys), without the secret declaration.
+ * @param {any} step
+ */
 function declaredInputNames(step) {
     return isObject(step?.inputs) ? Object.keys(step.inputs).filter((k) => k !== 'secretKeys') : [];
 }
@@ -67,15 +77,16 @@ function declaredInputNames(step) {
 async function captureFixture({ automation, stepId, run, legs, attempts }, deps) {
     const step = findCodeStep(automation?.definition, stepId);
     if (!step) throw new HttpError(404, 'step_not_found', 'Not found');
-    const readable = new Set((legs && legs.length ? legs : [run]).map((l) => l.id));
+    const readable = new Set((legs && legs.length ? legs : [run]).map((/** @type {{ id: string }} */ l) => l.id));
     const rows = (await deps.store.getRunStepsForChain(run.id))
-        .filter((r) => r.stepId === stepId && readable.has(r.runId) && r.input !== undefined && r.input !== null);
-    const row = attempts != null ? rows.find((r) => r.attempts === attempts) : rows[rows.length - 1];
+        .filter((/** @type {any} */ r) => r.stepId === stepId && readable.has(r.runId) && r.input !== undefined && r.input !== null);
+    const row = attempts != null ? rows.find((/** @type {any} */ r) => r.attempts === attempts) : rows[rows.length - 1];
     if (!row) throw new HttpError(422, 'step_not_in_run', 'This step has no recorded input in that run.');
     if (isTruncatedOutput(row.input)) {
         throw new HttpError(422, 'fixture_truncated', 'The input of this step was too large to be recorded in full, so it cannot be used as test data.');
     }
     const source = isObject(row.input) ? row.input : {};
+    /** @type {Record<string, any>} */
     const input = {};
     for (const name of declaredInputNames(step)) {
         if (Object.prototype.hasOwnProperty.call(source, name)) input[name] = source[name];
@@ -87,10 +98,33 @@ async function captureFixture({ automation, stepId, run, legs, attempts }, deps)
     return deps.testingStore.createFixture({ automationId: automation.id, runId: run.id, stepId, input });
 }
 
-const EMPTY_EXPECTATION = (expected) => ({ expected, got: null });
+/** @param {string} expected */
+const EMPTY_EXPECTATION = (expected) => ({ expected, got: /** @type {string | null} */ (null) });
 
-/** The result of one case: always the full contract shape. */
+/**
+ * @typedef {Object} CaseResult
+ * @property {string} caseId
+ * @property {string} name
+ * @property {string} status
+ * @property {string | null} reason
+ * @property {{ expected: string, got: string | null }} expectation
+ * @property {import('./assertions').AssertionResult[]} assertions
+ * @property {unknown[]} logs
+ * @property {unknown[]} calls
+ * @property {number} durationMs
+ * @property {unknown} [result]
+ * @property {string} [error]
+ */
+
+/**
+ * The result of one case: always the full contract shape.
+ * @param {{ id: string, name: string, expect: string, assertions: any[] }} c
+ * @param {{ automation: any, step: any, code?: string, orgId?: string | null }} ctx
+ * @param {{ testingStore: any, sandbox?: any, getSandbox?: () => any, now?: () => number }} deps
+ * @returns {Promise<CaseResult>}
+ */
 async function runOneCase(c, { automation, step, code, orgId }, deps) {
+    /** @type {CaseResult} */
     const base = {
         caseId: c.id, name: c.name, status: 'unusable', reason: null,
         expectation: EMPTY_EXPECTATION(c.expect), assertions: [], logs: [], calls: [], durationMs: 0,
@@ -136,12 +170,14 @@ async function runOneCase(c, { automation, step, code, orgId }, deps) {
  * @param {{ testingStore: any, sandbox?: any, getSandbox?: () => any, now?: () => number }} deps
  */
 async function runTestCases({ automation, step, cases, code, orgId }, deps) {
+    /** @type {CaseResult[]} */
     const results = [];
     for (const c of cases) {
         const result = await runOneCase(c, { automation, step, code, orgId }, deps);
         await deps.testingStore.recordTestCaseResult(automation.id, c.id, { status: result.status });
         results.push(result);
     }
+    /** @param {string} status */
     const count = (status) => results.filter((r) => r.status === status).length;
     return {
         stepId: step.id,

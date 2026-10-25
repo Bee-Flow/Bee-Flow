@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Agent CRUD: what a caller may send to the category, transfer and tool-param
  * routes and to the agent save (PUT /:id). Split out of crud.js; behaviour
@@ -39,6 +39,7 @@ const ToolParamsBody = z.object({
  * An on/off setting as a client sends it: true or false, or the 1 and 0 that
  * AgentDesignerPanel and the AgentDesigner hook send for `workspaceEnabled`.
  * Anything else is refused: the store writes `!!value`, and `!!'false'` is on.
+ * @param {string} name
  */
 const setting = (name) => {
     const message = `${name} is true or false.`;
@@ -53,6 +54,7 @@ const setting = (name) => {
  * `__proto__` key while rebuilding — so rejectUnsafeConfigKeys would never see
  * the key it exists to refuse, and a polluting body would save under a 200
  * instead of being turned away by name.
+ * @param {string} message
  */
 const asSent = (message) => z.custom(
     (v) => v !== null && typeof v === 'object' && !Array.isArray(v),

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * DSR identity-verification token — the signed link in the acknowledgement
  * e-mail. Clicking it proves the requester controls the mailbox the request
@@ -34,11 +34,17 @@ const secret = createSigningSecret({
     productionLogLevel: 'warn',
 });
 
+/**
+ * @param {string} s
+ */
 function sha256Hex(s) {
     return crypto.createHash('sha256').update(String(s), 'utf8').digest('hex');
 }
 
-/** Deterministic e-mail binding: lower-cased, trimmed, hashed. */
+/**
+ * Deterministic e-mail binding: lower-cased, trimmed, hashed.
+ * @param {string} email
+ */
 function emailHash(email) {
     return sha256Hex(String(email || '').trim().toLowerCase());
 }

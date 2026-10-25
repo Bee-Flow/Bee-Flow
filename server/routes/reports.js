@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Reports API Routes
  * Generates JSON-structured reports for the frontend PageRenderer
@@ -33,9 +34,11 @@ const { z, datetimeWithOffset } = require('../utils/zod');
 
 const router = express.Router();
 
+/** @param {string} name */
 const DATE_TEXT = (name) => `${name} is a date (2026-09-22) or a date and time with its zone (2026-09-22T09:00:00.000Z).`;
 // Each branch carries the sentence: a union answers with the first branch that
 // got as far as a check, so its errorMap alone would leak "Invalid datetime".
+/** @param {string} name */
 const when = (name) => z.union(
     [z.string().regex(datetimeWithOffset, DATE_TEXT(name)), z.string().date(DATE_TEXT(name))],
     { error: () => DATE_TEXT(name) },
@@ -43,8 +46,12 @@ const when = (name) => z.union(
 
 const ReportQuery = z.object({ startDate: when('startDate'), endDate: when('endDate') }).strict();
 
-/** " (2026-01-01 - 2026-01-31)", " (from …)", " (until …)" or "" — the period a title covers. */
+/**
+ * " (2026-01-01 - 2026-01-31)", " (from …)", " (until …)" or "" — the period a title covers.
+ * @param {{ startDate?: string, endDate?: string }} period
+ */
 function periodLabel({ startDate, endDate }) {
+    /** @param {string} v */
     const day = (v) => String(v).split('T')[0];
     if (startDate && endDate) return ` (${day(startDate)} - ${day(endDate)})`;
     if (startDate) return ` (from ${day(startDate)})`;
@@ -77,7 +84,7 @@ router.get('/types', requireAuth, async (req, res) => {
 });
 
 // Generate a specific report
-router.get('/:type', requireAuth, requirePermission('admin_monitoring'), validate({ query: ReportQuery }), async (req, res) => {
+router.get('/:type', requireAuth, requirePermission('admin_monitoring'), validate({ query: ReportQuery }), /** @param {import('express').Request<{ type: string }, any, any, import('qs').ParsedQs & { startDate?: string, endDate?: string }>} req */ async (req, res) => {
     const { type } = req.params;
     const userId = req.session.user.id;
 
@@ -101,6 +108,10 @@ router.get('/:type', requireAuth, requirePermission('admin_monitoring'), validat
 
 // Report Generators
 
+/**
+ * @param {string} userId
+ * @param {{ startDate?: string | null, endDate?: string | null }} [filters]
+ */
 async function generateSystemOverview(userId, filters = {}) {
     const { startDate, endDate } = filters;
     const agentStats = await agentStore.getSystemStats(startDate, endDate);
@@ -109,6 +120,7 @@ async function generateSystemOverview(userId, filters = {}) {
     const title = `System Overview${periodLabel(filters)}`;
 
     // Prepare chart data for messages per agent
+    /** @type {{ labels: string[], datasets: { label: string, data: number[], backgroundColor: string, borderColor: string, borderWidth: number }[] }} */
     const messageChartData = {
         labels: [],
         datasets: [{
@@ -195,6 +207,7 @@ async function generateSystemOverview(userId, filters = {}) {
     };
 }
 
+/** @param {{ startDate?: string | null, endDate?: string | null }} [filters] */
 async function generateAgentPerformance(filters = {}) {
     const { startDate = null, endDate = null } = filters;
     const allAgents = await agentStore.getAllAgents();

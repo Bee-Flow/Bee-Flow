@@ -145,3 +145,12 @@ module.exports = {
     runPatchBatch,
     finishPatchBatch,
 };
+
+/**
+ * @typedef {import('../../builderTools').ToolArgs} ToolArgs
+ * @typedef {import('../../builderTools').ToolResult} ToolResult
+ * @typedef {import('../../builderTools').BuilderDraft} BuilderDraft
+ * @typedef {{ ops?: Array<{ op?: string, path?: unknown, from?: unknown, to?: unknown }>, why?: string }} SuggestedPatch
+ * @typedef {{ index: number, error: string, _fixHint?: string, _suggestedPatch?: SuggestedPatch, _hints?: string[], _item: ToolArgs }} PatchFailure  One rejected entry of a batch.
+ * @typedef {{ index: number, result: ToolResult }} PatchApplied  One entry that landed.
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * ISO 27001 A.8.4 — access to source code: default-branch protection from the
  * github connector snapshots. An unprotected default branch on any monitored
@@ -25,6 +25,9 @@ module.exports = {
     remediationKey: 'compliance.checks.iso_source_protection.fix',
     remediationLink: 'admin/compliance/iso_connectors',
 
+    /**
+     * @param {string} orgId
+     */
     async evaluate(orgId) {
         const read = await readConnectorSnapshots(orgId, 'github', 'GitHub connector not enabled — link a token and list your repositories under ISO 27001 → Connectors.');
         if (read.result) return read.result;

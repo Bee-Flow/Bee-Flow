@@ -226,7 +226,7 @@ function loadToolsResult(entry) {
     try {
         mod = require(entry.module);
     } catch (e) {
-        log.warn(`[toolRegistry] Failed to load ${entry.app} (${entry.module}):`, e.message);
+        log.warn(`[toolRegistry] Failed to load ${entry.app} (${entry.module}):`, /** @type {Error} */ (e).message);
         return { tools: [], ok: false, reason: 'require_failed' };
     }
     const arr = mod ? mod[entry.arrayName] : undefined;
@@ -275,6 +275,7 @@ function toolNamesForApps(appIds) {
 /**
  * Find the registry entry that owns a specific tool name.
  * Returns null if no app claims the tool.
+ * @param {string} toolName
  */
 function findOwnerOfTool(toolName) {
     for (const entry of TOOL_REGISTRY) {
@@ -319,3 +320,17 @@ module.exports = {
     availabilityFor,
     availableForContext,
 };
+
+/**
+ * One app that owns tool names.
+ * @typedef {Object} ToolAppEntry
+ * @property {string} app
+ * @property {string} label
+ * @property {string} module  require path of the module that exports the TOOLS array
+ * @property {string} arrayName
+ * @property {string | null} [enabledKey]
+ * @property {string[]} [availableTo]
+ * @property {string | string[]} [availability]
+ * @property {boolean} [grantsRequireEntry]
+ * @property {string} [grantsVia]
+ */

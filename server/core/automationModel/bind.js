@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Binding resolver for automation step inputs.
  *
@@ -21,6 +20,7 @@ const { AsyncLocalStorage } = require('node:async_hooks');
 const { evaluate, parseExpr, templateText, parsePath, walkTokens, getRelativePath, replaceTemplate, scanTemplate, parseJsonText, formatPath, jsonCacheFor } = require('../../shared/expr/index.mjs');
 const log = require('../../telemetry/log');
 const { missingResultTokens } = require('./codeOutput');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── The binding log ─────────────────────────────────────────────────────
 //
@@ -466,7 +466,7 @@ function jsonBareValue(v) {
         if (parsed !== undefined) return JSON.stringify(parsed);
         const t = v.trim();
         if (t) {
-            try { JSON.parse(t); return t; } catch (err) { log.debug('plain text', err); }
+            try { JSON.parse(t); return t; } catch (err) { bestEffort('core/automationModel/bind:jsonBareValue', err); /* plain text */ }
         }
         return JSON.stringify(v);
     }
@@ -620,3 +620,25 @@ module.exports = {
     resolveValue, resolveDeep, resolveInputs, walkPath, walkRelativePath, interpolateTemplate, cloneLiteral,
     interpolateJsonBody, withBindingLog, describeBindingMiss, noteRuleMiss, bindingLogStore, noteMiss,
 };
+
+/**
+ * One binding-log entry (see withBindingLog).
+ * @typedef {{ field?: string, kind?: string, path?: string, reason?: string, at?: string, found?: string,
+ *   missing?: string, step?: string, index?: boolean, size?: number, message?: string, count?: number,
+ *   [key: string]: unknown }} BindingMiss
+ */
+
+/**
+ * The roots a binding reads: `{ trigger, steps, loop, vars, secrets }` (see the header).
+ * @typedef {{ trigger?: unknown, steps?: Record<string, unknown>, loop?: unknown, vars?: unknown,
+ *   secrets?: unknown, _templateWarnings?: string[] }} BindRunState
+ */
+
+/**
+ * A part of a scanned template (shared/expr scanTemplate).
+ * @typedef {{ type: string, value?: string, inner?: string }} TemplatePart
+ */
+
+/**
+ * @typedef {{ part: TemplatePart, index: number, inString?: boolean, sole?: boolean }} TemplateLayoutEntry
+ */

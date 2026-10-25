@@ -1,3 +1,4 @@
+/** @typedef {import('pg').PoolClient} PoolClient */
 /**
  * The `remove` deployment kind (design 6.8): take a UAT or PRD stage down
  * for good, through the same admission, lock, approval gate and runner as a
@@ -38,7 +39,11 @@ const log = require('../../telemetry/log');
 const { stageLockSql } = require('../../stores/solutionStage/stages');
 const { storesOf, makeJournal } = require('./journal');
 const { toConverging } = require('./commit');
+const { bestEffort } = require('../../utils/bestEffort');
 
+/**
+ * @param {string} name
+ */
 const dep = (deps, name, load) => (deps && deps[name] !== undefined ? deps[name] : load());
 
 /**
@@ -51,7 +56,7 @@ function deletesData(deployment) {
 }
 
 /** A part that is already gone is a part that is removed: a repeated commit must not stop on it. */
-const isGone = (err) => !!err && (err.status === 404 || err.code === 'not_found' || err.code === 'datatable_not_found');
+const isGone = (/** @type {{ status: number; code: string; }} */ err) => !!err && (err.status === 404 || err.code === 'not_found' || err.code === 'datatable_not_found');
 
 async function liveStamps(s, stage) {
     return [...(await s.blueprintStore.listStamps(stage.projectId)).values()].filter(st => !st.retiredAt);
@@ -119,7 +124,7 @@ async function removeStarted({ deployment }, deps = {}) {
     const steps = await s.stageStore.listSteps(deployment.id, { phase: 'commit' });
     // A step that failed with an error refused before it deleted anything (a guard, a lock); one that
     // is still `pending` may have landed.
-    return steps.some(st => st.status === 'pending' || st.status === 'done');
+    return steps.some((/** @type {{ status: string; }} */ st) => st.status === 'pending' || st.status === 'done');
 }
 
 /** Delete (or, for data without `deleteData`, keep) one part of the stage. */
@@ -150,7 +155,10 @@ async function removePart(s, st, { stage, managedWrite, deleteData, deps }) {
     }
 }
 
-/** The stage's own rows: settings, bindings, variable values, stamps (one transaction, with the move to converging). */
+/**
+ * The stage's own rows: settings, bindings, variable values, stamps (one transaction, with the move to converging).
+ * @param {PoolClient} client
+ */
 async function deleteStageRows(client, s, stage) {
     if (typeof s.stageStore.removeStageRows === 'function') return s.stageStore.removeStageRows(client, stage.projectId);
     await client.query('DELETE FROM solution_bindings WHERE project_id = $1', [stage.projectId]);
@@ -176,11 +184,12 @@ async function commitRemove({ deployment, stage }, deps = {}) {
         if (!REMOVABLE.includes(st.kind)) continue;
         const row = { ref: st.ref, kind: st.kind, entityId: st.entityId };
         const step = await journal.pending('remove_part', row);
+        /** @type {string} */
         let action;
         try {
             action = await removePart(s, st, { stage, managedWrite, deleteData, deps });
         } catch (err) {
-            if (!isGone(err)) { await step.failed({ detail: { code: err && err.code ? String(err.code) : 'failed' } }).catch(() => {}); throw err; }
+            if (!isGone(err)) { await step.failed({ detail: { code: err && err.code ? String(err.code) : 'failed' } }).catch((e) => bestEffort('projects/stages/removeStage:commitRemove', e)); throw err; }
             action = 'delete';
         }
         await step.done({ detail: { action } });
@@ -209,7 +218,7 @@ async function finishRemove({ deployment, stage }, deps = {}) {
     } catch (err) {
         // The stage's rows are gone already; a project left behind is reported, and a retry tears it down.
         warnings = [{ task: 'teardown', ref: null, code: err && err.code ? String(err.code) : 'failed' }];
-        log.warn(`[stages/removeStage] teardown of ${stage.projectId} failed: ${err && err.message}`);
+        log.warn(`[stages/removeStage] teardown of ${stage.projectId} failed: ${err && /** @type {Error} */ (err).message}`);
     }
     const emit = dep(deps, 'emitProjectEvent', () => require('../../core/projectFeed').emitProjectEvent);
     try {
@@ -217,10 +226,16 @@ async function finishRemove({ deployment, stage }, deps = {}) {
             kind: 'deployment.succeeded', actorId: deployment.requestedBy || null, targetType: 'deployment', targetId: deployment.id,
             payload: { deploymentId: deployment.id, kind: 'remove', stage: stage.stage, warnings: warnings.length },
         }, { label: 'Solution stages' });
-    } catch (err) { log.debug('the feed is best-effort', err); }
+    } catch (err) { bestEffort('projects/stages/removeStage:finishRemove', err); /* the feed is best-effort */ }
     const report = { warnings, attempts: 1 };
     const row = await s.stageStore.transitionDeployment(deployment.id, ['converging'], warnings.length ? 'succeeded_with_warnings' : 'succeeded', { report });
     return { deployment: row, report };
 }
 
 module.exports = { prepareRemove, commitRemove, finishRemove, removeStarted, deletesData, removePart };
+
+/** @typedef {import('./model').DeploymentRow} DeploymentRow */
+
+/** @typedef {import('./model').StageRow} StageRow */
+
+/** @typedef {ReturnType<typeof storesOf>} Stores */

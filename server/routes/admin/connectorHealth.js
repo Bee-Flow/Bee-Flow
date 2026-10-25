@@ -32,7 +32,7 @@ const { tagGate } = require('../../auth/gateMeta');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
-const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // -- What a caller may send ------------------------------------------
 //
@@ -49,6 +49,10 @@ const log = require('../../telemetry/log');
 // client's picker (healthMeta SEVERITY_IDS); a value added on one side
 // without the other is exactly the drift a failing test should catch.
 
+/**
+ * @param {string} name
+ * @param {string} what
+ */
 const one = (name, what) => worded(`${name} is ${what}.`).trim().min(1, `${name} is ${what}.`).optional();
 
 const SEVERITIES = ['info', 'warning', 'error', 'critical'];
@@ -78,6 +82,9 @@ const EventsQuery = z.object({
 // session's user object has no orgRole and no organizationId, so the previous
 // session-only comparison denied every SSO org admin. Connector-JWT sessions do
 // populate those fields, which is why this only ever failed from the web UI.
+/**
+ * @param {() => void} next
+ */
 async function _checkOrgAdmin(req, res, next) {
     const orgId = req.params.orgId;
     if (!orgId) return res.status(400).json({ error: 'orgId required' });
@@ -104,6 +111,7 @@ const checkOrgAdmin = tagGate(_checkOrgAdmin, {
 // (plan configuration, provider keys, billing state) that must never reach
 // customers — every open problem is rewritten through this map. Unknown codes
 // fall back to DEFAULT_SAFE. Keep wording soft and non-billing.
+/** @type {Record<string, { message: string; remediation: string; }>} */
 const CUSTOMER_SAFE_WORDING = {
     'chat.subscription_blocked': {
         message: 'AI chat is not available for your organisation yet.',
@@ -248,14 +256,14 @@ router.get('/admin/connector-health/mine', requireAuth, async (req, res) => {
     try {
         const sub = await userStore.getOrgSubscription(orgId);
         hasActiveSubscription = !!sub && sub.status === 'active';
-    } catch (err) { log.debug('treat as unknown-not-active', err); }
+    } catch (err) { fallback('routes/admin/connectorHealth:anon', err); /* treat as unknown-not-active */ }
 
     // Total successful messages — computeHealth needs it for 'inactive'.
     let messagesTotal = 0;
     try {
         const summary = await require('../../stores/usageStore').getUsageSummary({ organizationId: orgId });
         messagesTotal = Number(summary?.total_calls) || 0;
-    } catch (err) { log.debug('0 is safe: \'inactive\' is non-actionable in the banner', err); }
+    } catch (err) { fallback('routes/admin/connectorHealth:anon#2', err); /* 0 is safe: 'inactive' is non-actionable in the banner */ }
 
     const problems = await orgHealthStore.listProblems({ organizationId: orgId });
     const health = orgHealthStore.computeHealth({
@@ -301,3 +309,5 @@ module.exports.toCustomerSafeProblem = toCustomerSafeProblem;
 module.exports.CUSTOMER_SAFE_WORDING = CUSTOMER_SAFE_WORDING;
 module.exports.DEFAULT_SAFE = DEFAULT_SAFE;
 module.exports.BILLING_SENSITIVE_CODES = BILLING_SENSITIVE_CODES;
+
+/** @typedef {import('express').Router & Record<string, unknown>} RouterExports */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Direct-chat display segments (BFSF-261, part a).
  *
@@ -25,6 +25,7 @@
  */
 
 function createDisplaySegments() {
+    /** @type {string[]} */
     const segments = [];
     let pendingSeparator = false;
 
@@ -34,6 +35,7 @@ function createDisplaySegments() {
          * boundary BEFORE `fullContent` is reset. Rounds without visible text
          * (tool-only, muted pipeline steps) record nothing and never arm the
          * separator.
+         * @param {string} fullContent
          */
         onRoundEnd(fullContent) {
             if (fullContent && fullContent.trim()) {
@@ -47,6 +49,9 @@ function createDisplaySegments() {
          * recorded round is preceded by exactly one paragraph break. The
          * separator bypasses the untokeniser (it's pure whitespace) via the
          * raw `send` channel.
+         * @param {(text: string) => void} streamContent
+         * @param {(arg0: string, arg1: { text: string; }) => void} send
+         * @returns {(text: string) => void}
          */
         wrapStreamContent(streamContent, send) {
             return (text) => {
@@ -66,6 +71,7 @@ function createDisplaySegments() {
         /**
          * Join all recorded segments + the final round's text with paragraph
          * breaks — the persisted content now matches the streamed view.
+         * @param {string} fullContent
          */
         joinFinal(fullContent) {
             return [...segments, fullContent]

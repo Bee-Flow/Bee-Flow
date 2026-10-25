@@ -91,3 +91,8 @@ async function sendGmailMessage(gmail, { to, cc, bcc, subject, body, userEmail =
 }
 
 module.exports = { sanitizeHeaderValue, buildRawMessage, sendGmailMessage };
+
+/**
+ * @typedef {{ to?: string | null, cc?: string | null, bcc?: string | null, subject?: string | null, body?: string,
+ *   userEmail?: string, inReplyTo?: string | null, references?: string | null }} MailFields
+ */

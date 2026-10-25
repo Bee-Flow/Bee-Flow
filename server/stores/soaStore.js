@@ -58,6 +58,9 @@ async function listEntries(orgId) {
     `, [orgId]);
 }
 
+/**
+ * @param {string} controlRef
+ */
 async function getEntry(orgId, controlRef) {
     await initDB();
     return getOne(`
@@ -69,6 +72,8 @@ async function getEntry(orgId, controlRef) {
 /**
  * Upsert one SoA row. Only whitelisted fields are writable; everything else in
  * `patch` is silently dropped (same stance as complianceStore.saveSettings).
+ * @param {string} controlRef
+ * @param {string | null} actorId
  */
 async function upsertEntry(orgId, controlRef, patch, actorId) {
     await initDB();
@@ -111,6 +116,8 @@ async function upsertEntry(orgId, controlRef, patch, actorId) {
  * Seed missing rows only — never overwrites an existing decision. `seeds` is
  * [{ control_ref, applicable, source, justification }]; returns how many rows
  * were actually inserted.
+ * @param {{ control_ref: string; applicable: boolean; source: string; justification: string | null; }[]} seeds
+ * @param {string | null} actorId
  */
 async function seedMissing(orgId, seeds, actorId) {
     await initDB();
@@ -134,7 +141,10 @@ async function seedMissing(orgId, seeds, actorId) {
     return inserted;
 }
 
-/** Row counts for the readiness dashboard's "SoA completeness" number. */
+/**
+ * Row counts for the readiness dashboard's "SoA completeness" number.
+ * @param {string} orgId
+ */
 async function getStats(orgId) {
     await initDB();
     const rows = await getAll(`
@@ -143,6 +153,7 @@ async function getStats(orgId) {
         WHERE organization_id = $1
         GROUP BY status, applicable
     `, [orgId]);
+    /** @type {Record<string, number>} */
     const stats = { total: 0, approved: 0, reviewed: 0, todo: 0, excluded: 0 };
     for (const r of rows) {
         stats.total += r.n;

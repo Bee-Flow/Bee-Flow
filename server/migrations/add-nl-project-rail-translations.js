@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck strict
 /**
  * Dutch for the project rail (2026-10): the project switcher in the rail head
  * (with the current project's name for screen readers), its "Recent projects"
@@ -18,6 +19,7 @@ const NL_TRANSLATIONS = {
 };
 
 /** Nothing here is identical to English. */
+/** @type {string[]} */
 const SAME_AS_ENGLISH = [];
 
 /** @param {{ languageStore?: { addMissingGUITranslations: Function } }} [deps]  the real store unless a test hands one in */

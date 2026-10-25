@@ -54,6 +54,11 @@ const MAX_ID_LIST = 100;
 const MAX_TEXT = 4000;
 
 class SkillStructureError extends Error {
+    /**
+     * @param {string} message
+     * @param {string} field
+     * @param {string} [code]
+     */
     constructor(message, field, code = 'invalid_structure') {
         super(message);
         this.name = 'SkillStructureError';
@@ -63,12 +68,19 @@ class SkillStructureError extends Error {
     }
 }
 
+/**
+ * @param {string} prefix
+ */
 function newId(prefix) {
     return `${prefix}_${crypto.randomBytes(4).toString('hex')}`;
 }
 
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 function isNonEmptyString(v) { return typeof v === 'string' && v.trim().length > 0; }
+/**
+ * @param {number} [max]
+ * @param {string} v
+ */
 function cleanText(v, max = MAX_TEXT) {
     return typeof v === 'string' ? v.replace(/\r\n?/g, '\n').trim().slice(0, max) : '';
 }
@@ -82,10 +94,12 @@ const LIST_MARKER_RE = /^\s*(?:(\d+)[.)]|[-*•]|step\s+\d+[:.]?|stap\s+\d+[:.]?
  * one entry per marker; a paragraph without markers becomes one entry per
  * non-empty line. Continuation lines (indented, no marker) are folded into
  * the previous entry so a two-line step stays one step.
+ * @param {string} text
  */
 function splitListLines(text) {
     const src = cleanText(text, Infinity);
     if (!src) return [];
+    /** @type {string[]} */
     const out = [];
     const rawLines = src.split('\n');
     const hasMarkers = rawLines.some(l => LIST_MARKER_RE.test(l));
@@ -107,7 +121,10 @@ function splitListLines(text) {
     return out.filter(Boolean);
 }
 
-/** Split a paragraph into sentences (kept simple: . ! ? followed by whitespace + capital/quote/digit). */
+/**
+ * Split a paragraph into sentences (kept simple: . ! ? followed by whitespace + capital/quote/digit).
+ * @param {string} text
+ */
 function splitSentences(text) {
     const t = cleanText(text, Infinity);
     if (!t) return [];
@@ -142,6 +159,9 @@ const NEVER_RE = /\b(niet|geen|nooit|nimmer|never|don'?t|do not|must not|mustn'?
  */
 const NEVER_PREFIX_RE = /^\s*(?:never|nooit)\s*[:\u2014-]\s*/i;
 
+/**
+ * @param {string} text
+ */
 function polarityOf(text) {
     return NEVER_RE.test(text) ? 'never' : 'must';
 }
@@ -149,6 +169,7 @@ function polarityOf(text) {
 /**
  * `rules` text → rules_v2. Bulleted lines are rules; one long paragraph is
  * split into sentences. Polarity from the wording.
+ * @param {string} text
  */
 function parseRulesToRulesV2(text, opts = {}) {
     const idFactory = typeof opts.idFactory === 'function' ? opts.idFactory : () => newId('rule');
@@ -181,6 +202,7 @@ const EX_BAD_RE = /^\s*(?:bad|not like this|wrong|niet zo|fout|slecht(?: antwoor
  * Q:/A:, Vraag:/Antwoord:, User:/Assistant:, + optional Why:/Not like this:).
  * Text without the pattern becomes ONE example whose `good` is the whole
  * text — nothing is dropped.
+ * @param {string} text
  */
 function parseExamplesToExamplesV2(text, opts = {}) {
     const idFactory = typeof opts.idFactory === 'function' ? opts.idFactory : () => newId('ex');
@@ -257,6 +279,7 @@ function renderRulesToText(rules) {
 function renderExamplesToText(examples) {
     const list = Array.isArray(examples) ? examples : [];
     return list.map(ex => {
+        /** @type {string[]} */
         const parts = [];
         if (isNonEmptyString(ex?.question)) parts.push(`Input: ${cleanText(ex.question)}`);
         if (isNonEmptyString(ex?.good)) parts.push(`Output: ${cleanText(ex.good)}`);
@@ -268,6 +291,9 @@ function renderExamplesToText(examples) {
 
 // ── Validators (request payload → clean structure, or a 400) ─────────
 
+/**
+ * @param {string} field
+ */
 function requireArray(v, field) {
     if (!Array.isArray(v)) {
         throw new SkillStructureError(
@@ -280,6 +306,9 @@ function requireArray(v, field) {
     return v;
 }
 
+/**
+ * @param {string} field
+ */
 function validateRefs(refs, field) {
     if (refs === undefined || refs === null) return [];
     requireArray(refs, field);
@@ -297,13 +326,20 @@ function validateRefs(refs, field) {
     return out;
 }
 
+/**
+ * @param {string} prefix
+ * @param {string} field
+ */
 function ensureId(v, prefix, field, i) {
     if (v === undefined || v === null || v === '') return newId(prefix);
     if (!isNonEmptyString(v)) throw new SkillStructureError(`${field}[${i}].id must be a string`, field);
     return v.trim().slice(0, 64);
 }
 
-/** @returns {Array<{id:string,text:string,refs:Array<{kind:string,id:string}>}>} */
+/**
+ * @returns {Array<{id:string,text:string,refs:Array<{kind:string,id:string}>}>}
+ * @param {string} [field]
+ */
 function validateSteps(v, field = 'steps') {
     requireArray(v, field);
     if (v.length > MAX_STEPS) throw new SkillStructureError(`${field}: at most ${MAX_STEPS} steps`, field);
@@ -318,7 +354,10 @@ function validateSteps(v, field = 'steps') {
     });
 }
 
-/** @returns {Array<{id:string,polarity:'must'|'never',text:string}>} */
+/**
+ * @returns {Array<{id:string,polarity:'must'|'never',text:string}>}
+ * @param {string} [field]
+ */
 function validateRules(v, field = 'rulesV2') {
     requireArray(v, field);
     if (v.length > MAX_RULES) throw new SkillStructureError(`${field}: at most ${MAX_RULES} rules`, field);
@@ -335,7 +374,10 @@ function validateRules(v, field = 'rulesV2') {
     });
 }
 
-/** @returns {Array<{id,question,good,rationale,bad?,violatedRuleId?,sourceConversationId?}>} */
+/**
+ * @returns {Array<{id,question,good,rationale,bad?,violatedRuleId?,sourceConversationId?}>}
+ * @param {string} [field]
+ */
 function validateExamples(v, field = 'examplesV2') {
     requireArray(v, field);
     if (v.length > MAX_EXAMPLES) throw new SkillStructureError(`${field}: at most ${MAX_EXAMPLES} examples`, field);
@@ -368,6 +410,7 @@ function validateExamples(v, field = 'examplesV2') {
  * (automation/builderTools/schemas.js). `null` means "this skill yields no
  * fields" — the default, and what R2 reads as "keep the step's own schema".
  * @returns {null | {type:'object', properties: Object, required?: string[]}}
+ * @param {string} [field]
  */
 function validateOutputSchema(v, field = 'outputSchema') {
     if (v === undefined || v === null) return null;
@@ -419,11 +462,15 @@ function validateOutputSchema(v, field = 'outputSchema') {
     return out;
 }
 
-/** A list of ids (knowledge_base_ids, allowed_automation_ids): strings, trimmed, deduped, capped. */
+/**
+ * A list of ids (knowledge_base_ids, allowed_automation_ids): strings, trimmed, deduped, capped.
+ * @param {string} field
+ */
 function validateIdList(v, field) {
     if (v === undefined || v === null) return [];
     requireArray(v, field);
     const seen = new Set();
+    /** @type {string[]} */
     const out = [];
     for (const [i, raw] of v.entries()) {
         if (typeof raw !== 'string') throw new SkillStructureError(`${field}[${i}] must be a string`, field);
@@ -541,3 +588,12 @@ module.exports = {
     _splitListLines: splitListLines,
     _splitSentences: splitSentences,
 };
+
+/**
+ * @typedef {{ kind: string, id: string }} SkillRef
+ * @typedef {{ id: string, text: string, refs: SkillRef[] }} SkillStep
+ * @typedef {{ id: string, polarity: 'must'|'never', text: string }} SkillRule
+ * @typedef {{ id: string, question: string, good: string, rationale: string, bad?: string, violatedRuleId?: string, sourceConversationId?: string }} SkillExample
+ * @typedef {{ idFactory?: () => string }} IdOpts
+ * @typedef {Record<string, Record<string, unknown>>} OutputProperties
+ */

@@ -171,6 +171,9 @@ function makeRunRowDecorator(deps = {}) {
 /** The four counts of the Runs tab's filter segment, from a status facet map. */
 function segmentCounts(byStatus) {
     const s = byStatus || {};
+    /**
+     * @param {string[]} keys
+     */
     const sum = (keys) => keys.reduce((n, k) => n + (Number(s[k]) || 0), 0);
     return {
         all: Object.values(s).reduce((n, v) => n + (Number(v) || 0), 0),
@@ -189,3 +192,21 @@ module.exports = {
     countedSteps,
     STEP_BARS_MAX,
 };
+
+/**
+ * @typedef {object} RunRow  a run row as listRunsScoped hands it over, plus what decorate adds
+ * @property {string} [id]
+ * @property {string} [automationId]
+ * @property {number|null} [version]
+ * @property {string} [status]
+ * @property {string} [journeyRunId]
+ * @property {string} [startedByUserId]
+ * @property {string} [submittedByUserId]
+ * @property {boolean} [isTest]
+ * @property {{ code?: string|null }|null} [outcome]  the structured outcome (outcome_json)
+ * @property {string|null} [approvalId]
+ * @property {string} [callerAgentId]
+ * @property {string} [triggerKind]
+ * @property {Record<string, unknown>} [triggerPayload]
+ * @property {string} [rootStepId]
+ */

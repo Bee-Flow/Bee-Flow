@@ -48,7 +48,10 @@ function readingMinutes(markdown) {
     return words ? Math.max(1, Math.round(words / 220)) : 0;
 }
 
-/** First ~`max` characters of the body as plain text, cut on a word boundary. */
+/**
+ * First ~`max` characters of the body as plain text, cut on a word boundary.
+ * @param {number} [max]
+ */
 function deriveExcerpt(markdown, max = 200) {
     const plain = markdownToPlainText(markdown);
     if (plain.length <= max) return plain;
@@ -59,6 +62,7 @@ function deriveExcerpt(markdown, max = 200) {
 function extractAssetKeys(markdown) {
     const out = new Set();
     const re = /(?:\]\(\s*<?|\s|^)((?:\/api\/cms\/asset\/)?cms\/[^\s)>"']+)/g;
+    /** @type {RegExpExecArray | null} */
     let m;
     const src = String(markdown || '');
     while ((m = re.exec(src))) {

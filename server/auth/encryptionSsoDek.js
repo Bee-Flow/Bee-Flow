@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Zero-knowledge envelope encryption: SSO/OAuth users with an encryption PIN.
  *
@@ -78,6 +78,7 @@ async function setupSSOUserDEK(userId, encryptionPin, existingDEK = null) {
         }
     }
 
+    /** @type {{ dek: Buffer<ArrayBuffer>; recoveryKey: string; } | { dek: NonSharedBuffer; recoveryKey: string; }} */
     let result;
     if (existingDEK) {
         // Migration: re-wrap existing DEK with new PIN (higher Argon2 cost)

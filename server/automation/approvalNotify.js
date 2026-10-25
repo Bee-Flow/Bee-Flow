@@ -98,13 +98,13 @@ async function notifyApproval({
             });
             bells += 1;
         } catch (e) {
-            log.warn(`[ApprovalNotify] bell failed for ${approval.id}/${userId}: ${e.message}`);
+            log.warn(`[ApprovalNotify] bell failed for ${approval.id}/${userId}: ${/** @type {Error} */ (e).message}`);
         }
     }
 
     // ── The card, ONCE ───────────────────────────────────────────────────
     const channels = Array.isArray(policy.channels) ? policy.channels : [];
-    if (!card || !policy.enabled || !channels.some(c => CARD_CHANNELS.includes(c))) {
+    if (!card || !policy.enabled || !channels.some((/** @type {string} */ c) => CARD_CHANNELS.includes(c))) {
         return { bells, card: null };
     }
     try {
@@ -118,7 +118,7 @@ async function notifyApproval({
         });
         return { bells, card: report };
     } catch (e) {
-        log.warn(`[ApprovalNotify] Nextcloud delivery failed for ${approval.id}: ${e.message}`);
+        log.warn(`[ApprovalNotify] Nextcloud delivery failed for ${approval.id}: ${/** @type {Error} */ (e).message}`);
         return { bells, card: null };
     }
 }
@@ -127,6 +127,7 @@ async function notifyApproval({
  * The automation behind an approval row, or null. A convenience for the sweep
  * paths, which hold an approval row and nothing else — without it they cannot
  * resolve a policy and every announcement stays bell-only.
+ * @param {{ automationId: string; }} approval
  */
 async function automationForApproval(approval) {
     if (!approval?.automationId) return null;

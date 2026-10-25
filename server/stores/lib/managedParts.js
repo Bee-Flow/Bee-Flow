@@ -248,3 +248,7 @@ module.exports = {
     managedPartError,
     changedKeysOf,
 };
+
+/**
+ * @typedef {string | number | bigint | boolean | Date | StableValue[] | { [key: string]: StableValue } | null | undefined} StableValue
+ */

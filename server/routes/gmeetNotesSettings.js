@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Google Meet → Meeting Notes settings API.
  *
@@ -22,7 +22,7 @@ const { isOrgAdminForOrg: isOrgAdmin } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
 const { worded, choice } = require('../core/http/schemaParts');
-const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -49,17 +49,21 @@ const log = require('../telemetry/log');
 // rollback) and the server's own `updatedAt`/`updatedBy` stamp arrive too.
 // They are accepted; the stamp is ignored and rewritten on save.
 
-/** A body that also accepts no body: Express 5 leaves `req.body` undefined then. */
+/**
+ * A body that also accepts no body: Express 5 leaves `req.body` undefined then.
+ * @template {import('zod').ZodRawShape} T
+ * @param {T} shape
+ */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape, { error: typeError({ invalid: 'Send the settings as a JSON object.' }) }).strict(),
 );
 
-const onOff = (name) => z.boolean({ error: typeError({ invalid: `${name} is true, false, or null for no opinion.` }) })
+const onOff = (/** @type {string} */ name) => z.boolean({ error: typeError({ invalid: `${name} is true, false, or null for no opinion.` }) })
     .nullable().optional();
 
 const LANGUAGE_TEXT = 'language is a language code, like nl or en.';
-const legacyList = (name) => z.array(
+const legacyList = (/** @type {string} */ name) => z.array(
     worded(`${name} is a list of ids.`).min(1, `${name} is a list of ids.`),
     { error: typeError({ invalid: `${name} is a list of ids.` }) },
 ).optional();
@@ -88,7 +92,7 @@ router.get('/user/me', requireAuth, async (req, res) => {
     try {
         const credStore = require('../stores/automationCredentialStore');
         credential = await credStore.getCredential(req.session.user.id, 'google');
-    } catch (err) { log.debug('treat as no stored credential', err); }
+    } catch (err) { fallback('routes/gmeetNotesSettings:anon', err); /* treat as no stored credential */ }
     const connection = gmeetNotes.deriveConnectionStatus({ session: req.session, credential });
     res.json({ ...config, connection });
 });
@@ -99,7 +103,7 @@ router.put('/user/me', requireAuth, validate({ body: SettingsBody }), async (req
 });
 
 // ── Org-level (admin) ────────────────────────────────────
-router.get('/:orgId', requireAuth, async (req, res) => {
+router.get('/:orgId', requireAuth, async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     const { orgId } = req.params;
     const orgIds = await resolveUserOrgIds(req);
     const isMember = orgIds === null || (orgIds && orgIds.has(orgId));
@@ -108,7 +112,7 @@ router.get('/:orgId', requireAuth, async (req, res) => {
     res.json(config);
 });
 
-router.put('/:orgId', requireAuth, validate({ body: SettingsBody }), async (req, res) => {
+router.put('/:orgId', requireAuth, validate({ body: SettingsBody }), async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     const { orgId } = req.params;
     if (!(await isOrgAdmin(req, orgId))) {
         return res.status(403).json({ error: 'Only organization admins can manage these settings' });

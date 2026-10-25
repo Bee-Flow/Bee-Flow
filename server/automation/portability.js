@@ -54,6 +54,9 @@ const EXPORT_SCHEMA_VERSION = 1;
  */
 const EXPORT_SUPPORTED_VERSIONS = [1];
 
+/**
+ * @param {{ id: string; key: string; name?: string; }} x
+ */
 function isObject(x) { return x && typeof x === 'object' && !Array.isArray(x); }
 
 function deepClone(value) {
@@ -289,6 +292,7 @@ function buildExport(automation) {
  * carries are dropped, never echoed into the create path.
  */
 function sanitizeImport(envelope) {
+    /** @type {string[]} */
     const errors = [];
     if (!isObject(envelope)) {
         return { automation: null, errors: ['Import body must be a JSON object.'] };
@@ -458,6 +462,7 @@ const BINDING_KINDS = new Set(['literal', 'ref', 'template', 'expr']);
 /** Keys whose string value is an expression even when it does not parse yet (half-typed). */
 const EXPR_KEYS = new Set(['expr', 'when']);
 const NEVER_REWRITTEN = new Set(['id', 'type', 'layerKey', 'position', 'code', ...PIN_FIELDS]);
+/** @type {Record<string, Set<string>>} */
 const VERBATIM_FIELDS = {
     data_extraction: new Set(['instructions']),
     parse_json: new Set(['fields', 'itemsRef']),
@@ -476,6 +481,7 @@ function rewriteBinding(b, map) {
  * Rewrite step ids in any value: strings by what they are, binding wrappers
  * by their kind, objects and lists all the way down. Returns the new value
  * (strings are immutable); objects are rewritten in place.
+ * @param {string} key
  */
 function rewriteValue(value, map, key) {
     if (typeof value === 'string') return EXPR_KEYS.has(key) ? rewriteExpr(value, map) : rewriteAnyString(value, map);
@@ -500,6 +506,7 @@ function freshId(oldId, used) {
     const m = /^([A-Za-z][A-Za-z0-9]*)_/.exec(String(oldId));
     const prefix = m ? m[1]
         : (/^[A-Za-z][A-Za-z0-9]{0,7}$/.test(String(oldId)) ? String(oldId) : 's');
+    /** @type {string} */
     let id;
     do { id = `${prefix}_${crypto.randomBytes(3).toString('hex')}`; } while (used.has(id));
     used.add(id);
@@ -613,3 +620,9 @@ module.exports = { stripAppRefs,
     PIN_FIELDS,
     collectPinnedNodes,
 };
+
+/** @typedef {import('./automationGraph').AutomationStep} AutomationStep */
+
+/** @typedef {import('./automationGraph').AutomationGraph} AutomationGraph */
+
+/** @typedef {import('./automationGraph').AutomationDefinition} AutomationDefinition */

@@ -7,6 +7,7 @@
 
 const express = require('express');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
@@ -49,7 +50,9 @@ const { sendInvitationEmail } = require('../../utils/emailService');
 // upgrade if abuse patterns warrant it.
 const ORG_INVITE_DAILY_CAP = 200;
 const ORG_INVITE_WINDOW_MS = 24 * 60 * 60_000;
+/** @type {Map<string, number[]>} */
 const _orgInviteBuckets = new Map(); // orgId → [timestamps]
+/** @param {string} orgId */
 function _checkOrgInviteCap(orgId) {
     const now = Date.now();
     const cutoff = now - ORG_INVITE_WINDOW_MS;
@@ -66,6 +69,7 @@ function _checkOrgInviteCap(orgId) {
 // org admins can't take turns.
 const EMAIL_INVITE_COOLDOWN_MS = 60 * 60_000;
 const _lastInviteByEmail = new Map(); // lowercase email → last ts
+/** @param {string | null | undefined} email */
 function _checkEmailInviteCooldown(email) {
     if (!email) return true;
     const k = String(email).toLowerCase().trim();
@@ -128,7 +132,7 @@ router.post('/invitations', requireAuth, invitationInviterLimiter, validate({ bo
         try {
             const seatCap = await require('../../license').getMaxSeatsForOrg(orgId);
             if (seatCap != null && (maxUsers == null || maxUsers === -1 || seatCap < maxUsers)) maxUsers = seatCap;
-        } catch (err) { log.debug('licence module unavailable: plan limit only', err); }
+        } catch (err) { fallback('auth/admin/invitationRoutes:seatCap', err); /* pre-check only; redemption enforces atomically */ }
         if (maxUsers != null && maxUsers !== -1) {
             const activeSeats = await userStore.getActiveSeatCount(orgId);
             let pendingInvites = 0;
@@ -140,7 +144,7 @@ router.post('/invitations', requireAuth, invitationInviterLimiter, validate({ bo
                     i.status === 'pending'
                     && (!i.expires_at || new Date(i.expires_at).getTime() > Date.now())
                 ).length;
-            } catch (err) { log.debug('count without pending', err); }
+            } catch (err) { fallback('auth/admin/invitationRoutes:pendingInvites', err); }
             if (activeSeats + pendingInvites >= maxUsers) {
                 return res.status(403).json({
                     error: `Your plan has reached its user limit (${activeSeats} active${pendingInvites ? ` + ${pendingInvites} pending invite(s)` : ''} of ${maxUsers}). Upgrade your plan to add more users.`,
@@ -260,7 +264,7 @@ router.delete('/invitations/:id', requireAuth, async (req, res) => {
         await userStore.logAccessAudit(
             'invitation.revoke',
             'invitation',
-            req.params.id,
+            /** @type {string} */ (req.params.id),
             userId || null,
             prevInvite ? {
                 email: prevInvite.email,

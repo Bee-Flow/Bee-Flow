@@ -61,6 +61,7 @@ const { buildSandboxTools, executeSandboxTool } = require('../../core/skills/ski
 const log = require('../../telemetry/log');
 const { openSse } = require('../../core/http/sseHelpers');
 const { HttpError } = require('../../core/http/errors');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** One test run is two model calls. Six a minute is a person pressing Run, not a script. */
 const limiter = perUserRateLimit({ windowMs: 60_000, max: 6 });
@@ -169,18 +170,21 @@ async function allowedKbIds(req, skill, { surface = 'direct_chat' } = {}) {
         // caller is TOLD, because an empty list here used to be indistinguish-
         // able from "this skill links no knowledge base" — see the refusal
         // the run makes with this flag.
-        log.warn('[Skills/test] KB authorisation failed, searching nothing:', err.message);
+        log.warn('[Skills/test] KB authorisation failed, searching nothing:', /** @type {Error} */ (err).message);
         return { ids: [], declared: unique.length, failed: true };
     }
 }
 
-/** The fast tier, with the global default behind it. */
+/**
+ * The fast tier, with the global default behind it.
+ * @param {string} rawModel
+ */
 async function resolveModel(rawModel, { userId, userOrgId }) {
     const { resolveModelForTier, resolveModelWithGlobalFallback } = require('../../core/llm/modelResolver');
     try {
         const resolved = await resolveModelForTier(rawModel || 'tier:fast', { userOrgId, userId, fallbackTier: 'fast' });
         if (resolved) return resolved;
-    } catch (err) { log.debug('fall through', err); }
+    } catch (err) { bestEffort('routes/skills/test:resolveModel', err); /* fall through */ }
     try {
         return await resolveModelWithGlobalFallback('tier:fast', { userOrgId, userId });
     } catch (_) {
@@ -188,7 +192,15 @@ async function resolveModel(rawModel, { userId, userOrgId }) {
     }
 }
 
-/** One usage row per model call. `runToolLoop`/`chatForcedTool` log nothing themselves. */
+/**
+ * @typedef {Object} LogTestUsageArgs
+ * @property {number} startMs
+ * @property {string} source
+ */
+/**
+ * One usage row per model call. `runToolLoop`/`chatForcedTool` log nothing themselves.
+ * @param {LogTestUsageArgs} param0
+ */
 async function logTestUsage({ userId, userOrgId, modelId, usage, startMs, source }) {
     try {
         const usageStore = require('../../stores/usageStore');
@@ -205,7 +217,7 @@ async function logTestUsage({ userId, userOrgId, modelId, usage, startMs, source
             organization_id: userOrgId || null,
         });
     } catch (e) {
-        log.warn('[Skills/test] failed to log usage:', e.message);
+        log.warn('[Skills/test] failed to log usage:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -213,6 +225,9 @@ async function logTestUsage({ userId, userOrgId, modelId, usage, startMs, source
 async function run(req, res) {
     // Null until the stream is open: before that, an error is still a status.
     let sse = null;
+    /**
+     * @param {string} event
+     */
     const send = (event, data) => {
         if (!sse) return;
         sse.send(event, data);
@@ -268,7 +283,7 @@ async function run(req, res) {
             try {
                 permitted = await testableAgents(req);
             } catch (err) {
-                log.error('[Skills/test] could not resolve testable agents:', err.message);
+                log.error('[Skills/test] could not resolve testable agents:', /** @type {Error} */ (err).message);
                 throw new HttpError(503, 'agent_check_failed', 'Could not check which agents you may use. Try again.');
             }
             // "Not yours" and "not there" answer the same: a 403 would confirm
@@ -333,6 +348,9 @@ async function run(req, res) {
                 ...fields, source: 'skill_test', model: modelId, is_dry_run: true,
             }),
         });
+        /**
+         * @param {string} name
+         */
         const runSandboxTool = async (name, args) => {
             const refusal = await shieldGate.refuse(name, args);
             if (refusal) return JSON.stringify({ error: refusal.modelError });
@@ -398,7 +416,7 @@ async function run(req, res) {
                 advice: verdict.advice,
             });
         } catch (e) {
-            log.error('[Skills/test] recordTestRun failed:', e.message);
+            log.error('[Skills/test] recordTestRun failed:', /** @type {Error} */ (e).message);
             send('error', { error: 'The test ran, but the result could not be saved.', code: 'not_saved' });
             return res.end();
         }
@@ -409,10 +427,10 @@ async function run(req, res) {
         // Before the stream starts, the terminal error handler answers: a
         // refusal with its own status and code, anything else a logged 500.
         if (!sse) throw err;
-        log.error('[Skills] POST /:id/test error:', err.message);
+        log.error('[Skills] POST /:id/test error:', /** @type {Error} */ (err).message);
         // The headers are out; a 500 is no longer available, so the error
         // travels as an event or the client waits for ever.
-        send('error', { error: err.message, code: 'test_failed' });
+        send('error', { error: /** @type {Error} */ (err).message, code: 'test_failed' });
         return res.end();
     }
 }

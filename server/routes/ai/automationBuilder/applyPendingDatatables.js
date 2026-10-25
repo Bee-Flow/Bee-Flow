@@ -36,6 +36,7 @@ const { randomUUID } = require('node:crypto');
 const { HttpError } = require('../../../core/http/errors');
 const { pendingProposal } = require('./workMode');
 const { rebindPendingDatatables, collectPendingRefs } = require('../../../automation/builderTools/pendingDatatables');
+const { fallback } = require('../../../utils/bestEffort');
 
 const CLAIM_LEASE_MS = 120000;
 const APPROVED_CAP = 200;
@@ -43,7 +44,7 @@ const APPROVED_CAP = 200;
 function defaultDeps() {
     return {
         automationStore: require('../../../stores/automationStore'),
-        listDatatablesForScope: (scope) => require('../../../stores/datatableStore').listDatatablesForScope(scope),
+        listDatatablesForScope: (/** @type {{ kind: string; id: string; }} */ scope) => require('../../../stores/datatableStore').listDatatablesForScope(scope),
         assertDatatableQuota: (...a) => require('../../../core/dataEngine/datatableLimits').assertDatatableQuota(...a),
         checkDatatableCreate: (...a) => require('../../../automation/builderTools/datatableCreateAccess').checkDatatableCreate(...a),
         createPendingDatatable: (...a) => require('../../../automation/builderTools/datatableCreate').createPendingDatatable(...a),
@@ -83,8 +84,13 @@ async function applyPendingDatatables({ req, automationId, userId, snapshot }, d
     // Best effort: a lost claim is released by its lease anyway.
     const release = async () => {
         try { if (snap.proposal) await save(withProposal({ applying: null })); }
-        catch (e) { log.warn(`[AutomationBuilder] apply: releasing the claim failed (automation ${automationId}): ${e.message}`); }
+        catch (e) { log.warn(`[AutomationBuilder] apply: releasing the claim failed (automation ${automationId}): ${/** @type {Error} */ (e).message}`); }
     };
+    /**
+     * @param {number} status
+     * @param {string} code
+     * @param {string} message
+     */
     const fail = async (status, code, message) => {
         await release();
         return new HttpError(status, code, message);
@@ -111,7 +117,7 @@ async function applyPendingDatatables({ req, automationId, userId, snapshot }, d
     const toCreate = entries.filter((e) => !e.createdId).length;
     if (toCreate) {
         try { await d.assertDatatableQuota(access.scope, { addTables: toCreate }); }
-        catch (err) { throw await fail(409, 'datatable_quota', err.message); }
+        catch (err) { throw await fail(409, 'datatable_quota', /** @type {Error} */ (err).message); }
     }
 
     // ── 4. create, in order ──
@@ -178,10 +184,10 @@ async function applyPendingDatatables({ req, automationId, userId, snapshot }, d
         // Someone wrote in between (a chat turn). Look once more: if it is still
         // this proposal, write again; otherwise the tables exist and the client
         // saves the flow, which is all that matters.
-        const cur = await automationStore.getBuilderSession(automationId, userId).catch(() => null);
+        const cur = await automationStore.getBuilderSession(automationId, userId).catch((e) => fallback('routes/ai/automationBuilder/applyPendingDatatables:applyPendingDatatables', e, null));
         if (cur && cur.proposal && cur.proposal.id === p.id) {
             version = cur.version;
-            try { await save(finalOf(cur)); } catch (e2) { log.warn(`[AutomationBuilder] apply: recording the outcome failed twice (automation ${automationId}): ${e2.message}`); }
+            try { await save(finalOf(cur)); } catch (e2) { log.warn(`[AutomationBuilder] apply: recording the outcome failed twice (automation ${automationId}): ${/** @type {Error} */ (e2).message}`); }
         } else {
             log.warn(`[AutomationBuilder] apply: the session changed while applying (automation ${automationId}); tables exist, outcome not recorded.`);
         }
@@ -197,3 +203,9 @@ function keptDatatables(proposal) {
 }
 
 module.exports = { applyPendingDatatables, keptDatatables, CLAIM_LEASE_MS };
+
+/**
+ * @typedef {import('../../../automation/builderTools/pendingDatatables').PendingDatatable & { applyKey?: string|null, createdId?: string, createdKey?: string }} PendingEntry
+ * @typedef {{ id?: string, definition?: object, applying?: { token?: string, at: string }|null, pendingDatatables?: PendingEntry[] }} ApplyProposal
+ * @typedef {{ version?: number, proposal?: ApplyProposal|null, approvedDatatableIds?: string[], reviewOutcome?: unknown }} ApplySnapshot
+ */

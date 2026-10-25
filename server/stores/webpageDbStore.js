@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Webpage DB Store — per-webpage SQLite database engine. Config wrapper over
  * stores/lib/sqliteBlobEngine (the studio-app store was forked from this file;
@@ -26,6 +26,10 @@ const engine = createSqliteBlobEngine({
     workDir: process.env.WEBPAGE_DB_WORK_DIR || path.join(os.tmpdir(), 'beeflow-webpage-dbs'),
     // 'db' is the storage slot for the current data.db blob (absorbs the old
     // module-level DB_SLOT constant).
+    /**
+     * @param {string} userId
+     * @param {string} webpageId
+     */
     buildKey: (userId, webpageId) => storageStore.buildWebpageKey(userId, webpageId, 'db'),
     metaTable: 'webpages',
     logPrefix: 'WebpageDB',

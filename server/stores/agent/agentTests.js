@@ -55,6 +55,8 @@ const TEST_RUNS_KEEP = 20;
  * from a column that was written as text. Anything this cannot read becomes
  * the empty document — an expectation nobody can parse is not an expectation,
  * and `testSandbox.normaliseExpect` reaches the same answer from the other end.
+ * @param {string} value
+ * @param {{} | null} fallback
  */
 function _json(value, fallback) {
     if (value === null || value === undefined) return fallback;
@@ -68,6 +70,9 @@ function _json(value, fallback) {
     return fallback;
 }
 
+/**
+ * @param {string | number | Date} value
+ */
 function _iso(value) {
     if (!value) return null;
     try { return new Date(value).toISOString(); } catch (_) { return null; }
@@ -110,6 +115,9 @@ function mapRun(row) {
     };
 }
 
+/**
+ * @param {Pool} db
+ */
 async function _ready(db) {
     // Only when running against the real pool: with an injected db the schema
     // belongs to whoever built it (same contract as agentStats).
@@ -257,7 +265,7 @@ async function recordTestRun(run, { db = pool } = {}) {
             [String(agentId), TEST_RUNS_KEEP],
         );
     } catch (e) {
-        log.warn('[agentTests] pruning old runs failed:', e.message);
+        log.warn('[agentTests] pruning old runs failed:', /** @type {Error} */ (e).message);
     }
     return stored;
 }
@@ -299,3 +307,9 @@ module.exports = {
     // Exported for the colocated tests.
     mapTest, mapRun,
 };
+
+/** @typedef {import('pg').Pool} Pool */
+
+/** @typedef {{ id: string, agent_id: string, name?: string | null, question?: string | null, expect?: unknown, written_by?: unknown, suggested_by?: string | null, from_conversation_id?: string | null, created_at?: string | number | Date, updated_at?: string | number | Date }} AgentTestRow */
+
+/** @typedef {{ id: string, agent_id: string, version?: unknown, results?: unknown, passed?: unknown, total?: unknown, ran_at?: string | number | Date }} AgentTestRunRow */

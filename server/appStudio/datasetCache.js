@@ -44,10 +44,13 @@ const studioAppDataStore = require('../stores/studioAppDataStore');
 const studioAppDbStore = require('../stores/studioAppDbStore');
 const queryCompiler = require('./queryCompiler');
 const rlsGateway = require('./rlsGateway');
-const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const DEFAULT_TTL_SECONDS = 60;
 
+/**
+ * @param {string} str
+ */
 function sha256(str) {
     return crypto.createHash('sha256').update(str).digest('hex');
 }
@@ -200,7 +203,7 @@ async function runDataset(app, model, datasetOrDescriptor, viewer, { refresh = f
                 rowCount: result.rows.length,
                 ttlSeconds,
             });
-        } catch (err) { log.debug('cache write is advisory — a failed memoise must never fail the read', err); }
+        } catch (err) { bestEffort('appStudio/datasetCache:runDataset', err); /* cache write is advisory — a failed memoise must never fail the read */ }
     }
 
     return { ...result, cached: false };
@@ -215,3 +218,16 @@ module.exports = {
     _stableStringify: stableStringify,
     _resolveTable: resolveTable,
 };
+
+/** @typedef {import('./actionExecutor/shared').DataModel} DataModel */
+
+/** @typedef {import('./actionExecutor/shared').DataTable} DataTable */
+
+/** @typedef {{ where?: string, params?: unknown[] }} AccessFilterLike */
+
+/** @typedef {{ tableId?: string, tableKey?: string, filters?: unknown, groupBy?: unknown, aggregates?: unknown, sort?: unknown, limit?: unknown }} Descriptor */
+
+/**
+ * @typedef {Descriptor & { id?: string, descriptor?: Descriptor, aggregate?: Descriptor, cacheTtlSeconds?: number }} DatasetOrDescriptor
+ * @typedef {{ id?: string, role?: string | null, userGroups?: string[], organizationId?: string }} DatasetViewer
+ */

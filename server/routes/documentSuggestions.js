@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Suggestions on a document, mounted under /api/studio-documents by
  * routes/studioDocuments.js:
@@ -19,6 +19,9 @@ const { HttpError, notFound } = require('../core/http/errors');
 
 const ACTIONS = /** @type {ReadonlyArray<'accept'|'reject'>} */ (Object.freeze(['accept', 'reject']));
 
+/** @typedef {NonNullable<Awaited<ReturnType<typeof import('../stores/documentSuggestionStore').get>>>} SuggestionView */
+
+/** @param {SuggestionView} s */
 const view = (s) => ({
     id: s.id, batchId: s.batchId, kind: s.kind, status: s.status, anchor: s.anchor, before: s.before, after: s.after,
     summary: s.summary, authorKind: s.authorKind, agentId: s.agentId, createdAt: s.createdAt,
@@ -27,7 +30,7 @@ const view = (s) => ({
 /**
  * @param {{
  *   documents?: { getDocument: (id: string, userId: string) => Promise<any> },
- *   store?: any, applier?: any, requireAuth?: Function,
+ *   store?: any, applier?: any, requireAuth?: import('express').RequestHandler,
  *   isManaged?: (id: string) => Promise<boolean>,
  *   isOrgAdmin?: (userId: string, session: any) => Promise<boolean>,
  * }} [deps]
@@ -61,7 +64,7 @@ function makeDocumentSuggestionsRouter(deps = {}) {
     router.get('/:id/suggestions', auth, async (/** @type {any} */ req, /** @type {any} */ res) => {
         const doc = await readable(req);
         const rows = await store().list('document', doc.id, { status: ['open', 'stale'] });
-        res.json({ suggestions: rows.map(view), open: rows.filter((s) => s.status === 'open').length });
+        res.json({ suggestions: rows.map(view), open: rows.filter((/** @type {SuggestionView} */ s) => s.status === 'open').length });
     });
 
     /** @param {'accept'|'reject'} action @param {(req: any, doc: any) => Promise<string[]>} idsOf */
@@ -85,7 +88,7 @@ function makeDocumentSuggestionsRouter(deps = {}) {
         return s && s.targetId === doc.id ? [s.id] : [];
     };
     const batch = async (/** @type {any} */ req, /** @type {any} */ doc) =>
-        (await store().listBatch('document', doc.id, req.params.batchId)).filter((s) => s.status === 'open' || s.status === 'stale').map((s) => s.id);
+        (await store().listBatch('document', doc.id, req.params.batchId)).filter((/** @type {SuggestionView} */ s) => s.status === 'open' || s.status === 'stale').map((/** @type {SuggestionView} */ s) => s.id);
 
     for (const action of ACTIONS) {
         router.post(`/:id/suggestions/batch/:batchId/${action}`, auth, resolveRoute(action, batch));

@@ -19,7 +19,10 @@ require('../automation/runnerPorts');
 require('../integrations/runnerPorts');
 require('../services/runnerPorts');
 
-/** Put `exportsObj` in the require cache under `modPath` (resolved from core/). */
+/**
+ * Put `exportsObj` in the require cache under `modPath` (resolved from core/).
+ * @param {string} modPath
+ */
 function stub(modPath, exportsObj) {
     const resolved = require.resolve(modPath);
     require.cache[resolved] = /** @type {any} */ ({ id: resolved, filename: resolved, loaded: true, exports: exportsObj });
@@ -80,3 +83,18 @@ function installRunnerStoreStubs() {
 }
 
 module.exports = { installRunnerStoreStubs, stub };
+
+/**
+ * What createRun is called with.
+ * @typedef {{ automationId?: string, version?: number, userId?: string, triggerKind?: string, triggerPayload?: unknown, mode?: string, parentRunId?: string|null }} FakeRunArgs
+ */
+
+/**
+ * An in-memory run row, shaped like rowToRun's output.
+ * @typedef {{ id: string, automationId: string, version: number, userId: string, triggerKind: string,
+ *   triggerPayload: unknown, mode: string, status: string, startedAt: string, finishedAt: string|null,
+ *   durationMs: number|null, error: string|null, summary: unknown, parentRunId: string|null,
+ *   cancelRequested: boolean, awaitingStepId: string|null, approvalToken: string|null,
+ *   awaitingStepExpiresAt: string|null, errorClass: string|null, handledErrorCount: number,
+ *   rootRunId?: string, [key: string]: unknown }} FakeRun
+ */

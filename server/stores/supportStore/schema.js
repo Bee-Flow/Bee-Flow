@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Support schema — the DDL for every table this store owns, and the one-shot
  * initialiser every other module in this folder awaits before its first query.

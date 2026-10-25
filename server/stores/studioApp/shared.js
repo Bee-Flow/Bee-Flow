@@ -39,3 +39,15 @@ function serializeDefinition(definition) {
 }
 
 module.exports = { guardOf, inTx, serializeDefinition };
+
+/**
+ * The context every guarded writer takes first: the database, its schema init
+ * and the managed-write guard (null = the module's default).
+ * @typedef {{
+ *   db: Pick<typeof import('../../db'), 'run' | 'getOne' | 'getAll' | 'getClient'>,
+ *   ready: () => Promise<unknown>,
+ *   managedParts: ReturnType<typeof import('../lib/managedParts').makeManagedParts> | null,
+ * }} StudioAppIo
+ */
+
+/** @typedef {import('pg').QueryResultRow} Row */

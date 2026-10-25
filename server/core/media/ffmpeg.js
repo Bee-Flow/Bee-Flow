@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The one place that finds and runs the ffmpeg binary.
  *
@@ -65,13 +65,23 @@ function buildAudioArgs({ input, output, channels, sampleRate, codec, filters, f
 /**
  * Bounded stderr buffer: the last `maxLines` lines, split on \r\n, \r or \n
  * (ffmpeg redraws its progress line with a bare \r).
+ * @param {number} maxLines
  */
 function createLinesRing(maxLines) {
     const max = maxLines - 1;
+    /**
+     * @type {string[]}
+     */
     const lines = [];
+    /**
+     * @type {string | null | undefined}
+     */
     let current = null;
     let closed = false;
     return {
+        /**
+         * @param {string} str
+         */
         append(str) {
             if (closed || !str) return;
             const parts = str.split(NEWLINE);
@@ -128,6 +138,7 @@ function extractFfmpegError(stderr) {
  */
 function runFfmpeg(args, { timeoutMs } = {}) {
     return new Promise((resolve, reject) => {
+        /** @type {string} */
         let bin;
         try {
             bin = getFfmpegPath();
@@ -138,12 +149,17 @@ function runFfmpeg(args, { timeoutMs } = {}) {
 
         const stderrRing = createLinesRing(STDERR_MAX_LINES);
         const proc = spawn(bin, args, { windowsHide: true });
+        /** @type {NodeJS.Timeout | null} */
         let timer = null;
         let exited = false;
         let stderrClosed = false;
+        /** @type {Error | null} */
         let exitError = null;
         let settled = false;
 
+        /**
+         * @param {Error} err
+         */
         const settle = (err) => {
             if (settled) return;
             settled = true;

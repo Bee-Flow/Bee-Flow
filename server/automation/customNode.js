@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Custom-node contract helpers.
  *
@@ -222,7 +221,14 @@ function customNodeContract(definition) {
  *    shape message from the one place that owns it.
  */
 function validateCustomNode(definition) {
+    /** @type {{ code: string; path: string; message: string; hint: string; }[]} */
     const issues = [];
+    /**
+     * @param {string} code
+     * @param {string} path
+     * @param {string} message
+     * @param {string} hint
+     */
     const push = (code, path, message, hint) => issues.push({ code, path, message, hint });
 
     if (!isObject(definition)) {
@@ -332,3 +338,7 @@ module.exports = {
     customNodeContract,
     validateCustomNode,
 };
+
+/** @typedef {import('./automationGraph').AutomationStep} AutomationStep */
+
+/** @typedef {{ kind: string, tool: string | null }} Capability */

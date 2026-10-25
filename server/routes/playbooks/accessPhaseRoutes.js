@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * THE ACCESS PHASE — who may open the app the playbook built, and with which
  * role. No recipe asks for it and no model writes it: the assistant here
@@ -27,6 +28,8 @@ const { kindOf, firstOfKind, appBefore, localeOf } = require('./phaseList');
 // installation's (the rule and its history are in ./directory.js).
 const { directoryFor } = require('./directory');
 const log = require('../../telemetry/log');
+const { isMissingTable } = require('../../utils/isMissingTable');
+const { fallback } = require('../../utils/bestEffort');
 
 // The data digest handed to the access assistant (playbooks/accessPlan.js caps
 // the same numbers on its side).
@@ -42,6 +45,9 @@ const DIGEST_VALUES = 40;
  * so the reader's own access filter applies: a column with more distinct values
  * than a person could choose from is dropped rather than truncated, because a
  * truncated list invites the model to invent the rest.
+ * @param {import('./index').PlaybookRouteCtx['d']} d
+ * @param {import('./phaseList').PlaybookRow} playbook
+ * @param {import('../../playbooks/lifecycle').PhaseArtifacts & { fields?: Array<{ key?: string, name?: string, type?: string }> }} tableArt
  */
 async function readDataDigest(d, playbook, tableArt) {
     const fields = Array.isArray(tableArt && tableArt.fields) ? tableArt.fields : [];
@@ -65,15 +71,19 @@ async function readDataDigest(d, playbook, tableArt) {
                 limit: DIGEST_VALUES + 1,
             });
             const values = rows
-                .map((r) => ({ value: r[f.key], count: Number(r.n) }))
-                .filter((v) => typeof v.value === 'string' && v.value.trim());
+                .map((/** @type {Record<string, unknown>} */ r) => ({ value: r[f.key], count: Number(r.n) }))
+                .filter((/** @type {{ value: unknown; }} */ v) => typeof v.value === 'string' && v.value.trim());
             if (!values.length || values.length > DIGEST_VALUES) continue;
             columns.push({ key: f.key, name: f.name || f.key, values });
-        } catch (err) { log.debug('one unreadable column is not a reason to give up on the rest', err); }
+        } catch (err) { if (!isMissingTable(err)) throw err; log.debug('one unreadable column is not a reason to give up on the rest', err); }
     }
     return columns.length ? { tableName: tableArt.datatableName || null, columns } : null;
 }
 
+/**
+ * @param {import('express').IRouter} router
+ * @param {import('./index').PlaybookRouteCtx} ctx
+ */
 function register(router, ctx) {
     const { d, flow, requireManageApps, runLimiter } = ctx;
     const { load, phaseTier } = flow;
@@ -85,7 +95,7 @@ function register(router, ctx) {
      * the person approves the proposal and the CLIENT applies it through the
      * owner-only endpoints that already audit every one of those writes.
      */
-    router.post('/:id/phases/:key/access-plan', requireManageApps, runLimiter, async (req, res) => {
+    router.post('/:id/phases/:key/access-plan', requireManageApps, runLimiter, async (/** @type {import('express').Request<{ id: string, key: string }>} */ req, /** @type {import('express').Response} */ res) => {
         try {
             const pb = await load(req, res);
             if (!pb) return;
@@ -104,12 +114,12 @@ function register(router, ctx) {
             const tier = await phaseTier(req, res, pb);
             if (!tier) return;
 
-            const meta = await d.studioAppDataStore.getDataModel(appId, app.userId).catch(() => null);
+            const meta = await d.studioAppDataStore.getDataModel(appId, app.userId).catch((e) => fallback('routes/playbooks/accessPhaseRoutes:register', e, null));
             const model = (meta && meta.model) || null;
             const roles = (model && Array.isArray(model.roles)) ? model.roles : [];
             const [groups, users] = await Promise.all([
-                d.userStore.getAllGroups().catch(() => []),
-                d.userStore.getAllUsers().catch(() => []),
+                d.userStore.getAllGroups().catch((e) => fallback('routes/playbooks/accessPhaseRoutes:register#2', e, [])),
+                d.userStore.getAllUsers().catch((e) => fallback('routes/playbooks/accessPhaseRoutes:register#3', e, [])),
             ]);
 
             // The table this app reads, as the model names it: a row rule is
@@ -117,13 +127,13 @@ function register(router, ctx) {
             // the table the app actually links (see appStudio/datatableSource).
             const tableArt = (firstOfKind(pb.phases, 'table') || {}).artifacts || {};
             const modelTable = (model && Array.isArray(model.tables) ? model.tables : [])
-                .find((t) => t && t.source && t.source.kind === 'datatable' && t.source.datatableId === tableArt.datatableId) || null;
+                .find((/** @type {{ id: string, source?: { kind?: string, datatableId?: string } }} */ t) => t && t.source && t.source.kind === 'datatable' && t.source.datatableId === tableArt.datatableId) || null;
             const digest = modelTable ? await readDataDigest(d, pb, tableArt) : null;
             // Every rule the assistant proposes is compiled against the REAL
             // table before the person ever sees it. A rule that cannot compile
             // is reported as unresolved, never stored and never shown as done.
             const validateRule = modelTable
-                ? (expr) => { try { return d.rlsGateway.validateRowFilter(expr, modelTable); } catch (e) { return { ok: false, errors: [e.message] }; } }
+                ? (/** @type {string} */ expr) => { try { return d.rlsGateway.validateRowFilter(expr, modelTable); } catch (e) { return { ok: false, errors: [/** @type {Error} */ (e).message] }; } }
                 : null;
             const directory = directoryFor(pb, req.session, groups || [], users || []);
             const out = await d.planAccess({
@@ -134,17 +144,17 @@ function register(router, ctx) {
                 digest,
                 tableId: modelTable ? modelTable.id : null,
                 validateRule,
-                groups: directory.groups.map((g) => ({ id: g.id, name: g.name })),
-                people: directory.users.map((u) => ({ id: u.id, name: u.name || u.fullName || '', email: u.email || '' })),
+                groups: directory.groups.map((/** @type {{ id: string, name: string }} */ g) => ({ id: g.id, name: g.name })),
+                people: directory.users.map((/** @type {{ id: string, name?: string, fullName?: string, email?: string }} */ u) => ({ id: u.id, name: u.name || u.fullName || '', email: u.email || '' })),
                 locale: localeOf(pb) || 'en',
                 userId: pb.userId,
                 userOrgId: pb.organizationId,
             });
             // An unreachable model carries the id its log line was written under.
-            if (!out.ok) return sendErr(res, 422, out.code, out.error, out.correlationId ? { correlationId: out.correlationId } : {});
+            if (!out.ok) return sendErr(res, 422, /** @type {Extract<typeof out, { ok: false }>} */ (out).code, /** @type {Extract<typeof out, { ok: false }>} */ (out).error, /** @type {Extract<typeof out, { ok: false }>} */ (out).correlationId ? { correlationId: /** @type {Extract<typeof out, { ok: false }>} */ (out).correlationId } : {});
             res.json({ plan: out.plan });
         } catch (e) {
-            log.error('[Playbooks] access plan failed:', e.message);
+            log.error('[Playbooks] access plan failed:', /** @type {Error} */ (e).message);
             sendErr(res, 500, 'internal', 'Could not read that');
         }
     });

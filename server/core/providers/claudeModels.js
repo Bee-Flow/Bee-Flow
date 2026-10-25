@@ -270,6 +270,7 @@ const MODEL_ALIASES = Object.freeze({
  *   anthropic/claude-opus-5        — OpenRouter-style routing prefix
  *   claude-opus-4-5@20251101       — Vertex AI dated snapshot
  *   claude-haiku-4-5-20251001      — Claude API dated snapshot
+ * @param {string} modelId
  */
 function normalizeClaudeModelId(modelId) {
     if (!modelId || typeof modelId !== 'string') return '';
@@ -295,12 +296,18 @@ function normalizeClaudeModelId(modelId) {
     return undated || id;
 }
 
-/** Raw catalog entry for an id, or null when it is not a model we know. */
+/**
+ * Raw catalog entry for an id, or null when it is not a model we know.
+ * @param {string} modelId
+ */
 function getClaudeModel(modelId) {
     return CLAUDE_MODELS[normalizeClaudeModelId(modelId)] || null;
 }
 
-/** Is this id an Anthropic model at all? */
+/**
+ * Is this id an Anthropic model at all?
+ * @param {string} modelId
+ */
 function isClaudeModelId(modelId) {
     const id = normalizeClaudeModelId(modelId);
     return !!id && /^claude-/.test(id);
@@ -315,6 +322,7 @@ function isClaudeModelId(modelId) {
  * can still carry the old one.
  *
  * @returns {{family:string, generation:number}|null}
+ * @param {string} id
  */
 function _parseClaudeVersion(id) {
     // Modern: claude-opus-4-8, claude-sonnet-5, claude-fable-5-1
@@ -343,6 +351,7 @@ function _parseClaudeVersion(id) {
  *
  * The bias is deliberately toward the NEWER surface: a wrongly-omitted
  * `temperature` costs nothing, while a wrongly-sent one is a hard 400.
+ * @param {string} id
  */
 function _guessProfile(id) {
     const v = _parseClaudeVersion(id);
@@ -415,6 +424,7 @@ function _guessProfile(id) {
  *
  * `known` says whether the answer came from the catalog or from the generation
  * fallback, so callers that want to be cautious (pricing, for one) can tell.
+ * @param {string} modelId
  */
 function describeClaudeModel(modelId) {
     const id = normalizeClaudeModelId(modelId);
@@ -466,6 +476,7 @@ function describeClaudeModel(modelId) {
  * Replaces the adapter's EFFORT_MAP_XHIGH / EFFORT_MAP_LEGACY pair. The legacy
  * mapping of `xhigh` → `max` is preserved: on a ladder without `xhigh`, asking
  * for more than `high` should mean `max`, not silently drop to the default.
+ * @param {string} modelId
  */
 function resolveEffort(modelId, requested) {
     const { efforts, defaultEffort } = describeClaudeModel(modelId);
@@ -478,13 +489,19 @@ function resolveEffort(modelId, requested) {
     return defaultEffort || 'medium';
 }
 
-/** Does this model accept `effort` as a reasoning-effort value? */
+/**
+ * Does this model accept `effort` as a reasoning-effort value?
+ * @param {string} modelId
+ */
 function supportsEffort(modelId, effort) {
     const { efforts } = describeClaudeModel(modelId);
     return !!efforts && efforts.includes(effort);
 }
 
-/** Context window (max input tokens) for a Claude id. */
+/**
+ * Context window (max input tokens) for a Claude id.
+ * @param {string} modelId
+ */
 function contextWindowFor(modelId) {
     return describeClaudeModel(modelId).context;
 }
@@ -493,6 +510,7 @@ function contextWindowFor(modelId) {
  * List price for a model, or null when we only guessed at the model.
  * Never invents a tariff — an invented number on an invoice is worse than a
  * known-missing one.
+ * @param {string} modelId
  */
 function getClaudeListPrice(modelId) {
     const entry = getClaudeModel(modelId);
@@ -506,6 +524,7 @@ function getClaudeListPrice(modelId) {
  * upper-bound rates.
  */
 function listPricedModels() {
+    /** @type {Record<string, { input: number; output: number; cacheRead: number; }>} */
     const out = {};
     for (const [id, entry] of Object.entries(CLAUDE_MODELS)) {
         if (!entry.price) continue;
@@ -521,12 +540,16 @@ function listPricedModels() {
 /**
  * Cache-write multiplier for a TTL. Anthropic bills writes above the input
  * rate; the premium depends on the TTL the request asked for.
+ * @param {string | null} ttl
  */
 function cacheWriteMultiplier(ttl) {
     return ttl === '1h' ? CACHE_WRITE_1H : CACHE_WRITE_5M;
 }
 
-/** Cache-read discount as a fraction of the input rate. */
+/**
+ * Cache-read discount as a fraction of the input rate.
+ * @param {string} modelId
+ */
 function cacheReadDiscount(modelId) {
     const price = getClaudeListPrice(modelId);
     if (price && price.input > 0 && Number.isFinite(price.cachedInput)) {
@@ -552,7 +575,10 @@ function listCatalogModels() {
     }));
 }
 
-/** Deprecation record for an id, or null. */
+/**
+ * Deprecation record for an id, or null.
+ * @param {string} modelId
+ */
 function getDeprecation(modelId) {
     const entry = getClaudeModel(modelId);
     return (entry && entry.deprecated) || null;
@@ -584,3 +610,17 @@ module.exports = {
     listCatalogModels,
     getDeprecation,
 };
+
+/**
+ * @typedef {{
+ *   name: string, cat: string, family: string, generation: number, desc?: string,
+ *   context: number, maxOutput: number, thinking: string,
+ *   efforts: readonly string[] | null, defaultEffort: string | null,
+ *   thinkingOnByDefault?: boolean, disableThinkingMaxEffort?: string,
+ *   temperature: boolean, vision: boolean, tools: boolean,
+ *   forcedToolChoice: boolean, midConvSystem: boolean, contextEditing: boolean,
+ *   refusalStop?: boolean, cacheMinTokens: number,
+ *   price?: { input: number, cachedInput: number, output: number },
+ *   released?: string, deprecated?: Record<string, string> | null,
+ * }} ModelEntry
+ */

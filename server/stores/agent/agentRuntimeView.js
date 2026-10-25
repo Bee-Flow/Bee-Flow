@@ -71,7 +71,7 @@ async function _clampRuntimeTools(agent) {
         // to stop are both re-derived downstream anyway: `confirmForTool`
         // forces `ask` on a send whatever the stored value says, and a lent
         // identity is re-checked per call at dispatch.
-        log.warn(`[AgentCrud] Tool-grant normalisation unavailable for agent ${agent.id} — serving the stored grants unclamped:`, e.message);
+        log.warn(`[AgentCrud] Tool-grant normalisation unavailable for agent ${agent.id} — serving the stored grants unclamped:`, /** @type {Error} */ (e).message);
         return agent;
     }
 }
@@ -92,6 +92,7 @@ async function _clampRuntimeTools(agent) {
  *
  * The component tool grants (agent_tools table) are not part of the split:
  * they are read live here exactly as in getAgent.
+ * @param {string} id
  */
 async function getForRuntime(id, { useDraft = false } = {}) {
     const loaded = await _loadAgentRow(id);
@@ -113,6 +114,7 @@ async function getForRuntime(id, { useDraft = false } = {}) {
  * not part of the split); treat them as read-only.
  *
  * @returns {Promise<{draft:object, runtime:object}|null>}
+ * @param {string} id
  */
 async function getAgentViews(id) {
     const loaded = await _loadAgentRow(id);

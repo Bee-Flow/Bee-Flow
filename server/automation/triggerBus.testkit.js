@@ -13,6 +13,7 @@
  * SUBS is the live array getSubscriptionsForProvider answers (tests may splice
  * it); dispatchedRuns collects the automation ids executeAutomation was called
  * with.
+ * @param {string} resolved
  */
 
 function cacheStub(resolved, exports) {
@@ -30,6 +31,7 @@ function installDispatchStubs() {
         getAutomation: async (id) => ({ id, isActive: true, isDraft: false }),
     });
 
+    /** @type {Record<string, { id: string; organizationId: string; }>} */
     const USERS = {
         'user-orgA': { id: 'user-orgA', organizationId: 'org-A' },
         'user-orgB': { id: 'user-orgB', organizationId: 'org-B' },

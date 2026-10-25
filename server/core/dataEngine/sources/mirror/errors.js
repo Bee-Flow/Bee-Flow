@@ -25,6 +25,9 @@ function registerErrorClasses(map) {
 }
 
 class SourceError extends Error {
+    /**
+     * @param {string} message
+     */
     constructor(status, code, message, { errorClass = null, ref = null, detail = null, datatableId = null } = {}) {
         super(message);
         this.name = 'SourceError';
@@ -40,6 +43,9 @@ class SourceError extends Error {
 
 const SOURCE_ERROR_NAMES = new Set(['SourceError', 'NextcloudSourceError', 'SpreadsheetSourceError']);
 
+/**
+ * @param {(Error & { code?: string; status?: number; }) | { name?: string; code?: string; } | null | undefined} e
+ */
 function isSourceError(e) {
     return !!e && SOURCE_ERROR_NAMES.has(e.name);
 }

@@ -66,6 +66,9 @@ function createStepChecker({
     //   nested     — true inside a body/branch (switches a few rules)
     //   idsForRefs — known step ids for ref checks (top-level ∪ container chain)
     //   seen       — ids whose output is available at this point
+    /**
+     * @param {string} at
+     */
     const checkStep = (step, at, { nested = false, idsForRefs = null, seen = null } = {}) => {
         const refIds = idsForRefs || ids;
         const refSeen = seen || seenSoFar;

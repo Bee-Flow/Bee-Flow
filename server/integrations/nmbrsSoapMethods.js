@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 // The complete set of SOAP methods this module may ever call, as `Service/Method`

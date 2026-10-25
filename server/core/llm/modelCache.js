@@ -34,6 +34,7 @@ const { registerMistralModel, setMistralRegionalModel, isMistralRegionalUrl } = 
 const { isEuResidencyUrl, registerEuServedModel, unregisterEuServedModel } = require('../providers/openaiModels');
 const { getProviders, getAIConfig } = require('./providerConfig');
 const { resolveModelId } = require('./modelNames');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const MODEL_CACHE_TTL = 60; // seconds
 /** How old a list may get before a caller has to wait for a fresh one. */
@@ -118,7 +119,7 @@ async function getModelsForProvider(providerId, forceRefresh = false) {
                     _modelCache.set(providerId, { models, timestamp: now }); // keep in-memory in sync
                     return registerIfLocal(models);
                 }
-            } catch (err) { log.debug('fall through', err); }
+            } catch (err) { bestEffort('core/llm/modelCache:getModelsForProvider', err); /* fall through */ }
         }
         const cached = _modelCache.get(providerId);
         // Fresh: only without Redis (with Redis, the shared entry above is the
@@ -174,7 +175,7 @@ async function _discover(provider) {
         _modelCache.set(providerId, { models, timestamp: now });
         const r = getRedis();
         if (r) {
-            try { await r.set(`bf:mcache:${providerId}`, JSON.stringify(models), 'EX', MODEL_CACHE_TTL); } catch (_) { log.debug('shared model cache write failed, the in-memory cache still serves', _); }
+            try { await r.set(`bf:mcache:${providerId}`, JSON.stringify(models), 'EX', MODEL_CACHE_TTL); } catch (_) { bestEffort('core/llm/modelCache:_discover', _); /* shared model cache write failed, the in-memory cache still serves */ }
         }
         log.info(`[ModelCache] Cached ${models.length} models for ${provider.name}`);
     } else {
@@ -193,13 +194,13 @@ function invalidateModelCache(providerId) {
     if (providerId) {
         _modelCache.delete(providerId);
         _emptyUntil.delete(providerId);
-        if (r) { r.del(`bf:mcache:${providerId}`).catch(() => { }); }
+        if (r) { r.del(`bf:mcache:${providerId}`).catch((e) => bestEffort('core/llm/modelCache:invalidateModelCache', e)); }
     } else {
         // Clear all model cache keys
         if (r) {
             r.keys('bf:mcache:*').then(keys => {
-                if (keys.length) r.del(...keys).catch(() => { });
-            }).catch(() => { });
+                if (keys.length) r.del(...keys).catch((e) => bestEffort('core/llm/modelCache:invalidateModelCache#3', e));
+            }).catch((e) => bestEffort('core/llm/modelCache:invalidateModelCache#2', e));
         }
         _modelCache.clear();
         _emptyUntil.clear();

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * De chatgeschiedenis van de bouw-AI, per pagina bewaard.
  *
@@ -28,11 +28,12 @@ const ChatBody = bodyOf({
     messages: z.array(z.unknown(), { error: MESSAGES_TEXT }),
 });
 
+/** @type {(router: import('express').Router, deps?: import('./index').WebpageRouteDeps) => void} shared multipart gate is passed by index.js */
 function register(router) {
     // ── Chat history (per-webpage persistence) ───────────────────────────
     // Decoupled from the file-update PUT so frequent chat saves don't trigger
     // the file-PUT's sha256 + auto-versioning logic.
-    router.put('/:id/chat', requireAuth, validate({ body: ChatBody, query: NO_QUERY }), async (req, res) => {
+    router.put('/:id/chat', requireAuth, validate({ body: ChatBody, query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
         const userId = req.session.user.id;
         const wp = await webpageStore.getWebpage(req.params.id, userId);
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });
@@ -41,7 +42,7 @@ function register(router) {
         res.json({ success: true, count: messages.length });
     });
 
-    router.delete('/:id/chat', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (req, res) => {
+    router.delete('/:id/chat', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
         const userId = req.session.user.id;
         const wp = await webpageStore.getWebpage(req.params.id, userId);
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Ports: a lower layer declares the hook, the layer that owns the policy
  * fills it in at boot. Each line here would otherwise be an upward import.
@@ -18,7 +18,7 @@ function wirePorts({ compliance }) {
     require('../stores/agent/tokenDisplay').setTokenMapReader(require('../core/dlp/dlpRunner').getConversationTokenMapAsync);
     if (compliance) {
         require('../core/automationRunner/documentMarking')
-            .setMarkingResolver((orgId, info) => require('../compliance/marking').resolveMarking(orgId, info));
+            .setMarkingResolver((/** @type {string} */ orgId, /** @type {{ automationId?: string | null; aiStepIds?: string[]; provider?: string | null; now?: Date; } | undefined} */ info) => require('../compliance/marking').resolveMarking(orgId, info));
     }
 }
 

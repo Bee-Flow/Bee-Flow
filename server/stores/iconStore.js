@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Icon Store
  * Manages user-defined icon packs for customizing the app UI.
@@ -36,12 +36,22 @@ async function _initDB() {
     ]);
 }
 
+/**
+ * @typedef {{ type: string, value: string }} IconEntry
+ * @typedef {Record<string, IconEntry>} IconMap
+ * @typedef {{ id: string, user_id: string, name: string, created_at?: string, updated_at?: string, icons: IconMap }} IconPack
+ */
 
+/**
+ * @param {import('pg').QueryResultRow | null | undefined} row
+ * @returns {IconPack | null}
+ */
 function hydrate(row) {
     if (!row) return null;
-    return { ...row, icons: parseJSON(row.icons, {}) };
+    return /** @type {IconPack} */ ({ ...row, icons: parseJSON(row.icons, {}) });
 }
 
+/** @param {string} userId */
 async function getIconPacks(userId) {
     await initDB();
     const rows = await getAll(
@@ -51,12 +61,18 @@ async function getIconPacks(userId) {
     return rows.map(hydrate);
 }
 
+/** @param {string} id */
 async function getIconPack(id) {
     await initDB();
     const row = await getOne('SELECT * FROM icon_packs WHERE id = $1', [id]);
     return hydrate(row);
 }
 
+/**
+ * @param {string} userId
+ * @param {string} name
+ * @param {IconMap} [icons]
+ */
 async function createIconPack(userId, name, icons = {}) {
     await initDB();
     const id = crypto.randomUUID();
@@ -68,6 +84,11 @@ async function createIconPack(userId, name, icons = {}) {
     return { id, user_id: userId, name, icons, created_at: now, updated_at: now };
 }
 
+/**
+ * @param {string} id
+ * @param {string} userId
+ * @param {{ name?: string, icons?: IconMap }} updates
+ */
 async function updateIconPack(id, userId, updates) {
     await initDB();
     const pack = await getIconPack(id);
@@ -86,6 +107,10 @@ async function updateIconPack(id, userId, updates) {
 
 /**
  * Patch a single icon entry inside a pack. Pass `iconData = null` to clear the override.
+ * @param {string} packId
+ * @param {string} userId
+ * @param {string} iconKey
+ * @param {IconEntry | null | undefined} iconData
  */
 async function setIcon(packId, userId, iconKey, iconData) {
     const pack = await getIconPack(packId);
@@ -101,6 +126,10 @@ async function setIcon(packId, userId, iconKey, iconData) {
     return next;
 }
 
+/**
+ * @param {string} id
+ * @param {string} userId
+ */
 async function deleteIconPack(id, userId) {
     await initDB();
     const { rowCount } = await run(

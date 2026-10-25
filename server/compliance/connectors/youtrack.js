@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * YouTrack connector — change/work-tracking evidence for A.8.32: recent
  * issue activity in the designated operations project shows that changes
@@ -24,6 +24,7 @@ module.exports = {
     credential: { provider: 'youtrack', kinds: ['bearer'] },
     settingsHint: 'base_url: "https://acme.youtrack.cloud", project: "OPS"',
 
+    /** @param {import('./index').CollectArgs} args */
     async collect({ secret, settings, safeFetch }) {
         const token = secret?.token || secret?.apiKey || secret?.api_key;
         if (!token) throw new Error('youtrack secret needs { token } (permanent token)');
@@ -48,7 +49,7 @@ module.exports = {
             const body = await res.text().catch(() => '');
             throw new Error(`YouTrack issues query failed (${res.status}): ${body.slice(0, 150)}`);
         }
-        const issues = await res.json().catch(() => null);
+        const issues = await res.json().catch(/** @returns {null} */ () => null);
         if (!Array.isArray(issues)) throw new Error('YouTrack issues query returned an unexpected shape');
 
         return [{

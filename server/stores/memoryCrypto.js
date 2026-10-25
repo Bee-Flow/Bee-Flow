@@ -93,6 +93,9 @@ const PLAINTEXT_WRITE = Object.freeze({ encrypt: false, keys: null });
 
 /** @param {Buffer} dek @returns {MemoryKeys} */
 function memoryKeys(dek) {
+    /**
+     * @param {string} info
+     */
     const child = (info) => Buffer.from(crypto.hkdfSync('sha256', dek, HKDF_SALT, info, 32));
     return { enc: child('beeflow:memory:v1:enc'), index: child('beeflow:memory:v1:keyhash') };
 }
@@ -102,14 +105,27 @@ function memoryAad(memoryId, field) {
     return `bfmem:v1:${memoryId}:${field}`;
 }
 
+/**
+ * @param {string} s
+ */
 const normPart = (s) => String(s ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
 
-/** The canonical string a key_hash is computed over. */
+/**
+ * The canonical string a key_hash is computed over.
+ * @param {string} type
+ * @param {string} subject
+ * @param {string} attribute
+ */
 function canonicalKey(type, subject, attribute) {
     return `${normPart(type)}|${normPart(subject)}|${normPart(attribute)}`;
 }
 
-/** The three normalised parts of a canonical key, for SQL fallbacks. */
+/**
+ * The three normalised parts of a canonical key, for SQL fallbacks.
+ * @param {string} type
+ * @param {string} subject
+ * @param {string} attribute
+ */
 function canonicalParts(type, subject, attribute) {
     return [normPart(type), normPart(subject), normPart(attribute)];
 }
@@ -156,7 +172,7 @@ async function resolveWriteContext({ userId, projectId = null }) {
         return { encrypt: !!ctx.encryptMemories, keys: memoryKeys(ctx.backgroundKey) };
     } catch (err) {
         if (err && err.code === 'PROJECT_KEY_UNAVAILABLE') throw err;
-        log.error('[MemoryCrypto] write context failed, writing plaintext:', err.message);
+        log.error('[MemoryCrypto] write context failed, writing plaintext:', /** @type {Error} */ (err).message);
         return PLAINTEXT_WRITE;
     }
 }
@@ -180,7 +196,7 @@ async function resolveReadKey(row) {
         const dek = await _escrowKey(row.user_id);
         return dek ? memoryKeys(dek).enc : null;
     } catch (err) {
-        log.warn(`[MemoryCrypto] read key unavailable for ${row.project_id ? 'project ' + row.project_id : 'user ' + row.user_id}: ${err.message}`);
+        log.warn(`[MemoryCrypto] read key unavailable for ${row.project_id ? 'project ' + row.project_id : 'user ' + row.user_id}: ${/** @type {Error} */ (err).message}`);
         return null;
     }
 }
@@ -281,7 +297,7 @@ async function hydrateRows(rows, { keepUnreadable = false } = {}) {
             out.push(hydrate(row, key));
         } catch (err) {
             if (!(err instanceof FieldDecryptError)) throw err;
-            log.error(`[MemoryCrypto] memory ${row.id} could not be opened: ${err.message}`);
+            log.error(`[MemoryCrypto] memory ${row.id} could not be opened: ${/** @type {Error} */ (err).message}`);
             if (keepUnreadable) {
                 /** @type {Record<string, any>} */
                 const stub = { ...row, unreadable: true };

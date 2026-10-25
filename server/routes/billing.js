@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Billing — read-only plan endpoints.
  *
@@ -35,6 +36,7 @@ const router = express.Router();
 // Single source of truth for what fields each plan row exposes to the
 // world. Keep this list strict — anything not mapped here is invisible
 // to both the authenticated wizard and the public pricing page.
+/** @param {Awaited<ReturnType<typeof userStore.getAllPlans>>[number]} p */
 function toPublicPlan(p) {
     return {
         id: p.id,
@@ -65,6 +67,7 @@ function toPublicPlan(p) {
 // `includeNcOnly` opts in to the plans the admin restricted to Nextcloud
 // organisations. It defaults to false so a new caller can't leak them by
 // forgetting the flag.
+/** @param {{ types?: string[], includeNcOnly?: boolean }} [options] */
 async function listPublicPlans({ types, includeNcOnly = false } = {}) {
     const all = await userStore.getAllPlans();
     return all
@@ -75,7 +78,7 @@ async function listPublicPlans({ types, includeNcOnly = false } = {}) {
         .map(toPublicPlan);
 }
 
-router.get('/offered-plans', requireAuth, async (req, res) => {
+router.get('/offered-plans', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     // NC onboarding only sets up organisations, so this route stays
     // org-only to avoid surfacing consumer plans in the wizard.
     // NC-restricted plans are added only for callers whose org actually
@@ -91,7 +94,7 @@ router.get('/offered-plans', requireAuth, async (req, res) => {
     res.json({ plans, stripeEnabled });
 });
 
-router.get('/public-plans', async (req, res) => {
+router.get('/public-plans', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     // Public pricing page shows everything the admin has flagged
     // is_public — both organisation and consumer plans. The client
     // groups them by planType for display. Plans restricted to Nextcloud

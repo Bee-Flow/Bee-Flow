@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Branding Store — thin façade over configStore for the theming system.
  *
@@ -51,6 +51,11 @@ const DEFAULTS = Object.freeze({
     allowUserOverride: true,
 });
 
+/**
+ * @param {number} lo
+ * @param {number} hi
+ * @param {unknown} n
+ */
 function clamp(n, lo, hi) {
     const v = Number(n);
     if (!Number.isFinite(v)) return lo;
@@ -62,8 +67,11 @@ function clamp(n, lo, hi) {
  * dropped; invalid values fall back to the defaults. Returns a fresh object
  * with ONLY the keys that were valid in the input — useful for PATCH-style
  * merges in callers.
+ * @param {Record<string, unknown> | null | undefined} input
+ * @param {{ allowAllKnobs?: boolean }} [opts]
  */
 function sanitize(input, { allowAllKnobs = true } = {}) {
+    /** @type {Record<string, unknown>} */
     const out = {};
     if (!input || typeof input !== 'object') return out;
 
@@ -113,7 +121,7 @@ function sanitize(input, { allowAllKnobs = true } = {}) {
         if (!allowAllKnobs || input[tierKey] === undefined) continue;
         if (input[tierKey] === null) { out[tierKey] = null; continue; }
         if (typeof input[tierKey] !== 'object') continue;
-        const t = input[tierKey];
+        const t = /** @type {{ blur?: number, saturate?: number, brightness?: number }} */ (input[tierKey]);
         out[tierKey] = {
             blur:       clamp(t.blur ?? 16, 0, 60),
             saturate:   clamp(t.saturate ?? 170, 100, 300),
@@ -131,6 +139,7 @@ async function getOrgDefault() {
     return { ...DEFAULTS, ...(raw && typeof raw === 'object' ? raw : {}) };
 }
 
+/** @param {Record<string, unknown>} patch */
 async function setOrgDefault(patch) {
     const current = await getOrgDefault();
     const clean = sanitize(patch, { allowAllKnobs: true });
@@ -144,11 +153,15 @@ async function getWallpaperFilename() {
     return typeof v === 'string' && v ? v : null;
 }
 
+/** @param {string | null | undefined} filename */
 async function setWallpaperFilename(filename) {
     await configStore.setConfig('branding.wallpaperFilename', filename || '');
     return filename || null;
 }
 
+/**
+ * @param {string} userId
+ */
 async function getUserOverride(userId) {
     if (!userId) return null;
     const raw = await configStore.getConfig(`branding.user.${userId}`);
@@ -156,6 +169,10 @@ async function getUserOverride(userId) {
     return raw;
 }
 
+/**
+ * @param {string} userId
+ * @param {Record<string, unknown> | null} patch
+ */
 async function setUserOverride(userId, patch) {
     if (!userId) return null;
     if (patch === null) {
@@ -183,6 +200,7 @@ async function setUserOverride(userId, patch) {
  * Compose the effective theme for a given user. Resolution: user override
  * (if admin allows) → org default → hardcoded defaults. Wallpaper URL is
  * built from the stored filename + the API_BASE-relative serve path.
+ * @param {string | null} userId
  */
 async function getEffective(userId) {
     const orgDefault = await getOrgDefault();

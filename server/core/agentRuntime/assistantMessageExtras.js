@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The pieces ./finalizeTurn puts on (or takes off) the final assistant message
  * of a streaming agent turn: the stray tool-call / think markup stripped from
@@ -10,6 +10,16 @@
  * server's large import cycle, which this module stays out of.
  */
 const log = require('../../telemetry/log');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
+
+/**
+ * @typedef {import('../providers/base').OnEvent} OnEvent
+ * @typedef {{ piiDetection: () => typeof import('../privacy/piiDetection'), dlpRunner: () => typeof import('../dlp/dlpRunner') }} Privacy
+ * @typedef {{ id?: string } | null | undefined} ConversationRef
+ * @typedef {{ resultPreview?: unknown, args?: Record<string, unknown> }} ToolHistoryEntry
+ * @typedef {{ id?: string, text?: string, startedAt?: number, endedAt?: number, redacted?: boolean, signature?: string, redactedData?: string, phase?: string }} ThinkingPart
+ * @typedef {{ source: string, action: string, count: number, categories: string[], provider: string, automatic: boolean, tokenMap: Record<string, string>, rawResponse?: string, rawTruncated?: boolean }} TokenisationInfo
+ */
 
 // Cap total thinking size — runaway models can emit hundreds of KB of
 // chain-of-thought, bloating conversation rows and slowing reads.
@@ -19,13 +29,15 @@ const THINKING_BUDGET = 64 * 1024;
  * Strip raw tool-call XML tags from the response — some models (e.g. Mistral
  * thinking) output <tool_call>/<tool_response> as plain text instead of
  * structured function calls.
- *
+ * 
  * BFSF-263: also strip COMPLETE <think> pairs that slipped through as a
  * defensive last line — but ONLY on the raw-fetch SSE path (OSS models behind
  * generic endpoints, where in-band reasoning is a real failure mode). Native
  * adapters already deliver reasoning as typed thinking events, so a <think>
  * pair in THEIR final text is intentional content (e.g. the user asked for an
  * example) and must survive.
+ * @param {string} fullResponse
+ * @param {{ useNativeAdapter?: boolean, onEvent: OnEvent }} opts
  */
 function stripToolCallMarkup(fullResponse, { useNativeAdapter, onEvent }) {
     if (!fullResponse) return fullResponse;
@@ -53,6 +65,9 @@ function stripToolCallMarkup(fullResponse, { useNativeAdapter, onEvent }) {
  * mirror of the same pass in the direct-chat turn (routes/ai/directChat/).
  * toolHistory is never fed back to the AI; it surfaces in the "How I got this
  * answer" panel where the user wants real values.
+ * @param {ToolHistoryEntry[]} toolHistory
+ * @param {ConversationRef} conversation
+ * @param {Privacy} privacy
  */
 function restoreToolHistoryTokens(toolHistory, conversation, privacy) {
     try {
@@ -71,10 +86,10 @@ function restoreToolHistoryTokens(toolHistory, conversation, privacy) {
                 }
             }
         }
-    } catch (err) { log.debug('render-layer best-effort', err); }
+    } catch (err) { bestEffort('core/agentRuntime/assistantMessageExtras:restoreToolHistoryTokens', err); /* render-layer best-effort */ }
 }
 
-const _capText = (s) => (typeof s === 'string' && s.length > THINKING_BUDGET)
+const _capText = (/** @type {string} */ s) => (typeof s === 'string' && s.length > THINKING_BUDGET)
     ? s.slice(0, THINKING_BUDGET) + '…[thinking truncated]'
     : (typeof s === 'string' ? s : '');
 
@@ -91,20 +106,25 @@ const _capText = (s) => (typeof s === 'string' && s.length > THINKING_BUDGET)
  * keeps raw placeholder tokens (e.g. [email_1]) that resurface verbatim on
  * reload (BFSF-253). Best-effort; the live stream is handled by the
  * un-tokeniser wrapper.
+ * @param {ThinkingPart[]} thinkingParts
+ * @param {string | null | undefined} thinking
+ * @param {ConversationRef} conversation
+ * @param {Privacy} privacy
  */
 function persistedThinking(thinkingParts, thinking, conversation, privacy) {
-    let _restoreTH = (s) => s;
+    let _restoreTH = (/** @type {string} */ s) => s;
     try {
         const { restoreTokens } = privacy.piiDetection();
         const _convMapTHK = privacy.dlpRunner().getConversationTokenMap(conversation?.id);
         if (_convMapTHK && Object.keys(_convMapTHK).length > 0) {
             _restoreTH = (s) => (typeof s === 'string' ? restoreTokens(s, _convMapTHK) : s);
         }
-    } catch (err) { log.debug('render-layer best-effort', err); }
+    } catch (err) { fallback('core/agentRuntime/assistantMessageExtras:persistedThinking', err); /* render-layer best-effort */ }
     if (thinkingParts.length > 0) {
         let budget = THINKING_BUDGET;
         return thinkingParts.map(p => {
             const text = _restoreTH(typeof p.text === 'string' ? p.text : '');
+            /** @type {string} */
             let outText;
             if (budget <= 0) {
                 outText = '';
@@ -134,7 +154,10 @@ function persistedThinking(thinkingParts, thinking, conversation, privacy) {
     return undefined;
 }
 
-/** The token categories (`[email_1]` → `email`) of a list of tokens. */
+/**
+ * The token categories (`[email_1]` → `email`) of a list of tokens.
+ * @param {Iterable<string>} tokens
+ */
 function tokenCategories(tokens) {
     const catSet = new Set();
     for (const tok of tokens) {
@@ -158,12 +181,17 @@ function tokenCategories(tokens) {
  *     continuous visual confirmation that privacy is engaged for this chat.
  *     This is state, not action: PII detection does NOT run on the reply;
  *     the conv map was populated on earlier turns.
+ * @param {{ ut?: { getReplacedTokens?: () => Map<string, { value: string, count?: number }> } | null, conversation: ConversationRef, modelToUse: string, onEvent?: OnEvent }} turn
+ * @param {Privacy} privacy
+ * @returns {TokenisationInfo | null}
  */
 function synthesiseTokenisationInfo({ ut, conversation, modelToUse, onEvent }, privacy) {
     if (!ut || typeof ut.getReplacedTokens !== 'function') return null;
     const replaced = ut.getReplacedTokens();
+    /** @type {TokenisationInfo | null} */
     let info = null;
     if (replaced && replaced.size > 0) {
+        /** @type {Record<string, string>} */
         const tokenMap = {};
         let totalCount = 0;
         for (const [token, entry] of replaced) {

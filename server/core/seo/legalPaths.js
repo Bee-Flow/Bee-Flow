@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The legal documents a site links to, and where they live.
  *

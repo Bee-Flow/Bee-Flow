@@ -25,6 +25,7 @@ const ncScope = require('../../core/integrations/ncScope');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -58,7 +59,7 @@ const GroupIntegrationsBody = bodyOf({ disabledIntegrations: idList('disabledInt
 // Augment requireOrgAdmin with a "must be NC-bound" check so this whole
 // surface is unreachable for standalone orgs even if a malicious caller
 // guesses the URL.
-async function requireNcOrg(req, res, next) {
+async function requireNcOrg(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
     const orgId = req.params.orgId;
     const org = await userStore.getOrganization(orgId);
     if (!org) return res.status(404).json({ error: 'Organization not found' });
@@ -88,7 +89,7 @@ router.get('/admin/:orgId/nc-integrations', requireAuth, requireOrgAdmin('orgId'
     // a column nothing enforced.
     let enabled;
     let usingDefaults;
-    const scopeDoc = await ncScope.getOrgScopeDoc(o.id).catch(() => null);
+    const scopeDoc = await ncScope.getOrgScopeDoc(o.id).catch((e) => fallback('routes/admin/ncIntegrations:anon', e, null));
     if (scopeDoc?.integrations) {
         const scoped = ncScope.sanitizeIntegrations(scopeDoc.integrations);
         enabled = NC_INTEGRATION_IDS.filter(id => (scoped[id]?.mode ?? 'all') !== 'off');
@@ -139,7 +140,7 @@ router.put('/admin/:orgId/nc-integrations', requireAuth, requireOrgAdmin('orgId'
         direction: 'input',
         action_taken: `set:[${requested.join(',')}]`,
         source: 'org_admin',
-    }).catch(() => {});
+    }).catch((e) => bestEffort('routes/admin/ncIntegrations:anon#2', e));
 
     res.json({ ok: true, enabled: requested });
 });
@@ -190,9 +191,11 @@ router.put('/admin/:orgId/nc-integrations/groups/:groupId', requireAuth, require
         direction: 'input',
         action_taken: `set:[${disabled.join(',')}]`,
         source: 'org_admin',
-    }).catch(() => {});
+    }).catch((e) => bestEffort('routes/admin/ncIntegrations:anon#3', e));
 
     res.json({ ok: true, groupId, disabledIntegrations: disabled });
 });
 
 module.exports = router;
+
+/** @typedef {import('express').Request<{ orgId: string }> & { org: Awaited<ReturnType<typeof import('../../stores/userStore').getOrganization>> }} OrgReq */

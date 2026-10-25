@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: Layers (reusable sub-automations).
  *

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Variants of an uploaded CMS image, written to storage next to the original
@@ -14,6 +14,7 @@
 
 const { VARIANT_WIDTHS, VARIANT_FORMATS, MAX_SOURCE_BYTES, isResizable, resize } = require('./assetVariants');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const PREFIX = 'cms-variants/';
 const MAX_QUEUED = 20;
@@ -59,12 +60,12 @@ async function storeVariants({ key, source, contentType, storage }) {
                 stored++;
             } catch (err) {
                 failed = true;
-                log.warn(`[CmsVariants] ${key} ${width}.${format} skipped: ${err.message}`);
+                log.warn(`[CmsVariants] ${key} ${width}.${format} skipped: ${/** @type {Error} */ (err).message}`);
             }
         }
     }
     // Marks the image as handled, so the backfill does not redo images that need no variants.
-    if (!failed) await storage.uploadFile(doneKey(key), Buffer.from('1'), 'text/plain').catch(() => undefined);
+    if (!failed) await storage.uploadFile(doneKey(key), Buffer.from('1'), 'text/plain').catch((e) => bestEffort('core/cms/assetVariantStore:storeVariants', e));
     return stored;
 }
 
@@ -78,7 +79,7 @@ function enqueue(task) {
     if (queued >= MAX_QUEUED) return Promise.resolve(0);
     queued++;
     const run = tail.then(task);
-    tail = run.then(() => undefined, () => undefined);
+    tail = run.then(/** @returns {undefined} */ () => undefined, /** @returns {undefined} */ () => undefined);
     return run.finally(() => { queued--; });
 }
 
@@ -122,7 +123,7 @@ async function backfillVariants(storage) {
         }
     } catch (err) {
         // Local-fs mode (no listing) or a storage outage: nothing to backfill now.
-        log.warn(`[CmsVariants] backfill skipped: ${err.message}`);
+        log.warn(`[CmsVariants] backfill skipped: ${/** @type {Error} */ (err).message}`);
     }
     return handled;
 }

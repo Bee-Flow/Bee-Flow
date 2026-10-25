@@ -59,7 +59,10 @@ const TEXT = {
     'ai_act.model.unavailable': () => 'Bee could not reach its AI model to check this.',
 };
 
-/** The English line for one piece of evidence. */
+/**
+ * The English line for one piece of evidence.
+ * @param {string | number} code
+ */
 function textFor(code, params = {}) {
     const fn = TEXT[code];
     return fn ? fn(params || {}) : '';
@@ -71,3 +74,12 @@ function withText(evidence) {
 }
 
 module.exports = { AREA_TEXT, PRACTICE_TEXT, TEXT, textFor, withText };
+
+/**
+ * @typedef {object} TextParams  what a piece of evidence names (aiActDetect.js)
+ * @property {number} [count]
+ * @property {Array<{ label?: string }>} [steps]
+ * @property {string} [label]
+ * @property {string[]} [domains]
+ * @property {string[]} [practices]
+ */

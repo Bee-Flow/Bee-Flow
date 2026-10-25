@@ -36,7 +36,10 @@ const LOCK_STALE_MS = 60 * 60 * 1000;
 const RETRY_DELAYS_MS = Object.freeze([60_000, 5 * 60_000, 30 * 60_000]);
 const RETRY_FOREVER_MS = 6 * 60 * 60 * 1000;
 
-/** Why the task is off, or '' when it should run. */
+/**
+ * Why the task is off, or '' when it should run.
+ * @param {NodeJS.ProcessEnv} [env]
+ */
 function disabledReason(env = process.env) {
     if (env.NODE_ENV === 'test') return 'NODE_ENV=test';
     if (['off', 'false', '0'].includes(String(env.LEARN_MEDIA_AUTO ?? '').trim().toLowerCase())) return 'LEARN_MEDIA_AUTO is off';
@@ -46,6 +49,7 @@ function disabledReason(env = process.env) {
 /**
  * Take the lock, or return null when another run holds it. A lock older than
  * `staleMs` is taken over. Returns a release function.
+ * @param {string} dir
  */
 function acquireLock(dir, { staleMs = LOCK_STALE_MS, now = Date.now, fsImpl = fs } = {}) {
     fsImpl.mkdirSync(dir, { recursive: true });
@@ -66,7 +70,12 @@ function acquireLock(dir, { staleMs = LOCK_STALE_MS, now = Date.now, fsImpl = fs
     return null;
 }
 
+/**
+ * @param {string} [pinPath]
+ * @param {typeof fs} [fsImpl]
+ */
 function readPin(pinPath = PIN_PATH, fsImpl = fs) {
+    /** @type {string} */
     let raw;
     try {
         raw = fsImpl.readFileSync(pinPath, 'utf8');
@@ -95,10 +104,14 @@ function createLearnMediaSync({
     lockStaleMs = LOCK_STALE_MS,
 } = {}) {
     let failures = 0;
+    /** @type {NodeJS.Timeout | null} */
     let timer = null;
     let stopped = false;
     let running = false;
 
+    /**
+     * @param {number} ms
+     */
     const schedule = (ms) => {
         if (stopped) return;
         timer = setTimer(() => { timer = null; void runOnce(); }, ms);
@@ -109,13 +122,14 @@ function createLearnMediaSync({
     async function runOnce() {
         if (running) return 'busy';
         running = true;
+        /** @type {(() => void) | null} */
         let release = null;
         try {
             let pin;
             try {
                 pin = readPin(pinPath, fsImpl);
             } catch (err) {
-                logger.warn(`learn media pin unreadable: ${err.message}`);
+                logger.warn(`learn media pin unreadable: ${/** @type {Error} */ (err).message}`);
                 return 'bad-pin'; // a broken file does not heal by retrying
             }
             if (!pin) {
@@ -138,7 +152,7 @@ function createLearnMediaSync({
         } catch (err) {
             const delay = failures < RETRY_DELAYS_MS.length ? RETRY_DELAYS_MS[failures] : RETRY_FOREVER_MS;
             failures += 1;
-            logger.warn(`learn media install failed (retrying in ${Math.round(delay / 60_000)} min): ${err.message}`);
+            logger.warn(`learn media install failed (retrying in ${Math.round(delay / 60_000)} min): ${/** @type {Error} */ (err).message}`);
             schedule(delay);
             return 'failed';
         } finally {
@@ -157,7 +171,7 @@ function createLearnMediaSync({
             schedule(startDelayMs);
             return true;
         } catch (err) {
-            logger.warn(`learn media sync could not start: ${err.message}`);
+            logger.warn(`learn media sync could not start: ${/** @type {Error} */ (err).message}`);
             return false;
         }
     }

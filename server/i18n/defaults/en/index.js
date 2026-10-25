@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * English GUI String Defaults — the canonical catalogue of every translatable
@@ -161,6 +161,7 @@ const NAMESPACES = {
 };
 
 function build() {
+    /** @type {Record<string, string>} */
     const merged = {};
     for (const [ns, entries] of Object.entries(NAMESPACES)) {
         for (const [key, value] of Object.entries(entries)) {

@@ -65,6 +65,10 @@ function tri(v) {
     const s = typeof v === 'string' ? v.toLowerCase() : '';
     return TRI.includes(s) ? s : 'unknown';
 }
+/**
+ * @param {string} code
+ * @param {string} text
+ */
 function reason(code, params, text) { return { code, params: params || {}, text }; }
 
 // ── Q1: AI ──────────────────────────────────────────────────────────────────
@@ -230,6 +234,12 @@ function parseAnswers(body) {
         answers[q] = b[q];
     }
     if (!Object.keys(answers).length) return { ok: false, code: 'ai_act.answers_empty', message: 'Answer at least one question.' };
+    /**
+     * @param {readonly string[]} vocabulary
+     * @param {string} code
+     * @param {string} what
+     * @param {string[]} v
+     */
     const listOf = (v, vocabulary, code, what) => {
         if (v === undefined || v === null) return { ok: true, list: [] };
         if (!Array.isArray(v) || v.some(x => !vocabulary.includes(x))) return { ok: false, code, message: `${what} lists ids from: ${vocabulary.join(', ')}.` };
@@ -256,6 +266,7 @@ function answersFromWizard(wizard, previousAnswers) {
     const w = isObject(wizard) ? wizard : {};
     const sensitive = tri(w.sensitiveUse);
     const chosen = new Set(Array.isArray(w.domains) ? w.domains : []);
+    /** @type {Record<string, string>} */
     const domains = {};
     for (const id of annexIii.ANNEX_III_IDS) {
         domains[id] = sensitive === 'no' ? 'no'
@@ -291,6 +302,9 @@ function assessmentStatus(row, { containsAi = false, now = Date.now() } = {}) {
     return 'valid';
 }
 
+/**
+ * @param {string | number | Date} v
+ */
 const iso = (v) => (v ? new Date(v).toISOString() : null);
 
 /**
@@ -309,6 +323,9 @@ const iso = (v) => (v ? new Date(v).toISOString() : null);
  * asked first so an install without it pays no organisation or licence read.
  */
 function makeAiActState(deps) {
+    /**
+     * @param {string | null} orgId
+     */
     const notRequired = (orgId) => ({ required: false, status: 'not_required', expiresAt: null, outcome: null, attestedAt: null, attestedBy: null, source: null, orgId, row: null });
     return async function aiActState(automation, definition) {
         if (deps.enabled && !(await deps.enabled())) return notRequired(null);
@@ -419,3 +436,39 @@ module.exports = {
     gateRefusal,
     defaultAiActState,
 };
+
+/** @typedef {import('./automationGraph').AutomationDefinition} AutomationDefinition */
+
+/**
+ * @typedef {object} AutomationRef  the parts of an automation row this check reads
+ * @property {string} id
+ * @property {string} [userId]
+ * @property {string|null} [organizationId]
+ * @property {AutomationDefinition} [definition]
+ */
+
+/**
+ * @typedef {object} AiActState  what `aiActState(automation, definition)` answers
+ * @property {boolean} required
+ * @property {string} status
+ * @property {string|null} [expiresAt]
+ * @property {string|null} [outcome]
+ * @property {string|null} [attestedAt]
+ * @property {string|null} [attestedBy]
+ * @property {string|null} [source]  'auto' (Bee alone), 'mixed', 'manual', or null for a hub attestation or an older row
+ * @property {string|null} [orgId]
+ * @property {AiActRow|null} [row]
+ * @property {unknown[]} [pendingQuestions]  the questions Bee could not answer itself (aiActAuto.gateState)
+ */
+
+/**
+ * @typedef {object} AiActRow  a latest-assessment register row (compliance/aiAct/attest)
+ * @property {string|Date|null} [expires_at]
+ * @property {string|null} [outcome]
+ * @property {string|Date|null} [attested_at]
+ * @property {string|null} [attested_by]
+ * @property {string|null} [source]
+ * @property {unknown} [answers]
+ * @property {Record<string, unknown>} [signals]
+ * @property {{ questions?: Record<string, import('./aiActAuto').AnswerRecord>, classification?: import('./aiActDetect').Verdict & { hash?: string, modelId?: string|null } }} [evidence]
+ */

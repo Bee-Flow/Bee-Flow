@@ -57,6 +57,7 @@ function typeChangeFromPatch(step, patch, draftWrap) {
 
 /** The replace spec for a type change, and the notes about what was read or dropped. */
 function specForTypeChange(step, patch, newType) {
+    /** @type {string[]} */
     const notes = [];
     /** @type {Record<string, any>} */
     const spec = {};
@@ -100,3 +101,9 @@ module.exports = {
     specForTypeChange,
     typeChangeHint,
 };
+
+/**
+ * The builder turn's draft wrapper with the tool-availability members the route sets (not yet on the
+ * pendingDatatables.js typedef).
+ * @typedef {import('../pendingDatatables').DraftWrap & { _inputSchemasByTool?: Record<string, object>, _availableToolNames?: Set<string>, _offeredTools?: Set<string> }} BuilderWrap
+ */

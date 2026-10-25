@@ -1,4 +1,6 @@
-// @typecheck
+// @typecheck noImplicitAny
+const { fallback } = require('../../utils/bestEffort');
+
 /**
  * What the build bar sends along with POST /, checked and turned into a brief.
  *
@@ -23,12 +25,19 @@
  *      is never trusted because the client sent it back.
  */
 
+/** @typedef {{ kind: string, id: string }} CreateSource */
+
 /** The kinds "Bron kiezen" can name. An allow-list: anything else is a 400. */
 const CREATE_SOURCE_KINDS = new Set(['datatable', 'automation']);
 const MAX_CREATE_SOURCES = 10;
 const MAX_PROMPT_CHARS = 4000;
 const DERIVED_NAME_MAX = 60;
 
+/**
+ * @param {number} status
+ * @param {string} message
+ * @param {string} [code]
+ */
 function badRequest(status, message, code) {
     const err = new Error(message);
     err.status = status;
@@ -40,6 +49,8 @@ function badRequest(status, message, code) {
  * `{ kind, id }` pairs and nothing else. Built field by field rather than by
  * spreading the request entry, so a key the client adds later cannot ride
  * along into a grant or a prompt.
+ * @param {unknown} raw
+ * @returns {CreateSource[]}
  */
 function normalizeCreateSources(raw) {
     if (raw === undefined || raw === null) return [];
@@ -65,6 +76,7 @@ function normalizeCreateSources(raw) {
  * A page name from the brief. First line, first sentence, cut on a word
  * boundary — the name is renameable in one click, so a readable guess beats
  * both "Untitled Webpage" and a 200-character title.
+ * @param {unknown} prompt
  */
 function deriveNameFromPrompt(prompt) {
     if (typeof prompt !== 'string') return '';
@@ -84,10 +96,13 @@ function deriveNameFromPrompt(prompt) {
  * written a moment later. Tables must grade at least `viewer` through the one
  * resolver the datatable API and the runner share, looked up scope by scope
  * so a table the caller holds no grade on is not even probeable (404).
+ * @param {import('express').Request} req
+ * @param {CreateSource[]} sources
  */
 async function resolveCreateSources(req, sources) {
     if (!sources.length) return [];
     const userId = req.session.user.id;
+    /** @type {{ kind: string; id: string; name: string; }[]} */
     const resolved = [];
 
     const automationIds = sources.filter(s => s.kind === 'automation').map(s => s.id);
@@ -95,7 +110,7 @@ async function resolveCreateSources(req, sources) {
     if (automationIds.length) {
         const automationStore = require('../../stores/automationStore');
         for (const id of automationIds) {
-            const a = await automationStore.getAutomation(id).catch(() => null);
+            const a = await automationStore.getAutomation(id).catch((e) => fallback('routes/webpages/createBrief:resolveCreateSources', e, null));
             if (!a) throw badRequest(404, `Automation ${id} not found`);
             if (a.userId !== userId) throw badRequest(403, 'You can only build on your own automations');
             automationById.set(id, a);
@@ -140,6 +155,8 @@ async function resolveCreateSources(req, sources) {
  * `instructions`, which webpageChat renders as "Custom instructions from the
  * user". The sources are named here rather than left implicit so the first
  * turn already knows what it is building against.
+ * @param {string} prompt
+ * @param {Array<CreateSource & { name: string }>} sources
  */
 function buildBrief(prompt, sources) {
     if (!prompt) return '';

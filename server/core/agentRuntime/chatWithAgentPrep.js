@@ -25,6 +25,7 @@ const log = require('../../telemetry/log');
  * `temperature` is still passed but the adapter drops it for restricted /
  * adaptive-only models. Falls back to tier defaults when the model isn't
  * attached to any tier.
+ * @param {string} modelId
  */
 async function resolveGenerationSettings(modelId, { userOrgId = null, userId = null, tierKey: explicitTierKey = null } = {}, d) {
     const { getEUAwareTiers, TIER_DEFAULTS, findTierKeyForModel } = d;
@@ -112,7 +113,7 @@ async function shieldIncomingMessages({ messages, agent, userId, userAuth, conve
         } catch (piiError) {
             // Propagate both a PII block and a fail-closed "protection
             // unavailable" block to the route handler (BFSF-269).
-            if (piiError.message?.includes('PII Detected') || piiError.privacyUnavailable) {
+            if (/** @type {Error} */ (piiError).message?.includes('PII Detected') || piiError.privacyUnavailable) {
                 throw piiError;
             }
             // Service unavailable → fail-open
@@ -130,3 +131,8 @@ function tokenPreservationAddendum(conversation, piiTokenMap, d) {
 }
 
 module.exports = { resolveGenerationSettings, loadToolParamsMap, shieldIncomingMessages, tokenPreservationAddendum };
+
+/**
+ * @typedef {{ getAIConfig: typeof import('../aiAgent').getAIConfig, agentStore: typeof import('../../stores/agentStore'), getEUAwareTiers: typeof import('../llm/modelResolver').getEUAwareTiers, TIER_DEFAULTS: typeof import('../llm/modelResolver').TIER_DEFAULTS, findTierKeyForModel: typeof import('../llm/modelResolver').findTierKeyForModel, validateInputForPii: typeof import('../privacy/piiDetection').validateInputForPii, resolveShieldFor: typeof import('../privacy/orgShield').resolveShieldFor, dlpRunner: typeof import('../dlp/dlpRunner') }} PrepDeps
+ * @typedef {{ maxTokens?: number, temperature?: number, reasoningEffort?: string, reasoningSummary?: boolean | string, budgetTokens?: number }} TierSettings
+ */

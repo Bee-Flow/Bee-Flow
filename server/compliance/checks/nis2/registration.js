@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * NIS2 Art. 3(4) / Cyberbeveiligingswet registratieplicht — essential and
  * important entities register with the national authority.
@@ -26,12 +26,16 @@ const complianceStore = require('../../../stores/complianceStore');
 const IN_SCOPE = new Set(['essential', 'important']);
 const OUT_OF_SCOPE = new Set(['not_in_scope', 'supplier_only']);
 
+/** @param {Record<string, any> | null | undefined} settings */
 function _notRelevant(settings) {
     let rel = settings && settings.framework_relevance;
     if (typeof rel === 'string') { try { rel = JSON.parse(rel); } catch { rel = null; } }
     return !!rel && rel.nis2 === 'not_relevant';
 }
 
+/**
+ * @param {string | number | Date} v
+ */
 function _iso(v) {
     if (!v) return null;
     const t = new Date(v).getTime();
@@ -50,6 +54,7 @@ module.exports = {
     descriptionKey: 'compliance.check_nis2_registration_desc',
     remediationKey: 'compliance.check_nis2_registration_fix',
     remediationLink: 'admin/compliance/settings',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const settings = await complianceStore.getSettings(orgId);
         if (_notRelevant(settings)) {

@@ -11,6 +11,7 @@ const { clone, resolveKnownRefs, applyResolutionsTo } = require('../refs');
 const { writeOpts } = require('../context');
 
 /** Blocks and layers are building materials: they must exist before callers. */
+/** @type {Record<string, number>} */
 const KIND_ORDER = { block: 0, layer: 0, automation: 1 };
 
 async function installAutomations(entities, ctx, report) {
@@ -75,7 +76,7 @@ async function installAutomations(entities, ctx, report) {
             await ctx.stamp({ ref: entity.ref, kind: 'automation', entityId: created.id, payload: definition, stepIdMap });
             report.installed.automations.push({ ref: entity.ref, id: created.id, title: automation.title });
         } catch (err) {
-            report.skipped.push({ ref: entity.ref, kind: 'automation', why: err.message });
+            report.skipped.push({ ref: entity.ref, kind: 'automation', why: /** @type {Error} */ (err).message });
         }
     }
 }

@@ -15,7 +15,11 @@
  */
 const agentStore = require('../../../stores/agentStore');
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
+/**
+ * @param {{ agent: import('./turnState').AgentRow, agentId: string, userId: string, userAuth: import('./turnState').UserAuth, messageMetadata: import('./turnState').MessageMetadata, onEvent: import('./turnState').OnEvent, conversation: import('./turnState').ConversationRow, isEphemeral: boolean } & Pick<Awaited<ReturnType<typeof import('./turnSetup').setupTurn>>, 'tools' | 'disableExternalTools' | 'skillApps' | 'activatedSkillIds' | 'baseIntegrationToolNames'>} opts
+ */
 function createSkillActivationHandler({
     agent, agentId, userId, userAuth, messageMetadata, onEvent,
     conversation, isEphemeral, tools, disableExternalTools,
@@ -28,10 +32,11 @@ function createSkillActivationHandler({
     // agentic loop re-reads it every iteration, so they're visible on the
     // model's next step. Activation ids persist in conversation meta so
     // subsequent turns rebuild the same allowlist.
-    const onSkillsActivated = async (justActivatedIds) => {
-        const result = { addedTools: [], unavailableApps: [] };
+    const onSkillsActivated = async (/** @type {string[]} */ justActivatedIds) => {
+        const result = { addedTools: /** @type {string[]} */ ([]), unavailableApps: /** @type {string[]} */ ([]) };
         if (disableExternalTools) return result;
 
+        /** @type {string[]} */
         const newApps = [];
         let activationChanged = false;
         for (const sid of justActivatedIds || []) {
@@ -83,7 +88,7 @@ function createSkillActivationHandler({
                 // Say it on the same wire the first pass uses, or the run would
                 // show a sandbox notice that is missing exactly the tools that
                 // arrived late.
-                try { onEvent?.('test_sandbox', { withheld: kept.sandboxWithheld }); } catch (err) { log.debug('never take the turn down over telemetry', err); }
+                try { onEvent?.('test_sandbox', { withheld: kept.sandboxWithheld }); } catch (err) { bestEffort('core/agentRuntime/chatStream/skillActivation:onSkillsActivated', err); /* never take the turn down over telemetry */ }
             }
             for (const t of kept.tools) {
                 tools.push(t);

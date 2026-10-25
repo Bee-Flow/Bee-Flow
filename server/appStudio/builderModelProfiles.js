@@ -73,6 +73,9 @@ const APP_CORE_TOOL_NAMES = new Set([
  * session see the identical object graph (prompt-cache discipline).
  */
 const _coreMenus = new WeakMap();
+/**
+ * @param {{ type: string; function: { name: string; description: string; parameters: object; }; }[]} toolSchemas
+ */
 function selectToolMenu(profile, toolSchemas) {
     const list = Array.isArray(toolSchemas) ? toolSchemas : [];
     if (profile && profile.toolset === 'core') {
@@ -115,6 +118,9 @@ function selectAutoBuilderTier(tiers) {
         candidates.push({ tier, modelId, score: rankModelCapability(modelId) });
     }
     if (!candidates.length) return null;
+    /**
+     * @param {string} t
+     */
     const pref = (t) => {
         const i = AUTO_TIER_TIEBREAK.indexOf(t);
         return i === -1 ? AUTO_TIER_TIEBREAK.length : i;

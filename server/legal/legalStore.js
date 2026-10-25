@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Legal Store — runtime overrides for the optional-consent catalog.
  *
@@ -22,6 +22,9 @@ const log = require('../telemetry/log');
 
 const OPTIONAL_KEY = 'legal_optional_consents';
 
+/** @typedef {{ id?: string, version?: unknown, [k: string]: unknown }} OptionalConsentOverride */
+
+/** @type {{ optional: OptionalConsentOverride[] | null, loaded: boolean }} */
 let _cache = { optional: null, loaded: false };
 
 /**
@@ -36,7 +39,7 @@ async function refresh() {
             loaded: true,
         };
     } catch (err) {
-        log.warn('[LegalStore] refresh failed:', err.message);
+        log.warn('[LegalStore] refresh failed:', /** @type {Error} */ (err).message);
         _cache.loaded = true; // fall back to defaults rather than blocking
     }
     return _cache;
@@ -51,7 +54,10 @@ function getOptionalOverride() {
     return _cache.optional;
 }
 
-/** Replace the optional-consent catalog, then refresh the cache. */
+/**
+ * Replace the optional-consent catalog, then refresh the cache.
+ * @param {OptionalConsentOverride[]} list
+ */
 async function setOptionalConsents(list) {
     await configStore.setConfig(OPTIONAL_KEY, Array.isArray(list) ? list : []);
     await refresh();

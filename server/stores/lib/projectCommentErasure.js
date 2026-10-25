@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * The data-subject half of the project comment store (../projectCommentStore.js):

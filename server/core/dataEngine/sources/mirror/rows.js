@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * One source row → one mirror row: `{ id, values }`, in two passes.
  *
@@ -22,13 +23,14 @@
 /**
  * @param {string} id                     the mirror row id the adapter derived
  * @param {object} ctx
- * @param {object} ctx.columnMap          source.columnMap
- * @param {Map<string,object>} ctx.fieldsById   mirror fields by id
- * @param {(entry:object, field:object) => any} ctx.readCell   the adapter's cell reader
+ * @param {Record<string, { derived?: string, localFieldId?: string, forFieldId?: string, [k: string]: unknown }>} ctx.columnMap          source.columnMap
+ * @param {Map<string,{ key: string, type?: string }>} ctx.fieldsById   mirror fields by id
+ * @param {(entry:{ derived?: string, localFieldId?: string, forFieldId?: string, [k: string]: unknown }, field:{ key: string, type?: string }) => unknown} ctx.readCell   the adapter's cell reader
  * @param {Map<string,Map<string,string>>} [ctx.relationIndexes]  fieldId → (value → target id) for 'match'
  * @param {Map<string,Map<string,string>>} [ctx.labelIndexes]     fieldId → (target id → label) for 'nc'
  */
 function deriveRow(id, { columnMap, fieldsById, readCell, relationIndexes = new Map(), labelIndexes = new Map() }) {
+    /** @type {Record<string, unknown>} */
     const values = {};
     // Source columns first, derived ones after — a 'match' reads the local
     // value this same loop produced.
@@ -59,7 +61,10 @@ function deriveRow(id, { columnMap, fieldsById, readCell, relationIndexes = new 
     return { id: String(id), values };
 }
 
-/** The mirror's fields as a Map by id — what every caller of the above builds. */
+/**
+ * The mirror's fields as a Map by id — what every caller of the above builds.
+ * @param {{ fields?: Array<{ id?: string, key: string, type?: string }> } | null | undefined} meta
+ */
 function fieldsByIdOf(meta) {
     return new Map(((meta && meta.fields) || []).filter(f => f && f.id).map(f => [f.id, f]));
 }

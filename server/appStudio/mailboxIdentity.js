@@ -19,6 +19,7 @@
  * because services/email/* is session-less by design.
  */
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const PROVIDER_BY_INTEGRATION = Object.freeze({ gmail: 'google', outlook: 'microsoft' });
 const INTEGRATION_BY_MAILBOX_PROVIDER = Object.freeze({ gmail: 'gmail', outlook: 'outlook' });
@@ -32,6 +33,11 @@ function sharedModeFor(provider) {
     return provider === 'outlook' ? 'delegated_mailbox' : 'delivered_alias';
 }
 
+/**
+ * @param {number} status
+ * @param {string} message
+ * @param {string} code
+ */
 function identityError(status, message, code) {
     const err = new Error(message);
     err.status = status;
@@ -102,18 +108,18 @@ async function viewerHasIntegration(integrationId, { userId, orgId, deps: inject
             const resolvedTool = deps.resolveIntegration(name);
             if (resolvedTool?.integration === integrationId) return true;
         }
-    } catch (err) { log.debug('fall through to the grant check', err); }
+    } catch (err) { fallback('appStudio/mailboxIdentity:viewerTools', err); /* not granted: false */ }
     return false;
 }
 
 /** Does this user hold a usable token for the provider at all? (Message only.) */
 async function hasAnyCredential(userId, oauthProvider, { integrationId, orgId, deps }) {
     try {
-        const vault = await deps.getProviderAuth(userId, oauthProvider).catch(() => null);
+        const vault = await deps.getProviderAuth(userId, oauthProvider).catch((e) => fallback('appStudio/mailboxIdentity:hasAnyCredential', e, null));
         if (vault?.accessToken) return true;
         const session = await deps.buildUserSession(userId, orgId, {
             include: [integrationId], providerHint: oauthProvider,
-        }).catch(() => null);
+        }).catch((e) => fallback('appStudio/mailboxIdentity:hasAnyCredential#2', e, null));
         return !!(session?.oauthProvider === oauthProvider && session?.accessToken)
             || !!session?.automationProviders?.[oauthProvider]?.accessToken;
     } catch {
@@ -141,13 +147,13 @@ async function hasAnyCredential(userId, oauthProvider, { integrationId, orgId, d
  * mailbox would only ever refresh while its owner happened to be online.
  */
 async function resolveCredential(userId, { oauthProvider, integrationId, orgId, deps }) {
-    const vaultCred = await deps.getProviderAuth(userId, oauthProvider).catch(() => null);
+    const vaultCred = await deps.getProviderAuth(userId, oauthProvider).catch((e) => fallback('appStudio/mailboxIdentity:resolveCredential', e, null));
     if (vaultCred?.accessToken) return vaultCred;
 
     const session = await deps.buildUserSession(userId, orgId, {
         include: [integrationId],
         providerHint: oauthProvider,
-    }).catch(() => null);
+    }).catch((e) => fallback('appStudio/mailboxIdentity:resolveCredential#2', e, null));
 
     // Never mix providers: a Microsoft session's token must not be handed to a
     // Gmail client just because it happened to be there.
@@ -157,7 +163,7 @@ async function resolveCredential(userId, { oauthProvider, integrationId, orgId, 
 
     if (!fromSession?.accessToken) return null;
 
-    const user = await deps.getUser(userId).catch(() => null);
+    const user = await deps.getUser(userId).catch((e) => fallback('appStudio/mailboxIdentity:resolveCredential#3', e, null));
     try {
         await deps.upsertCredential({
             userId,
@@ -171,7 +177,7 @@ async function resolveCredential(userId, { oauthProvider, integrationId, orgId, 
     } catch (e) {
         // Non-fatal: the sync still works for this run, it just will not survive
         // the session without a durable copy.
-        log.warn(`[MailboxIdentity] could not persist ${oauthProvider} token for ${userId}: ${e.message}`);
+        log.warn(`[MailboxIdentity] could not persist ${oauthProvider} token for ${userId}: ${/** @type {Error} */ (e).message}`);
     }
     return fromSession;
 }
@@ -217,7 +223,7 @@ async function resolveMailboxIdentity(connector, { app, viewerId = null, deps: i
                 provider: integrationId,
                 resourceType: 'studio_app',
                 resourceId: app.id,
-            }).catch(() => null);
+            }).catch((e) => fallback('appStudio/mailboxIdentity:resolveMailboxIdentity', e, null));
             // 'own' comes back FIRST for a user who has their own connection, so
             // rejecting everything but 'delegated' meant a perfectly connected
             // user still fell through to the error below. Only a delegated grant
@@ -248,7 +254,7 @@ async function resolveMailboxIdentity(connector, { app, viewerId = null, deps: i
         throw err;
     }
 
-    const user = await deps.getUser(effectiveUserId).catch(() => null);
+    const user = await deps.getUser(effectiveUserId).catch((e) => fallback('appStudio/mailboxIdentity:resolveMailboxIdentity#2', e, null));
     const credOrgId = vaultOrgId({ ...(user || {}), id: effectiveUserId }, orgId);
 
     const tokens = {
@@ -271,7 +277,7 @@ async function resolveMailboxIdentity(connector, { app, viewerId = null, deps: i
                 scope: updated.scope || tokens.scope || null,
             });
         } catch (e) {
-            log.warn(`[MailboxIdentity] token write-back failed for ${effectiveUserId}/${oauthProvider}: ${e.message}`);
+            log.warn(`[MailboxIdentity] token write-back failed for ${effectiveUserId}/${oauthProvider}: ${/** @type {Error} */ (e).message}`);
         }
     };
 
@@ -310,3 +316,5 @@ module.exports = {
     _viewerHasIntegration: viewerHasIntegration,
     _vaultOrgId: vaultOrgId,
 };
+
+/** @typedef {ReturnType<typeof defaultDeps>} Deps */

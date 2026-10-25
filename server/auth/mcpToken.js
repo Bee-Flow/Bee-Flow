@@ -25,18 +25,28 @@ const crypto = require('crypto');
 const configStore = require('../stores/configStore');
 
 const TOKEN_PREFIX = 'bfmcp';
+/**
+ * @param {string | null} userId
+ */
 const SECRET_KEY = (userId) => `mcp_server_token_user_${userId}`;
 
+/**
+ * @param {string | null} userId
+ */
 function mintToken(userId) {
     const random = crypto.randomBytes(32).toString('hex');
     const encodedUser = Buffer.from(String(userId), 'utf8').toString('base64url');
     return { token: `${TOKEN_PREFIX}.${encodedUser}.${random}`, random };
 }
 
+/**
+ * @param {string} raw
+ */
 function parseToken(raw) {
     if (typeof raw !== 'string') return null;
     const parts = raw.split('.');
     if (parts.length !== 3 || parts[0] !== TOKEN_PREFIX) return null;
+    /** @type {string} */
     let userId;
     try {
         userId = Buffer.from(parts[1], 'base64url').toString('utf8');
@@ -45,6 +55,9 @@ function parseToken(raw) {
     return { userId, random: parts[2] };
 }
 
+/**
+ * @param {string} b
+ */
 function safeEqual(a, b) {
     const bufA = Buffer.from(String(a || ''), 'utf8');
     const bufB = Buffer.from(String(b || ''), 'utf8');

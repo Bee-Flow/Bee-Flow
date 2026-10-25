@@ -38,7 +38,7 @@ function createGoogleDrivePollers(ctx) {
                         log.info(`[TriggerBus] drive bootstrap sub ${sub.id} anchored at pageToken=${r.data.startPageToken}`);
                     }
                 } catch (e) {
-                    log.warn('[TriggerBus] drive bootstrap error:', e.message);
+                    log.warn('[TriggerBus] drive bootstrap error:', /** @type {Error} */ (e).message);
                 }
                 return [];
             }
@@ -81,7 +81,7 @@ function createGoogleDrivePollers(ctx) {
                     await ctx.store().updateSubscription(sub.id, { lastCursor: null });
                     return [];
                 }
-                log.warn('[TriggerBus] drive poll error:', err.message);
+                log.warn('[TriggerBus] drive poll error:', /** @type {Error} */ (err).message);
                 return [];
             }
         },

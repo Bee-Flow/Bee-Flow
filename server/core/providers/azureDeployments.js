@@ -49,6 +49,9 @@ function parseDeployments(raw) {
         .filter(d => d.deployment);
 }
 
+/**
+ * @param {{ deployment: string; model: string; }[]} list
+ */
 function setAzureDeployments(list) {
     _models = new Map((list || []).filter(d => d.model !== d.deployment).map(d => [d.deployment, d.model]));
 }
@@ -63,7 +66,7 @@ async function refreshAzureDeployments() {
         setAzureDeployments(list);
         return list;
     } catch (e) {
-        log.warn('[Azure] Could not read the deployment list:', e.message);
+        log.warn('[Azure] Could not read the deployment list:', /** @type {Error} */ (e).message);
         return null;
     }
 }
@@ -71,6 +74,7 @@ async function refreshAzureDeployments() {
 /**
  * The model behind an Azure deployment, or the id itself when it is not a
  * mapped deployment. Accepts an `azure/` routing prefix.
+ * @param {string} id
  */
 function azureModelFor(id) {
     if (typeof id !== 'string' || _models.size === 0) return id;

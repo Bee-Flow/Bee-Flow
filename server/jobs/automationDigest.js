@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Automation notifications that do not go out the moment they happen
  * (Studio → Automations handoff 5):
@@ -33,6 +33,7 @@ const log = require('../telemetry/log');
 const { normalizeNotificationSettings } = require('../automation/notificationDefaults');
 const { resolveDigestRecipientIds } = require('../automation/notificationRecipients');
 const { bundleMessage, composeDigest, talkText } = require('../automation/notificationMessages');
+const { fallback } = require('../utils/bestEffort');
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -40,31 +41,40 @@ const DAY_MS = 24 * HOUR_MS;
 const DIGEST_GRACE_MS = 3 * HOUR_MS;
 const EVENT_RETENTION_DAYS = 30;
 
+/**
+ * @typedef {ReturnType<typeof defaultDeps>} DigestDeps
+ * @typedef {{
+ *   automation: Awaited<ReturnType<DigestDeps['events']['listDigestAutomations']>>[number],
+ *   settings: ReturnType<typeof normalizeNotificationSettings>,
+ *   slot: number,
+ * }} DigestEntry
+ */
+
 function defaultDeps() {
     const runNotifications = require('../core/automationRunner/runNotifications');
     return {
         events: require('../stores/automationStore/notificationEvents'),
-        getAutomation: (id) => require('../stores/automationStore').getAutomation(id),
+        getAutomation: (/** @type {string} */ id) => require('../stores/automationStore').getAutomation(id),
         listUsers: () => require('../stores/userStore').getAllUsers(),
-        getUser: (id) => require('../stores/userStore').getUser(id),
-        deliverBell: (o) => runNotifications.deliverBell(o),
-        sendRunEmail: (a, o) => runNotifications.sendRunEmail(a, o),
-        sendDigestEmail: async ({ userId, subject, text }) => {
+        getUser: (/** @type {string} */ id) => require('../stores/userStore').getUser(id),
+        deliverBell: (/** @type {Parameters<typeof runNotifications.deliverBell>[0]} */ o) => runNotifications.deliverBell(o),
+        sendRunEmail: (/** @type {Parameters<typeof runNotifications.sendRunEmail>[0]} */ a, /** @type {Parameters<typeof runNotifications.sendRunEmail>[1]} */ o) => runNotifications.sendRunEmail(a, o),
+        sendDigestEmail: async (/** @type {{ userId: string, subject: string, text: string }} */ { userId, subject, text }) => {
             const emailService = require('../utils/emailService');
-            const cfg = await emailService.getServiceEmailConfig().catch(() => null);
+            const cfg = await emailService.getServiceEmailConfig().catch((e) => fallback('jobs/automationDigest:sendDigestEmail', e, null));
             if (!cfg?.configured) return { sent: false, reason: 'no_service_email' };
-            const user = await require('../stores/userStore').getUser(userId).catch(() => null);
+            const user = await require('../stores/userStore').getUser(userId).catch((e) => fallback('jobs/automationDigest:sendDigestEmail#2', e, null));
             if (!user?.email) return { sent: false, reason: 'no_owner_email' };
             await emailService.sendServiceEmail({ to: user.email, subject, text });
             return { sent: true };
         },
-        resolveNcContext: (ownerId) => require('../automation/approvalDelivery').resolveNcContext(ownerId),
-        postTalk: (o) => require('../automation/approvalDelivery').postTalkCard(o),
-        nextSlot: (time, tz, fromTs) => {
+        resolveNcContext: (/** @type {string | null} */ ownerId) => require('../automation/approvalDelivery').resolveNcContext(ownerId),
+        postTalk: (/** @type {Parameters<typeof import('../automation/approvalDelivery').postTalkCard>[0]} */ o) => require('../automation/approvalDelivery').postTalkCard(o),
+        nextSlot: (/** @type {string} */ time, /** @type {string} */ tz, /** @type {number} */ fromTs) => {
             const [h, m] = time.split(':').map(Number);
             return require('../automation/cron').nextRunAt(`${m} ${h} * * *`, tz, fromTs);
         },
-        absoluteUrl: (path) => {
+        absoluteUrl: (/** @type {string} */ path) => {
             try { return `${require('../automation/publicUrl').resolvePublicBaseUrl()}${path}`; } catch { return path; }
         },
         appPaths: require('../utils/appPaths'),
@@ -75,6 +85,10 @@ function defaultDeps() {
  * The most recent daily slot at or before `now` for "HH:MM" in `tz`, or null.
  * `nextSlot(time, tz, from)` is the first slot strictly after `from`; looking
  * from a day back finds today's (or, before the time, yesterday's).
+ * @param {string} time
+ * @param {string} tz
+ * @param {number} now
+ * @param {(time: string, tz: string, fromTs: number) => string | Date | number | null} nextSlot  automation/cron returns an ISO string; tests pass a Date or epoch ms
  */
 function latestSlot(time, tz, now, nextSlot) {
     let slot;
@@ -86,13 +100,16 @@ function latestSlot(time, tz, now, nextSlot) {
     return ts;
 }
 
-/** A lazy Nextcloud identity per automation owner, shared across one pass. */
+/**
+ * A lazy Nextcloud identity per automation owner, shared across one pass.
+ * @param {DigestDeps} deps
+ */
 function ncCache(deps) {
     const cache = new Map();
-    return (ownerId) => ({
+    return (/** @type {string | null} */ ownerId) => ({
         get: async () => {
             if (!cache.has(ownerId)) {
-                cache.set(ownerId, await Promise.resolve(deps.resolveNcContext(ownerId)).catch(() => null));
+                cache.set(ownerId, await Promise.resolve(deps.resolveNcContext(ownerId)).catch((e) => fallback('jobs/automationDigest:get', e, null)));
             }
             return cache.get(ownerId);
         },
@@ -102,6 +119,9 @@ function ncCache(deps) {
 /**
  * Send "n more" for every group of held messages whose recipient is under
  * the cap again. Returns how many bundle messages went out.
+ * @param {DigestDeps} deps
+ * @param {number} now
+ * @param {ReturnType<typeof ncCache>} nc
  */
 async function flushBundles(deps, now, nc) {
     const groups = await deps.events.listPendingBundles({ limit: 200 });
@@ -110,7 +130,7 @@ async function flushBundles(deps, now, nc) {
     for (const g of groups) {
         try {
             if (!settingsCache.has(g.automationId)) {
-                const a = await Promise.resolve(deps.getAutomation(g.automationId)).catch(() => null);
+                const a = await Promise.resolve(deps.getAutomation(g.automationId)).catch((e) => fallback('jobs/automationDigest:flushBundles', e, null));
                 settingsCache.set(g.automationId, a ? { a, settings: normalizeNotificationSettings(a.definition?.notificationSettings) } : null);
             }
             const entry = settingsCache.get(g.automationId);
@@ -125,7 +145,7 @@ async function flushBundles(deps, now, nc) {
                 if (!entry.digestIds) {
                     entry.digestIds = new Set(await resolveDigestRecipientIds(settings, {
                         automation: a, orgId: a.organizationId || null,
-                    }, { listUsers: () => deps.listUsers() }).catch(() => []));
+                    }, { listUsers: () => deps.listUsers() }).catch((e) => fallback('jobs/automationDigest:flushBundles#2', e, [])));
                 }
                 if (entry.digestIds.has(g.recipient)) continue;
             }
@@ -182,13 +202,17 @@ async function flushBundles(deps, now, nc) {
 /**
  * Who gets a summary now, and over which automations: Map recipient →
  * [{ automation, settings, slot }], only the automations whose slot is due.
+ * @param {DigestDeps} deps
+ * @param {number} now
  */
 async function dueDigests(deps, now) {
     const automations = await deps.events.listDigestAutomations();
+    /** @type {Map<string, DigestEntry[]>} */
     const byRecipient = new Map();
+    /** @type {Awaited<ReturnType<DigestDeps['listUsers']>> | null} */
     let users = null;
     const listUsers = async () => {
-        if (!users) users = await Promise.resolve(deps.listUsers()).catch(() => []);
+        if (!users) users = await Promise.resolve(deps.listUsers()).catch((e) => fallback('jobs/automationDigest:listUsers', e, []));
         return users;
     };
     for (const a of automations) {
@@ -198,7 +222,7 @@ async function dueDigests(deps, now) {
         if (slot == null || now - slot > DIGEST_GRACE_MS) continue;
         let orgId = a.organizationId || null;
         if (!orgId) {
-            const owner = await Promise.resolve(deps.getUser(a.userId)).catch(() => null);
+            const owner = await Promise.resolve(deps.getUser(a.userId)).catch((e) => fallback('jobs/automationDigest:dueDigests', e, null));
             orgId = owner?.organizationId || null;
         }
         const ids = await resolveDigestRecipientIds(settings, { automation: a, orgId }, { listUsers });
@@ -210,7 +234,14 @@ async function dueDigests(deps, now) {
     return byRecipient;
 }
 
-/** Build and send one person's summary. Returns true when a message went out. */
+/**
+ * Build and send one person's summary. Returns true when a message went out.
+ * @param {DigestDeps} deps
+ * @param {number} now
+ * @param {ReturnType<typeof ncCache>} nc
+ * @param {string} recipient
+ * @param {DigestEntry[]} entries
+ */
 async function sendDigest(deps, now, nc, recipient, entries) {
     const automationIds = entries.map(e => e.automation.id);
     const slot = Math.min(...entries.map(e => e.slot));

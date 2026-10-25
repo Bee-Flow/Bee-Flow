@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Does the TARGET org have the "Your own data" feature?
@@ -18,6 +18,10 @@
 
 const FEATURE = 'custom_data_types';
 
+/**
+ * @param {{ license?: typeof import('../../../license') | null, log?: typeof import('../../../telemetry/log') | null }} [deps]
+ * @returns {(scope: { organizationId: string, userId?: string | null }) => Promise<boolean>}
+ */
 function createLicenceCheck({ license = null, log = null } = {}) {
     const lic = () => license || require('../../../license');
     const logger = () => log || require('../../../telemetry/log');
@@ -29,7 +33,7 @@ function createLicenceCheck({ license = null, log = null } = {}) {
             const tier = await l.resolveTier({ organizationId });
             return !!l.tiers.tierHasFeature(tier, FEATURE);
         } catch (e) {
-            logger().warn('[CustomData] licence check failed; treating the feature as locked:', e?.message || e);
+            logger().warn('[CustomData] licence check failed; treating the feature as locked:', /** @type {Error} */ (e)?.message || e);
             return false;
         }
     };

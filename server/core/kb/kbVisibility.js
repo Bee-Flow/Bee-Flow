@@ -73,7 +73,11 @@ function warnOnly() {
     return process.env.KB_VISIBILITY_ENFORCE === 'warn';
 }
 
-/** Why a base was dropped, for the log line. Never surfaced to the asker. */
+/**
+ * Why a base was dropped, for the log line. Never surfaced to the asker.
+ * @param {string | null} userId
+ * @param {Set<string>} orgIds
+ */
 function reasonFor(kb, userId, orgIds) {
     if (!kb) return 'unknown';
     if (!kb.organization_id) return 'personal';
@@ -109,7 +113,9 @@ async function filterKbIdsForUser(kbIds, {
     const orgSet = orgIds instanceof Set ? orgIds : new Set(Array.isArray(orgIds) ? orgIds : []);
     const groups = Array.isArray(userGroups) ? userGroups : [];
 
+    /** @type {string[]} */
     const kept = [];
+    /** @type {{ id: string; reason: string; }[]} */
     const dropped = [];
     for (const id of ids) {
         let kb = null;
@@ -173,8 +179,13 @@ async function filterKbIdsForPublicAnswer(kbIds, {
     const store = deps.kbStore || kbStore;
     const orgSet = orgIds instanceof Set ? orgIds : new Set(Array.isArray(orgIds) ? orgIds : []);
 
+    /**
+     * @param {string} kbId
+     * @param {string} reason
+     */
     const drop = (kbId, reason) => log.warn('[KBVisibility] public dropped', JSON.stringify({ context, agentId, kbId, reason }));
 
+    /** @type {string[]} */
     const kept = [];
     for (const id of ids) {
         let kb = null;
@@ -246,6 +257,7 @@ async function filterKbIdsForGroupMember(kbIds, {
     const store = deps.kbStore || kbStore;
     const orgSet = orgIds instanceof Set ? orgIds : new Set(Array.isArray(orgIds) ? orgIds : []);
 
+    /** @type {string[]} */
     const kept = [];
     for (const id of ids) {
         let kb = null;

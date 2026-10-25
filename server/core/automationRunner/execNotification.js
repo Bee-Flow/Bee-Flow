@@ -14,6 +14,7 @@ const { toolIdentity } = require('./toolIdentity');
 // Each outbound call runs in its own capture context (core/http/captureCall.js).
 const { captureCall: captured } = require('../http/captureCall');
 
+/** @type {Record<string, { integration: string; label: string; server: string; direction: string; dataCategories: string; isLocal: boolean; }>} */
 const NOTIFY_META = {
     email: {
         integration: 'notification_email', label: 'Email notification', server: 'smtp',
@@ -24,7 +25,10 @@ const NOTIFY_META = {
         direction: 'outbound', dataCategories: 'notification_content', isLocal: true,
     },
 };
-/** A fresh copy each time: the ledger call gets its own object, as it always did. */
+/**
+ * A fresh copy each time: the ledger call gets its own object, as it always did.
+ * @param {string} kind
+ */
 const metaFor = (kind) => ({ ...NOTIFY_META[kind] });
 
 /**
@@ -37,7 +41,7 @@ const metaFor = (kind) => ({ ...NOTIFY_META[kind] });
  */
 function notificationChannels(step) {
     const requested = Array.isArray(step.channels) && step.channels.length ? step.channels : ['notification'];
-    const known = requested.filter(c => c === 'notification' || c === 'inapp' || c === 'email');
+    const known = requested.filter((/** @type {string} */ c) => c === 'notification' || c === 'inapp' || c === 'email');
     const ignored = requested.filter(c => !known.includes(c));
     if (known.length === 0) {
         const err = new Error(`notification: no supported channel in [${requested.join(', ')}] — use "notification" and/or "email"`);
@@ -53,6 +57,7 @@ function notificationChannels(step) {
  * and thrown. Returns the probe and the soft skip (BFSF-350: a mail skipped
  * for want of a service mailbox or an owner address stays a soft skip, but is
  * reported as one, not as delivered).
+ * @param {string} mode
  */
 async function sendNotificationEmail(ctx, mode, { title, body, known, guarded, t0 }) {
     const sent = await captured(() => sendRunEmail(
@@ -70,6 +75,9 @@ async function sendNotificationEmail(ctx, mode, { title, body, known, guarded, t
     return { probe: sent.probe, skip: emailSkipOf(sent.value) };
 }
 
+/**
+ * @param {string} mode
+ */
 async function execNotification(step, ctx, runState, mode) {
     const title = typeof step.title === 'string' ? require('../automationModel/bind').interpolateTemplate(step.title, runState) : '';
     const body = typeof step.body === 'string' ? require('../automationModel/bind').interpolateTemplate(step.body, runState) : '';

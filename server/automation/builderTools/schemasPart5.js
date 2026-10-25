@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // Part 5 of the TOOL_SCHEMAS array (split out of schemas.js; order is preserved there).
 
 const { BATCH_STEP_TYPES, REPLACEABLE_STEP_TYPES } = require('./stepTypeTable');

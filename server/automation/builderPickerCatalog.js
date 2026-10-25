@@ -26,6 +26,7 @@
 'use strict';
 
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 /**
  * Collaborators, resolved lazily and overridable per call (`opts.deps`): the
@@ -35,17 +36,17 @@ const log = require('../telemetry/log');
 function defaultDeps() {
     return {
         agentStore: () => require('../stores/agentStore'),
-        resolveUserGroups: (userId) => require('../auth/audience').resolveUserGroups(userId),
+        resolveUserGroups: (/** @type {string} */ userId) => require('../auth/audience').resolveUserGroups(userId),
         resolvePrincipal: (userId) => require('../auth/datatableAccess').resolveDatatablePrincipalForUser(userId),
         kbStore: () => require('../stores/knowledgeBases'),
         askerContext: (userId) => require('../core/kb/askerContext').askerContext(userId),
-        hasPermission: (userId, perm) => require('../auth/permissions').hasPermission(userId, perm),
+        hasPermission: (/** @type {string} */ userId, /** @type {string} */ perm) => require('../auth/permissions').hasPermission(userId, perm),
         isOrgAdmin: async (userId) => {
             const user = await require('../stores/userStore').getUser(userId);
             return !!(user && require('../auth/permissions').isOrgAdminRole(user.orgRole));
         },
         hasFeature: (userId, feature, session) => require('../core/entitlements/betaFeatures').userHasBetaFeature(userId, feature, session),
-        listInboxes: (orgId) => require('../stores/supportInboxStore').listInboxes(orgId),
+        listInboxes: (/** @type {string} */ orgId) => require('../stores/supportInboxStore').listInboxes(orgId),
         publicBaseUrl: () => require('./triggerBus').getPublicBaseUrl(),
         availableMcpServerIds: (names, userId) => require('../core/integrations/integrationTools').availableMcpServerIds(names, userId),
     };
@@ -85,7 +86,7 @@ async function buildAgentPickerForUser(userId, { principal = null, deps = null }
         });
         return { agents, agentsError: null };
     } catch (e) {
-        const agentsError = e.message || 'agent list unavailable';
+        const agentsError = /** @type {Error} */ (e).message || 'agent list unavailable';
         log.warn('[automation/pickerCatalog] agents unavailable:', agentsError);
         return { agents: [], agentsError };
     }
@@ -124,7 +125,10 @@ async function listKnowledgeBasePicker({ userId, orgIds, userGroups, canManage, 
     return out;
 }
 
-/** The builder's version: resolves the person's context itself, off-request. */
+/**
+ * The builder's version: resolves the person's context itself, off-request.
+ * @param {string} userId
+ */
 async function buildKnowledgeBasePickerForUser(userId, { deps = null } = {}) {
     const d = depsOf(deps);
     try {
@@ -135,7 +139,7 @@ async function buildKnowledgeBasePickerForUser(userId, { deps = null } = {}) {
         const knowledgeBases = await listKnowledgeBasePicker({ userId, orgIds, userGroups, canManage, isOrgAdmin }, { deps });
         return { knowledgeBases, knowledgeBasesError: null };
     } catch (e) {
-        const knowledgeBasesError = e.message || 'knowledge base list unavailable';
+        const knowledgeBasesError = /** @type {Error} */ (e).message || 'knowledge base list unavailable';
         log.warn('[automation/pickerCatalog] knowledge bases unavailable:', knowledgeBasesError);
         return { knowledgeBases: [], knowledgeBasesError };
     }
@@ -169,25 +173,25 @@ async function buildAppEventProvidersFor({ userId, session, apps, userToolNames,
             const inboxes = await d.listInboxes(orgId);
             supportOk = Array.isArray(inboxes) && inboxes.length > 0;
         }
-    } catch (err) { log.debug('fail closed', err); }
+    } catch (err) { fallback('automation/builderPickerCatalog:buildAppEventProvidersFor', err); /* fail closed */ }
 
     // Meeting Notes is a composite capability (licence + beta + module); the
     // provider declares `availability: {kind:'check', check:'meeting_notes'}`.
     let meetingNotesOk = false;
     try {
         meetingNotesOk = await d.hasFeature(userId, 'meeting_notes', session) === true;
-    } catch (err) { log.debug('fail closed', err); }
+    } catch (err) { fallback('automation/builderPickerCatalog:buildAppEventProvidersFor#2', err); /* fail closed */ }
 
     // msgraph is webhook-only: without a public base URL it can never fire.
     let publicBaseUrl = false;
-    try { publicBaseUrl = !!d.publicBaseUrl(); } catch (err) { log.debug('fail closed', err); }
+    try { publicBaseUrl = !!d.publicBaseUrl(); } catch (err) { fallback('automation/builderPickerCatalog:buildAppEventProvidersFor#3', err); /* fail closed */ }
 
     // MCP servers have no TOOL_REGISTRY row; resolve them from the same
     // userToolNames authority plus a per-user credential check.
     let availableMcpServerIds = new Set();
     try {
         availableMcpServerIds = await d.availableMcpServerIds(userToolNames, userId);
-    } catch (err) { log.debug('fail closed — no MCP providers', err); }
+    } catch (err) { fallback('automation/builderPickerCatalog:buildAppEventProvidersFor#4', err); /* fail closed — no MCP providers */ }
 
     // Integrations with no trigger declaration still expose their read-only
     // list tools as watchable sources.
@@ -196,7 +200,7 @@ async function buildAppEventProvidersFor({ userId, session, apps, userToolNames,
         const labels = new Map((apps || []).map(a => [a.id, a.label]));
         derivedProviders = require('./triggerSources/autoDerive')
             .deriveProviders(userToolDefs || [], { labels, mcpServerIds: availableMcpServerIds });
-    } catch (err) { log.debug('declared providers only', err); }
+    } catch (err) { fallback('automation/builderPickerCatalog:buildAppEventProvidersFor#5', err); /* declared providers only */ }
 
     return buildAppEventProviders({
         availableAppIds,
@@ -234,8 +238,8 @@ async function buildPickerCatalogsForUser(userId, session, catalog, { providers:
                 appEventProvidersError: null,
             };
         } catch (e) {
-            log.warn('[automation/pickerCatalog] app-event providers unavailable:', e.message);
-            return { appEventProviders: [], appEventProvidersError: e.message || 'providers unavailable' };
+            log.warn('[automation/pickerCatalog] app-event providers unavailable:', /** @type {Error} */ (e).message);
+            return { appEventProviders: [], appEventProvidersError: /** @type {Error} */ (e).message || 'providers unavailable' };
         }
     })();
     const [agents, kbs, prov] = await Promise.all([
@@ -251,3 +255,5 @@ module.exports = {
     buildAppEventProvidersFor,
     buildPickerCatalogsForUser,
 };
+
+/** @typedef {Partial<ReturnType<typeof defaultDeps>>} PickerDeps */

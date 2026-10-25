@@ -29,7 +29,10 @@
 
 'use strict';
 
-/** The organisation a project owner acts in, the rule projectOrgOf uses; null for none. */
+/**
+ * The organisation a project owner acts in, the rule projectOrgOf uses; null for none.
+ * @param {string} ownerId
+ */
 async function ownerOrg(ownerId) {
     const { orgScope } = require('../auth/orgScope');
     const scope = await orgScope({ session: { user: { id: ownerId } } }, { strict: true });

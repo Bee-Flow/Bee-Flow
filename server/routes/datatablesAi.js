@@ -54,6 +54,7 @@ const { validate } = require('../core/http/validate');
 const { choice } = require('./datatables/schemas');
 const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
+const { bestEffort } = require('../utils/bestEffort');
 
 const NOTE_TEXT = `A change request is at most ${MAX_NOTE_CHARS} characters — shorten it, or split it into two.`;
 const BRIEF_TEXT = `A table description is at most ${MAX_BRIEF_CHARS} characters — shorten it, or leave out what the columns do not need.`;
@@ -71,9 +72,13 @@ const DraftBody = z.preprocess(
 );
 const validateDraft = validate({ body: DraftBody });
 
-/** Run the schema; answer its refusal in the envelope the terminal handler would. */
+/**
+ * Run the schema; answer its refusal in the envelope the terminal handler would.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 function refused(req, res) {
-    let error = null;
+    let error = /** @type {(Error & { status?: number, code?: string, details?: unknown }) | null} */ (null);
     validateDraft(req, res, (err) => { error = err || null; });
     if (!error) return false;
     res.status(error.status).json({ error: error.message, code: error.code, details: error.details });
@@ -83,18 +88,20 @@ function refused(req, res) {
 const limiter = perUserRateLimit({ windowMs: 60_000, max: 10 });
 const MAX_TOKENS = 4000;
 
+/** @param {import('express').Request} req */
 async function orgIdOf(req) {
     const userStore = require('../stores/userStore');
     const user = await userStore.getUser(req.session.user.id);
     return user?.organizationId || null;
 }
 
+/** @param {{ userId: string, userOrgId: string | null }} opts */
 async function resolveModel({ userId, userOrgId }) {
     const { resolveModelForTier, resolveModelWithGlobalFallback } = require('../core/llm/modelResolver');
     try {
         const resolved = await resolveModelForTier('tier:fast', { userOrgId, userId, fallbackTier: 'fast' });
         if (resolved) return resolved;
-    } catch (err) { log.debug('fall through', err); }
+    } catch (err) { bestEffort('routes/datatablesAi:resolveModel', err); /* fall through */ }
     try {
         return await resolveModelWithGlobalFallback('tier:fast', { userOrgId, userId });
     } catch (_) {
@@ -102,6 +109,7 @@ async function resolveModel({ userId, userOrgId }) {
     }
 }
 
+/** @param {{ userId: string, userOrgId: string | null, modelId: string, usage: Parameters<typeof usageLogFields>[0], startMs: number }} opts */
 async function logDraftUsage({ userId, userOrgId, modelId, usage, startMs }) {
     try {
         const usageStore = require('../stores/usageStore');
@@ -122,12 +130,16 @@ async function logDraftUsage({ userId, userOrgId, modelId, usage, startMs }) {
     }
 }
 
-/** The current table as the client sends it — only what the prompt quotes. */
+/**
+ * The current table as the client sends it — only what the prompt quotes.
+ * @param {Record<string, unknown> | null | undefined} raw
+ */
 function readCurrent(raw) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    /** @type {{ name?: string, description?: string, managedKind?: string, rowCount?: number, fields?: object[] }} */
     const out = {};
-    for (const k of ['name', 'description', 'managedKind']) if (typeof raw[k] === 'string') out[k] = raw[k].slice(0, 600);
-    if (Number.isFinite(raw.rowCount)) out.rowCount = raw.rowCount;
+    for (const k of /** @type {const} */ (['name', 'description', 'managedKind'])) if (typeof raw[k] === 'string') out[k] = raw[k].slice(0, 600);
+    if (Number.isFinite(raw.rowCount)) out.rowCount = /** @type {number} */ (raw.rowCount);
     out.fields = Array.isArray(raw.fields) ? raw.fields.slice(0, 120).filter(f => f && typeof f === 'object').map(f => ({
         id: typeof f.id === 'string' ? f.id : undefined,
         key: typeof f.key === 'string' ? f.key : '',
@@ -140,6 +152,7 @@ function readCurrent(raw) {
     return out;
 }
 
+/** @param {import('express').Request} req @param {import('express').Response} res */
 async function draft(req, res) {
     if (refused(req, res)) return;
     const body = req.body;

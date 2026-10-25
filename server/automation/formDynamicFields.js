@@ -243,3 +243,11 @@ module.exports = {
     expandFieldsFrom,
     foldGroups,
 };
+
+/**
+ * @typedef {import('./formTriggerContract').FormField} FormField
+ * @typedef {import('./formTriggerContract').IssuePush} IssuePush
+ * @typedef {{ ref?: string, value?: string, label?: string, hint?: string, limit?: number }} SourceSpec  where a dynamic field's list comes from
+ * @typedef {{ value: string, label: string, hint?: string }} Item  one resolved option
+ * @typedef {((ref: string) => unknown) | null | undefined} ResolveList  reads a list from the run state
+ */

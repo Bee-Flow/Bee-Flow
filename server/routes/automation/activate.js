@@ -179,3 +179,20 @@ async function publishAutomation(req, res, deps) {
 }
 
 module.exports = { activateAutomation, publishAutomation, checkBeforeLive };
+
+/** @typedef {import('../../automation/goLive').GoLiveAutomation} GoLiveAutomation */
+
+/** @typedef {import('../../automation/goLive').GoLiveDefinition} GoLiveDefinition */
+
+/**
+ * @typedef {Omit<import('../../automation/goLive').GoLiveDeps, 'kbFindingsFor'> & {
+ *   kbFindingsFor: typeof import('./crudContext').kbFindingsFor,
+ *   access?: ReturnType<typeof import('../../automation/access').makeAutomationAccess> }} ActivateDeps
+ */
+
+/**
+ * A go-live core's answer, flattened: `ok` true with `warnings`, or a refusal
+ * (`status` and `body`; `raise` for the one the terminal handler answers).
+ * @typedef {{ ok: boolean, raise?: boolean, status?: number, code?: string, message?: string,
+ *   body?: object, details?: object, warnings?: object[] }} GoLiveVerdict
+ */

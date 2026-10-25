@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -38,7 +38,10 @@ const { rowToDatatable } = require('./rowMappers');
 // argument the caller would have to look up first could only ever disagree
 // with the row, and the row is the authority on which tenant it belongs to.
 
-/** The tables filed into one project. */
+/**
+ * The tables filed into one project.
+ * @param {string} projectId
+ */
 async function listDatatablesForProject(projectId) {
     await initDB();
     if (!projectId) return [];
@@ -59,6 +62,7 @@ async function listDatatablesForProject(projectId) {
  * appears in no row is genuinely EMPTY, which is why the caller distinguishes a
  * missing key (0) from a failed read (the whole call rejects) rather than
  * folding both into a zero.
+ * @param {string[]} projectIds
  */
 async function countDatatablesForProject(projectIds) {
     await initDB();
@@ -78,6 +82,9 @@ async function countDatatablesForProject(projectIds) {
  * Owner-only, matched in the WHERE clause: filing a table into a project shows
  * it to every member without it being published or granted, and that is the
  * owner's decision. `data_version` is untouched — membership changes no rows.
+ * @param {string} id
+ * @param {string} userId
+ * @param {string | null} projectId
  */
 async function setDatatableProject(id, userId, projectId) {
     await initDB();
@@ -95,6 +102,7 @@ async function setDatatableProject(id, userId, projectId) {
  *
  * Soft reference, so nothing clears it automatically — and deleting a project
  * must never destroy the tables its members built inside it, nor a single row.
+ * @param {string} projectId
  */
 async function clearProjectFromDatatables(projectId) {
     await initDB();

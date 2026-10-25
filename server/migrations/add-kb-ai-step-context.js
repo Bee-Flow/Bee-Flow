@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck strict
 /**
  * Migration: `ai_step` joins the knowledge-base usage contexts.
  *

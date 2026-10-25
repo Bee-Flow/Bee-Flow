@@ -12,6 +12,7 @@ const log = require('../../telemetry/log');
 const kbStore = require('../../stores/knowledgeBases');
 const { getUserId } = require('./shared');
 const { MAX_UPLOAD_FILES, MAX_FILE_BYTES, QUEUED_REASON, helpers, resolveKb, resolveSource } = require('./sourcePolicy');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const uploadFiles = multer({
     storage: multer.memoryStorage(),
@@ -23,7 +24,7 @@ const uploadFiles = multer({
  * client may post `files` (the new multi-file form) or `file` (one file, the
  * shape the old upload modal used) without a second endpoint.
  */
-function acceptUploads(req, res, next) {
+function acceptUploads(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
     uploadFiles(req, res, (err) => {
         if (!err) return next();
         if (err.code === 'LIMIT_FILE_SIZE') {
@@ -78,7 +79,7 @@ async function processUploadedFile(kb, source, doc, file) {
         log.warn(`[KB] Extraction failed for "${log.nameForLog(file.originalname)}": ${e.message}`);
         await kbStore.updateDocumentStatus(doc.id, {
             status: 'error', statusReason: friendlyError(e), chunkCount: 0,
-        }).catch(() => {});
+        }).catch((e) => bestEffort('routes/knowledgeBases/sourceUploads:processUploadedFile', e));
         return;
     }
 
@@ -137,7 +138,7 @@ function acceptFile(kb, source, file, userId) {
 }
 
 /** POST /:id/sources/:sid/files — add files to an upload source (202). */
-async function addFiles(req, res, next) {
+async function addFiles(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
     try {
         const kb = await resolveKb(req, res, { manage: true });
         if (!kb) return;
@@ -172,7 +173,7 @@ async function addFiles(req, res, next) {
                     log.error(`[KB] Upload "${log.nameForLog(file.originalname)}" failed:`, e.message);
                     await kbStore.updateDocumentStatus(doc.id, {
                         status: 'error', statusReason: helpers().friendlyError(e), chunkCount: 0,
-                    }).catch(() => {});
+                    }).catch((e) => bestEffort('routes/knowledgeBases/sourceUploads:addFiles', e));
                 }
             }
         })());
@@ -183,3 +184,5 @@ async function addFiles(req, res, next) {
 }
 
 module.exports = { acceptUploads, settleUploads, addFiles };
+
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */

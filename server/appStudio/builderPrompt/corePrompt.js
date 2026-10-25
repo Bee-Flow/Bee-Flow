@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio builder — the CORE (small-band) system prompt.
  *

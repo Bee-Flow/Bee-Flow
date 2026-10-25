@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Datatables — the METADATA store.
  *

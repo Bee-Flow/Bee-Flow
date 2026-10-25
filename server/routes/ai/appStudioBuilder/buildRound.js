@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * App Studio Builder build loop: one round with the model, up to its tool
  * calls. The streamed request (with the card-being-typed and prefill
@@ -23,6 +23,46 @@ const {
 } = require('./turnLoop');
 const log = require('../../../telemetry/log');
 
+/**
+ * @typedef {Awaited<ReturnType<typeof streamWithRetry>>} RoundResponse
+ * @typedef {Awaited<ReturnType<typeof import('./promptAssembly').assembleTurnPrompt>>} AssembledTurn
+ * @typedef {Parameters<typeof import('./turnSetup').attachCrossTurnState>[0]} LoopDraft
+ * @typedef {{ name: string, error: string, alreadyAdded: { added?: Array<{ type?: string, id?: string }> }|null, streak?: number }} RepeatedStop
+ * @typedef {{
+ *   escalateNextRound: boolean,
+ *   truncationRetries: number,
+ *   emptyReplyRetries: number,
+ *   invalidArgsRetries: number,
+ *   repeatedStop: RepeatedStop|null,
+ *   toolRefusalStreak: Map<string, number>,
+ *   roundTotals: ReturnType<typeof import('./turnLoop').emptyUsageTotals>,
+ *   turnEffort: ReturnType<typeof import('../../../appStudio/builderModelProfiles').effortForIteration>,
+ *   pendingVisionImages: string[],
+ * }} LoopState
+ * @typedef {{
+ *   res: import('express').Response,
+ *   send: ReturnType<typeof import('../../../core/http/sseHelpers').openSse>['send'],
+ *   sendError: (code: string, userMessage: string) => void,
+ *   messages: Parameters<typeof streamWithRetry>[3],
+ *   adapter: Parameters<typeof streamWithRetry>[0],
+ *   cfg: Parameters<typeof streamWithRetry>[1],
+ *   modelId: string,
+ *   tier: import('../../../core/llm/modelResolver').TierConfig,
+ *   profile: AssembledTurn['profile'],
+ *   tools: AssembledTurn['tools'],
+ *   toolNameSet: Set<string>,
+ *   iterationBudget: number,
+ *   draftWrap: LoopDraft,
+ *   userId: string,
+ *   modelSupportsVision: boolean,
+ *   approvedPlanForTurn: import('./turnClosing').ApprovedPlan|null,
+ *   writeCheckpoint: (summary: string) => Promise<void>,
+ *   usageTotals: Parameters<typeof trackUsageTotals>[0],
+ *   proseParts: string[],
+ *   clientAbort: AbortController,
+ * }} BuildCtx
+ */
+
 // Output cap per model round. A round that stops at this cap without a tool
 // call is retried once (see the loop); the log names the round.
 const MAX_TOKENS_PER_ROUND = 8192;
@@ -36,6 +76,10 @@ const INVALID_ARGS_MAX_RETRIES = 2;
  * Send the conversation and stream the answer back. Returns the response, or
  * null after a failure was told to the client (the draft is persisted after
  * every mutation, so the turn ends either way, but says the TRUE thing).
+ * @param {number} iter
+ * @param {BuildCtx} ctx
+ * @param {LoopState} ls
+ * @returns {Promise<RoundResponse|null>}
  */
 async function requestRound(iter, ctx, ls) {
     const { send, sendError, messages, adapter, cfg, modelId, tier, profile, tools, draftWrap, userId, clientAbort } = ctx;
@@ -64,7 +108,7 @@ async function requestRound(iter, ctx, ls) {
             signal: clientAbort.signal,
             // The card being typed: read the streamed arguments so far and say
             // what they already describe.
-            onToolArgsDelta: ({ name, partial }) => {
+            onToolArgsDelta: (/** @type {{ name?: string, partial?: unknown }} */ { name, partial }) => {
                 const text = typeof partial === 'string' ? partial : '';
                 const scan = scanAppToolDraft(name, text);
                 if (!draftGate(deriveAppDraftKey(scan))) return;
@@ -72,7 +116,7 @@ async function requestRound(iter, ctx, ls) {
             },
             // llama-server prefill progress; at most 4/s, the completing chunk
             // always passes.
-            onPromptProgress: ({ total, cache, processed, time_ms }) => {
+            onPromptProgress: (/** @type {{ total?: number, cache?: number, processed?: number, time_ms?: number }} */ { total, cache, processed, time_ms }) => {
                 const done = total > 0 && processed >= total;
                 if (!progressGate(done)) return;
                 send('prompt_progress', { iter, total, cache, processed, timeMs: time_ms });
@@ -82,11 +126,11 @@ async function requestRound(iter, ctx, ls) {
         // A 4xx other than 408/429 is the provider refusing the request itself
         // (a chat template rejecting the shape, an unknown model): "send it
         // again" would loop the user into the same refusal.
-        log.error('[AppStudioBuilder] chat failed after retries:', chatErr.message);
+        log.error('[AppStudioBuilder] chat failed after retries:', /** @type {Error} */ (chatErr).message);
         const status = providerErrorStatus(chatErr) || (typeof chatErr?.status === 'number' ? chatErr.status : null);
         const permanent = status !== null && status >= 400 && status < 500 && !isTransientChatError(chatErr);
         if (permanent) {
-            sendError('model_rejected', `The AI model rejected the request (HTTP ${status}): ${providerErrorExcerpt(chatErr.message)} — your draft is saved. Resending will not help; check the model or tier settings.`);
+            sendError('model_rejected', `The AI model rejected the request (HTTP ${status}): ${providerErrorExcerpt(/** @type {Error} */ (chatErr).message)} — your draft is saved. Resending will not help; check the model or tier settings.`);
         } else {
             // Unknown or network-shaped failures keep the transient wording:
             // "send again" is the right advice for those.
@@ -103,6 +147,9 @@ async function requestRound(iter, ctx, ls) {
  * and the turn ended in silence). The server parses it and runs it like any
  * other; the model reads what happened in the tool result. Runs before the
  * prose push so a recovered span never lands in the transcript.
+ * @param {RoundResponse} response
+ * @param {number} iter
+ * @param {Set<string>} toolNameSet
  */
 function recoverWrittenCalls(response, iter, toolNameSet) {
     if (response.toolCalls && response.toolCalls.length) return null;
@@ -120,6 +167,10 @@ function recoverWrittenCalls(response, iter, toolNameSet) {
  * Prose and usage of the round. The usage event carries the cumulative pair
  * the first clients read plus this round's adapter payload verbatim
  * (llama.cpp `timings`, cached_tokens) for the engine line on the canvas.
+ * @param {RoundResponse} response
+ * @param {number} iter
+ * @param {BuildCtx} ctx
+ * @param {LoopState} ls
  */
 function accountRound(response, iter, ctx, ls) {
     if (response.content) ctx.proseParts.push(response.content);
@@ -135,6 +186,9 @@ function accountRound(response, iter, ctx, ls) {
  * next request (Anthropic conversation integrity). An adapter that surfaces
  * RAW reasoning (the local one: llama.cpp replays reasoning_content after the
  * last user message) keeps its unsigned parts too, as {text}.
+ * @param {BuildCtx['adapter']} adapter
+ * @param {RoundResponse} response
+ * @returns {Array<{ text: string, signature?: string }>}
  */
 function thinkingToReplay(adapter, response) {
     const rawReasoning = typeof adapter?.surfacesRawReasoning === 'function' && !!adapter.surfacesRawReasoning();
@@ -147,6 +201,13 @@ function thinkingToReplay(adapter, response) {
  * A round without a tool call. Returns 'retry' (a repair message was pushed;
  * run another round), 'stop' (an error was told; end the turn) or 'done'
  * (final prose: the model closed the turn).
+ * @param {RoundResponse} response
+ * @param {ReturnType<typeof recoverWrittenCalls>} recoveredRound
+ * @param {ReturnType<typeof thinkingToReplay>} thinkingForReplay
+ * @param {number} iter
+ * @param {BuildCtx} ctx
+ * @param {LoopState} ls
+ * @returns {'retry'|'stop'|'done'}
  */
 function settleToolLessRound(response, recoveredRound, thinkingForReplay, iter, ctx, ls) {
     const { messages, sendError } = ctx;
@@ -199,7 +260,11 @@ function settleToolLessRound(response, recoveredRound, thinkingForReplay, iter, 
     return 'done';
 }
 
-/** The assistant message that carries this round's tool calls (and its thinking). */
+/**
+ * The assistant message that carries this round's tool calls (and its thinking).
+ * @param {RoundResponse} response
+ * @param {ReturnType<typeof thinkingToReplay>} thinkingForReplay
+ */
 function assistantToolMessage(response, thinkingForReplay) {
     return {
         role: 'assistant',

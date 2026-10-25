@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * ISO evidence connector registry — auto-loads every module in this directory.
  *
@@ -31,6 +31,9 @@
  * chain and exportable to auditors.
  */
 
+/** @typedef {typeof import('../../utils/ssrfGuard').safeFetch} SafeFetch */
+/** @typedef {{ orgId?: string, secret?: Record<string, any> | null, settings?: Record<string, any> | null, safeFetch?: SafeFetch }} CollectArgs */
+
 const fs = require('fs');
 const path = require('path');
 const log = require('../../telemetry/log');
@@ -51,10 +54,11 @@ for (const file of fs.readdirSync(__dirname)) {
         }
         _connectors.set(mod.id, mod);
     } catch (e) {
-        log.error(`[IsoConnectors] Failed to load ${file}:`, e.message);
+        log.error(`[IsoConnectors] Failed to load ${file}:`, /** @type {Error} */ (e).message);
     }
 }
 
+/** @param {string} id */
 function get(id) { return _connectors.get(id); }
 function getAll() { return Array.from(_connectors.values()); }
 

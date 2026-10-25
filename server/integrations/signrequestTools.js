@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * SignRequest Tools — Built-in tools for AI to create and track e-signature requests
  * 
@@ -90,7 +91,7 @@ const SIGNREQUEST_TOOLS = [
                         description: 'Number of results per page (default 10, max 50)'
                     }
                 },
-                required: []
+                required: /** @type {string[]} */ ([])
             }
         }
     },
@@ -115,6 +116,23 @@ const SIGNREQUEST_TOOLS = [
 
 // ─── API Client ────────────────────────────────────────────────
 
+/**
+ * @typedef {{ uuid?: string, status?: string, status_display?: string, signed_on?: string, email?: string,
+ *   first_name?: string, last_name?: string }} SignRequestSigner
+ * @typedef {{ uuid?: string, name?: string, file_name?: string, status?: string, status_display?: string, created?: string,
+ *   document?: { uuid?: string, status?: string }, signers?: SignRequestSigner[],
+ *   signrequest?: { uuid?: string, status?: string, status_display?: string, signers?: SignRequestSigner[] },
+ *   results?: SignRequestJson[], count?: number }} SignRequestJson
+ */
+
+/**
+ * @param {string} subdomain
+ * @param {string} token
+ * @param {string} method
+ * @param {string} path
+ * @param {object|null} [body]
+ * @returns {Promise<SignRequestJson|null>}
+ */
 async function signrequestApiRequest(subdomain, token, method, path, body = null) {
     const baseUrl = `https://${subdomain}.signrequest.com/api/v1`;
     const url = `${baseUrl}${path}`;
@@ -124,6 +142,7 @@ async function signrequestApiRequest(subdomain, token, method, path, body = null
         'Content-Type': 'application/json',
     };
 
+    /** @type {{ method: string; headers: { Authorization: string; 'Content-Type': string; }; body?: string }} */
     const options = { method, headers };
     if (body) options.body = JSON.stringify(body);
 
@@ -136,13 +155,18 @@ async function signrequestApiRequest(subdomain, token, method, path, body = null
 
     const contentType = response.headers.get('content-type') || '';
     if (contentType.includes('application/json')) {
-        return response.json();
+        return /** @type {Promise<SignRequestJson>} */ (response.json());
     }
     return null;
 }
 
 // ─── Tool Execution ────────────────────────────────────────────
 
+/**
+ * @param {string} toolName
+ * @param {{ signers?: Array<{ email: string, first_name?: string, last_name?: string, order?: number }>, fileUrl?: string, subject?: string, message?: string, fromEmail?: string, documentUuid?: string, page?: number|string, limit?: number|string, signrequestUuid?: string }} args
+ * @param {string} userId
+ */
 async function executeSignRequestTool(toolName, args, userId) {
     if (!userId) return { error: 'User context required for SignRequest.' };
     const subdomain = await configStore.getSecret(`signrequest_subdomain_user_${userId}`);
@@ -156,6 +180,7 @@ async function executeSignRequestTool(toolName, args, userId) {
         const signers = args.signers || [];
         if (signers.length === 0) return { error: 'At least one signer is required.' };
 
+        /** @type {{ document: { file_from_url: string | undefined; }; signers: { email: string; first_name: string; last_name: string; order: number; }[]; subject?: string; message?: string; from_email?: string }} */
         const payload = {
             document: {
                 file_from_url: args.fileUrl,
@@ -255,6 +280,9 @@ async function executeSignRequestTool(toolName, args, userId) {
 
 // ─── Helpers ───────────────────────────────────────────────────
 
+/**
+ * @param {string} name
+ */
 function isSignRequestTool(name) {
     return name?.startsWith('signrequest_');
 }
@@ -262,6 +290,9 @@ function isSignRequestTool(name) {
 /**
  * Send a base64-encoded PDF via SignRequest quick-create.
  * Used by the notebook export endpoint (not an AI tool).
+ * @param {string} userId
+ * @param {{ pdfBase64: string, fileName?: string, subject?: string, message?: string, fromEmail?: string,
+ *   signers: Array<{ email: string, first_name?: string, last_name?: string, order?: number }> }} opts
  */
 async function sendPdfForSigning(userId, { pdfBase64, fileName, signers, subject, message, fromEmail }) {
     const subdomain = await configStore.getSecret(`signrequest_subdomain_user_${userId}`);
@@ -274,6 +305,7 @@ async function sendPdfForSigning(userId, { pdfBase64, fileName, signers, subject
         throw err;
     }
 
+    /** @type {{ document: { file_from_content: string, file_from_content_name: string }, signers: object[], subject?: string, message?: string, from_email?: string }} */
     const payload = {
         document: {
             file_from_content: pdfBase64,

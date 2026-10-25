@@ -20,6 +20,7 @@ const { applyRegexGuardrails } = require('../../../core/agentRuntime/guardrailsR
 const guardrailEventStore = require('../../../stores/guardrailEventStore');
 const { buildTokenPreservationAddendum } = require('../../../core/dlp/tokenPreservationPrompt');
 const { STOP } = require('./privacyScans');
+const { bestEffort, fallback } = require('../../../utils/bestEffort');
 
 /**
  * Add conversation history, newest-first within a token budget.
@@ -143,7 +144,7 @@ function stripUnicodeSmuggling({ messages, send, userOrgForTiers, userId, notebo
             direction: 'input',
             action_taken: 'stripped',
             source: 'notebook',
-        }).catch(() => {});
+        }).catch((e) => bestEffort('routes/ai/notebookChat/inputGates:stripUnicodeSmuggling', e));
     }
 }
 
@@ -174,7 +175,7 @@ async function runInputPiiGate({ messages, docShield, notebookId, modelId, send,
         // leaking them to the LLM as literal text. Idempotent.
         if (notebookId) {
             try { await require('../../../core/dlp/dlpRunner').getConversationTokenMapAsync(notebookId); }
-            catch (err) { log.debug('hydration is best-effort', err); }
+            catch (err) { bestEffort('routes/ai/notebookChat/inputGates:runInputPiiGate', err); /* hydration is best-effort */ }
         }
         if (orgPiiEnabled) {
             const { validateInputForPii } = require('../../../core/privacy/piiDetection');
@@ -194,7 +195,7 @@ async function runInputPiiGate({ messages, docShield, notebookId, modelId, send,
                     if (textPart) textPart.text = piiResult.tokenizedText;
                 }
                 piiTokenMap = piiResult.tokenMap;
-                try { require('../../../core/dlp/dlpRunner').mergeTokenMap(notebookId, piiResult.tokenMap); } catch (err) { log.debug('non-fatal', err); }
+                try { require('../../../core/dlp/dlpRunner').mergeTokenMap(notebookId, piiResult.tokenMap); } catch (err) { bestEffort('routes/ai/notebookChat/inputGates:runInputPiiGate#2', err); /* non-fatal */ }
                 log.warn(`[NotebookChat] 🔒 PII tokenized (${Object.keys(piiTokenMap).length} tokens)`);
 
                 // ── Surface the tokenisation to the client (parity w/ directChat) ──
@@ -259,7 +260,7 @@ function addTokenPreservation(messages, notebookId) {
             const _add = buildTokenPreservationAddendum(dlpRunner.getConversationTokenMap(notebookId));
             if (_add) messages[0].content += _add;
         }
-    } catch (err) { log.debug('addendum is best-effort', err); }
+    } catch (err) { fallback('routes/ai/notebookChat/inputGates:addTokenPreservation', err); /* addendum is best-effort */ }
 }
 
 /**
@@ -302,3 +303,12 @@ function runInputRegex({ orgShieldConfig, messages, message, send, res, userOrgF
 module.exports = {
     appendHistory, appendUserMessage, stripUnicodeSmuggling, runInputPiiGate, addTokenPreservation, runInputRegex,
 };
+
+/**
+ * @typedef {{ type: string, text?: string, image_url?: { url: string } }} ContentPart
+ * @typedef {{ role: string, content: string | ContentPart[] }} TurnMessage
+ * @typedef {Awaited<ReturnType<typeof import('../../../core/privacy/orgShield').resolveShieldFor>>} Shield
+ * @typedef {(event: string, data: unknown) => void} Send
+ * @typedef {{ source: string, action: string, count: number, categories: string[], provider: string | null,
+ *   automatic: boolean, restoredCount?: number, tokenizedPrompt?: string, tokenMap?: Record<string, string> }} TokenisationInfo
+ */

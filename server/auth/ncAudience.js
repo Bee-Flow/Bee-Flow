@@ -21,7 +21,7 @@
 
 const userStore = require('../stores/userStore');
 const { resolveUserOrgIds } = require('./permissions');
-const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 /**
  * @param {string|null} orgId
@@ -51,10 +51,10 @@ async function resolveOrgIdForRequest(req) {
         try {
             const orgIds = await resolveUserOrgIds(req); // null = super-admin
             if (orgIds && orgIds.size > 0) orgId = Array.from(orgIds)[0];
-        } catch (err) { log.debug('fall through', err); }
+        } catch (err) { fallback('ncAudience:user-orgs', err); }
     }
     if (!orgId && user.id) {
-        try { const full = await userStore.getUser(user.id); orgId = full?.organizationId || null; } catch (err) { log.debug('ignore', err); }
+        try { const full = await userStore.getUser(user.id); orgId = full?.organizationId || null; } catch (err) { fallback('ncAudience:user-org', err); }
     }
     return orgId;
 }

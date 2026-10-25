@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Request-level knowledge-base access checks.
  *

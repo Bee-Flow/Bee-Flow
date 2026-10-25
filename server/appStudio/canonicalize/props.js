@@ -16,6 +16,10 @@ const { cleanBinding } = require('./bindings');
 
 const STRINGISH_TYPES = new Set(['string', 'markdown', 'icon', 'url', 'color']);
 
+/**
+ * @param {string} path
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
 function cleanPropValue(fs, raw, path, push) {
     if (STRINGISH_TYPES.has(fs.type)) {
         if (typeof raw === 'string') return truncate(raw, fs.maxLen || LIMITS.MAX_STRING, path, push);
@@ -74,6 +78,10 @@ function cleanPropValue(fs, raw, path, push) {
     return deepCopy(raw);
 }
 
+/**
+ * @param {string} path
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
 function cleanProps(node, spec, id, path, push) {
     let provided = node.props;
     if (provided !== undefined && !isObject(provided)) {
@@ -82,6 +90,7 @@ function cleanProps(node, spec, id, path, push) {
     }
     provided = provided || {};
     const props = {};
+    /** @type {string[]} */
     const filled = [];
     for (const [key, fs] of Object.entries(spec.props)) {
         if (key in provided) {
@@ -110,3 +119,12 @@ function cleanProps(node, spec, id, path, push) {
 }
 
 module.exports = { cleanPropValue, cleanProps };
+
+/**
+ * @typedef {object} PropFieldSpec  One entry of a COMPONENT_SPECS `props` table.
+ * @property {string} type
+ * @property {number} [maxLen]
+ * @property {number} [itemMaxLen]
+ * @property {unknown} [default]
+ * @property {Record<string, { maxLen?: number }>} [itemShape]
+ */

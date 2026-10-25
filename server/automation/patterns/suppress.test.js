@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * Run: node --test automation/patterns/suppress.test.js
@@ -11,9 +11,9 @@ const { patternSignature, suppressCandidates, WRONG_GROUPING_FACTOR } = require(
 const NOW = Date.UTC(2026, 9, 3, 18);
 const mail = {
     kind: 'mail_template', apps: ['gmail', 'google-sheets'], templateIds: ['aaaaaaaaaaaa'], verbs: ['mail.received', 'sheets_append_rows'],
-    cadence: { kind: 'weekly' }, score: 2, draft: { trigger: { kind: 'app' }, steps: [] },
+    cadence: { kind: 'weekly' }, score: 2, draft: { trigger: { kind: 'app' }, steps: /** @type {Array<{ family: string }>} */ ([]) },
 };
-const seq = { kind: 'sequence', apps: ['zammad'], templateIds: [], verbs: ['zammad_list', 'zammad_update'], cadence: { kind: 'weekdays' }, score: 3 };
+const seq = { kind: 'sequence', apps: ['zammad'], templateIds: /** @type {string[]} */ ([]), verbs: ['zammad_list', 'zammad_update'], cadence: { kind: 'weekdays' }, score: 3 };
 
 test('patternSignature is stable, order-insensitive and ignores wording', () => {
     const s = patternSignature(mail);

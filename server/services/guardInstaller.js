@@ -27,6 +27,7 @@ const {
     isServerInContainer, imageExists, pullImage: pullImageStream, ensureNetwork,
     removeContainerIfExists: removeContainer,
 } = require('./docker/dockerKit');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const GUARD_CONTAINER = 'beeflow-guard';
 const REDIS_CONTAINER = 'beeflow-guard-redis';
@@ -155,7 +156,7 @@ async function getStatus() {
         }
         result.url = await configStore.getConfig('pii_guard_url') || null;
         result.lastError = await configStore.getConfig('pii_guard_last_error') || null;
-    } catch (err) { log.debug('configStore may not be ready', err); }
+    } catch (err) { fallback('services/guardInstaller:getStatus', err); /* configStore may not be ready */ }
 
     // Mid-transition states are owned exclusively by _inFlight; trust them.
     if (result.status === STATUS.INSTALLING || result.status === STATUS.UNINSTALLING) {
@@ -577,7 +578,7 @@ async function _doInstall({ apiKey: requestedApiKey, model }) {
                 logTail = Buffer.isBuffer(logBuf) ? logBuf.toString('utf8') : String(logBuf);
                 // strip docker log multiplex framing (8-byte headers)
                 logTail = logTail.replace(/[\x00-\x08\x0B-\x1F]/g, '').slice(-3000);
-            } catch (err) { log.debug('container may already be gone', err); }
+            } catch (err) { fallback('services/guardInstaller:_doInstall', err); /* container may already be gone */ }
         }
 
         const fullError = logTail
@@ -654,7 +655,7 @@ function install({ apiKey, model } = {}) {
     // Swallow rejection here — the error is already persisted to configStore
     // and will be reported via getStatus(). Otherwise Node logs an unhandled
     // rejection because the HTTP handler has already returned 202.
-    _inFlight.catch(() => {});
+    _inFlight.catch((e) => bestEffort('services/guardInstaller:install', e));
     return _inFlight;
 }
 
@@ -666,7 +667,7 @@ function uninstall({ removeVolume = false } = {}) {
         throw Object.assign(new Error('Another guard operation is already in progress'), { code: 'IN_PROGRESS' });
     }
     _inFlight = _doUninstall({ removeVolume }).finally(() => { _inFlight = null; });
-    _inFlight.catch(() => {});
+    _inFlight.catch((e) => bestEffort('services/guardInstaller:uninstall', e));
     return _inFlight;
 }
 
@@ -679,3 +680,7 @@ module.exports = {
     isServerInContainer,
     STATUS,
 };
+
+/** @typedef {InstanceType<typeof Docker>} DockerClient */
+
+/** @typedef {{ phase: string | null, message: string, percent: number | null, updatedAt: number }} GuardProgress */

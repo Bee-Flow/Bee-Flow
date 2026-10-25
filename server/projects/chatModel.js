@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Which model answers in a team chat: the depth the asking member picked
  * (the same tiers a normal chat's slider offers, depths only), resolved for
@@ -8,6 +8,7 @@
 'use strict';
 
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const MODEL_TIER = 'fast';
 /** The tiers a chat message can pick: depths of the same kind of answer, as in a normal chat's slider. */
@@ -17,7 +18,7 @@ const DEPTH_TIERS = Object.freeze(['fast', 'thinking', 'pro', 'deep_thinking']);
  * The asking member's model for the team chat, or null when none is configured.
  *
  * @param {{ userId: string, orgId: string|null, modelTier?: string|null, message?: string }} p
- * @param {{ resolver?: any, getProviderForModel?: Function, getUserTierMap?: Function, classifyWithLLM?: Function }} [deps]
+ * @param {{ resolver?: any, getProviderForModel?: typeof import('../core/aiAgent').getProviderForModel, getUserTierMap?: typeof import('../core/llm/modelResolver').getUserTierMap, classifyWithLLM?: typeof import('../core/llm/promptClassifier').classifyWithLLM }} [deps]
  */
 async function resolveChatModel({ userId, orgId, modelTier = null, message = '' }, deps = {}) {
     const resolver = deps.resolver || require('../core/llm/modelResolver');
@@ -33,20 +34,21 @@ async function resolveChatModel({ userId, orgId, modelTier = null, message = '' 
             const picked = await classify(message, offered, scope);
             if (picked && DEPTH_TIERS.includes(picked.tier)) tierName = picked.tier;
         } catch (err) {
-            log.info(`[ProjectChat] auto tier failed, using ${MODEL_TIER}: ${err && err.message}`);
+            log.info(`[ProjectChat] auto tier failed, using ${MODEL_TIER}: ${err && /** @type {Error} */ (err).message}`);
         }
     }
     let modelId = await resolver.resolveModelForTierName(tierName, scope);
     // A tier this member has no model for answers on the default one, as a normal chat does.
     if (!modelId && tierName !== MODEL_TIER) { tierName = MODEL_TIER; modelId = await resolver.resolveModelForTierName(tierName, scope); }
     if (!modelId) return null;
+    /** @type {{ maxTokens?: number, temperature?: number }} */
     let tier = {};
     try { tier = await resolver.getTierConfig(tierName, scope) || {}; } catch (_) { tier = {}; }
     let providerConfig = {};
     try {
-        const p = await getProviderForModel(modelId);
+        const p = /** @type {{ providerType?: string, url?: string, providerName?: string }|null} */ (await getProviderForModel(modelId));
         providerConfig = { providerType: p?.providerType, url: p?.url, displayName: p?.providerName || p?.providerType || 'LLM' };
-    } catch (err) { log.debug('Unknown provider: the DLP classifier treats it as external, the safe side.', err); }
+    } catch (err) { fallback('projects/chatModel:resolveChatModel', err); /* Unknown provider: the DLP classifier treats it as external, the safe side. */ }
     /** @type {{ maxTokens: number, temperature?: number }} */
     const options = { maxTokens: tier.maxTokens || 4096 };
     if (tier.temperature !== undefined) options.temperature = tier.temperature;

@@ -373,3 +373,17 @@ async function runDesignPhase({ goal, table, sampleRows = [], approvals = false,
 }
 
 module.exports = { runDesignPhase, normaliseDesign, designToBrief, designRecap, designerPrompt, designerUserMessage, redactPersonal, checkElementWords, DESIGN_TOOL, PRESETS, ELEMENT_KINDS, ELEMENT_WORDS, MAX_DESIGN_BRIEF_CHARS };
+
+/**
+ * @typedef {NonNullable<ReturnType<typeof deriveScreenConstraints>>} ScreenConstraints
+ * @typedef {{ key: string, name?: string, type?: string }} DesignField
+ * @typedef {{ name: string, fields?: DesignField[], rowCount?: number }} DesignTable
+ * @typedef {Record<string, unknown> | null} SampleRow
+ * @typedef {{ name?: unknown, tagline?: unknown, look?: { preset?: string, accent?: unknown, mood?: unknown },
+ *   screens?: Array<{ name?: unknown, purpose?: unknown, sections?: Array<{ title?: unknown, layout?: string,
+ *     elements?: Array<{ kind?: string, label?: unknown, note?: unknown } | null> } | null> } | null>,
+ *   principles?: unknown[] }} RawDesign
+ *   The `return_design` tool's arguments as the model sent them (parsed JSON, unchecked).
+ */
+
+/** @typedef {ReturnType<typeof normaliseDesign> & { constraints?: ScreenConstraints | null }} Design */

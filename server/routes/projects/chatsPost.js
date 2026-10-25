@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Project team chats: storing one human message, announcing it, and asking
  * the assistant when the chat's rule says so. Shared by "start a chat with a
@@ -12,10 +12,25 @@ const log = require('../../telemetry/log');
 const { badRequest, notFound, conflict } = require('../../core/http/errors');
 const { effectiveAiMode, chatEvent, presentMessage } = require('./chatsPresent');
 
-/** Store the sealed message; the store's refusals become 400/409 answers. */
+/**
+ * @typedef {ReturnType<typeof import('./chatsContext').makeChatsContext>} Ctx
+ * @typedef {import('./chatsContext').ProjectRow} ProjectRow
+ * @typedef {import('./chatsContext').ChatRow} ChatRow
+ * @typedef {import('./chatsContext').StoredPost['message']} StoredMessage
+ * @typedef {Awaited<ReturnType<typeof import('../../projects/chatCrypto').forProject>>} Box
+ * @typedef {import('express').Request} SessionReq
+ */
+
+/**
+ * Store the sealed message; the store's refusals become 400/409 answers.
+ * @param {Ctx} ctx
+ * @param {{ messageId: string, project: ProjectRow, chat: ChatRow, userId: string, box: Box, content: string, kept: string[],
+ *   replyTo: string | null, threadId: string | null, keptRefs: Array<{ kind: string, id: string }>, clientMsgId: string | null }} opts
+ */
 async function appendUserMessage(ctx, { messageId, project, chat, userId, box, content, kept, replyTo, threadId, keptRefs, clientMsgId }) {
     try {
-        return await ctx.store().appendMessage({
+        // `{ stale: true }` comes only with `unlessHumanAfterSeq`, which a member's post never sends.
+        return /** @type {import('./chatsContext').StoredPost | null} */ (await ctx.store().appendMessage({
             id: messageId,
             projectId: project.id,
             chatId: chat.id,
@@ -27,7 +42,7 @@ async function appendUserMessage(ctx, { messageId, project, chat, userId, box, c
             threadId,
             refs: keptRefs,
             clientMsgId,
-        });
+        }));
     } catch (err) {
         if (err?.code === 'THREAD_NOT_FOUND') throw badRequest('thread_not_found', 'threadId must be a message in this chat that is not itself a reply in a thread.');
         if (err?.code === 'REPLY_TARGET_NOT_FOUND') throw badRequest('reply_target_not_found', 'replyTo must be a message in this chat.');
@@ -36,7 +51,11 @@ async function appendUserMessage(ctx, { messageId, project, chat, userId, box, c
     }
 }
 
-/** The feed events for a stored post, and the bell for whoever it mentions. */
+/**
+ * The feed events for a stored post, and the bell for whoever it mentions.
+ * @param {Ctx} ctx
+ * @param {{ project: ProjectRow, chat: ChatRow, userId: string, stored: StoredMessage, kept: string[] }} opts
+ */
 async function announcePost(ctx, { project, chat, userId, stored, kept }) {
     await ctx.emit(project.id, chatEvent('chat.message.created', userId, chat.id, { messageId: stored.id, seq: stored.seq, authorKind: 'user' }));
     if (kept.length === 0) return;
@@ -49,6 +68,9 @@ async function announcePost(ctx, { project, chat, userId, stored, kept }) {
 
 /**
  * Decide whether the AI answers this post, and ask it when so.
+ * @param {Ctx} ctx
+ * @param {SessionReq} req
+ * @param {{ project: ProjectRow, chat: ChatRow, userId: string, stored: StoredMessage, content: string, askAi: boolean, threadId: string | null, modelTier: string | null }} opts
  * @returns {Promise<{ status: string, reason?: string }>}
  */
 async function askAssistantFor(ctx, req, { project, chat, userId, stored, content, askAi, threadId, modelTier }) {
@@ -94,6 +116,10 @@ async function askAssistantFor(ctx, req, { project, chat, userId, stored, conten
 /**
  * Store one human message, announce it, and ask the assistant when the
  * chat's rule says so.
+ * @param {Ctx} ctx
+ * @param {SessionReq} req
+ * @param {{ project: ProjectRow, chat: ChatRow, box: Box, content: string, clientMsgId?: string | null, replyTo?: string | null, threadId?: string | null,
+ *   refs?: Array<{ kind: string, id: string }>, mentions?: unknown[], askAi?: boolean, modelTier?: string | null, messageId?: string }} opts
  */
 async function postMessage(ctx, req, { project, chat, box, content, clientMsgId = null, replyTo = null, threadId = null, refs = [], mentions = [], askAi = false, modelTier = null, messageId = ctx.newId() }) {
     const userId = ctx.userIdOf(req);

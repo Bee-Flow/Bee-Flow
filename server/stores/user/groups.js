@@ -5,6 +5,7 @@ const { run, getOne, getAll } = require('../../db');
 const { initDB } = require('./schema');
 const { dynamicUpdate, parseJSON } = require('./shared');
 const log = require('../../telemetry/log');
+const { isMissingTable } = require('../../utils/isMissingTable');
 
 // ── Groups ─────────────────────────────
 async function getAllGroups() {
@@ -122,7 +123,7 @@ async function deleteGroup(groupId) {
     // comment was wrong; the DELETE cascades nothing here.)
     try {
         await run(`DELETE FROM project_shares WHERE shared_with_type = 'group' AND shared_with_id = $1`, [groupId]);
-    } catch (e) { log.debug('table may not exist yet on a fresh install', e); }
+    } catch (e) { if (!isMissingTable(e)) throw e; /* table may not exist yet on a fresh install */ }
 
     // Caller-supplied group ids must not re-grant old document shares if reused.
     await require('../lib/groupShareRevoke').revokeGroupShares(groupId);

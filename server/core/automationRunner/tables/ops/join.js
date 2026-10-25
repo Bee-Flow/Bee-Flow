@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * join: add the columns of another table to each row, matched on one to
@@ -8,8 +8,17 @@
 
 const { tableError, requireColumn, uniqueKey, iterate, isBlankCell } = require('./values');
 
+/** @typedef {import('./index').TableOp & ReturnType<typeof import('../../../automationModel/tableOps/normalize').byOp.join>} JoinOp */
+/** @typedef {Map<string, unknown[][]>} JoinIndex */
+
+/**
+ * @param {{ key: string }[]} cols
+ * @param {JoinOp} op
+ * @returns {(row: import('./index').TableRow) => string|null}
+ */
 function keyMaker(cols, op) {
     return (row) => {
+        /** @type {string[]} */
         const parts = [];
         for (const c of cols) {
             const v = row[c.key];
@@ -23,7 +32,16 @@ function keyMaker(cols, op) {
     };
 }
 
+/**
+ * @param {JoinOp} op
+ * @param {{ columns: import('./index').TableColumn[], rows: Parameters<typeof import('./values').iterate<import('./index').TableRow>>[0] }} right
+ * @param {string[]} projectKeys
+ * @param {(row: import('./index').TableRow) => string|null} rightKeyOf
+ * @param {import('./index').OpCtx} ctx
+ * @returns {Promise<JoinIndex>}
+ */
 async function buildIndex(op, right, projectKeys, rightKeyOf, ctx) {
+    /** @type {JoinIndex} */
     const index = new Map();
     const cap = ctx.limits.joinMaxRightRows;
     let count = 0;
@@ -34,7 +52,7 @@ async function buildIndex(op, right, projectKeys, rightKeyOf, ctx) {
         }
         const key = rightKeyOf(row);
         if (key === null) continue;
-        const projected = projectKeys.map((k) => (row[k] === undefined ? null : row[k]));
+        const projected = projectKeys.map((/** @type {string | number} */ k) => (row[k] === undefined ? null : row[k]));
         const existing = index.get(key);
         if (!existing) index.set(key, [projected]);
         else if (op.onDuplicate === 'all') existing.push(projected);
@@ -42,7 +60,15 @@ async function buildIndex(op, right, projectKeys, rightKeyOf, ctx) {
     return index;
 }
 
+/**
+ * @param {JoinOp} op
+ * @param {import('./index').OpInput} input
+ * @param {import('./index').OpCtx} ctx
+ */
 async function apply(op, input, ctx) {
+    /**
+     * @param {string} field
+     */
     const where = (field) => ({ opId: op.id, field });
     if (!op.on.length || op.on.length > 3) throw tableError('table_op_invalid', 'Link the tables on one to three columns.', where('on'));
     if (op.with === null || op.with === undefined) throw tableError('table_op_invalid', 'Pick the table to join with.', where('with'));
@@ -66,6 +92,7 @@ async function apply(op, input, ctx) {
     const rightKeyOf = keyMaker(rightKeys, op);
     const pickedKeys = picked.map((c) => c.key);
 
+    /** @type {Promise<JoinIndex>|null} */
     let indexPromise = null;
     async function* rows() {
         indexPromise = indexPromise || buildIndex(op, right, pickedKeys, rightKeyOf, ctx);

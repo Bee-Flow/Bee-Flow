@@ -33,6 +33,7 @@
 const createDOMPurify = require('dompurify');
 const { JSDOM } = require('jsdom');
 
+/** @type {createDOMPurify.DOMPurify | null} */
 let purifyInstance = null;
 function getPurify() {
     if (purifyInstance) return purifyInstance;
@@ -120,6 +121,7 @@ function sanitizeDocumentBody(html) {
  *   url(http…)   — ditto, and the usual way a "font" turns into a beacon.
  *   expression() — legacy IE script-in-CSS.
  *   behavior:    /  -moz-binding: — the same idea, other vendors.
+ * @param {string} css
  */
 function sanitizeCssText(css) {
     let s = String(css ?? '');
@@ -265,6 +267,9 @@ ${bridge}
 <body>${body}</body></html>`;
 }
 
+/**
+ * @param {string} s
+ */
 function escapeHtml(s) {
     return String(s)
         .replace(/&/g, '&amp;')

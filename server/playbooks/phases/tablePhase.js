@@ -18,6 +18,7 @@
 const { copyFor } = require('../copy');
 // Core, not a feature: the one place that knows which managed kinds mirror a source.
 const sources = require('../../core/dataEngine/sources');
+const { fallback } = require('../../utils/bestEffort');
 
 /** The demo's language — the table is named and columned in it. */
 function localeOf(playbook) {
@@ -59,11 +60,11 @@ async function reusePriorTable(playbook, principal, recipe, deps) {
     let table = null;
     let scope = null;
     for (const s of datatableAccess.datatableScopesFor(principal)) {
-        table = await datatableStore.getDatatable(id, s).catch(() => null);
+        table = await datatableStore.getDatatable(id, s).catch((e) => fallback('playbooks/phases/tablePhase:reusePriorTable', e, null));
         if (table) { scope = s; break; }
     }
     if (!table) return null;
-    const meta = await datatableStore.getTableMeta(scope, id).catch(() => null);
+    const meta = await datatableStore.getTableMeta(scope, id).catch((e) => fallback('playbooks/phases/tablePhase:reusePriorTable#2', e, null));
     const fields = (meta && Array.isArray(meta.fields) ? meta.fields : []).map((f) => ({ key: f.key, name: f.name, type: f.type }));
     const check = recipe.verifyExistingTable(fields);
     if (!check.ok) return null;
@@ -94,7 +95,7 @@ async function createNew({ playbook, principal, recipe, hasManageDatatables }, d
     // The one shared creator (core/dataEngine/createStudioDatatable) — the
     // automation builder's builder_create_datatable makes tables the same way.
     const { createStudioDatatable } = deps.createStudioDatatable ? { createStudioDatatable: deps.createStudioDatatable } : require('../../core/dataEngine/createStudioDatatable');
-    const existing = await deps.datatableStore.listDatatablesForScope(deps.datatableAccess.defaultCreateScope(principal) || { kind: 'user', id: playbook.userId }).catch(() => []);
+    const existing = await deps.datatableStore.listDatatablesForScope(deps.datatableAccess.defaultCreateScope(principal) || { kind: 'user', id: playbook.userId }).catch((e) => fallback('playbooks/phases/tablePhase:createNew', e, []));
     const usedKeys = new Set((existing || []).map((t) => t && t.key).filter(Boolean));
     const result = await createStudioDatatable({
         ownerUserId: playbook.userId, principal, name: title,
@@ -129,7 +130,7 @@ async function verifyExisting({ playbook, principal, recipe }, deps) {
         if (table) { scope = s; break; }
     }
     if (!table) return { ok: false, code: 'table_not_found', error: 'That table does not exist, or is not yours to use.' };
-    const grants = await datatableStore.listGrants(id).catch(() => []);
+    const grants = await datatableStore.listGrants(id).catch((e) => fallback('playbooks/phases/tablePhase:verifyExisting', e, []));
     const grade = datatableAccess.gradeForPrincipal(table, grants, principal);
     if (!datatableAccess.gradeAtLeast(grade, 'editor')) {
         return { ok: false, code: 'table_read_only', error: `You can read "${table.name}" but not write to it — the automation needs to add rows.` };
@@ -158,3 +159,22 @@ async function verifyExisting({ playbook, principal, recipe }, deps) {
 }
 
 module.exports = { runTablePhase };
+
+/**
+ * @typedef {{ key: string, name?: string, type?: string }} FieldRef
+ * @typedef {{ userId?: string, options?: { tableMode?: string, locale?: string, tableTitle?: string, datatableId?: string },
+ *   phases?: import('../lifecycle').Phase[] }} TablePlaybook
+ * @typedef {{
+ *   title?: string,
+ *   schema?: ReadonlyArray<Record<string, unknown>>,
+ *   schemaFor?: (locale: string | null) => ReadonlyArray<Record<string, unknown>>,
+ *   tableTitleFor?: (locale: string | null) => string,
+ *   verifyExistingTable: (fields: FieldRef[]) => ReturnType<typeof import('../recipeDoc').verifyAgainstRoles>,
+ *   schemaMapping: (locale: string | null) => Record<string, string>,
+ *   defaultTableKey: (title: string, usedKeys: Set<string>, locale: string | null) => string,
+ * }} TableRecipe
+ * @typedef {NonNullable<Parameters<typeof import('../../core/dataEngine/createStudioDatatable').createStudioDatatable>[1]>
+ *   & { createStudioDatatable?: typeof import('../../core/dataEngine/createStudioDatatable').createStudioDatatable }} TableDeps
+ * @typedef {import('../../auth/datatableAccess').DatatablePrincipal} Principal
+ * @typedef {{ ok: boolean, artifacts?: Record<string, unknown>, summary?: string, code?: string, error?: string, missing?: string[] }} TablePhaseResult
+ */

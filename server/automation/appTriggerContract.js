@@ -64,7 +64,10 @@ function isPlainObject(v) {
     return v !== null && typeof v === 'object' && !Array.isArray(v);
 }
 
-/** True when a definition's PRIMARY trigger is an app trigger. */
+/**
+ * True when a definition's PRIMARY trigger is an app trigger.
+ * @param {{ trigger: { kind: string; }; }} definition
+ */
 function isAppTriggerDefinition(definition) {
     return definition?.trigger?.kind === 'app_trigger';
 }
@@ -90,7 +93,14 @@ function appTriggerParams(definition) {
  * Returns issue records `[{ code, path, message, hint }]`; empty = valid.
  */
 function validateAppTriggerParams(params) {
+    /** @type {{ code: string; path: string; message: string; hint: string; }[]} */
     const issues = [];
+    /**
+     * @param {string} code
+     * @param {string} path
+     * @param {string} message
+     * @param {string} hint
+     */
     const push = (code, path, message, hint) => issues.push({ code, path, message, hint });
 
     if (params === undefined) return issues; // zero-input trigger is legal
@@ -150,7 +160,14 @@ function appTriggerRef(definition) {
  * "<app> · " with an empty screen is the bug this rejects at the door.
  */
 function validateAppTriggerRef(appRef) {
+    /** @type {{ code: string; path: string; message: string; hint: string; }[]} */
     const issues = [];
+    /**
+     * @param {string} code
+     * @param {string} path
+     * @param {string} message
+     * @param {string} hint
+     */
     const push = (code, path, message, hint) => issues.push({ code, path, message, hint });
 
     if (appRef === undefined || appRef === null) return issues; // no back-pointer is legal
@@ -158,6 +175,11 @@ function validateAppTriggerRef(appRef) {
         push('ref_shape', 'appRef', 'trigger.appRef must be an object { appId, screenId, nodeId }.', 'Remove it, or point it at the button this automation belongs to.');
         return issues;
     }
+    /**
+     * @param {string} key
+     * @param {RegExp} re
+     * @param {string} what
+     */
     const check = (key, re, what) => {
         const v = appRef[key];
         if (typeof v !== 'string' || !v) {
@@ -253,3 +275,5 @@ module.exports = {
     validateAppTriggerRef,
     checkInputValue,
 };
+
+/** @typedef {{ trigger?: { kind?: string, params?: unknown, appRef?: unknown } | null }} TriggerDefinition */

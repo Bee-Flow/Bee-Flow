@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Stripe Service — Centralized Stripe SDK wrapper
  *

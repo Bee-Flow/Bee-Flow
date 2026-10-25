@@ -203,3 +203,9 @@ function repairBuiltinToolSteps(definition) {
 }
 
 module.exports = { repairBuiltinToolSteps, repairStep, repairAiStepPermissions, liftBinding, REPAIRABLE };
+
+/**
+ * @typedef {import('./automationGraph').AutomationStep & { agentPermissions?: Record<string, unknown>, inputs?: Record<string, unknown> }} RepairableStep
+ */
+
+/** @typedef {import('./builderTools/draftGraph').DraftGraph} DraftGraph */

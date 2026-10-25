@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Sharing a conversation into a project, and reading a project's shared threads.
  *
@@ -42,11 +42,14 @@ const { encryptField, decryptField, isEnvelope } = require('../lib/fieldEnvelope
 const { openTitle } = require('./conversationTitle');
 const { tableFor } = require('./conversationAccess');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * The AAD the owning store binds its meta_json to. Fetched from that store
  * rather than re-spelled here: a second copy of the prefix would reopen the
  * cross-table replay hole the two distinct prefixes exist to close.
+ * @param {string} type
+ * @param {string} conversationId
  */
 function _metaAadFor(type, conversationId) {
     return type === 'agent'
@@ -54,13 +57,21 @@ function _metaAadFor(type, conversationId) {
         : require('./directConversations')._directMetaAad(conversationId);
 }
 
-/** Read key for meta_json: backgroundKey, falling back to key. Matches _parseMeta. */
+/**
+ * Read key for meta_json: backgroundKey, falling back to key. Matches _parseMeta.
+ * @param {import('./messageCrypto').CryptoContext} ctx
+ * @param {string} conversationId
+ */
 function _metaReadKey(ctx, conversationId) {
     const root = (ctx && (ctx.backgroundKey || ctx.key)) || null;
     return root ? conversationKey(root, conversationId) : null;
 }
 
-/** Write key for meta_json: backgroundKey only. Matches _serialiseDirectMeta. */
+/**
+ * Write key for meta_json: backgroundKey only. Matches _serialiseDirectMeta.
+ * @param {import('./messageCrypto').CryptoContext} ctx
+ * @param {string} conversationId
+ */
 function _metaWriteKey(ctx, conversationId) {
     return ctx && ctx.backgroundKey ? conversationKey(ctx.backgroundKey, conversationId) : null;
 }
@@ -82,6 +93,11 @@ function _metaWriteKey(ctx, conversationId) {
  * Best-effort by design: a column we cannot open is LEFT ALONE. Writing `{}`
  * over it would destroy the summary, and aborting the share would strand a
  * conversation whose message rows have already been converted.
+ * @param {string} table
+ * @param {string} type
+ * @param {string} conversationId
+ * @param {import('./messageCrypto').CryptoContext} fromCtx
+ * @param {import('./messageCrypto').CryptoContext} toCtx
  */
 async function _rekeyMeta(table, type, conversationId, fromCtx, toCtx) {
     const row = await getOne(`SELECT meta_json FROM ${table} WHERE id = $1`, [conversationId]);
@@ -99,7 +115,7 @@ async function _rekeyMeta(table, type, conversationId, fromCtx, toCtx) {
         try {
             decryptField(row.meta_json, { key: _metaReadKey(toCtx, conversationId), aad });
             return false;
-        } catch (err) { log.debug('genuinely unreadable — fall through to the warning', err); }
+        } catch (probeErr) { fallback('stores/sharedConversations:rekeyProbe', probeErr); /* unreadable under both keys: the warning below */ }
         log.warn(`[SharedConversations] meta_json for ${conversationId} could not be re-keyed: ${err.message}`);
         return false;
     }
@@ -146,6 +162,7 @@ async function _rekeyMeta(table, type, conversationId, fromCtx, toCtx) {
  * One resolve per distinct owner, not per row: on `managed` each one unwraps
  * that user's escrowed DEK. A title that will not open resolves to null (see
  * openTitle) so one bad row cannot take down the listing.
+ * @param {string} projectId
  */
 async function listProjectThreads(projectId, { limit = 50, offset = 0 } = {}) {
     if (!projectId) return [];
@@ -258,6 +275,7 @@ async function shareConversationToProject({ conversationId, type, projectId, own
  * `project_id` is deliberately LEFT SET. Filing a conversation under a project
  * and sharing it are two different things (see the initSchema comment), so
  * unsharing returns it to "filed here, private to me" rather than unfiling it.
+ * @param {{ conversationId: string, type: 'direct' | 'agent', ownerId: string, orgId: string | null, encryptionKey?: string | Buffer | null }} opts
  */
 async function unshareConversation({ conversationId, type, ownerId, orgId, encryptionKey = null }) {
     const table = tableFor(type);

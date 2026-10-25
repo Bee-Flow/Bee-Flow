@@ -20,6 +20,8 @@ const { sealTitle, openTitle, openTitles } = require('./conversationTitle');
 const convMessages = require('./conversationMessages');
 const log = require('../../telemetry/log');
 const { searchConversationRows, byUpdatedDesc, AGENT_SEARCH } = require('../lib/conversationSearch');
+const { bestEffort } = require('../../utils/bestEffort');
+const { isMissingTable } = require('../../utils/isMissingTable');
 
 /** What the shared search needs from this store's db and crypto modules. */
 const SEARCH_DEPS = {
@@ -27,7 +29,7 @@ const SEARCH_DEPS = {
     resolveCrypto,
     openTitle,
     decryptMessages,
-    getMessages: (id, ctx) => convMessages.getMessages(id, ctx),
+    getMessages: (/** @type {string} */ id, /** @type {import("./messageCrypto").CryptoContext | Readonly<import("./messageCrypto").CryptoContext> | undefined} */ ctx) => convMessages.getMessages(id, ctx),
 };
 // Shared-thread helpers live on the direct side; both tables have identical
 // shared_scope / crypto_scope semantics, so duplicating them would only create
@@ -38,6 +40,7 @@ const SEARCH_DEPS = {
  * Agent-table twin of directConversations._resolveWriteContext.
  *
  * @returns {Promise<{ownerId, ctx, isShared, projectId}|null>} null = no access
+ * @param {string} callerUserId
  */
 async function _resolveAgentWriteContext(conversationId, callerUserId, encryptionKey) {
     let row;
@@ -47,7 +50,7 @@ async function _resolveAgentWriteContext(conversationId, callerUserId, encryptio
             [conversationId]
         );
     } catch (err) {
-        if (!/column .* does not exist/i.test(err.message)) throw err;
+        if (!/column .* does not exist/i.test(/** @type {Error} */ (err).message)) throw err;
         row = await getOne('SELECT user_id, project_id FROM agent_conversations WHERE id = $1', [conversationId]);
         if (row) { row.shared_scope = 'private'; row.crypto_scope = 'user'; }
     }
@@ -96,7 +99,7 @@ async function _getMetaRow(conversationId) {
             [conversationId]
         );
     } catch (err) {
-        if (!/column .* does not exist/i.test(err.message)) throw err;
+        if (!/column .* does not exist/i.test(/** @type {Error} */ (err).message)) throw err;
         const row = await getOne('SELECT meta_json, user_id FROM agent_conversations WHERE id = $1', [conversationId]);
         if (row) { row.project_id = null; row.crypto_scope = 'user'; }
         return row;
@@ -111,7 +114,12 @@ const ConversationWriteDenied = class ConversationWriteDenied extends Error {
     }
 };
 
-/** See directConversations._appendNewMessages — same diff-and-append reasoning. */
+/**
+ * See directConversations._appendNewMessages — same diff-and-append reasoning.
+ * @param {string} id
+ * @param {'agent' | 'direct'} type
+ * @param {Readonly<CryptoContext>} ctx
+ */
 async function _appendNewMessages(id, type, messages, ctx) {
     const { _appendNewMessages: impl } = require('./directConversations');
     return impl(id, type, messages, ctx);
@@ -154,6 +162,7 @@ function _metaAad(conversationId) {
  * would let updateConversationMeta's read-merge-write overwrite the real meta
  * with a partial one, destroying the summary and anything else stored there —
  * the same silent-then-destructive pattern as the attachment sidecars.
+ * @param {CryptoContext | null} [ctx]
  */
 function _parseMeta(metaJson, conversationId = null, ctx = null) {
     let raw = metaJson;
@@ -204,6 +213,8 @@ async function updateConversationMeta(conversationId, partial) {
  * activatedSkillIds) before tool assembly. Same crypto resolution as
  * updateConversationMeta; a decrypt failure propagates (callers treat the
  * read as best-effort).
+ * @param {string | null | undefined} conversationId
+ * @param {{} | null | undefined} options
  */
 async function getConversationMeta(conversationId, options) {
     await initDB();
@@ -336,7 +347,7 @@ async function clearConversation(agentId, userId) {
     await initDB();
     const rows = await getAll('SELECT id FROM agent_conversations WHERE agent_id = $1 AND user_id = $2', [agentId, userId]);
     for (const row of rows) {
-        await run('DELETE FROM conversation_messages WHERE conversation_id = $1', [row.id]).catch(() => {});
+        await run('DELETE FROM conversation_messages WHERE conversation_id = $1', [row.id]).catch((e) => { if (!isMissingTable(e)) throw e; });
     }
     await run('DELETE FROM agent_conversations WHERE agent_id = $1 AND user_id = $2', [agentId, userId]);
 }
@@ -378,6 +389,10 @@ async function listAllConversations(userId) {
     return openTitles(rows, 'agent', await resolveCrypto({ userId }));
 }
 
+/**
+ * @param {string} userId
+ * @param {string} query
+ */
 async function searchConversations(userId, query, filters = {}, encryptionKey) {
     await initDB();
     // SQL-side search in four strategies (A, A2, B, C): see stores/lib/conversationSearch.js.
@@ -406,6 +421,7 @@ async function getConversationById(conversationId, encryptionKey = null, options
     // persisted as history). Gated on the SAME `restore` flag as token
     // restoration: hiding compaction's synthetic turns from the LLM history
     // loader would silently undo compaction and re-inflate the prompt.
+    /** @type {{ summarised: boolean; hiddenCount: number; }} */
     let compaction;
     if (restore) {
         const { normalizeStoredMessages } = require('./normalizeStoredMessages');
@@ -429,6 +445,9 @@ async function getConversationById(conversationId, encryptionKey = null, options
     };
 }
 
+/**
+ * @param {string} [title]
+ */
 async function createConversation(agentId, userId, title = 'New Chat') {
     await initDB();
     const id = randomUUID();
@@ -439,6 +458,10 @@ async function createConversation(agentId, userId, title = 'New Chat') {
     return { id, agent_id: agentId, user_id: userId, title, messages: [], threadTitles: {} };
 }
 
+/**
+ * @param {string} conversationId
+ * @param {string} title
+ */
 async function updateConversationTitle(conversationId, title) {
     await initDB();
     // No key is threaded in: the auto-title pass runs after a turn completes,
@@ -465,13 +488,15 @@ async function updateThreadTitles(conversationId, threadTitles) {
     await run('UPDATE agent_conversations SET thread_titles_json = $1 WHERE id = $2', [JSON.stringify(threadTitles), conversationId]);
 }
 
+/**
+ * @param {string} conversationId
+ */
 async function deleteConversationById(conversationId) {
     await initDB();
-    await run('DELETE FROM conversation_messages WHERE conversation_id = $1', [conversationId]).catch(() => {});
+    await run('DELETE FROM conversation_messages WHERE conversation_id = $1', [conversationId]).catch((e) => { if (!isMissingTable(e)) throw e; });
     await run('DELETE FROM agent_conversations WHERE id = $1', [conversationId]);
-    // Drop any DLP token map / remembered choice for this conversation so a new
-    // conversation reusing the same ID (unlikely but possible) starts clean.
-    try { require('../../core/dlp/dlpRunner').clearConversationState(conversationId); } catch (err) { log.debug('module not loaded yet', err); }
+    // Drop the DLP token map / remembered choice so a reused conversation ID starts clean.
+    try { require('../../core/dlp/dlpRunner').clearConversationState(conversationId); } catch (err) { bestEffort('stores/agent/agentConversations:deleteConversationById', err); /* module not loaded yet */ }
 }
 
 // ── Internal: read messages, preferring new table, lazy-migrating from blob ──
@@ -495,10 +520,10 @@ async function _readMessages(row, encryptionKey, sharedCtx = null) {
             // re-migrate — that path would overwrite good ciphertext with a
             // stale or empty copy. Only a genuine table/read error may fall back.
             if (e && e.code === 'FIELD_DECRYPT_FAILED') {
-                log.error('[AgentConversations] Message decryption failed for', row.id, '-', e.message);
+                log.error('[AgentConversations] Message decryption failed for', row.id, '-', /** @type {Error} */ (e).message);
                 throw e;
             }
-            log.warn('[AgentConversations] New table read failed, using blob fallback:', e.message);
+            log.warn('[AgentConversations] New table read failed, using blob fallback:', /** @type {Error} */ (e).message);
         }
     }
 
@@ -528,3 +553,9 @@ module.exports = {
     // bind the SAME AAD this table uses — exported rather than copied.
     _metaAad,
 };
+
+/** @typedef {import('./messageCrypto').CryptoContext} CryptoContext */
+
+/** @typedef {import('./normalizeStoredMessages').StoredMessage} StoredMessage */
+
+/** @typedef {{ id?: string, user_id?: string, project_id?: string | null, crypto_scope?: string | null }} ConversationCryptoRow */

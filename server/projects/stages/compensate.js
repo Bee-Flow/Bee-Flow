@@ -30,6 +30,7 @@
 
 const log = require('../../telemetry/log');
 const { storesOf, makeJournal } = require('./journal');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const dep = (deps, name, load) => (deps && deps[name] !== undefined ? deps[name] : load());
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
@@ -193,10 +194,20 @@ async function compensate({ deployment, stage }, deps = {}) {
         } catch (err) {
             out.failed += 1;
             log.warn(`[stages/compensate] ${deployment.id} could not undo ${step.action} of ${step.ref || step.entityId}: ${err && err.message}`);
-            try { await journal.record(`undo_${step.action}`, row, 'failed'); } catch (err) { log.debug('the journal is best-effort here', err); }
+            try { await journal.record(`undo_${step.action}`, row, 'failed'); } catch (err) { bestEffort('projects/stages/compensate:compensate', err); /* the journal is best-effort here */ }
         }
     }
     return out;
 }
 
 module.exports = { compensate, UNDO, DELETERS };
+
+/** @typedef {ReturnType<typeof storesOf>} Stores */
+
+/** @typedef {Awaited<ReturnType<Stores['stageStore']['listSteps']>>[number]} JournalStep */
+
+/**
+ * What every undo gets besides the stores and the step.
+ * @typedef {{ stage: import('./model').StageRow, deps: Record<string, unknown>, runAs: string,
+ *   managedWrite: { deploymentId: string } }} UndoCtx
+ */

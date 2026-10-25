@@ -7,7 +7,7 @@ const { buildEnvelope, openEnvelope, isEnvelope } = require('./fieldEnvelope');
 const { HttpError } = require('../../shared/httpErrors');
 
 const sessions = new AsyncLocalStorage();
-function withDocumentEncryptionSession(req, _res, next) { sessions.run(req, next); }
+function withDocumentEncryptionSession(/** @type {import('express').Request} */ req, _res, next) { sessions.run(req, next); }
 
 const keySources = {
     policy: async (orgId) => {
@@ -157,3 +157,18 @@ async function sealFields(row, resource, fields, context) {
 
 module.exports = { keySources, sessions, withDocumentEncryptionSession, writeContext, resourceOf,
     resourceOfDocument, readingDb, readingClient, keyFor, openRow, open, seal, openFields, sealFields, DOCUMENT_FIELDS, NOTEBOOK_FIELDS, envelopeOf };
+
+/**
+ * @typedef {{ scope: string, tier?: string, orgId?: string | null, userId?: string }} CryptoContext
+ * @typedef {{ type: string, id: string, userId?: string, organizationId?: string | null, projectId?: string | null,
+ *   visibility?: string, sharingAudience?: string, cryptoContext?: CryptoContext | null }} DocumentResource
+ * @typedef {{ documentContext?: CryptoContext, documentResource?: { type: string, id: string, field: string, json?: boolean },
+ *   [key: string]: unknown }} DocumentEnvelope
+ * @typedef {{ id: string, _contentCryptoContext?: CryptoContext, [key: string]: unknown }} StoredRow
+ * @typedef {{ query: (sql: string, params?: unknown[]) => Promise<{ rows: StoredRow[] }> }} QueryClient
+ */
+
+/**
+ * @typedef {{ getOne: (sql: string, params?: unknown[]) => Promise<StoredRow>, getAll: (sql: string, params?: unknown[]) => Promise<StoredRow[]>,
+ *   withTransaction: <T>(fn: (client: QueryClient) => Promise<T>) => Promise<T> }} ReadingDbCore
+ */

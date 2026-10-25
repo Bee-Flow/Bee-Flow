@@ -55,11 +55,15 @@ async function _initDB() {
 
 // ── Row mapping ─────────────────────────────────────────
 
+/**
+ * @param {string} str
+ */
 function safeParseJSON(str, fallback = []) {
     if (Array.isArray(str)) return str;
     try { return JSON.parse(str); } catch (_) { return fallback; }
 }
 
+/** @param {DbRow.CoworkSchedules | null} r */
 function rowToSchedule(r) {
     if (!r) return null;
     return {
@@ -88,6 +92,7 @@ function rowToSchedule(r) {
     };
 }
 
+/** @param {DbRow.CoworkRuns | null} r */
 function rowToRun(r) {
     if (!r) return null;
     return {
@@ -168,11 +173,17 @@ async function createSchedule({
     return getSchedule(id);
 }
 
+/**
+ * @param {string} id
+ */
 async function getSchedule(id) {
     await initDB();
     return rowToSchedule(await getOne('SELECT * FROM cowork_schedules WHERE id = $1', [id]));
 }
 
+/**
+ * @param {string} userId
+ */
 async function getSchedules(userId) {
     await initDB();
     const rows = await getAll(
@@ -218,6 +229,9 @@ async function updateSchedule(id, updates) {
     return rowCount > 0;
 }
 
+/**
+ * @param {string} id
+ */
 async function deleteSchedule(id) {
     await initDB();
     // cowork_runs cascades on the FK — the history goes with the schedule.
@@ -225,6 +239,9 @@ async function deleteSchedule(id) {
     return rowCount > 0;
 }
 
+/**
+ * @param {string} userId
+ */
 async function getScheduleCount(userId) {
     await initDB();
     const r = await getOne(
@@ -248,6 +265,7 @@ async function deleteUserSchedules(userId) {
  * minute tick. Mirrors aiTaskStore.resumeNeedsReauthForUser — cowork was never
  * wired into that path, so a reconnected user's schedules stayed paused for
  * good. Returns how many were resumed.
+ * @param {string} userId
  */
 async function resumeNeedsReauthForUser(userId) {
     await initDB();
@@ -265,6 +283,7 @@ async function resumeNeedsReauthForUser(userId) {
 /**
  * Runs for one schedule, newest first. `limit`/`offset` are clamped here
  * rather than trusted from the query string.
+ * @param {string} scheduleId
  */
 async function listRuns(scheduleId, { limit = 25, offset = 0 } = {}) {
     await initDB();
@@ -288,6 +307,7 @@ async function listRuns(scheduleId, { limit = 25, offset = 0 } = {}) {
  * closes a stuck row and sets the schedule back to 'error', and a
  * manual run can start just before the tick. "Running since …" must come from
  * the row that is actually open.
+ * @param {string} scheduleId
  */
 async function getOpenRunStart(scheduleId) {
     await initDB();
@@ -306,6 +326,7 @@ async function getOpenRunStart(scheduleId) {
  *
  * One query per row would make the list talk to the database N+1 times;
  * this is once, on the existing index (user_id, started_at DESC).
+ * @param {string} userId
  */
 async function getOpenRunStarts(userId) {
     await initDB();
@@ -341,6 +362,7 @@ async function getOpenRunStarts(userId) {
  *
  * A running run counts in `total` but in neither of the two outcomes, and does not
  * count in the average: its duration is not yet known.
+ * @param {string} scheduleId
  */
 async function getRunStats(scheduleId) {
     await initDB();
@@ -364,6 +386,9 @@ async function getRunStats(scheduleId) {
     };
 }
 
+/**
+ * @param {string} scheduleId
+ */
 async function getRunCount(scheduleId) {
     await initDB();
     const r = await getOne(
@@ -470,6 +495,7 @@ async function reapStaleRuns({ olderThanMs = 30 * 60 * 1000 } = {}) {
  *
  * Returns the number of rows deleted so the caller can loop until a batch
  * comes back short (see coworkRunner.pruneOldRuns).
+ * @param {string} cutoffIso
  */
 async function deleteRunsOlderThan(cutoffIso, { limit = 5000 } = {}) {
     await initDB();
@@ -563,6 +589,9 @@ async function markError(id, error) {
     await _closeOpenRun(id, { status, error: msg, producedOutput: false });
 }
 
+/**
+ * @param {string | number | Date} currentNextRun
+ */
 async function advanceSchedule(id, currentNextRun, interval, daysOfWeek = null) {
     await initDB();
     const next = advanceNextRun(currentNextRun, interval, daysOfWeek);

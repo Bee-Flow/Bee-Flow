@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 const { injectIntoShell } = require('./inject');
 
 /**

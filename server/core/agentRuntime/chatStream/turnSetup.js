@@ -16,7 +16,11 @@ const { resolveAgentModel } = require('../modelResolver');
 const { assembleToolStack } = require('../toolStackAssembly');
 const { setupSharedThreadTurnLock } = require('../sharedThread');
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
+/**
+ * @param {{ agentId: string, userId: string, userMessage: string, userAuth: import('./turnState').UserAuth, onEvent: import('./turnState').OnEvent, messageMetadata: import('./turnState').MessageMetadata, _pendingTurnReleases: Map<string, () => Promise<void>>, _turnCallId: string | null }} opts
+ */
 async function setupTurn({ agentId, userId, userMessage, userAuth, onEvent, messageMetadata, _pendingTurnReleases, _turnCallId }) {
     // The runtime projection: published config/system_prompt once the agent
     // has a published version, the live concept otherwise (A1 concept/live).
@@ -39,7 +43,7 @@ async function setupTurn({ agentId, userId, userMessage, userAuth, onEvent, mess
         // Which agent did this turn actually exercise? Straight off the row
         // that was loaded, never off what the request asked for.
         try { onEvent?.('test_chat', { active: true, ...testChatMod.testChatConfigInfo(agent) }); }
-        catch (err) { log.debug('never take the turn down over telemetry', err); }
+        catch (err) { bestEffort('core/agentRuntime/chatStream/turnSetup:setupTurn', err); /* never take the turn down over telemetry */ }
     }
 
     // Get global config for guardrails and defaults
@@ -65,7 +69,7 @@ async function setupTurn({ agentId, userId, userMessage, userAuth, onEvent, mess
     // refused to use it". Fires only on that path — normal chat never sets the
     // flag, so no client has to learn this event.
     if (Array.isArray(sandboxWithheld) && sandboxWithheld.length > 0) {
-        try { onEvent?.('test_sandbox', { withheld: sandboxWithheld }); } catch (err) { log.debug('never take the turn down over telemetry', err); }
+        try { onEvent?.('test_sandbox', { withheld: sandboxWithheld }); } catch (err) { bestEffort('core/agentRuntime/chatStream/turnSetup:setupTurn#2', err); /* never take the turn down over telemetry */ }
     }
 
     // "Test as · group X" (A1c). The client must not label a turn from what it
@@ -91,7 +95,7 @@ async function setupTurn({ agentId, userId, userMessage, userAuth, onEvent, mess
             onEvent?.('test_as', _sim && _sim.groupId
                 ? { active: true, groupId: _sim.groupId, groupName: _sim.groupName || null, audience: _aud }
                 : { active: false, unreadable: true });
-        } catch (err) { log.debug('never take the turn down over telemetry', err); }
+        } catch (err) { bestEffort('core/agentRuntime/chatStream/turnSetup:setupTurn#3', err); /* never take the turn down over telemetry */ }
     }
 
     // Get or create conversation - use specific conversationId if provided

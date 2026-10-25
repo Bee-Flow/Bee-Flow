@@ -110,3 +110,7 @@ module.exports = router;
 // Pure helpers, re-exported through the facade's ._test surface.
 module.exports.validateLayerForSummary = validateLayerForSummary;
 module.exports.sanitiseLayerSummary = sanitiseLayerSummary;
+
+/**
+ * @typedef {import('express').Router & { validateLayerForSummary: typeof validateLayerForSummary; sanitiseLayerSummary: typeof sanitiseLayerSummary }} RouterExports
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * stores/memorySchema.js — DDL, migrations and the v2 backfill of the memory
  * store (user_memories, memory_sources). stores/memoryStore wraps _initDB in

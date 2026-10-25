@@ -57,6 +57,7 @@ const LOGIN_ACTIONS = Object.freeze({
 // attempts that merely resembled it.
 const UNKNOWN_TARGET_TYPE = 'login_identifier';
 
+/** @type {NonSharedBuffer | null} */
 let _fingerprintKey = null;
 let _fingerprintVersion = 'v1';
 
@@ -128,6 +129,9 @@ function orgOf(user) {
     return user.organizationId || user.organization_id || user.orgId || null;
 }
 
+/**
+ * @param {string} action
+ */
 async function write(action, { targetType, targetId, organizationId, changedBy, details }) {
     try {
         const userStore = require('../stores/userStore');
@@ -143,7 +147,7 @@ async function write(action, { targetType, targetId, organizationId, changedBy, 
     } catch (e) {
         // logAccessAudit already catches; this is the net for a failure to even
         // reach it (a require that throws during shutdown, a mocked store).
-        log.error('[LoginAudit] could not record', action, '-', e.message);
+        log.error('[LoginAudit] could not record', action, '-', /** @type {Error} */ (e).message);
     }
 }
 
@@ -157,7 +161,7 @@ async function write(action, { targetType, targetId, organizationId, changedBy, 
  * @param req
  * @param {{ user?: {id?: string, uid?: string, [key: string]: any}, method?: string, organizationId?: string|null, details?: object }} [opts]
  */
-async function auditLoginSuccess(req, { user, method = 'unknown', organizationId = null, details = {} } = {}) {
+async function auditLoginSuccess(/** @type {import('express').Request} */ req, { user, method = 'unknown', organizationId = null, details = {} } = {}) {
     const userId = (user && (user.id || user.uid)) || null;
     await write(LOGIN_ACTIONS.SUCCEEDED, {
         targetType: 'user',
@@ -181,7 +185,7 @@ async function auditLoginSuccess(req, { user, method = 'unknown', organizationId
  * `reason` is a short stable code ('bad_password', 'suspended', 'mfa_failed'),
  * never a message meant for a person: it is queried, not read aloud.
  */
-async function auditLoginFailure(req, { userId = null, identifier = null, method = 'unknown', reason = 'invalid_credentials', organizationId = null, details = {} } = {}) {
+async function auditLoginFailure(/** @type {import('express').Request} */ req, { userId = null, identifier = null, method = 'unknown', reason = 'invalid_credentials', organizationId = null, details = {} } = {}) {
     await write(LOGIN_ACTIONS.FAILED, {
         targetType: userId ? 'user' : UNKNOWN_TARGET_TYPE,
         targetId: userId || identifierFingerprint(identifier) || 'unknown',
@@ -206,7 +210,7 @@ async function auditLoginFailure(req, { userId = null, identifier = null, method
  * working, and a suspended account still being tried is a signal about the
  * person holding the password.
  */
-async function auditLoginBlocked(req, { userId = null, identifier = null, method = 'unknown', reason = 'blocked', organizationId = null, details = {} } = {}) {
+async function auditLoginBlocked(/** @type {import('express').Request} */ req, { userId = null, identifier = null, method = 'unknown', reason = 'blocked', organizationId = null, details = {} } = {}) {
     await write(LOGIN_ACTIONS.BLOCKED, {
         targetType: userId ? 'user' : UNKNOWN_TARGET_TYPE,
         targetId: userId || identifierFingerprint(identifier) || 'unknown',

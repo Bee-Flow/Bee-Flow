@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Tenant Support Inbox: the dedicated per-mailbox OAuth connect (NOT the
  * login OAuth), and the platform Service Email connect that reuses its
@@ -12,6 +13,7 @@ const audit = require('../../support/audit');
 const providerClients = require('../../services/email/providerClients');
 const { resolveOrgScope, loadInboxInScope } = require('./inboxScope');
 const { oauthClosePage: _oauthClosePage, serviceEmailClosePage: _serviceEmailClosePage } = require('./oauthClosePage');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * Build the OAuth callback URL. Mirrors the login flow (server/auth/oauthRoutes.js):
@@ -22,6 +24,7 @@ const { oauthClosePage: _oauthClosePage, serviceEmailClosePage: _serviceEmailClo
  * `http://localhost/...:80` redirect that 404'd). The resolved value is stashed
  * in the session at /oauth/start and reused verbatim at /oauth/callback so the
  * two redirect_uri values Google compares are always identical.
+ * @param {import('express').Request} req
  */
 function redirectUriFor(req) {
     let host = process.env.SERVER_PUBLIC_HOST;
@@ -30,7 +33,7 @@ function redirectUriFor(req) {
         host = req.get('X-Forwarded-Host') || null;
         if (!host) {
             const ref = req.get('Referer');
-            if (ref) { try { const u = new URL(ref); host = u.host; protocol = u.protocol.replace(':', ''); } catch (err) { log.debug('ignore', err); } }
+            if (ref) { try { const u = new URL(ref); host = u.host; protocol = u.protocol.replace(':', ''); } catch (err) { fallback('routes/support/inboxOAuth:redirectUriFor', err); /* ignore */ } }
         }
         if (!host) host = req.get('host');
     }
@@ -42,6 +45,8 @@ function redirectUriFor(req) {
  * This reuses the registered support-inbox redirect URI; the start route
  * (server/routes/ai/config.js, admin-gated) set req.session.serviceEmailConnect,
  * so holding a matching state is the proof this was an admin-initiated connect.
+ * @param {import('express').Request<{}, any, any, { code?: string, state?: string, error?: string }>} req
+ * @param {import('express').Response} res
  */
 async function _handleServiceEmailCallback(req, res) {
     const sess = req.session.serviceEmailConnect;
@@ -56,16 +61,20 @@ async function _handleServiceEmailCallback(req, res) {
             code, redirectUri: sess.redirectUri || redirectUriFor(req),
         });
         delete req.session.serviceEmailConnect;
-        await new Promise((r) => req.session.save(() => r()));
+        await /** @type {Promise<void>} */ (new Promise((r) => req.session.save(() => r())));
         // nosemgrep: javascript.express.security.audit.xss.direct-response-write.direct-response-write -- oauthClosePage.js escapes every value it writes (HTML text, script-encoded payload)
         res.send(_serviceEmailClosePage(true, address));
     } catch (err) {
-        log.error('[ServiceEmail] oauth/callback error:', err.message);
+        log.error('[ServiceEmail] oauth/callback error:', /** @type {Error} */ (err).message);
         delete req.session.serviceEmailConnect;
-        res.status(500).send(_serviceEmailClosePage(false, err.message));
+        res.status(500).send(_serviceEmailClosePage(false, /** @type {Error} */ (err).message));
     }
 }
 
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function oauthStart(req, res) {
     const inbox = await loadInboxInScope(req, res, req.params.id);
     if (!inbox) return;
@@ -75,10 +84,14 @@ async function oauthStart(req, res) {
         state, inboxId: inbox.id, orgId: inbox.organization_id, provider: inbox.provider, ts: Date.now(), redirectUri,
     };
     const url = await providerClients.buildAuthUrl(inbox.provider, { redirectUri, state });
-    await new Promise((r) => req.session.save(() => r()));
+    await /** @type {Promise<void>} */ (new Promise((r) => req.session.save(() => r())));
     res.json({ url });
 }
 
+/**
+ * @param {import('express').Request<{}, any, any, { code?: string, state?: string, error?: string }>} req
+ * @param {import('express').Response} res
+ */
 async function oauthCallback(req, res) {
     // Dispatch: the platform Service Email connect reuses this registered
     // redirect URI. Route to it only when the returned state matches the
@@ -105,11 +118,11 @@ async function oauthCallback(req, res) {
         await supportInboxStore.updateTokens(sess.inboxId, tokens, { emailAddress });
         audit.emit(req, { organizationId: sess.orgId, inboxId: sess.inboxId, action: 'inbox_connected', payload: { provider: sess.provider, emailAddress: emailAddress || null } });
         delete req.session.supportMailbox;
-        await new Promise((r) => req.session.save(() => r()));
+        await /** @type {Promise<void>} */ (new Promise((r) => req.session.save(() => r())));
         res.send(_oauthClosePage(true));
     } catch (err) {
-        log.error('[SupportInbox] oauth/callback error:', err.message);
-        res.status(500).send(_oauthClosePage(false, err.message));
+        log.error('[SupportInbox] oauth/callback error:', /** @type {Error} */ (err).message);
+        res.status(500).send(_oauthClosePage(false, /** @type {Error} */ (err).message));
     }
 }
 

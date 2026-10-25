@@ -139,6 +139,7 @@ const router = express.Router();
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // -- What a caller may send ------------------------------------------
 //
@@ -286,7 +287,7 @@ router.patch('/:id/publish', validate({ body: PublishBody }), async (req, res) =
                 orgId: agent.organization_id || 'default',
                 agentId: agent.id,
             });
-        } catch (err) { log.debug('compliance bus is best-effort', err); }
+        } catch (err) { bestEffort('routes/agents/published:anon', err); /* compliance bus is best-effort */ }
     }
 
     res.json({ success: true, isPublished, sharedGroups: cleanedGroups });

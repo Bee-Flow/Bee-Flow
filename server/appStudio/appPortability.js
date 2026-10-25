@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * App Studio — an app WITH ITS DATA as a file, so a working app can leave one
  * installation and arrive at another still working.
@@ -86,7 +87,10 @@ const crypto = require('crypto');
 const APP_FORMAT = 'beeflow.app';
 const APP_SCHEMA_VERSION = 1;
 
-/** Every version this server can still READ, newest last. See templatePortability. */
+/**
+ * Every version this server can still READ, newest last. See templatePortability.
+ * @type {readonly unknown[]}
+ */
 const APP_SUPPORTED_VERSIONS = [1];
 
 /**
@@ -117,14 +121,27 @@ const SHA256_RE = /^[0-9a-f]{64}$/;
 /** What the design half of an archive is allowed to carry. Nothing else does. */
 const TEMPLATE_FIELDS = ['definition', 'dataModel', 'datasets', 'seedPeople'];
 
+/**
+ * @param {unknown} v
+ * @returns {v is Record<string, unknown>}
+ */
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
+/**
+ * @template T
+ * @param {T} value
+ * @returns {T}
+ */
 function deepClone(value) {
     if (value === null || typeof value !== 'object') return value;
     try { return structuredClone(value); }
     catch { return JSON.parse(JSON.stringify(value)); }
 }
 
+/**
+ * @param {unknown} value
+ * @param {number} max
+ */
 function claimText(value, max) {
     if (typeof value !== 'string') return null;
     const trimmed = value.trim();
@@ -139,6 +156,7 @@ function claimText(value, max) {
  * way: keep the last segment, drop the control characters, cap it. A name that
  * is nothing but separators and dots leaves null and the entry is refused —
  * there is no honest file called `../`.
+ * @param {unknown} value
  */
 function claimFileName(value) {
     if (typeof value !== 'string') return null;
@@ -151,6 +169,7 @@ function claimFileName(value) {
  * The `source` block, as a normalised CLAIM. One place decides what a
  * provenance assertion may contain, so no reader downstream ever touches
  * `envelope.source.orgName` raw.
+ * @param {unknown} envelope
  */
 function readSource(envelope) {
     const raw = isObject(envelope) && isObject(envelope.source) ? envelope.source : {};
@@ -168,6 +187,7 @@ function readSource(envelope) {
  * Every one of them is cosmetic and every one of them is a claim. The owner and
  * the organisation are deliberately absent — they are facts of the
  * INSTALLATION, decided by the route from the session, never read from a file.
+ * @param {unknown} envelope
  */
 function readAppMeta(envelope) {
     const raw = isObject(envelope) && isObject(envelope.app) ? envelope.app : {};
@@ -194,6 +214,8 @@ function readAppMeta(envelope) {
  * NAMED, because an archive that installs minus one drawing is worth more than
  * a refusal, and a silent drop is how a row ends up describing a file nobody
  * can find.
+ * @param {unknown} rawFiles
+ * @param {{ files: string[], records: string[] }} dropped
  */
 function readFiles(rawFiles, dropped) {
     const files = [];
@@ -216,6 +238,7 @@ function readFiles(rawFiles, dropped) {
         if (!sha256 || !SHA256_RE.test(sha256)) { dropped.files.push(`${name}: no sha256 to check the bytes against`); continue; }
 
         if (typeof raw.data !== 'string' || !raw.data) { dropped.files.push(`${name}: carries no bytes`); continue; }
+        /** @type {Buffer<ArrayBuffer>} */
         let buffer;
         try {
             buffer = Buffer.from(raw.data, 'base64');
@@ -291,9 +314,11 @@ function readFiles(rawFiles, dropped) {
  *
  * Returns `errors` (nothing can be installed) or `warnings` (it installs, minus
  * the things named).
+ * @param {unknown} envelope
  */
 function sanitizeAppImport(envelope) {
-    const refuse = (...errors) => ({ app: null, template: null, content: null, report: null, errors, warnings: [] });
+    /** @returns {{ app: null, template: null, content: null, report: null, errors: string[], warnings: string[] }} */
+    const refuse = (/** @type {string[]} */ ...errors) => ({ app: null, template: null, content: null, report: null, errors, warnings: [] });
 
     if (!isObject(envelope)) return refuse('That file is not an app archive.');
     if (envelope.format !== APP_FORMAT) {
@@ -317,6 +342,7 @@ function sanitizeAppImport(envelope) {
 
     // ── 2. Files, before records ──────────────────────────────────────
     const rawContent = isObject(envelope.content) ? envelope.content : {};
+    /** @type {{ files: string[], records: string[] }} */
     const dropped = { files: [], records: [] };
     const { files, refs, bytes } = readFiles(rawContent.files, dropped);
 
@@ -349,7 +375,7 @@ function sanitizeAppImport(envelope) {
     // ── 4. Records ────────────────────────────────────────────────────
     const rawRecords = isObject(rawContent.records) ? rawContent.records : {};
     const rawRowCount = Object.values(rawRecords)
-        .reduce((n, rows) => n + (Array.isArray(rows) ? rows.length : 0), 0);
+        .reduce((/** @type {number} */ n, rows) => n + (Array.isArray(rows) ? rows.length : 0), 0);
 
     let records = {};
     let counts = {};
@@ -403,7 +429,7 @@ function sanitizeAppImport(envelope) {
             exportedAt: claimText(envelope.exportedAt, MAX_CLAIM_CHARS.id),
             warnings,
         },
-        errors: [],
+        errors: /** @type {string[]} */ ([]),
         warnings,
     };
 }

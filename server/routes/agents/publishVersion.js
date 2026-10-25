@@ -42,6 +42,7 @@ const publishable = require('../../agents/publishableConfig');
 const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** No body at all (Express 5 leaves `req.body` undefined then) or an empty one. */
 const NoBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({}).strict());
@@ -89,6 +90,7 @@ router.post('/:id/publish-version', validate({ body: NoBody, query: NoQuery }), 
     // Cross-org KBs hard-fail; unresolvable skills are dropped and tool
     // grants are clamped in the copy we publish (never in the concept —
     // that stays the editor's).
+    /** @type {{ warnings: string[]; config: object; }} */
     let checked;
     try {
         checked = await publishableConfig(agent);
@@ -105,6 +107,7 @@ router.post('/:id/publish-version', validate({ body: NoBody, query: NoQuery }), 
     if (result.conflict) {
         const fresh = await agentStore.getAgent(agent.id);
         if (!fresh) return res.status(404).json({ error: 'Agent not found' });
+        /** @type {{ warnings: string[]; config: object; }} */
         let again;
         try {
             again = await publishableConfig(fresh);
@@ -134,7 +137,7 @@ router.post('/:id/publish-version', validate({ body: NoBody, query: NoQuery }), 
         const versionStore = require('../../stores/versionStore');
         await versionStore.createVersion(agent.id, 'agent', result.row, userId,
             `Published v${result.publishedVersion}`, { kind: 'published' });
-    } catch (e) { log.error('[PublishVersion] version snapshot failed:', e.message); }
+    } catch (e) { log.error('[PublishVersion] version snapshot failed:', /** @type {Error} */ (e).message); }
 
     // The prompt that runs just changed → re-check Art-50 disclosure now
     // instead of at the next sweep (only meaningful when it has an audience).
@@ -145,7 +148,7 @@ router.post('/:id/publish-version', validate({ body: NoBody, query: NoQuery }), 
                 orgId: agent.organization_id || 'default',
                 agentId: agent.id,
             });
-        } catch (err) { log.debug('compliance bus is best-effort', err); }
+        } catch (err) { bestEffort('routes/agents/publishVersion:anon', err); /* compliance bus is best-effort */ }
     }
 
     const rev = Number(result.row?.rev) || Number(agent.rev) || 1;

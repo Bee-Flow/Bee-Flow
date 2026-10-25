@@ -1,5 +1,6 @@
 'use strict';
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * "Test as · group Sales" — the agent editor's preview of somebody else's view.
@@ -95,13 +96,20 @@ const AUDIENCE_REASONS = {
     unknown: 'unknown',
 };
 
+/**
+ * @param {number} max
+ * @param {string} v
+ */
 function _str(v, max) {
     if (typeof v !== 'string') return '';
     const t = v.trim();
     return t.length > max ? t.slice(0, max) : t;
 }
 
-/** A group id as it may travel: a non-empty, bounded string, or null. */
+/**
+ * A group id as it may travel: a non-empty, bounded string, or null.
+ * @param {string} raw
+ */
 function normaliseGroupId(raw) {
     const s = _str(raw, MAX_GROUP_ID);
     return s || null;
@@ -162,6 +170,10 @@ function mayNameGroup(group, { orgIds, ownGroups = [] } = {}) {
 const MAX_SIMULATABLE_GROUPS = 200;
 
 /**
+ * @typedef {Object} ListSimulatableGroupsArgs
+ * @property {string} [userId]
+ */
+/**
  * The groups this person may preview an agent as — the picker behind
  * "Test as \u00b7 group …".
  *
@@ -169,6 +181,7 @@ const MAX_SIMULATABLE_GROUPS = 200;
  * scoped by the predicate above. On a failed read it returns `unknown: true`
  * rather than an empty list: "your workspace has no groups" and "I could not
  * look" are different sentences, and only one of them is true.
+ * @param {ListSimulatableGroupsArgs} [param0]
  */
 async function listSimulatableGroups({ userId, orgIds, deps = {} } = {}) {
     const getAllGroups = deps.getAllGroups
@@ -181,10 +194,10 @@ async function listSimulatableGroups({ userId, orgIds, deps = {} } = {}) {
     try {
         [all, ownGroups] = await Promise.all([
             getAllGroups(),
-            resolveUserGroups(userId).catch(() => []),
+            resolveUserGroups(userId).catch((e) => fallback('core/agentRuntime/testAs:listSimulatableGroups', e, [])),
         ]);
     } catch (e) {
-        log.error('[TestAs] could not list groups:', e.message);
+        log.error('[TestAs] could not list groups:', /** @type {Error} */ (e).message);
         return { groups: [], unknown: true };
     }
     if (!Array.isArray(all)) return { groups: [], unknown: true };
@@ -225,7 +238,7 @@ async function resolveTestAs({ groupId, userId, orgIds, deps = {} } = {}) {
         // Not "assume it is fine": a group we could not read is a group whose
         // org and name we would be guessing, under a label that claims we did
         // not guess.
-        log.error('[TestAs] group lookup failed:', e.message);
+        log.error('[TestAs] group lookup failed:', /** @type {Error} */ (e).message);
         return {
             ok: false, status: 503, code: TEST_AS_CODES.unreadable,
             error: 'Could not check that group right now. Try again.',
@@ -393,3 +406,14 @@ module.exports = {
     mayNameGroup, listSimulatableGroups, resolveTestAs, gateTestAsRequest,
     visibleKbIdsFor, audienceForTestAs,
 };
+
+/**
+ * @typedef {object} TestAsDeps  injection points, tests only
+ * @property {typeof import('../../stores/userStore').getAllGroups} [getAllGroups]
+ * @property {(id: string) => Promise<any>} [getGroup]
+ * @property {(uid: string) => Promise<string[]>} [resolveUserGroups]
+ * @property {typeof import('../kb/askerContext').askerContext} [askerContext]
+ * @property {typeof import('../kb/kbVisibility')} [kbVisibility]
+ * @property {object} [kbStore]
+ * @property {typeof import('../../auth/audience').canSeePublished} [canSeePublished]
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * /llms.txt: the same source as the sitemap, addressed to language models
  * rather than crawlers. Split out of routes/publicRender.js.

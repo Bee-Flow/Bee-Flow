@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Admin Routes — self-service leave-org for the caller's own account.
  * Split out of auth/adminRoutes.js; mounted there in the original
@@ -16,6 +16,8 @@ const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+
+/** @typedef {{ organizationId?: string, solutionId: string, stage: string, projectId: string }} StageRef */
 
 /**
  * Re-parent the leaver's agents to the target, except the agents a Solution
@@ -39,7 +41,7 @@ const LeaveOrgBody = z.object({
 // same org. Sole-admin protection: if removing this user would leave the
 // org with zero org_admins (and they're an org_admin), the request is
 // rejected with 409 — the org would otherwise be unmanageable.
-router.post('/users/me/leave-org', requireAuth, validate({ body: LeaveOrgBody }), async (req, res) => {
+router.post('/users/me/leave-org', requireAuth, validate({ body: LeaveOrgBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const userId = req.session?.user?.id;
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
@@ -75,11 +77,11 @@ router.post('/users/me/leave-org', requireAuth, validate({ body: LeaveOrgBody })
     // parts are owned by it and would be stranded. Refused BEFORE anything is
     // reassigned; an org admin can detach or remove the stages first.
     const stages = (await require('../../stores/solutionStageStore').runAsStagesFor(userId))
-        .filter((st) => (st.organizationId || '') === orgId);
+        .filter((/** @type {StageRef} */ st) => (st.organizationId || '') === orgId);
     if (stages.length > 0) {
         throw new HttpError(409, 'stage_run_as',
             'You run a Solution stage in this organisation. An org admin can detach or remove the stages first.',
-            { stages: stages.map((st) => ({ solutionId: st.solutionId, stage: st.stage, projectId: st.projectId })) });
+            { stages: stages.map((/** @type {StageRef} */ st) => ({ solutionId: st.solutionId, stage: st.stage, projectId: st.projectId })) });
     }
 
     // Re-parent owned agents to the target. Bulk update is fine here
@@ -92,7 +94,7 @@ router.post('/users/me/leave-org', requireAuth, validate({ body: LeaveOrgBody })
         const { run } = require('../../db');
         await run(REASSIGN_AGENTS_SQL, [transferTo, userId, orgId]);
     } catch (e) {
-        log.warn('[LeaveOrg] agent reassignment failed:', e.message);
+        log.warn('[LeaveOrg] agent reassignment failed:', /** @type {Error} */ (e).message);
     }
 
     // Detach the user from the org. Keep the user row itself (don't

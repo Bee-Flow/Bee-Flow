@@ -29,6 +29,9 @@ const { randomUUID } = require('crypto');
 const VERSION_KINDS = new Set(['autosave', 'published', 'pre_refine']);
 const AUTOSAVE_KEEP = 50;
 
+/**
+ * @param {string} str
+ */
 function safeParseJSON(str, fallback) {
     try { return typeof str === 'string' ? JSON.parse(str) : (str || fallback); } catch { return fallback; }
 }
@@ -114,6 +117,9 @@ function createVersionStore(db, { tag = 'VersionStore' } = {}) {
 
     // Prunes AUTOSAVE rows only. Published / pre-refine snapshots are never
     // counted and never deleted here.
+    /**
+     * @param {number} [keepCount]
+     */
     async function pruneVersions(agentId, keepCount = AUTOSAVE_KEEP) {
         await initDB();
         const count = await getOne("SELECT COUNT(*) as cnt FROM agent_versions WHERE agent_id = $1 AND kind = 'autosave'", [agentId]);
@@ -136,6 +142,7 @@ function createVersionStore(db, { tag = 'VersionStore' } = {}) {
             if (!prev) return null;
             const before = safeParseJSON(prev.snapshot, {});
             const norm = (v) => (v && typeof v === 'object') ? JSON.stringify(v) : (v ?? '');
+            /** @type {string[]} */
             const changed = [];
             if (norm(before.system_prompt) !== norm(snapshot.system_prompt)) changed.push('system prompt');
             if (norm(before.name) !== norm(snapshot.name)) changed.push('name');

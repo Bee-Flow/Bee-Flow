@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Unit tests for the binding resolver. Pure helpers — no DB / network. Run:
  *

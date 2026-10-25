@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * What the team chat routes accept (routes/projects/chats.js).

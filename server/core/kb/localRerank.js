@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Phase 2 of a local KB search: the reranker chain (llama.cpp > Azure Cohere >
  * CPU cross-encoder > GPU sidecar > RRF passthrough), and `applyRerank`, the
@@ -147,7 +148,7 @@ async function rerankCandidates(candidates, query, topK) {
                 log.warn(`[LocalKBSearch] All Azure reranker paths failed, falling back to RRF`);
             }
         } catch (rerankerErr) {
-            log.warn(`[LocalKBSearch] Azure reranker error (${rerankerErr.message}), falling back to RRF`);
+            log.warn(`[LocalKBSearch] Azure reranker error (${/** @type {Error} */ (rerankerErr).message}), falling back to RRF`);
         }
     } else if (cpuRerankerEnabled && results.length > 0) {
         // ── CPU cross-encoder (Transformers.js, MIT bge-reranker-base) ──
@@ -165,7 +166,7 @@ async function rerankCandidates(candidates, query, topK) {
             }
         } catch (cpuErr) {
             if (localRerankerUrl) {
-                log.warn(`[LocalKBSearch] CPU rerank failed (${cpuErr.message}); trying GPU sidecar`);
+                log.warn(`[LocalKBSearch] CPU rerank failed (${/** @type {Error} */ (cpuErr).message}); trying GPU sidecar`);
                 // Fall through by re-running the GPU branch below
                 try {
                     const rerankerRes = await fetch(`${localRerankerUrl}/rerank`, {
@@ -181,10 +182,10 @@ async function rerankCandidates(candidates, query, topK) {
                         }
                     }
                 } catch (gpuErr) {
-                    log.warn(`[LocalKBSearch] GPU sidecar also failed (${gpuErr.message}); using RRF`);
+                    log.warn(`[LocalKBSearch] GPU sidecar also failed (${/** @type {Error} */ (gpuErr).message}); using RRF`);
                 }
             } else {
-                log.warn(`[LocalKBSearch] CPU rerank failed (${cpuErr.message}); using RRF`);
+                log.warn(`[LocalKBSearch] CPU rerank failed (${/** @type {Error} */ (cpuErr).message}); using RRF`);
             }
         }
     } else if (localRerankerUrl && results.length > 0) {
@@ -215,7 +216,7 @@ async function rerankCandidates(candidates, query, topK) {
             }
         } catch (rerankerErr) {
             recordSidecarCall({ service: 'rerank', status: 'error', durationMs: Date.now() - rerankT0 });
-            log.warn(`[LocalKBSearch] Local GPU reranker unavailable (${rerankerErr.message}), falling back to RRF`);
+            log.warn(`[LocalKBSearch] Local GPU reranker unavailable (${/** @type {Error} */ (rerankerErr).message}), falling back to RRF`);
         }
     } else {
         log.info('[LocalKBSearch] No reranker configured — using RRF scores');
@@ -225,3 +226,5 @@ async function rerankCandidates(candidates, query, topK) {
 }
 
 module.exports = { applyRerank, rerankCandidates, wire };
+
+/** @typedef {typeof globalThis & { _azureRerankerPath?: string | null }} AzureRerankerGlobal */

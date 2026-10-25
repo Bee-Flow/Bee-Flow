@@ -8,6 +8,9 @@ const { run, getAll, getOne } = require('../../db');
 const { initDB } = require('./initSchema');
 const log = require('../../telemetry/log');
 
+/**
+ * @param {string} agentId
+ */
 async function addAgentTool(agentId, componentId, params = null) {
     await initDB();
     const id = randomUUID();
@@ -20,12 +23,18 @@ async function removeAgentTool(agentId, componentId) {
     await run('DELETE FROM agent_tools WHERE agent_id = $1 AND component_id = $2', [agentId, componentId]);
 }
 
+/**
+ * @param {string} agentId
+ */
 async function getAgentTools(agentId) {
     await initDB();
     const rows = await getAll('SELECT component_id, params_json FROM agent_tools WHERE agent_id = $1', [agentId]);
     return rows.map(row => row.component_id);
 }
 
+/**
+ * @param {string} agentId
+ */
 async function getAgentToolsWithParams(agentId) {
     await initDB();
     const rows = await getAll('SELECT component_id, params_json FROM agent_tools WHERE agent_id = $1', [agentId]);
@@ -89,6 +98,9 @@ async function assertToolsWriteAllowed(agentId, nextOf, managedWrite) {
     await managedParts.assertManagedWrite({ kind: 'agent', projectId, changedKeys: ['tools'], managedWrite });
 }
 
+/**
+ * @param {string} agentId
+ */
 async function updateAgentToolParams(agentId, componentId, params, { managedWrite = null } = {}) {
     await initDB();
     await assertToolsWriteAllowed(agentId, (current) => current.map((t) => (
@@ -96,6 +108,9 @@ async function updateAgentToolParams(agentId, componentId, params, { managedWrit
     await run('UPDATE agent_tools SET params_json = $1 WHERE agent_id = $2 AND component_id = $3', [params ? JSON.stringify(params) : null, agentId, componentId]);
 }
 
+/**
+ * @param {string} agentId
+ */
 async function setAgentTools(agentId, componentIds, toolParams = {}, { managedWrite = null } = {}) {
     await initDB();
     await assertToolsWriteAllowed(agentId, () => componentIds.map((componentId) => ({
@@ -112,3 +127,5 @@ module.exports = {
     getAgentToolsWithParams, updateAgentToolParams, setAgentTools,
     getAgentToolsBatch, getAgentToolsWithParamsBatch,
 };
+
+/** @typedef {{ componentId: string, params?: object | null }} ToolWithParams */

@@ -38,6 +38,7 @@ const ENTRY_BYTES = 16;
 function serialize(perContig, contentEnd) {
     if (!Array.isArray(perContig)) throw new Error('blockIndex.serialize: perContig array required');
     if (!Number.isSafeInteger(contentEnd) || contentEnd < 0) throw new Error('blockIndex.serialize: contentEnd required');
+    /** @type {{ name: string; entryStart: number; entryCount: number; minPos: number; maxPos: number; count: number; }[]} */
     const contigs = [];
     let entryStart = 0;
     let total = 0;
@@ -75,7 +76,10 @@ function serialize(perContig, contentEnd) {
     return out;
 }
 
-/** @returns {{ contentEnd:number, contigs:Array, byName:Map, entryCount:number }} */
+/**
+ * @returns {{ contentEnd:number, contigs:Array, byName:Map, entryCount:number }}
+ * @param {Buffer<ArrayBuffer>} buf
+ */
 function deserialize(buf) {
     if (!Buffer.isBuffer(buf) || buf.length < MAGIC.length + 4 || !buf.subarray(0, MAGIC.length).equals(MAGIC)) {
         throw new Error('blockIndex.deserialize: not a BFDI1 index');
@@ -115,6 +119,8 @@ function deserialize(buf) {
  *               `truncated` means the span needed more than maxBlocks blocks
  *               and was clamped (the caller surfaces this — silent truncation
  *               reads as "that region is empty", which is a lie).
+ * @param {number} start
+ * @param {number} end
  */
 function findRange(index, chrom, start, end, { maxBlocks = 256 } = {}) {
     const c = index.byName.get(chrom);
@@ -148,3 +154,9 @@ function findRange(index, chrom, start, end, { maxBlocks = 256 } = {}) {
 }
 
 module.exports = { serialize, deserialize, findRange, ENTRY_BYTES };
+
+/**
+ * @typedef {{ name: string, entryStart: number, entryCount: number, minPos: number, maxPos: number, count: number }} IndexContig
+ * @typedef {{ contentEnd: number, contigs: IndexContig[], byName: Map<string, IndexContig>, entryCount: number,
+ *   firstPosAt: (i: number) => number, blockOffsetAt: (i: number) => number, uncompSizeAt: (i: number) => number }} BlockIndex
+ */

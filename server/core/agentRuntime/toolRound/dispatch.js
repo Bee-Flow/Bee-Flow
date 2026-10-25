@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The dispatch of one tool call that every gate let through: connection
  * lending, the probed dispatch through the unified tool dispatcher, the
@@ -18,10 +18,15 @@ const { runWithProbe, markLocal } = require('../../http/outboundProbe');
 const { checkRegexPatterns } = require('../../privacy/guardrails');
 const testChatMod = require('../testChat');
 const log = require('../../../telemetry/log');
+const { fallback, bestEffort } = require('../../../utils/bestEffort');
 
 /**
  * Dispatch the call. Never throws: a failing tool becomes a blocked sentinel
  * result, and a lent connection is recorded on `rc._lentByToolCall`.
+ * @param {import('../toolRoundExecutor').ToolRoundContext} rc
+ * @param {import('../toolRoundExecutor').ToolRoundDeps} deps
+ * @param {{ toolCall: import('../toolRoundExecutor').RoundToolCall, toolName: string, toolArgs: Record<string, unknown>, fixedParams: unknown, policy: ReturnType<typeof import('./piiPolicy').resolveToolPiiPolicy> }} call
+ * @returns {Promise<import('../toolRoundExecutor').ToolCallOutcome>}
  */
 async function dispatchToolCall(rc, deps, { toolCall, toolName, toolArgs, fixedParams, policy }) {
     const { _toolClass, _blockCats } = policy;
@@ -93,6 +98,9 @@ async function dispatchToolCall(rc, deps, { toolCall, toolName, toolArgs, fixedP
  * Inert — and zero DB cost — unless INTEGRATION_CONNECTION_LENDING_ENABLED is
  * set; with it off, effUserId === userId so behavior is unchanged. Never
  * overrides an explicit acting identity.
+ * @param {import('../toolRoundExecutor').ToolRoundContext} rc
+ * @param {import('../toolRoundExecutor').ToolRoundDeps} deps
+ * @param {{ toolCall: import('../toolRoundExecutor').RoundToolCall, toolName: string }} call
  */
 async function resolveLending(rc, deps, { toolCall, toolName }) {
     const { userAuth, userId, agent, _lentByToolCall } = rc;
@@ -124,11 +132,15 @@ async function resolveLending(rc, deps, { toolCall, toolName }) {
             });
             if (ov) { effUserId = ov.integrationUserId; lentConnection = ov; _lentByToolCall.set(toolCall.id, ov); }
         }
-    } catch (err) { log.debug('fail closed to bring-your-own', err); }
+    } catch (err) { fallback('core/agentRuntime/toolRound/dispatch:resolveLending', err); /* fail closed to bring-your-own */ }
     return { effUserId, lentConnection };
 }
 
-/** The context the unified tool dispatcher runs this call with. */
+/**
+ * The context the unified tool dispatcher runs this call with.
+ * @param {import('../toolRoundExecutor').ToolRoundContext} rc
+ * @param {{ effUserId: string, lentConnection: import('../toolRoundExecutor').LentConnection | null, fixedParams: unknown }} who
+ */
 function dispatchContext(rc, { effUserId, lentConnection, fixedParams }) {
     const { onEvent, userAuth, userId, agent, conversation, messageMetadata, onSkillsActivated } = rc;
     return {
@@ -178,7 +190,7 @@ function dispatchContext(rc, { effUserId, lentConnection, fixedParams }) {
         // tools; already in the "Now:" prompt line).
         timezone: messageMetadata.timezone || null,
         nanoBananaSettings: messageMetadata.nanoBananaSettings || null,
-        onImageGenerated: (data) => {
+        onImageGenerated: (/** @type {Record<string, unknown>} */ data) => {
             onEvent('image', data);
         },
         // Org context — activate_skill (and other org-scoped
@@ -196,7 +208,12 @@ function dispatchContext(rc, { effUserId, lentConnection, fixedParams }) {
     };
 }
 
-/** Failed calls get an egress row too — with status. Never fails the turn. */
+/**
+ * Failed calls get an egress row too — with status. Never fails the turn.
+ * @param {import('../toolRoundExecutor').ToolRoundContext} rc
+ * @param {import('../toolRoundExecutor').ToolRoundDeps} deps
+ * @param {{ toolCall: import('../toolRoundExecutor').RoundToolCall, toolName: string, toolArgs: Record<string, unknown>, toolErr: Error, outboundProbe: Awaited<ReturnType<typeof import('../../http/outboundProbe').runWithProbe>>['probe'], dispatchT0: number }} call
+ */
 function logFailedEgress(rc, deps, { toolCall, toolName, toolArgs, toolErr, outboundProbe, dispatchT0 }) {
     const { userAuth, userId, agent, agentId, conversation, modelToUse, messageMetadata, _lentByToolCall } = rc;
     try {
@@ -223,10 +240,14 @@ function logFailedEgress(rc, deps, { toolCall, toolName, toolArgs, toolErr, outb
                 grant_id: _lentErr ? _lentErr.grantId : null,
             },
         });
-    } catch (err) { log.debug('never fail the turn on logging', err); }
+    } catch (err) { bestEffort('core/agentRuntime/toolRound/dispatch:logFailedEgress', err); /* never fail the turn on logging */ }
 }
 
-/** Regex Guardrails — Tool Output scope. */
+/**
+ * Regex Guardrails — Tool Output scope.
+ * @param {import('../toolRoundExecutor').RoundRegexConfig} regexConfig
+ * @param {unknown} toolResult
+ */
 function guardToolOutput(regexConfig, toolResult) {
     if (!(regexConfig?.enabled && regexConfig?.scope?.toolOutput)) return toolResult;
     const matches = checkRegexPatterns(JSON.stringify(toolResult), regexConfig.rulesWithNames);

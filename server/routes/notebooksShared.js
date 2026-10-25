@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * What every notebook route module shares: the role gates, the collaborators
  * a test swaps (`seams`, re-exported as routes/notebooks.js `.seams`), the
@@ -41,8 +41,12 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 
 // ── Schema parts ───────────────────────────────────────────────────
 // Every JSON body and query the notebook routes read is closed (see "What a
 // caller may send" in routes/notebooks.js); these are the parts they share.
+/**
+ * @param {string} message
+ * @param {number} max
+ */
 const text = (message, max) => worded(message).max(max, message);
 const NOTEBOOK_ID_TEXT = 'Every id is a non-empty id of at most 200 characters.';
-const ids = (message) => z.array(worded(message).min(1, NOTEBOOK_ID_TEXT).max(200, NOTEBOOK_ID_TEXT), { error: message });
+const ids = (/** @type {string} */ message) => z.array(worded(message).min(1, NOTEBOOK_ID_TEXT).max(200, NOTEBOOK_ID_TEXT), { error: message });
 
 module.exports = { asViewer, asEditor, asOwner, seams, upload, text, ids };

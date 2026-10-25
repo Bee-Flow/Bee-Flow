@@ -33,10 +33,16 @@ const STEP_ID = 'stage.prd';
 const DECIDE_WITHIN_MS = 7 * 24 * 60 * 60 * 1000;
 const STAGE_LABEL = Object.freeze({ uat: 'UAT', prd: 'Production' });
 
+/**
+ * @param {string} name
+ */
 const dep = (deps, name, load) => (deps && deps[name] !== undefined ? deps[name] : load());
 const lifecycle = () => require('../../core/automationRunner/approvalLifecycle');
 const stagesRules = () => require('../../core/automationModel/approvalStages');
 
+/**
+ * @param {string} message
+ */
 function needsApprover(message, details = {}) {
     return new HttpError(400, 'approval_policy_needs_approver', message, details);
 }
@@ -75,6 +81,13 @@ async function validatePolicy(policy, { orgId = null, ownerId } = /** @type {any
     return stages;
 }
 
+/**
+ * @typedef {Object} TitleForArgs
+ * @property {boolean} [deleteData]
+ */
+/**
+ * @param {TitleForArgs} param0
+ */
 function titleFor({ kind, releaseSeq, solutionName, stage, deleteData = false }) {
     const where = STAGE_LABEL[stage] || stage;
     if (kind === 'settings') return `Change the approval gate of ${solutionName} in ${where}`;
@@ -173,19 +186,19 @@ async function request({ deployment, stage, plan = null, actor } = /** @type {an
             decidedBy: actor && actor.id ? actor.id : null, decision: 'requested', source: 'deployment',
         });
     } catch (err) {
-        log.warn(`[SolutionStages] approval audit for ${deployment.id} failed: ${err.message}`);
+        log.warn(`[SolutionStages] approval audit for ${deployment.id} failed: ${/** @type {Error} */ (err).message}`);
     }
     try {
         dep(deps, 'approvalEvents', () => require('../../automation/approvalEvents')).dispatchApprovalRequested(approval);
     } catch (err) {
-        log.warn(`[SolutionStages] approval event for ${deployment.id} failed: ${err.message}`);
+        log.warn(`[SolutionStages] approval event for ${deployment.id} failed: ${/** @type {Error} */ (err).message}`);
     }
     try {
         const recipients = await dep(deps, 'panelRecipientIds', () => lifecycle().panelRecipientIds)(first.approvers);
         const notify = dep(deps, 'notifyApproval', () => require('../../automation/approvalNotify').notifyApproval);
         await notify({ approval, recipientIds: recipients, title: `Approval needed: ${title}`, message: title });
     } catch (err) {
-        log.warn(`[SolutionStages] approval notification for ${deployment.id} failed: ${err.message}`);
+        log.warn(`[SolutionStages] approval notification for ${deployment.id} failed: ${/** @type {Error} */ (err).message}`);
     }
     return approval;
 }

@@ -70,11 +70,16 @@ function asRefusal(e) {
  * of their column) or `{ error }`. `partial` is an update patch: a required
  * column may be absent, but it may not be set to nothing.
  *
- * @param {any} deps @param {any} tableMeta @param {any} values @param {{ partial?: boolean }} [opts]
+ * @typedef {{ key?: string, type?: string, required?: boolean, default?: unknown, options?: string[] }} ColumnMeta
+ *
+ * @param {{ systemColumns: Iterable<string>, normaliseCells: (tableMeta: { fields?: ColumnMeta[] }, values: Record<string, unknown>) => Record<string, unknown> }} deps
+ * @param {{ fields?: ColumnMeta[] }} tableMeta @param {unknown} rawValues @param {{ partial?: boolean }} [opts]
  */
-function checkValues(deps, tableMeta, values, { partial = false } = {}) {
-    if (!isPlainObject(values)) return { error: 'A row is an object of column key to value.' };
-    const fields = new Map((tableMeta.fields || []).filter((f) => f && f.key).map((f) => [f.key, f]));
+function checkValues(deps, tableMeta, rawValues, { partial = false } = {}) {
+    if (!isPlainObject(rawValues)) return { error: 'A row is an object of column key to value.' };
+    const values = /** @type {Record<string, unknown>} */ (rawValues);
+    /** @type {Map<string, ColumnMeta>} */
+    const fields = new Map((tableMeta.fields || []).filter((f) => f && f.key).map((f) => [String(f.key), f]));
     const system = new Set(deps.systemColumns);
     const keys = Object.keys(values);
     if (!keys.length && partial) return { error: 'values is empty: name the columns to change.' };
@@ -106,7 +111,7 @@ function checkValues(deps, tableMeta, values, { partial = false } = {}) {
         return { error: rowFailure(e) };
     }
     for (const [k, v] of Object.entries(cells)) {
-        const f = fields.get(k);
+        const f = /** @type {ColumnMeta} */ (fields.get(k));
         if (v === null || v === undefined) continue;
         if (f.type === 'select') {
             if (typeof v !== 'string' || !(f.options || []).includes(v)) return { error: `"${k}" must be one of: ${(f.options || []).slice(0, 30).join(', ')}.` };

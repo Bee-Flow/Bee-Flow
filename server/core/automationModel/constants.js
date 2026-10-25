@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Vocabulary and ceilings the automation validator checks against: the legal
  * step types, edge labels and colours, the per-step-type value sets

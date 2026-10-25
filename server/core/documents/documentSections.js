@@ -11,15 +11,24 @@ function ruleKeys(rule, keys = new Set()) {
     for (const child of rule?.all || rule?.any || []) ruleKeys(child, keys);
     return keys;
 }
+/**
+ * @param {string | Buffer<ArrayBufferLike> | AnyNode | AnyNode[]} html
+ */
 function parse(html) {
     return cheerio.load(html || '', /** @type {any} */ ({ xmlMode: true, decodeEntities: false }), false);
 }
+/**
+ * @param {string} message
+ */
 function fail(message) {
     throw Object.assign(new Error(message), { status: 422, errorClass: 'document_section_invalid' });
 }
 
 // Keep the root condition as well as descendant rules. A library item must have
 // the same applicability as the content from which it was saved.
+/**
+ * @param {string} sectionId
+ */
 function extractSection(doc, sectionId) {
     const contract = getContract(doc);
     const section = contract.sections.find(s => s.id === sectionId);
@@ -42,12 +51,18 @@ function extractSection(doc, sectionId) {
 
 // IDs are scoped to the insertion, but deterministic across reviewed source
 // revisions. Two copies can coexist and existing overrides survive updates.
+/**
+ * @param {string} sectionId
+ */
 function insertSection(doc, source, sectionId, { replace = false } = {}) {
     if (!/^[\w-]{1,64}$/.test(sectionId)) fail('Invalid insertion ID');
     const contract = getContract(doc);
     const from = getContract(source);
     const sourceHtml = parse(source.bodyHtml);
     const ids = new Map();
+    /**
+     * @param {string | undefined} id
+     */
     const scopedId = id => `${sectionId}-${createHash('sha256').update(id).digest('hex').slice(0, 16)}`;
     sourceHtml('[data-doc-section]').each((_, el) => {
         const old = sourceHtml(el).attr('data-doc-section');
@@ -99,3 +114,5 @@ function insertSection(doc, source, sectionId, { replace = false } = {}) {
         settings: { ...doc.settings, sectionOverrides, contract: normalizeContract(contract) } };
 }
 module.exports = { extractSection, insertSection, ruleKeys };
+
+/** @typedef {import('domhandler').AnyNode} AnyNode */

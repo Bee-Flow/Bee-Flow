@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck
+// @typecheck strict
 /**
  * Dutch for the second collaboration round (2026-09), part two: the
  * documents product (the library with folders, categories and the archive,

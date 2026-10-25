@@ -1,6 +1,7 @@
 // @typecheck
 'use strict';
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * Run-scoped PII token vault.
@@ -56,6 +57,7 @@ function createTokenVault(/** @type {{runId?: string|null, seed?: any, persist?:
     // still scan concurrently but can never mint the same label for two
     // different values.
     let queue = Promise.resolve();
+    /** @type {NodeJS.Timeout | null} */
     let persistTimer = null;
 
     if (seed && typeof seed === 'object') {
@@ -74,7 +76,7 @@ function createTokenVault(/** @type {{runId?: string|null, seed?: any, persist?:
         for (const k of keys) delete map[k];
         evicted += keys.length;
         log.warn(`[TokenVault] run=${runId} evicted ${keys.length} token(s) at the ${MAX_TOKENS_PER_RUN} ceiling — those placeholders can no longer be restored`);
-        if (onEvict) { try { onEvict(keys.length); } catch (err) { log.debug('audit must never break a run', err); } }
+        if (onEvict) { try { onEvict(keys.length); } catch (err) { bestEffort('core/automationRunner/tokenVault:_capacity', err); /* audit must never break a run */ } }
     }
 
     function merge(tokenMap) {
@@ -97,7 +99,7 @@ function createTokenVault(/** @type {{runId?: string|null, seed?: any, persist?:
         if (persistTimer || !runId || !persist) return;
         persistTimer = setTimeout(() => {
             persistTimer = null;
-            flush().catch(() => { /* flush already logs */ });
+            flush().catch((e) => bestEffort('core/automationRunner/tokenVault:_schedulePersist', e));
         }, PERSIST_DEBOUNCE_MS);
         // Never hold the process open for a token map — the terminal flush is
         // awaited by the runner.
@@ -135,7 +137,7 @@ function createTokenVault(/** @type {{runId?: string|null, seed?: any, persist?:
             return true;
         } catch (e) {
             dirty = true;
-            log.warn(`[TokenVault] run=${runId} could not persist the token map: ${e.message}`);
+            log.warn(`[TokenVault] run=${runId} could not persist the token map: ${/** @type {Error} */ (e).message}`);
             return false;
         }
     }

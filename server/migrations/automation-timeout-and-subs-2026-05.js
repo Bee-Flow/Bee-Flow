@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: Automations — configurable run timeout, subscription failure
  * tracking, MS Graph clientState, and run cancel/parent linkage (2026-05).

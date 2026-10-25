@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Notebook chat: the tool rounds of one turn (routes/ai/notebookChat.js).
  * The tool menu and options, the one executor every tool call goes through
@@ -23,23 +24,34 @@ const { NOTEBOOK_DOC_TOOLS, NOTEBOOK_ADD_SOURCE_TOOL, executeNotebookDocTool } =
 const { AGENT_SEARCH_TOOLS, isAgentSearchTool } = require('../../../integrations/agentSearchTools');
 const { isReadUrlTool } = require('../../../integrations/readUrlTools');
 // read_url ships with AGENT_SEARCH_TOOLS and is handled as a web tool here.
-const isWebTool = (name) => isAgentSearchTool(name) || isReadUrlTool(name);
+const isWebTool = (/** @type {string} */ name) => isAgentSearchTool(name) || isReadUrlTool(name);
 const { runAgentSearchWithEgress } = require('../../../integrations/agentSearchEgress');
 const { executeNotebookKBSearchTool, NOTEBOOK_KB_SEARCH_TOOL } = require('../../../core/kb/notebookKnowledgeSearch');
 const { emitPhase } = require('../../../core/agentRuntime/phaseEvents');
 const dlpRunner = require('../../../core/dlp/dlpRunner');
 const { createUntokeniser } = require('../../../core/dlp/untokeniseStream');
 const { applyTokenMapToMessages, untokeniseToolArgs } = require('../../../core/dlp/applyTokenMapToOutbound');
+const { fallback } = require('../../../utils/bestEffort');
 
 // What the model is told when a write is refused, in words it can pass on.
 const VIEWER_WRITE_REFUSAL = 'This user can view this notebook but not change it, so the document and its sources were left as they are. Answer in the chat instead.';
 const CONFLICT_REFUSAL = 'The document was changed by someone else while you were working, so your edit was NOT applied. It was kept in the version history as a proposal the user can compare and restore. Tell the user, and offer to redo the edit on the current text.';
 
 /**
+ * @typedef {(event: string, data: unknown) => void} Send
+ * @typedef {ReturnType<typeof import('../../../stores/notebook/rowMappers').mapSourceRow>} Source
+ * @typedef {Awaited<ReturnType<typeof import('../../../core/privacy/orgShield').resolveShieldFor>>} Shield
+ * @typedef {{ name?: string, content?: string, metadata?: Record<string, unknown>, title?: string, find_text?: string,
+ *   replace_text?: string, query?: string, top_k?: number, [key: string]: unknown }} ToolArgs
+ */
+
+/**
  * A viewer's turn gets the read tool only: offering a write the server
  * would refuse just teaches the model to promise changes it cannot make.
+ * @param {{ canWrite: boolean, kbIds: string[], searchAvailable: boolean }} opts
  */
 function buildToolList({ canWrite, kbIds, searchAvailable }) {
+    /** @type {Array<{ type: string, function?: { name: string, description?: string, parameters?: object } }>} */
     const notebookTools = canWrite
         ? [...NOTEBOOK_DOC_TOOLS, NOTEBOOK_ADD_SOURCE_TOOL]
         : NOTEBOOK_DOC_TOOLS.filter(t => t.function?.name === 'notebook_doc_read');
@@ -56,7 +68,10 @@ function buildToolList({ canWrite, kbIds, searchAvailable }) {
     return notebookTools;
 }
 
-/** The provider options of every round, from the tier's settings. */
+/**
+ * The provider options of every round, from the tier's settings.
+ * @param {{ tiers: import('../../../core/llm/modelResolver').TierMap, resolvedTier: string, requestedEffort?: string }} opts
+ */
 function buildChatOptions({ tiers, resolvedTier, requestedEffort }) {
     const tierSettings = tiers[resolvedTier] || {};
     const { TIER_DEFAULTS } = require('../../../core/llm/modelResolver');
@@ -81,9 +96,12 @@ function buildChatOptions({ tiers, resolvedTier, requestedEffort }) {
  * Single tool executor — used for every tool the model calls, in every
  * round. Performs side-effects (doc update, source added, legal citation
  * feed-through) and returns the result object handed back to the model.
+ * @param {{ doc: import('./finalize').TurnDoc, canWrite: boolean, aborted: () => boolean, notebook: import('./finalize').Notebook,
+ *   notebookId: string, userId: string, userOrgForTiers: string | null, sources: Partial<Source>[], kbIds: string[],
+ *   readySources: Source[], send: Send, seams: import('./finalize').Seams }} turn
  */
 function makeNotebookToolExecutor({ doc, canWrite, aborted, notebook, notebookId, userId, userOrgForTiers, sources, kbIds, readySources, send, seams }) {
-    return async (toolName, toolArgs) => {
+    return async (/** @type {string} */ toolName, /** @type {ToolArgs} */ toolArgs) => {
         if (toolName.startsWith('notebook_doc_')) {
             const r = executeNotebookDocTool(toolName, toolArgs, doc.currentDocContent, doc.currentDocMd);
             if (r && r._action === 'notebook_doc_update') {
@@ -189,7 +207,14 @@ function makeNotebookToolExecutor({ doc, canWrite, aborted, notebook, notebookId
  * enabled across rounds so the model can chain (search → get → verify →
  * draft), all streamed, with tool_start/tool_end events the shared chat
  * renderer already understands. Fixes the previous one-shot truncation.
- * @returns {Promise<{ fullContent: string, _untok: any }>}
+ * @param {{ messages: import('../../../utils/messageUtils').WireMessage[], notebookTools: ReturnType<typeof buildToolList>,
+ *   chatOptions: ReturnType<typeof buildChatOptions>,
+ *   executeNotebookTool: ReturnType<typeof makeNotebookToolExecutor>,
+ *   repeatGuard: ReturnType<typeof import('../../../core/agentRuntime/toolRepeatGuard').createToolRepeatGuard>,
+ *   toolPiiGate: typeof import('../../../core/privacy/toolPiiGate'), adapter: import('../../../core/providers/base'),
+ *   apiKey: string, apiUrl: string, modelId: string, turnSignal: AbortSignal, aborted: () => boolean, send: Send,
+ *   notebookId: string, userId: string, userOrgForTiers: string | null, docShield: Shield, orgShieldConfig: Shield }} turn
+ * @returns {Promise<{ fullContent: string, _untok: import('./finalize').Untokeniser }>}
  */
 async function runToolLoop({
     messages, notebookTools, chatOptions, executeNotebookTool, repeatGuard, toolPiiGate,
@@ -200,7 +225,7 @@ async function runToolLoop({
     // The tool block lists, with this turn's attribution on their audit rows.
     const shieldGate = toolPiiGate.toolLoopGate({
         shield: orgShieldConfig, tag: 'NotebookChat',
-        audit: (fields) => guardrailEventStore.logGuardrailEvent({
+        audit: (/** @type {object} */ fields) => guardrailEventStore.logGuardrailEvent({
             organization_id: userOrgForTiers || null, user_id: userId || null, conversation_id: notebookId || null,
             ...fields, source: 'notebook', model: modelId || null,
         }),
@@ -221,7 +246,12 @@ async function runToolLoop({
         if (aborted()) { log.info('[NotebookChat] turn aborted — stopping tool loop'); break; }
         const isFinalRound = round === MAX_TOOL_ROUNDS;
         let roundText = '';
+        /** @type {Array<{ id: string, type: string, function: { name: string, arguments: string }, name?: string }>} */
         const roundToolCalls = [];
+        /**
+         * @param {string} type
+         * @param {{ text?: string, id?: string, name?: string, input?: unknown, [key: string]: unknown }} data
+         */
         const streamCallback = (type, data) => {
             if (type === 'text') {
                 // Accumulate tokenized text for storage; stream un-tokenised text
@@ -284,13 +314,14 @@ async function runToolLoop({
         for (const toolCall of roundToolCalls) {
             const toolName = toolCall.function?.name || toolCall.name;
             let toolArgs = {};
-            try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch (_) { log.debug('tool arguments are not valid JSON, call the tool with none', _); }
+            try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch (_) { fallback('routes/ai/notebookChat/toolLoop:runToolLoop', _); /* tool arguments are not valid JSON, call the tool with none */ }
             // The model passes tokens in tool args (e.g. find_text). Restore for
             // the CLIENT-facing tool_start/tool_end previews only — the model-facing
             // result fed back below stays tokenized (token-space consistency).
             // _restoreView reads the LIVE map so tokens minted by this turn's
             // tool-result scan (below) are restored in the client preview too.
             const { restoreTokens: _rt } = require('../../../core/privacy/piiDetection');
+            /** @param {string} s */
             const _restoreView = (s) => {
                 const m = dlpRunner.getConversationTokenMap(notebookId) || {};
                 return (Object.keys(m).length && typeof s === 'string') ? _rt(s, m) : s;

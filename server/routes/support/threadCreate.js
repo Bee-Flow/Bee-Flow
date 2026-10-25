@@ -1,3 +1,4 @@
+/** @typedef {import('../../services/outboundChatNotifier').SupportThread} SupportThread */
 /**
  * Company inbox: the steps of creating a ticket (POST /threads), anonymous
  * or logged in. The spam guard, who the requester is, the SLA due dates, the
@@ -29,8 +30,12 @@ const {
     notifyStaff,
 } = require('./shared');
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 // ── Honeypot + minimum-form-age guard for anonymous submissions ──────────
+/**
+ * @param {string} source
+ */
 function _isLikelySpam(body, source) {
     if (source !== 'marketing') return false;
     // Hidden honeypot field — bots fill it; humans don't see it.
@@ -73,7 +78,7 @@ async function loggedInRequester(req, userId, r) {
             if (!r.name) r.name = nameOf(user);
             r.orgRole = r.orgRole || user.orgRole || null;
         }
-    } catch (err) { log.debug('requester lookup failed, the thread keeps the supplied details', err); }
+    } catch (err) { fallback('routes/support/threadCreate:loggedInRequester', err); /* requester lookup failed, the thread keeps the supplied details */ }
     if (!r.email) {
         r.email = `user-${userId}@noemail.beeflow.local`;
     }
@@ -94,7 +99,7 @@ async function anonymousRequester(r) {
             if (!r.orgId) r.orgId = match.organizationId || null;
             if (!r.name) r.name = nameOf(match);
         }
-    } catch (err) { log.debug('requester lookup by email failed, the thread keeps the supplied details', err); }
+    } catch (err) { fallback('routes/support/threadCreate:anonymousRequester', err); /* requester lookup by email failed, the thread keeps the supplied details */ }
 }
 
 /** Compute SLA due dates from the org/global policy (best-effort). */
@@ -111,7 +116,7 @@ async function applyCreateSla(thread) {
             thread.sla_resolution_due_at = due.resolution;
         }
     } catch (e) {
-        log.warn('[Support] SLA compute on create failed:', e.message);
+        log.warn('[Support] SLA compute on create failed:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -136,7 +141,7 @@ function afterAiReply(result, { thread, userId, requesterEmail, requesterName, s
             title: `AI escalated: ${subject}`,
             message: result.escalateReason || 'AI handed off to staff',
             threadId: thread.id,
-        }).catch(() => {});
+        }).catch((e) => bestEffort('routes/support/threadCreate:afterAiReply', e));
     }
     // AI fully resolved → send a resolution + CSAT email so the customer can
     // confirm and rate without logging in.
@@ -162,12 +167,21 @@ function afterAiReply(result, { thread, userId, requesterEmail, requesterName, s
             // Show the actual inbound reply, not the user's own subject line.
             message: _notifExcerpt(result.message.body) || subject,
             link: supportThreadPath(thread.id),
-        }).catch(() => {});
+        }).catch((e) => bestEffort('routes/support/threadCreate:afterAiReply#2', e));
     }
     _emit('thread_updated', { threadId: thread.id });
 }
 
-/** The confirmation mail, the staff notice, the live event and the chat fan-out for a new ticket. */
+/**
+ * @typedef {Object} AnnounceCreatedArgs
+ * @property {SupportThread} thread
+ * @property {string} requesterUrl
+ * @property {string} effectiveSource
+ */
+/**
+ * The confirmation mail, the staff notice, the live event and the chat fan-out for a new ticket.
+ * @param {AnnounceCreatedArgs} param0
+ */
 function announceCreated({ thread, firstMsg, requesterEmail, requesterName, subject, requesterUrl, effectiveSource, skipOutboundEmail }) {
     // Confirmation email — failures surface to staff via sendOrNotifyStaff.
     if (!skipOutboundEmail) {
@@ -182,13 +196,13 @@ function announceCreated({ thread, firstMsg, requesterEmail, requesterName, subj
         // No email in the notification body — staff opens the thread to see it.
         message: `${effectiveSource === 'marketing' ? 'Marketing site' : 'In-app'} · ${_redactEmail(requesterEmail)}`,
         threadId: thread.id,
-    }).catch(() => {});
+    }).catch((e) => bestEffort('routes/support/threadCreate:announceCreated', e));
     _emit('thread_created', { threadId: thread.id });
     // Chat notification joins the same fan-out, fire-and-forget: a chat
     // outage must never fail a customer's ticket submission.
     require('../../services/outboundChatNotifier')
         .notify({ thread, event: 'ticket_created' })
-        .catch(() => {});
+        .catch((e) => bestEffort('routes/support/threadCreate:announceCreated#2', e));
 }
 
 /**
@@ -231,7 +245,7 @@ async function openTicket(req, r, val) {
         actorKind: 'requester',
         action: 'reply',
         payload: { initial: true, source: effectiveSource },
-    }).catch(() => {});
+    }).catch((e) => bestEffort('routes/support/threadCreate:openTicket', e));
 
     const requesterUrl = _buildThreadUrl(thread);
     const accessToken = !userId ? supportStore.buildAccessToken(thread.id, r.email) : null;
@@ -253,3 +267,7 @@ async function openTicket(req, r, val) {
 
 module.exports = { _isLikelySpam, loggedInRequester, anonymousRequester, openTicket };
 
+/**
+ * @typedef {{ userId: string | null, email: string, name: string | null, orgRole: string | null, orgId: string | null, orgName: string | null }} SupportRequester
+ * @typedef {{ thread: Awaited<ReturnType<typeof supportStore.createThread>>, userId: string | null, requesterEmail: string, requesterName: string | null, subject: string, requesterUrl: ReturnType<typeof _buildThreadUrl>, skipOutboundEmail: boolean }} TicketMailCtx
+ */

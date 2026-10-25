@@ -80,6 +80,7 @@ function _buildAppIndex() {
             try { res = readTools(entry); } catch (_) { res = null; }
             if (!res || res.ok !== true) { failed.push(entry.app); ok = false; continue; }
             const tools = Array.isArray(res.tools) ? res.tools : [];
+            /** @type {string[]} */
             const names = [];
             for (const t of tools) {
                 const name = t && t.function && t.function.name;
@@ -111,7 +112,7 @@ function _buildAppIndex() {
     } catch (e) {
         ok = false;
         log.error('[ToolPolicy] Tool registry unavailable — tool attribution is degraded, so a ' +
-            'curated agent is served NO registry tools until it recovers:', e.message);
+            'curated agent is served NO registry tools until it recovers:', /** @type {Error} */ (e).message);
     }
     if (ok && byTool.size === 0) {
         ok = false;
@@ -147,6 +148,7 @@ function _resetAppIndex() { _appIndex = null; }
  * the built-ins have no app, and a grant keyed on an app can therefore never
  * speak about them. Use `appIdForToolDef` when you hold the whole tool object
  * — MCP and custom-integration tools carry their own id and this cannot see it.
+ * @param {string} toolName
  */
 function appIdForTool(toolName) {
     if (typeof toolName !== 'string' || !toolName) return null;
@@ -168,7 +170,10 @@ function appIdForToolDef(tool) {
     return appIdForTool(tool.function && tool.function.name);
 }
 
-/** Every action name an app owns (empty array for an unknown app). */
+/**
+ * Every action name an app owns (empty array for an unknown app).
+ * @param {string} appId
+ */
 function actionsOfApp(appId) {
     if (typeof appId !== 'string' || !appId) return [];
     return _index().byApp.get(appId) || [];
@@ -189,6 +194,7 @@ function actionsOfApp(appId) {
  * carries its own id (`appIdForToolDef`) and is never attributed by name, so
  * it is returned alone even if a registry app happens to ship the same name —
  * borrowing another app's grant for it would be attribution by coincidence.
+ * @param {string} toolName
  */
 function _decidingApps(appId, toolName) {
     if (typeof toolName !== 'string' || !toolName) return [appId];
@@ -207,6 +213,7 @@ function _decidingApps(appId, toolName) {
  * The DECLARATION is read before the module is loaded, so an app whose tools alone do not load is still in there — the narrow
  * side. A registry that is unreadable as a whole yields an empty set and therefore `false`; that widens nothing, because the
  * degraded branch in `isToolAllowed` above refuses those names anyway.
+ * @param {string} appId
  */
 function appRequiresExplicitGrant(appId) {
     if (typeof appId !== 'string' || !appId) return false;
@@ -228,6 +235,7 @@ function appRequiresExplicitGrant(appId) {
  * A degraded index answers `false` — it cannot tell "not one of those" from "I
  * have no list", and `false` only ever means the entry is validated as an
  * ordinary app.
+ * @param {string} appId
  */
 function appDefersGrants(appId) {
     if (typeof appId !== 'string' || !appId) return false;
@@ -238,6 +246,9 @@ function appDefersGrants(appId) {
 // One line per degraded index, not one per tool call: a broken registry
 // touches every tool of every turn, and a log nobody can read is not louder.
 let _degradedLoggedFor = null;
+/**
+ * @param {string} what
+ */
 function _warnDegraded(what) {
     const idx = _index();
     if (_degradedLoggedFor === idx) return;
@@ -251,3 +262,8 @@ module.exports = {
     appRequiresExplicitGrant, appDefersGrants,
     _index, _decidingApps, _warnDegraded, _resetAppIndex,
 };
+
+/**
+ * A tool definition as far as attribution reads it.
+ * @typedef {{ function?: { name?: string }, _mcp?: { serverId?: string }, _custom?: { integrationId?: string, id?: string } }} ToolDef
+ */

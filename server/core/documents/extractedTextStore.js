@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Extracted-text tiering — keep small file extractions inline on the message
  * sidecar, offload large ones to RustFS so meta_json rows don't bloat.
@@ -39,6 +39,7 @@ async function persistExtractedText(text, userId, name) {
 
     // Try RustFS upload of the full text. If RustFS is unavailable, fall back
     // to a head+tail-only sidecar — at least the model still sees both ends.
+    /** @type {string | null} */
     let extractionKey = null;
     if (storageStore.isAvailable() && userId) {
         try {
@@ -48,7 +49,7 @@ async function persistExtractedText(text, userId, name) {
             extractionKey = key;
             log.info(`[ExtractedTextStore] Tiered extraction → RustFS (${safe.length} chars, ${name || 'unnamed'})`);
         } catch (err) {
-            log.warn(`[ExtractedTextStore] Upload failed for ${name || 'unnamed'}: ${err.message}`);
+            log.warn(`[ExtractedTextStore] Upload failed for ${name || 'unnamed'}: ${/** @type {Error} */ (err).message}`);
         }
     }
 
@@ -57,6 +58,7 @@ async function persistExtractedText(text, userId, name) {
     const ref = extractionKey ? ` storageKey=${extractionKey}` : '';
     const sidecarText = `${head}\n\n[…middle of ${name || 'file'} truncated; full text available on demand${ref}]\n\n${tail}`;
 
+    /** @type {{ extractedText: string; fullChars: number; extractionKey?: string }} */
     const out = { extractedText: sidecarText, fullChars: safe.length };
     if (extractionKey) out.extractionKey = extractionKey;
     return out;
@@ -67,6 +69,7 @@ async function persistExtractedText(text, userId, name) {
  * Used by tools that explicitly need verbatim content (e.g. a "show me the
  * full document" UI action). History hydration does NOT call this — it relies
  * on the inline head+tail snippet for normal replay.
+ * @param {string} extractionKey
  */
 async function loadExtractedText(extractionKey) {
     if (!extractionKey || !storageStore.isAvailable()) return null;
@@ -76,7 +79,7 @@ async function loadExtractedText(extractionKey) {
         for await (const chunk of stream) chunks.push(chunk);
         return Buffer.concat(chunks).toString('utf8');
     } catch (err) {
-        log.warn(`[ExtractedTextStore] Load failed for ${extractionKey}: ${err.message}`);
+        log.warn(`[ExtractedTextStore] Load failed for ${extractionKey}: ${/** @type {Error} */ (err).message}`);
         return null;
     }
 }

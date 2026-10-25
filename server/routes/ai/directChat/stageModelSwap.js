@@ -23,7 +23,7 @@ async function swapModelForActiveStage(turn) {
     const stageId = state.currentActiveId;
     if (!stageId || stageId === turn.activeStageModelStageId) return;
     turn.activeStageModelStageId = stageId;
-    const stage = turn.sessionSkills.find(s => s.id === stageId);
+    const stage = turn.sessionSkills.find((/** @type {{ id: string; }} */ s) => s.id === stageId);
     const stageTier = stage?.tier;
     if (!stageTier) return;   // inherit current model
     // Auto: classify based on what this stage actually demands. We
@@ -43,13 +43,14 @@ async function swapModelForActiveStage(turn) {
             targetTier = turn.resolvedTier;
         }
     }
+    /** @type {string | null} */
     let stageModelId;
     try {
         stageModelId = await resolveModelForTier(`tier:${targetTier}`, {
             userOrgId: turn.userOrgForTiers, userId, fallbackTier: turn.resolvedTier,
         });
     } catch (e) {
-        log.warn(`[DirectChat] Stage tier "${stageTier}" resolution failed for "${stage.name}": ${e.message}`);
+        log.warn(`[DirectChat] Stage tier "${stageTier}" resolution failed for "${stage.name}": ${/** @type {Error} */ (e).message}`);
         return;
     }
     if (!stageModelId || stageModelId === turn.modelId) return;
@@ -64,7 +65,7 @@ async function swapModelForActiveStage(turn) {
         log.info(`[DirectChat] Stage "${stage.name}" → ${stageTier}${stageTier !== targetTier ? `→${targetTier}` : ''} tier (${turn.modelId})`);
         send('stage_model_swapped', { stageId, stageName: stage.name, tier: targetTier, modelId: turn.modelId });
     } catch (e) {
-        log.warn(`[DirectChat] Stage model swap to "${stageModelId}" failed: ${e.message}`);
+        log.warn(`[DirectChat] Stage model swap to "${stageModelId}" failed: ${/** @type {Error} */ (e).message}`);
     }
 }
 

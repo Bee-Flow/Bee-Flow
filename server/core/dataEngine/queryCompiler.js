@@ -71,10 +71,10 @@
 const { AGG_FNS, PERCENTILE_FNS, DATE_BUCKETS } = require('./dataModel/vocabulary');
 const { resolveDialect } = require('./engineFlag');
 const { dateBucketSql } = require('./dateBuckets');
-const log = require('../../telemetry/log');
 const { MAX_RESULT_ROWS, DEFAULT_LIMIT, MAX_KEY_INDEX_KEYS, MAX_GROUP_BY, MAX_AGGREGATES, ALIAS_RE, CompileError, RowsLockedError, assertRowsWritable, qi, assertTableMeta, fieldMap, resolveColumn, scalar, assertAccessFilter, MATCH_MODES, buildWhere, clampLimit } = require('./queryCompilerBase');
 const { compileInsert, compileUpdate, compileDelete, compileUpsertByKey, compileUpsertById } = require('./queryCompilerWrite');
 const { compileIdList, compileKeyValues, compileDeleteAll, compileDeleteOlderThan, compileSelectOlderThan, compileDeleteOrphans } = require('./queryCompilerMaintenance');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── Table + field resolution ────────────────────────────────────────
 
@@ -100,7 +100,7 @@ function decodeCursor(cursor) {
         if (o && o.v !== undefined && o.v !== null && o.i !== undefined && o.i !== null) {
             return { v: o.v, i: o.i };
         }
-    } catch (err) { log.debug('fall through', err); }
+    } catch (err) { bestEffort('core/dataEngine/queryCompiler:decodeCursor', err); /* fall through */ }
     return null;
 }
 
@@ -378,3 +378,36 @@ module.exports = {
     _resolveColumn: resolveColumn,
     _fieldMap: fieldMap,
 };
+
+/**
+ * A model field as the compiler reads it.
+ * @typedef {{ key?: string, type?: string, unique?: boolean, computed?: { stored?: boolean } }} CompilerField
+ */
+
+/**
+ * The table descriptor every compiler takes (a data-model table).
+ * @typedef {{ key?: string, fields?: CompilerField[], rowsLocked?: boolean }} TableMeta
+ */
+
+/**
+ * The RLS gateway's access predicate.
+ * @typedef {{ where: string, params: unknown[] }} AccessFilter
+ */
+
+/** @typedef {{ field?: string, op?: string, value?: unknown, ci?: boolean }} FilterSpec */
+
+/** @typedef {{ field?: string, dir?: string, direction?: string }} SortEntry */
+
+/** @typedef {{ value?: unknown, fields?: string[] }} SearchSpec */
+
+/**
+ * @typedef {{ dialect?: string, filters?: FilterSpec[], match?: string, search?: SearchSpec | null,
+ *   sort?: SortEntry | SortEntry[], cursor?: string, limit?: unknown, maxLimit?: number }} ListOpts
+ */
+
+/**
+ * @typedef {ListOpts & { groupBy?: Array<{ field?: string, bucket?: string, as?: string }>,
+ *   aggregates?: Array<{ fn?: string, field?: string, as?: string }> }} AggregateOpts
+ */
+
+/** @typedef {{ dialect?: string, allowLockedRows?: boolean }} DialectOpts */

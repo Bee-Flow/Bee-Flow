@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Skill drafting — the forced-tool schema and the clamps behind
  * `POST /api/skills/ai/draft` and `POST /api/skills/:id/ai/improve`.
@@ -145,19 +146,28 @@ const DRAFT_TOOL = {
     },
 };
 
+/**
+ * @param {unknown} v
+ * @param {number} max
+ */
 function clean(v, max) {
     return typeof v === 'string' ? v.replace(/\r\n?/g, '\n').trim().slice(0, max) : '';
 }
 
-/** `outputFields` rows → the JSON-schema object `output_schema` stores, or null. */
+/**
+ * `outputFields` rows → the JSON-schema object `output_schema` stores, or null.
+ * @param {unknown} fields  untrusted model output
+ */
 function schemaFromFields(fields) {
     const rows = Array.isArray(fields) ? fields : [];
+    /** @type {Record<string, { type: string, title?: string }>} */
     const properties = {};
     for (const raw of rows.slice(0, MAX_OUTPUT_FIELDS)) {
         if (!raw || typeof raw !== 'object') continue;
         const key = clean(raw.key, 64);
         if (!/^[A-Za-z_][A-Za-z0-9_]{0,63}$/.test(key)) continue;   // dropped, never repaired
         if (!OUTPUT_TYPES.includes(raw.type)) continue;
+        /** @type {{ type: string, title?: string }} */
         const prop = { type: raw.type };
         const title = clean(raw.title, 200);
         if (title) prop.title = title;
@@ -166,7 +176,11 @@ function schemaFromFields(fields) {
     return Object.keys(properties).length > 0 ? { type: 'object', properties } : null;
 }
 
-/** Model rows → the shape `validateSteps` accepts, dropping anything malformed. */
+/**
+ * Model rows → the shape `validateSteps` accepts, dropping anything malformed.
+ * @param {unknown} rows  untrusted model output
+ * @param {unknown} currentSteps  the current skill's steps, if any
+ */
 function normaliseSteps(rows, currentSteps) {
     const refsById = new Map(
         (Array.isArray(currentSteps) ? currentSteps : [])
@@ -191,6 +205,10 @@ function normaliseSteps(rows, currentSteps) {
     return out;
 }
 
+/**
+ * @param {unknown} rows  untrusted model output
+ * @param {unknown} currentRules  the current skill's rules, if any
+ */
 function normaliseRules(rows, currentRules) {
     const known = new Set(
         (Array.isArray(currentRules) ? currentRules : [])
@@ -213,7 +231,9 @@ function normaliseRules(rows, currentRules) {
     return out;
 }
 
+/** @param {unknown} rows  untrusted model output */
 function normaliseExamples(rows) {
+    /** @type {{ question: string; good: string; rationale: string; }[]} */
     const out = [];
     for (const raw of Array.isArray(rows) ? rows : []) {
         if (!raw || typeof raw !== 'object') continue;
@@ -253,8 +273,11 @@ function normaliseExamples(rows) {
  * A stored schema our own validator refuses means "leave it alone"
  * (`undefined`, so no write at all) rather than "replace it with the model's":
  * not losing configuration is the whole point here.
+ * @param {{ type: string; properties: Record<string, unknown>; }} proposed
+ * @param {unknown} currentSchema
  */
 function mergeOutputSchema(proposed, currentSchema) {
+    /** @type {{ type: 'object'; properties: Object; required?: string[]; } | null} */
     let base;
     try {
         base = validateOutputSchema(currentSchema);
@@ -262,6 +285,7 @@ function mergeOutputSchema(proposed, currentSchema) {
         return undefined;
     }
     if (!base) return validateOutputSchema(proposed);
+    /** @type {{ type: string, properties: Record<string, unknown>, required?: string[] }} */
     const merged = { type: 'object', properties: { ...base.properties } };
     for (const [key, prop] of Object.entries(proposed.properties || {})) {
         if (Object.keys(merged.properties).length >= MAX_OUTPUT_FIELDS) break;
@@ -272,6 +296,11 @@ function mergeOutputSchema(proposed, currentSchema) {
     return validateOutputSchema(merged);
 }
 
+/**
+ * @param {Record<string, unknown> | null} structured  raw tool arguments — untrusted
+ * @param {{ mode?: 'draft'|'improve', current?: { steps?: unknown, rulesV2?: unknown, examplesV2?: unknown,
+ *   outputSchema?: unknown } | null }} [opts]
+ */
 function parseSkillDraft(structured, opts = {}) {
     if (!structured || typeof structured !== 'object' || Array.isArray(structured)) return null;
     const mode = opts.mode === 'improve' ? 'improve' : 'draft';
@@ -288,9 +317,11 @@ function parseSkillDraft(structured, opts = {}) {
     const description = clean(structured.description, MAX_DESCRIPTION);
     const instructions = clean(structured.instructions, MAX_INSTRUCTIONS);
 
+    /** @type {{ id: string; text: string; refs: Array<{ kind: string; id: string; }>; }[]} */
     let steps;
     let rulesV2;
     let examplesV2;
+    /** @type {{ type: 'object'; properties: Object; required?: string[]; } | null | undefined} */
     let outputSchema;
     try {
         steps = validateSteps(normaliseSteps(structured.steps, current?.steps), 'steps');
@@ -320,7 +351,7 @@ function parseSkillDraft(structured, opts = {}) {
     } catch (err) {
         // A shape our own validators refuse is a model failure, not the
         // caller's. Half a skill is worse than none.
-        if (err instanceof SkillStructureError || err?.name === 'SkillStructureError') return null;
+        if (err instanceof SkillStructureError || /** @type {Error} */ (err)?.name === 'SkillStructureError') return null;
         throw err;
     }
 
@@ -362,7 +393,10 @@ const SYSTEM_COMMON = [
     'Submit with the draft_skill tool.',
 ].join('\n');
 
-/** New skill from one sentence. */
+/**
+ * New skill from one sentence.
+ * @param {string} sentence
+ */
 function buildDraftMessages(sentence) {
     return [
         { role: 'system', content: SYSTEM_COMMON },
@@ -380,12 +414,15 @@ function buildDraftMessages(sentence) {
 /**
  * Improve an existing skill. The current skill is quoted material: it may
  * have been imported or synced from GitHub, so text inside it is data.
+ * @param {{ name?: string, description?: string, instructions?: string, steps?: unknown, rulesV2?: unknown,
+ *   outputSchema?: { properties?: Record<string, { type?: string, title?: string }> } | null } | null} skill
+ * @param {string} [sentence]
  */
 function buildImproveMessages(skill, sentence = '') {
     const steps = (Array.isArray(skill?.steps) ? skill.steps : [])
-        .map((s, i) => `${i + 1}. [id: ${s?.id}] ${s?.text || ''}`).join('\n');
+        .map((/** @type {{ id?: string, text?: string }} */ s, /** @type {number} */ i) => `${i + 1}. [id: ${s?.id}] ${s?.text || ''}`).join('\n');
     const rules = (Array.isArray(skill?.rulesV2) ? skill.rulesV2 : [])
-        .map(r => `- [id: ${r?.id}] (${r?.polarity || 'must'}) ${r?.text || ''}`).join('\n');
+        .map((/** @type {{ id?: string, polarity?: string, text?: string }} */ r) => `- [id: ${r?.id}] (${r?.polarity || 'must'}) ${r?.text || ''}`).join('\n');
     const note = clean(sentence, MAX_SENTENCE_CHARS);
     const system = [
         SYSTEM_COMMON,

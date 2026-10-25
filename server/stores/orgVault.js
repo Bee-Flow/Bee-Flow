@@ -32,6 +32,9 @@ const ENVELOPE_TAG = 'routine-vault-v1';
 const KEY_LABEL = 'beeflow:routine-vault:v1:org:';
 const MISDERIVED_LABEL = 'beeflow:automation-vault:v1:org:';
 
+/**
+ * @param {string} label
+ */
 function deriveKey(label, orgId) {
     if (!orgId) throw new Error('orgVault: orgId required for key derivation');
     const master = process.env.MASTER_ENCRYPTION_KEY;
@@ -45,6 +48,9 @@ function orgVaultKey(orgId) {
     return deriveKey(KEY_LABEL, orgId);
 }
 
+/**
+ * @param {NonSharedBuffer} key
+ */
 function openEnvelope(envelope, key) {
     const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(envelope.iv, 'hex'), { authTagLength: 16 });
     decipher.setAuthTag(Buffer.from(envelope.authTag, 'hex'));
@@ -72,6 +78,7 @@ function encrypt(plaintext, orgId) {
 /**
  * Decrypt an envelope produced by `encrypt`. Returns the plaintext string, or
  * null when the input is empty / not our envelope / fails auth.
+ * @param {string} stored
  */
 function decrypt(stored, orgId) {
     if (!stored) return null;
@@ -84,7 +91,7 @@ function decrypt(stored, orgId) {
         try {
             return openEnvelope(envelope, deriveKey(MISDERIVED_LABEL, orgId));
         } catch (_) {
-            log.warn(`[OrgVault] decrypt failed for org ${orgId}: ${err.message}`);
+            log.warn(`[OrgVault] decrypt failed for org ${orgId}: ${/** @type {Error} */ (err).message}`);
             return null;
         }
     }
@@ -92,6 +99,7 @@ function decrypt(stored, orgId) {
 
 /**
  * Encrypt a JSON-serializable object (the typical "secret blob" shape).
+ * @param {string} orgId
  */
 function encryptJSON(obj, orgId) {
     if (obj === null || obj === undefined) return null;
@@ -100,6 +108,7 @@ function encryptJSON(obj, orgId) {
 
 /**
  * Decrypt + JSON.parse. Returns null on any failure.
+ * @param {string} stored
  */
 function decryptJSON(stored, orgId) {
     const plain = decrypt(stored, orgId);

@@ -416,3 +416,12 @@ module.exports = {
     visitPointers, toRefs, fromRefs, walkAppObjects, isRef, splitIds,
     visitSteeringFields, variablesInSteeringFields, liftNotify, literalUrlHost,
 };
+
+/**
+ * @typedef {import('./walkers').DefinitionNode} DefinitionNode
+ * @typedef {{ $ref: string }} RefValue
+ * @typedef {{ stepId?: string | null, layerKey?: string | null, actionId?: string, index?: number, tableKey?: string | null, hint?: string | null }} PointerWhere
+ * @typedef {PointerWhere & { targetKind: string, field: string, many: boolean, get: () => unknown, set: (v: unknown) => void }} Pointer
+ * @typedef {(ptr: Pointer) => void} PointerVisitor
+ * @typedef {Map<string, string> | Record<string, string> | null | undefined} IdMap
+ */

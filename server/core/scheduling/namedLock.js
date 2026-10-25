@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * One pass of a periodic job under a session advisory lock keyed by NAME
  * (`pg_try_advisory_lock(hashtext(name))`), so the pass runs on one replica
@@ -13,6 +13,8 @@
 
 'use strict';
 
+const { bestEffort } = require('../../utils/bestEffort');
+
 /**
  * @template T
  * @param {{ connect: () => Promise<{ query: (sql: string, params?: any[]) => Promise<{ rows: any[] }>, release: () => void }> }} pool
@@ -20,7 +22,6 @@
  * @param {(client: any) => Promise<T>} fn
  * @returns {Promise<{ ran: true, value: T } | { ran: false }>}
  */
-const log = require('../../telemetry/log');
 
 async function withNamedLock(pool, name, fn) {
     const client = await pool.connect();
@@ -31,7 +32,7 @@ async function withNamedLock(pool, name, fn) {
         if (!acquired) return { ran: false };
         return { ran: true, value: await fn(client) };
     } finally {
-        try { if (acquired) await client.query('SELECT pg_advisory_unlock(hashtext($1))', [name]); } catch (err) { log.debug('best-effort', err); }
+        try { if (acquired) await client.query('SELECT pg_advisory_unlock(hashtext($1))', [name]); } catch (err) { bestEffort('core/scheduling/namedLock:withNamedLock', err); /* best-effort */ }
         client.release();
     }
 }

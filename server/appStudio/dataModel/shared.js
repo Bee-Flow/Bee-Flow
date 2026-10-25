@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Re-export shim — the implementation moved to ../../core/dataEngine/dataModel/shared.
  *

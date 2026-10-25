@@ -26,6 +26,7 @@ const {
  */
 function sanitizeNoteSize(raw) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+    /** @type {Record<string, number>} */
     const size = {};
     for (const k of ['width', 'height']) {
         const v = Number(raw[k]);

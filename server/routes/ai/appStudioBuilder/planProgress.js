@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Tick the App Studio builder's plan checklist from what the tool calls did.
  *
@@ -32,6 +33,9 @@ const base = makeTokenizer(STOP);
 // "factuurpagina", "filterbalk". Each such token also yields its head, so
 // "Detailscherm per factuur" meets a screen named "Factuur detail".
 const COMPOUND_TAILS = ['scherm', 'pagina', 'balk', 'tabel', 'lijst', 'overzicht', 'tegel', 'grafiek'];
+/**
+ * @param {string} text
+ */
 function tokens(text) {
     const out = new Set(base.tokens(text));
     for (const t of [...out]) {
@@ -41,6 +45,11 @@ function tokens(text) {
     }
     return out;
 }
+/**
+ * @param {Set<string>} evidence
+ * @param {number} [min]
+ * @param {string} itemText
+ */
 function matchesItem(itemText, evidence, min = 2) {
     const it = tokens(itemText);
     if (!it.size) return false;
@@ -49,6 +58,7 @@ function matchesItem(itemText, evidence, min = 2) {
 
 // Words a plan item uses for a component type — English and Dutch, because
 // the checklist is written in the language of the brief.
+/** @type {Record<string, string>} */
 const TYPE_WORDS = {
     data_grid: 'table grid rows list overview tabel overzicht lijst rijen',
     table: 'table grid tabel',
@@ -83,7 +93,7 @@ const RX = {
 
 /**
  * @param {Array<{text:string, done:boolean}>} todos
- * @param {{ name:string, args:object, result:object }} call
+ * @param {{ name?: string, args?: { name?: string, key?: string, components?: Array<{ type?: string, props?: { title?: string, label?: string, text?: string } }>, action?: { name?: string, kind?: string }, event?: string }, result?: { error?: unknown, table?: { name?: string, key?: string }, key?: string, added?: Array<{ type?: string, label?: string | { props?: { title?: string, label?: string, text?: string } } }>, finalized?: boolean } }} call
  * @returns {number[]} indices to mark done (sorted, only currently-open items)
  */
 function inferAppPlanProgress(todos, { name, args, result } = {}) {
@@ -91,15 +101,15 @@ function inferAppPlanProgress(todos, { name, args, result } = {}) {
     const open = todos.map((t, i) => ({ i, text: String((t && t.text) || '') })).filter(t => !todos[t.i].done && t.text);
     if (!open.length) return [];
     const hit = new Set();
-    const tick = (pred) => { for (const o of open) if (!hit.has(o.i) && pred(o.text)) hit.add(o.i); };
+    const tick = (/** @type {(text: string) => boolean} */ pred) => { for (const o of open) if (!hit.has(o.i) && pred(o.text)) hit.add(o.i); };
     const a = args && typeof args === 'object' ? args : {};
 
     switch (name) {
         case 'app_set_meta':
-            tick(t => RX.name.test(t));
+            tick((/** @type {string} */ t) => RX.name.test(t));
             break;
         case 'app_set_theme':
-            tick(t => RX.theme.test(t));
+            tick((/** @type {string} */ t) => RX.theme.test(t));
             break;
         case 'app_link_datatable':
         case 'app_upsert_table': {
@@ -109,12 +119,12 @@ function inferAppPlanProgress(todos, { name, args, result } = {}) {
             const tbl = result.table || {};
             const ev = tokens([tbl.name, tbl.key, result.key, a.name, a.key].filter(Boolean).join(' '));
             const creating = name === 'app_upsert_table';
-            tick(t => (RX.link.test(t) || (creating && /\b(create|maak|new|nieuwe)\b/i.test(t))) && RX.table.test(t) && (matchesItem(t, ev, 1) || !ev.size));
+            tick((/** @type {string} */ t) => (RX.link.test(t) || (creating && /\b(create|maak|new|nieuwe)\b/i.test(t))) && RX.table.test(t) && (matchesItem(t, ev, 1) || !ev.size));
             break;
         }
         case 'app_add_screen': {
             const ev = tokens([a.name, 'screen scherm page pagina'].filter(Boolean).join(' '));
-            tick(t => matchesItem(t, ev));
+            tick((/** @type {string} */ t) => matchesItem(t, ev));
             break;
         }
         case 'app_add_components': {
@@ -124,7 +134,7 @@ function inferAppPlanProgress(todos, { name, args, result } = {}) {
                 const label = c.label || (a.components || []).find(x => x && x.type === c.type && x.props && (x.props.title || x.props.label || x.props.text));
                 const labelText = typeof label === 'string' ? label : (label && label.props ? (label.props.title || label.props.label || label.props.text) : '');
                 const ev = tokens([TYPE_WORDS[c.type] || c.type.replace(/_/g, ' '), labelText].filter(Boolean).join(' '));
-                tick(t => !RX.link.test(t) && matchesItem(t, ev));
+                tick((/** @type {string} */ t) => !RX.link.test(t) && matchesItem(t, ev));
             }
             break;
         }
@@ -132,7 +142,7 @@ function inferAppPlanProgress(todos, { name, args, result } = {}) {
         case 'app_bind_action': {
             const act = (a.action && typeof a.action === 'object') ? a.action : {};
             const ev = tokens([act.name, act.kind, a.event, 'action actie button knop wire'].filter(Boolean).join(' '));
-            tick(t => matchesItem(t, ev) || (RX.action.test(t) && !RX.screen.test(t) && !RX.table.test(t) && !RX.theme.test(t)));
+            tick((/** @type {string} */ t) => matchesItem(t, ev) || (RX.action.test(t) && !RX.screen.test(t) && !RX.table.test(t) && !RX.theme.test(t)));
             break;
         }
         case 'app_finalize':

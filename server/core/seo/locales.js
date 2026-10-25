@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Which languages a given page may be ADVERTISED in.
  *
@@ -22,7 +23,7 @@
  * an empty shell would re-introduce exactly the phantom alternates this module
  * exists to prevent.
  *
- * @param {object|null} override a page-locale override from the published snapshot
+ * @param {{ blocks?: object, seo?: object }|null} [override] a page-locale override from the published snapshot
  * @returns {boolean}
  */
 function hasTranslation(override) {
@@ -36,7 +37,7 @@ function hasTranslation(override) {
 /**
  * The locales one page may be advertised in.
  *
- * @param {object|null} snapshot   published snapshot (carries pageLocaleOverrides)
+ * @param {{ pageLocaleOverrides?: Record<string, any> }|null} snapshot   published snapshot (carries pageLocaleOverrides)
  * @param {string} pageId
  * @param {string} defaultLocale
  * @param {string[]} siteLocaleList the site-wide list, default included

@@ -8,6 +8,7 @@
 
 const { getAIConfig } = require('../aiAgent');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const MISTRAL_OCR_URL = 'https://api.mistral.ai/v1/ocr';
 const MISTRAL_OCR_MODEL = 'mistral-ocr-latest';
@@ -25,7 +26,7 @@ function resolveMistralOcrKey(config) {
     // provider read it too): a genuine Mistral key whatever the default provider is.
     if (config.mistralApiKey) return config.mistralApiKey;
     let host = '';
-    try { host = new URL(config.url || '').hostname; } catch (err) { log.debug('no usable url', err); }
+    try { host = new URL(config.url || '').hostname; } catch (err) { fallback('core/documents/ocr:resolveMistralOcrKey', err); /* no usable url */ }
     const defaultIsMistral = config.providerType
         ? config.providerType === 'mistral'
         : host === 'api.mistral.ai'; // legacy single-provider config has no type
@@ -102,7 +103,7 @@ async function mistralOCR(base64Data, mimeType, filename) {
         return null;
 
     } catch (error) {
-        log.error('[MistralOCR] Error:', error.message);
+        log.error('[MistralOCR] Error:', /** @type {Error} */ (error).message);
         return null;
     }
 }

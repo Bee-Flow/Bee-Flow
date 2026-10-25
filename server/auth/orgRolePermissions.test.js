@@ -33,7 +33,7 @@ test('every permission a role grants exists in SYSTEM_PERMISSIONS', () => {
 });
 
 test('every Studio section has a permission a role can grant', () => {
-    // One per section in agent-hub/src/components/admin/Studio/studioApps.jsx,
+    // One per section in agent-hub/src/components/admin/Studio/studioApps.tsx,
     // plus the three sidebar rows that are not Studio sections. A section whose
     // permission nobody holds is a section nobody can reach, so each must be
     // granted by at least one role.

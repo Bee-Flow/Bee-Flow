@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: teach the seeded memory-extractor prompt that a reply language is
  * not a preference (BFSF-387).
@@ -28,6 +29,7 @@ Do not save the language the user happens to write in, or a one-off request such
 replies in the language of each message. Save a \`language\` preference only when the
 user says it must ALWAYS apply, whatever language they write in.`;
 
+/** @param {string | null | undefined} prompt */
 function correctPrompt(prompt) {
     const out = String(prompt || '');
     return out.includes(HEADING) ? out : out + LANGUAGE_GUIDANCE;

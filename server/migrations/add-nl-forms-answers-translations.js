@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck strict
 /**
  * Dutch for the Forms section (2026-09): the directory, the Form page
  * (Vragen · Delen · Antwoorden · Instellingen), the "Nieuw formulier" dialog,

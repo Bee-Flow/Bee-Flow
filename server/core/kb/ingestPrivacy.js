@@ -143,6 +143,10 @@ function isLegacyWarn(shield) {
  *          ingest with it — it returns `unscanned`, which is visible.
  */
 async function applyShield({ orgId, userId, text, filename = 'document', pages = null, deps = {} } = /** @type {any} */ ({})) {
+    /**
+     * @param {string} t
+     * @param {string} status
+     */
     const clean = (t, status, extra = {}) => ({
         outcome: OUTCOME.PASS, text: t, piiStatus: status, piiCategories: null, reason: null, ...extra,
     });
@@ -158,7 +162,7 @@ async function applyShield({ orgId, userId, text, filename = 'document', pages =
         shield = await resolve({ orgId, userId });
     } catch (e) {
         // Cannot read the policy → cannot claim to have applied it.
-        return clean(text, 'unscanned', { reason: `Privacy settings unavailable: ${e.message}` });
+        return clean(text, 'unscanned', { reason: `Privacy settings unavailable: ${/** @type {Error} */ (e).message}` });
     }
 
     // Shield off, or knowledge bases excluded from it: not "unscanned", which
@@ -185,7 +189,7 @@ async function applyShield({ orgId, userId, text, filename = 'document', pages =
         });
     } catch (e) {
         // The scanner failing is not the same as the document being clean.
-        return clean(text, 'unscanned', { reason: `Privacy scan failed: ${e.message}` });
+        return clean(text, 'unscanned', { reason: `Privacy scan failed: ${/** @type {Error} */ (e).message}` });
     }
 
     const categories = categoriesOf(result);
@@ -270,6 +274,7 @@ function categoriesOf(result) {
 /**
  * Why a document was not stored — in words the person who uploaded it can act
  * on. `status_reason` is the only explanation they get, so "block" is not one.
+ * @param {string[]} categories
  */
 function blockReason(result, categories) {
     switch (result.reason) {

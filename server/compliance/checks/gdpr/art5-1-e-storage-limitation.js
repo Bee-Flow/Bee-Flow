@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * GDPR Art. 5(1)(e) — Storage limitation.
  *
@@ -17,9 +17,9 @@
 
 const { getOne } = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 /** A missing table or column: memories are not provisioned here yet. */
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
 module.exports = {
     id: 'GDPR-Art5-1-e-storage-limitation',
@@ -32,6 +32,7 @@ module.exports = {
     descriptionKey: 'compliance.checks.gdpr_art5_1_e.desc',
     remediationKey: 'compliance.checks.gdpr_art5_1_e.fix',
     remediationLink: 'admin/compliance/settings',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const settings = await complianceStore.getSettings(orgId);
         const retentionDays = settings.default_retention_days || 365;
@@ -79,7 +80,7 @@ module.exports = {
             // Only a missing table or column means "not provisioned yet". A
             // timeout or a dropped connection is a failed read: not_applicable
             // would drop the check out of the score and hide an orphan warning.
-            if (NOT_PROVISIONED.has(countError?.code)) {
+            if (isMissingTable(countError)) {
                 return {
                     status: 'not_applicable',
                     evidence: { reason: 'user_memories table not available' },

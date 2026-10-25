@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Compliance — the ISO 27001 ISMS process layer: risk register, internal
  * audits and findings, management reviews, nonconformities, objectives,
@@ -43,6 +44,8 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
+const { isMissingTable } = require('../../utils/isMissingTable');
 
 // ── The vocabulary, kept next to the routes that speak it ───────────
 //
@@ -51,22 +54,47 @@ const log = require('../../telemetry/log');
 // added there without a thought for the API is exactly the drift a failing
 // test should catch.
 
-/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
+/**
+ * A body that also accepts no body at all: Express 5 leaves `req.body` undefined then.
+ * @template {import('zod').ZodRawShape} T
+ * @param {T} shape
+ */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
-/** One of a fixed set, named in the refusal so the caller can correct it. */
+/**
+ * One of a fixed set, named in the refusal so the caller can correct it.
+ * @param {string} name
+ * @param {string[]} values
+ */
 const oneOf = (name, values) => z.enum(values, { error: () => `${name} is one of: ${values.join(', ')}.` });
 
+/**
+ * @param {string} name
+ * @param {number} max
+ */
 const need = (name, max) => worded(`${name} is required.`)
     .trim().min(1, `${name} is required.`).max(max, `${name} is at most ${max} characters.`);
+/**
+ * @param {string} name
+ * @param {number} max
+ */
 const text = (name, max) => worded(`${name} must be text.`)
     .trim().max(max, `${name} is at most ${max} characters.`).nullish();
-/** A user the picker chose, or nothing — the pickers clear to '' or null. */
+/**
+ * A user the picker chose, or nothing — the pickers clear to '' or null.
+ * @param {string} name
+ */
 const userRef = (name) => worded(`${name} must be a user id.`).trim().max(120, `${name} is at most 120 characters.`).nullish();
-/** A date the picker sends ('2026-09-22'), or nothing. An unreadable one is refused, never read as "no date". */
+/**
+ * A date the picker sends ('2026-09-22'), or nothing. An unreadable one is refused, never read as "no date".
+ * @param {string} name
+ */
 const dateish = (name) => worded(`${name} must be a date.`).trim()
     .refine((v) => v === '' || !Number.isNaN(Date.parse(v)), `${name} must be a date.`).nullish();
-/** 1–5, the only scale the register has. Out of range is a refusal, not a clamp. */
+/**
+ * 1–5, the only scale the register has. Out of range is a refusal, not a clamp.
+ * @param {string} name
+ */
 const scale = (name) => z.number({ error: `${name} is 1 to 5.` })
     .int(`${name} is 1 to 5.`).min(1, `${name} is 1 to 5.`).max(5, `${name} is 1 to 5.`);
 
@@ -252,7 +280,7 @@ const ObligationPatch = bodyOf({
 // the single obligations due-date engine. Human judgment stays human: the
 // tool records who decided what and when — it never decides.
 
-router.get('/iso/risks', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
+router.get('/iso/risks', requireAuth, requirePermission('admin_compliance'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const store = _riskStore();
     const [risks, treatments, stats] = await Promise.all([
@@ -263,13 +291,13 @@ router.get('/iso/risks', requireAuth, requirePermission('admin_compliance'), asy
     res.json({ risks, treatments, stats });
 });
 
-router.post('/iso/risks', requireAuth, requirePermission('admin_compliance'), validate({ body: CreateRisk }), async (req, res) => {
+router.post('/iso/risks', requireAuth, requirePermission('admin_compliance'), validate({ body: CreateRisk }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     res.json(await _riskStore().createRisk(orgId, req.body || {}, actorId));
 });
 
-router.put('/iso/risks/:id', requireAuth, requirePermission('admin_compliance'), validate({ body: RiskPatch }), async (req, res) => {
+router.put('/iso/risks/:id', requireAuth, requirePermission('admin_compliance'), validate({ body: RiskPatch }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     const saved = await _riskStore().updateRisk(orgId, req.params.id, req.body || {}, actorId);
@@ -285,7 +313,7 @@ router.put('/iso/risks/:id', requireAuth, requirePermission('admin_compliance'),
     res.json(saved);
 });
 
-router.post('/iso/risks/:id/treatments', requireAuth, requirePermission('admin_compliance'), validate({ body: TreatmentBody }), async (req, res) => {
+router.post('/iso/risks/:id/treatments', requireAuth, requirePermission('admin_compliance'), validate({ body: TreatmentBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     res.json(await _riskStore().addTreatment(orgId, req.params.id, req.body || {}, actorId));
@@ -294,12 +322,12 @@ router.post('/iso/risks/:id/treatments', requireAuth, requirePermission('admin_c
 // Seed risk scenarios from LIVE facts — failing checks and unattested non-EU
 // operators — plus three universal AI-workspace scenarios. seed_key dedupes,
 // so re-seeding never duplicates and never touches edited rows.
-router.post('/iso/risks/seed', requireAuth, requirePermission('admin_compliance'), validate({ body: EmptyBody }), async (req, res) => {
+router.post('/iso/risks/seed', requireAuth, requirePermission('admin_compliance'), validate({ body: EmptyBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const seeds = [];
     try {
         const latest = await complianceStore.getLatestPerCheck(orgId);
-        for (const r of latest.filter(x => x.status === 'fail').slice(0, 15)) {
+        for (const r of latest.filter((/** @type {Record<string, any>} */ x) => x.status === 'fail').slice(0, 15)) {
             seeds.push({
                 seed_key: `check:${r.check_id}`,
                 title: `Failing control: ${r.check_id}`,
@@ -307,11 +335,11 @@ router.post('/iso/risks/seed', requireAuth, requirePermission('admin_compliance'
                 category: 'compliance', likelihood: 3, impact: 3, source: 'seed',
             });
         }
-    } catch (err) { log.debug('best-effort', err); }
+    } catch (err) { fallback('routes/compliance/isoProcess:anon', err); /* best-effort */ }
     try {
         const settings = await complianceStore.getSettings(orgId);
         const attested = new Set((settings.scc_confirmed_operators || [])
-            .map(o => String(o?.operator || o || '').toLowerCase()));
+            .map((/** @type {{ operator?: string } | null} */ o) => String(o?.operator || o || '').toLowerCase()));
         const ops = await getAll(`
                 SELECT DISTINCT operator FROM integration_activity_log
                 WHERE organization_id = $1 AND is_eu = FALSE AND operator IS NOT NULL
@@ -328,7 +356,7 @@ router.post('/iso/risks/seed', requireAuth, requirePermission('admin_compliance'
                 category: 'confidentiality', likelihood: 3, impact: 4, source: 'seed',
             });
         }
-    } catch (err) { log.debug('table absent on fresh installs', err); }
+    } catch (err) { if (!isMissingTable(err)) throw err; log.debug('table absent on fresh installs', err); }
     seeds.push(
         { seed_key: 'universal:prompt-leak', title: 'Sensitive data leaves via AI prompts', description: 'Users paste customer or personal data into prompts that reach external model providers.', category: 'confidentiality', likelihood: 4, impact: 4, source: 'seed' },
         { seed_key: 'universal:account-takeover', title: 'Admin account takeover', description: 'A compromised administrator credential exposes every workspace and its data.', category: 'confidentiality', likelihood: 2, impact: 5, source: 'seed' },
@@ -340,7 +368,7 @@ router.post('/iso/risks/seed', requireAuth, requirePermission('admin_compliance'
 
 // The audit & review bundle. mr_inputs is the auto-built 9.3.2 agenda; the
 // minutes and decisions stay human.
-router.get('/iso/audit', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
+router.get('/iso/audit', requireAuth, requirePermission('admin_compliance'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const store = _auditStore();
     const [audits, findings, reviews, ncs, objectives] = await Promise.all([
@@ -355,14 +383,14 @@ router.get('/iso/audit', requireAuth, requirePermission('admin_compliance'), asy
         const [history, latest, riskStats, soaStats, incidents] = await Promise.all([
             complianceStore.getScoreHistory(orgId, 90),
             complianceStore.getLatestPerCheck(orgId),
-            _riskStore().getStats(orgId).catch(() => null),
-            soaStore.getStats(orgId).catch(() => null),
-            incidentStore.getDeadlineStats(orgId).catch(() => null),
+            _riskStore().getStats(orgId).catch((e) => fallback('routes/compliance/isoProcess:anon#2', e, null)),
+            soaStore.getStats(orgId).catch((e) => fallback('routes/compliance/isoProcess:anon#3', e, null)),
+            incidentStore.getDeadlineStats(orgId).catch((e) => fallback('routes/compliance/isoProcess:anon#4', e, null)),
         ]);
         mrInputs = {
-            score_now: history.length ? history[history.length - 1].overall_score : null,
-            score_90d_ago: history.length ? history[0].overall_score : null,
-            failing_checks: latest.filter(r => r.status === 'fail').length,
+            score_now: history.length ? /** @type {Record<string, any>} */ (history[history.length - 1]).overall_score : null,
+            score_90d_ago: history.length ? /** @type {Record<string, any>} */ (history[0]).overall_score : null,
+            failing_checks: latest.filter((/** @type {Record<string, any>} */ r) => r.status === 'fail').length,
             open_nonconformities: ncs.filter(n => n.status !== 'closed').length,
             open_incidents: incidents?.open ?? null,
             risks_open: riskStats?.open ?? null,
@@ -370,49 +398,50 @@ router.get('/iso/audit', requireAuth, requirePermission('admin_compliance'), asy
             soa_approved: soaStats ? `${soaStats.approved}/${soaStats.total}` : null,
             last_internal_audit: audits.filter(a => a.status === 'closed').map(a => a.closed_at).sort().pop() || null,
         };
-    } catch (err) { log.debug('agenda best-effort', err); }
+    } catch (err) { fallback('routes/compliance/isoProcess:anon#5', err); /* agenda best-effort */ }
     res.json({ audits, findings, reviews, ncs, objectives, mr_inputs: mrInputs });
 });
 
 // Independence probe (clause 9.2.2) — does this prospective auditor OWN any of
 // the things they would audit? The server records the conflict; choosing to
 // proceed anyway stays a human decision, visible in the audit row.
-router.get('/iso/audit/independence/:userId', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
+router.get('/iso/audit/independence/:userId', requireAuth, requirePermission('admin_compliance'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const userId = String(req.params.userId);
+    /** @type {string[]} */
     const conflicts = [];
     try {
         const soaOwned = (await soaStore.listEntries(orgId)).filter(e => e.owner_user_id === userId).length;
         if (soaOwned) conflicts.push(`owns ${soaOwned} SoA control row(s)`);
-    } catch (err) { log.debug('best-effort', err); }
+    } catch (err) { fallback('routes/compliance/isoProcess:anon#6', err); /* best-effort */ }
     try {
         const docsOwned = (await ismsDocStore.listDocs(orgId)).filter(d => d.owner_user_id === userId).length;
         if (docsOwned) conflicts.push(`owns ${docsOwned} policy document(s)`);
-    } catch (err) { log.debug('best-effort', err); }
+    } catch (err) { fallback('routes/compliance/isoProcess:anon#7', err); /* best-effort */ }
     try {
         const risksOwned = (await _riskStore().listRisks(orgId)).filter(r => r.owner_user_id === userId).length;
         if (risksOwned) conflicts.push(`owns ${risksOwned} risk(s)`);
-    } catch (err) { log.debug('store may not exist yet', err); }
+    } catch (err) { if (!isMissingTable(err)) throw err; log.debug('store may not exist yet', err); }
     res.json({ user_id: userId, independent: conflicts.length === 0, conflicts });
 });
 
-router.post('/iso/audits', requireAuth, requirePermission('admin_compliance'), validate({ body: CreateAudit }), async (req, res) => {
+router.post('/iso/audits', requireAuth, requirePermission('admin_compliance'), validate({ body: CreateAudit }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     res.json(await _auditStore().createAudit(orgId, req.body || {}, actorId));
 });
 
-router.put('/iso/audits/:id', requireAuth, requirePermission('admin_compliance'), validate({ body: AuditPatch }), async (req, res) => {
+router.put('/iso/audits/:id', requireAuth, requirePermission('admin_compliance'), validate({ body: AuditPatch }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     res.json(await _auditStore().updateAudit(orgId, req.params.id, req.body || {}));
 });
 
-router.post('/iso/audits/:id/findings', requireAuth, requirePermission('admin_compliance'), validate({ body: FindingBody }), async (req, res) => {
+router.post('/iso/audits/:id/findings', requireAuth, requirePermission('admin_compliance'), validate({ body: FindingBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     res.json(await _auditStore().addFinding(orgId, req.params.id, req.body || {}));
 });
 
-router.post('/iso/reviews', requireAuth, requirePermission('admin_compliance'), validate({ body: ReviewBody }), async (req, res) => {
+router.post('/iso/reviews', requireAuth, requirePermission('admin_compliance'), validate({ body: ReviewBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     const review = await _auditStore().createReview(orgId, req.body || {}, actorId);
@@ -425,25 +454,25 @@ router.post('/iso/reviews', requireAuth, requirePermission('admin_compliance'), 
     res.json(review);
 });
 
-router.post('/iso/ncs', requireAuth, requirePermission('admin_compliance'), validate({ body: CreateNc }), async (req, res) => {
+router.post('/iso/ncs', requireAuth, requirePermission('admin_compliance'), validate({ body: CreateNc }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     res.json(await _auditStore().createNonconformity(orgId, req.body || {}, actorId));
 });
 
-router.put('/iso/ncs/:id', requireAuth, requirePermission('admin_compliance'), validate({ body: NcPatch }), async (req, res) => {
+router.put('/iso/ncs/:id', requireAuth, requirePermission('admin_compliance'), validate({ body: NcPatch }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     res.json(await _auditStore().updateNonconformity(orgId, req.params.id, req.body || {}, actorId));
 });
 
-router.post('/iso/objectives', requireAuth, requirePermission('admin_compliance'), validate({ body: CreateObjective }), async (req, res) => {
+router.post('/iso/objectives', requireAuth, requirePermission('admin_compliance'), validate({ body: CreateObjective }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     res.json(await _auditStore().createObjective(orgId, req.body || {}, actorId));
 });
 
-router.put('/iso/objectives/:id', requireAuth, requirePermission('admin_compliance'), validate({ body: ObjectivePatch }), async (req, res) => {
+router.put('/iso/objectives/:id', requireAuth, requirePermission('admin_compliance'), validate({ body: ObjectivePatch }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     res.json(await _auditStore().updateObjective(orgId, req.params.id, req.body || {}));
 });
@@ -451,16 +480,16 @@ router.put('/iso/objectives/:id', requireAuth, requirePermission('admin_complian
 // Training & competence (7.2/7.3) — policy-ack coverage + platform learning
 // progress + an attest for external training. Attests live in the evidence
 // chain (subject_type 'training_attest'), not a separate table.
-router.get('/iso/training', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
+router.get('/iso/training', requireAuth, requirePermission('admin_compliance'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const [members, publishedDocs, obligations] = await Promise.all([
         getAll(`
                 SELECT id, username, "displayName", email FROM users
                 WHERE "organizationId" = $1 AND email IS NOT NULL AND email <> '' AND id <> 'admin'
                 ORDER BY LOWER(COALESCE(NULLIF("displayName", ''), username))
-            `, [orgId]).catch(() => []),
-        ismsDocStore.listDocs(orgId).then(d => d.filter(x => x.status === 'published')).catch(() => []),
-        _obligationStore().listObligations(orgId, { openOnly: true }).catch(() => []),
+            `, [orgId]).catch((e) => fallback('routes/compliance/isoProcess:anon#8', e, [])),
+        ismsDocStore.listDocs(orgId).then(d => d.filter(x => x.status === 'published')).catch((e) => fallback('routes/compliance/isoProcess:anon#9', e, [])),
+        _obligationStore().listObligations(orgId, { openOnly: true }).catch((e) => fallback('routes/compliance/isoProcess:anon#10', e, [])),
     ]);
     const ackRows = await getAll(`
             SELECT a.user_id, COUNT(*)::int AS n
@@ -469,24 +498,25 @@ router.get('/iso/training', requireAuth, requirePermission('admin_compliance'), 
                 AND d.slug = a.slug AND d.current_version = a.version
             WHERE a.organization_id = $1 AND d.status = 'published'
             GROUP BY a.user_id
-        `, [orgId]).catch(() => []);
+        `, [orgId]).catch((e) => fallback('routes/compliance/isoProcess:anon#11', e, []));
     const acksByUser = Object.fromEntries((ackRows || []).map(r => [r.user_id, r.n]));
     const attestRows = await getAll(`
             SELECT DISTINCT ON (subject_id) subject_id, captured_at, payload
             FROM compliance_evidence
             WHERE organization_id = $1 AND subject_type = 'training_attest'
             ORDER BY subject_id, captured_at DESC
-        `, [orgId]).catch(() => []);
+        `, [orgId]).catch((e) => fallback('routes/compliance/isoProcess:anon#12', e, []));
     const attestByUser = Object.fromEntries((attestRows || []).map(r => [r.subject_id, r]));
     const personnel = [];
     for (const m of members) {
+        /** @type {number | null} */
         let learningDone = null;
         try {
             const lp = await configStore.getConfig(`learning_progress_user_${m.id}`);
             if (lp && typeof lp === 'object') {
                 learningDone = Object.values(lp).filter(v => v === true || v?.completed).length;
             }
-        } catch (err) { log.debug('stays null', err); }
+        } catch (err) { fallback('routes/compliance/isoProcess:anon#13', err); /* stays null */ }
         const attest = attestByUser[m.id] || null;
         personnel.push({
             user_id: m.id,
@@ -502,7 +532,7 @@ router.get('/iso/training', requireAuth, requirePermission('admin_compliance'), 
     res.json({ personnel, obligations });
 });
 
-router.post('/iso/training/:userId/attest', requireAuth, requirePermission('admin_compliance'), validate({ body: TrainingAttestBody }), async (req, res) => {
+router.post('/iso/training/:userId/attest', requireAuth, requirePermission('admin_compliance'), validate({ body: TrainingAttestBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     const payload = {
@@ -519,18 +549,18 @@ router.post('/iso/training/:userId/attest', requireAuth, requirePermission('admi
     res.json({ attested: true });
 });
 
-router.post('/iso/obligations', requireAuth, requirePermission('admin_compliance'), validate({ body: CreateObligation }), async (req, res) => {
+router.post('/iso/obligations', requireAuth, requirePermission('admin_compliance'), validate({ body: CreateObligation }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     res.json(await _obligationStore().createObligation(orgId, req.body || {}, actorId));
 });
 
-router.put('/iso/obligations/:id', requireAuth, requirePermission('admin_compliance'), validate({ body: ObligationPatch }), async (req, res) => {
+router.put('/iso/obligations/:id', requireAuth, requirePermission('admin_compliance'), validate({ body: ObligationPatch }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     res.json(await _obligationStore().updateObligation(orgId, req.params.id, req.body || {}));
 });
 
-router.post('/iso/obligations/:id/complete', requireAuth, requirePermission('admin_compliance'), validate({ body: EmptyBody }), async (req, res) => {
+router.post('/iso/obligations/:id/complete', requireAuth, requirePermission('admin_compliance'), validate({ body: EmptyBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     res.json(await _obligationStore().completeObligation(orgId, req.params.id, actorId));

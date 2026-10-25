@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Deployment / maintenance window announcements.
  *
@@ -47,6 +47,7 @@ const MAX_ETA_SECONDS = 3600;
  * Number() would quietly turn a missing ETA into a 10-second window and
  * announce an outage nobody asked for. Numeric strings ARE accepted because
  * a JSON body legitimately carries "180".
+ * @param {unknown} etaSeconds
  */
 function _clampEta(etaSeconds) {
     if (typeof etaSeconds !== 'number' && typeof etaSeconds !== 'string') return null;
@@ -61,6 +62,8 @@ function _clampEta(etaSeconds) {
  *
  * Exported for tests. `now` is injectable so the expiry boundary can be tested
  * without sleeping.
+ * @param {{ endsAt?: string } | null | undefined} win
+ * @param {number} [now]
  */
 function _isActive(win, now = Date.now()) {
     if (!win || typeof win !== 'object') return false;
@@ -105,6 +108,7 @@ async function clear() {
  *
  * Reads through configStore's cache (60s TTL, invalidated cross-replica on
  * write), so this is cheap enough to call on every client poll.
+ * @param {number} [now]
  */
 async function getActiveWindow(now = Date.now()) {
     let raw;
@@ -112,7 +116,7 @@ async function getActiveWindow(now = Date.now()) {
         raw = await configStore.getConfig(CONFIG_KEY);
     } catch (e) {
         // A banner is a courtesy. Never let its lookup fail a request.
-        log.warn('[Maintenance] read failed:', e.message);
+        log.warn('[Maintenance] read failed:', /** @type {Error} */ (e).message);
         return null;
     }
     if (!raw) return null;

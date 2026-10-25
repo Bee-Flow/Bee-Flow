@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Tool family registry: which executor runs a tool call, by name.
  *
@@ -45,6 +44,9 @@ function registerToolFamily(family) {
     return entry;
 }
 
+/**
+ * @param {string} name
+ */
 function unregisterToolFamily(name) {
     const at = families.findIndex(f => f.name === name);
     if (at === -1) return false;
@@ -52,6 +54,9 @@ function unregisterToolFamily(name) {
     return true;
 }
 
+/**
+ * @param {string} name
+ */
 function getToolFamily(name) {
     return families.find(f => f.name === name) || null;
 }
@@ -64,6 +69,7 @@ function listToolFamilies() {
 /**
  * Run the first family that claims `toolName` and does not pass it on.
  * Returns { handled: true, result } or { handled: false }.
+ * @param {string} toolName
  */
 async function dispatchToToolFamily(toolName, toolArgs, context) {
     for (const family of families.slice()) {
@@ -82,3 +88,41 @@ module.exports = {
     listToolFamilies,
     dispatchToToolFamily,
 };
+
+/**
+ * Media-generation defaults from the org's "Nano Banana" settings.
+ * @typedef {{
+ *   video?: { aspectRatio?: string, duration?: number, model?: string, resolution?: string, generateAudio?: boolean },
+ *   elevenlabs?: { musicModel?: string, musicDuration?: number, instrumental?: boolean, ttsModel?: string, ttsVoice?: string },
+ *   sfx?: { duration?: number, promptInfluence?: number },
+ * }} NanoBananaSettings
+ */
+
+/**
+ * The dispatcher's execution context (see toolDispatcher.js), handed to every
+ * family as is. Families read the fields they need; integration families read
+ * more than are named here.
+ * @typedef {import('./toolEgress').ToolEgressContext & {
+ *   callerAgentId?: string | null,
+ *   confirmLayer?: boolean,
+ *   fixedParams?: Record<string, unknown>,
+ *   timezone?: string,
+ *   send?: (type: string, data?: unknown) => void,
+ *   req?: import('express').Request,
+ *   imageGenSettings?: { aspectRatio?: string, model?: string },
+ *   nanoBananaSettings?: NanoBananaSettings,
+ *   onImageGenerated?: (image: { data: string, mimeType: string | null, url?: string }) => void,
+ *   onSkillsActivated?: (skillIds: string[]) => Promise<{ addedTools?: string[], unavailableApps?: string[] } | null | undefined>,
+ *   sessionSkills?: import('./sessionSkillRuntime').SessionSkill[],
+ *   activatedSessionSkillIds?: string[],
+ *   completedSessionSkillIds?: string[],
+ *   roundsInCurrentStep?: number,
+ *   [key: string]: unknown,
+ * }} ToolContext
+ */
+
+/**
+ * @typedef {{ name: string, order?: number, isTool: (toolName: string) => boolean,
+ *   execute: (toolName: string, toolArgs: Record<string, unknown>, context: ToolContext) => unknown,
+ *   [key: string]: unknown }} ToolFamily
+ */

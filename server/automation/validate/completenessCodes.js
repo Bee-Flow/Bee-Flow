@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The stage ladder's completeness list: the error codes a half-built flow may
  * legitimately carry, downgraded to warnings at `stage: 'draft'` and blocking

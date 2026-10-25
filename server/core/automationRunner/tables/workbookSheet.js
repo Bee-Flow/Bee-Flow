@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * One sheet (or one CSV) into a table: header row, columns, rows. The parsers
  * (SheetJS, the CSV reader) have already run; this reads what they produced
@@ -25,19 +25,30 @@ const PROVENANCE_SCAN_ROWS = 5000;
 
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
+/**
+ * @param {string} where
+ * @param {number} cap
+ */
 function tooManyRows(where, cap) {
     return sourceError('table_too_large',
         `${where} has more than ${cap.toLocaleString('en-US')} rows, which is more than this server reads into one table. `
         + 'An administrator can raise the limit with AUTOMATION_TABLE_MAX_ROWS (0 = unlimited).');
 }
 
+/**
+ * @param {string} where
+ * @param {number} cap
+ */
 function tooManyColumns(where, cap) {
     return sourceError('table_too_many_columns',
         `${where} has more than ${cap.toLocaleString('en-US')} columns, which is more than this server reads into one table. `
         + 'An administrator can raise the limit with AUTOMATION_TABLE_MAX_COLUMNS (0 = unlimited).');
 }
 
-/** The last column that holds a cell of the sheet (a scan of the cells, not of the grid). */
+/** The last column that holds a cell of the sheet (a scan of the cells, not of the grid).
+ * @param {import('@e965/xlsx').WorkSheet} ws
+ * @param {typeof import('@e965/xlsx')} XLSX
+ */
 function usedWidth(ws, XLSX) {
     let max = -1;
     for (const key in ws) {
@@ -48,9 +59,16 @@ function usedWidth(ws, XLSX) {
     return max + 1;
 }
 
-/** The kept columns of a sheet and its rows as objects, built from arrays of values. */
+/**
+ * The kept columns of a sheet and its rows as objects, built from arrays of values.
+ * @param {unknown[]} headerCells
+ * @param {number} width
+ * @param {unknown[]} valueRows  arrays of values; each is replaced in place by its row object
+ * @param {ArrayLike<number>} masks
+ */
 function finishTable(headerCells, width, valueRows, masks) {
     const { keys, labels } = C.headerKeys(headerCells, width);
+    /** @type {number[]} */
     const keep = [];
     for (let c = 0; c < width; c += 1) if (C.hasHeaderText(headerCells[c]) || masks[c] !== 0) keep.push(c);
     if (!keep.length) return null;
@@ -58,6 +76,7 @@ function finishTable(headerCells, width, valueRows, masks) {
     const rows = valueRows;
     for (let i = 0; i < rows.length; i += 1) {
         const vals = /** @type {any} */ (rows[i]);
+        /** @type {Record<string, unknown>} */
         const obj = {};
         for (let j = 0; j < keep.length; j += 1) {
             const v = vals[keep[j]];
@@ -91,6 +110,10 @@ async function readGridSheet(ws, { XLSX, cellValue, name, headerRow, limits }) {
         if (width > limits.maxColumns) throw tooManyColumns(where, limits.maxColumns);
     }
     const letters = Array.from({ length: width }, (_, c) => columnLetter(c));
+    /**
+     * @param {number} r
+     * @param {number} c
+     */
     const at = (r, c) => ws[`${letters[c]}${r + 1}`];
 
     const hr = headerRow - 1;
@@ -144,7 +167,11 @@ function readProvenanceSheet(ws, { XLSX, cellValue }) {
     return count ? { ...out } : null;
 }
 
-/** The widest filled field of the data records, and of the header, as a column count. */
+/**
+ * The widest filled field of the data records, and of the header, as a column count.
+ * @param {Array<{ fields: string[] }>} records
+ * @param {number} headerIndex
+ */
 function csvWidth(records, headerIndex) {
     let width = 0;
     for (let i = headerIndex; i < records.length; i += 1) {
@@ -160,7 +187,7 @@ function csvWidth(records, headerIndex) {
  * A CSV as a table, or null when it has no header and no data.
  *
  * @param {Buffer} buffer
- * @param {{ csv: any, name: string, headerRow: number, delimiter: string, limits: any }} o
+ * @param {{ csv: typeof import('../../dataEngine/sources/spreadsheetFile/formats/csv'), name: string, headerRow: number, delimiter: string, limits: any }} o
  * @returns {Promise<{ columns: any[], rows: any[] } | null>}
  */
 async function readCsvTable(buffer, { csv, name, headerRow, delimiter, limits }) {

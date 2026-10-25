@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Escaping for server-rendered marketing HTML.
  *
@@ -9,6 +9,7 @@
  * CMS is exactly the surface where a stored XSS would be most valuable.
  */
 
+/** @type {Record<string, string>} */
 const HTML_ENTITIES = {
     '&': '&amp;',
     '<': '&lt;',
@@ -17,7 +18,10 @@ const HTML_ENTITIES = {
     "'": '&#39;',
 };
 
-/** Escape for use in element text or a double-quoted attribute. */
+/**
+ * Escape for use in element text or a double-quoted attribute.
+ * @param {string} value
+ */
 function esc(value) {
     if (value === null || value === undefined) return '';
     return String(value).replace(/[&<>"']/g, c => HTML_ENTITIES[c]);
@@ -45,6 +49,8 @@ const ESCAPED_PS = BS + 'u2029';
  * back as `<`, but the HTML tokenizer never sees a tag. U+2028 and U+2029 are
  * legal inside a JSON string but are line terminators in JavaScript, so they
  * have to go the same way.
+ *
+ * @param {unknown} value
  */
 function jsonForScript(value) {
     return JSON.stringify(value)
@@ -53,7 +59,11 @@ function jsonForScript(value) {
         .split(PARA_SEP).join(ESCAPED_PS);
 }
 
-/** A <meta> tag, or '' when the content is empty — never an empty tag. */
+/**
+ * A <meta> tag, or '' when the content is empty — never an empty tag.
+ * @param {string} nameOrProperty
+ * @param {string} content
+ */
 function meta(nameOrProperty, content, { property = false } = {}) {
     const text = (content === null || content === undefined) ? '' : String(content).trim();
     if (!text) return '';
@@ -61,7 +71,11 @@ function meta(nameOrProperty, content, { property = false } = {}) {
     return `<meta ${attr}="${esc(nameOrProperty)}" content="${esc(text)}">`;
 }
 
-/** Collapse whitespace and hard-truncate — meta descriptions have a budget. */
+/**
+ * Collapse whitespace and hard-truncate — meta descriptions have a budget.
+ * @param {string} value
+ * @param {number} max
+ */
 function clamp(value, max) {
     const text = String(value || '').replace(/\s+/g, ' ').trim();
     if (text.length <= max) return text;

@@ -171,3 +171,5 @@ module.exports = {
     parseToolArgs,
     truncateJson,
 };
+
+/** @typedef {{ activePageId?: string, activeBlockId?: string, activeLocale?: string }} EditorContext */

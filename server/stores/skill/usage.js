@@ -8,7 +8,7 @@
 
 const { getAll } = require('../../db');
 const { initDB } = require('./schema');
-const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * An agent carries its skills TWICE: `config` is the draft the Builder edits,
@@ -40,7 +40,10 @@ const log = require('../../telemetry/log');
 const _DRAFT_SKILLS = "NULLIF(config, '')::jsonb->'attachedSkillIds'";
 const _PUBLISHED_SKILLS = "published_config->'attachedSkillIds'";
 
-/** `<expr>` holds skill $1 as an array element. */
+/**
+ * `<expr>` holds skill $1 as an array element.
+ * @param {string} expr
+ */
 const _holdsSkill = (expr) => `(jsonb_typeof(${expr}) = 'array' AND (${expr}) ? $1)`;
 
 /**
@@ -124,6 +127,7 @@ async function _automationStepsUsingSkill(skillId, orgId) {
 async function listSkillUsage(skillId, orgId) {
     await initDB();
     if (!skillId) return { rows: [], unchecked: [] };
+    /** @type {string[]} */
     const unchecked = [];
     const [agents, steps] = await Promise.all([
         _agentsUsingSkill(skillId, orgId),
@@ -140,7 +144,7 @@ async function listSkillUsage(skillId, orgId) {
     let lastByAgent = {};
     try {
         lastByAgent = await require('../skillActivations').getLastActivationByAgent(skillId, (agents || []).map(a => a.id));
-    } catch (err) { log.debug('telemetry is optional', err); }
+    } catch (err) { fallback('stores/skill/usage:listSkillUsage', err); /* telemetry is optional */ }
     /** @type {Array<{kind: string, id: any, title: any, role: string, lastAt: any, ownerId?: any, siteLabel?: string, stepId?: any, [key: string]: any}>} */
     const rows = (agents || []).map(a => ({
         kind: 'agent',
@@ -183,6 +187,9 @@ async function getUsageSummary(orgId, skillIds) {
     // skill in BOTH its draft and its published copy is one agent, not two.
     // A subline reading "4 agents" for three is a small lie the list would
     // then tell on every load.
+    /**
+     * @param {string} column
+     */
     const agentSkills = (column) => `
         SELECT a.id AS agent_id, s AS skill_id
           FROM agents a,
@@ -217,7 +224,7 @@ async function getUsageSummary(orgId, skillIds) {
         );
         for (const r of autoCounts || []) if (out[r.skill_id]) out[r.skill_id].automations = Number(r.n) || 0;
     } catch (err) {
-        if (!/relation .*automations.* does not exist/i.test(err.message)) throw err;
+        if (!/relation .*automations.* does not exist/i.test(/** @type {Error} */ (err).message)) throw err;
         // No automations table on this install: the automations column of every
         // row in this summary is UNKNOWN, not zero. Say so per row rather than
         // letting the list print "not linked yet" off a count nobody made.

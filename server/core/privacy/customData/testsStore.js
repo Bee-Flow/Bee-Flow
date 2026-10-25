@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * The test sets of the "Your own data" types, stored encrypted and apart.
@@ -38,6 +38,13 @@ const telemetryLog = require('../../../telemetry/log');
 
 const TYPE_ID_RX = /^cdt_[0-9a-f]{10}$/;
 const SENTENCE_ID_RX = /^[A-Za-z0-9_.:-]{1,40}$/;
+/**
+ * @typedef {{ id: string | null, field: string, code: string, message: string }} TestsError
+ * @typedef {{ id: string, text: string, gold?: Array<{ start: number, end: number }>, origin?: string }} TestSentence
+ * @typedef {{ examples?: string[], keepFixed?: string[], sentences?: TestSentence[], updatedAt?: string }} TestEntry
+ */
+
+/** @type {readonly string[]} */
 const ORIGINS = Object.freeze(['assistant', 'nearmiss', 'own', 'feedback']);
 
 const LIMITS = Object.freeze({
@@ -51,9 +58,12 @@ const LIMITS = Object.freeze({
     maxBytes: 256 * 1024,
 });
 
-const isPlainObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
+const isPlainObject = (/** @type {unknown} */ v) => !!v && typeof v === 'object' && !Array.isArray(v);
 
-/** The configStore key of an org's test sets. */
+/**
+ * The configStore key of an org's test sets.
+ * @param {unknown} orgId
+ */
 function testsKeyFor(orgId) {
     if (typeof orgId !== 'string' || !orgId || orgId.length > 100 || /\p{Cc}/u.test(orgId)) {
         throw new HttpError(400, 'invalid_request', 'Unknown organization.');
@@ -61,6 +71,9 @@ function testsKeyFor(orgId) {
     return `org_${orgId}_custom_data_tests`;
 }
 
+/**
+ * @param {string[] | Set<string> | null | undefined} typeIds
+ */
 function toIdSet(typeIds) {
     if (typeIds == null) return null;
     if (typeIds instanceof Set) return typeIds;
@@ -68,12 +81,20 @@ function toIdSet(typeIds) {
     return new Set();
 }
 
+/**
+ * @param {Record<string, string> | Map<string, string> | null | undefined} methods
+ * @param {string} id
+ */
 function methodFor(methods, id) {
     if (!methods) return null;
     if (methods instanceof Map) return methods.get(id) || null;
     return isPlainObject(methods) ? (methods[id] || null) : null;
 }
 
+/**
+ * @param {unknown} raw
+ * @param {{ max: number, maxChars: number, field: string, typeId: string, errors: TestsError[], trim?: boolean }} opts
+ */
 function cleanStringList(raw, { max, maxChars, field, typeId, errors, trim = true }) {
     if (raw === undefined || raw === null) return [];
     if (!Array.isArray(raw)) {
@@ -103,6 +124,9 @@ function cleanStringList(raw, { max, maxChars, field, typeId, errors, trim = tru
 /**
  * Gold spans of one sentence: integers, in range, non-empty, disjoint, at most
  * LIMITS.maxGold. Returns undefined when the sentence carries no gold at all.
+ * @param {unknown} raw
+ * @param {number} textLength
+ * @param {{ typeId: string, field: string, errors: TestsError[] }} opts
  */
 function cleanGold(raw, textLength, { typeId, field, errors }) {
     if (raw === undefined || raw === null) return undefined;
@@ -143,6 +167,9 @@ function cleanGold(raw, textLength, { typeId, field, errors }) {
  * the sentence cannot be kept as it is: a missing or duplicate id, or a text
  * that is empty or too long. The text is never trimmed or cut, because that
  * would move the gold offsets.
+ * @param {{ id?: unknown, text?: unknown, gold?: unknown, origin?: string } | null} raw
+ * @param {number} index
+ * @param {{ typeId: string, errors: TestsError[], seenIds: Set<string> }} opts
  */
 function cleanSentence(raw, index, { typeId, errors, seenIds }) {
     const field = `sentences[${index}]`;
@@ -167,17 +194,23 @@ function cleanSentence(raw, index, { typeId, errors, seenIds }) {
     seenIds.add(id);
     const gold = cleanGold(raw.gold, text.length, { typeId, field: `${field}.gold`, errors });
     const origin = ORIGINS.includes(raw.origin) ? raw.origin : 'own';
+    /** @type {TestSentence} */
     const out = { id, text };
     if (gold !== undefined) out.gold = gold;
     out.origin = origin;
     return out;
 }
 
+/**
+ * @param {{ examples?: unknown, keepFixed?: unknown, sentences?: unknown[], updatedAt?: unknown } | null} raw
+ * @param {{ typeId: string, method: string | null, errors: TestsError[] }} opts
+ */
 function cleanEntry(raw, { typeId, method, errors }) {
     if (!isPlainObject(raw)) {
         errors.push({ id: typeId, field: 'tests', code: 'invalid_tests', message: 'The tests of a type are an object.' });
         return null;
     }
+    /** @type {TestEntry} */
     const entry = {};
     entry.examples = cleanStringList(raw.examples, {
         max: LIMITS.maxExamples, maxChars: LIMITS.maxExampleChars, field: 'examples', typeId, errors,
@@ -209,6 +242,9 @@ function cleanEntry(raw, { typeId, method, errors }) {
     return entry;
 }
 
+/**
+ * @param {unknown} doc
+ */
 function assertSize(doc) {
     const bytes = Buffer.byteLength(JSON.stringify(doc), 'utf8');
     if (bytes > LIMITS.maxBytes) {
@@ -228,7 +264,7 @@ function assertSize(doc) {
  *   silently (a removed type's tests go with it). null means "no filter".
  *   methods: optional id → method; when given, keepFixed is kept only for
  *   pattern types.
- * @returns {{ doc: object, errors: Array<{id: string|null, field: string, code: string, message: string}> }}
+ * @returns {{ doc: Record<string, TestEntry>, errors: Array<{id: string|null, field: string, code: string, message: string}> }}
  * @throws HttpError 400 invalid_request when doc is not an object,
  *         HttpError 400 custom_data_tests_too_large over 256 KB serialised.
  */
@@ -238,7 +274,9 @@ function sanitizeTests(doc, { typeIds = null, methods = null } = {}) {
         throw new HttpError(400, 'invalid_request', 'customDataTests is an object keyed by type id.');
     }
     const allowed = toIdSet(typeIds);
+    /** @type {TestsError[]} */
     const errors = [];
+    /** @type {Record<string, TestEntry>} */
     const out = {};
     for (const [typeId, raw] of Object.entries(doc)) {
         if (!TYPE_ID_RX.test(typeId)) continue;
@@ -250,11 +288,17 @@ function sanitizeTests(doc, { typeIds = null, methods = null } = {}) {
     return { doc: out, errors };
 }
 
+/**
+ * @param {{ configStore?: typeof import('../../../stores/configStore') | null, log?: typeof import('../../../telemetry/log') | null }} [deps]
+ */
 function createTestsStore({ configStore = null, log = null } = {}) {
     const store = () => configStore || require('../../../stores/configStore');
     const logger = () => log || require('../../../telemetry/log');
 
-    /** The org's test sets, or null when there are none (or the row is unreadable). */
+    /**
+     * The org's test sets, or null when there are none (or the row is unreadable).
+     * @param {string} orgId
+     */
     async function readTests(orgId) {
         const key = testsKeyFor(orgId);
         const raw = await store().getSecret(key);
@@ -270,6 +314,9 @@ function createTestsStore({ configStore = null, log = null } = {}) {
     /**
      * Store the org's test sets. Pass a doc that went through sanitizeTests;
      * the size is checked again here. An empty doc removes the row.
+     * @param {string} orgId
+     * @param {Record<string, TestEntry>} doc
+     * @param {{ userId?: string | null } | null} [auditCtx]
      */
     async function writeTests(orgId, doc, auditCtx = null) {
         const key = testsKeyFor(orgId);

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * The generated share image of a page: a 1200x630 card made from the page
@@ -25,7 +25,11 @@ const CACHE_MAX_BYTES = 24 * 1024 * 1024;
 const MAX_CONCURRENT = 2;
 const MAX_WAITING = 40;
 
-/** `#abc` / `#aabbcc` -> `#aabbcc`, anything else -> the fallback. */
+/**
+ * `#abc` / `#aabbcc` -> `#aabbcc`, anything else -> the fallback.
+ * @param {unknown} value
+ * @param {string} fallback
+ */
 function hex(value, fallback) {
     const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(value ?? '').trim());
     if (!m) return fallback;
@@ -33,19 +37,29 @@ function hex(value, fallback) {
     return `#${h.toLowerCase()}`;
 }
 
+/**
+ * @param {string} h
+ */
 function luminance(h) {
     const [r, g, b] = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255)
         .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
     return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
-/** Dark or light ink, whichever reads on `bg`. */
+/**
+ * Dark or light ink, whichever reads on `bg`.
+ * @param {string} bg
+ */
 const inkFor = (bg) => (luminance(bg) > 0.4 ? '#151515' : '#ffffff');
 
 /** @param {unknown} v */
 const templateOf = (v) => (TEMPLATES.includes(/** @type {any} */ (v)) ? /** @type {string} */ (v) : DEFAULT_TEMPLATE);
 
-/** The palette of one template from the site's colours. */
+/**
+ * The palette of one template from the site's colours.
+ * @param {{ colors?: Record<string, unknown> } | null | undefined} design
+ * @param {string} template
+ */
 function palette(design, template) {
     const c = (design && design.colors) || {};
     const primary = hex(c.primary, '#f5a623');
@@ -60,7 +74,12 @@ function palette(design, template) {
     return { bg, title: hex(c.textPrimary, '#1c1917'), sub: hex(c.textSecondary, '#57534e'), accent: primary, motif: primary };
 }
 
-/** Pointy-top hexagon outline centred on (cx, cy) with circumradius r. */
+/**
+ * Pointy-top hexagon outline centred on (cx, cy) with circumradius r.
+ * @param {number} cx
+ * @param {number} cy
+ * @param {number} r
+ */
 function hexagon(cx, cy, r) {
     const pts = [0, 1, 2, 3, 4, 5].map((i) => {
         const a = (Math.PI / 3) * i - Math.PI / 2;
@@ -69,9 +88,13 @@ function hexagon(cx, cy, r) {
     return pts.join(' ');
 }
 
+/**
+ * @param {string} color
+ */
 function honeycomb(color) {
     const r = 58;
     const dx = r * Math.sqrt(3);
+    /** @type {string[]} */
     const cells = [];
     for (let row = 0; row < 7; row++) {
         for (let col = 0; col < 6; col++) {
@@ -85,7 +108,10 @@ function honeycomb(color) {
     return cells.join('');
 }
 
-/** Largest headline size whose wrapped text fits without cutting anything off. */
+/**
+ * Largest headline size whose wrapped text fits without cutting anything off.
+ * @param {string} title
+ */
 function setTitle(title) {
     const plan = [[84, 3], [72, 3], [60, 4], [52, 4]];
     const text = clean(title) || ' ';

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * AI Task Runner — the execution engine behind Cowork schedules.
  *
@@ -27,7 +28,9 @@ const { createUsageAccumulator, usageLogFields } = require('./providers/usageNor
 
 const { executeAgentRun } = require('./cowork/agentScheduleRun');
 const { runPromptToolLoop, MAX_TOOL_ITERATIONS } = require('./cowork/promptTaskLoop');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
+/** @type {Record<string, string>} */
 const REPEAT_WORDS = {
     hourly: 'every hour',
     daily: 'every day',
@@ -39,6 +42,7 @@ const REPEAT_WORDS = {
     yearly: 'every year',
 };
 
+/** @type {Record<string, string>} */
 const DOW_WORDS = {
     sun: 'Sunday', mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday',
     thu: 'Thursday', fri: 'Friday', sat: 'Saturday',
@@ -55,6 +59,7 @@ const DOW_WORDS = {
  * run. Telling it the schedule removes the reason to guess.
  */
 function describeTaskSchedule(task) {
+    /** @type {string[]} */
     const parts = [];
     const days = Array.isArray(task.daysOfWeek) && task.daysOfWeek.length > 0
         ? task.daysOfWeek.map(d => DOW_WORDS[String(d).toLowerCase().slice(0, 3)]).filter(Boolean)
@@ -74,6 +79,7 @@ function describeTaskSchedule(task) {
 
 /**
  * Build a minimal system prompt for task execution.
+ * @param {string} toolHint
  */
 function buildTaskSystemPrompt(task, toolHint) {
     // Compute "Now:" in the task's timezone with explicit offset. The long
@@ -81,6 +87,7 @@ function buildTaskSystemPrompt(task, toolHint) {
     // the seconds went, for the same reason as everywhere else (core/llm/
     // clock.js): a prompt that changes every second is never a cache hit.
     const tz = task.timezone || 'Europe/Amsterdam';
+    /** @type {string} */
     let nowStr;
     try {
         const now = new Date();
@@ -140,7 +147,7 @@ async function resolveUserSession(userId) {
         const sess = typeof rows[0].sess === 'string' ? JSON.parse(rows[0].sess) : rows[0].sess;
         return sess;
     } catch (err) {
-        log.error(`[AITaskRunner] Session lookup error for user ${userId}:`, err.message);
+        log.error(`[AITaskRunner] Session lookup error for user ${userId}:`, /** @type {Error} */ (err).message);
         return null;
     }
 }
@@ -237,7 +244,7 @@ async function executeTask(task, { manual = false, store = require('../stores/co
         const loop = await runPromptToolLoop({
             ...prep, modelId: run.modelId, tierDefaults, usageAcc: run.usageAcc, run,
             dispatchTool: (toolName, toolArgs) => dispatchTaskTool(task, run, prep.session, toolName, toolArgs),
-            logTermination: (type) => terminationStore.logTermination({ ...terminationBase(), termination_type: type }).catch(() => {}),
+            logTermination: (type) => terminationStore.logTermination({ ...terminationBase(), termination_type: type }).catch((e) => fallback('core/aiTaskRunner:logTermination', e)),
         });
 
         // Account for the spend the moment the model loop is over — before any
@@ -251,7 +258,7 @@ async function executeTask(task, { manual = false, store = require('../stores/co
         // ("Ik zoek tegelijkertijd het laatste nieuws…") and surfacing it as
         // the result is more misleading than a clear failure message.
         if (loop.hitIterationCap) {
-            terminationStore.logTermination({ ...terminationBase(), termination_type: 'max_iterations', iteration_count: MAX_TOOL_ITERATIONS }).catch(() => {});
+            terminationStore.logTermination({ ...terminationBase(), termination_type: 'max_iterations', iteration_count: MAX_TOOL_ITERATIONS }).catch((e) => bestEffort('core/aiTaskRunner:executeTask', e));
         }
         const finalResponse = promptRunOutcome(task, loop, { messages: prep.messages, tools: prep.tools });
 
@@ -272,7 +279,7 @@ async function executeTask(task, { manual = false, store = require('../stores/co
 
         await advanceAfterTaskRun(task, { manual, store, startTime });
     } catch (err) {
-        log.error(`[AITaskRunner] Task "${task.title}" failed:`, err.message);
+        log.error(`[AITaskRunner] Task "${task.title}" failed:`, /** @type {Error} */ (err).message);
         // The tokens spent before the failure are still spent — account for
         // them (no-op when the run never reached the model, or already logged).
         logRunUsage(task, run, startTime);
@@ -285,7 +292,7 @@ async function executeTask(task, { manual = false, store = require('../stores/co
             duration_ms: Date.now() - startTime,
             termination_type: 'error',
             ...sanitizeError(err),
-        }).catch(() => {});
+        }).catch((e) => bestEffort('core/aiTaskRunner:executeTask#2', e));
         await failRun(task, err, { manual, store });
     }
 }
@@ -302,6 +309,7 @@ async function executeTask(task, { manual = false, store = require('../stores/co
  * Fire-and-forget with a warn (the terminationStore pattern): usage logging
  * is bookkeeping, not a gatekeeper — a failing log must never fail the run.
  * Logs once per run, and not at all before the first model call.
+ * @param {number} startTime
  */
 function logRunUsage(task, run, startTime) {
     if (run.usageLogged || run.lastIter === 0) return; // nothing spent before the first model call
@@ -341,7 +349,7 @@ async function prepareTaskRun(task, run) {
     // resolveUserOrgIds reads `req.session` off the object. A failed org
     // lookup degrades to the global tier map (the old behaviour), never
     // to a failed task.
-    run.userOrgForTier = await resolveEffectiveOrgId({}, { userId: task.userId }).catch(() => null);
+    run.userOrgForTier = await resolveEffectiveOrgId({}, { userId: task.userId }).catch((e) => fallback('core/aiTaskRunner:prepareTaskRun', e, null));
     run.modelId = await resolveModelForTier(`tier:${task.modelTier || 'fast'}`, {
         userOrgId: run.userOrgForTier,
         userId: task.userId,
@@ -421,17 +429,20 @@ async function loadTaskTools(task, session) {
         toolHint = await buildToolHint(tools, task.userId);
         log.info(`[AITaskRunner] Loaded ${tools.length} integration tools for user ${task.userId}`);
     } catch (err) {
-        log.warn(`[AITaskRunner] Failed to load integration tools: ${err.message}`);
+        log.warn(`[AITaskRunner] Failed to load integration tools: ${/** @type {Error} */ (err).message}`);
         // Fallback: try to load at least web search
         try {
             const { AGENT_SEARCH_TOOLS } = featureModule('integrations/agentSearchTools');
             tools = [...AGENT_SEARCH_TOOLS];
-        } catch (err) { log.debug('no search available', err); }
+        } catch (err) { fallback('core/aiTaskRunner:loadTaskTools', err); /* no search available */ }
     }
     return { tools, toolHint };
 }
 
-/** Execute one tool call of a plain-prompt run via the unified dispatcher. */
+/**
+ * Execute one tool call of a plain-prompt run via the unified dispatcher.
+ * @param {string} toolName
+ */
 async function dispatchTaskTool(task, run, session, toolName, toolArgs) {
     const { executeTool } = require('./tools/toolDispatcher');
     const result = await executeTool(toolName, toolArgs, {
@@ -536,7 +547,7 @@ async function failRun(task, err, { manual, store }) {
             // you need to reach, so this one does link back.
             link: require('../utils/appPaths').coworkTaskPath(task.id),
         });
-    } catch (err) { log.debug('don\'t fail on notification failure', err); }
+    } catch (err) { bestEffort('core/aiTaskRunner:failRun', err); /* don't fail on notification failure */ }
 }
 
 // ── Background timer ─────────────────────────────────────
@@ -552,7 +563,7 @@ const _coveragePruneInterval = setInterval(async () => {
         const expired = await memoryStore.pruneExpiredCoverage();
         if (expired > 0) log.info(`[AITaskRunner] R3: pruned ${expired} expired coverage memorie(s)`);
     } catch (err) {
-        log.warn(`[AITaskRunner] R3 prune failed: ${err.message}`);
+        log.warn(`[AITaskRunner] R3 prune failed: ${/** @type {Error} */ (err).message}`);
     }
 }, 60 * 60_000);
 if (_coveragePruneInterval.unref) _coveragePruneInterval.unref();
@@ -575,3 +586,17 @@ module.exports = {
     executeTask,
     stop,
 };
+
+/**
+ * The schedule fields a run reads (coworkStore's rowToSchedule shape).
+ * @typedef {{ id: string, userId: string, title?: string, prompt?: string, repeatInterval?: string | null, daysOfWeek?: string[] | null, timeOfDay?: string | null, nextRunAt?: string | null, modelTier?: string, enabledApps?: string[] | null, timezone?: string, agentId?: string | null }} CoworkTask
+ */
+
+/**
+ * The per-run state a plain-prompt run carries between its phases.
+ * @typedef {{ userOrgForTier: string | null, modelId: string | null, usageAcc: ReturnType<typeof createUsageAccumulator>, lastIter: number, usageLogged: boolean }} TaskRun
+ */
+
+/**
+ * @typedef {{ manual?: boolean, store?: typeof import('../stores/coworkStore') }} RunOpts
+ */

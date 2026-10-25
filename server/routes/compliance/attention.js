@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * GET /api/compliance/attention?limit=5 — the "Needs attention" list.
  *
@@ -25,7 +25,7 @@ const AttentionQuery = z.object({
         .int(LIMIT_TEXT).min(0, LIMIT_TEXT).max(50, 'limit is at most 50.').optional(),
 }).strict();
 
-router.get('/attention', requireAuth, requirePermission('admin_compliance'), validate({ query: AttentionQuery }), async (req, res) => {
+router.get('/attention', requireAuth, requirePermission('admin_compliance'), validate({ query: AttentionQuery }), /** @param {import('express').Request<{}, any, any, import('qs').ParsedQs & { limit?: number }>} req */ async (req, res) => {
     const orgId = await requireOrgId(req, res);
     if (!orgId) return;
     res.set('Cache-Control', 'private, no-store');

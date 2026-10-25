@@ -23,6 +23,9 @@ const {
     APPROVAL_MAX_EXPIRY_HOURS, APPROVAL_MAX_ATTACHMENTS, APPROVAL_MAX_FIELDS,
 } = require('../constants');
 
+/**
+ * @param {string} at
+ */
 function checkApproval(ctx, step, at) {
     const { pushE, pushW } = ctx;
     // An approval is the one step whose entire payload is a sentence a
@@ -73,7 +76,7 @@ function checkApproval(ctx, step, at) {
         // decides how the votes resolve; quorum names N for rule=quorum;
         // finalApprover is the optional second-stage sign-off. Shape only
         // — org membership is checked at save/run time like the assignee.
-        const seatShapeOk = (s) => {
+        const seatShapeOk = (/** @type {{ userId: string; groupId: string; }} */ s) => {
             const u = typeof s?.userId === 'string' && s.userId.trim();
             const g = typeof s?.groupId === 'string' && s.groupId.trim();
             return !!(s && typeof s === 'object' && ((u && !g) || (g && !u)));

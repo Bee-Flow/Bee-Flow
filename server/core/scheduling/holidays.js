@@ -219,3 +219,9 @@ module.exports = {
     holidaysSkippedBetween,
     HOLIDAY_NAMES: NAMES,
 };
+
+/**
+ * The parts of an automation definition a schedule lookup reads.
+ * @typedef {{ id?: string, schedule?: Record<string, unknown> | null }} ScheduleTrigger
+ * @typedef {{ trigger?: ScheduleTrigger | null, triggers?: ScheduleTrigger[] }} ScheduleDefinition
+ */

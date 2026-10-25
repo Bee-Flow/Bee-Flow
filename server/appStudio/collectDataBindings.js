@@ -50,6 +50,9 @@ function collectDataBindings(def, screenId = null) {
     const out = [];
     const seen = new Set();
 
+    /**
+     * @param {string} prop
+     */
     const pushBinding = (nodeId, prop, binding) => {
         const key = `${nodeId}\u0000${prop}\u0000${bindingFingerprint(binding)}`;
         if (seen.has(key)) return;
@@ -60,6 +63,9 @@ function collectDataBindings(def, screenId = null) {
     // Deep-scan one prop value for data bindings (a binding can sit directly on
     // the prop, or nested inside an array/object the prop holds — e.g. a stat's
     // value, a list item source).
+    /**
+     * @param {string} prop
+     */
     const visitValue = (nodeId, prop, value) => {
         if (!value || typeof value !== 'object') return;
         if (Array.isArray(value)) {
@@ -94,3 +100,5 @@ function collectDataBindings(def, screenId = null) {
 }
 
 module.exports = { collectDataBindings, DATA_BINDING_KINDS };
+
+/** @typedef {string | number | boolean | null | undefined | JsonValue[] | { [k: string]: JsonValue }} JsonValue */

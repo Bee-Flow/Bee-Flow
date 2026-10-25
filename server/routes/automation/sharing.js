@@ -34,6 +34,7 @@ const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { makeAutomationAccess, projectForViewer, RANK } = require('../../automation/access');
+const { fallback } = require('../../utils/bestEffort');
 
 const PRINCIPAL_TYPE_TEXT = 'principalType is "user" or "group".';
 const ROLE_TEXT = 'role is "run", "view" or "edit".';
@@ -100,6 +101,9 @@ function makeSharingRouter(overrides = {}) {
         } catch { return false; }
     });
 
+    /**
+     * @param {string} need
+     */
     async function loadAutomation(req, res, need) {
         const a = await store().getAutomation(req.params.id);
         if (!a) { res.status(404).json({ error: 'Not found' }); return null; }
@@ -110,24 +114,24 @@ function makeSharingRouter(overrides = {}) {
 
     /** The GET answer, also returned after a PUT so the dialog redraws from it. */
     async function describe(a, orgId, shares) {
-        const owner = await getUser(a.userId).catch(() => null);
+        const owner = await getUser(a.userId).catch((e) => fallback('routes/automation/sharing:describe', e, null));
         const ownerRef = { userId: a.userId, name: nameOf(owner) };
         const groupIds = shares.filter(s => s.principalType === 'group').map(s => s.principalId);
         let counts = new Map();
         if (groupIds.length && orgId) {
             try { counts = await store().countGroupMembers(orgId, groupIds); }
-            catch (e) { log.warn(`[automation sharing] member count failed for ${a.id}: ${e.message}`); }
+            catch (e) { log.warn(`[automation sharing] member count failed for ${a.id}: ${/** @type {Error} */ (e).message}`); }
         }
         const described = [];
         for (const s of shares) {
             if (s.principalType === 'user') {
-                const u = await getUser(s.principalId).catch(() => null);
+                const u = await getUser(s.principalId).catch((e) => fallback('routes/automation/sharing:describe#2', e, null));
                 described.push({
                     principalType: 'user', principalId: s.principalId, role: s.role,
                     name: nameOf(u), ...(u ? {} : { missing: true }),
                 });
             } else {
-                const g = await Promise.resolve(getGroup(s.principalId)).catch(() => null);
+                const g = await Promise.resolve(getGroup(s.principalId)).catch((e) => fallback('routes/automation/sharing:describe#3', e, null));
                 described.push({
                     principalType: 'group', principalId: s.principalId, role: s.role,
                     name: g?.name || null,
@@ -180,7 +184,7 @@ function makeSharingRouter(overrides = {}) {
                 throw new HttpError(400, 'no_organisation', 'This automation has no organisation, so it cannot be shared.');
             }
             for (const s of wanted.filter(x => x.principalType === 'user')) {
-                const u = await getUser(s.principalId).catch(() => null);
+                const u = await getUser(s.principalId).catch((e) => fallback('routes/automation/sharing:makeSharingRouter', e, null));
                 if (!u || u.organizationId !== orgId) {
                     throw new HttpError(400, 'share_user_unknown', 'Someone on the list is not a member of this organisation.');
                 }
@@ -224,7 +228,7 @@ function makeSharingRouter(overrides = {}) {
         if (targetId === a.userId) throw new HttpError(400, 'already_owner', 'That person already owns this automation.');
 
         const orgId = await access.organisationOf(a);
-        const target = await getUser(targetId).catch(() => null);
+        const target = await getUser(targetId).catch((e) => fallback('routes/automation/sharing:makeSharingRouter#2', e, null));
         if (!target || !orgId || target.organizationId !== orgId) {
             throw new HttpError(400, 'transfer_target_unknown', 'That person is not a member of this organisation.');
         }
@@ -254,7 +258,7 @@ function makeSharingRouter(overrides = {}) {
                     await subs.syncAppEventSubscription(a.id, targetId, liveDef);
                 }
             } catch (e) {
-                log.warn(`[automation sharing] subscription re-sync after transfer failed for ${a.id}: ${e.message}`);
+                log.warn(`[automation sharing] subscription re-sync after transfer failed for ${a.id}: ${/** @type {Error} */ (e).message}`);
                 warnings.push({
                     code: 'transfer.subscription_resync_failed', params: {},
                     message: 'The automation could not re-connect its event trigger for the new owner. Pause it and switch it on again.',
@@ -302,13 +306,13 @@ function makeSharingRouter(overrides = {}) {
         if (!loaded) return;
         const orgId = await access.organisationOf(loaded.a);
         if (!orgId) return res.json({ users: [], groups: [] });
-        const members = await Promise.resolve(listMembers(orgId)).catch(() => []);
-        const orgGroups = (await Promise.resolve(listGroups()).catch(() => []))
+        const members = await Promise.resolve(listMembers(orgId)).catch((e) => fallback('routes/automation/sharing:makeSharingRouter#3', e, []));
+        const orgGroups = (await Promise.resolve(listGroups()).catch((e) => fallback('routes/automation/sharing:makeSharingRouter#4', e, [])))
             .filter(g => String(g.organizationId || '') === String(orgId));
         let counts = new Map();
         if (orgGroups.length) {
             try { counts = await store().countGroupMembers(orgId, orgGroups.map(g => String(g.id))); }
-            catch (e) { log.warn(`[automation sharing] member count failed for ${loaded.a.id}: ${e.message}`); }
+            catch (e) { log.warn(`[automation sharing] member count failed for ${loaded.a.id}: ${/** @type {Error} */ (e).message}`); }
         }
         res.json({
             users: (members || []).map(u => ({ id: String(u.id), name: nameOf(u) || String(u.id) })),

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The end and the branch of a page: cloning and deleting.
  *
@@ -20,6 +20,7 @@ const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded, bodyOf, flag, NOTHING, NO_QUERY } = require('./schemas');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const CloneBody = bodyOf({
     name: worded('Een naam is tekst.').trim().max(200, 'Een naam is hoogstens 200 tekens.').optional(),
@@ -31,8 +32,9 @@ const CloneBody = bodyOf({
 const CONFIRM_TEXT = 'confirm is true of false.';
 const DeleteQuery = z.object({ confirm: flag(CONFIRM_TEXT) }).strict();
 
+/** @type {(router: import('express').Router, deps?: import('./index').WebpageRouteDeps) => void} shared multipart gate is passed by index.js */
 function register(router) {
-    router.post('/:id/clone', requireAuth, validate({ body: CloneBody, query: NO_QUERY }), async (req, res) => {
+    router.post('/:id/clone', requireAuth, validate({ body: CloneBody, query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
         const sourceId = req.params.id;
         const { name } = req.body;
         const { userId, orgIds, userGroups } = await resolveAudienceContext(req);
@@ -49,7 +51,7 @@ function register(router) {
         // Flush as the SOURCE owner — they're the only one who can hold an
         // open SQLite handle. Best-effort: when the handle isn't loaded in
         // this server process the call rejects and we proceed regardless.
-        try { await webpageDbStore.flush(source.userId, sourceId); } catch (err) { log.debug('not loaded or not the owner — fine', err); }
+        try { await webpageDbStore.flush(source.userId, sourceId); } catch (err) { bestEffort('routes/webpages/lifecycle:register', err); /* not loaded or not the owner — fine */ }
 
         const cloned = await webpageStore.cloneWebpage({ sourceId, newOwnerId: userId, newName: name });
         if (!cloned) return res.status(404).json({ error: 'Webpage not found' });
@@ -61,9 +63,9 @@ function register(router) {
         res.json({ success: true, webpage: cloned });
     });
 
-    router.delete('/:id', requireAuth, validate({ body: NOTHING, query: DeleteQuery }), async (req, res) => {
+    router.delete('/:id', requireAuth, validate({ body: NOTHING, query: DeleteQuery }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
         const userId = req.session.user.id;
-        const confirmed = req.query.confirm === true;
+        const confirmed = /** @type {{ confirm?: boolean }} */ (req.query).confirm === true;
 
         // Owner-scoped, just like the deletion itself: a non-owner gets the same 404 as always and
         // learns nothing about the page.
@@ -84,7 +86,7 @@ function register(router) {
         // purgeWebpageObjects (called inside deleteWebpage) wipes the RustFS
         // blob, so leaving a stale handle open would only confuse the next
         // access to the (now-deleted) webpage.
-        try { await webpageDbStore.invalidate(req.params.id); } catch (_) { log.debug('no cached database handle to invalidate', _); }
+        try { await webpageDbStore.invalidate(req.params.id); } catch (_) { bestEffort('routes/webpages/lifecycle:register#2', _); /* no cached database handle to invalidate */ }
         const result = await webpageStore.deleteWebpage(req.params.id, userId);
         if (!result) return res.status(404).json({ error: 'Webpage not found' });
 

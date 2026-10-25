@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Co-editing upkeep — materialise, checkpoint and compact the documents
  * people are (or were just) editing together (core/collab).
@@ -45,6 +45,16 @@ let _running = false;
 
 // Dependencies resolve lazily, so a test that injects stand-ins through
 // _setDeps never loads a store (and never opens a pool).
+/**
+ * @typedef {ReturnType<typeof import('../core/collab').instance>} CollabInstance
+ * @typedef {{
+ *   pool: typeof import('../db').pool,
+ *   listWork: () => ReturnType<CollabInstance['listWork']>,
+ *   processDoc: (doc: Parameters<CollabInstance['processDoc']>[0]) => ReturnType<CollabInstance['processDoc']>,
+ *   log: typeof import('../telemetry/log'),
+ * }} CompactionDeps
+ */
+/** @type {CompactionDeps | null} */
 let _deps = null;
 function deps() {
     if (!_deps) {
@@ -52,7 +62,7 @@ function deps() {
         _deps = {
             pool: require('../db').pool,
             listWork: () => collab.listWork(),
-            processDoc: (doc) => collab.processDoc(doc),
+            processDoc: (/** @type {Parameters<CollabInstance['processDoc']>[0]} */ doc) => collab.processDoc(doc),
             log: require('../telemetry/log'),
         };
     }

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * FORM ANSWERS — the dashboard's numbers, and the generic aggregate.
  *
@@ -41,6 +42,8 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
  * `from`/`to` are calendar days (YYYY-MM-DD, inclusive), default the last
  * 30 days. The bucket follows the span: days up to two months, weeks up to
  * a year, months beyond.
+ * @param {{ from?: string | null, to?: string | null }} [range]
+ * @param {Date} [now]
  */
 function resolveRange({ from = null, to = null } = {}, now = new Date()) {
     const end = DATE_RE.test(to || '') ? new Date(`${to}T00:00:00.000Z`) : startOfUtcDay(now);
@@ -57,16 +60,29 @@ function resolveRange({ from = null, to = null } = {}, now = new Date()) {
     };
 }
 
+/**
+ * @param {Date} d
+ */
 function startOfUtcDay(d) { return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); }
+/**
+ * @param {Date} d
+ */
 function isoDay(d) { return d.toISOString().slice(0, 10); }
 
+/**
+ * @param {{ from: string; to: string; bucket: string; fromIso: string; toIso: string; } | { fromIso: string; toIso: string; }} range
+ */
 function rangeFilters(range) {
     return [{ field: 'created_at', op: 'between', value: [range.fromIso, range.toIso] }];
 }
 
 // ── the questions ───────────────────────────────────────────────────────
 
-/** The form's questions in form order, retired last, as the dashboard lists them. */
+/**
+ * The form's questions in form order, retired last, as the dashboard lists them.
+ * @param {{ columnMap?: import('./derive').ColumnMap; } | undefined} source
+ * @param {{ fields?: Array<{ key: string }> }} meta
+ */
 function questionColumns(source, meta) {
     const byKey = new Map((meta.fields || []).map(f => [f.key, f]));
     return orderedColumns(source?.columnMap).filter(c => byKey.has(c.key));
@@ -76,18 +92,23 @@ function questionColumns(source, meta) {
 
 /**
  * @param {object} args
- * @param {object} args.table       the datatables row (rowToDatatable shape)
+ * @param {{ id?: string, name?: string, source?: { columnMap?: import('./derive').ColumnMap }, rowCount?: number|null, retentionDays?: number|null }} args.table  the datatables row (rowToDatatable shape)
  * @param {object} args.meta        the table descriptor WITH `access` (metaFor)
- * @param {object} args.filter      the caller's compiled access filter
+ * @param {import('../../core/dataEngine/queryCompiler').AccessFilter} args.filter      the caller's compiled access filter
  * @param {string} args.scopeKey
- * @param {{from?, to?}} args.range
- * @param {(ids: string[]) => Promise<Array<{id, username, displayName}>>} [args.lookupUsers]
+ * @param {{ from?: string | null, to?: string | null }} args.range
+ * @param {(ids: string[]) => Promise<Array<{ id: string, username: string | null, displayName: string | null }>>} [args.lookupUsers]
  * @param {Date} [args.now]
  */
 async function answersSummary({ table, meta, filter, scopeKey, range: rawRange = {}, lookupUsers = null, now = new Date() }) {
     const range = resolveRange(rawRange, now);
     // the engine answers `{ rows }`
+    /**
+     * @param {string} sql
+     * @param {unknown[]} [params]
+     */
     const q = async (sql, params) => (await datatableDbStore.query(scopeKey, scopeKey, sql, params))?.rows || [];
+    /** @param {Record<string, unknown>} opts */
     const agg = async (opts) => {
         const { sql, params } = queryCompiler.compileAggregate(meta, { ...opts, ...PG }, filter);
         return q(sql, params);
@@ -110,7 +131,7 @@ async function answersSummary({ table, meta, filter, scopeKey, range: rawRange =
         today: num(todayRow?.n),
         completed,
         open: Math.max(0, inRange - completed),
-        lastAt: allRows?.last_at ? new Date(allRows.last_at).toISOString() : null,
+        lastAt: allRows?.last_at ? new Date(/** @type {Date} */ (allRows.last_at)).toISOString() : null,
     };
 
     // ── timeline ───────────────────────────────────────────────────────
@@ -143,7 +164,7 @@ async function answersSummary({ table, meta, filter, scopeKey, range: rawRange =
             pageStepId: c.pageStepId || null, retired: !!c.retired,
             answered: answered.get(c.key) || 0,
             skipped: Math.max(0, inRange - (answered.get(c.key) || 0)),
-            breakdown: null,
+            breakdown: /** @type {Record<string, unknown> | null} */ (null),
         };
         out.push(base);
         if (c.columnType === 'select') {
@@ -215,7 +236,7 @@ async function answersSummary({ table, meta, filter, scopeKey, range: rawRange =
     const recentRows = (await q(rsql, rparams)).slice(0, RECENT);
     const names = new Map();
     if (typeof lookupUsers === 'function') {
-        const ids = [...new Set(recentRows.map(r => r.created_by).filter(Boolean))];
+        const ids = /** @type {string[]} */ ([...new Set(recentRows.map(r => r.created_by).filter(Boolean))]);
         if (ids.length) {
             for (const u of (await lookupUsers(ids)) || []) names.set(u.id, u.displayName || u.username || null);
         }
@@ -240,9 +261,16 @@ async function answersSummary({ table, meta, filter, scopeKey, range: rawRange =
     };
 }
 
+/** @param {unknown} v */
 function num(v) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
+/** @param {unknown} v */
 function fnum(v) { if (v === null || v === undefined) return null; const n = Number(v); return Number.isFinite(n) ? Math.round(n * 100) / 100 : null; }
-function isoOf(v) { try { return v ? new Date(v).toISOString() : null; } catch { return null; } }
+/**
+ * A row's timestamp column (pg hands a Date; a row value is typed as any column value).
+ * @param {string | number | boolean | Date} v
+ */
+function isoOf(v) { try { return v ? new Date(/** @type {string | number | Date} */ (v)).toISOString() : null; } catch { return null; } }
+/** @param {unknown} v */
 function previewValue(v) {
     if (v === null || v === undefined) return null;
     if (v instanceof Date) return v.toISOString();
@@ -259,11 +287,18 @@ const MAX_GROUP_BY = 8;
  * and the compiler's vocabulary — the aggregate twin of the rows route's
  * readFilters. `readFilters` is the route's (it owns `bad()`); this returns
  * the descriptor or throws a 400-shaped error.
+ * @param {{ fields?: Array<{ key?: string } | null> }} meta
+ * @param {Record<string, any> | null | undefined} body
+ * @param {{ readFilters: (meta: object, filters: unknown) => unknown }} deps
  */
 function readAggregateDescriptor(meta, body, { readFilters }) {
     const src = body && typeof body === 'object' && !Array.isArray(body) ? body : {};
     const keys = new Set(dataModel.SYSTEM_COLUMNS);
     for (const f of (meta.fields || [])) if (f && f.key) keys.add(f.key);
+    /**
+     * @param {string} message
+     * @param {string} code
+     */
     const fail = (message, code) => { const e = new Error(message); e.status = 400; e.code = code; throw e; };
 
     const groupBy = Array.isArray(src.groupBy) ? src.groupBy : [];
@@ -281,19 +316,23 @@ function readAggregateDescriptor(meta, body, { readFilters }) {
     }
     const filters = readFilters(meta, src.filters);
     const match = src.match === 'any' ? 'any' : 'all';
-    const sort = Array.isArray(src.sort) ? src.sort.slice(0, 1).map(s => ({ field: String(s?.field || ''), dir: s?.dir === 'asc' ? 'asc' : 'desc' })) : [];
+    const sort = Array.isArray(src.sort) ? src.sort.slice(0, 1).map(/** @param {Record<string, any>} s */ s => ({ field: String(s?.field || ''), dir: s?.dir === 'asc' ? 'asc' : 'desc' })) : [];
     const limit = Number.isFinite(Number(src.limit)) ? Number(src.limit) : undefined;
-    return { filters, match, groupBy: groupBy.map(g => ({ field: g.field, ...(g.bucket ? { bucket: g.bucket } : {}), ...(g.as ? { as: String(g.as) } : {}) })),
-        aggregates: aggregates.map(a => ({ fn: a.fn, field: a.field === undefined ? '*' : a.field, ...(a.as ? { as: String(a.as) } : {}) })), sort, limit };
+    return { filters, match, groupBy: groupBy.map(/** @param {Record<string, any>} g */ g => ({ field: g.field, ...(g.bucket ? { bucket: g.bucket } : {}), ...(g.as ? { as: String(g.as) } : {}) })),
+        aggregates: aggregates.map(/** @param {Record<string, any>} a */ a => ({ fn: a.fn, field: a.field === undefined ? '*' : a.field, ...(a.as ? { as: String(a.as) } : {}) })), sort, limit };
 }
 
-/** Run one aggregate descriptor under the caller's filter. */
-async function runAggregate({ meta, filter, scopeKey, descriptor }) {
+/**
+ * Run one aggregate descriptor under the caller's filter.
+ * @param {{ meta: object, filter: import('../../core/dataEngine/queryCompiler').AccessFilter, scopeKey: string, descriptor: object }} p
+ */
+async function runAggregate(
+{ meta, filter, scopeKey, descriptor }) {
     let compiled;
     try {
         compiled = queryCompiler.compileAggregate(meta, { ...descriptor, ...PG }, filter);
     } catch (e) {
-        if (e instanceof CompileError) { const err = new Error(e.message); err.status = 400; err.code = 'bad_descriptor'; throw err; }
+        if (e instanceof CompileError) { const err = new Error(/** @type {Error} */ (e).message); err.status = 400; err.code = 'bad_descriptor'; throw err; }
         throw e;
     }
     const out = await datatableDbStore.query(scopeKey, scopeKey, compiled.sql, compiled.params);

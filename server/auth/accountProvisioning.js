@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * accountProvisioning.js — the one path every web signup takes.
  *
@@ -34,12 +34,21 @@ const { checkWebSignupAllowed, resolveSignupLocale } = require('./signupGuards')
 const { isFreeEmailDomain, getEffectiveFreeEmailDomains } = require('../utils/freeEmailDomains');
 const { sanitizePlainTextFields } = require('../utils/htmlSanitizer');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
+
+/**
+ * @typedef {{ organization_id?: string, role?: string, org_role?: string, orgRole?: string, id?: string, email?: string, invited_by?: string, groups?: string[], organizationId?: string }} InviteData
+ * @typedef {{ accountType: 'organization'|'join_existing'|'consumer', channel: string, provider: string|null, invite: { token: string|null, data: InviteData }|null, newOrgName: string|null, organizationId: string|null, orgDetails: Record<string, any>, privacyShield: Record<string, any>|undefined, authMethod: string|null, email: string|null, locale: string|null, selectedPlanId: string|null }} SignupIntent
+ * @typedef {{ organizationId: string|null, orgRole: string, groups: string[], status: string, orgCreated?: boolean, needsVerification?: boolean }} Placement
+ * @typedef {import('express').Request} Request
+ */
 
 /**
  * Every way a signup can be refused, with the HTTP status the password route
  * returns and the ?error= slug the OAuth callback redirects with. The slugs the
  * SPA already handles keep their exact historical values — changing one silently
  * turns a specific error screen into a generic one.
+ * @type {Readonly<Record<string, { status: number, oauthCode: string }>>}
  */
 const SIGNUP_ERRORS = Object.freeze({
     SIGNUPS_DISABLED: { status: 403, oauthCode: 'signup_disabled' },
@@ -95,7 +104,9 @@ class SignupError extends Error {
  * always a join_existing that bypasses the gates and forces 'active'. Folding
  * it into the enum would duplicate the join logic.
  *
- * @returns {{accountType:'organization'|'join_existing'|'consumer', [key: string]: any}}
+ * @param {{ newOrgName?: string, organizationId?: string, orgDetails?: Record<string, any>, privacyShield?: Record<string, any>, authMethod?: string, email?: string, locale?: string, selectedPlanId?: string }} [source]
+ * @param {{ inviteData?: InviteData|null, inviteToken?: string|null, provider?: string|null, channel?: string }} [opts]
+ * @returns {SignupIntent}
  */
 function normalizeSignupIntent(source = {}, { inviteData = null, inviteToken = null, provider = null, channel = 'password' } = {}) {
     const newOrgName = source.newOrgName || null;
@@ -128,7 +139,11 @@ function normalizeSignupIntent(source = {}, { inviteData = null, inviteToken = n
 // Phase 2 — placement (the only org/consumer divergence)
 // ───────────────────────────────────────────────────────────────
 
-/** Guards that apply to every signup regardless of account type. */
+/**
+ * Guards that apply to every signup regardless of account type.
+ * @param {SignupIntent} intent
+ * @param {Request} req
+ */
 async function assertSignupAllowed(intent, req) {
     if (process.env.ALLOW_SIGNUPS === 'false') {
         throw new SignupError('SIGNUPS_DISABLED', 'Account creation is disabled on this server.');
@@ -165,6 +180,7 @@ const MAX_ORG_ID_LENGTH = 48;
  * (signing up twice with the same long name still collides, which is what
  * ORG_NAME_TAKEN is for) and two names sharing a 41-character prefix do not
  * silently become one organisation.
+ * @param {string} name
  */
 function slugifyOrgId(name) {
     const slug = String(name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -200,6 +216,7 @@ function slugifyOrgId(name) {
  * anonymous prober learns nothing — and it is why this throws a distinguishable
  * error code rather than a plain refusal: the signup routes translate
  * ORG_DOMAIN_TAKEN into that silent-success response.
+ * @param {string} orgEmail
  */
 async function assertDomainAvailable(orgEmail) {
     if (!orgEmail || !orgEmail.includes('@')) return;
@@ -240,6 +257,7 @@ async function assertDomainAvailable(orgEmail) {
  * e-mail that can never arrive would be a worse outcome than the residual leak.
  *
  * @returns {Promise<boolean>}
+ * @param {{ email?: string|null, displayName?: string|null, error?: Error & { existingOrganizationName?: string } }} opts
  */
 async function notifyOrganisationAlreadyExists({ email, displayName, error }) {
     if (!email || !String(email).includes('@')) return false;
@@ -285,6 +303,7 @@ async function notifyOrganisationAlreadyExists({ email, displayName, error }) {
  * Validated only when a value was supplied — the fields are optional outside the
  * Netherlands (see signupValidation.requiresDutchRegistration), and rejecting an
  * empty string would lock every non-Dutch company out of signup.
+ * @param {{ kvk?: string|null, vat?: string|null }} opts
  */
 function assertRegistrationNumbersValid({ kvk, vat }) {
     const k = String(kvk || '').replace(/\s/g, '');
@@ -318,6 +337,10 @@ function assertRegistrationNumbersValid({ kvk, vat }) {
     }
 }
 
+/**
+ * @param {SignupIntent} intent
+ * @returns {Promise<Placement>}
+ */
 async function createOrgPlacement(intent) {
     // Invites are org-scoped and never create an org, so this gate can't lock one out.
     const orgSignupsEnabled = (await configStore.getConfig('signup_org_enabled')) ?? true;
@@ -365,6 +388,9 @@ async function createOrgPlacement(intent) {
     return { organizationId: orgId, orgRole: 'org_admin', groups: [], status: 'active', orgCreated: true };
 }
 
+/**
+ * @param {SignupIntent} intent
+ */
 async function joinOrgPlacement(intent) {
     const orgs = await userStore.getAllOrganizations();
     const org = orgs.find(o => o.id === intent.organizationId);
@@ -396,6 +422,8 @@ async function consumerPlacement() {
  * Layer the status policies that apply to every account type: the waitlist and
  * the email-verification gate. Both only ever downgrade an otherwise-'active'
  * account, so a pending org member is unaffected.
+ * @param {Placement} placement
+ * @param {SignupIntent} intent
  */
 async function applyStatusPolicy(placement, intent) {
     let status = placement.status;
@@ -443,8 +471,10 @@ async function applyStatusPolicy(placement, intent) {
 
 /**
  * Decide where the account lands, before any user row exists.
- * @returns {Promise<{organizationId, orgRole, groups, status, needsVerification, orgCreated}>}
+ * @returns {Promise<Placement>}
  * @throws {SignupError}
+ * @param {SignupIntent} intent
+ * @param {{ req: Request }} opts
  */
 async function prepareAccountPlacement(intent, { req }) {
     await assertSignupAllowed(intent, req);
@@ -463,20 +493,33 @@ async function prepareAccountPlacement(intent, { req }) {
 // Phase 3 — finalize (branch-free)
 // ───────────────────────────────────────────────────────────────
 
-/** Org founders get an org-scoped shield; everyone else a personal one. */
+/**
+ * Org founders get an org-scoped shield; everyone else a personal one.
+ * @param {Placement} placement
+ * @param {string} userId
+ */
 function shieldKey(placement, userId) {
     return placement.orgCreated
         ? `org_privacy_shield_${placement.organizationId}`
         : `user_privacy_shield_${userId}`;
 }
 
-/** Trials attach to the org for founders and to the user for consumers. */
+/**
+ * Trials attach to the org for founders and to the user for consumers.
+ * @param {Placement} placement
+ * @param {string} userId
+ */
 function trialTarget(placement, userId) {
     return placement.orgCreated
         ? { organizationId: placement.organizationId }
         : (placement.organizationId ? null : { userId });
 }
 
+/**
+ * @param {SignupIntent} intent
+ * @param {Placement} placement
+ * @param {string} userId
+ */
 async function writePrivacyShield(intent, placement, userId) {
     try {
         if (placement.orgCreated) {
@@ -501,6 +544,9 @@ async function writePrivacyShield(intent, placement, userId) {
     }
 }
 
+/**
+ * @param {{ userId: string, displayName: string, email: string, organizationId: string|null, locale: string }} opts
+ */
 async function issueVerificationToken({ userId, displayName, email, organizationId, locale }) {
     const token = crypto.randomBytes(32).toString('hex');
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
@@ -511,11 +557,16 @@ async function issueVerificationToken({ userId, displayName, email, organization
     });
     const clientHost = `${process.env.CLIENT_PROTOCOL || 'https'}://${process.env.CLIENT_PUBLIC_HOST || 'beeflow.nl'}`;
     const orgName = organizationId ? (await userStore.getOrganization(organizationId))?.name : '';
+    /**
+     * @param {string} action
+     * @param {Record<string, unknown>} details
+     */
     const audit = async (action, details) => {
-        try {
-            await userStore.logAccessAudit(action, 'user', userId, userId, null, { email, ...details }, organizationId || null);
-        } catch (err) { log.debug('best-effort', err); }
+        try { await userStore.logAccessAudit(action, 'user', userId, userId, null, { email, ...details }, organizationId || null); } catch (err) { bestEffort('accountProvisioning:verification-audit', err); }
     };
+    /**
+     * @param {unknown} reason
+     */
     const failed = (reason) => {
         const error = String(reason || 'unknown error').slice(0, 200);
         log.warn('[Signup] verification email failed:', error);
@@ -533,6 +584,11 @@ async function issueVerificationToken({ userId, displayName, email, organization
         );
 }
 
+/**
+ * @param {SignupIntent} intent
+ * @param {Placement} placement
+ * @param {string} userId
+ */
 async function markInviteAccepted(intent, placement, userId) {
     const invite = intent.invite;
     if (!invite) return;
@@ -561,6 +617,9 @@ async function markInviteAccepted(intent, placement, userId) {
 // at signup would have no reader, and write-only data is how the `isConsumer`
 // field this refactor removed came to exist in the first place.
 
+/**
+ * @param {{ email: string, displayName: string, userId: string, organizationId: string|null, locale: string }} opts
+ */
 function sendWelcomeEmailLater({ email, displayName, userId, organizationId, locale }) {
     if (!email) return;
     // claimNotification makes this idempotent, so refreshes and retries can
@@ -583,6 +642,7 @@ function sendWelcomeEmailLater({ email, displayName, userId, organizationId, loc
  * Every step is best-effort — a failed welcome email must never fail a signup.
  *
  * @returns {Promise<{preferredLocale:string, needsVerification:boolean}>}
+ * @param {{ userId: string, email: string, displayName: string, intent: SignupIntent, placement: Placement, req: Request }} opts
  */
 async function finalizeAccount({ userId, email, displayName, intent, placement, req }) {
     await writePrivacyShield(intent, placement, userId);
@@ -629,6 +689,7 @@ async function finalizeAccount({ userId, email, displayName, intent, placement, 
 /**
  * Translate a createUserWithSeatCheck result into the historical HTTP errors.
  * Shared so both routes report a taken username and a full seat cap identically.
+ * @param {Record<string, any>} result
  */
 function assertUserCreated(result) {
     if (result?.created) return result.created;
@@ -636,7 +697,11 @@ function assertUserCreated(result) {
     throw new SignupError('CREATE_FAILED', result?.error || 'Failed to create user');
 }
 
-/** A consumer account is one with no organisation. There is no is_consumer column. */
+/**
+ * A consumer account is one with no organisation. There is no is_consumer column.
+ * @param {Record<string, any>} userRow
+ * @param {{ noOrganization?: boolean }} opts
+ */
 function isConsumerAccount(userRow, { noOrganization = false } = {}) {
     const orgId = userRow?.organizationId || userRow?.organization_id || '';
     return !orgId && !noOrganization && (process.env.DEPLOYMENT_MODE || 'cloud') === 'cloud';

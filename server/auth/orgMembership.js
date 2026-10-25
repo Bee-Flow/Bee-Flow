@@ -51,6 +51,9 @@ function parseGroupIds(userRow) {
 function membershipFor(userRow, allGroups = []) {
     const out = [];
     const seen = new Set();
+    /**
+     * @param {string} via
+     */
     const add = (orgId, via) => {
         // `users.organizationId` DEFAULTs to '' (userStore.js:38) and a global
         // group's organizationId is NULL — both falsy, and neither is an org.
@@ -74,10 +77,17 @@ function orgIdsForUser(userRow, allGroups = []) {
     return new Set(membershipFor(userRow, allGroups).map((m) => m.orgId));
 }
 
-/** Does this user reach `orgId` by either path? */
+/**
+ * Does this user reach `orgId` by either path?
+ * @param {string} orgId
+ */
 function isMemberOfOrg(userRow, allGroups, orgId) {
     if (!orgId) return false;
     return orgIdsForUser(userRow, allGroups).has(orgId);
 }
 
 module.exports = { parseGroupIds, membershipFor, orgIdsForUser, isMemberOfOrg };
+
+/** @typedef {{ organizationId?: string | null, groups?: string | string[] | null } | null | undefined} MemberRow */
+
+/** @typedef {{ id: string, organizationId?: string | null }} GroupRow */

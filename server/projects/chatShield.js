@@ -42,6 +42,7 @@
 'use strict';
 
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 class PrivacyBlocked extends Error {
     /** @param {string} reason a short machine reason, never content */
@@ -79,8 +80,8 @@ function makeChatShield(deps = {}) {
 
     function audit(base, fields) {
         try {
-            Promise.resolve(logGuardrailEvent({ ...base, ...fields, direction: 'input', source })).catch(() => {});
-        } catch (err) { log.debug('auditing never decides the outcome', err); }
+            Promise.resolve(logGuardrailEvent({ ...base, ...fields, direction: 'input', source })).catch((e) => bestEffort('projects/chatShield:audit', e));
+        } catch (err) { bestEffort('projects/chatShield:audit#2', err); /* auditing never decides the outcome */ }
     }
 
     /** The kinds of thing that were replaced, as labels only (never the values). */
@@ -257,7 +258,7 @@ function makeChatShield(deps = {}) {
 
     /** Drop the per-run token map from process memory. Never throws. */
     function release(conversationId) {
-        try { dlp().clearConversationState(conversationId, { ephemeral: true }); } catch (err) { log.debug('nothing held', err); }
+        try { dlp().clearConversationState(conversationId, { ephemeral: true }); } catch (err) { bestEffort('projects/chatShield:release', err); /* nothing held */ }
     }
 
     return { resolve, protect, tokenAddendum, restore, release, toolGate, restoreArgs, searchGuard };

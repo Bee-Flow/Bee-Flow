@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * House Style Store — per-organization Word/DOCX templates that drive the
  * styling of Notebook exports (font, headings, margins, header/footer logo).
@@ -28,12 +28,11 @@ const CLEAR_DEFAULT_SQL =
 const HOUSE_STYLE_COLUMNS = {
     name: 'name',
     description: 'description',
-    styleMeta: { col: 'style_meta', transform: v => JSON.stringify(v) },
+    styleMeta: { col: 'style_meta', transform: (/** @type {unknown} */ v) => JSON.stringify(v) },
 };
 
 /**
- * @param {{run: Function, getOne: Function, getAll: Function, exec: Function,
- *          withTransaction: Function}} db
+ * @param {Pick<typeof import('../db'), 'run' | 'getOne' | 'getAll' | 'exec' | 'withTransaction'>} db
  * @param {{tag?: string}} [opts] - tag only changes the init error log prefix.
  */
 function createHouseStyleStore(db, { tag = 'houseStyleStore' } = {}) {
@@ -62,8 +61,19 @@ function createHouseStyleStore(db, { tag = 'houseStyleStore' } = {}) {
         `);
     }
 
+    /**
+     * @typedef {{ id: string, orgId: string, name: string, description: string, styleMeta: Record<string, unknown>,
+     *   isDefault: boolean, createdBy: string|null, createdAt: Date|string, updatedAt: Date|string, docxBlob?: Buffer }} HouseStyle
+     */
+
+    /**
+     * @param {import('pg').QueryResultRow | null | undefined} r
+     * @param {{ includeBlob?: boolean }} [opts]
+     * @returns {HouseStyle | null}
+     */
     function mapRow(r, { includeBlob = false } = {}) {
         if (!r) return null;
+        /** @type {HouseStyle} */
         const out = {
             id: r.id,
             orgId: r.org_id,
@@ -79,8 +89,12 @@ function createHouseStyleStore(db, { tag = 'houseStyleStore' } = {}) {
         return out;
     }
 
+    /**
+     * @param {string} v
+     */
     function safeJSON(v) { try { return JSON.parse(v); } catch (_) { return {}; } }
 
+    /** @param {string} orgId */
     async function listForOrg(orgId) {
         await initDB();
         const rows = await getAll(
@@ -91,6 +105,11 @@ function createHouseStyleStore(db, { tag = 'houseStyleStore' } = {}) {
         return rows.map(r => mapRow(r));
     }
 
+    /**
+     * @param {string} id
+     * @param {string} orgId
+     * @param {{ includeBlob?: boolean }} [opts]
+     */
     async function getById(id, orgId, { includeBlob = false } = {}) {
         await initDB();
         const cols = includeBlob
@@ -103,6 +122,10 @@ function createHouseStyleStore(db, { tag = 'houseStyleStore' } = {}) {
         return mapRow(row, { includeBlob });
     }
 
+    /**
+     * @param {string} orgId
+     * @param {{ includeBlob?: boolean }} [opts]
+     */
     async function getDefaultForOrg(orgId, { includeBlob = false } = {}) {
         await initDB();
         const cols = includeBlob
@@ -115,6 +138,9 @@ function createHouseStyleStore(db, { tag = 'houseStyleStore' } = {}) {
         return mapRow(row, { includeBlob });
     }
 
+    /**
+     * @param {{ orgId: string, name: string, description?: string, docxBuffer: Buffer, styleMeta?: object, createdBy?: string|null, makeDefault?: boolean }} input
+     */
     async function create({ orgId, name, description, docxBuffer, styleMeta, createdBy, makeDefault }) {
         await initDB();
         const id = crypto.randomUUID();
@@ -137,6 +163,11 @@ function createHouseStyleStore(db, { tag = 'houseStyleStore' } = {}) {
         return getById(id, orgId);
     }
 
+    /**
+     * @param {string} id
+     * @param {string} orgId
+     * @param {{ name?: string, description?: string, styleMeta?: object, isDefault?: boolean }} updates
+     */
     async function update(id, orgId, updates) {
         await initDB();
         const built = buildUpdate({
@@ -149,6 +180,7 @@ function createHouseStyleStore(db, { tag = 'houseStyleStore' } = {}) {
         // following the flag rather than the builder.
         if (!built && updates.isDefault === undefined) return getById(id, orgId);
         const values = built ? built.params : [];
+        /** @type {string[]} */
         const fields = [];
         if (updates.isDefault === true) {
             fields.push(`is_default = TRUE`);
@@ -184,6 +216,10 @@ function createHouseStyleStore(db, { tag = 'houseStyleStore' } = {}) {
         return getById(id, orgId);
     }
 
+    /**
+     * @param {string} id
+     * @param {string} orgId
+     */
     async function remove(id, orgId) {
         await initDB();
         await run(`DELETE FROM org_house_styles WHERE id = $1 AND org_id = $2`, [id, orgId]);

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -34,6 +34,10 @@ const CONSUMER_KINDS = Object.freeze(['automation', 'app', 'webpage', 'kb']);
 /** The three ways a consumer may touch a table. */
 const USAGE_MODES = Object.freeze(['read', 'write', 'readwrite']);
 
+/**
+ * @param {string} kind
+ * @param {string} who
+ */
 function assertConsumerKind(kind, who) {
     if (!CONSUMER_KINDS.includes(kind)) {
         throw new Error(`${who} requires a consumerKind of ${CONSUMER_KINDS.join(' | ')}, got ${JSON.stringify(kind)}`);
@@ -41,7 +45,10 @@ function assertConsumerKind(kind, who) {
     return kind;
 }
 
-/** 'read' | 'write' | 'readwrite'; anything else is the safe default, a read. */
+/**
+ * 'read' | 'write' | 'readwrite'; anything else is the safe default, a read.
+ * @param {string | undefined} mode
+ */
 function normalizeMode(mode) {
     return USAGE_MODES.includes(mode) ? mode : 'read';
 }
@@ -59,7 +66,7 @@ function normalizeMode(mode) {
  * practice (all UUIDs), but "in practice" is not a reason to let an app's save
  * be able to erase an automation's rows.
  *
- * @param {'automation'|'app'|'webpage'} consumerKind
+ * @param {'automation'|'app'|'webpage'|'kb'} consumerKind
  * @param {string} consumerId  the automation, studio_apps or webpages id
  * @param {{kind:'org'|'user', id:string}|Array<{kind:'org'|'user', id:string}>} scope
  *   the scope — or the scopes — whose tables the consumer may name. A LIST is
@@ -137,6 +144,9 @@ async function reconcileUsageFor(consumerKind, consumerId, scope, entries) {
  * Reconcile which steps of ONE automation touch which tables — the original
  * entry point, kept so every automation save path is unchanged. It IS
  * reconcileUsageFor('automation', …); nothing else.
+ * @param {string} automationId
+ * @param {{ kind: "org" | "user"; id: string; } | { kind: "org" | "user"; id: string; }[]} scope
+ * @param {{ datatableId: string; stepId: string; mode?: "read" | "write" | "readwrite"; columns?: string[]; }[]} entries
  */
 async function reconcileUsage(automationId, scope, entries) {
     if (!automationId) throw new Error('reconcileUsage requires an automationId');
@@ -154,6 +164,7 @@ async function reconcileUsage(automationId, scope, entries) {
  * to_regclass and remembered once both are there; re-probed (one cheap query)
  * until then. An absent kind's consumers come back with a null title.
  */
+/** @type {{ apps: boolean; pages: boolean; kbs: boolean; } | null} */
 let joinableConsumerTables = null;
 async function consumerJoins() {
     if (joinableConsumerTables) return joinableConsumerTables;
@@ -191,6 +202,7 @@ async function consumerJoins() {
  *   mode:'read'|'write'|'readwrite', columns:string[],
  *   lastRunAt:string|null, updatedAt:*
  * }>>}
+ * @param {string} datatableId
  */
 async function listUsage(datatableId) {
     await initDB();
@@ -214,6 +226,10 @@ async function listUsage(datatableId) {
     // Walked once per automation, not once per row: an automation with four datatable
     // steps rides the JOIN four times but is only parsed once.
     const positionsByAutomation = new Map();
+    /**
+     * @param {string} automationId
+     * @param {unknown} definition
+     */
     const positionsFor = (automationId, definition) => {
         if (!positionsByAutomation.has(automationId)) {
             const { stepPositions } = require('../../automation/datatableUsage');
@@ -262,6 +278,7 @@ async function listUsage(datatableId) {
  * How many DISTINCT consumers use each of many tables — the "2 automations"
  * pill on the list, in one GROUP BY rather than one listUsage per row.
  * @returns {Promise<Map<string, number>>} datatableId → consumer count (0 for a table nobody uses)
+ * @param {string[]} datatableIds
  */
 async function listUsageCounts(datatableIds) {
     await initDB();
@@ -279,7 +296,11 @@ async function listUsageCounts(datatableIds) {
     return out;
 }
 
-/** Steps that name a given column — the destructive-change guard. */
+/**
+ * Steps that name a given column — the destructive-change guard.
+ * @param {string} columnKey
+ * @param {string} datatableId
+ */
 async function listUsageForColumn(datatableId, columnKey) {
     const all = await listUsage(datatableId);
     return all.filter(u => Array.isArray(u.columns) && u.columns.includes(columnKey));
@@ -294,13 +315,18 @@ async function listUsageForColumn(datatableId, columnKey) {
  * they come back with a null title and the "used by" panel tells an owner that
  * something they cannot see writes to their table. Called from every delete
  * path of every consumer kind.
+ * @param {string} automationId
  */
 async function purgeUsageForAutomation(automationId) {
     if (!automationId) return 0;
     return purgeUsageFor('automation', automationId);
 }
 
-/** The generic form of purgeUsageForAutomation, keyed on the kind as well as the id. */
+/**
+ * The generic form of purgeUsageForAutomation, keyed on the kind as well as the id.
+ * @param {string} consumerKind
+ * @param {string} consumerId
+ */
 async function purgeUsageFor(consumerKind, consumerId) {
     await initDB();
     assertConsumerKind(consumerKind, 'purgeUsageFor');

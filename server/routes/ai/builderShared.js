@@ -1,3 +1,4 @@
+/** @typedef {import('../../core/providers').BaseProvider} BaseProvider */
 /**
  * Shared internals for the conversational builder routes
  * (routes/ai/automationBuilder.js and routes/ai/appStudioBuilder.js).
@@ -12,6 +13,7 @@
 const { classifyModel } = require('../../automation/builderModelProfiles');
 const { isLocalProviderType } = require('../../core/providers/localModels');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // Transient provider errors (rate limits, 5xx, network blips) shouldn't kill
 // an entire builder turn — the user would lose their in-progress conversation.
@@ -33,6 +35,9 @@ function isTransientChatError(err) {
 // for these models.
 const GEMINI_3X_RE = /gemini-3(\.\d+)?-(pro|flash)/i;
 
+/**
+ * @param {string} modelId
+ */
 function isGemini3Model(modelId) {
     return GEMINI_3X_RE.test(String(modelId || ''));
 }
@@ -46,6 +51,7 @@ const BUILDER_FLOOR_TIER_ORDER = ['standard', 'thinking', 'deep_thinking', 'writ
  * band. Returns `{ tier, modelId }` — unchanged when `modelId` is already
  * non-small, or when the org has no non-small tier configured (don't break a
  * small-only org).
+ * @param {string} resolvedTier
  */
 function applyBuilderTierFloor(resolvedTier, modelId, tiers) {
     if (classifyModel(modelId) !== 'small') return { tier: resolvedTier, modelId };
@@ -111,6 +117,8 @@ const LOCAL_STREAM_TIMEOUT_MS = 120000;
  * `signal` is the caller's client-disconnect signal and `timeoutMs` a per-chunk
  * stall watchdog; both are applied to every attempt. On a self-hosted runtime
  * they are not optional — see LOCAL_STREAM_TIMEOUT_MS.
+ * @param {string} modelId
+ * @param {BaseProvider} adapter
  */
 async function streamWithRetry(adapter, cfg, modelId, messages, options, {
     send,
@@ -130,12 +138,19 @@ async function streamWithRetry(adapter, cfg, modelId, messages, options, {
         const thinkingParts = [];          // { id, text, signature, redacted, startedAt, endedAt }
         const partById = new Map();
         let emittedAny = false;
+        /** @type {Error | null} */
         let streamErr = null;
         let usage = null;                  // adapter-normalized token usage from the 'done' event
         let finishReason = null;           // 'stop' | 'length' | 'max_tokens' | … from the 'done' event
         const tag = `s${__builderStreamSeq++}`;
+        /**
+         * @param {string} id
+         */
         const tagPart = (id) => `${tag}-${id}`;
 
+        /**
+         * @param {string} id
+         */
         const ensurePart = (id, redacted) => {
             let p = partById.get(id);
             if (!p) {
@@ -224,11 +239,11 @@ async function streamWithRetry(adapter, cfg, modelId, messages, options, {
                 // 'tool_use'. Not counted in emittedAny — nothing the model
                 // said is on the wire yet, so a retry stays safe.
                 if (typeof onToolArgsDelta === 'function') {
-                    try { onToolArgsDelta(data || {}); } catch (err) { log.debug('a visualisation never kills a build', err); }
+                    try { onToolArgsDelta(data || {}); } catch (err) { bestEffort('routes/ai/builderShared:onEvent', err); /* a visualisation never kills a build */ }
                 }
             } else if (type === 'prompt_progress') {
                 if (typeof onPromptProgress === 'function') {
-                    try { onPromptProgress(data || {}); } catch (err) { log.debug('a visualisation never kills a build', err); }
+                    try { onPromptProgress(data || {}); } catch (err) { bestEffort('routes/ai/builderShared:onEvent#2', err); /* a visualisation never kills a build */ }
                 }
             }
         };
@@ -267,7 +282,7 @@ async function streamWithRetry(adapter, cfg, modelId, messages, options, {
             lastErr = e;
             if (attempt === retries || !isTransientChatError(e) || emittedAny) throw e;
             const delay = baseDelayMs * Math.pow(2, attempt) + Math.floor(Math.random() * 250);
-            log.warn(`${logPrefix} stream attempt ${attempt + 1} failed (${e.message}); retrying in ${delay}ms`);
+            log.warn(`${logPrefix} stream attempt ${attempt + 1} failed (${/** @type {Error} */ (e).message}); retrying in ${delay}ms`);
             await new Promise(r => setTimeout(r, delay));
         }
     }
@@ -281,3 +296,29 @@ module.exports = {
     applyBuilderTierFloor,
     streamWithRetry,
 };
+
+/**
+ * @typedef {(event: string, data?: { content?: string, [key: string]: unknown }) => void} BuilderSend
+ * @typedef {{
+ *   start: (send: BuilderSend, part: { partId?: string|null, redacted?: boolean }) => void,
+ *   delta: (send: BuilderSend, part: { partId?: string|null, text: string }) => void,
+ *   stop: (send: BuilderSend, part: { partId?: string|null, redacted?: boolean }) => void,
+ * }} BuilderThinkingEmitter
+ * @typedef {{
+ *   send?: BuilderSend,
+ *   emitThinking?: BuilderThinkingEmitter,
+ *   signal?: AbortSignal,
+ *   onToolArgsDelta?: (data: object) => void,
+ *   onPromptProgress?: (data: object) => void,
+ *   retries?: number,
+ *   baseDelayMs?: number,
+ *   logPrefix?: string,
+ * }} BuilderStreamOptions
+ * @typedef {{ text?: string, partId?: string, redacted?: boolean, signature?: string, redactedData?: string,
+ *   id?: string, name?: string, input?: unknown, thought_signature?: string, _repaired?: boolean,
+ *   error?: string, message?: string, stop_reason?: string, finish_reason?: string, [key: string]: unknown }} BuilderStreamEvent
+ * @typedef {{ id: string, text: string, signature: string | null, redacted: boolean, startedAt: number,
+ *   endedAt: number | null, redactedData?: string }} BuilderThinkingPart
+ * @typedef {{ id: string, type: string, function: { name: string, arguments: string },
+ *   _thought_signature?: string, _repaired?: boolean, _raw_content_parts?: unknown }} BuilderToolCall
+ */

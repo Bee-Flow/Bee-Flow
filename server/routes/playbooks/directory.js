@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * WHO A PLAYBOOK'S ASSISTANTS MAY NAME — the people and groups handed to a
  * model that proposes access (accessPhaseRoutes: the access assistant) or a
@@ -9,6 +9,7 @@
 
 'use strict';
 
+/** @param {{ groups?: string[] | string | null }} u */
 function groupIdsOf(u) {
     if (Array.isArray(u.groups)) return u.groups;
     try {
@@ -41,7 +42,13 @@ function groupIdsOf(u) {
  * same reason). The access assistant was fixed first; resolve-plan kept the
  * old clause until it was moved here.
  *
- * @returns {{ groups: object[], users: object[] }}
+ * @template {{ id: string, organizationId?: string | null }} G
+ * @template {{ id: string, organizationId?: string | null, groups?: string[] | string | null }} U
+ * @param {{ organizationId?: string | null, userId: string }} pb
+ * @param {{ isAdmin?: boolean, user?: { role?: string } } | null | undefined} session
+ * @param {G[]} groups
+ * @param {U[]} users
+ * @returns {{ groups: G[], users: U[] }}
  */
 function directoryFor(pb, session, groups, users) {
     const orgId = pb.organizationId || null;

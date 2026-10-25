@@ -14,7 +14,7 @@ const {
     mergeVoteAnswers, voteSummary, panelProgress, isFinalApprover,
 } = require('./approvalRulebook');
 const { outcome, userDisplayName, finalizeDecision } = require('./approvalDecision');
-const log = require('../telemetry/log');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 /** The next stage's reminder deadline, or undefined to leave the clock alone. */
 function nextStageRemindAt(approval, stage) {
@@ -50,7 +50,7 @@ async function castStageVote({ approval, run, deciderId, decision, trimmedReason
         const u = await userStore.getUser(deciderId);
         voterName = userDisplayName(u);
         groupIds = u ? parseGroupIds(u).map(String) : [];
-    } catch (err) { log.debug('seat matching falls back to personal seats only', err); }
+    } catch (err) { fallback('automation/approvalVotes:castStageVote', err); /* seat matching falls back to personal seats only */ }
     const viewer = { userId: deciderId, groupIds };
 
     const stage = currentStage(approval);
@@ -84,7 +84,7 @@ async function castStageVote({ approval, run, deciderId, decision, trimmedReason
         decidedBy: deciderId,
         decision: decision === 'approve' ? 'vote_approved' : 'vote_rejected',
         comment: trimmedReason || null, source: `${source}:${stage.key}`,
-    }).catch(() => {});
+    }).catch((e) => bestEffort('automation/approvalVotes:castStageVote#2', e));
 
     const allVotes = [...votes, vote];
     const verdict = evaluateStage(stage, [...stageVotes, vote], deploymentRequesterId(approval));
@@ -121,8 +121,8 @@ async function castStageVote({ approval, run, deciderId, decision, trimmedReason
                     approvalId: approval.id, runId: approval.runId, stepId: approval.stepId,
                     decidedBy: null, decision: 'stage_passed',
                     comment: `${stage.name} → ${next?.name || nextKey}`, source,
-                }).catch(() => {});
-                await notifyStageApprovers(advanced, next).catch(() => {});
+                }).catch((e) => bestEffort('automation/approvalVotes:castStageVote#3', e));
+                await notifyStageApprovers(advanced, next).catch((e) => bestEffort('automation/approvalVotes:castStageVote#4', e));
             }
             const fresh = advanced || await automationStore.getApproval(approval.id);
             return outcome(200, {
@@ -168,7 +168,7 @@ async function notifyStageApprovers(approval, stage) {
         category: 'heads_up',
         title: `🔔 Your approval is needed: ${stage.name}`,
         message: `${approval.prompt || 'An approval'}${where}${stage.description ? ` — ${stage.description}` : ''}`,
-    }).catch(() => {});
+    }).catch((e) => bestEffort('automation/approvalVotes:notifyStageApprovers', e));
 }
 
 /**
@@ -188,7 +188,7 @@ async function castPanelVote({ approval, run, deciderId, decision, trimmedReason
         const u = await userStore.getUser(deciderId);
         voterName = userDisplayName(u);
         groupIds = u ? parseGroupIds(u).map(String) : [];
-    } catch (err) { log.debug('seat matching falls back to personal seats only', err); }
+    } catch (err) { fallback('automation/approvalVotes:castPanelVote', err); /* seat matching falls back to personal seats only */ }
     const viewer = { userId: deciderId, groupIds };
 
     const votes = await automationStore.getApprovalVotes(approval.id);
@@ -210,7 +210,7 @@ async function castPanelVote({ approval, run, deciderId, decision, trimmedReason
             decidedBy: deciderId,
             decision: decision === 'approve' ? 'vote_approved' : 'vote_rejected',
             comment: trimmedReason || null, source,
-        }).catch(() => {});
+        }).catch((e) => bestEffort('automation/approvalVotes:castPanelVote#2', e));
         const allVotes = [...votes, vote];
         return finalizeDecision({
             approval, run, deciderId, decision, trimmedReason,
@@ -247,7 +247,7 @@ async function castPanelVote({ approval, run, deciderId, decision, trimmedReason
         decidedBy: deciderId,
         decision: decision === 'approve' ? 'vote_approved' : 'vote_rejected',
         comment: trimmedReason || null, source,
-    }).catch(() => {});
+    }).catch((e) => bestEffort('automation/approvalVotes:castPanelVote#3', e));
 
     const allPanelVotes = [...panelVotes, vote];
     const allVotes = [...votes, vote];
@@ -265,8 +265,8 @@ async function castPanelVote({ approval, run, deciderId, decision, trimmedReason
                 await automationStore.appendApprovalAudit({
                     approvalId: approval.id, runId: approval.runId, stepId: approval.stepId,
                     decidedBy: null, decision: 'panel_approved', source,
-                }).catch(() => {});
-                await notifyFinalApprover(advanced).catch(() => {});
+                }).catch((e) => bestEffort('automation/approvalVotes:castPanelVote#4', e));
+                await notifyFinalApprover(advanced).catch((e) => bestEffort('automation/approvalVotes:castPanelVote#5', e));
             }
             const fresh = advanced || await automationStore.getApproval(approval.id);
             return outcome(200, {
@@ -308,7 +308,13 @@ async function notifyFinalApprover(approval) {
         category: 'heads_up',
         title: `🖋️ Final sign-off needed: ${approval.automationTitle || 'approval'}`,
         message: `${approval.prompt || 'An approval'} — the panel approved; your decision is the final word.`,
-    }).catch(() => {});
+    }).catch((e) => bestEffort('automation/approvalVotes:notifyFinalApprover', e));
 }
 
 module.exports = { castStageVote, castPanelVote, nextStageRemindAt };
+
+/** @typedef {import('./approvalRulebook').Approval} Approval */
+
+/** @typedef {import('./approvalRulebook').ApprovalStage} ApprovalStage */
+
+/** @typedef {import('./approvalDecision').DecisionCall} DecisionCall */

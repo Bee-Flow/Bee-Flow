@@ -55,3 +55,27 @@ function coerceModelShape(model) {
 }
 
 module.exports = { isPhysical, coerceModelShape };
+
+/**
+ * A model field as the migration planner reads it.
+ * @typedef {{ id: string, key: string, type?: string, unique?: boolean, required?: boolean, default?: unknown,
+ *   relation?: { table?: string, fk?: boolean }, computed?: { expr?: string, type?: string, stored?: boolean } }} ModelField
+ */
+
+/**
+ * A `retired_fields` entry (retainedColumns.retireMetaFor).
+ * @typedef {{ id: string, key?: string | null, fieldKey?: string, type?: string, columnType?: string | null,
+ *   stored?: boolean, expr?: string | null, relationTable?: string | null, notNull?: boolean, unique?: boolean,
+ *   fk?: { table: string } | null, verified?: boolean }} RetiredEntry
+ */
+
+/**
+ * @typedef {{ id: string, key: string, source: unknown, fields: ModelField[], retired: RetiredEntry[] }} ModelTable
+ * @typedef {{ tables: ModelTable[] }} ModelShape
+ */
+
+/**
+ * Options of migrationPlan / retainConflicts.
+ * @typedef {{ dialect?: string, onlyTableIds?: string[], retainRetired?: boolean,
+ *   retiredFieldIds?: Set<string>, retiredMeta?: Map<string, Partial<RetiredEntry>> }} MigrationPlanOpts
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Resized WebP variants of uploaded CMS images, for `srcset` on the public
@@ -122,7 +122,7 @@ async function renderVariant(cacheKey, source, width, format = 'webp') {
             if (out) remember(id, out); else forget(id);
             return out;
         })
-        .catch(() => { forget(id); return null; })
+        .catch(/** @returns {null} */ () => { forget(id); return null; })
         .finally(() => { running--; inflight.delete(id); });
     inflight.set(id, job);
     return job;

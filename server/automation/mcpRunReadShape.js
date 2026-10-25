@@ -11,14 +11,17 @@
  * of the payload-truncation helpers.
  */
 
-const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const MAX_SHAPE_DEPTH = 24;
 // List elements merged into one `items` shape: enough to see optional keys
 // without walking a 50 000-row list twice.
 const SHAPE_SAMPLE_ITEMS = 20;
 
-/** Object keys are structure, but a key that looks like data (an address, a long token) is not shown. */
+/**
+ * Object keys are structure, but a key that looks like data (an address, a long token) is not shown.
+ * @param {string} key
+ */
 function safeKey(key) {
     const k = String(key);
     if (k.length > 64 || k.includes('@') || /\d{8,}/.test(k)) return '«key»';
@@ -105,6 +108,7 @@ function shapeOf(value, limits, counts, depth = 1) {
  * A step payload as `{ present, shape, counts, bytes }`. A payload the run
  * history stored as the truncation sentinel reports that (original size, and
  * whether a full copy is kept) plus the shape of the preview it carries.
+ * @param {{ keys: number; nodes: number; }} limits
  */
 function describePayload(value, limits) {
     if (value === undefined || value === null) return { present: false };
@@ -122,8 +126,9 @@ function describePayload(value, limits) {
         };
     }
     const shape = shapeOf(value, limits, counts);
+    /** @type {number | null} */
     let bytes = null;
-    try { bytes = Buffer.byteLength(JSON.stringify(value), 'utf8'); } catch (e) { log.debug(`[automations-mcp] payload size unknown (unserialisable): ${e.message}`); }
+    try { bytes = Buffer.byteLength(JSON.stringify(value), 'utf8'); } catch (e) { fallback('automation/mcpRunReadShape:describePayload', e); /* [automations-mcp] payload size unknown (unserialisable): */ }
     return { present: true, shape, counts, bytes };
 }
 
@@ -142,6 +147,7 @@ const REDACTED_MARKER_RE = /^«redacted:[a-z-]+»$/;
  *
  * @param {any} value
  * @returns {any}
+ * @param {number} [depth]
  */
 function placeholderize(value, depth = 1) {
     if (value === null || value === undefined || typeof value === 'boolean') return value ?? null;
@@ -162,3 +168,7 @@ function placeholderize(value, depth = 1) {
 }
 
 module.exports = { safeKey, typeOf, newCounts, mergeShapes, shapeOf, describePayload, placeholderize };
+
+/**
+ * @typedef {{ type: string, keys?: Record<string, Shape>, keyCount?: number, length?: number, items?: Shape | null, of?: string[], cutOff?: boolean, moreKeys?: number }} Shape   the structure of a JSON value, without its leaves
+ */

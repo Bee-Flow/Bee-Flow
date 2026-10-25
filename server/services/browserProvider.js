@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Browser Provider — a thin Playwright client over a REMOTE Chromium.
  *
@@ -23,7 +23,7 @@
  * shared browser comfortably serves the low-volume export/thumbnail/ingest load.
  */
 
-const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const DEFAULT_DEPS = {
     pwtRunner: require('./pwtRunner'),
@@ -38,7 +38,9 @@ const CONNECT_TIMEOUT_MS = parseInt(process.env.BROWSER_CONNECT_TIMEOUT_MS || '3
 const ALLOW_LOCAL = process.env.BROWSER_ALLOW_LOCAL_LAUNCH === 'true';
 const LOCAL_LAUNCH_ARGS = ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'];
 
+/** @type {import('playwright').Browser | null} */
 let _conn = null;          // persistent connected (or locally-launched) Browser
+/** @type {Promise<import('playwright').Browser> | null} */
 let _connecting = null;    // in-flight connect promise (dedupes concurrent first use)
 
 function chromium() {
@@ -52,6 +54,10 @@ function chromium() {
  */
 const BACKEND_UNAVAILABLE = 'browser_backend_unavailable';
 
+/**
+ * @param {string} detail
+ * @param {unknown} [cause]
+ */
 function backendUnavailable(detail, cause) {
     const err = new Error(
         `Browser backend unavailable (${detail}). Run the browser sidecar and set BROWSER_WS_ENDPOINT `
@@ -65,7 +71,10 @@ function backendUnavailable(detail, cause) {
     return err;
 }
 
-/** Did this error come from a missing or unreachable browser backend? */
+/**
+ * Did this error come from a missing or unreachable browser backend?
+ * @param {(Error & { code?: string }) | null | undefined} err
+ */
 function isBackendUnavailable(err) {
     return !!err && err.code === BACKEND_UNAVAILABLE;
 }
@@ -111,6 +120,7 @@ async function getConnection() {
  * one turns out to be dead (the failure surfaces here, on newContext). The retry
  * deliberately wraps only connection + context creation — never the caller's
  * work — so a bug in the caller is not re-run.
+ * @param {import('playwright').BrowserContextOptions} [contextOptions]
  */
 async function newContextWithRetry(contextOptions) {
     try {
@@ -127,7 +137,7 @@ async function newContextWithRetry(contextOptions) {
  * Run `fn(context)` against an isolated context on the shared browser, then
  * close the context. The shared browser/connection is left intact.
  *
- * @param {object} contextOptions  passed to browser.newContext (viewport,
+ * @param {import('playwright').BrowserContextOptions} contextOptions  passed to browser.newContext (viewport,
  *                                 userAgent, deviceScaleFactor, …) — all work
  *                                 over connect().
  * @param {(context: import('playwright').BrowserContext) => Promise<any>} fn
@@ -137,7 +147,7 @@ async function withContext(contextOptions, fn) {
     try {
         return await fn(context);
     } finally {
-        try { await context.close(); } catch (err) { log.debug('ignore', err); }
+        try { await context.close(); } catch (err) { bestEffort('services/browserProvider:withContext', err); /* ignore */ }
     }
 }
 
@@ -146,6 +156,7 @@ async function withContext(contextOptions, fn) {
  * `await context.close()` when done and MUST NOT close the browser. Used by the
  * Tests Studio host-mode fallback, whose explore/agent loops manage their own
  * page/context lifecycle.
+ * @param {import('playwright').BrowserContextOptions} [contextOptions]
  */
 async function newSharedContext(contextOptions) {
     return newContextWithRetry(contextOptions);
@@ -160,12 +171,13 @@ async function getBrowserEndpoint() {
 async function close() {
     const b = _conn;
     _conn = null;
-    if (b) { try { await b.close(); } catch (err) { log.debug('ignore', err); } }
+    if (b) { try { await b.close(); } catch (err) { bestEffort('services/browserProvider:close', err); /* ignore */ } }
 }
 
 /**
  * Test seam: swap the runner and the Playwright `chromium` getter, and drop
  * any cached connection. No argument restores the real ones.
+ * @param {Partial<typeof DEFAULT_DEPS> | null} [over]
  */
 function __setDepsForTests(over = null) {
     _deps = { ...DEFAULT_DEPS, ...(over || {}) };

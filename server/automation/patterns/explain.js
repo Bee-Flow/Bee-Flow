@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Explain: the ONE model call of a pattern scan. The miner decided what
@@ -96,7 +96,10 @@ const APP_LABELS = new Map([
     ['documents', 'the knowledge base'],
 ]);
 
-/** "google_sheets" → "Google Sheets": the registry's label, else the id in words. */
+/**
+ * "google_sheets" → "Google Sheets": the registry's label, else the id in words.
+ * @param {string} id
+ */
 function appLabel(id) {
     const app = normaliseApp(id);
     if (APP_LABELS.has(app)) return /** @type {string} */ (APP_LABELS.get(app));
@@ -116,6 +119,7 @@ function fallbackName(c) {
     const app = appLabel(apps[0]);
     const verbs = Array.isArray(c?.verbs) ? c.verbs : [];
     const verbApps = Array.isArray(c?.verbApps) && c.verbApps.length === verbs.length ? c.verbApps : verbs.map(() => apps[0]);
+    /** @type {string} */
     let title;
     switch (c?.kind) {
         case 'mail_template':
@@ -138,6 +142,7 @@ function fallbackName(c) {
     return clamp(title, MAX_TITLE);
 }
 
+/** @type {Record<string, string>} */
 const WHY_BY_KIND = {
     mail_template_in: 'These emails keep arriving and you handle each one the same way, so an automation can do it as soon as one lands.',
     mail_template_out: 'You write this email yourself on a regular rhythm, so an automation can draft it for you.',
@@ -147,6 +152,7 @@ const WHY_BY_KIND = {
 };
 
 /** "Every week on Monday" style, from the cadence kind alone (no numbers). */
+/** @type {Record<string, string>} */
 const CADENCE_WORDS = {
     daily: 'every day', weekdays: 'every weekday', weekly: 'every week', biweekly: 'every two weeks', monthly: 'every month',
 };
@@ -167,7 +173,7 @@ function fallbackExplanation(c, card = toEvidenceCard(c)) {
         lines.push(`Trigger: ${draft.trigger.label || 'run by hand'}.`);
         if (draft.steps.length) {
             lines.push('Steps:');
-            draft.steps.forEach((s, i) => lines.push(`${i + 1}. ${s.label}${s.app ? ` (${appLabel(s.app)})` : ''}`));
+            draft.steps.forEach((/** @type {{ label: string, app?: string }} */ s, /** @type {number} */ i) => lines.push(`${i + 1}. ${s.label}${s.app ? ` (${appLabel(s.app)})` : ''}`));
         }
     } else if (card?.apps?.length) {
         lines.push(`It uses ${card.apps.map(appLabel).join(' and ')}.`);
@@ -184,17 +190,25 @@ function fallbackExplanation(c, card = toEvidenceCard(c)) {
 const NUMBER_RE = /\d+(?:[.,]\d+)?/g;
 const JSON_NUMBER_RE = /\d+(?:\.\d+)?/g;
 const UNSAFE_RE = /@|https?:\/\/|www\./i;
+/** @type {Record<string, string>} */
 const PLACEHOLDER_WORDS = {
     name: 'someone', org: 'an organisation', email: 'an email address', url: 'a link', domain: 'a website',
 };
 
-/** Collapse runs of spaces (line breaks survive) and cut at `max`. */
+/**
+ * Collapse runs of spaces (line breaks survive) and cut at `max`.
+ * @param {string} text
+ * @param {number} max
+ */
 function clamp(text, max) {
     const s = String(text ?? '').replace(/[^\S\n]+/g, ' ').replace(/ *\n */g, '\n').trim();
     return s.length > max ? s.slice(0, max).trim() : s;
 }
 
-/** "09" and "9", "1,5" and "1.5" are one number. */
+/**
+ * "09" and "9", "1,5" and "1.5" are one number.
+ * @param {string} raw
+ */
 function numberKey(raw) {
     const n = Number(String(raw).replace(',', '.'));
     return Number.isFinite(n) ? String(n) : String(raw);
@@ -209,6 +223,9 @@ function numberKey(raw) {
  */
 function allowedNumbers(card, extra = []) {
     const out = new Set();
+    /**
+     * @param {number} n
+     */
     const add = (n) => {
         if (!Number.isFinite(n)) return;
         for (const v of [n, Math.round(n), Math.floor(n), Math.ceil(n)]) out.add(String(v));
@@ -223,11 +240,14 @@ function foreignNumber(text, allowed) {
     return (text.match(NUMBER_RE) || []).some((m) => !allowed.has(numberKey(m)));
 }
 
-/** Placeholders read as words in a title or a sentence meant for a person. */
+/**
+ * Placeholders read as words in a title or a sentence meant for a person.
+ * @param {string} text
+ */
 function placeholdersToWords(text) {
     return text
         .replace(/<domain:([A-Za-z0-9_-]{1,24})>/g, 'domain $1')
-        .replace(/<(name|org|email|url|domain)>/g, (_, k) => PLACEHOLDER_WORDS[k])
+        .replace(/<(name|org|email|url|domain)>/g, (/** @type {string} */ _, /** @type {string} */ k) => PLACEHOLDER_WORDS[k])
         .replace(/<[^<>\s]{1,24}>/g, '')
         .replace(/\s+([,.;:!?])/g, '$1');
 }
@@ -248,12 +268,16 @@ function cleanSentences(raw, allowed, { max, words }) {
     if (words) text = placeholdersToWords(text);
     const kept = text
         .split(/(?<=[^\d\s][.!?])\s+|\n+/)
-        .map((s) => s.trim())
-        .filter((s) => s && !UNSAFE_RE.test(s) && !foreignNumber(s.replace(LIST_MARKER_RE, ''), allowed));
+        .map((/** @type {string} */ s) => s.trim())
+        .filter((/** @type {string} */ s) => s && !UNSAFE_RE.test(s) && !foreignNumber(s.replace(LIST_MARKER_RE, ''), allowed));
     return clamp(kept.join(words ? ' ' : '\n'), max);
 }
 
-/** A title is one phrase: any address, link or invented number rejects it whole. */
+/**
+ * A title is one phrase: any address, link or invented number rejects it whole.
+ * @param {string} raw
+ * @param {Set<string>} allowed
+ */
 function cleanTitle(raw, allowed) {
     const text = clamp(placeholdersToWords(stripTokens(typeof raw === 'string' ? raw : '')).replace(/\s+/g, ' '), MAX_TITLE)
         .replace(/^["'“”]+|["'“”.]+$/g, '').trim();
@@ -287,6 +311,9 @@ function parseNaming(structured) {
     return out;
 }
 
+/**
+ * @param {number} i
+ */
 const refOf = (i) => String.fromCharCode(65 + i);
 
 /**

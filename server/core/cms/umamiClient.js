@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Umami analytics client — thin wrapper over a self-hosted Umami instance.
  *
@@ -23,7 +24,7 @@
  */
 
 const configStore = require('../../stores/configStore');
-const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // ── Config keys ──────────────────────────────────────────────────────
 const KEY_URL       = 'cms_analytics_url';
@@ -37,9 +38,11 @@ const ENDPOINT_CACHE_TTL_MS = 10_000;
 const TOKEN_TTL_MS = 60 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 12_000;
 
+/** @type {{ url: string | null, username: string, password: string, apiToken: string } | null} */
 let _endpointCache = null;
 let _endpointCacheAt = 0;
 
+/** @type {string | null} */
 let _token = null;
 let _tokenAt = 0;
 
@@ -59,7 +62,7 @@ async function getEndpoint() {
         username = await configStore.getSecret(KEY_USERNAME) || '';
         password = await configStore.getSecret(KEY_PASSWORD) || '';
         apiToken = await configStore.getSecret(KEY_API_TOKEN) || '';
-    } catch (err) { log.debug('fall through to env', err); }
+    } catch (err) { fallback('cms/umamiClient:config', err); /* fall through to env */ }
     // Server→Umami API base: prefer UMAMI_URL (an internal container hostname
     // like http://umami:3000 in compose) over the operator-set public URL, so
     // server calls work even when the public stats domain isn't routable from
@@ -94,6 +97,11 @@ async function isConfigured() {
 
 // ── Low-level request ────────────────────────────────────────────────
 
+/**
+ * @param {string} method
+ * @param {string} fullUrl
+ * @param {{ headers?: Record<string, string>, body?: object }} [opts]
+ */
 async function rawFetch(method, fullUrl, { headers = {}, body } = {}) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -119,6 +127,7 @@ async function rawFetch(method, fullUrl, { headers = {}, body } = {}) {
 /**
  * Mint (or reuse) an auth token. Returns the header object to merge into a
  * request. Prefers a configured api token; otherwise logs in with user/pass.
+ * @param {boolean} [forceRefresh]
  */
 async function getAuthHeaders(forceRefresh = false) {
     const e = await getEndpoint();
@@ -151,6 +160,10 @@ async function getAuthHeaders(forceRefresh = false) {
 /**
  * Authenticated request with a single transparent re-login on 401. `query` is
  * an object of querystring params (undefined/null values are dropped).
+ *
+ * @param {string} method
+ * @param {string} path
+ * @param {{ query?: Record<string, unknown>, body?: object }} [opts]
  */
 async function api(method, path, { query, body } = {}) {
     const e = await getEndpoint();
@@ -189,19 +202,30 @@ async function api(method, path, { query, body } = {}) {
     return r.json;
 }
 
-/** Read-only passthrough for the admin analytics proxy (routes/cmsAnalytics.js). */
+/**
+ * Read-only passthrough for the admin analytics proxy (routes/cmsAnalytics.js).
+ * @param {string} path
+ * @param {Record<string, unknown>} [query]
+ */
 function get(path, query) {
     return api('GET', path, { query });
 }
 
-/** POST passthrough — report endpoints compute, they do not persist. */
+/**
+ * POST passthrough — report endpoints compute, they do not persist.
+ * @param {string} path
+ * @param {object} [body]
+ */
 function post(path, body) {
     return api('POST', path, { body });
 }
 
 // ── Websites ─────────────────────────────────────────────────────────
 
-/** List websites. Returns an array regardless of v1/v2 response shape. */
+/**
+ * List websites. Returns an array regardless of v1/v2 response shape.
+ * @returns {Promise<Array<{ id?: string, domain?: string, [k: string]: unknown }>>}
+ */
 async function listWebsites() {
     const res = await api('GET', '/api/websites', { query: { pageSize: 200 } });
     if (Array.isArray(res)) return res;
@@ -213,11 +237,12 @@ async function listWebsites() {
  * Find-or-create the Umami website for a CMS site. Matches an existing website
  * by domain first (so re-publishing the same site reuses its id), otherwise
  * creates one. Returns the Umami website id (UUID) or throws.
+ * @param {{ name?: string, domain?: string }} site
  */
 async function ensureWebsite({ name, domain }) {
     const cleanDomain = (domain || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
     if (cleanDomain) {
-        const existing = await listWebsites().catch(() => []);
+        const existing = await listWebsites().catch((e) => fallback('core/cms/umamiClient:ensureWebsite', e, []));
         const match = existing.find(w => (w.domain || '').trim().toLowerCase() === cleanDomain);
         if (match?.id) return match.id;
     }
@@ -230,7 +255,12 @@ async function ensureWebsite({ name, domain }) {
 
 // ── Stats ────────────────────────────────────────────────────────────
 
-/** Aggregate totals: { pageviews, visitors, visits, bounces, totaltime }. */
+/**
+ * Aggregate totals: { pageviews, visitors, visits, bounces, totaltime }.
+ *
+ * @param {string} websiteId
+ * @param {{ startAt?: number, endAt?: number, [filter: string]: unknown }} [opts]
+ */
 // Extra keys are drill-down filters (country, browser, path…). The caller has
 // already constrained them to METRIC_TYPES, and Umami reads them as top-level
 // query params, so they can be forwarded as-is.
@@ -238,7 +268,12 @@ function getStats(websiteId, { startAt, endAt, ...filters } = {}) {
     return api('GET', `/api/websites/${websiteId}/stats`, { query: { startAt, endAt, ...filters } });
 }
 
-/** Time series of pageviews + sessions over `unit` buckets. */
+/**
+ * Time series of pageviews + sessions over `unit` buckets.
+ *
+ * @param {string} websiteId
+ * @param {{ startAt?: number, endAt?: number, unit?: string, timezone?: string, [filter: string]: unknown }} [opts]
+ */
 function getPageviews(websiteId, { startAt, endAt, unit = 'day', timezone = 'UTC', ...filters } = {}) {
     return api('GET', `/api/websites/${websiteId}/pageviews`, { query: { startAt, endAt, unit, timezone, ...filters } });
 }
@@ -257,7 +292,9 @@ const METRIC_TYPES = Object.freeze([
 // rejects the old name with a hard 400. We always send the 3.x name and fall
 // back ONCE per process if the server turns out to be a 2.x install, so both
 // generations work without the operator configuring a version anywhere.
+/** @type {Readonly<Record<string, string>>} */
 const LEGACY_METRIC_TYPES = Object.freeze({ path: 'url' });
+/** @type {boolean | null} */
 let _legacyMetricNames = null;   // null = undetermined, true = server wants 2.x names
 
 /**
@@ -267,8 +304,14 @@ let _legacyMetricNames = null;   // null = undetermined, true = server wants 2.x
  * Umami as extra query params. They must be spread into BOTH the primary and
  * the legacy call: dropping them on either path returns unfiltered rows, which
  * the proxy would then cache under a filter-specific key.
+ *
+ * @param {string} websiteId
+ * @param {{ type?: string, startAt?: number, endAt?: number, limit?: number | string, filters?: Record<string, unknown> }} [opts]
  */
 async function getMetrics(websiteId, { type, startAt, endAt, limit = 10, filters = {} } = {}) {
+    /**
+     * @param {string | undefined} t
+     */
     const call = (t) => api('GET', `/api/websites/${websiteId}/metrics`, {
         query: { type: t, startAt, endAt, limit, ...filters },
     });
@@ -286,7 +329,7 @@ async function getMetrics(websiteId, { type, startAt, endAt, limit = 10, filters
     }
 }
 
-/** Unique visitors active in the last ~5 minutes. */
+/** Unique visitors active in the last ~5 minutes. @param {string} websiteId */
 function getActive(websiteId) {
     return api('GET', `/api/websites/${websiteId}/active`);
 }
@@ -325,6 +368,8 @@ const MASK_LEVELS = Object.freeze(['strict', 'moderate']);
  * is also the fallback for anything unrecognised: a stale value persisted by an
  * older build must not turn into a 400, and erring toward MORE masking is the
  * right failure direction for a privacy product.
+ *
+ * @param {{ enabled?: boolean, sampleRate?: number, maskLevel?: string }} [opts]
  */
 function buildReplayConfig({ enabled, sampleRate = 1, maskLevel = 'strict' } = {}) {
     return {
@@ -340,8 +385,11 @@ function buildReplayConfig({ enabled, sampleRate = 1, maskLevel = 'strict' } = {
  * Update recorder settings. Verifies the result rather than trusting the 200 —
  * Umami accepts unknown fields silently, so "it returned OK" proves nothing.
  * Returns the updated record.
+ * @param {string} websiteId
+ * @param {Record<string, unknown>} [patch]
  */
 async function updateWebsite(websiteId, patch = {}) {
+    /** @type {Record<string, unknown>} */
     const body = {};
     for (const k of WEBSITE_WRITABLE_KEYS) {
         if (patch[k] !== undefined) body[k] = patch[k];

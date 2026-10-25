@@ -30,6 +30,7 @@
 const automationCredentialStore = require('../stores/automationCredentialStore');
 const { loadConfig, OAUTH_PROVIDERS, microsoftRefreshScope } = require('./permissions');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const REFRESH_THRESHOLD_MS = 5 * 60_000; // refresh if <5 min left
 
@@ -52,6 +53,7 @@ function vaultOrgIdFor(user) {
 // the OAuth provider whose tokens are required to call it. Anything not
 // mapped here is assumed to use a per-user config-store API key (Fireflies,
 // YouTrack, Gamma, etc) which doesn't need session auth at all.
+/** @type {Record<string, string>} */
 const INTEGRATION_PROVIDER = {
     gmail:              'google',
     'google-calendar':  'google',
@@ -108,10 +110,13 @@ function reauthError(message) {
     return err;
 }
 
+/**
+ * @param {string} label
+ * @param {Response} res
+ */
 async function throwRefreshFailed(label, res) {
     const txt = await res.text().catch(() => '');
-    let oauthError = null;
-    try { oauthError = JSON.parse(txt)?.error || null; } catch (err) { log.debug('non-JSON body', err); }
+    const oauthError = (() => { try { return JSON.parse(txt)?.error || null; } catch (err) { return fallback('automationAuth:refresh-body', err, null); } })();
     const message = `${label} refresh failed (${res.status}): ${txt.slice(0, 200)}`;
     if (FATAL_OAUTH_ERRORS.has(oauthError)) throw reauthError(message);
     throw new Error(message);
@@ -272,6 +277,7 @@ const WITHINGS_FATAL_STATUS = new Set([401, 283, 293]);
  * a plain error for anything else, so the caller's transient/fatal split works
  * exactly as it does for the standards-compliant providers.
  * Exported so the connector route unwraps identically.
+ * @param {string} label
  */
 function readWithingsBody(data, label) {
     const status = Number(data?.status);
@@ -297,11 +303,16 @@ const REFRESHERS = {
 
 // ── Pause + notify on refresh failure ───────────────────────────────────
 
+/**
+ * @param {string} userId
+ * @param {string} provider
+ * @param {string} errorMessage
+ */
 async function _pauseAutomationsAndNotify(userId, provider, errorMessage) {
     try {
         await automationCredentialStore.markNeedsReauth(userId, provider, errorMessage);
     } catch (err) {
-        log.warn(`[automationAuth] markNeedsReauth failed: ${err.message}`);
+        log.warn(`[automationAuth] markNeedsReauth failed: ${/** @type {Error} */ (err).message}`);
     }
 
     // Pause everything of this user's that depends on the broken provider,
@@ -332,6 +343,9 @@ async function _pauseAutomationsAndNotify(userId, provider, errorMessage) {
         }
     };
 
+    /**
+     * @param {string} label
+     */
     const pauseAll = async (label, items, deactivate) => {
         for (const item of items) {
             if (!item.isActive) continue;
@@ -340,7 +354,7 @@ async function _pauseAutomationsAndNotify(userId, provider, errorMessage) {
                 await deactivate(item.id);
                 pausedCount += 1;
             } catch (err) {
-                log.warn(`[automationAuth] pause ${label} ${item.id} failed: ${err.message}`);
+                log.warn(`[automationAuth] pause ${label} ${item.id} failed: ${/** @type {Error} */ (err).message}`);
             }
         }
     };
@@ -354,11 +368,11 @@ async function _pauseAutomationsAndNotify(userId, provider, errorMessage) {
         // paused proactively here stayed off forever.
         await pauseAll(
             'cowork',
-            await coworkStore.getSchedules(userId).catch(() => []),
+            await coworkStore.getSchedules(userId).catch((e) => fallback('automationAuth:cowork-schedules', e, [])),
             id => coworkStore.updateSchedule(id, { isActive: false, lastStatus: 'needs_reauth' }),
         );
     } catch (err) {
-        log.warn(`[automationAuth] failed to enumerate automations for pause: ${err.message}`);
+        log.warn(`[automationAuth] failed to enumerate automations for pause: ${/** @type {Error} */ (err).message}`);
     }
 
     // Single user-facing notification with a deep-link the frontend reads to
@@ -381,7 +395,7 @@ async function _pauseAutomationsAndNotify(userId, provider, errorMessage) {
             message: `automation_reauth:${provider}\n\nYour ${providerLabel} access has expired or been revoked.${tail}`,
         });
     } catch (err) {
-        log.warn(`[automationAuth] reauth notification failed: ${err.message}`);
+        log.warn(`[automationAuth] reauth notification failed: ${/** @type {Error} */ (err).message}`);
     }
 }
 
@@ -394,6 +408,8 @@ async function _pauseAutomationsAndNotify(userId, provider, errorMessage) {
  * (`invalid_grant`/`invalid_client`) pause-and-notify the user before
  * returning null; transient refresh failures return null without touching
  * credential status so a later attempt can retry.
+ * @param {string} userId
+ * @param {string} provider
  */
 async function getProviderAuth(userId, provider) {
     const cred = await automationCredentialStore.getCredential(userId, provider);
@@ -429,13 +445,13 @@ async function getProviderAuth(userId, provider) {
         };
     } catch (err) {
         if (err.reauthRequired) {
-            log.warn(`[automationAuth] ${provider} refresh rejected for user ${userId}: ${err.message}`);
-            await _pauseAutomationsAndNotify(userId, provider, err.message);
+            log.warn(`[automationAuth] ${provider} refresh rejected for user ${userId}: ${/** @type {Error} */ (err).message}`);
+            await _pauseAutomationsAndNotify(userId, provider, /** @type {Error} */ (err).message);
             return null;
         }
         // Transient failure (network error, provider 5xx, malformed body):
         // leave the credential untouched so the next attempt retries.
-        log.warn(`[automationAuth] ${provider} refresh failed (transient) for user ${userId}: ${err.message}`);
+        log.warn(`[automationAuth] ${provider} refresh failed (transient) for user ${userId}: ${/** @type {Error} */ (err).message}`);
         return null;
     }
 }
@@ -451,6 +467,7 @@ async function getProviderAuth(userId, provider) {
  * credential. Returns an object even if the agent only needs API-key
  * integrations (Fireflies/YouTrack/etc) — those load via configStore and
  * don't depend on session tokens.
+ * @param {string} userId
  */
 async function buildUserAuth(userId, { enabledIntegrations = [], providerHint = null } = {}) {
     const required = providersForIntegrations(enabledIntegrations);
@@ -496,3 +513,9 @@ module.exports = {
     readWithingsBody,
     withingsClientConfig,
 };
+
+/**
+ * @typedef {NonNullable<Awaited<ReturnType<typeof automationCredentialStore.getCredential>>>} Credential
+ * @typedef {{ accessToken: string, refreshToken: string | null, expiresAt: number | null, scope: string | null }} RefreshResult
+ * @typedef {{ id: string, agentId?: string, isActive?: boolean, enabledApps?: string[] }} PausableItem  A cowork schedule or automation row, as far as pausing needs it.
+ */

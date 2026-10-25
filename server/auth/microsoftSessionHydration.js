@@ -135,7 +135,7 @@ function buildMicrosoftShim(cred, { userId, user }) {
 }
 
 /** Express middleware wrapper — mount in front of session-based Outlook routers. */
-function microsoftSessionHydration(req, _res, next) {
+function microsoftSessionHydration(/** @type {import('express').Request} */ req, _res, next) {
     hydrateMicrosoftSessionFromVault(req.session)
         .catch(() => false)
         .finally(() => next());

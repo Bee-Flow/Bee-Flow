@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App + module host-contract versions.
  *

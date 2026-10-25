@@ -31,6 +31,7 @@
 'use strict';
 
 const log = require('../../telemetry/log');
+const { bestEffort, fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 
 // services/browserProvider.js BACKEND_UNAVAILABLE: the code of "no browser to render with".
 const BACKEND_UNAVAILABLE = 'browser_backend_unavailable';
@@ -74,6 +75,7 @@ function isHubAssetPath(pathname) {
         && !pathname.includes('//');
 }
 
+/** @param {{ origin?: string, fetchImpl?: typeof fetch, now?: () => number }} [opts] */
 function createHubFetcher({ origin, fetchImpl = (...a) => fetch(...a), now = Date.now } = {}) {
     const cache = new Map();
     return async function fetchHubAsset(pathname) {
@@ -133,7 +135,7 @@ async function withHardTimeout(promise, ms) {
         ]);
     } finally {
         clearTimeout(t);
-        Promise.resolve(promise).catch(() => {});
+        Promise.resolve(promise).catch((e) => bestEffort('cms/mcp/screenshot:withHardTimeout', e));
     }
 }
 
@@ -172,7 +174,7 @@ async function captureWithBrowser({ serve, url, viewport, fullPage, offsetY }, b
             page.on('console', (m) => {
                 try {
                     if (m.type() === 'error' && consoleErrors.length < 5) consoleErrors.push(m.text().slice(0, 200));
-                } catch (err) { log.debug('diagnostics only', err); }
+                } catch (err) { fallbackSwallowed('cms/mcp/screenshot:captureWithBrowser', err); /* diagnostics only */ }
             });
             await page.route((u) => isFakeOrigin(u.href), async (route) => {
                 const req = route.request();
@@ -197,8 +199,8 @@ async function captureWithBrowser({ serve, url, viewport, fullPage, offsetY }, b
             await page.waitForFunction(
                 () => !document.querySelector('.cms-prehydrate') && !!document.querySelector('#root')?.children.length,
                 { timeout: HYDRATE_WAIT_MS, polling: 100 },
-            ).catch(() => {});
-            await page.evaluate(() => (document.fonts ? document.fonts.ready.then(() => true) : true)).catch(() => {});
+            ).catch((e) => bestEffort('cms/mcp/screenshot:captureWithBrowser#2', e));
+            await page.evaluate(() => (document.fonts ? document.fonts.ready.then(() => true) : true)).catch((e) => bestEffort('cms/mcp/screenshot:captureWithBrowser#3', e));
             if (fullPage) {
                 // Walk down the page so lazy images load, then back up.
                 await page.evaluate(async () => {
@@ -208,7 +210,7 @@ async function captureWithBrowser({ serve, url, viewport, fullPage, offsetY }, b
                         await new Promise((r) => setTimeout(r, 60));
                     }
                     window.scrollTo(0, 0);
-                }).catch(() => {});
+                }).catch((e) => bestEffort('cms/mcp/screenshot:captureWithBrowser#4', e));
             }
             await page.waitForTimeout(SETTLE_MS);
 
@@ -279,7 +281,10 @@ function defaultDeps() {
 function createScreenshotRenderer(overrides = null) {
     const deps = overrides ? { ...overrides } : defaultDeps();
 
-    /** The content to photograph, or an `unavailable` reason. */
+    /**
+     * The content to photograph, or an `unavailable` reason.
+     * @param {{ siteId?: string, pageId?: string, slug?: string, state?: 'draft'|'published', locale?: string, postSlug?: string, blog?: boolean }} args
+     */
     async function resolveContent({ siteId, pageId, slug, state, locale, postSlug, blog }) {
         const { cmsStore } = deps;
         const defaultLocale = await cmsStore.getDefaultLocale();
@@ -332,7 +337,10 @@ function createScreenshotRenderer(overrides = null) {
         return { eff, entrySlug, locale: wanted, defaultLocale };
     }
 
-    /** The full HTML document for the chosen content, plus whether the shell was reachable. */
+    /**
+     * The full HTML document for the chosen content, plus whether the shell was reachable.
+     * @param {{ eff?: any, entrySlug?: any, locale?: any, defaultLocale?: any, ok?: boolean, unavailable?: boolean, reason?: any }} content
+     */
     async function composeDocument({ eff, entrySlug, locale, defaultLocale }) {
         const siteName = (eff.header && eff.header.logoText) || 'Bee Flow';
         const blogSeo = eff.blog ? (deps.blogSeo || require('../../core/seo/blog')) : null;

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Retired: the persistent IP → geo cache, and the removal of its table.
  *
@@ -18,11 +18,12 @@
 const { getOne, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const initDB = makeStoreInit('IpGeoCacheStore', _doInit);
 
 async function _doInit() {
-    const probe = await getOne(`SELECT to_regclass('ip_geo_cache') AS t`).catch(() => null);
+    const probe = await getOne(`SELECT to_regclass('ip_geo_cache') AS t`).catch((e) => fallback('stores/ipGeoCacheStore:_doInit', e, null));
     if (!probe?.t) return;
     await exec(`DROP TABLE IF EXISTS ip_geo_cache`);
     log.info('[IpGeoCacheStore] dropped the retired ip_geo_cache table (IP addresses without a retention rule)');

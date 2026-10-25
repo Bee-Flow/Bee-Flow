@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Per-module in-memory log ring — the backing store for the admin "module
  * logs" dialog. hostApi.makeLogger writes through here (debug lines are
@@ -18,8 +18,10 @@ const MSG_MAX = 2000;
 
 // moduleId → { entries: [{ts, level, msg}], seq }
 // Map iteration order doubles as LRU order (delete+set on touch).
+/** @type {Map<string, { entries: { ts: string, seq: number, level: string, msg: string }[], seq: number }>} */
 const _buffers = new Map();
 
+/** @param {unknown[]} args */
 function _fmt(args) {
     return args.map((a) => {
         if (typeof a === 'string') return a;
@@ -28,6 +30,7 @@ function _fmt(args) {
     }).join(' ').slice(0, MSG_MAX);
 }
 
+/** @param {string} moduleId */
 function _touch(moduleId) {
     let buf = _buffers.get(moduleId);
     if (buf) {
@@ -43,7 +46,11 @@ function _touch(moduleId) {
     return buf;
 }
 
-/** @param {'info'|'warn'|'error'|'debug'|'system'} level */
+/**
+ * @param {string} moduleId
+ * @param {'info'|'warn'|'error'|'debug'|'system'} level
+ * @param {unknown} args
+ */
 function append(moduleId, level, args) {
     const buf = _touch(moduleId);
     buf.entries.push({
@@ -64,11 +71,12 @@ function get(moduleId, { limit = 200, level = null } = {}) {
     const buf = _buffers.get(moduleId);
     if (!buf) return [];
     let entries = buf.entries;
-    if (level) entries = entries.filter(e => e.level === level);
+    if (level) entries = entries.filter((/** @type {{ level: string; }} */ e) => e.level === level);
     const n = Math.max(1, Math.min(RING_MAX, Number(limit) || 200));
     return entries.slice(-n);
 }
 
+/** @param {string} [moduleId] */
 function clear(moduleId) {
     if (moduleId) _buffers.delete(moduleId);
     else _buffers.clear();

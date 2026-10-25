@@ -19,6 +19,10 @@ const { canonNode, cleanRoleRefs } = require('./nodes');
 // Screens & sections
 // ---------------------------------------------------------------------------
 
+/**
+ * @param {string} path
+ * @param {(missingCode: string, path: string, arg2: string) => void} push
+ */
 function canonScreen(screen, path, ids, push) {
     const id = ids.canonId(screen.id, 'screen', `${path}.id`);
     const out = { id };

@@ -23,7 +23,7 @@
  */
 
 const JSZip = require('jszip');
-const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const MAX_TEMPLATE_BYTES = 25 * 1024 * 1024;
 const MAX_MEDIA_BYTES = 12 * 1024 * 1024;
@@ -31,13 +31,22 @@ const COMPOSITE_WIDTH = 1600;
 const OVERLAY_MAX_PX = 480;
 const MAX_OVERLAYS = 8;
 
+/**
+ * @param {string} xml
+ * @param {string} name
+ */
 function attr(xml, name) {
     const m = new RegExp(`${name}="([^"]*)"`).exec(xml);
     return m ? m[1] : null;
 }
 
-/** rId → target path, resolved against the part's folder. */
+/**
+ * rId → target path, resolved against the part's folder.
+ * @param {string | null} xml
+ * @param {string} partDir
+ */
 function parseRels(xml, partDir) {
+    /** @type {Record<string, string>} */
     const rels = {};
     for (const m of String(xml || '').matchAll(/<Relationship\b([^>]*)\/?>/g)) {
         const id = attr(m[1], 'Id');
@@ -48,7 +57,11 @@ function parseRels(xml, partDir) {
     return rels;
 }
 
+/**
+ * @param {string} p
+ */
 function normalisePath(p) {
+    /** @type {string[]} */
     const out = [];
     for (const seg of p.split('/')) {
         if (!seg || seg === '.') continue;
@@ -57,10 +70,16 @@ function normalisePath(p) {
     return out.join('/');
 }
 
+/**
+ * @param {string} path
+ */
 function dirOf(path) {
     return path.slice(0, path.lastIndexOf('/'));
 }
 
+/**
+ * @param {string} partPath
+ */
 function relsPathFor(partPath) {
     return `${dirOf(partPath)}/_rels/${partPath.slice(partPath.lastIndexOf('/') + 1)}.rels`;
 }
@@ -70,6 +89,9 @@ function relsPathFor(partPath) {
  * background blip, `<p:pic>` shapes and picture-filled `<p:sp>` shapes, each
  * with its box as fractions of the slide. Placeholders and text-only shapes
  * are ignored.
+ * @param {string} xml
+ * @param {{ cx: number; cy: number; }} size
+ * @param {Record<string, string>} rels
  */
 function collectLayers(xml, rels, size) {
     const layers = [];
@@ -102,12 +124,21 @@ function collectLayers(xml, rels, size) {
     return layers;
 }
 
+/**
+ * @param {JSZip} zip
+ * @param {string} path
+ */
 async function readPart(zip, path) {
     const f = zip.file(path);
     return f ? f.async('string') : null;
 }
 
-/** The layers of a slide, falling back to its layout and then its master. */
+/**
+ * The layers of a slide, falling back to its layout and then its master.
+ * @param {JSZip} zip
+ * @param {string} slidePath
+ * @param {{ cx: number; cy: number; }} size
+ */
 async function slideLayers(zip, slidePath, size) {
     const xml = await readPart(zip, slidePath);
     if (!xml) return [];
@@ -135,6 +166,9 @@ async function slideLayers(zip, slidePath, size) {
  * The colour the template writes its text in — the most used run colour on
  * its slides (srgb, or the scheme's bg1/tx1). The deck follows it when it
  * reads on the backdrop; a template that puts white on blue means white.
+ * @param {JSZip} zip
+ * @param {string[]} slidePaths
+ * @param {string} themeXml
  */
 async function slideTextColour(zip, slidePaths, themeXml) {
     const counts = new Map();
@@ -147,6 +181,7 @@ async function slideTextColour(zip, slidePaths, themeXml) {
             for (const run of body[1].matchAll(/<a:rPr\b[^>]*>([\s\S]*?)<\/a:rPr>/g)) {
                 const srgb = /<a:solidFill>\s*<a:srgbClr val="([0-9A-Fa-f]{6})"/.exec(run[1]);
                 const scheme = /<a:solidFill>\s*<a:schemeClr val="(bg1|tx1|lt1|dk1)"/.exec(run[1]);
+                /** @type {string | null} */
                 let hex = null;
                 if (srgb) hex = srgb[1];
                 else if (scheme && (scheme[1] === 'bg1' || scheme[1] === 'lt1') && lt1) hex = lt1[1];
@@ -160,12 +195,18 @@ async function slideTextColour(zip, slidePaths, themeXml) {
     return best ? `#${best.hex}` : '';
 }
 
-/** The theme's typefaces (major = titles, minor = body). */
+/**
+ * The theme's typefaces (major = titles, minor = body).
+ * @param {JSZip} zip
+ */
 async function themeFonts(zip) {
     const themePath = Object.keys(zip.files).find((n) => /^ppt\/theme\/theme\d+\.xml$/.test(n));
     const xml = themePath ? await readPart(zip, themePath) : '';
     const major = /<a:majorFont>\s*<a:latin typeface="([^"]*)"/.exec(xml || '');
     const minor = /<a:minorFont>\s*<a:latin typeface="([^"]*)"/.exec(xml || '');
+    /**
+     * @param {string | null} v
+     */
     const clean = (v) => (v && !/^\+/.test(v) ? v.slice(0, 60) : '');
     return { title: clean(major && major[1]), body: clean(minor && minor[1]) };
 }
@@ -177,6 +218,8 @@ function toHex([r, g, b]) {
 /**
  * Composite the full-bleed layers into one JPEG the size of the slide, and
  * downscale the overlays. Returns null when there is nothing to paint.
+ * @param {JSZip} zip
+ * @param {{ cx: number; cy: number; }} size
  */
 async function composeSide(zip, layers, size, sharp) {
     const W = COMPOSITE_WIDTH;
@@ -216,6 +259,7 @@ async function composeSide(zip, layers, size, sharp) {
     const mean = toHex(stats.channels.slice(0, 3).map((c) => c.mean));
     const accent = await dominantColour(sharp, composed);
 
+    /** @type {{ image: string; x: number; y: number; w: number; h: number; }[]} */
     const overlays = [];
     for (const layer of small.slice(0, MAX_OVERLAYS)) {
         const entry = zip.file(layer.target);
@@ -225,7 +269,7 @@ async function composeSide(zip, layers, size, sharp) {
         try {
             const png = await sharp(bytes, { density: 200 }).resize({ width: OVERLAY_MAX_PX, height: OVERLAY_MAX_PX, fit: 'inside', withoutEnlargement: true }).png().toBuffer();
             overlays.push({ image: `data:image/png;base64,${png.toString('base64')}`, x: round(layer.x), y: round(layer.y), w: round(layer.w), h: round(layer.h) });
-        } catch (err) { log.debug('not an image sharp can read', err); }
+        } catch (err) { fallback('core/documents/pptxTemplate:composeSide', err); /* not an image sharp can read */ }
     }
     return { image: `data:image/jpeg;base64,${composed.toString('base64')}`, overlays, background: mean, accent };
 }
@@ -254,6 +298,9 @@ async function dominantColour(sharp, jpeg) {
     } catch { return ''; }
 }
 
+/**
+ * @param {number} v
+ */
 function round(v) {
     return Math.round(v * 10000) / 10000;
 }
@@ -314,3 +361,9 @@ async function extractDeckTemplate(buffer, { name = '' } = {}) {
 }
 
 module.exports = { extractDeckTemplate, MAX_TEMPLATE_BYTES, _test: { collectLayers, parseRels, normalisePath } };
+
+/** @typedef {{ cx: number, cy: number }} SlideSize */
+
+/** @typedef {{ target?: string, solid?: string, x: number, y: number, w: number, h: number, full: boolean }} PictureLayer */
+
+/** @typedef {typeof import('sharp')} Sharp */

@@ -28,13 +28,13 @@
  */
 'use strict';
 
-const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const HTTP_RESPONSE_CAP = 1024 * 1024;
 
 /** Cancel a body or reader we are done with; a failure to cancel changes nothing for the caller. */
 async function cancelQuietly(target) {
-    try { await target?.cancel?.(); } catch (e) { log.debug(`[httpResponseLimits] cancel failed: ${e.message}`); }
+    try { await target?.cancel?.(); } catch (e) { bestEffort('core/http/httpResponseLimits:cancelQuietly', e); /* [httpResponseLimits] cancel failed: */ }
 }
 
 // Longest UTF-8 encoding of one character. A body of at most cap*4 bytes can be
@@ -55,7 +55,7 @@ const MAX_BYTES_PER_CHAR = 4;
  */
 async function readBodyBounded(resp, { charCap = HTTP_RESPONSE_CAP, stopOnOversizeHeader = false } = {}) {
     const byteBudget = charCap * MAX_BYTES_PER_CHAR;
-    const cancel = async () => { try { await resp.body?.cancel?.(); } catch (err) { log.debug('best effort', err); } };
+    const cancel = async () => { try { await resp.body?.cancel?.(); } catch (err) { bestEffort('core/http/httpResponseLimits:cancel', err); /* best effort */ } };
 
     // No body at all (HEAD, 204, 304): Content-Length describes the resource, not
     // anything we would read, so there is nothing to bound or to call oversize.
@@ -83,7 +83,7 @@ async function readBodyBounded(resp, { charCap = HTTP_RESPONSE_CAP, stopOnOversi
         received += value.length;
         if (received > byteBudget) {
             overBudget = true;
-            try { await reader.cancel(); } catch (err) { log.debug('best effort', err); }
+            try { await reader.cancel(); } catch (err) { bestEffort('core/http/httpResponseLimits:readBodyBounded', err); /* best effort */ }
             break;
         }
         chunks.push(value);
@@ -208,3 +208,10 @@ module.exports = {
     envByteLimit, toolFileMaxBytes, kbWebPageMaxBytes, kbSitemapMaxBytes,
     readBytesBounded, fileTooLargeMessage, readTextOrThrowOversize, readKbPage,
 };
+
+/**
+ * A fetch Response from either implementation: the global one and undici's own
+ * (what `guardedFetch` returns) are separate declarations that TypeScript does
+ * not treat as assignable to each other.
+ * @typedef {Response | import('undici-types').Response} FetchResponse
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * "Frequently used" in the builder (Studio → Automations handoff 5).
  *
@@ -25,7 +25,13 @@ const express = require('express');
 const { z, typeError } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
 
+/**
+ * @param {string} what
+ */
 const NAME_TEXT = (what) => `${what} is a name of letters, digits, "_", ".", ":" or "-", at most 120 characters.`;
+/**
+ * @param {string} what
+ */
 const name = (what) => z.string({ error: typeError({ required: `${what} is required.`, invalid: NAME_TEXT(what) }) })
     .trim()
     .regex(/^[A-Za-z][A-Za-z0-9_.:-]{0,119}$/, NAME_TEXT(what));
@@ -55,13 +61,13 @@ function makeUsageRouter(overrides = {}) {
         return { orgId: orgId || null, userId: req.session.user.id };
     });
 
-    router.get('/_usage/steps', async (req, res) => {
+    router.get('/_usage/steps', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const rows = await usageSource().stepUsage(await resolveScope(req));
         res.set('Cache-Control', 'private, max-age=60');
         res.json(rows);
     });
 
-    router.get('/_usage/values', validate({ query: ValuesQuery }), async (req, res) => {
+    router.get('/_usage/values', validate({ query: ValuesQuery }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const rows = await usageSource().valueUsage(await resolveScope(req), req.query.tool, req.query.input);
         res.set('Cache-Control', 'private, max-age=60');
         res.json(rows);

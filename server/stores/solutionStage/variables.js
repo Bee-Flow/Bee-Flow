@@ -53,6 +53,9 @@ const RELEASE_DECLS_SQL = `
      WHERE s.project_id = $1 AND jsonb_typeof(e.d) = 'object' AND jsonb_typeof(e.d->'name') = 'string'`;
 
 const hasReleases = async (q) => (await q.query(`SELECT to_regclass('project_releases') IS NOT NULL AS ok`)).rows[0]?.ok === true;
+/**
+ * @param {string} projectId
+ */
 const stageOfRow = async (q, projectId) => (await q.query('SELECT stage_of FROM projects WHERE id = $1', [projectId])).rows[0]?.stage_of || null;
 
 function mapVariable(row) {
@@ -71,6 +74,9 @@ function mapPartOption(row) {
     return { ref: row.ref, kind: row.kind, options: row.options || {}, updatedBy: row.updated_by, updatedAt: row.updated_at };
 }
 
+/**
+ * @param {string} name
+ */
 const nameError = (name) => storeError(400, 'variable_name_invalid',
     'A variable name starts with a lowercase letter and holds lowercase letters, digits and underscores (at most 63).',
     { name: typeof name === 'string' ? name.slice(0, 80) : null });
@@ -121,6 +127,7 @@ function makeVariablesStore(db, { ready, valuesMemo = new Map() }) {
      * mark steering or type url/email. Empty for a project that is not a stage
      * (Dev values are not gated).
      * @returns {Promise<Set<string>>}
+     * @param {string} projectId
      */
     async function declaredSteering(q, projectId) {
         const solutionId = await stageOfRow(q, projectId);
@@ -382,3 +389,7 @@ function makeVariablesStore(db, { ready, valuesMemo = new Map() }) {
 }
 
 module.exports = { makeVariablesStore, coerceValue, VARIABLE_NAME_RE, VARIABLE_TYPES };
+
+/** @typedef {import('./deploymentModel').Queryable} Queryable */
+
+/** @typedef {import('./deploymentModel').StageDb} StageDb */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * "What breaks if I delete this knowledge base?"
  *
@@ -34,6 +34,10 @@ const log = require('../../telemetry/log');
 /** Every kind this can find, in the order the Used-by tab lists them. */
 const KINDS = Object.freeze(['agent', 'automation', 'app', 'webpage', 'project', 'notebook', 'template', 'support']);
 
+/**
+ * @param {string} name
+ * @param {any} [client]
+ */
 async function tableExists(name, client) {
     try {
         const r = await (client || pool).query('SELECT to_regclass($1) AS t', [name]);
@@ -50,6 +54,7 @@ async function tableExists(name, client) {
  * Every one of these filters on the KB id in SQL rather than reading every row
  * and filtering in Node: an org with 4000 automations is not unusual and the
  * delete dialog must not become a table scan the person waits on.
+ * @type {Readonly<Record<string, { table: string, sql: string, params: (kbId: string) => string[], role: string }>>}
  */
 const SCANS = Object.freeze({
     agent: {
@@ -142,7 +147,7 @@ const SCANS = Object.freeze({
  * @param {string} kbId
  * @param {object} [opts]
  * @param {any} [opts.db]    injection seam for the tests
- * @returns {Promise<{ rows: Array, partial: string[] }>}
+ * @returns {Promise<{ rows: Array<{ kind: string, id: string, title: string | null, role: string, ownerId: string | null, lastAt: Date | string | null }>, partial: string[] }>}
  *          `partial` names the kinds that could NOT be answered — a table that
  *          is absent, or a query that failed. A caller must treat a non-empty
  *          `partial` as "I do not know", never as "nothing".
@@ -187,9 +192,12 @@ async function usageForKb(kbId, { db = pool } = {}) {
  * One pass per kind over all the ids rather than `usageForKb` in a loop: the
  * overview asks about every base on the screen at once, and the loop would be
  * eight queries times however many bases there are.
+ * @param {string[]} kbIds
+ * @param {{ db?: any }} [opts]
  */
 async function usageSummary(kbIds, { db = pool } = {}) {
     const ids = Array.isArray(kbIds) ? kbIds.filter(Boolean) : [];
+    /** @type {Record<string, { counts: Record<string, number>, partial: string[] }>} */
     const out = {};
     for (const id of ids) out[id] = { counts: {}, partial: [] };
     if (ids.length === 0) return out;
@@ -224,8 +232,11 @@ async function usageSummary(kbIds, { db = pool } = {}) {
  * Best-effort per kind and per row: a scrub that fails on one consumer must
  * not abandon the other seven, because the base IS going either way and a
  * half-scrubbed install is the worst of the three outcomes.
+ * @param {string} kbId
+ * @param {{ db?: any }} [opts]
  */
 async function scrubReferences(kbId, { db = pool } = {}) {
+    /** @type {Record<string, number>} */
     const scrubbed = { agent: 0, automation: 0, app: 0, webpage: 0, project: 0, notebook: 0, template: 0, support: 0 };
     if (!kbId) return scrubbed;
 

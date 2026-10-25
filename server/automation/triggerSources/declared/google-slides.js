@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Google Slides. Same shape as the Sheets declaration: poll_diff over
  * slides_list, which already reports each presentation's modifiedTime.
@@ -56,7 +56,7 @@ const TRIGGER_SOURCES = [{
             id: 'presentation.new',
             label: 'New presentation',
             fields: FIELDS,
-            sample: { ...SAMPLE, changedKeys: [], previous: {}, current: { modifiedTime: SAMPLE.modifiedTime } },
+            sample: { ...SAMPLE, changedKeys: /** @type {string[]} */ ([]), previous: {}, current: { modifiedTime: SAMPLE.modifiedTime } },
             scope: 'user',
             source: source({ changePaths: [], emitOnAppear: true }),
         },

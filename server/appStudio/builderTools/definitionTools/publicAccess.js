@@ -49,6 +49,7 @@ function applySetPublicAccess(draftWrap, args) {
     }
     if (!applied) return result;
 
+    /** @type {string[]} */
     const hints = [];
     const model = draftWrap.dataModel && typeof draftWrap.dataModel === 'object' ? draftWrap.dataModel : null;
     const tables = Array.isArray(model?.tables) ? model.tables : [];

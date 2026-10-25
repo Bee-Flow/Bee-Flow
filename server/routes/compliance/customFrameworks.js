@@ -46,7 +46,7 @@ const { onEvidenceWriteFailed } = require('../../compliance/evidence/writeFailur
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
-const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const guard = [requireAuth, requirePermission('admin_compliance'), requireCapability('compliance_hub_custom')];
 
@@ -58,6 +58,10 @@ const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {
 
 const STATUSES = ['draft', 'active'];
 const SEVERITIES = ['low', 'medium', 'high', 'critical'];
+/**
+ * @param {string} name
+ * @param {string[]} values
+ */
 const oneOf = (name, values) => z.enum(values, { error: () => `${name} is one of: ${values.join(', ')}.` });
 
 const MONTHS_TEXT = `attestation_valid_months is a whole number of months, 1..${MAX_EXPIRES_MONTHS}.`;
@@ -158,16 +162,26 @@ function _badRequest(res, e) {
     throw new HttpError(400, 'invalid_framework', e.message);
 }
 
+/**
+ * @param {string} v
+ */
 function _isUuid(v) {
     return typeof v === 'string' && UUID_RE.test(v);
 }
 
+/**
+ * @param {string | number | null} orgId
+ */
 function _invalidateCounts(orgId) {
     // routes/compliance/counts.js is another stream's file; its absence is harmless.
-    try { require('./counts').invalidate(orgId); } catch (err) { log.debug('not shipped yet', err); }
+    try { require('./counts').invalidate(orgId); } catch (err) { bestEffort('routes/compliance/customFrameworks:_invalidateCounts', err); /* not shipped yet */ }
 }
 
-/** Evidence row for an attestation — explicit allow-list, never the raw body or user record. */
+/**
+ * Evidence row for an attestation — explicit allow-list, never the raw body or user record.
+ * @param {string} checkId
+ * @param {string | null} actorId
+ */
 function _recordAttestationEvidence(orgId, checkId, attestation, actorId) {
     const refs = Array.isArray(attestation?.evidence_refs) ? attestation.evidence_refs : [];
     const row = {
@@ -192,7 +206,10 @@ function _recordAttestationEvidence(orgId, checkId, attestation, actorId) {
     return complianceStore.addEvidence(row).catch(onEvidenceWriteFailed(row));
 }
 
-/** attested_at + N months (the framework's validity; body override ≤ 120), or null for evergreen. */
+/**
+ * attested_at + N months (the framework's validity; body override ≤ 120), or null for evergreen.
+ * @param {Date} attestedAt
+ */
 function computeExpiresAt(attestedAt, months) {
     if (months === null) return null;
     const n = Number(months);
@@ -287,7 +304,7 @@ router.post('/custom/frameworks/:id/checks', ...guard, validate({ body: ChecksBo
         _invalidateCounts(orgId);
         res.json({ checks: list, count: list.length });
     } catch (e) {
-        throw new HttpError(400, 'bad_request', e.message);
+        throw new HttpError(400, 'bad_request', /** @type {Error} */ (e).message);
     }
 });
 
@@ -336,7 +353,7 @@ router.post('/custom/checks/:id/attest', ...guard, validate({ body: AttestBody }
         _invalidateCounts(orgId);
         res.status(201).json(attestation);
     } catch (e) {
-        throw new HttpError(400, 'bad_request', e.message);
+        throw new HttpError(400, 'bad_request', /** @type {Error} */ (e).message);
     }
 });
 
@@ -355,6 +372,9 @@ router.get('/custom/checks/:id/attestations', ...guard, validate({ query: Attest
 
 const ATTESTATION_EXPORT_FIELDS = ['id', 'check_id', 'subject_id', 'outcome', 'statement', 'evidence_refs', 'attested_by', 'attested_at', 'expires_at'];
 
+/**
+ * @param {string[]} fields
+ */
 function _pick(row, fields) {
     const out = {};
     for (const f of fields) if (row && row[f] !== undefined) out[f] = row[f];
@@ -394,3 +414,5 @@ router.get('/custom/frameworks/:id/export.json', ...guard, async (req, res) => {
 
 module.exports = router;
 module.exports.computeExpiresAt = computeExpiresAt;
+
+/** @typedef {import('express').Router & Record<string, unknown>} RouterExports */

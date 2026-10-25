@@ -13,6 +13,7 @@
  */
 'use strict';
 
+const { fallback } = require('../../utils/bestEffort');
 const TAG_OPEN = '<about_the_user>';
 const TAG_CLOSE = '</about_the_user>';
 
@@ -61,7 +62,7 @@ async function loadUserIdentity(userId, { userStore }) {
     try {
         const user = await userStore.getUser(userId);
         if (!user) return { text: '', knownEntities: [] };
-        const org = user.organizationId ? await userStore.getOrganization(user.organizationId).catch(() => null) : null;
+        const org = user.organizationId ? await userStore.getOrganization(user.organizationId).catch((e) => fallback('core/memory/userIdentityContext:loadUserIdentity', e, null)) : null;
         return buildUserIdentity(user, org);
     } catch (_) {
         return { text: '', knownEntities: [] };

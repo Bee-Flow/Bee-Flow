@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Everything the MCP library reaches outside itself, resolved lazily.
  *

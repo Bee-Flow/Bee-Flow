@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Publishing a Solution: the server-side gate, the release note and the
  * announcement.
@@ -49,6 +50,9 @@ const NOTE_DEADLINE_MS = 12_000;
  * and on top of that the row must be the caller's own. Nothing found means
  * this is the first publication: everything is 'added', and no model call is
  * made because there is nothing to compare.
+ *
+ * @param {{ store: { listBlueprintsFor: (q: { userId: string, organizationId: string | null }) => Promise<Array<{ id?: string, solutionKey?: string, createdBy?: string }>>, getBlueprintById: (id: string) => Promise<{ manifest?: object } | null> }, project: { id: string, organizationId?: string | null }, userId: string }} input
+ * @returns {Promise<object | null>}
  */
 async function previousPublishedManifest({ store, project, userId }) {
     const readable = await store.listBlueprintsFor({
@@ -79,8 +83,8 @@ async function previousPublishedManifest({ store, project, userId }) {
  * server's statement about two manifests, and a client-supplied one could mark
  * a changed entity as 'unchanged'.
  *
- * @param {{store:object, project:object, userId:string, manifest:object}} input
- * @param {{releaseNotes?:{buildReleaseNotes:Function, releaseNotesPayload:Function}, log?:object}} [deps]
+ * @param {{store:{ MAX_NOTES_BYTES: number, listBlueprintsFor: (q: { userId: string, organizationId: string | null }) => Promise<Array<{ id?: string, solutionKey?: string, createdBy?: string }>>, getBlueprintById: (id: string) => Promise<{ manifest?: object } | null> }, project:{ id: string, organizationId?: string|null }, userId:string, manifest:object}} input
+ * @param {{releaseNotes?:{buildReleaseNotes:Function, releaseNotesPayload:Function}, log?:{ warn: (...args: unknown[]) => void }}} [deps]
  */
 async function releaseNotesFor({ store, project, userId, manifest }, deps = {}) {
     const log = deps.log || defaultLog;
@@ -124,7 +128,9 @@ async function releaseNotesFor({ store, project, userId, manifest }, deps = {}) 
  * `emitProjectEvent` for the live stream. Neither may fail a publication that
  * has already been committed, hence the own try.
  *
- * @param {{projectStore?:object, projectFeed?:object, log?:object}} [deps]
+ * @param {string} projectId
+ * @param {string} actorId
+ * @param {{projectStore?:{ logActivity: (...args: any[]) => Promise<any> }, projectFeed?:{ emitProjectEvent: (...args: any[]) => Promise<any> }, log?:{ warn: (...args: unknown[]) => void }}} [deps]
  */
 async function announcePublication(projectId, actorId, deps = {}) {
     const log = deps.log || defaultLog;
@@ -149,7 +155,7 @@ const UNKNOWN_VERDICT = Object.freeze({ blocked: true, complete: false, findings
  * gives on its failure path — because "could not check" must never publish.
  *
  * @param {{id:string}} project
- * @param {{buildGraphForProject?:Function, collectCompleteness?:Function, log?:object}} [deps]
+ * @param {{buildGraphForProject?:Function, collectCompleteness?:Function, log?:{ warn: (...args: unknown[]) => void }}} [deps]
  * @returns {Promise<{blocked:boolean, complete:boolean, findings:object[], unavailable:string[]}>}
  */
 async function releaseGate(project, deps = {}) {
@@ -187,9 +193,11 @@ async function releaseGate(project, deps = {}) {
  * redacted the way capture.js `reportForFile` does. An allow-list of fields
  * cannot vouch for what is inside a sentence, so the sentence stays home; the
  * `code` says what was found and the receiver words it.
+ *
+ * @param {{ blocked: boolean, complete: boolean, findings: Array<{ code?: unknown, severity?: unknown, blockedAt?: unknown, kind?: unknown, targetRef?: { title?: unknown }, remediation?: unknown }>, unavailable: string[] }} verdict
  */
 function checksForDownload(verdict) {
-    const text = (v) => (typeof v === 'string' && v ? v : null);
+    const text = (/** @type {unknown} */ v) => (typeof v === 'string' && v ? v : null);
     return {
         blocked: verdict.blocked === true,
         complete: verdict.complete === true,
@@ -218,6 +226,9 @@ function checksForDownload(verdict) {
  * manifest.js `buildManifest` sets them only for a pipeline release ("a
  * gallery file is exactly what it was before they existed"), so either
  * section being an array identifies one.
+ *
+ * @param {{ channel?: string, solution?: { slots?: unknown, variables?: unknown } } | null | undefined} manifest
+ * @returns {boolean}
  */
 function isPipelineManifest(manifest) {
     if (!manifest || typeof manifest !== 'object') return false;

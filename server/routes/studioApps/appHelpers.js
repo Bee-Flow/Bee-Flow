@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Small helpers the Studio app routes share (routes/studioApps/).
  *
@@ -19,6 +19,7 @@ const solutionStageStore = require('../../stores/solutionStageStore');
  * cached stage lookup answers the common case (no stage) without a query. A
  * failed read is null: it labels the builder, it decides nothing (the store
  * refuses a managed write on its own).
+ * @param {{ id: string, projectId?: string | null } | null} app
  */
 async function managedOf(app) {
     if (!app || !app.projectId) return null;
@@ -26,7 +27,7 @@ async function managedOf(app) {
         if (!await managedParts.managedInfo(app.projectId)) return null;
         return await solutionStageStore.managedPayloadFor({ projectId: app.projectId, kind: 'app', entityId: app.id });
     } catch (e) {
-        log.warn(`[StudioApps] managed lookup failed for ${app.id}: ${e.message}`);
+        log.warn(`[StudioApps] managed lookup failed for ${app.id}: ${/** @type {Error} */ (e).message}`);
         return null;
     }
 }
@@ -38,6 +39,10 @@ const MAX_CATEGORY_LEN = 64;
 
 // The store never puts builder_session on app rows, but strip it anyway so a
 // future store change can't silently start leaking the AI chat snapshot.
+/**
+ * @template {Record<string, unknown>} T
+ * @param {T} app
+ */
 function sanitizeAppRow(app) {
     if (!app || typeof app !== 'object') return app;
     const { builderSession, builder_session, ...rest } = app;
@@ -45,6 +50,7 @@ function sanitizeAppRow(app) {
 }
 
 // Owner's automations in the shape validate.js expects for opts.ownedAutomations.
+/** @param {string} ownerId */
 async function loadOwnedAutomations(ownerId) {
     const owned = await automationStore.getAutomationsForUser(ownerId);
     return (owned || []).map(a => ({ id: a.id, userId: a.userId, isActive: a.isActive }));
@@ -59,6 +65,10 @@ async function loadOwnedAutomations(ownerId) {
 // unreachable (no caller filled opts.datatables), and every binding on a linked table got on every save the warning
 // `binding.datatable_unverified` that the author could never resolve — while
 // an app with a datatableId that points nowhere published cleanly and broke only at the first read.
+/**
+ * @param {string} appId
+ * @param {string} ownerId
+ */
 async function loadDataRefs(appId, ownerId) {
     const meta = await studioAppDataStore.getDataModel(appId, ownerId);
     const datasets = await studioAppDataStore.listDatasets(appId, ownerId);

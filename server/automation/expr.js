@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Restricted expression evaluator for automation conditions.
  *

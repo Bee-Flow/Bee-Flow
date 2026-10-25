@@ -13,6 +13,7 @@ const { checkConnectorSignupAllowed } = require('./signupGuards');
 // (via connector/serviceDeps: the single auth -> services edge, see layering.test.js)
 const { orgHealth } = require('./connector/serviceDeps');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 const { HttpError } = require('../shared/httpErrors');
 const {
     reject, fail, ok, _isOrgAdminRequester, _resolveRequesterNcUid,
@@ -61,7 +62,7 @@ async function _notifyOrgAdminsOfPendingUser(orgId, newUser) {
                 title: 'New user awaiting approval',
                 message: `${who}${newUser?.email ? ` (${newUser.email})` : ''} was created from Nextcloud and needs approval before they can use Bee Flow AI.`,
                 link: require('../utils/appPaths').adminSecurityUsersPath(),
-            }).catch(() => { });
+            }).catch((err) => bestEffort('connectorJwtProvision:notify-admin', err));
         }
     } catch (e) {
         log.warn(`[ConnectorJWT] pending-user admin notification failed for org ${orgId}: ${e.message}`);
@@ -214,10 +215,10 @@ async function _autoProvision(req, org, orgId, payload, reqNcUid) {
         const pendingUser = user;
         setImmediate(() => {
             try {
-                _notifyOrgAdminsOfPendingUser(orgId, pendingUser).catch(() => { });
+                _notifyOrgAdminsOfPendingUser(orgId, pendingUser).catch((err) => bestEffort('connectorJwtProvision:notify-admins', err));
                 userStore.logAccessAudit('nc_user_autoprovisioned_pending', 'user', userId,
-                    'system:connector_jwt', null, { orgId, status: 'pending' }, orgId).catch(() => { });
-            } catch (err) { log.debug('never break the auth path', err); }
+                    'system:connector_jwt', null, { orgId, status: 'pending' }, orgId).catch((err) => bestEffort('connectorJwtProvision:audit-pending', err));
+            } catch (err) { bestEffort('connectorJwtProvision:pending-followups', err); }
         });
         return reject(403, {
             error: 'Your account has been created in Bee Flow but requires admin approval. Please contact your organization administrator.',
@@ -250,3 +251,11 @@ async function provisionConnectorUser(req, orgId, payload) {
 }
 
 module.exports = { provisionConnectorUser };
+
+/** @typedef {import('./connectorJwtPhases').OrgRec} OrgRec */
+
+/** @typedef {import('./connectorJwtPhases').UserRec} UserRec */
+
+/** @typedef {import('./connectorJwtPhases').ConnectorPayload} ConnectorPayload */
+
+/** @typedef {import('./connectorJwtPhases').ConnectorReq} ConnectorReq */

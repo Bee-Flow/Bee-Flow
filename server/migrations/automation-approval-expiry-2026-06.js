@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: add awaiting_step_expires_at column to automation_runs
  * (2026-06).

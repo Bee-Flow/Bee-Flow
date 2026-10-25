@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * GDPR Art. 12/13/14 — Transparent information to data subjects.
  * Verifies that a privacy-notice URL has been published in compliance_settings.
@@ -17,6 +17,7 @@ module.exports = {
     descriptionKey: 'compliance.checks.gdpr_art12.desc',
     remediationKey: 'compliance.checks.gdpr_art12.fix',
     remediationLink: 'admin/compliance/settings',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const s = await complianceStore.getSettings(orgId);
         const url = (s.privacy_notice_url || '').trim();

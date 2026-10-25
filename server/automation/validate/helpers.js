@@ -17,6 +17,7 @@ function isObject(x) { return x && typeof x === 'object' && !Array.isArray(x); }
  * builder, ignored by the runner. We reject only malformed shapes so a
  * typo on the UI side surfaces fast instead of silently round-tripping
  * garbage through the JSONB blob.
+ * @param {(value: { code: string; severity: string; path: string; message: string; hint: string; }) => void} push
  */
 function validatePosition(pos, at, push) {
     if (pos === undefined || pos === null) return;
@@ -67,6 +68,7 @@ function topoOrder(nodes, edges) {
  * value, `''` for the value itself) so a finding can name the field:
  *   { kind: 'ref', path, where, template? }   { kind: 'expr', src, where, binding }
  * Callers that only read `kind`/`path`/`src` see the same shape as before.
+ * @param {string} [where]
  */
 function collectRefPaths(value, out, where = '') {
     if (value == null) return;
@@ -105,11 +107,18 @@ function collectLiteralBraces(value, out) {
     for (const k of Object.keys(value)) collectLiteralBraces(value[k], out);
 }
 
-/** The root of a reference path (`steps`, `trigger`, …), read by the runner's grammar. */
+/**
+ * The root of a reference path (`steps`, `trigger`, …), read by the runner's grammar.
+ * @param {string} path
+ */
 function rootOf(path) {
     return refHead(String(path)).root;
 }
 
+/**
+ * @param {string} a
+ * @param {string} b
+ */
 function levenshtein(a, b) {
     if (a === b) return 0;
     const al = a.length, bl = b.length;
@@ -133,6 +142,7 @@ function levenshtein(a, b) {
  * Pick the closest candidate id to `target` by Levenshtein distance —
  * used to suggest "did you mean" in validation errors when an LLM
  * fabricates a step id like "step_1" that doesn't exist.
+ * @param {string} target
  */
 function pickClosestId(target, candidates) {
     if (!Array.isArray(candidates) || candidates.length === 0) return null;
@@ -183,3 +193,39 @@ module.exports = {
     pickClosestId,
     secondSegment,
 };
+
+/**
+ * @typedef {Record<string, any>} StepDef  one step (or trigger) of a stored definition: JSON authored by a person or an LLM
+ * @typedef {Record<string, any>} GraphDoc  the root definition or a layer/Step mini-definition, as stored
+ * @typedef {(finding: Finding) => void} PushFinding  a finding sink (pushE / pushW)
+ * @typedef {Record<string, { title?: string, params?: Array<{ name?: string, required?: boolean }> }>} AvailableBlocks  the callable-Steps catalog, by block id
+ * @typedef {Record<string, { trigger?: { params?: Array<{ name?: string, required?: boolean }> } }>} LayersMap  the `layers` of a definition, by key
+ * @typedef {object} ValidateCatalogs  the optional catalogs a caller hands the validator (see validateDefinition)
+ * @property {Set<string> | null} [availableTools]
+ * @property {Record<string, string[]> | null} [toolRequiredParams]
+ * @property {Record<string, Set<string>> | null} [deliverableEvents]
+ * @property {AvailableBlocks | null} [availableBlocks]
+ * @property {Set<string> | null} [knownConnectionIds]
+ * @property {Set<string> | null} [knownVarNames]
+ * @property {Set<string> | null} [availableAgents]
+ * @property {boolean | null} [topicClassifier]
+ * @typedef {ValidateCatalogs & { scope?: string, stage?: string }} ValidateOptions  the options of validateDefinition
+ * @typedef {object} GraphCtx  what validateGraph hands to every rule group of one graph
+ * @property {GraphDoc} graph
+ * @property {string} pathPrefix
+ * @property {string} scope
+ * @property {(s: string) => string} p  prefixes a path with the graph's own prefix
+ * @property {PushFinding} pushE
+ * @property {PushFinding} pushW
+ * @property {boolean} isContractScope
+ * @property {string} contractNoun
+ * @property {StepDef} trigger
+ * @property {typeof import('./stepRules').checkPinnedOutput} checkPinnedOutput
+ * @property {typeof import('./stepRules').createStepChecker} createStepChecker
+ */
+
+/**
+ * @typedef {{ code: string, severity: string, path: string, message: string, hint?: string, ref?: string, kind?: string, targetRef?: Record<string, any> }} Finding  one validation finding
+ * @typedef {string | number | boolean | null | undefined | Json[] | { [key: string]: Json }} Json  loose JSON, as a definition is stored
+ * @typedef {{ kind: string, path?: string, src?: string, where: string, template?: boolean, binding?: boolean, host?: string, parse?: boolean }} RefEntry  one reference found by collectRefPaths
+ */

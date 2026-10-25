@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Invitation Store — PostgreSQL-backed invitation token management
  * 
@@ -53,13 +53,14 @@ async function createInvitation({ email, organizationId, invitedBy, role }) {
         );
         return { id, token, expiresAt };
     } catch (e) {
-        log.error('[InvitationStore] createInvitation error:', e.message);
+        log.error('[InvitationStore] createInvitation error:', /** @type {Error} */ (e).message);
         return null;
     }
 }
 
 /**
  * Get a valid invitation by token (must be pending and not expired).
+ * @param {string} token
  */
 async function getInvitationByToken(token) {
     await initDB();
@@ -72,6 +73,7 @@ async function getInvitationByToken(token) {
 
 /**
  * Mark an invitation as accepted.
+ * @param {string} token
  */
 async function markAccepted(token) {
     await initDB();
@@ -84,6 +86,7 @@ async function markAccepted(token) {
 
 /**
  * Get all invitations for an organisation (most recent first).
+ * @param {string} organizationId
  */
 async function getInvitationsForOrg(organizationId) {
     await initDB();
@@ -101,6 +104,7 @@ async function getInvitationsForOrg(organizationId) {
  * Get an invitation row by primary id. Used by the audit-trail snapshot
  * on DELETE — the revoke path needs to record the original grant terms
  * before mutating the row.
+ * @param {string | string[]} invitationId
  */
 async function getInvitationById(invitationId) {
     await initDB();
@@ -109,6 +113,7 @@ async function getInvitationById(invitationId) {
 
 /**
  * Delete (revoke) an invitation by ID.
+ * @param {string | string[]} invitationId
  */
 async function deleteInvitation(invitationId) {
     await initDB();

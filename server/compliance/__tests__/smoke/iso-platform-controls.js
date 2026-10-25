@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Smoke scenarios — ISO 27001 controls proven by the platform itself:
  * A.5.15 access control, A.8.5 secure authentication, A.8.24 cryptography,
@@ -83,6 +83,11 @@ module.exports = async function isoPlatformControls() {
     });
 
     log.info('\n▶ ISO 27001 A.8.15/8.16 — Security event logging');
+    /**
+     * @param {number} integration
+     * @param {number} guardrail
+     * @param {number} auth
+     */
     const liveLedgers = (integration, guardrail, auth) => ([
         { query: /COUNT\(\*\)::int AS c FROM integration_activity_log/, row: { c: integration } },
         { query: /COUNT\(\*\)::int AS c FROM guardrail_events/, row: { c: guardrail } },

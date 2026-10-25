@@ -33,6 +33,7 @@ const { HttpError } = require('../../core/http/errors');
 const { z, typeError } = require('../../utils/zod');
 const { DRAFT_TOOL, MAX_BRIEF_CHARS, MAX_NOTE_CHARS, buildDraftMessages, parseFormDraft } = require('../../automation/formDraft');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** One model call per keystroke-sized request; ten a minute is plenty for a person. */
 const limiter = perUserRateLimit({ windowMs: 60_000, max: 10 });
@@ -52,7 +53,7 @@ async function resolveModel({ userId, userOrgId }) {
     try {
         const resolved = await resolveModelForTier('tier:fast', { userOrgId, userId, fallbackTier: 'fast' });
         if (resolved) return resolved;
-    } catch (err) { log.debug('fall through', err); }
+    } catch (err) { bestEffort('routes/automation/formsAi:resolveModel', err); /* fall through */ }
     try {
         return await resolveModelWithGlobalFallback('tier:fast', { userOrgId, userId });
     } catch (_) {

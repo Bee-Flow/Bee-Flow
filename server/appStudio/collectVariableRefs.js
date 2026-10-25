@@ -27,6 +27,7 @@ function isObject(v) { return v !== null && typeof v === 'object' && !Array.isAr
  * Walk a step list in the same shape the runtime does — a step, then its child
  * branches. Order is irrelevant here (this collects a set), but the SHAPE is
  * not: a set_variable buried in a switch case is just as real as one at the top.
+ * @param {number} [depth]
  */
 function walkSteps(steps, visit, depth = 0) {
     if (!Array.isArray(steps) || depth > 12) return;
@@ -48,6 +49,9 @@ function walkSteps(steps, visit, depth = 0) {
 
 /** Walk every component in the definition, whatever its depth. */
 function walkNodes(def, visit) {
+    /**
+     * @param {number} depth
+     */
     const walk = (nodes, depth) => {
         if (!Array.isArray(nodes) || depth > 12) return;
         for (const node of nodes) {
@@ -78,8 +82,14 @@ function walkNodes(def, visit) {
 function collectVariableWrites(def) {
     const names = new Set();
     const loopScoped = new Set();
+    /** @type {{ name: string; path: string; kind: string; }[]} */
     const invalid = [];
 
+    /**
+     * @param {string} name
+     * @param {string} path
+     * @param {string} kind
+     */
     const record = (name, path, kind, { loop = false } = {}) => {
         if (typeof name !== 'string' || !name) return;
         if (!VARIABLE_NAME_RE.test(name) && !RESERVED_VARIABLE_NAMES.includes(name)) {
@@ -103,7 +113,7 @@ function collectVariableWrites(def) {
         }
 
         const steps = action.kind === 'sequence' ? action.steps : [action];
-        walkSteps(steps, (step) => {
+        walkSteps(steps, (/** @type {{ kind: string; name: string; resultVar: string; itemVar: string; indexVar: string; }} */ step) => {
             if (step.kind === 'set_variable') {
                 record(step.name, `${base}.set_variable`, 'set_variable');
             }

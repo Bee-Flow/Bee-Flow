@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Sequences: which ordered runs of actions keep coming back.
@@ -45,7 +45,13 @@ function sessionize(events, opts = {}) {
     }
     /** @type {Session[]} */
     const sessions = [];
+    /**
+     * @param {WorkEvent[]} list
+     * @param {number} gap
+     * @param {string} keyBase
+     */
     const cut = (list, gap, keyBase) => {
+        /** @type {WorkEvent[]} */
         let cur = [];
         let part = 0;
         for (const e of list) {
@@ -62,9 +68,15 @@ function sessionize(events, opts = {}) {
     return sessions.sort((a, b) => a.start - b.start);
 }
 
-/** Verb list of a session with immediate repeats collapsed, capped. */
+/**
+ * Verb list of a session with immediate repeats collapsed, capped.
+ * @param {Session} session
+ * @param {number} maxItems
+ */
 function itemsOf(session, maxItems) {
+    /** @type {string[]} */
     const items = [];
+    /** @type {string[]} */
     const apps = [];
     for (const e of session.events) {
         if (items[items.length - 1] === e.verb) continue;
@@ -222,6 +234,7 @@ function mineSequences(sessions, opts = {}) {
         const sessionIdx = [...f.occ.keys()].sort((a, b) => a - b);
         const dayKeys = new Set(sessionIdx.map((i) => Math.floor(sessions[i].start / DAY)));
         if (dayKeys.size < minDays) continue;
+        /** @type {string[]} */
         const apps = [];
         const verbApps = f.verbs.map((v) => {
             const i = sessionIdx[0];
@@ -231,6 +244,7 @@ function mineSequences(sessions, opts = {}) {
         for (const a of verbApps) if (a && !apps.includes(a)) apps.push(a);
         const spansMs = sessionIdx.map((i) => {
             // The tightest occurrence in this session.
+            /** @type {number[] | null} */
             let best = null;
             for (const [end, begin] of /** @type {Map<number, number>} */ (f.occ.get(i))) {
                 if (!best || end - begin < best[0] - best[1]) best = [end, begin];
@@ -262,7 +276,12 @@ function mineSequences(sessions, opts = {}) {
         .slice(0, maxPatterns);
 }
 
-/** Timestamp of the k-th collapsed item; `last` takes the last event of a repeat run. */
+/**
+ * Timestamp of the k-th collapsed item; `last` takes the last event of a repeat run.
+ * @param {WorkEvent[]} events
+ * @param {number} k
+ * @param {boolean} [last]
+ */
 function tsOfItem(events, k, last = false) {
     let idx = -1;
     for (let j = 0; j < events.length; j++) {

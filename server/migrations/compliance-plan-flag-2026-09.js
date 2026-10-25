@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: Compliance Hub becomes a subscription-togglable feature flag.
  *
@@ -30,6 +31,9 @@ const { getAll, run } = require('../db');
 
 const FLAG = 'compliance_hub_gdpr';
 
+/**
+ * @param {string} v
+ */
 function parseList(v) {
     if (v == null) return null;
     if (Array.isArray(v)) return v;
@@ -51,7 +55,7 @@ async function up() {
             console.log(`[compliance-plan-flag] plan ${p.id}: grandfathered ${FLAG} into allowed_beta_features`);
         }
     } catch (e) {
-        console.warn('[compliance-plan-flag] plan grandfather skipped:', e.message);
+        console.warn('[compliance-plan-flag] plan grandfather skipped:', /** @type {Error} */ (e).message);
     }
 
     // ── B. Orgs with a stored "Organisation access" menu ───────────────────
@@ -66,7 +70,7 @@ async function up() {
             console.log(`[compliance-plan-flag] org ${o.id}: grandfathered ${FLAG} into org_available_capabilities`);
         }
     } catch (e) {
-        console.warn('[compliance-plan-flag] org access-menu grandfather skipped:', e.message);
+        console.warn('[compliance-plan-flag] org access-menu grandfather skipped:', /** @type {Error} */ (e).message);
     }
 }
 

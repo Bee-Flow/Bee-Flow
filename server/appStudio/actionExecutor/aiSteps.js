@@ -261,7 +261,7 @@ async function buildDatasetTools(app, step, ctx, scope) {
                 gene: r.gene, region: r.region, build: r.build,
             };
         } catch (e) {
-            if (e instanceof DatasetQueryError || e.status === 400) return { error: e.message };
+            if (e instanceof DatasetQueryError || e.status === 400) return { error: /** @type {Error} */ (e).message };
             throw e;
         }
     };
@@ -360,6 +360,7 @@ async function aiExtractStep(app, model, step, ctx) {
         : 0;
 
     let written = 0;
+    /** @type {string[]} */
     let unmatched = [];
     const writeTo = (step.writeTo && typeof step.writeTo === 'object') ? step.writeTo : null;
     if (writeTo && writeTo.tableId) {
@@ -464,6 +465,7 @@ async function upsertExtractedRows(app, model, table, rows, {
     const constantCols = new Set(Object.keys(constants || {}));
 
     let written = 0;
+    /** @type {string[]} */
     const unmatched = [];
     for (const values of rows) {
         const key = values[keyColumn];
@@ -629,6 +631,7 @@ function shrinkToFit(value) {
         .filter((k) => Array.isArray(value[k]) && value[k].length)
         .sort((a, b) => JSON.stringify(value[b]).length - JSON.stringify(value[a]).length);
 
+    /** @type {Record<string, string>} */
     const dropped = {};
     const shrunk = { ...value };
     for (const key of arrayKeys) {
@@ -677,6 +680,7 @@ function serializePromptContext(value) {
 async function resolveContextSources(app, model, step, ctx, scope) {
     const list = Array.isArray(step.contextSources) ? step.contextSources : [];
     if (list.length === 0) return '';
+    /** @type {string[]} */
     const parts = [];
     for (const entry of list) {
         if (!entry || typeof entry !== 'object' || !entry.source) continue;
@@ -746,3 +750,28 @@ module.exports = {
     resolveFileBinding,
     redeemPendingDescriptors,
 };
+
+/**
+ * @typedef {{ id: string, userId: string, organizationId?: string | null, projectId?: string | null }} AppRef
+ * @typedef {{ fileId?: string, id?: string, kind?: string, attachmentId?: string, name?: unknown }} FileDescriptor
+ * @typedef {{ name: string, required?: boolean }} SchemaField
+ * @typedef {object} AiStep  an ai_extract / ai_generate / kb_query step
+ * @property {string} [kind]
+ * @property {import('./shared').Binding} [source]  ai_extract: the file binding
+ * @property {import('./shared').Binding} [attachments]  ai_generate: the file binding
+ * @property {import('./shared').Binding} [query]  kb_query
+ * @property {number} [topK]
+ * @property {unknown} [schema]  the authored output fields
+ * @property {string} [modelTier]
+ * @property {string} [documentMode]
+ * @property {string[]} [knowledgeBaseIds]
+ * @property {import('./shared').Binding} [promptContext]  a binding that may read data
+ * @property {Array<{ source?: import('./shared').Binding, label?: unknown }>} [contextSources]
+ * @property {import('./shared').Binding} [datasets]
+ * @property {string} [prompt]
+ * @property {string} [output]
+ * @property {boolean} [markdownToHtml]
+ * @property {string} [resultDetail]
+ * @property {{ tableId?: string, mapping?: Record<string, string>, constants?: Record<string, import('./shared').Binding>,
+ *   upsertOn?: string, insertMissing?: boolean, fillOnly?: boolean }} [writeTo]
+ */

@@ -83,13 +83,37 @@ const DOCS_TOOLS = [
 
 // ─── Docs Client ───────────────────────────────────────────────
 
+/**
+ * The part of a Google Docs body these tools read.
+ * @typedef {{ content?: Array<{ endIndex?: number,
+ *   paragraph?: { elements?: Array<{ textRun?: { content?: string } }> },
+ *   table?: { tableRows?: Array<{ tableCells?: DocsBody[] }> } }> }} DocsBody
+ */
+/**
+ * The part of a googleapis docs v1 client these tools call.
+ * @typedef {{ documents: {
+ *   create(params: object): Promise<{ data: { documentId?: string } }>,
+ *   get(params: object): Promise<{ data: { title?: string, body?: DocsBody,
+ *     tabs?: Array<{ tabProperties?: { title?: string }, documentTab?: { body?: DocsBody } }> } }>,
+ *   batchUpdate(params: object): Promise<{ data: { replies?: Array<{ replaceAllText?: { occurrencesChanged?: number } }> } }>,
+ * } }} DocsClient
+ */
+
+/**
+ * @param {import('./googleClient').GoogleSession} session
+ * @returns {Promise<{ docs: DocsClient }>}
+ */
 async function createDocsClient(session) {
     const { createGoogleApiClient } = require('./googleClient');
-    return createGoogleApiClient(session, { api: 'docs', version: 'v1', exposeOAuth2: true, notConnectedError: 'Not connected to Google Docs — user must log in with Google' });
+    return /** @type {Promise<{ docs: DocsClient }>} */ (createGoogleApiClient(session, { api: 'docs', version: 'v1', exposeOAuth2: true, notConnectedError: 'Not connected to Google Docs — user must log in with Google' }));
 }
 
 // ─── Extract text from doc elements ────────────────────────────
 
+/**
+ * @param {DocsBody | null | undefined} body
+ * @returns {string}
+ */
 function extractText(body) {
     if (!body?.content) return '';
     let text = '';
@@ -114,6 +138,12 @@ function extractText(body) {
 
 // ─── Tool Execution ────────────────────────────────────────────
 
+/**
+ * @param {string} toolName
+ * @param {{ title?: string, body?: string, folderId?: string, documentId?: string, tabName?: string,
+ *   text?: string, findText?: string, replaceText?: string, matchCase?: boolean }} args
+ * @param {import('./googleClient').GoogleSession} session
+ */
 async function executeDocsTool(toolName, args, session) {
     const { docs } = await createDocsClient(session);
 
@@ -157,7 +187,7 @@ async function executeDocsTool(toolName, args, session) {
                         supportsAllDrives: true,
                     });
                 } catch (e) {
-                    log.warn(`[Docs] Could not move to folder ${folderId}:`, e.message);
+                    log.warn(`[Docs] Could not move to folder ${folderId}:`, /** @type {Error} */ (e).message);
                 }
             }
 
@@ -264,6 +294,7 @@ async function executeDocsTool(toolName, args, session) {
     }
 }
 
+/** @param {string} toolName */
 function isDocsTool(toolName) {
     return toolName.startsWith('docs_');
 }

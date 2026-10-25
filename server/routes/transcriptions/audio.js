@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Transcriptions — audio playback.
  *
@@ -17,6 +18,7 @@ const { resolveAccessContext } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { flag } = require('./schemas');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // `?download=1` is the rescue-hatch parameter and the only one this route reads. Strict, because `?downlaod=1` streamed the recording back `inline`: the browser played it instead of saving it, and for a browser recording without a durable copy, saving it is the only way out.
 const DOWNLOAD_TEXT = 'download is true of false.';
@@ -24,7 +26,7 @@ const AudioQuery = z.object({ download: flag(DOWNLOAD_TEXT) }).strict();
 
 // ── Serve audio file for playback ────────────────────────
 
-router.get('/:id/audio', requireAuth, validate({ query: AudioQuery }), async (req, res, next) => {
+router.get('/:id/audio', requireAuth, validate({ query: AudioQuery }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
     const userId = req.session.user.id;
     const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
     const transcription = await transcriptionStore.getTranscription(req.params.id, userId, { orgIds, userGroupIds, isSuperAdmin });
@@ -33,7 +35,7 @@ router.get('/:id/audio', requireAuth, validate({ query: AudioQuery }), async (re
     const { contentTypeForAudio, repairSavedAudio } = require('../../core/meetingNotes/savedAudioStore');
     // `?download=1` is the rescue hatch: it lets a user save a browser
     // recording that has no durable copy, which is otherwise unrecoverable.
-    const asAttachment = req.query.download === true;
+    const asAttachment = /** @type {{download?: boolean}} */ (/** @type {unknown} */ (req.query)).download === true;
 
     let audioExists = false;
     if (transcription.audioPath) { try { await fs.promises.access(transcription.audioPath); audioExists = true; } catch { audioExists = false; } }
@@ -41,7 +43,7 @@ router.get('/:id/audio', requireAuth, validate({ query: AudioQuery }), async (re
     // Shared by both branches so the local and object-storage paths cannot
     // drift apart — that drift is exactly why a recording served from RustFS
     // could not be seeked and, on iOS Safari, would not play at all.
-    const sendHeaders = (contentType, fileName) => {
+    const sendHeaders = /** @param {string} contentType @param {string} fileName */ (contentType, fileName) => {
         res.setHeader('Accept-Ranges', 'bytes');
         res.setHeader('Content-Type', contentType);
         res.setHeader('Content-Disposition', `${asAttachment ? 'attachment' : 'inline'}; filename="${fileName}"`);
@@ -64,14 +66,14 @@ router.get('/:id/audio', requireAuth, validate({ query: AudioQuery }), async (re
                     const contentType = contentTypeForAudio(key, head.contentType);
                     const fileName = transcription.fileName || path.basename(key);
 
-                    const range = parseRangeHeader(req.headers.range, total);
+                    const range = /** @type {{start: number, end: number, invalid?: undefined} | {invalid: true, start?: undefined, end?: undefined} | null} */ (parseRangeHeader(req.headers.range, total))
                     if (range && range.invalid) {
                         res.setHeader('Content-Range', `bytes */${total}`);
                         return res.status(416).end();
                     }
 
                     sendHeaders(contentType, fileName);
-                    const { stream, contentLength } = await storageStore.streamFile(key, { range: range || null });
+                    const { stream, contentLength } = await storageStore.streamFile(key, { range: /** @type {{ start: number, end: number } | null} */ (range || null) });
                     if (range) {
                         res.status(206);
                         res.setHeader('Content-Range', `bytes ${range.start}-${range.end}/${total}`);
@@ -96,7 +98,7 @@ router.get('/:id/audio', requireAuth, validate({ query: AudioQuery }), async (re
             ownerId: transcription.ownerId || userId,
             audioPath: transcription.audioPath,
             audioStorageKey: transcription.audioStorageKey,
-        }).catch(() => {});
+        }).catch((e) => bestEffort('routes/transcriptions/audio:anon', e));
     }
 
     const audioPath = transcription.audioPath;
@@ -112,7 +114,7 @@ router.get('/:id/audio', requireAuth, validate({ query: AudioQuery }), async (re
     sendHeaders(contentType, fileName);
 
     // nosemgrep: ajinabraham.njsscan.traversal.path_traversal.generic_path_traversal -- audioPath comes from the access-checked transcription row and was built by the server; the Range header only yields byte offsets bounded by the file size
-    const range = parseRangeHeader(req.headers.range, fileSize);
+    const range = /** @type {{start: number, end: number, invalid?: undefined} | {invalid: true, start?: undefined, end?: undefined} | null} */ (parseRangeHeader(req.headers.range, fileSize))
     if (range && range.invalid) {
         res.setHeader('Content-Range', `bytes */${fileSize}`);
         return res.status(416).end();

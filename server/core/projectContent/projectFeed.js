@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * One way to write into a project's live feed.
  *
@@ -26,6 +26,12 @@
  */
 const log = require('../../telemetry/log');
 
+/**
+ * @param {string} projectId
+ * @param {{ kind?: string, actorId?: string | null, targetType?: string | null, targetId?: string | null,
+ *   payload?: object }} event  as projectStore.appendProjectEvent takes it
+ * @param {{ label?: string }} [opts]
+ */
 async function emitProjectEvent(projectId, event, { label = 'Projects' } = {}) {
     if (!projectId) return;
     try {
@@ -33,7 +39,7 @@ async function emitProjectEvent(projectId, event, { label = 'Projects' } = {}) {
         if (!stored) return;
         await require('../projectEventBus').publishProjectEvent(projectId, { ...event, ...stored });
     } catch (err) {
-        log.warn(`[${label}] project event emit failed:`, err.message);
+        log.warn(`[${label}] project event emit failed:`, /** @type {Error} */ (err).message);
     }
 }
 

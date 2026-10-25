@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Which encryption tiers may this organisation actually select?
  *

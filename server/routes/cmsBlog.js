@@ -33,11 +33,16 @@ const { z, worded, bodyOf, choice, closedObject, typeError } = require('../core/
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const { POST_LIMITS: LIMITS, POST_STATUSES } = require('../stores/cms/postLimits');
 // Lazy: the store's aggregates are only needed when a request arrives.
+/** @param {import('../stores/cms/shared').CmsDoc} post */
 const summarize = (post) => require('../stores/cms/blogEffective').summarize(post);
 const getLiveSiteId = () => require('./cmsShared').getLiveSiteId();
 const POST_ID_RE = /^po_[a-f0-9]{4,}$/;
 const LOCALE_RE = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/;
 
+/**
+ * @param {string} field
+ * @param {number} max
+ */
 const text = (field, max) => worded(`${field} is text of at most ${max} characters.`).max(max, `${field} is at most ${max} characters.`);
 const seoShape = closedObject({
     metaTitle: text('seo.metaTitle', LIMITS.metaTitle).optional(),
@@ -82,7 +87,10 @@ const overrideBody = validate({
 // is a stolen admin session filling the config table, not a normal editor.
 const writeLimiter = perUserRateLimit({ windowMs: 60_000, max: 120 });
 
-/** Store errors that are the caller's fault become a 400 with their sentence. */
+/**
+ * Store errors that are the caller's fault become a 400 with their sentence.
+ * @param {Error & { code?: string }} err
+ */
 function asHttp(err) {
     if (err && err.name === 'PostError') {
         return new HttpError(err.code === 'not_found' ? 404 : 400, err.code, err.message);
@@ -90,18 +98,21 @@ function asHttp(err) {
     return err;
 }
 
+/** @param {import('express').Request} req */
 function postIdParam(req) {
     const id = String(req.params.postId || '');
     if (!POST_ID_RE.test(id)) throw new HttpError(404, 'post_not_found', 'Post not found');
     return id;
 }
 
+/** @param {import('express').Request} req */
 function localeParam(req) {
     const locale = String(req.params.locale || '').toLowerCase();
     if (!LOCALE_RE.test(locale)) throw new HttpError(400, 'invalid_locale', 'locale is a language code such as "nl".');
     return locale;
 }
 
+/** @param {import('../stores/cms/shared').CmsDoc} post */
 function adminSummary(post) {
     return {
         ...summarize(post),

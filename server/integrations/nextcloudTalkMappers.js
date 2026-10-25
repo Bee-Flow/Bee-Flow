@@ -1,8 +1,25 @@
-// @typecheck
+// @typecheck noImplicitAny
 /** Shapes and error text for the Talk tools (kept apart from the executor). */
 
 const { nextcloudHttpError } = require('./nextcloudHttpError');
 
+/**
+ * Talk API objects as the OCS endpoints hand them over (only the fields read here).
+ * @typedef {{ id?: number, actorId?: string, actorType?: string, actorDisplayName?: string, timestamp?: number,
+ *   message?: string, messageParameters?: unknown, systemMessage?: string, parent?: RawTalkMessage,
+ *   reactions?: Record<string, number> }} RawTalkMessage
+ * @typedef {{ token?: string, type?: number, displayName?: string, name?: string, description?: string,
+ *   unreadMessages?: number, unreadMention?: boolean, lastActivity?: number, lastMessage?: RawTalkMessage,
+ *   participantType?: number, canStartCall?: boolean, readOnly?: number, hasCall?: boolean, callFlag?: number,
+ *   callRecording?: number, callStartTime?: number, objectType?: string, objectId?: string }} RawTalkRoom
+ * @typedef {{ attendeeId?: number, actorType?: string, actorId?: string, displayName?: string,
+ *   participantType?: number, inCall?: number, lastPing?: number }} RawTalkParticipant
+ * @typedef {{ id: number, actor: string, actorId: string, actorType: string, timestamp: number, message: string,
+ *   messageParameters: unknown, systemMessage: string|null, parent: TalkMessage|null,
+ *   reactions: Record<string, number> }} TalkMessage
+ */
+
+/** @param {RawTalkRoom} r */
 function mapRoom(r) {
     return {
         token: r.token,
@@ -29,6 +46,7 @@ function mapRoom(r) {
     };
 }
 
+/** @param {RawTalkParticipant} p */
 function mapParticipant(p) {
     return {
         attendeeId: p.attendeeId,
@@ -43,6 +61,7 @@ function mapParticipant(p) {
 }
 
 
+/** @param {RawTalkMessage} m @returns {TalkMessage} */
 function mapMessage(m) {
     return {
         id: m.id,
@@ -64,6 +83,7 @@ function mapMessage(m) {
 const REACTION_SYSTEM_MESSAGES = new Set(['reaction', 'reaction_deleted', 'reaction_revoked']);
 
 /** Talk puts the reason of a poll refusal in `ocs.data.error` as a short code. */
+/** @type {Record<string, string>} */
 const POLL_ERROR_TEXT = {
     options: 'one of the optionIds is not a valid option of this poll',
     'max-votes': 'more options than this poll allows per voter',
@@ -76,6 +96,9 @@ const POLL_ERROR_TEXT = {
 /**
  * A failed poll call. Keeps Talk's own error code as a readable reason instead
  * of a bare status; everything else goes through the shared mapping.
+ * @param {Response} res
+ * @param {string} authError
+ * @param {string} what
  */
 async function pollError(res, authError, what) {
     const text = await res.text().catch(() => '');
@@ -90,7 +113,9 @@ async function pollError(res, authError, what) {
 }
 
 /** "option-3" -> "3": the tools use bare 0-based indexes everywhere. */
+/** @param {unknown} votes */
 function bareVoteKeys(votes) {
+    /** @type {Record<string, unknown>} */
     const out = {};
     for (const [k, v] of Object.entries(votes && typeof votes === 'object' ? votes : {})) {
         out[String(k).replace(/^option-/, '')] = v;

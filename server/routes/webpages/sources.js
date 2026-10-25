@@ -21,6 +21,7 @@ const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded, bodyOf, choice, NOTHING, NO_QUERY } = require('./schemas');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── What a source may carry ─────────────────────────────────────────
 //
@@ -95,9 +96,10 @@ function register(router, { upload }) {
             const { assertUrlIsPublic } = require('../../core/kb/kbIngestionHelpers');
             await assertUrlIsPublic(url);
         } catch (e) {
-            return res.status(400).json({ error: e.message || 'URL is not allowed' });
+            return res.status(400).json({ error: /** @type {Error} */ (e).message || 'URL is not allowed' });
         }
 
+        /** @type {string} */
         let name;
         try { name = new URL(url).hostname + new URL(url).pathname; } catch { name = url; }
         if (name.length > 80) name = name.slice(0, 80) + '…';
@@ -213,8 +215,8 @@ function register(router, { upload }) {
                     throw new Error('This source type cannot be retried — please re-add it.');
                 }
             } catch (e) {
-                log.error(`[Webpages] Retry failed for source ${source.id}:`, e.message);
-                await webpageStore.updateSource(source.id, { status: 'error', error: e.message }).catch(() => {});
+                log.error(`[Webpages] Retry failed for source ${source.id}:`, /** @type {Error} */ (e).message);
+                await webpageStore.updateSource(source.id, { status: 'error', error: /** @type {Error} */ (e).message }).catch((e) => bestEffort('routes/webpages/sources:register', e));
             }
         })();
     });
@@ -250,7 +252,7 @@ function register(router, { upload }) {
                 if (!source.storageKey.startsWith('local:')) {
                     await storageStore.deleteFile(source.storageKey);
                 }
-            } catch (e) { log.warn('[Webpages] Storage cleanup:', e.message); }
+            } catch (e) { log.warn('[Webpages] Storage cleanup:', /** @type {Error} */ (e).message); }
         }
 
         const kbIds = wp.knowledgeBaseIds || [];
@@ -259,7 +261,7 @@ function register(router, { upload }) {
                 const doc = await findDocumentBySourceUri(kbId, source.id);
                 if (doc) await deleteDocumentChunks(kbId, doc.id, userId);
             } catch (e) {
-                log.warn(`[Webpages] KB chunk cleanup for ${source.id}:`, e.message);
+                log.warn(`[Webpages] KB chunk cleanup for ${source.id}:`, /** @type {Error} */ (e).message);
             }
         }
 

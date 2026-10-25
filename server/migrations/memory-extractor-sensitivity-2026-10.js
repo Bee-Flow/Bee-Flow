@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: teach the seeded memory-extractor prompt about sensitivity, what
  * never to save, and absolute dates (memory write pipeline, 2026-10).
@@ -40,6 +41,7 @@ Never extract, whatever the user says:
 Write dates as absolute dates. The user message starts with today's date; turn
 "next Friday" or "last month" into the actual date in \`content\` and \`value\`.`;
 
+/** @param {string | null | undefined} prompt */
 function correctPrompt(prompt) {
     const out = String(prompt || '');
     return out.includes(HEADING) ? out : out + SENSITIVITY_GUIDANCE;

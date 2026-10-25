@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Per-turn guard against a model calling the same read-only tool with the
  * same arguments again, and against re-showing passages it already has.
@@ -9,6 +9,15 @@
 
 const { _defaultStableStringify } = require('./toolCallDedupe');
 
+/**
+ * A retrieved passage as far as the guard identifies it.
+ * @typedef {{ chunk_id?: string | number | null, title?: string, content?: string, text?: string }} GuardChunk
+ */
+
+/**
+ * @param {GuardChunk | null | undefined} c
+ * @returns {string | null}
+ */
 function chunkKey(c) {
     if (!c || typeof c !== 'object') return null;
     if (c.chunk_id !== undefined && c.chunk_id !== null && c.chunk_id !== '') return `id:${c.chunk_id}`;
@@ -24,6 +33,10 @@ function createToolRepeatGuard({ readOnlyTools = [] } = {}) {
     const chunks = new Set();
 
     return {
+        /**
+         * @param {string} name
+         * @param {unknown} args
+         */
         isRepeat(name, args) {
             if (!readOnly.has(name)) return false;
             const key = `${name}|${_defaultStableStringify(args || {})}`;
@@ -31,17 +44,27 @@ function createToolRepeatGuard({ readOnlyTools = [] } = {}) {
             calls.add(key);
             return false;
         },
-        /** Forget a tool's earlier calls, e.g. a document read after the document changed. */
+        /**
+         * Forget a tool's earlier calls, e.g. a document read after the document changed.
+         * @param {string} name
+         */
         forget(name) {
             for (const key of [...calls]) if (key.startsWith(`${name}|`)) calls.delete(key);
         },
+        /** @param {GuardChunk[] | null | undefined} list */
         seedChunks(list) {
             for (const c of list || []) {
                 const k = chunkKey(c);
                 if (k) chunks.add(k);
             }
         },
+        /**
+         * @template {GuardChunk} C
+         * @param {C[] | null | undefined} results
+         * @returns {C[]}
+         */
         filterNewChunks(results) {
+            /** @type {C[]} */
             const fresh = [];
             for (const c of results || []) {
                 const k = chunkKey(c);

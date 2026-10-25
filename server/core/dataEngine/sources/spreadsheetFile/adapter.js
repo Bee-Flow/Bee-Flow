@@ -243,6 +243,7 @@ const adapter = {
             if (before && JSON.stringify(before.options || []) !== JSON.stringify(f.options || [])) derived.changes.push(`options:${f.key}`);
         }
         const current = identity.identityOf(source);
+        /** @type {{ identity?: { mode: string; keyFieldId: string; } }} */
         const sourcePatch = {};
         if (derived.keyFieldId && (current.mode !== 'key' || current.keyFieldId !== derived.keyFieldId)) {
             sourcePatch.identity = { mode: 'key', keyFieldId: derived.keyFieldId };
@@ -310,8 +311,12 @@ const adapter = {
     },
 };
 
-/** A select column's options: what it had, plus what this read shows, never fewer, capped. */
+/**
+ * A select column's options: what it had, plus what this read shows, never fewer, capped.
+ * @param {number} col
+ */
 function grownOptions(prior, rows, col) {
+    /** @type {string[]} */
     const out = [];
     const seen = new Set();
     for (const o of Array.isArray(prior) ? prior : []) {

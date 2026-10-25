@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The job plumbing the meeting-note engines share: gmeetAutoImport and
  * teamsAutoImport (discover -> seed jobs -> claim -> ingest), and the
@@ -19,6 +19,7 @@
 'use strict';
 
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 // Artifact wait/retry backoff, indexed by the job's attempt count; past the
 // end of the table the poller settles into an hourly re-check.
@@ -88,7 +89,7 @@ async function resolveOrgIdForUser(userId, getUserStore) {
 async function listCandidateUsers({ configStore, kind, resolveSettings, flag, getUserStore }) {
     const userPrefix = `user_${kind}_`;
     const orgPrefix = `org_${kind}_`;
-    const all = await configStore.getAllConfig().catch(() => ({}));
+    const all = await configStore.getAllConfig().catch((e) => fallback('core/meetingNotes/importJobKit:listCandidateUsers', e, {}));
     const userIds = new Set();
     const orgIds = new Set();
     for (const key of Object.keys(all || {})) {
@@ -98,7 +99,7 @@ async function listCandidateUsers({ configStore, kind, resolveSettings, flag, ge
     if (orgIds.size) {
         const enabledOrgs = [];
         for (const orgId of orgIds) {
-            const s = await resolveSettings({ orgId }).catch(() => null);
+            const s = await resolveSettings({ orgId }).catch((e) => fallback('core/meetingNotes/importJobKit:listCandidateUsers#2', e, null));
             if (s?.[flag]) enabledOrgs.push(orgId);
         }
         if (enabledOrgs.length) {
@@ -107,7 +108,7 @@ async function listCandidateUsers({ configStore, kind, resolveSettings, flag, ge
                 for (const u of users) {
                     if (u.organizationId && enabledOrgs.includes(u.organizationId)) userIds.add(u.id);
                 }
-            } catch (err) { log.debug('best-effort', err); }
+            } catch (err) { bestEffort('core/meetingNotes/importJobKit:listCandidateUsers#3', err); /* best-effort */ }
         }
     }
     return Array.from(userIds);
@@ -131,6 +132,7 @@ async function listCandidateUsers({ configStore, kind, resolveSettings, flag, ge
 function makeDiscovery({ label, maxUsersPerTick, jitterMs, listCandidateUsers: listUsers, discoverUser }) {
     let userCursor = 0;
     return async function discover() {
+        /** @type {string[]} */
         let users;
         try { users = await listUsers(); }
         catch (e) { log.error(`[${label}] candidate scan failed:`, /** @type {any} */ (e).message); return; }

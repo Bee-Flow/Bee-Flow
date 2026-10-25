@@ -16,6 +16,7 @@ const log = require('../../telemetry/log');
 const { lazyProjectRoleGate } = require('./roleGate');
 const { forbidden, notFound } = require('../../core/http/errors');
 const { isAutomatic, presentThread } = require('./commentsPresent');
+const { fallback } = require('../../utils/bestEffort');
 
 /** The dependencies, each defaulting to the real module, required on first use. */
 function resolveCommentsDeps(deps) {
@@ -27,13 +28,13 @@ function resolveCommentsDeps(deps) {
         store: () => deps.store || require('../../stores/projectCommentStore'),
         getProject: deps.getProject || ((id) => require('../../stores/projectStore').getProject(id)),
         getProjectRole: deps.getProjectRole
-            || ((userId, projectId) => require('../../auth/projectAccess').getProjectRole(userId, projectId)),
+            || ((/** @type {string} */ userId, /** @type {string} */ projectId) => require('../../auth/projectAccess').getProjectRole(userId, projectId)),
         commentCrypto: () => deps.commentCrypto || require('../../projects/comments/commentCrypto'),
         assistant: () => deps.assistant
             || (defaultAssistant || (defaultAssistant = require('../../projects/comments/commentAssistant').makeCommentAssistant())),
         participation: deps.participation || {
-            notify: (p) => require('../../projects/comments/surface').notifyHumanComment(p),
-            cancel: (threadId) => require('../../projects/comments/surface').cancelCommentThread(threadId),
+            notify: (/** @type {{ threadId: string; commentId: string; authorUserId: string; orgId: string | null; limitOrgId: string | null; projectId: string; explicit?: boolean; }} */ p) => require('../../projects/comments/surface').notifyHumanComment(p),
+            cancel: (/** @type {string} */ threadId) => require('../../projects/comments/surface').cancelCommentThread(threadId),
         },
         resolveOrgs: deps.resolveOrgs || (async (req) => {
             const userId = req.session.user.id;
@@ -42,10 +43,10 @@ function resolveCommentsDeps(deps) {
             return { orgId: orgId || null, limitOrgId: limitOrgId || null };
         }),
         emit: deps.emit
-            || ((projectId, event) => require('../../core/projectFeed').emitProjectEvent(projectId, event, { label: 'ProjectComments' })),
+            || ((/** @type {string} */ projectId, /** @type {{ kind?: string; actorId?: string | null; targetType?: string | null; targetId?: string | null; payload?: object; }} */ event) => require('../../core/projectFeed').emitProjectEvent(projectId, event, { label: 'ProjectComments' })),
         logActivity: deps.logActivity
             || ((projectId, actorId, action, details) => require('../../stores/projectStore').logActivity(projectId, actorId, action, details)),
-        postLimiter: deps.postLimiter || function rateLimitMiddleware(req, res, next) {
+        postLimiter: deps.postLimiter || function rateLimitMiddleware(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
             if (!defaultLimiter) {
                 defaultLimiter = require('../../utils/perUserRateLimit').perUserRateLimit({ windowMs: 60_000, max: 90, name: 'project-comment-post' });
             }
@@ -87,7 +88,7 @@ function makeCommentsContext(deps = {}) {
                 await ctx.collabNotifier().commentMentioned({ project, actorId, mentionedUserIds, targetType: thread.targetType, targetId: thread.targetId });
             }
         } catch (err) {
-            log.warn(`[ProjectComments] mention not notified: ${err && err.message}`);
+            log.warn(`[ProjectComments] mention not notified: ${err && /** @type {Error} */ (err).message}`);
         }
     }
 
@@ -135,7 +136,7 @@ function makeCommentsContext(deps = {}) {
         try {
             return await ctx.participationStore().feedbackFor(userId, ids);
         } catch (err) {
-            log.warn(`[ProjectComments] feedback not read: ${err && err.message}`);
+            log.warn(`[ProjectComments] feedback not read: ${err && /** @type {Error} */ (err).message}`);
             return new Map();
         }
     }
@@ -154,7 +155,7 @@ function makeCommentsContext(deps = {}) {
     async function memberMentions(projectId, ids) {
         const wanted = [...new Set((ids || []).filter((x) => typeof x === 'string' && x))];
         // A lookup that fails reads as "not a member".
-        const roles = await Promise.all(wanted.map((id) => Promise.resolve().then(() => ctx.getProjectRole(id, projectId)).catch(() => null)));
+        const roles = await Promise.all(wanted.map((id) => Promise.resolve().then(() => ctx.getProjectRole(id, projectId)).catch((e) => fallback('routes/projects/commentsContext:memberMentions', e, null))));
         return wanted.filter((_, i) => !!roles[i]);
     }
 
@@ -175,7 +176,7 @@ function makeCommentsContext(deps = {}) {
      * question being answered by a person), or nothing happens. Returns what
      * the poster sees; the engine's own decision comes later, quietly.
      */
-    async function afterHumanComment(req, { project, thread, comment, content, askAi }) {
+    async function afterHumanComment(/** @type {import('express').Request} */ req, { project, thread, comment, content, askAi }) {
         const userId = ctx.userIdOf(req);
         const decision = decideCommentAi({ aiMode: thread.aiMode, status: thread.status, content, askAi });
         const orgs = decision.trigger || thread.aiMode === 'auto' ? await ctx.resolveOrgs(req) : null;
@@ -200,3 +201,15 @@ function makeCommentsContext(deps = {}) {
 }
 
 module.exports = { makeCommentsContext };
+
+/** @typedef {NonNullable<Parameters<typeof import('./comments').makeProjectCommentsRouter>[0]>} CommentsDeps */
+
+/** @typedef {import('../../projects/comments/commentAssistant').CommentProject} CommentProject */
+
+/** @typedef {import('../../projects/comments/commentAssistant').CommentThread} CommentThread */
+
+/** @typedef {import('../../projects/comments/commentAssistant').CommentBox} CommentBox */
+
+/** @typedef {ReturnType<typeof import('../../stores/lib/projectCommentRows').rowToComment>} CommentRow */
+
+/** @typedef {ReturnType<typeof makeCommentsContext>} CommentsCtx */

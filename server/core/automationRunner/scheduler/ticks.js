@@ -71,19 +71,19 @@ async function processDueSchedules() {
             const skip = holidaySkipFor(a, { triggerStepId: s.triggerStepId, cron: s.cron, tz: s.tz, scheduledFor: s.nextRunAt });
             if (!skip) { allowed.push({ a, s }); continue; }
             log.info(`[AutomationRunner] Skipping ${a.id} (schedule ${s.triggerStepId}) on ${skip.holiday.date} (${skip.holiday.key}): the schedule skips public holidays`);
-            await automationStore.releaseAutomation(a.id).catch(() => {});
-            await automationStore.updateAutomation(a.id, { lastStatus: 'pending' }, a.userId).catch(() => {});
-            await automationStore.advanceSchedule(s.id, { nextRunAt: skip.nextRunAt, lastStatus: 'skipped' }).catch(() => {});
+            await automationStore.releaseAutomation(a.id).catch((e) => bestEffort('core/automationRunner/scheduler/ticks:processDueSchedules', e));
+            await automationStore.updateAutomation(a.id, { lastStatus: 'pending' }, a.userId).catch((e) => bestEffort('core/automationRunner/scheduler/ticks:processDueSchedules#2', e));
+            await automationStore.advanceSchedule(s.id, { nextRunAt: skip.nextRunAt, lastStatus: 'skipped' }).catch((e) => bestEffort('core/automationRunner/scheduler/ticks:processDueSchedules#3', e));
             continue;
         }
         // Same release-and-advance as the primary pass: a row left in the past
         // would re-qualify every tick and starve other due work.
         log.info(`[AutomationRunner] Skipping ${a.id} (schedule ${s.triggerStepId}) — owner ${a.userId} no longer has automations`);
-        await automationStore.releaseAutomation(a.id).catch(() => {});
-        await automationStore.updateAutomation(a.id, { lastStatus: 'pending' }, a.userId).catch(() => {});
+        await automationStore.releaseAutomation(a.id).catch((e) => bestEffort('core/automationRunner/scheduler/ticks:processDueSchedules#4', e));
+        await automationStore.updateAutomation(a.id, { lastStatus: 'pending' }, a.userId).catch((e) => bestEffort('core/automationRunner/scheduler/ticks:processDueSchedules#5', e));
         let nextRunAt = null;
         try { nextRunAt = holidays.nextScheduledRunAt(s.cron, s.tz, Date.now(), { skipHolidays: skipsHolidays(a, s.triggerStepId) }); } catch (_) { nextRunAt = null; }
-        await automationStore.advanceSchedule(s.id, { nextRunAt, lastStatus: 'skipped' }).catch(() => {});
+        await automationStore.advanceSchedule(s.id, { nextRunAt, lastStatus: 'skipped' }).catch((e) => bestEffort('core/automationRunner/scheduler/ticks:processDueSchedules#6', e));
     }
     for (let i = 0; i < allowed.length; i += MAX_CONCURRENT) {
         const batch = allowed.slice(i, i + MAX_CONCURRENT);
@@ -142,7 +142,7 @@ async function processDuePrimarySchedules() {
                     // skip below, so the row cannot re-qualify every tick.
                     log.info(`[AutomationRunner] Skipping ${a.id} on ${skip.holiday.date} (${skip.holiday.key}): the schedule skips public holidays`);
                     await automationStore.releaseAutomation(a.id);
-                    await automationStore.updateAutomation(a.id, { lastStatus: 'pending', nextRunAt: skip.nextRunAt }, a.userId).catch(() => {});
+                    await automationStore.updateAutomation(a.id, { lastStatus: 'pending', nextRunAt: skip.nextRunAt }, a.userId).catch((e) => bestEffort('core/automationRunner/scheduler/ticks:processDuePrimarySchedules', e));
                 } else if (ok) allowed.push(a);
                 else {
                     log.info(`[AutomationRunner] Skipping ${a.id} — owner ${a.userId} no longer has automations beta`);
@@ -156,7 +156,7 @@ async function processDuePrimarySchedules() {
                     if (a.triggerType === 'schedule' && a.scheduleCron) {
                         try { nextRunAt = holidays.nextScheduledRunAt(a.scheduleCron, a.scheduleTz, Date.now(), { skipHolidays: skipsHolidays(a, null) }); } catch (_) { nextRunAt = null; }
                     }
-                    await automationStore.updateAutomation(a.id, { lastStatus: 'pending', nextRunAt }, a.userId).catch(() => {});
+                    await automationStore.updateAutomation(a.id, { lastStatus: 'pending', nextRunAt }, a.userId).catch((e) => bestEffort('core/automationRunner/scheduler/ticks:processDuePrimarySchedules#2', e));
                 }
             } catch (_) {
                 // On lookup failure, release rather than fire incorrectly —
@@ -166,8 +166,8 @@ async function processDuePrimarySchedules() {
                 // running_started_at NULL so the reaper's stale-marker clause
                 // could never find it either. Silent, permanent, and only
                 // fixable by hand.
-                await automationStore.releaseAutomation(a.id).catch(() => {});
-                await automationStore.updateAutomation(a.id, { lastStatus: 'pending' }, a.userId).catch(() => {});
+                await automationStore.releaseAutomation(a.id).catch((e) => bestEffort('core/automationRunner/scheduler/ticks:processDuePrimarySchedules#3', e));
+                await automationStore.updateAutomation(a.id, { lastStatus: 'pending' }, a.userId).catch((e) => bestEffort('core/automationRunner/scheduler/ticks:processDuePrimarySchedules#4', e));
             }
         }
         if (allowed.length === 0) return;
@@ -225,6 +225,7 @@ const _tickHandles = [];
 // Meeting Notes from the admin Modules panel actually stops the work instead
 // of only hiding its routes. TTL-cached, and fails open.
 const { moduleGatedTick } = require('../../../modules');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 function nonOverlapping(fn, name) {
     let inFlight = false;
@@ -322,7 +323,7 @@ async function start() {
 async function stop({ timeoutMs = 25_000 } = {}) {
     if (stopping) return ACTIVE_RUNS.size;
     stopping = true;
-    for (const h of _tickHandles) { try { clearInterval(h); } catch (err) { log.debug('noop', err); } }
+    for (const h of _tickHandles) { try { clearInterval(h); } catch (err) { bestEffort('core/automationRunner/scheduler/ticks:stop', err); /* noop */ } }
     _tickHandles.length = 0;
     // Form submissions still waiting in this pod's queue: start no more of
     // them, and hand them back so another pod runs them now rather than after
@@ -346,7 +347,7 @@ async function stop({ timeoutMs = 25_000 } = {}) {
     // never waits on monitoring — flush the stragglers before the process goes.
     try {
         await require('../../integrations/integrationLogging').flushEgressLogs();
-    } catch (err) { log.debug('best-effort', err); }
+    } catch (err) { bestEffort('core/automationRunner/scheduler/ticks:stop#2', err); /* best-effort */ }
     started = false;
     return ACTIVE_RUNS.size;
 }

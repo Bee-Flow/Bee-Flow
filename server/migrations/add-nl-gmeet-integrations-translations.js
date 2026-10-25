@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck strict
 /**
  * Migration: Dutch translations for the Google Meet integrations strings
  * (Meeting Notes Google Meet support, 2026-07).

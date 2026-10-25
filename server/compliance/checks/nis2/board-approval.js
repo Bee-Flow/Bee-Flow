@@ -21,13 +21,13 @@
 
 const { getAll, getOne } = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
-const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const POLICY_SLUG = 'information-security-policy';
 const ORG_ADMIN_ROLES = ['org_admin', 'admin'];
 const TRAINING_MAX_DAYS = 365;
 const DAY = 86400 * 1000;
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
 function _notRelevant(settings) {
     let rel = settings && settings.framework_relevance;
@@ -68,10 +68,10 @@ module.exports = {
                 WHERE organization_id = $1 AND slug = $2
             `, [orgId, POLICY_SLUG]);
         } catch (e) {
-            if (NOT_PROVISIONED.has(e?.code)) {
+            if (isMissingTable(e)) {
                 return {
                     status: 'warn',
-                    evidence: { provisioned: false, missing: e.code },
+                    evidence: { provisioned: false, missing: e.code ?? 'missing_table' },
                     details: 'The ISMS policy register is not provisioned yet — open Compliance → Policies once to seed it.',
                 };
             }
@@ -100,7 +100,7 @@ module.exports = {
                 LIMIT 1
             `, [orgId]);
             if (r) lastReview = { held_at: r.held_at, attendees_count: Number(r.attendees_count) || 0 };
-        } catch (err) { log.debug('register absent — the signal is optional', err); }
+        } catch (err) { fallback('compliance/checks/nis2/board-approval:evaluate', err); /* register absent — the signal is optional */ }
 
         const evidence = {
             policy_slug: POLICY_SLUG,
@@ -137,10 +137,10 @@ module.exports = {
                   AND COALESCE(u.status, 'active') <> 'suspended'
             `, [orgId, POLICY_SLUG, version, ORG_ADMIN_ROLES]);
         } catch (e) {
-            if (NOT_PROVISIONED.has(e?.code)) {
+            if (isMissingTable(e)) {
                 return {
                     status: 'warn',
-                    evidence: { ...evidence, provisioned: false, missing: e.code },
+                    evidence: { ...evidence, provisioned: false, missing: e.code ?? 'missing_table' },
                     details: 'The acknowledgement ledger is not provisioned yet — cannot verify management approval.',
                 };
             }

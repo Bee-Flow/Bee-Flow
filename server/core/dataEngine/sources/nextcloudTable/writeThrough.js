@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * A row changed IN BEE FLOW → Nextcloud first, then the copy.
  *
@@ -30,6 +30,16 @@ const { buildRelationIndexes } = require('./relations');
 const { NextcloudSourceError } = require('./errors');
 const { KIND, isMirror } = require('./index');
 
+/** @typedef {{ ncColumnId: number, derived?: string, ncType?: string, ncSubtype?: string, title?: string, options?: Array<{ id: string|number, label: string }>, [k: string]: unknown }} NcColumnEntry */
+/** @typedef {{ ncTableId?: number, ncViewId?: number, linkedByUserId?: string, ncInstanceId?: string, columnMap?: Record<string, NcColumnEntry>, [k: string]: unknown }} NcSource */
+/** @typedef {{ id: string, key: string, name?: string, type?: string, derived?: string|boolean }} MirrorField */
+/**
+ * The write context ../mirror/writeThrough.contextOf builds.
+ * @typedef {{ table: { source: NcSource, organizationId?: string|null }, scope: { kind: string, id: string }, tableMeta: { fields?: MirrorField[] } }} WriteCtx
+ */
+/** @typedef {ReturnType<typeof ncApi.forLinker>} NcApi */
+
+/** @param {NcSource} source */
 function refOf(source) {
     return source.ncViewId ? { viewId: source.ncViewId, tableId: source.ncTableId } : { tableId: source.ncTableId };
 }
@@ -37,6 +47,8 @@ function refOf(source) {
 /**
  * The caller's `values` → Nextcloud's [{columnId, value}] pairs. Derived and
  * unknown columns refused; system columns dropped.
+ * @param {WriteCtx} ctx
+ * @param {unknown} values
  */
 function toPairs(ctx, values) {
     const source = ctx.table.source;
@@ -56,12 +68,18 @@ function toPairs(ctx, values) {
     return pairs;
 }
 
+/** @param {WriteCtx} ctx */
 async function linkerApi(ctx) {
     const { auth } = await resolveLinker(ctx.table.source, { orgId: ctx.table.organizationId || null });
     return ncApi.forLinker(auth);
 }
 
-/** The copy's values for a Nextcloud row, derived columns included. */
+/**
+ * The copy's values for a Nextcloud row, derived columns included.
+ * @param {WriteCtx} ctx
+ * @param {Parameters<typeof mirrorRowFromNc>[0]} ncRow
+ * @param {{ rowId?: string|number|null }} [opts]
+ */
 async function localValuesFor(ctx, ncRow, { rowId = null } = {}) {
     const idx = await buildRelationIndexes(ctx.scope, ctx.table.source);
     return mirrorRowFromNc(rowId === null ? ncRow : { ...ncRow, id: rowId }, {
@@ -80,6 +98,11 @@ const writes = makeWriteThrough({
     notFoundCodes: new Set(['nextcloud_not_found']),
     toWire: toPairs,
     apiFor: linkerApi,
+    /**
+     * @param {NcApi} api
+     * @param {WriteCtx} ctx
+     * @param {import('./ncApi').CellPairs} pairs
+     */
     async sourceInsert(api, ctx, pairs) {
         const ncRow = await api.createRow(refOf(ctx.table.source), pairs);
         if (!ncRow || ncRow.id === undefined || ncRow.id === null) {
@@ -87,7 +110,9 @@ const writes = makeWriteThrough({
         }
         return ncRow;
     },
+    /** @type {(api: NcApi, ctx: WriteCtx, rowId: string|number, pairs: import('./ncApi').CellPairs) => Promise<unknown>} */
     sourceUpdate: (api, ctx, rowId, pairs) => api.updateRow(Number(rowId), pairs),
+    /** @type {(api: NcApi, ctx: WriteCtx, rowId: string|number) => Promise<unknown>} */
     sourceDelete: (api, ctx, rowId) => api.deleteRow(Number(rowId)),
     localValuesFor,
 });

@@ -10,7 +10,10 @@ const log = require('../../telemetry/log');
 
 const _listeners = new Set();
 
-/** Called after every successful read or write of the overrides. */
+/**
+ * Called after every successful read or write of the overrides.
+ * @param {() => void} fn
+ */
 function onOverridesChanged(fn) {
     _listeners.add(fn);
 }
@@ -38,6 +41,7 @@ const OVERRIDES_TTL_MS = 60_000;
 
 let _overrides = {};
 let _overridesLoadedAt = 0;
+/** @type {Promise<void> | null} */
 let _overridesLoading = null;
 let _writes = Promise.resolve();
 
@@ -89,7 +93,7 @@ function _mutateOverrides(change) {
  * Set a custom cost for a model (admin override).
  */
 function setModelCost(modelId, input, output) {
-    return _mutateOverrides((overrides) => {
+    return _mutateOverrides((/** @type {{ [x: string]: { input: number; output: number; }; }} */ overrides) => {
         overrides[modelId] = { input: Number(input), output: Number(output) };
         return overrides;
     });
@@ -112,3 +116,5 @@ module.exports = {
     resetModelCost,
     onOverridesChanged,
 };
+
+/** @typedef {Record<string, { input: number, output: number }>} Overrides */

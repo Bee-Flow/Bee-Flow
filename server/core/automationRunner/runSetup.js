@@ -19,7 +19,7 @@ const { automationForRun, isTestRun } = require('./definitionForRun');
 // Solution stages (design 4.2, D17): the project's variable values over
 // definition.vars, and whether an automation is managed by a stage.
 const { runVarsFor, isManagedAutomation } = require('./stageVars');
-const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 /**
  * Which organisation a run belongs to: the automation's own, else its OWNER's.
@@ -85,7 +85,7 @@ async function selectRunCopy(deps, automation, { mode, triggerKind, isTest }) {
     // unmanaged) lost the row's live copy: read it, so the run gets the LIVE
     // settings and a pinned resume can be told apart from the working copy.
     const storeLive = managed && automation && !Object.prototype.hasOwnProperty.call(automation, 'liveDefinition')
-        ? await Promise.resolve().then(() => automationStore.getAutomation(automation.id)).catch(() => null)
+        ? await Promise.resolve().then(() => automationStore.getAutomation(automation.id)).catch((e) => fallback('core/automationRunner/runSetup:selectRunCopy', e, null))
         : null;
     automation = automationForRun(storeLive ? { ...automation, liveVersion: storeLive.liveVersion ?? null } : automation,
         { mode, triggerKind, isTest, managed, liveDefinition: storeLive?.liveDefinition ?? null });
@@ -154,7 +154,7 @@ async function createRunVault(deps, { parentRunId, run, runOrgId, automation, ef
     // that run may have minted placeholders in another process.
     let vaultSeed = null;
     if (parentRunId && typeof automationStore.getRunTokenMap === 'function') {
-        vaultSeed = await Promise.resolve(automationStore.getRunTokenMap(parentRunId)).catch(() => null);
+        vaultSeed = await Promise.resolve(automationStore.getRunTokenMap(parentRunId)).catch((e) => fallback('core/automationRunner/runSetup:createRunVault', e, null));
     }
     const tokenVault = createTokenVault({
         runId: run.id,
@@ -179,8 +179,8 @@ async function createRunVault(deps, { parentRunId, run, runOrgId, automation, ef
                     direction: 'output',
                     action_taken: 'redacted',
                     is_dry_run: effectiveMode === 'dry_run',
-                }).catch(() => {});
-            } catch (err) { log.debug('never fail a run on audit logging', err); }
+                }).catch((e) => bestEffort('core/automationRunner/runSetup:onEvict', e));
+            } catch (err) { bestEffort('core/automationRunner/runSetup:onEvict#2', err); /* never fail a run on audit logging */ }
         },
     });
     return tokenVault;
@@ -212,6 +212,7 @@ async function resolveRunIdentity(deps, automation) {
     // fails today as `datatable_forbidden` — an authorisation refusal for what
     // is really a lookup outage, with nothing anywhere saying so. execDatatable
     // reads this and fails with `datatable_identity_unavailable` instead.
+    /** @type {string | null} */
     let runIdentityError = null;
     try {
         const { resolveUserGroups } = loadAudience();
@@ -220,8 +221,36 @@ async function resolveRunIdentity(deps, automation) {
         const owner = await userStore.getUser(automation.userId);
         runUserOrgRole = owner?.orgRole || null;
         runUserHomeOrgId = owner?.organizationId || null;
-    } catch (e) { runIdentityError = e?.message || 'identity lookup failed'; }
+    } catch (e) { runIdentityError = /** @type {Error} */ (e)?.message || 'identity lookup failed'; }
     return { runUserGroupIds, runUserOrgRole, runUserHomeOrgId, runIdentityError };
 }
 
 module.exports = { runOrgFor, resolveEnteredTrigger, selectRunCopy, buildRunState, createRunVault, resolveRunIdentity };
+
+/**
+ * The automation a run executes: a store row, or a caller-built spread of one
+ * (execution.js types it the same way).
+ * @typedef {Record<string, any>} RunAutomation
+ * @typedef {NonNullable<ReturnType<typeof import('../../stores/automationStore/rowMappers').rowToRun>>} RunRow
+ * @typedef {{ id?: string, type?: string, kind?: string, label?: string, appEvent?: { provider?: string, event?: string },
+ *   schedule?: object, form?: { theme?: unknown }, [key: string]: unknown }} TriggerNode
+ * @typedef {{ trigger?: TriggerNode, triggers?: TriggerNode[] }} TriggerDefinition
+ */
+
+/**
+ * What execution.js hands the run modules instead of their requiring it (its RUN_DEPS).
+ * @typedef {{
+ *   automationStore: typeof import('../../stores/automationStore'),
+ *   safety: typeof import('./safety'),
+ *   engine: typeof import('./engine'),
+ *   createTokenVault: typeof import('./tokenVault').createTokenVault,
+ *   defaultPersist: typeof import('./tokenVault').defaultPersist,
+ *   notifyRunEvent: typeof import('./runNotifications').notifyRunEvent,
+ *   clearRunCancellation: typeof import('./cancellation').clearRunCancellation,
+ *   isCancelRequested: typeof import('./cancellation').isCancelRequested,
+ *   loadApprovalLifecycle: () => typeof import('./approvalLifecycle'),
+ *   loadRunOutcome: () => ReturnType<typeof import('./featurePorts').runnerPort>,
+ *   loadAudience: () => typeof import('../../auth/audience'),
+ *   loadUserStore: () => typeof import('../../stores/userStore'),
+ * }} RunDeps
+ */

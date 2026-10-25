@@ -1,6 +1,7 @@
 // @typecheck
 'use strict';
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * Evidence-chain WRITE failures — the hole the verifier cannot see.
@@ -46,6 +47,9 @@ const MAX_ORGS = 200;
 /** @type {Map<string, {count:number, first_at:string, last_at:string, entries:Array}>} */
 const byOrg = new Map();
 
+/**
+ * @param {Error} err
+ */
 function errorType(err) {
     const raw = err && (err.code || err.name);
     return raw ? String(raw).slice(0, 60) : 'Error';
@@ -85,7 +89,7 @@ function recordWriteFailure(row, err) {
             + `subject=${entry.subject_type}/${entry.subject_id} error=${entry.error_type}) — `
             + 'the action succeeded but the append-only trail has a hole',
         );
-    } catch (err) { log.debug('reporting must never mask the original failure', err); }
+    } catch (err) { fallback('compliance/evidence/writeFailures:recordWriteFailure', err); /* reporting must never mask the original failure */ }
 }
 
 /**
@@ -93,7 +97,7 @@ function recordWriteFailure(row, err) {
  *
  *   complianceStore.addEvidence(row).catch(onEvidenceWriteFailed(row));
  *
- * @param {object} row the evidence row handed to addEvidence
+ * @param {{ organization_id?: string; check_id?: string | null; subject_type?: string | null; subject_id?: string | null; }} row the evidence row handed to addEvidence
  * @returns {(err: Error) => void}
  */
 function onEvidenceWriteFailed(row) {
@@ -130,3 +134,5 @@ module.exports = {
     MAX_ENTRIES_PER_ORG,
     MAX_ORGS,
 };
+
+/** @typedef {{ check_id: string | null, subject_type: string | null, subject_id: string | null, error_type: string, at: string }} WriteFailureEntry */

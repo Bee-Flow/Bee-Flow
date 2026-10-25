@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The site's client-side search index: one small JSON document of the pages,
  * blog posts and integrations visitors can already reach, built ONLY from the

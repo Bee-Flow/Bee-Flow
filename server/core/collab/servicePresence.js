@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Presence and streams for the co-editing service (./service.js): stamping,
  * checking and relaying awareness updates, the presence endpoint (update,
@@ -104,7 +104,7 @@ function makePresence(ctx, docs) {
             return null;
         }
         const cursor = docSince === undefined || docSince === null ? entry.doc.updateSeq : docSince;
-        const joined = hub.join(entry.doc, { cursor, userId, send: (kind, data) => stream.send(kind, data) });
+        const joined = hub.join(entry.doc, { cursor, userId, send: /** @param {string} kind @param {object} data */ (kind, data) => stream.send(kind, data) });
         // From here on this stream hears the document's frames: the client asks
         // who is here now (answers relayed before this point never reached it).
         stream.send('doc.joined', { docId });

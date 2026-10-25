@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * memoryRetrieval — hybrid candidate selection for `findRelevantMemories`.
  *
@@ -81,6 +81,9 @@ const CANDIDATE_COLUMNS = Object.freeze([
  */
 function art9OwnerOnlySql(paramIndex, alias = '') {
     const p = typeof paramIndex === 'number' ? `$${paramIndex}` : String(paramIndex);
+    /**
+     * @param {string} name
+     */
     const c = (name) => (alias ? `${alias}.${name}` : name);
     return `(COALESCE(${c('sensitivity')}, 'none') <> 'art9' OR ${c('user_id')} = ${p})`;
 }
@@ -113,6 +116,7 @@ function scopePredicate({ userId, agentId = null, projectId = null, includeGener
         ? `agent_id = ${bind(agentId)}`
         : `(agent_id = ${bind(agentId)} OR agent_id IS NULL)`;
 
+    /** @type {string} */
     let ownerClause;
     if (projectId) {
         ownerClause = `project_id = ${bind(projectId)}`;
@@ -160,15 +164,23 @@ function buildCandidateQuery({
         throw new Error(`buildCandidateQuery: invalid legLimit ${legLimit}`);
     }
 
+    /** @type {string[]} */
     const params = [];
+    /**
+     * @param {string} value
+     */
     const bind = (value) => { params.push(value); return `$${params.length}`; };
 
     const scopeWhere = scopePredicate({ userId, agentId, projectId, includeGeneral, includeSensitive }, bind);
 
     // ── legs ─────────────────────────────────────────────────────────────────
+    /** @type {string[]} */
     const legs = [];
+    /** @type {string[]} */
     const ctes = [];
+    /** @type {string[]} */
     const joins = [];
+    /** @type {string[]} */
     const rankCols = [];
 
     // `NOT MATERIALIZED` is load-bearing. A CTE referenced more than once is
@@ -264,6 +276,7 @@ function scoreFused(rows, legLists, { now = Date.now() } = {}) {
 /**
  * Fetch and rank candidates. Returns `[{memory, score}]`, highest first —
  * the shape `selectWithinBudget` consumes.
+ * @param {Parameters<typeof buildCandidateQuery>[0]} opts
  */
 async function retrieveCandidates(opts) {
     const { sql, params, legs } = buildCandidateQuery(opts);
@@ -273,6 +286,7 @@ async function retrieveCandidates(opts) {
     // Rebuild each leg's ranking from the per-row rank columns. Fusing here
     // rather than in SQL keeps the weighting in a tested pure function instead
     // of inside a query string.
+    /** @type {Record<string, Array<{ id: string, rank: number }>>} */
     const ranked = {};
     for (const leg of legs) ranked[leg] = [];
     for (const row of rows) {

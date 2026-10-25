@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Validate an org-scoped custom-integration definition (specVersion 1).
  *
@@ -41,7 +42,7 @@ const { validateRestTool } = require('./validateRestTool');
 /**
  * Validate a definition for an org-scoped custom integration.
  *
- * @param {object} def                 the JSONB definition blob
+ * @param {{ specVersion?: number, meta?: object, api?: object, auth?: object, tools?: object[], mcp?: object }} def  the JSONB definition blob
  * @param {object} [opts]
  * @param {string} [opts.kind='rest']  'rest' | 'mcp_remote'
  * @param {boolean} [opts.strict]      promote lint findings to errors (activation)
@@ -75,6 +76,7 @@ function validateCustomIntegration(def, { kind = 'rest', strict = false, slug = 
 
     // Serializability + size cap — bail out on circular structures before
     // any tree walk would recurse forever.
+    /** @type {string} */
     let serialized;
     try {
         serialized = JSON.stringify(def);
@@ -93,6 +95,7 @@ function validateCustomIntegration(def, { kind = 'rest', strict = false, slug = 
     // Global credential ban — '{{credential.' is only legal in the auth/mcp
     // value template. Anything else would exfiltrate the secret into URLs,
     // bodies, headers or model-visible text.
+    /** @type {string[]} */
     const leaks = [];
     findCredentialLeaks(def, '', leaks);
     for (const p of leaks) {
@@ -113,7 +116,12 @@ function validateCustomIntegration(def, { kind = 'rest', strict = false, slug = 
     return { ok: errors.length === 0, errors, warnings };
 }
 
-/** Kind/shape cross-checks + unknown top-level keys. */
+/**
+ * Kind/shape cross-checks + unknown top-level keys.
+ * @param {import('./validateShared').Reporter} r
+ * @param {Record<string, unknown>} def
+ * @param {string} kind
+ */
 function checkTopLevelKeys(r, def, kind) {
     const allowedTop = kind === 'rest'
         ? new Set(['specVersion', 'meta', 'api', 'auth', 'tools'])
@@ -131,7 +139,12 @@ function checkTopLevelKeys(r, def, kind) {
     }
 }
 
-/** meta (informational). */
+/**
+ * meta (informational).
+ * @param {import('./validateShared').Reporter} r
+ * @param {import('./validateShared').MetaBlock} meta
+ * @param {boolean} librarySource
+ */
 function checkMeta(r, meta, librarySource) {
     if (!isObject(meta)) {
         r.pushE({ code: 'meta.invalid', path: 'meta', message: 'meta must be an object.', hint: 'Use { docsUrl, notes } or omit meta entirely.' });
@@ -162,7 +175,11 @@ function checkMeta(r, meta, librarySource) {
     }
 }
 
-/** REST: the `api` block. */
+/**
+ * REST: the `api` block.
+ * @param {import('./validateShared').Reporter} r
+ * @param {import('./validateShared').RestApiBlock} api
+ */
 function checkRestApi(r, api) {
     if (!isObject(api)) {
         r.pushE({ code: 'api.missing', path: 'api', message: 'Missing or invalid `api` block.', hint: 'Provide { baseUrl, defaultHeaders?, timeoutMs?, maxResponseChars? }.' });
@@ -185,8 +202,13 @@ function checkRestApi(r, api) {
     }
 }
 
-/** REST: the `auth` block. */
+/**
+ * REST: the `auth` block.
+ * @param {import('./validateShared').Reporter} r
+ * @param {import('./validateShared').RestAuthBlock} auth
+ */
 function checkRestAuth(r, auth) {
+    /** @type {Set<string>} */
     let declaredCreds = new Set();
     if (!isObject(auth)) {
         r.pushE({ code: 'auth.missing', path: 'auth', message: 'Missing or invalid `auth` block.', hint: 'Provide { type, … }; use { "type": "none" } for unauthenticated APIs.' });
@@ -235,7 +257,12 @@ function checkRestAuth(r, auth) {
     }
 }
 
-/** REST: the `tools` list — each tool in ./validateRestTool. */
+/**
+ * REST: the `tools` list — each tool in ./validateRestTool.
+ * @param {import('./validateShared').Reporter} r
+ * @param {import('./validateShared').RestToolDef[] | undefined} tools
+ * @param {string | null} slug
+ */
 function checkRestTools(r, tools, slug) {
     if (!Array.isArray(tools) || tools.length < MIN_TOOLS) {
         r.pushE({ code: 'tools.missing', path: 'tools', message: 'Definition needs a non-empty `tools` array.', hint: 'Declare 1 to 30 tools.' });
@@ -244,11 +271,16 @@ function checkRestTools(r, tools, slug) {
     if (tools.length > MAX_TOOLS) {
         r.pushE({ code: 'tools.too_many', path: 'tools', message: `${tools.length} tools declared; the cap is ${MAX_TOOLS}.`, hint: 'Split into multiple integrations or drop rarely used endpoints.' });
     }
+    /** @type {Set<string>} */
     const seenNames = new Set();
     tools.forEach((tool, i) => validateRestTool(r, tool, i, { slug, seenNames }));
 }
 
-/** mcp_remote: the `mcp` block. */
+/**
+ * mcp_remote: the `mcp` block.
+ * @param {import('./validateShared').Reporter} r
+ * @param {import('./validateShared').McpDefBlock} mcp
+ */
 function checkMcp(r, mcp) {
     if (!isObject(mcp)) {
         r.pushE({ code: 'mcp.missing', path: 'mcp', message: 'Missing or invalid `mcp` block.', hint: 'Provide { url, authStyle, valueTemplate?, credentials?, toolAllowList? }.' });
@@ -298,15 +330,19 @@ function checkMcp(r, mcp) {
  *
  * additionalProperties is forced to false on every derived schema, and the
  * output never aliases the input (safe to mutate / persist independently).
+ * @param {{ tools?: import('./validateShared').RestToolDef[] }} def
+ * @param {string} slug
  */
 function deriveOpenAiTools(def, slug) {
     const tools = isObject(def) && Array.isArray(def.tools) ? def.tools : [];
     return tools.filter(isObject).map((t) => {
-        const src = isObject(t.parameters) ? t.parameters : {};
+        const src = isObject(t.parameters) ? t.parameters : /** @type {import('./validateShared').ToolParameters} */ ({});
+        /** @type {Record<string, import('./validateShared').ParamSchema>} */
         const properties = {};
         if (isObject(src.properties)) {
             for (const [pname, schema] of Object.entries(src.properties)) {
                 if (!isObject(schema)) continue;
+                /** @type {import('./validateShared').ParamSchema} */
                 const prop = { type: schema.type };
                 if (typeof schema.description === 'string') prop.description = schema.description;
                 if (Array.isArray(schema.enum)) prop.enum = schema.enum.slice();

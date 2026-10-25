@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 // §WS5 #4 — public inbound trigger surface (webhook + provider event pushes),
 // extracted verbatim from routes/automation.js. Mounted BEFORE the auth chain.
 //
@@ -20,6 +20,7 @@ const configStore = require('../../stores/configStore');
 const triggerBus = require('../../automation/triggerBus');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { verifyConnectorSig } = require('../../auth/connectorSig');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 // ── PUBLIC routes (defined first; auth comes after) ────
 
@@ -34,7 +35,7 @@ const AUTOMATION_EVENTS_RPM_PER_IP = parseInt(process.env.AUTOMATION_EVENTS_RPM_
 const webhookSlugLimiter = perUserRateLimit({
     windowMs: 60_000,
     max: AUTOMATION_WEBHOOK_RPM_PER_SLUG,
-    keyFn: (req) => `whslug:${req.params.slug}`,
+    keyFn: (/** @type {import('express').Request} */ req) => `whslug:${req.params.slug}`,
 });
 const webhookIpLimiter = perUserRateLimit({
     windowMs: 60_000,
@@ -63,8 +64,10 @@ const eventsLimiter = perUserRateLimit({
  * - Total serialized size is capped (~8KB) — headers are metadata, not a data
  *   channel.
  */
+/** @param {import('express').Request} req */
 function pickWebhookHeaders(req) {
     const MAX_TOTAL = 8 * 1024;
+    /** @type {Record<string, string>} */
     const out = {};
     let total = 0;
     for (const [rawKey, rawVal] of Object.entries(req.headers || {})) {
@@ -80,7 +83,7 @@ function pickWebhookHeaders(req) {
 }
 
 // Webhook trigger — signed inbound URL.
-router.post('/webhook/:slug', webhookIpLimiter, webhookSlugLimiter, express.json({ limit: '256kb' }), async (req, res) => {
+router.post('/webhook/:slug', webhookIpLimiter, webhookSlugLimiter, express.json({ limit: '256kb' }), async (/** @type {import('express').Request<{ slug: string }>} */ req, res) => {
     const slug = req.params.slug;
     const wh = await automationStore.getWebhook(slug);
     if (!wh) return res.status(404).json({ error: 'Unknown webhook' });
@@ -154,7 +157,7 @@ router.post('/events/gmail', eventsLimiter, express.json({ limit: '128kb' }), as
     const data = req.body?.message?.data;
     if (!data) return res.status(204).end();
     let decoded = {};
-    try { decoded = JSON.parse(Buffer.from(data, 'base64').toString('utf8')); } catch (err) { log.debug('payload is not base64 JSON, handled as an empty event', err); }
+    try { decoded = JSON.parse(Buffer.from(data, 'base64').toString('utf8')); } catch (err) { fallback('routes/automation/events:anon', err); /* payload is not base64 JSON, handled as an empty event */ }
     // userId intentionally null until an emailAddress→userId mapping + OIDC
     // verification exist; dispatchEvent drops null-userId gmail events.
     await triggerBus.dispatchEvent({ provider: 'gmail', event: 'mail.new', payload: decoded, userId: null });
@@ -196,7 +199,7 @@ router.post('/events/nextcloud', eventsLimiter, captureRawNc, async (req, res) =
     // so the connector doesn't retry.
     const userStore = require('../../stores/userStore');
     const user = ncUid
-        ? await userStore.getUserByNcUid(org.id, ncUid).catch(() => null)
+        ? await userStore.getUserByNcUid(org.id, ncUid).catch((e) => fallback('routes/automation/events:anon#2', e, null))
         : null;
 
     // The event reaches only the actor's own subscriptions (userId below), so
@@ -279,9 +282,9 @@ router.post('/events/nextcloud', eventsLimiter, captureRawNc, async (req, res) =
         try {
             const subs = await automationStore.getSubscriptionsForUserAndEvent(user.id, 'nextcloud', event);
             for (const sub of subs) {
-                await automationStore.updateSubscription(sub.id, { lastPushAt: new Date().toISOString() }).catch(() => {});
+                await automationStore.updateSubscription(sub.id, { lastPushAt: new Date().toISOString() }).catch((e) => bestEffort('routes/automation/events:anon#3', e));
             }
-        } catch (err) { log.debug('best-effort', err); }
+        } catch (err) { bestEffort('routes/automation/events:anon#4', err); /* best-effort */ }
     }
     return res.status(202).end();
 });
@@ -305,7 +308,7 @@ router.post('/events/msgraph', eventsLimiter, express.json({ limit: '128kb' }), 
         // we fan out per-notification.
         try {
             const sub = n.subscriptionId
-                ? await automationStore.getSubscriptionByExternalRef('msgraph', n.subscriptionId).catch(() => null)
+                ? await automationStore.getSubscriptionByExternalRef('msgraph', n.subscriptionId).catch((e) => fallback('routes/automation/events:anon#5', e, null))
                 : null;
             if (sub && sub.clientState && sub.clientState !== n.clientState) {
                 log.warn(`[automation/events/msgraph] clientState mismatch for sub ${sub.id} — dropping`);
@@ -361,7 +364,7 @@ router.post('/events/msgraph', eventsLimiter, express.json({ limit: '128kb' }), 
 // org. Scoping it per-org requires a per-org GitHub App installation→org mapping
 // (derive the org from the installation id / repo in the payload) — a separate
 // feature that also changes the webhook URL users register in GitHub.
-const captureRawJson = (limit) => express.json({
+const captureRawJson = (/** @type {string} */ limit) => express.json({
     limit,
     verify: (req, _res, buf) => { req.rawBody = buf; },
 });

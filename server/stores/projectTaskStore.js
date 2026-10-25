@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Tasks inside a collaborative project: something to do, with an optional
  * description, people it is given to, a due date and links to what it is
@@ -45,17 +45,25 @@ class ProjectTaskStoreError extends Error {
  * Where a task came from: `{ kind: 'meeting', id, itemId }`, or null. `textHash` (projects/taskFromMeeting
  * itemTextHash) pins which action item the positional `itemId` meant when the task was made; a task
  * from before it existed has none.
+ * @param {unknown} v
  */
 function parseSource(v) {
     const s = parseJson(v, null);
     if (!s || s.kind !== 'meeting' || typeof s.id !== 'string' || !s.id || typeof s.itemId !== 'string' || !s.itemId) return null;
+    /** @type {{ kind: string, id: string, itemId: string, textHash?: string }} */
     const out = { kind: 'meeting', id: s.id, itemId: s.itemId };
     if (typeof s.textHash === 'string' && s.textHash) out.textHash = s.textHash;
     return out;
 }
 
+/**
+ * @param {string | number | Date | null} v
+ */
 const toIso = (v) => (v ? new Date(v).toISOString() : null);
-/** A DATE column as `YYYY-MM-DD`, whatever the driver made of it. */
+/**
+ * A DATE column as `YYYY-MM-DD`, whatever the driver made of it.
+ * @param {string | number | Date | null} v
+ */
 const toDay = (v) => {
     if (!v) return null;
     if (typeof v === 'string') return v.slice(0, 10);
@@ -63,6 +71,10 @@ const toDay = (v) => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
+/**
+ * @param {unknown} v
+ * @param {unknown} fallback
+ */
 function parseJson(v, fallback) {
     if (typeof v === 'string') {
         try { return JSON.parse(v); } catch (_) { return fallback; }
@@ -70,12 +82,18 @@ function parseJson(v, fallback) {
     return v == null ? fallback : v;
 }
 
+/**
+ * @param {unknown} v
+ */
 function parseAssignees(v) {
     const list = parseJson(v, []);
     return Array.isArray(list) ? list.filter((x) => typeof x === 'string' && x) : [];
 }
 
-/** `{ kind, id }`, plus `chatId` for a thread (the chat the thread lives in). Nothing else is kept. */
+/**
+ * `{ kind, id }`, plus `chatId` for a thread (the chat the thread lives in). Nothing else is kept.
+ * @param {unknown} v
+ */
 function parseLinks(v) {
     const list = parseJson(v, []);
     if (!Array.isArray(list)) return [];
@@ -84,7 +102,10 @@ function parseLinks(v) {
         .map((x) => (x.kind === 'thread' ? { kind: 'thread', id: x.id, chatId: String(x.chatId || '') } : { kind: x.kind, id: x.id, ...(x.kind === 'task' && x.relation === 'depends_on' ? { relation: x.relation } : {}) }));
 }
 
-/** A task row as stored. `title` and `description` are still sealed. */
+/**
+ * A task row as stored. `title` and `description` are still sealed.
+ * @param {DbRow.ProjectTasks | null} r
+ */
 function rowToTask(r) {
     if (!r) return null;
     return {
@@ -122,7 +143,11 @@ function rowToTask(r) {
  * @param {StoreDb} db
  */
 function makeRanks(db) {
-    /** The rank that puts a task at the end of a column. */
+    /**
+     * The rank that puts a task at the end of a column.
+     * @param {string} projectId
+     * @param {string} status
+     */
     async function endRank(projectId, status) {
         const r = await db.query('SELECT COALESCE(MAX(sort_order), 0) AS top FROM project_tasks WHERE project_id = $1 AND status = $2', [projectId, status]);
         return Number(r.rows[0].top) + RANK_STEP;
@@ -169,7 +194,11 @@ function makeBoard(db, ready, endRank) {
         return rowToTask(r.rows[0] || null);
     }
 
-    /** One task, only when it belongs to this project. */
+    /**
+     * One task, only when it belongs to this project.
+     * @param {string} projectId
+     * @param {string} taskId
+     */
     async function getTask(projectId, taskId) {
         await ready();
         const r = await db.query('SELECT * FROM project_tasks WHERE id = $1 AND project_id = $2', [taskId, projectId]);
@@ -179,6 +208,7 @@ function makeBoard(db, ready, endRank) {
     /**
      * The board: every to-do and doing task, and the most recently finished ones (older done tasks are
      * left out, `truncated` says so). In board order (rank), newest last within a column.
+     * @param {string} projectId
      */
     async function listBoard(projectId) {
         await ready();
@@ -197,12 +227,18 @@ function makeBoard(db, ready, endRank) {
         return { tasks: shown.map(rowToTask), truncated: shown.length < r.rows.length };
     }
 
+    /**
+     * @param {string} projectId
+     */
     async function listSearchTasks(projectId) {
         await ready();
         return (await db.query('SELECT * FROM project_tasks WHERE project_id = $1 ORDER BY id', [projectId])).rows.map(rowToTask);
     }
 
-    /** The project's tasks as listBoard returns them, without the `truncated` flag. */
+    /**
+     * The project's tasks as listBoard returns them, without the `truncated` flag.
+     * @param {string} projectId
+     */
     async function listTasks(projectId) {
         return (await listBoard(projectId)).tasks;
     }
@@ -232,8 +268,15 @@ function makeMutations(db, ready, endRank, getTask) {
      */
     async function updateTask(projectId, taskId, patch) {
         await ready();
+        /** @type {string[]} */
         const sets = [];
+        /** @type {unknown[]} */
         const params = [taskId, projectId];
+        /**
+         * @param {string} col
+         * @param {unknown} value
+         * @param {string} [cast]
+         */
         const add = (col, value, cast = '') => { params.push(value); sets.push(`${col} = $${params.length}${cast}`); };
         if (patch.title !== undefined) add('title', patch.title);
         if (patch.description !== undefined) add('description', patch.description);
@@ -276,7 +319,11 @@ function makeMutations(db, ready, endRank, getTask) {
         return rowToTask(r.rows[0] || null);
     }
 
-    /** Give the tasks of one column ranks RANK_STEP apart again, keeping their order. */
+    /**
+     * Give the tasks of one column ranks RANK_STEP apart again, keeping their order.
+     * @param {string} projectId
+     * @param {string} status
+     */
     async function renumber(projectId, status) {
         await db.query(
             `UPDATE project_tasks t SET sort_order = r.n * $3
@@ -293,6 +340,9 @@ function makeMutations(db, ready, endRank, getTask) {
      * column is numbered again first.
      *
      * @returns {Promise<ReturnType<typeof rowToTask>|null>} null when the task, or the neighbour, is not in this project
+     * @param {string} projectId
+     * @param {string} taskId
+     * @param {{ status: string, beforeId?: string | null }} position
      */
     async function moveTask(projectId, taskId, { status, beforeId = null }) {
         await ready();
@@ -328,6 +378,8 @@ function makeMutations(db, ready, endRank, getTask) {
      * The action items of a meeting that already became a task in this project: `key → taskId`, where the
      * key is `itemId#textHash` (projects/taskFromMeeting itemKey), or the bare `itemId` for a task made
      * before the hash was kept. Look a key up with `itemKey` / `createdTaskFor`, not with the raw id.
+     * @param {string} projectId
+     * @param {string} meetingId
      */
     async function tasksFromMeeting(projectId, meetingId) {
         await ready();
@@ -339,7 +391,11 @@ function makeMutations(db, ready, endRank, getTask) {
         return new Map(r.rows.map((row) => [row.hash ? `${row.item}#${row.hash}` : row.item, row.id]));
     }
 
-    /** @returns {Promise<boolean>} whether a task was removed */
+    /**
+     * @returns {Promise<boolean>} whether a task was removed
+     * @param {string} projectId
+     * @param {string} taskId
+     */
     async function deleteTask(projectId, taskId) {
         await ready();
         const r = await db.query('DELETE FROM project_tasks WHERE id = $1 AND project_id = $2', [taskId, projectId]);
@@ -349,6 +405,8 @@ function makeMutations(db, ready, endRank, getTask) {
     /**
      * Take one person off every task they hold in a project (they left it, or
      * were removed). Returns how many tasks changed.
+     * @param {string} projectId
+     * @param {string} userId
      */
     async function unassignUser(projectId, userId) {
         await ready();
@@ -364,6 +422,9 @@ function makeMutations(db, ready, endRank, getTask) {
     /**
      * Tasks that point at a chat, thread of it, document, notebook or meeting go on existing; the link is
      * dropped. `projectId` null drops it in every project (the item itself was deleted).
+     * @param {string | null} projectId
+     * @param {string} id
+     * @param {string} kind
      */
     async function dropLinksTo(projectId, kind, id) {
         await ready();
@@ -388,6 +449,9 @@ function makeMutations(db, ready, endRank, getTask) {
  * @param {() => Promise<any>} ready
  */
 function makePoker(db, ready) {
+    /**
+     * @param {import('pg').QueryResultRow | null} row
+     */
     function pokerRow(row) {
         if (!row) return null;
         const queue = parseJson(row.queue, []);
@@ -396,6 +460,9 @@ function makePoker(db, ready) {
             startedBy: row.started_by, updatedAt: toIso(row.updated_at) };
     }
 
+    /**
+     * @param {string} projectId
+     */
     async function getPokerSession(projectId) {
         await ready();
         const r = await db.query('SELECT * FROM project_task_poker WHERE project_id = $1', [projectId]);
@@ -405,6 +472,11 @@ function makePoker(db, ready) {
     /**
      * Open a session on `taskId`, with the rest of the list queued behind it (an empty
      * queue for the one-task session older callers start). Only when no session is running.
+     * @param {string} projectId
+     * @param {string} sessionId
+     * @param {string} taskId
+     * @param {string} userId
+     * @param {string[]} [queue]
      */
     async function startPokerSession(projectId, sessionId, taskId, userId, queue = []) {
         await ready();
@@ -419,6 +491,12 @@ function makePoker(db, ready) {
         return pokerRow(r.rows[0]);
     }
 
+    /**
+     * @param {string} projectId
+     * @param {string} sessionId
+     * @param {string} userId
+     * @param {string} vote
+     */
     async function castPokerVote(projectId, sessionId, userId, vote) {
         await ready();
         const r = await db.query(
@@ -428,6 +506,10 @@ function makePoker(db, ready) {
         return pokerRow(r.rows[0]);
     }
 
+    /**
+     * @param {string} projectId
+     * @param {string} sessionId
+     */
     async function revealPokerVotes(projectId, sessionId) {
         await ready();
         const r = await db.query(`UPDATE project_task_poker SET phase = 'revealed', updated_at = NOW()
@@ -435,6 +517,11 @@ function makePoker(db, ready) {
         return pokerRow(r.rows[0]);
     }
 
+    /**
+     * @param {string} projectId
+     * @param {string} sessionId
+     * @param {number | null} points
+     */
     async function finishPokerSession(projectId, sessionId, points) {
         await ready();
         const r = await db.query(
@@ -449,6 +536,10 @@ function makePoker(db, ready) {
         return rowToTask(r.rows[0] || null);
     }
 
+    /**
+     * @param {string} projectId
+     * @param {string} sessionId
+     */
     async function cancelPokerSession(projectId, sessionId) {
         await ready();
         const r = await db.query(`UPDATE project_task_poker SET phase = 'cancelled', updated_at = NOW()
@@ -463,6 +554,9 @@ function makePoker(db, ready) {
      * advance never land apart. Null when the session is not waiting on a reveal.
      *
      * @returns {Promise<{ task: ReturnType<typeof rowToTask>, session: ReturnType<typeof pokerRow> }|null>}
+     * @param {string} projectId
+     * @param {string} sessionId
+     * @param {number | null} points
      */
     async function advancePokerSession(projectId, sessionId, points) {
         await ready();

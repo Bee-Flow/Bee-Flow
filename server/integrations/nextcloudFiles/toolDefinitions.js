@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Tool definitions for the Nextcloud file tools — the schemas the model sees
  * for files, sharing, comments, tags, trash and versions.

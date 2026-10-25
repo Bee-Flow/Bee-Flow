@@ -45,6 +45,7 @@ const SCHEMA_VERSION = 2;
 const SUPPORTED_VERSIONS = [1, 2];
 
 /** Bundle-local reference prefixes, one per entity kind. */
+/** @type {Record<string, string>} */
 const REF_PREFIX = {
     automations: 'aut', apps: 'app', webpages: 'web',
     datatables: 'dt', agents: 'agt', knowledgeBases: 'kb',
@@ -62,7 +63,10 @@ const ENTITY_KINDS = Object.freeze([
 
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
-/** The numeric tail of a ref (`aut_7` → 7), or 0 when it has none. */
+/**
+ * The numeric tail of a ref (`aut_7` → 7), or 0 when it has none.
+ * @param {string} prefix
+ */
 function refNumber(ref, prefix) {
     const m = typeof ref === 'string' ? ref.match(new RegExp(`^${prefix}_(\\d+)$`)) : null;
     return m ? Number(m[1]) : 0;
@@ -178,6 +182,9 @@ function rewriteRefs(value, refMap, unresolved = []) {
 /** How long a claim from a file may be before it is truncated. */
 const MAX_CLAIM_CHARS = { id: 64, name: 200 };
 
+/**
+ * @param {number} max
+ */
 function claimText(value, max) {
     if (typeof value !== 'string') return null;
     const trimmed = value.trim();
@@ -269,6 +276,7 @@ const FORBIDDEN_SECTIONS = ['referenceRows', 'knowledgeContent'];
  * PLAIN `ref` string, never `{ $ref }`: they describe the release, they are not
  * a pointer install resolves, so collectRefs never sees them. A slot that names
  * a part the file does not carry is refused, like a dangling `$ref`.
+ * @param {string[]} errors
  */
 function checkPipelineSections(solution, declared, errors) {
     for (const [section, label] of [['slots', 'slot'], ['variables', 'variable']]) {
@@ -311,6 +319,7 @@ function checkPipelineSections(solution, declared, errors) {
  * object whose name starts with `public` goes, so a `publicSomethingNew` added
  * to bridgeGrants next year is stripped by the rule that was written before it
  * existed.
+ * @param {string | null} [parentKey]
  */
 function stripNeverInstallable(value, parentKey = null) {
     if (Array.isArray(value)) return value.map(v => stripNeverInstallable(v, parentKey));
@@ -353,6 +362,7 @@ function stripNeverInstallable(value, parentKey = null) {
  */
 function sanitizeManifest(rawInput) {
     const input = isObject(rawInput) ? stripNeverInstallable(rawInput) : rawInput;
+    /** @type {string[]} */
     const errors = [];
     if (!isObject(input)) return { ok: false, errors: ['That is not a Blueprint file.'] };
     // The provenance block is NORMALIZED here and not refused: a nonsensical
@@ -394,3 +404,5 @@ module.exports = {
     assignRefs, rewriteToRefs, rewriteRefs, collectRefs, buildManifest, sanitizeManifest,
     stripNeverInstallable, readSource, withSource,
 };
+
+/** @typedef {import('./walkers').DefinitionNode} DefinitionNode */

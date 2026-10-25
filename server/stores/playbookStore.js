@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Playbooks — a phased AI build the user watches and consents to phase by
  * phase (Studio → Playbooks). One row per playbook; the phases (status,
@@ -19,6 +19,7 @@ const { rollback } = require('../utils/txRollback');
 const { makeStoreInit } = require('./lib/storeInit');
 const { runDdl } = require('./lib/_ddl');
 const { parseJSONObject: parseJSON } = require('./lib/json');
+const { fallback } = require('../utils/bestEffort');
 
 const initDB = makeStoreInit('PlaybookStore', async () => {
     const res = await runDdl('playbookStore', [
@@ -50,6 +51,9 @@ function newPlaybookId() {
 }
 
 
+/**
+ * @param {DbRow.Playbooks | null} r
+ */
 function mapRow(r) {
     if (!r) return null;
     return {
@@ -69,6 +73,9 @@ function mapRow(r) {
     };
 }
 
+/**
+ * @param {{ userId: string, organizationId?: string | null, recipeId: string, recipe?: Record<string, any> | null, title: string, options?: Record<string, any>, phases?: unknown[], currentPhase?: string | null }} playbook
+ */
 async function createPlaybook({ userId, organizationId = null, recipeId, recipe = null, title, options = {}, phases = [], currentPhase = null }) {
     await initDB();
     const id = newPlaybookId();
@@ -80,6 +87,10 @@ async function createPlaybook({ userId, organizationId = null, recipeId, recipe 
     return getPlaybook(id, userId);
 }
 
+/**
+ * @param {string} id
+ * @param {string} userId
+ */
 async function getPlaybook(id, userId) {
     await initDB();
     if (!id || !userId) return null;
@@ -87,6 +98,9 @@ async function getPlaybook(id, userId) {
     return mapRow(r);
 }
 
+/**
+ * @param {string} userId
+ */
 async function listPlaybooksForUser(userId, { limit = 50 } = {}) {
     await initDB();
     if (!userId) return [];
@@ -102,6 +116,8 @@ async function listPlaybooksForUser(userId, { limit = 50 } = {}) {
  * @param userId
  * @param {{ phases?: any[], currentPhase?: string|number, status?: string, title?: string }} [opts]
  * @param {{ expectedVersion?: number|null }} [opts2]
+ * @param {string} id
+ * @param {string} userId
  */
 async function savePhases(id, userId, { phases, currentPhase, status, title } = {}, { expectedVersion = null } = {}) {
     await initDB();
@@ -132,6 +148,10 @@ async function savePhases(id, userId, { phases, currentPhase, status, title } = 
     return { ...out, playbook: await getPlaybook(id, userId) };
 }
 
+/**
+ * @param {string} id
+ * @param {string} userId
+ */
 async function deletePlaybook(id, userId) {
     await initDB();
     const res = await run(`DELETE FROM playbooks WHERE id = $1 AND user_id = $2`, [id, userId]);
@@ -141,7 +161,7 @@ async function deletePlaybook(id, userId) {
 
 module.exports = {
     // Started on access, not at module load — see boot/storeSchemas.js.
-    get ready() { return initDB().catch(() => {}); },
+    get ready() { return initDB().catch((e) => fallback('stores/playbookStore:anon', e)); },
     initDB,
     newPlaybookId,
     createPlaybook,

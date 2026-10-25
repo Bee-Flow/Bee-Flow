@@ -7,6 +7,7 @@ const automationStore = require('../../stores/automationStore');
 const { applyDslFilter } = require('../triggers/dslFilters');
 const { pickMatcher } = require('./filters');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // Providers whose subscriptions are strictly per-user and where a null userId
 // is NEVER legitimate. For these, an inbound event MUST identify the subscriber
@@ -62,7 +63,7 @@ function makeOrgLookup() {
     const orgCache = new Map();
     return async (uid) => {
         if (orgCache.has(uid)) return orgCache.get(uid);
-        const u = await userStore.getUser(uid).catch(() => null);
+        const u = await userStore.getUser(uid).catch((e) => fallback('automation/triggerBus/dispatch:makeOrgLookup', e, null));
         const o = u?.organizationId || null;
         orgCache.set(uid, o);
         return o;

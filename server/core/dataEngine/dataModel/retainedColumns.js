@@ -328,3 +328,11 @@ module.exports = {
     retireMetaFor, retiredColumnKey, readRetireState, retainConflicts,
     retainOptions, conflictsOf, retiredHadColumn, retireDdl, unretireDdl,
 };
+
+/** @typedef {import('./migrationShape').ModelField} ModelField */
+
+/** @typedef {import('./migrationShape').RetiredEntry} RetiredEntry */
+
+/** @typedef {import('./migrationShape').ModelShape} ModelShape */
+
+/** @typedef {import('./migrationShape').MigrationPlanOpts} MigrationPlanOpts */

@@ -53,12 +53,19 @@ const RULES = [
     { header: 'x-azure-ref', network: 'Microsoft Front Door', asns: MICROSOFT, pop: () => null },
 ];
 
+/**
+ * @param {string} value
+ * @param {RegExp} re
+ */
 function _m(value, re) {
     const hit = String(value || '').trim().match(re);
     return hit ? hit[1].toUpperCase() : null;
 }
 
-/** IATA code → { city, country_code, lat, lon } or null. */
+/**
+ * IATA code → { city, country_code, lat, lon } or null.
+ * @param {string} code
+ */
 function airport(code) {
     const e = code ? AIRPORTS[String(code).toUpperCase()] : null;
     return e ? { city: e[0], country_code: e[1], lat: e[2], lon: e[3] } : null;

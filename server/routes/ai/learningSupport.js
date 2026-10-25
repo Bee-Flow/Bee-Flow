@@ -5,6 +5,7 @@ const usageStore = require('../../stores/usageStore');
 const { resolveModelForTier, resolveModelWithGlobalFallback } = require('../../core/llm/modelResolver');
 const configStore = require('../../stores/configStore');
 const { z, worded, bodyOf, typeError } = require('../../core/http/schemaParts');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── What a learner's request may carry ───────────────────────────────
 // Closed bodies. What they close: `makePublic: "false"` issued a PUBLIC
@@ -124,7 +125,7 @@ async function resolveModel(modelTier, { userId, userOrgId }) {
     try {
         const resolved = await resolveModelForTier(`tier:${tier}`, { userOrgId, userId, fallbackTier: 'fast' });
         if (resolved) return resolved;
-    } catch (err) { log.debug('fall through', err); }
+    } catch (err) { bestEffort('routes/ai/learningSupport:resolveModel', err); /* fall through */ }
     return resolveModelWithGlobalFallback(`tier:${tier}`, { userOrgId, userId });
 }
 
@@ -155,11 +156,11 @@ async function recordExerciseAttempt(userId, exerciseId, passed, score) {
 // Tolerant JSON extraction — models sometimes wrap JSON in prose or code fences.
 function parseJsonLoose(text) {
     if (!text || typeof text !== 'string') return null;
-    try { return JSON.parse(text); } catch (err) { log.debug('try to extract', err); }
+    try { return JSON.parse(text); } catch (err) { bestEffort('routes/ai/learningSupport:parseJsonLoose', err); /* try to extract */ }
     const first = text.indexOf('{');
     const last = text.lastIndexOf('}');
     if (first !== -1 && last > first) {
-        try { return JSON.parse(text.slice(first, last + 1)); } catch (err) { log.debug('give up', err); }
+        try { return JSON.parse(text.slice(first, last + 1)); } catch (err) { bestEffort('routes/ai/learningSupport:parseJsonLoose#2', err); /* give up */ }
     }
     return null;
 }

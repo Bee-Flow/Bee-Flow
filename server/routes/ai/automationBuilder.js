@@ -75,3 +75,7 @@ module.exports._test = {
     verifyMapJsonItemsRef: mapJsonFields.verifyMapJsonItemsRef,
     MAP_JSON_FIELDS_TOOL: mapJsonFields.MAP_JSON_FIELDS_TOOL,
 };
+
+/**
+ * @typedef {import('express').Router & { _test: Record<string, unknown> }} RouterExports
+ */

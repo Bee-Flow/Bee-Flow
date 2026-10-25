@@ -13,6 +13,7 @@
  */
 
 const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
 // Module-scoped cache of the Nextcloud activity feed per-user. Five
 // triggers (file.new / file.changed / share.received / activity.new /
@@ -49,7 +50,7 @@ async function _ncFetchActivityRows(ctx, userId, session) {
             if (result?.activities) rows = result.activities;
             return rows;
         } catch (e) {
-            log.warn(`[TriggerBus] nextcloud activity fetch threw for user ${userId}: ${e.message}`);
+            log.warn(`[TriggerBus] nextcloud activity fetch threw for user ${userId}: ${/** @type {Error} */ (e).message}`);
             return rows;
         }
     })().then((rows) => {
@@ -211,7 +212,7 @@ function createNextcloudPollers(ctx) {
                 if (highest > cursorId) await ctx.store().updateSubscription(sub.id, { lastCursor: String(highest) });
                 return events;
             } catch (e) {
-                log.warn('[TriggerBus] nextcloud notifications poll error:', e.message);
+                log.warn('[TriggerBus] nextcloud notifications poll error:', /** @type {Error} */ (e).message);
                 return [];
             }
         },
@@ -251,10 +252,11 @@ function createNextcloudPollers(ctx) {
                 const items = Array.isArray(result?.events) ? result.events : [];
 
                 let cursor = { firedIds: [] };
-                try { if (sub.lastCursor) cursor = JSON.parse(sub.lastCursor) || cursor; } catch (err) { log.debug('ignore', err); }
+                try { if (sub.lastCursor) cursor = JSON.parse(sub.lastCursor) || cursor; } catch (err) { fallback('automation/triggerBus/pollers/nextcloud:calendar.event.upcoming', err); /* ignore */ }
                 const fired = new Set(Array.isArray(cursor.firedIds) ? cursor.firedIds : []);
 
                 const events = [];
+                /** @type {string[]} */
                 const newlyFired = [];
                 for (const ev of items) {
                     const startsAt = ev.dtstart || null;
@@ -294,7 +296,7 @@ function createNextcloudPollers(ctx) {
                 }
                 return events;
             } catch (e) {
-                log.warn('[TriggerBus] nextcloud calendar upcoming poll error:', e.message);
+                log.warn('[TriggerBus] nextcloud calendar upcoming poll error:', /** @type {Error} */ (e).message);
                 return [];
             }
         },
@@ -302,3 +304,8 @@ function createNextcloudPollers(ctx) {
 }
 
 module.exports = { createNextcloudPollers, _ncFetchActivityRows, _ncNormaliseActivity };
+
+/**
+ * One row of the Nextcloud activity feed.
+ * @typedef {{ id?: number, type?: string, subject?: string, message?: string, actor?: string, objectName?: string, objectType?: string, link?: string, datetime?: string }} NcActivityRow
+ */

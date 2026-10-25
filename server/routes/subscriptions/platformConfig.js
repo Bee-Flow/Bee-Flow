@@ -13,6 +13,7 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const { HttpError } = require('../../core/http/errors');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const router = express.Router();
 
@@ -47,6 +48,7 @@ const CurrencyRatesBody = z.record(
     { error: typeError({ required: RATES_TEXT, invalid: RATES_TEXT }) },
 );
 
+/** @param {string} name */
 const whole = (name) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })
     .int(`${name} must be a whole number.`)
     .min(1, `${name} is at least 1.`)
@@ -64,6 +66,7 @@ router.get('/registries', async (req, res) => {
     // options. IDs are `mcp:<id>` and the editor saves selected ones into the
     // plan's `allowed_integrations` (MCP servers are integrations now; opt-in
     // per subscription — never part of an unrestricted/null cap).
+    /** @type {{ id: string, name: string, description: string, category: string, enabled: boolean }[]} */
     let mcp_servers = [];
     try {
         const servers = await require('../../stores/mcpStore').listServers();
@@ -140,7 +143,7 @@ router.put('/trial-config', validate({ body: TrialConfigBody }), async (req, res
 // later `license_issuance_succeeded` row for the same target_id. Used by the
 // admin sidebar badge and the audit-view Retry UI. Returns the most recent
 // 50 failures with target metadata so the UI can render the list inline.
-router.get('/license-issuance-failures', validate({ query: FailuresQuery }), async (req, res) => {
+router.get('/license-issuance-failures', validate({ query: FailuresQuery }), /** @param {import('express').Request<import('express-serve-static-core').ParamsDictionary, unknown, unknown, { limit?: number }>} req */ async (req, res) => {
     const limit = Math.min(200, req.query.limit ?? 50);
     const rows = await userStore.getUnresolvedLicenseIssuanceFailures(limit);
     res.json(rows);
@@ -166,7 +169,7 @@ router.put('/currency-rates', validate({ body: CurrencyRatesBody }), async (req,
             await currency.setUsdToCurrencyRate(code, rate);
         }
         // Drop any PAYG-cache entries so freshly converted rates take effect now.
-        try { require('../../stores/usageStore').invalidatePaygCache(null, null); } catch (err) { log.debug('circular-load safe', err); }
+        try { require('../../stores/usageStore').invalidatePaygCache(null, null); } catch (err) { bestEffort('routes/subscriptions/platformConfig:anon', err); /* circular-load safe */ }
         const after = await currency.getAllConfiguredRates();
         await userStore.logSubscriptionAudit('update_currency_rates', 'currency_rates', 'global', getAdminId(req), before, after);
         res.json(after);

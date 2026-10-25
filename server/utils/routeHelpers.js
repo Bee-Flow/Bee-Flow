@@ -8,6 +8,7 @@
 
 const crypto = require('crypto');
 const log = require('../telemetry/log');
+const { fallback } = require('./bestEffort');
 
 /**
  * Lightweight session-only auth gate. Unlike the canonical `requireAuth`
@@ -80,7 +81,7 @@ async function getUserAuth(req) {
         orgIds = await resolveUserOrgIds(req, { strict: true });
     } catch (e) {
         orgUnknown = true;
-        log.warn('[routeHelpers] could not resolve the workspace:', e.message);
+        log.warn('[routeHelpers] could not resolve the workspace:', /** @type {Error} */ (e).message);
     }
     let userOrgId = orgIds && orgIds.size > 0 ? Array.from(orgIds)[0] : null;
     if (userOrgId === null && orgUnknown) userOrgId = req.session?.user?.organizationId || null;
@@ -104,7 +105,7 @@ async function getUserAuth(req) {
     try {
         const oauth = (await configStore.getConfig('oauth')) || {};
         userAuth.nextcloudUrl = oauth.nextcloudUrl || null;
-    } catch (e) { log.debug('oauth config unavailable, the Nextcloud URL is omitted', e); }
+    } catch (e) { fallback('utils/routeHelpers:getUserAuth', e); /* oauth config unavailable, the Nextcloud URL is omitted */ }
 
     // Check if app password was passed via session token (for embedded iframe)
     if (req.session?.appPassword) {

@@ -89,6 +89,7 @@ function prepareWriteValues(t) {
     // the author's choice. add_row/save_row keep empties: a new row's blank is
     // a blank, not a silent overwrite of something that was there.
     const values = {};
+    /** @type {string[]} */
     const dropped = [];
     for (const [k, v] of Object.entries(resolvedValues)) {
         if (v === undefined || v === '') { dropped.push(k); continue; }
@@ -197,6 +198,7 @@ async function addRow(t, values, s) {
  * partial delete is worse than a red step) and an update reports
  * `truncated`. The first refusal aborts the step; the rows already changed
  * are consistent on both sides.
+ * @param {boolean} truncated
  */
 async function mirrorUpdateOrDelete(t, values, ids, truncated) {
     const { op, table } = t;
@@ -224,6 +226,7 @@ async function mirrorUpdateOrDelete(t, values, ids, truncated) {
  * round trips with no atomicity anywhere: a crash half way left half the rows
  * written and bumpAfterWrite never reached, so row_count kept counting
  * deletions that had happened.
+ * @param {boolean} truncated
  */
 async function localUpdateOrDelete(t, values, ids, truncated, s) {
     const { op, table, scope, scopeKey, tableMeta, writeFilter } = t;
@@ -317,3 +320,7 @@ async function runDatatableWrite(t, s = stores()) {
 }
 
 module.exports = { runDatatableWrite };
+
+/** @typedef {import('./datatableStepShared').DatatableStepContext} DatatableStepContext */
+
+/** @typedef {ReturnType<typeof stores>} WriteStores */

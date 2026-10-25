@@ -16,6 +16,7 @@ const log = require('../../telemetry/log');
 const { projectAccessDeps } = require('./roleGate');
 const { badRequest, forbidden, notFound } = require('../../core/http/errors');
 const { chatEvent } = require('./chatsPresent');
+const { fallback } = require('../../utils/bestEffort');
 
 /** The dependencies, each defaulting to the real module, required on first use. */
 function resolveChatsDeps(deps) {
@@ -61,7 +62,7 @@ function resolveChatsDeps(deps) {
             || ((projectId, actorId, action, details) => require('../../stores/projectStore').logActivity(projectId, actorId, action, details)),
         // One budget for starting chats and posting, per member: generous for
         // a conversation, a wall for a runaway client.
-        postLimiter: deps.postLimiter || function rateLimitMiddleware(req, res, next) {
+        postLimiter: deps.postLimiter || function rateLimitMiddleware(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
             if (!defaultLimiter) {
                 defaultLimiter = require('../../utils/perUserRateLimit').perUserRateLimit({ windowMs: 60_000, max: 120, name: 'project-chat-post' });
             }
@@ -173,7 +174,7 @@ function makeChatsContext(deps = {}) {
         for (const id of unique) {
             try {
                 if (await ctx.getProjectRole(id, projectId)) kept.push(id);
-            } catch (err) { log.debug('unknown is not a member', err); }
+            } catch (err) { fallback('routes/projects/chatsContext:memberMentions', err); /* unknown is not a member */ }
         }
         return kept;
     }
@@ -204,3 +205,31 @@ function makeChatsContext(deps = {}) {
 }
 
 module.exports = { makeChatsContext };
+
+/**
+ * @typedef {typeof import('../../projects/chatAssistant')} ChatAssistantModule
+ * @typedef {Parameters<typeof projectAccessDeps>[0] & {
+ *   signalProjectChanged?: typeof import('./complianceSignal').signalProjectChanged,
+ *   store?: typeof import('../../stores/projectChatStore'),
+ *   taskStore?: typeof import('../../stores/projectTaskStore'),
+ *   collabNotifier?: ReturnType<typeof import('../../projects/collabNotify').makeCollabNotifier>,
+ *   chatCrypto?: { forProject: typeof import('../../projects/chatCrypto').forProject },
+ *   assistant?: ReturnType<ChatAssistantModule['makeChatAssistant']>,
+ *   resolveAgent?: ChatAssistantModule['resolveUsableAgent'],
+ *   isChatAgentAllowed?: ChatAssistantModule['isChatAgentAllowed'],
+ *   listChatAgents?: ChatAssistantModule['listChatAgents'],
+ *   filedIds?: (projectId: string, kind: string) => Promise<Set<string>>,
+ *   resolveOrgs?: (req: import('express').Request) => Promise<{ orgId: string | null, limitOrgId: string | null }>,
+ *   emit?: (projectId: string, event: Parameters<typeof import('../../core/projectFeed').emitProjectEvent>[1]) => Promise<unknown>,
+ *   logActivity?: typeof import('../../stores/projectStore').logActivity,
+ *   postLimiter?: import('express').RequestHandler,
+ *   participation?: typeof import('../../projects/participation'),
+ *   policy?: ReturnType<typeof import('../../projects/participation/policy').defaultPolicy>,
+ *   participationStore?: typeof import('../../stores/projectAiParticipationStore'),
+ *   now?: () => number,
+ *   newId?: () => string,
+ * }} ChatsDeps
+ * @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/projectStore').getProject>>>} ProjectRow
+ * @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/projectChatStore').getChat>>>} ChatRow
+ * @typedef {Exclude<Awaited<ReturnType<typeof import('../../stores/projectChatStore').appendMessage>>, { stale: true }>} StoredPost
+ */

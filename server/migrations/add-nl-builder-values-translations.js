@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck strict
 /**
  * Dutch for the builder's VALUE editor — the second half of Track R.
  *

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Compliance Store — AI Act & GDPR monitoring persistence.
  *

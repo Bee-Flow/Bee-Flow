@@ -11,7 +11,11 @@ const { DESIGN_SPEC, NAV_STYLES, MAX_NAV_GROUPS, MAX_NAV_GROUP_LABEL } = require
 const { validateTheme } = require('../../core/cms/themeSpec');
 const { isObject } = require('./shared');
 
-/** design / nav (App Design v2 — OPTIONAL top-level keys). */
+/**
+ * design / nav (App Design v2 — OPTIONAL top-level keys).
+ * @param {(value: { code: string; severity: string; path: string; message: string; hint: string; }) => void} pushE
+ * @param {(value: { code: string; severity: string; path: string; message: string; hint: string; }) => void} pushW
+ */
 function checkDesignAndNav(def, screens, pushE, pushW) {
     // ── design / nav (App Design v2 — OPTIONAL top-level keys) ────────────
     // Canonicalize already normalizes these; validation here is the defensive
@@ -76,6 +80,7 @@ function checkDesignAndNav(def, screens, pushE, pushW) {
  * anonymous visitors a static sign-in wall and performs no fetch, and the API
  * behind it is session-authed with canView scoping. It IS a UX trap: a decide
  * surface placed where the audience can never decide. Say so at author time.
+ * @param {(value: { code: string; severity: string; path: string; message: string; hint: string; }) => void} pushW
  */
 function checkPublicAccess(def, pushE, pushW) {
     // The page's own look (publicAccess.theme / .design) speaks the app
@@ -127,3 +132,5 @@ function checkPublicAccess(def, pushE, pushW) {
 }
 
 module.exports = { checkDesignAndNav, checkPublicAccess };
+
+/** @typedef {import('./shared').ValidationCtx} ValidationCtx */

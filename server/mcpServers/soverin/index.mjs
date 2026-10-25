@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/** @typedef {import('imapflow').ImapFlow} ImapFlow */
 /**
  * Soverin MCP server (first-party, bundled).
  *
@@ -166,6 +167,7 @@ const TOOLS = [
 ];
 
 // ─── IMAP / SMTP connections ────────────────────────────────────────
+/** @type {ImapFlow | null} */
 let imapClient = null;
 
 async function getImap() {
@@ -202,7 +204,11 @@ function getSmtp() {
     });
 }
 
-/** Run `fn` with an exclusive lock on `mailbox`, always releasing it. */
+/**
+ * Run `fn` with an exclusive lock on `mailbox`, always releasing it.
+ * @param {{ readOnly: boolean; }} options
+ * @param {string | string[]} mailbox
+ */
 async function withMailbox(mailbox, options, fn) {
     const client = await getImap();
     const lock = await client.getMailboxLock(mailbox || 'INBOX', options);
@@ -213,7 +219,10 @@ async function withMailbox(mailbox, options, fn) {
     }
 }
 
-/** Resolve a role keyword ("trash") to a real mailbox path, else pass through. */
+/**
+ * Resolve a role keyword ("trash") to a real mailbox path, else pass through.
+ * @param {ImapFlow} client
+ */
 async function resolveMailboxTarget(client, target) {
     const role = String(target || '').trim().toLowerCase();
     if (['sent', 'trash', 'drafts', 'junk', 'archive'].includes(role)) {
@@ -365,7 +374,7 @@ const handlers = {
                 savedToSent = true;
             }
         } catch (err) {
-            process.stderr.write(`[soverin-mcp] could not save to Sent: ${err.message}\n`);
+            process.stderr.write(`[soverin-mcp] could not save to Sent: ${/** @type {Error} */ (err).message}\n`);
         }
 
         return {
@@ -436,7 +445,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
 
     const available = allowedTools(TOOLS, config);
-    if (!available.some((t) => t.name === name)) {
+    if (!available.some((/** @type {{ name: string; }} */ t) => t.name === name)) {
         const reason = TOOLS.some((t) => t.name === name)
             ? `Tool "${name}" is disabled — this Soverin connection is read-only.`
             : `Unknown tool: ${name}`;
@@ -449,7 +458,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     } catch (err) {
         // Never leak the mailbox password through an error string — some IMAP
         // failures echo the command that failed straight back at you.
-        let message = String(err.message || err);
+        let message = String(/** @type {Error} */ (err).message || err);
         if (config.password) message = message.split(config.password).join('***');
         return { content: [{ type: 'text', text: `Error: ${message}` }], isError: true };
     }
@@ -466,3 +475,8 @@ process.on('SIGTERM', shutdown);
 
 await server.connect(new StdioServerTransport());
 process.stderr.write(`[soverin-mcp] ready (${config.readOnly ? 'read-only' : 'read-write'})\n`);
+
+/**
+ * @typedef {{ mailbox?: string, limit?: unknown, uid?: unknown, markSeen?: boolean, from?: unknown, to?: unknown, cc?: unknown, bcc?: unknown, subject?: string, body?: unknown, text?: string, html?: string, unread?: unknown, flagged?: boolean, since?: unknown, before?: unknown, replyToUid?: unknown, seen?: boolean, target?: string }} SoverinArgs
+ * @type {Record<string, (args?: SoverinArgs) => Promise<unknown>>}
+ */

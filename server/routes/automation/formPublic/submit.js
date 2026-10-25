@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Answers coming in: the first submission (POST /form/:token) and a later
  * page's answers on a multi-page form (POST /form/:token/s/:sid). Both claim
@@ -20,6 +20,7 @@ const { assertFormStartAllowed } = require('../../../automation/formCallerNotice
 const { ipLimiter, tokenLimiter, sessionLimiter, contentLengthGuard } = require('./limits');
 const { resolvePicks } = require('./picks');
 const { friendly } = require('./friendly');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 // Bots post the instant the DOM exists. A human needs at least a couple of
 // seconds. Both this and the honeypot answer 200 — never a 4xx that tells the
@@ -29,6 +30,10 @@ const HONEYPOT_FIELD = 'website_url';
 
 // ── POST /form/:token — a submission ──────────────────
 
+/**
+ * @param {import('express').Request<{ token: string }>} req
+ * @param {import('express').Response} res
+ */
 async function submitForm(req, res) {
     privateHeaders(res);
     const found = await loadForm(req, res);
@@ -81,7 +86,7 @@ async function submitForm(req, res) {
     // email, the meeting note the question asked for.
     await resolvePicks(picks, values, req);
 
-    await automationStore.touchFormPage(found.token).catch(() => {});
+    await automationStore.touchFormPage(found.token).catch((e) => bestEffort('routes/automation/formPublic/submit:submitForm', e));
 
     // The signed-in submitter — every caller is one while PUBLIC_FORMS is
     // off; null is what an anonymous visitor will read as once it is on.
@@ -129,7 +134,11 @@ async function submitForm(req, res) {
     return undefined;
 }
 
-/** POST /form/:token/s/:sid — page N's answers resume the paused run. */
+/**
+ * POST /form/:token/s/:sid — page N's answers resume the paused run.
+ * @param {import('express').Request<{ token: string, sid: string }>} req
+ * @param {import('express').Response} res
+ */
 async function answerPage(req, res) {
     privateHeaders(res);
     const found = await loadForm(req, res);
@@ -200,7 +209,7 @@ async function answerPage(req, res) {
     // This page's answers land on the SAME row page one made (its id rode
     // in on the session's trigger headers). Best-effort, like page one.
     const answersRef = session.triggerHeaders?.answers_row_id
-        ? { datatableId: session.triggerHeaders.answers_datatable_id || null, rowId: session.triggerHeaders.answers_row_id }
+        ? { datatableId: /** @type {string} */ (session.triggerHeaders.answers_datatable_id) || null, rowId: /** @type {string} */ (session.triggerHeaders.answers_row_id) }
         : null;
     if (answersRef) {
         await formAnswers().recordPageAnswers({ automation: found.automation, ...answersRef, pageStepId: stepId, values });
@@ -220,18 +229,24 @@ async function answerPage(req, res) {
     } catch (e) {
         // Not persisted, so not queued: the answer was never accepted, and
         // the page goes back up for the visitor to send again.
-        await automationStore.updateRun(run.id, { awaitingStepId: stepId }).catch(() => {});
+        await automationStore.updateRun(run.id, { awaitingStepId: stepId }).catch((e) => bestEffort('routes/automation/formPublic/submit:answerPage', e));
         throw e;
     }
     return undefined;
 }
 
-/** POST /form/:token — registered before the session routes. */
+/**
+ * POST /form/:token — registered before the session routes.
+ * @param {import('express').Router} router
+ */
 function registerSubmit(router) {
     router.post('/form/:token', ipLimiter, tokenLimiter, contentLengthGuard, friendly(submitForm, 'submit_failed', 'Could not accept this submission'));
 }
 
-/** POST /form/:token/s/:sid — registered LAST, after every session sub-route. */
+/**
+ * POST /form/:token/s/:sid — registered LAST, after every session sub-route.
+ * @param {import('express').Router} router
+ */
 function registerResume(router) {
     router.post('/form/:token/s/:sid', ipLimiter, sessionLimiter, contentLengthGuard, friendly(answerPage, 'submit_failed', 'Could not accept this submission'));
 }

@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Abuse limits for the publicly reachable support endpoints: the anonymous
  * submit limiter, the thread-read limiter that blunts UUID brute-force, and
@@ -5,7 +6,7 @@
  * lives only here.
  */
 
-const rateLimit = require('express-rate-limit');
+const rateLimit = /** @type {typeof import('express-rate-limit').rateLimit} */ (/** @type {unknown} */ (require('express-rate-limit')));
 
 const { getUserId } = require('./shared');
 
@@ -39,16 +40,18 @@ const _emailHits = new Map(); // sha256-hash → [timestamps]
 const EMAIL_LIMIT_WINDOW_MS = 60 * 1000;
 const EMAIL_LIMIT_MAX = 3;
 const _crypto = require('crypto');
+/** @param {string} addr */
 function _hashEmail(addr) {
     return _crypto.createHash('sha256').update((addr || '').toLowerCase()).digest('hex');
 }
+/** @param {string} email */
 function _emailRateLimitOk(email) {
     if (!email) return true; // logged-in user: skip
     const key = _hashEmail(email);
     const now = Date.now();
     const cutoff = now - EMAIL_LIMIT_WINDOW_MS;
     let hits = _emailHits.get(key) || [];
-    hits = hits.filter(t => t > cutoff);
+    hits = hits.filter((/** @type {number} */ t) => t > cutoff);
     if (hits.length >= EMAIL_LIMIT_MAX) {
         _emailHits.set(key, hits);
         return false;
@@ -58,7 +61,7 @@ function _emailRateLimitOk(email) {
     // Crude LRU prune: drop anything stale once we breach 5k entries.
     if (_emailHits.size > 5000) {
         for (const [k, v] of _emailHits) {
-            if (!v.some(t => t > cutoff)) _emailHits.delete(k);
+            if (!v.some((/** @type {number} */ t) => t > cutoff)) _emailHits.delete(k);
         }
     }
     return true;

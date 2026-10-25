@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The loose argument grammar a model writes tool-call arguments in: plain
  * JSON (whole or cut at the length limit) and Gemma's fenced spelling.
@@ -55,6 +56,7 @@ const GEMMA_STRING_TEMPLATE = '<|"|>';
 
 const BAREWORD_RE = /[A-Za-z_$][\w$.\-]*/y;
 const NUMBER_RE = /-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/y;
+/** @type {Record<string, boolean | null>} */
 const LITERALS = { true: true, false: false, null: null };
 
 // Containers nested deeper than this are not an argument object — they are a
@@ -75,6 +77,8 @@ class LooseParseError extends Error {}
  * Parse one value of the grammar above starting at `start`. Returns the value
  * and the index just past it; throws LooseParseError when the text does not
  * fit the grammar, including a cut that cannot be closed.
+ * @param {string} text
+ * @param {number} start
  */
 function parseLooseValueAt(text, start) {
     let i = start;
@@ -85,8 +89,14 @@ function parseLooseValueAt(text, start) {
     // Open containers at this point; see MAX_DEPTH.
     let depth = 0;
 
+    /**
+     * @param {string} why
+     */
     const fail = (why) => { throw new LooseParseError(why); };
     const skipWs = () => { while (i < n && text[i].trim() === '') i++; };
+    /**
+     * @param {number} pos
+     */
     const fenceAt = (pos) => {
         if (text.startsWith(GEMMA_STRING_TEMPLATE, pos)) return GEMMA_STRING_TEMPLATE;
         if (text.startsWith(GEMMA_STRING, pos)) return GEMMA_STRING;
@@ -229,6 +239,7 @@ function parseLooseValueAt(text, start) {
  * object, or null when it does not parse. Parsing starts at the first `{`
  * and stops after the first complete object; see the grammar note above for
  * what a cut tail yields. Empty input is an empty argument object.
+ * @param {string} src
  */
 function parseGemmaArgs(src) {
     const raw = String(src == null ? '' : src).trim();

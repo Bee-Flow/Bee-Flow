@@ -21,7 +21,7 @@ const { resolvePersonaWrite } = require('./agentPersonaWrite');
  * permitted for the user's groups + beta features). Non-tier raw model
  * strings (legacy) pass through unchanged. Returns false after refusing.
  */
-async function checkTierAllowed(req, res, model, userId) {
+async function checkTierAllowed(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, model, userId) {
     if (!(typeof model === 'string' && model.startsWith('tier:'))) return true;
     const tierKey = model.slice('tier:'.length);
     const { getPermittedTierKeys } = require('../../core/entitlements/userTiers');
@@ -49,7 +49,7 @@ function storedLists(agent) {
 }
 
 /** Organization is sticky: only set on first save if the agent has none. */
-async function assignOrgFor(req, agent, deps) {
+async function assignOrgFor(/** @type {import('express').Request} */ req, agent, deps) {
     if (agent.organization_id) return agent.organization_id;
     const orgIds = await deps.resolveUserOrgIds(req);
     if (orgIds !== null && orgIds.size > 0) return Array.from(orgIds)[0];
@@ -67,7 +67,7 @@ async function assignOrgFor(req, agent, deps) {
  * the agent can't hold never breaks the whole save. Returns null after
  * answering.
  */
-async function resolvePersonaAndConfig(req, res, { agent, assignOrgId, userId, deps }) {
+async function resolvePersonaAndConfig(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, { agent, assignOrgId, userId, deps }) {
     const { config, systemPrompt, persona } = req.body;
     const hasPersona = Object.prototype.hasOwnProperty.call(req.body || {}, 'persona');
     let configToSave = config;
@@ -186,7 +186,7 @@ function writeAgent(req, agent, s) {
 }
 
 /** After the write: the conflict answer, the tools, and the freshly persisted agent. */
-async function answerAfterWrite(req, res, result, { hasTools, tools, transformedParams, saveWarnings }) {
+async function answerAfterWrite(req, /** @type {import('express').Response} */ res, result, { hasTools, tools, transformedParams, saveWarnings }) {
     if (result.conflict) {
         // The agent's `rev` moved since the editor loaded it (another tab, a
         // version restore, a publish/skill-scrub). Hand back the server's copy
@@ -224,7 +224,7 @@ async function answerAfterWrite(req, res, result, { hasTools, tools, transformed
  * applyConfigValidation, resolveUserOrgIds.
  */
 function makeUpdateAgentHandler(deps) {
-    return async function updateAgent(req, res) {
+    return async function updateAgent(req, /** @type {import('express').Response} */ res) {
         const userId = getEffectiveUserId(req);
         const { tools, toolParams, model: rawModel, config, categoryId, baseVersion, persona } = req.body;
         // Optimistic-concurrency token (the agent's last-seen `rev`). Integer
@@ -267,3 +267,14 @@ function makeUpdateAgentHandler(deps) {
 }
 
 module.exports = { makeUpdateAgentHandler };
+
+/**
+ * @typedef {import('./crud').AgentRow} LoadedAgent
+ * @typedef {object} UpdateDeps
+ * @property {import('./crud').CrudRouter['canModifyAgent']} canModifyAgent
+ * @property {(res: import('express').Response) => unknown} sendAgentNotEditable
+ * @property {(config: unknown) => string|null} rejectUnsafeConfigKeys
+ * @property {import('./crud').CrudRouter['validateAgentConfigReferences']} validateAgentConfigReferences
+ * @property {import('./crud').CrudRouter['applyConfigValidation']} applyConfigValidation
+ * @property {typeof import('../../auth').resolveUserOrgIds} resolveUserOrgIds
+ */

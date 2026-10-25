@@ -25,7 +25,7 @@ const crypto = require('crypto');
 const fsp = require('fs/promises');
 const { Readable } = require('stream');
 const { createTtlCache } = require('../utils/ttlCache');
-const log = require('../telemetry/log');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const DEFAULT_HUB_URL = 'https://hub.beeflow.nl';
 const HUB_URL_KEY = 'beeflow_hub_url';
@@ -44,6 +44,9 @@ const CATALOG_TTL_MS = 5 * 60 * 1000;
 
 // Lazy-require configStore: it self-inits DDL on load, and tests replace it via
 // require.cache before this module reaches out.
+/**
+ * @type {typeof import("../stores/configStore")}
+ */
 let _configStore;
 function configStore() { return _configStore || (_configStore = require('../stores/configStore')); }
 
@@ -51,10 +54,17 @@ function isProd() { return process.env.NODE_ENV === 'production'; }
 
 /** Stable-coded error for every Hub failure. */
 class HubError extends Error {
+    /**
+     * @param {string} code
+     * @param {string} message
+     */
     constructor(code, message, { status = null, detail = null } = {}) {
         super(message || code);
         this.name = 'HubError';
         this.code = code;           // not_connected|hub_unavailable|hub_denied|not_entitled|already_entitled|checksum_mismatch|already_connected
+        /**
+         * @type {number | null}
+         */
         this.status = status;       // upstream HTTP status, when there was one
         this.detail = detail;       // upstream error slug, for surfacing
     }
@@ -71,6 +81,9 @@ function _expireCatalogCache() { _catalogCache.clear(); }
 const _catalogCache = createTtlCache({ ttlMs: CATALOG_TTL_MS, max: 100 });
 const _catalogLastGood = new Map(); // key → last successfully-fetched module list
 
+/**
+ * @param {string | undefined} u
+ */
 function _trimUrl(u) { return String(u || '').trim().replace(/\/+$/, ''); }
 
 /**
@@ -80,7 +93,7 @@ function _trimUrl(u) { return String(u || '').trim().replace(/\/+$/, ''); }
 async function resolveHubUrl() {
     let url = process.env.BEEFLOW_HUB_URL;
     if (!url) {
-        try { url = await configStore().getConfig(HUB_URL_KEY); } catch (err) { log.debug('default below', err); }
+        try { url = await configStore().getConfig(HUB_URL_KEY); } catch (err) { fallback('modules/hubClient:resolveHubUrl', err); /* default below */ }
     }
     url = _trimUrl(url) || DEFAULT_HUB_URL;
     if (isProd() && !/^https:\/\//i.test(url)) {
@@ -101,6 +114,10 @@ async function isConnected() {
 }
 
 // ── Low-level fetch + response handling ───────────────────────────────────
+/**
+ * @param {number} status
+ * @param {string | null} code
+ */
 function _mapHubError(status, code) {
     switch (code) {
         case 'invalid_credentials':
@@ -122,13 +139,21 @@ function _mapHubError(status, code) {
     return new HubError('hub_unavailable', code || `hub_http_${status}`, { status, detail: code });
 }
 
+/**
+ * @param {Response} resp
+ */
 async function _parseBody(resp) {
     const text = await resp.text().catch(() => '');
     if (!text) return null;
     try { return JSON.parse(text); } catch (_) { return null; }
 }
 
+/**
+ * @param {string} method
+ * @param {string} url
+ */
 async function _rawFetch(method, url, { body = null, auth = false, timeoutMs = REQUEST_TIMEOUT_MS, forceToken = false } = {}) {
+    /** @type {{ Accept: string; "Content-Type"?: string; Authorization?: string }} */
     const headers = { Accept: 'application/json' };
     if (body != null) headers['Content-Type'] = 'application/json';
     if (auth) headers.Authorization = `Bearer ${await _accessToken({ force: forceToken })}`;
@@ -140,11 +165,15 @@ async function _rawFetch(method, url, { body = null, auth = false, timeoutMs = R
             signal: AbortSignal.timeout(timeoutMs),
         });
     } catch (e) {
-        throw new HubError('hub_unavailable', `hub request failed: ${e.message}`, { detail: e.message });
+        throw new HubError('hub_unavailable', `hub request failed: ${/** @type {Error} */ (e).message}`, { detail: /** @type {Error} */ (e).message });
     }
 }
 
-/** JSON request with a single silent token-refresh retry on a 401 for authed calls. */
+/**
+ * JSON request with a single silent token-refresh retry on a 401 for authed calls.
+ * @param {string} method
+ * @param {string} url
+ */
 async function _request(method, url, opts = {}) {
     let resp = await _rawFetch(method, url, opts);
     if (opts.auth && resp.status === 401) {
@@ -178,20 +207,20 @@ async function _accessToken({ force = false } = {}) {
 // ── Connect / disconnect ──────────────────────────────────────────────────
 async function _defaultConnectParams() {
     const out = { license_token: null, product_version: null, hostname: null, contact_email: null };
-    try { out.hostname = require('os').hostname(); } catch (err) { log.debug('leave null', err); }
+    try { out.hostname = require('os').hostname(); } catch (err) { fallback('modules/hubClient:_defaultConnectParams', err); /* leave null */ }
     // The stamped release version only; the frozen server/package.json version would misreport it.
     out.product_version = process.env.APP_VERSION || null;
     try {
         const lic = require('../license/store');
         const active = await lic.getActiveLicenseForServer();
         if (active && active.rawToken) out.license_token = active.rawToken;
-    } catch (err) { log.debug('unlicensed / community — connect anonymously', err); }
+    } catch (err) { bestEffort('modules/hubClient:connectLicense', err); /* connect anonymously */ }
     return out;
 }
 
 /**
  * Connect this install to the Hub. Persists install_id + secret on success.
- * @param {{ hubUrl?, licenseToken?, productVersion?, hostname?, contactEmail? }} params
+ * @param {{ hubUrl?: string|undefined, licenseToken?: null, productVersion?, hostname?, contactEmail? }} params
  * @returns {Promise<{ install_id, tier, subject }>}
  */
 async function connect(params = {}) {
@@ -254,9 +283,9 @@ async function disconnect() {
 async function getConnection() {
     const installId = await getInstallId();
     let hubUrl = DEFAULT_HUB_URL;
-    try { hubUrl = await resolveHubUrl(); } catch (err) { log.debug('keep default', err); }
+    try { hubUrl = await resolveHubUrl(); } catch (err) { fallback('modules/hubClient:getConnection', err); /* keep default */ }
     let meta = {};
-    try { meta = (await configStore().getConfig(CONNECTION_META_KEY)) || {}; } catch (err) { log.debug('none', err); }
+    try { meta = (await configStore().getConfig(CONNECTION_META_KEY)) || {}; } catch (err) { fallback('modules/hubClient:getConnection#2', err); /* none */ }
     return {
         connected: !!installId,
         hubUrl,
@@ -293,17 +322,20 @@ async function fetchMeta() {
             throw _mapHubError(resp.status, null);
         }
         _meta = { value, fetchedAt: Date.now() };
-        configStore().setConfig(META_LASTGOOD_KEY, value).catch(() => {});
+        configStore().setConfig(META_LASTGOOD_KEY, value).catch((e) => bestEffort('modules/hubClient:fetchMeta', e));
         return value;
     } catch (_) {
         try {
             const lastGood = await configStore().getConfig(META_LASTGOOD_KEY);
             if (lastGood && typeof lastGood === 'object') return lastGood;
-        } catch (err) { log.debug('fall through', err); }
+        } catch (err) { bestEffort('modules/hubClient:fetchMeta#2', err); /* fall through */ }
         return { hub_api: 1, features: [] };
     }
 }
 
+/**
+ * @param {string} feature
+ */
 async function hubHasFeature(feature) {
     const meta = await fetchMeta();
     return (meta.features || []).includes(feature);
@@ -356,6 +388,9 @@ async function fetchCatalogCached({ q = '', category = '', cursor = '', limit = 
     }
 }
 
+/**
+ * @param {string} moduleId
+ */
 async function fetchCatalogEntry(moduleId) {
     const base = await resolveHubUrl();
     return _request('GET', `${base}/hub/v1/catalog/${encodeURIComponent(moduleId)}`, { auth: false });
@@ -371,6 +406,13 @@ async function fetchEntitlements() {
     };
 }
 
+/**
+ * @typedef {Object} CreatePurchaseArgs
+ * @property {string} [moduleId]
+ */
+/**
+ * @param {CreatePurchaseArgs} [param0]
+ */
 async function createPurchase({ moduleId, priceId, successUrl = null, cancelUrl = null } = {}) {
     const base = await resolveHubUrl();
     const body = { module_id: moduleId, price_id: priceId };
@@ -379,6 +421,9 @@ async function createPurchase({ moduleId, priceId, successUrl = null, cancelUrl 
     return _request('POST', `${base}/hub/v1/purchases`, { body, auth: true });
 }
 
+/**
+ * @param {string | number | boolean} purchaseId
+ */
 async function getPurchase(purchaseId) {
     const base = await resolveHubUrl();
     return _request('GET', `${base}/hub/v1/purchases/${encodeURIComponent(purchaseId)}`, { auth: true });
@@ -394,10 +439,17 @@ async function fetchRevocationList({ since = 0, limit = 500 } = {}) {
 }
 
 // ── Package download (authed, streamed) ───────────────────────────────────
+/**
+ * @param {Response} resp
+ * @param {string} partPath
+ */
 async function _streamToFileAndHash(resp, partPath) {
     const hash = crypto.createHash('sha256');
     const fh = await fsp.open(partPath, 'w');
     let total = 0;
+    /**
+     * @param {number} chunkLen
+     */
     const cap = (chunkLen) => {
         total += chunkLen;
         if (total > MAX_DOWNLOAD_BYTES) throw new Error(`package exceeds ${MAX_DOWNLOAD_BYTES} bytes`);
@@ -426,7 +478,7 @@ async function _streamToFileAndHash(resp, partPath) {
  * Download a `.bfmod` to `destPath`. Streams to `<destPath>.part`, verifies the
  * sha256 (against the caller's `expectedSha256` when given, else the
  * X-BeeFlow-Package-Sha256 header), then atomically renames into place.
- * @returns {Promise<{ path, sha256, signature, kid }>}
+ * @returns {Promise<{ path, sha256: string|null, signature, kid }>}
  */
 async function downloadPackage({ moduleId, version, destPath, expectedSha256 = null, redownloadSha = null } = {}) {
     const base = await resolveHubUrl();
@@ -436,6 +488,7 @@ async function downloadPackage({ moduleId, version, destPath, expectedSha256 = n
     const redl = redownloadSha ? `?redownload=sha256:${encodeURIComponent(String(redownloadSha).toLowerCase())}` : '';
     const url = `${base}/hub/v1/modules/${encodeURIComponent(moduleId)}/versions/${encodeURIComponent(version)}/download${redl}`;
     const token = await _accessToken();
+    /** @type {Response} */
     let resp;
     try {
         resp = await fetch(url, {
@@ -444,7 +497,7 @@ async function downloadPackage({ moduleId, version, destPath, expectedSha256 = n
             signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
         });
     } catch (e) {
-        throw new HubError('hub_unavailable', `package download failed: ${e.message}`, { detail: e.message });
+        throw new HubError('hub_unavailable', `package download failed: ${/** @type {Error} */ (e).message}`, { detail: /** @type {Error} */ (e).message });
     }
     if (!resp.ok) {
         const data = await _parseBody(resp);
@@ -457,12 +510,13 @@ async function downloadPackage({ moduleId, version, destPath, expectedSha256 = n
 
     await fsp.mkdir(path.dirname(destPath), { recursive: true });
     const partPath = `${destPath}.part`;
+    /** @type {string} */
     let digest;
     try {
         digest = await _streamToFileAndHash(resp, partPath);
     } catch (e) {
         await fsp.rm(partPath, { force: true }).catch(() => {});
-        throw new HubError('hub_unavailable', `package write failed: ${e.message}`, { detail: e.message });
+        throw new HubError('hub_unavailable', `package write failed: ${/** @type {Error} */ (e).message}`, { detail: /** @type {Error} */ (e).message });
     }
 
     const expected = expectedSha256 || headerSha;
@@ -486,7 +540,7 @@ async function rebindLicense() {
     try {
         const active = await require('../license/store').getActiveLicenseForServer();
         token = active && active.rawToken;
-    } catch (err) { log.debug('unlicensed', err); }
+    } catch (err) { bestEffort('modules/hubClient:rebindLicense', err); }
     if (!token) return { ok: false, rebound: false, reason: 'no_license' };
     const base = await resolveHubUrl();
     try {
@@ -529,3 +583,37 @@ module.exports = {
     INSTALL_SECRET_KEY,
     CONNECTION_META_KEY,
 };
+
+/**
+ * @typedef {{ body?: unknown, auth?: boolean, timeoutMs?: number, forceToken?: boolean }} HubRequestOpts
+ */
+
+/**
+ * @typedef {Object} _catalogQueryArgs
+ * @property {string} [q]
+ * @property {string} [category]
+ * @property {string | undefined} [cursor]
+ * @property {number | undefined} [limit]
+ */
+
+/**
+ * @typedef {Object} FetchCatalogArgs
+ * @property {string} [q]
+ * @property {string} [category]
+ * @property {string} [cursor]
+ * @property {number} [limit]
+ */
+
+/**
+ * @typedef {Object} FetchCatalogCachedArgs
+ * @property {string} [q]
+ * @property {string} [category]
+ * @property {string} [cursor]
+ * @property {number} [limit]
+ */
+
+/**
+ * @typedef {Object} FetchRevocationListArgs
+ * @property {number} [since]
+ * @property {number} [limit]
+ */

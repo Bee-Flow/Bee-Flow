@@ -150,6 +150,9 @@ function register(check) {
     _checks.set(check.id, check);
 }
 
+/**
+ * @param {string} id
+ */
 function get(id) { return _checks.get(id); }
 function getAll() { return Array.from(_checks.values()); }
 
@@ -169,3 +172,8 @@ function getByFramework(regulation) {
 function _unregister(id) { return _checks.delete(id); }
 
 module.exports = { register, get, getAll, getByRegulation, getPrimary, getByFramework, _unregister };
+
+/**
+ * @typedef {{ regulation: string, ref: string, framework_id?: string | null, in_force_since?: string | null }} FrameworkTag
+ * @typedef {{ id?: string, regulation?: string, article?: string, scope?: string, verification?: string, controls?: string[], frameworks?: FrameworkTag[], in_force_since?: string | null, fingerprintOf?: (evidence: Record<string, any>, row: Record<string, any>) => Record<string, unknown>, [key: string]: any }} CheckDef
+ */

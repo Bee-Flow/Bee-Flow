@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck strict
 /**
  * Migration: drop the per-KB `default_lang` column from `knowledge_bases`.
  *

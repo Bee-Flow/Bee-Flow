@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * runTables.js - the ledger for tables a RUN produced.
  *
@@ -20,9 +20,11 @@ const core = require('./core');
 /**
  * Every function takes an optional last argument `{ initDB, run, getOne, getAll }`
  * so a test can hand in its own database; production passes nothing.
+ * @param {Partial<typeof core> | null} [deps]
  */
 const dbOf = (deps) => deps || core;
 
+/** @param {DbRow.AutomationRunTables | null} r */
 function rowToRunTable(r) {
     if (!r) return null;
     return {
@@ -40,6 +42,11 @@ function rowToRunTable(r) {
     };
 }
 
+/**
+ * @param {{ id: string, runId: string, automationId: string, stepId?: string | null, storageKey: string,
+ * name: string, columns?: unknown[], rowCount?: number, size?: number, ttlMs: number }} table
+ * @param {Partial<typeof core> | null} [deps]
+ */
 async function recordRunTable({ id, runId, automationId, stepId = null, storageKey, name, columns, rowCount = 0, size = 0, ttlMs }, deps) {
     const { initDB, run } = dbOf(deps);
     await initDB();
@@ -52,7 +59,12 @@ async function recordRunTable({ id, runId, automationId, stepId = null, storageK
     return { id, runId, automationId, stepId, storageKey, name, columns: columns || [], rowCount, size };
 }
 
-/** One live table, but only if it belongs to one of the runs the caller already has access to. */
+/**
+ * One live table, but only if it belongs to one of the runs the caller already has access to.
+ * @param {string} id
+ * @param {string[]} runIds
+ * @param {Partial<typeof core> | null} [deps]
+ */
 async function getRunTableForRuns(id, runIds, deps) {
     if (!id || !Array.isArray(runIds) || runIds.length === 0) return null;
     const { initDB, getOne } = dbOf(deps);
@@ -68,6 +80,9 @@ async function getRunTableForRuns(id, runIds, deps) {
  * One live table of this automation. The caller still has to prove the right to
  * read the producing run (the table store does); this only fences the id to one
  * automation.
+ * @param {string} id
+ * @param {string} automationId
+ * @param {Partial<typeof core> | null} [deps]
  */
 async function getRunTableForAutomation(id, automationId, deps) {
     if (!id || !automationId) return null;
@@ -80,7 +95,11 @@ async function getRunTableForAutomation(id, automationId, deps) {
     ));
 }
 
-/** The ids of the live tables the given runs wrote (a journey: the run and the legs around its pauses). */
+/**
+ * The ids of the live tables the given runs wrote (a journey: the run and the legs around its pauses).
+ * @param {string[]} runIds
+ * @param {Partial<typeof core> | null} [deps]
+ */
 async function listLiveRunTableIdsForRuns(runIds, deps) {
     if (!Array.isArray(runIds) || runIds.length === 0) return [];
     const { initDB, getAll } = dbOf(deps);
@@ -92,7 +111,11 @@ async function listLiveRunTableIdsForRuns(runIds, deps) {
     return rows.map(r => r.id);
 }
 
-/** How many live tables a run already wrote (the per-run cap). */
+/**
+ * How many live tables a run already wrote (the per-run cap).
+ * @param {string} runId
+ * @param {Partial<typeof core> | null} [deps]
+ */
 async function countRunTablesForRun(runId, deps) {
     if (!runId) return 0;
     const { initDB, getOne } = dbOf(deps);
@@ -109,6 +132,8 @@ async function countRunTablesForRun(runId, deps) {
  * foreign keys set the link to NULL on delete, so run retention and the trash
  * purge leave the row behind with its blob). The caller deletes the blobs, then
  * the rows.
+ * @param {number} [limit]
+ * @param {Partial<typeof core> | null} [deps]
  */
 async function listExpiredRunTables(limit = 200, deps) {
     const { initDB, getAll } = dbOf(deps);
@@ -122,6 +147,10 @@ async function listExpiredRunTables(limit = 200, deps) {
     return rows.map(rowToRunTable);
 }
 
+/**
+ * @param {string[]} ids
+ * @param {Partial<typeof core> | null} [deps]
+ */
 async function deleteRunTables(ids, deps) {
     if (!Array.isArray(ids) || ids.length === 0) return 0;
     const { initDB, run } = dbOf(deps);
@@ -130,7 +159,12 @@ async function deleteRunTables(ids, deps) {
     return rowCount;
 }
 
-/** Push expiry OUT to at least `until`, never in. A null `until` extends nothing. */
+/**
+ * Push expiry OUT to at least `until`, never in. A null `until` extends nothing.
+ * @param {string[]} ids
+ * @param {Date | string} until
+ * @param {Partial<typeof core> | null} [deps]
+ */
 async function extendRunTableExpiry(ids, until, deps) {
     if (!Array.isArray(ids) || ids.length === 0 || !until) return 0;
     const { initDB, run } = dbOf(deps);

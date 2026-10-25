@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * One-time migration: carry the stored translations along when the "routine"
  * keys became "automation" keys (routines.* → automations.*, routine_editor.*
@@ -26,15 +27,21 @@
 const SHIPPED_NL = require('./data/routine-nl-shipped.json');
 const PANEL_KEYS = require('./data/agent-schedules-key-map.json');
 
-/** The key a stored key has now, the same mapping the code rename used. */
+/**
+ * The key a stored key has now, the same mapping the code rename used.
+ * @param {string} key
+ */
 function renameKey(key) {
-    if (Object.prototype.hasOwnProperty.call(PANEL_KEYS, key)) return PANEL_KEYS[key];
+    if (Object.prototype.hasOwnProperty.call(PANEL_KEYS, key)) return /** @type {Record<string, string>} */ (PANEL_KEYS)[key];
     return key
         .replace(/(?<![A-Z])Routine(s?)(?![a-z])/g, 'Automation$1')
         .replace(/(?<![A-Za-z])routine(s?)(?![a-z])/g, 'automation$1');
 }
 
-/** Dutch wording: the same rules the catalogues were rewritten with. */
+/**
+ * Dutch wording: the same rules the catalogues were rewritten with.
+ * @param {string} value
+ */
 function rewordNl(value) {
     return String(value)
         .replace(/routine-bouwer/g, 'automatiseringsbouwer')
@@ -55,7 +62,7 @@ function renameBlob(blob, { locale, english }) {
     let moved = 0;
     let reworded = 0;
     for (const [key, value] of Object.entries(blob)) {
-        const shipped = locale === 'nl' && Object.prototype.hasOwnProperty.call(SHIPPED_NL, key) && SHIPPED_NL[key] === value;
+        const shipped = locale === 'nl' && Object.prototype.hasOwnProperty.call(SHIPPED_NL, key) && /** @type {Record<string, string>} */ (SHIPPED_NL)[key] === value;
         const next = renameKey(key);
         if (next !== key) {
             delete out[key];
@@ -75,6 +82,7 @@ async function up() {
     const languageStore = require('../stores/languageStore');
     const { GUI_DEFAULTS } = require('../i18n/defaults/en');
     const locales = await languageStore.getAvailableLocales();
+    /** @type {Record<string, { moved: number, reworded: number }>} */
     const summary = {};
     for (const { code } of locales) {
         if (!code) continue;

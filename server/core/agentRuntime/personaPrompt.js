@@ -52,7 +52,7 @@
  */
 
 const { hasKnowledgeSource } = require('./agentGrounding');
-const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── Enums the rest of the stack pins against ────────────────────────
 const PERSONA_MODES = Object.freeze(['fields', 'free']);
@@ -115,6 +115,8 @@ function _plainObject(v) {
  * Text, clamped. Control characters go (a persona ends up inside a system
  * prompt; a stray carriage return or NUL there is noise at best).
  * `multiline:false` folds newlines into spaces so a bullet stays a bullet.
+ * @param {string | undefined} value
+ * @param {number} max
  */
 function _text(value, max, { multiline = false } = {}) {
     if (typeof value !== 'string') return '';
@@ -129,6 +131,7 @@ function _text(value, max, { multiline = false } = {}) {
 function _list(value, { max, itemMax }) {
     if (!Array.isArray(value)) return [];
     const seen = new Set();
+    /** @type {string[]} */
     const out = [];
     for (const raw of value) {
         const s = _text(raw, itemMax);
@@ -163,6 +166,7 @@ function emptyPersona() {
  * line naming a language the model has to guess at is worse than the line not
  * being there. `Intl.DisplayNames` is tried second and wrapped — a Node build
  * without full ICU answers with the code itself, which we refuse.
+ * @param {string} code
  */
 function languageNameOf(code) {
     if (typeof code !== 'string' || !code) return null;
@@ -173,7 +177,7 @@ function languageNameOf(code) {
     try {
         const name = new Intl.DisplayNames(['en'], { type: 'language' }).of(base);
         if (typeof name === 'string' && name && name.toLowerCase() !== base) return name;
-    } catch (err) { log.debug('no ICU ⇒ no name ⇒ no line', err); }
+    } catch (err) { bestEffort('core/agentRuntime/personaPrompt:languageNameOf', err); /* no ICU ⇒ no name ⇒ no line */ }
     return null;
 }
 
@@ -186,6 +190,7 @@ function languageNameOf(code) {
  * @returns {{persona: object, warnings: string[]}}
  */
 function normalisePersona(raw) {
+    /** @type {string[]} */
     const warnings = [];
     const persona = emptyPersona();
     let input = raw;
@@ -300,9 +305,11 @@ function renderSystemPrompt(persona, opts = {}) {
     const p = normalisePersona(persona).persona;
     if (p.mode === 'free') return p.freeText;
 
+    /** @type {string[]} */
     const blocks = [];
     if (p.who) blocks.push(p.who);
 
+    /** @type {string[]} */
     const toneBits = [];
     if (p.tone.chips.length > 0) toneBits.push(`Tone: ${p.tone.chips.join(', ')}.`);
     if (p.tone.text) toneBits.push(p.tone.text);
@@ -356,6 +363,7 @@ function renderSystemPrompt(persona, opts = {}) {
  * spent an afternoon on, with the row's own version history as the only way
  * back. So the empty render narrows to "not my decision", and the caller keeps
  * what it already had.
+ * @param {{ handoffLabel: string | null; }} [opts]
  */
 function renderedPromptFor(persona, opts = {}) {
     const rendered = renderSystemPrompt(persona, opts);
@@ -436,6 +444,7 @@ function renderedPromptFor(persona, opts = {}) {
  * @returns {{config: object, warnings: string[]}}
  */
 function applyPersonaToConfig(config, persona, opts = {}) {
+    /** @type {string[]} */
     const warnings = [];
     if (!_plainObject(config)) return { config, warnings };
     const p = normalisePersona(persona).persona;
@@ -507,3 +516,22 @@ module.exports = {
     renderedPromptFor,
     applyPersonaToConfig,
 };
+
+/**
+ * @typedef {object} Persona
+ * @property {string} who
+ * @property {{ chips: string[], text: string }} tone
+ * @property {string[]} does
+ * @property {string[]} doesNot
+ * @property {{ mode: string, automationId: string|null }} unknown
+ * @property {string|null} language
+ * @property {string} mode
+ * @property {string} freeText
+ */
+
+/**
+ * @typedef {object} PersonaConfig
+ * @property {boolean} [strictKnowledge]
+ * @property {string[]} [enabledIntegrations]
+ * @property {Record<string, any>} [tools]
+ */

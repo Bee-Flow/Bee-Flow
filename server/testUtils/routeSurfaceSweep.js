@@ -51,6 +51,10 @@ const PROBE_TOKEN = /\btimingSafeEqual\s*\(|\bcreateHmac\s*\(|\bjwt\.verify\s*\(
 const PROBE_SELF_STATUS = /\bres\s*\.\s*status\s*\(\s*40[13]\b/;
 const PROBE_SELF_SESSION = /\breq\s*\.\s*session\b/;
 
+/**
+ * @param {string | null} text
+ * @returns {boolean}
+ */
 function probeText(text) {
     if (!text) return false;
     if (PROBE_DIRECT.test(text) || PROBE_WRAPPER.test(text) || PROBE_TOKEN.test(text)) return true;
@@ -64,13 +68,16 @@ const METHODS = ['get', 'post', 'put', 'patch', 'delete', 'all', 'options', 'hea
  * Blanks out comments (replaced by spaces, same length so that offsets stay correct); strings and
  * template literals remain. Regex literals are recognised via the previous meaningful token, so that
  * a regex containing // or /* is not blanked out as a comment.
+ *
+ * @param {string} src
+ * @returns {string}
  */
 function stripComments(src) {
     const out = src.split('');
     let i = 0;
     let prevSignificant = '';
     const n = src.length;
-    const blank = (from, to) => {
+    const blank = (/** @type {number} */ from, /** @type {number} */ to) => {
         for (let k = from; k < to; k++) if (out[k] !== '\n') out[k] = ' ';
     };
     while (i < n) {
@@ -133,7 +140,12 @@ function stripComments(src) {
     return out.join('');
 }
 
-/** Gebalanceerde argumentlijst vanaf de open-haak; geeft [tekst, eindindex]. */
+/**
+ * Gebalanceerde argumentlijst vanaf de open-haak; geeft [tekst, eindindex].
+ * @param {string} src
+ * @param {number} openParen
+ * @returns {[string, number]}
+ */
 function balancedArgs(src, openParen) {
     let depth = 0;
     let i = openParen;
@@ -154,8 +166,13 @@ function balancedArgs(src, openParen) {
     return [src.slice(openParen + 1), n];
 }
 
-/** Splitst argumenttekst op komma's op diepte 0 (buiten strings/haken). */
+/**
+ * Splitst argumenttekst op komma's op diepte 0 (buiten strings/haken).
+ * @param {string} argText
+ * @returns {string[]}
+ */
 function splitTopLevel(argText) {
+    /** @type {string[]} */
     const parts = [];
     let depth = 0;
     let start = 0;
@@ -177,7 +194,12 @@ function splitTopLevel(argText) {
     return parts;
 }
 
-/** Gebalanceerd blok { … } vanaf de eerste { op of na `from`. */
+/**
+ * Gebalanceerd blok { … } vanaf de eerste { op of na `from`.
+ * @param {string} src
+ * @param {number} from
+ * @returns {string}
+ */
 function balancedBlock(src, from) {
     const open = src.indexOf('{', from);
     if (open === -1) return '';
@@ -200,6 +222,10 @@ function balancedBlock(src, from) {
 // ── Parser per bestand ───────────────────────────────────────────────────────
 const STRING_LIT_RX = /^['"]([^'"]*)['"]$/;
 
+/**
+ * @param {string} argText
+ * @returns {string[] | null}
+ */
 function parseStringOrArray(argText) {
     const single = argText.match(STRING_LIT_RX);
     if (single) return [single[1]];
@@ -215,10 +241,15 @@ function parseStringOrArray(argText) {
  * requires-kaart: lokale naam → { spec, prop }. Dekt
  *   const x = require('./a');  const { b } = require('./a');
  *   const { b: c } = require('./a');  const x = require('./a').y;
+ *
+ * @param {string} src
+ * @returns {Map<string, RequireBinding>}
  */
 function parseRequires(src) {
+    /** @type {Map<string, RequireBinding>} */
     const map = new Map();
     const rx = /(?:const|let|var)\s+(\w+|\{[^}]+\})\s*=\s*require\(\s*['"](\.[^'"]+)['"]\s*\)(?:\.(\w+))?/g;
+    /** @type {RegExpExecArray | null} */
     let m;
     while ((m = rx.exec(src))) {
         const [, binding, spec, tailProp] = m;
@@ -237,7 +268,11 @@ function parseRequires(src) {
 
 const INLINE_REQUIRE_RX = /^require\(\s*['"](\.[^'"]+)['"]\s*\)(?:\.(\w+))?$/;
 
-/** Does this argument look like a router reference to a local file? */
+/**
+ * Does this argument look like a router reference to a local file?
+ * @param {string} argText
+ * @param {Map<string, RequireBinding>} requires
+ */
 function asRouterRef(argText, requires) {
     const inline = argText.match(INLINE_REQUIRE_RX);
     if (inline) {
@@ -266,10 +301,15 @@ function asRouterRef(argText, requires) {
  * For such a file `router` is therefore the active router variable, and that name appears only in
  * the parameter list. Covers `function f(p)`, `const f = (p) =>`, `const f = async (p) =>` and
  * `const f = function (p)`.
+ *
+ * @param {string} src
+ * @returns {Map<string, string>}
  */
 function parseFnParams(src) {
+    /** @type {Map<string, string>} */
     const map = new Map();
     const rx = /(?:(?:async\s+)?function\s+(\w+)\s*\(([^)]*)\)|(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?(?:function\s*)?\(([^)]*)\)\s*(?:=>|\{))/g;
+    /** @type {RegExpExecArray | null} */
     let m;
     while ((m = rx.exec(src))) {
         const name = m[1] || m[3];
@@ -281,16 +321,27 @@ function parseFnParams(src) {
     return map;
 }
 
-/** De router-variabelen (const x = express.Router() / Router()). */
+/**
+ * De router-variabelen (const x = express.Router() / Router()).
+ * @param {string} src
+ * @returns {Set<string>}
+ */
 function parseRouterVars(src) {
+    /** @type {Set<string>} */
     const vars = new Set();
     const rx = /(?:const|let|var)\s+(\w+)\s*=\s*(?:require\(\s*['"]express['"]\s*\)\s*\.\s*|express\s*\.\s*)?Router\s*\(/g;
+    /** @type {RegExpExecArray | null} */
     let m;
     while ((m = rx.exec(src))) vars.add(m[1]);
     return vars;
 }
 
-/** Welke router-variabele exporteert dit bestand? */
+/**
+ * Welke router-variabele exporteert dit bestand?
+ * @param {string} src
+ * @param {Set<string>} routerVars
+ * @returns {string | null}
+ */
 function exportedRouterVar(src, routerVars) {
     let m = src.match(/module\.exports\s*=\s*(\w+)\s*;/);
     if (m && routerVars.has(m[1])) return m[1];
@@ -305,7 +356,12 @@ function exportedRouterVar(src, routerVars) {
     return null; // onbekend → alle routervars tellen mee (strikte superset)
 }
 
-/** Definitie van een genoemd handler-symbool in hetzelfde bestand, voor de probe. */
+/**
+ * Definitie van een genoemd handler-symbool in hetzelfde bestand, voor de probe.
+ * @param {string} src
+ * @param {string} name
+ * @returns {string | null}
+ */
 function namedFnText(src, name) {
     if (!/^\w+$/.test(name)) return null;
     let m = src.match(new RegExp(`(?:async\\s+)?function\\s+${name}\\s*\\(`));
@@ -322,6 +378,8 @@ function namedFnText(src, name) {
 /**
  * Parses one file into registrations and submounts. Purely on text; the result is converted by
  * parseSurface into routes per mount context.
+ *
+ * @param {string} src
  */
 function parseFile(src) {
     const clean = stripComments(src);
@@ -340,11 +398,15 @@ function parseFile(src) {
         if (new RegExp(`\\b${param}\\s*\\.\\s*(?:${METHODS.join('|')}|use)\\s*\\(`).test(clean)) recvVars.add(param);
     }
 
+    /** @type {Registration[]} */
     const registrations = []; // { routerVar, method, paths|null, offset, gate, moduleGate, probe }
+    /** @type {RouterGate[]} */
     const routerGates = [];   // { routerVar, path, offset }
+    /** @type {Submount[]} */
     const submounts = [];     // { routerVar, path, offset, ref | localVar, gate, moduleGate }
 
     const callRx = /\b(\w+)\s*\.\s*(get|post|put|patch|delete|all|options|head|use)\s*\(/g;
+    /** @type {RegExpExecArray | null} */
     let m;
     while ((m = callRx.exec(clean))) {
         const [, recv, method] = m;
@@ -445,11 +507,17 @@ function parseFile(src) {
 }
 
 // ── Oppervlakte-opbouw (recursief over submounts) ────────────────────────────
-const joinPrefix = (base, seg) => {
+const joinPrefix = (/** @type {string} */ base, /** @type {string} */ seg) => {
     if (!seg || seg === '/') return base || '';
     return `${base}${seg.startsWith('/') ? seg : `/${seg}`}`;
 };
 
+/**
+ * @param {string} fromFile
+ * @param {string} spec
+ * @param {(relPath: string) => string|null} readSource
+ * @returns {string | null}
+ */
 function resolveSpec(fromFile, spec, readSource) {
     const base = path.posix.join(path.posix.dirname(fromFile), spec);
     for (const candidate of [base, `${base}.js`, `${base}/index.js`]) {
@@ -469,17 +537,29 @@ function resolveSpec(fromFile, spec, readSource) {
  */
 function parseSurface(readSource, entry, opts = {}) {
     const skipPrefix = opts.skipPrefix || (() => false);
+    /** @type {Map<string, ReturnType<typeof parseFile>>} */
     const parsed = new Map(); // file → parseFile-resultaat
+    /** @type {SurfaceRoute[]} */
     const routes = [];
+    /** @type {OpaqueMount[]} */
     const opaque = []; // mounts naar bestanden zonder statisch leesbare routes
+    /** @type {string[]} */
     const skippedMounts = [];
+    /** @type {Set<string>} */
     const visited = new Set();
 
-    const parseOf = (file) => {
+    const parseOf = (/** @type {string} */ file) => {
         if (!parsed.has(file)) parsed.set(file, parseFile(readSource(file)));
         return parsed.get(file);
     };
 
+    /**
+     * @param {string} file
+     * @param {string} prefix
+     * @param {Inherited} inherited
+     * @param {number} depth
+     * @param {string | null} [entryFn]
+     */
     function emitFile(file, prefix, inherited, depth, entryFn = null) {
         if (depth > 12) return;
         const p = parseOf(file);
@@ -509,8 +589,17 @@ function parseSurface(readSource, entry, opts = {}) {
     // App-level app.use(fn) without a path in the entry file is PLUMBING (helmet, sessions, body parsers,
     // the bridge middleware) — not a gate for what is mounted beneath it. The same exclusion as
     // routeWalk.cli.js makes with isRoot.
-    const gateApplies = (isRoot) => (g) => !(isRoot && g.routerVar === 'app' && g.path === '/');
+    /**
+     * @param {boolean} isRoot
+     */
+    const gateApplies = (isRoot) => (/** @type {{ routerVar: string; path: string; }} */ g) => !(isRoot && g.routerVar === 'app' && g.path === '/');
 
+    /**
+     * @param {string} file
+     * @param {string} prefix
+     * @param {number} depth
+     * @param {() => void} sawCb
+     */
     function emitVar(file, p, vars, prefix, inherited, depth, sawCb) {
         const isRoot = file === entry;
         for (const reg of p.registrations) {
@@ -570,14 +659,17 @@ function parseSurface(readSource, entry, opts = {}) {
  *   'file:routes/x.js'    all routes from one file
  *   'mount:/prefix'       everything under a mount (also opaque/dynamic mounts)
  *
- * @returns {{ unaccounted, unaccountedOpaque, staleExempt, redundantExempt, stats }}
+ * @param {Surface} surface
+ * @param {SweepRegistry} registry
+ * @param {Map<string, string>} exempt
+ * @returns {{ unaccounted: Array<{ id: string, file: string, moduleGated: boolean, dynamic: boolean }>, unaccountedOpaque: OpaqueMount[], staleExempt: string[], redundantExempt: string[], stats: { routes: number, files: number, opaque: number, skippedMounts: number } }}
  */
 function sweepSurface(surface, registry, exempt) {
-    const triaged = (p) => (registry.triagedPrefixes || [])
+    const triaged = (/** @type {string} */ p) => (registry.triagedPrefixes || [])
         .some((pre) => p === pre || p.startsWith(`${pre}/`));
     const exemptUse = new Map([...exempt.keys()].map((k) => [k, { matched: 0, needed: 0 }]));
 
-    const exemptKeyFor = (route) => {
+    const exemptKeyFor = (/** @type {SurfaceRoute} */ route) => {
         const id = `${route.method} ${route.path}`;
         if (exempt.has(id)) return id;
         const fileKey = `file:${route.file}`;
@@ -590,6 +682,7 @@ function sweepSurface(surface, registry, exempt) {
         return null;
     };
 
+    /** @type {{ id: string; file: string; moduleGated: boolean; dynamic: boolean; }[]} */
     const unaccounted = [];
     for (const route of surface.routes) {
         const id = `${route.method} ${route.path}`;
@@ -609,6 +702,7 @@ function sweepSurface(surface, registry, exempt) {
         unaccounted.push({ id, file: route.file, moduleGated: route.moduleGated, dynamic: route.dynamic });
     }
 
+    /** @type {OpaqueMount[]} */
     const unaccountedOpaque = [];
     for (const o of surface.opaque) {
         if (triaged(o.prefix)) continue;
@@ -646,3 +740,15 @@ module.exports = {
     AUTH_GATE_RX,
     MODULE_GATE_RX,
 };
+
+/**
+ * @typedef {{ spec: string, prop: string | null }} RequireBinding
+ * @typedef {{ routerVar: string, method: string, paths: string[] | null, offset: number, gate: boolean, moduleGate: boolean, probe: boolean }} Registration
+ * @typedef {{ routerVar: string, path: string, offset: number }} RouterGate
+ * @typedef {{ routerVar: string, path: string, offset: number, ref?: RequireBinding, localVar?: string, registerFn?: string, gate: boolean, moduleGate: boolean }} Submount
+ * @typedef {{ method: string, path: string, file: string, dynamic: boolean, evidence: string[], moduleGated: boolean }} SurfaceRoute
+ * @typedef {{ file: string, prefix: string, unresolved?: string }} OpaqueMount
+ * @typedef {{ routes: SurfaceRoute[], opaque: OpaqueMount[], files: string[], skippedMounts: string[] }} Surface
+ * @typedef {{ gate: boolean, moduleGate: boolean }} Inherited
+ * @typedef {{ triagedPrefixes?: string[], routes?: Record<string, unknown>, untriaged?: string[] }} SweepRegistry
+ */

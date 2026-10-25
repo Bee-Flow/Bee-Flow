@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Shared constants, run-state helpers and DAG-traversal primitives for the
  * automation engine (extracted verbatim from engine.js). Leaf relative to
@@ -12,7 +11,6 @@ const { MASK_VALUES } = require('./httpAuth');
 // The shared path grammar (pure, no engine module): how a binding root is read.
 const { scanTemplate, formatPath } = require('./expr');
 const { refHead, findRefPaths, tryParseExpr } = require('../automationModel/refPaths');
-const log = require('../../telemetry/log');
 
 const RUNNER_INTERVAL_MS = 60_000;
 const POLLING_INTERVAL_MS = 30_000;
@@ -172,7 +170,7 @@ function enrichNextcloudError(toolName, err, rawText) {
         err.ncError = { code: c.code, category: c.category, remediation: c.remediation };
         err.errorClass = c.errorClass;
         err.message = `${c.message} — ${c.remediation}`;
-    } catch (err) { log.debug('never let classification break the run', err); }
+    } catch (err) { fallback('core/automationRunner/shared:enrichNextcloudError', err); /* never let classification break the run */ }
     return err;
 }
 
@@ -264,6 +262,7 @@ const BRANCHER_TYPES = new Set(['condition', 'guard', 'switch']);
  * places that have to agree.
  */
 const { TERMINAL_STEP_TYPES } = require('../automationModel/constants');
+const { fallback } = require('../../utils/bestEffort');
 
 // Synthetic root ids for the sub-DAGs a loop body / parallel branch is run as.
 // Named constants because the id has to agree in TWO places per caller (the
@@ -387,3 +386,24 @@ module.exports = {
     BRANCHER_TYPES, TERMINAL_STEP_TYPES, LOOP_ROOT_ID, PARALLEL_ROOT_ID, PII_RESCAN_EXEMPT_TYPES,
     refIsSynthetic, collectBindingPaths, stepInputsSynthetic,
 };
+
+/**
+ * A DAG edge as the definition stores it (see edgeLabel normalisation below).
+ * @typedef {{ from: string, to: string, label?: string, caseName?: string|null, [key: string]: unknown }} DagEdge
+ */
+
+/**
+ * A step node of a definition, as far as these helpers read it.
+ * @typedef {{ id: string, type?: string, inputs?: unknown, [key: string]: unknown }} DagStep
+ */
+
+/**
+ * A formula syntax-tree node (shared/expr parseExpr), as far as exprRootReads walks it.
+ * @typedef {{ kind?: string, v?: string | number | boolean, segments?: Array<{ kind?: string, v?: string, expr?: ExprNode }>,
+ *   cond?: ExprNode, a?: ExprNode, b?: ExprNode, expr?: ExprNode, args?: ExprNode[] }} ExprNode
+ */
+
+/**
+ * A step's bound inputs: JSON, with `{ kind: 'ref'|'template'|'expr', ... }` bindings anywhere inside.
+ * @typedef {string | number | boolean | null | undefined | BindingValue[] | { [key: string]: BindingValue }} BindingValue
+ */

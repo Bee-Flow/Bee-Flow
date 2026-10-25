@@ -47,7 +47,7 @@ function runRoute(router, method, routePath) {
 /** A response double that keeps `statusCode` and `body`. */
 function makeRes() {
     const res = { statusCode: 200, body: null };
-    res.status = (c) => { res.statusCode = c; return res; };
+    res.status = (/** @type {number} */ c) => { res.statusCode = c; return res; };
     res.json = (b) => { res.body = b; return res; };
     res.set = () => res;
     res.setHeader = () => res;
@@ -55,3 +55,5 @@ function makeRes() {
 }
 
 module.exports = { findRoute, runRoute, makeRes };
+
+/** @typedef {{ statusCode: number, body: unknown, status: (c: number) => MockRes, json: (b: unknown) => MockRes, set: () => MockRes, setHeader: () => MockRes }} MockRes */

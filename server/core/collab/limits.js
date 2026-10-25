@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Caps and timings of co-editing, in one place: the co-editing instance
  * (index.js) reads them, and so do the route schemas

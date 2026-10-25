@@ -51,7 +51,7 @@ async function propose(doc, { message, mode, userId, orgId, values, history = []
     if (scan.redactedText) messages[1].content = scan.redactedText;
     const start = Date.now();
     const result = await require('../llm/llmClient').chatForcedTool(modelId,messages,PROPOSAL_TOOL,{maxTokens:16000,temperature:0.2});
-    try { await require('../../stores/usageStore').logUsage({user_id:userId,organization_id:orgId,agent_name:'document-ai',agent_type:'system',model:modelId,source:'document_ai',duration_ms:Date.now()-start,...usageLogFields(result.usage)}); } catch (e) { log.warn('[Documents] Usage logging failed:',e.message); }
+    try { await require('../../stores/usageStore').logUsage({user_id:userId,organization_id:orgId,agent_name:'document-ai',agent_type:'system',model:modelId,source:'document_ai',duration_ms:Date.now()-start,...usageLogFields(result.usage)}); } catch (e) { log.warn('[Documents] Usage logging failed:',/** @type {Error} */ (e).message); }
     let raw = result.structured;
     if (scan.tokenMap && raw) {
         // Restore strings individually so quotes in customer data cannot break JSON.
@@ -68,3 +68,9 @@ async function propose(doc, { message, mode, userId, orgId, values, history = []
     return proposal;
 }
 module.exports = { propose,parseProposal,PROPOSAL_TOOL };
+
+/**
+ * @typedef {import('../../stores/documentStore').DocumentView} DocumentView
+ * @typedef {{ explanation?: unknown, bodyHtml?: unknown, css?: unknown, design?: Record<string, unknown>,
+ *   contract?: { parameters?: any[], sections?: any[], instructions?: any }, suggestions?: unknown }} RawProposal
+ */

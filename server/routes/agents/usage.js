@@ -48,6 +48,7 @@ const { KINDS: USAGE_KINDS, redactForeign } = require('../../stores/agent/agentU
 const { getEffectiveUserId } = require('../../utils/routeHelpers');
 const { canReadAgent, canModifyAgent } = require('./crud');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const router = express.Router();
 
@@ -71,7 +72,7 @@ function _sharedGroups(agent) {
         try {
             const parsed = JSON.parse(raw);
             if (Array.isArray(parsed)) return { groups: parsed.filter(Boolean), readable: true };
-        } catch (err) { log.debug('falls through to unreadable', err); }
+        } catch (err) { bestEffort('routes/agents/usage:_sharedGroups', err); /* falls through to unreadable */ }
     }
     return { groups: [], readable: false };
 }
@@ -201,3 +202,5 @@ router.get('/:id/usage', validate({ query: NoQuery }), async (req, res) => {
 module.exports = router;
 module.exports.gatherUsage = gatherUsage;
 module.exports.audienceOf = audienceOf;
+
+/** @typedef {import('express').Router & { gatherUsage: typeof gatherUsage, audienceOf: typeof audienceOf }} UsageRouter */

@@ -39,11 +39,23 @@ const { resolveDatatablePrincipalForUser } = require('../../auth/datatableAccess
 const derive = require('./derive');
 const provision = require('./provision');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
+
+/**
+ * @typedef {import('./provision').AutomationRef} AutomationRef
+ * @typedef {import('./provision').Scope} Scope
+ * @typedef {Record<string, any>} Def  an automation definition, as stored
+ * @typedef {import('./derive').Answer} Answer
+ * @typedef {NonNullable<Awaited<ReturnType<typeof resolveAnswers>>>} Resolved  the linked answers table, resolved
+ */
 
 const PG = { dialect: 'pg' };
 const TAG = '[form answers]';
 
-/** The run-context shape the datatable resolver reads, for the automation's owner. */
+/**
+ * The run-context shape the datatable resolver reads, for the automation's owner.
+ * @param {AutomationRef} automation
+ */
 async function principalCtxFor(automation) {
     const p = /** @type {any} */ (await resolveDatatablePrincipalForUser(automation.userId));
     return {
@@ -52,11 +64,15 @@ async function principalCtxFor(automation) {
         userHomeOrgId: p.organizationId || null,
         orgRole: p.orgRole || null,
         userGroupIds: p.groupIds || [],
-        identityError: p.identityError || null,
+        identityError: /** @type {{ identityError?: string }} */ (p).identityError || null,
     };
 }
 
-/** The linked answers table, resolved as the owner at editor grade, or null. */
+/**
+ * The linked answers table, resolved as the owner at editor grade, or null.
+ * @param {AutomationRef} automation
+ * @param {{ datatableId?: string | null }} [opts]
+ */
 async function resolveAnswers(automation, { datatableId = null } = {}) {
     const scope = provision.scopeForAutomation(automation);
     if (!scope) return null;
@@ -69,7 +85,13 @@ async function resolveAnswers(automation, { datatableId = null } = {}) {
     return { ...resolved, columnMap: table.source.columnMap || {}, source: table.source };
 }
 
-/** Remember what went wrong on the table itself, so the owner sees it. */
+/**
+ * Remember what went wrong on the table itself, so the owner sees it.
+ * @param {AutomationRef | null | undefined} automation
+ * @param {{ id: string, source?: Record<string, any> } | null | undefined} table
+ * @param {Scope | null | undefined} scope
+ * @param {{ errorClass?: string, code?: string, message?: string } | null | undefined} e
+ */
 async function noteWriteError(automation, table, scope, e) {
     const code = e?.errorClass || e?.code || 'write_failed';
     log.warn(`${TAG} ${automation?.id}: ${code} — ${e?.message}`);
@@ -84,11 +106,15 @@ async function noteWriteError(automation, table, scope, e) {
     }
 }
 
+/**
+ * @param {{ id: string, source?: Record<string, any> } | null | undefined} table
+ * @param {Scope} scope
+ */
 async function clearWriteError(table, scope) {
     if (!table?.source?.lastWriteError) return;
     try {
         await datatableStore.setDefinitionSource(table.id, scope, { ...table.source, lastWriteError: null });
-    } catch (err) { log.debug('cosmetic', err); }
+    } catch (err) { bestEffort('automation/formAnswers/write:clearWriteError', err); /* cosmetic */ }
 }
 
 /**
@@ -96,6 +122,7 @@ async function clearWriteError(table, scope) {
  *
  * `completed_at` is stamped straight away when the form has no further
  * pages — the journey is over the moment page one lands.
+ * @param {{ automation: AutomationRef, definition: Def, values: Record<string, Answer> | null, submitterId?: string | null }} p
  */
 async function recordSubmission({ automation, definition, values, submitterId = null }) {
     let r = null;
@@ -120,7 +147,10 @@ async function recordSubmission({ automation, definition, values, submitterId = 
     }
 }
 
-/** A later page: the same row gains that page's answers. */
+/**
+ * A later page: the same row gains that page's answers.
+ * @param {{ automation: AutomationRef, datatableId: string, rowId: string, pageStepId: string, values: Record<string, Answer> | null }} p
+ */
 async function recordPageAnswers({ automation, datatableId, rowId, pageStepId, values }) {
     if (!rowId || !pageStepId) return false;
     let r = null;
@@ -138,7 +168,10 @@ async function recordPageAnswers({ automation, datatableId, rowId, pageStepId, v
     }
 }
 
-/** The journey's root run, once it exists. */
+/**
+ * The journey's root run, once it exists.
+ * @param {{ automation: AutomationRef, datatableId: string, rowId: string, run: { id: string, rootRunId?: string } }} p
+ */
 async function attachRun({ automation, datatableId, rowId, run }) {
     if (!rowId || !run) return false;
     try {
@@ -151,7 +184,10 @@ async function attachRun({ automation, datatableId, rowId, run }) {
     }
 }
 
-/** No more pages to answer. */
+/**
+ * No more pages to answer.
+ * @param {{ automation: AutomationRef, datatableId: string, rowId: string }} p
+ */
 async function markCompleted({ automation, datatableId, rowId }) {
     if (!rowId) return false;
     try {
@@ -164,7 +200,13 @@ async function markCompleted({ automation, datatableId, rowId }) {
     }
 }
 
+/**
+ * @param {Resolved} r
+ * @param {string} rowId
+ * @param {Record<string, unknown>} values
+ */
 async function patchRow(r, rowId, values) {
+
     // The owner's editor filter: the row was written by the form, and the
     // owner may touch every row of a table they own at editor grade.
     const filter = accessFilter.compileAccessFilter(r.tableMeta, 'editor', { id: r.table.ownerUserId || r.table.owner_user_id || null }, 'update', PG);

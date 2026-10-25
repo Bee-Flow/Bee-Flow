@@ -42,7 +42,7 @@ const NoBody = z.preprocess(
 );
 
 // DELETE /api/subscriptions/orgs/:orgId
-router.delete('/orgs/:orgId', validate({ body: NoBody }), async (req, res) => {
+router.delete('/orgs/:orgId', validate({ body: NoBody }), async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     const oldSub = await userStore.getOrgSubscription(req.params.orgId);
     const ok = await userStore.deleteOrgSubscription(req.params.orgId);
     if (!ok) return res.status(404).json({ error: 'No subscription found' });
@@ -52,7 +52,7 @@ router.delete('/orgs/:orgId', validate({ body: NoBody }), async (req, res) => {
 });
 
 // GET /api/subscriptions/orgs/:orgId/usage — current period usage vs limits
-router.get('/orgs/:orgId/usage', async (req, res) => {
+router.get('/orgs/:orgId/usage', async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     const sub = await userStore.getOrgSubscription(req.params.orgId);
     const effective = await userStore.getEffectiveLimits(req.params.orgId);
     if (!effective) return res.status(404).json({ error: 'No subscription' });
@@ -91,7 +91,7 @@ router.get('/orgs/:orgId/usage', async (req, res) => {
 // current plan. Mirrors the `canUseFeature` derivation in
 // loginRoutes.js (/auth/my-permissions) exactly — reuses the same helpers so
 // the admin view never drifts from what users really get.
-router.get('/orgs/:orgId/effective-access', requireAuthOrOrgMember, async (req, res) => {
+router.get('/orgs/:orgId/effective-access', requireAuthOrOrgMember, async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     const { orgId } = req.params;
     const license = require('../../license');
     const licenseTiers = require('../../license/tiers');

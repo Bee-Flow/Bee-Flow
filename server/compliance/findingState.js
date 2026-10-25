@@ -47,7 +47,10 @@ const VOLATILE_KEY = /(_at|_ms|_hours|_age|age_hours|_days_ago|age_days|_span_da
 // result row, and renaming the agent is not a different finding.
 const LABEL_KEYS = new Set(['subject_label']);
 
-/** The slot key a state is stored under: the row's scope_id, or 'global'. */
+/**
+ * The slot key a state is stored under: the row's scope_id, or 'global'.
+ * @param {{ scope_id: string | null; }} row
+ */
 function scopeKeyOf(row) {
     const id = row && row.scope_id;
     return id == null || id === '' ? GLOBAL_SCOPE_KEY : String(id);
@@ -102,6 +105,7 @@ function stateFor(index, row) {
  * Does `state` still hold for `row`? Only an open finding (warn/fail) can be
  * held at all; the fingerprint must match; a date, when there is one, must
  * not have passed.
+ * @param {number} [now]
  */
 function applies(state, row, def = null, now = Date.now()) {
     if (!state || !row) return false;
@@ -114,7 +118,10 @@ function applies(state, row, def = null, now = Date.now()) {
     return true;
 }
 
-/** The shape the check table shows next to a row (never the fingerprint). */
+/**
+ * The shape the check table shows next to a row (never the fingerprint).
+ * @param {number} [now]
+ */
 function publicState(state, row, def = null, now = Date.now()) {
     if (!state) return null;
     return {
@@ -138,3 +145,8 @@ module.exports = {
     applies,
     publicState,
 };
+
+/**
+ * @typedef {{ check_id: string, scope_key?: string, state?: string, fingerprint?: string, until?: string | null, reason?: string | null, actor_id?: string | null, updated_at?: string | Date | null }} StoredState
+ * @typedef {{ status?: string, evidence?: any, check_id?: string, scope_id?: string | null }} FindingRow
+ */

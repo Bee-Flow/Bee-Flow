@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Google Contacts. poll_diff over contacts_list.
  *
@@ -63,7 +63,7 @@ const TRIGGER_SOURCES = [{
             id: 'contact.new',
             label: 'New contact',
             fields: FIELDS,
-            sample: { ...SAMPLE, changedKeys: [], previous: {}, current: { email: SAMPLE.email } },
+            sample: { ...SAMPLE, changedKeys: /** @type {string[]} */ ([]), previous: {}, current: { email: SAMPLE.email } },
             scope: 'user',
             source: source({ changePaths: [], emitOnAppear: true }),
         },

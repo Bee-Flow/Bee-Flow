@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: per-version change summary.
  *

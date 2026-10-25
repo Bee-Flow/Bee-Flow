@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * A projectStore on a fresh pglite with the project schema applied, for store tests that need a
  * real Postgres. Close `pg` in an `after` hook.
@@ -13,6 +13,10 @@ const { pgliteDb } = require('./pgliteDb');
 async function openPgliteProjectStore() {
     const pg = new PGlite();
     const { db } = pgliteDb(pg);
+    /**
+     * @param {string} _tag
+     * @param {Array<string | { sql: string }>} statements
+     */
     const runDdl = async (_tag, statements) => {
         for (const stmt of statements) await pg.exec(typeof stmt === 'string' ? stmt : stmt.sql);
     };

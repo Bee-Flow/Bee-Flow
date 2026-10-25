@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: deployment-sourced approvals (2026-10).
  *

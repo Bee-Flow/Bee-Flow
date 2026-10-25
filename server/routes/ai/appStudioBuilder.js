@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * App Studio Builder — conversational SSE endpoint (trimmed clone of
  * routes/ai/automationBuilder.js for App Studio component trees).
@@ -46,9 +47,12 @@ router.use(require('./appStudioBuilder/sessionSnapshot'));
 // ─── Conversational build loop (SSE) ─────────────────────────────
 router.use(require('./appStudioBuilder/chatStream'));
 
+/**
+ * @typedef {import('express').Router & { _test: Record<string, unknown> }} RouterExports
+ */
 module.exports = router;
 // Internals exposed for unit tests (server/routes/ai/appStudioBuilder.test.js).
-module.exports._test = {
+/** @type {RouterExports} */ (module.exports)._test = {
     parseToolArgs: turnLoop.parseToolArgs,
     isTransientChatError,
     streamWithRetry,

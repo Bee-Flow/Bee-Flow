@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * runListing.js — the reads behind the Runs tab's rows (handoff 5).
  *
@@ -21,7 +21,10 @@ const SEARCH_MAX = 100;
 const SEARCH_PAYLOAD_MAX_BYTES = 64 * 1024;
 const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
 
-/** ILIKE-escape: the term is matched literally, never as a pattern. */
+/**
+ * ILIKE-escape: the term is matched literally, never as a pattern.
+ * @param {string} term
+ */
 function likeTerm(term) {
     return `%${String(term).replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 }
@@ -80,6 +83,7 @@ function buildRunSearch(q, startIdx, { payload = true, viewerUserId = null } = {
  *
  * @param {string[]} rootIds
  * @returns {Promise<Map<string, Array<{ stepId: string, parentStepId: string|null, stepType: string|null, status: string, attempts: number }>>>}
+ * @param {{ query?: typeof getAll | null }} [opts]  injected reader (tests)
  */
 async function getJourneyStepStatuses(rootIds, { query = null } = {}) {
     const read = query || getAll;
@@ -111,11 +115,14 @@ async function getJourneyStepStatuses(rootIds, { query = null } = {}) {
  *
  * @param {Array<{ automationId: string, version: number }>} pairs
  * @returns {Promise<Map<string, any>>}
+ * @param {{ query?: typeof getAll | null }} [opts]  injected reader (tests)
  */
 async function getVersionDefinitions(pairs, { query = null } = {}) {
     const read = query || getAll;
     const seen = new Set();
+    /** @type {string[]} */
     const ids = [];
+    /** @type {number[]} */
     const versions = [];
     for (const p of Array.isArray(pairs) ? pairs : []) {
         const v = Number(p?.version);
@@ -144,12 +151,16 @@ async function getVersionDefinitions(pairs, { query = null } = {}) {
     return out;
 }
 
+/**
+ * @param {string} s
+ */
 function safeJson(s) { try { return JSON.parse(s); } catch { return null; } }
 
 /**
  * The PENDING approval each of these runs waits on, keyed by run id.
  * @param {string[]} runIds
  * @returns {Promise<Map<string, string>>}
+ * @param {{ query?: typeof getAll | null }} [opts]  injected reader (tests)
  */
 async function getPendingApprovalIdsForRuns(runIds, { query = null } = {}) {
     const read = query || getAll;

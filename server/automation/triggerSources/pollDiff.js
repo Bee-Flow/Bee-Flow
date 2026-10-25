@@ -465,3 +465,16 @@ module.exports = {
     // exported for tests
     _internals: { parseCursor, buildCursor, projectChangePaths, canonical, normaliseToolResult, resolveEffectiveSource, MAX_CURSOR_BYTES },
 };
+
+/**
+ * @typedef {{ path: string, keyBy?: string, pick?: string }} ChangePathSpec  a change path that turns an array into a keyed map first
+ * @typedef {Omit<import('./index').TriggerSourceSpec, 'changePaths'> & { changePaths?: Array<string | ChangePathSpec>, contentWatch?: Record<string, any>, _emitFromFilter?: Record<string, string> }} PollSource  a poll_diff source spec as the runtime reads it
+ * @typedef {Record<string, any>} PollFilter  the subscription's filter
+ * @typedef {{ id: string, userId?: string, automationId?: string, triggerStepId?: string, filter?: PollFilter, lastCursor?: string | null }} PollSubscription  the parts of a subscription row a poll reads
+ * @typedef {{ chg12: string, vals?: Record<string, any> }} CursorEntry
+ * @typedef {{ v: number, k: string, t?: number, h: string[], trunc?: boolean, vals?: Record<string, any>, deg?: boolean }} PollCursor
+ * @typedef {{ degraded?: boolean, effective?: { integration?: Set<string> | string[] } }} EntitlementSnapshot
+ * @typedef {(tool: string, args: Record<string, unknown>, ctx: Record<string, unknown>) => Promise<unknown>} ExecuteTool
+ * @typedef {(who: { userId?: string }) => Promise<EntitlementSnapshot>} ResolveEntitlements
+ * @typedef {{ toolBudget: number, toolCache: Map<string, { ts: number, value: unknown, inflight: Promise<unknown> | null }>, entCache: Map<string | undefined, EntitlementSnapshot | null>, executeTool: ExecuteTool | null, resolveEntitlements: ResolveEntitlements | null }} PassCtx  per-pass shared state
+ */

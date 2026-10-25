@@ -11,6 +11,7 @@
 const studioAppDataStore = require('../../stores/studioAppDataStore');
 const { LIMITS } = require('../componentSpecs');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // Hygiene caps on viewer-supplied form values flowing into automation inputs
 // (shared with routes/studioAppsRun.js, which also uses them for its own
@@ -95,6 +96,9 @@ const FILE_URL_TTL_S = parseInt(process.env.STUDIO_APP_FILE_URL_TTL_S, 10) || 36
 // steps (http_request / transcribe_audio / upload tools) can fetch — minted by
 // tempDownloadUrl.generateTempDownloadUrl, which works in S3 and local-disk modes.
 async function expandFileInput(param, descriptor, app) {
+    /**
+     * @param {string} msg
+     */
     const fail = (msg) => {
         const err = new Error(`Input "${param.name}" ${msg}`);
         err.status = 400;
@@ -309,7 +313,7 @@ async function deriveRunOutcome(run) {
         // behaviour; since P4 a NEW promise hangs on that same silent branch, and it must not
         // vanish in the same silence. The flag travels to the app, which says something about
         // it instead of doing nothing.
-        log.error(`[ActionExecutor] output derivation failed for run ${run?.id}: ${e.message}`);
+        log.error(`[ActionExecutor] output derivation failed for run ${run?.id}: ${/** @type {Error} */ (e).message}`);
         return { output: null, appEffects: null, effectsUnknown: true };
     }
 }
@@ -362,7 +366,7 @@ async function runAutomationStep(app, step, ctx) {
         let approvalId = null;
         if (run.awaitingStepId) {
             approvalId = (await automationStore.getApprovalForRunStep(run.id, run.awaitingStepId, { pendingOnly: true })
-                .catch(() => null))?.id || null;
+                .catch((e) => fallback('appStudio/actionExecutor/automationBridge:runAutomationStep', e, null)))?.id || null;
         }
         return { ok: true, result: { runId: run.id, status: 'awaiting_approval', approvalId, output: null } };
     }

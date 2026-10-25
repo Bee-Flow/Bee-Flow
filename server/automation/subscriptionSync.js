@@ -15,6 +15,7 @@
 const automationStore = require("../stores/automationStore");
 const triggerBus = require("./triggerBus");
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 /**
  * Reconcile app_event subscriptions for one automation. Reads the trigger
@@ -32,19 +33,21 @@ const log = require('../telemetry/log');
  * local subscription rows are deleted — otherwise we lose the externalRef and
  * leak orphaned subscriptions at the provider that keep firing into the void
  * until they expire. Best-effort: a revoke failure is logged, never fatal.
+ * @param {string} automationId
+ * @param {string} userId
  */
 async function revokeRemoteSubscriptions(automationId, userId) {
     try {
         const existing = await automationStore.getSubscriptionsForAutomation(automationId);
         const msgraphSubs = existing.filter(s => s.provider === 'msgraph' && s.externalRef);
         if (msgraphSubs.length > 0) {
-            const session = await triggerBus.loadSession(userId).catch(() => null);
+            const session = await triggerBus.loadSession(userId).catch((e) => fallback('automation/subscriptionSync:loadSession', e, null));
             for (const sub of msgraphSubs) {
                 await triggerBus.revokeSubscription(sub, session);
             }
         }
     } catch (e) {
-        log.warn(`[automation/subscriptionSync] revoke: revoke pass failed for ${automationId}: ${e.message}`);
+        log.warn(`[automation/subscriptionSync] revoke: revoke pass failed for ${automationId}: ${/** @type {Error} */ (e).message}`);
     }
 }
 
@@ -68,6 +71,10 @@ function appEventFingerprint(def) {
     return JSON.stringify(trigs);
 }
 
+/**
+ * @param {string} automationId
+ * @param {string} userId
+ */
 async function syncAppEventSubscription(automationId, userId, def) {
     // Snapshot the existing rows BEFORE the wipe so an unchanged trigger's
     // poller cursor can carry over (A12). The cursor is a provider-stream
@@ -76,7 +83,7 @@ async function syncAppEventSubscription(automationId, userId, def) {
     // A genuinely NEW trigger still bootstraps with null (no history claim).
     let priorSubs = [];
     try { priorSubs = await automationStore.getSubscriptionsForAutomation(automationId) || []; }
-    catch (err) { log.debug('fall back to fresh bootstrap', err); }
+    catch (err) { fallback('automation/subscriptionSync:syncAppEventSubscription', err); /* fall back to fresh bootstrap */ }
 
     // Revoke any existing remote subscriptions BEFORE wiping the rows.
     await revokeRemoteSubscriptions(automationId, userId);
@@ -101,6 +108,10 @@ async function syncAppEventSubscription(automationId, userId, def) {
     }
 }
 
+/**
+ * @param {string} automationId
+ * @param {string} userId
+ */
 async function syncOneAppEventTrigger(automationId, userId, trig, prior = null) {
     const provider = trig.appEvent.provider;
     const event = trig.appEvent.event;
@@ -117,6 +128,7 @@ async function syncOneAppEventTrigger(automationId, userId, trig, prior = null) 
     //     polling tick still runs as crash-recovery backstop when
     //     last_push_at goes stale.
     //   - Others: polling.
+    /** @type {string} */
     let mode;
     if (provider === 'msgraph') {
         mode = triggerBus.getPublicBaseUrl() ? 'webhook' : 'polling';
@@ -143,9 +155,9 @@ async function syncOneAppEventTrigger(automationId, userId, trig, prior = null) 
             let isConnector = false;
             try {
                 const userStore = require('../stores/userStore');
-                const u = await userStore.getUser(userId).catch(() => null);
+                const u = await userStore.getUser(userId).catch((e) => fallback('automation/subscriptionSync:syncOneAppEventTrigger', e, null));
                 isConnector = u?.provider === 'nextcloud_connector';
-            } catch (err) { log.debug('default below', err); }
+            } catch (err) { fallback('automation/subscriptionSync:syncOneAppEventTrigger#2', err); /* default below */ }
             mode = isConnector ? 'webhook' : 'polling';
         }
     } else {
@@ -155,7 +167,7 @@ async function syncOneAppEventTrigger(automationId, userId, trig, prior = null) 
         let declaredKind = null;
         try {
             declaredKind = require('./triggerSources').getEventDef(provider, event)?.source?.kind || null;
-        } catch (err) { log.debug('fall through to polling', err); }
+        } catch (err) { fallback('automation/subscriptionSync:syncOneAppEventTrigger#3', err); /* fall through to polling */ }
         mode = declaredKind === 'push' ? 'webhook' : 'polling';
     }
 
@@ -179,7 +191,7 @@ async function syncOneAppEventTrigger(automationId, userId, trig, prior = null) 
     // notification handler can validate clientState.
     if (provider === 'msgraph' && mode === 'webhook') {
         try {
-            const session = await triggerBus.loadSession(userId).catch(() => null);
+            const session = await triggerBus.loadSession(userId).catch((e) => fallback('automation/subscriptionSync:syncOneAppEventTrigger#4', e, null));
             const result = await triggerBus.provisionSubscription(sub, session);
             if (result) {
                 await automationStore.updateSubscription(sub.id, {
@@ -194,9 +206,13 @@ async function syncOneAppEventTrigger(automationId, userId, trig, prior = null) 
                 log.warn(`[automation/subscriptionSync] MS Graph provisioning failed for sub ${sub.id}; trigger will not fire until re-activated`);
             }
         } catch (e) {
-            log.warn(`[automation/subscriptionSync] MS Graph provisioning threw for sub ${sub.id}: ${e.message}`);
+            log.warn(`[automation/subscriptionSync] MS Graph provisioning threw for sub ${sub.id}: ${/** @type {Error} */ (e).message}`);
         }
     }
 }
 
 module.exports = { syncAppEventSubscription, revokeRemoteSubscriptions, hasAppEventTrigger, appEventFingerprint };
+
+/** @typedef {{ id?: string, kind?: string, appEvent?: { provider?: string, event?: string, filter?: Record<string, unknown>|null } }} AppTrigger */
+
+/** @typedef {{ provider?: string, eventType?: string, triggerStepId?: string|null, lastCursor?: any, externalRef?: string }} PriorSubscription */

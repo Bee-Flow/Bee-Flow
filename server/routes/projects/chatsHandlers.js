@@ -12,6 +12,18 @@ const { badRequest, forbidden, notFound, conflict } = require('../../core/http/e
 const { DEFAULT_TITLE, titleFromMessage, excerptOf, chatEvent, tryOpen, presentChat } = require('./chatsPresent');
 const { postMessage } = require('./chatsPost');
 
+/**
+ * @typedef {ReturnType<typeof import('./chatsContext').makeChatsContext>} Ctx
+ * @typedef {import('express').Request<{ id: string }>} ProjectReq
+ * @typedef {import('express').Request<{ id: string, chatId: string }>} ChatReq
+ * @typedef {import('express').Response} Res
+ */
+
+/**
+ * @param {Ctx} ctx
+ * @param {ProjectReq} req
+ * @param {Res} res
+ */
 async function listChats(ctx, req, res) {
     const project = await ctx.loadProject(req);
     const rows = await ctx.store().listChats(project.id, { userId: ctx.userIdOf(req), archived: req.query.archived === '1' });
@@ -35,18 +47,34 @@ async function listChats(ctx, req, res) {
 }
 
 // The agents a chat here may answer as: what every member may use.
+/**
+ * @param {Ctx} ctx
+ * @param {ProjectReq} req
+ * @param {Res} res
+ */
 async function listAgents(ctx, req, res) {
     const project = await ctx.loadProject(req);
     res.json({ agents: await ctx.listChatAgents(project, { userId: ctx.userIdOf(req) }) });
 }
 
-/** An agent the caller names must be usable by every member of the project. */
+/**
+ * An agent the caller names must be usable by every member of the project.
+ * @param {Ctx} ctx
+ * @param {Parameters<Ctx['isChatAgentAllowed']>[0]} project
+ * @param {string} agentId
+ * @param {string} userId
+ */
 async function assertAgentAllowed(ctx, project, agentId, userId) {
     if (!(await ctx.resolveAgent({ agentId, userId }) && await ctx.isChatAgentAllowed(project, { agentId, userId }))) {
         throw badRequest('agent_unavailable', 'That agent is not available to everyone in this project.');
     }
 }
 
+/**
+ * @param {Ctx} ctx
+ * @param {ProjectReq} req
+ * @param {Res} res
+ */
 async function createChat(ctx, req, res) {
     const userId = ctx.userIdOf(req);
     const project = await ctx.loadProject(req);
@@ -101,6 +129,11 @@ async function createChat(ctx, req, res) {
     res.status(201).json({ chat: presentChat(box, chat, await ctx.aiPolicyFor(project)), message: posted, ai });
 }
 
+/**
+ * @param {Ctx} ctx
+ * @param {ChatReq} req
+ * @param {Res} res
+ */
 async function getChat(ctx, req, res) {
     const project = await ctx.loadProject(req);
     const chat = await ctx.loadChat(project, req.params.chatId);
@@ -110,6 +143,11 @@ async function getChat(ctx, req, res) {
     res.json({ chat: { ...presentChat(box, chat, aiPolicy), ...(aiState ? { aiState } : {}) }, role: req.projectRole, aiPolicy });
 }
 
+/**
+ * @param {Ctx} ctx
+ * @param {ChatReq} req
+ * @param {Res} res
+ */
 async function updateChat(ctx, req, res) {
     const userId = ctx.userIdOf(req);
     const project = await ctx.loadProject(req);
@@ -136,6 +174,11 @@ async function updateChat(ctx, req, res) {
     res.json({ chat: presentChat(box, updated, await ctx.aiPolicyFor(project)) });
 }
 
+/**
+ * @param {Ctx} ctx
+ * @param {ChatReq} req
+ * @param {Res} res
+ */
 async function deleteChat(ctx, req, res) {
     const userId = ctx.userIdOf(req);
     const project = await ctx.loadProject(req);

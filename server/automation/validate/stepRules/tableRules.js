@@ -14,7 +14,11 @@
 
 const { isObject } = require('../helpers');
 
-/** Findings of a spec onto the validator's two sinks. */
+/**
+ * Findings of a spec onto the validator's two sinks.
+ * @param {Finding[]} findings
+ * @param {string} at
+ */
 function report(ctx, findings, at) {
     for (const f of findings) {
         const record = {
@@ -28,6 +32,9 @@ function report(ctx, findings, at) {
     }
 }
 
+/**
+ * @param {string} at
+ */
 function checkReadTable(ctx, step, at) {
     if (step.type !== 'read_table') return;
     const { validateReadTableStep } = require('../../../core/automationModel/tableOps/readTableSpec');
@@ -38,6 +45,7 @@ function checkReadTable(ctx, step, at) {
  * A salt written into the definition's own `vars` travels with every export of
  * the automation, and anyone holding the export can re-derive the pseudonyms.
  * A Solution variable is the place for it.
+ * @param {string} at
  */
 function checkSaltPlacement(ctx, step, at) {
     const own = ctx.graph && isObject(ctx.graph.vars) ? ctx.graph.vars : null;
@@ -63,6 +71,7 @@ function checkSaltPlacement(ctx, step, at) {
  * caller supplied the declared Solution variable names (`knownVarNames`, a
  * Set); an unknown state never blocks. Names the automation keeps in its own
  * variables count as declared (checkSaltPlacement warns about those).
+ * @param {string} at
  */
 function checkSaltDeclared(ctx, step, at) {
     const known = ctx.knownVarNames;
@@ -82,6 +91,9 @@ function checkSaltDeclared(ctx, step, at) {
     });
 }
 
+/**
+ * @param {string} at
+ */
 function checkTable(ctx, step, at) {
     if (step.type !== 'table') return;
     const { validateTableStep } = /** @type {any} */ (require('../../../core/automationModel/tableOps/spec'));
@@ -92,3 +104,10 @@ function checkTable(ctx, step, at) {
 }
 
 module.exports = { checkReadTable, checkTable, checkSaltPlacement, checkSaltDeclared };
+
+/** @typedef {import('../../../core/automationModel/tableOps/readTableSpec').Finding} Finding */
+
+/**
+ * @typedef {import('./stepContext').StepCtx} StepCtx
+ * @typedef {import('./stepContext').StepDef} StepDef
+ */

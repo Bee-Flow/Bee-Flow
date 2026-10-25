@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * The skill store's tables (skills, skill_test_runs) and its memoised init,

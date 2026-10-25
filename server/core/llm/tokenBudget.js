@@ -11,6 +11,7 @@
  * a concatenated source blob) to inject into a system prompt.
  */
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const CHARS_PER_TOKEN = 4;
 
@@ -34,7 +35,7 @@ function maybeLoadTiktoken() {
         _tiktokenEncoder = tiktoken.get_encoding('o200k_base');
         log.info('[tokenBudget] tiktoken o200k_base loaded');
     } catch (err) {
-        log.warn(`[tokenBudget] OPENAI_PROMPT_COUNTER=true but @dqbd/tiktoken not installed: ${err.message}`);
+        log.warn(`[tokenBudget] OPENAI_PROMPT_COUNTER=true but @dqbd/tiktoken not installed: ${/** @type {Error} */ (err).message}`);
     }
     return _tiktokenEncoder;
 }
@@ -48,13 +49,14 @@ function estimateTokens(text) {
     if (!text) return 0;
     const enc = maybeLoadTiktoken();
     if (enc) {
-        try { return enc.encode(text).length; } catch (err) { log.debug('fall through', err); }
+        try { return enc.encode(text).length; } catch (err) { bestEffort('core/llm/tokenBudget:estimateTokens', err); /* fall through */ }
     }
     return Math.ceil(text.length / CHARS_PER_TOKEN);
 }
 
 /**
  * Rough char budget for a given token budget.
+ * @param {number} tokens
  */
 function tokensToChars(tokens) {
     return Math.max(0, Math.floor(tokens * CHARS_PER_TOKEN));
@@ -67,6 +69,8 @@ function tokensToChars(tokens) {
  * notice to the prompt.
  *
  * Returns `{ text, truncated, originalTokens, keptTokens }`.
+ * @param {string} text
+ * @param {number} maxTokens
  */
 function fitIntoTokenBudget(text, maxTokens, { marker = '…[truncated]…' } = {}) {
     if (!text) return { text: '', truncated: false, originalTokens: 0, keptTokens: 0 };

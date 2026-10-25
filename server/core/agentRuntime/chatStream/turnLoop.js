@@ -39,6 +39,7 @@ const { streamRawSseRound } = require('./rawSseStream');
 const { buildRoundAssistantMessage, dispatchToolRound } = require('./toolRoundGate');
 const { wrapUpAnswer, attributeTestChatTurn, rethrowRoundError, throwLoopExit } = require('./turnExits');
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 // The once-per-turn phases, handed to ./turnPrepare, and one round's phases,
 // handed to ./roundStream: both modules stay out of the server's large import
@@ -151,7 +152,7 @@ async function runTurnLoop(t) {
         // Check if client disconnected
         if (signal?.aborted) {
             log.info('[AgentRuntime] Aborting — client disconnected');
-            terminationStore.logTermination({ ..._terminationBase(), termination_type: 'aborted' }).catch(() => {});
+            terminationStore.logTermination({ ..._terminationBase(), termination_type: 'aborted' }).catch((e) => bestEffort('core/agentRuntime/chatStream/turnLoop:runTurnLoop', e));
             _abortLogged = true;
             break;
         }
@@ -287,7 +288,7 @@ async function runToolRound(t, st, { currentToolCalls, contentBuffer, signal, te
     // Check abort before tool execution
     if (signal?.aborted) {
         log.info('[AgentRuntime] Aborting before tool execution — client disconnected');
-        terminationStore.logTermination({ ...terminationBaseRow(), termination_type: 'aborted' }).catch(() => {});
+        terminationStore.logTermination({ ...terminationBaseRow(), termination_type: 'aborted' }).catch((e) => bestEffort('core/agentRuntime/chatStream/turnLoop:runToolRound', e));
         return { aborted: true };
     }
     return { bailReason: await dispatchRound(t, st, { currentToolCalls: _prepared.currentToolCalls, signal }) };
@@ -332,3 +333,10 @@ function finalizeRound(t, st, { fullResponse, useNativeAdapter, guardrailViolati
 }
 
 module.exports = { chatWithAgentStreamImpl, _pendingTurnReleases };
+
+/**
+ * @typedef {Awaited<ReturnType<typeof prepareTurn>> & { agentId: string, userId: string, userMessage: string, userAuth: import('./turnState').UserAuth, messageMetadata: import('./turnState').MessageMetadata, maxIterations: number }} LoopTurn  the prepared turn the loop runs on
+ * @typedef {ReturnType<typeof createTurnLoopState>} LoopState
+ * @typedef {() => ReturnType<typeof terminationBase>} TerminationBaseRow
+ * @typedef {typeof ROUND_STEPS} RoundSteps
+ */

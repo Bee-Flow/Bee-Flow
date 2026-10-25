@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Automation Builder — one tool call of a round: the route's own answers
  * (./routeTools.js) first, then the builder dispatch (or an org webpage tool
@@ -21,6 +21,11 @@ const { parseToolArgs, mutates, applyPlanMarkDone, RECOVERED_CALL_HINT, REPAIRED
 const { rejectedCallLabel, rejectedStepPosition } = require('./turnStop');
 const { handleRouteTool } = require('./routeTools');
 
+/**
+ * @param {import('./turnSetup').BuilderTurn} turn
+ * @param {import('./turnSetup').BuilderRound} round
+ * @param {import('./turnSetup').BuilderToolCall} tc
+ */
 async function dispatchToolCall(turn, round, tc) {
     const {
         req, send, messages, draftWrap, turnMode, bufferedBuild, isolated, approvedPlan, pauseAfterStep,
@@ -59,7 +64,7 @@ async function dispatchToolCall(turn, round, tc) {
             }
             toolResult = await applyToolCall(name, args, draftWrap);
         }
-    } catch (e) { toolResult = { error: e.message }; }
+    } catch (e) { toolResult = { error: /** @type {Error} */ (e).message }; }
     if (tc._recovered && toolResult && typeof toolResult === 'object') {
         // The model never made this call — it wrote it. Say so
         // where it reads: the result.
@@ -247,7 +252,7 @@ async function dispatchToolCall(turn, round, tc) {
     if (toolResult && typeof toolResult === 'object' && toolResult.error) {
         round.refusedThisIter = true;
         round.lastRefusal = { tool: name, error: String(toolResult.error), label: rejectedCallLabel(name, args, toolResult) };
-        if (partialBatch && toolResult.added.some(a => !a?.reused)) round.acceptedThisIter = true;
+        if (partialBatch && toolResult.added.some((/** @type {{ reused?: boolean }} */ a) => !a?.reused)) round.acceptedThisIter = true;
     } else {
         round.acceptedThisIter = true;
     }

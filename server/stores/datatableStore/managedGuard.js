@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -25,7 +25,10 @@ const managedParts = require('../managedPartsDefault');
 // the probe for it is a catalogue read that cannot fail (a failing statement
 // would abort the caller's transaction), memoised once it answers yes.
 
-/** JSON with sorted keys and no undefined members: equal descriptors, equal text. */
+/**
+ * JSON with sorted keys and no undefined members: equal descriptors, equal text.
+ * @param {unknown} v
+ */
 function stableStringify(v) {
     return stableJson.stableStringify(v, { undefined: 'drop', toJSON: true });
 }
@@ -43,7 +46,10 @@ function tableFingerprint(descriptor) {
 }
 
 let stageColumnsSeen = false;
-/** Does `projects.stage_of` exist here? Memoised once true (columns are never dropped). */
+/**
+ * Does `projects.stage_of` exist here? Memoised once true (columns are never dropped).
+ * @param {import('pg').PoolClient} c
+ */
 async function stageColumnsPresent(c) {
     if (stageColumnsSeen) return true;
     const r = await c.query(
@@ -54,7 +60,11 @@ async function stageColumnsPresent(c) {
     return stageColumnsSeen;
 }
 
-/** The tables among `ids` that belong to a stage project: [{id, project_id, stage, stage_of}]. */
+/**
+ * The tables among `ids` that belong to a stage project: [{id, project_id, stage, stage_of}].
+ * @param {import('pg').PoolClient} c
+ * @param {string[]} ids
+ */
 async function stageTablesAmong(c, ids) {
     if (!ids.length || !await stageColumnsPresent(c)) return [];
     const r = await c.query(
@@ -66,7 +76,11 @@ async function stageTablesAmong(c, ids) {
     return r.rows || [];
 }
 
-/** The stage `projectId` is, or null: {project_id, stage, stage_of}. */
+/**
+ * The stage `projectId` is, or null: {project_id, stage, stage_of}.
+ * @param {import('pg').PoolClient} c
+ * @param {unknown} projectId
+ */
 async function stageProject(c, projectId) {
     if (typeof projectId !== 'string' || !projectId || !await stageColumnsPresent(c)) return null;
     const r = await c.query(
@@ -79,6 +93,9 @@ async function stageProject(c, projectId) {
 /**
  * Refuse (409 managed_part) unless `managedWrite` is the capability of an
  * active deployment of EVERY stage project among `hits`.
+ * @param {import('pg').PoolClient} c
+ * @param {Record<string, any>[]} hits
+ * @param {{ deploymentId?: string } | null | undefined} managedWrite
  */
 async function requireCapability(c, hits, managedWrite) {
     const seen = new Set();
@@ -94,9 +111,15 @@ async function requireCapability(c, hits, managedWrite) {
  * The ids of the table entries `next` changes, adds or removes relative to
  * `before`, compared by stable stringify (key order and undefined members are
  * not a change).
+ * @param {Record<string, any> | null | undefined} before
+ * @param {Record<string, any> | null | undefined} next
  */
 function changedTableIds(before, next) {
+    /**
+     * @param {Record<string, any> | null | undefined} m
+     */
     const index = (m) => {
+        /** @type {Map<string, string>} */
         const out = new Map();
         for (const t of (Array.isArray(m?.tables) ? m.tables : [])) {
             if (t && typeof t.id === 'string') out.set(t.id, stableStringify(t));
@@ -105,14 +128,19 @@ function changedTableIds(before, next) {
     };
     const a = index(before);
     const b = index(next);
+    /** @type {string[]} */
     const ids = [];
     for (const [id, text] of a) if (b.get(id) !== text) ids.push(id);
     for (const id of b.keys()) if (!a.has(id)) ids.push(id);
     return ids;
 }
-/** The entry of table `id` in model `m`, or undefined. */
+/**
+ * The entry of table `id` in model `m`, or undefined.
+ * @param {Record<string, any> | null | undefined} m
+ * @param {string} id
+ */
 function entryOf(m, id) {
-    return (Array.isArray(m?.tables) ? m.tables : []).find(t => t && t.id === id);
+    return (Array.isArray(m?.tables) ? m.tables : []).find((/** @type {Record<string, any>} */ t) => t && t.id === id);
 }
 
 /**
@@ -139,6 +167,9 @@ async function mirrorReconcileExemptIds(c, before, next, ids) {
         const a = entryOf(before, row.id);
         const b = entryOf(next, row.id);
         if (!a || !b) continue;
+        /**
+         * @param {Record<string, any>} t
+         */
         const strip = (t) => {
             const { fields: _fields, ...rest } = t;
             if (b.name === row.name) delete rest.name;

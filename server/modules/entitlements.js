@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Module entitlement grant verification.
  *
@@ -52,7 +52,8 @@ function decodeGrantUnverified(token) {
  * @param {number} [opts.now]               unix seconds (defaults to real clock)
  * @param {function} [opts.publicKeyResolver] (kid) => key | Promise<key>; when
  *        omitted, falls back to verify.js's JWKS/bundled key resolution
- * @returns {Promise<{valid:true, payload:object} | {valid:false, error:string}>}
+ * @returns {Promise<{ valid: boolean, payload?: { exp?: number, kind?: string, entitlement_id?: string, [k: string]: unknown }, error?: string }>}
+ *   `payload` when valid, `error` when not
  */
 async function verifyModuleGrant(token, {
     moduleId,

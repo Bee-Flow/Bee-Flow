@@ -1,3 +1,4 @@
+/** @typedef {import('./turnSetup').BuilderTurn} BuilderTurn */
 /**
  * Automation Builder — the rounds of a turn: one model call per round
  * (announced with `round_start`, streamed with the two live visualisations),
@@ -20,6 +21,9 @@ const { WASTED_ROUNDS_LIMIT, stopSentence } = require('./turnStop');
 const { dispatchToolCall } = require('./toolDispatch');
 const { afterToolLessRound } = require('./roundNudges');
 
+/**
+ * @param {BuilderTurn} turn
+ */
 async function runBuildLoop(turn) {
     const {
         res, userId, send, messages, tools, draftWrap, turnMode, isolated, adapter, cfg, modelId, tier, profile,
@@ -155,12 +159,12 @@ async function runBuildLoop(turn) {
             // while the UI called it temporary and the owner saw only a
             // build that died instantly.
             const status = Number(chatErr?.status || chatErr?.statusCode
-                || (/API error (\d{3})/.exec(String(chatErr?.message || '')) || [])[1]) || null;
+                || (/API error (\d{3})/.exec(String(/** @type {Error} */ (chatErr)?.message || '')) || [])[1]) || null;
             const permanent = !!status && status >= 400 && status < 500 && status !== 408 && status !== 429;
-            log.error('[AutomationBuilder] chat failed after retries:', chatErr.message);
+            log.error('[AutomationBuilder] chat failed after retries:', /** @type {Error} */ (chatErr).message);
             if (permanent) {
                 send('error', {
-                    error: `The AI model rejected the request (HTTP ${status}): ${providerErrorExcerpt(chatErr.message)} — Your draft is saved. Resending will not help; check the model or tier settings.`,
+                    error: `The AI model rejected the request (HTTP ${status}): ${providerErrorExcerpt(/** @type {Error} */ (chatErr).message)} — Your draft is saved. Resending will not help; check the model or tier settings.`,
                     transient: false,
                 });
             } else {
@@ -336,3 +340,11 @@ async function runBuildLoop(turn) {
 }
 
 module.exports = { runBuildLoop };
+
+/**
+ * This loop's own counters (see the comments on each in runBuildLoop).
+ * @typedef {{
+ *   wastedRounds: number, truncationRetries: number, emptyReplyRetries: number, invalidArgsRetries: number,
+ *   repinToolChoice: boolean, prosePinUsed: boolean, planGuardUsed: boolean, buildGuardUsed: boolean,
+ * }} BuildLoopState
+ */

@@ -33,6 +33,7 @@ const log = require('../../telemetry/log');
 const { depsWith } = require('./depsWith');
 const lib = require('../suggestions');
 const { maskContacts } = require('./templating');
+const { fallback } = require('../../utils/bestEffort');
 
 // The model must READ the user's data to find concrete repeating work; the
 // digest only says which tools to read first. The efficiency win is the forced
@@ -64,7 +65,7 @@ const depsFor = (overrides) => depsWith(LOADERS, overrides);
 /** The integration a tool belongs to: the tool map's id, else the name's prefix. */
 function integrationOf(resolveIntegration, toolName) {
     let id = null;
-    try { id = resolveIntegration(toolName)?.integration || null; } catch (err) { log.debug('unknown tool', err); }
+    try { id = resolveIntegration(toolName)?.integration || null; } catch (err) { fallback('automation/patterns/ideation:integrationOf', err); /* unknown tool */ }
     return String(id || String(toolName).split('_')[0] || '').toLowerCase();
 }
 
@@ -76,8 +77,8 @@ function integrationOf(resolveIntegration, toolName) {
  */
 async function existingTitlesFor(userId, d) {
     const [automations, suppressed] = await Promise.all([
-        Promise.resolve().then(() => d.getAutomations(userId)).catch(() => []),
-        Promise.resolve().then(() => d.getRecentSuppressedTitles({ userId })).catch(() => []),
+        Promise.resolve().then(() => d.getAutomations(userId)).catch((e) => fallback('automation/patterns/ideation:existingTitlesFor', e, [])),
+        Promise.resolve().then(() => d.getRecentSuppressedTitles({ userId })).catch((e) => fallback('automation/patterns/ideation:existingTitlesFor#2', e, [])),
     ]);
     const own = (Array.isArray(automations) ? automations : []).map((a) => a?.title).filter(Boolean).slice(0, 50);
     return [...new Set([...own, ...(Array.isArray(suppressed) ? suppressed : [])])];
@@ -146,7 +147,7 @@ async function runIdeasScan(input, overrides = null) {
         filter.userId
             // manualOnly: chat-initiated calls only, the miner's allow-list, so
             // neither automations nor earlier scans' own reads count as the user's work.
-            ? Promise.resolve().then(() => d.getIntegrationByTool({ ...filter, startDate: since, excludeDryRun: true, manualOnly: true })).catch(() => [])
+            ? Promise.resolve().then(() => d.getIntegrationByTool({ ...filter, startDate: since, excludeDryRun: true, manualOnly: true })).catch((e) => fallback('automation/patterns/ideation:runIdeasScan', e, []))
             : [],
         existingTitlesFor(userId, d),
     ]);

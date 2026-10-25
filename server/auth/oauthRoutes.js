@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * OAuth Routes — Multi-Provider OAuth 2.0
  * 

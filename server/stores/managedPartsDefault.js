@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * stores/managedPartsDefault.js: the stage write guard the app uses.
  *

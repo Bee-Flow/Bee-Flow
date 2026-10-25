@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: add the missing FK + ON DELETE CASCADE to automation child tables (§WS3.2).
  *
@@ -22,6 +23,16 @@
 
 const { exec } = require('../db');
 
+/**
+ * @typedef {Object} AddFkArgs
+ * @property {string} table
+ * @property {string} column
+ * @property {string} refTable
+ * @property {string} constraint
+ */
+/**
+ * @param {AddFkArgs} param0
+ */
 async function addFk({ table, column, refTable, constraint }) {
     await exec(`
         DO $$

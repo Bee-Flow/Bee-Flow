@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Support Inbox Store — connected support mailboxes for the tenant Support
  * studio (Studio → Support). One row per connected mailbox (support@, sales@…),
@@ -135,7 +135,9 @@ async function _initDB() {
 // trivially decrypt the other's — never share this salt with another store.
 const { createSecretBox } = require('../utils/secretBox');
 const _tokenBox = createSecretBox(ENCRYPTION_KEY_SOURCE, 'support-inbox-salt', { logPrefix: '[SupportInboxStore]' });
+/** @param {Record<string, unknown>} tokens */
 const encryptTokens = (tokens) => _tokenBox.encrypt(tokens);
+/** @param {string} encryptedStr */
 const decryptTokens = (encryptedStr) => _tokenBox.decrypt(encryptedStr);
 
 // Columns safe to return to the client (never the encrypted token blob).
@@ -153,6 +155,7 @@ const PUBLIC_COLS = `id, organization_id, created_by, provider, email_address, d
 /**
  * Create a shell inbox row (pre-OAuth). active stays false until the OAuth
  * callback stores tokens + the mailbox address.
+ * @param {{ organizationId: string, createdBy: string, provider: string, displayName?: string, defaultAgentId?: string | null, kbIds?: string[], replyMode?: string, autoresolveThreshold?: number, toolsEnabled?: boolean, signature?: string | null, folderFilter?: string[], syncIntervalMinutes?: number, providerConfig?: Record<string, unknown> }} opts
  */
 async function createInbox({
     organizationId, createdBy, provider,
@@ -180,6 +183,9 @@ async function createInbox({
     return rows[0];
 }
 
+/**
+ * @param {string} organizationId
+ */
 async function listInboxes(organizationId) {
     await initDB();
     if (!organizationId) return [];
@@ -190,13 +196,19 @@ async function listInboxes(organizationId) {
     return rows;
 }
 
+/**
+ * @param {string} id
+ */
 async function getInbox(id) {
     await initDB();
     const { rows } = await pool.query(`SELECT ${PUBLIC_COLS} FROM support_inboxes WHERE id = $1`, [id]);
     return rows[0] || null;
 }
 
-/** Full row incl. decrypted tokens — for the sync engine / mailer ONLY. */
+/**
+ * Full row incl. decrypted tokens — for the sync engine / mailer ONLY.
+ * @param {string} id
+ */
 async function getInboxWithTokens(id) {
     await initDB();
     const { rows } = await pool.query(`SELECT * FROM support_inboxes WHERE id = $1`, [id]);
@@ -207,7 +219,8 @@ async function getInboxWithTokens(id) {
     return row;
 }
 
-const asJsonb = (col) => ({ col, cast: 'jsonb', transform: (v) => JSON.stringify(v) });
+/** @param {string} col */
+const asJsonb = (col) => ({ col, cast: 'jsonb', transform: /** @param {unknown} v */ (v) => JSON.stringify(v) });
 
 // The client-writable allowlist. Every scan_* column is deliberately absent —
 // that state is engine-owned.
@@ -232,6 +245,11 @@ const UPDATABLE = {
     kb_ids: asJsonb('kb_ids'),
 };
 
+/**
+ * @param {string} id
+ * @param {{ kb_ids?: string[] | null, kbIds?: string[] | null } & Record<string, unknown>} [updates]
+ * @param {string | null} [organizationId]
+ */
 async function updateInbox(id, updates = {}, organizationId = null) {
     await initDB();
     const kbIds = (updates.kb_ids !== undefined || updates.kbIds !== undefined)
@@ -257,15 +275,15 @@ async function updateInbox(id, updates = {}, organizationId = null) {
  * Only provided keys are written; pass null to clear kbId / automationId.
  */
 const KB_AUTOMATION_COLUMNS = {
-    enabled: { col: 'kb_ingest_enabled', transform: (v) => !!v },
+    enabled: { col: 'kb_ingest_enabled', transform: /** @param {unknown} v */ (v) => !!v },
     kbId: 'kb_ingest_kb_id',
     automationId: 'kb_ingest_automation_id',
 };
 
 /**
- * @param id
- * @param {{ enabled?: boolean, kbId?: string, automationId?: string }} [opts]
- * @param [organizationId]
+ * @param {string} id
+ * @param {{ enabled?: boolean, kbId?: string | null, automationId?: string | null }} [config]
+ * @param {string | null} [organizationId]
  */
 async function setKbAutomation(id, { enabled, kbId, automationId } = {}, organizationId = null) {
     await initDB();
@@ -288,6 +306,9 @@ async function setKbAutomation(id, { enabled, kbId, automationId } = {}, organiz
  * ignored — access can only change via the dedicated /access endpoint, which
  * validates the group ids against the inbox's org first. Pass [] to open the
  * inbox to all org support staff.
+ * @param {string} id
+ * @param {string[]} [sharedGroups]
+ * @param {string | null} [organizationId]
  */
 async function setSharedGroups(id, sharedGroups = [], organizationId = null) {
     await initDB();
@@ -306,8 +327,8 @@ async function setSharedGroups(id, sharedGroups = [], organizationId = null) {
 const TOKEN_COLUMNS = { tokens: 'encrypted_tokens', emailAddress: 'email_address' };
 
 /**
- * @param id
- * @param tokens
+ * @param {string} id
+ * @param {Record<string, unknown>} tokens
  * @param {{ emailAddress?: string }} [opts]
  */
 async function updateTokens(id, tokens, { emailAddress } = {}) {
@@ -332,6 +353,8 @@ async function updateTokens(id, tokens, { emailAddress } = {}) {
  *
  * The row itself stays so its settings, group access and KB wiring survive a
  * reconnect. Returns { ok, purgedThreads }.
+ * @param {string} id
+ * @param {string | null} [organizationId]
  */
 async function disconnectInbox(id, organizationId = null) {
     await initDB();
@@ -362,12 +385,17 @@ async function disconnectInbox(id, organizationId = null) {
  * Delete every ticket that arrived over this inbox. Messages and thread events
  * follow via ON DELETE CASCADE; support_audit_log has no FK and survives, which
  * is what keeps the "this mailbox existed and was removed" trail intact.
+ * @param {string} inboxId
  */
 async function _purgeThreadsForInbox(inboxId) {
     const { rowCount } = await pool.query(`DELETE FROM support_threads WHERE inbox_id = $1`, [inboxId]);
     return rowCount;
 }
 
+/**
+ * @param {string} id
+ * @param {string | null} [organizationId]
+ */
 async function deleteInbox(id, organizationId = null) {
     await initDB();
     const vals = [id];
@@ -401,6 +429,10 @@ async function getDueInboxes() {
     return rows;
 }
 
+/**
+ * @param {string} inboxId
+ * @param {number} [ttlMinutes]
+ */
 async function acquireSyncLock(inboxId, ttlMinutes = 10) {
     await initDB();
     const { rows } = await pool.query(
@@ -413,6 +445,9 @@ async function acquireSyncLock(inboxId, ttlMinutes = 10) {
     return { acquired: rows.length > 0 };
 }
 
+/**
+ * @param {string} inboxId
+ */
 async function releaseSyncLock(inboxId) {
     await initDB();
     await pool.query(
@@ -424,7 +459,7 @@ async function releaseSyncLock(inboxId) {
 const CURSOR_COLUMNS = { gmailHistoryId: 'gmail_history_id', graphDeltaLink: 'graph_delta_link' };
 
 /**
- * @param inboxId
+ * @param {string} inboxId
  * @param {{ gmailHistoryId?: string, graphDeltaLink?: string }} [opts]
  */
 async function updateIncrementalCursor(inboxId, { gmailHistoryId, graphDeltaLink } = {}) {
@@ -443,7 +478,7 @@ async function updateIncrementalCursor(inboxId, { gmailHistoryId, graphDeltaLink
 const SYNC_STATE_COLUMNS = { syncStatus: 'sync_status', syncError: 'sync_error', lastSyncAt: 'last_sync_at' };
 
 /**
- * @param inboxId
+ * @param {string} inboxId
  * @param {{ syncStatus?: string, syncError?: string, lastSyncAt?: string|Date }} [opts]
  */
 async function updateSyncState(inboxId, { syncStatus, syncError, lastSyncAt } = {}) {
@@ -464,7 +499,7 @@ async function updateSyncState(inboxId, { syncStatus, syncError, lastSyncAt } = 
 /**
  * Queue a scan: set status='queued' + the look-back anchor, clearing any prior
  * result/progress. Returns the public row. Caller validates org scope.
- * @param inboxId
+ * @param {string} inboxId
  * @param {{ scanAfter?: string|Date }} [opts]
  */
 async function queueScan(inboxId, { scanAfter } = {}) {
@@ -483,7 +518,11 @@ async function queueScan(inboxId, { scanAfter } = {}) {
     return rows[0] || null;
 }
 
-/** Claim the next queued scan with a TTL lease (mirrors acquireSyncLock). */
+/**
+ * Claim the next queued scan with a TTL lease (mirrors acquireSyncLock).
+ * @param {string} inboxId
+ * @param {number} [ttlMinutes]
+ */
 async function acquireScanLock(inboxId, ttlMinutes = 30) {
     await initDB();
     const { rows } = await pool.query(
@@ -500,6 +539,9 @@ async function acquireScanLock(inboxId, ttlMinutes = 30) {
     return { acquired: rows.length > 0 };
 }
 
+/**
+ * @param {string} inboxId
+ */
 async function releaseScanLock(inboxId) {
     await initDB();
     await pool.query(
@@ -527,12 +569,12 @@ const SCAN_STATE_COLUMNS = {
     status: 'scan_status',
     progress: asJsonb('scan_progress'),
     // A cleared result is SQL NULL, not the JSON string "null".
-    result: { col: 'scan_result', cast: 'jsonb', transform: (v) => (v == null ? null : JSON.stringify(v)) },
+    result: { col: 'scan_result', cast: 'jsonb', transform: /** @param {unknown} v */ (v) => (v == null ? null : JSON.stringify(v)) },
 };
 
 /**
  * Write scan progress/status/result. Engine-only.
- * @param inboxId
+ * @param {string} inboxId
  * @param {{ status?: string, progress?: any, result?: any }} [opts]
  */
 async function setScanState(inboxId, { status, progress, result } = {}) {

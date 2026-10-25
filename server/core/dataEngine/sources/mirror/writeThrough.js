@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * A row changed IN BEE FLOW → the source first, then the copy — the same
  * contract for every kind, with the adapter supplying only what its source
@@ -70,15 +70,23 @@ const batch = require('./writeThroughBatch');
 
 const { UNAVAILABLE, sameInstant } = rows;
 
-/** Build the context every write site hands over, from what it already holds. */
+/** @typedef {import('./writeThroughRows').WriteCtx} WriteCtx */
+
+/**
+ * Build the context every write site hands over, from what it already holds.
+ * @param {Omit<WriteCtx, 'viewerId'> & { viewerId?: string | null }} parts
+ * @returns {WriteCtx}
+ */
 function contextOf({ table, scope, scopeKey, tableMeta, grade, viewerId }) {
     return { table, scope, scopeKey, tableMeta, grade, viewerId: viewerId || null };
 }
 
+/** @param {import('./writeThroughRows').WriteAdapter} adapter */
 function makeWriteThrough(adapter) {
     if (!adapter || typeof adapter.toWire !== 'function' || typeof adapter.apiFor !== 'function') {
         throw new Error('makeWriteThrough: an adapter with toWire() and apiFor() is required');
     }
+    /** @type {import('./writeThroughRows').Writer} */
     const w = {
         adapter,
         Err: adapter.Err,
@@ -91,8 +99,11 @@ function makeWriteThrough(adapter) {
         insertRow: w.insertRow,
         updateRow: w.updateRow,
         deleteRow: w.deleteRow,
+        /** @param {WriteCtx} ctx @param {unknown[]} list @param {{ collect?: boolean }} [opts] */
         insertRows: (ctx, list, opts) => batch.insertRows(w, ctx, list, opts),
+        /** @param {WriteCtx} ctx @param {Parameters<typeof batch.updateRows>[2]} list @param {{ collect?: boolean }} [opts] */
         updateRows: (ctx, list, opts) => batch.updateRows(w, ctx, list, opts),
+        /** @param {WriteCtx} ctx @param {string[]} ids @param {{ collect?: boolean }} [opts] */
         deleteRows: (ctx, ids, opts) => batch.deleteRows(w, ctx, ids, opts),
         contextOf,
     };

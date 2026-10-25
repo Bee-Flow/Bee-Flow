@@ -358,7 +358,7 @@ app.get('/api/admin/metrics', _requireAdminForMetrics, (req, res) => {
         res.setHeader('Content-Type', 'text/plain; version=0.0.4');
         return res.send(httpMetrics.renderTextFormat());
     }
-    res.json({ ...httpMetrics.snapshot(), pool: getPoolStats() });
+    res.json({ ...httpMetrics.snapshot(), pool: getPoolStats(), bestEffort: require('./utils/bestEffort').bestEffortCounts() });
 });
 app.use('/api/admin/guard', require('./routes/guardInstall'));
 app.use('/api/subscriptions', require('./routes/subscriptions'));

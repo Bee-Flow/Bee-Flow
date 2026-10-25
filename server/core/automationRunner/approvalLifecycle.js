@@ -30,6 +30,7 @@ const {
     validateStages,
     panelRecipientIds,
 } = require('./approvalSeats');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * Resolve the org this approval belongs to. Stamped once at creation and
@@ -189,7 +190,7 @@ async function createApprovalOnPause({ automation, run, err }) {
             await automationStore.appendApprovalAudit({
                 approvalId: approval.id, runId: run.id, stepId: err.stepId,
                 decidedBy: null, decision: 'requested', source: 'runner',
-            }).catch(() => {});
+            }).catch((e) => bestEffort('core/automationRunner/approvalLifecycle:createApprovalOnPause', e));
             runnerPort('approvals').dispatchApprovalRequested(approval);
         }
         return approval;
@@ -237,7 +238,7 @@ async function announceExpiredApproval(ap) {
     await automationStore.appendApprovalAudit({
         approvalId: ap.id, runId: ap.runId, stepId: ap.stepId,
         decidedBy: null, decision: 'expired', source: 'reaper',
-    }).catch(() => {});
+    }).catch((e) => bestEffort('core/automationRunner/approvalLifecycle:announceExpiredApproval', e));
     runnerPort('approvals').dispatchApprovalDecided(ap);
     await runnerPort('approvals').runOnDecidedHook(ap);
     // A deployment gate that ran out of time cancels its deployment. A store
@@ -255,12 +256,12 @@ async function announceExpiredApproval(ap) {
     const recipients = new Set([ap.ownerId]);
     if (Array.isArray(ap.approvers) && ap.approvers.length) {
         try { for (const id of await panelRecipientIds(ap.approvers)) recipients.add(id); }
-        catch (err) { log.debug('owner alone still hears about it', err); }
+        catch (err) { bestEffort('core/automationRunner/approvalLifecycle:announceExpiredApproval#2', err); /* owner alone still hears about it */ }
         if (ap.finalApproverUserId) recipients.add(ap.finalApproverUserId);
     } else if (ap.assigneeUserId) recipients.add(ap.assigneeUserId);
     else if (ap.assigneeGroupId) {
         try { for (const id of (await groupMemberIds(ap.assigneeGroupId)).ids) recipients.add(id); }
-        catch (err) { log.debug('owner alone still hears about it', err); }
+        catch (err) { bestEffort('core/automationRunner/approvalLifecycle:announceExpiredApproval#3', err); /* owner alone still hears about it */ }
     }
     // Run-less rows (app, deployment) have no run to close.
     const isRunless = (ap.source || 'run') !== 'run';
@@ -280,7 +281,7 @@ async function announceExpiredApproval(ap) {
         title: `⏰ Approval expired: ${ap.automationTitle || 'approval request'}`,
         message: `${ap.prompt || 'An approval'} — ${closed}`,
         card: false,
-    }).catch(() => {});
+    }).catch((e) => bestEffort('core/automationRunner/approvalLifecycle:announceExpiredApproval#4', e));
 }
 
 /**
@@ -360,11 +361,11 @@ async function owedRecipientIds(ap) {
                     if (!voted.has(id)) recipients.add(id);
                 }
             }
-        } catch (err) { log.debug('fall through to the caller\'s fallback', err); }
+        } catch (err) { bestEffort('core/automationRunner/approvalLifecycle:owedRecipientIds', err); /* fall through to the caller's fallback */ }
     } else if (ap.assigneeUserId) recipients.add(ap.assigneeUserId);
     else if (ap.assigneeGroupId) {
         try { for (const id of (await groupMemberIds(ap.assigneeGroupId)).ids) recipients.add(id); }
-        catch (err) { log.debug('fall through to the owner', err); }
+        catch (err) { bestEffort('core/automationRunner/approvalLifecycle:owedRecipientIds#2', err); /* fall through to the owner */ }
     }
     return recipients;
 }
@@ -401,7 +402,7 @@ async function sendApprovalReminder(ap) {
         category: 'heads_up',
         title: `⏳ Still waiting on you: ${ap.automationTitle || 'approval'}`,
         message: reminderBellMessage(ap, deadline),
-    }).catch(() => {});
+    }).catch((e) => bestEffort('core/automationRunner/approvalLifecycle:sendApprovalReminder', e));
     return recipients;
 }
 
@@ -418,7 +419,7 @@ async function remindAndEscalateDueApprovals() {
     try { due = await automationStore.markDueApprovalReminders(); }
     catch (e) { log.warn(`[ApprovalLifecycle] reminder sweep failed: ${e.message}`); }
     for (const ap of due) {
-        await sendApprovalReminder(ap).catch(() => {});
+        await sendApprovalReminder(ap).catch((e) => bestEffort('core/automationRunner/approvalLifecycle:remindAndEscalateDueApprovals', e));
     }
 
     let escalated = [];
@@ -428,12 +429,12 @@ async function remindAndEscalateDueApprovals() {
         await automationStore.appendApprovalAudit({
             approvalId: ap.id, runId: ap.runId, stepId: ap.stepId,
             decidedBy: null, decision: 'escalated', source: 'reaper',
-        }).catch(() => {});
+        }).catch((e) => bestEffort('core/automationRunner/approvalLifecycle:remindAndEscalateDueApprovals#2', e));
         const targets = new Set();
         if (ap.escalateToUserId) targets.add(ap.escalateToUserId);
         else if (ap.escalateToGroupId) {
             try { for (const id of (await groupMemberIds(ap.escalateToGroupId)).ids) targets.add(id); }
-            catch (err) { log.debug('owner hears below', err); }
+            catch (err) { bestEffort('core/automationRunner/approvalLifecycle:remindAndEscalateDueApprovals#3', err); /* owner hears below */ }
         }
         targets.add(ap.ownerId);
         // The escalation target has never been asked — a fresh request to
@@ -445,7 +446,7 @@ async function remindAndEscalateDueApprovals() {
             category: 'urgent',
             title: `⚠️ Escalated to you: ${ap.automationTitle || 'approval'}`,
             message: `${ap.prompt || 'An approval'} — the original approver did not decide in time. You can now decide it.`,
-        }).catch(() => {});
+        }).catch((e) => bestEffort('core/automationRunner/approvalLifecycle:remindAndEscalateDueApprovals#4', e));
     }
 }
 
@@ -482,3 +483,9 @@ module.exports = {
     GROUP_NOTIFY_CAP,
     _approvalLifecycleTest: { resolveOrgId, validateAssignee, snapshotAttachments, groupMemberIds, reminderBellMessage },
 };
+
+/** @typedef {NonNullable<Awaited<ReturnType<typeof automationStore.markDueApprovalReminders>>[number]>} ApprovalRecord */
+
+/** @typedef {import('./runSetup').RunAutomation} RunAutomation */
+
+/** @typedef {import('./runSetup').RunRow} RunRow */

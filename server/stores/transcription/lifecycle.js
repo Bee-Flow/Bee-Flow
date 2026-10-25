@@ -80,7 +80,7 @@ async function deleteTranscription(id, userId) {
             try {
                 await fs.promises.unlink(resolved);
             } catch (e) {
-                if (e.code !== 'ENOENT') log.warn(`[TranscriptionStore] Could not delete audio for ${id}: ${e.message}`);
+                if (e.code !== 'ENOENT') log.warn(`[TranscriptionStore] Could not delete audio for ${id}: ${/** @type {Error} */ (e).message}`);
             }
         }
     }
@@ -98,10 +98,15 @@ async function deleteTranscription(id, userId) {
                 log.info(`[TranscriptionStore] Deleted durable audio ${storageKey} for ${id}`);
             }
         } catch (e) {
-            log.warn(`[TranscriptionStore] Could not delete durable audio for ${id}: ${e.message}`);
+            log.warn(`[TranscriptionStore] Could not delete durable audio for ${id}: ${/** @type {Error} */ (e).message}`);
         }
     }
     return rowCount > 0;
 }
 
 module.exports = { timeoutStuckTranscriptions, setPublished, deleteTranscription };
+
+/**
+ * @typedef {Object} TimeoutStuckTranscriptionsArgs
+ * @property {number} [stuckMinutes]
+ */

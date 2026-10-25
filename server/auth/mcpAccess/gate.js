@@ -136,6 +136,8 @@ const limiters = {};
 /**
  * Run a shared limiter outside Express: `{ ok }` or `{ ok: false, retryAfter }`.
  * `cost` is the number of JSON-RPC messages the request carries.
+ * @param {{ name: string; max: number; }} kind
+ * @param {number} cost
  */
 function checkLimiter(kind, key, cost) {
     if (!limiters[kind.name]) {
@@ -160,7 +162,13 @@ function checkLimiter(kind, key, cost) {
     });
 }
 
+/**
+ * @param {number} [cost]
+ */
 const rateLimitCheck = (key, cost = 1) => checkLimiter({ name: 'mcp-token', max: RATE_LIMIT_PER_MINUTE }, key, cost);
+/**
+ * @param {number} [cost]
+ */
 const userRateLimitCheck = (key, cost = 1) => checkLimiter({ name: 'mcp-user', max: USER_RATE_LIMIT_PER_MINUTE }, key, cost);
 
 /**
@@ -172,6 +180,9 @@ function requestCost(req) {
     return Array.isArray(req?.body) ? Math.min(MAX_BATCH_SIZE + 1, Math.max(1, req.body.length)) : 1;
 }
 
+/**
+ * @param {string | undefined} header
+ */
 const bearerOf = (header) => String(header || '').replace(/^Bearer\s+/i, '').trim();
 
 /**
@@ -189,7 +200,12 @@ async function gateRequest(req, server, overrides = {}) {
     const bearer = bearerOf(header);
     const ip = req.ip;
 
-    /** @returns {GateResult} */
+    /**
+     * @returns {GateResult}
+     * @param {number | undefined} status
+     * @param {string | undefined} reason
+     * @param {string} [extra]
+     */
     const deny = (status, reason, tokenId, extra = '') => {
         // The reason stays in the operator's log; the client gets a generic error.
         log.warn(`[McpAccess] denied ${status} ${reason} server=${server} token=${tokenId || 'legacy-or-unknown'}${extra}`);
@@ -210,7 +226,7 @@ async function gateRequest(req, server, overrides = {}) {
             }
         }
     } catch (err) {
-        return deny(401, 'token_lookup_failed', null, ` error=${err.message}`);
+        return deny(401, 'token_lookup_failed', null, ` error=${/** @type {Error} */ (err).message}`);
     }
     if (!token) return deny(401, 'token_unknown', null);
 
@@ -229,7 +245,7 @@ async function gateRequest(req, server, overrides = {}) {
                 : [await d.getOrgMcpPolicy(null)];
         }
     } catch (err) {
-        return deny(403, 'lookup_failed', token.id, ` error=${err.message}`);
+        return deny(403, 'lookup_failed', token.id, ` error=${/** @type {Error} */ (err).message}`);
     }
     const orgId = orgs.primary || token.orgId || null;
 

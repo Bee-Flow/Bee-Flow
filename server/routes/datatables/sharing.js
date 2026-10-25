@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Who else may see this table, and who else already uses it.
  *
@@ -94,7 +95,7 @@ function register(router) {
         requireManageForOrgScope(),
         requireCapability('automation_sharing'),
         validate({ body: SharingBody, query: NO_QUERY }),
-        async (req, res) => {
+        async (req, /** @type {import('express').Response} */ res) => {
             try {
                 const body = req.body;
                 const { audience, writeMode } = body;
@@ -151,7 +152,7 @@ function register(router) {
             } catch (e) {
                 // e.code carries the machine-readable half (groups_required) so the
                 // surface can say "pick a group" instead of a generic failure.
-                if (e.status) return res.status(e.status).json({ error: e.message, ...(e.code ? { code: e.code } : {}) });
+                if (e.status) return res.status(e.status).json({ error: /** @type {Error} */ (e).message, ...(e.code ? { code: e.code } : {}) });
                 throw e;
             }
         });
@@ -162,7 +163,7 @@ function register(router) {
         requireManageForOrgScope(),
         requireCapability('automation_sharing'),
         validate({ body: GrantBody, query: NO_QUERY }),
-        async (req, res) => {
+        async (req, /** @type {import('express').Response} */ res) => {
             const { granteeType, granteeId, grade } = req.body;
             if (granteeType === 'group') await validateSharedGroupsForOrg(req.datatable.organizationId, [granteeId]);
             const grants = await datatableStore.addGrant(req.datatable.id, req.datatableScope,
@@ -173,22 +174,24 @@ function register(router) {
     router.delete('/:id/grants/:grantId',
         requireDatatableGrade('owner'),
         requireManageForOrgScope(),
-        async (req, res) => {
+        async (req, /** @type {import('express').Response} */ res) => {
             // Deliberately NOT licence-gated, and deliberately NOT refused on a
             // personal table either: removing access must always be possible, and a
             // table that holds no grants answers this with an empty list anyway.
             res.json({ grants: await datatableStore.removeGrant(req.datatable.id, req.params.grantId) });
         });
 
-    router.get('/:id/grants', requireDatatableGrade('viewer'), async (req, res) => {
+    router.get('/:id/grants', requireDatatableGrade('viewer'), async (req, /** @type {import('express').Response} */ res) => {
         res.json({ grants: await datatableStore.listGrants(req.datatable.id) });
     });
 
     // ── Who else uses this table ────────────────────────────────────────────────
 
-    router.get('/:id/usage', requireDatatableGrade('viewer'), async (req, res) => {
+    router.get('/:id/usage', requireDatatableGrade('viewer'), async (req, /** @type {import('express').Response} */ res) => {
         res.json({ usage: await datatableStore.listUsage(req.datatable.id) });
     });
 }
 
 module.exports = { register };
+
+/** @typedef {import('./grade').DatatableRequest} DatatableRequest */

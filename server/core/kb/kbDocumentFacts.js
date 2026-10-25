@@ -93,7 +93,7 @@ async function enrichWithDocumentFacts(rows, { client: borrowed = null } = {}) {
             if (occurred) row.occurred_at = occurred;
         }
     } catch (err) {
-        log.warn(`[LocalKBSearch] Document facts lookup failed: ${err.message}`);
+        log.warn(`[LocalKBSearch] Document facts lookup failed: ${/** @type {Error} */ (err).message}`);
     } finally {
         if (!borrowed) client?.release();
     }

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Settings for the AI that decides by itself when to take part in team chats
  * and comment threads (projects/participation/policy.js holds the rules and
@@ -28,13 +28,16 @@ const { bodyOf, flag, choice } = require('../core/http/schemaParts');
 
 const { SENSITIVITIES, RANGES } = require('../projects/participation/policy');
 
+/**
+ * @param {string} name
+ */
 const count = (name) => z.number({ error: typeError({ invalid: `${name} is a number.` }) }).optional();
 
 const OrgPolicyBody = bodyOf({
     autoAllowed: flag('autoAllowed is true or false: may the AI join conversations by itself?'),
     alwaysAllowed: flag('alwaysAllowed is true or false: may a chat let the AI answer every message?'),
     commentsAutoAllowed: flag('commentsAutoAllowed is true or false: may the AI join comment threads by itself?'),
-    sensitivity: choice([...SENSITIVITIES], `sensitivity is ${SENSITIVITIES.join(', ')}.`).optional(),
+    sensitivity: choice(/** @type {[string, ...string[]]} */ ([...SENSITIVITIES]), `sensitivity is ${SENSITIVITIES.join(', ')}.`).optional(),
     ...Object.fromEntries(Object.keys(RANGES).map((key) => [key, count(key)])),
 }, 'The AI participation settings');
 
@@ -44,7 +47,7 @@ const MyPreferenceBody = bodyOf({
 
 /**
  * @param {object} [deps]
- * @param {Function} [deps.requireAuth]        Express middleware: 401 without a session
+ * @param {import('express').RequestHandler} [deps.requireAuth]        Express middleware: 401 without a session
  * @param {Function} [deps.resolveUserOrgIds]  (req) => Set<orgId> | null (null = every org, a super admin)
  * @param {Function} [deps.isOrgAdmin]         (req, orgId) => boolean
  * @param {any}   [deps.policy]             policy.makePolicy() surface
@@ -54,18 +57,22 @@ function makeAiParticipationRouter(deps = {}) {
     const requireAuth = deps.requireAuth || function requireAuth(req, res, next) {
         return require('../auth/permissions').requireAuth(req, res, next);
     };
-    const resolveUserOrgIds = deps.resolveUserOrgIds || ((req) => require('../auth').resolveUserOrgIds(req));
-    const isOrgAdmin = deps.isOrgAdmin || ((req, orgId) => require('../auth/permissions').isOrgAdminForOrg(req, orgId));
+    const resolveUserOrgIds = deps.resolveUserOrgIds || ((/** @type {import('express').Request} */ req) => require('../auth').resolveUserOrgIds(req));
+    const isOrgAdmin = deps.isOrgAdmin || ((/** @type {import('express').Request} */ req, /** @type {string} */ orgId) => require('../auth/permissions').isOrgAdminForOrg(req, orgId));
     const policy = () => deps.policy || require('../projects/participation/policy').defaultPolicy();
 
-    /** The organisation's members may read its policy; a stranger may not learn it exists. */
+    /**
+     * The organisation's members may read its policy; a stranger may not learn it exists.
+     * @param {import('express').Request} req
+     * @param {string | string[]} orgId
+     */
     async function assertMember(req, orgId) {
         const orgIds = await resolveUserOrgIds(req);
         const member = orgIds === null || (orgIds && orgIds.has(orgId));
         if (!member) throw forbidden('not_org_member', 'You are not a member of this organisation.');
     }
 
-    router.get('/org/:orgId', requireAuth, async (req, res) => {
+    router.get('/org/:orgId', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const { orgId } = req.params;
         await assertMember(req, orgId);
         const current = await policy().resolveOrgPolicy(orgId);
@@ -74,7 +81,7 @@ function makeAiParticipationRouter(deps = {}) {
         res.json({ ...current, configured: await policy().isOrgPolicyConfigured(orgId), ranges: RANGES, sensitivities: SENSITIVITIES });
     });
 
-    router.put('/org/:orgId', requireAuth, validate({ body: OrgPolicyBody }), async (req, res) => {
+    router.put('/org/:orgId', requireAuth, validate({ body: OrgPolicyBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const { orgId } = req.params;
         if (!(await isOrgAdmin(req, orgId))) {
             throw forbidden('not_org_admin', 'Only an admin of this organisation can change how the AI takes part.');
@@ -83,13 +90,13 @@ function makeAiParticipationRouter(deps = {}) {
         res.json({ ...saved, configured: true, ranges: RANGES, sensitivities: SENSITIVITIES });
     });
 
-    router.get('/me', requireAuth, async (req, res) => {
+    router.get('/me', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const pref = await policy().resolveUserPreference(req.session.user.id);
         if (pref.unavailable) throw unavailable('preference_unavailable', 'Your AI participation preference could not be read. Try again in a moment.');
         res.json({ autoJoinOnMyMessages: pref.autoJoinOnMyMessages });
     });
 
-    router.put('/me', requireAuth, validate({ body: MyPreferenceBody }), async (req, res) => {
+    router.put('/me', requireAuth, validate({ body: MyPreferenceBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         res.json(await policy().saveUserPreference(req.session.user.id, req.body));
     });
 

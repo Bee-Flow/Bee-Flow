@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio catalog — definition.variables: the declared shared values, their
  * types, the reserved names, and the default coercion both runtimes seed from.

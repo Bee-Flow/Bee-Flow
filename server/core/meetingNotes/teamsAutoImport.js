@@ -50,6 +50,7 @@ const { deps: d, init } = lazyDeps({
 
 const log = require('../../telemetry/log');
 const kit = require('./importJobKit');
+const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 
 const { codedError, backoffMsFor, meetingEndMs } = kit;
 
@@ -69,7 +70,10 @@ const TERMINAL_CODES = new Set([
 ]);
 const QUIET_CODES = new Set(['no_recording', 'not_organizer']);
 
-/** A Microsoft-only session over a vault credential; refreshes write back to the vault. */
+/**
+ * A Microsoft-only session over a vault credential; refreshes write back to the vault.
+ * @param {string | null} userId
+ */
 async function vaultSession(auth, userId) {
     return d.resolveMicrosoftSession({ automationProviders: { microsoft: auth } }, userId);
 }
@@ -89,7 +93,7 @@ async function listCandidateUsers() {
     try {
         for (const id of await d.recordOptIn.listUsersWithRecordOptIn({ provider: 'teams' })) users.add(id);
     } catch (err) {
-        log.warn(`[TeamsAutoImport] record opt-in lookup failed: ${err.message}`);
+        log.warn(`[TeamsAutoImport] record opt-in lookup failed: ${/** @type {Error} */ (err).message}`);
     }
     return Array.from(users);
 }
@@ -97,7 +101,7 @@ async function listCandidateUsers() {
 async function discoverUser(userId) {
     let user = null;
     try { user = await d.userStore.getUser(userId); } catch (err) {
-        log.debug(`[TeamsAutoImport] user lookup failed for ${userId}: ${err.message}`);
+        fallbackSwallowed('core/meetingNotes/teamsAutoImport:discoverUser', err); // [TeamsAutoImport] user lookup failed for :
     }
     // A deleted or deactivated user keeps stale settings and marks; skip them.
     if (!user || (user.status ?? 'active') !== 'active') return;
@@ -162,7 +166,7 @@ async function fetchEventAttendees(session, job) {
             displayName: a.emailAddress?.name || null,
         }));
     } catch (err) {
-        log.warn(`[TeamsAutoImport] attendee lookup failed for job ${job.id}: ${err.message}`);
+        log.warn(`[TeamsAutoImport] attendee lookup failed for job ${job.id}: ${/** @type {Error} */ (err).message}`);
         return [];
     }
 }
@@ -172,6 +176,7 @@ async function fetchEventAttendees(session, job) {
  * transcript scope was granted) its transcript, else null. Transcript access
  * switched off by the tenant counts as "no transcript", not as a failure.
  * @returns {Promise<{ kind: 'recording'|'transcript', id: string }|null>}
+ * @param {string} meetingId
  */
 async function findArtifact(session, meetingId, job, { transcriptAllowed }) {
     const slot = { meetingStart: job.meetingStart, meetingEnd: job.meetingEnd };
@@ -210,6 +215,7 @@ async function processJobInline({ job, session, settings = null, language = null
     const effective = settings || await d.resolveTeamsNotesSettings({ orgId: job.orgId, userId: job.userId });
 
     let meetingId = job.onlineMeetingId;
+    /** @type {{ kind: 'recording' | 'transcript'; id: string; } | null} */
     let artifact;
     try {
         if (!meetingId) {
@@ -221,14 +227,14 @@ async function processJobInline({ job, session, settings = null, language = null
         artifact = await findArtifact(session, meetingId, job, { transcriptAllowed });
     } catch (err) {
         if (err?.code && TERMINAL_CODES.has(err.code)) {
-            await d.teamsImportStore.failJob(job.id, { errorCode: err.code, terminal: true, lastError: err.message });
+            await d.teamsImportStore.failJob(job.id, { errorCode: err.code, terminal: true, lastError: /** @type {Error} */ (err).message });
             throw err;
         }
         await d.teamsImportStore.failJob(job.id, {
-            errorCode: null, lastError: String(err?.message || err).slice(0, 500),
+            errorCode: null, lastError: String(/** @type {Error} */ (err)?.message || err).slice(0, 500),
             terminal: false, status: job.status, backoffMs: backoffMsFor(job.attempts),
         });
-        throw codedError(err?.message || 'Teams lookup failed', 'failed');
+        throw codedError(/** @type {Error} */ (err)?.message || 'Teams lookup failed', 'failed');
     }
 
     if (!artifact) {
@@ -308,3 +314,13 @@ async function processDue({ limit = 2 } = {}) {
 }
 
 module.exports = { init, discover, processDue, processJobInline, findArtifact, NO_RECORDING_DEADLINE_MS };
+
+/**
+ * @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/teamsImportStore').getJob>>>} TeamsImportJob
+ * @typedef {Awaited<ReturnType<typeof import('../../auth/microsoftSessionHydration').resolveMicrosoftSession>>} MicrosoftSession
+ */
+
+/**
+ * @typedef {Object} ProcessDueArgs
+ * @property {number} [limit]
+ */

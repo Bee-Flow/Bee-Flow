@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Dutch for "Find repeating work" (Studio > Automations, 2026-10): the source
  * tiles (Mail, Calendar & meetings, Files, Bee Flow activity), the scan drawn
@@ -191,7 +192,10 @@ const SAME_AS_ENGLISH = Object.freeze([
          // Runs
 ]);
 
-/** The mutation itself, on a copy of the 'nl' blob. Pure, so the store's mutator may run it more than once. */
+/**
+ * The mutation itself, on a copy of the 'nl' blob. Pure, so the store's mutator may run it more than once.
+ * @param {{ [x: string]: string; }} merged
+ */
 function applyNl(merged) {
     let added = 0;
     for (const [key, value] of Object.entries(NL_TRANSLATIONS)) {

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Everything that happens to a co-edited document besides clients typing
  * into it:

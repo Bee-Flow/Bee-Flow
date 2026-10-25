@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Direct Chat — a spreadsheet the user attaches becomes a Bee Flow
  * spreadsheet document that opens in the side panel (core/documents/
@@ -16,13 +16,17 @@ const log = require('../../../telemetry/log');
 
 const NOTHING = Object.freeze({ base: Object.freeze({}), note: '' });
 
-/** What the model is told about the import, one line plus the caveats. */
+/**
+ * What the model is told about the import, one line plus the caveats.
+ * @param {Awaited<ReturnType<typeof import('../../../core/documents/sheetImport').importWorkbook>>} result
+ */
 function importNote(result) {
     const lines = [`[Spreadsheet "${result.name}" imported as document ${result.documentId} and opened in the side panel: `
         + 'see what it holds with document_read({ documentId, mode: "outline" }) (columns and types, no rows), read rows with document_read({ documentId, tab, range }), '
         + 'change cells or add charts with document_write({ documentId, tab, cells, charts }). '
         + `Tabs: ${result.tabs.map((t) => t.name).join(', ')}.]`];
     for (const t of result.truncated) {
+        /** @type {string[]} */
         const parts = [];
         if (t.droppedRows) parts.push(`${t.droppedRows} row(s) past row 2000`);
         if (t.droppedCols) parts.push(`${t.droppedCols} column(s) past column Z`);
@@ -35,7 +39,10 @@ function importNote(result) {
     return lines.join('\n');
 }
 
-/** An attachment that is a spreadsheet file (by type or by name). */
+/**
+ * An attachment that is a spreadsheet file (by type or by name).
+ * @param {{ type?: string, name?: string }} att
+ */
 function isSpreadsheetUpload(att) {
     const type = att.type || '';
     const name = String(att.name || '').toLowerCase();
@@ -66,7 +73,7 @@ async function importUploadedSpreadsheet({ req, send, userId, buffer, att, docum
         log.info(`[DirectChat] Imported spreadsheet ${att.name} as document ${result.documentId} (${result.tabs.length} tab(s))`);
         return { base: { documentId: result.documentId }, note: `\n${importNote(result)}` };
     } catch (e) {
-        log.warn(`[DirectChat] Spreadsheet import failed for ${att.name}, using the text only: ${e.message}`);
+        log.warn(`[DirectChat] Spreadsheet import failed for ${att.name}, using the text only: ${/** @type {Error} */ (e).message}`);
         return NOTHING;
     }
 }

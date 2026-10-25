@@ -253,3 +253,9 @@ module.exports = {
     extractPageEntries, extractSiteEntries, collectStrings, isDeniedKey, isTranslatableValue,
     getAtPath, setAtPath,
 };
+
+/** @typedef {string | number} PathSeg a key or an array index */
+
+/** @typedef {{ targetPath: PathSeg[], source: string }} TranslateEntry */
+
+/** @typedef {import('../../stores/cms/shared').CmsDoc} CmsDoc */

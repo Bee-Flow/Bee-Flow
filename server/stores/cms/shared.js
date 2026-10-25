@@ -258,3 +258,17 @@ module.exports = {
     sanitizeDesign, sanitizeAnalytics, sanitizeBlogSettings,
     projectKey, projectLocaleKey, pageKey, pageLocaleKey, publishedKey, redirectsKey,
 };
+
+/** @typedef {Record<string, any>} CmsDoc A stored CMS JSON document (site, page, post, locale override or a slice of one). */
+
+/** @typedef {{ id: string, type: string, enabled?: boolean, content: CmsDoc, style?: CmsDoc, [k: string]: any }} CmsBlock One block of a page. */
+
+/** @typedef {{ id: string, slug: string, title: string, isHomepage?: boolean, hideHeader?: boolean, hideFooter?: boolean, noAnalytics?: boolean, isNotFound?: boolean }} PageIndexEntry One row of a site's page list. */
+
+/** @typedef {{ id: string, name: string, versionGroupId?: string, versionName?: string, createdAt?: string | null, updatedAt?: string | null }} ProjectIndexEntry One row of the projects index. */
+
+/** @typedef {{ version: number, projects: ProjectIndexEntry[] }} ProjectsIndex */
+
+/** @typedef {{ version: number, id: string, name: string, versionGroupId: string, versionName: string, homepageId: string | null, pages: PageIndexEntry[], header: CmsDoc, footer: CmsDoc, cookieBanner: CmsDoc, announcement: CmsDoc, analytics: CmsDoc, design: CmsDoc, blog?: CmsDoc, rev?: number, [k: string]: any }} SiteDoc A stored site document. */
+
+/** @typedef {{ version?: number, id: string, slug: string, title: string, seo?: CmsDoc, blocks: CmsBlock[], rev?: number, [k: string]: any }} PageDoc A stored page document. */

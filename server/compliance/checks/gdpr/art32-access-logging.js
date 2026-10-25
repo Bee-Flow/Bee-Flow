@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * GDPR Art. 32 — Access / guardrail logging is active.
  * Passes if at least one guardrail_events row exists in the last 7 days.
@@ -17,6 +17,7 @@ module.exports = {
     descriptionKey: 'compliance.checks.gdpr_art32_log.desc',
     remediationKey: 'compliance.checks.gdpr_art32_log.fix',
     remediationLink: 'admin/monitoring/activity',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         let count = 0;
         try {

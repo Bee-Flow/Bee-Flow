@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Moved: the static route-surface sweep is test-only code and lives in

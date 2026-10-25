@@ -11,7 +11,7 @@
 
 const userStore = require('../stores/userStore');
 const { resolveUserOrgIds } = require('./permissions');
-const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 function _parseSharedGroups(value) {
     if (Array.isArray(value)) return value;
@@ -67,9 +67,9 @@ async function resolveUserGroups(userId) {
         if (!user) return [];
         if (Array.isArray(user.groups)) return user.groups;
         if (typeof user.groups === 'string') {
-            try { return JSON.parse(user.groups || '[]'); } catch (_) { return []; }
+            try { return JSON.parse(user.groups || '[]'); } catch (e) { return fallback('audience:groups-json', e, []); }
         }
-    } catch (err) { log.debug('tolerate', err); }
+    } catch (err) { fallback('audience:resolve-groups', err); }
     return [];
 }
 

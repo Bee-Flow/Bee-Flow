@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * POST /api/projects/:id/transfer-owner, and the owner's refusal to leave.
  *

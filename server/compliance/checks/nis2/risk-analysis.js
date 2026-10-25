@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * NIS2 Art. 21(2)(a) — a maintained risk analysis.
  *
@@ -14,11 +14,12 @@
 
 const { getAll } = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const HIGH_SCORE = 12;
 const OPEN_STATUSES = new Set(['open', 'treating']);
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
+/** @param {Record<string, any> | null | undefined} settings */
 function _notRelevant(settings) {
     let rel = settings && settings.framework_relevance;
     if (typeof rel === 'string') { try { rel = JSON.parse(rel); } catch { rel = null; } }
@@ -41,6 +42,7 @@ module.exports = {
     remediationKey: 'compliance.check_nis2_risk_analysis_fix',
     remediationLink: 'admin/compliance/risks',
     HIGH_SCORE,
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const settings = await complianceStore.getSettings(orgId);
         if (_notRelevant(settings)) {
@@ -62,10 +64,10 @@ module.exports = {
                 WHERE r.organization_id = $1
             `, [orgId]);
         } catch (e) {
-            if (NOT_PROVISIONED.has(e?.code)) {
+            if (isMissingTable(e)) {
                 return {
                     status: 'warn',
-                    evidence: { provisioned: false, missing: e.code },
+                    evidence: { provisioned: false, missing: e.code ?? 'missing_table' },
                     details: 'The risk register is not provisioned yet — open Compliance → Risks once to create it.',
                 };
             }
@@ -73,6 +75,7 @@ module.exports = {
         }
 
         const now = Date.now();
+        /** @type {Record<string, number>} */
         const byStatus = {};
         const overdue = [];
         const untreatedHigh = [];
@@ -107,6 +110,7 @@ module.exports = {
                 details: 'The risk register is empty — no risk analysis exists to base the Art. 21 measures on.',
             };
         }
+        /** @type {string[]} */
         const warnings = [];
         if (untreatedHigh.length) {
             warnings.push(`${untreatedHigh.length} open risk(s) scored ${HIGH_SCORE} or higher have no treatment recorded.`);

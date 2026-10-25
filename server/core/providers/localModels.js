@@ -413,3 +413,31 @@ module.exports = {
     localContextWindowFor,
     _resetLocalModelRegistry,
 };
+
+/**
+ * @typedef {{
+ *   label: string,
+ *   defaultUrl: string,
+ *   defaultPort: number | null,
+ *   nativeApi: string | null,
+ *   needsApiKey: boolean,
+ *   canPull: boolean,
+ *   docsUrl: string | null,
+ *   description: string,
+ * }} LocalRuntime
+ */
+
+/**
+ * @typedef {{
+ *   re: RegExp,
+ *   name: string,
+ *   cat: string,
+ *   reasoning?: boolean,
+ *   vision?: boolean,
+ *   tools?: boolean,
+ *   embedding?: boolean,
+ *   thinkingMinTemperature?: number,
+ * }} LocalFamily
+ */
+
+/** @typedef {{ parameterSize?: string, quantization?: string, capabilities?: unknown[] }} LocalModelHints */

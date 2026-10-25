@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * RECIPES — the catalogue a playbook is started from, and the one call that
  * writes a new recipe DOCUMENT from a sentence. Neither touches a stored
@@ -44,6 +44,10 @@ const ComposeBody = bodyOf({
 // whatever the groups allowed), compose on the cheapest tier this person may
 // use: fast when it is theirs.
 
+/**
+ * @param {import('express').IRouter} router
+ * @param {import('./index').PlaybookRouteCtx} ctx
+ */
 function register(router, ctx) {
     const { d, flow, requireManageApps, runLimiter } = ctx;
     const { approvalsAllowed } = flow;
@@ -51,7 +55,7 @@ function register(router, ctx) {
     // `locale` is the caller's interface language: the recipes come back with
     // their columns, labels and briefs in it, and that is the language the
     // playbook is then built in.
-    router.get('/recipes', async (req, res) => {
+    router.get('/recipes', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const q = check(res, RecipesQuery, req.query, 'bad_options', 'query');
         if (!q.ok) return;
         res.json({ recipes: d.recipes.listRecipes(localeOfRequest(q.value.locale)), approvalsAllowed: await approvalsAllowed(req) });
@@ -60,7 +64,7 @@ function register(router, ctx) {
     // Describe a playbook in words → a recipe DOCUMENT (the tier above, one
     // forced tool call, normalised + validated server-side). Nothing is
     // stored: the dialog shows it, the person adjusts, POST / creates from it.
-    router.post('/recipes/compose', requireManageApps, runLimiter, async (req, res) => {
+    router.post('/recipes/compose', requireManageApps, runLimiter, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         try {
             const parsed = check(res, ComposeBody, req.body, 'description_required');
             if (!parsed.ok) return;
@@ -93,7 +97,7 @@ function register(router, ctx) {
             }
             res.json({ recipe: out.recipe, warnings: out.warnings || [] });
         } catch (e) {
-            log.error('[Playbooks] compose failed:', e.message);
+            log.error('[Playbooks] compose failed:', /** @type {Error} */ (e).message);
             sendErr(res, 502, 'compose_failed', 'Could not compose the playbook right now.');
         }
     });

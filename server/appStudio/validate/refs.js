@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio validator — cross-cutting reference resolution: tables, datasets,
  * connectors, fields, automations and modals, plus the navigate-params and
@@ -25,6 +26,10 @@ const { validateFormula } = require('./formulas');
 // reference is a soft warning (connect-it-later), an unresolved one is a
 // warning in a draft and an ERROR at publish (when opts.knownTables /
 // opts.knownDatasets are supplied).
+/**
+ * @param {string} id
+ * @param {string} path
+ */
 function checkRef(id, path, ctx, { label, known, codeUnset, codeInvalid, codeMissing, codeUnverified }) {
     const { pushE, pushW } = ctx;
     if (id === null || id === undefined) {
@@ -43,6 +48,12 @@ function checkRef(id, path, ctx, { label, known, codeUnset, codeInvalid, codeMis
 }
 
 
+/**
+ * @param {string} path
+ * @param {string} label
+ * @param {string} [codePrefix]
+ * @param {string} tableId
+ */
 function checkTableRef(tableId, path, ctx, label, codePrefix = 'binding') {
     // Data-model mode (opts.dataModel supplied): resolve the id against the
     // model's tables. The null/type handling stays with the legacy codes.
@@ -87,6 +98,8 @@ function checkTableRef(tableId, path, ctx, label, codePrefix = 'binding') {
  * rejected there if it is wrong. Here it is NOT repaired again but it IS reported again: this path
  * receives a model from a caller, and a model that got past the contract gate without being
  * canonicalised may not yield a table that is silently read as "own storage".
+ * @param {string} path
+ * @param {string} label
  */
 function checkTableSource(tableId, path, ctx, label, { codePrefix = 'binding' } = {}) {
     // Only in data-model mode, and only for an id that means something — a missing or broken tableId
@@ -101,6 +114,10 @@ function checkTableSource(tableId, path, ctx, label, { codePrefix = 'binding' } 
     // message; where the author can repair it is stated in the path.
     const what = label || 'Data reference';
     const via = `via table ${JSON.stringify(tableId)}`;
+    /**
+     * @param {string} message
+     * @param {string} hint
+     */
     const bad = (message, hint) => pushDataRef(ctx, {
         code: `${codePrefix}.table_source_invalid`, severity: 'error', path, message, hint,
     });
@@ -168,6 +185,8 @@ function checkTableSource(tableId, path, ctx, label, { codePrefix = 'binding' } 
  * An UNKNOWN mode counts here as not writable. Reading it as readwrite would turn a typo into a
  * permission; checkTableSource reports it separately as broken, so there is one message about the form
  * and one about the consequence.
+ * @param {string} path
+ * @param {string} label
  */
 function checkTableWritable(tableId, path, ctx, label, { codePrefix = 'binding' } = {}) {
     if (!ctx.dataTableSources || typeof tableId !== 'string' || !tableId) return;
@@ -187,6 +206,10 @@ function checkTableWritable(tableId, path, ctx, label, { codePrefix = 'binding' 
 // Connector references mirror datasets: in data-model mode the id must resolve
 // against model.connectors[]; without a model it is a soft "not verified until
 // publish" warning. binding.unknown_connector is the hard publish-gate error.
+/**
+ * @param {string} path
+ * @param {string} label
+ */
 function checkConnectorRef(connectorId, path, ctx, label) {
     const { pushE, pushW } = ctx;
     if (connectorId === null || connectorId === undefined) {
@@ -215,6 +238,9 @@ function checkConnectorRef(connectorId, path, ctx, label) {
 // Connector binding params: an object map { key: literal | {kind:'formula',expr} }.
 // Formula params are parse-compiled (never executed); literals pass through and
 // are sanitised again server-side before the connector runs.
+/**
+ * @param {string} path
+ */
 function validateConnectorParams(params, path, ctx) {
     const { pushE } = ctx;
     if (!isObject(params)) {
@@ -231,6 +257,11 @@ function validateConnectorParams(params, path, ctx) {
     }
 }
 
+/**
+ * @param {string} datasetId
+ * @param {string} path
+ * @param {string} label
+ */
 function checkDatasetRef(datasetId, path, ctx, label) {
     // Reserved ids are answered by the platform, not by the app's dataset
     // table — so "the app does not have it" is the wrong question. The gate
@@ -261,6 +292,9 @@ function checkDatasetRef(datasetId, path, ctx, label) {
  * otherwise or when the table itself did not resolve — the unknown-table
  * record already covers that). `allowSystem` admits the five system columns
  * (filter/sort may address them; step writes may not).
+ * @param {string} fieldKey
+ * @param {string} path
+ * @param {string} label
  */
 function checkFieldRef(tableId, fieldKey, path, ctx, label, { codePrefix = 'binding', allowSystem = true } = {}) {
     if (!ctx.dataTables || typeof tableId !== 'string' || !tableId) return;
@@ -292,6 +326,10 @@ function checkFieldRef(tableId, fieldKey, path, ctx, label, { codePrefix = 'bind
 }
 
 // run_automation reference (top-level and inside steps).
+/**
+ * @param {string} label
+ * @param {string} path
+ */
 function checkAutomationRef(aid, path, ctx, label) {
     const { pushE, pushW, ownedAutomations } = ctx;
     if (aid === null || aid === undefined) {
@@ -310,6 +348,10 @@ function checkAutomationRef(aid, path, ctx, label) {
 }
 
 // A modal reference must resolve to a `modal` component id in the tree.
+/**
+ * @param {string} path
+ * @param {string} label
+ */
 function checkModalRef(modalId, path, ctx, label) {
     const { pushE, modalIds } = ctx;
     if (typeof modalId !== 'string' || !modalId) {
@@ -328,6 +370,10 @@ function checkModalRef(modalId, path, ctx, label) {
 // roots restricted to FORMULA_SCOPE_ROOTS.
 const NAV_PARAM_KEY_RE = /^[a-zA-Z_$][a-zA-Z0-9_$]{0,59}$/;
 
+/**
+ * @param {string} label
+ * @param {string} path
+ */
 function validateNavigateParams(label, params, path, ctx) {
     const { pushE } = ctx;
     if (!isObject(params)) {
@@ -353,6 +399,10 @@ function validateNavigateParams(label, params, path, ctx) {
     }
 }
 
+/**
+ * @param {string} actionId
+ * @param {string} path
+ */
 function validateInputMapping(actionId, mapping, path, ctx) {
     const { pushE, pushW, formIds, inputNamesByForm, allInputNames } = ctx;
     if (!isObject(mapping)) {
@@ -401,3 +451,5 @@ module.exports = {
     validateNavigateParams,
     validateInputMapping,
 };
+
+/** @typedef {import('./shared').ValidationCtx} ValidationCtx */

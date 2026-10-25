@@ -49,6 +49,7 @@ const { isSourceManagedKind } = require('../core/dataEngine/dataModel/managedTab
 const { envFlagOn } = require('../core/automationRunner/integrationCachePolicy');
 const { recordJobRun } = require('../telemetry/metrics');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 // Rows are always in Postgres — the App Studio engine flag is a process global
 // that may say 'sqlite', and compiling under it would emit SQL for the wrong
@@ -73,10 +74,13 @@ const DELETE_CHUNK = 500;
  * written by four different automations would age out a quarter of itself and
  * report success. There is no viewer here — the org set a policy about the
  * whole table.
+ * @param {TableMeta} meta
  */
 function ownerFilter(meta) {
     return accessFilter.compileAccessFilter(meta, 'owner', { id: null }, 'delete', PG);
 }
+
+/** @typedef {NonNullable<Awaited<ReturnType<typeof datatableStore.getTableMeta>>>} TableMeta */
 
 /** Is the whole sweep switched off for this process? */
 function killSwitchOn() {
@@ -92,6 +96,7 @@ function killSwitchOn() {
  * the engine cannot reach or a compile failure must not stop the pass for every
  * other org in the deployment.
  *
+ * @param {import('../core/dataEngine/sources').Datatable} table
  * @returns {Promise<{deleted:number, skipped?:string}>}
  */
 async function sweepTable(table) {
@@ -169,6 +174,9 @@ async function sweepTable(table) {
  * Best-effort on purpose: this is bookkeeping that follows a delete which has
  * already committed, and failing it must not make the caller think the rows are
  * still there.
+ * @param {import('../core/dataEngine/sources').Datatable} table
+ * @param {TableMeta} meta
+ * @param {string} scopeKey
  */
 async function reconcileRowCount(table, meta, scopeKey) {
     try {
@@ -185,7 +193,7 @@ async function reconcileRowCount(table, meta, scopeKey) {
     try {
         // Mirrored into datatable_models by the engine itself (mirrorScopeSize).
         await datatableDbStore.sizeBytes(scopeKey, scopeKey);
-    } catch (err) { log.debug('the quota reader tolerates a stale size', err); }
+    } catch (err) { bestEffort('jobs/datatableRetention:reconcileRowCount', err); /* the quota reader tolerates a stale size */ }
 }
 
 /**

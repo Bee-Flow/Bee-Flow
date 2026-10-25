@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Compliance — the ISO 27001 evidence connectors: catalog, the vault
  * connections a connector may link, its per-org config and a manual sweep.
@@ -27,9 +27,13 @@ const { resolveOrgId } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
-const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
-/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
+/**
+ * A body that also accepts no body at all: Express 5 leaves `req.body` undefined then.
+ * @template {import('zod').ZodRawShape} T
+ * @param {T} shape
+ */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const ConnectorConfig = bodyOf({
@@ -61,7 +65,7 @@ router.get('/iso/connectors', requireAuth, requirePermission('admin_compliance')
         let snapshots = 0;
         if (cfg?.enabled) {
             try { snapshots = (await isoEvidenceStore.listLatestSnapshots(orgId, c.id)).length; }
-            catch (err) { log.debug('count stays 0', err); }
+            catch (err) { fallback('routes/compliance/isoConnectors:anon', err); /* count stays 0 */ }
         }
         out.push({
             id: c.id,
@@ -93,7 +97,7 @@ router.get('/iso/connectors/:id/connections', requireAuth, requirePermission('ad
     if (!connector.credential) return res.json([]);
     const orgId = await resolveOrgId(req);
     const userId = req.session?.user?.id;
-    const u = await userStore.getUser(userId).catch(() => null);
+    const u = await userStore.getUser(userId).catch((e) => fallback('routes/compliance/isoConnectors:anon#2', e, null));
     const connStore = require('../../stores/integrationConnectionStore');
     const rows = await connStore.listAccessibleConnections({
         userId, orgId, groups: u?.groups || [], provider: connector.credential.provider,

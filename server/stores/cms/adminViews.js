@@ -11,6 +11,7 @@ const { getPublishedSnapshot } = require('./publishing');
 /**
  * Compute the page graph for the sitemap diagram.
  * Edges are deduped per (source, target).
+ * @param {string} siteId
  */
 async function getSiteGraph(siteId) {
     const site = await getProject(siteId);
@@ -58,6 +59,9 @@ async function getSiteGraph(siteId) {
 
 // ── Admin payload (full editor state for one project) ────────────────
 
+/**
+ * @param {string} siteId
+ */
 async function getAdminPayload(siteId) {
     // The editor requires strict read-your-writes: after a debounced PUT the
     // panel re-fetches this payload (on tab focus, after page CRUD, or a

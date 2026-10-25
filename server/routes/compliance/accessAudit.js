@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Compliance — the access & authentication trail, readable by the people who
  * have to answer for it.
@@ -43,6 +44,9 @@ const { z, typeError } = require('../../utils/zod');
 // the epoch"): the alternative they refused was silently moving the range to
 // 1970. A 400 would be better still, but that is the owner's call to make on
 // a contract with a written reason, not a side effect of adding a schema.
+/**
+ * @param {string} name
+ */
 const _word = (name) => z.string({ error: typeError({ invalid: `${name} must be text.` }) }).optional();
 const AuditQuery = z.object({
     scope: _word('scope'),
@@ -86,6 +90,7 @@ const exportLimiter = perUserRateLimit({
 /**
  * The caller's organisation, or null. Never a default, never a guess: this
  * decides which tenant's audit trail is returned.
+ * @param {import('express').Request} req
  */
 async function strictOrgId(req) {
     const userId = req.session?.user?.id;
@@ -97,6 +102,7 @@ async function strictOrgId(req) {
 
 /** Parse an ISO date from the query, or null. An unparseable date is null — a
  *  filter that silently means "no filter" is better than one that silently
+ * @param {unknown} value
  *  means "epoch", which would look like a working filter returning everything. */
 function isoDate(value) {
     if (typeof value !== 'string' || !value.trim()) return null;
@@ -104,6 +110,7 @@ function isoDate(value) {
     return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
+/** @param {import('express').Request['query']} query */
 function actionsFrom(query) {
     const raw = query.action ?? query.actions;
     if (!raw) return undefined;
@@ -117,6 +124,7 @@ function actionsFrom(query) {
  * The filter for one request, with the tenant already pinned.
  * Returns null when the caller has no organisation and did not ask for — and
  * is not entitled to — the platform-level view.
+ * @param {import('express').Request} req
  */
 async function scopeFor(req) {
     const wantsGlobal = String(req.query.scope || '') === 'platform';
@@ -132,6 +140,10 @@ async function scopeFor(req) {
     return { organizationId, globalOnly: false };
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {{ organizationId: string | undefined, globalOnly: boolean }} scope
+ */
 function filterFrom(req, scope) {
     return {
         ...scope,
@@ -151,7 +163,7 @@ const NO_SCOPE = {
 
 // ── The view ────────────────────────────────────────────────────────
 
-router.get('/access-audit', requireAuth, requirePermission('admin_compliance'), validate({ query: AuditQuery }), async (req, res) => {
+router.get('/access-audit', requireAuth, requirePermission('admin_compliance'), validate({ query: AuditQuery }), /** @param {import('express').Request<{}, any, any, { limit?: string, offset?: string }>} req */ async (req, /** @type {import('express').Response} */ res) => {
     const scope = await scopeFor(req);
     if (!scope) return res.status(403).json(NO_SCOPE);
 
@@ -183,7 +195,7 @@ router.get('/access-audit', requireAuth, requirePermission('admin_compliance'), 
  * it, and an action that has never occurred in this organisation does not offer
  * a filter that returns nothing.
  */
-router.get('/access-audit/actions', requireAuth, requirePermission('admin_compliance'), validate({ query: AuditQuery }), async (req, res) => {
+router.get('/access-audit/actions', requireAuth, requirePermission('admin_compliance'), validate({ query: AuditQuery }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const scope = await scopeFor(req);
     if (!scope) return res.status(403).json(NO_SCOPE);
     res.json({ actions: await userStore.listAccessAuditActions(scope) });
@@ -199,7 +211,7 @@ router.get('/access-audit/actions', requireAuth, requirePermission('admin_compli
  * The export is EXACTLY what the filter selects. Nothing is added that the view
  * does not show, so a reader can reproduce the file from the screen.
  */
-router.get('/access-audit/export', requireAuth, requirePermission('admin_compliance'), exportLimiter, validate({ query: AuditQuery }), async (req, res) => {
+router.get('/access-audit/export', requireAuth, requirePermission('admin_compliance'), exportLimiter, validate({ query: AuditQuery }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const scope = await scopeFor(req);
     if (!scope) return res.status(403).json(NO_SCOPE);
 
@@ -237,7 +249,7 @@ router.get('/access-audit/export', requireAuth, requirePermission('admin_complia
                 since: filter.since,
                 until: filter.until,
             },
-            ip: req.headers?.['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || null,
+            ip: /** @type {string | undefined} */ (req.headers?.['x-forwarded-for'])?.split(',')[0]?.trim() || req.ip || null,
         },
         scope.globalOnly ? null : scope.organizationId,
     );
@@ -264,5 +276,6 @@ router.get('/access-audit/export', requireAuth, requirePermission('admin_complia
     }, null, 2));
 });
 
+/** @typedef {import('express').Router & Record<string, unknown>} RouterExports */
 module.exports = router;
-module.exports._internal = { strictOrgId, isoDate, actionsFrom, MAX_PAGE, MAX_EXPORT };
+/** @type {RouterExports} */ (module.exports)._internal = { strictOrgId, isoDate, actionsFrom, MAX_PAGE, MAX_EXPORT };

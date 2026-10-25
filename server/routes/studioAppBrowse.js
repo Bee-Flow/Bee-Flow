@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * App Studio — the streaming AI-browse bridge.
  *
@@ -52,6 +53,7 @@ const { loadVisibleApp, assertActionRoleAccess } = require('./studioAppRunGate')
 const { resolveAudienceContext } = require('../auth/audience');
 const { requireAuth } = require('../auth/permissions');
 const { browseStepLimiter, aiStepLimiter } = require('./studioAppRateLimits');
+const { bestEffort } = require('../utils/bestEffort');
 
 const MAX_BODY_BYTES = 64 * 1024;
 const jsonBody = express.json({ limit: MAX_BODY_BYTES });
@@ -62,6 +64,7 @@ const HEARTBEAT_MS = 15_000;
 
 // The driver's event names → the step-stream wire types. Frame/action payloads
 // are byte-identical to what agent-hub/useChatEngine already consumes.
+/** @type {Record<string, string>} */
 const EVENT_MAP = {
     browser_session_queued: 'queued',
     browser_session_start: 'start',
@@ -70,7 +73,10 @@ const EVENT_MAP = {
     browser_session_end: 'end',
 };
 
-/** An object that also accepts nothing at all — an absent part reads as `{}`. */
+/**
+ * An object that also accepts nothing at all — an absent part reads as `{}`.
+ * @param {Parameters<typeof z.object>[0]} shape
+ */
 const partOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape).strict(),
@@ -78,7 +84,7 @@ const partOf = (shape) => z.preprocess(
 
 const STEP_TEXT = 'stepIndex is the position of the step in the action (0, 1, 2, …).';
 const DRAFT_TEXT = 'draft is "1" or "true" to run the draft, "0" or "false" (or nothing) for the published app.';
-const BAG_TEXT = (name) => `${name} is an object of values, keyed by name.`;
+const BAG_TEXT = (/** @type {string} */ name) => `${name} is an object of values, keyed by name.`;
 
 const BrowseQuery = partOf({
     draft: z.enum(['1', 'true', '0', 'false'], { error: () => DRAFT_TEXT }).optional(),
@@ -103,7 +109,7 @@ const BrowseBody = partOf({
     value: z.unknown().optional(),
 });
 
-router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validate({ query: BrowseQuery, body: BrowseBody }), async (req, res, next) => {
+router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validate({ query: BrowseQuery, body: BrowseBody }), async (/** @type {import('express').Request<{ id: string, actionId: string }>} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
     // Body cap (mirrors bodySizeGuard) before anything else.
     try {
         if (req.body && typeof req.body === 'object' && Buffer.byteLength(JSON.stringify(req.body), 'utf8') > MAX_BODY_BYTES) {
@@ -148,8 +154,8 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
 
         // ── Open the SSE stream ──────────────────────────────────────────
         const { sendRaw } = openSse(res, { headers: { 'Cache-Control': 'no-cache, no-transform' }, flush: true, viaSetHeader: true });
-        const send = (obj) => sendRaw(`data: ${JSON.stringify(obj)}\n\n`);
-        const bridge = (event, data) => {
+        const send = (/** @type {object} */ obj) => sendRaw(`data: ${JSON.stringify(obj)}\n\n`);
+        const bridge = (/** @type {string} */ event, /** @type {object} */ data) => {
             const type = EVENT_MAP[event];
             if (type) send({ type, ...data });
         };
@@ -163,7 +169,7 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
         try {
             const formValues = sanitizeBag(req.body.formValues);
             const vars = sanitizeBag(req.body.vars);
-            const result = await actionExecutor.executeDataStep(app, dataModel, step, {
+            const result = /** @type {{ ok: boolean, result?: unknown, error?: string, code?: string, limit?: number, used?: number }} */ (await actionExecutor.executeDataStep(app, dataModel, step, {
                 viewerId: userId,
                 viewerName: req.session.user.name || null,
                 viewerEmail: req.session.user.email || null,
@@ -181,7 +187,7 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
                 index: req.body.index,
                 value: req.body.value,
                 browse: { send: bridge, isCancelled: () => cancelled },
-            });
+            }));
             send({ type: 'result', ok: !!result?.ok, result: result?.result || null, error: result?.error || null, code: result?.code || null });
             send({ type: 'done' });
         } catch (e) {
@@ -197,13 +203,13 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
     } catch (err) {
         if (!res.headersSent) return next(err);
         log.error(`[StudioAppBrowse] ${err.message}`);
-        try { res.write(`data: ${JSON.stringify({ type: 'result', ok: false, error: 'Browse failed' })}\n\n`); } catch (err) { log.debug('gone', err); }
+        try { res.write(`data: ${JSON.stringify({ type: 'result', ok: false, error: 'Browse failed' })}\n\n`); } catch (err) { bestEffort('routes/studioAppBrowse:anon', err); /* gone */ }
         res.end();
     }
 });
 
 // Body-parser failures → JSON (mirrors studioAppsRun).
-router.use((err, req, res, next) => {
+router.use((/** @type {Error & { type?: string, status?: number, statusCode?: number }} */ err, /** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
     // A schema refusal already names its field in words; the terminal handler
     // answers it with those details instead of this generic sentence.
     if (err instanceof HttpError) return next(err);

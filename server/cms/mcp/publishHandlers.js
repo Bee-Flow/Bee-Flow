@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * The publishing CMS-over-MCP tools (./dispatch.js maps tool names to them;
@@ -10,9 +10,22 @@ const { err } = require('./handlerKit');
 const log = require('../../telemetry/log');
 const { runLinkCheck, asValidationWarnings } = require('../../core/cms/linkReport');
 
-/** Publish and go-live, both audited. */
+/**
+ * @typedef {import('./handlerKit').ToolArgs} ToolArgs
+ * @typedef {import('./handlerKit').McpCtx} McpCtx
+ * @typedef {import('./handlerKit').HandlerKit} HandlerKit
+ */
+
+/**
+ * Publish and go-live, both audited.
+ * @param {HandlerKit} kit
+ */
 function createPublishHandlers({ deps, cmsStore, live, resolveSite, loadDraft, validationOf }) {
-    /** The internal broken links as warnings; the publish already happened, so a failure here is only logged. */
+    /**
+     * The internal broken links as warnings; the publish already happened, so a failure here is only logged.
+     * @param {string} siteId
+     * @param {{ errors: object[], warnings: object[] } | null} validation
+     */
     async function withLinkWarnings(siteId, validation) {
         try {
             const report = await runLinkCheck(siteId, { external: false }, { cmsStore });
@@ -24,6 +37,10 @@ function createPublishHandlers({ deps, cmsStore, live, resolveSite, loadDraft, v
         }
     }
 
+    /**
+     * @param {ToolArgs} args
+     * @param {McpCtx} ctx
+     */
     async function publish(args, ctx) {
         const site = await resolveSite(args);
         if (site.error) return err(site.error);
@@ -51,10 +68,12 @@ function createPublishHandlers({ deps, cmsStore, live, resolveSite, loadDraft, v
      * Name the homepage in the go-live answer. Every new site starts with an
      * empty "Home" page; an agent that does not know that creates a second one
      * (slug home-2). Say which page it is so the agent fills it instead.
+     * @param {string} siteId
+     * @param {McpCtx} ctx
      */
     async function homepageReport(siteId, ctx) {
         const draftWrap = await loadDraft(siteId, ctx);
-        const entry = (draftWrap.site.pages || []).find((p) => p.id === draftWrap.site.homepageId)
+        const entry = (draftWrap.site.pages || []).find((/** @type {Record<string, any>} */ p) => p.id === draftWrap.site.homepageId)
             || (draftWrap.site.pages || [])[0];
         if (!entry) return { homepage: null, note: 'This site has no pages yet, so visitors see nothing. Create a page with cms_create_page.' };
         const doc = draftWrap.pages.get(entry.id);
@@ -65,6 +84,10 @@ function createPublishHandlers({ deps, cmsStore, live, resolveSite, loadDraft, v
         };
     }
 
+    /**
+     * @param {ToolArgs} args
+     * @param {McpCtx} ctx
+     */
     async function setLiveSite(args, ctx) {
         const site = await resolveSite({ siteId: args.siteId });
         if (site.error) return err(site.error);
@@ -84,6 +107,7 @@ function createPublishHandlers({ deps, cmsStore, live, resolveSite, loadDraft, v
         }
         await deps.audit('cms.live.mcp', 'cms_site', site.siteId, ctx.userId, null, { tokenName: ctx.token.name, live: goLive }, ctx.orgId || null);
         const liveSiteId = await live.getLiveSiteId();
+        /** @type {Record<string, any>} */
         const result = { siteId: site.siteId, live: liveSiteId === site.siteId, liveSiteId };
         if (goLive) {
             // The switch already happened: a failure to describe the homepage

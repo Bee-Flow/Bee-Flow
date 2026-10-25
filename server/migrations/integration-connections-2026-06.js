@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: integration_connections + connection_grants.
  *

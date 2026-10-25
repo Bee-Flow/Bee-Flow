@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * The recipe DOCUMENT — a playbook's plan as data, so an AI (or a person)
  * can write a new one instead of a developer adding a module.
@@ -42,6 +43,29 @@ const { copyFor } = require('./copy');
 const { SYSTEM_COLUMNS, RESERVED_KEY_PREFIX_RE } = require('../core/dataEngine/dataModel/vocabulary');
 const { looksGarbled } = require('../core/llm/partialJsonScan');
 
+/** @typedef {ReturnType<typeof copyFor>} Copy */
+/** @typedef {{ key: string, name: string, type: string, required: boolean, role?: string, options?: string[], aliases?: string[] }} RecipeField */
+/** @typedef {{ key: string|null, kind: string|null, label: string, brief?: string, requires?: string, requiresRole?: string, goal?: string }} RecipePhase */
+/** @typedef {{ key: string, label: string, kind: string, default?: string, placeholder?: string }} RecipeInput */
+/**
+ * A normalised recipe document (normaliseRecipeDoc).
+ * @typedef {{ id: string, version: number, source: string, title: string, description: string, table: { fields: RecipeField[] }|null,
+ *   inputs: RecipeInput[], phases: RecipePhase[], warnings?: string[] }} RecipeDoc
+ */
+/** @typedef {{ required: boolean, aliases: string[], types: string[] }} RoleSpec */
+/** @typedef {{ key?: unknown, name?: unknown, label?: unknown, type?: unknown, required?: unknown, role?: unknown, options?: unknown, aliases?: unknown }} RawField  a column as a model or a person wrote it */
+/**
+ * A phase as a model or a person wrote it.
+ * @typedef {{ kind?: unknown, key?: unknown, label?: unknown, title?: unknown, name?: unknown, brief?: unknown, requires?: unknown,
+ *   requiresApprovals?: unknown, requiresRole?: unknown, goal?: unknown, fields?: unknown, columns?: unknown, schema?: unknown }} RawPhase
+ */
+/** @typedef {{ key?: unknown, label?: unknown, kind?: unknown, default?: unknown, placeholder?: unknown }} RawInput */
+/**
+ * A recipe document as a model (its tool call) or a person (their JSON) wrote it.
+ * @typedef {{ id?: unknown, title?: unknown, description?: unknown, blurb?: unknown, phases?: unknown, columns?: unknown, fields?: unknown,
+ *   table?: unknown, datatable?: unknown, schema?: unknown, tables?: unknown, inputs?: unknown, warnings?: unknown }} RawDoc
+ */
+
 /**
  * A column the database already owns, or one it reserves.
  *
@@ -51,6 +75,7 @@ const { looksGarbled } = require('../core/llm/partialJsonScan');
  * that and the playbook died on phase 1 with a Retry that could only fail the
  * same way, because the recipe document is stored and replayed as written
  * (owner, on the box 2026-09-17).
+ * @param {string} key
  */
 function reservedKey(key) {
     const k = String(key || '').toLowerCase();
@@ -65,6 +90,8 @@ function reservedKey(key) {
  * ("Sollicitatiedatum" keyed `created_at` becomes `sollicitatiedatum`), and one
  * that is genuinely asking for a stamp the table already has is dropped — a
  * second "when was this added" column is worse than none.
+ * @param {RecipeField[]} fields
+ * @returns {RecipeField[]}
  */
 function stripSystemColumns(fields) {
     const list = Array.isArray(fields) ? fields : [];
@@ -92,6 +119,7 @@ const DOC_VERSION = 1;
 // and with which role. No model touches it — the person fills it in.
 const KINDS = Object.freeze(['table', 'automation', 'fill', 'design', 'app', 'app_turn', 'access', 'compliance']);
 const BRIEF_KINDS = new Set(['automation', 'app', 'app_turn']);
+/** @type {ReadonlySet<unknown>} */
 const INPUT_KINDS = new Set(['folder', 'text']);
 const MAX_PHASES = 8;
 const MAX_FIELDS = 30;
@@ -111,7 +139,10 @@ const RECIPE_ROOTS = new Set(['table', 'field', 'input', 'title', 'approver', 'o
 const PLACEHOLDER_RE = /\{\{\s*((?:table|field|input|title|approver|owner)(?:\.[\w.]*)?)\s*\}\}/g;
 const IF_RE = /\{\{#if\s+([a-zA-Z_][\w.]*)\s*\}\}([\s\S]*?)\{\{\/if\}\}/g;
 
-/** The name as a bare key, with no collision handling — for asking what it MEANS. */
+/**
+ * The name as a bare key, with no collision handling — for asking what it MEANS.
+ * @param {unknown} s
+ */
 function rawSlug(s) {
     return String(s == null ? '' : s)
         .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
@@ -120,6 +151,9 @@ function rawSlug(s) {
         .replace(/^_+|_+$/g, '');
 }
 
+/**
+ * @param {string} s
+ */
 function slug(s) {
     return keyFromTitle(String(s == null ? '' : s), 0, new Set());
 }
@@ -130,6 +164,10 @@ function slug(s) {
  * phase's label, the column's key — for a reader who holds a different
  * copy: the model, whose own call the repair round echoes, wrote phases in
  * another order and count than the normaliser left them in.
+ * @param {string} code
+ * @param {string} path
+ * @param {string} message
+ * @param {{ phase?: { key: string|null, label: string }, column?: string }|null} [extra]
  */
 function err(code, path, message, extra = null) {
     return { code, path, message, ...(extra || {}) };
@@ -145,6 +183,10 @@ function err(code, path, message, extra = null) {
 // one string — each of which used to lose the WHOLE table while the briefs
 // went on referencing {{table.id}}: the compose then died as recipe_invalid
 // with "A table phase needs table.fields" (owner's dialog, 2026-09-17).
+/**
+ * @param {...unknown} candidates
+ * @returns {unknown[]|null}
+ */
 function firstList(...candidates) {
     for (const c of candidates) {
         if (Array.isArray(c) && c.length) return c;
@@ -152,7 +194,7 @@ function firstList(...candidates) {
         // An object keyed by column name: {"invoice_date": "date", "vendor": {type:"text"}}.
         // (One column given bare — {name, type} — is one entry, not a map.)
         if (c && typeof c === 'object') {
-            if (typeof c.name === 'string' || typeof c.label === 'string') return [c];
+            if (typeof /** @type {RawField} */ (c).name === 'string' || typeof /** @type {RawField} */ (c).label === 'string') return [c];
             const entries = Object.entries(c);
             if (entries.length) {
                 return entries.map(([k, v]) => (v && typeof v === 'object' && !Array.isArray(v)
@@ -168,15 +210,24 @@ function firstList(...candidates) {
 // table phase itself: the column array bare, or an object carrying it under
 // `fields`, `columns` or `schema`. An object with none of those is not a
 // column list (a `{name:"Invoices"}` table stub must not become one column).
+/** @param {unknown} t */
 function columnsOf(t) {
     if (Array.isArray(t)) return t.length ? t : null;
-    if (t && typeof t === 'object') return firstList(t.fields, t.columns, t.schema);
+    if (t && typeof t === 'object') return firstList(/** @type {RawPhase} */ (t).fields, /** @type {RawPhase} */ (t).columns, /** @type {RawPhase} */ (t).schema);
     return null;
 }
 
+/**
+ * @param {unknown} raw
+ * @param {number} i
+ * @param {Set<string>} used
+ * @param {Copy} copy
+ * @returns {RecipeField}
+ */
 function normaliseField(raw, i, used, copy) {
     // A string entry IS the column ("invoice_date", "Vendor Name").
-    const f = raw && typeof raw === 'object' ? raw : { name: String(raw ?? '') };
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- KEY_RE is anchored, one class with a bounded {0,39}: linear
+    const f = /** @type {RawField} */ (raw && typeof raw === 'object' ? raw : { name: String(raw ?? '') });
     const name = String(f.name || f.label || f.key || copy.columnFallback(i + 1)).trim().slice(0, MAX_LABEL);
     let key = typeof f.key === 'string' && KEY_RE.test(f.key.toLowerCase()) ? f.key.toLowerCase() : keyFromTitle(name, i, used);
     if (used.has(key)) key = keyFromTitle(name, i, used);
@@ -187,6 +238,7 @@ function normaliseField(raw, i, used, copy) {
     if (type === 'boolean') type = 'bool';
     if (type === 'enum' || type === 'choice') type = 'select';
     if (!DATATABLE_FIELD_TYPES.includes(type)) type = 'text';
+    /** @type {RecipeField} */
     const out = { key, name, type, required: f.required !== false };
     // A column may declare the ROLE it plays ("totaal"), so a brief can
     // address it by one stable name while the key follows the language
@@ -201,9 +253,15 @@ function normaliseField(raw, i, used, copy) {
     return out;
 }
 
+/**
+ * @param {unknown} raw
+ * @param {number} i
+ * @param {Copy} copy
+ * @returns {RecipePhase}
+ */
 function normalisePhase(raw, i, copy) {
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- constant replace/test patterns without nested repeats on bounded strings: linear
-    const p = raw && typeof raw === 'object' ? raw : {};
+    const p = /** @type {RawPhase} */ (raw && typeof raw === 'object' ? raw : {});
     let kind = String(p.kind || p.key || '').toLowerCase().replace(/-/g, '_');
     // An approval flow is a AUTOMATION on Studio → Approvals (the person decides
     // there), never a change to the app.
@@ -219,6 +277,7 @@ function normalisePhase(raw, i, copy) {
     // A kind the model made up ("bi_dashboard", "fase_1") is read off the
     // words: what it builds tells what it is.
     if (!KINDS.includes(kind)) kind = inferKind(`${kind} ${label} ${brief}`);
+    /** @type {RecipePhase} */
     const out = { key: typeof p.key === 'string' && KEY_RE.test(p.key.toLowerCase()) ? p.key.toLowerCase() : null, kind, label };
     if (brief) out.brief = brief;
     if (requires) out.requires = requires;
@@ -227,7 +286,10 @@ function normalisePhase(raw, i, copy) {
     return out;
 }
 
-/** The kind the words point at, or null when they point nowhere. */
+/**
+ * The kind the words point at, or null when they point nowhere.
+ * @param {string} text
+ */
 function inferKind(text) {
     const t = String(text || '').toLowerCase();
     if (/\b(goedkeur|approv)/.test(t)) return 'automation';
@@ -239,8 +301,13 @@ function inferKind(text) {
     return null;
 }
 
-/** Keys after the kinds are settled: the kind itself, or the label's slug, unique. */
+/**
+ * Keys after the kinds are settled: the kind itself, or the label's slug, unique.
+ * @param {RecipePhase[]} phases
+ * @returns {Array<RecipePhase & { key: string }>}
+ */
 function assignPhaseKeys(phases) {
+    /** @type {Set<string>} */
     const used = new Set();
     return phases.map((p, i) => {
         let key = p.key || p.kind || slug(p.label) || `phase_${i + 1}`;
@@ -254,13 +321,16 @@ function assignPhaseKeys(phases) {
  * Bring a raw document (an AI's tool call, a person's JSON) to the canonical
  * shape without judging it: keys derived, kinds inferred, a fill after a
  * automation that lacks one, a table phase first when a table is declared.
+ * @param {unknown} raw
+ * @param {{ source?: string, locale?: string|null }} [opts]
+ * @returns {RecipeDoc}
  */
 function normaliseRecipeDoc(raw, { source = 'ai', locale = null } = {}) {
     // What the SERVER adds to the document (a fill phase, a design phase, a
     // name for something left unnamed) is written in the demo's language.
     const copy = copyFor(locale);
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- constant replace/test patterns without nested repeats on bounded strings: linear
-    const d = raw && typeof raw === 'object' ? raw : {};
+    const d = /** @type {RawDoc} */ (raw && typeof raw === 'object' ? raw : {});
     const title = String(d.title || '').trim().slice(0, MAX_TITLE);
     const description = String(d.description || d.blurb || '').trim().slice(0, 300);
     // Phases first: the column list may be sitting INSIDE the table phase, and
@@ -268,7 +338,8 @@ function normaliseRecipeDoc(raw, { source = 'ai', locale = null } = {}) {
     // phase, or one whose label reads "Tabel" with no kind at all).
     const rawPhases = (Array.isArray(d.phases) ? d.phases : []).slice(0, MAX_PHASES);
     let phases = rawPhases.map((p, i) => normalisePhase(p, i, copy));
-    const rawTablePhase = rawPhases.find((p, i) => phases[i].kind === 'table' && p && typeof p === 'object') || null;
+    const rawTablePhase = /** @type {RawPhase|null} */ (rawPhases.find((p, i) => phases[i].kind === 'table' && p && typeof p === 'object') || null);
+    /** @type {Set<string>} */
     const usedFields = new Set();
     // In this order: the contract (`columns`, then its old name), the nested
     // `table` the contract used to be, the other names a model gives a table,
@@ -282,14 +353,17 @@ function normaliseRecipeDoc(raw, { source = 'ai', locale = null } = {}) {
         ? stripSystemColumns(rawFields.slice(0, MAX_FIELDS).map((f, i) => normaliseField(f, i, usedFields, copy)))
         : [];
     const table = normalisedFields.length ? { fields: normalisedFields } : null;
+    /** @type {Set<string>} */
     const usedInputs = new Set();
     const inputs = (Array.isArray(d.inputs) ? d.inputs : []).slice(0, MAX_INPUTS).map((x, i) => {
-        const r = x && typeof x === 'object' ? x : {};
+        // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- INPUT_KEY_RE is anchored, one class with a bounded {0,39}: linear
+        const r = /** @type {RawInput} */ (x && typeof x === 'object' ? x : {});
         const label = String(r.label || r.key || copy.inputFallback(i + 1)).trim().slice(0, MAX_LABEL);
         let key = typeof r.key === 'string' && INPUT_KEY_RE.test(r.key) ? r.key : (slug(label) || `input_${i + 1}`);
         if (usedInputs.has(key)) key = keyFromTitle(key, i, usedInputs);
         usedInputs.add(key);
-        const kind = INPUT_KINDS.has(r.kind) ? r.kind : (/folder|map|pad|path/i.test(`${key} ${label}`) ? 'folder' : 'text');
+        const kind = INPUT_KINDS.has(r.kind) ? /** @type {string} */ (r.kind) : (/folder|map|pad|path/i.test(`${key} ${label}`) ? 'folder' : 'text');
+        /** @type {RecipeInput} */
         const out = { key, label, kind };
         if (typeof r.default === 'string' && r.default.trim()) out.default = r.default.trim().slice(0, 300);
         else if (kind === 'folder') out.default = `/${(slug(label) || copy.documentsFolder).replace(/_/g, '-')}`;
@@ -367,8 +441,12 @@ const NUMBER_KEY_RE = /(^|_)(amount|total|totaal|subtotal|subtotaal|vat|btw|pric
 // business columns, a later phase writes these.
 const OPTIONAL_KEY_RE = /status|path|file|url/;
 
-/** The distinct `{{field.<key>}}` keys the briefs reference, in order of appearance. */
+/**
+ * The distinct `{{field.<key>}}` keys the briefs reference, in order of appearance.
+ * @param {{ phases?: unknown }|null|undefined} doc
+ */
 function fieldKeysReferenced(doc) {
+    /** @type {string[]} */
     const keys = [];
     for (const p of (doc && Array.isArray(doc.phases) ? doc.phases : [])) {
         if (!p || typeof p.brief !== 'string') continue;
@@ -390,15 +468,18 @@ function fieldKeysReferenced(doc) {
  * field. The caller decides WHEN: never on the first pass, only after the
  * repair round still failed for table reasons — a synthesized schema is a
  * guess the person must see in the column preview, not a silent default.
+ * @param {Partial<RecipeDoc>|null|undefined} doc
+ * @param {{ locale?: string|null }} [opts]
  */
 function synthesizeTableFromPlaceholders(doc, { locale = null } = {}) {
     if (!doc || typeof doc !== 'object') return null;
+    /** @type {Array<{ key: string, name: string, type: string, required: boolean }>} */
     const fields = [];
     for (const raw of fieldKeysReferenced(doc)) {
         const key = raw.toLowerCase();
         if (!KEY_RE.test(key) || reservedKey(key)) continue;
         const type = DATE_KEY_RE.test(key) ? 'date' : NUMBER_KEY_RE.test(key) ? 'number' : 'text';
-        const name = key.replace(/_+/g, ' ').replace(/^./, (c) => c.toUpperCase());
+        const name = key.replace(/_+/g, ' ').replace(/^./, (/** @type {string} */ c) => c.toUpperCase());
         fields.push({ key, name, type, required: !OPTIONAL_KEY_RE.test(key) });
     }
     if (!fields.length) return null;
@@ -408,13 +489,22 @@ function synthesizeTableFromPlaceholders(doc, { locale = null } = {}) {
 
 // ── validate: the shape the stages can run ──────────────────────────────────
 
+/**
+ * @param {unknown} template
+ * @returns {string[]}
+ */
 function placeholdersOf(template) {
+    /** @type {Set<string>} */
     const out = new Set();
     for (const m of String(template || '').matchAll(IF_RE)) out.add(m[1]);
     for (const m of String(template || '').replace(IF_RE, '$2').matchAll(PLACEHOLDER_RE)) out.add(m[1]);
     return [...out];
 }
 
+/**
+ * @param {string} path
+ * @param {RecipeDoc} doc
+ */
 function placeholderKnown(path, doc) {
     const [root, sub] = path.split('.');
     if (!RECIPE_ROOTS.has(root)) return true; // an automation binding, passed through
@@ -431,6 +521,8 @@ function placeholderKnown(path, doc) {
  * the vocabulary of the tool the model just called: a `{{field.x}}` with no
  * table wants an entry in `columns`; with a table, it names the keys that
  * exist. Anything else is simply not a placeholder this playbook knows.
+ * @param {string} ph
+ * @param {RecipeDoc} doc
  */
 function unknownPlaceholderMessage(ph, doc) {
     const [root, sub] = ph.split('.');
@@ -450,10 +542,13 @@ function unknownPlaceholderMessage(ph, doc) {
  * `column: <key>` — the subject by identity, for the reader who does not
  * hold the normalised document (the model, in the compose repair round).
  *
- * @returns {{ ok:boolean, errors:Array<{code,path,message,phase?,column?}>, warnings:Array<{code,path,message,phase?}> }}
+ * @param {RecipeDoc} doc
+ * @returns {{ ok:boolean, errors:Array<{code: string, path: string, message: string, phase?: { key: string|null, label: string }, column?: string}>, warnings:Array<{code: string, path: string, message: string, phase?: { key: string|null, label: string }}> }}
  */
 function validateRecipeDoc(doc) {
+    /** @type {{ code: string; path: string; message: string; }[]} */
     const errors = [];
+    /** @type {{ code: string; path: string; message: string; }[]} */
     const warnings = [];
     if (!doc || typeof doc !== 'object') return { ok: false, errors: [err('doc_invalid', '', 'Not an object.')], warnings };
     if (!doc.title) errors.push(err('title_required', 'title', 'A title is required.'));
@@ -482,6 +577,11 @@ function validateRecipeDoc(doc) {
         // normaliser put it (the table moved first, a fill and a design
         // inserted), not where the model wrote it — its own call has three
         // phases, and told about the fifth it adds one rather than fix one.
+        /**
+         * @param {string} code
+         * @param {string | null} sub
+         * @param {string} message
+         */
         const phaseErr = (code, sub, message) => err(code, sub ? `${at}.${sub}` : at, message, { phase: { key: p.key, label: p.label } });
         if (!p.kind) { errors.push(phaseErr('kind_unknown', null, `Phase "${p.key}" has no known kind (table, automation, fill, app, app_turn).`)); continue; }
         if (p.kind === 'table') {
@@ -520,21 +620,31 @@ function validateRecipeDoc(doc) {
 
 // ── render ──────────────────────────────────────────────────────────────────
 
+/**
+ * @param {unknown} ctx
+ * @param {string} path
+ * @returns {unknown}
+ */
 function lookup(ctx, path) {
+    /** @type {unknown} */
     let cur = ctx;
     for (const part of path.split('.')) {
         if (cur == null || typeof cur !== 'object') return undefined;
-        cur = cur[part];
+        cur = /** @type {Record<string, unknown>} */ (cur)[part];
     }
     return cur;
 }
 
-/** Render a brief template against the playbook's real artifacts. */
+/**
+ * Render a brief template against the playbook's real artifacts.
+ * @param {unknown} template
+ * @param {unknown} ctx
+ */
 function renderBrief(template, ctx) {
     const withIfs = String(template || '').replace(IF_RE, (_, path, body) => (lookup(ctx, path) ? body : ''));
     const out = withIfs.replace(PLACEHOLDER_RE, (_, path) => {
         const v = lookup(ctx, path);
-        if (v === undefined || v === null) { const e = new Error(`{{${path}}} is not available yet`); e.code = 'artifacts_missing'; e.placeholder = path; throw e; }
+        if (v === undefined || v === null) { const e = /** @type {Error & { code?: string, placeholder?: string }} */ (new Error(`{{${path}}} is not available yet`)); e.code = 'artifacts_missing'; e.placeholder = path; throw e; }
         return String(v);
     });
     // Trailing spaces go, runs of spaces INSIDE a line collapse — but the
@@ -545,7 +655,12 @@ function renderBrief(template, ctx) {
 
 // ── the adapter ─────────────────────────────────────────────────────────────
 
+/**
+ * @param {RecipeDoc} doc
+ * @returns {Record<string, RoleSpec>}
+ */
 function rolesOf(doc) {
+    /** @type {Record<string, RoleSpec>} */
     const roles = {};
     for (const f of (doc.table ? doc.table.fields : [])) {
         const aliases = new Set([f.key, f.role, slug(f.name), ...(f.aliases || [])].filter(Boolean));
@@ -559,10 +674,14 @@ function rolesOf(doc) {
  * Map a table's fields onto the recipe's roles (the schema keys). Match by
  * key first, then by the slug of the title. `ok` when every required role
  * is present. Shared by the built-in recipe (with its richer aliases).
+ * @param {{ key: string; name?: string; type?: string; }[]} fields
+ * @param {Readonly<Record<string, Readonly<RoleSpec>>>} roles
  */
 function verifyAgainstRoles(fields, roles) {
     const list = Array.isArray(fields) ? fields.filter((f) => f && typeof f.key === 'string') : [];
+    /** @type {Record<string, string>} */
     const mapping = {};
+    /** @type {string[]} */
     const typeWarnings = [];
     const taken = new Set();
     for (const [role, spec] of Object.entries(roles)) {
@@ -576,7 +695,11 @@ function verifyAgainstRoles(fields, roles) {
     return { ok: missing.length === 0, mapping, missing, hasStatus: !!mapping.status, typeWarnings };
 }
 
-/** The phase objects a fresh playbook starts with. */
+/**
+ * The phase objects a fresh playbook starts with.
+ * @param {RecipeDoc} doc
+ * @param {{ approvalsAllowed?: boolean }} [opts]
+ */
 function phaseObjectsFor(doc, { approvalsAllowed = false } = {}) {
     return doc.phases.map((p, i) => ({
         key: p.key,
@@ -586,20 +709,24 @@ function phaseObjectsFor(doc, { approvalsAllowed = false } = {}) {
         ...(p.requiresRole ? { requiresRole: p.requiresRole } : {}),
         ...(p.goal ? { goal: p.goal } : {}),
         status: i === 0 ? 'ready' : (p.requires === 'approvals' && !approvalsAllowed ? 'locked' : 'pending'),
-        startedAt: null,
-        finishedAt: null,
-        brief: null,
+        startedAt: /** @type {string|null} */ (null),
+        finishedAt: /** @type {string|null} */ (null),
+        brief: /** @type {string|null} */ (null),
         briefVersion: doc.version || DOC_VERSION,
         briefEdited: false,
         attempt: 0,
         artifacts: {},
-        summary: null,
-        error: null,
+        summary: /** @type {string|null} */ (null),
+        error: /** @type {string|null} */ (null),
     }));
 }
 
-/** Build the render context from the playbook's table artifacts + options. */
+/**
+ * Build the render context from the playbook's table artifacts + options.
+ * @param {{ table?: any, options?: { approverGroupId?: string, inputs?: Record<string, unknown>, folderPath?: string }, playbook?: { userId?: string, title?: string } }} args
+ */
 function briefContext({ table, options = {}, playbook = {} }) {
+    /** @type {Record<string, string>} */
     const field = {};
     if (table && table.mapping) for (const [role, key] of Object.entries(table.mapping)) if (key) field[role] = key;
     const approver = options.approverGroupId ? `{groupId:"${options.approverGroupId}"}` : `{userId:"${playbook.userId || ''}"}`;
@@ -616,10 +743,15 @@ function briefContext({ table, options = {}, playbook = {} }) {
 /**
  * The adapter: what lifecycle.js, phases/*.js and routes/playbooks.js call.
  */
-/** The longest prefix of whole lines that fits, so nothing is cut mid-instruction. */
+/**
+ * The longest prefix of whole lines that fits, so nothing is cut mid-instruction.
+ * @param {string} text
+ * @param {number} cap
+ */
 function clampToLines(text, cap) {
     if (text.length <= cap) return text;
     const lines = String(text).split('\n');
+    /** @type {string[]} */
     const out = [];
     let n = 0;
     for (const line of lines) {
@@ -630,6 +762,7 @@ function clampToLines(text, cap) {
     return (out.length ? out.join('\n') : String(text).slice(0, cap - 1)).trimEnd();
 }
 
+/** @param {RecipeDoc} doc */
 function fromDocument(doc) {
     const roles = rolesOf(doc);
     // Documents written before the repair above carry whatever the model said,
@@ -650,11 +783,25 @@ function fromDocument(doc) {
         hasTable: !!doc.table,
         document: doc,
         toDocument: () => doc,
+        /** @param {string} key */
         phaseSpec: (key) => doc.phases.find((p) => p.key === key) || null,
+        /** @param {Parameters<typeof verifyAgainstRoles>[0]} fields */
         verifyExistingTable: (fields) => verifyAgainstRoles(fields, roles),
         schemaMapping: () => Object.fromEntries(usableFields.map((f) => [f.role || f.key, f.key])),
+        /**
+         * @param {string|null|undefined} title
+         * @param {Set<string>|string[]|null|undefined} usedKeys
+         */
         defaultTableKey: (title, usedKeys) => keyFromTitle(String(title || doc.title || 'tabel'), 0, usedKeys instanceof Set ? usedKeys : new Set(usedKeys || [])),
+        /**
+         * @param {unknown} options
+         * @param {Parameters<typeof phaseObjectsFor>[1]} [opts]
+         */
         phasesFor: (options, opts) => phaseObjectsFor(doc, opts),
+        /**
+         * @param {string} key
+         * @param {Parameters<typeof briefContext>[0]} ctx
+         */
         composeBrief: (key, ctx) => {
             const spec = doc.phases.find((p) => p.key === key);
             if (!spec || !BRIEF_KINDS.has(spec.kind) || !spec.brief) return null;

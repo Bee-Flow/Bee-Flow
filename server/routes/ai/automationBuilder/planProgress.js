@@ -129,3 +129,5 @@ function inferPlanProgress(todos, { name, args, result } = {}) {
 }
 
 module.exports = { inferPlanProgress, _internals: { tokens, stepTokens, matchesItem } };
+
+/** @typedef {{ type?: string, tool?: string, label?: string, forEach?: unknown }} PlanStep */

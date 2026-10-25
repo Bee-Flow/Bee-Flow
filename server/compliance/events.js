@@ -15,6 +15,7 @@
 const { EventEmitter } = require('events');
 const { complianceSectionPath, complianceIncidentPath } = require('../utils/appPaths');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const _bus = new EventEmitter();
 _bus.setMaxListeners(50);
@@ -73,7 +74,7 @@ const EVENTS = {
 // Best-effort: the counts endpoint caches 60 s per org; anything that changes
 // a number it shows drops the cache so the rail catches up on the next poll.
 function _invalidateCounts(orgId) {
-    try { require('./countsCache').invalidate(orgId); } catch (err) { log.debug('not mounted', err); }
+    try { require('./countsCache').invalidate(orgId); } catch (err) { bestEffort('compliance/events:_invalidateCounts', err); /* not mounted */ }
 }
 
 // Re-run one check; a FrameworkDisabledError (409) is a normal outcome here —
@@ -355,7 +356,7 @@ function _queueProjectRerun(orgId, checkId) {
     if (_projectReruns.has(key)) return;           // one run per burst, never reset
     const timer = setTimeout(() => {
         _projectReruns.delete(key);
-        _rerun(orgId, checkId).then(() => _invalidateCounts(orgId)).catch(() => {});
+        _rerun(orgId, checkId).then(() => _invalidateCounts(orgId)).catch((e) => bestEffort('compliance/events:_queueProjectRerun', e));
     }, PROJECT_RERUN_DEBOUNCE_MS);
     if (timer.unref) timer.unref();
     _projectReruns.set(key, timer);
@@ -388,3 +389,5 @@ _bus.on(EVENTS.CHAT_MONITORING_CHANGED, async ({ orgId }) => {
 
 module.exports = { emit, EVENTS, _bus, PROJECT_RERUN_CHECKS, _resetProjectReruns, _projectRerunCount: () => _projectReruns.size };
 Object.assign(module.exports, { CHAT_SIGNAL_CHECKS });
+
+/** @typedef {{ emit: typeof emit, EVENTS: typeof EVENTS, _bus: typeof _bus, PROJECT_RERUN_CHECKS: typeof PROJECT_RERUN_CHECKS, _resetProjectReruns: typeof _resetProjectReruns, _projectRerunCount: () => number, CHAT_SIGNAL_CHECKS: typeof CHAT_SIGNAL_CHECKS }} EventsExports */

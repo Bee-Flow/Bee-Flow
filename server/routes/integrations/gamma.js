@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Gamma Integration Routes
  *
@@ -32,7 +32,7 @@ const GenerationParams = z.object({
         .regex(/^[A-Za-z0-9_-]{1,128}$/, 'That is not a Gamma generation id.'),
 }).strict();
 
-router.get('/generations/:generationId', requireAuth, validate({ params: GenerationParams }), async (req, res) => {
+router.get('/generations/:generationId', requireAuth, validate({ params: GenerationParams }), /** @param {import('express').Request<{ generationId: string }>} req @param {import('express').Response} res */ async (req, res) => {
     const result = await executeGammaTool(
         'gamma_get_generation_status',
         { generationId: req.params.generationId },

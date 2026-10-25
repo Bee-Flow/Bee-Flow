@@ -43,6 +43,7 @@ const { HttpError } = require('../../core/http/errors');
 const log = require('../../telemetry/log');
 const { KIND_OF_SECTION, canonicalOf, hashPayload } = require('./stagePayload');
 const { WRITE_ACTIONS, storesOf, makeJournal } = require('./journal');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const dep = (deps, name, load) => (deps && deps[name] !== undefined ? deps[name] : load());
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
@@ -474,11 +475,11 @@ async function preflight(ctx) {
         });
     } catch (err) {
         if (err === ROLLBACK) { for (const t of changed) t.diff.preflight = 'ok'; return; }
-        try { s.datatableDbStore.invalidate(key); } catch (err) { log.debug('best effort', err); }
+        try { s.datatableDbStore.invalidate(key); } catch (err) { bestEffort('projects/stages/prepare:preflight', err); /* best effort */ }
         for (const t of changed) t.diff.preflight = 'failed';
         ctx.blocking.push(blocking('schema.preflight_failed', { code: err && err.code ? String(err.code) : null }));
     }
-    try { s.datatableDbStore.invalidate(key); } catch (err) { log.debug('best effort', err); }
+    try { s.datatableDbStore.invalidate(key); } catch (err) { bestEffort('projects/stages/prepare:preflight#2', err); /* best effort */ }
 }
 
 // ── 5. Verify ───────────────────────────────────────────────────────────────
@@ -590,3 +591,27 @@ module.exports = {
     prepare, makeJournal, storesOf, stageTableKey, releaseEntities, stageGrants, grantIds,
     WRITE_ACTIONS, CREATE_ORDER,
 };
+
+/** @typedef {import('../../core/packaging/walkers').DefinitionNode} DefinitionNode */
+
+/** @typedef {import('./model').StageRow & { newPartsActive?: boolean }} StageRow */
+
+/** @typedef {{ code: string, severity: string, [key: string]: unknown }} Finding */
+
+/** @typedef {{ ref: string, section: string, kind: string, installKind: string, entity: DefinitionNode }} ReleaseEntity */
+
+/**
+ * The plan rows prepare reads (plan.js).
+ * @typedef {{ parts?: Array<{ ref?: string, action?: string, missing?: boolean, goesLive?: boolean }>,
+ *   data?: Array<{ ref?: string, fingerprint?: string }> }} PlanLike
+ */
+
+/**
+ * @typedef {{ ref: string, kind: string, installKind: string, entityId: string|null, action: string, newOrRevived: boolean,
+ *   goesLive: boolean, entity: DefinitionNode, releaseEntity: DefinitionNode, hash: string, sourceHash: string }} Part
+ */
+
+/**
+ * @typedef {{ ref: string, id: string|null, entity: DefinitionNode, release: DefinitionNode, fingerprint: string|null,
+ *   diff: { preflight?: string, [key: string]: unknown }, action: string }} TablePart
+ */

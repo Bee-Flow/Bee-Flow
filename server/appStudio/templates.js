@@ -157,6 +157,9 @@ function listTemplates() {
     return TEMPLATES.map(({ definition, dataModel, seed, datasets, ...meta }) => ({ ...meta, version: templateVersion(meta) }));
 }
 
+/**
+ * @param {string} id
+ */
 function getTemplate(id) {
     const t = TEMPLATES.find((x) => x.id === id) || null;
     // Shallow copy so the normalized version never mutates the shared
@@ -166,3 +169,7 @@ function getTemplate(id) {
 }
 
 module.exports = { TEMPLATES, listTemplates, getTemplate, templateVersion };
+
+/**
+ * @typedef {{ id: string, version?: number, title: string, description: string, category: string, icon: string, tags: string[], definition: Record<string, unknown>, dataModel?: Record<string, unknown>, seed?: Record<string, Record<string, unknown>[]>, datasets?: Record<string, unknown>[] }} Template
+ */

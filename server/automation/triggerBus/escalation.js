@@ -10,6 +10,7 @@
  */
 
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 // ── Failure escalation ──────────────────────────────────
 //
@@ -30,6 +31,10 @@ const POLL_FAILURE_THRESHOLD = 5;
 const RENEW_FAILURE_THRESHOLD = 2;
 const FAILURE_NOTIFY_DEBOUNCE_MS = 24 * 60 * 60_000;
 
+/**
+ * @param {number} threshold
+ * @param {string} errorMsg
+ */
 async function escalateSubscriptionFailure(ctx, sub, threshold, errorMsg) {
     try {
         const { consecutiveFailures, errorNotifiedAt } = await ctx.store().incrementSubscriptionFailures(sub.id);
@@ -37,7 +42,7 @@ async function escalateSubscriptionFailure(ctx, sub, threshold, errorMsg) {
         const lastNotified = errorNotifiedAt ? Date.parse(errorNotifiedAt) : 0;
         if (Number.isFinite(lastNotified) && Date.now() - lastNotified < FAILURE_NOTIFY_DEBOUNCE_MS) return;
 
-        const automation = await ctx.store().getAutomation(sub.automationId).catch(() => null);
+        const automation = await ctx.store().getAutomation(sub.automationId).catch((e) => fallback('automation/triggerBus/escalation:escalateSubscriptionFailure', e, null));
         if (!automation) return;
         try {
             const notificationStore = ctx.notificationStore();
@@ -48,12 +53,55 @@ async function escalateSubscriptionFailure(ctx, sub, threshold, errorMsg) {
                 message: `Automation "${automation.title}" trigger (${sub.provider} ${sub.eventType}) faalt herhaaldelijk: ${errorMsg || 'onbekende fout'}. Controleer je integratie of activeer de automation opnieuw.`,
             });
         } catch (e) {
-            log.warn(`[TriggerBus] notify failure for sub ${sub.id} failed: ${e.message}`);
+            log.warn(`[TriggerBus] notify failure for sub ${sub.id} failed: ${/** @type {Error} */ (e).message}`);
         }
-        await ctx.store().updateSubscription(sub.id, { errorNotifiedAt: new Date().toISOString() }).catch(() => {});
+        await ctx.store().updateSubscription(sub.id, { errorNotifiedAt: new Date().toISOString() }).catch((e) => bestEffort('automation/triggerBus/escalation:escalateSubscriptionFailure#2', e));
     } catch (e) {
-        log.warn(`[TriggerBus] escalateSubscriptionFailure error: ${e.message}`);
+        log.warn(`[TriggerBus] escalateSubscriptionFailure error: ${/** @type {Error} */ (e).message}`);
     }
 }
 
 module.exports = { POLL_FAILURE_THRESHOLD, RENEW_FAILURE_THRESHOLD, FAILURE_NOTIFY_DEBOUNCE_MS, escalateSubscriptionFailure };
+
+/**
+ * One automation_event_subscriptions row as the store maps it.
+ * @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/automationStore').getSubscription>>>} TriggerSubscription
+ */
+
+/**
+ * The credentials a poller or renewal pass runs with (triggerBus.loadSession).
+ * @typedef {Object} TriggerSession
+ * @property {string} [accessToken]
+ * @property {string | null} [refreshToken]
+ * @property {string | null} [oauthProvider]
+ * @property {Record<string, Record<string, unknown>>} [automationProviders]
+ * @property {string} [_source]  'vault' | 'connector' | 'session'
+ * @property {string | null} [connectorOrgId]
+ * @property {string | null} [connectorNcUid]
+ * @property {{ id: string, provider: string, organizationId: string | null, ncUid: string | null }} [user]
+ */
+
+/**
+ * A googleapis client as createGoogleApiClient returns it.
+ * @typedef {Awaited<ReturnType<typeof import('../../integrations/googleClient').createGoogleApiClient>>} GoogleApiClient
+ */
+
+/**
+ * One poll of one subscription: the payloads to dispatch.
+ * @typedef {(sub: TriggerSubscription, session: TriggerSession | null) => Promise<Record<string, any>[]>} PollerFn
+ */
+
+/**
+ * What triggerBus.js hands to the extracted pollers, escalation and renewal.
+ * @typedef {Object} TriggerBusCtx
+ * @property {() => typeof import('../../stores/automationStore')} store
+ * @property {() => typeof import('../../integrations/googleClient')} googleClient
+ * @property {() => typeof import('../../integrations/gmailTools')} gmailTools
+ * @property {() => typeof import('../../integrations/nextcloudActivityTools')} nextcloudActivityTools
+ * @property {() => typeof import('../../integrations/nextcloudNotificationsTools')} nextcloudNotificationsTools
+ * @property {() => typeof import('../../integrations/nextcloudCalendarTools')} nextcloudCalendarTools
+ * @property {() => typeof import('../../core/integrations/ncScopeGuard')} ncScopeGuard
+ * @property {() => typeof import('../../stores/notificationStore')} notificationStore
+ * @property {(userId: string) => Promise<TriggerSession | null>} loadSession
+ * @property {(sub: TriggerSubscription, threshold: number, errorMsg?: string) => Promise<void>} escalate
+ */

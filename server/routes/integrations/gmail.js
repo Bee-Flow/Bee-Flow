@@ -63,7 +63,14 @@ const { worded } = require('../../core/http/schemaParts');
 // the rest. (Spam and Trash stay out either way: that needs the separate
 // `includeSpamTrash`, which this route never sets.)
 
+/**
+ * @param {string} name
+ * @param {string} what
+ */
 const required = (name, what) => worded(`${name} is required — ${what}.`).trim().min(1, `${name} is required — ${what}.`);
+/**
+ * @param {string} name
+ */
 const optionalText = (name) => worded(`${name} must be text.`).nullish();
 
 const MessagesQuery = z.object({
@@ -158,7 +165,7 @@ router.get('/messages', validate({ query: MessagesQuery }), async (req, res, nex
                         isUnread: (detail.data.labelIds || []).includes('UNREAD'),
                     };
                 } catch (err) {
-                    log.error(`[Gmail] Failed to get message ${msg.id}:`, err.message);
+                    log.error(`[Gmail] Failed to get message ${msg.id}:`, /** @type {Error} */ (err).message);
                     return null;
                 }
             })
@@ -170,10 +177,10 @@ router.get('/messages', validate({ query: MessagesQuery }), async (req, res, nex
             resultSizeEstimate: response.data.resultSizeEstimate || 0,
         });
     } catch (err) {
-        if (err.message === 'NOT_CONNECTED') {
+        if (/** @type {Error} */ (err).message === 'NOT_CONNECTED') {
             return res.status(401).json({ error: 'Not connected to Gmail', code: 'NOT_CONNECTED' });
         }
-        log.error('[Gmail] List messages error:', err.message);
+        log.error('[Gmail] List messages error:', /** @type {Error} */ (err).message);
         next(err);
     }
 });
@@ -214,10 +221,10 @@ router.get('/messages/:messageId', validate({ params: MessageParams }), async (r
             charCount: body.length,
         });
     } catch (err) {
-        if (err.message === 'NOT_CONNECTED') {
+        if (/** @type {Error} */ (err).message === 'NOT_CONNECTED') {
             return res.status(401).json({ error: 'Not connected to Gmail', code: 'NOT_CONNECTED' });
         }
-        log.error('[Gmail] Get message error:', err.message);
+        log.error('[Gmail] Get message error:', /** @type {Error} */ (err).message);
         next(err);
     }
 });
@@ -263,10 +270,10 @@ router.post('/send', validate({ body: EmailBody }), async (req, res, next) => {
             threadId: result.data.threadId,
         });
     } catch (err) {
-        if (err.message === 'NOT_CONNECTED') {
+        if (/** @type {Error} */ (err).message === 'NOT_CONNECTED') {
             return res.status(401).json({ error: 'Not connected to Gmail', code: 'NOT_CONNECTED' });
         }
-        log.error('[Gmail] Send email error:', err.message);
+        log.error('[Gmail] Send email error:', /** @type {Error} */ (err).message);
         next(err);
     }
 });
@@ -315,10 +322,10 @@ router.post('/draft', validate({ body: EmailBody }), async (req, res, next) => {
             gmailLink: `https://mail.google.com/mail/u/0/#drafts?compose=${result.data.message?.id || result.data.id}`,
         });
     } catch (err) {
-        if (err.message === 'NOT_CONNECTED') {
+        if (/** @type {Error} */ (err).message === 'NOT_CONNECTED') {
             return res.status(401).json({ error: 'Not connected to Gmail', code: 'NOT_CONNECTED' });
         }
-        log.error('[Gmail] Save draft error:', err.message);
+        log.error('[Gmail] Save draft error:', /** @type {Error} */ (err).message);
         next(err);
     }
 });

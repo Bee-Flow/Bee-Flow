@@ -48,6 +48,7 @@ const { requireAuth } = require('../../auth/permissions');
 const { validate } = require('../../core/http/validate');
 // The chat engine's bag: typed, not closed (see routes/ai/directChat/turnSchema.js).
 const { WebpageTurnBody } = require('./directChat/turnSchema');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBody }), async (req, res) => {
     const {
@@ -144,7 +145,7 @@ router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBod
         // The turn's Privacy Shield: attachment scanning below, and the tool
         // block lists on the injected passages and in the tool loop (BFSF-354).
         const { resolveShieldFor: _resolveShieldFor } = require('../../core/privacy/orgShield');
-        const _psShield = await _resolveShieldFor({ orgId: userOrgForTiers, userId }).catch(() => null);
+        const _psShield = await _resolveShieldFor({ orgId: userOrgForTiers, userId }).catch((e) => fallback('routes/ai/webpageChat:anon', e, null));
         const toolPiiGate = require('../../core/privacy/toolPiiGate');
         const shieldGate = toolPiiGate.toolLoopGate({
             shield: _psShield, tag: 'WebpageChat',
@@ -201,8 +202,8 @@ router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBod
                 conversation_id: req.body?.webpageId || null,
                 termination_type: 'error',
                 ...sanitizeError(err),
-            }).catch(() => {});
-        } catch (err) { log.debug('ignore logging failures', err); }
+            }).catch((e) => bestEffort('routes/ai/webpageChat:anon#2', e));
+        } catch (err) { bestEffort('routes/ai/webpageChat:anon#3', err); /* ignore logging failures */ }
         send('error', { error: `Chat error: ${err.message}` });
         res.end();
     }

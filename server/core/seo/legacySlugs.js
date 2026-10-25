@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Retired slug → its replacement.
  *

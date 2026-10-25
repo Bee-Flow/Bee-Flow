@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Suggestion Feedback Store — records what the user did with a Automations
  * "Find repeating work" suggestion so the next scan can suppress or re-rank it.
@@ -73,12 +73,19 @@ function deriveScopeKey({ userId } = {}) {
     return 'anon';
 }
 
+/**
+ * @type {typeof import('./lib/json').parseJSON}
+ */
 function safeJson(v, fallback) {
     if (v == null) return fallback;
     if (typeof v === 'object') return v; // pg already parsed JSONB
     try { return JSON.parse(v); } catch { return fallback; }
 }
 
+/**
+ * @param {unknown} v
+ * @param {number} max
+ */
 const clip = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null);
 
 // The incoming suggestion is the CLIENT's echo, so "template-safe" is decided
@@ -86,7 +93,13 @@ const clip = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 
 // numbers, dates, ids) and the title loses any address, link or host. Pure
 // functions, no I/O.
 const lazyTemplating = () => require('../automation/patterns/templating');
+/**
+ * @param {unknown} v
+ */
 const safeTemplate = (v) => clip(typeof v === 'string' ? lazyTemplating().maskText(v) : null, 500);
+/**
+ * @param {unknown} v
+ */
 const safeTitle = (v) => clip(typeof v === 'string' ? lazyTemplating().maskContacts(v, { words: true }) : null, 200);
 
 /**
@@ -98,6 +111,7 @@ const safeTitle = (v) => clip(typeof v === 'string' ? lazyTemplating().maskConta
 function toStoredSuggestion(suggestion) {
     if (!suggestion || typeof suggestion !== 'object') return null;
     const p = suggestion.pattern && typeof suggestion.pattern === 'object' ? suggestion.pattern : {};
+    /** @type {unknown[]} */
     const appsRaw = Array.isArray(suggestion.apps) ? suggestion.apps : (Array.isArray(p.apps) ? p.apps : []);
     const apps = appsRaw.map(a => clip(a, 64)).filter(Boolean).slice(0, 10);
     const out = {
@@ -111,6 +125,9 @@ function toStoredSuggestion(suggestion) {
     return Object.keys(kept).length ? kept : null;
 }
 
+/**
+ * @param {import('pg').QueryResultRow | null} r
+ */
 function mapRow(r) {
     if (!r) return null;
     return {
@@ -135,11 +152,13 @@ function mapRow(r) {
  * @param {{ ready?: () => Promise<unknown> }} [opts]
  */
 function makeSuggestionFeedbackStore(db, { ready = async () => {} } = {}) {
+    /** @param {string} sql @param {any[]} [params] */
     const q = async (sql, params) => { await ready(); return db.query(sql, params); };
 
     /**
      * Record (or update) feedback for a suggestion. Keyed by `signature` when
      * given, else by `titleFingerprint`; one of the two is required.
+     * @param {{ userId?: string | null, organizationId?: string | null, action: string, reason?: string | null, reasonCode?: string | null, signature?: string | null, suggestion?: unknown, titleFingerprint?: string | null, ttlDays?: number }} opts
      */
     async function saveSuggestionFeedback({
         userId, organizationId, action, reason, reasonCode, signature, suggestion, titleFingerprint, ttlDays,
@@ -243,6 +262,9 @@ function makeSuggestionFeedbackStore(db, { ready = async () => {} } = {}) {
     }
 
     /** Art. 17: every feedback row of this user. */
+    /**
+     * @param {string} userId
+     */
     async function purgeForUser(userId) {
         if (!userId) return 0;
         const res = await q(`DELETE FROM automation_suggestion_feedback WHERE user_id = $1`, [String(userId)]);

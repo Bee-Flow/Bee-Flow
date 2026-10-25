@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * @typedef {object} EgressEntry  One outbound call, as logEgress records it.
  * @property {string} toolName

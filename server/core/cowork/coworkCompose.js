@@ -27,6 +27,7 @@
 const { parseJsonObject } = require('../meetingNotes/llmJson');
 const log = require('../../telemetry/log');
 const { usageLogFields } = require('../providers/usageNormalizer');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const VALID_REPEAT_INTERVALS = new Set([
     'hourly', 'daily', 'weekdays', 'weekly', 'biweekly', 'monthly', 'quarterly', 'yearly',
@@ -39,6 +40,9 @@ const MAX_PROMPT = 4000;
 
 // ── Prompt ──────────────────────────────────────────────
 
+/**
+ * @param {{ agents?: { id: string, name?: string, description?: string }[], timezone?: string, nowLabel: string }} opts
+ */
 function buildComposePrompt({ agents = [], timezone = 'Europe/Amsterdam', nowLabel }) {
     const agentBlock = agents.length > 0
         ? agents.map(a => `- id: ${a.id} | name: ${a.name}${a.description ? ` | ${a.description}` : ''}`).join('\n')
@@ -82,10 +86,15 @@ Brief: "vat morgen de notulen van de laatste vergadering samen"
 
 // ── Normalising ─────────────────────────────────────────
 
+/** @param {unknown} s */
 function normaliseWhitespace(s) {
     return String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
+/**
+ * @param {unknown} value
+ * @param {number} max
+ */
 function cleanText(value, max) {
     if (typeof value !== 'string') return null;
     const trimmed = value.trim().replace(/^["'`]+|["'`]+$/g, '').trim();
@@ -93,7 +102,10 @@ function cleanText(value, max) {
     return trimmed.length > max ? `${trimmed.slice(0, max - 1).trimEnd()}…` : trimmed;
 }
 
-/** First sentence / clause of the brief, as a last-resort title. */
+/**
+ * First sentence / clause of the brief, as a last-resort title.
+ * @param {string} [brief]
+ */
 function titleFromBrief(brief) {
     const flat = String(brief || '').replace(/\s+/g, ' ').trim();
     if (!flat) return 'Cowork';
@@ -110,6 +122,26 @@ function titleFromBrief(brief) {
  *   2. the model quoted words that genuinely occur in the brief.
  * Anything else — including a confident-sounding model with no textual
  * support — is dropped.
+ */
+/**
+ * @typedef {object} ModelSpec  what the model replied; every field is untrusted
+ * @property {string} [agentId]
+ * @property {string} [agentQuote]
+ * @property {string} [repeatInterval]
+ * @property {unknown} [daysOfWeek]
+ * @property {string} [timeOfDay]
+ * @property {string} [title]
+ * @property {string} [prompt]
+ */
+/**
+ * @typedef {object} ComposeOpts
+ * @property {string} [brief]
+ * @property {{ id: string, name?: string, description?: string }[]} [agents]
+ */
+
+/**
+ * @param {ModelSpec|null} raw
+ * @param {ComposeOpts} opts
  */
 function resolveAgent(raw, { brief, agents }) {
     const wanted = typeof raw?.agentId === 'string' ? raw.agentId.trim() : '';
@@ -133,6 +165,7 @@ function resolveAgent(raw, { brief, agents }) {
     return { agentId: null, agentReason: null };
 }
 
+/** @param {unknown} value */
 function normaliseDays(value) {
     if (!Array.isArray(value)) return null;
     const tokens = value
@@ -147,6 +180,8 @@ function normaliseDays(value) {
 /**
  * Coerce one model reply into a spec that is safe to persist.
  * Pure — no model, no DB. `raw` may be null (model failed entirely).
+ * @param {ModelSpec|null} raw
+ * @param {ComposeOpts} [opts]
  */
 function normaliseSpec(raw, /** @type {{brief?: any, agents?: any[]}} */ { brief, agents = [] } = {}) {
     const obj = raw && typeof raw === 'object' ? raw : {};
@@ -180,13 +215,19 @@ function normaliseSpec(raw, /** @type {{brief?: any, agents?: any[]}} */ { brief
     };
 }
 
-/** The spec used when the model is unavailable — the user's own words, run once. */
+/**
+ * The spec used when the model is unavailable — the user's own words, run once.
+ * @param {string} brief
+ */
 function fallbackSpec(brief) {
     return normaliseSpec(null, { brief, agents: [] });
 }
 
 // ── The model call ──────────────────────────────────────
 
+/**
+ * @param {{ brief?: string, agents?: { id: string, name?: string, description?: string }[], timezone?: string, tier?: string, userId?: string | null, userOrgId?: string | null }} opts
+ */
 async function composeCowork({ brief, agents = [], timezone = 'Europe/Amsterdam', tier = 'fast', userId = null, userOrgId = null }) {
     const text = String(brief || '').trim();
     if (!text) return { ...fallbackSpec(''), composed: false };
@@ -261,8 +302,8 @@ async function composeCowork({ brief, agents = [], timezone = 'Europe/Amsterdam'
                 source: 'cowork_compose',
                 ...usageLogFields(usage),
                 duration_ms: Date.now() - callStart,
-            }).catch(() => { /* bookkeeping only */ });
-        } catch (err) { log.debug('bookkeeping only', err); }
+            }).catch((e) => bestEffort('core/cowork/coworkCompose:composeCowork', e));
+        } catch (err) { bestEffort('core/cowork/coworkCompose:composeCowork#2', err); /* bookkeeping only */ }
 
         const parsed = parseJsonObject(response?.content || '');
         if (!parsed?.value) throw new Error('model returned no JSON object');

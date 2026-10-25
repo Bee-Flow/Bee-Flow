@@ -33,6 +33,9 @@ function containsSendEmail(steps) {
 // Same whole-subtree walk, for any kind. (containsSendEmail predates this and
 // stays as-is — its call site is the single most important guard in the file
 // and not worth churning.)
+/**
+ * @param {string} kind
+ */
 function containsStepKind(steps, kind) {
     if (!Array.isArray(steps)) return false;
     for (const s of steps) {
@@ -297,3 +300,5 @@ const KIND_CHECKS = {
 };
 
 module.exports = { containsSendEmail, KIND_CHECKS };
+
+/** @typedef {import('./shared').ValidationCtx} ValidationCtx */

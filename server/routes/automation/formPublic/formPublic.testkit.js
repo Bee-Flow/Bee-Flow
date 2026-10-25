@@ -480,3 +480,64 @@ module.exports = {
     PICK_FORM,
     withPickForm,
 };
+
+/**
+ * @typedef {{ id: string, status: string, awaitingStepId: string | null, automationId: string, rootRunId: string, seq: number }} KitRun
+ * @typedef {{ id: string, formPageId: string, automationId: string, runId: string | null, rootStepId: string | null,
+ *   triggerHeaders: Record<string, unknown> | null, expiresAt: string, pendingWork?: unknown, pendingAttempts?: number,
+ *   leaseUntil?: number | null }} KitSession
+ * @typedef {Record<string, unknown> & { id: string, formPageId: string, claimedAt: string | null }} KitUpload
+ * @typedef {Record<string, unknown> & { id: string, runId: string }} KitFile
+ * @typedef {{
+ *   executions: Array<{ automation: unknown, opts: unknown }>,
+ *   resumes: Array<{ runId: string, stepId: string, opts: unknown }>,
+ *   nonces: Set<string>,
+ *   uploads: Map<string, KitUpload>,
+ *   sessions: Map<string, KitSession>,
+ *   runs: Map<string, KitRun>,
+ *   runSteps: Map<string, Array<Record<string, unknown>>>,
+ *   runUpdates: Array<{ id: string, updates: Record<string, unknown> }>,
+ *   usage: { files: number, bytes: number },
+ *   touched: number,
+ *   active: boolean,
+ *   triggerKind: string,
+ *   audience: { userId: string, organizationId: string } | null,
+ *   groupsOf: Record<string, string[]>,
+ *   groupReads: number,
+ *   notebooks: Array<Record<string, unknown>>,
+ *   notebookWrites: Array<Record<string, unknown>>,
+ *   renders: Array<Record<string, unknown>>,
+ *   markingAsks: Array<{ orgId: string, info: unknown }>,
+ *   webpages: Array<Record<string, unknown>>,
+ *   webpageSlots: Array<{ userId: string, webpageId: string, slot: string, content: string }>,
+ *   webpageMeta: Array<Record<string, unknown>>,
+ *   parsed: Array<{ bytes: number, mimeType: string, filename: string }>,
+ *   parsedText: string,
+ *   parseThrows: boolean,
+ *   uploaded: string[],
+ *   deleted: string[],
+ *   streamed: string[],
+ *   storageMissing: boolean,
+ *   scanClean: boolean,
+ *   storageAvailable: boolean,
+ *   resolveRun: (() => Promise<unknown>) | null,
+ *   runQueue: Array<{ id: string }>,
+ *   definitionOverride: Record<string, unknown> | null,
+ *   generatedFiles: Map<string, KitFile>,
+ *   pickSearches: Array<{ source: string, query: string, caller: unknown, opts: unknown }>,
+ *   pickReads: Array<{ pick: unknown, withText: unknown, callerId: string | null }>,
+ *   pickResults: Array<{ id: string, title: string, subtitle: string }>,
+ *   pickSearchError: string | null,
+ * }} KitState
+ */
+
+/** @typedef {import('express').RequestHandler} KitHandler */
+
+/**
+ * @typedef {import('stream').Writable & {
+ *   statusCode: number, body: { [key: string]: any } | null, headers: Record<string, any>,
+ *   status: (c: number) => ResDouble, json: (b: object) => ResDouble,
+ *   set: (k: string, v: unknown) => ResDouble, setHeader: (k: string, v: unknown) => ResDouble,
+ *   bytes: () => Buffer,
+ * }} ResDouble
+ */

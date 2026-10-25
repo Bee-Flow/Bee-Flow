@@ -27,10 +27,16 @@
 
 const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
+const { fallback } = require('../utils/bestEffort');
 
 const DEFAULT_TZ = 'Europe/Amsterdam';
 
-/** A refusal in the one shape every core answers. */
+/**
+ * A refusal in the one shape every core answers.
+ * @param {number} status
+ * @param {string} code
+ * @param {string} message
+ */
 function refuse(status, code, message, body) {
     return { ok: false, status, code: code || null, message, body: body || { error: message, ...(code ? { code } : {}) } };
 }
@@ -95,7 +101,7 @@ function planGoLive(automation, definition, { now = Date.now(), willBeActive, ve
         // schedule.skipHolidays (handoff 5): the first slot already steps over holidays.
         try { next = nextScheduledRunAt(cron, tz || DEFAULT_TZ, now, { skipHolidays: scheduleSkipsHolidays(def) }); }
         catch (e) {
-            const message = messages.invalid(cron, e.message);
+            const message = messages.invalid(cron, /** @type {Error} */ (e).message);
             // The activate route has always answered this without a code.
             return refuse(400, 'invalid_schedule', message, verb === 'activate' ? { error: message } : undefined);
         }
@@ -138,7 +144,7 @@ async function toolCatalogFor(ownerId, ownSession, deps) {
         }
         return { availableTools, toolRequiredParams };
     } catch (e) {
-        log.warn('[automation/activate] tool catalog build failed; activating without tool checks:', e.message);
+        log.warn('[automation/activate] tool catalog build failed; activating without tool checks:', /** @type {Error} */ (e).message);
         return { availableTools: null, toolRequiredParams: null };
     }
 }
@@ -153,7 +159,7 @@ async function knownConnectionsFor(def, ownerId, deps) {
     try {
         const userStore = deps.userStore || require('../stores/userStore');
         const connStore = deps.connectionStore || require('../stores/integrationConnectionStore');
-        const owner = await userStore.getUser(ownerId).catch(() => null);
+        const owner = await userStore.getUser(ownerId).catch((e) => fallback('automation/goLive:knownConnectionsFor', e, null));
         const accessible = await connStore.listAccessibleConnections({
             userId: ownerId,
             orgId: connStore.resolveOrgId(owner?.organizationId),
@@ -162,7 +168,7 @@ async function knownConnectionsFor(def, ownerId, deps) {
         });
         return new Set(accessible.map(c => c.id));
     } catch (e) {
-        log.warn('[automation/activate] http credential catalog build failed; activating without credential checks:', e.message);
+        log.warn('[automation/activate] http credential catalog build failed; activating without credential checks:', /** @type {Error} */ (e).message);
         return null;
     }
 }
@@ -304,7 +310,7 @@ function gmailCatchUp(store, automationId, ownerId, deps = {}) {
             const dispatch = deps.dispatch || require('./triggerBus/dispatch');
             const triggerBus = deps.triggerBus || require('./triggerBus');
             const subs = await store.getSubscriptionsForAutomation(automationId);
-            const gmailSubs = (subs || []).filter(s => s.provider === 'gmail' && s.eventType === 'mail.new');
+            const gmailSubs = (subs || []).filter((/** @type {{ provider: string; eventType: string; }} */ s) => s.provider === 'gmail' && s.eventType === 'mail.new');
             for (const sub of gmailSubs) {
                 try {
                     // sub.filter is the normalized copy of the trigger's filter,
@@ -314,11 +320,11 @@ function gmailCatchUp(store, automationId, ownerId, deps = {}) {
                         dispatch.dispatchToSubscription(sub, { provider: 'gmail', event: 'mail.new', payload: latest });
                     }
                 } catch (e) {
-                    log.warn(`[automation/activate] immediate Gmail dispatch failed for ${automationId} sub ${sub.id}: ${e.message}`);
+                    log.warn(`[automation/activate] immediate Gmail dispatch failed for ${automationId} sub ${sub.id}: ${/** @type {Error} */ (e).message}`);
                 }
             }
         } catch (e) {
-            log.warn(`[automation/activate] immediate Gmail catchup failed for ${automationId}: ${e.message}`);
+            log.warn(`[automation/activate] immediate Gmail catchup failed for ${automationId}: ${/** @type {Error} */ (e).message}`);
         }
     })();
 }
@@ -403,6 +409,10 @@ async function activateCore({ automation, actorId, session = null, organizationI
 }
 
 /**
+ * @typedef {Object} DeactivateCoreArgs
+ * @property {string} actorId
+ */
+/**
  * Switch an automation off — POST /:id/deactivate after its access check.
  *
  * Remote subscriptions are revoked BEFORE the local rows are deleted, with the
@@ -411,6 +421,7 @@ async function activateCore({ automation, actorId, session = null, organizationI
  * is one review).
  *
  * @returns {Promise<{ok: true, automation}>}
+ * @param {DeactivateCoreArgs} param0
  */
 async function deactivateCore({ automation, actorId, deps = {} }) {
     const a = automation;
@@ -423,6 +434,12 @@ async function deactivateCore({ automation, actorId, deps = {} }) {
     return { ok: true, automation: u };
 }
 
+/**
+ * @typedef {Object} ConvergeAfterPublishArgs
+ * @property {boolean} [isActive]
+ * @property {string} [reason]
+ * @property {boolean} [saveSyncs]
+ */
 /**
  * The side effects after a definition went live — idempotent, retriable, and
  * never throwing (each failure is logged and returned as a warning).
@@ -440,6 +457,7 @@ async function deactivateCore({ automation, actorId, deps = {} }) {
  *   - compliance is woken (`reason`).
  *
  * @returns {Promise<{warnings: Array<{step: string, message: string}>, answers: object|null}>}
+ * @param {ConvergeAfterPublishArgs} param0
  */
 async function convergeAfterPublish({
     automation, definition, previousLive = null, isActive, ownerId = null, organizationId = null,
@@ -448,13 +466,18 @@ async function convergeAfterPublish({
     const a = automation || {};
     const def = definition || {};
     const owner = ownerId || a.userId || null;
+    /** @type {{ step: string; message: string; }[]} */
     const warnings = [];
     let answers = null;
+    /**
+     * @param {string} step
+     * @param {string} prefix
+     */
     const attempt = async (step, prefix, fn) => {
         try { await fn(); }
         catch (e) {
-            log.warn(`${prefix} ${step} failed for ${a.id}: ${e.message}`);
-            warnings.push({ step, message: e.message });
+            log.warn(`${prefix} ${step} failed for ${a.id}: ${/** @type {Error} */ (e).message}`);
+            warnings.push({ step, message: /** @type {Error} */ (e).message });
         }
     };
 
@@ -525,3 +548,61 @@ module.exports = {
     convergeAfterPublish,
     refusalError,
 };
+
+/**
+ * @typedef {object} GoLiveDeps  injectable collaborators; each lazily defaults to the real module
+ * @property {typeof import('./holidays')} [holidays]
+ * @property {typeof import('../core/automationRunner/runPolicy')} [runPolicy]
+ * @property {typeof import('./triggerColumns')} [triggerColumns]
+ * @property {typeof import('./toolRegistry')} [toolRegistry]
+ * @property {typeof import('../core/integrations/integrationTools').getUserPermittedApps} [permittedApps]
+ * @property {typeof import('../stores/userStore')} [userStore]
+ * @property {typeof import('../stores/integrationConnectionStore')} [connectionStore]
+ * @property {typeof import('./liveSideEffects').agentsFor} [agentsFor]
+ * @property {typeof import('./liveSideEffects').kbFindingsFor} [kbFindingsFor]
+ * @property {typeof import('./liveSideEffects').knownVarNamesFor} [knownVarNamesFor]
+ * @property {typeof import('./validate')} [validate]
+ * @property {typeof import('./deliverableEvents')} [deliverableEvents]
+ * @property {typeof import('../core/classify/classifierClient').topicClassifierFor} [topicClassifierFor]
+ * @property {typeof import('./portability')} [portability]
+ * @property {typeof import('./summarise')} [summarise]
+ * @property {typeof import('./aiActCheck')} [aiActCheck]
+ * @property {(automation: object, definition: object) => Promise<import('./aiActCheck').AiActState>} [aiActState]
+ * @property {typeof import('./triggerBus/dispatch')} [dispatch]
+ * @property {typeof import('./triggerBus')} [triggerBus]
+ * @property {typeof import('../stores/automationStore')} [store]
+ * @property {typeof import('./subscriptionSync').syncAppEventSubscription} [syncAppEventSubscription]
+ * @property {typeof import('./scheduleSync').syncSchedules} [syncSchedules]
+ * @property {typeof import('./liveSideEffects').wakeComplianceReview} [wakeComplianceReview]
+ * @property {typeof import('../core/automationRunner/definitionForRun').definitionForRun} [definitionForRun]
+ * @property {typeof import('../core/automationRunner/stageVars').isManagedAutomation} [isManagedAutomation]
+ * @property {() => number} [now]
+ * @property {typeof import('./subscriptionSync').revokeRemoteSubscriptions} [revokeRemoteSubscriptions]
+ * @property {{ appEventFingerprint: typeof import('./subscriptionSync').appEventFingerprint, hasAppEventTrigger: typeof import('./subscriptionSync').hasAppEventTrigger, scheduleFingerprint: typeof import('./scheduleSync').scheduleFingerprint }} [fingerprints]
+ * @property {typeof import('./liveSideEffects').ensureFormPages} [ensureFormPages]
+ * @property {typeof import('./liveSideEffects').ensureAnswersTable} [ensureAnswersTable]
+ * @property {typeof import('./datatableUsageSync').syncDatatableUsage} [syncDatatableUsage]
+ * @property {typeof import('../core/kb/kbSourceSync').syncKbSources} [syncKbSources]
+ */
+
+/** @typedef {{ ok: false, status: number, code: string|null, message: string, body: object }} Refusal */
+
+/** @typedef {{ ok: false, status: number, code: string|null, message: string, body: object|null, raise?: boolean, details?: object }} GoLiveFailure */
+
+/**
+ * @typedef {object} GoLiveAutomation  the parts of a store row the go-live cores read
+ * @property {string} [id]
+ * @property {string} [title]
+ * @property {string} [userId]
+ * @property {string|null} [organizationId]
+ * @property {boolean} [isActive]
+ * @property {string} [triggerType]
+ * @property {string} [scheduleCron]
+ * @property {string} [scheduleTz]
+ * @property {number|null} [liveVersion]
+ * @property {number} [version]
+ * @property {string} [kind]
+ * @property {object} [definition]
+ */
+
+/** @typedef {{ kind?: string, id?: string, layerKey?: string, pinnedSource?: string }} Pin  a pinned (sample-serving) node of a definition */

@@ -36,6 +36,8 @@ const log = require('../../telemetry/log');
  *
  * @returns {Promise<{ kbId: string, tenantId: string }>} the base and the tenant
  *   its chunks are stored (and searched, and deleted) under
+ * @param {string} notebookId
+ * @param {string} userId
  */
 async function ensureNotebookKBFor(notebookId, userId) {
     const notebook = await notebookStore.getNotebook(notebookId, userId);
@@ -62,7 +64,7 @@ async function ensureNotebookKBFor(notebookId, userId) {
             // We lost the race — bin the KB we just made rather than leak it.
             log.info(`[SourceIngestion] Lost KB-create race for notebook ${notebookId}; using ${winnerId}`);
             try { await kbStore.deleteKB(kb.id); } catch (e) {
-                log.warn(`[SourceIngestion] could not remove redundant KB ${kb.id}:`, e.message);
+                log.warn(`[SourceIngestion] could not remove redundant KB ${kb.id}:`, /** @type {Error} */ (e).message);
             }
         } else {
             log.info(`[SourceIngestion] Auto-created KB "${kb.name}" for notebook ${notebookId}`);
@@ -73,7 +75,11 @@ async function ensureNotebookKBFor(notebookId, userId) {
     return { kbId, tenantId: ownerId };
 }
 
-/** The KB id only — the shape older callers use. */
+/**
+ * The KB id only — the shape older callers use.
+ * @param {string} notebookId
+ * @param {string} userId
+ */
 async function ensureNotebookKB(notebookId, userId) {
     return (await ensureNotebookKBFor(notebookId, userId)).kbId;
 }
@@ -90,6 +96,10 @@ async function ensureNotebookKB(notebookId, userId) {
 // Normalize the human label used for a source — trim and collapse internal
 // whitespace so names like "  My\tDoc \n " don't appear with stray tabs or
 // newlines in the source list UI.
+/**
+ * @param {string} [fallback]
+ * @param {string} name
+ */
 function normalizeSourceName(name, fallback = 'Untitled source') {
     if (!name) return fallback;
     const cleaned = String(name).replace(/\s+/g, ' ').trim();
@@ -100,6 +110,7 @@ function normalizeSourceName(name, fallback = 'Untitled source') {
 // stores the same sentences on documents.status_reason, so notebooks and
 // knowledge bases must not drift into two vocabularies for one failure.
 const { friendlyError } = require('../../core/kb/friendlyError');
+const { bestEffort, fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 
 // Cap stored extracted text so a giant upload can't bloat a DB row; enough for
 // preview + text/meeting retry.
@@ -118,11 +129,19 @@ const MIN_READABLE_CHARS = 10;
 // while extraction/embedding was running must win, not be overwritten with
 // 'ready' by the late-finishing pipeline. Returns false when the write did not
 // land, i.e. the ingestion was cancelled or the source deleted.
+/**
+ * @param {string} sourceId
+ */
 function writeWhileProcessing(sourceId, updates) {
     return notebookStore.updateSource(sourceId, updates, { onlyIfProcessing: true });
 }
 
-/** Remove the chunks an ingestion wrote for a source that was cancelled/deleted meanwhile. */
+/**
+ * Remove the chunks an ingestion wrote for a source that was cancelled/deleted meanwhile.
+ * @param {string} kbId
+ * @param {string} tenantId
+ * @param {string} sourceId
+ */
 async function discardChunks(kbId, tenantId, sourceId) {
     try {
         // Lazy: notebookCascade pulls in the stores, keep module load light.
@@ -130,10 +149,17 @@ async function discardChunks(kbId, tenantId, sourceId) {
         // No storageKey on purpose: the original upload stays for a retry.
         await cleanupSourceArtifacts({ knowledgeBaseIds: [kbId] }, { id: sourceId }, tenantId);
     } catch (e) {
-        log.warn(`[SourceIngestion] could not discard chunks of cancelled source ${sourceId}: ${e.message}`);
+        log.warn(`[SourceIngestion] could not discard chunks of cancelled source ${sourceId}: ${/** @type {Error} */ (e).message}`);
     }
 }
 
+/**
+ * @param {string} notebookId
+ * @param {string} sourceId
+ * @param {string} userId
+ * @param {string} text
+ * @param {string} sourceName
+ */
 async function ingestTextIntoKB(notebookId, sourceId, userId, text, sourceName) {
     if (!text || text.trim().length < MIN_READABLE_CHARS) {
         // Nothing to embed: "ready" with 0 words would be a source that looks
@@ -174,7 +200,7 @@ async function ingestTextIntoKB(notebookId, sourceId, userId, text, sourceName) 
             if (shield?.enabled) {
                 // Hydrate any existing notebook map first so a second source in the
                 // same dossier reuses tokens (one [person_1] across all sources).
-                try { await require('../../core/dlp/dlpRunner').getConversationTokenMapAsync(notebookId); } catch (err) { log.debug('best-effort', err); }
+                try { await require('../../core/dlp/dlpRunner').getConversationTokenMapAsync(notebookId); } catch (err) { bestEffort('agents/notebooks/sourceIngestion:ingestTextIntoKB', err); /* best-effort */ }
                 // Warm the scan ledger with this source's segments.
                 //
                 // Ingestion already reads every byte of the source; recording the
@@ -197,7 +223,7 @@ async function ingestTextIntoKB(notebookId, sourceId, userId, text, sourceName) 
                     log.info(`[SourceIngestion] ledger warmed for "${sourceName}": `
                         + `segments=${warm.stats.segments} hits=${warm.stats.hits} fresh=${warm.stats.fresh}`);
                 } catch (warmErr) {
-                    log.warn(`[SourceIngestion] ledger warm-up skipped for "${sourceName}": ${warmErr.message}`);
+                    log.warn(`[SourceIngestion] ledger warm-up skipped for "${sourceName}": ${/** @type {Error} */ (warmErr).message}`);
                 }
 
                 const { scanAttachmentText } = require('../../core/dlp/attachmentScanner');
@@ -226,7 +252,7 @@ async function ingestTextIntoKB(notebookId, sourceId, userId, text, sourceName) 
                 }
             }
         } catch (piiErr) {
-            log.warn(`[SourceIngestion] PII map build failed for "${sourceName}": ${piiErr.message}`);
+            log.warn(`[SourceIngestion] PII map build failed for "${sourceName}": ${/** @type {Error} */ (piiErr).message}`);
         }
 
         // The PII scan above can take a minute: look again before the expensive
@@ -269,11 +295,11 @@ async function ingestTextIntoKB(notebookId, sourceId, userId, text, sourceName) 
         // so the UI can show a "duplicate" badge.
         if (e.code === 'DUPLICATE') {
             log.info(`[SourceIngestion] Duplicate content for "${sourceName}", marking ready`);
-            const cur = await notebookStore.getSource(sourceId).catch(() => null);
+            const cur = await notebookStore.getSource(sourceId).catch((e) => fallbackSwallowed('agents/notebooks/sourceIngestion:ingestTextIntoKB#2', e, null));
             await writeWhileProcessing(sourceId, { status: 'ready', stage: 'ready', wordCount, metadata: { ...(cur?.metadata || {}), duplicate: true } });
             return;
         }
-        log.error(`[SourceIngestion] Failed to ingest "${sourceName}":`, e.message);
+        log.error(`[SourceIngestion] Failed to ingest "${sourceName}":`, /** @type {Error} */ (e).message);
         await writeWhileProcessing(sourceId, { status: 'error', stage: 'error', error: friendlyError(e) });
     }
 }
@@ -281,6 +307,12 @@ async function ingestTextIntoKB(notebookId, sourceId, userId, text, sourceName) 
 /**
  * Ingest a file buffer (PDF, DOCX, XLSX, etc.) — uses shared extraction
  * which includes Azure Document Intelligence + Mistral OCR fallbacks.
+ * @param {string} notebookId
+ * @param {string} sourceId
+ * @param {string} userId
+ * @param {Buffer<ArrayBufferLike>} buffer
+ * @param {string} fileName
+ * @param {string} mimeType
  */
 async function ingestFileSource(notebookId, sourceId, userId, buffer, fileName, mimeType) {
     try {
@@ -288,7 +320,7 @@ async function ingestFileSource(notebookId, sourceId, userId, buffer, fileName, 
         const text = await extractFileContent(buffer, mimeType, fileName);
         await ingestTextIntoKB(notebookId, sourceId, userId, text, fileName);
     } catch (e) {
-        log.error(`[SourceIngestion] File parse failed for "${log.nameForLog(fileName)}":`, e.message);
+        log.error(`[SourceIngestion] File parse failed for "${log.nameForLog(fileName)}":`, /** @type {Error} */ (e).message);
         await writeWhileProcessing(sourceId, { status: 'error', stage: 'error', error: friendlyError(e) });
     }
 }
@@ -296,6 +328,10 @@ async function ingestFileSource(notebookId, sourceId, userId, buffer, fileName, 
 /**
  * Ingest a URL — uses shared URL→Markdown conversion (htmlToMarkdown)
  * instead of naive HTML stripping.
+ * @param {string} notebookId
+ * @param {string} sourceId
+ * @param {string} userId
+ * @param {string} url
  */
 async function ingestUrlSource(notebookId, sourceId, userId, url) {
     try {
@@ -309,13 +345,18 @@ async function ingestUrlSource(notebookId, sourceId, userId, url) {
 
         await ingestTextIntoKB(notebookId, sourceId, userId, content, resolvedUrl);
     } catch (e) {
-        log.error(`[SourceIngestion] URL fetch failed for "${url}":`, e.message);
+        log.error(`[SourceIngestion] URL fetch failed for "${url}":`, /** @type {Error} */ (e).message);
         await writeWhileProcessing(sourceId, { status: 'error', stage: 'error', error: friendlyError(e) });
     }
 }
 
 /**
  * Ingest pasted text directly.
+ * @param {string} notebookId
+ * @param {string} sourceId
+ * @param {string} userId
+ * @param {string} text
+ * @param {string} name
  */
 async function ingestTextSource(notebookId, sourceId, userId, text, name) {
     await ingestTextIntoKB(notebookId, sourceId, userId, text, name || 'Pasted text');
@@ -323,6 +364,11 @@ async function ingestTextSource(notebookId, sourceId, userId, text, name) {
 
 /**
  * Ingest content from Google Drive (already exported as text by the frontend picker).
+ * @param {string} notebookId
+ * @param {string} sourceId
+ * @param {string} userId
+ * @param {string} content
+ * @param {string} fileName
  */
 async function ingestDriveSource(notebookId, sourceId, userId, content, fileName) {
     await ingestTextIntoKB(notebookId, sourceId, userId, content, fileName);

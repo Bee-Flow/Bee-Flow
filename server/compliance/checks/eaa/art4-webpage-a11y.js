@@ -36,10 +36,10 @@ const { getAll } = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
 const htmlLint = require('../../a11y/htmlLint');
 const { errorLabel } = require('../../lib/errorShape');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const SUBJECT_CAP = 200;
 const MAX_HTML_BYTES = 2 * 1024 * 1024;
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
 function _notRelevant(settings) {
     let rel = settings && settings.framework_relevance;
@@ -51,15 +51,24 @@ function _deploymentMode() {
     try { return require('../../../license').deploymentMode(); } catch { return process.env.DEPLOYMENT_MODE || 'cloud'; }
 }
 
+/**
+ * @param {string} v
+ */
 function _parseSettingsJson(v) {
     if (!v) return {};
     if (typeof v === 'object') return v;
     try { return JSON.parse(v) || {}; } catch { return {}; }
 }
 
+/**
+ * @param {string} s
+ */
 function _sha256(s) { return crypto.createHash('sha256').update(String(s), 'utf8').digest('hex'); }
 
-/** The viewer's own wrap for a body-only html slot (composeWebpageDocument fallback). */
+/**
+ * The viewer's own wrap for a body-only html slot (composeWebpageDocument fallback).
+ * @param {string} html
+ */
 function _wrapFragment(html) {
     return `<!DOCTYPE html><html><head></head><body>${html}</body></html>`;
 }
@@ -69,6 +78,9 @@ const FALLBACK_SHELL = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-
 
 // ── subjects ───────────────────────────────────────────────────────────
 
+/**
+ * @param {number} limit
+ */
 async function _webpageSubjects(orgId, limit) {
     let rows;
     try {
@@ -81,7 +93,7 @@ async function _webpageSubjects(orgId, limit) {
             [orgId, limit + 1]
         );
     } catch (e) {
-        if (NOT_PROVISIONED.has(e?.code)) return { subjects: [], total: 0, skipped: 'webpages not provisioned' };
+        if (isMissingTable(e)) return { subjects: [], total: 0, skipped: 'webpages not provisioned' };
         throw e;
     }
     const subjects = rows.slice(0, limit).map(r => {
@@ -100,6 +112,9 @@ async function _webpageSubjects(orgId, limit) {
     return { subjects, total: rows.length, skipped: null };
 }
 
+/**
+ * @param {number} limit
+ */
 async function _cmsSubjects(limit) {
     if (limit <= 0) return { subjects: [], total: 0, skipped: 'cap reached' };
     if (_deploymentMode() === 'cloud') return { subjects: [], total: 0, skipped: 'cms is platform-owned on cloud' };
@@ -231,6 +246,7 @@ module.exports = {
             return { status: 'not_applicable', evidence: { subjects: 0 }, details: 'No published pages to lint.' };
         }
 
+        /** @type {string | null} */
         let html = null;
         let lang = null;
         const extra = { subject_label: subject.label };
@@ -266,7 +282,7 @@ module.exports = {
                 if (!/<html[\s>]/i.test(html)) html = _wrapFragment(html);
             }
         } catch (e) {
-            if (NOT_PROVISIONED.has(e?.code)) {
+            if (isMissingTable(e)) {
                 return { status: 'warn', evidence: { ...extra, subject_id: subject.id, reason: 'not provisioned yet' }, details: 'not provisioned yet' };
             }
             // Class and code only: a store or driver message can quote values (lib/errorShape.js).
@@ -288,3 +304,5 @@ module.exports = {
         return _verdict(report, subject, { ...extra, html_sha256: _sha256(html), html_bytes: Buffer.byteLength(html, 'utf8') });
     },
 };
+
+/** @typedef {{ id: string, label?: string, name?: string, kind?: string, webpage_id?: string, owner_id?: string, published_version_id?: string | null, framework?: string | null, site_id?: string, page_id?: string, slug?: string, capped?: boolean, total_published?: number }} Subject */

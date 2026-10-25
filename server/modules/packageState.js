@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Package loader: the shared state of the remote-module lifecycle.
  *
@@ -23,8 +23,14 @@ const path = require('path');
 const telemetryLog = require('../telemetry/log');
 
 const _wired = Object.create(null);
-/** Called once by the packageLoader barrel with { name: () => module }. */
+/**
+ * Called once by the packageLoader barrel with { name: () => module }.
+ * @param {Record<string, () => unknown>} getters
+ */
 function wireDeps(getters) { Object.assign(_wired, getters); }
+/**
+ * @param {string} name
+ */
 function _dep(name) {
     return function wiredDep() {
         const get = _wired[name];
@@ -32,13 +38,34 @@ function _dep(name) {
         return get();
     };
 }
-const deps = {};
+/**
+ * @typedef {{
+ *   hubClient: () => typeof import('./hubClient'),
+ *   store: () => typeof import('../stores/platformModuleStore'),
+ *   packageStore: () => typeof import('../stores/platformModulePackageStore'),
+ *   registry: () => typeof import('../core/entitlements/capabilityRegistry'),
+ *   betaFeatures: () => typeof import('../core/entitlements/betaFeatures'),
+ *   runtime: () => typeof import('./index'),
+ *   licenseVerify: () => typeof import('../license/verify'),
+ *   installStore: () => typeof import('../stores/platformModuleInstallStore'),
+ *   logBuffer: () => typeof import('./moduleLogBuffer'),
+ *   moduleAudit: () => typeof import('./moduleAudit'),
+ *   packageVerify: () => typeof import('./packageVerify'),
+ *   moduleEntitlements: () => typeof import('./entitlements'),
+ *   hostApiFactory: () => typeof import('./hostApi'),
+ *   subjects: () => typeof import('./subjects'),
+ *   configStore: () => typeof import('../stores/configStore'),
+ *   remoteCatalog: () => typeof import('./remoteCatalog'),
+ * }} PackageDeps
+ */
+/** @type {PackageDeps} */
+const deps = /** @type {PackageDeps} */ ({});
 for (const name of [
     'hubClient', 'store', 'packageStore', 'registry', 'betaFeatures', 'runtime',
     'licenseVerify', 'installStore', 'logBuffer', 'moduleAudit',
     'packageVerify', 'moduleEntitlements', 'hostApiFactory',
     'subjects', 'configStore', 'remoteCatalog',
-]) deps[name] = _dep(name);
+]) /** @type {Record<string, () => unknown>} */ (deps)[name] = _dep(name);
 const { logBuffer, licenseVerify } = deps;
 
 // Runtime-operations knobs (M1): per-request deadline, crash quarantine window,
@@ -55,13 +82,33 @@ const MODULES_DATA_ROOT = process.env.MODULES_DATA_DIR
     || path.resolve(__dirname, '..', 'data', 'modules');
 
 // ── In-process runtime maps ───────────────────────────────────────────────
+/**
+ * @typedef {(req: import('express').Request, res: import('express').Response, next: (err?: Error) => void) => unknown} ModuleRouter
+ * @typedef {{ router: ModuleRouter, dispose?: () => unknown, tick?: () => unknown,
+ *   tickIntervalMs?: number, initDBs?: () => Promise<unknown> }} ModuleInstance
+ * @typedef {{ moduleId: string, version: string, router: ModuleRouter, instance: ModuleInstance,
+ *   gateCapability: string | null, dir: string, inflight: number, draining: boolean, streamingRoutes: string[],
+ *   handle?: import('express').RequestHandler }} DispatchEntry
+ * @typedef {{ crashes: number[], lastActivationError: string | null, disposeTimeouts: number,
+ *   capabilityConflicts: string[], healTerminal: string | null }} ModuleHealth
+ * @typedef {{ phase: string, pct: number | null, error: string | null, detail: { missingPermissions?: string[] } | null }} InstallProgress
+ */
+/** @type {Map<string, DispatchEntry>} */
 const _dispatch = new Map();          // moduleId → { router, handle, instance, gateCapability, version, dir, streamingRoutes }
+/** @type {Map<string, ReturnType<typeof setInterval>>} */
 const _ticks = new Map();             // moduleId → interval timer
+/** @type {Map<string, ReturnType<typeof import('./packageRuntime')._projectDescriptors>>} */
 const _remoteDescriptors = new Map(); // moduleId → { capDescriptors, betaDescriptors }
+/** @type {Map<string, InstallProgress>} */
 const _progress = new Map();          // moduleId → { phase, pct, error, detail }
+/** @type {Set<string>} */
 const _installing = new Set();        // moduleId currently installing (409 guard)
+/** @type {Map<string, ModuleHealth>} */
 const _moduleHealth = new Map();      // moduleId → { crashes:[ts], lastActivationError, disposeTimeouts, capabilityConflicts, healTerminal }
 
+/**
+ * @param {string} moduleId
+ */
 function _healthOf(moduleId) {
     let h = _moduleHealth.get(moduleId);
     if (!h) {
@@ -71,26 +118,35 @@ function _healthOf(moduleId) {
     return h;
 }
 
+/**
+ * @param {string} moduleId
+ * @param {string} msg
+ */
 function _logSystem(moduleId, msg) {
     try { logBuffer().append(moduleId, 'system', [msg]); } catch (_) { telemetryLog.debug('log buffer unavailable, the line is dropped', _); }
 }
 
 // ── Trust-root key resolvers (overridable in tests) ───────────────────────
+/** @param {string} kid */
 async function _defaultPackageKeyResolver(kid) {
     // Hub `.bfmod` packages are signed by the same license.beeflow.nl key
     // infrastructure as licences/grants, so we reuse its JWKS→bundled chain.
     return licenseVerify().resolvePublicKeyByKid(kid);
 }
+/** @param {string} kid */
 async function _defaultGrantKeyResolver(kid) {
     return licenseVerify().resolvePublicKeyByKid(kid);
 }
 let _packageKeyResolver = _defaultPackageKeyResolver;
 let _grantKeyResolver = _defaultGrantKeyResolver;
+/** @param {{ packageResolver?: typeof _defaultPackageKeyResolver | null, grantResolver?: typeof _defaultGrantKeyResolver | null }} [opts] */
 function __setKeyResolversForTest({ packageResolver = null, grantResolver = null } = {}) {
     if (packageResolver) _packageKeyResolver = packageResolver;
     if (grantResolver) _grantKeyResolver = grantResolver;
 }
+/** @param {string | null} root */
 function __setDataRootForTest(root) { _dataRootOverride = root; }
+/** @type {string | null} */
 let _dataRootOverride = null;
 function dataRoot() { return _dataRootOverride || MODULES_DATA_ROOT; }
 function packageKeyResolver() { return _packageKeyResolver; }

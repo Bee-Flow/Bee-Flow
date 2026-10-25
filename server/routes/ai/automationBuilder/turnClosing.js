@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('./turnSetup').BuilderTurn} BuilderTurn */
+// @typecheck noImplicitAny
 /**
  * Automation Builder — closing a turn after its rounds: the auto-finalize
  * net, naming an untitled draft, the proposal (approve mode, a buffered
@@ -20,7 +21,11 @@ const { persistDraftWrap } = require('./builderDraft');
 const { LARGE_CHANGE_STEPS, changedSteps, pendingProposal } = require('./workMode');
 const { proposalPreviewPayload, clientProposal } = require('./datatableTurn');
 const { sanitizeHistory, collectAssistantTurn } = require('./chatTurnLoop');
+const { bestEffort } = require('../../../utils/bestEffort');
 
+/**
+ * @param {BuilderTurn} turn
+ */
 async function closeTurn(turn) {
     const {
         send, userId, message, history, messages, draftWrap, snapshot, reviewQuestions, approvedPlan, turnMode,
@@ -76,7 +81,7 @@ async function closeTurn(turn) {
                     turn.lastFinalized = true;
                 }
             } catch (e) {
-                log.warn('[AutomationBuilder] auto-finalize failed:', e.message);
+                log.warn('[AutomationBuilder] auto-finalize failed:', /** @type {Error} */ (e).message);
             }
             // Same as after the model's finalize: a name the failed call
             // never wrote goes back to the default, so the block below
@@ -105,7 +110,7 @@ async function closeTurn(turn) {
                 sendMetadata();
             }
         } catch (e) {
-            log.warn('[AutomationBuilder] naming the draft failed:', e.message);
+            log.warn('[AutomationBuilder] naming the draft failed:', /** @type {Error} */ (e).message);
         }
     }
 
@@ -199,7 +204,7 @@ async function closeTurn(turn) {
                 ...(catalogOrder ? { catalogOrder } : {}),
                 updatedAt: new Date().toISOString(),
             }, { trimBlock: HISTORY_EVICT_BLOCK });
-        } catch (err) { log.debug('non-fatal', err); }
+        } catch (err) { bestEffort('routes/ai/automationBuilder/turnClosing:closeTurn', err); /* non-fatal */ }
     }
 
     if (usageTotals.rounds > 0) {

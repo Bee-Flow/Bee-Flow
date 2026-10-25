@@ -14,14 +14,15 @@
  */
 
 const webpageStore = require('../stores/webpageStore');
+const { fallback } = require('../utils/bestEffort');
 
 async function loadReactFiles(webpageId, ownerId) {
     const files = {};
     const assetMap = {};
-    const metas = await webpageStore.listExtraFiles(webpageId).catch(() => []);
+    const metas = await webpageStore.listExtraFiles(webpageId).catch((e) => fallback('services/webpageReactFiles:loadReactFiles', e, []));
     for (const meta of metas) {
         if (!meta || !meta.path) continue;
-        const res = await webpageStore.readExtraFile({ webpageId, userId: ownerId, path: meta.path }).catch(() => null);
+        const res = await webpageStore.readExtraFile({ webpageId, userId: ownerId, path: meta.path }).catch((e) => fallback('services/webpageReactFiles:loadReactFiles#2', e, null));
         if (!res) continue;
         if (meta.isText && typeof res.text === 'string') {
             files[meta.path] = { isText: true, content: res.text };

@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: structured skill fields (Bee Flow Builder redesign, Sep 2026, S1).
  *
@@ -53,7 +54,10 @@ const COLUMNS_SQL = `
     ALTER TABLE skills ADD COLUMN IF NOT EXISTS output_schema JSONB DEFAULT NULL;
 `;
 
-/** Parse one row's text facets. Pure; exported for the test. */
+/**
+ * Parse one row's text facets. Pure; exported for the test.
+ * @param {Record<string, any>} row
+ */
 function planRow(row) {
     const plan = {};
     if (row.steps === null || row.steps === undefined) plan.steps = parseWorkflowToSteps(row.workflow || '');
@@ -68,7 +72,7 @@ function planRow(row) {
  */
 async function up(opts = {}) {
     const dryRun = opts.dryRun === true;
-    const log = typeof opts.log === 'function' ? opts.log : (m) => console.log(m);
+    const log = typeof opts.log === 'function' ? opts.log : /** @param {string} m */ (m) => console.log(m);
 
     if (!dryRun) await exec(COLUMNS_SQL);
 
@@ -83,7 +87,7 @@ async function up(opts = {}) {
     } catch (err) {
         // Dry run on a database that does not have the columns yet: nothing to
         // plan against, and we must not create them.
-        if (dryRun && /column .* does not exist/i.test(err.message)) {
+        if (dryRun && /column .* does not exist/i.test(/** @type {Error} */ (err).message)) {
             log(`${TAG} (dry run): structured columns do not exist yet — the real run would add them and parse every skill`);
             return { scanned: 0, updated: 0, dryRun };
         }
@@ -95,7 +99,7 @@ async function up(opts = {}) {
         const plan = planRow(row);
         const facets = Object.keys(plan);
         if (facets.length === 0) continue;
-        const summary = facets.map(f => `${f}=${plan[f].length}`).join(' ');
+        const summary = facets.map(f => `${f}=${/** @type {Record<string, unknown[]>} */ (plan)[f].length}`).join(' ');
         if (dryRun) {
             log(`${TAG} (dry run): would parse skill ${row.id} "${row.name}" → ${summary}`);
             continue;

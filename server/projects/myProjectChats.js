@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * "My chats in this project" — the caller's OWN direct and agent
  * conversations filed under a project, shared or not.
@@ -52,8 +52,8 @@ const LEGACY_SQL = `
  * @param {{ query: (sql: string, params?: any[]) => Promise<{rows: any[]}> }} db
  * @param {object} [deps]
  * @param {() => Promise<void>} [deps.ready]  schema init to await first
- * @param {(opts: {userId: string}) => Promise<object>} [deps.resolveCrypto]
- * @param {(stored: any, id: string, type: string, ctx: object) => any} [deps.openTitle]
+ * @param {(opts: {userId: string}) => Promise<import('../stores/agent/messageCrypto').CryptoContext>} [deps.resolveCrypto]
+ * @param {(stored: any, id: string, type: string, ctx: import('../stores/agent/messageCrypto').CryptoContext) => any} [deps.openTitle]
  */
 function makeMyProjectChats(db, deps = {}) {
     const ready = deps.ready || (async () => {});

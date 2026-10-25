@@ -42,6 +42,7 @@ async function readManyMessages(session, args, { batch = require('./googleBatch'
         ? await batch(session, valid.map(id => ({ id, path: `/gmail/v1/users/me/messages/${id}?format=full` })))
         : new Map();
     const messages = [];
+    /** @type {string[]} */
     const notFound = [];
     for (const id of valid) {
         const part = parts.get(id);
@@ -257,6 +258,7 @@ async function executeGmailTool(toolName, args, session, opts = {}) {
 
 /**
  * Check if a tool name is a Gmail tool.
+ * @param {string} toolName
  */
 function isGmailTool(toolName) {
     return [
@@ -271,6 +273,7 @@ function isGmailTool(toolName) {
  * Resolve a `gmail_attachment` sourceHandle back to raw bytes. Lets
  * downstream tools (drive_upload_file, nextcloud_upload_file, …) forward
  * an attachment without round-tripping the base64 through the AI context.
+ * @param {Partial<Express.Session> | undefined} session
  */
 async function fetchAttachmentBuffer(session, { messageId, attachmentId }) {
     if (!messageId || !attachmentId) {
@@ -310,3 +313,8 @@ module.exports = {
     readManyMessages,
     bulkModifyMessages,
 };
+
+/**
+ * @typedef {import('./gmail/messageShape').GmailClient} GmailClient
+ * @typedef {import('./gmail/toolHandlers').GmailSession} GmailSession
+ */

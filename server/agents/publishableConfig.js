@@ -16,6 +16,7 @@
 'use strict';
 
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 /** A dependency given as a module, as a function that loads one, or absent. */
 function resolveDep(given, load) {
@@ -63,7 +64,7 @@ async function validateAgentConfigReferences(agent, config, deps = {}) {
         const kbStore = resolveDep(deps.kbStore, () => require('../stores/knowledgeBases'));
         const { kbUsableIn } = resolveDep(deps.usageContexts, () => require('../core/kb/usageContexts'));
         for (const kbId of kbIds) {
-            const kb = await kbStore.getKB(kbId).catch(() => null);
+            const kb = await kbStore.getKB(kbId).catch((e) => fallback('agents/publishableConfig:validateAgentConfigReferences', e, null));
             const sameOrg = !!(kb && kb.organization_id && agentOrgId && kb.organization_id === agentOrgId);
             const ownedByOwner = !!(kb && kb.tenant_id === ownerId);
             const isSystem = !!(kb && kbStore.isSystemKB(kb));
@@ -104,7 +105,7 @@ async function validateAgentConfigReferences(agent, config, deps = {}) {
     if (skillIds.length > 0) {
         const skillStore = resolveDep(deps.skillStore, () => require('../stores/skillStore'));
         for (const sid of skillIds) {
-            const scope = await skillStore.getSkillScope(sid).catch(() => null);
+            const scope = await skillStore.getSkillScope(sid).catch((e) => fallback('agents/publishableConfig:validateAgentConfigReferences#2', e, null));
             const sameOrg = !!(scope && scope.org_id && agentOrgId && scope.org_id === agentOrgId);
             // Personal (org-less) skill owned by the agent owner — mirrors the
             // owner-owned KB rule above, so org-less accounts can attach skills.

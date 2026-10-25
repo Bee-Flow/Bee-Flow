@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Compliance — the ISO 27001 ISMS documents: member-facing published policies
  * and acknowledgements, plus the admin draft/publish CRUD.
@@ -32,7 +32,11 @@ const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const { HttpError } = require('../../core/http/errors');
 
-/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
+/**
+ * A body that also accepts no body at all: Express 5 leaves `req.body` undefined then.
+ * @template {import('zod').ZodRawShape} T
+ * @param {T} shape
+ */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const TITLE_TEXT = 'A policy needs a title.';

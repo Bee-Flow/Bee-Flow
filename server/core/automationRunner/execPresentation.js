@@ -259,3 +259,10 @@ module.exports = {
     LOOK_CHOICE_FIELDS,
     _test: { resolveBound, resolveSlidesInput },
 };
+
+/**
+ * A slide or presentation step as the definition stores it.
+ * @typedef {{ id?: string, title?: string, subtitle?: string, content?: string, notes?: string, image?: string, layout?: string,
+ *   chart?: string | { type?: string, data?: unknown, series?: unknown, [key: string]: unknown }, stats?: unknown, style?: string, fileName?: string, format?: string, expiresInDays?: unknown,
+ *   slides?: unknown, houseStyle?: boolean, saveCopy?: boolean, copyName?: string, slideNumbers?: unknown, [key: string]: unknown }} PresentationStep
+ */

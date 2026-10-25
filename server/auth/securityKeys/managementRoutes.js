@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Security-key management — mounted at /auth/mfa next to the TOTP routes.
  *
@@ -53,6 +53,7 @@ const RenameBody = z.object({ name: nameField.min(1, 'Give the key a name.') }).
 const IdParams = z.object({ id: z.string().min(1).max(64) }).strict();
 
 // Every way proof.verify can say no.
+/** @type {Record<string, string>} */
 const PROOF_REFUSALS = {
     proof_required: 'Confirm with a code from your authenticator app, a recovery code or one of your security keys.',
     invalid_code: 'Invalid code. Check your authenticator app and try again.',
@@ -61,7 +62,10 @@ const PROOF_REFUSALS = {
     challenge_expired: 'That took too long. Try your security key again.',
 };
 
-/** What the client may see of a key: never the public key or credential id. */
+/**
+ * What the client may see of a key: never the public key or credential id.
+ * @param {import('../../stores/user/securityKeys').SecurityKey} key
+ */
 function publicView(key) {
     return {
         id: key.id,
@@ -78,7 +82,7 @@ const tooMany = () => new HttpError(409, 'too_many_keys', `You can register up t
 
 /**
  * @param {{
- *   userStore: { getUser: Function, updateUser: Function, listSecurityKeys: Function, addSecurityKey: Function,
+ *   userStore: { getUser: Function, updateUser: Function, listSecurityKeys: (userId: string) => Promise<import('../../stores/user/securityKeys').SecurityKey[]>, addSecurityKey: Function,
  *     renameSecurityKey: Function, deleteSecurityKey: Function, logAccessAudit: Function },
  *   mfa: { generateRecoveryCodes: Function },
  *   ceremony: typeof import('./ceremony'),
@@ -94,6 +98,12 @@ function createSecurityKeyManagementRouter(deps) {
     const { userStore, mfa, ceremony, proof, ensureUserRow, relyingPartyOf, requireAuth, codeLimiter, log } = deps;
     const router = express.Router();
 
+    /**
+     * @param {import('express').Request} req
+     * @param {string} action
+     * @param {Record<string, any>|null} before
+     * @param {Record<string, any>|null} after
+     */
     const audit = (req, action, before, after) => userStore.logAccessAudit(
         action, 'user', req.session.user.id, req.session.user.id, before, after,
         req.session.user.organizationId || null,

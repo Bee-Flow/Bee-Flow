@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Server-side translation of one catalogue key: the English defaults
  * (i18n/defaults/en) overlaid with the stored translations of the locale
@@ -9,7 +9,10 @@
 
 'use strict';
 
-/** 'nl-NL' / 'NL_nl' -> 'nl'; anything unusable -> 'en'. */
+/**
+ * 'nl-NL' / 'NL_nl' -> 'nl'; anything unusable -> 'en'.
+ * @param {string} locale
+ */
 function normaliseLocale(locale) {
     const code = typeof locale === 'string' ? locale.trim().toLowerCase().split(/[-_]/)[0] : '';
     return /^[a-z]{2,3}$/.test(code) ? code : 'en';

@@ -454,3 +454,27 @@ module.exports = {
     emptyUsage,
     dominantTtl,
 };
+
+/**
+ * A provider's raw usage block: the spelling differs per provider, so only the
+ * nested shapes this module reads are described.
+ * @typedef {{
+ *   [key: string]: unknown,
+ *   prompt_tokens?: number,
+ *   completion_tokens?: number,
+ *   input_tokens_details?: { cached_tokens?: unknown },
+ *   prompt_tokens_details?: { cached_tokens?: unknown },
+ *   promptTokensDetails?: { cachedTokens?: unknown },
+ *   output_tokens_details?: { reasoning_tokens?: unknown },
+ *   completion_tokens_details?: { reasoning_tokens?: unknown },
+ *   completionTokensDetails?: { reasoningTokens?: unknown },
+ *   cache_creation?: { ephemeral_5m_input_tokens?: unknown, ephemeral_1h_input_tokens?: unknown },
+ *   server_tool_use?: Record<string, unknown>,
+ *   tool_use?: Record<string, unknown>,
+ *   modality?: { prompt?: Record<string, unknown>, completion?: Record<string, unknown>, cached?: Record<string, unknown> },
+ * }} RawUsage
+ */
+
+/** @typedef {{ service_tier?: string, inference_geo?: string, traffic_type?: string, tool_use?: Record<string, number> }} UsageMeta */
+
+/** @typedef {{ inputTokens?: number, outputTokens?: number, [TRACKED]?: ReturnType<typeof createUsageAccumulator> }} UsageTotals */

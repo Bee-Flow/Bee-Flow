@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * The session layers of the middleware chain, moved verbatim out of
@@ -116,7 +116,7 @@ function applySessionBridge(app, deps = {}) {
     // Helpers live in utils/sessionToken so OAuth callback can mint pickup tokens.
     const { getSessionToken } = deps.sessionToken || require('../utils/sessionToken');
 
-    app.use(async (req, res, next) => {
+    app.use(async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
         const sessionToken = req.headers['x-session-token'];
         if (sessionToken) {
             // Wrapped because this is an async middleware: under Express 5 a
@@ -128,7 +128,7 @@ function applySessionBridge(app, deps = {}) {
             try {
                 data = await getSessionToken(sessionToken);
             } catch (err) {
-                log.warn('[Sessions] Bridge token lookup failed:', err.message);
+                log.warn('[Sessions] Bridge token lookup failed:', /** @type {Error} */ (err).message);
             }
             if (data) {
                 Object.assign(req.session, data);

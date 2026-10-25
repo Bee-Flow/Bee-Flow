@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio template — Ops dashboard — KPI tiles + table fed by one refresh automation.
  *

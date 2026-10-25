@@ -24,7 +24,7 @@ const learningRoutes = require('./ai/learning');
 const learningAdminRoutes = require('./ai/learningAdmin');
 const { requireCapability } = require('../core/entitlements/entitlements');
 const { requireModule } = require('../modules');
-const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 // Mount all sub-routes
 router.use('/', configRoutes);
@@ -40,6 +40,11 @@ router.use('/', templateChatRoutes);
 // `feature_locked` body; the configStore flag stays a separate operator
 // kill-switch and runs only after the entitlement passes.
 const notebookCapGate = requireCapability('notebooks');
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {() => void} next
+ */
 const notebookKillSwitch = async (req, res, next) => {
     try {
         const configStore = require('../stores/configStore');
@@ -47,9 +52,14 @@ const notebookKillSwitch = async (req, res, next) => {
         if (enabled === false) {
             return res.status(403).json({ error: 'Notebooks feature is disabled' });
         }
-    } catch (err) { log.debug('fail open on the operator kill-switch only', err); }
+    } catch (err) { bestEffort('routes/ai:notebookKillSwitch', err); /* fail open on the operator kill-switch only */ }
     next();
 };
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 const notebookChatGate = (req, res, next) => {
     if (!req.path.startsWith('/chat/notebook')) return next();
     // requireCapability answers feature_locked/feature_disabled itself, or hands a
@@ -65,6 +75,11 @@ router.use('/', notebookChatRoutes);
 // disagree (the split that made the page render while its API 403'd). Path-
 // scoped so the gate only fires on /chat/webpage/* and not on the rest of /ai.
 const webpageCapGate = requireCapability('webpages');
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 const webpageChatGate = (req, res, next) => {
     if (!req.path.startsWith('/chat/webpage')) return next();
     return webpageCapGate(req, res, next);

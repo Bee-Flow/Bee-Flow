@@ -39,6 +39,7 @@ const TAG = '[NextcloudTable]';
 const MAX_TABLES_PER_LINK = 10;
 
 const { integrationClient } = require('../../../integrations/integrationClients');
+const { fallback } = require('../../../../utils/bestEffort');
 
 function deps() {
     return {
@@ -65,7 +66,7 @@ async function callerApi(session, principal) {
     }
     if (!orgId) {
         // A personal mirror still needs a Nextcloud-bound account.
-        const bound = await d.ncClient.resolveNcBinding(session, userId).catch(() => null);
+        const bound = await d.ncClient.resolveNcBinding(session, userId).catch((e) => fallback('core/dataEngine/sources/nextcloudTable/link:callerApi', e, null));
         if (!bound) throw new NextcloudSourceError(400, 'not_nc_org', 'This account is not connected to Nextcloud.');
     }
     if (!await d.isIntegrationPermittedForUser({ userId, appId: 'nextcloud-tables', session, isAdmin: !!session?.isAdmin })) {
@@ -215,7 +216,7 @@ async function linkTables({ scope, principal, session, tables, relations = [], s
     const wantedSchedule = sync.scheduleOf();
 
     const ctx = await callerApi(session, principal);
-    const org = principal.orgId ? await ctx.d.userStore.getOrganization(principal.orgId).catch(() => null) : null;
+    const org = principal.orgId ? await ctx.d.userStore.getOrganization(principal.orgId).catch((e) => fallback('core/dataEngine/sources/nextcloudTable/link:linkTables', e, null)) : null;
     const ncInstanceId = org ? (org.nc_instance_id || org.ncInstanceId || null) : null;
     // For the deep link back into Nextcloud's Tables app — informational, never
     // used for an outbound call (those go through the connector).
@@ -348,7 +349,7 @@ async function relink(datatable, principal, session) {
     const denied = denialToError(probe, tableId);
     if (denied) throw denied;
     await ctx.api.getTable(tableId);
-    const org = principal.orgId ? await ctx.d.userStore.getOrganization(principal.orgId).catch(() => null) : null;
+    const org = principal.orgId ? await ctx.d.userStore.getOrganization(principal.orgId).catch((e) => fallback('core/dataEngine/sources/nextcloudTable/link:relink', e, null)) : null;
     const updated = await datatableStore.setSource(datatable.id, datatable.scope, {
         ...datatable.source,
         linkedByUserId: principal.userId,
@@ -361,3 +362,13 @@ async function relink(datatable, principal, session) {
 }
 
 module.exports = { listLinkable, describe, linkTables, setRelations, relink, MAX_TABLES_PER_LINK, orderParentsFirst, resolveDeclared };
+
+/** @typedef {{ userId: string, orgId?: string }} Principal */
+
+/** @typedef {{ kind: 'org'|'user', id: string }} Scope */
+
+/** @typedef {{ ncTableId?: number, ncViewId?: number }} TableRef */
+
+/** @typedef {{ id: number, title?: string, emoji?: string, rowsCount?: number, columnsCount?: number, isShared?: boolean, archived?: boolean, views?: Array<{ id: number, title?: string }> }} NcTableListing */
+
+/** @typedef {NonNullable<ReturnType<typeof import('../../../../stores/datatableStore/rowMappers').rowToDatatable>>} Datatable */

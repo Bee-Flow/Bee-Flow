@@ -94,6 +94,9 @@ function namedRefs(step) {
     return out.filter((r) => typeof r.ref === 'string' && r.ref.trim());
 }
 
+/**
+ * @param {string} at
+ */
 function checkAiStepReliability(ctx, step, at) {
     if (step.type !== 'ai_step') return;
     const { pushE, pushW } = ctx;

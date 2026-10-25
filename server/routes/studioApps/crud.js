@@ -1,3 +1,5 @@
+// @typecheck
+/** @typedef {import('../../appStudio/templateRegistry').ResolvedTemplate} ResolvedTemplate */
 /**
  * App CRUD: list, mine, usage, create, read, ref, update, definition, delete
  *
@@ -32,6 +34,7 @@ const nextcloudMenuSync = require('../../appStudio/nextcloudMenuSync');
 const { CreateAppBody, UpdateAppBody, DefinitionBody, RefQuery } = require('./schemas');
 const { requireManageApps, audienceFor, refuseRead, resolveOwnerOrgId } = require('./access');
 const { managedOf, MAX_CATEGORY_LEN, sanitizeAppRow, loadDataRefs } = require('./appHelpers');
+const { fallback } = require('../../utils/bestEffort');
 
 const router = express.Router();
 
@@ -51,7 +54,7 @@ router.get('/mine', requireAuth, async (req, res) => {
     // fetch. dbRatio is server-computed so the client never needs the cap.
     // Best-effort: a size lookup hiccup drops usage, never the app list.
     let sizes = {};
-    try { sizes = await studioAppQuota.appDbSizes(apps.map(a => a.id)); } catch (err) { log.debug('usage optional', err); }
+    try { sizes = await studioAppQuota.appDbSizes(apps.map(a => a.id)); } catch (err) { fallback('routes/studioApps/crud:anon', err); /* usage optional */ }
     const cap = DATA_LIMITS.MAX_DB_BYTES;
     const withUsage = apps.map((a) => {
         const dbBytes = sizes[a.id] || 0;
@@ -106,6 +109,7 @@ router.post('/', requireAuth, requireManageApps, validate({ body: CreateAppBody 
         : '';
 
     let definition;
+    /** @type {ResolvedTemplate | null} */
     let template = null;
     if (templateId !== undefined && templateId !== null && templateId !== '') {
         const { orgIdArr } = await audienceFor(req);
@@ -151,6 +155,7 @@ router.post('/', requireAuth, requireManageApps, validate({ body: CreateAppBody 
     // which reads as "the template forgot them". The only trace was a
     // server-side console.warn nobody was watching. The caller now learns
     // what happened and can say so.
+    /** @type {{ ok: boolean; error: string; } | { ok: boolean; dataModelVersion: number | undefined; } | null} */
     let dataInstall = null;
     if (template && (template.dataModel || template.seed || template.datasets)) {
         try {
@@ -163,7 +168,7 @@ router.post('/', requireAuth, requireManageApps, validate({ body: CreateAppBody 
                 dataInstall = { ok: true, dataModelVersion: install.dataModelVersion };
             }
         } catch (e) {
-            const reason = e && e.message ? e.message : String(e);
+            const reason = e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : String(e);
             log.warn(`[StudioApps] Template data install threw for ${app.id}: ${reason}`);
             dataInstall = { ok: false, error: reason };
         }
@@ -290,7 +295,7 @@ router.put('/:id/definition', requireAuth, requireManageApps, validate({ body: D
     // saveable — publish is where data references become hard errors.
     // Best-effort: a data-store hiccup skips the checks, never blocks a save.
     let dataRefs = {};
-    try { dataRefs = await loadDataRefs(req.params.id, userId); } catch (err) { log.debug('checks skipped', err); }
+    try { dataRefs = await loadDataRefs(req.params.id, userId); } catch (err) { fallback('routes/studioApps/crud:anon#2', err); /* checks skipped */ }
     const { ok, errors, warnings } = validateAppDefinition(canonical, { ...dataRefs, dataRefsAsWarnings: true });
     if (!ok) return res.status(422).json({ error: 'App definition failed validation', errors, warnings });
 
@@ -330,3 +335,5 @@ router.delete('/:id', requireAuth, requireManageApps, async (req, res) => {
 });
 
 module.exports = router;
+
+/** @typedef {ReturnType<typeof import('../../stores/studioApp/rowMappers').mapAppMetaRow>} AppMeta */

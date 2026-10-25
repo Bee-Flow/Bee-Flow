@@ -10,7 +10,7 @@
  * invitation to update the expected value. It means you are moving a route,
  * and a move happens in ONE commit across all of:
  *
- *   1. agent-hub/src/authedApp/appRoutes.js — new route + an alias that keeps
+ *   1. agent-hub/src/authedApp/appRoutes.ts — new route + an alias that keeps
  *      the OLD path parsing (plus its freeze, appRoutes.test.js);
  *   2. mobile/src/features/notifications/route.ts — translateWebLink keeps
  *      translating the old shape;

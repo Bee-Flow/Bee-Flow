@@ -383,3 +383,13 @@ module.exports = {
     FORM_WAIT_DEFAULT_MS, FORM_WAIT_MIN_MS, FORM_WAIT_MAX_MS,
     resolveFormWaitMs, FormInputRequiredError, isRunPause, execFormPage, conditionMet,
 };
+
+/**
+ * @typedef {import('../automationModel/bind').BindRunState} RunState
+ * @typedef {{ userId?: string }|{ groupId?: string }} Seat
+ * @typedef {{ id?: string, type?: string, title?: string, prompt?: string, when?: string, mode?: string,
+ *   waitSeconds?: number|string, form?: object, approval?: Record<string, any> }} PauseStep  an approval or
+ *   form_page step as the definition stores it (parsed JSON)
+ * @typedef {{ userId?: string, orgId?: string, session?: object, layerStack?: unknown[], formBaseTheme?: object|null,
+ *   testHarness?: NonNullable<Parameters<typeof pageAnswersFor>[0]>['testHarness'] }} PauseCtx
+ */

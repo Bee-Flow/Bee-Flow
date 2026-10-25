@@ -24,7 +24,7 @@
 
 const accessFilter = require('../core/dataEngine/accessFilter');
 const studioAppDataStore = require('../stores/studioAppDataStore');
-const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 // ── Viewer role resolution ──────────────────────────────────────────
 
@@ -43,7 +43,7 @@ async function resolveViewerRole(app, viewerId, model, audience = {}) {
     try {
         const memberRole = await studioAppDataStore.getMemberRole(app.id, viewerId);
         if (memberRole) return memberRole;
-    } catch (err) { log.debug('membership lookup failure → fall through to mapping', err); }
+    } catch (err) { bestEffort('appStudio/rlsGateway:resolveViewerRole', err); /* membership lookup failure → fall through to mapping */ }
 
     const roleMapping = (model && typeof model.roleMapping === 'object' && model.roleMapping) ? model.roleMapping : {};
     const byGroup = (roleMapping.byGroup && typeof roleMapping.byGroup === 'object') ? roleMapping.byGroup : {};

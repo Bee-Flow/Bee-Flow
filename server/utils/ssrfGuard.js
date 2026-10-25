@@ -158,3 +158,5 @@ module.exports = {
     makeSafeDispatcher,
     safeFetch,
 };
+
+/** @typedef {{ code?: string, cause?: ErrLike, errors?: ErrLike[] }} ErrLike */

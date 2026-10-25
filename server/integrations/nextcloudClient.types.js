@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 // Types only (no runtime exports): the shapes nextcloudClient.js hands back.
 

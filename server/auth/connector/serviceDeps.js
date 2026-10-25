@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The one place the connector bootstrap reaches up into services/: the
  * org-health recorder and the plan entitlements. connectorBootstrap.js and the

@@ -14,6 +14,7 @@ const { enrichWithDocumentFacts } = require('./kbDocumentFacts');
 const {
     MIN_VEC_SCORE, ftsQueriesFor, queryCandidates, makeOrphanFilter, fuseCandidates, expandContextWindow,
 } = require('./localSearchSteps');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // Collaborators that sit in the server's large import cycle are handed in by
 // the barrel (localKBIngest.js) through wire(), so this module imports none of
@@ -30,6 +31,9 @@ const EMBEDDING_CACHE_MAX = 500;
 const EMBEDDING_CACHE_TTL = 30 * 60 * 1000; // 30 minutes — query embeddings are stable
 const _embeddingCache = new Map();
 
+/**
+ * @param {string} query
+ */
 function getCachedEmbedding(query) {
     const entry = _embeddingCache.get(query);
     if (!entry) return null;
@@ -40,6 +44,10 @@ function getCachedEmbedding(query) {
     return entry.embedding;
 }
 
+/**
+ * @param {string} embedding
+ * @param {string} query
+ */
 function setCachedEmbedding(query, embedding) {
     // Evict oldest if at capacity
     if (_embeddingCache.size >= EMBEDDING_CACHE_MAX) {
@@ -85,7 +93,7 @@ async function searchLocally(tenantId, kbIds, query, options = {}) {
     try {
         // Issue #10: Set ef_search on THIS connection for better HNSW recall
         if (isPgvectorAvailable()) {
-            await client.query('SET hnsw.ef_search = 100').catch(() => {});
+            await client.query('SET hnsw.ef_search = 100').catch((e) => bestEffort('core/kb/localSearch:searchLocally', e));
         }
 
         let validDocIds;
@@ -132,7 +140,7 @@ async function searchLocally(tenantId, kbIds, query, options = {}) {
         const { expandRelations } = require('./relationHop');
         await expandRelations(results, { kbIds, query, vectorStr });
     } catch (hopErr) {
-        log.warn(`[LocalKBSearch] Relation hop failed: ${hopErr.message}`);
+        log.warn(`[LocalKBSearch] Relation hop failed: ${/** @type {Error} */ (hopErr).message}`);
     }
 
     // Mark results as orphan-filtered so callers don't duplicate the work
@@ -157,6 +165,7 @@ async function searchLocally(tenantId, kbIds, query, options = {}) {
  * The query's embedding as a pgvector literal, from the LRU cache or the
  * configured embedder; null without pgvector or when embedding fails (the
  * search then runs keyword-only).
+ * @param {string} query
  */
 async function embedQuery(query) {
     if (!isPgvectorAvailable()) return null;
@@ -176,7 +185,7 @@ async function embedQuery(query) {
         }
         log.warn('[LocalKBSearch] Query embedding produced no vector — falling back to keyword-only search');
     } catch (err) {
-        log.warn(`[LocalKBSearch] Query embedding failed: ${err.message}`);
+        log.warn(`[LocalKBSearch] Query embedding failed: ${/** @type {Error} */ (err).message}`);
     }
     return null;
 }

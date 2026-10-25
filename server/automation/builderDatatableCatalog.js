@@ -96,3 +96,5 @@ async function buildDatatableCatalogForUser(userId, { principal = null } = {}) {
 }
 
 module.exports = { buildDatatableCatalogForUser };
+
+/** @typedef {import('../auth/datatableAccess').DatatablePrincipal} DatatablePrincipal */

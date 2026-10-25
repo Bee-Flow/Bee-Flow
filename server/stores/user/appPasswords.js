@@ -7,6 +7,7 @@ const { run } = require('../../db');
 const { initDB } = require('./schema');
 const { getUser, createUser } = require('./users');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // ── Encryption (app passwords) ─────────────────────────────
 const ALGORITHM = 'aes-256-gcm';
@@ -66,7 +67,7 @@ function decrypt(encrypted) {
     };
     // v2 first, then the legacy derivation for rows written before the change.
     let out = null;
-    try { out = tryKey(getEncryptionKey()); } catch (err) { log.debug('master missing — try legacy', err); }
+    try { out = tryKey(getEncryptionKey()); } catch (err) { fallback('user/appPasswords:masterKey', err); /* master missing: try legacy */ }
     if (out !== null) return out;
     try { out = tryKey(getLegacyEncryptionKey()); } catch (_) { return null; }
     if (out === null) log.error('App-password decryption failed (wrong key or rotated master)');
@@ -97,17 +98,19 @@ async function getAppPassword(userId) {
     const decrypted = decrypt(user.appPassword);
     if (!decrypted) return null;
     // New format: encrypted JSON { username, password, url? }. Legacy: encrypted password only.
-    try {
-        const parsed = JSON.parse(decrypted);
-        if (parsed && typeof parsed === 'object' && parsed.password) {
-            return {
-                username: parsed.username || user.username,
-                password: parsed.password,
-                url: parsed.url || null,
-                createdAt: user.appPasswordCreated
-            };
-        }
-    } catch (err) { log.debug('legacy bare-password path', err); }
+    if (decrypted.startsWith('{')) {
+        try {
+            const parsed = JSON.parse(decrypted);
+            if (parsed && typeof parsed === 'object' && parsed.password) {
+                return {
+                    username: parsed.username || user.username,
+                    password: parsed.password,
+                    url: parsed.url || null,
+                    createdAt: user.appPasswordCreated
+                };
+            }
+        } catch { fallback('user/appPasswords:parse', new Error('stored JSON did not parse')); /* the parse error would quote the password */ }
+    }
     return { username: user.username, password: decrypted, url: null, createdAt: user.appPasswordCreated };
 }
 

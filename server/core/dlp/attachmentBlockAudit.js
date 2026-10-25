@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * How a blocked attachment is written to the guardrail ledger.
  *
@@ -14,6 +14,10 @@ const { encodeCategories } = require('../privacy/piiCategories');
 
 const HELD_REASONS = new Set(['overflow', 'timeout', 'degraded']);
 
+/**
+ * @param {string} reason
+ * @param {string[]} categories
+ */
 function attachmentBlockAudit(reason, categories) {
     const cause = reason && reason !== 'pii' ? reason : 'pii';
     if (HELD_REASONS.has(cause)) {

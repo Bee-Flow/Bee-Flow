@@ -26,6 +26,7 @@ const { classifyProvider } = require('../providers/classification');
 const log = require('../../telemetry/log');
 const { eviction, _mergeIntoTokenMap, _writeMapToDb, getConversationTokenMap, getConversationTokenMapAsync, clearConversationState, setConversationPref, getConversationPref, gc } = require('./dlpTokenMaps');
 const { _normalisePiiEntities, _tokeniseAll, _recordToVault, _extractLastUserText } = require('./dlpTokenise');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ─── DB persistence (write-through + hydrate) ───────────────────────
 // Without this, the in-process Map at line 32 is lost on every server
@@ -87,8 +88,8 @@ function preWarmPiiScan({ messages, orgShieldConfig, providerConfig }) {
         const piiThreshold = typeof orgShieldConfig.piiDetectionConfidenceThreshold === 'number'
             ? orgShieldConfig.piiDetectionConfidenceThreshold
             : undefined;
-        detectPii(text, piiCategories, piiThreshold).catch(() => { /* the real scan reports */ });
-    } catch (err) { log.debug('pre-warming must never break the turn', err); }
+        detectPii(text, piiCategories, piiThreshold).catch((e) => bestEffort('core/dlp/dlpRunner:preWarmPiiScan', e));
+    } catch (err) { bestEffort('core/dlp/dlpRunner:preWarmPiiScan#2', err); /* pre-warming must never break the turn */ }
 }
 
 /**
@@ -267,7 +268,7 @@ async function scan({ messages, orgShieldConfig, conversationId, providerConfig,
     if (effectiveChoice === 'redact' || mode === 'auto_redact') {
         const { tokenizedText, tokenMap, summary } = await _tokeniseAll(text, all, conversationId, { ephemeral });
         _mergeIntoTokenMap(conversationId, tokenMap);
-        if (!ephemeral) _writeMapToDb(conversationId).catch(() => { /* logged in helper */ });
+        if (!ephemeral) _writeMapToDb(conversationId).catch((e) => bestEffort('core/dlp/dlpRunner:scan', e));
         return { action: 'redact', findings: all, provider, redactedText: tokenizedText, tokenMap, scanStatus: 'ok', summary };
     }
 
@@ -288,7 +289,7 @@ async function scan({ messages, orgShieldConfig, conversationId, providerConfig,
 async function applyRedactionChoice({ conversationId, text, findings, ephemeral = false }) {
     const { tokenizedText, tokenMap, summary } = await _tokeniseAll(text, findings, conversationId, { ephemeral });
     _mergeIntoTokenMap(conversationId, tokenMap);
-    if (!ephemeral) _writeMapToDb(conversationId).catch(() => { /* logged in helper */ });
+    if (!ephemeral) _writeMapToDb(conversationId).catch((e) => bestEffort('core/dlp/dlpRunner:applyRedactionChoice', e));
     return { tokenizedText, tokenMap, summary };
 }
 
@@ -325,7 +326,7 @@ function mergeTokenMap(conversationId, tokenMap) {
     _recordToVault(conversationId, asObject);
     // Write-through to DB so the map survives a server restart. The chat
     // turn does not block on this — failures are logged inside the helper.
-    _writeMapToDb(conversationId).catch(() => { /* already logged */ });
+    _writeMapToDb(conversationId).catch((e) => bestEffort('core/dlp/dlpRunner:mergeTokenMap', e));
 }
 
 module.exports = {
@@ -341,3 +342,9 @@ module.exports = {
     gc,
     sweepIdle: eviction.sweepIdle,
 };
+
+/**
+ * @typedef {{ category: string, label: string, offset: number, length: number, text: string, source: string,
+ *            severity: string, confidence?: number }} DlpFinding
+ * @typedef {{ role?: string, content?: string | Array<{ type?: string, text?: string }> }} DlpChatMessage
+ */

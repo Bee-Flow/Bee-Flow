@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Capability Registry — the single "what can exist" catalogue.
  *
@@ -43,7 +44,7 @@
 const tiers = require('../../license/tiers');
 const featureMap = require('../../license/featureMap');
 const { NC_INTEGRATIONS, NC_INTEGRATION_ID_SET } = require('../../utils/ncIntegrationCatalog');
-const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const CapabilityKind = Object.freeze({
     CORE: 'core',
@@ -216,7 +217,7 @@ function setRemoteModuleCapabilityDescriptors(list) {
 async function refreshModuleCapabilityFilter() {
     try {
         await require('../../modules/index').refreshModuleActivations();
-    } catch (err) { log.debug('Modules runtime/store unavailable — keep whatever was last pushed.', err); }
+    } catch (err) { bestEffort('core/entitlements/capabilityRegistry:refreshModuleCapabilityFilter', err); /* Modules runtime/store unavailable — keep whatever was last pushed. */ }
 }
 
 /** Re-read mcpStore and project enabled servers as integration capabilities. */
@@ -238,7 +239,7 @@ async function refreshMcpIntegrationDescriptors() {
                 groupTogglable: true,
                 _mcpServer: true,
             })));
-    } catch (err) { log.debug('mcpStore unavailable — keep whatever was last cached (or empty).', err); }
+    } catch (err) { bestEffort('core/entitlements/capabilityRegistry:mcpServers', err); /* keep the last cache */ }
 }
 
 // ── Org-scoped custom-integration projection (AI Integration Builder) ───
@@ -466,6 +467,9 @@ function listByKind(kind) {
     return listCapabilities().filter(c => c.kind === kind);
 }
 
+/**
+ * @param {string} id
+ */
 function getCapability(id) {
     const hit = build().byId.get(id) || _mcpById.get(id) || _remoteModuleById.get(id) || _customById.get(id);
     if (hit) return hit;
@@ -498,7 +502,10 @@ function getCapability(id) {
     return null;
 }
 
-/** True when `id` is the nextcloud-* family (special group/exempt semantics). */
+/**
+ * True when `id` is the nextcloud-* family (special group/exempt semantics).
+ * @param {string} id
+ */
 function isNcCapability(id) {
     return NC_INTEGRATION_ID_SET.has(id);
 }
@@ -531,3 +538,11 @@ module.exports = {
     // definition before growing it.
     USER_FACING_CORE,
 };
+
+/**
+ * @typedef {{ id: string, kind: string, name: string, description: string, category: string, licenseFeature: string|null,
+ *   lifecycle: string, defaultState: string, userFacing: boolean, groupTogglable: boolean, groupScoped?: boolean,
+ *   aliasOf?: string|null, deprecated?: boolean, moduleId?: string|null, _mcpServer?: boolean, _ncFamily?: boolean,
+ *   _custom?: boolean, _customOrgId?: string|null, _customSlug?: string, _customKind?: string, _customSource?: string,
+ *   _remoteModule?: boolean }} Capability
+ */

@@ -11,7 +11,7 @@ const { CORE_TOOL_NAMES } = require('../../../automation/builderModelProfiles');
 const { projectToolSchemas } = require('../../../automation/builderTools/schemaProjection');
 const { PLAN_TOOL, QUESTIONS_TOOL, toolAllowed } = require('./workMode');
 const { INSPECTION_TOOLS } = require('./inspectionTools');
-const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
 async function buildToolMenu(turn) {
     const {
@@ -43,13 +43,13 @@ async function buildToolMenu(turn) {
     try {
         const { userHasBetaFeature } = require('../../../core/entitlements/betaFeatures');
         webpageInspectorEnabled = await userHasBetaFeature(userId, 'webpages', req.session);
-    } catch (err) { log.debug('default false', err); }
+    } catch (err) { fallback('routes/ai/automationBuilder/toolMenu:buildToolMenu', err); /* default false */ }
     if (webpageInspectorEnabled) {
         const { WEBPAGE_AUTOMATION_TOOLS } = require('../../../integrations/webpageAutomationTools');
         const { resolveUserGroups } = require('../../../auth/audience');
         const { resolveUserOrgIds } = require('../../../auth/permissions');
-        const userGroupIds = await resolveUserGroups(userId).catch(() => []);
-        const orgIdsSet = await resolveUserOrgIds(req).catch(() => null);
+        const userGroupIds = await resolveUserGroups(userId).catch((e) => fallback('routes/ai/automationBuilder/toolMenu:buildToolMenu#2', e, []));
+        const orgIdsSet = await resolveUserOrgIds(req).catch((e) => fallback('routes/ai/automationBuilder/toolMenu:buildToolMenu#3', e, null));
         const userOrgIds = orgIdsSet instanceof Set ? [...orgIdsSet] : [];
         webpageInspectorCtx = {
             userId,

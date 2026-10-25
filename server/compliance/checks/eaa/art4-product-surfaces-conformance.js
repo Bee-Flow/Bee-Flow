@@ -42,12 +42,18 @@ function _buildSha() {
     try { return require('../../../utils/buildInfo').APP_BUILD_SHA || 'dev'; } catch { return process.env.APP_BUILD_SHA || 'dev'; }
 }
 
+/**
+ * @param {string | number | Date} v
+ */
 function _iso(v) {
     if (!v) return null;
     const t = new Date(v).getTime();
     return Number.isFinite(t) ? new Date(t).toISOString() : null;
 }
 
+/**
+ * @param {string} s
+ */
 function _isDevSha(s) {
     return String(s || '').trim().toLowerCase() === 'dev';
 }
@@ -55,6 +61,9 @@ function _isDevSha(s) {
 // 'dev' is the absence of a build sha (an unstamped server, a dispatch run
 // without one), so it ties a report to no build — not even to another 'dev'.
 // A prefix only counts from 7 characters, as with the SBOM check.
+/**
+ * @param {string} b
+ */
 function _shaMatches(a, b) {
     const x = typeof a === 'string' ? a.trim().toLowerCase() : '';
     const y = typeof b === 'string' ? b.trim().toLowerCase() : '';
@@ -106,7 +115,7 @@ module.exports = {
             stale_after_days: STALE_DAYS,
             axe_version: loaded.artefact?.axe_version || null,
             surfaces: [],
-            totals: null,
+            totals: /** @type {Record<string, number> | null} */ (null),
             attestation: _attestation(settings),
         };
 
@@ -187,3 +196,5 @@ module.exports = {
         };
     },
 };
+
+/** @typedef {{ id: string, status: string, url_path?: string, skip_reason?: string, violations?: number, rules?: { id: string, impact: string, nodes: number, targets?: string[] }[] }} Surface */

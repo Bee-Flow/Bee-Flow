@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * MFA (TOTP) helpers — shared by mfaRoutes.js (enroll/manage) and the login
  * flow in loginRoutes.js (verify the second factor before a session is
@@ -18,7 +18,7 @@ const bcrypt = require('bcryptjs');
 const { generateSecret: otpGenerateSecret, verifySync, createGuardrails } = require('otplib');
 const QRCode = require('qrcode');
 const configStore = require('../stores/configStore');
-const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 // Tolerate one 30s step of clock drift on either side. The tolerance is given
 // in seconds: [30, 30] accepts exactly the previous, current and next step for
@@ -46,16 +46,19 @@ function generateSecret() {
 // Built by hand: otplib 13 leaves the default period/digits/algorithm out of
 // the URL, and the URL (and so the QR code) is part of what users and support
 // see. Byte-identical to what otplib 12's `keyuri` produced.
+/** @param {string} secret @param {string | null} [accountLabel] */
 function otpauthUrl(secret, accountLabel) {
     const issuer = encodeURIComponent(ISSUER);
     const label = encodeURIComponent(accountLabel || 'user');
     return `otpauth://totp/${issuer}:${label}?secret=${secret}&period=30&digits=6&algorithm=SHA1&issuer=${issuer}`;
 }
 
+/** @param {string} otpauth */
 async function qrDataUrl(otpauth) {
     return QRCode.toDataURL(otpauth, { margin: 1, width: 220 });
 }
 
+/** @param {string} secretPlain @param {string} token */
 function verifyTotp(secretPlain, token) {
     if (!secretPlain || !token) return false;
     const clean = String(token).replace(/\s+/g, '');
@@ -75,9 +78,11 @@ function verifyTotp(secretPlain, token) {
 }
 
 // Encrypt / decrypt the TOTP secret at rest using the configStore envelope.
+/** @param {string} secretPlain */
 function encryptSecret(secretPlain) {
     return configStore.encryptValue(secretPlain);
 }
+/** @param {string} stored */
 function decryptSecret(stored) {
     if (!stored) return null;
     return configStore.decryptValue(stored);
@@ -92,13 +97,19 @@ function _randomCode() {
 
 async function generateRecoveryCodes(count = RECOVERY_CODE_COUNT) {
     const plain = Array.from({ length: count }, () => _randomCode());
-    const stored = await Promise.all(plain.map(async (c) => ({
+    const stored = await Promise.all(plain.map(/** @param {string} c @returns {Promise<RecoveryCode>} */ async (c) => ({
         hash: await bcrypt.hash(c.replace('-', ''), 10),
         usedAt: null,
     })));
     return { plain, stored };
 }
 
+/** @typedef {{ hash: string, usedAt: string | null }} RecoveryCode */
+
+/**
+ * @param {string | RecoveryCode[] | null | undefined} json
+ * @returns {RecoveryCode[]}
+ */
 function parseRecoveryCodes(json) {
     if (!json) return [];
     try {
@@ -113,6 +124,8 @@ function parseRecoveryCodes(json) {
  * Verify a recovery code against the stored hashes. Returns the updated
  * codes array (with the matched entry marked used) when valid, or null when
  * no unused code matches. The caller persists the returned array.
+ * @param {string | RecoveryCode[] | null | undefined} storedCodesJson
+ * @param {string} inputCode
  */
 async function consumeRecoveryCode(storedCodesJson, inputCode) {
     const codes = parseRecoveryCodes(storedCodesJson);
@@ -125,11 +138,12 @@ async function consumeRecoveryCode(storedCodesJson, inputCode) {
                 entry.usedAt = new Date().toISOString();
                 return codes;
             }
-        } catch (err) { log.debug('skip malformed entry', err); }
+        } catch (err) { bestEffort('mfa:recovery-code-entry', err); }
     }
     return null;
 }
 
+/** @param {string | RecoveryCode[] | null | undefined} storedCodesJson */
 function remainingRecoveryCodes(storedCodesJson) {
     return parseRecoveryCodes(storedCodesJson).filter(c => !c.usedAt).length;
 }

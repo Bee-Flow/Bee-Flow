@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Teams Import Store — PostgreSQL-backed Microsoft Teams ingest job queue.
  *
@@ -56,8 +56,14 @@ async function _initDB() {
     log.info('[TeamsImportStore] PostgreSQL initialized');
 }
 
+/**
+ * @param {string | number | Date} v
+ */
 const iso = (v) => (v ? new Date(v).toISOString() : null);
 
+/**
+ * @param {any} r
+ */
 function mapJob(r) {
     if (!r) return null;
     return {
@@ -85,6 +91,7 @@ function mapJob(r) {
 /**
  * Seed a job for a discovered occurrence. Idempotent per (user, event):
  * returns null when the row already exists.
+ * @param {{ userId: string, orgId?: string | null, calendarEventId: string, seriesMasterId?: string | null, joinUrl: string, title?: string | null, meetingStart?: string | Date | null, meetingEnd?: string | Date | null }} opts
  */
 async function seedJob({ userId, orgId = null, calendarEventId, seriesMasterId = null, joinUrl, title = null, meetingStart = null, meetingEnd = null }) {
     await initDB();
@@ -121,6 +128,10 @@ const UPDATABLE_FIELDS = {
     title: 'title',
 };
 
+/**
+ * @param {string} id
+ * @param {Record<string, unknown>} fields
+ */
 async function updateJob(id, fields) {
     await initDB();
     const built = buildUpdate({
@@ -135,6 +146,10 @@ async function updateJob(id, fields) {
     return rowCount > 0;
 }
 
+/**
+ * @param {string} id
+ * @param {string} transcriptionId
+ */
 async function completeJob(id, transcriptionId) {
     await initDB();
     const { rowCount } = await run(
@@ -152,6 +167,9 @@ async function completeJob(id, transcriptionId) {
  */
 const failJob = leased.failJob;
 
+/**
+ * @param {string} id
+ */
 async function parkNeedsReauth(id) {
     await initDB();
     const { rowCount } = await run(
@@ -163,7 +181,10 @@ async function parkNeedsReauth(id) {
     return rowCount > 0;
 }
 
-/** Return a user's parked jobs to the queue once their credential works again. */
+/**
+ * Return a user's parked jobs to the queue once their credential works again.
+ * @param {string} userId
+ */
 async function unparkForUser(userId) {
     await initDB();
     const { rowCount } = await run(
@@ -175,6 +196,10 @@ async function unparkForUser(userId) {
     return rowCount || 0;
 }
 
+/**
+ * @param {string} userId
+ * @param {number} [days]
+ */
 async function listRecentJobsForUser(userId, days = 7) {
     await initDB();
     const rows = await getAll(
@@ -186,6 +211,10 @@ async function listRecentJobsForUser(userId, days = 7) {
     return rows.map(mapJob);
 }
 
+/**
+ * @param {string} userId
+ * @param {string} calendarEventId
+ */
 async function getJobForEvent(userId, calendarEventId) {
     await initDB();
     return mapJob(await getOne(
@@ -194,6 +223,9 @@ async function getJobForEvent(userId, calendarEventId) {
     ));
 }
 
+/**
+ * @param {string} id
+ */
 async function getJob(id) {
     await initDB();
     return mapJob(await getOne('SELECT * FROM teams_import_jobs WHERE id = $1', [id]));

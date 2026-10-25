@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // The one rule for CMS page slugs. The store (create, rename, import), the
 // builder's validation and the public router (core/seo/publicPath.js) all read
 // it from here, so a slug the CMS accepts is a slug the site can serve.

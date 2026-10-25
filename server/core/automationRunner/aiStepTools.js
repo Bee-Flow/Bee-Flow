@@ -75,7 +75,7 @@ async function catalogStepTools({ step, ctx, skillCtx }) {
             toolsWithheldReasons: gate.reasons || {},
         };
     } catch (e) {
-        log.warn(`[AutomationRunner] ai_step tool catalog lookup failed: ${e.message}`);
+        log.warn(`[AutomationRunner] ai_step tool catalog lookup failed: ${/** @type {Error} */ (e).message}`);
         return null;
     }
 }
@@ -138,3 +138,16 @@ async function resolveAiStepTools(opts) {
 }
 
 module.exports = { resolveAiStepTools };
+
+/**
+ * @typedef {import('./aiStepAgent').AgentTool} AiTool
+ * @typedef {{ tools: AiTool[]|null, toolsWithheld: string[], toolsWithheldReasons: Record<string, string> }} AiStepToolsResult
+ * @typedef {{ step: { id?: string, tools?: unknown, allowTools?: boolean },
+ *             ctx: import('./aiStepAgent').StepAgentCtx,
+ *             agentBinding: Parameters<typeof import('./aiStepAgent').agentToolsForStep>[0]['binding'] | null,
+ *             agentToolsForStep: typeof import('./aiStepAgent').agentToolsForStep,
+ *             skillGround: { tools: AiTool[], startsAutomations?: boolean },
+ *             skillGrants: { apps: string[]|null, automationIds: string[]|null },
+ *             skillCtx: { grants: { apps: string[] } },
+ *             stepPermissions: { startAutomations?: boolean } }} AiStepToolsOpts
+ */

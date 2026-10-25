@@ -232,3 +232,12 @@ function fallbackFont() {
 }
 
 module.exports = { loadFont, parseToUnicode, streamBytes };
+
+/**
+ * A looked-up PDF object as this module reads it: some kinds carry these members, others do not.
+ * @typedef {import('pdf-lib').PDFObject & { get?: (key: import('pdf-lib').PDFName) => import('pdf-lib').PDFObject | undefined, decodeText?: () => string }} PdfObjectView
+ */
+
+/**
+ * @typedef {{ ascent: number, descent: number, decode: (bytes: Buffer) => Array<{ text: string, width: number, isSpace: boolean }> }} PdfFont
+ */

@@ -36,7 +36,19 @@ const KNOWN_SCOPES = new Set(['user', 'org']);
 
 function validateTriggerSource(decl, { existingIds = [] } = {}) {
     const out = [];
+    /**
+     * @param {string} code
+     * @param {string} path
+     * @param {string} message
+     * @param {string} [hint]
+     */
     const err = (code, path, message, hint) => out.push({ code, severity: 'error', path, message, hint });
+    /**
+     * @param {string} code
+     * @param {string} path
+     * @param {string} message
+     * @param {string} hint
+     */
     const warn = (code, path, message, hint) => out.push({ code, severity: 'warning', path, message, hint });
 
     if (!decl || typeof decl !== 'object' || Array.isArray(decl)) {
@@ -169,8 +181,17 @@ function validateTriggerSource(decl, { existingIds = [] } = {}) {
     return out;
 }
 
+/**
+ * @param {string} at
+ */
 function validatePollDiff(src, at) {
     const out = [];
+    /**
+     * @param {string} code
+     * @param {string} path
+     * @param {string} message
+     * @param {string} [hint]
+     */
     const err = (code, path, message, hint) => out.push({ code, severity: 'error', path, message, hint });
 
     if (!src.tool || typeof src.tool !== 'string') {

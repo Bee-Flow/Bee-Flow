@@ -112,6 +112,7 @@ function summariseDraftSteps(draft) {
  * every round, and guessed wrong. Cheap to carry: ~12 chars per edge.
  */
 function renderEdgeLine(draft) {
+    /** @type {string[]} */
     const parts = [];
     const render = (g) => (Array.isArray(g?.edges) ? g.edges : [])
         .filter(e => e && e.from && e.to)
@@ -135,7 +136,9 @@ function renderEdgeLine(draft) {
  */
 function renderStepIdLine(draft) {
     const token = (s) => `${s.id}(${s.tool || s.type})`;
+    /** @type {string[]} */
     const parts = [];
+    /** @type {string[]} */
     const main = [];
     if (draft?.trigger?.id) main.push(`${draft.trigger.id}(${draft.trigger.kind || 'trigger'})`);
     const extra = (Array.isArray(draft?.triggers) ? draft.triggers : []).filter(t => t?.id)
@@ -162,6 +165,9 @@ function renderStepIdLine(draft) {
  * drop the field and keep the (one-line) shape hint instead.
  */
 function compactSample(value, { maxArray = 1, maxDepth = 4, maxString = 120, maxChars = 2000 } = {}) {
+    /**
+     * @param {number} depth
+     */
     const walk = (v, depth) => {
         if (v == null) return v;
         if (typeof v === 'string') return v.length > maxString ? `${v.slice(0, maxString)}…` : v;
@@ -292,6 +298,7 @@ function compactDryRunForModel(result) {
     });
     const runFailed = !!run.error || isFailedStatus(run.status);
     const ok = !runFailed && failedSteps === 0 && failedItems === 0;
+    /** @type {string[]} */
     const problems = [];
     if (runFailed) problems.push(`the run ended ${run.status || 'in error'}${run.error ? ` (${String(run.error).slice(0, 200)})` : ''}`);
     if (failedSteps) problems.push(`${failedSteps} step${failedSteps === 1 ? '' : 's'} failed`);
@@ -320,8 +327,10 @@ function compactDryRunForModel(result) {
  * an unparseable blob). Guarantees the returned string is valid JSON: first
  * drops the `_draftSteps` echo, then trims a `steps` array from the tail with
  * an explicit `_truncated` marker, and as a last resort wraps a preview.
+ * @param {number} [maxChars]
  */
 function truncateToolResultJson(result, maxChars = 30_000) {
+    /** @type {string} */
     let s;
     try { s = JSON.stringify(result); } catch (_) { return JSON.stringify({ error: 'unserializable tool result' }); }
     if (typeof s !== 'string') return JSON.stringify(null);
@@ -351,3 +360,13 @@ module.exports = {
     compactDryRunForModel,
     truncateToolResultJson,
 };
+
+/**
+ * @typedef {import('./draftGraph').DraftGraph} DraftGraph
+ * @typedef {import('./draftGraph').GraphStep} GraphStep
+ * @typedef {{ status?: unknown, index?: number, error?: unknown, output?: unknown }} ForEachResult
+ * @typedef {{ iterations?: number, succeeded?: number, failed?: number, results?: ForEachResult[] }} ForEachOutput
+ * @typedef {{ stepId?: string, stepType?: string, status?: string, parentStepId?: string, _hint?: unknown,
+ *   error?: string, errorClass?: string, input?: unknown, output?: Record<string, unknown> | null }} DryRunStep
+ * @typedef {{ id?: string, status?: string, error?: string, startedAt?: string, finishedAt?: string }} DryRunRow
+ */

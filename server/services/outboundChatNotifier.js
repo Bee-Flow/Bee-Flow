@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Tells the team, in chat, that something arrived in the support inbox.
  *
@@ -59,11 +59,27 @@ const THROTTLE_MS = 10 * 60_000;
 const lastSent = new Map();
 const ARRIVAL_EVENTS = new Set(['ticket_created', 'customer_message']);
 
+/**
+ * The support_threads columns this module reads (the requester_* columns are
+ * passed on to the subject screen, which matches them against the text).
+ * @typedef {{ id?: string, ticket_ref?: string, source?: string, priority?: string, subject?: string,
+ *   organization_id?: string | null, inbox_id?: string | null, requester_email?: string,
+ *   requester_org_name?: string, requester_ip?: string, requester_name?: string }} SupportThread
+ */
+/**
+ * @typedef {{ title: string, lines: string[], url: string, linkText: string }} ChatCard
+ */
+
+/**
+ * @param {string} threadId
+ * @param {string} event
+ */
 function throttleKey(threadId, event) {
     return ARRIVAL_EVENTS.has(event) ? threadId : `${threadId}:${event}`;
 }
 
 const { clientHost, adminSupportInboxPath, adminSupportTicketPath } = require('../utils/appPaths');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 /**
  * getConfig JSON-parses what setConfig stored, so the route's 'true' comes back
@@ -71,6 +87,8 @@ const { clientHost, adminSupportInboxPath, adminSupportTicketPath } = require('.
  * made the channel impossible to turn on and every event choice snap back to
  * the defaults. The string forms are still accepted for a value that reached
  * the table some other way.
+ * @param {unknown} stored
+ * @returns {string[]}
  */
 function parseEvents(stored) {
     let list = stored;
@@ -102,7 +120,7 @@ async function getSettings() {
 async function getPublicSettings() {
     const s = await getSettings();
     let host = null;
-    try { if (s.url) host = new URL(s.url).host; } catch (err) { log.debug('malformed: shown as configured-but-broken', err); }
+    try { if (s.url) host = new URL(s.url).host; } catch (err) { fallback('services/outboundChatNotifier:getPublicSettings', err); /* malformed: shown as configured-but-broken */ }
     return {
         configured: !!s.url,
         enabled: s.enabled,
@@ -116,6 +134,7 @@ async function getPublicSettings() {
 
 // ── Payload builders ──────────────────────────────────────────────────────
 
+/** @param {ChatCard} card */
 function googleChatPayload({ title, lines, url, linkText }) {
     return {
         // cardsV2 renders as a card with a real button; `text` is the fallback
@@ -140,6 +159,7 @@ function googleChatPayload({ title, lines, url, linkText }) {
     };
 }
 
+/** @param {ChatCard} card */
 function slackPayload({ title, lines, url, linkText }) {
     return {
         text: `${title} — ${lines.join(' · ')}`,
@@ -153,6 +173,7 @@ function slackPayload({ title, lines, url, linkText }) {
     };
 }
 
+/** @param {ChatCard} card */
 function teamsPayload({ title, lines, url, linkText }) {
     return {
         '@type': 'MessageCard',
@@ -164,6 +185,10 @@ function teamsPayload({ title, lines, url, linkText }) {
     };
 }
 
+/**
+ * @param {string} provider
+ * @param {ChatCard} card
+ */
 function buildPayload(provider, card) {
     if (provider === 'slack') return slackPayload(card);
     if (provider === 'teams') return teamsPayload(card);
@@ -174,9 +199,12 @@ function buildPayload(provider, card) {
 /**
  * The card's contents, assembled from an allow-list exactly like the YouTrack
  * payload. The thread row is read for four things and no more.
+ * @param {{ thread: SupportThread, event: string, detail?: string | null, includeSubject?: boolean }} opts
+ * @returns {ChatCard}
  */
 function buildCard({ thread, event, detail = null, includeSubject = false }) {
     const ref = thread.ticket_ref || 'a ticket';
+    /** @type {Record<string, string>} */
     const titles = {
         ticket_created: `New support ticket ${ref}`,
         customer_message: `${ref} — customer replied`,
@@ -203,6 +231,8 @@ function buildCard({ thread, event, detail = null, includeSubject = false }) {
  * POST the payload. `jsonApiRequest` carries the SSRF pre-filter, a mandatory
  * timeout and truncated error bodies — the last matters here because the URL
  * is a credential and must never reach a log line.
+ * @param {string} url
+ * @param {ReturnType<typeof buildPayload>} payload
  */
 async function post(url, payload) {
     return jsonApiRequest(url, {
@@ -219,6 +249,8 @@ async function post(url, payload) {
  * this ticket's own identifiers, then the PII guard). Fails closed: a finding,
  * a guard that could not run, or a screen that threw each leave the subject
  * off. The audit line carries the categories, never the text.
+ * @param {SupportThread} thread
+ * @param {string} event
  */
 async function subjectMayTravel(thread, event) {
     if (!thread.subject || !(await includeSubjectEnabled())) return false;
@@ -236,7 +268,7 @@ async function subjectMayTravel(thread, event) {
         actorKind: 'system',
         action: 'chat_subject_withheld',
         payload: { event, findings: (screen.findings || []).map(f => f.category), scanned: !!screen.scanned },
-    }).catch(() => {});
+    }).catch((e) => bestEffort('services/outboundChatNotifier:subjectMayTravel', e));
     return false;
 }
 
@@ -244,6 +276,7 @@ async function subjectMayTravel(thread, event) {
  * Send one notification. Fire-and-forget from the caller's point of view: a
  * chat outage must never fail a customer's ticket submission, so this resolves
  * to a result object and never throws.
+ * @param {{ thread: SupportThread, event: string, detail?: string | null, force?: boolean }} opts
  */
 async function notify({ thread, event, detail = null, force = false }) {
     if (!thread?.id) return { sent: false, reason: 'no thread' };
@@ -271,7 +304,7 @@ async function notify({ thread, event, detail = null, force = false }) {
             actorKind: 'system',
             action: 'chat_notification_sent',
             payload: { event, provider: s.provider },
-        }).catch(() => {});
+        }).catch((e) => bestEffort('services/outboundChatNotifier:notify', e));
         return { sent: true };
     } catch (err) {
         // A notification that fails silently is worse than none: the team
@@ -283,7 +316,7 @@ async function notify({ thread, event, detail = null, force = false }) {
             actorKind: 'system',
             action: 'chat_notification_failed',
             payload: { event, provider: s.provider, error: err.message },
-        }).catch(() => {});
+        }).catch((e) => bestEffort('services/outboundChatNotifier:notify#2', e));
         return { sent: false, reason: err.message };
     }
 }

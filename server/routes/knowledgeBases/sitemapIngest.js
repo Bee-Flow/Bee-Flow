@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Knowledge Bases — sitemap ingestion.
  *
@@ -30,6 +30,7 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const { parseSitemap } = require('./sitemapParse');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** Upper bound on pages one sitemap ingest may walk (req.body.maxPages is clamped to it). */
 const MAX_SITEMAP_PAGES = 500;
@@ -86,6 +87,7 @@ router.post('/:id/ingest/sitemap', requireAuth, requirePermission('manage_knowle
     const baseUrl = parsedUrl.origin;
     const { fetchUrl: fetchSitemapUrl } = (() => {
         // Inline the core sitemap logic from website-sitemap-fetcher
+        /** @param {string} targetUrl @param {number} [timeout] @param {string} [userAgent] */
         async function fetchUrl(targetUrl, timeout = 10000, userAgent = 'Mozilla/5.0 (compatible; BeeFlow/1.0)') {
             const controller = new AbortController();
             const timer = setTimeout(() => controller.abort(), timeout);
@@ -107,6 +109,7 @@ router.post('/:id/ingest/sitemap', requireAuth, requirePermission('manage_knowle
         return { fetchUrl };
     })();
 
+    /** @param {string} sitemapUrl @param {Set<string>} allUrls @param {Set<string>} visitedSitemaps @param {number} limit */
     async function processSitemap(sitemapUrl, allUrls, visitedSitemaps, limit) {
         if (visitedSitemaps.has(sitemapUrl) || allUrls.size >= limit) return;
         visitedSitemaps.add(sitemapUrl);
@@ -138,10 +141,10 @@ router.post('/:id/ingest/sitemap', requireAuth, requirePermission('manage_knowle
         if (matches) {
             matches.forEach(line => {
                 const smUrl = line.replace(/^sitemap:\s*/i, '').trim();
-                try { sitemapUrls.add(new URL(smUrl, baseUrl).href); } catch (err) { log.debug('not a valid sitemap URL, skipped', err); }
+                try { sitemapUrls.add(new URL(smUrl, baseUrl).href); } catch (err) { bestEffort('routes/knowledgeBases/sitemapIngest:anon', err); /* not a valid sitemap URL, skipped */ }
             });
         }
-    } catch (err) { log.debug('robots.txt unavailable, fall back to the default sitemap locations', err); }
+    } catch (err) { bestEffort('routes/knowledgeBases/sitemapIngest:anon#2', err); /* robots.txt unavailable, fall back to the default sitemap locations */ }
 
     const allPageUrls = new Set();
     const visitedSitemaps = new Set();
@@ -170,6 +173,7 @@ router.post('/:id/ingest/sitemap', requireAuth, requirePermission('manage_knowle
 
     // ── Step 2: Ingest each page ──
     const { htmlToMarkdown } = require('../../utils/htmlToMarkdown');
+    /** @type {{ ingested: number, skipped: number, errors: number, details: Array<{ url: string, status: string, reason?: string, [key: string]: unknown }> }} */
     const results = { ingested: 0, skipped: 0, errors: 0, details: [] };
 
     for (let i = 0; i < pageUrls.length; i++) {

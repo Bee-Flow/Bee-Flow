@@ -149,3 +149,33 @@ function shapeReadMessage(data, maxChars = READ_MAX_CHARS) {
 }
 
 module.exports = { guessMimeTypeFromName, extractAttachments, summarizeSearchMessage, shapeReadMessage, extractTextBody, getHeader, SEARCH_METADATA_HEADERS, SEARCH_FIELDS, READ_MAX_CHARS, READ_MANY_MAX_CHARS, READ_MANY_MAX, BULK_MODIFY_MAX, NOT_IN_BULK, GMAIL_MESSAGE_ID };
+
+/**
+ * @typedef {object} GmailMessage  users.messages.get response data, as far as this file reads it
+ * @property {string} [id]
+ * @property {string} [threadId]
+ * @property {string} [snippet]
+ * @property {GmailPart} [payload]
+ */
+
+/**
+ * A MIME part of a Gmail message (the payload is the top one).
+ * @typedef {{ filename?: string, mimeType?: string, body?: { size?: number, attachmentId?: string, data?: string },
+ *   parts?: GmailPart[], headers?: Array<{ name?: string, value?: string }> }} GmailPart
+ * @typedef {{ id?: string, name?: string, type?: string }} GmailLabel
+ * The part of a googleapis gmail v1 client the Gmail tools call (googleapis is untyped for the check: types/shims).
+ * @typedef {{ users: {
+ *   messages: {
+ *     list(params: object): Promise<{ data: { messages?: Array<{ id?: string, threadId?: string }>, nextPageToken?: string, resultSizeEstimate?: number } }>,
+ *     get(params: object): Promise<{ data: GmailMessage }>,
+ *     modify(params: object): Promise<{ data: { labelIds?: string[] } }>,
+ *     trash(params: object): Promise<{ data: { labelIds?: string[] } }>,
+ *     batchModify(params: object): Promise<unknown>,
+ *     send(params: object): Promise<{ data: { id?: string, threadId?: string } }>,
+ *     attachments: { get(params: object): Promise<{ data: { data?: string, size?: number } }> } },
+ *   threads: {
+ *     list(params: object): Promise<{ data: { threads?: Array<{ id?: string, snippet?: string }>, resultSizeEstimate?: number } }>,
+ *     get(params: object): Promise<{ data: { messages?: GmailMessage[] } }> },
+ *   labels: { list(params: object): Promise<{ data: { labels?: GmailLabel[] } }> },
+ *   drafts: { create(params: object): Promise<{ data: { id?: string, message?: { id?: string, threadId?: string } } }> } } }} GmailClient
+ */

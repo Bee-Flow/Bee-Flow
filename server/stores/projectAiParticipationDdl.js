@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /** Schema of projectAiParticipationStore (kept apart so the store file stays small). */
 

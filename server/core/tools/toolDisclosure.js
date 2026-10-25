@@ -21,7 +21,7 @@
  */
 
 const { getToolFamily } = require('./toolFamilyRegistry');
-const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const LOAD_TOOLS_TOOL_NAME = 'load_tools';
 
@@ -112,7 +112,7 @@ function groupForTool(tool) {
         try {
             const parseName = getToolFamily('custom_integration')?.parseName;
             slug = (parseName && parseName(name)?.slug) || null;
-        } catch (err) { log.debug('fail soft — fall back to a raw split below', err); }
+        } catch (err) { fallback('core/tools/toolDisclosure:groupForTool', err); /* fail soft — fall back to a raw split below */ }
         if (!slug) slug = name.split('_')[1] || 'unknown';
         const label = slug.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         return { key: `custom:${slug}`, label: `${label} (Custom)`, desc: 'tools from a custom org integration' };
@@ -318,3 +318,10 @@ module.exports = {
     expandGroups,
     buildLoadResult,
 };
+
+/**
+ * A tool definition in either shape (OpenAI `function.name` or a bare `name`).
+ * @typedef {{ name?: string, function?: { name?: string }, _mcp?: { serverId?: string }, [key: string]: unknown }} DisclosableTool
+ */
+
+/** @typedef {{ label: string, desc: string, tools: DisclosableTool[] }} LazyGroupEntry */

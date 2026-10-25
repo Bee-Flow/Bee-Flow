@@ -26,6 +26,7 @@
 
 const crypto = require('crypto');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const FILE_TOOLS = {
     create_word_document: {
@@ -137,7 +138,7 @@ async function uploadToOneDrive(built, ctx, path) {
             reason = JSON.parse(await res.text()).error?.message || '';
         } catch (e) {
             // No JSON body: the status says enough.
-            log.debug(`[OfficeFileDelivery] OneDrive error body not readable: ${e.message}`);
+            fallback('integrations/officeFileDelivery:uploadToOneDrive', e); // [OfficeFileDelivery] OneDrive error body not readable:
         }
         return { error: `OneDrive refused the upload (${res.status}${reason ? `: ${reason}` : ''})` };
     }
@@ -269,3 +270,10 @@ module.exports = {
     destinationPath,
     uploadToOneDrive,
 };
+
+/**
+ * Who asks, and where the file should go (resolveDestinations fills the last three).
+ * @typedef {{ userId?: string, orgId?: string|null, session?: Express.Session, provider?: string,
+ *   nextcloudPath?: string, nextcloudError?: string, oneDrivePath?: string }} OfficeCtx
+ * @typedef {{ buffer?: Buffer, contentType?: string }} BuiltFile
+ */

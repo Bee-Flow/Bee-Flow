@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * "What the AI took from it" — one line per document (Knowledge artboard 1b).
  *
@@ -60,8 +60,16 @@ const TOOL = Object.freeze({
     },
 });
 
+/**
+ * @template T
+ * @param {Promise<T>} promise
+ * @param {number} ms
+ * @param {string} label
+ */
 function withTimeout(promise, ms, label) {
+    /** @type {NodeJS.Timeout} */
     let timer;
+    /** @type {Promise<never>} */
     const timeout = new Promise((_, reject) => {
         timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
     });
@@ -119,7 +127,7 @@ async function summarise({ text, title = '', language = 'English', deps = {} } =
     } catch (e) {
         // Deliberately quiet at warn level: on an install with no provider
         // configured this would otherwise fire once per document, for ever.
-        log.warn('[KB] extract summary unavailable:', e.message);
+        log.warn('[KB] extract summary unavailable:', /** @type {Error} */ (e).message);
         return null;
     }
 }
@@ -129,6 +137,7 @@ async function summarise({ text, title = '', language = 'English', deps = {} } =
  * type checks and the topic ceiling are all enforced here rather than hoped
  * for from the schema. A 4000-character "summary" in a 1.2fr table column
  * would break the row it sits in.
+ * @param {{ summary?: unknown, topics?: unknown } | null | undefined} structured
  */
 function normalise(structured) {
     if (!structured || typeof structured !== 'object') return null;
@@ -148,6 +157,8 @@ function normalise(structured) {
  * K1 annotates rather than refuses that. The annotation belongs on the
  * summary line because that is where somebody looking at two rows that seem
  * to say the same thing will be looking.
+ * @param {string | null | undefined} summary
+ * @param {string | null | undefined} overlapSourceName
  */
 function withOverlap(summary, overlapSourceName) {
     const base = (summary || '').trim();

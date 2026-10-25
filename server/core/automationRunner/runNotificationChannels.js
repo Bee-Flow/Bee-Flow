@@ -13,6 +13,7 @@
 const log = require('../../telemetry/log');
 const { urgencyToCategory } = require('../automationModel/notificationDefaults');
 const { talkText } = require('../automationModel/notificationMessages');
+const { fallback } = require('../../utils/bestEffort');
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -25,7 +26,7 @@ async function isThrottled(dep, { automationId, event, recipient, maxPerHour, no
         return n >= maxPerHour;
     } catch (e) {
         // A ledger that cannot be read must not silence a notification.
-        log.warn(`[RunNotifications] throttle check failed for ${automationId}: ${e.message}`);
+        log.warn(`[RunNotifications] throttle check failed for ${automationId}: ${/** @type {Error} */ (e).message}`);
         return false;
     }
 }
@@ -37,10 +38,10 @@ async function isThrottled(dep, { automationId, event, recipient, maxPerHour, no
  * `userId` addresses someone other than the owner.
  */
 async function sendRunEmail(dep, automation, { subject, message, userId = null }) {
-    const cfg = await Promise.resolve(dep('emailConfig')()).catch(() => null);
+    const cfg = await Promise.resolve(dep('emailConfig')()).catch((e) => fallback('core/automationRunner/runNotificationChannels:sendRunEmail', e, null));
     if (!cfg || !cfg.configured) return { sent: false, reason: 'no_service_email' };
     const to = userId || automation.userId;
-    const user = await Promise.resolve(dep('getUser')(to)).catch(() => null);
+    const user = await Promise.resolve(dep('getUser')(to)).catch((e) => fallback('core/automationRunner/runNotificationChannels:sendRunEmail#2', e, null));
     if (!user?.email) return { sent: false, reason: 'no_owner_email' };
     const whose = to === automation.userId ? 'your' : 'the';
     const text = `${message || ''}\n\nSent by ${whose} Bee Flow automation “${automation.title || ''}”.`;
@@ -54,7 +55,7 @@ async function sendRunEmail(dep, automation, { subject, message, userId = null }
  * message to people without a Nextcloud account never resolves it.
  */
 async function deliverBell(dep, { userId, event, urgency, title, message, link, short, url, nc }) {
-    const user = await Promise.resolve(dep('getUser')(userId)).catch(() => null);
+    const user = await Promise.resolve(dep('getUser')(userId)).catch((e) => fallback('core/automationRunner/runNotificationChannels:deliverBell', e, null));
     const ncUid = user?.nc_uid || user?.ncUid || null;
     if (ncUid) {
         const ctx = await nc.get();
@@ -91,7 +92,7 @@ async function deliverChannel(dep, channel, recipient, m) {
             if (!ok) via = `email:${r.reason}`;
         }
     } catch (e) {
-        log.warn(`[RunNotifications] ${channel} failed for ${automation.id}/${recipient}: ${e.message}`);
+        log.warn(`[RunNotifications] ${channel} failed for ${automation.id}/${recipient}: ${/** @type {Error} */ (e).message}`);
     }
     return { ok, via };
 }
@@ -102,7 +103,7 @@ async function deliverChannel(dep, channel, recipient, m) {
  */
 async function deliverPersonal(dep, m) {
     const { automation, event, ev, recipients, base, rows, report, now } = m;
-    const personal = ev.channels.filter(c => c !== 'talk');
+    const personal = ev.channels.filter((/** @type {string} */ c) => c !== 'talk');
     for (const recipient of personal.length ? recipients : []) {
         if (await isThrottled(dep, { automationId: automation.id, event, recipient, maxPerHour: ev.throttle.maxPerHour, now })) {
             for (const channel of personal) rows.push({ ...base, recipient, channel, bundled: true });
@@ -126,7 +127,7 @@ async function deliverTalk(dep, { automation, event, ev, settings, payload, shor
         definition: { ...(automation.definition || {}), notificationSettings: settings },
     };
     const room = ev.talkRoom
-        || await Promise.resolve(dep('resolveTalkRoom')({ automation: withSettings, approval: payload.approval || null, orgId })).catch(() => null);
+        || await Promise.resolve(dep('resolveTalkRoom')({ automation: withSettings, approval: payload.approval || null, orgId })).catch((e) => fallback('core/automationRunner/runNotificationChannels:deliverTalk', e, null));
     const recipient = `talk:${room || 'unconfigured'}`;
     if (!room) {
         rows.push({ ...base, recipient, channel: 'talk', delivered: false });
@@ -156,10 +157,35 @@ async function deliverTalk(dep, { automation, event, ev, settings, payload, shor
             ok = !!res?.ok;
         }
     } catch (e) {
-        log.warn(`[RunNotifications] Talk failed for ${automation.id}: ${e.message}`);
+        log.warn(`[RunNotifications] Talk failed for ${automation.id}: ${/** @type {Error} */ (e).message}`);
     }
     rows.push({ ...base, recipient, channel: 'talk', delivered: ok });
     report.delivered.push({ recipient, channel: 'talk', ok, via: 'talk' });
 }
 
 module.exports = { sendRunEmail, deliverBell, deliverPersonal, deliverTalk };
+
+/** @typedef {import('./runNotifications').Dep} Dep */
+
+/** @typedef {import('./runNotifications').NotifyAutomation} NotifyAutomation */
+
+/** @typedef {import('./runNotifications').NotifyReport} NotifyReport */
+
+/** @typedef {import('./runNotifications').LedgerRow} LedgerRow */
+
+/** @typedef {import('./runNotifications').EventSettings} EventSettings */
+
+/** @typedef {import('./runNotifications').NotificationSettings} NotificationSettings */
+
+/** @typedef {import('./runNotifications').RunEvent} RunEvent */
+
+/** @typedef {{ get: () => Promise<{ fetch?: unknown, baseUrl?: string } | null | undefined> }} LazyNc */
+
+/** @typedef {{ text: string }} ShortMessage */
+
+/**
+ * The personal-channel delivery of one event (see runNotifications.notifyRunEvent).
+ * @typedef {{ automation: NotifyAutomation, event: RunEvent, ev: EventSettings, recipients: string[],
+ *   base: Omit<LedgerRow, 'recipient' | 'channel'>, rows: LedgerRow[], report: NotifyReport, now: number,
+ *   link: string, url: string | null, short: ShortMessage, title: string, message: string, nc: LazyNc }} PersonalDelivery
+ */

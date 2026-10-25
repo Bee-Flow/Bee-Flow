@@ -282,3 +282,32 @@ async function executeAutomation(automation, { triggerKind = 'manual', triggerPa
 }
 
 module.exports = { runOrgFor, isManagedAutomation, disabledPassThroughBranch, resolveEnteredTrigger, resolveTriggerPayload, buildTriggerState, acquireRunMarker, executeAutomation };
+
+/**
+ * @typedef {object} ExecuteOptions
+ * @property {string} [triggerKind]
+ * @property {unknown} [triggerPayload]
+ * @property {Record<string, string> | null} [triggerHeaders]
+ * @property {string} [mode]
+ * @property {boolean} [confirmFirstRun]
+ * @property {string | null} [parentRunId]
+ * @property {string | null} [rootRunId]
+ * @property {((run: Record<string, any>) => unknown) | null} [onRunCreated]
+ * @property {((row: Record<string, any>) => unknown) | null} [onRunFinished]
+ * @property {Record<string, any> | null} [replayState]
+ * @property {Map<string, number | null> | null} [replayGaps]
+ * @property {string | null} [skipUntilStepId]
+ * @property {string | null} [onlyStepId]
+ * @property {string | null} [fromStepId]
+ * @property {string | null} [untilStepId]
+ * @property {string | null} [rootStepId]
+ * @property {Record<string, unknown> | null} [loopVars]
+ * @property {{ prefix: string, parentStepId: string | null, suppress: boolean } | null} [stepRecord]
+ * @property {Record<string, any> | null} [schedule]
+ * @property {boolean} [isTest]
+ * @property {string | null} [startedByUserId]
+ * @property {string | null} [callerAgentId]
+ * @property {string | null} [callerConversationId]
+ * @property {string | null} [lockedConnectionsMode]
+ * @property {Parameters<typeof harnessFor>[1]} [harness]
+ */

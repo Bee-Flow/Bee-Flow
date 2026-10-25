@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The other tabs a spreadsheet tab's formulas point at (`Klanten!A1`,
  * `Klanten!$L$2:$L$201`), read so the formulas can be computed.

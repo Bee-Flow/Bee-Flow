@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Request bodies of routes/automation/testCases.js. Every object is closed
  * (.strict()); the messages are written for the person who sent the value.

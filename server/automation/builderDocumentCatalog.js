@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The Documents ONE user may fill, in the shape both AI builders read.
  *
@@ -31,8 +31,8 @@ const CATALOG_LIMIT = 25;
 
 /**
  * @param {string} userId
- * @returns {Promise<Array<{id, name, docType, description,
- *          placeholders: Array<{key, kind, fields?}>}>>} newest first
+ * @returns {Promise<Array<{id: string, name: string, docType: string, description: string,
+ *          placeholders: Array<{key: string, kind: string, fields?: string[]}>}>>} newest first
  */
 async function buildDocumentCatalogForUser(userId) {
     if (!userId) return [];

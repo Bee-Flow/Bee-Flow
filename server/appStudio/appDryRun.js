@@ -105,6 +105,7 @@ function collectDataSteps(action) {
 
 /** Check one data step's table + written field keys against the model. */
 function checkDataStep(step, dataModel) {
+    /** @type {string[]} */
     const errors = [];
     const table = findModelTable(dataModel, step.tableId);
     if (!table) {
@@ -209,6 +210,7 @@ async function appDryRun(input = {}, opts = {}) {
 
     // Empty-table hints — 0-row OWNER bindings surface for seeding/filter fixes.
     const emptyTables = [];
+    /** @type {string[]} */
     const hints = [];
     for (const b of bindings) {
         if (b.rowCount === 0 && b.kind !== 'dataset') {
@@ -242,7 +244,11 @@ async function appDryRun(input = {}, opts = {}) {
     };
 }
 
-/** An error result when screenId/asRole name something the app does not have. */
+/**
+ * An error result when screenId/asRole name something the app does not have.
+ * @param {string | null} screenId
+ * @param {string | null} asRole
+ */
 function unknownTarget(def, dataModel, screenId, asRole) {
     if (screenId) {
         const screens = Array.isArray(def && def.screens) ? def.screens.filter((x) => x && x.id) : [];
@@ -273,3 +279,15 @@ module.exports = {
     // exposed for tests
     _test: { resolveDryRunFilters, syntheticScope, collectDataSteps, checkDataStep, runActionPass, findModelTable },
 };
+
+/**
+ * @typedef {import('./builderTools/dataTools').DataModel} DataModel
+ * @typedef {import('./builderTools/dataTools').DataTable} DataTable
+ * @typedef {import('./builderTools').AppDef} AppDef
+ * @typedef {import('./appDryRunReads').DryRunApp} DryRunApp
+ * @typedef {import('./appDryRunReads').DryRunDeps} DryRunDeps
+ * @typedef {import('./appDryRunReads').DryRunViewer} DryRunViewer
+ * @typedef {import('./appDryRunReads').DryRunBinding} DryRunBinding
+ * @typedef {{ nodeId: string|null, prop: string, binding: DryRunBinding }} CollectedBinding
+ * @typedef {{ [k: string]: unknown, kind?: string, tableId?: string, values?: unknown, steps?: DataStep[] }} DataStep  one step of a sequence action
+ */

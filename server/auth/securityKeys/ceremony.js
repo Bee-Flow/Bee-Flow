@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The two WebAuthn ceremonies a security key (a YubiKey, or any FIDO2 key)
  * goes through: registration, once, from Settings → Security; and
@@ -81,6 +81,9 @@ function challengeRecord(options, rp, now = Date.now()) {
  * Remove the challenge from `holder[field]` and return it when it is still
  * fresh. Removed either way: a challenge is good for one answer.
  *
+ * @param {Record<string, any>|null|undefined} holder the object (a session) that carries the challenge
+ * @param {string} field
+ * @param {number} [now]
  * @returns {ChallengeRecord|null}
  */
 function takeChallenge(holder, field, now = Date.now()) {

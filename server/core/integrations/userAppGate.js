@@ -16,6 +16,7 @@
 const { featureModule } = require('../featureModules');
 const { ORG_EXEMPT_APPS, AUTO_ENABLED_APPS } = require('./integrationAppPolicy');
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 function createUserAppGate({ configStore, resolveOrgAllowList, webpageToolsAllowed, lazy }) {
     /**
@@ -60,7 +61,7 @@ function createUserAppGate({ configStore, resolveOrgAllowList, webpageToolsAllow
         // fall through to the org/group gates, which still apply normally.
         let userEnabledApps = null;
         try { userEnabledApps = await configStore.getConfig(`enabled_apps_user_${userId}`); }
-        catch (err) { log.debug('fail open at this layer only — org/group gates below still enforce', err); }
+        catch (err) { fallback('core/integrations/userAppGate:buildUserAppGate', err); /* fail open at this layer only — org/group gates below still enforce */ }
         let orgEnabledIntegrations = null;
         let userGroupDisableLists = null;
         // ENTITLEMENT — the same unified resolver getIntegrationTools() gates on.
@@ -91,7 +92,9 @@ function createUserAppGate({ configStore, resolveOrgAllowList, webpageToolsAllow
         } catch (_) { log.warn('integration catalog failed to load', _); }
         // Inputs for the webpages rule, resolved the way getIntegrationTools does.
         let webpageGroupIds = [];
+        /** @type {string | null} */
         let webpageOrgId = null;
+        let identityUnknown = false;
         try {
             const userStore = lazy.userStore();
             const currentUser = await userStore.getUser(userId);
@@ -121,7 +124,11 @@ function createUserAppGate({ configStore, resolveOrgAllowList, webpageToolsAllow
                     if (userGroupDisableLists.every(lst => lst.length === 0)) userGroupDisableLists = null;
                 }
             }
-        } catch (err) { log.debug('fail open', err); }
+        } catch (err) {
+            // The org allow-list and group deny-lists are unknown: deny, not "no restrictions".
+            fallback('core/integrations/userAppGate:identity', err);
+            identityUnknown = true;
+        }
 
         // `webpages` is a beta capability, not an org integration: no org
         // allow-list can name it, so judging it by one refused webpage steps the
@@ -133,13 +140,17 @@ function createUserAppGate({ configStore, resolveOrgAllowList, webpageToolsAllow
         if (!onlyAppId || onlyAppId === 'webpages') {
             let userSimpleMode = true;
             try { userSimpleMode = !!(await configStore.getConfig(`simple_mode_user_${userId}`)); }
-            catch (err) { log.debug('unknown → withhold webpages (fail closed), like a failed beta lookup', err); }
+            catch (err) { fallback('core/integrations/userAppGate:buildUserAppGate#2', err); /* unknown → withhold webpages (fail closed), like a failed beta lookup */ }
             webpagesOn = await webpageToolsAllowed({
                 userId, session, groupIds: webpageGroupIds, orgId: webpageOrgId, simpleMode: userSimpleMode,
             });
         }
 
+        /**
+         * @param {string} appId
+         */
         const isAppOn = (appId) => {
+            if (identityUnknown) return false;
             if (userEnabledApps) {
                 if (AUTO_ENABLED_APPS.includes(appId)) {
                     // auto-enabled — bypass user list
@@ -179,7 +190,7 @@ function createUserAppGate({ configStore, resolveOrgAllowList, webpageToolsAllow
             for (const entry of TOOL_REGISTRY) {
                 if (isAppOn(entry.app)) out.add(entry.app);
             }
-        } catch (err) { log.debug('registry unavailable', err); }
+        } catch (err) { bestEffort('core/integrations/userAppGate:getUserPermittedApps', err); /* registry unavailable */ }
         return out;
     }
 

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Microsoft 365 connector routes — mounted at /api/integrations/microsoft.
  *
@@ -44,6 +45,7 @@ const router = express.Router();
 const configStore = require('../../stores/configStore');
 const automationCredentialStore = require('../../stores/automationCredentialStore');
 const { OAUTH_PROVIDERS, MICROSOFT_SCOPES, loadConfig, requireAuth } = require('../../auth/permissions');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 /**
  * The login scopes plus delegated shared-mailbox access.
@@ -72,6 +74,7 @@ async function getMicrosoftClientConfig() {
     };
 }
 
+/** @param {import('express').Request} req */
 function buildRedirectUri(req) {
     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
     const host = req.headers['x-forwarded-host'] || req.headers.host;
@@ -81,17 +84,22 @@ function buildRedirectUri(req) {
 // Org members use their org key; org-less accounts get a per-user scope so the
 // connection outlives the session (upsertCredential needs a non-empty orgId for
 // key derivation). Same rule as the Google connector.
+/** @param {{ organizationId?: string | null, id?: string } | null | undefined} user */
 function resolveVaultOrgId(user) {
     return user?.organizationId || `user:${user?.id}`;
 }
 
+/** @param {unknown} received @param {unknown} expected */
 function statesMatch(received, expected) {
     if (typeof received !== 'string' || typeof expected !== 'string') return false;
     if (!received || !expected || received.length !== expected.length) return false;
     return crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected));
 }
 
-/** Did the grant actually include the shared-mailbox scopes? */
+/**
+ * Did the grant actually include the shared-mailbox scopes?
+ * @param {string | null | undefined} scope
+ */
 function hasSharedMailboxScopes(scope) {
     const granted = String(scope || '').toLowerCase();
     if (!granted) return false;
@@ -141,7 +149,7 @@ router.get('/auth-url', requireAuth, async (req, res) => {
 });
 
 // ─── OAuth Callback ──────────────────────────────────────────────
-router.get('/callback', async (req, res) => {
+router.get('/callback', /** @param {import('express').Request<{}, any, any, { code?: string, state?: string, error?: string, error_description?: string }>} req */ async (req, res) => {
     const { code, state, error, error_description: errorDescription } = req.query;
     const userId = req.session?.user?.id;
 
@@ -200,7 +208,7 @@ router.get('/callback', async (req, res) => {
             }
             throw new Error(`Token exchange failed: ${tokenRes.status} ${errText.slice(0, 300)}`);
         }
-        const tokenData = await tokenRes.json();
+        const tokenData = /** @type {{ access_token?: string, refresh_token?: string, expires_in?: number | string, scope?: string }} */ (await tokenRes.json());
         if (!tokenData.refresh_token) {
             // Without offline_access there is no unattended refresh, so the
             // connection would silently die within the hour.
@@ -213,13 +221,13 @@ router.get('/callback', async (req, res) => {
                 headers: { Authorization: `Bearer ${tokenData.access_token}` },
             });
             if (infoRes.ok) {
-                const info = await infoRes.json();
+                const info = /** @type {{ mail?: string, userPrincipalName?: string }} */ (await infoRes.json());
                 email = String(info.mail || info.userPrincipalName || '').toLowerCase();
             }
-        } catch (err) { log.debug('non-fatal — status just shows no email', err); }
+        } catch (err) { fallback('routes/integrations/microsoft365:userinfo', err); /* status just shows no email */ }
 
         const userStore = require('../../stores/userStore');
-        const user = await userStore.getUser(userId).catch(() => null);
+        const user = await userStore.getUser(userId).catch((e) => fallback('routes/integrations/microsoft365:anon', e, null));
         const orgId = resolveVaultOrgId({ ...user, id: userId });
         await automationCredentialStore.upsertCredential({
             userId,
@@ -281,7 +289,7 @@ router.get('/status', requireAuth, async (req, res) => {
     const { clientId, clientSecret } = await getMicrosoftClientConfig();
     const configured = !!(clientId && clientSecret);
 
-    const cred = await automationCredentialStore.getCredential(userId, 'microsoft').catch(() => null);
+    const cred = await automationCredentialStore.getCredential(userId, 'microsoft').catch((e) => fallback('routes/integrations/microsoft365:anon#2', e, null));
     // Microsoft-SSO users without an org have no vault row but ARE connected
     // for this session.
     const sessionConnected = req.session?.oauthProvider === 'microsoft' && !!req.session?.accessToken;
@@ -292,7 +300,7 @@ router.get('/status', requireAuth, async (req, res) => {
     // can read /me but will 403 on /users/{address}.
     const sharedMailboxGranted = hasSharedMailboxScopes(cred?.scope || req.session?.oauthScope);
 
-    let email = await configStore.getConfig(`microsoft365_email_user_${userId}`).catch(() => null);
+    let email = await configStore.getConfig(`microsoft365_email_user_${userId}`).catch((e) => fallback('routes/integrations/microsoft365:anon#3', e, null));
     if (!email && sessionConnected) email = req.session.user?.email || null;
 
     res.json({
@@ -316,7 +324,7 @@ router.post('/disconnect', requireAuth, async (req, res) => {
     const { revokeProviderCredential } = require('../../auth/oauthRoutes');
     const result = await revokeProviderCredential(userId, 'microsoft');
 
-    await configStore.deleteConfig(`microsoft365_email_user_${userId}`).catch(() => {});
+    await configStore.deleteConfig(`microsoft365_email_user_${userId}`).catch((e) => bestEffort('routes/integrations/microsoft365:anon#4', e));
 
     if (req.session.oauthProvider === 'microsoft') {
         delete req.session.accessToken;
@@ -347,10 +355,12 @@ function openerTargetOrigin() {
 
 // The message can carry the account's address as Graph returned it; it is
 // text, never markup.
+/** @param {unknown} value */
 function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
 
+/** @param {string} message @param {boolean} success */
 function callbackHTML(message, success) {
     return `<!DOCTYPE html>
 <html><head><title>Microsoft 365</title>
@@ -376,6 +386,7 @@ function callbackHTML(message, success) {
 </body></html>`;
 }
 
+/** @typedef {import('express').Router & Record<string, unknown>} RouterExports */
 module.exports = router;
-module.exports.MS_CONNECT_SCOPES = MS_CONNECT_SCOPES;
-module.exports.hasSharedMailboxScopes = hasSharedMailboxScopes;
+/** @type {RouterExports} */ (module.exports).MS_CONNECT_SCOPES = MS_CONNECT_SCOPES;
+/** @type {RouterExports} */ (module.exports).hasSharedMailboxScopes = hasSharedMailboxScopes;

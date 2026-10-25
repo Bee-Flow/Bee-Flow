@@ -28,6 +28,7 @@ const fs = require('fs');
 const log = require('../telemetry/log');
 
 const { encryptValue, decryptValue, _inferOrgIdFromKey } = require('./configEncryption');
+const { bestEffort } = require('../utils/bestEffort');
 
 // ── In-memory cache (avoids DB round-trips for hot-path reads) ──────
 // Config values change very rarely (monthly). Caching them for 60s
@@ -69,7 +70,7 @@ function _notifyInvalidate(key) {
     // before this runs, so any replica that re-reads on receipt sees the new
     // row. Non-fatal on failure — the local cache is already busted and other
     // replicas self-heal within the TTL even if a NOTIFY is lost.
-    run('SELECT pg_notify($1, $2)', [CONFIG_INVALIDATE_CHANNEL, String(key)]).catch(() => {});
+    run('SELECT pg_notify($1, $2)', [CONFIG_INVALIDATE_CHANNEL, String(key)]).catch((e) => bestEffort('stores/configStore:_notifyInvalidate', e));
 }
 
 // Apply an invalidation received from another replica. Empty payload = flush
@@ -113,14 +114,14 @@ async function _startInvalidationListener() {
         log.info('[ConfigStore] cross-replica cache invalidation listener active');
     } catch (e) {
         log.warn('[ConfigStore] invalidation listener connect failed:', e.message);
-        try { await client.end(); } catch (err) { log.debug('already down', err); }
+        try { await client.end(); } catch (err) { bestEffort('stores/configStore:_startInvalidationListener', err); /* already down */ }
         _scheduleReconnect();
     }
 }
 
 function _scheduleReconnect() {
     if (_listenerClient) {
-        try { _listenerClient.removeAllListeners(); _listenerClient.end().catch(() => {}); } catch (err) { log.debug('noop', err); }
+        try { _listenerClient.removeAllListeners(); _listenerClient.end().catch((e) => bestEffort('stores/configStore:_scheduleReconnect', e)); } catch (err) { bestEffort('stores/configStore:_scheduleReconnect#2', err); /* noop */ }
         _listenerClient = null;
     }
     if (_reconnectTimer) return;
@@ -133,7 +134,7 @@ function _scheduleReconnect() {
 function _stopInvalidationListener() {
     if (_reconnectTimer) { clearTimeout(_reconnectTimer); _reconnectTimer = null; }
     if (_listenerClient) {
-        try { _listenerClient.removeAllListeners(); _listenerClient.end().catch(() => {}); } catch (err) { log.debug('noop', err); }
+        try { _listenerClient.removeAllListeners(); _listenerClient.end().catch((e) => bestEffort('stores/configStore:_stopInvalidationListener', e)); } catch (err) { bestEffort('stores/configStore:_stopInvalidationListener#2', err); /* noop */ }
         _listenerClient = null;
     }
 }
@@ -336,7 +337,7 @@ async function _auditCredentialChange(key, action, ctx) {
             { integration, action },
             orgId,
         );
-    } catch (err) { log.debug('non-fatal', err); }
+    } catch (err) { bestEffort('stores/configStore:_auditCredentialChange', err); /* non-fatal */ }
 }
 
 /**
@@ -352,7 +353,7 @@ async function setSecret(key, value, auditCtx = null) {
     // Don't encrypt empty values
     if (!value || value === '') {
         const ok = await setConfig(key, '');
-        _auditCredentialChange(key, 'clear', auditCtx).catch(() => {});
+        _auditCredentialChange(key, 'clear', auditCtx).catch((e) => bestEffort('stores/configStore:setSecret', e));
         return ok;
     }
     // Per-org HKDF context: `org_<orgId>_*` keys bind their derived key to
@@ -368,7 +369,7 @@ async function setSecret(key, value, auditCtx = null) {
     _cacheInvalidate(key);
     _cacheInvalidate(`__secret__${key}`); // bust secret cache on write
     _notifyInvalidate(key);               // and every other replica's cache
-    _auditCredentialChange(key, 'set', auditCtx).catch(() => {});
+    _auditCredentialChange(key, 'set', auditCtx).catch((e) => bestEffort('stores/configStore:setSecret#2', e));
     return true;
 }
 
@@ -401,7 +402,7 @@ async function setSecretIfAbsent(key, value, auditCtx = null) {
     // nothing, so their peers' caches don't need busting.
     if (inserted) {
         _notifyInvalidate(key);
-        _auditCredentialChange(key, 'set', auditCtx).catch(() => {});
+        _auditCredentialChange(key, 'set', auditCtx).catch((e) => bestEffort('stores/configStore:setSecretIfAbsent', e));
     }
     return await getSecret(key);
 }
@@ -430,7 +431,7 @@ async function getSecret(key) {
         try {
             const fromConn = _legacySecretResolver ? await _legacySecretResolver(key) : undefined;
             if (fromConn !== undefined) return fromConn;
-        } catch (err) { log.debug('fall through to null', err); }
+        } catch (err) { bestEffort('stores/configStore:getSecret', err); /* fall through to null */ }
         _cacheSet(`__secret__${key}`, null);
         return null;
     }
@@ -491,7 +492,7 @@ async function deleteConfig(key, auditCtx = null) {
     // are noisy and not interesting from a security standpoint, so we gate
     // on the same heuristic the re-encryption migration uses.
     if (rowCount > 0 && _looksLikeSecretKey(key)) {
-        _auditCredentialChange(key, 'delete', auditCtx).catch(() => {});
+        _auditCredentialChange(key, 'delete', auditCtx).catch((e) => bestEffort('stores/configStore:deleteConfig', e));
     }
     return rowCount > 0;
 }
@@ -661,7 +662,7 @@ async function reencryptLegacyPlaintextSecrets() {
 }
 
 // Run at module load — best-effort, never blocks startup.
-reencryptLegacyPlaintextSecrets().catch(() => {});
+reencryptLegacyPlaintextSecrets().catch((e) => bestEffort('stores/configStore:anon', e));
 
 log.info('[ConfigStore] Initialized (PostgreSQL)');
 
@@ -691,3 +692,16 @@ module.exports = {
 
 // Awaitbare init-ingang voor migrateDb (memoised — zelfde promise als de load-time init); withConfigGroup: zie configStoreGroup.js.
 Object.assign(module.exports, { initDB, withConfigGroup: require('./configStoreGroup').createWithConfigGroup({ initDB, withTransaction, onWritten: (k) => { _cacheInvalidate(k); _notifyInvalidate(k); } }) });
+
+/**
+ * The export surface, including initDB and withConfigGroup that the Object.assign below adds.
+ * @typedef {{ getConfig: typeof getConfig, getConfigFresh: typeof getConfigFresh, getConfigsByKeys: typeof getConfigsByKeys,
+ *   setConfig: typeof setConfig, mutateConfig: typeof mutateConfig, deleteConfig: typeof deleteConfig,
+ *   getAllConfig: typeof getAllConfig, listKeysWithPrefix: typeof listKeysWithPrefix, setSecret: typeof setSecret,
+ *   setSecretIfAbsent: typeof setSecretIfAbsent, getSecret: typeof getSecret, getSecretFresh: typeof getSecretFresh,
+ *   encryptValue: typeof encryptValue, decryptValue: typeof decryptValue,
+ *   reencryptLegacyPlaintextSecrets: typeof reencryptLegacyPlaintextSecrets, _applyInvalidation: typeof _applyInvalidation,
+ *   _startInvalidationListener: typeof _startInvalidationListener, _stopInvalidationListener: typeof _stopInvalidationListener,
+ *   CONFIG_INVALIDATE_CHANNEL: typeof CONFIG_INVALIDATE_CHANNEL, initDB: typeof initDB,
+ *   withConfigGroup: ReturnType<typeof import('./configStoreGroup').createWithConfigGroup> }} ConfigStoreExports
+ */

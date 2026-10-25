@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Nextcloud Contacts Tools — CardDAV CRUD over /remote.php/dav/addressbooks/users/<uid>/.
  *
@@ -160,21 +160,36 @@ const NEXTCLOUD_CONTACTS_TOOLS = [
 
 // ─── DAV helpers ──────────────────────────────────────────────────
 
+/**
+ * @param {string} baseUrl
+ * @param {string | undefined} uid
+ */
 function addressbooksRoot(baseUrl, uid) {
     return `${baseUrl}/remote.php/dav/addressbooks/users/${encodeURIComponent(uid)}`;
 }
 
+/**
+ * @param {string} baseUrl
+ * @param {string | undefined} uid
+ * @param {string | number | boolean} book
+ * @param {string} contactUid
+ */
 function contactHref(baseUrl, uid, book, contactUid) {
     return `${addressbooksRoot(baseUrl, uid)}/${encodeURIComponent(book)}/${encodeURIComponent(contactUid)}.vcf`;
 }
 
+/**
+ * @param {string | Uint8Array<ArrayBufferLike>} xml
+ * @returns {Array<{ href: string, props: import('./nextcloudFiles/webdav').DavProps }>}
+ */
 function parseMultistatusResponses(xml) {
     const parsed = xmlParser.parse(xml);
     const ms = parsed?.multistatus;
     if (!ms) return [];
     const list = Array.isArray(ms.response) ? ms.response : (ms.response ? [ms.response] : []);
-    return list.map((r) => {
+    return list.map((/** @type {{ href?: string, propstat?: unknown }} */ r) => {
         const propstats = Array.isArray(r.propstat) ? r.propstat : (r.propstat ? [r.propstat] : []);
+        /** @type {import('./nextcloudFiles/webdav').DavProps} */
         const props = {};
         for (const ps of propstats) {
             const status = ps.status || '';
@@ -185,12 +200,17 @@ function parseMultistatusResponses(xml) {
     });
 }
 
+/** @param {import('./nextcloudFiles/webdav').DavProps} props */
 function isAddressbook(props) {
     const rt = props.resourcetype;
     if (!rt) return false;
     return rt.addressbook !== undefined;
 }
 
+/**
+ * @param {string | Uint8Array<ArrayBufferLike>} xml
+ * @param {string | undefined} uid
+ */
 function parsePropfindAddressbooks(xml, uid) {
     const root = `/remote.php/dav/addressbooks/users/${decodeURIComponent(uid)}`;
     const books = [];
@@ -204,6 +224,9 @@ function parsePropfindAddressbooks(xml, uid) {
     return books;
 }
 
+/**
+ * @param {string | Uint8Array<ArrayBufferLike>} xml
+ */
 function parseAddressbookMultiStatus(xml) {
     return parseMultistatusResponses(xml)
         .filter(({ href, props }) => href && props['address-data'] && !href.endsWith('/'))
@@ -216,6 +239,12 @@ function parseAddressbookMultiStatus(xml) {
 
 // ─── Tool execution ──────────────────────────────────────────────
 
+/**
+ * @param {string} toolName
+ * @param {{ addressbook?: string, uid?: string, query?: string, limit?: number, fullName?: string, firstName?: string, lastName?: string, emails?: string[], phones?: string[], organization?: string, title?: string, notes?: string }} args
+ * @param {string} userId
+ * @param {Partial<Express.Session>} session
+ */
 async function executeNextcloudContactsTool(toolName, args, userId, session) {
     const ctx = await ncClient.resolveAuth(session, userId);
     const { baseUrl, fetch: ncFetch, authError, uid } = ctx;
@@ -375,6 +404,7 @@ async function executeNextcloudContactsTool(toolName, args, userId, session) {
     }
 }
 
+/** @param {unknown} toolName */
 function isNextcloudContactsTool(toolName) {
     return typeof toolName === 'string' && toolName.startsWith('nextcloud_contacts_');
 }

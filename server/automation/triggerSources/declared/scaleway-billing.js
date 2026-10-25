@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Scaleway Billing. No hand-written poller and no push channel: Scaleway has no
  * billing webhooks, so "a new invoice" comes from the generic poll_diff runtime
@@ -42,7 +42,7 @@ const TRIGGER_SOURCES = [{
                 requiresIntegration: 'scaleway-billing',
                 itemsPath: 'invoices',
                 idPath: 'id',
-                changePaths: [],
+                changePaths: /** @type {string[]} */ ([]),
                 emitOnAppear: true,
                 firstRun: 'anchor',
                 minIntervalMs: 6 * 3_600_000,

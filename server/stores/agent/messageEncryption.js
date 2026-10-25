@@ -14,6 +14,7 @@ const HKDF_SALT = Buffer.from('beeflow:msg:hkdf-salt:v1');
 
 /**
  * Derive a per-conversation encryption key from the root DEK using HKDF.
+ * @param {import('buffer').WithImplicitCoercion<string>} dekBase64
  */
 function deriveConversationKey(dekBase64, conversationId) {
     const dek = Buffer.from(dekBase64, 'base64');
@@ -23,6 +24,7 @@ function deriveConversationKey(dekBase64, conversationId) {
 
 /**
  * Build AAD string for v2 encryption.
+ * @param {string} userId
  */
 function buildAAD(conversationId, userId) {
     return Buffer.from(`v2:user:${userId}:conv:${conversationId}`);
@@ -30,11 +32,25 @@ function buildAAD(conversationId, userId) {
 
 /**
  * Encrypt messages JSON using per-conversation derived key + AAD.
+ * @param {string} messagesJson
+ * @param {string | null} encryptionKeyBase64
+ * @param {string | null} [userId]
  */
 function encryptMessages(messagesJson, encryptionKeyBase64, conversationId = null, userId = null) {
     if (!encryptionKeyBase64) return messagesJson;
 
     try {
+        /** @type {Buffer<ArrayBuffer>} */
+        /** @type {string | boolean} */
+        /** @type {Buffer<ArrayBuffer> | null} */
+        /** @type {string | boolean} */
+        /** @type {Buffer<ArrayBuffer> | null} */
+        /** @type {string | boolean} */
+        /** @type {Buffer<ArrayBuffer> | null} */
+        /** @type {string | boolean} */
+        /** @type {Buffer<ArrayBuffer> | null} */
+        /** @type {string | boolean} */
+        /** @type {Buffer<ArrayBuffer> | null} */
         let key, version, aad = null;
 
         if (conversationId && userId) {
@@ -64,7 +80,7 @@ function encryptMessages(messagesJson, encryptionKeyBase64, conversationId = nul
             data: encrypted
         });
     } catch (err) {
-        log.error('[MessageEncryption] Encryption failed:', err.message);
+        log.error('[MessageEncryption] Encryption failed:', /** @type {Error} */ (err).message);
         return messagesJson;
     }
 }
@@ -76,6 +92,9 @@ function encryptMessages(messagesJson, encryptionKeyBase64, conversationId = nul
  * Plaintext (non-envelope) input is {ok:true, json:storedData}. Write paths
  * need this distinction — a lenient '[]' is ambiguous with a genuinely empty
  * history and invites overwriting still-recoverable ciphertext.
+ * @param {string} storedData
+ * @param {string} encryptionKeyBase64
+ * @param {string | null} [userId]
  */
 function tryDecryptMessages(storedData, encryptionKeyBase64, conversationId = null, userId = null) {
     try {
@@ -91,6 +110,12 @@ function tryDecryptMessages(storedData, encryptionKeyBase64, conversationId = nu
             return { ok: false, json: '[]' };
         }
 
+        /** @type {Buffer<ArrayBuffer>} */
+        /** @type {Buffer<ArrayBuffer> | null} */
+        /** @type {Buffer<ArrayBuffer> | null} */
+        /** @type {Buffer<ArrayBuffer> | null} */
+        /** @type {Buffer<ArrayBuffer> | null} */
+        /** @type {Buffer<ArrayBuffer> | null} */
         let key, aad = null;
 
         if (parsed._encrypted === 'v2') {
@@ -116,7 +141,7 @@ function tryDecryptMessages(storedData, encryptionKeyBase64, conversationId = nu
     } catch (err) {
         // Non-JSON input is plaintext passthrough, not a decrypt failure.
         if (err instanceof SyntaxError) return { ok: true, json: storedData };
-        log.error('[MessageEncryption] Decryption failed:', err.message);
+        log.error('[MessageEncryption] Decryption failed:', /** @type {Error} */ (err).message);
         return { ok: false, json: '[]' };
     }
 }
@@ -124,6 +149,9 @@ function tryDecryptMessages(storedData, encryptionKeyBase64, conversationId = nu
 /**
  * Decrypt messages JSON. Handles both v1 (raw DEK) and v2 (HKDF + AAD) formats.
  * Lenient: every failure decodes to '[]' (read paths render an empty history).
+ * @param {string} storedData
+ * @param {string | null} [userId]
+ * @param {string} encryptionKeyBase64
  */
 function decryptMessages(storedData, encryptionKeyBase64, conversationId = null, userId = null) {
     return tryDecryptMessages(storedData, encryptionKeyBase64, conversationId, userId).json;

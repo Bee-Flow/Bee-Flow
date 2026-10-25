@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Direct Chat — attachment intake for the streaming turn: eager conversation
  * creation (the scanner needs a real convId for its token-map merge), per-
@@ -25,6 +25,12 @@ const {
     surfaceScanSummaries,
 } = require('./attachmentScan');
 
+/** @typedef {import('./attachmentFormats').AttachmentCtx} AttachmentCtx */
+/** @typedef {import('./attachmentScan').ScanSummaryRow} ScanSummaryRow */
+/**
+ * @typedef {Pick<AttachmentCtx, 'req' | 'send' | 'userId' | 'adapter' | 'modelId' | 'documentScope'> & { res: import('express').Response, conversationId?: string | null, message?: string | null, attachments?: import('./attachmentFormats').ChatAttachment[] | null, config: Parameters<typeof makeAttachmentScanner>[0]['config'] }} IntakeInput
+ */
+
 /**
  * Eagerly create the conversation BEFORE the attachment scan. Two reasons:
  *   1) workspace_* tools later in the turn need a valid DB row.
@@ -33,6 +39,8 @@ const {
  *      `[person_N]` echoes leak through to the rendered response.
  * Side effect: a brand-new conversation row appears slightly earlier in the
  * turn; the orphan-row risk is unchanged.
+ * @param {{ convId?: string | null, userId: string, modelTier?: string | null, send: AttachmentCtx['send'] }} p
+ * @returns {Promise<string>}
  */
 async function ensureConversation({ convId, userId, modelTier, send }) {
     if (convId) return convId;
@@ -52,6 +60,7 @@ async function ensureConversation({ convId, userId, modelTier, send }) {
  * the document for >=5 min at 10% cost on the next turn. The Claude provider's
  * normalizeMessages counts this pre-existing marker against its own breakpoint
  * budget so we stay under the 4-marker API limit.
+ * @param {Array<Record<string, unknown>>} contentParts
  */
 function markCacheBreakpoint(contentParts) {
     if (contentParts.length === 0) return;
@@ -65,18 +74,22 @@ function markCacheBreakpoint(contentParts) {
  * Extract, scan and inline every attachment. Returns the content parts and
  * the per-file scan summaries, or `{ blocked: true }` after the Privacy
  * Shield blocked one (the SSE stream is then already ended).
+ * @param {IntakeInput & { convId: string, attachments: import('./attachmentFormats').ChatAttachment[], persistedAttachments: AttachmentCtx['persistedAttachments'] }} p
  */
 async function intakeAttachments({ req, res, send, userId, convId, conversationId, message, attachments, adapter, modelId, config, persistedAttachments, documentScope }) {
+    /** @type {Array<Record<string, unknown>>} */
     const contentParts = [];
     if (message) contentParts.push({ type: 'text', text: message });
     const { persistExtractedText } = require('../../../core/documents/extractedTextStore');
     const { userOrgId, shield } = await resolveAttachmentShield(req);
+    /** @type {ScanSummaryRow[]} */
     const summaries = [];
     const scan = makeAttachmentScanner({ shield, config, convId, userId, send, summaries });
 
     // Sidecar carries the persistent representation of an attachment. Big
     // extractions are tiered to RustFS via persistExtractedText so meta_json
     // doesn't grow unbounded, while the head+tail snippet stays inline for replay.
+    /** @type {AttachmentCtx['pushAttachment']} */
     const pushAttachment = async (base, fullText) => {
         if (!fullText) {
             persistedAttachments.push(base);
@@ -109,14 +122,19 @@ async function intakeAttachments({ req, res, send, userId, convId, conversationI
     return { contentParts, summaries };
 }
 
+/**
+ * @param {IntakeInput & { convId?: string | null, modelTier?: string | null, messages: import('../../../core/agentRuntime/chatStream/turnState').ChatMessage[] }} p
+ */
 async function processAttachmentsAndUserMessage({ req, res, send, userId, convId, conversationId, modelTier, message, attachments, adapter, modelId, config, messages, documentScope }) {
     convId = await ensureConversation({ convId, userId, modelTier, send });
 
+    /** @type {AttachmentCtx['persistedAttachments']} */
     const persistedAttachments = []; // Track attachments for conversation persistence
     // Per-turn attachment scan summaries, returned to the route so they
     // survive the `messages = compactionResult.messages` reassignment that
     // happens later. The assistant-message builder reads them; without this
     // the privacy panel's "From attachments:" section disappears on reload.
+    /** @type {ScanSummaryRow[] | null} */
     let _turnAttachmentSummaries = null;
     const hasAttachments = !!(attachments && attachments.length > 0);
     if (hasAttachments) {

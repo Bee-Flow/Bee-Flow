@@ -17,7 +17,13 @@ const { importUploadedSpreadsheet, isSpreadsheetUpload } = require('./spreadshee
 
 const IMAGE_FALLBACK_MAX_BASE64 = 300 * 1024;
 
+/**
+ * @param {string | undefined} content
+ */
 const base64Of = (content) => content.split(',')[1] || content;
+/**
+ * @param {string} name
+ */
 const safeName = (name) => name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
 const uniquePrefix = () => `upload_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
 
@@ -37,7 +43,7 @@ async function uploadOriginal({ userId, filename, buffer, contentType, label }) 
             return { key, url };
         }
     } catch (e) {
-        log.warn(`[DirectChat] Failed to upload ${label} to RustFS: ${e.message}`);
+        log.warn(`[DirectChat] Failed to upload ${label} to RustFS: ${/** @type {Error} */ (e).message}`);
     }
     return null;
 }
@@ -45,6 +51,10 @@ async function uploadOriginal({ userId, filename, buffer, contentType, label }) 
 /**
  * Text of an office document or spreadsheet: Azure Document Intelligence
  * first when enabled (Markdown with tables/headings), then the local parser.
+ * @param {Buffer<ArrayBuffer>} buffer
+ * @param {string} mime
+ * @param {string} name
+ * @param {{ extracted: string; failed: string; }} kindLabel
  */
 async function extractOfficeText(buffer, mime, name, kindLabel) {
     let text = '';
@@ -59,7 +69,7 @@ async function extractOfficeText(buffer, mime, name, kindLabel) {
                 }
             }
         } catch (azureErr) {
-            log.warn(`[DirectChat] Azure Document Intelligence failed for ${kindLabel.failed} ${name}:`, azureErr.message);
+            log.warn(`[DirectChat] Azure Document Intelligence failed for ${kindLabel.failed} ${name}:`, /** @type {Error} */ (azureErr).message);
         }
     }
     if (!text) {
@@ -69,10 +79,15 @@ async function extractOfficeText(buffer, mime, name, kindLabel) {
     return text;
 }
 
+/**
+ * @param {ChatAttachment} att
+ */
 async function handleImage(att, ctx) {
     const { userId, adapter, modelId, contentParts, persistedAttachments } = ctx;
     // Upload image to RustFS for persistence + inference URL
+    /** @type {string | null} */
     let imageProxyUrl = null;
+    /** @type {string | null} */
     let inferenceUrl = null;
     const ext = att.type.includes('jpeg') || att.type.includes('jpg') ? 'jpg' : 'png';
     const stored = await uploadOriginal({
@@ -91,7 +106,7 @@ async function handleImage(att, ctx) {
             inferenceUrl = generateTempDownloadUrl(stored.key, 900);
             log.info(`[DirectChat] Image uploaded to RustFS → using URL for inference (${att.name})`);
         } catch (e) {
-            log.warn(`[DirectChat] Failed to upload image to RustFS: ${e.message}`);
+            log.warn(`[DirectChat] Failed to upload image to RustFS: ${/** @type {Error} */ (e).message}`);
         }
     }
     if (!imageProxyUrl) {
@@ -118,7 +133,10 @@ async function handleImage(att, ctx) {
     }
 }
 
-/** Text already extracted on the client (Drive export, Gmail body, text/*). */
+/**
+ * Text already extracted on the client (Drive export, Gmail body, text/*).
+ * @param {ChatAttachment} att
+ */
 async function handleInlineText(att, ctx, { header, footer, type }) {
     const safe = await ctx.scan(att.content, undefined, att.name);
     const text = `${header}\n${safe}\n${footer}`;
@@ -126,6 +144,9 @@ async function handleInlineText(att, ctx, { header, footer, type }) {
     await ctx.pushAttachment({ name: att.name, type }, text);
 }
 
+/**
+ * @param {ChatAttachment} att
+ */
 async function handlePdf(att, ctx) {
     const { userId, adapter, modelId, config, shield, contentParts, pushAttachment, scan, summaries } = ctx;
     // PDF, unified pipeline (server/core/attachmentExtractor.js):
@@ -189,14 +210,20 @@ async function handlePdf(att, ctx) {
             await pushAttachment({ name: att.name, type: att.type, url: pdfProxyUrl }, failureNote);
         }
     } catch (e) {
-        log.error(`[DirectChat] PDF processing failed for ${att.name}:`, e.message);
-        contentParts.push({ type: 'text', text: `[PDF: ${att.name} — failed to process: ${e.message}]` });
+        log.error(`[DirectChat] PDF processing failed for ${att.name}:`, /** @type {Error} */ (e).message);
+        contentParts.push({ type: 'text', text: `[PDF: ${att.name} — failed to process: ${/** @type {Error} */ (e).message}]` });
     }
 }
 
+/**
+ * @param {ChatAttachment} att
+ */
 const isOfficeDoc = (att) => att.type?.includes('wordprocessingml') || att.name?.toLowerCase().endsWith('.docx') ||
     att.type?.includes('presentationml') || att.name?.toLowerCase().endsWith('.pptx');
 
+/**
+ * @param {ChatAttachment} att
+ */
 async function handleOffice(att, ctx) {
     const { userId, contentParts, pushAttachment, scan } = ctx;
     // DOCX / PPTX: Azure Document Intelligence (when enabled), then mammoth /
@@ -228,11 +255,14 @@ async function handleOffice(att, ctx) {
             await pushAttachment({ name: att.name, type: att.type, url: docxProxyUrl }, note);
         }
     } catch (e) {
-        log.error(`[DirectChat] ${isDeck ? 'PPTX' : 'DOCX'} processing failed for ${att.name}:`, e.message);
-        contentParts.push({ type: 'text', text: `[${isDeck ? 'PPTX' : 'DOCX'}: ${att.name} — failed to process: ${e.message}]` });
+        log.error(`[DirectChat] ${isDeck ? 'PPTX' : 'DOCX'} processing failed for ${att.name}:`, /** @type {Error} */ (e).message);
+        contentParts.push({ type: 'text', text: `[${isDeck ? 'PPTX' : 'DOCX'}: ${att.name} — failed to process: ${/** @type {Error} */ (e).message}]` });
     }
 }
 
+/**
+ * @param {ChatAttachment} att
+ */
 async function handleSpreadsheet(att, ctx) {
     const { req, send, userId, contentParts, pushAttachment, scan, documentScope } = ctx;
     // Spreadsheet: Azure Document Intelligence (when enabled), then the XLSX library
@@ -260,11 +290,14 @@ async function handleSpreadsheet(att, ctx) {
             await pushAttachment({ name: att.name, type: att.type, url: sheetProxyUrl, ...importedBase }, note);
         }
     } catch (e) {
-        log.error(`[DirectChat] Spreadsheet processing failed for ${att.name}:`, e.message);
-        contentParts.push({ type: 'text', text: `[Spreadsheet: ${att.name} — failed to process: ${e.message}]` });
+        log.error(`[DirectChat] Spreadsheet processing failed for ${att.name}:`, /** @type {Error} */ (e).message);
+        contentParts.push({ type: 'text', text: `[Spreadsheet: ${att.name} — failed to process: ${/** @type {Error} */ (e).message}]` });
     }
 }
 
+/**
+ * @param {ChatAttachment} att
+ */
 async function handleGenericFile(att, ctx) {
     // Generic file: upload to RustFS for persistent access
     const buffer = Buffer.from(base64Of(att.content), 'base64');
@@ -279,7 +312,10 @@ async function handleGenericFile(att, ctx) {
     await ctx.pushAttachment({ name: att.name, type: att.type, url: fileProxyUrl }, note);
 }
 
-/** Route one attachment to its format handler (first match wins). */
+/**
+ * Route one attachment to its format handler (first match wins).
+ * @param {ChatAttachment} att
+ */
 async function processAttachment(att, ctx) {
     if (att.type && att.type.startsWith('image/') && att.content) return handleImage(att, ctx);
     if (att.source === 'google-drive' && att.content) {
@@ -306,3 +342,37 @@ async function processAttachment(att, ctx) {
 }
 
 module.exports = { processAttachment };
+
+/**
+ * @typedef {Object} ChatAttachment
+ * @property {string} name
+ * @property {string} [type]
+ * @property {string} [content]
+ * @property {string} [source]
+ */
+
+/**
+ * @typedef {Object} AttachmentCtx
+ * @property {import('express').Request} req
+ * @property {(event: string, data: unknown) => void} send
+ * @property {{ markCreated(id: unknown): void } | undefined} documentScope
+ * @property {string} userId
+ * @property {{ supportsVision(modelId: string): boolean, supportsDocuments?: (modelId: string) => boolean }} adapter
+ * @property {string} modelId
+ * @property {{ providerType?: string } | null | undefined} config
+ * @property {{ enabled?: boolean } | null | undefined} shield
+ * @property {Array<Record<string, unknown>>} contentParts
+ * @property {Array<Record<string, unknown>>} persistedAttachments
+ * @property {(base: Record<string, unknown> & { name: string }, fullText?: string) => Promise<void>} pushAttachment
+ * @property {(text: string, pages: unknown, name: string) => Promise<string>} scan
+ * @property {unknown[]} summaries
+ */
+
+/**
+ * @typedef {Object} UploadOriginalArgs
+ * @property {string} userId
+ * @property {() => string} filename
+ * @property {() => Buffer<ArrayBuffer>} buffer
+ * @property {string} contentType
+ * @property {string} label
+ */

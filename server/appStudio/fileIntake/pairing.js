@@ -22,7 +22,7 @@ function pairFiles(files, step) {
     // Anything below tier 1 is marked 'fuzzy' so the app can say "controle
     // nodig" — and an AMBIGUOUS candidate set never matches at all: no match
     // is honest, a guessed match cuts the wrong plate.
-    const po = files.find((f) => f.kind === 'po') || null;
+    const po = files.find((/** @type {{ kind: string; }} */ f) => f.kind === 'po') || null;
 
     // A FOLDER WITHOUT A SINGLE CAD FILE DESCRIBES NO PARTS.
     //
@@ -86,6 +86,9 @@ function pairFiles(files, step) {
     // `meta` is what the FOLDER knew and the filename could not say. Defaults
     // come off the leading file, so a loose mailed pair keeps exactly the shape
     // it always had.
+    /**
+     * @param {string} matchStatus
+     */
     const mkPair = (baseName, cad, drawing, matchStatus, meta = {}) => {
         const lead = cad || drawing;
         return {
@@ -116,7 +119,7 @@ function pairFiles(files, step) {
     const loneDrawings = [];
     const prefer = cadPreferenceWith(step.cadPreferred);
     for (const g of groups.values()) {
-        g.cads.sort((a, b) => {
+        g.cads.sort((/** @type {{ name: string; }} */ a, /** @type {{ name: string; }} */ b) => {
             const byFormat = prefer(a.name) - prefer(b.name);
             if (byFormat) return byFormat;
             // Same format, so the NAME decides: the file that spells out the
@@ -133,7 +136,7 @@ function pairFiles(files, step) {
         // Two CAD files carrying DIFFERENT operations is not a plate-and-its-
         // variant, it is '(links)' beside '(rechts)' — two plates the folder
         // happens to hold together. Pick one and say so; never quietly.
-        const namedOps = new Set(g.cads.map((c) => operationOf(baseNameOf(c.name))).filter(Boolean));
+        const namedOps = new Set(g.cads.map((/** @type {{ name: string; }} */ c) => operationOf(baseNameOf(c.name))).filter(Boolean));
         const meta = {
             partKey: g.folder ? g.key : undefined,
             folder: g.folder || undefined,
@@ -193,3 +196,5 @@ function pairFiles(files, step) {
 }
 
 module.exports = { PAIR_ROLES, pairFiles };
+
+/** @typedef {{ key: string, cads: import('./attachmentRows').IntakeFile[], drawings: import('./attachmentRows').IntakeFile[], folder: string }} PairGroup */

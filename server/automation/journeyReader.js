@@ -13,6 +13,7 @@
 
 const { HttpError } = require('../core/http/errors');
 const { assertCanReadRunData, canReadRunData } = require('../core/automationModel/callerRunVisibility');
+const { fallback } = require('../utils/bestEffort');
 
 /**
  * @param {{ store: () => any, access: { roleFor: Function, runGuard: Function }, what?: string }} deps
@@ -25,6 +26,12 @@ const { assertCanReadRunData, canReadRunData } = require('../core/automationMode
  *   Null after a 403 was written; throws a 404 for every way of not seeing it.
  */
 function makeJourneyReader({ store, access, what: defaultWhat = 'see its files' }) {
+    /**
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
+     * @param {string} runId
+     * @param {string} [what]
+     */
     return async function readableJourney(req, res, runId, what = defaultWhat) {
         const me = req.session.user.id;
         const run = await store().getRun(runId);
@@ -32,7 +39,7 @@ function makeJourneyReader({ store, access, what: defaultWhat = 'see its files' 
         // Not on this automation at all (another organisation, nobody shared it
         // with them): the run does not exist as far as they can tell.
         if (run.userId !== me) {
-            const automation = await store().getAutomation(run.automationId).catch(() => null);
+            const automation = await store().getAutomation(run.automationId).catch((e) => fallback('automation/journeyReader:makeJourneyReader', e, null));
             const { role } = await access.roleFor(automation, me, { session: req.session });
             if (!role) throw new HttpError(404, 'run_not_found', 'Not found');
         }
@@ -40,13 +47,13 @@ function makeJourneyReader({ store, access, what: defaultWhat = 'see its files' 
         assertCanReadRunData(run, me, what);
         const chain = await store().getRunsInChain(run.id).catch(() => [run]);
         const all = chain.length ? chain : [run];
-        const legs = all.filter(leg => leg.automationId === run.automationId && canReadRunData(leg, me));
-        if (!legs.some(leg => leg.id === run.id)) legs.push(run);
+        const legs = all.filter((/** @type {Record<string, any>} */ leg) => leg.automationId === run.automationId && canReadRunData(leg, me));
+        if (!legs.some((/** @type {Record<string, any>} */ leg) => leg.id === run.id)) legs.push(run);
         const rootId = run.rootRunId || run.id;
-        const root = all.find(leg => leg.id === rootId)
-            || all.find(leg => !leg.parentRunId)
+        const root = all.find((/** @type {Record<string, any>} */ leg) => leg.id === rootId)
+            || all.find((/** @type {Record<string, any>} */ leg) => !leg.parentRunId)
             || run;
-        return { run, root, legs, runIds: legs.map(leg => leg.id) };
+        return { run, root, legs, runIds: legs.map((/** @type {Record<string, any>} */ leg) => leg.id) };
     };
 }
 

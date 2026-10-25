@@ -69,13 +69,19 @@ const PROVIDER_ALIASES = Object.freeze({
     elevenlabs: 'elevenlabs',
 });
 
-/** Adapter type for any spelling a caller or a source uses; null when it is not a provider we price. */
+/**
+ * Adapter type for any spelling a caller or a source uses; null when it is not a provider we price.
+ * @param {string | undefined} raw
+ */
 function normalizeProvider(raw) {
     if (typeof raw !== 'string') return null;
     const key = raw.trim().toLowerCase();
     return Object.prototype.hasOwnProperty.call(PROVIDER_ALIASES, key) ? PROVIDER_ALIASES[key] : null;
 }
 
+/**
+ * @param {string} raw
+ */
 function normalizeTier(raw) {
     const t = typeof raw === 'string' ? raw.trim().toLowerCase() : 'standard';
     return KNOWN_TIERS.includes(t) ? t : null;
@@ -95,12 +101,18 @@ function _multiplier(v) {
 
 const BROKEN_JSON = Symbol('broken json');
 
-/** A JSON column: already parsed (jsonb through node-postgres) or still text. */
+/**
+ * A JSON column: already parsed (jsonb through node-postgres) or still text.
+ * @param {string} v
+ */
 function _json(v) {
     if (typeof v !== 'string') return v;
     try { return JSON.parse(v); } catch { return BROKEN_JSON; }
 }
 
+/**
+ * @param {number} fallback
+ */
 function _ms(v, fallback) {
     if (v === null || v === undefined || v === '') return fallback;
     const ms = v instanceof Date ? v.getTime() : Date.parse(String(v));
@@ -139,6 +151,7 @@ function validateRow(raw) {
     if (validToMs <= validFromMs) return { error: 'valid_to must be after valid_from' };
 
     // Long context: a threshold and the rates above it, together or not at all.
+    /** @type {number | null} */
     let longCtxThreshold = null;
     let longCtxRates = null;
     if (raw.long_ctx_threshold !== null && raw.long_ctx_threshold !== undefined && raw.long_ctx_threshold !== '') {
@@ -230,8 +243,13 @@ let _count = 0;
 let _loadedAt = 0;
 let _refresher = null;
 let _refreshTtlMs = 5 * 60_000;
+/** @type {Promise<boolean> | null} */
 let _refreshing = null;
 
+/**
+ * @param {string} model
+ * @param {string} tier
+ */
 const _key = (provider, model, tier) => `${provider}|${String(model).toLowerCase()}|${tier}`;
 
 /**
@@ -282,6 +300,7 @@ function clear() {
  * Register how to re-read the rows (the store does this at init). A lookup that
  * finds the snapshot older than `ttlMs` asks for a refresh in the background and
  * answers from what it has; a failed refresh keeps the last good snapshot.
+ * @param {number} [ttlMs]
  */
 function setRefresher(fn, ttlMs = 5 * 60_000) {
     _refresher = typeof fn === 'function' ? fn : null;
@@ -303,6 +322,9 @@ function _maybeRefresh() {
     if (_refresher && !_refreshing && Date.now() - _loadedAt > _refreshTtlMs) refreshNow();
 }
 
+/**
+ * @param {string | number | Date | undefined} at
+ */
 function toMs(at) {
     if (at === null || at === undefined || at === '') return Date.now();
     const ms = at instanceof Date ? at.getTime() : (typeof at === 'number' ? at : Date.parse(String(at)));
@@ -332,7 +354,10 @@ function lookup({ provider, model, tier = 'standard', at } = /** @type {any} */ 
     return null;
 }
 
-/** Providers that have any row for this model id (any time, any tier). */
+/**
+ * Providers that have any row for this model id (any time, any tier).
+ * @param {string} model
+ */
 function providersFor(model) {
     if (!model) return [];
     return [...(_providersByModel.get(String(model).toLowerCase()) || [])];

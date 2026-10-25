@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * What is filed into a project, and how those pieces are wired together.
  *
@@ -29,7 +29,7 @@ const { findRelatedParts } = require('../../projects/relatedParts');
  * @param {object} deps
  * @param {Function} deps.requireProjectRole     (minRole) => middleware named requireProjectRoleMw
  * @param {any}   deps.projectStore           stores/projectStore
- * @param {any}   deps.membership             projects/membership (the kind registry)
+ * @param {typeof import('../../projects/membership')}   deps.membership             projects/membership (the kind registry)
  * @param {any}   deps.itemFiling             projects/itemFiling makeItemFiling(...)
  * @param {Function} deps.buildGraphForProject   (projectId) => { graph, members, unavailable }
  * @param {Function} deps.completeness           () => projects/completeness (loaded on first use)
@@ -53,7 +53,7 @@ function makeResourcesRouter(deps) {
      */
     function sectionsAllowedIn(containerKind) {
         if (typeof membership.sectionsFor !== 'function') return null;
-        const sections = membership.sectionsFor(containerKind);
+        const sections = /** @type {Array<string | { section?: string }>} */ (membership.sectionsFor(containerKind));
         if (!Array.isArray(sections)) return null;
         return new Set(sections
             .map(entry => (typeof entry === 'string' ? entry : entry?.section))
@@ -63,6 +63,8 @@ function makeResourcesRouter(deps) {
     /**
      * May a resource of `kind` be filed into a project of `containerKind`?
      * Same registry, same fallback.
+     * @param {string} kind
+     * @param {string|null|undefined} containerKind
      */
     function kindAllowedIn(kind, containerKind) {
         if (typeof membership.isAllowedIn !== 'function') return true;
@@ -91,7 +93,7 @@ function makeResourcesRouter(deps) {
         const allowed = sectionsAllowedIn(project.kind);
         // Independently, so one unavailable store degrades that section rather than
         // blanking the whole project page.
-        const load = async (label, fn) => {
+        const load = async (/** @type {string} */ label, /** @type {() => Promise<unknown>} */ fn) => {
             try { return await fn(); } catch (err) {
                 log.warn(`[Projects] could not list ${label}:`, err.message);
                 return null;   // null = "unavailable", distinct from [] = "none"
@@ -107,6 +109,7 @@ function makeResourcesRouter(deps) {
             kinds.map(k => load(k.section, () => k.list(projectId, viewer))),
         );
 
+        /** @type {Record<string, unknown>} */
         const body = { role: req.projectRole, kind: project.kind };
         kinds.forEach((k, i) => { body[k.section] = sections[i]; });
         res.json(body);

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Dutch for the Compliance Center's round 2 detection and legal-wording fixes
  * (Oct 2026): the DSR clock is one calendar month (GDPR Art. 12(3)), not 30
@@ -46,7 +47,10 @@ const NL_REWORDED = Object.freeze(Object.fromEntries(
     Object.entries(DATA.reworded).map(([key, { was, now }]) => [key, Object.freeze({ was: Object.freeze([].concat(was)), now })]),
 ));
 
-/** The mutation itself, on a copy of the 'nl' blob. Pure, so the store's mutator may run it more than once. */
+/**
+ * The mutation itself, on a copy of the 'nl' blob. Pure, so the store's mutator may run it more than once.
+ * @param {Record<string, string>} merged
+ */
 function applyNl(merged) {
     let added = 0;
     let reworded = 0;

@@ -34,7 +34,12 @@ const IDLE_KEY_MS = 10 * 60 * 1000;
 const SWEEP_EVERY_MS = 60 * 1000;
 const DEFAULT_OUTPUT_TOKENS = 1024;
 
-/** Non-negative integer from the environment; '' or invalid falls back. */
+/**
+ * Non-negative integer from the environment; '' or invalid falls back.
+ * @param {Record<string, string | undefined>} env
+ * @param {string} name
+ * @param {number} fallback
+ */
 function envCap(env, name, fallback) {
     const raw = env[name];
     if (raw === undefined || raw === null || String(raw).trim() === '') return fallback;
@@ -60,7 +65,7 @@ function jsonLength(value) {
     try {
         return JSON.stringify(value).length;
     } catch (e) {
-        log.debug(`[LLMLimiter] size estimate skips unserialisable content: ${e.message}`);
+        log.debug(`[LLMLimiter] size estimate skips unserialisable content: ${/** @type {Error} */ (e).message}`);
         return 0;
     }
 }
@@ -93,6 +98,7 @@ function readRetryAfterHeader(err) {
  * Is this a "slow down" answer, and how long did the provider ask us to wait?
  * Mirrors classifyStreamError's overloaded / 429 detection.
  * @returns {{ status: number|null, retryAfterMs: number|null } | null}
+ * @param {number} [nowMs]
  */
 function rateLimitInfo(err, nowMs = Date.now()) {
     if (!err) return null;
@@ -131,6 +137,9 @@ function createProviderLimiter({ now = Date.now, sleep = retryAfter.sleep, env =
         };
     }
 
+    /**
+     * @param {number} t
+     */
     function sweep(t) {
         if (t - lastSweep < SWEEP_EVERY_MS) return;
         lastSweep = t;
@@ -139,6 +148,11 @@ function createProviderLimiter({ now = Date.now, sleep = retryAfter.sleep, env =
         }
     }
 
+    /**
+     * @param {string} key
+     * @param {number} t
+     * @param {{ rpm: number; tpm: number; }} c
+     */
     function entryFor(key, c, t) {
         sweep(t);
         let e = entries.get(key);
@@ -149,6 +163,10 @@ function createProviderLimiter({ now = Date.now, sleep = retryAfter.sleep, env =
         return e;
     }
 
+    /**
+     * @param {number} t
+     * @param {{ rpm: number; tpm: number; }} c
+     */
     function refill(e, c, t) {
         const dt = Math.max(0, t - e.at);
         e.at = t;
@@ -156,7 +174,10 @@ function createProviderLimiter({ now = Date.now, sleep = retryAfter.sleep, env =
         if (c.tpm > 0) e.tok = Math.min(c.tpm, e.tok + dt * (c.tpm / 60000));
     }
 
-    /** Resolve when `p` settles, reject when the signal aborts first. */
+    /**
+     * Resolve when `p` settles, reject when the signal aborts first.
+     * @param {AbortSignal | null} signal
+     */
     function untilOrAbort(p, signal) {
         if (!signal) return p;
         if (signal.aborted) return Promise.reject(cancelled());
@@ -174,6 +195,8 @@ function createProviderLimiter({ now = Date.now, sleep = retryAfter.sleep, env =
      * Wait until the key's buckets cover the request and any cool-down has
      * passed, then take the budget. Waits are re-evaluated after every sleep:
      * the clock, the caps and a fresh cool-down may all have moved.
+     * @param {number} tokens
+     * @param {AbortSignal | null} signal
      */
     async function takeBudget(e, tokens, signal) {
         for (;;) {
@@ -213,6 +236,9 @@ function createProviderLimiter({ now = Date.now, sleep = retryAfter.sleep, env =
             const { reserved, capped } = await takeBudget(e, tokens, signal);
             let settled = false;
             return {
+                /**
+                 * @param {number | null} actual
+                 */
                 settle(actual) {
                     if (settled) return;
                     settled = true;
@@ -290,3 +316,9 @@ function createProviderLimiter({ now = Date.now, sleep = retryAfter.sleep, env =
 const singleton = createProviderLimiter();
 
 module.exports = { ...singleton, createProviderLimiter };
+
+/**
+ * @typedef {{ get?: (name: string) => string | null | undefined, 'retry-after'?: string | null }} HeadersLike
+ * @typedef {{ status?: number, statusCode?: number, message?: string, retryAfterMs?: number, error?: { type?: string }, headers?: HeadersLike, response?: { headers?: HeadersLike } }} RateErr
+ * @typedef {{ req: number, tok: number, at: number, pausedUntil: number, tail: Promise<void>, pending: number, lastUsed: number }} LimiterEntry
+ */

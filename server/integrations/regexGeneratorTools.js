@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Regex Generator Tools — Built-in tools for AI to create regex rules & collections
  * 
@@ -8,6 +8,13 @@
 
 const { getAIConfig, saveAIConfig } = require('../core/aiAgent');
 const log = require('../telemetry/log');
+
+/**
+ * The stored global regex rule set (aiConfig.regexGuardrails).
+ * @typedef {{ id: string, name: string, pattern: string }} RegexRule
+ * @typedef {{ id: string, name: string, ruleIds?: string[] }} RegexCollection
+ * @typedef {{ rules?: RegexRule[], collections?: RegexCollection[] }} RegexConfig
+ */
 
 /**
  * Tool definitions in OpenAI function-calling format.
@@ -21,7 +28,7 @@ const REGEX_GENERATOR_TOOLS = [
             parameters: {
                 type: 'object',
                 properties: {},
-                required: []
+                required: /** @type {string[]} */ ([])
             }
         }
     },
@@ -103,11 +110,13 @@ const REGEX_GENERATOR_TOOLS = [
 
 // ─── Tool Execution ────────────────────────────────────────────
 
+/** @returns {Promise<RegexConfig>} */
 async function getRegexConfig() {
     const aiConfig = await getAIConfig();
-    return aiConfig.regexGuardrails || { rules: [], collections: [] };
+    return /** @type {RegexConfig} */ (aiConfig.regexGuardrails || { rules: [], collections: [] });
 }
 
+/** @param {RegexConfig} regexGuardrails */
 async function saveRegexConfig(regexGuardrails) {
     const aiConfig = await getAIConfig();
     await saveAIConfig({ ...aiConfig, regexGuardrails });
@@ -116,6 +125,7 @@ async function saveRegexConfig(regexGuardrails) {
 /**
  * Strip common variant suffixes from collection names so
  * "Dutch PII Detection (Updated)" matches "Dutch PII Detection".
+ * @param {string} name
  */
 function normalizeCollectionName(name) {
     return name
@@ -124,6 +134,10 @@ function normalizeCollectionName(name) {
         .trim();
 }
 
+/**
+ * @param {string} toolName
+ * @param {Record<string, any>} args tool arguments as the model sent them
+ */
 async function executeRegexGeneratorTool(toolName, args) {
     switch (toolName) {
         case 'regex_list_rules': {
@@ -162,7 +176,7 @@ async function executeRegexGeneratorTool(toolName, args) {
                 try {
                     new RegExp(rule.pattern);
                 } catch (e) {
-                    skipped.push({ name: rule.name, reason: `Invalid regex: ${e.message}` });
+                    skipped.push({ name: rule.name, reason: `Invalid regex: ${/** @type {Error} */ (e).message}` });
                     continue;
                 }
 
@@ -253,7 +267,9 @@ async function executeRegexGeneratorTool(toolName, args) {
 
             try {
                 const regex = new RegExp(pattern, 'gi');
+                /** @type {{ match: string; index: number; }[]} */
                 const matches = [];
+                /** @type {RegExpExecArray | null} */
                 let match;
                 while ((match = regex.exec(testText)) !== null) {
                     matches.push({ match: match[0], index: match.index });
@@ -267,7 +283,7 @@ async function executeRegexGeneratorTool(toolName, args) {
                     isValid: true
                 };
             } catch (e) {
-                return { error: `Invalid regex pattern: ${e.message}`, isValid: false };
+                return { error: `Invalid regex pattern: ${/** @type {Error} */ (e).message}`, isValid: false };
             }
         }
 
@@ -309,6 +325,9 @@ async function deduplicateCollections() {
     }
 }
 
+/**
+ * @param {string} toolName
+ */
 function isRegexGeneratorTool(toolName) {
     return REGEX_GENERATOR_TOOLS.some(t => t.function.name === toolName);
 }

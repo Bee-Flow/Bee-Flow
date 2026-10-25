@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('stream').Readable} Readable */
+// @typecheck noImplicitAny
 /**
  * CMS export bundle — the .zip form of a site export.
  *
@@ -31,6 +32,7 @@ const storageStore = require('../../stores/storageStore');
 const { sanitizeSvg } = require('../../utils/svgSanitizer');
 const { scheduleVariants } = require('./assetVariantStore');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const BUNDLE_ENTRY = 'site.json';
 const ASSET_PREFIX = 'assets/';
@@ -47,6 +49,7 @@ const MAX_BUNDLE_JSON_BYTES = 16 * 1024 * 1024;   // site.json itself
 /**
  * Is this a safe `assets/` entry, and what storage key does it map to?
  * Returns null for anything we refuse to touch.
+ * @param {string} entryName
  */
 function assetEntryToKey(entryName) {
     if (!entryName.startsWith(ASSET_PREFIX)) return null;
@@ -67,7 +70,7 @@ function assetEntryToKey(entryName) {
  * Build the .zip.
  *
  * @param {object}  bundle  the v2 export object (goes to site.json verbatim)
- * @param {Array}   assets  [{ key, buffer }]
+ * @param {Array<{ key: string, buffer: Buffer }>}   assets  [{ key, buffer }]
  * @returns {Promise<Buffer>}
  */
 async function buildZip(bundle, assets = []) {
@@ -90,13 +93,15 @@ async function buildZip(bundle, assets = []) {
 /**
  * Parse a .zip produced by buildZip (or hand-assembled by a user).
  *
- * @returns {Promise<{ bundle: object, assets: Array<{key, buffer}>, skipped: string[] }>}
+ * @returns {Promise<{ bundle: object, assets: Array<{ key: string, buffer: Buffer }>, skipped: string[] }>}
  *   `skipped` names entries that were ignored (unsafe path, unknown prefix)
  *   so the caller can tell the user instead of silently dropping them.
+ * @param {Buffer} buffer
  */
 async function parseZip(buffer) {
     if (!Buffer.isBuffer(buffer) || !buffer.length) throw new Error('Empty upload');
 
+    /** @type {JSZip} */
     let zip;
     try {
         zip = await JSZip.loadAsync(buffer);
@@ -125,7 +130,9 @@ async function parseZip(buffer) {
         throw new Error(`${BUNDLE_ENTRY} is not valid JSON`);
     }
 
+    /** @type {{ key: string; buffer: Buffer<ArrayBufferLike>; }[]} */
     const assets = [];
+    /** @type {string[]} */
     const skipped = [];
     let total = Buffer.byteLength(bundleText, 'utf8');
     for (const entry of entries) {
@@ -149,8 +156,12 @@ async function parseZip(buffer) {
 
 // ── Storage edges ────────────────────────────────────────────────────
 
+/**
+ * @param {Readable} stream
+ */
 function streamToBuffer(stream) {
     return new Promise((resolve, reject) => {
+        /** @type {Buffer[]} */
         const chunks = [];
         stream.on('data', (c) => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)));
         stream.on('end', () => resolve(Buffer.concat(chunks)));
@@ -165,9 +176,11 @@ function streamToBuffer(stream) {
  * one referencing an external URL that merely looks like a key, must still
  * export. Misses come back in `missing` so the caller can report them rather
  * than quietly shipping an incomplete archive.
+ * @param {Iterable<string>} keys
  */
 async function fetchAssets(keys) {
     const assets = [];
+    /** @type {string[]} */
     const missing = [];
     let total = 0;
     for (const key of keys) {
@@ -188,7 +201,7 @@ async function fetchAssets(keys) {
             }
             assets.push({ key, buffer, contentType, bytes: contentLength ?? buffer.length });
         } catch (err) {
-            missing.push(`${key} (${err?.name === 'NoSuchKey' ? 'not found in storage' : String(err?.message || err)})`);
+            missing.push(`${key} (${/** @type {Error} */ (err)?.name === 'NoSuchKey' ? 'not found in storage' : String(/** @type {Error} */ (err)?.message || err)})`);
         }
     }
     return { assets, missing };
@@ -222,10 +235,13 @@ async function fetchAssets(keys) {
  * Importing a bundle keeps the old behaviour on purpose: an imported zip is
  * untrusted and may reference keys another site is already using, so it must
  * not clobber them.
+ * @param {Array<{ key: string, buffer: Buffer, contentType?: string }>} assets
+ * @param {{ overwrite?: boolean }} [opts]
  */
 async function restoreAssets(assets, { overwrite = false } = {}) {
     let written = 0;
     let reused = 0;
+    /** @type {string[]} */
     const failed = [];
     for (const asset of assets) {
         try {
@@ -233,11 +249,12 @@ async function restoreAssets(assets, { overwrite = false } = {}) {
             try {
                 await storageStore.headFile(asset.key);
                 exists = true;
-            } catch (err) { log.debug('miss → write it', err); }
+            } catch (err) { fallback('core/cms/cmsExportBundle:restoreAssets', err); /* miss → write it */ }
             if (exists && !overwrite) { reused++; continue; }
 
             const contentType = asset.contentType || guessContentType(asset.key);
             let body = asset.buffer;
+            /** @type {{ sanitized: string; } | null} */
             let metadata = null;
             if (contentType === 'image/svg+xml') {
                 const clean = sanitizeSvg(asset.buffer);
@@ -254,18 +271,20 @@ async function restoreAssets(assets, { overwrite = false } = {}) {
                 .catch((e) => log.warn(`[CmsBundle] variants of ${asset.key} not scheduled: ${e.message}`));
             written++;
         } catch (err) {
-            failed.push(`${asset.key} (${String(err?.message || err)})`);
+            failed.push(`${asset.key} (${String(/** @type {Error} */ (err)?.message || err)})`);
         }
     }
     return { written, reused, failed };
 }
 
+/** @type {Record<string, string>} */
 const MIME_BY_EXT = {
     '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
     '.gif': 'image/gif', '.webp': 'image/webp', '.avif': 'image/avif',
     '.svg': 'image/svg+xml', '.ico': 'image/x-icon',
     '.mp4': 'video/mp4', '.webm': 'video/webm', '.vtt': 'text/vtt',
 };
+/** @param {string} key */
 function guessContentType(key) {
     const dot = key.lastIndexOf('.');
     if (dot < 0) return 'application/octet-stream';

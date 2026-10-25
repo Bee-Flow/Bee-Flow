@@ -93,6 +93,8 @@ const DECISION_MARKERS_SQL = ['user_blocked', 'ask_timeout'].map(m => `'${m}'`).
  * `(project_id, label, n)`: the window's Privacy Shield PII decisions on one
  * kind of project surface (`container` is the table whose id the events carry
  * as their conversation_id). Only `violation_type = 'pii'` — see the header.
+ * @param {string[]} sources
+ * @param {string} container
  */
 function eventLabels(sources, container) {
     const list = sources.map(s => `'${s}'`).join(', ');
@@ -223,6 +225,7 @@ function makeSignalReader(overrides = {}) {
      * (Organization, URL, ApiKeyOrSecret: personalColumns'
      * NOT_PERSONAL_CATEGORIES, for which kindOfCategory answers null). Those
      * made a project a personal-data subject that "holds personal data ()".
+     * @param {string} raw
      */
     function _canonical(raw) {
         const c = d.normalizeCategory(raw);
@@ -264,6 +267,7 @@ function makeSignalReader(overrides = {}) {
      * What one row of one source says about its project, or null when it
      * proves nothing.
      * @returns {{ categories?: Record<string, number>, kinds?: string[], generic?: boolean } | null}
+     * @param {string} name
      */
     function _signalOf(name, r) {
         if (name === 'notebooks' || name === 'threads') return { generic: true };
@@ -285,6 +289,10 @@ function makeSignalReader(overrides = {}) {
         return found ? { categories } : null;
     }
 
+    /**
+     * @param {string} projectId
+     * @param {string} source
+     */
     function _add(byProject, projectId, source, { categories = {}, kinds = [], generic = false }) {
         let e = byProject.get(projectId);
         if (!e) { e = { categories: {}, kinds: new Set(), sources: new Set() }; byProject.set(projectId, e); }
@@ -300,7 +308,9 @@ function makeSignalReader(overrides = {}) {
 
     async function _read(orgId) {
         const byProject = new Map();
+        /** @type {string[]} */
         const unreadable = [];
+        /** @type {string[]} */
         const truncated = [];
         for (const [name, sql] of Object.entries(SOURCES)) {
             let rows;
@@ -343,7 +353,10 @@ function makeSignalReader(overrides = {}) {
     return { signalsFor, _forget: () => memo.clear() };
 }
 
-/** Does this set of kinds include special-category or national-id data? */
+/**
+ * Does this set of kinds include special-category or national-id data?
+ * @param {string[]} kinds
+ */
 function hasSpecialKinds(kinds) {
     return (kinds || []).some(k => SPECIAL_KINDS.includes(k));
 }
@@ -416,3 +429,5 @@ module.exports = {
     makeSignalReader, sharedReader, recordCheckDeps, hasSpecialKinds, listPersonalDataProjects, personalDataPopulation,
     SOURCES, SPECIAL_KINDS, GENERIC_KIND, EVENT_WINDOW_DAYS,
 };
+
+/** @typedef {{ categories: Record<string, number>, kinds: Set<string>, sources: Set<string> }} SignalAcc */

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Project workspace routes — files, "my chats" and presence.
  *
@@ -36,16 +37,16 @@ const MAX_FILE_MB = 20;
  * @param {object} [deps]
  * @param {Function} [deps.requireProjectRole]  (minRole) => middleware named requireProjectRoleMw
  * @param {Function} [deps.getProject]          (id) => project | null
- * @param {object}   [deps.projectFiles]        projects/projectFiles surface
- * @param {object}   [deps.myChats]             projects/myProjectChats surface ({ list })
+ * @param {typeof import('../../projects/projectFiles')}   [deps.projectFiles]        projects/projectFiles surface
+ * @param {typeof import('../../projects/myProjectChats')}   [deps.myChats]             projects/myProjectChats surface ({ list })
  * @param {Function} [deps.logActivity]         projectStore.logActivity
  * @param {Function} [deps.emitProjectEvent]    core/projectFeed.emitProjectEvent
  * @param {Function} [deps.publishTransient]    core/projectEventBus.publishTransient
  * @param {Function} [deps.signalProjectChanged]  (project, reason) => void (routes/projects/complianceSignal)
- * @param {Function} [deps.uploadLimiter]       rate-limit middleware for uploads
- * @param {Function} [deps.presenceLimiter]     rate-limit middleware for presence pings
+ * @param {import('express').RequestHandler} [deps.uploadLimiter]       rate-limit middleware for uploads
+ * @param {import('express').RequestHandler} [deps.presenceLimiter]     rate-limit middleware for presence pings
  * @param {number}   [deps.maxFileBytes]
- * @param {object}   [deps.log]
+ * @param {typeof import('../../telemetry/log')}   [deps.log]
  */
 function makeWorkspaceRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });
@@ -55,15 +56,21 @@ function makeWorkspaceRouter(deps = {}) {
     const requireRole = deps.requireProjectRole || lazyProjectRoleGate;
     const projectFiles = () => deps.projectFiles || require('../../projects/projectFiles');
     const myChats = () => deps.myChats || require('../../projects/myProjectChats');
+    /** @param {string} id */
     const getProject = (id) => (deps.getProject || require('../../stores/projectStore').getProject)(id);
+    /** @param {...unknown} a */
     const logActivity = (...a) => (deps.logActivity || require('../../stores/projectStore').logActivity)(...a);
+    /** @param {...unknown} a */
     const emitProjectEvent = (...a) => (deps.emitProjectEvent || require('../../core/projectFeed').emitProjectEvent)(...a);
+    /** @param {...unknown} a */
     const publishTransient = (...a) => (deps.publishTransient || require('../../core/projectEventBus').publishTransient)(...a);
     // The project's files are something the project compliance checks read.
+    /** @param {{ id: string }} project */
     const filesChanged = (project) => (deps.signalProjectChanged || require('./complianceSignal').signalProjectChanged)(project, 'files');
     const log = deps.log || require('../../telemetry/log');
     const maxFileBytes = deps.maxFileBytes || require('../../projects/projectFiles').MAX_FILE_BYTES;
 
+    /** @param {Parameters<typeof import('../../utils/perUserRateLimit').perUserRateLimit>[0]} opts */
     const limiter = (opts) => require('../../utils/perUserRateLimit').perUserRateLimit(opts);
     // Uploads are the heavy call here: extraction, a privacy scan and
     // embedding per file. Named, so the ceiling holds across replicas.
@@ -73,7 +80,7 @@ function makeWorkspaceRouter(deps = {}) {
     // stops a loop from turning presence into a flood.
     const presenceLimiter = deps.presenceLimiter || limiter({
         windowMs: 60_000, max: 20,
-        keyFn: (req) => `${req.session?.user?.id || req.ip}:${req.params?.id || ''}`,
+        keyFn: /** @param {import('express').Request} req */ (req) => `${req.session?.user?.id || req.ip}:${req.params?.id || ''}`,
     });
 
     const upload = multer({
@@ -86,9 +93,14 @@ function makeWorkspaceRouter(deps = {}) {
         defParamCharset: 'utf8',
     }).single('file');
 
-    /** Multer as middleware, with its refusals in sentences. */
+    /**
+     * Multer as middleware, with its refusals in sentences.
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
+     * @param {import('express').NextFunction} next
+     */
     function acceptProjectFile(req, res, next) {
-        upload(req, res, (err) => {
+        upload(req, res, /** @param {{ code?: string, message?: string } | undefined} err */ (err) => {
             if (!err) return next();
             if (err.code === 'LIMIT_FILE_SIZE') {
                 // Answered here: the terminal handler words every 413 as a
@@ -106,9 +118,13 @@ function makeWorkspaceRouter(deps = {}) {
         });
     }
 
+    /** @param {Pick<import('express').Request, 'session'>} req */
     const userIdOf = (req) => req.session?.user?.id;
 
-    /** The project behind a passed role gate; it can still vanish mid-request. */
+    /**
+     * The project behind a passed role gate; it can still vanish mid-request.
+     * @param {import('express').Request<{ id: string }>} req
+     */
     async function loadProject(req) {
         const project = await getProject(req.params.id);
         if (!project) throw notFound('not_found', 'Not found');
@@ -121,6 +137,10 @@ function makeWorkspaceRouter(deps = {}) {
      * ("Sick note <name>.pdf"), and the activity row outlives the file. The
      * feed names a file when it is READ, while the file is still in the
      * project (projectFiles.nameFileActivity, used by GET /:id/activity).
+     * @param {string} projectId
+     * @param {string} actorId
+     * @param {string} action
+     * @param {{ targetType?: string, targetId?: string }} details
      */
     async function logAndEmit(projectId, actorId, action, details) {
         await logActivity(projectId, actorId, action, details);
@@ -135,19 +155,19 @@ function makeWorkspaceRouter(deps = {}) {
 
     // ── Files ─────────────────────────────────────────────────────────
 
-    router.get('/:id/files', requireRole('viewer'), validate({ query: S.FilesQuery }), async (req, res) => {
+    router.get('/:id/files', requireRole('viewer'), validate({ query: S.FilesQuery }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
         const project = await loadProject(req);
         const { files, kbId } = await projectFiles().listFiles(project);
         res.json({ files, kbId });
     });
 
-    router.get('/:id/files/:fileId/content', requireRole('viewer'), validate({ params: S.FileParams, query: S.NoQuery }), async (req, res) => {
+    router.get('/:id/files/:fileId/content', requireRole('viewer'), validate({ params: S.FileParams, query: S.NoQuery }), /** @param {import('express').Request<{ id: string, fileId: string }>} req */ async (req, res) => {
         const result = await projectFiles().fileContent(await loadProject(req), req.params.fileId);
         if (!result) throw notFound('file_not_found', 'That file is not in this project.');
         res.set('Cache-Control', 'no-store').json(result);
     });
 
-    router.post('/:id/files', requireRole('editor'), uploadLimiter, acceptProjectFile, async (req, res) => {
+    router.post('/:id/files', requireRole('editor'), uploadLimiter, acceptProjectFile, /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
         const project = await loadProject(req);
         // A Solution is a builder's bundle; its knowledge is linked bases, and
         // its chats cannot be filed there, so nothing would ever search these.
@@ -161,7 +181,7 @@ function makeWorkspaceRouter(deps = {}) {
         const userId = userIdOf(req);
         const added = await projectFiles().addFile(project, file, { userId });
         try {
-            await logAndEmit(project.id, userId, 'file.added', { targetType: 'file', targetId: added.file.id });
+            await logAndEmit(project.id, userId, 'file.added', { targetType: 'file', targetId: /** @type {{ id: string }} */ (added.file).id });
         } finally {
             // Always processed, even when announcing it failed: a row left
             // "queued" for ever is worse than a missing activity line.
@@ -174,8 +194,8 @@ function makeWorkspaceRouter(deps = {}) {
                     try {
                         await publishTransient(project.id, {
                             kind: 'file.processed', actorId: userId,
-                            targetType: 'file', targetId: added.file.id,
-                            payload: { fileId: added.file.id, status },
+                            targetType: 'file', targetId: /** @type {{ id: string }} */ (added.file).id,
+                            payload: { fileId: /** @type {{ id: string }} */ (added.file).id, status },
                         });
                     } catch (err) { telemetryLog.debug('the list refetches on its next event either way', err); }
                 },
@@ -185,7 +205,7 @@ function makeWorkspaceRouter(deps = {}) {
     });
 
     router.delete('/:id/files/:fileId', requireRole('editor'),
-        validate({ params: S.FileParams, query: S.NoQuery, body: S.NoBody }), async (req, res) => {
+        validate({ params: S.FileParams, query: S.NoQuery, body: S.NoBody }), /** @param {import('express').Request<{ id: string, fileId: string }>} req */ async (req, res) => {
             const project = await loadProject(req);
             const userId = userIdOf(req);
             const removed = await projectFiles().removeFile(project, req.params.fileId, { userId });
@@ -197,7 +217,7 @@ function makeWorkspaceRouter(deps = {}) {
 
     // ── My chats ──────────────────────────────────────────────────────
 
-    router.get('/:id/my-chats', requireRole('viewer'), validate({ query: S.MyChatsQuery }), async (req, res) => {
+    router.get('/:id/my-chats', requireRole('viewer'), validate({ query: S.MyChatsQuery }), /** @param {import('express').Request<{ id: string }, any, any, import('qs').ParsedQs & { limit?: number }>} req */ async (req, res) => {
         const chats = await myChats().list(userIdOf(req), req.params.id, { limit: req.query.limit });
         res.json({ chats });
     });
@@ -220,5 +240,6 @@ function makeWorkspaceRouter(deps = {}) {
     return router;
 }
 
+/** @typedef {import('express').Router & Record<string, unknown>} RouterExports */
 module.exports = makeWorkspaceRouter();
-module.exports.makeWorkspaceRouter = makeWorkspaceRouter;
+/** @type {RouterExports} */ (module.exports).makeWorkspaceRouter = makeWorkspaceRouter;

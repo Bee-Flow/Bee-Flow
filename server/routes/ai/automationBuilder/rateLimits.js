@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Automation Builder — the per-user rate limits guarding the builder routes.
  *

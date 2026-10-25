@@ -21,8 +21,14 @@ const DECISION_STATUS = Object.freeze({
 
 const newDeploymentId = () => `dep_${crypto.randomBytes(8).toString('hex')}`;
 const json = (v) => (v === undefined || v === null ? null : JSON.stringify(v));
+/**
+ * @param {number} ms
+ */
 const leaseMsOf = (ms) => (Number.isFinite(Number(ms)) && Number(ms) > 0 ? Math.floor(Number(ms)) : DEFAULT_LEASE_MS);
 // NOW() + a lease of $n milliseconds.
+/**
+ * @param {number} n
+ */
 const leaseUntil = (n) => `NOW() + make_interval(secs => $${n}::double precision / 1000.0)`;
 
 /** A solution_deployments row as the API speaks it. */
@@ -78,6 +84,9 @@ const busyError = (row) => (row.status === 'awaiting_approval'
     ? storeError(409, 'approval_pending', 'A deployment to this stage is awaiting approval.', { deploymentId: row.id })
     : storeError(409, 'stage_busy', 'A deployment to this stage is already running.', { deploymentId: row.id }));
 
+/**
+ * @param {string} stageProjectId
+ */
 const busyRow = async (q, stageProjectId) => (await q.query(
     `SELECT id, status FROM solution_deployments
       WHERE stage_project_id = $1 AND status = ANY($2::text[])
@@ -85,6 +94,10 @@ const busyRow = async (q, stageProjectId) => (await q.query(
     [stageProjectId, ['awaiting_approval', ...ACTIVE_STATUSES]],
 )).rows[0] || null;
 
+/**
+ * @param {string} stageProjectId
+ * @param {string} requestKey
+ */
 const byRequestKey = async (q, stageProjectId, requestKey) => (await q.query(
     'SELECT * FROM solution_deployments WHERE stage_project_id = $1 AND request_key = $2',
     [stageProjectId, requestKey],
@@ -93,3 +106,7 @@ const byRequestKey = async (q, stageProjectId, requestKey) => (await q.query(
 module.exports = {
     ACTIVE_STATUSES, IN_FLIGHT_STATUSES, TERMINAL_STATUSES, ADMIT_STATUSES, DEFAULT_LEASE_MS, APPROVAL_REQUEST_GRACE_S, DECISION_STATUS, newDeploymentId, json, leaseMsOf, leaseUntil, mapDeployment, mapStep, busyError, busyRow, byRequestKey,
 };
+
+/** @typedef {{ query: (sql: string, params?: unknown[]) => Promise<{ rows: import('pg').QueryResultRow[], rowCount?: number }> }} Queryable a pool, or the client of a transaction */
+
+/** @typedef {Queryable & { tx: <T>(fn: (client: Queryable) => Promise<T>) => Promise<T> }} StageDb the `{ query, tx }` database of solutionStageStore */

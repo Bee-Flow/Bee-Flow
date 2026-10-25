@@ -7,11 +7,11 @@ const crypto = require('crypto');
 const { initDB, run, getOne, getAll, pool } = require('./core');
 const { rowToRun, fromJsonb } = require('./rowMappers');
 const { buildUpdate } = require('../lib/sqlBuilder');
-const log = require('../../telemetry/log');
 const { projectOrgRun } = require('./orgRunRow');
 const { JOURNEY_LATERAL, ORG_SCOPE_JOIN, buildRunFilterWhere } = require('./runsFilter');
 const { RUN_FACET_AUTOMATIONS_CAP, getRunFacetsForUser, getRunFacetsForAutomation, getRunFacetsForOrg, getRunCountForUserSince, getRecentRunStatusesForUser, getRunCountsForProjects } = require('./runsStats');
 const { recordRunStep, recordRunStepWith, getRunSteps, getRunsInChain, getRunStepsForChain, getLatestRunInChain, getRunStepsForRuns } = require('./runsSteps');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── Runs ───────────────────────────────────────────────
 
@@ -137,7 +137,7 @@ function decodeRunCursor(cursor) {
     try {
         const o = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
         if (o && o.s && o.i) return { startedAt: o.s, id: o.i };
-    } catch (err) { log.debug('fall through', err); }
+    } catch (err) { bestEffort('stores/automationStore/runs:decodeRunCursor', err); /* fall through */ }
     return null;
 }
 
@@ -368,3 +368,14 @@ async function saveRunTokenMap(runId, tokenMap) {
 }
 
 module.exports = { createRun, getRun, getRunsForAutomation, getRecentRunsForUser, listRunsForUser, listRunsForOrg, listRunsForAutomation, getRunFacetsForUser, getRunFacetsForOrg, getRunFacetsForAutomation, getRunCountForUserSince, getRecentRunStatusesForUser, getRunCountsForProjects, touchRunHeartbeat, getActiveRunsForUser, updateRun, requestCancelRun, recordRunStep, recordRunStepWith, getRunSteps, getRunStepsForRuns, getRunsInChain, getRunStepsForChain, getLatestRunInChain, getRunTokenMap, saveRunTokenMap, encodeRunCursor, decodeRunCursor, buildRunFilterWhere, rowToOrgRunRow, RUN_FACET_AUTOMATIONS_CAP };
+
+/**
+ * @typedef {{ user?: { userId: string }, org?: { orgId: string }, automation?: { automationId: string } }} RunScope
+ * @typedef {{ status?: string | string[], triggerKind?: string | string[], mode?: string | string[],
+ * automationId?: string, kind?: string, sinceTs?: string | null, untilTs?: string | null,
+ * startedByUserId?: string, startedBy?: string, tests?: string, q?: string,
+ * viewerUserId?: string | null, limit?: number | string, cursor?: string | null }} RunFilters
+ * @typedef {{ automationId: string, title: string | null, kind: string, total: number,
+ * status: Record<string, number>, lastRunAt: string | null, lastErrorAt: string | null,
+ * lastErrorClass: string | null }} AutomationRollup
+ */

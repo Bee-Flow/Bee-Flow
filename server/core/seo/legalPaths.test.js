@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 const test = require('node:test');
 const assert = require('node:assert');
 const { legalRedirectTarget, LEGAL_DOCS } = require('./legalPaths');

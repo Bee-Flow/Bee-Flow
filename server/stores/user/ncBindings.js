@@ -48,6 +48,9 @@ const NC_VERIFICATION_MAX_TOTAL_ATTEMPTS = NC_VERIFICATION_MAX_ATTEMPTS * (NC_VE
 // SQL predicate (over the existing row, `t`) for a live row that has used up a
 // lifetime budget. Such a row gets no new code and no TTL extension, so it runs
 // out and a later bootstrap starts over on a fresh row.
+/**
+ * @param {string} t
+ */
 const _ncRowSpentSql = (t) => `(${t}.expires_at > NOW()
     AND (COALESCE(${t}.verification_attempts_total, 0) >= ${NC_VERIFICATION_MAX_TOTAL_ATTEMPTS}
       OR COALESCE(${t}.verification_code_sends, 0) >= ${NC_VERIFICATION_MAX_CODE_SENDS}))`;
@@ -55,12 +58,18 @@ const _ncRowSpentSql = (t) => `(${t}.expires_at > NOW()
 // Salt the code hash with org_id:nc_instance_id (both stable across the
 // createPendingNcVerification upsert) rather than the row id — ON CONFLICT keeps
 // the original row id, so an id-based salt would desync on re-bootstrap.
+/**
+ * @param {string} code
+ */
 function _hashNcVerificationCode(orgId, ncInstanceId, code) {
     return crypto.createHash('sha256')
         .update(`${orgId}:${ncInstanceId}:${code}`)
         .digest('hex');
 }
 
+/**
+ * @param {string} code
+ */
 function _ncCodeMatches(row, code) {
     if (!row?.verification_code_hash || !code) return false;
     const expected = _hashNcVerificationCode(row.org_id, row.nc_instance_id, code);
@@ -76,6 +85,9 @@ function _ncCodeMatches(row, code) {
 // screen and type it on another machine without mistakes.
 function _generatePairingCodeString() {
     const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no 0/O/1/I/L
+    /**
+     * @param {number} n
+     */
     const pickN = (n) => Array.from(crypto.randomBytes(n))
         .map(b => alphabet[b % alphabet.length])
         .join('');
@@ -106,7 +118,7 @@ async function createOrgPairingCode(orgId, { mintedByUserId, ttlSeconds = 900 } 
             `, [id, orgId, code, expiresAt, mintedByUserId || null]);
             return parsePendingBinding(row);
         } catch (e) {
-            if (/idx_pending_nc_bindings_pairing_code_active/i.test(e.message)) continue;
+            if (/idx_pending_nc_bindings_pairing_code_active/i.test(/** @type {Error} */ (e).message)) continue;
             throw e;
         }
     }
@@ -194,6 +206,9 @@ async function deletePairingCode(id, orgId) {
     return (res?.rowCount || 0) > 0;
 }
 
+/**
+ * @param {number} [ttlSeconds]
+ */
 async function createPendingNcBinding(data, ttlSeconds = 1800) {
     await initDB();
     const id = crypto.randomBytes(16).toString('hex');
@@ -300,6 +315,9 @@ async function createPendingNcVerification(data, { ttlSeconds = NC_VERIFICATION_
 // (NC_VERIFICATION_MAX_TOTAL_ATTEMPTS, never reset by a new code). Returns a discriminated result; on 'ok' the row is left 'pending'
 // — the caller binds the org and marks it approved (mirrors the approve handler)
 // so a mid-flight failure doesn't burn the binding.
+/**
+ * @param {string} code
+ */
 async function verifyPendingNcCode(id, code) {
     if (!id) return { status: 'not_found' };
     await initDB();
@@ -362,7 +380,11 @@ const _NC_SEND_BUDGET_SQL = `COALESCE(verification_code_sends, 0) < ${NC_VERIFIC
 // per-code attempt counter and extend the TTL. Returns { status: 'ok', row }
 // (row with verificationEmail), 'not_eligible' if the row isn't a pending
 // verification, or 'too_many' once the row's send/attempt budget is spent.
-/** @returns {Promise<NcCodeSendResult>} */
+/**
+ * @returns {Promise<NcCodeSendResult>}
+ * @param {number} [ttlSeconds]
+ * @param {string} code
+ */
 async function resetNcVerificationCode(id, code, ttlSeconds = NC_VERIFICATION_TTL_SECONDS) {
     if (!id || !code) return { status: 'not_eligible' };
     await initDB();

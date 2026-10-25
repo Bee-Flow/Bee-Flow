@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Google Sheets. No hand-written poller and no Google push channel — both
  * events come from the generic poll_diff runtime, which is the point of
@@ -54,6 +54,7 @@ const CHANGED_SAMPLE = {
  * with a quote inside it doubled, per the Sheets A1-notation rules. No range
  * means the whole tab, and sheets_get_values already defaults to the first
  * tab when neither is set.
+ * @param {{ sheet?: unknown, range?: unknown } | null | undefined} filter
  */
 function composeRange(filter) {
     const sheet = typeof filter?.sheet === 'string' ? filter.sheet.trim() : '';
@@ -120,7 +121,7 @@ const TRIGGER_SOURCES = [{
                 contentWatch: {
                     when: 'spreadsheetId',
                     tool: 'sheets_get_values',
-                    buildArgs: (filter) => ({
+                    buildArgs: (/** @type {{ spreadsheetId?: unknown, sheet?: unknown, range?: unknown }} */ filter) => ({
                         spreadsheetId: String(filter.spreadsheetId),
                         ...(composeRange(filter) ? { range: composeRange(filter) } : {}),
                     }),
@@ -148,7 +149,7 @@ const TRIGGER_SOURCES = [{
             id: 'spreadsheet.new',
             label: 'New spreadsheet',
             fields: FILE_FIELDS,
-            sample: { ...FILE_SAMPLE, changedKeys: [], previous: {}, current: { modifiedTime: FILE_SAMPLE.modifiedTime } },
+            sample: { ...FILE_SAMPLE, changedKeys: /** @type {string[]} */ ([]), previous: {}, current: { modifiedTime: FILE_SAMPLE.modifiedTime } },
             scope: 'user',
             // Appear-only: an edit to an existing sheet belongs to the event
             // above, so changePaths stays empty here.

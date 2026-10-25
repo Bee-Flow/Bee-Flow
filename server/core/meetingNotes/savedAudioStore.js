@@ -22,6 +22,7 @@ const os = require('os');
 const path = require('path');
 const { pipeline: streamPipeline } = require('stream/promises');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const MIME_BY_EXT = {
     '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.m4a': 'audio/mp4',
@@ -151,7 +152,7 @@ async function resolveSavedAudio({ audioPath, audioStorageKey } = {}) {
         try {
             await fs.promises.access(audioPath);
             return { path: audioPath, cleanup: () => {}, fromStorage: false, cached: false };
-        } catch (err) { log.debug('local copy gone — try object storage', err); }
+        } catch (err) { bestEffort('core/meetingNotes/savedAudioStore:resolveSavedAudio', err); /* local copy gone — try object storage */ }
     }
     if (!audioStorageKey) {
         return { path: null, reason: 'never_durable' };
@@ -196,7 +197,7 @@ async function resolveSavedAudio({ audioPath, audioStorageKey } = {}) {
             cached: false,
         };
     } catch (e) {
-        try { await fs.promises.unlink(dest); } catch (err) { log.debug('never created', err); }
+        try { await fs.promises.unlink(dest); } catch (err) { bestEffort('core/meetingNotes/savedAudioStore:resolveSavedAudio#2', err); /* never created */ }
         log.error('[SavedAudio] Object-storage fetch failed:', e.message);
         // A key that exists but will not fetch means RustFS lost the object —
         // terminal, and worth noticing separately from an outage.
@@ -276,3 +277,9 @@ module.exports = {
     AUDIO_SCRATCH_DIR,
     MIME_BY_EXT,
 };
+
+/**
+ * @typedef {Object} DiscardSavedAudioArgs
+ * @property {string | null} [audioPath]
+ * @property {string | null} [audioStorageKey]
+ */

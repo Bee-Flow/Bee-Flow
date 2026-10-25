@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck strict
 /**
  * One-time migration: Dutch for the Approvals surfaces (2026-08).
  *

@@ -8,6 +8,9 @@
  * of streamTurn.js.
  */
 
+/** @typedef {ReturnType<typeof import('./turnState').createTurnState>} Turn */
+/** @typedef {import('../../../core/agentRuntime/chatStream/turnState').ChatMessage} ChatMessage */
+
 const { TIER_DEFAULTS } = require('../../../core/llm/modelResolver');
 const log = require('../../../telemetry/log');
 
@@ -19,12 +22,13 @@ const log = require('../../../telemetry/log');
 // tool call.
 const WEBPAGE_BUILD_MIN_TOKENS = 16384;
 
+/** @param {Turn} turn */
 function buildChatOptions(turn) {
     const tierSettings = turn.tiers[turn.resolvedTier] || {};
     const tierDefaults = TIER_DEFAULTS[turn.resolvedTier] || TIER_DEFAULTS['fast'];
     const isThinkingModel = turn.modelId.includes('magistral');
     const defaultMaxTokens = isThinkingModel ? 40960 : tierDefaults.maxTokens;
-    const wantsWebpageBuilder = turn.directChatTools.some(t => t?.function?.name === 'webpage_file_write');
+    const wantsWebpageBuilder = /** @type {{ function?: { name?: string } }[]} */ (turn.directChatTools).some(t => t?.function?.name === 'webpage_file_write');
     const baseMaxTokens = tierSettings.maxTokens || defaultMaxTokens;
     const effectiveMaxTokens = wantsWebpageBuilder
         ? Math.max(baseMaxTokens, WEBPAGE_BUILD_MIN_TOKENS)
@@ -41,7 +45,7 @@ function buildChatOptions(turn) {
         const { shouldDisableResponsesChaining } = require('../../../core/conversation/historyMerge');
         const attachmentContext =
             turn.persistedAttachments.length > 0 ||
-            (Array.isArray(turn.resolvedHistory) && turn.resolvedHistory.some(m => Array.isArray(m?.attachments) && m.attachments.length > 0));
+            (Array.isArray(turn.resolvedHistory) && /** @type {ChatMessage[]} */ (turn.resolvedHistory).some(m => Array.isArray(m?.attachments) && m.attachments.length > 0));
         if (shouldDisableResponsesChaining({ clientHistoryProvided: turn.clientHistoryProvided, attachmentContext })) {
             log.info('[DirectChat] Attachment context — Responses chaining disabled for this turn');
             turn.lastResponseId = null;

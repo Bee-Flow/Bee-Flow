@@ -1,3 +1,4 @@
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
 // @typecheck
 /**
  * /api/datatables/spreadsheets/* — LINKING spreadsheet files as datatables.
@@ -77,7 +78,10 @@ const { worded, bodyOf, flag, scopeWord } = require('./datatables/schemas');
 
 // ── What a caller may send ──────────────────────────────────────────
 
-/** Free text a storage hands out — ids, paths, page tokens. The storage judges it. */
+/**
+ * Free text a storage hands out — ids, paths, page tokens. The storage judges it.
+ * @param {string} name
+ */
 const text = (name) => worded(`${name} is text.`).optional();
 
 const ScopeQuery = z.object({ scope: scopeWord() }).strict();
@@ -112,6 +116,9 @@ const SheetColumn = z.object({
 }, { error: typeError({ invalid: COLUMN_TEXT }) }).strict();
 
 const SHEET_TEXT = 'Each sheet to link is { provider, fileId, sheet, headerRow, keyColumn, columns, name, key }.';
+/**
+ * @param {string} message
+ */
 const whole = (message) => z.number({ error: typeError({ invalid: message }) }).int(message).nullish();
 const LinkSheet = z.object({
     provider: worded(SHEET_TEXT).optional(),
@@ -150,7 +157,10 @@ function adapter() {
 // Opening the wizard lists a folder; every click lists another; a header-row
 // change re-describes. The bucket is the engine's, shared with link and
 // relink (see the header); resolved per request so the registry loads lazily.
-const storageLimiter = (req, res, next) => adapter().link.storageLimiter(req, res, next);
+/**
+ * @param {NextFunction} next
+ */
+const storageLimiter = (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, next) => adapter().link.storageLimiter(req, res, next);
 
 function answer(res, e) {
     if (e && e.code === PG_UNIQUE_VIOLATION && String(e.constraint || '') === 'uq_datatables_scope_key') {
@@ -178,8 +188,9 @@ function answer(res, e) {
  * The scope a request addresses — the same words and the same chain as
  * POST /: `organisation` (default when the account has one) or `personal`.
  * Returns the scope, or answers the refusal itself and returns null.
+ * @param {string | ParsedQs | (string | ParsedQs)[] | undefined} wanted
  */
-async function resolveScope(req, res, principal, wanted) {
+async function resolveScope(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, principal, wanted) {
     if (wanted !== undefined && wanted !== 'organisation' && wanted !== 'personal') {
         res.status(400).json({ error: 'A table belongs either to your organisation or to this account', code: 'bad_scope' });
         return null;
@@ -288,3 +299,5 @@ function makeSpreadsheetsRouter({ publicTable }) {
 }
 
 module.exports = makeSpreadsheetsRouter;
+
+/** @typedef {import('qs').ParsedQs} ParsedQs */

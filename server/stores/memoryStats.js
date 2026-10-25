@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * stores/memoryStats.js — counts (per user, per org, the Memory panel's
  * distribution) and the schedule-coverage bookkeeping rows. Split out of
@@ -16,6 +16,7 @@ const initDB = () => dep('initDB')();
 
 // ============ Stats ============
 
+/** @param {string} userId */
 async function getMemoryStats(userId) {
     await initDB();
     const total = await getOne('SELECT COUNT(*) as count FROM user_memories WHERE user_id = $1 AND project_id IS NULL', [userId]);
@@ -28,6 +29,7 @@ async function getMemoryStats(userId) {
     `, [userId]);
 
     const typeDistribution = { labels: byType.map(r => r.type), data: byType.map(r => parseInt(r.count)) };
+    /** @type {Record<string, number>} */
     const importanceDistribution = { high: 0, medium: 0, low: 0 };
     byImportance.forEach(r => { if (importanceDistribution[r.level] !== undefined) importanceDistribution[r.level] = parseInt(r.count); });
 
@@ -39,6 +41,7 @@ async function getMemoryStats(userId) {
  * agent included, superseded/expired rows excluded. Read by the DSR discovery
  * scan (compliance/dsr/discovery.js), which reports the COUNT and never the
  * contents (BFSF-441).
+ * @param {string} userId
  * @returns {Promise<number>}
  */
 async function countActiveMemoriesForUser(userId) {
@@ -54,7 +57,10 @@ async function countActiveMemoriesForUser(userId) {
     return Number(row?.count) || 0;
 }
 
-/** Counts only, for the org admin screen: never memory content. */
+/**
+ * Counts only, for the org admin screen: never memory content.
+ * @param {string} orgId
+ */
 async function countOrgMemoryStats(orgId) {
     if (!orgId) return { activeMemories: 0, users: 0 };
     await initDB();
@@ -87,6 +93,7 @@ const SCHEDULE_COVERAGE_TTL_DAYS = 30;
  * - subject: stable topic key (e.g. "openai-gpt-5")
  * - title: human-readable title used in the addendum (e.g. "OpenAI GPT-5 launch")
  * - summary: short one-line description ("Released …")
+ * @param {{ userId: string, agentId?: string | null, scheduleId: string, subject: string, title?: string | null, summary?: string | null }} args
  */
 async function upsertScheduleCoverage({ userId, agentId, scheduleId, subject, title, summary }) {
     if (!userId || !scheduleId || !subject) return null;
@@ -123,7 +130,11 @@ async function upsertScheduleCoverage({ userId, agentId, scheduleId, subject, ti
     return id;
 }
 
-/** List active coverage memories for a schedule, newest-first. */
+/**
+ * List active coverage memories for a schedule, newest-first.
+ * @param {string} scheduleId
+ * @param {{ limit?: number }} [opts]
+ */
 async function getScheduleCoverage(scheduleId, { limit = 50 } = {}) {
     if (!scheduleId) return [];
     await initDB();

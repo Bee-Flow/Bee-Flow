@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Outbound probe: the destination of a tool call, as seen on its connections.
  *

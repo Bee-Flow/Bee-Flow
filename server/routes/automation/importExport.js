@@ -73,20 +73,20 @@ function registerTemplateAndImportRoutes(router) {
 
     // Handoff 5: the organisation's own templates ("Save as template", source
     // 'org') lead the list; the built-in ones follow (source 'builtin').
-    router.get('/templates', async (req, res) => {
+    router.get('/templates', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const { listTemplatesFor, CATEGORIES } = require('../../automation/templates');
         const templates = await listTemplatesFor({ userId: req.session.user.id, orgId: await orgOf(req) });
         res.json({ templates, categories: CATEGORIES });
     });
 
-    router.get('/templates/:id', async (req, res) => {
+    router.get('/templates/:id', async (req, /** @type {import('express').Response} */ res) => {
         const { getTemplateFor } = require('../../automation/templates');
         const tmpl = await getTemplateFor(req.params.id, { userId: req.session.user.id, orgId: await orgOf(req) });
         if (!tmpl) return res.status(404).json({ error: 'Template not found' });
         res.json({ template: tmpl });
     });
 
-    router.post('/import', importLimiter, async (req, res) => {
+    router.post('/import', importLimiter, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const userId = req.session.user.id;
         const { automation: incoming, errors: importErrors } = sanitizeImport(req.body);
         if (!incoming || importErrors.length > 0) {
@@ -225,7 +225,7 @@ function registerExportRoute(router) {
     // handler was never registered (dead import). Implement it with the same
     // ownership guard as the rest of the file so a user can download a sanitized,
     // portable envelope of their own automation (matching POST /import).
-    router.get('/:id/export', require('../../compliance/dataPortability/stampExport')('automations'), async (req, res) => {
+    router.get('/:id/export', require('../../compliance/dataPortability/stampExport')('automations'), async (req, /** @type {import('express').Response} */ res) => {
         const a = await automationStore.getAutomation(req.params.id);
         if (!a) return res.status(404).json({ error: 'Not found' });
         // `view` reads every step already; the export is the same data, sanitised.

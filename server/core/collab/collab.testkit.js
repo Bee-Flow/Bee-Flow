@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
+// @typecheck noImplicitAny
 /**
  * Test kit for the co-editing tests: a whole co-editing server over PGlite
  * and in-memory stand-ins, with no module mocking.
@@ -31,14 +32,21 @@ const quietLog = { info() {}, warn() {}, error() {}, debug() {} };
 
 // ── A paragraph-only stand-in for the editor bundle ────────────────────────
 
+/**
+ * @param {string} text
+ */
 const paragraph = (text) => (text ? { type: 'paragraph', content: [{ type: 'text', text }] } : { type: 'paragraph' });
-const textOfBlock = (b) => (b.content || []).map((c) => c.text || '').join('');
-const escapeHtml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const textOfBlock = /** @param {{ content?: Array<{ text?: string }> }} b */ (b) => (b.content || []).map((c) => c.text || '').join('');
+const escapeHtml = /** @param {string} s */ (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+/** @param {import('yjs').XmlText} t */
 function ytextString(t) {
-    return t.toDelta().map((d) => (typeof d.insert === 'string' ? d.insert : '')).join('');
+    return t.toDelta().map(/** @param {{ insert?: unknown }} d */ (d) => (typeof d.insert === 'string' ? d.insert : '')).join('');
 }
 
+/**
+ * @param {string} text
+ */
 function newBlock(text) {
     const el = new Y.XmlElement('textblock');
     el.setAttribute('type', 'paragraph');
@@ -48,7 +56,11 @@ function newBlock(text) {
     return el;
 }
 
-/** The smallest text edit turning `t` into `next`. */
+/**
+ * The smallest text edit turning `t` into `next`.
+ * @param {import('yjs').XmlText} t
+ * @param {string} next
+ */
 function syncText(t, next) {
     const cur = ytextString(t);
     if (cur === next) return;
@@ -61,57 +73,79 @@ function syncText(t, next) {
 }
 
 const simpleBundle = {
-    markdownToAst: (md) => ({ type: 'doc', content: String(md).split(/\n{2,}/).map((s) => s.trim()).filter(Boolean).map(paragraph) }),
-    htmlToAst: (html) => ({
+    markdownToAst: /** @param {string} md */ (md) => ({ type: 'doc', content: String(md).split(/\n{2,}/).map((s) => s.trim()).filter(Boolean).map(paragraph) }),
+    htmlToAst: /** @param {string} html */ (html) => ({
         type: 'doc',
         content: [...String(html).matchAll(/<p>([\s\S]*?)<\/p>/g)].map((m) => paragraph(m[1].replace(/<[^>]*>/g, ''))),
     }),
-    astToMarkdown: (ast) => (ast.content || []).map(textOfBlock).join('\n\n'),
-    astToHtml: (ast) => (ast.content || []).map((b) => `<p>${escapeHtml(textOfBlock(b))}</p>`).join(''),
+    astToMarkdown: /** @param {import('./convert').AstNode} ast */ (ast) => (ast.content || []).map(textOfBlock).join('\n\n'),
+    astToHtml: /** @param {import('./convert').AstNode} ast */ (ast) => (ast.content || []).map((b) => `<p>${escapeHtml(textOfBlock(b))}</p>`).join(''),
+    /**
+     * @param {import('./convert').AstNode} ast
+     * @param {import('yjs').XmlFragment} fragment
+     */
     astToFragment(ast, fragment) {
         if (fragment.length) fragment.delete(0, fragment.length);
         const els = (ast.content || []).map((b) => newBlock(textOfBlock(b)));
         if (els.length) fragment.insert(0, els);
     },
+    /** @param {import('yjs').XmlFragment} fragment */
     fragmentToAst(fragment) {
         return {
             type: 'doc',
             content: fragment.toArray()
-                .filter((el) => el instanceof Y.XmlElement && el.nodeName === 'textblock')
-                .map((el) => paragraph(ytextString(el.get(0)))),
+                .filter(/** @param {import('yjs').XmlElement | import('yjs').XmlText} el @returns {el is import('yjs').XmlElement} */ (el) => el instanceof Y.XmlElement && el.nodeName === 'textblock')
+                .map((el) => paragraph(ytextString(/** @type {import('yjs').XmlText} */ (el.get(0))))),
         };
     },
+    /**
+     * @param {import('yjs').XmlFragment} fragment
+     * @param {import('./convert').AstNode} doc
+     */
     syncDocToFragment(fragment, doc) {
         const want = (doc.content || []).map(textOfBlock);
         const have = fragment.toArray();
         for (let i = 0; i < want.length; i += 1) {
-            if (i < have.length) syncText(have[i].get(0), want[i]);
+            if (i < have.length) syncText(/** @type {import('yjs').XmlText} */ (/** @type {import('yjs').XmlElement} */ (have[i]).get(0)), want[i]);
             else fragment.insert(fragment.length, [newBlock(want[i])]);
         }
         if (have.length > want.length) fragment.delete(want.length, have.length - want.length);
     },
+    /**
+     * @param {import('./convert').AstNode} a
+     * @param {import('./convert').AstNode} b
+     */
     diffDocs(a, b) {
-        const words = (d) => (d.content || []).map(textOfBlock).join(' ').split(/\s+/).filter(Boolean);
+        const words = /** @param {import('./convert').AstNode} d */ (d) => (d.content || []).map(textOfBlock).join(' ').split(/\s+/).filter(Boolean);
         const wa = words(a);
         const wb = words(b);
         const common = wb.filter((w) => wa.includes(w)).length;
         const blocks = Math.abs((a.content || []).length - (b.content || []).length)
             + (a.content || []).filter((x, i) => textOfBlock(x) !== textOfBlock((b.content || [])[i] || {})).length;
-        return { blocks: [], stats: { wordsAdded: wb.length - common, wordsRemoved: Math.max(0, wa.length - common), blocksChanged: blocks } };
+        return { blocks: /** @type {unknown[]} */ ([]), stats: { wordsAdded: wb.length - common, wordsRemoved: Math.max(0, wa.length - common), blocksChanged: blocks } };
     },
 };
 
-/** The text of a Y.Doc's paragraphs, as the stand-in reads them. */
+/**
+ * The text of a Y.Doc's paragraphs, as the stand-in reads them.
+ * @param {import('yjs').Doc} ydoc
+ */
 function docText(ydoc) {
     return simpleBundle.astToMarkdown(simpleBundle.fragmentToAst(ydoc.getXmlFragment('content')));
 }
 
-/** Type into a paragraph of a client's Y.Doc (creating it when missing). */
+/**
+ * Type into a paragraph of a client's Y.Doc (creating it when missing).
+ * @param {import('yjs').Doc} ydoc
+ * @param {number} index
+ * @param {number} at
+ * @param {string} text
+ */
 function typeInto(ydoc, index, at, text) {
     const fragment = ydoc.getXmlFragment('content');
     ydoc.transact(() => {
         while (fragment.length <= index) fragment.insert(fragment.length, [newBlock('')]);
-        const t = fragment.get(index).get(0);
+        const t = /** @type {import('yjs').XmlText} */ (/** @type {import('yjs').XmlElement} */ (fragment.get(index)).get(0));
         t.insert(Math.min(at, t.length), text);
     });
 }
@@ -133,11 +167,17 @@ async function collabWorld(opts = {}) {
 
     const projects = new Map();
     const resources = new Map();
+    /** @type {Array<{ kind: string, id: string, html: string, markdown?: string | null, text?: string, wordCount?: number }>} */
     const mirrors = [];
+    /** @type {Array<{ kind: string, id: string, versionId: string, html?: string, [k: string]: unknown }>} */
     const versions = [];
+    /** @type {{ projectId: string; }[]} */
     const events = [];
+    /** @type {{ projectId: string; }[]} */
     const transients = [];
+    /** @type {Array<Record<string, unknown>>} */
     const feed = [];
+    /** @type {Array<Record<string, unknown>>} */
     const scans = [];
     const bus = new EventEmitter();
     bus.setMaxListeners(0);
@@ -146,26 +186,46 @@ async function collabWorld(opts = {}) {
     let keyFails = false;
     const contentCaps = opts.contentCaps || {};
     const refuse = new Set();
+    /**
+     * @param {string} kind
+     * @param {string} id
+     * @param {string | ArrayBufferLike | NodeJS.ArrayBufferView<ArrayBufferLike>} html
+     */
     const overCap = (kind, id, html) => refuse.has(id) || (contentCaps[kind] > 0 && Buffer.byteLength(html || '', 'utf8') > contentCaps[kind]);
 
+    /**
+     * @param {string} id
+     * @param {Record<string, unknown>} [extra]
+     */
     async function addProject(id, extra = {}) {
         const project = { id, kind: 'workspace', organizationId: 'org1', ...extra };
         await pg.query('INSERT INTO projects (id, name, owner_id, organization_id) VALUES ($1, $1, $2, $3)', [id, 'owner', project.organizationId || '']);
         projects.set(id, project);
     }
 
+    /**
+     * @param {string} kind
+     * @param {string} id
+     * @param {Record<string, unknown>} [extra]
+     */
     function addResource(kind, id, extra = {}) {
-        const r = { id, kind, projectId: 'p1', ownerId: 'ann', orgId: 'org1', html: '', markdown: null, supported: true, ...extra };
+        const r = { id, kind, projectId: 'p1', ownerId: 'ann', orgId: 'org1', html: '', markdown: /** @type {string | null} */ (null), supported: true, ...extra };
         resources.set(`${kind}:${id}`, r);
         return r;
     }
 
     const resourceApi = {
+        /** @param {string} kind @param {string} id */
         async load(kind, id) {
             const r = resources.get(`${kind}:${id}`);
             return r ? { ...r } : null;
         },
-        maxContentBytes: (kind) => contentCaps[kind] || null,
+        maxContentBytes: /** @param {string} kind */ (kind) => contentCaps[kind] || null,
+        /**
+         * @param {string} kind
+         * @param {string} id
+         * @param {{ html: string, markdown?: string | null, text?: string, wordCount?: number }} content
+         */
         async writeMirror(kind, id, content) {
             if (overCap(kind, id, content.html)) return { written: false, refused: true, reason: 'document_too_large' };
             mirrors.push({ kind, id, ...content });
@@ -173,6 +233,11 @@ async function collabWorld(opts = {}) {
             if (r) { r.html = content.html; r.markdown = content.markdown ?? r.markdown; }
             return { written: true };
         },
+        /**
+         * @param {string} kind
+         * @param {string} id
+         * @param {{ html?: string, [k: string]: unknown }} v
+         */
         async recordVersion(kind, id, v) {
             if (overCap(kind, id, v.html)) throw Object.assign(new Error('too large'), { errorClass: 'document_too_large', status: 413 });
             const versionId = `v${versions.length + 1}`;
@@ -197,9 +262,9 @@ async function collabWorld(opts = {}) {
             bus.emit(projectId, { ...ev, transient: true });
         },
         emitProjectEvent: async (projectId, ev) => { events.push({ projectId, ...ev }); },
-        changeFeed: () => ({ recordContentChange: async (x) => { feed.push(x); } }),
-        contentSignals: () => ({ queueContentScan: async (x) => { scans.push({ ...x, text: await x.loadText() }); } }),
-        subscribeProject: (projectId, handler) => { bus.on(projectId, handler); return () => bus.off(projectId, handler); },
+        changeFeed: () => ({ recordContentChange: async (/** @type {Record<string, unknown>} */ x) => { feed.push(x); } }),
+        contentSignals: () => ({ queueContentScan: async (/** @type {{ loadText: () => Promise<string>, [k: string]: unknown }} */ x) => { scans.push({ ...x, text: await x.loadText() }); } }),
+        subscribeProject: (/** @type {string} */ projectId, /** @type {(ev: unknown) => void} */ handler) => { bus.on(projectId, handler); return () => bus.off(projectId, handler); },
         isDistributed: () => true,
         limits: opts.limits,
         log: quietLog,
@@ -222,8 +287,13 @@ async function collabWorld(opts = {}) {
  * @param {Record<string, Record<string, string>>} roles projectId → userId → role
  */
 function fakeRoleGate(roles) {
+    /** @type {Record<string, number>} */
     const ORDER = { viewer: 0, editor: 1, owner: 2 };
-    return (minRole) => function requireProjectRoleMw(req, res, next) {
+    return (/** @type {string} */ minRole) => /**
+     * @param {import('express').Request<{ id: string }>} req
+     * @param {import('express').Response} res
+     * @param {NextFunction} next
+     */ function requireProjectRoleMw(req, res, next) {
         const userId = req.session?.user?.id;
         if (!userId) return res.status(401).json({ error: 'Not authenticated' });
         const role = roles[req.params.id]?.[userId];
@@ -234,9 +304,18 @@ function fakeRoleGate(roles) {
     };
 }
 
+/**
+ * @param {import('express').Request} _req
+ * @param {import('express').Response} _res
+ * @param {NextFunction} next
+ */
 const passThrough = (_req, _res, next) => next();
 
-/** Wait until `fn()` holds. */
+/**
+ * Wait until `fn()` holds.
+ * @param {() => unknown} fn
+ * @param {number} [ms]
+ */
 async function until(fn, ms = 5000) {
     const start = Date.now();
     while (!fn()) {
@@ -245,6 +324,6 @@ async function until(fn, ms = 5000) {
     }
 }
 
-const b64 = (u) => Buffer.from(u).toString('base64');
+const b64 = /** @param {string | Uint8Array} u */ (u) => Buffer.from(u).toString('base64');
 
 module.exports = { collabWorld, fakeRoleGate, passThrough, until, simpleBundle, docText, typeInto, newBlock, ytextString, b64, quietLog };

@@ -15,6 +15,7 @@ const log = require('../../../telemetry/log');
 const { HttpError } = require('../../../core/http/errors');
 const { openSse } = require('../../../core/http/sseHelpers');
 const { turnTierRefusal } = require('../../../core/llm/resolveTurnModel');
+const { fallback } = require('../../../utils/bestEffort');
 
 async function runSwarmTierTurn({ req, res, userId, message, conversationId, attachments }) {
         const { runSwarmTurn, loadSwarmById } = require('../../../core/swarms/swarmRuntime');
@@ -48,7 +49,7 @@ async function runSwarmTierTurn({ req, res, userId, message, conversationId, att
             // Need the user's org for EU-aware resolution. Resolve it cheaply
             // here — we don't need the full Flow tier-resolution dance.
             const userStoreLocal = require('../../../stores/userStore');
-            const localUser = await userStoreLocal.getUser(userId).catch(() => null);
+            const localUser = await userStoreLocal.getUser(userId).catch((e) => fallback('routes/ai/directChat/swarmTurn:runSwarmTierTurn', e, null));
             userOrgId = localUser?.organizationId || null;
             fallbackModelId = await resolveSwarmTierModel('tier:swarm', { userOrgId, userId, fallbackTier: 'fast' });
         } catch (e) {
@@ -78,7 +79,7 @@ async function runSwarmTierTurn({ req, res, userId, message, conversationId, att
                 if (existingConv && existingConv.hiveMind && typeof existingConv.hiveMind === 'object') {
                     hiveMind = existingConv.hiveMind;
                 }
-            } catch (err) { log.debug('ignore — proceed with fresh state', err); }
+            } catch (err) { fallback('routes/ai/directChat/swarmTurn:runSwarmTierTurn#2', err); /* ignore — proceed with fresh state */ }
         }
 
         try {

@@ -1,3 +1,4 @@
+/** @typedef {import('./providers').FileApi} FileApi */
 /**
  * A row changed IN BEE FLOW → the FILE first, then the copy.
  *
@@ -109,9 +110,9 @@ const { makeWriteThrough } = require('../mirror/writeThrough');
 const { KIND, isMirror } = require('./index');
 const { SpreadsheetSourceError, providerName } = require('./errors');
 const identity = require('./identity');
-const log = require('../../../../telemetry/log');
 const { ROW_MISSING, currentColumns, sameValue, writeFile, scratchOf } = require('./writeThroughFile');
 const { toWire, localValuesFor, keyMoveOf, moveCopy, renumber } = require('./writeThroughMove');
+const { bestEffort } = require('../../../../utils/bestEffort');
 
 function linkerAuth() { return require('./linkerAuth'); }
 
@@ -130,6 +131,7 @@ const READ_ONLY_SENTENCE = Object.freeze({
 function refuseIfReadOnly(ctx) {
     const source = (ctx && ctx.table && ctx.table.source) || {};
     const write = source.write || {};
+    /** @type {string | null} */
     let reason = null;
     if (!write.mode || write.mode === 'none') reason = write.reason || 'not_writable';
     else if (source.owned === false && write.sharedOptIn !== true) reason = 'not_owned';
@@ -161,26 +163,44 @@ const adapter = {
     notFoundCodes: new Set([ROW_MISSING]),
     toWire,
     apiFor: linkerApi,
+    /**
+     * @param {FileApi} api
+     */
     async sourceInsert(api, ctx, wire) {
         const [raw] = await writeFile(api, ctx, [{ kind: 'append', wire }]);
         return raw;
     },
+    /**
+     * @param {FileApi} api
+     */
     async sourceUpdate(api, ctx, rowId, wire) {
         const [raw] = await writeFile(api, ctx, [{ kind: 'update', rowId, wire }]);
         scratchOf(ctx).raws.set(rowId, raw);
         return raw;
     },
+    /**
+     * @param {FileApi} api
+     */
     async sourceDelete(api, ctx, rowId) {
         await writeFile(api, ctx, [{ kind: 'delete', rowId }]);
     },
+    /**
+     * @param {FileApi} api
+     */
     async sourceInsertMany(api, ctx, wires) {
         return writeFile(api, ctx, wires.map(wire => ({ kind: 'append', wire })));
     },
+    /**
+     * @param {FileApi} api
+     */
     async sourceUpdateMany(api, ctx, items) {
         const raws = await writeFile(api, ctx, items.map(({ rowId, wire }) => ({ kind: 'update', rowId, wire, tolerateMissing: true })));
         items.forEach(({ rowId }, i) => { if (raws[i]) scratchOf(ctx).raws.set(rowId, raws[i]); });
         return raws;
     },
+    /**
+     * @param {FileApi} api
+     */
     async sourceDeleteMany(api, ctx, rowIds) {
         await writeFile(api, ctx, rowIds.map(rowId => ({ kind: 'delete', rowId, tolerateMissing: true })));
     },
@@ -205,6 +225,9 @@ async function insertRow(ctx, values) {
     return shared.insertRow(fresh(ctx), values);
 }
 
+/**
+ * @param {string} rowId
+ */
 async function updateRow(ctx, rowId, values, opts = {}) {
     refuseIfReadOnly(ctx);
     const c = fresh(ctx);
@@ -216,6 +239,9 @@ async function updateRow(ctx, rowId, values, opts = {}) {
     return moveCopy(c, rowId, newId, r);
 }
 
+/**
+ * @param {string} rowId
+ */
 async function deleteRow(ctx, rowId) {
     refuseIfReadOnly(ctx);
     const c = fresh(ctx);
@@ -239,7 +265,7 @@ async function updateRows(ctx, list, opts = {}) {
             try {
                 const newId = it && keyMoveOf(c, it.id, it.values);
                 if (newId) moves.set(it.id, newId);
-            } catch (err) { log.debug('the shared half reports (or collects) the refusal itself', err); }
+            } catch (err) { bestEffort('core/dataEngine/sources/spreadsheetFile/writeThrough:updateRows', err); /* the shared half reports (or collects) the refusal itself */ }
         }
     }
     const out = await shared.updateRows(c, items, opts);
@@ -255,6 +281,9 @@ async function updateRows(ctx, list, opts = {}) {
     return out;
 }
 
+/**
+ * @param {string[]} ids
+ */
 async function deleteRows(ctx, ids, opts = {}) {
     refuseIfReadOnly(ctx);
     const c = fresh(ctx);
@@ -269,3 +298,31 @@ module.exports = {
     // exported for tests
     toWire, refuseIfReadOnly, sameValue, currentColumns, ROW_MISSING,
 };
+
+/**
+ * @typedef {import('./columns').ColumnMapEntry} ColumnMapEntry
+ * @typedef {import('./providers').FileRef} FileRef
+ * @typedef {{ id?: string | number | null, name?: string } | string | number} SheetArg
+ * @typedef {Array<{ col: number, value: unknown, type: string }>} CellList
+ * @typedef {import('./providers').FileApi & {
+ *     upload: (file: FileRef, buffer: Buffer, opts: { ifMatch?: object | null, contentType?: string | null }) => Promise<{ marker?: Record<string, unknown> } | null>,
+ *     cells?: {
+ *         updateCells: (file: FileRef, sheet: SheetArg, row: number, cells: CellList, opts: { ifMatch?: object | null }) => Promise<{ marker: object }>,
+ *         deleteRow: (file: FileRef, sheet: SheetArg, row: number, opts: { ifMatch?: object | null }) => Promise<{ marker: object }>,
+ *         appendRow: (file: FileRef, sheet: SheetArg, cells: CellList, opts: { ifMatch?: object | null, afterRow?: number | null }) => Promise<{ rowNumber: number, marker: object }>,
+ *         readRow?: (file: FileRef, sheet: SheetArg, row: number) => Promise<unknown[]>,
+ *     },
+ * }} WriteApi
+ * @typedef {NonNullable<ReturnType<typeof import('../../../../stores/datatableStore/rowMappers').rowToDatatable>>} Mirror
+ * @typedef {{ raws: Map<string, RawRow | null>, mode: string | null }} Scratch
+ * @typedef {{ table: Mirror, scope: { kind: string, id: string }, scopeKey: string,
+ *            tableMeta: import('../mirror/writeThroughRows').WriteCtx['tableMeta'], grade?: string, viewerId?: string | null,
+ *            [SCRATCH]?: Scratch }} WriteCtx
+ * @typedef {ReturnType<typeof toWire>} Wire
+ * @typedef {{ kind: 'update'|'append'|'delete', rowId?: string, wire?: Wire, tolerateMissing?: boolean }} Intent
+ * @typedef {{ op: 'append'|'update'|'delete', intent: number, index?: number, row?: number, cells?: Record<string, unknown> }} SheetOp
+ * @typedef {Awaited<ReturnType<typeof openFile>>} OpenFile
+ * @typedef {{ header: Array<string|null>, rows: Array<Array<unknown>>, rowNumbers: number[], touched?: number[] }} PostSheet
+ * @typedef {{ marker: object, appended: number[], post: PostSheet, retried: boolean, behind?: boolean }} WriteResult
+ * @typedef {{ id: string, rowNumber: number, cells: unknown[], columnMap: Record<string, ColumnMapEntry> }} RawRow
+ */

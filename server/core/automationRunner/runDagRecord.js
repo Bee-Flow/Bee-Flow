@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Live dispatch of one step for the DAG walker (runDag.js): the 'running'
  * row, the call into dispatchStep, native error-edge routing of a failure,
@@ -16,7 +15,7 @@ const {
 const { isRunPause } = require('./execApproval');
 const { notePublicValues, publicValuesFor } = require('./publicValues');
 const { toolIdentity } = require('./toolIdentity');
-const log = require('../../telemetry/log');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 /** Whether this walk writes run-step rows (re-read at every use, as ctx may change). */
 function isRecording(recordSteps, ctx) {
@@ -52,7 +51,7 @@ async function recordStepStarted(step, ctx, branchIndex) {
         output: null,
         error: null,
         branchIndex,
-    }).catch(() => { /* progress is a nicety; never fail a run on it */ });
+    }).catch((e) => bestEffort('core/automationRunner/runDagRecord:recordStepStarted', e));
 }
 
 /**
@@ -132,7 +131,7 @@ async function recordHandledError(stepErr, errorClass, step, { ctx, runState, br
             branchIndex,
             secretValues: secretValuesFor(runState),
         });
-    } catch (err) { log.debug('best-effort log', err); }
+    } catch (err) { bestEffort('core/automationRunner/runDagRecord:recordHandledError', err); /* best-effort log */ }
     ctx.emitLifecycle?.('step.finished', {
         stepId: recordedStepId(ctx, step), status: 'handled_error',
     });
@@ -159,6 +158,9 @@ function storeStepOutput(step, dispatched, runState, mode) {
     return recordedStatus;
 }
 
+/**
+ * @param {string} recordedStatus
+ */
 async function recordStepFinished(step, dispatched, recordedStatus, { ctx, runState, mode, branchIndex }) {
     // In dry-run, annotate the RECORDED output (only) so the UI can
     // tell a synthesized preview from ground truth. Underscore-prefixed
@@ -225,12 +227,13 @@ async function recordStepFinished(step, dispatched, recordedStatus, { ctx, runSt
  * no new finding and costs single-digit seconds on an 8k-row
  * window — which is most of what made ▶ Execute feel broken on
  * a Limit node.
+ * @param {string} recordedStatus
  */
 async function piiSummaryFor(step, dispatched, recordedStatus, ctx) {
     let piiSummary = dispatched.piiSummary || null;
     if (!piiSummary && ctx.builderRun && recordedStatus === 'success' && dispatched.output != null
         && !PII_RESCAN_EXEMPT_TYPES.has(step.type)) {
-        try { piiSummary = await safety.scanOutputForPiiSummary(dispatched.output, ctx); } catch (err) { log.debug('never fail a run on it', err); }
+        try { piiSummary = await safety.scanOutputForPiiSummary(dispatched.output, ctx); } catch (err) { fallback('core/automationRunner/runDagRecord:piiSummaryFor', err); /* never fail a run on it */ }
     }
     return piiSummary;
 }
@@ -264,3 +267,44 @@ async function dispatchLiveStep(step, w) {
 }
 
 module.exports = { dispatchLiveStep };
+
+/** @typedef {import('./runDagGraph').EdgeMap} EdgeMap */
+
+/**
+ * A step of the definition as the walker sees it.
+ * @typedef {{ id?: string, type?: string, tool?: string, defaultBranch?: string, [key: string]: unknown }} DagStep
+ */
+
+/**
+ * One step's entry in runState.steps.
+ * @typedef {{ output: unknown, status: string, synthesised?: boolean,
+ *   error?: { message: string, errorClass: string | null, stepId: string } }} DagStepEntry
+ */
+
+/**
+ * @typedef {import('../automationModel/bind').BindRunState & { steps?: Record<string, DagStepEntry>,
+ *   secrets?: Record<string, unknown>,
+ *   _handledErrors?: Array<{ stepId: string, message: string, errorClass?: string | null }> }} DagRunState
+ */
+
+/**
+ * A step output, as far as routing reads it (the brancher fields).
+ * @typedef {{ branch?: string, branches?: string[], viaDefault?: boolean, matched?: unknown, [key: string]: unknown }} StepOutput
+ */
+
+/**
+ * What dispatchStep returns for a step that ran.
+ * @typedef {{ output?: StepOutput | null, skippedReason?: string, dryRunSynthesised?: boolean, dryRunFallback?: unknown,
+ *   attempt?: number, attemptStartedAt?: string, startedAt?: string, inputSnapshot?: unknown, piiSummary?: unknown,
+ *   bindingWarnings?: unknown[], toolsWithheld?: string[], toolsWithheldReasons?: Record<string, string> }} Dispatched
+ */
+
+/** @typedef {(step: DagStep, ctx: DagCtx, runState: DagRunState, mode: string) => Promise<Dispatched>} DispatchStep */
+
+/**
+ * The walk state dispatchLiveStep needs.
+ * @typedef {{ ctx: DagCtx, runState: DagRunState, mode: string, dispatchStep: DispatchStep, adj: EdgeMap,
+ *   recordSteps: boolean, branchIndex: number | null }} LiveWalk
+ */
+
+/** @typedef {Error & { errorClass?: string, finalAttempt?: number }} StepError */

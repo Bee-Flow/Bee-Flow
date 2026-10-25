@@ -1,11 +1,18 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * teams_add_members, apart from nextcloudTeamsTools.js (which only dispatches):
  * Circles reports success for ids it did not add, so the result is read back.
  */
 
-/** Lower-cased Nextcloud user ids currently in a team, or `{ error }`. */
+/**
+ * Lower-cased Nextcloud user ids currently in a team, or `{ error }`.
+ * @param {Function} ncFetch the deps.ncFetch below
+ * @param {string} teamPath
+ * @param {string} authError
+ * @param {Function} handle the deps.handle below
+ * @param {Record<string, string>} HEADERS
+ */
 async function memberUserIds(ncFetch, teamPath, authError, handle, HEADERS) {
     const out = await handle(await ncFetch(`${teamPath}/members`, { headers: HEADERS }), authError, 'member list');
     if (out.error) return out;

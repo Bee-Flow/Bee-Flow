@@ -22,7 +22,7 @@
 'use strict';
 
 const { keyFromTitle } = require('./sources/mirror/keys');
-const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 function defaultDeps() {
     return {
@@ -37,6 +37,16 @@ function defaultDeps() {
     };
 }
 
+/**
+ * @typedef {Object} CreateStudioDatatableArgs
+ * @property {string} ownerUserId
+ * @property {string} [description]
+ * @property {boolean} [hasManageDatatables]
+ * @property {boolean} [exactKey]
+ */
+/**
+ * @param {CreateStudioDatatableArgs} param0
+ */
 async function createStudioDatatable({ ownerUserId, principal, name, key = null, description = '', fields, hasManageDatatables = false, exactKey = false }, deps = defaultDeps()) {
     const { db, datatableStore, datatableDbStore, normalizeFields, migrationPlan, ddlForTable, assertDatatableQuota, datatableAccess } = deps;
     const title = String(name || '').trim();
@@ -77,12 +87,12 @@ async function createStudioDatatable({ ownerUserId, principal, name, key = null,
             },
         }));
     } catch (err) {
-        try { datatableDbStore.invalidate(scopeKey); } catch (err) { log.debug('best effort', err); }
+        try { datatableDbStore.invalidate(scopeKey); } catch (err) { bestEffort('core/dataEngine/createStudioDatatable:createStudioDatatable', err); /* best effort */ }
         // The quota error carries its own code; collapsing it to create_failed
         // hid "the workspace is full" behind a generic failure.
-        if (err && err.code === 'quota_exceeded') return { ok: false, code: 'quota', error: err.message };
-        const taken = /uq_datatables_scope_key|already exists|duplicate key/i.test(String(err && err.message));
-        return { ok: false, code: taken ? 'key_taken' : 'create_failed', error: err && err.message ? err.message : String(err) };
+        if (err && err.code === 'quota_exceeded') return { ok: false, code: 'quota', error: /** @type {Error} */ (err).message };
+        const taken = /uq_datatables_scope_key|already exists|duplicate key/i.test(String(err && /** @type {Error} */ (err).message));
+        return { ok: false, code: taken ? 'key_taken' : 'create_failed', error: err && /** @type {Error} */ (err).message ? /** @type {Error} */ (err).message : String(err) };
     }
     datatableDbStore.invalidate(scopeKey);
     return {
@@ -98,3 +108,7 @@ async function createStudioDatatable({ ownerUserId, principal, name, key = null,
 }
 
 module.exports = { createStudioDatatable };
+
+/** @typedef {{ id:string, key:string, name?:string, type?:string, options?:object }} DtField */
+
+/** @typedef {{ id:string, key:string, fields?:DtField[] }} DtTable */

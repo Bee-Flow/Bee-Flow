@@ -39,12 +39,17 @@ const RunBody = bodyOf({
 const { kindOf, firstOfKind, automationBefore, localeOf } = require('./phaseList');
 const { makeRunComplianceReview } = require('./complianceReview');
 const log = require('../../telemetry/log');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
+const { isMissingTable } = require('../../utils/isMissingTable');
 
 function register(router, ctx) {
     const { d, flow, requireManageApps, runLimiter } = ctx;
     const { resolveRecipe, load, withBrief, savePhaseOutcome, phaseTier } = flow;
     const runComplianceReview = makeRunComplianceReview(ctx);
 
+    /**
+     * @param {string} key
+     */
     const runTable = async (req, res, pb, key, progress = null) => {
         const recipe = resolveRecipe(pb);
         const cur = lifecycle.phaseByKey(pb.phases, key);
@@ -86,6 +91,9 @@ function register(router, ctx) {
         res.json({ playbook: saved.playbook });
     };
 
+    /**
+     * @param {string} key
+     */
     const runFill = async (req, res, pb, key) => {
         const cur = lifecycle.phaseByKey(pb.phases, key);
         if (!cur || cur.status !== 'ready') return sendErr(res, 409, 'phase_not_ready', `The fill phase is ${cur ? cur.status : 'missing'}.`, { from: cur ? cur.status : null, to: 'running' });
@@ -108,7 +116,7 @@ function register(router, ctx) {
             playbook: pb, automationId, tableArtifacts,
             onRunCreated: (run) => {
                 if (!run || !run.id) return;
-                saveNow(phases.map((p) => (p.key === key ? { ...p, artifacts: { ...(p.artifacts || {}), runId: run.id, runStatus: 'running' } } : p))).catch(() => {});
+                saveNow(phases.map((p) => (p.key === key ? { ...p, artifacts: { ...(p.artifacts || {}), runId: run.id, runStatus: 'running' } } : p))).catch((e) => bestEffort('routes/playbooks/serverPhaseRoutes:onRunCreated', e));
             },
         }, d);
         if (!started.ok) {
@@ -117,6 +125,9 @@ function register(router, ctx) {
             return sendErr(res, 422, started.code, started.error, { playbook: saved || pb });
         }
         const withRun = phases.map((p) => (p.key === key ? { ...p, artifacts: { ...(p.artifacts || {}), runId: started.runId || (p.artifacts || {}).runId || null, rowsBefore: started.rowsBefore, runStatus: started.run ? started.run.status : 'running' } } : p));
+        /**
+         * @param {lifecycle.Phase[]} base
+         */
         const finish = async (base) => {
             const fill = lifecycle.phaseByKey(base, key);
             const change = await refreshFillPhase({ ...fill, startedAt: fill.startedAt || nowIso }, d, d.now(), { locale: localeOf(pb) });
@@ -128,7 +139,7 @@ function register(router, ctx) {
         if (started.timedOut) {
             const saved = await saveNow(withRun);
             // Finish in the background; GET refreshes too.
-            if (started.runPromise) started.runPromise.then(async () => { try { await saveNow(await finish(phases)); } catch (e) { log.error('[Playbooks] fill completion failed:', e.message); } });
+            if (started.runPromise) started.runPromise.then(async () => { try { await saveNow(await finish(phases)); } catch (e) { log.error('[Playbooks] fill completion failed:', /** @type {Error} */ (e).message); } });
             return res.status(202).json({ playbook: saved || pb, pending: true });
         }
         const finished = await finish(withRun);
@@ -136,6 +147,9 @@ function register(router, ctx) {
         res.json({ playbook: saved || pb });
     };
 
+    /**
+     * @param {string} key
+     */
     const runDesign = async (req, res, pb, key) => {
         const recipe = resolveRecipe(pb);
         const cur = lifecycle.phaseByKey(pb.phases, key);
@@ -175,21 +189,21 @@ function register(router, ctx) {
                 const resolved = await d.datatableRuntime.resolveForPrincipal(tableArt.datatableId, principal, { needed: 'viewer' });
                 const page = await d.datatableRuntime.readRows(resolved, { allowColumns: (tableArt.fields || []).map((f) => f.key), limit: 2 });
                 sampleRows = Array.isArray(page && page.rows) ? page.rows : [];
-            } catch (err) { log.debug('the designer works from the columns alone', err); }
+            } catch (err) { if (!isMissingTable(err)) throw err; log.debug('the designer works from the columns alone', err); }
         }
-        const idx = phases.findIndex((p) => p.key === key);
-        const approvals = phases.slice(idx + 1).some((p) => p.requires === 'approvals' && p.status !== 'locked');
+        const idx = phases.findIndex((/** @type {{ key: string; }} */ p) => p.key === key);
+        const approvals = phases.slice(idx + 1).some((/** @type {{ requires: string; status: string; }} */ p) => p.requires === 'approvals' && p.status !== 'locked');
         // The app phase's brief is the CONCRETE instruction the builder will
         // receive. A design made without it can contradict it (two screens
         // against "create one screen"), and then whichever the model believes
         // is a coin toss. It designs WITHIN the brief instead.
-        const appPhase = phases.slice(idx + 1).find((p) => kindOf(p) === 'app') || null;
+        const appPhase = phases.slice(idx + 1).find((/** @type {lifecycle.Phase | null} */ p) => kindOf(p) === 'app') || null;
         // It has no brief yet — briefs are composed when a phase becomes
         // ready, which is after this. Compose it now, for reading only (no
         // design exists yet, so this is the plain brief).
         let appBrief = (appPhase && appPhase.brief) || null;
         if (appPhase && !appBrief) {
-            try { appBrief = lifecycle.composeBriefFor(recipe, appPhase.key, { ...pb, phases }); } catch (err) { log.debug('not enough artifacts — the designer works from the goal', err); }
+            try { appBrief = lifecycle.composeBriefFor(recipe, appPhase.key, { ...pb, phases }); } catch (err) { fallback('routes/playbooks/serverPhaseRoutes:runDesign', err); /* not enough artifacts — the designer works from the goal */ }
         }
         const result = await d.runDesignPhase({
             tier,
@@ -230,6 +244,7 @@ function register(router, ctx) {
      * could act on, `running → ready` is not a transition so Retry answered 409,
      * and the client offers Skip for client-run kinds only. Re-read the row and
      * fail the phase, so the handoff card gets its Retry / Skip back.
+     * @param {string} key
      */
     const failStuckPhase = async (res, pb, key, e, inflightPhases = null) => {
         log.error('[Playbooks] server phase threw:', e && e.message);
@@ -249,7 +264,7 @@ function register(router, ctx) {
             const saved = await d.playbookStore.savePhases(fresh.id, fresh.userId, { phases, currentPhase: key }, { expectedVersion: fresh.version });
             return sendErr(res, 422, 'phase_failed', message, { playbook: saved.ok ? saved.playbook : fresh });
         } catch (inner) {
-            log.error('[Playbooks] could not fail the stuck phase:', inner.message);
+            log.error('[Playbooks] could not fail the stuck phase:', /** @type {Error} */ (inner).message);
             return sendErr(res, 500, 'internal', 'Could not run the phase');
         }
     };
@@ -277,10 +292,19 @@ function register(router, ctx) {
             if (kind === 'compliance') return await runComplianceReview(req, res, pb, key);
             return sendErr(res, 409, 'illegal_transition', `The ${kind} phase runs in the builder — PATCH it running.`, { from: cur.status, to: 'running' });
         } catch (e) {
-            if (!pb) { log.error('[Playbooks] server phase failed:', e.message); return sendErr(res, 500, 'internal', 'Could not run the phase'); }
+            if (!pb) { log.error('[Playbooks] server phase failed:', /** @type {Error} */ (e).message); return sendErr(res, 500, 'internal', 'Could not run the phase'); }
             return await failStuckPhase(res, pb, req.params.key, e, progress.phases);
         }
     });
 }
 
 module.exports = { register };
+
+/**
+ * @typedef {import('express').Request<{ id: string, key: string }>} Req
+ * @typedef {import('express').Response} Res
+ * @typedef {Extract<Awaited<ReturnType<import('./index').PlaybookRouteCtx['d']['runDesignPhase']>>, { ok: false }>} DesignFailure
+ * @typedef {import('./phaseList').PlaybookRow} PlaybookRow
+ * @typedef {import('../../playbooks/lifecycle').Phase} Phase
+ * @typedef {import('../../playbooks/lifecycle').PhaseArtifacts & { datatableScope?: { kind: string, id: string }, fields?: import('../../playbooks/phases/designPhase').DesignField[], rowCount?: number }} TableArtifacts
+ */

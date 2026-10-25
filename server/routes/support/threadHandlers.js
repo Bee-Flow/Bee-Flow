@@ -28,6 +28,7 @@ const {
     notifyStaff,
 } = require('./shared');
 const log = require('../../telemetry/log');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 /** GET /threads — the staff inbox. */
 async function listInbox(req, res) {
@@ -79,7 +80,7 @@ async function afterStaffReply(thread, { userId, authorDisplay, body, msg }) {
             // Preview the staff reply itself, not the thread subject.
             message: _notifExcerpt(body) || thread.subject,
             link: supportThreadPath(thread.id),
-        }).catch(() => {});
+        }).catch((e) => bestEffort('routes/support/threadHandlers:afterStaffReply', e));
     }
 }
 
@@ -111,14 +112,17 @@ function rerunAiOnFollowUp(thread) {
                     title: result.escalated ? 'Bee Flow Support — a human will reply' : 'Bee Flow Support — AI replied',
                     message: _notifExcerpt(result.message.body),
                     link: supportThreadPath(thread.id),
-                }).catch(() => {});
+                }).catch((e) => bestEffort('routes/support/threadHandlers:rerunAiOnFollowUp', e));
             }
             _emit('thread_updated', { threadId: thread.id });
         })
         .catch(e => log.warn(`[Support] follow-up AI failed (thread=${_shortId(thread.id)}):`, e.message));
 }
 
-/** A requester reply: flip to awaiting_agent, tell staff, and give the AI one more shot if it still owns the thread. */
+/**
+ * A requester reply: flip to awaiting_agent, tell staff, and give the AI one more shot if it still owns the thread.
+ * @param {SupportThread} thread
+ */
 async function afterRequesterReply(thread, body) {
     await supportStore.updateThread(thread.id, { status: 'awaiting_agent' });
     if (thread.assignee_user_id) {
@@ -128,17 +132,17 @@ async function afterRequesterReply(thread, body) {
             category: 'heads_up',
             title: 'Customer replied',
             message: _notifExcerpt(body) || thread.subject,
-        }).catch(() => {});
+        }).catch((e) => bestEffort('routes/support/threadHandlers:afterRequesterReply', e));
     } else {
         notifyStaff({
             title: `Customer replied: ${thread.subject}`,
             message: _redactEmail(thread.requester_email),
             threadId: thread.id,
-        }).catch(() => {});
+        }).catch((e) => bestEffort('routes/support/threadHandlers:afterRequesterReply#2', e));
     }
     require('../../services/outboundChatNotifier')
         .notify({ thread, event: 'customer_message' })
-        .catch(() => {});
+        .catch((e) => bestEffort('routes/support/threadHandlers:afterRequesterReply#3', e));
     // Only while the thread is still AI-handled (no staff has weighed in).
     if (!thread.first_response_at && thread.ai_handled) rerunAiOnFollowUp(thread);
 }
@@ -146,6 +150,7 @@ async function afterRequesterReply(thread, body) {
 /**
  * POST /threads/:id/messages, past the access check in threads.js: append
  * the reply of `userId` (`staff` or the requester) and what follows it.
+ * @param {SupportThread} thread
  */
 async function appendReply(req, res, thread, { userId, staff }) {
     const body = req.body.body;
@@ -170,7 +175,7 @@ async function appendReply(req, res, thread, { userId, staff }) {
         actorKind: authorKind === 'staff' ? 'staff' : 'requester',
         action: internalNote ? 'internal_note' : 'reply',
         payload: { messageId: msg?.id, length: body.length },
-    }).catch(() => {});
+    }).catch((e) => bestEffort('routes/support/threadHandlers:appendReply', e));
 
     if (staff && !internalNote) await afterStaffReply(thread, { userId, authorDisplay, body, msg });
     else if (!staff) await afterRequesterReply(thread, body);
@@ -200,7 +205,7 @@ async function threadPatch(thread, { status, priority, assignee_user_id, categor
             patch.sla_first_response_due_at = due.first;
             patch.sla_resolution_due_at = due.resolution;
         } catch (e) {
-            log.warn('[Support] SLA recompute on priority change failed:', e.message);
+            log.warn('[Support] SLA recompute on priority change failed:', /** @type {Error} */ (e).message);
         }
     }
     return patch;
@@ -208,9 +213,12 @@ async function threadPatch(thread, { status, priority, assignee_user_id, categor
 
 /** Audit each field the patch actually changed (best-effort). */
 function auditPatch(thread, patch, userId) {
+    /**
+     * @param {string} action
+     */
     const event = (action, payload) => supportStore.recordThreadEvent({
         threadId: thread.id, actorUserId: userId, actorKind: 'staff', action, payload,
-    }).catch(() => {});
+    }).catch((e) => fallback('routes/support/threadHandlers:event', e));
     if (patch.status && patch.status !== thread.status) {
         event(patch.status === 'resolved' ? 'resolved' : 'status_change', { from: thread.status, to: patch.status });
     }
@@ -243,7 +251,7 @@ function announceResolved(thread) {
             title: 'Your support request was resolved',
             message: thread.subject,
             link: supportThreadPath(thread.id),
-        }).catch(() => {});
+        }).catch((e) => bestEffort('routes/support/threadHandlers:announceResolved', e));
     }
 }
 
@@ -265,7 +273,7 @@ async function patchThread(req, res) {
             actorKind: 'staff',
             action: 'tags_change',
             payload: { tags: tagged?.tags || [] },
-        }).catch(() => {});
+        }).catch((e) => bestEffort('routes/support/threadHandlers:patchThread', e));
     }
     auditPatch(thread, patch, getUserId(req));
     if (patch.status === 'resolved' && thread.status !== 'resolved') announceResolved(thread);
@@ -280,9 +288,15 @@ async function threadEvents(req, res) {
     res.json({ events });
 }
 
-/** One bulk action on one thread; returns an error text when the action misses a parameter. */
+/**
+ * One bulk action on one thread; returns an error text when the action misses a parameter.
+ * @param {string} id
+ */
 async function bulkOne(id, thread, action, params, userId) {
-    const event = (kind, payload) => supportStore.recordThreadEvent({ threadId: id, actorUserId: userId, actorKind: 'staff', action: kind, payload }).catch(() => {});
+    /**
+     * @param {string} kind
+     */
+    const event = (kind, payload) => supportStore.recordThreadEvent({ threadId: id, actorUserId: userId, actorKind: 'staff', action: kind, payload }).catch((e) => fallback('routes/support/threadHandlers:event#2', e));
     if (action === 'tag') {
         const tag = params.tag || '';
         if (!tag) return 'tag required';
@@ -324,10 +338,12 @@ async function bulk(req, res) {
             _emit('thread_updated', { threadId: id });
             results.push({ id, ok: true });
         } catch (e) {
-            results.push({ id, ok: false, error: e.message });
+            results.push({ id, ok: false, error: /** @type {Error} */ (e).message });
         }
     }
     res.json({ ok: true, results });
 }
 
 module.exports = { listInbox, appendReply, patchThread, threadEvents, bulk };
+
+/** @typedef {Awaited<ReturnType<typeof supportStore.getThread>>} SupportThread */

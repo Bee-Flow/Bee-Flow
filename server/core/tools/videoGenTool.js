@@ -52,11 +52,17 @@ const VIDEO_GEN_TOOLS = [
     }
 ];
 
+/**
+ * @param {string} name
+ */
 function isVideoGenTool(name) {
     return name === 'generate_video';
 }
 
-async function executeVideoGenTool(args, send, req, nanoBananaSettings) {
+/**
+ * @param {(arg0: string, arg1: { name: string; message: string; } | { url: string; mimeType: string; }) => void} send
+ */
+async function executeVideoGenTool(args, send, /** @type {import('express').Request} */ req, nanoBananaSettings) {
     const googleApiKey = await configStore.getSecret('google_api_key');
     if (!googleApiKey) {
         return { error: 'Google API key not configured. Add it in Admin → AI Config → API Keys.' };
@@ -92,6 +98,7 @@ async function executeVideoGenTool(args, send, req, nanoBananaSettings) {
     }
 
     // Save video to RustFS (or local disk as fallback)
+    /** @type {string | null} */
     let videoUrl = null;
     try {
         const crypto = require('crypto');
@@ -115,7 +122,7 @@ async function executeVideoGenTool(args, send, req, nanoBananaSettings) {
             log.info(`[VideoGen Tool] Saved to disk: ${videoUrl}`);
         }
     } catch (e) {
-        log.warn('[VideoGen Tool] Failed to save video to disk:', e.message);
+        log.warn('[VideoGen Tool] Failed to save video to disk:', /** @type {Error} */ (e).message);
     }
 
     // Send video via SSE — use URL instead of base64 (videos are too large for inline base64)
@@ -136,7 +143,7 @@ async function executeVideoGenTool(args, send, req, nanoBananaSettings) {
             source: 'video_generation',
         });
     } catch (e) {
-        log.warn('[VideoGen Tool] Failed to log usage:', e.message);
+        log.warn('[VideoGen Tool] Failed to log usage:', /** @type {Error} */ (e).message);
     }
 
     return {

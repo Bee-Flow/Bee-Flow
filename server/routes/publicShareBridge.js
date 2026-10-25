@@ -59,6 +59,7 @@ const { resolveModelForTier, TIER_DEFAULTS } = require('../core/llm/modelResolve
 const usageStore = require('../stores/usageStore');
 const { openSse } = require('../core/http/sseHelpers');
 const { publicAiLimiter, publicIpLimiter } = require('./publicShareBridgeRateLimits');
+const { bestEffort } = require('../utils/bestEffort');
 
 // Distinct usage source so anonymous spend is isolated from the author's own
 // preview spend ('webpage_bridge_ai') and can be summed for the spend cap.
@@ -77,6 +78,10 @@ const PUBLIC_MAX_MESSAGES = 20;
 const PUBLIC_MAX_SCHEMA_CHARS = PUBLIC_MAX_PROMPT_CHARS * 2;
 
 // ── Auth middleware ──────────────────────────────────────────────────
+/**
+ * Request after requireShareBridgeToken, which stashes the verified claims on it.
+ * @typedef {import('express').Request & { shareBridgeClaims: { shareId: string, webpageId: string } }} ShareBridgeReq
+ */
 function requireShareBridgeToken(req, res, next) {
     const auth = req.headers['authorization'] || req.headers['Authorization'];
     const m = (typeof auth === 'string' ? auth : '').match(/^Bearer\s+(.+)$/i);
@@ -155,11 +160,11 @@ function logPublicUsage(ctx, webpageId, modelId, usage, t0) {
         duration_ms: Date.now() - t0,
         source: PUBLIC_USAGE_SOURCE,
         conversation_id: webpageId,
-    }).catch(() => {});
+    }).catch((e) => bestEffort('routes/publicShareBridge:logPublicUsage', e));
 }
 
 // ── POST /ai/chat ────────────────────────────────────────────────────
-router.post('/ai/chat', requireShareBridgeToken, publicAiLimiter, publicIpLimiter, async (req, res) => {
+router.post('/ai/chat', requireShareBridgeToken, publicAiLimiter, publicIpLimiter, /** @param {ShareBridgeReq} req */ async (req, res) => {
     const { shareId, webpageId } = req.shareBridgeClaims;
     const r = await resolveContext({ shareId, webpageId });
     if (r.error) return res.status(r.status).json({ error: r.error });
@@ -224,7 +229,7 @@ router.post('/ai/chat', requireShareBridgeToken, publicAiLimiter, publicIpLimite
 });
 
 // ── POST /ai/stream ──────────────────────────────────────────────────
-router.post('/ai/stream', requireShareBridgeToken, publicAiLimiter, publicIpLimiter, async (req, res) => {
+router.post('/ai/stream', requireShareBridgeToken, publicAiLimiter, publicIpLimiter, /** @param {ShareBridgeReq} req */ async (req, res) => {
     const { shareId, webpageId } = req.shareBridgeClaims;
     let ctx, grants, tierName;
     const r = await resolveContext({ shareId, webpageId });

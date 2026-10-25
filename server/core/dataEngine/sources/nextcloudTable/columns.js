@@ -273,3 +273,18 @@ module.exports = {
     fieldsFromNcColumns,
     TYPE_CODE,
 };
+
+/**
+ * @typedef {{ id: number | string, type?: string, subtype?: string, title?: string, mandatory?: boolean,
+ *   selectionOptions?: Array<{ id: number | string, label?: unknown }>,
+ *   customSettings?: { relationType?: string, targetId?: unknown, labelColumn?: unknown } }} NcColumn
+ * @typedef {{ id: string, key: string, name?: string, type?: string, options?: string[],
+ *   relation?: { table: string, fk: boolean }, required?: boolean, derived?: boolean }} MirrorField
+ * @typedef {{ ncColumnId?: number | string, ncType?: string, ncSubtype?: string, title?: string,
+ *   options?: Array<{ id: number | string, label: string }>,
+ *   relation?: { relationType: string, targetId: number, labelColumn: number },
+ *   derived?: string, forFieldId?: string, localFieldId?: string, targetFieldId?: string }} ColumnEntry
+ * @typedef {{ targetDatatableId: string, targetKey?: string, targetName?: string, localFieldId: string, targetFieldId: string }} DeclaredRelation
+ * @typedef {{ fieldId: string, kind: string, targetDatatableId: string, labelFieldId?: string, labelNcColumnId?: number,
+ *   localFieldId?: string, targetFieldId?: string }} MirrorRelation
+ */

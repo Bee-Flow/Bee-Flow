@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Re-export shim: this module moved to server/utils/concurrencyUtil.js (the core/ layout in
  * server/ARCHITECTURE.md). Kept so every existing require, test stub and

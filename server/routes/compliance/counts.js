@@ -1,3 +1,5 @@
+/** @typedef {import('qs').ParsedQs} ParsedQs */
+// @typecheck noImplicitAny
 /**
  * GET /api/compliance/counts[?keys=a,b] — the numbers on the Compliance rail.
  *
@@ -75,9 +77,22 @@ const DEFAULT_LOADERS = {
     now: () => Date.now,
 };
 
+/** @typedef {{ [K in keyof typeof DEFAULT_LOADERS]: ReturnType<(typeof DEFAULT_LOADERS)[K]> }} CountsDeps */
+/** @typedef {Awaited<ReturnType<typeof import('../../compliance/frameworkPolicy').resolve>>[number]} FrameworkState */
+/**
+ * @typedef {{ orgId: string, req: import('express').Request, policy: FrameworkState[] | null, active: Set<string> | null, latest: Record<string, any>[] | null, settings: Record<string, any> | null, errors: string[] }} CountsContext
+ */
+
+/**
+ * @param {typeof DEFAULT_LOADERS} loaders
+ * @param {Partial<Record<string, unknown>>} [overrides]
+ * @returns {CountsDeps}
+ */
 function makeLazyDeps(loaders, overrides = {}) {
+    /** @type {Record<string, unknown>} */
     const d = {};
     for (const [k, loader] of Object.entries(loaders)) {
+        /** @type {unknown} */
         let cached; let has = false;
         Object.defineProperty(d, k, {
             enumerable: true,
@@ -88,18 +103,33 @@ function makeLazyDeps(loaders, overrides = {}) {
             },
         });
     }
-    return d;
+    return /** @type {CountsDeps} */ (d);
 }
 
-const toneOfScore = (s) => (s == null ? 'none' : s >= 80 ? 'good' : s >= 60 ? 'warn' : 'bad');
-const maxDate = (rows, col) => rows.reduce((m, r) => (r?.[col] && (!m || new Date(r[col]) > new Date(m)) ? r[col] : m), null);
+const toneOfScore = (/** @type {number | null | undefined} */ s) => (s == null ? 'none' : s >= 80 ? 'good' : s >= 60 ? 'warn' : 'bad');
+/**
+ * @param {Record<string, any>[]} rows
+ * @param {string} col
+ */
+const maxDate = (rows, col) => rows.reduce((m, r) => (r?.[col] && (!m || new Date(r[col]) > new Date(m)) ? r[col] : m), /** @type {string | Date | null} */ (null));
 
 // A context every kind can read: the policy and the latest rows are fetched
 // ONCE per computation, not once per key (they are the two expensive reads).
+/**
+ * @param {import('express').Request} req
+ * @param {string} orgId
+ * @param {CountsDeps} d
+ */
 async function loadContext(req, orgId, d) {
+    /** @type {CountsContext} */
     const ctx = { orgId, req, policy: null, active: null, latest: null, settings: null, errors: [] };
+    /**
+     * @template {'policy' | 'latest' | 'settings'} K
+     * @param {K} name
+     * @param {() => Promise<CountsContext[K]>} fn
+     */
     const tryLoad = async (name, fn) => {
-        try { ctx[name] = await fn(); } catch (e) { ctx.errors.push(name); log.warn(`[ComplianceCounts] ${name} failed:`, e?.message || e); }
+        try { ctx[name] = await fn(); } catch (e) { ctx.errors.push(name); log.warn(`[ComplianceCounts] ${name} failed:`, /** @type {Error} */ (e)?.message || e); }
     };
     await Promise.all([
         tryLoad('policy', () => d.frameworkPolicy.resolve(orgId, { req })),
@@ -113,7 +143,7 @@ async function loadContext(req, orgId, d) {
     return ctx;
 }
 
-const isoActive = (ctx) => !!ctx.active && ctx.active.has('ISO27001');
+const isoActive = (/** @type {{ active: Set<string> | null }} */ ctx) => !!ctx.active && ctx.active.has('ISO27001');
 
 // The statutory clocks an incident row carries, each with the stamp that
 // satisfies it (the same pairs as incidentStore.nextOpenDeadline). The
@@ -127,8 +157,12 @@ const INCIDENT_CLOCKS = Object.freeze([
     Object.freeze({ stage: 'authority', due: 'deadline_at', done: 'authority_notified_at' }),
 ]);
 
-/** → `{ at, stage }` of the most urgent open clock over all rows, or null. */
+/**
+ * → `{ at, stage }` of the most urgent open clock over all rows, or null.
+ * @param {Record<string, any>[] | null | undefined} rows
+ */
 function nextIncidentClock(rows) {
+    /** @type {{ at: number; stage: 'early_warning' | 'customer_notice' | 'final_report' | 'authority'; } | null} */
     let best = null;
     for (const r of rows || []) {
         for (const c of INCIDENT_CLOCKS) {
@@ -145,16 +179,24 @@ function nextIncidentClock(rows) {
  * shared/deadlineMath (`ceil(|ms| / unit)`), so the header pill, the rail
  * clock and the register row print the same number: 52.4 h left is "53 h",
  * 1.5 h late is "-2".
+ * @param {number} ms
  */
 function hoursLeft(ms) {
     const h = Math.ceil(Math.abs(ms) / 3600_000);
     return ms < 0 ? -h : h;
 }
-const needs = (ctx, ...names) => { for (const n of names) if (ctx[n] == null) throw new Error(`${n} unavailable`); };
+const needs = (/** @type {Record<string, unknown>} */ ctx, /** @type {string[]} */ ...names) => { for (const n of names) if (ctx[n] == null) throw new Error(`${n} unavailable`); };
 
 // ── The kinds ─────────────────────────────────────────────────────────────
 // gate(ctx, d)  → boolean: may this caller see the key at all
 // count(ctx, d) → the value for the key
+/**
+ * @typedef {object} CountKind
+ * @property {string} key
+ * @property {(ctx: Record<string, any>, d: Record<string, any>) => boolean | Promise<boolean>} gate
+ * @property {(ctx: Record<string, any>, d: Record<string, any>) => unknown} count
+ */
+/** @type {CountKind[]} */
 const KINDS = [
     {
         // compliance/attention.build — the same list the Overview shows.
@@ -183,14 +225,15 @@ const KINDS = [
         gate: (ctx) => !!ctx.policy,
         count: async (ctx, d) => {
             needs(ctx, 'latest', 'policy');
-            const activeIds = new Set(ctx.policy.filter(p => p.enabled && !p.locked).map(p => p.id));
-            const rows = ctx.latest.filter(r => {
+            const activeIds = new Set(ctx.policy.filter((/** @type {FrameworkState} */ p) => p.enabled && !p.locked).map((/** @type {FrameworkState} */ p) => p.id));
+            const rows = ctx.latest.filter((/** @type {Record<string, any>} */ r) => {
                 const def = d.registry.get(r.check_id);
                 return ctx.active.has(def?.regulation || r.regulation);
             });
             // scoresByFramework gates on REGULATION CODES, not framework ids —
             // ctx.active is that set; activeIds only shapes the output below.
             const by = d.score.scoresByFramework(rows, ctx.active);
+            /** @type {Record<string, { score: number | null, tone: string }>} */
             const out = {};
             for (const id of activeIds) {
                 const s = by[id]?.score ?? null;
@@ -272,11 +315,11 @@ const KINDS = [
         gate: (ctx) => !!ctx.active && ctx.active.has('GDPR'),
         count: async (ctx, d) => {
             const rows = await d.dpiaStore.listForOrg(ctx.orgId);
-            let todo = (rows || []).filter(r => !d.dpiaStore.isCurrent(r)).length;
+            let todo = (rows || []).filter((/** @type {Record<string, any>} */ r) => !d.dpiaStore.isCurrent(r)).length;
             // Agents that never had an assessment: the per-source Art. 35 rows
             // that fail/warn (each is one high-risk agent without a DPIA).
             if (ctx.latest) {
-                const assessed = new Set((rows || []).map(r => String(r.agent_id)));
+                const assessed = new Set((rows || []).map((/** @type {Record<string, any>} */ r) => String(r.agent_id)));
                 for (const r of ctx.latest) {
                     if (r.check_id === 'GDPR-Art35-dpia-high-risk' && r.scope_id && (r.status === 'fail' || r.status === 'warn') && !assessed.has(String(r.scope_id))) todo++;
                 }
@@ -309,10 +352,10 @@ const KINDS = [
         count: async (ctx, d) => {
             const docs = await d.ismsDocStore.listDocs(ctx.orgId);
             const now = d.now();
-            const published = (docs || []).filter(x => x.status === 'published');
+            const published = (docs || []).filter((/** @type {Record<string, any>} */ x) => x.status === 'published');
             return {
                 total: published.length,
-                review_due: published.filter(x => x.review_due_at && new Date(x.review_due_at).getTime() < now).length,
+                review_due: published.filter((/** @type {Record<string, any>} */ x) => x.review_due_at && new Date(x.review_due_at).getTime() < now).length,
             };
         },
     },
@@ -322,7 +365,7 @@ const KINDS = [
         gate: isoActive,
         count: async (ctx, d) => {
             const audits = await d.isoAuditStore.listAudits(ctx.orgId);
-            return { planned: (audits || []).filter(a => !a.completed_at && a.status !== 'completed' && a.status !== 'closed').length };
+            return { planned: (audits || []).filter((/** @type {Record<string, any>} */ a) => !a.completed_at && a.status !== 'completed' && a.status !== 'closed').length };
         },
     },
     {
@@ -362,7 +405,7 @@ const KINDS = [
         gate: isoActive,
         count: async (ctx, d) => {
             const configs = await d.isoEvidenceStore.listConfigs(ctx.orgId);
-            const enabled = (configs || []).filter(c => c.enabled !== false);
+            const enabled = (configs || []).filter((/** @type {Record<string, any>} */ c) => c.enabled !== false);
             const last = maxDate(enabled, 'last_sweep_at');
             return {
                 count: enabled.length,
@@ -412,9 +455,15 @@ const KINDS = [
 
 const KIND_KEYS = Object.freeze(KINDS.map(k => k.key));
 
-/** → { body, partial } — `partial` is true when any kind threw (its key is absent). */
+/**
+ * → { body, partial } — `partial` is true when any kind threw (its key is absent).
+ * @param {import('express').Request} req
+ * @param {string} orgId
+ * @param {CountsDeps} d
+ */
 async function computeCounts(req, orgId, d) {
     const ctx = await loadContext(req, orgId, d);
+    /** @type {Record<string, unknown>} */
     const body = {};
     let partial = ctx.errors.length > 0;
     await Promise.all(KINDS.map(async (kind) => {
@@ -423,7 +472,7 @@ async function computeCounts(req, orgId, d) {
             body[kind.key] = await kind.count(ctx, d);
         } catch (err) {
             partial = true;
-            log.warn(`[ComplianceCounts] ${kind.key} failed:`, err?.message || err);
+            log.warn(`[ComplianceCounts] ${kind.key} failed:`, /** @type {Error} */ (err)?.message || err);
         }
     }));
     return { body, partial };
@@ -435,10 +484,13 @@ async function computeCounts(req, orgId, d) {
  * "ignore what is not there" is how a newer client talks to an older server.
  * What IS refused is a misspelled PARAMETER (`?kesy=`), which used to drop the
  * filter and answer with every count — see CountsQuery below.
+ * @param {Record<string, unknown>} body
+ * @param {string | ParsedQs | (string | ParsedQs)[] | undefined} keysParam
  */
 function pickKeys(body, keysParam) {
     if (typeof keysParam !== 'string' || !keysParam.trim()) return body;
     const wanted = new Set(keysParam.split(',').map(s => s.trim()).filter(Boolean));
+    /** @type {Record<string, unknown>} */
     const out = {};
     for (const k of wanted) if (k in body) out[k] = body[k];
     return out;
@@ -450,20 +502,32 @@ function pickKeys(body, keysParam) {
 const countsCache = require('../../compliance/countsCache');
 const invalidate = countsCache.invalidate;
 
+/** @param {Partial<Record<string, unknown>> | null} [overrides] */
 function createCountsRouter(overrides = null) {
     const d = makeLazyDeps(DEFAULT_LOADERS, overrides || {});
+    /** @type {import('express').Router & { __clearCacheForTests?: () => void }} */
     const router = express.Router();
     const now = () => (typeof d.now === 'function' ? d.now() : Date.now());
 
-    const cacheGet = (key) => countsCache.get(key, now());
-    const cacheSet = (key, body) => countsCache.set(key, body, now());
+    const cacheGet = (/** @type {string} */ key) => countsCache.get(key, now());
+    const cacheSet = (/** @type {string} */ key, /** @type {Record<string, unknown>} */ body) => countsCache.set(key, body, now());
 
     // Gates resolved per request so requiring this module never touches the
     // auth layer (and its db) at load time — the runner injects this module
     // lazily from inside a sweep.
+    /**
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
+     * @param {import('express').NextFunction} next
+     */
     const requireAuth = (req, res, next) => d.permissions.requireAuth(req, res, next);
+    /**
+     * @param {import('express').Request} req
+     * @param {import('express').Response} res
+     * @param {import('express').NextFunction} next
+     */
     const requireAdminCompliance = (req, res, next) => d.permissions.requirePermission('admin_compliance')(req, res, next);
-    router.get('/counts', requireAuth, requireAdminCompliance, validate({ query: CountsQuery }), async (req, res) => {
+    router.get('/counts', requireAuth, requireAdminCompliance, validate({ query: CountsQuery }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const orgId = await d.shared.requireOrgId(req, res);
         if (!orgId) return;
         // The server cache is the only cache: no-store keeps the browser from
@@ -484,13 +548,14 @@ function createCountsRouter(overrides = null) {
 
 const router = createCountsRouter();
 
-module.exports = router;
-module.exports.createCountsRouter = createCountsRouter;
-module.exports.invalidate = invalidate;
-module.exports.KIND_KEYS = KIND_KEYS;
-module.exports.CACHE_TTL_MS = CACHE_TTL_MS;
-module.exports.toneOfScore = toneOfScore;
-module.exports.nextIncidentClock = nextIncidentClock;
-module.exports.hoursLeft = hoursLeft;
-module.exports.RECENTLY_IN_FORCE_DAYS = RECENTLY_IN_FORCE_DAYS;
-module.exports.EVIDENCE_CHAIN_CHECK_ROWS = EVIDENCE_CHAIN_CHECK_ROWS;
+/** @typedef {import('express').Router & { createCountsRouter: typeof createCountsRouter, invalidate: typeof invalidate, KIND_KEYS: typeof KIND_KEYS, CACHE_TTL_MS: typeof CACHE_TTL_MS, toneOfScore: typeof toneOfScore, nextIncidentClock: typeof nextIncidentClock, hoursLeft: typeof hoursLeft, RECENTLY_IN_FORCE_DAYS: typeof RECENTLY_IN_FORCE_DAYS, EVIDENCE_CHAIN_CHECK_ROWS: typeof EVIDENCE_CHAIN_CHECK_ROWS }} RouterExports */
+module.exports = /** @type {RouterExports} */ (router);
+/** @type {RouterExports} */ (module.exports).createCountsRouter = createCountsRouter;
+/** @type {RouterExports} */ (module.exports).invalidate = invalidate;
+/** @type {RouterExports} */ (module.exports).KIND_KEYS = KIND_KEYS;
+/** @type {RouterExports} */ (module.exports).CACHE_TTL_MS = CACHE_TTL_MS;
+/** @type {RouterExports} */ (module.exports).toneOfScore = toneOfScore;
+/** @type {RouterExports} */ (module.exports).nextIncidentClock = nextIncidentClock;
+/** @type {RouterExports} */ (module.exports).hoursLeft = hoursLeft;
+/** @type {RouterExports} */ (module.exports).RECENTLY_IN_FORCE_DAYS = RECENTLY_IN_FORCE_DAYS;
+/** @type {RouterExports} */ (module.exports).EVIDENCE_CHAIN_CHECK_ROWS = EVIDENCE_CHAIN_CHECK_ROWS;

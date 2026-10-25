@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat: the Privacy Shield side of attachment intake. Resolves the
  * shield for the turn, scans each extracted document (tokenise / ask / block /
@@ -7,16 +8,25 @@
 
 const configStore = require('../../../stores/configStore');
 const log = require('../../../telemetry/log');
+const { fallback, bestEffort } = require('../../../utils/bestEffort');
+
+/** @typedef {Awaited<ReturnType<typeof import('../../../core/privacy/orgShield').resolveShieldFor>>} Shield */
+/** @typedef {import('../../../core/dlp/attachmentScanner').AttachmentScanSummary} AttachmentScanSummary */
+/** @typedef {{ providerType?: string, providerName?: string, url?: string, displayName?: string } | null | undefined} ProviderConfig */
+/** @typedef {(event: string, data: unknown) => void} Send */
+/** @typedef {ReturnType<typeof scanSummaryRow>} ScanSummaryRow */
+/** @typedef {{ userOrgId?: string | null, userId?: string | null, conversationId?: string | null, config?: ProviderConfig, modelId?: string | null }} AuditCtx */
 
 /**
  * Resolve Privacy Shield once for the whole attachment loop so each extracted
  * document is scanned for PII before it enters the model prompt. Mirrors the
  * agent-chat path (attachmentProcessor.js). Returns the user's org id (for the
  * audit rows) and the shield config.
+ * @param {import('express').Request} req
  */
 async function resolveAttachmentShield(req) {
     const { resolveUserOrgIds } = require('../../../auth');
-    const userOrgIds = await resolveUserOrgIds(req).catch(() => null);
+    const userOrgIds = await resolveUserOrgIds(req).catch((e) => fallback('routes/ai/directChat/attachmentScan:resolveAttachmentShield', e, null));
     const userOrgId = (userOrgIds && userOrgIds.size > 0) ? Array.from(userOrgIds)[0] : null;
     const { resolveShieldFor } = require('../../../core/privacy/orgShield');
     let shield = await resolveShieldFor({ orgId: userOrgId, userId: req.session?.user?.id });
@@ -32,12 +42,17 @@ async function resolveAttachmentShield(req) {
                 shield = allCfg[shieldKeys[0]];
                 log.info(`[DirectChat] Attachment scanner: super-admin fallback → sole org shield ${shieldKeys[0]}`);
             }
-        } catch (err) { log.debug('non-fatal', err); }
+        } catch (err) { fallback('routes/ai/directChat/attachmentScan:resolveAttachmentShield#2', err); /* non-fatal */ }
     }
     return { userOrgId, shield };
 }
 
-/** The per-file summary row the UI and the audit read, for one scan outcome. */
+/**
+ * The per-file summary row the UI and the audit read, for one scan outcome.
+ * @param {string} filename
+ * @param {string} action
+ * @param {AttachmentScanSummary} summary
+ */
 function scanSummaryRow(filename, action, summary) {
     const base = action === 'pass'
         ? { count: 0, mentions: 0, byCategory: {}, pages: {}, reason: summary.reason }
@@ -72,14 +87,21 @@ function scanSummaryRow(filename, action, summary) {
  * tokenised) or throws AttachmentPrivacyBlock for the intake to catch. The
  * conversation was created eagerly, so `convId` is non-null and the scanner's
  * internal `dlpRunner.mergeTokenMap(convId, tokenMap)` lands in the right map.
+ * @param {{ shield: Shield, config: ProviderConfig, convId: string, userId: string, send: Send, summaries: ScanSummaryRow[] }} p
  */
 function makeAttachmentScanner({ shield, config, convId, userId, send, summaries }) {
     const { scanAttachmentText, AttachmentPrivacyBlock } = require('../../../core/dlp/attachmentScanner');
     const { resolveAttachmentAsk } = require('../../../core/dlp/attachmentAskFlow');
     const { classifyProvider } = require('../../../core/providers/classification');
     const provider = classifyProvider(config || {}, shield?.dlpAllowlistedHosts || []);
+    /**
+     * @param {string} text
+     * @param {Parameters<typeof scanAttachmentText>[0]['pages']} pages
+     * @param {string} filename
+     */
     return async (text, pages, filename) => {
         if (!shield || !text) return text;
+        /** @type {Awaited<ReturnType<typeof import('../../../core/dlp/attachmentScanner').scanAttachmentText>> | Awaited<ReturnType<typeof import('../../../core/dlp/attachmentAskFlow').resolveAttachmentAsk>>} */
         let r = await scanAttachmentText({ text, pages, filename, orgShield: shield, conversationId: convId, allowAsk: true });
         if (r.action === 'ask') {
             // Pauses the turn until the person answers (one pause per
@@ -112,6 +134,7 @@ function makeAttachmentScanner({ shield, config, convId, userId, send, summaries
     };
 }
 
+/** @param {AuditCtx} p */
 function auditBaseFor({ userOrgId, userId, conversationId, config, modelId }) {
     return {
         organization_id: userOrgId || null,
@@ -122,7 +145,11 @@ function auditBaseFor({ userOrgId, userId, conversationId, config, modelId }) {
     };
 }
 
-/** A blocked attachment: tell the client, write the audit row (best-effort). */
+/**
+ * A blocked attachment: tell the client, write the audit row (best-effort).
+ * @param {InstanceType<typeof import('../../../core/dlp/attachmentScanner').AttachmentPrivacyBlock>} attErr
+ * @param {AuditCtx & { send: Send }} p
+ */
 async function reportAttachmentBlock(attErr, { send, userOrgId, userId, conversationId, config, modelId }) {
     const cats = Object.keys(attErr.summary?.byCategory || {});
     const { attachmentBlockAudit } = require('../../../core/dlp/attachmentBlockAudit');
@@ -152,10 +179,14 @@ async function reportAttachmentBlock(attErr, { send, userOrgId, userId, conversa
             attachment_filename: attErr.filename,
             attachment_page: null,
         });
-    } catch (err) { log.debug('audit best-effort', err); }
+    } catch (err) { bestEffort('routes/ai/directChat/attachmentScan:reportAttachmentBlock', err); /* audit best-effort */ }
 }
 
-/** Audit rows for tokenised, allowed and incompletely scanned attachments. */
+/**
+ * Audit rows for tokenised, allowed and incompletely scanned attachments.
+ * @param {ScanSummaryRow[]} summaries
+ * @param {AuditCtx} auditCtx
+ */
 async function auditScanSummaries(summaries, auditCtx) {
     if (summaries.length === 0) return;
     try {
@@ -176,7 +207,7 @@ async function auditScanSummaries(summaries, auditCtx) {
                 });
             }
         }
-    } catch (err) { log.debug('audit best-effort', err); }
+    } catch (err) { bestEffort('routes/ai/directChat/attachmentScan:auditScanSummaries', err); /* audit best-effort */ }
 }
 
 /**
@@ -186,9 +217,12 @@ async function auditScanSummaries(summaries, auditCtx) {
  * level and attachment-level findings the same way. When the org enabled
  * "Show raw payload & token mapping", also push the exact tokenised text the
  * model receives and the merged token map (the "Sent to AI" pane).
+ * @param {ScanSummaryRow[]} summaries
+ * @param {{ send: Send, shield: Shield, contentParts: Array<Record<string, unknown>>, modelId: string, convId: string }} p
  */
 function surfaceScanSummaries(summaries, { send, shield, contentParts, modelId, convId }) {
     const aggCount = summaries.reduce((a, s) => a + (s.count || 0), 0);
+    /** @type {Set<string>} */
     const aggCats = new Set();
     for (const s of summaries) {
         for (const c of Object.keys(s.byCategory || {})) aggCats.add(c);
@@ -228,7 +262,7 @@ function surfaceScanSummaries(summaries, { send, shield, contentParts, modelId, 
         if (convMap && Object.keys(convMap).length > 0) {
             send('privacy_token_map', { tokenMap: convMap, source: 'privacy_shield' });
         }
-    } catch (err) { log.debug('transparency is best-effort', err); }
+    } catch (err) { bestEffort('routes/ai/directChat/attachmentScan:surfaceScanSummaries', err); /* transparency is best-effort */ }
 }
 
 module.exports = {

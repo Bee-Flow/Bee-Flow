@@ -53,6 +53,7 @@ function impliedListMode(step) {
     if (step.op === 'now') return null;
     const split = typeof step.input === 'string' ? splitWildcardPath(step.input) : null;
     if (!split) return null;
+    /** @type {{ arrayRef: string; input: string; input2?: string }} */
     const out = { arrayRef: split.arrayRef, input: split.itemPath };
     const split2 = typeof step.input2 === 'string' ? splitWildcardPath(step.input2) : null;
     if (split2 && split2.arrayRef === split.arrayRef) out.input2 = split2.itemPath;

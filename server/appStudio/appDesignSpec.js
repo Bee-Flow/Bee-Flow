@@ -95,6 +95,7 @@ function isObject(v) {
  * absence.
  */
 function canonDesign(raw, push) {
+    /** @type {Record<string, string | null>} */
     const out = {};
     const src = isObject(raw) ? raw : {};
     for (const [key, spec] of Object.entries(DESIGN_SPEC)) {
@@ -129,6 +130,7 @@ function canonDesign(raw, push) {
  * rewritten in pass 2, so ref resolution happens in resolveNavScreens (called
  * from rewriteAndResolve, where the rename map and the final screen-id set
  * exist).
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
  */
 function canonNavShape(raw, push) {
     const src = isObject(raw) ? raw : {};
@@ -196,6 +198,7 @@ function canonNavShape(raw, push) {
  * Mutates and returns `nav`; returns undefined when nothing survives but the
  * default style (so the definition stays minimal — style-only navs are kept
  * only when the style is non-default).
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
  */
 function resolveNavScreens(nav, renameMap, validScreenIds, push) {
     if (!isObject(nav)) return undefined;
@@ -241,3 +244,5 @@ module.exports = {
     canonNavShape,
     resolveNavScreens,
 };
+
+/** @typedef {{ id: string, label: string, icon: string | null, screens: string[] }} NavGroup */

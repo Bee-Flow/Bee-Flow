@@ -554,3 +554,14 @@ module.exports = {
     _minGrade: minGrade,
     _appRoleGrade: appRoleGrade,
 };
+
+/**
+ * @typedef {import('./actionExecutor/shared').DataModel} DataModel
+ * @typedef {import('./actionExecutor/shared').DataTable} DataTable
+ * @typedef {{ kind?: string, datatableId?: string, mode?: string }} TableSource  `table.source` of a linked model table
+ * @typedef {import('../auth/datatableAccess').DatatablePrincipal} DatatablePrincipal
+ * @typedef {NonNullable<Awaited<ReturnType<typeof import('../stores/datatableStore').getDatatable>>>} DatatableRow
+ * @typedef {ReturnType<typeof datatableScopesFor>[number]} DatatableScope
+ * @typedef {NonNullable<Awaited<ReturnType<typeof import('../stores/datatableStore').getTableMeta>>>} DatatableMeta
+ * @typedef {{ tableMeta: DatatableMeta & { access?: unknown }, grade: string, scopeKey: string, viewer: Record<string, unknown>, dialect: 'pg', datatable: DatatableRow, scope: DatatableScope }} DatatableSourcePlan  everything one read or write of a linked table needs
+ */

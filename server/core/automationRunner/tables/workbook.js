@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The workbook reader: an uploaded spreadsheet (xlsx, xlsm, xls, ods) or CSV
  * into one table per sheet, with the caps of core/automationRunner/tables/limits.js.
@@ -38,22 +38,40 @@ const lazy = {
     limits: () => require('./limits'),
 };
 
+/** @typedef {ReturnType<typeof import('./limits').tableLimits>} TableLimits */
+/** @typedef {{ name: string, index: number, hidden: boolean }} SheetInfo */
+/**
+ * The reader options after readWorkbookTables settled the header row and the limits.
+ * @typedef {{
+ *   filename?: string, format?: string, sheets?: 'all'|'first'|string[], headerRow: number,
+ *   delimiter?: string, provenanceSheet?: string, skipHiddenSheets?: boolean, limits: TableLimits,
+ * }} WorkbookReadOpts
+ */
+
+/** @param {string} message */
 function unsupported(message) {
     return sourceError('table_source_unsupported', message);
 }
 
-/** The file name without its folders and extension, safe as a table name. */
+/**
+ * The file name without its folders and extension, safe as a table name.
+ * @param {string | null | undefined} filename
+ * @param {string} [fallback]
+ */
 function baseName(filename, fallback = 'Sheet1') {
     const last = String(filename || '').split(/[\\/]/).pop() || '';
     const cleaned = last.replace(/\.[^.]*$/, '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 120);
     return cleaned || fallback;
 }
 
-const hasUtf16Bom = (b) => b.length >= 2 && ((b[0] === 0xff && b[1] === 0xfe) || (b[0] === 0xfe && b[1] === 0xff));
+const hasUtf16Bom = /** @param {Buffer} b */ (b) => b.length >= 2 && ((b[0] === 0xff && b[1] === 0xfe) || (b[0] === 0xfe && b[1] === 0xff));
 
 /**
  * What the bytes are, and the zip guard for a package. An explicit `requested`
  * format that contradicts the bytes is refused; xlsx and xlsm are one family.
+ * @param {Buffer} buffer
+ * @param {string | undefined} requested
+ * @param {TableLimits} limits
  * @returns {Promise<string>} the format to parse as
  */
 async function detectFormat(buffer, requested, limits) {
@@ -76,13 +94,23 @@ async function detectFormat(buffer, requested, limits) {
         + 'Set the format to "auto" or to the real type.');
 }
 
-/** SheetJS options: values as stored, dates as serials we convert ourselves, no formulas, a row cap. */
+/**
+ * SheetJS options: values as stored, dates as serials we convert ourselves, no formulas, a row cap.
+ * @param {number} headerRow
+ * @param {TableLimits} limits
+ */
 function parseOptions(headerRow, limits) {
     const options = { cellNF: true, cellDates: false, raw: true, cellFormula: false, cellHTML: false, cellText: false };
     if (limits.maxRows > 0) /** @type {any} */ (options).sheetRows = headerRow + limits.maxRows + 1;
     return options;
 }
 
+/**
+ * @param {Buffer} buffer
+ * @param {string} format
+ * @param {number} headerRow
+ * @param {TableLimits} limits
+ */
 async function parseWorkbook(buffer, format, headerRow, limits) {
     try {
         return await lazy.sheetjs().readWorkbook(buffer, format, parseOptions(headerRow, limits));
@@ -91,7 +119,11 @@ async function parseWorkbook(buffer, format, headerRow, limits) {
     }
 }
 
-/** The sheets of a parsed workbook with their hidden flag. */
+/**
+ * The sheets of a parsed workbook with their hidden flag.
+ * @param {import('@e965/xlsx').WorkBook} wb
+ * @returns {SheetInfo[]}
+ */
 function sheetInfos(wb) {
     const flags = wb.Workbook && Array.isArray(wb.Workbook.Sheets) ? wb.Workbook.Sheets : [];
     return (wb.SheetNames || []).map((name, index) => ({
@@ -99,7 +131,12 @@ function sheetInfos(wb) {
     }));
 }
 
-/** The index of the provenance sheet, or -1. An explicit name that is missing is a warning. */
+/**
+ * The index of the provenance sheet, or -1. An explicit name that is missing is a warning.
+ * @param {SheetInfo[]} infos
+ * @param {string | undefined} provenanceSheet
+ * @param {string[]} warnings
+ */
 function findProvenance(infos, provenanceSheet, warnings) {
     if (provenanceSheet === 'none') return -1;
     if (!provenanceSheet || provenanceSheet === 'auto') return infos.findIndex(s => PROVENANCE_NAME_RE.test(s.name.trim()));
@@ -108,7 +145,11 @@ function findProvenance(infos, provenanceSheet, warnings) {
     return idx;
 }
 
-/** The indexes the `sheets` setting names. A name that is not there is an error. */
+/**
+ * The indexes the `sheets` setting names. A name that is not there is an error.
+ * @param {SheetInfo[]} infos
+ * @param {unknown[]} wanted
+ */
 function namedSheets(infos, wanted) {
     const picked = new Set();
     const missing = [];
@@ -128,6 +169,8 @@ function namedSheets(infos, wanted) {
 /**
  * Which sheets are candidates, and why the others are not. A sheet the step
  * names explicitly is read even when it is hidden.
+ * @param {SheetInfo[]} infos
+ * @param {{ sheets?: 'all'|'first'|string[], skipHiddenSheets: boolean, provenanceIndex: number }} opts
  * @returns {{ skipped: Map<number,string>, candidates: number[] }}
  */
 function selectCandidates(infos, { sheets, skipHiddenSheets, provenanceIndex }) {
@@ -143,11 +186,17 @@ function selectCandidates(infos, { sheets, skipHiddenSheets, provenanceIndex }) 
     return { skipped, candidates };
 }
 
+/**
+ * @param {Buffer} buffer
+ * @param {string} format
+ * @param {WorkbookReadOpts} o
+ */
 async function readBinaryWorkbook(buffer, format, o) {
     const { limits, headerRow } = o;
     const wb = await parseWorkbook(buffer, format, headerRow, limits);
     const XLSX = lazy.xlsx();
     const { cellValue } = lazy.sheetjs();
+    /** @type {string[]} */
     const warnings = [];
     const infos = sheetInfos(wb);
     const provenanceIndex = findProvenance(infos, o.provenanceSheet, warnings);
@@ -180,13 +229,17 @@ async function readBinaryWorkbook(buffer, format, o) {
     return { format, sheets, provenance, warnings };
 }
 
+/**
+ * @param {Buffer} buffer
+ * @param {WorkbookReadOpts} o
+ */
 async function readCsvWorkbook(buffer, o) {
     const name = baseName(o.filename);
     const table = await readCsvTable(buffer, {
         csv: lazy.csv(), name, headerRow: o.headerRow, delimiter: o.delimiter, limits: o.limits,
     });
     const sheet = { name, index: 0, hidden: false, columns: table ? table.columns : [], rows: table ? table.rows : [] };
-    return { format: 'csv', sheets: [table ? sheet : { ...sheet, skipped: 'empty' }], provenance: null, warnings: [] };
+    return { format: 'csv', sheets: [table ? sheet : { ...sheet, skipped: 'empty' }], provenance: /** @type {Record<string, string> | null} */ (null), warnings: /** @type {string[]} */ ([]) };
 }
 
 /**

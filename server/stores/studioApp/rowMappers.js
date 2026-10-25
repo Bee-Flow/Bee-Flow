@@ -77,3 +77,5 @@ function mapVersionRow(r) {
 }
 
 module.exports = { META_COLS, mapAppMetaRow, mapAppRow, mapVersionMetaRow, mapVersionRow };
+
+/** @typedef {ReturnType<typeof mapAppMetaRow>} AppMeta */

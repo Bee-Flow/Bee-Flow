@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Public-share viewer auth — three signed tokens, all HMAC-SHA256:
  *
@@ -89,10 +89,18 @@ const secret = createSigningSecret({
 
 // The purpose prefix is what stops a token of one type being replayed as
 // another, so it is stamped in on the way out and checked on the way back.
+/**
+ * @param {string} purpose
+ * @param {Record<string, string | number>} payload
+ */
 function signPayload(purpose, payload) {
     return signedPayload.sign(secret.get(), { p: purpose, ...payload });
 }
 
+/**
+ * @param {string} purpose
+ * @param {string} token
+ */
 function verifyPayload(purpose, token) {
     const payload = signedPayload.verify(secret.get(), token);
     if (!payload || payload.p !== purpose) return null;
@@ -102,6 +110,7 @@ function verifyPayload(purpose, token) {
 
 // ── Magic link (email-gated mode) ──────────────────────────────────
 
+/** @param {{ shareId: string, email: string }} args */
 function issueMagicLink({ shareId, email }) {
     return signPayload('magic', {
         s: shareId,
@@ -110,6 +119,10 @@ function issueMagicLink({ shareId, email }) {
     });
 }
 
+/**
+ * @param {string} token
+ * @param {string} expectedShareId
+ */
 function verifyMagicLink(token, expectedShareId) {
     const p = verifyPayload('magic', token);
     if (!p) return null;
@@ -119,6 +132,7 @@ function verifyMagicLink(token, expectedShareId) {
 
 // ── Unlock cookie ──────────────────────────────────────────────────
 
+/** @param {{ shareId: string, email?: string | null }} args */
 function issueUnlockCookie({ shareId, email }) {
     return signPayload('unlock', {
         s: shareId,
@@ -127,6 +141,10 @@ function issueUnlockCookie({ shareId, email }) {
     });
 }
 
+/**
+ * @param {string} token
+ * @param {string} expectedShareId
+ */
 function verifyUnlockCookie(token, expectedShareId) {
     const p = verifyPayload('unlock', token);
     if (!p) return null;
@@ -136,10 +154,15 @@ function verifyUnlockCookie(token, expectedShareId) {
 
 // ── CSRF (password-unlock form) ────────────────────────────────────
 
+/** @param {string} shareId */
 function issueCsrf(shareId) {
     return signPayload('csrf', { s: shareId, e: Date.now() + CSRF_TTL_MS });
 }
 
+/**
+ * @param {string} token
+ * @param {string} expectedShareId
+ */
 function verifyCsrf(token, expectedShareId) {
     const p = verifyPayload('csrf', token);
     return !!(p && p.s === expectedShareId);
@@ -150,10 +173,15 @@ function verifyCsrf(token, expectedShareId) {
 // Its own purpose, so a share-unlock CSRF can never stand in for it and the
 // other way round. `scope` binds the form, the site and the issue time.
 
+/** @param {string} scope */
 function issueCmsFormToken(scope) {
     return signPayload('cmsform', { s: scope, e: Date.now() + CSRF_TTL_MS });
 }
 
+/**
+ * @param {string} token
+ * @param {string} expectedScope
+ */
 function verifyCmsFormToken(token, expectedScope) {
     const p = verifyPayload('cmsform', token);
     return !!(p && p.s === expectedScope);
@@ -169,6 +197,7 @@ function verifyCmsFormToken(token, expectedScope) {
 // those sub-requests authorize without the cookie. Bound to the share ID, so
 // it is worthless for any other share and dies when the share is revoked +
 // re-issued with a new share ID.
+/** @param {{ shareId: string, email?: string | null }} args */
 function issueViewToken({ shareId, email }) {
     return signPayload('view', {
         s: shareId,
@@ -177,6 +206,10 @@ function issueViewToken({ shareId, email }) {
     });
 }
 
+/**
+ * @param {string} token
+ * @param {string} expectedShareId
+ */
 function verifyViewToken(token, expectedShareId) {
     const p = verifyPayload('view', token);
     if (!p) return null;
@@ -193,10 +226,12 @@ function verifyViewToken(token, expectedShareId) {
 // webpage (`w` — resolves the author server-side; there is no URL :id to
 // cross-check as requirePreviewToken does). No user is bound: the share row +
 // gate is the authorization, and the bridge runs acts-as-author.
+/** @param {{ shareId: string, webpageId: string }} args */
 function issueBridgeToken({ shareId, webpageId }) {
     return signPayload('bridge', { s: shareId, w: webpageId, e: Date.now() + BRIDGE_TOKEN_TTL_MS });
 }
 
+/** @param {string} token */
 function verifyBridgeToken(token) {
     const p = verifyPayload('bridge', token);
     if (!p || !p.s || !p.w) return null;
@@ -216,6 +251,7 @@ function verifyBridgeToken(token) {
 // one public page is worthless on another, and revoking the page (deleting the
 // row) kills every token that named it. The viewer id is never client-supplied
 // — that is the whole point, since it is what `created_by` becomes.
+/** @param {{ pageToken: string, appId: string, viewerId: string }} args */
 function issueVisitorToken({ pageToken, appId, viewerId }) {
     return signPayload('visitor', {
         t: pageToken,
@@ -225,6 +261,10 @@ function issueVisitorToken({ pageToken, appId, viewerId }) {
     });
 }
 
+/**
+ * @param {string} token
+ * @param {string} [expectedPageToken]
+ */
 function verifyVisitorToken(token, expectedPageToken) {
     const p = verifyPayload('visitor', token);
     if (!p || !p.t || !p.a || !p.v) return null;

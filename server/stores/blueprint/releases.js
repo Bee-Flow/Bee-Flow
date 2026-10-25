@@ -111,6 +111,7 @@ async function _insertRelease(h, { projectId, blueprintId, version, manifest, no
  *
  * Only ids come back, so a caller that wants to know what went can see it
  * without the rows themselves travelling any further.
+ * @param {string} projectId
  */
 async function _pruneReleases(h, projectId) {
     const doomed = await h.all(

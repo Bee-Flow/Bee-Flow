@@ -27,6 +27,7 @@ const MAX_LABEL = 80;
  * `key` is the object key the node sits under in its parent (null for array
  * elements and the root). Only string scalars are recorded — numbers,
  * booleans and null carry nothing the visualisation needs.
+ * @param {string} src
  */
 function scanStructure(src) {
     const text = String(src || '');
@@ -95,7 +96,11 @@ function scanStructure(src) {
     return root;
 }
 
-/** Read a JSON string body starting AFTER the opening quote; decodes the common escapes. */
+/**
+ * Read a JSON string body starting AFTER the opening quote; decodes the common escapes.
+ * @param {string} text
+ * @param {number} start
+ */
 function readString(text, start) {
     let out = '';
     let i = start;
@@ -128,6 +133,9 @@ function readString(text, start) {
 // ─── tree helpers ────────────────────────────────────────────────────────────
 
 const childObject = (node, key) => node && node.children.find(c => c.kind === 'object' && c.key === key) || null;
+/**
+ * @param {string} key
+ */
 const childArray = (node, key) => node && node.children.find(c => c.kind === 'array' && c.key === key) || null;
 const firstArray = (node) => node && node.children.find(c => c.kind === 'array') || null;
 const objectElements = (arr) => arr ? arr.children.filter(c => c.kind === 'object') : [];
@@ -174,6 +182,9 @@ function makeDraftThrottle({ now = Date.now, intervalMs = 250 } = {}) {
  */
 function makeProgressThrottle({ now = Date.now, intervalMs = 250 } = {}) {
     let lastAt = -Infinity;
+    /**
+     * @param {boolean} [force]
+     */
     return function shouldEmit(force = false) {
         const t = now();
         if (force || t - lastAt >= intervalMs) {
@@ -196,6 +207,9 @@ function makeProgressThrottle({ now = Date.now, intervalMs = 250 } = {}) {
 // — has neither `}}}` nor a `},key:` run, so the first alternative misses
 // it. A control token never belongs inside a legitimate string value.
 const GARBLED_RX = /\}\}\}|[}\]]\s*,\s*"?[A-Za-z_][A-Za-z0-9_]*"?\s*:|<\|tool_call>|<tool_call\|>|<\/?tool_call>/;
+/**
+ * @param {number} [depth]
+ */
 function looksGarbled(v, depth = 0) {
     if (depth > 6 || v === null || v === undefined) return false;
     if (typeof v === 'string') return GARBLED_RX.test(v);
@@ -218,3 +232,8 @@ module.exports = {
     makeDraftThrottle,
     makeProgressThrottle,
 };
+
+/**
+ * @typedef {{ value: string, terminated: boolean }} JsonString
+ * @typedef {{ kind: 'object'|'array', key: string|null, closed: boolean, strings: Map<string, JsonString>, children: JsonNode[], elements: JsonString[], expectKey: boolean, pendingKey: string|null }} JsonNode
+ */

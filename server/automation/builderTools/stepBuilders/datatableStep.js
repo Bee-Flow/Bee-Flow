@@ -78,6 +78,7 @@ function sanitizeDatatableBindings(raw, draft, draftWrap) {
  * `steps.…` path → a ref, an opaque token → kept as given.
  *
  * @returns {{cursor: any, notes: string[], error: string|null}}
+ * @param {string} raw
  */
 function sanitizeDatatableCursor(raw, draft, draftWrap) {
     if (raw === undefined || raw === null || raw === '') return { cursor: undefined, notes: [], error: null };
@@ -160,7 +161,13 @@ const OP_SYNONYMS = Object.freeze({
     isnull: 'isNull', isempty: 'isNull', isnotnull: 'isNotNull', isnotempty: 'isNotNull',
 });
 
+/**
+ * @param {string} k
+ */
 const squash = (k) => String(k || '').toLowerCase().replace(/[\s_-]+/g, '');
+/**
+ * @param {string[]} names
+ */
 const pickKey = (obj, names) => Object.keys(obj).find(k => names.includes(squash(k)));
 
 /** Read the stored operator out of whatever the model called it, or null. */
@@ -188,6 +195,7 @@ function conditionFrom(obj) {
     if (valueKey === undefined && !nullTest) return null;
     const out = { field: obj[fieldKey].trim(), op: op || 'eq' };
     if (valueKey !== undefined) out.value = obj[valueKey];
+    /** @type {string[]} */
     const renamed = [];
     if (fieldKey !== 'field') renamed.push(`${fieldKey}→field`);
     if (opKey && opKey !== 'op') renamed.push(`${opKey}→op`);
@@ -209,6 +217,7 @@ const SHAPE_NOTE = 'where is a LIST of {field, op, value} — send that shape ne
  */
 function coerceWhereList(rawWhere) {
     if (Array.isArray(rawWhere)) {
+        /** @type {string[]} */
         const renamed = [];
         const list = rawWhere.map((el) => {
             if (!el || typeof el !== 'object' || Array.isArray(el)) return el;
@@ -270,6 +279,7 @@ function coerceSortList(rawSort) {
         }
         return { list: rawSort, note: null };
     }
+    /** @type {string[]} */
     const renamed = [];
     const list = rawSort.map((el) => {
         if (!el || typeof el !== 'object' || Array.isArray(el)) return el;
@@ -301,6 +311,10 @@ function coerceSortList(rawSort) {
 }
 
 /**
+ * @typedef {Object} ResolveDatatableColumnsArgs
+ * @property {string} [matchColumn]
+ */
+/**
  * Re-key every column a datatable step names against ONE catalog table:
  * values keys, matchColumn (save_row's identity column — a write, so a system
  * column is refused), where[i].field and sort[i].field (reads — created_at is
@@ -312,6 +326,7 @@ function coerceSortList(rawSort) {
  * none is refused with the column list, by ./datatableRefs.
  *
  * @returns {{values, where, sort, matchColumn, notes: string[]} | {error, _fixHint}}
+ * @param {ResolveDatatableColumnsArgs} param0
  */
 function resolveDatatableColumns({ op, values, where, sort, matchColumn }, table) {
     const notes = [];
@@ -373,8 +388,10 @@ function listDeclaredFields(names) {
  * must never read as "nothing".
  *
  * @returns {{values: object, notes: string[]} | {error: string, _fixHint: string}}
+ * @param {{ overRef: string; itemVar: string; parents?: Array<{ itemVar: string; overRef: string; }>; maxIterations?: number; concurrency?: number; }} forEach
  */
 function checkExtractionFieldRefs(draft, values, forEach, draftWrap) {
+    /** @type {string[]} */
     const notes = [];
     if (!values || typeof values !== 'object' || Array.isArray(values)) return { values, notes };
     if (!forEach || typeof forEach.overRef !== 'string' || typeof forEach.itemVar !== 'string') return { values, notes };
@@ -538,3 +555,12 @@ module.exports = {
     checkExtractionFieldRefs,
     applyAddDatatable,
 };
+
+/**
+ * @typedef {import('../draftGraph').DraftGraph} DraftGraph
+ * @typedef {import('../refCheck').BuilderWrap} BuilderWrap
+ * @typedef {import('./inputBindings').Inputs} Inputs
+ * @typedef {import('./inputBindings').ForEachSpec} ForEachSpec
+ */
+
+/** @typedef {{ field?: string, op?: string, value?: unknown, dir?: string }} DatatableCondition */

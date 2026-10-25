@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Solution stage deployments: the 15-second tick of the deploy runner
  * (projects/stages/runner.js, design 6.4).
@@ -22,6 +22,7 @@
 const log = require('../telemetry/log');
 
 const TICK_MS = 15_000;
+/** @type {NodeJS.Timeout | null} */
 let _timer = null;
 let _running = false;
 
@@ -37,7 +38,7 @@ async function tick(deps = {}) {
         const runner = deps.runner || require('../projects/stages/runner').getRunner();
         return await runner.tick();
     } catch (err) {
-        log.warn(`[SolutionDeployRunner] tick failed: ${err && err.message}`);
+        log.warn(`[SolutionDeployRunner] tick failed: ${err && /** @type {Error} */ (err).message}`);
         return null;
     } finally {
         _running = false;

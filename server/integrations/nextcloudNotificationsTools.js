@@ -75,16 +75,26 @@ async function readJsonSafe(res) {
     try { return JSON.parse(text); } catch { return text; }
 }
 
-/** 1..200; a missing or non-numeric limit is the default 50. */
+/**
+ * 1..200; a missing or non-numeric limit is the default 50.
+ * @param {string | null} raw
+ */
 function clampLimit(raw) {
     const n = raw == null || raw === '' ? NaN : Math.floor(Number(raw));
     return Math.min(Math.max(Number.isFinite(n) ? n : 50, 1), 200);
 }
 
+/**
+ * @param {string} baseUrl
+ */
 function notificationsApi(baseUrl) {
     return `${baseUrl}/ocs/v2.php/apps/notifications/api/v2/notifications`;
 }
 
+/**
+ * @param {string} toolName
+ * @param {string} userId
+ */
 async function executeNextcloudNotificationsTool(toolName, args, userId, session) {
     const ctx = await ncClient.resolveAuth(session, userId);
     const { baseUrl, fetch: ncFetch, authError, uid: connectedUid } = ctx;
@@ -202,6 +212,9 @@ async function executeNextcloudNotificationsTool(toolName, args, userId, session
     }
 }
 
+/**
+ * @param {string} toolName
+ */
 function isNextcloudNotificationsTool(toolName) {
     return typeof toolName === 'string' && toolName.startsWith('nextcloud_notifications_');
 }
@@ -211,3 +224,8 @@ module.exports = {
     executeNextcloudNotificationsTool,
     isNextcloudNotificationsTool,
 };
+
+/**
+ * One entry of the Notifications OCS v2 answer.
+ * @typedef {{ notification_id: number, app?: string, user?: string, datetime?: string, object_type?: string, object_id?: string, subject?: string, message?: string, link?: string, icon?: string, actions?: Array<{ label?: string, link?: string, type?: string, primary?: boolean }> }} NcNotification
+ */

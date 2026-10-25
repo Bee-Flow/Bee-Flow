@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Talk calendar helper — find the user's upcoming Nextcloud Talk MEETINGS
  * (calendar events linked to a Talk conversation) so auto-record can scope to
@@ -11,6 +11,7 @@
 
 // The calendar tool is injected by integrations/ (see ../integrations/integrationClients.js).
 const { integrationClient } = require('../integrations/integrationClients');
+const { fallback } = require('../../utils/bestEffort');
 const calendarTools = () => integrationClient('nextcloudCalendar');
 
 const TALK_CALL_URL_RE = /\/call\/([A-Za-z0-9]+)/;
@@ -18,6 +19,7 @@ const TALK_CALL_URL_RE = /\/call\/([A-Za-z0-9]+)/;
 /**
  * Pull a Talk room token out of an event-like object (prefers the precomputed
  * `talkToken`, else parses description/location).
+ * @param {{ talkToken?: string, description?: string, location?: string } | null | undefined} event
  */
 function extractTalkToken(event) {
     if (!event) return null;
@@ -59,7 +61,7 @@ async function listUpcomingTalkMeetings({ session, userId, orgId = null, windowH
             const evArgs = { calendar: slug, start: startISO, end: endISO };
             const evRes = await guardedNcCall('nextcloud_calendar_list_events', evArgs, { userId, orgId, session },
                 () => calendarTools().executeNextcloudCalendarTool('nextcloud_calendar_list_events', evArgs, userId, session),
-            ).catch(() => null);
+            ).catch((e) => fallback('core/meetingNotes/talkCalendar:listUpcomingTalkMeetings', e, null));
             const events = Array.isArray(evRes?.events) ? evRes.events : [];
             for (const ev of events) {
                 const talkToken = extractTalkToken(ev);

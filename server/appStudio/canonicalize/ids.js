@@ -19,12 +19,16 @@ function makeIdAllocator(push) {
     const ambiguousOld = new Set();  // invalid old ids used more than once
 
     function fresh(kind) {
+        /** @type {string} */
         let id;
         do { id = newId(kind); } while (seen.has(id));
         seen.add(id);
         return id;
     }
 
+    /**
+     * @param {string} raw
+     */
     function canonId(raw, kind, path) {
         if (typeof raw === 'string' && ID_RE.test(raw)) {
             if (!seen.has(raw)) { seen.add(raw); return raw; }
@@ -55,3 +59,7 @@ function makeIdAllocator(push) {
 }
 
 module.exports = { makeIdAllocator };
+
+/** @typedef {(code: string, path: string, message: string) => void} Push  Records one repair hint. */
+
+/** @typedef {ReturnType<typeof makeIdAllocator>} IdAllocator */

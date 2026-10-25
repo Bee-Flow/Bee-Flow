@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: Automation Builder — initial schema (2026-05).
  *

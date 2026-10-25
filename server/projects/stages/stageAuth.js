@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * One resolver for who may do what on a Solution and its stages (design 8,
  * D12). Every stage route starts with it; it answers by throwing an
@@ -42,9 +41,15 @@
 const { HttpError, notFound } = require('../../core/http/errors');
 
 const RANK = Object.freeze({ viewer: 1, editor: 2, owner: 3 });
+/**
+ * @param {string | null} role
+ */
 const rank = (role) => RANK[role] || 0;
 const STAGE_NAMES = Object.freeze(['uat', 'prd']);
 
+/**
+ * @param {string} name
+ */
 const dep = (deps, name, load) => (deps && deps[name] !== undefined ? deps[name] : load());
 
 function authDeps(deps = {}) {
@@ -141,6 +146,9 @@ async function stageAuth(req, opts = {}, deps = {}) {
  * Named, so a route-table dump shows which routes carry the resolver.
  */
 function stageAuthMw(opts = {}, deps = {}) {
+    /**
+     * @param {() => void} next
+     */
     return async function stageAuthMiddleware(req, _res, next) {
         await stageAuth(req, opts, deps);
         next();
@@ -148,3 +156,11 @@ function stageAuthMw(opts = {}, deps = {}) {
 }
 
 module.exports = { stageAuth, stageAuthMw, RANK, rank };
+
+/**
+ * @typedef {object} StageAuthDeps
+ * @property {typeof import('../../stores/solutionStageStore')} stageStore
+ * @property {typeof import('../../stores/projectStore')} projectStore
+ * @property {typeof import('../../auth/projectAccess').getProjectRole} getProjectRole
+ * @property {typeof import('../../auth/permissions').isOrgAdminForOrg} isOrgAdminForOrg
+ */

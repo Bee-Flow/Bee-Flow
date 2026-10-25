@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Per-tool handlers of the Nextcloud Deck executor (nextcloudDeckTools.js).
  * Each takes (args, { api, ncFetch, authError, baseUrl, toolName }) and answers
@@ -8,27 +8,71 @@
 const { nextcloudHttpError } = require('./nextcloudHttpError');
 const { toUtcIso, keepDue } = require('./nextcloudDeckDates');
 
+/**
+ * Tool arguments of every Deck tool (each reads its own subset).
+ * @typedef {object} DeckArgs
+ * @property {number | string} [boardId]
+ * @property {number | string} [stackId]
+ * @property {number | string} [cardId]
+ * @property {number | string} [targetStackId]
+ * @property {number | string} [labelId]
+ * @property {string} [title]
+ * @property {string} [description]
+ * @property {string} [type]
+ * @property {string | number} [duedate]
+ * @property {number} [order]
+ * @property {boolean} [archived]
+ * @property {boolean} [includeArchived]
+ * @property {string} [labelTitle]
+ * @property {string} [query]
+ * @property {string} [assignedUid]
+ * @property {string} [dueBefore]
+ * @property {string} [dueAfter]
+ * @property {number} [limit]
+ * @property {string} [message]
+ * @property {number} [parentId]
+ */
+/**
+ * What the executor hands every handler.
+ * @typedef {{ api: string, ncFetch: import('./nextcloudClient.types').NcAuth['fetch'], authError: string, baseUrl: string, toolName: string }} DeckCtx
+ */
+/** @typedef {{ id?: number, title?: string, color?: string }} DeckLabel */
+/** @typedef {{ uid?: string, participant?: { uid?: string } }} DeckAssignee */
+
 // ─── Helpers ──────────────────────────────────────────────────────
 
+/** @param {string} baseUrl */
 function deckRoot(baseUrl) {
     return `${baseUrl}/index.php/apps/deck/api/v1.0`;
 }
 
+/** @param {string} baseUrl */
 function commentsRoot(baseUrl) {
     return `${baseUrl}/ocs/v2.php/apps/deck/api/v1.0`;
 }
 
+/** @param {Response} res */
 async function readJsonSafe(res) {
     const text = await res.text().catch(() => '');
     try { return JSON.parse(text); } catch { return text; }
 }
 
+/**
+ * @param {DeckCtx['ncFetch']} ncFetch
+ * @param {string} url
+ * @param {{ method?: string, headers?: Record<string, string>, body?: unknown }} [options]
+ */
 async function deckJson(ncFetch, url, options = {}) {
     const headers = { 'Accept': 'application/json', 'Content-Type': 'application/json', ...(options.headers || {}) };
     const body = options.body !== undefined ? JSON.stringify(options.body) : undefined;
     return ncFetch(url, { ...options, headers, body });
 }
 
+/**
+ * @param {string | number | Date} iso
+ * @param {string | number | Date} opIso
+ * @param {string} op
+ */
 function compareDates(iso, opIso, op) {
     if (!iso || !opIso) return false;
     const a = new Date(iso).getTime();
@@ -47,6 +91,10 @@ function compareDates(iso, opIso, op) {
 const REST_HEADERS = { 'Accept': 'application/json' };
 const OCS_HEADERS  = { 'Accept': 'application/json', 'OCS-APIRequest': 'true' };
 
+/**
+ * @param {DeckArgs} args
+ * @param {DeckCtx} ctx
+ */
 async function listBoards(args, { api, ncFetch, authError }) {
     const url = `${api}/boards${args.includeArchived ? '?details=true' : ''}`;
     const res = await ncFetch(url, { headers: REST_HEADERS });
@@ -56,13 +104,17 @@ async function listBoards(args, { api, ncFetch, authError }) {
     const list = Array.isArray(boards)
         ? boards.filter(b => args.includeArchived || !b.archived).map(b => ({
             id: b.id, title: b.title, color: b.color, archived: b.archived,
-            labels: (b.labels || []).map(l => ({ id: l.id, title: l.title, color: l.color })),
+            labels: (b.labels || []).map((/** @type {DeckLabel} */ l) => ({ id: l.id, title: l.title, color: l.color })),
             permissions: b.permissions, owner: b.owner?.uid || b.owner,
         }))
         : [];
     return { count: list.length, boards: list };
 }
 
+/**
+ * @param {DeckArgs} args
+ * @param {DeckCtx} ctx
+ */
 async function getBoard(args, { api, ncFetch, authError }) {
     if (!args.boardId) return { error: 'boardId is required' };
     const res = await ncFetch(`${api}/boards/${args.boardId}`, { headers: REST_HEADERS });
@@ -72,6 +124,10 @@ async function getBoard(args, { api, ncFetch, authError }) {
     return await readJsonSafe(res);
 }
 
+/**
+ * @param {DeckArgs} args
+ * @param {DeckCtx} ctx
+ */
 async function listStacks(args, { api, ncFetch, authError }) {
     if (!args.boardId) return { error: 'boardId is required' };
     const res = await ncFetch(`${api}/boards/${args.boardId}/stacks`, { headers: REST_HEADERS });
@@ -83,6 +139,10 @@ async function listStacks(args, { api, ncFetch, authError }) {
         : stacks;
 }
 
+/**
+ * @param {DeckArgs} args
+ * @param {DeckCtx} ctx
+ */
 async function createStack(args, { api, ncFetch, authError }) {
     if (!args.boardId || !args.title) return { error: 'boardId and title are required' };
     const res = await deckJson(ncFetch, `${api}/boards/${args.boardId}/stacks`, {
@@ -106,6 +166,10 @@ async function createStack(args, { api, ncFetch, authError }) {
     };
 }
 
+/**
+ * @param {DeckArgs} args
+ * @param {DeckCtx} ctx
+ */
 async function updateStack(args, { api, ncFetch, authError }) {
     if (!args.boardId || !args.stackId) return { error: 'boardId and stackId are required' };
     // Deck's PUT is a replace — fetch current then merge.
@@ -133,6 +197,10 @@ async function updateStack(args, { api, ncFetch, authError }) {
     return { success: true, stack: { id: updated.id, title: updated.title, order: updated.order } };
 }
 
+/**
+ * @param {DeckArgs} args
+ * @param {DeckCtx} ctx
+ */
 async function deleteStack(args, { api, ncFetch, authError }) {
     if (!args.boardId || !args.stackId) return { error: 'boardId and stackId are required' };
     const res = await ncFetch(`${api}/boards/${args.boardId}/stacks/${args.stackId}`, {
@@ -147,6 +215,10 @@ async function deleteStack(args, { api, ncFetch, authError }) {
     return { success: true, stackId: args.stackId };
 }
 
+/**
+ * @param {DeckArgs} args
+ * @param {DeckCtx} ctx
+ */
 async function listCards(args, { api, ncFetch, authError, toolName }) {
     if (!args.boardId) return { error: 'boardId is required' };
     const res = await ncFetch(`${api}/boards/${args.boardId}/stacks${args.includeArchived ? '/archived' : ''}`, {
@@ -159,6 +231,7 @@ async function listCards(args, { api, ncFetch, authError, toolName }) {
 
     const labelFilter = args.labelTitle ? args.labelTitle.toLowerCase() : null;
     const queryFilter = args.query ? args.query.toLowerCase() : null;
+    /** @type {Array<Record<string, unknown>>} */
     const cards = [];
     for (const stack of stacks) {
         if (args.stackId && stack.id !== args.stackId) continue;
@@ -167,15 +240,15 @@ async function listCards(args, { api, ncFetch, authError, toolName }) {
                 const haystack = `${c.title || ''} ${c.description || ''}`.toLowerCase();
                 if (!haystack.includes(queryFilter)) continue;
             }
-            if (labelFilter && !(c.labels || []).some(l => (l.title || '').toLowerCase().includes(labelFilter))) continue;
-            if (args.assignedUid && !(c.assignedUsers || []).some(u => (u.participant?.uid || u.uid) === args.assignedUid)) continue;
+            if (labelFilter && !(c.labels || []).some((/** @type {DeckLabel} */ l) => (l.title || '').toLowerCase().includes(labelFilter))) continue;
+            if (args.assignedUid && !(c.assignedUsers || []).some((/** @type {DeckAssignee} */ u) => (u.participant?.uid || u.uid) === args.assignedUid)) continue;
             if (args.dueBefore && !compareDates(c.duedate, args.dueBefore, 'lte')) continue;
             if (args.dueAfter && !compareDates(c.duedate, args.dueAfter, 'gte')) continue;
             cards.push({
                 id: c.id, stackId: stack.id, stackTitle: stack.title,
                 title: c.title, description: c.description, duedate: c.duedate,
-                labels: (c.labels || []).map(l => ({ id: l.id, title: l.title, color: l.color })),
-                assignedUsers: (c.assignedUsers || []).map(u => u.participant?.uid || u.uid),
+                labels: (c.labels || []).map((/** @type {DeckLabel} */ l) => ({ id: l.id, title: l.title, color: l.color })),
+                assignedUsers: (c.assignedUsers || []).map((/** @type {DeckAssignee} */ u) => u.participant?.uid || u.uid),
                 archived: c.archived, order: c.order, type: c.type,
             });
         }
@@ -184,6 +257,10 @@ async function listCards(args, { api, ncFetch, authError, toolName }) {
     return { boardId: args.boardId, count: Math.min(cards.length, limit), cards: cards.slice(0, limit) };
 }
 
+/**
+ * @param {DeckArgs} args
+ * @param {DeckCtx} ctx
+ */
 async function getCard(args, { api, ncFetch, authError }) {
     if (!args.boardId || !args.stackId || !args.cardId) return { error: 'boardId, stackId, cardId required' };
     const res = await ncFetch(`${api}/boards/${args.boardId}/stacks/${args.stackId}/cards/${args.cardId}`, {
@@ -195,6 +272,10 @@ async function getCard(args, { api, ncFetch, authError }) {
     return await readJsonSafe(res);
 }
 
+/**
+ * @param {DeckArgs} args
+ * @param {DeckCtx} ctx
+ */
 async function createCard(args, { api, ncFetch, authError }) {
     if (!args.boardId || !args.stackId || !args.title) return { error: 'boardId, stackId, title required' };
     const due = toUtcIso(args.duedate);
@@ -218,6 +299,10 @@ async function createCard(args, { api, ncFetch, authError }) {
     return await readJsonSafe(res);
 }
 
+/**
+ * @param {DeckArgs} args
+ * @param {DeckCtx} ctx
+ */
 async function updateCard(args, { api, ncFetch, authError }) {
     if (!args.boardId || !args.stackId || !args.cardId) return { error: 'boardId, stackId, cardId required' };
     const due = toUtcIso(args.duedate);
@@ -275,6 +360,10 @@ async function updateCard(args, { api, ncFetch, authError }) {
     return { success: true, card: updated };
 }
 
+/**
+ * @param {DeckArgs} args
+ * @param {DeckCtx} ctx
+ */
 async function archiveCard(args, { api, ncFetch }) {
     if (!args.boardId || !args.stackId || !args.cardId) return { error: 'boardId, stackId, cardId required' };
     const archived = args.archived === false ? false : true;
@@ -303,6 +392,10 @@ async function archiveCard(args, { api, ncFetch }) {
     return { success: true, archived };
 }
 
+/**
+ * @param {DeckArgs} args
+ * @param {DeckCtx} ctx
+ */
 async function deleteCard(args, { api, ncFetch, authError }) {
     if (!args.boardId || !args.stackId || !args.cardId) return { error: 'boardId, stackId, cardId required' };
     const res = await ncFetch(`${api}/boards/${args.boardId}/stacks/${args.stackId}/cards/${args.cardId}`, {
@@ -315,6 +408,10 @@ async function deleteCard(args, { api, ncFetch, authError }) {
     return { success: true, cardId: args.cardId };
 }
 
+/**
+ * @param {DeckArgs} args
+ * @param {DeckCtx} ctx
+ */
 async function assignLabel(args, { api, ncFetch, authError, toolName }) {
     if (!args.boardId || !args.stackId || !args.cardId || !args.labelId) return { error: 'boardId, stackId, cardId, labelId required' };
     const op = toolName === 'nextcloud_deck_assign_label' ? 'assignLabel' : 'removeLabel';
@@ -334,6 +431,10 @@ async function assignLabel(args, { api, ncFetch, authError, toolName }) {
     return { success: true };
 }
 
+/**
+ * @param {DeckArgs} args
+ * @param {DeckCtx} ctx
+ */
 async function addComment(args, { ncFetch, authError, baseUrl }) {
     if (!args.cardId || !args.message) return { error: 'cardId and message required' };
     // Deck comments live under OCS, not the v1.0 REST path.
@@ -355,6 +456,10 @@ async function addComment(args, { ncFetch, authError, baseUrl }) {
     return { success: true, comment: data?.ocs?.data || data };
 }
 
+/**
+ * @param {DeckArgs} args
+ * @param {DeckCtx} ctx
+ */
 async function listComments(args, { ncFetch, authError, baseUrl }) {
     if (!args.cardId) return { error: 'cardId is required' };
     const limit = Math.min(Math.max(args.limit || 50, 1), 200);
@@ -367,6 +472,7 @@ async function listComments(args, { ncFetch, authError, baseUrl }) {
     return { count: Array.isArray(list) ? list.length : 0, comments: list };
 }
 
+/** @type {Record<string, (args: DeckArgs, ctx: DeckCtx) => Promise<unknown>>} */
 const HANDLERS = {
     nextcloud_deck_list_boards: listBoards,
     nextcloud_deck_get_board: getBoard,

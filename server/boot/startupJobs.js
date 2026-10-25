@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Background runners and jobs started at boot.
  *

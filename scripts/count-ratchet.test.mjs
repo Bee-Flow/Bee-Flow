@@ -241,6 +241,7 @@ test('big-file leaves data alone: tests, dictionaries, generated files, fixtures
             'appStudio/templates/appA.js': lines(900),
             'demo/fixtures/big.js': lines(900),
             'scripts/content/site.js': lines(900),
+            'types/rows.d.ts': lines(900),
             // Named like the exempt folders, but code: these count.
             'routes/templates.js': lines(900),
             'routes/agents/tests.js': lines(900),
@@ -322,6 +323,19 @@ test('explicit-any counts any annotations, casts and type arguments in TypeScrip
     });
     assert.strictEqual(run(dir, 'explicit-any').code, 0);
     assert.strictEqual(budgetOf(dir, 'explicit-any'), 3);
+});
+
+test('jsdoc-loose-type counts JSDoc types that are exactly any, *, Function, Object or object, not tests or compound types', () => {
+    const dir = sandbox({
+        src: false,
+        files: {
+            'a.js': '/**\n * @param {any} a\n * @param {*} b\n * @param {Object} c\n * @param {object} d\n * @param {Function} e\n * @param {string} f\n * @param {Array<any>} g\n */\n',
+            'b.js': '/** @returns {any} */\n',
+            'a.test.js': '/** @param {any} a */\n',
+        },
+    });
+    assert.strictEqual(run(dir, 'jsdoc-loose-type').code, 0);
+    assert.strictEqual(budgetOf(dir, 'jsdoc-loose-type'), 6);
 });
 
 test('eslint-disable counts disable directives in source (block, next-line and line), not mentions or tests', () => {
@@ -545,6 +559,20 @@ test('empty-catch fails a new swallowed error over the budget and says what to d
     assert.match(r.stderr, /rethrow/);
 });
 
+test('admin-id-literal counts id and username comparisons to \'admin\', and leaves role checks, comments, the helper and tests alone', () => {
+    const dir = sandbox({
+        src: false,
+        files: {
+            'routes/a.js': "if (req.session?.user?.id === 'admin') x();\nif (userId !== 'admin') y();\nif ('admin' === user.id) z();\nif (username == \"admin\") w();\n",
+            'routes/b.js': "if (user.role === 'admin') x();\n// u.id === 'admin' is the operator\nconst a = via === 'admin';\n",
+            'auth/platformOperator.js': "return id === 'admin';\n",
+            'routes/a.test.js': "if (u.id === 'admin') x();\n",
+        },
+    });
+    assert.strictEqual(run(dir, 'admin-id-literal').code, 0);
+    assert.strictEqual(budgetOf(dir, 'admin-id-literal'), 4);
+});
+
 test('rollback-in-store counts hand-written ROLLBACKs in stores/, and leaves savepoints, comments, other folders and tests alone', () => {
     const dir = sandbox({
         src: false,
@@ -574,6 +602,17 @@ test('db-in-routes counts every spelling that resolves to db.js from routes/, an
     });
     assert.strictEqual(run(dir, 'db-in-routes').code, 0);
     assert.strictEqual(budgetOf(dir, 'db-in-routes'), 5);
+});
+
+test('db-in-routes ignores a JSDoc type import() inside a comment', () => {
+    const dir = sandbox({
+        src: false,
+        files: {
+            'routes/a.js': "/** @type {typeof import('../db').getAll} */\nlet f;\n/**\n * @param {import('../../db').Row} r\n */\nfunction g(r) {}\nconst db = require('../db');\n",
+        },
+    });
+    assert.strictEqual(run(dir, 'db-in-routes').code, 0);
+    assert.strictEqual(budgetOf(dir, 'db-in-routes'), 1);
 });
 
 const longBody = (n) => `${'    x();\n'.repeat(n)}`;

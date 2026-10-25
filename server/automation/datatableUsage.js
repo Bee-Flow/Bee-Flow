@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Which steps of an automation touch which datatable.
  *
@@ -185,3 +184,9 @@ function stepPositions(definition) {
 }
 
 module.exports = { collectDatatableUsage, datatableIdsUsed, columnsOf, flowOrder, stepPositions };
+
+/**
+ * @typedef {import('./automationGraph').AutomationDefinition} AutomationDefinition
+ * @typedef {import('./automationGraph').AutomationStep} AutomationStep
+ * @typedef {{ datatableId: string, stepId: string, mode: 'read' | 'write', columns: string[] }} DatatableUsage
+ */

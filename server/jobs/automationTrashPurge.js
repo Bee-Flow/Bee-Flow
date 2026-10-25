@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Automation trash purge (Studio → Automations handoff 5).
  *
@@ -33,9 +33,9 @@ const BATCH = 100;
 function defaultDeps() {
     return {
         store: require('../stores/automationStore'),
-        releaseAnswersTables: (a) => require('../automation/formAnswers').releaseAnswersTables(a),
-        purgeDatatableUsage: (id) => require('../automation/datatableUsageSync').purgeDatatableUsage(id, { label: 'automation trash purge' }),
-        purgeAppUsage: (id) => require('../stores/automationUsageStore').purgeUsageOfAutomation(id),
+        releaseAnswersTables: (/** @type {import('../automation/formAnswers/provision').AutomationRef} */ a) => require('../automation/formAnswers').releaseAnswersTables(a),
+        purgeDatatableUsage: (/** @type {string} */ id) => require('../automation/datatableUsageSync').purgeDatatableUsage(id, { label: 'automation trash purge' }),
+        purgeAppUsage: (/** @type {string} */ id) => require('../stores/automationUsageStore').purgeUsageOfAutomation(id),
     };
 }
 
@@ -48,16 +48,16 @@ async function purgeTrashPass(deps = defaultDeps()) {
             const a = await store.getAutomation(row.id, { includeDeleted: true });
             if (!a || !a.deletedAt) continue;   // restored meanwhile
             try { await deps.releaseAnswersTables(a); }
-            catch (e) { log.warn(`[trashPurge] answers tables of ${row.id} not released: ${e.message}`); continue; }
+            catch (e) { log.warn(`[trashPurge] answers tables of ${row.id} not released: ${/** @type {Error} */ (e).message}`); continue; }
             const ok = await store.purgeTrashedAutomation(row.id);
             if (!ok) continue;
             purged += 1;
             try { await deps.purgeDatatableUsage(row.id); }
-            catch (e) { log.warn(`[trashPurge] datatable usage purge failed for ${row.id}: ${e.message}`); }
+            catch (e) { log.warn(`[trashPurge] datatable usage purge failed for ${row.id}: ${/** @type {Error} */ (e).message}`); }
             try { await deps.purgeAppUsage(row.id); }
-            catch (e) { log.warn(`[trashPurge] app usage purge failed for ${row.id}: ${e.message}`); }
+            catch (e) { log.warn(`[trashPurge] app usage purge failed for ${row.id}: ${/** @type {Error} */ (e).message}`); }
         } catch (e) {
-            log.warn(`[trashPurge] ${row.id}: ${e.message}`);
+            log.warn(`[trashPurge] ${row.id}: ${/** @type {Error} */ (e).message}`);
         }
     }
     if (purged) log.info(`[trashPurge] permanently deleted ${purged} automation(s) from the trash`);

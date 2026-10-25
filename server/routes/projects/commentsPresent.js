@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Project comment threads: the pure pieces of routes/projects/comments.js.
  * The feed event shape, how a thread and a comment are presented (sealed
@@ -15,10 +15,19 @@ const { badRequest, conflict } = require('../../core/http/errors');
 const BACKOFF_DISMISSALS = 2;
 const PAUSE_MS = 24 * 60 * 60 * 1000;
 
-/** An answer the AI wrote on its own (the participation engine's triggers). */
+/**
+ * An answer the AI wrote on its own (the participation engine's triggers).
+ * @param {{ authorKind?: string | null, aiTrigger?: string | null }} c
+ */
 const isAutomatic = (c) => c.authorKind === 'assistant' && typeof c.aiTrigger === 'string' && c.aiTrigger.startsWith('auto');
 
-const threadEvent = (kind, actorId, thread, payload = {}) => ({
+/**
+ * @param {string} kind
+ * @param {string} actorId
+ * @param {{ id: string, targetType: string, targetId: string }} thread
+ * @param {Record<string, unknown>} [payload]
+ */
+const threadEvent =(kind, actorId, thread, payload = {}) => ({
     kind,
     actorId,
     targetType: 'comment_thread',
@@ -26,7 +35,12 @@ const threadEvent = (kind, actorId, thread, payload = {}) => ({
     payload: { threadId: thread.id, targetType: thread.targetType, targetId: thread.targetId, ...payload },
 });
 
-/** Open a sealed field, or report it unreadable without taking the request down. */
+/**
+ * Open a sealed field, or report it unreadable without taking the request down.
+ * @template T
+ * @param {() => T} open
+ * @param {string} what
+ */
 function tryOpen(open, what) {
     try {
         return { value: open(), ok: true };
@@ -101,7 +115,11 @@ function presentThread(box, t, comments, known = new Map(), feedback = new Map()
     };
 }
 
-/** Store refusals as worded 4xx. */
+/**
+ * Store refusals as worded 4xx.
+ * @param {Error & { code?: string }} err
+ * @param {string} what
+ */
 function storeRefusal(err, what) {
     if (err?.code === 'REPLY_TARGET_NOT_FOUND') return badRequest('reply_target_not_found', 'replyTo must be a comment in this thread.');
     if (err?.code === 'CLIENT_ID_TAKEN') return conflict('client_id_taken', `This ${what} id was already used by someone else. Send a new id.`);

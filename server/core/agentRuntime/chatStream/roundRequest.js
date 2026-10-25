@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * What ONE round of the agentic loop sends, and down which branch.
  *
@@ -25,12 +25,38 @@ const { buildTokenPreservationAddendum } = require('../../dlp/tokenPreservationP
 const { processTurnAttachments } = require('../attachmentIntake');
 const { _flattenToolRoundTrips } = require('../toolRoundExecutor');
 
+/**
+ * @typedef {import('./turnState').AgentRow} AgentRow
+ * @typedef {import('./turnState').ConversationRow} ConversationRow
+ * @typedef {import('./turnState').OnEvent} OnEvent
+ * @typedef {import('./turnState').ChatMessage} ChatMessage
+ * @typedef {import('./turnState').ToolDef} ToolDef
+ * @typedef {import('./turnState').MessageMetadata} MessageMetadata
+ * @typedef {{ url: string, apiKey?: string, providerType?: string, providerName?: string, [key: string]: unknown }} ProviderConfig
+ * @typedef {import('../../llm/modelResolver').TierConfig & { budgetTokens?: number }} TierSettings
+ * @typedef {{ enabled?: boolean, scope?: { agentOutput?: boolean }, rulesWithNames?: Parameters<typeof import('../../privacy/guardrails').checkRegexPatterns>[1] }} RegexConfig
+ * @typedef {import('../attachmentIntake').AttachmentTokenisationInfo} TokenisationInfo
+ */
+
+/**
+ * @param {{
+ *   agent: AgentRow, agentId: string, userId: string, messageMetadata: MessageMetadata,
+ *   config: ProviderConfig, modelToUse: string, conversation: ConversationRow,
+ *   messages: ChatMessage[], iterations: number,
+ *   persistedByLive: import('../attachmentKinds').PersistedByLive,
+ *   dlpShield: Parameters<typeof processTurnAttachments>[0]['dlpShield'],
+ *   onEvent: OnEvent, systemPrompt: string, volatileSystemPrompt: string,
+ *   guardrailViolation?: string | null, moderationViolation?: string | null,
+ *   _forceFinalAnswer?: boolean, _assistantTokenisationInfo?: TokenisationInfo | null,
+ * }} turn
+ */
 async function buildRoundRequest({
     agent, agentId, userId, messageMetadata, config, modelToUse, conversation,
     messages, iterations, persistedByLive, dlpShield, onEvent,
     systemPrompt, volatileSystemPrompt, guardrailViolation, moderationViolation,
     _forceFinalAnswer, _assistantTokenisationInfo,
 }) {
+    /** @type {{ "Content-Type": string; Authorization?: string }} */
     const headers = { 'Content-Type': 'application/json' };
     const apiKey = config.apiKey;
     if (apiKey) {
@@ -109,6 +135,7 @@ async function buildRoundRequest({
     const _streamCallStart = Date.now();
 
     // ─── Resolve tier settings for thinking/temperature config ─────
+    /** @type {TierSettings} */
     let tierSettings = {};
     if (agent.model && agent.model.startsWith('tier:')) {
         const tierName = agent.model.substring(5);

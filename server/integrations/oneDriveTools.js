@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * OneDrive Tools — Built-in tools for AI to search and manage OneDrive files
  * 
@@ -49,7 +50,7 @@ const ONEDRIVE_TOOLS = [
                         description: 'Maximum number of items to return (1-50, default 25)'
                     }
                 },
-                required: []
+                required: /** @type {string[]} */ ([])
             }
         }
     },
@@ -70,7 +71,7 @@ const ONEDRIVE_TOOLS = [
                         description: 'Maximum number of files to return (1-200, default 50)'
                     }
                 },
-                required: []
+                required: /** @type {string[]} */ ([])
             }
         }
     },
@@ -116,6 +117,7 @@ const ONEDRIVE_TOOLS = [
 
 /**
  * Format a file size into human-readable string.
+ * @param {number} [bytes]
  */
 function formatSize(bytes) {
     if (!bytes) return '0 B';
@@ -130,7 +132,19 @@ function formatSize(bytes) {
 }
 
 /**
+ * A Graph API drive item (only the fields read here).
+ * @typedef {{ id?: string, name?: string, size?: number, lastModifiedDateTime?: string, webUrl?: string,
+ *   file?: { mimeType?: string }, folder?: { childCount?: number },
+ *   createdBy?: { user?: { displayName?: string } } }} GraphDriveItem
+ * @typedef {{ id: string, name: string, type: string, size: string|null, sizeBytes: number, lastModified: string,
+ *   createdBy: string, webUrl: string, isFolder: boolean, childCount: number|undefined,
+ *   parentPath?: string, downloadUrl?: string|null }} FormattedDriveItem
+ */
+
+/**
  * Format a Graph API drive item into a consistent shape.
+ * @param {GraphDriveItem} item
+ * @returns {FormattedDriveItem}
  */
 function formatItem(item) {
     const isFolder = !!item.folder;
@@ -154,7 +168,11 @@ const RECENT_MAX_PAGES = 5;
 const RECENT_SELECT = 'id,name,file,folder,deleted,lastModifiedDateTime,createdDateTime,parentReference,lastModifiedBy';
 const GRAPH_NEXT_LINK_PREFIX = 'https://graph.microsoft.com/';
 
-/** Parse `since` (ISO) into an ISO string; default RECENT_DEFAULT_DAYS ago. */
+/**
+ * Parse `since` (ISO) into an ISO string; default RECENT_DEFAULT_DAYS ago.
+ * @param {string | number | null | undefined} since
+ * @param {number} [now]
+ */
 function resolveSince(since, now = Date.now()) {
     if (since === undefined || since === null || since === '') {
         return new Date(now - RECENT_DEFAULT_DAYS * 86400000).toISOString();
@@ -165,11 +183,12 @@ function resolveSince(since, now = Date.now()) {
 }
 
 /**
- * @param {object} item - a Graph driveItem
+ * @param {{ id?: string, name?: string, file?: { mimeType?: string }, parentReference?: { id?: string, path?: string }, lastModifiedDateTime?: string, createdDateTime?: string, lastModifiedBy?: { user?: { id?: string } } }} item - a Graph driveItem
  * @param {string|null} [meId] - the signed-in user's Graph id, when known
  */
 function formatRecentItem(item, meId = null) {
     const parent = item.parentReference || {};
+    /** @type {{ id: string | undefined; name: string | undefined; mimeType: string; parentId: string | null; parentPath: string | null; lastModified: string; created: string; modifiedByMe?: boolean }} */
     const out = {
         id: item.id,
         name: item.name,
@@ -194,7 +213,7 @@ function formatRecentItem(item, meId = null) {
  * that token, and then the drive's "recent" view is used and filtered here.
  * Paging follows @odata.nextLink on the Graph host only, up to a page cap.
  *
- * @param {object} args - { since?, maxResults? }
+ * @param {{ since?: string|number|null, maxResults?: number|string }|null} args - { since?, maxResults? }
  * @param {(path: string) => Promise<any>} fetchPage - Graph GET (path or absolute nextLink URL)
  */
 async function listRecentDriveItems(args, fetchPage, { now = Date.now() } = {}) {
@@ -202,6 +221,9 @@ async function listRecentDriveItems(args, fetchPage, { now = Date.now() } = {}) 
     const want = Math.min(Math.max(parseInt(args?.maxResults) || 50, 1), RECENT_MAX_RESULTS);
     const sinceMs = Date.parse(sinceIso);
 
+    /**
+     * @param {string} firstPath
+     */
     const collect = async (firstPath) => {
         const items = [];
         let next = firstPath;
@@ -251,6 +273,9 @@ async function listRecentDriveItems(args, fetchPage, { now = Date.now() } = {}) 
 
 /**
  * Execute a OneDrive tool call.
+ * @param {string} toolName
+ * @param {Record<string, any>} args tool arguments as the model sent them
+ * @param {Express.Session} session
  */
 async function executeOneDriveTool(toolName, args, session) {
     if (!isMicrosoftConnected(session)) {
@@ -342,6 +367,7 @@ async function executeOneDriveTool(toolName, args, session) {
 
 /**
  * Check if a tool name is a OneDrive tool.
+ * @param {string} toolName
  */
 function isOneDriveTool(toolName) {
     return ['onedrive_search', 'onedrive_list_files', 'onedrive_list_recent', 'onedrive_get_file', 'onedrive_create_folder'].includes(toolName);

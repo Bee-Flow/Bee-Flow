@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio template — Approval inbox (lite) — pending list + decision form. Honest v1
  * shape of approvals without table row-actions (first v1.1 item).

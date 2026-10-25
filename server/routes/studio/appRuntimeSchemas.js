@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * What an App Studio app's runtime may send — the requests the app itself
@@ -21,6 +21,9 @@
 
 const { z, worded, bodyOf, queryOf, choice, wholeNumber, typeError } = require('../../core/http/schemaParts');
 
+/**
+ * @param {string} name
+ */
 const bag = (name) => z.record(z.string(), z.unknown(), { error: typeError({ invalid: `${name} is an object of named values.` }) });
 
 const DraftQuery = queryOf({
@@ -54,7 +57,13 @@ const ChatBody = bodyOf({
     }).passthrough(), { error: 'messages is the conversation so far.' }),
 }, 'An AI chat turn');
 
+/**
+ * @param {string} name
+ */
 const JSON_TEXT = (name) => `${name} is JSON, as the app runtime sends it.`;
+/**
+ * @param {string} name
+ */
 const jsonText = (name) => worded(JSON_TEXT(name)).max(20_000, JSON_TEXT(name)).refine((v) => {
     try { JSON.parse(v); return true; } catch { return false; }
 }, JSON_TEXT(name));

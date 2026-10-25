@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Monitoring-ledger retention.
  *
@@ -43,6 +43,7 @@
 const { pool, run } = require('../db');
 const { recordJobRun } = require('../telemetry/metrics');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const LOCK_KEY = 0xBEEF10B;
 const BATCH_SIZE = 5000;
@@ -106,6 +107,10 @@ const ACCESS_AUDIT_RETENTION_DAYS = (() => {
     return env;
 })();
 
+/**
+ * @param {string} table
+ * @param {string | null} cutoff
+ */
 async function _deleteBatches(table, cutoff, timeCol = 'timestamp', runSql = run) {
     let deleted = 0;
     for (let i = 0; i < MAX_BATCHES; i++) {
@@ -144,6 +149,7 @@ function makeMonitoringRetentionPass(deps) {
         let acquired = false;
         let client;
         let ok = true;
+        /** @type {Record<string, number>} */
         const deleted = {};
         try {
             client = await deps.pool.connect();
@@ -171,7 +177,7 @@ function makeMonitoringRetentionPass(deps) {
             log.error('[monitoringRetention] pass error:', e.message);
         } finally {
             if (client) {
-                try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { log.debug('best-effort', err); }
+                try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { bestEffort('jobs/monitoringRetention:makeMonitoringRetentionPass', err); /* best-effort */ }
                 client.release();
             }
             if (acquired) deps.recordJobRun({ job: 'monitoring_retention', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });

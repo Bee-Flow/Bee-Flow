@@ -667,3 +667,10 @@ module.exports = {
     // exported for tests
     mapRow,
 };
+
+/**
+ * A row as the Tables API hands it over (only the fields read here).
+ * @typedef {{ id?: number, tableId?: number, createdBy?: string, createdAt?: string, lastEditBy?: string,
+ *   lastEditAt?: string, data?: { columnId: number, value: unknown }[] }} RawTablesRow
+ * @typedef {{ columnId: number, value: unknown }} CellPair
+ */

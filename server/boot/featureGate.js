@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Operator kill-switch for a feature: `feature_<name>_enabled === false` in
  * the config store turns its routes off with a 403. Fails closed: when the
@@ -7,8 +7,12 @@
  */
 const log = require('../telemetry/log');
 const { HttpError } = require('../shared/httpErrors');
+/**
+ * @param {string} name
+ * @param {string} label
+ */
 function featureGate(name, label) {
-    return async function gate(req, res, next) {
+    return async function gate(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
         let enabled;
         try {
             enabled = await require('../stores/configStore').getConfig(`feature_${name}_enabled`);

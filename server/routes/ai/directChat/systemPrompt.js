@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Direct Chat — default system prompt.
  *

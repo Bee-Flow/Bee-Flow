@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 // Certificate issuance + lookup — the authority that the auth endpoints and the
 // public /verify route both call. Eligibility is ALWAYS recomputed from the
 // server-side progress blob; client claims are never trusted.
@@ -17,6 +17,9 @@ const CATALOG_VERSION = '2026.1';
 // resets, and the flag keeps serving only as the first-login auto-start guard.
 // The migration stamps now() (not epoch): earliest-wins merging would pin an
 // epoch date into badge earnedAt forever.
+/**
+ * @param {string} userId
+ */
 async function readServerProgress(userId) {
     const progress = (await configStore.getConfig(`learning_progress_user_${userId}`)) || {};
     const map = (progress && typeof progress === 'object') ? { ...progress } : {};
@@ -41,6 +44,11 @@ function getPublicBaseUrl() {
     return base ? base.replace(/\/+$/, '') : null;
 }
 
+/**
+ * @param {string} certId
+ * @param {import('./completion').ProgressMap | null | undefined} progress
+ * @param {Record<string, string[]> | undefined} visibleByCourse
+ */
 function isEligible(certId, progress, visibleByCourse) {
     return certificateEligible(certId, progress, visibleByCourse);
 }
@@ -49,6 +57,11 @@ function isEligible(certId, progress, visibleByCourse) {
 // against the lessons the user can actually access when the caller resolved them
 // (visibleByCourse undefined → strict all-lessons semantics).
 // Returns { record, verifyToken } or { error } when not eligible.
+/**
+ * @param {string} userId
+ * @param {string} certId
+ * @param {{ recipientName?: string, orgName?: string, makePublic?: boolean, visibleByCourse?: Record<string, string[]> }} [opts]
+ */
 /**
  * @param {string} userId
  * @param {string} certId
@@ -100,14 +113,18 @@ async function issueCertificate(userId, certId, { recipientName, orgName, makePu
 }
 
 // Build the owner-facing + (when public) shareable URL set for a record.
+/**
+ * @param {{ certificateId: string, serial: string, title?: string, issuedAt?: string, isPublic?: boolean }} record
+ * @param {string | undefined} verifyToken
+ */
 function buildUrls(record, verifyToken) {
     const base = getPublicBaseUrl();
     const out = {
         // Authenticated owner preview/download (always available).
         imageUrl: `/ai/learning/certificate/${record.certificateId}/image.png`,
         pdfUrl: `/ai/learning/certificate/${record.certificateId}/certificate.pdf`,
-        verifyUrl: null,
-        linkedInUrl: null,
+        verifyUrl: /** @type {string | null} */ (null),
+        linkedInUrl: /** @type {string | null} */ (null),
         serial: record.serial,
     };
     if (record.isPublic && base && verifyToken) {

@@ -13,7 +13,7 @@
 
 const configStore = require('../../stores/configStore');
 const { createTtlCache } = require('../../utils/ttlCache');
-const log = require('../../telemetry/log');
+const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 
 // ─── Tier Defaults ────────────────────────────────────────────────────────────
 // Centralised token / temperature / reasoning standards per tier.
@@ -261,7 +261,7 @@ const LEGACY_TIER_ALIASES = { smart: 'thinking' };
  * Normalize a stored/incoming model string, rewriting legacy `tier:<alias>`
  * values to their canonical tier (e.g. `tier:smart` → `tier:thinking`).
  * Non-tier strings and unknown tiers pass through unchanged.
- * @param {*} model
+ * @param {string} model
  * @returns {*} the normalized model (same value/type as the input when no alias applies)
  */
 function normalizeTierModel(model) {
@@ -281,7 +281,7 @@ function normalizeTierModel(model) {
  * never once called the smart model. Anyone indexing a tier map should route
  * through here rather than re-deriving the prefix/alias rules.
  *
- * @param {*} value - 'thinking' | 'tier:thinking' | 'smart' | 'tier:smart' | …
+ * @param {string} value - 'thinking' | 'tier:thinking' | 'smart' | 'tier:smart' | …
  * @returns {string|null} bare canonical tier name, or null when not a string
  */
 function canonicalTierName(value) {
@@ -547,7 +547,7 @@ async function getUserTierMap({ userOrgId = null, userId = null } = {}) {
                 custom: true,
             };
         }
-    } catch (err) { log.debug('fall through without custom tiers', err); }
+    } catch (err) { fallbackSwallowed('core/llm/modelResolver:getUserTierMap', err); /* fall through without custom tiers */ }
     return tiers;
 }
 
@@ -603,7 +603,7 @@ async function resolveEffectiveOrgId(req, { userId, skipGroupFallback = false } 
                     }
                 }
             }
-        } catch (err) { log.debug('fall through to null', err); }
+        } catch (err) { fallbackSwallowed('core/llm/modelResolver:resolveEffectiveOrgId', err); /* fall through to null */ }
     }
 
     if (cacheKey) _effectiveOrgCache.set(cacheKey, orgId);
@@ -627,3 +627,9 @@ module.exports = {
     getCustomTierById,
     isReasoningModel,
 };
+
+/**
+ * @typedef {{ id?: string, label?: string, icon?: string, description?: string, modelId?: string, euModelId?: string, custom?: boolean, maxTokens?: number, temperature?: number, reasoningEffort?: string, reasoningSummary?: boolean, verbosity?: string, budgetTokens?: number, bootstrapModelId?: string, model?: string }} TierConfig
+ * @typedef {Record<string, TierConfig>} TierMap
+ * @typedef {{ userOrgId?: string|null, userId?: string|null }} TierScope
+ */

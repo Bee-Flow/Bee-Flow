@@ -29,6 +29,9 @@ const { parseAnswersText } = require('./questionAnswers');
 
 // ── reading what the user said ─────────────────────────────────────────────
 
+/**
+ * @param {string} text
+ */
 const oneLine = (text) => String(text ?? '').replace(/\s*\n\s*/g, ' ').trim();
 
 /**
@@ -41,13 +44,22 @@ function answerTextOf(text) {
     return parsed ? parsed.map((p) => p.answer).join('\n') : String(text ?? '');
 }
 
+/**
+ * @param {string} s
+ */
 const fold = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const escapeRegExp = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 // Same lookarounds as namesPhrase in workMode.js: "log" is not inside "catalog".
 // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- the phrase is escaped literal text (no quantifiers), so the pattern is linear
+/**
+ * @param {string} text
+ */
 const namesPhrase = (text, phrase) => new RegExp(`(?<![\\p{L}\\p{N}_])${escapeRegExp(phrase)}(?![\\p{L}\\p{N}_])`, 'u').test(text);
 
-/** Ids of the (real) catalog tables the texts name: by name, key or exact id, as whole phrases. */
+/**
+ * Ids of the (real) catalog tables the texts name: by name, key or exact id, as whole phrases.
+ * @param {string[]} texts
+ */
 function namedTableIds(texts, catalog) {
     const haystack = (Array.isArray(texts) ? texts : []).map(fold).join('\n');
     const out = [];
@@ -80,6 +92,9 @@ function resolveTableChoice({ questions, message, catalog } = {}) {
     const out = { approvedIds: [], createFor: [], tables: [] };
     const answers = parseAnswersText(message);
     if (!answers) return out;
+    /**
+     * @param {string} s
+     */
     const norm = (s) => oneLine(s).replace(/\s+/g, ' ').toLowerCase();
     for (const { prompt, answer } of answers) {
         const q = (Array.isArray(questions) ? questions : []).find((x) => x && x.choice && norm(x.prompt) === norm(prompt));
@@ -106,8 +121,13 @@ function resolveTableChoice({ questions, message, catalog } = {}) {
 // ── the approved set ───────────────────────────────────────────────────────
 
 /**
+ * @typedef {Object} BuildApprovedSetArgs
+ * @property {{ approvedIds: string[]; createFor: string[]; tables: object[]; } | null} [choice]
+ */
+/**
  * @returns {Set<string>|null} null when the catalog is unreadable: no
  *   decision can be made, so the gate stays off rather than blocking everything.
+ * @param {BuildApprovedSetArgs} [param0]
  */
 function buildApprovedSet({ catalog, defs = [], userTexts = [], carried = [], choice = null, planUse = [] } = {}) {
     if (!Array.isArray(catalog)) return null;
@@ -124,6 +144,9 @@ function buildApprovedSet({ catalog, defs = [], userTexts = [], carried = [], ch
 
 const tokens = (t) => new Set(fold(`${t.name || ''} ${t.key || ''}`).split(/[^a-z0-9]+/).filter((w) => w.length >= 3));
 
+/**
+ * @param {boolean} write
+ */
 function alternatives(table, draftWrap, write) {
     const mine = tokens(table);
     return (draftWrap._datatables || [])
@@ -169,3 +192,9 @@ module.exports = {
     parseAnswersText, answerTextOf, namedTableIds, resolveTableChoice, buildApprovedSet,
     choiceRequiredError, approvalGateError,
 };
+
+/**
+ * @typedef {{ id?: string, key?: string, name?: string, pending?: boolean }} CatalogTable
+ * @typedef {{ label?: string, create?: boolean, datatableId?: string }} ChoiceOption
+ * @typedef {{ prompt?: string, choice?: { options?: ChoiceOption[] } }} ReviewQuestion
+ */

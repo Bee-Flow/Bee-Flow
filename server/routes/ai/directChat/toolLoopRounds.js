@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Direct Chat — the LLM rounds of a streamed turn: the non-streaming tool
  * pre-check loop, the primary stream, and the streamed tool rounds (with the
@@ -25,13 +25,22 @@ const { computeStepMachineGuard, pipelineNeedsWrapUp, callAdapterWithFallback } 
 const { createStreamCallbacks, snapshotThinkingParts } = require('./streamCallbacks');
 const { emitToolResultEvents } = require('./toolResultEvents');
 const { logTurnUsage } = require('./turnUsage');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 const MAX_STREAM_TOOL_ROUNDS = 15;
 const SHAPE_REJECTED = /invalid_request_message_order|Unexpected role|invalid.*tool_choice/i;
 
-const errText = (err) => String(err?.error?.message || err?.message || '');
+/** @typedef {ReturnType<typeof import('./turnState').createTurnState>} Turn */
+/** @typedef {Awaited<ReturnType<typeof import('./toolLoopSetup').prepareToolLoop>>} ToolLoop */
 
-/** One adapter.stream call over the turn's (token-mapped) messages. */
+const errText = /** @param {{ error?: { message?: string }, message?: string } | null | undefined} err */ (err) => String(err?.error?.message || err?.message || '');
+
+/**
+ * One adapter.stream call over the turn's (token-mapped) messages.
+ * @param {Turn} turn
+ * @param {Parameters<Turn['adapter']['stream']>[4]} options
+ * @param {Parameters<Turn['adapter']['stream']>[5]} callback
+ */
 function streamRound(turn, options, callback) {
     return turn.adapter.stream(turn.apiKey, turn.apiUrl, turn.modelId, applyTokenMapToMessages({ conversationId: turn.convId, messages: turn.messages }), options, callback);
 }
@@ -41,6 +50,10 @@ function streamRound(turn, options, callback) {
  * started); completion reset happens inside handleSessionSkillCompleteResult
  * after dispatch. Any other tool-only round advances the counter toward the
  * soft cap that force-requires complete_session_skill.
+ * @template T
+ * @param {Turn} turn
+ * @param {T[]} toolCalls
+ * @param {(tc: T) => string | undefined} nameOf
  */
 function countStepRound(turn, toolCalls, nameOf) {
     const calledActivation = toolCalls.some(tc => nameOf(tc) === ACTIVATE_SESSION_SKILL_TOOL_NAME);
@@ -49,7 +62,10 @@ function countStepRound(turn, toolCalls, nameOf) {
     else if (!calledCompletion) turn.roundsInCurrentStep += 1;
 }
 
-/** Reset what a discarded stream attempt accumulated before it is retried. */
+/**
+ * Reset what a discarded stream attempt accumulated before it is retried.
+ * @param {Turn} turn
+ */
 function resetStreamedOutput(turn) {
     turn.fullContent = '';
     turn.thinkingContent = '';
@@ -62,14 +78,21 @@ function resetStreamedOutput(turn) {
  * BFSF-261: release any held untokeniser tail into THIS round's text and
  * record it before the reset wipes it, so the pre-tool preamble survives into
  * persistence and is separated from the follow-up text in the live view.
+ * @param {Turn} turn
  */
 function closeVisibleRound(turn) {
-    try { turn.streamContentFlush(); } catch (err) { log.debug('best-effort', err); }
+    try { turn.streamContentFlush(); } catch (err) { bestEffort('routes/ai/directChat/toolLoopRounds:closeVisibleRound', err); /* best-effort */ }
     turn.displaySegments.onRoundEnd(turn.fullContent);
     turn.fullContent = '';
 }
 
-/** Run the tool calls of one round in parallel, emit their events, append the results. */
+/**
+ * Run the tool calls of one round in parallel, emit their events, append the results.
+ * @param {Turn} turn
+ * @param {ToolLoop} loop
+ * @param {Array<Parameters<typeof executeDirectChatToolCall>[0]>} toolCalls
+ * @param {{ streamed: boolean }} opts
+ */
 async function executeToolRound(turn, loop, toolCalls, { streamed }) {
     const { req } = turn;
     const userAuth = await getUserAuth(req);
@@ -97,6 +120,9 @@ async function executeToolRound(turn, loop, toolCalls, { streamed }) {
  * 4.3k-token prompt is ~29 s per evaluation at ~150 tok/s).
  *
  * Returns false when a provider error ended the stream.
+ * @param {Turn} turn
+ * @param {ToolLoop} loop
+ * @param {() => ((reason: string) => Promise<unknown>) | null | undefined} persistInterruptedTurn
  */
 async function runPrecheckLoop(turn, loop, persistInterruptedTurn) {
     const { req, send } = turn;
@@ -121,7 +147,7 @@ async function runPrecheckLoop(turn, loop, persistInterruptedTurn) {
             log.error('[DirectChat] Tool check error:', err.message);
             orgHealth.problem('chat.provider_error', {
                 orgId: turn.userOrgId || null, source: 'directChat', req,
-                meta: { modelId: turn.modelId, provider: turn.config?.providerName || turn.config?.providerType || null, error: err },
+                meta: { modelId: turn.modelId, provider: /** @type {{ providerName?: string }} */ (turn.config)?.providerName || turn.config?.providerType || null, error: err },
             });
             const persist = persistInterruptedTurn();
             if (persist) await persist(`API error: ${err.message}`);
@@ -130,7 +156,7 @@ async function runPrecheckLoop(turn, loop, persistInterruptedTurn) {
             return false;
         }
         if (!(result.toolCalls && result.toolCalls.length > 0)) break;
-        countStepRound(turn, result.toolCalls, tc => tc.function?.name || tc.name);
+        countStepRound(turn, result.toolCalls, tc => tc.function?.name || /** @type {{ name?: string }} */ (tc).name);
         // Add assistant message with tool calls to history
         turn.messages.push({
             role: 'assistant',
@@ -151,6 +177,9 @@ async function runPrecheckLoop(turn, loop, persistInterruptedTurn) {
  * Stream the final response via adapter.stream(). Pipeline guard at the
  * streaming-call boundary: while a session-skill pipeline is mid-run, the
  * LLM is forced to keep calling tools instead of emitting final text.
+ * @param {Turn} turn
+ * @param {ToolLoop} loop
+ * @param {ReturnType<typeof import('./streamCallbacks').createStreamCallbacks>['primary']} streamCallback
  */
 async function streamPrimary(turn, loop, streamCallback) {
     const { send } = turn;
@@ -203,7 +232,12 @@ async function streamPrimary(turn, loop, streamCallback) {
     _resolveChatProblemsThrottled(turn.userOrgId);
 }
 
-/** Streaming options for a follow-up or kickstart round under a fresh guard. */
+/**
+ * Streaming options for a follow-up or kickstart round under a fresh guard.
+ * @param {Turn} turn
+ * @param {ToolLoop} loop
+ * @param {string} label
+ */
 function guardedFollowOptions(turn, loop, label) {
     const guard = computeStepMachineGuard(turn);
     loop.setVolatileGuard(guard.systemAppend);
@@ -212,7 +246,7 @@ function guardedFollowOptions(turn, loop, label) {
     turn.muteAssistantText = !!guard.mute;
     const options = {
         ...turn.chatOptions,
-        previousResponseId: undefined, // Don't chain: tool results must be sent in full
+        previousResponseId: /** @type {string | undefined} */ (undefined), // Don't chain: tool results must be sent in full
         tools: turn.directChatTools.length > 0 ? turn.directChatTools : undefined,
         toolChoice: turn.directChatTools.length > 0 ? guard.toolChoice : undefined,
     };
@@ -225,6 +259,10 @@ function guardedFollowOptions(turn, loop, label) {
  * Force another streaming round with the step-machine tool_choice. Returns
  * false when the LLM still refused to emit tool calls (stop looping; the
  * final save path handles the empty reply).
+ * @param {Turn} turn
+ * @param {ToolLoop} loop
+ * @param {number} toolRound
+ * @param {ReturnType<typeof import('./streamCallbacks').createStreamCallbacks>['follow']} followStreamCallback
  */
 async function kickstartWrapUp(turn, loop, toolRound, followStreamCallback) {
     const { guard: kickGuard, options: kickOptions } = guardedFollowOptions(turn, loop, `kickstart round=${toolRound + 1}`);
@@ -245,7 +283,13 @@ async function kickstartWrapUp(turn, loop, toolRound, followStreamCallback) {
     return true;
 }
 
-/** Stream the follow-up response after tool execution (with tools, for multi-round). */
+/**
+ * Stream the follow-up response after tool execution (with tools, for multi-round).
+ * @param {Turn} turn
+ * @param {ToolLoop} loop
+ * @param {number} toolRound
+ * @param {ReturnType<typeof import('./streamCallbacks').createStreamCallbacks>['follow']} followStreamCallback
+ */
 async function streamFollowUp(turn, loop, toolRound, followStreamCallback) {
     closeVisibleRound(turn);
     turn.streamToolCalls = [];
@@ -267,6 +311,9 @@ async function streamFollowUp(turn, loop, toolRound, followStreamCallback) {
  * Tool calls received during streaming (Google SDK path and the self-hosted
  * runtimes). Loops to support multi-round tool calling (e.g. list →
  * get_summary).
+ * @param {Turn} turn
+ * @param {ToolLoop} loop
+ * @param {ReturnType<typeof import('./streamCallbacks').createStreamCallbacks>['follow']} followStreamCallback
  */
 async function runStreamedToolRounds(turn, loop, followStreamCallback) {
     let toolRound = 0;
@@ -304,6 +351,9 @@ async function runStreamedToolRounds(turn, loop, followStreamCallback) {
 /**
  * All LLM rounds of the turn. Returns false when the pre-check loop ended the
  * stream on a provider error.
+ * @param {Turn} turn
+ * @param {ToolLoop} loop
+ * @param {() => ((reason: string) => Promise<unknown>) | null | undefined} persistInterruptedTurn
  */
 async function runToolLoop(turn, loop, persistInterruptedTurn) {
     if (!(await runPrecheckLoop(turn, loop, persistInterruptedTurn))) return false;

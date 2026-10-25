@@ -12,12 +12,12 @@
 
 'use strict';
 
-const log = require('../../../telemetry/log');
 
 const {
     _plainObject, toolsConfigOf, CONFIRM_MODES, DATATABLE_SCOPES,
     MAX_DATATABLE_GRANTS, MAX_COLUMNS_PER_DATATABLE, UNSAFE_OBJECT_KEYS,
 } = require('./configShape');
+const { fallback } = require('../../../utils/bestEffort');
 
 /**
  * The granted automations as `{ id: { confirm } }` (empty object when none).
@@ -74,15 +74,19 @@ function datatableGrantsOf(toolsConfig) {
             const scope = DATATABLE_SCOPES.includes(raw.scope) ? raw.scope : 'own';
             out[id] = { scope, columns: _datatableColumns(raw.columns) };
         }
-    } catch (err) { log.debug('an unreadable section grants nothing', err); }
+    } catch (err) { fallback('core/agentRuntime/toolPolicy/reservedGrants:datatableGrantsOf', err); /* an unreadable section grants nothing */ }
     return out;
 }
 
-/** `'*'` (every declared column) or the picked list. See datatableGrantsOf. */
+/**
+ * `'*'` (every declared column) or the picked list. See datatableGrantsOf.
+ * @param {string | null | undefined} raw
+ */
 function _datatableColumns(raw) {
     if (raw === undefined || raw === null || raw === '*') return '*';
     if (!Array.isArray(raw)) return [];      // unreadable ⇒ nothing granted
     const seen = new Set();
+    /** @type {string[]} */
     const out = [];
     for (const c of raw) {
         if (typeof c !== 'string' || !c || seen.has(c)) continue;

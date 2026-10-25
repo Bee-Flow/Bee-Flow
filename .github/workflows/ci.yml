@@ -163,7 +163,7 @@ jobs:
               - 'server/stores/notebook/{rowMappers,notebooks}.js'
               - 'server/stores/usage/{queries,breakdowns}.js'
               - 'server/services/stripe/invoicesPromos.js'
-              - 'server/utils/stableJson.js'
+              - 'server/utils/{bestEffort,stableJson}.js'
               # the logger every server file mobile reads may require (catch blocks log at debug)
               - 'server/telemetry/log.js'
               # required by server/telemetry/log.js (log-safe stand-ins for user content)
@@ -251,7 +251,7 @@ jobs:
             server:
               - 'server/**'
               - '.nvmrc'
-              - 'scripts/{eslint-budget,check-server-manifest,check-playwright-lockstep,check-legal-catalogue,source-text-tests,count-ratchet,coverage-ratchet,checkjs-ratchet,gen-i18n-defaults,i18n-key-guard,i18n-split,entry-point}.mjs'
+              - 'scripts/{eslint-budget,check-server-manifest,check-playwright-lockstep,check-legal-catalogue,source-text-tests,count-ratchet,coverage-ratchet,checkjs-ratchet,check-new-code-types,gen-i18n-defaults,i18n-key-guard,i18n-split,entry-point}.mjs'
               - 'scripts/eslint/**'
               - 'docs/docs/**'
               - 'components/**'
@@ -611,6 +611,10 @@ jobs:
         if: github.event_name == 'pull_request'
         working-directory: .
         run: node scripts/i18n-key-guard.mjs --base ${{ github.event.pull_request.base.sha }}
+      - name: New server code is typed (.mts or // @typecheck strict)
+        if: github.event_name == 'pull_request'
+        working-directory: .
+        run: node scripts/check-new-code-types.mjs --base ${{ github.event.pull_request.base.sha }}
 
   server-shard:
     name: Server tests (shard ${{ matrix.shard }}/3)

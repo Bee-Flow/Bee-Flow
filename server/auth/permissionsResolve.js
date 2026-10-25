@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Permissions — resolving what a user may do: getUserPermissions (with its
  * cache and degraded-state signal), the audit variant, hasPermission, the RBAC
@@ -15,6 +14,7 @@ const { tagGate } = require('./gateMeta');
 /** @type {typeof import('./orgScope').orgScope} */
 const orgScope = dep('orgScope');
 const log = require('../telemetry/log');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 const { getRedis } = require('../db');
 const { buildKey } = require('../utils/buildInfo');
 const _metrics = require('../telemetry/httpMetrics');
@@ -74,7 +74,7 @@ async function getUserPermissions(userId, session = null) {
                 return cached.perms;
             }
         }
-    } catch (err) { log.debug('cache miss — resolve from DB', err); }
+    } catch (err) { bestEffort('permissionsResolve:cache-read', err); }
     _metrics.recordCache('permissions', false);
 
     try {
@@ -91,7 +91,7 @@ async function getUserPermissions(userId, session = null) {
         if (Array.isArray(user.groups)) {
             groupIds = user.groups;
         } else {
-            try { groupIds = JSON.parse(user.groups || '[]'); } catch (_) { log.debug('user.groups is not valid JSON, treat as no group membership', _); }
+            try { groupIds = JSON.parse(user.groups || '[]'); } catch (err) { groupIds = fallback('permissionsResolve:groups-json', err, []); }
         }
 
         const allGroups = await userStore.getAllGroups();
@@ -217,7 +217,7 @@ async function getUserPermissions(userId, session = null) {
             } else {
                 _permCache.set(userId, { perms: result, ts: Date.now() });
             }
-        } catch (err) { log.debug('cache write failure is non-fatal', err); }
+        } catch (err) { bestEffort('permissionsResolve:cache-write', err); }
 
         return result;
     } catch (err) {

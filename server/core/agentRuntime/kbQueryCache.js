@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Per-conversation kb_search result cache.
  *
@@ -32,16 +32,28 @@ const _cache = new Map();
 
 const MAX_CHUNKS_PER_CONV = 256;
 
+/**
+ * @param {string} q
+ */
 function normalizeQuery(q) {
     return String(q || '').toLowerCase().replace(/\s+/g, ' ').trim();
 }
 
+/**
+ * @param {string} query
+ * @param {string[] | string | null} kbIds
+ */
 function buildKey(query, kbIds) {
     const sortedIds = Array.isArray(kbIds) ? [...kbIds].sort().join(',') : String(kbIds || '');
     const material = `${normalizeQuery(query)}|${sortedIds}`;
     return crypto.createHash('sha1').update(material).digest('hex');
 }
 
+/**
+ * @param {string} conversationId
+ * @param {string} query
+ * @param {string[] | string | null} kbIds
+ */
 function get(conversationId, query, kbIds) {
     if (!conversationId) return null;
     const bucket = _cache.get(conversationId);
@@ -58,6 +70,12 @@ function get(conversationId, query, kbIds) {
     return value;
 }
 
+/**
+ * @param {string} conversationId
+ * @param {string} query
+ * @param {string[] | string | null} kbIds
+ * @param {unknown} result
+ */
 function set(conversationId, query, kbIds, result) {
     if (!conversationId) return;
     let bucket = _cache.get(conversationId);
@@ -78,6 +96,7 @@ function set(conversationId, query, kbIds, result) {
 
 /**
  * Explicitly drop a conversation's cache (e.g. when the user starts a "new chat").
+ * @param {string} conversationId
  */
 function invalidate(conversationId) {
     if (conversationId) _cache.delete(conversationId);
@@ -86,6 +105,8 @@ function invalidate(conversationId) {
 /**
  * Stash every chunk returned by a kb_search so a subsequent kb_fetch can
  * resolve full content by chunk_id without re-querying the DB / search-service.
+ * @param {string} conversationId
+ * @param {Array<{ chunk_id?: string | number, title?: string, section?: string, content?: string, source_uri?: string }>} chunks
  */
 function setChunks(conversationId, chunks) {
     if (!conversationId || !Array.isArray(chunks)) return;
@@ -114,6 +135,10 @@ function setChunks(conversationId, chunks) {
     }
 }
 
+/**
+ * @param {string} conversationId
+ * @param {string | number} chunkId
+ */
 function getChunk(conversationId, chunkId) {
     if (!conversationId || !chunkId) return null;
     const bucket = _cache.get(conversationId);

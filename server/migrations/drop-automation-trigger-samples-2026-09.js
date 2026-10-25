@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck strict
 /**
  * Migration: drop `automation_trigger_samples` (BFSF-440).
  *

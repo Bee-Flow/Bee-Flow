@@ -18,6 +18,11 @@ const { HttpError } = require('../core/http/errors');
 const router = express.Router();
 
 const notebookStore = require('../stores/notebookStore');
+
+/**
+ * Request after requireNotebookRole: the loaded notebook and the caller's role on it.
+ * @typedef {import('express').Request<{ id: string, sid: string, type: string }> & { notebook: NonNullable<Awaited<ReturnType<typeof notebookStore.getNotebook>>>, notebookRole: string }} NotebookReq
+ */
 // Module scope on purpose: /ai-fill reads TIER_DEFAULTS too, and when this was
 // require()'d inside the /generate/:type handler it was block-scoped there, so
 // every AI-Fill run threw ReferenceError after the SSE headers had been sent.
@@ -26,6 +31,7 @@ const { validate } = require('../core/http/validate');
 const { openSse } = require('../core/http/sseHelpers');
 const { worded, bodyOf } = require('../core/http/schemaParts');
 const { partitionNotebookKbIds } = require('../agents/notebooks/notebookKbAccess');
+/** @typedef {import('../agents/notebooks/notebookAiShield').ShieldRefusal} ShieldRefusal */
 const { shieldNotebookPrompt } = require('../agents/notebooks/notebookAiShield');
 const { asEditor, text } = require('./notebooksShared');
 // requireAuth is the canonical gate from auth/permissions (see routes/notebooks.js).
@@ -51,7 +57,7 @@ const VALID_GEN_TYPES = new Set([
 ]);
 const REMOVED_GEN_TYPES = new Set(['studyGuide', 'flashcards', 'quiz', 'audio_overview']);
 
-router.post('/:id/generate/:type', requireAuth, validate({ body: GenerateBody }), asEditor, async (req, res) => {
+router.post('/:id/generate/:type', requireAuth, validate({ body: GenerateBody }), asEditor, /** @param {NotebookReq} req */ async (req, res) => {
     try {
         const userId = req.session.user.id;
         const notebookId = req.params.id;
@@ -72,7 +78,7 @@ router.post('/:id/generate/:type', requireAuth, validate({ body: GenerateBody })
         }
 
         const sources = await notebookStore.getSources(notebookId);
-        const readySources = sources.filter(s => s.status === 'ready');
+        const readySources = sources.filter((/** @type {{ status: string }} */ s) => s.status === 'ready');
         // A doc-only notebook is still generatable — gatherNotebookContent
         // folds the document body in below.
         const hasDoc = !!(nb.documentMd || nb.documentContent || '').trim();
@@ -111,10 +117,11 @@ router.post('/:id/generate/:type', requireAuth, validate({ body: GenerateBody })
         const userOrgId = await resolveEffectiveOrgId(req, { userId, skipGroupFallback: true });
         // The Privacy Shield, on the notebook chat's path (agents/notebooks/notebookAiShield.js).
         const shield = await shieldNotebookPrompt({ orgId: userOrgId, userId, notebookId, sourceText: allContent.slice(0, 50000) });
-        if (!shield.ok) return res.status(shield.status).json({ error: shield.error, code: shield.code });
+        if (!shield.ok) return res.status(/** @type {ShieldRefusal} */ (shield).status).json({ error: /** @type {ShieldRefusal} */ (shield).error, code: /** @type {ShieldRefusal} */ (shield).code });
 
         // Type-specific prompts. Only the types in VALID_GEN_TYPES reach here —
         // the check above rejects everything else.
+        /** @type {Record<string, string>} */
         const typePrompts = {
             faq: `Generate a focused FAQ (Frequently Asked Questions) document based on the source material below.
 Format as a well-structured markdown document with clear Q&A pairs grouped by topic. Keep answers concise (2-3 sentences each).`,
@@ -212,7 +219,7 @@ ${shield.units[0]}${shield.addendum}`;
         await adapter.stream(apiKey, apiUrl, modelId, messages, chatOptions, (streamType, data) => {
             if (streamType === 'text') {
                 // Real values back in for the person who asked; the model saw tokens.
-                send('content', { text: shield.untokenise.push(data.text) });
+                send('content', { text: shield.untokenise.push(/** @type {string} */ (data.text)) });
             } else if (streamType === 'thinking') {
                 send('thinking', { text: data.text });
             } else if (streamType === 'error') {
@@ -242,7 +249,7 @@ ${shield.units[0]}${shield.addendum}`;
 // ── AI Fill Parameters ────────────────────────────────────────────
 // Extracts {{parameter}} placeholders from the document and fills them
 // using the notebook's attached sources.
-router.post('/:id/ai-fill', requireAuth, validate({ body: AiFillBody }), asEditor, async (req, res) => {
+router.post('/:id/ai-fill', requireAuth, validate({ body: AiFillBody }), asEditor, /** @param {NotebookReq} req */ async (req, res) => {
     try {
         const userId = req.session.user.id;
         const nb = req.notebook;
@@ -265,7 +272,7 @@ router.post('/:id/ai-fill', requireAuth, validate({ body: AiFillBody }), asEdito
         // like chat and generation: the notebook's own base by notebook role,
         // anything else by the caller's own KB access.
         const { allowed: kbIds } = await partitionNotebookKbIds(req, nb);
-        const readySources = (await notebookStore.getSources(nb.id)).filter((src) => src.status === 'ready');
+        const readySources = (await notebookStore.getSources(nb.id)).filter((/** @type {{ status: string }} */ src) => src.status === 'ready');
         const { gatherNotebookContent } = require('../core/kb/notebookKnowledgeSearch');
         const { content: sourceContent } = await gatherNotebookContent({
             userId: nb.userId, kbIds, sources: readySources, documentContent: null,
@@ -288,7 +295,7 @@ router.post('/:id/ai-fill', requireAuth, validate({ body: AiFillBody }), asEdito
         const shield = await shieldNotebookPrompt({
             orgId: userOrgId, userId, notebookId: nb.id, sourceText: sourceContent.slice(0, 60000), otherUnits: [documentContent],
         });
-        if (!shield.ok) return res.status(shield.status).json({ error: shield.error, code: shield.code });
+        if (!shield.ok) return res.status(/** @type {ShieldRefusal} */ (shield).status).json({ error: /** @type {ShieldRefusal} */ (shield).error, code: /** @type {ShieldRefusal} */ (shield).code });
         const [shieldedSources, shieldedDocument] = shield.units;
 
         let resolvedTier = modelTier || 'balanced';
@@ -343,7 +350,7 @@ ${shieldedSources}${shield.addendum}`;
 
         await adapter.stream(apiKey, apiUrl, modelId, messages, chatOptions, (streamType, data) => {
             if (streamType === 'text') {
-                send('content', { text: shield.untokenise.push(data.text) });
+                send('content', { text: shield.untokenise.push(/** @type {string} */ (data.text)) });
             } else if (streamType === 'error') {
                 send('error', data);
             }

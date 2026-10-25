@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Webpage Export — server-side PDF rendering of a webpage via Playwright.
  *
@@ -53,6 +53,7 @@ const { requireAuth } = require('../auth/permissions');
 /**
  * Compose a complete HTML document from the three slots, inlining the CSS
  * and JS. Mirrors the frontend `composeWebpageDocument.js` util.
+ * @param {{ html?: string | null, css?: string | null, js?: string | null }} slots
  */
 function composeInlinedHtml({ html, css, js }) {
     const safeHtml = html && html.trim() ? html : '<!DOCTYPE html><html><head></head><body></body></html>';
@@ -75,7 +76,7 @@ const browserProvider = require('../services/browserProvider');
 
 router.post('/:id/export/pdf', requireAuth, validate({ body: NoBody }), require('../compliance/dataPortability/stampExport')('ai_webpages'), async (req, res) => {
     const userId = req.session.user.id;
-    const id = req.params.id;
+    const id = /** @type {string} */ (req.params.id);
 
     const wp = await webpageStore.getWebpage(id, userId);
     if (!wp) return res.status(404).json({ error: 'Webpage not found' });

@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: automation_approvals — the approval as a PRODUCT object (2026-08).
  *

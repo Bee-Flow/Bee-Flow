@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Support Mailer — outbound replies for the tenant Support inbox.
  *
@@ -24,6 +25,7 @@ const {
     _escapeHtml,
 } = require('./email/send');
 const supportInboxStore = require('../stores/supportInboxStore');
+const { fallback } = require('../utils/bestEffort');
 
 /**
  * AI-disclosure footer appended to EVERY automatic AI reply (not to human-sent
@@ -31,6 +33,8 @@ const supportInboxStore = require('../stores/supportInboxStore');
  * assistant and that a human can take over — satisfies AI-transparency
  * expectations and sets the right tone. Inline styles only (email clients strip
  * <style>); neutral greys, no brand-clashing colours.
+ *
+ * @param {{ display_name?: string|null, email_address?: string|null }} inbox
  */
 function buildAiDisclosureHtml(inbox) {
     const name = (inbox.display_name && inbox.display_name.trim()) || inbox.email_address || 'Support';
@@ -52,9 +56,9 @@ const SUPPORTED_PROVIDERS = new Set(['gmail', 'outlook']);
  * Send a reply from a connected inbox into a thread's conversation.
  *
  * @param {string} inboxId
- * @param {object} thread  support_threads row (needs id, requester_email, subject, provider_thread_id)
- * @param {object} opts    { bodyText, bodyHtml, subject?, inReplyTo?, references?, sourceProviderMessageId?, isAiReply? }
- * @returns {Promise<{providerMessageId, providerThreadId, rfc822MessageId, status}>}
+ * @param {{ id: string, requester_email?: string, subject?: string, provider_thread_id?: string|null, [key: string]: unknown }} thread  support_threads row (needs id, requester_email, subject, provider_thread_id)
+ * @param {{ bodyText?: string, bodyHtml?: string, subject?: string, inReplyTo?: string, references?: string, sourceProviderMessageId?: string, isAiReply?: boolean }} [opts]
+ * @returns {Promise<{providerMessageId: string|null, providerThreadId: string|null, rfc822MessageId: string|null, status: { ok: boolean, provider: string, at: string }}>}
  */
 async function sendReply(inboxId, thread, opts = {}) {
     const inbox = await supportInboxStore.getInboxWithTokens(inboxId);
@@ -62,7 +66,7 @@ async function sendReply(inboxId, thread, opts = {}) {
     if (!inbox.tokens || !inbox.tokens.accessToken) throw new Error('Inbox is not connected — reconnect the mailbox.');
     if (!SUPPORTED_PROVIDERS.has(inbox.provider)) throw new Error(`Unsupported provider: ${inbox.provider}`);
 
-    const onRefresh = (t) => supportInboxStore.updateTokens(inbox.id, t).catch(() => {});
+    const onRefresh = (t) => supportInboxStore.updateTokens(inbox.id, t).catch((e) => fallback('services/supportMailer:onRefresh', e));
     const baseSubject = opts.subject || thread.subject || '(no subject)';
     const subject = /^\s*re:/i.test(baseSubject) ? baseSubject : `Re: ${baseSubject}`;
     const sig = inbox.signature ? String(inbox.signature) : '';

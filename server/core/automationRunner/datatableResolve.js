@@ -129,3 +129,9 @@ async function resolveDatatableForStep(datatableId, ctx, { needed = 'viewer', re
 }
 
 module.exports = { resolveDatatableForStep, _fail: fail };
+
+/** @typedef {NonNullable<ReturnType<typeof import('../../stores/datatableStore/rowMappers').rowToDatatable>>} DatatableRow */
+
+/** @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/datatableStore/datatables').getTableMeta>>>} DatatableMeta */
+
+/** @typedef {Awaited<ReturnType<typeof resolveDatatableForStep>>} ResolvedDatatable */

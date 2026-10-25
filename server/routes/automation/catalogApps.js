@@ -12,6 +12,7 @@ const { TOOL_REGISTRY, loadTools } = require('../../automation/toolRegistry');
 const { isSideEffect, effectOf } = require('../../automation/sideEffectMap');
 const { getOutputSchema, producesList, iterableFieldsOf } = require('../../automation/outputSchemas');
 const { resolveIntegration } = require('../../core/integrations/integrationToolMap');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * What a person reads for an action, next to the app's name: `nextcloud_mail_list_mailboxes`
@@ -33,6 +34,7 @@ function actionLabel(name, appLabels) {
  * definitions. Best effort: present everything, mark `available: true` if
  * integrationTools.js would expose it.
  * @returns {Promise<{ userToolNames: Set<string>, userToolDefs: any[] }>}
+ * @param {string} userId
  */
 async function loadUserTools(req, userId) {
     const session = req.session;
@@ -56,11 +58,14 @@ async function loadUserTools(req, userId) {
         for (const t of userToolDefs) {
             if (t?.function?.name) userToolNames.add(t.function.name);
         }
-    } catch (err) { log.debug('user might not be fully set up', err); }
+    } catch (err) { fallback('routes/automation/catalogApps:userTools', err); /* none: strict gating */ }
     return { userToolNames, userToolDefs };
 }
 
-/** Is the webpages beta on for this user? */
+/**
+ * Is the webpages beta on for this user?
+ * @param {string} userId
+ */
 async function isWebpagesAvailable(req, userId) {
     // Webpages availability is gated on the beta feature — the same gate
     // getIntegrationTools now uses to actually provision the tools (so the
@@ -72,7 +77,7 @@ async function isWebpagesAvailable(req, userId) {
     try {
         const { userHasBetaFeature } = require('../../core/entitlements/betaFeatures');
         webpagesAvailable = await userHasBetaFeature(userId, 'webpages', req.session);
-    } catch (err) { log.debug('default false', err); }
+    } catch (err) { fallback('routes/automation/catalogApps:isWebpagesAvailable', err); /* default false */ }
     return webpagesAvailable;
 }
 
@@ -135,6 +140,7 @@ function buildApps({ userToolNames, webpagesAvailable }) {
 /**
  * The reusable steps this user may add, each flagged with whether every
  * integration it touches is available.
+ * @param {string} userId
  */
 async function buildSteps(req, userId, apps) {
     // Reusable Steps (kind='block') the user may add to this automation.
@@ -165,7 +171,7 @@ async function buildSteps(req, userId, apps) {
             requiredIntegrations: s.requiredIntegrations,
             available: (s.requiredIntegrations || []).every(i => availableIntegrationIds.has(i)),
         }));
-    } catch (e) { log.warn('[automation/catalog] steps load failed:', e.message); }
+    } catch (e) { log.warn('[automation/catalog] steps load failed:', /** @type {Error} */ (e).message); }
     return steps;
 }
 
@@ -190,3 +196,9 @@ function buildFormPickSources(userToolNames) {
 }
 
 module.exports = { actionLabel, loadUserTools, isWebpagesAvailable, buildApps, buildSteps, buildFormPickSources };
+
+/**
+ * @typedef {Object} BuildAppsArgs
+ * @property {Set<string>} userToolNames
+ * @property {boolean} [webpagesAvailable]
+ */

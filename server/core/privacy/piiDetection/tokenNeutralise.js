@@ -45,7 +45,7 @@
 'use strict';
 
 /** Category key (see `_tokenCategoryKey`, minus separators) → readable noun. */
-const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
 const TOKEN_WORDS = Object.freeze({
     email: 'an email address',
@@ -112,7 +112,7 @@ function _wordFor(categoryKey) {
     // Lazy: the registry pulls in the matchers, and this module is a leaf.
     try {
         if (require('../customTypes/registry').isCustomTokenKey(categoryKey)) return CUSTOM_WORD;
-    } catch (err) { log.debug('registry unavailable: the generic word is still safe', err); }
+    } catch (err) { fallback('privacy/tokenNeutralise:registry', err); /* the generic word is still safe */ }
     return GENERIC_WORD;
 }
 

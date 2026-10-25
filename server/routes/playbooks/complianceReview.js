@@ -21,6 +21,8 @@ const lifecycle = require('../../playbooks/lifecycle');
 const { sendErr } = require('./contract');
 const { kindOf, firstOfKind, appBefore, localeOf } = require('./phaseList');
 const log = require('../../telemetry/log');
+const { isMissingTable } = require('../../utils/isMissingTable');
+const { fallback } = require('../../utils/bestEffort');
 
 /** Rows the compliance review samples to judge personal data by its VALUES. */
 const SAMPLE_ROWS = 50;
@@ -67,7 +69,7 @@ function makeRunComplianceReview(ctx) {
             try {
                 const row = await d.datatableStore.getDatatable(tableArt.datatableId, tableArt.datatableScope);
                 if (row && Number.isFinite(Number(row.rowCount))) table.rowCount = Number(row.rowCount);
-            } catch (err) { log.debug('the columns are the material that matters', err); }
+            } catch (err) { if (!isMissingTable(err)) throw err; log.debug('the columns are the material that matters', err); }
         }
         const automations = [];
         for (const p of phases) {
@@ -102,7 +104,7 @@ function makeRunComplianceReview(ctx) {
                         definition: a.definition || null,
                     });
                 }
-            } catch (err) { log.debug('an automation that cannot be read is simply not reviewed', err); }
+            } catch (err) { fallback('routes/playbooks/complianceReview:runComplianceReview', err); /* an automation that cannot be read is simply not reviewed */ }
         }
         let app = null;
         let access = null;
@@ -122,8 +124,8 @@ function makeRunComplianceReview(ctx) {
                             .then((list) => (Array.isArray(list) ? list.length : 0))
                             .catch(() => 0),
                     };
-                    const meta = await d.studioAppDataStore.getDataModel(appId, row.userId).catch(() => null);
-                    const members = await d.studioAppDataStore.listMembers(appId, row.userId).catch(() => []);
+                    const meta = await d.studioAppDataStore.getDataModel(appId, row.userId).catch((e) => fallback('routes/playbooks/complianceReview:runComplianceReview#2', e, null));
+                    const members = await d.studioAppDataStore.listMembers(appId, row.userId).catch((e) => fallback('routes/playbooks/complianceReview:runComplianceReview#3', e, []));
                     access = {
                         roles: (meta && meta.model && Array.isArray(meta.model.roles)) ? meta.model.roles : [],
                         defaultRole: (meta && meta.model && meta.model.roleMapping && meta.model.roleMapping.default) || null,
@@ -134,7 +136,7 @@ function makeRunComplianceReview(ctx) {
                     const modelTables = (meta && meta.model && Array.isArray(meta.model.tables)) ? meta.model.tables : [];
                     app.scopedRoles = [...new Set(modelTables.flatMap((mt) => Object.keys((mt && mt.access && mt.access.rowFilters) || {})))];
                 }
-            } catch (err) { log.debug('reviewed without it', err); }
+            } catch (err) { fallback('routes/playbooks/complianceReview:runComplianceReview#4', err); /* reviewed without it */ }
         }
 
         // ── which rules this organisation actually follows ──────────────
@@ -167,7 +169,7 @@ function makeRunComplianceReview(ctx) {
                     limit: SAMPLE_ROWS,
                 });
                 rows = Array.isArray(page && page.rows) ? page.rows : [];
-            } catch (err) { log.debug('the review still runs on what it has', err); }
+            } catch (err) { fallback('routes/playbooks/complianceReview:runComplianceReview#5', err); /* the review still runs on what it has */ }
         }
         let enrichment = null;
         try {

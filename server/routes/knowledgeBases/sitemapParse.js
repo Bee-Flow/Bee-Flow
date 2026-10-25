@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 const { XMLParser, XMLValidator } = require('fast-xml-parser');
@@ -10,6 +10,7 @@ const parser = new XMLParser({
     isArray: (name) => name === 'url' || name === 'sitemap',
 });
 
+/** @param {{ loc?: unknown } | null | undefined} entry */
 function firstLoc(entry) {
     if (!entry || typeof entry !== 'object') return null;
     const loc = Array.isArray(entry.loc) ? entry.loc[0] : entry.loc;
@@ -20,6 +21,8 @@ function firstLoc(entry) {
  * Pulls the page URLs (<urlset>) and nested sitemap URLs (<sitemapindex>) out
  * of a sitemap document, resolved against the sitemap's own URL. Malformed XML
  * throws.
+ * @param {string} xml
+ * @param {string | URL} sitemapBaseUrl
  */
 function parseSitemap(xml, sitemapBaseUrl) {
     const valid = XMLValidator.validate(xml);

@@ -1,3 +1,5 @@
+/** @typedef {import('express-serve-static-core').Express} Express */
+// @typecheck noImplicitAny
 /**
  * Data Act export registry — every kind of data the platform holds for an
  * organisation, and the export route (if any) that lets the organisation take
@@ -26,6 +28,7 @@
 const path = require('path');
 const routeProbe = require('./routeProbe');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const SERVER_ROOT = path.resolve(__dirname, '..', '..');
 
@@ -34,10 +37,18 @@ const SERVER_ROOT = path.resolve(__dirname, '..', '..');
 const MACHINE_READABLE_FORMATS = Object.freeze(['json', 'ndjson', 'csv', 'xlsx', 'xml', 'zip', 'md', 'docx']);
 const KNOWN_FORMATS = Object.freeze([...MACHINE_READABLE_FORMATS, 'txt', 'pdf', 'html']);
 
+/**
+ * @param {string} table
+ * @param {string} [col]
+ */
 const orgCount = (table, col = 'organization_id') => `SELECT COUNT(*)::int AS c FROM ${table} WHERE ${col} = $1`;
 // A project's organisation, '' read as the 'default' bucket (see
 // compliance/projects/projectData.js).
 const projectOrg = `COALESCE(NULLIF(p.organization_id, ''), 'default') = $1`;
+/**
+ * @param {string} table
+ * @param {string} alias
+ */
 const viaUsers = (table, alias) =>
     `SELECT COUNT(*)::int AS c FROM ${table} ${alias} JOIN users u ON u.id = ${alias}.user_id WHERE u."organizationId" = $1`;
 
@@ -263,6 +274,7 @@ const EXPORT_KINDS = Object.freeze([
     },
 ]);
 
+/** @param {string} kind */
 function getKind(kind) {
     return EXPORT_KINDS.find(k => k.kind === kind) || null;
 }
@@ -277,6 +289,7 @@ function portableKinds() {
  * @returns {Array<{kind:string,method:string,path:string,mount:object,role:'primary'|'extra'|'render_only'}>}
  */
 function declaredRoutes() {
+    /** @type {Array<{kind:string,method:string,path:string,mount:object,role:'primary'|'extra'|'render_only'}>} */
     const out = [];
     for (const k of EXPORT_KINDS) {
         if (k.route) out.push({ kind: k.kind, ...k.route, mount: k.mount, role: 'primary' });
@@ -295,9 +308,13 @@ function declaredRoutes() {
 // tables do not change at runtime.
 
 const _apps = new Map();
+/**
+ * @param {{ prefix: string; module: string; via?: string; }} mount
+ */
 function _appFor(mount) {
     const key = `${mount.prefix} ${mount.module}`;
     if (_apps.has(key)) return _apps.get(key);
+    /** @type {Express | null} */
     let app = null;
     try {
         const router = require(path.join(SERVER_ROOT, mount.module));
@@ -306,7 +323,7 @@ function _appFor(mount) {
         app.use(mount.prefix, router);
     } catch (e) {
         app = null;
-        log.warn(`[ExportRegistry] could not load ${mount.module}: ${e.message}`);
+        log.warn(`[ExportRegistry] could not load ${mount.module}: ${/** @type {Error} */ (e).message}`);
     }
     _apps.set(key, app);
     return app;
@@ -328,27 +345,37 @@ function clearCache() { _apps.clear(); }
 
 // ── Held counts ─────────────────────────────────────────────────────────────
 
+/**
+ * @param {string} sql
+ * @param {string} orgId
+ */
 function _paramsFor(sql, orgId) {
     return /\$1\b/.test(sql) ? [orgId] : [];
 }
+
+/** @typedef {{ getOne: (sql: string, params?: unknown[]) => Promise<Record<string, unknown> | null | undefined> }} HeldCountsDb */
 
 /**
  * One round trip for all kinds (scalar subqueries); per-kind fallback when a
  * table is missing on this install (42P01) or lacks a column (42703), so one
  * unprovisioned table cannot blank the whole matrix. A kind that cannot be
  * counted comes back `null` — unknown, never 0.
+ * @param {string} orgId
+ * @param {{ db?: HeldCountsDb }} [opts]
  * @returns {Promise<{counts:Record<string,number|null>, errors:Record<string,string>}>}
  */
 async function heldCounts(orgId, /** @type {{db?: any}} */ { db } = {}) {
     const { getOne } = db || require('../../db');
+    /** @type {Record<string, number | null>} */
     const counts = {};
+    /** @type {Record<string, string>} */
     const errors = {};
     const combined = `SELECT ${EXPORT_KINDS.map(k => `(${k.heldCountSql}) AS "${k.kind}"`).join(',\n       ')}`;
     try {
         const row = await getOne(combined, _paramsFor(combined, orgId));
         for (const k of EXPORT_KINDS) counts[k.kind] = _num(row?.[k.kind]);
         return { counts, errors };
-    } catch (err) { log.debug('fall through to per-kind', err); }
+    } catch (err) { fallback('compliance/dataPortability/exportRegistry:heldCounts', err); /* fall through to per-kind */ }
     for (const k of EXPORT_KINDS) {
         try {
             const row = await getOne(k.heldCountSql, _paramsFor(k.heldCountSql, orgId));
@@ -361,6 +388,7 @@ async function heldCounts(orgId, /** @type {{db?: any}} */ { db } = {}) {
     return { counts, errors };
 }
 
+/** @param {unknown} v */
 function _num(v) {
     if (v === null || v === undefined) return null;
     const n = Number(v);
@@ -370,7 +398,7 @@ function _num(v) {
 /**
  * The Data Act export matrix for one organisation.
  * @param {string} orgId
- * @param {{db?:object, probe?:(entry:ExportKind, route:object)=>boolean}} [opts] test seams
+ * @param {{db?:HeldCountsDb, probe?:(entry:ExportKind, route:object)=>boolean}} [opts] test seams
  * @returns {Promise<Array<{kind:string,label_key:string,held:number|null,held_scope:string,route:object|null,extra_routes:object[],render_only:object|null,formats:string[],scope:string,mounted:boolean,gap_key:string|null}>>}
  */
 async function coverageMatrix(orgId, { db, probe } = {}) {

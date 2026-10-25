@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Webpage Knowledge Search — same shape as notebookKnowledgeSearch.js, scoped
  * to the webpages feature. Reuses the search-service / local-Azure paths and
@@ -11,6 +12,11 @@ const { fenceChunks, DATA_NOT_INSTRUCTIONS } = require('../kb/sourceFencing');
 
 const SEARCH_SERVICE_URL = process.env.SEARCH_SERVICE_URL || 'https://services.beeflow.nl';
 
+/**
+ * @typedef {{ content?: string, source_uri?: string, title?: string, score?: number, rerank_score?: number }} WebpageKbChunk
+ */
+
+/** @param {string} query */
 function preprocessQuery(query) {
     let cleaned = query
         .replace(/^(hey|hi|hello|hoi|hallo|beste)\s*[,!.]?\s*/i, '')
@@ -46,6 +52,7 @@ async function getAzureSearchParams() {
  * inside a passage are neutralised, the source name cannot escape its
  * attribute, and the data-not-instructions rule sits right above the data.
  * The chunks are already cut to `maxChunkChars`, hence `maxChars: Infinity`.
+ * @param {WebpageKbChunk[]} chunks
  */
 function buildWebpageContextPrompt(chunks) {
     const kbText = fenceChunks(chunks, { maxChars: Infinity });
@@ -55,6 +62,9 @@ ${DATA_NOT_INSTRUCTIONS} Ground your design decisions, copy, and structure in th
 ${kbText}`;
 }
 
+/**
+ * @param {{ userId: string, kbIds: string[], query: string, options?: { topK?: number, rerank?: boolean, minScore?: number, maxChunkChars?: number, preprocessQuery?: boolean, timeoutMs?: number } }} params
+ */
 async function searchWebpageKB({ userId, kbIds, query, options = {} }) {
     const {
         topK = 10,
@@ -72,6 +82,7 @@ async function searchWebpageKB({ userId, kbIds, query, options = {} }) {
     const searchQuery = doPreprocess ? preprocessQuery(query) : query;
     const azureParams = await getAzureSearchParams();
 
+    /** @type {WebpageKbChunk[]} */
     let chunks = [];
     try {
         if (azureParams.use_azure) {
@@ -92,7 +103,7 @@ async function searchWebpageKB({ userId, kbIds, query, options = {} }) {
                 signal: AbortSignal.timeout(timeoutMs),
             });
             if (searchRes.ok) {
-                const data = await searchRes.json();
+                const data = /** @type {{ chunks?: WebpageKbChunk[], results?: WebpageKbChunk[] }} */ (await searchRes.json());
                 chunks = (data.chunks || data.results || [])
                     .filter(c => (c.score || c.rerank_score || 0) >= minScore);
             } else {
@@ -129,12 +140,17 @@ async function searchWebpageKB({ userId, kbIds, query, options = {} }) {
     return { chunks: truncatedChunks, contextPrompt, citations };
 }
 
+/**
+ * @param {{ query?: string, top_k?: string }} args
+ * @param {string} userId
+ * @param {string[]} kbIds
+ */
 async function executeWebpageKBSearchTool(args, userId, kbIds) {
     const { query, top_k } = args;
     if (!query) return { error: 'query is required' };
 
     if (!kbIds || kbIds.length === 0) {
-        return { results: [], message: 'No sources have been added to this webpage yet.' };
+        return { results: /** @type {Array<{ result_number: number, title: string, content: string, score: number }>} */ ([]), message: 'No sources have been added to this webpage yet.' };
     }
 
     const topK = Math.min(Math.max(parseInt(top_k) || 5, 1), 10);

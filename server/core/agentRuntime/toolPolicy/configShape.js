@@ -64,3 +64,15 @@ module.exports = {
     UNSAFE_OBJECT_KEYS,
     _plainObject, toolsConfigOf,
 };
+
+/**
+ * One entry of a stored `config.tools`: an app entry, or one grant inside the
+ * reserved `automations` / `datatables` sections. User-supplied JSON, so every
+ * field may be missing or junk; read it through `_plainObject` first.
+ * @typedef {{ actions?: string | string[], confirm?: string, actAs?: string, scope?: string, columns?: string | string[] }} ToolsConfigEntry
+ */
+
+/**
+ * A stored `config.tools`: app id → app entry, plus the reserved sections.
+ * @typedef {Record<string, ToolsConfigEntry> & { automations?: Record<string, ToolsConfigEntry>, datatables?: Record<string, ToolsConfigEntry> }} ToolsConfig
+ */

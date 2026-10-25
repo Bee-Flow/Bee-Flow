@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * License Tier Definitions
  *
@@ -68,10 +68,12 @@ const TIER_HIERARCHY = ['community', 'enterprise', 'full'];
 // subscription rows) and silently normalise to a current tier. Removing 'pro'
 // from the hierarchy without this map would 403 every existing paying
 // customer the moment they reload the app.
+/** @type {Record<string, string>} */
 const LEGACY_TIER_ALIAS = {
     pro: 'enterprise',
 };
 
+/** @type {Record<string, string[]>} */
 const TIER_FEATURES = {
     community: [
         'chat_basic',
@@ -240,6 +242,7 @@ const TIER_FEATURES = {
     ],
 };
 
+/** @type {Record<string, { max_users: number; max_agents: number; max_messages_per_month: number; max_kb_sources: number; }>} */
 const TIER_LIMITS = {
     community: {
         max_users: -1,
@@ -261,15 +264,24 @@ const TIER_LIMITS = {
     },
 };
 
+/**
+ * @param {string} tier
+ */
 function normalizeTier(tier) {
     if (typeof tier !== 'string') return tier;
     return LEGACY_TIER_ALIAS[tier] || tier;
 }
 
+/**
+ * @param {string} tier
+ */
 function isValidTier(tier) {
     return TIER_HIERARCHY.includes(normalizeTier(tier));
 }
 
+/**
+ * @param {string} tier
+ */
 function tierRank(tier) {
     const idx = TIER_HIERARCHY.indexOf(normalizeTier(tier));
     return idx === -1 ? -1 : idx;
@@ -279,6 +291,8 @@ function tierRank(tier) {
  * Returns true if `actual` is at or above `required`.
  * e.g. tierAtLeast('enterprise', 'community') === true
  *      tierAtLeast('community', 'enterprise') === false
+ * @param {string} actual
+ * @param {string} required
  */
 function tierAtLeast(actual, required) {
     return tierRank(actual) >= tierRank(required) && tierRank(required) !== -1;
@@ -286,6 +300,7 @@ function tierAtLeast(actual, required) {
 
 /**
  * Returns the union of features for the given tier, including all lower tiers.
+ * @param {string} tier
  */
 function getFeaturesForTier(tier) {
     const n = normalizeTier(tier);
@@ -298,12 +313,19 @@ function getFeaturesForTier(tier) {
     return [...merged];
 }
 
+/**
+ * @param {string} tier
+ */
 function getLimitsForTier(tier) {
     const n = normalizeTier(tier);
     if (!TIER_HIERARCHY.includes(n)) return { ...TIER_LIMITS.community };
     return { ...TIER_LIMITS[n] };
 }
 
+/**
+ * @param {string | undefined} feature
+ * @param {string} tier
+ */
 function tierHasFeature(tier, feature) {
     return getFeaturesForTier(tier).includes(feature);
 }

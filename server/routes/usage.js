@@ -1,3 +1,4 @@
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
 const express = require('express');
 const router = express.Router();
 const usageStore = require('../stores/usageStore');
@@ -7,6 +8,7 @@ const { computeCostSplit } = require('../core/llm/modelCosts');
 const { validate } = require('../core/http/validate');
 const { worded, queryOf, choice, wholeNumber } = require('../core/http/schemaParts');
 const log = require('../telemetry/log');
+const { isPlatformOperator } = require('../auth/platformOperator');
 
 // ── What the usage dashboards may ask ────────────────────────────────
 // Every route below reads its filters through buildRequestFilters (plus a
@@ -18,6 +20,9 @@ const log = require('../telemetry/log');
 // if they were the filtered ones. `/recent` had no ceiling on `limit` at all.
 const DATE_TEXT = 'startDate and endDate are dates, like 2026-09-01T00:00:00Z.';
 const aDate = worded(DATE_TEXT).max(64, DATE_TEXT).refine((v) => !Number.isNaN(new Date(v).getTime()), DATE_TEXT);
+/**
+ * @param {string} name
+ */
 const filterText = (name) => worded(`${name} is text.`).max(200, `${name} is at most 200 characters.`);
 const RECENT_MAX = 1000;
 const UsageQuery = queryOf({
@@ -46,26 +51,16 @@ const UsageQuery = queryOf({
 // responses. Admin callers see raw figures; org / consumer callers see
 // total_estimated_cost × (1 + markup_percent/100) and have token / message
 // counts stripped from the payload.
+// A failed lookup propagates (500): a 0% markup would show the customer the
+// raw provider cost as if it were their bill.
 async function getCustomerMarkup(req) {
-    try {
-        const orgIds = await resolveUserOrgIds(req);
-        if (orgIds === null || orgIds.size === 0) {
-            const userId = req.session?.user?.id;
-            const sub = userId ? await userStore.getConsumerSubscription(userId) : null;
-            if (sub?.plan_id) {
-                const plan = await userStore.getPlan(sub.plan_id);
-                return Number(plan?.markup_percent) || 0;
-            }
-            return 0;
-        }
-        const orgId = Array.from(orgIds)[0];
-        const sub = await userStore.getOrgSubscription(orgId);
-        if (sub?.plan_id) {
-            const plan = await userStore.getPlan(sub.plan_id);
-            return Number(plan?.markup_percent) || 0;
-        }
-    } catch (err) { log.debug('fall through', err); }
-    return 0;
+    const orgIds = await resolveUserOrgIds(req);
+    const sub = orgIds === null || orgIds.size === 0
+        ? (req.session?.user?.id ? await userStore.getConsumerSubscription(req.session.user.id) : null)
+        : await userStore.getOrgSubscription(Array.from(orgIds)[0]);
+    if (!sub?.plan_id) return 0;
+    const plan = await userStore.getPlan(sub.plan_id);
+    return Number(plan?.markup_percent) || 0;
 }
 
 async function isAdminCaller(req) {
@@ -76,7 +71,7 @@ async function isAdminCaller(req) {
     // redacted, marked-up cost-only view. Delegating this via the standard
     // hasPermission helper is a leak because `all` resolves any permission
     // query truthy, and org admins routinely receive `all` via their role.
-    return req.session?.user?.id === 'admin';
+    return isPlatformOperator(req.session?.user);
 }
 
 // Strip token / message-count fields from a row and replace estimated_cost
@@ -90,6 +85,9 @@ const TOKEN_FIELDS = ['total_calls', 'calls', 'total_tokens', 'tokens', 'prompt_
     'azure_services_total_cost', 'billed_calls', 'avg_duration_ms',
     'unique_models', 'unique_agents'];
 
+/**
+ * @param {number} factor
+ */
 function redactRow(row, factor) {
     if (!row || typeof row !== 'object') return row;
     const out = { ...row };
@@ -102,12 +100,18 @@ function redactRow(row, factor) {
     return out;
 }
 
+/**
+ * @param {number} factor
+ */
 function redactRows(rows, factor) {
     return (rows || []).map(r => redactRow(r, factor));
 }
 
 // Apply customer redaction unless the caller is an admin. Use as the last
 // step before res.json — returns the redacted payload (or the original).
+/**
+ * @param {string} kind
+ */
 async function maybeRedact(req, payload, kind) {
     // Self-hosted: no Stripe markup/reselling exists, so there's nothing to
     // redact — the operator sees raw tokens/cost. Redaction is purely a cloud
@@ -126,6 +130,9 @@ async function maybeRedact(req, payload, kind) {
 }
 
 // Helper to parse days filter
+/**
+ * @param {string} [daysParam]
+ */
 function getDateFilters(daysParam = '30') {
     const days = parseInt(daysParam, 10) || 30;
     const now = new Date();
@@ -160,6 +167,9 @@ function buildRequestFilters(req) {
 }
 
 // Middleware: attach org filter
+/**
+ * @param {NextFunction} next
+ */
 async function attachOrgFilter(req, res, next) {
     if (!req.session?.isAuthenticated) return res.status(401).json({ error: 'Not authenticated' });
     const orgId = await getOrgFilter(req);
@@ -264,6 +274,9 @@ async function getUserMap() {
 // full-table getUserMap() above was called by FIVE monitoring endpoints per
 // dashboard load — a whole-`users`-table scan (avatars included) each time.
 // Accepts rows or an iterable of ids; returns the same Map shape.
+/**
+ * @param {string} [idField]
+ */
 async function getUserMapFor(rowsOrIds, idField = 'user_id') {
     try {
         const ids = new Set();
@@ -754,6 +767,9 @@ router.get('/prompt-cache', async (req, res) => {
     delete scope.startDate;
     delete scope.endDate;
 
+    /**
+     * @param {number} endMs
+     */
     const window = (endMs) => ({
         ...scope,
         startDate: new Date(endMs - WEEK_MS).toISOString(),
@@ -789,3 +805,23 @@ router.get('/prompt-cache', async (req, res) => {
         by_model_and_source: breakdown || [],
     });
 });
+
+/**
+ * @typedef {object} UsageFilters
+ * @property {string} [startDate]
+ * @property {string} [endDate]
+ * @property {string} [userId]
+ * @property {string} [agentId]
+ * @property {string} [model]
+ * @property {string} [source]
+ * @property {string} [integrationType]
+ * @property {string} [piiCategory]
+ * @property {string} [organizationId]
+ * @property {number} [beforeId]
+ * @property {string} [violationType]
+ */
+
+/**
+ * Request after attachOrgFilter. The query passed the closed UsageQuery schema, so every value is a string.
+ * @typedef {import('express').Request<{}, any, any, Record<string, string>> & { usageFilters: UsageFilters }} UsageReq
+ */

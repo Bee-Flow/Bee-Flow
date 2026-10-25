@@ -43,6 +43,7 @@ const log = require('../../../../telemetry/log');
  */
 async function createEmptyMirrors({ scope, principal, KIND, plans, sourceFor }) {
     const created = [];
+    /** @type {string[]} */
     const warnings = [];
     let partial = false;
     const scopeKey = datatableDbStore.scopeKey(scope);
@@ -71,7 +72,7 @@ async function createEmptyMirrors({ scope, principal, KIND, plans, sourceFor }) 
             datatableDbStore.invalidate(scopeKey);
             if (!created.length) throw e;
             partial = true;
-            warnings.push(`"${p.name}" could not be linked: ${e && e.message}`);
+            warnings.push(`"${p.name}" could not be linked: ${e && /** @type {Error} */ (e).message}`);
         }
     }
     return { created, partial, warnings };
@@ -94,7 +95,7 @@ async function storeDerived(scope, created, deriveFor) {
             derived = await deriveFor(plan, table);
         } catch (e) {
             partial = true;
-            warnings.push(`"${plan.name}" was linked but its columns could not be read: ${e && e.message}`);
+            warnings.push(`"${plan.name}" was linked but its columns could not be read: ${e && /** @type {Error} */ (e).message}`);
         }
         if (!derived) { tables.push(table); continue; }
         try {
@@ -106,7 +107,7 @@ async function storeDerived(scope, created, deriveFor) {
             tables.push(withSource || table);
         } catch (e) {
             partial = true;
-            warnings.push(`"${plan.name}" was linked but its columns could not be stored: ${e && e.message}`);
+            warnings.push(`"${plan.name}" was linked but its columns could not be stored: ${e && /** @type {Error} */ (e).message}`);
             tables.push(table);
         }
     }
@@ -135,6 +136,7 @@ function orderParentsFirst(tables) {
 /**
  * Kick the first refresh of every table, targets before the mirrors that
  * point at them, and answer the tables as they now stand.
+ * @param {string} TAG
  */
 async function kickFirstSyncs(scope, tables, syncRows, TAG) {
     for (const table of orderParentsFirst(tables)) {
@@ -196,3 +198,9 @@ async function setRelations(datatable, relations, { siblingsOf, matchFieldIdFor,
 }
 
 module.exports = { createEmptyMirrors, storeDerived, orderParentsFirst, kickFirstSyncs, setRelations };
+
+/** @typedef {{ kind: 'org'|'user', id: string }} MirrorScope */
+
+/** @typedef {{ fields: Parameters<typeof reconcileMirrorSchema>[2], columnMap?: unknown, relations?: unknown[], warnings?: string[] } | null} DerivedColumns */
+
+/** @typedef {{ key: string, name: string, description?: string, [k: string]: unknown }} MirrorPlan */

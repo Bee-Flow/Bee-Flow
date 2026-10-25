@@ -1,9 +1,16 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * The site-level CMS-over-MCP tools (./dispatch.js maps tool names to them):
  * sites and templates, page deletion, site settings (header, footer, cookie
  * banner, announcement, analytics id) and the per-locale overrides.
+ */
+
+/**
+ * @typedef {import('./handlerKit').ToolArgs} ToolArgs
+ * @typedef {import('./handlerKit').McpCtx} McpCtx
+ * @typedef {import('./handlerKit').HandlerKit} HandlerKit
+ * @typedef {Record<string, any>} PageEntry  one page of a site as the store lists it
  */
 
 const { err, isPlainObject } = require('./handlerKit');
@@ -18,6 +25,7 @@ const OVERRIDE_MAX_CHARS = 200_000;
  * The renderer reads a block translation from `blocks[id].content` only
  * (stores/cms/effective.js), so anything else would save fine and then
  * silently show the default language. Reject it up front instead.
+ * @param {unknown} blocks
  */
 function blockOverrideShapeError(blocks) {
     if (blocks === undefined) return null;
@@ -31,13 +39,17 @@ function blockOverrideShapeError(blocks) {
     return null;
 }
 
-/** Sites, templates, page deletion and the site settings. */
+/**
+ * Sites, templates, page deletion and the site settings.
+ * @param {HandlerKit} kit
+ */
 function createSiteHandlers({ deps, cmsStore, live, resolveSite, loadDraft, validationOf }) {
     async function listSites() {
         const [sites, liveSiteId] = await Promise.all([cmsStore.listProjects(), live.getLiveSiteId()]);
-        return { result: { liveSiteId, sites: sites.map((s) => ({ ...s, live: s.id === liveSiteId })) } };
+        return { result: { liveSiteId, sites: sites.map((/** @type {Record<string, any>} */ s) => ({ ...s, live: s.id === liveSiteId })) } };
     }
 
+    /** @param {ToolArgs} args */
     async function duplicateSite(args) {
         const site = await resolveSite(args);
         if (site.error) return err(site.error);
@@ -49,7 +61,7 @@ function createSiteHandlers({ deps, cmsStore, live, resolveSite, loadDraft, vali
         const templates = await cmsStore.getTemplates();
         return {
             result: {
-                templates: templates.map((t) => ({
+                templates: templates.map((/** @type {Record<string, any>} */ t) => ({
                     id: t.id, name: t.name, description: t.description || '', createdAt: t.createdAt,
                     blockCount: Array.isArray(t.blocks) ? t.blocks.length : 0,
                     ...(t.builtin ? { builtin: true } : {}),
@@ -58,12 +70,16 @@ function createSiteHandlers({ deps, cmsStore, live, resolveSite, loadDraft, vali
         };
     }
 
+    /**
+     * @param {ToolArgs} args
+     * @param {McpCtx} ctx
+     */
     async function deletePage(args, ctx) {
         const site = await resolveSite(args);
         if (site.error) return err(site.error);
         const pageId = String(args.pageId || '');
-        const entry = site.project.pages.find((p) => p.id === pageId);
-        if (!entry) return err(`Page "${pageId.slice(0, 60)}" is not in this site.`, { _fixHint: `Known page ids: ${site.project.pages.map((p) => `${p.id} (${p.slug})`).join(', ') || 'none'}.` });
+        const entry = site.project.pages.find((/** @type {PageEntry} */ p) => p.id === pageId);
+        if (!entry) return err(`Page "${pageId.slice(0, 60)}" is not in this site.`, { _fixHint: `Known page ids: ${site.project.pages.map((/** @type {PageEntry} */ p) => `${p.id} (${p.slug})`).join(', ') || 'none'}.` });
         const redirectTo = typeof args.redirectTo === 'string' ? args.redirectTo.trim() : '';
         const wasHomepage = site.project.homepageId === pageId;
         const outcome = await cmsStore.removePage(site.siteId, pageId);
@@ -84,17 +100,23 @@ function createSiteHandlers({ deps, cmsStore, live, resolveSite, loadDraft, vali
         };
     }
 
+    /** @param {ToolArgs} args */
     async function getSiteSettings(args) {
         const site = await resolveSite(args);
         if (site.error) return err(site.error);
         const wanted = Array.isArray(args.sections) && args.sections.length
-            ? args.sections.filter((s) => [...SETTING_SECTIONS, 'analytics'].includes(s))
+            ? args.sections.filter((/** @type {string} */ s) => [...SETTING_SECTIONS, 'analytics'].includes(s))
             : [...SETTING_SECTIONS, 'analytics'];
+        /** @type {Record<string, any>} */
         const out = { siteId: site.siteId, name: site.project.name, defaultLocale: await cmsStore.getDefaultLocale() };
         for (const key of wanted) out[key] = site.project[key] ?? null;
         return { result: out };
     }
 
+    /**
+     * @param {ToolArgs} args
+     * @param {McpCtx} ctx
+     */
     async function updateSiteSettings(args, ctx) {
         const known = new Set(['siteId', 'name', 'analytics', ...SETTING_SECTIONS]);
         const unknown = Object.keys(args).filter((k) => !known.has(k));
@@ -111,7 +133,9 @@ function createSiteHandlers({ deps, cmsStore, live, resolveSite, loadDraft, vali
         // What to change, validated first and applied below to the SiteDoc as stored then.
         /** @type {Record<string, any>} */
         const sectionPatches = {};
+        /** @type {string | undefined} */
         let newName;
+        /** @type {Record<string, any> | undefined} */
         let newAnalytics;
 
         if (args.name !== undefined) {
@@ -142,7 +166,7 @@ function createSiteHandlers({ deps, cmsStore, live, resolveSite, loadDraft, vali
             newAnalytics = cleaned;
         }
 
-        const applyPatches = (site) => {
+        const applyPatches = (/** @type {Record<string, any>} */ site) => {
             if (newName !== undefined) site.name = newName;
             for (const [section, patch] of Object.entries(sectionPatches)) {
                 site[section] = deps.cmsParts.deepMerge(site[section] || deps.defaults.SITE_DEFAULTS[section], patch);
@@ -161,6 +185,7 @@ function createSiteHandlers({ deps, cmsStore, live, resolveSite, loadDraft, vali
         const { site: saved } = await cmsStore.mutateProject(found.siteId, applyPatches, { bumpRev: true });
         const draftWrap = await loadDraft(found.siteId, ctx);
         const validation = validationOf(draftWrap);
+        /** @type {Record<string, any>} */
         const changed = { siteId: found.siteId, updated: sent };
         if (sent.includes('name')) changed.name = saved.name;
         for (const section of [...SETTING_SECTIONS, 'analytics']) if (sent.includes(section)) changed[section] = saved[section];
@@ -170,13 +195,18 @@ function createSiteHandlers({ deps, cmsStore, live, resolveSite, loadDraft, vali
     return { listSites, duplicateSite, listTemplates, deletePage, getSiteSettings, updateSiteSettings };
 }
 
-/** Read and write the per-locale overrides (site and page level). */
+/**
+ * Read and write the per-locale overrides (site and page level).
+ * @param {HandlerKit} kit
+ */
 function createLocaleHandlers({ deps, cmsStore, resolveSite }) {
+    /** @param {ToolArgs} args */
     async function getLocaleOverrides(args) {
         const site = await resolveSite(args);
         if (site.error) return err(site.error);
         const wantedLocale = args.locale ? String(args.locale).toLowerCase() : null;
         const { siteByLocale, pagesByLocale } = await deps.cmsParts.collectLocaleOverrides(site.siteId, { fresh: true });
+        /** @type {Record<string, any>} */
         const out = { siteId: site.siteId, defaultLocale: await cmsStore.getDefaultLocale(), site: {}, pages: {} };
         for (const [loc, ov] of Object.entries(siteByLocale || {})) {
             if (!wantedLocale || loc === wantedLocale) out.site[loc] = ov;
@@ -191,14 +221,15 @@ function createLocaleHandlers({ deps, cmsStore, resolveSite }) {
         return { result: out };
     }
 
+    /** @param {ToolArgs} args */
     async function setLocaleOverride(args) {
         const locale = String(args.locale || '').toLowerCase();
         if (!cmsStore.isValidLocale(locale)) return err(`"${String(args.locale).slice(0, 20)}" is not a language code such as "en", "nl" or "pt-br".`);
         const site = await resolveSite(args);
         if (site.error) return err(site.error);
         const pageId = typeof args.pageId === 'string' && args.pageId ? args.pageId : null;
-        if (pageId && !site.project.pages.some((p) => p.id === pageId)) {
-            return err(`Page "${pageId}" is not in this site.`, { _fixHint: `Known page ids: ${site.project.pages.map((p) => `${p.id} (${p.slug})`).join(', ') || 'none'}.` });
+        if (pageId && !site.project.pages.some((/** @type {PageEntry} */ p) => p.id === pageId)) {
+            return err(`Page "${pageId}" is not in this site.`, { _fixHint: `Known page ids: ${site.project.pages.map((/** @type {PageEntry} */ p) => `${p.id} (${p.slug})`).join(', ') || 'none'}.` });
         }
         if (args.remove === true) {
             if (pageId) await cmsStore.deletePageLocaleOverride(site.siteId, pageId, locale);

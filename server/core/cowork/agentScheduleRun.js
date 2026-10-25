@@ -13,6 +13,7 @@ const terminationStore = require('../../stores/terminationStore');
 const { sanitizeError } = require('../privacy/errorSanitizer');
 const log = require('../../telemetry/log');
 const { extractCoverageTopics } = require('./coverageTopics');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * Execute a schedule as its agent: dispatch through the full agent runtime so
@@ -62,7 +63,7 @@ async function executeAgentRun(task, { manual = false, store = require('../../st
         // the same chat thread.
         if (result?.conversationId && result.conversationId !== task.conversationId) {
             try { await store.updateTask(task.id, { conversationId: result.conversationId }); }
-            catch (err) { log.debug('non-fatal', err); }
+            catch (err) { bestEffort('core/cowork/agentScheduleRun:executeAgentRun', err); /* non-fatal */ }
         }
 
         await store.markCompleted(task.id, truncated);
@@ -81,7 +82,7 @@ async function executeAgentRun(task, { manual = false, store = require('../../st
                 message: truncated,
                 link: shape.link,
             });
-        } catch (err) { log.debug('non-fatal', err); }
+        } catch (err) { bestEffort('core/cowork/agentScheduleRun:executeAgentRun#2', err); /* non-fatal */ }
 
         // Schedule advance — same rules as legacy tasks.
         if (isRepeating(task) && !manual) {
@@ -94,7 +95,7 @@ async function executeAgentRun(task, { manual = false, store = require('../../st
             log.info(`[AITaskRunner] Schedule "${task.title}" completed (one-time, ${Date.now() - startTime}ms)`);
         }
     } catch (err) {
-        log.error(`[AITaskRunner] Schedule "${task.title}" failed:`, err.message);
+        log.error(`[AITaskRunner] Schedule "${task.title}" failed:`, /** @type {Error} */ (err).message);
         if (!err?._terminationLogged) {
             terminationStore.logTermination({
                 user_id: task.userId || null,
@@ -105,7 +106,7 @@ async function executeAgentRun(task, { manual = false, store = require('../../st
                 duration_ms: Date.now() - startTime,
                 termination_type: 'error',
                 ...sanitizeError(err),
-            }).catch(() => {});
+            }).catch((e) => bestEffort('core/cowork/agentScheduleRun:executeAgentRun#3', e));
         }
         await failRun(task, err, { manual, store });
     }
@@ -132,8 +133,8 @@ async function agentRoutinesAllowed(task, agent, store) {
         }
         return true;
     } catch (e) {
-        if (e && e.name === 'FeatureServiceUnavailableError') {
-            log.warn(`[AITaskRunner] beta lookup degraded — deferring schedule ${task.id}: ${e.message}`);
+        if (e && /** @type {Error} */ (e).name === 'FeatureServiceUnavailableError') {
+            log.warn(`[AITaskRunner] beta lookup degraded — deferring schedule ${task.id}: ${/** @type {Error} */ (e).message}`);
             return false; // markRunning already set; ticks pick it back up on retry
         }
         throw e;
@@ -268,7 +269,7 @@ async function recoverOutcomeFromConversation(task, result, agentStore, userAuth
             }
         }
     } catch (recoverErr) {
-        log.warn(`[AITaskRunner] Outcome recovery failed: ${recoverErr.message}`);
+        log.warn(`[AITaskRunner] Outcome recovery failed: ${/** @type {Error} */ (recoverErr).message}`);
     }
     return null;
 }
@@ -277,6 +278,7 @@ async function recoverOutcomeFromConversation(task, result, agentStore, userAuth
  * R3: extract topics this run surfaced and write them to the schedule's
  * coverage memory bucket so the next run knows not to repeat them. Only fires
  * when the agent has memory enabled — opt-in by design.
+ * @param {string} text
  */
 async function storeScheduleCoverage(task, agent, text) {
     if (agent?.config?.memoryEnabled !== true) return;
@@ -295,8 +297,26 @@ async function storeScheduleCoverage(task, agent, text) {
             log.info(`[AITaskRunner] R3: stored ${Math.min(topics.length, 30)} coverage memorie(s) for schedule ${task.id}`);
         }
     } catch (err) {
-        log.warn(`[AITaskRunner] R3 coverage extraction failed: ${err.message}`);
+        log.warn(`[AITaskRunner] R3 coverage extraction failed: ${/** @type {Error} */ (err).message}`);
     }
 }
 
 module.exports = { executeAgentRun };
+
+/**
+ * The schedule fields a run as agent reads (coworkStore's rowToSchedule shape).
+ * @typedef {import('../aiTaskRunner').CoworkTask & { conversationId?: string | null }} ScheduleTask
+ */
+
+/** @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/agentStore').getForRuntime>>>} RuntimeAgent */
+
+/**
+ * What aiTaskRunner hands in (see the module docblock).
+ * @typedef {{
+ *   scheduleText: string,
+ *   resolveUserSession: (userId: string) => Promise<Record<string, any> | null>,
+ *   isRepeating: (task: ScheduleTask) => boolean,
+ *   failRun: (task: ScheduleTask, err: Error, opts: { manual: boolean, store: typeof import('../../stores/coworkStore') }) => Promise<void>,
+ *   NOTIFICATION: { category: string, link: string | null, prefix: string },
+ * }} AgentRunDeps
+ */

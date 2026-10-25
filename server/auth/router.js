@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Auth Module — the /auth router.
  *

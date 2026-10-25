@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Notebooks in the Documents library (stores/notebookLibrary.js). Mounted by
  * routes/studioDocuments.js under /api/studio-documents.

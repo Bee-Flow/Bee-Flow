@@ -1,3 +1,6 @@
+// @typecheck
+const { fallback } = require('../utils/bestEffort');
+
 /**
  * Webpage bridge grants — shared grant/revoke/verify logic used by BOTH the
  * studio-AI bridge tools (integrations/webpageBridgeTools.js) and the owner
@@ -16,13 +19,27 @@
  */
 
 /**
+ * @typedef {{
+ *   getIntegrationTools?: typeof import('../core/integrations/integrationTools').getIntegrationTools,
+ *   findOwnerOfTool?: typeof import('../automation/toolRegistry').findOwnerOfTool,
+ *   loadRegistry?: () => Array<{ entry: { app?: string, label?: string }, tools: Array<{ function?: { name?: string, description?: string } }> }>,
+ *   getBridgeGrants?: typeof import('../stores/webpageStore').getBridgeGrants,
+ *   upsertEntry?: typeof import('../stores/webpageStore').upsertBridgeGrantEntry,
+ *   removeEntry?: typeof import('../stores/webpageStore').removeBridgeGrantEntry,
+ *   getAutomation?: typeof import('../stores/automationStore').getAutomation,
+ *   getAutomationsForUser?: typeof import('../stores/automationStore').getAutomationsForUser,
+ * }} GrantDeps
+ */
+
+/**
  * Merge caller overrides over the real implementations. Stores and the tool
  * registry are required only when the corresponding dep was NOT overridden —
  * some integration modules throw at require time (env-dependent stores) and
  * every store pins a DB pool, so eager top-level requires made the unit tests
  * hang/crash.
+ * @param {GrantDeps} [_deps]
+ * @returns {GrantDeps}
  */
-const log = require('../telemetry/log');
 
 function resolveDeps(_deps = {}) {
     const d = { ..._deps };
@@ -41,12 +58,14 @@ function resolveDeps(_deps = {}) {
         }
     }
     if (!d.getBridgeGrants || !d.upsertEntry || !d.removeEntry) {
+        /** @type {typeof import('../stores/webpageStore')} */
         const store = require('../stores/webpageStore');
         if (!d.getBridgeGrants) d.getBridgeGrants = store.getBridgeGrants;
         if (!d.upsertEntry) d.upsertEntry = store.upsertBridgeGrantEntry;
         if (!d.removeEntry) d.removeEntry = store.removeBridgeGrantEntry;
     }
     if (!d.getAutomation || !d.getAutomationsForUser) {
+        /** @type {typeof import('../stores/automationStore')} */
         const store = require('../stores/automationStore');
         if (!d.getAutomation) d.getAutomation = store.getAutomation;
         if (!d.getAutomationsForUser) d.getAutomationsForUser = store.getAutomationsForUser;
@@ -54,8 +73,15 @@ function resolveDeps(_deps = {}) {
     return d;
 }
 
-/** Error carrying an HTTP-shaped contract ({ status, code, provider }). */
+/**
+ * Error carrying an HTTP-shaped contract ({ status, code, provider }).
+ * @param {number} status
+ * @param {string} message
+ * @param {string} [code]
+ * @param {string} [provider]
+ */
 function grantError(status, message, code, provider) {
+    /** @type {Error & { provider?: string }} */
     const err = new Error(message);
     err.status = status;
     if (code) err.code = code;
@@ -68,15 +94,19 @@ function grantError(status, message, code, provider) {
  * THROWS when discovery fails — callers decide how to surface it, but no
  * caller may treat "couldn't check" as "everything is available" (that was
  * the old fail-open fallback in webpage_list_my_integrations).
+ * @param {{ userId: string, session?: Express.Session }} who
+ * @param {GrantDeps} deps
  */
 async function resolveAvailableToolNames({ userId, session }, deps) {
     const result = await deps.getIntegrationTools({ userId, session, isAdmin: !!session?.isAdmin });
-    return new Set((result.tools || []).map(t => t?.function?.name).filter(Boolean));
+    return new Set((result.tools || []).map((/** @type {{ function?: { name?: string } }} */ t) => t?.function?.name).filter(Boolean));
 }
 
 /**
  * Grant one integration tool to a webpage. Resolves to { success, tool,
  * integrationId, grants } or throws a grantError.
+ * @param {{ webpageId: string, userId: string, session?: Express.Session, tool: unknown, fixedArgs?: unknown, label?: unknown }} opts
+ * @param {GrantDeps} [_deps]
  */
 async function grantIntegration({ webpageId, userId, session, tool, fixedArgs, label }, _deps = {}) {
     const deps = resolveDeps(_deps);
@@ -97,6 +127,7 @@ async function grantIntegration({ webpageId, userId, session, tool, fixedArgs, l
             owner.app,
         );
     }
+    /** @type {{ tool: string, fixedArgs?: object, label?: string }} */
     const entry = { tool };
     if (fixedArgs && typeof fixedArgs === 'object') entry.fixedArgs = fixedArgs;
     if (label) entry.label = String(label);
@@ -105,6 +136,10 @@ async function grantIntegration({ webpageId, userId, session, tool, fixedArgs, l
     return { success: true, tool, integrationId: owner.app, grants: merged };
 }
 
+/**
+ * @param {{ webpageId: string, userId: string, tool: unknown }} opts
+ * @param {GrantDeps} [_deps]
+ */
 async function revokeIntegration({ webpageId, userId, tool }, _deps = {}) {
     const deps = resolveDeps(_deps);
     if (typeof tool !== 'string' || !tool.trim()) throw grantError(400, 'tool is required');
@@ -117,11 +152,13 @@ async function revokeIntegration({ webpageId, userId, tool }, _deps = {}) {
  * Grant one of the author's OWN automations to a webpage (the bridge runs
  * acts-as-author, so lending someone else's automation would be a privilege
  * escalation — same check the chat tool has always done).
+ * @param {{ webpageId: string, userId: string, automationId: unknown, label?: unknown }} opts
+ * @param {GrantDeps} [_deps]
  */
 async function grantAutomation({ webpageId, userId, automationId, label }, _deps = {}) {
     const deps = resolveDeps(_deps);
     if (typeof automationId !== 'string' || !automationId.trim()) throw grantError(400, 'automationId is required');
-    const a = await deps.getAutomation(automationId).catch(() => null);
+    const a = await deps.getAutomation(automationId).catch((e) => fallback('integrations/webpageGrants:grantAutomation', e, null));
     if (!a) throw grantError(404, `Automation ${automationId} not found`);
     if (a.userId !== userId) throw grantError(403, 'You can only grant your own automations');
     const entry = { automationId, ...(label ? { label: String(label) } : {}) };
@@ -130,6 +167,10 @@ async function grantAutomation({ webpageId, userId, automationId, label }, _deps
     return { success: true, automationId, title: a.title, grants: merged };
 }
 
+/**
+ * @param {{ webpageId: string, userId: string, automationId: unknown }} opts
+ * @param {GrantDeps} [_deps]
+ */
 async function revokeAutomation({ webpageId, userId, automationId }, _deps = {}) {
     const deps = resolveDeps(_deps);
     if (typeof automationId !== 'string' || !automationId.trim()) throw grantError(400, 'automationId is required');
@@ -138,10 +179,14 @@ async function revokeAutomation({ webpageId, userId, automationId }, _deps = {})
     return { success: true, removed: automationId, grants: merged };
 }
 
-/** The author's automations, shaped for a picker (chat tool + REST share this). */
+/**
+ * The author's automations, shaped for a picker (chat tool + REST share this).
+ * @param {{ userId: string }} opts
+ * @param {GrantDeps} [_deps]
+ */
 async function listAuthorAutomations({ userId }, _deps = {}) {
     const deps = resolveDeps(_deps);
-    const list = await deps.getAutomationsForUser(userId).catch(() => []);
+    const list = await deps.getAutomationsForUser(userId).catch((e) => fallback('integrations/webpageGrants:listAuthorAutomations', e, []));
     return list.map(a => ({
         automationId: a.id,
         title: a.title,
@@ -157,6 +202,8 @@ async function listAuthorAutomations({ userId }, _deps = {}) {
  * filtered by the resolved tool set. When discovery fails, resolves to
  * { integrations: [], discoveryFailed: true } — fail closed, never the
  * registry-wide view.
+ * @param {{ userId: string, session?: Express.Session }} opts
+ * @param {GrantDeps} [_deps]
  */
 async function listAvailableIntegrations({ userId, session }, _deps = {}) {
     const deps = resolveDeps(_deps);
@@ -164,8 +211,9 @@ async function listAvailableIntegrations({ userId, session }, _deps = {}) {
     try {
         availableNames = await resolveAvailableToolNames({ userId, session }, deps);
     } catch {
-        return { integrations: [], discoveryFailed: true };
+        return { integrations: /** @type {never[]} */ ([]), discoveryFailed: true };
     }
+    /** @type {({ tool: string; label: string; description: string; integrationId: string | undefined; integrationLabel: string | undefined; })[]} */
     const out = [];
     for (const { entry, tools } of deps.loadRegistry()) {
         for (const t of tools) {
@@ -189,6 +237,8 @@ async function listAvailableIntegrations({ userId, session }, _deps = {}) {
  * flag (false → the author disconnected the app after granting; the UI shows
  * "needs reconnect"). When availability discovery fails the flag is null and
  * `discoveryFailed` is set — the UI shows status as unknown, never as OK.
+ * @param {{ webpageId: string, userId: string, session?: Express.Session }} opts
+ * @param {GrantDeps} [_deps]
  */
 async function describeGrants({ webpageId, userId, session }, _deps = {}) {
     const deps = resolveDeps(_deps);
@@ -196,7 +246,7 @@ async function describeGrants({ webpageId, userId, session }, _deps = {}) {
     let availableNames = null;
     try {
         availableNames = await resolveAvailableToolNames({ userId, session }, deps);
-    } catch (err) { log.debug('null → per-entry available: null', err); }
+    } catch (err) { fallback('integrations/webpageGrants:describeGrants', err); /* null → per-entry available: null */ }
     const integrations = (grants.integrations || []).map((g) => {
         const owner = deps.findOwnerOfTool(g.tool) || null;
         return {

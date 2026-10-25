@@ -37,9 +37,9 @@
 
 const complianceStore = require('../../../stores/complianceStore');
 const detector = require('../../detectors/industrialIntegrations');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const MAX_AGE_DAYS = 365;
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 const CLASSIFICATIONS = new Set(['safety_component', 'monitoring_only', 'not_safety_component']);
 const MARKER_RE = /^\s*\[\s*(safety_component|monitoring_only|not_safety_component)\s*\]/i;
 
@@ -67,6 +67,9 @@ function _manualSubjects(settings) {
     return out;
 }
 
+/**
+ * @param {string} checkId
+ */
 async function _latestAttestation(orgId, checkId, subjectId) {
     let store = null;
     try { store = require('../../../stores/customFrameworkStore'); } catch { store = null; }
@@ -83,6 +86,9 @@ async function _latestAttestation(orgId, checkId, subjectId) {
     `, [orgId, checkId, subjectId]);
 }
 
+/**
+ * @param {{ classification: string; outcome: string; statement: string; }} row
+ */
 function _classification(row) {
     if (!row) return null;
     if (typeof row.classification === 'string' && CLASSIFICATIONS.has(row.classification)) return row.classification;
@@ -91,12 +97,18 @@ function _classification(row) {
     return m ? m[1].toLowerCase() : null;
 }
 
+/**
+ * @param {string | number | Date} v
+ */
 function _iso(v) {
     if (!v) return null;
     const t = new Date(v).getTime();
     return Number.isFinite(t) ? new Date(t).toISOString() : null;
 }
 
+/**
+ * @param {string} v
+ */
 function _evidenceRefCount(v) {
     if (Array.isArray(v)) return v.length;
     if (typeof v === 'string') { try { const p = JSON.parse(v); return Array.isArray(p) ? p.length : 0; } catch { return 0; } }
@@ -118,6 +130,9 @@ module.exports = {
     MAX_AGE_DAYS,
     CLASSIFICATIONS: Array.from(CLASSIFICATIONS),
 
+    /**
+     * @param {string} orgId
+     */
     async listSubjects(orgId) {
         const settings = await complianceStore.getSettings(orgId) || {};
         if (_notRelevant(settings)) return [];
@@ -181,7 +196,7 @@ module.exports = {
         try {
             row = await _latestAttestation(orgId, module.exports.id, subject.id);
         } catch (e) {
-            if (NOT_PROVISIONED.has(e?.code)) {
+            if (isMissingTable(e)) {
                 return { status: 'warn', evidence: { ...evidence, reason: 'not provisioned yet' }, details: 'not provisioned yet' };
             }
             throw e;

@@ -23,6 +23,9 @@ const { aiStepCanCallTools, FOREACH_CONCURRENCY_MAX } = require('../../../core/a
 // number for it), so a number there is flagged as ignored.
 const CONCURRENCY_TYPES = new Set(['ai_step', 'data_extraction']);
 
+/**
+ * @param {string} at
+ */
 function checkLoop(ctx, step, at) {
     const { pushE } = ctx;
     if (step.type === 'loop') {
@@ -46,6 +49,9 @@ function checkLoop(ctx, step, at) {
     }
 }
 
+/**
+ * @param {string} at
+ */
 function checkParallel(ctx, step, at) {
     const { pushE } = ctx;
     if (step.type === 'parallel') {
@@ -66,6 +72,9 @@ function checkParallel(ctx, step, at) {
     }
 }
 
+/**
+ * @param {string} at
+ */
 function checkForEach(ctx, step, at) {
     const { pushE } = ctx;
     // Per-step iteration ("run once per item"). A leaf executable step
@@ -123,6 +132,7 @@ function checkForEach(ctx, step, at) {
  * honours it on an AI step that offers no tools and on data extraction; every
  * other step decides its own pace, and a step that may call tools runs one
  * item at a time because a tool may change something.
+ * @param {string} at
  */
 function checkForEachConcurrency(ctx, step, at) {
     const c = step.forEach.concurrency;
@@ -138,6 +148,9 @@ function checkForEachConcurrency(ctx, step, at) {
     }
 }
 
+/**
+ * @param {string} path
+ */
 const tokensOf = (path) => parsePath(String(path || ''));
 const isPrefix = (short, long) => short.length < long.length && short.every((t, i) => {
     const o = long[i];
@@ -185,6 +198,9 @@ function forEachBoundVars(fe) {
 // The list is resolved BEFORE any item is bound, so `loop.<own item>` (or one
 // of its parents) as the source is always nothing; the run then skips the step
 // as `overref_unresolved` while the editor showed a list to pick.
+/**
+ * @param {string} at
+ */
 function checkForEachSource(ctx, step, at) {
     const fe = step.forEach;
     const t = tokensOf(fe.overRef);
@@ -201,6 +217,9 @@ function checkForEachSource(ctx, step, at) {
     });
 }
 
+/**
+ * @param {string} at
+ */
 function checkForEachParents(ctx, step, at) {
     const problems = [];
     usableParents(step.forEach, problems);
@@ -218,6 +237,7 @@ function checkForEachParents(ctx, step, at) {
  * (fieldsAtRef), or a list inside each result of a step that ran per item
  * (`steps.read.output.results[*].output.attachments`). null when unknown —
  * never an empty list, or every field of an undescribed tool would be flagged.
+ * @param {string} overRef
  */
 function itemFieldsAt(graph, overRef) {
     const direct = fieldsAtRef(graph, overRef, null);
@@ -235,6 +255,9 @@ function itemFieldsAt(graph, overRef) {
 // A field that reads a field the item does not have resolves to nothing for
 // every item. The usual cause: the list the step runs over was switched and
 // the fields kept reading the old item's names.
+/**
+ * @param {string} at
+ */
 function checkForEachItemFields(ctx, step, at) {
     const fe = step.forEach;
     const scopes = [{ itemVar: fe.itemVar, overRef: fe.overRef }, ...usableParents(fe)];
@@ -249,7 +272,9 @@ function checkForEachItemFields(ctx, step, at) {
             if (!scope) continue;
             const shape = itemFieldsAt(ctx.graph, scope.overRef);
             if (!shape || !shape.fields) continue;
+            /** @type {string | undefined | null} */
             let missing = null;
+            /** @type {string | null} */
             let suggestion = null;
             if (shape.direct) {
                 const chk = checkLoopRef(ctx.graph, formatPath(t), { overRef: scope.overRef, itemVar: scope.itemVar }, null);
@@ -273,6 +298,9 @@ function checkForEachItemFields(ctx, step, at) {
     }
 }
 
+/**
+ * @param {string} at
+ */
 function checkCollectionOps(ctx, step, at) {
     const { pushE, pushW } = ctx;
     // Phase B: collection ops — every type takes `arrayRef`.
@@ -283,7 +311,7 @@ function checkCollectionOps(ctx, step, at) {
     if (step.type === 'filter') {
         if (!step.expr || typeof step.expr !== 'string') pushE({ code: 'filter.expr_missing', severity: 'error', path: at + '.expr', message: `Step ${step.id}: filter requires \`expr\`.`, hint: 'Use the current element as `item`, e.g. `item.amount > 1000`.' });
         // A filter is a one-output Condition node, so it may ask "is about".
-        else { try { parseExpr(step.expr, { host: TOPIC_HOST_SPEC }); } catch (e) { pushE({ code: 'filter.expr_parse', severity: 'error', path: at + '.expr', message: `Step ${step.id}: filter expr parse error — ${e.message}`, hint: 'Restricted grammar only.' }); } }
+        else { try { parseExpr(step.expr, { host: TOPIC_HOST_SPEC }); } catch (e) { pushE({ code: 'filter.expr_parse', severity: 'error', path: at + '.expr', message: `Step ${step.id}: filter expr parse error — ${/** @type {Error} */ (e).message}`, hint: 'Restricted grammar only.' }); } }
     }
     if (step.type === 'limit') {
         if (typeof step.count !== 'number' || step.count < 0 || !Number.isFinite(step.count)) pushE({ code: 'limit.count_missing', severity: 'error', path: at + '.count', message: `Step ${step.id}: limit requires non-negative numeric \`count\`.`, hint: '0 returns no items, 10 returns first/last 10.' });
@@ -302,3 +330,5 @@ function checkCollectionOps(ctx, step, at) {
 }
 
 module.exports = { checkLoop, checkParallel, checkForEach, checkCollectionOps, forEachBoundVars, usableParents };
+
+/** @typedef {NonNullable<ReturnType<typeof parsePath>>[number]} PathToken */

@@ -208,6 +208,9 @@ const DRIVE_TOOLS = [
 
 // ─── Drive Client ──────────────────────────────────────────────
 
+/**
+ * @param {GoogleSession} session
+ */
 async function createDriveClient(session) {
     const { createGoogleApiClient } = require('./googleClient');
     return createGoogleApiClient(session, { api: 'drive', version: 'v3', notConnectedError: 'Not connected to Google Drive — user must log in with Google' });
@@ -340,6 +343,7 @@ async function uploadFile(args, { drive, session, extra }) {
 
     // Resolve bytes. Handles stay opaque to the AI; the only currently
     // supported kind is gmail_attachment.
+    /** @type {Buffer<ArrayBufferLike> | Buffer<ArrayBuffer>} */
     let buffer;
     let handleMime;
     if (hasHandle) {
@@ -356,11 +360,12 @@ async function uploadFile(args, { drive, session, extra }) {
             // A file a document/presentation step kept for THIS run —
             // resolved against the journey's run ids, never by id alone.
             const { readGeneratedFile } = require('../core/automationRunner/generatedFileHandle');
+            /** @type {{ buffer: Buffer; filename: string; mimeType: string; size: number; } | null} */
             let file;
             try {
                 file = await readGeneratedFile(args.sourceHandle, (extra && extra.runScope) || null);
             } catch (e) {
-                return { error: e.message };
+                return { error: /** @type {Error} */ (e).message };
             }
             if (!file) return { error: 'That fileId is not a live file of this run (expired, or produced by another automation).' };
             buffer = file.buffer;
@@ -494,7 +499,7 @@ async function getContent(args, { drive }) {
                 content = `[PDF: ${fileName} — could not extract text: ${result.reason || 'unknown reason'}]`;
             }
         } catch (dlErr) {
-            return { error: `Failed to download PDF: ${dlErr.message}`, fileName };
+            return { error: `Failed to download PDF: ${/** @type {Error} */ (dlErr).message}`, fileName };
         }
     }
     // Plain text / CSV / other downloadable formats
@@ -542,6 +547,10 @@ const HANDLERS = {
     drive_get_content: getContent,
 };
 
+/**
+ * @param {string} toolName
+ * @param {GoogleSession} session
+ */
 async function executeDriveTool(toolName, args, session, extra = {}) {
     const drive = await createDriveClient(session);
 
@@ -550,6 +559,9 @@ async function executeDriveTool(toolName, args, session, extra = {}) {
     return handler(args, { drive, session, extra });
 }
 
+/**
+ * @param {string} toolName
+ */
 function isDriveTool(toolName) {
     return ['drive_search', 'drive_list_files', 'drive_list_recent', 'drive_get_file', 'drive_get_content', 'drive_move_file', 'drive_create_folder', 'drive_upload_file'].includes(toolName);
 }
@@ -562,3 +574,14 @@ module.exports = {
     // exposed for tests
     listRecentDriveFiles,
 };
+
+/**
+ * @typedef {import('./driveHelpers').DriveClient} DriveClient
+ * @typedef {import('./googleClient').GoogleSession} GoogleSession
+ * Model-provided arguments of the drive_* tools.
+ * @typedef {{ query?: string, maxResults?: number, folderId?: string, fileId?: string, destinationFolderId?: string,
+ *   name?: string, parentFolderId?: string, content?: string, isBase64?: boolean, mimeType?: string,
+ *   overwriteIfExists?: boolean, since?: string, sourceHandle?: { kind?: string, messageId?: string,
+ *   attachmentId?: string, mimeType?: string, fileId?: string } }} DriveArgs
+ * @typedef {{ drive: DriveClient, session?: GoogleSession, extra?: { runScope?: { runId: string, rootRunId?: string } | null } }} DriveDeps
+ */

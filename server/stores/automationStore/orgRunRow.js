@@ -44,6 +44,7 @@
  * than in the glance. If a later stage wants the tighter reading, the change
  * is to drop these two fields from THIS list and leave the class behind; the
  * run itself stays reachable by its owner either way.
+ * @param {string | null} [viewerUserId]
  */
 function projectOrgRun(full, viewerUserId = null) {
     // A run on the starter's own connections shows no summary or error text to

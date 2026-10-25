@@ -36,12 +36,14 @@ const { requireAuth, requirePermission } = require('../../auth/permissions');
 // Shared with the runner's per-run snapshot — see compliance/score.js.
 
 const { SEVERITY_WEIGHT, computeScore, scoresByFramework } = require('../../compliance/score');
+const { fallback } = require('../../utils/bestEffort');
 
 // Track which orgs have had an auto-run kicked off so we don't re-trigger on
 // every overview call. Keyed by orgId, value = timestamp of last auto-run.
 const _autoRunCache = new Map();
 const AUTO_RUN_STALE_MS = 6 * 60 * 60 * 1000; // 6 hours
 
+/** @param {string} orgId */
 async function ensureFreshResults(orgId) {
     const last = _autoRunCache.get(orgId) || 0;
     if (Date.now() - last < AUTO_RUN_STALE_MS) return;
@@ -58,7 +60,7 @@ router.get('/overview', requireAuth, requirePermission('admin_compliance'), asyn
     const settings = await complianceStore.getSettings(orgId);
     let latest = await complianceStore.getLatestPerCheck(orgId);
 
-    const newest = latest.length ? latest.reduce((m, r) => (r.run_at > m ? r.run_at : m), latest[0].run_at) : null;
+    const newest = latest.length ? latest.reduce((/** @type {string} */ m, /** @type {Record<string, any>} */ r) => (r.run_at > m ? r.run_at : m), latest[0].run_at) : null;
     const staleMs = newest ? (Date.now() - new Date(newest).getTime()) : Infinity;
     let firstScanRan = false;
     if (latest.length === 0) {
@@ -66,7 +68,7 @@ router.get('/overview', requireAuth, requirePermission('admin_compliance'), asyn
             await runner.runAll(orgId, { runType: 'scheduled' });
             firstScanRan = true;
         } catch (e) {
-            log.warn('[Compliance] initial run failed:', e.message);
+            log.warn('[Compliance] initial run failed:', /** @type {Error} */ (e).message);
         }
         latest = await complianceStore.getLatestPerCheck(orgId);
         _autoRunCache.set(orgId, Date.now());
@@ -85,25 +87,28 @@ router.get('/overview', requireAuth, requirePermission('admin_compliance'), asyn
         // emptied `frameworks`/`frameworks_detail` on every request.
         activeRegs = new Set(await require('../../compliance/frameworkPolicy').activeRegulations(orgId, { req }));
     } catch (e) {
-        log.warn('[Compliance] framework policy unavailable, showing every row:', e.message);
+        log.warn('[Compliance] framework policy unavailable, showing every row:', /** @type {Error} */ (e).message);
     }
 
-    const lastRunAt = latest.length ? latest.reduce((m, r) => (r.run_at > m ? r.run_at : m), latest[0].run_at) : null;
+    const lastRunAt = latest.length ? latest.reduce((/** @type {string} */ m, /** @type {Record<string, any>} */ r) => (r.run_at > m ? r.run_at : m), latest[0].run_at) : null;
     // Legacy keys (gdpr/aia/iso) stay for the existing clients …
+    /** @type {Record<string, ReturnType<typeof computeScore>>} */
     const perRegulation = {};
     for (const reg of Object.keys(REGULATION_KEY)) {
-        perRegulation[REGULATION_KEY[reg]] = computeScore(latest.filter(r => r.regulation === reg));
+        perRegulation[/** @type {Record<string, string>} */ (REGULATION_KEY)[reg]] = computeScore(latest.filter((/** @type {Record<string, any>} */ r) => r.regulation === reg));
     }
     // … and every active framework lands under frameworks.<id>, with its
     // own verification split (a shared check counts once per framework).
     const byFramework = scoresByFramework(latest, activeRegs || undefined);
+    /** @type {Record<string, unknown>} */
     const frameworkScores = {};
+    /** @type {Record<string, ReturnType<typeof computeVerificationSummary>>} */
     const frameworkVerification = {};
     for (const [fwId, s] of Object.entries(byFramework)) {
         if (s == null) continue;
         frameworkScores[fwId] = s.score;
         const reg = frameworks.regulationOf(fwId);
-        const rows = latest.filter(r => {
+        const rows = latest.filter((/** @type {Record<string, any>} */ r) => {
             const def = registry.get(r.check_id);
             if (def?.regulation === reg || r.regulation === reg) return true;
             return Array.isArray(def?.frameworks) && def.frameworks.some(f => f.regulation === reg);
@@ -137,7 +142,7 @@ router.get('/report.pdf', requireAuth, requirePermission('admin_compliance'), as
     const actorId = req.session?.user?.id || null;
     const [latest, org] = await Promise.all([
         complianceStore.getLatestPerCheck(orgId),
-        userStore.getOrganization(orgId).catch(() => null),
+        userStore.getOrganization(orgId).catch((e) => fallback('routes/compliance/overview:anon', e, null)),
     ]);
     const { GUI_DEFAULTS } = require('../../i18n/defaults/en');
     const rows = [];
@@ -147,7 +152,7 @@ router.get('/report.pdf', requireAuth, requirePermission('admin_compliance'), as
         try {
             const ev = await complianceStore.getEvidenceHistory(orgId, r.check_id, 1);
             evidenceHash = ev?.[0]?.hash || null;
-        } catch (err) { log.debug('best-effort', err); }
+        } catch (err) { fallback('routes/compliance/overview:anon#2', err); /* best-effort */ }
         rows.push({
             regulation: r.regulation,
             article: r.article,
@@ -160,9 +165,10 @@ router.get('/report.pdf', requireAuth, requirePermission('admin_compliance'), as
             evidence_hash: evidenceHash,
         });
     }
+    /** @type {Record<string, ReturnType<typeof computeScore>>} */
     const reportScores = {};
     for (const reg of Object.keys(REGULATION_KEY)) {
-        reportScores[REGULATION_KEY[reg]] = computeScore(latest.filter(r => r.regulation === reg));
+        reportScores[/** @type {Record<string, string>} */ (REGULATION_KEY)[reg]] = computeScore(latest.filter((/** @type {Record<string, any>} */ r) => r.regulation === reg));
     }
     const { buildComplianceReport } = require('../../utils/compliancePdf');
     const { buffer, hash } = await buildComplianceReport({
@@ -178,7 +184,7 @@ router.get('/report.pdf', requireAuth, requirePermission('admin_compliance'), as
     // rejection is reported rather than swallowed.
     const evidenceRow = {
         organization_id: orgId,
-        check_id: null,
+        check_id: /** @type {string | null} */ (null),
         subject_type: 'export',
         subject_id: 'report.pdf',
         hash,
@@ -191,7 +197,7 @@ router.get('/report.pdf', requireAuth, requirePermission('admin_compliance'), as
 });
 
 // Score-over-time trend for the Overview sparkline. One row per full sweep.
-router.get('/score-history', requireAuth, requirePermission('admin_compliance'), validate({ query: HistoryQuery }), async (req, res) => {
+router.get('/score-history', requireAuth, requirePermission('admin_compliance'), validate({ query: HistoryQuery }), /** @param {import('express').Request<{}, any, any, { days?: number }>} req */ async (req, res) => {
     const orgId = await resolveOrgId(req);
     const days = req.query.days ?? 90;
     const rows = await complianceStore.getScoreHistory(orgId, days);

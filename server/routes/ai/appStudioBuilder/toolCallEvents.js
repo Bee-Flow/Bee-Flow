@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * App Studio Builder — the `tool_call` SSE payload.
  *
@@ -14,6 +14,7 @@
 const { findNode } = require('../../../appStudio/definitionOps');
 const { truncateJson } = require('./turnLoop');
 
+/** @type {Record<string, string>} */
 const TOOL_LABELS = {
     app_set_meta: 'Set app details',
     app_set_theme: 'Set theme',
@@ -53,6 +54,9 @@ const TOOL_LABELS = {
     app_finalize: 'Finalize app',
 };
 
+/**
+ * @param {string} name
+ */
 function labelForTool(name) {
     return TOOL_LABELS[name] || name;
 }
@@ -62,11 +66,35 @@ function labelForTool(name) {
 // side channel never leaves the server this way.
 const TOOL_CALL_PAYLOAD_CHARS = 8_000;
 
-/** What a successful call LANDED, typed, for the activity rows and ghost clearing. */
+/**
+ * @typedef {import('../../../appStudio/builderTools').ToolArgs} ToolArgs
+ * @typedef {import('../../../appStudio/builderTools').ToolResult & {
+ *   meta?: { name?: string }, screenId?: string, sectionId?: string, removed?: string,
+ *   added?: Array<{ id?: string, type?: string, label?: string }>, batch?: boolean, applied?: number, updated?: string,
+ *   moved?: string, toParentId?: string, created?: boolean, actionId?: string, hitCount?: number, truncated?: boolean,
+ *   automations?: unknown[], automation?: { title?: string }, key?: string, tableId?: string, fields?: unknown[], migration?: string,
+ *   table?: { id?: string, name?: string, key?: string, linked?: { kind?: string, mode?: string, rowCount?: number } },
+ *   note?: string, todos?: Array<{ done?: boolean }>, next?: string, roles?: string[], inserted?: number, failed?: unknown[],
+ *   name?: string, datasetId?: string, rowCount?: number, connectors?: unknown[], more?: boolean,
+ *   static?: { errors?: unknown[] }, emptyTables?: unknown[], ok?: boolean,
+ *   _screenshotDataUrl?: string, _screenshotCaption?: string, content?: string,
+ *   planId?: string, index?: number, label?: string, templates?: unknown[], templateId?: string, finalized?: boolean,
+ * }} ToolResult
+ * @typedef {{ id: string, type: string|null, label: string|null }} AddedItem
+ */
+
+/**
+ * What a successful call LANDED, typed, for the activity rows and ghost clearing.
+ * @param {string} name
+ * @param {ToolArgs|null|undefined} args
+ * @param {ToolResult|null|undefined} result
+ * @param {import('../../../appStudio/builderTools').BuilderDraft|null|undefined} draftWrap
+ * @returns {AddedItem[]}
+ */
 function addedOf(name, args, result, draftWrap) {
     if (!result || typeof result !== 'object' || result.error) return [];
     const def = draftWrap && draftWrap.def;
-    const labelOfNode = (id) => {
+    const labelOfNode = (/** @type {string} */ id) => {
         try {
             const found = def ? findNode(def, id) : null;
             const p = found && found.node && found.node.props;
@@ -92,8 +120,16 @@ function addedOf(name, args, result, draftWrap) {
     }
 }
 
-/** The tool_call SSE payload: the legacy line plus the typed, bounded detail. */
+/**
+ * The tool_call SSE payload: the legacy line plus the typed, bounded detail.
+ * @param {string} name
+ * @param {ToolArgs|null|undefined} args
+ * @param {ToolResult|null|undefined} result
+ * @param {boolean} ok
+ * @param {import('../../../appStudio/builderTools').BuilderDraft|null|undefined} draftWrap
+ */
 function toolCallEvent(name, args, result, ok, draftWrap) {
+    /** @type {{ name: string, label: string, ok: boolean, summary: string, added?: AddedItem[], error?: string, hint?: string, arguments?: string, result?: string }} */
     const payload = { name, label: labelForTool(name), ok, summary: summariseToolResult(name, args, result) };
     const added = addedOf(name, args, result, draftWrap);
     if (added.length) payload.added = added;
@@ -114,8 +150,17 @@ function toolCallEvent(name, args, result, ok, draftWrap) {
     return payload;
 }
 
-/** One short human line per tool result — feeds the tool_call SSE event. */
+/**
+ * One short human line per tool result — feeds the tool_call SSE event.
+ * @param {string} name
+ * @param {ToolArgs|null|undefined} args
+ * @param {ToolResult|null|undefined} result
+ * @returns {string}
+ */
 function summariseToolResult(name, args, result) {
+    /**
+     * @param {string} s
+     */
     const cap = (s) => {
         const str = String(s || '').replace(/\s+/g, ' ').trim();
         return str.length > 140 ? `${str.slice(0, 140)}…` : str;
@@ -159,7 +204,7 @@ function summariseToolResult(name, args, result) {
         }
         case 'app_set_plan': {
             const todos = Array.isArray(result?.todos) ? result.todos : [];
-            const done = todos.filter((t) => t && t.done).length;
+            const done = todos.filter((/** @type {{ done?: boolean }} */ t) => t && t.done).length;
             return cap(todos.length ? `Plan ${done}/${todos.length}${result?.next ? ` · next: ${result.next}` : ''}` : 'Plan cleared');
         }
         case 'app_remove_table': return cap(`Removed table ${result?.removed}${result?.note ? ` — ${result.note}` : ''}`);

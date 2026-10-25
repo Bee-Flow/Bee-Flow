@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The security key as the second factor of a password sign-in — mounted at
  * /auth next to /mfa/verify-login, and gated the same way: by the
@@ -32,7 +32,7 @@ const CHALLENGE_FIELD = 'securityKeyChallenge';
 
 /**
  * @param {{
- *   userStore: { getUser: Function, listSecurityKeys: Function, recordSecurityKeyUse: Function },
+ *   userStore: { getUser: Function, listSecurityKeys: (userId: string) => Promise<import('../../stores/user/securityKeys').SecurityKey[]>, recordSecurityKeyUse: Function },
  *   ceremony: typeof import('./ceremony'),
  *   relyingPartyOf: (req: any) => ({ rpID: string, origin: string } | null),
  *   finalizeLogin: Function,
@@ -54,6 +54,10 @@ function createSecurityKeyLoginRouter(deps) {
 
     // The keys this pending user can use on the host they are on. A key only
     // answers for the RP ID it was registered under.
+    /**
+     * @param {string} userId
+     * @param {string} rpID
+     */
     async function usableKeys(userId, rpID) {
         const keys = await userStore.listSecurityKeys(userId);
         return keys.filter((k) => k.rpId === rpID);

@@ -636,7 +636,7 @@ describe('the 409 delete guards (src/core/api/deleteGuard.ts)', () => {
     it('recordings: the in_use body, and ?confirm=1 read as a flag', () => {
         const slice = routeSlice(read('routes/transcriptions/noteActions.js'), "router.delete('/:id',");
         for (const token of IN_USE_BODY) expect(slice).toContain(token);
-        expect(slice).toContain('req.query.confirm === true');
+        expect(slice).toMatch(/\(?req\.query\)?\.confirm === true/);
         expect(read('routes/transcriptions/noteActions.js')).toMatch(/DeleteQuery = z\.object\(\{ confirm: flag\(/);
         // `flag` is what turns the phone's '1' into that `true`.
         expect(read('routes/transcriptions/schemas.js')).toMatch(/const flag = [^\n]*'1'[\s\S]{0,120}v === '1'/);
@@ -660,7 +660,7 @@ describe('the 409 delete guards (src/core/api/deleteGuard.ts)', () => {
 
     it('webpages: the in_use body, and ?confirm=1 read as a flag', () => {
         const lifecycle = read('routes/webpages/lifecycle.js');
-        expect(routeSlice(lifecycle, "router.delete('/:id',")).toContain('req.query.confirm === true');
+        expect(routeSlice(lifecycle, "router.delete('/:id',")).toMatch(/\(?req\.query\)?\.confirm === true/);
         expect(lifecycle).toMatch(/DeleteQuery = z\.object\(\{ confirm: flag\(/);
         const guard = read('routes/webpages/deleteGuard.js');
         for (const token of IN_USE_BODY) expect(guard).toContain(token);

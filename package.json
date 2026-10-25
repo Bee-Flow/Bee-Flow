@@ -36,6 +36,8 @@
     "lint:error-echo-ratchet": "node scripts/count-ratchet.mjs error-echo server",
     "lint:sse-head-ratchet": "node scripts/count-ratchet.mjs sse-head server",
     "lint:inline-pglite-ratchet": "node scripts/count-ratchet.mjs inline-pglite server",
+    "lint:swallowed-error-ratchet": "node scripts/count-ratchet.mjs swallowed-error server",
+    "lint:admin-id-literal-ratchet": "node scripts/count-ratchet.mjs admin-id-literal server",
     "lint:empty-catch-ratchet": "node scripts/count-ratchet.mjs empty-catch server && node scripts/count-ratchet.mjs empty-catch agent-hub",
     "lint:rollback-in-store-ratchet": "node scripts/count-ratchet.mjs rollback-in-store server",
     "lint:db-in-routes-ratchet": "node scripts/count-ratchet.mjs db-in-routes server",
@@ -49,7 +51,9 @@
     "lint:unchecked-mutation-ratchet": "node scripts/count-ratchet.mjs unchecked-mutation agent-hub",
     "lint:source-text": "node scripts/source-text-tests.mjs server --gate",
     "lint:checkjs-ratchet": "node scripts/checkjs-ratchet.mjs server",
-    "lint:scripts-types": "tsc -p scripts",
+    "lint:row-types": "node scripts/gen-row-types.mjs --check",
+    "lint:jsdoc-loose-type-ratchet": "node scripts/count-ratchet.mjs jsdoc-loose-type server",
+    "lint:scripts-types": "node node_modules/typescript-native/bin/tsc -p scripts",
     "lint:layering-ratchet": "node --test server/layering.test.js",
     "lint:scc-ratchet": "node scripts/scc-ratchet.mjs server agent-hub mobile",
     "lint:duplication": "node scripts/duplication-ratchet.mjs",
@@ -68,6 +72,7 @@
     "i18n:gen": "node scripts/gen-i18n-defaults.mjs",
     "learn-media:fetch": "node scripts/learn-media-fetch.mjs",
     "gen:shared": "node scripts/gen-shared-mirror.mjs",
+    "gen:row-types": "node scripts/gen-row-types.mjs",
     "count:source-text": "node scripts/source-text-tests.mjs server",
     "check:fast": "node scripts/check-fast.mjs",
     "test:scripts": "node --test scripts/*.test.mjs"
@@ -76,6 +81,7 @@
     "@types/node": "^22.20.5",
     "concurrently": "^10.0.6",
     "jscpd": "^5.4.1",
+    "typescript-api": "npm:typescript@^6.0.3",
     "typescript-native": "npm:typescript@7.0.2"
   },
   "overrides": {

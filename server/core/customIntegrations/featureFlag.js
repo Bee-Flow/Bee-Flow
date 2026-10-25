@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
+// @typecheck strict
 /**
  * Custom-integrations kill switch (dark-ship gate).
  *
@@ -21,6 +22,11 @@ async function isCustomIntegrationsEnabled() {
     }
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {NextFunction} next
+ */
 async function customIntegrationsFeatureGate(req, res, next) {
     if (await isCustomIntegrationsEnabled()) return next();
     return res.status(404).json({ error: 'not_found' });

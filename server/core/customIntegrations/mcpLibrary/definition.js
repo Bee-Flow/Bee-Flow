@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Turning "install this MCP server" into an mcp_remote custom-integration
  * definition, and checking an endpoint before anything is stored.
@@ -29,6 +29,14 @@ const HEADER_NAME_RE = /^[A-Za-z0-9-]{1,64}$/;
  * The auth part of a definition.
  *   { authStyle: 'none', credential: null }
  * | { authStyle: 'bearer'|'header', header?, valueTemplate, credential: { key, label } }
+ *
+ * @typedef {NonNullable<ReturnType<typeof getCatalogEntry>>} CatalogEntry
+ * @typedef {{ authStyle: string, header?: string, valueTemplate?: string, credential: { key: string, label: string } | null }} LibraryAuth
+ * @typedef {{ style?: string, header?: unknown }} CustomAuthInput
+ * @typedef {{ name: string, description: string, readOnly: boolean | null, destructive: boolean | null }} SlimTool
+ * @typedef {{ url: string, authStyle: string, valueTemplate?: string, credentials?: { key: string, label: string }[], header?: string, toolAllowList?: string[], discoveredTools?: SlimTool[] }} LibraryMcpBlock
+ * @param {CatalogEntry} entry
+ * @returns {LibraryAuth}
  */
 function authFromCatalog(entry) {
     const a = entry.auth || { style: 'none' };
@@ -40,6 +48,10 @@ function authFromCatalog(entry) {
     return { authStyle: 'header', header: a.header, valueTemplate: `{{credential.${credential.key}}}`, credential };
 }
 
+/**
+ * @param {CustomAuthInput | null} auth
+ * @returns {LibraryAuth}
+ */
 function authFromCustom(auth) {
     const style = auth && auth.style;
     if (!style || style === 'none') return { authStyle: 'none', credential: null };
@@ -65,6 +77,7 @@ function authFromCustom(auth) {
  * catalogue entry when there is one. Throws a 4xx HttpError for anything the
  * caller got wrong. Does NOT apply the policy (the caller does, so that a
  * probe and an install refuse with the same words).
+ * @param {{ catalogId?: string | null, url?: string | null, auth?: CustomAuthInput | null }} target
  */
 function resolveTarget({ catalogId = null, url = null, auth = null }) {
     if (catalogId) {
@@ -81,8 +94,12 @@ function resolveTarget({ catalogId = null, url = null, auth = null }) {
     return { url: endpoint, auth: authFromCustom(auth), entry: null };
 }
 
-/** The mcp block for a definition (or for a throwaway probe). */
+/**
+ * The mcp block for a definition (or for a throwaway probe).
+ * @param {{ url: string, auth: LibraryAuth, toolAllowList?: string[] | null, discoveredTools?: SlimTool[] | null }} opts
+ */
 function mcpBlock({ url, auth, toolAllowList = null, discoveredTools = null }) {
+    /** @type {LibraryMcpBlock} */
     const mcp = { url, authStyle: auth.authStyle };
     if (auth.authStyle !== 'none') {
         mcp.valueTemplate = auth.valueTemplate;
@@ -105,8 +122,12 @@ function mcpBlock({ url, auth, toolAllowList = null, discoveredTools = null }) {
 // Every brace that touches another brace gets a space after it, so no run of
 // braces ('{{', '{{{', …) survives: a single pass of '{{' → '{ {' leaves
 // '{{{' as '{ {{'.
-const defuseBraces = (s) => s.replace(/\{(?=\{)/g, '{ ').replace(/\}(?=\})/g, '} ');
+const defuseBraces = (/** @type {string} */ s) => s.replace(/\{(?=\{)/g, '{ ').replace(/\}(?=\})/g, '} ');
 
+/**
+ * @param {unknown} tools
+ * @returns {SlimTool[]}
+ */
 function slimTools(tools) {
     return (Array.isArray(tools) ? tools : []).map(t => {
         const hints = t.annotations || {};
@@ -120,7 +141,11 @@ function slimTools(tools) {
     });
 }
 
+/**
+ * @param {{ url: string, auth: LibraryAuth, entry?: CatalogEntry | null, discoveredTools: unknown, toolAllowList: string[] | null }} opts
+ */
 function buildDefinition({ url, auth, entry = null, discoveredTools, toolAllowList }) {
+    /** @type {{ source: string, catalogId?: string, docsUrl?: string }} */
     const meta = { source: LIBRARY_SOURCE };
     if (entry) meta.catalogId = entry.id;
     if (entry && entry.docsUrl) meta.docsUrl = entry.docsUrl;
@@ -131,12 +156,17 @@ function buildDefinition({ url, auth, entry = null, discoveredTools, toolAllowLi
     };
 }
 
+/**
+ * @param {LibraryAuth} auth
+ * @param {unknown} value
+ */
 function secretObjectFor(auth, value) {
     if (auth.authStyle === 'none' || !auth.credential) return null;
     if (typeof value !== 'string' || !value.trim()) return null;
     return { [auth.credential.key]: value.trim() };
 }
 
+/** @param {unknown} value */
 function checkCredentialValue(value) {
     if (value === undefined || value === null || value === '') return;
     if (typeof value !== 'string') throw new HttpError(400, 'invalid_credential', 'The key must be text.');
@@ -150,6 +180,7 @@ function checkCredentialValue(value) {
  * The underlying messages come from ssrfGuard (deliberately generic) and the
  * MCP SDK ("Error POSTing to endpoint (HTTP 401): …"), already scrubbed of
  * the credential by customMcpClient.
+ * @param {(Error & { code?: string }) | null | undefined} err
  */
 function classifyConnectError(err) {
     const msg = String((err && err.message) || err || '');
@@ -164,6 +195,7 @@ function classifyConnectError(err) {
     return 'unreachable';
 }
 
+/** @type {Record<string, string>} */
 const CONNECT_ERROR_TEXT = {
     timeout: 'The server did not answer within 20 seconds.',
     blocked_address: 'That address points to a private or internal network, which is never allowed.',
@@ -176,8 +208,15 @@ const CONNECT_ERROR_TEXT = {
     unreachable: 'The server could not be reached.',
 };
 
+/**
+ * @template T
+ * @param {Promise<T>} promise
+ * @param {number} ms
+ */
 function withTimeout(promise, ms) {
+    /** @type {ReturnType<typeof setTimeout> | undefined} */
     let timer;
+    /** @type {Promise<never>} */
     const timeout = new Promise((_, reject) => {
         timer = setTimeout(() => {
             const e = new Error('Connection timed out.');
@@ -192,6 +231,7 @@ function withTimeout(promise, ms) {
 /**
  * Connect, list the tools, disconnect. Throws HttpError(422, 'connect_<code>')
  * on failure. `toolAllowList` null = every advertised tool.
+ * @param {{ url: string, auth: LibraryAuth, secretObject?: import('../customMcpClient').SecretObject, toolAllowList?: string[] | null }} opts
  */
 async function discover({ url, auth, secretObject = null, toolAllowList = null }) {
     const client = deps.mcpClient();

@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Subscription plan CRUD — the admin Plans editor plus the manual Stripe sync.
  * Super-admin only; the gate sits on the parent router in routes/subscriptions.js.
@@ -7,6 +8,7 @@ const express = require('express');
 const userStore = require('../../stores/userStore');
 const { getAdminId } = require('./shared');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
@@ -29,13 +31,20 @@ const router = express.Router();
 // with an errorMap now, because `invalid_type_error` would not have caught a
 // wrong VALUE.
 
+/** @param {string} what */
 const text = (what) => worded(`${what} must be text.`);
+/** @param {string} name */
 const cap = (name) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })
     .min(0, `${name} must be non-negative.`).nullish();
+/** @param {string} name */
 const whole = (name) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })
     .int(`${name} must be a whole number.`).min(0, `${name} must be non-negative.`).nullish();
+/** @param {string} name */
 const flag = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) }).optional();
-/** An allow-list column: a list of ids, or null for "unrestricted". */
+/**
+ * An allow-list column: a list of ids, or null for "unrestricted".
+ * @param {string} name
+ */
 const allowList = (name) => z.array(text(`Each entry in ${name}`), { error: typeError({ invalid: `${name} is a list of ids, or null.` }) }).nullish();
 
 const INTERVAL_TEXT = 'billing_interval is "monthly" or "yearly".';
@@ -92,6 +101,10 @@ const PLAN_SHAPE = {
 // Stripe needs a payment method up front for a metered price, so a PAYG plan
 // cannot carry a trial. Read off the BODY only — same as before, so a PUT that
 // touches neither field is unaffected.
+/**
+ * @param {{ billing_model?: string | null, trial_days?: number | null }} v
+ * @param {import('zod').RefinementCtx} ctx
+ */
 const noTrialOnPayg = (v, ctx) => {
     if (v.billing_model === 'metered' && v.trial_days) {
         ctx.addIssue({
@@ -137,9 +150,10 @@ router.post('/plans', validate({ body: CreatePlanBody }), async (req, res) => {
             try {
                 const stripeService = require('../../services/stripeService');
                 if (await stripeService.isEnabled()) {
-                    const result = isPayg
+                    const result = /** @type {{ productId: string, priceId: string, meterId?: string, meterEventName?: string }} */ (isPayg
                         ? await stripeService.syncPaygPlanToStripe(plan)
-                        : await stripeService.syncPlanToStripe(plan);
+                        : await stripeService.syncPlanToStripe(plan));
+                    /** @type {{ stripe_product_id: string, stripe_price_id: string, stripe_meter_id?: string, stripe_meter_event_name?: string }} */
                     const updates = { stripe_product_id: result.productId, stripe_price_id: result.priceId };
                     if (isPayg) {
                         updates.stripe_meter_id = result.meterId;
@@ -163,7 +177,7 @@ router.post('/plans', validate({ body: CreatePlanBody }), async (req, res) => {
 });
 
 // PUT /api/subscriptions/plans/:id
-router.put('/plans/:id', validate({ body: UpdatePlanBody }), async (req, res) => {
+router.put('/plans/:id', validate({ body: UpdatePlanBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     try {
         const oldPlan = await userStore.getPlan(req.params.id);
         const ok = await userStore.updatePlan(req.params.id, req.body);
@@ -187,7 +201,7 @@ router.put('/plans/:id', validate({ body: UpdatePlanBody }), async (req, res) =>
             JSON.stringify(req.body[f] ?? null) !== JSON.stringify(oldPlan?.[f] ?? null)
         );
         if (entChanged) {
-            try { require('../../license').bumpServerLicenseVersion(); } catch (err) { log.debug('best-effort cache bust', err); }
+            try { require('../../license').bumpServerLicenseVersion(); } catch (err) { bestEffort('subscriptions/plans:licenseVersionBump', err); }
         }
 
         // Auto-sync to Stripe if enabled.
@@ -205,9 +219,10 @@ router.put('/plans/:id', validate({ body: UpdatePlanBody }), async (req, res) =>
             try {
                 const stripeService = require('../../services/stripeService');
                 if (await stripeService.isEnabled()) {
-                    const result = isPayg
+                    const result = /** @type {{ productId: string, priceId: string, meterId?: string, meterEventName?: string }} */ (isPayg
                         ? await stripeService.syncPaygPlanToStripe(updated)
-                        : await stripeService.syncPlanToStripe(updated);
+                        : await stripeService.syncPlanToStripe(updated));
+                    /** @type {{ stripe_product_id: string, stripe_price_id: string, stripe_meter_id?: string, stripe_meter_event_name?: string }} */
                     const updates = { stripe_product_id: result.productId, stripe_price_id: result.priceId };
                     if (isPayg) {
                         updates.stripe_meter_id = result.meterId;
@@ -230,7 +245,7 @@ router.put('/plans/:id', validate({ body: UpdatePlanBody }), async (req, res) =>
 });
 
 // DELETE /api/subscriptions/plans/:id
-router.delete('/plans/:id', async (req, res, next) => {
+router.delete('/plans/:id', async (/** @type {import('express').Request<{ id: string }>} */ req, res, next) => {
     try {
         const oldPlan = await userStore.getPlan(req.params.id);
         const ok = await userStore.deletePlan(req.params.id);
@@ -253,7 +268,7 @@ router.delete('/plans/:id', async (req, res, next) => {
 });
 
 // POST /api/subscriptions/plans/:id/sync-stripe — Manually sync a plan to Stripe
-router.post('/plans/:id/sync-stripe', async (req, res) => {
+router.post('/plans/:id/sync-stripe', async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const stripeService = require('../../services/stripeService');
     if (!(await stripeService.isEnabled())) {
         return res.status(400).json({ error: 'Stripe is not enabled. Configure Stripe in the Stripe settings tab first.' });
@@ -266,9 +281,10 @@ router.post('/plans/:id/sync-stripe', async (req, res) => {
         return res.status(400).json({ error: 'Fixed-price plans must have a price greater than 0 to sync to Stripe' });
     }
 
-    const result = isPayg
+    const result = /** @type {{ productId: string, priceId: string, meterId?: string, meterEventName?: string }} */ (isPayg
         ? await stripeService.syncPaygPlanToStripe(plan)
-        : await stripeService.syncPlanToStripe(plan);
+        : await stripeService.syncPlanToStripe(plan));
+    /** @type {{ stripe_product_id: string, stripe_price_id: string, stripe_meter_id?: string, stripe_meter_event_name?: string }} */
     const updates = { stripe_product_id: result.productId, stripe_price_id: result.priceId };
     if (isPayg) {
         updates.stripe_meter_id = result.meterId;

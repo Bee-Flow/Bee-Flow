@@ -69,7 +69,7 @@ function makeChangeTitles(db, deps = {}) {
             } catch (err) {
                 // An install without that module has no such items to name.
                 if (!MISSING_SCHEMA.has(err && err.code)) {
-                    log.warn(`[ChangeFeed] ${type} titles could not be read:`, err.message);
+                    log.warn(`[ChangeFeed] ${type} titles could not be read:`, /** @type {Error} */ (err).message);
                 }
             }
         }

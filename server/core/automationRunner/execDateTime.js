@@ -200,3 +200,11 @@ function datetimeResult(step, runState) {
 }
 
 module.exports = { execDateTime };
+
+/** @typedef {import('../automationModel/bind').BindRunState} BindRunState */
+
+/**
+ * @typedef {{ op?: string, input?: string, input2?: string, arrayRef?: string, target?: string,
+ *   part?: string, format?: string, amount?: number|string, unit?: string, timezone?: string,
+ *   epochUnit?: string, id?: string, [key: string]: unknown }} DateTimeStep
+ */

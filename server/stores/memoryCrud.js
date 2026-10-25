@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * stores/memoryCrud.js — writing memories: create (with canonical dedupe
  * through the blind index), update, confirm, provenance, and the delete and
@@ -44,6 +44,17 @@ const WRITABLE_STATUSES = Object.freeze(['active', 'pending_review']);
 // ============ Memory CRUD Functions ============
 
 /**
+ * @param {string} userId
+ * @param {string|null} agentId
+ * @param {string} type
+ * @param {string} content
+ * @param {string|null} [summary]
+ * @param {number} [importance]
+ * @param {string|null} [subject]
+ * @param {string|null} [attribute]
+ * @param {string|null} [value]
+ * @param {string|null} [evidenceQuote]
+ * @param {string|null} [projectId]
  * @param {object} [options]
  * @param {'explicit'|'inferred'|'imported'|'tool'} [options.origin]  default 'inferred'
  * @param {string|null} [options.sourceConversationId]  the conversation it came from
@@ -105,7 +116,12 @@ async function createMemory(userId, agentId, type, content, summary = null, impo
     return id;
 }
 
-/** INSERT one row, sealing the text columns when the write context says so. */
+/**
+ * INSERT one row, sealing the text columns when the write context says so.
+ * @param {string} id
+ * @param {import('./memoryCrypto').MemoryWriteContext} wctx
+ * @param {Record<string, any>} f  the row's fields (camelCase)
+ */
 async function _insertMemory(id, wctx, f) {
     const sealed = sealFields(id, {
         content: f.content,
@@ -130,6 +146,8 @@ async function _insertMemory(id, wctx, f) {
  * The active row for a canonical key, hydrated, or null. Scoped to the
  * project's pool or to the user's personal rows, and to one agent bucket (a
  * global memory never matches an agent-scoped one).
+ * @param {import('./memoryCrypto').MemoryWriteContext} wctx
+ * @param {{ userId: string, type: string, subject: string, attribute: string, projectId?: string|null, agentId?: string|null }} key
  */
 async function _findActiveByKey(wctx, { userId, type, subject, attribute, projectId = null, agentId = null }) {
     const hashes = keyHashCandidates({ type, subject, attribute }, wctx);
@@ -137,6 +155,9 @@ async function _findActiveByKey(wctx, { userId, type, subject, attribute, projec
     // predates the column during a rolling upgrade, before the next boot's
     // backfill): compare the plaintext columns, normalised like canonicalKey.
     // A sealed row always has a key_hash, so this can only match plaintext.
+    /**
+     * @param {string} c
+     */
     const norm = (c) => `regexp_replace(lower(btrim(${c})), '\\s+', ' ', 'g')`;
     let query = `SELECT * FROM user_memories WHERE status = 'active'
         AND (key_hash = ANY($1::text[]) OR (key_hash IS NULL AND ${norm('type')} = $4 AND ${norm('subject')} = $5 AND ${norm('attribute')} = $6))`;
@@ -155,12 +176,26 @@ async function _findActiveByKey(wctx, { userId, type, subject, attribute, projec
     return row ? (await hydrateRows([row]))[0] || null : null;
 }
 
+/**
+ * @param {string} userId
+ * @param {string} type
+ * @param {string} subject
+ * @param {string} attribute
+ * @param {string|null} [projectId]
+ * @param {string|null} [agentId]
+ */
 async function findByKey(userId, type, subject, attribute, projectId = null, agentId = null) {
     await initDB();
     const wctx = await resolveWriteContext({ userId, projectId });
     return _findActiveByKey(wctx, { userId, type, subject, attribute, projectId, agentId });
 }
 
+/**
+ * @param {string} memoryId
+ * @param {string|null} newValue
+ * @param {string} newContent
+ * @param {string|null} evidenceQuote
+ */
 async function updateMemoryValue(memoryId, newValue, newContent, evidenceQuote) {
     await initDB();
     const row = await getOne('SELECT user_id, project_id FROM user_memories WHERE id = $1', [memoryId]);
@@ -175,6 +210,9 @@ async function updateMemoryValue(memoryId, newValue, newContent, evidenceQuote) 
     log.info(`[MemoryStore] Updated memory ${memoryId} with a new value`);
 }
 
+/**
+ * @param {string} memoryId
+ */
 async function confirmMemory(memoryId) {
     await initDB();
     await run(`
@@ -182,6 +220,12 @@ async function confirmMemory(memoryId) {
     `, [memoryId]);
 }
 
+/**
+ * @param {string} id
+ * @param {string} content
+ * @param {string|null} [summary]
+ * @param {number|null} [importance]
+ */
 async function updateMemory(id, content, summary = null, importance = null) {
     await initDB();
     const existing = await getMemoryById(id);
@@ -195,6 +239,9 @@ async function updateMemory(id, content, summary = null, importance = null) {
     return true;
 }
 
+/**
+ * @param {string} id
+ */
 async function deleteMemory(id) {
     // With its memory_sources rows: there is no foreign key to cascade them.
     return deleteMemoriesWithSources('id = $1', [id]);
@@ -246,6 +293,7 @@ async function deleteMemoriesByIds(ids) {
  * "Clear All" in Settings: the person's PERSONAL memory, every status. Rows
  * in a project's shared pool are not theirs to clear from here, even the
  * ones they wrote; that is clearProjectMemories.
+ * @param {string} userId
  */
 async function clearAllMemories(userId) {
     return deleteMemoriesWithSources('user_id = $1 AND project_id IS NULL', [userId]);
@@ -257,6 +305,7 @@ async function clearAllMemories(userId) {
  * lists (its active rows) plus the superseded history behind them, as the
  * personal clear has always taken. Authorization is the caller's: the route
  * asks for editor on the project first.
+ * @param {string} projectId
  */
 async function clearProjectMemories(projectId) {
     return deleteMemoriesWithSources('project_id = $1', [projectId]);
@@ -267,6 +316,7 @@ async function clearProjectMemories(projectId) {
  * of every user in the org, personal and project-pool rows they wrote, with
  * their memory_sources rows, in ONE statement. The schedule_coverage
  * bookkeeping rows are not memories and stay. Returns the number removed.
+ * @param {string} orgId
  */
 async function deleteMemoriesForOrg(orgId) {
     if (!orgId) return 0;
@@ -287,6 +337,10 @@ async function deleteMemoriesForOrg(orgId) {
 // Provenance only: which conversation a memory came from. The message text is
 // deliberately NOT stored (no plaintext copy of the chat); the legacy
 // `message_content` column stays in the schema but is never written.
+/**
+ * @param {string} memoryId
+ * @param {string} conversationId
+ */
 async function addMemorySource(memoryId, conversationId) {
     await initDB();
     const id = randomUUID();

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 // Result shaping for the NMBRS tools: the size cap and server-side paging.

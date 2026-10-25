@@ -22,6 +22,7 @@
 /**
  * Pull an HTTP status out of the error text. The Nextcloud client throws in
  * a few shapes, e.g. "Nextcloud download failed (409)" or "... failed: 401".
+ * @param {string} text
  */
 function extractHttpStatus(text) {
     const s = String(text || '');
@@ -43,6 +44,7 @@ const NO_ACCESS_RE = /permission denied|access denied|not permitted|insufficient
 
 // Nextcloud apps that are not Files. Every other nextcloud_* tool works on
 // files and folders.
+/** @type {Record<string, string>} */
 const NC_APPS = {
     deck: 'Deck', talk: 'Talk', notes: 'Notes', calendar: 'Calendar', contacts: 'Contacts',
     mail: 'Mail', tables: 'Tables', forms: 'Forms', tasks: 'Tasks', notifications: 'Notifications',
@@ -50,9 +52,13 @@ const NC_APPS = {
 };
 
 /** Tools whose first name segment is generic (list_*, search_*): matched by full name. */
+/** @type {Record<string, string>} */
 const TOOL_APPS = { nextcloud_list_groups: 'Groups', nextcloud_search: 'Search' };
 
-/** 'nextcloud_teams_get' -> 'Teams'; 'nextcloud_upload_file' (and any unknown prefix) -> 'Files'. */
+/**
+ * 'nextcloud_teams_get' -> 'Teams'; 'nextcloud_upload_file' (and any unknown prefix) -> 'Files'.
+ * @param {string} tool
+ */
 function nextcloudAppOf(tool) {
     if (Object.hasOwn(TOOL_APPS, String(tool))) return TOOL_APPS[String(tool)];
     const seg = String(tool || '').replace(/^nextcloud_/, '').split('_')[0];
@@ -81,6 +87,13 @@ function classifyNextcloudError(input, opts) {
     const lower = text.toLowerCase();
     const status = extractHttpStatus(text);
 
+    /**
+     * @param {string} code
+     * @param {string} category
+     * @param {string} errorClass
+     * @param {string} message
+     * @param {string} remediation
+     */
     const make = (code, category, errorClass, message, remediation) => ({
         code, category, errorClass, message, remediation,
     });

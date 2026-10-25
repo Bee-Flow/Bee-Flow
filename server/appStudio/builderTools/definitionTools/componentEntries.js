@@ -43,6 +43,9 @@ const WRAPPER_KEYS = new Set(['children', 'parentId', 'tempId', 'index', 'style'
 // punctuation (issues #21384/#21680) leaves these behind after the point
 // where a call's JSON broke — every one is debris, never a field.
 const KEY_RX = /^[A-Za-z_$][\w$-]*$/;
+/**
+ * @param {string} k
+ */
 const isDebrisKey = (k) => !KEY_RX.test(k);
 // A `type` value that swallowed the rest of its entry: `chart},{props:{chartType:`.
 // JSON punctuation only — a type written with a space ("data grid", "page
@@ -59,6 +62,7 @@ const GARBLED_TYPE_RX = /[{}\[\]"',:]/;
  * Debris keys on a GROUP are stripped silently: Gemma writes keys in
  * alphabetical order, so `children` precedes `type` and a container whose
  * children broke always loses its own type — the debris IS its lost tail.
+ * @param {{ fragments: number; debrisKeys: number; }} report
  */
 function readEntry(raw, report) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) { report.fragments += 1; return { kind: 'fragment' }; }
@@ -104,6 +108,8 @@ function readEntry(raw, report) {
  *     sibling group (the card before it) lands;
  *   • a corrupted typed entry fails at its path; fragments are dropped and
  *     counted (one note), never reported one by one.
+ * @param {string} at
+ * @param {number} [depth]
  */
 function flattenEntries(list, at, report, depth = 0) {
     if (!Array.isArray(list) || depth > 6) return [];
@@ -114,6 +120,8 @@ function flattenEntries(list, at, report, depth = 0) {
  * One raw list element at the path it has in the CALL (`here`) — the path is
  * the caller's, never re-derived, so a retried subset of a batch reports its
  * entries where the model sent them (components[1], not components[0]).
+ * @param {string} here
+ * @param {number} [depth]
  */
 function flattenOne(raw, here, report, depth = 0) {
     const read = readEntry(raw, report);
@@ -140,7 +148,10 @@ function topIndexOf(path) {
     return m ? Number(m[1]) : null;
 }
 
-/** The path of the entry a path sits inside: `components[1].children[0].children[1]` → `components[1].children[0]`; null at the top level. */
+/**
+ * The path of the entry a path sits inside: `components[1].children[0].children[1]` → `components[1].children[0]`; null at the top level.
+ * @param {string} path
+ */
 function containerPathOf(path) {
     return /\.children\[\d+\]$/.test(path) ? path.replace(/\.children\[\d+\]$/, '') : null;
 }
@@ -152,3 +163,5 @@ module.exports = {
     topIndexOf,
     containerPathOf,
 };
+
+/** @typedef {import('./addComponentsPhases').AddComponentsEntry} AddComponentsEntry */

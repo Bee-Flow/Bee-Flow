@@ -50,6 +50,7 @@ const {
     refIdsOf,
 } = require('../skills/skillStructure');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const SKILL_CAP = 5;
 const ACTIVATE_SKILL_TOOL_NAME = 'activate_skill';
@@ -454,7 +455,7 @@ async function executeActivateSkill({ args, orgId, userId, onSkillsActivated, ag
         automationStore = require('../../stores/automationStore');
         const executeAutomation = require('./automationExecutorPort').getAutomationExecutor();
         automationRunner = executeAutomation ? { executeAutomation } : null;
-    } catch (err) { log.debug('automation runtime not available — skill→automation links will be skipped', err); }
+    } catch (err) { fallback('core/tools/skillInjection:executeActivateSkill', err); /* automation runtime not available — skill→automation links will be skipped */ }
 
     const blocks = await Promise.all(skills.map(async (s) => {
         // Linked automation: dispatch the flow and return its output instead of
@@ -497,7 +498,7 @@ async function executeActivateSkill({ args, orgId, userId, onSkillsActivated, ag
                     // (BFSF-371), so the last row is often the sleep.
                     const last = Array.isArray(steps) ? steps.findLast(s => s.stepType !== 'wait') : null;
                     if (last) lastOutput = last.output;
-                } catch (err) { log.debug('non-fatal', err); }
+                } catch (err) { fallback('core/tools/skillInjection:executeActivateSkill#2', err); /* non-fatal */ }
                 let body = `### SKILL — "${s.name}" (id: ${s.id})\nThis skill ran the linked automation "${automation.title || automation.id}".\nStatus: ${status}`;
                 if (summary) body += `\nSummary: ${summary}`;
                 if (lastOutput !== undefined && lastOutput !== null) {
@@ -545,3 +546,7 @@ module.exports = {
     ACTIVATE_SKILL_TOOL_NAME,
     SKILL_CAP,
 };
+
+/** @typedef {Awaited<ReturnType<typeof skillStore.getSkillsByIds>>[number]} SkillRow */
+
+/** @typedef {ReturnType<typeof skillGrantsOf>} SkillGrants */

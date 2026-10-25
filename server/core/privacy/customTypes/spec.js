@@ -47,9 +47,13 @@ const TOKEN_KEY_RE = /^[a-z](?:[a-z0-9_]{0,30}[a-z])?$/;
 /** Migrated legacy types keep today's placeholder, `[customterm_N]`. */
 const LEGACY_TOKEN_KEY = 'customterm';
 
-/** Placeholder keys are compared the way restoreTokens compares them. */
+/**
+ * Placeholder keys are compared the way restoreTokens compares them.
+ * @param {string} k
+ */
 const normKey = (k) => String(k || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
+/** @type {Set<string> | null} */
 let _reserved = null;
 /** Every key a type may not use: built-in categories, TOKEN_WORDS, and four words. */
 function reservedTokenKeys() {
@@ -61,7 +65,11 @@ function reservedTokenKeys() {
     }
     return new Set(_reserved);
 }
+/** @type {Set<string> | null} */
 let _reservedNorm = null;
+/**
+ * @param {string} key
+ */
 function _isReserved(key) {
     if (!_reservedNorm) _reservedNorm = new Set([...reservedTokenKeys()].map(normKey));
     return _reservedNorm.has(normKey(key));
@@ -124,6 +132,11 @@ function validateTypeSpec(type, opts = {}) {
         return { ok: false, normalized: null, errors: [{ id: null, field: 'type', code: 'invalid_type', message: 'A data type is an object.' }] };
     }
     const id = isCustomTypeId(type.id) ? type.id : null;
+    /**
+     * @param {string} field
+     * @param {string} code
+     * @param {string} message
+     */
     const err = (field, code, message) => errors.push({ id, field, code, message });
 
     // ── structural ─────────────────────────────────────────────────────
@@ -170,6 +183,7 @@ function validateTypeSpec(type, opts = {}) {
         const caseSensitive = w.caseSensitive === true;
         const wholeWord = typeof w.wholeWord === 'boolean' ? w.wholeWord : !isLegacy;
         const maxLen = isLegacy ? LIMITS.legacyWordMax : LIMITS.wordMax;
+        /** @type {string[]} */
         const values = [];
         const seen = new Set();
         let tooLong = false;
@@ -196,6 +210,7 @@ function validateTypeSpec(type, opts = {}) {
         const max = isLegacy ? LIMITS.legacyPatternMax : LIMITS.patternMax;
         const keepV8 = isLegacy && stored.pattern?.engine === 'v8-legacy' && stored.pattern?.source === source;
         let engine = keepV8 ? 'v8-legacy' : 're2';
+        /** @type {string | null} */
         let error = null;
         if (!source) {
             err('pattern.source', 'pattern_required', 'Write the pattern.');
@@ -289,6 +304,11 @@ function validateTypeList(list, opts = {}) {
         types.push(t);
     }
 
+    /**
+     * @param {string} field
+     * @param {string} code
+     * @param {string} message
+     */
     const markInvalid = (t, field, code, message) => {
         t.status = 'invalid';
         errors.push({ id: t.id, field, code, message });
@@ -332,3 +352,14 @@ module.exports = {
     specDigest,
     typesDigest,
 };
+
+/**
+ * @typedef {{ found: number, total: number, falseAlarms: number, sentences: number, at?: string, stale?: boolean }} CustomTypeQuality
+ * @typedef {{ id: string, name: string, description: string, method: string, tokenKey: string,
+ *   words?: { values: string[], caseSensitive: boolean, wholeWord: boolean },
+ *   pattern?: { source: string, caseSensitive: boolean, engine: string, error?: string },
+ *   ai?: { prompt: string, floor: number, groupSignature?: string },
+ *   quality?: CustomTypeQuality, status?: string, origin?: string, legacy?: boolean, legacyTermId?: string,
+ *   createdAt?: string, createdBy?: string | null, updatedAt?: string }} CustomDataType
+ * @typedef {{ id: string | null, field: string, code: string, message: string }} CustomTypeError
+ */

@@ -164,3 +164,5 @@ function normalizeStoredMessages(messages, opts = {}) {
 }
 
 module.exports = { normalizeStoredMessages, flattenContent, classifySynthetic };
+
+/** @typedef {{ role?: string, content?: unknown, tokenMap?: Record<string, string>, [key: string]: unknown }} StoredMessage */

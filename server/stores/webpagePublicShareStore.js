@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Webpage Public Shares — external/anonymous publishing of webpages.
  *
@@ -41,7 +41,9 @@ const webpageStore = require('./webpageStore');
 const { makeStoreInit } = require('./lib/storeInit');
 const log = require('../telemetry/log');
 const { parseJSONObject: parseJSON } = require('./lib/json');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
+/** @type {[string, ...string[]]} */
 const ACCESS_MODES = ['unlisted', 'password', 'email'];
 
 const initDB = makeStoreInit('WebpagePublicShareStore', _initDB);
@@ -123,10 +125,12 @@ function generateRawToken() {
         .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
+/** @param {unknown} raw */
 function hashToken(raw) {
     return crypto.createHash('sha256').update(String(raw || ''), 'utf8').digest('hex');
 }
 
+/** @param {string | null | undefined} ip */
 function hashIp(ip) {
     if (!ip) return null;
     return crypto.createHash('sha256').update(String(ip), 'utf8').digest('hex').slice(0, 24);
@@ -141,10 +145,17 @@ function hashIp(ip) {
 //   webpage-public-shares/{share_id}/script.js
 //   webpage-public-shares/{share_id}/extras/{path}
 
+/**
+ * @param {string} shareId
+ */
 function snapshotPrefix(shareId) {
     return `webpage-public-shares/${shareId}/`;
 }
 
+/**
+ * @param {string} shareId
+ * @param {'html'|'css'|'js'|'db'|'reactdoc'} slot
+ */
 function snapshotKey(shareId, slot) {
     if (slot === 'html') return `${snapshotPrefix(shareId)}index.html`;
     if (slot === 'css')  return `${snapshotPrefix(shareId)}style.css`;
@@ -154,6 +165,10 @@ function snapshotKey(shareId, slot) {
     return `${snapshotPrefix(shareId)}${slot}`;
 }
 
+/**
+ * @param {string} shareId
+ * @param {string} path
+ */
 function snapshotExtraKey(shareId, path) {
     return `${snapshotPrefix(shareId)}extras/${path}`;
 }
@@ -161,6 +176,9 @@ function snapshotExtraKey(shareId, path) {
 // ── Row mappers ─────────────────────────────────────────────────────
 
 
+/**
+ * @param {Record<string, any>} r
+ */
 function mapRow(r) {
     if (!r) return null;
     return {
@@ -222,7 +240,7 @@ async function createShare({ webpageId, createdBy, organizationId, accessMode, p
     // the legacy non-retrievable model (token shown once at create only).
     let tokenCipher = null;
     try { tokenCipher = configStore.encryptValue(rawToken, organizationId || null); }
-    catch (err) { log.debug('MASTER_ENCRYPTION_KEY unset — degrade to legacy non-retrievable', err); }
+    catch (err) { fallback('stores/webpagePublicShareStore:createShare', err); /* MASTER_ENCRYPTION_KEY unset — degrade to legacy non-retrievable */ }
     const passwordHash = accessMode === 'password'
         ? await argon2.hash(password, { type: argon2.argon2id })
         : null;
@@ -250,6 +268,8 @@ async function createShare({ webpageId, createdBy, organizationId, accessMode, p
  * to scope to one creator (the owner's own links); pass null/undefined to list
  * every share on the webpage (used for read-visibility to non-owners — callers
  * must strip sensitive fields like allowedEmails themselves).
+ * @param {string} webpageId
+ * @param {string} createdBy
  */
 async function listSharesForWebpage(webpageId, createdBy = null) {
     await initDB();
@@ -261,6 +281,9 @@ async function listSharesForWebpage(webpageId, createdBy = null) {
     return rows.map(mapRow);
 }
 
+/**
+ * @param {string} id
+ */
 async function getShareById(id) {
     await initDB();
     const r = await getOne('SELECT * FROM webpage_public_shares WHERE id = $1', [id]);
@@ -274,6 +297,7 @@ async function getShareById(id) {
  * cipher no longer decrypts (key rotation) are silently omitted — the share
  * degrades to non-retrievable, it never breaks. Ciphertext stays inside this
  * function; mapRow never exposes it.
+ * @param {string} webpageId
  */
 async function getRetrievableTokens(webpageId) {
     await initDB();
@@ -281,6 +305,7 @@ async function getRetrievableTokens(webpageId) {
         `SELECT id, token_cipher FROM webpage_public_shares
           WHERE webpage_id = $1 AND token_cipher IS NOT NULL AND revoked_at IS NULL`,
         [webpageId]);
+    /** @type {Record<string, string>} */
     const out = {};
     for (const r of rows) {
         const raw = configStore.decryptValue(r.token_cipher);
@@ -299,9 +324,11 @@ async function getRetrievableTokens(webpageId) {
  *
  * Returns null for absent, withdrawn or expired — never the row with a flag next to it, so that
  * a caller cannot forget the check.
+ * @param {Record<string, any>} r
  */
 function liveShareOrNull(r) {
     if (!r) return null;
+    /** @type {ReturnType<typeof mapRow> & { _passwordHash?: string | null }} */
     const share = mapRow(r);
     if (share.revokedAt) return null;
     if (share.expiresAt && new Date(share.expiresAt).getTime() < Date.now()) return null;
@@ -315,6 +342,7 @@ function liveShareOrNull(r) {
  * Look up a share by raw token. Returns null if not found, revoked, or
  * expired. Bumps view_count + last_viewed_at when `recordView` is true and
  * the share is otherwise valid. Used by the public viewer route.
+ * @param {string} rawToken
  */
 async function findByToken(rawToken) {
     await initDB();
@@ -335,6 +363,7 @@ async function findByToken(rawToken) {
  * back here and the visitor gets a 404 — never "the address exists, so show it anyway".
  * `getShareById` continues to exist for the owner screens, which must still be able to see a
  * withdrawn share.
+ * @param {string} id
  */
 async function findLiveShareById(id) {
     await initDB();
@@ -345,6 +374,8 @@ async function findLiveShareById(id) {
 
 /**
  * Verify a recipient-supplied password against the stored argon2 hash.
+ * @param {Record<string, any>} share
+ * @param {string} rawPassword
  */
 async function verifyPassword(share, rawPassword) {
     if (!share || !share._passwordHash) return false;
@@ -358,6 +389,8 @@ async function verifyPassword(share, rawPassword) {
 
 /**
  * Check whether `email` (case-insensitive) is on a share's allow-list.
+ * @param {Record<string, any>} share
+ * @param {string} email
  */
 function isEmailAllowed(share, email) {
     if (!share || share.accessMode !== 'email') return false;
@@ -366,6 +399,10 @@ function isEmailAllowed(share, email) {
     return list.includes(email.trim().toLowerCase());
 }
 
+/**
+ * @param {string} id
+ * @param {string} createdBy
+ */
 async function revokeShare(id, createdBy) {
     await initDB();
     const { rowCount } = await run(
@@ -377,6 +414,11 @@ async function revokeShare(id, createdBy) {
     return rowCount > 0;
 }
 
+/**
+ * @param {string} id
+ * @param {string} createdBy
+ * @param {string | Date | null} expiresAt
+ */
 async function updateExpiry(id, createdBy, expiresAt) {
     await initDB();
     const { rowCount } = await run(
@@ -394,6 +436,8 @@ async function updateExpiry(id, createdBy, expiresAt) {
  * stored, so the public viewer knows whether to wrap HTML/CSS (script-free) or
  * serve the self-contained React doc with a script-allowing CSP. Keyed by id
  * only — the caller already authorized the write.
+ * @param {string} shareId
+ * @param {string} kind
  */
 async function setSnapshotKind(shareId, kind) {
     await initDB();
@@ -404,6 +448,10 @@ async function setSnapshotKind(shareId, kind) {
     );
 }
 
+/**
+ * @param {string} shareId
+ * @param {{ viewerEmail?: string | null, ip?: string | null, userAgent?: string | null }} opts
+ */
 async function recordView(shareId, { viewerEmail, ip, userAgent }) {
     await initDB();
     await run(
@@ -422,6 +470,7 @@ async function recordView(shareId, { viewerEmail, ip, userAgent }) {
 /**
  * Purge a share's RustFS objects. Called from the public-shares delete route
  * and from the parent webpage's ON DELETE CASCADE cleanup.
+ * @param {string} shareId
  */
 async function purgeSnapshotObjects(shareId) {
     if (!storageStore.isAvailable()) return 0;
@@ -438,12 +487,16 @@ async function purgeSnapshotObjects(shareId) {
     }
 }
 
+/**
+ * @param {string} id
+ * @param {string} createdBy
+ */
 async function deleteShare(id, createdBy) {
     await initDB();
     const share = await getShareById(id);
     if (!share || share.createdBy !== createdBy) return false;
     await run('DELETE FROM webpage_public_shares WHERE id = $1', [id]);
-    purgeSnapshotObjects(id).catch(() => {});
+    purgeSnapshotObjects(id).catch((e) => bestEffort('stores/webpagePublicShareStore:purgeSnapshot', e));
     return true;
 }
 
@@ -457,6 +510,7 @@ async function deleteShare(id, createdBy) {
  * "never asked": pages/webpages/webpageVisibility paints the first as
  * Personal, and painting it on the second would be a claim about privacy the
  * row cannot back up.
+ * @param {string[]} webpageIds
  */
 async function countLiveSharesForWebpages(webpageIds) {
     await initDB();

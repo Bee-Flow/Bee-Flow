@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Login Routes — self-service password reset: the emailed one-time link and
  * the token-checked new-password write. Split out of auth/loginRoutes.js.
@@ -8,6 +8,7 @@ const express = require('express');
 const passwords = require('../passwordHash');
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
@@ -119,7 +120,7 @@ router.post('/reset-password', resetPasswordIpLimiter, validate({ body: ResetBod
         await loginThrottle.clearIdentifier(user.id);
         if (user.username) await loginThrottle.clearIdentifier(user.username);
         if (user.email) await loginThrottle.clearIdentifier(user.email);
-    } catch (err) { log.debug('best-effort', err); }
+    } catch (err) { bestEffort('passwordReset:clear-lockout', err); }
     log.info(`[Auth] Password reset completed for user ${user.id}`);
     return res.json({ success: true });
 });

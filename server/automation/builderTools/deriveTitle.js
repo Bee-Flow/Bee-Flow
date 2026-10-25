@@ -1,3 +1,4 @@
+/** @typedef {import('../../routes/ai/automationBuilder/turnSetup').BuilderDraftWrap} BuilderDraftWrap */
 // @typecheck
 /**
  * Builder tools — a name for an automation the model never named.
@@ -65,12 +66,16 @@ const BOILERPLATE_RE = /\b(?:met de hand|by hand|manual trigger|handmatig|no sch
 const IMPERATIVE_RE = /^(?:(?:can|could|would) you\s+|kun je\s+|kunt u\s+|please\s+|graag\s+)?(?:(?:create|build|make|set up|maak|bouw|zet)\s+(?:an?|een|the|de|een nieuwe|a new)\s+(?:automation|routine|automatisering|flow|workflow)\s+(?:that|which|die|dat|to|om)\s+)?/i;
 const POLITE_RE = /^(?:(?:can|could|would) you\s+|kun je\s+|kunt u\s+|please\s+|graag\s+)/i;
 
+/** @type {Record<string, string>} */
 const KIND_LABELS = {
     manual: 'Manual', schedule: 'Scheduled', form: 'Form', webhook: 'Webhook',
     agent_call: 'Agent', app_trigger: 'App',
 };
 
-/** Cap at MAX_TITLE on a word boundary, with an ellipsis when cut. */
+/**
+ * Cap at MAX_TITLE on a word boundary, with an ellipsis when cut.
+ * @param {string} text
+ */
 function clamp(text) {
     const s = String(text || '').replace(/\s+/g, ' ').trim();
     if (s.length <= MAX_TITLE) return s;
@@ -80,17 +85,26 @@ function clamp(text) {
     return `${(at > 20 ? cut.slice(0, at) : cut).replace(/[\s,;:—–-]+$/, '')}…`;
 }
 
+/**
+ * @param {string} s
+ */
 function capitalise(s) {
     return s ? s[0].toUpperCase() + s.slice(1) : s;
 }
 
-/** The brief's own title, when it states one. */
+/**
+ * The brief's own title, when it states one.
+ * @param {string} brief
+ */
 function titleStatedIn(brief) {
     const m = TITLE_IN_BRIEF_RE.exec(brief);
     return m ? m[1].trim() : null;
 }
 
-/** The first heading worth naming the automation after. */
+/**
+ * The first heading worth naming the automation after.
+ * @param {string} brief
+ */
 function titleFromHeading(brief) {
     for (const line of brief.split('\n')) {
         const m = /^\s*#{1,3}\s+(.+?)\s*$/.exec(line);
@@ -104,7 +118,10 @@ function titleFromHeading(brief) {
     return null;
 }
 
-/** The first sentence that says what the automation does. */
+/**
+ * The first sentence that says what the automation does.
+ * @param {string} brief
+ */
 function titleFromSentence(brief) {
     const text = brief
         .split('\n').map(l => l.replace(/^\s*(?:#{1,3}\s+|[-*]\s+|\d+\.\s+)/, '')).join('\n')
@@ -169,6 +186,7 @@ function deriveTitle({ brief, def } = {}) {
  * Name the draft when nobody did. Sets `draftWrap.title` only while it is
  * empty or the default, so a title builder_set_metadata chose always wins.
  * @returns {{ derived: boolean, title: string }}
+ * @param {BuilderDraftWrap} draftWrap
  */
 function ensureDraftTitle(draftWrap, /** @type {{brief?: any}} */ { brief } = {}) {
     const current = typeof draftWrap.title === 'string' ? draftWrap.title.trim() : '';
@@ -179,3 +197,9 @@ function ensureDraftTitle(draftWrap, /** @type {{brief?: any}} */ { brief } = {}
 }
 
 module.exports = { deriveTitle, ensureDraftTitle, TITLE_IN_BRIEF_RE, UNTITLED_AUTOMATION, MAX_TITLE };
+
+/**
+ * @typedef {{ label?: string, tool?: string, type?: string }} NamedStep
+ * @typedef {{ trigger?: { kind?: string, appEvent?: { provider?: string, event?: string } },
+ *   steps?: NamedStep[] }} TitleDef
+ */

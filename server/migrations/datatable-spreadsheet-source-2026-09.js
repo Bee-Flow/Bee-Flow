@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: the second source kind's indexes (2026-09).
  *

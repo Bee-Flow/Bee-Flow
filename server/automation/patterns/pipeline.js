@@ -34,6 +34,7 @@ const { patternSignature, suppressCandidates } = require('./suppress');
 const { toDraft, normaliseApp } = require('./builderMapping');
 const { toEvidenceCard } = require('./evidenceCard');
 const { maskNames, tokenize } = require('./templating');
+const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 
 const DAY = 86_400_000;
 const WINDOW_DAYS = 90;
@@ -57,6 +58,9 @@ const LOADERS = {
 /** @param {Record<string, any>|null|undefined} overrides */
 const depsFor = (overrides) => depsWith(LOADERS, overrides);
 
+/**
+ * @param {string[]} xs
+ */
 const uniq = (xs) => [...new Set(xs.filter(Boolean))];
 
 // ── Cache key ────────────────────────────────────────────────────────────────
@@ -111,7 +115,11 @@ async function* streamCollect(collectAll, ctx, signal) {
 
 // ── Score, suppress, rank ────────────────────────────────────────────────────
 
-/** Effort, draft, score and signature: everything the server decides. */
+/**
+ * Effort, draft, score and signature: everything the server decides.
+ * @param {Candidate} c
+ * @param {number} now
+ */
 function enrich(c, now) {
     const minutes = estimateMinutes(c);
     const draft = toDraft(c);
@@ -129,17 +137,21 @@ function enrich(c, now) {
 function automationShape(a, appOfTool) {
     const def = a?.definition && typeof a.definition === 'object' ? a.definition : {};
     const trig = def.trigger && typeof def.trigger === 'object' ? def.trigger : {};
+    /** @type {string[]} */
     const apps = [];
     if (typeof trig.appEvent?.provider === 'string') apps.push(trig.appEvent.provider);
     for (const s of Array.isArray(def.steps) ? def.steps : []) {
         if (typeof s?.tool === 'string' && s.tool) {
-            try { apps.push(appOfTool(s.tool)); } catch (err) { log.debug('an unknown tool names no app', err); }
+            try { apps.push(appOfTool(s.tool)); } catch (err) { fallbackSwallowed('automation/patterns/pipeline:automationShape', err); /* an unknown tool names no app */ }
         }
     }
     return { title: a?.title, triggerKind: trig.kind || a?.triggerType || null, apps: uniq(apps.map(String)) };
 }
 
-/** A store read that fails is "nothing to suppress with", logged, never a failed scan. */
+/**
+ * A store read that fails is "nothing to suppress with", logged, never a failed scan.
+ * @param {string} what
+ */
 async function softly(what, fn, fallback) {
     try {
         const v = await fn();
@@ -174,14 +186,20 @@ async function suppressionInputs(userId, now, d, opts = {}) {
 
 const STOP = new Set(['the', 'and', 'for', 'with', 'from', 'that', 'this', 'into', 'van', 'voor', 'het', 'een', 'met']);
 
-/** Words of a focus worth matching ("invoices" matches "invoice"). */
+/**
+ * Words of a focus worth matching ("invoices" matches "invoice").
+ * @param {string | undefined} focus
+ */
 function focusTokens(focus) {
     return uniq(String(focus || '').toLowerCase().split(/[^\p{L}\p{N}]+/u)
         .filter((w) => w.length >= 3 && !STOP.has(w))
         .map((w) => (w.length > 3 ? w.replace(/s$/u, '') : w)));
 }
 
-/** A candidate the focus names (in its template, apps or actions) ranks higher. */
+/**
+ * A candidate the focus names (in its template, apps or actions) ranks higher.
+ * @param {string[]} words
+ */
 function matchesFocus(c, words) {
     if (!words.length) return false;
     const hay = [
@@ -201,7 +219,9 @@ function rank(list, words) {
 
 // ── Candidate → client suggestion ────────────────────────────────────────────
 
+/** @type {Record<string, string>} */
 const TRIGGER_KINDS = { schedule: 'schedule', app: 'app_event', manual: 'manual' };
+/** @type {Record<string, string>} */
 const CONFIDENCE_VALUE = { early: 'low', normal: 'medium', high: 'high' };
 
 function complexityOf(draft) {
@@ -347,6 +367,9 @@ async function* runPatternScan(input, overrides = null) {
     const signal = input.signal;
     const pii = new Set();
     const summary = { sources: /** @type {string[]} */ ([]), events: 0, templates: 0, patterns: 0, piiCategories: /** @type {string[]} */ ([]) };
+    /**
+     * @param {string | null} reason
+     */
     const result = (suggestions, reason, usage = null) => {
         summary.piiCategories = [...pii].sort();
         return { event: 'result', data: { suggestions, summary, reason, usage } };
@@ -415,3 +438,5 @@ module.exports = {
     MAX_PATTERNS,
     WINDOW_DAYS,
 };
+
+/** @typedef {import('./miner').Candidate} Candidate */

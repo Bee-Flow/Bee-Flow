@@ -1,3 +1,4 @@
+// @typecheck strict
 'use strict';
 
 /**
@@ -10,17 +11,31 @@
  */
 
 
+/**
+ * @typedef {object} FilesProject  a projectStore.getProject() result, as far as this file reads it
+ * @property {string} id
+ * @property {string} [name]
+ * @property {string} [ownerId]
+ * @property {string|null} [organizationId]
+ * @property {string[]} [knowledgeBaseIds]
+ * @property {string} [filesKbId]
+ */
+
 /** Where the project's chats may use the base. Not an access rule (see core/kb/usageContexts.js). */
 const telemetryLog = require('../telemetry/log');
 
 const USAGE_CONTEXTS = Object.freeze(['agent', 'direct_chat']);
 
-/** The base's name: "<project> · Files", within the KB name column's reasonable length. */
+/**
+ * The base's name: "<project> · Files", within the KB name column's reasonable length.
+ * @param {FilesProject} project
+ */
 function filesKbName(project) {
     const base = String(project?.name || 'Project').replace(/\s+/g, ' ').trim() || 'Project';
     return `${base.slice(0, 180)} · Files`;
 }
 
+/** @param {FilesProject} project */
 function storedIds(project) {
     const ids = Array.isArray(project?.knowledgeBaseIds) ? project.knowledgeBaseIds : [];
     return ids.filter(id => typeof id === 'string' && id);
@@ -28,15 +43,15 @@ function storedIds(project) {
 
 /**
  * @param {object} ctx
- * @param {() => object} ctx.kbStore
- * @param {() => object} ctx.projectStore
- * @param {() => object} ctx.helpers
+ * @param {() => typeof import('../stores/knowledgeBases')} ctx.kbStore
+ * @param {() => typeof import('../stores/projectStore')} ctx.projectStore
+ * @param {() => typeof import('../core/kb/kbIngestionHelpers')} ctx.helpers
  * @param {() => number} ctx.maxKbIds
- * @param {Function} ctx.publishTransient
- * @param {object} ctx.log
- * @param {() => Function} ctx.resolveKbProvider
- * @param {() => Function} ctx.deleteChunksLocally
- * @param {object} ctx.kit
+ * @param {typeof import('../core/projectEventBus').publishTransient} ctx.publishTransient
+ * @param {typeof import('../telemetry/log')} ctx.log
+ * @param {() => typeof import('../core/kb/resolveProvider').resolveKbProvider} ctx.resolveKbProvider
+ * @param {() => typeof import('../core/kb/localKBIngest').deleteChunksLocally} ctx.deleteChunksLocally
+ * @param {{ HttpError: typeof import('../core/http/errors').HttpError, notFound: typeof import('../core/http/errors').notFound, PROJECT_FILES_SOURCE_KIND: string, filesKbIdOf: typeof import('../core/kb/projectFilesKb').filesKbIdOf, isProjectFilesKb: typeof import('../core/kb/projectFilesKb').isProjectFilesKb }} ctx.kit
  */
 function makeFilesKbAccess(ctx) {
     const { kbStore, projectStore, helpers, maxKbIds, publishTransient, log } = ctx;
@@ -46,6 +61,7 @@ function makeFilesKbAccess(ctx) {
      * The project's files base, or null when it has none (yet). A recorded id
      * that resolves to something that is not this project's files base is
      * treated as none: it is never read as the project's files.
+     * @param {FilesProject} project
      */
     async function getFilesKb(project) {
         const id = filesKbIdOf(project);
@@ -63,6 +79,8 @@ function makeFilesKbAccess(ctx) {
      * Best-effort: the agent path and the team-chat assistant reach the files
      * through `files_kb_id` either way, so a failure here is logged, not
      * raised. Returns true when this call added the id.
+     * @param {string} projectId
+     * @param {string} kbId
      */
     async function ensureListed(projectId, kbId) {
         for (let attempt = 0; attempt < 3; attempt++) {
@@ -79,7 +97,7 @@ function makeFilesKbAccess(ctx) {
                 projectId, { knowledgeBaseIds: [...ids, kbId] }, { expectedVersion: Number(project.version) },
             );
             if (!result) return false;
-            if (result.conflict) continue;
+            if (/** @type {{ conflict?: boolean }} */ (result).conflict) continue;
             // The project row's version moved: open settings forms must reload
             // before they save, or their next PUT is a needless conflict.
             try {
@@ -91,6 +109,7 @@ function makeFilesKbAccess(ctx) {
         return false;
     }
 
+    /** @param {{ id: string }} kb */
     async function discardBase(kb) {
         try { await kbStore().deleteKB(kb.id); } catch (e) {
             log.warn(`[ProjectFiles] could not remove the redundant files base ${kb.id}:`, e.message);
@@ -99,7 +118,7 @@ function makeFilesKbAccess(ctx) {
 
     /**
      * The project's files base, created on first use.
-     * @param {object} project  a getProject() result
+     * @param {FilesProject} project  a getProject() result
      */
     async function ensureFilesKb(project) {
         const recorded = filesKbIdOf(project);
@@ -157,6 +176,7 @@ function makeFilesKbAccess(ctx) {
      * Delete the project's files base with every chunk in it. For the project
      * delete path: a base nobody can reach any more is personal data kept for
      * no purpose. Mirrors routes/knowledgeBases/detail.js DELETE.
+     * @param {FilesProject} project
      * @returns {Promise<boolean>} true when a base was removed
      */
     async function removeFilesKb(project) {

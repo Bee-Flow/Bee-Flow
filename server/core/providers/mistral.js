@@ -72,7 +72,10 @@ function toMistralToolCallId(id) {
     return out;
 }
 
-/** The SDK fills a missing id with the STRING "null". */
+/**
+ * The SDK fills a missing id with the STRING "null".
+ * @param {string | undefined} id
+ */
 function realId(id) {
     return typeof id === 'string' && id && id !== 'null' ? id : '';
 }
@@ -94,6 +97,7 @@ function argumentsString(args) {
  */
 function resolveServerUrl(baseUrl) {
     if (!baseUrl || typeof baseUrl !== 'string') return undefined;
+    /** @type {globalThis.URL} */
     let url;
     try {
         url = new URL(baseUrl.trim());
@@ -181,10 +185,16 @@ class MistralProvider extends BaseProvider {
 
     // ─── Capabilities ────────────────────────────────────────────
 
+    /**
+     * @param {string} modelId
+     */
     supportsVision(modelId) {
         return describeMistralModel(modelId).vision;
     }
 
+    /**
+     * @param {string} modelId
+     */
     supportsReasoning(modelId) {
         return describeMistralModel(modelId).reasoning;
     }
@@ -434,6 +444,7 @@ class MistralProvider extends BaseProvider {
      * Non-streaming chat.
      * @returns {Promise<{content: string|null, toolCalls: Array|null, usage: any|null,
      *   thinking?: string, stop_reason?: string, raw: any}>}
+     * @param {string} model
      */
     async chat(apiKey, baseUrl, model, messages, options = {}) {
         const client = this.createClient(apiKey, baseUrl);
@@ -459,6 +470,7 @@ class MistralProvider extends BaseProvider {
     /**
      * Streaming chat. Events: text, thinking_start/thinking/thinking_stop,
      * tool_args_delta, tool_use, tool_use_invalid, error, done.
+     * @param {string} model
      */
     async stream(apiKey, baseUrl, model, messages, options = {}, onEvent) {
         const client = this.createClient(apiKey, baseUrl);
@@ -475,6 +487,7 @@ class MistralProvider extends BaseProvider {
             this._createStreamEmitter(onEvent, options, THINKING_PART_ID);
         const slotFor = createToolCallSlotter();
         let usage = null;
+        /** @type {string | null} */
         let stopReason = null;
 
         log.info('[Mistral] SDK streaming for model:', model, params.reasoningEffort ? `(effort ${params.reasoningEffort})` : '');
@@ -550,7 +563,7 @@ class MistralProvider extends BaseProvider {
         try {
             response = await this.createClient(apiKey, baseUrl).models.list();
         } catch (e) {
-            log.error('[Mistral] SDK listModels failed:', e.message);
+            log.error('[Mistral] SDK listModels failed:', /** @type {Error} */ (e).message);
             return [];
         }
 
@@ -597,6 +610,7 @@ class MistralProvider extends BaseProvider {
 /**
  * Tier-picker category from the API's own flags. A card that cannot chat is
  * whatever it CAN do — the picker drops Embedding/OCR/Moderation/Audio.
+ * @param {string} fallback
  */
 function categoryFor(caps, fallback) {
     if (caps.completionChat === false) {
@@ -661,3 +675,33 @@ MistralProvider.toSnakeUsage = toSnakeUsage;
 MistralProvider.resolveServerUrl = resolveServerUrl;
 
 module.exports = MistralProvider;
+
+/** @typedef {import('url').URL} URL */
+
+/**
+ * @typedef {import('../../utils/messageUtils').WireMessage} WireMessage
+ * @typedef {{ id?: string, function?: { name?: string, arguments?: unknown } }} MistralToolCall
+ * @typedef {{ type?: string, function?: object }} MistralTool
+ * @typedef {{
+ *   reasoningEffort?: string,
+ *   reasoningSummary?: boolean,
+ *   maxTokens?: number,
+ *   max_tokens?: number,
+ *   temperature?: number,
+ *   tools?: MistralTool[],
+ *   toolChoice?: unknown,
+ *   promptCacheKey?: unknown,
+ *   extraBody?: Record<string, unknown>,
+ *   retries?: import('@mistralai/mistralai/lib/retries.js').RetryConfig,
+ *   timeoutMs?: number,
+ *   signal?: AbortSignal,
+ * }} MistralOptions
+ * @typedef {{
+ *   choices?: Array<{
+ *     message?: { content?: unknown, toolCalls?: MistralToolCall[] | null },
+ *     finishReason?: unknown,
+ *   }>,
+ *   usage?: Parameters<typeof normalizeUsage>[1],
+ * }} MistralChatResponse
+ * @typedef {(type: string, data: Record<string, unknown>) => void} MistralOnEvent
+ */

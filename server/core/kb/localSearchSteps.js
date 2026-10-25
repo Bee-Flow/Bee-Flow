@@ -1,3 +1,4 @@
+/** @typedef {import('pg').PoolClient} PoolClient */
 // @typecheck
 /**
  * The steps of a local KB search (./localSearch.js): the full-text query
@@ -30,6 +31,7 @@ const FTS_SQL = `SELECT id, title, content, source_uri, document_id, chunk_id, c
 /**
  * The FTS query strings: an AND-join first (stronger match — co-occurrence),
  * an OR-join to fall back on when AND finds nothing.
+ * @param {string} query
  */
 function ftsQueriesFor(query) {
     const sanitizedQuery = query
@@ -53,6 +55,7 @@ function ftsQueriesFor(query) {
  * upstream — the agent runtime only forwards KB ids the user is permitted to
  * query — so accepting either tenant marker is safe and lets a single search
  * span both org-owned and system-provisioned KBs.
+ * @param {PoolClient} client
  */
 async function queryCandidates(client, { kbIds, topK, vectorStr, pgvector, fts }) {
     const { ftsAndQuery, ftsOrQuery, ftsQueryStr } = fts;
@@ -95,16 +98,19 @@ async function queryCandidates(client, { kbIds, topK, vectorStr, pgvector, fts }
         try {
             ftsResults = await client.query(FTS_SQL, [ftsOrQuery, kbIds]);
         } catch (e) {
-            log.warn('[LocalKBSearch] FTS OR fallback failed:', e.message);
+            log.warn('[LocalKBSearch] FTS OR fallback failed:', /** @type {Error} */ (e).message);
         }
     }
     return { vectorResults, ftsResults, validDocIds };
 }
 
-/** A filter dropping rows whose document is gone (no-op when the lookup failed). */
+/**
+ * A filter dropping rows whose document is gone (no-op when the lookup failed).
+ * @param {{ id: string; }[]} validDocIds
+ */
 function makeOrphanFilter(validDocIds) {
     const validDocIdSet = validDocIds.length > 0
-        ? new Set(validDocIds.map(r => r.id.toLowerCase()))
+        ? new Set(validDocIds.map((/** @type {{ id: string; }} */ r) => r.id.toLowerCase()))
         : null;
     return (rows) => {
         if (!validDocIdSet) return rows; // skip filter if query failed
@@ -182,6 +188,7 @@ function fuseCandidates(cleanVecRows, cleanFtsRows, { query, topK }) {
  * When a table chunk is found, we also pull its neighbors (chunk_id ± 1)
  * from the same document to give the agent the full picture. Appends to
  * `results` in place; a failure is logged and skipped.
+ * @param {PoolClient} client
  */
 async function expandContextWindow(client, results, filterOrphans) {
     if (results.length === 0) return;
@@ -221,7 +228,7 @@ async function expandContextWindow(client, results, filterOrphans) {
             log.info(`[LocalKBSearch] Context window: added ${cleanAdjacentRows.length} adjacent chunks`);
         }
     } catch (adjErr) {
-        log.warn(`[LocalKBSearch] Context window expansion failed: ${adjErr.message}`);
+        log.warn(`[LocalKBSearch] Context window expansion failed: ${/** @type {Error} */ (adjErr).message}`);
     }
 }
 

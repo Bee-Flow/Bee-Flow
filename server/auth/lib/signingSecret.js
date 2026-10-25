@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * One implementation of the "signing secret with a durable fallback" pattern.
  *
@@ -36,7 +36,9 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
+/** @param {{ envVars: string[], devCacheName: string, configKey?: string | null, label: string, productionWarning: string, productionLogLevel?: 'warn' | 'error' }} opts */
 function createSigningSecret(opts) {
     const {
         envVars,
@@ -47,6 +49,7 @@ function createSigningSecret(opts) {
         productionLogLevel = 'error',
     } = opts;
 
+    /** @type {NonSharedBuffer | Buffer<ArrayBuffer> | null} */
     let cachedSecret = null;
     let durable = false;
 
@@ -84,14 +87,14 @@ function createSigningSecret(opts) {
                 durable = true;
                 return cachedSecret;
             }
-        } catch (err) { log.debug('first run', err); }
+        } catch (err) { if (err?.code !== 'ENOENT') bestEffort(`signingSecret:read-dev-cache`, err); }
 
         cachedSecret = crypto.randomBytes(32);
         try {
             fs.writeFileSync(cachePath, cachedSecret, { mode: 0o600 });
             durable = true;
         } catch (err) {
-            log.warn(`[${label}] Could not persist dev secret (${err.message}); tokens will be invalidated on every restart.`);
+            log.warn(`[${label}] Could not persist dev secret (${/** @type {Error} */ (err).message}); tokens will be invalidated on every restart.`);
         }
         return cachedSecret;
     }
@@ -118,7 +121,7 @@ function createSigningSecret(opts) {
                 return true;
             }
         } catch (err) {
-            log.error(`[${label}] Could not bootstrap a durable secret:`, err.message);
+            log.error(`[${label}] Could not bootstrap a durable secret:`, /** @type {Error} */ (err).message);
         }
         return hasDurable();
     }

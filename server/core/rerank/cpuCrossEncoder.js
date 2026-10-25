@@ -23,6 +23,7 @@
 const os = require('os');
 const path = require('path');
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 // Pinned permissive-licensed cross-encoder model (MIT). Do NOT swap to
 // a Llama-Community-licensed reranker without a licence audit.
@@ -68,7 +69,7 @@ async function getPipeline() {
                 if (env.backends?.onnx?.wasm) {
                     env.backends.onnx.wasm.numThreads = CPU_RERANK_WASM_THREADS;
                 }
-            } catch (err) { log.debug('older versions: ignore', err); }
+            } catch (err) { fallback('core/rerank/cpuCrossEncoder:getPipeline', err); /* older versions: ignore */ }
 
             const ranker = await withTimeout(
                 pipeline('text-classification', CPU_RERANK_MODEL_ID, { dtype: 'q8' }),
@@ -90,7 +91,7 @@ async function getPipeline() {
 let _inferenceChain = Promise.resolve();
 function runSerialized(fn) {
     const next = _inferenceChain.then(() => fn(), () => fn());
-    _inferenceChain = next.catch(() => {});
+    _inferenceChain = next.catch((e) => fallback('core/rerank/cpuCrossEncoder:runSerialized', e));
     return next;
 }
 
@@ -184,7 +185,7 @@ async function warmup() {
         if (out.length > 0) {
             log.info('[CpuRerank] Warmup complete — first user query will be fast.');
         }
-    } catch (err) { log.debug('fail-open', err); }
+    } catch (err) { bestEffort('core/rerank/cpuCrossEncoder:warmup', err); /* fail-open */ }
 }
 
 module.exports = {

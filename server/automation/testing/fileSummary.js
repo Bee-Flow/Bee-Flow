@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * A fingerprint of a generated file, small enough to compare two of them
@@ -48,6 +48,7 @@ const fileMaxBytes = () => envCap('AUTOMATION_RUN_COMPARE_FILE_MAX_BYTES', 20 * 
  * @param {number} maxBytes
  */
 async function readCapped(stream, maxBytes) {
+    /** @type {Buffer<ArrayBufferLike>[]} */
     const chunks = [];
     let total = 0;
     for await (const chunk of stream) {
@@ -61,14 +62,24 @@ async function readCapped(stream, maxBytes) {
     return Buffer.concat(chunks);
 }
 
+/**
+ * @param {Buffer<ArrayBufferLike>} buffer
+ */
 const sha256Of = (buffer) => crypto.createHash('sha256').update(buffer).digest('hex');
 
+/**
+ * @param {string} name
+ */
 const extensionOf = (name) => {
     const m = /\.([A-Za-z0-9]+)$/.exec(String(name || ''));
     return m ? m[1].toLowerCase() : '';
 };
 
-/** 'pptx', a spreadsheet format, or null. */
+/**
+ * 'pptx', a spreadsheet format, or null.
+ * @param {string} name
+ * @param {string} mime
+ */
 function formatOf(name, mime) {
     const ext = extensionOf(name);
     const base = String(mime || '').split(';')[0].trim().toLowerCase();
@@ -90,11 +101,12 @@ function formatOf(name, mime) {
  */
 function readPartCapped(entry, limit) {
     return new Promise((resolve, reject) => {
+        /** @type {Buffer[]} */
         const chunks = [];
         let total = 0;
         let settled = false;
         const stream = entry.nodeStream('nodebuffer');
-        stream.on('data', (chunk) => {
+        stream.on('data', (/** @type {Buffer} */ chunk) => {
             if (settled) return;
             total += chunk.length;
             if (total > limit) {
@@ -109,11 +121,14 @@ function readPartCapped(entry, limit) {
             chunks.push(chunk);
         });
         stream.on('end', () => { if (!settled) { settled = true; resolve(Buffer.concat(chunks).toString('utf8')); } });
-        stream.on('error', (e) => { if (!settled) { settled = true; reject(e); } });
+        stream.on('error', (/** @type {Error} */ e) => { if (!settled) { settled = true; reject(e); } });
     });
 }
 
-/** The slides of a deck: title, text length and a short hash of the text. */
+/**
+ * The slides of a deck: title, text length and a short hash of the text.
+ * @param {Buffer<ArrayBufferLike>} buffer
+ */
 async function slideParts(buffer) {
     const { readSlidePart } = require('../../core/documents/pptxExtractor');
     const zip = await JSZip.loadAsync(buffer);
@@ -125,6 +140,7 @@ async function slideParts(buffer) {
         .sort((a, b) => Number(a.m[1]) - Number(b.m[1]))
         .map((x) => x.n)
         .slice(0, MAX_SLIDES);
+    /** @type {{ kind: string; index: number; title: string; textChars: number; textHash: string; }[]} */
     const parts = [];
     let budget = MAX_TOTAL_PART_BYTES;
     for (const [i, name] of slideNames.entries()) {
@@ -141,7 +157,11 @@ async function slideParts(buffer) {
     return parts;
 }
 
-/** The worksheets of a spreadsheet file: name, rows, columns. */
+/**
+ * The worksheets of a spreadsheet file: name, rows, columns.
+ * @param {Buffer<ArrayBufferLike>} buffer
+ * @param {string} format
+ */
 async function sheetParts(buffer, format) {
     const formats = require('../../core/dataEngine/sources/spreadsheetFile/formats');
     const sheets = await formats.listSheets(buffer, format);
@@ -161,6 +181,7 @@ async function summarizeFile({ file, readBytes }, caps = {}) {
     const meta = { name, mime, size: Number(file?.size) || 0, sha256: /** @type {string|null} */ (null) };
     if (max > 0 && meta.size > max) return { ...meta, tooLarge: true };
 
+    /** @type {Buffer<ArrayBufferLike>} */
     let buffer;
     try {
         buffer = await readBytes(max);

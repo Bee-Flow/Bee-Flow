@@ -21,6 +21,7 @@ const {
 const { packagePath, versionDir, moduleRoot, verifyAndStage, _reverifyFromDisk } = require('./packageStaging');
 const { activate, deactivate } = require('./packageActivation');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const { hubClient, packageStore, runtime, moduleAudit } = deps;
 
@@ -53,7 +54,7 @@ async function _selfHealFromHub(pkg) {
         await moduleAudit().emit('platform.module.selfheal', pkg.moduleId, null, {
             version: pkg.version, sha256: pkg.packageSha256,
         });
-    } catch (err) { log.debug('audit is best-effort', err); }
+    } catch (err) { bestEffort('modules/packageReconciler:_selfHealFromHub', err); /* audit is best-effort */ }
 }
 
 async function loadInstalledAtBoot() {
@@ -120,8 +121,8 @@ async function loadInstalledAtBoot() {
 // ── Runtime reconciler (M1.3) — the single retry/GC host ───────────────────
 let _reconcileTimer = null;
 const _reconcileStats = {
-    lastRunAt: null, lastDurationMs: null, lastError: null,
-    activated: 0, deactivated: 0, healed: 0, errors: 0, gcPruned: 0, boot: null,
+    lastRunAt: /** @type {string | null} */ (null), lastDurationMs: /** @type {number | null} */ (null), lastError: null,
+    activated: 0, deactivated: 0, healed: 0, errors: 0, gcPruned: 0, boot: /** @type {{ activated: number; failed: number; at: string; } | null} */ (null),
 };
 
 /**
@@ -197,7 +198,7 @@ async function _gcRetired(activeRows) {
                     await fsp.rm(versionDir(old.moduleId, old.version), { recursive: true, force: true });
                     await packageStore().markPruned(old.moduleId, old.version);
                     _reconcileStats.gcPruned++;
-                } catch (err) { log.debug('next run', err); }
+                } catch (err) { bestEffort('modules/packageReconciler:_gcRetired', err); /* next run */ }
             }
             // Stale atomic-extract leftovers (a crash mid-extract): versions/*.tmp-*
             // older than a day.
@@ -212,9 +213,9 @@ async function _gcRetired(activeRows) {
                     if (Date.now() - st.mtimeMs > 24 * 3600 * 1000) {
                         await fsp.rm(abs, { recursive: true, force: true });
                     }
-                } catch (err) { log.debug('raced', err); }
+                } catch (err) { bestEffort('modules/packageReconciler:_gcRetired#2', err); /* raced */ }
             }
-        } catch (err) { log.debug('per-module best effort', err); }
+        } catch (err) { bestEffort('modules/packageReconciler:_gcRetired#3', err); /* per-module best effort */ }
     }
 }
 

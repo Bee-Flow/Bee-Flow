@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * WorkEvent: the one normalised record every pattern source emits and the
@@ -45,6 +45,7 @@ function makeEvent(input) {
     const verb = typeof input.verb === 'string' && ID_RE.test(input.verb) ? input.verb : null;
     if (!app || !verb) return null;
 
+    /** @type {string | null} */
     let template = null;
     if (typeof input.template === 'string' && input.template.trim()) {
         template = maskText(input.template).slice(0, MAX_TEMPLATE_LEN) || null;
@@ -80,6 +81,7 @@ function makeEvent(input) {
  * @returns {WorkEvent[]}
  */
 function makeEvents(rows) {
+    /** @type {WorkEvent[]} */
     const out = [];
     for (const r of rows || []) {
         const ev = makeEvent(r);

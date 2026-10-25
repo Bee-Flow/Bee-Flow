@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The SPA shell (agent-hub's built index.html), fetched and cached.
  *
@@ -20,6 +20,7 @@ const DEFAULT_ORIGIN = process.env.AGENT_HUB_ORIGIN || 'http://agent-hub';
 const TTL_MS = Number(process.env.SEO_SHELL_TTL_MS || 60_000);
 const FETCH_TIMEOUT_MS = 3_000;
 
+/** @type {{ html: string | null, at: number }} */
 let cache = { html: null, at: 0 };
 
 function _reset() { cache = { html: null, at: 0 }; }
@@ -36,6 +37,7 @@ async function getShell({ origin = DEFAULT_ORIGIN, now = Date.now() } = {}) {
     try {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+        /** @type {Response} */
         let res;
         try {
             res = await fetch(`${origin}/index.html`, {
@@ -53,7 +55,7 @@ async function getShell({ origin = DEFAULT_ORIGIN, now = Date.now() } = {}) {
         cache = { html, at: now };
         return html;
     } catch (err) {
-        log.warn('[SEO] shell fetch failed:', err.message);
+        log.warn('[SEO] shell fetch failed:', /** @type {Error} */ (err).message);
         // Serve a stale shell rather than nothing: asset hashes from the
         // previous build are still on disk in the running container.
         return cache.html || null;

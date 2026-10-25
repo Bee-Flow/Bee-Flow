@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 const crypto = require('node:crypto');
@@ -6,17 +6,20 @@ const content = require('./documentCrypto');
 
 const storage = () => require('../storageStore');
 
+/** @param {string} key @param {Buffer} buffer */
 async function openBuffer(key, buffer) {
     const text = buffer.toString('utf8');
     if (!content.envelopeOf(text)) return buffer;
     return Buffer.from(await content.open(text, 'notebook-file', key, 'bytes'), 'base64');
 }
 
+/** @param {import('./documentCrypto').DocumentResource} resource @param {string} key @param {Buffer} buffer @param {import('./documentCrypto').CryptoContext | null} context */
 async function sealBuffer(resource, key, buffer, context) {
     const value = await content.seal(buffer.toString('base64'), { ...resource, type: 'notebook-file', id: key }, 'bytes', { context });
-    return content.envelopeOf(value) ? Buffer.from(value, 'utf8') : buffer;
+    return content.envelopeOf(value) ? Buffer.from(/** @type {string} */ (value), 'utf8') : buffer;
 }
 
+/** @param {string} key */
 async function readBuffer(key) {
     const { stream } = await storage().streamFile(key);
     const parts = [];
@@ -26,6 +29,7 @@ async function readBuffer(key) {
 
 // The DB pointer is changed in the sharing transaction; old bytes are removed
 // only after commit, and newly uploaded bytes are removed on rollback.
+/** @param {import('./documentCrypto').QueryClient} client @param {{ id: string, storage_key?: string }} row @param {import('./documentCrypto').DocumentResource} resource @param {import('./documentCrypto').CryptoContext | null} context @param {{ created: string[], replaced: string[] }} files */
 async function transition(client, row, resource, context, files) {
     if (!row.storage_key || row.storage_key.startsWith('local:')) return;
     const buffer = await readBuffer(row.storage_key);
@@ -36,6 +40,7 @@ async function transition(client, row, resource, context, files) {
     files.replaced.push(row.storage_key);
 }
 
+/** @param {string[]} keys */
 async function removeFiles(keys) {
     await Promise.all(keys.map((key) => storage().deleteFile(key).catch((e) => {
         require('../../telemetry/log').warn('[DocumentSharing] Could not clean up a replaced source file:', e.message);

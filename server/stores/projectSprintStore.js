@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Sprints inside a collaborative project: a named time box with a goal, a
  * status (planned, active, closed) and an optional capacity in story points.
@@ -82,8 +82,14 @@ class ProjectSprintStoreError extends Error {
     }
 }
 
+/**
+ * @param {string | number | Date | null} v
+ */
 const toIso = (v) => (v ? new Date(v).toISOString() : null);
-/** A DATE column as `YYYY-MM-DD`, whatever the driver made of it. */
+/**
+ * A DATE column as `YYYY-MM-DD`, whatever the driver made of it.
+ * @param {string | number | Date} v
+ */
 const toDay = (v) => {
     if (!v) return null;
     if (typeof v === 'string') return v.slice(0, 10);
@@ -91,7 +97,10 @@ const toDay = (v) => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-/** A sprint row as stored, with its task rollup when the query joined it. `name` and `goal` are still sealed. */
+/**
+ * A sprint row as stored, with its task rollup when the query joined it. `name` and `goal` are still sealed.
+ * @param {import('pg').QueryResultRow | null} r
+ */
 function rowToSprint(r) {
     if (!r) return null;
     return {
@@ -125,7 +134,10 @@ const WITH_ROLLUP = `
  * @param {{ ready?: () => Promise<any> }} [opts]
  */
 function makeProjectSprintStore(db, { ready = async () => {} } = {}) {
-    /** The rank that puts a sprint at the end of the list. */
+    /**
+     * The rank that puts a sprint at the end of the list.
+     * @param {string} projectId
+     */
     async function endRank(projectId) {
         const r = await db.query('SELECT COALESCE(MAX(sort_order), 0) AS top FROM project_sprints WHERE project_id = $1', [projectId]);
         return Number(r.rows[0].top) + RANK_STEP;
@@ -150,7 +162,11 @@ function makeProjectSprintStore(db, { ready = async () => {} } = {}) {
         return getSprint(s.projectId, r.rows[0].id);
     }
 
-    /** One sprint, only when it belongs to this project, with its task rollup. */
+    /**
+     * One sprint, only when it belongs to this project, with its task rollup.
+     * @param {string} projectId
+     * @param {string} sprintId
+     */
     async function getSprint(projectId, sprintId) {
         await ready();
         const r = await db.query(
@@ -165,7 +181,10 @@ function makeProjectSprintStore(db, { ready = async () => {} } = {}) {
         return rowToSprint(r.rows[0] || null);
     }
 
-    /** Every sprint of the project, in list order, each with its task rollup. */
+    /**
+     * Every sprint of the project, in list order, each with its task rollup.
+     * @param {string} projectId
+     */
     async function listSprints(projectId) {
         await ready();
         const r = await db.query(
@@ -190,8 +209,14 @@ function makeProjectSprintStore(db, { ready = async () => {} } = {}) {
      */
     async function updateSprint(projectId, sprintId, patch) {
         await ready();
+        /** @type {string[]} */
         const sets = [];
+        /** @type {unknown[]} */
         const params = [sprintId, projectId];
+        /**
+         * @param {string} col
+         * @param {unknown} value
+         */
         const add = (col, value) => { params.push(value); sets.push(`${col} = $${params.length}`); };
         if (patch.name !== undefined) add('name', patch.name);
         if (patch.goal !== undefined) add('goal', patch.goal);
@@ -211,7 +236,11 @@ function makeProjectSprintStore(db, { ready = async () => {} } = {}) {
         return getSprint(projectId, sprintId);
     }
 
-    /** @returns {Promise<boolean>} whether a sprint was removed; its tasks keep existing with no sprint */
+    /**
+     * @returns {Promise<boolean>} whether a sprint was removed; its tasks keep existing with no sprint
+     * @param {string} projectId
+     * @param {string} sprintId
+     */
     async function deleteSprint(projectId, sprintId) {
         await ready();
         const r = await db.query('DELETE FROM project_sprints WHERE id = $1 AND project_id = $2', [sprintId, projectId]);
@@ -222,6 +251,8 @@ function makeProjectSprintStore(db, { ready = async () => {} } = {}) {
      * Make this sprint the active one. Any other active sprint of the project goes back to
      * planned in the same statement, so a project never has two. Null when the sprint is
      * not in this project, or closed (then nothing is demoted either).
+     * @param {string} projectId
+     * @param {string} sprintId
      */
     async function startSprint(projectId, sprintId) {
         await ready();
@@ -243,7 +274,11 @@ function makeProjectSprintStore(db, { ready = async () => {} } = {}) {
         return getSprint(projectId, sprintId);
     }
 
-    /** Close the active sprint. Null when it is not in this project, or not active. */
+    /**
+     * Close the active sprint. Null when it is not in this project, or not active.
+     * @param {string} projectId
+     * @param {string} sprintId
+     */
     async function completeSprint(projectId, sprintId) {
         await ready();
         const r = await db.query(
@@ -258,6 +293,9 @@ function makeProjectSprintStore(db, { ready = async () => {} } = {}) {
      * Put tasks of this project into the sprint. The route checks first that every id
      * names a task of the project; this sets the column. Returns the ids actually set:
      * none when the sprint is closed (or gone) by now.
+     * @param {string} projectId
+     * @param {string} sprintId
+     * @param {string[]} taskIds
      */
     async function assignTasks(projectId, sprintId, taskIds) {
         await ready();
@@ -272,7 +310,12 @@ function makeProjectSprintStore(db, { ready = async () => {} } = {}) {
         return r.rows.map((row) => row.id);
     }
 
-    /** Take one task out of the sprint. @returns {Promise<boolean>} whether it was in it */
+    /**
+     * Take one task out of the sprint. @returns {Promise<boolean>} whether it was in it
+     * @param {string} projectId
+     * @param {string} sprintId
+     * @param {string} taskId
+     */
     async function unassignTask(projectId, sprintId, taskId) {
         await ready();
         const r = await db.query(

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * stores/kb/sourcePlan.js: which sources a knowledge base's unassigned
  * documents (documents.source_id IS NULL, i.e. rows that predate the source
@@ -19,10 +19,14 @@ function truncate(value, max = 200) {
     return s.length > max ? s.slice(0, max) : s;
 }
 
+/**
+ * @param {string} url
+ */
 function originOf(url) {
     try { return new URL(String(url)).origin; } catch (_) { return null; }
 }
 
+/** @param {string} url */
 function hostOf(url) {
     try { return new URL(String(url)).hostname; } catch (_) { return null; }
 }
@@ -36,13 +40,14 @@ function hostOf(url) {
  */
 function planSourcesForKb(docs) {
     const plan = [];
+    /** @type {string[]} */
     const uploads = [];
     const webByKey = new Map();   // key → { config, configMatch, name, ids }
     const legacyByType = new Map(); // source_type → ids
 
     for (const doc of docs || []) {
         const sourceType = String(doc.source_type || 'text');
-        const kind = NATIVE_KINDS[sourceType];
+        const kind = /** @type {Record<string, string>} */ (NATIVE_KINDS)[sourceType];
 
         if (kind === 'upload') {
             uploads.push(doc.id);

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The customer-story blocks (issue #239): catalogue entries, seeded defaults
  * and the validator's warnings. The store/route/HTML side is covered by
@@ -13,10 +13,10 @@ const { BLOCK_DEFAULTS, BLOCK_TYPE_IDS, STORY_METRICS_MIN, STORY_METRICS_MAX, ST
 const { validateSiteDraft } = require('./validate');
 
 /** @param {string} type @param {Record<string, unknown>} content */
-const codes = (type, content) => validateSiteDraft({
+const codes = (type, content) => validateSiteDraft(/** @type {Parameters<typeof validateSiteDraft>[0]} */ ({
     site: { pages: [{ id: 'p1', slug: 'story', title: 'Story' }] },
     pages: new Map([['p1', { blocks: [{ id: 'b1', type, content }] }]]),
-}).warnings.map((w) => w.code);
+})).warnings.map((w) => w.code);
 
 test('both blocks are in the catalogue with defaults', () => {
     assert.ok(BLOCK_TYPE_IDS.includes('story-header'));

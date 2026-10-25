@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Compliance API — AI Act & GDPR monitoring endpoints.
  *

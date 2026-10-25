@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * GET /api/studio/counts — the numbers on the Studio rail.
  *
@@ -103,6 +104,15 @@ const DEFAULT_LOADERS = {
 
 const makeDefaultDeps = () => makeLazyDeps(DEFAULT_LOADERS);
 
+/**
+ * @typedef {ReturnType<typeof makeDefaultDeps>} CountsDeps
+ * @typedef {{
+ *   key: string,
+ *   gate: (req: import('express').Request, d: CountsDeps) => Promise<boolean>,
+ *   count: (req: import('express').Request, d: CountsDeps) => Promise<{ count: number, owners: string[] }>,
+ * }} CountKind
+ */
+
 /** No parameters at all; each key it is sent is named back in the refusal. */
 const NoQuery = z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
@@ -113,12 +123,20 @@ const NoQuery = z.preprocess(
     }).strict(),
 );
 
-/** The session check, ahead of the schema: a caller without one hears 401, not 400. */
+/**
+ * The session check, ahead of the schema: a caller without one hears 401, not 400.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 const requireSession = (req, res, next) => (req.session?.isAuthenticated && userIdOf(req)
     ? next()
     : res.status(401).json({ error: 'Not authenticated' }));
 
-/** The owner id of a row, whatever the store called it; null when unknown. */
+/**
+ * The owner id of a row, whatever the store called it; null when unknown.
+ * @param {Record<string, unknown> | null | undefined} row
+ */
 function ownerOf(row) {
     if (!row || typeof row !== 'object') return null;
     const v = row.ownerUserId ?? row.ownerId ?? row.owner_id ?? row.userId ?? row.user_id ?? row.tenant_id ?? null;
@@ -128,6 +146,7 @@ function ownerOf(row) {
 // ── The kinds ─────────────────────────────────────────────────────────────
 // gate(req, d)  → boolean: may this caller see the key at all
 // count(req, d) → { count, owners: string[] }
+/** @type {CountKind[]} */
 const KINDS = [
     {
         // routes/automation/crud.js GET / → automationStore.getAutomationsForUser
@@ -316,7 +335,9 @@ const KINDS = [
         count: async (req, d) => {
             const userId = userIdOf(req);
             const { orgIds, userGroupIds, isSuperAdmin } = await d.transcriptionsShared.resolveAccessContext(req);
+            /** @type {string} */
             let sql;
+            /** @type {Array<string | string[]>} */
             let params;
             if (isSuperAdmin) {
                 sql = `SELECT COUNT(*)::int AS n, array_remove(array_agg(DISTINCT user_id), NULL) AS owners FROM transcriptions`;
@@ -360,8 +381,11 @@ const KIND_KEYS = Object.freeze(KINDS.map(k => k.key));
 /**
  * → { counts, makers, partial } — `partial` is true when any kind threw (its
  * key is then absent), which is the caller's cue not to cache the body.
+ * @param {import('express').Request} req
+ * @param {CountsDeps} d
  */
 async function computeCounts(req, d) {
+    /** @type {Record<string, number>} */
     const counts = {};
     const owners = new Set();
     let partial = false;
@@ -376,24 +400,32 @@ async function computeCounts(req, d) {
             // it does mark the body partial so the drop lasts one poll, not
             // one cache window.
             partial = true;
-            log.warn(`[StudioCounts] ${kind.key} failed:`, err?.message || err);
+            log.warn(`[StudioCounts] ${kind.key} failed:`, /** @type {Error} */ (err)?.message || err);
         }
     }));
     return { counts, makers: owners.size, partial };
 }
 
+/** @param {CountsDeps | null} [deps] */
 function createCountsRouter(deps = null) {
     const d = deps || makeDefaultDeps();
     const router = express.Router();
     const cache = new Map();
 
     const now = () => (typeof d.now === 'function' ? d.now() : Date.now());
+    /**
+     * @param {string} key
+     */
     const cacheGet = (key) => {
         const hit = cache.get(key);
         if (!hit) return null;
         if (now() - hit.at > CACHE_TTL_MS) { cache.delete(key); return null; }
         return hit.body;
     };
+    /**
+     * @param {string} key
+     * @param {{ counts: {}; makers: number; }} body
+     */
     const cacheSet = (key, body) => {
         if (cache.size >= CACHE_MAX_ENTRIES) {
             // Oldest first — Map iterates in insertion order.
@@ -403,7 +435,7 @@ function createCountsRouter(deps = null) {
         cache.set(key, { at: now(), body });
     };
 
-    router.get('/counts', requireSession, validate({ query: NoQuery }), async (req, res) => {
+    router.get('/counts', requireSession, validate({ query: NoQuery }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const key = `${orgIdOf(req) || ''}:${userIdOf(req)}`;
         // The server cache is the only cache: no-store keeps the browser from
         // answering the visibilitychange catch-up fetch with a stale body.
@@ -426,14 +458,15 @@ function createCountsRouter(deps = null) {
         return res.json(body);
     });
 
-    router.__clearCacheForTests = () => cache.clear();
+    /** @type {import('express').Router & { __clearCacheForTests?: () => void }} */ (router).__clearCacheForTests = () => cache.clear();
     return router;
 }
 
+/** @typedef {ReturnType<typeof createCountsRouter> & { createCountsRouter: typeof createCountsRouter, KIND_KEYS: typeof KIND_KEYS, CACHE_TTL_MS: typeof CACHE_TTL_MS, ownerOf: typeof ownerOf }} CountsRouter */
 const router = createCountsRouter();
 
-module.exports = router;
-module.exports.createCountsRouter = createCountsRouter;
-module.exports.KIND_KEYS = KIND_KEYS;
-module.exports.CACHE_TTL_MS = CACHE_TTL_MS;
-module.exports.ownerOf = ownerOf;
+module.exports = /** @type {CountsRouter} */ (router);
+/** @type {CountsRouter} */ (module.exports).createCountsRouter = createCountsRouter;
+/** @type {CountsRouter} */ (module.exports).KIND_KEYS = KIND_KEYS;
+/** @type {CountsRouter} */ (module.exports).CACHE_TTL_MS = CACHE_TTL_MS;
+/** @type {CountsRouter} */ (module.exports).ownerOf = ownerOf;

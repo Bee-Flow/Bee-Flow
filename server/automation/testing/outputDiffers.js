@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * The registry of OUTPUT DIFFERS: how two values that carry a `kind` are
@@ -36,8 +36,12 @@
 
 const CUT = 200;
 
-/** A value as JSON text, cut to 200 characters. `undefined` reads as the word. */
+/**
+ * A value as JSON text, cut to 200 characters. `undefined` reads as the word.
+ * @param {unknown} value
+ */
 function cutValue(value) {
+    /** @type {string} */
     let text;
     try { text = JSON.stringify(value); } catch { text = '"[unserialisable]"'; }
     if (text === undefined) text = 'undefined';
@@ -72,7 +76,10 @@ function listOutputDiffers() {
     return [...registry.values()];
 }
 
-/** The differ that claims this value, or null. Only an object with a string `kind` is asked. */
+/**
+ * The differ that claims this value, or null. Only an object with a string `kind` is asked.
+ * @param {{ kind?: unknown } | null | undefined} value
+ */
 function differFor(value) {
     if (!value || typeof value !== 'object' || Array.isArray(value) || typeof value.kind !== 'string') return null;
     for (const differ of registry.values()) {
@@ -85,16 +92,30 @@ function differFor(value) {
 
 // ── Built in: generated_file ─────────────────────────────────────────────
 
+/** @param {{ kind?: unknown, fileId?: unknown } | null | undefined} v */
 const isFileHandle = (v) => !!v && typeof v === 'object' && v.kind === 'generated_file'
     && typeof v.fileId === 'string' && v.fileId.length > 0;
 
-/** Compare one scalar field of two summaries. */
+/**
+ * Compare one scalar field of two summaries.
+ * @param {Change[]} changes
+ * @param {string} path
+ * @param {unknown} before
+ * @param {unknown} after
+ */
 function fieldChange(changes, path, before, after) {
     if (before === after) return;
     changes.push({ path, change: 'changed', before: cutValue(before), after: cutValue(after) });
 }
 
-/** The parts (slides, sheets) of two summaries, by position. */
+/**
+ * The parts (slides, sheets) of two summaries, by position.
+ * @param {Change[]} changes
+ * @param {string} label
+ * @param {number} i
+ * @param {Record<string, unknown> | null | undefined} pa
+ * @param {Record<string, unknown> | null | undefined} pb
+ */
 function comparePart(changes, label, i, pa, pb) {
     const base = `${label}[${i}]`;
     if (pa && !pb) { changes.push({ path: base, change: 'removed', before: cutValue(pa) }); return; }

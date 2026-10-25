@@ -27,6 +27,7 @@ const AI_RELIABILITY_KEYS = new Set(['temperature', 'enumFrom', 'checks', 'fallb
  * already means "clear"), so an unusable value is passed through UNCHANGED and
  * validateDefinition refuses it on save with the field and the allowed values,
  * the convention the code step's limits follow.
+ * @param {string} key
  */
 function normalizeAiReliabilityPatch(key, value) {
     if (value === null || value === undefined) return undefined;
@@ -40,6 +41,7 @@ function normalizeAiReliabilityPatch(key, value) {
  * apply* builder would produce, so a patched step is byte-identical to a
  * freshly-added one. Returns `undefined` to mean "clear this optional field"
  * (the caller keeps an existing label instead of clearing it).
+ * @param {string} key
  */
 function normalizePatchField(type, key, value) {
     if (key === 'label') return (typeof value === 'string' && value.trim()) ? value : undefined;

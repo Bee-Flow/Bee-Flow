@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Façade over core/llm/: provider configuration, model names, the model
  * cache and embeddings, re-exported under the names their callers use.

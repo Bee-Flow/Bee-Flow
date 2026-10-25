@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck strict
 /**
  * Migration: ensure exactly one default org subscription plan exists (BFSF-226).
  *

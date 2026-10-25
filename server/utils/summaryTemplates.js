@@ -13,6 +13,7 @@
  * `buildSummarySystemPrompt` unit-testable without spinning up Postgres.
  */
 
+/** @type {Record<string, string>} */
 const LANG_NAMES = { nl: 'Dutch', en: 'English', de: 'German', fr: 'French', es: 'Spanish', it: 'Italian', pt: 'Portuguese' };
 
 /**
@@ -153,7 +154,10 @@ Keep it concise and actionable. Skip empty sections.`,
 
 const BUILTIN_BY_ID = Object.fromEntries(BUILTIN_TEMPLATES.map(t => [t.id, t]));
 
-/** Resolve the built-in prompt for a wire `template` key, falling back to general. */
+/**
+ * Resolve the built-in prompt for a wire `template` key, falling back to general.
+ * @param {string | number} templateId
+ */
 function builtinPrompt(templateId) {
     return (BUILTIN_BY_ID[templateId] || BUILTIN_BY_ID.general).prompt;
 }
@@ -223,3 +227,8 @@ module.exports = {
     pickDefaultTemplate,
     canAccessTemplate,
 };
+
+/**
+ * @typedef {{ id?: string, name?: string, prompt?: string, version?: number | null, scope?: string, isDefault?: boolean, userId?: string | null, organizationId?: string | null, groupId?: string | null, updatedAt?: string | Date | null }} SummaryTemplateRow
+ * @typedef {{ userId?: string | null, orgIds?: string[], groupIds?: string[] }} TemplateAccessContext
+ */

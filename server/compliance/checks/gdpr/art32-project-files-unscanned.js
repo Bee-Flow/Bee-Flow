@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -54,16 +54,21 @@ const RESCAN_SQL = `
 function defaultDeps() {
     return {
         query: pd.defaultQuery(),
+        /** @param {string | null} orgId */
         shieldScansFiles: async (orgId) => {
             const { resolveShieldFor } = require('../../../core/privacy/orgShield');
             const { scanEnabledFor } = require('../../../core/kb/ingestPrivacy');
             return scanEnabledFor(await resolveShieldFor({ orgId: orgId === pd.NO_ORG_ORG_ID ? null : orgId, userId: null }));
         },
+        /** @param {Record<string, any>} row */
         rescan: (row) => rescanDocument(row),
     };
 }
 
-/** Re-run the ingest scan for one stored file and store what the policy allows. */
+/**
+ * Re-run the ingest scan for one stored file and store what the policy allows.
+ * @param {Record<string, any>} row
+ */
 async function rescanDocument(row) {
     const kbStore = require('../../../stores/knowledgeBases');
     const ingestPrivacy = require('../../../core/kb/ingestPrivacy');
@@ -75,7 +80,8 @@ async function rescanDocument(row) {
     });
     if (verdict.piiStatus === 'unscanned') return 'still_unscanned';
     if (verdict.outcome === ingestPrivacy.OUTCOME.SKIPPED) {
-        await helpers.purgeDocumentChunks(row.kb_id, row.document_id, row.tenant_id).catch(() => {});
+        // Not swallowed: chunks left behind would keep a withheld file searchable; a throw counts the file as failed.
+        await helpers.purgeDocumentChunks(row.kb_id, row.document_id, row.tenant_id);
         await kbStore.replaceDocumentContent(row.document_id, {
             status: 'skipped', statusReason: verdict.reason, chunkCount: 0,
             piiStatus: verdict.piiStatus, piiCategories: verdict.piiCategories,
@@ -95,7 +101,10 @@ async function rescanDocument(row) {
     return 'checked';
 }
 
-/** Pure verdict. */
+/**
+ * Pure verdict.
+ * @param {{ shieldOn: boolean, total: number, perProject?: Record<string, any>[] }} facts
+ */
 function verdict({ shieldOn, total, perProject }) {
     if (!shieldOn) {
         return {
@@ -142,11 +151,18 @@ module.exports = {
     remediationLink: 'admin/compliance/gdpr',
     autoFixId: 'project_files_rescan',
 
+    /**
+     * @param {Record<string, any> | null | undefined} evidence
+     */
     fingerprintOf(evidence) {
         const offenders = Array.isArray(evidence?.offenders) ? evidence.offenders : [];
-        return offenders.map(o => o.project_id).sort();
+        return offenders.map(/** @param {Record<string, any>} o */ o => o.project_id).sort();
     },
 
+    /**
+     * @param {string} orgId
+     * @param {unknown} _subject
+     */
     async evaluate(orgId, _subject, deps = defaultDeps()) {
         let shieldOn;
         try {
@@ -168,6 +184,10 @@ module.exports = {
         }
     },
 
+    /**
+     * @param {string} orgId
+     * @param {{ subjectId?: string | null }} [opts]
+     */
     async autoFix(orgId, { subjectId = null } = {}, deps = defaultDeps()) {
         const projectId = subjectId ? pd.projectIdOf(subjectId) : null;
         const rows = await deps.query(RESCAN_SQL, [orgId, projectId]);

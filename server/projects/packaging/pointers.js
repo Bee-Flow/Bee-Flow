@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Moved to core/packaging/pointers.js (the packaging leaves live in core/, so
  * appStudio/ and automation/ can use them without a cycle through projects/).

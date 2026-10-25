@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * "Who sees the page, and the address" — the owner-only REST side of the
  * fourth row (Public) and of the Address card.
@@ -36,6 +37,8 @@
 
 'use strict';
 
+/** @typedef {NonNullable<Awaited<ReturnType<typeof webpageStore.getWebpage>>>} WebpageRow */
+
 const express = require('express');
 const log = require('../telemetry/log');
 const router = express.Router();
@@ -58,6 +61,7 @@ const { validate } = require('../core/http/validate');
 const { HttpError } = require('../core/http/errors');
 const { z, onUnknownKeys, typeError } = require('../utils/zod');
 const { worded, bodyOf, choice } = require('./webpages/schemas');
+const { bestEffort } = require('../utils/bestEffort');
 
 // ── What "public" may carry ───────────────────────────────────────
 //
@@ -96,7 +100,7 @@ const PublicBody = bodyOf({
     password: worded(PASSWORD_TEXT).min(6, PASSWORD_TEXT).optional(),
     allowedEmails: z.array(worded(EMAIL_TEXT).trim().min(1, EMAIL_TEXT), { error: typeError({ invalid: EMAIL_TEXT }) }).optional(),
     expiresAt: z.union([z.string(), z.number(), z.null()], { error: () => EXPIRY_TEXT }).optional(),
-}).superRefine((b, ctx) => {
+}).superRefine(/** @param {{ on?: boolean, publicColumns?: unknown, accessMode?: string, allowedEmails?: string[], expiresAt?: string | number | null }} b */ (b, ctx) => {
     if (!b || b.on !== true) return;
     if (b.publicColumns === undefined) ctx.addIssue({ code: 'custom', path: ['publicColumns'], message: COLUMNS_NEEDED });
     if (b.accessMode === 'email' && !(b.allowedEmails && b.allowedEmails.length)) {
@@ -112,6 +116,7 @@ const PublicBody = bodyOf({
  * The base on which /w/<slug> is written out. The same preference as the share URL
  * builder: an explicit env wins, otherwise the origin of the request — so that a link from a
  * server environment does not point to localhost.
+ * @param {import('express').Request} req
  */
 function publicBaseUrl(req) {
     const configured = process.env.PUBLIC_SHARE_BASE_URL || process.env.PUBLIC_BASE_URL || '';
@@ -119,7 +124,11 @@ function publicBaseUrl(req) {
     return `${req.protocol}://${req.get('host') || ''}`.replace(/\/+$/, '');
 }
 
-/** Eigenaar-gescoopte lookup; stuurt zelf de 404 en geeft dan null terug. */
+/**
+ * Eigenaar-gescoopte lookup; stuurt zelf de 404 en geeft dan null terug.
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function ownedWebpage(req, res) {
     const wp = await webpageStore.getWebpage(req.params.id, req.session.user.id);
     if (!wp) {
@@ -136,6 +145,7 @@ async function ownedWebpage(req, res) {
  * expired share reads here as "not public", exactly as the visitor sees it. The alternative — showing
  * the row with a "withdrawn" flag — would let the screen say that the page is public while the
  * address answers 404.
+ * @param {WebpageRow | null | undefined} webpage
  */
 async function liveCanonicalShare(webpage) {
     if (!webpage?.publicShareId) return { share: null, known: true };
@@ -158,6 +168,8 @@ async function liveCanonicalShare(webpage) {
  *
  * `null` for an unreadable list, NOT 0. "Nothing else is open" is a statement about exposure,
  * and it must no more come from a failed read than `liveCanonicalShare`'s "not public".
+ * @param {string} webpageId
+ * @param {string} ownerId
  */
 async function countLiveShares(webpageId, ownerId) {
     try {
@@ -186,6 +198,8 @@ async function countLiveShares(webpageId, ownerId) {
  * Throws as soon as the list is unreadable or one share could not be rewritten. That is deliberately
  * loud: a link would then be open with the old, wider columns, and the answer may not claim a
  * narrower state than what is being served.
+ * @param {WebpageRow} wp
+ * @param {string | null} canonicalShareId
  */
 async function reSnapshotOtherLiveShares(wp, canonicalShareId) {
     const shares = await publicShareStore.listSharesForWebpage(wp.id, null);
@@ -204,7 +218,10 @@ async function reSnapshotOtherLiveShares(wp, canonicalShareId) {
     }
 }
 
-/** "Onderdeel van oplossing" — project_id omgekeerd gelezen. */
+/**
+ * "Onderdeel van oplossing" — project_id omgekeerd gelezen.
+ * @param {WebpageRow | null | undefined} webpage
+ */
 async function solutionOf(webpage) {
     if (!webpage?.projectId) return null;
     try {
@@ -222,6 +239,9 @@ async function solutionOf(webpage) {
  * answer to that. If the lookup fails (the owner may no longer read the table, the table is gone),
  * `label` stays null and the screen shows the id. Never an invented name, and never an error:
  * the gate must remain usable even when a binding is skewed.
+ * @template {{ columnGate?: { tables?: Array<{ datatableId: string, label?: string | null }> } }} M
+ * @param {M} model
+ * @param {string} userId
  */
 async function decorateTableLabels(model, userId) {
     const rows = model?.columnGate?.tables || [];
@@ -240,6 +260,10 @@ async function decorateTableLabels(model, userId) {
     return model;
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {WebpageRow} wp
+ */
 async function buildModel(req, wp) {
     const grants = await bridgeGrants.getBridgeGrants(wp.id);
     const [canonical, shareCount, solution] = await Promise.all([
@@ -267,13 +291,15 @@ async function buildModel(req, wp) {
  * The column choice is already saved when the other live links are rewritten,
  * so a failure there is not a plain "something went wrong": the answer says
  * what did and did not happen. The cause goes to the log, not to the client.
+ * @param {unknown} e
+ * @returns {never}
  */
 function linksNotNarrowed(e) {
     log.error('[Webpages/audience] not every public link was narrowed:', e);
     throw new HttpError(500, 'links_not_narrowed', 'Column choice saved, but not every public link could be updated');
 }
 
-router.get('/:id/audience', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
+router.get('/:id/audience', requireAuth, validate({ query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
     const wp = await ownedWebpage(req, res);
     if (!wp) return;
     res.json(await buildModel(req, wp));
@@ -291,7 +317,7 @@ router.get('/:id/audience', requireAuth, validate({ query: NO_QUERY }), async (r
  *   allowedEmails  only with 'email'
  *   expiresAt      ISO string or null
  */
-router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), async (req, res) => {
+router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
     const wp = await ownedWebpage(req, res);
     if (!wp) return;
     const userId = req.session.user.id;
@@ -304,7 +330,7 @@ router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), 
         await publicAddress.setCanonicalShare(wp.id, userId, null);
         if (share && share.webpageId === wp.id && !share.revokedAt) {
             await publicShareStore.revokeShare(share.id, share.createdBy);
-            await publicShareStore.deleteShare(share.id, share.createdBy).catch(() => {});
+            await publicShareStore.deleteShare(share.id, share.createdBy).catch((e) => bestEffort('routes/webpagesAudience:anon', e));
         }
         const fresh = await webpageStore.getWebpage(wp.id, userId);
         return res.json(await buildModel(req, fresh || { ...wp, publicShareId: null }));
@@ -389,15 +415,15 @@ router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), 
     try {
         await webpageSnapshot.writeSnapshot({ shareId: created.share.id, webpageId: wp.id, ownerId: wp.userId });
     } catch (e) {
-        await publicShareStore.deleteShare(created.share.id, userId).catch(() => {});
+        await publicShareStore.deleteShare(created.share.id, userId).catch((e) => bestEffort('routes/webpagesAudience:anon#2', e));
         throw e;
     }
     await publicAddress.setCanonicalShare(wp.id, userId, created.share.id);
     // Withdraw the old canonical only after this: up to this point it was the working address,
     // and an error above must not take it along.
     if (existing) {
-        await publicShareStore.revokeShare(existing.id, existing.createdBy).catch(() => {});
-        await publicShareStore.deleteShare(existing.id, existing.createdBy).catch(() => {});
+        await publicShareStore.revokeShare(existing.id, existing.createdBy).catch((e) => bestEffort('routes/webpagesAudience:revokeOldCanonical', e));
+        await publicShareStore.deleteShare(existing.id, existing.createdBy).catch((e) => bestEffort('routes/webpagesAudience:anon#3', e));
     }
     // Only after this, the other live shares: the just-withdrawn old canonical no longer needs to be
     // rewritten, but the loose shares do.
@@ -415,6 +441,8 @@ router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), 
  * `expiresAt` from the body, or that of the existing share if the field is missing.
  * The same rules as routes/webpages.js: empty = no expiry date, and a date in the past
  * is an input error, not a dead link.
+ * @param {string | number | null | undefined} input
+ * @param {{ expiresAt?: string | Date | null } | null | undefined} existing
  */
 function parseExpiry(input, existing) {
     if (input === undefined) return existing?.expiresAt ? new Date(existing.expiresAt) : null;
@@ -426,4 +454,4 @@ function parseExpiry(input, existing) {
 }
 
 module.exports = router;
-module.exports.parseExpiry = parseExpiry;
+/** @type {import('express').Router & Record<string, unknown>} */ (module.exports).parseExpiry = parseExpiry;

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Skill test — the prompt a Test-tab run builds, and the grading of what
  * came back. (Bee Flow Builder redesign, Sep 2026, Track S3.)
@@ -58,8 +58,19 @@ const {
 
 /** Mirrors stores/skillStore.TEST_STATUSES (frozen there; re-stated, not imported, to keep this module store-free). */
 const STATUSES = Object.freeze(['ok', 'warning', 'error']);
-/** Worst-first ranking for "the run's status is the worst of its steps". */
+/**
+ * Worst-first ranking for "the run's status is the worst of its steps".
+ * @type {Readonly<Record<string, number>>}
+ */
 const STATUS_RANK = Object.freeze({ ok: 0, warning: 1, error: 2 });
+
+/**
+ * The parts of a skill row this module reads.
+ * @typedef {{ name?: string, instructions?: string, workflow?: unknown, rules?: unknown, examples?: unknown,
+ *   steps?: Parameters<typeof renderStepsToWorkflow>[0],
+ *   rulesV2?: Parameters<typeof renderRulesToText>[0],
+ *   examplesV2?: Parameters<typeof renderExamplesToText>[0] }} TestedSkill
+ */
 
 /** How many steps one grading pass covers. A skill may hold 60; grading all of them is a bill, not a test. */
 const MAX_GRADED_STEPS = 12;
@@ -80,7 +91,10 @@ const MAX_ANSWER_CHARS = 6000;
  */
 const ACTIVE_SKILLS_HEADER = '\n\n[ACTIVE SKILLS]\nThe user has activated the following skills. Follow their instructions precisely when the task matches.';
 
-/** The three prompt facets — the stored text, or a render of the structure for a row without text. */
+/**
+ * The three prompt facets — the stored text, or a render of the structure for a row without text.
+ * @param {TestedSkill | null | undefined} skill
+ */
 function skillBodyText(skill) {
     return {
         workflow: textOrRender(skill?.workflow, skill?.steps, renderStepsToWorkflow),
@@ -89,7 +103,10 @@ function skillBodyText(skill) {
     };
 }
 
-/** One skill's static block, exactly as the runtime writes it. */
+/**
+ * One skill's static block, exactly as the runtime writes it.
+ * @param {TestedSkill | null | undefined} skill
+ */
 function renderSkillBlock(skill) {
     const body = skillBodyText(skill);
     let b = `\n### SKILL — "${skill?.name}"`;
@@ -102,6 +119,7 @@ function renderSkillBlock(skill) {
 
 /**
  * The system-prompt addendum for a test of exactly ONE skill.
+ * @param {TestedSkill | null | undefined} skill
  * @returns {{ addendum: string, block: string, hasBody: boolean }}
  *   `hasBody` false means the row carries a name and nothing else — there is
  *   nothing to grade, and the route refuses instead of testing a heading.
@@ -143,6 +161,9 @@ function buildTestSystemPrompt({ agentPrompt = '', addendum = '' } = {}) {
  * to the verdict (what the run claims about the skill). `parseGrading` lists
  * all of these, so a skill with more steps than one pass covers cannot come
  * back green about the steps nobody looked at.
+ *
+ * @param {unknown} steps
+ * @returns {Array<{ id: string, text: string }>}
  */
 function listedSteps(steps) {
     return (Array.isArray(steps) ? steps : [])
@@ -150,7 +171,10 @@ function listedSteps(steps) {
         .map(s => ({ id: s.id, text: typeof s.text === 'string' ? s.text : '' }));
 }
 
-/** The steps a grading pass covers: the skill's own, capped. */
+/**
+ * The steps a grading pass covers: the skill's own, capped.
+ * @param {unknown} steps
+ */
 function gradableSteps(steps) {
     return listedSteps(steps).slice(0, MAX_GRADED_STEPS);
 }
@@ -191,7 +215,10 @@ const GRADE_TOOL = {
     },
 };
 
-/** The grading prompt. The answer and the skill are quoted material, not instructions. */
+/**
+ * The grading prompt. The answer and the skill are quoted material, not instructions.
+ * @param {{ skill: TestedSkill | null | undefined, steps: unknown, question: string, answer: string }} params
+ */
 function buildGradingMessages({ skill, steps, question, answer }) {
     const list = gradableSteps(steps)
         .map((s, i) => `${i + 1}. [id: ${s.id}] ${s.text || '(no text)'}`)
@@ -230,11 +257,18 @@ function buildGradingMessages({ skill, steps, question, answer }) {
     ];
 }
 
+/**
+ * @param {unknown} v
+ * @param {number} max
+ */
 function clampText(v, max) {
     return typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, max) : '';
 }
 
-/** The worst status of a list (`ok` for an empty list — but callers never grade an empty step list). */
+/**
+ * The worst status of a list (`ok` for an empty list — but callers never grade an empty step list).
+ * @param {string[] | null | undefined} statuses
+ */
 function worstStatus(statuses) {
     let worst = 'ok';
     for (const s of statuses || []) {
@@ -258,7 +292,9 @@ function worstStatus(statuses) {
  *     entirely would let a grader that reported on one step of six produce a
  *     green run.
  *
- * @returns {null | { results: Array<{stepId,title,evidence,status}>, status: string, advice: string|null }}
+ * @param {{ steps?: unknown, advice?: unknown } | null | undefined} structured  raw tool arguments — untrusted
+ * @param {unknown} steps
+ * @returns {null | { results: Array<{ stepId: string, title: string, evidence: string, status: string }>, status: string, advice: string|null }}
  *          null when the payload is unusable — the route then reports a
  *          failed run rather than writing a verdict nobody stands behind.
  */

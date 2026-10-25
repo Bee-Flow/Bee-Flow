@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Step Routes — REST API for reusable building blocks ("Steps", kind='block').
  *
@@ -68,9 +68,11 @@ const { requireBetaFeature } = require('../core/entitlements/betaFeatures');
 router.use(requireBetaFeature('automations'));
 
 const { requireActiveOrgForMutations } = require('../auth');
+const { fallback } = require('../utils/bestEffort');
 router.use(requireActiveOrgForMutations());
 
 /** A real boolean, never the text "false" — which is true. */
+/** @param {string} message */
 const bool = (message) => z.boolean({ error: message });
 
 const TITLE_TEXT = 'A Step needs a title.';
@@ -113,6 +115,7 @@ const TestBody = z.preprocess(
 );
 
 // A fresh Step's root graph: layer_input trigger + a single layer_output.
+/** @returns {{ schemaVersion: number, trigger: { id: string, type: string, kind: string, params: unknown[] }, steps: { id: string, type: string, fields: Record<string, unknown> }[], edges: unknown[] }} */
 function blockSkeleton() {
     return {
         schemaVersion: 2,
@@ -122,6 +125,7 @@ function blockSkeleton() {
     };
 }
 
+/** @param {string} userId */
 async function activeOrgId(userId) {
     try {
         const user = await userStore.getUser(userId);
@@ -166,7 +170,7 @@ router.post('/', validate({ body: CreateBody }), async (req, res) => {
 // path wins. Lightweight projection (no definition).
 router.get('/chat-tools', async (req, res) => {
     const userId = req.session.user.id;
-    const callable = await automationStore.getCallableStepsForUser(userId, { orgIds: [] }).catch(() => []);
+    const callable = await automationStore.getCallableStepsForUser(userId, { orgIds: [] }).catch((e) => fallback('routes/step:anon', e, []));
     const tools = callable
         .filter(s => s.ownerId === userId && s.exposeAsTool)
         .map(s => ({ id: s.id, title: s.title, description: s.description || '', icon: s.icon || null, category: s.category || null }));
@@ -174,6 +178,10 @@ router.get('/chat-tools', async (req, res) => {
 });
 
 // Helper: load a Step the caller can VIEW (own or shared), or null.
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @returns {Promise<{ row: Awaited<ReturnType<typeof automationStore.getAutomation>>, isOwner?: boolean, canView?: boolean }>}
+ */
 async function loadVisibleStep(req) {
     const row = await automationStore.getAutomation(req.params.id);
     if (!row || row.kind !== 'block') return { row: null };
@@ -188,21 +196,22 @@ async function loadVisibleStep(req) {
     return { row, isOwner, canView };
 }
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const { row, canView } = await loadVisibleStep(req);
     if (!row) return res.status(404).json({ error: 'Not found' });
     if (!canView) return res.status(403).json({ error: 'Forbidden' });
     res.json({ step: row, summary: summariseDefinition(row.definition || {}).summary });
 });
 
-router.put('/:id', validate({ body: UpdateBody }), async (req, res) => {
+router.put('/:id', validate({ body: UpdateBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const userId = req.session.user.id;
     const existing = await automationStore.getAutomation(req.params.id);
     if (!existing || existing.kind !== 'block') return res.status(404).json({ error: 'Not found' });
     if (existing.userId !== userId) return res.status(403).json({ error: 'Forbidden' });
 
+    /** @type {{ title?: string, description?: string | null, icon?: string | null, category?: string | null, definition?: Record<string, unknown> }} */
     const updates = {};
-    for (const f of ['title', 'description', 'icon', 'category', 'definition']) if (req.body[f] !== undefined) updates[f] = req.body[f];
+    for (const f of /** @type {const} */ (['title', 'description', 'icon', 'category', 'definition'])) if (req.body[f] !== undefined) updates[f] = req.body[f];
     // The schema trimmed and capped it; '' (or null) clears it.
     if (updates.category !== undefined) updates.category = updates.category || null;
     if (updates.definition) {
@@ -219,7 +228,7 @@ router.put('/:id', validate({ body: UpdateBody }), async (req, res) => {
     res.json({ step: updated });
 });
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const userId = req.session.user.id;
     const existing = await automationStore.getAutomation(req.params.id);
     if (!existing || existing.kind !== 'block') return res.status(404).json({ error: 'Not found' });
@@ -237,7 +246,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 // Publish: snapshot the current draft so consumers pick up the change.
-router.post('/:id/publish', async (req, res) => {
+router.post('/:id/publish', /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const userId = req.session.user.id;
     const existing = await automationStore.getAutomation(req.params.id);
     if (!existing || existing.kind !== 'block') return res.status(404).json({ error: 'Not found' });
@@ -260,7 +269,7 @@ router.post('/:id/publish', async (req, res) => {
     res.json({ step });
 });
 
-router.put('/:id/sharing', validate({ body: SharingBody }), async (req, res) => {
+router.put('/:id/sharing', validate({ body: SharingBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const userId = req.session.user.id;
     const existing = await automationStore.getAutomation(req.params.id);
     if (!existing || existing.kind !== 'block') return res.status(404).json({ error: 'Not found' });
@@ -270,7 +279,7 @@ router.put('/:id/sharing', validate({ body: SharingBody }), async (req, res) => 
     res.json({ step });
 });
 
-router.put('/:id/expose', validate({ body: ExposeBody }), async (req, res) => {
+router.put('/:id/expose', validate({ body: ExposeBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const userId = req.session.user.id;
     const existing = await automationStore.getAutomation(req.params.id);
     if (!existing || existing.kind !== 'block') return res.status(404).json({ error: 'Not found' });
@@ -279,7 +288,7 @@ router.put('/:id/expose', validate({ body: ExposeBody }), async (req, res) => {
     res.json({ step });
 });
 
-router.get('/:id/versions', async (req, res) => {
+router.get('/:id/versions', /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const userId = req.session.user.id;
     const existing = await automationStore.getAutomation(req.params.id);
     if (!existing || existing.kind !== 'block') return res.status(404).json({ error: 'Not found' });
@@ -289,7 +298,7 @@ router.get('/:id/versions', async (req, res) => {
 });
 
 // Test the DRAFT with sample inputs (dry-run, owner-only, runs as the owner).
-router.post('/:id/test', validate({ body: TestBody }), async (req, res) => {
+router.post('/:id/test', validate({ body: TestBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const userId = req.session.user.id;
     const existing = await automationStore.getAutomation(req.params.id);
     if (!existing || existing.kind !== 'block') return res.status(404).json({ error: 'Not found' });

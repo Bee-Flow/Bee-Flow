@@ -9,6 +9,7 @@
  */
 
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 const { getRedis } = require('../db');
 const { buildKey } = require('../utils/buildInfo');
 const USER_CHECK_TTL = 5; // seconds
@@ -95,12 +96,12 @@ async function _publish(channel, message) {
     const r = getRedis();
     if (!r) return;
     _ensureSubscriber();
-    try { await r.publish(channel, message); } catch (err) { log.debug('non-fatal', err); }
+    try { await r.publish(channel, message); } catch (err) { bestEffort('permissionsCache:publish', err); }
 }
 
 // Eagerly subscribe at module load if Redis is already up. If Redis comes up
 // later, the next mutation will trigger _ensureSubscriber() via _publish.
-setImmediate(() => { try { _ensureSubscriber(); } catch (err) { log.debug('non-fatal', err); } });
+setImmediate(() => { try { _ensureSubscriber(); } catch (err) { bestEffort('permissionsCache:subscribe', err); } });
 
 /**
  * Invalidate the cached permission set for a specific user.

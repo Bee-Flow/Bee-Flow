@@ -27,6 +27,7 @@
 const { HttpError } = require('../http/errors');
 const log = require('../../telemetry/log');
 const { newTabId, settingsWithTabs } = require('../../stores/lib/sheetDocument');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** Tabs per workbook; more worksheets are skipped and reported. */
 const MAX_TABS = 20;
@@ -58,7 +59,10 @@ function formatOf(fileName, mimeType) {
     return /** @type {Record<string, string>} */ (MIME_FORMATS)[mime] || null;
 }
 
-/** The file name without its extension, as the document's name. */
+/**
+ * The file name without its extension, as the document's name.
+ * @param {string} fileName
+ */
 function documentNameOf(fileName) {
     const base = String(fileName || '').replace(/^.*[\\/]/, '').replace(/\.[a-z0-9]+$/i, '').trim();
     return (base || 'Imported spreadsheet').slice(0, 200);
@@ -84,7 +88,7 @@ function functionsIn(formula) {
 /**
  * One SheetJS cell → what a person would have typed.
  * @param {any} cell
- * @param {any} XLSX
+ * @param {typeof import("@e965/xlsx")} XLSX
  * @param {{ serialToIso: (n: number) => string|null }} cellsLib
  */
 function typedText(cell, XLSX, cellsLib) {
@@ -247,7 +251,7 @@ function makeSheetImport(deps = {}) {
                     // with that one tab and give the others back.
                     const err = /** @type {any} */ (e);
                     log.warn(`[sheetImport] tabs could not be saved, kept the first one: ${err?.message}`);
-                    for (const id of tableIds.slice(1)) await cells().dropSheetTable(userId, id).catch(() => undefined);
+                    for (const id of tableIds.slice(1)) await cells().dropSheetTable(userId, id).catch((e) => bestEffort('core/documents/sheetImport:importWorkbook', e));
                     tableIds.length = 1;
                     skipped.push(...summary.slice(1).map((t) => t.name));
                     finalSummary = summary.slice(0, 1);
@@ -259,7 +263,7 @@ function makeSheetImport(deps = {}) {
             };
         } catch (e) {
             if (created) throw e;
-            for (const id of tableIds) await cells().dropSheetTable(userId, id).catch(() => undefined);
+            for (const id of tableIds) await cells().dropSheetTable(userId, id).catch((e) => bestEffort('core/documents/sheetImport:importWorkbook#2', e));
             throw e;
         }
     }

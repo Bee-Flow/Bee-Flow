@@ -14,6 +14,9 @@ const MAX_RESULT_ROWS = 10_000;
 
 // ── Pure helpers (stateless — shared across engine instances) ───────
 
+/**
+ * @param {string} sql
+ */
 function validateSql(sql) {
     if (typeof sql !== 'string' || !sql.trim()) {
         throw new Error('sql must be a non-empty string');
@@ -66,6 +69,7 @@ function createReadApi({ getHandle }) {
      * Run a read-only SELECT. Errors if the SQL isn't read-only (per
      * better-sqlite3's `prepare().readonly` check) so write paths can't sneak
      * in via the query entry point.
+     * @param {string} sql
      */
     async function query(ownerId, id, sql, params = []) {
         validateSql(sql);
@@ -136,6 +140,7 @@ function createWriteApi({ getHandle, scheduleFlush, entityLabel }) {
      * multi-statement SQL (e.g. several CREATE TABLEs at once) via `db.exec`.
      * With `params`, runs a single prepared statement and returns
      * `{ changes, lastInsertRowid }`.
+     * @param {string} sql
      */
     async function exec(ownerId, id, sql, params = []) {
         validateSql(sql);

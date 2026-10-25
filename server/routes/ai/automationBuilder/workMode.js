@@ -491,3 +491,12 @@ function markStagedView(result, staged) {
 
 module.exports = { MODES, MAX_QUESTIONS, MAX_OPTIONS, PLAN_TOOL, QUESTIONS_TOOL, LARGE_CHANGE_STEPS, TABLE_CONSENT_RULE, writeQuestions, planDatatableEntry, stripListMarker, toolAllowed, previewRefusal, planMentionsRemoval, planCoversRemoval, resolveRemovalTarget, modeInstruction, writePlan, changedSteps,
     isBlankDraft, pendingProposal, reviewStatusNote, questionStatusNote, withChangeStatus, markStagedView };
+
+/**
+ * @typedef {import('../../../automation/builderTools/draftGraph').DraftGraph} DraftGraph
+ * @typedef {import('../../../automation/builderTools/pendingDatatables').DatatableCatalogEntry} DatatableCatalogEntry
+ * @typedef {import('../../../automation/builderTools/pendingDatatables').PendingDatatable} PendingDatatable
+ * @typedef {ReturnType<typeof writePlan>} BuilderPlan
+ * @typedef {{ id?: string, title?: string, description?: string, definition?: DraftGraph, baseDefinition?: DraftGraph, pendingDatatables?: PendingDatatable[] }} StagedProposal
+ *   the proposal saved with the builder session
+ */

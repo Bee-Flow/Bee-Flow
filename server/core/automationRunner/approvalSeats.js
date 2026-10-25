@@ -8,6 +8,7 @@
 'use strict';
 
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** How many members of an assigned group get a bell before we stop. */
 const GROUP_NOTIFY_CAP = 25;
@@ -17,6 +18,7 @@ const GROUP_NOTIFY_CAP = 25;
  * validation exists, but definitions also arrive via import and raw API.
  * Invalid → null (owner-only), with a warn: silently assigning outside the
  * org would leak the approval's existence to a stranger.
+ * @param {string} orgId
  */
 async function validateAssignee(assignee, orgId) {
     if (!assignee || !orgId) return assignee && !orgId ? null : assignee ?? null;
@@ -37,7 +39,7 @@ async function validateAssignee(assignee, orgId) {
             return null;
         }
     } catch (e) {
-        log.warn(`[ApprovalLifecycle] assignee validation failed: ${e.message} — falling back to owner`);
+        log.warn(`[ApprovalLifecycle] assignee validation failed: ${/** @type {Error} */ (e).message} — falling back to owner`);
     }
     return null;
 }
@@ -46,6 +48,7 @@ async function validateAssignee(assignee, orgId) {
  * Members of a group, capped. JS-side scan because users.groups is a JSON
  * TEXT column — there is no join to write. Stable user-id order so the same
  * 25 people are notified every time, not a lottery.
+ * @param {number} [cap]
  */
 async function groupMemberIds(groupId, cap = GROUP_NOTIFY_CAP) {
     const userStore = require('../../stores/userStore');
@@ -66,6 +69,7 @@ async function groupMemberIds(groupId, cap = GROUP_NOTIFY_CAP) {
  * invalid seats dropped (never silently kept — a stranger's seat would leak
  * the approval), deduped, capped at 10. An empty result means no panel —
  * the caller falls back to single-assignee/owner semantics.
+ * @param {string} orgId
  */
 async function validatePanel(approvers, orgId) {
     if (!Array.isArray(approvers) || !approvers.length) return null;
@@ -99,6 +103,7 @@ async function validatePanel(approvers, orgId) {
  * Skipped stages (their `when` was false at request time) keep their seats as
  * authored: nobody is asked, and the record still answers "who would have
  * been?".
+ * @param {string} orgId
  */
 async function validateStages(stages, orgId, ownerId) {
     if (!Array.isArray(stages) || !stages.length) return null;
@@ -130,6 +135,7 @@ async function validateStages(stages, orgId, ownerId) {
  * Everyone a panel-stage notification reaches: each seat's person, or each
  * group seat's members — capped overall so a huge org group cannot turn one
  * request into a notification storm.
+ * @param {number} [cap]
  */
 async function panelRecipientIds(approvers, cap = GROUP_NOTIFY_CAP) {
     const out = new Set();
@@ -142,7 +148,7 @@ async function panelRecipientIds(approvers, cap = GROUP_NOTIFY_CAP) {
                     if (out.size >= cap) break;
                     out.add(id);
                 }
-            } catch (err) { log.debug('the other seats still hear about it', err); }
+            } catch (err) { bestEffort('core/automationRunner/approvalSeats:panelRecipientIds', err); /* the other seats still hear about it */ }
         }
     }
     return [...out];
@@ -156,3 +162,7 @@ module.exports = {
     validateStages,
     panelRecipientIds,
 };
+
+/** @typedef {import('../automationModel/approvalStages').ApprovalSeat} ApprovalSeat */
+
+/** @typedef {import('../automationModel/approvalStages').ApprovalStage} ApprovalStage */

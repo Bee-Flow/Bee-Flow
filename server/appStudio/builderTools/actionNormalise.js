@@ -58,7 +58,10 @@ const GARBLED_NAME_RE = /\bname\b\s*\\{0,2}"?\s*:\s*\\{0,2}"?([A-Za-z_$][\w$]*)/
 const MAX_DEPTH = 4;
 
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
-/** `{kind:\"field\",name:\"x\"}\`,email:` — a binding that became a string. */
+/**
+ * `{kind:\"field\",name:\"x\"}\`,email:` — a binding that became a string.
+ * @param {string} s
+ */
 function looksGarbledBinding(s) {
     return GARBLED_BINDING_RE.test(s) || (/^\s*[{`]/.test(s) && /\bkind\b/.test(s));
 }
@@ -68,11 +71,18 @@ class Refusal extends Error {
     constructor(result) { super(result.error); this.result = result; }
 }
 
+/**
+ * @param {string} name
+ */
 function fieldBindingFromName(name) {
     return { kind: 'formula', expr: `form.${name}` };
 }
 
-/** One entry of `values` (or a recordId) → a legal binding, a note, or a refusal. */
+/**
+ * One entry of `values` (or a recordId) → a legal binding, a note, or a refusal.
+ * @param {string} at
+ * @param {string[]} notes
+ */
 function repairBinding(value, at, notes) {
     if (isObject(value)) {
         if (value.kind === 'field') {
@@ -140,7 +150,11 @@ function repairBinding(value, at, notes) {
     return value;
 }
 
-/** One create/update/delete_record step (as an action or inside a sequence). */
+/**
+ * One create/update/delete_record step (as an action or inside a sequence).
+ * @param {string} at
+ * @param {string[]} notes
+ */
 function repairRecordStep(step, at, notes, ctx) {
     // Nulls the model writes for "not set" (measured 2026-09-14).
     for (const k of ['expectedUpdatedAt', 'recordId']) {
@@ -190,7 +204,11 @@ function repairRecordStep(step, at, notes, ctx) {
     }
 }
 
-/** The effects a record action carried → the steps that follow it in a sequence. */
+/**
+ * The effects a record action carried → the steps that follow it in a sequence.
+ * @param {string} at
+ * @param {string[]} notes
+ */
 function effectSteps(step, at, notes) {
     const out = [];
     if (typeof step.tableId === 'string' && step.tableId) out.push({ kind: 'refresh', tableId: step.tableId });
@@ -213,6 +231,11 @@ function effectSteps(step, at, notes) {
     return out;
 }
 
+/**
+ * @param {string} at
+ * @param {string[]} notes
+ * @param {number} depth
+ */
 function walkSteps(list, at, notes, ctx, depth) {
     if (!Array.isArray(list) || depth > MAX_DEPTH) return list;
     const out = [];
@@ -267,7 +290,10 @@ function unwrapStatic(v) {
     return isObject(v) && v.kind === 'static' && v.value !== undefined ? v.value : v;
 }
 
-/** `"{kind:\"formula\",expr:\"screen.params.id\"}"` → the binding object, or null. */
+/**
+ * `"{kind:\"formula\",expr:\"screen.params.id\"}"` → the binding object, or null.
+ * @param {string} str
+ */
 function parseGarbledBinding(str) {
     if (typeof str !== 'string' || !looksGarbledBinding(str)) return null;
     const unescaped = str.replace(/\\+"/g, '"');
@@ -276,7 +302,10 @@ function parseGarbledBinding(str) {
     return isObject(parsed) && typeof parsed.kind === 'string' ? parsed : null;
 }
 
-/** The action-level drift every kind shares: an `actionId` inside the action, a wrapper key. */
+/**
+ * The action-level drift every kind shares: an `actionId` inside the action, a wrapper key.
+ * @param {string[]} notes
+ */
 function repairActionEnvelope(out, notes) {
     if (out.actionId !== undefined) {
         delete out.actionId;
@@ -299,7 +328,10 @@ function repairActionEnvelope(out, notes) {
     }
 }
 
-/** navigate: screenId hidden in params, or wrapped as a static binding. */
+/**
+ * navigate: screenId hidden in params, or wrapped as a static binding.
+ * @param {string[]} notes
+ */
 function repairNavigate(out, notes) {
     if (isObject(out.screenId)) {
         const v = unwrapStatic(out.screenId);
@@ -318,7 +350,11 @@ function repairNavigate(out, notes) {
 
 const APPROVAL_ASSIGNEE_KEYS = ['assigneeUserId', 'assigneeGroupId', 'approverUserIds', 'approverGroupIds', 'finalApproverUserId', 'finalApproverGroupId'];
 
-/** request_approval: the seats, the hook and the prompt as the spec reads them. */
+/**
+ * request_approval: the seats, the hook and the prompt as the spec reads them.
+ * @param {string} at
+ * @param {string[]} notes
+ */
 function repairApprovalStep(step, at, notes) {
     for (const k of APPROVAL_ASSIGNEE_KEYS) {
         const v = step[k];
@@ -382,6 +418,7 @@ function repairApprovalStep(step, at, notes) {
  * @returns {{ action: object, notes: string[], refusal: object|null }}
  */
 function repairAction(action, ctx = {}) {
+    /** @type {string[]} */
     const notes = [];
     if (!isObject(action)) return { action, notes, refusal: null };
     let out = clone(action);
@@ -427,6 +464,9 @@ function repairAction(action, ctx = {}) {
 
 // ── Refusal wording from the validator's records ────────────────────────────
 
+/**
+ * @param {string} path
+ */
 function getAt(root, path) {
     if (!path) return root;
     const tokens = String(path).replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean);
@@ -455,6 +495,7 @@ function describeActionRefusal(errors, { actionId, action, tables } = {}) {
     const list = Array.isArray(errors) ? errors.filter(Boolean) : [];
     const rel = (p) => String(p || '').replace(`actions.${actionId}`, 'action');
     const ops = [];
+    /** @type {string[]} */
     const reasons = [];
     const tableList = Array.isArray(tables) ? tables : [];
     const zeroTables = tableList.length === 0;
@@ -544,3 +585,9 @@ module.exports = {
     CREATE_RECIPE,
     _test: { repairBinding, effectSteps, getAt, RECORD_KINDS },
 };
+
+/**
+ * One model-authored object — an action, a step, a binding, a stage — read
+ * defensively: only the string fields the rules branch on are typed.
+ * @typedef {{ [k: string]: unknown, kind?: string, name?: string, expr?: string, tableId?: string, resultVar?: string, actionId?: string, recordId?: string | ActionNode, approverUserIds?: string[], approverGroupIds?: string[], steps?: ActionNode[] }} ActionNode
+ */

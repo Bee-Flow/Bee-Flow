@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Context policy — how much of a conversation the model actually gets to see.
  *
@@ -72,12 +72,23 @@ const _cache = new Map(); // orgId|'' → { at, policy }
  * Unknown / out-of-range values fall back to the default rather than
  * propagating into the prompt builder.
  */
+/** @typedef {typeof DEFAULT_POLICY} ContextPolicy */
+
+/**
+ * @param {Record<string, unknown> | null | undefined} [stored]
+ */
 function normalizePolicy(stored) {
     const src = (stored && typeof stored === 'object') ? stored : {};
     const enabled = typeof src.compactionEnabled === 'boolean'
         ? src.compactionEnabled
         : _envDefaultCompaction();
 
+    /**
+     * @param {unknown} v
+     * @param {number} fallback
+     * @param {number} min
+     * @param {number} max
+     */
     const asInt = (v, fallback, min, max) => {
         // `Number(null)` and `Number('')` are 0, not NaN — treating a missing
         // field as "0, clamped to the minimum" would silently rewrite the
@@ -115,6 +126,7 @@ function normalizePolicy(stored) {
  *
  * Never throws: a config-store failure falls back to the default policy, which
  * is the conservative one (no lossy rewriting of the user's conversation).
+ * @param {string | null | undefined} orgId
  */
 async function resolveContextPolicy(orgId) {
     const key = orgId || '';
@@ -126,7 +138,7 @@ async function resolveContextPolicy(orgId) {
         try {
             stored = await configStore.getConfig(`${CONFIG_KEY_PREFIX}${orgId}`);
         } catch (err) {
-            log.warn(`[ContextPolicy] Failed to read policy for org ${orgId}: ${err.message}`);
+            log.warn(`[ContextPolicy] Failed to read policy for org ${orgId}: ${/** @type {Error} */ (err).message}`);
         }
     }
     const policy = normalizePolicy(stored);
@@ -134,7 +146,10 @@ async function resolveContextPolicy(orgId) {
     return policy;
 }
 
-/** Drop the memoised policy for an org (called by the settings route on save). */
+/**
+ * Drop the memoised policy for an org (called by the settings route on save).
+ * @param {string | null | undefined} orgId
+ */
 function invalidateContextPolicy(orgId) {
     _cache.delete(orgId || '');
 }
@@ -147,6 +162,7 @@ function invalidateContextPolicy(orgId) {
  *
  * Claude: 1M native (no beta header) on Opus 4.6+/4.7/4.8/5, Sonnet 4.6/5 and
  * Fable/Mythos 5; 200k on Haiku 4.5, Sonnet 4.5, Opus 4.5 and the 3.x family.
+ * @param {string | null | undefined} modelId
  */
 function contextWindowFor(modelId) {
     // An Azure deployment answers with the window of the model behind it.
@@ -197,6 +213,8 @@ function contextWindowFor(modelId) {
  * Token ceiling above which the emergency fold runs. Leaves room for the system
  * prompt, tool definitions and the model's own output on top of the
  * conversation itself — which is why the default is well under 100%.
+ * @param {string | null | undefined} modelId
+ * @param {number} [percent]
  */
 function overflowTokensFor(modelId, percent = DEFAULT_CONTEXT_BUDGET_PERCENT) {
     const pct = Number.isFinite(percent) ? percent : DEFAULT_CONTEXT_BUDGET_PERCENT;
@@ -220,6 +238,7 @@ function contextWindowExamples() {
  * Build the options blob `compaction.compactMessages` expects from a resolved
  * policy plus the per-conversation state. One helper so the two chat runtimes
  * (agent chatStream + directChat) cannot drift apart.
+ * @param {{ policy?: ContextPolicy | null, existingSummary?: string | null, summaryUpTo?: number | null, modelId?: string | null, userOrgId?: string | null }} opts
  */
 function buildCompactionOptions({ policy, existingSummary, summaryUpTo, modelId, userOrgId }) {
     const p = policy || DEFAULT_POLICY;

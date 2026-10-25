@@ -48,6 +48,9 @@ const { z, typeError } = require('../utils/zod');
 // there is exactly one closed list; the route only decides what an unknown key
 // does. A silent fallback to 'month' would let a client believe it asked for a
 // week and got one.
+/**
+ * @param {string} w
+ */
 function isKnownWindow(w) {
     return Object.prototype.hasOwnProperty.call(usageStore.RUN_COUNT_WINDOWS, w);
 }
@@ -60,7 +63,7 @@ const UsageQuery = z.object({
     window: z.string({ error: typeError({ invalid: 'window is one word, e.g. "month".' }) }).optional(),
 }).strict();
 
-router.get('/usage-counts', requireAuth, validate({ query: UsageQuery }), async (req, res) => {
+router.get('/usage-counts', requireAuth, validate({ query: UsageQuery }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const window = req.query.window === undefined ? 'month' : String(req.query.window);
     if (!isKnownWindow(window)) {
         return res.status(400).json({

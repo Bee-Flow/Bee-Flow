@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The OUTLINE of a spreadsheet: what is in it, without the data itself.
  *
@@ -26,13 +26,20 @@ const MIN_ROWS_FOR_CATEGORIES = 10;
 const MAX_HEADER_CHARS = 60;
 const MAX_CATEGORY_CHARS = 40;
 
-/** 'B12' → { col: 'B', row: 12 }, or null for anything else. */
+/**
+ * 'B12' → { col: 'B', row: 12 }, or null for anything else.
+ * @param {string} name
+ */
 function splitName(name) {
     const m = /^([A-Z])(\d+)$/.exec(name);
     return m ? { col: m[1], row: Number(m[2]) } : null;
 }
 
-/** The kind of one data cell, judged on what it shows. */
+/**
+ * The kind of one data cell, judged on what it shows.
+ * @param {string} raw
+ * @param {{ value: any, error: string|null, display: string } | undefined} shown
+ */
 function kindOf(raw, shown) {
     if (String(raw).startsWith('=')) return 'formula';
     if (typeof shown?.value === 'number') return 'number';
@@ -41,6 +48,10 @@ function kindOf(raw, shown) {
     return 'text';
 }
 
+/**
+ * @param {string} s
+ * @param {number} n
+ */
 const clip = (s, n) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
 /**
@@ -80,6 +91,7 @@ function tabOutline(name, cells, shown) {
     const columns = [...cols.entries()].sort(([a], [b]) => (a < b ? -1 : 1)).map(([letter, c]) => {
         const kinds = Object.entries(c.kinds).sort((a, b) => b[1] - a[1]);
         const type = !kinds.length ? 'empty' : kinds.length === 1 || kinds[0][1] >= c.filled * 0.9 ? kinds[0][0] : 'mixed';
+        /** @type {{ column: string; header: string; type: string; filled: number; categories?: string[] }} */
         const out = { column: letter, header: c.header, type, filled: c.filled };
         if (c.min !== undefined) Object.assign(out, { min: c.min, max: c.max });
         const textRows = c.kinds.text || 0;

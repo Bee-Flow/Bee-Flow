@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * A version listing as the history list may read it: with a maker, with
  * the published row designated, and with the honest statement of WHAT a snapshot of this
@@ -27,8 +27,11 @@ const log = require('../../telemetry/log');
  * `req.session.user` has no fixed shape (establishSession keeps it verbatim: a full user row,
  * an OCS object or a minimal sign-in shape), so all three of the usual name fields are tried,
  * and otherwise it falls through to the store.
+ * @param {Array<{ actorUserId?: string | null }>} rows
+ * @param {{ id?: string, displayName?: string, name?: string, username?: string } | null | undefined} sessionUser
  */
 async function versionActorNames(rows, sessionUser) {
+    /** @type {Map<string, string>} */
     const names = new Map();
     const self = sessionUser?.id || null;
     const selfName = sessionUser?.displayName || sessionUser?.name || sessionUser?.username || null;
@@ -63,6 +66,7 @@ async function versionActorNames(rows, sessionUser) {
  * "you have not edited enough yet" — an explanation that is not true there. It should
  * say that the feature does not cover these files.
  *
+ * @param {{ settings?: { framework?: string, runtime?: string } } | null | undefined} wp
  * @returns {{slots:string[], extraFiles:boolean, framework:string, coversProject:boolean}}
  */
 function versionCoverage(wp) {
@@ -83,6 +87,11 @@ function versionCoverage(wp) {
     };
 }
 
+/**
+ * @template {{ id?: string, actorUserId?: string | null }} T
+ * @param {T} row
+ * @param {{ viewerId?: string | null, names?: Map<string, string> | null, publishedVersionId?: string | null }} opts
+ */
 function decorateVersionRow(row, { viewerId, names, publishedVersionId }) {
     const { actorUserId, ...rest } = row;
     return {

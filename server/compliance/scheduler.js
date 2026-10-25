@@ -30,10 +30,12 @@
  */
 
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const SCHEDULER_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
 // A fixed key of our own (distinct from the ISO collector's 0xBEEF10A).
 const LOCK_KEY = 0xBEEF1C5;
+/** @type {NodeJS.Timeout | null} */
 let _timer = null;
 let _running = false;
 
@@ -47,8 +49,12 @@ function _defaultDeps() {
     };
 }
 
-/** Take the cross-replica lock. Returns the client holding it, or null. */
+/**
+ * Take the cross-replica lock. Returns the client holding it, or null.
+ * @param {Pool} pool
+ */
 async function _acquire(pool) {
+    /** @type {PoolClient | null} */
     let client = null;
     try {
         client = await pool.connect();
@@ -57,15 +63,18 @@ async function _acquire(pool) {
         client.release();
         return null;
     } catch (e) {
-        log.warn('[ComplianceScheduler] could not take the sweep lock:', e.message);
+        log.warn('[ComplianceScheduler] could not take the sweep lock:', /** @type {Error} */ (e).message);
         if (client) { try { client.release(); } catch (err) { log.debug('already gone', err); } }
         return null;
     }
 }
 
+/**
+ * @param {PoolClient} client
+ */
 async function _release(client) {
-    try { await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { log.debug('best-effort: the session ends anyway', err); }
-    try { client.release(); } catch (err) { log.debug('already released', err); }
+    try { await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { bestEffort('compliance/scheduler:_release', err); /* best-effort: the session ends anyway */ }
+    try { client.release(); } catch (err) { bestEffort('compliance/scheduler:_release#2', err); /* already released */ }
 }
 
 async function _runAllOrgs(deps = null) {
@@ -74,6 +83,7 @@ async function _runAllOrgs(deps = null) {
         return { ran: false, reason: 'running' };
     }
     _running = true;
+    /** @type {PoolClient | null} */
     let lock = null;
     const started = Date.now();
     try {
@@ -91,22 +101,22 @@ async function _runAllOrgs(deps = null) {
                 if (o?.id) orgIds.add(o.id);
             }
         } catch (e) {
-            log.warn('[ComplianceScheduler] could not list organizations:', e.message);
+            log.warn('[ComplianceScheduler] could not list organizations:', /** @type {Error} */ (e).message);
         }
         for (const orgId of orgIds) {
             try {
                 await d.runner.runAll(orgId, { runType: 'scheduled' });
             } catch (e) {
-                log.warn(`[ComplianceScheduler] org="${orgId}" run failed:`, e.message);
+                log.warn(`[ComplianceScheduler] org="${orgId}" run failed:`, /** @type {Error} */ (e).message);
                 continue;
             }
             if (d.digest && typeof d.digest.sendDigest === 'function') {
-                await d.digest.sendDigest(orgId).catch(() => { /* sendDigest never rejects; belt and braces */ });
+                await d.digest.sendDigest(orgId).catch((e) => bestEffort('compliance/scheduler:_runAllOrgs', e));
             }
         }
         if (d.complianceStore && typeof d.complianceStore.pruneHintDismissals === 'function') {
             try { await d.complianceStore.pruneHintDismissals(); }
-            catch (e) { log.warn('[ComplianceScheduler] could not prune hint dismissals:', e.message); }
+            catch (e) { log.warn('[ComplianceScheduler] could not prune hint dismissals:', /** @type {Error} */ (e).message); }
         }
         const ms = Date.now() - started;
         log.info(`[ComplianceScheduler] sweep complete — ${orgIds.size} org(s) in ${ms} ms`);
@@ -140,3 +150,7 @@ function stop() {
 }
 
 module.exports = { start, stop, _runAllOrgs, LOCK_KEY };
+
+/** @typedef {import('pg').PoolClient} PoolClient */
+
+/** @typedef {import('pg').Pool} Pool */

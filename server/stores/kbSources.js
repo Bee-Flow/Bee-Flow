@@ -124,7 +124,10 @@ function toIso(v) {
     return v;
 }
 
-/** Map a kb_sources row to the camelCase shape routes and jobs consume. */
+/**
+ * Map a kb_sources row to the camelCase shape routes and jobs consume.
+ * @param {DbRow.KbSources | null} r
+ */
 function mapRow(r) {
     if (!r) return null;
     let config = r.config;
@@ -685,3 +688,12 @@ module.exports = Object.assign(KbSourcesStore, {
     // Awaitbare init-ingang voor migrateDb.
     initDB,
 });
+
+/**
+ * @typedef {{ id: string, knowledge_base_id: string, kind: string, name?: string | null,
+ *   config?: string | Record<string, unknown> | null, refresh_mode?: string | null, refresh_cron?: string | null,
+ *   refresh_tz?: string | null, next_refresh_at?: Date | string | null, last_refresh_started_at?: Date | string | null,
+ *   last_refresh_at?: Date | string | null, last_refresh_error?: string | null, consecutive_errors?: number | string | null,
+ *   status?: string | null, cancel_requested?: boolean | null, created_by?: string | null,
+ *   created_at?: Date | string | null, updated_at?: Date | string | null }} KbSourceRow
+ */

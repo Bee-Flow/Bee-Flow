@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The restricted expression engine, for the automation runner.
  *

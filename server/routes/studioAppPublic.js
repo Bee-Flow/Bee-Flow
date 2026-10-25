@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * App Studio — the PUBLIC surface of an app.
  *
@@ -88,7 +89,7 @@ const { DATA_LIMITS } = require('../appStudio/dataModel');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const { issueVisitorToken, verifyVisitorToken } = require('../auth/publicShareToken');
 const { flattenSteps, normalizeSequence, sanitizeBag } = require('../appStudio/actionSequence');
-const log = require('../telemetry/log');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 const { assertAttachmentTotalBytes } = mailboxAttachments;
 
@@ -108,10 +109,10 @@ const PUB_AI_STEP_RPM = parseInt(process.env.STUDIO_APP_PUBLIC_AI_STEP_RPM, 10) 
 const PUB_UPLOAD_RPM = parseInt(process.env.STUDIO_APP_PUBLIC_UPLOAD_RPM, 10) || 20;
 
 const ipLimiter = perUserRateLimit({ windowMs: 60_000, max: PUB_RPM_PER_IP, keyFn: (req) => `pubapp-ip:${req.ip || 'unknown'}`, name: 'studio-public-ip' });
-const tokenLimiter = perUserRateLimit({ windowMs: 60_000, max: PUB_RPM_PER_TOKEN, keyFn: (req) => `pubapp-tok:${req.params.token}`, name: 'studio-public-token' });
-const stepLimiter = perUserRateLimit({ windowMs: 60_000, max: PUB_STEP_RPM, keyFn: (req) => `pubapp-step:${req.params.token}:${req.ip || 'unknown'}`, name: 'studio-public-step' });
-const aiStepLimiter = perUserRateLimit({ windowMs: 60_000, max: PUB_AI_STEP_RPM, keyFn: (req) => `pubapp-ai:${req.params.token}:${req.ip || 'unknown'}`, name: 'studio-public-ai' });
-const uploadLimiter = perUserRateLimit({ windowMs: 60_000, max: PUB_UPLOAD_RPM, keyFn: (req) => `pubapp-up:${req.params.token}:${req.ip || 'unknown'}`, name: 'studio-public-upload' });
+const tokenLimiter = perUserRateLimit({ windowMs: 60_000, max: PUB_RPM_PER_TOKEN, keyFn: (/** @type {import('express').Request} */ req) => `pubapp-tok:${req.params.token}`, name: 'studio-public-token' });
+const stepLimiter = perUserRateLimit({ windowMs: 60_000, max: PUB_STEP_RPM, keyFn: (/** @type {import('express').Request} */ req) => `pubapp-step:${req.params.token}:${req.ip || 'unknown'}`, name: 'studio-public-step' });
+const aiStepLimiter = perUserRateLimit({ windowMs: 60_000, max: PUB_AI_STEP_RPM, keyFn: (/** @type {import('express').Request} */ req) => `pubapp-ai:${req.params.token}:${req.ip || 'unknown'}`, name: 'studio-public-ai' });
+const uploadLimiter = perUserRateLimit({ windowMs: 60_000, max: PUB_UPLOAD_RPM, keyFn: (/** @type {import('express').Request} */ req) => `pubapp-up:${req.params.token}:${req.ip || 'unknown'}`, name: 'studio-public-upload' });
 
 // A batch carries many reads in one request, so the per-request buckets above
 // stop measuring the work. This one counts READS — same reasoning, and the same
@@ -122,9 +123,9 @@ const PUB_READ_DESCRIPTOR_RPM = parseInt(process.env.STUDIO_APP_PUBLIC_READ_DESC
 const readDescriptorLimiter = perUserRateLimit({
     windowMs: 60_000,
     max: PUB_READ_DESCRIPTOR_RPM,
-    keyFn: (req) => `pubapp-reads:${req.params.token}:${req.ip || 'unknown'}`,
+    keyFn: (/** @type {import('express').Request} */ req) => `pubapp-reads:${req.params.token}:${req.ip || 'unknown'}`,
     name: 'studio-public-read-descriptors',
-    costFn: (req) => (Array.isArray(req.body && req.body.reads) ? req.body.reads.length : 1),
+    costFn: (/** @type {import('express').Request} */ req) => (Array.isArray(req.body && req.body.reads) ? req.body.reads.length : 1),
 });
 
 const MAX_BODY_BYTES = 64 * 1024;
@@ -133,6 +134,11 @@ const guard = uploadGuard({ maxBytes: DATA_LIMITS.MAX_ATTACHMENT_BYTES });
 
 // A global bodyParser.json({limit:'20mb'}) runs in index.js before this router,
 // so a route-local limit would never fire — measure what actually arrived.
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 function bodySizeGuard(req, res, next) {
     if (req.body && typeof req.body === 'object') {
         let bytes = 0;
@@ -142,11 +148,19 @@ function bodySizeGuard(req, res, next) {
     next();
 }
 
-/** No caching, no indexing — a public app URL is a credential. */
+/**
+ * No caching, no indexing — a public app URL is a credential.
+ * @param {import('express').Response} res
+ */
 function privateHeaders(res) {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.set('X-Robots-Tag', 'noindex, nofollow');
 }
+
+/**
+ * @typedef {import('../appStudio/builderTools/dataTools').DataTable} DataTable
+ * @typedef {import('../appStudio/builderTools/dataTools').DataModel} DataModel
+ */
 
 const TOKEN_RE = /^[a-f0-9]{24,64}$/;
 
@@ -162,6 +176,8 @@ const AI_STEP_KINDS = ['ai_extract', 'ai_generate', 'kb_query', 'redact_pdf'];
  * A revoked page, a deleted app, an unpublished app, an app whose definition
  * dropped `publicAccess`, and a token that never existed are ALL the same 404.
  * The token is the credential, so probing must learn nothing.
+ * @param {import('express').Request<{ token: string }>} req
+ * @param {import('express').Response} res
  */
 async function loadPublicApp(req, res) {
     const token = String(req.params.token || '');
@@ -184,10 +200,15 @@ async function loadPublicApp(req, res) {
     return { token, page, app, definition, surface };
 }
 
+/** @typedef {import('express').Request<{ token: string }> & { visitor?: NonNullable<ReturnType<typeof verifyVisitorToken>> }} VisitorReq  a request requireVisitor let through */
+
 /**
  * The visitor bearer → { viewerId }. Every endpoint except GET /:token needs
  * one: it is the identity RLS scopes rows by, so a call without it has no
  * business writing or reading anything.
+ * @param {VisitorReq} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
 function requireVisitor(req, res, next) {
     const auth = req.headers['authorization'];
@@ -203,6 +224,10 @@ function requireVisitor(req, res, next) {
  * The full anonymous data context: the same shape resolveDataContext builds on
  * the authenticated route, with the role fixed to `publicAccess.roleKey` and
  * the viewer id fixed to the token's anonymous id.
+ * @param {NonNullable<Awaited<ReturnType<typeof loadPublicApp>>>} found
+ * @param {VisitorReq} req
+ * @param {import('express').Response} res
+ * @param {{ tableId?: string }} [options]
  */
 async function publicDataContext(found, req, res, { tableId } = {}) {
     const { app, surface } = found;
@@ -211,15 +236,17 @@ async function publicDataContext(found, req, res, { tableId } = {}) {
     if (req.visitor.appId !== app.id) { res.status(401).json({ error: 'Invalid visitor token' }); return null; }
 
     const meta = await studioAppDataStore.getDataModel(app.id, app.userId);
-    const model = (meta && meta.model && typeof meta.model === 'object') ? meta.model : null;
+    const model = /** @type {DataModel | null} */ ((meta && meta.model && typeof meta.model === 'object') ? meta.model : null);
     if (!model || !Array.isArray(model.tables)) { res.status(404).json({ error: 'App has no data model' }); return null; }
 
     const role = surface.roleKey;
     // organizationId is null ON PURPOSE: an anonymous visitor is in no
     // organisation, and a row filter comparing viewer.organizationId must not
     // accidentally match the owner's org rows.
+    /** @type {{ id: string, role: typeof role, organizationId: string | null }} */
     const viewer = { id: req.visitor.viewerId, role, organizationId: null };
 
+    /** @type {{ app: typeof app, ownerScope: string, viewerId: string, model: DataModel, role: typeof role, viewer: typeof viewer, table?: DataTable }} */
     const ctx = { app, ownerScope: app.userId, viewerId: req.visitor.viewerId, model, role, viewer };
     if (tableId) {
         const table = model.tables.find((t) => t && (t.id === tableId || t.key === tableId));
@@ -229,7 +256,12 @@ async function publicDataContext(found, req, res, { tableId } = {}) {
     return ctx;
 }
 
-/** Same error contract as studioAppData.js — safe messages only, generic 500s. */
+/**
+ * Same error contract as studioAppData.js — safe messages only, generic 500s.
+ * @param {import('express').Response} res
+ * @param {Error & { status?: number, safe?: boolean, code?: string, limit?: number, used?: number }} err
+ * @param {string} _where
+ */
 function handleErr(res, err, _where) {
     const status = err && typeof err.status === 'number' ? err.status : null;
     // dataReadRunner marks its own refusals `safe` — the same 'Table not found'
@@ -253,7 +285,7 @@ function handleErr(res, err, _where) {
 // GET /:token — what to render, and who the visitor is
 // ═══════════════════════════════════════════════════════════════════
 
-router.get('/:token', ipLimiter, tokenLimiter, async (req, res) => {
+router.get('/:token', ipLimiter, tokenLimiter, async (/** @type {import('express').Request<{ token: string }>} */ req, /** @type {import('express').Response} */ res) => {
     privateHeaders(res);
     const found = await loadPublicApp(req, res);
     if (!found) return undefined;
@@ -288,7 +320,7 @@ router.get('/:token', ipLimiter, tokenLimiter, async (req, res) => {
 // gate is reachability — the action must be wired to a component on a PUBLIC
 // screen, so posting a back-office action id resolves to nothing.
 
-router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody, bodySizeGuard, requireVisitor, validate({ body: R.StepBody }), async (req, res) => {
+router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody, bodySizeGuard, requireVisitor, validate({ body: R.StepBody }), async (/** @type {import('express').Request<{ token: string, actionId: string }>} */ req, /** @type {import('express').Response} */ res) => {
     privateHeaders(res);
     const found = await loadPublicApp(req, res);
     if (!found) return undefined;
@@ -322,7 +354,7 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
     if (!ctx) return undefined;
 
     const t0 = Date.now();
-    const result = await actionExecutor.executeDataStep(found.app, ctx.model, step, {
+    const result = /** @type {{ ok: boolean, result?: unknown, error?: string, code?: string, limit?: number, used?: number }} */ (await actionExecutor.executeDataStep(found.app, ctx.model, step, {
         viewerId: ctx.viewerId,
         // Audit stamp for steps that create durable records (request_approval).
         actionId,
@@ -339,7 +371,7 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
         index: Number.isInteger(Number(req.body?.index)) && Number(req.body?.index) >= 0 ? Number(req.body.index) : undefined,
         value: req.body?.value,
         viewer: ctx.viewer,
-    });
+    }));
 
     // The work happened under the OWNER — attribute it to them, as /step does.
     usageStore.logUsage({
@@ -354,7 +386,7 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
         duration_ms: Date.now() - t0,
         source: 'studio_app_public',
         conversation_id: found.app.id,
-    }).catch(() => {});
+    }).catch((e) => bestEffort('routes/studioAppPublic:anon', e));
 
     if (result && result.ok) return res.json({ ok: true, result: result.result ?? null });
     return res.json({
@@ -369,7 +401,7 @@ router.post('/:token/actions/:actionId/step', ipLimiter, tokenLimiter, jsonBody,
 // Reads — RLS-scoped to this visitor
 // ═══════════════════════════════════════════════════════════════════
 
-router.get('/:token/data/tables/:tableId/records', ipLimiter, tokenLimiter, requireVisitor, validate({ query: R.RecordsQuery }), async (req, res) => {
+router.get('/:token/data/tables/:tableId/records', ipLimiter, tokenLimiter, requireVisitor, validate({ query: R.RecordsQuery }), /** @param {import('express').Request<{ token: string, tableId: string }, any, any, import('zod').infer<typeof R.RecordsQuery>>} req */ async (req, res) => {
     try {
         privateHeaders(res);
         const found = await loadPublicApp(req, res);
@@ -380,8 +412,8 @@ router.get('/:token/data/tables/:tableId/records', ipLimiter, tokenLimiter, requ
 
         let filters;
         let sort;
-        if (typeof req.query.filter === 'string' && req.query.filter) { try { filters = JSON.parse(req.query.filter); } catch (err) { log.debug('compiler validates', err); } }
-        if (typeof req.query.sort === 'string' && req.query.sort) { try { sort = JSON.parse(req.query.sort); } catch (err) { log.debug('compiler validates', err); } }
+        if (typeof req.query.filter === 'string' && req.query.filter) { try { filters = JSON.parse(req.query.filter); } catch (err) { fallback('routes/studioAppPublic:anon#2', err); /* compiler validates */ } }
+        if (typeof req.query.sort === 'string' && req.query.sort) { try { sort = JSON.parse(req.query.sort); } catch (err) { fallback('routes/studioAppPublic:anon#3', err); /* compiler validates */ } }
         if (filters !== undefined && !Array.isArray(filters)) filters = [filters];
 
         const out = await dataReadRunner.runRecordList(ctx, ctx.table, {
@@ -391,7 +423,7 @@ router.get('/:token/data/tables/:tableId/records', ipLimiter, tokenLimiter, requ
     } catch (err) { return handleErr(res, err, 'records.list'); }
 });
 
-router.post('/:token/data/query', ipLimiter, tokenLimiter, jsonBody, bodySizeGuard, requireVisitor, async (req, res) => {
+router.post('/:token/data/query', ipLimiter, tokenLimiter, jsonBody, bodySizeGuard, requireVisitor, async (/** @type {import('express').Request<{ token: string }>} */ req, /** @type {import('express').Response} */ res) => {
     try {
         privateHeaders(res);
         const found = await loadPublicApp(req, res);
@@ -439,7 +471,7 @@ router.post('/:token/data/query', ipLimiter, tokenLimiter, jsonBody, bodySizeGua
 // organisation's member directory is not this visitor's business. It is
 // caught before the runner sees it, because the runner would look it up as an
 // ordinary dataset and answer a truthful 404 that reads as "try again".
-router.post('/:token/data/batch', ipLimiter, tokenLimiter, jsonBody, bodySizeGuard, requireVisitor, validate({ body: BatchBody }), readDescriptorLimiter, async (req, res) => {
+router.post('/:token/data/batch', ipLimiter, tokenLimiter, jsonBody, bodySizeGuard, requireVisitor, validate({ body: BatchBody }), readDescriptorLimiter, async (/** @type {import('express').Request<{ token: string }>} */ req, /** @type {import('express').Response} */ res) => {
     try {
         privateHeaders(res);
         const body = (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) ? req.body : {};
@@ -448,7 +480,7 @@ router.post('/:token/data/batch', ipLimiter, tokenLimiter, jsonBody, bodySizeGua
         if (reads.length > MAX_BATCH_READS) {
             return res.status(400).json({ error: `At most ${MAX_BATCH_READS} reads per batch` });
         }
-        if (reads.some((r) => r && r.datasetId === 'sys_org_members')) {
+        if (reads.some((/** @type {{ datasetId?: unknown } | null} */ r) => r && r.datasetId === 'sys_org_members')) {
             return res.status(403).json({ error: 'Forbidden' });
         }
         if (reads.length === 0) return res.json({ results: [] });
@@ -466,19 +498,27 @@ router.post('/:token/data/batch', ipLimiter, tokenLimiter, jsonBody, bodySizeGua
 // Attachments
 // ═══════════════════════════════════════════════════════════════════
 
+/**
+ * @param {string} ownerId
+ * @param {string} appId
+ * @param {string} sha256
+ */
 function attachmentKey(ownerId, appId, sha256) {
     return storageStore.buildStudioAppAttachmentKey(ownerId, appId, sha256);
 }
 
 /** Uploading is a WRITE into the OWNER's storage envelope: the public role has
  *  to be able to create or update SOMEWHERE, or a form that cannot write can't
- *  fill the owner's quota either. Mirrors viewerMayUpload in studioAppFiles. */
+ *  fill the owner's quota either. Mirrors viewerMayUpload in studioAppFiles.
+ * @param {DataModel} model
+ * @param {string} role
+ */
 function roleMayUpload(model, role) {
     return model.tables.some((t) => rlsGateway.resolveScope(t, role, 'create') === true
         || rlsGateway.resolveScope(t, role, 'update') !== 'none');
 }
 
-router.post('/:token/data/attachments', ipLimiter, uploadLimiter, guard, requireVisitor, validate({ body: UploadFields }), async (req, res) => {
+router.post('/:token/data/attachments', ipLimiter, uploadLimiter, guard, requireVisitor, validate({ body: UploadFields }), async (/** @type {import('express').Request<{ token: string }>} */ req, /** @type {import('express').Response} */ res) => {
     privateHeaders(res);
     const found = await loadPublicApp(req, res);
     if (!found) return undefined;
@@ -508,7 +548,7 @@ router.post('/:token/data/attachments', ipLimiter, uploadLimiter, guard, require
     await storageStore.uploadFile(key, file.buffer, file.mimetype, file.sanitized ? { sanitized: 'true' } : null);
     const scan = await scanBuffer(file.buffer);
     if (!scan.clean) {
-        try { await storageStore.deleteFile(key); } catch (err) { log.debug('best-effort', err); }
+        try { await storageStore.deleteFile(key); } catch (err) { bestEffort('routes/studioAppPublic:anon#4', err); /* best-effort */ }
         return res.status(422).json({ error: 'File failed a malware scan', signature: scan.signature || null });
     }
 
@@ -521,7 +561,7 @@ router.post('/:token/data/attachments', ipLimiter, uploadLimiter, guard, require
         size: file.size,
     });
     await studioAppDataStore.setAttachmentScan(attachment.id, found.app.id, found.app.userId, { scanned: true, quarantined: false })
-        .catch(() => { /* advisory */ });
+        .catch((e) => bestEffort('routes/studioAppPublic:anon#5', e));
 
     return res.json({
         success: true,
@@ -537,7 +577,7 @@ router.post('/:token/data/attachments', ipLimiter, uploadLimiter, guard, require
     });
 });
 
-router.get('/:token/data/attachments/:fileId', ipLimiter, tokenLimiter, requireVisitor, async (req, res, next) => {
+router.get('/:token/data/attachments/:fileId', ipLimiter, tokenLimiter, requireVisitor, async (/** @type {import('express').Request<{ token: string, fileId: string }>} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
     privateHeaders(res);
     const found = await loadPublicApp(req, res);
     if (!found) return undefined;
@@ -580,7 +620,7 @@ router.get('/:token/data/attachments/:fileId', ipLimiter, tokenLimiter, requireV
 // Re-picking a file three times must not leave three dead blobs charging
 // against the owner's quota. Refuses anything already linked to a record, so
 // this can only ever discard an upload that never landed anywhere.
-router.delete('/:token/data/attachments/:fileId', ipLimiter, uploadLimiter, requireVisitor, async (req, res) => {
+router.delete('/:token/data/attachments/:fileId', ipLimiter, uploadLimiter, requireVisitor, async (/** @type {import('express').Request<{ token: string, fileId: string }>} */ req, /** @type {import('express').Response} */ res) => {
     privateHeaders(res);
     const found = await loadPublicApp(req, res);
     if (!found) return undefined;
@@ -597,7 +637,7 @@ router.delete('/:token/data/attachments/:fileId', ipLimiter, uploadLimiter, requ
     await studioAppDataStore.deleteAttachment(attachment.id, found.app.id, found.app.userId);
     const stillUsed = await studioAppDataStore.countAttachmentsBySha(found.app.id, found.app.userId, attachment.sha256);
     if (stillUsed === 0 && attachment.sha256 && storageStore.isAvailable()) {
-        try { await storageStore.deleteFile(attachmentKey(found.app.userId, found.app.id, attachment.sha256)); } catch (err) { log.debug('swept later', err); }
+        try { await storageStore.deleteFile(attachmentKey(found.app.userId, found.app.id, attachment.sha256)); } catch (err) { bestEffort('routes/studioAppPublic:anon#6', err); /* swept later */ }
     }
     return res.json({ success: true });
 });

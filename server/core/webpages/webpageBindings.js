@@ -146,6 +146,7 @@ function elementsSection(scan) {
  * out of the index instead of appearing in it as an empty list.
  */
 function bindingKinds() {
+    /** @type {string[]} */
     const kinds = [];
     for (const def of bfElements.BF_ELEMENTS) {
         if (def.binding && !kinds.includes(def.binding.kind)) kinds.push(def.binding.kind);
@@ -155,6 +156,7 @@ function bindingKinds() {
 
 /** Every fallback that the vocabulary knows — for which the caller must have an answer. */
 function declaredFallbacks() {
+    /** @type {string[]} */
     const out = [];
     for (const def of bfElements.BF_ELEMENTS) {
         const fb = def.binding && def.binding.fallback;
@@ -174,6 +176,7 @@ function declaredFallbacks() {
  * The grants carry their id as `<something>Id` (`agentId`, `datatableId`). If this
  * function finds none, the answer is `null` and the element remains
  * `unresolved`: not determinable, never guessed.
+ * @param {string} path
  */
 function fallbackIdFromGrants(path, grants) {
     const parts = String(path || '').split('.');
@@ -230,6 +233,9 @@ function collectUses(scan, { fallbackIds = {} } = {}) {
         // from it because we do not know what it would bind.
         if (!mark.known || !mark.family) continue;
         const where = { tag: mark.tag, source: mark.source, line: mark.line };
+        /**
+         * @param {string} reason
+         */
         const miss = (reason) => unresolved.push({
             ...where,
             kind: mark.family,
@@ -272,7 +278,10 @@ function collectUses(scan, { fallbackIds = {} } = {}) {
     return { targets, unresolved };
 }
 
-/** Dezelfde drie standen als `codeSection`, om dezelfde reden. */
+/**
+ * Dezelfde drie standen als `codeSection`, om dezelfde reden.
+ * @param {{ fallbackIds: {}; }} opts
+ */
 function usesSection(scan, opts) {
     if (!scan) return { scanned: false, targets: emptyTargets(), unresolved: [] };
     return { scanned: true, ...collectUses(scan, opts) };
@@ -359,3 +368,19 @@ module.exports = {
     classifyUrl,
     inlineScripts,
 };
+
+/**
+ * @typedef {{ kind: string, method: string | null, url: string, urlPrefix: string, dynamic: boolean,
+ *   host?: string, source: string, line: number }} OutboundCall
+ */
+
+/**
+ * @typedef {{ source: string, slot: string | null, line: number, tag: string, known: boolean,
+ *   family: string | null, targetId: string | null, dynamic: boolean, fallback: string | null,
+ *   missing: string[] | null, reason: string | null }} BfMark
+ */
+
+/**
+ * @typedef {{ id: string, fromPage: boolean, elements: Array<{ tag: string, source: string, line: number }>,
+ *   count: number }} UseTarget
+ */

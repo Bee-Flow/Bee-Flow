@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio validator — definition.actions: the per-kind action checks and
  * the v2 sequence-step tree (STEP_SPECS fields, approvals, AI steps, loops
@@ -33,12 +34,14 @@ const {
 const { validateBinding } = require('./bindings');
 const { containsSendEmail, KIND_CHECKS } = require('./stepKindChecks');
 const { DATASET_QUERY_OUTPUTS, KIND_CHECKS: DATA_KIND_CHECKS } = require('./stepDataChecks');
-const log = require('../../telemetry/log');
 
 // ---------------------------------------------------------------------------
 // Actions
 // ---------------------------------------------------------------------------
 
+/**
+ * @param {string} path
+ */
 function validateEffects(effects, path, ctx) {
     const { pushE, screenIds } = ctx;
     if (!isObject(effects)) {
@@ -82,6 +85,10 @@ function validateEffects(effects, path, ctx) {
  */
 const PER_FIELD_VALIDATED_ACTION_KINDS = new Set(['ai_extract', 'ai_generate', 'kb_query', 'create_record']);
 
+/**
+ * @param {string} id
+ * @param {string} path
+ */
 function validateAction(id, action, path, ctx) {
     const { pushE, pushW, screenIds, ownedAutomations } = ctx;
 
@@ -148,8 +155,9 @@ function validateAction(id, action, path, ctx) {
         if (typeof action.url !== 'string' || !action.url) {
             pushE({ code: 'action.url_invalid', severity: 'error', path: `${path}.url`, message: `Action "${id}" (open_url) needs a url string.`, hint: 'Provide an https:// URL.' });
         } else {
+            /** @type {string | null} */
             let protocol = null;
-            try { protocol = new URL(action.url).protocol; } catch (err) { log.debug('unparseable', err); }
+            try { protocol = new URL(action.url).protocol; } catch (err) { fallback('appStudio/validate/actions:validateAction', err); /* unparseable */ }
             if (protocol === null) pushE({ code: 'action.url_invalid', severity: 'error', path: `${path}.url`, message: `Action "${id}" url ${JSON.stringify(action.url.slice(0, 80))} is not a valid URL.`, hint: 'Provide an absolute https:// URL.' });
             else if (protocol !== 'https:') pushE({ code: 'action.url_not_https', severity: 'error', path: `${path}.url`, message: `Action "${id}" url must use https (got ${protocol.replace(':', '')}).`, hint: 'Only https URLs may be opened from an app.' });
         }
@@ -188,6 +196,11 @@ function validateAction(id, action, path, ctx) {
 
 const RESERVED_DATA_FIELDS = new Set(['tableId', 'values', 'recordId', 'automationId', 'inputMapping']);
 
+/**
+ * @param {string} path
+ * @param {number} depth
+ * @param {{ n: number; reported: boolean; }} counter
+ */
 function validateActionSteps(steps, path, depth, counter, ctx) {
     const { pushE } = ctx;
     if (!Array.isArray(steps)) {
@@ -210,6 +223,8 @@ function validateActionSteps(steps, path, depth, counter, ctx) {
  * table check (via validateStepField) but not the COLUMN check: an action
  * writing to a column that does not exist saved without a word and failed at
  * the first click. One function, two callers, no second place to forget it.
+ * @param {string} label
+ * @param {string} path
  */
 function checkRecordValueColumns(kind, tableId, values, path, ctx, label) {
     if (!ctx.dataTables) return;
@@ -227,6 +242,14 @@ function checkRecordValueColumns(kind, tableId, values, path, ctx, label) {
  */
 const RECORD_WRITE_STEP_KINDS = new Set(['create_record', 'update_record', 'delete_record']);
 
+/**
+ * @param {string} kind
+ * @param {string} field
+ * @param {string} path
+ * @param {number} depth
+ * @param {{ n: number; reported: boolean; }} counter
+ * @param {string} [label]
+ */
 function validateStepField(kind, field, fs, value, path, depth, counter, ctx, label = `Step "${kind}"`) {
     const { pushE } = ctx;
     // Cross-cutting reference fields own their own null/undefined semantics
@@ -365,6 +388,10 @@ function validateStepField(kind, field, fs, value, path, depth, counter, ctx, la
 // download attachments, they do not upload (matches the automation-approval
 // rule in automation/validate.js).
 const APPROVAL_QUESTION_TYPES = new Set(['text', 'textarea', 'number', 'date', 'email', 'select', 'checkbox']);
+/**
+ * @param {string} field
+ * @param {string} path
+ */
 function validateApprovalQuestions(field, value, path, ctx) {
     const { pushE } = ctx;
     if (!Array.isArray(value)) { pushE({ code: 'action.approval_questions_invalid', severity: 'error', path, message: `\`${field}\` must be an array of question objects.`, hint: 'Use [{ name, label, type, required? }].' }); return; }
@@ -392,6 +419,11 @@ const { MAX_APPROVAL_STAGES: STAGE_MAX, MAX_SEATS_PER_STAGE: STAGE_SEAT_MAX,
     MAX_TOTAL_SEATS: STAGE_TOTAL_MAX, MAX_STAGE_NAME_LEN: STAGE_NAME_MAX,
     MAX_STAGE_DESCRIPTION_LEN: STAGE_DESC_MAX,
     STAGE_RULES: STAGE_RULE_VALUES } = require('../../core/automationModel/approvalStages');
+    const { fallback } = require('../../utils/bestEffort');
+/**
+ * @param {string} field
+ * @param {string} path
+ */
 function validateApprovalStages(field, value, path, ctx) {
     const { pushE } = ctx;
     if (!Array.isArray(value)) {
@@ -417,7 +449,7 @@ function validateApprovalStages(field, value, path, ctx) {
             pushE({ code: 'action.approval_stages_invalid', severity: 'error', path: `${sp}.approvers`, message: `Stage ${i + 1} has ${seats.length} approvers (max ${STAGE_SEAT_MAX}).`, hint: 'Use a group instead of listing every person.' });
         } else {
             totalSeats += seats.length;
-            seats.forEach((seat, j) => {
+            seats.forEach((/** @type {{ userId: string; groupId: string; }} */ seat, /** @type {number} */ j) => {
                 const u = isObject(seat) && typeof seat.userId === 'string' && seat.userId !== '';
                 const g = isObject(seat) && typeof seat.groupId === 'string' && seat.groupId !== '';
                 if ((u && g) || (!u && !g)) {
@@ -456,6 +488,9 @@ function validateApprovalStages(field, value, path, ctx) {
 // The on_decided record-write hook. tableId goes through the shared table-ref
 // check (unset = warning, unknown = error at publish); recordId is a binding;
 // each outcome's `set` is a { column: template-or-literal } map.
+/**
+ * @param {string} path
+ */
 function validateApprovalOnDecided(value, path, ctx) {
     const { pushE } = ctx;
     if (!isObject(value)) { pushE({ code: 'action.approval_hook_invalid', severity: 'error', path, message: '`onDecided` must be an object { tableId, recordId, set }.', hint: 'See the request_approval step docs.' }); return; }
@@ -484,6 +519,10 @@ function validateApprovalOnDecided(value, path, ctx) {
 
 // An AI output schema: a non-empty list of { name, type, description?, required? }
 // field definitions with unique identifier names and legal types.
+/**
+ * @param {string} field
+ * @param {string} path
+ */
 function validateAiSchema(field, value, path, ctx) {
     const { pushE } = ctx;
     if (!Array.isArray(value)) { pushE({ code: 'action.ai_schema_invalid', severity: 'error', path, message: `\`${field}\` must be an array of { name, type } fields.`, hint: 'Add at least one output field.' }); return; }
@@ -511,6 +550,10 @@ function validateAiSchema(field, value, path, ctx) {
 // The optional ai_extract write-to target: { tableId, mapping?: { column: fieldName } }.
 // `mapping` may be omitted (or left empty) — the executor then writes each output
 // field to the column of the same name (actionExecutor.resolveWriteMapping).
+/**
+ * @param {string} kind
+ * @param {string} path
+ */
 function validateAiWriteTo(kind, value, path, ctx) {
     const { pushE } = ctx;
     if (!isObject(value)) { pushE({ code: 'action.ai_writeto_invalid', severity: 'error', path, message: '`writeTo` must be an object { tableId, mapping }.', hint: 'Pick a table and map columns, or remove writeTo.' }); return; }
@@ -536,6 +579,10 @@ function validateAiWriteTo(kind, value, path, ctx) {
 // letting every run add another one. Without it a second read of the same
 // document doubles the table; with a column that is not written, it would match
 // nothing and do the same thing more slowly, so both are refused here.
+/**
+ * @param {string} kind
+ * @param {string} path
+ */
 function validateAiWriteToUpsert(kind, value, path, ctx) {
     const { pushE } = ctx;
     if (value.upsertOn === undefined) return;
@@ -560,6 +607,10 @@ function validateAiWriteToUpsert(kind, value, path, ctx) {
 // retention purge has no way to find it.
 const MAX_WRITETO_CONSTANTS = 10;
 
+/**
+ * @param {string} kind
+ * @param {string} path
+ */
 function validateAiWriteToConstants(kind, value, path, ctx) {
     const { pushE } = ctx;
     if (value.constants === undefined) return;
@@ -579,6 +630,11 @@ function validateAiWriteToConstants(kind, value, path, ctx) {
 }
 
 
+/**
+ * @param {string} path
+ * @param {number} depth
+ * @param {{ n: number; reported: boolean; }} counter
+ */
 function validateStep(step, path, depth, counter, ctx) {
     const { pushE } = ctx;
     counter.n += 1;
@@ -640,3 +696,8 @@ module.exports = {
     validateAction,
     DATASET_QUERY_OUTPUTS,
 };
+
+/**
+ * @typedef {{ type: string, required?: boolean, nullable?: boolean, maxLen?: number, min?: number, max?: number, values?: unknown[] }} FieldSpec  One field of an ACTION_SPECS / STEP_SPECS entry.
+ * @typedef {{ mutatesData?: boolean, fields: Record<string, FieldSpec> }} KindSpec
+ */

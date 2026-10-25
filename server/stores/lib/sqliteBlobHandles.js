@@ -11,6 +11,7 @@ const fsp = require('fs/promises');
 const path = require('path');
 const Database = require('better-sqlite3');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * @param {any} deps  handles (the engine's Map), maybeEvict (from the
@@ -36,6 +37,9 @@ function createHandleLoader({ handles, maybeEvict, dbKey, workDir, storage, runQ
         return path.join(workDir, `${id}.db`);
     }
 
+    /**
+     * @param {string} localPath
+     */
     async function downloadIfExists(ownerId, id, localPath) {
         if (!storage.isAvailable()) return false;
         try {
@@ -45,7 +49,7 @@ function createHandleLoader({ handles, maybeEvict, dbKey, workDir, storage, runQ
             await fsp.writeFile(localPath, Buffer.concat(chunks));
             return true;
         } catch (err) {
-            if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) return false;
+            if (/** @type {Error} */ (err)?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) return false;
             throw err;
         }
     }
@@ -100,7 +104,7 @@ function createHandleLoader({ handles, maybeEvict, dbKey, workDir, storage, runQ
         // self-contained — no -wal/-shm to upload — but a process killed mid-write
         // may have left stragglers.
         for (const ext of ['', '-journal', '-wal', '-shm']) {
-            try { await fsp.unlink(localPath + ext); } catch (_) { log.debug('local file absent', _); }
+            try { await fsp.unlink(localPath + ext); } catch (_) { bestEffort('stores/lib/sqliteBlobHandles:openCold', _); /* local file absent */ }
         }
         await downloadIfExists(ownerId, id, localPath);
 
@@ -148,3 +152,32 @@ function createHandleLoader({ handles, maybeEvict, dbKey, workDir, storage, runQ
 }
 
 module.exports = { createHandleLoader };
+
+/**
+ * The minimal better-sqlite3 surface the engine's flusher uses.
+ * @typedef {{ pragma: (sql: string, opts?: { simple?: boolean }) => unknown, close: () => void }} BlobDb
+ *
+ * One open database of the engine's handle Map.
+ * @typedef {{
+ *   db: BlobDb,
+ *   ownerId: string,
+ *   localPath: string,
+ *   lastAccess: number,
+ *   dirty: boolean,
+ *   flushTimer: NodeJS.Timeout | null,
+ *   flushing: Promise<void> | null,
+ *   lastPersistedSha: string,
+ *   poisoned: boolean,
+ * }} BlobHandle
+ *
+ * The storageStore-shaped object the wrapper injects.
+ * @typedef {{
+ *   isAvailable: () => boolean,
+ *   streamFile: (key: string) => Promise<{ stream: AsyncIterable<Buffer> }>,
+ *   uploadFile: (key: string, buf: Buffer, contentType: string) => Promise<unknown>,
+ *   deleteFile: (key: string) => Promise<unknown>,
+ * }} BlobStorage
+ *
+ * The injected query runner (db.run).
+ * @typedef {(sql: string, params?: unknown[]) => Promise<{ rowCount?: number | null, changes?: number, rows?: import('pg').QueryResultRow[] } | undefined>} BlobRunQuery
+ */

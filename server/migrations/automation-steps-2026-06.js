@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: Steps (reusable, standalone building blocks).
  *

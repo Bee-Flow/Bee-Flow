@@ -80,7 +80,7 @@ async function resolveCoworkShieldFlag(orgId) {
     try {
         stored = await configStore.getConfig(coworkShieldConfigKey(orgId));
     } catch (err) {
-        log.warn(`[CoworkShieldFlag] Failed to read flag for org ${orgId}: ${err.message}`);
+        log.warn(`[CoworkShieldFlag] Failed to read flag for org ${orgId}: ${/** @type {Error} */ (err).message}`);
     }
     const flag = normalizeCoworkShieldFlag(stored);
     _cache.set(orgId, { at: Date.now(), flag });

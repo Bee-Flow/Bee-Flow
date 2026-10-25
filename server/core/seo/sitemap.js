@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * sitemap.xml, generated from the live CMS site.
  *
@@ -16,6 +17,7 @@ const { buildPublicPath } = require('./publicPath');
 
 // Homepage first, then the pages a buyer moves through, then the rest.
 // Sitemap priority is a weak signal at best, but ordering costs nothing.
+/** @type {Record<string, string>} */
 const PRIORITY = {
     '': '1.0',
     platform: '0.9',
@@ -51,6 +53,18 @@ const PRIORITY = {
 // diff. Emitting the default explicitly makes the omission visible instead.
 const DEFAULT_PRIORITY = '0.5';
 
+/**
+ * @typedef {Object} UrlEntryArgs
+ * @property {string | undefined} origin
+ * @property {string} slug
+ * @property {string} locale
+ * @property {string} defaultLocale
+ * @property {string[]} locales
+ * @property {string | null} [lastmod]
+ */
+/**
+ * @param {UrlEntryArgs} param0
+ */
 function urlEntry({ origin, slug, locale, defaultLocale, locales, lastmod }) {
     const loc = `${origin}${buildPublicPath(locale, slug, defaultLocale)}`;
     const lines = [`  <url>`, `    <loc>${esc(loc)}</loc>`];
@@ -72,15 +86,16 @@ function urlEntry({ origin, slug, locale, defaultLocale, locales, lastmod }) {
 }
 
 /**
- * @param {object[]} pages   from the published site:
+ * @param {Array<{ slug?: string, seo?: { noIndex?: boolean }, updatedAt?: string|number|Date, locales?: string[], isHomepage?: boolean, isNotFound?: boolean }>} pages   from the published site:
  *   `{ slug, seo, updatedAt, locales? }`. A page's own `locales` wins over the
  *   site-wide list: a page is only advertised in a language it has actually
  *   been translated into. Listing /nl/<slug> for an untranslated page hands the
  *   crawler an alternate that serves the default language, which invalidates
  *   the whole hreflang cluster rather than just that one URL.
- * @param {object} opts      `{ origin, defaultLocale, locales }`
+ * @param {{ origin?: string, defaultLocale?: string, locales?: string[] }} opts      `{ origin, defaultLocale, locales }`
  */
 function buildSitemap(pages, { origin, defaultLocale = 'en', locales = ['en'] }) {
+    /** @type {string[]} */
     const entries = [];
 
     for (const page of pages || []) {
@@ -115,8 +130,14 @@ function buildSitemap(pages, { origin, defaultLocale = 'en', locales = ['en'] })
 }
 
 /**
+ * @typedef {Object} BuildRobotsArgs
+ * @property {string} origin
+ * @property {boolean} [allow]
+ */
+/**
  * robots.txt. Served from here rather than as a static file so it can name
  * the sitemap at the real origin.
+ * @param {BuildRobotsArgs} param0
  */
 function buildRobots({ origin, allow = true }) {
     if (!allow) {
@@ -164,16 +185,19 @@ function buildRobots({ origin, allow = true }) {
  * served, and it carries each page's own meta description rather than invented
  * blurbs. Comparison pages are listed under their own heading because they are
  * the ones a model is most likely to be asked to cite.
+ *
+ * @param {import('../../stores/cms/shared').CmsDoc[]} pages
+ * @param {{ origin: string, siteName?: string, summary?: string }} opts
  */
 function buildLlmsTxt(pages, { origin, siteName = 'Bee Flow', summary = '' }) {
     const indexable = (pages || []).filter(p => !p?.seo?.noIndex && !p?.isNotFound);
-    const line = (p) => {
+    const line = (/** @type {import('../../stores/cms/shared').CmsDoc} */ p) => {
         const slug = p.isHomepage ? '' : String(p.slug || '');
         const title = String(p.title || slug || 'Home').trim();
         const desc = String(p?.seo?.metaDescription || '').trim();
         return `- [${title}](${origin}/${slug})${desc ? `: ${desc}` : ''}`;
     };
-    const isComparison = p => /-alternative$/.test(String(p.slug || '')) || p.slug === 'compare';
+    const isComparison = (/** @type {import('../../stores/cms/shared').CmsDoc} */ p) => /-alternative$/.test(String(p.slug || '')) || p.slug === 'compare';
 
     const out = [`# ${siteName}`, ''];
     if (summary) out.push(summary, '');

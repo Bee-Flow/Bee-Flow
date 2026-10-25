@@ -25,8 +25,15 @@ const DEFAULT_BODY_CHARS = 8000;
 /** Tools that mutate the mailbox or send mail — skipped when read-only. */
 const WRITE_TOOLS = ['send_message', 'mark_message', 'move_message'];
 
+/**
+ * @param {string | undefined} v
+ */
 const isTruthy = (v) => /^(1|true|yes|on)$/i.test(String(v ?? '').trim());
 
+/**
+ * @param {string | undefined} v
+ * @param {number} fallback
+ */
 const toInt = (v, fallback) => {
     const n = parseInt(String(v ?? '').trim(), 10);
     return Number.isFinite(n) && n > 0 ? n : fallback;
@@ -39,6 +46,7 @@ const toInt = (v, fallback) => {
  * freshly installed server without any user credentials to discover its tools,
  * so startup must always succeed. Credentials are enforced per call via
  * `requireCredentials()`.
+ * @param {NodeJS.ProcessEnv} [env]
  */
 function readConfig(env = process.env) {
     const imapPort = toInt(env.SOVERIN_IMAP_PORT, DEFAULT_IMAP_PORT);
@@ -75,7 +83,11 @@ function requireCredentials(config) {
     return config;
 }
 
-/** Clamp a caller-supplied result limit into a sane range. */
+/**
+ * Clamp a caller-supplied result limit into a sane range.
+ * @param {number} [fallback]
+ * @param {number} [max]
+ */
 function clampLimit(value, fallback = DEFAULT_LIMIT, max = MAX_LIMIT) {
     const n = parseInt(String(value ?? '').trim(), 10);
     if (!Number.isFinite(n) || n <= 0) return fallback;
@@ -86,6 +98,7 @@ function clampLimit(value, fallback = DEFAULT_LIMIT, max = MAX_LIMIT) {
  * Parse a date filter. Accepts an ISO date/timestamp or a relative offset the
  * models reach for anyway ('7d', '24h', '30m').
  * Returns a Date, or null when the input is absent/unparseable.
+ * @param {Date} [now]
  */
 function parseWhen(value, now = new Date()) {
     if (!value) return null;
@@ -107,6 +120,7 @@ function parseWhen(value, now = new Date()) {
 /**
  * Build an ImapFlow search query from the tool input.
  * An empty input means "everything in the mailbox" — IMAP needs an explicit ALL.
+ * @param {Date} [now]
  */
 function buildSearchQuery(input = {}, now = new Date()) {
     const query = {};
@@ -146,6 +160,9 @@ function formatAddress(addr) {
     return address || name;
 }
 
+/**
+ * @param {number} [max]
+ */
 function formatAddressList(list, max = 10) {
     const items = (Array.isArray(list) ? list : []).map(formatAddress).filter(Boolean);
     if (items.length <= max) return items.join(', ');
@@ -206,6 +223,7 @@ function htmlToText(html) {
 /**
  * Pick a readable body out of a mailparser result and cap its size — a single
  * newsletter can otherwise blow the model's context on its own.
+ * @param {number} [maxChars]
  */
 function extractBody(parsed = {}, maxChars = DEFAULT_BODY_CHARS) {
     const text = String(parsed.text || '').trim() || htmlToText(parsed.html);
@@ -273,7 +291,10 @@ function pickMailbox(list, role) {
 
 const ADDRESS_RE = /^[^<>@\s,]+@[^<>@\s,]+\.[^<>@\s,]+$/;
 
-/** Normalise a to/cc/bcc input (string or array) and reject non-addresses. */
+/**
+ * Normalise a to/cc/bcc input (string or array) and reject non-addresses.
+ * @param {string} [field]
+ */
 function normalizeRecipients(value, field = 'to') {
     const items = (Array.isArray(value) ? value : String(value || '').split(','))
         .map((v) => String(v || '').trim())
@@ -323,3 +344,5 @@ module.exports = {
     normalizeRecipients,
     allowedTools,
 };
+
+/** @typedef {{ name?: string, address?: string }} MailAddress */

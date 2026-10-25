@@ -30,10 +30,11 @@ const { checkDatatableCreate } = require('./datatableCreateAccess');
 const { stagePendingDatatable } = require('./pendingDatatables');
 const { choiceRequiredError } = require('./datatableApproval');
 const { normaliseKey } = require('./datatableRefs');
-const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const MAX_FIELDS = 40;
 const FIELD_TYPES = ['text', 'richtext', 'number', 'date', 'datetime', 'bool', 'select', 'multiselect', 'file'];
+/** @type {Record<string, string>} */
 const TYPE_ALIASES = { string: 'text', str: 'text', integer: 'number', int: 'number', float: 'number', decimal: 'number', currency: 'number', amount: 'number', boolean: 'bool', enum: 'select', choice: 'select', timestamp: 'datetime', attachment: 'file' };
 
 function defaultDeps() {
@@ -154,6 +155,7 @@ async function applyCreateDatatable(draftWrap, args, deps = defaultDeps()) {
         },
     );
     if (!access.ok) {
+        /** @type {Record<string, string>} */
         const hints = {
             identity_unavailable: 'Try once more; if it persists, tell the user.',
             manage_datatables_required: 'The owner may not create organisation tables (manage_datatables) — tell the user, or write into a table that exists.',
@@ -169,6 +171,7 @@ async function applyCreateDatatable(draftWrap, args, deps = defaultDeps()) {
         fields, hasManageDatatables: hasManage,
     });
     if (!result.ok) {
+        /** @type {Record<string, string>} */
         const hints = {
             manage_datatables_required: 'The owner may not create organisation tables (manage_datatables) — tell the user, or write into a table that exists.',
             schema_invalid: 'Fix the column list: every column needs a name and one of the field types.',
@@ -185,7 +188,7 @@ async function applyCreateDatatable(draftWrap, args, deps = defaultDeps()) {
     try {
         const fresh = await deps.catalogFor(ownerId);
         if (Array.isArray(fresh) && fresh.some((t) => t.id === table.id)) draftWrap._datatables = fresh;
-    } catch (err) { log.debug('the in-place entry stands', err); }
+    } catch (err) { fallback('automation/builderTools/datatableCreate:applyCreateDatatable', err); /* the in-place entry stands */ }
     // The assistant made this table for the user's request, so binding steps
     // to it needs no further consent; the ids are remembered across turns.
     if (draftWrap._approvedDatatableIds instanceof Set) draftWrap._approvedDatatableIds.add(table.id);
@@ -203,6 +206,9 @@ async function applyCreateDatatable(draftWrap, args, deps = defaultDeps()) {
 
 // Shown to people in Studio > Datatables, so it is plain English like the rest
 // of the product copy.
+/**
+ * @param {string} name
+ */
 const defaultDescription = (name) => `Created by the automation builder for "${name}"`;
 
 /**

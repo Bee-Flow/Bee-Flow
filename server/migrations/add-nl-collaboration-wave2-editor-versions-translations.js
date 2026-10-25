@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck
+// @typecheck strict
 /**
  * Dutch for the second collaboration round (2026-09), part one: editing
  * together in real time (presence, find and replace, links, keyboard

@@ -19,6 +19,9 @@ const { isPlainObject, assertSiteId, projectKey } = require('./shared');
 const BUILDER_SESSION_SUFFIX = '_builder_session';
 const BUILDER_SNAPSHOT_MAX_BYTES = 64 * 1024;
 
+/**
+ * @param {string} siteId
+ */
 function builderSessionKey(siteId) {
     return `${projectKey(siteId)}${BUILDER_SESSION_SUFFIX}`;
 }
@@ -38,12 +41,18 @@ function trimBuilderSnapshot(snapshot) {
     return trimmed;
 }
 
+/**
+ * @param {string} siteId
+ */
 async function getBuilderSession(siteId) {
     assertSiteId(siteId);
     const v = await configStore.getConfigFresh(builderSessionKey(siteId));
     return isPlainObject(v) ? v : null;
 }
 
+/**
+ * @param {string} siteId
+ */
 async function setBuilderSession(siteId, snapshot) {
     assertSiteId(siteId);
     const trimmed = trimBuilderSnapshot(snapshot);

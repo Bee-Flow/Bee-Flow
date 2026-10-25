@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * folders.js: the org-wide folder tree of the automations sidebar, as the
  * automationStore facade exposes it. The rules (no loops, one organisation, a
@@ -34,3 +34,15 @@ module.exports = {
     MAX_FOLDER_NAME_LEN,
     FolderError,
 };
+
+/**
+ * @typedef {object} FolderRow
+ * @property {string} id
+ * @property {string | null} [organization_id]
+ * @property {string} name
+ * @property {string | null} [icon]
+ * @property {string | null} [color]
+ * @property {string | Date} created_at
+ * @property {string | Date} updated_at
+ * @property {number | string} [automation_count]
+ */

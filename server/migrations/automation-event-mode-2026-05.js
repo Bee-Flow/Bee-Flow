@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: Automation event subscriptions — push/poll mode preference (2026-05).
  *

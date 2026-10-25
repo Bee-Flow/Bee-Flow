@@ -23,6 +23,9 @@ const { installResolveStub } = require('../../testUtils/stubRequire');
 
 const noop = () => {};
 
+/**
+ * @param {string} name
+ */
 const fn = (name) => ({
     type: 'function',
     function: { name, description: name, parameters: { type: 'object', properties: {} } },
@@ -267,3 +270,26 @@ module.exports = {
     installAgentTurnHarness, turnState, resetTurnState, LEND, fn, noop,
     GMAIL_TOOL_REGISTRY, GMAIL_TOOLS, EMPTY_TOOL_REGISTRY, AGENT_BASE,
 };
+
+/**
+ * @typedef {{ type?: string, function?: { name: string, description?: string, parameters?: unknown } }} ToolDef
+ * @typedef {{
+ *   round: number,
+ *   drive: ((cb: unknown, options: { tools?: ToolDef[] } | undefined, round: number, messages: unknown[]) => unknown) | null,
+ *   tools: ToolDef[],
+ *   agentConfig: Record<string, unknown>,
+ *   dispatched: Record<string, unknown>[],
+ *   events: [string, unknown][],
+ *   toolsOfferedPerRound: (string | undefined)[][],
+ *   toolResults: Record<string, unknown>,
+ *   shield: unknown,
+ *   loadedConfig?: Record<string, unknown>,
+ * }} TurnState
+ * @typedef {{
+ *   TOOL_REGISTRY: { app: string, label: string }[],
+ *   INLINE_TOOL_APPS: { app: string, label: string }[],
+ *   ALL_TOOL_APPS: { app: string, label: string }[],
+ *   loadTools: () => { function: { name: string } }[],
+ *   loadToolsResult: () => { tools: { function: { name: string } }[], ok: boolean, reason: string | null },
+ * }} ToolRegistryStub
+ */

@@ -48,6 +48,7 @@ const { makeGuarded } = require('./guardedAutomation');
 const { effectiveStatus, anyRunning } = require('../../automation/testing/goldenReplay');
 const { envCap } = require('../../automation/mcpRunReadCaps');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
+const { fallback } = require('../../utils/bestEffort');
 
 const LABEL_TEXT = 'label is up to 80 characters.';
 const PATH_TEXT = 'ignorePaths is a list of up to 50 paths, each up to 500 characters.';
@@ -64,7 +65,11 @@ const ReplayBody = bodyOf({
 const maxGoldens = () => envCap('AUTOMATION_GOLDENS_MAX', 50);
 const replayRpm = () => envCap('AUTOMATION_GOLDEN_REPLAY_RPM', 6);
 
-/** The run facts a golden list shows: no values, only where and when. */
+/**
+ * The run facts a golden list shows: no values, only where and when.
+ * @param {{ status?: string, mode?: string | null, version?: number | null, triggerKind?: string | null, startedAt?: string | Date | null } | null} root
+ * @param {{ status?: string } | null} [latest]
+ */
 function describeRun(root, latest) {
     if (!root) return null;
     return {
@@ -76,7 +81,12 @@ function describeRun(root, latest) {
     };
 }
 
-/** One golden as the client sees it: an explicit allow-list, never the row. */
+/**
+ * One golden as the client sees it: an explicit allow-list, never the row.
+ * @param {ReturnType<typeof import('../../stores/lib/automationTestingGoldens').rowToGolden>} golden
+ * @param {ReturnType<typeof describeRun>} runInfo
+ * @param {number} [now]
+ */
 function describeGolden(golden, runInfo, now = Date.now()) {
     const last = golden.lastReplay;
     return {
@@ -104,7 +114,7 @@ function describeGolden(golden, runInfo, now = Date.now()) {
  * @param {any} [overrides.access]         the automation access guard
  * @param {any} [overrides.runDataAccess]  { readableRun, assertCapturable, assertTestDataAllowed }
  * @param {Function} [overrides.replayGoldens]
- * @param {Function} [overrides.limiter]   middleware for the replay route
+ * @param {import('express').RequestHandler} [overrides.limiter]   middleware for the replay route
  * @param {(fn: () => void) => void} [overrides.defer]  how the background work is scheduled (default setImmediate)
  */
 function makeGoldensRouter(overrides = {}) {
@@ -114,7 +124,7 @@ function makeGoldensRouter(overrides = {}) {
     const access = overrides.access
         || makeAutomationAccess(overrides.store ? { store: overrides.store } : {});
     const runData = overrides.runDataAccess || makeRunDataAccess({ store: overrides.store, access });
-    const replay = (...args) => (overrides.replayGoldens || require('../../automation/testing/goldenReplay').replayGoldens)(...args);
+    const replay = /** @param {Parameters<typeof import('../../automation/testing/goldenReplay').replayGoldens>} args */ (...args) => (overrides.replayGoldens || require('../../automation/testing/goldenReplay').replayGoldens)(...args);
     const defer = overrides.defer || ((fn) => setImmediate(fn));
     const rpm = replayRpm();
     const limiter = overrides.limiter
@@ -122,10 +132,13 @@ function makeGoldensRouter(overrides = {}) {
 
     const guarded = makeGuarded({ store, access });
 
+    /**
+     * @param {string} goldenRunId
+     */
     async function runInfoOf(goldenRunId) {
         const [root, latest] = await Promise.all([
-            Promise.resolve(store().getRun(goldenRunId)).catch(() => null),
-            Promise.resolve(store().getLatestRunInChain?.(goldenRunId)).catch(() => null),
+            Promise.resolve(store().getRun(goldenRunId)).catch((e) => fallback('routes/automation/goldens:runInfoOf', e, null)),
+            Promise.resolve(store().getLatestRunInChain?.(goldenRunId)).catch((e) => fallback('routes/automation/goldens:runInfoOf#2', e, null)),
         ]);
         return describeRun(root, latest);
     }
@@ -143,7 +156,7 @@ function makeGoldensRouter(overrides = {}) {
         if (found.root.triggerKind === 'manual_step') {
             throw new HttpError(409, 'partial_run_not_golden', 'A run of a single step cannot be a golden run. Pick a run of the whole automation.');
         }
-        const latest = await Promise.resolve(store().getLatestRunInChain?.(found.run.id)).catch(() => null)
+        const latest = await Promise.resolve(store().getLatestRunInChain?.(found.run.id)).catch((e) => fallback('routes/automation/goldens:makeGoldensRouter', e, null))
             || found.legs[found.legs.length - 1] || found.run;
         if (latest.status !== 'success') {
             throw new HttpError(409, 'golden_needs_success', 'Only a run that finished successfully can be a golden run.');
@@ -179,7 +192,7 @@ function makeGoldensRouter(overrides = {}) {
         if (!a) return undefined;
         const rows = await testing().listGoldens(a.id);
         const now = Date.now();
-        const goldens = await Promise.all(rows.map(async (g) => describeGolden(g, await runInfoOf(g.runId), now)));
+        const goldens = await Promise.all(rows.map(async (/** @type {ReturnType<typeof import('../../stores/lib/automationTestingGoldens').rowToGolden>} */ g) => describeGolden(g, await runInfoOf(g.runId), now)));
         res.setHeader('Cache-Control', 'private, no-store');
         return res.json({ goldens, limits: { max: maxGoldens() } });
     });
@@ -193,8 +206,8 @@ function makeGoldensRouter(overrides = {}) {
         const wanted = req.body.goldenIds;
         let selected = all;
         if (wanted) {
-            selected = wanted.map((id) => all.find((g) => g.id === id));
-            if (selected.some((g) => !g)) throw new HttpError(404, 'golden_not_found', 'Not found');
+            selected = wanted.map((/** @type {string} */ id) => all.find((/** @type {ReturnType<typeof import('../../stores/lib/automationTestingGoldens').rowToGolden>} */ g) => g.id === id));
+            if (selected.some((/** @type {ReturnType<typeof import('../../stores/lib/automationTestingGoldens').rowToGolden> | undefined} */ g) => !g)) throw new HttpError(404, 'golden_not_found', 'Not found');
         }
         selected = [...new Set(selected)];
         const userId = req.session.user.id;
@@ -203,17 +216,17 @@ function makeGoldensRouter(overrides = {}) {
 
         // Marked running BEFORE the answer, so a second request right behind
         // this one finds the replay in progress instead of starting its own.
-        await Promise.all(selected.map((g) => testing().setGoldenReplay(g.id, { status: 'running', summary: null, replayRunId: null, errorCode: null })));
+        await Promise.all(selected.map((/** @type {ReturnType<typeof import('../../stores/lib/automationTestingGoldens').rowToGolden>} */ g) => testing().setGoldenReplay(g.id, { status: 'running', summary: null, replayRunId: null, errorCode: null })));
         defer(() => {
             Promise.resolve()
                 .then(() => replay({ automation: a, goldens: selected, userId, aiAnswers }))
-                .catch(async (e) => {
+                .catch(async (/** @type {{ code?: string }} */ e) => {
                     // replayGoldens records its own failures; this is the net under it.
                     log.warn(`[automation/goldens] replay of ${a.id} failed: ${e.code || 'replay_failed'}`);
-                    await Promise.all(selected.map((g) => Promise.resolve(testing().setGoldenReplay(g.id, { status: 'error', summary: null, replayRunId: null, errorCode: 'replay_failed' })).catch(() => null)));
+                    await Promise.all(selected.map((g) => Promise.resolve(testing().setGoldenReplay(g.id, { status: 'error', summary: null, replayRunId: null, errorCode: 'replay_failed' })).catch((e) => fallback('routes/automation/goldens:makeGoldensRouter#2', e, null))));
                 });
         });
-        return res.status(202).json({ replaying: selected.map((g) => g.id) });
+        return res.status(202).json({ replaying: selected.map((/** @type {ReturnType<typeof import('../../stores/lib/automationTestingGoldens').rowToGolden>} */ g) => g.id) });
     });
 
     return router;

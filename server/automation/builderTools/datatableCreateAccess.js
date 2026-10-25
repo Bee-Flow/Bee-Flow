@@ -19,6 +19,7 @@
 
 'use strict';
 
+const { fallback } = require('../../utils/bestEffort');
 function defaultDeps() {
     return {
         resolveDatatablePrincipalForUser: (userId) => require('../../auth/datatableAccess').resolveDatatablePrincipalForUser(userId),
@@ -32,6 +33,11 @@ function defaultDeps() {
     };
 }
 
+/**
+ * @param {number} status
+ * @param {string} code
+ * @param {string} message
+ */
 const fail = (status, code, message) => ({ ok: false, status, code, message });
 
 /**
@@ -63,7 +69,7 @@ async function checkDatatableCreate({ userId, req = null, automationOrgId = null
     if (req) {
         // Fails open, like the route gate: an unreadable training state never
         // locks a person out of work.
-        const state = await Promise.resolve(deps.evaluateForRequest(req)).then((r) => r && r.datatables).catch(() => null);
+        const state = await Promise.resolve(deps.evaluateForRequest(req)).then((r) => r && r.datatables).catch((e) => fallback('automation/builderTools/datatableCreateAccess:checkDatatableCreate', e, null));
         if (state && state.enforced && !state.satisfied) {
             return fail(403, 'training_required', `Finish the course "${state.courseTitle || 'required training'}" before creating tables.`);
         }

@@ -22,6 +22,7 @@ const { toV1BaseUrl } = require('../utils/azureUrl');
 const log = require('../telemetry/log');
 const { validateDim } = require('./memoryVectors');
 const { dep } = require('./memoryDeps');
+const { bestEffort } = require('../utils/bestEffort');
 const memoryIndex = dep('memoryIndex');
 const { resolveEmbedTarget } = dep('embedTarget');
 const { resolveWriteContext, sealEmbedding, hydrateRows, PLAINTEXT_WRITE } = dep('memoryCrypto');
@@ -77,14 +78,14 @@ async function getEmbedding(text, opts = {}) {
                 if (Array.isArray(vec)) return vec;
             }
         }
-    } catch (err) { log.debug('try next tier', err); }
+    } catch (err) { bestEffort('stores/memoryEmbedding:providerEmbed', err); /* try next tier */ }
 
     // (2) CPU embedder — in-process, no external call.
     try {
         const { cpuEmbed } = require('../core/embed/cpuEmbed');
         const vecs = await cpuEmbed([text], { kind: opts.kind || 'passage' });
         if (vecs.length > 0) return vecs[0];
-    } catch (err) { log.debug('try next tier', err); }
+    } catch (err) { bestEffort('stores/memoryEmbedding:getEmbedding', err); /* try next tier */ }
 
     // (3) Legacy self-hosted GPU service (`EMBED_API_URL`).
     if (EMBED_API_URL) {
@@ -99,13 +100,17 @@ async function getEmbedding(text, opts = {}) {
                 const data = /** @type {{ data?: Array<{ embedding?: number[] }> }} */ (await res.json());
                 return data?.data?.[0]?.embedding || null;
             }
-        } catch (err) { log.debug('fall through', err); }
+        } catch (err) { bestEffort('stores/memoryEmbedding:getEmbedding#2', err); /* fall through */ }
     }
 
     return null;
 }
 
-/** Cosine similarity between two vectors. */
+/**
+ * Cosine similarity between two vectors.
+ * @param {ArrayLike<number> | null | undefined} a
+ * @param {ArrayLike<number> | null | undefined} b
+ */
 function cosineSimilarity(a, b) {
     if (!a || !b || a.length !== b.length) return 0;
     let dot = 0, magA = 0, magB = 0;
@@ -130,6 +135,7 @@ function cosineSimilarity(a, b) {
  */
 async function embedOne(text, { kind = 'passage', timeoutMs = 30_000 } = {}) {
     if (!text) return null;
+    /** @type {NodeJS.Timeout} */
     let timer;
     try {
         const vector = await Promise.race([
@@ -149,6 +155,9 @@ async function embedOne(text, { kind = 'passage', timeoutMs = 30_000 } = {}) {
  * write puts it in `embedding_enc` only; a plaintext write fills the JSONB
  * column and, with pgvector, the typed `embedding_<dim>` column. One statement
  * for the shared columns; resets the embed-attempt bookkeeping.
+ * @param {string} memoryId
+ * @param {number[]} vector
+ * @param {import('./memoryCrypto').MemoryWriteContext} wctx
  */
 async function _storeVector(memoryId, vector, wctx) {
     const c = sealEmbedding(memoryId, vector, wctx);
@@ -175,6 +184,9 @@ async function _storeVector(memoryId, vector, wctx) {
  *
  * A failed embed clears the vectors of the OLD text (they no longer describe
  * the row) and counts an attempt, so the backfill job picks the row up.
+ * @param {string} memoryId
+ * @param {string} content
+ * @param {import('./memoryCrypto').MemoryWriteContext} wctx
  */
 async function embedAndStore(memoryId, content, wctx) {
     try {
@@ -186,13 +198,16 @@ async function embedAndStore(memoryId, content, wctx) {
             await memoryIndex.noteEmbedFailure(memoryId);
         }
     } catch (e) {
-        log.warn('[MemoryStore] Embedding failed for', memoryId, e.message);
+        log.warn('[MemoryStore] Embedding failed for', memoryId, /** @type {Error} */ (e).message);
     }
 }
 
-/** Forget every stored vector of a row (its text changed or was never embedded). */
+/**
+ * Forget every stored vector of a row (its text changed or was never embedded).
+ * @param {string} memoryId
+ */
 async function _dropVectors(memoryId) {
-    const typed = memoryIndex.vectorColumnNames().map(c => `, "${c}" = NULL`).join('');
+    const typed = memoryIndex.vectorColumnNames().map(/** @param {string} c */ c => `, "${c}" = NULL`).join('');
     await run(`UPDATE user_memories SET embedding = NULL, embedding_enc = NULL, embedding_dim = NULL${typed} WHERE id = $1`, [memoryId]);
 }
 
@@ -224,7 +239,7 @@ async function indexMemory(memoryId, content) {
         if (!(await _storeVector(memoryId, embedded.vector, wctx))) throw new Error('vector not stored');
         return { ok: true, dim: embedded.dim };
     } catch (e) {
-        await memoryIndex.noteEmbedFailure(memoryId).catch(() => {});
+        await memoryIndex.noteEmbedFailure(memoryId).catch((e) => bestEffort('stores/memoryEmbedding:indexMemory', e));
         return { ok: false };
     }
 }

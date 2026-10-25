@@ -49,6 +49,7 @@ function editorBundle() {
     return bundle;
 }
 
+/** @type {{ new (): DOMParser; prototype: DOMParser; } | null} */
 let parser = null;
 function domParser() {
     if (!parser) {
@@ -71,7 +72,7 @@ function partsOf(c) {
 /** @param {unknown} n */
 const count = (n) => (Number.isFinite(Number(n)) && Number(n) > 0 ? Math.round(Number(n)) : 0);
 
-/** @param {any} s @returns {ChangeStats} */
+/** @param {Readonly<{ wordsAdded: 0; wordsRemoved: 0; blocksChanged: 0; }> | Partial<ChangeStats>} s @returns {ChangeStats} */
 function cleanStats(s) {
     return {
         wordsAdded: count(s && s.wordsAdded),
@@ -80,11 +81,18 @@ function cleanStats(s) {
     };
 }
 
-/** Exact counts through the editor's diff, or null when it cannot answer. */
+/**
+ * Exact counts through the editor's diff, or null when it cannot answer.
+ * @param {{ html: string; markdown: string; }} before
+ * @param {{ html: string; markdown: string; }} after
+ */
 function statsFromBundle(before, after) {
     const b = editorBundle();
     if (!b) return null;
     try {
+        /**
+         * @param {{ html: string; markdown: string; }} p
+         */
         const toAst = (p) => {
             if (p.markdown && typeof b.markdownToAst === 'function') return b.markdownToAst(p.markdown);
             if (typeof b.htmlToAst === 'function') return b.htmlToAst(p.html || '', domParser());
@@ -100,7 +108,10 @@ function statsFromBundle(before, after) {
     }
 }
 
-/** The text of one side as normalised lines (blocks). */
+/**
+ * The text of one side as normalised lines (blocks).
+ * @param {{ html: string; markdown: string; }} p
+ */
 function blocksOf(p) {
     let text = '';
     if (p.markdown) {
@@ -118,14 +129,22 @@ function blocksOf(p) {
         .filter(Boolean);
 }
 
+/**
+ * @param {string} line
+ */
 const wordsOf = (line) => line.split(' ').filter(Boolean);
 
-/** Indexes of the blocks each side has that the other does not, by LCS when affordable. */
+/**
+ * Indexes of the blocks each side has that the other does not, by LCS when affordable.
+ * @param {string[]} a
+ * @param {string[]} b
+ */
 function unmatchedBlocks(a, b) {
     if (a.length * b.length > MAX_ALIGN_CELLS) {
         // Too large to align: compare as bags of whole lines.
         const bag = new Map();
         for (const line of a) bag.set(line, (bag.get(line) || 0) + 1);
+        /** @type {string[]} */
         const onlyB = [];
         for (const line of b) {
             const n = bag.get(line) || 0;
@@ -144,7 +163,9 @@ function unmatchedBlocks(a, b) {
             table[i][j] = a[i] === b[j] ? table[i + 1][j + 1] + 1 : Math.max(table[i + 1][j], table[i][j + 1]);
         }
     }
+    /** @type {string[]} */
     const onlyA = [];
+    /** @type {string[]} */
     const onlyB = [];
     let i = 0;
     let j = 0;
@@ -156,7 +177,11 @@ function unmatchedBlocks(a, b) {
     return { onlyA, onlyB };
 }
 
-/** The plain-text estimate. */
+/**
+ * The plain-text estimate.
+ * @param {{ html: string; markdown: string; }} before
+ * @param {{ html: string; markdown: string; }} after
+ */
 function estimateStats(before, after) {
     const { onlyA, onlyB } = unmatchedBlocks(blocksOf(before), blocksOf(after));
     const bag = new Map();
@@ -221,6 +246,9 @@ function addStats(a, b) {
  */
 function contentHash(content) {
     const p = partsOf(content);
+    /**
+     * @param {string} s
+     */
     const norm = (s) => s.replace(/>\s+</g, '><').replace(/[ \t]+$/gm, '').trim();
     return crypto.createHash('sha256').update(`${norm(p.markdown)}\u0000${norm(p.html)}`).digest('hex');
 }
@@ -238,3 +266,9 @@ module.exports = {
     MINOR_WORDS,
     _setBundle,
 };
+
+/**
+ * The parts of the editor bundle this module calls.
+ * @typedef {{ diffDocs: (a: unknown, b: unknown) => { stats?: unknown } | null,
+ *   markdownToAst?: (markdown: string) => unknown, htmlToAst?: (html: string, parser: unknown) => unknown }} EditorBundle
+ */

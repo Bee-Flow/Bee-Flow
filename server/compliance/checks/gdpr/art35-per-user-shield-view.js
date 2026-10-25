@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -27,6 +27,7 @@ const AI_ACT_ASSESSMENT_DUE = '2027-12-02';
 
 function defaultDeps() {
     return {
+        /** @type {typeof import('../../../core/entitlements/entitlements').hasCapability} */
         hasCapability: (capId, opts) => require('../../../core/entitlements/entitlements').hasCapability(capId, opts),
         guardrailRetentionDays: () => require('../../../jobs/monitoringRetention').RETENTION_DAYS,
     };
@@ -45,6 +46,10 @@ module.exports = {
     remediationKey: 'chat_monitoring.checks.gdpr_art35_per_user_view.fix',
     remediationLink: 'admin/monitoring/activity',
 
+    /**
+     * @param {string} orgId
+     * @param {unknown} _subject
+     */
     async evaluate(orgId, _subject, deps = defaultDeps()) {
         let reachable = false;
         try {

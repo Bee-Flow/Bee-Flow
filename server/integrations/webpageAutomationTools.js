@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Webpage tools surfaced to studio automations.
  *
@@ -22,6 +23,7 @@ const { publicDbErrorMessage } = require('../stores/lib/publicDbError');
 const webpageStore = require('../stores/webpageStore');
 const { executeDbTool } = require('./webpageDbTools');
 const { executeBuilderTool } = require('./webpageBuilderTools');
+const { fallback } = require('../utils/bestEffort');
 
 const WEBPAGE_AUTOMATION_TOOLS = [
     {
@@ -182,15 +184,23 @@ const WEBPAGE_AUTOMATION_TOOLS = [
 ];
 
 const TOOL_NAMES = new Set(WEBPAGE_AUTOMATION_TOOLS.map(t => t.function.name));
+/**
+ * @param {string} name
+ */
 function isWebpageAutomationTool(name) {
     return TOOL_NAMES.has(name);
 }
 
 const READ_ONLY_TOOLS = new Set(['webpages_list', 'webpage_db_schema', 'webpage_db_query', 'webpage_file_read']);
 
+/**
+ * @param {string | undefined} webpageId
+ * @param {{ userId: string; organizationId?: string; userGroupIds?: string[]; userOrgIds?: string[]; }} ctx
+ * @param {string} mode
+ */
 async function resolveWebpageForAccess(webpageId, ctx, mode) {
     if (!webpageId) return { error: 'webpageId is required.' };
-    const webpage = await webpageStore.getWebpageRaw(webpageId).catch(() => null);
+    const webpage = await webpageStore.getWebpageRaw(webpageId).catch((e) => fallback('integrations/webpageAutomationTools:resolveWebpageForAccess', e, null));
     if (!webpage) return { error: `Webpage ${webpageId} not found.` };
     const userGroupIds = Array.isArray(ctx.userGroupIds) ? ctx.userGroupIds : [];
     const userOrgIds = Array.isArray(ctx.userOrgIds) ? ctx.userOrgIds : (ctx.organizationId ? [ctx.organizationId] : []);
@@ -207,7 +217,7 @@ async function resolveWebpageForAccess(webpageId, ctx, mode) {
  * Run a webpage tool on behalf of an automation.
  *
  * @param {string} toolName
- * @param {object} args
+ * @param {{ name?: string, description?: string, webpageId?: string, sql?: string, params?: unknown[] }} args
  * @param {{ userId: string, organizationId?: string, userGroupIds?: string[], userOrgIds?: string[] }} ctx
  */
 async function executeWebpageAutomationTool(toolName, args, ctx) {
@@ -228,7 +238,7 @@ async function executeWebpageAutomationTool(toolName, args, ctx) {
             }));
             return { webpages, message: `${webpages.length} accessible webpage${webpages.length === 1 ? '' : 's'}.` };
         } catch (err) {
-            return { error: `Could not list webpages: ${err.message}` };
+            return { error: `Could not list webpages: ${/** @type {Error} */ (err).message}` };
         }
     }
 
@@ -239,7 +249,7 @@ async function executeWebpageAutomationTool(toolName, args, ctx) {
             const webpage = await webpageStore.createWebpage({ userId: ctx.userId, name, description });
             return { webpageId: webpage.id, url: require('../utils/appPaths').webpagePath(webpage.id), name: webpage.name, message: `Created webpage "${webpage.name}".` };
         } catch (err) {
-            return { error: `Could not create webpage: ${err.message}` };
+            return { error: `Could not create webpage: ${/** @type {Error} */ (err).message}` };
         }
     }
 
@@ -263,7 +273,7 @@ async function executeWebpageAutomationTool(toolName, args, ctx) {
             const { result } = await executeBuilderTool(toolName, args, { userId: ownerUserId });
             return result;
         } catch (err) {
-            return { error: `Webpage builder tool failed: ${err.message}` };
+            return { error: `Webpage builder tool failed: ${/** @type {Error} */ (err).message}` };
         }
     }
 

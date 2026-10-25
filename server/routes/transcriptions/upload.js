@@ -167,7 +167,8 @@ router.post('/', requireAuth, upload.single('audio'), validate({ body: UploadBod
             transcriptionId, userId, userOrgId, transcribed, analysis, provider: transcribed.provider, placeholderTitle,
         });
     } catch (err) {
-        log.error('[Transcriptions] Transcribe error:', err.message);
+        log.error('[Transcriptions] Transcribe error:', /** @type {Error} */ (err).message);
+        /** @type {HttpError | null} */
         let failure = null;
         try { if (req.file?.path && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path); } catch (_) { log.warn('temp upload could not be removed', _); }
         try {
@@ -176,14 +177,14 @@ router.post('/', requireAuth, upload.single('audio'), validate({ body: UploadBod
                 // in `summary`; saved audio stays so it can be reprocessed.
                 await transcriptionStore.updateTranscription(transcriptionId, userId, {
                     status: 'failed',
-                    summary: `Transcription failed: ${err.message}`,
+                    summary: `Transcription failed: ${/** @type {Error} */ (err).message}`,
                 });
             } else if (!res.headersSent) {
                 // Failed before the processing note / 202 — surface synchronously.
                 failure = new HttpError(500, 'transcription_failed', 'Transcription failed');
             }
         } catch (dbErr) {
-            log.error('[Transcriptions] Failed to record transcription failure:', dbErr.message);
+            log.error('[Transcriptions] Failed to record transcription failure:', /** @type {Error} */ (dbErr).message);
         }
         if (failure) throw failure;
     }

@@ -37,7 +37,7 @@ const { HTTP_RESPONSE_CAP, readBodyBounded } = require('../http/httpResponseLimi
 const safety = require('./safety');
 // Each outbound call runs in its own capture context (core/http/captureCall.js).
 const { captureCall: captured } = require('../http/captureCall');
-const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // 1MB response cap — shared with codeSandbox's defaultFetchHttp bridge via
 // core/http/httpResponseLimits.js, so both outbound-HTTP surfaces (code step
@@ -173,7 +173,7 @@ async function dispatchHttp(step, ctx, runState, mode, call) {
             // so a retry refetches a fresh one. Deliberately NOT flagging the
             // connection needs_reauth — a target-API 401 is indistinguishable
             // from endpoint-side authorization rules.
-            try { evictToken(authConnectionId); } catch (err) { log.debug('best effort', err); }
+            try { evictToken(authConnectionId); } catch (err) { bestEffort('core/automationRunner/execHttpRequest:dispatchHttp', err); /* best effort */ }
         }
         // BFSF-436 — FAIL LOUDLY rather than silently returning a clipped,
         // invalid-JSON body under an ordinary `success`. This is why the
@@ -294,3 +294,16 @@ async function execHttpRequest(step, ctx, runState, mode) {
 }
 
 module.exports = { execHttpRequest };
+
+/**
+ * An http_request step as the definition stores it (parsed JSON).
+ * @typedef {{ id: string, url?: string, query?: import('./httpQuery').StepQuery, method?: string,
+ *   headers?: Record<string, unknown>, body?: string, auth?: { connectionId?: unknown, allowedHosts?: unknown } | null,
+ *   timeoutMs?: unknown, blockPrivateTargets?: boolean, parseResponse?: string,
+ *   askOnce?: boolean | { ttlSeconds?: unknown, acrossRuns?: unknown } }} HttpStep
+ * @typedef {ReturnType<typeof import('./runContext').buildRunContext>} HttpCtx
+ * @typedef {import('./runDagRecord').DagRunState & { [MASK_VALUES]?: string[] }} HttpRunState
+ * @typedef {ReturnType<typeof buildHttpRequest>} HttpReq
+ * @typedef {ReturnType<typeof parseStepUrl>} ParsedUrl
+ * @typedef {Awaited<ReturnType<typeof guardOutbound>>} Guarded
+ */

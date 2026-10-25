@@ -389,3 +389,8 @@ function createMemoryQueries(deps = {}) {
 module.exports = Object.assign(createMemoryQueries(), {
     createMemoryQueries, LISTABLE_STATUSES, SORTS, SCOPES, PUBLIC_FIELDS,
 });
+
+/**
+ * @typedef {{ db: () => any, crypto: () => any, ready: () => Promise<void>, lifecycle: () => any }} QueryDeps
+ * @typedef {(rows: Array<Record<string, any>>) => Promise<any[]>} PresentMemories
+ */

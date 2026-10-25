@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: the accepted-but-not-yet-started form work, on the visitor's
  * session row (2026-10).
@@ -27,6 +28,7 @@
  * run the real SQL against an in-process Postgres.
  */
 
+/** @param {{ exec?: (sql: string) => Promise<unknown> }} [opts] */
 async function up({ exec = (sql) => require('../db').exec(sql) } = {}) {
     await exec(`
         ALTER TABLE automation_form_sessions ADD COLUMN IF NOT EXISTS pending_work JSONB;

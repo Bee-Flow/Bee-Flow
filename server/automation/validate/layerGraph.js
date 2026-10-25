@@ -17,12 +17,19 @@ const MAX_LAYER_DEPTH = 8;
  */
 const ROOT_NODE = '__root__';
 
+/**
+ * @param {(value: { code: string; severity: string; path: string; message: string; hint: string; }) => void} pushE
+ * @param {(value: { code: string; severity: string; path: string; message: string; hint: string; }) => void} pushW
+ */
 function validateLayerGraph(def, layersMap, pushE, pushW) {
     const keys = Object.keys(layersMap);
     if (keys.length === 0) return;
 
     const nodes = [ROOT_NODE, ...keys];
     const refEdges = [];
+    /**
+     * @param {string} fromNode
+     */
     const addRefs = (graph, fromNode) => {
         for (const { step } of collectCallLayerSteps(graph)) {
             if (step.layerKey && layersMap[step.layerKey]) {

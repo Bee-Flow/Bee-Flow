@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The server-rendered side of the blog: <head> (title, description, canonical,
  * Open Graph article tags, BlogPosting JSON-LD, the RSS alternate), the body
@@ -20,10 +20,21 @@ const { renderPostMarkdown } = require('../cms/blogMarkdown');
 const FEED_FILE = 'feed.xml';
 const FEED_MAX_ITEMS = 30;
 
+/** @typedef {import('../../stores/cms/shared').CmsDoc} CmsDoc */
+/** @typedef {{ slug: string, label: string }} BlogTag */
+
+/**
+ * @param {string} template
+ * @param {Record<string, string>} params
+ */
 function fmt(template, params) {
     return String(template || '').replace(/\{(\w+)\}/g, (_, k) => (params[k] ?? ''));
 }
 
+/**
+ * @param {string} iso
+ * @param {string | Intl.Locale | readonly (string | Intl.Locale)[]} locale
+ */
 function dateLabel(iso, locale) {
     const t = Date.parse(iso || '');
     if (!Number.isFinite(t)) return '';
@@ -34,16 +45,33 @@ function dateLabel(iso, locale) {
     }
 }
 
-/** Path of the feed for a locale: /blog/feed.xml, /nl/blog/feed.xml. */
+/**
+ * Path of the feed for a locale: /blog/feed.xml, /nl/blog/feed.xml.
+ * @param {string | null} locale
+ * @param {string} defaultLocale
+ */
 function feedPath(locale, defaultLocale) {
     return `${buildPublicPath(locale, BLOG_BASE, defaultLocale)}/${FEED_FILE}`;
 }
 
+/**
+ * @param {string | null} locale
+ * @param {string} slug
+ * @param {string} defaultLocale
+ */
 function postPath(locale, slug, defaultLocale) {
     return buildPublicPath(locale, `${BLOG_BASE}/${slug}`, defaultLocale);
 }
 
-/** The blog's index page query string for paging / a tag filter. */
+/**
+ * @typedef {Object} IndexQueryArgs
+ * @property {string} [tag]
+ * @property {number | undefined} [page]
+ */
+/**
+ * The blog's index page query string for paging / a tag filter.
+ * @param {IndexQueryArgs} param0
+ */
 function indexQuery({ tag, page = undefined }) {
     const qs = new URLSearchParams();
     if (tag) qs.set('tag', tag);
@@ -83,7 +111,7 @@ function buildBlogHead({ origin, eff, locale, defaultLocale, locales, siteName }
             // Free-text display name only — never an account, e-mail or profile link.
             ...(p.authorName ? { author: { '@type': 'Person', name: p.authorName } } : { author: { '@id': `${origin}/#organization` } }),
             publisher: { '@id': `${origin}/#organization` },
-            ...(p.tags?.length ? { keywords: p.tags.map(t => t.label).join(', ') } : {}),
+            ...(p.tags?.length ? { keywords: p.tags.map((/** @type {BlogTag} */ t) => t.label).join(', ') } : {}),
             isPartOf: { '@type': 'Blog', '@id': `${origin}${blogPath}#blog`, name: blog.title },
         };
         return buildHead({
@@ -95,7 +123,7 @@ function buildBlogHead({ origin, eff, locale, defaultLocale, locales, siteName }
                 publishedTime: p.publishedAt || '',
                 modifiedTime: p.updatedAt || '',
                 author: p.authorName || '',
-                tags: (p.tags || []).map(t => t.label),
+                tags: (p.tags || []).map((/** @type {BlogTag} */ t) => t.label),
             },
             extraJsonLd: [posting],
             breadcrumbTrail: [
@@ -115,7 +143,7 @@ function buildBlogHead({ origin, eff, locale, defaultLocale, locales, siteName }
         inLanguage: locale,
         ...(blog.description ? { description: clamp(blog.description, DESC_MAX) } : {}),
         publisher: { '@id': `${origin}/#organization` },
-        blogPost: (blog.posts || []).slice(0, 10).map(p => ({
+        blogPost: (blog.posts || []).slice(0, 10).map((/** @type {CmsDoc} */ p) => ({
             '@type': 'BlogPosting',
             headline: clamp(p.title, 110),
             url: `${origin}${postPath(locale, p.slug, defaultLocale)}`,
@@ -131,7 +159,12 @@ function buildBlogHead({ origin, eff, locale, defaultLocale, locales, siteName }
     });
 }
 
+/**
+ * @param {CmsDoc} p
+ * @param {CmsDoc} blog
+ */
 function postMetaLine(p, blog) {
+    /** @type {string[]} */
     const bits = [];
     const date = dateLabel(p.publishedAt, blog.locale);
     if (date) bits.push(`<time datetime="${esc(p.publishedAt)}">${esc(date)}</time>`);
@@ -140,12 +173,20 @@ function postMetaLine(p, blog) {
     return bits.length ? `<p class="label">${bits.join(' · ')}</p>` : '';
 }
 
-/** The tag filter of the index: plain links, so a filtered list is a crawlable URL. */
+/**
+ * The tag filter of the index: plain links, so a filtered list is a crawlable URL.
+ * @param {CmsDoc} blog
+ */
 function tagNav(blog) {
+    /**
+     * @param {string} href
+     * @param {boolean} active
+     * @param {string} text
+     */
     const link = (href, text, active) => `<a href="${esc(href)}"${active ? ' aria-current="page"' : ''}>${esc(text)}</a>`;
     const items = [
         link(blog.basePath, blog.labels?.all_posts || 'All posts', !blog.tag),
-        ...blog.tags.map(t => link(`${blog.basePath}${indexQuery({ tag: t.slug })}`, t.label, blog.tag?.slug === t.slug)),
+        ...blog.tags.map((/** @type {BlogTag} */ t) => link(`${blog.basePath}${indexQuery({ tag: t.slug })}`, t.label, blog.tag?.slug === t.slug)),
     ];
     return `<nav aria-label="${esc(blog.labels?.tags || 'Tags')}">${items.join(' · ')}</nav>`;
 }
@@ -153,10 +194,12 @@ function tagNav(blog) {
 /**
  * The markup inside #root for a blog URL: real headings, links and the full
  * article text, in the prehydrate wrapper renderBlocks uses.
+ * @param {CmsDoc} eff
  */
 function renderBlogBody(eff) {
     const blog = eff.blog;
     if (!blog) return '';
+    /** @type {string[]} */
     const out = [];
     if (blog.view === 'post' && blog.post) {
         const p = blog.post;
@@ -169,7 +212,7 @@ function renderBlogBody(eff) {
         if (cover) out.push(`<p><img src="${esc(cover)}" alt="${esc(p.coverAlt || '')}"></p>`);
         out.push(renderPostMarkdown(p.body, {}));
         if (p.tags?.length) {
-            out.push(`<p>${p.tags.map(t => `<a href="${esc(`${blog.basePath}${indexQuery({ tag: t.slug })}`)}">#${esc(t.label)}</a>`).join(' ')}</p>`);
+            out.push(`<p>${p.tags.map((/** @type {BlogTag} */ t) => `<a href="${esc(`${blog.basePath}${indexQuery({ tag: t.slug })}`)}">#${esc(t.label)}</a>`).join(' ')}</p>`);
         }
         out.push('</article>');
     } else {
@@ -185,6 +228,7 @@ function renderBlogBody(eff) {
             if (p.excerpt) out.push(`<p>${esc(p.excerpt)}</p>`);
             out.push('</section>');
         }
+        /** @type {string[]} */
         const nav = [];
         if (blog.page > 1) nav.push(`<a href="${esc(`${blog.basePath}${indexQuery({ tag: blog.tag?.slug, page: blog.page - 1 })}`)}">${esc(blog.labels?.newer || 'Newer posts')}</a>`);
         if (blog.page < blog.pageCount) nav.push(`<a href="${esc(`${blog.basePath}${indexQuery({ tag: blog.tag?.slug, page: blog.page + 1 })}`)}">${esc(blog.labels?.older || 'Older posts')}</a>`);
@@ -193,12 +237,18 @@ function renderBlogBody(eff) {
     return `<div class="marketing-root cms-prehydrate">\n<div class="container">\n${out.filter(Boolean).join('\n')}\n</div>\n</div>`;
 }
 
+/**
+ * @param {string} iso
+ */
 function rfc822(iso) {
     const t = Date.parse(iso || '');
     return Number.isFinite(t) ? new Date(t).toUTCString() : '';
 }
 
-/** XML 1.0 forbids most control characters even when escaped. */
+/**
+ * XML 1.0 forbids most control characters even when escaped.
+ * @param {string} v
+ */
 function xmlText(v) {
     return esc(String(v ?? '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F￾￿]/g, ''));
 }
@@ -223,7 +273,7 @@ function buildFeed(posts, { origin, siteName, title, description, locale, defaul
             `      <guid isPermaLink="true">${xmlText(url)}</guid>`,
             p.publishedAt ? `      <pubDate>${xmlText(rfc822(p.publishedAt))}</pubDate>` : '',
             p.authorName ? `      <dc:creator>${xmlText(p.authorName)}</dc:creator>` : '',
-            ...(p.tags || []).map(t => `      <category>${xmlText(t.label)}</category>`),
+            ...(p.tags || []).map((/** @type {BlogTag} */ t) => `      <category>${xmlText(t.label)}</category>`),
             p.excerpt ? `      <description>${xmlText(p.excerpt)}</description>` : '',
             `      <content:encoded>${xmlText(content)}</content:encoded>`,
             '    </item>',
@@ -250,10 +300,13 @@ function buildFeed(posts, { origin, siteName, title, description, locale, defaul
  * Sitemap entries for the blog, in the shape buildSitemap takes:
  * the index (when there are posts) and every visible, indexable post, each
  * advertised only in the locales it is translated into.
+ *
+ * @param {{ posts: CmsDoc[], overridesLocales: { index: string[], byPost: Record<string, string[]> },
+ *   lastmod?: string }} params
  */
 function blogSitemapEntries({ posts, overridesLocales, lastmod }) {
     if (!posts.length) return [];
-    const newest = posts.reduce((m, p) => (p.updatedAt && p.updatedAt > m ? p.updatedAt : m), lastmod || '');
+    const newest = posts.reduce((/** @type {string} */ m, p) => (p.updatedAt && p.updatedAt > m ? p.updatedAt : m), lastmod || '');
     return [
         { slug: BLOG_BASE, seo: {}, updatedAt: newest || lastmod, locales: overridesLocales.index },
         ...posts

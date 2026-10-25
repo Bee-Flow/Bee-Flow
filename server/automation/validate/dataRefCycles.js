@@ -40,8 +40,13 @@ function readCycles(reads) {
     const index = new Map();
     const low = new Map();
     const onStack = new Set();
+    /** @type {string[]} */
     const stack = [];
+    /** @type {((string | undefined)[])[]} */
     const found = [];
+    /**
+     * @param {string} v
+     */
     const visit = (v) => {
         index.set(v, counter); low.set(v, counter); counter += 1;
         stack.push(v); onStack.add(v);
@@ -51,7 +56,9 @@ function readCycles(reads) {
             else if (onStack.has(w)) low.set(v, Math.min(low.get(v), index.get(w)));
         }
         if (low.get(v) === index.get(v)) {
+            /** @type {(string | undefined)[]} */
             const comp = [];
+            /** @type {string | undefined} */
             let w;
             do { w = stack.pop(); onStack.delete(w); comp.push(w); } while (w !== v);
             if (comp.length > 1) found.push(comp.reverse());

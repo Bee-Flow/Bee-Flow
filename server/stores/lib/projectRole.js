@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * "What role does this person hold on that project?", for the stores whose
  * rows can be filed into a project (documents, meeting notes).
@@ -33,7 +33,10 @@ async function projectRoleOf(userId, projectId) {
     return (await lookup.roleOf(userId, projectId)) || null;
 }
 
-/** Roles that may change a project's content. */
+/**
+ * Roles that may change a project's content.
+ * @param {string | null} role
+ */
 function canEditAs(role) {
     return role === 'editor' || role === 'owner';
 }

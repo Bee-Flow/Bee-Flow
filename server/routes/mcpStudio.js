@@ -60,6 +60,7 @@ const { gateRequest: authenticateMcpRequest, rpcDenied } = require('../auth/mcpA
 const { batchTooLarge, rpcBatchTooLarge } = require('../auth/mcpAccess/batch');
 const { scopeAllowsTool, filterToolsByScope } = require('../auth/mcpAccess/scopes');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const router = express.Router();
 
@@ -84,10 +85,18 @@ const INSTRUCTIONS = [
 
 // ── JSON-RPC ────────────────────────────────────────────────────────────────
 
+/**
+ * @param {string | number | null | undefined} id
+ */
 function rpcResult(id, result) {
     return { jsonrpc: '2.0', id, result };
 }
 
+/**
+ * @param {string | number | null | undefined} id
+ * @param {number} code
+ * @param {string} message
+ */
 function rpcError(id, code, message) {
     return { jsonrpc: '2.0', id, error: { code, message } };
 }
@@ -102,7 +111,7 @@ async function assertCapability(userId) {
     const { hasCapability } = require('../core/entitlements/entitlements');
     const orgId = await require('../stores/userStore').getUser(userId)
         .then((u) => u?.organizationId || null)
-        .catch(() => null);
+        .catch((e) => fallback('routes/mcpStudio:assertCapability', e, null));
     const ok = await hasCapability('app_studio', { userId, orgId });
     // Without this line the symptom is an empty tool list and no explanation
     // anywhere — the client shows a server with nothing on it and the operator
@@ -187,9 +196,9 @@ async function handleRpc(message, userId, access = null, deps = {}) {
                 // callTool is contracted not to throw; this is belt-and-braces,
                 // and it still comes back as a tool error the agent can read
                 // rather than a transport failure it cannot.
-                log.error('[studio-mcp] tool error:', err.message);
+                log.error('[studio-mcp] tool error:', /** @type {Error} */ (err).message);
                 return rpcResult(id, {
-                    content: [{ type: 'text', text: `Tool execution failed: ${err.message}` }],
+                    content: [{ type: 'text', text: `Tool execution failed: ${/** @type {Error} */ (err).message}` }],
                     isError: true,
                 });
             }
@@ -218,7 +227,7 @@ router.post('/', express.json({ limit: '8mb' }), async (req, res) => {
             const out = await handleRpc(message, userId, access);
             if (out) responses.push(out);
         } catch (err) {
-            log.error('[studio-mcp] handler error:', err.message);
+            log.error('[studio-mcp] handler error:', /** @type {Error} */ (err).message);
             // Only a request is answered — not even an error goes back to a notification.
             if (classifyRpc(message).kind === 'request') responses.push(rpcError(message.id, -32603, 'Internal error'));
         }

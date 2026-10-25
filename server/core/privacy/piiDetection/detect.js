@@ -139,3 +139,7 @@ async function _detectBuiltIn(text, enabledCategories, confidenceThreshold, opts
 }
 
 module.exports = { detectPii };
+
+/**
+ * @typedef {{ customTypes?: any[], priority?: string, onProgress?: Parameters<typeof detectPiiWindowed>[5] }} DetectOpts
+ */

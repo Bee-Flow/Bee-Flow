@@ -162,6 +162,7 @@ class EuGptProvider extends BaseProvider {
      * between is a transcript placed ahead of it in the same user message.
      */
     toEuGptInput(messages = []) {
+        /** @type {string[]} */
         const system = [];
         const turns = [];
         for (const m of messages) {
@@ -260,7 +261,10 @@ class EuGptProvider extends BaseProvider {
             .join('');
     }
 
-    /** A forced tool's answer as a tool call, or null when it is not a JSON object. */
+    /**
+     * A forced tool's answer as a tool call, or null when it is not a JSON object.
+     * @param {string} text
+     */
     _forcedCall(forced, text, responseId) {
         let parsed;
         try { parsed = JSON.parse(text); } catch { return null; }
@@ -311,6 +315,7 @@ class EuGptProvider extends BaseProvider {
         let responseId = null;
         let servedModel = null;
         let usage = null;
+        /** @type {string | null} */
         let stopReason = null;
         let failed = false;
 
@@ -396,6 +401,9 @@ class EuGptProvider extends BaseProvider {
             }
         };
 
+        /**
+         * @param {string} line
+         */
         const readLine = (line) => {
             if (!line.startsWith('data:')) return;
             const data = line.slice(5).trim();
@@ -468,7 +476,7 @@ class EuGptProvider extends BaseProvider {
                 clearTimeout(timer);
             }
         } catch (e) {
-            log.warn(`[${this.name}] key check failed: ${e.message}`);
+            log.warn(`[${this.name}] key check failed: ${/** @type {Error} */ (e).message}`);
             return [];
         }
         return [describeEuGptModel()];
@@ -476,3 +484,44 @@ class EuGptProvider extends BaseProvider {
 }
 
 module.exports = EuGptProvider;
+
+/**
+ * @typedef {string | Array<string | { type?: string, text?: string }> | null | undefined} EuGptContent
+ * @typedef {{ function?: { name?: string, arguments?: string | object }, name?: string, input?: object }} EuGptToolCall
+ * @typedef {{ role: string, content?: EuGptContent, name?: string, tool_call_id?: string, tool_calls?: EuGptToolCall[] }} EuGptMessage
+ * @typedef {{ name?: string, description?: string, parameters?: object, input_schema?: object, function?: { name?: string, description?: string, parameters?: object } }} EuGptTool
+ * @typedef {{ type?: string, name?: string, schema?: object, json_schema?: { name?: string, schema?: object }, properties?: object }} EuGptResponseFormat
+ * @typedef {{
+ *   tools?: EuGptTool[],
+ *   toolChoice?: string | { function?: { name?: string }, name?: string },
+ *   responseFormat?: EuGptResponseFormat,
+ *   responseSchema?: EuGptResponseFormat,
+ *   maxTokens?: number,
+ *   max_tokens?: number,
+ *   stream?: boolean,
+ *   extraBody?: Record<string, unknown>,
+ *   reasoningSummary?: boolean,
+ *   timeoutMs?: number,
+ *   signal?: AbortSignal,
+ * }} EuGptOptions
+ * @typedef {{ name: string, description: string, schema: object }} EuGptForced
+ * @typedef {{
+ *   id?: string,
+ *   model?: string,
+ *   status?: string,
+ *   incomplete_details?: { reason?: string },
+ *   output_text?: string,
+ *   output?: Array<{ type?: string, content?: Array<{ text?: string }> }>,
+ *   usage?: Parameters<typeof normalizeUsage>[1],
+ * }} EuGptResponse
+ * @typedef {{
+ *   type?: string,
+ *   response?: EuGptResponse,
+ *   model_id?: string,
+ *   category?: string,
+ *   delta?: string,
+ *   item?: { type?: string, name?: string, status?: string },
+ *   code?: string,
+ *   message?: string,
+ * }} EuGptStreamEvent
+ */

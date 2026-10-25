@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * App Studio Builder — everything a turn needs BEFORE the stream opens.
  *
@@ -45,6 +45,7 @@ const { deriveScreenConstraints } = require('../../../core/llm/screenConstraints
 const { sanitizeInboundImages } = require('./inboundImages');
 const { sanitizeEditorContext } = require('./turnNotes');
 const { normalizeRowCounts } = require('./dataModelEvent');
+const { fallback } = require('../../../utils/bestEffort');
 
 const PLAN_MODES = ['auto', 'always', 'never'];
 
@@ -72,6 +73,7 @@ const TurnBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z
 /**
  * The turn's request contract: `req.body` → the inputs the rest of the turn
  * reads, or `{ failed: { status, body } }` for the route to answer verbatim.
+ * @param {import('express').Request} req
  */
 function readTurnRequest(req) {
     const parsed = TurnBody.safeParse(req.body);
@@ -131,6 +133,8 @@ function readTurnRequest(req) {
  * The draft this turn edits (owner-only), plus the persisted builder session
  * it continues. `{ notFound: true }` is the route's pre-SSE 404; a store
  * failure throws and the route answers 500, as it always did.
+ * @param {import('express').Request} req
+ * @param {{ userId: string, requestedAppId?: string|null, clientSession?: string|null }} opts
  */
 async function loadDraftWrap(req, { userId, requestedAppId, clientSession }) {
     let draftWrap;
@@ -150,7 +154,7 @@ async function loadDraftWrap(req, { userId, requestedAppId, clientSession }) {
         const { def } = canonicalizeAppDefinition(
             app.definition && Object.keys(app.definition).length ? app.definition : emptyDefinition(app.name),
         );
-        priorSnapshot = await studioAppStore.getBuilderSession(app.id, userId).catch(() => null);
+        priorSnapshot = await studioAppStore.getBuilderSession(app.id, userId).catch((e) => fallback('routes/ai/appStudioBuilder/turnSetup:loadDraftWrap', e, null));
         draftWrap = {
             userId,
             orgId: app.organizationId || req.session?.user?.organizationId || null,
@@ -176,6 +180,8 @@ async function loadDraftWrap(req, { userId, requestedAppId, clientSession }) {
  * The app's data model + dataset ids, onto the draftWrap. Best-effort: the
  * caller swallows a store failure and the data-reference checks are skipped
  * for this turn (never a 500).
+ * @param {import('../../../appStudio/builderTools').BuilderDraft} draftWrap
+ * @param {string} userId
  */
 async function loadTurnDataModel(draftWrap, userId) {
     if (draftWrap.appId) {
@@ -190,7 +196,7 @@ async function loadTurnDataModel(draftWrap, userId) {
         // the per-app recount above says 0 for them. Lazy: an app with no
         // linked table never touches the datatable stores.
         draftWrap.linkedTables = await describeLinkedTables(draftWrap.dataModel, userId);
-        draftWrap.rowCounts = overlayLinkedRowCounts(draftWrap.rowCounts, draftWrap.linkedTables);
+        draftWrap.rowCounts = overlayLinkedRowCounts(/** @type {Record<string, number>} */ (draftWrap.rowCounts), draftWrap.linkedTables);
     } else {
         // Fresh app: no database yet — any table/dataset reference is a
         // real error the validation loop should catch.
@@ -208,7 +214,11 @@ async function loadTurnDataModel(draftWrap, userId) {
     draftWrap._ownerDatatables = await require('../../../appStudio/datatableSource').listOwnerDatatableIds(userId);
 }
 
-/** The state that survives between turns, re-attached to the draftWrap. */
+/**
+ * The state that survives between turns, re-attached to the draftWrap.
+ * @param {import('../../../appStudio/builderTools').BuilderDraft & { _todos?: ReturnType<typeof normalizePlanTodos>, _screenConstraint?: ReturnType<typeof deriveScreenConstraints> }} draftWrap
+ * @param {{ priorSnapshot?: { todos?: unknown, messages?: Array<{ role?: string, content?: unknown }>, brief?: string }|null, message?: string|null }} opts
+ */
 function attachCrossTurnState(draftWrap, { priorSnapshot, message }) {
 // The agent's own checklist (app_set_plan) survives across turns on the
 // snapshot, so a follow-up turn — or a refresh — shows the same list the

@@ -45,6 +45,7 @@ const {
 const { resolveMailboxIdentity } = require('./mailboxIdentity');
 const emailFetch = require('../services/email/fetch');
 const { viewerMayReadAttachment } = require('./attachmentAccess');
+const { bestEffort } = require('../utils/bestEffort');
 
 // The formats an LLM or a browser can
 // actually do something with. Everything else is refused rather than stored.
@@ -123,11 +124,19 @@ const MAX_ATTACHMENT_BYTES = Math.min(10 * 1024 * 1024, DATA_LIMITS.MAX_ATTACHME
 // ceiling that matters for a container is the platform's, not a document's.
 const MAX_ARCHIVE_BYTES = DATA_LIMITS.MAX_ATTACHMENT_BYTES;
 
-/** How many bytes this KIND of attachment may be. */
+/**
+ * How many bytes this KIND of attachment may be.
+ * @param {string} mime
+ */
 function ceilingFor(mime) {
     return ARCHIVE_MIMES.has(mime) ? MAX_ARCHIVE_BYTES : MAX_ATTACHMENT_BYTES;
 }
 
+/**
+ * @param {number} status
+ * @param {string} message
+ * @param {string} [code]
+ */
 function httpError(status, message, code) {
     const e = new Error(message);
     e.status = status;
@@ -191,12 +200,12 @@ async function locateDescriptor(app, model, { attachmentId, tableId, recordId, v
     const candidates = (model?.tables || []).filter((t) => {
         if (tableId && t.id !== tableId) return false;
         if (!rlsGateway.canRead(t, role)) return false;
-        return (t.fields || []).some((f) => f && f.type === 'file');
+        return (t.fields || []).some((/** @type {{ type: string; }} */ f) => f && f.type === 'file');
     });
 
     for (const table of candidates) {
         const accessFilter = rlsGateway.compileAccessFilter(table, role, viewer || {}, 'read');
-        const fileFields = (table.fields || []).filter((f) => f && f.type === 'file');
+        const fileFields = (table.fields || []).filter((/** @type {{ type: string; }} */ f) => f && f.type === 'file');
 
         const probes = recordId
             ? [queryCompiler.compileGetById(table, recordId, accessFilter)]
@@ -347,7 +356,7 @@ async function materializeAttachment(app, model, {
         await studioAppDataStore.setAttachmentScan(ledger.id, app.id, app.userId, { scanned: true, quarantined: false });
     } catch (err) {
         // Do not leave an orphan blob behind a failed ledger write.
-        await storageStore.deleteFile(key).catch(() => {});
+        await storageStore.deleteFile(key).catch((e) => bestEffort('appStudio/mailboxAttachments:materializeAttachment', e));
         throw err;
     }
 
@@ -408,6 +417,7 @@ const MAX_ATTACHMENT_TOTAL_BYTES = parseInt(process.env.STUDIO_APP_ATTACHMENT_TO
  * Sum the owner-scoped ledger against the app's total-bytes ceiling. Same frozen
  * 409 contract studioAppQuota uses, so every caller surfaces it identically.
  * (Single implementation — routes/studioAppFiles.js imports this one.)
+ * @param {number} addBytes
  */
 async function assertAttachmentTotalBytes(app, addBytes) {
     const rows = await studioAppDataStore.listAttachments(app.id, app.userId);
@@ -520,7 +530,7 @@ async function storeDerivedFile(app, { buffer, name, recordId, fieldKey, allowAr
         });
         await studioAppDataStore.setAttachmentScan(ledger.id, app.id, app.userId, { scanned: true, quarantined: false });
     } catch (err) {
-        await storageStore.deleteFile(key).catch(() => {});
+        await storageStore.deleteFile(key).catch((e) => bestEffort('appStudio/mailboxAttachments:storeDerivedFile', e));
         throw err;
     }
     return studioDescriptor({ ...ledger, size: buffer.length }, { name: cleanName, mime });
@@ -540,3 +550,9 @@ module.exports = {
     MAX_ATTACHMENT_BYTES,
     MAX_ATTACHMENT_TOTAL_BYTES,
 };
+
+/**
+ * A `file` column's descriptor, pending (`mailbox_attachment`) or redeemed (`studio_attachment`).
+ * @typedef {{ kind?: string, fileId?: string, connectorId?: string, messageId?: string, attachmentId?: string, name?: string, mime?: string, size?: number, isInline?: boolean, [k: string]: unknown }} AttachmentDescriptor
+ * @typedef {{ tables?: import('./actionExecutor/shared').DataTable[], connectors?: Array<{ id?: string, provider?: 'gmail'|'outlook', runAs?: string, mode?: string, address?: string, displayName?: string }> }} MailboxModel
+ */

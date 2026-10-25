@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * publicationAudit.js — the record of an app's AUDIENCE changing.
  *
@@ -25,6 +25,8 @@
  */
 const log = require('../telemetry/log');
 
+/** @typedef {{ id?: string, name?: string, userId?: string, organizationId?: string | null }} AppRef */
+
 const PUBLICATION_ACTIONS = Object.freeze({
     PUBLISHED: 'studio_app_published',
     UNPUBLISHED: 'studio_app_unpublished',
@@ -38,6 +40,8 @@ const PUBLICATION_ACTIONS = Object.freeze({
  * 'organisation' and 'groups' are the two answers that matter when someone asks
  * "who could see this"; the group ids are recorded alongside so the answer can
  * be made exact, but the word is what a reader scans for.
+ * @param {unknown} isPublished
+ * @param {unknown} sharedGroups
  */
 function audienceOf(isPublished, sharedGroups) {
     if (!isPublished) return 'nobody';
@@ -45,6 +49,10 @@ function audienceOf(isPublished, sharedGroups) {
     return groups.length > 0 ? 'groups' : 'organisation';
 }
 
+/**
+ * @param {string} action
+ * @param {{ app?: { id?: string, name?: string, userId?: string, organizationId?: string|null }, actorId?: string|null, organizationId?: string|null, details?: object }} opts
+ */
 async function record(action, /** @type {{app: any, actorId: any, organizationId?: any, details: any}} */ { app, actorId, organizationId, details }) {
     try {
         const userStore = require('../stores/userStore');
@@ -66,7 +74,10 @@ async function record(action, /** @type {{app: any, actorId: any, organizationId
     }
 }
 
-/** Publish state changed. `isPublished` decides which of the two actions it is. */
+/**
+ * Publish state changed. `isPublished` decides which of the two actions it is.
+ * @param {{ app?: AppRef, actorId?: string | null, isPublished?: boolean, sharedGroups?: string[] | null, organizationId?: string | null, publishedVersion?: number | null }} opts
+ */
 async function auditPublishChange({ app, actorId, isPublished, sharedGroups, organizationId, publishedVersion }) {
     await record(isPublished ? PUBLICATION_ACTIONS.PUBLISHED : PUBLICATION_ACTIONS.UNPUBLISHED, {
         app, actorId, organizationId,
@@ -86,6 +97,7 @@ async function auditPublishChange({ app, actorId, isPublished, sharedGroups, org
  * exports would hand out the very thing revoking is supposed to take back. The
  * row carries a short prefix, which is enough to line an audit row up against a
  * URL somebody shows you and useless on its own.
+ * @param {{ app?: AppRef, actorId?: string | null, token?: string | null, created?: boolean }} opts
  */
 async function auditPublicPage({ app, actorId, token, created }) {
     await record(created ? PUBLICATION_ACTIONS.PUBLIC_PAGE_CREATED : PUBLICATION_ACTIONS.PUBLIC_PAGE_REVOKED, {
@@ -97,7 +109,10 @@ async function auditPublicPage({ app, actorId, token, created }) {
     });
 }
 
-/** The app was added to, or removed from, the organisation's Nextcloud menu. */
+/**
+ * The app was added to, or removed from, the organisation's Nextcloud menu.
+ * @param {{ app?: AppRef, actorId?: string | null, enabled?: boolean }} opts
+ */
 async function auditNextcloudMenu({ app, actorId, enabled }) {
     await record(PUBLICATION_ACTIONS.NEXTCLOUD_MENU_CHANGED, {
         app, actorId, details: { enabled: !!enabled },

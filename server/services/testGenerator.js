@@ -279,3 +279,12 @@ module.exports = {
     // exposed for testing
     _internals: { fetchSources, _buildUserMessage, _extractCode, _extractManifest },
 };
+
+/**
+ * One entry of the caller's mixed source list (see the header).
+ * @typedef {{ type?: string, conversationId?: string, owner?: string, repo?: string, path?: string, ref?: string, sha?: string, issueId?: string, query?: string, label?: string, body?: string, url?: string }} TestSource
+ * A fetched source, or (when `error` is set) why it could not be fetched. Without strictNullChecks
+ * the two shapes cannot be told apart by `error`, so they share one type.
+ * @typedef {{ kind?: string, title?: string, body?: string, error?: string, detail?: string, integration?: string, message?: string }} ResolvedSource
+ * @typedef {ResolvedSource} SourceError
+ */

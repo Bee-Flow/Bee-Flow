@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: widen integration_connections.kind for HTTP credentials.
  *

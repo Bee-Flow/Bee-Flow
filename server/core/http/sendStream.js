@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Send a readable (storage object, file) to an HTTP response without leaking it.
  *

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The bridge between a co-edited Yjs document and everything else that reads
  * or writes the content: the legacy HTML/Markdown columns, the AI, exports,
@@ -71,6 +71,7 @@ function loadBundle() {
     }
 }
 
+/** @type {unknown} */
 let _DOMParser = null;
 function domParser() {
     if (_DOMParser) return _DOMParser;
@@ -88,7 +89,11 @@ const BLOCKISH = /^(paragraph|heading|codeBlock|listItem|taskItem|tableCell|bloc
  * @param {AstNode|null|undefined} node
  */
 function astText(node) {
+    /** @type {string[]} */
     const out = [];
+    /**
+     * @param {AstNode} n
+     */
     (function walk(n) {
         if (!n || typeof n !== 'object') return;
         if (n.type === 'text' && typeof n.text === 'string') { out.push(n.text); return; }

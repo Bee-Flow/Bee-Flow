@@ -33,12 +33,14 @@ const { validateConnectors } = require('./connectorValidate');
  * before this runs.
  *
  * @returns {string[]} error messages (empty = OK)
+ * @param {string} where
  */
 function tableSourceErrors(source, where) {
     if (source === undefined || source === null) return [];
     if (!isPlainObject(source)) {
         return [`${where}.source must be an object { kind, datatableId, mode }`];
     }
+    /** @type {string[]} */
     const errors = [];
     if (!TABLE_SOURCE_KINDS.includes(source.kind)) {
         errors.push(`${where}.source.kind ${JSON.stringify(source.kind)} is not a known table source kind (${TABLE_SOURCE_KINDS.join(', ')})`);
@@ -59,6 +61,9 @@ function tableSourceErrors(source, where) {
 
 // Conservative computed-expression guard: string, bounded, no statement
 // terminators or comment sequences that could smuggle extra SQL into DDL.
+/**
+ * @param {string} expr
+ */
 function computedExprError(expr) {
     if (typeof expr !== 'string' || !expr.trim()) return 'computed.expr must be a non-empty string';
     if (expr.length > DATA_LIMITS.MAX_COMPUTED_EXPR) return `computed.expr exceeds ${DATA_LIMITS.MAX_COMPUTED_EXPR} chars`;
@@ -72,7 +77,9 @@ function computedExprError(expr) {
  * repairs most of them).
  */
 function validateDataModel(model) {
+    /** @type {string[]} */
     const errors = [];
+    /** @type {string[]} */
     const warnings = [];
 
     if (!isPlainObject(model)) {

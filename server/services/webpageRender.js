@@ -16,7 +16,7 @@ const { resolveFramework } = require('../integrations/webpageFramework');
 const { composeDoc } = require('../core/webpages/webpageThumbnailGenerator');
 const { composeReactDoc, buildStubBridgeScript } = require('./reactBundleServer');
 const { loadReactFiles } = require('./webpageReactFiles');
-const log = require('../telemetry/log');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const VIEWPORTS = {
     desktop: { width: 1280, height: 800 },
@@ -56,7 +56,7 @@ function injectStubBridges(doc) {
  *   buildError:string|null, empty:boolean }>}
  */
 async function captureWebpage({ webpageId, userId, viewport = 'desktop', fullPage = false }) {
-    const wp = await webpageStore.getWebpage(webpageId, userId).catch(() => null);
+    const wp = await webpageStore.getWebpage(webpageId, userId).catch((e) => fallback('services/webpageRender:captureWebpage', e, null));
     if (!wp) throw new Error('Webpage not found');
     const framework = resolveFramework(wp);
     const vp = resolveViewport(viewport);
@@ -94,7 +94,7 @@ async function captureWebpage({ webpageId, userId, viewport = 'desktop', fullPag
                     if ((t === 'error' || t === 'warning') && consoleErrors.length < MAX_DIAG_MSGS) {
                         consoleErrors.push(`[${t}] ${m.text()}`.slice(0, 300));
                     }
-                } catch (err) { log.debug('ignore', err); }
+                } catch (err) { fallback('services/webpageRender:captureWebpage#2', err); /* ignore */ }
             });
             page.on('pageerror', (e) => {
                 if (pageErrors.length < MAX_DIAG_MSGS) pageErrors.push(String(e && e.message || e).slice(0, 300));
@@ -128,7 +128,7 @@ async function captureWebpage({ webpageId, userId, viewport = 'desktop', fullPag
                         return r.children.length > 0;                              // real mount
                     },
                     { timeout: MOUNT_WAIT_MS, polling: 200 }
-                ).catch(() => {});
+                ).catch((e) => bestEffort('services/webpageRender:captureWebpage#3', e));
             }
             await page.waitForTimeout(SETTLE_MS);
 
@@ -168,7 +168,7 @@ async function captureWebpage({ webpageId, userId, viewport = 'desktop', fullPag
             width = m2.width || width;
             height = m2.height || height;
         }
-    } catch (err) { log.debug('sharp unavailable — keep raw PNG', err); }
+    } catch (err) { fallback('services/webpageRender:captureWebpage#4', err); /* sharp unavailable — keep raw PNG */ }
 
     return {
         pngBuffer,

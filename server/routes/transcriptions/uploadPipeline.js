@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Transcriptions: the background pipeline of POST / (upload).
  *
@@ -32,13 +33,18 @@ const {
     transcribeWithScaleway,
 } = require('../../core/meetingNotes/summaryHelpers');
 
+/** @typedef {{ from: string, to: string, reason: string, message: string }} ProviderFallback */
+/** @typedef {Extract<Awaited<ReturnType<typeof extractMeetingArtifacts>>, { ok: true }>} UsableArtifacts artifacts that passed artifactsUsable */
+/** @typedef {{ matched: number, considered: number, truncated: boolean, failed: boolean, detail: Array<{ speakerId: string, label: string, userId: string|null, name: string, seconds: number, share: number, confidence: number|null, decision: string }> }} VoiceprintInfo */
+
 /**
  * In-process Whisper-base on CPU (privacy / no-cloud path). When the recording
  * exceeds the on-device cap, fall back to a configured cloud engine so the
  * upload doesn't dead-end: Voxtral is preferred (no extra setup once a Mistral
  * key is present), WhisperX is the self-hosted alternative, then Azure.
- * @returns {Promise<{ response: object|null, provider: string, providerFallback: object|null }>}
+ * @returns {Promise<{ response: { text: string, segments: Array<{ speakerId: string, start: number, end: number, text: string }> }|null, provider: string, providerFallback: ProviderFallback|null }>}
  *   `response` is null when the caller must continue with the returned cloud `provider`.
+ * @param {{ filePath: string, language?: string | null }} input
  */
 async function transcribeOnDevice({ filePath, language }) {
     const { transcribeLocally } = require('../../core/voice/localWhisper');
@@ -75,7 +81,10 @@ async function transcribeOnDevice({ filePath, language }) {
     }
 }
 
-/** Voxtral (cloud, default). The only engine that needs the bytes in memory. */
+/**
+ * Voxtral (cloud, default). The only engine that needs the bytes in memory.
+ * @param {{ filePath: string, fileName: string, language?: string | null, contextTerms?: string }} input
+ */
 async function transcribeWithVoxtral({ filePath, fileName, language, contextTerms }) {
     const apiKey = await configStore.getSecret('mistral_api_key');
     if (!apiKey) {
@@ -95,12 +104,13 @@ async function transcribeWithVoxtral({ filePath, fileName, language, contextTerm
     } finally {
         voxtralAudio.cleanup();
     }
+    /** @type {Parameters<typeof client.audio.transcriptions.complete>[0]} */
     const transcriptionOptions = {
         model: 'voxtral-mini-2602',
         file: { fileName: voxtralAudio.fileName, content: fileContent },
         diarize: true,
         language,
-        timestampGranularities: ['segment'],
+        timestampGranularities: /** @type {Array<'segment'>} */ (['segment']),
     };
     const contextBias = toContextBias(contextTerms);
     if (contextBias.length) transcriptionOptions.contextBias = contextBias;
@@ -108,8 +118,14 @@ async function transcribeWithVoxtral({ filePath, fileName, language, contextTerm
     return client.audio.transcriptions.complete(transcriptionOptions);
 }
 
-/** The cloud and self-hosted engines. @returns the response plus engine extras. */
+/**
+ * The cloud and self-hosted engines. @returns the response plus engine extras.
+ *
+ * @param {string} provider
+ * @param {{ filePath: string, fileName: string, language?: string|null, contextTerms?: string, numSpeakers?: number|null, userOrgId?: string|null, userId?: string, attendees?: string[] }} input
+ */
 async function transcribeWithEngine(provider, { filePath, fileName, language, contextTerms, numSpeakers, userOrgId, userId, attendees }) {
+    /** @type {{ truncationNotice: {reason: string, atSeconds: number}|null, voiceprintMapping: Record<string, string>|null, voiceprintRoster: string[], voiceprintRuledOut: Record<string, string[]>|null, voiceprintInfo: VoiceprintInfo|null }} */
     const extras = { truncationNotice: null, voiceprintMapping: null, voiceprintRoster: [], voiceprintRuledOut: null, voiceprintInfo: null };
     let response;
     if (provider === 'whisperx') {
@@ -147,7 +163,7 @@ async function transcribeWithEngine(provider, { filePath, fileName, language, co
         extras.voiceprintMapping = p.voiceprintMapping;
         extras.voiceprintRoster = p.voiceprintRoster || [];
         extras.voiceprintRuledOut = p.voiceprintRuledOut;
-        extras.voiceprintInfo = p.voiceprintInfo;
+        extras.voiceprintInfo = /** @type {VoiceprintInfo|null} */ (p.voiceprintInfo);
     } else {
         response = await transcribeWithVoxtral({ filePath, fileName, language, contextTerms });
     }
@@ -158,8 +174,11 @@ async function transcribeWithEngine(provider, { filePath, fileName, language, co
  * Transcribe the uploaded audio with the chosen engine.
  * `providerFallback` tracks an automatic engine switch (local to cloud). The 202
  * is long gone by then, so it is surfaced as a notice line on the note's summary.
+ *
+ * @param {{ provider: string } & { filePath: string, fileName: string, language?: string|null, contextTerms?: string, numSpeakers?: number|null, userOrgId?: string|null, userId?: string, attendees?: string[] }} args
  */
 async function transcribeUpload({ provider, ...input }) {
+    /** @type {ProviderFallback|null} */
     let providerFallback = null;
     if (provider === 'local') {
         const local = await transcribeOnDevice({ filePath: input.filePath, language: input.language });
@@ -167,8 +186,8 @@ async function transcribeUpload({ provider, ...input }) {
         providerFallback = local.providerFallback;
         if (local.response) {
             return {
-                response: local.response, provider, providerFallback, truncationNotice: null,
-                voiceprintMapping: null, voiceprintRoster: [], voiceprintRuledOut: null, voiceprintInfo: null,
+                response: local.response, provider, providerFallback, truncationNotice: /** @type {{reason: string, atSeconds: number}|null} */ (null),
+                voiceprintMapping: /** @type {Record<string, string>|null} */ (null), voiceprintRoster: /** @type {string[]} */ ([]), voiceprintRuledOut: /** @type {Record<string, string[]>|null} */ (null), voiceprintInfo: /** @type {VoiceprintInfo|null} */ (null),
             };
         }
     }
@@ -178,6 +197,7 @@ async function transcribeUpload({ provider, ...input }) {
 
 /**
  * Naming, summary, title, chapters and artifacts for a fresh transcription.
+ * @param {{ req: import('express').Request, transcriptionId: string, userId: string, userOrgId: string | null, userName: string | null, language: string, attendees: string[], numSpeakers: number | null, title: string, transcribed: Awaited<ReturnType<typeof transcribeUpload>> }} input
  * @returns everything `finishUpload` needs.
  */
 async function analyseUpload({ req, transcriptionId, userId, userOrgId, userName, language, attendees, numSpeakers, title, transcribed }) {
@@ -247,7 +267,10 @@ async function analyseUpload({ req, transcriptionId, userId, userOrgId, userName
     return { merged, transcript, speakers, totalDuration, title, artifacts, usable, chapters, speakerSummaries, finalSummary, defaultTemplate };
 }
 
-/** The patch that completes the 'processing' note. */
+/**
+ * The patch that completes the 'processing' note.
+ * @param {{ transcribed: Awaited<ReturnType<typeof transcribeUpload>>, analysis: Awaited<ReturnType<typeof analyseUpload>>, title: string, placeholderTitle: string, provider: string }} input
+ */
 function buildCompletionPatch({ transcribed, analysis, title, placeholderTitle, provider }) {
     const { response, voiceprintInfo } = transcribed;
     const { merged, transcript, speakers, totalDuration, artifacts, usable, chapters, speakerSummaries, finalSummary, defaultTemplate } = analysis;
@@ -263,12 +286,12 @@ function buildCompletionPatch({ transcribed, analysis, title, placeholderTitle, 
         speakers: applySpeakerSummaries(speakers, speakerSummaries),
         summary: finalSummary,
         ...(usable ? {
-            actionItems: artifacts.actionItems,
-            decisions: artifacts.decisions,
-            questions: artifacts.questions,
+            actionItems: /** @type {UsableArtifacts} */ (artifacts).actionItems,
+            decisions: /** @type {UsableArtifacts} */ (artifacts).decisions,
+            questions: /** @type {UsableArtifacts} */ (artifacts).questions,
             // Auto-topic tags fill the column only while it's still empty — a
             // user who tagged the note while it was processing keeps their tags.
-            ...(artifacts.tags.length ? { tagsIfEmpty: artifacts.tags } : {}),
+            ...(/** @type {UsableArtifacts} */ (artifacts).tags.length ? { tagsIfEmpty: /** @type {UsableArtifacts} */ (artifacts).tags } : {}),
         } : {}),
         chapters,
         provider,
@@ -280,7 +303,10 @@ function buildCompletionPatch({ transcribed, analysis, title, placeholderTitle, 
     };
 }
 
-/** Write the finished note, then announce it. */
+/**
+ * Write the finished note, then announce it.
+ * @param {{ transcriptionId: string, userId: string, userOrgId: string | null, transcribed: Awaited<ReturnType<typeof transcribeUpload>>, analysis: Awaited<ReturnType<typeof analyseUpload>>, provider: string, placeholderTitle: string }} input
+ */
 async function finishUpload({ transcriptionId, userId, userOrgId, transcribed, analysis, provider, placeholderTitle }) {
     const { merged, speakers, artifacts, usable } = analysis;
     // Fill in the 'processing' note with the finished result.
@@ -296,7 +322,7 @@ async function finishUpload({ transcriptionId, userId, userOrgId, transcribed, a
     try {
         require('../../core/meetingNotes/ingestRecordingCore').emitMeetingProcessed({
             transcriptionId,
-            tags: usable ? artifacts.tags : [],
+            tags: usable ? /** @type {UsableArtifacts} */ (artifacts).tags : [],
             userId,
             orgId: userOrgId,
         });

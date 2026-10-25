@@ -13,6 +13,7 @@ const {
 const { providerFor, resolveViewerExecution, dispatchTool } = require('./dispatch');
 const { applyChainStep } = require('./chain');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 async function runIntegrationTool(connector, { app, viewerId, params, systemArgs, trace, deps }) {
     const tool = typeof connector.tool === 'string' ? connector.tool : '';
@@ -148,6 +149,7 @@ async function runAutomationConnector(connector, { app, viewerId, params, deps }
  * in-flight request (`ac`) so the socket is torn down instead of drained.
  * Responses without a web stream (stubs, older shims) fall back to a buffered
  * read that is still byte-capped.
+ * @param {AbortController} ac
  */
 async function readCappedBody(resp, ac) {
     const body = resp.body;
@@ -209,6 +211,7 @@ async function runRestConnector(connector, { app, params, deps }) {
         return (v === undefined || v === null) ? '' : encodeURIComponent(String(v));
     });
 
+    /** @type {URL} */
     let parsed;
     try { parsed = new URL(urlStr); } catch { throw connectorError(400, 'connector produced an invalid URL', 'bad_connector'); }
     if (parsed.protocol !== 'https:') throw connectorError(400, 'connector URL must be https', 'insecure_url');
@@ -221,6 +224,7 @@ async function runRestConnector(connector, { app, params, deps }) {
     }
 
     // Owner static headers + owner credential (from the credential store).
+    /** @type {Record<string, string>} */
     const headers = { Accept: 'application/json' };
     if (isPlainObject(connector.headers)) {
         for (const [k, v] of Object.entries(connector.headers)) {
@@ -228,7 +232,7 @@ async function runRestConnector(connector, { app, params, deps }) {
         }
     }
     if (isPlainObject(connector.auth) && connector.auth.credentialProvider) {
-        const cred = await deps.getProviderAuth(app.userId, connector.auth.credentialProvider).catch(() => null);
+        const cred = await deps.getProviderAuth(app.userId, connector.auth.credentialProvider).catch((e) => fallback('appStudio/connectors/runners:runRestConnector', e, null));
         const token = cred?.accessToken || null;
         if (token) {
             if (connector.auth.type === 'header' && typeof connector.auth.header === 'string') headers[connector.auth.header] = token;
@@ -250,7 +254,7 @@ async function runRestConnector(connector, { app, params, deps }) {
         text = await readCappedBody(resp, ac);
     } catch (err) {
         if (Number.isInteger(err?.status)) throw err;
-        throw connectorError(502, `connector fetch failed (${err?.name === 'AbortError' ? 'timeout' : 'unreachable'})`, 'connector_failed');
+        throw connectorError(502, `connector fetch failed (${/** @type {Error} */ (err)?.name === 'AbortError' ? 'timeout' : 'unreachable'})`, 'connector_failed');
     } finally {
         clearTimeout(timer);
     }
@@ -268,3 +272,8 @@ async function runRestConnector(connector, { app, params, deps }) {
 }
 
 module.exports = { runIntegrationTool, runAutomationConnector, runRestConnector };
+
+/**
+ * @typedef {{ level: number, tool: string, rows: import('./shared').ConnectorRow[], expandFrom?: string | null, parentLevel?: number }} ConnectorGrain  The rows at one grain of a traced chain run.
+ * @typedef {{ app: import('./shared').ConnectorApp, viewerId?: string, params?: unknown, systemArgs?: unknown, trace?: boolean, deps: import('./session').ConnectorDeps }} ConnectorCtx  What runConnector hands every kind runner.
+ */

@@ -34,13 +34,18 @@ const GLOBAL_VAR = 'MCP_IP_ALLOWLIST';
 /** raw env value → parsed list, or null when it does not parse. */
 const parsed = new Map();
 
+/**
+ * @param {string} name
+ * @param {string} raw
+ */
 function parseValue(name, raw) {
     if (parsed.has(raw)) return parsed.get(raw);
+    /** @type {string[] | null} */
     let list = null;
     try {
         list = parseCidrList(raw.split(/[\s,;]+/).filter(Boolean));
     } catch (err) {
-        log.error(`[McpAccess] ${name} is not a valid IP allow-list (${err.message}); denying every request to that MCP endpoint until it is fixed.`);
+        log.error(`[McpAccess] ${name} is not a valid IP allow-list (${/** @type {Error} */ (err).message}); denying every request to that MCP endpoint until it is fixed.`);
     }
     if (parsed.size >= 50) parsed.clear();
     parsed.set(raw, list);

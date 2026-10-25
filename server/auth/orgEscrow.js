@@ -58,7 +58,10 @@ const { resolveOrgId } = require('../stores/integrationConnectionStore');
 
 const DEK_LENGTH = 32;
 
-/** AAD binding a wrapped DEK to one (org, user) pair — blocks cross-tenant replay. */
+/**
+ * AAD binding a wrapped DEK to one (org, user) pair — blocks cross-tenant replay.
+ * @param {string} userId
+ */
 function dekAad(orgId, userId) {
     return `dek-org:${orgId}:${userId}`;
 }
@@ -82,6 +85,9 @@ function _cacheGet(orgId) {
     return hit.key;
 }
 
+/**
+ * @param {NonSharedBuffer | Buffer<ArrayBuffer>} key
+ */
 function _cacheSet(orgId, key) {
     if (_orkCache.size >= ORK_CACHE_MAX) {
         const oldest = _orkCache.keys().next().value;
@@ -200,6 +206,7 @@ const CONFIG_KEY_PREFIX = 'encryption.org_root_key.';
  * cannot be decrypted", and no row says "the write did not stick". Used on its
  * own, before the set-if-absent, this probe cannot tell an undecryptable row
  * from a peer's INSERT that landed a moment ago — see _rootKeyFromConfigStore.
+ * @param {string} configKey
  */
 async function _configRowExists(configKey) {
     const { getOne } = require('../db');
@@ -207,7 +214,10 @@ async function _configRowExists(configKey) {
     return !!row;
 }
 
-/** Decode a stored base64 root key, validate its length, cache and return it. */
+/**
+ * Decode a stored base64 root key, validate its length, cache and return it.
+ * @param {import('buffer').WithImplicitCoercion<string>} b64
+ */
 function _adoptStoredRootKey(orgId, b64) {
     const buf = Buffer.from(b64, 'base64');
     if (buf.length !== 32) {
@@ -263,6 +273,8 @@ async function _rootKeyFromConfigStore(orgId) {
 /**
  * Wrap a user's DEK under their org's root key.
  * @returns {Promise<string>} JSON envelope, storable in users."orgWrappedDEK"
+ * @param {Buffer<ArrayBufferLike>} dek
+ * @param {string} userId
  */
 async function wrapUserDek(dek, rawOrgId, userId) {
     const orgId = resolveOrgId(rawOrgId);
@@ -273,6 +285,8 @@ async function wrapUserDek(dek, rawOrgId, userId) {
 /**
  * Unwrap a user's escrowed DEK.
  * @returns {Promise<Buffer|null>} the DEK, or null if it cannot be opened
+ * @param {string} stored
+ * @param {string} userId
  */
 async function unwrapUserDek(stored, rawOrgId, userId) {
     if (!stored) return null;
@@ -410,6 +424,7 @@ async function rotateOrgRootKey(rawOrgId) {
     // key does. It throws if it cannot be rewrapped, and it throws BEFORE the
     // ORK is swapped below — rotating past it would strand every transcription
     // in the organisation.
+    /** @type {string | null} */
     let rewrappedTranscriptDek = null;
     try {
         rewrappedTranscriptDek = await require('./transcriptEscrow').rewrapForRotation(orgId, oldOrk, newOrk);

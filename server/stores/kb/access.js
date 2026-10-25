@@ -48,8 +48,13 @@ function makeAccessFns(ctx) {
             // Build optional filter clauses + their bound params. Each branch below
             // appends these so the marketplace, agent and direct-chat pickers all
             // narrow the same way.
+            /**
+             * @param {number} startIdx
+             */
             const buildFilters = (startIdx) => {
+                /** @type {string[]} */
                 const conds = [];
+                /** @type {(string | string[])[]} */
                 const params = [];
                 let idx = startIdx;
                 if (sourceKindList && sourceKindList.length > 0) {
@@ -73,6 +78,9 @@ function makeAccessFns(ctx) {
             // into the visibility predicate AFTER the sourceKind/usageContext
             // filters so the same slug list always applies regardless of the kind
             // filter.
+            /**
+             * @param {number} startIdx
+             */
             const buildSystemUnion = (startIdx) => {
                 if (!systemSlugs || systemSlugs.length === 0) return { sql: '', params: [] };
                 const conds = [`kb.source_kind = 'system_managed'`, `kb.system_slug = ANY($${startIdx})`];

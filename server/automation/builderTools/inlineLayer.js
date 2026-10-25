@@ -212,3 +212,9 @@ function applyInlineLayer(graph, draft, args) {
 }
 
 module.exports = { applyInlineLayer };
+
+/**
+ * @typedef {import('./draftGraph').GraphEdge} GraphEdge
+ * @typedef {{ kind?: string, path?: string, value?: unknown }} Binding
+ * @typedef {{ path: (text: string) => string | null, binding: (ref: { path: string }) => Binding | null }} Seam
+ */

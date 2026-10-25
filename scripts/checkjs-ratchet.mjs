@@ -8,6 +8,11 @@
  * half: a file that is checked today must stay checked, so removing the line to
  * silence an error fails here instead of quietly shrinking the checked set.
  *
+ * Three levels (server/scripts/typecheck.mjs): `// @typecheck`, `// @typecheck noImplicitAny`
+ * and `// @typecheck strict`. Each has its own floor: `checkedFiles` (any level),
+ * `noImplicitAnyFiles` (that level or strict) and `strictFiles`. A file that moves
+ * down a level fails the floor of the level it left.
+ *
  * Mirror image of the count ratchets: the budget is a floor, `--update` only
  * raises it.
  *
@@ -24,7 +29,8 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SKIP_DIRS = new Set(['node_modules', 'coverage', 'dist', 'build']);
 const TS_CHECK = /^\s*\/\/\s*@typecheck\b/m;
-const TEST_FILE = /\.test\.[cm]?js$/;
+const LEVEL = /^\s*\/\/\s*@typecheck[ \t]+(noImplicitAny|strict)\b/m;
+const TEST_FILE = /\.test\.[cm]?[jt]s$/;
 
 const args = process.argv.slice(2);
 const pkg = args.find((a) => !a.startsWith('--'));
@@ -45,7 +51,7 @@ function collect(from, into) {
         const full = path.join(from, entry.name);
         if (entry.isDirectory()) {
             if (!SKIP_DIRS.has(entry.name)) collect(full, into);
-        } else if (entry.isFile() && /\.[cm]?js$/.test(entry.name) && !TEST_FILE.test(entry.name)) {
+        } else if (entry.isFile() && /\.(?:[cm]?js|[cm]ts)$/.test(entry.name) && !/\.d\.[cm]?ts$/.test(entry.name) && !TEST_FILE.test(entry.name)) {
             into.push(full);
         }
     }
@@ -53,12 +59,17 @@ function collect(from, into) {
 }
 
 let checked = 0;
+let noImplicitAny = 0;
+let strict = 0;
 const unchecked = new Map();
 const files = collect(dir, []);
 for (const file of files) {
     const head = fs.readFileSync(file, 'utf8').split('\n').slice(0, 30).join('\n');
     if (TS_CHECK.test(head)) {
         checked++;
+        const level = LEVEL.exec(head)?.[1];
+        if (level) noImplicitAny++;
+        if (level === 'strict') strict++;
     } else {
         const folder = path.relative(dir, path.dirname(file)).split(path.sep)[0] || '.';
         unchecked.set(folder, (unchecked.get(folder) || 0) + 1);
@@ -73,24 +84,40 @@ if (list) {
 const budgetFile = path.join(dir, '.checkjs-ratchet.json');
 const existing = fs.existsSync(budgetFile) ? JSON.parse(fs.readFileSync(budgetFile, 'utf8')) : null;
 const share = files.length ? ((checked / files.length) * 100).toFixed(1) : '0.0';
+const measured = { checkedFiles: checked, noImplicitAnyFiles: noImplicitAny, strictFiles: strict };
+const floorOf = (key) => existing?.[key] ?? 0;
 
 if (update || !existing) {
     const next = {
-        _comment: `Lowest number of ${pkg} source files that must carry // @typecheck. Raise it with \`node scripts/checkjs-ratchet.mjs ${pkg} --update\` after opting more files in; lowering it is a deliberate edit that belongs in a commit message with a reason.`,
+        _comment: `Lowest number of ${pkg} source files that must carry // @typecheck (any level), // @typecheck noImplicitAny (that level or strict) and // @typecheck strict. Raise them with \`node scripts/checkjs-ratchet.mjs ${pkg} --update\` after moving more files up; lowering one is a deliberate edit that belongs in a commit message with a reason.`,
         _generated: new Date().toISOString().slice(0, 10),
-        checkedFiles: existing ? Math.max(checked, existing.checkedFiles) : checked,
+        checkedFiles: Math.max(checked, floorOf('checkedFiles')),
+        noImplicitAnyFiles: Math.max(noImplicitAny, floorOf('noImplicitAnyFiles')),
+        strictFiles: Math.max(strict, floorOf('strictFiles')),
     };
     fs.writeFileSync(budgetFile, `${JSON.stringify(next, null, 2)}\n`);
-    console.log(`Floor written to ${path.relative(ROOT, budgetFile)}: ${next.checkedFiles} (measured ${checked} of ${files.length}, ${share}%)`);
+    console.log(`Floors written to ${path.relative(ROOT, budgetFile)}: ${next.checkedFiles} checked, ${next.noImplicitAnyFiles} noImplicitAny, ${next.strictFiles} strict (measured ${checked} of ${files.length}, ${share}%)`);
     process.exit(0);
 }
 
+let failed = false;
 if (checked < existing.checkedFiles) {
     console.error(`❌ ${pkg}: ${checked} files carry // @typecheck, the floor is ${existing.checkedFiles} — fix the type error rather than removing the check`);
-    process.exit(1);
+    failed = true;
 }
-if (checked > existing.checkedFiles) {
-    console.log(`✅ ${pkg}: ${checked} of ${files.length} files checked (${share}%), over the floor of ${existing.checkedFiles}. Run \`node scripts/checkjs-ratchet.mjs ${pkg} --update\` to raise it.`);
+if (noImplicitAny < floorOf('noImplicitAnyFiles')) {
+    console.error(`❌ ${pkg}: ${noImplicitAny} files carry // @typecheck noImplicitAny (or strict), the floor is ${floorOf('noImplicitAnyFiles')} — fix the type error rather than lowering the level`);
+    failed = true;
+}
+if (strict < floorOf('strictFiles')) {
+    console.error(`❌ ${pkg}: ${strict} files carry // @typecheck strict, the floor is ${floorOf('strictFiles')} — fix the type error rather than lowering the level`);
+    failed = true;
+}
+if (failed) process.exit(1);
+const over = Object.keys(measured).some((k) => measured[k] > floorOf(k));
+const line = `${checked} of ${files.length} files checked (${share}%), ${noImplicitAny} at noImplicitAny, ${strict} strict`;
+if (over) {
+    console.log(`✅ ${pkg}: ${line}, over the floors. Run \`node scripts/checkjs-ratchet.mjs ${pkg} --update\` to raise them.`);
 } else {
-    console.log(`➖ ${pkg}: ${checked} of ${files.length} files checked (${share}%), at the floor`);
+    console.log(`➖ ${pkg}: ${line}, at the floors`);
 }

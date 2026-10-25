@@ -15,6 +15,8 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const { HttpError } = require('../../core/http/errors');
+const { fallback } = require('../../utils/bestEffort');
+const { isPlatformOperator } = require('../../auth/platformOperator');
 
 const router = express.Router();
 
@@ -32,7 +34,9 @@ const router = express.Router();
 // strict schema — rather than a truthiness check — has to say which one this
 // route takes.
 
+/** @param {string} what */
 const text = (what) => worded(`${what} must be text.`);
+/** @param {string} name */
 const cap = (name) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })
     .min(0, `${name} must be non-negative.`).nullish();
 
@@ -104,6 +108,7 @@ router.get('/orgs', async (req, res) => {
         const effective = await userStore.getEffectiveLimits(sub.organization_id);
         // Use billing period for usage calculation
         const period = userStore.getBillingPeriod(sub);
+        /** @type {Record<string, any>} */
         let usage = {};
         try {
             usage = await usageStore.getUsageSummary({ startDate: period.startDate, endDate: new Date().toISOString(), organizationId: sub.organization_id });
@@ -131,12 +136,13 @@ router.get('/orgs', async (req, res) => {
 });
 
 // GET /api/subscriptions/orgs/:orgId
-router.get('/orgs/:orgId', async (req, res) => {
+router.get('/orgs/:orgId', async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     const sub = await userStore.getOrgSubscription(req.params.orgId);
     if (!sub) return res.status(404).json({ error: 'No subscription for this org' });
 
     const effective = await userStore.getEffectiveLimits(req.params.orgId);
     const period = userStore.getBillingPeriod(sub);
+    /** @type {Record<string, any>} */
     let usage = {};
     try {
         usage = await usageStore.getUsageSummary({ startDate: period.startDate, endDate: new Date().toISOString(), organizationId: req.params.orgId });
@@ -187,7 +193,7 @@ router.get('/orgs/:orgId', async (req, res) => {
     try {
         const orgRow = await userStore.getOrganization(req.params.orgId);
         usagePooled = (orgRow?.usage_pooled ?? '1') !== '0' && orgRow?.usagePooled !== false;
-    } catch (err) { log.debug('keep default = true', err); }
+    } catch (err) { fallback('routes/subscriptions/orgSubscriptions:anon', err); /* keep default = true */ }
 
     const billing = plan ? {
         plan_price: planPrice || null,
@@ -210,8 +216,7 @@ router.get('/orgs/:orgId', async (req, res) => {
     // tokens / messages are only returned to the hardcoded platform
     // operator account. Everyone else — including admin_subscriptions
     // RBAC holders and org admins — gets the marked-up cost only.
-    const isPlatformOperator = req.session?.user?.id === 'admin';
-    const currentUsage = isPlatformOperator
+    const currentUsage = isPlatformOperator(req.session?.user)
         ? { messages: usage.total_calls || 0, tokens: usage.total_tokens || 0, cost: billedCost }
         : { cost: billedCost };
 
@@ -226,6 +231,7 @@ router.get('/orgs/:orgId', async (req, res) => {
     // The frontend uses this list directly to render the Upgrade picker —
     // doing the filter server-side prevents the UI from ever offering a
     // downgrade just because the client logic drifts.
+    /** @type {Record<string, unknown>[]} */
     let upgradeable_plans = [];
     try {
         const allPlans = await userStore.getAllPlans();
@@ -257,6 +263,7 @@ router.get('/orgs/:orgId', async (req, res) => {
     // interval, with a Stripe price and a non-zero price (downgrade-to-free
     // is "cancel", not a plan change). Each is tagged with its direction so
     // the in-app Change-plan picker can label and confirm appropriately.
+    /** @type {Record<string, unknown>[]} */
     let changeable_plans = [];
     try {
         const allPlans = await userStore.getAllPlans();
@@ -290,7 +297,7 @@ router.get('/orgs/:orgId', async (req, res) => {
     // Resolve the friendly name of a pending (scheduled) downgrade target.
     let pending_plan_name = null;
     if (sub.pending_plan_id) {
-        try { pending_plan_name = (await userStore.getPlan(sub.pending_plan_id))?.name || null; } catch (err) { log.debug('ignore', err); }
+        try { pending_plan_name = (await userStore.getPlan(sub.pending_plan_id))?.name || null; } catch (err) { fallback('routes/subscriptions/orgSubscriptions:anon#2', err); /* ignore */ }
     }
 
     res.json({
@@ -311,7 +318,7 @@ router.get('/orgs/:orgId', async (req, res) => {
 });
 
 // PUT /api/subscriptions/orgs/:orgId — assign or update subscription
-router.put('/orgs/:orgId', validate({ body: OrgSubscriptionBody }), async (req, res) => {
+router.put('/orgs/:orgId', validate({ body: OrgSubscriptionBody }), async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     try {
         // Manual-override window: an admin can lock the subscription against
         // Stripe webhook clobbering for up to a week (default 24h). Pass
@@ -373,7 +380,7 @@ router.put('/orgs/:orgId', validate({ body: OrgSubscriptionBody }), async (req, 
 });
 
 // POST /api/subscriptions/orgs/:orgId/start-trial — one-time trial via Stripe
-router.post('/orgs/:orgId/start-trial', validate({ body: StartTrialBody }), async (req, res) => {
+router.post('/orgs/:orgId/start-trial', validate({ body: StartTrialBody }), async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     try {
         const orgId = req.params.orgId;
         const { plan_id } = req.body;

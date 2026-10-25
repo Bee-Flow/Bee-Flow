@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Automation Builder — the turn's iteration ceiling and how a turn the model
  * cannot finish is stopped: the label and position of the step that kept
@@ -27,7 +27,19 @@ const MAX_ITERATIONS = 24;
 const WASTED_ROUNDS_LIMIT = 4;
 const STOP_ERROR_HEAD = 200;
 
-/** What to call the step that kept failing: its label, its tool, its type. */
+/**
+ * The arguments of a builder tool call, as far as the stop wording reads them.
+ * @typedef {{ label?: string, tool?: string, stepId?: string,
+ *   steps?: Array<{ type?: string, spec?: { label?: string, tool?: string } }> }} StopCallArgs
+ */
+
+/**
+ * What to call the step that kept failing: its label, its tool, its type.
+ * @param {string} name
+ * @param {StopCallArgs | null | undefined} args  the call's parsed arguments
+ * @param {{ failedIndex?: number } | null | undefined} result  the refused result
+ * @returns {string}
+ */
 function rejectedCallLabel(name, args, result) {
     const steps = Array.isArray(args?.steps) ? args.steps : null;
     const entry = name === 'builder_add_steps' && steps && Number.isInteger(result?.failedIndex) ? steps[result.failedIndex] : null;
@@ -40,6 +52,9 @@ function rejectedCallLabel(name, args, result) {
  * The 1-based position the user sees for the step that was refused: the
  * batch entry's index; else the step the call names (an update); else the
  * slot a new step would have taken.
+ * @param {import('../../../automation/builderTools/draftGraph').DraftGraph | null | undefined} def
+ * @param {StopCallArgs | null | undefined} args
+ * @param {number | undefined} entryIndex
  */
 function rejectedStepPosition(def, args, entryIndex) {
     if (Number.isInteger(entryIndex)) return entryIndex + 1;
@@ -49,7 +64,11 @@ function rejectedStepPosition(def, args, entryIndex) {
     return at >= 0 ? at + 1 : steps.length + 1;
 }
 
-/** ONE sentence for the user, the same in the stream and in the stored turn. */
+/**
+ * ONE sentence for the user, the same in the stream and in the stored turn.
+ * @param {NonNullable<import('./turnSetup').BuilderTurn['stopReason']>} stop
+ * @param {import('../../../automation/builderTools/draftGraph').DraftGraph | null | undefined} def
+ */
 function stopSentence(stop, def) {
     const k = Array.isArray(def?.steps) ? def.steps.length : 0;
     const inPlace = `${k} step${k === 1 ? '' : 's'} ${k === 1 ? 'is' : 'are'} in place.`;

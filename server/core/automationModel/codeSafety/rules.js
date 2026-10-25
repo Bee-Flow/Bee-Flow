@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The rule catalog: one entry per finding the analyser can raise.
  *
@@ -19,6 +19,17 @@
 
 const RULESET_VERSION = 'code-safety/1';
 
+/**
+ * One rule of the catalog.
+ * @typedef {{ severity: 'block' | 'warn' | 'info', message: string, fix?: string, approver?: string }} CodeSafetyRule
+ */
+/**
+ * A finding as makeFinding builds it.
+ * @typedef {{ ruleId: string, severity: CodeSafetyRule['severity'], approver?: string, line: number, column: number,
+ *   endLine?: number, endColumn?: number, message: string, messageKey: string, fix?: string, fixKey?: string }} CodeSafetyFinding
+ */
+
+/** @type {Readonly<Record<string, CodeSafetyRule>>} */
 const RULES = Object.freeze({
     'host-internals': {
         severity: 'block',
@@ -100,16 +111,23 @@ const RULES = Object.freeze({
     },
 });
 
+/** @param {string} ruleId */
 function snake(ruleId) {
     return String(ruleId).replace(/-/g, '_');
 }
 
-/** The i18n key of a rule's message, `code_step.rule.<snake_case id>`. */
+/**
+ * The i18n key of a rule's message, `code_step.rule.<snake_case id>`.
+ * @param {string} ruleId
+ */
 function messageKeyOf(ruleId) {
     return `code_step.rule.${snake(ruleId)}`;
 }
 
-/** The i18n key of a rule's fix hint. */
+/**
+ * The i18n key of a rule's fix hint.
+ * @param {string} ruleId
+ */
 function fixKeyOf(ruleId) {
     return `code_step.rule.${snake(ruleId)}_fix`;
 }
@@ -117,8 +135,12 @@ function fixKeyOf(ruleId) {
 /**
  * A finding for `ruleId` at `node` (anything with an acorn `loc`), or at an
  * explicit `{ line, column }` (1-based). Columns are 1-based, like the editor.
+ * @param {string} ruleId
+ * @param {{ loc?: import('acorn').SourceLocation | null, line?: number, column?: number }} where
+ * @returns {CodeSafetyFinding}
  */
 function makeFinding(ruleId, where) {
+
     const rule = RULES[ruleId];
     if (!rule) throw new Error(`unknown code-safety rule ${ruleId}`);
     const loc = where && where.loc ? where.loc : null;

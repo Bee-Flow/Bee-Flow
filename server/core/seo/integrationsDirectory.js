@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The public integrations directory: a searchable list of what Bee Flow can
  * connect to, and one server-rendered page per integration ("Bee Flow +
@@ -180,7 +180,8 @@ function card(i) {
 /**
  * The directory page: search + category filter (GET form) and the matches
  * grouped per category. A filtered view is noindex so only the full list ranks.
- * @param {any} ctx { origin, siteName, items, q, category }
+ * @param {{ origin: string, siteName: string, items: GalleryItem[], q?: string, category?: string,
+ *   nav?: { integrations?: boolean, blog?: boolean } }} ctx { origin, siteName, items, q, category }
  */
 function renderDirectoryPage({ origin, siteName, items, q = '', category = '', nav = {} }) {
     const cats = listCategories(items);
@@ -225,7 +226,8 @@ function renderDirectoryPage({ origin, siteName, items, q = '', category = '', n
 
 /**
  * One integration's page.
- * @param {any} ctx { origin, siteName, item, related }
+ * @param {{ origin: string, siteName: string, item: GalleryItem, related?: GalleryItem[],
+ *   nav?: { integrations?: boolean, blog?: boolean } }} ctx { origin, siteName, item, related }
  */
 function renderDetailPage({ origin, siteName, item, related = [], nav = {} }) {
     const heading = `${siteName} + ${item.title}`;
@@ -258,7 +260,11 @@ function renderDetailPage({ origin, siteName, item, related = [], nav = {} }) {
     });
 }
 
-/** Sitemap entries (buildSitemap shape) for the directory and every detail page. */
+/**
+ * Sitemap entries (buildSitemap shape) for the directory and every detail page.
+ * @param {GalleryItem[]} items
+ * @param {{ defaultLocale: string, lastmod?: string }} opts
+ */
 function integrationSitemapEntries(items, { defaultLocale, lastmod }) {
     return [DIRECTORY_SLUG, ...items.map(i => `${DETAIL_BASE}/${i.id}`)]
         .map(slug => ({ slug, seo: {}, updatedAt: lastmod, locales: [defaultLocale] }));

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Blueprint store schema: the DDL of project_blueprints,
  * project_solution_entities, project_releases, solution_part_refs and

@@ -108,3 +108,5 @@ function traceStablePrefix(turn, label) {
 }
 
 module.exports = { adapterIsLocal, skipToolPrecheck, layoutVolatile, createVolatileGuard, traceStablePrefix, SDK_TYPES };
+
+/** @typedef {ReturnType<typeof import('./turnState').createTurnState>} Turn */

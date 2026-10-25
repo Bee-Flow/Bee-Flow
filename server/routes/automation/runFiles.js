@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The files a run produced, as the run page shows them:
  *
@@ -41,7 +41,11 @@ const { makeAutomationAccess } = require('../../automation/access');
 const { makeJourneyReader } = require('./runJourney');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 
-/** Env cap: a positive number, with 0 meaning unlimited and unset/garbage meaning `fallback`. */
+/**
+ * Env cap: a positive number, with 0 meaning unlimited and unset/garbage meaning `fallback`.
+ * @param {string} name
+ * @param {number} fallback
+ */
 function capFromEnv(name, fallback) {
     const raw = process.env[name];
     if (raw == null || raw === '') return fallback;
@@ -56,13 +60,28 @@ const previewMaxBytes = () => capFromEnv('AUTOMATION_RUN_FILE_PREVIEW_MAX_BYTES'
 // Previews per user per minute. 0 = no limit.
 const previewRpm = () => capFromEnv('AUTOMATION_RUN_FILE_PREVIEW_RPM', 120);
 
+/**
+ * @param {string | null | undefined} mime
+ */
 const baseType = (mime) => String(mime || '').split(';')[0].trim().toLowerCase();
+/**
+ * @param {string | null | undefined} mime
+ */
 const isPdf = (mime) => baseType(mime) === 'application/pdf';
-/** Raster images only: an SVG opened on our origin could run script. */
+/**
+ * Raster images only: an SVG opened on our origin could run script.
+ * @param {string | null | undefined} mime
+ */
 const isInlineImage = (mime) => /^image\/(png|jpe?g|gif|webp|avif|bmp)$/.test(baseType(mime));
+/**
+ * @param {string | null | undefined} mime
+ */
 const mayInline = (mime) => isPdf(mime) || isInlineImage(mime);
 
-/** The list entry for one file: an explicit allow-list, never the row. */
+/**
+ * The list entry for one file: an explicit allow-list, never the row.
+ * @param {Awaited<ReturnType<typeof import('../../stores/automationStore').listGeneratedFilesForRuns>>[number]} f
+ */
 function describeFile(f) {
     return {
         fileId: f.id,
@@ -76,8 +95,13 @@ function describeFile(f) {
     };
 }
 
-/** Read a stream into a Buffer, refusing to hold more than `maxBytes` (0 = no limit). */
+/**
+ * Read a stream into a Buffer, refusing to hold more than `maxBytes` (0 = no limit).
+ * @param {AsyncIterable<Buffer> & { destroy?: () => void }} stream
+ * @param {number} maxBytes
+ */
 async function readCapped(stream, maxBytes) {
+    /** @type {Buffer[]} */
     const chunks = [];
     let total = 0;
     for await (const chunk of stream) {
@@ -103,7 +127,7 @@ function makeRunFilesRouter(overrides = {}) {
     const router = express.Router();
     const store = () => overrides.store || require('../../stores/automationStore');
     const storage = () => overrides.storage || require('../../stores/storageStore');
-    const renderPdfPages = (...args) => (overrides.renderPdfPages
+    const renderPdfPages = /** @param {Parameters<typeof import('../../core/documents/pdfToImages').renderPdfPagesToImages>} args */ (...args) => (overrides.renderPdfPages
         || require('../../core/documents/pdfToImages').renderPdfPagesToImages)(...args);
     const access = makeAutomationAccess({
         store: overrides.store,
@@ -113,9 +137,13 @@ function makeRunFilesRouter(overrides = {}) {
 
     // The run, plus the journey legs the caller may read (routes/automation/runJourney.js).
     const journeyReader = makeJourneyReader({ store, access });
-    const readableJourney = (req, res) => journeyReader(req, res, req.params.runId);
+    const readableJourney = /** @param {import('express').Request<{ runId: string }>} req @param {import('express').Response} res */ (req, res) => journeyReader(req, res, req.params.runId);
 
-    /** The file row and its bytes, or a 404 for every way of not having them. */
+    /**
+     * The file row and its bytes, or a 404 for every way of not having them.
+     * @param {import('express').Request<{ runId: string, fileId: string }>} req
+     * @param {import('express').Response} res
+     */
     async function openFile(req, res) {
         const journey = await readableJourney(req, res);
         if (!journey) return null;
@@ -138,7 +166,7 @@ function makeRunFilesRouter(overrides = {}) {
         if (!journey) return undefined;
         const files = await store().listGeneratedFilesForRuns(journey.runIds);
         res.setHeader('Cache-Control', 'private, no-store');
-        return res.json({ files: files.filter(f => f.automationId === journey.run.automationId).map(describeFile) });
+        return res.json({ files: files.filter((/** @type {Awaited<ReturnType<typeof import('../../stores/automationStore').listGeneratedFilesForRuns>>[number]} */ f) => f.automationId === journey.run.automationId).map(describeFile) });
     });
 
     router.get('/runs/:runId/files/:fileId', async (req, res, next) => {
@@ -164,9 +192,9 @@ function makeRunFilesRouter(overrides = {}) {
 
     const previewLimiter = previewRpm() > 0
         ? perUserRateLimit({ windowMs: 60_000, max: previewRpm() })
-        : (_req, _res, next) => next();
+        : /** @type {import('express').RequestHandler} */ ((_req, _res, next) => next());
 
-    router.get('/runs/:runId/files/:fileId/preview', previewLimiter, async (req, res) => {
+    router.get('/runs/:runId/files/:fileId/preview', previewLimiter, async (/** @type {import('express').Request<{ runId: string, fileId: string }>} */ req, res) => {
         // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored with a bounded repeat {1,6}: linear
         const raw = req.query.page == null ? '1' : String(req.query.page);
         const page = /^\d{1,6}$/.test(raw) ? Number(raw) : 0;

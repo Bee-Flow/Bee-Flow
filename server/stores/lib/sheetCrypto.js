@@ -115,3 +115,13 @@ async function transition(client, document, resource, context) {
 }
 
 module.exports = { attach, transition, isSheet, withWrite, assertQuery, openRow, openRows, sealValues };
+
+/**
+ * A datatable resolved by the datatable store.
+ * @typedef {{
+ *   table: { id: string, ownerUserId?: string, managedKind?: string, managed_kind?: string },
+ *   scopeKey: string,
+ *   meta: { key: string },
+ * }} ResolvedSheet
+ * @typedef {{ scope: string, tier?: string, orgId?: string | null, userId?: string }} SheetCryptoContext
+ */

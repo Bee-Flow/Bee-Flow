@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The Gmail tool definitions in OpenAI function-calling format, exported
  * as GMAIL_TOOLS by ../gmailTools.js.

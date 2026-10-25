@@ -35,6 +35,7 @@ const BUILTINS = {
     'builtin:research_swarm': require('./builtins/researchSwarm'),
 };
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 function loadSwarmById(id) {
     if (!id || typeof id !== 'string') return null;
@@ -95,7 +96,7 @@ async function resolveWorkerModel({ worker, fallbackModelId, userOrgId, userId }
             userOrgId, userId, fallbackTier: 'fast',
         });
         if (resolved) modelId = resolved;
-    } catch (err) { log.debug('fall back to fallbackModelId', err); }
+    } catch (err) { fallback('core/swarms/swarmRuntime:resolveWorkerModel', err); /* fall back to fallbackModelId */ }
 
     const config = await getProviderForModel(modelId);
     const adapter = getAdapter(config.providerType, (config.url || '').replace(/\/+$/, ''));
@@ -260,7 +261,7 @@ async function runWorker({
             ...fields,
             source: 'swarm',
             model: model.modelId,
-        }).catch(() => {});
+        }).catch((e) => bestEffort('core/swarms/swarmRuntime:logShieldEvent', e));
     };
     const w = {
         ...card, model, isSynthesiser, userId, swarmRunId, organizationId, conversationId,
@@ -356,7 +357,7 @@ async function runSwarmTurn({
         phaseStates: {},
         workers: {},
         startedAt,
-        durationMs: null,
+        durationMs: /** @type {number | null} */ (null),
     };
 
     // Build the directChat tool stack ONCE per turn — every worker shares
@@ -452,3 +453,16 @@ module.exports = {
     appendHiveMindEntry,
     mapWithConcurrency,
 };
+
+/**
+ * @typedef {import('./swarmWorkerRound').SwarmWorker} SwarmWorker
+ * @typedef {import('./swarmWorkerRound').SwarmSend} SwarmSend
+ * @typedef {import('./swarmWorkerRound').RunSnapshot} RunSnapshot
+ * @typedef {import('./swarmWorkerRound').WorkerCard} WorkerCard
+ * @typedef {import('./swarmWorkerRound').WorkerMessage} WorkerMessage
+ * @typedef {import('./swarmWorkerRound').WorkerRun} WorkerRun
+ * @typedef {{ at: number, byWorker: string, kind: string, title: string, body: string }} HiveEntry
+ * @typedef {{ entries: HiveEntry[], updatedAt: number | null }} HiveMind
+ * @typedef {Awaited<ReturnType<typeof buildDirectChatToolStack>>['tools']} SwarmTools
+ * @typedef {Awaited<ReturnType<typeof import('../privacy/orgShield').resolveShieldFor>>} SwarmShield
+ */

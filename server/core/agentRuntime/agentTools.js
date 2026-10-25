@@ -6,6 +6,7 @@ const componentManager = require('../cms/componentManager');
 const agentStore = require('../../stores/agentStore');
 const { componentToTool } = require('../tools/toolExecution');
 const log = require('../../telemetry/log');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 // The stores and catalogues this module reads, each behind a getter so a test
 // swaps them through _setDepsForTests instead of reaching into the module
@@ -117,11 +118,14 @@ async function componentScopeOf(userId) {
         if (!user) return { userId: null, orgId: null };
         return { userId, orgId: user.organizationId || null };
     } catch (e) {
-        log.warn('[AgentTools] Could not resolve the caller for component scoping:', e.message);
+        log.warn('[AgentTools] Could not resolve the caller for component scoping:', /** @type {Error} */ (e).message);
         return { userId: null, orgId: null };
     }
 }
 
+/**
+ * @param {string} agentId
+ */
 async function getAgentTools(agentId) {
     const componentIds = await _deps.agentStore().getAgentTools(agentId);
     const allComponents = _deps.componentManager().getComponents();
@@ -156,7 +160,7 @@ async function getAgentTools(agentId) {
         }
         return { agent, ownerOrgId };
     })();
-    ownerLookup.catch(() => { /* awaited (and reported) by both readers below */ });
+    ownerLookup.catch((e) => bestEffort('core/agentRuntime/agentTools:getAgentTools', e));
 
     // ...and also which org's OWNED file components (componentVisibleTo).
     // A failed lookup leaves the empty scope: unowned components only.
@@ -164,7 +168,7 @@ async function getAgentTools(agentId) {
     try {
         const { agent, ownerOrgId } = await ownerLookup;
         componentScope = { userId: agent?.userId || null, orgId: ownerOrgId };
-    } catch (err) { log.debug('reported by the subworkflow reader below', err); }
+    } catch (err) { fallback('core/agentRuntime/agentTools:getAgentTools#2', err); /* reported by the subworkflow reader below */ }
     const agentEnabledComponents = allComponents.filter(c =>
         c.definition?.agentEnabled === true && componentVisibleTo(c.definition, componentScope));
 
@@ -264,7 +268,7 @@ async function getAgentTools(agentId) {
         await appendMcpTools(tools, { effectiveIntegrations, isToolGranted });
         await appendCustomIntegrationTools(tools, { effectiveIntegrations, orgId: ownerOrgId, isToolGranted });
     } catch (err) {
-        log.warn('[AgentTools] Failed to load MCP tools:', err.message);
+        log.warn('[AgentTools] Failed to load MCP tools:', /** @type {Error} */ (err).message);
     }
 
     return tools;
@@ -348,7 +352,7 @@ async function getAvailableComponents({ userId = null } = {}) {
                             description: `Input parameter: ${key} (${valueType})`
                         };
                     }
-                } catch (e) { log.debug('Keep default if parsing fails', e); }
+                } catch (e) { fallback('core/agentRuntime/agentTools:getAvailableComponents', e); /* Keep default if parsing fails */ }
             }
 
             componentList.push({
@@ -378,3 +382,8 @@ function _setDepsForTests(over = null) {
 }
 
 module.exports = { getAgentTools, getAvailableComponents, componentVisibleTo, _setDepsForTests };
+
+/**
+ * The keys of a parsed component.json that the agent readers look at.
+ * @typedef {{ agentEnabled?: unknown, name?: string, description?: string, category?: string, inputs?: Record<string, { type: string, default?: unknown, description?: string, required?: boolean }>, owner?: unknown }} ComponentJson
+ */

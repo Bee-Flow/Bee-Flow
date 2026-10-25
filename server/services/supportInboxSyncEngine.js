@@ -24,6 +24,7 @@ const parse = require('./email/parse');
 const supportMailer = require('./supportMailer');
 const { runAiAutoResponder } = require('./supportAiResponder');
 const log = require('../telemetry/log');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const TICK_INTERVAL_MS = parseInt(process.env.SUPPORT_INBOX_TICK_MS || '90000', 10);
 const MAX_CONCURRENT = parseInt(process.env.SUPPORT_INBOX_MAX_CONCURRENT || '3', 10);
@@ -34,9 +35,13 @@ const LOOKBACK_OVERLAP_MS = 5 * 60 * 1000; // re-scan window; dedupe makes it sa
 // a mailbox hostage for longer than this (see syncOneInbox).
 const SYNC_LOCK_TTL_MINUTES = 10;
 
+/** @type {NodeJS.Timeout | null} */
 let _timer = null;
 let _emitEvent = null; // injected lazily to avoid a require cycle with routes/support
 
+/**
+ * @param {string} event
+ */
 function _emit(event, inboxId, data = {}) {
     try {
         if (!_emitEvent) {
@@ -44,7 +49,7 @@ function _emit(event, inboxId, data = {}) {
             _emitEvent = (e, d) => supportEvents.emit('event', { event: e, data: d });
         }
         _emitEvent(event, { ...data, inboxId });
-    } catch (err) { log.debug('never block sync on the event bus', err); }
+    } catch (err) { fallback('services/supportInboxSyncEngine:_emit', err); /* never block sync on the event bus */ }
 }
 
 /**
@@ -77,7 +82,7 @@ async function tickOnce() {
         while (idx < due.length) {
             const row = due[idx++];
             try { total += await syncOneInbox(row); }
-            catch (e) { log.warn(`[SupportInboxSync] inbox ${row.id}:`, e.message); }
+            catch (e) { log.warn(`[SupportInboxSync] inbox ${row.id}:`, /** @type {Error} */ (e).message); }
         }
     };
     await Promise.all(Array.from({ length: Math.min(MAX_CONCURRENT, due.length) }, worker));
@@ -118,12 +123,12 @@ async function syncOneInbox(inboxRow) {
         if (!inbox || !inbox.tokens || !inbox.tokens.accessToken) {
             throw new Error('mailbox not connected (no tokens)');
         }
-        const onRefresh = (t) => supportInboxStore.updateTokens(inbox.id, t).catch(() => {});
+        const onRefresh = (t) => supportInboxStore.updateTokens(inbox.id, t).catch((e) => fallback('services/supportInboxSyncEngine:onRefresh', e));
         if (inbox.provider === 'gmail') count = await syncGmail(inbox, onRefresh);
         else if (inbox.provider === 'outlook') count = await syncOutlook(inbox, onRefresh);
         await supportInboxStore.updateSyncState(inbox.id, { syncStatus: 'idle', syncError: null, lastSyncAt: new Date().toISOString() });
     } catch (e) {
-        await supportInboxStore.updateSyncState(inboxRow.id, { syncStatus: 'error', syncError: String(e.message).slice(0, 500), lastSyncAt: new Date().toISOString() });
+        await supportInboxStore.updateSyncState(inboxRow.id, { syncStatus: 'error', syncError: String(/** @type {Error} */ (e).message).slice(0, 500), lastSyncAt: new Date().toISOString() });
     } finally {
         await supportInboxStore.releaseSyncLock(inboxRow.id);
     }
@@ -152,7 +157,7 @@ async function syncGmail(inbox, onRefresh) {
             const full = await gmail.users.messages.get({ userId: 'me', id, format: 'full' });
             if (await ingestGmail(inbox, full.data)) processed++;
         } catch (e) {
-            log.warn(`[SupportInboxSync] gmail msg ${id}:`, e.message);
+            log.warn(`[SupportInboxSync] gmail msg ${id}:`, /** @type {Error} */ (e).message);
         }
     }
     return processed;
@@ -162,6 +167,9 @@ async function ingestGmail(inbox, msg) {
     const labels = msg.labelIds || [];
     if (labels.includes('SENT') || labels.includes('DRAFT')) return false; // our own / drafts
     const headers = msg.payload?.headers || [];
+    /**
+     * @param {string} n
+     */
     const getHeader = (n) => parse.getGmailHeader(headers, n);
     const fromAddress = parse.parseAddress(getHeader('From'));
     const auto = parse.detectAutoOrBulk(getHeader, { fromAddress, inboxAddress: inbox.email_address });
@@ -204,7 +212,7 @@ async function syncOutlook(inbox, onRefresh) {
     let processed = 0;
     for (const m of items) {
         try { if (await ingestOutlook(inbox, m)) processed++; }
-        catch (e) { log.warn(`[SupportInboxSync] graph msg ${m.id}:`, e.message); }
+        catch (e) { log.warn(`[SupportInboxSync] graph msg ${m.id}:`, /** @type {Error} */ (e).message); }
     }
     return processed;
 }
@@ -264,7 +272,7 @@ async function ingestNormalized(inbox, n) {
             if (due && (due.first || due.resolution)) {
                 await supportStore.setThreadSla(thread.id, { firstDueAt: due.first, resolutionDueAt: due.resolution });
             }
-        } catch (err) { log.debug('SLA is best-effort', err); }
+        } catch (err) { bestEffort('services/supportInboxSyncEngine:ingestNormalized', err); /* SLA is best-effort */ }
     }
 
     const bodyText = n.text || supportMailer.htmlToText(n.html) || '(no content)';
@@ -287,7 +295,7 @@ async function ingestNormalized(inbox, n) {
         organizationId: inbox.organization_id, inboxId: inbox.id, threadId: thread.id,
         actorKind: 'system', action: 'email_ingested',
         payload: { from: n.from, subject: n.subject, isNew, providerMessageId: n.providerMessageId || null },
-    }).catch(() => {});
+    }).catch((e) => bestEffort('services/supportInboxSyncEngine:ingestNormalized#2', e));
 
     if (!isNew) {
         // A new inbound message always returns the ticket to the agent queue.
@@ -302,7 +310,7 @@ async function ingestNormalized(inbox, n) {
             await supportStore.recordThreadEvent({
                 threadId: thread.id, actorKind: 'requester', action: 'reopened',
                 payload: { from: thread.status },
-            }).catch(() => {});
+            }).catch((e) => bestEffort('services/supportInboxSyncEngine:ingestNormalized#3', e));
         }
     }
     _emit(isNew ? 'thread_created' : 'thread_updated', inbox.id, { threadId: thread.id });
@@ -325,7 +333,7 @@ async function ingestNormalized(inbox, n) {
             }
             await triggerAi(inbox, thread);
         } catch (e) {
-            log.warn('[SupportInboxSync] AI trigger failed:', e.message);
+            log.warn('[SupportInboxSync] AI trigger failed:', /** @type {Error} */ (e).message);
         }
     })();
     return true;
@@ -354,7 +362,7 @@ async function triggerAi(inbox, thread) {
     // AI auto-resolved the ticket → fire the resolved trigger (the responder
     // transitioned status without going through the route, so dispatch here).
     if (result && result.resolved) {
-        dispatchResolved(inbox, thread.id).catch(() => {});
+        dispatchResolved(inbox, thread.id).catch((e) => bestEffort('services/supportInboxSyncEngine:triggerAi', e));
     }
 }
 
@@ -382,7 +390,7 @@ async function dispatchResolved(inbox, threadId) {
             transcript, genuineContact: true,
         }, thread.organization_id || null);
     } catch (e) {
-        log.warn('[SupportInboxSync] dispatchResolved failed:', e.message);
+        log.warn('[SupportInboxSync] dispatchResolved failed:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -404,9 +412,18 @@ async function deliverAiReply(inbox, threadId, message) {
             providerMessageId: sent.providerMessageId || null,
         });
     } catch (e) {
-        log.error('[SupportInboxSync] AI auto-send failed:', e.message);
-        await supportStore.setMessageEmailStatus(message.id, { ok: false, error: e.message, at: new Date().toISOString() });
+        log.error('[SupportInboxSync] AI auto-send failed:', /** @type {Error} */ (e).message);
+        await supportStore.setMessageEmailStatus(message.id, { ok: false, error: /** @type {Error} */ (e).message, at: new Date().toISOString() });
     }
 }
 
 module.exports = { startSupportInboxSync, stopSupportInboxSync, tickOnce, syncOneInbox, deliverAiReply };
+
+/**
+ * Raw support_inboxes row (getInboxWithTokens adds decrypted `tokens`).
+ * @typedef {Record<string, any>} SupportInboxRow
+ * @typedef {{ filename?: string | null, mimeType?: string | null, headers?: Array<{ name?: string | null, value?: string | null }> | null, body?: { data?: string | null, attachmentId?: string | null, size?: number | null } | null, parts?: GmailPayload[] | null }} GmailPayload
+ * @typedef {{ id?: string, threadId?: string | null, labelIds?: string[] | null, payload?: GmailPayload | null }} GmailMessage
+ * @typedef {{ id?: string, conversationId?: string, internetMessageId?: string, subject?: string, bodyPreview?: string, hasAttachments?: boolean, from?: { emailAddress?: { address?: string, name?: string } }, body?: { contentType?: string, content?: string } }} GraphMessage
+ * @typedef {{ providerMessageId: string, providerThreadId: string | null, rfc822MessageId: string | null, inReplyTo: string | null, references: string[], from: string, fromName: string, subject: string, text: string, html: string, attachments: Array<Record<string, unknown>> }} NormalizedInbound
+ */

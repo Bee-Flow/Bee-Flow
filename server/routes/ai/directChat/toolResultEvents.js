@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Direct Chat — the SSE events a settled batch of tool results produces.
  *
@@ -8,6 +9,15 @@
  * non-streamed return used to omit — see toolExec.js.
  */
 
+/**
+ * @param {ReturnType<typeof import('./turnState').createTurnState>} turn
+ * @param {Array<{ _toolName?: string, _toolResult?: {
+ *   _action?: string, content?: string, _nbWriteFailed?: boolean, _revertContent?: string, _sources?: unknown[],
+ *   audioUrl?: string, file?: Record<string, unknown>,
+ *   draft?: { to?: string, subject?: string, body?: string, action?: string, title?: string, startTime?: string, endTime?: string, eventId?: string, [key: string]: unknown },
+ * } }>} toolResults
+ * @param {{ streamed: boolean }} opts
+ */
 function emitToolResultEvents(turn, toolResults, { streamed }) {
     const { send, collectedEmailDrafts, collectedCalendarDrafts, generatedAudio, generatedFiles } = turn;
     for (const tr of toolResults) {
@@ -28,7 +38,7 @@ function emitToolResultEvents(turn, toolResults, { streamed }) {
         // drafts never carry, so the dedup was a no-op and the model
         // re-calling the tool across rounds duplicated the card (BFSF-123).
         if (toolResult._action === 'calendar_draft') {
-            const calKey = (d) => JSON.stringify({ action: d?.action, title: d?.title, startTime: d?.startTime, endTime: d?.endTime, eventId: d?.eventId });
+            const calKey = /** @param {{ action?: string, title?: string, startTime?: string, endTime?: string, eventId?: string }} d */ (d) => JSON.stringify({ action: d?.action, title: d?.title, startTime: d?.startTime, endTime: d?.endTime, eventId: d?.eventId });
             const draftKey = calKey(toolResult.draft);
             const alreadySent = collectedCalendarDrafts.some(d => calKey(d) === draftKey);
             if (!alreadySent) {
@@ -62,6 +72,7 @@ function emitToolResultEvents(turn, toolResults, { streamed }) {
         }
         // BFSF-208: write failed after partial content was live-streamed to the panel — roll back to last persisted content.
         if (streamed && toolResult._nbWriteFailed && turn._nbStreamLastLen > 0) {
+            /** @type {Pick<typeof import('../../../core/privacy/piiDetection'), 'restoreTokens'>} */
             const { restoreTokens } = require('../../../core/privacy/piiDetection');
             const _convMapForWs = require('../../../core/dlp/dlpRunner').getConversationTokenMap(turn.convId);
             send('workspace_update', { content: restoreTokens(toolResult._revertContent || '', _convMapForWs) });

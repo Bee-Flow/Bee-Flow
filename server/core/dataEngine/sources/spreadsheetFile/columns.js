@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Header cells → datatable fields, deterministically — the spreadsheet twin
  * of ../nextcloudTable/columns.js, with one difference that shapes everything:
@@ -58,7 +58,16 @@ const INFERABLE_TYPES = Object.freeze(['text', 'number', 'date', 'datetime', 'bo
 /** What the wizard / `PUT /:id/source` may declare (select is the one opt-in). */
 const DECLARABLE_TYPES = Object.freeze([...INFERABLE_TYPES, 'select']);
 
-/** 0 → 'A', 25 → 'Z', 26 → 'AA' — display only; the wire carries the 0-based `col`. */
+/** @typedef {{ col: number, header?: unknown, type?: string, formula?: boolean, options?: unknown, numFmt?: unknown, format?: string, dateFormat?: unknown }} SheetColumn */
+/** @typedef {{ col?: number, header?: string, headerHash?: string, type?: string, options?: string[], format?: string, numFmt?: string, dateFormat?: string, formula?: boolean, key?: boolean, derived?: string, localFieldId?: string, targetFieldId?: string }} ColumnMapEntry */
+/** @typedef {{ id: string, key: string, name: string, type: string, options?: string[], derived?: boolean, required?: boolean, relation?: { table: string, fk: boolean } }} MirrorField */
+/** @typedef {{ id?: string, key?: string, name?: string, options?: unknown }} ExistingField */
+/** @typedef {{ targetDatatableId: string, targetKey?: string, targetName?: string, localFieldId: string, targetFieldId: string }} DeclaredRelation */
+
+/**
+ * 0 → 'A', 25 → 'Z', 26 → 'AA' — display only; the wire carries the 0-based `col`.
+ * @param {unknown} col
+ */
 function columnLetter(col) {
     let n = Number(col);
     if (!Number.isInteger(n) || n < 0) return '';
@@ -67,14 +76,20 @@ function columnLetter(col) {
     return s;
 }
 
-/** The header cell as text: a Date header becomes its ISO date, a number its digits. */
+/**
+ * The header cell as text: a Date header becomes its ISO date, a number its digits.
+ * @param {unknown} cell
+ */
 function headerText(cell) {
     if (cell === null || cell === undefined) return '';
     if (cell instanceof Date) return Number.isNaN(cell.getTime()) ? '' : isoDate(cell);
     return String(cell).trim().slice(0, DATA_LIMITS.MAX_NAME_LEN);
 }
 
-/** The keyFromTitle normalisation alone: lower-case ASCII with underscores, '' when nothing is left. */
+/**
+ * The keyFromTitle normalisation alone: lower-case ASCII with underscores, '' when nothing is left.
+ * @param {unknown} header
+ */
 function slugOf(header) {
     return String(header ?? '')
         .normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -84,6 +99,7 @@ function slugOf(header) {
         .replace(/_{2,}/g, '_');
 }
 
+/** @param {string} seed */
 function hashOf(seed) {
     return crypto.createHash('sha256').update(`ss\0${seed}`).digest('hex').slice(0, HASH_LEN);
 }
@@ -94,7 +110,7 @@ function hashOf(seed) {
  * and the pass agree on names, hashes and duplicate numbering.
  *
  * @param {Array<{col:number, header:*}>|Array<*>} cells   header cells, or {col, header} pairs
- * @returns {Array<{ col, letter, header, name, slug, headerHash, blankHeader, duplicateHeader }>}
+ * @returns {Array<{ col: number, letter: string, header: string, name: string, slug: string, headerHash: string, blankHeader: boolean, duplicateHeader: boolean }>}
  */
 function describeHeader(cells) {
     const list = (Array.isArray(cells) ? cells : []).map((c, i) => (
@@ -117,13 +133,20 @@ function describeHeader(cells) {
     });
 }
 
+/**
+ * @param {string} headerHash
+ * @param {string} type
+ */
 function fieldIdFor(headerHash, type) {
-    const id = `${ID_PREFIX}${headerHash}${TYPE_CODE[type] || 'txt'}`;
+    const id = `${ID_PREFIX}${headerHash}${/** @type {Record<string, string>} */ (TYPE_CODE)[type] || 'txt'}`;
     if (!FIELD_ID_RE.test(id)) throw new Error(`spreadsheetFile: cannot derive a field id for header hash ${headerHash}`);
     return id;
 }
 
-/** `fld_ss<hash><code>` → { headerHash, typeCode } or null. */
+/**
+ * `fld_ss<hash><code>` → { headerHash, typeCode } or null.
+ * @param {unknown} id
+ */
 function parseFieldId(id) {
     const m = ID_RE.exec(String(id || ''));
     return m ? { headerHash: m[1], typeCode: m[2] } : null;
@@ -132,26 +155,32 @@ function parseFieldId(id) {
 /**
  * The declared-relation column: one id per (target, local, target field)
  * triple, the same hash as Nextcloud's, under this kind's prefix.
+ * @param {string} targetDatatableId
+ * @param {string} localFieldId
+ * @param {string} targetFieldId
  */
 function matchFieldIdFor(targetDatatableId, localFieldId, targetFieldId) {
     return matchFieldIdWith(targetDatatableId, localFieldId, targetFieldId, MATCH_PREFIX);
 }
 
-/** The key a blank header gets: `col_c` for column C. */
+/**
+ * The key a blank header gets: `col_c` for column C.
+ * @param {{ blankHeader: boolean, letter: string, name: string }} described
+ */
 function keyTitleFor(described) {
     return described.blankHeader ? `col_${described.letter.toLowerCase()}` : described.name;
 }
 
 /**
- * @param {Array} columns   [{ col, header, type?, formula?, options?, numFmt?, format?, dateFormat? }] in sheet order
+ * @param {SheetColumn[]} columns   [{ col, header, type?, formula?, options?, numFmt?, format?, dateFormat? }] in sheet order
  * @param {object} [ctx]
- * @param {Array}  [ctx.existingFields]      the mirror's current fields (identity + kept keys)
- * @param {object} [ctx.existingColumnMap]   the mirror's current source.columnMap (prior cols, types, hashes)
- * @param {Array}  [ctx.declaredRelations]   [{ targetDatatableId, targetKey, targetName, localFieldId, targetFieldId }]
+ * @param {ExistingField[]}  [ctx.existingFields]      the mirror's current fields (identity + kept keys)
+ * @param {Record<string, ColumnMapEntry>} [ctx.existingColumnMap]   the mirror's current source.columnMap (prior cols, types, hashes)
+ * @param {DeclaredRelation[]}  [ctx.declaredRelations]   [{ targetDatatableId, targetKey, targetName, localFieldId, targetFieldId }]
  * @param {number|null} [ctx.keyCol]         0-based column of the key column (required:true)
- * @param {object} [ctx.overrides]           { [fieldId|headerHash]: { type } } — retypes from the wizard / PUT /:id/source
+ * @param {Record<string, { type?: string } | string>} [ctx.overrides]           { [fieldId|headerHash]: { type } } — retypes from the wizard / PUT /:id/source
  * @param {Set<string>} [ctx.reservedKeys]   keys this mirror must not use
- * @returns {{ fields:Array, columnMap:object, relations:Array, warnings:string[], changes:string[], retyped:Array, keyFieldId:string|null }}
+ * @returns {{ fields:MirrorField[], columnMap:Record<string, ColumnMapEntry>, relations:Array<{ fieldId: string, kind: string, targetDatatableId: string, localFieldId: string, targetFieldId: string }>, warnings:string[], changes:string[], retyped:ExistingField[], keyFieldId:string|null }}
  */
 function fieldsFromSheet(columns, {
     existingFields = [], existingColumnMap = {}, declaredRelations = [],
@@ -187,7 +216,7 @@ function fieldsFromSheet(columns, {
     // a retyped column) or by header hash; both resolve to a hash.
     const typeByHash = new Map();
     for (const [k, v] of Object.entries(overrides || {})) {
-        const type = v && typeof v === 'object' ? v.type : v;
+        const type = v && typeof v === 'object' ? v.type : /** @type {string} */ (v);
         if (!DECLARABLE_TYPES.includes(type)) continue;
         const entry = priorEntries[k];
         const hash = (entry && entry.headerHash) || (parseFieldId(k) || {}).headerHash || (/^[0-9a-f]{10}$/.test(k) ? k : null);
@@ -229,7 +258,9 @@ function fieldsFromSheet(columns, {
         if (k && k.key) used.add(k.key);
     }
 
+    /** @type {MirrorField[]} */
     const fields = [];
+    /** @type {Record<string, ColumnMapEntry>} */
     const columnMap = {};
     const relations = [];
     const changes = [];
@@ -248,7 +279,9 @@ function fieldsFromSheet(columns, {
         seenIds.add(id);
         hashesNow.add(d.headerHash);
 
+        /** @type {MirrorField} */
         const field = { id, key, name: d.name || key, type };
+        /** @type {ColumnMapEntry} */
         const entry = { col: c.col, header: d.header, headerHash: d.headerHash, type };
         if (type === 'select') {
             const options = optionList(c.options);
@@ -323,7 +356,10 @@ function fieldsFromSheet(columns, {
     return { fields, columnMap, relations, warnings, changes, retyped, keyFieldId };
 }
 
-/** Select options as distinct, trimmed, bounded strings. */
+/**
+ * Select options as distinct, trimmed, bounded strings.
+ * @param {unknown} options
+ */
 function optionList(options) {
     const seen = new Set();
     const out = [];

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -10,8 +10,8 @@
  * install and a half-built trigger is a normal intermediate state.
  */
 
-const log = require('../../telemetry/log');
 const { PUSH_PENDING } = require('../deliverableEvents');
+const { fallback } = require('../../utils/bestEffort');
 
 // Keys the rich filter DSL (triggers/dslFilters.js) adds on top of any event.
 const DSL_KEYS = ['any', 'none', 'expr', 'age'];
@@ -71,6 +71,7 @@ function filterWarnings(provider, event, filter) {
     const known = NEXTCLOUD_FILTER_KEYS[event];
     if (!known) return [];
     const f = /** @type {Record<string, unknown>} */ (filter);
+    /** @type {string[]} */
     const out = [];
     const unknown = Object.keys(f).filter(k => !known.includes(k) && !DSL_KEYS.includes(k));
     if (unknown.length) {
@@ -93,6 +94,7 @@ function appEventWarnings(appEvent) {
     const provider = appEvent?.provider;
     const event = appEvent?.event;
     if (!provider || !event) return [];
+    /** @type {string[]} */
     const out = [];
     let registryLoaded = false;
     /** @type {{ events?: { id: string }[] } | null} */
@@ -101,7 +103,7 @@ function appEventWarnings(appEvent) {
         const ts = require('../triggerSources');
         registryLoaded = ts.listTriggerSources().length > 0;
         source = ts.getTriggerSource(provider) || null;
-    } catch (e) { log.debug(`[triggerAdvice] trigger registry unavailable: ${e.message}`); }
+    } catch (e) { fallback('automation/builderTools/triggerAdvice:appEventWarnings', e); /* [triggerAdvice] trigger registry unavailable: */ }
     if (registryLoaded) {
         const offered = (source?.events || []).map(e => e.id);
         if (!source) {

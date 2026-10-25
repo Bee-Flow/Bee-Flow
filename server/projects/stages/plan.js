@@ -577,3 +577,31 @@ async function plan({ stageProjectId, releaseId = null, kind = 'deploy', setting
 }
 
 module.exports = { plan, bindReleaseEntity, dataDiff, bindingsPlan, variablesPlan };
+
+/** @typedef {import('../../core/packaging/walkers').DefinitionNode} DefinitionNode */
+
+/** @typedef {import('./model').StageRow & { newPartsActive?: boolean, requiresApproval?: boolean, rollbackNeedsApproval?: boolean }} StageRow */
+
+/** @typedef {{ code: string, severity: string, [key: string]: unknown }} Finding */
+
+/** @typedef {{ ref: string, kind: string, entityId: string, installHash?: string, retiredAt?: string|Date|null }} Stamp */
+
+/**
+ * What the part, payload and pin planners share.
+ * @typedef {{
+ *   stage: StageRow, release: DefinitionNode, stamps: Map<string, Stamp>, slots: DefinitionNode[],
+ *   idByRef: Map<string, string>, payloads: Array<{ ref: string, kind: string, payload: DefinitionNode }>,
+ *   previousListings: Map<string, { docs: import('./knowledgeContent').KbDoc[] }>, bindings: Map<string, unknown>, tableTokens: Map<string, string>,
+ *   fingerprint: (descriptor: DefinitionNode) => string,
+ *   data: Array<ReturnType<typeof dataDiff>['diff']>, blocking: Finding[], acks: Array<{ code: string, ref?: string }>,
+ *   bound: Array<{ ref: string, kind: string, entity: DefinitionNode, hash: string }>,
+ *   templatePins?: Map<string, string>, releaseRefs?: Set<string>,
+ * }} PlanCtx
+ */
+
+/**
+ * One row of `plan.parts`.
+ * @typedef {{ ref: string, kind: string, name: string|null, action: string, drift: boolean, goesLive: boolean,
+ *   summary: string|null, automationKind?: string, missing?: boolean, settingsChanged?: string[],
+ *   goLiveDeferred?: boolean, substitutions?: object[], unresolved?: string[] }} PlanPart
+ */

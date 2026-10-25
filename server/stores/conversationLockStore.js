@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * One AI run at a time, per conversation.
  *
@@ -62,6 +62,7 @@ async function _initDB() {
  * the row is taken over only when the incumbent has expired. One statement, so
  * two replicas racing cannot both win.
  *
+ * @param {{ conversationId: string, conversationType?: string, projectId?: string | null, userId: string, runId: string, ttlMs?: number }} opts
  * @returns {Promise<{acquired: true, runId: string}|{acquired: false, holder: object}>}
  */
 async function acquireTurn({ conversationId, conversationType = 'direct', projectId = null, userId, runId, ttlMs = DEFAULT_TTL_MS }) {
@@ -91,6 +92,7 @@ async function acquireTurn({ conversationId, conversationType = 'direct', projec
  *
  * Scoped to the run id so a stale heartbeat from an abandoned run cannot keep
  * a lock alive that has already been taken over by someone else.
+ * @param {{ conversationId: string, runId: string, ttlMs?: number }} opts
  */
 async function extendTurn({ conversationId, runId, ttlMs = DEFAULT_TTL_MS }) {
     await initDB();
@@ -105,6 +107,7 @@ async function extendTurn({ conversationId, runId, ttlMs = DEFAULT_TTL_MS }) {
 /**
  * Release. Also scoped to the run id: a late `finally` from a run that already
  * lost its lock must not free the turn out from under its successor.
+ * @param {{ conversationId: string, runId: string }} opts
  */
 async function releaseTurn({ conversationId, runId }) {
     await initDB();
@@ -115,7 +118,10 @@ async function releaseTurn({ conversationId, runId }) {
     return rowCount > 0;
 }
 
-/** Who holds the turn, if anyone. Expired rows read as free. */
+/**
+ * Who holds the turn, if anyone. Expired rows read as free.
+ * @param {string} conversationId
+ */
 async function getTurn(conversationId) {
     await initDB();
     const row = await getOne(

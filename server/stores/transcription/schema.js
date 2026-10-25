@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The transcriptions table: its boot DDL and the additive migration ladder,
  * behind one memoised init that every part of the store awaits.

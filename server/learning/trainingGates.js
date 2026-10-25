@@ -237,3 +237,10 @@ module.exports = {
     courseSatisfied,
     evaluateAreas,
 };
+
+/**
+ * @typedef {{ areas: Record<string, string>, updatedAt: string | null, updatedBy: string | null }} TrainingSettings
+ * @typedef {{ id: string, title?: string, lessonIds?: string[] }} GateCourse
+ * @typedef {Record<string, { completedAt?: string | null } | true | null | undefined>} ProgressMap
+ * @typedef {{ enforced: boolean, satisfied: boolean, courseId?: string, exempt?: boolean, courseTitle?: string, lessonsDone?: number, lessonsTotal?: number }} AreaState
+ */

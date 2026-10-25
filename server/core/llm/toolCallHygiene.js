@@ -26,11 +26,17 @@ function canonicalJson(value) {
     return out === undefined ? 'undefined' : out;
 }
 
+/**
+ * @param {string} name
+ */
 function signature(name, args) {
     return `${name}\n${canonicalJson(args === undefined ? null : args)}`;
 }
 
-/** Is this call the one the state remembers as rejected? */
+/**
+ * Is this call the one the state remembers as rejected?
+ * @param {string} name
+ */
 function isRepeat(state, name, args) {
     const prev = state && typeof state === 'object' ? state._lastRejected : null;
     if (!prev || typeof prev !== 'object') return false;
@@ -51,6 +57,7 @@ function noteRepeatedRejection(name, args, result, state, { mutating } = {}) {
         if (isMutating) state._lastRejected = null;
         return result;
     }
+    /** @type {string} */
     let sig;
     try { sig = signature(name, args); } catch (_) { return result; }
     const prev = state._lastRejected;

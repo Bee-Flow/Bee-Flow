@@ -75,9 +75,15 @@ const MAX_TOOL_NAME_CHARS = 41;
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
-/** A JSON object (never an array); its contents are someone else's to judge. */
+/**
+ * A JSON object (never an array); its contents are someone else's to judge.
+ * @param {string} message
+ */
 const jsonObject = (message) => z.record(z.string(), z.unknown(), { error: typeError({ required: message, invalid: message }) });
 
+/**
+ * @param {string} name
+ */
 const flag = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) });
 
 const NAME_TEXT = 'An integration needs a name.';
@@ -149,6 +155,7 @@ function credentialSpecFor(kind, definition) {
 
     if (kind === 'mcp_remote') {
         const mcp = (def.mcp && typeof def.mcp === 'object' && !Array.isArray(def.mcp)) ? def.mcp : null;
+        /** @type {string | null} */
         let boundOrigin = null;
         try { boundOrigin = new URL(mcp.url).origin; } catch (_) { boundOrigin = null; }
         if (!mcp || !boundOrigin) {
@@ -159,6 +166,7 @@ function credentialSpecFor(kind, definition) {
 
     // kind === 'rest'
     const api = (def.api && typeof def.api === 'object' && !Array.isArray(def.api)) ? def.api : null;
+    /** @type {string | null} */
     let boundOrigin = null;
     try { boundOrigin = new URL(api.baseUrl).origin; } catch (_) { boundOrigin = null; }
     if (!api || !boundOrigin) {
@@ -182,6 +190,7 @@ function checkCredentialValues(values, declaredFields) {
     if (!values || typeof values !== 'object' || Array.isArray(values)) {
         return { ok: false, errors: ['values must be an object map of credential fields.'] };
     }
+    /** @type {string[]} */
     const errors = [];
     const keys = Object.keys(values);
     if (keys.length === 0) errors.push('values must contain at least one credential field.');
@@ -209,6 +218,7 @@ const { safeToolName, dedupeToolName, buildMcpToolsCache } = require('../../core
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../../auth/permissions');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 router.use(requireAuth);
 
 // 2. Org admin for :orgId — the shared adminRoutes factory (lazy-required so
@@ -224,7 +234,7 @@ router.use((req, res, next) => {
 router.param('id', async (req, res, next, id) => {
     try {
         const s = store();
-        const row = await s.getById(id).catch(() => null);
+        const row = await s.getById(id).catch((e) => fallback('routes/orgIntegrations/builder:anon', e, null));
         if (!row || row.orgId !== s.resolveOrgId(req.params.orgId)) {
             return res.status(404).json({ error: 'Not found' });
         }
@@ -236,7 +246,7 @@ router.param('id', async (req, res, next, id) => {
         req.customIntegration = row;
         next();
     } catch (err) {
-        log.error('[CustomIntegrationsAPI] loader error:', err.message);
+        log.error('[CustomIntegrationsAPI] loader error:', /** @type {Error} */ (err).message);
         res.status(404).json({ error: 'Not found' });
     }
 });
@@ -245,6 +255,9 @@ router.param('id', async (req, res, next, id) => {
 
 // Access-audit (best-effort by contract — logAccessAudit never throws).
 // NEVER pass secrets, tool args or response bodies: names/versions/statuses.
+/**
+ * @param {string} verb
+ */
 function audit(req, verb, integrationId, oldValues, newValues) {
     return userStore().logAccessAudit(
         `custom_integration.${verb}`, 'custom_integration', integrationId,
@@ -256,13 +269,13 @@ function audit(req, verb, integrationId, oldValues, newValues) {
 // projection after grant-affecting mutations. The registry hook lands with the
 // entitlements phase — guard on typeof so this stays fail-soft until then.
 async function invalidateCaches(orgId) {
-    try { await require('../../core/entitlements/entitlements').invalidateForOrg(orgId); } catch (err) { log.debug('best effort', err); }
+    try { await require('../../core/entitlements/entitlements').invalidateForOrg(orgId); } catch (err) { bestEffort('routes/orgIntegrations/builder:invalidateCaches', err); /* best effort */ }
     try {
         const registry = require('../../core/entitlements/capabilityRegistry');
         if (typeof registry.invalidateCustomIntegrationCache === 'function') {
             await registry.invalidateCustomIntegrationCache(orgId);
         }
-    } catch (err) { log.debug('best effort', err); }
+    } catch (err) { bestEffort('routes/orgIntegrations/builder:invalidateCaches#2', err); /* best effort */ }
 }
 
 // The admin's own connection for this integration's provider (default first —
@@ -284,6 +297,9 @@ async function resolveAdminSecretObject(req, row) {
 }
 
 // Remove (or keep) 'custom:<id>' in the org-admin enablement list.
+/**
+ * @param {boolean} enabled
+ */
 async function setOrgCapability(orgId, integrationId, enabled) {
     const us = userStore();
     const capId = `custom:${integrationId}`;
@@ -428,6 +444,7 @@ router.post('/:id/activate', validate({ body: ActivateBody }), async (req, res) 
     // A JSON boolean only: `!!"false"` used to allow writes (see the header).
     const { allowWrites, lendMode } = req.body;
 
+    /** @type {string[]} */
     const warnings = [];
     let toolsCache;
     if (row.kind === 'rest') {
@@ -439,7 +456,7 @@ router.post('/:id/activate', validate({ body: ActivateBody }), async (req, res) 
         try {
             discovered = await client.discoverTools(row, { secretObject });
         } catch (e) {
-            log.warn('[OrgIntegrations] tool discovery failed:', e.message);
+            log.warn('[OrgIntegrations] tool discovery failed:', /** @type {Error} */ (e).message);
             throw new HttpError(502, 'tool_discovery_failed', 'Tool discovery failed');
         }
         warnings.push(...(discovered.warnings || []));
@@ -522,7 +539,7 @@ router.post('/:id/refresh-tools', validate({ body: NoBody }), async (req, res) =
     try {
         discovered = await client.discoverTools(row, { secretObject });
     } catch (e) {
-        log.warn('[OrgIntegrations] tool refresh failed:', e.message);
+        log.warn('[OrgIntegrations] tool refresh failed:', /** @type {Error} */ (e).message);
         throw new HttpError(502, 'tool_discovery_failed', 'Tool discovery failed');
     }
     const def = { ...row.definition, mcp: { ...row.definition.mcp, discoveredTools: discovered.tools } };
@@ -554,20 +571,20 @@ router.delete('/:id', async (req, res) => {
         const seen = new Set();
         for (const conn of await cs.listConnectionsForUser(req.session.user.id, provider)) {
             seen.add(conn.id);
-            await cs.deleteConnection(conn.id).catch(() => {});
+            await cs.deleteConnection(conn.id).catch((e) => bestEffort('routes/orgIntegrations/builder:anon#2', e));
         }
-        const grants = await cs.listGrants({ includeRevoked: true }).catch(() => []);
+        const grants = await cs.listGrants({ includeRevoked: true }).catch((e) => fallback('routes/orgIntegrations/builder:anon#3', e, []));
         for (const g of grants) {
             if (g.provider === provider && !seen.has(g.connection_id)) {
                 seen.add(g.connection_id);
-                await cs.deleteConnection(g.connection_id).catch(() => {});
+                await cs.deleteConnection(g.connection_id).catch((e) => bestEffort('routes/orgIntegrations/builder:anon#4', e));
             }
         }
-    } catch (err) { log.debug('best effort', err); }
+    } catch (err) { bestEffort('routes/orgIntegrations/builder:anon#5', err); /* best effort */ }
 
     // Drop a stale capability entry if one remained (e.g. disabled row
     // that was previously active).
-    try { await setOrgCapability(req.params.orgId, row.id, false); } catch (err) { log.debug('best effort', err); }
+    try { await setOrgCapability(req.params.orgId, row.id, false); } catch (err) { bestEffort('routes/orgIntegrations/builder:anon#6', err); /* best effort */ }
 
     await invalidateCaches(req.params.orgId);
     await audit(req, 'delete', row.id,
@@ -590,3 +607,11 @@ module.exports.safeToolName = safeToolName;
 module.exports.dedupeToolName = dedupeToolName;
 module.exports.buildMcpToolsCache = buildMcpToolsCache;
 module.exports._internals = { KINDS, TOOL_NAME_RE, MAX_TOOL_NAME_CHARS, MAX_CREDENTIAL_VALUE_CHARS };
+
+/** @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/orgCustomIntegrationStore').getById>>>} IntegrationRow */
+
+/** @typedef {import('express').Request<{ orgId: string, id: string }> & { customIntegration?: IntegrationRow }} IntegrationReq */
+
+/** @typedef {{ mcp?: { url?: string, credentials?: unknown }, api?: { baseUrl?: string }, auth?: { type?: string, credentials?: unknown } }} DraftDefinition */
+
+/** @typedef {import('express').Router & { credentialSpecFor: typeof credentialSpecFor, checkCredentialValues: typeof checkCredentialValues, safeToolName: typeof safeToolName, dedupeToolName: typeof dedupeToolName, buildMcpToolsCache: typeof buildMcpToolsCache, _internals: { KINDS: typeof KINDS, TOOL_NAME_RE: typeof TOOL_NAME_RE, MAX_TOOL_NAME_CHARS: number, MAX_CREDENTIAL_VALUE_CHARS: number } }} RouterExports */

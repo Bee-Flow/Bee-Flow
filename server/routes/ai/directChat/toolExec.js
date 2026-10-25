@@ -41,6 +41,7 @@ const log = require('../../../telemetry/log');
 const {
     searchGuardText, searchGuardEvent, shieldGuardEvent, buildDispatchOptions, buildUsageRow, buildEgressArgs,
 } = require('./toolExecPayloads');
+const { fallback, bestEffort } = require('../../../utils/bestEffort');
 
 /**
  * Strip bulky fields from tool results before they become LLM messages.
@@ -65,6 +66,7 @@ function compactToolResultForLLM(toolResult) {
  * Per-request memo of the `direct_chat_tier_tool_params` config read.
  * A rejected read clears the memo so the next tool call retries; each
  * caller's own try/catch keeps the per-tool-call warn behavior.
+ * @param {typeof configStore} [store]
  */
 function makeTierToolParamsGetter(store = configStore) {
     let memo = null;
@@ -101,7 +103,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
     // SSE channel, which JSON-encodes each event; nothing here renders HTML.
     const toolName = streamed ? toolCall.function?.name : (toolCall.function?.name || toolCall.name); // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss
     let toolArgs = {};
-    try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch (e) { log.debug('tool arguments are not valid JSON, call the tool with none', e); }
+    try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch (e) { fallback('routes/ai/directChat/toolExec:executeDirectChatToolCall', e); /* tool arguments are not valid JSON, call the tool with none */ }
     // Restore DLP tokens in outbound tool args so write-side tools
     // (docs/sheets/gmail/calendar) get the real value, not the
     // [email_1] placeholder (BFSF-171). Search queries keep their
@@ -110,7 +112,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
         try {
             const _argMap = require('../../../core/dlp/dlpRunner').getConversationTokenMap(ctx.convId);
             if (_argMap && Object.keys(_argMap).length) toolArgs = untokeniseToolArgs(toolArgs, _argMap);
-        } catch (err) { log.debug('best-effort', err); }
+        } catch (err) { fallback('routes/ai/directChat/toolExec:executeDirectChatToolCall#2', err); /* best-effort */ }
     }
 
     // Notebook-write gate (BFSF-169). Enforced here rather than by removing
@@ -146,7 +148,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
         const tierToolParams = await ctx.getTierToolParams();
         tierOverrides = tierToolParams[ctx.resolvedTier]?.[toolName] || null;
     } catch (cfgErr) {
-        log.warn(`[DirectChat] Config lookup failed (tier_tool_params${streamed ? ', streamed' : ''}): ${cfgErr.message}`);
+        log.warn(`[DirectChat] Config lookup failed (tier_tool_params${streamed ? ', streamed' : ''}): ${/** @type {Error} */ (cfgErr).message}`);
     }
 
     let toolResult;
@@ -166,7 +168,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
                     log.info(`[DirectChat WebSearchGuard] ${streamed ? 'Streamed search' : 'Search'} query BLOCKED by regex: ${ruleNames}`);
                     guardrailEventStore.logGuardrailEvent(
                         searchGuardEvent(ctx, 'regex', ruleNames, 'search_blocked'),
-                    ).catch(() => {});
+                    ).catch((e) => bestEffort('routes/ai/directChat/toolExec:executeDirectChatToolCall#3', e));
                     ctx.send('tool_end', { name: toolName, result: '[Web search blocked — query violates content policy]' });
                     return { role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify({ error: 'Web search blocked — query violates content policy. Please rephrase.' }) };
                 }
@@ -181,7 +183,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
                         // Always log PII detection for monitoring
                         guardrailEventStore.logGuardrailEvent(
                             searchGuardEvent(ctx, 'pii', cats, ctx.webSearchGuardEnabled ? 'search_blocked' : 'pii_detected'),
-                        ).catch(() => {});
+                        ).catch((e) => bestEffort('routes/ai/directChat/toolExec:executeDirectChatToolCall#4', e));
                         // Only block when Web Search Guard is enabled
                         if (ctx.webSearchGuardEnabled) {
                             log.info(`[DirectChat WebSearchGuard] ${streamed ? 'Streamed search' : 'Search'} query BLOCKED by PII (${cats})`);
@@ -193,7 +195,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
                     }
                     log.info(`[DirectChat WebSearchGuard] ${streamed ? 'Streamed search' : 'Search'} query PII check passed`);
                 } catch (piiErr) {
-                    log.warn(`[DirectChat WebSearchGuard] PII check failed (fail-open):`, piiErr.message);
+                    log.warn(`[DirectChat WebSearchGuard] PII check failed (fail-open):`, /** @type {Error} */ (piiErr).message);
                 }
             }
         }
@@ -271,7 +273,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
         }
     } catch (err) {
         log.error(`[DirectChat] ${streamed ? 'Streamed tool' : 'Tool'} execution failed for ${toolName}:`, err);
-        toolResult = { error: err.message };
+        toolResult = { error: /** @type {Error} */ (err).message };
         toolError = err;
     }
 
@@ -303,7 +305,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
     try {
         const usageStore = require('../../../stores/usageStore');
         await usageStore.logUsage(buildUsageRow(ctx, toolName));
-    } catch (e) { log.debug('ignore', e); }
+    } catch (e) { bestEffort('routes/ai/directChat/toolExec:executeDirectChatToolCall#5', e); /* ignore */ }
 
     // ── Integration Activity Logging (async, non-blocking) ──
     // One shared write path (core/integrationLogging.js): the minimal
@@ -313,7 +315,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
     try {
         const { logToolEgress } = require('../../../core/integrations/integrationLogging');
         logToolEgress(buildEgressArgs(ctx, { toolName, toolArgs, toolResult, toolError, outboundProbe, dispatchT0 }));
-    } catch (e) { log.debug('ignore', e); }
+    } catch (e) { bestEffort('routes/ai/directChat/toolExec:executeDirectChatToolCall#6', e); /* ignore */ }
 
     // Return raw toolResult so draft dedup can run sequentially after Promise.all.
     // `_toolName` rides along here as it does on the streamed return: without
@@ -349,6 +351,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
  * The pre-dispatch half of the Privacy Shield tool block lists. Returns null
  * when the call may go ahead, else what to tell the UI and the model. See
  * core/privacy/toolPiiGate.js for the fail-open/closed rules.
+ * @param {string} toolName
  */
 async function _checkToolPiiPolicy(toolName, toolArgs, ctx) {
     if (!ctx.orgShield) return null;
@@ -363,6 +366,7 @@ async function _checkToolPiiPolicy(toolName, toolArgs, ctx) {
  * The result half: strip the categories this tool's class forbids out of what
  * the MODEL reads (the UI already got the raw result on tool_end, as in the
  * agent loop). Fails open.
+ * @param {string} content
  */
 async function _stripForModel(content, toolName, ctx) {
     if (!ctx.orgShield || typeof content !== 'string') return content;
@@ -376,7 +380,7 @@ async function _stripForModel(content, toolName, ctx) {
 /** Writes a tool block-list guardrail event with this turn's attribution. */
 function _shieldEventLogger(ctx) {
     return (fields) => {
-        guardrailEventStore.logGuardrailEvent(shieldGuardEvent(ctx, fields)).catch(() => {});
+        guardrailEventStore.logGuardrailEvent(shieldGuardEvent(ctx, fields)).catch((e) => bestEffort('routes/ai/directChat/toolExec:_shieldEventLogger', e));
     };
 }
 
@@ -510,3 +514,34 @@ module.exports = {
     makeTierToolParamsGetter,
     compactToolResultForLLM,
 };
+
+/** @typedef {ReturnType<ReturnType<typeof import('./toolContext').createToolContextFactory>>} ToolCtx */
+
+/** @typedef {import('../../../core/agentRuntime/chatStream/turnState').ToolCall} ToolCall */
+
+/**
+ * What a tool hands back, as far as this file reads it.
+ * @typedef {{ error?: string, _action?: string, message?: string, planId?: string, plan?: unknown, suggested?: number,
+ *   batchId?: string, documentId?: string, name?: string, url?: string, activatedSkillIds?: string[],
+ *   _nbWriteFailed?: boolean, _revertContent?: string, success?: boolean, completedSessionSkillIds?: string[],
+ *   skill_id?: string, summary?: string, [key: string]: unknown }} ToolResult
+ *   (the code below also copes with a tool that hands back a plain string)
+ */
+
+/**
+ * One adapter stream event's payload, as far as makeStreamCallback reads it.
+ * @typedef {{ text?: string, partId?: string, redacted?: boolean, signature?: string, redactedData?: string,
+ *   name?: string, partial?: string, id?: string, input?: unknown, thought_signature?: string, responseId?: string,
+ *   [key: string]: unknown }} StreamEventData
+ */
+
+/**
+ * @typedef {{ send: (event: string, data: unknown) => void, streamContent: (text: string) => void,
+ *   getThinkingPart: (partId: string) => import('../../../core/agentRuntime/assistantMessageExtras').ThinkingPart,
+ *   maybeStreamNotebook: (name: string, partial: string) => void, streamUntok: { restore(text: string): string },
+ *   isMuted: () => boolean, appendContent: (text: string) => void, appendThinking: (text: string) => void,
+ *   getThinkingParts: () => import('../../../core/agentRuntime/assistantMessageExtras').ThinkingPart[],
+ *   pushToolCall: (toolCall: Record<string, unknown>) => void, acceptToolCallEvents?: boolean,
+ *   onImage?: ((data: StreamEventData) => void) | null, onUsage?: ((data: StreamEventData) => void) | null,
+ *   setLastResponseId: (id: string) => void, responseIdLog: string }} StreamCallbackOpts
+ */

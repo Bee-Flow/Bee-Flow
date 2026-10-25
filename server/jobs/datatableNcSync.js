@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Source mirror refresh — the SCHEDULED half of "keep this copy in step".
  *
@@ -32,9 +32,13 @@ const BOOT_DELAY_MS = 45 * 1000;
 const MAX_PER_TICK = parseInt(process.env.DATATABLE_NC_SYNC_PER_TICK, 10) || 20;
 const SYNC_CONCURRENCY = parseInt(process.env.DATATABLE_NC_SYNC_CONCURRENCY, 10) || 3;
 
+/** @type {NodeJS.Timeout | null} */
 let _timer = null;
 
-/** Run one due mirror, whatever its kind. Exported for the tests. */
+/**
+ * Run one due mirror, whatever its kind. Exported for the tests.
+ * @param {import('../core/dataEngine/sources').Datatable} table
+ */
 async function syncOne(table) {
     const sources = require('../core/dataEngine/sources');
     try {
@@ -43,7 +47,7 @@ async function syncOne(table) {
     } catch (e) {
         // syncRows records the error and schedules the retry itself; the job
         // only reports health.
-        return { ok: false, error: e && e.message };
+        return { ok: false, error: e && /** @type {Error} */ (e).message };
     }
 }
 

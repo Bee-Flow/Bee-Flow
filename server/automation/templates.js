@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Curated automation templates surfaced in the Automations studio gallery.
  *
@@ -21,6 +22,10 @@
 const { TABLE_TEMPLATES } = require('./tableTemplates');
 const { deriveTemplateMeta } = require('./templateMeta');
 
+/**
+ * @param {string} id
+ * @param {string} type
+ */
 function step(id, type, extras) { return { id, type, ...extras }; }
 
 const TEMPLATES = [
@@ -524,6 +529,9 @@ function listTemplates() {
     }));
 }
 
+/**
+ * @param {string} id
+ */
 function getTemplate(id) {
     const t = TEMPLATES.find(x => x.id === id);
     return t ? { ...t, source: 'builtin' } : null;
@@ -587,7 +595,7 @@ async function listTemplatesFor(scope, deps = {}) {
     try {
         org = (await store.listTemplatesFor({ userId: scope.userId, orgId: scope.orgId || null })) || [];
     } catch (e) {
-        (deps.log || require('../telemetry/log')).warn(`[automation templates] organisation templates unavailable: ${e.message}`);
+        (deps.log || require('../telemetry/log')).warn(`[automation templates] organisation templates unavailable: ${/** @type {Error} */ (e).message}`);
     }
     const getUser = deps.getUser || ((id) => require('../stores/userStore').getUser(id));
     const names = org.length ? await saverNames(org, getUser) : new Map();
@@ -599,7 +607,10 @@ async function listTemplatesFor(scope, deps = {}) {
     return [...cards, ...listTemplates()];
 }
 
-/** One template with its definition: built-in by id, else the caller's organisation's. */
+/**
+ * One template with its definition: built-in by id, else the caller's organisation's.
+ * @param {string} id
+ */
 async function getTemplateFor(id, scope, deps = {}) {
     const builtin = getTemplate(id);
     if (builtin) return builtin;

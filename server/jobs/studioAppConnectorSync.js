@@ -39,6 +39,7 @@ const MAX_PER_TICK = parseInt(process.env.STUDIO_APP_SYNC_PER_TICK, 10) || 20;
  */
 const SYNC_CONCURRENCY = parseInt(process.env.STUDIO_APP_SYNC_CONCURRENCY, 10) || 3;
 
+/** @type {NodeJS.Timeout | null} */
 let _timer = null;
 
 /**
@@ -78,7 +79,7 @@ async function syncOne(state) {
     } catch (e) {
         // syncConnector already recorded the error and scheduled the retry; the
         // job only needs to report health.
-        return { ok: false, error: e.message };
+        return { ok: false, error: /** @type {Error} */ (e).message };
     }
 }
 

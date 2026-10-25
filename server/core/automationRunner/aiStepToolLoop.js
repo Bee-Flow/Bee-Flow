@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * The model call of an ai_step (split out of execAi.execAiStep): a single
  * chat call when the step has no tools, otherwise a short tool-calling loop
@@ -124,6 +123,7 @@ async function handleAiToolCall(tc, env) {
         pushToolMessage(messages, tc, { ...synthesizeDryRunOutput(tc.function.name, args), _dryRunSynthesised: true });
         return;
     }
+    /** @type {{ error: string; }} */
     let toolResult;
     try {
         // Guard the AI-chosen tool args + log the egress, just like a
@@ -143,7 +143,7 @@ async function handleAiToolCall(tc, env) {
         }
         toolResult = await dispatchAiToolCall(tc, callArgs, toolAudit, env);
     } catch (e) {
-        toolResult = { error: e.message };
+        toolResult = { error: /** @type {Error} */ (e).message };
     }
     // Guard the RESULT before it goes back to the model. Only the
     // args were guarded before, so a tool that returned personal
@@ -155,7 +155,7 @@ async function handleAiToolCall(tc, env) {
     } catch (e) {
         // A `block` action on a tool result must not silently pass
         // the raw payload to the model.
-        if (e && e.guardrailBlocked) toolResult = { error: e.message };
+        if (e && e.guardrailBlocked) toolResult = { error: /** @type {Error} */ (e).message };
         else throw e;
     }
     messages.push({
@@ -232,3 +232,18 @@ async function runAiStepChat(call) {
 }
 
 module.exports = { runAiStepChat, MAX_AI_STEP_TOOL_ITERATIONS, dispatchAiToolCall };
+
+/**
+ * @typedef {{ id: string, function: { name: string, arguments: unknown }, _thought_signature?: unknown, _raw_content_parts?: unknown }} AiToolCallRequest
+ * @typedef {{ content?: string|null, toolCalls?: AiToolCallRequest[], stop_reason?: string|null, stopReason?: string|null, usage?: unknown }} AiChatResponse
+ * @typedef {{ role: string, content?: unknown, tool_call_id?: string, tool_calls?: unknown[] }} AiChatMessage
+ * @typedef {import('./safety').SafetyCtx & import('./toolIdentity').IdentityCtx & { userOrgIds?: string[], rootRunId?: string|null,
+ *   cancelSignal?: AbortSignal|null }} AiStepRunCtx
+ * @typedef {{ adapter: unknown, cfg: { apiKey?: string, url?: string }, modelId: string, messages: AiChatMessage[],
+ *   maxOutputTokens: number|null, stepReasoningEffort?: string|null, temperature?: number,
+ *   tools: import('./aiStepAgent').AgentTool[]|null, accrueUsage: (response: AiChatResponse) => void,
+ *   step: { id?: string }, ctx: AiStepRunCtx, mode: string, policy: import('./safety').SafetyPolicy,
+ *   auditBase: import('./safety').AuditBase, agentBinding?: { agentId?: string }|null }} AiStepChatCall
+ * @typedef {AiStepChatCall & { executeTool: typeof import('../tools/toolDispatcher').executeTool,
+ *   shieldGate: ReturnType<typeof stepShieldGate>, allowedToolNames: Set<string> }} AiToolLoopEnv
+ */

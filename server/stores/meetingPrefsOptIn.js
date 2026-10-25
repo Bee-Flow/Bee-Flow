@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Explicit "record" marks as a signal for background import engines: which
  * users have a live opt-in. Split from meetingPrefsStore.js (file budget).
@@ -11,7 +11,10 @@
 
 'use strict';
 
-/** Collaborators, loaded on first use; tests swap them through init(). */
+/**
+ * Collaborators, loaded on first use; tests swap them through init().
+ * @type {{ getAll: Function, prefs: { PROVIDERS: string[], initDB: () => Promise<any> } } | null}
+ */
 let injected = null;
 /** @param {{ getAll: Function, prefs: { PROVIDERS: string[], initDB: () => Promise<any> } }} deps */
 function init(deps) { injected = deps; }
@@ -46,7 +49,7 @@ async function listUsersWithRecordOptIn({ provider } = {}) {
             AND (id_kind = 'code' OR updated_at > NOW() - INTERVAL '${OPT_IN_EVENT_DAYS} days')`,
         [provider],
     );
-    return (rows || []).map(r => r.user_id).filter(Boolean);
+    return (rows || []).map(/** @param {{ user_id?: string }} r */ r => r.user_id).filter(Boolean);
 }
 
 module.exports = { init, OPT_IN_EVENT_DAYS, hasLiveRecordOptIn, listUsersWithRecordOptIn };

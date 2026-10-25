@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * ONE FULL PASS over a spreadsheet mirror — the shared pipeline
  * (../mirror/syncPipeline explains the eleven steps and why their order is
@@ -17,4 +17,5 @@
 const { makeSync } = require('../mirror/syncPipeline');
 const adapter = require('./adapter');
 
+/** @type {import('../mirror/syncPipeline').MirrorSync} */
 module.exports = makeSync(adapter);

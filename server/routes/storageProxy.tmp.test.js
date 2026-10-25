@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Temp-download URL tests for routes/storageProxy.js — the HMAC-signed
  * unauthenticated download path, extended with the studio-app attachment

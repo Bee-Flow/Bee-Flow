@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * "Build it with AI" for a datatable — the schema the model fills in, the
  * prompts, and the clamps that turn its answer into a column list the model
@@ -91,11 +91,25 @@ const SYSTEM_COMMON = [
     'Submit with the draft_datatable tool.',
 ].join('\n');
 
+/**
+ * A column of the table as it is now.
+ * @typedef {{ key: string, id?: string, name?: string, type?: string, required?: boolean, unique?: boolean, options?: unknown }} CurrentField
+ * @typedef {{ name?: unknown, description?: unknown, rowCount?: unknown, fields?: unknown }} CurrentTable
+ * @typedef {{ key: string, name: string, type: string, options?: string[], required?: boolean, unique?: boolean }} DraftField
+ */
+
+/**
+ * @param {unknown} v
+ * @param {number} max
+ */
 function clean(v, max) {
     return typeof v === 'string' ? v.replace(/\r\n?/g, '\n').trim().slice(0, max) : '';
 }
 
-/** Server twin of the client's keyFromName (datatableDisplay.js): a name → a KEY_RE key. */
+/**
+ * Server twin of the client's keyFromName (datatableDisplay.js): a name → a KEY_RE key.
+ * @param {unknown} name
+ */
 function keyFromName(name) {
     const slug = String(name || '')
         .toLowerCase()
@@ -107,7 +121,11 @@ function keyFromName(name) {
     return /^[a-z]/.test(slug) ? slug : `c_${slug}`.slice(0, 63);
 }
 
-/** A key nobody else in the list has, and none the system or the engine reserves. */
+/**
+ * A key nobody else in the list has, and none the system or the engine reserves.
+ * @param {string} base
+ * @param {Set<string>} taken
+ */
 function freeKey(base, taken) {
     let k = base || 'column';
     if (SYSTEM_COLUMNS.includes(k) || RESERVED_KEY_PREFIX_RE.test(k)) k = `c_${k}`.slice(0, 63);
@@ -120,11 +138,18 @@ function freeKey(base, taken) {
     return null;
 }
 
+/**
+ * @param {CurrentTable | null | undefined} current
+ * @returns {CurrentField[]}
+ */
 function currentFields(current) {
     return Array.isArray(current?.fields) ? current.fields.filter(f => f && typeof f === 'object' && typeof f.key === 'string') : [];
 }
 
-/** The current columns as quoted lines the model can refer to by key. */
+/**
+ * The current columns as quoted lines the model can refer to by key.
+ * @param {CurrentTable | null | undefined} current
+ */
 function describeCurrent(current) {
     const fields = currentFields(current);
     if (!fields.length) return '(no columns yet)';
@@ -140,6 +165,7 @@ function describeCurrent(current) {
 /**
  * The messages for one drafting call. `create`: the brief is the material.
  * `revise`: the current table is quoted and the request says what changes.
+ * @param {{ mode?: string, brief?: unknown, note?: unknown, current?: CurrentTable | null, allowDestructive?: boolean }} [opts]
  */
 function buildDraftMessages({ mode = 'create', brief = '', note = '', current = null, allowDestructive = false } = {}) {
     const briefText = clean(brief, MAX_BRIEF_CHARS);
@@ -192,6 +218,7 @@ function buildDraftMessages({ mode = 'create', brief = '', note = '', current = 
     ];
 }
 
+/** @param {unknown} raw */
 function parseOptions(raw) {
     if (!Array.isArray(raw)) return [];
     const seen = new Set();
@@ -207,6 +234,7 @@ function parseOptions(raw) {
     return out;
 }
 
+/** @param {{ options?: unknown } | null | undefined} field */
 function optionValues(field) {
     return Array.isArray(field?.options)
         ? field.options.map(o => (typeof o === 'string' ? o : o?.value ?? o?.label)).filter(v => typeof v === 'string' && v)
@@ -221,14 +249,19 @@ function optionValues(field) {
  * explicit say-so that a column may go or change type. `changes` is the
  * summary the panel shows before anyone saves: added, renamed, retyped,
  * removed, and what the guard put back.
+ * @param {Record<string, unknown> | null | undefined} structured
+ * @param {{ mode?: string, current?: CurrentTable | null, allowDestructive?: boolean }} [opts]
  */
 function parseDatatableDraft(structured, { mode = 'create', current = null, allowDestructive = false } = {}) {
     if (!structured || typeof structured !== 'object') return null;
     const rawFields = Array.isArray(structured.fields) ? structured.fields : [];
     const before = currentFields(current);
     const byKey = new Map(before.map(f => [f.key, f]));
+    /** @type {Set<string>} */
     const taken = new Set();
+    /** @type {DraftField[]} */
     const fields = [];
+    /** @type {string[]} */
     const notes = [];
     let dropped = 0;
 
@@ -261,6 +294,7 @@ function parseDatatableDraft(structured, { mode = 'create', current = null, allo
             options = merged.slice(0, DATA_LIMITS.MAX_SELECT_OPTIONS);
         }
         if ((type === 'select' || type === 'multiselect') && !options.length) type = 'text';
+        /** @type {DraftField} */
         const field = { key, name, type };
         if (type === 'select' || type === 'multiselect') field.options = options;
         if (raw.required === true || (prev && prev.required === true && !allowDestructive)) field.required = true;
@@ -280,6 +314,7 @@ function parseDatatableDraft(structured, { mode = 'create', current = null, allo
                 const pos = fields.findIndex(x => x.key === before[i].key);
                 if (pos >= 0) { at = pos + 1; break; }
             }
+            /** @type {DraftField} */
             const kept = { key: f.key, name: f.name || f.key, type: f.type };
             if (f.type === 'select' || f.type === 'multiselect') kept.options = optionValues(f);
             if (f.required === true) kept.required = true;
@@ -296,7 +331,7 @@ function parseDatatableDraft(structured, { mode = 'create', current = null, allo
     if (!check.ok) return null;
 
     const cur = current && typeof current === 'object' ? current : {};
-    const keep = (k, max) => (typeof structured[k] === 'string' && structured[k].trim() ? clean(structured[k], max) : null);
+    const keep = (/** @type {string} */ k, /** @type {number} */ max) => (typeof structured[k] === 'string' && structured[k].trim() ? clean(structured[k], max) : null);
     const name = keep('name', DATA_LIMITS.MAX_NAME_LEN) || (typeof cur.name === 'string' && cur.name) || 'Untitled table';
     const description = keep('description', MAX_DESCRIPTION_CHARS) ?? (typeof cur.description === 'string' ? cur.description : '');
 

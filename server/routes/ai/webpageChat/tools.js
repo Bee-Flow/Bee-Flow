@@ -18,12 +18,19 @@ const { executeDbTool, isDbTool } = require('../../../integrations/webpageDbTool
 const { isAgentSearchTool } = require('../../../integrations/agentSearchTools');
 const { isReadUrlTool } = require('../../../integrations/readUrlTools');
 // read_url ships with AGENT_SEARCH_TOOLS and is handled as a web tool here.
+/**
+ * @param {string} name
+ */
 const isWebTool = (name) => isAgentSearchTool(name) || isReadUrlTool(name);
 const { runAgentSearchWithEgress } = require('../../../integrations/agentSearchEgress');
 const { executeScreenshotTool, isScreenshotTool } = require('../../../integrations/webpageScreenshotTools');
 const { executeBridgeTool, isBridgeTool } = require('../../../integrations/webpageBridgeTools');
 const { executeWebpageKBSearchTool } = require('../../../core/webpages/webpageKnowledgeSearch');
+const { fallback } = require('../../../utils/bestEffort');
 
+/**
+ * @param {string | undefined} slot
+ */
 function slotFilename(slot) {
     return slot === 'html' ? 'index.html' : slot === 'css' ? 'style.css' : 'script.js';
 }
@@ -95,11 +102,17 @@ function compactWebpageToolResult(toolResult) {
 }
 
 /**
+ * @typedef {Object} CreateToolDispatcherArgs
+ * @property {boolean} [planToolAvailable]
+ * @property {string[]} kbIds
+ */
+/**
  * The executor of one turn. `turn` is the turn's shared state (./toolLoop.js):
  * the live slot files and what was written, read and touched, the framework as
  * of the latest round, whether a plan was proposed, and the screenshots queued
  * for a vision-capable model. Returns `dispatchToolCall(toolCall)`, which
  * resolves to the tool message the model reads.
+ * @param {CreateToolDispatcherArgs} param0
  */
 function createToolDispatcher({
     send, req, shieldGate, planToolAvailable, webpageId, userId, userOrgForTiers,
@@ -110,7 +123,7 @@ function createToolDispatcher({
     async function dispatchToolCall(toolCall) {
         const toolName = toolCall.function?.name || toolCall.name;
         let toolArgs = {};
-        try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch (e) { log.debug('tool arguments are not valid JSON, call the tool with none', e); }
+        try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch (e) { fallback('routes/ai/webpageChat/tools:dispatchToolCall', e); /* tool arguments are not valid JSON, call the tool with none */ }
 
         // Restore DLP tokens before the tool runs, so a write-side tool gets
         // the real value instead of the `[email_1]` placeholder the model was
@@ -124,7 +137,7 @@ function createToolDispatcher({
                 if (_argMap && Object.keys(_argMap).length) {
                     toolArgs = require('../../../core/dlp/applyTokenMapToOutbound').untokeniseToolArgs(toolArgs, _argMap);
                 }
-            } catch (err) { log.debug('best-effort: leave args tokenized on error', err); }
+            } catch (err) { fallback('routes/ai/webpageChat/tools:dispatchToolCall#2', err); /* best-effort: leave args tokenized on error */ }
         }
 
         log.info(`[WebpageChat] Tool: ${toolName}(${JSON.stringify(toolArgs).substring(0, 160)})`);
@@ -217,13 +230,13 @@ function createToolDispatcher({
                     };
                 }
             } catch (err) {
-                toolResult = { error: `Failed to add source: ${err.message}` };
+                toolResult = { error: `Failed to add source: ${/** @type {Error} */ (err).message}` };
             }
         } else if (toolName === 'webpage_kb_search') {
             try {
                 toolResult = await executeWebpageKBSearchTool(toolArgs, userId, kbIds);
             } catch (err) {
-                toolResult = { error: `KB search failed: ${err.message}` };
+                toolResult = { error: `KB search failed: ${/** @type {Error} */ (err).message}` };
             }
         } else if (isWebTool(toolName)) {
             try {
@@ -232,7 +245,7 @@ function createToolDispatcher({
                     ids: { organization_id: userOrgForTiers || null, user_id: userId || null, conversation_id: webpageId || null },
                 });
             } catch (err) {
-                toolResult = { error: `Search failed: ${err.message}` };
+                toolResult = { error: `Search failed: ${/** @type {Error} */ (err).message}` };
             }
         } else if (isScreenshotTool(toolName)) {
             try {
@@ -248,7 +261,7 @@ function createToolDispatcher({
                     if (modelSupportsVision) pendingVisionImages.push(toolResult._screenshotDataUrl);
                 }
             } catch (err) {
-                toolResult = { content: `Screenshot failed: ${err.message}` };
+                toolResult = { content: `Screenshot failed: ${/** @type {Error} */ (err).message}` };
             }
         } else {
             toolResult = { error: `Unknown tool: ${toolName}` };
@@ -265,6 +278,9 @@ function createToolDispatcher({
         // balloon round-over-round.
         // What the model reads, with the categories this tool's class
         // forbids stripped out (BFSF-354); the UI got the full result above.
+        /**
+         * @param {string} content
+         */
         const forModel = (content) => shieldGate.forModel(content, toolName);
         if (isScreenshotResult) {
             return { role: 'tool', tool_call_id: toolCall.id, content: await forModel(String(toolResult.content || 'Screenshot captured.')) };

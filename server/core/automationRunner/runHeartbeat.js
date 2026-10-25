@@ -17,6 +17,7 @@
 const runEventBus = require('../runEventBus');
 const log = require('../../telemetry/log');
 const { writeRunOutcome, withLastOutput } = require('./runFinalize');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * A live run that finds its automation ALREADY RUNNING.
@@ -84,7 +85,7 @@ function makeLifecycleEmitter({ run, automation, effectiveMode }) {
                 rootRunId: run.rootRunId || run.id,
                 ...extra,
             });
-        } catch (err) { log.debug('never break a run on telemetry', err); }
+        } catch (err) { bestEffort('core/automationRunner/runHeartbeat:emitLifecycle', err); /* never break a run on telemetry */ }
     };
     return emitLifecycle;
 }
@@ -143,7 +144,7 @@ async function claimRunMarker(deps, { automation, run, runPolicy, triggerKind, e
                 status: 'cancelled', finishedAt, durationMs: Date.now() - startedAt,
                 error: 'Skipped: automation already running',
                 summary: 'Skipped — this automation was already running.',
-            }).catch(() => {});
+            }).catch((e) => bestEffort('core/automationRunner/runHeartbeat:claimRunMarker', e));
             await writeRunOutcome(deps, { runId: run.id, status: 'cancelled', cancelReason: 'already_running' });
             clearRunCancellation(run.id);
             emitLifecycle('run.started', { triggerKind, mode: effectiveMode, title: automation.title || null, kind: automation.kind || 'automation', version: automation.version });
@@ -176,8 +177,8 @@ function makeRunMarkerToucher(deps, { ownsMarker, automation }) {
         if (!ownsMarker) return;
         // Capability-checked: a store build without the marker touch keeps the
         // old behaviour rather than throwing on every heartbeat tick.
-        try { automationStore.touchAutomationRunning?.(automation.id, INSTANCE_ID)?.catch?.(() => {}); }
-        catch (err) { log.debug('the marker refresh must never break a run', err); }
+        try { automationStore.touchAutomationRunning?.(automation.id, INSTANCE_ID)?.catch?.((e) => bestEffort('core/automationRunner/runHeartbeat:touchRunMarker', e)); }
+        catch (err) { bestEffort('core/automationRunner/runHeartbeat:touchRunMarker#2', err); /* the marker refresh must never break a run */ }
     };
     return touchRunMarker;
 }
@@ -189,7 +190,7 @@ function startHeartbeat(deps, { effectiveMode, emitLifecycle, run, touchRunMarke
     // last_heartbeat_at so the stuck-run reaper sees the run as alive.
     const heartbeatTimer = (effectiveMode === 'dry_run') ? null : setInterval(() => {
         emitLifecycle('step.heartbeat', { at: new Date().toISOString() });
-        automationStore.touchRunHeartbeat(run.id).catch(() => {});
+        automationStore.touchRunHeartbeat(run.id).catch((e) => bestEffort('core/automationRunner/runHeartbeat:startHeartbeat', e));
         touchRunMarker();
     }, 15_000);
     if (heartbeatTimer?.unref) heartbeatTimer.unref();
@@ -197,3 +198,9 @@ function startHeartbeat(deps, { effectiveMode, emitLifecycle, run, touchRunMarke
 }
 
 module.exports = { acquireRunMarker, makeLifecycleEmitter, claimRunMarker, makeRunMarkerToucher, startHeartbeat };
+
+/**
+ * @typedef {import('./runSetup').RunAutomation} RunAutomation
+ * @typedef {import('./runSetup').RunRow} RunRow
+ * @typedef {import('./runSetup').RunDeps} RunDeps
+ */

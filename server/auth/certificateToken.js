@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // HMAC-based identifiers for Learning Center certificates.
 //
 // Two derived values, both HMAC-SHA256 over the canonical issuance tuple so they
@@ -43,11 +43,18 @@ const hasDurableSecret = secret.hasDurable;
 // NOTHING). Env secrets always win — installs that set one are untouched.
 const ensureDurableSecret = secret.ensureDurable;
 
+/**
+ * @param {string} input
+ */
 function hmac(input) {
     return crypto.createHmac('sha256', secret.get()).update(input).digest();
 }
 
 const CROCKFORD = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'; // no I,L,O,U — unambiguous
+/**
+ * @param {NonSharedBuffer} buf
+ * @param {number} len
+ */
 function toBase32(buf, len) {
     let bits = 0;
     let value = 0;
@@ -64,6 +71,11 @@ function toBase32(buf, len) {
 }
 
 // "BF-XXXX-XXXX-XXXX" — deterministic per (certId, userId, issuedDayUTC).
+/**
+ * @param {string} certId
+ * @param {string} userId
+ * @param {string} issuedDayUTC
+ */
 function makeSerial(certId, userId, issuedDayUTC) {
     const digest = hmac(`serial|${certId}|${userId}|${issuedDayUTC}`);
     const body = toBase32(digest, 12);
@@ -71,6 +83,10 @@ function makeSerial(certId, userId, issuedDayUTC) {
 }
 
 // Deterministic public verify token (base64url) per (certId, userId).
+/**
+ * @param {string} certId
+ * @param {string} userId
+ */
 function makeVerifyToken(certId, userId) {
     const digest = hmac(`verify|${certId}|${userId}`);
     return digest.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -78,6 +94,9 @@ function makeVerifyToken(certId, userId) {
 
 // Public lookup key: clients present the verifyToken; we index by its hash so the
 // stored index reveals nothing usable on its own.
+/**
+ * @param {string} token
+ */
 function tokenHash(token) {
     return crypto.createHash('sha256').update(String(token)).digest('hex');
 }

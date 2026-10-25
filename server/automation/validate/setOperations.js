@@ -15,10 +15,18 @@ const MAX_SET_OPERATIONS = 20;
 // Column names for set operations are TOP-LEVEL keys (the same contract every
 // collection op has — the executor reads `row[k]`). Reserved proto names are
 // integrity errors: the op is new, so no legacy draft can carry one.
+/**
+ * @param {string} k
+ */
 function validSetColumn(k) {
     return typeof k === 'string' && k.trim().length > 0;
 }
 
+/**
+ * @param {string} oat
+ * @param {(value: { code: string; severity: string; path: string; message: string; hint: string; }) => void} pushE
+ * @param {(value: { code: string; severity: string; path: string; message: string; hint: string; }) => void} pushW
+ */
 function validateSetOperation(step, o, oi, oat, pushE, pushW) {
     if (!isObject(o)) {
         pushE({ code: 'set.op_shape', severity: 'error', path: oat, message: `Step ${step.id}: operation ${oi} must be an object with an \`op\` field.`, hint: 'e.g. { op: "rowId", target: "id" }.' });
@@ -28,6 +36,10 @@ function validateSetOperation(step, o, oi, oat, pushE, pushW) {
         pushE({ code: 'set.op_unknown', severity: 'error', path: `${oat}.op`, message: `Step ${step.id}: unknown operation "${o.op}".`, hint: `Use one of: ${Array.from(SET_OPS).join(', ')}.` });
         return;
     }
+    /**
+     * @param {string} name
+     * @param {string} key
+     */
     const checkTarget = (name, key) => {
         if (!validSetColumn(name)) {
             pushE({ code: 'set.op_target_missing', severity: 'error', path: `${oat}.${key}`, message: `Step ${step.id}: operation "${o.op}" needs a column name in \`${key}\`.`, hint: 'Pick the column the operation writes to.' });

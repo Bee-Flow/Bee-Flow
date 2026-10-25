@@ -87,7 +87,10 @@ function makeBindingsStore(db, { ready }) {
         return client ? write(client) : db.tx(write);
     }
 
-    /** Mark (or clear) that a stage's bindings or steering values changed since its last deploy. */
+    /**
+     * Mark (or clear) that a stage's bindings or steering values changed since its last deploy.
+     * @param {boolean} [pending]
+     */
     async function setBindingsPending(stageProjectId, pending = true, { client = null } = {}) {
         await ready();
         const r = await (client || db).query(

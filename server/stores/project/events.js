@@ -39,7 +39,7 @@ function makeEventFns({ run, getAll, getOne, getClient, initDB }) {
                 [id, projectId, actorId, action, targetType, targetId, JSON.stringify(details)]
             );
         } catch (err) {
-            log.warn('[ProjectStore] logActivity failed:', err.message);
+            log.warn('[ProjectStore] logActivity failed:', /** @type {Error} */ (err).message);
             return null;
         }
         return id;
@@ -90,7 +90,7 @@ function makeEventFns({ run, getAll, getOne, getClient, initDB }) {
             return { seq, id };
         } catch (err) {
             try { await client.query('ROLLBACK'); } catch (err) { log.debug('connection already gone', err); }
-            log.warn('[ProjectStore] appendProjectEvent failed:', err.message);
+            log.warn('[ProjectStore] appendProjectEvent failed:', /** @type {Error} */ (err).message);
             return null;
         } finally {
             client.release();
@@ -110,6 +110,8 @@ function makeEventFns({ run, getAll, getOne, getClient, initDB }) {
      * cursor, and the client's, then move past the hole, so it is said once
      * and not on every poll. The head is read in the same statement (one
      * snapshot), so an event committed in between never looks like a hole.
+     * @param {number} [sinceSeq]
+     * @param {number} [limit]
      */
     async function listProjectEvents(projectId, sinceSeq = 0, limit = EVENT_REPLAY_LIMIT) {
         await initDB();
@@ -160,7 +162,10 @@ function makeEventFns({ run, getAll, getOne, getClient, initDB }) {
         return row ? Number(row.event_seq) : 0;
     }
 
-    /** Housekeeping: drop events older than `days`. The audit trail is elsewhere. */
+    /**
+     * Housekeeping: drop events older than `days`. The audit trail is elsewhere.
+     * @param {number} [days]
+     */
     async function pruneProjectEvents(days = 7) {
         await initDB();
         const { rowCount } = await run(
@@ -170,6 +175,10 @@ function makeEventFns({ run, getAll, getOne, getClient, initDB }) {
         return rowCount;
     }
 
+    /**
+     * @param {number} [limit]
+     * @param {number} [offset]
+     */
     async function listActivity(projectId, limit = 50, offset = 0) {
         await initDB();
         const rows = await getAll(

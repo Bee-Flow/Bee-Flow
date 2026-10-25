@@ -1,3 +1,4 @@
+/** @typedef {import('../../core/providers').BaseProvider} BaseProvider */
 /**
  * Template Chat Routes — AI-powered chat for filling Word templates.
  *
@@ -110,6 +111,7 @@ require('../../core/serviceAuth');
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../../auth/permissions');
+const { fallback } = require('../../utils/bestEffort');
 
 // ─── Streaming Template Chat ─────────────────────────────────────
 
@@ -164,13 +166,18 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
     }
 
     // Resolve provider
+    /** @type {BaseProvider} */
+    /** @type {BaseProvider} */
+    /** @type {BaseProvider} */
+    /** @type {BaseProvider} */
+    /** @type {BaseProvider} */
     let config, adapter;
 
     try {
         config = await getProviderForModel(modelId);
         adapter = getAdapter(config.providerType, (config.url || '').replace(/\/+$/, ''));
     } catch (providerErr) {
-        log.error(`[TemplateChat] Provider resolution failed for model "${modelId}":`, providerErr.message);
+        log.error(`[TemplateChat] Provider resolution failed for model "${modelId}":`, /** @type {Error} */ (providerErr).message);
         throw new HttpError(400, 'provider_unavailable', 'No AI provider is available for this model. Ask an administrator to check the model configuration.');
     }
     const apiKey = config.apiKey;
@@ -202,6 +209,7 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
         // inside sentinel tags so any "instructions" inside the recording can't redirect the model.
         let meetingContext = '';
         if (meetingNoteIds && meetingNoteIds.length > 0) {
+            /** @type {string[]} */
             const noteTexts = [];
             // Every note the user picked, the budget shared between them —
             // 4K each up to five, less each beyond (the schema caps the list).
@@ -213,7 +221,7 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
                         noteTexts.push(formatMeetingNote(note, perNote));
                     }
                 } catch (err) {
-                    log.warn(`[TemplateChat] Failed to load meeting note ${noteId}:`, err.message);
+                    log.warn(`[TemplateChat] Failed to load meeting note ${noteId}:`, /** @type {Error} */ (err).message);
                 }
             }
             if (noteTexts.length > 0) {
@@ -233,7 +241,7 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
                     // Injected without a tool call, so the Privacy Shield's
                     // "own server" block list is applied here (BFSF-354).
                     const { resolveShieldFor } = require('../../core/privacy/orgShield');
-                    const kbShield = await resolveShieldFor({ orgId: userOrgId, userId }).catch(() => null);
+                    const kbShield = await resolveShieldFor({ orgId: userOrgId, userId }).catch((e) => fallback('routes/ai/templateChat:anon', e, null));
                     // The "### Source N:" label goes through the same scan.
                     const { injectedPassagesPrompt } = require('../../core/privacy/toolPiiGate');
                     const kbText = await injectedPassagesPrompt(kbResults, { shield: kbShield, tag: 'TemplateChat' });
@@ -241,7 +249,7 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
                     log.info(`[TemplateChat] Injected ${kbResults.length} KB chunks for template "${template.name}"`);
                 }
             } catch (kbErr) {
-                log.warn('[TemplateChat] KB search failed:', kbErr.message);
+                log.warn('[TemplateChat] KB search failed:', /** @type {Error} */ (kbErr).message);
             }
         }
 
@@ -261,9 +269,13 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
         const _crypto = require('crypto');
         const _dlpConvId = conversationId ? `tmpl-${userId}-${conversationId}` : `tmpl-${_crypto.randomUUID()}`;
         const { resolveShieldFor: _resolveShieldFor } = require('../../core/privacy/orgShield');
-        const _psShield = await _resolveShieldFor({ orgId: userOrgId, userId }).catch(() => null);
+        const _psShield = await _resolveShieldFor({ orgId: userOrgId, userId }).catch((e) => fallback('routes/ai/templateChat:anon#2', e, null));
         const { scanAttachmentText: _scanAttText } = require('../../core/dlp/attachmentScanner');
         const _dlpActive = !!_psShield?.enabled;
+        /**
+         * @param {string} text
+         * @param {string} filename
+         */
         const _scanExtracted = async (text, filename) => {
             if (!_dlpActive || !text) return text;
             const r = await _scanAttText({ text, filename, orgShield: _psShield, conversationId: _dlpConvId });
@@ -301,7 +313,7 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
                                 const { extractTextFromPDF } = require('../../core/documents/pdfExtractor');
                                 pdfText = await extractTextFromPDF(pdfBuffer, att.name);
                             } catch (e) {
-                                log.warn(`[TemplateChat] PDF extraction failed for ${att.name}:`, e.message);
+                                log.warn(`[TemplateChat] PDF extraction failed for ${att.name}:`, /** @type {Error} */ (e).message);
                             }
                             if (pdfText) {
                                 const safe = await _scanExtracted(pdfText, att.name);
@@ -320,7 +332,7 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
                                 }
                             } catch (e) {
                                 if (e?.code === 'ATTACHMENT_PII_BLOCKED') throw e;
-                                log.warn(`[TemplateChat] Word extraction failed for ${att.name}:`, e.message);
+                                log.warn(`[TemplateChat] Word extraction failed for ${att.name}:`, /** @type {Error} */ (e).message);
                             }
                         } else if (att.content && typeof att.content === 'string') {
                             // Plain text or other text-based files
@@ -332,7 +344,7 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
                         }
                     } catch (e) {
                         if (e?.code === 'ATTACHMENT_PII_BLOCKED') throw e;
-                        log.warn(`[TemplateChat] Attachment processing failed for ${att.name}:`, e.message);
+                        log.warn(`[TemplateChat] Attachment processing failed for ${att.name}:`, /** @type {Error} */ (e).message);
                     }
                 }
             } catch (e) {
@@ -365,7 +377,7 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
                 const _convMap = require('../../core/dlp/dlpRunner').getConversationTokenMap(_dlpConvId);
                 const _add = buildTokenPreservationAddendum(_convMap);
                 if (_add && messages[0]?.role === 'system') messages[0].content += _add;
-            } catch (err) { log.debug('best-effort', err); }
+            } catch (err) { fallback('routes/ai/templateChat:anon#3', err); /* best-effort */ }
         }
 
         // Stream response
@@ -411,13 +423,13 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
     } catch (err) {
         // The user pressed stop: the socket is already gone, and a cancelled
         // answer is not an error to report.
-        if (isGone() || err?.name === 'AbortError' || clientSignal.aborted) {
+        if (isGone() || /** @type {Error} */ (err)?.name === 'AbortError' || clientSignal.aborted) {
             log.info('[TemplateChat] turn cancelled by the client');
             try { if (!res.writableEnded) res.end(); } catch (err) { log.debug('socket already gone', err); }
             return;
         }
         log.error('[TemplateChat] Error:', err);
-        send('error', { error: `Chat error: ${err.message}` });
+        send('error', { error: `Chat error: ${/** @type {Error} */ (err).message}` });
         res.end();
     }
 });

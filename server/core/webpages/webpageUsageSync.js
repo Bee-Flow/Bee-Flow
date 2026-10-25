@@ -430,3 +430,16 @@ module.exports = {
     RECONCILE_DEBOUNCE_MS,
     REASONS,
 };
+
+/**
+ * Injecteerbare afhankelijkheden (tests geven nepversies mee).
+ * @typedef {{
+ *   datatableStore?: Pick<typeof import('../../stores/datatableStore'), 'orgScope' | 'userScope'>,
+ *   datatableAccess?: Pick<typeof import('../../auth/datatableAccess'), 'resolveDatatablePrincipalForUser' | 'datatableScopesFor'>,
+ *   webpageStore?: Pick<typeof import('../../stores/webpageStore'), 'getWebpageRaw' | 'normalizeBridgeGrants'>,
+ *   webpageBindings?: Pick<typeof import('./webpageBindings'), 'readPageCode' | 'scanBfElements' | 'collectUses'>,
+ *   usageSync?: Pick<typeof import('../../automation/datatableUsageSync'), 'purgeUsageFor' | 'syncUsageFor'>,
+ *   log?: Pick<Console, 'warn'>,
+ *   delayMs?: number,
+ * }} UsageSyncDeps
+ */

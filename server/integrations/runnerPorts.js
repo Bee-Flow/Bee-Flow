@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The integrations feature's side of core/automationRunner/featurePorts.js:
  * what the automation runner (core) calls in integrations/ without requiring
@@ -12,14 +12,14 @@ const { registerRunnerPorts } = require('../core/automationRunner/featurePorts')
 registerRunnerPorts({
     // Run notifications on the Nextcloud channel (the admin bell).
     nextcloudAdmin: {
-        sendAdminNotification: (...args) => require('./nextcloudAdminNotify').sendAdminNotification(...args),
+        sendAdminNotification: (/** @type {Parameters<typeof import('./nextcloudAdminNotify').sendAdminNotification>} */ ...args) => require('./nextcloudAdminNotify').sendAdminNotification(...args),
     },
     // The knowledge_write step.
     knowledgeBase: {
-        executeKbIngestTool: (...args) => require('./kbIngestTools').executeKbIngestTool(...args),
+        executeKbIngestTool: (/** @type {Parameters<typeof import('./kbIngestTools').executeKbIngestTool>} */ ...args) => require('./kbIngestTools').executeKbIngestTool(...args),
     },
     // http_request credentials of a custom integration.
     customIntegrations: {
-        renderAuthValue: (...args) => require('./customIntegrationRunner').renderAuthValue(...args),
+        renderAuthValue: (/** @type {Parameters<typeof import('./customIntegrationRunner').renderAuthValue>} */ ...args) => require('./customIntegrationRunner').renderAuthValue(...args),
     },
 });

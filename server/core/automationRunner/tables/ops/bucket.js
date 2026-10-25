@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * bucket: sort a column into labelled groups: numeric bands (lowest value
@@ -9,9 +9,12 @@
 
 const { tableError, requireColumn, toNumber, foldText, isBlankCell, makeColumn } = require('./values');
 
+/** @typedef {import('./index').TableOp & ReturnType<typeof import('../../../automationModel/tableOps/normalize').byOp.bucket>} BucketOp */
+
+/** @param {BucketOp} op */
 function bandLabeller(op) {
     const bands = op.bands.map((b) => ({ ...b, lo: b.min ?? -Infinity, hi: b.max ?? Infinity }));
-    return (cell) => {
+    return (/** @type {unknown} */ cell) => {
         const x = toNumber(cell);
         if (x === null) return op.otherLabel;
         const hit = bands.find((b) => x >= b.lo && x < b.hi);
@@ -19,6 +22,7 @@ function bandLabeller(op) {
     };
 }
 
+/** @param {BucketOp} op */
 function valueLabeller(op) {
     const byText = new Map();
     const byNumber = new Map();
@@ -29,7 +33,7 @@ function valueLabeller(op) {
             if (n !== null && !byNumber.has(n)) byNumber.set(n, m.label);
         }
     }
-    return (cell) => {
+    return (/** @type {unknown} */ cell) => {
         const t = byText.get(foldText(cell));
         if (t !== undefined) return t;
         const n = toNumber(cell);
@@ -37,7 +41,11 @@ function valueLabeller(op) {
     };
 }
 
-/** Linear-interpolated quantile of a sorted array. */
+/**
+ * Linear-interpolated quantile of a sorted array.
+ * @param {number} q
+ * @param {number[]} sorted
+ */
 function quantile(sorted, q) {
     const pos = (sorted.length - 1) * q;
     const lo = Math.floor(pos);
@@ -45,6 +53,11 @@ function quantile(sorted, q) {
     return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
 }
 
+/**
+ * @param {BucketOp} op
+ * @param {import('./index').OpInput} input
+ * @param {import('./index').OpCtx} ctx
+ */
 function apply(op, input, ctx) {
     const where = { opId: op.id, field: 'column' };
     const col = requireColumn(input.columns, op.column, where);
@@ -60,9 +73,11 @@ function apply(op, input, ctx) {
     const out = makeColumn(op.output, 'text');
     const columns = at >= 0 ? input.columns.map((c, i) => (i === at ? out : c)) : [...input.columns, out];
 
+    /** @type {number[] | null} */
     let cuts = null;
     async function cutPoints() {
         if (cuts) return cuts;
+        /** @type {number[]} */
         const numbers = [];
         for await (const row of input.rows()) {
             await ctx.tick();

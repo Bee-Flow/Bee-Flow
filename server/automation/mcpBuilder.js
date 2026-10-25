@@ -50,7 +50,7 @@ const {
 // module still costs no database.
 const { buildDatatableCatalogForUser } = require('./builderDatatableCatalog');
 const runTools = require('./mcpRunTools');
-const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 // ── The gate ────────────────────────────────────────────────────────────────
 //
@@ -244,7 +244,7 @@ async function loadDraft(automationId, userId) {
             }
         }
         draftWrap._availableToolNames = catalog?.toolNames instanceof Set ? catalog.toolNames : null;
-    } catch (err) { log.debug('permissive, as before', err); }
+    } catch (err) { fallback('automation/mcpBuilder:loadDraft', err); /* permissive, as before */ }
     // What the draft's tools really returned on this user's last live run, for
     // the builder's path checks — the same read the chat route makes per turn.
     draftWrap._runtimeShapes = await loadRuntimeShapes(draftWrap.def, userId);
@@ -300,7 +300,7 @@ async function loadRuntimeShapes(def, userId, {
         try {
             const shape = await getShape({ userId, toolName });
             if (shape) found[toolName] = shape;
-        } catch (err) { log.debug('no runtime shape for this tool this turn', err); }
+        } catch (err) { fallback('automation/mcpBuilder:loadRuntimeShapes', err); /* no runtime shape for this tool this turn */ }
     }));
     // Cleared as soon as the reads are in, so it holds nothing open longer.
     let timer;
@@ -321,7 +321,7 @@ async function loadRuntimeShapes(def, userId, {
  */
 async function offlineSession(userId) {
     const { loadSession } = require('./triggerBus');
-    return loadSession(userId).catch(() => null);
+    return loadSession(userId).catch((e) => fallback('automation/mcpBuilder:offlineSession', e, null));
 }
 
 async function runGetGuide(userId) {
@@ -527,3 +527,13 @@ module.exports = {
     AUTOMATIONLESS_TOOLS,
     _test: { toMcpTool, AUTOMATION_TOOLS },
 };
+
+/**
+ * @typedef {{ type?: string, properties?: Record<string, unknown>, required?: string[] }} McpJsonSchema
+ * @typedef {{ name: string, description?: string, parameters?: McpJsonSchema }} McpToolFn   an OpenAI-shaped function definition
+ * @typedef {import('./builderTools/pendingDatatables').DraftWrap & {
+ *   automationId?: string | null, builderSessionId?: string, description?: string,
+ *   _documents?: Awaited<ReturnType<typeof import('./builderDocumentCatalog').buildDocumentCatalogForUser>> | null, _documentContracts?: Record<string, any>, _inspectGate?: boolean,
+ *   _inputSchemasByTool?: Record<string, unknown>, _availableToolNames?: Set<string> | null,
+ * }} McpDraftWrap   the draft wrapper one MCP call builds from the stored row
+ */

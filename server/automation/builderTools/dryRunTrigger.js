@@ -1,4 +1,3 @@
-// @typecheck
 'use strict';
 
 /**
@@ -8,7 +7,7 @@
  * that cannot match passed unnoticed.
  */
 
-const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * @param {{ kind?: string, appEvent?: { provider?: string|null, event?: string|null, filter?: unknown } } | null | undefined} trigger
@@ -24,11 +23,12 @@ function prepareDryRunPayload(trigger, givenPayload) {
     let payload = given;
     /** @type {'declared_sample' | 'given' | 'none'} */
     let source = given && Object.keys(given).length ? 'given' : 'none';
+    /** @type {string[]} */
     const warnings = [];
     if (!payload || Object.keys(payload).length === 0) {
         /** @type {{ sample?: Record<string, unknown> } | null} */
         let def = null;
-        try { def = require('../triggerSources').getEventDef(provider, event); } catch (e) { log.debug(`[dryRun] no declared sample: ${e.message}`); }
+        try { def = require('../triggerSources').getEventDef(provider, event); } catch (e) { fallback('automation/builderTools/dryRunTrigger:prepareDryRunPayload', e); /* [dryRun] no declared sample: */ }
         if (def?.sample && typeof def.sample === 'object') {
             payload = { ...def.sample };
             source = 'declared_sample';
@@ -45,7 +45,7 @@ function prepareDryRunPayload(trigger, givenPayload) {
             const { applyDslFilter } = require('../triggers/dslFilters');
             const base = pickMatcher(provider, event);
             filterMatched = !!applyDslFilter(payload, filter, base);
-        } catch (e) { log.debug(`[dryRun] trigger filter not evaluated: ${e.message}`); }
+        } catch (e) { fallback('automation/builderTools/dryRunTrigger:prepareDryRunPayload#2', e); /* [dryRun] trigger filter not evaluated: */ }
         if (source === 'declared_sample') {
             // The sample is a generic example, not the person's data: a narrow
             // filter missing it says nothing about the filter. Report it as advice only.

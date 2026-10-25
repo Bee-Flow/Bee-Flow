@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * Run: node --test automation/patterns/periodicity.test.js
@@ -12,8 +12,17 @@ const DAY = 86_400_000;
 // Saturday 3 October 2026.
 const TODAY = Date.UTC(2026, 9, 3);
 const NOW = TODAY + 18 * 3_600_000;
+/**
+ * @param {number} daysAgo
+ * @param {number} [h]
+ */
 const at = (daysAgo, h = 9) => TODAY - daysAgo * DAY + h * 3_600_000;
+/** @param {number} daysAgo */
 const wd = (daysAgo) => new Date(at(daysAgo)).getUTCDay();
+/**
+ * @param {(d: number) => boolean} pred
+ * @param {number} [span]
+ */
 const days = (pred, span = 90) => [...Array(span).keys()].filter(pred);
 
 test('median and coefficient of variation', () => {

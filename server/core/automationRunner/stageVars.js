@@ -95,7 +95,7 @@ async function runVarsFor(automation, opts = {}, deps = {}) {
         if (!values || typeof values !== 'object' || Object.keys(values).length === 0) return base;
         return { ...base, ...values };
     } catch (err) {
-        logger.warn(`[stageVars] could not read the Solution variables of project ${projectId} for automation ${automation?.id || '?'}: ${err?.message || err}`);
+        logger.warn(`[stageVars] could not read the Solution variables of project ${projectId} for automation ${automation?.id || '?'}: ${/** @type {Error} */ (err)?.message || err}`);
         return base;
     }
 }

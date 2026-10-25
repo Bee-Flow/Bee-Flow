@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio template — AI system register (EU AI Act).
  *
@@ -275,7 +275,7 @@ const dataModel = {
      * (canonicalizeDataModel preserves an explicit null — absent would mean
      * "the author never thought about roles" and would resolve to 'app'.)
      */
-    roleMapping: { default: null, byGroup: {} },
+    roleMapping: { default: /** @type {unknown} */ (null), byGroup: {} },
     tables: [
         // ── The vocabularies ───────────────────────────────────────────────
         {
@@ -529,7 +529,12 @@ const OPEN_SYSTEM = {
     limit: 1,
 };
 
-/** Child rows of the open system. Required: with nothing open, show nothing. */
+/**
+ * Child rows of the open system. Required: with nothing open, show nothing.
+ * @param {string} tableId
+ * @param {{ field: string; dir: string; }[]} sort
+ * @param {number} limit
+ */
 const forOpenSystem = (tableId, sort, limit) => ({
     kind: 'records',
     tableId,
@@ -744,7 +749,7 @@ const SCREEN_REGISTER = {
                 {
                     id: 'cmp_regmodal',
                     type: 'modal',
-                    props: { title: 'Register an AI system', size: 'lg', triggerLabel: null },
+                    props: { title: 'Register an AI system', size: 'lg', triggerLabel: /** @type {string | null} */ (null) },
                     style: { gap: 3, padding: 0 },
                     visible: true,
                     children: [
@@ -825,7 +830,7 @@ const SCREEN_TRIAGE = {
                     },
                     style: { span: 12 },
                     visible: true,
-                    children: [],
+                    children: /** @type {import('../builderTools').AppNode[]} */ ([]),
                 },
                 {
                     id: 'cmp_trnote',
@@ -903,16 +908,16 @@ const SCREEN_TRIAGE = {
                             sort: [{ field: 'position', dir: 'asc' }],
                             limit: 12,
                         },
-                        columns: [],
+                        columns: /** @type {string[]} */ ([]),
                         // No swimlanes: a register has one axis that matters.
                         // Written out rather than left to the default, because
                         // the default is a BARE null and canonicalize would
                         // wrap it into a binding on the next save — a
                         // structural repair, which is a definition that does
                         // not round-trip.
-                        swimlaneField: null,
-                        swimlanes: [],
-                        swimlanesSource: { kind: 'static', value: null },
+                        swimlaneField: /** @type {string | null} */ (null),
+                        swimlanes: /** @type {string[]} */ ([]),
+                        swimlanesSource: { kind: 'static', value: /** @type {unknown} */ (null) },
                         titleKey: 'name',
                         subtitleKey: 'use_case_name',
                         badgeKey: 'status',
@@ -1112,7 +1117,7 @@ const SCREEN_SYSTEM = {
                                         pageSize: 10,
                                         selectable: 'none',
                                         searchable: false,
-                                        rowActions: [],
+                                        rowActions: /** @type {string[]} */ ([]),
                                         density: 'compact',
                                         zebra: true,
                                         emptyText: 'Nobody is recorded as watching this system. For a high-risk system that is a finding, not a blank.',
@@ -1171,7 +1176,7 @@ const SCREEN_SYSTEM = {
                                         pageSize: 10,
                                         selectable: 'none',
                                         searchable: false,
-                                        rowActions: [],
+                                        rowActions: /** @type {string[]} */ ([]),
                                         density: 'compact',
                                         zebra: true,
                                         emptyText: 'No incidents recorded for this system.',
@@ -1306,7 +1311,7 @@ const SCREEN_INCIDENTS = {
                     },
                     style: { span: 12 },
                     visible: true,
-                    children: [],
+                    children: /** @type {import('../builderTools').AppNode[]} */ ([]),
                 },
                 {
                     id: 'cmp_innote',
@@ -1463,7 +1468,7 @@ const SCREEN_INCIDENTS = {
                 {
                     id: 'cmp_inmodal',
                     type: 'modal',
-                    props: { title: 'Incident', size: 'lg', triggerLabel: null },
+                    props: { title: 'Incident', size: 'lg', triggerLabel: /** @type {string | null} */ (null) },
                     style: { gap: 3, padding: 0 },
                     visible: true,
                     children: [
@@ -1541,7 +1546,7 @@ const SCREEN_SETUP = {
                     },
                     style: { span: 12 },
                     visible: true,
-                    children: [],
+                    children: /** @type {import('../builderTools').AppNode[]} */ ([]),
                 },
                 {
                     id: 'cmp_sunote',
@@ -1595,7 +1600,7 @@ const SCREEN_SETUP = {
                                         pageSize: 25,
                                         selectable: 'none',
                                         searchable: false,
-                                        rowActions: [],
+                                        rowActions: /** @type {string[]} */ ([]),
                                         density: 'compact',
                                         zebra: true,
                                         emptyText: 'No tiers configured.',
@@ -1802,7 +1807,7 @@ const actions = {
     act_regremind: {
         kind: 'sequence',
         steps: [
-            { kind: 'run_automation', automationId: null, resultVar: 'reminderRun' },
+            { kind: 'run_automation', automationId: /** @type {string | null} */ (null), resultVar: 'reminderRun' },
             { kind: 'toast', message: 'Pick the automation that sends the reminder under Automations — this button is wired to nothing until you do.', tone: 'info' },
         ],
     },
@@ -2221,7 +2226,7 @@ const definition = {
     // surfaces — so the AI register reads as approachable governance, not as
     // another grey console. The preset id records provenance; the values are
     // materialized here (appDesignPresets.js precedent).
-    design: { preset: 'field', font: 'general-sans', surface: 'soft', motion: 'subtle', chartPalette: 'brand', accentEdge: 'bar', logoUrl: null },
+    design: { preset: 'field', font: 'general-sans', surface: 'soft', motion: 'subtle', chartPalette: 'brand', accentEdge: 'bar', logoUrl: /** @type {string | null} */ (null) },
     nav: {
         style: 'sidebar',
         groups: [
@@ -2240,7 +2245,7 @@ const definition = {
      * republishes the whole object on every keystroke.
      */
     variables: [
-        { name: 'system', label: 'Open system', type: 'record', default: null, description: 'The system opened from the register or the triage board. Supplies identity only — every screen reads the row itself live, so a write shows immediately.' },
+        { name: 'system', label: 'Open system', type: 'record', default: /** @type {unknown} */ (null), description: 'The system opened from the register or the triage board. Supplies identity only — every screen reads the row itself live, so a write shows immediately.' },
         { name: 'tier', label: 'Selected tier', type: 'record', default: null, description: 'The tier whose obligations the triage screen is showing.' },
         { name: 'incident', label: 'Open incident', type: 'record', default: null, description: 'The incident the dialog on the Incidents screen is showing.' },
     ],

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Smoke scenarios — ISO 27001 A.5.16 identity hygiene, fed by the directory
  * connectors (Google Workspace, Microsoft Entra).

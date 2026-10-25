@@ -40,6 +40,7 @@ const isBinding = (v) => isPlainObject(v) && typeof v.kind === 'string' && BINDI
  * "amount_total" does NOT become "Totaal". Mirrors
  * integrations/nextcloudTablesTools.js normaliseColumnKey and
  * agent-hub flow/settings/columnMatch.js exactly.
+ * @param {string} s
  */
 function normaliseKey(s) {
     return String(s ?? '')
@@ -126,6 +127,7 @@ const TABLE_ALIASES = ['tableId', 'table', 'datatable', 'tableName', 'datatableN
 function translateDatatableVocabulary(args) {
     if (!isPlainObject(args)) return { args, notes: [] };
     const out = { ...args };
+    /** @type {string[]} */
     const notes = [];
 
     for (const alias of VALUES_ALIASES) {
@@ -203,7 +205,10 @@ function listTables(datatables) {
     return shown.join(', ') + (rest > 0 ? `, …and ${rest} more` : '');
 }
 
-/** exact id → exact key → normalised name/key. `how` says which rung hit. */
+/**
+ * exact id → exact key → normalised name/key. `how` says which rung hit.
+ * @param {string} term
+ */
 function lookupTable(term, datatables) {
     const s = String(term);
     let hits = datatables.filter(t => t && t.id === s);
@@ -248,17 +253,26 @@ function resolveDatatableRef({ id, key, datatables } = {}) {
             _fixHint: 'Reject reason: no datatable exists. Do not retry this step as it is: create the table with builder_create_datatable({name, fields}) and bind the step to the id it returns, or tell the user which table to create and stop. Never invent an id.',
         };
     }
+    /** @type {string[]} */
     const notes = [];
 
     // `_rejectedPath` names the spec field whose VALUE caused the refusal, so
     // the resend suggestion drops it instead of handing the same invented id
     // back. Measured 2026-09-16: a step naming "tbl_fact01" was refused and
     // `resendAs` echoed the step verbatim — the same id, the same refusal.
+    /**
+     * @param {string} term
+     * @param {string} field
+     */
     const ambiguous = (term, hits, field) => ({
         error: `"${term}" matches ${hits.length} datatables: ${hits.map(describeTable).join(', ')}. Use the exact id of the one you mean.`,
         _fixHint: 'Reject reason: ambiguous table name. Put the exact id in datatableId and resend the same step.',
         _rejectedPath: field,
     });
+    /**
+     * @param {string} term
+     * @param {string} field
+     */
     const unknown = (term, field) => ({
         error: `There is no datatable "${term}" available to this user. Existing tables: ${listTables(datatables)}. Use one of these ids, or tell the user the table must be created first — never invent one.`,
         // Several tables with near-identical names is the normal case for an
@@ -353,6 +367,9 @@ function indexColumns(columns, { allowSystem = false } = {}) {
     return { all, byKey, byNorm, ambiguous };
 }
 
+/**
+ * @param {string} term
+ */
 function matchOne(term, idx) {
     const exact = idx.byKey.get(term);
     if (exact) return { col: exact, exact: true };
@@ -363,6 +380,11 @@ function matchOne(term, idx) {
     return col ? { col, exact: false } : null;
 }
 
+/**
+ * @param {string} what
+ * @param {string} term
+ * @param {string} tableName
+ */
 const ambiguousColumnError = (what, term, cols, tableName) => ({
     error: `${what} key "${term}" matches ${countWord(cols.length)} columns of "${tableName}" (${cols.map(c => `"${c.name}"`).join(', ')}) — use the exact column key.`,
     _fixHint: 'Reject reason: ambiguous column key. Put the exact column key from the Datatables block in place of the name and resend the same step.',
@@ -391,7 +413,9 @@ function mapColumnKeys(map, columns, { what = 'values', tableName = 'this table'
     if (!Array.isArray(columns)) return { map, notes: [] };
     const idx = indexColumns(columns);
     const out = {};
+    /** @type {string[]} */
     const notes = [];
+    /** @type {string[]} */
     const unknown = [];
     const takenBy = new Map();
     for (const [k, v] of Object.entries(map)) {
@@ -427,6 +451,7 @@ function mapColumnKeys(map, columns, { what = 'values', tableName = 'this table'
  * @returns {{key: *, note?: string} | {error: string, _fixHint: string}}
  *   A non-string or blank name comes back untouched — presence and type are
  *   the validator's call, not this helper's.
+ * @param {string} name
  */
 function mapColumnName(name, columns, { allowSystem = false, what = 'matchColumn', tableName = 'this table' } = {}) {
     if (typeof name !== 'string' || !name.trim()) return { key: name };
@@ -454,3 +479,16 @@ module.exports = {
     mapColumnKeys,
     mapColumnName,
 };
+
+/** @typedef {import('./pendingDatatables').DatatableCatalogEntry} DatatableCatalogEntry */
+
+/** @typedef {import('./pendingDatatables').DatatableColumn} DatatableColumn */
+
+/**
+ * What a datatable step call carries (the model's arguments, after
+ * translateDatatableVocabulary).
+ * @typedef {{ op?: string, label?: string, datatableId?: string, datatableKey?: string,
+ *   values?: Record<string, unknown>, where?: object|object[], sort?: object|object[], matchColumn?: string,
+ *   match?: string, limit?: number|string, cursor?: unknown, forEach?: object, afterStepId?: string,
+ *   branch?: string, caseName?: string, splice?: boolean }} DatatableStepArgs
+ */

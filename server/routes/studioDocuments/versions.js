@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * A Studio document's history: the uniform versions API every item with a
  * history answers (notebooks answer the same shape at /api/notebooks/:id).
@@ -54,7 +54,7 @@ const REF = /^(current|[\w-]{1,200})$/;
 /**
  * @param {object} [deps]
  * @param {any} [deps.documents]       stores/documentStore surface
- * @param {Function} [deps.requireAuth]
+ * @param {import('express').RequestHandler} [deps.requireAuth]
  * @param {Function} [deps.hasPermission]
  * @param {Function} [deps.liveCollabFor]  (doc) => collab facade | null
  * @param {any} [deps.feed]             { recordContentChange }
@@ -68,21 +68,31 @@ function makeDocumentVersionsRouter(deps = {}) {
     // Looked up per request, so loading this router does not load the auth
     // and user stores, and a test's session gate is the one used.
     const requireAuth = deps.requireAuth || ((req, res, next) => require('../../auth/permissions').requireAuth(req, res, next));
+    /** @type {typeof import('../../auth/permissions').hasPermission} */
     const hasPermission = (...a) => (deps.hasPermission || require('../../auth/permissions').hasPermission)(...a);
+    /** @param {import('../../stores/documentStore').DocumentView} doc */
     const liveCollabFor = (doc) => (deps.liveCollabFor || require('../../core/documents/documentFeed').liveCollabFor)(doc);
     const feed = () => deps.feed || require('../../core/documents/documentFeed');
+    /** @type {typeof import('../../core/documents/documentPeople').describePeople} */
     const describePeople = (...a) => (deps.describePeople || require('../../core/documents/documentPeople').describePeople)(...a);
+    /** @param {string} html */
     const sanitize = (html) => (deps.sanitize || require('../../services/documentCompose').sanitizeDocumentBody)(html);
     // The revisions automations and apps pin, from their definitions: the same
     // list the retention job never prunes (jobs/documentVersionRetention.js).
     const pinnedVersionIds = () => (deps.pinnedVersionIds
         || (() => require('../../jobs/documentVersionRetention').listPinnedVersionIds(require('../../db').pool)))();
 
+    /** @param {import('express').Request} req */
     const userIdOf = (req) => req.session.user.id;
+    /** @param {import('express').Request} req */
     const orgIdOf = (req) => req.session.connectorOrgId || req.session.user.organizationId || null;
+    /** @param {import('express').Request} req */
     const context = async (req) => ({ userId: userIdOf(req), isAdmin: await hasPermission(userIdOf(req), 'org_admin', req.session) });
 
-    /** A store refusal worded for the caller, as an HttpError; anything else as it is. */
+    /**
+     * A store refusal worded for the caller, as an HttpError; anything else as it is.
+     * @param {Error & { status?: number, errorClass?: string, conflict?: unknown }} err
+     */
     const fromStore = (err) => {
         const status = Number(err?.status);
         if (Number.isInteger(status) && status >= 400 && status < 500) {
@@ -92,17 +102,24 @@ function makeDocumentVersionsRouter(deps = {}) {
         }
         return err;
     };
+    /** @param {import('express').Request<{ ref: string }>} req */
     const checkRef = (req) => {
         if (!REF.test(String(req.params.ref || ''))) throw notFound('version_not_found', 'Version not found');
         return req.params.ref;
     };
-    /** The document the caller may read, or 404. */
+    /**
+     * The document the caller may read, or 404.
+     * @param {import('express').Request} req
+     */
     const readable = async (req) => {
         const doc = await documents().getDocument(req.params.id, userIdOf(req));
         if (!doc) throw notFound('document_not_found', 'Document not found');
         return doc;
     };
-    /** The document the caller may change: a project viewer is told so. */
+    /**
+     * The document the caller may change: a project viewer is told so.
+     * @param {import('express').Request} req
+     */
     const writable = async (req) => {
         const doc = await readable(req);
         if (doc.projectRole === 'viewer') {
@@ -110,14 +127,25 @@ function makeDocumentVersionsRouter(deps = {}) {
         }
         return doc;
     };
+    /**
+     * @param {import('express').Request} req
+     * @param {{ createdBy?: string, contributors?: { userId?: string }[] }[]} versions
+     */
     const peopleOf = (req, versions) => describePeople(
         versions.flatMap((v) => [v.createdBy, ...(v.contributors || []).map((c) => c.userId)]), orgIdOf(req));
-    /** The live facade of a page, or a 503 when whether it is live cannot be told. */
+    /**
+     * The live facade of a page, or a 503 when whether it is live cannot be told.
+     * @param {import('../../stores/documentStore').DocumentView} doc
+     */
     const liveOf = async (doc) => {
         try { return await liveCollabFor(doc); } catch {
             throw new HttpError(503, 'collab_unavailable', 'Live editing is not answering right now. Please try again in a moment.');
         }
     };
+    /**
+     * @param {import('express').Request} req
+     * @param {string} versionId
+     */
     const metaOf = async (req, versionId) => {
         const read = await documents().getVersion(req.params.id, userIdOf(req), versionId);
         if (!read) return null;
@@ -133,7 +161,7 @@ function makeDocumentVersionsRouter(deps = {}) {
         res.json({ ...page, people: await peopleOf(req, page.versions) });
     });
 
-    router.get('/:ref', requireAuth, async (req, res) => {
+    router.get('/:ref', requireAuth, async (/** @type {import('express').Request<{ id: string, ref: string }>} */ req, res) => {
         const ref = checkRef(req);
         const read = await documents().getVersion(req.params.id, userIdOf(req), ref);
         if (!read) throw notFound('version_not_found', 'Version not found');
@@ -167,7 +195,7 @@ function makeDocumentVersionsRouter(deps = {}) {
         res.status(201).json({ version });
     });
 
-    router.put('/:ref/name', requireAuth, validate({ body: S.name }), async (req, res) => {
+    router.put('/:ref/name', requireAuth, validate({ body: S.name }), async (/** @type {import('express').Request<{ id: string, ref: string }>} */ req, res) => {
         const ref = checkRef(req);
         await writable(req);
         let version;
@@ -177,7 +205,7 @@ function makeDocumentVersionsRouter(deps = {}) {
         res.json({ version });
     });
 
-    router.post('/:ref/restore', requireAuth, validate({ body: S.restore }), async (req, res) => {
+    router.post('/:ref/restore', requireAuth, validate({ body: S.restore }), async (/** @type {import('express').Request<{ id: string, ref: string }>} */ req, res) => {
         const ref = checkRef(req);
         if (ref === 'current') throw notFound('version_not_found', 'Version not found');
         const doc = await writable(req);
@@ -204,6 +232,11 @@ function makeDocumentVersionsRouter(deps = {}) {
      * well left the restore without the version it came from, or recorded it
      * twice. Null when the live layer says there is no live document after
      * all, and the stored-body restore takes over.
+     * @param {import('express').Request} req
+     * @param {import('../../stores/documentStore').DocumentView} doc
+     * @param {string} ref
+     * @param {Awaited<ReturnType<typeof import('../../core/documents/documentFeed').liveCollabFor>>} live
+     * @param {string} [expected]
      */
     async function restoreLive(req, doc, ref, live, expected) {
         if (expected && expected !== doc.versionId) {
@@ -220,7 +253,7 @@ function makeDocumentVersionsRouter(deps = {}) {
         return { version: versionId ? await metaOf(req, versionId) : null, current, live: true };
     }
 
-    router.delete('/:ref', requireAuth, async (req, res) => {
+    router.delete('/:ref', requireAuth, async (/** @type {import('express').Request<{ id: string, ref: string }>} */ req, res) => {
         const ref = checkRef(req);
         let out;
         try { out = await documents().deleteVersion(req.params.id, userIdOf(req), ref, { referencedIds: pinnedVersionIds }); }

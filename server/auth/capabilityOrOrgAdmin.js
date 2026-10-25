@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * A capability gate with an org-admin escape hatch for ORG-level endpoints.
  *
@@ -18,15 +18,20 @@
  */
 const { tagGate, readGate } = require('./gateMeta');
 
+/**
+ * @param {import('express').RequestHandler & Record<symbol, Record<string, unknown> | undefined>} capabilityGate
+ * @param {{ orgIdFor: (req: import('express').Request) => string | null | Promise<string | null>, isOrgAdminForOrg: (req: import('express').Request, orgId: string) => Promise<boolean>, log?: { warn?: (message: string) => void } }} deps
+ */
 function requireCapabilityOrOrgAdmin(capabilityGate, { orgIdFor, isOrgAdminForOrg, log }) {
     const meta = readGate(capabilityGate) || {};
-    return tagGate(async function capabilityOrOrgAdminGate(req, res, next) {
+    return tagGate(async function capabilityOrOrgAdminGate(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
+        /** @type {string | null} */
         let orgId = null;
         try { orgId = await orgIdFor(req); } catch { orgId = null; }
         if (orgId && req.session?.user) {
             let admin = false;
             try { admin = await isOrgAdminForOrg(req, orgId); } catch (e) {
-                log?.warn?.(`[entitlements] org-admin bypass check failed org=${orgId}: ${e.message}`);
+                log?.warn?.(`[entitlements] org-admin bypass check failed org=${orgId}: ${/** @type {Error} */ (e).message}`);
             }
             if (admin) return next();
         }
@@ -34,7 +39,10 @@ function requireCapabilityOrOrgAdmin(capabilityGate, { orgIdFor, isOrgAdminForOr
     }, { ...meta, orgAdminBypass: true });
 }
 
-/** The org the session belongs to (what the summary-template router acts on). */
+/**
+ * The org the session belongs to (what the summary-template router acts on).
+ * @param {import('express').Request} req
+ */
 function sessionOrgId(req) {
     const u = req.session?.user;
     return u?.organizationId || u?.orgId || null;
@@ -43,6 +51,7 @@ function sessionOrgId(req) {
 /**
  * `/:orgId` endpoints of the Talk / Google Meet settings routers. `/user/me`
  * (and anything deeper) is personal.
+ * @param {import('express').Request} req
  */
 function settingsOrgIdFor(req) {
     const parts = String(req.path || '').split('/').filter(Boolean);
@@ -55,6 +64,7 @@ function settingsOrgIdFor(req) {
  * editing or deleting a template by id (the router's authorizeWrite still
  * limits a user-scope template to its owner). Listing the caller's own
  * templates and creating a personal one stay behind the capability.
+ * @param {import('express').Request} req
  */
 function summaryTemplateOrgIdFor(req) {
     const path = String(req.path || '/');

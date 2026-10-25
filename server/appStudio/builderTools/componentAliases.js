@@ -41,6 +41,7 @@ const COMPONENT_TYPE_ALIASES = Object.freeze({
  * nothing usable. A name written with spaces or hyphens ("data grid",
  * "page-header") is the underscore type it spells — a small model reads the
  * catalog's `data_grid` and writes it back as prose.
+ * @param {string} raw
  */
 function canonicalComponentType(raw) {
     if (typeof raw !== 'string') return null;

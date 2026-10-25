@@ -100,11 +100,21 @@ router.use(require('./documentSuggestions').makeDocumentSuggestionsRouter());
 // documentStore.createDocument/updateDocument copy only their own key list
 // out of it. PUT /house-style and POST /house-style/preview-theme carry a
 // house style, which houseStyle.normaliseStyle reads field by field.
+/**
+ * @param {string} message
+ * @param {number} max
+ */
 const docText = (message, max) => worded(message).max(max, message);
+/**
+ * @param {string} name
+ */
 const anId = (name) => docText(`${name} is the id of a document.`, 200);
 // Read when a request arrives, not at load: the list is the store's.
 const listTypes = () => [...(documentStore.DOC_TYPES || []), 'designed', 'notebook'];
 const DOC_TYPE_TEXT = 'docType is a document type, like page, notebook, invoice, letter or presentation, or designed for every type written in the designer.';
+/**
+ * @param {string} fallbackText
+ */
 const pageOf = (fallbackText) => ({
     limit: wholeNumber(`limit is a whole number. ${fallbackText}`).optional(),
     offset: wholeNumber('offset is a whole number, 0 or more.').optional(),
@@ -127,6 +137,9 @@ const TemplatesQuery = queryOf({ ...listFilters, limit: pageOf('At most 200 are 
 const StartersQuery = queryOf({ locale: docText('locale is a language code, like en or nl.', 20).optional() }, 'The starters');
 const VersionQuery = queryOf({ versionId: docText('versionId is the id of a revision.', 200).optional() }, 'This document');
 const PreviewQuery = queryOf({ edit: choice(['0', '1'], 'edit is 1 for the editing bridge.').optional() }, 'The preview');
+/**
+ * @param {string} name
+ */
 const valuesMap = (name) => z.record(z.string(), z.unknown(), { error: typeError({ invalid: `${name} is an object of values.` }) });
 const REVISION_TEXT = 'expectedVersionId is the revision you read.';
 const bodies = {
@@ -165,7 +178,10 @@ const PREVIEW_CSP = [
     "frame-ancestors 'self'",
 ].join('; ');
 
-/** Turn a document name into something safe for a Content-Disposition filename. */
+/**
+ * Turn a document name into something safe for a Content-Disposition filename.
+ * @param {string} [extension]
+ */
 function pdfFilename(name, extension = 'pdf') {
     const base = String(name || 'document')
         .normalize('NFKD')
@@ -218,6 +234,9 @@ function refuseReadOnly(res, doc) {
     return true;
 }
 
+/**
+ * @param {string} fallback
+ */
 function sendStoreError(res, err, fallback) {
     if (err && err.status) return res.status(err.status).json({ error: err.message, code: err.errorClass || (typeof err.code === 'string' ? err.code : undefined), details: err.details, issues: err.issues, conflict: err.conflict });
     log.error('[StudioDocuments] request failed:', err);
@@ -317,8 +336,8 @@ router.post('/house-style/deck-template', requireAuth, validate({ body: bodies.d
         const status = err && err.errorClass === 'template_too_large' ? 413 : (err && /^template_/.test(err.errorClass || '') ? 422 : 500);
         // Only the template's own refusals are worded for the caller; anything
         // else is an internal failure whose text stays in the log.
-        if (status !== 500) return res.status(status).json({ error: err.message, code: err.errorClass || 'template_failed' });
-        log.error('[StudioDocuments] deck template failed:', err && err.message);
+        if (status !== 500) return res.status(status).json({ error: /** @type {Error} */ (err).message, code: err.errorClass || 'template_failed' });
+        log.error('[StudioDocuments] deck template failed:', err && /** @type {Error} */ (err).message);
         throw new HttpError(500, 'template_failed', 'The template deck could not be read.');
     }
 });
@@ -583,7 +602,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
         const refuseLive = async () => {
             let conflictVersionId = null;
             try { conflictVersionId = await documentStore.keepConflictCopy(req.params.id, context, body.bodyHtml); }
-            catch (e) { log.warn('[StudioDocuments] could not keep a refused page body as a version', { documentId: req.params.id, error: e.message }); }
+            catch (e) { log.warn('[StudioDocuments] could not keep a refused page body as a version', { documentId: req.params.id, error: /** @type {Error} */ (e).message }); }
             return res.status(409).json({ error: 'This page is being edited live. Join in to keep editing; your text was kept in its version history.', code: 'document_live', conflictVersionId });
         };
         if (typeof body.bodyHtml === 'string' && await documentFeed.liveCollabFor(existing)) return refuseLive();
@@ -642,10 +661,10 @@ router.delete('/:id', requireAuth, async (req, res) => {
         }
         // Its open suggestions are of no use to anybody now (restoring from the archive starts without them).
         try { await require('../stores/documentSuggestionStore').deleteForTarget('document', req.params.id); }
-        catch (err) { log.warn(`[Documents] suggestions of document ${req.params.id} not dropped: ${err.message}`); }
+        catch (err) { log.warn(`[Documents] suggestions of document ${req.params.id} not dropped: ${/** @type {Error} */ (err).message}`); }
         // A task that linked this document keeps existing; the link goes (in every project).
         try { await require('../stores/projectTaskStore').dropLinksTo(null, 'document', req.params.id); }
-        catch (err) { log.warn(`[Documents] task links to document ${req.params.id} not dropped: ${err.message}`); }
+        catch (err) { log.warn(`[Documents] task links to document ${req.params.id} not dropped: ${/** @type {Error} */ (err).message}`); }
         res.json({ success: true });
     } catch (err) {
         sendStoreError(res, err, 'Failed to delete document');
@@ -654,6 +673,9 @@ router.delete('/:id', requireAuth, async (req, res) => {
 
 // ── Composed output ──────────────────────────────────────────────────
 
+/**
+ * @param {string} html
+ */
 function sendPreview(res, html) {
     res.set('Content-Type', 'text/html; charset=utf-8');
     res.set('Content-Security-Policy', PREVIEW_CSP);
@@ -693,7 +715,7 @@ router.post('/:id/preview', requireAuth, validate({ body: bodies.deckDraft }), a
         sendPreview(res, await previewHtmlFor(req, doc, { draft }));
     } catch (err) {
         if (err && err.errorClass === 'document_empty') return sendPreview(res, emptyDeckHtml());
-        if (err && /^deck_/.test(err.errorClass || '')) return res.status(422).json({ error: err.message, code: err.errorClass });
+        if (err && /^deck_/.test(err.errorClass || '')) return res.status(422).json({ error: /** @type {Error} */ (err).message, code: err.errorClass });
         sendStoreError(res, err, 'Failed to render the presentation');
     }
 });
@@ -726,7 +748,7 @@ router.get('/:id/pptx', requireAuth, validate({ query: VersionQuery }), async (r
         res.set('Content-Disposition', `attachment; filename="${pdfFilename(doc.name, 'pptx')}"`);
         res.send(out.buffer);
     } catch (err) {
-        if (err && err.errorClass) return res.status(err.status || 400).json({ error: err.message, code: err.errorClass, issues: err.issues });
+        if (err && err.errorClass) return res.status(err.status || 400).json({ error: /** @type {Error} */ (err).message, code: err.errorClass, issues: err.issues });
         sendStoreError(res, err, 'Failed to build the presentation');
     }
 });
@@ -738,13 +760,14 @@ async function markingFor(req) {
         const orgId = req.session.connectorOrgId || req.session.user.organizationId || null;
         return orgId ? await resolveMarking(orgId, { provider: 'document' }) : null;
     } catch (e) {
-        log.warn('[StudioDocuments] Marking lookup failed, rendering unmarked:', e.message);
+        log.warn('[StudioDocuments] Marking lookup failed, rendering unmarked:', /** @type {Error} */ (e).message);
         return null;
     }
 }
 
 router.get('/:id/pdf', requireAuth, validate({ query: VersionQuery }), async (req, res) => {
     try {
+        // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- sends a rendered document buffer with its own Content-Type as an attachment, not HTML built from the request
         const doc = req.query.versionId
             ? await documentStore.getDocumentVersion(req.params.id, req.session.user.id, req.query.versionId)
             : await documentStore.getDocument(req.params.id, req.session.user.id);
@@ -763,7 +786,7 @@ router.get('/:id/pdf', requireAuth, validate({ query: VersionQuery }), async (re
             const orgId = req.session.connectorOrgId || req.session.user.organizationId || null;
             if (orgId) marking = await resolveMarking(orgId, { provider: 'document' });
         } catch (e) {
-            log.warn('[StudioDocuments] Marking lookup failed, rendering unmarked:', e.message);
+            log.warn('[StudioDocuments] Marking lookup failed, rendering unmarked:', /** @type {Error} */ (e).message);
         }
 
         const { renderFilledDocument } = require('../core/documents/renderFilledDocument');
@@ -777,7 +800,7 @@ router.get('/:id/pdf', requireAuth, validate({ query: VersionQuery }), async (re
         res.send(out.buffer);
     } catch (err) {
         if (err && err.errorClass) {
-            return res.status(err.status || 400).json({ error: err.message, code: err.errorClass, issues: err.issues });
+            return res.status(err.status || 400).json({ error: /** @type {Error} */ (err).message, code: err.errorClass, issues: err.issues });
         }
         sendStoreError(res, err, 'Failed to render PDF');
     }
@@ -795,3 +818,23 @@ router.use('/', notebookLibraryRouter);
 router.use('/', sheetRouter);
 
 module.exports = router;
+
+/** @typedef {import('express').Request<{ id: string }>} IdReq */
+
+/** @typedef {import('express').Request<{ id: string, sectionId: string }>} SectionReq */
+
+/** @typedef {import('express').Request<{ folderId: string }>} FolderReq */
+
+/** @typedef {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof VersionQuery>>} VersionReq */
+
+/** @typedef {import('../stores/documentStore').DocumentView} DocumentView */
+
+/** @typedef {import('../stores/documentStore').DocumentInput} DocumentInput */
+
+/** @typedef {{ documentId: string, versionId: string }} SourceRef  a section's or document's stored source revision */
+
+/** @typedef {import('express').Request<{}, any, any, import('zod').infer<typeof TemplatesQuery>>} TemplatesReq */
+
+/** @typedef {import('express').Request<{}, any, any, import('zod').infer<typeof ListQuery>>} DocumentListReq */
+
+/** @typedef {import('express').Request<{}, any, any, import('zod').infer<typeof StartersQuery>>} StartersReq */

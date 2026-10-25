@@ -66,12 +66,18 @@ function columnTypeOf(field) {
 
 const SYSTEM_KEYS = new Set([...SYSTEM_COLUMNS, ...FORM_ANSWERS_FIELDS.map(f => f.key)]);
 
-/** Does the trigger's form ask for its answers to be collected in a table? */
+/**
+ * Does the trigger's form ask for its answers to be collected in a table?
+ * @param {Def} definition
+ */
 function collectEnabled(definition) {
     return isFormTriggerDefinition(definition) && definition.trigger.form?.collect === true;
 }
 
-/** The input pages of a multi-page form, in definition order. */
+/**
+ * The input pages of a multi-page form, in definition order.
+ * @param {Def} definition
+ */
 function inputPagesOf(definition) {
     const pages = [];
     // portability is stubbed to a subset in some route suites; a definition
@@ -85,7 +91,10 @@ function inputPagesOf(definition) {
     return pages;
 }
 
-/** Every question a submission can answer: the trigger's, then each page's. */
+/**
+ * Every question a submission can answer: the trigger's, then each page's.
+ * @param {Def} definition
+ */
 function questionsOf(definition) {
     if (!isFormTriggerDefinition(definition)) return [];
     const out = [];
@@ -152,6 +161,7 @@ function fingerprintOf(columnMap) {
  * Returns `{ fields, columnMap, fingerprint, warnings }` where `fields` is
  * the FULL datatable field list in the order `[run_id, completed_at, …live
  * questions in form order, …retired]` and `columnMap` is keyed by field id.
+ * @param {Def} definition
  */
 function deriveAnswerColumns(definition, existingColumnMap = null, { now = null } = {}) {
     const prior = existingColumnMap && typeof existingColumnMap === 'object' ? existingColumnMap : {};
@@ -159,6 +169,7 @@ function deriveAnswerColumns(definition, existingColumnMap = null, { now = null 
     for (const c of Object.values(prior)) if (c && typeof c.key === 'string') used.add(c.key);
 
     const columnMap = {};
+    /** @type {string[]} */
     const live = [];
     const warnings = [];
     const cap = DATA_LIMITS.MAX_FIELDS_PER_TABLE - FORM_ANSWERS_FIELDS.length;
@@ -197,6 +208,7 @@ function deriveAnswerColumns(definition, existingColumnMap = null, { now = null 
 
     // Everything the table had that the form no longer asks: kept, retired —
     // in the order they were retired (JSONB keeps no order of its own).
+    /** @type {string[]} */
     const retired = [];
     for (const [id, c] of Object.entries(prior)) {
         if (kept.has(id) || !c || typeof c.key !== 'string') continue;
@@ -216,7 +228,10 @@ function deriveAnswerColumns(definition, existingColumnMap = null, { now = null 
     return { fields, columnMap, fingerprint: fingerprintOf(columnMap), warnings };
 }
 
-/** One datatable field from one column-map entry. */
+/**
+ * One datatable field from one column-map entry.
+ * @param {string} id
+ */
 function fieldOf(id, entry) {
     const f = { id, key: entry.key, name: entry.name, type: entry.columnType };
     if (entry.columnType === 'select') f.options = (entry.options || []).slice();
@@ -227,6 +242,8 @@ function fieldOf(id, entry) {
  * The row values for ONE page of answers (`pageStepId` null = the trigger's
  * form), keyed by column key. What the form stores as "" becomes NULL for
  * every type but a checkbox, so "skipped" is `IS NULL` in the dashboard.
+ * @param {string | null} pageStepId
+ * @param {Record<string, Answer> | null} values
  */
 function rowValuesFor(columnMap, pageStepId, values) {
     const src = values && typeof values === 'object' ? values : {};
@@ -307,7 +324,10 @@ function cellFor(entry, raw) {
     }
 }
 
-/** The column-map entries in the form's order (live first, then retired). */
+/**
+ * The column-map entries in the form's order (live first, then retired).
+ * @param {ColumnMap | undefined} columnMap
+ */
 function orderedColumns(columnMap) {
     return Object.entries(columnMap || {})
         .filter(([, c]) => c && typeof c.key === 'string')
@@ -352,3 +372,15 @@ module.exports = {
     orderedColumns,
     fingerprintOf,
 };
+
+/**
+ * @typedef {Record<string, any>} Def  an automation definition, as stored
+ * @typedef {import('../formTriggerContract').FormField} FormField
+ * @typedef {import('../formTriggerContract').FormDeclaration} FormDeclaration
+ * @typedef {{ key: string, name: string, formName: string, pageStepId: string | null, formType: string, columnType: string,
+ *   options: string[] | null, required: boolean, retired: boolean, retiredAt: string | null, position?: number }} ColumnEntry
+ *   one column of the answers table, as kept in `source.columnMap`
+ * @typedef {Record<string, ColumnEntry>} ColumnMap  keyed by field id
+ * @typedef {{ id: string, key: string, name: string, type: string, options?: string[] }} DatatableField
+ * @typedef {string | number | boolean | null | undefined | Record<string, any>} Answer  one answer as a form submits it
+ */

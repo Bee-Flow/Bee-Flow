@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Pure input handling for the webpage builder tools: what webpage_set_metadata
  * accepts (and says it rejected), what webpage_file_read reports, and the size
@@ -45,7 +45,7 @@ function sanitizeMetadata(args) {
     const updates = {};
     /** @type {string[]} */
     const warnings = [];
-    const given = v => v !== undefined && v !== null && v !== '';
+    const given = (/** @type {unknown} */ v) => v !== undefined && v !== null && v !== '';
 
     if (given(args.icon)) {
         const icon = sanitizeIcon(args.icon);

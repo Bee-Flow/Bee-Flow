@@ -27,7 +27,7 @@ function re2Compile(source, caseSensitive) {
     try {
         return { re: new RE2(String(source), caseSensitive ? 'gu' : 'giu') };
     } catch (err) {
-        return { error: String(err?.message || err).slice(0, 200) };
+        return { error: String(/** @type {Error} */ (err)?.message || err).slice(0, 200) };
     }
 }
 
@@ -42,15 +42,22 @@ function v8Compile(source, caseSensitive) {
         void new RegExp(String(source), caseSensitive ? 'g' : 'gi');
         return { ok: true };
     } catch (err) {
-        return { ok: false, error: String(err?.message || err).slice(0, 200) };
+        return { ok: false, error: String(/** @type {Error} */ (err)?.message || err).slice(0, 200) };
     }
 }
 
 const WORD_CHAR = /^[\p{L}\p{N}\p{M}]$/u;
-/** Is this ONE code point (a string of one or two code units) a letter, digit or mark? */
+/**
+ * Is this ONE code point (a string of one or two code units) a letter, digit or mark?
+ * @param {string} ch
+ */
 const isWordChar = (ch) => !!ch && WORD_CHAR.test(ch);
 
-/** The code point that ends at `end` (exclusive), as a string. */
+/**
+ * The code point that ends at `end` (exclusive), as a string.
+ * @param {string} s
+ * @param {number} end
+ */
 function codePointBefore(s, end) {
     if (end <= 0) return '';
     const c = s.charCodeAt(end - 1);
@@ -61,7 +68,11 @@ function codePointBefore(s, end) {
     return s.charAt(end - 1);
 }
 
-/** The code point that starts at `start`, as a string. */
+/**
+ * The code point that starts at `start`, as a string.
+ * @param {string} s
+ * @param {number} start
+ */
 function codePointAt(s, start) {
     if (start >= s.length) return '';
     const cp = s.codePointAt(start);

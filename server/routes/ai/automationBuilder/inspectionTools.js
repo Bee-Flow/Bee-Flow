@@ -1,8 +1,9 @@
-// @typecheck
+// @typecheck noImplicitAny
 // Read-only tools for the assistant. Run values never enter the model or the
 // saved transcript before the PII detector has checked them. If the guard is
 // absent/degraded, the assistant gets types and shapes instead of raw values.
 const { canReadRunData } = require('../../../core/automationModel/callerRunVisibility');
+const { fallback } = require('../../../utils/bestEffort');
 
 const INSPECTION_NAMES = new Set(['builder_inspect_step', 'builder_inspect_mapping', 'builder_inspect_run']);
 const INSPECTION_TOOLS = [...INSPECTION_NAMES].map(name => ({ type: 'function', function: {
@@ -15,6 +16,11 @@ const INSPECTION_TOOLS = [...INSPECTION_NAMES].map(name => ({ type: 'function', 
     } },
 } }));
 
+/**
+ * @param {unknown} value
+ * @param {number} [depth]
+ * @returns {unknown}
+ */
 function shapeOnly(value, depth = 0) {
     if (value == null) return null;
     if (depth > 6) return { type: typeof value };
@@ -23,17 +29,30 @@ function shapeOnly(value, depth = 0) {
     return { type: typeof value, empty: value === '' };
 }
 
+/**
+ * @typedef {Pick<typeof import('../../../core/privacy/piiDetection'), 'detectPii' | 'tokenizeText'>} InspectionPii
+ */
+
+/**
+ * @param {unknown} values
+ * @param {InspectionPii} pii
+ */
 async function maskedRunValues(values, { detectPii, tokenizeText }) {
     const encoded = JSON.stringify(values);
     if (encoded.length > 24000) return { values: shapeOnly(values), valuesAvailable: false, reason: 'Values exceed the inspection limit; shapes only.' };
-    const scan = await detectPii(encoded).catch(() => null);
+    const scan = await detectPii(encoded).catch((e) => fallback('routes/ai/automationBuilder/inspectionTools:maskedRunValues', e, null));
     if (!scan || scan.degraded) return { values: shapeOnly(values), valuesAvailable: false, reason: 'PII scanning unavailable; shapes only.' };
     if (scan.hasPii && !scan.entities?.length) return { values: shapeOnly(values), valuesAvailable: false, reason: 'Personal data could not be masked; shapes only.' };
     // Offsets refer to the complete serialized tree, not an individual leaf.
     // Match the detector's text within each leaf instead, retaining token
     // continuity between every field in this inspection.
-    const entities = (scan.entities || []).map(({ offset, start, end, length, ...entity }) => entity);
+    const entities = (scan.entities || []).map((/** @type {import('../../../core/privacy/piiDetection/scanCache').PiiEntity & { start?: number, end?: number }} */ { offset, start, end, length, ...entity }) => entity);
+    /** @type {Record<string, string>} */
     let tokenMap = {};
+    /**
+     * @param {unknown} value
+     * @returns {unknown}
+     */
     function redact(value) {
         if (typeof value === 'string' || typeof value === 'number') {
             const text = String(value);
@@ -48,10 +67,18 @@ async function maskedRunValues(values, { detectPii, tokenizeText }) {
     return { values: redact(values), valuesAvailable: true, personalDataMasked: true };
 }
 
+/**
+ * @param {string} name
+ * @param {{ stepId?: string, scope?: string }} args
+ * @param {import('./turnSetup').BuilderDraftWrap} wrap
+ * @param {{ store: typeof import('../../../stores/automationStore'), pii: InspectionPii }} deps
+ */
 async function inspect(name, args, wrap, { store, pii }) {
     const graph = args.scope ? wrap.def.layers?.[args.scope] : wrap.def;
     if (!graph) return { error: 'This flowlet does not exist.' };
-    const steps = [graph.trigger, ...(graph.triggers || []), ...(graph.steps || [])].filter(Boolean);
+    /** @typedef {import('../../../automation/builderTools/draftGraph').GraphStep | import('../../../automation/builderTools/draftGraph').GraphTrigger} AnyNode */
+    const steps = /** @type {Array<AnyNode & { settings?: object, input?: unknown, inputs?: Record<string, unknown>, kind?: string, outputSchema?: unknown, responseSchema?: unknown, pinnedOutput?: unknown }>} */ (
+        [graph.trigger, ...(graph.triggers || []), ...(graph.steps || [])].filter(Boolean));
     const at = steps.findIndex(s => s.id === args.stepId);
     if (at < 0) return { error: 'This step does not exist in the selected flow.' };
     const step = steps[at];

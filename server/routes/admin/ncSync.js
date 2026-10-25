@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Org-admin endpoints for Nextcloud user/group sync configuration.
  *
@@ -21,13 +21,18 @@ const { HttpError } = require('../../core/http/errors');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 
+/** @typedef {import('express').Request<{ orgId: string }> & { org: Awaited<ReturnType<typeof import('../../stores/userStore').getOrganization>> }} OrgReq */
+
 // ── What a caller may send ──────────────────────────────────────────
 //
 // Both write routes read the body key by key and dropped whatever they did
 // not recognise, then answered 200 `{ ok: true }`. The panel says "Settings
 // saved" to that — for a setting that decides who gets an account at all.
 
-/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
+/**
+ * A body that also accepts no body at all: Express 5 leaves `req.body` undefined then.
+ * @param {import('zod').ZodRawShape} shape
+ */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 /**
@@ -35,6 +40,7 @@ const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {
  * list — fell straight through the `Array.isArray` gate: the panel reported
  * the settings saved and the selection stayed exactly as it was.
  */
+/** @param {string} name */
 const groupList = (name) => {
     const text = `${name} is a list of group names.`;
     return z.array(worded(text).trim().min(1, text), { error: text });
@@ -46,6 +52,7 @@ const STATUS_TEXT = 'newUserDefaultStatus is "active" or "pending".';
 const DEPLOY_TEXT = 'deploymentMode is "cloud" or "self-hosted".';
 const ACTION_TEXT = 'piiDetectionAction is "tokenize" or "block".';
 
+/** @param {string} message */
 const syncModes = (message) => z.enum(['mirror_all', 'selective_groups', 'manual'], { error: () => message });
 const DefaultStatus = z.enum(['active', 'pending'], { error: () => STATUS_TEXT });
 
@@ -92,6 +99,11 @@ const OnboardingBody = z.preprocess(
 
 // All routes require an authenticated org-admin (or global admin) for the
 // requested orgId. We resolve org from URL param.
+/**
+ * @param {import('express').Request<{ orgId: string }>} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 async function _checkOrgAdmin(req, res, next) {
     const orgId = req.params.orgId;
     if (!orgId) return res.status(400).json({ error: 'orgId required' });
@@ -124,7 +136,7 @@ const checkOrgAdmin = tagGate(_checkOrgAdmin, {
     note: 'Local re-implementation. Direct organizationId only — does NOT honour group-transitive org membership, unlike permissions.js requireOrgAdmin. Also 400s if the org has no Nextcloud binding.',
 });
 
-router.get('/admin/:orgId/nc-sync', requireAuth, checkOrgAdmin, async (req, res) => {
+router.get('/admin/:orgId/nc-sync', requireAuth, checkOrgAdmin, /** @param {OrgReq} req */ async (req, res) => {
     const o = req.org;
     res.json({
         organizationId: o.id,
@@ -138,7 +150,7 @@ router.get('/admin/:orgId/nc-sync', requireAuth, checkOrgAdmin, async (req, res)
     });
 });
 
-router.put('/admin/:orgId/nc-sync', requireAuth, checkOrgAdmin, express.json(), validate({ body: NcSyncBody }), async (req, res) => {
+router.put('/admin/:orgId/nc-sync', requireAuth, checkOrgAdmin, express.json(), validate({ body: NcSyncBody }), async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     const { mode, syncGroups, excludedGroups, newUserDefaultStatus } = req.body;
     const updates = {};
     if (mode !== undefined) updates.ncSyncMode = mode;
@@ -149,12 +161,12 @@ router.put('/admin/:orgId/nc-sync', requireAuth, checkOrgAdmin, express.json(), 
     res.json({ ok: true });
 });
 
-router.post('/admin/:orgId/nc-sync/run', requireAuth, checkOrgAdmin, async (req, res) => {
+router.post('/admin/:orgId/nc-sync/run', requireAuth, checkOrgAdmin, /** @param {OrgReq} req */ async (req, res) => {
     const result = await sync.runFullSync(req.org);
     res.json(result);
 });
 
-router.get('/admin/:orgId/nc-sync/groups', requireAuth, checkOrgAdmin, async (req, res) => {
+router.get('/admin/:orgId/nc-sync/groups', requireAuth, checkOrgAdmin, /** @param {OrgReq} req */ async (req, res) => {
     try {
         const groups = await sync.listNcGroups(req.org);
         res.json({ groups });
@@ -179,7 +191,7 @@ router.get('/admin/:orgId/nc-sync/users', requireAuth, checkOrgAdmin, async (req
 // from the 4-step App Store wizard in one transaction, then flips the
 // onboarding flag so future loads skip the wizard. Once this returns the
 // other NC users in this org are unblocked from auto-provisioning.
-router.post('/admin/:orgId/nc-onboarding/complete', requireAuth, checkOrgAdmin, express.json(), validate({ body: OnboardingBody }), async (req, res) => {
+router.post('/admin/:orgId/nc-onboarding/complete', requireAuth, checkOrgAdmin, express.json(), validate({ body: OnboardingBody }), async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     const configStore = require('../../stores/configStore');
     const { syncMode, syncGroups, excludedGroups, newUserDefaultStatus, privacyShield, deploymentMode, selectedPlanId } = req.body;
 

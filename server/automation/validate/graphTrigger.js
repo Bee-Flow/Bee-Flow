@@ -18,7 +18,7 @@ const { nextScheduledRunAt } = require('../holidays');
 // scheduler runs" can never drift apart.
 const { DEFAULT_SCHEDULE_TZ } = require('../triggerColumns');
 const { isObject, validatePosition } = require('./helpers');
-const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * The schedule checks, shared by the primary trigger and every additional
@@ -30,6 +30,7 @@ const log = require('../../telemetry/log');
  * dropped schedule node has no schedule yet, and a cron is typed one character
  * at a time — so they warn while you build and block when you activate. Only
  * the outright shape error blocks at every stage.
+ * @param {(value: { code: string; severity: string; path: string; message: string; hint: string; }) => void} pushE
  */
 function checkScheduleTrigger(trigger, base, pushE) {
     const sched = trigger.schedule;
@@ -53,7 +54,7 @@ function checkScheduleTrigger(trigger, base, pushE) {
     try { parseCron(cron); }
     catch (e) {
         parsed = false;
-        pushE({ code: 'trigger.schedule_cron_invalid', severity: 'error', path: `${base}.schedule.cron`, message: `Schedule trigger has an unusable pattern "${cron}" — ${e.message}.`, hint: 'Five space-separated fields: minute hour day-of-month month day-of-week, e.g. "0 9 * * 1-5".' });
+        pushE({ code: 'trigger.schedule_cron_invalid', severity: 'error', path: `${base}.schedule.cron`, message: `Schedule trigger has an unusable pattern "${cron}" — ${/** @type {Error} */ (e).message}.`, hint: 'Five space-separated fields: minute hour day-of-month month day-of-week, e.g. "0 9 * * 1-5".' });
     }
     // Parsing is not enough. parseCron DROPS out-of-range values instead of
     // rejecting them ("99 * * * *" yields an empty minute set) and an
@@ -70,7 +71,7 @@ function checkScheduleTrigger(trigger, base, pushE) {
         // The only thing left that can throw here is the timezone:
         // Intl.DateTimeFormat rejects an unknown IANA name, and the scheduler
         // would hit the same RangeError when it tried to advance the row.
-        pushE({ code: 'trigger.schedule_tz_invalid', severity: 'error', path: `${base}.schedule.tz`, message: `Schedule timezone "${tz}" is not a known timezone — ${e.message}.`, hint: `Use an IANA name like "Europe/Amsterdam" or "UTC", or leave it empty for ${DEFAULT_SCHEDULE_TZ}.` });
+        pushE({ code: 'trigger.schedule_tz_invalid', severity: 'error', path: `${base}.schedule.tz`, message: `Schedule timezone "${tz}" is not a known timezone — ${/** @type {Error} */ (e).message}.`, hint: `Use an IANA name like "Europe/Amsterdam" or "UTC", or leave it empty for ${DEFAULT_SCHEDULE_TZ}.` });
     }
 }
 
@@ -156,7 +157,7 @@ if (scope === 'root' && deliverableEvents && trigger.kind === 'app_event') {
         // pipeline (pending live validation). Surface that precisely so the
         // user isn't surprised; keep it a non-blocking warning.
         let pushPending = false;
-        try { pushPending = prov === 'nextcloud' && require('../deliverableEvents').isPushPending(prov, ev); } catch (err) { log.debug('fall back to generic', err); }
+        try { pushPending = prov === 'nextcloud' && require('../deliverableEvents').isPushPending(prov, ev); } catch (err) { fallback('automation/validate/graphTrigger:checkTriggerDeliverability', err); /* fall back to generic */ }
         const message = pushPending
             ? `Trigger event "${prov}.${ev}" has no producer (Nextcloud exposes no webhook for it and there is no poller) — it will activate but will never fire.`
             : `Trigger event "${prov}.${ev}" has no delivery path on this install — it will activate but may never fire.`;
@@ -171,12 +172,12 @@ if (scope === 'root' && deliverableEvents && trigger.kind === 'app_event') {
 if (scope === 'root' && trigger.kind === 'app_event'
     && trigger.appEvent?.provider && trigger.appEvent?.event) {
     let known = null;
-    try { known = require('../triggerSources').getTriggerSource(trigger.appEvent.provider); } catch (err) { log.debug('advisory only', err); }
+    try { known = require('../triggerSources').getTriggerSource(trigger.appEvent.provider); } catch (err) { fallback('automation/validate/graphTrigger:checkTriggerDeliverability#2', err); /* advisory only */ }
     if (known === null) {
         // Registry unavailable is indistinguishable from "not declared"
         // here, so only warn when we positively loaded a registry.
         let registryLoaded = false;
-        try { registryLoaded = require('../triggerSources').listTriggerSources().length > 0; } catch (err) { log.debug('stay quiet', err); }
+        try { registryLoaded = require('../triggerSources').listTriggerSources().length > 0; } catch (err) { fallback('automation/validate/graphTrigger:checkTriggerDeliverability#3', err); /* stay quiet */ }
         if (registryLoaded) {
             pushW({
                 code: 'trigger.app_event_unknown_provider', severity: 'warning',

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Fireflies.ai Tools — Built-in tools for AI to search and read meeting transcripts
  * 
@@ -14,6 +14,17 @@ const { FirefliesError, firefliesRequest, formatDuration, parseListFilters } = r
 /**
  * Tool definitions in OpenAI function-calling format.
  */
+/**
+ * A Fireflies transcript as the GraphQL queries below ask for it.
+ * @typedef {{ id?: string, title?: string, dateString?: string, date?: string | number, duration?: number,
+ *   organizer_email?: string, participants?: string[], speakers?: Array<{ name?: string }>, transcript_url?: string,
+ *   summary?: object, analytics?: object,
+ *   sentences?: Array<{ speaker_name?: string, text?: string, start_time?: number }> }} FirefliesTranscript
+ * @typedef {{ limit?: number | string, skip?: number | string, title?: string, hostEmail?: string,
+ *   participantEmail?: string, fromDate?: string, toDate?: string, transcriptId?: string,
+ *   speakerFilter?: string }} FirefliesArgs
+ */
+/** @type {Array<{ type: string, function: { name: string, description: string, parameters: { type: string, properties: Record<string, object>, required: string[] } } }>} */
 const FIREFLIES_TOOLS = [
     {
         type: 'function',
@@ -203,6 +214,7 @@ const GET_TRANSCRIPT_QUERY = `
 
 /**
  * Normalize a meeting title for comparison: lowercase, collapse whitespace, trim.
+ * @param {unknown} s
  */
 function normalizeTitle(s) {
     return String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
@@ -212,10 +224,16 @@ function normalizeTitle(s) {
  * Split transcripts into exact and partial matches for a wanted title.
  * Exact = normalized titles are equal; partial = one normalized title
  * contains the other.
+ *
+ * @template {{ title?: string } | null | undefined} T
+ * @param {T[] | null | undefined} transcripts
+ * @param {unknown} wantedTitle
  */
 function classifyTitleMatches(transcripts, wantedTitle) {
     const wanted = normalizeTitle(wantedTitle);
+    /** @type {T[]} */
     const exact = [];
+    /** @type {T[]} */
     const partial = [];
     for (const t of transcripts || []) {
         const title = normalizeTitle(t && t.title);
@@ -230,21 +248,34 @@ function classifyTitleMatches(transcripts, wantedTitle) {
 
 // ─── Tool Execution ────────────────────────────────────────────
 
-/** Names of the filters in use, never their values (titles and e-mail addresses are personal data). */
+/**
+ * Names of the filters in use, never their values (titles and e-mail addresses are personal data).
+ * @param {Record<string, unknown>} variables
+ */
 function setFilters(variables) {
     const names = ['title', 'hostEmail', 'participantEmail', 'fromDate', 'toDate', 'skip'].filter(k => variables[k]);
     return names.length ? names.join(', ') : 'none';
 }
 
+/**
+ * @param {string} toolName
+ * @param {FirefliesArgs} args
+ * @param {string | number} userId
+ */
 async function executeFirefliesTool(toolName, args, userId) {
     try {
         return await runFirefliesTool(toolName, args, userId);
     } catch (err) {
-        if (err instanceof FirefliesError) return { error: err.message };
+        if (err instanceof FirefliesError) return { error: /** @type {Error} */ (err).message };
         throw err;
     }
 }
 
+/**
+ * @param {string} toolName
+ * @param {FirefliesArgs} args
+ * @param {string | number} userId
+ */
 async function runFirefliesTool(toolName, args, userId) {
     if (!userId) return { error: 'User context required for Fireflies.' };
     const apiKey = await configStore.getSecret(`fireflies_api_key_user_${userId}`);
@@ -267,6 +298,7 @@ async function runFirefliesTool(toolName, args, userId) {
 
         log.info(`[Fireflies] Listing transcripts (filters set: ${setFilters(variables)})`);
         const data = await firefliesRequest(apiKey, LIST_TRANSCRIPTS_QUERY, variables);
+        /** @type {FirefliesTranscript[]} */
         let transcripts = data.transcripts || [];
 
         // If a title was asked for but the server-side filter found nothing,
@@ -275,13 +307,14 @@ async function runFirefliesTool(toolName, args, userId) {
         // call. Hard bound: max 2 upstream requests per call.
         let usedFallback = false;
         if (args.title && transcripts.length === 0) {
-            const fallbackVariables = { ...variables, title: null, limit: 50, skip: 0 };
+            const fallbackVariables = { ...variables, title: /** @type {string | null} */ (null), limit: 50, skip: 0 };
             log.info(`[Fireflies] Listing transcripts (title fallback, filters set: ${setFilters(fallbackVariables)})`);
             const fallbackData = await firefliesRequest(apiKey, LIST_TRANSCRIPTS_QUERY, fallbackVariables);
             transcripts = fallbackData.transcripts || [];
             usedFallback = true;
         }
 
+        /** @param {FirefliesTranscript} t */
         const mapTranscript = t => ({
             id: t.id,
             title: t.title,
@@ -310,6 +343,7 @@ async function runFirefliesTool(toolName, args, userId) {
 
         // Mapped record list, exact matches first.
         let results = [...exact, ...transcripts.filter(t => !exact.includes(t))].map(mapTranscript);
+        /** @type {string[] | undefined} */
         let scannedTitles;
         if (usedFallback && matchQuality !== 'exact') {
             // Keep the payload compact: the 10 best partial matches plus a
@@ -319,6 +353,7 @@ async function runFirefliesTool(toolName, args, userId) {
             scannedTitles = transcripts.slice(0, 50).map(t => t.title);
         }
 
+        /** @type {string} */
         let message;
         if (matchQuality === 'exact') {
             const hit = exactMatches[0];
@@ -329,6 +364,7 @@ async function runFirefliesTool(toolName, args, userId) {
             message = `No transcript titled "${args.title}" found among the ${transcripts.length} most recent meetings (titles scanned are included). The meeting may be older — retry once with fromDate/toDate, or tell the user it was not found. Do not guess transcript ids.`;
         }
 
+        /** @type {{ results: typeof results, count: number, message: string, matchQuality: string, exactMatches: typeof exactMatches, scannedTitles?: string[] }} */
         const result = {
             results,
             count: results.length,
@@ -345,6 +381,7 @@ async function runFirefliesTool(toolName, args, userId) {
 
         log.info(`[Fireflies] Getting summary for: ${transcriptId}`);
         const data = await firefliesRequest(apiKey, GET_SUMMARY_QUERY, { transcriptId });
+        /** @type {FirefliesTranscript} */
         const t = data.transcript;
 
         if (!t) return { error: `Transcript not found: ${transcriptId}` };
@@ -368,6 +405,7 @@ async function runFirefliesTool(toolName, args, userId) {
 
         log.info(`[Fireflies] Getting full transcript for: ${transcriptId}`);
         const data = await firefliesRequest(apiKey, GET_TRANSCRIPT_QUERY, { transcriptId });
+        /** @type {FirefliesTranscript} */
         const t = data.transcript;
 
         if (!t) return { error: `Transcript not found: ${transcriptId}` };
@@ -405,6 +443,9 @@ async function runFirefliesTool(toolName, args, userId) {
     }
 }
 
+/**
+ * @param {string} toolName
+ */
 function isFirefliesTool(toolName) {
     return ['fireflies_list_transcripts', 'fireflies_get_summary', 'fireflies_get_transcript'].includes(toolName);
 }

@@ -10,6 +10,7 @@ const log = require('../../telemetry/log');
 const {
     connectorError, isPlainObject, integrationIdsFor,
 } = require('./shared');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * The OAuth provider behind an integration id, used as buildUserAuth's
@@ -60,7 +61,7 @@ async function resolveViewerExecution(connector, { app, viewerId, deps }) {
         });
         const names = new Set((resolved?.tools || []).map((t) => t?.function?.name).filter(Boolean));
         if (names.has(connector.tool)) return { userId: viewerId, session };
-    } catch (err) { log.debug('fall through to the grant check', err); }
+    } catch (err) { fallback('appStudio/connectors/dispatch:viewerTools', err); /* the grant check below decides */ }
 
     if (provider) {
         const grant = await deps.resolveConnectionForRun({
@@ -70,7 +71,7 @@ async function resolveViewerExecution(connector, { app, viewerId, deps }) {
             provider,
             resourceType: 'studio_app',
             resourceId: app.id,
-        }).catch(() => null);
+        }).catch((e) => fallback('appStudio/connectors/dispatch:resolveViewerExecution', e, null));
         if (grant?.available && grant.mode === 'delegated' && grant.effectiveUserId) {
             const grantorSession = await deps.buildUserSession(grant.effectiveUserId, app.organizationId || null, sessionOpts);
             return { userId: grant.effectiveUserId, session: grantorSession };
@@ -127,6 +128,7 @@ const MISSING_CONNECTION_RE = /not connected|must log in|not configured|no (?:va
  *
  * `code` stays `connection_required` either way so existing clients keep working;
  * `reason` distinguishes them for a caller that wants to.
+ * @param {string} message
  */
 async function connectionError(connector, message, { userId, deps } = {}) {
     const provider = (typeof connector?.integrationId === 'string' && connector.integrationId) ? connector.integrationId : null;
@@ -137,7 +139,7 @@ async function connectionError(connector, message, { userId, deps } = {}) {
             if (oauthProvider) {
                 hasCredential = !!(await deps.getProviderAuth(userId, oauthProvider))?.accessToken;
             }
-        } catch (err) { log.debug('fall back to the plain "connect it" message', err); }
+        } catch (err) { fallback('appStudio/connectors/dispatch:connectionError', err); /* fall back to the plain "connect it" message */ }
     }
 
     if (hasCredential) {
@@ -180,7 +182,7 @@ async function dispatchTool(tool, args, exec, deps, app, connector) {
         });
     } catch (err) {
         if (Number.isInteger(err?.status)) throw err;          // already classified
-        const message = String(err?.message || err);
+        const message = String(/** @type {Error} */ (err)?.message || err);
         if (MISSING_CONNECTION_RE.test(message)) throw await connectionError(connector, message, { userId: exec.userId, deps });
         throw connectorError(502, message.slice(0, 300), 'connector_failed');
     }
@@ -193,3 +195,7 @@ async function dispatchTool(tool, args, exec, deps, app, connector) {
 }
 
 module.exports = { providerFor, resolveViewerExecution, readRowPath, connectionError, dispatchTool };
+
+/**
+ * @typedef {{ userId: string, session: Awaited<ReturnType<typeof import('./session').defaultBuildUserSession>>, orgId?: string | null }} ConnectorExec  The identity one tool call runs as.
+ */

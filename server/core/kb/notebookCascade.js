@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * notebookCascade — erase everything a notebook owns, not just its rows.
  *
@@ -32,6 +32,9 @@ const log = require('../../telemetry/log');
  * Resolves ALL matching documents, not just the first: re-ingesting a source
  * can leave several rows sharing a source_uri, and stopping at one orphaned the
  * rest — deleted text stayed searchable.
+ * @param {Awaited<ReturnType<typeof notebookStore.getNotebook>>} nb
+ * @param {Awaited<ReturnType<typeof notebookStore.getSources>>[number]} source
+ * @param {string} userId
  */
 async function cleanupSourceArtifacts(nb, source, userId) {
     if (!source) return;
@@ -64,6 +67,7 @@ async function cleanupSourceArtifacts(nb, source, userId) {
 /**
  * Detach a deleted notebook from any chat that had it open as its workspace.
  * Best-effort per table so one missing table can't block the other.
+ * @param {string} notebookId
  */
 async function clearWorkspaceLinks(notebookId) {
     for (const table of ['agent_conversations', 'direct_conversations']) {
@@ -75,6 +79,10 @@ async function clearWorkspaceLinks(notebookId) {
     }
 }
 
+/**
+ * @param {string} notebookId
+ * @param {string} userId
+ */
 async function deleteNotebookCascade(notebookId, userId) {
     const nb = await notebookStore.getNotebook(notebookId, userId);
     if (!nb) return { deleted: false, sources: 0, kbs: 0 };
@@ -129,6 +137,7 @@ async function deleteNotebookCascade(notebookId, userId) {
  * Erase every notebook belonging to a user. Called from the account-deletion
  * path so a deleted user leaves no notebook data behind.
  *
+ * @param {string} userId
  * @returns {Promise<{notebooks: number}>}
  */
 async function deleteAllNotebooksForUser(userId) {

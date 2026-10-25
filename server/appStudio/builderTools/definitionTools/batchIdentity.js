@@ -25,6 +25,9 @@ function formNameClash(def, parentId, list) {
     const screen = sec ? sec.screen : (ops.findNode(def, parentId) || {}).screen;
     if (!screen) return null;
     const wanted = new Set();
+    /**
+     * @param {number} [depth]
+     */
     const collect = (entries, depth = 0) => {
         if (!Array.isArray(entries) || depth > 6) return;
         for (const e of entries) {

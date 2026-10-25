@@ -135,6 +135,7 @@ function labelFor(meta, key) {
  * "Empty" and "unreadable" must stay distinct — that is why there are several codes — but on the ADMIN side, not in what goes outward. That is why the code now sits in the log and the block itself is the same for every reason.
  *
  * NOTE the difference with an INERT block below. An empty block belongs to an element that could have worked here but had nothing to show; that is a state of the DATA and not the anonymous reader's concern. An inert block belongs to an element that by definition does not work here; that is a property of the PUBLISHED COPY, and the reader must indeed see it.
+ * @param {string} reason
  */
 function emptyBlock(document, def, reason) {
     const div = document.createElement('div');
@@ -172,7 +173,10 @@ function renderTable(document, { columns, meta, rows }) {
     return table;
 }
 
-/** De `limit` van het element, begrensd; ontbrekend of onleesbaar → het maximum. */
+/**
+ * The `limit` of the element, clamped; missing or unreadable gives the maximum.
+ * @param {{ [x: string]: string; }} attrs
+ */
 function limitOf(attrs) {
     const raw = parseInt(attrs.limit || '', 10);
     if (!Number.isFinite(raw) || raw <= 0) return PUBLIC_ROWS_MAX;
@@ -184,6 +188,7 @@ function limitOf(attrs) {
  *
  * @returns {{binding:object, publicColumns:string[]}|{reason:string}} — precies
  *   één van beide. Een reden betekent: er komt een leeg blok, en waarom.
+ * @param {string} source
  */
 function gateFor(source, ctx) {
     const binding = ctx.bindings.find(b => b && b.datatableId === source) || null;
@@ -260,12 +265,14 @@ const AGGREGATIONS = Object.freeze({
  * Without this check `AGGREGATIONS` was a SECOND list next to
  * `STAT_AGGREGATIONS`: a sixth aggregation in the registry then got through the gate (it is after all in `values`), fell through the floor here and became an empty block with the code 'no-number' — indistinguishable from "there was nothing to count". Two very different things, one empty block, one misleading log.
  * It is now a startup error, like the other two locks in this file.
+ * @param {string[]} [declared]
  */
 function assertAggregationsAreImplemented(declared = STAT_AGGREGATIONS, implemented = AGGREGATIONS) {
     const names = Object.keys(implemented);
     const missing = declared.filter(a => !names.includes(a));
     const stray = names.filter(a => !declared.includes(a));
     if (!missing.length && !stray.length) return true;
+    /** @type {string[]} */
     const parts = [];
     if (missing.length) parts.push(`kent geen uitvoering voor ${missing.join(', ')}`);
     if (stray.length) parts.push(`voert ${stray.join(', ')} uit, en dat kent bf-stat niet`);
@@ -273,6 +280,10 @@ function assertAggregationsAreImplemented(declared = STAT_AGGREGATIONS, implemen
 }
 assertAggregationsAreImplemented();
 
+/**
+ * @param {string} agg
+ * @param {string} column
+ */
 function aggregate(agg, rows, column) {
     const fn = AGGREGATIONS[agg];
     // Cannot happen: the gate let through only declared aggregations, and
@@ -280,6 +291,7 @@ function aggregate(agg, rows, column) {
     // But "unknown aggregation" must never become the same answer as "there was nothing to count".
     if (!fn) return null;
     if (agg === 'count') return fn(rows);
+    /** @type {number[]} */
     const numbers = [];
     for (const row of rows) {
         const raw = row ? row[column] : undefined;
@@ -367,6 +379,10 @@ const EXPANDERS = Object.freeze({
 
 // ── de elementen die hier niets kunnen, en dat tonen ──────────────────
 
+/**
+ * @param {Element} el
+ * @param {HTMLDivElement} box
+ */
 function moveChildren(el, box) {
     while (el.firstChild) box.appendChild(el.firstChild);
 }
@@ -416,6 +432,8 @@ const INERT_BODY = Object.freeze({
  * The notice is the only text in this module that the READER gets to see, and
  * it is therefore not here but in the vocabulary — the same sentence the
  * public bridge shows on a react share.
+ * @param {Document} document
+ * @param {Element} el
  */
 function inertBlock(document, def, el) {
     const box = document.createElement('div');
@@ -457,8 +475,10 @@ const REQUIRED_HANDLING = Object.freeze({ static: 'expand', inert: 'inert' });
  * an action that contradicts the registry (the element is then not
  * expanded and DOMPurify silently strips it), an `expand` without
  * an expander, and an `inert` without a notice.
+ * @param {Readonly<{ 'bf-table': 'expand'; 'bf-stat': 'expand'; 'bf-button': 'inert'; 'bf-form': 'inert'; 'bf-agent': 'inert'; }>} [handling]
  */
 function assertHandlingIsWorkable(handling = VANILLA_HANDLING, expanders = EXPANDERS, bodies = INERT_BODY) {
+    /** @type {string[]} */
     const problems = [];
     for (const [tag, verdict] of Object.entries(handling)) {
         const def = bfElements.getBfElement(tag);
@@ -515,11 +535,13 @@ assertHandlingIsWorkable();
  *
  * Only `bf-*` opening tags, and the scanner respects quotation marks, so
  * `label="a/b"` gives no false closing.
+ * @param {string} src
  */
 function closeSelfClosingBfTags(src) {
     const re = new RegExp(bfElements.BF_TAG_SCAN.source, 'gi');
     let out = '';
     let last = 0;
+    /** @type {RegExpExecArray | null} */
     let m;
     while ((m = re.exec(src)) !== null) {
         const tag = String(m[1] || '').toLowerCase();
@@ -527,6 +549,7 @@ function closeSelfClosingBfTags(src) {
         // (we cannot replace it honestly anyway) and it is reported separately.
         if (!bfElements.isKnownBfTag(tag)) continue;
         let i = m.index + m[0].length;
+        /** @type {string | null} */
         let quote = null;
         let selfClosing = false;
         for (; i < src.length; i++) {
@@ -625,7 +648,7 @@ async function loadDataContext(ctx) {
         // 'not-bound' — indistinguishable from a page that never
         // had a binding. "Empty" and "unreadable" stay apart, on the
         // ADMIN side; the bytes that go outward are the same for both.
-        log.error('[WebpageBfTable] could not read the page bindings:', err && err.message);
+        log.error('[WebpageBfTable] could not read the page bindings:', err && /** @type {Error} */ (err).message);
         ctx.grantsUnreadable = true;
         grants = null;
     }
@@ -634,7 +657,7 @@ async function loadDataContext(ctx) {
     // twee elementen door.
     try { ctx.principal = await datatableAccess.resolveDatatablePrincipalForUser(ctx.ownerId); }
     catch (err) {
-        log.error('[WebpageBfTable] could not resolve the reader:', err && err.message);
+        log.error('[WebpageBfTable] could not resolve the reader:', err && /** @type {Error} */ (err).message);
         ctx.principalUnreadable = true;
         ctx.principal = null;
     }
@@ -655,3 +678,17 @@ module.exports = {
     _aggregate: aggregate,
     _assertHandlingIsWorkable: assertHandlingIsWorkable,
 };
+
+/**
+ * The part of the DOM (jsdom) this module touches; the server has no DOM lib.
+ * @typedef {{ firstChild: DomNode | null, textContent: string | null, tagName?: string, content?: DomNode,
+ *   setAttribute(name: string, value: string): void, getAttribute(name: string): string | null,
+ *   appendChild(node: DomNode): DomNode, replaceWith(node: DomNode): void,
+ *   querySelectorAll(selector: string): Iterable<DomNode> }} DomNode
+ * @typedef {{ createElement(tag: string): DomNode }} DomDocument
+ * @typedef {{ webpageId?: string, ownerId?: string, loaded: boolean,
+ *   bindings: import('../stores/webpage/bridgeGrants').TableGrant[],
+ *   principal: import('../auth/datatableAccess').DatatablePrincipal | null,
+ *   grantsUnreadable: boolean, principalUnreadable: boolean }} DataContext
+ * @typedef {(document: DomDocument, box: DomNode, el: DomNode, attrs: Record<string, string>) => void} InertBody
+ */

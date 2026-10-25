@@ -65,7 +65,10 @@ function _mapTestRun(r) {
     };
 }
 
-/** Newest first, at most TEST_RUNS_KEEP. */
+/**
+ * Newest first, at most TEST_RUNS_KEEP.
+ * @param {number} [limit]
+ */
 async function listTestRuns(skillId, limit = TEST_RUNS_KEEP) {
     await initDB();
     if (!skillId) return [];
@@ -92,7 +95,7 @@ async function getLastTestBySkillIds(skillIds) {
     const out = {};
     for (const r of rows || []) {
         const t = _mapTestRun(r);
-        const flagged = t.results.filter(x => x && x.status && x.status !== 'ok').length;
+        const flagged = t.results.filter((/** @type {{ status: string; }} */ x) => x && x.status && x.status !== 'ok').length;
         out[r.skill_id] = {
             status: t.status,
             adviceCount: flagged > 0 ? flagged : (t.advice ? 1 : 0),

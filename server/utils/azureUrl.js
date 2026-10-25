@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Azure OpenAI v1 GA base URL. Lives on its own (no imports) so the embedding
  * paths (core/embed/dispatch.js, stores/memoryStore.js) can build the same URL

@@ -107,6 +107,9 @@ async function createPlan(data) {
     } catch (e) { log.error('[UserStore] createPlan error:', e); return null; }
 }
 
+/**
+ * @param {string} planId
+ */
 async function updatePlan(planId, data) {
     await initDB();
     if (!(await getOne('SELECT id FROM subscription_plans WHERE id = $1', [planId]))) return false;

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Scaleway infrastructure connector — backup freshness and network exposure
  * evidence for the org's Scaleway project (A.8.13/A.8.14 backups, A.8.20/
@@ -40,6 +40,11 @@ const PER_PAGE = 100;
 const MAX_PAGES = 3;
 const SAMPLE_LIMIT = 10;
 
+/**
+ * @param {import('./index').SafeFetch} safeFetch
+ * @param {string} token
+ * @param {string} path
+ */
 async function _api(safeFetch, token, path) {
     const res = await safeFetch(`${API_BASE}${path}`, {
         headers: { 'X-Auth-Token': token, 'User-Agent': 'BeeFlow-ISO-Evidence' },
@@ -50,9 +55,15 @@ async function _api(safeFetch, token, path) {
     // whether that is fatal (instance evidence) or honest-null (k8s).
     if (res.status === 403 || res.status === 404) return { ok: false, status: res.status, data: null };
     if (!res.ok) throw new Error(`Scaleway API error ${res.status} on ${path.split('?')[0]}`);
-    return { ok: true, status: res.status, data: await res.json() };
+    return { ok: true, status: res.status, data: /** @type {Record<string, any>} */ (await res.json()) };
 }
 
+/**
+ * @param {import('./index').SafeFetch} safeFetch
+ * @param {string} token
+ * @param {string} pathBase
+ * @param {string} key
+ */
 async function _pagedList(safeFetch, token, pathBase, key) {
     const rows = [];
     for (let page = 1; page <= MAX_PAGES; page++) {
@@ -66,17 +77,25 @@ async function _pagedList(safeFetch, token, pathBase, key) {
     return { rows, status: 200, truncated: true };
 }
 
+/**
+ * @param {string} iso
+ */
 function _ageDays(iso) {
     const t = Date.parse(iso || '');
     return Number.isFinite(t) ? Math.floor((Date.now() - t) / 86400000) : null;
 }
 
+/** @param {unknown} range */
 function _isWorldRange(range) {
     const r = String(range || '').trim();
     if (!r) return true; // no restriction recorded = everyone
     return WORLD_RANGES.has(r);
 }
 
+/**
+ * @param {Record<string, any> | null | undefined} rule
+ * @param {number} port
+ */
 function _ruleCoversPort(rule, port) {
     const from = rule?.dest_port_from;
     if (from === null || from === undefined) return true; // all ports
@@ -93,6 +112,7 @@ module.exports = {
     credential: { provider: 'scaleway', kinds: ['api_key'] },
     settingsHint: 'region: "nl-ams", project_id: "..."',
 
+    /** @param {import('./index').CollectArgs} args */
     async collect({ secret, settings, safeFetch }) {
         const token = secret?.token || secret?.apiKey || secret?.api_key || null;
         if (!token) throw new Error('Scaleway connection has no API secret key');
@@ -101,6 +121,7 @@ module.exports = {
         const projectId = settings?.project_id ? String(settings.project_id).trim() : null;
         const projectQs = projectId ? `?project=${encodeURIComponent(projectId)}` : '';
 
+        /** @type {string[]} */
         const zonesProbed = [];
         const servers = [];   // { id, zone, name, state, volumeIds }
         const snapshots = []; // { baseVolumeId, ageDays }
@@ -142,6 +163,7 @@ module.exports = {
                 // rule set is treated as empty (unreachable when listing worked).
                 const rulesRes = await _api(safeFetch, token, `/instance/v1/zones/${zone}/security_groups/${g.id}/rules?per_page=100`);
                 const rules = rulesRes.ok && Array.isArray(rulesRes.data?.rules) ? rulesRes.data.rules : [];
+                /** @type {{ port: number; ip_range: string; }[]} */
                 const openAdminRules = [];
                 for (const r of rules) {
                     if (String(r?.direction || '').toLowerCase() !== 'inbound') continue;

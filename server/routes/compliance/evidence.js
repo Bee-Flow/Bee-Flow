@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Compliance — evidence: uploading and streaming back file attachments, and
  * the per-check evidence-chain history.
@@ -73,7 +73,7 @@ router.post('/iso/evidence/upload', requireAuth, requirePermission('admin_compli
         res.json({ uploaded: true, sha256: hash, filename: safeName });
     });
 
-router.get('/evidence/file/:id', requireAuth, requirePermission('admin_compliance'), async (req, res, next) => {
+router.get('/evidence/file/:id', requireAuth, requirePermission('admin_compliance'), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
     try {
         const orgId = await resolveOrgId(req);
         const row = await complianceStore.getEvidenceById(orgId, req.params.id);
@@ -104,6 +104,12 @@ const CHAIN_LIMIT_DEFAULT = 500;
 // re-hash of the window, so the route is far stingier.
 const CHAIN_LIMIT_MAX = 2000;
 
+/**
+ * @param {string | undefined} v
+ * @param {number} dflt
+ * @param {number} min
+ * @param {number} max
+ */
 function _int(v, dflt, min, max) {
     const n = Number.parseInt(v, 10);
     if (!Number.isFinite(n)) return dflt;
@@ -117,6 +123,7 @@ function _int(v, dflt, min, max) {
  * count under the SAME filter (the pager needs it); `regulation` filters on
  * the check-id prefix the store already understands.
  */
+/** @param {string} name */
 const _word = (name) => z.string({ error: typeError({ invalid: `${name} must be text.` }) }).optional();
 
 /**
@@ -143,8 +150,8 @@ router.get('/evidence', requireAuth, requirePermission('admin_compliance'), vali
     const orgId = await resolveOrgId(req);
     const regulation = req.query.regulation ? String(req.query.regulation).slice(0, 40) : null;
     const subjectType = req.query.subject_type ? String(req.query.subject_type).slice(0, 40) : null;
-    const limit = _int(req.query.limit, 50, 1, EVIDENCE_PAGE_MAX);
-    const offset = _int(req.query.offset, 0, 0, Number.MAX_SAFE_INTEGER);
+    const limit = _int(/** @type {string | undefined} */ (req.query.limit), 50, 1, EVIDENCE_PAGE_MAX);
+    const offset = _int(/** @type {string | undefined} */ (req.query.offset), 0, 0, Number.MAX_SAFE_INTEGER);
     const filters = { ...(regulation ? { regulation } : {}), ...(subjectType ? { subjectType } : {}) };
     const [rows, total] = await Promise.all([
         complianceStore.listEvidence(orgId, { ...filters, limit, offset }),
@@ -164,14 +171,14 @@ router.get('/evidence', requireAuth, requirePermission('admin_compliance'), vali
  */
 router.get('/evidence/chain', requireAuth, requirePermission('admin_compliance'), validate({ query: ChainQuery }), async (req, res) => {
     const orgId = await resolveOrgId(req);
-    const limit = _int(req.query.limit, CHAIN_LIMIT_DEFAULT, 1, CHAIN_LIMIT_MAX);
+    const limit = _int(/** @type {string | undefined} */ (req.query.limit), CHAIN_LIMIT_DEFAULT, 1, CHAIN_LIMIT_MAX);
     const { verifyChain } = require('../../compliance/evidence/chain');
     const report = await verifyChain(orgId, { limit });
     res.set('Cache-Control', 'private, no-store');
     res.json(report);
 });
 
-router.get('/evidence/:checkId', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
+router.get('/evidence/:checkId', requireAuth, requirePermission('admin_compliance'), async (/** @type {import('express').Request<{ checkId: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const rows = await complianceStore.getEvidenceHistory(orgId, req.params.checkId, 100);
     res.json(rows);

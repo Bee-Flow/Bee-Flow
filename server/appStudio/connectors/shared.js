@@ -12,7 +12,8 @@
 // into an app table. It is a connector rather than a bespoke subsystem so it
 // inherits scheduling, watermarking, RLS-safe writes, runAs owner/viewer, the
 // viewer connect-prompt UI and the rate limits for free.
-const log = require('../../telemetry/log');
+
+const { bestEffort } = require('../../utils/bestEffort');
 
 const CONNECTOR_KINDS = Object.freeze(['integration_tool', 'automation', 'rest', 'mailbox']);
 
@@ -36,6 +37,11 @@ const MAX_CHAIN_STEPS = 3;
 const MAX_CHAIN_CALLS = parseInt(process.env.STUDIO_APP_CHAIN_CALL_BUDGET, 10) || 200;
 const MAX_CHAIN_CONCURRENCY = 4;
 
+/**
+ * @param {number} status
+ * @param {string} message
+ * @param {string} code
+ */
 function connectorError(status, message, code) {
     const err = new Error(message);
     err.status = status;
@@ -164,6 +170,9 @@ function unwrapListEnvelope(value) {
 }
 
 // Coerce an external payload into a bounded row array.
+/**
+ * @param {number} [cap]
+ */
 function toRows(value, cap = MAX_CONNECTOR_ROWS) {
     let rows;
     if (Array.isArray(value)) rows = value;
@@ -201,8 +210,11 @@ function integrationIdsFor(connector) {
     if (typeof connector?.integrationId === 'string' && connector.integrationId) ids.add(connector.integrationId);
 
     let resolveIntegration = null;
-    try { ({ resolveIntegration } = require('../../core/integrations/integrationToolMap')); } catch (err) { log.debug('optional', err); }
+    try { ({ resolveIntegration } = require('../../core/integrations/integrationToolMap')); } catch (err) { bestEffort('appStudio/connectors/shared:integrationIdsFor', err); /* optional */ }
 
+    /**
+     * @param {string} tool
+     */
     const addForTool = (tool) => {
         if (typeof tool !== 'string' || !tool) return;
         const resolved = resolveIntegration ? resolveIntegration(tool) : null;
@@ -236,3 +248,12 @@ module.exports = {
     getByPath,
     integrationIdsFor,
 };
+
+/**
+ * @typedef {{ key: string, type?: string, required?: boolean }} ConnectorParam
+ * @typedef {{ tool?: string, argsFrom?: Record<string, string>, fixedArgs?: Record<string, unknown>, merge?: string, alias?: string, expand?: string, ownTable?: boolean }} ChainStep  One follow-up tool call, run once per row.
+ * @typedef {{ credentialProvider?: string, type?: string, header?: string }} ConnectorAuth
+ * @typedef {{ id: string, kind: string, name?: string, params?: ConnectorParam[], integrationId?: string, runAs?: string, tool?: string, fixedArgs?: Record<string, unknown>, rowsPath?: string, chain?: ChainStep[], automationId?: string, url?: string, headers?: Record<string, unknown>, auth?: ConnectorAuth, maxRows?: number, nextPagePath?: string, sync?: import('../connectorSync').SyncBlock }} Connector  A connector as stored on model.connectors[].
+ * @typedef {{ id: string, userId: string, organizationId?: string, name?: string }} ConnectorApp  The studio app a connector runs for.
+ * @typedef {Record<string, unknown>} ConnectorRow
+ */

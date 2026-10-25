@@ -65,7 +65,13 @@ function makeItemLifecycle(deps = {}) {
     const placement = deps.placement || ((kind, id) => require('../collab/resources').makeResources().load(kind, id));
     const log = deps.log || require('../../telemetry/log');
 
-    /** Run one step; a failure is logged (ids only) and answers `fallback`. */
+    /**
+     * Run one step; a failure is logged (ids only) and answers `fallback`.
+     * @param {string} what
+     * @param {string} kind
+     * @param {string} id
+     * @param {number | null} [fallback]
+     */
     async function step(what, kind, id, fn, fallback = null) {
         try {
             return await fn();

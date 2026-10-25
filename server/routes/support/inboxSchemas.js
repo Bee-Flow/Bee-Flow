@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * What the tenant support inbox accepts (routes/supportInbox.js).
@@ -25,13 +25,33 @@ const { STATUSES, PATCH_THREAD_SHAPE } = require('./threads');
 const { TagBody } = require('./tags');
 const { CreateCanned, UpdateCanned } = require('./cannedResponses');
 
+/**
+ * @param {string} message
+ * @param {number} max
+ */
 const text = (message, max) => worded(message).max(max, message);
+/**
+ * @param {string} name
+ */
 const bool = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) });
+/**
+ * @param {string} name
+ */
 const fraction = (name) => z.number({ error: typeError({ invalid: `${name} is a number from 0 to 1.` }) })
     .min(0, `${name} is a number from 0 to 1.`).max(1, `${name} is a number from 0 to 1.`);
+/**
+ * @param {string} name
+ */
 const ids = (name) => z.array(text(`${name} is a list of ids.`, 200), { error: typeError({ invalid: `${name} is a list of ids.` }) }).max(200, `${name} holds at most 200 ids.`);
+/** @type {[string, ...string[]]} */
 const REPLY_MODES = ['draft', 'auto_confident', 'autonomous'];
+/**
+ * @param {string} name
+ */
 const replyMode = (name) => choice(REPLY_MODES, `${name} is one of: ${REPLY_MODES.join(', ')}.`);
+/**
+ * @param {string} name
+ */
 const folders = (name) => z.array(text(`${name} is a list of folder names.`, 200), { error: typeError({ invalid: `${name} is a list of folder names.` }) }).max(50, `${name} holds at most 50 folders.`);
 
 const CreateInboxBody = bodyOf({
@@ -125,7 +145,11 @@ const auditFilters = {
 const InboxAuditQuery = queryOf(auditFilters, 'The inbox audit');
 const AuditQuery = queryOf({ inbox: text('inbox is the id of an inbox.', 200).optional(), ...auditFilters }, 'The audit feed');
 
-const PRIORITIES = PATCH_THREAD_SHAPE.priority.unwrap().options;
+// A z.enum's options are never empty.
+const PRIORITIES = /** @type {[string, ...string[]]} */ (PATCH_THREAD_SHAPE.priority.unwrap().options);
+/**
+ * @param {string} name
+ */
 const MINUTES_TEXT = (name) => `${name} is a whole number of minutes, 1 to 525600.`;
 const SlaBody = bodyOf({
     priority: choice(PRIORITIES, `priority is one of: ${PRIORITIES.join(', ')}.`),

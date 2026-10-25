@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Public identifiers a run has seen, for the run-log redactor.

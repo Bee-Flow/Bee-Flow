@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Skill examples taken from a real conversation (Bee Flow Builder redesign,
  * Sep 2026; Skills artboard 1b, plan S2).
@@ -89,6 +90,7 @@ const { MAX_EXAMPLES } = require('../../core/skills/skillStructure');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 
+/** @param {import('express').Request} req */
 async function orgIdOf(req) {
     const userStore = require('../../stores/userStore');
     const user = await userStore.getUser(req.session.user.id);
@@ -114,6 +116,8 @@ async function orgIdOf(req) {
  * direction: null means the caller gets nothing. It costs one honest case —
  * the caller's OWN conversation with a broken key also reads as absent — and
  * that case is already unusable, while the alternative leaks who owns what.
+ * @param {import('express').Request} req
+ * @param {unknown} conversationId
  */
 async function ownConversation(req, conversationId) {
     if (!conversationId || typeof conversationId !== 'string') return null;
@@ -158,6 +162,7 @@ async function ownConversation(req, conversationId) {
  * The text is always returned — deciding what to do about an unchecked scan
  * belongs to the caller, and the two callers answer differently (the preview
  * says so, the write refuses).
+ * @param {unknown} text
  */
 async function redact(text) {
     const raw = typeof text === 'string' ? text.trim() : '';
@@ -205,7 +210,10 @@ async function redact(text) {
     }
 }
 
-/** The text a message contributes (string content or a content-block array). */
+/**
+ * The text a message contributes (string content or a content-block array).
+ * @param {Parameters<typeof import('../../core/agentRuntime/phaseEvents').messageText>[0]} message
+ */
 function textOfMessage(message) {
     const { messageText } = require('../../core/agentRuntime/phaseEvents');
     return messageText(message);
@@ -216,6 +224,7 @@ function textOfMessage(message) {
  * with tool traffic dropped: an example is a question and an answer, and a
  * tool_result block is neither. `index` is the position in the ORIGINAL
  * array, so the POST can address a message the preview filtered around.
+ * @param {{ messages?: { role?: string, content?: string | Array<{ type?: string, text?: string }> }[] } | null} conv
  */
 function readableMessages(conv) {
     const rows = Array.isArray(conv?.messages) ? conv.messages : [];
@@ -236,7 +245,11 @@ function readableMessages(conv) {
     return out;
 }
 
-/** The user message closest ABOVE `index` — the question that answer answers. */
+/**
+ * The user message closest ABOVE `index` — the question that answer answers.
+ * @param {ReturnType<typeof readableMessages>} messages
+ * @param {number} index
+ */
 function questionBefore(messages, index) {
     for (let i = messages.length - 1; i >= 0; i -= 1) {
         if (messages[i].index < index && messages[i].role === 'user') return messages[i].text;
@@ -252,6 +265,10 @@ function newExampleId() {
 // ── GET /api/skills/examples/conversations ───────────────────────
 // Owner-scoped by the store itself (`WHERE c.user_id = $1`) and narrowed
 // again in the mapping: only what a picker needs leaves the server.
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function listConversations(req, res) {
     const agentStore = require('../../stores/agentStore');
     const rows = await agentStore.listAllConversations(req.session.user.id);
@@ -267,6 +284,10 @@ async function listConversations(req, res) {
 }
 
 // ── GET /api/skills/examples/conversations/:id/messages ──────────
+/**
+ * @param {import('express').Request<{ conversationId: string }>} req
+ * @param {import('express').Response} res
+ */
 async function listMessages(req, res) {
     const conv = await ownConversation(req, req.params.conversationId);
     // "Not yours" is indistinguishable from "not there": a 403 here
@@ -296,6 +317,10 @@ async function listMessages(req, res) {
 // A write to a skill, so it carries the same gate every other skill write
 // has: `manage_skills` on the route (applied by routes/skills.js) AND
 // `canEdit` on the row itself.
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function fromMessage(req, res) {
     try {
         const skillStore = require('../../stores/skillStore');
@@ -369,7 +394,7 @@ async function fromMessage(req, res) {
         // 400 with a `code` the client can act on, not a bare 500 that leaves
         // the person with nothing to do about it. Everything else (a 409 on a
         // managed skill, pii_unchecked, a real fault) goes to the error handler.
-        const { answerStructureError } = require('../skills');
+        const { answerStructureError } = /** @type {{ answerStructureError?: (res: import('express').Response, err: unknown) => boolean }} */ (require('../skills'));
         if (typeof answerStructureError === 'function' && answerStructureError(res, err)) return;
         throw err;
     }

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * ISO 27001 A.8.24 — TLS on public endpoints: certificate validity/expiry and
  * protocol version from the tls-endpoints connector snapshots. Complements the
@@ -23,6 +24,9 @@ module.exports = {
     remediationKey: 'compliance.checks.iso_tls_endpoints.fix',
     remediationLink: 'admin/compliance/iso_connectors',
 
+    /**
+     * @param {string} orgId
+     */
     async evaluate(orgId) {
         const read = await readConnectorSnapshots(orgId, 'tls-endpoints', 'TLS-endpoint connector not enabled — list your public endpoints under ISO 27001 → Connectors.');
         if (read.result) return read.result;

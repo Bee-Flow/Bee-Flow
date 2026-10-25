@@ -484,3 +484,16 @@ module.exports = {
     EMIT_EVERY_MS,
     VISIT_GAP_MS,
 };
+
+/** @typedef {import('../core/versioning/stats').ChangeStats} ChangeStats */
+
+/**
+ * @typedef {{ projectId?: string|null, itemType?: string, itemId?: string|null, actorId?: string|null, actorKind?: string, agentId?: string|null }} ItemEvent
+ */
+
+/** @typedef {{ actorKind: string, actorId: string|null, ai: boolean, agentIds: string[] }} Actor */
+
+/**
+ * @typedef {{ itemType: string, itemId: string, targetType: string, targetId: string, changes: number, stats: ChangeStats,
+ *   aiAssisted: boolean, agentIds: string[], minor: boolean, unknownCounts?: boolean, source: string }} SessionDetails
+ */

@@ -37,7 +37,7 @@ function makeVersionFns(ctx) {
                 );
                 return versionNumber;
             } catch (e) {
-                log.warn('[KnowledgeBases] snapshotKBVersion failed:', e.message);
+                log.warn('[KnowledgeBases] snapshotKBVersion failed:', /** @type {Error} */ (e).message);
                 return null;
             }
         },
@@ -87,7 +87,7 @@ function makeVersionFns(ctx) {
                 );
                 return doc.id;
             } catch (e) {
-                log.warn('[KnowledgeBases] snapshotDocumentVersion failed:', e.message);
+                log.warn('[KnowledgeBases] snapshotDocumentVersion failed:', /** @type {Error} */ (e).message);
                 return null;
             }
         },

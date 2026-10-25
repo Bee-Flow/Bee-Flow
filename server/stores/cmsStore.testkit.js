@@ -12,6 +12,7 @@
  */
 
 const { installResolveStub } = require('../testUtils/stubRequire');
+const { fallback } = require('../utils/bestEffort');
 
 function clone(v) { return v == null ? v : JSON.parse(JSON.stringify(v)); }
 
@@ -43,7 +44,7 @@ function createCmsConfigMocks() {
         // Groups on the same lock key run one after another, like the advisory lock.
         withConfigGroup(lockKey, work) {
             const turn = (locks.get(lockKey) || Promise.resolve()).then(() => runGroup(work));
-            locks.set(lockKey, turn.catch(() => undefined));
+            locks.set(lockKey, turn.catch((e) => fallback('stores/cmsStore.testkit:withConfigGroup', e)));
             return turn;
         },
         async mutateConfig(key, fn) {
@@ -148,3 +149,5 @@ function configTableAnswer(configState) {
 }
 
 module.exports = { clone, likeToRegex, createCmsConfigMocks, installCmsStoreMocks, configTableAnswer };
+
+/** @typedef {{ get: (key: string) => Promise<any>, set: (key: string, value: unknown) => Promise<void>, keysLike: (pattern: string) => Promise<string[]> }} GroupIo */

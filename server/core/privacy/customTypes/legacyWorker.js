@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Worker thread for the MIGRATED patterns RE2 cannot run (lookarounds,
@@ -16,9 +16,15 @@ const flags = new Int32Array(workerData.sab);
 const port = workerData.port;
 const MAX_SPANS = 20_000;
 
+/**
+ * @param {{ id: string, source: string, caseSensitive: boolean }} job
+ * @param {string} text
+ */
 function scanOne(job, text) {
     const re = new RegExp(job.source, job.caseSensitive ? 'g' : 'gi');
+    /** @type {{ start: number; end: number; }[]} */
     const spans = [];
+    /** @type {RegExpExecArray | null} */
     let m;
     while ((m = re.exec(text)) !== null) {
         if (m[0].length === 0) {
@@ -32,7 +38,7 @@ function scanOne(job, text) {
     return { spans, capped: false };
 }
 
-port.on('message', (msg) => {
+port.on('message', (/** @type {{ jobId: number, jobs: Array<{ id: string, source: string, caseSensitive: boolean }>, text: string }} */ msg) => {
     const { jobId, jobs, text } = msg || {};
     for (const job of jobs || []) {
         let result;

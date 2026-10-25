@@ -12,7 +12,7 @@
  */
 
 const configStore = require('./configStore');
-const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 // ── Default locale list (seeded on first access) ────────────────
 
@@ -382,7 +382,7 @@ async function importLocale(locale, data) {
         for (const [templateId, fields] of Object.entries(data.email)) {
             if (fields && typeof fields === 'object') {
                 try { await setEmailTemplate(locale, templateId, fields); }
-                catch (err) { log.debug('skip unknown template ids', err); }
+                catch (err) { bestEffort('stores/languageStore:importLocale', err); /* skip unknown template ids */ }
             }
         }
     }

@@ -71,6 +71,7 @@ const stepIn = (graph, id) => (graph.steps || []).find(s => s && s.id === id) ||
  * them hands its outputs to the steps after it. Returns the notes.
  */
 function followAddedSteps(graph, ids) {
+    /** @type {string[]} */
     const notes = [];
     if (!graph || !Array.isArray(graph.steps)) return notes;
     for (const id of ids || []) {
@@ -153,3 +154,11 @@ function followReplacedRoute(graph, previous, id) {
 }
 
 module.exports = { followAddedSteps, followPatchedRoute, followReplacedRoute };
+
+/**
+ * @typedef {{ id?: string, type?: string, forEach?: { overRef?: string }, arrayRef?: string, overRef?: string,
+ *   sourceRef?: string, cases?: Array<{ name?: string }> }} RouteStep
+ * @typedef {{ steps?: RouteStep[], edges?: import('./draftGraph').GraphEdge[] }} RouteGraph
+ * @typedef {{ stepId: string, from: string, to: string }} Rebound
+ * @typedef {import('./shapeTree').PathToken} PathToken
+ */

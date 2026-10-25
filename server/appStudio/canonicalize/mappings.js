@@ -9,6 +9,10 @@
 const { LIMITS, ACTION_SPECS, TOAST_TONES } = require('../componentSpecs');
 const { isObject, deepCopy, truncate } = require('./shared');
 
+/**
+ * @param {string} path
+ * @param {(arg0: string, path: string, arg2: string) => void} push
+ */
 function cleanInputMapping(raw, path, push) {
     if (!isObject(raw)) {
         push('mapping.invalid', path, 'inputMapping must be an object map of { param: mapping } — dropped.');
@@ -49,6 +53,10 @@ function cleanInputMapping(raw, path, push) {
     return out;
 }
 
+/**
+ * @param {string} path
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
 function cleanEffects(raw, path, push) {
     if (!isObject(raw)) {
         push('action.effects_invalid', path, 'Effects must be an object { toast?, navigateTo? } — dropped.');
@@ -58,6 +66,7 @@ function cleanEffects(raw, path, push) {
     const extra = Object.keys(raw).filter((k) => k !== 'toast' && k !== 'navigateTo');
     if (raw.toast !== undefined) {
         if (isObject(raw.toast)) {
+            /** @type {{ message?: string; tone?: string }} */
             const toast = {};
             if (typeof raw.toast.message === 'string') toast.message = truncate(raw.toast.message, ACTION_SPECS.toast.fields.message.maxLen, `${path}.toast.message`, push);
             else if (raw.toast.message !== undefined) push('action.field_invalid', `${path}.toast.message`, 'Toast message must be a string — dropped.');
@@ -82,6 +91,10 @@ function cleanEffects(raw, path, push) {
 // Navigate params — { [key]: {kind:'static',value}|{kind:'formula',expr} }.
 // Known kinds are rebuilt to their exact shape (formula exprs truncated);
 // anything else is kept verbatim for validate.js to flag.
+/**
+ * @param {string} path
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
 function cleanNavParams(raw, path, push) {
     if (!isObject(raw)) {
         push('action.field_invalid', path, 'params must be an object map of { key: {kind:"static"|"formula"} } — dropped.');

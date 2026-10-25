@@ -32,6 +32,7 @@ const { projectOrgOf, belongsToProjectOrg } = require('../../projects/projectOrg
 // Something a project compliance check reads changed (ids only).
 const { signalProjectChanged } = require('./complianceSignal');
 const { memberAvatar, makeMemberDirectory } = require('./memberDirectory');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * @param {object} deps
@@ -53,9 +54,12 @@ function makeMembersRouter(deps) {
     const { describeMembers } = makeMemberDirectory({ userStore });
 
     // The bell for membership changes. Best effort: the change stands whether or not anyone is told.
+    /**
+     * @param {string} what
+     */
     async function tellCollab(what, send) {
         try { await send(collabNotifier); } catch (err) {
-            log.warn(`[Projects] ${what} not notified: ${err && err.message}`);
+            log.warn(`[Projects] ${what} not notified: ${err && /** @type {Error} */ (err).message}`);
         }
     }
 
@@ -159,7 +163,7 @@ function makeMembersRouter(deps) {
             const colors = await require('../../stores/projectMemberColorStore').listColors(project.id);
             for (const [id, person] of Object.entries(people)) if (colors[id]) person.color = colors[id];
         } catch (err) {
-            log.warn('[Projects] member colours unavailable:', err.message);
+            log.warn('[Projects] member colours unavailable:', /** @type {Error} */ (err).message);
         }
         // The organisation the project belongs to ('' for none): only its own people and groups can be invited,
         // so the invite picker offers no others (a platform admin's directory lists every organisation).
@@ -194,20 +198,20 @@ function makeMembersRouter(deps) {
         if (people.length && typeof userStore.getUserAvatarsByIds === 'function') {
             try {
                 for (const r of await userStore.getUserAvatarsByIds(people.map(p => p.row.id))) pictures.set(String(r.id), r);
-            } catch (err) { log.warn('[Projects] principals: avatars unavailable:', err.message); }
+            } catch (err) { log.warn('[Projects] principals: avatars unavailable:', /** @type {Error} */ (err).message); }
         }
         const users = people.map(({ row, name }) => {
             const picture = pictures.has(String(row.id)) ? memberAvatar(project.id, String(row.id), pictures.get(String(row.id))) : null;
             return { id: String(row.id), name, avatar: picture ? { type: picture.avatarType, value: picture.avatar } : null };
         });
 
-        const orgGroups = (await Promise.resolve(userStore.getAllGroups()).catch(() => []) || [])
+        const orgGroups = (await Promise.resolve(userStore.getAllGroups()).catch((e) => fallback('routes/projects/members:makeMembersRouter', e, [])) || [])
             .filter(g => String(g.organizationId || '') === orgId && matches(g.name || g.id))
             .slice(0, PRINCIPALS_MAX);
         let counts = new Map();
         if (orgGroups.length) {
             try { counts = await require('../../stores/automationStore').countGroupMembers(orgId, orgGroups.map(g => String(g.id))); }
-            catch (err) { log.warn('[Projects] principals: member count failed:', err.message); }
+            catch (err) { log.warn('[Projects] principals: member count failed:', /** @type {Error} */ (err).message); }
         }
         res.json({
             users,
@@ -314,10 +318,10 @@ function makeMembersRouter(deps) {
                 : n.removed({ project, actorId: userId, userId: share.sharedWithId })));
             // Someone who left holds no tasks here any more; best-effort, the removal stands.
             try { await require('../../stores/projectMemberColorStore').clearFor(req.params.id, share.sharedWithId); } catch (err) {
-                log.warn('[Projects] could not clear a removed member\'s colour:', err.message);
+                log.warn('[Projects] could not clear a removed member\'s colour:', /** @type {Error} */ (err).message);
             }
             try { await require('../../stores/projectTaskStore').unassignUser(req.params.id, share.sharedWithId); } catch (err) {
-                log.warn('[Projects] could not unassign a removed member from tasks:', err.message);
+                log.warn('[Projects] could not unassign a removed member from tasks:', /** @type {Error} */ (err).message);
             }
         }
         res.json({ success: ok });

@@ -24,6 +24,7 @@ const fs = require('fs');
 const configStore = require('../../stores/configStore');
 const { preprocessForStt } = require('./audioPreprocess');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** BCP-47 locales per product language code; unknown codes fall back to xx-XX. */
 const AZURE_LOCALE_MAP = {
@@ -138,7 +139,7 @@ async function transcribeWithAzureSpeech(inputPath, { language = 'nl', contextTe
                 const phraseList = sdk.PhraseListGrammar.fromRecognizer(transcriber);
                 String(contextTerms).split(/[,;\n]/).map(t => t.trim()).filter(Boolean)
                     .forEach(term => phraseList.addPhrase(term));
-            } catch (err) { log.debug('PhraseListGrammar may not work with ConversationTranscriber', err); }
+            } catch (err) { bestEffort('core/voice/azureSpeech:transcribeWithAzureSpeech', err); /* PhraseListGrammar may not work with ConversationTranscriber */ }
         }
 
         log.info(`[AzureSpeech] Transcribing (locale ${locale}, ~${durationSeconds}s audio, cap ${Math.round(overallMs / 60000)}m, watchdog ${Math.round(inactivityMs / 1000)}s)`);

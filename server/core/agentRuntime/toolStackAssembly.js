@@ -27,7 +27,16 @@ const agentStore = require('../../stores/agentStore');
 const { buildToolPolicy, isUnattended, automationConfirmsFor } = require('./toolPolicy');
 const log = require('../../telemetry/log');
 
+/**
+ * The agent fields tool assembly reads.
+ * @typedef {{ config?: { disableExternalTools?: boolean, attachedSkillIds?: string[], tools?: unknown } | null, model?: string, owner_id?: string | null }} AssemblyAgent
+ */
+
+/**
+ * @param {{ agent: AssemblyAgent, agentId: string, userId: string, userAuth?: import('./chatStream/turnState').UserAuth | null, messageMetadata: import('./chatStream/turnState').MessageMetadata }} opts
+ */
 async function assembleToolStack({ agent, agentId, userId, userAuth, messageMetadata }) {
+    /** @type {import('./chatStream/turnState').ToolDef[]} */
     let tools = await getAgentTools(agentId);
 
     // ── Check per-agent external tools disable flag ──────
@@ -49,7 +58,7 @@ async function assembleToolStack({ agent, agentId, userId, userAuth, messageMeta
     // later turns keep the tools). Entitlement + credential gates still apply
     // inside getIntegrationTools — this only bypasses the per-user app toggle.
     let activatedSkillIds = [];
-    let skillApps = { allowedApps: [], dynamicSkillApps: new Map(), mergedIds: [] };
+    let skillApps = { allowedApps: /** @type {string[]} */ ([]), dynamicSkillApps: new Map(), mergedIds: /** @type {string[]} */ ([]) };
     if (!disableExternalTools) {
         if (messageMetadata.conversationId && messageMetadata.ephemeral !== true) {
             try {
@@ -174,6 +183,7 @@ async function assembleToolStack({ agent, agentId, userId, userAuth, messageMeta
 
     // Load tool configs with fixed params
     const toolConfigs = await agentStore.getAgentToolsWithParams(agentId);
+    /** @type {Record<string, unknown>} */
     const toolParamsMap = {};
     for (const tc of toolConfigs) {
         const toolName = tc.componentId.replace(/-/g, '_');
@@ -204,10 +214,13 @@ async function assembleToolStack({ agent, agentId, userId, userAuth, messageMeta
  * what the sandbox below exists to prevent. So both application points call
  * this, and neither owns a copy of the rules.
  *
- * @returns {{tools: Array, sandboxWithheld: Array, unattendedWithheld: string[]}}
+ * @template {{ function?: { name?: string }, __automation?: { id?: string } }} T
+ * @param {{ tools: T[], agent: AssemblyAgent, agentId: string, messageMetadata: import('./chatStream/turnState').MessageMetadata }} opts
+ * @returns {{tools: T[], sandboxWithheld: Array<{name: string|null, reason: string}>, unattendedWithheld: string[]}}
  */
 function narrowToolsForTurn({ tools, agent, agentId, messageMetadata }) {
     let out = Array.isArray(tools) ? tools : [];
+    /** @type {string[]} */
     let unattendedWithheld = [];
 
     // ── Headless: withhold the tools that would need approval ────
@@ -247,6 +260,7 @@ function narrowToolsForTurn({ tools, agent, agentId, messageMetadata }) {
     // exists so a mailing automation keeps working unattended, and a test run is
     // the opposite case: it may lose capability, never gain permission.
     // Rules and reasons live in ./testSandbox; this is only where they land.
+    /** @type {Array<{name: string|null, reason: string}>} */
     let sandboxWithheld = [];
     if (messageMetadata?.testSandbox === true) {
         try {

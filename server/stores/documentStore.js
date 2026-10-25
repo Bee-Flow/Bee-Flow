@@ -381,7 +381,7 @@ async function listDocumentsPage(context, options = {}) {
     const bind = (value) => { params.push(value); return '$' + params.length; };
     const where = archived ? [accessSql(), 'd.archived = true', 'd.user_id = $2'] : [accessSql(), 'd.archived = false'];
     // The filters a notebook row answers too, by placeholder (notebookLibrary).
-    const shared = { query: '', folder: null, folderSet: folderId !== undefined, category: '', visibility };
+    const shared = { query: '', folder: /** @type {string | null} */ (null), folderSet: folderId !== undefined, category: '', visibility };
     const search = librarySearch(query, options.onlyFillable === true, bind);
     where.push(...search.clauses);
     shared.query = search.phrase;
@@ -780,3 +780,21 @@ module.exports = {
     mapRow, assertWithinCaps,
     _test: { mapRow, mapListRow, mapProjectCard, normaliseType, assertWithinCaps, sanitizePageBody },
 };
+
+/**
+ * @typedef {{ resolvedHouseStyleCss?: string, houseStyle?: boolean, contract?: unknown, deck?: unknown,
+ *   sampleValues?: unknown, sectionOverrides?: unknown, [key: string]: unknown }} DocSettings
+ * @typedef {{ userId?: string, isAdmin?: boolean }} DocActor
+ * @typedef {string | DocActor} DocContext  a user id, or the actor with its admin flag
+ * @typedef {{ id?: string, userId?: string, name?: string, docType?: string, description?: string, bodyHtml?: string,
+ *   css?: string, settings?: DocSettings, organizationId?: string|null, kind?: string, visibility?: string,
+ *   folderId?: string|null, categories?: string[], versionId?: string|null, baselineVersionId?: string|null,
+ *   projectId?: string|null, projectOrgChecked?: boolean, sheetTableId?: string,
+ *   sharing?: { audience: string, sharedGroups: string[], sharedUserIds: string[] } }} DocumentInput
+ * @typedef {'name'|'docType'|'description'|'bodyHtml'|'css'|'settings'|'kind'|'visibility'|'folderId'|'categories'} ContentKey
+ * @typedef {{ expectedVersionId?: string|null, mergeWith?: (base: string, mine: string, theirs: string) => MergeResult,
+ *   source?: string, summary?: string, contributors?: unknown[], restoredFrom?: string|null } & Partial<Pick<DocumentInput, ContentKey>>} DocumentUpdates
+ * @typedef {{ conflicts: number, html?: string, parts?: unknown, fromOthers?: unknown, othersOutsideSections?: unknown }} MergeResult
+ * @typedef {import('pg').QueryResultRow} Row
+ * @typedef {Omit<NonNullable<ReturnType<typeof mapRow>>, 'settings'> & { settings: DocSettings, projectRole?: string|null, sharingRole?: string }} DocumentView
+ */

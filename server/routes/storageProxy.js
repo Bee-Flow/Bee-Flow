@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Storage Proxy — Auth-protected file streaming from RustFS
  *
@@ -78,7 +77,7 @@ router.get('/tmp/:token', async (req, res) => {
         log.info(`[StorageProxy] Serving temp file: key=${key}, type=${contentType}, size=${contentLength || 'unknown'}`);
         sendStream(stream, res);
     } catch (err) {
-        if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) {
+        if (/** @type {Error} */ (err).name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) {
             return res.status(404).json({ error: 'File not found' });
         }
         throw err;
@@ -155,7 +154,7 @@ router.get('/file/{*fileKey}', async (req, res) => {
 
         sendStream(stream, res);
     } catch (err) {
-        if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) {
+        if (/** @type {Error} */ (err).name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) {
             return res.status(404).json({ error: 'File not found' });
         }
         throw err;

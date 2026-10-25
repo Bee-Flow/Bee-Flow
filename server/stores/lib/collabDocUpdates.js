@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * The update log of the co-editing store (../collabDocStore.js): appending

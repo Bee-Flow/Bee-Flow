@@ -1,3 +1,4 @@
+/** @typedef {import('./sheetChartFields').ChartFields} ChartFields */
 // @typecheck
 /**
  * Charts on a spreadsheet, as the chat's document_write adds them.
@@ -67,7 +68,10 @@ function chartsFrom(list, tabId, existing, remove) {
     return { charts, updated, removed };
 }
 
-/** How the chat sees a stored chart: enough to lay a new one out around it, or to update it. */
+/**
+ * How the chat sees a stored chart: enough to lay a new one out around it, or to update it.
+ * @param {ChartFields & { id?: string; tab?: string; }} c
+ */
 function chartSummary(c) {
     const { width, height } = sizeInPx(c);
     return {
@@ -98,7 +102,7 @@ async function addCharts(doc, charts, deps, changes = {}) {
         });
         if (!updated) return { error: 'The spreadsheet was not found.' };
     } catch (e) {
-        if (e && Number(e.status) >= 400 && Number(e.status) < 500) return { error: e.message };
+        if (e && Number(e.status) >= 400 && Number(e.status) < 500) return { error: /** @type {Error} */ (e).message };
         throw e;
     }
     return { saved: charts.length, updated: (changes.updated || []).length, removed: (changes.removed || []).length };

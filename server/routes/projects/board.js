@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 'use strict';
 const crypto = require('crypto');
 const express = require('express');
@@ -5,40 +6,64 @@ const { z } = require('../../utils/zod');
 const { validate } = require('../../core/http/validate');
 const { projectAccessDeps } = require('./roleGate');
 const { badRequest, conflict, notFound } = require('../../core/http/errors');
-const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 const STATUSES = ['todo', 'doing', 'done'];
-const DEFAULT_COLUMNS = STATUSES.map(id => ({ id, title: '', status: id, wipLimit: null }));
+/**
+ * @typedef {{ id: string, title: string, status: string, wipLimit: number | null }} BoardColumn
+ * @typedef {Parameters<typeof projectAccessDeps>[0] & {
+ *   boards?: typeof import('../../stores/projectBoardStore'),
+ *   crypto?: { forProject: typeof import('../../projects/chatCrypto').forProject },
+ *   emit?: typeof import('../../core/projectFeed').emitProjectEvent,
+ *   taskStoreFor?: typeof import('../../stores/projectTaskStore').makeProjectTaskStore,
+ *   audit?: typeof import('../../stores/projectStore').logActivity,
+ * }} BoardDeps
+ */
+/** @type {BoardColumn[]} */
+const DEFAULT_COLUMNS = STATUSES.map(id => ({ id, title: '', status: id, wipLimit: /** @type {number | null} */ (null) }));
 const Column = z.object({ id: z.string().regex(/^[a-zA-Z0-9_-]{1,80}$/), title: z.string().trim().max(80), status: z.enum(STATUSES), wipLimit: z.number().int().min(1).max(100).nullable() }).strict();
 const Config = z.object({ version: z.number().int().min(0), columns: z.array(Column).min(3).max(20) }).strict();
 const Move = z.object({ columnId: z.string().max(80), beforeId: z.string().max(200).nullable().default(null) }).strict();
 const Create = z.object({ columnId: z.string().max(80), title: z.string().trim().min(1).max(200) }).strict();
+/**
+ * @param {{ id: string, status: string }} task
+ * @param {BoardColumn[]} columns
+ * @param {Record<string, string>} assignments
+ */
 function columnFor(task, columns, assignments) {
     return columns.find(c => c.id === assignments[task.id] && c.status === task.status) || columns.find(c => c.status === task.status);
 }
+/** @param {BoardDeps} [deps] */
 function makeBoardRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });
     const { requireRole, getProject } = projectAccessDeps(deps);
     const boards = () => deps.boards || require('../../stores/projectBoardStore');
-    const load = async req => {
+    const load = async (/** @type {import('express').Request<{ id: string }>} */ req) => {
         const project = await getProject(req.params.id);
         if (!project) throw notFound();
         if (project.kind === 'solution') throw conflict('SOLUTION_HOLDS_NO_TASKS', 'A Studio Solution holds no tasks.');
         const box = await (deps.crypto || require('../../projects/chatCrypto')).forProject(project);
-        const seal = columns => box.sealContent('board', 'columns', JSON.stringify(columns));
+        const seal = (/** @type {BoardColumn[]} */ columns) => box.sealContent('board', 'columns', JSON.stringify(columns));
+        /** @type {(row: Record<string, any> | null) => BoardColumn[]} */
         const decode = row => row ? JSON.parse(box.openContent('board', 'columns', row.columns_sealed)) : DEFAULT_COLUMNS;
         return { project, box, seal, decode };
     };
+    /**
+     * @param {string} id
+     * @param {string} kind
+     * @param {string} actorId
+     * @param {string} [targetId]
+     */
     const emit = async (id, kind, actorId, targetId = id) => {
-        try { await (deps.emit || require('../../core/projectFeed').emitProjectEvent)(id, { kind, actorId, targetType: kind === 'task.board.updated' ? 'project' : 'project_task', targetId, payload: { taskId: targetId } }); } catch (err) { log.debug('query refetch recovers', err); }
+        try { await (deps.emit || require('../../core/projectFeed').emitProjectEvent)(id, { kind, actorId, targetType: kind === 'task.board.updated' ? 'project' : 'project_task', targetId, payload: { taskId: targetId } }); } catch (err) { bestEffort('routes/projects/board:emit', err); /* query refetch recovers */ }
     };
-    router.get('/:id/board', requireRole('viewer'), async (req, res) => {
+    router.get('/:id/board', requireRole('viewer'), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
         const { decode } = await load(req);
         const row = await boards().read(req.params.id);
         res.set('Cache-Control', 'no-store').json({ columns: decode(row), assignments: row?.assignments || {}, version: row?.version || 0 });
     });
-    router.put('/:id/board', requireRole('editor'), validate({ body: Config }), async (req, res) => {
+    router.put('/:id/board', requireRole('editor'), validate({ body: Config }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
         const { columns, version } = req.body;
-        if (new Set(columns.map(c => c.id)).size !== columns.length || STATUSES.some(s => !columns.some(c => c.status === s))) throw badRequest('invalid_columns', 'Keep at least one column for each status, with unique column IDs.');
+        if (new Set(columns.map((/** @type {BoardColumn} */ c) => c.id)).size !== columns.length || STATUSES.some(s => !columns.some((/** @type {BoardColumn} */ c) => c.status === s))) throw badRequest('invalid_columns', 'Keep at least one column for each status, with unique column IDs.');
         const { seal, decode } = await load(req);
         const result = await boards().change(req.params.id, seal(DEFAULT_COLUMNS), async (row, client) => {
             if (row.version !== version) throw conflict('board_changed', 'The board changed. Reload it before saving your columns.');
@@ -46,7 +71,7 @@ function makeBoardRouter(deps = {}) {
             const all = await (deps.taskStoreFor || require('../../stores/projectTaskStore').makeProjectTaskStore)(client).listSearchTasks(req.params.id);
             for (const task of all) {
                 const from = columnFor(task, old, row.assignments);
-                const to = columns.find(c => c.id === from?.id);
+                const to = columns.find((/** @type {BoardColumn} */ c) => c.id === from?.id);
                 if (!to || to.status !== task.status) throw conflict('column_not_empty', 'Move all tasks out of this column before removing it or changing its status.');
             }
             row.columns_sealed = seal(columns);
@@ -55,7 +80,7 @@ function makeBoardRouter(deps = {}) {
         await emit(req.params.id, 'task.board.updated', req.session.user.id);
         res.json(result);
     });
-    router.post('/:id/board/tasks', requireRole('editor'), validate({ body: Create }), async (req, res) => {
+    router.post('/:id/board/tasks', requireRole('editor'), validate({ body: Create }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
         const { seal, decode, box } = await load(req);
         const id = crypto.randomUUID();
         const result = await boards().change(req.params.id, seal(DEFAULT_COLUMNS), async (row, client) => {
@@ -66,11 +91,11 @@ function makeBoardRouter(deps = {}) {
             row.assignments[id] = column.id;
             return { id };
         });
-        try { await (deps.audit || require('../../stores/projectStore').logActivity)(req.params.id, req.session.user.id, 'task.created', { targetType: 'project_task', targetId: id }); } catch (err) { log.debug('activity must not turn a saved task into a failed create', err); }
+        try { await (deps.audit || require('../../stores/projectStore').logActivity)(req.params.id, req.session.user.id, 'task.created', { targetType: 'project_task', targetId: id }); } catch (err) { bestEffort('routes/projects/board:makeBoardRouter', err); /* activity must not turn a saved task into a failed create */ }
         await emit(req.params.id, 'task.created', req.session.user.id, id);
         res.status(201).json(result);
     });
-    router.patch('/:id/board/tasks/:taskId', requireRole('editor'), validate({ body: Move }), async (req, res) => {
+    router.patch('/:id/board/tasks/:taskId', requireRole('editor'), validate({ body: Move }), async (/** @type {import('express').Request<{ id: string, taskId: string }>} */ req, /** @type {import('express').Response} */ res) => {
         const { seal, decode } = await load(req);
         const result = await boards().change(req.params.id, seal(DEFAULT_COLUMNS), async (row, client) => {
             const columns = decode(row);
@@ -88,6 +113,7 @@ function makeBoardRouter(deps = {}) {
     });
     return router;
 }
+/** @typedef {import('express').Router & Record<string, unknown>} RouterExports */
 module.exports = makeBoardRouter();
-module.exports.makeBoardRouter = makeBoardRouter;
-module.exports.columnFor = columnFor;
+/** @type {RouterExports} */ (module.exports).makeBoardRouter = makeBoardRouter;
+/** @type {RouterExports} */ (module.exports).columnFor = columnFor;

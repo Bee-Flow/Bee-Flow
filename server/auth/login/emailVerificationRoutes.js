@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Login Routes — email confirmation: the path-style verification link that
  * activates an account, and the throttled resend. Split out of
@@ -8,6 +8,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
@@ -62,7 +63,7 @@ router.get('/verify-email/:token', async (req, res) => {
         log.info(`[Auth] Email verified for user ${user.id}`);
         try {
             await userStore.logAccessAudit('user.email_verified', 'user', user.id, user.id, null, { email: user.email }, user.organizationId || null);
-        } catch (err) { log.debug('best-effort', err); }
+        } catch (err) { bestEffort('emailVerification:verified-audit', err); }
 
         // Welcome email (once) — now that the account is active.
         if (user.email) {
@@ -121,7 +122,7 @@ router.post('/resend-verification', resendVerificationIpLimiter, resendVerificat
             .catch(e => log.warn('[Auth] resend verification email failed:', e.message));
         try {
             await userStore.logAccessAudit('user.verification_resent', 'user', user.id, user.id, null, { email: user.email }, user.organizationId || null);
-        } catch (err) { log.debug('best-effort', err); }
+        } catch (err) { bestEffort('emailVerification:resent-audit', err); }
         return respond();
     } catch (err) {
         log.error('[Auth] resend-verification error:', err.message);

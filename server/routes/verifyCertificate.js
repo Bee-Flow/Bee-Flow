@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // Public certificate verification — unauthenticated /verify/:token.
 //
 // Mounted before the SPA catch-all in index.js. Resolves a Bee Flow AI certificate
@@ -30,29 +30,34 @@ const { perUserRateLimit } = require('../utils/perUserRateLimit');
 
 const limiter = perUserRateLimit({ windowMs: 60_000, max: 60, keyFn: (req) => req.ip });
 
+/** @param {unknown} s */
 function esc(s) {
     return String(s == null ? '' : s)
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+/** @param {string | number | Date} iso */
 function fmtDate(iso) {
     try { return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }); }
     catch (_) { return ''; }
 }
 
+/** @param {import('express').Response} res */
 function setSecurityHeaders(res) {
     res.setHeader('Content-Security-Policy', "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'");
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'no-referrer');
 }
 
+/** @param {unknown} token */
 async function resolve(token) {
     if (!token || typeof token !== 'string' || token.length < 16) return null;
     try { return await certStore.resolveByTokenHash(tokenHash(token)); }
     catch (_) { return null; }
 }
 
+/** @param {import('express').Response} res */
 function notFoundPage(res) {
     setSecurityHeaders(res);
     return res.status(404).send(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Certificate not found · Bee Flow</title><style>body{font-family:system-ui,sans-serif;background:#FFFDF7;color:#1A1A1A;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center}div{max-width:420px;padding:24px}h1{color:#B45309}</style></head><body><div><h1>🐝 Certificate not found</h1><p>This verification link isn’t valid, or the certificate is no longer shared publicly.</p></div></body></html>`);
@@ -94,13 +99,16 @@ router.get('/:token/certificate.pdf', limiter, async (req, res) => {
 // serial, never progress. Tokens are inlined because this page carries no
 // app CSS; light and dark follow the visitor's colour scheme.
 router.get('/:token', limiter, async (req, res) => {
+    // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- the token matched a stored hash before use, and every value put into the page goes through esc()
     const record = await resolve(req.params.token);
     if (!record || !record.isPublic) return notFoundPage(res);
 
     const base = getPublicBaseUrl();
+    // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- the token matched a stored hash before use, and the URL goes through esc() where the page uses it
     const imgUrl = base ? `${base}/verify/${req.params.token}/image.png` : `/verify/${req.params.token}/image.png`;
+    // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- the token matched a stored hash before use, and the URL goes through esc() where the page uses it
     const pdfUrl = `/verify/${req.params.token}/certificate.pdf`;
-    const courseTitles = (record.courses || []).map((c) => esc(c.title));
+    const courseTitles = (record.courses || []).map((/** @type {{ title: string }} */ c) => esc(c.title));
     const desc = `${esc(record.recipientName)} earned the ${esc(record.title)} certificate from Bee Flow.`;
     const checkedAt = new Date().toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
     const shortToken = String(req.params.token).slice(0, 4) + '…' + String(req.params.token).slice(-4);

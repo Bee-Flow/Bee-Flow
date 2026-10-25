@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The features' side of stores/user/erasurePorts.js: account erasure deletes
  * a user's notebooks (core/kb) and owned projects (projects/) without the

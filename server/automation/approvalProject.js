@@ -20,7 +20,7 @@ async function projectStamp(projectId) {
         const project = await require('../stores/projectStore').getProject(projectId);
         projectTitle = project?.name || '';
     } catch (err) {
-        log.warn('[Approvals] could not resolve project title:', err.message);
+        log.warn('[Approvals] could not resolve project title:', /** @type {Error} */ (err).message);
     }
     return { projectId, projectTitle };
 }

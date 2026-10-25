@@ -178,3 +178,7 @@ module.exports = {
     setVariables,
     setPublicAccess,
 };
+
+/** @typedef {import('./builderTools').AppDef} AppDef */
+
+/** @typedef {import('./builderTools').AppNode} AppNode */

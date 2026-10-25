@@ -25,6 +25,7 @@ const { collectSourceNumbers, hasUnsupportedNumber } = require('./aiStepNumbers'
 
 const MODEL_VALUE_MAX = 200;
 
+/** @type {Record<string, RegExp>} */
 const SCRIPT_RES = {
     latin: /\p{Script=Latin}/u,
     cyrillic: /\p{Script=Cyrillic}/u,
@@ -41,6 +42,9 @@ const PLACEHOLDER_RE = /\[[a-z0-9_]+_\d+\]/gi;
 const LETTER_RE = /\p{L}/u;
 
 const isPlain = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
+/**
+ * @param {string} k
+ */
 const own = (o, k) => isPlain(o) && Object.hasOwn(o, k);
 
 /** AUTOMATION_AI_CHECK_MAX_ERRORS: errors collected per answer. 0 = unlimited. */
@@ -63,6 +67,10 @@ function valuesAtPath(obj, field) {
     const parsed = parseFieldPath(field);
     if (!parsed) return [];
     const out = [];
+    /**
+     * @param {number} i
+     * @param {string} path
+     */
     const walk = (node, i, path, keys) => {
         if (i === parsed.segments.length) { out.push({ path, keys, value: node }); return; }
         const { name, each } = parsed.segments[i];
@@ -76,6 +84,9 @@ function valuesAtPath(obj, field) {
     return out;
 }
 
+/**
+ * @param {(string | number)[]} keys
+ */
 function valueAtKeys(obj, keys) {
     let node = obj;
     for (const k of keys) {
@@ -86,12 +97,18 @@ function valueAtKeys(obj, keys) {
     return node;
 }
 
+/**
+ * @param {(string | number)[]} keys
+ */
 function setAtKeys(obj, keys, value) {
     const parent = valueAtKeys(obj, keys.slice(0, -1));
     if (parent && typeof parent === 'object') parent[keys[keys.length - 1]] = value;
 }
 
-/** What the model wrote at a place, as short text for the repair prompt. */
+/**
+ * What the model wrote at a place, as short text for the repair prompt.
+ * @param {string[] | (string | number)[]} keys
+ */
 function modelValueAt(modelOutput, keys) {
     const v = valueAtKeys(modelOutput, keys);
     if (v === undefined || v === null) return '';
@@ -131,7 +148,10 @@ const JSON_TYPE_OK = {
     object: (v) => isPlain(v),
 };
 
-/** Top-level declared types and required fields of the schema. */
+/**
+ * Top-level declared types and required fields of the schema.
+ * @param {(arg0: string, name: string, arg2: string) => void} push
+ */
 function schemaTypeErrors(restored, schema, push) {
     if (!isPlain(schema) || !isPlain(schema.properties)) return;
     if (!isPlain(restored)) { push('no_answer', '', 'the step did not return an object'); return; }
@@ -149,12 +169,19 @@ function schemaTypeErrors(restored, schema, push) {
     }
 }
 
-/** The list spelling for a value, or null when the list does not hold it. */
+/**
+ * The list spelling for a value, or null when the list does not hold it.
+ * @param {string} text
+ */
 function matchAllowed(text, list) {
     if (list.exact.has(text)) return text;
     return list.ignoreCase ? (list.folded.get(text.toLowerCase()) ?? null) : null;
 }
 
+/**
+ * @param {string[]} values
+ * @param {boolean} ignoreCase
+ */
 function allowedIndex(values, ignoreCase) {
     const folded = new Map();
     if (ignoreCase) for (const v of values) if (!folded.has(v.toLowerCase())) folded.set(v.toLowerCase(), v);
@@ -167,9 +194,16 @@ function allowedIndex(values, ignoreCase) {
  * @returns {Array<{ code: string, path: string, message: string, modelValue: string }>}
  */
 function evaluateAnswer({ restored, modelOutput, rel, lists, runState, mode, ctx, schema }) {
+    /** @type {{ code: string; path: string; message: string; modelValue: string; }[]} */
     const errors = [];
     const cap = maxErrors();
     const full = () => cap > 0 && errors.length >= cap;
+    /**
+     * @param {string} code
+     * @param {string} path
+     * @param {string} message
+     * @param {string[] | (string | number)[] | null} [keys]
+     */
     const push = (code, path, message, keys) => {
         if (full()) return;
         errors.push({ code, path, message, modelValue: keys ? modelValueAt(modelOutput, keys) : '' });
@@ -182,7 +216,11 @@ function evaluateAnswer({ restored, modelOutput, rel, lists, runState, mode, ctx
     }
     if (schema) schemaTypeErrors(restored, schema, (c, p, m) => push(c, p, m, p ? [p] : null));
 
-    /** Each value at `field` must be one of `list`. */
+    /**
+     * Each value at `field` must be one of `list`.
+     * @param {string} field
+     * @param {boolean} allowEmpty
+     */
     const checkAllowed = (field, list, allowEmpty) => {
         for (const at of valuesAtPath(restored, field)) {
             const v = at.value;
@@ -194,6 +232,9 @@ function evaluateAnswer({ restored, modelOutput, rel, lists, runState, mode, ctx
             if (typeof v === 'string' && hit !== v) setAtKeys(restored, at.keys, hit);
         }
     };
+    /**
+     * @param {string} field
+     */
     const emptyList = (field) => push('missing', field, 'the list of allowed values is empty');
 
     for (const l of lists || []) {
@@ -237,7 +278,10 @@ function evaluateAnswer({ restored, modelOutput, rel, lists, runState, mode, ctx
     return errors;
 }
 
-/** "<path>: <rule>" for the first five errors: a failure message that holds no data values. */
+/**
+ * "<path>: <rule>" for the first five errors: a failure message that holds no data values.
+ * @param {{ code: string; path: string; message: string; modelValue: string; }[]} errors
+ */
 function errorSummary(errors) {
     return errors.slice(0, 5).map((e) => `${e.path || 'answer'}: ${e.message}`).join('; ');
 }

@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Opening a customer's archive — what kind is it, and what is inside.
  *
@@ -32,6 +33,8 @@
 
 'use strict';
 
+/** @typedef {Error & { reason?: string, format?: string }} ArchiveError */
+
 const zlib = require('zlib');
 
 // A gunzipped tar is held in memory whole, so this is the real ceiling on what
@@ -46,6 +49,11 @@ const ARCHIVE_EXTENSIONS = new Set(['zip', '7z', 'rar', 'tar', 'gz', 'tgz', 'bz2
 /** Formats we can actually enumerate. The rest are recognised and named. */
 const OPENABLE_FORMATS = new Set(['zip', 'tar', 'gzip']);
 
+/**
+ * @param {Buffer<ArrayBufferLike>} buffer
+ * @param {number[]} bytes
+ * @param {number} [offset]
+ */
 function startsWith(buffer, bytes, offset = 0) {
     if (!Buffer.isBuffer(buffer) || buffer.length < offset + bytes.length) return false;
     for (let i = 0; i < bytes.length; i += 1) if (buffer[offset + i] !== bytes[i]) return false;
@@ -68,6 +76,8 @@ const SIGNATURES = [
  *
  * Returns null for anything that is not an archive at all, so a caller can tell
  * "not an archive" from "an archive I cannot open".
+ * @param {string} [name]
+ * @param {Buffer<ArrayBufferLike>} buffer
  */
 function archiveFormat(buffer, name = '') {
     for (const sig of SIGNATURES) {
@@ -84,7 +94,10 @@ function archiveFormat(buffer, name = '') {
     return ext === 'tar' ? 'tar' : null;
 }
 
-/** Does this filename claim to be an archive? Used to decide about recursion. */
+/**
+ * Does this filename claim to be an archive? Used to decide about recursion.
+ * @param {string} name
+ */
 function looksLikeArchiveName(name) {
     const lower = String(name || '').toLowerCase();
     const ext = lower.includes('.') ? lower.slice(lower.lastIndexOf('.') + 1) : '';
@@ -99,6 +112,7 @@ function looksLikeArchiveName(name) {
  * the reader and surfaces as "could not open the zip", which sends an operator
  * looking for a corrupt file instead of writing one sentence back to the
  * customer.
+ * @param {Buffer<ArrayBufferLike>} buffer
  */
 function zipIsEncrypted(buffer) {
     if (!Buffer.isBuffer(buffer)) return false;
@@ -110,7 +124,12 @@ function zipIsEncrypted(buffer) {
     return false;
 }
 
-/** Octal header field → number; tar pads with spaces and NULs, both of which end it. */
+/**
+ * Octal header field → number; tar pads with spaces and NULs, both of which end it.
+ * @param {number} offset
+ * @param {number} length
+ * @param {Buffer<ArrayBufferLike>} buffer
+ */
 function octal(buffer, offset, length) {
     let text = '';
     for (let i = offset; i < offset + length && i < buffer.length; i += 1) {
@@ -122,6 +141,11 @@ function octal(buffer, offset, length) {
     return Number.isFinite(n) ? n : 0;
 }
 
+/**
+ * @param {number} offset
+ * @param {number} length
+ * @param {Buffer<ArrayBufferLike>} buffer
+ */
 function nulString(buffer, offset, length) {
     let end = offset;
     const limit = Math.min(offset + length, buffer.length);
@@ -137,10 +161,13 @@ function nulString(buffer, offset, length) {
  * live, and GNU's 'L' entry, whose CONTENT is the name of the entry after it.
  * Everything else — pax headers, hard links, devices — is skipped by type, not
  * mistaken for a file.
+ * @param {Buffer<ArrayBufferLike>} buffer
  */
 function tarEntries(buffer) {
+    /** @type {{ path: string; size: number; at: number; }[]} */
     const out = [];
     let offset = 0;
+    /** @type {string | null} */
     let longName = null;
     while (offset + TAR_BLOCK <= buffer.length) {
         const header = buffer.subarray(offset, offset + TAR_BLOCK);
@@ -181,10 +208,13 @@ function tarEntries(buffer) {
  * Throws an Error carrying `.reason` — a sentence fit to show an operator —
  * for the archives we recognise and cannot open, so a caller never has to
  * invent a message from a stack trace.
+ * @param {Buffer<ArrayBufferLike>} buffer
+ * @param {{ name?: string, JSZip?: typeof import('jszip') | null }} [opts]
  */
 async function openArchive(buffer, { name = '', JSZip = null } = {}) {
     const format = archiveFormat(buffer, name);
     if (!format) {
+        /** @type {ArchiveError} */
         const err = new Error('not an archive');
         // The caller only ever gets here for a file whose NAME claims to be an
         // archive, so "not an archive" alone reads as a contradiction. Damaged
@@ -193,6 +223,7 @@ async function openArchive(buffer, { name = '', JSZip = null } = {}) {
         throw err;
     }
     if (!OPENABLE_FORMATS.has(format)) {
+        /** @type {ArchiveError} */
         const err = new Error(`${format} not supported`);
         // Named, and named ACCURATELY. "Could not open the zip" about a .7z is
         // worse than saying nothing: it sends somebody hunting a corrupt file.
@@ -205,6 +236,7 @@ async function openArchive(buffer, { name = '', JSZip = null } = {}) {
 
     if (format === 'zip') {
         if (zipIsEncrypted(buffer)) {
+            /** @type {ArchiveError} */
             const err = new Error('encrypted zip');
             err.reason = 'this zip is password-protected';
             err.format = 'zip';
@@ -216,7 +248,7 @@ async function openArchive(buffer, { name = '', JSZip = null } = {}) {
         return {
             format,
             dirs: all.filter((e) => e.dir).map((e) => e.name),
-            entries: all.filter((e) => !e.dir).map((e) => ({
+            entries: all.filter((e) => !e.dir).map((/** @type {import('jszip').JSZipObject & { _data?: { uncompressedSize?: number } }} */ e) => ({
                 path: e.name,
                 size: (e._data && e._data.uncompressedSize) || 0,
                 isDir: false,
@@ -231,8 +263,9 @@ async function openArchive(buffer, { name = '', JSZip = null } = {}) {
         try {
             plain = zlib.gunzipSync(buffer, { maxOutputLength: MAX_INFLATED_BYTES });
         } catch (e) {
+            /** @type {ArchiveError} */
             const err = new Error('gunzip failed');
-            err.reason = /maxOutputLength|buffer/i.test(String(e && e.message))
+            err.reason = /maxOutputLength|buffer/i.test(String(e && /** @type {Error} */ (e).message))
                 ? 'this archive is too large to open here'
                 : 'this .gz archive could not be opened';
             throw err;

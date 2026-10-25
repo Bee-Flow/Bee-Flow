@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The three collaborators of studioAppDataStore that sit in the server's big
  * import cycle: the data-model contract (../../appStudio/dataModel), the

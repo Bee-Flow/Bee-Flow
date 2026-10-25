@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // Validation + merge for the client-written learning progress blob.
 //
 // The blob (configStore key learning_progress_user_${userId}) feeds badge and
@@ -13,11 +13,15 @@ const { LESSON_IDS } = require('./courseCatalog');
 
 const LESSON_ID_SET = new Set(LESSON_IDS);
 
+/** @typedef {import('./completion').ProgressMap} ProgressMap */
+/** @typedef {import('./completion').LessonProgress} LessonProgress */
+
 // Org-authored lessons (learningContentStore) carry minted 'orgl-<hex>' ids.
 // They're accepted by shape — checking actual existence would need a store
 // read in this pure module; the id space is bounded and all size caps apply.
 const ORG_LESSON_ID_RE = /^orgl-[a-f0-9]{6,16}$/;
 
+/** @param {string} id */
 function knownLessonId(id) {
     return LESSON_ID_SET.has(id) || ORG_LESSON_ID_RE.test(id);
 }
@@ -35,6 +39,7 @@ const MAX_STEP_ID_LENGTH = 64;
 const MAX_BLOB_BYTES = 256 * 1024;
 const MAX_FUTURE_SKEW_MS = 24 * 60 * 60 * 1000;
 
+/** @param {unknown} value */
 function validCompletedAt(value) {
     if (typeof value !== 'string') return false;
     const ts = Date.parse(value);
@@ -46,6 +51,10 @@ function validCompletedAt(value) {
 // oversized step states are DROPPED (returned in `dropped` for logging); an
 // oversized payload overall is rejected with { error: 'too_large' } so the
 // route can 400 instead of silently truncating.
+/**
+ * @param {unknown} input  the client-sent JSON
+ * @returns {{ map: ProgressMap | null, dropped: string[], error: string | null }}
+ */
 function sanitizeLearningProgress(input) {
     if (!input || typeof input !== 'object' || Array.isArray(input)) {
         return { map: {}, dropped: [], error: null };
@@ -54,7 +63,9 @@ function sanitizeLearningProgress(input) {
     try { raw = JSON.stringify(input); } catch (_) { return { map: {}, dropped: [], error: 'unserializable' }; }
     if (raw.length > MAX_BLOB_BYTES) return { map: null, dropped: [], error: 'too_large' };
 
+    /** @type {ProgressMap} */
     const map = {};
+    /** @type {string[]} */
     const dropped = [];
     for (const [lessonId, entry] of Object.entries(input)) {
         if (!knownLessonId(lessonId)) { dropped.push(lessonId); continue; }
@@ -63,6 +74,7 @@ function sanitizeLearningProgress(input) {
         if (entry === true) { map[lessonId] = { completedAt: new Date().toISOString() }; continue; }
         if (!entry || typeof entry !== 'object' || Array.isArray(entry)) { dropped.push(lessonId); continue; }
 
+        /** @type {LessonProgress} */
         const clean = {};
         if (entry.completedAt !== undefined) {
             if (!validCompletedAt(entry.completedAt)) { dropped.push(lessonId); continue; }
@@ -75,6 +87,7 @@ function sanitizeLearningProgress(input) {
             clean.masteredAt = entry.masteredAt;
         }
         if (entry.steps && typeof entry.steps === 'object' && !Array.isArray(entry.steps)) {
+            /** @type {Record<string, unknown>} */
             const steps = {};
             for (const [stepId, state] of Object.entries(entry.steps)) {
                 if (typeof stepId !== 'string' || stepId.length > MAX_STEP_ID_LENGTH) continue;
@@ -97,8 +110,15 @@ function sanitizeLearningProgress(input) {
 //   • masteredAt  — earliest wins, same reasoning
 //   • steps       — key-union, incoming wins per stepId (latest attempt state)
 //   • lessons only present in `existing` are kept (the anti-clobber guarantee)
+/**
+ * @param {ProgressMap | null | undefined} existing
+ * @param {ProgressMap | null | undefined} incoming
+ * @returns {ProgressMap}
+ */
 function mergeLearningProgress(existing, incoming) {
+    /** @type {ProgressMap} */
     const base = (existing && typeof existing === 'object' && !Array.isArray(existing)) ? existing : {};
+    /** @type {ProgressMap} */
     const merged = {};
     const lessonIds = new Set([...Object.keys(base), ...Object.keys(incoming || {})]);
     for (const id of lessonIds) {
@@ -112,6 +132,7 @@ function mergeLearningProgress(existing, incoming) {
         if (!next) { if (prev || prevRaw === true) merged[id] = prevRaw; continue; }
         if (!prev) { merged[id] = next; continue; }
 
+        /** @type {LessonProgress} */
         const entry = {};
         if (prev.completedAt && next.completedAt) {
             entry.completedAt = prev.completedAt <= next.completedAt ? prev.completedAt : next.completedAt;

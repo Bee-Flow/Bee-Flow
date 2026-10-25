@@ -87,13 +87,16 @@ function inferEntryType(spec) {
  * off the spec. Every repair is written to `notes` so the model sees, in the
  * success result, what it should have sent — the shape is corrected, the
  * habit is corrected by the note.
+ * @param {string[]} notes
  */
 function normaliseEntry(raw, i, notes) {
     const e = (raw && typeof raw === 'object' && !Array.isArray(raw)) ? { ...raw } : {};
     const stray = Object.keys(e).filter(k => !ENTRY_KEYS.has(k));
     if (stray.length) {
         const spec = (e.spec && typeof e.spec === 'object' && !Array.isArray(e.spec)) ? { ...e.spec } : {};
+        /** @type {string[]} */
         const moved = [];
+        /** @type {string[]} */
         const shadowed = [];
         for (const k of stray) {
             if (k in spec) shadowed.push(k);
@@ -101,6 +104,7 @@ function normaliseEntry(raw, i, notes) {
             delete e[k];
         }
         e.spec = spec;
+        /** @type {string[]} */
         const parts = [];
         if (moved.length) parts.push(`${moved.map(k => `"${k}"`).join(', ')} ${moved.length > 1 ? 'were' : 'was'} placed next to spec — moved inside it`);
         if (shadowed.length) parts.push(`${shadowed.map(k => `"${k}"`).join(', ')} appeared both next to and inside spec — spec's value kept`);
@@ -191,7 +195,7 @@ try {
     // draftWrap flows to every builder: the gates read it, and every
     // binding check reads the shapes a dry run left on it.
     else res = ADD_FOR_TYPE[e.type](graph, spec, draftWrap);
-} catch (err) { res = { error: err.message }; }
+} catch (err) { res = { error: /** @type {Error} */ (err).message }; }
     return res;
 }
 
@@ -232,6 +236,7 @@ function applyAddSteps(graph, args, { draft, scope = null, sent = null } = {}, d
 
     // Repairs ride on the result as warnings — on a partial failure too, so
     // the model sees what happened to the entries that did land.
+    /** @type {string[]} */
     const notes = [];
     // A step field at the ROOT of the call (`{steps:[…], type:"integration_action"}`,
     // measured 2026-09-16) belongs to an entry. It is ignored either way; said
@@ -252,6 +257,9 @@ function applyAddSteps(graph, args, { draft, scope = null, sent = null } = {}, d
     const turn = turnState(draftWrap);
     const added = [];
     let warnings = notes.length ? [...notes] : null;
+    /**
+     * @param {string} line
+     */
     const note = (line) => { (warnings = warnings || []).push(line); };
     let lastAppliedId = null;
 
@@ -275,9 +283,19 @@ function applyAddSteps(graph, args, { draft, scope = null, sent = null } = {}, d
     // 0..i-1 as built — and `resendAs` is the one call that continues the
     // batch: the failing entry, handles already real ids, anchored after the
     // last entry that landed unless it named its own anchor.
+    /**
+     * @param {number} i
+     * @param {string} error
+     * @param {{ _fixHint: string; }} res
+     */
     const fail = (i, spec, error, res) => buildFailure({ added, idMap, lastAppliedId, entries, rawEntries, warnings }, i, spec, error, res);
 
     // An entry this turn already built: reported, not dispatched.
+    /**
+     * @param {number} i
+     * @param {string} type
+     * @param {{ differs: boolean; }} [extra]
+     */
     const reuse = (i, e, id, type, tool, extra) => {
         if (e.tempId) {
             const have = turn._tempIds[e.tempId];
@@ -409,3 +427,17 @@ function applyAddSteps(graph, args, { draft, scope = null, sent = null } = {}, d
 module.exports = {
     applyAddSteps,
 };
+
+/** @typedef {import('./draftGraph').DraftGraph} DraftGraph */
+
+/** @typedef {import('./addStepsSupport').BatchEntry} BatchEntry */
+
+/** @typedef {import('./addStepsSupport').BatchSpec} BatchSpec */
+
+/** @typedef {import('./addStepsSupport').TurnState} TurnState */
+
+/** @typedef {import('./addStepsSupport').EntryResult} EntryResult */
+
+/** @typedef {import('./refCheck').BuilderWrap & Partial<TurnState> & { _lastRejected?: unknown }} StepsWrap  the per-turn draft wrapper */
+
+/** @typedef {EntryResult & { error?: string, added?: { id?: string, type?: string, tool?: string }, _warnings?: string[] }} StepResult  what one per-type builder answers */

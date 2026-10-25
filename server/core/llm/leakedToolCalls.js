@@ -41,6 +41,9 @@ const HERMES_CLOSE = '</tool_call>';
 
 const TOOL_NAME_RE = /^[A-Za-z_][\w.\-]*$/;
 
+/**
+ * @param {string} s
+ */
 function escapeRe(s) {
     return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -57,13 +60,19 @@ const GEMMA_OPEN_TAIL_RE = new RegExp(
 );
 const HERMES_RE = new RegExp(`${escapeRe(HERMES_OPEN)}\\s*([\\s\\S]*?)\\s*${escapeRe(HERMES_CLOSE)}`, 'g');
 
-/** Does the text carry any of the recognised wire syntaxes at all? */
+/**
+ * Does the text carry any of the recognised wire syntaxes at all?
+ * @param {string} text
+ */
 function hasLeakedToolCallSyntax(text) {
     const s = typeof text === 'string' ? text : '';
     return s.includes(GEMMA_OPEN) || s.includes(HERMES_OPEN);
 }
 
 
+/**
+ * @param {string} inner
+ */
 function parseHermesCall(inner) {
     let value;
     try { value = JSON.parse(inner); } catch (_) { return null; }
@@ -86,7 +95,7 @@ function parseHermesCall(inner) {
  * spans removed. A call whose name is not in `toolNames` (a Set; omit to
  * accept any) or whose arguments do not parse lands in `rejected` with the
  * reason, never in `calls`.
- * @param {any} text
+ * @param {string} text
  * @param {{ toolNames?: Set<string> }} [opts]
  * @returns {{ calls: Array<{name:string,args:object,raw:string,format:string}>,
  *             rejected: Array<{name:string|null,reason:'unknown_tool'|'unparsable',raw:string,format:string}>,
@@ -99,6 +108,11 @@ function extractLeakedToolCalls(text, { toolNames } = {}) {
     if (!src) return { calls, rejected, text: '' };
     const known = toolNames instanceof Set ? toolNames : null;
 
+    /**
+     * @param {string} name
+     * @param {string} raw
+     * @param {string} format
+     */
     const accept = (name, args, raw, format) => {
         if (known && !known.has(name)) { rejected.push({ name, reason: 'unknown_tool', raw, format }); return; }
         if (!args) { rejected.push({ name, reason: 'unparsable', raw, format }); return; }
@@ -150,9 +164,13 @@ function extractLeakedToolCalls(text, { toolNames } = {}) {
  *   'thinking').
  */
 function recoverLeakedToolCalls(response, { toolNames, iter = 0 } = {}) {
-    const out = { toolCalls: [], rejected: [], content: (response && response.content) || null, sources: [] };
+    const out = { toolCalls: [], rejected: /** @type {({ source: string; name: string | null; reason: "unknown_tool" | "unparsable"; raw: string; format: string; })[]} */ ([]), content: (response && response.content) || null, sources: /** @type {string[]} */ ([]) };
     if (!response || typeof response !== 'object') return out;
 
+    /**
+     * @param {string} source
+     * @param {string} text
+     */
     const collect = (text, source) => {
         if (!hasLeakedToolCallSyntax(text) && !(source === 'content' && String(text || '').trim().startsWith('{'))) {
             return text;
@@ -220,3 +238,7 @@ module.exports = {
     extractLeakedToolCalls,
     recoverLeakedToolCalls,
 };
+
+/** @typedef {{ name: string, args: object, raw: string, format: string }} LeakedCall */
+
+/** @typedef {{ name: string | null, reason: 'unknown_tool' | 'unparsable', raw: string, format: string }} RejectedCall */

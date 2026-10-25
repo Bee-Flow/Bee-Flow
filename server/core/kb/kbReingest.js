@@ -3,6 +3,8 @@ const { getServiceHeaders } = require('../serviceAuth');
 const { friendlyError } = require('./friendlyError');
 const log = require('../../telemetry/log');
 const { SEARCH_SERVICE_URL, simhash64, byteLength, embedDocumentContent } = require('./kbEmbed');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
+const { isMissingTable } = require('../../utils/isMissingTable');
 
 /**
  * Remove a document's chunks (local kb_chunks + remote search service) WITHOUT
@@ -21,13 +23,18 @@ const { SEARCH_SERVICE_URL, simhash64, byteLength, embedDocumentContent } = requ
  * @param {object} [opts]
  * @param {boolean} [opts.strict=false] throw if the remote cleanup is not demonstrably done,
  *   instead of warning.
+ * @param {Function} [opts.deleteLocal] test seam for localKBIngest.deleteChunksLocally
  */
-async function purgeDocumentChunks(kbId, docId, tenantId, { strict = false } = {}) {
+async function purgeDocumentChunks(kbId, docId, tenantId, { strict = false, deleteLocal } = {}) {
     // Clean up local kb_chunks (for Azure-path ingested docs)
     try {
-        const { deleteChunksLocally } = require('./localKBIngest');
-        await deleteChunksLocally(tenantId, kbId, docId);
-    } catch (err) { log.debug('table may not exist yet — that\'s fine', err); }
+        await (deleteLocal || require('./localKBIngest').deleteChunksLocally)(tenantId, kbId, docId);
+    } catch (err) {
+        if (!isMissingTable(err)) {
+            if (strict) throw new Error(`local chunk cleanup failed for document ${docId}: ${err.message}`);
+            bestEffort('kb/kbReingest:localChunks', err);
+        }
+    }
 
     // Also clean up via remote search-service (skip when admin chose local-only)
     try {
@@ -142,12 +149,12 @@ async function reingestDocument(tenantId, kbId, docId, content, options = {}) {
                     title: docTitle, chunkCount: 0, status: 'error', statusReason: friendlyError(embedErr), managedWrite,
                     externalId, sourceModifiedAt, sizeBytes, mime, pageCount, sheetCount,
                 });
-            } catch (err) { log.debug('best-effort', err); }
+            } catch (err) { fallback('core/kb/kbReingest:reingestDocument', err); /* best-effort */ }
             await kbStore.bumpKBVersion(kbId);
             return { document: errDoc || { ...existing, status: 'error', chunk_count: 0 }, chunks: 0, status: 'error', error: embedErr.message };
         }
         // Row stays (it is the caller's row), but its chunks are gone: say so.
-        try { await kbStore.updateDocumentStatus(docId, { status: 'error', statusReason: friendlyError(embedErr), chunkCount: 0 }); } catch (err) { log.debug('best-effort', err); }
+        try { await kbStore.updateDocumentStatus(docId, { status: 'error', statusReason: friendlyError(embedErr), chunkCount: 0 }); } catch (err) { bestEffort('core/kb/kbReingest:reingestDocument#2', err); /* best-effort */ }
         throw embedErr;
     }
 

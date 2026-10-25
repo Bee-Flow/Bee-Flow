@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Template Store — PostgreSQL-backed Word template management.
  *
@@ -43,6 +43,9 @@ async function _initDB() {
 
 // ── CRUD ─────────────────────────────────────────────────
 
+/**
+ * @param {{ userId: string, name?: string, description?: string, instructions?: string, fileName: string, storageKey: string, parameters?: unknown[], knowledgeBaseIds?: string[] }} opts
+ */
 async function createTemplate({ userId, name, description, instructions, fileName, storageKey, parameters, knowledgeBaseIds }) {
     await initDB();
     const id = crypto.randomUUID();
@@ -55,6 +58,10 @@ async function createTemplate({ userId, name, description, instructions, fileNam
     return { id, userId, name, description, instructions, fileName, storageKey, parameters, knowledgeBaseIds: knowledgeBaseIds || [], createdAt: new Date().toISOString() };
 }
 
+/**
+ * @param {string} userId
+ * @param {{ limit?: number, offset?: number }} [opts]
+ */
 async function getTemplates(userId, { limit = 50, offset = 0 } = {}) {
     await initDB();
     const rows = await getAll(
@@ -67,6 +74,10 @@ async function getTemplates(userId, { limit = 50, offset = 0 } = {}) {
     return rows.map(mapRow);
 }
 
+/**
+ * @param {string} id
+ * @param {string} userId
+ */
 async function getTemplate(id, userId) {
     await initDB();
     const r = await getOne(
@@ -81,10 +92,15 @@ const TEMPLATE_COLUMNS = {
     name: 'name',
     description: 'description',
     instructions: 'instructions',
-    parameters: { col: 'parameters', transform: v => JSON.stringify(v) },
-    knowledgeBaseIds: { col: 'knowledge_base_ids', transform: v => JSON.stringify(v) },
+    parameters: { col: 'parameters', transform: /** @param {unknown} v */ v => JSON.stringify(v) },
+    knowledgeBaseIds: { col: 'knowledge_base_ids', transform: /** @param {unknown} v */ v => JSON.stringify(v) },
 };
 
+/**
+ * @param {string} id
+ * @param {string} userId
+ * @param {Record<string, unknown>} updates
+ */
 async function updateTemplate(id, userId, updates) {
     await initDB();
     const built = buildUpdate({
@@ -99,6 +115,10 @@ async function updateTemplate(id, userId, updates) {
     return rowCount > 0;
 }
 
+/**
+ * @param {string} id
+ * @param {string} userId
+ */
 async function deleteTemplate(id, userId) {
     await initDB();
     // Return the storage key so the caller can delete the file from RustFS
@@ -108,8 +128,11 @@ async function deleteTemplate(id, userId) {
     return { storageKey: r.storage_key };
 }
 
+/**
+ * @param {DbRow.WordTemplates} r
+ */
 function mapRow(r) {
-    const parseJSON = (v, fallback) => {
+    const parseJSON = (/** @type {unknown} */ v, /** @type {unknown} */ fallback) => {
         if (Array.isArray(v)) return v;
         if (typeof v === 'string') { try { return JSON.parse(v); } catch { return fallback; } }
         return v || fallback;

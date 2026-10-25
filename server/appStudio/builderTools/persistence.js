@@ -12,7 +12,7 @@ const { canonicalizeAppDefinition } = require('../canonicalize');
 const { validateAppDefinition } = require('../validate');
 const ops = require('../definitionOps');
 const { ensureAppName } = require('./appNaming');
-const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * The default "Home" screen a new app starts with, still empty while the
@@ -124,7 +124,7 @@ async function persistDraft(draftWrap, { finalize = false } = {}) {
                     const u = await userStore.getUser(draftWrap.userId);
                     orgId = u?.organizationId || null;
                     if (orgId) draftWrap.orgId = orgId; // memoize
-                } catch (err) { log.debug('keep null', err); }
+                } catch (err) { fallback('appStudio/builderTools/persistence:persistDraft', err); /* keep null */ }
             }
             const row = await studioAppStore.createStudioApp({
                 userId: draftWrap.userId,
@@ -162,7 +162,7 @@ async function persistDraft(draftWrap, { finalize = false } = {}) {
         if (e && e.code === 'definition_too_large') {
             return { error: `The app definition exceeds the ${LIMITS.MAX_DEFINITION_BYTES}-byte limit — trim large static values (bind data from automations instead of inlining it).` };
         }
-        return { error: `Could not save the draft: ${e.message}` };
+        return { error: `Could not save the draft: ${/** @type {Error} */ (e).message}` };
     }
 }
 
@@ -184,7 +184,7 @@ async function syncCardMeta(draftWrap) {
             icon: meta.icon || null,
         }, draftWrap.userId);
         draftWrap._syncedMetaKey = key;
-    } catch (err) { log.debug('card meta is cosmetic', err); }
+    } catch (err) { fallback('appStudio/builderTools/persistence:syncCardMeta', err); /* card meta is cosmetic */ }
 }
 
 module.exports = {

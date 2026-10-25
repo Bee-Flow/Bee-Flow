@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Uploaded files as a knowledge source.
  *
@@ -32,9 +32,13 @@ const RETRYABLE = new Set(['skipped', 'error']);
  * `processed` and `redacted` rows are deliberately absent: re-embedding a
  * file that worked costs money and changes nothing. A `duplicate` is absent
  * too — it is a deliberate record of an attempt, not a failure.
+ * @param {import('./index').KbSource} source
+ * @param {import('./index').SyncCtx} ctx
+ * @param {import('./index').SyncDeps} deps
  */
 async function enumerate(source, ctx, deps) {
     const store = deps.kbStore;
+    /** @type {Array<{ externalId: string, docId: string, title: string }>} */
     const out = [];
     const PAGE = 200;
     for (let offset = 0; offset < 10_000; offset += PAGE) {
@@ -68,6 +72,10 @@ function isUnchanged() {
  * text is empty is exactly the case that failed at extraction, and there is
  * nothing here that can fix it; it is reported so the reason on the row stays
  * the true one rather than being overwritten by a vaguer second failure.
+ * @param {{ externalId: string, docId: string, title: string }} item
+ * @param {Record<string, any> | null} stored
+ * @param {import('./index').SyncCtx} ctx
+ * @param {import('./index').SyncDeps} deps
  */
 async function fetch(item, stored, ctx, deps) {
     const doc = await deps.kbStore.getDocument(item.docId);

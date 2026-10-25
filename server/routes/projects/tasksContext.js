@@ -58,7 +58,7 @@ function resolveTasksDeps(deps) {
             const limitOrgId = await require('../../core/entitlements/limits').resolveOrgId(req);
             return { orgId: orgId || null, limitOrgId: limitOrgId || null };
         }),
-        improveLimiter: deps.improveLimiter || function rateLimitMiddleware(req, res, next) {
+        improveLimiter: deps.improveLimiter || function rateLimitMiddleware(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
             if (!defaultLimiter) {
                 defaultLimiter = require('../../utils/perUserRateLimit').perUserRateLimit({ windowMs: 60_000, max: 20, name: 'project-task-ai' });
             }
@@ -66,7 +66,7 @@ function resolveTasksDeps(deps) {
         },
         notifier: () => deps.notifier || require('../../projects/taskNotify').makeTaskNotifier(),
         commentStore: () => deps.commentStore || require('../../stores/projectCommentStore'),
-        readMeeting: deps.readMeeting || (async (req, project, meetingId) => {
+        readMeeting: deps.readMeeting || (async (/** @type {import('express').Request} */ req, project, meetingId) => {
             const { resolveAccessContext } = require('../transcriptions/shared');
             const note = await require('../../stores/transcriptionStore').getTranscription(meetingId, userIdOf(req), await resolveAccessContext(req));
             return note && note.projectId === project.id ? note : null;
@@ -115,3 +115,9 @@ function makeTasksContext(deps = {}) {
 }
 
 module.exports = { makeTasksContext };
+
+/** @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/projectStore').getProject>>>} TaskProject */
+
+/** @typedef {NonNullable<Parameters<typeof import('./tasks').makeProjectTasksRouter>[0]>} TasksDeps */
+
+/** @typedef {ReturnType<typeof makeTasksContext>} TasksCtx */

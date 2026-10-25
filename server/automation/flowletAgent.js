@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * flowletAgent.js — a focused sub-agent that builds (or refines) ONE inline
  * flowlet (a reusable sub-flow in definition.layers).
@@ -33,6 +34,16 @@ const {
 } = require('./builderTools');
 const { renderCatalog, renderDatatablesBlock, renderDocumentsBlock, renderAgentsBlock, renderKnowledgeBasesBlock } = require('./builderPrompt');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
+
+/**
+ * @typedef {Record<string, any>} Def  an automation definition (or one flowlet of it), as stored
+ * @typedef {Array<string | { name?: string }>} ContractParams
+ * @typedef {{ params?: ContractParams, outputFields?: string[] }} Contract
+ * @typedef {{ errors: Record<string, any>[], warnings: Record<string, any>[] }} Validation
+ * @typedef {import('../utils/messageUtils').WireMessage} WireMessage
+ * @typedef {import('../core/llm/llmClient').LLMToolCall & { _thought_signature?: string, _raw_content_parts?: unknown }} ToolCallExt
+ */
 
 const MAX_LAYER_AGENT_ROUNDS = 12;
 const DEFAULT_PARALLEL_CAP = 3;
@@ -61,6 +72,7 @@ function layerAgentTools() {
 
 // ── transient-error retry (local copy; layerAgent must not require the
 //    route module — that would be a circular dependency) ──────────────────
+/** @param {{ status?: number, statusCode?: number, response?: { status?: number }, message?: string } | null | undefined} err */
 function isTransientChatError(err) {
     const status = err?.status || err?.statusCode || err?.response?.status;
     if (status === 429 || (status >= 500 && status < 600)) return true;
@@ -68,6 +80,12 @@ function isTransientChatError(err) {
     return /rate.?limit|overloaded|timeout|timed out|socket hang up|econnreset|etimedout|temporarily|try again|\b429\b|\b503\b/.test(msg);
 }
 
+/**
+ * @param {string} modelId
+ * @param {WireMessage[]} messages
+ * @param {import('../core/llm/llmClient').ChatOptions} options
+ * @param {{ retries?: number, baseDelayMs?: number }} [opts]
+ */
 async function chatWithRetry(modelId, messages, options, { retries = 2, baseDelayMs = 500 } = {}) {
     let attempt = 0;
     while (true) {
@@ -83,33 +101,52 @@ async function chatWithRetry(modelId, messages, options, { retries = 2, baseDela
 
 // ── derived state helpers ────────────────────────────────────────────────
 
-/** Live {params, outputFields} contract of a flowlet, derived from its graph. */
+/**
+ * Live {params, outputFields} contract of a flowlet, derived from its graph.
+ * @param {Def} def
+ * @param {string} layerKey
+ * @returns {{ params: ContractParams, outputFields: string[] }}
+ */
 function layerContract(def, layerKey) {
     const layer = def?.layers?.[layerKey];
     if (!layer) return { params: [], outputFields: [] };
     const params = Array.isArray(layer.trigger?.params) ? layer.trigger.params : [];
-    const out = (layer.steps || []).find(s => s?.type === 'layer_output');
+    const out = (layer.steps || []).find(/** @param {Def} s */ s => s?.type === 'layer_output');
     const outputFields = out?.fields && typeof out.fields === 'object' ? Object.keys(out.fields) : [];
     return { params, outputFields };
 }
 
-/** A compact view of a flowlet's steps for the model (refine mode + results). */
+/**
+ * A compact view of a flowlet's steps for the model (refine mode + results).
+ * @param {Def} def
+ * @param {string} layerKey
+ */
 function layerStepsView(def, layerKey) {
     const layer = def?.layers?.[layerKey];
     const steps = Array.isArray(layer?.steps) ? layer.steps : [];
-    return steps.map(s => ({ id: s.id, type: s.type, label: s.label || s.tool || s.type }));
+    return steps.map(/** @param {Def} s */ s => ({ id: s.id
+, type: s.type, label: s.label || s.tool || s.type }));
 }
 
-/** Validation records scoped to ONE flowlet (paths under `layers.<key>.`). */
+/**
+ * Validation records scoped to ONE flowlet (paths under `layers.<key>.`).
+ * @param {Def} def
+ * @param {string} layerKey
+ * @returns {Validation}
+ */
 function layerValidation(def, layerKey) {
     let v;
     try { v = validateDefinition(def, { deliverableEvents: getDeliverableEvents() }); }
     catch (_) { return { errors: [], warnings: [] }; }
     const prefix = `layers.${layerKey}.`;
+    /** @param {{ path?: unknown } | null | undefined} r */
     const keep = (r) => typeof r?.path === 'string' && r.path.startsWith(prefix);
     return { errors: (v.errors || []).filter(keep), warnings: (v.warnings || []).filter(keep) };
 }
 
+/**
+ * @param {{ catalog?: Def | null, mode?: string, layerKey: string, instruction: string, contract?: Contract | null }} p
+ */
 function buildLayerAgentPrompt({ catalog, mode, layerKey, instruction, contract }) {
     const apps = renderCatalog(catalog);
     // The same "Datatables you may use" block the main builder gets: a
@@ -121,6 +158,7 @@ function buildLayerAgentPrompt({ catalog, mode, layerKey, instruction, contract 
     // …and the agents and knowledge bases it may name (same blocks, same
     // "could not read" versus "none" rule as the main builder's).
     const pickers = [renderAgentsBlock(catalog), renderKnowledgeBasesBlock(catalog)].filter(Boolean).join('\n\n');
+    /** @type {string[]} */
     const contractLines = [];
     if (contract?.params?.length) {
         contractLines.push(`Inputs (already declared; bind inside the flowlet as trigger.output.<name>): ${contract.params.map(p => (typeof p === 'string' ? p : p.name)).join(', ')}`);
@@ -148,12 +186,29 @@ ${datatables ? `${datatables}\n\n` : ''}${documents ? `${documents}\n\n` : ''}${
 ${apps}`;
 }
 
+/** @typedef {(event: string, data: object) => void} SendEvent  streams one progress event to the client */
+
 /**
  * Run the flowlet sub-agent's tool loop against `draftWrap.def.layers[layerKey]`.
  * The flowlet skeleton must already exist on draftWrap.def. Streams every tool
  * call via `send('tool_call', { layerKey, name, arguments, result })`.
  *
- * @returns {Promise<{layerKey, outputFields, params, summary, validation}>}
+ * @param {object} p
+ * @param {{ def: { layers?: Record<string, object>, schemaVersion?: number, trigger?: object, steps?: object[], edges?: object[], vars?: object } }} p.draftWrap
+ * @param {string} p.layerKey
+ * @param {string} p.instruction
+ * @param {Contract|null} [p.contract]
+ * @param {string} [p.mode]
+ * @param {string} p.modelId
+ * @param {string} [p.userId]
+ * @param {string|null} [p.userOrgId]
+ * @param {object|null} [p.session]
+ * @param {object|null} [p.catalog]
+ * @param {SendEvent} [p.send]
+ * @param {number} [p.maxRounds]
+ * @param {() => boolean} [p.isAborted]
+ * @param {AbortSignal|null} [p.signal]
+ * @returns {Promise<{ layerKey: string, outputFields: string[], params: ContractParams, summary: string, validation: Validation }>}
  */
 async function runLayerAgent({
     draftWrap, layerKey, instruction, contract = null, mode = 'create',
@@ -176,6 +231,7 @@ async function runLayerAgent({
     const userMsg = mode === 'refine'
         ? `Refine flowlet "${layerKey}" per the instruction. Its current steps are:\n${JSON.stringify(layerStepsView(draftWrap.def, layerKey))}`
         : `Build flowlet "${layerKey}" per the instruction.`;
+    /** @type {WireMessage[]} */
     const messages = [
         { role: 'system', content: sys },
         { role: 'user', content: userMsg },
@@ -183,6 +239,10 @@ async function runLayerAgent({
 
     // Lock every tool call onto THIS flowlet, then dispatch through the shared
     // applyToolCall so binding validation / keying stays identical to chat.
+    /**
+     * @param {string} name
+     * @param {Def | null | undefined} rawArgs
+     */
     const execute = async (name, rawArgs) => {
         if (!LAYER_AGENT_TOOL_NAMES.has(name)) {
             return { error: `Tool "${name}" is not available to a flowlet sub-agent. Use the step builders + builder_set_layer_contract.` };
@@ -198,6 +258,7 @@ async function runLayerAgent({
     };
 
     let summary = '';
+    /** @type {Validation} */
     let lastValidation = { errors: [], warnings: [] };
     for (let round = 0; round < maxRounds; round++) {
         if (isAborted()) { log.info('[flowletAgent] client disconnected — stopping flowlet build'); break; }
@@ -228,7 +289,7 @@ async function runLayerAgent({
         messages.push({
             role: 'assistant',
             content: response.content || null,
-            tool_calls: response.toolCalls.map(tc => ({
+            tool_calls: response.toolCalls.map((/** @type {ToolCallExt} */ tc) => ({
                 id: tc.id,
                 type: 'function',
                 function: {
@@ -279,7 +340,23 @@ async function runLayerAgent({
  * key reserved UP FRONT (so two same-titled flowlets never collide) and its own
  * isolated draft (so the parallel agents never race on a shared object).
  *
- * @returns {Promise<Array<{ok, layerKey, title, outputFields?, summary?, error?}>>}
+ * @param {object} p
+ * @param {{ layers?: Record<string, object>, schemaVersion?: number }} p.rootDef
+ * @param {Array<{ title?: string, instruction?: string, params?: object[], outputFields?: string[] }>} p.specs
+ * @param {string} p.modelId
+ * @param {string} p.userId
+ * @param {string|null} [p.userOrgId]
+ * @param {object|null} [p.session]
+ * @param {object|null} [p.catalog]
+ * @param {SendEvent} [p.send]
+ * @param {number} [p.cap]
+ * @param {object|null} [p.inputSchemasByTool]
+ * @param {Set<string>|null} [p.allowedModelTiers]  only a Set is honoured
+ * @param {object|null} [p.datatables]
+ * @param {Set<string>|string[]|null} [p.approvedDatatableIds]
+ * @param {object|null} [p.documents]
+ * @param {Set<string>|string[]|null} [p.availableToolNames]
+ * @returns {Promise<Array<{ ok: boolean, layerKey: string, title: string, outputFields?: string[], summary?: string, error?: string }>>}
  */
 async function runLayersInParallel({
     rootDef, specs, modelId, userId, userOrgId = null, session = null,
@@ -287,6 +364,7 @@ async function runLayersInParallel({
     allowedModelTiers = null, datatables = null, approvedDatatableIds = null, documents = null, availableToolNames = null,
 }) {
     const preexisting = (rootDef.layers && typeof rootDef.layers === 'object' && !Array.isArray(rootDef.layers)) ? rootDef.layers : {};
+    /** @type {Record<string, object|true>} */
     const reserved = { ...preexisting };
     const prepared = (Array.isArray(specs) ? specs : []).map(spec => {
         const title = String(spec?.title || 'New layer');
@@ -302,12 +380,12 @@ async function runLayersInParallel({
         const isoDef = {
             schemaVersion: 2,
             trigger: { id: 'trg', type: 'trigger', kind: 'manual', output: {} },
-            steps: [],
-            edges: [],
+            steps: /** @type {object[]} */ ([]),
+            edges: /** @type {object[]} */ ([]),
             layers: { ...preexisting, [layerKey]: makeLayerSkeleton(title, spec.params) },
         };
         const isoWrap = {
-            userId, orgId: userOrgId, def: isoDef, automationId: null,
+            userId, orgId: userOrgId, def: isoDef, automationId: /** @type {string | null} */ (null),
             // §B: carry the inspect map + a fresh inspected-set so the
             // add-action gate and builder_inspect_tool work inside parallel
             // flowlet sub-agents too.
@@ -367,12 +445,14 @@ async function runLayersInParallel({
  * `resolveModelForTierName`'s old default fallback, which has been made
  * opt-in (see modelResolver). Callers must handle null with a readable
  * refusal rather than calling a provider with it.
+ * @param {{ userOrgId?: string | null, userId?: string | null }} [opts]
  */
+
 async function resolveLayerAgentModel({ userOrgId = null, userId = null } = {}) {
     try {
         const m = await resolveModelForTierName('thinking', { userOrgId, userId });
         if (m) return m;
-    } catch (err) { log.debug('fall through', err); }
+    } catch (err) { bestEffort('automation/flowletAgent:resolveLayerAgentModel', err); /* fall through */ }
     try {
         return await resolveModelForTierName('fast', { userOrgId, userId });
     } catch (_) {

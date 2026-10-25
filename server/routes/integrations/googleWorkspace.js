@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Google Workspace connector routes (BFSF-255) — mounted at
  * /api/integrations/google.
@@ -39,6 +40,7 @@ const automationCredentialStore = require('../../stores/automationCredentialStor
 // Same OAuth client + scope set as SSO login (permissions.js OAUTH_PROVIDERS)
 // so a connector consent never conflicts with an SSO consent for the same app.
 const { OAUTH_PROVIDERS, loadConfig, requireAuth } = require('../../auth/permissions');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 async function getGoogleClientConfig() {
     const config = await loadConfig();
@@ -49,6 +51,7 @@ async function getGoogleClientConfig() {
     };
 }
 
+/** @param {import('express').Request} req */
 function buildRedirectUri(req) {
     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
     const host = req.headers['x-forwarded-host'] || req.headers.host;
@@ -59,6 +62,7 @@ function buildRedirectUri(req) {
 // auth/automationAuth.vaultOrgIdFor (org key, else a per-user scope) so every
 // writer of automation_credentials derives it identically. Lazily required: the
 // route's own test stubs the store this module loads at boot.
+/** @param {Parameters<typeof import('../../auth/automationAuth').vaultOrgIdFor>[0]} user */
 function resolveVaultOrgId(user) {
     return require('../../auth/automationAuth').vaultOrgIdFor(user);
 }
@@ -66,6 +70,7 @@ function resolveVaultOrgId(user) {
 // Constant-time CSRF-state comparison, matching the legacy SSO callback in
 // auth/oauthRoutes.js. Length is checked first because timingSafeEqual throws
 // on a length mismatch.
+/** @param {unknown} received @param {unknown} expected */
 function statesMatch(received, expected) {
     if (typeof received !== 'string' || typeof expected !== 'string') return false;
     if (!received || !expected || received.length !== expected.length) return false;
@@ -117,7 +122,7 @@ router.get('/auth-url', requireAuth, async (req, res) => {
 });
 
 // ─── OAuth Callback (GET — Google redirects here) ────────────────
-router.get('/callback', async (req, res) => {
+router.get('/callback', /** @param {import('express').Request<{}, any, any, { code?: string, state?: string, error?: string }>} req */ async (req, res) => {
     const { code, state, error } = req.query;
     const userId = req.session?.user?.id;
 
@@ -169,7 +174,7 @@ router.get('/callback', async (req, res) => {
             const errText = await tokenRes.text();
             throw new Error(`Token exchange failed: ${tokenRes.status} ${errText.slice(0, 300)}`);
         }
-        const tokenData = await tokenRes.json();
+        const tokenData = /** @type {{ access_token?: string, refresh_token?: string, expires_in?: number | string, scope?: string }} */ (await tokenRes.json());
 
         // Identify the connected Google account for the status display. Only
         // record a VERIFIED address: an unverified one would be shown as the
@@ -181,14 +186,14 @@ router.get('/callback', async (req, res) => {
                 headers: { Authorization: `Bearer ${tokenData.access_token}` },
             });
             if (infoRes.ok) {
-                const info = await infoRes.json();
+                const info = /** @type {{ email?: string, email_verified?: boolean }} */ (await infoRes.json());
                 if (info.email_verified !== false) email = info.email || '';
             }
-        } catch (err) { log.debug('non-fatal — status just shows no email', err); }
+        } catch (err) { fallback('routes/integrations/googleWorkspace:userinfo', err); /* status just shows no email */ }
 
         // Persist into the encrypted vault (same home as SSO-acquired tokens).
         const userStore = require('../../stores/userStore');
-        const user = await userStore.getUser(userId).catch(() => null);
+        const user = await userStore.getUser(userId).catch((e) => fallback('routes/integrations/googleWorkspace:anon', e, null));
         const orgId = resolveVaultOrgId({ ...user, id: userId });
         await automationCredentialStore.upsertCredential({
             userId,
@@ -252,7 +257,7 @@ router.get('/status', requireAuth, async (req, res) => {
     const { clientId, clientSecret } = await getGoogleClientConfig();
     const configured = !!(clientId && clientSecret);
 
-    const cred = await automationCredentialStore.getCredential(userId, 'google').catch(() => null);
+    const cred = await automationCredentialStore.getCredential(userId, 'google').catch((e) => fallback('routes/integrations/googleWorkspace:anon#2', e, null));
     // Session fallback: Google-SSO consumers without an org have no vault
     // row (historic sessions) but ARE connected for this session.
     const sessionConnected = req.session?.oauthProvider === 'google' && !!req.session?.accessToken;
@@ -265,7 +270,7 @@ router.get('/status', requireAuth, async (req, res) => {
     const { hasMeetScopes } = require('../../core/meetingNotes/gmeetNotesSettings');
     const meetScopesGranted = hasMeetScopes(cred?.scope);
 
-    let email = await configStore.getConfig(`google_workspace_email_user_${userId}`).catch(() => null);
+    let email = await configStore.getConfig(`google_workspace_email_user_${userId}`).catch((e) => fallback('routes/integrations/googleWorkspace:anon#3', e, null));
     if (!email && sessionConnected) email = req.session.user?.email || null;
 
     res.json({ configured, connected, needsReauth, meetScopesGranted, email: connected || needsReauth ? email : null });
@@ -281,7 +286,7 @@ router.post('/disconnect', requireAuth, async (req, res) => {
     const { revokeProviderCredential } = require('../../auth/oauthRoutes');
     const result = await revokeProviderCredential(userId, 'google');
 
-    await configStore.deleteConfig(`google_workspace_email_user_${userId}`).catch(() => {});
+    await configStore.deleteConfig(`google_workspace_email_user_${userId}`).catch((e) => bestEffort('routes/integrations/googleWorkspace:anon#4', e));
 
     // Drop the Google tokens from the live session (SSO users stay signed
     // in — only their Google tool access ends until they reconnect).
@@ -308,6 +313,7 @@ function openerTargetOrigin() {
     return /^https?:\/\//i.test(host) ? host.replace(/\/+$/, '') : `https://${host}`;
 }
 
+/** @param {string} message @param {boolean} success */
 function callbackHTML(message, success) {
     return `<!DOCTYPE html>
 <html><head><title>Google Workspace</title>

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 // runDdl statement lists for the user store's subscriptions, plans, licence
 // keys and billing tables, in the order ./schema.js runs them. Each list is

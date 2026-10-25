@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('url').URL} URL */
+// @typecheck noImplicitAny
 /**
  * URL probe for compliance checks — a bounded, SSRF-guarded GET.
  *
@@ -30,6 +31,12 @@ const DEFAULT_MAX_BYTES = 64_000;
 const DEFAULT_TIMEOUT_MS = 8_000;
 const USER_AGENT = 'BeeFlow-ComplianceProbe/1.0 (+https://beeflow.nl)';
 
+/** @typedef {{ ok: boolean, status: number | null, content_type: string | null, snippet: string, error: string | null, final_url: string | null, truncated: boolean, bytes: number }} ProbeResult */
+
+/**
+ * @param {Partial<ProbeResult>} patch
+ * @returns {ProbeResult}
+ */
 function _result(patch) {
     return {
         ok: false,
@@ -44,6 +51,10 @@ function _result(patch) {
     };
 }
 
+/**
+ * @param {ReadableStream<Uint8Array> | null | undefined} body
+ * @param {number | undefined} maxBytes
+ */
 async function _readBounded(body, maxBytes) {
     if (!body || typeof body.getReader !== 'function') return { text: '', truncated: false, bytes: 0 };
     const reader = body.getReader();
@@ -80,6 +91,7 @@ async function probe(url, opts = {}) {
     const timeoutMs = Number.isFinite(opts.timeoutMs) && opts.timeoutMs > 0 ? opts.timeoutMs : DEFAULT_TIMEOUT_MS;
     const fetchImpl = typeof opts.fetchImpl === 'function' ? opts.fetchImpl : safeFetch;
 
+    /** @type {URL} */
     let parsed;
     try {
         parsed = new URL(String(url));
@@ -118,11 +130,11 @@ async function probe(url, opts = {}) {
             bytes,
         });
     } catch (e) {
-        if (e && (e.name === 'AbortError' || e.code === 'ABORT_ERR' || controller.signal.aborted)) {
+        if (e && (/** @type {Error} */ (e).name === 'AbortError' || e.code === 'ABORT_ERR' || controller.signal.aborted)) {
             return _result({ error: 'timeout' });
         }
         if (isPrivateAddressError(e)) return _result({ error: 'private_host' });
-        return _result({ error: String(e?.cause?.message || e?.message || e).slice(0, 200) });
+        return _result({ error: String(e?.cause?.message || /** @type {Error} */ (e)?.message || e).slice(0, 200) });
     } finally {
         clearTimeout(timer);
     }
@@ -130,6 +142,9 @@ async function probe(url, opts = {}) {
 
 // ── RFC 9116 security.txt ───────────────────────────────────────────────────
 
+/**
+ * @param {string} line
+ */
 function _splitField(line) {
     const idx = line.indexOf(':');
     if (idx <= 0) return null;
@@ -142,8 +157,10 @@ function _splitField(line) {
  * Parse a security.txt body. Comments (`#`) and a clearsigned PGP wrapper
  * are skipped; field names are case-insensitive; multi-valued fields keep
  * their order of preference (RFC 9116 §2.5.3).
+ * @param {unknown} text
  */
 function parseSecurityTxt(text) {
+    /** @type {{ contact: string[], expires: string | null, expires_valid: boolean, expired: boolean | null, policy: string | null, policies: string[], canonical: string | null, canonicals: string[], preferred_languages: string[], field_count: number }} */
     const out = {
         contact: [],
         expires: null,

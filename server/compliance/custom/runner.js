@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Custom-framework runner — evaluates every ACTIVE org-defined framework
  * (stores/customFrameworkStore) and persists one row per check through
@@ -30,6 +31,7 @@ const log = require('../../telemetry/log');
 const GRACE_DAYS = 30;
 const GRACE_MS = GRACE_DAYS * 24 * 60 * 60 * 1000;
 
+/** @type {Readonly<Record<string, string>>} */
 const OUTCOME_STATUS = Object.freeze({
     compliant: 'pass',
     partial: 'warn',
@@ -37,24 +39,60 @@ const OUTCOME_STATUS = Object.freeze({
     not_applicable: 'na',
 });
 
+/** @type {Record<string, number>} */
 const STATUS_RANK = { na: 0, pass: 1, warn: 2, fail: 3 };
 
 /** Built-in statuses, worst highest; not_applicable ranks below them all. */
+/** @type {Record<string, number>} */
 const MAPPED_RANK = { fail: 3, warn: 2, pass: 1 };
 
-/** The worse of two statuses — used to cap a 'pass' at 'warn' when evidence is missing. */
+/**
+ * @typedef {object} CustomCheckRow
+ * @property {string} [severity]
+ * @property {string} [mapped_check_id]
+ * @property {boolean} [evidence_required]
+ */
+/**
+ * @typedef {object} AttestationRow
+ * @property {string} [id]
+ * @property {string} [outcome]
+ * @property {string} [attested_at]
+ * @property {string|Date} [expires_at]
+ * @property {string|any[]} [evidence_refs]
+ */
+/**
+ * @typedef {object} MappedResultRow
+ * @property {string} [status]
+ * @property {string} [severity]
+ * @property {string} [check_id]
+ * @property {string} [details]
+ * @property {string} [run_at]
+ */
+
+/**
+ * The worse of two statuses — used to cap a 'pass' at 'warn' when evidence is missing.
+ * @param {string} a
+ * @param {string} b
+ */
 function worst(a, b) {
     if (a === 'na') return b;
     if (b === 'na') return a;
     return (STATUS_RANK[a] ?? 0) >= (STATUS_RANK[b] ?? 0) ? a : b;
 }
 
+/**
+ * @param {{ created_at?: string | Date } | null | undefined} framework
+ * @param {number} now
+ */
 function _inGrace(framework, now) {
     const created = framework?.created_at ? new Date(framework.created_at).getTime() : NaN;
     if (Number.isNaN(created)) return false;
     return now - created < GRACE_MS;
 }
 
+/**
+ * @param {AttestationRow} att
+ */
 function _hasEvidenceRefs(att) {
     const refs = att?.evidence_refs;
     if (Array.isArray(refs)) return refs.length > 0;
@@ -67,10 +105,10 @@ function _hasEvidenceRefs(att) {
 /**
  * Pure: the status/details/evidence for one custom check.
  *
- * @param {object} check            compliance_custom_checks row
- * @param {object} framework        compliance_custom_frameworks row
- * @param {object|null} attestation latest attestation (or null)
- * @param {object|null} mappedRow   latest built-in result for check.mapped_check_id (or null)
+ * @param {CustomCheckRow} check            compliance_custom_checks row
+ * @param {{ created_at?: string | Date } | null | undefined} framework        compliance_custom_frameworks row
+ * @param {AttestationRow|null} attestation latest attestation (or null)
+ * @param {MappedResultRow|null} mappedRow   latest built-in result for check.mapped_check_id (or null)
  * @param {number} now              Date.now()
  */
 function evaluateCheck(check, framework, attestation, mappedRow, now = Date.now()) {
@@ -94,7 +132,7 @@ function evaluateCheck(check, framework, attestation, mappedRow, now = Date.now(
             status: 'warn',
             severity,
             details: `Mapped to built-in check ${check.mapped_check_id}, which has not produced a result yet`,
-            evidence: { mode: 'mapped', satisfied_by: check.mapped_check_id, source_run_at: null },
+            evidence: { mode: 'mapped', satisfied_by: check.mapped_check_id, source_run_at: /** @type {string | null} */ (null) },
         };
     }
 
@@ -106,7 +144,7 @@ function evaluateCheck(check, framework, attestation, mappedRow, now = Date.now(
             details: grace
                 ? `Not attested yet (grace period of ${GRACE_DAYS} days after framework creation)`
                 : 'Not attested',
-            evidence: { mode: 'attestation', attestation_id: null, grace },
+            evidence: { mode: 'attestation', attestation_id: /** @type {string | null} */ (null), grace },
         };
     }
 
@@ -144,20 +182,27 @@ function evaluateCheck(check, framework, attestation, mappedRow, now = Date.now(
  * Run every active custom framework for the org. Frameworks in 'draft' or
  * 'archived' are skipped. Never throws for a single framework — a failure is
  * logged and the others still run.
+ * @param {string} orgId
+ * @param {{ runType?: string }} [opts]
  */
 async function runAll(orgId, { runType = 'scheduled' } = {}) {
     if (!orgId) throw new Error('orgId is required');
     const now = Date.now();
     const frameworks = (await customFrameworkStore.listFrameworks(orgId)) || [];
     const active = frameworks.filter(f => f.status === 'active');
+    /** @type {(Record<string, any> & { status: string })[]} */
     const rows = [];
+    /** @type {Record<string, number | null>} */
     const scores = {};
     if (!active.length) return { rows, scores };
 
+    /** @type {Map<string, Record<string, any>> | null} */
     let latestBuiltin = null;
+    /** @param {string} checkId */
     const builtinFor = async (checkId) => {
         if (!latestBuiltin) {
             const all = (await complianceStore.getLatestPerCheck(orgId)) || [];
+            /** @type {Map<string, Record<string, any>[]>} */
             const byCheck = new Map();
             for (const r of all) {
                 // A retired slot is a subject that no longer exists.
@@ -211,18 +256,18 @@ async function runAll(orgId, { runType = 'scheduled' } = {}) {
                     details: ev.details,
                     evidence: { ...ev.evidence, custom_check_row_id: chk.id, title: chk.title },
                     scope_type: 'global',
-                    scope_id: null,
+                    scope_id: /** @type {string | null} */ (null),
                     run_type: runType,
                 };
                 try {
                     await complianceStore.recordCheckResult(row);
                 } catch (e) {
-                    log.warn(`[CustomRunner] persist failed for ${checkId} org="${orgId}":`, e.message);
+                    log.warn(`[CustomRunner] persist failed for ${checkId} org="${orgId}":`, /** @type {Error} */ (e).message);
                 }
                 fwRows.push(row);
             }
         } catch (e) {
-            log.warn(`[CustomRunner] framework ${fw.code} failed for org="${orgId}":`, e.message);
+            log.warn(`[CustomRunner] framework ${fw.code} failed for org="${orgId}":`, /** @type {Error} */ (e).message);
         }
         rows.push(...fwRows);
         scores[`custom:${fw.id}`] = fwRows.length ? _score(fwRows) : null;
@@ -230,6 +275,7 @@ async function runAll(orgId, { runType = 'scheduled' } = {}) {
     return { rows, scores };
 }
 
+/** @param {(Record<string, any> & { status: string })[]} fwRows */
 function _score(fwRows) {
     try {
         const score = require('../score');

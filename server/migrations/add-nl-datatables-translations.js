@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck strict
 /**
  * Dutch for the Datatables Studio section (2026-08, widened 2026-09).
  *

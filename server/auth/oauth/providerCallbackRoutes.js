@@ -23,10 +23,11 @@ const express = require('express');
  */
 /**
  * The session user built from a provider profile, before provisioning.
- * @typedef {{ id?: string, azureUserId?: string|null, azureTenantId?: string|null, displayName?: string, firstName?: string, lastName?: string,
+ * @typedef {{ id: string, azureUserId?: string|null, azureTenantId?: string|null, displayName?: string, firstName?: string, lastName?: string,
  *             email?: string, picture?: string, provider: string, organizationId?: string, [key: string]: any }} OAuthUser
  */
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 const router = express.Router();
 
 const { loadConfig } = require('../permissions');
@@ -50,6 +51,11 @@ const { resolveOrgStanding, writeOAuthSession } = require('./ssoSessionSetup');
  * OAuth flow was launched in a popup/iframe) or a normal redirect. Shared by
  * the org-signup path and the consumer-signup early-return path so the two
  * cannot drift.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {string} provider
+ * @param {string} returnTo
+ * @param {string} userId
  */
 function _respondOAuthLogin(req, res, provider, returnTo, userId) {
     log.info(`[OAuth/${provider}] Saving session and redirecting to: ${returnTo}`);
@@ -177,13 +183,18 @@ function _respondOAuthLogin(req, res, provider, returnTo, userId) {
  * hand-crafting a callback, and it must not be reflected into a redirect —
  * least of all now that the redirect may be a native scheme any app on the
  * device can register a handler for.
+ * @param {unknown} value
  */
 function safeErrorCode(value) {
     const code = String(value || '').slice(0, 64);
     return /^[A-Za-z0-9_.-]+$/.test(code) ? code : 'oauth_error';
 }
 
-/** The callback URL, built the same way as the login handler builds it. */
+/**
+ * The callback URL, built the same way as the login handler builds it.
+ * @param {import('express').Request} req
+ * @param {string} provider
+ */
 function callbackRedirectUri(req, provider) {
     let host = process.env.SERVER_PUBLIC_HOST;
     let protocol = process.env.SERVER_PROTOCOL || 'https';
@@ -203,7 +214,7 @@ function callbackRedirectUri(req, provider) {
 router.get('/callback/:provider', async (req, res) => {
     const { provider } = req.params;
 
-    const { code, error, error_description, state } = req.query;
+    const { code, error, error_description, state } = /** @type {Record<string, string>} */ (req.query);
     const config = await loadConfig();
 
     log.info(`[OAuth/${provider}] Callback received — session present: ${!!req.sessionID}`);
@@ -281,7 +292,7 @@ router.get('/callback/:provider', async (req, res) => {
         // Never awaited so it cannot block or fail login.
         if (provider === 'microsoft' && freshUser?.azureUserId && !isLoginBlockedAccount(freshUser)) {
             syncUserGroupsOnLogin(freshUser.id, freshUser.azureUserId, undefined, freshUser.azureTenantId)
-                .catch(() => {}); // errors already logged inside the function
+                .catch((e) => bestEffort('oauthCallback:azure-group-sync', e));
         }
 
         log.info(`[OAuth/${provider}] Session setup — user: ${user.id} (${user.displayName}), pendingApproval: ${pendingApproval}, userHasOrg: ${userHasOrg}`);

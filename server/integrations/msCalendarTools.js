@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Microsoft Calendar Tools — Built-in tools for AI to manage Outlook Calendar
  * 
@@ -8,8 +9,23 @@
 const { graphFetch, isMicrosoftConnected } = require('./msGraphClient');
 
 /**
+ * A Graph calendar event, as far as this file reads or writes it.
+ * @typedef {{ id?: string, subject?: string, start?: { dateTime?: string, timeZone?: string },
+ *   end?: { dateTime?: string, timeZone?: string }, location?: { displayName?: string },
+ *   organizer?: { emailAddress?: { address?: string, name?: string } },
+ *   attendees?: Array<{ emailAddress?: { address?: string, name?: string }, status?: { response?: string }, type?: string }>,
+ *   isOnlineMeeting?: boolean, onlineMeeting?: { joinUrl?: string }, onlineMeetingProvider?: string,
+ *   body?: { contentType?: string, content?: string } }} GraphEvent
+ * The calendar draft the user approves (built by executeMsCalendarTool, or Graph-shaped JSON posted to the execute route).
+ * @typedef {{ eventId?: string, title?: string, startTime?: string, endTime?: string, timeZone?: string,
+ *   location?: string | null, description?: string | null, body?: string, attendees?: string | null,
+ *   isOnlineMeeting?: boolean }} MsCalendarDraft
+ */
+
+/**
  * Tool definitions in OpenAI function-calling format.
  */
+/** @type {Array<{ type: string, function: { name: string, description: string, parameters: { type: string, properties: Record<string, object>, required: string[] } } }>} */
 const MS_CALENDAR_TOOLS = [
     {
         type: 'function',
@@ -164,6 +180,7 @@ const MS_CALENDAR_TOOLS = [
 
 /**
  * Format a Graph API event into a consistent shape.
+ * @param {GraphEvent} event
  */
 function formatEvent(event) {
     return {
@@ -188,6 +205,11 @@ function formatEvent(event) {
 
 /**
  * Execute a Microsoft Calendar tool call.
+ * @param {string} toolName
+ * @param {{ daysAhead?: number | string, maxResults?: number | string, query?: string, subject?: string, startTime?: string,
+ *   endTime?: string, location?: string, body?: string, attendees?: string, isOnlineMeeting?: boolean, timeZone?: string,
+ *   eventId?: string }} args
+ * @param {Express.Session} session
  */
 async function executeMsCalendarTool(toolName, args, session) {
     if (!isMicrosoftConnected(session)) {
@@ -263,6 +285,7 @@ async function executeMsCalendarTool(toolName, args, session) {
         const { eventId, subject, startTime, endTime, location, body, timeZone } = args;
         if (!eventId) throw new Error('eventId is required');
 
+        /** @type {{ title?: string, startTime?: string, endTime?: string, timeZone?: string, location?: string, description?: string }} */
         const changes = {};
         if (subject) changes.title = subject;
         if (startTime) changes.startTime = startTime;
@@ -302,6 +325,9 @@ async function executeMsCalendarTool(toolName, args, session) {
 /**
  * Execute an approved MS Calendar action via Graph API.
  * Called after user confirms the draft.
+ * @param {string} action
+ * @param {MsCalendarDraft} draft
+ * @param {Express.Session} session
  */
 async function executeMsCalendarAction(action, draft, session) {
     if (!isMicrosoftConnected(session)) {
@@ -309,6 +335,7 @@ async function executeMsCalendarAction(action, draft, session) {
     }
 
     if (action === 'create') {
+        /** @type {GraphEvent} */
         const event = {
             subject: draft.title,
             start: {
@@ -335,7 +362,7 @@ async function executeMsCalendarAction(action, draft, session) {
             event.body = { contentType: 'Text', content: createBody };
         }
         if (draft.attendees) {
-            event.attendees = draft.attendees.split(',').map(e => ({
+            event.attendees = draft.attendees.split(',').map((/** @type {string} */ e) => ({
                 emailAddress: { address: e.trim() },
                 type: 'required',
             }));
@@ -360,6 +387,7 @@ async function executeMsCalendarAction(action, draft, session) {
 
     } else if (action === 'update') {
         const { eventId, ...changes } = draft;
+        /** @type {GraphEvent} */
         const patch = {};
 
         if (changes.title) patch.subject = changes.title;
@@ -389,7 +417,7 @@ async function executeMsCalendarAction(action, draft, session) {
                     // lets its events.get throw and aborts the update, so fail
                     // loudly and leave the event untouched.
                     throw new Error(
-                        `Could not read the event's current time zone, so the reschedule was not applied (the time would have been written as UTC and the event's zone overwritten): ${err.message}`
+                        `Could not read the event's current time zone, so the reschedule was not applied (the time would have been written as UTC and the event's zone overwritten): ${/** @type {Error} */ (err).message}`
                     );
                 }
             }
@@ -443,6 +471,7 @@ async function executeMsCalendarAction(action, draft, session) {
 
 /**
  * Check if a tool name is an MS Calendar tool.
+ * @param {string} toolName
  */
 function isMsCalendarTool(toolName) {
     return ['ms_calendar_list_events', 'ms_calendar_search_events', 'ms_calendar_create_event', 'ms_calendar_update_event', 'ms_calendar_delete_event'].includes(toolName);

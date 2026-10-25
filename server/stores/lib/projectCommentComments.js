@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * The comment-level half of the project comment store (../projectCommentStore.js):
@@ -37,7 +37,7 @@ function makeCommentWrites(db, ready) {
      */
     async function appendComment(projectId, threadId, c, { requireOpen = false, staleAfterSeq = null } = {}) {
         await ready();
-        return db.tx(async (q) => {
+        return db.tx(/** @returns {Promise<{ comment: ReturnType<typeof rowToComment>, created: boolean, reopened: boolean, stale: boolean }|null>} */ async (q) => {
             const thread = (await q.query(
                 'SELECT id, project_id, status, last_seq FROM project_comment_threads WHERE id = $1 AND project_id = $2 FOR UPDATE',
                 [threadId, projectId],
@@ -114,6 +114,8 @@ function makeCommentWrites(db, ready) {
      * Soft delete: the row keeps its seq (so the thread stays gapless and the
      * replies below it keep their place) and loses its content and mentions.
      * The ciphertext is overwritten, not kept.
+     * @param {string} threadId
+     * @param {string} commentId
      */
     async function softDeleteComment(threadId, commentId) {
         await ready();
@@ -147,14 +149,22 @@ function makeCommentWrites(db, ready) {
  * @param {{ threadPage: number }} opts
  */
 function makeCommentReads(db, ready, { threadPage }) {
-    /** One comment, only when it belongs to this thread. */
+    /**
+     * One comment, only when it belongs to this thread.
+     * @param {string} threadId
+     * @param {string} commentId
+     */
     async function getComment(threadId, commentId) {
         await ready();
         const r = await db.query('SELECT * FROM project_comments WHERE id = $1 AND thread_id = $2', [commentId, threadId]);
         return rowToComment(r.rows[0] || null);
     }
 
-    /** The latest `limit` comments of a thread, ascending by seq (sealed). */
+    /**
+     * The latest `limit` comments of a thread, ascending by seq (sealed).
+     * @param {string} threadId
+     * @param {{ limit?: number }} [opts]
+     */
     async function listComments(threadId, { limit = DEFAULT_CONTEXT } = {}) {
         await ready();
         const n = Math.min(Math.max(Number.isInteger(limit) ? limit : DEFAULT_CONTEXT, 1), 500);

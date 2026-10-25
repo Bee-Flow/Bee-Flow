@@ -9,12 +9,16 @@
 const { normalizeFlattenRoute, checkFlattenParents } = require('../../expr');
 const { checkMaxItems } = require('../fieldChecks');
 
+/** @type {Record<string, string>} */
 const PARENTS_HINT = {
     count: 'Keep one entry in `parents` for each `[*]` in `arrayRef`, outermost first.',
     overRef: 'Each `parents[i].overRef` must be the part of `arrayRef` before its `[*]`.',
     itemVar: 'Give each level its own short name, such as `message`; not `item`, `loop`, `steps` or the child\'s name.',
 };
 
+/**
+ * @param {string} at
+ */
 function checkFlattenRoute(ctx, step, at) {
     if (!step.arrayRef || typeof step.arrayRef !== 'string') {
         ctx.pushE({ code: 'flatten.arrayRef_missing', severity: 'error', path: at + '.arrayRef', message: `Step ${step.id}: pick the list to flatten.`, hint: 'Bind to a list whose items each hold a list, e.g. `steps.<id>.output.messages[*].attachments`.' });
@@ -27,6 +31,9 @@ function checkFlattenRoute(ctx, step, at) {
     return true;
 }
 
+/**
+ * @param {string} at
+ */
 function checkFlattenColumns(ctx, step, at) {
     const reason = checkFlattenParents(step);
     if (reason === 'fields') {
@@ -38,6 +45,9 @@ function checkFlattenColumns(ctx, step, at) {
     }
 }
 
+/**
+ * @param {string} at
+ */
 function checkFlatten(ctx, step, at) {
     if (step.type !== 'flatten') return;
     checkMaxItems(step, at, ctx.pushE, ctx.pushW);

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Notebook Knowledge Search — shared utility for all notebook KB retrieval.
  *
@@ -18,6 +19,17 @@ const configStore = require('../../stores/configStore');
 const { getServiceHeaders } = require('../serviceAuth');
 const log = require('../../telemetry/log');
 
+/**
+ * @typedef {object} SearchChunk  one passage as the search service (or the local search) returns it
+ * @property {string} [content]
+ * @property {string} [title]
+ * @property {string} [source_uri]
+ * @property {number} [score]
+ * @property {number} [rerank_score]
+ * @property {string|number} [document_id]
+ * @property {string|number} [chunk_id]
+ */
+
 const SEARCH_SERVICE_URL = process.env.SEARCH_SERVICE_URL || 'https://services.beeflow.nl';
 
 // ── Query Preprocessing ────────────────────────────────────────────
@@ -33,6 +45,7 @@ const {
     fenceChunks, neutraliseInjectionMarkers, DATA_NOT_INSTRUCTIONS,
 } = require('./sourceFencing');
 
+/** @param {string} query */
 function preprocessQuery(query) {
     let cleaned = query
         .replace(/^(hey|hi|hello|hoi|hallo|beste)\s*[,!.]?\s*/i, '')
@@ -119,7 +132,7 @@ function findSourceForChunk(chunk, sources) {
  * @param {Array<{id: string, name: string}>} [params.sources] - the notebook's sources;
  *        when given, chunks are labelled with the source NAME (not its id) in the
  *        prompt and the citations
- * @returns {Promise<{chunks: Array, contextPrompt: string, citations: Array}>}
+ * @returns {Promise<{chunks: SearchChunk[], contextPrompt: string, citations: Array<{ index: number, title: string, rawTitle: string, content: string, score: number }>}>}
  */
 async function searchNotebookKB({ userId, kbIds, query, options = {}, sources = null }) {
     const {
@@ -138,10 +151,12 @@ async function searchNotebookKB({ userId, kbIds, query, options = {}, sources = 
     const searchQuery = doPreprocess ? preprocessQuery(query) : query;
     const azureParams = await getAzureSearchParams();
 
+    /** @type {SearchChunk[]} */
     let chunks = [];
     try {
         if (azureParams.use_azure) {
             // ── Local search path (Azure) ─────────────────────────
+            /** @type {typeof import('./localKBIngest')} */
             const { searchLocally } = require('./localKBIngest');
             const localResults = await searchLocally(userId, kbIds, searchQuery, { topK });
             // When local search includes reranker, trust its ranking — don't apply score threshold
@@ -162,7 +177,7 @@ async function searchNotebookKB({ userId, kbIds, query, options = {}, sources = 
             });
 
             if (searchRes.ok) {
-                const data = await searchRes.json();
+                const data = /** @type {{ chunks?: SearchChunk[], results?: SearchChunk[] }} */ (await searchRes.json());
                 chunks = (data.chunks || data.results || [])
                     .filter(c => (c.score || c.rerank_score || 0) >= minScore);
             } else {
@@ -251,7 +266,7 @@ ${kbText}`;
  * @param {object}   params
  * @param {string}   params.userId      — tenant ID
  * @param {string[]} params.kbIds       — knowledge base IDs
- * @param {Array}    params.sources     — ready source records (with name, id)
+ * @param {Array<{id: string, name: string}>} params.sources — ready source records (with name, id)
  * @param {string}   [params.documentContent] - notebook editor content
  * @param {object}   [params.options]
  * @param {number}   [params.options.maxChars=50000]  - total content budget
@@ -300,6 +315,7 @@ async function gatherNotebookContent({ userId, kbIds, sources, documentContent, 
         : 'main content summary overview';
 
     // Helper: process search results into allContent
+    /** @param {SearchChunk[]} chunks */
     function processChunks(chunks) {
         for (const chunk of chunks) {
             if (allContent.length >= maxChars) break;
@@ -336,7 +352,7 @@ async function gatherNotebookContent({ userId, kbIds, sources, documentContent, 
             });
 
             if (searchRes.ok) {
-                const data = await searchRes.json();
+                const data = /** @type {{ chunks?: SearchChunk[], results?: SearchChunk[] }} */ (await searchRes.json());
                 processChunks((data.chunks || data.results || [])
                     .filter(c => (c.score || c.rerank_score || 0) >= minScore));
             }
@@ -350,6 +366,7 @@ async function gatherNotebookContent({ userId, kbIds, sources, documentContent, 
         try {
             const fallbackQuery = 'key information details analysis findings data';
             if (azureParams.use_azure) {
+                /** @type {typeof import('./localKBIngest')} */
                 const { searchLocally } = require('./localKBIngest');
                 const localResults = await searchLocally(userId, kbIds, fallbackQuery, { topK });
                 processChunks(localResults.filter(c => (c.score || 0) >= minScore));
@@ -368,7 +385,7 @@ async function gatherNotebookContent({ userId, kbIds, sources, documentContent, 
                 });
 
                 if (fallbackRes.ok) {
-                    const data = await fallbackRes.json();
+                    const data = /** @type {{ chunks?: SearchChunk[], results?: SearchChunk[] }} */ (await fallbackRes.json());
                     processChunks((data.chunks || data.results || [])
                         .filter(c => (c.score || c.rerank_score || 0) >= minScore));
                 }
@@ -387,6 +404,7 @@ async function gatherNotebookContent({ userId, kbIds, sources, documentContent, 
  * Identity of a retrieved chunk across searches: the row id when the hit has
  * one, else document_id:chunk_id (chunk_id is only an index within a document),
  * else a bare chunk_id. Null when the hit carries nothing usable.
+ * @param {SearchChunk & { id?: string | number }} c
  */
 function stableChunkRef(c) {
     if (c?.id !== undefined && c.id !== null) return String(c.id);
@@ -402,11 +420,11 @@ function stableChunkRef(c) {
 /**
  * Execute a notebook_kb_search tool call from AI chat.
  *
- * @param {object} args        — { query, top_k }
+ * @param {{ query?: string, top_k?: number }} args
  * @param {string} userId
  * @param {string[]} kbIds
- * @param {Array<{id: string, name: string}>} [sources] — notebook sources, to show names instead of ids
- * @returns {Promise<object>}  — tool result for the AI
+ * @param {Array<{id: string, name: string}>} [sources] - notebook sources, to show names instead of ids
+ * @returns {Promise<object>}  - tool result for the AI
  */
 async function executeNotebookKBSearchTool(args, userId, kbIds, sources = null) {
     const { query, top_k } = args;

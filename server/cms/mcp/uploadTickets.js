@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * One-time upload tickets for the CMS MCP server.
  *
@@ -27,7 +27,7 @@
 'use strict';
 
 const crypto = require('crypto');
-const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const KEY_PREFIX = 'cms_mcp_upload_';
 const TTL_MS = 15 * 60 * 1000;
@@ -42,24 +42,36 @@ const MAX_RELEASES = 3;
 // Deadlines that grow with the ticket's size: a healthy large clip must not be cut off.
 const BODY_MIN_BPS = 128 * 1024;   // slowest accepted upload, bytes per second
 const STORE_MIN_BPS = 1024 * 1024; // slowest accepted storage write
+/** @param {number} maxSize */
 const bodyDeadlineMs = (maxSize) => Math.min(30 * 60 * 1000, 60 * 1000 + Math.ceil(maxSize / BODY_MIN_BPS) * 1000);
+/** @param {number} maxSize */
 const storeDeadlineMs = (maxSize) => 60 * 1000 + Math.ceil(maxSize / STORE_MIN_BPS) * 1000;
+/** @param {number} maxSize */
 const stallMsFor = (maxSize) => bodyDeadlineMs(maxSize) + storeDeadlineMs(maxSize) + 60 * 1000;
 const TICKET_RE = /^([a-f0-9]{24})\.([A-Za-z0-9_-]{43})$/;
 
+/**
+ * @param {string} value
+ */
 const sha256 = (value) => crypto.createHash('sha256').update(value).digest('hex');
+
+/** @typedef {Record<string, any> | null} TicketRecord */
 
 function defaultStore() {
     const configStore = require('../../stores/configStore');
     return {
-        get: (key) => configStore.getConfigFresh(key),
-        set: (key, value) => configStore.setConfig(key, value),
-        mutate: (key, fn) => configStore.mutateConfig(key, fn),
-        remove: (key) => configStore.deleteConfig(key),
-        listKeys: (prefix) => configStore.listKeysWithPrefix(prefix),
+        get: (/** @type {string} */ key) => configStore.getConfigFresh(key),
+        set: (/** @type {string} */ key, /** @type {unknown} */ value) => configStore.setConfig(key, value),
+        mutate: (/** @type {string} */ key, /** @type {(current: TicketRecord) => TicketRecord} */ fn) => configStore.mutateConfig(key, fn),
+        remove: (/** @type {string} */ key) => configStore.deleteConfig(key),
+        listKeys: (/** @type {string} */ prefix) => configStore.listKeysWithPrefix(prefix),
     };
 }
 
+/**
+ * @param {Record<string, any> | null | undefined} v
+ * @returns {v is Record<string, any>}
+ */
 const isRecord = (v) => !!v && typeof v === 'object' && !Array.isArray(v) && typeof v.secretHash === 'string';
 
 /**
@@ -68,9 +80,15 @@ const isRecord = (v) => !!v && typeof v === 'object' && !Array.isArray(v) && typ
 function createUploadTickets({ store = null, now = Date.now } = {}) {
     const kv = store || defaultStore();
 
+    /**
+     * @param {string | undefined} id
+     */
     const keyOf = (id) => `${KEY_PREFIX}${id}`;
 
-    /** Split a presented ticket into its id and secret, or null when malformed. */
+    /**
+     * Split a presented ticket into its id and secret, or null when malformed.
+     * @param {unknown} ticket
+     */
     function parse(ticket) {
         const m = TICKET_RE.exec(String(ticket || ''));
         return m ? { id: m[1], secret: m[2] } : null;
@@ -84,10 +102,13 @@ function createUploadTickets({ store = null, now = Date.now } = {}) {
                 const rec = await kv.get(key);
                 if (!isRecord(rec) || now() - Date.parse(rec.createdAt) > RETAIN_MS) await kv.remove(key);
             }
-        } catch (err) { log.debug('housekeeping only', err); }
+        } catch (err) { bestEffort('cms/mcp/uploadTickets:prune', err); /* housekeeping only */ }
     }
 
-    /** How many unused, unexpired tickets this user holds. Bounded scan. */
+    /**
+     * How many unused, unexpired tickets this user holds. Bounded scan.
+     * @param {string} userId
+     */
     async function countOpen(userId) {
         const keys = (await kv.listKeys(KEY_PREFIX)).slice(0, 1000);
         let open = 0;
@@ -102,7 +123,7 @@ function createUploadTickets({ store = null, now = Date.now } = {}) {
      * Mint a ticket.
      * @throws {Error} with `code: 'too_many_open_tickets'` when the user already holds the maximum
      * @param {{ userId: string, orgId: string|null, tokenId?: string|null, legacy?: boolean, siteId: string, contentType: string,
-     *           maxSize: number, filename: string, key: string }} binding
+     *           maxSize: number, filename: string, key?: string }} binding
      * @returns {Promise<{ ticket: string, ticketId: string, secret: string, expiresAt: string }>}
      */
     async function issue(binding) {
@@ -139,6 +160,7 @@ function createUploadTickets({ store = null, now = Date.now } = {}) {
      * Look a presented ticket up WITHOUT consuming it.
      * ok:true carries `record` and `id`; ok:false carries `reason`
      * ('malformed' | 'unknown' | 'expired' | 'used').
+     * @param {unknown} ticket
      * @returns {Promise<{ ok: boolean, record?: any, id?: string, reason?: string }>}
      */
     async function peek(ticket) {
@@ -159,6 +181,7 @@ function createUploadTickets({ store = null, now = Date.now } = {}) {
     /**
      * Burn a ticket: flip `used` atomically. Exactly one caller wins when two
      * PUTs race; the loser gets `used`. Done BEFORE any byte is stored.
+     * @param {unknown} ticket
      * @returns {Promise<{ ok: boolean, record?: any, id?: string, reason?: string }>}
      */
     async function burn(ticket) {
@@ -166,7 +189,7 @@ function createUploadTickets({ store = null, now = Date.now } = {}) {
         if (!seen.ok) return seen;
         /** @type {{ ok: boolean, record?: any, id?: string, reason?: string }} */
         let outcome = { ok: false, reason: 'unknown' };
-        await kv.mutate(keyOf(seen.id), (current) => {
+        await kv.mutate(keyOf(seen.id), (/** @type {TicketRecord} */ current) => {
             // The mutator may be retried; it only decides and never has side effects.
             if (!isRecord(current)) { outcome = { ok: false, reason: 'unknown' }; return current; }
             if (current.used) { outcome = { ok: false, reason: 'used' }; return current; }
@@ -178,9 +201,13 @@ function createUploadTickets({ store = null, now = Date.now } = {}) {
         return outcome;
     }
 
-    /** Record how an upload that burned its ticket ended. */
+    /**
+     * Record how an upload that burned its ticket ended.
+     * @param {string} id
+     * @param {Record<string, unknown>} patch
+     */
     async function finish(id, patch) {
-        await kv.mutate(keyOf(id), (current) => (isRecord(current) ? { ...current, ...patch } : current));
+        await kv.mutate(keyOf(id), (/** @type {TicketRecord} */ current) => (isRecord(current) ? { ...current, ...patch } : current));
     }
 
     /**
@@ -188,10 +215,12 @@ function createUploadTickets({ store = null, now = Date.now } = {}) {
      * stalled body, a storage error), so the client can retry within the TTL.
      * Bounded by MAX_RELEASES; after that, and once a file is stored, the ticket stays spent.
      * @returns {Promise<boolean>} true when the ticket is usable again
+     * @param {string} id
+     * @param {string} [error]
      */
     async function release(id, error) {
         let released = false;
-        await kv.mutate(keyOf(id), (current) => {
+        await kv.mutate(keyOf(id), (/** @type {TicketRecord} */ current) => {
             if (!isRecord(current) || current.state !== 'uploading' || current.asset) return current;
             const releases = (current.releases || 0) + 1;
             if (releases > MAX_RELEASES) {
@@ -208,6 +237,8 @@ function createUploadTickets({ store = null, now = Date.now } = {}) {
     /**
      * What cms_upload_status reports. Only the user the ticket was issued to
      * sees it; any other id reads as unknown.
+     * @param {string} id
+     * @param {string} userId
      */
     async function status(id, userId) {
         if (!/^[a-f0-9]{24}$/.test(String(id || ''))) return null; // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored fixed-length class, linear

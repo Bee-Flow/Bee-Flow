@@ -162,7 +162,7 @@ async function keepDeckInLibrary({ userId, deck, title = '', theme = null, house
         });
         return { documentId: doc.id, url: deckDocumentUrl(doc.id), name: doc.name };
     } catch (e) {
-        log.warn(`[deckDocument] the deck could not be kept in the library: ${e.message}`);
+        log.warn(`[deckDocument] the deck could not be kept in the library: ${/** @type {Error} */ (e).message}`);
         return null;
     }
 }

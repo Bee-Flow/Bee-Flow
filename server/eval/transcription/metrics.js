@@ -13,6 +13,7 @@
  * Light-touch on purpose: WER should measure recognition, not punctuation
  * style. Diacritics are preserved — in Dutch, "een"/"één" and "voor"/"vóór"
  * are different words, so stripping them would hide real errors.
+ * @param {string} text
  */
 function normalizeWords(text) {
     return String(text || '')
@@ -33,6 +34,8 @@ function normalizeWords(text) {
  * different fixes.
  *
  * @returns {{substitutions:number, deletions:number, insertions:number, distance:number}}
+ * @param {string[]} refWords
+ * @param {string[]} hypWords
  */
 function align(refWords, hypWords) {
     const n = refWords.length;

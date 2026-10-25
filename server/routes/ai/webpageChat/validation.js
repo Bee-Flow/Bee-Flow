@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Webpage chat: the post-generation validation of one turn (BFSF-222,
  * routes/ai/webpageChat.js). At most one repair round per turn.
@@ -13,6 +13,8 @@ const webpageStore = require('../../../stores/webpageStore');
 /**
  * `turn` is the turn's shared state (./toolLoop.js). Returns
  * `maybeBuildValidationRepair()`: the repair note, or null.
+ * @param {{ send: import('./toolLoop').Send, webpageId: string, userId: string }} deps
+ * @param {import('./toolLoop').TurnState} turn
  */
 function createValidationRepair({ send, webpageId, userId }, turn) {
     const { liveFiles, dirtySlots, touchedExtraPaths } = turn;
@@ -42,6 +44,7 @@ function createValidationRepair({ send, webpageId, userId }, turn) {
             // extras and must count as existing assets.
             const assetPaths = extras.map(e => e.path);
             let scriptTexts;
+            /** @type {Record<string, string> | undefined} */
             let sourcesMap;
             if (turn.currentFramework === 'react-mui') {
                 sourcesMap = {};

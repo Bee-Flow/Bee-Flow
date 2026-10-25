@@ -18,7 +18,6 @@
 
 const emailFetch = require('../services/email/fetch');
 const { resolveMailboxIdentity, sharedModeFor } = require('./mailboxIdentity');
-const log = require('../telemetry/log');
 // The shipped table shapes live in a leaf module so the editor catalog
 // (componentSpecs.js) can serve them without loading this connector.
 const {
@@ -27,12 +26,18 @@ const {
     MAILBOX_ATTACHMENT_TABLE_TEMPLATE,
     MAILBOX_TABLE_TEMPLATES,
 } = require('./mailboxTableTemplates');
+const { fallback } = require('../utils/bestEffort');
 
 const MAX_MAILBOX_ROWS = 200;
 // How many conversations one threaded run will expand in full. Each costs a
 // provider round-trip, so this is the brake on a busy label.
 const MAX_THREAD_EXPANSIONS = 25;
 
+/**
+ * @param {number} status
+ * @param {string} message
+ * @param {string} code
+ */
 function mailboxError(status, message, code) {
     const err = new Error(message);
     err.status = status;
@@ -126,6 +131,7 @@ async function runMailboxConnector(connector, ctx = {}) {
     let since = connector.groupIntoThreads ? lookbackIso : (systemArgs.since || null);
     if (!since) since = lookbackIso;
 
+    /** @type {{ messages: object[]; nextPageToken: string | null; }} */
     let listed;
     try {
         listed = await emailFetch.listMessages({
@@ -263,7 +269,7 @@ async function runMailboxConnector(connector, ctx = {}) {
                         _parentIndex: i,
                     });
                 }
-            } catch (err) { log.debug('One unreadable attachment list must not lose the whole batch — the message row is the valuable part.', err); }
+            } catch (err) { fallback('appStudio/mailboxConnector:runMailboxConnector', err); }
         }
     }
 
@@ -348,6 +354,7 @@ async function runMailboxConnector(connector, ctx = {}) {
  * The emitted columns are deliberately only the ones the mailbox owns. An
  * upsert UPDATE writes exactly the columns present in the row, so anything the
  * team owns — status, priority, assignee — survives every re-sync untouched.
+ * @param {object[]} messages
  */
 function groupIntoThreads(messages, partialThreads = null) {
     const byKey = new Map();
@@ -459,3 +466,12 @@ module.exports = {
     _groupIntoThreads: groupIntoThreads,
     MAX_MAILBOX_ROWS,
 };
+
+/**
+ * @typedef {{ id?: string, provider?: 'gmail'|'outlook', runAs?: string, displayName?: string, mode?: string, address?: string, maxPerRun?: number, lookbackDays?: number,
+ *   groupIntoThreads?: boolean, folder?: string, query?: string, includeBody?: boolean, includeAttachmentMeta?: boolean }} MailboxConnectorConfig
+ */
+
+/** @typedef {Error & { status?: number, code?: string, retryAfterMs?: number, provider?: string }} MailboxError */
+
+/** @typedef {{ provider_message_id?: string, provider_thread_id?: string, thread_key?: string, has_attachments?: boolean, subject?: string, direction?: string, is_read?: boolean, received_at?: string, from_email?: string, from_name?: string, to_emails?: string, mailbox_address?: string, provider?: string, _parentIndex?: number }} MailMessage  one message row as the mail provider layer returns it */

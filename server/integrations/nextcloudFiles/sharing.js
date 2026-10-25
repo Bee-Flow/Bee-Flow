@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Shares over the files_sharing OCS API — public links, user/group/email
  * shares, listing, updating and revoking — plus the group lookup a group share
@@ -9,6 +9,9 @@ const { extractReason } = require('../nextcloudHttpError');
 
 // Nextcloud sends a share id as a string ("12"); update_share and delete_share
 // take a number. Hand the number back everywhere so ids round-trip.
+/**
+ * @param {string | number | null} id
+ */
 function toShareId(id) {
     if (id == null || id === '') return null;
     const n = Number(id);
@@ -17,6 +20,10 @@ function toShareId(id) {
 
 // An OCS failure as one readable line: Nextcloud's own reason (ocs.meta.message,
 // in the server's language) instead of the raw JSON body.
+/**
+ * @param {Response} res
+ * @param {string} what
+ */
 async function shareFailure(res, what) {
     const reason = extractReason(await res.text().catch(() => ''));
     return { error: `${what} failed (${res.status})${reason ? `: ${reason}` : ''}` };
@@ -24,6 +31,11 @@ async function shareFailure(res, what) {
 
 // Returns undefined when the tool belongs to another Nextcloud file family, so
 // the facade can hand it to the next handler.
+/**
+ * @param {string} toolName
+ * @param {{ path?: string, shareId?: string | number, shareWith?: string, permissions?: number, password?: string, expireDate?: string, note?: string, search?: string, limit?: number, shared_with_me?: boolean }} args
+ * @param {import('./webdav').FilesToolCtx} ctx
+ */
 async function executeShareTool(toolName, args, ctx) {
     const { baseUrl, ncFetch, authError } = ctx;
 
@@ -40,7 +52,7 @@ async function executeShareTool(toolName, args, ctx) {
                 return { error: 'Listing groups requires more permission than this Nextcloud account has.' };
             }
             if (!res.ok) return { error: `Could not list Nextcloud groups (${res.status})` };
-            const body = await res.json().catch(() => null);
+            const body = await res.json().catch(/** @returns {null} */ () => null);
             const groups = body?.ocs?.data?.groups || [];
             return { count: groups.length, groups };
         }
@@ -135,7 +147,7 @@ async function executeShareTool(toolName, args, ctx) {
             if (res.status === 401) return { error: authError };
             if (!res.ok) return shareFailure(res, 'Share list');
             const data = await res.json().catch(() => ({}));
-            const shares = (data?.ocs?.data || []).map(s => ({
+            const shares = (data?.ocs?.data || []).map((/** @type {{ id: string, share_type: number, share_with: string, share_with_displayname: string, path: string, file_target: string, permissions: number, expiration: string | null, token: string | null, url?: string, stime: number, note: string }} */ s) => ({
                 id: toShareId(s.id),
                 shareType: s.share_type,
                 shareWith: s.share_with,

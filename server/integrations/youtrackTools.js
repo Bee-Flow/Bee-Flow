@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * YouTrack Tools — Built-in tools for AI to search, read, create, and comment on issues
  * 
@@ -25,12 +26,27 @@ const youtrackRequest = ytc.youtrackRequest;
 const normalizeSummary = ytc.normalizeSummary;
 const __setVerifyDelayMs = ytc.__setVerifyDelayMs;
 
+/**
+ * @param {string} baseUrl
+ * @param {string} token
+ * @param {string} projectId
+ */
 const resolveProjectShortName = (baseUrl, token, projectId) =>
     ytc.resolveProjectShortName({ baseUrl, token }, projectId);
 
+/**
+ * @param {string} baseUrl
+ * @param {string} token
+ * @param {string | null} shortName
+ * @param {string} summary
+ * @param {{ createdAfterMs: number; }} [opts]
+ */
 const findRecentIssueBySummary = (baseUrl, token, shortName, summary, opts) =>
     ytc.findRecentIssueBySummary({ baseUrl, token }, shortName, summary, opts);
 
+/**
+ * @param {number} ms
+ */
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // The commands API query is a mini-language: every value interpolated into it
@@ -41,6 +57,9 @@ const LINK_TYPES = ['relates to', 'duplicates', 'is duplicated by', 'depends on'
 
 // ─── Tool Execution ────────────────────────────────────────────
 
+/**
+ * @param {{ limit: string | number; skip: string | number; query: string; }} args
+ */
 async function searchIssues(args, { baseUrl, token }) {
     const limit = Math.min(Math.max(parseInt(args.limit) || 20, 1), 50);
     const skip = parseInt(args.skip) || 0;
@@ -63,9 +82,9 @@ async function searchIssues(args, { baseUrl, token }) {
     return {
         results: issues.map(i => {
             // Extract state and assignee from custom fields
-            const state = i.customFields?.find(f => f.name === 'State')?.value?.name || null;
-            const assignee = i.customFields?.find(f => f.name === 'Assignee')?.value?.name || null;
-            const priority = i.customFields?.find(f => f.name === 'Priority')?.value?.name || null;
+            const state = i.customFields?.find((/** @type {{ name: string; }} */ f) => f.name === 'State')?.value?.name || null;
+            const assignee = i.customFields?.find((/** @type {{ name: string; }} */ f) => f.name === 'Assignee')?.value?.name || null;
+            const priority = i.customFields?.find((/** @type {{ name: string; }} */ f) => f.name === 'Priority')?.value?.name || null;
 
             return {
                 id: i.idReadable,
@@ -96,10 +115,10 @@ async function getIssue(args, { baseUrl, token }) {
 
     if (!issue) return { error: `Issue not found: ${issueId}` };
 
-    const state = issue.customFields?.find(f => f.name === 'State')?.value?.name || null;
-    const assignee = issue.customFields?.find(f => f.name === 'Assignee')?.value?.name || null;
-    const priority = issue.customFields?.find(f => f.name === 'Priority')?.value?.name || null;
-    const type = issue.customFields?.find(f => f.name === 'Type')?.value?.name || null;
+    const state = issue.customFields?.find((/** @type {{ name: string; }} */ f) => f.name === 'State')?.value?.name || null;
+    const assignee = issue.customFields?.find((/** @type {{ name: string; }} */ f) => f.name === 'Assignee')?.value?.name || null;
+    const priority = issue.customFields?.find((/** @type {{ name: string; }} */ f) => f.name === 'Priority')?.value?.name || null;
+    const type = issue.customFields?.find((/** @type {{ name: string; }} */ f) => f.name === 'Type')?.value?.name || null;
 
     return {
         id: issue.idReadable,
@@ -169,7 +188,7 @@ async function createIssue(args, { baseUrl, token }) {
             message: `Issue created: ${issue.idReadable || issue.id} — "${issue.summary}"`,
         };
     } catch (err) {
-        log.warn(`[YouTrack] Failed to create issue: ${err.message}`);
+        log.warn(`[YouTrack] Failed to create issue: ${/** @type {Error} */ (err).message}`);
 
         // Timeouts, network drops and 5xx are ambiguous: YouTrack may have
         // committed the issue even though we saw an error. Verify by search
@@ -187,13 +206,13 @@ async function createIssue(args, { baseUrl, token }) {
                     id: found.idReadable,
                     summary: found.summary,
                     verifiedAfterError: true,
-                    message: `Issue created: ${found.idReadable} — "${found.summary}". (The create request appeared to fail (${err.message}) but the issue WAS created — verified by search. Do NOT create it again.)`,
+                    message: `Issue created: ${found.idReadable} — "${found.summary}". (The create request appeared to fail (${/** @type {Error} */ (err).message}) but the issue WAS created — verified by search. Do NOT create it again.)`,
                 };
             }
         }
 
         return {
-            error: `Failed to create issue: ${err.message}`,
+            error: `Failed to create issue: ${/** @type {Error} */ (err).message}`,
             guidance: 'The issue MAY still have been created despite this error. Do NOT simply retry youtrack_create_issue — first call youtrack_search_issues for this summary in this project; only create if it is genuinely absent.',
         };
     }
@@ -209,8 +228,8 @@ async function addComment(args, { baseUrl, token }) {
         await youtrackRequest(baseUrl, token, 'POST', `/issues/${issueId}/comments`, { text });
         return { message: `Comment added to ${issueId}.` };
     } catch (err) {
-        log.warn(`[YouTrack] Failed to add comment to ${issueId}: ${err.message}`);
-        return { error: `Failed to add comment to ${issueId}: ${err.message}` };
+        log.warn(`[YouTrack] Failed to add comment to ${issueId}: ${/** @type {Error} */ (err).message}`);
+        return { error: `Failed to add comment to ${issueId}: ${/** @type {Error} */ (err).message}` };
     }
 }
 
@@ -256,8 +275,8 @@ async function updateIssue(args, { baseUrl, token }) {
         await youtrackRequest(baseUrl, token, 'POST', '/commands', body);
         return { message: `Command "${command}" executed on ${issueId}.` };
     } catch (err) {
-        log.warn(`[YouTrack] Command failed on ${issueId}: ${err.message}`);
-        return { error: `Failed to execute command "${command}" on ${issueId}: ${err.message}` };
+        log.warn(`[YouTrack] Command failed on ${issueId}: ${/** @type {Error} */ (err).message}`);
+        return { error: `Failed to execute command "${command}" on ${issueId}: ${/** @type {Error} */ (err).message}` };
     }
 }
 
@@ -281,8 +300,8 @@ async function linkIssues(args, { baseUrl, token }) {
             message: `Linked: ${issueId} ${linkType} ${targetIssueId}.`,
         };
     } catch (err) {
-        log.warn(`[YouTrack] Failed to link ${issueId} → ${targetIssueId}: ${err.message}`);
-        return { error: `Failed to link ${issueId} ${linkType} ${targetIssueId}: ${err.message}` };
+        log.warn(`[YouTrack] Failed to link ${issueId} → ${targetIssueId}: ${/** @type {Error} */ (err).message}`);
+        return { error: `Failed to link ${issueId} ${linkType} ${targetIssueId}: ${/** @type {Error} */ (err).message}` };
     }
 }
 
@@ -313,8 +332,8 @@ async function getIssueComments(args, { baseUrl, token }) {
             message: `Found ${comments.length} comment(s) on ${issueId}.`,
         };
     } catch (err) {
-        log.warn(`[YouTrack] Failed to get comments for ${issueId}: ${err.message}`);
-        return { error: `Failed to get comments for ${issueId}: ${err.message}` };
+        log.warn(`[YouTrack] Failed to get comments for ${issueId}: ${/** @type {Error} */ (err).message}`);
+        return { error: `Failed to get comments for ${issueId}: ${/** @type {Error} */ (err).message}` };
     }
 }
 
@@ -345,8 +364,8 @@ async function findUser(args, { baseUrl, token }) {
             message: `Found ${users.length} user(s). Use the login value for youtrack_change_assignee.`,
         };
     } catch (err) {
-        log.warn(`[YouTrack] Failed to find users: ${err.message}`);
-        return { error: `Failed to find users: ${err.message}` };
+        log.warn(`[YouTrack] Failed to find users: ${/** @type {Error} */ (err).message}`);
+        return { error: `Failed to find users: ${/** @type {Error} */ (err).message}` };
     }
 }
 
@@ -368,8 +387,8 @@ async function changeAssignee(args, { baseUrl, token }) {
             message: `Assignee of ${issueId} set to ${login}.`,
         };
     } catch (err) {
-        log.warn(`[YouTrack] Failed to assign ${issueId}: ${err.message}`);
-        return { error: `Failed to set assignee of ${issueId} to "${login}": ${err.message}. Make sure the login is exact (use youtrack_find_user).` };
+        log.warn(`[YouTrack] Failed to assign ${issueId}: ${/** @type {Error} */ (err).message}`);
+        return { error: `Failed to set assignee of ${issueId} to "${login}": ${/** @type {Error} */ (err).message}. Make sure the login is exact (use youtrack_find_user).` };
     }
 }
 
@@ -396,11 +415,11 @@ async function logWork(args, { baseUrl, token }) {
             message: `Logged ${minutes} minute(s) on ${issueId}.`,
         };
     } catch (err) {
-        log.warn(`[YouTrack] Failed to log work on ${issueId}: ${err.message}`);
-        if ((err.status === 400 || err.status === 404) && /time.?tracking|not enabled|disabled/i.test(err.message)) {
+        log.warn(`[YouTrack] Failed to log work on ${issueId}: ${/** @type {Error} */ (err).message}`);
+        if ((err.status === 400 || err.status === 404) && /time.?tracking|not enabled|disabled/i.test(/** @type {Error} */ (err).message)) {
             return { error: `Time tracking is not enabled for this project. Ask a YouTrack admin to enable it, or add the information as a comment instead (youtrack_add_comment).` };
         }
-        return { error: `Failed to log work on ${issueId}: ${err.message}` };
+        return { error: `Failed to log work on ${issueId}: ${/** @type {Error} */ (err).message}` };
     }
 }
 
@@ -429,8 +448,8 @@ async function manageTags(args, { baseUrl, token }) {
             message: `Tag "${cleanTag}" ${action === 'add' ? 'added to' : 'removed from'} ${issueId}.`,
         };
     } catch (err) {
-        log.warn(`[YouTrack] Failed to ${action} tag on ${issueId}: ${err.message}`);
-        return { error: `Failed to ${action} tag "${cleanTag}" on ${issueId}: ${err.message}` };
+        log.warn(`[YouTrack] Failed to ${action} tag on ${issueId}: ${/** @type {Error} */ (err).message}`);
+        return { error: `Failed to ${action} tag "${cleanTag}" on ${issueId}: ${/** @type {Error} */ (err).message}` };
     }
 }
 
@@ -449,6 +468,10 @@ const HANDLERS = {
     youtrack_manage_tags: manageTags,
 };
 
+/**
+ * @param {string} toolName
+ * @param {string} userId
+ */
 async function executeYouTrackTool(toolName, args, userId) {
     if (!userId) return { error: 'User context required for YouTrack.' };
     const baseUrl = await configStore.getSecret(`youtrack_url_user_${userId}`);
@@ -463,6 +486,9 @@ async function executeYouTrackTool(toolName, args, userId) {
     return handler(args, { baseUrl, token });
 }
 
+/**
+ * @param {string} toolName
+ */
 function isYouTrackTool(toolName) {
     return [
         'youtrack_search_issues',
@@ -490,3 +516,19 @@ module.exports = {
     findRecentIssueBySummary,
     __setVerifyDelayMs,
 };
+
+/** @typedef {import('./youtrackClient').YoutrackCreds} YoutrackCreds */
+
+/**
+ * Model-supplied tool arguments (parsed JSON from the LLM).
+ * @typedef {{
+ *   query?: string, limit?: string, skip?: string, issueId?: string, projectId?: string,
+ *   summary?: string, description?: string, allowDuplicate?: boolean, text?: string,
+ *   command?: string, comment?: string, targetIssueId?: string, linkType?: string,
+ *   login?: string, minutes?: string, date?: string, action?: string, tag?: string
+ * }} YoutrackToolArgs
+ */
+
+/** @typedef {{ name: string, value?: { name?: string } }} YtCustomField */
+
+/** @typedef {{ id?: string, text?: string, created?: number, author?: { login?: string, fullName?: string } }} YtComment */

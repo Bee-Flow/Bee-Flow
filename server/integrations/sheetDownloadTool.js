@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * document_download: the chat hands the user a download button for a
  * SPREADSHEET document. The file is built here from the stored cells, so the
@@ -36,7 +36,11 @@ const DOCUMENT_DOWNLOAD_TOOL = {
 
 const CSV_MIME = 'text/csv; charset=utf-8';
 
-/** The tab a csv download asks for (id or name, any case), the first by default. */
+/**
+ * The tab a csv download asks for (id or name, any case), the first by default.
+ * @param {{ id: string; name: string; datatableId: string; }[]} tabs
+ * @param {string | undefined} wanted
+ */
 function csvTab(tabs, wanted) {
     const key = typeof wanted === 'string' ? wanted.trim() : '';
     if (!key) return tabs[0];
@@ -59,6 +63,7 @@ async function downloadSheetDocument(doc, args, ctx, deps = {}) {
     const exporter = require('../core/documents/sheetExport');
     const sheetCells = deps.cells || require('../core/documents/sheetCells');
 
+    /** @type {{ buffer: Buffer; contentType: string; filename: string; } | { buffer: Buffer<ArrayBuffer>; contentType: string; filename: string; }} */
     let file;
     if (format === 'csv') {
         const tab = csvTab(tabs, args.tab);

@@ -73,7 +73,7 @@ const serverChecks = () => ({
 let eligibilityOverride = null;
 
 /** What the caller may put on a token. `account` is the fresh user row. */
-const eligibilityOf = (account) => (eligibilityOverride
+const eligibilityOf = (/** @type {{ id: string; }} */ account) => (eligibilityOverride
     ? eligibilityOverride(account)
     : eligibleServers(account, { servers: serverChecks() }));
 

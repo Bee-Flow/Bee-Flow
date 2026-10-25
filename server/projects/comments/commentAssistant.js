@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The AI in a comment thread: when it answers, what it reads, and how its
  * answer gets back into the thread.
@@ -55,6 +55,11 @@ const crypto = require('crypto');
 const log = require('../../telemetry/log');
 const { usageLogFields } = require('../../core/providers/usageNormalizer');
 const { findPassage } = require('./passage');
+const { bestEffort } = require('../../utils/bestEffort');
+
+/** @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/projectStore').getProject>>>} CommentProject */
+/** @typedef {ReturnType<typeof import('../../stores/lib/projectCommentRows').rowToThread>} CommentThread */
+/** @typedef {Awaited<ReturnType<typeof import('./commentCrypto').forProject>>} CommentBox */
 
 const CONTEXT_COMMENTS = 50;
 const PER_COMMENT_CHARS = 4000;
@@ -67,7 +72,10 @@ const MEMBER_NAME = 'A project member';
 
 const ASKS_ASSISTANT = /(^|[^\w@])@(ai|assistant)(?![\w-])/i;
 
-/** Does this comment address the assistant by name? */
+/**
+ * Does this comment address the assistant by name?
+ * @param {unknown} content
+ */
 function mentionsAi(content) {
     return ASKS_ASSISTANT.test(String(content || ''));
 }
@@ -87,7 +95,7 @@ function decideCommentAi({ aiMode, status = 'open', content, askAi = false }) {
 
 // ── The prompt ────────────────────────────────────────────────────────────
 
-const clip = (text, max) => (text.length > max ? `${text.slice(0, max)} …` : text);
+const clip = (/** @type {string} */ text, /** @type {number} */ max) => (text.length > max ? `${text.slice(0, max)} …` : text);
 
 /**
  * What the item is and where the thread points, as prompt text. `tagged`
@@ -99,7 +107,7 @@ const clip = (text, max) => (text.length > max ? `${text.slice(0, max)} …` : t
  */
 function describePassage({ kind, name, passage, tagged = true }) {
     const what = kind === 'notebook' ? 'notebook' : kind === 'task' ? 'task' : 'document';
-    const fence = (tag, text) => (tagged ? [`<${tag}>`, text, `</${tag}>`] : [text]);
+    const fence = (/** @type {string} */ tag, /** @type {string} */ text) => (tagged ? [`<${tag}>`, text, `</${tag}>`] : [text]);
     const lines = [`The thread is on the ${what} "${name || `untitled ${what}`}".`];
     if (!passage) {
         lines.push(`The ${what}'s text could not be read, so only the thread is available.`);
@@ -121,6 +129,7 @@ function describePassage({ kind, name, passage, tagged = true }) {
  * The thread as one text: oldest first, each comment under its author. Oldest
  * comments are dropped first when the whole would be too long.
  * @param {Array<{ author: string, text: string }>} lines
+ * @param {string} askerName
  */
 function buildThreadText(lines, askerName) {
     const kept = [];
@@ -140,6 +149,9 @@ function buildThreadText(lines, askerName) {
     ].join('\n');
 }
 
+/**
+ * @param {{ project: { name: string, customInstructions?: unknown }, knowledge?: string, tokenAddendum?: string }} p
+ */
 function buildCommentSystemPrompt({ project, knowledge, tokenAddendum }) {
     const instructions = typeof project.customInstructions === 'string' ? project.customInstructions.trim() : '';
     const parts = [
@@ -155,7 +167,13 @@ function buildCommentSystemPrompt({ project, knowledge, tokenAddendum }) {
     return parts.filter(Boolean).join('\n\n') + (tokenAddendum || '');
 }
 
-/** The model's answer, or an AI_TIMEOUT error once `ms` have passed. */
+/**
+ * The model's answer, or an AI_TIMEOUT error once `ms` have passed.
+ * @template T
+ * @param {() => T | Promise<T>} call
+ * @param {number} ms
+ * @returns {Promise<T>}
+ */
 async function answerWithin(call, ms) {
     let timer = null;
     const late = new Promise((_, reject) => {
@@ -195,29 +213,38 @@ function makeCommentAssistant(deps = {}) {
     const store = () => deps.store || require('../../stores/projectCommentStore');
     const commentCrypto = () => deps.commentCrypto || require('./commentCrypto');
     const locks = () => deps.locks || require('../../stores/conversationLockStore');
+    /** @type {ReturnType<typeof import('../chatShield').makeChatShield> | null} */
     let defaultShield = null;
     const shield = () => deps.shield || (defaultShield || (defaultShield = require('../chatShield').makeChatShield({ source: 'project_comment' })));
-    const llmChat = deps.llmChat || ((modelId, messages, options) => require('../../core/llm/llmClient').chat(modelId, messages, options));
-    const resolveModel = deps.resolveModel || ((args) => require('../chatAssistant').resolveChatModel(args));
-    const searchKnowledge = deps.searchKnowledge || ((args) => require('../chatAssistant').searchProjectKnowledge(args));
-    const listAudience = deps.listAudience || ((project) => require('../chatAssistant').listProjectAudience(project));
+    const llmChat = deps.llmChat || ((/** @type {string} */ modelId, /** @type {Parameters<typeof import('../../core/llm/llmClient').chat>[1]} */ messages, /** @type {Parameters<typeof import('../../core/llm/llmClient').chat>[2]} */ options) => require('../../core/llm/llmClient').chat(modelId, messages, options));
+    const resolveModel = deps.resolveModel || ((/** @type {Parameters<typeof import('../chatAssistant').resolveChatModel>[0]} */ args) => require('../chatAssistant').resolveChatModel(args));
+    const searchKnowledge = deps.searchKnowledge || ((/** @type {Parameters<typeof import('../chatAssistant').searchProjectKnowledge>[0]} */ args) => require('../chatAssistant').searchProjectKnowledge(args));
+    const listAudience = deps.listAudience || ((/** @type {Parameters<typeof import('../chatAssistant').listProjectAudience>[0]} */ project) => require('../chatAssistant').listProjectAudience(project));
+    /** @type {ReturnType<typeof import('./passage').makeItemReader> | null} */
     let defaultReader = null;
     const itemReader = () => deps.itemReader || (defaultReader || (defaultReader = require('./passage').makeItemReader()));
-    const getUser = deps.getUser || ((id) => require('../../stores/userStore').getUser(id));
-    const displayName = deps.displayName || ((user) => require('../chatAssistant').displayNameOf(user));
+    const getUser = deps.getUser || ((/** @type {string} */ id) => require('../../stores/userStore').getUser(id));
+    const displayName = deps.displayName || ((/** @type {Parameters<typeof import('../chatAssistant').displayNameOf>[0]} */ user) => require('../chatAssistant').displayNameOf(user));
     const checkLimits = deps.checkLimits
-        || ((limitOrgId, userId) => require('../../core/entitlements/limits').checkSubscriptionLimits(limitOrgId, 'chat', userId));
+        || ((/** @type {string|null} */ limitOrgId, /** @type {string|null} */ userId) => require('../../core/entitlements/limits').checkSubscriptionLimits(limitOrgId, 'chat', userId));
     const emit = deps.emit
-        || ((projectId, event) => require('../../core/projectFeed').emitProjectEvent(projectId, event, { label: 'ProjectComments' }));
+        || ((/** @type {string} */ projectId, /** @type {Parameters<typeof import('../../core/projectFeed').emitProjectEvent>[1]} */ event) => require('../../core/projectFeed').emitProjectEvent(projectId, event, { label: 'ProjectComments' }));
     const publishTransient = deps.publishTransient
-        || ((projectId, event) => require('../../core/projectEventBus').publishTransient(projectId, event));
-    const logUsage = deps.logUsage || ((entry) => require('../../stores/usageStore').logUsage(entry));
+        || ((/** @type {string} */ projectId, /** @type {Parameters<typeof import('../../core/projectEventBus').publishTransient>[1]} */ event) => require('../../core/projectEventBus').publishTransient(projectId, event));
+    const logUsage = deps.logUsage || ((/** @type {Parameters<typeof import('../../stores/usageStore').logUsage>[0]} */ entry) => require('../../stores/usageStore').logUsage(entry));
     const recordReply = deps.recordReply
-        || ((decision) => require('../../stores/projectAiParticipationStore').recordDecision(decision));
+        || ((/** @type {Parameters<typeof import('../../stores/projectAiParticipationStore').recordDecision>[0]} */ decision) => require('../../stores/projectAiParticipationStore').recordDecision(decision));
     const timeoutMs = Number.isFinite(deps.timeoutMs) && deps.timeoutMs > 0 ? deps.timeoutMs : DEFAULT_TIMEOUT_MS;
     const newId = deps.newId || (() => crypto.randomUUID());
 
-    /** Live-feed status, best-effort: a missed beat is a later refetch. */
+    /**
+     * Live-feed status, best-effort: a missed beat is a later refetch.
+     * @param {string} projectId
+     * @param {string} kind
+     * @param {string} actorId
+     * @param {CommentThread} thread
+     * @param {string} status
+     */
     async function announce(projectId, kind, actorId, thread, status) {
         try {
             await publishTransient(projectId, {
@@ -233,6 +260,7 @@ function makeCommentAssistant(deps = {}) {
      * An answer somebody asked for restarts the quiet time before the AI may
      * join this thread by itself (the participation caps read it from the
      * decision log). A courtesy, never a blocker: the answer stands either way.
+     * @param {{ project: CommentProject, thread: CommentThread, trigger: { id: string }, messageId: string, orgId?: string|null }} p
      */
     async function noteExplicitReply({ project, thread, trigger, messageId, orgId }) {
         try {
@@ -251,6 +279,10 @@ function makeCommentAssistant(deps = {}) {
         }
     }
 
+    /**
+     * @param {Map<string, string>} names
+     * @param {string} id
+     */
     async function nameOf(names, id) {
         if (!names.has(id)) {
             let user = null;
@@ -260,7 +292,10 @@ function makeCommentAssistant(deps = {}) {
         return names.get(id);
     }
 
-    /** The anchored passage, or null when the item cannot be read. */
+    /**
+     * The anchored passage, or null when the item cannot be read.
+     * @param {{ project: CommentProject, thread: CommentThread, box: CommentBox, userId: string }} p
+     */
     async function readPassage({ project, thread, box, userId }) {
         let anchor = null;
         try {
@@ -282,6 +317,11 @@ function makeCommentAssistant(deps = {}) {
         }
     }
 
+    /**
+     * @param {{ project: CommentProject, thread: CommentThread, trigger: { id: string }, triggerText: string, userId: string,
+     *           orgId?: string|null, session?: Parameters<typeof import('../chatAssistant').searchProjectKnowledge>[0]['session'],
+     *           model: NonNullable<Awaited<ReturnType<typeof import('../chatAssistant').resolveChatModel>>>, runId: string, aiTrigger: 'ask'|'mention' }} p
+     */
     async function writeAnswer({ project, thread, trigger, triggerText, userId, orgId, session, model, runId, aiTrigger }) {
         const dlpConversationId = `project-comment-${thread.id}-${runId}`;
         let status = 'failed';
@@ -401,7 +441,7 @@ function makeCommentAssistant(deps = {}) {
             } catch (err) {
                 log.warn(`[ProjectComments] turn release failed for thread ${thread.id}; it expires on its own: ${err && err.message}`);
             }
-            try { shield().release(dlpConversationId); } catch (err) { log.debug('nothing held', err); }
+            try { shield().release(dlpConversationId); } catch (err) { bestEffort('projects/comments/commentAssistant:writeAnswer', err); /* nothing held */ }
             await announce(project.id, 'comment.ai.finished', userId, thread, status);
         }
         return { status };

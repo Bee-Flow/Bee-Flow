@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * stores/notebook/membership.js — a notebook's place in a project (the role a
  * user holds on it, filing it in and out, the project listings) and the
@@ -32,6 +32,8 @@ const notebookFileCrypto = dep('notebookFileCrypto');
  *
  * The lookup goes through stores/lib/projectRole, the seam a store test swaps
  * for a role table.
+ * @param {string} id
+ * @param {string} userId
  */
 async function resolveNotebookRole(id, userId) {
     if (!id || !userId) return null;
@@ -70,13 +72,17 @@ function notebookRoleForProjectRole(projectRole) {
  * member, which is the owner's call to make. The caller is responsible for
  * checking the user has a role on the target project — this only enforces that
  * the notebook is theirs.
+ * @param {string} id
+ * @param {string} userId
+ * @param {string} projectId
  */
 async function setNotebookProject(id, userId, projectId) {
     await initDB();
+    /** @type {{ created: string[], replaced: string[] }} */
     const files = { created: [], replaced: [] };
     let result;
     try {
-        result = await withTransaction(async (client) => {
+        result = await withTransaction(async (/** @type {import('pg').PoolClient} */ client) => {
             const { rows } = await client.query('UPDATE notebooks SET project_id = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3 RETURNING *', [projectId || null, id, userId]);
             if (!rows[0]) return false;
             await documentSharingCrypto().transition(client, 'notebook', rows[0], rows[0].sharing_audience || 'private', files);
@@ -99,6 +105,9 @@ async function setNotebookProject(id, userId, projectId) {
  * owner's standalone notebook, never deleted, and the UPDATE is scoped by
  * `project_id`: a removal through project A's endpoint can never take the
  * notebook out of project B, where it may have moved in the meantime.
+ * @param {string} id
+ * @param {string} projectId
+ * @param {string} userId
  */
 async function detachNotebookFromProject(id, projectId, userId = null) {
     await initDB();
@@ -115,6 +124,7 @@ async function detachNotebookFromProject(id, projectId, userId = null) {
  * The card a project listing shows for one notebook: the overview card's
  * fields plus who owns it, and nothing that is one person's own (the pin and
  * the owner's private chat count are theirs, not the project's).
+ * @param {Record<string, any>} r
  */
 function mapProjectNotebookCard(r) {
     const card = mapNotebookCardRow(r);
@@ -128,6 +138,7 @@ function mapProjectNotebookCard(r) {
  * Notebooks filed into a project, CARD-shaped: counts and the cached preview,
  * never the document bodies (a project page lists up to 200 of these, and the
  * full row carries every notebook's whole document twice, HTML and Markdown).
+ * @param {string} projectId
  */
 async function listProjectNotebooks(projectId, { limit = 50, offset = 0, type = 'notebook' } = {}) {
     await initDB();
@@ -159,6 +170,7 @@ async function listProjectNotebooks(projectId, { limit = 50, offset = 0, type = 
  * appears in no row is genuinely EMPTY, which is why the caller distinguishes a
  * missing key (0) from a failed read (the whole call rejects) rather than
  * folding both into a zero.
+ * @param {string[]} projectIds
  */
 async function countProjectNotebooks(projectIds, { type = 'notebook' } = {}) {
     await initDB();
@@ -170,7 +182,7 @@ async function countProjectNotebooks(projectIds, { type = 'notebook' } = {}) {
           GROUP BY project_id`,
         [ids, type]
     );
-    return new Map(rows.map(r => [r.project_id, Number(r.n) || 0]));
+    return new Map(rows.map((/** @type {Record<string, any>} */ r) => [r.project_id, Number(r.n) || 0]));
 }
 
 /**
@@ -179,6 +191,7 @@ async function countProjectNotebooks(projectIds, { type = 'notebook' } = {}) {
  * project_id is a soft reference (no FK), so nothing clears it automatically.
  * Deleting a project must NOT delete its members' notebooks — they revert to
  * standalone, owned by whoever made them.
+ * @param {string} projectId
  */
 async function clearProjectFromNotebooks(projectId) {
     await initDB();
@@ -206,7 +219,7 @@ async function clearProjectFromNotebooks(projectId) {
  */
 async function writeCollabContent(id, content = {}) {
     await initDB();
-    return withTransaction(async (client) => {
+    return withTransaction(async (/** @type {import('pg').PoolClient} */ client) => {
         const { rows } = await client.query('SELECT * FROM notebooks WHERE id = $1 FOR UPDATE', [id]);
         if (!rows[0]) return null;
         const resource = contentCrypto.resourceOf(rows[0], 'notebook');

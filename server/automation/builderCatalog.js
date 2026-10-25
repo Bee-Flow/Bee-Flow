@@ -47,6 +47,7 @@
 'use strict';
 
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 /**
  * @param {string} userId
@@ -80,7 +81,7 @@ async function buildCatalogForUser(userId, session) {
             userToolDefs = Array.isArray(r.tools) ? r.tools : [];
             for (const t of userToolDefs) if (t?.function?.name) userToolNames.add(t.function.name);
         } catch (e) {
-            const err = new Error(`Could not resolve which integrations you can use: ${e.message}`);
+            const err = new Error(`Could not resolve which integrations you can use: ${/** @type {Error} */ (e).message}`);
             err.code = 'catalog_unresolved';
             throw err;
         }
@@ -88,7 +89,7 @@ async function buildCatalogForUser(userId, session) {
         let permittedSet = null;
         try {
             permittedSet = await getUserPermittedApps({ userId, session, isAdmin: !!session?.isAdmin });
-        } catch (err) { log.debug('null → fail closed below', err); }
+        } catch (err) { fallback('automation/builderCatalog:permittedApps', err); /* null: permitted follows what is runnable */ }
 
         const apps = TOOL_REGISTRY.map(entry => {
             const tools = loadTools(entry);
@@ -156,9 +157,22 @@ async function buildCatalogForUser(userId, session) {
         // could not read it, and the prompt must not say "no integrations
         // connected". `catalogError` is the marker the renderers look for;
         // `toolNames` stays absent, so the add-time gate stays permissive.
-        log.warn('[builderCatalog] catalog could not be built:', e && e.message);
-        return { apps: [], triggerOutputs: {}, catalogError: (e && e.message) || 'catalog unavailable' };
+        log.warn('[builderCatalog] catalog could not be built:', e && /** @type {Error} */ (e).message);
+        return { apps: [], triggerOutputs: {}, catalogError: (e && /** @type {Error} */ (e).message) || 'catalog unavailable' };
     }
 }
 
 module.exports = { buildCatalogForUser };
+
+/**
+ * @typedef {{ name: string, description?: string, sideEffect: boolean, askOnceable: boolean,
+ *   outputSchema: ReturnType<typeof import('./outputSchemas').getOutputSchema>,
+ *   inputSchema: { type?: string, properties?: Record<string, unknown>, required?: string[] } | null,
+ *   outputSample: unknown }} CatalogAction
+ * @typedef {{ id: string, label: string, available: boolean, connected: boolean, permitted: boolean, actions: CatalogAction[] }} CatalogApp
+ * `toolNames` is absent when the catalog could not be built (`catalogError` set); `datatables` and
+ * `documents` are attached by the callers that need them.
+ * @typedef {{ apps: CatalogApp[], toolNames?: Set<string>, triggerOutputs: Record<string, unknown>, catalogError?: string,
+ *   datatables?: import('./builderTools/pendingDatatables').DatatableCatalogEntry[] | null,
+ *   documents?: Awaited<ReturnType<typeof import('./builderDocumentCatalog').buildDocumentCatalogForUser>> | null }} BuilderCatalog
+ */

@@ -26,6 +26,7 @@
 const { sha256, isCustomTypeId } = require('./ids');
 const { specDigest, typesDigest, normKey } = require('./spec');
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 const TOMBSTONE_MS = 10 * 60_000;
 const REFRESH_MIN_MS = 30_000;
@@ -222,7 +223,7 @@ async function refreshAll({ force = false } = {}) {
                 ? await configStore.listKeysWithPrefix(prefix)
                 : Object.keys(await configStore.getAllConfig() || {}).filter(k => k.startsWith(prefix));
             for (const key of keys) {
-                try { await resolveOrgShield(key.slice(prefix.length)); } catch (err) { log.debug('one bad row must not stop the rest', err); }
+                try { await resolveOrgShield(key.slice(prefix.length)); } catch (err) { bestEffort('privacy/customTypes:refreshOrg', err); /* one bad row must not stop the rest */ }
             }
             return true;
         } catch (err) {

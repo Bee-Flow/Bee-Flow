@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Bounded-concurrency parallel mapper.
  *
@@ -7,6 +7,11 @@
  *
  * Used by: swarmRuntime
  * (per-phase worker pool).
+ * @param {number} concurrency
+ * @template T, R
+ * @param {T[]} items
+ * @param {(item: T, index: number) => Promise<R> | R} fn
+ * @returns {Promise<R[]>}
  */
 async function mapWithConcurrency(items, concurrency, fn) {
     const list = Array.isArray(items) ? items : [];

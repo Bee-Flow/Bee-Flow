@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * GDPR Art. 30 — Records of Processing Activities.
  *
@@ -23,13 +23,14 @@ module.exports = {
     descriptionKey: 'compliance.checks.gdpr_art30.desc',
     remediationKey: 'compliance.checks.gdpr_art30.fix',
     remediationLink: 'admin/compliance/ropa',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const settings = await complianceStore.getSettings(orgId);
         const reviewedAt = settings.ropa_reviewed_at ? new Date(settings.ropa_reviewed_at) : null;
         if (!reviewedAt) {
             return {
                 status: 'warn',
-                evidence: { reviewed_at: null },
+                evidence: { reviewed_at: /** @type {string | null} */ (null) },
                 details: 'Records of Processing Activities have never been reviewed. Open Compliance → RoPA and confirm the auto-generated record.',
             };
         }

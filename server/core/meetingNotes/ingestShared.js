@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * What the Meeting Notes ingest modules share: the error a provider wrapper
  * maps to an HTTP answer, and the best-effort removal of a scratch file.
@@ -11,6 +11,9 @@ const fs = require('fs');
 const log = require('../../telemetry/log');
 
 class IngestError extends Error {
+    /**
+     * @param {string} message
+     */
     constructor(message, { code = 'ingest_failed', status = 500 } = {}) {
         super(message);
         this.name = 'IngestError';
@@ -19,6 +22,9 @@ class IngestError extends Error {
     }
 }
 
+/**
+ * @param {string | undefined} p
+ */
 function safeUnlink(p) { try { fs.unlinkSync(p); } catch (_) { log.debug('file already gone', _); } }
 
 module.exports = { IngestError, safeUnlink };

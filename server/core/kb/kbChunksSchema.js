@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The `kb_chunks` table: its bootstrap, its dimension reconcile, and the one
  * place that knows whether pgvector is available. The flags are module state;
@@ -8,12 +8,16 @@
 
 const { exec, getAll, isSqlStateError } = require('../../db');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // ── Database schema bootstrap ───────────────────────────────────────
 
 let schemaInitialized = false;
 let pgvectorAvailable = true;
 
+/**
+ * @param {number} [vectorDim]
+ */
 async function ensureKBChunksTable(vectorDim) {
     // Bootstrap-only call (no specific dim requested) returns once the
     // schema is known to exist. We still run the CREATE EXTENSION + initial
@@ -57,8 +61,8 @@ async function ensureKBChunksTable(vectorDim) {
                 if (rows === 0) {
                     log.info(`[LocalKBIngest] kb_chunks dim mismatch (${currentDim} → ${vectorDim}), table is empty — ALTERing column`);
                     await exec(`ALTER TABLE kb_chunks ALTER COLUMN embedding TYPE VECTOR(${vectorDim})`);
-                    try { await exec(`DROP INDEX IF EXISTS idx_kb_chunks_embedding`); } catch (_) { log.debug('index absent or not droppable, it is recreated next', _); }
-                    try { await exec(`CREATE INDEX IF NOT EXISTS idx_kb_chunks_embedding ON kb_chunks USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 200)`); } catch (_) { log.debug('hnsw index needs pgvector, search falls back to a scan', _); }
+                    try { await exec(`DROP INDEX IF EXISTS idx_kb_chunks_embedding`); } catch (_) { bestEffort('core/kb/kbChunksSchema:ensureKBChunksTable', _); /* index absent or not droppable, it is recreated next */ }
+                    try { await exec(`CREATE INDEX IF NOT EXISTS idx_kb_chunks_embedding ON kb_chunks USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 200)`); } catch (_) { bestEffort('core/kb/kbChunksSchema:ensureKBChunksTable#2', _); /* hnsw index needs pgvector, search falls back to a scan */ }
                 } else {
                     // A configured model switch is migrated before any ingest
                     // gets here (core/kb/embeddingMigration.js). What remains
@@ -70,7 +74,7 @@ async function ensureKBChunksTable(vectorDim) {
                 }
             }
         } catch (err) {
-            log.warn(`[LocalKBIngest] dim reconcile check skipped: ${err.message}`);
+            log.warn(`[LocalKBIngest] dim reconcile check skipped: ${/** @type {Error} */ (err).message}`);
         }
         return;
     }
@@ -120,7 +124,7 @@ async function ensureKBChunksTable(vectorDim) {
     // Create indexes
     try { await exec('CREATE INDEX IF NOT EXISTS idx_kb_chunks_tsv ON kb_chunks USING GIN (tsv)'); } catch (_) { log.warn('tsv index could not be created', _); }
     if (pgvectorAvailable) {
-        try { await exec(`CREATE INDEX IF NOT EXISTS idx_kb_chunks_embedding ON kb_chunks USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 200)`); } catch (_) { log.debug('hnsw index needs pgvector, search falls back to a scan', _); }
+        try { await exec(`CREATE INDEX IF NOT EXISTS idx_kb_chunks_embedding ON kb_chunks USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 200)`); } catch (_) { bestEffort('core/kb/kbChunksSchema:ensureKBChunksTable#3', _); /* hnsw index needs pgvector, search falls back to a scan */ }
     }
     try { await exec('CREATE INDEX IF NOT EXISTS idx_kb_chunks_tenant_kb ON kb_chunks (tenant_id, knowledge_base_id)'); } catch (_) { log.warn('tenant_kb index could not be created', _); }
     try { await exec('CREATE INDEX IF NOT EXISTS idx_kb_chunks_tenant_kb_doc ON kb_chunks (tenant_id, knowledge_base_id, document_id)'); } catch (_) { log.warn('tenant_kb_doc index could not be created', _); }

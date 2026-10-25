@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Dutch for the legal register review of 6 Oct 2026: the Compliance Center's
  * framework descriptions, calendar milestones and check texts corrected
@@ -34,7 +35,10 @@ const DATA_SHA256 = '11d607c1ffcb699fd95b9c099b60f14fa7bfe12a5355f2653a04d67d3e7
 const NL_TRANSLATIONS = Object.freeze({ ...DATA.translations });
 const NL_REWORDED = Object.freeze({ ...DATA.reworded });
 
-/** The mutation itself, on a copy of the 'nl' blob. Pure, so the store's mutator may run it more than once. */
+/**
+ * The mutation itself, on a copy of the 'nl' blob. Pure, so the store's mutator may run it more than once.
+ * @param {Record<string, string>} merged
+ */
 function applyNl(merged) {
     let added = 0;
     let reworded = 0;

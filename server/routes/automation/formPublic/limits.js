@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
+// @typecheck noImplicitAny
 /**
  * The rate-limit buckets and the body-size gate of the form surface
  * (routes/automation/formPublic.js). One instance of each bucket, shared by
@@ -23,10 +24,10 @@ const FORM_POLL_RPM = parseInt(process.env.AUTOMATION_FORM_POLL_RPM, 10) || 300;
 const MAX_SUBMISSION_BYTES = 256 * 1024;
 
 const ipLimiter = perUserRateLimit({ windowMs: 60_000, max: FORM_RPM_PER_IP, keyFn: (req) => `formip:${req.ip || 'unknown'}` });
-const tokenLimiter = perUserRateLimit({ windowMs: 60_000, max: FORM_RPM_PER_TOKEN, keyFn: (req) => `formtok:${req.params.token}` });
-const uploadLimiter = perUserRateLimit({ windowMs: 60_000, max: FORM_UPLOAD_RPM, keyFn: (req) => `formupload:${req.params.token}:${req.ip || 'unknown'}` });
-const pickLimiter = perUserRateLimit({ windowMs: 60_000, max: FORM_PICK_RPM, keyFn: (req) => `formpick:${req.params.token}:${req.session?.user?.id || req.ip || 'unknown'}` });
-const sessionLimiter = perUserRateLimit({ windowMs: 60_000, max: FORM_POLL_RPM, keyFn: (req) => `formsess:${req.params.sid}` });
+const tokenLimiter = perUserRateLimit({ windowMs: 60_000, max: FORM_RPM_PER_TOKEN, keyFn: (/** @type {import('express').Request} */ req) => `formtok:${req.params.token}` });
+const uploadLimiter = perUserRateLimit({ windowMs: 60_000, max: FORM_UPLOAD_RPM, keyFn: (/** @type {import('express').Request} */ req) => `formupload:${req.params.token}:${req.ip || 'unknown'}` });
+const pickLimiter = perUserRateLimit({ windowMs: 60_000, max: FORM_PICK_RPM, keyFn: (/** @type {import('express').Request} */ req) => `formpick:${req.params.token}:${req.session?.user?.id || req.ip || 'unknown'}` });
+const sessionLimiter = perUserRateLimit({ windowMs: 60_000, max: FORM_POLL_RPM, keyFn: (/** @type {import('express').Request} */ req) => `formsess:${req.params.sid}` });
 // Turning a result into a Word or PDF file renders a document (a Chromium
 // page for the PDF), so it gets a bucket of its own per person rather than
 // riding on the 300/min poll budget.
@@ -36,6 +37,11 @@ const exportLimiter = perUserRateLimit({ windowMs: 60_000, max: FORM_EXPORT_RPM,
 // Explicit size gate. index.js installs bodyParser.json({limit:'20mb'})
 // globally BEFORE this router, so the body is already parsed by the time we
 // run and a route-local limit would be dead code.
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {NextFunction} next
+ */
 function contentLengthGuard(req, res, next) {
     const len = Number(req.get('content-length') || 0);
     if (Number.isFinite(len) && len > MAX_SUBMISSION_BYTES) {

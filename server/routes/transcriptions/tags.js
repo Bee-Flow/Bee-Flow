@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Transcriptions — the tag vocabulary with counts.
  *
@@ -21,6 +22,7 @@
  */
 
 const express = require('express');
+/** @type {import('express').Router & { buildListAcl?: typeof buildListAcl }} */
 const router = express.Router();
 const { getAll } = require('../../db');
 const { requireAuth } = require('../../auth/permissions');
@@ -35,8 +37,11 @@ const TAG_LIMIT = 200;
  * store's list predicate and the COUNT in routes/studio/counts.js: an empty
  * orgIds / userGroupIds never reaches Postgres as ANY('{}'::text[]) /
  * ?| ARRAY[]::text[], which some `pg` versions mishandle.
+ * @param {string} userId
+ * @param {{ orgIds?: string[], userGroupIds?: string[] }} [ctx]
  */
 function buildListAcl(userId, { orgIds = [], userGroupIds = [] } = {}) {
+    /** @type {Array<string | string[]>} */
     const params = [userId, JSON.stringify([userId])];
     const clauses = ['user_id = $1', 'shared_with @> $2::jsonb'];
     if (Array.isArray(orgIds) && orgIds.length > 0) {
@@ -81,6 +86,7 @@ router.get('/tags', requireAuth, validate({ query: NO_QUERY }), async (req, res)
     const userId = req.session.user.id;
     const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
     let sql;
+    /** @type {Array<string | string[]>} */
     let params;
     if (isSuperAdmin) {
         sql = `SELECT ${TAG_TEXT} AS tag, ${TAG_COUNT}
@@ -104,5 +110,6 @@ router.get('/tags', requireAuth, validate({ query: NO_QUERY }), async (req, res)
     res.json((rows || []).map((r) => ({ tag: String(r.tag), count: Number(r.count) || 0 })));
 });
 
-module.exports = router;
-module.exports.buildListAcl = buildListAcl;
+/** @typedef {import('express').Router & { buildListAcl: typeof buildListAcl }} TagsRouterExports */
+module.exports = /** @type {TagsRouterExports} */ (router);
+/** @type {TagsRouterExports} */ (module.exports).buildListAcl = buildListAcl;

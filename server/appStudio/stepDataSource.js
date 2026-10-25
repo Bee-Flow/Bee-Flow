@@ -208,3 +208,8 @@ module.exports = {
     MAX_CONTEXT_ROWS,
     _resolveFilters: resolveFilters,
 };
+
+/**
+ * @typedef {Array<{ field?: string, op?: string, value?: { kind?: string } | string | number | boolean | null, required?: boolean }>} FilterList
+ * @typedef {{ id?: string, [k: string]: unknown }} Viewer
+ */

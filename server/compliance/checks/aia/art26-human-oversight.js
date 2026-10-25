@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * EU AI Act Art. 26 — deployer obligations: human oversight for high-risk use
  * (applies with Annex III from 2 Dec 2027, Regulation (EU) 2026/1744).
@@ -32,10 +32,15 @@ module.exports = {
     retiresVanished: true,
     retiredDetails: 'No longer flagged as a high-risk agent, unpublished or deleted.',
 
+    /** @param {string} orgId */
     async listSubjects(orgId) {
         return art35._highRiskAgents(orgId);
     },
 
+    /**
+     * @param {string} orgId
+     * @param {{ id?: string, label?: string, risk_reason?: string } | null} subject
+     */
     async evaluate(orgId, subject) {
         if (!subject?.id) {
             return { status: 'not_applicable', evidence: {}, details: 'No high-risk agent to assess.' };

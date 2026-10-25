@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: agents concept/live split (A1, 2026-09) — in TWO parts.
  *
@@ -57,7 +58,7 @@ async function backfillPublished({ dryRun = false } = {}) {
            AND published_config IS NULL
          ORDER BY id
     `);
-    const result = { dryRun: !!dryRun, candidates: rows.length, updated: 0, invalidConfig: [] };
+    const result = { dryRun: !!dryRun, candidates: rows.length, updated: 0, invalidConfig: /** @type {string[]} */ ([]) };
     for (const row of rows) {
         let cfg = {};
         if (row.config && typeof row.config === 'object') {

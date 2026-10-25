@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio v2 — DATA API (record CRUD + aggregation query).
  *
@@ -55,7 +55,7 @@ const R = require('./studio/appRuntimeSchemas');
 // closed here: `?refresh=yes` served the cache; a misspelled batch key, a
 // dataset with `cacheTtlSeconds: "60"` (kept the default), a member with a
 // misspelled `role` (became `member`) — all answered 200.
-const idText = (name) => worded(`${name} is an id.`).max(200, `${name} is an id.`);
+const idText = (/** @type {string} */ name) => worded(`${name} is an id.`).max(200, `${name} is an id.`);
 const RefreshQuery = queryOf({ refresh: choice(['0', '1', 'true', 'false'], 'refresh is 1 to bypass the cache.').optional() }, 'A data query');
 const BatchBody = bodyOf({
     // The handler answers a missing or non-list `reads` itself, with its cap.
@@ -118,7 +118,7 @@ router.post('/:id/members', requireAuth, jsonBody, bodySizeGuard, validate({ bod
 router.delete('/:id/members/:userId', requireAuth, Admin.removeMember);
 
 // Map body-parser failures to JSON (default handler answers HTML).
-router.use((err, req, res, next) => {
+router.use((/** @type {Error & { type?: string, status?: number, statusCode?: number }} */ err, /** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
     if (err?.type === 'entity.too.large' || err?.status === 413 || err?.statusCode === 413) {
         return res.status(413).json({ error: 'Request body too large (max 64KB)' });
     }

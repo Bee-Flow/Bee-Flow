@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * automations.js — automationStore aggregate (§WS5, extracted verbatim).
  */
@@ -12,6 +12,19 @@ const { planVersionWrite } = require('../../automation/diffSummary');
 // Handoff 5: every read carries pendingChanges, trashed rows are excluded, and
 // a working-copy write never moves the live copy (see lifecycle.js).
 const { AUTOMATION_SELECT, LIVE_INVARIANT_SQL, stripLiveFollowingFields } = require('./lifecycle');
+const { bestEffort } = require('../../utils/bestEffort');
+
+/** @typedef {{ definition?: Record<string, unknown>, projectId?: string | null, [key: string]: unknown }} AutomationUpdates */
+/** @typedef {{ name?: string, description?: string, descriptionJson?: unknown, isLayoutOnly?: boolean }} VersionMeta */
+/**
+ * @typedef {object} UpdateAutomationOpts
+ * @property {boolean} [goLive]
+ * @property {VersionMeta | null} [versionMeta]
+ * @property {boolean} [forceVersion]
+ * @property {{ deploymentId?: string } | null} [managedWrite]
+ * @property {typeof import('../managedPartsDefault') | null} [managedParts]
+ * @property {boolean} [allowConnectionsChange]
+ */
 
 /**
  * The managed-write guard (stores/lib/managedParts.js): an automation filed into a
@@ -19,18 +32,24 @@ const { AUTOMATION_SELECT, LIVE_INVARIANT_SQL, stripLiveFollowingFields } = requ
  * allow-listed keys move without a deploy's `managedWrite` capability.
  * Required lazily: the guard reaches projectStore, which this aggregate must
  * not load at require time. `override` is a test's own instance.
+ * @param {typeof import('../managedPartsDefault') | null} [override]
  */
 function guardOf(override) {
     return override || require('../managedPartsDefault');
 }
 
-/** `updates` without the keys whose value is `undefined` (nothing to write). */
+/**
+ * `updates` without the keys whose value is `undefined` (nothing to write).
+ * @param {AutomationUpdates | null} updates
+ */
 function suppliedOf(updates) {
+    /** @type {AutomationUpdates} */
     const out = {};
     for (const [k, v] of Object.entries(updates || {})) if (v !== undefined) out[k] = v;
     return out;
 }
 
+/** @param {{ userId: string, organizationId?: string | null, title: string, description?: string, definition: Record<string, unknown>, triggerType: string, scheduleCron?: string | null, scheduleTz?: string, nextRunAt?: string | null, createdFromChatId?: string | null, versionMeta?: VersionMeta | null }} automation */
 async function createAutomation({ userId, organizationId = null, title, description = '', definition, triggerType, scheduleCron = null, scheduleTz = 'Europe/Amsterdam', nextRunAt = null, createdFromChatId = null, versionMeta = null }) {
     await initDB();
     const id = crypto.randomUUID();
@@ -68,6 +87,8 @@ async function createAutomation({ userId, organizationId = null, title, descript
  * One automation, or null. An automation in the TRASH is null too, unless the caller
  * asks for it (`includeDeleted`) — the trash and restore routes are the only
  * ones that do, so nothing can run, schedule or open a deleted automation.
+ * @param {string} id
+ * @param {{ includeDeleted?: boolean }} [opts]
  */
 async function getAutomation(id, { includeDeleted = false } = {}) {
     await initDB();
@@ -78,6 +99,7 @@ async function getAutomation(id, { includeDeleted = false } = {}) {
     return rowToAutomation(r);
 }
 
+/** @param {string} userId */
 async function getAutomationsForUser(userId) {
     await initDB();
     // Layers live in their own library — keep them out of the main list.
@@ -108,6 +130,8 @@ async function getAutomationsForUser(userId) {
  * `call_block` pointing at a block that IS in this project would otherwise be
  * reported as an external dependency the Solution cannot carry, purely because
  * the query that found the project's automations could not see it.
+ * @param {string} projectId
+ * @param {{ kinds?: string | string[] }} [opts]
  */
 async function getAutomationsForProject(projectId, { kinds = ['automation'] } = {}) {
     await initDB();
@@ -131,6 +155,8 @@ async function getAutomationsForProject(projectId, { kinds = ['automation'] } = 
  * appears in no row is genuinely EMPTY, which is why the caller distinguishes a
  * missing key (0) from a failed read (the whole call rejects) rather than
  * folding both into a zero.
+ * @param {string[]} projectIds
+ * @param {{ kinds?: string | string[] }} [opts]
  */
 async function countAutomationsForProject(projectIds, { kinds = ['automation'] } = {}) {
     await initDB();
@@ -153,6 +179,7 @@ async function countAutomationsForProject(projectIds, { kinds = ['automation'] }
  * promised this function and called it by name; it was never written, so
  * deleting a project left automations pointing at a project that no longer
  * existed — invisible in the project list and unfindable in the standalone one.
+ * @param {string} projectId
  */
 async function clearProjectFromAutomations(projectId) {
     await initDB();
@@ -186,6 +213,8 @@ async function getDueAutomations() {
  * instance/start time, and returns the rows so the caller can execute them.
  * Replaces the old read-then-mark pattern that allowed double-execution if
  * a runner crashed between read and mark.
+ * @param {string} instanceId
+ * @param {number} [limit]
  */
 async function claimDueAutomations(instanceId, limit = 20) {
     await initDB();
@@ -228,6 +257,8 @@ async function claimDueAutomations(instanceId, limit = 20) {
  *
  * Returns false if the row was already marked running (i.e. another path
  * is mid-execution) so callers can decide whether to skip or queue.
+ * @param {string} id
+ * @param {string} instanceId
  */
 async function markRunning(id, instanceId) {
     await initDB();
@@ -248,6 +279,7 @@ async function markRunning(id, instanceId) {
  * Clear the running marker on an automation. Called from the runner's
  * finally block so a crash mid-execution leaves running_started_at set
  * for the reaper to find.
+ * @param {string} id
  */
 async function releaseAutomation(id) {
     await initDB();
@@ -274,6 +306,8 @@ async function releaseAutomation(id) {
  * Guarded on running_instance_id so a row that was already reaped and re-claimed
  * by another instance is NOT resurrected by the old runner's heartbeat — that
  * would hand two live runners the same row.
+ * @param {string} id
+ * @param {string} instanceId
  */
 async function touchAutomationRunning(id, instanceId) {
     await initDB();
@@ -447,6 +481,8 @@ async function reapStuckRuns({ staleAfterMs = 6 * 60_000 } = {}) {
  * (queued/running/awaiting_approval/awaiting_form). Returns the number of runs deleted so the
  * caller can loop until a batch comes back short. Ordered oldest-first so repeated
  * batches drain the backlog deterministically.
+ * @param {string} cutoffIso
+ * @param {{ limit?: number }} [opts]
  */
 async function deleteRunsOlderThan(cutoffIso, { limit = 5000 } = {}) {
     await initDB();
@@ -466,6 +502,7 @@ async function deleteRunsOlderThan(cutoffIso, { limit = 5000 } = {}) {
 
 /**
  * Reset the attempts counter after a successful run.
+ * @param {string} id
  */
 async function resetAttempts(id) {
     await initDB();
@@ -500,6 +537,10 @@ async function resetAttempts(id) {
  *
  * Whatever the path, a never-live automation that ends up ACTIVE gets its working
  * copy published in the same transaction (lifecycle.LIVE_INVARIANT_SQL).
+ * @param {string} id
+ * @param {AutomationUpdates} updates
+ * @param {string | null} savedByUserId
+ * @param {UpdateAutomationOpts} [opts]
  */
 async function updateAutomation(id, updates, savedByUserId, opts = {}) {
     await initDB();
@@ -518,6 +559,10 @@ async function updateAutomation(id, updates, savedByUserId, opts = {}) {
  * (automations.versions.pg.test.js) without reaching into the module system.
  *
  * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[] }> }} client
+ * @param {string} id
+ * @param {AutomationUpdates} updates
+ * @param {string | null} savedByUserId
+ * @param {UpdateAutomationOpts} [opts]
  */
 async function updateAutomationWith(client, id, updates, savedByUserId, {
     goLive = false, versionMeta = null, forceVersion = false, managedWrite = null, managedParts = null, allowConnectionsChange = false,
@@ -612,7 +657,7 @@ async function updateAutomationWith(client, id, updates, savedByUserId, {
         await client.query('COMMIT');
         return rowToAutomation(fresh);
     } catch (e) {
-        await client.query('ROLLBACK').catch(() => {});
+        await client.query('ROLLBACK').catch((e) => bestEffort('stores/automationStore/automations:updateAutomationWith', e));
         throw e;
     }
 }

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Nextcloud Teams Tools — the org chart Nextcloud actually shares against.
  *
@@ -30,6 +30,7 @@ const CIRCLES_API = '/ocs/v2.php/apps/circles/circles';
 
 // Circles member levels. The API takes integers; agents should not have to
 // know them, so the tools take names and translate.
+/** @type {Record<string, number>} */
 const MEMBER_LEVELS = { member: 1, moderator: 4, admin: 8, owner: 9 };
 
 const NEXTCLOUD_TEAMS_TOOLS = [
@@ -181,23 +182,34 @@ const HEADERS = {
     'OCS-APIRequest': 'true',
 };
 
+/** @param {Response} res */
 async function readJsonSafe(res) {
     const text = await res.text().catch(() => '');
     try { return JSON.parse(text); } catch { return text; }
 }
 
-/** @returns {Promise<{ error?: string, ok?: boolean, data?: any, ocs?: any }>} */
+/**
+ * @param {Response} res
+ * @param {string} authError
+ * @param {string} what
+ * @returns {Promise<{ error?: string, ok?: boolean, data?: any, ocs?: any }>}
+ */
 async function handle(res, authError, what) {
     if (!res.ok) return nextcloudHttpError(res, { authError, what: `Teams ${what}`, app: 'Teams' });
     const body = await readJsonSafe(res);
     return { ok: true, data: body?.ocs?.data ?? body, ocs: body?.ocs };
 }
 
+/** @param {unknown} level */
 function levelName(level) {
     const found = Object.entries(MEMBER_LEVELS).find(([, v]) => v === Number(level));
     return found ? found[0] : String(level ?? '');
 }
 
+/**
+ * @param {{ id?: string, displayName?: string, name?: string, sanitizedName?: string, description?: string,
+ *   population?: number, initiator?: { level?: number }, config?: number }} c
+ */
 function mapTeam(c) {
     return {
         id: c.id,
@@ -211,6 +223,10 @@ function mapTeam(c) {
     };
 }
 
+/**
+ * @param {{ id?: string, userId?: string, singleId?: string, displayName?: string, level?: number,
+ *   userType?: number }} m
+ */
 function mapMember(m) {
     return {
         // The member id is a circles-internal handle, NOT the Nextcloud uid —
@@ -224,6 +240,12 @@ function mapMember(m) {
     };
 }
 
+/**
+ * @param {string} toolName
+ * @param {Record<string, any>} args tool arguments as the model sent them
+ * @param {string} userId
+ * @param {Partial<Express.Session> | null | undefined} session
+ */
 async function executeNextcloudTeamsTool(toolName, args, userId, session) {
     const ctx = await ncClient.resolveAuth(session, userId);
     const { baseUrl, fetch: ncFetch, authError } = ctx;
@@ -314,6 +336,7 @@ async function executeNextcloudTeamsTool(toolName, args, userId, session) {
                 return { error: 'Nothing to update — pass a name and/or a description.' };
             }
             // Name and description are separate endpoints upstream.
+            /** @type {string[]} */
             const updated = [];
             if (args.name !== undefined) {
                 const out = await handle(
@@ -376,6 +399,7 @@ async function executeNextcloudTeamsTool(toolName, args, userId, session) {
     }
 }
 
+/** @param {unknown} toolName */
 function isNextcloudTeamsTool(toolName) {
     return typeof toolName === 'string'
         && (toolName.startsWith('nextcloud_teams_') || toolName === 'nextcloud_share_with_team');

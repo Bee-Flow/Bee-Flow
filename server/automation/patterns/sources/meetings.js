@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('../events').WorkEvent} WorkEvent */
+// @typecheck strict
 'use strict';
 /**
  * Pattern source: the user's recurring meetings, from what Bee Flow already
@@ -30,7 +31,11 @@ const { DAY, toMs, inWindow, opaqueKey, defaultDb, queryRows } = require('./comm
 const ROW_LIMIT = 2000;
 const MAX_DURATION_MS = 12 * 3_600_000;
 
-/** @typedef {import('./common').Db} Db */
+/**
+ * @typedef {import('./common').Db} Db
+ * @param {number} start
+ * @param {number} end
+ */
 
 function durationOf(start, end) {
     const d = end - start;
@@ -40,9 +45,12 @@ function durationOf(start, end) {
 /**
  * One event per (series, start minute): two job rows for one occurrence are
  * one meeting.
+ * @param {Array<{ app: string, seriesId?: string|null, ts: number, title?: string|null, durationMs?: number }>} items
+ * @param {{ userId: string; since: number; now: number; deps?: { db?: Db; }; }} win
  */
 function meetingEvents(items, win) {
     const seen = new Set();
+    /** @type {WorkEvent[]} */
     const out = [];
     for (const it of items) {
         if (!it.seriesId || !inWindow(it.ts, win)) continue;
@@ -140,6 +148,7 @@ async function collectGmeetMeetings(ctx) {
 /**
  * A note is created when the recording is processed, after the meeting: the
  * start is roughly the creation time minus the recording's length.
+ * @param {Record<string, any>} n raw database row
  */
 function noteTiming(n) {
     const created = toMs(n.created_at);

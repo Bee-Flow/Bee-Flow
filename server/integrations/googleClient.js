@@ -15,6 +15,7 @@ const { loadConfig } = require('../auth/permissions');
 const { google } = require('googleapis');
 const log = require('../telemetry/log');
 const { parseRetryAfter, backoffDelay, sleep } = require('../core/http/retryAfter');
+const { fallback } = require('../utils/bestEffort');
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_REVOKE_URL = 'https://oauth2.googleapis.com/revoke';
@@ -23,6 +24,7 @@ const GOOGLE_REVOKE_URL = 'https://oauth2.googleapis.com/revoke';
  * Exchange the session's refresh_token for a fresh access_token. Updates the
  * session in place and persists via session.save() so the new token survives
  * across requests. Throws on missing refresh token or non-2xx from Google.
+ * @param {GoogleSession} session
  */
 async function refreshAccessToken(session) {
     const config = await loadConfig();
@@ -72,12 +74,17 @@ async function refreshAccessToken(session) {
 /**
  * Authenticated fetch against a Google REST endpoint. Retries once with a
  * refreshed token on 401. Mirrors `msGraphClient.graphFetch`.
+ * @param {string | URL | Request} url
+ * @param {GoogleSession} session
  */
 async function googleFetch(url, session, options = {}) {
     if (!session?.accessToken) {
         throw new Error('NOT_CONNECTED');
     }
 
+    /**
+     * @param {string} token
+     */
     const doFetch = async (token) => {
         const headers = {
             'Authorization': `Bearer ${token}`,
@@ -96,7 +103,7 @@ async function googleFetch(url, session, options = {}) {
             const newToken = await refreshAccessToken(session);
             response = await doFetch(newToken);
         } catch (refreshErr) {
-            log.error('[Google] Token refresh failed:', refreshErr.message);
+            log.error('[Google] Token refresh failed:', /** @type {Error} */ (refreshErr).message);
             throw new Error('NOT_CONNECTED');
         }
     }
@@ -107,7 +114,7 @@ async function googleFetch(url, session, options = {}) {
         try {
             const parsed = JSON.parse(errorBody);
             errorMsg = parsed.error?.message || parsed.error_description || errorMsg;
-        } catch (err) { log.debug('non-JSON', err); }
+        } catch (err) { fallback('integrations/googleClient:googleFetch', err); /* non-JSON */ }
         throw new Error(errorMsg);
     }
 
@@ -137,7 +144,7 @@ async function revokeToken(token) {
         });
         return r.ok;
     } catch (e) {
-        log.warn('[Google] revoke failed:', e.message);
+        log.warn('[Google] revoke failed:', /** @type {Error} */ (e).message);
         return false;
     }
 }
@@ -295,3 +302,15 @@ module.exports = {
     GOOGLE_TOKEN_URL,
     GOOGLE_REVOKE_URL,
 };
+
+/**
+ * The session fields the Google clients read and write: an Express session, or an
+ * automation's vault session (which has no save()).
+ * @typedef {{ accessToken?: string, refreshToken?: string, oauthProvider?: string, save?: () => void }} GoogleSession
+ */
+
+/**
+ * A googleapis client. The typecheck maps googleapis to an untyped shim
+ * (types/shims/googleapis.d.ts), so the client carries the shim's type.
+ * @typedef {typeof import('googleapis').google} GoogleApiClient
+ */

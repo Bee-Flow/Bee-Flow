@@ -10,6 +10,7 @@ const { MAX_REQUEST_CHARS, WINDOW_OVERLAP_CHARS, MAX_WINDOWS } = require('./requ
 const { cacheKey, cacheGet, cacheSet, _cloneScanResult } = require('./scanCache');
 const { detectPiiViaCpuModel } = require('./guardClient');
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 /**
  * Split *text* into overlapping [start, chunk] windows.
@@ -223,7 +224,7 @@ async function detectPiiWindowed(text, enabledCategories, confidenceThreshold, e
                 // it: this is a status line, the scan is a privacy control.
                 try {
                     onProgress({ done, total: windows.length, coveredChars, totalChars: text.length, memoised });
-                } catch (err) { log.debug('ignore', err); }
+                } catch (err) { bestEffort('privacy/windowing:onProgress', err); }
             }
         }
     };
@@ -305,3 +306,5 @@ module.exports = {
     scanWindow,
     _contiguousCoverage,
 };
+
+/** @typedef {{ start: number, result: import('./scanCache').PiiScanResult }} WindowPart */

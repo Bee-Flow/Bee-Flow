@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Content-defined segmentation for cacheable PII scans.
  *

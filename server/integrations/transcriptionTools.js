@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Transcription Tools — Multi-provider meeting transcription with diarization
  *
@@ -30,6 +29,7 @@ const { runAzureWhisperBatch, formatAzureBatchFailure, computeWhisperBatchTimeou
 const {
     formatTime, maxSegmentEnd, finalizeTranscript,
 } = require('./transcription/finalize');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 // ─── Tool Definitions ──────────────────────────────────────────────────────────
 
@@ -99,13 +99,14 @@ async function resolveAudioAttachment(context) {
     }
 
     const audioFileName = audioAttachment.name || audioAttachment.filename || 'audio.mp3';
+    /** @type {NonSharedBuffer | Buffer<ArrayBuffer> | Buffer<ArrayBufferLike> | null} */
     let audioData = null;
 
     if (audioAttachment.path) {
         try {
             audioData = await fs.promises.readFile(audioAttachment.path);
         } catch (readErr) {
-            throw `Could not read audio file: ${readErr.message}`;
+            throw `Could not read audio file: ${/** @type {Error} */ (readErr).message}`;
         }
     } else if (audioAttachment.url) {
         try {
@@ -113,7 +114,7 @@ async function resolveAudioAttachment(context) {
             if (!resp.ok) throw new Error(resp.statusText);
             audioData = Buffer.from(await resp.arrayBuffer());
         } catch (fetchErr) {
-            throw `Could not download audio file: ${fetchErr.message}`;
+            throw `Could not download audio file: ${/** @type {Error} */ (fetchErr).message}`;
         }
     } else if (audioAttachment.data || audioAttachment.content) {
         const raw = audioAttachment.data || audioAttachment.content;
@@ -191,7 +192,7 @@ ${formattedLines.join('\n').substring(0, 20000)}`;
         log.info(`[Transcription] Speaker names identified via ${modelId}: ${JSON.stringify(nameMapping)}`);
         return nameMapping;
     } catch (nameErr) {
-        log.error('[Transcription] Speaker identification failed:', nameErr.message);
+        log.error('[Transcription] Speaker identification failed:', /** @type {Error} */ (nameErr).message);
         return null;
     }
 }
@@ -208,6 +209,7 @@ async function handleVoxtralTranscription(args, context) {
         };
     }
 
+    /** @type {NonSharedBuffer} */
     let audioData, audioFileName;
     // If called directly from the upload route, args.filePath is the temp file on disk
     if (args.filePath) {
@@ -215,7 +217,7 @@ async function handleVoxtralTranscription(args, context) {
             audioData = await fs.promises.readFile(args.filePath);
             audioFileName = args.fileName || require('path').basename(args.filePath);
         } catch (e) {
-            return { error: `Could not read audio file: ${e.message}` };
+            return { error: `Could not read audio file: ${/** @type {Error} */ (e).message}` };
         }
     } else {
         try {
@@ -260,9 +262,9 @@ async function handleVoxtralTranscription(args, context) {
         });
     } catch (err) {
         // Sanitise error: strip any key-like tokens from message
-        const safeMsg = (err.message || '').replace(/[A-Za-z0-9_\-]{32,}/g, '[REDACTED]');
+        const safeMsg = (/** @type {Error} */ (err).message || '').replace(/[A-Za-z0-9_\-]{32,}/g, '[REDACTED]');
         log.error('[Transcription:Voxtral] Error:', safeMsg);
-        if (err.message?.includes('rate_limit')) {
+        if (/** @type {Error} */ (err).message?.includes('rate_limit')) {
             return {
                 error: 'Rate limit reached for Voxtral. Please try again in a few moments.',
             };
@@ -282,6 +284,7 @@ async function handleVoxtralTranscription(args, context) {
  */
 async function handleAzureTranscription(args, context) {
     let inputPath = args.filePath || null;
+    /** @type {string | null} */
     let tempInputPath = null;
     let audioFileName = args.fileName || (inputPath ? path.basename(inputPath) : 'audio.mp3');
 
@@ -319,7 +322,7 @@ async function handleAzureTranscription(args, context) {
         }
         return result;
     } catch (err) {
-        const safeMsg = (err.message || '')
+        const safeMsg = (/** @type {Error} */ (err).message || '')
             .replace(/[A-Za-z0-9_\-]{32,}/g, '[REDACTED]')
             .replace(/key[=:]\S+/gi, 'key=[REDACTED]');
         log.error('[Transcription:Azure] Error:', safeMsg);
@@ -339,6 +342,7 @@ async function handleAzureTranscription(args, context) {
  */
 async function handlePyannoteTranscription(args, context) {
     let inputPath = args.filePath || null;
+    /** @type {string | null} */
     let tempInputPath = null;
     let audioFileName = args.fileName || (inputPath ? path.basename(inputPath) : 'audio.mp3');
 
@@ -363,7 +367,7 @@ async function handlePyannoteTranscription(args, context) {
         try {
             const { getUser } = require('../stores/userStore');
             orgId = (await getUser(context.userId))?.organizationId || null;
-        } catch (err) { log.debug('no org context → no identification, transcription unaffected', err); }
+        } catch (err) { fallback('integrations/transcriptionTools:handlePyannoteTranscription', err); /* no org context → no identification, transcription unaffected */ }
 
         const { transcribeWithPyannote } = require('../core/voice/pyannoteClient');
         const p = await transcribeWithPyannote(inputPath, { language, orgId, recorderUserId: context.userId });
@@ -384,7 +388,7 @@ async function handlePyannoteTranscription(args, context) {
             },
         });
     } catch (err) {
-        const safeMsg = (err.message || '').replace(/[A-Za-z0-9_\-]{20,}/g, '[REDACTED]');
+        const safeMsg = (/** @type {Error} */ (err).message || '').replace(/[A-Za-z0-9_\-]{20,}/g, '[REDACTED]');
         log.error('[Transcription:Pyannote] Error:', safeMsg);
         return { error: `Pyannote transcription failed: ${safeMsg}` };
     } finally {
@@ -423,7 +427,7 @@ async function handleAzureWhisperTranscription(args, context) {
             identifyNames: (ids, lines) => identifySpeakerNames(ids, language, lines, args.userName),
         });
     } catch (err) {
-        const safeMsg = (err.message || '').replace(/[A-Za-z0-9_\-]{32,}/g, '[REDACTED]').replace(/key[=:]\S+/gi, 'key=[REDACTED]');
+        const safeMsg = (/** @type {Error} */ (err).message || '').replace(/[A-Za-z0-9_\-]{32,}/g, '[REDACTED]').replace(/key[=:]\S+/gi, 'key=[REDACTED]');
         log.error('[Transcription:AzureWhisper] Error:', safeMsg);
         return { error: `Azure Whisper transcription failed: ${safeMsg}` };
     }
@@ -460,6 +464,7 @@ async function handleWhisperXTranscription(args, context) {
     }
 
     // Validate URL format — must be http(s):// to prevent SSRF to arbitrary schemes
+    /** @type {URL} */
     let parsedUrl;
     try {
         parsedUrl = new URL(whisperUrl.trim());
@@ -507,6 +512,7 @@ async function handleWhisperXTranscription(args, context) {
         const primaryEndpoint = `${baseUrl}/transcribe`;
         const fallbackEndpoint = `${baseUrl}/v1/audio/transcriptions`;
 
+        /** @type {Response | null} */
         let resp = null;
         /** @type {{ segments?: Array<any> } | null} */
         let data = null;
@@ -569,10 +575,10 @@ async function handleWhisperXTranscription(args, context) {
         });
 
     } catch (err) {
-        if (err.name === 'AbortError') {
+        if (/** @type {Error} */ (err).name === 'AbortError') {
             return { error: 'WhisperX transcription timed out (5 minutes). The file may be too large.' };
         }
-        const safeMsg = (err.message || '').replace(/[A-Za-z0-9_\-]{32,}/g, '[REDACTED]');
+        const safeMsg = (/** @type {Error} */ (err).message || '').replace(/[A-Za-z0-9_\-]{32,}/g, '[REDACTED]');
         log.error('[Transcription:WhisperX] Error:', safeMsg);
         return { error: `WhisperX transcription failed: ${safeMsg}` };
     }
@@ -615,11 +621,11 @@ async function handleScalewayTranscription(args, context) {
             identifyNames: (ids, lines) => identifySpeakerNames(ids, language, lines, args.userName),
         });
     } catch (err) {
-        const safeMsg = (err.message || '').replace(/[A-Za-z0-9_\-]{32,}/g, '[REDACTED]');
+        const safeMsg = (/** @type {Error} */ (err).message || '').replace(/[A-Za-z0-9_\-]{32,}/g, '[REDACTED]');
         log.error('[Transcription:Scaleway] Error:', safeMsg);
         return { error: `Scaleway transcription failed: ${safeMsg}` };
     } finally {
-        try { fs.unlinkSync(tmpPath); } catch (err) { log.debug('ignore', err); }
+        try { fs.unlinkSync(tmpPath); } catch (err) { bestEffort('integrations/transcriptionTools:handleScalewayTranscription', err); /* ignore */ }
     }
 }
 
@@ -677,12 +683,12 @@ async function handleLocalTranscription(args, context) {
         });
     } catch (err) {
         if (err?.code === 'local_whisper_too_long' || err?.code === 'npu_whisper_too_long') {
-            return { error: `${err.message} Use a cloud transcription provider for recordings this long.` };
+            return { error: `${/** @type {Error} */ (err).message} Use a cloud transcription provider for recordings this long.` };
         }
-        log.error('[Transcription:Local] Error:', err.message);
-        return { error: `Local transcription failed: ${err.message}` };
+        log.error('[Transcription:Local] Error:', /** @type {Error} */ (err).message);
+        return { error: `Local transcription failed: ${/** @type {Error} */ (err).message}` };
     } finally {
-        try { fs.unlinkSync(tmpPath); } catch (err) { log.debug('ignore', err); }
+        try { fs.unlinkSync(tmpPath); } catch (err) { bestEffort('integrations/transcriptionTools:handleLocalTranscription', err); /* ignore */ }
     }
 }
 
@@ -691,6 +697,9 @@ async function handleLocalTranscription(args, context) {
 /** Providers an internal caller may force via `args.provider`. */
 const KNOWN_PROVIDERS = ['voxtral', 'azure', 'whisper_azure', 'whisperx', 'scaleway', 'pyannote', 'local'];
 
+/**
+ * @param {string} toolName
+ */
 async function executeTranscriptionTool(toolName, args, context = {}) {
     const { userId } = context;
     if (!userId) return { error: 'User context required for transcription.' };
@@ -716,6 +725,9 @@ async function executeTranscriptionTool(toolName, args, context = {}) {
     return { error: `Unknown transcription tool: ${toolName}` };
 }
 
+/**
+ * @param {string} toolName
+ */
 function isTranscriptionTool(toolName) {
     return ['transcribe_audio'].includes(toolName);
 }
@@ -732,3 +744,17 @@ module.exports = {
     computeWhisperBatchTimeouts,
     azureDiarizationSpeakers,
 };
+
+/**
+ * A chat attachment as the dispatcher hands it on.
+ * @typedef {{ name?: string, filename?: string, type?: string, path?: string, url?: string,
+ *   data?: string | Buffer, content?: string | Buffer }} AudioAttachment
+ */
+
+/** @typedef {{ userId?: string, session?: unknown, attachments?: AudioAttachment[], req?: unknown }} TranscriptionContext */
+
+/**
+ * The tool arguments: the model's, plus the upload routes' file and provider.
+ * @typedef {{ language?: string, context_terms?: string, contextTerms?: string, timestamp_granularity?: 'segment' | 'word',
+ *   filePath?: string, fileName?: string, userName?: string, provider?: string }} TranscriptionArgs
+ */

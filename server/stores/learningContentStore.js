@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 // Org-authored Academy content over configStore (pattern: cmsStore — no new
 // DB table, draft vs published snapshots).
 //
@@ -21,8 +21,21 @@
 const crypto = require('crypto');
 const configStore = require('./configStore');
 
+/**
+ * @param {string | undefined} orgId
+ */
 const indexKey = (orgId) => `learning_content_index_org_${orgId}`;
+/**
+ * @param {boolean} published
+ * @param {string | undefined} orgId
+ * @param {string | string[]} courseId
+ */
 const courseKey = (orgId, courseId, published) => `learning_course_${published ? 'pub_' : ''}org_${orgId}_${courseId}`;
+/**
+ * @param {boolean} published
+ * @param {string | undefined} orgId
+ * @param {string} lessonId
+ */
 const lessonKey = (orgId, lessonId, published) => `learning_lesson_${published ? 'pub_' : ''}org_${orgId}_${lessonId}`;
 
 const ORG_COURSE_PREFIX = 'orgc-';
@@ -43,14 +56,30 @@ const LIMITS = {
 
 function mintCourseId() { return ORG_COURSE_PREFIX + crypto.randomBytes(6).toString('hex'); }
 function mintLessonId() { return ORG_LESSON_PREFIX + crypto.randomBytes(6).toString('hex'); }
+/**
+ * @param {string | string[]} id
+ */
 function isOrgCourseId(id) { return typeof id === 'string' && id.startsWith(ORG_COURSE_PREFIX); }
+/** @param {string | string[]} id */
 function isOrgLessonId(id) { return typeof id === 'string' && id.startsWith(ORG_LESSON_PREFIX); }
 
 /* ── Validation (used by the admin routes before any write) ──────────────── */
 
+/**
+/**
+ * @param {unknown} value
+ * @param {number} max
+ */
 function trimTo(value, max) { return String(value ?? '').slice(0, max).trim(); }
 
 // Returns { doc, error } — a normalized LessonDoc or a human-readable error.
+/**
+ * @typedef {{ id?: string, title?: unknown, desc?: unknown, icon?: unknown, estMinutes?: unknown, steps?: unknown }} LessonInput
+ * @typedef {{ type: string, id: string, choices?: { correct?: boolean }[], rubric?: unknown }} LessonStep
+ * @typedef {{ courseId: string, title?: string, status?: string, updatedAt?: string }} CourseIndexEntry
+ */
+
+/** @param {LessonInput} input */
 function validateLessonDoc(input) {
     if (!input || typeof input !== 'object') return { error: 'Lesson must be an object' };
     const title = trimTo(input.title, LIMITS.maxTitleChars);
@@ -69,14 +98,14 @@ function validateLessonDoc(input) {
             steps.push({ type: 'slide', id, icon: trimTo(s.icon, 8) || '📘', titleFallback: trimTo(s.title, LIMITS.maxTitleChars), bodyMdFallback: body });
         } else if (s.type === 'quiz') {
             const choices = (Array.isArray(s.choices) ? s.choices : []).slice(0, LIMITS.maxChoices)
-                .map((c, j) => ({
+                .map((/** @type {{ id?: string, label?: unknown, labelFallback?: unknown, correct?: unknown } | null} */ c, /** @type {number} */ j) => ({
                     id: trimTo(c?.id, 32) || `c${j + 1}`,
                     labelFallback: trimTo(c?.label ?? c?.labelFallback, LIMITS.maxChoiceChars),
                     correct: !!c?.correct,
                 }))
-                .filter((c) => c.labelFallback);
+                .filter((/** @type {{ labelFallback: string, correct: boolean }} */ c) => c.labelFallback);
             if (choices.length < 2) return { error: `Quiz step ${i + 1} needs at least 2 choices` };
-            if (!choices.some((c) => c.correct)) return { error: `Quiz step ${i + 1} needs a correct choice` };
+            if (!choices.some((/** @type {{ correct: boolean }} */ c) => c.correct)) return { error: `Quiz step ${i + 1} needs a correct choice` };
             steps.push({
                 type: 'quiz', id, icon: trimTo(s.icon, 8) || '❓',
                 titleFallback: trimTo(s.title, LIMITS.maxTitleChars) || 'Quick check',
@@ -88,7 +117,7 @@ function validateLessonDoc(input) {
         } else if (s.type === 'exercise') {
             const task = trimTo(s.task, LIMITS.maxDescChars);
             const criteria = (Array.isArray(s.criteria) ? s.criteria : [])
-                .map((c) => trimTo(c, LIMITS.maxCriterionChars)).filter(Boolean).slice(0, LIMITS.maxCriteria);
+                .map((/** @type {unknown} */ c) => trimTo(c, LIMITS.maxCriterionChars)).filter(Boolean).slice(0, LIMITS.maxCriteria);
             if (!task) return { error: `Exercise step ${i + 1} needs a task` };
             if (!criteria.length) return { error: `Exercise step ${i + 1} needs at least one rubric criterion` };
             const passScore = Number.isFinite(+s.passScore) ? Math.max(1, Math.min(100, Math.round(+s.passScore))) : 70;
@@ -117,6 +146,7 @@ function validateLessonDoc(input) {
     };
 }
 
+/** @param {{ id?: string, title?: unknown, desc?: unknown, icon?: unknown, level?: string, lessonIds?: unknown, badgeTitle?: unknown, badgeIcon?: unknown, badge?: { title?: unknown, icon?: unknown } }} input */
 function validateCourseDoc(input) {
     if (!input || typeof input !== 'object') return { error: 'Course must be an object' };
     const title = trimTo(input.title, LIMITS.maxTitleChars);
@@ -149,6 +179,7 @@ function validateCourseDoc(input) {
 // marked serverGraded so the player calls POST /quiz/grade instead) and the
 // whole exercise rubric (the coach endpoint resolves it server-side by
 // `${lessonId}:${stepId}`).
+/** @param {{ id: string, steps?: LessonStep[] } | null | undefined} lessonDoc */
 function publicLessonView(lessonDoc) {
     if (!lessonDoc) return null;
     return {
@@ -168,21 +199,36 @@ function publicLessonView(lessonDoc) {
 
 /* ── CRUD ────────────────────────────────────────────────────────────────── */
 
+/**
+ * @param {string | undefined} orgId
+ */
 async function listCourses(orgId) {
     const index = await configStore.getConfig(indexKey(orgId));
     return Array.isArray(index) ? index : [];
 }
 
+/**
+ * @param {string | undefined} orgId
+ * @param {string | string[]} courseId
+ */
 async function getCourse(orgId, courseId, { published = false } = {}) {
     if (!isOrgCourseId(courseId)) return null;
     return (await configStore.getConfig(courseKey(orgId, courseId, published))) || null;
 }
 
+/**
+ * @param {string | undefined} orgId
+ * @param {string} lessonId
+ */
 async function getLesson(orgId, lessonId, { published = false } = {}) {
     if (!isOrgLessonId(lessonId)) return null;
     return (await configStore.getConfig(lessonKey(orgId, lessonId, published))) || null;
 }
 
+/**
+ * @param {string | undefined} orgId
+ * @param {(index: CourseIndexEntry[]) => CourseIndexEntry[]} mutate
+ */
 async function _writeIndex(orgId, mutate) {
     const index = await listCourses(orgId);
     const next = mutate(index);
@@ -190,6 +236,10 @@ async function _writeIndex(orgId, mutate) {
     return next;
 }
 
+/**
+ * @param {string | undefined} orgId
+ * @param {{ id: string, title?: string, updatedAt?: string, [key: string]: unknown }} doc
+ */
 async function saveCourse(orgId, doc) {
     const index = await listCourses(orgId);
     const exists = index.some((e) => e.courseId === doc.id);
@@ -205,11 +255,19 @@ async function saveCourse(orgId, doc) {
     return { doc };
 }
 
+/**
+ * @param {string | undefined} orgId
+ * @param {{ id: string }} doc
+ */
 async function saveLesson(orgId, doc) {
     await configStore.setConfig(lessonKey(orgId, doc.id, false), doc);
     return { doc };
 }
 
+/**
+ * @param {string | undefined} orgId
+ * @param {string | string[]} courseId
+ */
 async function deleteCourse(orgId, courseId) {
     const course = await getCourse(orgId, courseId);
     for (const lessonId of course?.lessonIds || []) {
@@ -223,6 +281,10 @@ async function deleteCourse(orgId, courseId) {
 }
 
 // Copy the draft course + all its lessons to the published snapshot keys.
+/**
+ * @param {string | undefined} orgId
+ * @param {string | string[]} courseId
+ */
 async function publishCourse(orgId, courseId) {
     const course = await getCourse(orgId, courseId);
     if (!course) return { error: 'Course not found' };
@@ -237,6 +299,10 @@ async function publishCourse(orgId, courseId) {
     return { course };
 }
 
+/**
+ * @param {string | undefined} orgId
+ * @param {string | string[]} courseId
+ */
 async function unpublishCourse(orgId, courseId) {
     const course = await getCourse(orgId, courseId, { published: true });
     for (const lessonId of course?.lessonIds || []) {
@@ -249,6 +315,9 @@ async function unpublishCourse(orgId, courseId) {
 
 // All published courses with their published lessons — the catalog overlay's
 // input. Returns [{ course, lessons: LessonDoc[] }].
+/**
+ * @param {string} orgId
+ */
 async function getPublishedCourses(orgId) {
     const index = await listCourses(orgId);
     const out = [];
@@ -267,11 +336,15 @@ async function getPublishedCourses(orgId) {
 
 // Resolve an org exercise rubric by its public exerciseId `${lessonId}:${stepId}`
 // — always from the PUBLISHED snapshot (drafts are never gradeable).
+/**
+ * @param {string} orgId
+ * @param {string} exerciseId
+ */
 async function findRubric(orgId, exerciseId) {
     const [lessonId, stepId] = String(exerciseId || '').split(':');
     if (!isOrgLessonId(lessonId) || !stepId) return null;
     const lesson = await getLesson(orgId, lessonId, { published: true });
-    const step = (lesson?.steps || []).find((s) => s.type === 'exercise' && s.id === stepId);
+    const step = (lesson?.steps || []).find((/** @type {LessonStep} */ s) => s.type === 'exercise' && s.id === stepId);
     return step?.rubric || null;
 }
 

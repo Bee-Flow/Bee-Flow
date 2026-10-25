@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * stores/studioApp/deps.js — what the studio-app modules get from the barrel
  * instead of requiring it themselves: the db handle, the logger, and the

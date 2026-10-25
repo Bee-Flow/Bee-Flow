@@ -68,7 +68,10 @@ function isFormulaCell(ExcelJS, cell) {
     return !!v && typeof v === 'object' && ('formula' in v || 'sharedFormula' in v);
 }
 
-/** The header's column span: 1..last non-empty header cell. */
+/**
+ * The header's column span: 1..last non-empty header cell.
+ * @param {number} headerRow
+ */
 function headerSpan(ws, headerRow) {
     let span = 0;
     ws.getRow(headerRow).eachCell({ includeEmpty: false }, (cell, col) => {
@@ -80,7 +83,11 @@ function headerSpan(ws, headerRow) {
     return span;
 }
 
-/** The highest row with a value inside the header's span (the header row when there is none). */
+/**
+ * The highest row with a value inside the header's span (the header row when there is none).
+ * @param {number} headerRow
+ * @param {number} span
+ */
 function lastDataRowOf(ws, headerRow, span) {
     let last = headerRow;
     ws.eachRow({ includeEmpty: false }, (row, n) => {
@@ -137,7 +144,7 @@ async function editInPlace(buffer, { sheet, headerRow = 1, ops = [] }) {
         await wb.xlsx.load(buffer);
     } catch (e) {
         throw new SpreadsheetSourceError(422, 'spreadsheet_rejected',
-            `The .xlsx file could not be opened for editing: ${String(e && e.message || e).slice(0, 120)}`);
+            `The .xlsx file could not be opened for editing: ${String(e && /** @type {Error} */ (e).message || e).slice(0, 120)}`);
     }
     const ws = pickWorksheet(wb, sheet);
     const span = headerSpan(ws, h);
@@ -146,6 +153,7 @@ async function editInPlace(buffer, { sheet, headerRow = 1, ops = [] }) {
             `Worksheet "${ws.name}" has no header row there any more.`, { ref: { sheet: ws.name } });
     }
     let lastDataRow = lastDataRowOf(ws, h, span);
+    /** @type {{ row: number; col: number; reason: string; }[]} */
     const skipped = [];
     const list = Array.isArray(ops) ? ops : [];
 
@@ -156,6 +164,9 @@ async function editInPlace(buffer, { sheet, headerRow = 1, ops = [] }) {
         }
         return n;
     };
+    /**
+     * @param {number} n
+     */
     const setCells = (row, n, cellsByCol) => {
         for (const [colKey, value] of Object.entries(cellsByCol || {})) {
             const col = Number(colKey);
@@ -179,6 +190,7 @@ async function editInPlace(buffer, { sheet, headerRow = 1, ops = [] }) {
         lastDataRow -= 1;
     }
 
+    /** @type {number[]} */
     const appended = [];
     for (const op of list.filter(o => o && o.op === 'append')) {
         const n = lastDataRow + 1;

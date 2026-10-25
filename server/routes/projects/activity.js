@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * What happens in a project, as it happens, and the caller's own quiet switch.
  *
@@ -25,11 +25,11 @@ const { makeProjectStreamHandler } = require('./collabStream');
 
 /**
  * @param {object} deps
- * @param {Function} deps.requireProjectRole        (minRole) => middleware named requireProjectRoleMw
+ * @param {(minRole: string) => import('express').RequestHandler} deps.requireProjectRole        (minRole) => middleware named requireProjectRoleMw
  * @param {any}   deps.projectStore              stores/projectStore
  * @param {any}   deps.notificationPrefsStore    stores/notificationPrefsStore
  * @param {Function} deps.getUserId                 (req) => the caller's user id
- * @param {Function} deps.perUserRateLimit          utils/perUserRateLimit perUserRateLimit
+ * @param {typeof import('../../utils/perUserRateLimit').perUserRateLimit} deps.perUserRateLimit         utils/perUserRateLimit perUserRateLimit
  * @param {Function} deps.projectFiles              () => projects/projectFiles (loaded on first use)
  * @param {Function} deps.projectEventBus           () => core/projectEventBus (loaded on first use)
  */
@@ -40,21 +40,21 @@ function makeActivityRouter(deps) {
 
     // ── Mute: stop the bell and the mail for this project (mine only) ─
 
-    router.put('/:id/mute', requireRole('viewer'), validate({ body: S.MuteBody }), async (req, res) => {
+    router.put('/:id/mute', requireRole('viewer'), validate({ body: S.MuteBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         await notificationPrefsStore.setMuted(getUserId(req), req.params.id, true);
         res.json({ muted: true });
     });
 
-    router.delete('/:id/mute', requireRole('viewer'), async (req, res) => {
+    router.delete('/:id/mute', requireRole('viewer'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         await notificationPrefsStore.setMuted(getUserId(req), req.params.id, false);
         res.json({ muted: false });
     });
 
     // ── Activity feed ────────────────────────────────────────
 
-    router.get('/:id/activity', requireRole('viewer'), validate({ query: S.PageQuery }), async (req, res) => {
-        const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
-        const offset = parseInt(req.query.offset, 10) || 0;
+    router.get('/:id/activity', requireRole('viewer'), validate({ query: S.PageQuery }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
+        const limit = Math.min(parseInt(/** @type {string} */ (req.query.limit), 10) || 50, 200);
+        const offset = parseInt(/** @type {string} */ (req.query.offset), 10) || 0;
         // Fetch one extra row to cheaply detect "more available" without a
         // second COUNT(*) query against the activity table.
         const items = await projectStore.listActivity(req.params.id, limit + 1, offset);
@@ -84,9 +84,9 @@ function makeActivityRouter(deps) {
     // from turning presence into a flood on every open stream of the project.
     const typingLimiter = perUserRateLimit({
         windowMs: 10_000, max: 20, name: 'project-typing',
-        keyFn: (req) => `${req.session?.user?.id || req.ip}:${req.params?.id || ''}`,
+        keyFn: (/** @type {import('express').Request} */ req) => `${req.session?.user?.id || req.ip}:${req.params?.id || ''}`,
     });
-    router.post('/:id/typing', requireRole('viewer'), typingLimiter, validate({ body: S.TypingBody }), async (req, res) => {
+    router.post('/:id/typing', requireRole('viewer'), typingLimiter, validate({ body: S.TypingBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         try {
             const bus = projectEventBus();
             await bus.publishTransient(req.params.id, {

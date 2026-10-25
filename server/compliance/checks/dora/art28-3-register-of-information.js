@@ -49,6 +49,10 @@ function _asArray(value) {
     return Array.isArray(v) ? v : [];
 }
 
+/**
+ * @param {number} [max]
+ * @param {string} v
+ */
 function _str(v, max = 120) {
     return typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null;
 }
@@ -92,6 +96,9 @@ module.exports = {
     remediationKey: 'compliance.check_dora_register_fix',
     remediationLink: 'admin/compliance/ropa',
 
+    /**
+     * @param {string} orgId
+     */
     async evaluate(orgId) {
         const settings = (await complianceStore.getSettings(orgId)) || {};
         const relevance = _relevance(settings);
@@ -170,6 +177,7 @@ module.exports = {
                 details: `${register.length} ICT third-party provider(s) observed (${evidence.unattested.join(', ')}) but none is recorded in the register. Art. 28(3) requires a register of every ICT arrangement with contract reference and criticality — confirm each operator under Compliance → ROPA.` + relevanceNote,
             };
         }
+        /** @type {string[]} */
         const gaps = [];
         if (evidence.unattested.length) gaps.push(`${evidence.unattested.length} observed operator(s) are not in the register (${evidence.unattested.join(', ')})`);
         if (evidence.missing_contract_ref.length) gaps.push(`${evidence.missing_contract_ref.length} lack a contract reference (${evidence.missing_contract_ref.join(', ')})`);

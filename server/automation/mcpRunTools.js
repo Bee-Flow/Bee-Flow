@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * The tools of the automations MCP server that work on runs, on saved test data

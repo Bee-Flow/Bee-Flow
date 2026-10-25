@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**

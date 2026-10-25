@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Public-share AI bridge script (server-emitted).
  *
@@ -49,6 +49,14 @@
 
 const { buildBfNoticeScript, jsonLiteral } = require('./bfBridgeNotices');
 
+/**
+ * @typedef {Object} BuildPublicBridgeScriptArgs
+ * @property {string} [token]
+ * @property {string} [apiBase]
+ */
+/**
+ * @param {BuildPublicBridgeScriptArgs} param0
+ */
 function buildPublicBridgeScript({ token, apiBase }) {
     // jsonLiteral, not JSON.stringify: a `</script>` in a value would cut the bridge in two and make everything
     // after it (among others beeflowIntegrations) disappear.

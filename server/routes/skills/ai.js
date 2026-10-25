@@ -50,6 +50,7 @@ const {
 } = require('../../core/skills/skillDraft');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * A drafting call is one model call on somebody's keystroke. Ten a minute is
@@ -60,19 +61,23 @@ const limiter = perUserRateLimit({ windowMs: 60_000, max: 10 });
 
 const MAX_TOKENS = 2000;
 
+/** @param {import('express').Request} req */
 async function orgIdOf(req) {
     const userStore = require('../../stores/userStore');
     const user = await userStore.getUser(req.session.user.id);
     return user?.organizationId || null;
 }
 
-/** The fast tier, with the global default behind it — `learning.js`'s resolver. */
+/**
+ * The fast tier, with the global default behind it — `learning.js`'s resolver.
+ * @param {{ userId: string, userOrgId: string | null }} who
+ */
 async function resolveModel({ userId, userOrgId }) {
     const { resolveModelForTier, resolveModelWithGlobalFallback } = require('../../core/llm/modelResolver');
     try {
         const resolved = await resolveModelForTier('tier:fast', { userOrgId, userId, fallbackTier: 'fast' });
         if (resolved) return resolved;
-    } catch (err) { log.debug('fall through', err); }
+    } catch (err) { bestEffort('routes/skills/ai:resolveModel', err); /* fall through */ }
     try {
         return await resolveModelWithGlobalFallback('tier:fast', { userOrgId, userId });
     } catch (_) {
@@ -85,6 +90,7 @@ async function resolveModel({ userId, userOrgId }) {
  * without this the Test/Improve buttons would spend tokens that never appear
  * in anybody's usage — the one place a self-hosted customer looks to find
  * out what their AI costs.
+ * @param {{ userId: string, userOrgId: string | null, modelId: string, usage: import('../../core/providers/usageNormalizer').RawUsage | null | undefined, startMs: number, source: string }} entry
  */
 async function logDraftUsage({ userId, userOrgId, modelId, usage, startMs, source }) {
     try {
@@ -106,7 +112,10 @@ async function logDraftUsage({ userId, userOrgId, modelId, usage, startMs, sourc
     }
 }
 
-/** Ask the model for a skill. Returns `{ structured, usage, modelId }` or null when no model is configured. */
+/**
+ * Ask the model for a skill. Returns `{ structured, usage, modelId }` or null when no model is configured.
+ * @param {{ messages: Parameters<typeof import('../../core/llm/llmClient').chatForcedTool>[1], userId: string, userOrgId: string | null, source: string }} ask
+ */
 async function askForDraft({ messages, userId, userOrgId, source }) {
     const modelId = await resolveModel({ userId, userOrgId });
     if (!modelId) return null;
@@ -135,6 +144,10 @@ function unusable() {
 // One sentence in, a whole skill out. NOT stored: the caller decides what to
 // keep, and a route that created a skill as a side effect of a suggestion
 // would leave a trail of half-written rows behind every abandoned attempt.
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function draft(req, res) {
     const sentence = String(req.body?.sentence || '').trim().slice(0, MAX_SENTENCE_CHARS);
     if (!sentence) {
@@ -157,6 +170,10 @@ async function draft(req, res) {
 }
 
 // ── POST /api/skills/:id/ai/improve ──────────────────────────────────
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function improve(req, res) {
     try {
         const skillStore = require('../../stores/skillStore');

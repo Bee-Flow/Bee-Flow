@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Knowledge Bases — shared route helpers.
  *
@@ -24,8 +24,10 @@ const log = require('../../telemetry/log');
 // Beta-feature ids that map 1:1 to a system_slug on a system-managed KB. The
 // chat KB picker should only surface a system KB when the user's org has the
 // matching beta feature enabled. New system KBs append a slug here.
+/** @type {string[]} */
 const SYSTEM_KB_BETA_SLUGS = [];
 
+/** @param {import('express').Request} req */
 async function resolveEnabledSystemSlugs(req) {
     const userId = req.session?.user?.id;
     if (!userId) return [];
@@ -36,7 +38,7 @@ async function resolveEnabledSystemSlugs(req) {
     const enabled = [];
     for (const slug of SYSTEM_KB_BETA_SLUGS) {
         try { if (await userHasBetaFeature(userId, slug, req.session)) enabled.push(slug); }
-        catch (err) { log.debug('skip this slug on resolve failure', err); }
+        catch (err) { fallback('routes/knowledgeBases/shared:resolveEnabledSystemSlugs', err); /* skip this slug on resolve failure */ }
     }
     return enabled;
 }
@@ -59,19 +61,28 @@ const SEARCH_SERVICE_URL = process.env.SEARCH_SERVICE_URL || 'https://services.b
 const { SURFACES } = require('../../core/kb/usageContexts');
 const VALID_USAGE_CONTEXTS = new Set(SURFACES);
 
-/** Parse the optional ?context= query into a single valid usage-context value, or null. */
+/**
+ * Parse the optional ?context= query into a single valid usage-context value, or null.
+ * @param {{ query: { context?: string } }} req
+ */
 function parseContextQuery(req) {
     const v = (req.query.context || '').trim();
     return VALID_USAGE_CONTEXTS.has(v) ? v : null;
 }
 
-/** Parse the optional ?excludeContext= query (inverse of ?context=). */
+/**
+ * Parse the optional ?excludeContext= query (inverse of ?context=).
+ * @param {{ query: { excludeContext?: string } }} req
+ */
 function parseExcludeContextQuery(req) {
     const v = (req.query.excludeContext || '').trim();
     return VALID_USAGE_CONTEXTS.has(v) ? v : null;
 }
 
-/** Build the listKBs filter options from request query (?context, ?excludeContext, ?includeAuto). */
+/**
+ * Build the listKBs filter options from request query (?context, ?excludeContext, ?includeAuto).
+ * @param {{ query: { context?: string, excludeContext?: string, includeAuto?: string } }} req
+ */
 function listFilterFromQuery(req) {
     return {
         sourceKind: req.query.includeAuto === '1' ? null : 'manual',
@@ -80,7 +91,10 @@ function listFilterFromQuery(req) {
     };
 }
 
-/** Validate + normalise a usageContexts payload from the client. */
+/**
+ * Validate + normalise a usageContexts payload from the client.
+ * @param {unknown} value
+ */
 function sanitizeUsageContexts(value) {
     if (!Array.isArray(value)) return null;
     const cleaned = Array.from(new Set(value.filter(v => VALID_USAGE_CONTEXTS.has(v))));
@@ -101,11 +115,13 @@ function sanitizeUsageContexts(value) {
 const { guardedFetch } = require('../../core/kb/fetchGuard');
 
 // Auth helper
+/** @param {import('express').Request} req */
 const getUserId = (req) => req.session?.user?.id || null;
 
 // Resolve user's group IDs (used for shared_groups filtering) — delegates
 // to the audience home (auth/audience.js), the single source of truth for
 // fresh-from-DB group resolution.
+/** @param {import('express').Request} req */
 const resolveUserGroups = (req) => resolveUserGroupsById(getUserId(req));
 
 // The KB access check + org-admin resolution now live in support/kbAccess.js so
@@ -118,6 +134,8 @@ const { canAccessKB, resolveIsOrgAdmin } = require('../../support/kbAccess');
  * publish route's owner-or-manager policy but adds same-org scoping.
  * Does NOT grant content read access — GET/document/search routes keep
  * canAccessKB.
+ * @param {import('express').Request} req
+ * @param {Record<string, any>} kb
  */
 async function canManageKB(req, kb) {
     const userId = getUserId(req);
@@ -130,6 +148,8 @@ async function canManageKB(req, kb) {
  * Guard for mutating routes. System-managed KBs are read-only — their content
  * is owned by Bee Flow and refreshed by the ingest script. Returns true and
  * sends a 403 when the request should be aborted, false otherwise.
+ * @param {Record<string, any> | null | undefined} kb
+ * @param {import('express').Response} res
  */
 function blockIfSystemKB(kb, res) {
     if (kbStore.isSystemKB(kb)) {
@@ -157,6 +177,7 @@ function blockIfSystemKB(kb, res) {
  * it by the name they always have.
  */
 const { ensureKbSource } = require('../../core/kb/sources/ensureSource');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * Add the K1 aggregates to KB rows for the list endpoints: numeric counters,
@@ -165,10 +186,12 @@ const { ensureKbSource } = require('../../core/kb/sources/ensureSource');
  *
  * Additive only — every snake_case field mobile reads (document_count,
  * total_chunks, last_content_at, …) is left exactly where it was.
+ * @param {Record<string, any>[]} kbs
  */
 async function decorateKbList(kbs) {
     const list = Array.isArray(kbs) ? kbs : [];
     if (list.length === 0) return list;
+    /** @type {Awaited<ReturnType<typeof import('../../stores/kbSources').countsByKb>>} */
     let counts = {};
     try {
         counts = await require('../../stores/kbSources').countsByKb(list.map(k => k.id));
@@ -177,7 +200,7 @@ async function decorateKbList(kbs) {
         counts = {};
     }
     return list.map((kb) => {
-        const c = counts[kb.id] || {};
+        const c = counts[kb.id] || /** @type {Partial<typeof counts[string]>} */ ({});
         return {
             ...kb,
             documentCount: Number(kb.document_count || 0),

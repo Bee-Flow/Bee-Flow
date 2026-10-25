@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 // §WS5 #4 — builder catalog endpoints, extracted verbatim from routes/automation.js.
 const express = require('express');
 const log = require('../../telemetry/log');
@@ -13,6 +13,7 @@ const {
 const {
     KNOWLEDGE_WRITE_STRATEGIES, DATATABLE_OPS, loadDatatables, loadKnowledgeBases, loadAgents,
 } = require('./catalogPickers');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 /**
  * Can a `code` step an author writes today actually RUN? The palette's copy
@@ -36,7 +37,7 @@ function resolveCodeStepGate() {
     try {
         const sandbox = require('../../automation/codeSandbox');
         if (typeof sandbox.isAvailable === 'function' && sandbox.isAvailable()) return { enabled: true, reason: null };
-    } catch (err) { log.debug('The module itself would not load: the step cannot run here either.', err); }
+    } catch (err) { bestEffort('routes/automation/catalog:resolveCodeStepGate', err); /* The module itself would not load: the step cannot run here either. */ }
     return { enabled: false, reason: 'runtime' };
 }
 
@@ -79,7 +80,7 @@ router.get('/catalog', async (req, res) => {
     // Trigger output field/sample catalog — useUpstreamVariables reads this
     // to expose `trigger.output.*` variables in the binding picker.
     let triggerOutputs = {};
-    try { triggerOutputs = require('../../automation/builderTools').buildTriggerOutputsCatalog(); } catch (err) { log.debug('keep empty', err); }
+    try { triggerOutputs = require('../../automation/builderTools').buildTriggerOutputsCatalog(); } catch (err) { fallback('routes/automation/catalog:anon', err); /* keep empty */ }
 
     // Dynamic app_event provider list — availability derives ONLY from the
     // strict getIntegrationTools result above (same fail-closed authority
@@ -176,7 +177,7 @@ router.get('/catalog/form-pick-sources', async (req, res) => {
     let userToolNames = new Set();
     try {
         ({ userToolNames } = await loadUserTools(req, req.session.user.id));
-    } catch (err) { log.debug('a tools module that will not load: every source reads unavailable', err); }
+    } catch (err) { bestEffort('routes/automation/catalog:anon#2', err); /* a tools module that will not load: every source reads unavailable */ }
     res.json({ sources: buildFormPickSources(userToolNames) });
 });
 

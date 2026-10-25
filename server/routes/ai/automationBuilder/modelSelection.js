@@ -1,3 +1,4 @@
+/** @typedef {import('./turnSetup').BuilderTurn} BuilderTurn */
 // @typecheck
 /**
  * Automation Builder — which model a turn runs on: the `auto` classification
@@ -18,7 +19,10 @@ const { cheapestTier } = require('../../../core/entitlements/tierAccess');
 const { getProfileForModel } = require('../../../automation/builderModelProfiles');
 const { applyBuilderTierFloor } = require('../builderShared');
 
-/** Resolve the turn's model. False when the turn ended (no model configured). */
+/**
+ * Resolve the turn's model. False when the turn ended (no model configured).
+ * @param {BuilderTurn} turn
+ */
 async function resolveTurnModel(turn) {
     const { res, send, userId, message, modelTier, userOrgForTiers, tiers, requestedTier, permittedTiers, autoTiers, draftWrap } = turn;
     // Resolve model — mirrors the direct-chat flow (server/routes/ai/directChat.js)
@@ -47,7 +51,7 @@ async function resolveTurnModel(turn) {
             resolvedTier = autoTiers[result.tier] ? result.tier : cheapestOwn;
             log.info(`[AutomationBuilder] Auto: tier="${resolvedTier}" (${result.method}: ${result.reason}${resolvedTier === result.tier ? '' : `; "${result.tier}" is not this user's`})`);
         } catch (err) {
-            log.info(`[AutomationBuilder] Auto classification failed: ${err.message}, using ${cheapestOwn}`);
+            log.info(`[AutomationBuilder] Auto classification failed: ${/** @type {Error} */ (err).message}, using ${cheapestOwn}`);
             resolvedTier = cheapestOwn;
         }
     }

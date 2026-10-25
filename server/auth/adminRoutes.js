@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Admin Routes — User, Organization, Group, Role CRUD + App Passwords
  * 

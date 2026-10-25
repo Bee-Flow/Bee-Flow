@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * ISO 27001 A.8.32 — changes demonstrably run through tickets. Reads the
  * YouTrack connector snapshot: issue activity in the designated operations
@@ -23,6 +24,9 @@ module.exports = {
     remediationKey: 'compliance.checks.iso_ticketed_changes.fix',
     remediationLink: 'admin/compliance/iso_connectors',
 
+    /**
+     * @param {string} orgId
+     */
     async evaluate(orgId) {
         const read = await readConnectorSnapshots(orgId, 'youtrack', 'YouTrack connector not enabled — link a permanent token and set the operations project under ISO 27001 → Connectors.');
         if (read.result) return read.result;

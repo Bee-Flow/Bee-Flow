@@ -11,6 +11,10 @@ const log = require('../../telemetry/log');
 /**
  * Read one slot's contents from RustFS. Returns '' if the object doesn't
  * exist (treated as empty).
+ * @param {string} userId
+ * @param {string} webpageId
+ * @param {string} slot
+ * @param {string | null} [versionId]
  */
 async function readSlot(userId, webpageId, slot, versionId = null) {
     if (!storageStore.isAvailable()) return '';
@@ -22,13 +26,16 @@ async function readSlot(userId, webpageId, slot, versionId = null) {
         return Buffer.concat(chunks).toString('utf8');
     } catch (err) {
         // NoSuchKey is expected for empty/optional slots.
-        if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) return '';
+        if (/** @type {Error} */ (err)?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) return '';
         throw err;
     }
 }
 
 /**
  * Read all three slots in parallel.
+ * @param {string} userId
+ * @param {string} webpageId
+ * @param {string | null} [versionId]
  */
 async function readAllSlots(userId, webpageId, versionId = null) {
     const [html, css, js] = await Promise.all(
@@ -40,6 +47,10 @@ async function readAllSlots(userId, webpageId, versionId = null) {
 /**
  * Write one slot's contents to RustFS. Empty content deletes the object
  * so an empty `script.js` doesn't sit around as a 0-byte file.
+ * @param {string} userId
+ * @param {string} webpageId
+ * @param {string} slot
+ * @param {string} content
  */
 async function writeSlot(userId, webpageId, slot, content) {
     if (!storageStore.isAvailable()) {
@@ -57,6 +68,10 @@ async function writeSlot(userId, webpageId, slot, content) {
 
 /**
  * Server-side copy a slot from `current/` into `versions/{vid}/`.
+ * @param {string} userId
+ * @param {string} webpageId
+ * @param {string} versionId
+ * @param {string} slot
  */
 async function copySlotToVersion(userId, webpageId, versionId, slot) {
     if (!storageStore.isAvailable()) return;
@@ -66,7 +81,7 @@ async function copySlotToVersion(userId, webpageId, versionId, slot) {
         await storageStore.copyObject(src, dst);
     } catch (err) {
         // If the source slot is empty (no object), there's nothing to snapshot.
-        if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) return;
+        if (/** @type {Error} */ (err)?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) return;
         throw err;
     }
 }
@@ -77,6 +92,10 @@ async function copySlotToVersion(userId, webpageId, versionId, slot) {
  * `writeSlot` because they need the content for the response payload).
  * Returns `true` if the source object existed and was copied; `false` if
  * the version had no object for this slot (e.g. a pre-DB snapshot).
+ * @param {string} userId
+ * @param {string} webpageId
+ * @param {string} slot
+ * @param {string | null} versionId
  */
 async function restoreSlotFromVersion(userId, webpageId, versionId, slot) {
     if (!storageStore.isAvailable()) return false;
@@ -86,7 +105,7 @@ async function restoreSlotFromVersion(userId, webpageId, versionId, slot) {
         await storageStore.copyObject(src, dst);
         return true;
     } catch (err) {
-        if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) {
+        if (/** @type {Error} */ (err)?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) {
             // No DB in this snapshot — drop the current one too so the restore
             // is a true reset to the snapshot's state.
             try { await storageStore.deleteFile(dst); } catch (_) { log.warn('object could not be deleted from storage', _); }
@@ -102,10 +121,18 @@ async function restoreSlotFromVersion(userId, webpageId, versionId, slot) {
 // the Webpages list can render a real preview tile instead of a generic
 // icon. Owner-prefixed because every webpage lives under its owner's path.
 
+/**
+ * @param {string} webpageId
+ * @param {string} userId
+ */
 function thumbnailKey(userId, webpageId) {
     return `users/${userId}/webpages/${webpageId}/thumbnail.png`;
 }
 
+/**
+ * @param {string} webpageId
+ * @param {string} userId
+ */
 async function writeThumbnail(userId, webpageId, buffer) {
     if (!storageStore.isAvailable()) {
         throw new Error('RustFS not configured — cannot persist thumbnail');
@@ -116,6 +143,10 @@ async function writeThumbnail(userId, webpageId, buffer) {
     return { sha: crypto.createHash('sha256').update(buf).digest('hex'), size: buf.length };
 }
 
+/**
+ * @param {string} webpageId
+ * @param {string} userId
+ */
 async function readThumbnail(userId, webpageId) {
     if (!storageStore.isAvailable()) return null;
     try {
@@ -124,13 +155,14 @@ async function readThumbnail(userId, webpageId) {
         for await (const c of stream) chunks.push(c);
         return Buffer.concat(chunks);
     } catch (err) {
-        if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) return null;
+        if (/** @type {Error} */ (err)?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) return null;
         throw err;
     }
 }
 
 /**
  * Purge every RustFS object under a webpage's prefix. Called on DELETE.
+ * @param {string} webpageId
  */
 async function purgeWebpageObjects(userId, webpageId) {
     if (!storageStore.isAvailable()) return 0;
@@ -142,7 +174,7 @@ async function purgeWebpageObjects(userId, webpageId) {
         }
         return keys.length;
     } catch (err) {
-        log.warn('[WebpageStore] Purge failed:', err.message);
+        log.warn('[WebpageStore] Purge failed:', /** @type {Error} */ (err).message);
         return 0;
     }
 }

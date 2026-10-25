@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The BATCH forms of the write-through (see "BATCH FORMS" in
  * ./writeThrough.js): one source write for a list where the adapter has a
@@ -19,12 +20,21 @@ const {
     assertCtx, assertEditor, assertRowId, ownerFilter, readBack, probeCopy, dropLocal, insertStatement, rewriteCopy,
 } = require('./writeThroughRows');
 
+/** @typedef {import('./writeThroughRows').Writer} Writer */
+/** @typedef {import('./writeThroughRows').WriteCtx} WriteCtx */
+
 /**
  * Run `op` over `items` one by one, honouring `collect` (see the header).
- * @returns {{ results: Array<{index, ...}>, errors: Array<{index, error}>, stopped: boolean }}
+ * @template T
+ * @param {T[]} items
+ * @param {(item: T, index: number) => Promise<object>} op
+ * @param {{ collect?: boolean }} opts
+ * @returns {Promise<{ results: Array<{ index: number, changes?: number, [k: string]: unknown }>, errors: Array<{ index: number, error: unknown }>, stopped: boolean }>}
  */
 async function perRow(items, op, { collect }) {
+    /** @type {Array<{ index: number, changes?: number, [k: string]: unknown }>} */
     const results = [];
+    /** @type {Array<{ index: number, error: unknown }>} */
     const errors = [];
     let stopped = false;
     for (let i = 0; i < items.length; i += 1) {
@@ -39,9 +49,19 @@ async function perRow(items, op, { collect }) {
     return { results, errors, stopped };
 }
 
-/** Wire every item, collecting or throwing per `collect`. */
+/**
+ * Wire every item, collecting or throwing per `collect`.
+ * @template T
+ * @param {Writer} w
+ * @param {WriteCtx} ctx
+ * @param {T[]} items
+ * @param {(item: T) => unknown} pick
+ * @param {{ collect?: boolean }} opts
+ */
 function wireAll(w, ctx, items, pick, { collect }) {
+    /** @type {Array<{ index: number, item: T, wire: unknown }>} */
     const wired = [];
+    /** @type {Array<{ index: number, error: unknown }>} */
     const errors = [];
     for (let i = 0; i < items.length; i += 1) {
         try {
@@ -54,9 +74,16 @@ function wireAll(w, ctx, items, pick, { collect }) {
     return { wired, errors };
 }
 
+/** @param {Array<{ changes?: number }>} results */
 const changedOf = (results) => results.reduce((n, x) => n + (Number(x.changes) || 0), 0);
 
-/** @returns {{ inserted: Array<{index,id,row}>, errors, stopped }} */
+/**
+ * @param {Writer} w
+ * @param {WriteCtx} ctx
+ * @param {unknown[]} list
+ * @param {{ collect?: boolean }} [opts]
+ * @returns {Promise<{ inserted: Array<{ index: number, id?: string, row?: object }>, errors: Array<{ index: number, error: unknown }>, stopped: boolean }>}
+ */
 async function insertRows(w, ctx, list, { collect = false } = {}) {
     assertCtx(w, ctx);
     assertEditor(w, ctx, 'create');
@@ -70,7 +97,9 @@ async function insertRows(w, ctx, list, { collect = false } = {}) {
     const api = await w.adapter.apiFor(ctx);
     // ONE source write for the whole list; a refusal is the whole batch's.
     const raws = await w.adapter.sourceInsertMany(api, ctx, wired.map(x => x.wire));
+    /** @type {Array<{ index: number, id: string, row?: object }>} */
     const inserted = [];
+    /** @type {Array<ReturnType<typeof insertStatement>>} */
     const stmts = [];
     for (let i = 0; i < wired.length; i += 1) {
         const { id, values: local } = await w.adapter.localValuesFor(ctx, raws[i], {});
@@ -86,8 +115,11 @@ async function insertRows(w, ctx, list, { collect = false } = {}) {
 }
 
 /**
+ * @param {Writer} w
+ * @param {WriteCtx} ctx
  * @param {Array<{ id:string, values:object, expectedUpdatedAt?:string }>} list
- * @returns {{ changed:number, results: Array<{index, changes, row}>, errors, stopped }}
+ * @param {{ collect?: boolean }} [opts]
+ * @returns {Promise<{ changed: number, results: Array<{ index: number, changes?: number, row?: object, id?: string }>, errors: Array<{ index: number, error: unknown }>, stopped: boolean }>}
  */
 async function updateRows(w, ctx, list, { collect = false } = {}) {
     assertCtx(w, ctx);
@@ -99,9 +131,11 @@ async function updateRows(w, ctx, list, { collect = false } = {}) {
     }
     for (const it of items) assertRowId(it && it.id);
     const { wired, errors } = wireAll(w, ctx, items, it => it.values, { collect });
+    /** @type {Array<{ index: number, changes?: number, row?: object, id?: string }>} */
     const results = [];
     // The copy first, per row, with the caller's rights — exactly as the
     // single form: not theirs → 0/null, stale token → 0/row, no source call.
+    /** @type {typeof wired} */
     const toSource = [];
     for (const x of wired) {
         const current = await probeCopy(ctx, x.item.id, 'update');
@@ -129,7 +163,13 @@ async function updateRows(w, ctx, list, { collect = false } = {}) {
     return { changed: changedOf(results), results, errors, stopped: false };
 }
 
-/** @returns {{ changed:number, results: Array<{index, changes}>, errors, stopped }} */
+/**
+ * @param {Writer} w
+ * @param {WriteCtx} ctx
+ * @param {string[]} ids
+ * @param {{ collect?: boolean }} [opts]
+ * @returns {Promise<{ changed: number, results: Array<{ index: number, changes?: number }>, errors: Array<{ index: number, error: unknown }>, stopped: boolean }>}
+ */
 async function deleteRows(w, ctx, ids, { collect = false } = {}) {
     assertCtx(w, ctx);
     assertEditor(w, ctx, 'delete');
@@ -139,7 +179,9 @@ async function deleteRows(w, ctx, ids, { collect = false } = {}) {
         return { changed: changedOf(r.results), results: r.results, errors: r.errors, stopped: r.stopped };
     }
     for (const id of items) assertRowId(id);
+    /** @type {Array<{ index: number, changes: number }>} */
     const results = [];
+    /** @type {Array<{ index: number, id: string }>} */
     const present = [];
     for (let i = 0; i < items.length; i += 1) {
         if (await probeCopy(ctx, items[i], 'delete')) present.push({ index: i, id: items[i] });

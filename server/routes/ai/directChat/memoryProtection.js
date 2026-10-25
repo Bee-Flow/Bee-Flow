@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The memory block of a direct-chat turn, made safe to send.
  *
@@ -21,9 +21,11 @@ const { getAIConfig } = require('../../../core/aiAgent');
 const userStore = require('../../../stores/userStore');
 const { loadUserIdentity } = require('../../../core/memory/userIdentityContext');
 const { tokenizeMemoryContext } = require('../../../core/memory/scrubMemoryContext');
+const { fallback } = require('../../../utils/bestEffort');
 
 /**
- * @returns {Promise<{ memoryContext: string, memorySwap: object|null }>}
+ * @param {{ memoryContext: string, userId: string, conversationId?: string | null }} params
+ * @returns {Promise<{ memoryContext: string, memorySwap: { raw: string, labelled: string, orgShield: import('../../../core/memory/scrubMemoryContext').MemoryOrgShield | null, knownEntities: import('../../../core/memory/scrubMemoryContext').KnownEntity[] } | null }>}
  */
 async function protectMemoryContext({ memoryContext, userId, conversationId }) {
     let memorySwap = null;
@@ -32,7 +34,7 @@ async function protectMemoryContext({ memoryContext, userId, conversationId }) {
     if (!memoryContext) return { memoryContext, memorySwap };
 
     try {
-        const user = await userStore.getUser(userId).catch(() => null);
+        const user = await userStore.getUser(userId).catch((e) => fallback('routes/ai/directChat/memoryProtection:protectMemoryContext', e, null));
         const orgId = user?.organizationId || null;
         const orgShield = orgId ? await configStore.getConfig(`org_privacy_shield_${orgId}`) : null;
         // Shield's master flag is the only switch for PII scrubbing;
@@ -48,7 +50,7 @@ async function protectMemoryContext({ memoryContext, userId, conversationId }) {
             memoryContext = text;
         }
     } catch (err) {
-        log.warn('[DirectChat] Memory scrub failed (fail-open):', err.message);
+        log.warn('[DirectChat] Memory scrub failed (fail-open):', /** @type {Error} */ (err).message);
     }
     return { memoryContext, memorySwap };
 }

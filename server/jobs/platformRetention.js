@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Platform retention — the retention passes that belong to no module.
  *
@@ -42,12 +42,27 @@ const INTERVAL_MS = 60 * 60 * 1000;
 // so a short boot delay is the only pass a short-lived replica ever runs.
 const BOOT_DELAY_MS = 60 * 1000;
 
+/** @type {NodeJS.Timeout | null} */
 let _timer = null;
+/** @type {NodeJS.Timeout | null} */
 let _bootTimer = null;
 let _running = false;
 
 // Dependencies resolve lazily, so a test that injects stand-ins through
 // _setDeps never loads a store (and never opens a pool).
+/**
+ * @typedef {{
+ *   pool: typeof import('../db').pool,
+ *   monitoringRetentionPass: typeof import('./monitoringRetention').monitoringRetentionPass,
+ *   pruneScanLedger: typeof import('../stores/piiScanLedgerStore').prune,
+ *   ledgerKeyVersion: typeof import('../core/dlp/scanLedger').LEDGER_KEY_VERSION,
+ *   pruneSuggestionScans: () => ReturnType<typeof import('../stores/suggestionScanCache').pruneExpired>,
+ *   pruneSuggestionFeedback: () => ReturnType<typeof import('../stores/suggestionFeedbackStore').pruneExpired>,
+ *   pruneDocumentSuggestions: () => ReturnType<typeof import('../stores/documentSuggestionStore').purgeResolved>,
+ *   log: typeof import('../telemetry/log'),
+ * }} PlatformRetentionDeps
+ */
+/** @type {PlatformRetentionDeps | null} */
 let _deps = null;
 function deps() {
     if (!_deps) {
@@ -65,7 +80,10 @@ function deps() {
     return _deps;
 }
 
-/** Test hook: inject every dependency above; pass nothing to restore the real ones. */
+/**
+ * Test hook: inject every dependency above; pass nothing to restore the real ones.
+ * @param {PlatformRetentionDeps | null} [d]
+ */
 function _setDeps(d) {
     _deps = d || null;
     _running = false;
@@ -75,6 +93,7 @@ function _setDeps(d) {
  * PII scan ledger. Deliberately NOT time-based: a memoised verdict stays
  * correct until the content or the policy changes, so ageing rows out would
  * only buy re-scans. What this does bound is SIZE.
+ * @param {PlatformRetentionDeps} d
  */
 async function _pruneScanLedger(d) {
     let acquired = false;
@@ -88,7 +107,7 @@ async function _pruneScanLedger(d) {
         const { deleted } = await d.pruneScanLedger({ keyVersion: d.ledgerKeyVersion, maxRows });
         if (deleted) d.log.info(`[platformRetention] pruned ${deleted} PII scan-ledger row(s)`);
     } catch (e) {
-        d.log.warn('[platformRetention] scan-ledger prune failed:', e.message);
+        d.log.warn('[platformRetention] scan-ledger prune failed:', /** @type {Error} */ (e).message);
     } finally {
         if (client) {
             try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LEDGER_PRUNE_LOCK_KEY]); } catch (err) { telemetryLog.debug('best-effort', err); }
@@ -97,7 +116,10 @@ async function _pruneScanLedger(d) {
     }
 }
 
-/** The suggestion scan cache and feedback, then resolved document suggestions. One failing never skips the others. */
+/**
+ * The suggestion scan cache and feedback, then resolved document suggestions. One failing never skips the others.
+ * @param {PlatformRetentionDeps} d
+ */
 async function _pruneSuggestions(d) {
     for (const [label, prune] of [['suggestion scan', d.pruneSuggestionScans], ['suggestion feedback', d.pruneSuggestionFeedback], ['document suggestion', d.pruneDocumentSuggestions]]) {
         if (typeof prune !== 'function') continue;
@@ -105,7 +127,7 @@ async function _pruneSuggestions(d) {
             const n = await prune();
             if (n) d.log.info(`[platformRetention] pruned ${n} ${label} row(s)`);
         } catch (e) {
-            d.log.warn(`[platformRetention] ${label} prune failed:`, e.message);
+            d.log.warn(`[platformRetention] ${label} prune failed:`, /** @type {Error} */ (e).message);
         }
     }
 }
@@ -119,7 +141,7 @@ async function runOnce() {
         try {
             await d.monitoringRetentionPass();
         } catch (e) {
-            d.log.error('[platformRetention] monitoring retention failed:', e.message);
+            d.log.error('[platformRetention] monitoring retention failed:', /** @type {Error} */ (e).message);
         }
         await _pruneScanLedger(d);
         await _pruneSuggestions(d);

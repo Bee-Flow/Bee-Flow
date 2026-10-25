@@ -49,6 +49,7 @@
 
 const { HttpError } = require('../core/http/errors');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 const { envCap } = require('./mcpRunReadCaps');
 
 const RUN_NOW_AUDIT_ACTION = 'mcp.automation.run';
@@ -129,10 +130,10 @@ function makeRunNow(overrides = {}) {
 
     /** The automation if this caller may start it, else 404. */
     async function loadRunnable(automationId, userId) {
-        const stored = await store().getAutomation(automationId).catch(() => null);
+        const stored = await store().getAutomation(automationId).catch((e) => fallback('automation/mcpRunNow:load automation', e, null));
         if (!stored) throw notFound();
         if ((stored.kind || 'automation') !== 'automation') throw notFound();
-        const user = await getUser(userId).catch(() => null);
+        const user = await getUser(userId).catch((e) => fallback('automation/mcpRunNow:load user', e, null));
         if (!user) throw notFound();
         // The automation's organisation must be one of the caller's (home or through a
         // group). A resolution that fails is a refusal, never "no org, no check".
@@ -237,7 +238,7 @@ function makeRunNow(overrides = {}) {
             log.error(`[automations-mcp] automations_run failed to start automation=${stored.id}: ${first.err.message}`);
             throw new HttpError(500, 'start_failed', 'The run could not be started.');
         }
-        const runId = /** @type {any} */ (first).run?.id;
+        const runId = /** @type {{ run?: { id?: string } }} */ (first).run?.id;
         if (!runId) throw new HttpError(500, 'start_failed', 'The run could not be started.');
         log.info(`[automations-mcp] automations_run user=${userId} automation=${stored.id} run=${runId} token=${ctx.tokenId || 'legacy'}`);
 
@@ -266,7 +267,7 @@ function makeRunNow(overrides = {}) {
 
     /**
      * Run the tool. Never throws: a refusal comes back as `{ error, code }`.
-     * @param {string} name @param {any} args @param {{ userId: string, tokenId?: string|null }} ctx
+     * @param {string} name @param {Record<string, unknown>} args @param {{ userId: string, tokenId?: string|null }} ctx
      */
     async function call(name, args, ctx) {
         if (!RUN_NOW_TOOL_NAMES.has(name)) return { error: `Unknown tool: ${name}` };

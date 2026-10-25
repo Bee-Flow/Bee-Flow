@@ -1,3 +1,4 @@
+/** @typedef {import('url').URL} URL */
 // @typecheck
 /**
  * Reachability probe for external URLs of a CMS site, used only when an
@@ -14,6 +15,7 @@
 'use strict';
 
 const { safeFetch, isPrivateAddressError } = require('../../utils/ssrfGuard');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const MAX_URLS = 50;
 const CONCURRENCY = 4;
@@ -30,6 +32,7 @@ const USER_AGENT = 'BeeFlow-LinkCheck/1.0';
 
 /** @param {string} raw @returns {URL | null} a URL we are willing to request, or null */
 function requestable(raw) {
+    /** @type {URL} */
     let url;
     try { url = new URL(raw); } catch { return null; }
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
@@ -46,7 +49,10 @@ function requestable(raw) {
 async function probeOne(raw, { fetchFn, timeoutMs }) {
     const url = requestable(raw);
     if (!url) return { error: 'invalid' };
-    /** One request; redirects are followed here, each hop screened like the first URL. */
+    /**
+     * One request; redirects are followed here, each hop screened like the first URL.
+     * @param {string} method
+     */
     const send = async (method) => {
         let current = url;
         for (let hop = 0; hop <= MAX_HOPS; hop++) {
@@ -58,7 +64,7 @@ async function probeOne(raw, { fetchFn, timeoutMs }) {
                 signal: AbortSignal.timeout(timeoutMs),
             });
             // Only the status matters: never read a body of a third-party site.
-            await res.body?.cancel().catch(() => undefined);
+            await res.body?.cancel().catch((e) => bestEffort('core/cms/linkProbe:send', e));
             const location = res.status >= 300 && res.status < 400 ? res.headers?.get?.('location') : null;
             if (!location) return res.status;
             const next = requestable(new URL(location, current).href);

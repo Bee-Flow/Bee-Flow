@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Hub Entitlement Refresh Scheduler.
  *
@@ -29,6 +29,7 @@
 
 'use strict';
 const log = require('../telemetry/log');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 const INTERVAL_SEC = parseInt(process.env.HUB_ENTITLEMENT_REFRESH_INTERVAL_SECONDS || '3600', 10);
 const BOOT_DELAY_MS = parseInt(process.env.HUB_ENTITLEMENT_REFRESH_BOOT_DELAY_MS || '45000', 10);
@@ -40,7 +41,13 @@ const DENIED_THRESHOLD = 3;
 const CRL_CURSOR_KEY = 'beeflow_hub_crl_cursor';
 
 // Lazy requires — nothing here may load before boot decides to.
-let _hubClient, _store, _remoteCatalog, _moduleEnt, _modules, _subjects, _configStore;
+let /** @type {typeof import('./hubClient') | undefined} */ _hubClient,
+    /** @type {typeof import('../stores/platformModuleStore') | undefined} */ _store,
+    /** @type {typeof import('./remoteCatalog') | undefined} */ _remoteCatalog,
+    /** @type {typeof import('./entitlements') | undefined} */ _moduleEnt,
+    /** @type {typeof import('./index') | undefined} */ _modules,
+    /** @type {typeof import('./subjects') | undefined} */ _subjects,
+    /** @type {typeof import('../stores/configStore') | undefined} */ _configStore;
 function hubClient() { return _hubClient || (_hubClient = require('./hubClient')); }
 function store() { return _store || (_store = require('../stores/platformModuleStore')); }
 function remoteCatalog() { return _remoteCatalog || (_remoteCatalog = require('./remoteCatalog')); }
@@ -49,8 +56,19 @@ function modulesRuntime() { return _modules || (_modules = require('./index')); 
 function subjects() { return _subjects || (_subjects = require('./subjects')); }
 function configStore() { return _configStore || (_configStore = require('../stores/configStore')); }
 
+/** @type {NodeJS.Timeout | null} */
 let _timer = null;
+/** @type {NodeJS.Timeout | null} */
 let _crlTimer = null;
+/**
+ * @typedef {Awaited<ReturnType<typeof import('../stores/platformModuleStore').getState>>} ModuleRow
+ * @typedef {{ module_id?: string, grant_token?: string, kind?: string, entitlement_id?: string,
+ *   current_period_end?: string }} HubEntitlement
+ * @typedef {{ module_id?: string, entitlement_id?: string, reason?: string }} CrlEntry
+ */
+/** @type {{ enabled: boolean, lastTickAt: string | null, lastTickDurationMs: number | null, lastTickError: string | null,
+ *   lastProcessed: number, lastRevoked: number, lastConnected: boolean | null, lastCrlAt: string | null,
+ *   lastCrlError: string | null, crlCursor: number | null, deniedCount: number, installRevoked: boolean }} */
 const _health = {
     enabled: false,
     lastTickAt: null,
@@ -67,9 +85,16 @@ const _health = {
 };
 
 // Consecutive hub_denied tracking for the install-kill interpretation.
+/** @type {{ count: number, firstAt: number | null }} */
 let _denied = { count: 0, firstAt: null };
 
-/** Reconcile one remote row against the (successfully fetched) entitlement map. */
+/**
+ * Reconcile one remote row against the (successfully fetched) entitlement map.
+ * @param {ModuleRow} row
+ * @param {Map<string, HubEntitlement>} byModule
+ * @param {string[]} subjectIds
+ * @param {number} now
+ */
 async function _reconcileRow(row, byModule, subjectIds, now) {
     const prev = (row.settings && row.settings.entitlement) || {};
 
@@ -142,19 +167,22 @@ async function _reconcileRow(row, byModule, subjectIds, now) {
     return { changed: true, revoked: false };
 }
 
-/** Flip every remote row to revoked — the hub has durably rejected this install. */
+/**
+ * Flip every remote row to revoked — the hub has durably rejected this install.
+ * @param {string} reason
+ */
 async function _revokeAllRemoteRows(reason) {
     let rows = [];
     try { rows = await store().getAllStates(); } catch (_) { return; }
     let changed = 0;
-    for (const row of rows.filter(r => remoteCatalog().isRemoteRow(r))) {
+    for (const row of rows.filter(/** @param {ModuleRow} r */ r => remoteCatalog().isRemoteRow(r))) {
         const prev = (row.settings && row.settings.entitlement) || {};
         if (prev.status === 'revoked') continue;
         try {
             await store().mergeSettings(row.moduleId, { entitlement: { ...prev, status: 'revoked', revokedReason: reason } });
             changed++;
         } catch (e) {
-            log.warn(`[HubEntitlements] install-revoke persist failed for ${row.moduleId}:`, e.message);
+            log.warn(`[HubEntitlements] install-revoke persist failed for ${row.moduleId}:`, /** @type {Error} */ (e).message);
         }
     }
     if (changed) {
@@ -163,6 +191,7 @@ async function _revokeAllRemoteRows(reason) {
     }
 }
 
+/** @param {{ code?: string } | null} e */
 async function _trackDenied(e) {
     if (!e || e.code !== 'hub_denied') return; // network/5xx never counts
     const now = Date.now();
@@ -198,18 +227,18 @@ async function tick() {
         } catch (e) {
             // Hub outage ⇒ NO-OP. Never flip modules off on a transient failure.
             // An explicit credential rejection, however, feeds the install-kill counter.
-            _health.lastTickError = e.code || e.message;
+            _health.lastTickError = e.code || /** @type {Error} */ (e).message;
             await _trackDenied(e);
             return;
         }
         _clearDenied();
 
         let rows = [];
-        try { rows = await store().getAllStates(); } catch (e) { _health.lastTickError = e.message; return; }
-        const remoteRows = rows.filter(r => remoteCatalog().isRemoteRow(r));
+        try { rows = await store().getAllStates(); } catch (e) { _health.lastTickError = /** @type {Error} */ (e).message; return; }
+        const remoteRows = rows.filter(/** @param {ModuleRow} r */ r => remoteCatalog().isRemoteRow(r));
         if (remoteRows.length === 0) return;
 
-        const byModule = new Map((list || []).filter(e => e && e.module_id).map(e => [e.module_id, e]));
+        const byModule = new Map((list || []).filter(/** @param {HubEntitlement} e */ e => e && e.module_id).map(/** @param {HubEntitlement} e */ e => [e.module_id, e]));
         const subjectIds = await subjects().subjectIds();
         const now = Math.floor(Date.now() / 1000);
 
@@ -219,7 +248,7 @@ async function tick() {
                 if (r.changed) processed++;
                 if (r.revoked) revoked++;
             } catch (e) {
-                log.warn(`[HubEntitlements] reconcile failed for ${row.moduleId}:`, e.message);
+                log.warn(`[HubEntitlements] reconcile failed for ${row.moduleId}:`, /** @type {Error} */ (e).message);
             }
         }
 
@@ -227,15 +256,15 @@ async function tick() {
         modulesRuntime().invalidateCache();
         await modulesRuntime().refreshModuleActivations();
     } catch (e) {
-        _health.lastTickError = e.message;
-        log.error('[HubEntitlements] tick error:', e.message);
+        _health.lastTickError = /** @type {Error} */ (e).message;
+        log.error('[HubEntitlements] tick error:', /** @type {Error} */ (e).message);
     } finally {
         _health.lastProcessed = processed;
         _health.lastRevoked = revoked;
         _health.lastTickDurationMs = Date.now() - startedAt;
         // Ride the CRL check on every entitlement tick too (own errors, never
         // fails the tick).
-        try { await crlTick(); } catch (err) { log.debug('recorded in _health.lastCrlError', err); }
+        try { await crlTick(); } catch (err) { bestEffort('modules/entitlementRefresh:tick', err); /* recorded in _health.lastCrlError */ }
     }
 }
 
@@ -252,17 +281,18 @@ async function crlTick() {
         if (!(await hubClient().isConnected())) return;
 
         let rows = [];
-        try { rows = await store().getAllStates(); } catch (e) { _health.lastCrlError = e.message; return; }
-        const remoteRows = rows.filter(r => remoteCatalog().isRemoteRow(r));
+        try { rows = await store().getAllStates(); } catch (e) { _health.lastCrlError = /** @type {Error} */ (e).message; return; }
+        const remoteRows = rows.filter(/** @param {ModuleRow} r */ r => remoteCatalog().isRemoteRow(r));
         if (remoteRows.length === 0) return;
 
         let cursor = 0;
         try {
             const stored = await configStore().getConfig(CRL_CURSOR_KEY);
             cursor = Number(stored) > 0 ? Number(stored) : 0;
-        } catch (err) { log.debug('start from 0', err); }
+        } catch (err) { fallback('modules/entitlementRefresh:crlTick', err); /* start from 0 */ }
 
         // Page through the CRL; collect every revocation past the cursor.
+        /** @type {CrlEntry[]} */
         const revokedEntries = [];
         let since = cursor;
         for (let page = 0; page < 20; page++) { // hard page cap — a CRL this big means something is wrong
@@ -307,11 +337,11 @@ async function crlTick() {
 
         // Full success — advance the cursor.
         if (since !== cursor) {
-            try { await configStore().setConfig(CRL_CURSOR_KEY, since); } catch (err) { log.debug('retry next tick', err); }
+            try { await configStore().setConfig(CRL_CURSOR_KEY, since); } catch (err) { bestEffort('modules/entitlementRefresh:crlTick#2', err); /* retry next tick */ }
         }
         _health.crlCursor = since;
     } catch (e) {
-        _health.lastCrlError = e.code || e.message;
+        _health.lastCrlError = e.code || /** @type {Error} */ (e).message;
     }
 }
 
@@ -324,7 +354,7 @@ async function crlTick() {
 function onLicenseChanged() {
     const t = setTimeout(async () => {
         try { await hubClient().rebindLicense(); } catch (e) {
-            log.warn('[HubEntitlements] rebind failed (will rely on id history):', e.message);
+            log.warn('[HubEntitlements] rebind failed (will rely on id history):', /** @type {Error} */ (e).message);
         }
         tick().catch(err => log.error('[HubEntitlements] license-change tick unhandled:', err.message));
     }, 2000);

@@ -1,9 +1,15 @@
-// @typecheck
+// @typecheck strict
 // Pure payload builders for the direct-chat tool call (toolExec.js): the
 // dispatcher options, guardrail audit rows, usage row and egress-log
 // arguments. No I/O and no SSE; toolExec.js keeps every await and send.
 
-/** The text a web-search guard checks for this tool, or null (not guarded). */
+/** @typedef {ReturnType<ReturnType<typeof import('./toolContext').createToolContextFactory>>} ToolCtx */
+
+/**
+ * The text a web-search guard checks for this tool, or null (not guarded).
+ * @param {string} toolName
+ * @param {{ query?: string, url?: string, find?: string, [key: string]: unknown }} toolArgs
+ */
 function searchGuardText(toolName, toolArgs) {
     return toolName === 'agent_search' ? toolArgs?.query
         // read_url is guarded like a search: the URL (+ find) leaves Bee Flow the same way a query does.
@@ -11,7 +17,13 @@ function searchGuardText(toolName, toolArgs) {
             : null;
 }
 
-/** Audit row for a web-search guard hit (regex or PII). */
+/**
+ * Audit row for a web-search guard hit (regex or PII).
+ * @param {ToolCtx} ctx
+ * @param {string} violationType
+ * @param {string} categories
+ * @param {string} actionTaken
+ */
 function searchGuardEvent(ctx, violationType, categories, actionTaken) {
     return {
         organization_id: ctx.userOrgId || null,
@@ -26,7 +38,11 @@ function searchGuardEvent(ctx, violationType, categories, actionTaken) {
     };
 }
 
-/** Audit row for a tool block-list event, with this turn's attribution. */
+/**
+ * Audit row for a tool block-list event, with this turn's attribution.
+ * @param {ToolCtx} ctx
+ * @param {Record<string, unknown>} fields
+ */
 function shieldGuardEvent(ctx, fields) {
     return {
         organization_id: ctx.userOrgId || null,
@@ -38,14 +54,18 @@ function shieldGuardEvent(ctx, fields) {
     };
 }
 
-/** Options for the tool dispatcher; reads the live getters at call time. */
+/**
+ * Options for the tool dispatcher; reads the live getters at call time.
+ * @param {ToolCtx} ctx
+ * @param {Record<string, unknown> | null} tierOverrides
+ */
 function buildDispatchOptions(ctx, tierOverrides) {
     return {
         userId: ctx.userId,
         session: ctx.req.session,
         userAuth: ctx.userAuth,
         fixedParams: tierOverrides,
-        agentId: null,
+        agentId: /** @type {string | null} */ (null),
         conversationId: ctx.convId,
         orgId: ctx.n8nOrgId,
         send: ctx.send,
@@ -64,14 +84,18 @@ function buildDispatchOptions(ctx, tierOverrides) {
             agentId: `user-${ctx.userId}`,
             containerKey: `direct-${ctx.convId}`,
             timeout: 60000,
-            blockedCommands: [],
-            onEvent: (type, data) => { ctx.send(type, data); },
-            signal: undefined,
+            blockedCommands: /** @type {string[]} */ ([]),
+            onEvent: /** @param {string} type @param {unknown} data */ (type, data) => { ctx.send(type, data); },
+            signal: /** @type {AbortSignal | undefined} */ (undefined),
         },
     };
 }
 
-/** The usage row logged for one tool call. */
+/**
+ * The usage row logged for one tool call.
+ * @param {ToolCtx} ctx
+ * @param {string} toolName
+ */
 function buildUsageRow(ctx, toolName) {
     return {
         user_id: ctx.userId,
@@ -85,7 +109,11 @@ function buildUsageRow(ctx, toolName) {
     };
 }
 
-/** Arguments of logToolEgress for one tool call. */
+/**
+ * Arguments of logToolEgress for one tool call.
+ * @param {ToolCtx} ctx
+ * @param {{ toolName: string, toolArgs?: object, toolResult?: unknown, toolError?: Error | string, outboundProbe?: object, dispatchT0: number }} call
+ */
 function buildEgressArgs(ctx, { toolName, toolArgs, toolResult, toolError, outboundProbe, dispatchT0 }) {
     return {
         toolName,

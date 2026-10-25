@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * ingestTeamsRecording — turn a finished Microsoft Teams meeting into a
  * Meeting Note.
@@ -45,7 +45,18 @@ function ingestError(message, meta) {
 const MAX_AUDIO_BYTES = 500 * 1024 * 1024;
 const MAX_SHARED_WITH = 50;
 
-/** Dedup key of one Teams artifact (recording or transcript) for one owner scope. */
+/**
+ * @typedef {Object} TeamsSourceUriArgs
+ * @property {string | null} [orgId]
+ * @property {string} userId
+ * @property {string} meetingId
+ * @property {string} artifactKind
+ * @property {string} artifactId
+ */
+/**
+ * Dedup key of one Teams artifact (recording or transcript) for one owner scope.
+ * @param {TeamsSourceUriArgs} param0
+ */
 function teamsSourceUri({ orgId, userId, meetingId, artifactKind, artifactId }) {
     return `teams://${orgId || `user:${userId}`}/${meetingId}/${artifactKind}/${artifactId}`;
 }
@@ -117,12 +128,12 @@ async function ingestTeamsMeeting(opts) {
             await d.artifacts.extractAudioTrack(videoPath, audioPath);
         } catch (err) {
             safeUnlink(audioPath);
-            throw ingestError(`Audio extraction failed: ${err.message}`, { code: 'failed', status: 500 });
+            throw ingestError(`Audio extraction failed: ${/** @type {Error} */ (err).message}`, { code: 'failed', status: 500 });
         }
         let size;
         try { ({ size } = fs.statSync(audioPath)); }
         catch (err) {
-            throw ingestError(`Audio extraction produced no readable file: ${err.message}`, { code: 'failed', status: 500 });
+            throw ingestError(`Audio extraction produced no readable file: ${/** @type {Error} */ (err).message}`, { code: 'failed', status: 500 });
         }
         if (size > MAX_AUDIO_BYTES) {
             safeUnlink(audioPath);
@@ -139,8 +150,12 @@ async function ingestTeamsMeeting(opts) {
     });
 }
 
-/** Calendar display names, for anchoring diarised speakers to real people. */
+/**
+ * Calendar display names, for anchoring diarised speakers to real people.
+ * @param {{ email?: string | null; displayName?: string | null; }[]} attendees
+ */
 function rosterOf(attendees) {
+    /** @type {string[]} */
     const names = [];
     for (const a of Array.isArray(attendees) ? attendees : []) {
         const name = String(a?.displayName || '').trim();
@@ -152,6 +167,9 @@ function rosterOf(attendees) {
 /**
  * Attendees who are users of this instance IN THE OWNER'S ORGANISATION get read
  * access to the note, matched on their account e-mail. Best-effort: [] on error.
+ * @param {string} ownerId
+ * @param {string | null} orgId
+ * @param {{ email?: string | null; displayName?: string | null; }[]} attendees
  */
 async function resolveSharedWith(ownerId, orgId, attendees) {
     try {
@@ -161,6 +179,7 @@ async function resolveSharedWith(ownerId, orgId, attendees) {
             if (email) emails.add(email);
         }
         if (!emails.size || !orgId) return [];
+        /** @type {string[]} */
         const ids = [];
         for (const email of emails) {
             const u = await d.getUserByEmail(email);
@@ -170,11 +189,14 @@ async function resolveSharedWith(ownerId, orgId, attendees) {
         }
         return ids;
     } catch (err) {
-        log.warn(`[IngestTeams] sharedWith resolution failed: ${err.message}`);
+        log.warn(`[IngestTeams] sharedWith resolution failed: ${/** @type {Error} */ (err).message}`);
         return [];
     }
 }
 
+/**
+ * @param {string} p
+ */
 function safeUnlink(p) { try { fs.unlinkSync(p); } catch (_) { log.debug('file already gone', _); } }
 
 module.exports = { init, ingestTeamsMeeting, teamsSourceUri, rosterOf };

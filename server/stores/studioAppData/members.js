@@ -17,7 +17,10 @@ async function ownsApp(appId, ownerId) {
 
 // ── Members ─────────────────────────────────────────────────────────
 
-/** Add or re-role a member. Owner-gated via ownsApp (the PK has no owner col). */
+/**
+ * Add or re-role a member. Owner-gated via ownsApp (the PK has no owner col).
+ * @param {string} [roleKey]
+ */
 async function addMember(appId, ownerId, memberUserId, roleKey = 'member') {
     await initDB();
     if (!(await ownsApp(appId, ownerId))) return null;

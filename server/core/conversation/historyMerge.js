@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * History merge helpers for conversation edit/retry.
  *
@@ -22,6 +23,9 @@
  */
 const log = require('../../telemetry/log');
 
+/** @typedef {{ role?: string, content?: unknown, attachments?: Array<{ name?: string }>, [k: string]: unknown }} HistoryMessage */
+
+/** @param {HistoryMessage | null | undefined} m */
 function _isConvMessage(m) {
     return !!m && (m.role === 'user' || m.role === 'assistant');
 }
@@ -29,9 +33,9 @@ function _isConvMessage(m) {
 /**
  * Align a slim client history onto rich DB messages.
  *
- * @param {Array} clientHistory - messages as sent by the client (user/assistant, ordered)
- * @param {Array} dbMessages - persisted messages (may include tool/system rows, skipped)
- * @returns {Array<{ client: object, dbMatch: object|null }>} one entry per client message,
+ * @param {HistoryMessage[]} clientHistory - messages as sent by the client (user/assistant, ordered)
+ * @param {HistoryMessage[]} dbMessages - persisted messages (may include tool/system rows, skipped)
+ * @returns {Array<{ client: HistoryMessage, dbMatch: HistoryMessage|null }>} one entry per client message,
  *   in order; dbMatch is null when no plausible counterpart exists (e.g. the
  *   client history is longer than the DB record). Inputs are not mutated.
  */
@@ -92,7 +96,9 @@ function alignClientToDb(clientHistory = [], dbMessages = []) {
  * edit is authoritative). Defensive: when the client's attachment names
  * disagree with the DB row's, the client copy is kept untouched.
  *
- * @returns {Array} a new history array; inputs are not mutated.
+ * @param {HistoryMessage[]} [clientHistory]
+ * @param {HistoryMessage[]} [dbMessages]
+ * @returns {HistoryMessage[]} a new history array; inputs are not mutated.
  */
 function mergeAttachmentSidecars(clientHistory = [], dbMessages = []) {
     return alignClientToDb(clientHistory, dbMessages).map(({ client, dbMatch }) => {
@@ -101,7 +107,7 @@ function mergeAttachmentSidecars(clientHistory = [], dbMessages = []) {
         if (dbAtts.length === 0) return client;
         const clientAtts = Array.isArray(client.attachments) ? client.attachments : [];
         if (clientAtts.length > 0) {
-            const names = atts => atts.map(a => a?.name || '').sort().join('|');
+            const names = /** @param {Array<{ name?: string }>} atts */ atts => atts.map(a => a?.name || '').sort().join('|');
             if (names(clientAtts) !== names(dbAtts)) {
                 log.warn('[HistoryMerge] Client attachments disagree with DB row — keeping client copy');
                 return client;

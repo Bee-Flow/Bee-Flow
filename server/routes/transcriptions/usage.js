@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Meeting notes — what happens to one (M2), and how to undo one thing that did.
  *
@@ -158,11 +158,11 @@ router.delete('/:id/filed-lines', requireAuth, validate({ body: NOTHING, query: 
             await kbSourcesStore.remove(row.sourceId);
             removedLines += 1;
         } catch (e) {
-            log.warn('[Transcriptions] filed line not removed:', e.message);
+            log.warn('[Transcriptions] filed line not removed:', /** @type {Error} */ (e).message);
             // The SAME shape as the branch above: a client that later shows "these documents
             // did not want to" reads `e.documents` and must not find `undefined` there.
             // Empty is the honest answer here — the cleanup did not even get to documents.
-            errors.push({ sourceId: row.sourceId, error: e.message, documents: [] });
+            errors.push({ sourceId: row.sourceId, error: /** @type {Error} */ (e).message, documents: [] });
         }
     }
     res.json({ removedLines, removedDocuments, errors });

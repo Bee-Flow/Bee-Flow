@@ -25,6 +25,7 @@ const { hasCuratedGrants } = require('./grantResolution');
  *
  * `legacyDefault` is 'direct' on purpose: an agent that predates the picker
  * must not start asking for confirmation on writes it has always just done.
+ * @param {string} toolName
  */
 function confirmForTool(toolName, toolsConfig, { legacyDefault = 'direct' } = {}) {
     const effect = effectOf(toolName);          // sideEffectMap — no registry involved
@@ -64,6 +65,7 @@ function confirmForTool(toolName, toolsConfig, { legacyDefault = 'direct' } = {}
  * Since A2-2 the two give the same answer on a CURATED agent, and that still does not make them interchangeable: on an agent that
  * nobody curated this function says 'viewer' while the gate (the opt-in boundary) does lend. Whoever asks his dispatch question
  * here asks it of the wrong one.
+ * @param {string} toolName
  */
 function actAsForTool(toolName, toolsConfig) {
     const appId = appIdForTool(toolName);
@@ -126,6 +128,7 @@ function actAsForTool(toolName, toolsConfig) {
  *
  * Total: it is read inside a dispatch path, so it never throws. An agentConfig
  * that cannot even be read at all lands on `false`, the closed side.
+ * @param {string} toolName
  */
 function mayLendOwnerConnection(toolName, agentConfig) {
     try {

@@ -249,3 +249,5 @@ function runDdl(tag, statements, opts = {}) {
 }
 
 module.exports = { runDdl, CODES, DEFAULT_LOCK_TIMEOUT };
+
+/** @typedef {{ sql: string, code: string, message: string, reden?: string }} DdlEntry */

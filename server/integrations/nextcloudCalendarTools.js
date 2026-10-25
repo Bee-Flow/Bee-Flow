@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Nextcloud Calendar Tools — CalDAV CRUD over /remote.php/dav/calendars/<uid>/.
  *
@@ -17,7 +17,7 @@ const ncClient = require('./nextcloudClient');
 const { hasWritePrivilege } = require('./nextcloudDavProps');
 const { extractReason } = require('./nextcloudHttpError');
 const { CalendarInputError, buildVCalendarEvent, updateVCalendarEvent } = require('./nextcloudCalendarIcs');
-const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const xmlParser = new XMLParser({
     ignoreAttributes: false,
@@ -40,6 +40,10 @@ const PROPFIND_CALENDARS = `<?xml version="1.0" encoding="utf-8" ?>
   </d:prop>
 </d:propfind>`;
 
+/**
+ * @param {string | null} rangeStart
+ * @param {string | null} rangeEnd
+ */
 function calendarQueryReport(rangeStart, rangeEnd) {
     const range = (rangeStart && rangeEnd)
         ? `<c:time-range start="${rangeStart}" end="${rangeEnd}"/>`
@@ -178,16 +182,25 @@ const NEXTCLOUD_CALENDAR_TOOLS = [
 
 // ─── iCal helpers (ical.js-backed) ─────────────────────────────────
 
+/**
+ * @param {string} iso
+ */
 function toICalUtcStamp(iso) {
     const d = iso ? new Date(iso) : new Date();
     if (isNaN(d.getTime())) throw new Error(`Invalid date: ${iso}`);
     return ICAL.Time.fromJSDate(d, true).toICALString();
 }
 
+/**
+ * @param {ICAL.Time} time
+ */
 function icsTimeToISO(time) {
     if (!time) return null;
     if (time.isDate) {
         // All-day: emit YYYY-MM-DD with no time component.
+        /**
+         * @param {number} n
+         */
         const pad = (n) => String(n).padStart(2, '0');
         return `${time.year}-${pad(time.month)}-${pad(time.day)}`;
     }
@@ -198,6 +211,9 @@ function icsTimeToISO(time) {
 // a Talk conversation, the URL lives in DESCRIPTION and/or the custom
 // X-MAILCLIENT-ONLINE-MEETING property (not LOCATION) — check all of them.
 const TALK_CALL_URL_RE = /\/call\/([A-Za-z0-9]+)/;
+/**
+ * @param {(string | ICAL.Time | ICAL.Binary | ICAL.Duration | ICAL.Period | ICAL.Recur | ICAL.UtcOffset | import("../node_modules/ical.js/dist/types/types.js", { with: { "resolution-mode": "import" } }).Geo | null)[]} texts
+ */
 function talkTokenFromTexts(...texts) {
     for (const t of texts) {
         if (!t) continue;
@@ -207,6 +223,9 @@ function talkTokenFromTexts(...texts) {
     return null;
 }
 
+/**
+ * @param {ICAL.Component} vevent
+ */
 function eventFromIcal(vevent) {
     const ev = new ICAL.Event(vevent);
     const attendees = (ev.attendees || []).map((p) => {
@@ -223,7 +242,7 @@ function eventFromIcal(vevent) {
         };
     }
     let xMeeting = null;
-    try { xMeeting = vevent.getFirstPropertyValue('x-mailclient-online-meeting'); } catch (err) { log.debug('no x-prop', err); }
+    try { xMeeting = vevent.getFirstPropertyValue('x-mailclient-online-meeting'); } catch (err) { fallback('integrations/nextcloudCalendarTools:eventFromIcal', err); /* no x-prop */ }
     return {
         uid: ev.uid || null,
         summary: ev.summary || null,
@@ -239,6 +258,9 @@ function eventFromIcal(vevent) {
     };
 }
 
+/**
+ * @param {string} text
+ */
 function parseICal(text) {
     if (!text) return [];
     let jcal;
@@ -250,23 +272,38 @@ function parseICal(text) {
 
 // ─── DAV helpers ──────────────────────────────────────────────────
 
+/**
+ * @param {string} baseUrl
+ * @param {string | undefined} uid
+ */
 function calendarsRoot(baseUrl, uid) {
     return `${baseUrl}/remote.php/dav/calendars/${encodeURIComponent(uid)}`;
 }
 
+/**
+ * @param {string} baseUrl
+ * @param {string | undefined} uid
+ * @param {string | number | boolean} calendar
+ * @param {string} eventUid
+ */
 function eventHref(baseUrl, uid, calendar, eventUid) {
     return `${calendarsRoot(baseUrl, uid)}/${encodeURIComponent(calendar)}/${encodeURIComponent(eventUid)}.ics`;
 }
 
 // Normalize a multistatus XML response into [{ href, props }] — only 2xx
 // propstat entries are merged. Reused for both PROPFIND and REPORT replies.
+/**
+ * @param {string | Uint8Array<ArrayBufferLike>} xml
+ * @returns {Array<{ href: string, props: import('./nextcloudFiles/webdav').DavProps }>}
+ */
 function parseMultistatusResponses(xml) {
     const parsed = xmlParser.parse(xml);
     const ms = parsed?.multistatus;
     if (!ms) return [];
     const list = Array.isArray(ms.response) ? ms.response : (ms.response ? [ms.response] : []);
-    return list.map((r) => {
+    return list.map((/** @type {{ href?: string, propstat?: unknown }} */ r) => {
         const propstats = Array.isArray(r.propstat) ? r.propstat : (r.propstat ? [r.propstat] : []);
+        /** @type {import('./nextcloudFiles/webdav').DavProps} */
         const props = {};
         for (const ps of propstats) {
             const status = ps.status || '';
@@ -277,13 +314,19 @@ function parseMultistatusResponses(xml) {
     });
 }
 
+/** @param {import('./nextcloudFiles/webdav').DavProps} props */
 function supportsVEvent(props) {
     const set = props['supported-calendar-component-set'];
     if (!set || !set.comp) return false;
     const comps = Array.isArray(set.comp) ? set.comp : [set.comp];
-    return comps.some((c) => c && (c['@_name'] === 'VEVENT' || c.name === 'VEVENT'));
+    return comps.some((/** @type {{ [x: string]: string; name: string; }} */ c) => c && (c['@_name'] === 'VEVENT' || c.name === 'VEVENT'));
 }
 
+/**
+ * @param {string | Uint8Array<ArrayBufferLike>} xml
+ * @param {string} baseUrl
+ * @param {string | undefined} uid
+ */
 function parsePropfindCalendars(xml, baseUrl, uid) {
     const root = `/remote.php/dav/calendars/${decodeURIComponent(uid)}`;
     const calendars = [];
@@ -303,6 +346,9 @@ function parsePropfindCalendars(xml, baseUrl, uid) {
     return calendars;
 }
 
+/**
+ * @param {string | Uint8Array<ArrayBufferLike>} xml
+ */
 function parseMultiStatus(xml) {
     // Returns [{ href, etag, calendarData }] — used by REPORT calendar-query.
     return parseMultistatusResponses(xml)
@@ -315,18 +361,30 @@ function parseMultiStatus(xml) {
         }));
 }
 
+/**
+ * @param {string} action
+ * @param {string} body
+ * @param {number} status
+ */
 function eventWriteError(action, status, body) {
     if (status >= 500) return `Event ${action} failed (${status}): the Nextcloud server reported an internal error.`;
     const reason = extractReason(body);
     return `Event ${action} failed (${status})${reason ? `: ${reason}` : ''}`;
 }
 
+/** @param {string} calendar */
 function readOnlyError(calendar) {
     return `Calendar "${calendar}" is read-only or you lack permission to change it (403). Use nextcloud_calendar_list to see which calendars are writable.`;
 }
 
 // ─── Tool execution ──────────────────────────────────────────────
 
+/**
+ * @param {string} toolName
+ * @param {{ calendar?: string, uid?: string, summary?: string, description?: string, location?: string, start?: string, end?: string, allDay?: boolean, attendees?: string[], query?: string, limit?: number }} args
+ * @param {string} userId
+ * @param {Partial<Express.Session>} session
+ */
 async function executeNextcloudCalendarTool(toolName, args, userId, session) {
     const ctx = await ncClient.resolveAuth(session, userId);
     const { baseUrl, fetch: ncFetch, authError, uid } = ctx;
@@ -451,7 +509,7 @@ async function executeNextcloudCalendarTool(toolName, args, userId, session) {
                     allDay: !!args.allDay,
                 });
             } catch (err) {
-                if (err instanceof CalendarInputError) return { error: err.message };
+                if (err instanceof CalendarInputError) return { error: /** @type {Error} */ (err).message };
                 throw err;
             }
             const res = await ncFetch(eventHref(baseUrl, uid, args.calendar, eventUid), {
@@ -490,7 +548,7 @@ async function executeNextcloudCalendarTool(toolName, args, userId, session) {
                     allDay: args.allDay,
                 });
             } catch (err) {
-                if (err instanceof CalendarInputError) return { error: err.message };
+                if (err instanceof CalendarInputError) return { error: /** @type {Error} */ (err).message };
                 throw err;
             }
             const putRes = await ncFetch(eventHref(baseUrl, uid, args.calendar, args.uid), {
@@ -525,6 +583,7 @@ async function executeNextcloudCalendarTool(toolName, args, userId, session) {
     }
 }
 
+/** @param {unknown} toolName */
 function isNextcloudCalendarTool(toolName) {
     return typeof toolName === 'string' && toolName.startsWith('nextcloud_calendar_');
 }

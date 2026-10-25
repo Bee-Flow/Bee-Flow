@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Drops the first-run-confirm gate. The product no longer asks for a
  * one-time approval before live execution — activation runs immediately.

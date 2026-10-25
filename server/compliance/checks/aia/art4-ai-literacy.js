@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * EU AI Act Art. 4 — AI literacy (applies since 2 Feb 2025).
  *
@@ -23,6 +23,7 @@ module.exports = {
     descriptionKey: 'compliance.checks.aia_art4.desc',
     remediationKey: 'compliance.checks.aia_art4.fix',
     remediationLink: 'admin/compliance/settings',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const settings = await complianceStore.getSettings(orgId);
         const confirmedAt = settings.ai_literacy_confirmed_at ? new Date(settings.ai_literacy_confirmed_at) : null;

@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: Studio Projects membership on automations (2026-07).
  *

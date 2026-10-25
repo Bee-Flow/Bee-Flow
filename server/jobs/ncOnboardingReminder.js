@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * NC onboarding-incomplete reminder (daily tick).
  *
@@ -20,6 +20,7 @@
  * start() from server/index.js, staggered first run, unref'd interval.
  */
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MIN_AGE_DAYS = 3;         // orgs younger than this are still "just installed"
@@ -33,6 +34,10 @@ const MARKER_PREFIX = 'nc_onboarding_reminder_last_';
 // members kept for orgs that pre-date the rename.
 const ADMIN_SQL = `SELECT id FROM users WHERE "organizationId" = $1 AND (role = 'admin' OR "orgRole" IN ('org_admin', 'admin'))`;
 
+/**
+ * @param {Record<string, any>} org  an organizations row
+ * @param {number} now
+ */
 function _isEligible(org, now) {
     if (!org || !org.nc_instance_id) return false;
     if (org.nc_onboarding_completed_at) return false;
@@ -48,7 +53,7 @@ async function run({ now = Date.now() } = {}) {
     try {
         orgs = await require('../stores/userStore').getAllOrganizations();
     } catch (err) {
-        log.warn(`[ncOnboardingReminder] Could not list orgs: ${err.message}`);
+        log.warn(`[ncOnboardingReminder] Could not list orgs: ${/** @type {Error} */ (err).message}`);
         return result;
     }
 
@@ -95,7 +100,7 @@ async function run({ now = Date.now() } = {}) {
                     });
                     sent++;
                 } catch (e) {
-                    log.warn(`[ncOnboardingReminder] notify failed org=${org.id} user=${admin.id}: ${e.message}`);
+                    log.warn(`[ncOnboardingReminder] notify failed org=${org.id} user=${admin.id}: ${/** @type {Error} */ (e).message}`);
                 }
             }
 
@@ -112,7 +117,7 @@ async function run({ now = Date.now() } = {}) {
             }
         } catch (err) {
             result.errors++;
-            log.warn(`[ncOnboardingReminder] org=${org.id} error: ${err.message}`);
+            log.warn(`[ncOnboardingReminder] org=${org.id} error: ${/** @type {Error} */ (err).message}`);
         }
     }
 
@@ -122,13 +127,14 @@ async function run({ now = Date.now() } = {}) {
     return result;
 }
 
+/** @type {NodeJS.Timeout | null} */
 let _interval = null;
 
 function start() {
     if (_interval) return;
     // Stagger first run by 10 min after boot so we don't compete with init load.
-    setTimeout(() => { run().catch(() => { }); }, 10 * 60 * 1000).unref?.();
-    _interval = setInterval(() => { run().catch(() => { }); }, TICK_INTERVAL_MS);
+    setTimeout(() => { run().catch((e) => bestEffort('jobs/ncOnboardingReminder:start', e)); }, 10 * 60 * 1000).unref?.();
+    _interval = setInterval(() => { run().catch((e) => bestEffort('jobs/ncOnboardingReminder:start#2', e)); }, TICK_INTERVAL_MS);
     if (typeof _interval.unref === 'function') _interval.unref();
     log.info('[ncOnboardingReminder] Scheduled (daily; >3d incomplete onboarding; 1 reminder/org/7d)');
 }

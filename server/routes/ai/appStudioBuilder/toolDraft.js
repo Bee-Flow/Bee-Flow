@@ -40,7 +40,10 @@ function labelOf(node) {
     return s ? cleanLabel(s.value) : null;
 }
 
-/** One component item; `children` are flattened after their parent, depth-first. */
+/**
+ * One component item; `children` are flattened after their parent, depth-first.
+ * @param {number} [depth]
+ */
 function collectComponents(nodes, out, depth = 0) {
     for (const node of nodes) {
         if (out.length >= MAX_ITEMS) return;
@@ -66,6 +69,9 @@ function scanAddComponents(root) {
     return { items, count: items.length, parentId: parent ? parent.value : null };
 }
 
+/**
+ * @param {string} kind
+ */
 function scanSingle(root, kind, { typeKeys = [], labelKeys = LABEL_KEYS } = {}) {
     const t = typeKeys.length ? pick([root], typeKeys) : null;
     const l = pick([root], labelKeys, { any: true });
@@ -94,6 +100,8 @@ function scanActions(root) {
 /**
  * What the partial arguments of `name` describe so far. Empty for tools whose
  * arguments are not a landing (edits, reads, finalize).
+ * @param {string | undefined} name
+ * @param {string} partialJson
  */
 function scanAppToolDraft(name, partialJson) {
     try {
@@ -123,3 +131,9 @@ function deriveAppDraftKey({ items, parentId } = {}) {
 }
 
 module.exports = { scanAppToolDraft, deriveAppDraftKey, MAX_ITEMS };
+
+/**
+ * @typedef {import('../../../core/llm/partialJsonScan').JsonNode} JsonNode
+ * @typedef {{ kind: string, type: string|null, label: string|null, partial: boolean }} DraftItem
+ * @typedef {{ items: DraftItem[], count: number, parentId: string|null }} ToolDraft
+ */

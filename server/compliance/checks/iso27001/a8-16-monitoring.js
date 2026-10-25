@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * ISO 27001 A.8.16 — monitoring activities: the org's log platform
  * (OpenObserve) must actually receive data and have at least one enabled
@@ -26,6 +26,9 @@ module.exports = {
     remediationKey: 'compliance.checks.iso_monitoring.fix',
     remediationLink: 'admin/compliance/iso_connectors',
 
+    /**
+     * @param {string} orgId
+     */
     async evaluate(orgId) {
         const read = await readConnectorSnapshots(orgId, 'openobserve', 'OpenObserve connector not enabled — link your monitoring instance under ISO 27001 → Connectors.');
         if (read.result) return read.result;

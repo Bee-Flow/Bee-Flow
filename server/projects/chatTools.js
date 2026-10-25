@@ -280,3 +280,9 @@ function makeProjectChatTools(deps = {}) {
 }
 
 module.exports = { makeProjectChatTools, TOOL_NAMES, SEARCH_TOOL, MAX_ITEMS_PER_ANSWER, MAX_SEARCHES, MAX_ROUNDS };
+
+/**
+ * The arguments of a tool call, as the definitions above describe them (what the model sent; every use checks the type).
+ * @typedef {{ name?: string, description?: string, content?: string, format?: string, docType?: string, bodyHtml?: string,
+ *             css?: string, template?: boolean, useHouseStyle?: boolean, query?: string }} ToolArgs
+ */

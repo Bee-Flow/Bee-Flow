@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Migration: "Find repeating work" scans and feedback become PER USER.
  *
@@ -77,6 +77,7 @@ async function migrateCache(db) {
 /** @param {{ db?: Db }} [opts] */
 async function up({ db } = {}) {
     const conn = db || { query: (sql, params) => require('../db').run(sql, params) };
+    /** @type {{ feedback: Awaited<ReturnType<typeof migrateFeedback>> | null, cache: Awaited<ReturnType<typeof migrateCache>> | null }} */
     const result = { feedback: null, cache: null };
     if (await tableExists(conn, 'automation_suggestion_feedback')) result.feedback = await migrateFeedback(conn);
     if (await tableExists(conn, 'suggestion_scan_cache')) result.cache = await migrateCache(conn);

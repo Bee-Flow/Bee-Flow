@@ -17,6 +17,7 @@
  * @returns {{ sendEvent: Function, abortController: AbortController, markEnded: Function }}
  */
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 function setupSSE(res) {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -76,6 +77,7 @@ function setupSSE(res) {
  */
 function startSseHeartbeat(res, intervalMs = 10000, opts = {}) {
     const { onDead = null, frame = ': ping\n\nevent: ping\ndata: {}\n\n', maxFailures = 3 } = opts;
+    /** @type {NodeJS.Timeout | null} */
     let timer = null;
     let failures = 0;
     const stop = () => {
@@ -161,10 +163,16 @@ function openSse(res, opts = {}) {
         res.writeHead(200, head);
     }
     if (flush && typeof res.flushHeaders === 'function') res.flushHeaders();
+    /**
+     * @param {string} chunk
+     */
     const sendRaw = (chunk) => {
         if (res.writableEnded || res.destroyed) return;
-        try { res.write(chunk); } catch (err) { log.debug('socket gone', err); }
+        try { res.write(chunk); } catch (err) { bestEffort('core/http/sseHelpers:sendRaw', err); /* socket gone */ }
     };
+    /**
+     * @param {string} event
+     */
     const send = (event, data) => sendRaw(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
     const abortController = new AbortController();
     let gone = false;
@@ -240,7 +248,7 @@ async function persistAndTitle({ conversation, messages, encryptionKey, userId, 
                 await agentStore.updateConversationTitle(conversation.id, title);
                 sendEvent('title_update', { title, conversationId: conversation.id });
             }
-        } catch (e) { log.debug('ignore title gen errors', e); }
+        } catch (e) { bestEffort('core/http/sseHelpers:persistAndTitle', e); /* ignore title gen errors */ }
     }
 }
 
@@ -252,6 +260,7 @@ async function persistAndTitle({ conversation, messages, encryptionKey, userId, 
  */
 function _buildTitleTranscript(messages) {
     if (!Array.isArray(messages)) return '';
+    /** @type {string[]} */
     const lines = [];
     let users = 0, assistants = 0;
     for (const m of messages) {
@@ -301,3 +310,5 @@ async function getOrCreateAgentConversation(agent, conversationId, userId, encry
 }
 
 module.exports = { SSE_HEADERS, setupSSE, openSse, sendSSEError, startSseHeartbeat, persistAndTitle, getOrCreateAgentConversation };
+
+/** @typedef {{ role?: string, content?: string | Array<{ type?: string, text?: unknown }> | null }} TitleMessage */

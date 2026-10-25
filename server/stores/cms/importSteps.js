@@ -369,3 +369,5 @@ module.exports = {
     validateImport, planPages, makePageLinkRemapper, buildSiteDoc, writePages,
     restoreLocaleOverrides, restoreBlogPosts,
 };
+
+/** @typedef {(node: unknown) => unknown} PageLinkRemapper */

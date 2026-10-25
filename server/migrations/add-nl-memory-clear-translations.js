@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck strict
 /**
  * Dutch for the "Clear All" dialog of the memory panel (2026-09-23), which
  * now says WHOSE memory is about to go.

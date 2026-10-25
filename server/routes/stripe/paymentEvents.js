@@ -9,6 +9,7 @@ const userStore = require('../../stores/userStore');
 const { findSubscriptionTargetBySubId, findSubscriptionTargetByCustomerId, stripOverriddenFields } = require('./webhookShared');
 const appPaths = require('../../utils/appPaths');
 const log = require('../../telemetry/log');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 /**
  * charge.refunded — flip the subscription's payment_status to 'refunded'.
@@ -57,7 +58,7 @@ async function handleChargeDisputeCreated(dispute) {
                 target = await userStore.findSubscriptionByStripeCustomerId(charge.customer);
             }
         } catch (e) {
-            log.warn('[Stripe Webhook] dispute charge retrieve failed:', e.message);
+            log.warn('[Stripe Webhook] dispute charge retrieve failed:', /** @type {Error} */ (e).message);
         }
     }
     if (!target && dispute.customer) {
@@ -160,7 +161,7 @@ async function _resolveEarlyConfirmationTarget(invoice) {
         }
         return await findSubscriptionTargetByCustomerId(invoice.customer);
     } catch (e) {
-        log.warn('[Stripe Webhook] early subscription confirmation target lookup failed:', e.message);
+        log.warn('[Stripe Webhook] early subscription confirmation target lookup failed:', /** @type {Error} */ (e).message);
         return null;
     }
 }
@@ -179,15 +180,13 @@ async function _sendSubscriptionConfirmationEmailOnce({ target, invoice, subId }
         );
         if (!claimed) return;
 
-        let recipientEmail = null;
-        let displayName = null;
-        let orgName = null;
+        let recipientEmail = null, displayName = null, orgName = null;
         if (target.scope === 'consumer') {
-            const u = await userStore.getUser(target.id).catch(() => null);
+            const u = await userStore.getUser(target.id).catch((e) => fallback('stripe/payment:userLookup', e, null));
             recipientEmail = u?.email || null;
             displayName = u?.displayName || u?.username || null;
         } else {
-            const org = await userStore.getOrganization(target.id).catch(() => null);
+            const org = await userStore.getOrganization(target.id).catch((e) => fallback('stripe/payment:orgLookup', e, null));
             orgName = org?.name || null;
             recipientEmail = org?.email || null;
             try {
@@ -197,7 +196,7 @@ async function _sendSubscriptionConfirmationEmailOnce({ target, invoice, subId }
                     [target.id],
                 );
                 if (admins?.[0]?.email) recipientEmail = admins[0].email;
-            } catch (err) { log.debug('tolerate', err); }
+            } catch (err) { bestEffort('stripe/payment:adminLookup', err); }
         }
         if (!recipientEmail) return;
 
@@ -212,7 +211,7 @@ async function _sendSubscriptionConfirmationEmailOnce({ target, invoice, subId }
                 planName = plan.name;
                 interval = plan.billing_interval || interval;
             }
-        } catch (err) { log.debug('fall back to Stripe\'s own data', err); }
+        } catch (err) { bestEffort('stripe/payment:planLookup', err); }
         if (!planName) planName = price?.nickname || line?.description || 'Subscription';
 
         const periodEnd = line?.period?.end;
@@ -225,7 +224,7 @@ async function _sendSubscriptionConfirmationEmailOnce({ target, invoice, subId }
                     const portal = await stripeService.createPortalSession(invoice.customer, portalUrl);
                     if (portal?.url) portalUrl = portal.url;
                 }
-            } catch (err) { log.debug('fall back to the settings page', err); }
+            } catch (err) { bestEffort('stripe/payment:portalSession', err); }
         }
 
         const { sendSubscriptionConfirmationEmail } = require('../../utils/emailService');
@@ -245,7 +244,7 @@ async function _sendSubscriptionConfirmationEmailOnce({ target, invoice, subId }
             log.warn(`[Stripe Webhook] subscription confirmation email failed: ${result?.error || 'unknown'}`);
         }
     } catch (e) {
-        log.warn('[Stripe Webhook] _sendSubscriptionConfirmationEmailOnce error:', e.message);
+        log.warn('[Stripe Webhook] _sendSubscriptionConfirmationEmailOnce error:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -304,7 +303,7 @@ async function handleInvoicePaymentFailed(invoice) {
             );
             await _sendFinalDunningEmailOnce({ target, customerId: invoice.customer || null });
         } catch (e) {
-            log.warn('[Stripe Webhook] dunning-cap transition failed:', e.message);
+            log.warn('[Stripe Webhook] dunning-cap transition failed:', /** @type {Error} */ (e).message);
         }
         return; // do NOT fire the per-attempt email once we've capped
     }
@@ -319,21 +318,26 @@ async function handleInvoicePaymentFailed(invoice) {
     });
 }
 
+/**
+ * @typedef {Object} _sendFinalDunningEmailOnceArgs
+ * @property {string} [customerId]
+ */
+/**
+ * @param {_sendFinalDunningEmailOnceArgs} param0
+ */
 async function _sendFinalDunningEmailOnce({ target, customerId }) {
     try {
         const targetType = target.scope === 'organization' ? 'organization' : 'consumer';
         const claimed = await userStore.claimNotification(targetType, target.id, 'payment_dunning_capped', null, { cap: DUNNING_MAX_ATTEMPTS });
         if (!claimed) return;
 
-        let recipientEmail = null;
-        let displayName = null;
-        let orgName = null;
+        let recipientEmail = null, displayName = null, orgName = null;
         if (target.scope === 'consumer') {
-            const u = await userStore.getUser(target.id).catch(() => null);
+            const u = await userStore.getUser(target.id).catch((e) => fallback('stripe/payment:userLookup', e, null));
             recipientEmail = u?.email || null;
             displayName = u?.displayName || u?.username || null;
         } else {
-            const org = await userStore.getOrganization(target.id).catch(() => null);
+            const org = await userStore.getOrganization(target.id).catch((e) => fallback('stripe/payment:orgLookup', e, null));
             orgName = org?.name || null;
             recipientEmail = org?.email || null;
             try {
@@ -343,7 +347,7 @@ async function _sendFinalDunningEmailOnce({ target, customerId }) {
                     [target.id],
                 );
                 if (admins?.[0]?.email) recipientEmail = admins[0].email;
-            } catch (err) { log.debug('tolerate', err); }
+            } catch (err) { bestEffort('stripe/payment:adminLookup', err); }
         }
         if (!recipientEmail) return;
 
@@ -354,7 +358,7 @@ async function _sendFinalDunningEmailOnce({ target, customerId }) {
                 const portal = await stripeService.createPortalSession(customerId, portalUrl);
                 if (portal?.url) portalUrl = portal.url;
             }
-        } catch (err) { log.debug('fall back', err); }
+        } catch (err) { bestEffort('stripe/payment:portalSession', err); }
 
         const { sendSubscriptionSuspendedEmail } = require('../../utils/emailService');
         await sendSubscriptionSuspendedEmail({
@@ -365,10 +369,18 @@ async function _sendFinalDunningEmailOnce({ target, customerId }) {
             reason: 'payment_dunning_capped',
         }).catch(e => log.warn('[Stripe Webhook] final dunning email send failed:', e.message));
     } catch (e) {
-        log.warn('[Stripe Webhook] _sendFinalDunningEmailOnce error:', e.message);
+        log.warn('[Stripe Webhook] _sendFinalDunningEmailOnce error:', /** @type {Error} */ (e).message);
     }
 }
 
+/**
+ * @typedef {Object} _sendPaymentFailedEmailOnceArgs
+ * @property {number} attempt
+ * @property {string} [customerId]
+ */
+/**
+ * @param {_sendPaymentFailedEmailOnceArgs} param0
+ */
 async function _sendPaymentFailedEmailOnce({ target, attempt, customerId }) {
     try {
         const targetType = target.scope === 'organization' ? 'organization' : 'consumer';
@@ -379,15 +391,13 @@ async function _sendPaymentFailedEmailOnce({ target, attempt, customerId }) {
         // Resolve recipient + display name. Mirrors the trial-end helper but
         // tolerates a missing customer id (some failure modes don't include
         // it; we fall back to the org/user record).
-        let recipientEmail = null;
-        let displayName = null;
-        let orgName = null;
+        let recipientEmail = null, displayName = null, orgName = null;
         if (target.scope === 'consumer') {
-            const u = await userStore.getUser(target.id).catch(() => null);
+            const u = await userStore.getUser(target.id).catch((e) => fallback('stripe/payment:userLookup', e, null));
             recipientEmail = u?.email || null;
             displayName = u?.displayName || u?.username || null;
         } else {
-            const org = await userStore.getOrganization(target.id).catch(() => null);
+            const org = await userStore.getOrganization(target.id).catch((e) => fallback('stripe/payment:orgLookup', e, null));
             orgName = org?.name || null;
             recipientEmail = org?.email || null;
             try {
@@ -398,7 +408,7 @@ async function _sendPaymentFailedEmailOnce({ target, attempt, customerId }) {
                 );
                 const adminEmails = (admins || []).map(a => a.email).filter(Boolean);
                 if (adminEmails.length > 0) recipientEmail = adminEmails[0];
-            } catch (err) { log.debug('tolerate', err); }
+            } catch (err) { bestEffort('stripe/payment:adminLookup', err); }
         }
         if (!recipientEmail) return;
 
@@ -409,7 +419,7 @@ async function _sendPaymentFailedEmailOnce({ target, attempt, customerId }) {
                 const portal = await stripeService.createPortalSession(customerId, portalUrl);
                 if (portal?.url) portalUrl = portal.url;
             }
-        } catch (err) { log.debug('fall back to settings page', err); }
+        } catch (err) { bestEffort('stripe/payment:portalSession', err); }
 
         const { sendPaymentFailedEmail } = require('../../utils/emailService');
         await sendPaymentFailedEmail({
@@ -420,7 +430,7 @@ async function _sendPaymentFailedEmailOnce({ target, attempt, customerId }) {
             attemptCount: attempt,
         }).catch(e => log.warn('[Stripe Webhook] payment_failed email send failed:', e.message));
     } catch (e) {
-        log.warn('[Stripe Webhook] _sendPaymentFailedEmailOnce error:', e.message);
+        log.warn('[Stripe Webhook] _sendPaymentFailedEmailOnce error:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -434,3 +444,21 @@ module.exports = {
     _sendFinalDunningEmailOnce,
     _sendPaymentFailedEmailOnce,
 };
+
+/**
+ * The fields of the (unexpanded) Stripe webhook objects these handlers read.
+ * @typedef {{ id: string, invoice?: string | null, subscription?: string | null, customer?: string | null, amount_refunded?: number }} WebhookCharge
+ * @typedef {{ id: string, charge?: string | null, customer?: string | null, reason?: string, amount?: number }} WebhookDispute
+ * @typedef {{
+ *   id: string,
+ *   subscription?: string | null,
+ *   customer?: string | null,
+ *   billing_reason?: string | null,
+ *   amount_paid?: number,
+ *   currency?: string,
+ *   hosted_invoice_url?: string | null,
+ *   subscription_details?: { metadata?: Record<string, string> | null } | null,
+ *   lines?: { data?: Array<{ description?: string | null, period?: { end?: number }, price?: { id?: string, nickname?: string | null, recurring?: { interval?: string } | null } | null }> },
+ * }} WebhookInvoice
+ * @typedef {{ scope: string, id: string }} SubscriptionTarget
+ */

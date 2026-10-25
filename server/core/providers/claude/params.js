@@ -276,6 +276,7 @@ function buildSdkParams(provider, model, messages, options = {}) {
  * Per-request headers REPLACE defaultHeaders with the same name, so in
  * OAuth mode the oauth beta must ride along with the context-management
  * beta (comma-separated list is the documented form).
+ * @param {boolean} oauth
  */
 function requestOptionsFor(params, oauth) {
     if (!params.context_management) return undefined;
@@ -295,3 +296,8 @@ module.exports = {
     buildSdkParams,
     requestOptionsFor,
 };
+
+/**
+ * `context_management` is a beta param the SDK's types do not carry yet.
+ * @typedef {import('@anthropic-ai/sdk/resources/messages.js').MessageCreateParamsNonStreaming & { context_management?: { edits: Array<Record<string, unknown>> } }} SdkParams
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * ingestNextcloudRecording — download a recording from Nextcloud Files and
  * run it through Bee Flow's own transcription pipeline (the tenant's
@@ -154,6 +154,8 @@ async function ingestNextcloudRecording(opts) {
 /**
  * Format and post the meeting summary + action items into the originating
  * Talk conversation. Never throws — failures are returned as { ok:false }.
+ * @param {{ session: Record<string, unknown> | null, userId: string, orgId?: string | null, talkRoomToken: string,
+ *   title?: string | null, summary?: string | null, actionItems?: Array<{ text?: string, assignee?: string }> | null }} args
  */
 async function postSummaryToTalk({ session, userId, orgId = null, talkRoomToken, title, summary, actionItems }) {
     try {
@@ -198,6 +200,10 @@ async function postSummaryToTalk({ session, userId, orgId = null, talkRoomToken,
 /**
  * Fetch the real display-name roster for a Talk room (best-effort). Used to
  * anchor diarization → real-name mapping. Never throws.
+ * @param {Record<string, unknown> | null} session
+ * @param {string} userId
+ * @param {string} talkRoomToken
+ * @param {string | null} [orgId]
  */
 async function resolveTalkParticipantNames(session, userId, talkRoomToken, orgId = null) {
     try {
@@ -214,15 +220,16 @@ async function resolveTalkParticipantNames(session, userId, talkRoomToken, orgId
         if (res?.nc_scope_denied) return [];
         if (!res || res.error || !Array.isArray(res.participants)) return [];
         const names = res.participants
-            .map(p => (p.displayName || '').trim())
+            .map((/** @type {{ displayName?: string }} */ p) => (p.displayName || '').trim())
             // Drop empty + obvious bot/system actors.
-            .filter(n => n && !/^(bot|system|changelog)$/i.test(n));
+            .filter((/** @type {string} */ n) => n && !/^(bot|system|changelog)$/i.test(n));
         return Array.from(new Set(names));
     } catch (_) {
         return [];
     }
 }
 
+/** @param {string} p */
 function safeUnlink(p) { try { fs.unlinkSync(p); } catch (_) { log.debug('file already gone', _); } }
 
 module.exports = {

@@ -30,7 +30,7 @@
 
 const pd = require('../../projects/projectData');
 const signals = require('../../projects/personalDataSignals');
-const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 const ORG_WIDE_DPIA_KEY = 'project_ai_participation';
 const ORG = pd.orgMatch('p.organization_id');
@@ -63,6 +63,7 @@ const MENTION_SQL = `
     WHERE p.id = pc.project_id AND ${ORG} AND pc.id = ANY($2::text[]) AND pc.ai_mode IN ('always', 'auto')
     RETURNING pc.id, pc.project_id`;
 
+/** @type {Record<string, string>} */
 const PREFIX = { chats: 'project_chat:', threads: 'project_comment_thread:' };
 
 function defaultDeps() {
@@ -128,6 +129,9 @@ function _asBuilt(subject) {
     return subject && typeof subject.projectId === 'string' && PREFIX[subject.kind] ? subject : null;
 }
 
+/**
+ * @param {number} now
+ */
 function _isCurrent(row, now) {
     if (!row || !row.approved_at) return false;
     if (!row.expires_at) return true;
@@ -220,11 +224,13 @@ module.exports = {
             return { status: 'warn', evidence: { project_id: s.projectId, truncated: sig.truncated }, details: 'Whether this project holds personal data could not be read in full, so this conversation was not judged.' };
         }
         const kinds = signal?.kinds || [];
+        /** @type {boolean} */
         let shieldOn;
         try { shieldOn = await deps.shieldOn(orgId); } catch { shieldOn = false; }
         // null = not consulted: the DPIA register is only read when the
         // project holds special-category data, and `false` would claim "no
         // current DPIA" where nobody looked.
+        /** @type {boolean | null} */
         let dpiaCurrent = null;
         if (signals.hasSpecialKinds(kinds)) {
             const keys = [ORG_WIDE_DPIA_KEY, `project:${s.projectId}`, ...(s.agentId ? [String(s.agentId)] : [])];
@@ -257,7 +263,7 @@ module.exports = {
         if (!targets.length) return { changed: 0, summary: 'No team chat needed switching.' };
         const updated = await deps.query(MENTION_SQL, [orgId, targets.map(s => s.id.slice(PREFIX.chats.length))]);
         for (const r of updated || []) {
-            try { await deps.announce(String(r.project_id), String(r.id), actorId); } catch (err) { log.debug('the switch stands; the live feed is best-effort', err); }
+            try { await deps.announce(String(r.project_id), String(r.id), actorId); } catch (err) { bestEffort('compliance/checks/gdpr/art35-project-ai-participation:autoFix', err); /* the switch stands; the live feed is best-effort */ }
         }
         return { changed: (updated || []).length, summary: `Switched ${(updated || []).length} team chat(s) to "AI answers on mention".` };
     },
@@ -265,3 +271,5 @@ module.exports = {
     _verdict: verdict,
     _subjects,
 };
+
+/** @typedef {{ id: string, label?: string, kind: string, projectId: string, agentId?: string | null, aiMode: string }} Subject */

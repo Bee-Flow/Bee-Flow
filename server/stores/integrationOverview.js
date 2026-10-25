@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The consolidated Activity overview of the outbound-call ledger: everything
  * the Privacy Shield "Activity" tab needs in one response. Reached through
@@ -22,12 +22,20 @@ const { getOne, getAll } = require('../db');
 const { DEST_EXPR, HAS_PII, NON_EU, LOC_STATE, LOC_BASIS, LOCATED, stateCounts } = require('./integrationLocationSql');
 const geo = require('./serverGeoResolver');
 
+/** @typedef {import('./integrationActivityStore').ActivityFilters} ActivityFilters */
+/** @typedef {(filters: ActivityFilters | undefined) => { where: string, params: unknown[] }} BuildFilters */
+
 const TOP_DESTINATIONS = 12;
 const MAP_DESTINATIONS = 200;
 
-/** Roll rows up by canonical category id (merges legacy-label rows). */
+/**
+ * Roll rows up by canonical category id (merges legacy-label rows).
+ * @param {Record<string, any>[] | null | undefined} rows
+ * @param {string} keyField
+ * @param {((category: string) => string | null) | null} [normalizeCategory]
+ */
 function _rollupByCategory(rows, keyField, normalizeCategory) {
-    const normalize = normalizeCategory || ((c) => String(c || '').trim() || null);
+    const normalize = normalizeCategory || ((/** @type {string} */ c) => String(c || '').trim() || null);
     const merged = new Map();
     for (const row of rows || []) {
         const id = normalize(row[keyField]);
@@ -40,15 +48,23 @@ function _rollupByCategory(rows, keyField, normalizeCategory) {
     return [...merged.values()].sort((a, b) => b.count - a.count);
 }
 
-/** 100 × (1 − (outside + pii-outside) / (located + pii-outside)); pii to outside costs double. */
+/**
+ * 100 × (1 − (outside + pii-outside) / (located + pii-outside)); pii to outside costs double.
+ * @param {number} outside
+ * @param {number} piiOutside
+ * @param {number} located
+ */
 function sovereigntyScore(outside, piiOutside, located) {
     if (!(located > 0)) return null;
     return Math.max(0, Math.min(100, Math.round(100 * (1 - (outside + piiOutside) / (located + piiOutside)))));
 }
 
-const _num = (v) => (v === null || v === undefined ? null : Number(v));
+const _num = (/** @type {string | number | null | undefined} */ v) => (v === null || v === undefined ? null : Number(v));
 
-/** A destination row, in the shape of the API contract. */
+/**
+ * A destination row, in the shape of the API contract.
+ * @param {Record<string, any>} r
+ */
 function _destination(r) {
     return {
         dest_host: r.dest_host,
@@ -73,6 +89,9 @@ function _destination(r) {
     };
 }
 
+/**
+ * @param {string} and
+ */
 function _destinationsSql(and) {
     return `
         WITH base AS (
@@ -107,9 +126,9 @@ function _destinationsSql(and) {
 }
 
 /**
- * @param {object} filters
+ * @param {ActivityFilters} filters
  * @param {'day'|'hour'} interval
- * @param {{ buildFilters: Function, normalizeCategory?: Function }} deps
+ * @param {{ buildFilters: BuildFilters, normalizeCategory?: (category: string) => string | null }} deps
  *   buildFilters from the store; normalizeCategory from core/privacy/piiCategories,
  *   passed in by the route so this platform module does not reach into core.
  */
@@ -287,7 +306,12 @@ async function buildOverview(filters, interval, { buildFilters, normalizeCategor
     };
 }
 
-/** Score delta vs the PREVIOUS window of equal length (when the window is known). */
+/**
+ * Score delta vs the PREVIOUS window of equal length (when the window is known).
+ * @param {ActivityFilters} filters
+ * @param {BuildFilters} buildFilters
+ * @param {number} score
+ */
 async function _previousWindowDelta(filters, buildFilters, score) {
     if (!filters.startDate || !filters.endDate) return null;
     try {

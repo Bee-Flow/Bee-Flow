@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * automation_caller_notices: which people have acknowledged the one-time notice
  * that an automation runs with THEIR OWN connections (runPolicy.connections =
@@ -13,7 +13,11 @@
 
 const { initDB, run, getOne } = require('./core');
 
-/** The acknowledged items, or null when this person never acknowledged the notice. */
+/**
+ * The acknowledged items, or null when this person never acknowledged the notice.
+ * @param {string} userId
+ * @param {string} automationId
+ */
 async function getCallerNoticeAck(userId, automationId) {
     if (!userId || !automationId) return null;
     await initDB();
@@ -28,7 +32,12 @@ async function getCallerNoticeAck(userId, automationId) {
     } catch (_) { return []; }
 }
 
-/** Remember that this person acknowledged exactly these items (replaces an earlier, smaller set). */
+/**
+ * Remember that this person acknowledged exactly these items (replaces an earlier, smaller set).
+ * @param {string} userId
+ * @param {string} automationId
+ * @param {string[]} [items]
+ */
 async function markCallerNoticeSeen(userId, automationId, items = []) {
     if (!userId || !automationId) return;
     await initDB();

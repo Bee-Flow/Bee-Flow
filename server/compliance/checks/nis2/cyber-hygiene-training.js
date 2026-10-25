@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * NIS2 Art. 21(2)(g) + Art. 20(2) — basic cyber-hygiene practices and
  * cybersecurity training.
@@ -22,13 +22,14 @@
 
 const { getAll, getOne } = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const REQUIRED_SLUGS = ['acceptable-use', 'information-security-policy'];
 const ATTEST_MAX_DAYS = 365;
 const PASS_PCT = 90;
 const WARN_PCT = 60;
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
+/** @param {Record<string, any> | null | undefined} settings */
 function _notRelevant(settings) {
     let rel = settings && settings.framework_relevance;
     if (typeof rel === 'string') { try { rel = JSON.parse(rel); } catch { rel = null; } }
@@ -53,6 +54,7 @@ module.exports = {
     remediationKey: 'compliance.check_nis2_training_fix',
     remediationLink: 'admin/compliance/training',
     REQUIRED_SLUGS,
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const settings = await complianceStore.getSettings(orgId);
         if (_notRelevant(settings)) {
@@ -101,10 +103,10 @@ module.exports = {
                 ) m
             `, [orgId, REQUIRED_SLUGS, REQUIRED_SLUGS.length, String(ATTEST_MAX_DAYS)]);
         } catch (e) {
-            if (NOT_PROVISIONED.has(e?.code)) {
+            if (isMissingTable(e)) {
                 return {
                     status: 'warn',
-                    evidence: { provisioned: false, missing: e.code },
+                    evidence: { provisioned: false, missing: e.code ?? 'missing_table' },
                     details: 'The policy acknowledgement ledger is not provisioned yet — open Compliance → Policies once to seed it.',
                 };
             }

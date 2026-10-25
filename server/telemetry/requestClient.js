@@ -57,7 +57,7 @@ function normalizeClient(value) {
  * Express middleware. Runs the rest of the request inside a context carrying
  * the client, so anything downstream — however deep, however async — can ask.
  */
-function withRequestClient(req, _res, next) {
+function withRequestClient(/** @type {import('express').Request} */ req, _res, next) {
     store.run({ client: normalizeClient(req.headers['x-beeflow-client']) }, next);
 }
 

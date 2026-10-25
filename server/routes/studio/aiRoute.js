@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * POST /api/studio/ai/route — "Describe it, AI picks the building blocks".
  * (Bee Flow Builder redesign, Sep 2026, Track H4.)
@@ -101,6 +102,7 @@ const {
     makeLazyDeps, userIdOf, orgIdOf, moduleActive, licenceAllows, capability, permission, solutionsGate,
 } = require('./shared');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /** One paragraph in, one building block out. Same cap skillDraft.js uses. */
 const MAX_TEXT_CHARS = 1000;
@@ -127,6 +129,7 @@ const DEFAULT_LOADERS = {
 };
 
 const makeDefaultDeps = () => makeLazyDeps(DEFAULT_LOADERS);
+/** @typedef {ReturnType<typeof makeDefaultDeps>} AiRouteDeps */
 
 // ── What the caller may send ───────────────────────────────────────────────
 
@@ -146,9 +149,9 @@ const RouteBody = z.preprocess(
 );
 
 /** The session check, ahead of the schema: a caller without one hears 401, not 400. */
-const requireSession = (req, res, next) => (req.session?.isAuthenticated && userIdOf(req)
+const requireSession = /** @type {import('express').RequestHandler} */ ((req, res, next) => (req.session?.isAuthenticated && userIdOf(req)
     ? next()
-    : res.status(401).json({ error: 'Not authenticated' }));
+    : res.status(401).json({ error: 'Not authenticated' })));
 
 // ── The kinds this router may route TO ─────────────────────────────────────
 //
@@ -162,7 +165,8 @@ const requireSession = (req, res, next) => (req.session?.isAuthenticated && user
 // `meetingNotes` and `runs` are counted on the rail but are NOT outcomes here:
 // you record a meeting, you do not describe one, and a run is something that
 // happened rather than something to build.
-const ROUTE_KINDS = Object.freeze([
+/** @typedef {{ key: string, blurb: string, gate: (req: import('express').Request, d: AiRouteDeps) => Promise<boolean> }} RouteKind */
+const ROUTE_KINDS = Object.freeze(/** @type {RouteKind[]} */ ([
     {
         key: 'automation',
         blurb: 'An automation that runs by itself: triggered by a schedule, a webhook, an incoming e-mail or a form, then does steps in order (conditions, loops, AI steps, sending mail, writing to tables).',
@@ -216,7 +220,7 @@ const ROUTE_KINDS = Object.freeze([
         blurb: 'A solution: a package that groups the automations, tables, agents and pages that serve one goal, and can be exported and installed elsewhere.',
         gate: solutionsGate,
     },
-]);
+]));
 
 const ROUTE_KIND_KEYS = Object.freeze(ROUTE_KINDS.map(k => k.key));
 const KIND_BY_KEY = new Map(ROUTE_KINDS.map(k => [k.key, k]));
@@ -227,9 +231,13 @@ const KIND_BY_KEY = new Map(ROUTE_KINDS.map(k => [k.key, k]));
  * Unknown NARROWS: a gate that throws puts its kind in `undecided` and never
  * in `available`. Both lists reach the client, because "you have none" and "we
  * could not tell" are different sentences and only one of them is safe to say.
+ * @param {import('express').Request} req
+ * @param {AiRouteDeps} d
  */
 async function resolveAvailability(req, d) {
+    /** @type {string[]} */
     const available = [];
+    /** @type {string[]} */
     const undecided = [];
     await Promise.all(ROUTE_KINDS.map(async (kind) => {
         try {
@@ -241,7 +249,7 @@ async function resolveAvailability(req, d) {
     }));
     // Declaration order, not resolution order: the response must not depend on
     // which gate happened to answer first.
-    const order = (a, b) => ROUTE_KIND_KEYS.indexOf(a) - ROUTE_KIND_KEYS.indexOf(b);
+    const order = /** @param {string} a @param {string} b */ (a, b) => ROUTE_KIND_KEYS.indexOf(a) - ROUTE_KIND_KEYS.indexOf(b);
     return { available: available.sort(order), undecided: undecided.sort(order) };
 }
 
@@ -251,6 +259,7 @@ async function resolveAvailability(req, d) {
  * The forced-tool schema, with the `kind` enum built from THIS caller's
  * available kinds — the gating reaches into the vocabulary, not just into the
  * check afterwards.
+ * @param {string[]} availableKinds
  */
 function buildRouteTool(availableKinds) {
     const kinds = (Array.isArray(availableKinds) ? availableKinds : []).filter(k => KIND_BY_KEY.has(k));
@@ -304,6 +313,8 @@ function buildRouteTool(availableKinds) {
  * fixed blurbs. Nothing else is in scope here — no org, no user, no inventory
  * — and nothing else can be added by accident, because there is no context
  * object being filtered down. (BFSF-441.)
+ * @param {string} text
+ * @param {string[]} availableKinds
  */
 function buildRouteMessages(text, availableKinds) {
     const catalogue = (Array.isArray(availableKinds) ? availableKinds : [])
@@ -330,7 +341,7 @@ function buildRouteMessages(text, availableKinds) {
     ];
 }
 
-const clampText = (value, max) => (typeof value === 'string' ? value.trim().replace(/\s+/g, ' ').slice(0, max) : '');
+const clampText = /** @param {unknown} value @param {number} max */ (value, max) => (typeof value === 'string' ? value.trim().replace(/\s+/g, ' ').slice(0, max) : '');
 
 /**
  * Re-check and clamp everything the model said. PURE.
@@ -340,6 +351,8 @@ const clampText = (value, max) => (typeof value === 'string' ? value.trim().repl
  * card is worse than none, because the screen would look like it worked.
  * Companion entries are DROPPED when broken (unknown kind, unavailable kind,
  * no name) rather than repaired.
+ * @param {{ kind?: unknown, name?: unknown, seed?: unknown, companions?: unknown } | null} structured
+ * @param {{ available?: string[] }} [opts]
  */
 function parseRouteAnswer(structured, { available = [] } = {}) {
     if (!structured || typeof structured !== 'object' || Array.isArray(structured)) return null;
@@ -369,13 +382,17 @@ function parseRouteAnswer(structured, { available = [] } = {}) {
 
 // ── The model call ─────────────────────────────────────────────────────────
 
-/** The fast tier, with the global default behind it — the resolver skills/ai.js uses. */
+/**
+ * The fast tier, with the global default behind it — the resolver skills/ai.js uses.
+ * @param {AiRouteDeps} d
+ * @param {{ userId: string | null, userOrgId: string | null }} ids
+ */
 async function resolveModel(d, { userId, userOrgId }) {
     const { resolveModelForTier, resolveModelWithGlobalFallback } = d.modelResolver;
     try {
         const resolved = await resolveModelForTier('tier:fast', { userOrgId, userId, fallbackTier: 'fast' });
         if (resolved) return resolved;
-    } catch (err) { log.debug('fall through', err); }
+    } catch (err) { bestEffort('routes/studio/aiRoute:resolveModel', err); /* fall through */ }
     try {
         return await resolveModelWithGlobalFallback('tier:fast', { userOrgId, userId });
     } catch (_) {
@@ -387,6 +404,8 @@ async function resolveModel(d, { userId, userOrgId }) {
  * One usage row per call. `chatForcedTool` logs nothing itself, so without
  * this the button spends tokens that appear in nobody's usage — the one place
  * a self-hosted customer looks to find out what their AI costs.
+ * @param {AiRouteDeps} d
+ * @param {{ userId: string | null, userOrgId: string | null, modelId: string, usage: Parameters<typeof usageLogFields>[0], startMs: number }} entry
  */
 async function logRouteUsage(d, { userId, userOrgId, modelId, usage, startMs }) {
     try {
@@ -407,6 +426,7 @@ async function logRouteUsage(d, { userId, userOrgId, modelId, usage, startMs }) 
     }
 }
 
+/** @param {AiRouteDeps | null} [deps] */
 function createAiRouteRouter(deps = null) {
     const d = deps || makeDefaultDeps();
     const router = express.Router();
@@ -461,15 +481,16 @@ function createAiRouteRouter(deps = null) {
     return router;
 }
 
+/** @typedef {ReturnType<typeof createAiRouteRouter> & { createAiRouteRouter: typeof createAiRouteRouter, ROUTE_KINDS: typeof ROUTE_KINDS, ROUTE_KIND_KEYS: typeof ROUTE_KIND_KEYS, MAX_TEXT_CHARS: typeof MAX_TEXT_CHARS, MAX_COMPANIONS: typeof MAX_COMPANIONS, buildRouteTool: typeof buildRouteTool, buildRouteMessages: typeof buildRouteMessages, parseRouteAnswer: typeof parseRouteAnswer, resolveAvailability: typeof resolveAvailability }} AiRouteRouter */
 const router = createAiRouteRouter();
 
 module.exports = router;
-module.exports.createAiRouteRouter = createAiRouteRouter;
-module.exports.ROUTE_KINDS = ROUTE_KINDS;
-module.exports.ROUTE_KIND_KEYS = ROUTE_KIND_KEYS;
-module.exports.MAX_TEXT_CHARS = MAX_TEXT_CHARS;
-module.exports.MAX_COMPANIONS = MAX_COMPANIONS;
-module.exports.buildRouteTool = buildRouteTool;
-module.exports.buildRouteMessages = buildRouteMessages;
-module.exports.parseRouteAnswer = parseRouteAnswer;
-module.exports.resolveAvailability = resolveAvailability;
+/** @type {AiRouteRouter} */ (module.exports).createAiRouteRouter = createAiRouteRouter;
+/** @type {AiRouteRouter} */ (module.exports).ROUTE_KINDS = ROUTE_KINDS;
+/** @type {AiRouteRouter} */ (module.exports).ROUTE_KIND_KEYS = ROUTE_KIND_KEYS;
+/** @type {AiRouteRouter} */ (module.exports).MAX_TEXT_CHARS = MAX_TEXT_CHARS;
+/** @type {AiRouteRouter} */ (module.exports).MAX_COMPANIONS = MAX_COMPANIONS;
+/** @type {AiRouteRouter} */ (module.exports).buildRouteTool = buildRouteTool;
+/** @type {AiRouteRouter} */ (module.exports).buildRouteMessages = buildRouteMessages;
+/** @type {AiRouteRouter} */ (module.exports).parseRouteAnswer = parseRouteAnswer;
+/** @type {AiRouteRouter} */ (module.exports).resolveAvailability = resolveAvailability;

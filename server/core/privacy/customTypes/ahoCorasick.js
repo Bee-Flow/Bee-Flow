@@ -31,6 +31,7 @@ function foldCode(code) {
             if (c >= 0xD800 && c <= 0xDFFF) { t[c] = c; continue; }
             const ch = String.fromCharCode(c);
             const up = ch.toUpperCase();
+            /** @type {string | null} */
             let folded = null;
             if (up.length === 1) {
                 const low = up.toLowerCase();
@@ -94,6 +95,7 @@ class AhoCorasick {
     }
 
     build() {
+        /** @type {number[]} */
         const queue = [];
         for (const v of this.next[0].values()) { this.fail[v] = 0; this.outLink[v] = 0; queue.push(v); }
         for (let qi = 0; qi < queue.length; qi++) {

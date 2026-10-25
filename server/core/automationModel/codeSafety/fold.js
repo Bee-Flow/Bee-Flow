@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * A small constant evaluator: what a string (or number, or array of them)
  * expression is, when the code alone decides it.
@@ -25,25 +26,47 @@ const STRING_METHODS = new Set([
     'padStart', 'padEnd', 'toString', 'normalize',
 ]);
 
+/**
+ * A folded value: a string, a number, or a list of them.
+ * @typedef {string | number | Array<string | number>} FoldValue
+ */
+
+/**
+ * @template T
+ * @param {T} v
+ * @returns {T | undefined}
+ */
 function capped(v) {
     if (typeof v === 'string' && v.length > MAX_LEN) return undefined;
     if (Array.isArray(v) && v.length > MAX_LEN) return undefined;
     return v;
 }
 
+/**
+ * @param {unknown} v
+ * @returns {v is string | number}
+ */
 function isScalar(v) {
     return typeof v === 'string' || typeof v === 'number';
 }
 
+/**
+ * @param {string} s
+ */
 function decodeBase64(s) {
     if (typeof s !== 'string' || !/^[A-Za-z0-9+/=_-]*$/.test(s)) return undefined;
     try { return Buffer.from(s, 'base64').toString('latin1'); } catch (_) { return undefined; }
 }
 
 /**
- * @param {object} env  { consts: Map<name, initNode>, isFree(name): boolean }
+ * @param {{ consts: Map<string, import('acorn').AnyNode>, isFree: (name: string) => boolean }} env  consts: name to init node; isFree: name not shadowed
  */
 function makeFolder(env) {
+    /**
+     * @param {import('acorn').AnyNode} node
+     * @param {number} [depth]
+     * @returns {FoldValue | undefined}
+     */
     function fold(node, depth = 0) {
         if (!node || depth > MAX_DEPTH) return undefined;
         switch (node.type) {
@@ -83,6 +106,7 @@ function makeFolder(env) {
                 return init ? fold(init, depth + 1) : undefined;
             }
             case 'ArrayExpression': {
+                /** @type {(string | number)[]} */
                 const out = [];
                 for (const el of node.elements) {
                     if (!el) return undefined;
@@ -116,7 +140,13 @@ function makeFolder(env) {
         }
     }
 
+    /**
+     * @param {Array<import('acorn').Expression | import('acorn').SpreadElement>} args
+     * @param {number} depth
+     * @returns {FoldValue[] | undefined}
+     */
     function argValues(args, depth) {
+        /** @type {FoldValue[]} */
         const out = [];
         for (const a of args) {
             if (a.type === 'SpreadElement') {
@@ -132,15 +162,20 @@ function makeFolder(env) {
         return out;
     }
 
+    /**
+     * @param {import('acorn').CallExpression} node
+     * @param {number} depth
+     * @returns {FoldValue | undefined}
+     */
     function foldCall(node, depth) {
         const callee = node.callee;
         // String.fromCharCode(...) / String.fromCodePoint(...)
         if (callee.type === 'MemberExpression' && !callee.computed
             && callee.object.type === 'Identifier' && callee.object.name === 'String' && env.isFree('String')
-            && (callee.property.name === 'fromCharCode' || callee.property.name === 'fromCodePoint')) {
+            && ((/** @type {import('acorn').Identifier | import('acorn').PrivateIdentifier} */ (callee.property)).name === 'fromCharCode' || (/** @type {import('acorn').Identifier | import('acorn').PrivateIdentifier} */ (callee.property)).name === 'fromCodePoint')) {
             const args = argValues(node.arguments, depth);
-            if (!args || !args.every((n) => typeof n === 'number' && n >= 0 && n <= 0x10ffff)) return undefined;
-            try { return capped(String.fromCodePoint(...args)); } catch (_) { return undefined; }
+            if (!args || !args.every((/** @type {number} */ n) => typeof n === 'number' && n >= 0 && n <= 0x10ffff)) return undefined;
+            try { return capped(String.fromCodePoint(.../** @type {number[]} */ (args))); } catch (_) { return undefined; }
         }
         // atob('...'), decodeURIComponent('...'), unescape('...')
         if (callee.type === 'Identifier' && env.isFree(callee.name) && node.arguments.length === 1) {
@@ -164,14 +199,17 @@ function makeFolder(env) {
                 if (method === 'repeat' && (typeof args[0] !== 'number' || recv.length * args[0] > MAX_LEN)) return undefined;
                 if ((method === 'replace' || method === 'replaceAll') && !args.every((a) => typeof a === 'string')) return undefined;
                 if (method === 'reverse' || method === 'join') return undefined;
-                return capped(String.prototype[method].apply(recv, args));
+                return capped(/** @type {(...a: unknown[]) => string} */ (/** @type {unknown} */ (String.prototype[/** @type {keyof String} */ (method)]))
+.apply(recv, args));
             }
             if (Array.isArray(recv)) {
                 if (method === 'reverse') return [...recv].reverse();
                 if (method === 'join') return capped(recv.join(args.length ? String(args[0]) : ','));
-                if (method === 'slice') return recv.slice(...args);
+                // slice/at coerce each argument to an integer, exactly as the
+                // folded code would at run time; the types only name numbers.
+                if (method === 'slice') return recv.slice(.../** @type {number[]} */ (args));
                 if (method === 'concat') return capped(recv.concat(...args));
-                if (method === 'at') return recv.at(args[0]);
+                if (method === 'at') return recv.at(/** @type {number} */ (args[0]));
             }
         } catch (_) {
             return undefined;
@@ -186,9 +224,13 @@ function makeFolder(env) {
  * The string pieces a (possibly unfoldable) expression is built from, in
  * source order: `a('con') + b('structor')` gives 'constructor'. Used only to
  * ask whether an obfuscated key SPELLS something suspicious.
+ * @param {import('acorn').AnyNode} node
+ * @param {typeof import('./parse').forEachNode} forEachNode
  */
 function literalPieces(node, forEachNode) {
+    /** @type {{ at: number, text: string }[]} */
     const parts = [];
+
     forEachNode(node, (n) => {
         if (n.type === 'Literal' && typeof n.value === 'string') parts.push({ at: n.start, text: n.value });
         if (n.type === 'TemplateElement' && typeof n.value.cooked === 'string') parts.push({ at: n.start, text: n.value.cooked });

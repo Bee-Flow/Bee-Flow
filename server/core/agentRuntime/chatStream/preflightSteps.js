@@ -11,6 +11,7 @@
  */
 const testChatMod = require('../testChat');
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 /** The provider as the DLP scanner sees it. */
 function dlpProviderConfig(config) {
@@ -97,7 +98,7 @@ async function buildPromptWithMemory({ agent, agentId, userId, userMessage, user
 async function hydrateTokenVault(conversation, d) {
     if (!conversation?.id) return;
     try { await d.dlpRunner().getConversationTokenMapAsync(conversation.id); }
-    catch (err) { log.debug('hydration is best-effort', err); }
+    catch (err) { bestEffort('core/agentRuntime/chatStream/preflightSteps:hydrateTokenVault', err); /* hydration is best-effort */ }
 }
 
 /** GUARDRAILS (before KB search — block early). */
@@ -186,3 +187,24 @@ module.exports = {
     resolveAndPrewarmShield, buildPromptWithMemory, hydrateTokenVault, runGuardrailsPhase,
     dropWebSearchOnUpload, runAgentDlpPreflight, dlpBlockError,
 };
+
+/**
+ * @typedef {import('./turnState').AgentRow} AgentRow
+ * @typedef {import('./turnState').ConversationRow} ConversationRow
+ * @typedef {import('./turnState').OnEvent} OnEvent
+ * @typedef {import('./turnState').ChatMessage} ChatMessage
+ * @typedef {import('./turnState').ToolDef} ToolDef
+ * @typedef {import('./turnState').MessageMetadata} MessageMetadata
+ * @typedef {import('./turnState').UserAuth} UserAuth
+ * @typedef {import('./roundRequest').ProviderConfig} ProviderConfig
+ * @typedef {{
+ *   withPhase: typeof import('../phaseEvents').withPhase,
+ *   buildSystemPrompt: typeof import('../contextBuilder').buildSystemPrompt,
+ *   runInputGuardrails: typeof import('../guardrailsRunner').runInputGuardrails,
+ *   resolveShieldFor: typeof import('../../privacy/orgShield').resolveShieldFor,
+ *   resolveMemoryContext: typeof import('../contextEnrichment').resolveMemoryContext,
+ *   resolveMemoryPolicy: typeof import('../../memory/memoryPolicy').resolveMemoryPolicy,
+ *   dlpRunner: () => typeof import('../../dlp/dlpRunner'),
+ *   dlpPreflight: () => typeof import('../../dlp/dlpPreflight'),
+ * }} PreflightDeps
+ */

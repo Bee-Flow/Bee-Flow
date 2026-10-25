@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: org_custom_integrations + org_custom_integration_versions.
  *

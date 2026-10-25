@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: Automation runs — approval + parallel + resume support (2026-06).
  *

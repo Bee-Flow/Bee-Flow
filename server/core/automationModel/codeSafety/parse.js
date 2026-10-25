@@ -18,7 +18,10 @@
 const crypto = require('node:crypto');
 const acorn = require('acorn');
 
-/** CRLF/CR to LF, trailing whitespace trimmed per line. */
+/**
+ * CRLF/CR to LF, trailing whitespace trimmed per line.
+ * @param {string} code
+ */
 function normaliseCode(code) {
     return String(code == null ? '' : code)
         .replace(/\r\n?/g, '\n')
@@ -27,7 +30,10 @@ function normaliseCode(code) {
         .join('\n');
 }
 
-/** sha256 (hex) of the normalised code: the key approvals and reviews hang off. */
+/**
+ * sha256 (hex) of the normalised code: the key approvals and reviews hang off.
+ * @param {string} code
+ */
 function hashCode(code) {
     return crypto.createHash('sha256').update(normaliseCode(code), 'utf8').digest('hex');
 }
@@ -36,8 +42,12 @@ function hashCode(code) {
  * Parse the code. Answers `{ ast, comments }` or `{ syntaxError }`, where the
  * syntax error is `{ message, line, column }` with a 1-based column (the
  * editor's convention; acorn counts columns from 0).
+ * @param {string} code
+ * @returns {{ ast: import('acorn').Program | null, comments: import('acorn').Comment[],
+ *   syntaxError: { message: string, line: number, column: number } | null }}
  */
 function parseCode(code) {
+    /** @type {import('acorn').Comment[]} */
     const comments = [];
     try {
         const ast = acorn.parse(String(code == null ? '' : code), {
@@ -52,7 +62,7 @@ function parseCode(code) {
         return { ast, comments, syntaxError: null };
     } catch (e) {
         const loc = e && e.loc ? e.loc : null;
-        const message = String((e && e.message) || e).replace(/\s*\(\d+:\d+\)\s*$/, '');
+        const message = String((e && /** @type {Error} */ (e).message) || e).replace(/\s*\(\d+:\d+\)\s*$/, '');
         return {
             ast: null,
             comments: [],
@@ -66,8 +76,11 @@ function parseCode(code) {
  * first, with its parent. Generic over node types on purpose: the passes that
  * use it (declarations, string constants, reassignments) must not miss a node
  * kind a newer parser version adds.
+ * @param {import('acorn').AnyNode} root
+ * @param {(node: import('acorn').AnyNode, parent: import('acorn').AnyNode | null) => void} fn
  */
 function forEachNode(root, fn) {
+    /** @type {Array<[import('acorn').AnyNode, import('acorn').AnyNode | null]>} */
     const stack = [[root, null]];
     while (stack.length) {
         const [node, parent] = stack.pop();
@@ -78,12 +91,14 @@ function forEachNode(root, fn) {
             const k = keys[i];
             if (k === 'loc' || k === 'range' || k === 'start' || k === 'end') continue;
             const v = node[k];
+
             if (Array.isArray(v)) {
                 for (let j = v.length - 1; j >= 0; j--) {
                     if (v[j] && typeof v[j].type === 'string') stack.push([v[j], node]);
                 }
             } else if (v && typeof v.type === 'string') {
                 stack.push([v, node]);
+
             }
         }
     }
@@ -94,8 +109,10 @@ function forEachNode(root, fn) {
  * be steered by prose in the code). Line breaks inside a removed block comment
  * are kept, so line numbers stay meaningful. Falls back to the input when the
  * code does not parse: a regex strip would eat `//` inside strings.
+ * @param {string} code
  */
 function stripComments(code) {
+
     const src = String(code == null ? '' : code);
     const parsed = parseCode(src);
     if (!parsed.ast) return src;

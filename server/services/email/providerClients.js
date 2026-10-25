@@ -41,6 +41,9 @@ async function microsoftProviderConfig() {
 
 // ── Consent URL builders (dedicated, distinct redirect_uri from login) ───────
 
+/**
+ * @param {string} provider
+ */
 async function buildAuthUrl(provider, { redirectUri, state }) {
     if (provider === 'gmail') {
         const pc = await googleProviderConfig();
@@ -77,6 +80,9 @@ async function buildAuthUrl(provider, { redirectUri, state }) {
 
 // ── Authorization-code exchange + mailbox identity ───────────────────────────
 
+/**
+ * @param {string} provider
+ */
 async function exchangeCode(provider, { code, redirectUri }) {
     if (provider === 'gmail') {
         const { google } = require('googleapis');
@@ -148,7 +154,7 @@ async function gmailClientFromTokens(tokens, onRefresh) {
         if (nt.access_token) updated.accessToken = nt.access_token;
         if (nt.refresh_token) updated.refreshToken = nt.refresh_token;
         if (nt.expiry_date) updated.expiryDate = nt.expiry_date;
-        try { await onRefresh?.(updated); } catch (e) { log.warn('[email] gmail token write-back failed:', e.message); }
+        try { await onRefresh?.(updated); } catch (e) { log.warn('[email] gmail token write-back failed:', /** @type {Error} */ (e).message); }
     });
     return google.gmail({ version: 'v1', auth: oauth2 });
 }
@@ -157,6 +163,8 @@ async function gmailClientFromTokens(tokens, onRefresh) {
  * Session-less Microsoft Graph fetch from a stored token blob, retrying once on
  * 401 with a refresh + write-back. `tokens` is mutated in place on refresh so a
  * sequence of calls in one tick reuses the fresh access token.
+ * @param {string} path
+ * @param {{ method: string; body: string; } | { method: string; }} [opts]
  */
 async function graphFetchFromTokens(tokens, onRefresh, path, opts = {}) {
     const pc = await microsoftProviderConfig();
@@ -195,7 +203,7 @@ async function graphFetchFromTokens(tokens, onRefresh, path, opts = {}) {
         tokens.accessToken = td.access_token;
         if (td.refresh_token) tokens.refreshToken = td.refresh_token;
         if (td.expires_in) tokens.expiryDate = Date.now() + td.expires_in * 1000;
-        try { await onRefresh?.({ ...tokens }); } catch (e) { log.warn('[email] graph token write-back failed:', e.message); }
+        try { await onRefresh?.({ ...tokens }); } catch (e) { log.warn('[email] graph token write-back failed:', /** @type {Error} */ (e).message); }
         resp = await doFetch(tokens.accessToken);
     }
     if (!resp.ok) {
@@ -227,3 +235,8 @@ module.exports = {
     gmailClientFromTokens,
     graphFetchFromTokens,
 };
+
+/**
+ * @typedef {{ accessToken?: string | null, refreshToken?: string | null, scope?: string | null, expiryDate?: number | null }} EmailTokens
+ * @typedef {((tokens: EmailTokens) => unknown) | null | undefined} OnTokenRefresh
+ */

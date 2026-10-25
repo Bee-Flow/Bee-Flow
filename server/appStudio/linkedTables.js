@@ -228,3 +228,13 @@ module.exports = {
     describeLinkedTables,
     overlayLinkedRowCounts,
 };
+
+/**
+ * @typedef {NonNullable<Awaited<ReturnType<typeof import('../stores/datatableStore').getDatatable>>>} DatatableRow
+ * @typedef {ReturnType<typeof import('../auth/datatableAccess').datatableScopesFor>[number]} DatatableScope
+ * @typedef {import('../auth/datatableAccess').DatatablePrincipal} DatatablePrincipal
+ * @typedef {{ datatableStore?: typeof import('../stores/datatableStore'), access?: typeof import('../auth/datatableAccess') }} LinkedTablesDeps  injection seam for tests
+ * @typedef {import('./actionExecutor/shared').DataModel} DataModel
+ * @typedef {import('./actionExecutor/shared').DataTable} DataTable
+ * @typedef {{ datatableId: string, mode: string, name: string, key: string, rowCount: number | null, managedKind: string | null, lastSyncAt: string | null, status: string | null, missing: boolean }} LinkedTableInfo
+ */

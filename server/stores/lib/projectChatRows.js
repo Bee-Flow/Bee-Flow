@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * The vocabulary and row shapes of the project chat store
@@ -26,10 +26,17 @@ class ProjectChatStoreError extends Error {
     }
 }
 
+/**
+ * @param {string | number | Date} v
+ */
 const toIso = (v) => (v ? new Date(v).toISOString() : null);
+/** @param {unknown} v */
 const toInt = (v) => (v === null || v === undefined ? 0 : Number(v));
 
-/** A chat row as stored. `title` is still sealed. */
+/**
+ * A chat row as stored. `title` is still sealed.
+ * @param {import('pg').QueryResultRow | null | undefined} r
+ */
 function rowToChat(r) {
     if (!r) return null;
     return {
@@ -50,7 +57,10 @@ function rowToChat(r) {
     };
 }
 
-/** A message row as stored. `content` is still sealed ('' once deleted). */
+/**
+ * A message row as stored. `content` is still sealed ('' once deleted).
+ * @param {import('pg').QueryResultRow | null | undefined} r
+ */
 function rowToMessage(r) {
     if (!r) return null;
     return {
@@ -78,6 +88,9 @@ function rowToMessage(r) {
     };
 }
 
+/**
+ * @param {number | undefined} limit
+ */
 const clampLimit = (limit) => {
     const n = Number.isInteger(limit) ? limit : DEFAULT_PAGE;
     return Math.min(Math.max(n, 1), MAX_PAGE);

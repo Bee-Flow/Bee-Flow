@@ -1,3 +1,4 @@
+/** @typedef {import('../automationModel/dslFilters').TriggerPayload} TriggerPayload */
 // @typecheck
 /**
  * The meeting-notes triggers on an automation definition, the payload a
@@ -81,6 +82,7 @@ function syntheticPayload(meeting) {
  * `applyDslFilter`, the exact pair `dispatch.js` builds — so the list and the
  * bus cannot disagree. Returns `null` when the matcher could not decide,
  * which the caller records as `partial` rather than as "no".
+ * @param {TriggerPayload} payload
  */
 function triggerFires(trigger, payload) {
     try {
@@ -89,7 +91,7 @@ function triggerFires(trigger, payload) {
         const base = pickMatcher(MEETING_PROVIDER, MEETING_EVENT);
         return applyDslFilter(payload, trigger?.appEvent?.filter ?? null, base) === true;
     } catch (e) {
-        log.warn('[MeetingUsage] filter could not be evaluated:', e.message);
+        log.warn('[MeetingUsage] filter could not be evaluated:', /** @type {Error} */ (e).message);
         return null;
     }
 }
@@ -116,7 +118,7 @@ function triggerLabel(trigger) {
     if (!f || typeof f !== 'object' || Object.keys(f).length === 0) return { unfiltered: true };
     if (typeof f.expr === 'string' && f.expr.trim()) return { siteLabel: f.expr.trim().slice(0, 80) };
     const tags = Array.isArray(f.tags) ? f.tags : (typeof f.tags === 'string' ? [f.tags] : []);
-    const clean = tags.filter(t => typeof t === 'string' && t.trim()).map(t => t.trim());
+    const clean = tags.filter((/** @type {string} */ t) => typeof t === 'string' && t.trim()).map((/** @type {string} */ t) => t.trim());
     if (clean.length) return { siteLabel: clean.join(', ').slice(0, 80) };
     return {};
 }
@@ -131,3 +133,12 @@ module.exports = {
     triggerFires,
     triggerLabel,
 };
+
+/**
+ * @typedef {{ kind?: string, appEvent?: { provider?: string, event?: string,
+ *   filter?: Record<string, unknown> | null } }} AppEventTrigger
+ */
+
+/** @typedef {{ trigger?: AppEventTrigger, triggers?: AppEventTrigger[] }} TriggerDefinition */
+
+/** @typedef {{ id?: string | number | null, tags?: unknown, organizationId?: string | null }} MeetingLike */

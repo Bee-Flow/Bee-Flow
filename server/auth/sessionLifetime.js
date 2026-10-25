@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * How long a session lasts, and whether the clock restarts on activity.
  *

@@ -120,3 +120,17 @@ function createStepContext({
 }
 
 module.exports = { createStepContext };
+
+/**
+ * @typedef {import('../helpers').Finding} Finding
+ * @typedef {Record<string, any>} StepDef  one step of a stored definition (JSON authored by a person or an LLM)
+ * @typedef {{
+ *   graph: Record<string, any>, trigger: Record<string, any>, ids: Set<string>, seenSoFar: Set<string>,
+ *   pushE: (finding: Finding) => void, pushW: (finding: Finding) => void,
+ *   availableTools?: Set<string> | null, toolRequiredParams?: Record<string, string[]> | null,
+ *   knownConnectionIds?: Set<string> | null, knownVarNames?: Set<string> | null, availableAgents?: Set<string> | null,
+ *   topicClassifier?: boolean | null, isContractScope?: boolean,
+ * }} StepContextInput
+ * @typedef {ReturnType<typeof createStepContext> & { nested?: boolean, refIds?: Set<string>, refSeen?: Set<string>,
+ *   isInsideLoop?: (step: StepDef) => boolean }} StepCtx  the context every per-step rule receives
+ */

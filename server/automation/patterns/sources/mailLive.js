@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Pattern source: the user's mail, read live at scan time.
@@ -55,7 +55,10 @@ function registrable(host) {
     return labels.slice(-keep).join('.');
 }
 
-/** Domain of the first address in a From/To value ("Name <a@x.nl>, b@y"). */
+/**
+ * Domain of the first address in a From/To value ("Name <a@x.nl>, b@y").
+ * @param {unknown} value
+ */
 function domainOf(value) {
     const m = ADDRESS_RE.exec(String(value ?? ''));
     return m ? registrable(m[1]) : null;
@@ -63,7 +66,10 @@ function domainOf(value) {
 
 const BULK_SENDER_RE = /^(?:no-?reply|do-?not-?reply|donotreply|newsletters?|news|notifications?|notify|mailer(?:-daemon)?|marketing|digest|bounces?|postmaster)(?:[._+-].*)?$/i;
 
-/** A no-reply style sender. Only this verdict is kept, never the address. */
+/**
+ * A no-reply style sender. Only this verdict is kept, never the address.
+ * @param {unknown} value
+ */
 function bulkSender(value) {
     const m = LOCAL_PART_RE.exec(String(value ?? ''));
     return !!m && BULK_SENDER_RE.test(m[1]);
@@ -126,7 +132,13 @@ function mailEvent(m, ctx) {
     });
 }
 
-/** Push each non-null event; returns the list. */
+/**
+ * Push each non-null event; returns the list.
+ * @template T
+ * @param {import('../events').WorkEvent[]} out
+ * @param {T[]|null|undefined} items
+ * @param {(it: T) => import('../events').WorkEvent|null} toEvent
+ */
 function pushAll(out, items, toEvent) {
     for (const it of items || []) {
         const ev = toEvent(it);
@@ -149,6 +161,7 @@ async function collectGmail(ctx) {
         { direction: 'in', query: `newer_than:${days}d -in:sent -in:drafts -in:chats -category:promotions -category:social` },
         { direction: 'out', query: `in:sent newer_than:${days}d` },
     ];
+    /** @type {import('../events').WorkEvent[]} */
     const out = [];
     for (const pass of passes) {
         throwIfAborted(ctx.signal);
@@ -168,6 +181,7 @@ async function collectGmail(ctx) {
  */
 async function collectOutlook(ctx) {
     const since = new Date(ctx.since).toISOString();
+    /** @type {import('../events').WorkEvent[]} */
     const out = [];
     for (const [folder, direction] of /** @type {Array<[string, 'in'|'out']>} */ ([['inbox', 'in'], ['sentitems', 'out']])) {
         throwIfAborted(ctx.signal);
@@ -191,7 +205,9 @@ const SENT_NAME_RE = /^(?:sent|sent items|sent messages|sent mail|inbox[./]sent|
  */
 function pickMailboxes(mailboxes) {
     const list = Array.isArray(mailboxes) ? mailboxes : [];
+    /** @param {{ specialRole?: string }|null|undefined} m */
     const role = (m) => String(m?.specialRole || '').toLowerCase();
+    /** @param {{ name?: string, displayName?: string }|null|undefined} m */
     const names = (m) => [m?.name, m?.displayName].map((v) => String(v || '').trim());
     const inbox = list.find((m) => role(m) === 'inbox') || list.find((m) => names(m).some((n) => /^inbox$/i.test(n)));
     const sent = list.find((m) => role(m) === 'sent') || list.find((m) => names(m).some((n) => SENT_NAME_RE.test(n)));
@@ -208,6 +224,7 @@ function pickMailboxes(mailboxes) {
  */
 async function collectNextcloudMail(ctx) {
     const accounts = checkToolResult(await ctx.executeTool('nextcloud_mail_list_accounts', {}), 'nextcloud_mail_list_accounts');
+    /** @type {import('../events').WorkEvent[]} */
     const out = [];
     for (const account of (accounts.accounts || []).slice(0, NC_ACCOUNTS_CAP)) {
         if (account?.id == null) continue;

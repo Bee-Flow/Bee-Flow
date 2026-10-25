@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Webpage Plan Tool — propose_webpage_plan
  *
@@ -78,6 +78,7 @@ const PROPOSE_WEBPAGE_PLAN_TOOL = {
  * passes any other value through as a literal extra-file path (trimmed, capped),
  * so react/multi-file plans like "src/App.jsx" survive instead of collapsing to
  * "html". Falls back to "html" only when nothing usable was provided.
+ * @param {unknown} file
  */
 function sanitizePlanFile(file) {
     if (file === 'html' || file === 'css' || file === 'js') return file;
@@ -85,6 +86,9 @@ function sanitizePlanFile(file) {
     return p || 'html';
 }
 
+/**
+ * @param {{ title?: unknown, summary?: unknown, steps?: unknown }} args
+ */
 function executeProposeWebpagePlan(args) {
     const title = String(args?.title || '').trim().slice(0, 200);
     const summary = String(args?.summary || '').trim().slice(0, 1000);
@@ -94,7 +98,7 @@ function executeProposeWebpagePlan(args) {
     if (!summary) return { error: 'plan summary is required.' };
     if (stepsRaw.length === 0) return { error: 'plan must include at least one step.' };
 
-    const steps = stepsRaw.slice(0, 8).map(s => {
+    const steps = stepsRaw.slice(0, 8).map((/** @type {{ action?: string, file?: unknown, why?: unknown, preview?: unknown } | null} */ s) => {
         // Normalise legacy `partial_edit` to the new `edit` label so older
         // models still produce well-formed plans during the transition.
         let action = s?.action;

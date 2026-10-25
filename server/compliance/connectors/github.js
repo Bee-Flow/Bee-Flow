@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * GitHub evidence connector — repository security posture for the org's
  * source repositories. Config-state depth only: counts, booleans and ages —
@@ -33,6 +33,11 @@ const MAX_REPOS = 10;
 const PR_SAMPLE = 20;
 const REPO_RE = /^[\w.-]+\/[\w.-]+$/;
 
+/**
+ * @param {import('./index').SafeFetch} safeFetch
+ * @param {string} token
+ * @param {string} endpoint
+ */
 async function _gh(safeFetch, token, endpoint) {
     const res = await safeFetch(`${GITHUB_API}${endpoint}`, {
         headers: {
@@ -51,20 +56,31 @@ async function _gh(safeFetch, token, endpoint) {
     // this honestly instead of failing the whole sweep.
     if (res.status === 403 || res.status === 404) return { ok: false, status: res.status, data: null };
     if (!res.ok) throw new Error(`GitHub API error ${res.status} on ${endpoint}`);
-    return { ok: true, status: res.status, data: await res.json() };
+    return { ok: true, status: res.status, data: /** @type {Record<string, any>} */ (await res.json()) };
 }
 
+/**
+ * @param {string} iso
+ */
 function _ageDays(iso) {
     const t = Date.parse(iso || '');
     return Number.isFinite(t) ? Math.floor((Date.now() - t) / 86400000) : null;
 }
 
+/**
+ * @param {import('./index').SafeFetch} safeFetch
+ * @param {string} token
+ * @param {string} repo
+ */
 async function _dependabot(safeFetch, token, repo) {
     const res = await _gh(safeFetch, token, `/repos/${repo}/dependabot/alerts?state=open&per_page=100`);
     if (!res.ok) return { accessible: false, status: res.status };
     const alerts = Array.isArray(res.data) ? res.data : [];
+    /** @type {Record<string, number>} */
     const bySeverity = { critical: 0, high: 0, medium: 0, low: 0 };
+    /** @type {number | null} */
     let oldestDays = null;
+    /** @type {number | null} */
     let oldestHighCritDays = null;
     for (const alert of alerts) {
         const sev = String(alert?.security_vulnerability?.severity || alert?.security_advisory?.severity || '').toLowerCase();
@@ -86,6 +102,12 @@ async function _dependabot(safeFetch, token, repo) {
     };
 }
 
+/**
+ * @param {import('./index').SafeFetch} safeFetch
+ * @param {string} token
+ * @param {string} repo
+ * @param {string | number | boolean} branch
+ */
 async function _branchProtection(safeFetch, token, repo, branch) {
     const res = await _gh(safeFetch, token, `/repos/${repo}/branches/${encodeURIComponent(branch)}/protection`);
     if (!res.ok) return { branch, protected: false, status: res.status };
@@ -99,6 +121,12 @@ async function _branchProtection(safeFetch, token, repo, branch) {
     };
 }
 
+/**
+ * @param {import('./index').SafeFetch} safeFetch
+ * @param {string} token
+ * @param {string} repo
+ * @param {string | number | boolean} branch
+ */
 async function _mergedPrSample(safeFetch, token, repo, branch) {
     const res = await _gh(safeFetch, token,
         `/repos/${repo}/pulls?state=closed&base=${encodeURIComponent(branch)}&sort=updated&direction=desc&per_page=50`);
@@ -133,6 +161,11 @@ async function _mergedPrSample(safeFetch, token, repo, branch) {
     };
 }
 
+/**
+ * @param {import('./index').SafeFetch} safeFetch
+ * @param {string} token
+ * @param {string} repo
+ */
 async function _ciRuns(safeFetch, token, repo) {
     const res = await _gh(safeFetch, token, `/repos/${repo}/actions/runs?status=completed&per_page=20`);
     if (!res.ok) return { accessible: false, status: res.status };
@@ -162,6 +195,7 @@ module.exports = {
     credential: { provider: 'github', kinds: ['bearer', 'api_key'] },
     settingsHint: 'repos: ["owner/repo"]',
 
+    /** @param {import('./index').CollectArgs} args */
     async collect({ secret, settings, safeFetch }) {
         const token = secret?.token || secret?.apiKey || secret?.api_key || null;
         if (!token) throw new Error('GitHub connection has no token');

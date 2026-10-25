@@ -115,6 +115,8 @@ function parseScopeKey(key) {
  *
  * scopeKind is part of the digest so an org and a user that happen to share an
  * id can never land in the same schema.
+ * @param {string} scopeKind
+ * @param {string} scopeId
  */
 function schemaNameFor(scopeKind, scopeId) {
     const digest = crypto.createHash('sha256')
@@ -123,7 +125,10 @@ function schemaNameFor(scopeKind, scopeId) {
     return 'dt_' + digest.slice(0, 40);
 }
 
-/** A Postgres quoted identifier, for the to_regnamespace() probe below. */
+/**
+ * A Postgres quoted identifier, for the to_regnamespace() probe below.
+ * @param {string} name
+ */
 function quoted(name) {
     return '"' + String(name).replace(/"/g, '""') + '"';
 }
@@ -216,6 +221,7 @@ function schemaFor(key) {
  * open their transaction, so they would read an unresolved memo and report on
  * the hashed schema of a tenant that still lives under the legacy name — an
  * empty table list and a zero size, with no error anywhere.
+ * @param {string} entityId
  */
 async function ensureScopeResolved(entityId) {
     const cached = _accessMemo.get(entityId);
@@ -260,7 +266,10 @@ const engine = createPgAppEngine({
     clearMeta: clearScopeMeta,
 });
 
-/** Drop the access memo for a scope — call on archive, delete or schema reset. */
+/**
+ * Drop the access memo for a scope — call on archive, delete or schema reset.
+ * @param {string} key
+ */
 function invalidate(key) {
     if (key) _accessMemo.delete(key);
     else _accessMemo.clear();
@@ -281,6 +290,7 @@ function invalidate(key) {
  *
  * @param {{kind:'org'|'user', id:string}} scope
  * @returns {Promise<boolean>} false when there was no such table to delete.
+ * @param {string} datatableId
  */
 async function dropDatatable(datatableId, scope, { managedWrite = null } = {}) {
     // Required lazily so the metadata half is not dragged in at load time.
@@ -304,13 +314,21 @@ async function dropDatatable(datatableId, scope, { managedWrite = null } = {}) {
     });
 }
 
-/** Table list + columns as Postgres has them. Resolves the schema name first. */
+/**
+ * Table list + columns as Postgres has them. Resolves the schema name first.
+ * @param {string} ownerId
+ * @param {string} entityId
+ */
 async function schema(ownerId, entityId) {
     await ensureScopeResolved(entityId);
     return engine.schema(ownerId, entityId);
 }
 
-/** On-disk bytes of the tenant's schema. Resolves the schema name first. */
+/**
+ * On-disk bytes of the tenant's schema. Resolves the schema name first.
+ * @param {string} ownerId
+ * @param {string} entityId
+ */
 async function sizeBytes(ownerId, entityId) {
     await ensureScopeResolved(entityId);
     return engine.sizeBytes(ownerId, entityId);

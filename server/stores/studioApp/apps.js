@@ -93,7 +93,7 @@ async function userProjectIds(userId, userGroupIds = []) {
             .map(p => (p && typeof p.id === 'string') ? p.id : null)
             .filter(Boolean);
     } catch (err) {
-        log.error('[StudioAppStore] project membership lookup failed:', err.message);
+        log.error('[StudioAppStore] project membership lookup failed:', /** @type {Error} */ (err).message);
         return [];
     }
 }

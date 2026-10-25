@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The building blocks of the KB chunker: the token estimate, the atomic-block
  * extraction (tables, code) and the section / long-section / table-row
@@ -15,6 +15,7 @@ const CHUNK_SIZE_FLEX = Math.floor(CHUNK_SIZE * 1.8); // atomic blocks up to thi
  * Simple token counter based on character-length heuristic.
  * Calibrated for mixed Dutch/English content — Dutch words average
  * 5-6 chars but tokenize to ~3.5 chars/token with text-embedding-3-small.
+ * @param {string} text
  */
 function estimateTokens(text) {
     if (!text) return 0;
@@ -27,8 +28,10 @@ function estimateTokens(text) {
  * a map of placeholder → original block.
  *
  * This ensures structural elements are treated as atomic units during chunking.
+ * @param {string} text
  */
 function extractAtomicBlocks(text) {
+    /** @type {string[]} */
     const blocks = [];
     let cleaned = text;
 
@@ -59,6 +62,8 @@ function extractAtomicBlocks(text) {
 /**
  * Split an HTML table that exceeds CHUNK_SIZE into row-based sub-chunks.
  * Preserves <table>, <caption>, and <thead> as a header for each sub-chunk.
+ * @param {string} tableHtml
+ * @param {number} chunkSize
  */
 function splitHtmlTableByRows(tableHtml, chunkSize) {
     // Extract table wrapper (opening <table> + <caption> + <thead>) and rows
@@ -67,8 +72,10 @@ function splitHtmlTableByRows(tableHtml, chunkSize) {
     const tableFooter = '</table>';
 
     // Extract all <tr>...</tr> blocks from the tbody area
+    /** @type {string[]} */
     const rows = [];
     const trRegex = /<tr[\s\S]*?<\/tr>/gi;
+    /** @type {RegExpExecArray | null} */
     let rowMatch;
     // Skip rows already in thead
     const bodyStart = tableHtml.indexOf('</thead>');
@@ -80,7 +87,9 @@ function splitHtmlTableByRows(tableHtml, chunkSize) {
     if (rows.length === 0) return [tableHtml]; // Can't split further
 
     const TABLE_ROW_OVERLAP = 2; // Repeat last N rows from previous chunk for context
+    /** @type {string[]} */
     const subChunks = [];
+    /** @type {string[]} */
     let currentRows = [];
     let currentSize = estimateTokens(tableHeader + tableFooter);
 
@@ -110,6 +119,7 @@ function splitHtmlTableByRows(tableHtml, chunkSize) {
 
 /**
  * Split text into natural sections at heading and paragraph boundaries.
+ * @param {string} text
  */
 function splitIntoSections(text) {
     const parts = text.split(/(?=(?:^|\n)#{1,6}\s)|(?:\n\n)+/);
@@ -119,6 +129,8 @@ function splitIntoSections(text) {
 /**
  * Split a long section by sentence boundaries with sliding-window overlap.
  * Carries over as many trailing sentences as fit within CHUNK_OVERLAP budget.
+ * @param {string} text
+ * @param {number} chunkSize
  */
 function splitLongSection(text, chunkSize) {
     // If this is an HTML table, split by rows instead of sentences
@@ -127,7 +139,9 @@ function splitLongSection(text, chunkSize) {
     }
 
     const sentences = text.split(/(?<=[.!?])\s+/);
+    /** @type {string[]} */
     const parts = [];
+    /** @type {string[]} */
     let current = [];
     let currentCount = 0;
 
@@ -139,6 +153,7 @@ function splitLongSection(text, chunkSize) {
 
             // Sliding-window overlap: carry back as many trailing sentences
             // as fit within the CHUNK_OVERLAP token budget
+            /** @type {string[]} */
             const overlapSentences = [];
             let overlapTokens = 0;
             for (let i = current.length - 1; i >= 0; i--) {

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Test data of Automations: test cases (with the run inputs they were captured
  * from), golden runs and form scenarios.

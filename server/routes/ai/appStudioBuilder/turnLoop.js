@@ -62,7 +62,10 @@ function sanitizeHistory(history) {
 // as a truncated call.
 const PARAMLESS_TOOLS = new Set(['app_get_draft', 'app_list_automations', 'app_get_data_model', 'app_list_connectors', 'app_list_templates', 'app_finalize']);
 
-/** Parse a tool call's `arguments` defensively → { args, truncated } (core/llm/toolLoop). */
+/**
+ * Parse a tool call's `arguments` defensively → { args, truncated } (core/llm/toolLoop).
+ * @param {string} toolName
+ */
 function parseToolArgs(raw, toolName) {
     return toolLoop.parseToolArgs(raw, toolName, { paramless: PARAMLESS_TOOLS });
 }
@@ -71,6 +74,8 @@ function parseToolArgs(raw, toolName) {
  * The [assistant, user] pair appended when a round ran into max_tokens without
  * a tool call; the note carries VALIDATION_NOTE_PREFIX so sanitizeHistory
  * drops it from cross-turn history.
+ * @param {string | null} content
+ * @param {{ text: string; signature?: string; }[]} thinkingForReplay
  */
 function truncationRetryMessages(content, thinkingForReplay) {
     return toolLoop.truncationRetryMessages(content, thinkingForReplay, { notePrefix: VALIDATION_NOTE_PREFIX });
@@ -80,6 +85,8 @@ function truncationRetryMessages(content, thinkingForReplay) {
  * The pair appended when a round ended with neither a tool call nor text and
  * no call could be recovered from what it wrote (core/llm/leakedToolCalls);
  * `rejected` names what the recovery saw. Same prefix rule as above.
+ * @param {string | null} content
+ * @param {{ text: string; signature?: string; }[]} thinkingForReplay
  */
 function emptyReplyRetryMessages(content, thinkingForReplay, rejected) {
     return toolLoop.emptyReplyRetryMessages(content, thinkingForReplay, { notePrefix: VALIDATION_NOTE_PREFIX, rejected });
@@ -109,8 +116,12 @@ function renderValidationNote(validation) {
     return `${VALIDATION_NOTE_PREFIX}\nFix the error${shown.length === 1 ? '' : 's'} below before calling app_finalize. Each record has {code, path, message, hint}; the hint tells you what to do next.\n${JSON.stringify(shown)}${more}${warnLine}`;
 }
 
-/** JSON-safe truncation for model-facing tool messages (never cuts mid-JSON). */
+/**
+ * JSON-safe truncation for model-facing tool messages (never cuts mid-JSON).
+ * @param {number} [maxChars]
+ */
 function truncateJson(result, maxChars = 30_000) {
+    /** @type {string} */
     let s;
     try { s = JSON.stringify(result); } catch (_) { return JSON.stringify({ error: 'unserializable tool result' }); }
     if (typeof s !== 'string') return JSON.stringify(null);

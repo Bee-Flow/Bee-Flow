@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Whose stored pictures a presentation shows, for the person looking at it.
  *
@@ -25,9 +25,13 @@
 
 'use strict';
 
+const { fallback } = require('../../utils/bestEffort');
 const USER_KEY = /^users\/([^/]+)\//;
 
-/** The spellings a key can have in a stored outline: as is, and as a proxy URL's path. */
+/**
+ * The spellings a key can have in a stored outline: as is, and as a proxy URL's path.
+ * @param {string} key
+ */
 function spellingsOf(key) {
     const encoded = key.split('/').map((segment) => encodeURIComponent(segment)).join('/');
     return encoded === key ? [key] : [key, encoded];
@@ -101,7 +105,7 @@ function makeDocumentImageResolver({ readerId, doc, firstAuthorOf, revisionSeqOf
     // Read once per render, BEFORE any lookup: a revision saved meanwhile is
     // then numbered above it and read next time, never skipped.
     const latestSeq = () => {
-        if (!latest) latest = revisionSeqOf ? Promise.resolve().then(() => revisionSeqOf(doc.id)).catch(() => null) : Promise.resolve(null);
+        if (!latest) latest = revisionSeqOf ? Promise.resolve().then(() => revisionSeqOf(doc.id)).catch((e) => fallback('core/documents/documentImages:latestSeq', e, null)) : Promise.resolve(null);
         return latest;
     };
 

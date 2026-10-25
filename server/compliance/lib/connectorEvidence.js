@@ -19,7 +19,10 @@
  * normalises it before using it as the subject.
  */
 
-/** The warn a check returns when the connector config or snapshots could not be read. */
+/**
+ * The warn a check returns when the connector config or snapshots could not be read.
+ * @param {string} connectorId
+ */
 function unreadableConnector(connectorId, e) {
     const code = e?.code || null;
     return {
@@ -32,6 +35,7 @@ function unreadableConnector(connectorId, e) {
 /**
  * Read one connector's config and, when it is enabled, its latest snapshots.
  * @returns {Promise<{config: any, snaps: any[]} | {failed: object}>}
+ * @param {string} connectorId
  */
 async function readConnector(store, orgId, connectorId) {
     try {
@@ -44,7 +48,10 @@ async function readConnector(store, orgId, connectorId) {
     }
 }
 
-/** The latest snapshot of the configured subject among listLatestSnapshots' rows, or null. */
+/**
+ * The latest snapshot of the configured subject among listLatestSnapshots' rows, or null.
+ * @param {string} subjectId
+ */
 function snapshotFor(snaps, subjectId) {
     if (!subjectId) return null;
     return (snaps || []).find(s => String(s?.subject_id ?? '') === subjectId) || null;

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * read_table step: open an uploaded or generated spreadsheet / CSV as tables,
  * one per sheet, kept in the run's table store.
@@ -33,8 +33,9 @@ const defaultDeps = {
     tableLimits: () => require('./tables/limits').tableLimits(),
 };
 
-const isBlank = (v) => v === undefined || v === null || v === '';
+const isBlank = (/** @type {unknown} */ v) => v === undefined || v === null || v === '';
 
+/** @param {{ id?: string, label?: string }} step */
 function sourceMissing(step) {
     return Object.assign(
         new Error(`read_table "${step.label || step.id}": no file is bound. Bind the source to a form file answer (trigger.output.<field>) or to a generated file.`),
@@ -42,24 +43,31 @@ function sourceMissing(step) {
     );
 }
 
-/** The output of a dry run: the live shape with nothing in it. */
+/**
+ * The output of a dry run: the live shape with nothing in it.
+ * @param {typeof defaultDeps} deps
+ */
 function dryRunOutput(deps) {
     return {
         output: {
-            tables: [],
+            tables: /** @type {unknown[]} */ ([]),
             table: deps.dryRunHandle({ name: 'Sheet1', columns: [] }),
             tablesByName: {},
-            sheets: [],
-            provenance: null,
-            source: null,
-            warnings: [],
+            sheets: /** @type {unknown[]} */ ([]),
+            provenance: /** @type {unknown} */ (null),
+            source: /** @type {unknown} */ (null),
+            warnings: /** @type {string[]} */ ([]),
             _dryRun: true,
         },
         dryRunSynthesised: true,
     };
 }
 
-/** One entry of output.sheets for a sheet the reader returned. */
+/**
+ * One entry of output.sheets for a sheet the reader returned.
+ * @param {{ name: string, index: number, hidden?: boolean, rows: unknown[], columns: unknown[], skipped?: unknown }} sheet
+ * @param {number | null} tableIndex
+ */
 function sheetSummary(sheet, tableIndex) {
     return {
         name: sheet.name,

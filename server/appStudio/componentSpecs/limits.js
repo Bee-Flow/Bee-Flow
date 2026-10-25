@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio catalog — the hard ceilings a definition is measured against.
  * canonicalize clamps to them and validate refuses past them.

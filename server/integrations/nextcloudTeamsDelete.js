@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 const { extractReason } = require('./nextcloudHttpError');
 const log = require('../telemetry/log');
@@ -6,6 +6,9 @@ const log = require('../telemetry/log');
 // Circles can finish a destroy a moment after it answers; read back once more before giving up.
 const SETTLE_MS = 1500;
 const OWNER_LEVEL = 9;
+/**
+ * @param {number} ms
+ */
 const sleepMs = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 /**
  * teams_delete, apart from nextcloudTeamsTools.js (which only dispatches).
@@ -19,10 +22,13 @@ const sleepMs = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** @param {string} text */
 function parseJson(text) {
-    try { return JSON.parse(text); } catch (err) { log.debug('[teams] read-back was not JSON', { reason: err instanceof Error ? err.message : String(err) }); return null; }
+    try { return JSON.parse(text); } catch (err) { log.debug('[teams] read-back was not JSON', { reason: err instanceof Error ? /** @type {Error} */ (err).message : String(err) }); return null; }
 }
 
-/** Nextcloud's refusal inside an HTTP-2xx answer, or '' when the body does not say no. */
+/**
+ * Nextcloud's refusal inside an HTTP-2xx answer, or '' when the body does not say no.
+ * @param {{ meta?: { statuscode?: number|string, message?: string } } | null} ocs
+ */
 function ocsRefusal(ocs) {
     const meta = ocs && typeof ocs === 'object' ? ocs.meta : null;
     if (!meta || meta.statuscode == null) return '';

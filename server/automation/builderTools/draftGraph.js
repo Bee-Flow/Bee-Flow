@@ -425,3 +425,20 @@ module.exports = {
     findStepAnywhere,
     reconcileOutgoingEdges,
 };
+
+/**
+ * @typedef {{ from: string, to: string, label?: string, caseName?: string }} GraphEdge
+ * @typedef {{ name: string, type: string, required?: boolean }} LayerParam
+ * @typedef {{ id?: string, type?: string, kind?: string, output?: object, params?: LayerParam[],
+ *   appEvent?: { provider?: string, event?: string }, label?: string, schedule?: { cron?: string } }} GraphTrigger
+ * @typedef {{ id?: string, type?: string, label?: string, tool?: string, op?: string, layerKey?: string,
+ *   datatableId?: string, datatableKey?: string, values?: Record<string, unknown>, matchColumn?: string,
+ *   forEach?: { overRef?: string, itemVar?: string, maxIterations?: number },
+ *   inputs?: Record<string, unknown>, fields?: Record<string, unknown> | unknown[], arrayRef?: string,
+ *   outputSchema?: { properties?: Record<string, unknown> },
+ *   cases?: { name?: string }[], body?: GraphStep[] | string }} GraphStep  `body` is a loop's steps, or the text of an http_request / notification
+ * @typedef {{ title?: string, schemaVersion?: number, trigger?: GraphTrigger, triggers?: GraphTrigger[],
+ *   steps?: GraphStep[], edges?: GraphEdge[], vars?: object, layers?: Record<string, DraftGraph> }} DraftGraph
+ * @typedef {{ step: GraphStep, container: GraphStep[], index: number, kind: 'graph' | 'loop',
+ *   graph: DraftGraph, parentLoop?: GraphStep }} StepLocation
+ */

@@ -515,3 +515,43 @@ module.exports = {
     _normalizeGraph: normalizeGraph,
     _gmailAttachments: gmailAttachments,
 };
+
+/** @typedef {import('./providerClients').EmailTokens} EmailTokens */
+
+/** @typedef {import('./providerClients').OnTokenRefresh} OnTokenRefresh */
+
+/** @typedef {{ mode?: string, address?: string, [key: string]: unknown }} MailboxRef */
+
+/** @typedef {{ name?: string | null, value?: string | null }} MailHeader */
+
+/**
+ * @typedef {{ filename?: string | null, mimeType?: string | null, headers?: MailHeader[] | null,
+ *   body?: { data?: string | null, attachmentId?: string | null, size?: number | null } | null,
+ *   parts?: GmailPayloadPart[] | null }} GmailPayloadPart
+ */
+
+/**
+ * @typedef {{ id?: string | null, threadId?: string | null, labelIds?: string[] | null, payload?: GmailPayloadPart | null,
+ *   snippet?: string | null, internalDate?: string | null, sizeEstimate?: number | null }} GmailMessage
+ */
+
+/** @typedef {{ emailAddress?: { address?: string | null, name?: string | null } | null }} GraphRecipient */
+
+/**
+ * @typedef {{ id?: string, conversationId?: string, internetMessageId?: string, subject?: string, from?: GraphRecipient,
+ *   toRecipients?: GraphRecipient[], ccRecipients?: GraphRecipient[], receivedDateTime?: string, bodyPreview?: string,
+ *   hasAttachments?: boolean, isRead?: boolean, categories?: string[], internetMessageHeaders?: MailHeader[],
+ *   body?: { contentType?: string, content?: string } }} GraphMailMessage
+ */
+
+/**
+ * One normalised message: the row shape the sync engine writes.
+ * @typedef {{ provider: string, mailbox_address: string, provider_message_id: string | null | undefined,
+ *   provider_thread_id: string, rfc822_message_id: string, in_reply_to: string, references: string,
+ *   direction: string, from_email: string, from_name: string, to_emails: string, cc_emails: string,
+ *   subject: string, subject_normalized: string, snippet: string, body_text: string, body_html: string,
+ *   received_at: string | null, is_read: boolean, has_attachments: boolean, is_auto_or_bulk: boolean,
+ *   labels: string, raw_size: number, thread_key?: string }} MailRow
+ */
+
+/** @typedef {{ provider_attachment_id: string, filename: string, mime_type: string, size: number, is_inline: boolean }} AttachmentMeta */

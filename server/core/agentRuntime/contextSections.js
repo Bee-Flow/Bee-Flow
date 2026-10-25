@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The sections ./contextBuilder assembles into the agent's two system-prompt
  * halves. Each returns the text it adds ('' when it adds nothing); which half
@@ -12,7 +12,16 @@
 const houseStyleStore = require('../../stores/houseStyleStore');
 const log = require('../../telemetry/log');
 
-/** Integration tool hints, so the AI knows what integrations are available (stable). */
+/**
+ * @typedef {{ buildToolHint: typeof import('../integrations/integrationTools').buildToolHint, memoryStore: () => typeof import('../../stores/memoryStore'), sidePanelWebpageContext: () => typeof import('../webpages/sidePanelWebpageContext'), sidePanelDocumentContext: () => typeof import('../documents/sidePanelDocumentContext') }} SectionDeps
+ */
+
+/**
+ * Integration tool hints, so the AI knows what integrations are available (stable).
+ * @param {import('./chatStream/turnState').ToolDef[]} tools
+ * @param {string} userId
+ * @param {SectionDeps} d
+ */
 async function toolHintSection(tools, userId, d) {
     const mcpCount = tools.filter(t => t.function?.name?.startsWith('mcp_')).length;
     log.info(`[MCP-DEBUG] contextBuilder: building system prompt with ${tools.length} tools (${mcpCount} MCP)`);
@@ -34,6 +43,7 @@ async function toolHintSection(tools, userId, d) {
  * otherwise has no idea the repeat it is being asked about already exists, so
  * it closes runs with advice to go create a recurring automation — every
  * single run, for something the user set up themselves.
+ * @param {string} [scheduleText]
  */
 function scheduleSection(scheduleText) {
     if (!scheduleText) return '';
@@ -48,6 +58,9 @@ Deliver only the result. Never close with notes about how often this runs, never
  * topics the schedule has covered in the past so the model can avoid
  * repeating them unless there's a real update. Only fires when memory is
  * enabled on the agent — opt-in by design.
+ * @param {import('./chatStream/turnState').AgentRow} agent
+ * @param {string | undefined} scheduleId
+ * @param {SectionDeps} d
  */
 async function scheduleCoverageSection(agent, scheduleId, d) {
     if (!scheduleId || agent?.config?.memoryEnabled !== true) return '';
@@ -55,7 +68,7 @@ async function scheduleCoverageSection(agent, scheduleId, d) {
         const memoryStore = d.memoryStore();
         const covered = await memoryStore.getScheduleCoverage(scheduleId, { limit: 30 });
         if (!covered || covered.length === 0) return '';
-        const items = covered.map(c => {
+        const items = covered.map((/** @type {Record<string, any>} */ c) => {
             const when = c.last_confirmed_at ? new Date(c.last_confirmed_at).toISOString().slice(0, 10) : 'previously';
             const label = c.value || c.summary || c.subject;
             return `- ${label} (last covered ${when})`;
@@ -76,6 +89,7 @@ Skip these unless there is a material update since the date shown. If you do inc
  * Notebook's Word export). We tell the model the style is active so it can
  * match tone/structure; the model should NOT try to set fonts or colors in
  * Markdown.
+ * @param {string | null} [orgId]
  */
 async function houseStyleSection(orgId) {
     if (!orgId) return '';
@@ -117,6 +131,7 @@ The Notebook panel is currently open. Edit rules: 1) Before notebook_replace, us
  *     closed; `""` = "open but blank".
  * The rules are static (stable); the selection changes as the user clicks
  * around (volatile).
+ * @param {import('./chatStream/turnState').MessageMetadata} messageMetadata
  */
 function notebookSections(messageMetadata) {
     let stable = '';
@@ -136,6 +151,9 @@ function notebookSections(messageMetadata) {
  * reason about "this page" / "deze pagina" without a tool call — and an open
  * document. Agents have no document tools, so the open document's text goes
  * in read-only, and only on a turn whose request carries it.
+ * @param {import('./chatStream/turnState').MessageMetadata} messageMetadata
+ * @param {string} userId
+ * @param {SectionDeps} d
  */
 async function sidePanelSections(messageMetadata, userId, d) {
     let volatile = '';

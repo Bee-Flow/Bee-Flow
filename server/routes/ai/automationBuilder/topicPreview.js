@@ -42,6 +42,9 @@ const TopicPreviewBody = z.object({
 /**
  * The route's work, with the classifier injectable (the tests pass a fake;
  * the route passes nothing and gets the real client).
+ *
+ * @param {{ texts: string[], labels: string[] }} body
+ * @param {{ classify?: typeof import('../../../core/classify/classifierClient').classify }} [deps]
  */
 async function previewTopics(body, { classify } = {}) {
     const texts = [...new Set(body.texts.map(normalizeTopicText).filter(Boolean))];
@@ -71,6 +74,9 @@ router.post('/topic-preview', requireAuth, topicPreviewRateLimit, requireAutomat
     res.json(await previewTopics(req.body));
 });
 
-module.exports = router;
-module.exports.previewTopics = previewTopics;
-module.exports.TopicPreviewBody = TopicPreviewBody;
+/**
+ * @typedef {import('express').Router & { previewTopics: typeof previewTopics; TopicPreviewBody: typeof TopicPreviewBody }} RouterExports
+ */
+module.exports = /** @type {RouterExports} */ (router);
+/** @type {RouterExports} */ (module.exports).previewTopics = previewTopics;
+/** @type {RouterExports} */ (module.exports).TopicPreviewBody = TopicPreviewBody;

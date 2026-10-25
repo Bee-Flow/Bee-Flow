@@ -263,3 +263,14 @@ function withLastOutput(runRow, lastOutput) {
 }
 
 module.exports = { finalizeRun, writeRunOutcome, withLastOutput, runSummary };
+
+/**
+ * @typedef {import('./runSetup').RunAutomation} RunAutomation
+ * @typedef {import('./runSetup').RunRow} RunRow
+ * @typedef {import('./runSetup').RunDeps} RunDeps
+ * How a run ended, as raceRunDag caught it: an Error, a pause, or nothing.
+ * @typedef {(import('./runnerError.types').RunnerError & { ncError?: { code?: string }, stepId?: string,
+ *   expiresAt?: string | null, prompt?: string }) | null} RunErrorObj
+ * @typedef {{ _toolMemo?: { stats?: () => { hits?: number, durableHits?: number, refused?: number } },
+ *   _bindingMisses?: Parameters<typeof bindingMissSummary>[0], _truncations?: Parameters<typeof truncationSummary>[0] }} SummaryCtx
+ */

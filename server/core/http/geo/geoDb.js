@@ -34,6 +34,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const log = require('../../../telemetry/log');
 const { canonicalIp } = require('../ipClass');
+const { fallback } = require('../../../utils/bestEffort');
 
 const DEV_DIR = path.resolve(__dirname, '..', '..', '..', 'data', 'geo');
 const VOLUME_DIR = '/app/data/geo';
@@ -119,7 +120,7 @@ async function _reload() {
         const current = kind === 'city' ? _state.cityInfo : _state.asnInfo;
         if (!file) continue;
         let mtime = 0;
-        try { mtime = fs.statSync(file).mtimeMs; } catch (err) { log.debug('raced with a rename', err); }
+        try { mtime = fs.statSync(file).mtimeMs; } catch (err) { fallback('core/http/geo/geoDb:_reload', err); /* raced with a rename */ }
         if (current && current.file === file && current._mtime === mtime) continue;
         try {
             const { reader, info } = await _open(file);
@@ -157,7 +158,7 @@ function _watch() {
             });
             w.on('error', () => { /* directory removed: the next load() re-reads the sources */ });
             _watchers.push(w);
-        } catch (err) { log.debug('directory absent', err); }
+        } catch (err) { fallback('core/http/geo/geoDb:_watch', err); /* directory absent */ }
     }
 }
 
@@ -281,3 +282,13 @@ module.exports = {
     _autoUpdate, // exported for tests (the monthly refresh decision)
     _pick,       // exported for tests (source order)
 };
+
+/** @typedef {import('mmdb-lib/lib/metadata').Metadata} Metadata */
+
+/**
+ * @typedef {Object} __setReadersForTestsArgs
+ * @property {MmdbReader | null} [city]
+ * @property {MmdbReader | null} [asn]
+ * @property {string} [edition]
+ * @property {string} [date]
+ */

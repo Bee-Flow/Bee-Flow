@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Validation of one REST tool of a custom-integration definition
  * (./validateCustomIntegration.js): name, description, method, the parameters
@@ -19,6 +19,10 @@ const {
  * Validate `def.tools[i]`. `seenNames` collects the tool names across the
  * whole list (duplicates are an error); `slug` enables the combined-name
  * length check.
+ * @param {import('./validateShared').Reporter} r
+ * @param {import('./validateShared').RestToolDef} tool
+ * @param {number} i
+ * @param {{ slug: string | null, seenNames: Set<string> }} opts
  */
 function validateRestTool(r, tool, i, { slug, seenNames }) {
     const at = `tools[${i}]`;
@@ -82,9 +86,15 @@ function validateRestTool(r, tool, i, { slug, seenNames }) {
 /**
  * The tool's `parameters` JSON schema. Resolves to the declared and the
  * required parameter names, which path, query and body are checked against.
+ * @param {import('./validateShared').Reporter} r
+ * @param {import('./validateShared').ToolParameters | undefined} params
+ * @param {string} at
+ * @param {string} label
  */
 function checkParameters(r, params, at, label) {
+    /** @type {Set<string>} */
     const declaredParams = new Set();
+    /** @type {Set<string>} */
     const requiredParams = new Set();
     if (params === undefined) return { declaredParams, requiredParams };
     if (!isObject(params)) {
@@ -130,7 +140,15 @@ function checkParameters(r, params, at, label) {
     return { declaredParams, requiredParams };
 }
 
-/** Each declared parameter's own schema: scalar types and arrays of scalars only. */
+/**
+ * Each declared parameter's own schema: scalar types and arrays of scalars only.
+ * @param {import('./validateShared').Reporter} r
+ * @param {import('./validateShared').ToolParameters} params
+ * @param {string[]} names
+ * @param {string} at
+ * @param {string} label
+ * @param {Set<string>} declaredParams
+ */
 function checkParamProperties(r, params, names, at, label, declaredParams) {
     for (const pname of names) {
         const pAt = `${at}.parameters.properties.${pname}`;
@@ -184,7 +202,14 @@ function checkParamProperties(r, params, names, at, label, declaredParams) {
     }
 }
 
-/** The pathTemplate: a relative path that cannot leave the base origin, with declared, required placeholders. */
+/**
+ * The pathTemplate: a relative path that cannot leave the base origin, with declared, required placeholders.
+ * @param {import('./validateShared').Reporter} r
+ * @param {string} pt
+ * @param {string} at
+ * @param {string} label
+ * @param {{ declaredParams: Set<string>, requiredParams: Set<string> }} params
+ */
 function checkPathTemplate(r, pt, at, label, { declaredParams, requiredParams }) {
     if (typeof pt !== 'string' || !/^\/(?!\/)/.test(pt)) {
         r.pushE({ code: 'tool.path_invalid', path: `${at}.pathTemplate`, message: `Tool ${label}: pathTemplate must start with a single '/'.`, hint: "Use a relative path like '/invoices/{invoice_id}' — the origin comes from api.baseUrl." });
@@ -210,6 +235,7 @@ function checkPathTemplate(r, pt, at, label, { declaredParams, requiredParams })
             r.pushE({ code: 'tool.path_traversal', path: `${at}.pathTemplate`, message: `Tool ${label}: pathTemplate contains '..'.`, hint: 'Parent-directory segments are not allowed.' });
         }
         PATH_PLACEHOLDER_RE.lastIndex = 0;
+        /** @type {RegExpExecArray | null} */
         let m;
         while ((m = PATH_PLACEHOLDER_RE.exec(pt))) {
             const p = m[1];
@@ -226,7 +252,14 @@ function checkPathTemplate(r, pt, at, label, { declaredParams, requiredParams })
     }
 }
 
-/** The query map: each value one "{param}" placeholder or a brace-free literal. */
+/**
+ * The query map: each value one "{param}" placeholder or a brace-free literal.
+ * @param {import('./validateShared').Reporter} r
+ * @param {import('./validateShared').RestToolDef} tool
+ * @param {string} at
+ * @param {string} label
+ * @param {Set<string>} declaredParams
+ */
 function checkQueryMap(r, tool, at, label, declaredParams) {
     if (tool.query !== undefined) {
         if (!isObject(tool.query)) {
@@ -259,7 +292,13 @@ function checkQueryMap(r, tool, at, label, declaredParams) {
     }
 }
 
-/** The tool's own literal headers. */
+/**
+ * The tool's own literal headers.
+ * @param {import('./validateShared').Reporter} r
+ * @param {import('./validateShared').RestToolDef} tool
+ * @param {string} at
+ * @param {string} label
+ */
 function checkToolHeaders(r, tool, at, label) {
     if (tool.headers !== undefined) {
         if (!isObject(tool.headers)) {
@@ -275,7 +314,14 @@ function checkToolHeaders(r, tool, at, label) {
     }
 }
 
-/** The JSON body template and its placeholders. */
+/**
+ * The JSON body template and its placeholders.
+ * @param {import('./validateShared').Reporter} r
+ * @param {import('./validateShared').RestToolDef} tool
+ * @param {string} at
+ * @param {string} label
+ * @param {Set<string>} declaredParams
+ */
 function checkBody(r, tool, at, label, declaredParams) {
     if (tool.body !== undefined) {
         if (!isObject(tool.body)) {
@@ -292,6 +338,7 @@ function checkBody(r, tool, at, label, declaredParams) {
                 if (!isObject(tool.body.template) && !Array.isArray(tool.body.template)) {
                     r.pushE({ code: 'tool.body_template_invalid', path: `${at}.body.template`, message: `Tool ${label}: body.mode "json" requires an object (or array) template.`, hint: '"{param}" at string leaves substitutes the typed argument; everything else is sent literally.' });
                 } else {
+                    /** @type {import('./validateShared').BodyPlaceholders} */
                     const found = { placeholders: [], tooDeep: [] };
                     collectBodyPlaceholders(tool.body.template, `${at}.body.template`, 0, found);
                     if (found.tooDeep.length) {
@@ -311,7 +358,14 @@ function checkBody(r, tool, at, label, declaredParams) {
     }
 }
 
-/** Pagination (a hint only, but shape-checked; undeclared params lint). */
+/**
+ * Pagination (a hint only, but shape-checked; undeclared params lint).
+ * @param {import('./validateShared').Reporter} r
+ * @param {import('./validateShared').RestToolDef} tool
+ * @param {string} at
+ * @param {string} label
+ * @param {Set<string>} declaredParams
+ */
 function checkPagination(r, tool, at, label, declaredParams) {
     if (tool.pagination !== undefined) {
         const pg = tool.pagination;
@@ -326,7 +380,7 @@ function checkPagination(r, tool, at, label, declaredParams) {
                 r.pushE({ code: 'tool.pagination_invalid', path: `${pgAt}.maxPageSize`, message: `Tool ${label}: pagination.maxPageSize must be an integer 1..1000.`, hint: 'Use the vendor\'s documented page-size cap.' });
             }
             for (const f of ['pageParam', 'sizeParam']) {
-                const v = pg[f];
+                const v = /** @type {Record<string, unknown>} */ (pg)[f];
                 if (v === undefined) continue;
                 if (typeof v !== 'string' || !v) {
                     r.pushE({ code: 'tool.pagination_invalid', path: `${pgAt}.${f}`, message: `Tool ${label}: pagination.${f} must be a non-empty string.`, hint: 'Name the parameter that carries the page/size value.' });

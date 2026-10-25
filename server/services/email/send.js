@@ -1,3 +1,9 @@
+/** @typedef {import('dompurify').DOMPurify} DOMPurify */
+/** @typedef {import('nodemailer/lib/mime-node').MimeNodeAddress} MimeNodeAddress */
+/** @typedef {import('nodemailer/lib/mime-node').MimeNodeAddressInput} MimeNodeAddressInput */
+/** @typedef {import('stream').Readable} Readable */
+/** @typedef {import('nodemailer/lib/mail-composer').MailComposerAlternative} MailComposerAlternative */
+/** @typedef {import('nodemailer/lib/mail-composer').MailComposerAttachment} MailComposerAttachment */
 /**
  * Outbound e-mail — the shared send layer.
  *
@@ -70,6 +76,7 @@ const MAIL_ALLOWED_ATTR = [
     'colspan', 'rowspan', 'cellpadding', 'cellspacing', 'border', 'dir',
 ];
 
+/** @type {boolean | DOMPurify | null} */
 let mailPurify = null;
 function getMailPurify() {
     if (mailPurify !== null) return mailPurify;
@@ -83,6 +90,9 @@ function getMailPurify() {
     return mailPurify;
 }
 
+/**
+ * @param {string} html
+ */
 function sanitizeHtmlRegex(html) {
     return String(html)
         .replace(/<\s*script[^>]*>[\s\S]*?<\s*\/\s*script\s*>/gi, '')
@@ -92,6 +102,9 @@ function sanitizeHtmlRegex(html) {
         .replace(/javascript:/gi, '');
 }
 
+/**
+ * @param {string} html
+ */
 function sanitizeHtml(html) {
     if (!html) return '';
     const purify = getMailPurify();
@@ -106,6 +119,9 @@ function sanitizeHtml(html) {
     });
 }
 
+/**
+ * @param {string} text
+ */
 function textToHtml(text) {
     if (!text) return '';
     const esc = String(text)
@@ -113,11 +129,17 @@ function textToHtml(text) {
     return esc.replace(/\n/g, '<br>');
 }
 
+/**
+ * @param {string} s
+ */
 function _escapeHtml(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 // Inline markdown on ALREADY-HTML-ESCAPED text: links, bold, italic, code.
+/**
+ * @param {string} escaped
+ */
 function _inlineMd(escaped) {
     return String(escaped)
         .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2">$1</a>')
@@ -131,18 +153,23 @@ function _inlineMd(escaped) {
  * Minimal, dependency-free Markdown → HTML for outbound email bodies. Covers
  * what an agent emits: headings, ordered/unordered lists, paragraphs,
  * bold/italic/code, links. Output is further sanitised by sanitizeHtml().
+ * @param {string | undefined} md
  */
 function markdownToHtml(md) {
     if (!md) return '';
     const lines = String(md).replace(/\r\n/g, '\n').split('\n');
+    /** @type {string[]} */
     const out = [];
+    /** @type {string | null} */
     let listType = null;
+    /** @type {string[]} */
     let para = [];
     const flushPara = () => { if (para.length) { out.push(`<p>${para.join('<br>')}</p>`); para = []; } };
     const closeList = () => { if (listType) { out.push(`</${listType}>`); listType = null; } };
     for (const raw of lines) {
         const line = raw.replace(/\s+$/, '');
         if (!line.trim()) { flushPara(); closeList(); continue; }
+        /** @type {RegExpMatchArray | null} */
         let m;
         if ((m = line.match(/^(#{1,6})\s+(.*)$/))) {
             flushPara(); closeList();
@@ -165,6 +192,9 @@ function markdownToHtml(md) {
     return out.join('\n');
 }
 
+/**
+ * @param {string | undefined} html
+ */
 function htmlToText(html) {
     if (!html) return '';
     return String(html)
@@ -176,6 +206,21 @@ function htmlToText(html) {
         .trim();
 }
 
+/**
+ * @typedef {Object} BuildRawMimeArgs
+ * @property {string | MimeNodeAddress | MimeNodeAddressInput[]} fromEmail
+ * @property {string} to
+ * @property {string | undefined} [cc]
+ * @property {string} subject
+ * @property {string | Readable | Buffer<ArrayBufferLike> | MailComposerAlternative} [text]
+ * @property {string | Readable | Buffer<ArrayBufferLike> | MailComposerAlternative} [html]
+ * @property {string} [inReplyTo]
+ * @property {string | undefined} [references]
+ * @property {MailComposerAttachment[]} [attachments]
+ */
+/**
+ * @param {BuildRawMimeArgs} param0
+ */
 function buildRawMime({ fromName, fromEmail, to, cc, subject, text, html, inReplyTo, references, messageId, attachments }) {
     const composer = new MailComposer({
         from: fromName ? `${fromName} <${fromEmail}>` : fromEmail,
@@ -222,18 +267,32 @@ function graphRecipients(value) {
 /**
  * The reply's References chain: everything the parent already referenced, plus
  * the parent's own Message-ID. Clients thread on this.
+ * @param {string | undefined} inReplyTo
  */
 function buildReferenceChain(references, inReplyTo) {
     return [references, inReplyTo].filter(Boolean).join(' ').trim() || undefined;
 }
 
-/** RFC822 Message-ID we mint ourselves so the reply can be threaded on later. */
+/**
+ * RFC822 Message-ID we mint ourselves so the reply can be threaded on later.
+ * @param {string} seed
+ */
 function mintMessageId(seed, fromEmail) {
     return `<support-${seed}-${crypto.randomUUID()}@${senderDomain(fromEmail)}>`;
 }
 
 // ── Provider senders ─────────────────────────────────────────────────────────
 
+/**
+ * @typedef {Object} SendViaGmailArgs
+ * @property {string | Readable | Buffer<ArrayBufferLike> | MailComposerAlternative} textBody
+ * @property {string} htmlBody
+ * @property {string} [inReplyTo]
+ * @property {MailComposerAttachment[]} attachments
+ */
+/**
+ * @param {SendViaGmailArgs} param0
+ */
 async function sendViaGmail({
     tokens, onRefresh, mailbox, to, cc, subject, textBody, htmlBody,
     inReplyTo, references, providerThreadId, messageId, attachments,
@@ -266,6 +325,13 @@ async function sendViaGmail({
     };
 }
 
+/**
+ * @typedef {Object} SendViaOutlookArgs
+ * @property {string | number | boolean} [sourceProviderMessageId]
+ */
+/**
+ * @param {SendViaOutlookArgs} param0
+ */
 async function sendViaOutlook({
     tokens, onRefresh, mailbox, to, cc, subject, htmlBody,
     sourceProviderMessageId, providerThreadId, replyStrategy,
@@ -292,6 +358,7 @@ async function sendViaOutlook({
 
     if (sourceProviderMessageId) {
         // One call, and only Mail.Send / Mail.Send.Shared is required.
+        /** @type {{ toRecipients?: { emailAddress: { address: string; }; }[]; ccRecipients?: { emailAddress: { address: string; }; }[] }} */
         const message = {};
         const toList = graphRecipients(to);
         const ccList = graphRecipients(cc);
@@ -376,3 +443,17 @@ module.exports = {
     mintMessageId,
     _escapeHtml,
 };
+
+/**
+ * @typedef {{ accessToken?: string, refreshToken?: string, scope?: string, expiryDate?: number }} MailTokens
+ * @typedef {{ address?: string, displayName?: string, mode?: 'personal'|'shared' }} MailSendMailbox
+ * @typedef {{
+ *   provider?: 'gmail'|'outlook', tokens: MailTokens, onRefresh: (blob: object) => unknown, mailbox: MailSendMailbox,
+ *   to: string|string[], cc?: string|string[], subject: string, textBody?: string, htmlBody?: string,
+ *   inReplyTo?: string, references?: string, providerThreadId?: string, sourceProviderMessageId?: string,
+ *   messageId?: string, messageIdSeed?: string, attachments?: unknown[], replyStrategy?: 'reply'|'createReply',
+ * }} MailSendInput
+ * @typedef {{ providerMessageId: string | null, providerThreadId: string | null, rfc822MessageId: string | null }} MailSendResult
+ * @typedef {{ subject?: string, body?: { contentType: string, content: string },
+ *   toRecipients?: Array<{ emailAddress: { address: string } }>, ccRecipients?: Array<{ emailAddress: { address: string } }> }} GraphMessage
+ */

@@ -19,7 +19,11 @@ const { HttpError } = require('../../../core/http/errors');
 const log = require('../../../telemetry/log');
 const S = require('./stageSchemas');
 const { stageAuth } = require('../../../projects/stages/stageAuth');
+const { fallback } = require('../../../utils/bestEffort');
 
+/**
+ * @param {string} name
+ */
 const dep = (deps, name, load) => (deps && deps[name] !== undefined ? deps[name] : load());
 const BUSY_STATUSES = Object.freeze(['awaiting_approval', 'queued', 'approved', 'preparing', 'committing', 'converging', 'compensating']);
 const STAGE_LABEL = Object.freeze({ uat: 'UAT', prd: 'Production' });
@@ -73,8 +77,8 @@ function resolveDeps(deps = {}) {
                 store: require('../../../stores/studioAppStore'),
                 userStore: require('../../../stores/userStore'),
                 validateSharedGroupsForOrg: require('../../../auth').validateSharedGroupsForOrg,
-                audit: { auditPublishChange: (entry) => require('../../../appStudio/publicationAudit').auditPublishChange(entry) },
-                notifyMenuChange: (orgId, meta) => require('../../../appStudio/nextcloudMenuSync').notifyMenuChange(orgId, meta),
+                audit: { auditPublishChange: (/** @type {{ app?: AppRef; actorId?: string | null; isPublished?: boolean; sharedGroups?: string[] | null; organizationId?: string | null; publishedVersion?: number | null; }} */ entry) => require('../../../appStudio/publicationAudit').auditPublishChange(entry) },
+                notifyMenuChange: (/** @type {string | null | undefined} */ orgId, /** @type {import("../../../appStudio/nextcloudMenuSync").Meta | undefined} */ meta) => require('../../../appStudio/nextcloudMenuSync').notifyMenuChange(orgId, meta),
             }));
         },
         get webpageStore() { return dep(deps, 'webpageStore', () => require('../../../stores/webpageStore')); },
@@ -101,7 +105,7 @@ function resolveDeps(deps = {}) {
         },
         get now() { return dep(deps, 'now', () => () => new Date()); },
         get defer() {
-            return dep(deps, 'defer', () => (fn) => {
+            return dep(deps, 'defer', () => (/** @type {() => void} */ fn) => {
                 const t = setTimeout(fn, 20);
                 if (t && typeof t.unref === 'function') t.unref();
             });
@@ -127,6 +131,7 @@ function passes(gate, req, res) {
  * A per-route licence gate that applies only when `when(req)` says the request
  * needs it (the PATCH of a stage settings needs `blueprint_packaging` and
  * `approvals` only when a gate field is in the body). `when` null: always.
+ * @param {string} feature
  */
 function gate(d, feature, when = null) {
     let mw = null;
@@ -137,7 +142,14 @@ function gate(d, feature, when = null) {
     };
 }
 
+/**
+ * @param {object | undefined} d
+ * @param {{ dev?: "viewer" | "editor" | "owner"; stage?: "viewer" | "editor" | "owner"; devStage?: "viewer" | "editor" | "owner"; anyStage?: "viewer" | "editor" | "owner"; orgAdmin?: boolean; } | undefined} opts
+ */
 function authMw(d, opts) {
+    /**
+     * @param {() => void} next
+     */
     return async function stageAuthMw(req, _res, next) {
         await stageAuth(req, opts, d);
         next();
@@ -178,14 +190,21 @@ function roleName(ctx, stageName) {
     return ctx.stageRole || (ctx.viaOrgAdmin ? 'org_admin' : null);
 }
 
-/** Best-effort audit row on a project; it never fails the request. */
+/**
+ * Best-effort audit row on a project; it never fails the request.
+ * @param {string} actorId
+ * @param {string} action
+ */
 async function logOn(d, projectId, actorId, action, details = {}) {
     try { await d.logActivity(projectId, actorId, action, details); } catch (err) {
-        log.warn(`[stages] activity ${action} not logged: ${err && err.message}`);
+        log.warn(`[stages] activity ${action} not logged: ${err && /** @type {Error} */ (err).message}`);
     }
 }
 
-/** An org admin acted on a Solution they do not own: its owner hears about it. */
+/**
+ * An org admin acted on a Solution they do not own: its owner hears about it.
+ * @param {string} what
+ */
 async function notifyOwnerOfAdmin(d, ctx, what) {
     if (!ctx.viaOrgAdmin || !ctx.dev || !ctx.dev.ownerId || ctx.dev.ownerId === ctx.userId) return;
     const label = ctx.stage ? STAGE_LABEL[ctx.stage.stage] || ctx.stage.stage : '';
@@ -196,10 +215,13 @@ async function notifyOwnerOfAdmin(d, ctx, what) {
             message: 'This stage is run by you. The change is in the Solution activity.',
         });
     } catch (err) {
-        log.warn(`[stages] owner not notified: ${err && err.message}`);
+        log.warn(`[stages] owner not notified: ${err && /** @type {Error} */ (err).message}`);
     }
 }
 
+/**
+ * @param {number} width
+ */
 async function mapLimited(items, width, fn) {
     const out = new Array(items.length);
     let next = 0;
@@ -242,7 +264,7 @@ async function listParts(d, stage) {
         let shape = null;
         if (!retired) {
             try { shape = await d.readStageShape(stamp.kind, stamp.entityId, {}, {}); } catch (err) {
-                log.warn(`[stages] part ${stamp.ref} not read: ${err && err.message}`);
+                log.warn(`[stages] part ${stamp.ref} not read: ${err && /** @type {Error} */ (err).message}`);
             }
         }
         let drift = false;
@@ -275,7 +297,7 @@ async function inboundFor(d, req, parts, { includeWebhooks }) {
                     out.push({ kind: 'webhook', label: row.name || row.ref, url: d.webhookUrl(wh.id, req) });
                 }
             } catch (err) {
-                log.warn(`[stages] webhooks of ${row.ref} not listed: ${err && err.message}`);
+                log.warn(`[stages] webhooks of ${row.ref} not listed: ${err && /** @type {Error} */ (err).message}`);
             }
         }
     }
@@ -287,7 +309,10 @@ async function lastDeploymentOf(d, stageProjectId) {
     return last || null;
 }
 
-/** One stage as the pipeline overview lists it. */
+/**
+ * One stage as the pipeline overview lists it.
+ * @param {string} role
+ */
 async function pipelineStageView(d, row, role) {
     const last = await lastDeploymentOf(d, row.projectId);
     const busy = last && BUSY_STATUSES.includes(last.status);
@@ -310,7 +335,10 @@ async function pipelineStageView(d, row, role) {
 function releaseView(release, stages) {
     const notes = isObject(release.notes) ? release.notes : {};
     const changes = Array.isArray(notes.changes) ? notes.changes : [];
-    const count = (kind) => changes.filter(c => c && c.change === kind).length;
+    /**
+     * @param {string} kind
+     */
+    const count = (kind) => changes.filter((/** @type {{ change: string; }} */ c) => c && c.change === kind).length;
     return {
         id: release.id,
         seq: release.seq,
@@ -354,9 +382,12 @@ async function devChecks(d, dev) {
     return { blocked: !verdict || verdict.blocked !== false, count: Array.isArray(verdict && verdict.findings) ? verdict.findings.length : 0 };
 }
 
+/**
+ * @param {string} what
+ */
 const settled = async (fn, what) => {
     try { return await fn(); } catch (err) {
-        log.warn(`[stages] pipeline: ${what} not read: ${err && err.message}`);
+        log.warn(`[stages] pipeline: ${what} not read: ${err && /** @type {Error} */ (err).message}`);
         return null;
     }
 };
@@ -369,7 +400,7 @@ function makeStageHandlers(d) {
         const ctx = req.stageCtx;
         const hasDev = !!ctx.devRole;
         const rows = await d.stageStore.listStages(ctx.dev.id);
-        const visible = hasDev ? rows : rows.filter(r => ctx.stageRoles[r.stage]);
+        const visible = hasDev ? rows : rows.filter((/** @type {{ stage: string | number; }} */ r) => ctx.stageRoles[r.stage]);
         const stages = await mapLimited(visible, 2, (row) => pipelineStageView(d, row, ctx.stageRoles[row.stage] || null));
         let dev = null;
         let releases = null;
@@ -450,7 +481,7 @@ function makeStageHandlers(d) {
         try {
             const user = await d.userStore.getUser(stage.runAsUserId);
             if (user) runAs = { userId: stage.runAsUserId, name: user.name || user.displayName || user.email || null };
-        } catch (err) { log.debug('the id is enough', err); }
+        } catch (err) { fallback('routes/projects/stages/stageRoutes:getStage', err); /* the id is enough */ }
         res.json({
             stage: stage.stage,
             projectId: stage.projectId,
@@ -493,3 +524,13 @@ module.exports = {
     gate, authMw, passes, deploymentView, releaseView, listParts, activeOf, logOn, notifyOwnerOfAdmin, mapLimited,
     pipelineStageView, lastDeploymentOf, roleName, BUSY_STATUSES, STAGE_LABEL, isObject,
 };
+
+/** @typedef {ReturnType<typeof resolveDeps>} StageDeps */
+
+/** @typedef {import('./deploymentRoutes').StageCtx} StageCtx */
+
+/** @typedef {import('./deploymentRoutes').StageReq} StageReq */
+
+/** @typedef {ReturnType<typeof import('../../../stores/solutionStage/deploymentModel').mapDeployment>} DeploymentRow */
+
+/** @typedef {ReturnType<typeof import('../../../stores/solutionStage/stages').mapStage>} StageRow */

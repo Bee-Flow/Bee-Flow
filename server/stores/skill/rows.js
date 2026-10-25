@@ -31,6 +31,9 @@ const SKILL_COLUMNS = {
     enabledIntegrations: { col: 'enabled_integrations', transform: v => JSON.stringify(Array.isArray(v) ? v : []) },
 };
 
+/**
+ * @param {string} v
+ */
 function _jsonArray(v) {
     if (Array.isArray(v)) return v;
     if (v === null || v === undefined || v === '') return [];
@@ -38,12 +41,16 @@ function _jsonArray(v) {
     return [];
 }
 
+/**
+ * @param {string} v
+ */
 function _jsonObjectOrNull(v) {
     if (v === null || v === undefined || v === '') return null;
     if (typeof v === 'string') { try { v = JSON.parse(v); } catch (_) { return null; } }
     return v && typeof v === 'object' && !Array.isArray(v) ? v : null;
 }
 
+/** @param {DbRow.Skills} r */
 function mapRow(r) {
     return {
         id: r.id,

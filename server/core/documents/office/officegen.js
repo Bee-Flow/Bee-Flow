@@ -267,3 +267,47 @@ module.exports = {
     // exported for tests
     _internal: { colLetter, parseBlocks, sanitizeSheetName, stampPptxCoreProperties, deckTheme, pptxHex, footerLineFor, fitBox },
 };
+
+/** @typedef {Parameters<typeof coerceCell>[0]} CellValue */
+
+/** @typedef {ReturnType<typeof deckTheme>} DeckTheme */
+
+/** @typedef {ReturnType<typeof resolveDeckTheme>} ResolvedDeckTheme */
+
+/**
+ * A resolved theme, or a bare palette (accent/ink/font/logo/brand) as tests and older callers hand it.
+ * @typedef {Partial<ResolvedDeckTheme> & { ink?: string, fontFace?: string, deck?: unknown, logoAspect?: number }} DeckThemeInput
+ */
+
+/** @typedef {{ image: import('pptxgenjs').default.ImageProps, text?: undefined } | { text: import('pptxgenjs').default.TextProps, image?: undefined }} ChromeObject */
+
+/** @typedef {{ align?: string, valign?: string }} FitOptions */
+
+/** @typedef {NonNullable<import('pptxgenjs').default.SlideMasterProps['objects']>[number]} MasterObject */
+
+/** @typedef {{ subject?: string, creator?: string, keywords?: string[], description?: string, footerLine?: string }} DeckMarking */
+
+/** @typedef {{ text: string, level?: number }} DeckBullet */
+
+/** @typedef {{ dataUrl: string, aspect?: number, alt?: string }} DeckImage */
+
+/** @typedef {{ type: string, title: string, unit: string, stacked: boolean, showValues: boolean, labels: string[], series: Array<{ name: string, values: number[] }> }} DeckChart */
+
+/**
+ * A slide of a normalised deck (core/documents/deckModel.js).
+ * @typedef {object} DeckSlide
+ * @property {string} [layout]
+ * @property {string} [style]
+ * @property {string} [title]
+ * @property {string} [body]
+ * @property {string} [notes]
+ * @property {DeckBullet[]} bullets
+ * @property {{ columns: string[], rows: unknown[][] }} [table]
+ * @property {DeckImage} [image]
+ * @property {{ text: string, attribution?: string }} [quote]
+ * @property {Array<{ title?: string, bullets: DeckBullet[] }>} [columns]
+ * @property {DeckChart} [chart]
+ * @property {Array<{ value: string, label?: string, delta?: string, icon?: string, iconDataUrl?: string }>} [stats]
+ * @property {Array<{ title?: string, text?: string, icon?: string, iconDataUrl?: string, image?: DeckImage }>} [cards]
+ * @property {Array<{ title: string, text?: string }>} [steps]
+ */

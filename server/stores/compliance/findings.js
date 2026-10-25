@@ -71,6 +71,9 @@ const FINDING_DDL = [
 
 // ───────────────────────── Finding states ─────────────────────────
 
+/**
+ * @param {string | number | Date} v
+ */
 const _iso = (v) => (v == null ? null : new Date(v).toISOString());
 
 function _stateRow(r) {
@@ -258,6 +261,9 @@ function createFindings({ run, getOne, getAll, initDB }) {
 
     // A table this install never created holds nothing to erase — and erasing a
     // person must not create the compliance schema on the way.
+    /**
+     * @param {string} sql
+     */
     async function _deleteHintRows(sql, params) {
         try {
             const r = await run(sql, params);
@@ -312,3 +318,11 @@ function createFindings({ run, getOne, getAll, initDB }) {
 }
 
 module.exports = { FINDING_STATES, FINDING_DDL, createFindings };
+
+/**
+ * @typedef {{ check_id: string, scope_key: string, fingerprint: string, state: string, reason?: string | null, until?: string | Date | null, actor_id?: string | null, created_at: string | Date, updated_at: string | Date }} FindingStateDbRow
+ */
+
+/**
+ * @typedef {{ subject_kind: string, subject_id: string, purpose?: string | null, lawful_basis?: string | null, retention_days?: number | string | null, confirmed_by?: string | null, confirmed_at: string | Date }} RegistrationDbRow
+ */

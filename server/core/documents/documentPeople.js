@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Display names for the people a documents answer mentions: the owner and
  * last editor on a library row, the authors of versions, the peers present.
@@ -35,7 +35,7 @@ async function describePeople(ids, orgId, deps = {}) {
     await Promise.all(unique.map(async (id) => {
         let user = null;
         try { user = await getUser(id); } catch (err) {
-            log.warn('[Documents] person lookup failed:', err && err.message);
+            log.warn('[Documents] person lookup failed:', err && /** @type {Error} */ (err).message);
             return;
         }
         if (!user || (user.organizationId || '') !== (orgId || '')) return;

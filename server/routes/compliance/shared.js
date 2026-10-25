@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Compliance routes — shared helpers.
  *
@@ -15,7 +14,7 @@ const soaStore = require('../../stores/soaStore');
 const ismsDocStore = require('../../stores/ismsDocStore');
 const registry = require('../../compliance/registry');
 const { orgScope } = require('../../auth/orgScope');
-const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // The HOME org, read through auth/orgScope.js. 'default' is the single-tenant
 // install's org key, not an error signal — see resolveOrgIdStrict for the
@@ -114,11 +113,11 @@ async function activeResultsFilter(orgId, opts = {}) {
 // ISMS process stores (risks, audits, reviews) plug in as they ship.
 async function _buildClauseConformity(orgId) {
     const [docs, soaStats, latest, history, settings] = await Promise.all([
-        ismsDocStore.listDocs(orgId).catch(() => []),
-        soaStore.getStats(orgId).catch(() => null),
-        complianceStore.getLatestPerCheck(orgId).catch(() => []),
-        complianceStore.getScoreHistory(orgId, 365).catch(() => []),
-        complianceStore.getSettings(orgId).catch(() => ({})),
+        ismsDocStore.listDocs(orgId).catch((e) => fallback('routes/compliance/shared:_buildClauseConformity', e, [])),
+        soaStore.getStats(orgId).catch((e) => fallback('routes/compliance/shared:_buildClauseConformity#2', e, null)),
+        complianceStore.getLatestPerCheck(orgId).catch((e) => fallback('routes/compliance/shared:_buildClauseConformity#3', e, [])),
+        complianceStore.getScoreHistory(orgId, 365).catch((e) => fallback('routes/compliance/shared:_buildClauseConformity#4', e, [])),
+        complianceStore.getSettings(orgId).catch((e) => fallback('routes/compliance/shared:_buildClauseConformity#5', e, {})),
     ]);
     const published = docs.filter(d => d.status === 'published');
     const doc = (slug) => published.find(d => d.slug === slug) || null;
@@ -129,13 +128,13 @@ async function _buildClauseConformity(orgId) {
     // ISMS process stores land later in the ISO build; read them lazily so
     // this statement upgrades itself the moment they exist.
     let risks = [], audits = [], reviews = [], ncs = [];
-    try { risks = await require('../../stores/riskStore').listRisks(orgId); } catch (err) { log.debug('not shipped yet', err); }
+    try { risks = await require('../../stores/riskStore').listRisks(orgId); } catch (err) { fallback('routes/compliance/shared:_buildClauseConformity#6', err); /* not shipped yet */ }
     try {
         const auditStore = require('../../stores/isoAuditStore');
         audits = await auditStore.listAudits(orgId);
         reviews = await auditStore.listReviews(orgId);
         ncs = await auditStore.listNonconformities(orgId);
-    } catch (err) { log.debug('not shipped yet', err); }
+    } catch (err) { fallback('routes/compliance/shared:_buildClauseConformity#7', err); /* not shipped yet */ }
 
     const fmtDate = (d) => (d ? new Date(d).toISOString().slice(0, 10) : null);
     const clauses = [];

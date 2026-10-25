@@ -1,3 +1,4 @@
+/** @typedef {import('zod').ZodString} ZodString */
 /**
  * Cowork Routes — REST API for scheduled cowork and its execution history.
  *
@@ -61,6 +62,7 @@ const configStore = require('../stores/configStore');
 const { executeCowork } = require('../core/cowork/coworkRunner');
 const { userHasBetaFeature } = require('../core/entitlements/betaFeatures');
 const { requireAuth } = require('../auth/permissions');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 const DEFAULT_MAX_SCHEDULES = 10;
 
@@ -74,11 +76,17 @@ const DAY_NAMES = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'frid
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
-/** '' from a cleared form field means the same as null. */
+/**
+ * '' from a cleared form field means the same as null.
+ * @param {import('zod').ZodNullable<ZodString> | import('zod').ZodNullable<import('zod').ZodEnum<{ [x: string]: string; }>>} schema
+ */
 const blankIsNull = (schema) => z.preprocess((v) => (v === '' ? null : v), schema);
 
 // An unknown zone would make the runner's Intl.DateTimeFormat throw on every
 // tick — a schedule that silently never runs. Reject it at the door.
+/**
+ * @param {string} value
+ */
 function isKnownTimezone(value) {
     try {
         new Intl.DateTimeFormat('en-US', { timeZone: value }).format(new Date());
@@ -181,7 +189,11 @@ async function getMaxSchedules() {
     return (typeof limit === 'number' && limit > 0) ? limit : DEFAULT_MAX_SCHEDULES;
 }
 
-/** Resolve + authorise an agent link. Returns undefined for "don't touch". */
+/**
+ * Resolve + authorise an agent link. Returns undefined for "don't touch".
+ * @param {string} userId
+ * @param {Express.Session} session
+ */
 async function resolveAgentId(agentId, userId, session) {
     if (agentId === undefined) return undefined;
     if (agentId === null || agentId === '') return null;
@@ -200,7 +212,11 @@ async function resolveAgentId(agentId, userId, session) {
     return agent.id;
 }
 
-/** Load a schedule and assert the caller owns it. */
+/**
+ * Load a schedule and assert the caller owns it.
+ * @param {string} id
+ * @param {string} userId
+ */
 async function loadOwned(id, userId) {
     const existing = await coworkStore.getSchedule(id);
     if (!existing) {
@@ -216,6 +232,9 @@ async function loadOwned(id, userId) {
     return existing;
 }
 
+/**
+ * @param {string} _label
+ */
 function fail(res, err, _label) {
     if (err.statusCode >= 400 && err.statusCode < 500) throw new HttpError(err.statusCode, 'cowork_refused', err.message); // the guards' caller-written message
     throw err; // anything else: the terminal handler logs it and answers a generic 500
@@ -229,6 +248,7 @@ function fail(res, err, _label) {
  *
  * Null is the normal value: a schedule that is not running has nothing open.
  * The open row is deliberately the source and not `lastStatus === 'running'`: those two diverge as soon as reapStaleRuns clears a stuck attempt.
+ * @param {string | null} startedAt
  */
 function withCurrentRun(schedule, startedAt) {
     schedule.currentRunStartedAt = startedAt || null;
@@ -251,7 +271,7 @@ router.get('/', async (req, res) => {
                 try {
                     const a = await agentStore.getAgent(id);
                     if (a) agentMap.set(id, { name: a.name, avatar: a.avatar || a.config?.avatar || '🤖' });
-                } catch (err) { log.debug('missing agent → leave unenriched', err); }
+                } catch (err) { bestEffort('routes/cowork:anon', err); /* missing agent → leave unenriched */ }
             }));
             for (const s of schedules) {
                 const a = s.agentId && agentMap.get(s.agentId);
@@ -260,7 +280,7 @@ router.get('/', async (req, res) => {
         }
 
         // One query for all open runs of this user, not one query per row.
-        const openRuns = await coworkStore.getOpenRunStarts(userId).catch(() => ({}));
+        const openRuns = await coworkStore.getOpenRunStarts(userId).catch((e) => fallback('routes/cowork:anon#2', e, {}));
         for (const s of schedules) withCurrentRun(s, openRuns[s.id]);
 
         res.json({ schedules, maxSchedules: await getMaxSchedules() });
@@ -314,7 +334,7 @@ router.post('/', validate({ body: CreateBody }), async (req, res) => {
                 try {
                     await executeCowork(schedule, { manual: true });
                 } catch (err) {
-                    log.error(`[Cowork] startNow failed for ${schedule.id}:`, err.message);
+                    log.error(`[Cowork] startNow failed for ${schedule.id}:`, /** @type {Error} */ (err).message);
                 }
             });
         }
@@ -356,7 +376,7 @@ router.put('/:id', validate({ body: UpdateBody }), async (req, res) => {
 router.get('/:id', async (req, res) => {
     try {
         const schedule = await loadOwned(req.params.id, req.session.user.id);
-        const startedAt = await coworkStore.getOpenRunStart(req.params.id).catch(() => null);
+        const startedAt = await coworkStore.getOpenRunStart(req.params.id).catch((e) => fallback('routes/cowork:anon#3', e, null));
         res.json(withCurrentRun(schedule, startedAt));
     } catch (err) {
         fail(res, err, 'Get');
@@ -401,7 +421,7 @@ router.post('/:id/run-now', validate({ body: NoBody }), async (req, res) => {
             try {
                 await executeCowork(existing, { manual: true });
             } catch (err) {
-                log.error(`[Cowork] Run-now failed for ${req.params.id}:`, err.message);
+                log.error(`[Cowork] Run-now failed for ${req.params.id}:`, /** @type {Error} */ (err).message);
             }
         });
 
@@ -439,12 +459,12 @@ router.post('/compose', validate({ body: ComposeBody }), async (req, res) => {
                         name: a.name,
                         description: a.description || a.config?.description || null,
                     }));
-            } catch (err) { log.debug('compose still works without agents', err); }
+            } catch (err) { fallback('routes/cowork:anon#4', err); /* compose still works without agents */ }
         }
 
         const { composeCowork } = require('../core/cowork/coworkCompose');
         const { resolveEffectiveOrgId } = require('../core/llm/modelResolver');
-        const userOrgId = await resolveEffectiveOrgId(req, { userId }).catch(() => null);
+        const userOrgId = await resolveEffectiveOrgId(req, { userId }).catch((e) => fallback('routes/cowork:anon#5', e, null));
         const spec = await composeCowork({ brief, agents, timezone, userId, userOrgId });
         res.json(spec);
     } catch (err) {

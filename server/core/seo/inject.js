@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Splice a rendered head and body into the SPA shell.
  *

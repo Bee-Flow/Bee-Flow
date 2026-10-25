@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Pre-flight check, template upgrade and the run-view payload (routes/studioApps/).
  */
@@ -18,6 +19,7 @@ const { requireAuth } = require('../../auth/permissions');
 const { CheckBody, DraftQuery } = require('./schemas');
 const { requireManageApps, audienceFor, refuseRead } = require('./access');
 const { loadOwnedAutomations, loadDataRefs } = require('./appHelpers');
+const { fallback } = require('../../utils/bestEffort');
 
 const router = express.Router();
 
@@ -38,7 +40,7 @@ const router = express.Router();
  * The same 404/403 shape as the publish route above — a reader gets 403, a
  * stranger the uniform 404 so existence never leaks.
  */
-router.post('/:id/check', requireAuth, validate({ body: CheckBody }), async (req, res) => {
+router.post('/:id/check', requireAuth, validate({ body: CheckBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const userId = req.session.user.id;
     const app = await studioAppStore.getStudioApp(req.params.id);
     if (!app) return res.status(404).json({ error: 'App not found' });
@@ -104,7 +106,7 @@ router.post('/:id/check', requireAuth, validate({ body: CheckBody }), async (req
  * data is never duplicated), and the template stamp moves to the new
  * version + hash. → { ok:true, fromVersion, toVersion, version, dataInstall? }
  */
-router.post('/:id/template-upgrade', requireAuth, requireManageApps, async (req, res) => {
+router.post('/:id/template-upgrade', requireAuth, requireManageApps, /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const userId = req.session.user.id;
     const app = await studioAppStore.getStudioApp(req.params.id);
     if (!app) return res.status(404).json({ error: 'App not found' });
@@ -121,7 +123,7 @@ router.post('/:id/template-upgrade', requireAuth, requireManageApps, async (req,
         return res.status(409).json({ error: 'This app was not created from a template', code: 'not_from_template' });
     }
     const { orgIdArr: upgradeOrgIds } = await audienceFor(req);
-    const template = await resolveTemplate(app.templateId, { userId, orgIds: upgradeOrgIds });
+    const template = /** @type {{ definition: object, dataModel?: object, seed?: object, datasets?: object, [key: string]: any }|null} */ (await resolveTemplate(app.templateId, { userId, orgIds: upgradeOrgIds }));
     if (!template) {
         return res.status(409).json({ error: 'The template this app came from is no longer available', code: 'template_missing' });
     }
@@ -199,6 +201,11 @@ router.post('/:id/template-upgrade', requireAuth, requireManageApps, async (req,
 // roleMapping.byGroup → roleMapping.default → null); the data model is read
 // acts-as-owner, same as studioAppsRun.js. Only the viewer's own fields go
 // out — never another user's row, never role/enforcement config.
+/**
+ * @param {NonNullable<Awaited<ReturnType<typeof studioAppStore.getStudioApp>>>} app
+ * @param {string} userId
+ * @param {string[]} userGroups
+ */
 async function buildRuntimeViewer(app, userId, userGroups) {
     const isOwner = app.userId === userId;
     let roleKey = 'owner';
@@ -207,11 +214,11 @@ async function buildRuntimeViewer(app, userId, userGroups) {
         try {
             const meta = await studioAppDataStore.getDataModel(app.id, app.userId);
             model = (meta && meta.model) ? meta.model : null;
-        } catch (err) { log.debug('no data model → membership/mapping-less resolution', err); }
+        } catch (err) { fallback('routes/studioApps/runtime:buildRuntimeViewer', err); /* no data model → membership/mapping-less resolution */ }
         roleKey = await rlsGateway.resolveViewerRole(app, userId, model, { userGroups });
     }
     let user = null;
-    try { user = await userStore.getUser(userId); } catch (err) { log.debug('name/email stay null', err); }
+    try { user = await userStore.getUser(userId); } catch (err) { fallback('routes/studioApps/runtime:buildRuntimeViewer#2', err); /* name/email stay null */ }
     return {
         id: userId,
         name: user?.displayName || user?.name || user?.username || null,
@@ -221,7 +228,7 @@ async function buildRuntimeViewer(app, userId, userGroups) {
     };
 }
 
-router.get('/:id/runtime', requireAuth, validate({ query: DraftQuery }), async (req, res) => {
+router.get('/:id/runtime', requireAuth, validate({ query: DraftQuery }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const userId = req.session.user.id;
     const app = await studioAppStore.getStudioApp(req.params.id);
     if (!app) return res.status(404).json({ error: 'App not found' });

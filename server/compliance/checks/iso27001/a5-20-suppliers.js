@@ -30,6 +30,7 @@ module.exports = {
     descriptionKey: 'compliance.checks.iso_suppliers.desc',
     remediationKey: 'compliance.checks.iso_suppliers.fix',
     remediationLink: 'admin/compliance/ropa',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         let operators = [];
         try {
@@ -69,7 +70,7 @@ module.exports = {
         if (!operators.length) {
             return {
                 status: 'not_applicable',
-                evidence: { window_days: 30, operators_observed: [] },
+                evidence: { window_days: 30, operators_observed: /** @type {string[]} */ ([]) },
                 details: 'No outbound supplier traffic observed in the last 30 days.',
             };
         }

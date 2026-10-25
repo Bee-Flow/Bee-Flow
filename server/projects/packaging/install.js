@@ -204,7 +204,7 @@ async function installBlueprint({
         installed: { automations: [], apps: [], webpages: [], datatables: [], agents: [], knowledgeBases: [], skills: [], documents: [] },
         computed: {},
         skipped: [],
-        warnings: [],
+        warnings: /** @type {string[]} */ ([]),
         // What the file asked a page to be allowed to do and this install would
         // not grant. Read off the RAW manifest, before sanitizeManifest strips
         // the `ai.public*` keys — see collectGrantRequires.

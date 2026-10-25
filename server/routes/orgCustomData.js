@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * The "Your own data" test bench: /api/org-privacy-shield/:orgId/custom-data/*
  *
@@ -72,9 +73,16 @@ const DEFAULT_LOADERS = {
     log: () => log,
 };
 
-/** Each dependency is required on first use, so loading this file stays cheap. */
+/** @typedef {{ [K in keyof typeof DEFAULT_LOADERS]: ReturnType<(typeof DEFAULT_LOADERS)[K]> }} CustomDataDeps */
+
+/**
+ * Each dependency is required on first use, so loading this file stays cheap.
+ * @returns {CustomDataDeps}
+ */
 function makeDefaultDeps() {
+    /** @type {Record<string, unknown>} */
     const memo = {};
+    /** @type {Record<string, unknown>} */
     const deps = {};
     for (const [name, load] of Object.entries(DEFAULT_LOADERS)) {
         Object.defineProperty(deps, name, {
@@ -82,7 +90,7 @@ function makeDefaultDeps() {
             get() { if (!(name in memo)) memo[name] = load(); return memo[name]; },
         });
     }
-    return deps;
+    return /** @type {CustomDataDeps} */ (deps);
 }
 
 // ── What a caller may send ──────────────────────────────────────────────────
@@ -106,6 +114,7 @@ const Examples = z.array(
 const KeepFixed = z.array(z.string().min(1).max(8, 'A fixed part holds at most 8 characters.'))
     .max(2, 'Keep at most 2 fixed parts.').optional();
 
+/** @template {import('zod').ZodRawShape} T @param {T} shape */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape, { error: typeError({ invalid: 'Send the request as a JSON object.' }) }),
@@ -145,7 +154,7 @@ const DraftType = z.object({
     createdBy: z.string().max(200).optional(),
     updatedAt: z.string().max(100).optional(),
 }).superRefine((t, ctx) => {
-    if (!t[t.method]) ctx.addIssue({ code: 'custom', path: [t.method], message: `A ${t.method} type needs its ${t.method} settings.` });
+    if (!/** @type {Record<string, unknown>} */ (t)[t.method]) ctx.addIssue({ code: 'custom', path: [t.method], message: `A ${t.method} type needs its ${t.method} settings.` });
 });
 
 const Span = z.object({ start: z.number().int().min(0), end: z.number().int().min(1) });
@@ -169,6 +178,11 @@ const Sentence = z.object({
         lastEnd = g.end;
     }
 });
+/**
+ * @template {{ id: string }} T
+ * @param {T[]} list
+ * @param {import('zod').RefinementCtx<T[]>} ctx
+ */
 const uniqueIds = (list, ctx) => {
     const seen = new Set();
     for (const s of list) {
@@ -196,13 +210,22 @@ const TuneBody = bodyOf({
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-const noStore = (res) => res.set('Cache-Control', 'private, no-store');
+const noStore = (/** @type {import('express').Response} */ res) => res.set('Cache-Control', 'private, no-store');
+/** @template T @param {T[] | unknown} v @returns {T[]} */
 const listOf = (v) => (Array.isArray(v) ? v : []);
+/** @param {unknown[]} a @param {unknown[]} b */
 const sameList = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
-/** A sentence as the bench reads it: `gold: null` is the same as no gold. */
+/**
+ * A sentence as the bench reads it: `gold: null` is the same as no gold.
+ * @param {Array<{ id: string, text: string, origin?: string, gold?: Array<{ start: number, end: number }> | null }>} list
+ */
 const benchSentences = (list) => listOf(list).map((s) => (s.gold ? s : { id: s.id, text: s.text, origin: s.origin }));
 
-/** Org admin of the org in the URL, and that org has the feature. */
+/**
+ * Org admin of the org in the URL, and that org has the feature.
+ * @param {import('express').Request} req
+ * @param {CustomDataDeps} d
+ */
 async function admit(req, d) {
     const orgId = String(req.params.orgId || '');
     const userId = req.session?.user?.id || null;
@@ -218,25 +241,35 @@ async function admit(req, d) {
 /**
  * The org's saved types: `customDataTypes` when present, otherwise the old
  * "Always hide these" terms as the engine migrates them.
+ * @param {CustomDataDeps} d
+ * @param {string} orgId
  */
 async function orgTypesOf(d, orgId) {
     const row = await d.configStore.getConfig(`org_privacy_shield_${orgId}`);
     if (!row || typeof row !== 'object') return [];
-    if (Array.isArray(row.customDataTypes)) return row.customDataTypes.filter((t) => t && typeof t === 'object');
+    if (Array.isArray(row.customDataTypes)) return row.customDataTypes.filter((/** @type {unknown} */ t) => t && typeof t === 'object');
     if (Array.isArray(row.customSensitiveTerms) && row.customSensitiveTerms.length && typeof d.engine.migrateLegacyTerms === 'function') {
         return listOf(await d.engine.migrateLegacyTerms(orgId, row.customSensitiveTerms));
     }
     return [];
 }
 
-/** The org's "Never hide these" settings, applied to the assistant's personal-data check. */
+/**
+ * The org's "Never hide these" settings, applied to the assistant's personal-data check.
+ * @param {CustomDataDeps} d
+ * @param {string} orgId
+ */
 async function allowConfigOf(d, orgId) {
     const row = await d.configStore.getConfig(`org_privacy_shield_${orgId}`);
     if (!row || typeof row !== 'object') return {};
     return { piiAllowTerms: row.piiAllowTerms, piiAllowPublicOrgs: row.piiAllowPublicOrgs };
 }
 
-/** One usage row per assistant call; chatForcedTool logs nothing itself. */
+/**
+ * One usage row per assistant call; chatForcedTool logs nothing itself.
+ * @param {CustomDataDeps} d
+ * @param {{ userId: string | null, orgId: string, modelId: string | null, usage: Parameters<typeof usageLogFields>[0], startMs: number }} opts
+ */
 async function logAssistUsage(d, { userId, orgId, modelId, usage, startMs }) {
     try {
         await d.usage.logUsage({
@@ -258,6 +291,7 @@ async function logAssistUsage(d, { userId, orgId, modelId, usage, startMs }) {
 
 // ── The router ──────────────────────────────────────────────────────────────
 
+/** @param {CustomDataDeps | null} [deps] */
 function createCustomDataRouter(deps = null) {
     const d = deps || makeDefaultDeps();
     const router = express.Router({ mergeParams: true });
@@ -378,4 +412,4 @@ function createCustomDataRouter(deps = null) {
 const router = createCustomDataRouter();
 
 module.exports = router;
-module.exports.createCustomDataRouter = createCustomDataRouter;
+/** @type {import('express').Router & Record<string, unknown>} */ (module.exports).createCustomDataRouter = createCustomDataRouter;

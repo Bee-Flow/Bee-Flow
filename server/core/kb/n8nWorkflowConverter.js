@@ -11,6 +11,7 @@
 
 // ── Friendly node type mappings ─────────────────────────────────────
 
+/** @type {Record<string, string>} */
 const NODE_TYPE_LABELS = {
     'n8n-nodes-base.webhook': 'Webhook Trigger',
     'n8n-nodes-base.httpRequest': 'HTTP Request',
@@ -192,6 +193,7 @@ function convertN8nWorkflowToMarkdown(workflow) {
         ? triggers.map(t => getNodeLabel(t.type)).join(', ')
         : 'Unknown';
 
+    /** @type {string[]} */
     const lines = [];
 
     // ── Header ────────────────────────────────────────────────────

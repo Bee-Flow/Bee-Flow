@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Log-safe stand-ins for user content. Personal data does not go into logs
  * (CLAUDE.md, privacy): a prompt, a file name, an e-mail address or a message

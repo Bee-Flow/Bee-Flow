@@ -388,3 +388,13 @@ module.exports = {
     unwrapDataExtractionInputs,
     translateDataExtractionVocabulary,
 };
+
+/**
+ * @typedef {import('../draftGraph').DraftGraph} DraftGraph
+ * @typedef {import('../refCheck').BuilderWrap} BuilderWrap
+ * @typedef {import('./inputBindings').Placement} Placement
+ * @typedef {import('./inputBindings').ForEachSpec} ForEachSpec
+ * @typedef {{ name: string, type: string, description: string, required: boolean }} ExtractionField
+ * @typedef {Placement & { source?: unknown, fields?: unknown, instructions?: unknown, prompt?: unknown, outputSchema?: unknown,
+ *   inputs?: unknown, forEach?: ForEachSpec, text?: unknown, content?: unknown, input?: unknown, document?: unknown }} ExtractionArgs
+ */

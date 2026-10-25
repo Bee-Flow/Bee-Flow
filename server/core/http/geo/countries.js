@@ -13,7 +13,7 @@
 
 'use strict';
 
-const log = require('../../../telemetry/log');
+const { fallback: fallbackSwallowed, bestEffort } = require('../../../utils/bestEffort');
 
 const EU_EEA_COUNTRIES = new Set([
     'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR',
@@ -26,6 +26,7 @@ const EU_EEA_COUNTRIES = new Set([
 ]);
 
 /** Overrides for Intl's names; also the fallback when Intl lacks a code. */
+/** @type {Record<string, string>} */
 const COUNTRY_NAMES = {
     US: 'United States', GB: 'United Kingdom', DE: 'Germany', NL: 'Netherlands',
     FR: 'France', IE: 'Ireland', BE: 'Belgium', SE: 'Sweden', FI: 'Finland',
@@ -41,12 +42,16 @@ const COUNTRY_NAMES = {
     MX: 'Mexico', AR: 'Argentina', CL: 'Chile', CO: 'Colombia',
 };
 
+/** @type {Intl.DisplayNames | null} */
 let _display = null;
 try {
     _display = new Intl.DisplayNames(['en'], { type: 'region', fallback: 'none' });
-} catch (err) { log.debug('a Node without full ICU: the table above still answers', err); }
+} catch (err) { fallbackSwallowed('core/http/geo/countries:anon', err); /* a Node without full ICU: the table above still answers */ }
 
-/** ISO-2 → English name; the code itself when unknown; null for no code. */
+/**
+ * ISO-2 → English name; the code itself when unknown; null for no code.
+ * @param {string} code
+ */
 function countryName(code) {
     if (!code) return null;
     const cc = String(code).toUpperCase();
@@ -55,7 +60,7 @@ function countryName(code) {
         try {
             const name = _display.of(cc);
             if (name) return name;
-        } catch (err) { log.debug('not a region code', err); }
+        } catch (err) { bestEffort('core/http/geo/countries:countryName', err); /* not a region code */ }
     }
     return cc;
 }

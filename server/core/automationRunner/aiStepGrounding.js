@@ -11,6 +11,7 @@
  */
 
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // ── Knowledge Base grounding (BFSF-410) ─────────────────────────────────────
 //
@@ -104,10 +105,10 @@ async function groundAiStepWithMemory(step, ctx, promptText, deps) {
                 const result = await scrubMemoryContext(block, orgShield);
                 if (result?.replacedCategories?.length > 0) block = result.scrubbed;
             }
-        } catch (err) { log.debug('fail-open: the unscrubbed block is still the owner\'s own data', err); }
+        } catch (err) { fallback('core/automationRunner/aiStepGrounding:groundAiStepWithMemory', err); /* fail-open: the unscrubbed block is still the owner's own data */ }
         return block ? `\n\n${block}` : '';
     } catch (e) {
-        log.warn(`[AutomationRunner] ai_step memory grounding skipped: ${e.message}`);
+        log.warn(`[AutomationRunner] ai_step memory grounding skipped: ${/** @type {Error} */ (e).message}`);
         return '';
     }
 }
@@ -120,6 +121,7 @@ async function groundAiStepWithMemory(step, ctx, promptText, deps) {
  * mirroring execIntegrationAction's dry-run special-casing: a builder preview
  * must never pay for (or depend on) a real retrieval. Never throws: a broken
  * search stack degrades to "no grounding" rather than failing the step.
+ * @param {string} mode
  */
 async function groundAiStepWithKB(step, ctx, query, mode, kbIds = null, deps) {
     if (mode === 'dry_run') return { context: '', chunks: [] };
@@ -139,7 +141,7 @@ async function groundAiStepWithKB(step, ctx, query, mode, kbIds = null, deps) {
         const context = chunks.map((c, i) => `[[${i + 1}]] ${c.title || 'KB'}\n${c.content || ''}`).join('\n\n');
         return { context, chunks };
     } catch (e) {
-        log.warn(`[AutomationRunner] ai_step ${step.id}: KB grounding failed (${e.message}) — continuing without it`);
+        log.warn(`[AutomationRunner] ai_step ${step.id}: KB grounding failed (${/** @type {Error} */ (e).message}) — continuing without it`);
         return { context: '', chunks: [] };
     }
 }
@@ -198,7 +200,7 @@ async function groundAiStepWithSkills(step, ctx, binding, preloadedSkills = null
                 : true,
         };
     } catch (e) {
-        log.warn(`[AutomationRunner] ai_step ${step.id}: skill injection failed (${e.message}) — continuing without it`);
+        log.warn(`[AutomationRunner] ai_step ${step.id}: skill injection failed (${/** @type {Error} */ (e).message}) — continuing without it`);
         return empty;
     }
 }
@@ -211,3 +213,18 @@ module.exports = {
     groundAiStepWithKB,
     groundAiStepWithSkills,
 };
+
+/**
+ * What execAi hands over (lazy getters for the lazy requires).
+ * @typedef {{ resolveMemoryPolicy: typeof import('../memory/memoryPolicy').resolveMemoryPolicy,
+ *   memoryStore: () => typeof import('../../stores/memoryStore'),
+ *   configStore: () => typeof import('../../stores/configStore'),
+ *   aiAgent: () => typeof import('../aiAgent'),
+ *   scrubMemoryContext: () => typeof import('../memory/scrubMemoryContext'),
+ *   knowledgeSearch: () => typeof import('../agentRuntime/knowledgeSearch'),
+ *   aiStepAgent: () => typeof import('./aiStepAgent'),
+ *   skillInjection: () => typeof import('../tools/skillInjection') }} GroundingDeps
+ * @typedef {import('./aiStepAgent').AgentAiStep & { id?: string, useMemory?: unknown, prompt?: string }} GroundingStep
+ * @typedef {{ userId?: string, orgId?: string|null, userGroupIds?: string[], automationId?: string|null,
+ *   orgShield?: { enabled?: boolean } | null }} GroundingCtx
+ */

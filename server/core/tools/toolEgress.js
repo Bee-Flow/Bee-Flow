@@ -93,7 +93,7 @@ function createEgressChokepoint(dispatch, deps = {}) {
                 ids: idsFrom(ctx, egress.ids),
             });
         } catch (err) {
-            log.warn(`[ToolEgress] egress row for ${toolName} not written: ${err && err.message}`);
+            log.warn(`[ToolEgress] egress row for ${toolName} not written: ${err && /** @type {Error} */ (err).message}`);
         }
 
         if (!settled.ok) throw settled.error;

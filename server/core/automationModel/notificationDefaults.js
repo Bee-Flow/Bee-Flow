@@ -191,6 +191,7 @@ function copyEvent(e) {
  * Old shape: `level` becomes `urgency`, the channel names are mapped, the
  * recipients are the ones the old runner used (the owner; for approvals the
  * approver), no throttle (the old runner had none) and direct delivery.
+ * @param {string} event
  */
 function normalizeEventSettings(raw, event) {
     const base = NOTIFICATION_EVENTS.includes(event) ? NOTIFICATION_DEFAULTS[event] : null;
@@ -238,6 +239,7 @@ function normalizeNotificationSettings(raw) {
 /**
  * Does this event go into the daily summary instead of the direct channels?
  * Only when the summary is actually on; otherwise it is delivered directly.
+ * @param {string} event
  */
 function foldsIntoDigest(settings, event) {
     return settings?.[event]?.delivery === 'digest' && settings?.digest?.enabled === true;
@@ -261,3 +263,11 @@ module.exports = {
     normalizeNotificationSettings,
     foldsIntoDigest,
 };
+
+/**
+ * @typedef {{ type: string, id?: string }} NotificationRecipient
+ * @typedef {{ enabled: boolean, channels: string[], recipients: NotificationRecipient[], urgency: string, throttle: { maxPerHour: number|null }, delivery: string, talkRoom?: string }} EventSettings
+ * @typedef {{ enabled: boolean, time: string }} DigestSettings
+ */
+
+/** @typedef {ReturnType<typeof freezeEvent>} FrozenEvent */

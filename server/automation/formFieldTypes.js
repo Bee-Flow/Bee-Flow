@@ -42,12 +42,12 @@ const FILE_FIELD_TYPES = Object.freeze(['download', 'notebook']);
 /** Questions answered by picking from a closed list of values. */
 const CHOICE_FIELD_TYPES = Object.freeze(['select', 'radio', 'multiselect']);
 
-const isDisplayField = (f) => DISPLAY_FIELD_TYPES.includes(f?.type);
-const isFileField = (f) => FILE_FIELD_TYPES.includes(f?.type);
+const isDisplayField = (/** @type {{ type: string; }} */ f) => DISPLAY_FIELD_TYPES.includes(f?.type);
+const isFileField = (/** @type {{ type: string; }} */ f) => FILE_FIELD_TYPES.includes(f?.type);
 /** A question answered by picking a record in an app the FILLER has access to. */
-const isPickField = (f) => f?.type === 'app_pick';
-const isChoiceField = (f) => CHOICE_FIELD_TYPES.includes(f?.type);
-const isInfoField = (f) => f?.type === 'info';
+const isPickField = (/** @type {{ type: string; }} */ f) => f?.type === 'app_pick';
+const isChoiceField = (/** @type {{ type: string; }} */ f) => CHOICE_FIELD_TYPES.includes(f?.type);
+const isInfoField = (/** @type {{ type: string; }} */ f) => f?.type === 'info';
 /** A field whose choices or whose questions come from run data. */
 const isDynamicField = (f) => !!(f && (f.optionsFrom || f.fieldsFrom));
 

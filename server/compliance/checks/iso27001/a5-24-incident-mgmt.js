@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * ISO 27001 A.5.24 / A.5.25 / A.5.26 — Incident management: preparation,
  * assessment and response.
@@ -18,7 +18,7 @@
 
 const complianceStore = require('../../../stores/complianceStore');
 const incidentStore = require('../../../stores/incidentStore');
-const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
 module.exports = {
     id: 'ISO27001-A.5.24-incident-mgmt',
@@ -33,10 +33,11 @@ module.exports = {
     descriptionKey: 'compliance.checks.iso_incident_mgmt.desc',
     remediationKey: 'compliance.checks.iso_incident_mgmt.fix',
     remediationLink: 'admin/compliance/incidents',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const settings = await complianceStore.getSettings(orgId);
         const recipients = Array.isArray(settings.breach_recipients) ? settings.breach_recipients : [];
-        const validRecipients = recipients.filter(r => typeof r === 'string' && /@/.test(r));
+        const validRecipients = recipients.filter((/** @type {string} */ r) => typeof r === 'string' && /@/.test(r));
 
         let deadlines = { open: 0, overdue_unnotified: 0, nearing_deadline: 0 };
         let registryReachable = true;
@@ -53,7 +54,7 @@ module.exports = {
         let attention = [];
         try {
             attention = await incidentStore.listNeedingAttention(orgId) || [];
-        } catch (err) { log.debug('sample stays empty', err); }
+        } catch (err) { fallback('compliance/checks/iso27001/a5-24-incident-mgmt:evaluate', err); /* sample stays empty */ }
 
         const evidence = {
             recipients_count: validRecipients.length,
@@ -83,6 +84,7 @@ module.exports = {
             };
         }
 
+        /** @type {string[]} */
         const warnings = [];
         if (validRecipients.length === 0) {
             warnings.push('No incident-notification recipients are configured, so nobody is alerted when an incident is registered or a deadline approaches.');

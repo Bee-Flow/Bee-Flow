@@ -23,15 +23,25 @@ const {
 const { _entitlementGate, _sideloadEntitlementGate } = require('./packageEntitlement');
 const { activate } = require('./packageActivation');
 const log = require('../telemetry/log');
+const { bestEffort, fallback } = require('../utils/bestEffort');
 
 const { hubClient, store, packageStore, installStore, moduleAudit, packageVerify, remoteCatalog } = deps;
 
 // ── Progress (dual-write: memory for the fast poll path, DB for other
 //    replicas + restarts) ────────────────────────────────────────────────────
+/**
+ * @param {string} id
+ * @param {string} phase
+ * @param {number | null} [pct]
+ * @param {string | null} [error]
+ */
 function _setProgress(id, phase, pct = null, error = null, detail = null) {
     _progress.set(id, { phase, pct, error, detail });
-    installStore().setPhase(id, phase, pct, { error, detail }).catch(() => { /* poller falls back to memory */ });
+    installStore().setPhase(id, phase, pct, { error, detail }).catch((e) => bestEffort('modules/packageInstall:_setProgress', e));
 }
+/**
+ * @param {string} id
+ */
 async function getInstallProgress(id) {
     const mem = _progress.get(id);
     if (mem) return mem;
@@ -40,11 +50,17 @@ async function getInstallProgress(id) {
         return row ? { phase: row.phase, pct: row.pct, error: row.error, detail: row.detail, replica: row.replica } : null;
     } catch (_) { return null; }
 }
+/**
+ * @param {string} id
+ */
 function isInstalling(id) {
     return _installing.has(id);
 }
 
 // ── Install from Hub (download → verify → gate → activate) ─────────────────
+/**
+ * @param {string} moduleId
+ */
 async function installFromHub(moduleId, { version = null, actorId = null, acceptedPermissions = null } = {}) {
     const { HubError } = hubClient();
     // A built-in module always wins its slug — a hub package must never
@@ -68,7 +84,7 @@ async function installFromHub(moduleId, { version = null, actorId = null, accept
         leased = true;
     } catch (e) {
         if (e && e.inProgress) throw e;
-        log.warn(`[Modules] install lease unavailable for ${moduleId} (continuing single-replica):`, e.message);
+        log.warn(`[Modules] install lease unavailable for ${moduleId} (continuing single-replica):`, /** @type {Error} */ (e).message);
     }
     void leased;
     _installing.add(moduleId);
@@ -136,7 +152,7 @@ async function installFromHub(moduleId, { version = null, actorId = null, accept
             sha256: staged.sha256,
             entitlement: gate.entitlement,
             grantedPermissions,
-            onPhase: (phase, pct) => _setProgress(moduleId, phase, pct),
+            onPhase: (/** @type {string} */ phase, /** @type {number | null | undefined} */ pct) => _setProgress(moduleId, phase, pct),
         });
         _setProgress(moduleId, 'done', 100);
         await moduleAudit().emit('platform.module.install', moduleId, actorId, { version: resolvedVersion, permissions: needed });
@@ -145,16 +161,16 @@ async function installFromHub(moduleId, { version = null, actorId = null, accept
         }
         return { ok: true, version: resolvedVersion, requiresRestart: false };
     } catch (e) {
-        _healthOf(moduleId).lastActivationError = e.message;
-        _setProgress(moduleId, 'error', null, e.code || e.message,
+        _healthOf(moduleId).lastActivationError = /** @type {Error} */ (e).message;
+        _setProgress(moduleId, 'error', null, e.code || /** @type {Error} */ (e).message,
             e.missingPermissions ? { missingPermissions: e.missingPermissions } : null);
         if (resolvedVersion) {
             try {
                 await packageStore().setFailed(moduleId, resolvedVersion, {
-                    error: e.message,
+                    error: /** @type {Error} */ (e).message,
                     status: e.compat ? 'incompatible' : 'failed',
                 });
-            } catch (err) { log.debug('best effort', err); }
+            } catch (err) { bestEffort('modules/packageInstall:installFromHub', err); /* best effort */ }
         }
         throw e;
     } finally {
@@ -162,6 +178,9 @@ async function installFromHub(moduleId, { version = null, actorId = null, accept
     }
 }
 
+/**
+ * @param {string} moduleId
+ */
 async function updateModule(moduleId, { actorId = null, acceptedPermissions = null } = {}) {
     const cat = await hubClient().fetchCatalogEntry(moduleId);
     const hm = (cat && cat.module) || {};
@@ -191,6 +210,7 @@ async function updateModule(moduleId, { actorId = null, acceptedPermissions = nu
  * and verify pipeline as a hub download; the only difference is where the
  * entitlement comes from. An unentitled upload is RETAINED and ledgered
  * 'staged' so a later grant + activate-staged completes it without re-upload.
+ * @param {Buffer<ArrayBufferLike>} buffer
  */
 async function sideloadFromBuffer(buffer, { actorId = null, acceptedPermissions = null } = {}) {
     const result = await packageVerify().verifyPackage(buffer, { publicKeyResolver: packageKeyResolver() });
@@ -232,6 +252,7 @@ async function sideloadFromBuffer(buffer, { actorId = null, acceptedPermissions 
             grantedPermissions = { list: needed, acceptedBy: actorId, acceptedAt: new Date().toISOString() };
         }
 
+        /** @type {{ entitlement: GateEntitlement; }} */
         let gate;
         try {
             gate = await _sideloadEntitlementGate(moduleId, manifest, result.signature && result.signature.payload);
@@ -240,7 +261,7 @@ async function sideloadFromBuffer(buffer, { actorId = null, acceptedPermissions 
             await packageStore().setStaged(moduleId, version, {
                 manifest: _manifestSummary(manifest), kid, packageSha256: sha256, actorId, source: 'sideload',
             });
-            _setProgress(moduleId, 'error', null, e.code || e.message);
+            _setProgress(moduleId, 'error', null, e.code || /** @type {Error} */ (e).message);
             throw e;
         }
 
@@ -259,14 +280,14 @@ async function sideloadFromBuffer(buffer, { actorId = null, acceptedPermissions 
         await activate(moduleId, version, {
             actorId, manifest, kid, sha256,
             entitlement: gate.entitlement, grantedPermissions, source: 'sideload',
-            onPhase: (phase, pct) => _setProgress(moduleId, phase, pct),
+            onPhase: (/** @type {string} */ phase, /** @type {number | null | undefined} */ pct) => _setProgress(moduleId, phase, pct),
         });
         _setProgress(moduleId, 'done', 100);
         await moduleAudit().emit('platform.module.install', moduleId, actorId, { version, source: 'sideload', permissions: needed });
         return { ok: true, version, requiresRestart: false };
     } catch (e) {
         if (!_progress.get(moduleId) || _progress.get(moduleId).phase !== 'error') {
-            _setProgress(moduleId, 'error', null, e.code || e.message,
+            _setProgress(moduleId, 'error', null, e.code || /** @type {Error} */ (e).message,
                 e.missingPermissions ? { missingPermissions: e.missingPermissions } : null);
         }
         throw e;
@@ -279,6 +300,7 @@ async function sideloadFromBuffer(buffer, { actorId = null, acceptedPermissions 
  * Activate a previously staged version (sideload waiting on a grant, or an
  * operator choosing to apply a staged update NOW instead of at restart —
  * only valid when a hot swap is actually safe).
+ * @param {string} moduleId
  */
 async function activateStaged(moduleId, { version = null, actorId = null } = {}) {
     const rows = await packageStore().listForModule(moduleId);
@@ -303,13 +325,16 @@ async function activateStaged(moduleId, { version = null, actorId = null } = {})
 
 // ── Version retention + rollback (M3.2) ─────────────────────────────────────
 
-/** Ledger versions joined with an fs probe (does the .bfmod still exist?). */
+/**
+ * Ledger versions joined with an fs probe (does the .bfmod still exist?).
+ * @param {string} moduleId
+ */
 async function listVersions(moduleId) {
     const rows = await packageStore().listForModule(moduleId);
     const out = [];
     for (const r of (rows || [])) {
         let hasPackageFile = false;
-        try { await fsp.access(packagePath(r.moduleId, r.version)); hasPackageFile = true; } catch (_) { log.debug('package file absent', _); }
+        try { await fsp.access(packagePath(r.moduleId, r.version)); hasPackageFile = true; } catch (_) { fallback('modules/packageInstall:listVersions', _); /* package file absent */ }
         out.push({ ...r, hasPackageFile });
     }
     return out;
@@ -319,6 +344,7 @@ async function listVersions(moduleId) {
  * Roll back to a retained retired version. Guards: lease, package file present,
  * full re-verify, schema-downgrade check (the target's server.schemaVersion
  * must not be lower than the active one's unless forced), offline entitlement.
+ * @param {string} moduleId
  */
 async function rollbackTo(moduleId, { version = null, force = false, actorId = null } = {}) {
     const candidates = await packageStore().listRollbackCandidates(moduleId);
@@ -359,7 +385,7 @@ async function rollbackTo(moduleId, { version = null, force = false, actorId = n
         await moduleAudit().emit('platform.module.update', moduleId, actorId, { version: target.version, rollback: true, forced: !!force });
         return { ok: true, version: target.version };
     } catch (e) {
-        _setProgress(moduleId, 'error', null, e.code || e.message);
+        _setProgress(moduleId, 'error', null, e.code || /** @type {Error} */ (e).message);
         throw e;
     } finally {
         _installing.delete(moduleId);
@@ -376,3 +402,5 @@ module.exports = {
     listVersions,
     rollbackTo,
 };
+
+/** @typedef {import('crypto').BinaryLike} BinaryLike */

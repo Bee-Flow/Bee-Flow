@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The lease/claim/heartbeat half of a Postgres job queue, shared by
  * gmeetImportStore and teamsImportStore (same table shape: `id UUID`,
@@ -52,7 +52,7 @@ function makeLeasedJobQueue({ table, orderBy, mapRow, initDB, db = require('../.
                         updated_at = NOW()
                   WHERE id = ANY($1::uuid[])
                   RETURNING *`,
-                [sel.rows.map((r) => r.id)],
+                [sel.rows.map((/** @type {{ id: string }} */ r) => r.id)],
             );
             return upd.rows.map(mapRow);
         });

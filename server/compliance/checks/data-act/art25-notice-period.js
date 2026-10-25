@@ -23,9 +23,10 @@
 
 const complianceStore = require('../../../stores/complianceStore');
 const configStore = require('../../../stores/configStore');
-const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 const MAX_NOTICE_DAYS = 60; // "two months" (Art. 25(2)(d))
+/** @type {Record<string, number>} */
 const RANK = { pass: 0, warn: 1, fail: 2 };
 
 function _relevance(settings) {
@@ -45,18 +46,24 @@ function _deploymentMode() {
         const license = require('../../../license');
         if (typeof license.deploymentMode === 'function') return license.deploymentMode();
         if (typeof license.serverLicenseGovernsOrgs === 'function') return license.serverLicenseGovernsOrgs() ? 'self-hosted' : 'cloud';
-    } catch (err) { log.debug('licence module unavailable — fall through', err); }
+    } catch (err) { bestEffort('compliance/art25-notice-period:deploymentMode', err); } // fall through to the env var
     const mode = process.env.DEPLOYMENT_MODE || 'cloud';
     return mode === 'private-cloud' ? 'self-hosted' : mode;
 }
 
+/**
+ * @param {string | null | undefined} value
+ */
 function _days(value) {
     if (value === null || value === undefined || value === '') return null;
     const n = Number(value);
     return Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
 }
 
-/** One contract → { status, days, reason }. */
+/**
+ * One contract → { status, days, reason }.
+ * @param {number | null} days
+ */
 function _judge(days) {
     if (days === null) return { status: 'warn', days, reason: 'not declared' };
     if (days > MAX_NOTICE_DAYS) return { status: 'fail', days, reason: `${days} days exceeds ${MAX_NOTICE_DAYS}` };

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Dutch for the settings menu clean-up (Oct 2026).
  *
@@ -177,7 +178,10 @@ const NL_REWORDED = Object.freeze({
     },
 });
 
-/** The mutation itself, on a copy of the 'nl' blob. Pure, so the store's mutator may run it more than once. */
+/**
+ * The mutation itself, on a copy of the 'nl' blob. Pure, so the store's mutator may run it more than once.
+ * @param {{ [x: string]: string; }} merged
+ */
 function applyNl(merged) {
     let added = 0;
     let reworded = 0;

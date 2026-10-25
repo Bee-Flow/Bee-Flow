@@ -14,6 +14,9 @@ const { getAutomation } = require('./automations');
  * Solution stage: its definition, publish pointer and tool exposure change
  * through a deploy only; its sharing stays the stage's own. Lazy, like the
  * guard in automations.js; `override` is a test's own instance.
+ * @param {{ projectId?: string | null, changedKeys: string[], managedWrite?: { deploymentId?: string } | null,
+ * client?: { query: (sql: string, params?: unknown[]) => Promise<{ rows: import('pg').QueryResultRow[], rowCount?: number }> } | null,
+ * managedParts?: typeof import('../managedPartsDefault') | null }} opts
  */
 async function assertStepWrite({ projectId, changedKeys, managedWrite = null, client = null, managedParts = null }) {
     const guard = managedParts || require('../managedPartsDefault');
@@ -24,6 +27,8 @@ async function assertStepWrite({ projectId, changedKeys, managedWrite = null, cl
  * The stage a Step row sits in (its project), read and row-locked before a
  * guarded write: on a transaction's client the lock holds until its write, so
  * no filing into a stage or deploy lands between the check and the write.
+ * @param {{ query: (sql: string, params?: unknown[]) => Promise<{ rows: import('pg').QueryResultRow[], rowCount?: number }> }} q
+ * @param {string} id
  */
 async function stepProjectId(q, id) {
     const r = await q.query(`SELECT project_id FROM automations WHERE id = $1 AND kind = 'block' FOR UPDATE`, [id]);
@@ -43,7 +48,10 @@ function inTx(fn) {
 
 /** A Step is visible to a user when they own it, or it's shared into one of
  *  their orgs and either published-for-sharing or they're an org admin, and
- *  (when group-restricted) they belong to one of the shared groups. */
+ *  (when group-restricted) they belong to one of the shared groups.
+ * @param {import('pg').QueryResultRow} row
+ * @param {{ userId: string, userGroups?: string[], isOrgAdmin?: boolean }} opts
+ */
 function userCanSeeStep(row, { userId, userGroups = [], isOrgAdmin = false }) {
     if (row.user_id === userId) return true;
     if (!row.is_published && !isOrgAdmin) return false;
@@ -55,7 +63,10 @@ function userCanSeeStep(row, { userId, userGroups = [], isOrgAdmin = false }) {
 }
 
 /** Steps the user can manage/see in the Steps tab (own + shared, incl drafts
- *  for owners and org admins). orgIds = the user's org ids. */
+ *  for owners and org admins). orgIds = the user's org ids.
+ * @param {string} userId
+ * @param {{ orgIds?: string[], userGroups?: string[], isOrgAdmin?: boolean }} [opts]
+ */
 async function getStepsForUser(userId, { orgIds = [], userGroups = [], isOrgAdmin = false } = {}) {
     await initDB();
     const rows = await getAll(
@@ -72,7 +83,10 @@ async function getStepsForUser(userId, { orgIds = [], userGroups = [], isOrgAdmi
 
 /** Published + accessible Steps with their contract + required integrations,
  *  for the builder palette and chat-tool exposure. Resolves the published
- *  version's definition (publish-to-apply), not the working draft. */
+ *  version's definition (publish-to-apply), not the working draft.
+ * @param {string} userId
+ * @param {{ orgIds?: string[], userGroups?: string[] }} [opts]
+ */
 async function getCallableStepsForUser(userId, { orgIds = [], userGroups = [] } = {}) {
     await initDB();
     const { stepContract, requiredIntegrations } = require('../../automation/stepContract');
@@ -111,6 +125,10 @@ async function getCallableStepsForUser(userId, { orgIds = [], userGroups = [] } 
         });
 }
 
+/**
+ * @param {{ userId: string, organizationId?: string | null, title: string, description?: string,
+ * definition: Record<string, unknown>, icon?: string | null, category?: string | null }} opts
+ */
 async function createStep({ userId, organizationId = null, title, description = '', definition, icon = null, category = null }) {
     await initDB();
     const id = crypto.randomUUID();
@@ -131,7 +149,11 @@ async function createStep({ userId, organizationId = null, title, description = 
 
 /** Publish the current draft: snapshot definition_json into a fresh
  *  automation_versions row and point published_version at it. Reuses the
- *  version counter so the snapshot and pointer never collide. */
+ *  version counter so the snapshot and pointer never collide.
+ * @param {string} id
+ * @param {string} savedByUserId
+ * @param {{ managedWrite?: { deploymentId?: string } | null }} [opts]
+ */
 async function publishStep(id, savedByUserId, { managedWrite = null } = {}) {
     await initDB();
     return withTransaction(async (client) => {
@@ -174,6 +196,9 @@ async function publishStepWith(client, id, savedByUserId, { managedWrite = null,
  * visibility (shared into the org or not), not a publish of its content (that
  * is published_version), so on a Step of a Solution stage it is a sharing key
  * the stage may change without a deploy.
+ * @param {string} id
+ * @param {{ isPublished?: boolean, sharedGroups?: string[] }} sharing
+ * @param {{ managedWrite?: { deploymentId?: string } | null }} [opts]
  */
 async function setStepSharing(id, sharing, { managedWrite = null } = {}) {
     await initDB();
@@ -204,6 +229,11 @@ async function setStepSharingWith(q, id, { isPublished, sharedGroups }, { manage
     return r.rows.length > 0;
 }
 
+/**
+ * @param {string} id
+ * @param {boolean} exposeAsTool
+ * @param {{ managedWrite?: { deploymentId?: string } | null }} [opts]
+ */
 async function setStepExpose(id, exposeAsTool, { managedWrite = null } = {}) {
     await initDB();
     const updated = await inTx((client) => setStepExposeWith(client, id, exposeAsTool, { managedWrite }));
@@ -279,10 +309,14 @@ async function publishBlockVersionWith(client, id, { managedWrite = null, savedB
  *  that scope are irrelevant AND must not be disclosed — the old unscoped
  *  query returned OTHER tenants' automation titles and ran an unbounded
  *  full-table LIKE scan. Pass the block's { userId, organizationId } from
- *  the caller (the delete/unpublish route already loaded the block row). */
+ *  the caller (the delete/unpublish route already loaded the block row).
+ * @param {string} blockId
+ * @param {{ userId?: string | null, organizationId?: string | null }} [opts]
+ */
 async function getStepConsumers(blockId, { userId = null, organizationId = null } = {}) {
     await initDB();
     const params = [`%${blockId}%`];
+    /** @type {string[]} */
     const scope = [];
     if (userId) { params.push(userId); scope.push(`user_id = $${params.length}`); }
     if (organizationId) { params.push(organizationId); scope.push(`organization_id = $${params.length}`); }
@@ -297,7 +331,8 @@ async function getStepConsumers(blockId, { userId = null, organizationId = null 
     for (const r of rows) {
         const def = typeof r.definition_json === 'string' ? safeParse(r.definition_json, {}) : (r.definition_json || {});
         let hit = false;
-        const scan = (graph) => walkSteps(graph?.steps, (s) => { if (s.type === 'call_block' && s.blockId === blockId) hit = true; });
+        /** @param {{ steps?: object[] } | null | undefined} graph */
+        const scan = (graph) => walkSteps(graph?.steps, /** @param {{ type?: string, blockId?: string }} s */ (s) => { if (s.type === 'call_block' && s.blockId === blockId) hit = true; });
         scan(def);
         if (def && typeof def.layers === 'object') for (const l of Object.values(def.layers)) scan(l);
         if (hit) consumers.push({ id: r.id, title: r.title });
@@ -334,6 +369,7 @@ async function getStepConsumers(blockId, { userId = null, organizationId = null 
 /** The real collaborators, with room for the caller to replace one. */
 function promoteDeps(overrides = {}) {
     return {
+        /** @param {Parameters<typeof import('../../automation/customNodePromote').promoteCodeStep>} a */
         promoteCodeStep: (...a) => require('../../automation/customNodePromote').promoteCodeStep(...a),
         createStep,
         ...overrides,
@@ -343,13 +379,14 @@ function promoteDeps(overrides = {}) {
 /**
  * Promote one code step to a Step row holding a custom node.
  *
- * @returns {Promise<{ ok: true, step, definition, callInputs, contract, warnings }
- *                 | { ok: false, reason, issues }>}
+ * @returns {Promise<{ ok: true, step: Awaited<ReturnType<typeof createStep>>, definition: Record<string, unknown>,
+ *                   callInputs: Record<string, unknown>, contract: Record<string, unknown>, warnings: unknown[] }
+ *                 | { ok: false, reason: string, issues: Array<Record<string, unknown>> }>}
  *   `callInputs` is what the call_block replacing the step in its original
  *   automation must bind, so the automation it was promoted out of keeps doing
  *   exactly what it did before.
  * @param {{ userId?: string, organizationId?: string|null, title?: string, description?: string, icon?: string|null, category?: string|null, step?: any, outputs?: any }} [opts]
- * @param [deps]
+ * @param {ReturnType<typeof promoteDeps>} [deps]
  */
 async function createStepFromCodeStep({
     userId, organizationId = null, title, description = '', icon = null, category = null,
@@ -362,7 +399,7 @@ async function createStepFromCodeStep({
         return { ok: false, reason: 'title_missing', issues: [{ code: 'title_missing', path: 'title', message: 'A promoted node needs a title — it is what the palette lists it under.', hint: 'Name it after what it does, e.g. "Normalise VAT".' }] };
     }
     const promotion = deps.promoteCodeStep({ step, outputs, label: step && step.label ? step.label : title.trim() });
-    if (!promotion.ok) return /** @type {{ ok: false, reason, issues }} */ (promotion); // no narrowing without strictNullChecks
+    if (!promotion.ok) return /** @type {{ ok: false, reason: string, issues: Array<Record<string, unknown>> }} */ (promotion); // no narrowing without strictNullChecks
     const row = await deps.createStep({
         userId, organizationId,
         title: title.trim(),

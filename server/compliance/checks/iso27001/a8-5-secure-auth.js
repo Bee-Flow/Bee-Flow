@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * ISO 27001 A.8.5 — Secure authentication mechanisms are in place.
  *
@@ -29,10 +29,14 @@ const configStore = require('../../../stores/configStore');
 const { configuredSsoProviders } = require('../../lib/ssoProviders');
 // Cached boot-time verdict on OPAQUE_SERVER_SETUP; never loads the WASM.
 const { getServerSetupStatus } = require('../../../auth/opaqueSetup');
-const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
 const AUTH_DIR = path.join(__dirname, '..', '..', '..', 'auth');
 
+/**
+ * @param {string} file
+ * @param {string[]} patterns
+ */
 function _sourceHas(file, patterns) {
     try {
         const src = fs.readFileSync(path.join(AUTH_DIR, file), 'utf-8');
@@ -57,11 +61,12 @@ module.exports = {
     remediationLink: 'admin/security/sso',
     async evaluate() {
         let encryption = null;
+        /** @type {string | null} */
         let encryptionError = null;
         try {
             encryption = require(path.join(AUTH_DIR, 'encryption'));
         } catch (e) {
-            encryptionError = e.message;
+            encryptionError = /** @type {Error} */ (e).message;
         }
 
         // The password-unlock lockout lives behind the auth/encryption.js barrel.
@@ -75,7 +80,7 @@ module.exports = {
         let minPasswordLength = null;
         try {
             minPasswordLength = require(path.join(AUTH_DIR, 'passwordPolicy')).MIN_PASSWORD_LENGTH;
-        } catch (err) { log.debug('policy module missing — reported below', err); }
+        } catch (err) { fallback('compliance/checks/iso27001/a8-5-secure-auth:evaluate', err); /* policy module missing — reported below */ }
 
         // One predicate with NIS2 Art. 21(2)(j): lib/ssoProviders.js.
         const ssoProviders = configuredSsoProviders(
@@ -83,6 +88,7 @@ module.exports = {
             await configStore.getConfig('oauth'),
         );
 
+        /** @type {Record<string, unknown>} */
         const evidence = {
             lockout_mechanism: lockoutActive,
             session_user_revalidation: sessionRevalidation === true,
@@ -96,6 +102,7 @@ module.exports = {
         if (encryptionError) evidence.encryption_load_error = encryptionError;
 
         if (!lockoutActive || sessionRevalidation === false) {
+            /** @type {string[]} */
             const missing = [];
             if (!lockoutActive) missing.push('brute-force lockout (auth/encryption.js)');
             if (sessionRevalidation === false) missing.push('per-request account revalidation (auth/permissions.js)');

@@ -42,3 +42,5 @@ async function updateMembership(method, userId, group, azureUserId) {
     return changed;
 }
 module.exports = { createAzureSyncMembershipStore, add: (userId, group, azureUserId) => updateMembership('add', userId, group, azureUserId), remove: (userId, group, azureUserId) => updateMembership('remove', userId, group, azureUserId) };
+
+/** @typedef {{ id: string, organizationId: string, azureTenantId: string }} AzureGroup */

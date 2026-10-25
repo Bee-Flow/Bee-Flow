@@ -60,6 +60,7 @@ function sanitizeAgentId(v) {
 function sanitizeSkillIds(v) {
     if (!Array.isArray(v)) return [];
     const seen = new Set();
+    /** @type {string[]} */
     const out = [];
     for (const raw of v) {
         if (typeof raw !== 'string') continue;
@@ -93,6 +94,7 @@ function sanitizeSkillIds(v) {
  */
 function sanitizeAgentPermissions(v) {
     const src = (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
+    /** @type {Record<string, boolean>} */
     const out = {};
     for (const key of AI_STEP_AGENT_PERMISSION_KEYS) out[key] = src[key] === true;
     return out;
@@ -116,6 +118,7 @@ function sanitizeAgentPermissions(v) {
  * moment a step names an agent, the full set is written.
  *
  * @returns {{permissions?: object} | {error: string, _fixHint: string}}
+ * @param {string | null} agentId
  */
 function agentPermissionsBlock(rawPermissions, agentId, { hasSkills = false } = {}) {
     if (agentId) return { permissions: sanitizeAgentPermissions(rawPermissions) };
@@ -150,7 +153,11 @@ function agentPermissionsBlock(rawPermissions, agentId, { hasSkills = false } = 
 
 const RELIABILITY_KEYS = ['temperature', 'enumFrom', 'checks', 'fallback'];
 
-/** `inputs.ref: …` from validateAndFixBindings, named for the field the model sent. */
+/**
+ * `inputs.ref: …` from validateAndFixBindings, named for the field the model sent.
+ * @param {string} line
+ * @param {string} label
+ */
 const relabelRef = (line, label) => line.split('inputs.ref').join(label);
 
 /**
@@ -175,6 +182,7 @@ function reliabilityRefs(value) {
  */
 function buildReliability(args, draft, draftWrap, forEach) {
     if (!RELIABILITY_KEYS.some(k => args[k] !== undefined && args[k] !== null)) return { value: {}, notes: [] };
+    /** @type {string[]} */
     const notes = [];
     let raw = Object.fromEntries(RELIABILITY_KEYS.map(k => [k, args[k]]));
     // The fallback values are bindings like an input: a bare value is wrapped
@@ -191,6 +199,7 @@ function buildReliability(args, draft, draftWrap, forEach) {
     const r = sanitizeAiStepReliabilityArgs(raw);
     if ('error' in r) return r;
     const refs = reliabilityRefs(r.value);
+    /** @type {string[]} */
     const errors = [];
     for (const ref of refs) {
         const fixed = validateAndFixBindings({ ref: { kind: 'ref', path: ref.holder[ref.key] } }, draft, { draftWrap, wantList: ref.list });
@@ -296,3 +305,18 @@ module.exports = {
     agentPermissionsBlock,
     applyAddAi,
 };
+
+/**
+ * @typedef {import('../draftGraph').DraftGraph} DraftGraph
+ * @typedef {import('../refCheck').BuilderWrap} BuilderWrap
+ * @typedef {import('./inputBindings').Placement} Placement
+ * @typedef {import('./inputBindings').Inputs} Inputs
+ * @typedef {import('./inputBindings').ForEachSpec} ForEachSpec
+ * @typedef {{ temperature?: number, enumFrom?: Array<Record<string, string>>, checks?: Array<Record<string, string>>,
+ *   fallback?: { kind?: string, fields?: Inputs } }} ReliabilityArgs
+ * @typedef {Placement & ReliabilityArgs & { modelTier?: string, inputs?: Inputs, forEach?: ForEachSpec, prompt?: string,
+ *   systemPrompt?: string, outputSchema?: Record<string, unknown>, tools?: unknown[], allowTools?: boolean,
+ *   knowledgeBaseIds?: unknown[], useMemory?: boolean, agentId?: unknown, skillIds?: unknown,
+ *   agentPermissions?: unknown, disabledAgentSkillIds?: string[] | null, askOnce?: unknown }} AiArgs
+ * @typedef {{ label: string, list: boolean, holder: Record<string, string>, key: string }} ReliabilityRef
+ */

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Starting a purchase and following it through to a finalised subscription.
  *
@@ -45,7 +46,7 @@ const router = express.Router();
 // `successUrl` keeps its own `startsWith(origin)` check in the handler.
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
-const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
+const bodyOf = /** @param {Parameters<typeof z.object>[0]} shape */ (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const PLAN_TEXT = 'planId is required — the plan to subscribe to.';
 const ORIGIN_TEXT = 'origin must be a URL like https://app.example.com.';
@@ -81,6 +82,10 @@ const CheckoutBody = bodyOf({
 // Portal; neither creates a duplicate.
 //
 // @returns {Promise<null|{status:number, body:object}>} null = proceed.
+/**
+ * @param {string | null | undefined} stripeCustomerId
+ * @param {{ scope: string, targetId: string }} opts
+ */
 async function blockIfAlreadySubscribed(stripeCustomerId, { scope, targetId }) {
     if (!stripeCustomerId) return null;   // no customer yet ⇒ nothing to duplicate
     let live;
@@ -148,11 +153,12 @@ router.post('/checkout', requireCloud, stripeIpLimiter, requireAuth, stripeUserL
         // does NOT sync it to Stripe, and a plan synced under a previous Stripe
         // account has no valid price under the current keys — so create/refresh
         // the price on demand instead of dead-ending the customer on a 400.
-        const ensurePlanPrice = async (p) => {
+        const ensurePlanPrice = /** @param {NonNullable<Awaited<ReturnType<typeof userStore.getPlan>>>} p */ async (p) => {
             const isPayg = p.billing_model === 'metered';
-            const result = isPayg
+            const result = /** @type {{ productId: string, priceId: string, meterId?: string, meterEventName?: string }} */ (isPayg
                 ? await stripeService.syncPaygPlanToStripe(p)
-                : await stripeService.syncPlanToStripe(p);
+                : await stripeService.syncPlanToStripe(p));
+            /** @type {{ stripe_product_id: string, stripe_price_id: string, stripe_meter_id?: string, stripe_meter_event_name?: string }} */
             const updates = { stripe_product_id: result.productId, stripe_price_id: result.priceId };
             if (isPayg) { updates.stripe_meter_id = result.meterId; updates.stripe_meter_event_name = result.meterEventName; }
             await userStore.updatePlan(p.id, updates);
@@ -160,14 +166,14 @@ router.post('/checkout', requireCloud, stripeIpLimiter, requireAuth, stripeUserL
         };
         // Wrap session creation so a stale/cross-account price id (Stripe
         // "resource_missing") triggers one re-sync + retry rather than a 500.
-        const createWithResync = async (args) => {
+        const createWithResync = /** @param {Parameters<typeof stripeService.createCheckoutSession>[0]} args */ async (args) => {
             try {
-                return await stripeService.createCheckoutSession(args);
+                return /** @type {{ url: string, id: string }} */ (await stripeService.createCheckoutSession(args));
             } catch (e) {
                 if (e?.code === 'resource_missing' || /no such (price|product)/i.test(e?.message || '')) {
                     log.warn('[Stripe] checkout price stale — re-syncing plan and retrying:', e.message);
                     plan = await ensurePlanPrice(plan);
-                    return stripeService.createCheckoutSession({ ...args, plan });
+                    return /** @type {Promise<{ url: string, id: string }>} */ (stripeService.createCheckoutSession({ ...args, plan }));
                 }
                 throw e;
             }
@@ -345,7 +351,7 @@ router.post('/checkout', requireCloud, stripeIpLimiter, requireAuth, stripeUserL
 // in-flight indicator until `subscription_status === 'active'` or
 // `subscription_status === 'trialing'`. Querying Stripe directly gives us a
 // synchronous answer the webhook doesn't.
-router.get('/sessions/:id', requireCloud, requireAuth, async (req, res) => {
+router.get('/sessions/:id', requireCloud, requireAuth, /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const enabled = await stripeService.isEnabled();
     if (!enabled) return res.status(400).json({ error: 'Stripe payments are not enabled' });
 

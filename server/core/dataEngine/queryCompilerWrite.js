@@ -149,7 +149,7 @@ function compileDelete(tableMeta, id, accessFilter, opts = {}) {
  * one-dialect-tested statement would be a guess, and the only storage this is
  * reachable from is a datatable, which is always Postgres.
  * @param {*} tableMeta
- * @param {*} keyFieldName
+ * @param {string | number} keyFieldName
  * @param {*} values
  * @param {*} accessFilter
  * @param {import('./queryCompiler.types').WriteOpts} [opts]

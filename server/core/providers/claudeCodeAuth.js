@@ -42,6 +42,7 @@ function credentialsPath() {
 
 function readCreds() {
     const file = credentialsPath();
+    /** @type {string} */
     let raw;
     try {
         raw = fs.readFileSync(file, 'utf8');
@@ -61,13 +62,19 @@ function readCreds() {
     return { file, parsed, oauth };
 }
 
-/** True when the access token is expired or within the refresh skew window. */
+/**
+ * True when the access token is expired or within the refresh skew window.
+ * @param {number} [now]
+ */
 function isExpired(oauth, now = Date.now()) {
     if (!oauth || typeof oauth.expiresAt !== 'number') return false; // unknown → assume usable
     return now >= oauth.expiresAt - REFRESH_SKEW_MS;
 }
 
-/** isExpired, but only when we actually have a refresh token to act on. */
+/**
+ * isExpired, but only when we actually have a refresh token to act on.
+ * @param {number} [now]
+ */
 function needsRefresh(oauth, now = Date.now()) {
     if (!oauth || !oauth.refreshToken) return false; // nothing to refresh with — use what we have
     return isExpired(oauth, now);
@@ -98,6 +105,9 @@ async function refresh(oauth) {
     };
 }
 
+/**
+ * @param {string} file
+ */
 function writeBack(file, parsed, next) {
     const merged = { ...parsed, claudeAiOauth: { ...parsed.claudeAiOauth, ...next } };
     fs.writeFileSync(file, JSON.stringify(merged, null, 2) + '\n', { mode: 0o600 });
@@ -105,6 +115,7 @@ function writeBack(file, parsed, next) {
 
 // Dedupe concurrent refreshes within this process so N in-flight requests trigger
 // at most one token endpoint round-trip.
+/** @type {Promise<string> | null} */
 let inflight = null;
 
 async function getAccessToken() {
@@ -130,7 +141,7 @@ async function getAccessToken() {
             inflight = (async () => {
                 const next = await refresh(oauth);
                 try { writeBack(file, parsed, next); }
-                catch (e) { log.warn('[ClaudeCodeAuth] refreshed but could not persist (ro mount?):', e.message); }
+                catch (e) { log.warn('[ClaudeCodeAuth] refreshed but could not persist (ro mount?):', /** @type {Error} */ (e).message); }
                 return next.accessToken;
             })().finally(() => { inflight = null; });
         }
@@ -152,3 +163,5 @@ module.exports = {
     credentialsPath,
     _internals: { readCreds, refresh, writeBack, CLIENT_ID, TOKEN_URL },
 };
+
+/** @typedef {{ accessToken?: string, refreshToken?: string, expiresAt?: number }} OAuth */

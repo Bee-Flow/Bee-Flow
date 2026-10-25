@@ -87,7 +87,7 @@ async function logAzureServiceUsage(entry) {
             entry.metadata ? JSON.stringify(entry.metadata) : null,
         ]);
     } catch (e) {
-        log.error('[AzureServiceUsageStore] Failed to log usage:', e.message);
+        log.error('[AzureServiceUsageStore] Failed to log usage:', /** @type {Error} */ (e).message);
     }
 }
 
@@ -95,7 +95,11 @@ async function logAzureServiceUsage(entry) {
 // Query helpers (same pattern as usageStore.js)
 // ══════════════════════════════════════════════════════════════════════
 
+/**
+ * @param {number} [startIdx]
+ */
 function buildFilters(filters, startIdx = 1) {
+    /** @type {string[]} */
     const conditions = [];
     const params = [];
     let idx = startIdx;
@@ -170,6 +174,7 @@ async function getAzureServiceByUser(filters = {}) {
 
 /**
  * Get daily/hourly timeline of Azure service costs.
+ * @param {string} [interval]
  */
 async function getAzureServiceTimeline(filters = {}, interval = 'day') {
     await initDB();
@@ -193,6 +198,7 @@ async function getAzureServiceTimeline(filters = {}, interval = 'day') {
 
 /**
  * Get recent Azure service usage events.
+ * @param {number} [limit]
  */
 async function getRecentAzureServiceUsage(limit = 50, filters = {}) {
     await initDB();

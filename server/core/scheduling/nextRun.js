@@ -1,3 +1,5 @@
+const { bestEffort } = require('../../utils/bestEffort');
+
 /**
  * When should a periodic thing run again?
  *
@@ -32,7 +34,6 @@
  * problem for whoever is being hammered, and short enough that a source
  * whose upstream came back does not sit idle for a working day.
  */
-const log = require('../../telemetry/log');
 
 const MAX_BACKOFF_MINUTES = 60;
 
@@ -84,7 +85,7 @@ function nextRunFor(schedule, fromTs = Date.now(), {
                     ? new Date(retryFloor).toISOString()
                     : iso;
             }
-        } catch (err) { log.debug('an uncomputable cron falls through to the interval', err); }
+        } catch (err) { bestEffort('core/scheduling/nextRun:nextRunFor', err); /* an uncomputable cron falls through to the interval */ }
     }
 
     const base = Number.isInteger(s?.everyMinutes)

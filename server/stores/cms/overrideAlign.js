@@ -28,7 +28,10 @@ const { revOf, assertRevMatches } = require('./revision');
 
 /** configStore.withConfigGroup is attached at load time (configStoreGroup.js). */
 const store = /** @type {typeof configStore & { withConfigGroup: ReturnType<typeof import('../configStoreGroup').createWithConfigGroup> }} */ (configStore);
-/** @type {typeof store.withConfigGroup} */
+/**
+ * @type {typeof store.withConfigGroup}
+ * @param {string} lockKey
+ */
 const withConfigGroup = (lockKey, work) => store.withConfigGroup(lockKey, work);
 const {
     KEY_LOCALE_INFIX, isPlainObject, pageKey, projectKey, projectLocaleKey,
@@ -38,7 +41,7 @@ const ORPHAN_CAP = 100;
 
 /** @typedef {{ get: (key: string) => Promise<any>, set: (key: string, value: any) => Promise<void>, keysLike: (pattern: string) => Promise<string[]> }} ConfigIo */
 
-/** @param {any} item */
+/** @param {{ id: string; }} item */
 function itemKey(item) {
     if (isPlainObject(item) && typeof item.id === 'string' && item.id !== '') return `id:${item.id}`;
     // nosemgrep: ajinabraham.njsscan.crypto.crypto_node.node_sha1 -- a content fingerprint to pair items, not a security use
@@ -70,6 +73,9 @@ function realign(prev, next, override, orphans, path) {
     return override;
 }
 
+/**
+ * @param {string} path
+ */
 function realignArray(prev, next, override, orphans, path) {
     if (JSON.stringify(prev) === JSON.stringify(next)) return override;
     const claimed = new Array(prev.length).fill(false);

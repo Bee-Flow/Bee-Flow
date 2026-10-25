@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Content Moderation — PII detection only.
  *
@@ -19,9 +19,9 @@ const DEFAULT_MODERATION_THRESHOLD = 0.7;
 /**
  * Validate user input — runs PII detection when enabled.
  *
- * @param {Array} messages - Chat messages array
+ * @param {Parameters<typeof validateInputForPii>[0]} messages - Chat messages array
  * @param {boolean} [_agentModerationEnabled=false] - Reserved (legacy callers still pass it)
- * @param {Array|null} [_allowedCategories=null] - Reserved (legacy moderation categories)
+ * @param {string[]|null} [_allowedCategories=null] - Reserved (legacy moderation categories)
  * @throws {Error} If PII is detected and the shield action is 'block'.
  */
 async function validateInput(messages, _agentModerationEnabled = false, _allowedCategories = null) {
@@ -32,6 +32,8 @@ async function validateInput(messages, _agentModerationEnabled = false, _allowed
 
 /**
  * Validate agent output — runs PII detection when enabled.
+ * @param {string} content
+ * @param {string[]|null} [_allowedCategories]
  */
 async function validateOutput(content, _allowedCategories = null) {
     const aiConfig = await getAIConfig();

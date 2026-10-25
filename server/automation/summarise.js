@@ -77,6 +77,7 @@ function describeStep(step, idx) {
         case 'guard': {
             const cats = Array.isArray(step.categories) && step.categories.length
                 ? step.categories.join(', ') : 'every category the organisation looks for';
+            /** @type {string[]} */
             const acts = [];
             if (step.onFound && step.onFound.stop) acts.push('stop the run');
             if (step.onFound && step.onFound.mask) acts.push('pass a masked copy on');
@@ -172,6 +173,7 @@ function summariseDefinition(def) {
     if (!def || typeof def !== 'object') {
         return { summary: '_(empty draft)_', hasSideEffects: false };
     }
+    /** @type {string[]} */
     const lines = [];
     lines.push(`**Trigger:** ${describeTrigger(def.trigger)}.`);
     for (const t of (Array.isArray(def.triggers) ? def.triggers : [])) {
@@ -186,7 +188,7 @@ function summariseDefinition(def) {
     // numbering them alongside real steps would misreport what step 4 in the
     // list actually does, and describeStep has no case for 'note' anyway (it
     // would fall through to the raw-type default line).
-    const steps = (Array.isArray(def.steps) ? def.steps : []).filter(s => s?.type !== 'note');
+    const steps = (Array.isArray(def.steps) ? def.steps : []).filter((/** @type {{ type: string; }} */ s) => s?.type !== 'note');
     if (steps.length === 0) {
         lines.push('_(no steps yet)_');
     } else {
@@ -250,6 +252,9 @@ const CODE_PARAMS_CACHE_MAX = 64;
 const codeParamsCache = new Map();
 let codeAnalyser;
 
+/**
+ * @param {string} code
+ */
 function declaredCodeParams(code) {
     if (typeof code !== 'string' || !code.trim()) return null;
     if (codeParamsCache.has(code)) return codeParamsCache.get(code);
@@ -274,6 +279,7 @@ function describeCodeParams(params) {
     const names = params.filter(p => p && p.name).map((p) => {
         if (p.required) return `${p.name}*`;
         if (p.default === undefined) return p.name;
+        /** @type {string} */
         let def;
         try { def = JSON.stringify(p.default); } catch (_) { def = String(p.default); }
         return `${p.name}=${String(def).slice(0, 30)}`;
@@ -281,6 +287,9 @@ function describeCodeParams(params) {
     return names.length ? ` params=[${names.join(', ')}]` : '';
 }
 
+/**
+ * @param {((code: string) => Array<object> | null) | undefined} codeParams
+ */
 function describeCodeStep(step, codeParams) {
     const read = typeof codeParams === 'function' ? codeParams : declaredCodeParams;
     let params = null;
@@ -294,6 +303,7 @@ function describeCodeStep(step, codeParams) {
  *
  * `opts.codeParams(code)` answers a code step's declared parameters
  * (default: analyzeCode's `params`); tests hand in their own.
+ * @param {{ codeParams?: (code: string) => Array<object> | null; }} [opts]
  */
 function renderStepState(step, opts = {}) {
     const id = `\`${step.id}\``;
@@ -355,6 +365,10 @@ function describeFlatten(step) {
     return sentence ? ` ${sentence} over \`${step.arrayRef}\`` : ` over \`${step.arrayRef || ''}\` (the list inside each item is not picked yet)`;
 }
 
+/**
+ * @param {string[]} out
+ * @param {{ codeParams?: (code: string) => Array<object> | null; }} [opts]
+ */
 function renderGraphState(graph, out, opts = {}) {
     const t = graph.trigger;
     if (t) {
@@ -402,3 +416,17 @@ function renderAgentDraftState(def, opts = {}) {
 }
 
 module.exports = { summariseDefinition, renderAgentDraftState };
+
+/** @typedef {{ kind?: string, path?: string, value?: unknown } | string | number | boolean | null | undefined} SummaryBinding */
+
+/** @typedef {{ name?: string, required?: boolean, default?: unknown }} CodeParam */
+
+/**
+ * @typedef {{ kind?: string, id?: string, label?: string, toolName?: string, schedule?: { cron?: string, tz?: string },
+ *   appEvent?: { provider?: string, event?: string, filter?: unknown }, params?: Array<string|{ name?: string }> }} SummaryTrigger
+ */
+
+/**
+ * @typedef {{ trigger?: SummaryTrigger, triggers?: SummaryTrigger[], steps?: SummaryStep[],
+ *   edges?: Array<{ from?: string, to?: string, label?: string }>, title?: string }} SummaryGraph
+ */

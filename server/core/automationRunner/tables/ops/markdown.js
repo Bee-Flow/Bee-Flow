@@ -1,9 +1,13 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /** A small table as markdown: header labels, then one line per row. */
 
 const DEFAULT_MAX_CELL_CHARS = 200;
 
+/**
+ * @param {unknown} v
+ * @param {number | undefined} max
+ */
 function cellText(v, max) {
     if (v === null || v === undefined) return '';
     let s = typeof v === 'string' ? v : String(v);
@@ -19,6 +23,9 @@ function cellText(v, max) {
 function toMarkdown(columns, rows, opts = {}) {
     const max = opts.maxCellChars > 0 ? opts.maxCellChars : DEFAULT_MAX_CELL_CHARS;
     if (!columns.length) return '';
+    /**
+     * @param {string[]} cells
+     */
     const line = (cells) => `| ${cells.join(' | ')} |`;
     const out = [line(columns.map((c) => cellText(c.label ?? c.key, max))), line(columns.map(() => '---'))];
     for (const row of rows) out.push(line(columns.map((c) => cellText(row[c.key], max))));

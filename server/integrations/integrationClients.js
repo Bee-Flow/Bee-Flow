@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The integrations feature's side of core/integrations/integrationClients.js:
  * the provider clients core's meeting notes and datatable sources talk

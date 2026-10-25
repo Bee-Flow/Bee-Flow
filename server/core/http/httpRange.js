@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * HTTP Range header parsing (RFC 7233), for media routes.
  *

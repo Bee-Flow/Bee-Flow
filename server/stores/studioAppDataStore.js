@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Studio App Data Store — PostgreSQL metadata for the App Studio v2 DATA
  * ENGINE. Sits between the per-app SQLite engine (studioAppDbStore.js) and the

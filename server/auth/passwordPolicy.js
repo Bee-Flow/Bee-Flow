@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Password policy — one source of truth for what counts as an acceptable password.
  *
@@ -69,6 +69,7 @@ const ADMIN_ORG_ROLES = new Set(['org_admin', 'admin']);
 
 // Reverse the substitutions people reach for when a form tells them to "add a
 // number or symbol". Without this, `P@ssw0rd` is simply not in the deny-list.
+/** @type {Record<string, string>} */
 const LEET = { '4': 'a', '@': 'a', '3': 'e', '1': 'i', '!': 'i', '|': 'i', '0': 'o', '5': 's', '$': 's', '7': 't', '+': 't', '8': 'b', '9': 'g' };
 
 /**
@@ -77,6 +78,7 @@ const LEET = { '4': 'a', '@': 'a', '3': 'e', '1': 'i', '!': 'i', '|': 'i', '0': 
  * The point is that `Welkom123!`, `welkom`, `W3lk0m` and `welkom_2025` are one
  * password wearing four hats, and an attacker's list contains all four while a
  * literal Set lookup catches only one.
+ * @param {string} password
  */
 function canonicalForms(password) {
     const lower = String(password).toLowerCase();
@@ -96,7 +98,10 @@ function canonicalForms(password) {
     return forms;
 }
 
-/** Is the password one of the ones an attacker tries first? */
+/**
+ * Is the password one of the ones an attacker tries first?
+ * @param {string} password
+ */
 function isCommonPassword(password) {
     for (const form of canonicalForms(password)) {
         if (COMMON_PASSWORDS.has(form)) return true;
@@ -115,6 +120,9 @@ function isCommonPassword(password) {
  * reasonable is how a password policy trains people to write passwords down.
  */
 const MAX_FILLER_UNIT = 4;
+/**
+ * @param {string} password
+ */
 function isRepeatedUnit(password) {
     const s = String(password);
     for (let unit = 1; unit <= Math.floor(s.length / 2); unit++) {
@@ -132,6 +140,7 @@ function isRepeatedUnit(password) {
  * `12345678`, `abcdefgh`, `qwertyui` and their reverses. Flagged when the run
  * accounts for most of the password, so `abcd` inside a longer passphrase is
  * fine but `abcdefgh1` is not.
+ * @param {string} password
  */
 function isSequential(password) {
     const s = String(password).toLowerCase();
@@ -154,10 +163,13 @@ function isSequential(password) {
 /**
  * A password built out of the account's own identity is public knowledge with
  * extra steps — and username enumeration hands an attacker the first half of it.
+ * @param {string} password
+ * @param {{ username?: string | null, email?: string | null }} identity
  */
 function derivesFromIdentity(password, { username, email }) {
     const lower = String(password).toLowerCase();
     const alnum = lower.replace(/[^a-z0-9]/g, '');
+    /** @type {string[]} */
     const candidates = [];
     if (username) candidates.push(String(username).toLowerCase());
     if (email && String(email).includes('@')) {
@@ -254,6 +266,7 @@ function breachCheckEnabled() {
 
 /**
  * @returns {Promise<{breached: boolean, count: number}|null>} null = check disabled or unavailable
+ * @param {string} password
  */
 async function checkBreachedPassword(password) {
     if (!breachCheckEnabled() || typeof password !== 'string' || !password) return null;
@@ -292,8 +305,8 @@ async function checkBreachedPassword(password) {
         // Padded responses include zero-count decoys; treat those as clean.
         return { breached: count > 0, count };
     } catch (err) {
-        if (err?.name !== 'AbortError') {
-            log.warn('[PasswordPolicy] breach check unavailable:', err.message);
+        if (/** @type {Error} */ (err)?.name !== 'AbortError') {
+            log.warn('[PasswordPolicy] breach check unavailable:', /** @type {Error} */ (err).message);
         }
         return null;
     }
@@ -303,6 +316,7 @@ async function checkBreachedPassword(password) {
  * validatePassword + the optional breach lookup, for the handful of call sites
  * that set a password and can afford one outbound request.
  * @returns {Promise<{ok: boolean, error?: string, code?: string}>}
+ * @param {string} password
  */
 async function validatePasswordAsync(password, opts = {}) {
     const local = validatePassword(password, opts);

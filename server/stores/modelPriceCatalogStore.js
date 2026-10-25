@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Model price catalogue store — table `model_price_catalog`.
  *
@@ -119,6 +119,8 @@ async function addPrice(card) {
  * End an open-ended row at `validTo` (a promo that ends, a withdrawn model).
  * Never moves a row that is already closed and never closes before its start,
  * so a past call's rate cannot change.
+ * @param {number} id
+ * @param {string | number | Date} validTo
  */
 async function closeRow(id, validTo) {
     await initDB();
@@ -131,10 +133,15 @@ async function closeRow(id, validTo) {
     return { closed };
 }
 
-/** Rows for one model (any provider/tier/time), newest start first, for admin views. */
+/**
+ * Rows for one model (any provider/tier/time), newest start first, for admin views.
+ * @param {{ provider?: string | null, modelId?: string | null, limit?: number }} [opts]
+ */
 async function listPrices({ provider = null, modelId = null, limit = 200 } = {}) {
     await initDB();
+    /** @type {unknown[]} */
     const params = [];
+    /** @type {string[]} */
     const where = [];
     if (provider) { params.push(priceCatalog.normalizeProvider(provider) || String(provider)); where.push(`provider = $${params.length}`); }
     if (modelId) { params.push(String(modelId).toLowerCase()); where.push(`lower(model_id) = $${params.length}`); }

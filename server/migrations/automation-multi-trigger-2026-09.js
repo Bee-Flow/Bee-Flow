@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: multi-trigger routines, second slice (2026-09).
  *

@@ -608,12 +608,20 @@ const ACTIVITY_SCOPE = [
     { field: 'id', op: 'eq', value: { kind: 'formula', expr: 'vars.activity.id' }, required: true },
 ];
 
-/** The open activity's whole row, or one column of it. */
+/**
+ * The open activity's whole row, or one column of it.
+ * @param {string | null} path
+ */
 const openActivity = (path) => (path
     ? { kind: 'record', tableId: 'tbl_act001', filter: ACTIVITY_SCOPE, limit: 1, path }
     : { kind: 'record', tableId: 'tbl_act001', filter: ACTIVITY_SCOPE, limit: 1 });
 
-/** Rows of a child table belonging to the open activity. */
+/**
+ * Rows of a child table belonging to the open activity.
+ * @param {string} tableId
+ * @param {{ field: string; dir: string; }[]} sort
+ * @param {number} limit
+ */
 const forOpenActivity = (tableId, sort, limit) => ({
     kind: 'records',
     tableId,
@@ -622,7 +630,12 @@ const forOpenActivity = (tableId, sort, limit) => ({
     limit,
 });
 
-/** Rows belonging to the selected processor, same shape. */
+/**
+ * Rows belonging to the selected processor, same shape.
+ * @param {string} tableId
+ * @param {{ field: string; dir: string; }[]} sort
+ * @param {number} limit
+ */
 const forOpenProcessor = (tableId, sort, limit) => ({
     kind: 'records',
     tableId,

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Login Routes — the shared tail of a password login: the unverified/waitlist
  * gates, DEK derivation and session establishment. Split out of
@@ -34,12 +34,17 @@ const { padFailureResponse } = require('../loginThrottle');
 // carried a verbatim copy of the old logic).
 const { isEncryptionEnabledForUser } = require('../../stores/encryptionAvailability');
 const log = require('../../telemetry/log');
+const { isPlatformOperator } = require('../platformOperator');
 
 /**
  * Establish the authenticated session after credentials (and MFA, when
  * enabled) have been verified. Extracted from /admin-login so the MFA
  * verify-login path reuses the exact same session-completion logic
  * (waitlist gate, DEK derivation, recovery-key surfacing).
+ *
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {{ user: Record<string, any>, isAdmin: boolean, storedUser?: Record<string, any> | null, password: string, startedAt?: number }} opts
  */
 // `startedAt` is the timestamp the CALLER took at the top of its handler, so a
 // refusal here is padded to the same floor as a wrong password. Callers that
@@ -98,7 +103,7 @@ async function finalizeLogin(req, res, { user, isAdmin, storedUser, password, st
         req.session.isAuthenticated = false;
         req.session.isAdmin = false;
         req.session.user = null;
-        return req.session.save((err) => {
+        return req.session.save(/** @param {Error | undefined} err */ (err) => {
             if (err) log.error('Session save error:', err);
             res.json({ success: false, emailVerificationRequired: true });
         });
@@ -135,7 +140,7 @@ async function finalizeLogin(req, res, { user, isAdmin, storedUser, password, st
     }
 
     // Ensure admin user exists in users table (for DEK storage)
-    if (user.id === 'admin') {
+    if (isPlatformOperator(user)) {
         const adminRow = await userStore.getUser('admin');
         if (!adminRow) {
             const config = await loadConfig();
@@ -159,6 +164,7 @@ async function finalizeLogin(req, res, { user, isAdmin, storedUser, password, st
         audit: { method: 'password', organizationId: storedUser?.organizationId || null },
     });
     // Include recovery key in response if DEK was just created or migrated
+    /** @type {{ success: boolean, user: Record<string, any>, recoveryKey?: string }} */
     const response = { success: true, user: sessionUser };
     if (result.recoveryKey) response.recoveryKey = result.recoveryKey;
     return res.json(response);

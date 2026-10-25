@@ -26,6 +26,10 @@ const { normalizeDeck } = require('./deckModel');
 const MAX_COLLECTED_SLIDES = 200;
 
 class DeckCollectError extends Error {
+    /**
+     * @param {string} message
+     * @param {string} errorClass
+     */
     constructor(message, errorClass) {
         super(message);
         this.name = 'DeckCollectError';
@@ -37,12 +41,18 @@ function emptyDeckError() {
     return new DeckCollectError('There are no slides to put in the presentation.', 'presentation_empty');
 }
 
-/** True for a string that reads as a markdown outline (a heading somewhere in it). */
+/**
+ * True for a string that reads as a markdown outline (a heading somewhere in it).
+ * @param {string} s
+ */
 function looksLikeMarkdownDeck(s) {
     return /(^|\n)\s*#{1,2}\s+\S/.test(s);
 }
 
-/** Parse a JSON-looking string; null when it is not one. */
+/**
+ * Parse a JSON-looking string; null when it is not one.
+ * @param {string} s
+ */
 function parseJsonMaybe(s) {
     const t = s.trim();
     if (!(t.startsWith('[') || t.startsWith('{'))) return null;
@@ -58,6 +68,7 @@ function isSlideLike(o) {
 /**
  * Flatten one item into slide objects (or markdown-derived slides), appending
  * to `out`. Returns nothing; throws past the collection cap.
+ * @param {number} [depth]
  */
 function flattenInto(item, out, warnings, depth = 0) {
     if (out.length > MAX_COLLECTED_SLIDES) {

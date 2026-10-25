@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Migration: Dutch translations for the BFSF bug-sweep UI keys (2026-07).
  *

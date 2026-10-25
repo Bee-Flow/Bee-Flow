@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * What every phase of a stage deployment shares: the injectable stores
  * (`storesOf`), the deployment journal (`makeJournal`) and the actions that
@@ -12,12 +12,22 @@
 
 'use strict';
 
-const dep = (deps, name, load) => (deps && deps[name] !== undefined ? deps[name] : load());
+/**
+ * @template T
+ * @param {Record<string, unknown>|undefined} deps
+ * @param {string} name
+ * @param {() => T} load
+ * @returns {T}
+ */
+const dep = (deps, name, load) => (deps && deps[name] !== undefined ? /** @type {T} */ (deps[name]) : load());
 
 /** Actions that write a part. `unchanged` writes nothing. */
 const WRITE_ACTIONS = Object.freeze(['create', 'replace', 'revive']);
 
-/** The stores and engine modules prepare (and the later phases) use; each one injectable. */
+/**
+ * The stores and engine modules prepare (and the later phases) use; each one injectable.
+ * @param {Record<string, unknown>} [deps]
+ */
 function storesOf(deps = {}) {
     return {
         get stageStore() { return dep(deps, 'solutionStageStore', () => require('../../stores/solutionStageStore')); },
@@ -46,10 +56,17 @@ function storesOf(deps = {}) {
  * `failed()` pair; `record(action, row)` writes a finished row at once.
  * `row` is `{ ref, kind, entityId, before, afterHash, detail }`; `detail`
  * holds ids, versions and counts only.
+ * @param {typeof import('../../stores/solutionStageStore')} stageStore
+ * @param {string} deploymentId
+ * @param {'prepare'|'commit'|'converge'|'compensate'} phase
+ * @param {{ client?: import('pg').PoolClient|null }} [opts]
  */
 function makeJournal(stageStore, deploymentId, phase, { client = null } = {}) {
     const opts = client ? { client } : {};
     return {
+        /**
+         * @param {string} action
+         */
         async pending(action, row = {}) {
             const step = await stageStore.appendStep(deploymentId, { phase, action, status: 'pending', ...row }, opts);
             return {
@@ -58,6 +75,10 @@ function makeJournal(stageStore, deploymentId, phase, { client = null } = {}) {
                 failed: (patch = {}) => stageStore.updateStep(deploymentId, step.seq, { status: 'failed', ...patch }, opts),
             };
         },
+        /**
+         * @param {string} action
+         * @param {'pending'|'done'|'failed'|'skipped'} [status]
+         */
         record(action, row = {}, status = 'done') {
             return stageStore.appendStep(deploymentId, { phase, action, status, ...row }, opts);
         },

@@ -195,6 +195,9 @@ function lastFourWeeks(today = new Date()) {
     return { granularity: 'week', from, to, toExclusive: addDays(to, 7) };
 }
 
+/**
+ * @param {{ surface?: string; value: string; destination: string; provider_type?: string; turns: number; }[]} rows
+ */
 const sumWhere = (rows, pred) => rows.reduce((a, r) => a + (pred(r) ? (Number(r.turns) || 0) : 0), 0);
 
 /**

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Dutch for the forced 2FA setup screen on a phone (BFSF-280): the one-line
  * explanation of what two-factor authentication is, the tap-to-add link that
@@ -34,6 +35,7 @@ const NL_REWORDED = {
 /**
  * The mutation itself, on a copy of the 'nl' blob. Pure, so the store's
  * mutator may run it more than once.
+ * @param {{ [x: string]: string; }} merged
  */
 function applyNl(merged) {
     let added = 0;

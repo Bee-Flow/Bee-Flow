@@ -14,6 +14,7 @@
  * canonicaliser drops a seatless stage, so there the chain is lost; templateCapture
  * and templatePortability warn about it from the `stages.<key>.approvers` field
  * reported here.
+ * @param {string} rule
  */
 function scrubStageSeats(owner, report, rule, detail) {
     if (!Array.isArray(owner.stages)) return;

@@ -18,11 +18,11 @@ const complianceStore = require('../../../stores/complianceStore');
 const { canonical } = require('../../lib/observedOperators');
 const pd = require('../../projects/projectData');
 const log = require('../../../telemetry/log');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 // undefined_table / undefined_column: the agent register is not provisioned
 // yet. Any other SQLSTATE is a FAILED read: the inventory would then pass on
 // the providers alone while the agents' models went unlisted.
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
 /**
  * The AI-Act classification register (stores/aiActAssessmentStore) rides
@@ -31,8 +31,11 @@ const NOT_PROVISIONED = new Set(['42P01', '42703']);
  * Evidence only — the status logic below is unchanged this release. Tolerant
  * of the table not existing yet (fresh install: the store's DDL runs on first
  * use) and of the store being unavailable.
+ * @param {string} orgId
+ * @param {Record<string, any>[]} agents
  */
 async function _aiActAssessments(orgId, agents) {
+    /** @type {{ attested: number | null, expired: number | null, missing_targets: { target_kind: string, target_id: string }[] }} */
     const out = { attested: null, expired: null, missing_targets: [] };
     let store;
     try { store = require('../../../stores/aiActAssessmentStore'); } catch { return out; }
@@ -74,6 +77,7 @@ module.exports = {
     descriptionKey: 'compliance.checks.aia_art53.desc',
     remediationKey: 'compliance.checks.aia_art53.fix',
     remediationLink: 'admin/compliance/ropa',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const ai = (await configStore.getConfig('ai')) || {};
         const providers = Array.isArray(ai.providers) ? ai.providers : [];
@@ -87,7 +91,7 @@ module.exports = {
                 .map(e => canonical(e?.operator)).filter(Boolean)
         );
 
-        const providerRows = providers.map(p => ({
+        const providerRows = providers.map(/** @param {Record<string, any>} p */ p => ({
             id: p.id || null,
             type: String(p.type || '').toLowerCase(),
             external: !INTERNAL_TYPES.has(String(p.type || '').toLowerCase()),
@@ -105,7 +109,7 @@ module.exports = {
                 [scope],
             );
         } catch (e) {
-            if (!NOT_PROVISIONED.has(e?.code)) {
+            if (!isMissingTable(e)) {
                 // Only the SQLSTATE goes into the evidence: a driver message
                 // can echo query values.
                 const code = e?.code || null;

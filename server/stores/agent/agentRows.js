@@ -106,9 +106,87 @@ function buildToolParamsFromList(toolsWithParams) {
     return tool_params;
 }
 
+/**
+ * @param {string} agentId
+ */
 async function buildToolParams(agentId) {
     const toolsWithParams = await getAgentToolsWithParams(agentId);
     return buildToolParamsFromList(toolsWithParams);
 }
 
 module.exports = { _stripPublishedBlobs, isSplitActive, projectRuntime, projectDraft, _stripPersona, parseConfig, buildToolParamsFromList, buildToolParams };
+
+/**
+ * A raw `agents` row as the store reads it (`SELECT *`). The JSON columns are
+ * TEXT on older installs and parsed objects on newer ones, hence `unknown`.
+ * @typedef {{
+ *   [column: string]: unknown,
+ *   id: string,
+ *   owner_id?: string,
+ *   organization_id?: string | null,
+ *   project_id?: string | null,
+ *   system_prompt?: string | null,
+ *   avatar?: string | null,
+ *   config?: unknown,
+ *   shared_groups?: string | null,
+ *   persona?: unknown,
+ *   published_config?: unknown,
+ *   published_system_prompt?: string | null,
+ *   published_version?: number | null,
+ *   name?: string,
+ *   description?: string | null,
+ *   model?: string | null,
+ *   rev?: number,
+ *   is_published?: boolean,
+ *   published_rev?: number | null,
+ *   category_id?: string | null,
+ *   starter_prompts?: unknown,
+ *   threads_enabled?: boolean | null,
+ *   copy_enabled?: boolean | null,
+ *   workspace_enabled?: boolean | null,
+ *   embed_enabled?: boolean | null,
+ * }} AgentDbRow
+ */
+
+/**
+ * An agent's parsed `config` column. Free-form JSON; these are the keys readers use.
+ * @typedef {{
+ *   [key: string]: unknown,
+ *   tools?: unknown,
+ *   avatar?: string | null,
+ *   enabledIntegrations?: string[],
+ *   memoryEnabled?: boolean,
+ *   knowledge_base_ids?: string[],
+ *   allowCopy?: boolean,
+ * }} AgentConfig
+ */
+
+/**
+ * An agents row after parseConfig: published blobs and persona stripped, `config`
+ * parsed, `shared_groups` an array, `avatar` resolved.
+ * @typedef {{
+ *   [column: string]: unknown,
+ *   id: string,
+ *   owner_id?: string,
+ *   organization_id?: string | null,
+ *   project_id?: string | null,
+ *   system_prompt?: string | null,
+ *   avatar: string | null,
+ *   config: AgentConfig,
+ *   shared_groups: string[],
+ *   published_version?: number | null,
+ *   name?: string,
+ *   description?: string | null,
+ *   model?: string,
+ *   rev?: number,
+ *   is_published?: boolean,
+ *   published_rev?: number | null,
+ *   category_id?: string | null,
+ *   starter_prompts?: unknown,
+ *   threads_enabled?: boolean | null,
+ *   copy_enabled?: boolean | null,
+ *   workspace_enabled?: boolean | null,
+ *   embed_enabled?: boolean | null,
+ *   runtimeSource?: 'published' | 'live' | 'draft',
+ * }} ParsedAgent
+ */

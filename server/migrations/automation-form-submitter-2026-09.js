@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: a DURABLE home for "submitted by" on form-triggered runs (FRM-08).
  *

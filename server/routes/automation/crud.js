@@ -72,6 +72,7 @@ const trashHandlers = makeTrashHandlers({
  * non-owner no names, and the bridge keeps refusing on owner equality.
  *
  * @returns {{ok: true, ownerId: string}|{ok: false, code, message}}
+ * @param {string} actorUserId
  */
 async function appRefOwnerGate(definition, actorUserId) {
     const { appTriggerRef } = require('../../automation/appTriggerContract');
@@ -87,7 +88,7 @@ async function appRefOwnerGate(definition, actorUserId) {
         app = await require('../../stores/studioAppStore').getStudioApp(ref.appId);
     } catch (e) {
         // Unknown narrows: loud in the log, refusal outwards.
-        log.warn(`[automation create] app ${ref.appId} unreadable; refusing to guess an owner:`, e.message);
+        log.warn(`[automation create] app ${ref.appId} unreadable; refusing to guess an owner:`, /** @type {Error} */ (e).message);
         app = null;
     }
     return appRefOwnerVerdict({ app, actorUserId });
@@ -199,7 +200,7 @@ async function sharedWithCaller(req) {
         });
         return (rows || []).map(r => projectForViewer(r, { role: r.myRole, via: 'share' }));
     } catch (e) {
-        log.warn('[automation list] shared automations unavailable:', e.message);
+        log.warn('[automation list] shared automations unavailable:', /** @type {Error} */ (e).message);
         return [];
     }
 }
@@ -224,7 +225,7 @@ router.get('/', validate({ query: ListQuery }), async (req, res) => {
     } catch (e) {
         // The registry itself is unavailable. Refusing is the only honest
         // answer: an unfiltered list here is the exact failure above.
-        log.warn('[automation list] trigger-source registry unavailable:', e.message);
+        log.warn('[automation list] trigger-source registry unavailable:', /** @type {Error} */ (e).message);
         throw new HttpError(503, 'trigger_sources_unavailable', 'Trigger sources are unavailable');
     }
     if (!known) return res.status(400).json({ error: `Unknown trigger provider "${triggerProvider}"` });
@@ -240,7 +241,11 @@ router.get('/', validate({ query: ListQuery }), async (req, res) => {
 });
 
 // Create automation (default isDraft=true; finalise via PUT or activate).
-/** v1's description for an automation started from a gallery template; null when the id is unknown. */
+/**
+ * v1's description for an automation started from a gallery template; null when the id is unknown.
+ * @param {string} templateId
+ * @param {string} userId
+ */
 async function templateVersionMeta(templateId, userId, orgId) {
     try {
         const { getTemplateFor } = require('../../automation/templates');
@@ -251,7 +256,7 @@ async function templateVersionMeta(templateId, userId, orgId) {
             descriptionJson: [{ code: 'created_from_template', params: { template: tmpl.title, templateId: tmpl.id } }],
         };
     } catch (e) {
-        log.warn(`[automation create] template ${templateId} unreadable: ${e.message}`);
+        log.warn(`[automation create] template ${templateId} unreadable: ${/** @type {Error} */ (e).message}`);
         return null;
     }
 }
@@ -284,10 +289,11 @@ router.post('/', validate({ body: CreateAutomationBody }), async (req, res) => {
     // as an approver is a save error, never a silent runtime fallback.
     const assigneeErrors = await require('../../automation/approvalService').validateApprovalAssignees(definition, userId);
     if (assigneeErrors.length) return res.status(400).json({ error: 'Invalid definition', details: assigneeErrors });
+    /** @type {string | null} */
     let nextRunAt = null;
     if (triggerType === 'schedule' && scheduleCron) {
         try { nextRunAt = cron.nextRunAt(scheduleCron, scheduleTz, Date.now()); }
-        catch (e) { return res.status(400).json({ error: `Bad cron: ${e.message}` }); }
+        catch (e) { return res.status(400).json({ error: `Bad cron: ${/** @type {Error} */ (e).message}` }); }
     }
     const organizationId = await orgOf(req);
     const a = await automationStore.createAutomation({
@@ -343,7 +349,7 @@ async function managedOf(a) {
         return await require('../../stores/solutionStageStore')
             .managedPayloadFor({ projectId: a.projectId, kind: 'automation', entityId: a.id });
     } catch (e) {
-        log.warn(`[automation] managed lookup failed for ${a.id}: ${e.message}`);
+        log.warn(`[automation] managed lookup failed for ${a.id}: ${/** @type {Error} */ (e).message}`);
         return null;
     }
 }
@@ -402,7 +408,7 @@ router.get('/:id/usage', async (req, res) => {
                 const app = await studioAppStore.getStudioApp(consumerId);
                 appOwners.set(consumerId, app && typeof app.userId === 'string' ? app.userId : null);
             } catch (err) {
-                log.warn(`[automation usage] app ${consumerId} unreadable; no link:`, err.message);
+                log.warn(`[automation usage] app ${consumerId} unreadable; no link:`, /** @type {Error} */ (err).message);
                 appOwners.set(consumerId, null);
             }
         }
@@ -419,7 +425,7 @@ router.get('/:id/usage', async (req, res) => {
         // status (terminal handler); any other error is the 500 below.
         if (e?.expose === true && Number(e?.status) >= 400 && Number(e?.status) < 500) throw e;
         // Rule 1: say that it could not be done, do not pretend there is nothing.
-        log.warn('[automation usage] read failed:', e.message);
+        log.warn('[automation usage] read failed:', /** @type {Error} */ (e).message);
         throw new HttpError(500, 'usage_unavailable', 'usage_unavailable');
     }
 });
@@ -550,7 +556,7 @@ router.put('/:id', validate({ body: UpdateAutomationBody }), async (req, res) =>
                 const next = cron.nextRunAt(scheduleCron, scheduleTz, Date.now());
                 if (!next) return res.status(400).json({ error: `Schedule "${scheduleCron}" has no upcoming run time — check the day/month combination.` });
                 updates.nextRunAt = next;
-            } catch (e) { return res.status(400).json({ error: `Bad cron: ${e.message}` }); }
+            } catch (e) { return res.status(400).json({ error: `Bad cron: ${/** @type {Error} */ (e).message}` }); }
         } else {
             // A schedule trigger that KEEPS trigger_type='schedule' but loses
             // its cron used to fall between the two old branches: nothing
@@ -637,7 +643,7 @@ router.put('/:id', validate({ body: UpdateAutomationBody }), async (req, res) =>
         if (hasAppEventTrigger(def) || hasAppEventTrigger(existing.definition)) {
             if (appEventFingerprint(def) !== appEventFingerprint(existing.definition)) {
                 try { await syncAppEventSubscription(req.params.id, ownerId, def); }
-                catch (e) { log.warn(`[automation update] subscription re-sync failed for ${req.params.id}: ${e.message}`); }
+                catch (e) { log.warn(`[automation update] subscription re-sync failed for ${req.params.id}: ${/** @type {Error} */ (e).message}`); }
             }
         }
         // Same gate for ADDITIONAL schedule triggers: their rows live in
@@ -645,7 +651,7 @@ router.put('/:id', validate({ body: UpdateAutomationBody }), async (req, res) =>
         // changed or a schedule trigger came or went.
         if (scheduleFingerprint(def) !== scheduleFingerprint(existing.definition)) {
             try { await syncSchedules(req.params.id, def); }
-            catch (e) { log.warn(`[automation update] schedule re-sync failed for ${req.params.id}: ${e.message}`); }
+            catch (e) { log.warn(`[automation update] schedule re-sync failed for ${req.params.id}: ${/** @type {Error} */ (e).message}`); }
         }
     }
 
@@ -719,3 +725,5 @@ function scheduleWasConfigured(body, updates) {
 }
 
 module.exports = router;
+
+/** @typedef {{ kind?: string, appEvent?: { provider?: string, event?: string } }} AppEventTriggerLike */

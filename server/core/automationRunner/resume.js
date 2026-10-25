@@ -13,6 +13,7 @@ const { replayEntryFromRow, withFullOutput } = require('./replaySeeding');
 const { gapsReadAfterPause } = require('./replayGaps');
 const { executeAutomation } = require('./execution');
 const { automationForRun, withWorkingSettings } = require('./definitionForRun');
+const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 
 /**
  * Continue a paused run from its awaiting step.
@@ -47,7 +48,7 @@ async function resumeFromStep(runId, fromStepId, { decision = null, userId = nul
     // truth; a legacy run whose version was never snapshotted falls back to
     // the copy a run of this kind would execute today.
     const pinned = typeof automationStore.getVersionDefinition === 'function'
-        ? await Promise.resolve().then(() => automationStore.getVersionDefinition(stored.id, original.version)).catch(() => null)
+        ? await Promise.resolve().then(() => automationStore.getVersionDefinition(stored.id, original.version)).catch((e) => fallbackSwallowed('core/automationRunner/resume:resumeFromStep', e, null))
         : null;
     const fallback = automationForRun(stored, { mode: 'live', triggerKind: original.triggerKind, isTest: !!original.isTest });
     // Spread, then pin: the spread drops the row's non-enumerable live copy,
@@ -74,7 +75,7 @@ async function resumeFromStep(runId, fromStepId, { decision = null, userId = nul
     const chain = [];
     for (let cur = original, guard = 0; cur && guard < 50; guard++) {
         chain.unshift(cur);
-        cur = cur.parentRunId ? await automationStore.getRun(cur.parentRunId).catch(() => null) : null;
+        cur = cur.parentRunId ? await automationStore.getRun(cur.parentRunId).catch((e) => fallbackSwallowed('core/automationRunner/resume:resumeFromStep#2', e, null)) : null;
     }
     const previousSteps = [];
     for (const r of chain) {

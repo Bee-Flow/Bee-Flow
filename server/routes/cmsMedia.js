@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * CMS media helpers: clip uploads (demo videos WITH sound, up to 500 MB) and
  * WebVTT captions validation.
@@ -22,6 +22,7 @@ const storageStore = require('../stores/storageStore');
 const { HttpError, badRequest } = require('../core/http/errors');
 
 const { CLIP_MAX_BYTES, VTT_MAX_BYTES, CLIP_MIME_WHITELIST } = require('../core/cms/uploadPolicy');
+const { bestEffort } = require('../utils/bestEffort');
 
 const CLIP_PART_BYTES = 16 * 1024 * 1024;
 const CLIP_EXT_WHITELIST = new Set(['.mp4', '.webm']);
@@ -56,12 +57,17 @@ function isValidVtt(buf) {
     return /^﻿?WEBVTT(?:[ \t\r\n]|$)/.test(text);
 }
 
-/** Sniff the container so a renamed file cannot pass as a clip. */
+/**
+ * Sniff the container so a renamed file cannot pass as a clip.
+ * @param {Buffer} head
+ * @param {string} ext
+ */
 function looksLikeClip(head, ext) {
     if (ext === '.webm') return head.length >= 4 && head.readUInt32BE(0) === 0x1a45dfa3;
     return head.length >= 12 && head.toString('latin1', 4, 8) === 'ftyp';
 }
 
+/** @type {string | null} */
 let tmpRoot = null;
 function ensureTmpDir() {
     if (!tmpRoot || !fs.existsSync(tmpRoot)) tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'beeflow-cms-clip-'));
@@ -70,21 +76,26 @@ function ensureTmpDir() {
 
 const clipUpload = multer({
     storage: multer.diskStorage({
-        destination: (req, file, cb) => {
+        destination: (/** @type {import('express').Request} */ req, /** @type {{ mimetype?: string, originalname?: string }} */ file, /** @type {(err: Error | null, destination: string) => void} */ cb) => {
             try { cb(null, ensureTmpDir()); } catch (e) { cb(e, ''); }
         },
-        filename: (req, file, cb) => cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}.upload`),
+        filename: (/** @type {import('express').Request} */ req, /** @type {{ mimetype?: string, originalname?: string }} */ file, /** @type {(err: Error | null, filename: string) => void} */ cb) => cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}.upload`),
     }),
     limits: { fileSize: CLIP_MAX_BYTES, files: 1 },
-    fileFilter: (req, file, cb) => {
+    fileFilter: (/** @type {import('express').Request} */ req, /** @type {{ mimetype?: string, originalname?: string }} */ file, /** @type {(err: Error | null, accept?: boolean) => void} */ cb) => {
         if (CLIP_MIME_WHITELIST.has(file.mimetype) && CLIP_EXT_WHITELIST.has(extOf(file.originalname))) cb(null, true);
         else cb(new Error('Unsupported file type: clips must be MP4 or WebM'));
     },
 });
 
-/** multer errors come back as a clean 400 (same style as the image uploader). */
+/**
+ * multer errors come back as a clean 400 (same style as the image uploader).
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 function clipUploadMiddleware(req, res, next) {
-    clipUpload.single('file')(req, res, (err) => {
+    clipUpload.single('file')(req, res, (/** @type {Error & { code?: string }} */ err) => {
         if (!err) return next();
         const message = err.code === 'LIMIT_FILE_SIZE'
             ? 'File too large (max 500 MB)'
@@ -93,7 +104,14 @@ function clipUploadMiddleware(req, res, next) {
     });
 }
 
-/** Stream a finished temp file into storage in bounded parts. */
+/**
+ * Stream a finished temp file into storage in bounded parts.
+ * @param {string} filePath
+ * @param {number} size
+ * @param {string} key
+ * @param {string} contentType
+ * @param {AbortSignal | null} [signal]
+ */
 async function streamIntoStorage(filePath, size, key, contentType, signal = null) {
     const { uploadId } = await storageStore.beginMultipartUpload(key, contentType);
     const handle = await fs.promises.open(filePath, 'r');
@@ -118,14 +136,18 @@ async function streamIntoStorage(filePath, size, key, contentType, signal = null
         }
         await storageStore.completeMultipartUpload(key, uploadId, parts);
     } catch (err) {
-        await storageStore.abortMultipartUpload(key, uploadId).catch(() => {});
+        await storageStore.abortMultipartUpload(key, uploadId).catch((e) => bestEffort('routes/cmsMedia:streamIntoStorage', e));
         throw err;
     } finally {
-        await handle.close().catch(() => {});
+        await handle.close().catch((e) => bestEffort('routes/cmsMedia:streamIntoStorage#2', e));
     }
 }
 
-/** POST /admin/upload-clip handler (after clipUploadMiddleware). */
+/**
+ * POST /admin/upload-clip handler (after clipUploadMiddleware).
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function handleClipUpload(req, res) {
     const file = req.file;
     if (!file) throw badRequest('no_file', 'No file provided');

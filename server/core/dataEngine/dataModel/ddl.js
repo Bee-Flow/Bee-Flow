@@ -335,3 +335,8 @@ module.exports = {
     dropColumnDdl,
     addColumnDdl,
 };
+
+/**
+ * A model field as the DDL reads it.
+ * @typedef {import('./migrationShape').ModelField & { subtype?: string }} DdlField
+ */

@@ -7,6 +7,7 @@ const MAX_AUTH_REDIRECTS = 5;
  * fetch() for a request that carries an injected credential: redirects are
  * followed by hand and only while they stay on the original host. A hop to
  * another host throws instead of carrying the credential along.
+ * @param {string | URL} url
  */
 async function fetchFollowingSameHost(fetchImpl, url, init) {
     const host = new URL(url).hostname.toLowerCase();

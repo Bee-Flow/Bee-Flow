@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The access filter the mirror engine writes the COPY with: OWNER grade, no
  * viewer. A refresh, an event patch and the second half of a write-through
@@ -13,6 +13,10 @@
 const accessFilter = require('../../accessFilter');
 const { PG } = require('./constants');
 
+/**
+ * @param {Parameters<typeof accessFilter.compileAccessFilter>[0]} meta
+ * @param {string} [action]
+ */
 function ownerFilter(meta, action = 'read') {
     return accessFilter.compileAccessFilter(meta, 'owner', { id: null }, action, PG);
 }

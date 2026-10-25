@@ -39,6 +39,7 @@ const FLAT_PAGE_SEPARATOR = '\n\n';
  *          `text.slice(start, end)` is exactly that page.
  */
 function pageSpans(pages) {
+    /** @type {({ page: number | undefined; start: number; end: number; })[]} */
     const spans = [];
     if (!Array.isArray(pages)) return spans;
     let cursor = 0;
@@ -93,6 +94,8 @@ function pageAt(offset, spans) {
  * Empty pages COUNT as scanned (the scanner walked past them) while occupying
  * no characters — which is precisely the case a naive `pages.slice(0, count)`
  * plus `.join()` gets wrong.
+ * @param {{ pageNumber: number; text: string; }[]} pages
+ * @param {number} count
  */
 function flatBoundaryForPages(pages, count) {
     let cursor = 0;
@@ -117,6 +120,7 @@ function flatBoundaryForPages(pages, count) {
  * splices against the flat text, so they have to be moved. The entity also
  * gains the page it was found on, which is the only place that survives the
  * flattening.
+ * @param {{ pageNumber: number; text: string; }[]} pages
  */
 function entitiesToFlatOffsets(pageEntities, pages) {
     const out = [];
@@ -214,6 +218,9 @@ function stampChunkPages(chunks, pages) {
 const PROBE_CHARS = 60;
 const PROBE_MIN = 12;
 
+/**
+ * @param {string} text
+ */
 function probeOf(text) {
     const lines = String(text || '').split('\n');
     for (const line of lines) {

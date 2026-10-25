@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * commonPasswords.js — the deny-list behind the password policy.
  *

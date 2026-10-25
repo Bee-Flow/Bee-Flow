@@ -48,14 +48,25 @@ const CLOSE_TAGS = TAG_FAMILIES.flatMap(f => f.closes).sort((a, b) => b.length -
 const MAX_OPEN_LOOKAHEAD = OPEN_TAGS[0].length;
 const MAX_CLOSE_LOOKAHEAD = CLOSE_TAGS[0].length;
 
+/**
+ * @param {string} tag
+ */
 function familyForOpen(tag) {
     return TAG_FAMILIES.find(f => f.opens.includes(tag)) || TAG_FAMILIES[0];
 }
 
+/**
+ * @param {string} s
+ * @param {string[]} tags
+ */
 function isPrefixOfAny(s, tags) {
     return tags.some(tag => tag.startsWith(s));
 }
 
+/**
+ * @param {string} s
+ * @param {string[]} tags
+ */
 function matchAny(s, tags) {
     return tags.find(tag => s.startsWith(tag)) || null;
 }
@@ -87,7 +98,13 @@ function createThinkTagSplitter({ onText, onThinking, onThinkingStart, onThinkin
         if (announced) { announced = false; onThinkingStop?.(); }
     };
 
+    /**
+     * @param {string} s
+     */
     const emitText = (s) => { if (s) onText(s); };
+    /**
+     * @param {string} s
+     */
     const emitThinking = (s) => {
         if (!s) return;
         if (!announced) {
@@ -101,6 +118,9 @@ function createThinkTagSplitter({ onText, onThinking, onThinkingStart, onThinkin
         onThinking(s);
     };
 
+    /**
+     * @param {string} initial
+     */
     function enterText(initial) {
         phase = 'text';
         emitText(initial);
@@ -218,11 +238,13 @@ const CHANNEL_LEADING_UNCLOSED_RE = /^\s*<\|channel>thought([\s\S]*)$/;
  * Split complete <think> pairs (anywhere) and a leading unclosed block out of
  * a full text. Returns { content, thinking } — thinking is null when nothing
  * was extracted, content keeps its original shape otherwise.
+ * @param {string} text
  */
 function extractThinkBlocks(text) {
     if (typeof text !== 'string' || (text.indexOf('<think') === -1 && text.indexOf('<|channel>thought') === -1)) {
         return { content: text, thinking: null };
     }
+    /** @type {string[]} */
     const thinkingParts = [];
     let content = text.replace(PAIR_RE, (_, inner) => {
         thinkingParts.push(inner);
@@ -248,6 +270,9 @@ function extractThinkBlocks(text) {
     };
 }
 
+/**
+ * @param {string} text
+ */
 function stripThinkTags(text) {
     return extractThinkBlocks(text).content;
 }

@@ -34,6 +34,7 @@ const log = require('../../telemetry/log');
  * back as an empty list, and an empty list is exactly the sentence someone clicks through.
  * That is why a scan that failed here reports ALL kinds as not checked rather than as
  * zero — unknown narrows.
+ * @param {string} userId
  */
 async function describeWebpageDeleteBlock(wp, userId) {
     let scan;
@@ -42,7 +43,7 @@ async function describeWebpageDeleteBlock(wp, userId) {
     } catch (err) {
         // `usageForWebpage` catches each sub-question separately, so arriving here means that
         // nothing was checked. Not "nothing uses this".
-        log.warn(`[Webpages] Delete guard scan failed for ${wp?.id}:`, err.message);
+        log.warn(`[Webpages] Delete guard scan failed for ${wp?.id}:`, /** @type {Error} */ (err).message);
         return {
             error: 'Could not check what uses this webpage',
             code: 'in_use',

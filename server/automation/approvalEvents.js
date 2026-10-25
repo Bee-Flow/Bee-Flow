@@ -29,6 +29,7 @@
  * seats are the row's business, not the event's.
  */
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 function stagesPayload(approval) {
     if (!Array.isArray(approval.stages) || !approval.stages.length) return null;
     return approval.stages.map(st => ({
@@ -182,7 +183,7 @@ function dispatchApprovalDecided(approval, { votes = null } = {}) {
         Promise.resolve()
             .then(async () => {
                 const automationStore = require('../stores/automationStore');
-                const rows = await automationStore.getApprovalVotes(approval.id).catch(() => []);
+                const rows = await automationStore.getApprovalVotes(approval.id).catch((e) => fallback('automation/approvalEvents:dispatchApprovalDecided', e, []));
                 payload.votes = rows.map(v => ({ by: v.voterId, name: v.voterName || null, decision: v.decision, reason: v.reason || null, stage: v.stage }));
                 dispatch('approval.decided', payload, approval);
             })
@@ -193,3 +194,7 @@ function dispatchApprovalDecided(approval, { votes = null } = {}) {
 }
 
 module.exports = { dispatchApprovalRequested, dispatchApprovalDecided };
+
+/** @typedef {import('./approvalRulebook').Approval} Approval */
+
+/** @typedef {{ by?: string, voterId?: string, name?: string|null, voterName?: string|null, decision?: string, reason?: string|null, stage?: string }} EventVote */

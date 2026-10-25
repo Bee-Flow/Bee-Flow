@@ -12,6 +12,7 @@ const { syncDatatableUsage } = require('../datatableUsageSync');
 const { syncKbSources } = require('../../core/kb/kbSourceSync');
 const log = require('../../telemetry/log');
 const { collectPendingRefs } = require('./pendingDatatables');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * Persist the draft to the automations table. Creates a row on the first
@@ -49,13 +50,14 @@ async function persistDraft(draftWrap, { finalize = false } = {}) {
      * Fail-open as a whole (`null` ⇒ the rule is skipped) — see automation/agentCatalog.js. The run remains
      * the real gate.
      */
+    /** @type {Set<string> | null} */
     let availableAgents = null;
     if (draftWrap.userId) {
         try {
             const { agentCatalogForOwner } = require('../agentCatalog');
             availableAgents = await agentCatalogForOwner(def, draftWrap.userId);
         } catch (e) {
-            log.warn(`[builderTools] agent check skipped: ${e.message}`);
+            log.warn(`[builderTools] agent check skipped: ${/** @type {Error} */ (e).message}`);
         }
     }
     const validation = validateDefinition(def, { deliverableEvents: getDeliverableEvents(), availableAgents });
@@ -70,7 +72,7 @@ async function persistDraft(draftWrap, { finalize = false } = {}) {
                 validation.errors = [...(validation.errors || []), ...assigneeErrors.map(e => ({ code: 'approval.assignee_invalid', severity: 'error', ...e }))];
             }
         } catch (e) {
-            log.warn(`[builderTools] assignee validation skipped: ${e.message}`);
+            log.warn(`[builderTools] assignee validation skipped: ${/** @type {Error} */ (e).message}`);
         }
         /**
          * The knowledge-base gate, same shape as the assignee rule above and
@@ -97,7 +99,7 @@ async function persistDraft(draftWrap, { finalize = false } = {}) {
                 validation.errors = [...(validation.errors || []), ...blocking];
             }
         } catch (e) {
-            log.warn(`[builderTools] knowledge-base check skipped: ${e.message}`);
+            log.warn(`[builderTools] knowledge-base check skipped: ${/** @type {Error} */ (e).message}`);
         }
     }
     const triggerType = def.trigger?.kind || 'manual';
@@ -123,7 +125,7 @@ async function persistDraft(draftWrap, { finalize = false } = {}) {
                 const u = await userStore.getUser(draftWrap.userId);
                 orgId = u?.organizationId || null;
                 if (orgId) draftWrap.orgId = orgId; // memoize for subsequent updates
-            } catch (err) { log.debug('keep null', err); }
+            } catch (err) { fallback('automation/builderTools/persistence:persistDraft', err); /* keep null */ }
         }
         // Create a draft row.
         const a = await automationStore.createAutomation({
@@ -153,7 +155,7 @@ async function persistDraft(draftWrap, { finalize = false } = {}) {
     // automation is ACTIVE the trigger config below has to be compared against
     // what its subscriptions and schedule rows were built from.
     let prior = null;
-    try { prior = await automationStore.getAutomation(draftWrap.automationId); } catch (err) { log.debug('treated as unchanged', err); }
+    try { prior = await automationStore.getAutomation(draftWrap.automationId); } catch (err) { fallback('automation/builderTools/persistence:persistDraft#2', err); /* treated as unchanged */ }
     const updates = {
         title: draftWrap.title || undefined,
         description: draftWrap.description || undefined,
@@ -199,11 +201,11 @@ async function resyncLiveTriggers(draftWrap, prior, saved, def) {
     if ((hasAppEventTrigger(def) || hasAppEventTrigger(priorDef))
         && appEventFingerprint(def) !== appEventFingerprint(priorDef)) {
         try { await syncAppEventSubscription(draftWrap.automationId, draftWrap.userId || saved.userId, def); }
-        catch (e) { log.warn(`[builderTools] subscription re-sync failed for ${draftWrap.automationId}: ${e.message}`); }
+        catch (e) { log.warn(`[builderTools] subscription re-sync failed for ${draftWrap.automationId}: ${/** @type {Error} */ (e).message}`); }
     }
     if (scheduleFingerprint(def) !== scheduleFingerprint(priorDef)) {
         try { await syncSchedules(draftWrap.automationId, def); }
-        catch (e) { log.warn(`[builderTools] schedule re-sync failed for ${draftWrap.automationId}: ${e.message}`); }
+        catch (e) { log.warn(`[builderTools] schedule re-sync failed for ${draftWrap.automationId}: ${/** @type {Error} */ (e).message}`); }
     }
 }
 

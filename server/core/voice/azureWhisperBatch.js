@@ -12,6 +12,7 @@ const os = require('os');
 const path = require('path');
 const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * Build a diagnostic error message for a non-succeeded Azure batch job.
@@ -43,6 +44,7 @@ function formatAzureBatchFailure(pollData) {
     return `Azure Whisper batch job ${status}. Check your Azure Speech resource.`;
 }
 
+/** @type {Record<string, number>} */
 const WHISPER_BATCH_BYTES_PER_SECOND = {
     '.wav': 32000, '.flac': 16000, '.mp3': 16000,
     '.m4a': 12000, '.mp4': 12000, '.ogg': 8000, '.opus': 8000,
@@ -64,6 +66,9 @@ function computeWhisperBatchTimeouts({ bytes, ext, env = process.env } = {}) {
     const bps = WHISPER_BATCH_BYTES_PER_SECOND[String(ext || '').toLowerCase()];
     const estimatedSeconds = bps && Number(bytes) > 0 ? Math.round(Number(bytes) / bps) : null;
     const override = Number(env.WHISPER_AZURE_POLL_TIMEOUT_MS);
+    /**
+     * @param {number} v
+     */
     const clampMs = (v) => Math.min(60 * 60_000, Math.max(15 * 60_000, v));
     const pollCapMs = override > 0
         ? override
@@ -132,7 +137,9 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
     const tempInputPath = path.join(os.tmpdir(), `azwhi-in-${Date.now()}`);
     await fs.promises.writeFile(tempInputPath, audioData);
     let audioCleanup = () => {};
+    /** @type {string | null} */
     let rustfsKey = null;
+    /** @type {string | undefined | null} */
     let transcriptionJobUrl = null;
 
     try {
@@ -172,6 +179,7 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
         const speechApiBase = `https://${speechRegion}.api.cognitive.microsoft.com/speechtotext/v3.2`;
 
         log.info('[Transcription:AzureWhisper] Discovering Whisper model in region', speechRegion, '...');
+        /** @type {{ displayName?: string; self?: string; }[]} */
         let whisperModels = [];
         let skip = 0;
         const pageSize = 100;
@@ -235,6 +243,7 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
         // ── Step 5: Poll until Succeeded or Failed ──
         const pollStart = Date.now();
         let jobStatus = 'Running';
+        /** @type {{ status?: string; properties?: { error?: { code?: string; message?: string; }; }; } | null} */
         let pollData = null;
         while (jobStatus === 'Running' || jobStatus === 'NotStarted') {
             if (Date.now() - pollStart > pollCapMs)
@@ -285,7 +294,7 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
         };
     } finally {
         try { fs.unlinkSync(tempInputPath); } catch (_) { log.debug('temp input file already gone', _); }
-        try { audioCleanup(); } catch (_) { log.debug('audio cleanup already done', _); }
+        try { audioCleanup(); } catch (_) { bestEffort('core/voice/azureWhisperBatch:runAzureWhisperBatch', _); /* audio cleanup already done */ }
         try {
             if (rustfsKey) { const ss = require('../../stores/storageStore'); await ss.deleteFile(rustfsKey); log.info('[Transcription:AzureWhisper] Temp audio deleted from RustFS'); }
         } catch (_) { log.warn('temp audio could not be deleted from object storage', _); }
@@ -298,6 +307,7 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
 /**
  * Build the batch `diarization` property from an optional speaker count.
  * Exact count → minCount=maxCount=N; unknown → 1..35. maxCount must be < 36.
+ * @param {number | null} numSpeakers
  */
 function azureDiarizationSpeakers(numSpeakers) {
     const n = Number(numSpeakers);

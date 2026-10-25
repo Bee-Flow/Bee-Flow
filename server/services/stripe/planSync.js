@@ -5,7 +5,7 @@
 
 const deps = require('./deps');
 const { getClient } = require('./client');
-const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * Sync a BeeFlow subscription plan to Stripe as a Product + Price.
@@ -68,7 +68,7 @@ async function syncPlanToStripe(plan) {
     if (plan.stripe_price_id && plan.stripe_price_id !== price.id) {
         try {
             await stripe.prices.update(plan.stripe_price_id, { active: false });
-        } catch (err) { log.debug('Old price may already be archived — ignore', err); }
+        } catch (err) { bestEffort('stripe/planSync:archiveOldPrice', err); }
     }
 
     // Set the new price as the product's default
@@ -183,7 +183,7 @@ async function syncPaygPlanToStripe(plan) {
     // Archive the previous metered price if it differs.
     if (plan.stripe_price_id && plan.stripe_price_id !== price.id) {
         try { await stripe.prices.update(plan.stripe_price_id, { active: false }); }
-        catch (err) { log.debug('already archived', err); }
+        catch (err) { bestEffort('stripe/planSync:archiveOldMeteredPrice', err); }
     }
     await stripe.products.update(product.id, { default_price: price.id });
 

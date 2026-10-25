@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck strict
 /**
  * Migration: backfill organizations.registration_source (BFSF-286).
  *

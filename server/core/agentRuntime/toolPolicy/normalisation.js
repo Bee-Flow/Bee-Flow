@@ -60,6 +60,7 @@ function normaliseToolsConfig(config, opts = {}) {
     // another door. The bound is about the WORK a config costs on every turn,
     // and an empty entry costs none of it: no registry lookup, no effect scan,
     // no set.
+    /** @type {string[]} */
     let overflowKeys = [];
     if (appKeys.length > MAX_APP_ENTRIES) {
         overflowKeys = appKeys.slice(MAX_APP_ENTRIES);
@@ -87,7 +88,11 @@ function normaliseToolsConfig(config, opts = {}) {
     return { tools: out, warnings: st.warnings, changed: st.changed };
 }
 
-/** One app entry, clamped: actions, confirm and actAs. */
+/**
+ * One app entry, clamped: actions, confirm and actAs.
+ * @param {string} appId
+ * @param {Set<string> | null} lent
+ */
 function normaliseAppEntry(appId, entry, lent, st) {
     if (!_plainObject(entry)) {
         // KEPT, granting nothing — never dropped. Dropping is the widening
@@ -134,6 +139,7 @@ function normaliseAppEntry(appId, entry, lent, st) {
  * very different from "the owner gave it everything". `_appAllowsTool` reads
  * the absence narrowly where that applies, so nothing needs filling in here,
  * and not filling in is the only reading that never widens.
+ * @param {string} appId
  */
 function normaliseActions(appId, value, known, st) {
     if (value === '*') return { actions: '*', actionsMissing: false };
@@ -141,6 +147,7 @@ function normaliseActions(appId, value, known, st) {
     if (Array.isArray(value)) {
         const knownSet = new Set(known);
         const seen = new Set();
+        /** @type {string[]} */
         const actions = [];
         for (const a of value) {
             if (typeof a !== 'string' || !a || seen.has(a)) continue;
@@ -167,7 +174,11 @@ function normaliseActions(appId, value, known, st) {
     return { actions: [], actionsMissing: false };
 }
 
-/** An app entry's `actAs`: `owner` survives only without sends and with a live lend grant. */
+/**
+ * An app entry's `actAs`: `owner` survives only without sends and with a live lend grant.
+ * @param {string} value
+ * @param {string} appId
+ */
 function normaliseActAs(appId, value, { actions, known, lent }, st) {
     let actAs = ACT_AS_MODES.includes(value) ? value : 'viewer';
     if (actAs === 'owner' && appDefersGrants(appId)) {
@@ -312,3 +323,9 @@ function _sameEntry(a, b) {
 }
 
 module.exports = { normaliseToolsConfig };
+
+/**
+ * The running state of one normalisation: the warnings so far and whether
+ * anything changed. `note`/`touch` are attached right after creation.
+ * @typedef {{ warnings: string[], changed: boolean, note?: (msg: string) => void, touch?: () => void }} NormState
+ */

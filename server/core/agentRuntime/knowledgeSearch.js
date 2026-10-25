@@ -45,7 +45,7 @@ async function filterSystemKBsForUser(kbIds, userId, session) {
     const enabled = new Set();
     for (const slug of referencedSlugs) {
         try { if (await userHasBetaFeature(userId, slug, session || null)) enabled.add(slug); }
-        catch (err) { log.debug('treat as disabled on failure', err); }
+        catch (err) { bestEffort('core/agentRuntime/knowledgeSearch:filterSystemKBsForUser', err); /* treat as disabled on failure */ }
     }
     const denied = new Set(
         rows
@@ -66,6 +66,7 @@ const GREETING_RE = /^(h(i|ey|ello|oi|allo|oi+)|yo|sup|goedemorgen|goedemiddag|g
 const { filterKbIdsForEmbed } = require('../kb/kbVisibility');
 const { askerContext } = require('../kb/askerContext');
 const { visibleKbIdsFor, coerceTestAs } = require('./testAs');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * Narrow an agent's configured knowledge bases to what may answer THIS turn.

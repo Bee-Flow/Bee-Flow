@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Which organisation(s) does an MCP caller belong to?
  *
@@ -23,6 +23,7 @@
 
 /** @typedef {{ primary: string|null, all: string[] }} McpOrgs */
 
+/** @param {{ groups?: string | string[] | null } | null | undefined} user @returns {string[]} */
 function groupIdsOf(user) {
     if (Array.isArray(user?.groups)) return user.groups;
     try { return JSON.parse(user?.groups || '[]'); } catch (_) { return []; }
@@ -33,7 +34,7 @@ const defaultDeps = {
 };
 
 /**
- * @param {{ organizationId?: string|null, groups?: unknown }|null|undefined} user
+ * @param {{ organizationId?: string|null, groups?: string | string[] | null }|null|undefined} user
  * @param {{ getAllGroups?: () => Promise<any[]> }} [deps]
  * @returns {Promise<McpOrgs>}
  * @throws when the groups cannot be read
@@ -56,7 +57,11 @@ async function resolveMcpOrgs(user, deps = {}) {
     return { primary: all[0] ?? null, all };
 }
 
-/** The primary org id only (home, else the first group org, else null). */
+/**
+ * The primary org id only (home, else the first group org, else null).
+ * @param {{ organizationId?: string|null, groups?: string | string[] | null }|null|undefined} user
+ * @param {{ getAllGroups?: () => Promise<any[]> }} [deps]
+ */
 async function resolveMcpOrgId(user, deps = {}) {
     return (await resolveMcpOrgs(user, deps)).primary;
 }

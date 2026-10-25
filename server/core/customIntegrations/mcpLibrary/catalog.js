@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Curated catalogue of vendor-hosted (remote) MCP servers an ORGANISATION
  * admin may install from Settings → Organisation → MCP library.
@@ -35,7 +35,7 @@
  *   safetyNote   optional least-privilege advice shown at install time
  */
 
-const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 const CATEGORIES = Object.freeze(['development', 'data', 'docs', 'payments', 'automation', 'observability']);
 
@@ -237,6 +237,9 @@ const REMOTE_CATALOG = Object.freeze([
 
 const BY_ID = new Map(REMOTE_CATALOG.map(e => [e.id, e]));
 
+/**
+ * @param {string} id
+ */
 function getCatalogEntry(id) {
     return (typeof id === 'string' && BY_ID.get(id)) || null;
 }
@@ -246,7 +249,7 @@ function officialHosts() {
     const hosts = new Set();
     for (const e of REMOTE_CATALOG) {
         if (e.selfHosted) continue;
-        try { hosts.add(new URL(e.url).hostname.toLowerCase()); } catch (err) { log.debug('a broken entry is simply not official', err); }
+        try { hosts.add(new URL(e.url).hostname.toLowerCase()); } catch (err) { bestEffort('core/customIntegrations/mcpLibrary/catalog:officialHosts', err); /* a broken entry is simply not official */ }
     }
     return hosts;
 }

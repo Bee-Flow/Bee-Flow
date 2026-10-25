@@ -20,6 +20,7 @@ const CRUD_MODULES = /agents[\\/](crud|crudSchemas|agentPersonaWrite|agentUpdate
  * them. Returns a function that restores the original resolver.
  */
 function stubCrudRequires(mocks, tag) {
+    /** @type {Record<string, string>} */
     const mockIds = {};
     for (const [request, exportsObj] of Object.entries(mocks)) {
         const mockId = `mock:${tag}:${request}`;

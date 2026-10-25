@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Transcriptions: intake steps of POST / (upload).
  *
@@ -15,6 +15,7 @@ const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 const configStore = require('../../stores/configStore');
 const meetingFiling = require('../../projects/meetingFiling');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // Every engine the pipeline knows how to drive. A request may name one of
 // these; anything else is rejected rather than silently falling through to the
@@ -29,6 +30,7 @@ const KNOWN_PROVIDERS = ['voxtral', 'whisperx', 'scaleway', 'azure', 'whisper_az
  * an upgrade never breaks the "Switch engine & retry" button. The configured
  * default is always allowed, and `local` additionally requires
  * `local_whisper_enabled`.
+ * @param {boolean} localEnabled
  */
 async function resolveAllowedProviders(localEnabled) {
     const configured = await configStore.getConfig('transcription_provider') || 'voxtral';
@@ -45,11 +47,15 @@ async function resolveAllowedProviders(localEnabled) {
  * File the new note into a project, when one was asked for. Checked BEFORE
  * anything is saved or transcribed: a refusal here must cost nothing and leave
  * nothing behind.
+ * @param {import('express').Request} req
+ * @param {string} userId
+ * @param {string | null} userOrgId
  * @returns {Promise<{ projectId: string|null, refusal?: { status: number, body: object } }>}
  */
 async function resolveProjectFiling(req, userId, userOrgId) {
     if (!req.body.projectId) return { projectId: null };
-    const dropUpload = () => { try { fs.unlinkSync(req.file.path); } catch (err) { log.debug('multer\'s temp file may already be gone', err); } };
+    const dropUpload = () => { try { fs.unlinkSync(req.file.path); } catch (err) { bestEffort('routes/transcriptions/uploadIntake:dropUpload', err); /* multer's temp file may already be gone */ } };
+    /** @type {Awaited<ReturnType<typeof meetingFiling.resolve>>} */
     let target;
     try {
         // nosemgrep: ajinabraham.njsscan.traversal.resolve_path_traversal.join_resolve_path_traversal -- meetingFiling.resolve is the project access check, not path.resolve; no file path is built
@@ -62,7 +68,7 @@ async function resolveProjectFiling(req, userId, userOrgId) {
     }
     if (!target.ok) {
         dropUpload();
-        return { projectId: null, refusal: { status: target.status, body: { error: target.error, code: target.code } } };
+        return { projectId: null, refusal: { status: /** @type {Extract<typeof target, { ok: false }>} */ (target).status, body: { error: /** @type {Extract<typeof target, { ok: false }>} */ (target).error, code: /** @type {Extract<typeof target, { ok: false }>} */ (target).code } } };
     }
     return { projectId: target.projectId };
 }
@@ -72,6 +78,7 @@ async function resolveProjectFiling(req, userId, userOrgId) {
  *   1. Per-upload `provider` form field, only when the admin allows it
  *      (`resolveAllowedProviders`). Picks from the upload modal in the UI.
  *   2. Server-side default `transcription_provider` config.
+ * @param {import('express').Request} req
  * @returns {Promise<{ provider: string, refusal?: object }>} `refusal` is the 403 body.
  */
 async function resolveUploadProvider(req) {
@@ -104,6 +111,9 @@ async function resolveUploadProvider(req) {
 /**
  * Save the audio up front (so a crashed/timed-out job can still be
  * reprocessed): a local copy and, when object storage exists, a durable one.
+ * @param {{ path: string, originalname?: string }} file
+ * @param {string} userId
+ * @param {string} fileName
  * @returns {Promise<{ savedAudioPath: string, audioStorageKey: string|null }>}
  */
 async function persistUploadAudio(file, userId, fileName) {

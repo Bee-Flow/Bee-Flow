@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck strict
 /**
  * Data migration: move plain prompt tasks out of `ai_tasks` into Cowork.
  *
@@ -59,6 +60,9 @@ const CARRIED_COLUMNS = [
 // older rows written before the routes normalised the empty string to NULL.
 const PLAIN_TASK = `(t.agent_id IS NULL OR t.agent_id = '')`;
 
+/**
+ * @param {string} name
+ */
 async function tableExists(name) {
     const r = await getOne(`SELECT to_regclass($1) AS oid`, [`public.${name}`]);
     return !!r?.oid;

@@ -30,7 +30,10 @@ const bodyOf = (shape) => z.preprocess(
     z.object(shape).strict(),
 );
 
-/** Een "ja" op de query string. `?confirm=1` en `?confirm=true` allebei. */
+/**
+ * Een "ja" op de query string. `?confirm=1` en `?confirm=true` allebei.
+ * @param {string} message
+ */
 const flag = (message) => choice(['true', '1', 'false', '0'], message)
     .transform((v) => v === 'true' || v === '1')
     .optional();
@@ -38,12 +41,18 @@ const flag = (message) => choice(['true', '1', 'false', '0'], message)
 /** Text that a person types: trimmed, not empty. */
 const text = (message, max = 2000) => worded(message).trim().min(1, message).max(max, message);
 
-/** Een geheel getal op de query string. */
+/**
+ * Een geheel getal op de query string.
+ * @param {string} name
+ */
 const whole = (name) => z.coerce.number({ error: typeError({ invalid: `${name} is een getal.` }) })
     .int(`${name} is een heel getal.`)
     .optional();
 
-/** Een lijst van id's — wat er ín staat is aan de store om te toetsen. */
+/**
+ * Een lijst van id's — wat er ín staat is aan de store om te toetsen.
+ * @param {string} message
+ */
 const idList = (message) => z.array(worded(message).trim().min(1, message), { error: message });
 
 /** Niets. Gezegd in plaats van weggelaten: een genegeerde sleutel is een belofte. */

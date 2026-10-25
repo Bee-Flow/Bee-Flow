@@ -28,8 +28,14 @@ function createSlots({ maxTotal = MAX_TOTAL, maxPerKey = MAX_PER_KEY, maxWaitMs 
     const perKey = new Map();
     const queue = [];
 
+    /**
+     * @param {string} key
+     */
     const canStart = (key) => running < maxTotal && (perKey.get(key) || 0) < maxPerKey;
 
+    /**
+     * @param {string} key
+     */
     function start(key) {
         running += 1;
         perKey.set(key, (perKey.get(key) || 0) + 1);
@@ -66,7 +72,7 @@ function createSlots({ maxTotal = MAX_TOTAL, maxPerKey = MAX_PER_KEY, maxWaitMs 
         // this org therefore means nobody ahead of it could have used it.
         if (canStart(k)) return Promise.resolve(start(k));
         return new Promise((resolve, reject) => {
-            const w = { key: k, resolve, timer: null };
+            const w = { key: k, resolve, timer: /** @type {NodeJS.Timeout | null} */ (null) };
             w.timer = setTimeout(() => {
                 const at = queue.indexOf(w);
                 if (at >= 0) queue.splice(at, 1);
@@ -83,3 +89,10 @@ function createSlots({ maxTotal = MAX_TOTAL, maxPerKey = MAX_PER_KEY, maxWaitMs 
 const shared = createSlots();
 
 module.exports = { acquireSlot: shared.acquireSlot, stats: shared.stats, createSlots, MAX_TOTAL, MAX_PER_KEY };
+
+/**
+ * @typedef {Object} AcquireSlotArgs
+ * @property {string} [key]
+ */
+
+/** @typedef {{ key: string, resolve: (release: () => void) => void, timer: ReturnType<typeof setTimeout> | null }} SlotWaiter */

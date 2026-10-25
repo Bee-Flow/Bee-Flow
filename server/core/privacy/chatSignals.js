@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Chat signals: the recorder.
  *
@@ -45,6 +45,7 @@ const { normalizeCategory } = require('./piiCategories');
 const { kindOfCategory } = require('./personalColumns');
 const { isAnonymousUserId } = require('../../utils/anonymousUser');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // Lazy, so requiring the recorder costs nothing until a turn is counted.
 const _store = () => require('../../stores/chatSignalStore');
@@ -199,31 +200,43 @@ function agentTurnTarget({ userId, callerOrgId, agentOrgId }) {
 
 const PK = ['organization_id', 'period_start', 'granularity', 'surface', 'signal', 'value', 'destination', 'provider_type', 'protection'];
 
+/** @typedef {Parameters<ReturnType<typeof _store>['addCounts']>[0][number]} ChatSignalRow */
+
+/** @type {Map<string, number>} */
 let _map = new Map();     // primary key joined with '|' -> turns
+/** @type {Map<string, number> | null} */
 let _retry = null;        // the keys of one failed flush, sent once more with the next
+/** @type {ReturnType<typeof setTimeout> | null} */
 let _timer = null;
+/** @type {Promise<number> | null} */
 let _chain = null;        // flushes run one after another
 let _dropped = 0;         // keys refused while the map was full
 let _now = () => new Date();
 
 function _arm() {
     if (_timer) return;
-    _timer = setTimeout(() => { _timer = null; flush().catch(() => {}); }, FLUSH_MS);
+    _timer = setTimeout(() => { _timer = null; flush().catch((e) => bestEffort('privacy/chatSignals:flush', e)); }, FLUSH_MS);
     if (typeof _timer.unref === 'function') _timer.unref();
 }
 
+/** @param {string} key */
 function _bump(key) {
     if (!_map.has(key) && _map.size >= MAX_KEYS) { _dropped++; return; }
     _map.set(key, (_map.get(key) || 0) + 1);
-    if (_map.size >= MAX_KEYS) flush().catch(() => {});
+    if (_map.size >= MAX_KEYS) flush().catch((e) => bestEffort('privacy/chatSignals:flush', e));
     else _arm();
 }
 
+/**
+ * @param {Map<string, number>} map
+ * @returns {ChatSignalRow[]}
+ */
 function _rowsOf(map) {
+    /** @type {ChatSignalRow[]} */
     const rows = [];
     for (const [key, turns] of map) {
         const parts = key.split('|');
-        const row = Object.fromEntries(PK.map((c, i) => [c, parts[i]]));
+        const row = /** @type {Omit<ChatSignalRow, 'turns'>} */ (Object.fromEntries(PK.map((c, i) => [c, parts[i]])));
         rows.push({ ...row, turns });
     }
     return rows;
@@ -301,12 +314,13 @@ function recordChatTurn({ orgKey, surface, outcome, categories, providerConfig, 
     }
 }
 
+/** @param {Parameters<typeof countTurn>[0]} args */
 async function _countTurnAsync(args) {
     const { orgKey, surface, userId, optOut, notice, outcome, categories, providerConfig, allowlistedHosts, dryRun } = args || {};
     if (dryRun) return;
     if (!V.SURFACES.includes(surface)) return;
     const key = typeof orgKey === 'string' && orgKey ? orgKey : 'default';
-    const mon = await _resolver().resolveChatMonitoring(key);
+    const mon = /** @type {{ state: string, version: string|null, surfaces: readonly string[], signals: readonly string[] }} */ (await _resolver().resolveChatMonitoring(key));
     if (!mon || mon.state !== 'on' || !mon.surfaces.includes(surface)) return;
     if (typeof notice !== 'string' || notice !== `${surface}@${mon.version}`) return;
     if (optOut === true) return;
@@ -325,8 +339,8 @@ async function _countTurnAsync(args) {
  */
 function countTurn(args) {
     try {
-        _countTurnAsync(args).catch(() => {});
-    } catch (err) { log.debug('never on the request path', err); }
+        _countTurnAsync(args).catch((e) => bestEffort('privacy/chatSignals:countTurn', e));
+    } catch (err) { bestEffort('privacy/chatSignals:countTurn', err); /* never on the request path */ }
     return undefined;
 }
 
@@ -363,7 +377,10 @@ function _resetForTests() {
     _now = () => new Date();
 }
 
-/** Test-only: pin the clock the period is taken from. */
+/**
+ * Test-only: pin the clock the period is taken from.
+ * @param {() => Date} fn
+ */
 function _setNowForTests(fn) { _now = fn; }
 
 /** Test-only: how many keys wait for the next flush. */

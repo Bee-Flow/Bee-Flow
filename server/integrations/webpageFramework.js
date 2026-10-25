@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Webpage framework + runtime-tier model.
  *
@@ -23,7 +23,9 @@
 
 const webpageStore = require('../stores/webpageStore');
 
+/** @type {[string, ...string[]]} */
 const FRAMEWORKS = ['vanilla', 'react-mui'];
+/** @type {[string, ...string[]]} */
 const RUNTIMES = ['light', 'full'];
 
 const DEFAULT_FRAMEWORK = 'vanilla';
@@ -36,11 +38,17 @@ const DEFAULT_RUNTIME = 'light';
 // To revert to the classic static builder default, set this back to 'vanilla'.
 const DEFAULT_NEW_FRAMEWORK = 'react-mui';
 
+/**
+ * @param {{ settings?: { framework?: string, runtime?: string } } | null | undefined} webpage
+ */
 function resolveFramework(webpage) {
     const f = webpage?.settings?.framework;
     return FRAMEWORKS.includes(f) ? f : DEFAULT_FRAMEWORK;
 }
 
+/**
+ * @param {{ settings?: { framework?: string, runtime?: string } } | null | undefined} webpage
+ */
 function resolveRuntime(webpage) {
     const r = webpage?.settings?.runtime;
     return RUNTIMES.includes(r) ? r : DEFAULT_RUNTIME;
@@ -61,6 +69,7 @@ function sharedImageRule() {
  * VANILLA runtime block — the classic HTML/CSS/JS contract. Kept faithful to the
  * long-standing prompt so vanilla projects behave exactly as before; only the
  * IMAGES rule is swapped for the asset-aware shared version above.
+ * @param {{ filesBlock: string }} opts
  */
 function vanillaRuntimePrompt({ filesBlock }) {
     return `${DIVIDER}
@@ -112,6 +121,7 @@ The preview iframe runs sandboxed with NO same-origin, so it CANNOT \`fetch()\` 
  * REACT-MUI runtime block — React 18 + Material UI authored as ES-module source.
  * The light tier bundles this in the browser (esbuild-wasm) with imports resolved
  * via an import map; the full tier runs a real Vite dev server in a container.
+ * @param {{ filesBlock: string, runtime: string }} opts
  */
 function reactMuiRuntimePrompt({ filesBlock, runtime }) {
     const runtimeNote = runtime === 'full'
@@ -170,6 +180,7 @@ ${filesBlock}`;
  * Build the framework-specific middle of the system prompt (runtime constraints
  * + file layout + contract). Everything else in the prompt (editing tools,
  * SQLite, bridges, planning, knowledge) is shared and stays in webpageChat.js.
+ * @param {{ framework: string, runtime: string, filesBlock: string }} opts
  */
 function buildRuntimePromptBlock({ framework, runtime, filesBlock }) {
     if (framework === 'react-mui') {
@@ -211,6 +222,9 @@ const WEBPAGE_SET_RUNTIME_TOOL = {
 };
 
 const FRAMEWORK_TOOL_NAMES = new Set(['webpage_set_framework', 'webpage_set_runtime']);
+/**
+ * @param {string} name
+ */
 function isFrameworkTool(name) {
     return FRAMEWORK_TOOL_NAMES.has(name);
 }
@@ -220,6 +234,9 @@ function isFrameworkTool(name) {
  * (settings is a wholesale-overwrite column, so a naive write would clobber
  * other keys). Returns an envelope with `_action` so the chat handler can emit
  * the matching SSE event and the preview can recompose/relaunch.
+ * @param {string} toolName
+ * @param {{ framework?: string, runtime?: string }} args
+ * @param {{ webpageId: string, userId: string }} ctx
  */
 async function executeFrameworkTool(toolName, args, { webpageId, userId }) {
     const wp = await webpageStore.getWebpage(webpageId, userId);

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * App Studio Builder — how a turn ends.
  *
@@ -20,23 +21,53 @@ const { applyToolCall, persistDraft } = require('../../../appStudio/builderTools
 const { briefForSnapshot } = require('../../../appStudio/builderTools/appNaming');
 const { summariseApp } = require('../../../appStudio/builderPrompt');
 const { HISTORY_EVICT_BLOCK } = require('./turnMessages');
-const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
-/** A plan proposed this turn: persist it, hand it over, and wait. */
+/**
+ * The loop's live state object (built in ./chatStream.js, written by ./buildLoop.js).
+ * @typedef {{
+ *   iter: number,
+ *   lastFinalized: boolean,
+ *   toolCallCount: number,
+ *   mutatingToolCalls: number,
+ *   validationErrorCount: number,
+ *   modelEndedTurn: boolean,
+ *   builtThisTurn: boolean,
+ *   proposedPlan: { planId?: string, plan?: unknown }|null,
+ *   lastPhaseIndex: number|null,
+ *   lastValidation: { ok?: boolean, errors?: unknown[], warnings?: unknown[] }|null,
+ *   persistBroken: boolean,
+ *   clientGone: boolean,
+ * }} BuilderTurn
+ * @typedef {import('../../../appStudio/builderTools').BuilderDraft & { _todos?: unknown[] }} TurnDraft
+ * @typedef {{ phases?: Array<{ label?: string|null }> }} ApprovedPlan
+ * @typedef {{ token: string, nextPhase: { index: number, label: string|null } }} Continuation
+ */
+
+/**
+ * A plan proposed this turn: persist it, hand it over, and wait.
+ * @param {BuilderTurn} turn
+ * @param {{ draftWrap: TurnDraft, send: import('../builderShared').BuilderSend }} opts
+ */
 async function handleProposedPlan(turn, { draftWrap, send }) {
     // ── Wave 5: a proposed plan ends the turn awaiting approval. Persist
     //    it (pendingPlan) so a refresh mid-review rehydrates the PlanCard —
     //    which needs an app row, so create one for a still-fresh draft. ──
     let awaitingPlan = false;
     if (turn.proposedPlan) {
-        if (!draftWrap.appId) { try { await persistDraft(draftWrap); } catch (err) { log.debug('no persistence this turn', err); } }
+        if (!draftWrap.appId) { try { await persistDraft(draftWrap); } catch (err) { bestEffort('routes/ai/appStudioBuilder/turnClosing:handleProposedPlan', err); /* no persistence this turn */ } }
         send('plan', turn.proposedPlan);
         awaitingPlan = true;
     }
     return awaitingPlan;
 }
 
-/** The auto-finalize net — see the note inside for the two exits it runs on. */
+/**
+ * The auto-finalize net — see the note inside for the two exits it runs on.
+ * @param {BuilderTurn} turn
+ * @param {{ draftWrap: TurnDraft, iterationBudget: number, approvedPlanForTurn: ApprovedPlan|null, send: import('../builderShared').BuilderSend, sendError: (code: string, userMessage: string) => void }} opts
+ * @returns {Promise<{ continuation: Continuation|null, budgetExhausted: boolean }>}
+ */
 async function runAutoFinalizeNet(turn, { draftWrap, iterationBudget, approvedPlanForTurn, send, sendError }) {
     // The auto-finalize net. It runs on exactly two exits:
     //  • the BUDGET ran out (iter reached iterationBudget) — the original
@@ -109,7 +140,16 @@ async function runAutoFinalizeNet(turn, { draftWrap, iterationBudget, approvedPl
     return { continuation, budgetExhausted };
 }
 
-/** The session snapshot the client rehydrates from. Non-fatal by design. */
+/**
+ * The session snapshot the client rehydrates from. Non-fatal by design.
+ * @param {BuilderTurn} turn
+ * @param {{
+ *   draftWrap: TurnDraft, userId: string, history: Array<{ role: string, content: string }>,
+ *   inboundImages: unknown[], effectiveMessage: string, proseParts: string[], resolvedTier: string,
+ *   approvedPlanForTurn: ApprovedPlan|null, isApproval: boolean,
+ *   priorSnapshot?: { pendingPlan?: unknown }|null, continuation: Continuation|null,
+ * }} opts
+ */
 async function persistTurnSnapshot(turn, {
     draftWrap, userId, history, inboundImages, effectiveMessage, proseParts,
     resolvedTier, approvedPlanForTurn, isApproval, priorSnapshot, continuation,
@@ -129,6 +169,7 @@ async function persistTurnSnapshot(turn, {
                     : String(effectiveMessage) },
                 ...(proseParts.length ? [{ role: 'assistant', content: proseParts.join('') }] : []),
             ];
+            /** @type {{ sessionId: string, appId: string, messages: Array<{ role: string, content: string }>, lastValidation: unknown, summary: string, updatedAt: string, lastTier: string, todos?: unknown, brief?: string, approvedPlan?: unknown, pendingPlan?: unknown, continueToken?: string }} */
             const snapshotBody = {
                 sessionId: draftWrap.builderSessionId,
                 appId: draftWrap.appId,
@@ -155,11 +196,15 @@ async function persistTurnSnapshot(turn, {
             // model saw survives between evictions (the automation builder's
             // builderSessions pattern).
             await studioAppStore.setBuilderSession(draftWrap.appId, userId, snapshotBody, { trimBlock: HISTORY_EVICT_BLOCK });
-        } catch (err) { log.debug('non-fatal', err); }
+        } catch (err) { bestEffort('routes/ai/appStudioBuilder/turnClosing:persistTurnSnapshot', err); /* non-fatal */ }
     }
 }
 
-/** How the turn ended, for the usage row's stop_reason → OpenObserve. */
+/**
+ * How the turn ended, for the usage row's stop_reason → OpenObserve.
+ * @param {BuilderTurn} turn
+ * @param {{ awaitingPlan: boolean, continuation: Continuation|null, budgetExhausted: boolean }} opts
+ */
 function classifyTurnOutcome(turn, { awaitingPlan, continuation, budgetExhausted }) {
     return turn.lastFinalized ? 'finalized'
         : awaitingPlan ? 'awaiting_plan'

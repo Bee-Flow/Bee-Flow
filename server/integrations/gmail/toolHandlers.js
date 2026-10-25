@@ -285,3 +285,13 @@ async function createDraft(gmail, args, session) {
 }
 
 module.exports = { readAttachment, composeMessage, modifyLabels, setReadOrArchived, createDraft };
+
+/**
+ * @typedef {import('./messageShape').GmailClient} GmailClient
+ * The session the Gmail tools get: OAuth tokens plus, for a chat, the signed-in user.
+ * @typedef {import('../googleClient').GoogleSession & { user?: { email?: string } }} GmailSession
+ * Model-provided arguments of the gmail_* tools handled here.
+ * @typedef {{ messageId?: string, attachmentId?: string, filename?: string, mimeType?: string, to?: string,
+ *   cc?: string, bcc?: string, subject?: string, body?: string, replyToMessageId?: string, threadId?: string,
+ *   addLabelIds?: unknown, removeLabelIds?: unknown }} GmailToolArgs
+ */

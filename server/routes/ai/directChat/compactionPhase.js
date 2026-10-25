@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Direct Chat — the lossy local compaction of a long conversation.
  *
@@ -9,9 +9,12 @@
  * streamTurn.js.
  */
 
+/** @typedef {ReturnType<typeof import('./turnState').createTurnState>} Turn */
+
 const { withPhase } = require('../../../core/agentRuntime/phaseEvents');
 const log = require('../../../telemetry/log');
 
+/** @param {Turn} turn */
 async function compactConversation(turn) {
     const { send } = turn;
     // Summarize old messages to reduce token usage on long conversations.
@@ -35,7 +38,8 @@ async function compactConversation(turn) {
         const compactionResult = needsSummarization(turn.messages, compactionOpts)
             ? await withPhase(send, 'compacting', null, runCompaction)
             : await runCompaction();
-        turn.messages = compactionResult.messages;
+        // The turn's own messages back (or a summary message with text content).
+        turn.messages = /** @type {typeof turn.messages} */ (compactionResult.messages);
         turn.conversationSummary = compactionResult.newSummary;
         turn.conversationSummaryUpTo = compactionResult.summaryUpTo;
         if (compactionResult.didSummarize) {

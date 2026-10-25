@@ -29,6 +29,7 @@
 const { run, getAll, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const INIT_SQL = `
 CREATE TABLE IF NOT EXISTS org_health_problems (
@@ -246,7 +247,7 @@ function _decodeCursor(cursor) {
     try {
         const obj = JSON.parse(Buffer.from(String(cursor), 'base64').toString('utf8'));
         if (obj && obj.t && obj.id) return obj;
-    } catch (err) { log.debug('ignore malformed cursor', err); }
+    } catch (err) { bestEffort('stores/orgHealthStore:_decodeCursor', err); /* ignore malformed cursor */ }
     return null;
 }
 function _encodeCursor(row) {

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Real-time co-editing storage: one append-only Yjs update log per document,
  * plus the compacted snapshot the log folds into.

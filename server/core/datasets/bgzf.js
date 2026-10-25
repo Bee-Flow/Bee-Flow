@@ -71,6 +71,7 @@ function writeBlock(uncompressed) {
  * Inflate the BGZF block that starts at `offset` in `buf`.
  * @returns {{ data: Buffer, compressedSize: number }} — `compressedSize` is the
  *   full member length, i.e. the next block starts at offset + compressedSize.
+ * @param {number} [offset]
  */
 function readBlock(buf, offset = 0) {
     if (!Buffer.isBuffer(buf) || buf.length < offset + 18) {
@@ -85,6 +86,7 @@ function readBlock(buf, offset = 0) {
     const xlen = buf.readUInt16LE(offset + 10);
     if (buf.length < offset + 12 + xlen) throw new Error('bgzf.readBlock: truncated extra field');
     // Scan the extra subfields for BC/2 — BGZF requires it but tolerates others.
+    /** @type {number | null} */
     let bsize = null;
     let p = offset + 12;
     const extraEnd = offset + 12 + xlen;

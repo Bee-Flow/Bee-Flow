@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Carried knowledge content: the documents (and their chunks) of a knowledge
  * base whose part option is `carry` (design section 2, D15, D20).
@@ -68,17 +69,29 @@ const DOC_COPY_COLUMNS = Object.freeze([
  */
 const CHUNK_COPY_COLUMNS = Object.freeze(['chunk_id', 'lang', 'title', 'content', 'tsv', 'embedding', 'chunk_type', 'page_start']);
 
+/**
+ * A database handle: the pool (`db.run`) or a transaction client.
+ * @typedef {{ query: (sql: string, params?: unknown[]) => Promise<{ rows?: Record<string, any>[] }> }} KcDb
+ */
+
+/**
+ * @param {string} name
+ */
 const qi = (name) => `"${String(name).replace(/"/g, '""')}"`;
 
 function defaultDeps() {
     return {
-        db: { query: (sql, params) => require('../../db').run(sql, params) },
+        db: { query: (/** @type {string} */ sql, /** @type {unknown[]} */ params) => require('../../db').run(sql, params) },
         usesLocalIngest: () => require('../../core/kb/kbIngestionHelpers').usesLocalIngest(),
     };
 }
 
-/** An acknowledgement list → Map docRef → contentHash|null (null = any hash). */
+/**
+ * An acknowledgement list → Map docRef → contentHash|null (null = any hash).
+ * @param {Array<string|{ docRef?: unknown, contentHash?: unknown }>|undefined} acks
+ */
 function ackMap(acks) {
+    /** @type {Map<string, string|null>} */
     const out = new Map();
     for (const a of Array.isArray(acks) ? acks : []) {
         if (typeof a === 'string') out.set(a, null);
@@ -87,6 +100,10 @@ function ackMap(acks) {
     return out;
 }
 
+/**
+ * @param {Map<string, string|null>} acks
+ * @param {{ docRef: string, contentHash: string }} doc
+ */
 function isAcknowledged(acks, doc) {
     if (!acks.has(doc.docRef)) return false;
     const hash = acks.get(doc.docRef);
@@ -95,6 +112,9 @@ function isAcknowledged(acks, doc) {
     return hash === null || hash === doc.contentHash;
 }
 
+/**
+ * @param {KcDb} db
+ */
 async function hasLocalChunkTable(db) {
     const r = await db.query(`SELECT to_regclass('kb_chunks') IS NOT NULL AS ok`);
     return !!(r.rows && r.rows[0] && r.rows[0].ok);
@@ -104,19 +124,21 @@ async function hasLocalChunkTable(db) {
  * The release cut's listing of one carried KB.
  *
  * @param {string} kbId  the Dev knowledge base
- * @param {object} [deps] `{ db: {query}, usesLocalIngest: async () => boolean }`
+ * @param {{ db?: KcDb, usesLocalIngest?: () => boolean|Promise<boolean> }} [deps] `{ db: {query}, usesLocalIngest: async () => boolean }`
  * @param {object} [opts]
- * @param {Array<string|{docRef, contentHash?}>} [opts.acks]  per-document
+ * @param {number} [opts.maxDocs]
+ * @param {Array<string|{docRef: string, contentHash?: string}>} [opts.acks]  per-document
  *   acknowledgements of personal data (from the part option)
  * @param {string} [opts.ref]  the KB's ref, echoed on findings and the payload
- * @returns {Promise<{payload: {docs: object[]}, contentHash: string, findings: object[], ref, kind, sourceEntityId}>}
+ * @returns {Promise<{payload: {docs: object[]}, contentHash: string, findings: object[], ref: string|null, kind: string, sourceEntityId: string}>}
  */
 async function listCarriedDocuments(kbId, deps = {}, opts = {}) {
     const d = { ...defaultDeps(), ...deps };
     const ref = opts.ref || null;
     const maxDocs = Number.isInteger(opts.maxDocs) && opts.maxDocs > 0 ? opts.maxDocs : MAX_DOCS;
+    /** @type {object[]} */
     const findings = [];
-    const blocking = (code, extra = {}) => findings.push({ code, severity: 'blocking', ref, kbId, ...extra });
+    const blocking = (/** @type {string} */ code, /** @type {Record<string, unknown>} */ extra = {}) => findings.push({ code, severity: 'blocking', ref, kbId, ...extra });
 
     const local = (await d.usesLocalIngest()) && (await hasLocalChunkTable(d.db));
     const rows = (await d.db.query(
@@ -201,21 +223,24 @@ async function listCarriedDocuments(kbId, deps = {}, opts = {}) {
  * copy removed. A target document without a `status` (a pure caller) counts
  * as content.
  *
- * @param {Array<{id?: string, contentHash?: string, content_hash?: string, status?: string}>} targetDocs  the stage KB's documents
- * @param {Array<{contentHash: string}>|{docs: object[]}} releaseDocs  the release listing
- * @param {Array<{contentHash: string}>|{docs: object[]}|null} [previousDocs]  the previous release's listing
- * @returns {{copy: object[], remove: object[], unchanged: object[]}}
+ * @typedef {{id?: string, contentHash?: string, content_hash?: string, status?: string}} KbDoc
+ * @param {KbDoc[]} targetDocs  the stage KB's documents
+ * @param {KbDoc[]|{docs: KbDoc[]}} releaseDocs  the release listing
+ * @param {KbDoc[]|{docs: KbDoc[]}|null} [previousDocs]  the previous release's listing
+ * @returns {{copy: KbDoc[], remove: KbDoc[], unchanged: KbDoc[]}}
  */
 function planKnowledge(targetDocs, releaseDocs, previousDocs = null) {
-    const listOf = (x) => (Array.isArray(x) ? x : (x && x.docs) || []);
+    const listOf = (/** @type {KbDoc[]|{docs: KbDoc[]}|null} */ x) => (Array.isArray(x) ? x : (x && x.docs) || []);
     const wanted = listOf(releaseDocs);
-    const hashOf = (x) => (x && (x.contentHash || x.content_hash)) || null;
-    const isContent = (x) => !x.status || ACTIVE_STATUSES.includes(x.status);
+    const hashOf = (/** @type {KbDoc} */ x) => (x && (x.contentHash || x.content_hash)) || null;
+    const isContent = (/** @type {KbDoc} */ x) => !x.status || ACTIVE_STATUSES.includes(x.status);
     const targets = targetDocs || [];
     const have = new Set(targets.filter(isContent).map(hashOf).filter(Boolean));
     const want = new Set(wanted.map(hashOf).filter(Boolean));
     const carried = new Set(listOf(previousDocs).map(hashOf).filter(Boolean));
+    /** @type {KbDoc[]} */
     const copy = [];
+    /** @type {KbDoc[]} */
     const unchanged = [];
     const queued = new Set();
     for (const doc of wanted) {
@@ -233,6 +258,9 @@ function planKnowledge(targetDocs, releaseDocs, previousDocs = null) {
     return { copy, remove, unchanged };
 }
 
+/**
+ * @param {KcDb} client
+ */
 async function chunkColumns(client) {
     const r = await client.query(
         `SELECT column_name FROM information_schema.columns
@@ -242,9 +270,12 @@ async function chunkColumns(client) {
     return CHUNK_COPY_COLUMNS.filter(c => have.has(c));
 }
 
+/**
+ * @param {string} contentHash
+ */
 function contentDrift(contentHash) {
-    const e = new HttpError(409, 'content_drift',
-        'A document of this release is no longer in the source stage, so it cannot be carried');
+    const e = /** @type {InstanceType<typeof HttpError> & { errorClass?: string }} */ (new HttpError(409, 'content_drift',
+        'A document of this release is no longer in the source stage, so it cannot be carried'));
     e.errorClass = 'content_drift';
     e.details = { contentHash };
     return e;
@@ -254,9 +285,9 @@ function contentDrift(contentHash) {
  * Make the target KB hold the release's documents, on `client` (the deploy's
  * commit transaction); planKnowledge decides what goes.
  *
- * @param {object} client  `{ query(sql, params) }`
- * @param {{sourceKbId: string, targetKbId: string, tenantId: string, releaseDocs: object[]|{docs: object[]},
- *          previousDocs?: object[]|{docs: object[]}|null}} args  previousDocs: the listing of the release
+ * @param {{ query: (sql: string, params?: unknown[]) => Promise<{ rows?: Array<{ id?: string, content_hash?: string, status?: string }> }> }} client  `{ query(sql, params) }`
+ * @param {{sourceKbId: string, targetKbId: string, tenantId: string, releaseDocs: KbDoc[]|{docs: KbDoc[]},
+ *          previousDocs?: KbDoc[]|{docs: KbDoc[]}|null}} args  previousDocs: the listing of the release
  *          this stage ran before (null on the first carry); only its documents can be removed.
  * @returns {Promise<{copied: number, removed: number, unchanged: number}>}
  * @throws {HttpError} 409 content_drift when a document is missing from the source stage

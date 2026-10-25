@@ -26,6 +26,7 @@
  * No-op for non-NC tenants: only iterates orgs with nc_instance_id.
  */
 
+const { bestEffort } = require('../utils/bestEffort');
 const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
 const FRESH_WEBHOOK_WINDOW_MS = 30 * 60 * 1000;
 const FAILURE_BACKOFF_MS = 24 * 60 * 60 * 1000;
@@ -117,8 +118,8 @@ async function runOnce() {
 function start() {
     if (_interval) return;
     // Stagger first run by 5 min after boot so we don't compete with init load.
-    setTimeout(() => { runOnce().catch(() => { }); }, 5 * 60 * 1000).unref?.();
-    _interval = setInterval(() => { runOnce().catch(() => { }); }, SIX_HOURS_MS);
+    setTimeout(() => { runOnce().catch((e) => bestEffort('jobs/ncSyncBackstop:start', e)); }, 5 * 60 * 1000).unref?.();
+    _interval = setInterval(() => { runOnce().catch((e) => bestEffort('jobs/ncSyncBackstop:start#2', e)); }, SIX_HOURS_MS);
     if (typeof _interval.unref === 'function') _interval.unref();
     deps().log.info('[ncSyncBackstop] Scheduled (every 6h, 30min webhook freshness window, 24h backoff after a failure)');
 }
@@ -131,3 +132,14 @@ function stop() {
 }
 
 module.exports = { start, stop, runOnce, FAILURE_BACKOFF_MS, _setDeps };
+
+/**
+ * @typedef {{
+ *   userStore: Pick<typeof import('../stores/userStore'), 'getAllOrganizations'>,
+ *   ncUserGroupSync: Pick<typeof import('../services/ncUserGroupSync'), 'runFullSync' | 'NC_SYNC_FAILED'>,
+ *   orgHealth: Pick<typeof import('../services/orgHealth'), 'openProblemLastSeen'>,
+ *   recordJobRun: typeof import('../telemetry/metrics').recordJobRun,
+ *   log: typeof import('../telemetry/log'),
+ *   now: () => number,
+ * }} BackstopDeps
+ */

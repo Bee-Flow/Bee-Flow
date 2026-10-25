@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The list descriptor — the one place caller-supplied query shape is accepted,
  * and the module that closes it.
@@ -30,18 +30,30 @@ const { bad } = require('./refusals');
  * the person picked a column that has since been renamed, and "unknown field:
  * status" from a SQL compiler is not an answer to that.
  */
+/**
+ * The part of a table descriptor these readers use.
+ * @typedef {{ fields?: { key?: string, type?: string }[] }} DescriptorMeta
+ */
+/**
+ * The list query as it arrives (validated by the route's schema).
+ * @typedef {{ filters?: unknown, match?: string, sort?: string, dir?: string, q?: string }} ListQueryShape
+ */
 const SEARCHABLE_TYPES = new Set(['text', 'richtext', 'select', 'multiselect']);
 const MAX_LIST_FILTERS = 20;
 const SORT_DIRS = new Set(['asc', 'desc']);
 
-/** Column keys a filter or a sort may name — declared columns plus the system five. */
+/** Column keys a filter or a sort may name — declared columns plus the system five. @param {DescriptorMeta} meta */
 function filterableKeys(meta) {
     const keys = new Set(dataModel.SYSTEM_COLUMNS);
     for (const f of (meta.fields || [])) if (f && f.key) keys.add(f.key);
     return keys;
 }
 
-/** A query-string parameter that carries JSON. Malformed is a 400, never a 500. */
+/**
+ * A query-string parameter that carries JSON. Malformed is a 400, never a 500.
+ * @param {unknown} raw
+ * @param {string} what
+ */
 function jsonParam(raw, what) {
     if (raw === undefined || raw === null || raw === '') return null;
     if (typeof raw === 'object') return raw;
@@ -52,7 +64,12 @@ function jsonParam(raw, what) {
     }
 }
 
-/** A filter value: a scalar, or a list of scalars for in/notIn/between. */
+/**
+ * A filter value: a scalar, or a list of scalars for in/notIn/between.
+ * @param {string} op
+ * @param {unknown} value
+ * @param {string} at
+ */
 function assertFilterValue(op, value, at) {
     if (op === 'isNull' || op === 'isNotNull') return;
     if (Array.isArray(value)) {
@@ -66,6 +83,7 @@ function assertFilterValue(op, value, at) {
     }
 }
 
+/** @param {DescriptorMeta} meta @param {unknown} raw */
 function readFilters(meta, raw) {
     const parsed = jsonParam(raw, 'filters');
     if (parsed === null) return [];
@@ -74,7 +92,7 @@ function readFilters(meta, raw) {
         bad(`At most ${MAX_LIST_FILTERS} conditions`, 'too_many_filters');
     }
     const keys = filterableKeys(meta);
-    return parsed.map((f, i) => {
+    return parsed.map((/** @type {{ field?: string, op?: string, value?: unknown }} */ f, /** @type {number} */ i) => {
         if (!f || typeof f !== 'object' || Array.isArray(f)) bad(`filters[${i}] must be an object`, 'bad_descriptor');
         if (!keys.has(f.field)) {
             bad(`"${f.field}" is not a column of this table`, 'unknown_filter_field');
@@ -87,6 +105,7 @@ function readFilters(meta, raw) {
     });
 }
 
+/** @param {DescriptorMeta} meta @param {ListQueryShape} query */
 function readSort(meta, query) {
     const field = query.sort;
     if (!field) return [];
@@ -102,13 +121,15 @@ function readSort(meta, query) {
  * `?q=` — "this word is somewhere in the row", across the table's own text-ish
  * columns. Built here rather than asked for by the client so the column list can
  * never be widened by the caller.
+ * @param {DescriptorMeta} meta
+ * @param {ListQueryShape} query
  */
 function readSearch(meta, query) {
     const value = typeof query.q === 'string' ? query.q.trim() : '';
     if (!value) return null;
     const fields = (meta.fields || [])
-        .filter(f => f && f.key && SEARCHABLE_TYPES.has(f.type))
-        .map(f => f.key)
+        .filter((/** @type {{ key?: string, type?: string }} */ f) => f && f.key && SEARCHABLE_TYPES.has(f.type))
+        .map((/** @type {{ key?: string }} */ f) => f.key)
         .slice(0, MAX_LIST_FILTERS);
     // No text column means nothing to search, and an empty search must not
     // quietly become "every row" — it is refused, so the surface can say why.
@@ -116,6 +137,7 @@ function readSearch(meta, query) {
     return { value, fields };
 }
 
+/** @param {DescriptorMeta} meta @param {ListQueryShape} query */
 function readListDescriptor(meta, query) {
     const match = query.match === undefined || query.match === '' ? 'all' : String(query.match);
     if (!queryCompiler.MATCH_MODES.includes(match)) {

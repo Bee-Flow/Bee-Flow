@@ -32,7 +32,10 @@ const webpageEgress = require('../core/webpages/webpageEgress');
 
 const LIMITS = { memoryMb: 128, cpuMs: 4000, wallMs: 12000, httpBudget: 10 };
 
-/** Normalise a request route into a safe `api/<route>.js` extra-file path. */
+/**
+ * Normalise a request route into a safe `api/<route>.js` extra-file path.
+ * @param {unknown} route
+ */
 function handlerPathForRoute(route) {
     const clean = String(route || '')
         .replace(/\.js$/i, '')
@@ -49,6 +52,7 @@ function handlerPathForRoute(route) {
 /**
  * Execute a light-tier api handler. Returns { status, body, headers? }.
  * `req` is the sanitised request envelope { method, path, query, body }.
+ * @param {{ webpageId: string, route: unknown, req: { method?: string, path?: string, query?: object, body?: unknown } }} opts
  */
 async function executeApiHandler({ webpageId, route, req }) {
     if (!codeSandbox.isAvailable()) {
@@ -108,7 +112,7 @@ async function executeApiHandler({ webpageId, route, req }) {
                 egress: false,
             }),
         }),
-        db: async (op, a) => {
+        db: async (/** @type {string} */ op, /** @type {{ sql?: string, params?: unknown[], statements?: Array<{ sql: string, params?: unknown[] }> }} */ a) => {
             try {
                 if (op === 'query') return await webpageDbStore.query(ctx.authorUserId, webpageId, a.sql, a.params || []);
                 if (op === 'exec') return await webpageDbStore.exec(ctx.authorUserId, webpageId, a.sql, a.params || []);
@@ -155,9 +159,9 @@ async function executeApiHandler({ webpageId, route, req }) {
     // Normalise the handler's return value into an HTTP-shaped response.
     if (r && typeof r === 'object' && !Array.isArray(r) && ('body' in r || 'status' in r)) {
         return {
-            status: Number.isInteger(r.status) ? r.status : 200,
-            body: r.body !== undefined ? r.body : null,
-            headers: (r.headers && typeof r.headers === 'object') ? r.headers : undefined,
+            status: Number.isInteger(/** @type {{ status?: number, body?: unknown, headers?: unknown }} */ (r).status) ? /** @type {{ status?: number, body?: unknown, headers?: unknown }} */ (r).status : 200,
+            body: /** @type {{ status?: number, body?: unknown, headers?: unknown }} */ (r).body !== undefined ? /** @type {{ status?: number, body?: unknown, headers?: unknown }} */ (r).body : null,
+            headers: (/** @type {{ status?: number, body?: unknown, headers?: unknown }} */ (r).headers && typeof /** @type {{ status?: number, body?: unknown, headers?: unknown }} */ (r).headers === 'object') ? /** @type {{ status?: number, body?: unknown, headers?: unknown }} */ (r).headers : undefined,
         };
     }
     return { status: 200, body: r ?? null };

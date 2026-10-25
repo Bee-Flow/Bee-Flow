@@ -8,6 +8,7 @@
 const deps = require('./deps');
 
 let _client = null;
+/** @type {string | null} */
 let _lastKeyHash = null;
 
 /**
@@ -17,6 +18,7 @@ let _lastKeyHash = null;
  * an id breaks out of the string literal and changes which records match, so an
  * org id containing `'` could make a customer lookup return another tenant's
  * customer. Rejects control characters outright and escapes backslash + quote.
+ * @param {string} value
  */
 function escapeSearchValue(value) {
     const s = String(value == null ? '' : value);

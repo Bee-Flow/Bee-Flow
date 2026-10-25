@@ -15,6 +15,9 @@ const {
     HTTP_REQUEST_METHODS, HTTP_REQUEST_WRITE_METHODS, CACHE_INTO_MAX_DAYS,
 } = require('../constants');
 
+/**
+ * @param {string} at
+ */
 function checkIntegrationAction(ctx, step, at) {
     const { pushE, availableTools, toolRequiredParams } = ctx;
     if (step.type === 'integration_action') {
@@ -38,6 +41,9 @@ function checkIntegrationAction(ctx, step, at) {
     }
 }
 
+/**
+ * @param {string} at
+ */
 function checkHttpRequest(ctx, step, at) {
     const { pushE, pushW, knownConnectionIds } = ctx;
     if (step.type === 'http_request') {
@@ -52,6 +58,12 @@ function checkHttpRequest(ctx, step, at) {
         }
         if (step.query !== undefined && step.query !== null) {
             const q = step.query;
+            /**
+             * @param {string} code
+             * @param {string} msg
+             * @param {string} hint
+             * @param {string} [sub]
+             */
             const qBad = (code, msg, hint, sub = '') => pushE({ code, severity: 'error', path: at + '.query' + sub, message: `Step ${step.id}: ${msg}`, hint });
             if (!isObject(q)) qBad('http_request.query_shape', 'http_request.query must be an object.', 'Use { mode: "fields", items: [{key, value}] } or { mode: "json", json: "{...}" }.');
             else if (q.mode !== undefined && q.mode !== 'fields' && q.mode !== 'json') qBad('http_request.query_mode', `query.mode "${String(q.mode)}" is unknown.`, 'Use "fields" or "json".', '.mode');
@@ -104,7 +116,10 @@ function checkHttpRequest(ctx, step, at) {
     }
 }
 
-/** `askOnce` — "ask this app only once per run". */
+/**
+ * `askOnce` — "ask this app only once per run".
+ * @param {string} at
+ */
 function checkAskOnce(ctx, step, at) {
     const { pushE, pushW } = ctx;
     // ── askOnce ("Ask this app only once per run") ────────────────────
@@ -203,7 +218,10 @@ function checkAskOnce(ctx, step, at) {
     }
 }
 
-/** `cacheInto` — "remember answers in a table". */
+/**
+ * `cacheInto` — "remember answers in a table".
+ * @param {string} at
+ */
 function checkCacheInto(ctx, step, at) {
     const { pushE, pushW } = ctx;
     // ── cacheInto ("Remember answers in a table") ─────────────────────

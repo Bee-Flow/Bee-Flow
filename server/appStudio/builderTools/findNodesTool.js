@@ -77,6 +77,7 @@ function applyFindNodes(draftWrap, args = {}) {
         // A variable is referenced as `vars.<name>` in formulas and templates,
         // wherever they sit on the node — so a raw scan of the node's own props
         // is both the simplest and the most complete test.
+        /** @type {string} */
         let json;
         try { json = JSON.stringify(node.props ?? {}); } catch { return false; }
         return json.includes(`vars.${variable}`);
@@ -89,6 +90,7 @@ function applyFindNodes(draftWrap, args = {}) {
     const visit = (node, screen, path) => {
         if (!node || typeof node !== 'object') return;
         const here = [...path, node.type || 'node'];
+        /** @type {string[]} */
         const reasons = [];
         if (componentType && node.type === componentType) reasons.push('type');
         if (tableId && bindingsByNode.has(node.id)) reasons.push(`bound via ${bindingsByNode.get(node.id).join(', ')}`);
@@ -121,8 +123,10 @@ function applyFindNodes(draftWrap, args = {}) {
     // structural walk per step kind would go stale the moment a kind is added.
     if (tableId || variable || actionId) {
         for (const [id, action] of Object.entries(def.actions || {})) {
+            /** @type {string} */
             let json;
             try { json = JSON.stringify(action ?? {}); } catch { continue; }
+            /** @type {string[]} */
             const reasons = [];
             if (tableId && [...tableRefs].some((ref) => json.includes(`"${ref}"`))) reasons.push('touches table');
             if (variable && (json.includes(`vars.${variable}`) || json.includes(`"${variable}"`))) reasons.push('reads/writes variable');
@@ -135,6 +139,7 @@ function applyFindNodes(draftWrap, args = {}) {
 
     // "No hits" only means "unused" for an id that exists. A typo must not read
     // as a go-ahead to delete, so unknown ids get their own answer.
+    /** @type {string[]} */
     const unknown = [];
     // No data model loaded is "unknown" too: never a go-ahead.
     if (tableId && !table) unknown.push(tables ? `tableId "${tableId}" is not a table of this app` : `tableId "${tableId}" could not be checked (the data model is not loaded)`);

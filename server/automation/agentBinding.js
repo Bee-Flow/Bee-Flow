@@ -519,3 +519,29 @@ module.exports = {
     linkedAutomationIds,
     pruneBindingsForOwner,
 };
+
+/**
+ * @typedef {object} BindingDeps  injectable collaborators (tests pass fakes)
+ * @property {typeof import('../stores/automationStore')} [store]
+ * @property {typeof import('../stores/automationStore')} [automationStore]
+ * @property {typeof import('../stores/agentStore')} [agentStore]
+ * @property {typeof import('../stores/userStore')} [userStore]
+ * @property {Pick<ReturnType<typeof import('./access').makeAutomationAccess>, 'roleFor'>} [access]  the module itself or a makeAutomationAccess() instance; only roleFor is read
+ * @property {ReturnType<typeof import('../agents/agentAccess').defaultAgentAccess>} [agentAccess]
+ * @property {typeof import('../core/agentRuntime/toolPolicy')} [toolPolicy]
+ */
+
+/**
+ * @typedef {NonNullable<Awaited<ReturnType<typeof import('../stores/automationStore').listBindingsForAutomation>>[number]>} Binding
+ * @typedef {{ agentId: string | null, name: string | null, canEdit: boolean, missing: boolean, usable: boolean | null, notGranted: boolean | null }} BindingView
+ * @typedef {{ id: string, name: string, description: string | null }} Candidate
+ * @typedef {{ id?: string, name?: string, description?: unknown, config?: Record<string, unknown> | null, owner_id?: string, organization_id?: string, is_published?: boolean }} AgentRow  the parts of an agents row this module reads
+ */
+
+/**
+ * @typedef {object} AutomationRow  the parts of a store row this module reads
+ * @property {string} id
+ * @property {string} [userId]
+ * @property {string} [kind]
+ * @property {{ trigger?: { kind?: string } }} [definition]
+ */

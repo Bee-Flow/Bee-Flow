@@ -114,3 +114,5 @@ function makeReleaseRouter(d) {
 }
 
 module.exports = { makeReleaseRouter, payloadSummary };
+
+/** @typedef {import('./deploymentRoutes').StageReq} StageReq */

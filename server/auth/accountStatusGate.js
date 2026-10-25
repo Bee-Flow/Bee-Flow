@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * "May this account start a session at all?" — one answer, for every way in.
  *

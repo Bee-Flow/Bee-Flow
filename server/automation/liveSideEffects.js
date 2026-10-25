@@ -19,6 +19,7 @@
 'use strict';
 
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 /**
  * @param {object} [deps]
@@ -48,7 +49,7 @@ function makeLiveSideEffects(deps = {}) {
         try {
             return await agentCatalogForOwner()(definition, ownerId);
         } catch (e) {
-            log.warn('[automation] agent catalog build failed; continuing without the agent check:', e.message);
+            log.warn('[automation] agent catalog build failed; continuing without the agent check:', /** @type {Error} */ (e).message);
             return null;
         }
     }
@@ -65,7 +66,7 @@ function makeLiveSideEffects(deps = {}) {
             const { runVarsFor } = deps.stageVars || require('../core/automationRunner/stageVars');
             return new Set(Object.keys(await runVarsFor(automation || null, { definition })));
         } catch (e) {
-            log.warn('[automation] variable names could not be read; continuing without the salt-variable check:', e.message);
+            log.warn('[automation] variable names could not be read; continuing without the salt-variable check:', /** @type {Error} */ (e).message);
             return null;
         }
     }
@@ -87,7 +88,7 @@ function makeLiveSideEffects(deps = {}) {
             const resolvedOrg = typeof orgId === 'function' ? await orgId() : orgId;
             return await kbStepFindings()(definition, { orgId: resolvedOrg, userId, stage });
         } catch (e) {
-            log.warn('[automation/crud] knowledge-base check unavailable:', e.message);
+            log.warn('[automation/crud] knowledge-base check unavailable:', /** @type {Error} */ (e).message);
             return [];
         }
     }
@@ -128,7 +129,7 @@ function makeLiveSideEffects(deps = {}) {
             // question, so the owner is only read when it does not.
             let orgId = a.organizationId || null;
             if (!orgId && a.userId) {
-                const owner = await userStore().getUser(a.userId).catch(() => null);
+                const owner = await userStore().getUser(a.userId).catch((e) => fallback('automation/liveSideEffects:wakeNow', e, null));
                 orgId = owner?.organizationId || null;
             }
             // No organisation: no per-source check can match this automation (their
@@ -157,7 +158,7 @@ function makeLiveSideEffects(deps = {}) {
             try {
                 await automationStore().ensureFormPage(automationId, triggerStepId);
             } catch (e) {
-                log.warn(`[automation form page] could not provision for ${automationId}: ${e.message}`);
+                log.warn(`[automation form page] could not provision for ${automationId}: ${/** @type {Error} */ (e).message}`);
             }
         }
     }
@@ -182,8 +183,8 @@ function makeLiveSideEffects(deps = {}) {
                 usage: [{ datatableId: out.table.id, stepId: 'trigger:form', mode: 'write', columns: [] }],
             };
         } catch (e) {
-            log.warn(`[form answers] ${automation?.id}: ${e.message}`);
-            return { answers: { datatableId: null, created: false, changed: false, error: { code: 'provision_failed', message: e.message } }, usage: [] };
+            log.warn(`[form answers] ${automation?.id}: ${/** @type {Error} */ (e).message}`);
+            return { answers: { datatableId: null, created: false, changed: false, error: { code: 'provision_failed', message: /** @type {Error} */ (e).message } }, usage: [] };
         }
     }
 
@@ -191,3 +192,5 @@ function makeLiveSideEffects(deps = {}) {
 }
 
 module.exports = { makeLiveSideEffects, ...makeLiveSideEffects() };
+
+/** @typedef {{ id?: string, userId?: string | null, organizationId?: string | null }} WakeTarget  the parts of an automation the compliance wake reads */

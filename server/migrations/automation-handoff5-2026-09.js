@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: the schema behind Studio → Automations "handoff 5" (2026-09).
  *

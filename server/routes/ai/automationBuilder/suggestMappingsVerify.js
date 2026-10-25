@@ -28,7 +28,7 @@ const {
     parseExpr, evaluate, scanTemplate, parseJsonText, stepInto, stepMatch,
 } = require('../../../automation/expr');
 const { interpolateTemplate } = require('../../../automation/bind');
-const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
 const MAX_TEMPLATE_CHARS = 1000;
 const MAX_EXPR_CHARS = 400;
@@ -89,12 +89,21 @@ const NOOP_WHEN_EQUAL = new Set(['toStr', 'trim', 'number']);
 // (valueParts.js ARG1_CALL), so a key holding one of `,()` cannot be a chip
 // there. Otherwise a canonical path is what the editor's own reader takes,
 // in a ref, in {{ }} (quote-aware) and in a call alike.
+/**
+ * @param {string} path
+ */
 const pillPathInCall = (path) => !/[,()]/.test(path);
 
 // ── Kinds ───────────────────────────────────────────────────────────────────
 
 const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+/**
+ * @param {string} v
+ */
 const isScalar = (v) => v === null || ['string', 'number', 'boolean'].includes(typeof v);
+/**
+ * @param {string} k
+ */
 const hasOwn = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 
 /**
@@ -147,6 +156,7 @@ function valueKind(v) {
     return 'group';
 }
 
+/** @type {Record<string, string>} */
 const KIND_WORDS = {
     text: 'text', email: 'an e-mail address', number: 'a number', yesno: 'yes/no', date: 'a date',
     choice: 'one of the allowed values', list: 'a list', table: 'a table', group: 'a group of fields', unknown: 'a value',
@@ -156,6 +166,8 @@ const KIND_WORDS = {
  * Does `value` fit an input of kind `expected`? `{ ok }`, `{ ok, wrap }` when
  * one transform makes it fit (a list of texts joined, numeric text read as a
  * number), or `{ ok: false, reason }`.
+ * @param {string} expected
+ * @param {string} value
  */
 function judgeFit(expected, value, param) {
     if (value === undefined) return { ok: false, reason: 'gives no value on the sample data' };
@@ -220,7 +232,10 @@ function buildRunState(sources) {
 const startsWith = (tokens, prefix) => prefix.length <= tokens.length
     && prefix.every((p, i) => tokens[i].type === 'prop' && tokens[i].key === p.key);
 
-/** Append tokens to a path the way the canonical writer spells them. */
+/**
+ * Append tokens to a path the way the canonical writer spells them.
+ * @param {string} prefix
+ */
 function appendTokens(prefix, tokens) {
     let out = prefix;
     for (const t of tokens) {
@@ -244,22 +259,25 @@ const asValue = (v) => {
 function jsonOf(v, ctx) {
     if (v === null || typeof v !== 'object') return JSON.stringify(v);
     if (!ctx.json.has(v)) {
+        /** @type {string | null} */
         let s = null;
-        try { s = JSON.stringify(v); } catch (err) { log.debug('not serialisable: equal to nothing', err); }
+        try { s = JSON.stringify(v); } catch (err) { fallback('routes/ai/automationBuilder/suggestMappingsVerify:jsonOf', err); /* not serialisable: equal to nothing */ }
         ctx.json.set(v, s);
     }
     return ctx.json.get(v);
 }
 
 // `cut` is `full` cut short by the editor (aiAutoMap.boundValue: text + "…").
-const cutOf = (cut, full) => typeof cut === 'string' && typeof full === 'string'
+const cutOf = (/** @type {string} */ cut, /** @type {string} */ full) => typeof cut === 'string' && typeof full === 'string'
     && cut.endsWith('…') && full.startsWith(cut.slice(0, -1));
-const sameScalar = (a, b) => a === b || cutOf(a, b) || cutOf(b, a);
+const sameScalar = (/** @type {string} */ a, /** @type {string} */ b) => a === b || cutOf(a, b) || cutOf(b, a);
 
 /**
  * Walk a loop sample against the values a list's rows hold at the same
  * place: `tally.agree` counts plain values found among the rows' values,
  * `tally.disagree` is set by one that is not there.
+ * @param {number} depth
+ * @param {{ agree: number; disagree: boolean; }} tally
  */
 function compareWithRows(sample, values, depth, tally) {
     const vals = values.map(asValue).filter((v) => v != null);
@@ -359,6 +377,9 @@ function currentElement(source, tokens, ctx) {
 function readsHidden(tokens, from, runState) {
     // `alt`: the second reading of a quoted key from an older saved path, which
     // the runtime falls back to (shared/expr walkTokens).
+    /**
+     * @param {string} k
+     */
     const secretKey = (k) => typeof k === 'string' && SECRET_KEY_RE.test(k);
     for (let i = from; i < tokens.length; i++) {
         const t = tokens[i];
@@ -397,6 +418,7 @@ function readsHidden(tokens, from, runState) {
  *   - a path through an element of a list the step runs over becomes the
  *     loop's current element (currentElement), not always the first.
  * A path that reads a hidden field is refused after both (readsHidden).
+ * @param {string} text
  */
 function resolvePathText(text, ctx) {
     const raw = String(text || '').trim().replace(/^\{\{\s*([\s\S]*?)\s*\}\}$/, '$1');
@@ -446,6 +468,9 @@ function astPathTokens(node) {
 /** Engine string literal body (valueParts.escapeExprString). */
 const escapeExprString = (s) => String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\t/g, '\\t');
 
+/**
+ * @param {string} text
+ */
 function verifyRef(text, ctx) {
     const r = resolvePathText(text, ctx);
     if (r.reason) return { reason: `the field ${r.reason}` };
@@ -495,12 +520,15 @@ function concatOperands(node) {
     return null;
 }
 
+/**
+ * @param {string} text
+ */
 function verifyExpr(text, ctx) {
     const src = String(text || '').trim().replace(/^=\s*/, '');
     if (!src) return { reason: 'the formula is empty' };
     if (src.length > MAX_EXPR_CHARS) return { reason: 'the formula is too long' };
     let ast;
-    try { ast = parseExpr(src); } catch (e) { return { reason: `the formula does not compile (${String(e.message).slice(0, 80)})` }; }
+    try { ast = parseExpr(src); } catch (e) { return { reason: `the formula does not compile (${String(/** @type {Error} */ (e).message).slice(0, 80)})` }; }
 
     // A plain path written as a formula is a field: a ref, one pill.
     const plain = astPathTokens(ast);
@@ -521,7 +549,7 @@ function verifyExpr(text, ctx) {
         if (!pillPathInCall(r.path)) return { reason: 'the field cannot be shown as a pill inside a transform' };
         const rebuilt = `${ast.name}(${r.path}${args.map((a) => `, "${escapeExprString(a)}"`).join('')})`;
         let value;
-        try { value = evaluate(rebuilt, ctx.runState); } catch (e) { return { reason: `the formula fails on the sample data (${String(e.message).slice(0, 80)})` }; }
+        try { value = evaluate(rebuilt, ctx.runState); } catch (e) { return { reason: `the formula fails on the sample data (${String(/** @type {Error} */ (e).message).slice(0, 80)})` }; }
         if (value === undefined) return { reason: 'the formula gives no value on the sample data' };
         if (NOOP_WHEN_EQUAL.has(ast.name) && value === r.value) return { binding: { kind: 'ref', path: r.path }, value: r.value };
         return { binding: { kind: 'expr', value: rebuilt }, value };
@@ -557,8 +585,12 @@ function readProposal(raw) {
     return { kind: parsePath(text.trim()) ? 'ref' : 'expr', text };
 }
 
-/** A short preview of a verified value, for the editor (its own data). */
+/**
+ * A short preview of a verified value, for the editor (its own data).
+ * @param {string} v
+ */
 function previewOf(v) {
+    /** @type {string} */
     let s;
     try { s = typeof v === 'string' ? v : JSON.stringify(v); } catch { s = String(v); }
     s = String(s ?? '');
@@ -627,3 +659,25 @@ module.exports = {
     PAIR_NAME_KEYS,
     PAIR_VALUE_KEYS,
 };
+
+/**
+ * @typedef {import('../../../shared/expr/path.mjs').PathToken} PathToken
+ * @typedef {{ root: string, rootTokens: PathToken[], label?: string, real?: boolean, sample: unknown }} MappingSource
+ *   one offered source: its root path as the editor spells it, parsed, and its sample
+ * @typedef {{ key: string, type?: string | string[], format?: string, enum?: unknown[] }} MappingParam  an input to fill (JSON-schema-ish)
+ * @typedef {{ sources: MappingSource[], runState: Record<string, unknown>, json: WeakMap<object, string | null>, loopMatch: Map<unknown, Map<MappingSource, boolean>> }} VerifyCtx
+ * @typedef {{ kind: 'ref', path: string } | { kind: 'template', value: string } | { kind: 'expr', value: string }} MappingBinding
+ * @typedef {{ reason: string, binding?: undefined, value?: undefined } | { binding: MappingBinding, value: unknown, reason?: undefined }} Verified
+ */
+
+/**
+ * The shared/expr AST node kinds this module inspects (parseExpr's output).
+ * @typedef {{ kind: 'str', v: string }} StrNode
+ * @typedef {{ kind: 'num', v: number }} NumNode
+ * @typedef {{ kind: 'path', segments: PathSegment[] }} PathNode
+ * @typedef {{ kind: 'unop', op: string, a: ExprNode }} UnopNode
+ * @typedef {{ kind: 'binop', op: string, a: ExprNode, b: ExprNode }} BinopNode
+ * @typedef {{ kind: 'call', name: string, args: ExprNode[] }} CallNode
+ * @typedef {StrNode | NumNode | PathNode | UnopNode | BinopNode | CallNode} ExprNode
+ * @typedef {{ kind: 'name', v: string } | { kind: 'wildcard' } | { kind: 'match', key: string | number, value: string | number | boolean | null } | { kind: 'index', expr: ExprNode }} PathSegment
+ */

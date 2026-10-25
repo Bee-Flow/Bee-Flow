@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Platform Module Package Store — one row per (module_id, version) of a
  * DOWNLOADED remote module package, tracking its on-disk staging outcome.
@@ -65,6 +65,9 @@ async function _initDB() {
 }
 
 
+/**
+ * @param {DbRow.PlatformModulePackages | null} r
+ */
 function mapRow(r) {
     if (!r) return null;
     return {
@@ -87,6 +90,9 @@ function mapRow(r) {
  * Mark a package version active (successful stage + activate). Any OTHER version
  * of the same module that was previously active is RETIRED — it stays a
  * rollback candidate until the retention GC prunes its file.
+ * @param {string} moduleId
+ * @param {string} version
+ * @param {{ manifest?: Record<string, any> | null, kid?: string | null, packageSha256?: string | null, actorId?: string | null, source?: string | null }} [meta]
  */
 async function setActive(moduleId, version, { manifest = null, kid = null, packageSha256 = null, actorId = null, source = null } = {}) {
     await initDB();
@@ -120,6 +126,9 @@ async function setActive(moduleId, version, { manifest = null, kid = null, packa
  * Mark a version staged: verified + extracted but NOT activated (a package
  * needing a restart — native addon / restart:'always'). Boot processes staged
  * rows first.
+ * @param {string} moduleId
+ * @param {string} version
+ * @param {{ manifest?: Record<string, any> | null, kid?: string | null, packageSha256?: string | null, actorId?: string | null, source?: string | null }} [meta]
  */
 async function setStaged(moduleId, version, { manifest = null, kid = null, packageSha256 = null, actorId = null, source = null } = {}) {
     await initDB();
@@ -141,7 +150,12 @@ async function setStaged(moduleId, version, { manifest = null, kid = null, packa
     return getPackage(moduleId, version);
 }
 
-/** Crash-quarantine a version (survives restart; boot skips it). */
+/**
+ * Crash-quarantine a version (survives restart; boot skips it).
+ * @param {string} moduleId
+ * @param {string} version
+ * @param {{ error?: unknown }} [opts]
+ */
 async function setQuarantined(moduleId, version, { error = null } = {}) {
     await initDB();
     await run(
@@ -153,7 +167,11 @@ async function setQuarantined(moduleId, version, { error = null } = {}) {
     return getPackage(moduleId, version);
 }
 
-/** Stamp a retired version's package file as pruned by the retention GC. */
+/**
+ * Stamp a retired version's package file as pruned by the retention GC.
+ * @param {string} moduleId
+ * @param {string} version
+ */
 async function markPruned(moduleId, version) {
     await initDB();
     await run(
@@ -171,7 +189,10 @@ async function listStaged() {
     return rows.map(mapRow);
 }
 
-/** Retired, un-pruned versions of a module (newest first) — rollback candidates. */
+/**
+ * Retired, un-pruned versions of a module (newest first) — rollback candidates.
+ * @param {string} moduleId
+ */
 async function listRollbackCandidates(moduleId) {
     await initDB();
     const rows = await getAll(
@@ -186,6 +207,9 @@ async function listRollbackCandidates(moduleId) {
 /**
  * Mark a package version failed/incompatible with the recorded error. Never
  * throws away the manifest we already have — a boot re-verify may have it.
+ * @param {string} moduleId
+ * @param {string} version
+ * @param {{ error?: unknown, status?: string, kid?: string | null, packageSha256?: string | null, manifest?: Record<string, any> | null, actorId?: string | null }} [opts]
  */
 async function setFailed(moduleId, version, { error = null, status = 'failed', kid = null, packageSha256 = null, manifest = null, actorId = null } = {}) {
     await initDB();
@@ -206,6 +230,10 @@ async function setFailed(moduleId, version, { error = null, status = 'failed', k
     return getPackage(moduleId, version);
 }
 
+/**
+ * @param {string} moduleId
+ * @param {string} version
+ */
 async function getPackage(moduleId, version) {
     await initDB();
     return mapRow(await getOne(
@@ -214,7 +242,10 @@ async function getPackage(moduleId, version) {
     ));
 }
 
-/** The currently-active version row for a module (if any). */
+/**
+ * The currently-active version row for a module (if any).
+ * @param {string} moduleId
+ */
 async function getActive(moduleId) {
     await initDB();
     return mapRow(await getOne(
@@ -230,6 +261,9 @@ async function listActive() {
     return rows.map(mapRow);
 }
 
+/**
+ * @param {string} moduleId
+ */
 async function listForModule(moduleId) {
     await initDB();
     const rows = await getAll(`SELECT * FROM platform_module_packages WHERE module_id = $1 ORDER BY updated_at DESC`, [moduleId]);

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 const db = require('./db');
 (async () => {
     try {
@@ -23,6 +23,13 @@ const db = require('./db');
         log.info('hid existing plans');
 
         // Upsert the 2 production plans we actually want to expose.
+        /**
+         * @param {string} id
+         * @param {string} name
+         * @param {number} price
+         * @param {number} trial
+         * @param {string | null} stripeId
+         */
         const upsert = async (id, name, price, trial, stripeId) => {
             await db.run(
                 `INSERT INTO ${TABLE} (id, name, plan_type, description, price, currency, billing_interval, trial_days, allowed_features, is_public, is_default, nc_recommended, stripe_price_id, created_at, updated_at)
@@ -89,7 +96,7 @@ const db = require('./db');
         log.info('now:', after);
         process.exit(0);
     } catch (e) {
-        log.error('ERR:', e.message);
+        log.error('ERR:', /** @type {Error} */ (e).message);
         process.exit(1);
     }
 })();

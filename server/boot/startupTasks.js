@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * What the server does once the HTTP listener is up, in two halves that index.js
  * calls in order from its listen callback:

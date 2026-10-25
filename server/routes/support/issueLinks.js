@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('express-serve-static-core').Router} Router */
+// @typecheck strict
 /**
  * Ticket ↔ YouTrack issue links, for the admin support inbox.
  *
@@ -51,9 +52,15 @@ const { worded } = require('../../core/http/schemaParts');
 const L = require('./issueLinkHandlers');
 const E = require('./issueEscalation');
 
-/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
+/**
+ * A body that also accepts no body at all: Express 5 leaves `req.body` undefined then.
+ * @param {import('zod').ZodRawShape} shape
+ */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
+/**
+ * @param {string} [message]
+ */
 const issueId = (message = 'issueId must be a YouTrack issue id.') =>
     worded(message).trim().max(64, 'An issue id is at most 64 characters.');
 const reasonText = worded('reason must be text.').trim().max(300, 'A reason is at most 300 characters.');
@@ -108,6 +115,8 @@ const NoBody = bodyOf({});
  * The route table. Handler bodies live in issueLinkHandlers.js (connection,
  * search, links) and issueEscalation.js (escalation, chat notifications,
  * the follow-up flag).
+ * @param {import('express').IRouter} router
+ * @param {Router} router
  */
 function register(router) {
     // ── Connection ────────────────────────────────────────────────────────

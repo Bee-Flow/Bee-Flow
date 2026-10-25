@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * NMBRS Tools — Built-in READ-ONLY tools for AI to read NMBRS (Visma Nmbrs)
  * payroll/HR data: debtors, companies, employees, contracts, salaries, wage
@@ -25,6 +26,7 @@
 const configStore = require('../stores/configStore');
 const { XMLParser } = require('fast-xml-parser');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 const REQUEST_TIMEOUT_MS = 20000;
 const MAX_ERROR_MESSAGE_CHARS = 300;
@@ -68,12 +70,22 @@ const xmlParser = new XMLParser({
 
 // ─── Pure helpers (exported for tests) ─────────────────────────
 
+/**
+ * @typedef {NonNullable<Awaited<ReturnType<typeof getNmbrsCredentials>>>} NmbrsCreds
+ * A parsed SOAP answer (fast-xml-parser, namespace prefixes removed); only the parts read here.
+ * @typedef {{ Envelope?: { Body?: { Fault?: { faultstring?: string, Reason?: { Text?: string } },
+ *   [element: string]: unknown } } }} SoapEnvelope
+ */
+
+/** @param {unknown} value */
 function escapeXml(value) {
     return String(value).replace(/[&<>"']/g, (c) => (
+        /** @type {Record<string, string>} */
         { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[c]
     ));
 }
 
+/** @param {unknown} env */
 function resolveEnv(env) {
     return String(env || 'production').trim().toLowerCase() === 'sandbox' ? 'sandbox' : 'production';
 }
@@ -82,6 +94,9 @@ function resolveEnv(env) {
  * Build a SOAP service endpoint. The subdomain is validated here (it travels in
  * the SOAP Domain header, not the host) and `service` must be allow-listed —
  * together these are the SSRF guard.
+ * @param {string} subdomain
+ * @param {string} service
+ * @param {string} env
  */
 function buildSoapUrl(subdomain, service, env) {
     if (!SUBDOMAIN_RE.test(String(subdomain || '').trim())) {
@@ -97,6 +112,9 @@ function buildSoapUrl(subdomain, service, env) {
 /**
  * Build a REST endpoint. `path` is always assembled internally from
  * encodeURIComponent'd, validated IDs; the regex is defence-in-depth.
+ * @param {string} subdomain
+ * @param {string} path
+ * @param {string} env
  */
 function buildRestUrl(subdomain, path, env) {
     if (!SUBDOMAIN_RE.test(String(subdomain || '').trim())) {
@@ -115,6 +133,8 @@ function buildRestUrl(subdomain, path, env) {
  * typed wrapper ({ Debtors: { Debtor: [..] } }); a single row collapses to an
  * object ({ Employee: {..} }). Unwrap single-key wrappers until we reach the
  * rows, but never unwrap a multi-field row object (a real entity).
+ * @param {unknown} node
+ * @returns {unknown[]}
  */
 function coerceArray(node) {
     if (node == null || node === '') return [];
@@ -122,14 +142,14 @@ function coerceArray(node) {
     if (typeof node !== 'object') return [];
     const keys = Object.keys(node);
     if (keys.length !== 1) return [node];
-    const inner = node[keys[0]];
+    const inner = /** @type {Record<string, unknown>} */ (node)[keys[0]];
     if (Array.isArray(inner)) return inner;
     if (inner && typeof inner === 'object') {
         // Single-key wrapper around another single-key list/wrapper → keep
         // unwrapping. Otherwise `inner` is the (single) row itself.
         const innerKeys = Object.keys(inner);
         if (innerKeys.length === 1) {
-            const deep = inner[innerKeys[0]];
+            const deep = /** @type {Record<string, unknown>} */ (inner)[innerKeys[0]];
             if (Array.isArray(deep) || (deep && typeof deep === 'object')) {
                 return coerceArray(inner);
             }
@@ -139,7 +159,11 @@ function coerceArray(node) {
     return [];
 }
 
-/** Pull rows out of a REST JSON body (array, {data:[]}, {items:[]} or single). */
+/**
+ * Pull rows out of a REST JSON body (array, {data:[]}, {items:[]} or single).
+ * @param {unknown[] | { data?: unknown, items?: unknown } | null} data
+ * @returns {unknown[]}
+ */
 function restListFrom(data) {
     if (Array.isArray(data)) return data;
     if (data && Array.isArray(data.data)) return data.data;
@@ -151,6 +175,9 @@ function restListFrom(data) {
 /**
  * Navigate Envelope→Body→{method}Response→{method}Result, throwing on a SOAP
  * Fault (NMBRS may return a Fault with HTTP 200).
+ * @param {SoapEnvelope} parsed
+ * @param {string} method
+ * @returns {unknown}
  */
 function extractSoapResult(parsed, method) {
     const env = parsed && parsed.Envelope;
@@ -167,7 +194,7 @@ function extractSoapResult(parsed, method) {
     const resp = body[`${method}Response`];
     if (resp == null) return null;
     if (typeof resp === 'object' && Object.prototype.hasOwnProperty.call(resp, `${method}Result`)) {
-        return resp[`${method}Result`];
+        return /** @type {Record<string, unknown>} */ (resp)[`${method}Result`];
     }
     return resp;
 }
@@ -175,6 +202,7 @@ function extractSoapResult(parsed, method) {
 /**
  * Extract a short, sanitized error message from a NMBRS error body. We only
  * surface a human-readable message — never the raw body, URL, or credentials.
+ * @param {string} bodyText
  */
 function extractNmbrsErrorMessage(bodyText) {
     if (!bodyText || typeof bodyText !== 'string') return null;
@@ -187,12 +215,13 @@ function extractNmbrsErrorMessage(bodyText) {
         try {
             const data = JSON.parse(bodyText);
             message = data.message || data.title || (data.error && data.error.message) || null;
-        } catch (err) { log.debug('not JSON after all', err); }
+        } catch (err) { fallback('integrations/nmbrsTools:extractNmbrsErrorMessage', err); /* not JSON after all */ }
     }
     if (!message) return null;
     return String(message).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim().slice(0, MAX_ERROR_MESSAGE_CHARS) || null;
 }
 
+/** @type {Record<number, string>} */
 const STATUS_REASONS = {
     400: 'NMBRS rejected the request (check the IDs and parameters)',
     401: 'NMBRS credentials are invalid or the token was revoked',
@@ -202,17 +231,22 @@ const STATUS_REASONS = {
     500: 'NMBRS returned a server error',
 };
 
+/** @param {number} status @param {string} bodyText */
 function mapNmbrsError(status, bodyText) {
     const reason = STATUS_REASONS[status] || `NMBRS returned HTTP ${status}`;
     let detail = null;
     try {
         detail = extractNmbrsErrorMessage(bodyText);
-    } catch (err) { log.debug('body unreadable — keep the mapped reason', err); }
+    } catch (err) { fallback('integrations/nmbrsTools:mapNmbrsError', err); /* body unreadable — keep the mapped reason */ }
     return new Error(detail ? `${reason}: ${detail}` : reason);
 }
 
 // ─── Transport ─────────────────────────────────────────────────
 
+/**
+ * @param {string} url
+ * @param {{ method?: string, headers: Record<string, string>, body?: string|null }} init
+ */
 async function nmbrsFetch(url, { method = 'GET', headers, body = null }) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -236,11 +270,17 @@ async function nmbrsFetch(url, { method = 'GET', headers, body = null }) {
     }
 }
 
+/** @param {Response} response */
 async function safeText(response) {
     try { return await response.text(); } catch { return ''; }
 }
 
-/** REST request — GET only (the verb is hard-coded; no caller can change it). */
+/**
+ * REST request — GET only (the verb is hard-coded; no caller can change it).
+ * @param {NmbrsCreds} creds
+ * @param {string} path
+ * @param {Record<string, string>|null} [query]
+ */
 async function restRequest(creds, path, query = null) {
     const qs = query ? `?${new URLSearchParams(query)}` : '';
     const url = buildRestUrl(creds.subdomain, path, creds.env) + qs;
@@ -260,6 +300,12 @@ async function restRequest(creds, path, query = null) {
     }
 }
 
+/**
+ * @param {NmbrsCreds} creds
+ * @param {string} service
+ * @param {string} method
+ * @param {Record<string, unknown>} [params]
+ */
 function buildSoapEnvelope(creds, service, method, params) {
     const ns = `${SOAP_NS_BASE}/${service}`;
     const inner = Object.entries(params || {})
@@ -279,7 +325,13 @@ function buildSoapEnvelope(creds, service, method, params) {
         `</soap:Envelope>`;
 }
 
-/** SOAP request — only read methods (SOAP_METHODS_READONLY) may be issued. */
+/**
+ * SOAP request — only read methods (SOAP_METHODS_READONLY) may be issued.
+ * @param {NmbrsCreds} creds
+ * @param {string} service
+ * @param {string} method
+ * @param {Record<string, unknown>} [params]
+ */
 async function soapRequest(creds, service, method, params = {}) {
     if (!SOAP_METHODS_READONLY.has(`${service}/${method}`)) {
         throw new Error('Refused: non-read NMBRS method.');
@@ -308,6 +360,7 @@ async function soapRequest(creds, service, method, params = {}) {
 // Each returns an array of rows (or a single object for get_employee). The
 // model never sees mode/service/path/method.
 
+/** @param {NmbrsCreds} creds */
 async function fetchDebtors(creds) {
     if (creds.mode === 'rest') {
         return restListFrom(await restRequest(creds, 'debtors'));
@@ -315,6 +368,7 @@ async function fetchDebtors(creds) {
     return coerceArray(await soapRequest(creds, 'DebtorService', 'List_GetAll'));
 }
 
+/** @param {NmbrsCreds} creds @param {string|null} debtorId */
 async function fetchCompanies(creds, debtorId) {
     if (creds.mode === 'rest') {
         const path = debtorId ? `debtors/${encodeURIComponent(debtorId)}/companies` : 'companies';
@@ -326,6 +380,7 @@ async function fetchCompanies(creds, debtorId) {
     return coerceArray(await soapRequest(creds, 'CompanyService', 'List_GetAll'));
 }
 
+/** @param {NmbrsCreds} creds @param {string} companyId @param {boolean} activeOnly */
 async function fetchEmployees(creds, companyId, activeOnly) {
     if (creds.mode === 'rest') {
         return restListFrom(await restRequest(creds,
@@ -333,12 +388,13 @@ async function fetchEmployees(creds, companyId, activeOnly) {
             activeOnly ? { active: 'true' } : null));
     }
     const types = activeOnly ? [EMPLOYEE_TYPE_PAYROLL] : [EMPLOYEE_TYPE_PAYROLL, EMPLOYEE_TYPE_FORMER_PAYROLL];
+    /** @type {unknown[]} */
     const rows = [];
     const seen = new Set();
     for (const EmployeeType of types) {
         const page = coerceArray(await soapRequest(creds, 'EmployeeService', 'List_GetByCompany', { CompanyId: companyId, EmployeeType }));
         for (const row of page) {
-            const id = row && row.Id;
+            const id = row && /** @type {Record<string, unknown>} */ (row).Id;
             if (id != null && seen.has(String(id))) continue;
             if (id != null) seen.add(String(id));
             rows.push(row);
@@ -347,6 +403,7 @@ async function fetchEmployees(creds, companyId, activeOnly) {
     return rows;
 }
 
+/** @param {NmbrsCreds} creds @param {string} employeeId */
 async function fetchEmployee(creds, employeeId) {
     if (creds.mode === 'rest') {
         return await restRequest(creds, `employees/${encodeURIComponent(employeeId)}`);
@@ -354,6 +411,7 @@ async function fetchEmployee(creds, employeeId) {
     return await soapRequest(creds, 'EmployeeService', 'PersonalInfo_GetCurrent', { EmployeeId: employeeId });
 }
 
+/** @param {NmbrsCreds} creds @param {string} employeeId */
 async function fetchContracts(creds, employeeId) {
     if (creds.mode === 'rest') {
         return restListFrom(await restRequest(creds, `employees/${encodeURIComponent(employeeId)}/contracts`));
@@ -361,6 +419,7 @@ async function fetchContracts(creds, employeeId) {
     return coerceArray(await soapRequest(creds, 'EmployeeService', 'Contract_GetAll', { EmployeeId: employeeId }));
 }
 
+/** @param {NmbrsCreds} creds @param {string} employeeId @param {number} year @param {number} period */
 async function fetchSalaries(creds, employeeId, year, period) {
     if (creds.mode === 'rest') {
         return restListFrom(await restRequest(creds, `employees/${encodeURIComponent(employeeId)}/salaries`, { year: String(year), period: String(period) }));
@@ -369,24 +428,29 @@ async function fetchSalaries(creds, employeeId, year, period) {
     return coerceArray(await soapRequest(creds, 'EmployeeService', 'Salary_GetList', { EmployeeId: employeeId, Period: period, Year: year }));
 }
 
+/** @param {NmbrsCreds} creds @param {string} employeeId @param {number} year @param {number|null} period */
 async function fetchWageComponents(creds, employeeId, year, period) {
     if (creds.mode === 'rest') {
+        /** @type {Record<string, string>} */
         const query = { year: String(year) };
         if (period) query.period = String(period);
         return restListFrom(await restRequest(creds, `employees/${encodeURIComponent(employeeId)}/wagecomponents`, query));
     }
     if (!period) throw new Error('A period (1-13) is required for wage components over the NMBRS SOAP API.');
+    /** @type {Record<string, unknown>} */
     const params = { EmployeeId: employeeId, Period: period, Year: year };
     const fixed = coerceArray(await soapRequest(creds, 'EmployeeService', 'WageComponentFixed_Get', params));
     const variable = coerceArray(await soapRequest(creds, 'EmployeeService', 'WageComponentVar_Get', params));
     return [
-        ...fixed.map((c) => ({ kind: 'fixed', ...c })),
-        ...variable.map((c) => ({ kind: 'variable', ...c })),
+        ...fixed.map((/** @type {Record<string, unknown>} */ c) => ({ kind: 'fixed', ...c })),
+        ...variable.map((/** @type {Record<string, unknown>} */ c) => ({ kind: 'variable', ...c })),
     ];
 }
 
+/** @param {NmbrsCreds} creds @param {string} employeeId @param {number} year @param {number|null} period */
 async function fetchPayslips(creds, employeeId, year, period) {
     if (creds.mode === 'rest') {
+        /** @type {Record<string, string>} */
         const query = { year: String(year) };
         if (period) query.period = String(period);
         return restListFrom(await restRequest(creds, `employees/${encodeURIComponent(employeeId)}/payslips`, query));
@@ -399,6 +463,7 @@ async function fetchPayslips(creds, employeeId, year, period) {
 
 // ─── Credentials & execution ───────────────────────────────────
 
+/** @param {string} userId */
 async function getNmbrsCredentials(userId) {
     const mode = (await configStore.getSecret(`nmbrs_api_mode_user_${userId}`)) === 'rest' ? 'rest' : 'soap';
     const subdomain = await configStore.getSecret(`nmbrs_subdomain_user_${userId}`);
@@ -410,21 +475,29 @@ async function getNmbrsCredentials(userId) {
     return { mode, subdomain: String(subdomain).trim(), token, email: email || '', env };
 }
 
+/** @param {unknown} value */
 function validId(value) {
     return ID_RE.test(String(value || '').trim());
 }
 
+/** @param {string} value a year as the model sent it (parseInt also takes a number) */
 function parseYear(value) {
     const y = parseInt(value, 10);
     return (Number.isInteger(y) && y >= 1900 && y <= 2100) ? y : null;
 }
 
+/** @param {string} value a period as the model sent it (parseInt also takes a number) */
 function parsePeriod(value) {
     if (value === undefined || value === null || value === '') return null;
     const p = parseInt(value, 10);
     return (Number.isInteger(p) && p >= 1 && p <= 13) ? p : 'invalid';
 }
 
+/**
+ * @param {string} toolName
+ * @param {Record<string, any>} args tool arguments as the model sent them
+ * @param {string} userId
+ */
 async function executeNmbrsTool(toolName, args = {}, userId) {
     if (!userId) return { error: 'User context required for NMBRS.' };
     const creds = await getNmbrsCredentials(userId);
@@ -508,6 +581,7 @@ async function executeNmbrsTool(toolName, args = {}, userId) {
     }
 }
 
+/** @param {string} toolName */
 function isNmbrsTool(toolName) {
     return NMBRS_TOOLS.some((t) => t.function.name === toolName);
 }

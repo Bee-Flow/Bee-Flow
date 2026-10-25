@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The /counts cache, owned by the feature rather than by its route.
  *
@@ -19,7 +19,10 @@ const CACHE_MAX_ENTRIES = 5000;
 
 const _cache = new Map(); // orgId → { at, body }
 
-/** Drop one org's entry, or the whole cache when orgId is null/undefined. */
+/**
+ * Drop one org's entry, or the whole cache when orgId is null/undefined.
+ * @param {string | number | null | undefined} [orgId]
+ */
 function invalidate(orgId) {
     if (orgId == null) _cache.clear();
     else _cache.delete(String(orgId));
@@ -28,6 +31,8 @@ function invalidate(orgId) {
 /**
  * The cached body for an org, or null when absent or older than the TTL.
  * `now` is injectable so the route's clock override still drives the cache.
+ * @param {string | number} orgId
+ * @param {number} [now]
  */
 function get(orgId, now = Date.now()) {
     const hit = _cache.get(String(orgId));
@@ -36,7 +41,12 @@ function get(orgId, now = Date.now()) {
     return hit.body;
 }
 
-/** Store a body. A partial body is never passed in — that is the caller's rule. */
+/**
+ * Store a body. A partial body is never passed in — that is the caller's rule.
+ * @param {string | number} orgId
+ * @param {Record<string, any>} body
+ * @param {number} [now]
+ */
 function set(orgId, body, now = Date.now()) {
     if (_cache.size >= CACHE_MAX_ENTRIES) {
         const oldest = _cache.keys().next().value;

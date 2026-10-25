@@ -114,6 +114,7 @@ async function finishSync(appId, connectorId, { status, watermark, rowsWritten, 
  * Syncs whose next_run_at has passed. The background job walks this; the LIMIT
  * bounds one tick so a backlog drains over several minutes instead of stalling
  * the tick (and every other job behind it).
+ * @param {number} [limit]
  */
 async function listDueSyncs(limit = 25) {
     await initDB();

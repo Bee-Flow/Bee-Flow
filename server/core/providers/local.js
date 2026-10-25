@@ -34,6 +34,7 @@ const BaseProvider = require('./base');
 const { LOCAL_RUNTIMES, describeLocalModel, rememberLocalContextWindow } = require('./localModels');
 const { projectToolsForTemplate } = require('../llm/toolSchemaProjection');
 const log = require('../../telemetry/log');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 // Discovery is a handful of HTTP calls against a box that might not be up.
 // Keep the ceilings low so an unreachable endpoint degrades to "0 models"
@@ -88,6 +89,7 @@ const MIN_VISIBLE_TOKENS = 1024;
 // server-wide --reasoning-budget flag, invisible over the API — so the ladder
 // is an estimate, deliberately on the generous side: over-reserving costs a
 // larger ceiling the model rarely reaches, under-reserving costs a dead turn.
+/** @type {Record<string, number>} */
 const REASONING_RESERVE_BY_EFFORT = {
     minimal: 1024,
     low: 1024,
@@ -100,6 +102,9 @@ const REASONING_RESERVE_DEFAULT = REASONING_RESERVE_BY_EFFORT.medium;
 const LLAMACPP_EFFORTS = new Set(["minimal", "low", "medium", "high", "xhigh", "max"]);
 const CAPABILITY_CACHE_MAX = 500;
 
+/**
+ * @param {string[]} capabilities
+ */
 function rememberCapabilities(modelId, capabilities) {
     if (!modelId || !Array.isArray(capabilities)) return;
     // Bounded: a long-lived server that has seen many runtimes should not grow
@@ -137,6 +142,7 @@ function declaredCapabilities(entry) {
     const arch = entry && typeof entry.architecture === 'object' ? entry.architecture : null;
     const input = Array.isArray(arch?.input_modalities) ? arch.input_modalities.map(String) : null;
     if (!input || !input.length) return null;
+    /** @type {string[]} */
     const caps = [];
     if (input.includes('image')) caps.push('vision');
     if (input.includes('audio')) caps.push('audio');
@@ -197,6 +203,7 @@ function foldLateSystemMessages(messages) {
     const sysCount = messages.reduce((n, m) => n + (isSys(m) ? 1 : 0), 0);
     if (sysCount === 0 || (sysCount === 1 && isSys(messages[0]))) return messages;
 
+    /** @type {{ role: string; content: string; }[]} */
     const out = [];
     let i = 0;
     const lead = [];
@@ -254,6 +261,7 @@ class LocalProvider extends BaseProvider {
      * outright by some gateways — and a keyless local box is the common case.
      */
     getHeaders(apiKey) {
+        /** @type {{ "Content-Type": string; Authorization?: string }} */
         const headers = { 'Content-Type': 'application/json' };
         if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
         return headers;
@@ -276,6 +284,7 @@ class LocalProvider extends BaseProvider {
      * see in a shape it can render: the turn's earlier reasoning on the
      * assistant tool-call messages (_replayReasoning) and, for Gemma 4, tool
      * schemas without the keywords its template misrenders (_projectTools).
+     * @param {string} model
      */
     buildRequestBody(model, messages, options = {}) {
         const llamacpp = this._isLlamacpp(options);
@@ -481,6 +490,7 @@ class LocalProvider extends BaseProvider {
      * misrenders JSON Schema get a projected COPY; every other model, and a
      * request without tools, gets the caller's list untouched — same
      * reference, so the cloud-style byte-stable prefix is unaffected.
+     * @param {string} model
      */
     _projectTools(model, tools) {
         if (!Array.isArray(tools) || !tools.length) return tools;
@@ -559,6 +569,7 @@ class LocalProvider extends BaseProvider {
      * 'high' all produce identical output and only 'none' changes anything —
      * but gpt-oss does grade its levels, so pass the level through rather than
      * collapsing it to a boolean.
+     * @param {string | boolean} thinking
      */
     _ollamaEffort(thinking) {
         if (thinking === false) return 'none';
@@ -605,6 +616,8 @@ class LocalProvider extends BaseProvider {
      * unreachable box costs one timeout, not one per request.
      *
      * @returns {Promise<"ollama"|"llamacpp"|"other">}
+     * @param {string} apiKey
+     * @param {string} baseUrl
      */
     async _runtimeFor(apiKey, baseUrl) {
         if (this.flavor === "ollama") return "ollama";
@@ -616,7 +629,7 @@ class LocalProvider extends BaseProvider {
         try {
             const props = await this._getJson(`${root}/props`, this.getHeaders(apiKey), RUNTIME_PROBE_TIMEOUT_MS);
             if (props && (props.build_info !== undefined || props.chat_template !== undefined)) runtime = "llamacpp";
-        } catch (err) { log.debug('not llama-server, or not up — either way: send nothing extra', err); }
+        } catch (err) { fallback('core/providers/local:LocalProvider._runtimeFor', err); /* not llama-server, or not up — either way: send nothing extra */ }
         runtimeByRoot.set(root, runtime);
         return runtime;
     }
@@ -630,6 +643,10 @@ class LocalProvider extends BaseProvider {
      * 16384, which is exactly the number a request must stay under. Once
      * per (root, model), and never blocking a turn on failure: the fold
      * merely keeps its default until the next turn learns better.
+     * @param {string | number | boolean} model
+     * @param {string} runtime
+     * @param {string} apiKey
+     * @param {string} baseUrl
      */
     async _learnContextWindow(apiKey, baseUrl, model, runtime) {
         if (runtime !== "llamacpp" || !model) return;
@@ -647,7 +664,7 @@ class LocalProvider extends BaseProvider {
                 log.info(`[LocalProvider] ${model} on ${root}: context window ${nCtx} tokens (per slot)`);
             }
         } catch (e) {
-            log.warn(`[LocalProvider] could not read the context window of ${model} on ${root}: ${e.message}`);
+            log.warn(`[LocalProvider] could not read the context window of ${model} on ${root}: ${/** @type {Error} */ (e).message}`);
         }
     }
 
@@ -655,11 +672,17 @@ class LocalProvider extends BaseProvider {
      * The tier's effort as llama.cpp spells it. llama-server accepts the
      * OpenAI vocabulary plus 'xhigh'/'max' and forwards it to the template;
      * anything else falls back to the template default via 'medium'.
+     * @param {string} effort
      */
     _llamacppEffort(effort) {
         return LLAMACPP_EFFORTS.has(effort) ? effort : "medium";
     }
 
+    /**
+     * @param {string} apiKey
+     * @param {string} baseUrl
+     * @param {string} model
+     */
     async chat(apiKey, baseUrl, model, messages, options = {}) {
         const runtime = await this._runtimeFor(apiKey, baseUrl);
         await this._learnContextWindow(apiKey, baseUrl, model, runtime);
@@ -672,12 +695,17 @@ class LocalProvider extends BaseProvider {
             try {
                 return await super.chat(apiKey, baseUrl, model, messages, opts);
             } catch (e) {
-                if (runtime !== 'llamacpp' || attempt >= PEG_MISMATCH_RETRIES || !PEG_MISMATCH_RE.test(String(e && e.message))) throw e;
-                log.warn(`[LocalProvider] llama-server discarded a ${model} reply it could not parse (${e.message.slice(0, 160)}) — retrying once`);
+                if (runtime !== 'llamacpp' || attempt >= PEG_MISMATCH_RETRIES || !PEG_MISMATCH_RE.test(String(e && /** @type {Error} */ (e).message))) throw e;
+                log.warn(`[LocalProvider] llama-server discarded a ${model} reply it could not parse (${/** @type {Error} */ (e).message.slice(0, 160)}) — retrying once`);
             }
         }
     }
 
+    /**
+     * @param {string} apiKey
+     * @param {string} baseUrl
+     * @param {string} model
+     */
     async stream(apiKey, baseUrl, model, messages, options = {}, onEvent) {
         const runtime = await this._runtimeFor(apiKey, baseUrl);
         await this._learnContextWindow(apiKey, baseUrl, model, runtime);
@@ -689,16 +717,23 @@ class LocalProvider extends BaseProvider {
     /**
      * What we know about a model, preferring what the runtime actually
      * reported over what its name suggests.
+     * @param {string} modelId
      */
     _describe(modelId) {
         const capabilities = reportedCapabilities.get(modelId) || null;
         return describeLocalModel(modelId, capabilities ? { capabilities } : undefined);
     }
 
+    /**
+     * @param {string} modelId
+     */
     supportsReasoning(modelId) {
         return this._describe(modelId).reasoning;
     }
 
+    /**
+     * @param {string} modelId
+     */
     supportsVision(modelId) {
         return this._describe(modelId).vision;
     }
@@ -713,12 +748,18 @@ class LocalProvider extends BaseProvider {
 
     // ─── URL helpers ─────────────────────────────────────────────────────────
 
-    /** Strip trailing slashes and a trailing `/v1` — the API root of the server. */
+    /**
+     * Strip trailing slashes and a trailing `/v1` — the API root of the server.
+     * @param {string} baseUrl
+     */
     _root(baseUrl) {
         return String(baseUrl || '').replace(/\/+$/, '').replace(/\/v1$/, '');
     }
 
-    /** The `/v1` base BaseProvider's chat/stream paths expect. */
+    /**
+     * The `/v1` base BaseProvider's chat/stream paths expect.
+     * @param {string} baseUrl
+     */
     _v1(baseUrl) {
         return `${this._root(baseUrl)}/v1`;
     }
@@ -747,6 +788,7 @@ class LocalProvider extends BaseProvider {
      * "0 models" instead of an error page.
      *
      * @returns {Promise<Array<{id, name, cat, reasoning, vision, tools, embedding, local}>>}
+     * @param {string} baseUrl
      */
     async listModels(apiKey, baseUrl, _opts = {}) {
         const headers = this.getHeaders(apiKey);
@@ -762,14 +804,18 @@ class LocalProvider extends BaseProvider {
         return models;
     }
 
-    /** Native Ollama discovery: /api/tags, enriched per-model via /api/show. */
+    /**
+     * Native Ollama discovery: /api/tags, enriched per-model via /api/show.
+     * @param {{ 'Content-Type': string; }} headers
+     * @param {string} baseUrl
+     */
     async _listOllamaModels(headers, baseUrl) {
         const root = this._root(baseUrl);
         let tags;
         try {
             tags = await this._getJson(`${root}/api/tags`, headers, DISCOVERY_TIMEOUT_MS);
         } catch (e) {
-            log.warn(`[LocalProvider] Ollama /api/tags failed (${e.message}); falling back to /v1/models`);
+            log.warn(`[LocalProvider] Ollama /api/tags failed (${/** @type {Error} */ (e).message}); falling back to /v1/models`);
             return [];
         }
 
@@ -805,6 +851,8 @@ class LocalProvider extends BaseProvider {
      * Fan out /api/show over the pulled models with a bounded worker pool.
      * A model whose detail call fails simply keeps its pattern-guessed
      * capabilities — discovery must not fail because one tag is broken.
+     * @param {string} root
+     * @param {{ 'Content-Type': string; }} headers
      */
     async _fetchOllamaCapabilities(root, headers, entries) {
         const out = new Map();
@@ -822,7 +870,7 @@ class LocalProvider extends BaseProvider {
                     if (!res.ok) continue;
                     const data = /** @type {{ capabilities?: string[] }} */ (await res.json());
                     if (Array.isArray(data?.capabilities)) out.set(entry.id, data.capabilities);
-                } catch (err) { log.debug('keep the pattern guess for this one', err); }
+                } catch (err) { bestEffort('core/providers/local:worker', err); /* keep the pattern guess for this one */ }
             }
         };
         await Promise.all(
@@ -831,7 +879,11 @@ class LocalProvider extends BaseProvider {
         return out;
     }
 
-    /** Generic OpenAI discovery — vLLM, llama.cpp, LM Studio, SGLang, … */
+    /**
+     * Generic OpenAI discovery — vLLM, llama.cpp, LM Studio, SGLang, …
+     * @param {{ 'Content-Type': string; }} headers
+     * @param {string} baseUrl
+     */
     async _listOpenAiModels(headers, baseUrl) {
         try {
             const data = await this._getJson(`${this._v1(baseUrl)}/models`, headers, DISCOVERY_TIMEOUT_MS);
@@ -846,7 +898,7 @@ class LocalProvider extends BaseProvider {
                     return describeLocalModel(m.id, caps ? { capabilities: caps } : undefined);
                 });
         } catch (e) {
-            log.warn(`[LocalProvider] ${this.name} /v1/models failed: ${e.message}`);
+            log.warn(`[LocalProvider] ${this.name} /v1/models failed: ${/** @type {Error} */ (e).message}`);
             return [];
         }
     }
@@ -859,16 +911,17 @@ class LocalProvider extends BaseProvider {
      * questions an admin actually has: is it up, and what can it serve?
      *
      * @returns {Promise<{ok: boolean, flavor: string, version: string|null, modelCount: number, models: Array, error: string|null}>}
+     * @param {string} baseUrl
      */
     async probe(apiKey, baseUrl) {
         const headers = this.getHeaders(apiKey);
-        const result = { ok: false, flavor: this.flavor, version: null, modelCount: 0, models: [], error: null };
+        const result = { ok: false, flavor: this.flavor, version: null, modelCount: 0, models: [], error: /** @type {string | null} */ (null) };
 
         if (this.runtime.nativeApi === 'ollama') {
             try {
                 const v = await this._getJson(`${this._root(baseUrl)}/api/version`, headers, DETAIL_TIMEOUT_MS);
                 result.version = v?.version || null;
-            } catch (err) { log.debug('version is decoration, not the health signal', err); }
+            } catch (err) { fallback('core/providers/local:LocalProvider.probe', err); /* version is decoration, not the health signal */ }
         }
 
         try {
@@ -881,7 +934,7 @@ class LocalProvider extends BaseProvider {
             // error, but the UI needs to say so.
             if (!models.length) result.error = 'Reachable, but no models are being served yet.';
         } catch (e) {
-            result.error = e.message;
+            result.error = /** @type {Error} */ (e).message;
         }
         return result;
     }
@@ -891,6 +944,7 @@ class LocalProvider extends BaseProvider {
      * Only Ollama can do this; the other runtimes load models at process start.
      *
      * @param {function} onProgress - called with each native progress object
+     * @param {string} baseUrl
      */
     async pullModel(apiKey, baseUrl, model, onProgress) {
         if (!this.runtime.canPull) {
@@ -935,3 +989,42 @@ LocalProvider.foldLateSystemMessages = foldLateSystemMessages;
 LocalProvider.LATE_SYSTEM_FRAME = LATE_SYSTEM_FRAME;
 
 module.exports = LocalProvider;
+
+/**
+ * @typedef {import('../../utils/messageUtils').WireMessage} WireMessage
+ * @typedef {ReturnType<typeof describeLocalModel>} LocalModel
+ * @typedef {{ type?: string, function?: { name?: string, description?: string, parameters?: unknown } }} LocalTool
+ * @typedef {{
+ *   tools?: LocalTool[],
+ *   topK?: number,
+ *   topP?: number,
+ *   forcedTool?: LocalTool,
+ *   reasoningEffort?: string | false | null,
+ *   reasoningSummary?: boolean,
+ *   budgetTokens?: number,
+ *   keepAlive?: unknown,
+ *   extraBody?: Record<string, unknown>,
+ *   _runtime?: string,
+ * }} LocalOptions
+ * @typedef {{
+ *   model: string,
+ *   messages: WireMessage[],
+ *   tools?: LocalTool[],
+ *   tool_choice?: string | { type?: string, function?: { name?: string }, name?: string },
+ *   top_k?: number,
+ *   top_p?: number,
+ *   reasoning_effort?: string,
+ *   reasoning_budget_tokens?: number,
+ *   keep_alive?: unknown,
+ *   chat_template_kwargs?: Record<string, unknown>,
+ *   temperature?: number,
+ *   stream?: boolean,
+ *   stream_options?: Record<string, unknown>,
+ *   cache_prompt?: boolean,
+ *   return_progress?: boolean,
+ *   max_tokens?: number,
+ *   response_format?: object,
+ * }} LocalBody
+ * @typedef {{ id: string, meta?: { n_ctx?: unknown }, architecture?: { input_modalities?: unknown } }} LocalModelCard
+ * @typedef {(type: string, data: Record<string, unknown>) => void} LocalOnEvent
+ */

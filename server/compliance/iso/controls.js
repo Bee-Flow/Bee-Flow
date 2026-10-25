@@ -26,7 +26,14 @@
 
 const THEMES = { 5: 'organizational', 6: 'people', 7: 'physical', 8: 'technological' };
 
+/**
+ * @param {string} ref
+ * @param {string} key
+ * @param {number} theme
+ * @param {string} bucket
+ */
 function c(ref, key, theme, bucket) {
+    /** @type {{ ref: string; key: string; theme: number; bucket: string; titleKey: string; objectiveKey: string; inheritedJustificationKey?: string }} */
     const entry = {
         ref,
         key,
@@ -144,6 +151,9 @@ const CONTROLS = [
     c('A.8.34', 'a8_34', 8, 'attest'),
 ];
 
+/**
+ * @param {string} ref
+ */
 function byRef(ref) {
     return CONTROLS.find((ctrl) => ctrl.ref === ref) || null;
 }

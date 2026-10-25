@@ -24,6 +24,7 @@
 const path = require('path');
 const { Worker, MessageChannel, receiveMessageOnPort } = require('worker_threads');
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 const DEFAULT_BUDGET_MS = 50;
 const READY_WAIT_MS = 2000;
@@ -56,14 +57,17 @@ function _spawn() {
 /** Start the worker ahead of the first scan (worker start-up is ~30-40 ms). */
 function prewarm() {
     if (!_state) {
-        try { _spawn(); } catch (err) { log.warn('[CustomTypes] legacy pattern worker could not start:', err.message); }
+        try { _spawn(); } catch (err) { log.warn('[CustomTypes] legacy pattern worker could not start:', /** @type {Error} */ (err).message); }
     }
 }
 
+/**
+ * @param {{ worker: Worker; port: MessagePort; flags: Int32Array; seq: number; }} state
+ */
 function _kill(state) {
     if (_state === state) _state = null;
-    state.worker.terminate().catch(() => { /* already gone */ });
-    try { state.port.close(); } catch (err) { log.debug('closed', err); }
+    state.worker.terminate().catch((e) => bestEffort('privacy/legacyRunner:terminate', e));
+    try { state.port.close(); } catch (err) { bestEffort('privacy/legacyRunner:closePort', err); }
 }
 
 /**
@@ -74,10 +78,12 @@ function _kill(state) {
  */
 function runLegacySync(jobs, text, budgetMs = DEFAULT_BUDGET_MS) {
     const results = new Map();
+    /** @type {string[]} */
     const timedOut = [];
     const capped = [];
     const failed = [];
     const now = Date.now();
+    /** @type {{ id: string; source: string; caseSensitive: boolean; }[]} */
     const runnable = [];
     for (const job of jobs || []) {
         const until = _cooldown.get(job.id);
@@ -89,7 +95,7 @@ function runLegacySync(jobs, text, budgetMs = DEFAULT_BUDGET_MS) {
 
     let state = _state;
     try { state = state || _spawn(); } catch (err) {
-        log.warn('[CustomTypes] legacy pattern worker could not start:', err.message);
+        log.warn('[CustomTypes] legacy pattern worker could not start:', /** @type {Error} */ (err).message);
         return { results, timedOut: [...timedOut, ...runnable.map(j => j.id)], capped, failed };
     }
     if (Atomics.load(state.flags, 1) !== 1) Atomics.wait(state.flags, 1, 0, READY_WAIT_MS);
@@ -145,3 +151,5 @@ function _resetLegacyRunner() {
 }
 
 module.exports = { runLegacySync, prewarm, _resetLegacyRunner, DEFAULT_BUDGET_MS, COOLDOWN_MS };
+
+/** @typedef {import('worker_threads').MessagePort} MessagePort */

@@ -102,3 +102,9 @@ function rewriteAndResolve(def, renameMap, push) {
 }
 
 module.exports = { walkNodes, rewriteActionResults, rewriteStepScreenRefs, rewriteAndResolve };
+
+/**
+ * @typedef {{ children?: PassTwoNode[], props?: unknown, [k: string]: unknown }} PassTwoNode  A rebuilt component node.
+ * @typedef {{ id: string, sections?: Array<{ children: PassTwoNode[] }> }} PassTwoScreen
+ * @typedef {{ homeScreenId?: string | null, screens?: PassTwoScreen[], actions?: Record<string, Record<string, any>> }} PassTwoDef  The rebuilt definition.
+ */

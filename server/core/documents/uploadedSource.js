@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * A file uploaded as a SOURCE of a notebook or a webpage: the source type its
  * extension names, and a copy in object storage when storage is configured.

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * nextcloudMenuSync.js — tell the org's Nextcloud connector "the app menu
  * changed, sync now".
@@ -52,19 +52,33 @@ const userStore = require('../stores/userStore');
 const configStore = require('../stores/configStore');
 const { signedConnectorHeaders } = require('../integrations/ncSigning');
 const log = require('../telemetry/log');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const HOOK_PATH = '/hooks/studio-menus';
 // A reconcile is one SaaS GET plus a couple of OCS calls — well under a second
 // when healthy. The owner is waiting on this, so the ceiling is short.
 const PUSH_TIMEOUT_MS = 6_000;
+/** @type {Readonly<Record<string, number>>} */
 const COOLDOWN_MS = Object.freeze({
     unauthorized: 10 * 60_000,
     unreachable: 30_000,
 });
 
-/** Per-org push state. Keyed by org id; entries are tiny and never expire. */
+/**
+ * @typedef {'synced' | 'not_connected' | 'unsupported' | 'unauthorized' | 'unreachable'} Outcome
+ * @typedef {{ reason?: string, appId?: string | null }} Meta
+ * @typedef {{ outcome: Outcome, detail?: string, result?: { added: number, removed: number, updated: number } }} PushResult
+ * @typedef {PushResult & { ms: number }} SyncResult
+ * @typedef {{ inflight: Promise<SyncResult> | null, followUp: Promise<SyncResult> | null, cooldownUntil: number, cooldownOutcome: Outcome | null }} OrgState
+ */
+
+/**
+ * Per-org push state. Keyed by org id; entries are tiny and never expire.
+ * @type {Map<string, OrgState>}
+ */
 const _orgs = new Map();
 
+/** @param {string} orgId */
 function orgState(orgId) {
     let s = _orgs.get(orgId);
     if (!s) {
@@ -79,6 +93,7 @@ function orgState(orgId) {
  * paired Nextcloud. Reads the raw column names: `getOrganization` spreads the
  * row without camelCase aliases for these (the camelCase forms are accepted
  * for callers that hand in an already-normalised org, e.g. tests).
+ * @param {string} orgId
  */
 async function resolveTarget(orgId) {
     const org = await userStore.getOrganization(orgId);
@@ -91,12 +106,21 @@ async function resolveTarget(orgId) {
     return { callbackUrl: String(callbackUrl).replace(/\/+$/, ''), tenantKey };
 }
 
+/**
+ * @param {number} status
+ * @returns {Outcome}
+ */
 function outcomeForStatus(status) {
     if (status === 404) return 'unsupported';
     if (status === 401 || status === 403 || status === 429) return 'unauthorized';
     return 'unreachable';
 }
 
+/**
+ * @param {{ callbackUrl: string, tenantKey: string }} target
+ * @param {Meta} meta
+ * @returns {Promise<PushResult>}
+ */
 async function pushOnce(target, meta) {
     const body = JSON.stringify({
         reason: meta.reason || 'change',
@@ -119,7 +143,7 @@ async function pushOnce(target, meta) {
         return { outcome: 'unreachable', detail: err.name === 'TimeoutError' ? 'timeout' : err.message };
     }
     if (!res.ok) return { outcome: outcomeForStatus(res.status), detail: `HTTP ${res.status}` };
-    const data = await res.json().catch(() => null);
+    const data = /** @type {{ ok?: boolean, error?: string, added?: number, removed?: number, updated?: number } | null} */ (await res.json().catch(/** @returns {null} */ () => null));
     if (!data || data.ok !== true) {
         return { outcome: 'unreachable', detail: (data && data.error) || 'connector answered ok:false' };
     }
@@ -129,9 +153,15 @@ async function pushOnce(target, meta) {
     };
 }
 
+/**
+ * @param {string} orgId
+ * @param {Meta} meta
+ * @returns {Promise<SyncResult>}
+ */
 async function runPush(orgId, meta) {
     const started = Date.now();
     const state = orgState(orgId);
+    /** @type {PushResult} */
     let out;
     try {
         const target = await resolveTarget(orgId);
@@ -161,6 +191,9 @@ async function runPush(orgId, meta) {
  * Never throws. Concurrent callers for one org share at most one follow-up
  * push behind the one in flight — the follow-up sees every change saved
  * before it started, so nobody's toggle is answered with a stale reconcile.
+ * @param {string | null | undefined} orgId
+ * @param {Meta} [meta]
+ * @returns {Promise<SyncResult>}
  */
 function requestMenuSync(orgId, meta = {}) {
     if (!orgId) return Promise.resolve({ outcome: 'not_connected', ms: 0 });
@@ -173,7 +206,7 @@ function requestMenuSync(orgId, meta = {}) {
         return state.inflight;
     }
     if (!state.followUp) {
-        state.followUp = state.inflight.catch(() => {}).then(() => {
+        state.followUp = state.inflight.catch((e) => fallback('appStudio/nextcloudMenuSync:requestMenuSync', e)).then(() => {
             state.followUp = null;
             return requestMenuSync(orgId, meta);
         });
@@ -184,9 +217,11 @@ function requestMenuSync(orgId, meta = {}) {
 /**
  * Fire-and-forget form for the routes where nobody is waiting on the answer
  * (publish, rename, delete). The outcome still lands in the log.
+ * @param {string | null | undefined} orgId
+ * @param {Meta} [meta]
  */
 function notifyMenuChange(orgId, meta = {}) {
-    requestMenuSync(orgId, meta).catch(() => { /* requestMenuSync never rejects */ });
+    requestMenuSync(orgId, meta).catch((e) => bestEffort('appStudio/nextcloudMenuSync:notifyMenuChange', e));
 }
 
 function _resetForTests() {

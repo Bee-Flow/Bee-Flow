@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Package loader: the runtime plumbing an activation wires and unwires.
  *
@@ -14,10 +14,15 @@ const path = require('path');
 const { deps, _ticks, _remoteDescriptors, _healthOf, _logSystem } = require('./packageState');
 const { moduleRoot } = require('./packageStaging');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const { registry, betaFeatures } = deps;
 
 // ── Descriptor projection + registry push ─────────────────────────────────
+/**
+ * @param {string} moduleId
+ * @param {import('./packageVerify').PackageManifest} manifest
+ */
 function _projectDescriptors(moduleId, manifest) {
     const caps = Array.isArray(manifest.capabilities) ? manifest.capabilities : [];
     const capDescriptors = [];
@@ -65,17 +70,23 @@ function _pushDescriptors() {
         allCaps.push(...d.capDescriptors);
         allBetas.push(...d.betaDescriptors);
     }
-    try { registry().setRemoteModuleCapabilityDescriptors(allCaps); } catch (err) { log.debug('registry not ready', err); }
-    try { betaFeatures().setRemoteBetaFeatures(allBetas); } catch (err) { log.debug('beta not ready', err); }
+    try { registry().setRemoteModuleCapabilityDescriptors(allCaps); } catch (err) { bestEffort('modules/packageRuntime:_pushDescriptors', err); /* registry not ready */ }
+    try { betaFeatures().setRemoteBetaFeatures(allBetas); } catch (err) { bestEffort('modules/packageRuntime:_pushDescriptors#2', err); /* beta not ready */ }
 }
 
 // ── Worker tick (stop; the start lives with activation) ───────────────────
+/**
+ * @param {string} moduleId
+ */
 function _stopTick(moduleId) {
     const t = _ticks.get(moduleId);
     if (t) { clearInterval(t); _ticks.delete(moduleId); }
 }
 
 // ── require.cache purge (so a re-install reloads fresh code) ───────────────
+/**
+ * @param {string} moduleId
+ */
 function _purgeRequireCache(moduleId) {
     const root = moduleRoot(moduleId) + path.sep;
     for (const key of Object.keys(require.cache)) {
@@ -87,7 +98,11 @@ function _purgeRequireCache(moduleId) {
 const DRAIN_TIMEOUT_MS = parseInt(process.env.MODULE_DRAIN_TIMEOUT_MS || '10000', 10);
 const DISPOSE_TIMEOUT_MS = 10_000;
 
-/** Wait (bounded) for a replaced entry's in-flight requests, then dispose it. */
+/**
+ * Wait (bounded) for a replaced entry's in-flight requests, then dispose it.
+ * @param {string} moduleId
+ * @param {import('./packageState').DispatchEntry} oldEntry
+ */
 async function _drainAndDispose(moduleId, oldEntry) {
     oldEntry.draining = true;
     const deadline = Date.now() + DRAIN_TIMEOUT_MS;
@@ -101,8 +116,8 @@ async function _drainAndDispose(moduleId, oldEntry) {
                 new Promise((_, rej) => { const t = setTimeout(() => rej(new Error('dispose_timeout')), DISPOSE_TIMEOUT_MS); if (t.unref) t.unref(); }),
             ]);
         } catch (e) {
-            if (e && e.message === 'dispose_timeout') _healthOf(moduleId).disposeTimeouts++;
-            log.warn(`[Modules] hot-swap dispose failed for ${moduleId}:`, e.message);
+            if (e && /** @type {Error} */ (e).message === 'dispose_timeout') _healthOf(moduleId).disposeTimeouts++;
+            log.warn(`[Modules] hot-swap dispose failed for ${moduleId}:`, /** @type {Error} */ (e).message);
         }
     }
     _logSystem(moduleId, `old v${oldEntry.version} drained (${oldEntry.inflight || 0} in-flight at timeout) + disposed`);

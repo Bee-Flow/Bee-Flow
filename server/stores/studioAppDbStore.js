@@ -71,7 +71,7 @@ if (isPg()) {
         entityLabel: 'Studio App DB',
         // Dashes kept: 'app_' + a 36-char UUID = 40 chars, safely inside PG's
         // 63-char identifier limit. Always quoted by the engine.
-        schemaFor: (appId) => 'app_' + appId,
+        schemaFor: (/** @type {string} */ appId) => 'app_' + appId,
     });
 
     module.exports = {
@@ -103,7 +103,7 @@ if (isPg()) {
 
     const engine = createSqliteBlobEngine({
         workDir: process.env.STUDIO_APP_DB_WORK_DIR || path.join(os.tmpdir(), 'beeflow-studio-app-dbs'),
-        buildKey: (ownerId, appId) => storageStore.buildStudioAppKey(ownerId, appId),
+        buildKey: (/** @type {string} */ ownerId, /** @type {string} */ appId) => storageStore.buildStudioAppKey(ownerId, appId),
         metaTable: 'studio_apps',
         logPrefix: 'StudioAppDB',
         entityLabel: 'Studio App DB',
@@ -150,6 +150,7 @@ if (isPg()) {
      * durable in RustFS before the caller's Postgres commit.
      *
      * Returns { applied, skipped: [{ sql, reason }] }.
+     * @param {string[]} orderedDDL
      */
     async function applyMigration(ownerId, id, orderedDDL, { targetVersion = null } = {}) {
         if (!Array.isArray(orderedDDL)) {

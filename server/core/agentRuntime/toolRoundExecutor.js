@@ -298,3 +298,43 @@ module.exports = {
     _stableStringify,
     _flattenToolRoundTrips,
 };
+
+/**
+ * @typedef {import('./chatStream/turnState').ToolCall} RoundToolCall
+ * @typedef {{ enabled?: boolean, scope?: { toolInput?: boolean, toolOutput?: boolean }, rulesWithNames?: Parameters<typeof import('../privacy/guardrails').checkRegexPatterns>[1] } | null} RoundRegexConfig
+ * @typedef {Awaited<ReturnType<typeof import('../integrations/connectionResolution').resolveEffectiveIdentity>>} LentConnection
+ * @typedef {typeof deps} ToolRoundDeps
+ */
+
+/**
+ * What one tool call ends as: its result (or a refusal sentinel) and how it got there.
+ * `finalToolResult` is whatever the tool returned — a string or any JSON value.
+ * @typedef {{ toolCall: RoundToolCall, toolName: string, toolArgs: Record<string, unknown>, finalToolResult: unknown, blocked: boolean, policyRefused?: boolean, confirmPending?: boolean, confirmDeclined?: boolean, outboundProbe?: Awaited<ReturnType<typeof import('../http/outboundProbe').runWithProbe>>['probe'], dispatchMs?: number, toolClass?: string, blockCats?: string[] }} ToolCallOutcome
+ */
+
+/**
+ * The inputs of one tool round, as the streaming runtime hands them over.
+ * @typedef {{
+ *   currentToolCalls: RoundToolCall[], toolCalls: Record<string, unknown>[], signal?: AbortSignal,
+ *   onEvent: import('./chatStream/turnState').OnEvent, messages: import('./chatStream/turnState').ChatMessage[], durableMessages: import('./chatStream/turnState').ChatMessage[],
+ *   persistDurable: () => Promise<unknown>,
+ *   dlpShield: Awaited<ReturnType<typeof import('../privacy/orgShield').resolveShieldFor>>,
+ *   regexConfig: RoundRegexConfig, webSearchGuardEnabled: boolean, webSearchGuardPiiCategories: string[],
+ *   toolParamsMap: Record<string, unknown>, userAuth: import('./chatStream/turnState').UserAuth, userId: string,
+ *   agent: import('./chatStream/turnState').AgentRow, agentId: string, conversation: import('./chatStream/turnState').ConversationRow, modelToUse: string,
+ *   messageMetadata: import('./chatStream/turnState').MessageMetadata, onSkillsActivated?: unknown,
+ *   toolPolicy?: Parameters<typeof decideToolCall>[0]['policy'],
+ *   _failingToolCounts: Map<string, number>, MAX_TOOL_REPEAT: number,
+ *   _toolHistory: Record<string, unknown>[], _emailDrafts: Record<string, unknown>[],
+ *   _calendarDrafts: Record<string, unknown>[], _linkedInDrafts: Record<string, unknown>[],
+ *   _mapEmbeds: Record<string, unknown>[], _audioFiles: Record<string, unknown>[],
+ *   _generatedFiles?: Record<string, unknown>[], _kbSources: Record<string, unknown>[],
+ *   _seenChunkIds: Set<string>, _pendingToolCalls?: Record<string, unknown>[],
+ *   _pendingToolCounts?: Map<string, number>,
+ * }} ToolRoundInput
+ */
+
+/**
+ * The round context the ./toolRound/ steps read: the round's inputs plus the per-round state.
+ * @typedef {Omit<ToolRoundInput, 'currentToolCalls' | 'persistDurable' | '_failingToolCounts'> & { _lentByToolCall: Map<string, LentConnection>, _heldThisRound: Set<string>, _isTestChatRound: boolean, _toolDecisions: Map<string, 'approve'|'decline'>, pendingLoopDetected: boolean }} ToolRoundContext
+ */

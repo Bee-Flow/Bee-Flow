@@ -480,3 +480,25 @@ module.exports = {
     minutes,
     strList,
 };
+
+/**
+ * What an integration tool answered with: parsed JSON whose shape differs per tool.
+ * @typedef {Record<string, any>} ToolResult
+ */
+
+/**
+ * One app a form question can pick from.
+ * @typedef {object} PickSource
+ * @property {string} id
+ * @property {string} appId
+ * @property {string} app
+ * @property {string} label
+ * @property {string} [searchHint]
+ * @property {string} [internal]
+ * @property {string} [searchTool]
+ * @property {(query: string, limit: number) => Record<string, any>} [searchArgs]
+ * @property {(raw: ToolResult) => Array<{ id: string, title: string, subtitle: string, url?: string }>} [mapResults]
+ * @property {string} [fetchTool]
+ * @property {(recordId: string) => Record<string, any>} [fetchArgs]
+ * @property {(raw: ToolResult) => { title: string, subtitle: string, url?: string, text: string, partial?: boolean, data: Record<string, any> }} [mapRecord]
+ */

@@ -107,7 +107,7 @@ function projectSchemaNode(node) {
  */
 function liftNullUnion(node) {
     if (!Array.isArray(node.type) || node.type.length !== 2 || !node.type.includes('null')) return node;
-    const concrete = node.type.find(t => t !== 'null');
+    const concrete = node.type.find((/** @type {string} */ t) => t !== 'null');
     if (typeof concrete !== 'string') return node;
     return { ...node, type: concrete, nullable: true };
 }
@@ -148,3 +148,7 @@ module.exports = {
     stripUnrenderableKeys,
     projectToolsForTemplate,
 };
+
+/**
+ * @typedef {{ function?: { parameters?: unknown, [k: string]: unknown }, [k: string]: unknown }} ToolDef
+ */

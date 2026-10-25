@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The AI member of a team chat: when it answers, what it reads, and how its
  * answer gets back into the chat.
@@ -86,6 +86,7 @@ const {
     CONTEXT_MESSAGES, ASSISTANT_NAME, AUTO_MAX_TOKENS, SKIP_SENTINEL, AUTO_TRIGGERS, TOOL_TIMEOUT_FACTOR,
     displayNameOf, buildTranscript, buildSystemPrompt, withTimeout, isSkip, num,
 } = require('./chatPromptParts');
+const { fallback } = require('../utils/bestEffort');
 
 const DEFAULT_TIMEOUT_MS = 90_000;
 // The lock must outlive the call it guards, or a slow answer loses its turn.
@@ -96,6 +97,9 @@ const EXPLICIT_TRIGGERS = Object.freeze(['ask', 'mention', 'always']);
 
 // ── When ──────────────────────────────────────────────────────────────────
 
+/**
+ * @param {string} s
+ */
 const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const ASSISTANT_MENTION = /(^|[^\w@])@(ai|assistant)(?![\w-])/i;
 
@@ -114,6 +118,9 @@ function mentionsAssistant(content, agentName = null) {
 
 // In Auto, an unambiguous direct address is an explicit request too. Do this
 // before the delayed relevance gate and PII masking can mistake "AI" for a name.
+/**
+ * @param {string} content
+ */
 function addressesAssistant(content) {
     const text = String(content || '').trim();
     return /^(?:(?:hoi|hey|hi|hello|hallo|beste)\s+)?(?:ai|assistant|assistent)\s*(?:[,!:]|\b(?:(?:kun|kan|wil|zou)\s+(?:je|jij|u)|(?:can|could|would)\s+you|please|help)\b)/iu.test(text)
@@ -154,8 +161,9 @@ function decideAiTrigger({ aiMode, content, askAi = false, agentName = null }) {
  */
 async function resolveUsableAgent({ agentId, userId }, deps = {}) {
     if (!agentId || !userId) return null;
-    const getUser = deps.getUser || ((id) => require('../stores/userStore').getUser(id));
-    const resolveUserGroups = deps.resolveUserGroups || ((id) => require('../auth/audience').resolveUserGroups(id));
+    const getUser = deps.getUser || ((/** @type {string} */ id) => require('../stores/userStore').getUser(id));
+    const resolveUserGroups = deps.resolveUserGroups || ((/** @type {string} */ id) => require('../auth/audience').resolveUserGroups(id));
+    /** @type {{ userId: string, userHomeOrgId: string|null, userGroupIds: string[], identityError: string|null }} */
     const ctx = { userId, userHomeOrgId: null, userGroupIds: [], identityError: null };
     try {
         const user = await getUser(userId);
@@ -164,7 +172,7 @@ async function resolveUsableAgent({ agentId, userId }, deps = {}) {
     } catch (err) {
         // An identity we could not read is not a yes (only the owner branch,
         // which needs no identity, can still pass).
-        ctx.identityError = err?.message || 'identity lookup failed';
+        ctx.identityError = /** @type {Error} */ (err)?.message || 'identity lookup failed';
     }
     try {
         const { resolveStepAgent } = require('../core/automationRunner/aiStepAgent');
@@ -241,69 +249,81 @@ async function searchProjectKnowledge({ project, userId, query, session = null, 
  * @param {any}   [deps.chatCrypto]       { forProject(project) }
  * @param {any}   [deps.locks]            { acquireTurn, releaseTurn }
  * @param {any}   [deps.shield]           makeChatShield() surface
- * @param {Function} [deps.llmChat]          (modelId, messages, options) => { content, usage }
- * @param {Function} [deps.runToolLoop]      (modelId, messages, tools, options, executeTool, maxRounds) => { content, usage }, for the project tools
+ * @param {import('./chatAnswerSteps').AnswerCtx['llmChat']} [deps.llmChat]          (modelId, messages, options) => { content, usage }
+ * @param {import('./chatAnswerSteps').AnswerCtx['runToolLoop']} [deps.runToolLoop]      (modelId, messages, tools, options, executeTool, maxRounds) => { content, usage }, for the project tools
  * @param {any}   [deps.projectTools]     projects/chatTools surface: offered, forAnswer
- * @param {Function} [deps.resolveModel]     ({userId, orgId}) => { modelId, options, providerConfig } | null
- * @param {Function} [deps.resolvePersona]   ({agentId, userId}) => { agentId, name, systemPrompt } | null
- * @param {Function} [deps.searchKnowledge]  ({project, userId, query, session, shield, audienceIds?}) => string
- * @param {Function} [deps.loadTagged]       (refs, {userId}) => [{kind, name, text}], the tagged documents and notebooks the asker may read
- * @param {Function} [deps.listAudience]     (project) => string[] | null, for automatic answers
- * @param {Function} [deps.getUser]          (id) => user row
- * @param {Function} [deps.checkLimits]      (limitOrgId, userId) => error text | null
- * @param {Function} [deps.emit]             (projectId, event) => durable event
- * @param {Function} [deps.publishTransient] (projectId, event) => transient event
- * @param {Function} [deps.logUsage]         (entry) => usage row
- * @param {Function} [deps.recordReply]      (decision) => row: an explicit answer, for the automatic cooldown
- * @param {Function} [deps.reasonText]       (reasonCode) => the reason in words, for the automatic prompt
+ * @param {typeof resolveChatModel} [deps.resolveModel]     ({userId, orgId}) => { modelId, options, providerConfig } | null
+ * @param {import('./chatAnswerSteps').AnswerCtx['resolvePersona']} [deps.resolvePersona]   ({agentId, userId}) => { agentId, name, systemPrompt } | null
+ * @param {import('./chatAnswerSteps').AnswerCtx['searchKnowledge']} [deps.searchKnowledge]  ({project, userId, query, session, shield, audienceIds?}) => string
+ * @param {import('./chatAnswerSteps').AnswerCtx['loadTagged']} [deps.loadTagged]       (refs, {userId}) => [{kind, name, text}], the tagged documents and notebooks the asker may read
+ * @param {import('./chatAnswerSteps').AnswerCtx['listAudience']} [deps.listAudience]     (project) => string[] | null, for automatic answers
+ * @param {(id: string) => Promise<any>} [deps.getUser]          (id) => user row
+ * @param {(limitOrgId: string|null, userId: string) => Promise<string|null>} [deps.checkLimits]      (limitOrgId, userId) => error text | null
+ * @param {import('./chatAnswerSteps').AnswerCtx['emit']} [deps.emit]             (projectId, event) => durable event
+ * @param {(projectId: string, event: object) => Promise<unknown>} [deps.publishTransient] (projectId, event) => transient event
+ * @param {import('./chatAnswerSteps').AnswerCtx['logUsage']} [deps.logUsage]         (entry) => usage row
+ * @param {(decision: object) => Promise<unknown>} [deps.recordReply]      (decision) => row: an explicit answer, for the automatic cooldown
+ * @param {import('./chatAnswerSteps').AnswerCtx['reasonText']} [deps.reasonText]       (reasonCode) => the reason in words, for the automatic prompt
  * @param {number}   [deps.timeoutMs]
  * @param {number}   [deps.lockPollMs]       how often an explicit ask waits-and-retries for a held turn
  * @param {number}   [deps.lockWaitMs]       how long it waits at most (default: the longest answer that could hold the turn)
- * @param {Function} [deps.newId]
+ * @param {() => string} [deps.newId]
  */
 function makeChatAssistant(deps = {}) {
     const store = () => deps.store || require('../stores/projectChatStore');
     const chatCrypto = () => deps.chatCrypto || require('./chatCrypto');
     const locks = () => deps.locks || require('../stores/conversationLockStore');
     const shield = deps.shield || makeChatShield();
-    const runToolLoop = deps.runToolLoop || ((modelId, messages, tools, options, executeTool, maxRounds) => require('../core/llm/llmClient').runToolLoop(modelId, messages, tools, options, executeTool, maxRounds));
+    const runToolLoop = deps.runToolLoop || /** @type {typeof import('../core/llm/llmClient').runToolLoop} */ ((modelId, messages, tools, options, executeTool, maxRounds) => require('../core/llm/llmClient').runToolLoop(modelId, messages, tools, options, executeTool, maxRounds));
     const projectTools = () => deps.projectTools || (defaultTools || (defaultTools = require('./chatTools').makeProjectChatTools()));
+    /** @type {ReturnType<typeof import('./chatTools').makeProjectChatTools>|null} */
     let defaultTools = null;
-    const llmChat = deps.llmChat || ((modelId, messages, options) => require('../core/llm/llmClient').chat(modelId, messages, options));
+    const llmChat = deps.llmChat || /** @type {typeof import('../core/llm/llmClient').chat} */ ((modelId, messages, options) => require('../core/llm/llmClient').chat(modelId, messages, options));
     const resolveModel = deps.resolveModel || resolveChatModel;
     const resolvePersona = deps.resolvePersona || resolveUsableAgent;
     const searchKnowledge = deps.searchKnowledge || searchProjectKnowledge;
     const loadTagged = deps.loadTagged || loadTaggedItems;
-    const listAudience = deps.listAudience || ((project) => listProjectAudience(project));
-    const getUser = deps.getUser || ((id) => require('../stores/userStore').getUser(id));
+    const listAudience = deps.listAudience || ((/** @type {{ id: string, ownerId?: string|null }} */ project) => listProjectAudience(project));
+    const getUser = deps.getUser || ((/** @type {string} */ id) => require('../stores/userStore').getUser(id));
     const checkLimits = deps.checkLimits
-        || ((limitOrgId, userId) => require('../core/entitlements/limits').checkSubscriptionLimits(limitOrgId, 'chat', userId));
+        || ((/** @type {string|null} */ limitOrgId, /** @type {string} */ userId) => require('../core/entitlements/limits').checkSubscriptionLimits(limitOrgId, 'chat', userId));
     const emit = deps.emit
-        || ((projectId, event) => require('../core/projectFeed').emitProjectEvent(projectId, event, { label: 'ProjectChat' }));
+        || ((/** @type {string} */ projectId, /** @type {Parameters<typeof import('../core/projectFeed').emitProjectEvent>[1]} */ event) => require('../core/projectFeed').emitProjectEvent(projectId, event, { label: 'ProjectChat' }));
     const publishTransient = deps.publishTransient
-        || ((projectId, event) => require('../core/projectEventBus').publishTransient(projectId, event));
-    const logUsage = deps.logUsage || ((entry) => require('../stores/usageStore').logUsage(entry));
+        || ((/** @type {string} */ projectId, /** @type {Parameters<typeof import('../core/projectEventBus').publishTransient>[1]} */ event) => require('../core/projectEventBus').publishTransient(projectId, event));
+    const logUsage = deps.logUsage || ((/** @type {Parameters<typeof import('../stores/usageStore').logUsage>[0]} */ entry) => require('../stores/usageStore').logUsage(entry));
     const recordReply = deps.recordReply
-        || ((decision) => require('../stores/projectAiParticipationStore').recordDecision(decision));
-    const reasonText = deps.reasonText || ((reasonCode) => {
+        || ((/** @type {Parameters<typeof import('../stores/projectAiParticipationStore').recordDecision>[0]} */ decision) => require('../stores/projectAiParticipationStore').recordDecision(decision));
+    const reasonText = deps.reasonText || ((/** @type {string} */ reasonCode) => {
         const { REASON_TEXT } = require('./participation/relevanceGate');
-        return REASON_TEXT[reasonCode] || 'the conversation seemed to need you';
+        return /** @type {Readonly<Record<string, string>>} */ (REASON_TEXT)[reasonCode] || 'the conversation seemed to need you';
     });
     const timeoutMs = Number.isFinite(deps.timeoutMs) && deps.timeoutMs > 0 ? deps.timeoutMs : DEFAULT_TIMEOUT_MS;
     const lockPollMs = Number.isFinite(deps.lockPollMs) && deps.lockPollMs > 0 ? deps.lockPollMs : DEFAULT_LOCK_POLL_MS;
     const lockWaitMs = Number.isFinite(deps.lockWaitMs) && deps.lockWaitMs > 0 ? deps.lockWaitMs : timeoutMs * TOOL_TIMEOUT_FACTOR + LOCK_MARGIN_MS;
     const newId = deps.newId || (() => crypto.randomUUID());
 
-    /** Live-feed status, best-effort: a missed beat is a later refetch. */
+    /**
+     * Live-feed status, best-effort: a missed beat is a later refetch.
+     * @param {string} projectId
+     * @param {string} kind
+     * @param {string} actorId
+     * @param {string} chatId
+     * @param {string} status
+     */
     async function announce(projectId, kind, actorId, chatId, status) {
         try {
             await publishTransient(projectId, { kind, actorId, chatId, status, payload: { chatId, status } });
         } catch (err) {
-            log.warn(`[ProjectChat] ${kind} not published: ${err && err.message}`);
+            log.warn(`[ProjectChat] ${kind} not published: ${err && /** @type {Error} */ (err).message}`);
         }
     }
 
-    /** Author names for the transcript, one lookup per person. */
+    /**
+     * Author names for the transcript, one lookup per person.
+     * @param {string[]} userIds
+     * @returns {Promise<Map<string, string>>}
+     */
     async function namesFor(userIds) {
         const names = new Map();
         for (const id of userIds) {
@@ -314,7 +334,10 @@ function makeChatAssistant(deps = {}) {
         return names;
     }
 
-    /** An explicit answer restarts the automatic cooldown; the log is a courtesy, never a blocker. */
+    /**
+     * An explicit answer restarts the automatic cooldown; the log is a courtesy, never a blocker.
+     * @param {{ project: { id: string, organizationId?: string|null }, chat: { id: string }, trigger: { id: string }, aiTrigger: string, messageId: string, orgId: string|null }} p
+     */
     async function noteExplicitReply({ project, chat, trigger, aiTrigger, messageId, orgId }) {
         try {
             await recordReply({
@@ -328,7 +351,7 @@ function makeChatAssistant(deps = {}) {
                 replyMessageId: messageId,
             });
         } catch (err) {
-            log.warn(`[ProjectChat] reply in chat ${chat.id} not logged for the cooldown: ${err && err.message}`);
+            log.warn(`[ProjectChat] reply in chat ${chat.id} not logged for the cooldown: ${err && /** @type {Error} */ (err).message}`);
         }
     }
 
@@ -337,6 +360,7 @@ function makeChatAssistant(deps = {}) {
         loadTagged, listAudience, emit, logUsage, reasonText, timeoutMs, newId,
         announce, namesFor, noteExplicitReply,
     };
+    /** @param {Parameters<typeof writeAnswerSteps>[1]} p */
     const writeAnswer = (p) => writeAnswerSteps(answerCtx, p);
 
     /**
@@ -371,7 +395,7 @@ function makeChatAssistant(deps = {}) {
             const limitError = await checkLimits(limitOrgId, userId);
             if (limitError) return { status: 'skipped', reason: 'limit' };
         } catch (err) {
-            log.warn(`[ProjectChat] limit check failed, not answering: ${err && err.message}`);
+            log.warn(`[ProjectChat] limit check failed, not answering: ${err && /** @type {Error} */ (err).message}`);
             return { status: 'skipped', reason: 'unavailable' };
         }
 
@@ -379,7 +403,7 @@ function makeChatAssistant(deps = {}) {
         try {
             model = await resolveModel({ userId, orgId, modelTier: auto ? null : modelTier, message: triggerText });
         } catch (err) {
-            log.warn(`[ProjectChat] model lookup failed, not answering: ${err && err.message}`);
+            log.warn(`[ProjectChat] model lookup failed, not answering: ${err && /** @type {Error} */ (err).message}`);
             return { status: 'skipped', reason: 'unavailable' };
         }
         if (!model || !model.modelId) return { status: 'skipped', reason: 'no_model' };
@@ -400,7 +424,7 @@ function makeChatAssistant(deps = {}) {
         try {
             claim = await claimTurn();
         } catch (err) {
-            log.warn(`[ProjectChat] turn claim failed for chat ${chat.id}: ${err && err.message}`);
+            log.warn(`[ProjectChat] turn claim failed for chat ${chat.id}: ${err && /** @type {Error} */ (err).message}`);
             return { status: 'skipped', reason: 'unavailable' };
         }
         const write = () => writeAnswer({
@@ -433,19 +457,21 @@ function makeChatAssistant(deps = {}) {
                 const claim = await claimTurn();
                 if (claim && claim.acquired) return true;
             } catch (err) {
-                log.warn(`[ProjectChat] waiting for the turn failed: ${err && err.message}`);
+                log.warn(`[ProjectChat] waiting for the turn failed: ${err && /** @type {Error} */ (err).message}`);
                 return false;
             }
         }
         return false;
     }
 
+    /** @param {string} chatId */
     async function getStatus(chatId) {
         const turn = await locks().getTurn(chatId);
-        if (!turn) return { status: 'idle', threadId: null };
+        if (!turn) return { status: 'idle', threadId: /** @type {string|null} */ (null) };
+        /** @type {string | null} */
         let threadId = null;
         if (turn.runId?.startsWith('pc:')) {
-            try { threadId = decodeURIComponent(turn.runId.split(':')[1]) || null; } catch (err) { log.debug('older lock', err); }
+            try { threadId = decodeURIComponent(turn.runId.split(':')[1]) || null; } catch (err) { fallback('projects/chatAssistant:getStatus', err); /* older lock */ }
         }
         return { status: 'running', threadId, startedAt: turn.acquiredAt };
     }

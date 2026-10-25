@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Automation Builder — conversational SSE endpoint.
  *
@@ -94,7 +95,7 @@ const { MAX_ITERATIONS } = require('./turnStop');
 const { requireAuth } = require('../../../auth/permissions');
 const { validate } = require('../../../core/http/validate');
 
-router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuery, body: TurnBody }), async (req, res) => {
+router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuery, body: TurnBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const userId = req.session.user.id;
     const {
         message,
@@ -148,13 +149,13 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
     //
     // The turn object: the request's fields, then whatever each phase below
     // adds (see LAYOUT in the header). `turn.send` is the build loop's writer.
-    const turn = {
+    const turn = /** @type {import('./turnSetup').BuilderTurn} */ ({
         req, res, userId,
         message, clientSession, automationId, modelTier, workMode, alwaysPlanLarge, pauseAfterStep, approvedPlanId, selectedStepId,
         history, attachments, webSearchEnabled, disabledMedia, timezone, canvasScope, seedMetadata, wantsResume,
         send: sendRaw,
         narrator: null,
-    };
+    });
 
     try {
         if (!(await setupTurn(turn))) return;
@@ -248,7 +249,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
     } catch (e) {
         log.error('[automationBuilder/stream] error:', e);
         if (turn.narrator) turn.narrator.close();
-        sendRaw('error', { error: e.message });
+        sendRaw('error', { error: /** @type {Error} */ (e).message });
         stopHeartbeat();
         res.end();
     }

@@ -71,9 +71,18 @@ function assertTransition(from, to) {
     throw new HttpError(409, 'invalid_transition', `A deployment cannot go from ${from} to ${to}.`, { from, to });
 }
 
+/**
+ * @param {string} status
+ */
 const isActiveStatus = (status) => ACTIVE_STATUSES.includes(status);
+/**
+ * @param {string} status
+ */
 const isTerminalStatus = (status) => TERMINAL_STATUSES.includes(status);
 
+/**
+ * @param {string} code
+ */
 const refusal = (code) => ({ ok: false, code });
 const OK = Object.freeze({ ok: true, code: null });
 
@@ -149,6 +158,9 @@ function stableStringify(value) {
     return stableJson.stableStringify(value, { undefined: 'drop', toJSON: true });
 }
 
+/**
+ * @param {string} text
+ */
 function sha256(text) {
     return crypto.createHash('sha256').update(String(text), 'utf8').digest('hex');
 }
@@ -189,3 +201,20 @@ module.exports = {
     eligibleForStage, needsApproval,
     stableStringify, sha256, hashOf, planHash,
 };
+
+/**
+ * A `solution_stages` row as the engine reads it.
+ * @typedef {{
+ *   id?: string, projectId: string, solutionId?: string, stage: string,
+ *   organizationId?: string|null, runAsUserId?: string|null,
+ *   approvalPolicy?: object|null, currentReleaseId?: string|null,
+ *   currentReleaseSeq?: number|null, settingsVersion?: number|null,
+ * }} StageRow
+ */
+
+/**
+ * One datatable the deployment brings: the release's columns and entity, and
+ * the fingerprint of the stage's entry when the plan was made.
+ * @typedef {{ id: string, ref?: string, fingerprint?: string, action?: string, release?: { columns?: object[] },
+ *   entity?: { name?: string, description?: string, rowScope?: string, source?: unknown } }} StageTablePart
+ */

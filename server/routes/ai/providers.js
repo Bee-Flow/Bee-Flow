@@ -42,19 +42,19 @@ const requireAdmin = requireAdminUser(isAdminUser);
 // "Known" is asked of the adapter factory itself (core/providers/index.js),
 // so a provider added there is accepted here without a second list to keep.
 
-const isKnownProviderType = (type) => getAdapter(type) !== baseAdapter;
+const isKnownProviderType = (/** @type {string} */ type) => getAdapter(type) !== baseAdapter;
 const TYPE_TEXT = 'A provider type names the adapter that serves it — for example openai, claude, mistral, azure, google-vertex, ollama or openai-compatible.';
 const ProviderType = z.string({ error: typeError({ required: `Pick a provider type. ${TYPE_TEXT}`, invalid: TYPE_TEXT }) })
     .refine(isKnownProviderType, { error: (iss) => `Unknown provider type '${String(iss.input).slice(0, 40)}'. ${TYPE_TEXT}` });
 
-const text = (what) => z.string({ error: typeError({ invalid: `${what} must be text.` }) });
+const text = (/** @type {string} */ what) => z.string({ error: typeError({ invalid: `${what} must be text.` }) });
 const NAME_TEXT = 'Name and URL are required';
 
 // GET hands every secret out masked ('••••1234', '••••(configured)'). Sent
 // back — the natural GET → edit → PUT — the mask is truthy, so it REPLACED
 // the real credential, and the provider failed on its next request.
 const MASK = '••••';
-const secret = (what) => text(what).refine((v) => !v.startsWith(MASK),
+const secret = (/** @type {string} */ what) => text(what).refine((v) => !v.startsWith(MASK),
     `${what} is the masked value GET returns — send the real key, or leave it out to keep the stored one.`);
 
 /** The fields a provider record has (providerConfig.addProvider / updateProvider). */
@@ -73,7 +73,7 @@ const providerFields = {
     // has no api-version; older clients still send one.
     apiVersion: text('The Azure API version'),
 };
-const optional = (shape) => Object.fromEntries(Object.entries(shape).map(([k, s]) => [k, s.optional()]));
+const optional = (/** @type {Record<string, import('zod').ZodType>} */ shape) => Object.fromEntries(Object.entries(shape).map(([k, s]) => [k, s.optional()]));
 
 const CreateProviderBody = bodyOf(z.object({
     name: z.string({ error: NAME_TEXT }).trim().min(1, NAME_TEXT),
@@ -134,11 +134,11 @@ router.post('/providers', requireAuth, requireAdmin, validate({ body: CreateProv
 
 // PUT /ai/providers/:id — a partial update: a field left out keeps its value
 // (updateProvider merges), which is why a misspelled one must not pass.
-router.put('/providers/:id', requireAuth, requireAdmin, validate({ body: UpdateProviderBody }), async (req, res) => {
+router.put('/providers/:id', requireAuth, requireAdmin, validate({ body: UpdateProviderBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const { name, type, url, model, apiKey, project, location, serviceAccountKey } = req.body;
     const success = await updateProvider(req.params.id, { name, type, url, model, apiKey, project, location, serviceAccountKey });
     if (success) {
-        invalidateModelCache(req.params.id); // Invalidate this provider's cache
+        invalidateModelCache(/** @type {string} */ (req.params.id)); // Invalidate this provider's cache
         res.json({ success: true });
     } else {
         res.status(404).json({ error: 'Provider not found' });
@@ -153,7 +153,7 @@ router.put('/providers/:id', requireAuth, requireAdmin, validate({ body: UpdateP
 // choice an admin should be able to make (and an auditor to read back) without
 // knowing OpenAI's domain scheme. It also keeps the two legal values closed —
 // a typo in a free-text URL would fail open, back to US processing.
-router.put('/providers/:id/region', requireAuth, requireAdmin, validate({ body: RegionBody }), async (req, res) => {
+router.put('/providers/:id/region', requireAuth, requireAdmin, validate({ body: RegionBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const { region } = req.body;
 
     const providerData = await getProviders();
@@ -168,7 +168,7 @@ router.put('/providers/:id/region', requireAuth, requireAdmin, validate({ body: 
     const success = await updateProvider(req.params.id, { ...provider, url });
     if (!success) return res.status(404).json({ error: 'Provider not found' });
 
-    invalidateModelCache(req.params.id);
+    invalidateModelCache(/** @type {string} */ (req.params.id));
     log.info(`[Providers] ${provider.name} now uses ${region === 'eu' ? 'EU regional processing' : 'the default endpoint'}`);
     res.json({ success: true, region, url });
 });
@@ -178,14 +178,14 @@ router.put('/providers/:id/region', requireAuth, requireAdmin, validate({ body: 
 // Asked first, because deleteProvider filters the list and answers true
 // whether or not the id was in it: a mistyped id was "deleted" with a 200,
 // and the provider that was meant — with its key — stayed.
-router.delete('/providers/:id', requireAuth, requireAdmin, async (req, res) => {
+router.delete('/providers/:id', requireAuth, requireAdmin, async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const { providers } = await getProviders();
     if (!(providers || []).some((p) => p.id === req.params.id)) {
         return res.status(404).json({ error: 'Provider not found' });
     }
     const success = await deleteProvider(req.params.id);
     if (success) {
-        invalidateModelCache(req.params.id); // Remove from cache
+        invalidateModelCache(/** @type {string} */ (req.params.id)); // Remove from cache
         res.json({ success: true });
     } else {
         res.status(404).json({ error: 'Provider not found' });
@@ -193,7 +193,7 @@ router.delete('/providers/:id', requireAuth, requireAdmin, async (req, res) => {
 });
 
 // PUT /ai/providers/:id/default
-router.put('/providers/:id/default', requireAuth, requireAdmin, async (req, res) => {
+router.put('/providers/:id/default', requireAuth, requireAdmin, async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const success = await setDefaultProvider(req.params.id);
     if (success) {
         res.json({ success: true });

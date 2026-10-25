@@ -29,10 +29,15 @@ function hasMarkingResolver() {
     return _resolver !== null;
 }
 
-/** Ask the registered resolver; null when none is registered. */
+/**
+ * Ask the registered resolver; null when none is registered.
+ * @param {string | null} orgId
+ */
 async function resolveMarking(orgId, info) {
     if (!_resolver) return null;
     return _resolver(orgId, info);
 }
 
 module.exports = { setMarkingResolver, hasMarkingResolver, resolveMarking };
+
+/** @typedef {(orgId: string, info: { automationId?: string, aiStepIds?: string[], provider?: string }) => Promise<object|null>} MarkingResolver */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The activation tools_cache of a remote-MCP custom integration
  * (kind 'mcp_remote'), shared by the AI Integration Builder's activate route
@@ -16,6 +16,7 @@ const MAX_TOOL_NAME_CHARS = 41;
  * (^[a-z][a-z0-9_]{2,40}$): lowercase, non [a-z0-9_] runs collapse to '_',
  * leading digit/underscore gets a 't_' prefix, short names are padded, long
  * names truncated to 41 chars.
+ * @param {unknown} rawName
  */
 function safeToolName(rawName) {
     let s = String(rawName == null ? '' : rawName)
@@ -31,6 +32,8 @@ function safeToolName(rawName) {
 /**
  * Numeric-suffix dedupe within MAX_TOOL_NAME_CHARS: 'name', 'name_2',
  * 'name_3', … Mutates `taken` (a Set) so successive calls stay unique.
+ * @param {string} name
+ * @param {Set<string>} taken
  */
 function dedupeToolName(name, taken) {
     let candidate = name;
@@ -48,6 +51,8 @@ function dedupeToolName(name, taken) {
  * discoverTools() output. Entries follow the OpenAI tool shape with the
  * prefixed safe name; `_cint.rawName` preserves the exact remote tool name
  * for dispatch. Tools without a usable name are dropped.
+ * @param {Array<{ name?: string, description?: string, inputSchema?: object }> | null | undefined} tools
+ * @param {string} slug
  */
 function buildMcpToolsCache(tools, slug) {
     const taken = new Set();

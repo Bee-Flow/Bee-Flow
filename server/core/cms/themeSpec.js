@@ -70,6 +70,7 @@ const THEME_SPEC = {
  * means ABSENT, never a default, so their fallback stays the consumer's.
  */
 function canonicalizeTheme(theme) {
+    /** @type {Record<string, string | null>} */
     const out = {};
     const src = (theme && typeof theme === 'object' && !Array.isArray(theme)) ? theme : {};
     for (const [key, spec] of Object.entries(THEME_SPEC)) {
@@ -84,8 +85,12 @@ function canonicalizeTheme(theme) {
     return out;
 }
 
-/** Issue records `[{ code, path, message, hint }]`; empty = valid. */
+/**
+ * Issue records `[{ code, path, message, hint }]`; empty = valid.
+ * @param {string} [pathPrefix]
+ */
 function validateTheme(theme, pathPrefix = 'theme') {
+    /** @type {{ code: string; path: string; message: string; hint: string; }[]} */
     const issues = [];
     if (theme === undefined || theme === null) return issues; // defaults apply
     if (typeof theme !== 'object' || Array.isArray(theme)) {
@@ -110,3 +115,5 @@ function validateTheme(theme, pathPrefix = 'theme') {
 }
 
 module.exports = { HEX_RE, THEME_SPEC, THEME_PRIMARY_PRESETS, canonicalizeTheme, validateTheme };
+
+/** @typedef {{ type: 'color' | 'enum', optional?: boolean, default: string | null, presets?: string[], values?: readonly unknown[], description?: string }} ThemeFieldSpec */

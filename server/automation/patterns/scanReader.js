@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * The one way a "Find repeating work" scan reads a connected app, in either
@@ -22,7 +22,7 @@
  */
 
 const { depsWith } = require('./depsWith');
-const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const LOADERS = {
     executeTool: () => require('../../core/tools/toolDispatcher').executeTool,
@@ -40,7 +40,11 @@ const depsFor = (overrides) => depsWith(LOADERS, overrides);
  * @typedef {{ ok: boolean, value?: any, error?: any, refusal?: { uiResult: string, modelError: string } }} ReadResult
  */
 
-/** The scan's signal and a caller's (a source's own time limit), as one. */
+/**
+ * The scan's signal and a caller's (a source's own time limit), as one.
+ * @param {AbortSignal | undefined} a
+ * @param {AbortSignal | undefined} b
+ */
 function bothSignals(a, b) {
     const list = [a, b].filter(Boolean);
     return list.length > 1 ? AbortSignal.any(list) : list[0];
@@ -87,7 +91,7 @@ function makeScanReader(ctx, overrides = null) {
                 ...(call.ok ? { result: call.value } : { error: call.error }),
                 probe: call.probe, policy: ctx.policy, auditBase: ctx.auditBase, mode: 'live', durationMs: Date.now() - t0,
             }));
-        } catch (err) { log.debug('never fail a scan on audit logging', err); }
+        } catch (err) { bestEffort('automation/patterns/scanReader:read', err); /* never fail a scan on audit logging */ }
         return call.ok ? { ok: true, value: call.value } : { ok: false, error: call.error };
     }
 

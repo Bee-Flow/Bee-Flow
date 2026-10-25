@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * appAudience.js — who an app reaches: publish, unpublish and the groups,
  * with the publication audit and the Nextcloud menu nudge. Extracted from the
@@ -40,13 +40,17 @@ async function resolveOwnerOrgId(userId, userStore) {
             : (() => { try { return JSON.parse(owner?.groups || '[]'); } catch { return []; } })();
         if (groups.length > 0) {
             const allGroups = await userStore.getAllGroups();
-            const g = allGroups.find(x => groups.includes(x.id) && x.organizationId);
+            const g = allGroups.find((/** @type {{ id: string, organizationId?: string | null }} */ x) => groups.includes(x.id) && x.organizationId);
             organizationId = g?.organizationId || null;
         }
     }
     return organizationId;
 }
 
+/**
+ * @param {number} status
+ * @param {object} body
+ */
 const refuse = (status, body) => ({ ok: false, status, body });
 
 /**
@@ -55,6 +59,9 @@ const refuse = (status, body) => ({ ok: false, status, body });
  * the whole organisation falls back to the owner's.
  *
  * @returns {Promise<{ organizationId: string }|{ refusal: ReturnType<typeof refuse> }>}
+ * @param {{ userId: string }} app
+ * @param {string[] | null | undefined} sharedGroups
+ * @param {{ getUser: Function, getAllGroups: Function }} userStore
  */
 async function firstPublishOrg(app, sharedGroups, userStore) {
     const incomingGroups = Array.isArray(sharedGroups) ? sharedGroups.map(g => String(g)).filter(Boolean) : [];
@@ -64,7 +71,7 @@ async function firstPublishOrg(app, sharedGroups, userStore) {
         return { organizationId };
     }
     const allGroups = await userStore.getAllGroups();
-    const byId = new Map(allGroups.map(g => [g.id, g]));
+    const byId = new Map(allGroups.map((/** @type {{ id: string, organizationId?: string | null }} */ g) => [g.id, g]));
     const orgs = new Set();
     for (const gid of incomingGroups) {
         const g = byId.get(gid);
@@ -103,6 +110,8 @@ async function firstPublishOrg(app, sharedGroups, userStore) {
  *   validateDraft?: () => Promise<{ ok: boolean, def?: any, errors?: any[], warnings?: any[] }>,
  *   deps: AudienceDeps,
  * }} args
+ * @returns {Promise<{ ok: boolean, status?: number, body?: object, isPublished?: boolean, sharedGroups?: string[],
+ *   publishedVersion?: number|null, managed?: boolean }>}  a refusal (`status`, `body`) or the new audience
  */
 async function setAppAudience({ app, publishing, sharedGroups, organizationId, actorId, validateDraft, deps }) {
     const { store, userStore, validateSharedGroupsForOrg, audit } = deps;
@@ -135,11 +144,12 @@ async function setAppAudience({ app, publishing, sharedGroups, organizationId, a
     // The groups are checked against the app's organisation (an existing one
     // sticks; a new one applies on a first publish). undefined keeps the stored list.
     const effectiveOrg = app.organizationId || stampOrg || null;
+    /** @type {string[] | undefined} */
     let cleanedGroups;
     try {
         cleanedGroups = await validateSharedGroupsForOrg(effectiveOrg, sharedGroups);
     } catch (e) {
-        if (Number(e?.status) >= 400 && Number(e?.status) < 500) return refuse(e.status, { error: e.message });
+        if (Number(e?.status) >= 400 && Number(e?.status) < 500) return refuse(e.status, { error: /** @type {Error} */ (e).message });
         throw e;
     }
 

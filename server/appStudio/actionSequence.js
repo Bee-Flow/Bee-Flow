@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio — action sequence walking, in ONE place.
  *
@@ -19,12 +19,21 @@
 
 const { MAX_FIELD_KEY_LEN, MAX_INPUT_FIELDS } = require('./actionExecutor');
 
+/**
+ * @param {import('./actionExecutor/shared').StepDef | null | undefined} action
+ * @returns {import('./actionExecutor/shared').StepDef[]}
+ */
 function normalizeSequence(action) {
     if (!action || typeof action !== 'object') return [];
     if (action.kind === 'sequence') return Array.isArray(action.steps) ? action.steps : [];
     return [action]; // bare v1 action → 1-step sequence
 }
 
+/**
+ * @param {import('./actionExecutor/shared').StepDef[] | null | undefined} steps
+ * @param {import('./actionExecutor/shared').StepDef[]} [out]
+ * @returns {import('./actionExecutor/shared').StepDef[]}
+ */
 function flattenSteps(steps, out = []) {
     for (const step of (Array.isArray(steps) ? steps : [])) {
         if (!step || typeof step !== 'object') continue;
@@ -49,9 +58,13 @@ function flattenSteps(steps, out = []) {
  * and key length. The 64KB body guard already bounds total size; this bounds
  * fan-out. Values pass through as-is (multiselect arrays / file descriptors are
  * legal record values — the query compiler validates + coerces per field).
+ *
+ * @param {Record<string, unknown> | null | undefined} bag
+ * @returns {Record<string, unknown>}
  */
 function sanitizeBag(bag) {
     if (!bag || typeof bag !== 'object' || Array.isArray(bag)) return {};
+    /** @type {Record<string, unknown>} */
     const out = {};
     let count = 0;
     for (const [k, v] of Object.entries(bag)) {

@@ -14,10 +14,14 @@ const assert = require('node:assert/strict');
 const Module = require('module');
 
 let dbDown = false;
+// Fail every lookup after the first: the existence check passes, the admin re-check does not.
+let failAfterFirst = false;
+let lookups = 0;
 const MOCKS = {
     '../stores/userStore': {
         getUser: async (id) => {
-            if (dbDown) throw new Error('connect ECONNREFUSED 127.0.0.1:5432');
+            if (dbDown || (failAfterFirst && lookups++ > 0)) throw new Error('connect ECONNREFUSED 127.0.0.1:5432');
+            if (id === 'demoted') return { id, role: 'user' };
             return id === 'alive' ? { id, role: 'user' } : null;
         },
         getAllGroups: async () => [],
@@ -64,6 +68,31 @@ test('a user the database no longer has is signed out', async () => {
     const { res, nexted } = await call('gone');
     assert.equal(nexted, false);
     assert.equal(res.statusCode, 401);
+});
+
+test('an admin session whose re-check lookup fails is refused, not kept elevated', async () => {
+    failAfterFirst = true; lookups = 0;
+    let err;
+    try {
+        const req = {
+            session: { isAuthenticated: true, isAdmin: true, user: { id: 'demoted', role: 'admin', isAdmin: true }, destroy(cb) { if (cb) cb(); } },
+        };
+        const res = { status() { return this; }, json() { return this; } };
+        await requireAuth(req, res, (e) => { err = e; });
+    } finally { failAfterFirst = false; }
+    assert.ok(err, 'next() must receive an error, never pass the request on');
+    assert.equal(err.status, 503);
+    assert.equal(err.code, 'auth_unavailable');
+});
+
+test('a plain session whose re-check lookup fails carries on: it has no elevation to lose', async () => {
+    failAfterFirst = true; lookups = 0;
+    let nexted;
+    try {
+        const { nexted: n } = await call('demoted');
+        nexted = n;
+    } finally { failAfterFirst = false; }
+    assert.equal(nexted, true);
 });
 
 test('a database error is a 503 auth_unavailable on the wire, never a pass', async () => {

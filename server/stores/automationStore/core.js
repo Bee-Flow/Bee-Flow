@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Shared store core (§WS5): DB handles + the self-applied migration runner.
  * Leaf module — aggregates require this; it requires nothing in automationStore/.
@@ -145,13 +145,14 @@ async function _initDB() {
     // retries rather than serving a store with no tables).
     await require(`../../migrations/${MIGRATIONS[0]}`).up();
 
+    /** @type {string[]} */
     const failures = [];
     for (const name of MIGRATIONS.slice(1)) {
         try {
             await require(`../../migrations/${name}`).up();
         } catch (e) {
             failures.push(name);
-            log.error(`[AutomationStore] migration ${name} FAILED: ${e.message}`);
+            log.error(`[AutomationStore] migration ${name} FAILED: ${/** @type {Error} */ (e).message}`);
         }
     }
     if (failures.length) {

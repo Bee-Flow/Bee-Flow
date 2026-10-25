@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * What a project member sees when they open a colleague's direct chat that
  * was shared into a project they belong to (GET /ai/direct/conversations/:id).

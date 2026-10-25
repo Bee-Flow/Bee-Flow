@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Strict date reading and timezone-aware fields for the datetime step.
  *
@@ -62,7 +62,8 @@ function formatterFor(tz) {
  * @param {Date} date @param {string} tz
  */
 function partsInZone(date, tz) {
-    let y; let mo; let d; let h; let mi; let s;
+    /** @type {number} */
+    let y; let /** @type {number} */ mo; let /** @type {number} */ d; let /** @type {number} */ h; let /** @type {number} */ mi; let /** @type {number} */ s;
     if (tz === 'UTC') {
         y = date.getUTCFullYear(); mo = date.getUTCMonth() + 1; d = date.getUTCDate();
         h = date.getUTCHours(); mi = date.getUTCMinutes(); s = date.getUTCSeconds();
@@ -77,7 +78,11 @@ function partsInZone(date, tz) {
     return { year: y, month: mo, day: d, hour: h, minute: mi, second: s, dayOfWeek: new Date(Date.UTC(y, mo - 1, d)).getUTCDay() };
 }
 
-/** Offset of `tz` from UTC at an instant, in ms (whole seconds). */
+/**
+ * Offset of `tz` from UTC at an instant, in ms (whole seconds).
+ * @param {number} ms
+ * @param {string} tz
+ */
 function offsetAt(ms, tz) {
     const p = partsInZone(new Date(ms), tz);
     return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - Math.floor(ms / 1000) * 1000;
@@ -121,6 +126,7 @@ function parseIsoStrict(s, tz) {
     const msPart = m[7] ? Math.floor(Number(`0.${m[7]}`) * 1000) : 0;
     const wall = Date.UTC(y, mo - 1, d, h, mi, sec, msPart);
     const zone = m[8];
+    /** @type {number} */
     let epoch;
     if (!zone) epoch = wallToInstant(wall, tz);
     else if (zone === 'Z') epoch = wall;

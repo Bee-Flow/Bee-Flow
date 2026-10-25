@@ -89,13 +89,27 @@ const LEGACY_SOURCES = Object.freeze([
     { prefix: 'org_gmeet_notes_', provider: 'gmeet', scope: 'org', fields: [['excludedEventIds', 'event'], ['excludedMeetingCodes', 'code']] },
 ]);
 
+/**
+ * @typedef {{ provider: string, idKind: string, externalId: string, userId: string | null, orgId: string | null,
+ *   tags: string[], record: boolean | null, updatedAt?: string | null, updatedBy?: string | null }} PrefRow
+ * @typedef {{ kind?: string, id?: string | null }} PrefIdInput
+ */
+
 // ── kleine normalisatoren ────────────────────────────────────────────
+/** @param {string | null | undefined} v */
 function normProvider(v) { return PROVIDERS.includes(v) ? v : null; }
+/** @param {string | null | undefined} v */
 function normKind(v) { return ID_KINDS.includes(v) ? v : null; }
+/** @param {unknown} v */
 function normId(v) { return typeof v === 'string' && v.trim() ? v.trim() : null; }
+/** @param {unknown} v */
 function asStrArray(v) { return Array.isArray(v) ? v.filter(x => typeof x === 'string' && x.trim()).map(x => x.trim()) : []; }
 
 /** JSONB komt terug als array (pg parst jsonb) of als string (sommige facades). */
+/**
+ * @param {unknown} v
+ * @returns {string[]}
+ */
 function parseTags(v) {
     if (Array.isArray(v)) return v.filter(x => typeof x === 'string' && x.trim()).map(x => x.trim());
     if (typeof v === 'string') {
@@ -104,6 +118,10 @@ function parseTags(v) {
     return [];
 }
 
+/**
+ * @param {import('pg').QueryResultRow | null | undefined} r
+ * @returns {PrefRow | null}
+ */
 function mapRow(r) {
     if (!r) return null;
     return {
@@ -124,8 +142,10 @@ function mapRow(r) {
  * Normalise a list of identities. Accepts [{kind, id}] and discards empty or
  * unknown kinds. Order is preserved: call with the MOST SPECIFIC
  * first (occurrence before room/series) — tags are collected in that order.
+ * @param {PrefIdInput | Array<PrefIdInput | null | undefined> | null | undefined} ids
  */
 function normalizeIds(ids) {
+    /** @type {{ kind: string, id: string }[]} */
     const out = [];
     const seen = new Set();
     for (const entry of Array.isArray(ids) ? ids : [ids]) {
@@ -141,12 +161,18 @@ function normalizeIds(ids) {
     return out;
 }
 
-/** Talk-identiteiten van een vergadering, meest specifiek eerst. */
+/**
+ * Talk-identiteiten van een vergadering, meest specifiek eerst.
+ * @param {{ eventUid?: string | null, roomToken?: string | null }} [ids]
+ */
 function talkIds({ eventUid = null, roomToken = null } = {}) {
     return normalizeIds([{ kind: 'event', id: eventUid }, { kind: 'room', id: roomToken }]);
 }
 
-/** Google Meet-identiteiten van een vergadering, meest specifiek eerst. */
+/**
+ * Google Meet-identiteiten van een vergadering, meest specifiek eerst.
+ * @param {{ eventId?: string | null, meetingCode?: string | null }} [ids]
+ */
 function gmeetIds({ eventId = null, meetingCode = null } = {}) {
     return normalizeIds([{ kind: 'event', id: eventId }, { kind: 'code', id: meetingCode }]);
 }
@@ -154,6 +180,7 @@ function gmeetIds({ eventId = null, meetingCode = null } = {}) {
 /**
  * Teams identities of a meeting, most specific first: the
  * calendar appointment (this time) and the series master in Outlook (the whole series).
+ * @param {{ eventId?: string | null, seriesMasterId?: string | null }} [ids]
  */
 function teamsIds({ eventId = null, seriesMasterId = null } = {}) {
     return normalizeIds([{ kind: 'event', id: eventId }, { kind: 'code', id: seriesMasterId }]);
@@ -273,6 +300,7 @@ async function backfillFromExclusions({ force = false } = {}) {
  * One exclusion row. Does NOT call initDB — it runs that itself internally.
  * ON CONFLICT DO NOTHING: a row that already exists (e.g. because the user has
  * chosen again since the previous attempt) beats the old value.
+ * @param {{ provider: string, idKind: string, externalId: string, userId: string, orgId: string }} row
  */
 async function _insertExclusion({ provider, idKind, externalId, userId, orgId }) {
     const res = await run(
@@ -291,7 +319,7 @@ async function _insertExclusion({ provider, idKind, externalId, userId, orgId })
  * org-wide rows of their org. Never those of anyone else.
  *
  * @param {{provider?: string, userId?: string|null, orgId?: string|null}} [args]
- * @returns {Promise<Array<{provider,idKind,externalId,userId,orgId,tags,record}>>}
+ * @returns {Promise<PrefRow[]>}
  */
 async function listPrefs({ provider, userId = null, orgId = null } = {}) {
     const p = normProvider(provider);
@@ -301,7 +329,9 @@ async function listPrefs({ provider, userId = null, orgId = null } = {}) {
     if (!uid && !oid) return [];   // scopes to nobody → yields nothing, not everything
     await initDB();
 
+    /** @type {string[]} */
     const params = [p];
+    /** @type {string[]} */
     const scopes = [];
     if (uid) { params.push(uid); scopes.push(`user_id = $${params.length}`); }
     if (oid) { params.push(oid); scopes.push(`(user_id = '' AND org_id = $${params.length})`); }
@@ -318,15 +348,19 @@ async function listPrefs({ provider, userId = null, orgId = null } = {}) {
  * De expliciete mening over één vergadering, uit al geladen rijen.
  * Puur — geen database.
  *
+ * @param {PrefRow[]} rows
+ * @param {PrefIdInput | Array<PrefIdInput | null | undefined> | null | undefined} ids
  * @returns {{record: true|false|null, tags: string[]}} record NULL = geen mening.
  */
 function resolvePrefs(rows, ids) {
     const wanted = normalizeIds(ids);
+    /** @type {{ record: boolean | null, tags: string[] }} */
     const out = { record: null, tags: [] };
     if (!wanted.length) return out;
 
     const list = Array.isArray(rows) ? rows : [];
     let sawTrue = false;
+    /** @type {string[]} */
     const tags = [];
     // In de volgorde van `ids`, dus meest specifiek eerst — dat bepaalt de
     // tagvolgorde. Voor `record` telt volgorde niet: één FALSE wint altijd.
@@ -351,6 +385,13 @@ function resolvePrefs(rows, ids) {
  * yields NULL: that means "the calendar told us nothing", not "zero people".
  * Only a real, finite, non-negative count counts as known — a string like '3'
  * does not, because guessing here is the same as fail-open.
+ *
+ * @param {number | null | undefined | {
+ *   participantCount?: number | null,
+ *   attendees?: Array<string | { email?: string, cn?: string, displayName?: string, name?: string } | null>,
+ *   organizerEmail?: string,
+ *   organizer?: string | { email?: string, cn?: string },
+ * }} meeting
  */
 function participantCountOf(meeting) {
     if (meeting == null) return null;
@@ -411,9 +452,15 @@ async function loadMeetingPrefs({ provider, userId = null, orgId = null } = {}) 
     const rows = await listPrefs({ provider, userId, orgId });
     return {
         rows,
-        /** De expliciete mening: true | false | null (geen mening). */
+        /**
+         * De expliciete mening: true | false | null (geen mening).
+         * @param {PrefIdInput | Array<PrefIdInput | null | undefined> | null | undefined} ids
+         */
         opinionFor(ids) { return resolvePrefs(rows, ids).record; },
-        /** De tags die op deze vergadering staan (unie, meest specifieke eerst). */
+        /**
+         * De tags die op deze vergadering staan (unie, meest specifieke eerst).
+         * @param {PrefIdInput | Array<PrefIdInput | null | undefined> | null | undefined} ids
+         */
         tagsFor(ids) { return resolvePrefs(rows, ids).tags; },
         /** Volledige beslissing inclusief de 1-op-1-standaard. */
         /** @param {{ ids?: Array<{kind: string, id: string}>, participantCount?: number|null, fallback?: boolean }} [opts] */
@@ -430,6 +477,8 @@ async function loadMeetingPrefs({ provider, userId = null, orgId = null } = {}) 
  * row (user_id set, org_id '') or an org-wide row. The CHECK
  * in the schema enforces the same, so the same preference can never exist as
  * two rows.
+ * @param {string | null | undefined} userId
+ * @param {string | null | undefined} orgId
  */
 function _scopeOf(userId, orgId) {
     const uid = normId(userId);

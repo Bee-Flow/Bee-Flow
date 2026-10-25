@@ -12,12 +12,12 @@
 
 const kbStore = require('../../stores/knowledgeBases');
 const { friendlyError } = require('./friendlyError');
-const log = require('../../telemetry/log');
 const { assertUrlIsPublic, fetchUrlContent, fetchWithPlaywright } = require('./kbUrlFetch');
 const { extractFileContentWithMeta, extractFileContent } = require('./kbFileExtract');
 const { findDocumentBySourceUri, findDocumentsBySourceUri } = require('./kbDocLookup');
 const { simhash64, getAzureIngestParams, byteLength, isLocalIngest, embedDocumentContent } = require('./kbEmbed');
 const { purgeDocumentChunks, reingestDocument, deleteDocumentChunks } = require('./kbReingest');
+const { fallback } = require('../../utils/bestEffort');
 
 // ── Ingest funnel ───────────────────────────────────────────────────
 
@@ -197,7 +197,7 @@ async function ingestDocument(tenantId, kbId, content, title, sourceType, source
                             ...extra, statusReason: 'Identical content already in this knowledge base',
                         });
                     }
-                } catch (err) { log.debug('non-fatal', err); }
+                } catch (err) { fallback('core/kb/kbIngestionHelpers:ingestDocument', err); /* non-fatal */ }
                 if (record) return { document: dupRow, chunks: 0, status: 'duplicate', duplicateOf: existing.id };
                 throw Object.assign(new Error('Duplicate content already exists in this KB'), {
                     code: 'DUPLICATE', documentId: existing.id
@@ -224,7 +224,7 @@ async function ingestDocument(tenantId, kbId, content, title, sourceType, source
                             ...extra, statusReason: 'Near-identical content already in this knowledge base',
                         });
                     }
-                } catch (err) { log.debug('non-fatal', err); }
+                } catch (err) { fallback('core/kb/kbIngestionHelpers:ingestDocument#2', err); /* non-fatal */ }
                 if (record) return { document: dupRow, chunks: 0, status: 'duplicate', duplicateOf: near.id };
                 throw Object.assign(new Error('Near-duplicate content already in KB'), {
                     code: 'NEAR_DUPLICATE', documentId: near.id
@@ -249,7 +249,7 @@ async function ingestDocument(tenantId, kbId, content, title, sourceType, source
             let errDoc = null;
             try {
                 errDoc = await kbStore.updateDocumentStatus(doc.id, { status: 'error', statusReason: friendlyError(embedErr), chunkCount: 0 });
-            } catch (err) { log.debug('best-effort', err); }
+            } catch (err) { fallback('core/kb/kbIngestionHelpers:ingestDocument#3', err); /* best-effort */ }
             return { document: errDoc || { ...doc, status: 'error' }, chunks: 0, status: 'error', error: embedErr.message };
         }
         // Legacy contract: no row survives a failed ingest. The row never held
@@ -304,3 +304,5 @@ module.exports = {
     assertUrlIsPublic,
     friendlyError,
 };
+
+/** @typedef {{ pageNumber: number, text: string }} ExtractedPage  one page of extracted text */

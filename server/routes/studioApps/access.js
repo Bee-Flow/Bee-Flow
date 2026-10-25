@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Who may build, and who may read, a Studio app (routes/studioApps/).
  *
@@ -43,6 +43,7 @@ const requireManageApps = requirePermission('manage_apps');
 
 // resolveUserOrgIds returns null for super-admin; collapse Sets/null to a
 // plain array so the store predicates can iterate it (same as webpages.js).
+/** @param {import('express').Request} req */
 async function audienceFor(req) {
     const { userId, orgIds, userGroups } = await resolveAudienceContext(req);
     const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
@@ -61,6 +62,9 @@ async function audienceFor(req) {
  * "not found" is "shared with specific groups — ask the owner", which is the
  * truth and the one thing they can act on. The body carries no name and no
  * owner; a published-to-groups app reveals nothing more than that it exists.
+ * @param {import('express').Response} res
+ * @param {{ isPublished?: boolean, organizationId?: string | null }} app
+ * @param {string[]} orgIdArr
  */
 function refuseRead(res, app, orgIdArr) {
     if (app.isPublished && app.organizationId && orgIdArr.includes(app.organizationId)) {
@@ -74,6 +78,9 @@ function refuseRead(res, app, orgIdArr) {
 
 // Owner's org: primary organizationId first, then the org of their first
 // org-bearing group — mirrors the entire-org publish fallback in webpages.js.
+/**
+ * @param {string} userId
+ */
 const resolveOwnerOrgId = (userId) => appAudience.resolveOwnerOrgId(userId, userStore);
 
 module.exports = {

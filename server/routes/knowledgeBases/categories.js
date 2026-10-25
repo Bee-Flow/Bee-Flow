@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Knowledge Bases — categories (org-level, mirrors agent_categories).
  *

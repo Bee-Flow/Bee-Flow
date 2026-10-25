@@ -10,6 +10,11 @@ const { RESERVED_PROTO_KEYS, BINDABLE_SEGMENT_RE } = require('./constants');
 // Optional input cap — shared wording for the collection ops AND list-mode
 // set. The runner enforces min(maxItems, platform ceiling), so a value above
 // 10000 is legal but ineffective.
+/**
+ * @param {(value: { code: string; severity: string; path: string; message: string; hint: string; }) => void} pushE
+ * @param {(value: { code: string; severity: string; path: string; message: string; hint: string; }) => void} pushW
+ * @param {string} at
+ */
 function checkMaxItems(step, at, pushE, pushW) {
     if (step.maxItems === undefined) return;
     if (typeof step.maxItems !== 'number' || !Number.isInteger(step.maxItems) || step.maxItems < 1) {
@@ -18,6 +23,12 @@ function checkMaxItems(step, at, pushE, pushW) {
         pushW({ code: `${step.type}.maxItems_exceeds_cap`, severity: 'warning', path: at + '.maxItems', message: `Step ${step.id}: maxItems ${step.maxItems} exceeds the platform cap (10000) — the cap still wins at runtime.`, hint: 'Lower maxItems to 10000 or below, or raise AUTOMATION_COLLECTION_MAX_ITEMS server-side.' });
     }
 }
+/**
+ * @param {string} type
+ * @param {(value: { code: string; severity: string; path: string; message: string; hint: string; }) => void} pushE
+ * @param {((value: { code: string; severity: string; path: string; message: string; hint: string; }) => void) | undefined} pushW
+ * @param {string} at
+ */
 function checkReservedFieldNames(step, type, at, pushE, pushW) {
     for (const key of Object.keys(step.fields || {})) {
         if (RESERVED_PROTO_KEYS.has(key)) {
@@ -46,6 +57,7 @@ function checkReservedFieldNames(step, type, at, pushE, pushW) {
  * WARNING, never an error: the validator sees one definition at a time with no
  * "before" to diff against, so it cannot tell a NEW bad id from one a stored
  * automation has carried for months — and an error would make those unsaveable.
+ * @param {(value: { code: string; severity: string; path: string; message: string; hint: string; }) => void} pushW
  */
 function checkBindableStepId(step, at, pushW) {
     if (typeof step.id !== 'string' || BINDABLE_SEGMENT_RE.test(step.id)) return;

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Compliance — "Needs attention": the short list at the top of the Overview.
  *
@@ -39,6 +40,7 @@
 const { complianceSectionPath, complianceIncidentPath } = require('../utils/appPaths');
 const log = require('../telemetry/log');
 const findingState = require('./findingState');
+const { fallback } = require('../utils/bestEffort');
 
 const HOUR = 3600 * 1000;
 const DAY = 24 * HOUR;
@@ -85,6 +87,9 @@ function makeDeps(overrides = {}) {
     return d;
 }
 
+/**
+ * @param {string | number | Date} v
+ */
 const toMs = (v) => { const t = v == null ? NaN : new Date(v).getTime(); return Number.isFinite(t) ? t : null; };
 
 // ── Source (a): check results ────────────────────────────────────────────
@@ -166,17 +171,25 @@ function collapsedItem(def, rows, d, sectionOf) {
     return item;
 }
 
-/** Stored finding decisions, or none when they cannot be read (showing more is the safe side). */
+/**
+ * Stored finding decisions, or none when they cannot be read (showing more is the safe side).
+ * @param {string} orgId
+ */
 async function loadStates(orgId, d) {
     if (typeof d.complianceStore.listFindingStates !== 'function') return findingState.indexStates([]);
     try {
         return findingState.indexStates(await d.complianceStore.listFindingStates(orgId));
     } catch (e) {
-        log.warn('[ComplianceAttention] finding states unreadable, showing every finding:', e?.message || e);
+        log.warn('[ComplianceAttention] finding states unreadable, showing every finding:', /** @type {Error} */ (e)?.message || e);
         return findingState.indexStates([]);
     }
 }
 
+/**
+ * @param {string} orgId
+ * @param {{ limit?: number; deps?: object; now?: number; req?: object; }} opts
+ * @param {number} nowMs
+ */
 async function checkItems(orgId, d, opts, nowMs) {
     const [latest, active, states] = await Promise.all([
         d.complianceStore.getLatestPerCheck(orgId),
@@ -300,7 +313,7 @@ function _craEarlyWarning(kind) {
 async function incidentFindings(orgId, d, nowMs) {
     const [rows, settings] = await Promise.all([
         d.incidentStore.listOpenClocks(orgId),
-        d.complianceStore.getSettings(orgId).catch(() => ({})),
+        d.complianceStore.getSettings(orgId).catch((e) => fallback('compliance/attention:incidentFindings', e, {})),
     ]);
     const recipients = Array.isArray(settings?.breach_recipients) ? settings.breach_recipients : [];
     const out = [];
@@ -413,9 +426,12 @@ async function build(orgId, opts = {}) {
     let complete = true;
     const all = [];
 
+    /**
+     * @param {string} name
+     */
     const run = async (name, fn) => {
         try { all.push(...await fn()); }
-        catch (e) { complete = false; log.warn(`[ComplianceAttention] ${name} source failed:`, e?.message || e); }
+        catch (e) { complete = false; log.warn(`[ComplianceAttention] ${name} source failed:`, /** @type {Error} */ (e)?.message || e); }
     };
     await Promise.all([
         run('checks', () => checkItems(orgId, d, opts, nowMs)),
@@ -445,3 +461,11 @@ module.exports = {
     SECTION_FOR_REGULATION,
     makeDeps,
 };
+
+/**
+ * @typedef {{ complianceStore: typeof import('../stores/complianceStore'), registry: typeof import('./registry'), frameworkPolicy: typeof import('./frameworkPolicy'), dsrStore: typeof import('../stores/dsrStore'), incidentStore: typeof import('../stores/incidentStore'), soaStore: typeof import('../stores/soaStore'), obligationStore: typeof import('../stores/isoObligationStore'), aiActAssessmentStore: typeof import('../stores/aiActAssessmentStore'), titles: Record<string, string>, now: () => number }} Deps
+ */
+
+/** @typedef {{ id: string, regulation?: string, severity?: string, verification?: string, frameworks?: { regulation: string, ref: string }[], autoFixId?: string | null, remediationLink?: string | null, titleKey?: string, subjectNoun?: string }} CheckDef */
+
+/** @typedef {{ id: string, source: string, code: string, severity: string, status: string, title: string | null, titleKey?: string, meta: Record<string, unknown>, action: Record<string, unknown>, _at: number }} Item */

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Project files — files uploaded straight into a collaborative project.
  *
@@ -81,21 +82,41 @@ const STALE_AFTER_MS = 30 * 60 * 1000;
 /** The activity rows about one project file (routes/projects/workspace.js). */
 const FILE_ACTIONS = new Set(['file.added', 'file.removed']);
 
+/**
+ * @typedef {object} DocRow  a `documents` row as far as this file reads it
+ * @property {string} [id]
+ * @property {string} [title]
+ * @property {string} [mime]
+ * @property {number|string} [size_bytes]
+ * @property {string} [status]
+ * @property {string} [status_reason]
+ * @property {string} [pii_status]
+ * @property {string} [created_by]
+ * @property {string|Date} [created_at]
+ * @property {string|Date} [updated_at]
+ */
+
 const STALLED_REASON = 'Processing did not finish. Remove the file and upload it again.';
 
-/** A file name as people will read it: one line, no control characters, capped. */
+/**
+ * A file name as people will read it: one line, no control characters, capped.
+ * @param {string | undefined} name
+ */
 function cleanName(name) {
     const cleaned = String(name || '').replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim();
     return cleaned ? cleaned.slice(0, 200) : 'Untitled file';
 }
 
+/**
+ * @param {DocRow} doc
+ */
 function isQueued(doc) {
     return doc.status === 'skipped' && doc.status_reason === QUEUED_REASON;
 }
 
 /**
  * The outside status of a documents row.
- * @param {object} doc
+ * @param {DocRow} doc
  * @param {number} now  epoch ms
  */
 function fileStatus(doc, now) {
@@ -107,9 +128,14 @@ function fileStatus(doc, now) {
     return 'failed';
 }
 
-/** One documents row as a project file. Never the text. */
+/**
+ * One documents row as a project file. Never the text.
+ * @param {DocRow} doc
+ * @param {number} now
+ */
 function toFile(doc, now) {
     const status = fileStatus(doc, now);
+    /** @type {string | null} */
     let statusReason = null;
     if (status === 'failed') {
         statusReason = isQueued(doc) ? STALLED_REASON
@@ -134,24 +160,27 @@ function toFile(doc, now) {
 
 /**
  * @param {object} [deps]
- * @param {object} [deps.kbStore]        stores/knowledgeBases
- * @param {object} [deps.projectStore]   stores/projectStore (getProject, setFilesKbId, updateProject)
- * @param {object} [deps.helpers]        core/kb/kbIngestionHelpers
- * @param {object} [deps.ingestPrivacy]  core/kb/ingestPrivacy ({ applyShield, OUTCOME })
- * @param {Function} [deps.ensureKbSource] core/kb/sources/ensureSource.ensureKbSource
- * @param {Function} [deps.publishTransient] core/projectEventBus.publishTransient
- * @param {Function} [deps.resolveKbProvider] core/kb/resolveProvider.resolveKbProvider
- * @param {Function} [deps.deleteChunksLocally] core/kb/localKBIngest.deleteChunksLocally
+ * @param {typeof import('../stores/knowledgeBases')} [deps.kbStore]        stores/knowledgeBases
+ * @param {typeof import('../stores/projectStore')} [deps.projectStore]   stores/projectStore (getProject, setFilesKbId, updateProject)
+ * @param {typeof import('../core/kb/kbIngestionHelpers')} [deps.helpers]        core/kb/kbIngestionHelpers
+ * @param {typeof import('../core/kb/ingestPrivacy')} [deps.ingestPrivacy]  core/kb/ingestPrivacy ({ applyShield, OUTCOME })
+ * @param {typeof import('../core/kb/localKBIngest').getDocumentContent} [deps.getDocumentContent]
+ * @param {typeof import('../core/kb/sources/ensureSource').ensureKbSource} [deps.ensureKbSource] core/kb/sources/ensureSource.ensureKbSource
+ * @param {typeof import('../core/projectEventBus').publishTransient} [deps.publishTransient] core/projectEventBus.publishTransient
+ * @param {typeof import('../core/kb/resolveProvider').resolveKbProvider} [deps.resolveKbProvider] core/kb/resolveProvider.resolveKbProvider
+ * @param {typeof import('../core/kb/localKBIngest').deleteChunksLocally} [deps.deleteChunksLocally] core/kb/localKBIngest.deleteChunksLocally
  * @param {number}   [deps.maxKbIds]     the per-project base cap (projects/knowledgeBaseMembership)
  * @param {() => number} [deps.now]
- * @param {object} [deps.log]
+ * @param {typeof import('../telemetry/log')} [deps.log]
  */
 function makeProjectFiles(deps = {}) {
     const kbStore = () => deps.kbStore || require('../stores/knowledgeBases');
     const projectStore = () => deps.projectStore || require('../stores/projectStore');
     const helpers = () => deps.helpers || require('../core/kb/kbIngestionHelpers');
     const privacy = () => deps.ingestPrivacy || require('../core/kb/ingestPrivacy');
+    /** @type {typeof import('../core/kb/sources/ensureSource').ensureKbSource} */
     const ensureKbSource = (...a) => (deps.ensureKbSource || require('../core/kb/sources/ensureSource').ensureKbSource)(...a);
+    /** @type {typeof import('../core/projectEventBus').publishTransient} */
     const publishTransient = (...a) => (deps.publishTransient || require('../core/projectEventBus').publishTransient)(...a);
     const log = deps.log || require('../telemetry/log');
     const now = deps.now || (() => Date.now());
@@ -159,6 +188,9 @@ function makeProjectFiles(deps = {}) {
 
     /** In-flight processing jobs, so tests and a graceful shutdown can wait for them. */
     const pending = new Set();
+    /**
+     * @param {Promise<void>} promise
+     */
     function track(promise) {
         const job = Promise.resolve(promise).catch((e) => {
             log.error('[ProjectFiles] processing failed:', e && e.message ? e.message : e);
@@ -181,7 +213,9 @@ function makeProjectFiles(deps = {}) {
 
     /**
      * Every file in the project, newest first.
-     * @returns {Promise<{files: object[], kbId: string|null}>}
+     * @param {import('./projectFilesKb').FilesProject} project
+     * @param {string} fileId
+     * @returns {Promise<{file: object, content: string, available: boolean}|null>}
      */
     async function fileContent(project, fileId) {
         const kb = await getFilesKb(project);
@@ -198,18 +232,19 @@ function makeProjectFiles(deps = {}) {
         return { file, content, available: !!content };
     }
 
+    /** @param {import('./projectFilesKb').FilesProject} project */
     async function listFiles(project) {
         const kb = await getFilesKb(project);
         if (!kb) return { files: [], kbId: null };
         const rows = await kbStore().listDocuments(kb.id, { limit: LIST_LIMIT, offset: 0 });
         const t = now();
-        return { files: (rows || []).map(doc => toFile(doc, t)), kbId: kb.id };
+        return { files: (rows || []).map((/** @type {DocRow} */ doc) => toFile(doc, t)), kbId: kb.id };
     }
 
     /**
      * The names of those of `ids` that are still files of this project, read
      * now. A file that was removed (or never was this project's) is absent.
-     * @param {object} project  a getProject() result
+     * @param {import('./projectFilesKb').FilesProject} project  a getProject() result
      * @param {string[]} ids
      * @returns {Promise<Map<string, string>>}
      */
@@ -239,20 +274,26 @@ function makeProjectFiles(deps = {}) {
      * row still stores is dropped for the same reason, never shown.
      *
      * Never throws: a files base that cannot be read leaves the rows unnamed.
-     * @param {object} project  a getProject() result
-     * @param {object[]} items  listActivity() rows
+     * @param {import('./projectFilesKb').FilesProject} project  a getProject() result
+     * @param {Array<{action?: string, targetId?: string, details?: {targetId?: string, name?: string}}>} items  listActivity() rows
      * @returns {Promise<object[]>}
      */
     async function nameFileActivity(project, items) {
         const list = Array.isArray(items) ? items : [];
+        /**
+         * @param {{ action?: string; targetId?: string; details?: { targetId?: string; name?: string; }; }} item
+         */
         const isFileRow = (item) => !!item && FILE_ACTIONS.has(item.action);
         if (!list.some(isFileRow)) return list;
+        /**
+         * @param {{ action?: string; targetId?: string; details?: { targetId?: string; name?: string; }; }} item
+         */
         const idOf = (item) => item.targetId || item.details?.targetId || null;
         let names = new Map();
         try {
             names = await fileNames(project, list.filter(isFileRow).map(idOf));
         } catch (e) {
-            log.warn('[ProjectFiles] could not name the files in the activity feed:', e.message);
+            log.warn('[ProjectFiles] could not name the files in the activity feed:', /** @type {Error} */ (e).message);
         }
         return list.map((item) => {
             if (!isFileRow(item)) return item;
@@ -271,7 +312,7 @@ function makeProjectFiles(deps = {}) {
      * when the caller calls `start()` — after it has answered and announced
      * the file — so the "processed" notice can never overtake the "added" one.
      *
-     * @param {object} project   a getProject() result
+     * @param {import('./projectFilesKb').FilesProject} project   a getProject() result
      * @param {{originalname?: string, mimetype?: string, size?: number, buffer: Buffer}} upload
      * @param {{userId: string}} who
      * @returns {Promise<{file: object, start: (opts?: {onDone?: (status: string) => any}) => Promise<void>}>}
@@ -303,6 +344,7 @@ function makeProjectFiles(deps = {}) {
         );
 
         let started = false;
+        /** @param {{onDone?: (status: string) => any}} [opts] */
         const start = ({ onDone } = {}) => {
             if (started) return Promise.resolve();
             started = true;
@@ -317,6 +359,9 @@ function makeProjectFiles(deps = {}) {
      * Remove one file: its row, its chunks, and its search index entries.
      * Returns the removed file, or null when the id is not one of this
      * project's files (never a different project's, never another base's).
+     * @param {import('./projectFilesKb').FilesProject} project
+     * @param {string} fileId
+     * @param {{ userId: string }} opts
      */
     async function removeFile(project, fileId, { userId }) {
         const kb = await getFilesKb(project);
@@ -327,7 +372,7 @@ function makeProjectFiles(deps = {}) {
 
         // The same recovery snapshot a knowledge-base document delete takes,
         // carrying who removed it; then the store skips its own.
-        await store.snapshotDocumentVersion(doc.id, userId).catch((e) => {
+        await store.snapshotDocumentVersion(doc.id, userId).catch((/** @type {Error} */ e) => {
             log.warn(`[ProjectFiles] snapshot before removing ${doc.id} failed:`, e.message);
         });
         await helpers().deleteDocumentChunks(kb.id, doc.id, kb.tenant_id, { skipSnapshot: true });

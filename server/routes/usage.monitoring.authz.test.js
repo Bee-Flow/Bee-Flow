@@ -33,6 +33,9 @@ let userOrgRole = 'member';              // what userStore.getUser reports
 let userRecordOrgId = null;              // organizationId on the user RECORD (super-admin path)
 const captured = {};                     // store-call capture, per fn name
 let avatarRows = [];                     // what userStore.getUserAvatarsByIds returns
+let governsOrgs = true;                  // serverLicenseGovernsOrgs(): self-hosted, no redaction
+let planLookupFails = false;             // getOrgSubscription throws
+let planMarkup = null;                   // markup_percent of the org's plan
 
 // ── Stubs ──────────────────────────────────────────────────────────────
 const authStub = {
@@ -44,8 +47,11 @@ const userStoreStub = {
     async getUserAvatarsByIds(ids) { captured.avatarIds = ids; return avatarRows; },
     async getAllUserAvatars() { throw new Error('full-table avatar scan must not run on monitoring endpoints'); },
     async getConsumerSubscription() { return null; },
-    async getOrgSubscription() { return null; },
-    async getPlan() { return null; },
+    async getOrgSubscription() {
+        if (planLookupFails) throw new Error('connection terminated');
+        return planMarkup === null ? null : { plan_id: 'p1' };
+    },
+    async getPlan() { return planMarkup === null ? null : { markup_percent: planMarkup }; },
 };
 const guardStoreStub = {
     async getGuardrailOverview(filters, interval) {
@@ -119,7 +125,7 @@ for (const [fname, exp] of Object.entries({
     '__stub_azure_monauthz__.js': { async getAzureServiceSummary() { return { total_cost: 0 }; } },
     '__stub_costs_monauthz__.js': { computeCostSplit: () => ({ input_cost: 0, output_cost: 0 }) },
     '__stub_geo_monauthz__.js': { countryFlag: () => '🌐' },
-    '__stub_lic_monauthz__.js': { serverLicenseGovernsOrgs: () => true },
+    '__stub_lic_monauthz__.js': { serverLicenseGovernsOrgs: () => governsOrgs },
 })) {
     const full = path.join(__dirname, fname);
     require.cache[full] = { id: full, filename: full, loaded: true, exports: exp };
@@ -290,5 +296,27 @@ test('a row never carries an inline image as its avatar — only a short URL or 
         assert.strictEqual(small.body.top_users[0].avatar, '/uploads/kim.png', 'an uploaded picture is a short link and rides along');
     } finally {
         avatarRows = [];
+    }
+});
+
+test('a markup that cannot be read fails the redacted summary instead of showing a 0% markup', async () => {
+    // getCustomerMarkup used to answer 0 on any error: the customer then saw
+    // the raw provider cost as their bill (#339).
+    asOrgUser('member');
+    governsOrgs = false;
+    try {
+        planMarkup = 50;
+        const ok = await get('/api/usage/summary?days=7');
+        assert.strictEqual(ok.status, 200);
+        assert.strictEqual(ok.body.billed_cost, 1.5, 'the plan markup is applied');
+
+        planLookupFails = true;
+        const failed = await get('/api/usage/summary?days=7');
+        assert.strictEqual(failed.status, 500);
+        assert.strictEqual(failed.body?.billed_cost, undefined, 'no figure goes out without its markup');
+    } finally {
+        governsOrgs = true;
+        planLookupFails = false;
+        planMarkup = null;
     }
 });

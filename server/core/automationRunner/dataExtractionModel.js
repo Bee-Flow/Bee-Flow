@@ -27,7 +27,7 @@
  */
 const configStore = require('../../stores/configStore');
 const { limitedChat } = require('../llm/providerLimiter');
-const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 const DATA_EXTRACTION_MODEL_KEY = 'data_extraction_model';
 
@@ -87,7 +87,7 @@ async function resolveDataExtractionModel({ userOrgId = null, userId = null } = 
     let configured = null;
     try {
         configured = await configStore.getConfig(DATA_EXTRACTION_MODEL_KEY);
-    } catch (err) { log.debug('A config-store hiccup must never fail an automation step: next fallback.', err); }
+    } catch (err) { fallback('core/automationRunner/dataExtractionModel:resolveDataExtractionModel', err); /* A config-store hiccup must never fail an automation step: next fallback. */ }
     // The config key decides on its own; the tier map and the global config
     // are only read when it is empty, so a configured extraction model never
     // costs a tier lookup.
@@ -98,14 +98,14 @@ async function resolveDataExtractionModel({ userOrgId = null, userId = null } = 
         const { getUserTierMap } = require('../llm/modelResolver');
         const tiers = await getUserTierMap({ userOrgId, userId });
         fastTierModelId = tiers && tiers.fast ? tiers.fast.modelId : null;
-    } catch (err) { log.debug('Same stance: fall through to the global default.', err); }
+    } catch (err) { fallback('core/automationRunner/dataExtractionModel:resolveDataExtractionModel#2', err); /* Same stance: fall through to the global default. */ }
     if (nonBlank(fastTierModelId)) return dataExtractionModelFor({ configured: null, fastTierModelId, globalModelId: null });
 
     let globalModelId = null;
     try {
         const globalConfig = await require('../aiAgent').getAIConfig();
         globalModelId = globalConfig ? globalConfig.model : null;
-    } catch (err) { log.debug('Nothing left to fall back to; the caller reports it.', err); }
+    } catch (err) { fallback('core/automationRunner/dataExtractionModel:resolveDataExtractionModel#3', err); /* Nothing left to fall back to; the caller reports it. */ }
     return dataExtractionModelFor({ configured: null, fastTierModelId: null, globalModelId });
 }
 

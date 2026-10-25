@@ -72,7 +72,12 @@ const { resolveRuntime } = require('../integrations/webpageFramework');
 const { executeApiHandler } = require('../integrations/webpageApiRuntime');
 const Ai = require('./webpagesPreviewAi');
 const Ask = require('./webpagesPreviewAsk');
-const log = require('../telemetry/log');
+const { bestEffort, fallback } = require('../utils/bestEffort');
+
+/**
+ * Request after requirePreviewToken, which stashes the verified token claims on it.
+ * @typedef {import('express').Request<Record<string, string>> & { previewClaims: { userId: string, webpageId: string, viewerUserId: string | null, expiresAt?: number } }} PreviewReq
+ */
 
 // W3 — window.beeflowTables: `/:id/tables/:tid/query|insert|update`. A file
 // of its own because those routes run as THE LOGGED-IN VISITOR and not
@@ -81,7 +86,7 @@ router.use(require('./webpagesPreviewTables'));
 
 // ── Database ─────────────────────────────────────────────────────────
 
-router.post('/:id/db/query', requirePreviewToken, dbBridgeLimiter, async (req, res) => {
+router.post('/:id/db/query', requirePreviewToken, dbBridgeLimiter, /** @param {PreviewReq} req */ async (req, res) => {
     const { userId, webpageId } = req.previewClaims;
     const { sql, params } = req.body || {};
     try {
@@ -92,7 +97,7 @@ router.post('/:id/db/query', requirePreviewToken, dbBridgeLimiter, async (req, r
     }
 });
 
-router.post('/:id/db/exec', requirePreviewToken, dbBridgeLimiter, async (req, res) => {
+router.post('/:id/db/exec', requirePreviewToken, dbBridgeLimiter, /** @param {PreviewReq} req */ async (req, res) => {
     const { userId, webpageId } = req.previewClaims;
     const { sql, params } = req.body || {};
     try {
@@ -103,7 +108,7 @@ router.post('/:id/db/exec', requirePreviewToken, dbBridgeLimiter, async (req, re
     }
 });
 
-router.post('/:id/db/batch', requirePreviewToken, dbBridgeLimiter, async (req, res) => {
+router.post('/:id/db/batch', requirePreviewToken, dbBridgeLimiter, /** @param {PreviewReq} req */ async (req, res) => {
     const { userId, webpageId } = req.previewClaims;
     const { statements } = req.body || {};
     try {
@@ -114,7 +119,7 @@ router.post('/:id/db/batch', requirePreviewToken, dbBridgeLimiter, async (req, r
     }
 });
 
-router.get('/:id/db/schema', requirePreviewToken, dbBridgeLimiter, async (req, res) => {
+router.get('/:id/db/schema', requirePreviewToken, dbBridgeLimiter, /** @param {PreviewReq} req */ async (req, res) => {
     const { userId, webpageId } = req.previewClaims;
     try {
         const schema = await webpageDbStore.schema(userId, webpageId);
@@ -130,7 +135,7 @@ router.get('/:id/db/schema', requirePreviewToken, dbBridgeLimiter, async (req, r
 // api/<route>.js handler in an isolated-vm sandbox (acts-as-author). Only the
 // light runtime tier uses this — the full tier proxies /app/* to the project's
 // Node container instead (see the runtime manager).
-router.all('/:id/app/*rest', requirePreviewToken, dbBridgeLimiter, async (req, res) => {
+router.all('/:id/app/*rest', requirePreviewToken, dbBridgeLimiter, /** @param {PreviewReq} req */ async (req, res) => {
     const { webpageId } = req.previewClaims;
     const rest = req.params.rest;
     const route = Array.isArray(rest) ? rest.join('/') : (rest || '');
@@ -153,7 +158,7 @@ router.all('/:id/app/*rest', requirePreviewToken, dbBridgeLimiter, async (req, r
     });
     if (out.headers) {
         for (const [k, v] of Object.entries(out.headers)) {
-            try { res.setHeader(k, v); } catch (err) { log.debug('ignore bad header', err); }
+            try { res.setHeader(k, v); } catch (err) { bestEffort('routes/webpagesPreview:anon', err); /* ignore bad header */ }
         }
     }
     res.status(out.status || 200).json(out.body);
@@ -167,7 +172,7 @@ router.post('/:id/ai/ask', requirePreviewToken, llmBridgeLimiter, Ask.ask);
 
 // ── Automations bridge ───────────────────────────────────────────────
 
-router.get('/:id/automations', requirePreviewToken, async (req, res) => {
+router.get('/:id/automations', requirePreviewToken, /** @param {PreviewReq} req */ async (req, res) => {
     const { webpageId } = req.previewClaims;
     const ctx = await loadAuthorContext(webpageId);
     if (!ctx) return res.status(404).json({ error: 'Webpage not found' });
@@ -176,7 +181,7 @@ router.get('/:id/automations', requirePreviewToken, async (req, res) => {
     // grants whose automation has since been deleted or transferred.
     const list = [];
     for (const g of grants) {
-        const a = await automationStore.getAutomation(g.automationId).catch(() => null);
+        const a = await automationStore.getAutomation(g.automationId).catch((e) => fallback('routes/webpagesPreview:anon#2', e, null));
         if (!a) continue;
         if (a.userId !== ctx.authorUserId) continue;
         list.push({
@@ -190,7 +195,7 @@ router.get('/:id/automations', requirePreviewToken, async (req, res) => {
     res.json({ automations: list });
 });
 
-router.post('/:id/automations/:autoId/run', requirePreviewToken, sideEffectBridgeLimiter, async (req, res) => {
+router.post('/:id/automations/:autoId/run', requirePreviewToken, sideEffectBridgeLimiter, /** @param {PreviewReq} req */ async (req, res) => {
     // See /ai/ask (webpagesPreviewAsk.js): the visitor is `viewerUserId`, the author is `userId`.
     const { viewerUserId, webpageId } = req.previewClaims;
     const autoId = req.params.autoId;
@@ -221,7 +226,7 @@ router.post('/:id/automations/:autoId/run', requirePreviewToken, sideEffectBridg
             // The logged-in visitor from the signed preview claims, if any.
             startedByUserId: viewerUserId || null,
         });
-        const steps = await automationStore.getRunSteps(run.id).catch(() => []);
+        const steps = await automationStore.getRunSteps(run.id).catch((e) => fallback('routes/webpagesPreview:anon#3', e, []));
         return res.json({ runId: run.id, status: run.status, output: run.output ?? null, error: run.error || null, steps });
     }
     // Async path: fire and respond with the run ID for polling.
@@ -230,11 +235,11 @@ router.post('/:id/automations/:autoId/run', requirePreviewToken, sideEffectBridg
         triggerPayload,
         mode: 'live',
         startedByUserId: viewerUserId || null,
-    }).catch(err => ({ id: null, status: 'error', error: err.message }));
+    }).catch(err => ({ id: /** @type {string | null} */ (null), status: 'error', error: err.message }));
     res.json({ runId: run.id || null, status: run.status || 'pending', error: run.error || null });
 });
 
-router.get('/:id/automations/runs/:runId', requirePreviewToken, async (req, res) => {
+router.get('/:id/automations/runs/:runId', requirePreviewToken, /** @param {PreviewReq} req */ async (req, res) => {
     const { webpageId } = req.previewClaims;
     const ctx = await loadAuthorContext(webpageId);
     if (!ctx) return res.status(404).json({ error: 'Webpage not found' });
@@ -246,7 +251,7 @@ router.get('/:id/automations/runs/:runId', requirePreviewToken, async (req, res)
     res.json({ runId: run.id, status: run.status, error: mine ? (run.error || null) : null, output: mine ? (run.output ?? null) : null });
 });
 
-router.get('/:id/automations/runs/:runId/steps', requirePreviewToken, async (req, res) => {
+router.get('/:id/automations/runs/:runId/steps', requirePreviewToken, /** @param {PreviewReq} req */ async (req, res) => {
     const { webpageId } = req.previewClaims;
     const ctx = await loadAuthorContext(webpageId);
     if (!ctx) return res.status(404).json({ error: 'Webpage not found' });
@@ -257,7 +262,7 @@ router.get('/:id/automations/runs/:runId/steps', requirePreviewToken, async (req
     res.json({ steps: redactStepsForViewer(run, steps, req.previewClaims.viewerUserId) });
 });
 
-router.post('/:id/automations/runs/:runId/cancel', requirePreviewToken, async (req, res) => {
+router.post('/:id/automations/runs/:runId/cancel', requirePreviewToken, /** @param {PreviewReq} req */ async (req, res) => {
     const { webpageId } = req.previewClaims;
     const ctx = await loadAuthorContext(webpageId);
     if (!ctx) return res.status(404).json({ error: 'Webpage not found' });
@@ -271,7 +276,7 @@ router.post('/:id/automations/runs/:runId/cancel', requirePreviewToken, async (r
 
 // ── Integrations bridge ──────────────────────────────────────────────
 
-router.get('/:id/integrations', requirePreviewToken, async (req, res) => {
+router.get('/:id/integrations', requirePreviewToken, /** @param {PreviewReq} req */ async (req, res) => {
     const { webpageId } = req.previewClaims;
     const ctx = await loadAuthorContext(webpageId);
     if (!ctx) return res.status(404).json({ error: 'Webpage not found' });
@@ -295,7 +300,7 @@ router.get('/:id/integrations', requirePreviewToken, async (req, res) => {
 // Tier is picked per tool: read-only tools get the 60/min read bucket, anything
 // that writes keeps the strict 10/min side-effect bucket (see the selector in
 // webpagesPreviewRateLimits.js — fail-closed for unknown tools).
-router.post('/:id/integrations/run', requirePreviewToken, integrationBridgeLimiter, async (req, res) => {
+router.post('/:id/integrations/run', requirePreviewToken, integrationBridgeLimiter, /** @param {PreviewReq} req */ async (req, res) => {
     const { webpageId } = req.previewClaims;
     const { tool, args } = req.body || {};
     if (typeof tool !== 'string' || !tool.trim()) return res.status(400).json({ error: 'tool is required' });

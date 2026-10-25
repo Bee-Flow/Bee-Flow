@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck strict
 /**
  * One-time migration: Dutch for the two invite-redeem failure banners on the
  * login screen (`?error=invite_expired` / `?error=invite_error`, set by

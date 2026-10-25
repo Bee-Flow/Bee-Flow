@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * ICS building and in-place editing for the Nextcloud calendar tools.
@@ -49,7 +49,10 @@ function parseTimed(value, label) {
     return ICAL.Time.fromJSDate(parseInstant(value, label), true);
 }
 
-/** @param {any} t */
+/**
+ * @param {import("ical.js").Time} t
+ * @param {number} days
+ */
 function plusDays(t, days) {
     const c = t.clone();
     c.adjust(days, 0, 0, 0);
@@ -120,7 +123,11 @@ function buildVCalendarEvent({ uid, summary, start, end, description, location, 
     return cal.toString();
 }
 
-/** Attendee list: keep the ones still wanted (with their state), drop the rest, add new ones. */
+/**
+ * Attendee list: keep the ones still wanted (with their state), drop the rest, add new ones.
+ * @param {import('ical.js').Component} vevent
+ * @param {string[]} wanted
+ */
 function syncAttendees(vevent, wanted) {
     const want = new Map(wanted.filter(Boolean).map((a) => [String(a).toLowerCase(), String(a)]));
     for (const prop of vevent.getAllProperties('attendee')) {
@@ -134,7 +141,7 @@ function syncAttendees(vevent, wanted) {
 /**
  * Wall-clock time of a UTC instant in an IANA zone, as a floating ICAL time.
  * Returns null when the zone name is unknown to the runtime.
- * @param {any} utcTime @param {string} tzid
+ * @param {{ toJSDate: () => number | Date | undefined; }} utcTime @param {string} tzid
  */
 function wallClockIn(utcTime, tzid) {
     try {
@@ -164,7 +171,11 @@ function writeTime(vevent, name, time) {
     if (local) vevent.getFirstProperty(name).setParameter('tzid', tzid);
 }
 
-/** New start/end for an update; only what changes is returned. */
+/**
+ * New start/end for an update; only what changes is returned.
+ * @param {import('ical.js').Event} event
+ * @param {{ summary?: string; description?: string; location?: string; start?: string; end?: string; attendees?: string[]; allDay?: boolean; }} patch
+ */
 function resolveUpdateRange(event, patch) {
     const wasAllDay = !!event.startDate.isDate;
     const allDay = patch.allDay === undefined ? wasAllDay : !!patch.allDay;
@@ -205,13 +216,13 @@ function updateVCalendarEvent(icsText, patch) {
         throw new CalendarInputError('Could not read the stored event');
     }
     const vevents = root.getAllSubcomponents('vevent');
-    const vevent = vevents.find((v) => !v.hasProperty('recurrence-id')) || vevents[0];
+    const vevent = vevents.find((/** @type {import('ical.js').Component} */ v) => !v.hasProperty('recurrence-id')) || vevents[0];
     if (!vevent) throw new CalendarInputError('No VEVENT found in the stored event');
     const event = new ICAL.Event(vevent);
 
     const { startTime, endTime } = resolveUpdateRange(event, patch);
     const timeChanged = !!(startTime || endTime);
-    if (timeChanged && (vevent.hasProperty('exdate') || vevents.some((v) => v !== vevent && v.hasProperty('recurrence-id')))) {
+    if (timeChanged && (vevent.hasProperty('exdate') || vevents.some((/** @type {import('ical.js').Component} */ v) => v !== vevent && v.hasProperty('recurrence-id')))) {
         throw new CalendarInputError('Moving a series with exceptions is not supported; change the exceptions in Nextcloud.');
     }
     applyTextFields(vevent, { summary: patch.summary, description: patch.description, location: patch.location });

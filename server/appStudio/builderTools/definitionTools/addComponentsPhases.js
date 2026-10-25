@@ -223,3 +223,18 @@ function noteSkipped(notes, skipped, extra) {
 }
 
 module.exports = { noteSkipped, describeFailures, prepareAddArgs, duplicateBatchError, allLandedError, nothingLandedError, insertLanded, finishBatch };
+
+/**
+ * @typedef {import('./addComponents').BatchRecord} BatchRecord
+ * @typedef {import('./addComponents').BatchReport} BatchReport
+ * @typedef {import('./addComponents').BatchItem} BatchItem
+ * @typedef {import('./addComponents').AddedNode} AddedNode
+ * @typedef {import('../../builderTools').AppDef} AppDef
+ * @typedef {Array<{ at: string, id: string, type: string }>} SkippedEntries  Entries that had already landed.
+ * @typedef {{ index?: number, path?: string, error: string, _fixHint?: string }} FailedEntry
+ * @typedef {{ node: ReturnType<typeof import('./componentNodes').buildComponentNode>, at: string }} LandedEntry
+ * @typedef {{ node?: LandedEntry['node'], twinId?: string }} PlacedEntry
+ * @typedef {{ node: LandedEntry['node'], parentId: string, index: number }} ExtraEntry
+ * @typedef {{ type?: string, parentId?: string, children?: object[] }} AddComponentsEntry
+ * @typedef {{ parentId?: string, components?: AddComponentsEntry[], index?: number }} AddComponentsArgs
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // User store schema — creates the users/organizations/groups/roles/subscription
 // tables, applies the incremental column migrations on boot, and runs the
 // one-time users/groups/roles JSON→DB migration.
@@ -41,7 +41,7 @@ async function stripLicenseOnlyTiers() {
         const result = await run(`UPDATE subscription_plans SET tier = NULL WHERE tier IN ('community', 'full') AND name <> '__consumer_default__'`);
         const n = result?.rowCount ?? 0;
         if (n > 0) log.info(`[UserStore] migrated ${n} subscription plan(s) off license-only tiers (community/full → NULL)`);
-    } catch (e) { log.error('[UserStore] tier-migratie (community/full → NULL) gefaald:', e.message); /* non-fatal */ }
+    } catch (e) { log.error('[UserStore] tier-migratie (community/full → NULL) gefaald:', /** @type {Error} */ (e).message); /* non-fatal */ }
 }
 
 // Seed a single €0 "Free" org plan once. New orgs auto-assign whichever
@@ -79,7 +79,7 @@ async function seedFreeOrgPlan() {
             );
             log.info('[UserStore] seeded default Free org plan', freeId);
         }
-    } catch (e) { log.warn('[UserStore] Free plan seed skipped:', e.message); }
+    } catch (e) { log.warn('[UserStore] Free plan seed skipped:', /** @type {Error} */ (e).message); }
 }
 
 // ── Migration from JSON ─────────────────────────────

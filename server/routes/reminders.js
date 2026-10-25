@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Reminder Routes — REST API for user-bound reminders.
  *
@@ -58,6 +58,9 @@ const UpdateBody = z.object({ title: title.optional(), message, remindAt: remind
 /**
  * Every route here serves the caller's own reminders, so the session comes
  * first — an anonymous request is a 401 before its body is ever judged.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
 function requireSignedIn(req, res, next) {
     if (!req.session?.user?.id) return res.status(401).json({ error: 'Not authenticated' });
@@ -88,7 +91,7 @@ router.post('/', validate({ body: CreateBody }), async (req, res) => {
 });
 
 // PUT /:id — update reminder
-router.put('/:id', validate({ body: UpdateBody }), async (req, res) => {
+router.put('/:id', validate({ body: UpdateBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const userId = req.session.user.id;
 
     // Verify ownership

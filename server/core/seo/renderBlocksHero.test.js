@@ -1,10 +1,10 @@
-// @typecheck
+// @typecheck noImplicitAny
 const test = require('node:test');
 const assert = require('node:assert');
 const { renderBlocks, renderBlocksWithHints } = require('./renderBlocks');
 
-const img = (key, extra = {}) => ({ kind: 'image', src: `cms/${key}.png`, alt: key, ...extra });
-const block = (content, id = 'b') => ({ id, type: 'feature', content });
+const img = (/** @type {string} */ key, /** @type {Record<string, unknown>} */ extra = {}) => ({ kind: 'image', src: `cms/${key}.png`, alt: key, ...extra });
+const block = (/** @type {Record<string, unknown>} */ content, id = 'b') => ({ id, type: 'feature', content });
 
 test('the first image of the first blocks is eager, high priority, and has a srcset', () => {
     const { html, heroImage, headLinks } = renderBlocksWithHints([block({ media: img('1-a-hero') })]);

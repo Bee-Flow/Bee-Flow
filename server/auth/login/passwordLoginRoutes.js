@@ -9,6 +9,8 @@ const passwords = require('../passwordHash');
 const { upgradeStoredHash } = require('./passwordRehash');
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
+const { isPlatformOperator } = require('../platformOperator');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
@@ -71,6 +73,7 @@ const LoginBody = z.object({
  * makes every failure path take the same time. `admin` is a fixed, documented
  * account name whose existence was never the secret.
  */
+/** @type {Promise<string> | null} */
 let _dummyHashPromise = null;
 function dummyPasswordHash() {
     if (!_dummyHashPromise) {
@@ -78,14 +81,15 @@ function dummyPasswordHash() {
     }
     return _dummyHashPromise;
 }
+/** @param {string} password */
 async function burnPasswordCompare(password) {
     try {
         await passwords.verify(String(password ?? ''), await dummyPasswordHash());
-    } catch (err) { log.debug('the result is discarded — only the elapsed time matters', err); }
+    } catch (err) { bestEffort('auth/login:burnPasswordCompare', err); } // the result is discarded, only the elapsed time matters
 }
 
 // Admin/User login with username/password
-router.post('/admin-login', loginIpLimiter, validate({ body: LoginBody }), async (req, res) => {
+router.post('/admin-login', loginIpLimiter, validate({ body: LoginBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     // Taken before any work, so every failure exit can be padded to the same
     // floor regardless of which branch produced it — see padFailureResponse.
     const startedAt = Date.now();
@@ -243,13 +247,14 @@ router.post('/admin-login', loginIpLimiter, validate({ body: LoginBody }), async
     // DEK can be derived after the second factor) and ask the client for a
     // code. NOTE: OPAQUE logins don't pass through here yet — MFA enforcement
     // for the OPAQUE path is a follow-up.
-    const mfaRow = storedUser || (user.id === 'admin' ? await userStore.getUser('admin') : null);
+    const mfaRow = storedUser || (isPlatformOperator(user) ? await userStore.getUser('admin') : null);
     if (mfaRow && mfaRow.mfa_enabled) {
         req.session.mfaPending = { userId: user.id, isAdmin, user, password };
         // Which second factors the next step may offer: an authenticator app,
         // security keys (auth/securityKeys/), or both. Recovery codes always
         // work and are not listed. Whether a key works on THIS host is settled
         // when the client asks /mfa/security-key/options.
+        /** @type {string[]} */
         const mfaMethods = [];
         if (mfaRow.mfa_secret) mfaMethods.push('totp');
         if ((await userStore.listSecurityKeys(user.id)).length > 0) mfaMethods.push('security_key');

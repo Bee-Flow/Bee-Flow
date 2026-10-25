@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The user's own tokenization vault.
  *
@@ -41,9 +41,10 @@ const userStore = require('../stores/userStore');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
-const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
-/** A whole number on the query string, refused in words when it is not one. */
+/** A whole number on the query string, refused in words when it is not one.
+ * @param {string} name @param {number} min @param {string} what */
 const whole = (name, min, what) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })
     .int(`${name} must be a whole number.`)
     .min(min, `${name} must be ${what}.`)
@@ -69,6 +70,7 @@ const RATE_MAX = 60;
 /**
  * Bulk PII retrieval deserves a ceiling even for its rightful owner: a stolen
  * session should not be able to walk the whole vault in a tight loop.
+ * @param {string} userId
  */
 function rateLimited(userId) {
     const now = Date.now();
@@ -81,15 +83,17 @@ function rateLimited(userId) {
     return hit.count > RATE_MAX;
 }
 
+/** @param {{ session: import('express').Request['session'] }} req @param {string} action @param {Record<string, unknown>} [meta] */
 function audit(req, action, meta = {}) {
     try {
         const userId = req.session.user.id;
         userStore.logAccessAudit(action, 'pii_vault', userId, userId, null, meta, req.session.user.organizationId || null);
-    } catch (err) { log.debug('auditing must never fail the request', err); }
+    } catch (err) { bestEffort('routes/piiVault:audit', err); /* auditing must never fail the request */ }
 }
 
+/** @typedef {import('express').Request<{}, any, any, import('zod').infer<typeof ListQuery>>} VaultListReq */
 /** GET / — the caller's vault, decrypted. */
-router.get('/', requireAuth, validate({ query: ListQuery }), async (req, res) => {
+router.get('/', requireAuth, validate({ query: ListQuery }), /** @param {VaultListReq} req */ async (req, res) => {
     const userId = req.session.user.id;
     if (rateLimited(userId)) return res.status(429).json({ error: 'Too many requests' });
 

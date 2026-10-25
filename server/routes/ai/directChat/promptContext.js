@@ -14,6 +14,7 @@ const userStore = require('../../../stores/userStore');
 const log = require('../../../telemetry/log');
 const { resolveMemoryPolicy } = require('../../../core/memory/memoryPolicy');
 const { memoryUsedItems, emitMemoryUsed } = require('../../../core/memory/memoryUsed');
+const { fallback } = require('../../../utils/bestEffort');
 
 /**
  * Knowledge-base passages go into the prompt without a tool call, so the
@@ -89,7 +90,7 @@ async function attachedKbContext({ req, userId, message, requestedKbIds, orgIdsF
     const out = { volatile: '', usableKbIds: [] };
     if (!(Array.isArray(requestedKbIds) && requestedKbIds.length > 0)) return out;
     const { resolveUsableKbIds } = require('../../../core/kb/kbSelection');
-    const userGroupsRaw = await userStore.getUser(userId).then(u => u?.groups).catch(() => null);
+    const userGroupsRaw = await userStore.getUser(userId).then(u => u?.groups).catch((e) => fallback('routes/ai/directChat/promptContext:attachedKbContext', e, null));
     const userGroups = Array.isArray(userGroupsRaw)
         ? userGroupsRaw
         : (() => { try { return JSON.parse(userGroupsRaw || '[]'); } catch (_) { return []; } })();
@@ -289,3 +290,7 @@ module.exports = {
     makeKbPassagesText, projectContextFor, attachedKbContext, retrieveMemories, houseStyleContextFor,
     notebookContextFor, sidePanelContext, skillsContextFor, capabilityContextFor,
 };
+
+/** @typedef {import('../../../core/agentRuntime/chatStream/turnState').ToolDef} ToolDef */
+
+/** @typedef {ReturnType<typeof makeKbPassagesText>} KbPassagesText */

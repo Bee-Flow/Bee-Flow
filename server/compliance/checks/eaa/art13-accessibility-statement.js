@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('url').URL} URL */
+// @typecheck strict
 /**
  * EAA Art. 13(2) / Annex V (indicative) — an accessibility statement is
  * published.
@@ -33,27 +34,41 @@ const TERMS = [
 ];
 const MAX_BYTES = 128_000;
 
+/**
+ * @param {Record<string, any> | null | undefined} settings
+ */
 function _notRelevant(settings) {
     let rel = settings && settings.framework_relevance;
     if (typeof rel === 'string') { try { rel = JSON.parse(rel); } catch { rel = null; } }
     return !!rel && rel.eaa === 'not_relevant';
 }
 
+/**
+ * @param {string} value
+ */
 function _httpUrl(value) {
     if (typeof value !== 'string' || !value.trim()) return null;
+    /** @type {URL} */
     let u;
     try { u = new URL(value.trim()); } catch { return null; }
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
     return u;
 }
 
+/**
+ * @param {string | number | Date} v
+ */
 function _iso(v) {
     if (!v) return null;
     const t = new Date(v).getTime();
     return Number.isFinite(t) ? new Date(t).toISOString() : null;
 }
 
-/** lib/urlProbe when present; a minimal safeFetch-based probe otherwise. */
+/**
+ * lib/urlProbe when present; a minimal safeFetch-based probe otherwise.
+ * @param {string} url
+ * @returns {Promise<{ ok: boolean, status: number | null, content_type: string | null, snippet: string, error: string | null }>}
+ */
 async function _probe(url) {
     let probeMod = null;
     try { probeMod = require('../../lib/urlProbe'); } catch { probeMod = null; }
@@ -66,10 +81,13 @@ async function _probe(url) {
         const text = (await res.text()).slice(0, MAX_BYTES);
         return { ok: res.ok, status: res.status, content_type: res.headers.get('content-type') || null, snippet: text, error: null };
     } catch (e) {
-        return { ok: false, status: null, content_type: null, snippet: '', error: String(e?.code || e?.message || e).slice(0, 120) };
+        return { ok: false, status: null, content_type: null, snippet: '', error: String(e?.code || /** @type {Error} */ (e)?.message || e).slice(0, 120) };
     }
 }
 
+/**
+ * @param {unknown} html
+ */
 function _stripTags(html) {
     return String(html || '').replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ');
 }
@@ -88,6 +106,7 @@ module.exports = {
     remediationLink: 'admin/compliance/settings',
     TERMS,
 
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const settings = await complianceStore.getSettings(orgId) || {};
         if (_notRelevant(settings)) {
@@ -102,10 +121,10 @@ module.exports = {
         const evidence = {
             statement_url: url ? url.toString() : null,
             url_set: !!(typeof settings.accessibility_statement_url === 'string' && settings.accessibility_statement_url.trim()),
-            http_status: null,
-            content_type: null,
-            probe_error: null,
-            matched_terms: [],
+            http_status: /** @type {number | null} */ (null),
+            content_type: /** @type {string | null} */ (null),
+            probe_error: /** @type {string | null} */ (null),
+            matched_terms: /** @type {string[]} */ ([]),
             declared_level: typeof settings.accessibility_conformance_level === 'string' && settings.accessibility_conformance_level.trim()
                 ? settings.accessibility_conformance_level.trim().slice(0, 40) : null,
             declared_at: _iso(settings.accessibility_conformance_at),

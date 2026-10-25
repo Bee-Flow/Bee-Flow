@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck noImplicitAny
 /**
  * Migration: give every existing knowledge-base document a SOURCE (K1).
  *
@@ -48,16 +49,16 @@ const { planSourcesForKb, truncate } = require('../stores/kb/sourcePlan');
 
 /**
  * @param {object} [opts]
- * @param {boolean} [opts.dryRun=false] — report what would happen, write nothing
- * @param {object}  [opts.db] — { getOne, getAll, run } (injectable for tests)
- * @param {function} [opts.log=console.log]
+ * @param {boolean} [opts.dryRun=false] report what would happen, write nothing
+ * @param {Pick<typeof import('../db'), 'getOne' | 'getAll' | 'run'>} [opts.db] { getOne, getAll, run } (injectable for tests)
+ * @param {(msg: string) => void} [opts.log=console.log]
  */
 async function up({ dryRun = false, db = require('../db'), log = console.log } = {}) {
     const tag = `[Migration] kb-sources-backfill${dryRun ? ' (dry-run)' : ''}`;
     const stats = {
         knowledgeBases: 0, sourcesCreated: 0, sourcesReused: 0, documentsAssigned: 0,
         duplicatesMarked: 0, createdByFilled: 0, aiStepFromAgent: 0, aiStepFromAutomations: 0,
-        automationKbIds: [],
+        automationKbIds: /** @type {string[]} */ ([]),
     };
 
     // Preflight: the K1 schema has to be there. A dry run must not create it.
@@ -214,7 +215,7 @@ async function up({ dryRun = false, db = require('../db'), log = console.log } =
             log(`${tag}: automations reference ${ids.length} knowledge base${ids.length === 1 ? '' : 's'} [${ids.join(', ')}] — ${stats.aiStepFromAutomations} gained 'ai_step'`);
         }
     } catch (e) {
-        log(`${tag}: automations scan skipped (${e.message})`);
+        log(`${tag}: automations scan skipped (${/** @type {Error} */ (e).message})`);
     }
 
     log(`${tag}: ${stats.knowledgeBases} knowledge base(s), ${stats.sourcesCreated} source(s) created, ${stats.sourcesReused} reused, ${stats.documentsAssigned} document(s) assigned, ${stats.duplicatesMarked} marked duplicate, ${stats.createdByFilled} created_by filled, ${stats.aiStepFromAgent + stats.aiStepFromAutomations} KB(s) gained 'ai_step'`);

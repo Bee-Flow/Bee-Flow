@@ -45,6 +45,9 @@
 const path = require('node:path');
 
 const SERVER_DIR = path.join(__dirname, '..');
+/**
+ * @param {string} rel
+ */
 const resolveInServer = (rel) => require.resolve(path.join(SERVER_DIR, rel));
 
 /** A deep, structured copy — the route mutates the arrays it hands around. */
@@ -98,8 +101,12 @@ function createBuilderStream() {
     if (Object.prototype.hasOwnProperty.call(require.cache, storeFile)) {
         throw new Error('createBuilderStream() must run before the test file requires anything that loads stores/automationStore — move the call above those requires');
     }
+    /** @type {() => void[]} */
     const undo = [];
-    /** Replace a module's exports for the lifetime of this harness. */
+    /**
+     * Replace a module's exports for the lifetime of this harness.
+     * @param {string} rel
+     */
     const swap = (rel, exports) => {
         const file = resolveInServer(rel);
         const had = Object.prototype.hasOwnProperty.call(require.cache, file);
@@ -335,8 +342,16 @@ function toEvents(spec) {
     return out;
 }
 
-/** A request/response pair the Express router can serve, minus the socket. */
+/**
+ * @typedef {Object} FakeExchangeArgs
+ * @property {{ message: string; }} body
+ */
+/**
+ * A request/response pair the Express router can serve, minus the socket.
+ * @param {FakeExchangeArgs} param0
+ */
 function fakeExchange({ body, query, userId, userOrgId }) {
+    /** @type {string[]} */
     const written = [];
     const closeHandlers = [];
     let resolveDone;
@@ -359,6 +374,9 @@ function fakeExchange({ body, query, userId, userOrgId }) {
         writableEnded: false,
         headersSent: false,
         statusCode: 200,
+        /**
+         * @param {number} code
+         */
         writeHead(code, headers) { this.statusCode = code; this.headers = headers; this.headersSent = true; return this; },
         flushHeaders() {},
         write(chunk) { written.push(String(chunk)); return true; },
@@ -379,12 +397,17 @@ function fakeExchange({ body, query, userId, userOrgId }) {
     return { req, res, done };
 }
 
-/** The SSE frames the client would parse back out of the written stream. */
+/**
+ * The SSE frames the client would parse back out of the written stream.
+ * @param {string} raw
+ */
 function parseSse(raw) {
+    /** @type {{ event: string; data: string; }[]} */
     const out = [];
     for (const frame of raw.split('\n\n')) {
         const m = /^event: (.+)\ndata: ([\s\S]*)$/.exec(frame.trim());
         if (!m) continue;
+        /** @type {string} */
         let data;
         try { data = JSON.parse(m[2]); } catch (_) { data = m[2]; }
         out.push({ event: m[1], data });
@@ -393,3 +416,46 @@ function parseSse(raw) {
 }
 
 module.exports = { createBuilderStream, call, parseSse };
+
+/**
+ * @typedef {(type: string, data: unknown) => void} StreamEventSink
+ * @typedef {{ name: string, args?: Record<string, unknown>, id?: string, thoughtSignature?: string, repaired?: boolean }} ToolCallSpec
+ * @typedef {{
+ *   thinking?: Array<{ partId?: string, redacted?: boolean, text?: string, signature?: string }>,
+ *   text?: string,
+ *   events?: Array<[string, unknown]>,
+ *   toolCalls?: ToolCallSpec[],
+ *   finishReason?: string,
+ *   usage?: Record<string, unknown>,
+ *   throws?: unknown,
+ * }} RoundObject
+ * @typedef {RoundObject | ((onEvent: StreamEventSink, ctx: { messages: unknown[], options: Record<string, unknown> }) => Promise<void> | void)} RoundSpec
+ * @typedef {(name: string, args: unknown, draftWrap: unknown, delegation?: unknown) => Promise<unknown>} ToolDispatch
+ * @typedef {{
+ *   automations: Record<string, { id: string }>,
+ *   builderSession: unknown,
+ *   storedSessions: Array<{ automationId: string, userId: string, payload: unknown, opts: unknown }>,
+ *   persists: Array<{ automationId: string, title: string, def: unknown }>,
+ *   config: Record<string, unknown>,
+ *   betaFeatures: string[],
+ *   modelId: string,
+ *   providerConfig: unknown,
+ *   tiers: unknown,
+ *   catalog: unknown,
+ *   datatables: unknown,
+ *   datatableAccess: unknown,
+ *   documents: unknown,
+ *   pickers: unknown,
+ *   thinkingModelId: string,
+ *   mintedAutomationId: string,
+ *   userOrgIds: string[],
+ *   dispatch: ToolDispatch,
+ *   adapter?: unknown,
+ * }} HarnessScript
+ * @typedef {{
+ *   written: string[], writableEnded: boolean, headersSent: boolean, statusCode: number, headers?: unknown,
+ *   writeHead: (code: number, headers: unknown) => FakeRes, flushHeaders: () => void,
+ *   write: (chunk: unknown) => boolean, end: (chunk?: unknown) => FakeRes, setHeader: () => FakeRes,
+ *   getHeader: () => undefined, on: () => FakeRes, once: () => FakeRes, emit: () => boolean,
+ * }} FakeRes
+ */

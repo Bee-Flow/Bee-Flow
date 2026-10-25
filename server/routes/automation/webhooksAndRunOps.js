@@ -16,6 +16,9 @@ const automationAccess = makeAutomationAccess({ store: automationStore });
 
 // The caller's access to the automation behind a RUN, or null after a 403
 // (see runGuard in automation/access.js for the 'read' / 'act' / 'edit' rules).
+/**
+ * @param {string} need
+ */
 const runAccess = (req, res, run, need) => automationAccess.runGuard(req, res, run, need);
 
 // Per-user throttle for the run-spawning endpoints (retry re-executes a run;
@@ -27,6 +30,7 @@ const runTriggerLimiter = perUserRateLimit({ windowMs: 60_000, max: RUN_TRIGGER_
 const {
     TriggerStepBody, ApproveStepBody, ApproveRunBody, CancelRunBody, FormPickBody, AgentInvokeBody, FullOutputQuery, RunFormBody,
 } = require('./runOpsSchemas');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 
 router.post('/:id/webhook', validate({ body: TriggerStepBody }), async (req, res) => {
@@ -158,7 +162,7 @@ router.get('/runs/:id', async (req, res) => {
     // Opened from the history, this row stands for the whole journey — so
     // it reports the outcome of the leg that ran LAST, not the 'success'
     // this leg recorded when it handed off to the one that continued it.
-    const leg = await automationStore.getLatestRunInChain(run.id).catch(() => null);
+    const leg = await automationStore.getLatestRunInChain(run.id).catch((e) => fallback('routes/automation/webhooksAndRunOps:anon', e, null));
     if (leg && leg.id !== run.id) {
         Object.assign(run, {
             journeyRunId: leg.id,
@@ -183,7 +187,7 @@ router.get('/runs/:id', async (req, res) => {
     }
     // Handoff 5: the approval a waiting run waits on, for "send reminder".
     if (run.status === 'awaiting_approval' && typeof automationStore.getPendingApprovalIdsForRuns === 'function') {
-        const pending = await automationStore.getPendingApprovalIdsForRuns([run.journeyRunId || run.id]).catch(() => null);
+        const pending = await automationStore.getPendingApprovalIdsForRuns([run.journeyRunId || run.id]).catch((e) => fallback('routes/automation/webhooksAndRunOps:anon#2', e, null));
         run.approvalId = pending?.get(run.journeyRunId || run.id) || null;
     }
     res.json({ run: redactRunForViewer(run, req.session.user.id) });
@@ -199,7 +203,7 @@ router.get('/runs/:id/steps', async (req, res) => {
     // where the earlier pages ran. The history lists a journey as one row;
     // opening it has to show one run's worth of steps.
     const steps = await automationStore.getRunStepsForChain(run.id);
-    const legs = await automationStore.getRunsInChain(run.id).catch(() => []);   // unknown legs are hidden (callerRunVisibility)
+    const legs = await automationStore.getRunsInChain(run.id).catch((e) => fallback('routes/automation/webhooksAndRunOps:anon#3', e, []));   // unknown legs are hidden (callerRunVisibility)
     // Return the flow snapshot AS IT WAS at run time so run history renders
     // the steps that actually existed then, not the current definition.
     // Falls back to the current definition for legacy runs whose version
@@ -266,7 +270,7 @@ router.post('/:id/runs/:runId/retry', runTriggerLimiter, async (req, res) => {
     }
     // The journey's status, not the head's: a form journey's head reads
     // 'success' the moment it hands off to the leg still waiting.
-    const leg = await automationStore.getLatestRunInChain(original.id).catch(() => null);
+    const leg = await automationStore.getLatestRunInChain(original.id).catch((e) => fallback('routes/automation/webhooksAndRunOps:anon#4', e, null));
     const journeyStatus = (leg && leg.status) || original.status;
     if (!RETRYABLE_STATUSES.has(journeyStatus)) {
         throw new HttpError(409, 'run_not_finished', 'This run has not finished yet, so it cannot be run again.', { status: journeyStatus || null });
@@ -275,6 +279,7 @@ router.post('/:id/runs/:runId/retry', runTriggerLimiter, async (req, res) => {
     const runner = require('../../core/automationRunner');
     const RESPONSE_TIMEOUT_MS = 60_000;
     let timedOut = false;
+    /** @type {NodeJS.Timeout} */
     let guardTimer;
     let newRunId = null;
     const guard = new Promise((resolve) => { guardTimer = setTimeout(() => { timedOut = true; resolve(null); }, RESPONSE_TIMEOUT_MS); });
@@ -304,7 +309,7 @@ router.post('/:id/runs/:runId/retry', runTriggerLimiter, async (req, res) => {
                 message: 'Retry is still in progress. Check the run history shortly.',
             });
         }
-        const steps = await automationStore.getRunSteps(run.id).catch(() => []);
+        const steps = await automationStore.getRunSteps(run.id).catch((e) => fallback('routes/automation/webhooksAndRunOps:anon#5', e, []));
         return res.status(200).json({ accepted: true, runId: run.id, run, steps });
     } finally {
         clearTimeout(guardTimer);
@@ -327,11 +332,12 @@ router.post('/:id/runs/:runId/retry', runTriggerLimiter, async (req, res) => {
  * leg of its journey. For a run that was never paused this is the run itself.
  * Falls back to the addressed row if the chain lookup fails, so an action never
  * breaks on a bookkeeping problem.
+ * @param {string} runId
  */
 async function resolveActionableRun(runId) {
     const addressed = await automationStore.getRun(runId);
     if (!addressed) return null;
-    const leg = await automationStore.getLatestRunInChain(runId).catch(() => null);
+    const leg = await automationStore.getLatestRunInChain(runId).catch((e) => fallback('routes/automation/webhooksAndRunOps:resolveActionableRun', e, null));
     return (leg && leg.userId === addressed.userId) ? leg : addressed;
 }
 
@@ -359,7 +365,7 @@ router.post('/runs/:runId/approve-step', validate({ body: ApproveStepBody }), as
 
     const { decision, reason, answers } = req.body;
     const approvalService = require('../../automation/approvalService');
-    const automation = await automationStore.getAutomation(original.automationId).catch(() => null);
+    const automation = await automationStore.getAutomation(original.automationId).catch((e) => fallback('routes/automation/webhooksAndRunOps:anon#6', e, null));
     // Runs paused before the approvals table existed have no row yet —
     // ensure one so the decision lands in the audit trail like any other.
     const approval = await approvalService.ensureApprovalForRun(original, automation);
@@ -397,7 +403,7 @@ router.post('/runs/:runId/approve-step', validate({ body: ApproveStepBody }), as
 /** The rendered page a run is paused on, read off the awaiting step's row. */
 async function pendingFormPage(run) {
     if (!run || run.status !== 'awaiting_form' || !run.awaitingStepId) return null;
-    const steps = await automationStore.getRunSteps(run.id).catch(() => []);
+    const steps = await automationStore.getRunSteps(run.id).catch((e) => fallback('routes/automation/webhooksAndRunOps:pendingFormPage', e, []));
     const row = steps.find(st => st.stepId === run.awaitingStepId && st.status === 'awaiting_form');
     // The runner records the page AS RENDERED — labels interpolated against the
     // run that produced them. Reading it back is what makes the builder's
@@ -420,7 +426,7 @@ async function finaliseContinuedRun(parentRunId, child) {
         status: 'success',
         summary: `Continued from the form — see run ${child.id}`,
         finishedAt: new Date().toISOString(),
-    }).catch(() => {});
+    }).catch((e) => bestEffort('routes/automation/webhooksAndRunOps:finaliseContinuedRun', e));
 }
 
 /**
@@ -492,7 +498,7 @@ router.post('/runs/:runId/form', runTriggerLimiter, validate({ body: RunFormBody
     const runner = require('../../core/automationRunner');
     const child = await runner.resumeFromStep(run.id, pending.stepId, { decision: { ...values }, userId });
     if (child?.id) await finaliseContinuedRun(run.id, child);
-    const steps = child?.id ? await automationStore.getRunSteps(child.id).catch(() => []) : [];
+    const steps = child?.id ? await automationStore.getRunSteps(child.id).catch((e) => fallback('routes/automation/webhooksAndRunOps:anon#7', e, [])) : [];
     return res.json({ accepted: true, run: redactRunForViewer(child, userId), steps: redactStepsForViewer(child, steps, userId) });
 });
 
@@ -533,7 +539,7 @@ async function formPickCaller(req) {
     const user = req.session?.user;
     if (!user?.id) return null;
     let access = { orgIds: [], userGroupIds: [], isSuperAdmin: false };
-    try { access = await require('../transcriptions/shared').resolveAccessContext(req); } catch (err) { log.debug('narrower, never wider', err); }
+    try { access = await require('../transcriptions/shared').resolveAccessContext(req); } catch (err) { fallback('routes/automation/webhooksAndRunOps:formPickCaller', err); /* narrower, never wider */ }
     return {
         userId: user.id,
         session: req.session,
@@ -566,14 +572,14 @@ router.post('/runs/:runId/cancel', validate({ body: CancelRunBody }), async (req
     // (so the inbox agrees), notifies whoever was asked, and flips the run.
     if (original.status === 'awaiting_approval') {
         const approvalService = require('../../automation/approvalService');
-        const a = await automationStore.getAutomation(original.automationId).catch(() => null);
+        const a = await automationStore.getAutomation(original.automationId).catch((e) => fallback('routes/automation/webhooksAndRunOps:anon#8', e, null));
         const approval = await approvalService.ensureApprovalForRun(original, a);
         if (!approval) return res.status(409).json({ error: 'Run is not awaiting approval.' });
         const { code, body } = await approvalService.withdraw({
             approval, deciderId: userId, reason: req.body.reason, source: 'builder',
         });
         if (code !== 200) return res.status(code).json(body);
-        const fresh = await automationStore.getRun(original.id).catch(() => null);
+        const fresh = await automationStore.getRun(original.id).catch((e) => fallback('routes/automation/webhooksAndRunOps:anon#9', e, null));
         return res.status(202).json({ accepted: true, run: redactRunForViewer(fresh || original, userId) });
     }
     const runner = require('../../core/automationRunner');
@@ -641,7 +647,7 @@ router.post('/runs/:id/approve', validate({ body: ApproveRunBody }), async (req,
                 : 'First-run confirmation declined — the automation was not run live.',
             finishedAt: new Date().toISOString(),
         });
-        const fresh = await automationStore.getRun(run.id).catch(() => null);
+        const fresh = await automationStore.getRun(run.id).catch((e) => fallback('routes/automation/webhooksAndRunOps:anon#10', e, null));
         return res.json({ accepted: true, decision: 'reject', run: redactRunForViewer(fresh || run, userId) });
     }
 
@@ -659,7 +665,7 @@ router.post('/runs/:id/approve', validate({ body: ApproveRunBody }), async (req,
             const live = require('../../core/automationRunner/definitionForRun').automationForRun(a, { mode: 'live', triggerKind: 'manual' });
             await runner.executeAutomation({ ...live, needsFirstRunConfirm: false }, { triggerKind: 'manual', mode: 'live', confirmFirstRun: true, startedByUserId: userId });
         }
-        catch (e) { log.error('[automation/runs/approve] error:', e.message); }
+        catch (e) { log.error('[automation/runs/approve] error:', /** @type {Error} */ (e).message); }
     });
     res.json({ accepted: true, decision: 'approve' });
 });

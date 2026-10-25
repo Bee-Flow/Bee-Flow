@@ -137,7 +137,10 @@ function aiStepsOf(definition) {
     return { aiStepIds: steps.map(s => s.id), provider };
 }
 
-/** A safe download filename from the result's title. */
+/**
+ * A safe download filename from the result's title.
+ * @param {string} extension
+ */
 function resultFilename(title, extension) {
     const base = String(title || 'result').trim().toLowerCase()
         .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
@@ -145,3 +148,5 @@ function resultFilename(title, extension) {
 }
 
 module.exports = { endingFrom, resultOf, markdownToSafeHtml, webpageSlots, aiStepsOf, resultFilename, WEBPAGE_CSS };
+
+/** @typedef {{ title?: unknown, description?: unknown } & Record<string, unknown>} FormEnding  a closing page's recorded config */

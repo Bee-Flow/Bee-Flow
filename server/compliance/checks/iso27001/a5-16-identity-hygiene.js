@@ -17,13 +17,21 @@ const DORMANT_WARN_PCT = 1;
 const MFA_FAIL_PCT = 50;
 const MFA_WARN_PCT = 90;
 
+/** @type {Record<string, number>} */
 const RANK = { pass: 0, warn: 1, fail: 2 };
 
+/**
+ * @param {number} part
+ * @param {number} whole
+ */
 function _pct(part, whole) {
     return Math.round((part / whole) * 1000) / 10;
 }
 
-/** Judge one directory summary payload → { status, notes, metrics }. */
+/**
+ * Judge one directory summary payload → { status, notes, metrics }.
+ * @param {string} id
+ */
 function _judgeSource(id, p) {
     const users = Number(p.users) || 0;
     const active = (p.enabled !== null && p.enabled !== undefined)
@@ -33,8 +41,12 @@ function _judgeSource(id, p) {
     const mfaRaw = (p.mfa_enrolled !== null && p.mfa_enrolled !== undefined) ? p.mfa_enrolled : p.mfa_capable;
     const mfa = (mfaRaw === null || mfaRaw === undefined) ? null : Number(mfaRaw);
 
+    /** @type {string[]} */
     const notes = [];
     let status = 'pass';
+    /**
+     * @param {string} level
+     */
     const bump = (level) => { if (RANK[level] > RANK[status]) status = level; };
 
     if (!active) {
@@ -91,6 +103,7 @@ module.exports = {
     remediationLink: 'admin/compliance/iso_connectors',
 
     async evaluate(orgId) {
+        /** @type {string[]} */
         const enabledSources = [];
         // Reads that failed. Both store functions run initDB first, so a throw
         // is a failed read, never "not enabled" or "no snapshot yet". It
@@ -114,8 +127,12 @@ module.exports = {
         }
 
         const judged = [];
+        /** @type {string[]} */
         const notes = [];
         let status = 'pass';
+        /**
+         * @param {string} level
+         */
         const bump = (level) => { if (RANK[level] > RANK[status]) status = level; };
 
         for (const id of enabledSources) {

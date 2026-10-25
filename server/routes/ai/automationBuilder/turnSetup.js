@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation Builder — setting up a turn, before a model is chosen: what a
  * turn may send (TurnBody / TurnQuery), the Automations beta gate, the tiers
@@ -22,6 +23,95 @@ const { MODES, isBlankDraft, planMentionsRemoval, pendingProposal } = require('.
 const { setupDatatableTurn, clientSnapshot } = require('./datatableTurn');
 const { z, worded, bodyOf, queryOf, closedObject, choice, flag, typeError } = require('../../../core/http/schemaParts');
 
+/**
+ * The draft wrapper of a builder turn: the loaded draft plus the turn state
+ * the phases set on it (underscore members).
+ * @typedef {import('../../../automation/mcpBuilder').McpDraftWrap & import('../../../automation/builderTools/refCheck').BuilderWrap & {
+ *   def: import('../../../automation/builderTools/draftGraph').DraftGraph,
+ *   _resultDetail?: 'full' | 'compact',
+ *   _todos?: Array<{ text: string, done: boolean }>,
+ *   _inspectedTools?: Set<string>,
+ *   _offeredTools?: Set<string>,
+ *   _stagedDryRun?: boolean,
+ *   _documentDiscoveryRequired?: boolean,
+ *   _onDryRunStarted?: (created: { id: string, status?: string, startedAt?: string }) => void,
+ * }} BuilderDraftWrap
+ */
+/**
+ * The turn object ./chatStream.js builds from the request; each phase
+ * (setupTurn, resolveTurnModel, assembleTurnPrompt, buildToolMenu, the build
+ * loop) adds its part.
+ * @typedef {Awaited<ReturnType<typeof tierAccessFor>>} TurnTierAccess
+ * @typedef {{
+ *   req: import('express').Request, res: import('express').Response, userId: string,
+ *   message: string | null, clientSession: string | null, automationId: string | null, modelTier: string,
+ *   workMode: string, alwaysPlanLarge: boolean, pauseAfterStep: boolean, approvedPlanId: string | null,
+ *   selectedStepId: string | null, history: unknown[], attachments: unknown[], webSearchEnabled: boolean,
+ *   disabledMedia: Record<string, unknown>, timezone: string | null, canvasScope: string | null,
+ *   seedMetadata: { title?: string, description?: string } | null, wantsResume: boolean,
+ *   send: (event: string, data: unknown) => void,
+ *   narrator: ReturnType<typeof import('./thoughtNarrator').createThoughtNarrator> | null,
+ *   codeStepEnabled: boolean, userOrgForTiers: string | null,
+ *   tiers: Awaited<ReturnType<typeof getUserTierMap>>, requestedTier: string,
+ *   permittedTiers: Awaited<ReturnType<typeof getUserTierMap>>,
+ *   autoTiers: Awaited<ReturnType<typeof getUserTierMap>>,
+ *   draftWrap: BuilderDraftWrap,
+ *   snapshot: Awaited<ReturnType<typeof automationStore.getBuilderSession>> | null,
+ *   reviewPlan: Awaited<ReturnType<typeof automationStore.getBuilderSession>>['reviewPlan'] | null,
+ *   reviewQuestions: Array<{ choice?: unknown, [k: string]: unknown }> | null,
+ *   planCurrent: boolean,
+ *   approvedPlan: Awaited<ReturnType<typeof automationStore.getBuilderSession>>['reviewPlan'] | null,
+ *   turnMode: string, bufferedBuild: boolean, permissionMode: string, isolated: boolean,
+ *   planAllowsRemoval: boolean, pausedAfterStep: boolean,
+ *   baseDraft: import('../../../automation/builderTools/draftGraph').DraftGraph,
+ *   baseTitle: string, baseDescription: string,
+ *   savedProposal: ReturnType<typeof pendingProposal>,
+ *   reviewOutcome: Awaited<ReturnType<typeof automationStore.getBuilderSession>>['reviewOutcome'] | null,
+ *   priorQuestions: unknown[] | null,
+ *   priorMeta: Awaited<ReturnType<typeof automationStore.getBuilderSession>>['questionsMeta'] | null,
+ *   planCycleRound: number, answerTurn: boolean, questionsClosed: boolean, planWritten: boolean,
+ *   storedCatalogOrder: string[] | null,
+ *   catalog: Awaited<ReturnType<typeof buildCatalogForUser>> & { toolNames?: Set<string>, datatables?: BuilderDraftWrap['_datatables'], documents?: BuilderDraftWrap['_documents'], datatableRequireChoice?: boolean },
+ *   tableChoice: Awaited<ReturnType<typeof setupDatatableTurn>>,
+ *   summary: string, agentDraftState: string,
+ *   modelId: string, cfg: Awaited<ReturnType<typeof import('../../../core/aiAgent').getProviderForModel>>,
+ *   tier: Awaited<ReturnType<typeof getUserTierMap>>[string],
+ *   adapter: ReturnType<typeof import('../../../core/providers').getAdapter>,
+ *   narrationModelId: string, thinkingModelId: string,
+ *   profile: ReturnType<typeof import('../../../automation/builderModelProfiles').getProfileForModel>,
+ *   catalogOrder: ReturnType<typeof import('../../../automation/builderPrompt/rankApps').catalogOrderOf> | null,
+ *   webResearch: Awaited<ReturnType<typeof import('./webResearch').resolveWebResearch>>,
+ *   sys: ReturnType<typeof import('./turnMessages').composeTurnMessages>['sys'],
+ *   fewShotMessages: ReturnType<typeof import('./turnMessages').composeTurnMessages>['fewShotMessages'],
+ *   windowedHistory: ReturnType<typeof import('./turnMessages').composeTurnMessages>['windowedHistory'],
+ *   messages: ReturnType<typeof import('./turnMessages').composeTurnMessages>['messages'],
+ *   tools: ReturnType<typeof import('../../../automation/builderTools/schemaProjection').projectToolSchemas>,
+ *   webpageInspectorEnabled: boolean,
+ *   webpageInspectorCtx: { userId: string, organizationId: string | null, userGroupIds: string[], userOrgIds: string[] } | null,
+ *   isWebpageAutomationTool: typeof import('../../../integrations/webpageAutomationTools').isWebpageAutomationTool,
+ *   executeWebpageAutomationTool: typeof import('../../../integrations/webpageAutomationTools').executeWebpageAutomationTool,
+ *   webpageToolGate: ReturnType<typeof import('../../../core/privacy/toolPiiGate').toolLoopGate>,
+ *   brief: string, sendMetadata: () => void, iterationBudget: number, clientGone: boolean,
+ *   clientAbort: AbortController, lastFinalized: boolean,
+ *   lastValidation: ReturnType<typeof import('../../../automation/validate').validateDefinition> | null,
+ *   lastSummary: string | null,
+ *   stopReason: { reason: string, tool?: string | null, error?: string, label?: string | null, position?: unknown } | null,
+ *   usageTotals: { prompt: number, completion: number, cached: number, cacheCreation: number, rounds: number },
+ *   turnEffort: ReturnType<typeof import('../../../automation/builderModelProfiles').effortForIteration>,
+ *   iter: number,
+ * }} BuilderTurn
+ */
+/**
+ * One round of the build loop (./buildLoop.js): what its tool calls did.
+ * @typedef {{
+ *   mutatedThisIter: boolean, testedThisIter: boolean, acceptedThisIter: boolean, refusedThisIter: boolean,
+ *   stopHit: { reason: string, tool?: string | null, error?: string, label?: string | null, position?: unknown } | null,
+ *   lastRefusal: { tool: string | null, error: string, label: string | null } | null,
+ * }} BuilderRound
+ * One tool call of a round, as the adapter hands it over.
+ * @typedef {{ id: string, function: { name: string, arguments: string }, _recovered?: boolean, _repaired?: boolean }} BuilderToolCall
+ */
+
 // ── What a turn may send ─────────────────────────────────────────────
 // The keys the stream reads (see the header) and nothing else. The values
 // stay as loose as the handler reads them — history and attachments are
@@ -29,7 +119,7 @@ const { z, worded, bodyOf, queryOf, closedObject, choice, flag, typeError } = re
 // silent default under a 200 and a paid turn: `modelTeir` built on `auto`,
 // `automationID` started a NEW draft beside the one on screen, and
 // `webSearchEnabled: "false"` switched web search ON (`!!"false"`).
-const text = (message) => worded(message).max(200, message);
+const text = (/** @type {string} */ message) => worded(message).max(200, message);
 const TurnBody = bodyOf({
     message: worded('message is the text of your turn.').nullish(),
     builderSessionId: text('builderSessionId is the id the previous turn handed back.').nullish(),
@@ -59,6 +149,7 @@ const TurnQuery = queryOf({
  * Everything before the model: gate, tiers, draft, session, work mode,
  * catalogues. Answers false when the turn already ended with an `error`
  * event (the gate, a refused tier, a stale plan revision).
+ * @param {BuilderTurn} turn
  */
 async function setupTurn(turn) {
     const {
@@ -101,6 +192,7 @@ async function setupTurn(turn) {
     }
 
     // Resolve / load the draft.
+    /** @type {BuilderDraftWrap} */
     let draftWrap = await loadOrCreateDraft({ userId, builderSessionId: clientSession, automationId, seedMetadata });
     send('builder_session', { builderSessionId: draftWrap.builderSessionId, automationId: draftWrap.automationId });
 
@@ -198,7 +290,8 @@ async function setupTurn(turn) {
     // plan's own steps in a build. A paused or continuing build keeps the
     // list it has when it is already that plan's, so its progress survives.
     if (approvedPlan) {
-        const steps = Array.isArray(approvedPlan.steps) ? approvedPlan.steps.filter(t => typeof t === 'string') : [];
+        /** @type {string[]} */
+        const steps = Array.isArray(approvedPlan.steps) ? approvedPlan.steps.filter(/** @returns {t is string} */ (/** @type {unknown} */ t) => typeof t === 'string') : [];
         const sameList = draftWrap._todos.length === steps.length && steps.every((t, i) => draftWrap._todos[i]?.text === t);
         if (!sameList) draftWrap._todos = steps.map(text => ({ text, done: false }));
         send('plan', { todos: draftWrap._todos });
@@ -213,6 +306,7 @@ async function setupTurn(turn) {
     // until after the model is resolved, so we can pick full vs. lean
     // prompt + apply per-model catalog filtering — see Step 5 of the
     // multi-model optimization in the plan file.)
+    /** @type {BuilderTurn['catalog']} */
     const catalog = await buildCatalogForUser(userId, req.session);
 
     // §B progressive context: index every catalog action's input schema by

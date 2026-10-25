@@ -257,3 +257,9 @@ function chartPartsFor(sheets) {
 }
 
 module.exports = { chartPartsFor, chartXml };
+
+/** @typedef {import('../sheetChartFields').ChartFields} SheetChart */
+
+/** @typedef {Record<string, { value: unknown, display?: string }>} ComputedCells */
+
+/** @typedef {NonNullable<ReturnType<typeof resolveChart>>} ResolvedChart */

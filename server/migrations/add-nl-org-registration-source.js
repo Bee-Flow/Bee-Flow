@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck strict
 /**
  * Migration: Dutch translations for the organisation registration-source
  * labels — the "Registered via" line on the admin org cards.

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Withings Tools — read a user's health measurements, sleep and activity from
  * the Withings Health Mate API (https://wbsapi.withings.net).
@@ -41,6 +42,7 @@ const DEFAULT_ROWS = 100;
 // Withings' numeric `type` → (slug, label, unit). Only the types the Health
 // Mate consumer devices actually emit; an unknown code still yields a row, slug
 // `type_<n>`, so a new device never silently drops data.
+/** @type {Record<number, { slug: string, label: string, unit: string }>} */
 const MEASURE_TYPES = {
     1:   { slug: 'weight',                 label: 'Weight',                     unit: 'kg' },
     4:   { slug: 'height',                 label: 'Height',                     unit: 'm' },
@@ -75,6 +77,9 @@ const MEASURE_TYPES = {
 // Slug → type code, so callers can ask for "weight" instead of 1.
 const TYPE_BY_SLUG = new Map(Object.entries(MEASURE_TYPES).map(([code, m]) => [m.slug, Number(code)]));
 
+/**
+ * @param {number} typeCode
+ */
 function describeType(typeCode) {
     return MEASURE_TYPES[typeCode] || { slug: `type_${typeCode}`, label: `Measure type ${typeCode}`, unit: '' };
 }
@@ -86,6 +91,8 @@ function describeType(typeCode) {
  * floating point re-introduces the very noise the integer encoding avoided
  * (813 × 1e-1 = 81.30000000000001), so scale by division and round to the
  * decimal count the exponent implies — the result is exactly what the app shows.
+ * @param {unknown} value
+ * @param {unknown} unit
  */
 function scaleMeasure(value, unit) {
     const v = Number(value);
@@ -100,12 +107,18 @@ function scaleMeasure(value, unit) {
     return Number(scaled.toFixed(Math.min(-e, 6)));
 }
 
+/**
+ * @param {unknown} seconds
+ */
 function isoFromEpochSeconds(seconds) {
     const n = Number(seconds);
     if (!Number.isFinite(n) || n <= 0) return null;
     return new Date(n * 1000).toISOString();
 }
 
+/**
+ * @param {unknown} value
+ */
 function ymd(value) {
     if (value === undefined || value === null || value === '') return null;
     const s = String(value).trim();
@@ -115,6 +128,9 @@ function ymd(value) {
     return new Date(t).toISOString().slice(0, 10);
 }
 
+/**
+ * @param {unknown} value
+ */
 function epochSeconds(value) {
     if (value === undefined || value === null || value === '') return null;
     if (typeof value === 'number' && Number.isFinite(value)) {
@@ -127,6 +143,9 @@ function epochSeconds(value) {
     return Math.floor(t / 1000);
 }
 
+/**
+ * @param {unknown} limit
+ */
 function clampLimit(limit) {
     const n = Number(limit);
     if (!Number.isFinite(n) || n <= 0) return DEFAULT_ROWS;
@@ -140,6 +159,10 @@ function clampLimit(limit) {
  * field and form-encoded params; success and failure share HTTP 200, so the
  * envelope check lives in automationAuth.readWithingsBody (shared with the token
  * refresher, which faces the same shape).
+ * @param {string} userId
+ * @param {string} path
+ * @param {string} action
+ * @param {Record<string, string | number>} params
  */
 async function withingsCall(userId, path, action, params) {
     const auth = await automationAuth.getProviderAuth(userId, 'withings');
@@ -176,7 +199,7 @@ async function withingsCall(userId, path, action, params) {
         const text = await res.text().catch(() => '');
         throw new Error(`Withings API error ${res.status}: ${text.slice(0, 200)}`);
     }
-    const data = await res.json().catch(() => null);
+    const data = await res.json().catch(/** @returns {null} */ () => null);
     if (!data) throw new Error('Withings returned a non-JSON body');
     return automationAuth.readWithingsBody(data, action);
 }
@@ -190,6 +213,7 @@ async function withingsCall(userId, path, action, params) {
  * ambiguous about who stood on it", so they are labelled rather than dropped —
  * a weight trend that silently omits contested readings would mislead.
  */
+/** @type {Record<number, string>} */
 const ATTRIB_LABELS = {
     0: 'device_confirmed',
     1: 'device_ambiguous',
@@ -200,6 +224,10 @@ const ATTRIB_LABELS = {
     8: 'same_as_device',
 };
 
+/**
+ * @param {unknown} groups
+ * @param {number} limit
+ */
 function normalizeMeasureGroups(groups, limit) {
     const rows = [];
     for (const grp of Array.isArray(groups) ? groups : []) {
@@ -260,17 +288,28 @@ const SLEEP_PLAIN_FIELDS = {
     apnea_hypopnea_index: 'apnea_hypopnea_index',
 };
 
+/**
+ * @param {unknown} seconds
+ */
 function toMinutes(seconds) {
     const n = Number(seconds);
     if (!Number.isFinite(n)) return null;
     return Math.round(n / 60);
 }
 
+/**
+ * @param {unknown} series
+ * @param {number} limit
+ */
 function normalizeSleepSeries(series, limit) {
     const rows = [];
     for (const s of Array.isArray(series) ? series : []) {
         if (!s || typeof s !== 'object') continue;
         const data = (s.data && typeof s.data === 'object') ? s.data : s;
+        /**
+         * @type {{ total_sleep_minutes?: number, light_sleep_minutes?: number, deep_sleep_minutes?: number,
+         *   rem_sleep_minutes?: number, [key: string]: string | number | null | undefined }}
+         */
         const row = {
             measurement_key: `withings:sleep:${s.id ?? s.date ?? s.startdate}`,
             source: 'withings',
@@ -317,11 +356,16 @@ const ACTIVITY_FIELDS = {
     hr_max: 'heart_rate_max',
 };
 
+/**
+ * @param {unknown} activities
+ * @param {number} limit
+ */
 function normalizeActivities(activities, limit) {
     const rows = [];
     for (const a of Array.isArray(activities) ? activities : []) {
         if (!a || typeof a !== 'object') continue;
         const date = ymd(a.date);
+        /** @type {Record<string, string | number | null>} */
         const row = {
             measurement_key: `withings:activity:${date || a.date}`,
             source: 'withings',
@@ -370,7 +414,7 @@ const WITHINGS_TOOLS = [
                     lastupdate: LASTUPDATE_PARAM,
                     limit: { type: 'integer', description: `Maximum rows to return (default ${DEFAULT_ROWS}, max ${MAX_ROWS}).` },
                 },
-                required: [],
+                required: /** @type {string[]} */ ([]),
             },
         },
     },
@@ -387,7 +431,7 @@ const WITHINGS_TOOLS = [
                     lastupdate: LASTUPDATE_PARAM,
                     limit: { type: 'integer', description: `Maximum nights to return (default ${DEFAULT_ROWS}, max ${MAX_ROWS}).` },
                 },
-                required: [],
+                required: /** @type {string[]} */ ([]),
             },
         },
     },
@@ -404,7 +448,7 @@ const WITHINGS_TOOLS = [
                     lastupdate: LASTUPDATE_PARAM,
                     limit: { type: 'integer', description: `Maximum days to return (default ${DEFAULT_ROWS}, max ${MAX_ROWS}).` },
                 },
-                required: [],
+                required: /** @type {string[]} */ ([]),
             },
         },
     },
@@ -412,6 +456,14 @@ const WITHINGS_TOOLS = [
 
 // ── Executors ───────────────────────────────────────────────────────
 
+/**
+ * The tool arguments as the model sends them.
+ * @typedef {{ limit?: unknown, types?: unknown, lastupdate?: unknown, startDate?: unknown, endDate?: unknown }} WithingsArgs
+ */
+
+/**
+ * @param {unknown} types
+ */
 function resolveTypeCodes(types) {
     if (!Array.isArray(types) || !types.length) return null;
     const codes = [];
@@ -426,6 +478,10 @@ function resolveTypeCodes(types) {
     return codes.length ? Array.from(new Set(codes)) : null;
 }
 
+/**
+ * @param {string} userId
+ * @param {WithingsArgs} args
+ */
 async function getMeasures(userId, args) {
     const limit = clampLimit(args.limit);
     const codes = resolveTypeCodes(args.types);
@@ -433,6 +489,7 @@ async function getMeasures(userId, args) {
     // enddate with its `date`. Sending both is rejected, so lastupdate wins:
     // an incremental sync must not be silently narrowed by a stale window.
     const lastupdate = epochSeconds(args.lastupdate);
+    /** @type {Record<string, string | number>} */
     const params = { category: 1 };
     if (codes) params.meastypes = codes.join(',');
     if (lastupdate !== null) {
@@ -459,9 +516,14 @@ async function getMeasures(userId, args) {
     };
 }
 
+/**
+ * @param {string} userId
+ * @param {WithingsArgs} args
+ */
 async function getSleepSummary(userId, args) {
     const limit = clampLimit(args.limit);
     const lastupdate = epochSeconds(args.lastupdate);
+    /** @type {Record<string, string | number>} */
     const params = {
         data_fields: [
             ...Object.keys(SLEEP_SECOND_FIELDS),
@@ -490,9 +552,14 @@ async function getSleepSummary(userId, args) {
     return { rows, rowCount: rows.length, truncated: rows.length >= limit, hasMore: !!body.more };
 }
 
+/**
+ * @param {string} userId
+ * @param {WithingsArgs} args
+ */
 async function getActivity(userId, args) {
     const limit = clampLimit(args.limit);
     const lastupdate = epochSeconds(args.lastupdate);
+    /** @type {Record<string, string | number>} */
     const params = { data_fields: Object.keys(ACTIVITY_FIELDS).join(',') };
     if (lastupdate !== null) {
         params.lastupdate = lastupdate;
@@ -509,6 +576,11 @@ async function getActivity(userId, args) {
     return { rows, rowCount: rows.length, truncated: rows.length >= limit, hasMore: !!body.more };
 }
 
+/**
+ * @param {string} toolName
+ * @param {WithingsArgs} args
+ * @param {string} userId
+ */
 async function executeWithingsTool(toolName, args = {}, userId) {
     if (!userId) return { error: 'Withings tools need a signed-in user.' };
     try {
@@ -522,6 +594,9 @@ async function executeWithingsTool(toolName, args = {}, userId) {
     }
 }
 
+/**
+ * @param {unknown} toolName
+ */
 function isWithingsTool(toolName) {
     return typeof toolName === 'string' && toolName.startsWith('withings_');
 }

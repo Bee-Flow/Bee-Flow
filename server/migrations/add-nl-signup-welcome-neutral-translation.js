@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck strict
 /**
  * Migration: Dutch translation for the account-type-agnostic signup welcome
  * line (BFSF-276).

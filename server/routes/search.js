@@ -56,7 +56,7 @@ const { validate } = require('../core/http/validate');
 const { HttpError } = require('../core/http/errors');
 const { z, typeError } = require('../utils/zod');
 const { worded, choice } = require('../core/http/schemaParts');
-const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 // ─── What a caller may send ─────────────────────────────────────
 
@@ -226,7 +226,7 @@ async function resolveSerperKey(req) {
     try {
         const k = await configStore.getSecret('serper_api_key');
         if (k) return k;
-    } catch (err) { log.debug('fall through', err); }
+    } catch (err) { bestEffort('routes/search:resolveSerperKey', err); /* fall through */ }
     return process.env.SERPER_API_KEY || null;
 }
 
@@ -241,7 +241,7 @@ async function serperSearch(query, maxResults, serperKey) {
         const text = await resp.text();
         throw new Error(`Serper HTTP ${resp.status}: ${text.slice(0, 200)}`);
     }
-    const data = await resp.json();
+    const data = /** @type {{ organic?: { title?: string, link?: string, snippet?: string }[] }} */ (await resp.json());
     const organic = Array.isArray(data.organic) ? data.organic : [];
     // Map to the shape `agentSearchTools.js` expects (title, url, score, markdown).
     return organic.slice(0, maxResults).map((r, i) => ({
@@ -330,7 +330,7 @@ router.post('/kb/ingest/json', validate({ body: IngestBody }), async (req, res) 
 // document's text when the KB is served by the search-service; without it that
 // call 404'd and every non-local re-index reported "Failed to get existing
 // content".
-router.get('/kb/:kbId/documents/:documentId/content', validate({ query: ContentQuery }), async (req, res) => {
+router.get('/kb/:kbId/documents/:documentId/content', validate({ query: ContentQuery }), /** @param {import('express').Request<{ kbId: string, documentId: string }, any, any, { tenant_id?: string }>} req */ async (req, res) => {
     const tenantId = req.query.tenant_id;
     if (!tenantId) return res.status(400).json({ error: 'tenant_id is required' });
     const content = await getDocumentContent(tenantId, req.params.kbId, req.params.documentId);

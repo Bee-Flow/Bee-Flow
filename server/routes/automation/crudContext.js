@@ -26,6 +26,8 @@ const liveSideEffects = require('../../automation/liveSideEffects');
  * Knowledge-base findings for a definition, at a stage, for this request: the
  * organisation is the caller's (orgOf). Fail-open — see
  * automation/liveSideEffects.kbFindingsFor.
+ * @param {string} userId
+ * @param {string} stage
  */
 async function kbFindingsFor(definition, req, userId, stage) {
     return liveSideEffects.kbFindingsFor(definition, { orgId: async () => await orgOf(req), userId, stage });
@@ -43,3 +45,15 @@ const automationAccess = makeAutomationAccess({ store: automationStore });
 const { worded } = require('../../core/http/schemaParts');
 
 module.exports = { orgOf, kbFindingsFor, automationAccess, worded };
+
+/**
+ * One automation as the store hands it out (what getAutomation resolves with).
+ * @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/automationStore').getAutomation>>>} LoadedAutomation
+ */
+
+/**
+ * What makeGuardedLoad's `load` answers with: the row and the caller's access,
+ * or null once the 404 / 403 has been sent.
+ * @typedef {(req: import('express').Request, res: import('express').Response, need: string) =>
+ *   Promise<{ a: LoadedAutomation, acc: { role: string|null, via: string|null } } | null>} GuardedLoad
+ */

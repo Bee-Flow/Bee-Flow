@@ -34,7 +34,7 @@ const { z, bodyOf, choice, typeError } = require('../../core/http/schemaParts');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const findingState = require('../../compliance/findingState');
-const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const MAX_DAYS = 365;
 const DAY_MS = 24 * 3600 * 1000;
@@ -62,7 +62,7 @@ function _defaults() {
         registry: () => require('../../compliance/registry'),
         frameworkPolicy: () => require('../../compliance/frameworkPolicy'),
         resolveOrgId: (req) => require('./shared').resolveOrgId(req),
-        invalidateCounts: (orgId) => { try { require('../../compliance/countsCache').invalidate(orgId); } catch (err) { log.debug('not mounted', err); } },
+        invalidateCounts: (orgId) => { try { require('../../compliance/countsCache').invalidate(orgId); } catch (err) { bestEffort('routes/compliance/findingStates:invalidateCounts', err); /* not mounted */ } },
         now: () => Date.now(),
     };
 }

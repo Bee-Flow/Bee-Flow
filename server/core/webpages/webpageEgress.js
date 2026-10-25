@@ -254,3 +254,5 @@ module.exports = {
     guardWebpageResult,
     HTTP_RESPONSE_CAP,
 };
+
+/** @typedef {Awaited<ReturnType<typeof resolveWebpagePolicy>>} WebpageEgressSession */

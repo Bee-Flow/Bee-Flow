@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * FAIR FAILURE at every place where a BRIDGE runs — one mechanism, two bridges.
  *
@@ -50,6 +50,7 @@ const { bridgeVocabulary } = require('../core/webpages/bfElements');
  * Otherwise a `</script>` in a text from the vocabulary would cut the bridge in two and let everything
  * after it disappear. The client twin (agent-hub/src/utils/bfElementsRuntime.js) escapes with the same
  * three lines; two different conventions for escaping are just as much drift as two lists.
+ * @param {string | { [x: string]: object; }} value
  */
 function jsonLiteral(value) {
     return JSON.stringify(value)

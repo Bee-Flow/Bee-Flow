@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Per-id counts read from ai_usage_log: test chats per agent and App Studio
  * action runs per app, each under its own literal source name.
@@ -72,6 +72,7 @@ const STUDIO_APP_ACTION_SOURCE = 'studio_app_action';
 // the key may come from a query parameter, the value never does.
 // 'month' is the calendar month (from the 1st), not the last 30 days, because the label
 // that carries this number says "this month".
+/** @type {Record<string, string>} */
 const RUN_COUNT_WINDOWS = {
     month: "date_trunc('month', NOW())",
 };

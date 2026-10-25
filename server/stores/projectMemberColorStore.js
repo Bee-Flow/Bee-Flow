@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The colour a project gives one of its people, so they can be told apart at
  * a glance in the chat and on the tasks. One row per (project, person); no
@@ -30,14 +30,22 @@ const DDL = `
  * @param {{ ready?: () => Promise<any> }} [opts]
  */
 function makeProjectMemberColorStore(db, { ready = async () => {} } = {}) {
-    /** @returns {Promise<Record<string, string>>} user id → colour */
+    /**
+     * @returns {Promise<Record<string, string>>} user id → colour
+     * @param {string} projectId
+     */
     async function listColors(projectId) {
         await ready();
         const r = await db.query('SELECT user_id, color FROM project_member_colors WHERE project_id = $1', [projectId]);
         return Object.fromEntries(r.rows.map((row) => [row.user_id, row.color]));
     }
 
-    /** Give a person a colour, or take it away (null) so they go back to the automatic one. */
+    /**
+     * Give a person a colour, or take it away (null) so they go back to the automatic one.
+     * @param {string} projectId
+     * @param {string} userId
+     * @param {string | null} color
+     */
     async function setColor(projectId, userId, color) {
         await ready();
         if (!color) {
@@ -52,7 +60,11 @@ function makeProjectMemberColorStore(db, { ready = async () => {} } = {}) {
         return color;
     }
 
-    /** A person left the project (or was removed): their colour goes. */
+    /**
+     * A person left the project (or was removed): their colour goes.
+     * @param {string} projectId
+     * @param {string} userId
+     */
     async function clearFor(projectId, userId) {
         await ready();
         const r = await db.query('DELETE FROM project_member_colors WHERE project_id = $1 AND user_id = $2', [projectId, userId]);

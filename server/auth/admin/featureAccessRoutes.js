@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Admin Routes — feature toggles and entitlements: beta features, active
  * integrations, the unified entitlement snapshot and the Access matrix
@@ -9,6 +9,7 @@
 
 const express = require('express');
 const log = require('../../telemetry/log');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
@@ -22,6 +23,15 @@ const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 
 /**
+ * @typedef {import('express').Request} Request
+ * @typedef {import('express').Response} Response
+ * @typedef {import('express').Request<{ orgId: string }>} OrgRequest
+ * @typedef {import('express').Request<{ id: string }>} IdRequest
+ * @typedef {{ id: string, kind: string, name: string, description: string, category: string, lifecycle: string, userFacing?: boolean, groupTogglable?: boolean, groupScoped?: boolean, licenseFeature?: string, moduleId?: string }} Capability  One descriptor of core/entitlements/capabilityRegistry.
+ * @typedef {{ core?: string[], beta?: string[], integration?: string[] }} KindLists
+ */
+
+/**
  * Each of these routes is a list of ids the caller wants switched on, and every
  * one of them CLAMPS what it is given to what the plan, the licence or the org
  * access menu allows — and then reports the clamped list back in the response.
@@ -33,6 +43,8 @@ const { worded } = require('../../core/http/schemaParts');
  * [...]}` on the integration toggles, was answered 200 with the unchanged list
  * echoed back — which reads on screen as "saved" for a change that never
  * happened.
+ * @param {string} field
+ * @param {string} message
  */
 const idList = (field, message) => z.array(
     worded(message),
@@ -66,7 +78,6 @@ const OrgAvailabilityBody = z.object({
 const SelectedOrgBody = z.object({
     orgId: worded('An organization id must be text.').trim().max(200, 'That organization id is too long.').nullable().optional(),
 }).strict();
-
 
 // === Beta Features Management API (Admin Only) ===
 
@@ -110,6 +121,7 @@ function betaGovernedBySubscription() {
 router.get('/beta-features', requireAdmin, async (req, res) => {
     const governed = betaGovernedBySubscription();
     const orgs = await userStore.getAllOrganizations();
+    /** @type {Record<string, string[]>} */
     const assignments = {};
     for (const org of orgs) {
         assignments[org.id] = governed
@@ -126,7 +138,7 @@ router.get('/beta-features', requireAdmin, async (req, res) => {
 // :orgId, so any org admin could flip another organisation's beta flags. This
 // stays org-scoped rather than operator-only because SystemKnowledgeBasesPanel
 // (rendered inside OrgSettings) legitimately toggles the caller's OWN org.
-router.put('/organizations/:orgId/beta-features', requireOrgAdmin('orgId'), validate({ body: BetaFeaturesBody }), async (req, res) => {
+router.put('/organizations/:orgId/beta-features', requireOrgAdmin('orgId'), validate({ body: BetaFeaturesBody }), async (/** @type {OrgRequest} */ req, res) => {
     const { orgId } = req.params;
     const { features } = req.body;
 
@@ -146,12 +158,13 @@ router.put('/organizations/:orgId/beta-features', requireOrgAdmin('orgId'), vali
     // Trim the org-admin "enabled" subset to what's still in the
     // allow-list so a feature pulled by the super admin can't linger.
     try {
+        /** @type {string[]} */
         const current = await userStore.getOrgEnabledBetaFeatures(orgId);
         const trimmed = current.filter(id => updatedFeatures.includes(id));
         if (trimmed.length !== current.length) {
             await userStore.setOrgEnabledBetaFeatures(orgId, trimmed);
         }
-    } catch (e) { log.debug('non-fatal', e); }
+    } catch (e) { bestEffort('featureAccess:trim-enabled-betas', e); }
     res.json({ success: true, features: updatedFeatures });
 });
 
@@ -176,24 +189,27 @@ const ORG_ADMIN_ALLOW_LIST = Object.freeze({
     get whenUnset() { return ALL_INTEGRATIONS.map(i => i.id); },
 });
 
-router.get('/organizations/:orgId/active-integrations', requireOrgAdmin('orgId'), async (req, res) => {
+router.get('/organizations/:orgId/active-integrations', requireOrgAdmin('orgId'), async (/** @type {OrgRequest} */ req, res) => {
     const { orgId } = req.params;
     const org = await userStore.getOrganization(orgId);
     if (!org) return res.status(404).json({ error: 'Organization not found' });
     // Allow-list is the super-admin's enabledIntegrations minus NC IDs
     // (NC is managed by its dedicated panel). null = all enabled, which
     // we materialise via the global default list at request time.
+    /** @type {string[]} */
     let allowed = await resolveOrgAllowList(org, ORG_ADMIN_ALLOW_LIST);
     allowed = allowed.filter(id => !NC_ID_SET.has(id));
     const enabled = await userStore.getOrgEnabledIntegrations(orgId);
     res.json({ allowed, enabled });
 });
 
-router.put('/organizations/:orgId/active-integrations', requireOrgAdmin('orgId'), validate({ body: ActiveIntegrationsBody }), async (req, res) => {
+router.put('/organizations/:orgId/active-integrations', requireOrgAdmin('orgId'), validate({ body: ActiveIntegrationsBody }), async (/** @type {OrgRequest} */ req, res) => {
     const { orgId } = req.params;
+    /** @type {{ enabled: string[] }} */
     const { enabled } = req.body;
     const org = await userStore.getOrganization(orgId);
     if (!org) return res.status(404).json({ error: 'Organization not found' });
+    /** @type {string[]} */
     let allowed = await resolveOrgAllowList(org, ORG_ADMIN_ALLOW_LIST);
     const allowedSet = new Set(allowed.filter(id => !NC_ID_SET.has(id)));
     // Intersect — drop anything not in the allow-list (incl. NC IDs).
@@ -204,7 +220,7 @@ router.put('/organizations/:orgId/active-integrations', requireOrgAdmin('orgId')
     res.json({ success: true, enabled: clean });
 });
 
-router.get('/organizations/:orgId/active-beta-features', requireOrgAdmin('orgId'), async (req, res) => {
+router.get('/organizations/:orgId/active-beta-features', requireOrgAdmin('orgId'), async (/** @type {OrgRequest} */ req, res) => {
     const { orgId } = req.params;
     const governed = betaGovernedBySubscription();
     if (governed) {
@@ -219,7 +235,7 @@ router.get('/organizations/:orgId/active-beta-features', requireOrgAdmin('orgId'
     res.json({ allowed, enabled, registry: await visibleBetaRegistry(), governed });
 });
 
-router.put('/organizations/:orgId/active-beta-features', requireOrgAdmin('orgId'), validate({ body: ActiveBetaFeaturesBody }), async (req, res) => {
+router.put('/organizations/:orgId/active-beta-features', requireOrgAdmin('orgId'), validate({ body: ActiveBetaFeaturesBody }), async (/** @type {OrgRequest} */ req, res) => {
     const { orgId } = req.params;
     // On cloud, plan-granted betas are always on (the active subset is
     // non-load-bearing). The org-admin beta toggles are read-only there.
@@ -229,6 +245,7 @@ router.put('/organizations/:orgId/active-beta-features', requireOrgAdmin('orgId'
             message: "Beta features are set by your subscription plan on this deployment.",
         });
     }
+    /** @type {{ enabled: string[] }} */
     const { enabled } = req.body;
     const allowed = await getOrgBetaFeatures(orgId);
     const allowedSet = new Set(allowed);
@@ -259,13 +276,14 @@ router.put('/organizations/:orgId/active-beta-features', requireOrgAdmin('orgId'
  * - Org admin / member → first entry of resolveUserOrgIds.
  * - No resolvable org → orgId: null with empty allow-lists so the panel
  *   can render a "not bound" message instead of disappearing.
+ * @param {Request} req
  */
 async function resolveActiveFeaturesContext(req) {
     const userOrgIds = await resolveUserOrgIds(req);
     let orgId = null;
     if (userOrgIds === null) {
         // Super admin — pick first existing org so they get a usable view.
-        const all = await userStore.getAllOrganizations().catch(() => []);
+        const all = await userStore.getAllOrganizations().catch((e) => fallback('featureAccess:list-orgs', e, []));
         if (Array.isArray(all) && all.length > 0) orgId = all[0].id;
     } else if (userOrgIds.size > 0) {
         orgId = Array.from(userOrgIds)[0];
@@ -294,6 +312,7 @@ async function resolveActiveFeaturesContext(req) {
 
     // Integration allow-list = super admin's enabledIntegrations (or global
     // default if null), minus NC IDs (managed separately).
+    /** @type {string[]} */
     let allowedIntegrations = await resolveOrgAllowList(org, ORG_ADMIN_ALLOW_LIST);
     allowedIntegrations = allowedIntegrations.filter(id => !NC_ID_SET.has(id));
     const enabledIntegrations = await userStore.getOrgEnabledIntegrations(orgId);
@@ -320,6 +339,7 @@ async function resolveActiveFeaturesContext(req) {
     // custom integrations additively so the panel can render them alongside
     // the catalog. Fail-soft to []; hidden entirely while the dark-ship kill
     // switch is off (the same flag gates every other layer of the feature).
+    /** @type {{ id: string, name: string, description: string, category: string }[]} */
     let customIntegrations = [];
     try {
         const { isCustomIntegrationsEnabled } = require('../../core/customIntegrations/featureFlag');
@@ -332,7 +352,7 @@ async function resolveActiveFeaturesContext(req) {
                 category: 'Custom integrations',
             }));
         }
-    } catch (err) { log.debug('fail-soft — never break the panel', err); }
+    } catch (err) { fallback('featureAccess:custom-integrations', err); }
 
     return {
         orgId,
@@ -345,7 +365,11 @@ async function resolveActiveFeaturesContext(req) {
     };
 }
 
-/** Permission check shared by both /me routes. */
+/**
+ * Permission check shared by both /me routes.
+ * @param {Request} req
+ * @param {Response} res
+ */
 async function requireOrgAdminLike(req, res) {
     const userId = req.session?.user?.id;
     if (!userId) { res.status(401).json({ error: 'Not authenticated' }); return false; }
@@ -410,7 +434,9 @@ router.put('/me/active-features', requireAuth, validate({ body: ActiveFeaturesBo
     const betaChanged = Array.isArray(betaEnabled) && JSON.stringify([...prevBeta].sort()) !== JSON.stringify([...savedBeta].sort());
     const intChanged = Array.isArray(integrationsEnabled) && JSON.stringify([...prevInt].sort()) !== JSON.stringify([...savedInt].sort());
     if (betaChanged || intChanged) {
+        /** @type {Record<string, string[]>} */
         const oldVals = {};
+        /** @type {Record<string, string[]>} */
         const newVals = {};
         if (betaChanged) { oldVals.betaEnabled = prevBeta; newVals.betaEnabled = savedBeta; }
         if (intChanged) { oldVals.integrationsEnabled = prevInt; newVals.integrationsEnabled = savedInt; }
@@ -446,7 +472,7 @@ router.get('/my-entitlements', requireAuth, async (req, res) => {
     const { _sets, ...pub } = snap;
     res.json({
         ...pub,
-        registry: entitlements.registry.listCapabilities().map(c => ({
+        registry: entitlements.registry.listCapabilities().map((/** @type {Capability} */ c) => ({
             id: c.id, kind: c.kind, name: c.name, description: c.description,
             category: c.category, lifecycle: c.lifecycle, userFacing: c.userFacing,
             // licenseFeature lets the SPA resolve legacy licence-feature names
@@ -463,16 +489,19 @@ router.get('/my-entitlements', requireAuth, async (req, res) => {
 // Resolve the ORG-scoped entitlement snapshot (ceiling + actual org-wide grants)
 // independent of who is asking — uses the org's own tier, never the caller's
 // (super-admin) elevated tier, so the matrix shows the real org state.
+/** @param {string} orgId */
 async function resolveOrgEntitlementSnapshot(orgId) {
     const entitlements = require('../../core/entitlements/entitlements');
     return entitlements.resolveEntitlements({ userId: null, orgId, session: null, req: null });
 }
 
+/** @param {KindLists} kindObj */
 function unionKindArrays(kindObj) {
     return [...(kindObj.core || []), ...(kindObj.beta || []), ...(kindObj.integration || [])];
 }
 
 // Shared builder for the "Access & Permissions" matrix payload (org-scoped).
+/** @param {string} orgId */
 async function buildGroupAccessResponse(orgId) {
     const entitlements = require('../../core/entitlements/entitlements');
     const snap = await resolveOrgEntitlementSnapshot(orgId);
@@ -481,7 +510,8 @@ async function buildGroupAccessResponse(orgId) {
     await entitlements.registry.refreshMcpIntegrationDescriptors();
     // …and drop capabilities of un-imported platform modules from the matrix.
     await entitlements.registry.refreshModuleCapabilityFilter();
-    const matrixCaps = entitlements.registry.listCapabilities().filter(c => c.userFacing && c.groupTogglable);
+    /** @type {Capability[]} */
+    const matrixCaps = entitlements.registry.listCapabilities().filter((/** @type {Capability} */ c) => c.userFacing && c.groupTogglable);
     const capIdSet = new Set(matrixCaps.map(c => c.id));
     // groupScoped tells the matrix that this beta is NOT tied to the org-access
     // menu: "All members" is a real toggle for it (in both modes, the plan stays
@@ -490,9 +520,10 @@ async function buildGroupAccessResponse(orgId) {
     const allGroups = await userStore.getAllGroups();
     const groups = allGroups
         .filter(g => g.organizationId === orgId)
-        .map(g => ({ id: g.id, name: g.name, granted: (Array.isArray(g.granted_capabilities) ? g.granted_capabilities : []).filter(id => capIdSet.has(id)) }));
+        .map(g => ({ id: g.id, name: g.name, granted: /** @type {string[]} */ (Array.isArray(g.granted_capabilities) ? g.granted_capabilities : []).filter(id => capIdSet.has(id)) }));
     // Keep ceiling/everyone consistent with the matrix-visible capabilities
     // (excludes NC family + exempt + infra core, which aren't toggled here).
+    /** @param {KindLists} ids */
     const inMatrix = (ids) => unionKindArrays(ids).filter(id => capIdSet.has(id));
     return {
         orgId,
@@ -515,6 +546,11 @@ async function buildGroupAccessResponse(orgId) {
 }
 
 // Shared writer for the org-wide "All members" grants (clamped to ceiling).
+/**
+ * @param {string} orgId
+ * @param {string[]} granted
+ * @param {string} [actorId]
+ */
 async function writeOrgAccessGrants(orgId, granted, actorId) {
     const entitlements = require('../../core/entitlements/entitlements');
     const snap = await resolveOrgEntitlementSnapshot(orgId);
@@ -524,6 +560,7 @@ async function writeOrgAccessGrants(orgId, granted, actorId) {
     const bound = snap.orgAvailable;
     // MCP servers have kind 'integration' now → they land in buckets.integration
     // and persist via setOrgEnabledIntegrations, like every other integration.
+    /** @type {Record<string, string[]>} */
     const buckets = { core: [], beta: [], integration: [] };
     for (const capId of granted) {
         const cap = entitlements.registry.getCapability(capId);
@@ -538,7 +575,7 @@ async function writeOrgAccessGrants(orgId, granted, actorId) {
     // of them for "All members" on any unrelated toggle; keep them as stored.
     // Their own surfaces (the MCP library) grant and revoke them.
     let storedIntegrations = [];
-    try { storedIntegrations = await userStore.getOrgEnabledIntegrations(orgId); } catch (err) { log.debug('nothing to keep', err); }
+    try { storedIntegrations = await userStore.getOrgEnabledIntegrations(orgId); } catch (err) { fallback('featureAccess:stored-integrations', err); }
     const keptCustom = (Array.isArray(storedIntegrations) ? storedIntegrations : [])
         .filter(id => typeof id === 'string' && id.startsWith('custom:') && !buckets.integration.includes(id));
     await userStore.setOrgEnabledIntegrations(orgId, [...buckets.integration, ...keptCustom]); // NC bypasses; MCP included
@@ -551,6 +588,10 @@ async function writeOrgAccessGrants(orgId, granted, actorId) {
     await userStore.setOrgBetaEveryone(orgId, nextEveryone);
     // "All members" meeting_notes implies use_meeting_notes (permissions.orgWideGrantImpliedPermissions):
     // cached permission sets are stale once it flips, as for a group grant. null = everyone.
+    /**
+     * @param {string[] | null | undefined} list
+     * @param {string} capId
+     */
     const isEveryone = (list, capId) => list == null || list.includes(capId);
     const flipped = Object.keys(GROUP_GRANT_IMPLIED_PERMISSIONS).some(capId => isEveryone(prevEveryone, capId) !== isEveryone(nextEveryone, capId));
     if (flipped) await invalidateAllPermissionCaches().catch(e => log.warn('[Entitlements] permission cache invalidation failed:', e.message));
@@ -580,6 +621,7 @@ router.get('/me/group-access', requireAuth, async (req, res) => {
 // PUT /auth/me/org-access — write the caller's org-wide "All members" grants.
 router.put('/me/org-access', requireAuth, validate({ body: GrantedBody }), async (req, res) => {
     if (!(await requireOrgAdminLike(req, res))) return;
+    /** @type {{ granted: string[] }} */
     const { granted } = req.body;
     const ctx = await resolveActiveFeaturesContext(req);
     if (!ctx.orgId) return res.status(400).json({ error: 'No organisation to update' });
@@ -589,11 +631,12 @@ router.put('/me/org-access', requireAuth, validate({ body: GrantedBody }), async
 
 // Org-scoped variants for the super-admin Beheerdashboard (manage any org).
 // requireOrgAdmin('orgId') passes for super-admins and for that org's admins.
-router.get('/organizations/:orgId/group-access', requireOrgAdmin('orgId'), async (req, res) => {
+router.get('/organizations/:orgId/group-access', requireOrgAdmin('orgId'), async (/** @type {OrgRequest} */ req, res) => {
     res.json(await buildGroupAccessResponse(req.params.orgId));
 });
 
-router.put('/organizations/:orgId/org-access', requireOrgAdmin('orgId'), validate({ body: GrantedBody }), async (req, res) => {
+router.put('/organizations/:orgId/org-access', requireOrgAdmin('orgId'), validate({ body: GrantedBody }), async (/** @type {OrgRequest} */ req, res) => {
+    /** @type {{ granted: string[] }} */
     const { granted } = req.body;
     const everyone = await writeOrgAccessGrants(req.params.orgId, granted, req.session.user?.id);
     res.json({ success: true, everyone });
@@ -607,20 +650,27 @@ router.put('/organizations/:orgId/org-access', requireOrgAdmin('orgId'), validat
 // predicate that writes the 403 itself and returns a boolean, which is a
 // different shape from the requireSuperAdmin MIDDLEWARE imported at the top of
 // this file. Sharing the name shadowed the import.
+/**
+ * @param {Request} req
+ * @param {Response} res
+ */
 function assertSuperAdmin(req, res) {
     const ok = req.session?.isAdmin || req.session?.user?.role === 'admin';
     if (!ok) { res.status(403).json({ error: 'Super-admin access required' }); return false; }
     return true;
 }
 
+/** @param {string} orgId */
 async function buildOrgAvailabilityResponse(orgId) {
     const entitlements = require('../../core/entitlements/entitlements');
     const snap = await resolveOrgEntitlementSnapshot(orgId);
     await entitlements.registry.refreshMcpIntegrationDescriptors(); // MCP servers as integration caps
     await entitlements.registry.refreshModuleCapabilityFilter();    // drop un-imported module caps
-    const matrixCaps = entitlements.registry.listCapabilities().filter(c => c.userFacing && c.groupTogglable);
+    /** @type {Capability[]} */
+    const matrixCaps = entitlements.registry.listCapabilities().filter((/** @type {Capability} */ c) => c.userFacing && c.groupTogglable);
     const capIdSet = new Set(matrixCaps.map(c => c.id));
     const capabilities = matrixCaps.map(c => ({ id: c.id, kind: c.kind, name: c.name, description: c.description, category: c.category, lifecycle: c.lifecycle }));
+    /** @param {KindLists} ids */
     const inMatrix = (ids) => unionKindArrays(ids).filter(id => capIdSet.has(id));
     const stored = await userStore.getOrgAvailableCapabilities(orgId); // null = unrestricted
     return {
@@ -633,12 +683,12 @@ async function buildOrgAvailabilityResponse(orgId) {
     };
 }
 
-router.get('/organizations/:orgId/org-availability', requireOrgAdmin('orgId'), async (req, res) => {
+router.get('/organizations/:orgId/org-availability', requireOrgAdmin('orgId'), async (/** @type {OrgRequest} */ req, res) => {
     if (!assertSuperAdmin(req, res)) return;
     res.json(await buildOrgAvailabilityResponse(req.params.orgId));
 });
 
-router.put('/organizations/:orgId/org-availability', requireOrgAdmin('orgId'), validate({ body: OrgAvailabilityBody }), async (req, res) => {
+router.put('/organizations/:orgId/org-availability', requireOrgAdmin('orgId'), validate({ body: OrgAvailabilityBody }), async (/** @type {OrgRequest} */ req, res) => {
     if (!assertSuperAdmin(req, res)) return;
     const orgId = req.params.orgId;
     const entitlements = require('../../core/entitlements/entitlements');
@@ -691,8 +741,9 @@ router.put('/admin/selected-org', requireAuth, validate({ body: SelectedOrgBody 
 
 // PUT /auth/groups/:id/access — write a single group's grants (clamped to the
 // registry + the org access menu). Grant-only; a grant can never exceed it.
-router.put('/groups/:id/access', requireAuth, validate({ body: GrantedBody }), async (req, res) => {
+router.put('/groups/:id/access', requireAuth, validate({ body: GrantedBody }), async (/** @type {IdRequest} */ req, res) => {
     const { id } = req.params;
+    /** @type {{ granted: string[] }} */
     const { granted } = req.body;
     const userId = req.session.user?.id;
     const isSuperAdmin = req.session.isAdmin || req.session.user?.role === 'admin';

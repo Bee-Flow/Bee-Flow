@@ -198,6 +198,7 @@ function tagSpeakerProvenance(speakers, voiceprintMapping) {
 }
 
 /** Language → the word used for an unidentified speaker. Falls back to English. */
+/** @type {Record<string, string>} */
 const SPEAKER_WORD = {
     nl: 'Spreker', en: 'Speaker', de: 'Sprecher',
     fr: 'Intervenant', es: 'Interlocutor', it: 'Interlocutore', pt: 'Orador',
@@ -274,7 +275,10 @@ function assignSpeakersByOverlap(segments, diarTurns, fallback = 'speaker_0') {
     });
 }
 
-/** Parse a `MM:SS` / `HH:MM:SS` clock string → seconds, or null. */
+/**
+ * Parse a `MM:SS` / `HH:MM:SS` clock string → seconds, or null.
+ * @param {string} str
+ */
 function parseClock(str) {
     const m = /^(\d{1,3}):([0-5]?\d)(?::([0-5]?\d))?$/.exec(String(str || '').trim());
     if (!m) return null;
@@ -289,11 +293,14 @@ function parseClock(str) {
  * validated against.
  *
  * @returns {{starts: number[], lastEnd: number}}
+ * @param {string} transcript
  */
 function extractTranscriptClocks(transcript) {
+    /** @type {number[]} */
     const starts = [];
     let lastEnd = 0;
     const re = /^\[[^\]]*\]\s+(\d{1,3}:\d{2}(?::\d{2})?)\s+-\s+(\d{1,3}:\d{2}(?::\d{2})?):/gm;
+    /** @type {RegExpExecArray | null} */
     let m;
     while ((m = re.exec(String(transcript || ''))) !== null) {
         const s = parseClock(m[1]);
@@ -333,11 +340,15 @@ function sanitizeTimestamp(raw, { starts = [], lastEnd = 0 } = {}) {
         if (lastEnd > 0 && secNum > lastEnd + 1) return '';
         return formatTime(Math.round(secNum));
     }
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored digit patterns with bounded counts on one trimmed time stamp: linear
     const trimmed = String(raw || '').trim();
     const sec = parseClock(trimmed);
     if (sec === null) return '';
     if (lastEnd > 0 && sec > lastEnd) return '';
 
+    /**
+     * @param {number} v
+     */
     const nearLine = (v) => starts.some(s => Math.abs(s - v) <= 20);
     const hasHour = /^\d{1,3}:\d{2}:\d{2}$/.test(trimmed);
     if (!hasHour && lastEnd >= 3600 && starts.length > 0 && !nearLine(sec)) {
@@ -388,6 +399,7 @@ function artifactsUsable(artifacts) {
 }
 
 /** Human label for a transcription provider id, for user-facing notices. */
+/** @type {Record<string, string>} */
 const PROVIDER_LABELS = {
     voxtral: 'Voxtral', whisperx: 'WhisperX', scaleway: 'Scaleway',
     azure: 'Azure Speech', whisper_azure: 'Azure Whisper', local: 'local transcription',
@@ -408,6 +420,7 @@ const PROVIDER_LABELS = {
  */
 function buildPipelineNotices({ providerFallback = null, truncated = null, voiceprint = null, artifactsFailed = false, language = 'nl' } = {}) {
     const nl = String(language).toLowerCase().startsWith('nl');
+    /** @type {string[]} */
     const lines = [];
     if (providerFallback) {
         const to = PROVIDER_LABELS[providerFallback.to] || providerFallback.to;
@@ -462,3 +475,9 @@ module.exports = {
     extractTranscriptClocks,
     sanitizeTimestamp,
 };
+
+/**
+ * @typedef {{ text?: string, start?: number, end?: number, speakerId?: string, gap?: boolean }} RawTranscriptSegment
+ * @typedef {{ speaker: string, speakerId: string, start: number | undefined, end: number | undefined, text: string, gap?: boolean }} MergedTranscriptSegment
+ * @typedef {{ id: string, speakingTime: string, speakingSeconds: number, segments: number }} SpeakerStat
+ */

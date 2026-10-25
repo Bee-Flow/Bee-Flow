@@ -17,6 +17,7 @@ const realIsoEvidenceStore = require('../stores/isoEvidenceStore');
 const realConnectors = require('../compliance/connectors');
 const metrics = require('../telemetry/metrics');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 // Test seam (_setDepsForTests): the pool whose advisory lock guards the sweep,
 // the evidence store, the connector registry and the job metric, so a test
@@ -35,9 +36,13 @@ const INTERVAL_MS = 6 * 60 * 60 * 1000; // matches the compliance scheduler cade
 const BOOT_DELAY_MS = 90 * 1000;
 
 let _inFlight = false;
+/** @type {NodeJS.Timeout | null} */
 let _timer = null;
 
-/** Sweep one org × connector config. Exported for the manual sweep route. */
+/**
+ * Sweep one org × connector config. Exported for the manual sweep route.
+ * @param {Record<string, any>} config  an iso_connector_configs row
+ */
 async function sweepOne(config) {
     const isoEvidenceStore = _deps.isoEvidenceStore();
     const connector = _deps.connectors().get(config.connector_id);
@@ -113,7 +118,7 @@ async function processSweep() {
         log.warn('[IsoEvidenceCollector] sweep error:', e.message);
     } finally {
         if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { log.debug('best-effort', err); }
+            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { bestEffort('jobs/isoEvidenceCollector:processSweep', err); /* best-effort */ }
             client.release();
         }
         if (acquired) _deps.recordJobRun()({ job: 'iso_evidence_collect', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });

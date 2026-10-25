@@ -61,6 +61,7 @@ const { getAll, run } = require('../../../db');
 const { classifyDisclosure, applyVerdict } = require('../../../core/privacy/disclosureClassifier');
 const log = require('../../../telemetry/log');
 const pd = require('../../projects/projectData');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const DISCLOSURE_PATTERNS = [
     /\bI['’]?m an AI\b/i,
@@ -79,11 +80,15 @@ const DISCLOSURE_PATTERNS = [
     /\bvirtuele assistent\b/i,
 ];
 
+/** @type {Record<string, string>} */
 const DISCLOSURE_SENTENCE = {
     en: 'I am an AI assistant. Tell the user clearly that they are interacting with an automated system, not a human.',
     nl: 'Ik ben een AI-assistent. Maak de gebruiker duidelijk dat hij/zij met een geautomatiseerd systeem praat, niet met een mens.',
 };
 
+/**
+ * @param {string} value
+ */
 function _extractText(value) {
     if (!value) return '';
     if (typeof value === 'string') {
@@ -115,6 +120,9 @@ function hasDisclosure(text) {
 }
 const _hasDisclosure = hasDisclosure;
 
+/**
+ * @param {string} sentence
+ */
 function _prepend(sentence, prompt) {
     return `${sentence}\n\n${prompt || ''}`.trim();
 }
@@ -142,7 +150,6 @@ async function _defaultLocale() {
 // undefined_table / undefined_column. Anything else (a dropped connection, a
 // statement timeout, a permission error) is a FAILED READ and must never be
 // reported as "nothing to assess".
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
 /**
  * Wall-clock budget for the whole consult phase, not per call.
@@ -189,7 +196,7 @@ async function _missingForOrg(orgId, { consult = false, classify = classifyDiscl
             FROM agents WHERE is_published = TRUE${orgId ? ` AND ${pd.orgMatch('organization_id')}` : ''}
         `, orgId ? [orgId] : []);
     } catch (e) {
-        if (NOT_PROVISIONED.has(e?.code)) {
+        if (isMissingTable(e)) {
             return { agents: [], missing: [], tableMissing: true };
         }
         return { agents: [], missing: [], readFailed: { code: e?.code || null } };
@@ -224,6 +231,7 @@ async function _missingForOrg(orgId, { consult = false, classify = classifyDiscl
     for (const { agent, haystack } of passed) {
         if (Date.now() >= deadline) break;
         asked += 1;
+        /** @type {{ disclosed: boolean; similarity: number | null; margin: number | null; anchor: string | null; engine: string | null; } | null} */
         let verdict = null;
         // A classifier that throws is a classifier with no opinion. It is an
         // optional sidecar on a compliance sweep, not a dependency of one.
@@ -376,7 +384,7 @@ module.exports = {
                     published_updated: hasPublished,
                 });
             } catch (e) {
-                log.warn(`[Art50 autoFix] could not update agent ${a.id}:`, e.message);
+                log.warn(`[Art50 autoFix] could not update agent ${a.id}:`, /** @type {Error} */ (e).message);
             }
         }
         return {

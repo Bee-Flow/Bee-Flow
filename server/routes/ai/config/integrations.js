@@ -1,3 +1,4 @@
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
 /**
  * AI Config — external integration settings: the org-level n8n connection,
  * workflows, diagnostics and permissions, Agent Search defaults, and the
@@ -21,6 +22,10 @@ const { isAdminUser } = require('./shared');
 // detail level quietly became the default; a workflow list sent as one
 // object stored that object where a list belongs. The values keep their clamps in the
 // handlers; the schema only refuses what the handler would have dropped.
+/**
+ * @param {string} message
+ * @param {number} max
+ */
 const aText = (message, max) => worded(message).max(max, message);
 const count = z.union([z.number(), z.string()], { error: typeError({ invalid: 'A count is a number.' }) });
 const DETAIL = choice(['basic', 'detailed', 'highly_detailed'], 'detail_level is basic, detailed or highly_detailed.');
@@ -90,6 +95,9 @@ async function getOrgId(req) {
 }
 
 // Helper: check if user is org admin
+/**
+ * @param {NextFunction} next
+ */
 async function requireOrgAdminForN8n(req, res, next) {
     const userId = req.session.user?.id;
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
@@ -256,6 +264,7 @@ router.post('/n8n/test', requireOrgAdminForN8n, validate({ body: N8nConfigBody }
             return res.json({ ok: false, status: r.status, error: text.slice(0, 200) || `HTTP ${r.status}` });
         }
         // Optional workflow count (active webhooks) — cheap, same endpoint with active=true
+        /** @type {number | null} */
         let activeWebhookCount = null;
         try {
             const r2 = await n8nFetch(`${apiBase}/workflows?active=true&limit=250`, {
@@ -267,11 +276,11 @@ router.post('/n8n/test', requireOrgAdminForN8n, validate({ body: N8nConfigBody }
                 const arr = data.data || data;
                 activeWebhookCount = Array.isArray(arr) ? arr.length : null;
             }
-        } catch (err) { log.debug('non-fatal', err); }
+        } catch (err) { fallback('routes/ai/config/integrations:anon', err); /* non-fatal */ }
 
         res.json({ ok: true, activeWebhookCount });
     } catch (err) {
-        res.json({ ok: false, error: err.message });
+        res.json({ ok: false, error: /** @type {Error} */ (err).message });
     }
 });
 
@@ -312,6 +321,12 @@ router.get('/n8n/diagnostics', requireAuth, async (req, res) => {
 
     // 3. User-level integration gating.
     const userEnabledApps = await configStore.getConfig(`enabled_apps_user_${userId}`);
+    /** @type {string} */
+    /** @type {boolean} */
+    /** @type {boolean} */
+    /** @type {boolean} */
+    /** @type {boolean} */
+    /** @type {boolean} */
     let userGateReason, userGatePasses;
     if (!userEnabledApps) {
         userGateReason = 'no_saved_list'; userGatePasses = true;
@@ -337,7 +352,7 @@ router.get('/n8n/diagnostics', requireAuth, async (req, res) => {
         toolsThatWillBeInjected = (tools || [])
             .map(t => t.function?.name)
             .filter(n => n && (n.startsWith('n8n_workflow_') || n.startsWith('n8n_execution_') || n.startsWith('n8n_run_')));
-    } catch (err) { log.debug('non-fatal — if integrationTools throws we still return the gate trace', err); }
+    } catch (err) { fallback('routes/ai/config/integrations:injectedTools', err); /* diagnostic: still return the gate trace */ }
 
     const blockingReason =
         !organizationId ? 'no_organization' :
@@ -404,6 +419,9 @@ router.post('/n8n/enable-for-org', requireOrgAdminForN8n, async (req, res) => {
 // Count how many users are actually members of each group right now. `groups.userCount`
 // is a stale denormalised column (never updated when users move between groups), so we
 // recompute it live for anything the admin UI displays.
+/**
+ * @param {string | undefined} orgId
+ */
 async function computeGroupUserCounts(groupIds, orgId) {
     const userStore = require('../../../stores/userStore');
     const allUsers = await userStore.getAllUsers();
@@ -440,6 +458,9 @@ router.get('/n8n/permissions', requireOrgAdminForN8n, async (req, res) => {
     );
 
     const counts = await computeGroupUserCounts(visibleGroups.map(g => g.id), orgId);
+    /**
+     * @param {string} permId
+     */
     const holdingGroups = (permId) => visibleGroups
         .filter(g => Array.isArray(g.permissions) && g.permissions.includes(permId))
         .map(g => ({ id: g.id, name: g.name, userCount: counts[g.id] ?? 0 }));
@@ -646,6 +667,7 @@ router.post('/mcp-servers/user-credentials', requireAuth, requireMcp, validate({
 const mcpRegistry = require('../../../integrations/mcpRegistryClient');
 const { createTtlCache } = require('../../../utils/ttlCache');
 const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 const mcpRegistryCache = createTtlCache({ ttlMs: 5 * 60 * 1000, max: 200 });
 
 // GET /ai/mcp-registry/search?q=&cursor=&verifiedOnly=1

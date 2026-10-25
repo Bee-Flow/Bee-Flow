@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * ONE round through the provider ADAPTER — every SDK provider and every
  * self-hosted runtime (Ollama, vLLM, llama.cpp, LM Studio, …).
@@ -31,8 +31,28 @@ const SETUP_DEPS = {
     tierDefaults: () => require('../../llm/modelResolver').TIER_DEFAULTS,
 };
 
+/**
+ * @typedef {import('../../providers/usageNormalizer').RawUsage} RawUsage
+ * @typedef {import('./adapterRoundSetup').ThinkingEventData & RawUsage & { stop_reason?: string, id?: string, name?: string, input?: unknown, thought_signature?: string, error?: string, message?: string }} AdapterEventData
+ * @typedef {{ id: string, function: { name: string, arguments: string }, _thought_signature?: string }} AdapterToolCall
+ */
+
 const THINKING_PART_EVENTS = new Set(['thinking_start', 'thinking_signature', 'thinking_stop']);
 
+/**
+ * @param {{
+ *   agent: import('./turnState').AgentRow, agentId: string, userId: string,
+ *   messageMetadata: import('./turnState').MessageMetadata, config: import('./roundRequest').ProviderConfig,
+ *   modelToUse: string, conversation: import('./turnState').ConversationRow, tools: import('./turnState').ToolDef[],
+ *   signal?: AbortSignal, onEvent: import('./turnState').OnEvent,
+ *   regexConfig?: import('./roundRequest').RegexConfig | null, guardrailViolation?: string | null,
+ *   _forceFinalAnswer?: boolean, effectiveSystemPrompt: string, effectiveVolatilePrompt: string,
+ *   finalMessages: import('./turnState').ChatMessage[], tierSettings: import('./roundRequest').TierSettings,
+ *   providerAdapter: ReturnType<typeof import('../../providers').getAdapter>, _adapterIsLocal?: boolean,
+ *   _streamCallStart: number, _thinking: string, _thinkingParts: import('./turnState').ThinkingPart[],
+ *   _thinkingSnapshotFrom: number, _getThinkingPart: (partId: string) => import('./turnState').ThinkingPart,
+ * }} turn
+ */
 async function streamNativeAdapterRound({
     agent, agentId, userId, messageMetadata, config, modelToUse, conversation,
     tools, signal, onEvent, regexConfig, guardrailViolation, _forceFinalAnswer,
@@ -40,11 +60,13 @@ async function streamNativeAdapterRound({
     providerAdapter, _adapterIsLocal, _streamCallStart,
     _thinking, _thinkingParts, _thinkingSnapshotFrom, _getThinkingPart,
 }) {
+    /** @type {AdapterToolCall[]} */
     let currentToolCalls = [];
     let contentBuffer = '';
     // Tool calls the adapter dropped as malformed this round (warn-only in the
     // adapters) — the caller's empty-round guard feeds them back as a targeted
     // nudge instead of reading the round as "done".
+    /** @type {Record<string, unknown>[]} */
     let _invalidToolCalls = [];
 
     const adapterMessages = buildAdapterMessages({ effectiveSystemPrompt, effectiveVolatilePrompt, finalMessages, conversation }, SETUP_DEPS);
@@ -64,10 +86,11 @@ async function streamNativeAdapterRound({
         toolsCount: tools.length,
     });
 
+    /** @type {(RawUsage & { stop_reason?: string }) | null} */
     let _adapterStreamUsage = null;
     const thinkingCtx = { onEvent, _thinkingParts, _getThinkingPart };
     // The adapter's event callback. It closes over this round's live state.
-    const onAdapterEvent = (type, data) => {
+    const onAdapterEvent = (/** @type {string} */ type, /** @type {AdapterEventData} */ data) => {
         if (signal?.aborted) return; // Drop callbacks once client aborted
         if (type === 'text') {
             const textChunk = data.text || '';

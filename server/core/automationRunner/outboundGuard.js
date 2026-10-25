@@ -17,6 +17,9 @@ const safety = require('./safety');
 
 const PRIVATE_HOST_RE = /^(localhost|127\.\d+\.\d+\.\d+|0\.0\.0\.0|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|\[?::1\]?|.*\.local|.*\.internal)$/i;
 
+/**
+ * @param {string} hostname
+ */
 function isPrivateHost(hostname) {
     return PRIVATE_HOST_RE.test(String(hostname || ''));
 }
@@ -26,6 +29,7 @@ function isPrivateHost(hostname) {
  * Throws GuardrailBlockError on a block (after writing a `blocked` ledger row).
  *
  * @returns {Promise<{ payload, policy, auditBase, guarded, destination }>}
+ * @param {string} mode
  */
 async function guardOutbound(step, ctx, mode, { toolName, payload, destination = 'external', integMeta = null }) {
     const policy = await safety.resolveAutomationPolicy(ctx);

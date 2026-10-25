@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Periodicity: how regularly something happens.
@@ -33,6 +33,7 @@ const ZONE_FORMATS = new Map();
 /** @param {string} tz */
 function zoneFormat(tz) {
     if (!ZONE_FORMATS.has(tz)) {
+        /** @type {Intl.DateTimeFormat | null} */
         let f = null;
         try {
             f = new Intl.DateTimeFormat('en-US', {
@@ -155,6 +156,7 @@ function cadenceOf(timestamps, opts = {}) {
     const ts = (timestamps || []).filter((t) => Number.isFinite(t) && t >= since && t <= now).sort((a, b) => a - b);
 
     const weekdayHistogram = new Array(7).fill(0);
+    /** @type {number[]} */
     const hours = [];
     const dayKeys = new Set();
     const weekKeys = new Set();
@@ -175,6 +177,7 @@ function cadenceOf(timestamps, opts = {}) {
         monthKeys.add(Math.floor((now - t) / (30 * DAY)));
     }
     const days = [...dayKeys].sort((a, b) => a - b);
+    /** @type {number[]} */
     const gaps = [];
     for (let i = 1; i < days.length; i++) gaps.push(days[i] - days[i - 1]);
     const cv = Math.round(coefficientOfVariation(gaps) * 100) / 100;

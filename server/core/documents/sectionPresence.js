@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Who has a designed document open, and which section they are typing in:
  * the "Anna is editing Pricing" of a document that is not co-edited live.

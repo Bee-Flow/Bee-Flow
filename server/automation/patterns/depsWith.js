@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * The collaborators of one call into a "Find repeating work" module: the real

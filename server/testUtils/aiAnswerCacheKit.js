@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -29,9 +29,9 @@ const REQUEST = {
     schema: { type: 'object', properties: { label: { type: 'string' } } },
     temperature: 0.2,
     maxOutputTokens: 1024,
-    reasoningEffort: null,
+    reasoningEffort: /** @type {string | null} */ (null),
 };
-const ANSWER = { content: null, structured: { label: 'alpha' } };
+const ANSWER = { content: /** @type {string | null} */ (null), structured: { label: 'alpha' } };
 
 function installAiAnswerCacheKit() {
     /** @type {Record<string, any>} */

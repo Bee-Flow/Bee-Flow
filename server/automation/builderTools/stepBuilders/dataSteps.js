@@ -360,3 +360,19 @@ module.exports = {
     applyAddSummarize,
     applyAddArrayOp,
 };
+
+/**
+ * @typedef {import('../draftGraph').DraftGraph} DraftGraph
+ * @typedef {import('../refCheck').BuilderWrap} BuilderWrap
+ * @typedef {import('./inputBindings').Placement} Placement
+ * @typedef {import('./inputBindings').Inputs} Inputs
+ * @typedef {import('./inputBindings').ForEachSpec} ForEachSpec
+ * @typedef {{ op: string, target?: string, start?: number, keys?: string[], from?: string, to?: string, key?: string, direction?: string }} SetOperation
+ * @typedef {Placement & { fields?: Inputs, forEach?: ForEachSpec, arrayRef?: string, operations?: unknown, maxItems?: number }} SetArgs
+ * @typedef {Placement & { op?: string, input?: unknown, input2?: unknown, amount?: unknown, format?: unknown, part?: unknown,
+ *   unit?: unknown, arrayRef?: unknown, target?: unknown, timezone?: unknown, epochUnit?: unknown }} DateTimeArgs
+ * @typedef {Placement & { inputs?: Inputs, forEach?: ForEachSpec, code?: string, limits?: unknown,
+ *   outputSchema?: Record<string, unknown>, allowedTools?: unknown[] }} CodeArgs
+ * @typedef {Placement & { arrayRef?: string, expr?: string, count?: number | string, mode?: string, keyField?: string,
+ *   field?: string, op?: string, fn?: string, childField?: string, keepFields?: string[], keepEmpty?: boolean }} ListArgs
+ */

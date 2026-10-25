@@ -37,6 +37,7 @@ const HTTP_PARSE_MODES = new Set(['auto', 'never', 'always']);
  *
  * Semantics deliberately match the `parseJson()` expression function
  * (shared/expr/functions.mjs): strip a BOM, trim, and give up quietly.
+ * @param {string} mode
  */
 function parseHttpBody(text, contentType, mode, truncated) {
     const how = HTTP_PARSE_MODES.has(mode) ? mode : 'auto';
@@ -52,6 +53,7 @@ function parseHttpBody(text, contentType, mode, truncated) {
 /**
  * A cache hit. The stored value is the PRE-parse response, so `data` is
  * re-derived under whatever parseResponse the step carries NOW.
+ * @param {string} mode
  */
 async function serveCachedHttp(step, ctx, mode, cache, { sendUrl, method, guarded, httpMeta }) {
     const hit = { ...cache.served.out };
@@ -84,6 +86,7 @@ async function serveCachedHttp(step, ctx, mode, cache, { sendUrl, method, guarde
  * What a live answer becomes: the response cache written, `data` parsed,
  * the reply guarded, and the visible cache tier filled from the guarded
  * value.
+ * @param {string} mode
  */
 async function finishHttpResponse(step, ctx, runState, mode, { resp, text, cache, guarded }) {
     // A 304 answering OUR conditional GET means the stored body is still
@@ -138,6 +141,7 @@ async function finishHttpResponse(step, ctx, runState, mode, { resp, text, cache
     // written and the next run asks again — which is what happened before
     // this feature existed. It is reported so a tick cannot silently do
     // nothing.
+    /** @type {{ stored: boolean; reason?: string; errorClass?: string; message?: string; } | null} */
     let cacheInto = null;
     if (cache && cache.into) {
         cacheInto = await httpCache.storeInto(cache, out, guardedResp.result, {

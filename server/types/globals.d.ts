@@ -1,3 +1,4 @@
+/// <reference path="./shims/untyped-modules.d.ts" />
 // Ambient declarations for the JSDoc type check (scripts/typecheck.mjs).
 // Types only: nothing here exists at runtime.
 
@@ -24,3 +25,9 @@ interface Error {
 // in the browser page, where `window` carries the preview bundle's mount flags.
 // Declared here only so those callbacks type-check; the server has no window.
 declare const window: { __bfMounted?: boolean; __bfMountError?: string };
+// Files that opt in to the DOM lib (`/// <reference lib="dom" />`) get the real
+// `window`; this merges the same flags into its `Window` interface.
+interface Window { __bfMounted?: boolean; __bfMountError?: string }
+
+// auth/opaqueRoutes.js caches the OPAQUE server setup on the global object.
+declare var _opaqueServerSetup: string | undefined;

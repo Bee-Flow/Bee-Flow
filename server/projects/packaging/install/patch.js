@@ -32,7 +32,7 @@ async function patchReferences(manifest, ctx, report, { refs = null } = {}) {
             const { definition } = resolveRefs('app', { definition: clone(entity.definition) }, ctx.refMap, unresolved);
             await require('../../../stores/studioAppStore').saveDefinition(id, ctx.ownerId, definition, writeOpts(ctx));
         } catch (err) {
-            report.warnings.push(`Could not connect the references inside "${entity.name}": ${err.message}`);
+            report.warnings.push(`Could not connect the references inside "${entity.name}": ${/** @type {Error} */ (err).message}`);
         }
     }
 
@@ -49,7 +49,7 @@ async function patchReferences(manifest, ctx, report, { refs = null } = {}) {
             // on an automation that has one (lifecycle LIVE_INVARIANT_SQL).
             await require('../../../stores/automationStore').updateAutomation(id, { definition }, ctx.ownerId, { goLive: true, ...writeOpts(ctx) });
         } catch (err) {
-            report.warnings.push(`Could not connect the references inside "${entity.title}": ${err.message}`);
+            report.warnings.push(`Could not connect the references inside "${entity.title}": ${/** @type {Error} */ (err).message}`);
         }
     }
 
@@ -60,7 +60,7 @@ async function patchReferences(manifest, ctx, report, { refs = null } = {}) {
                 id, ctx.ownerId, safeInstallGrants(entity, ctx.refMap, unresolved), writeOpts(ctx),
             );
         } catch (err) {
-            report.warnings.push(`Could not set what "${entity.name}" is allowed to call: ${err.message}`);
+            report.warnings.push(`Could not set what "${entity.name}" is allowed to call: ${/** @type {Error} */ (err).message}`);
         }
         const publicAsked = (Array.isArray(entity?.bridgeGrants?.tables) ? entity.bridgeGrants.tables : [])
             .some(g => Array.isArray(g?.publicColumns) && g.publicColumns.length);
@@ -94,7 +94,7 @@ async function persistResolutions(ctx, report) {
         const store = ctx.deps?.bindings || require('../../../stores/solutionStageStore');
         await store.upsertBindings(ctx.projectId, rows, ctx.ownerId);
     } catch (err) {
-        report.warnings.push(`Your choices were applied, but could not be saved for later updates, so an update will leave those steps unconnected again: ${err.message}`);
+        report.warnings.push(`Your choices were applied, but could not be saved for later updates, so an update will leave those steps unconnected again: ${/** @type {Error} */ (err).message}`);
     }
 }
 

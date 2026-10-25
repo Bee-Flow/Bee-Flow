@@ -32,6 +32,10 @@ const DEFAULT_LIMIT = 50;
 const DEFAULT_CHAR_BUDGET = 32_000;
 
 class DatasetQueryError extends Error {
+    /**
+     * @param {string} message
+     * @param {string} [code]
+     */
     constructor(message, code = 'dataset_query_invalid') {
         super(message);
         this.name = 'DatasetQueryError';
@@ -62,8 +66,13 @@ function normalizeContig(requested, index) {
     return null;
 }
 
+/**
+ * @param {number} start
+ * @param {number} end
+ */
 function scanWindow(bytes, contigName, start, end, opts) {
     const { filterPass, minQual, limit, includeGenotypes, charBudget, samples } = opts;
+    /** @type {Buffer<ArrayBufferLike>[]} */
     const payloads = [];
     let off = 0;
     while (off < bytes.length) {
@@ -147,11 +156,14 @@ async function queryRegion(dataset, params = {}) {
     };
 
     const index = await dataset.loadIndex();
+    /** @type {string[]} */
     const notes = [];
 
     // ── Resolve the selector to one or more spans ─────────────────────────────
     let spans; // [{chrom (requested spelling), start, end}]
+    /** @type {{ chrom: string; start: number; end: number; symbol: string; } | null} */
     let resolvedGene = null;
+    /** @type {string | null} */
     let resolvedRsid = null;
 
     if (gene != null) {
@@ -254,3 +266,5 @@ async function queryRegion(dataset, params = {}) {
 }
 
 module.exports = { queryRegion, parseRegionString, normalizeContig, DatasetQueryError, MAX_REGION_BP, MAX_BLOCKS_PER_QUERY, MAX_LIMIT };
+
+/** @typedef {import('./blockIndex').BlockIndex} BlockIndex */

@@ -123,7 +123,7 @@ async function assertEntitled(userId) {
 }
 
 /**
- * @param {{ token?: { scopes?: object } }|null} [access]  what the access gate
+ * @param {{ token?: { id?: string|null, name?: string, legacy?: boolean, scopes?: object } }|null} [access]  what the access gate
  *        resolved for this request. Its token's scopes narrow tools/list and
  *        are re-checked on tools/call. Absent (unit tests calling this
  *        directly) = no narrowing.
@@ -244,9 +244,6 @@ router.get('/', async (req, res) => {
     return res.status(405).json(rpcError(null, -32000, 'This MCP endpoint is POST-only; it does not open an SSE stream.'));
 });
 
-module.exports = router;
-module.exports.handleRpc = handleRpc;
-module.exports.INSTRUCTIONS = INSTRUCTIONS;
-// The same entitlement test, for routes/mcpTokens.js: a token may not carry the
-// automations server for a user this check would refuse.
-module.exports.assertEntitled = assertEntitled;
+// assertEntitled is the same entitlement test, for routes/mcpTokens.js: a token
+// may not carry the automations server for a user this check would refuse.
+module.exports = Object.assign(router, { handleRpc, INSTRUCTIONS, assertEntitled });

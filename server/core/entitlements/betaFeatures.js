@@ -24,6 +24,7 @@ const {
     BETA_FEATURES, BetaLifecycle, getFeatureLifecycle, setRemoteBetaFeatures,
     listRemoteBetaFeatures, listBetaFeatures, listCompoundGatedFeatures,
 } = require('./betaCatalog');
+const { bestEffort, fallback } = require('../../utils/bestEffort');
 
 
 // ──────────────────────────────────────────────
@@ -83,7 +84,7 @@ async function _scopeAllowsBeta({ userId = null, organizationId = null, tierHint
         if (!lic.serverLicenseGovernsOrgs || !lic.serverLicenseGovernsOrgs()) {
             return true;
         }
-    } catch (err) { log.debug('fall through to the tier check', err); }
+    } catch (err) { bestEffort('core/entitlements/betaFeatures:_scopeAllowsBeta', err); /* fall through to the tier check */ }
     if (tierHint) {
         return _licenseModule().tiers.tierAtLeast(tierHint, BETA_TIER_FLOOR);
     }
@@ -174,7 +175,7 @@ async function getEffectiveOrgBetaAllowList(orgId) {
     try {
         const lic = _licenseModule();
         serverGoverns = !!(lic.serverLicenseGovernsOrgs && lic.serverLicenseGovernsOrgs());
-    } catch (err) { log.debug('default cloud', err); }
+    } catch (err) { fallback('core/entitlements/betaFeatures:getEffectiveOrgBetaAllowList', err); /* default cloud */ }
 
     if (serverGoverns) {
         return getOrgBetaFeatures(orgId);
@@ -285,7 +286,7 @@ async function getUserBetaFeatures(userId, session = null, { tierHint = null } =
     if (Array.isArray(user.groups)) {
         groupIds = user.groups;
     } else {
-        try { groupIds = JSON.parse(user.groups || '[]'); } catch (_) { log.debug('user.groups is not valid JSON, treat as no group membership', _); }
+        try { groupIds = JSON.parse(user.groups || '[]'); } catch (_) { fallback('core/entitlements/betaFeatures:getUserBetaFeatures', _); /* user.groups is not valid JSON, treat as no group membership */ }
     }
 
     let allGroups;
@@ -413,7 +414,7 @@ async function userHasBetaFeature(userId, featureId, session = null) {
             // Background caller (null session): resolve the user's primary org so
             // the subscription/org grant layer is populated (mirrors the legacy
             // org sweep). Group-org sweep is covered by the request path above.
-            try { const u = await require('../../stores/userStore').getUser(userId); orgId = u?.organizationId || null; } catch (err) { log.debug('fail closed below', err); }
+            try { const u = await require('../../stores/userStore').getUser(userId); orgId = u?.organizationId || null; } catch (err) { fallback('core/entitlements/betaFeatures:userHasBetaFeature', err); /* fail closed below */ }
         }
         return ent.hasCapability(featureId, { userId, orgId, session, req });
     }
@@ -499,7 +500,7 @@ function requireBetaFeature(featureId) {
     // semantics and response shapes via the unchanged getUserBetaFeatures.
     // (The registry path above delegates to requireCapability, which is already
     // tagged; only this arm needs its own tag.)
-    return tagGate(async (req, res, next) => {
+    return tagGate(async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
         if (!req.session?.user) {
             return res.status(401).json({ error: 'Not authenticated' });
         }
@@ -558,3 +559,10 @@ module.exports = {
     requireBetaFeature,
     FeatureServiceUnavailableError,
 };
+
+/**
+ * @typedef {Omit<Partial<Express.Session>, 'user'> & { user?: Partial<Express.Session['user']> }} SessionLike
+ *   an express session, or a synthetic one carrying only the fields a caller has
+ * @typedef {{ id: string, name: string, description: string, licenseFeature?: string|null, lifecycle?: string,
+ *   groupScoped?: boolean, aliasOf?: string, deprecated?: boolean, sunsetDate?: string, _remoteModule?: boolean }} BetaFeature
+ */

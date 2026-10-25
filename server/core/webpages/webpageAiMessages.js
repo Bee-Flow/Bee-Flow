@@ -24,13 +24,14 @@ const log = require('../../telemetry/log');
  * passages fetched through page_knowledge_search are stripped too. The bridge
  * acts as the author, so it is the author's shield. Fails open, like every
  * result strip; a failed shield lookup leaves the list unapplied.
+ * @param {string} text
  */
 async function stripOwnServerCategories(text, ctx) {
     let shield = null;
     try {
         shield = await require('../privacy/orgShield').resolveShieldFor({ orgId: ctx.authorOrgId || null, userId: ctx.authorUserId || null });
     } catch (e) {
-        log.warn(`[WebpageBridgeAI] Shield lookup failed; own-server list not applied: ${e.message}`);
+        log.warn(`[WebpageBridgeAI] Shield lookup failed; own-server list not applied: ${/** @type {Error} */ (e).message}`);
     }
     const { stripInjectedText } = require('../privacy/toolPiiGate');
     return stripInjectedText(text, { shield, tag: 'WebpageBridgeAI', what: 'grounding passages' });
@@ -60,7 +61,7 @@ async function buildAiMessages(ctx, body, { groundGrantKey = 'groundOnPage' } = 
                 if (r?.contextPrompt) kbContext = await stripOwnServerCategories(r.contextPrompt, ctx);
             }
         } catch (err) {
-            log.warn(`[WebpageBridgeAI] KB search failed: ${err.message}`);
+            log.warn(`[WebpageBridgeAI] KB search failed: ${/** @type {Error} */ (err).message}`);
         }
     }
 
@@ -86,3 +87,7 @@ async function buildAiMessages(ctx, body, { groundGrantKey = 'groundOnPage' } = 
 }
 
 module.exports = { buildAiMessages };
+
+/**
+ * @typedef {NonNullable<Awaited<ReturnType<typeof import('./webpageBridgeAuth').loadAuthorContext>>>} BridgeAuthorContext
+ */

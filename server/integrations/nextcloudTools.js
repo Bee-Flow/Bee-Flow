@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Nextcloud Tools — AI tools for files via WebDAV + OCS.
  *
@@ -45,6 +45,13 @@ const TOOL_HANDLERS = [
 
 // ─── Tool Execution ───────────────────────────────────────────────
 
+/**
+ * @param {string} toolName
+ * @param {Record<string, unknown>} args
+ * @param {string} userId
+ * @param {Partial<Express.Session> | null | undefined} session
+ * @param {{ runScope?: import('./nextcloudFiles/webdav').FilesToolCtx['runScope'] }} [extra]
+ */
 async function executeNextcloudTool(toolName, args, userId, session, extra = {}) {
     const ctx = await ncClient.resolveAuth(session, userId);
     const { baseUrl, fetch: ncFetch, authError, uid } = ctx;
@@ -76,6 +83,7 @@ async function executeNextcloudTool(toolName, args, userId, session, extra = {})
     return { error: `Unknown Nextcloud tool: ${toolName}` };
 }
 
+/** @param {unknown} toolName */
 function isNextcloudTool(toolName) {
     return typeof toolName === 'string' && toolName.startsWith('nextcloud_');
 }

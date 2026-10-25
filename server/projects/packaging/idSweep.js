@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The last line of defence after capture: does a payload still name a real id?
  *
@@ -18,22 +18,38 @@
 
 'use strict';
 
+/**
+ * @param {unknown} v
+ * @returns {v is Record<string, unknown>}
+ */
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
-const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\/-]/g, '\\$&');
+const escapeRe = (/** @type {string} */ s) => s.replace(/[.*+?^${}()|[\]\\/-]/g, '\\$&');
 
-/** One regex for all ids, longest first so an id never matches inside a longer one. */
+/**
+ * One regex for all ids, longest first so an id never matches inside a longer one.
+ * @param {Iterable<string>} ids
+ */
 function idPattern(ids) {
     const alternation = [...ids].sort((a, b) => b.length - a.length).map(escapeRe).join('|');
     return new RegExp(`(?<![A-Za-z0-9_])(?:${alternation})(?![A-Za-z0-9_])`, 'g');
 }
 
+/**
+ * @param {string | number} key
+ * @param {string} base
+ */
 function pathOf(base, key) {
     if (typeof key === 'number') return `${base}[${key}]`;
     return base ? `${base}.${key}` : String(key);
 }
 
-/** Visit every string (values AND object keys) with the path it sits at. */
+/**
+ * Visit every string (values AND object keys) with the path it sits at.
+ * @param {unknown} node
+ * @param {string} path
+ * @param {(text: string, path: string) => void} fn
+ */
 function walkStrings(node, path, fn) {
     if (typeof node === 'string') { fn(node, path); return; }
     if (Array.isArray(node)) { node.forEach((v, i) => walkStrings(v, pathOf(path, i), fn)); return; }
@@ -44,7 +60,11 @@ function walkStrings(node, path, fn) {
     }
 }
 
-/** `entities` is a manifest's `solution.entities` (kind → list) or a plain list. */
+/**
+ * `entities` is a manifest's `solution.entities` (kind → list) or a plain list.
+ * @param {unknown} entities
+ * @returns {unknown[]}
+ */
 function entityList(entities) {
     if (Array.isArray(entities)) return entities;
     if (!isObject(entities)) return [];
@@ -63,12 +83,13 @@ function sweepRawIds(entities, memberIds) {
     for (const id of memberIds || []) if (typeof id === 'string' && id.length >= 3) ids.add(id);
     if (!ids.size) return [];
     const pattern = idPattern(ids);
+    /** @type {{ref: string|null, path: string, id: string}[]} */
     const hits = [];
     for (const entity of entityList(entities)) {
         if (!isObject(entity)) continue;
         const ref = typeof entity.ref === 'string' ? entity.ref : null;
         const seen = new Set();
-        walkStrings(entity, '', (text, path) => {
+        walkStrings(entity, '', (/** @type {string} */ text, /** @type {string} */ path) => {
             if (path === 'ref') return;
             for (const m of text.matchAll(pattern)) {
                 const key = `${path}\u0000${m[0]}`;
@@ -95,6 +116,9 @@ const TABLE_TOKEN = /(?<![A-Za-z0-9_])tbl_[0-9a-f]{12}(?![A-Za-z0-9_])/g;
  */
 function substituteTableTokens(source, idMap) {
     if (typeof source !== 'string') return { text: source, substitutions: [] };
+    /**
+     * @param {string} id
+     */
     const get = (id) => (idMap instanceof Map ? idMap.get(id)
         : (isObject(idMap) && Object.prototype.hasOwnProperty.call(idMap, id) ? idMap[id] : undefined));
     const counts = new Map();
@@ -107,7 +131,10 @@ function substituteTableTokens(source, idMap) {
     return { text, substitutions: [...counts].map(([from, { to, count }]) => ({ from, to, count })) };
 }
 
-/** True when `id` has the exact shape substituteTableTokens rewrites. */
+/**
+ * True when `id` has the exact shape substituteTableTokens rewrites.
+ * @param {string} id
+ */
 function isTableToken(id) {
     return typeof id === 'string' && /^tbl_[0-9a-f]{12}$/.test(id);
 }

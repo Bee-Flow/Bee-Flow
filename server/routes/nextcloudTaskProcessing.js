@@ -1,3 +1,4 @@
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
 /**
  * Execution endpoint for Nextcloud Task Processing.
  *
@@ -62,6 +63,7 @@ const captureRaw = express.json({
 // Shared with routes/nextcloudStudioApps.js — the scheme is documented (and
 // must stay byte-identical to the connector's signing side) in auth/connectorSig.
 const { verifyConnectorSig } = require('../auth/connectorSig');
+const { fallback } = require('../utils/bestEffort');
 
 /**
  * Per-task-type prompt construction.
@@ -166,6 +168,9 @@ function threadOwner(org, userId) {
     return `${org?.id || ''}\u0000${userId || ''}`;
 }
 
+/**
+ * @param {string} owner
+ */
 function threadPut(token, messages, owner) {
     agentThreads.delete(token);
     agentThreads.set(token, { messages, at: Date.now(), owner });
@@ -320,7 +325,7 @@ async function runAgentTurn({ input, org, user, ncUid }) {
             } catch (err) {
                 messages.push({
                     role: 'tool', tool_call_id: call?.id, name,
-                    content: `Error: ${err.message}`,
+                    content: `Error: ${/** @type {Error} */ (err).message}`,
                 });
             }
         }
@@ -360,7 +365,10 @@ const ExecuteBody = z.object({
     }
 });
 
-/** The signature comes before the schema: an unsigned caller learns nothing about the shape. */
+/**
+ * The signature comes before the schema: an unsigned caller learns nothing about the shape.
+ * @param {NextFunction} next
+ */
 async function requireConnectorSig(req, res, next) {
     const org = await verifyConnectorSig(req);
     if (!org) return res.status(401).json({ error: 'Invalid or missing signature' });
@@ -375,7 +383,7 @@ router.post('/execute', captureRaw, requireConnectorSig, validate({ body: Execut
     const userStoreEarly = require('../stores/userStore');
     if (taskType === AGENT_TASK_TYPE) {
         const agentUser = ncUid
-            ? await userStoreEarly.getUserByNcUid(org.id, ncUid).catch(() => null)
+            ? await userStoreEarly.getUserByNcUid(org.id, ncUid).catch((e) => fallback('routes/nextcloudTaskProcessing:anon', e, null))
             : null;
         const out = await runAgentTurn({ input, org, user: agentUser, ncUid });
         return res.json({ output: out });
@@ -394,7 +402,7 @@ router.post('/execute', captureRaw, requireConnectorSig, validate({ body: Execut
 
     const userStore = require('../stores/userStore');
     const user = ncUid
-        ? await userStore.getUserByNcUid(org.id, ncUid).catch(() => null)
+        ? await userStore.getUserByNcUid(org.id, ncUid).catch((e) => fallback('routes/nextcloudTaskProcessing:anon#2', e, null))
         : null;
 
     const messages = [];
@@ -446,3 +454,14 @@ module.exports.HANDLERS = HANDLERS;
 module.exports.AGENT_TASK_TYPE = AGENT_TASK_TYPE;
 module.exports.runAgentTurn = runAgentTurn;
 module.exports.LANGUAGE_RULE = LANGUAGE_RULE;
+
+/** @typedef {Record<string, unknown>} TaskInput  the task input object Nextcloud sent (ExecuteBody.input) */
+
+/** @typedef {{ role: string, content: string, [key: string]: unknown }} AgentMessage */
+
+/**
+ * What llmClient.chat answers with stream:false. Providers differ: the adapters give
+ * `{ content, toolCalls }`, older shapes carry `text` / `tool_calls`.
+ * @typedef {{ id?: string, name?: string, arguments?: string | object, function?: { name?: string, arguments?: string | object } }} AgentToolCall
+ * @typedef {{ content?: string, text?: string, toolCalls?: AgentToolCall[], tool_calls?: AgentToolCall[] }} ChatCompletion
+ */

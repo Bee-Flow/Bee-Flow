@@ -54,6 +54,7 @@ const { BRANCHER_TYPES } = require('../constants');
  * a parallel branch, where the runtime synthesizes a linear chain rather than
  * reading authored edges. The shape rule still applies there; only the
  * does-it-match-an-edge half is skipped.
+ * @param {string} at
  */
 function checkPinnedOutput(node, at, /** @type {{pushE?: any, outgoingLabels?: any, isTrigger?: boolean}} */ { pushE, outgoingLabels = null, isTrigger = false } = {}) {
     const pin = node?.pinnedOutput;
@@ -64,6 +65,7 @@ function checkPinnedOutput(node, at, /** @type {{pushE?: any, outgoingLabels?: a
         : 'Open the step and click Unpin, or pin a smaller sample.';
 
     // 1 — size (and serializability: a pin has to survive the JSON column).
+    /** @type {number | null} */
     let bytes = null;
     try {
         const json = JSON.stringify(pin);
@@ -84,6 +86,7 @@ function checkPinnedOutput(node, at, /** @type {{pushE?: any, outgoingLabels?: a
 
     // 3 — a pinned brancher has to say which way it went.
     if (BRANCHER_TYPES.has(node.type)) {
+        /** @type {string[]} */
         const labels = [];
         if (isObject(pin)) {
             if (typeof pin.branch === 'string' && pin.branch.trim()) labels.push(pin.branch.trim());

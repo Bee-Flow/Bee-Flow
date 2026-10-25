@@ -102,3 +102,8 @@ module.exports = {
     isCallerRun, canReadRunData, assertCanReadRunData, redactRunForViewer, redactStepsForViewer,
     redactChainStepsForViewer, redactRunRowForViewer, RUN_FIELDS_SHOWN, STEP_FIELDS_SHOWN,
 };
+
+/**
+ * A run (or step) row as the read routes hand it around.
+ * @typedef {{ id?: string, connectionsMode?: string|null, startedByUserId?: string|null, runId?: string, outcome?: { code?: string|null } } & Record<string, unknown>} RunLike
+ */

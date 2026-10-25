@@ -37,6 +37,7 @@ const NODE_AUTHORABLE_FIELDS = [...NODE_LOGIC_FIELDS, ...NODE_VALUE_FIELDS];
 /**
  * Normalize one logic-field value from tool args to the node shape.
  * Returns { value } or { error }.
+ * @param {string} field
  */
 function normalizeLogicValue(field, v) {
     if (field === 'visibleToRoles') {
@@ -103,7 +104,10 @@ function normalizeValidations(v) {
     return { value: out };
 }
 
-/** Normalize any authorable node field. Returns { value } or { error }. */
+/**
+ * Normalize any authorable node field. Returns { value } or { error }.
+ * @param {string} field
+ */
 function normalizeNodeField(field, v) {
     if (field === 'computed') return normalizeComputed(v);
     if (field === 'validations') return normalizeValidations(v);
@@ -137,7 +141,10 @@ function adoptCanonical(draftWrap, nextDef, result) {
     return result;
 }
 
-/** Trim + cap a single string; undefined when not a usable string. */
+/**
+ * Trim + cap a single string; undefined when not a usable string.
+ * @param {number} max
+ */
 function capStr(v, max) {
     if (typeof v !== 'string') return undefined;
     const s = v.trim();
@@ -145,9 +152,14 @@ function capStr(v, max) {
     return s.length > max ? s.slice(0, max) : s;
 }
 
-/** Cap an array of strings by item count and per-item length; undefined when empty. */
+/**
+ * Cap an array of strings by item count and per-item length; undefined when empty.
+ * @param {number} maxItems
+ * @param {number} maxLen
+ */
 function capStrArray(v, maxItems, maxLen) {
     if (!Array.isArray(v)) return undefined;
+    /** @type {string[]} */
     const out = [];
     for (const item of v) {
         const s = capStr(item, maxLen);
@@ -170,3 +182,9 @@ module.exports = {
     capStr,
     capStrArray,
 };
+
+/** @typedef {import('../builderTools').ToolArgs} ToolArgs */
+
+/** @typedef {string | boolean | unknown[] | ToolArgs | null | undefined} LogicInput  A JSON value from tool args. */
+
+/** @typedef {{ value?: unknown, error?: string }} Normalized */

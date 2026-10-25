@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * A datatable as a knowledge source ("live").
  *
@@ -124,6 +124,22 @@ const MAX_LABEL_CHARS = 200;
  */
 const MAX_RELATIONS_PER_DOC = 300;
 
+/** @typedef {typeof import('../../automationRunner/datatableResolve').resolveDatatableForStep} ResolveFn */
+/** @typedef {Awaited<ReturnType<ResolveFn>>['tableMeta']} ResolvedTableMeta */
+/**
+ * @typedef {import('./index').SyncDeps & { datatableResolve?: typeof import('../../automationRunner/datatableResolve'),
+ *   queryCompiler?: typeof import('../../dataEngine/queryCompiler'), accessFilter?: typeof import('../../dataEngine/accessFilter'),
+ *   datatableDbStore?: typeof import('../../../stores/datatableDbStore') }} DatatableDeps
+ */
+/** @typedef {{ column: string, table: string }} RelationColumn */
+/** @typedef {{ key?: string, type?: string, relation?: { table?: string } }} ModelField */
+/** @typedef {{ column: string, table: string, rowId: string, label: string | null, from?: unknown }} RowRelation */
+/**
+ * @typedef {{ externalId: string, row?: Record<string, any>, rows?: Record<string, any>[], columns: string[],
+ *   relations: RelationColumn[], labels: Map<string, Map<string, string>>, datatableId: string, tableName: string | null,
+ *   title: string, sourceModifiedAt: string | Date | null, rels: RowRelation[], relSig: string | null, rowStart?: number, rowEnd?: number }} DatatableItem
+ */
+
 /**
  * The rows this source currently offers.
  *
@@ -131,6 +147,10 @@ const MAX_RELATIONS_PER_DOC = 300;
  * LIMIT: `compileRecordList` asks for `limit + 1` as a probe and EVERY caller
  * must slice — `stepDataSource.js` records the bug where that extra row leaked
  * into an AI prompt.
+ * @param {import('./index').KbSource} source
+ * @param {import('./index').SyncCtx} ctx
+ * @param {DatatableDeps} deps
+ * @returns {Promise<DatatableItem[]>}
  */
 async function enumerate(source, ctx, deps) {
     const config = source?.config || {};
@@ -145,6 +165,7 @@ async function enumerate(source, ctx, deps) {
     const accessFilter = deps.accessFilter || require('../../dataEngine/accessFilter');
     const datatableDbStore = deps.datatableDbStore || require('../../../stores/datatableDbStore');
 
+    /** @type {{ orgIds: Set<string>, userGroups: string[] }} */
     let asker = { orgIds: new Set(), userGroups: [] };
     try {
         asker = await require('../askerContext').askerContext(owner);
@@ -167,7 +188,7 @@ async function enumerate(source, ctx, deps) {
         // syncSource delete every document it holds. That is the RIGHT answer
         // for "the rows are gone" and the wrong one for "we could not ask", so
         // it is a thrown failure the pass records rather than a silent empty.
-        throw new Error(`This table is no longer available to the knowledge base's owner (${e.message})`);
+        throw new Error(`This table is no longer available to the knowledge base's owner (${/** @type {Error} */ (e).message})`);
     }
 
     const { tableMeta, grade, scopeKey } = resolved;
@@ -182,12 +203,16 @@ async function enumerate(source, ctx, deps) {
      * to be reachable at all, and then it never is. The count also lets a big
      * table be read to its higher cap rather than being cut at the small one.
      */
-    const totalRows = Number(resolved.table?.rowCount ?? resolved.table?.row_count) || 0;
+    // The table is already shaped to camelCase: row_count is a leftover read
+    // that is always undefined.
+    const totalRows = Number(resolved.table?.rowCount ?? /** @type {{ row_count?: undefined } | undefined} */ (resolved.table)?.row_count) || 0;
     const grouped = totalRows > CHUNK_ABOVE_ROWS;
     const chunkRows = grouped ? Math.max(1, Number(config.chunkRows) || DEFAULT_CHUNK_ROWS) : 1;
     const readCap = grouped ? MAX_ROWS_GROUPED : MAX_ROWS;
 
+    /** @type {Record<string, any>[]} */
     const rows = [];
+    /** @type {string | null} */
     let cursor = null;
     while (rows.length < readCap) {
         const compiled = queryCompiler.compileRecordList(tableMeta, {
@@ -235,6 +260,7 @@ async function enumerate(source, ctx, deps) {
      */
     if (links.tables.size) {
         const dtStore = deps.datatableStore || require('../../../stores/datatableStore');
+        /** @type {Record<string, number>} */
         const versions = {};
         for (const tableId of links.tables.keys()) {
             try {
@@ -247,7 +273,7 @@ async function enumerate(source, ctx, deps) {
         ctx.relatedTables = {};
     }
 
-    const relationsFor = (row) => rowRelations(row, relations, links.labels);
+    const relationsFor = (/** @type {Record<string, any>} */ row) => rowRelations(row, relations, links.labels);
     const shared = { columns, relations, labels: links.labels, datatableId: String(datatableId), tableName };
 
     if (!grouped) {
@@ -298,18 +324,28 @@ async function enumerate(source, ctx, deps) {
     return groups;
 }
 
-/** The columns worth reading: the source's choice, else everything a person declared. */
+/**
+ * The columns worth reading: the source's choice, else everything a person declared.
+ * @param {Record<string, any>} config
+ * @param {ResolvedTableMeta} tableMeta
+ * @returns {string[]}
+ */
 function pickColumns(config, tableMeta) {
     // `key` is the field identifier queryCompiler resolves to a column; `name`
     // is a label. Only the key addresses a row.
     const declared = (tableMeta?.fields || [])
-        .map(f => f?.key)
-        .filter(k => typeof k === 'string' && k && !SKIP_COLUMNS.has(k));
+        .map((/** @type {ModelField} */ f) => f?.key)
+        .filter((/** @type {string | undefined} */ k) => typeof k === 'string' && k && !SKIP_COLUMNS.has(k));
     const chosen = Array.isArray(config.columns) ? config.columns.filter(c => declared.includes(c)) : [];
     return chosen.length ? chosen : declared;
 }
 
-/** The row's own name, when the source says which column holds it. */
+/**
+ * The row's own name, when the source says which column holds it.
+ * @param {Record<string, any>} row
+ * @param {Record<string, any>} config
+ * @param {string[]} columns
+ */
 function titleFor(row, config, columns) {
     const key = config.titleColumn && columns.includes(config.titleColumn)
         ? config.titleColumn
@@ -324,11 +360,14 @@ function titleFor(row, config, columns) {
  * The relation columns among the chosen ones: `[{ column, table }]`, where
  * `table` is the TARGET datatable's id (`field.relation.table`, the same id
  * the DDL resolves a foreign key from).
+ * @param {ResolvedTableMeta} tableMeta
+ * @param {string[]} columns
+ * @returns {RelationColumn[]}
  */
 function relationColumns(tableMeta, columns) {
     return (tableMeta?.fields || [])
-        .filter(f => f && f.type === 'relation' && f.relation && f.relation.table && columns.includes(f.key))
-        .map(f => ({ column: f.key, table: String(f.relation.table) }));
+        .filter((/** @type {ModelField} */ f) => f && f.type === 'relation' && f.relation && f.relation.table && columns.includes(f.key))
+        .map((/** @type {ModelField} */ f) => ({ column: f.key, table: String(f.relation.table) }));
 }
 
 /**
@@ -337,15 +376,21 @@ function relationColumns(tableMeta, columns) {
  * The first text column somebody declared, else the first declared column at
  * all — the same guess `titleFor` makes for a document's title, so a row is
  * called the same thing whether it is the document or the label in another.
+ * @param {ResolvedTableMeta} tableMeta
  */
 function labelFieldFor(tableMeta) {
+    /** @type {ModelField[]} */
     const fields = (tableMeta?.fields || [])
-        .filter(f => f && typeof f.key === 'string' && f.key && !SKIP_COLUMNS.has(f.key));
+        .filter((/** @type {ModelField} */ f) => f && typeof f.key === 'string' && f.key && !SKIP_COLUMNS.has(f.key));
     const text = fields.find(f => f.type === 'text');
     return (text || fields[0])?.key || null;
 }
 
-/** The ids one relation cell holds — one, several, or none. */
+/**
+ * The ids one relation cell holds — one, several, or none.
+ * @param {unknown} v
+ * @returns {string[]}
+ */
 function cellIds(v) {
     if (v === null || v === undefined || v === '') return [];
     const list = Array.isArray(v) ? v : [v];
@@ -367,9 +412,16 @@ function cellIds(v) {
  *
  * @returns {Promise<{ labels: Map<string, Map<string, string>>, tables: Map<string, {name: string|null}> }>}
  *   `labels`: target table id → (row id → label); `tables`: the targets read.
+ * @param {Record<string, any>[]} rows
+ * @param {RelationColumn[]} relations
+ * @param {{ principal: { userId: string, orgId: string | null, userGroupIds: string[] }, resolveDatatableForStep: ResolveFn,
+ *   queryCompiler: typeof import('../../dataEngine/queryCompiler'), accessFilter: typeof import('../../dataEngine/accessFilter'),
+ *   datatableDbStore: typeof import('../../../stores/datatableDbStore'), log?: (...a: unknown[]) => void }} deps
  */
 async function resolveRelationLabels(rows, relations, deps) {
+    /** @type {Map<string, Map<string, string>>} */
     const labels = new Map();
+    /** @type {Map<string, {name: string|null}>} */
     const tables = new Map();
     const { principal, resolveDatatableForStep, queryCompiler, accessFilter, datatableDbStore } = deps;
     const log = deps.log || (() => {});
@@ -389,7 +441,7 @@ async function resolveRelationLabels(rows, relations, deps) {
         try {
             target = await resolveDatatableForStep(tableId, principal, { needed: 'viewer' });
         } catch (e) {
-            log(`relation target ${tableId} is not readable by the knowledge base's owner: ${e.message}`);
+            log(`relation target ${tableId} is not readable by the knowledge base's owner: ${/** @type {Error} */ (e).message}`);
             continue;
         }
         tables.set(tableId, { name: target.table?.name || null });
@@ -411,7 +463,7 @@ async function resolveRelationLabels(rows, relations, deps) {
                     dialect: 'pg',
                 }, readFilter);
             } catch (e) {
-                log(`relation target ${tableId}: label query could not be compiled: ${e.message}`);
+                log(`relation target ${tableId}: label query could not be compiled: ${/** @type {Error} */ (e).message}`);
                 break;
             }
             const out = await datatableDbStore.query(target.scopeKey, target.scopeKey, compiled.sql, compiled.params);
@@ -431,8 +483,13 @@ async function resolveRelationLabels(rows, relations, deps) {
  * relation cell — `rowId` being the TARGET row. A cell whose target could not
  * be named still yields an entry (label null): the hop needs the id, and the
  * signature needs to notice when the name comes back.
+ * @param {Record<string, any>} row
+ * @param {RelationColumn[]} relations
+ * @param {Map<string, Map<string, string>>} labels
+ * @returns {RowRelation[]}
  */
 function rowRelations(row, relations, labels) {
+    /** @type {RowRelation[]} */
     const out = [];
     for (const rel of relations) {
         for (const id of cellIds(row?.[rel.column])) {
@@ -447,6 +504,7 @@ function rowRelations(row, relations, labels) {
  * detection can see a target rename without rebuilding the text. Null when
  * there is nothing to sign, which is what a document without relations has
  * always had.
+ * @param {RowRelation[]} rels
  */
 function relationSignature(rels) {
     if (!rels || rels.length === 0) return null;
@@ -458,7 +516,10 @@ function relationSignature(rels) {
     return crypto.createHash('sha1').update(canon).digest('hex').slice(0, 16);
 }
 
-/** `stored.metadata` as an object, whatever the driver handed back. */
+/**
+ * `stored.metadata` as an object, whatever the driver handed back.
+ * @param {Record<string, any> | null} stored
+ */
 function storedMeta(stored) {
     let m = stored?.metadata;
     if (typeof m === 'string') { try { m = JSON.parse(m); } catch (_) { m = null; } }
@@ -475,6 +536,8 @@ function storedMeta(stored) {
  * everything. The label signature is the one thing the timestamp cannot see:
  * a supplier renamed in ITS table changes this order's text while this row's
  * `updated_at` stands still.
+ * @param {DatatableItem} item
+ * @param {Record<string, any> | null} stored
  */
 function isUnchanged(item, stored) {
     if (!stored || !item?.sourceModifiedAt || !stored.source_modified_at) return false;
@@ -489,6 +552,7 @@ function isUnchanged(item, stored) {
  * 12,50" retrieves for "wat kost", where a bare "12,50" retrieves for nothing.
  * An empty cell is left out rather than written as "prijs: " — a line that
  * says a column exists and is empty is noise in every chunk it appears in.
+ * @param {DatatableItem} item
  */
 async function fetch(item) {
     const rows = item.rows || (item.row ? [item.row] : []);
@@ -524,7 +588,7 @@ async function fetch(item) {
 }
 
 /**
- * @param {object} row
+ * @param {Record<string, any>} row
  * @param {string[]} columns
  * @param {object} [opts]
  * @param {Array<{column:string, table:string}>} [opts.relations]  relation columns
@@ -532,6 +596,7 @@ async function fetch(item) {
  */
 function renderRow(row, columns, opts = {}) {
     const byColumn = new Map((opts.relations || []).map(r => [r.column, r.table]));
+    /** @type {string[]} */
     const lines = [];
     for (const key of columns) {
         const v = row[key];
@@ -550,7 +615,10 @@ function renderRow(row, columns, opts = {}) {
     return lines.join('\n');
 }
 
-/** A cell as a person would read it. Objects and arrays are JSON, not `[object Object]`. */
+/**
+ * A cell as a person would read it. Objects and arrays are JSON, not `[object Object]`.
+ * @param {unknown} v
+ */
 function formatCell(v) {
     if (v instanceof Date) return v.toISOString();
     if (typeof v === 'object') {
@@ -576,6 +644,9 @@ function formatCell(v) {
  * Best-effort. The index is what makes a delete ask first; failing to write it
  * must not fail the source the person just created, and the next edit
  * reconciles it.
+ * @param {string} kbId
+ * @param {{ kind: 'org' | 'user', id: string }} scope
+ * @param {{ kbSourcesStore?: typeof import('../../../stores/kbSources'), datatableStore?: typeof import('../../../stores/datatableStore') }} [deps]
  */
 async function reconcileUsage(kbId, scope, deps = {}) {
     if (!kbId || !scope) return 0;
@@ -586,17 +657,18 @@ async function reconcileUsage(kbId, scope, deps = {}) {
         const entries = (sources || [])
             .filter(s => s.kind === 'datatable' && s.config?.datatableId)
             .map(s => ({
-                datatableId: s.config.datatableId,
+                // The source's id of the table, as the create route stored it.
+                datatableId: /** @type {string} */ (s.config.datatableId),
                 stepId: s.id,
                 // A knowledge source only ever READS. Saying so is what lets
                 // the datatable's own UI show "as a source" rather than
                 // implying a knowledge base might write rows back.
-                mode: 'read',
+                mode: /** @type {const} */ ('read'),
                 columns: Array.isArray(s.config.columns) ? s.config.columns : [],
             }));
         return await datatableStore.reconcileUsageFor('kb', kbId, scope, entries);
     } catch (e) {
-        log.warn(`[KB] could not record datatable usage for ${kbId}:`, e.message);
+        log.warn(`[KB] could not record datatable usage for ${kbId}:`, /** @type {Error} */ (e).message);
         return 0;
     }
 }

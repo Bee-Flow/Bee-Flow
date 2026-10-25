@@ -45,6 +45,7 @@
 
 const configStore = require('../../stores/configStore');
 const { DEFAULT_RECORDING_FOLDER } = require('./talkRecordingPaths');
+const { fallback } = require('../../utils/bestEffort');
 
 const DEFAULTS = {
     autoTranscribe: false,
@@ -83,8 +84,8 @@ function asStrArray(v) { return Array.isArray(v) ? v.filter(x => typeof x === 's
  * defaults — and there was no way to hand a setting back.
  */
 async function resolveTalkNotesSettings({ orgId = null, userId = null } = {}) {
-    const org = orgId ? await configStore.getConfig(orgKey(orgId)).catch(() => null) : null;
-    const user = userId ? await configStore.getConfig(userKey(userId)).catch(() => null) : null;
+    const org = orgId ? await configStore.getConfig(orgKey(orgId)).catch((e) => fallback('core/meetingNotes/talkNotesSettings:resolveTalkNotesSettings', e, null)) : null;
+    const user = userId ? await configStore.getConfig(userKey(userId)).catch((e) => fallback('core/meetingNotes/talkNotesSettings:resolveTalkNotesSettings#2', e, null)) : null;
     const has = (doc, k) => doc && k in doc && doc[k] !== null && doc[k] !== undefined;
     const pick = (k) => has(org, k) ? org[k]
         : has(user, k) ? user[k]
@@ -179,3 +180,23 @@ module.exports = {
     saveOrgSettings,
     saveUserSettings,
 };
+
+/**
+ * @typedef {{ autoTranscribe: boolean, postSummaryBack: boolean, recordingFolder: string, language: string,
+ *   autoRecord: boolean, autoRecordScope: string, recordingMode: string, excludedEventUids: string[],
+ *   excludedRoomTokens: string[], defaultOwnerUserId: string | null, insightsPerPersonStats: boolean }} TalkNotesDefaults
+ */
+
+/**
+ * A settings patch from the API body; every field may be absent or an explicit null ("inherit").
+ * @typedef {{ autoTranscribe?: boolean | null, postSummaryBack?: boolean | null, recordingFolder?: string | null,
+ *   language?: string | null, autoRecord?: boolean | null, autoRecordScope?: string | null, recordingMode?: string | null,
+ *   excludedEventUids?: unknown, excludedRoomTokens?: unknown, defaultOwnerUserId?: string | null,
+ *   insightsPerPersonStats?: boolean | null }} TalkNotesPatch
+ */
+
+/**
+ * @typedef {Object} ResolveTalkNotesSettingsArgs
+ * @property {string | null} [orgId]
+ * @property {string | null} [userId]
+ */

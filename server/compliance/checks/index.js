@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Check auto-registration — requires every check file under one directory per
  * built-in framework (frameworks.js `checks_dir`: gdpr/, aia/, iso27001/,
@@ -17,8 +17,12 @@ const log = require('../../telemetry/log');
 // registry contract test walks exactly the same list.
 const CHECK_DIRS = Object.freeze(frameworks.listBuiltin().map(f => f.checks_dir));
 
+/** @type {string[]} */
 const _loadedDirs = [];
 
+/**
+ * @param {string} dir
+ */
 function _loadDir(dir) {
     const abs = path.join(__dirname, dir);
     if (!fs.existsSync(abs)) return false;
@@ -38,7 +42,7 @@ function _loadDir(dir) {
             const check = require(path.join(abs, file));
             registry.register(check);
         } catch (e) {
-            log.error(`[ComplianceChecks] Failed to load ${dir}/${file}:`, e.message);
+            log.error(`[ComplianceChecks] Failed to load ${dir}/${file}:`, /** @type {Error} */ (e).message);
         }
     }
     return true;

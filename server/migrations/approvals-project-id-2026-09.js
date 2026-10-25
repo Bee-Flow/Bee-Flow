@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: Solution membership on approvals (2026-09).
  *

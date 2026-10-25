@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The gate a round's tool calls pass through before anything runs.
  *
@@ -17,7 +17,11 @@ const { dedupeSideEffectToolCalls } = require('../toolCallDedupe');
 const { executeToolRound, _stableStringify } = require('../toolRoundExecutor');
 const { buildToolPolicy, fallbackToolPolicy, automationConfirmsFor } = require('../toolPolicy');
 const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
+/**
+ * @param {{ currentToolCalls: import('./turnState').ToolCall[], contentBuffer: string, onEvent: import('./turnState').OnEvent, _snapshotThinkingParts: ReturnType<typeof import('./turnState').createThinkingState>['snapshot'] }} round
+ */
 function buildRoundAssistantMessage({ currentToolCalls, contentBuffer, onEvent, _snapshotThinkingParts }) {
     // Clear intermediate planning text from the UI — only the final response
     // (from the last iteration without tool calls) should be visible to the user
@@ -59,6 +63,9 @@ function buildRoundAssistantMessage({ currentToolCalls, contentBuffer, onEvent, 
     return { currentToolCalls, assistantMessage };
 }
 
+/**
+ * @param {Omit<Parameters<typeof executeToolRound>[0], 'toolPolicy'> & { tools: import('./turnState').ToolDef[] } & Pick<Awaited<ReturnType<typeof import('./turnSetup').setupTurn>>, 'unattended'>} round
+ */
 async function dispatchToolRound({
     currentToolCalls, toolCalls, signal, onEvent, messages, durableMessages,
     persistDurable, dlpShield, regexConfig, webSearchGuardEnabled,
@@ -92,7 +99,7 @@ async function dispatchToolRound({
         // grant is keyed on the automation id, the tool on its
         // name), so it is rebuilt per round like the policy itself.
         _automationConfirms = automationConfirmsFor(tools, agent.config);
-    } catch (err) { log.debug('no overrides is the pre-grant behaviour', err); }
+    } catch (err) { fallback('core/agentRuntime/chatStream/toolRoundGate:dispatchToolRound', err); /* no overrides is the pre-grant behaviour */ }
     try {
         _roundPolicy = buildToolPolicy({
             agentConfig: agent.config, tools, unattended,

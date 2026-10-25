@@ -39,14 +39,14 @@ const FIELDS = {
 };
 
 /** Misses that leave a hole in a write (see the header). */
-const isBlank = (m) => (m.kind === 'expr' && (m.reason === 'syntax' || m.reason === 'error'))
+const isBlank = (/** @type {{ kind: string; reason: string; path: string; }} */ m) => (m.kind === 'expr' && (m.reason === 'syntax' || m.reason === 'error'))
     || ((m.kind === 'template' || m.kind === 'expr') && m.reason === 'missing'
         && typeof m.path === 'string' && READS_STEP_OUTPUT.test(m.path));
 
 function failOnBlankInputs(step, misses) {
     const blank = misses.filter(isBlank);
     if (!blank.length) return;
-    const lines = blank.slice(0, 3).map(m => describeBindingMiss(m)).join('; ');
+    const lines = blank.slice(0, 3).map((/** @type {{ count: number; }} */ m) => describeBindingMiss(m)).join('; ');
     const more = blank.length > 3 ? ` (and ${blank.length - 3} more)` : '';
     /** @type {import('./runnerError.types').RunnerError} */
     const err = new Error(`Step ${step.id || '?'} was not run: its inputs read data that is not there. ${lines}${more}. `
@@ -61,6 +61,9 @@ function preflightBlankInputs(step, runState, mode) {
     if (!fieldsOf || mode === 'dry_run') return;
     // The executor logs its own misses and run warnings; this pass stays out of both.
     const state = { ...runState, _templateWarnings: undefined };
+    /**
+     * @type {{ kind: string; reason: string; path: string; }[]}
+     */
     const misses = [];
     withBindingLog(misses, () => {
         for (const [field, value] of fieldsOf(step)) {
@@ -73,3 +76,9 @@ function preflightBlankInputs(step, runState, mode) {
 }
 
 module.exports = { failOnBlankInputs, preflightBlankInputs };
+
+/**
+ * The step fields this pass reads.
+ * @typedef {{ id?: string, type?: string, title?: string, body?: string, url?: string, headers?: Record<string, string>,
+ *             method?: string, content?: string, subtitle?: string, saveCopy?: boolean, copyName?: string }} BlankInputStep
+ */

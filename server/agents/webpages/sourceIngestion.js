@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Webpage Source Ingestion — mirror of agents/notebooks/sourceIngestion.js
  * but talks to webpageStore so each webpage owns its own KB and source rows.
@@ -21,6 +21,8 @@ const log = require('../../telemetry/log');
 
 /**
  * Ensure the webpage has a linked KB — auto-create one if needed.
+ * @param {string} webpageId
+ * @param {string} userId
  */
 async function ensureWebpageKB(webpageId, userId) {
     const webpage = await webpageStore.getWebpage(webpageId, userId);
@@ -46,6 +48,13 @@ async function ensureWebpageKB(webpageId, userId) {
     return kbId;
 }
 
+/**
+ * @param {string} webpageId
+ * @param {string | null} sourceId
+ * @param {string} userId
+ * @param {string} text
+ * @param {string} sourceName
+ */
 async function ingestTextIntoKB(webpageId, sourceId, userId, text, sourceName) {
     if (!text || text.length < 10) {
         await webpageStore.updateSource(sourceId, { status: 'ready', wordCount: 0 });
@@ -77,21 +86,35 @@ async function ingestTextIntoKB(webpageId, sourceId, userId, text, sourceName) {
             await webpageStore.updateSource(sourceId, { status: 'ready', wordCount });
             return;
         }
-        log.error(`[WebpageSourceIngestion] Failed to ingest "${sourceName}":`, e.message);
+        log.error(`[WebpageSourceIngestion] Failed to ingest "${sourceName}":`, /** @type {Error} */ (e).message);
         await webpageStore.updateSource(sourceId, { status: 'error', error: friendlyError(e) });
     }
 }
 
+/**
+ * @param {string} webpageId
+ * @param {string} sourceId
+ * @param {string} userId
+ * @param {Buffer<ArrayBufferLike> | Buffer<ArrayBuffer>} buffer
+ * @param {string} fileName
+ * @param {string} mimeType
+ */
 async function ingestFileSource(webpageId, sourceId, userId, buffer, fileName, mimeType) {
     try {
         const text = await extractFileContent(buffer, mimeType, fileName);
         await ingestTextIntoKB(webpageId, sourceId, userId, text, fileName);
     } catch (e) {
-        log.error(`[WebpageSourceIngestion] File parse failed for "${log.nameForLog(fileName)}":`, e.message);
+        log.error(`[WebpageSourceIngestion] File parse failed for "${log.nameForLog(fileName)}":`, /** @type {Error} */ (e).message);
         await webpageStore.updateSource(sourceId, { status: 'error', error: friendlyError(e) });
     }
 }
 
+/**
+ * @param {string} webpageId
+ * @param {string} sourceId
+ * @param {string} userId
+ * @param {string} url
+ */
 async function ingestUrlSource(webpageId, sourceId, userId, url) {
     try {
         const { content, title, resolvedUrl } = await fetchUrlContent(url);
@@ -101,15 +124,29 @@ async function ingestUrlSource(webpageId, sourceId, userId, url) {
         });
         await ingestTextIntoKB(webpageId, sourceId, userId, content, resolvedUrl);
     } catch (e) {
-        log.error(`[WebpageSourceIngestion] URL fetch failed for "${url}":`, e.message);
+        log.error(`[WebpageSourceIngestion] URL fetch failed for "${url}":`, /** @type {Error} */ (e).message);
         await webpageStore.updateSource(sourceId, { status: 'error', error: friendlyError(e) });
     }
 }
 
+/**
+ * @param {string} webpageId
+ * @param {string} sourceId
+ * @param {string} userId
+ * @param {string} text
+ * @param {string} name
+ */
 async function ingestTextSource(webpageId, sourceId, userId, text, name) {
     await ingestTextIntoKB(webpageId, sourceId, userId, text, name || 'Pasted text');
 }
 
+/**
+ * @param {string} webpageId
+ * @param {string} sourceId
+ * @param {string} userId
+ * @param {string} content
+ * @param {string} fileName
+ */
 async function ingestDriveSource(webpageId, sourceId, userId, content, fileName) {
     await ingestTextIntoKB(webpageId, sourceId, userId, content, fileName);
 }

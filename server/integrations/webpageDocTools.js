@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Webpage Document Tools
  *
@@ -120,9 +121,10 @@ const WEBPAGE_ADD_SOURCE_TOOL = {
  * Execute a webpage document tool call.
  *
  * @param {string} toolName
- * @param {object} args
- * @param {{html:string, css:string, js:string}} files — in-memory triple kept in sync with the editor.
- * @param {object} [ctx] — optional per-turn context: `{ readSlots: Set<string> }` for the read-before-edit guard.
+ * @param {{ file?: string, content?: string, title?: string, find_text?: string, replace_text?: string, replace_all?: boolean, start_line?: number, end_line?: number, expected_text?: string, replacement?: string }} args
+ * @param {{html:string, css:string, js:string}} files - in-memory triple kept in sync with the editor.
+ * @param {{ readSlots?: Set<string> }} [ctx] - optional per-turn context: `{ readSlots: Set<string> }` for the read-before-edit guard.
+ * @returns {{ error?: string, content?: string, message?: string, _action?: string, file?: string, title?: string }}
  */
 function executeWebpageDocTool(toolName, args, files, ctx = {}) {
     const readSlots = ctx.readSlots instanceof Set ? ctx.readSlots : null;
@@ -133,7 +135,7 @@ function executeWebpageDocTool(toolName, args, files, ctx = {}) {
             return { error: `Invalid file "${file}" — must be one of: ${VALID_SLOTS.join(', ')}.` };
         }
         if (readSlots) readSlots.add(file);
-        const content = files?.[file] || '';
+        const content = files?.[/** @type {'html' | 'css' | 'js'} */ (file)] || '';
         if (!content.trim()) {
             return { content: '', message: `${slotFilename(file)} is currently empty.` };
         }
@@ -151,7 +153,7 @@ function executeWebpageDocTool(toolName, args, files, ctx = {}) {
         // Soft warning when overwriting a non-empty file with new content of
         // similar size. The write still applies, but the AI sees this in the
         // tool result and learns to prefer partial edits next time.
-        const previous = files?.[file] || '';
+        const previous = files?.[/** @type {'html' | 'css' | 'js'} */ (file)] || '';
         let warning = '';
         if (previous.trim().length > 0) {
             // Heuristic: if both old and new are sizeable (>200 chars) and the
@@ -187,7 +189,7 @@ function executeWebpageDocTool(toolName, args, files, ctx = {}) {
             return { error: 'find_text is required for webpage_file_replace.' };
         }
 
-        const current = files?.[file] || '';
+        const current = files?.[/** @type {'html' | 'css' | 'js'} */ (file)] || '';
         if (!current) {
             return { error: `${slotFilename(file)} is empty. Use webpage_file_write to create content first.` };
         }
@@ -258,7 +260,7 @@ function executeWebpageDocTool(toolName, args, files, ctx = {}) {
             return { error: `start_line and end_line must be 1-indexed integers with start_line ≤ end_line. Got start_line=${args.start_line}, end_line=${args.end_line}.` };
         }
 
-        const current = files?.[file] || '';
+        const current = files?.[/** @type {'html' | 'css' | 'js'} */ (file)] || '';
         const lines = current.split('\n');
         if (endLine > lines.length) {
             return { error: `end_line (${endLine}) is past end of ${slotFilename(file)} which has ${lines.length} lines. Call webpage_file_read to recount.` };
@@ -288,6 +290,9 @@ function executeWebpageDocTool(toolName, args, files, ctx = {}) {
 // Helpers
 // ───────────────────────────────────────────────────────────────────
 
+/**
+ * @param {string | undefined} slot
+ */
 function slotFilename(slot) {
     return slot === 'html' ? 'index.html' : slot === 'css' ? 'style.css' : 'script.js';
 }
@@ -298,10 +303,12 @@ function slotFilename(slot) {
  * every line is preserved (probably a partial edit that became a full
  * rewrite — should have used webpage_file_replace). 0.0 means none of the
  * old structure survives.
+ * @param {string} oldText
+ * @param {string} newText
  */
 function lineOverlapRatio(oldText, newText) {
     if (!oldText || !newText) return 0;
-    const oldLines = new Set(oldText.split('\n').map(s => s.trim()).filter(Boolean));
+    const oldLines = new Set(oldText.split('\n').map((s) => s.trim()).filter(Boolean));
     const newLines = newText.split('\n').map(s => s.trim()).filter(Boolean);
     if (newLines.length === 0) return 0;
     let kept = 0;
@@ -312,6 +319,9 @@ function lineOverlapRatio(oldText, newText) {
 /**
  * Wrap a successful edit with the standard `_action` envelope plus a soft
  * read-before-edit warning when the AI skipped reading the slot this turn.
+ * @param {string | undefined} file
+ * @param {string} newContent
+ * @param {{ message: string, readSlots: Set<string> | null }} opts
  */
 function wrapEditResult(file, newContent, { message, readSlots }) {
     let finalMessage = message;
@@ -330,7 +340,12 @@ function wrapEditResult(file, newContent, { message, readSlots }) {
  * When the AI's find_text doesn't match, surface a short diff-style hint so it
  * can self-correct in one round-trip instead of guessing again.
  */
-/** The shared hint, told how a webpage tool asks the model to re-read. */
+/**
+ * The shared hint, told how a webpage tool asks the model to re-read.
+ * @param {string} current
+ * @param {string} findText
+ * @param {string | undefined} file
+ */
 function buildNearestMatchHint(current, findText, file) {
     return buildHint(current, findText, `Call webpage_file_read({file:"${file}"})`);
 }

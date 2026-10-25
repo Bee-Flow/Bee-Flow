@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Skills API — CRUD routes for reusable instruction packs.
  *
@@ -182,7 +183,7 @@ router.use(requireAuth);
 // not have created the example anyway.
 const examples = () => require('./skills/examples');
 router.get('/examples/conversations', requirePermission('manage_skills'), validate({ query: NoQuery }), (req, res) => examples().listConversations(req, res));
-router.get('/examples/conversations/:conversationId/messages', requirePermission('manage_skills'), validate({ query: NoQuery }), (req, res) => examples().listMessages(req, res));
+router.get('/examples/conversations/:conversationId/messages', requirePermission('manage_skills'), validate({ query: NoQuery }), /** @param {import('express').Request<{ conversationId: string }>} req */ (req, res) => examples().listMessages(req, res));
 
 // ── S3: drafting with AI, and the Test tab ─────────────────────────
 // Same lazy-require rule as the examples handlers above, and it matters more
@@ -192,7 +193,9 @@ router.get('/examples/conversations/:conversationId/messages', requirePermission
 // so registering a route never loads them either.
 const ai = () => require('./skills/ai');
 const tests = () => require('./skills/test');
+/** @type {import('express').RequestHandler} */
 const aiLimit = (req, res, next) => ai().limiter(req, res, next);
+/** @type {import('express').RequestHandler} */
 const testLimit = (req, res, next) => tests().limiter(req, res, next);
 
 // Before `/:id`, the same reason `/usage-summary` is: the literal strings
@@ -204,6 +207,7 @@ router.post('/ai/draft', requirePermission('manage_skills'), validate({ body: Dr
 router.get('/test-agents', requirePermission('manage_skills'), validate({ query: NoQuery }), (req, res) => tests().listAgents(req, res));
 
 // Helper: resolve the user's org ID
+/** @param {import('express').Request} req */
 async function getOrgId(req) {
     const userStore = require('../stores/userStore');
     const user = await userStore.getUser(req.session.user.id);
@@ -211,6 +215,7 @@ async function getOrgId(req) {
 }
 
 // The viewer context the store uses for per-row `canEdit`.
+/** @param {import('express').Request} req */
 async function viewerOf(req) {
     let canManage = false;
     try { canManage = await hasPermission(req.session.user.id, 'manage_skills', req.session); } catch (_) { canManage = false; }
@@ -218,6 +223,10 @@ async function viewerOf(req) {
 }
 
 // A malformed structured field is the caller's mistake, not a 500.
+/**
+ * @param {import('express').Response} res
+ * @param {Error & { status?: number, code?: string, field?: string | null }} err
+ */
 function answerStructureError(res, err) {
     if (err instanceof SkillStructureError || err?.name === 'SkillStructureError') {
         res.status(err.status || 400).json({ error: err.message, code: err.code || 'invalid_structure', field: err.field || null });
@@ -226,11 +235,13 @@ function answerStructureError(res, err) {
     return false;
 }
 
+/** @param {import('express').Request} req */
 function confirmedBreaking(req) {
     return req.body?.confirmBreaking === true || req.query?.confirmBreaking === 'true';
 }
 
 // The structured fields a body may carry; `undefined` = not sent = leave as-is.
+/** @param {Record<string, unknown>} body the validated request body */
 function pickStructured(body) {
     const { steps, rulesV2, examplesV2, outputSchema, knowledgeBaseIds, allowedAutomationIds } = body || {};
     return { steps, rulesV2, examplesV2, outputSchema, knowledgeBaseIds, allowedAutomationIds };
@@ -296,6 +307,7 @@ router.post('/', requirePermission('manage_skills'), validate({ body: CreateSkil
  * `managed: null | {solutionId, solutionName, stage, releaseSeq, devRef}`: the
  * Solution stage that owns this skill (design 5.3). The client never derives
  * it; a skill outside a stage project answers null without a stage read.
+ * @param {{ id: string, projectId?: string | null }} skill
  */
 async function managedOf(skill) {
     if (!skill?.projectId || !(await managedParts.managedInfo(skill.projectId))) return null;
@@ -303,7 +315,7 @@ async function managedOf(skill) {
 }
 
 // ── GET /api/skills/:id — get skill details ──────────────────
-router.get('/:id', validate({ query: NoQuery }), async (req, res) => {
+router.get('/:id', validate({ query: NoQuery }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     // orgId may be null → getSkill resolves the caller's personal skill.
     const orgId = await getOrgId(req);
     const viewer = await viewerOf(req);
@@ -313,7 +325,7 @@ router.get('/:id', validate({ query: NoQuery }), async (req, res) => {
 });
 
 // ── GET /api/skills/:id/usage — who uses this skill ──────────
-router.get('/:id/usage', validate({ query: NoQuery }), async (req, res) => {
+router.get('/:id/usage', validate({ query: NoQuery }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const orgId = await getOrgId(req);
     const skill = await skillStore.getSkill(req.params.id, orgId, req.session.user.id);
     if (!skill) return res.status(404).json({ error: 'Skill not found' });
@@ -338,7 +350,7 @@ router.get('/:id/usage', validate({ query: NoQuery }), async (req, res) => {
 // fetched WITH the viewer so `canEdit` is real.
 // 403, not 404: the skill itself is visible, so a 404 would lie about it —
 // the same answer POST /:id/ai/improve gives (routes/skills/ai.js).
-router.get('/:id/test-runs', requirePermission('manage_skills'), validate({ query: NoQuery }), async (req, res) => {
+router.get('/:id/test-runs', requirePermission('manage_skills'), validate({ query: NoQuery }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const orgId = await getOrgId(req);
     const viewer = await viewerOf(req);
     const skill = await skillStore.getSkill(req.params.id, orgId, req.session.user.id, viewer);
@@ -360,7 +372,7 @@ router.get('/:id/test-runs', requirePermission('manage_skills'), validate({ quer
  * @param {string[]} changedKeys  what the handler would change
  */
 function refuseStageSkill(changedKeys) {
-    return async (req, res, next) => {
+    return /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res @param {import('express').NextFunction} next */ async (req, res, next) => {
         const orgId = await getOrgId(req);
         const viewer = await viewerOf(req);
         const skill = await skillStore.getSkill(req.params.id, orgId, req.session.user.id, viewer);
@@ -375,21 +387,21 @@ function refuseStageSkill(changedKeys) {
 // Turn one message of the caller's OWN conversation into an example. Same
 // `manage_skills` gate as every other skill write; the handler re-checks
 // `canEdit` on the row and reads the conversation owner-scoped.
-router.post('/:id/examples/from-message', requirePermission('manage_skills'), validate({ body: FromMessageBody }), refuseStageSkill(['examplesV2']), (req, res) => examples().fromMessage(req, res));
+router.post('/:id/examples/from-message', requirePermission('manage_skills'), validate({ body: FromMessageBody }), refuseStageSkill(['examplesV2']), /** @param {import('express').Request<{ id: string }>} req */ (req, res) => examples().fromMessage(req, res));
 
 // ── POST /api/skills/:id/ai/improve — rewrite this skill with AI ─────
 // A WRITE: it persists through updateSkill and answers with the stored row.
 // Same gate as every other skill write; the handler re-checks `canEdit`.
-router.post('/:id/ai/improve', requirePermission('manage_skills'), validate({ body: ImproveBody }), refuseStageSkill(['instructions']), aiLimit, (req, res) => ai().improve(req, res));
+router.post('/:id/ai/improve', requirePermission('manage_skills'), validate({ body: ImproveBody }), refuseStageSkill(['instructions']), aiLimit, /** @param {import('express').Request<{ id: string }>} req */ (req, res) => ai().improve(req, res));
 
 // ── POST /api/skills/:id/test — one question through the steps (SSE) ──
 // Writes a `skill_test_runs` row that the overview reads as a verdict, and
 // spends tokens, so it carries the same gate as the other skill writes.
 // The body is checked before the stream opens, so a refusal is still JSON.
-router.post('/:id/test', requirePermission('manage_skills'), validate({ body: TestBody }), testLimit, (req, res) => tests().run(req, res));
+router.post('/:id/test', requirePermission('manage_skills'), validate({ body: TestBody }), testLimit, /** @param {import('express').Request<{ id: string }>} req */ (req, res) => tests().run(req, res));
 
 // ── PUT /api/skills/:id — update a skill ─────────────────────
-router.put('/:id', requirePermission('manage_skills'), validate({ body: UpdateSkillBody }), async (req, res) => {
+router.put('/:id', requirePermission('manage_skills'), validate({ body: UpdateSkillBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     try {
         // Instructions over 4000 characters are the schema's refusal, before
         // anything is read or written.
@@ -428,7 +440,7 @@ router.put('/:id', requirePermission('manage_skills'), validate({ body: UpdateSk
 });
 
 // ── DELETE /api/skills/:id — delete a skill ──────────────────
-router.delete('/:id', validate({ query: DeleteQuery, body: DeleteBody }), async (req, res) => {
+router.delete('/:id', validate({ query: DeleteQuery, body: DeleteBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const isAdmin = req.session?.isAdmin || req.session?.user?.role === 'admin';
     const orgId = await getOrgId(req);
 
@@ -467,4 +479,4 @@ module.exports = router;
 // catch — this module is always loaded by then, since it is the only thing
 // that loads that file), so the from-message write refuses with the same
 // `400 {code}` the PUT does instead of a bare 500.
-module.exports.answerStructureError = answerStructureError;
+/** @type {import('express').Router & Record<string, unknown>} */ (module.exports).answerStructureError = answerStructureError;

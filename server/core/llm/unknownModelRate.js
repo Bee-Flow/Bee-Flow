@@ -50,6 +50,9 @@ const VENDOR_SETS = Object.freeze({
     azure: ['azure', 'openai'],
     'google-vertex': ['google-vertex', 'google'],
 });
+/**
+ * @param {string} vendor
+ */
 function vendorSet(vendor) {
     return new Set(VENDOR_SETS[vendor] || [vendor]);
 }
@@ -58,6 +61,7 @@ function vendorSet(vendor) {
  * Name -> { words, version } with provider prefixes, tags, dates and noise
  * removed. `gpt-5.6-sol` -> words [gpt, sol], version [5, 6];
  * `claude-3-5-sonnet-20241022` -> words [claude, sonnet], version [3, 5].
+ * @param {string} id
  */
 function parseModelId(id) {
     let s = String(id || '').toLowerCase();
@@ -65,7 +69,9 @@ function parseModelId(id) {
     s = s.replace(/[@:].*$/, '');
     s = s.replace(/[-_.]?20\d{2}[-_]?\d{2}[-_]?\d{2}(?=$|[-_])/g, '');
     s = s.replace(/-\d{4}$/, '');
+    /** @type {string[]} */
     const words = [];
+    /** @type {number[]} */
     const version = [];
     for (const tok of s.split(/[-_\s]+/)) {
         if (!tok || NOISE.has(tok)) continue;
@@ -75,11 +81,20 @@ function parseModelId(id) {
     return { words, version };
 }
 
+/**
+ * @param {number[]} a
+ */
 function versionDistance(a, b) {
+    /**
+     * @param {number} i
+     */
     const d = (i) => Math.abs((a[i] || 0) - (b[i] || 0));
     return d(0) * 1000 + d(1) * 10 + d(2);
 }
 
+/**
+ * @param {string} id
+ */
 const isNonChat = (id) => NON_CHAT.test(String(id));
 
 /**
@@ -110,10 +125,17 @@ function prepareCandidates(list) {
     return out;
 }
 
+/**
+ * @param {number[]} sorted
+ * @param {number} p
+ */
 function percentile(sorted, p) {
     return sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil(p * sorted.length) - 1))];
 }
 
+/**
+ * @param {{ words: string[]; version: number[]; }} unknown
+ */
 function pickFamily(unknown, pool) {
     const wanted = new Set(unknown.words);
     const rootOnly = unknown.words.length <= 1;
@@ -142,6 +164,9 @@ function pickFamily(unknown, pool) {
     return best && best.c;
 }
 
+/**
+ * @param {string} s
+ */
 function sourceId(s) {
     return String(s).replace(/[^A-Za-z0-9._:/@+-]/g, '_').slice(0, 80);
 }
@@ -205,3 +230,7 @@ module.exports = {
     prepareCandidates,
     estimateRate,
 };
+
+/**
+ * @typedef {ReturnType<typeof prepareCandidates>[number]} Candidate
+ */

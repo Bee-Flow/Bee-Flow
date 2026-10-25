@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * CalDAV plumbing for the Nextcloud tasks tools: multistatus parsing, list
  * discovery (supportsTasks / writable) and readable errors for failed writes.
@@ -17,6 +17,15 @@ const xmlParser = new XMLParser({
     htmlEntities: true,
 });
 
+/**
+ * A parsed CalDAV multistatus (fast-xml-parser, namespace prefixes removed); only the parts read here.
+ * @typedef {{ '@_name'?: string, name?: string }} DavComp
+ * @typedef {{ displayname?: string, resourcetype?: { calendar?: unknown } | string,
+ *   'supported-calendar-component-set'?: { comp?: DavComp | DavComp[] }, [prop: string]: unknown }} DavProps
+ * @typedef {{ status?: string, prop?: DavProps }} DavPropstat
+ * @typedef {{ href?: string, propstat?: DavPropstat | DavPropstat[] }} DavResponse
+ */
+
 const PROPFIND_LISTS = `<?xml version="1.0" encoding="utf-8" ?>
 <d:propfind xmlns:d="DAV:" xmlns:cs="http://calendarserver.org/ns/" xmlns:c="urn:ietf:params:xml:ns:caldav" xmlns:oc="http://owncloud.org/ns">
   <d:prop>
@@ -28,13 +37,17 @@ const PROPFIND_LISTS = `<?xml version="1.0" encoding="utf-8" ?>
   </d:prop>
 </d:propfind>`;
 
+/**
+ * @param {string | Uint8Array<ArrayBufferLike>} xml
+ */
 function parseMultistatusResponses(xml) {
     const parsed = xmlParser.parse(xml);
     const ms = parsed?.multistatus;
     if (!ms) return [];
     const list = Array.isArray(ms.response) ? ms.response : (ms.response ? [ms.response] : []);
-    return list.map((r) => {
+    return list.map((/** @type {DavResponse} */ r) => {
         const propstats = Array.isArray(r.propstat) ? r.propstat : (r.propstat ? [r.propstat] : []);
+        /** @type {DavProps} */
         const props = {};
         for (const ps of propstats) {
             const status = ps.status || '';
@@ -45,21 +58,27 @@ function parseMultistatusResponses(xml) {
     });
 }
 
+/** @param {DavProps} props */
 function supportsVTodo(props) {
     const set = props['supported-calendar-component-set'];
     // RFC 4791: a calendar without the property accepts every component type.
     if (!set) return true;
     if (!set.comp) return false;
     const comps = Array.isArray(set.comp) ? set.comp : [set.comp];
-    return comps.some((c) => c && (c['@_name'] === 'VTODO' || c.name === 'VTODO'));
+    return comps.some((/** @type {{ [x: string]: string; name: string; }} */ c) => c && (c['@_name'] === 'VTODO' || c.name === 'VTODO'));
 }
 
+/** @param {DavProps} props */
 function isCalendarCollection(props) {
     const rt = props.resourcetype;
     return !!rt && typeof rt === 'object' && rt.calendar !== undefined;
 }
 
-/** Every calendar collection, with whether it can hold tasks and whether the user may write to it. */
+/**
+ * Every calendar collection, with whether it can hold tasks and whether the user may write to it.
+ * @param {string | Uint8Array<ArrayBufferLike>} xml
+ * @param {string} uid
+ */
 function parsePropfindLists(xml, uid) {
     const root = `/remote.php/dav/calendars/${decodeURIComponent(uid)}`;
     const lists = [];
@@ -75,6 +94,12 @@ function parsePropfindLists(xml, uid) {
     return lists;
 }
 
+/**
+ * @param {import('./nextcloudClient.types').NcAuth['fetch']} ncFetch
+ * @param {string} root
+ * @param {string | undefined} uid
+ * @param {string} authError
+ */
 async function fetchLists(ncFetch, root, uid, authError) {
     const res = await ncFetch(`${root}/`, {
         method: 'PROPFIND',
@@ -86,7 +111,13 @@ async function fetchLists(ncFetch, root, uid, authError) {
     return { lists: parsePropfindLists(await res.text(), uid) };
 }
 
-/** Readable text for a failed task write; never raw XML, and no server detail on a 5xx. */
+/**
+ * Readable text for a failed task write; never raw XML, and no server detail on a 5xx.
+ * @param {string} action
+ * @param {string} list
+ * @param {number} status
+ * @param {string} body
+ */
 function taskWriteError(action, list, status, body) {
     if (status >= 500) return `Task ${action} failed (${status}): the Nextcloud server reported an internal error.`;
     const reason = extractReason(body);

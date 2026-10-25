@@ -69,7 +69,7 @@ const VERSION_DDL = Object.freeze([
     "UPDATE studio_document_versions SET source = 'created' WHERE source = 'legacy' AND summary = 'Created'",
 ]);
 
-/** @param {any} value */
+/** @param {string} value */
 function parseJson(value, fallback) {
     if (value == null) return fallback;
     if (typeof value !== 'string') return value;
@@ -252,7 +252,7 @@ async function listRows(getAll, documentId, { limit = 30, cursor = null } = {}) 
     };
 }
 
-/** @param {any} createdAt @param {string} id */
+/** @param {string | number | Date} createdAt @param {string} id */
 function encodeCursor(createdAt, id) {
     const iso = createdAt instanceof Date ? createdAt.toISOString() : new Date(createdAt).toISOString();
     return Buffer.from(`${iso}|${id}`, 'utf8').toString('base64url');

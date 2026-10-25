@@ -24,6 +24,9 @@ const log = require('../../telemetry/log');
 // Sites that have never been published serve their draft as before
 // (caller falls back to getEffective).
 
+/**
+ * @param {string} siteId
+ */
 async function getPublishedSnapshot(siteId, { fresh = false } = {}) {
     assertSiteId(siteId);
     const read = fresh ? configStore.getConfigFresh : configStore.getConfig;
@@ -48,6 +51,9 @@ function likePrefix(prefix) {
     return `${prefix.replace(/[\\%_]/g, '\\$&')}%`;
 }
 
+/**
+ * @param {string} siteId
+ */
 async function publishSite(siteId) {
     assertSiteId(siteId);
 
@@ -85,7 +91,7 @@ async function publishSite(siteId) {
         const storageStore = require('../storageStore');
         await enrichMediaDims(pages, makeStorageProbe(storageStore));
     } catch (e) {
-        log.warn('[CMS] publish media-dims enrichment skipped:', e.message);
+        log.warn('[CMS] publish media-dims enrichment skipped:', /** @type {Error} */ (e).message);
     }
 
     const siteLocaleOverrides = {};
@@ -121,6 +127,9 @@ async function publishSite(siteId) {
     const pageHash = (page, overrides) => crypto.createHash('sha256')
         .update(JSON.stringify({ page, overrides: overrides || null }))
         .digest('hex');
+    /**
+     * @param {string} id
+     */
     const prevMetaFor = (id) => {
         const stored = prev?.pageMeta?.[id];
         if (stored?.hash) return stored;

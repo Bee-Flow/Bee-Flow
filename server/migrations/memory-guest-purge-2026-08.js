@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: remove memories written for anonymous visitors.
  *

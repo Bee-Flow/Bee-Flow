@@ -57,3 +57,9 @@ function publicAudience(page, { owner = false } = {}) {
 }
 
 module.exports = { AUDIENCES, audienceAdmits, needsGroups, publicAudience };
+
+/**
+ * @typedef {{ userId?: string, organizationId?: string | null, audience?: string, sharedUserIds?: string[], sharedGroups?: string[] }} Audience
+ *   who may fill a form in, as the form row carries it
+ * @typedef {{ id?: string, organizationId?: string | null }} Caller  the person asking
+ */

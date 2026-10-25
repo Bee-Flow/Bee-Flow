@@ -29,6 +29,9 @@ function makeConversationFns({ run, getOne, getAll, initDB }) {
      */
     async function countChatHoldings(projectId) {
         await initDB();
+        /**
+         * @param {string} sql
+         */
         const count = async (sql) => {
             try {
                 const row = await getOne(sql, [projectId]);
@@ -140,6 +143,9 @@ function makeConversationFns({ run, getOne, getAll, initDB }) {
     // Both helpers require userId so we only touch conversations the caller owns.
     // Without this guard, anyone with editor+ on a project could attach (or detach)
     // other users' conversations via the project assignment endpoint.
+    /**
+     * @param {string} [tableName]
+     */
     async function assignConversation(conversationId, projectId, userId, tableName = 'direct_conversations') {
         await initDB();
         if (!userId) return false;
@@ -151,6 +157,9 @@ function makeConversationFns({ run, getOne, getAll, initDB }) {
         return rowCount > 0;
     }
 
+    /**
+     * @param {string} [tableName]
+     */
     async function unassignConversation(conversationId, userId, tableName = 'direct_conversations') {
         await initDB();
         if (!userId) return false;

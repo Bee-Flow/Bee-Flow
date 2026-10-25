@@ -10,6 +10,7 @@
  */
 const { sanitizeToolResult } = require('../../utils/sanitize');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * Connection lending (GATED, default off): a shared agent run by another user
@@ -41,7 +42,7 @@ async function resolveLentIdentity({ toolName, agent, agentId, userId, userAuth,
             });
             if (ov) { effUserId = ov.integrationUserId; effOrgId = ov.integrationOrgId; lentConnection = ov; }
         }
-    } catch (err) { log.debug('fail closed to bring-your-own', err); }
+    } catch (err) { fallback('core/agentRuntime/chatWithAgentTools:resolveLentIdentity', err); /* fail closed to bring-your-own */ }
     return { effUserId, effOrgId, lentConnection };
 }
 
@@ -92,7 +93,7 @@ async function dispatchChatTool({ toolName, toolArgs, fixedParams, identity, ctx
         });
     } catch (err) {
         log.error(`[Agent] Tool execution failed for ${toolName}:`, err);
-        return { error: err.message };
+        return { error: /** @type {Error} */ (err).message };
     }
 }
 
@@ -153,3 +154,8 @@ async function executeChatToolCall(toolCall, ctx) {
 }
 
 module.exports = { executeChatToolCall };
+
+/**
+ * @typedef {{ mayLendOwnerConnection: typeof import('./toolPolicy').mayLendOwnerConnection, connectionResolution: () => typeof import('../integrations/connectionResolution'), toolDispatcher: () => typeof import('../tools/toolDispatcher'), toolPiiGate: () => typeof import('../privacy/toolPiiGate') }} ToolDeps
+ * @typedef {{ agent: import('./chatStream/turnState').AgentRow, agentId: string, userId: string, userAuth: import('./chatStream/turnState').UserAuth, conversation: import('./chatStream/turnState').ConversationRow, modelToUse: string, toolParamsMap: Record<string, unknown>, orgShield: Awaited<ReturnType<typeof import('../privacy/orgShield').resolveShieldFor>>, logShieldEvent: (fields: Record<string, unknown>) => void, d: ToolDeps }} ChatToolCtx
+ */

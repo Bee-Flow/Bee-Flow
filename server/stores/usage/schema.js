@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The ai_usage_log and payg_meter_outbox tables: their boot DDL, the additive
  * column/index ladder and the REAL -> DOUBLE PRECISION widening of the cost
@@ -134,7 +134,7 @@ async function _initDB() {
     try {
         await widenCostColumns();
     } catch (e) {
-        log.error(`[UsageStore] could not widen the cost columns: ${e.message}`);
+        log.error(`[UsageStore] could not widen the cost columns: ${/** @type {Error} */ (e).message}`);
     }
 
     // PAYG meter event outbox — durable queue for Stripe meter event delivery.

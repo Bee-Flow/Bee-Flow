@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck strict
 /**
  * One-time migration: Dutch for the schedules panel of the agent builder
  * (namespace agent_schedules): Cowork items that run as this agent, which used

@@ -4,6 +4,9 @@ const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CONSUMER_TENANT = '9188040d-6c67-4c5b-b112-36a304b66dad';
 let keys;
 
+/**
+ * @param {string | undefined} token
+ */
 async function verifyMicrosoftIdentity(token, { clientId, tenantId = 'common', nonce }, seams = {}) {
     if (!token || !nonce || !clientId) throw new Error('Missing Microsoft identity proof');
     const jose = await import('jose');
@@ -29,6 +32,10 @@ async function verifyMicrosoftIdentity(token, { clientId, tenantId = 'common', n
     return { azureTenantId: tid, azureUserId: payload.oid.toLowerCase() };
 }
 
+/**
+ * @param {string} graphId
+ * @param {{ azureUserId: string; }} identity
+ */
 function assertGraphIdentity(identity, graphId) {
     if (!GUID.test(graphId) || graphId.toLowerCase() !== identity.azureUserId) throw new Error('Microsoft Graph identity mismatch');
 }

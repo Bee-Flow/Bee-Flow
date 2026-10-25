@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The trash bin — list deleted items, restore one to its original location, or
  * remove it permanently.
@@ -8,6 +8,11 @@ const { parseMultistatus, isCollectionProp } = require('./webdav');
 
 // Returns undefined when the tool belongs to another Nextcloud file family, so
 // the facade can hand it to the next handler.
+/**
+ * @param {string} toolName
+ * @param {{ limit?: number, originalPath?: string, trashPath?: string }} args
+ * @param {import('./webdav').FilesToolCtx} ctx
+ */
 async function executeTrashTool(toolName, args, ctx) {
     const { baseUrl, ncFetch, authError, uid } = ctx;
 

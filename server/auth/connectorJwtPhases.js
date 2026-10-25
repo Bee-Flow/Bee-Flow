@@ -25,12 +25,13 @@ const { suppressSessionPersistence } = require('./establishSession');
 // (via connector/serviceDeps: the single auth -> services edge, see layering.test.js)
 const { orgHealth } = require('./connector/serviceDeps');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 /** @typedef {{ kind: 'reject', status: number, body: object }} Reject */
 /** @typedef {{ kind: 'error', error: Error }} Fail */
 /** @typedef {{ kind: 'ok', user: any }} Ok */
 
-/** @param {number} status @param {object} body @returns {Reject} */
+/** @param {number} status @param {{ error: string; code?: string; }} body @returns {Reject} */
 function reject(status, body) { return { kind: 'reject', status, body }; }
 /** @param {Error} error @returns {Fail} */
 function fail(error) { return { kind: 'error', error }; }
@@ -42,6 +43,9 @@ function ok(user = null) { return { kind: 'ok', user }; }
 // deadlock. Match is an exact equality on the stable nc_admin_uid. reqNcUid
 // comes from _resolveRequesterNcUid: the tenant-key-signed JWT `sub` wins; the
 // unsigned X-Beeflow-NC-Uid header is only a last-resort fallback (BFSF-377).
+/**
+ * @param {string} reqNcUid
+ */
 function _isOrgAdminRequester(org, reqNcUid) {
     return !!(org && org.nc_admin_uid && reqNcUid && reqNcUid === org.nc_admin_uid);
 }
@@ -116,7 +120,7 @@ async function reconcileUserRecord(user, orgId, payload) {
             user.organizationId = orgId;
             log.info(`[ConnectorJWT] Backfilled organizationId=${orgId} for user ${user.id}`);
         } catch (e) {
-            log.warn(`[ConnectorJWT] Failed to backfill organizationId for ${user.id}: ${e.message}`);
+            log.warn(`[ConnectorJWT] Failed to backfill organizationId for ${user.id}: ${/** @type {Error} */ (e).message}`);
         }
     }
 
@@ -128,7 +132,7 @@ async function reconcileUserRecord(user, orgId, payload) {
     // resolves the org for connector-sourced users so non-NC traffic
     // doesn't pay an extra DB roundtrip.
     if (user.provider === 'nextcloud_connector') {
-        const orgForCheck = await userStore.getOrganization(user.organizationId || orgId).catch(() => null);
+        const orgForCheck = await userStore.getOrganization(user.organizationId || orgId).catch((err) => fallback('connectorJwtPhases:org-anomaly-check', err, null));
         if (orgForCheck && !orgForCheck.nc_instance_id) {
             log.warn(`[ConnectorJWT] Data anomaly: user ${user.id} has provider=nextcloud_connector but org ${orgForCheck.id} has no nc_instance_id`);
         }
@@ -150,7 +154,7 @@ async function reconcileUserRecord(user, orgId, payload) {
             log.warn(`[ConnectorJWT] Repaired stale nc_uid for user ${user.id}: ${user.nc_uid} → ${payload.sub}`);
             user.nc_uid = payload.sub;
         } catch (e) {
-            log.warn(`[ConnectorJWT] Failed to repair nc_uid for ${user.id}: ${e.message}`);
+            log.warn(`[ConnectorJWT] Failed to repair nc_uid for ${user.id}: ${/** @type {Error} */ (e).message}`);
         }
     }
 }
@@ -186,6 +190,7 @@ async function establishConnectorSession(req, user, orgId, payload) {
     // every request. Both the SSO-recovery DEK and the deterministic
     // fallback are stable for the user's lifetime (until they explicitly
     // rotate via the encryption-pin flow), so first computation wins.
+    /** @type {string | null} */
     let cachedEnc = null;
     try {
         cachedEnc = _encKeyCache.get(user.id);
@@ -199,7 +204,7 @@ async function establishConnectorSession(req, user, orgId, payload) {
             if (cachedEnc) _encKeyCache.set(user.id, cachedEnc);
         }
     } catch (e) {
-        log.warn(`[ConnectorJWT] EncryptionKey derivation failed for user ${user.id}: ${e.message}`);
+        log.warn(`[ConnectorJWT] EncryptionKey derivation failed for user ${user.id}: ${/** @type {Error} */ (e).message}`);
         orgHealth.problem('auth.encryption_key_failed', {
             orgId, source: 'connectorJwt', req,
             meta: { userId: user.id, reason: 'derivation_failed' },
@@ -246,3 +251,11 @@ module.exports = {
     _resolveRequesterNcUid,
     _resolveSessionNcUid,
 };
+
+/** @typedef {NonNullable<Awaited<ReturnType<typeof userStore.getUser>>>} UserRec */
+
+/** @typedef {NonNullable<Awaited<ReturnType<typeof userStore.getOrganization>>>} OrgRec */
+
+/** @typedef {{ sub?: string, email?: string, name?: string, nc_admin?: boolean }} ConnectorPayload The verified JWT claims this module reads. */
+
+/** @typedef {import('express').Request & { connectorAuth?: { orgId: string, ncUid: string | null } }} ConnectorReq */

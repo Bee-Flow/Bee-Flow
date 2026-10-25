@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Google Keep API routes — execute Keep actions after user approval
  */
@@ -47,6 +47,11 @@ const KeepAction = z.object({
     }
 });
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 const requireOAuthSession = (req, res, next) => {
     if (!req.session?.accessToken) return res.status(401).json({ error: 'Not authenticated with Google' });
     next();
@@ -56,7 +61,7 @@ const requireOAuthSession = (req, res, next) => {
  * POST /api/integrations/keep/execute
  * Execute a Keep action (create/delete) after user approval.
  */
-router.post('/execute', requireOAuthSession, validate({ body: KeepAction }), async (req, res) => {
+router.post('/execute', requireOAuthSession, validate({ body: KeepAction }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const result = await executeKeepAction(req.body, req.session);
     res.json(result);
 });

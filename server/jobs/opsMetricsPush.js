@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -27,11 +27,17 @@ const metricsStore = require('../stores/metricsStore');
 const userStore = require('../stores/userStore');
 const { recordJobRun } = require('../telemetry/metrics');
 const log = require('../telemetry/log');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const LOCK_KEY = 0xBEEF109;
 
+/**
+ * @param {string | undefined} raw
+ * @returns {Record<string, string>}
+ */
 function parseHeaders(raw) {
     if (!raw) return {};
+    /** @type {Record<string, string>} */
     const out = {};
     for (const pair of raw.split(',')) {
         const i = pair.indexOf('=');
@@ -54,6 +60,8 @@ function cfg() {
 
 // Ready only when enabled and an endpoint is configured (no salt needed — these
 // rollups carry no per-user data).
+/** @typedef {ReturnType<typeof cfg>} OpsPushConfig */
+/** @param {OpsPushConfig} c */
 function ready(c) { return !!(c.enabled && c.base); }
 
 async function orgNameMap() {
@@ -69,6 +77,11 @@ async function orgNameMap() {
 
 // Attach org_name + _timestamp to a collector row. Rows without an org_id (e.g.
 // platform-wide queue depths) get no org fields.
+/**
+ * @param {Record<string, any>} row  a metricsStore collector row
+ * @param {number} nowMicros
+ * @param {Map<string, string>} orgNames
+ */
 function toRecord(row, nowMicros, orgNames) {
     const rec = Object.assign({ _timestamp: nowMicros }, row);
     if (Object.prototype.hasOwnProperty.call(row, 'org_id')) {
@@ -77,6 +90,11 @@ function toRecord(row, nowMicros, orgNames) {
     return rec;
 }
 
+/**
+ * @param {OpsPushConfig} c
+ * @param {string} stream
+ * @param {Record<string, unknown>[]} records
+ */
 async function ingest(c, stream, records) {
     if (!records.length) return;
     const url = `${c.base}/${stream}/_json`;
@@ -99,7 +117,7 @@ async function ingest(c, stream, records) {
         try {
             const j = JSON.parse(body);
             for (const s of (j.status || [])) { failed += Number(s.failed) || 0; if (s.error) err = String(s.error); }
-        } catch (err) { log.debug('non-JSON 200 — treat as accepted', err); }
+        } catch (err) { fallback('jobs/opsMetricsPush:ingest', err); /* non-JSON 200 — treat as accepted */ }
         if (failed > 0) {
             throw new Error(`ingest partial failure on ${stream}: ${failed}/${records.length} rejected (${err.slice(0, 150)})`);
         }
@@ -108,6 +126,7 @@ async function ingest(c, stream, records) {
     }
 }
 
+/** @param {OpsPushConfig} c */
 async function pushSnapshot(c) {
     const snap = await metricsStore.collectAll();
     const orgNames = await orgNameMap();
@@ -152,13 +171,14 @@ async function processOpsPush() {
         log.warn('[OpsPush] push failed (will retry):', e && e.message);
     } finally {
         if (client) {
-            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { log.debug('best-effort', err); }
+            try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { bestEffort('jobs/opsMetricsPush:processOpsPush', err); /* best-effort */ }
             client.release();
         }
         if (acquired) recordJobRun({ job: 'ops_push', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });
     }
 }
 
+/** @type {NodeJS.Timeout | null} */
 let _timer = null;
 
 function start() {
@@ -177,7 +197,7 @@ function start() {
     }, c.intervalMs);
     _timer.unref?.();
     // Kick one run shortly after boot so data appears without waiting an interval.
-    setTimeout(() => { processOpsPush().catch(() => {}); }, 8000).unref?.();
+    setTimeout(() => { processOpsPush().catch((e) => bestEffort('jobs/opsMetricsPush:start', e)); }, 8000).unref?.();
 }
 
 function stop() {

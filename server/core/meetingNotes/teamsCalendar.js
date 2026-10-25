@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Microsoft Teams calendar helper — mirror of `gmeetCalendar.js` for Outlook.
  *
@@ -23,13 +23,17 @@ const EVENT_FIELDS = [
 ].join(',');
 const MAX_PAGES = 3;
 
-/** True for a Teams meeting join URL (work/school or personal Teams). */
+/**
+ * True for a Teams meeting join URL (work/school or personal Teams).
+ * @param {string} url
+ */
 function isTeamsJoinUrl(url) {
     return typeof url === 'string' && TEAMS_JOIN_RE.test(url.trim());
 }
 
 // calendarView with `Prefer: outlook.timezone="UTC"` returns UTC wall time
 // without an offset ("2026-10-01T09:00:00.0000000"); make it an ISO instant.
+/** @param {string | null | undefined} dateTime */
 function utcIso(dateTime) {
     if (!dateTime) return null;
     const s = String(dateTime);
@@ -38,6 +42,14 @@ function utcIso(dateTime) {
     return Number.isFinite(ms) ? new Date(ms).toISOString() : null;
 }
 
+/**
+ * @typedef {{ address?: string, name?: string }} GraphEmailAddress
+ * @typedef {{ id: string, iCalUId?: string, seriesMasterId?: string, subject?: string, isCancelled?: boolean,
+ *   isOrganizer?: boolean, onlineMeeting?: { joinUrl?: string } | null, start?: { dateTime?: string },
+ *   end?: { dateTime?: string }, organizer?: { emailAddress?: GraphEmailAddress },
+ *   attendees?: { emailAddress?: GraphEmailAddress }[] }} GraphCalendarEvent
+ */
+/** @param {GraphCalendarEvent} event */
 function formatTeamsEvent(event) {
     const joinUrl = event?.onlineMeeting?.joinUrl || null;
     if (!isTeamsJoinUrl(joinUrl) || event.isCancelled) return null;
@@ -58,6 +70,10 @@ function formatTeamsEvent(event) {
     };
 }
 
+/**
+ * @param {object | undefined} session
+ * @param {{ timeMin: Date, timeMax: Date }} range
+ */
 async function listTeamsEvents(session, { timeMin, timeMax }) {
     const out = [];
     let next = `/me/calendarView?startDateTime=${encodeURIComponent(timeMin.toISOString())}`

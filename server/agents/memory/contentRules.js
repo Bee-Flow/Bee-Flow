@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * The content rules for an inferred memory, shared by the extractor (what may
@@ -8,8 +8,14 @@
 
 const TASK_VERBS = /^(the user wants to|user wants|create|write|fix|build|make|generate|show|explain|help|add|remove|update|delete|edit|modify|change|set|get|fetch|load|save|open|close|run|execute|deploy|test|debug|refactor)\b/i;
 
-/** Extractor rules: task-like content and questions are not memories. */
+/**
+ * Extractor rules: task-like content and questions are not memories.
+ * @param {string} content
+ */
 const isTaskLike = (content) => TASK_VERBS.test(String(content || '').trim());
+/**
+ * @param {string} content
+ */
 const isQuestion = (content) => String(content || '').trim().endsWith('?');
 
 /** A request to the assistant ("kan je ...", "can you ..."), not a fact about the user. Conservative, NL + EN. */
@@ -17,6 +23,9 @@ const ASSISTANT_REQUEST = /^(kan je|kun je|kunt u|zou je|wil je|can you|could yo
 /** A short first-person conversation fragment ("ik zie het nog niet"), not a stored fact. */
 const FIRST_PERSON_FRAGMENT = /^(ik|i|i'm|i am|mijn|my|we|wij)\s/i;
 
+/**
+ * @param {string} s
+ */
 const hasLetters = (s) => /\p{L}/u.test(s);
 
 /**
@@ -54,6 +63,9 @@ function strictJunkReason(content) {
     return null;
 }
 
+/**
+ * @param {string} t
+ */
 const normaliseText = (t) => String(t || '').toLowerCase().replace(/\s+/g, ' ').trim();
 
 module.exports = { TASK_VERBS, isTaskLike, isQuestion, junkReason, strictJunkReason, normaliseText };

@@ -22,6 +22,9 @@
 const { TRASH_RETENTION_DAYS } = require('../../stores/automationStore/lifecycle');
 const { projectForViewer } = require('../../automation/access');
 
+/**
+ * @param {string | number | Date} deletedAt
+ */
 function purgeAtOf(deletedAt) {
     if (!deletedAt) return null;
     return new Date(new Date(deletedAt).getTime() + TRASH_RETENTION_DAYS * 86_400_000).toISOString();

@@ -92,6 +92,7 @@ function applySetLayerContract(draft, args) {
     if (!layer) {
         return { error: `Unknown layerKey "${layerKey || ''}". Existing flowlets: ${Object.keys(draft.layers || {}).join(', ') || '(none — create one with builder_create_layer)'}.` };
     }
+    /** @type {string[]} */
     const contractNotes = [];
     if (args.params !== undefined) {
         if (!Array.isArray(args.params)) return { error: 'params must be an array of { name, type, required? }.' };
@@ -99,12 +100,12 @@ function applySetLayerContract(draft, args) {
         layer.trigger.params = sanitizeLayerParams(args.params);
     }
     if (args.outputFields !== undefined) {
-        if (!Array.isArray(args.outputFields) || args.outputFields.some(f => typeof f !== 'string' || !f.trim())) {
+        if (!Array.isArray(args.outputFields) || args.outputFields.some((/** @type {string} */ f) => typeof f !== 'string' || !f.trim())) {
             return { error: 'outputFields must be an array of non-empty field-name strings.' };
         }
         layer.steps = Array.isArray(layer.steps) ? layer.steps : [];
         layer.edges = Array.isArray(layer.edges) ? layer.edges : [];
-        let outStep = layer.steps.find(s => s && s.type === 'layer_output');
+        let outStep = layer.steps.find((/** @type {{ type: string; }} */ s) => s && s.type === 'layer_output');
         if (!outStep) {
             outStep = { id: 'out', type: 'layer_output', fields: {}, label: 'Return' };
             const prevLast = lastStepId(layer);
@@ -129,7 +130,7 @@ function applySetLayerContract(draft, args) {
         }
         layer.steps = Array.isArray(layer.steps) ? layer.steps : [];
         layer.edges = Array.isArray(layer.edges) ? layer.edges : [];
-        let outStep = layer.steps.find(s => s && s.type === 'layer_output');
+        let outStep = layer.steps.find((/** @type {{ type: string; }} */ s) => s && s.type === 'layer_output');
         if (!outStep) {
             outStep = { id: 'out', type: 'layer_output', fields: {}, label: 'Return' };
             const prevLast = lastStepId(layer);
@@ -144,7 +145,7 @@ function applySetLayerContract(draft, args) {
             ...bound,
         };
     }
-    const outStep = (layer.steps || []).find(s => s && s.type === 'layer_output');
+    const outStep = (layer.steps || []).find((/** @type {{ type: string; }} */ s) => s && s.type === 'layer_output');
     return {
         layerKey,
         params: layer.trigger?.params || [],

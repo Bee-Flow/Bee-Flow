@@ -66,8 +66,17 @@ function makeProjectStore(db, { ready = async () => {}, managedParts = null } = 
     const initDB = ready;
     // Required lazily: the default guard reads this module's default store.
     const guard = () => managedParts || require('./managedPartsDefault');
+    /**
+     * @param {string} sql
+     */
     const run = (sql, params) => db.run(sql, params);
+    /**
+     * @param {string} sql
+     */
     const getOne = (sql, params) => db.getOne(sql, params);
+    /**
+     * @param {string} sql
+     */
     const getAll = (sql, params) => db.getAll(sql, params);
     const getClient = () => db.getClient();
 

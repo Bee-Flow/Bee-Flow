@@ -14,10 +14,16 @@
 const LABEL_CACHE_MS = 60_000;
 const labelCache = new WeakMap();
 
+/**
+ * @param {WeakKey} cacheKey
+ */
 function rememberLabels(cacheKey, labels) {
     if (cacheKey && typeof cacheKey === 'object') labelCache.set(cacheKey, { at: Date.now(), labels });
 }
 
+/**
+ * @param {WeakKey} cacheKey
+ */
 async function listLabels(gmail, cacheKey, { fresh = false } = {}) {
     const hit = cacheKey && typeof cacheKey === 'object' ? labelCache.get(cacheKey) : null;
     if (!fresh && hit && Date.now() - hit.at < LABEL_CACHE_MS) return { labels: hit.labels, cached: true };
@@ -54,3 +60,5 @@ async function resolveLabelIds(gmail, entries, cacheKey = null) {
 }
 
 module.exports = { rememberLabels, listLabels, resolveLabelIds };
+
+/** @typedef {import('./messageShape').GmailLabel} GmailLabel */

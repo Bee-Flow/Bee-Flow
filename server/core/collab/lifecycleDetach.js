@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Detaching co-edited documents (./lifecycle.js): fold the final state into
  * the resource, keep a version, and delete the co-editing state — for one

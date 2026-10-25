@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Authenticated NC binding approval endpoints.
  *
@@ -16,6 +16,7 @@
 
 const express = require('express');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 const { HttpError } = require('../core/http/errors');
 const router = express.Router();
 
@@ -31,6 +32,7 @@ const { validate } = require('../core/http/validate');
 const { z } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
 
+/** @param {{ expiresAt?: string | Date | null }} row */
 function isExpired(row) {
     return row.expiresAt && new Date(row.expiresAt).getTime() <= Date.now();
 }
@@ -65,6 +67,9 @@ function isExpired(row) {
  *
  * @returns {Promise<{freshUser: any, orgId: string, isSuperAdmin: boolean}|null>}
  *   null when a response has already been sent.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {string} [targetOrgId]
  */
 async function loadOrgAdmin(req, res, targetOrgId) {
     const sessionUser = req.session?.user;
@@ -82,6 +87,10 @@ async function loadOrgAdmin(req, res, targetOrgId) {
     return { freshUser, orgId, isSuperAdmin };
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function loadAndAuthorize(req, res) {
     const id = String(req.params.id || '').trim();
     if (!id) { res.status(400).json({ error: 'Missing id' }); return null; }
@@ -270,7 +279,7 @@ router.delete('/admin/nc-bindings/pairing-codes/:id', requireAuth, async (req, r
     const ctx = await loadOrgAdmin(req, res);
     if (!ctx) return;
     const { freshUser } = ctx;
-    const ok = await userStore.deletePairingCode(req.params.id, freshUser.organizationId);
+    const ok = await userStore.deletePairingCode(/** @type {string} */ (req.params.id), freshUser.organizationId);
     if (!ok) return res.status(404).json({ error: 'Pairing code not found' });
     log.info(`[NcBindingRoutes] Pairing code ${req.params.id} revoked by user=${freshUser.id}`);
     return res.json({ ok: true });
@@ -320,6 +329,7 @@ router.delete('/admin/nc-bindings/org/:orgId', requireAuth, async (req, res) => 
 
     const before = { ncInstanceId: org.nc_instance_id, ncBaseUrl: org.nc_base_url, ncAdminUid: org.nc_admin_uid };
 
+    /** @type {Record<string, string | null>} */
     const updates = {
         ncInstanceId: null,
         ncBaseUrl: null,
@@ -340,7 +350,7 @@ router.delete('/admin/nc-bindings/org/:orgId', requireAuth, async (req, res) => 
 
     try {
         await userStore.logAccessAudit('org.nc_binding.remove', 'organization', orgId, freshUser.id, before, null, orgId);
-    } catch (err) { log.debug('audit is best-effort', err); }
+    } catch (err) { bestEffort('ncBinding:remove-audit', err); }
 
     log.info(`[NcBindingRoutes] NC binding removed from org=${orgId} (was ncInstance=${before.ncInstanceId}) by super-admin ${freshUser.id}`);
     orgHealth.event('binding.removed', {

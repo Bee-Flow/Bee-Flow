@@ -179,6 +179,10 @@ async function readJsonSafe(res) {
     try { return JSON.parse(text); } catch { return text; }
 }
 
+/**
+ * @param {string} baseUrl
+ * @param {string} path
+ */
 function api(baseUrl, path) {
     return `${baseUrl}${MAIL_API_BASE}${path}`;
 }
@@ -217,6 +221,9 @@ function summariseAttachment(a) {
     };
 }
 
+/**
+ * @param {string} text
+ */
 function trimBody(text) {
     if (!text) return text;
     if (text.length <= MAX_BODY_BYTES) return text;
@@ -225,6 +232,10 @@ function trimBody(text) {
 
 // ─── Tool execution ──────────────────────────────────────────────
 
+/**
+ * @param {string} toolName
+ * @param {string} userId
+ */
 async function executeNextcloudMailTool(toolName, args, userId, session) {
     const ctx = await ncClient.resolveAuth(session, userId);
     const { baseUrl, fetch: ncFetch, authError } = ctx;
@@ -287,7 +298,7 @@ async function executeNextcloudMailTool(toolName, args, userId, session) {
                     body: JSON.stringify(body),
                 });
             } catch (e) {
-                if (e?.name === 'TimeoutError' || e?.name === 'AbortError') {
+                if (/** @type {Error} */ (e)?.name === 'TimeoutError' || /** @type {Error} */ (e)?.name === 'AbortError') {
                     return { error: 'Mail search timed out: the mailbox is large. Narrow it with a query (for example from:, subject: or has:attachment) and a smaller limit.' };
                 }
                 throw e;
@@ -447,6 +458,7 @@ async function executeNextcloudMailTool(toolName, args, userId, session) {
 
         case 'nextcloud_mail_set_flags': {
             if (args.messageId == null) return { error: 'messageId is required' };
+            /** @type {{ seen?: boolean; flagged?: boolean; junk?: boolean }} */
             const flags = {};
             if (args.seen !== undefined) flags.seen = !!args.seen;
             if (args.flagged !== undefined) flags.flagged = !!args.flagged;
@@ -480,6 +492,9 @@ async function executeNextcloudMailTool(toolName, args, userId, session) {
     }
 }
 
+/**
+ * @param {string} toolName
+ */
 function isNextcloudMailTool(toolName) {
     return typeof toolName === 'string' && toolName.startsWith('nextcloud_mail_');
 }
@@ -489,3 +504,7 @@ module.exports = {
     executeNextcloudMailTool,
     isNextcloudMailTool,
 };
+
+/**
+ * @typedef {{ email?: string, label?: string }} MailAddress
+ */

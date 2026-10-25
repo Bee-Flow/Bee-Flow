@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Nextcloud Talk → Meeting Notes settings API.
  *
@@ -43,7 +43,10 @@ const { z, typeError } = require('../utils/zod');
 const { choice } = require('../core/http/schemaParts');
 const log = require('../telemetry/log');
 
-/** A real boolean, never the text "false" — which is true. */
+/**
+ * A real boolean, never the text "false" — which is true.
+ * @param {string} name
+ */
 const bool = (name) => z.boolean({ error: typeError({ invalid: `${name} is true or false.` }) });
 
 const SCOPE_TEXT = 'autoRecordScope is "calendar" (scheduled meetings) or "all" (any moderated call).';
@@ -54,9 +57,12 @@ const FOLDER_TEXT = 'recordingFolder is a Nextcloud folder path, e.g. /Talk/Reco
 const language = z.string({ error: typeError({ invalid: LANGUAGE_TEXT }) })
     .trim().regex(/^([a-z]{2,3}(-[a-z0-9]{2,8})?|auto)$/i, LANGUAGE_TEXT);
 
-/** The fields both scopes store. `nullable` is the org's "inherit". */
+/**
+ * The fields both scopes store. `nullable` is the org's "inherit".
+ * @param {{ nullable: boolean }} opts
+ */
 function settingsShape({ nullable }) {
-    const maybe = (schema) => (nullable ? schema.nullable() : schema).optional();
+    const maybe = /** @param {import('zod').ZodType} schema */ (schema) => (nullable ? schema.nullable() : schema).optional();
     return {
         autoTranscribe: maybe(bool('autoTranscribe')),
         postSummaryBack: maybe(bool('postSummaryBack')),
@@ -118,7 +124,7 @@ router.put('/user/me', requireAuth, validate({ body: UserSettingsBody }), async 
 });
 
 // ── Org-level (admin) ────────────────────────────────────
-router.get('/:orgId', requireAuth, async (req, res) => {
+router.get('/:orgId', requireAuth, async (/** @type {import('express').Request<{ orgId: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const { orgId } = req.params;
     const orgIds = await resolveUserOrgIds(req);
     const isMember = orgIds === null || (orgIds && orgIds.has(orgId));
@@ -127,7 +133,7 @@ router.get('/:orgId', requireAuth, async (req, res) => {
     res.json(config);
 });
 
-router.put('/:orgId', requireAuth, validate({ body: OrgSettingsBody }), async (req, res) => {
+router.put('/:orgId', requireAuth, validate({ body: OrgSettingsBody }), async (/** @type {import('express').Request<{ orgId: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const { orgId } = req.params;
     if (!(await isOrgAdmin(req, orgId))) {
         return res.status(403).json({ error: 'Only organization admins can manage these settings' });

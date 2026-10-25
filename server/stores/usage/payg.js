@@ -53,7 +53,7 @@ async function _resolvePaygTarget(organizationId, userId) {
     } catch (e) {
         // Bad DB state shouldn't throw on the AI hot path; cache the miss
         // so we don't retry the failing query on every call.
-        log.error('[UsageStore] _resolvePaygTarget query failed:', e.message);
+        log.error('[UsageStore] _resolvePaygTarget query failed:', /** @type {Error} */ (e).message);
     }
 
     const eligible = !!row
@@ -89,7 +89,7 @@ async function _resolvePlanCurrency(organizationId, userId) {
             : await getOne(`SELECT sp.currency FROM consumer_subscriptions cs LEFT JOIN subscription_plans sp ON sp.id = cs.plan_id WHERE cs.user_id = $1`, [userId]);
         if (row?.currency) currency = String(row.currency).toUpperCase();
     } catch (e) {
-        log.error('[UsageStore] _resolvePlanCurrency query failed:', e.message);
+        log.error('[UsageStore] _resolvePlanCurrency query failed:', /** @type {Error} */ (e).message);
     }
     _paygCache.set(key, { value: currency, expiresAt: Date.now() + PAYG_CACHE_TTL_MS });
     return currency;

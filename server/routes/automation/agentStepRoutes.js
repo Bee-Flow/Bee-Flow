@@ -27,7 +27,13 @@ const { resolveIntegration } = require('../../core/integrations/integrationToolM
 // ABSENT means the author set no allowlist, `tools=` (empty) means the author
 // set an empty one, and execAi reads that as NO tools. So it is a string that
 // may be empty -- never `.min(1)`.
+/**
+ * @param {string} name
+ */
 const FLAG_TEXT = (name) => `${name} is "1" or "0".`;
+/**
+ * @param {string} name
+ */
 const flag = (name) => z.enum(['0', '1', 'true', 'false'], { error: () => FLAG_TEXT(name) }).optional();
 const AgentPreviewQuery = z.object({
     startAutomations: flag('startAutomations'),

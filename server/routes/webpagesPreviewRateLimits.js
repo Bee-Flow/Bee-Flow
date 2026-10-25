@@ -1,3 +1,5 @@
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
+// @typecheck strict
 /**
  * Rate limiters for the webpages-preview bridge routes (server/routes/webpagesPreview.js).
  *
@@ -23,11 +25,12 @@
  * anything that is not a known read-only tool gets the strict side-effect tier.
  */
 
-const rateLimit = require('express-rate-limit');
+const rateLimit = /** @type {typeof import('express-rate-limit').rateLimit} */ (/** @type {unknown} */ (require('express-rate-limit')));
 // Pure data module (two Sets + a predicate, no DB/env) — safe to require here
 // without breaking this file's "testable in isolation" property.
 const { isSideEffect } = require('../automation/sideEffectMap');
 
+/** @param {import('express').Request} req */
 function previewTokenKey(req) {
     const c = req.previewClaims;
     return c ? `${c.userId}:${c.webpageId}` : 'anon';
@@ -70,6 +73,7 @@ const dbBridgeLimiter = rateLimit({
  * others. Hence the viewer in the key. Without a viewer claim (a token from before W3)
  * that becomes 'noviewer' — those requests are refused further on anyway, and one tight
  * bucket is the right side to wait on that.
+ * @param {import('express').Request} req
  */
 function tableViewerKey(req) {
     const c = req.previewClaims;
@@ -122,6 +126,9 @@ const readIntegrationBridgeLimiter = rateLimit({
  * budget — the safe direction. Must be mounted after the JSON body parser;
  * a missing/!string body yields `undefined`, which isSideEffect treats as
  * side-effecting, and the handler rejects it with a 400 anyway.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {NextFunction} next
  */
 function integrationBridgeLimiter(req, res, next) {
     const tool = req.body && req.body.tool;

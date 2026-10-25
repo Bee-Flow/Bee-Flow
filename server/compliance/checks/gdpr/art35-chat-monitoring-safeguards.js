@@ -39,7 +39,10 @@ const DAY_MS = 86_400_000;
 const EXPIRY_WARN_DAYS = 30;
 const LABEL = Object.freeze({ direct: 'Direct chat', agent: 'Agent chat', agent_public: 'Embedded agents' });
 
-/** Rule codes, worded for the check (build spec 6.2). */
+/**
+ * Rule codes, worded for the check (build spec 6.2).
+ * @param {string} code
+ */
 function checkCode(code, dpia) {
     switch (code) {
         case 'dpia': return dpia.kind === 'none' ? 'dpia_missing' : 'dpia_expired';
@@ -58,8 +61,8 @@ function defaultDeps() {
         getSettings: (orgKey) => require('../../../stores/complianceStore').getSettings(orgKey),
         getDpia: (orgKey) => require('../../../stores/dpiaStore').getLatestForAgent(orgKey, V.CHAT_MONITORING_DPIA_KEY),
         hasAnyOrganization: () => require('../../../stores/userStore').hasAnyOrganization(),
-        contributorCount: (orgKey, surface, w) => require('../../../stores/chatSignalStore').contributorCount(orgKey, surface, w),
-        probe: (url) => require('../../lib/urlProbe').probe(url),
+        contributorCount: (/** @type {string} */ orgKey, /** @type {string} */ surface, /** @type {{ from: string; toExclusive: string; }} */ w) => require('../../../stores/chatSignalStore').contributorCount(orgKey, surface, w),
+        probe: (/** @type {string} */ url) => require('../../lib/urlProbe').probe(url),
         now: () => new Date(),
     };
 }
@@ -87,18 +90,19 @@ module.exports = {
         const [dpiaRow, installHasOrganisations] = await Promise.all([deps.getDpia(orgKey), deps.hasAnyOrganization()]);
         const ev = rules.evaluate(s, { dpiaRow, now, installHasOrganisations, orgKey, privacyNoticeUrl: s.privacy_notice_url });
         const d = rules.dpiaStatus(s, dpiaRow, now);
-        const selected = (Array.isArray(s.chat_monitoring_surfaces) ? s.chat_monitoring_surfaces : []).filter(x => V.SURFACES.includes(x));
-        const signals = (Array.isArray(s.chat_monitoring_signals) ? s.chat_monitoring_signals : []).filter(x => V.SIGNALS.includes(x));
+        const selected = (Array.isArray(s.chat_monitoring_surfaces) ? s.chat_monitoring_surfaces : []).filter((/** @type {string} */ x) => V.SURFACES.includes(x));
+        const signals = (Array.isArray(s.chat_monitoring_signals) ? s.chat_monitoring_signals : []).filter((/** @type {string} */ x) => V.SIGNALS.includes(x));
         const paused = selected
-            .filter(x => (ev.bySurface[x] || []).length)
-            .map(x => ({ id: x, missing: [...new Set(ev.bySurface[x].map(c => checkCode(c, d)))] }));
-        const active = selected.filter(x => !(ev.bySurface[x] || []).length);
+            .filter((/** @type {string | number} */ x) => (ev.bySurface[x] || []).length)
+            .map((/** @type {string | number} */ x) => ({ id: x, missing: [...new Set(ev.bySurface[x].map(c => checkCode(c, d)))] }));
+        const active = selected.filter((/** @type {string | number} */ x) => !(ev.bySurface[x] || []).length);
 
         // Warnings.
         const expiresInDays = d.expiresAt ? Math.floor((d.expiresAt.getTime() - now.getTime()) / DAY_MS) : null;
         const expiringSoon = d.current && expiresInDays !== null && expiresInDays < EXPIRY_WARN_DAYS;
         const noticeUrl = rules.httpsUrl(s.chat_monitoring_notice_url)
             || (selected.includes('agent_public') ? rules.httpsUrl(s.privacy_notice_url) : null);
+        /** @type {boolean | null} */
         let noticeReachable = null;
         if (noticeUrl) {
             try {
@@ -111,7 +115,8 @@ module.exports = {
         const ropaReviewed = !!reviewedAt && (!enabledAt || reviewedAt >= enabledAt);
         const weeks = sup.lastFourWeeks(now);
         const smallGroups = [];
-        for (const surface of active.filter(x => V.isEmployeeSurface(x))) {
+        for (const surface of active.filter((/** @type {string} */ x) => V.isEmployeeSurface(x))) {
+            /** @type {number | null} */
             let n = null;
             try { n = await deps.contributorCount(orgKey, surface, { from: weeks.from, toExclusive: weeks.toExclusive }); } catch { n = null; }
             const floor = signals.includes('kinds') ? V.K.kinds : V.K.outcomes;
@@ -144,6 +149,7 @@ module.exports = {
         };
 
         if (ev.global.length || paused.length) {
+            /** @type {string[]} */
             const parts = [];
             if (ev.global.length) parts.push(`Missing for all chat types: ${ev.global.join(', ')}.`);
             for (const p of paused) parts.push(`${LABEL[p.id]} is paused: ${p.missing.join(', ')}.`);
@@ -153,6 +159,7 @@ module.exports = {
                 details: `${parts.join(' ')} The route refuses these on the way in, so this means the record changed afterwards. A paused chat type is neither counted nor announced until it is fixed.`,
             };
         }
+        /** @type {string[]} */
         const warnings = [];
         if (expiringSoon) warnings.push(`The DPIA expires in ${Math.max(0, expiresInDays)} day${expiresInDays === 1 ? '' : 's'}; renew it before then or the employee chat types pause.`);
         if (noticeReachable === false) warnings.push('The notice link did not answer; people cannot read what is counted.');
@@ -165,7 +172,7 @@ module.exports = {
         return {
             status: 'pass',
             evidence,
-            details: `Chat signals keep their safeguards on ${active.map(x => LABEL[x]).join(', ')}: a current DPIA where it is needed, the works-council decision, a published notice before the start, a legal basis and a retention of ${rules.clampedRetention(s)} days.`,
+            details: `Chat signals keep their safeguards on ${active.map((/** @type {string | number} */ x) => LABEL[x]).join(', ')}: a current DPIA where it is needed, the works-council decision, a published notice before the start, a legal basis and a retention of ${rules.clampedRetention(s)} days.`,
         };
     },
 

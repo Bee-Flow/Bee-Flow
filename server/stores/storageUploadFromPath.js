@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Upload a file from disk without holding it whole in memory (issue #286).
  * Lives next to storageStore.js, which wires it with its own primitives so the
@@ -9,6 +9,7 @@
 const fs = require('fs');
 const path = require('path');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 /** Part size; also the threshold below which one PutObject is used. */
 const FILE_UPLOAD_PART_BYTES = 16 * 1024 * 1024;
@@ -45,7 +46,7 @@ function createUploadFileFromPath(deps) {
             await fs.promises.copyFile(filePath, dest);
             if (contentType) {
                 try { await fs.promises.writeFile(dest + '.meta', String(contentType), 'utf8'); }
-                catch (err) { log.debug('non-fatal, extension fallback covers this', err); }
+                catch (err) { bestEffort('stores/storageUploadFromPath:createUploadFileFromPath', err); /* non-fatal, extension fallback covers this */ }
             }
             log.info(`[StorageStore:local] Uploaded: ${key} (from file)`);
             return { key };
@@ -74,7 +75,7 @@ function createUploadFileFromPath(deps) {
                 }
                 await deps.completeMultipartUpload(key, uploadId, parts);
             } catch (e) {
-                try { await deps.abortMultipartUpload(key, uploadId); } catch (err) { log.debug('best effort', err); }
+                try { await deps.abortMultipartUpload(key, uploadId); } catch (err) { bestEffort('stores/storageUploadFromPath:createUploadFileFromPath#2', err); /* best effort */ }
                 throw e;
             }
             log.info(`[StorageStore] Uploaded: ${key} (${(size / 1024).toFixed(1)} KB, multipart)`);

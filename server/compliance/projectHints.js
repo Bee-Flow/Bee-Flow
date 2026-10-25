@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -40,6 +40,9 @@ const crypto = require('crypto');
 const findingState = require('./findingState');
 const { projectPath } = require('../utils/appPaths');
 
+/** @typedef {{ key: string, checkId: string, regulation: string, roles: string[], severity: string, section: string | ((o: Record<string, any>) => string), count: (o: Record<string, any>) => number }} HintDef */
+
+/** @type {readonly HintDef[]} */
 const HINTS = Object.freeze([
     {
         key: 'project_foreign_members', checkId: 'GDPR-Art32-project-access', regulation: 'GDPR',
@@ -70,6 +73,10 @@ const HINT_KEYS = Object.freeze(HINTS.map(h => h.key));
 const HINT_CHECK_IDS = Object.freeze([...new Set(HINTS.map(h => h.checkId))]);
 const SNOOZE_DAYS = Object.freeze([7, 30]);
 
+/**
+ * @param {string} key
+ * @param {number} count
+ */
 function hintFingerprint(key, count) {
     return crypto.createHash('sha256').update(`${key}␟${count}`).digest('hex').slice(0, 32);
 }
@@ -97,7 +104,7 @@ function candidates({ projectId, role, rows, active, states, now = Date.now(), d
         // not asked to act on something the organisation accepted.
         if (findingState.applies(findingState.stateFor(index, row), row, defs(h.checkId), now)) continue;
         const offenders = Array.isArray(row.evidence?.offenders) ? row.evidence.offenders : [];
-        const mine = offenders.find(o => String(o?.project_id) === String(projectId));
+        const mine = offenders.find((/** @type {Record<string, any>} */ o) => String(o?.project_id) === String(projectId));
         const count = mine ? h.count(mine) : 0;
         if (count <= 0) continue;
         out.push({
@@ -112,7 +119,12 @@ function candidates({ projectId, role, rows, active, states, now = Date.now(), d
     return out;
 }
 
-/** The first candidate this person has neither dismissed (as it is now) nor snoozed. */
+/**
+ * The first candidate this person has neither dismissed (as it is now) nor snoozed.
+ * @param {{ key: string, fingerprint: string }[] | null | undefined} list
+ * @param {Record<string, { snoozedUntil?: string, dismissedAt?: string, fingerprint?: string }> | null | undefined} dismissals
+ * @param {number} [now]
+ */
 function pick(list, dismissals, now = Date.now()) {
     for (const c of list || []) {
         const d = dismissals ? dismissals[c.key] : null;
@@ -126,7 +138,10 @@ function pick(list, dismissals, now = Date.now()) {
     return null;
 }
 
-/** The wire shape (never the fingerprint). */
+/**
+ * The wire shape (never the fingerprint).
+ * @param {Record<string, any> | null | undefined} c
+ */
 function publicHint(c) {
     if (!c) return null;
     const { fingerprint: _f, ...pub } = c;

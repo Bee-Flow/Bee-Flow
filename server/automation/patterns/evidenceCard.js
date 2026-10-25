@@ -23,7 +23,10 @@ const CONFIDENCE = new Set(['early', 'normal', 'high']);
 const UNSAFE_RE = /@|[a-z][a-z0-9+.-]*:\/\/|www\./i;
 const ID_RE = /^[\p{L}\p{N}_.:-]{1,80}$/u;
 
-/** A string that is safe to show a model, or null. */
+/**
+ * A string that is safe to show a model, or null.
+ * @param {number} [max]
+ */
 function safeText(s, max = 160) {
     if (typeof s !== 'string') return null;
     const t = s.replace(/\s+/g, ' ').trim();
@@ -31,9 +34,21 @@ function safeText(s, max = 160) {
     return t.slice(0, max);
 }
 
+/**
+ * @param {string} s
+ */
 const safeId = (s) => (typeof s === 'string' && ID_RE.test(s) ? s : null);
+/**
+ * @param {number} [digits]
+ */
 const num = (x, digits = 1) => (Number.isFinite(x) ? Math.round(x * 10 ** digits) / 10 ** digits : 0);
+/**
+ * @param {number} x
+ */
 const int = (x) => (Number.isFinite(x) ? Math.round(x) : 0);
+/**
+ * @param {number} [max]
+ */
 const ids = (list, max = 8) => (Array.isArray(list) ? list.map(safeId).filter(Boolean).slice(0, max) : []);
 
 function cardDraft(d) {
@@ -62,6 +77,9 @@ function cardDraft(d) {
 function letterDomains(domains, template) {
     /** @type {Map<string, string>} */
     const map = new Map();
+    /**
+     * @param {string} d
+     */
     const letter = (d) => {
         if (!map.has(d)) map.set(d, String.fromCharCode(65 + (map.size % 26)));
         return map.get(d);

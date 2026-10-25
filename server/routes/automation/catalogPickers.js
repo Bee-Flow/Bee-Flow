@@ -9,6 +9,7 @@
  */
 
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // What a knowledge_write node can do about a near-duplicate,
 // declared once so the editor's dropdown and the runner cannot
@@ -31,8 +32,11 @@ const DATATABLE_OPS = [
     { op: 'delete_rows', label: 'Delete rows that match', blurb: 'Removes every row that matches. Needs at least one condition.', writes: true },
 ];
 
-/** The tables THIS caller may use. */
-async function loadDatatables(req, userId) {
+/**
+ * The tables THIS caller may use.
+ * @param {string} userId
+ */
+async function loadDatatables(/** @type {import('express').Request} */ req, userId) {
     // The tables THIS caller may use, already filtered by the same grade
     // resolver the runner uses. The canvas has nowhere to hang a permission
     // check, so availability has to arrive pre-filtered — exactly as `apps`
@@ -53,13 +57,16 @@ async function loadDatatables(req, userId) {
     } catch (e) {
         // A datatable outage must not take the whole catalog down; the
         // picker renders its empty state and every other node still works.
-        log.warn('[automation/catalog] datatables unavailable:', e.message);
+        log.warn('[automation/catalog] datatables unavailable:', /** @type {Error} */ (e).message);
     }
     return datatables;
 }
 
-/** The knowledge bases this caller may write to. */
-async function loadKnowledgeBases(req, userId) {
+/**
+ * The knowledge bases this caller may write to.
+ * @param {string} userId
+ */
+async function loadKnowledgeBases(/** @type {import('express').Request} */ req, userId) {
     /**
      * The knowledge bases this caller may WRITE to — the `knowledge_write`
      * node's picker (K10).
@@ -94,7 +101,7 @@ async function loadKnowledgeBases(req, userId) {
         // Called with `req` it resolved to [], so filterByGroupAccess dropped
         // every group-restricted base out of the picker, including ones the
         // author manages and the save-time gate would have allowed.
-        const userGroups = await resolveUserGroups(userId).catch(() => []);
+        const userGroups = await resolveUserGroups(userId).catch((e) => fallback('routes/automation/catalogPickers:loadKnowledgeBases', e, []));
         // isOrgAdmin, like routes/knowledgeBases/list.js: without it an org
         // admin is shown fewer bases here than in the Knowledge Studio, and
         // the ones missing are exactly the unpublished ones they manage.
@@ -105,13 +112,16 @@ async function loadKnowledgeBases(req, userId) {
     } catch (e) {
         // Same posture as the datatables above: the picker renders its
         // empty state and every other node still works.
-        log.warn('[automation/catalog] knowledge bases unavailable:', e.message);
+        log.warn('[automation/catalog] knowledge bases unavailable:', /** @type {Error} */ (e).message);
     }
     return knowledgeBases;
 }
 
-/** The agents an ai_step may use, with `agentsError` set when the read failed. */
-async function loadAgents(req, userId) {
+/**
+ * The agents an ai_step may use, with `agentsError` set when the read failed.
+ * @param {string} userId
+ */
+async function loadAgents(/** @type {import('express').Request} */ req, userId) {
     /**
      * The agents an ai_step may hand its thinking to (R2).
      *
@@ -146,8 +156,8 @@ async function loadAgents(req, userId) {
             return await require('../../automation/builderPickerCatalog')
                 .buildAgentPickerForUser(userId, { principal: await resolveDatatablePrincipal(req) });
         } catch (e) {
-            log.warn('[automation/catalog] agents unavailable:', e.message);
-            return { agents: [], agentsError: e.message || 'agent list unavailable' };
+            log.warn('[automation/catalog] agents unavailable:', /** @type {Error} */ (e).message);
+            return { agents: [], agentsError: /** @type {Error} */ (e).message || 'agent list unavailable' };
         }
     })();
     return agentRead;

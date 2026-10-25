@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * One-time migration: Dutch for the Cowork sidebar entry (2026-08).
  *

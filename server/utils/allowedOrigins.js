@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The CORS_ORIGIN allow-list and the membership test against it: one
  * implementation for the global CORS dispatcher (boot/httpMiddleware.js) and

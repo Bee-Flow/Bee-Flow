@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The App Studio data-engine metadata tables: their boot DDL and the additive
  * migration ladder, behind one memoised init that every part of the store
@@ -10,6 +10,7 @@ const { makeStoreInit } = require('../lib/storeInit');
 const { runDdl } = require('../lib/_ddl');
 const { deps } = require('./cycleDeps');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const initDB = makeStoreInit('StudioAppDataStore', _initDB);
 
@@ -17,7 +18,7 @@ async function _initDB() {
     // FK dependants: studio_apps must exist first (mirrors webpagePublicShareStore
     // waiting on webpages). studioAppStore self-inits on load; await its handle.
     const studioAppStore = deps.studioAppStore;
-    try { if (studioAppStore && studioAppStore.ready) await studioAppStore.ready; } catch (err) { log.debug('proceed — FK create will surface a real problem', err); }
+    try { if (studioAppStore && studioAppStore.ready) await studioAppStore.ready; } catch (err) { bestEffort('stores/studioAppData/schema:_initDB', err); /* proceed — FK create will surface a real problem */ }
 
     await exec(`
         CREATE TABLE IF NOT EXISTS studio_app_data_meta (

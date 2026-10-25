@@ -10,10 +10,13 @@
  * verbatim out of streamTurn.js.
  */
 
+/** @typedef {ReturnType<typeof import('./turnState').createTurnState>} Turn */
+/** @typedef {import('./toolExec').StreamEventData} StreamEventData */
 const { makeStreamCallback } = require('./toolExec');
 const { createDisplaySegments } = require('./displaySegments');
 const { extractPartialJsonString } = require('./shared');
 const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
 /**
  * The streaming un-tokeniser and the two sinks built on it.
@@ -23,12 +26,14 @@ const log = require('../../../telemetry/log');
  * Each chunk now passes through a buffered un-tokeniser that holds a `[…`
  * tail until the closing `]` arrives, then replaces in place. The map is read
  * through a LIVE getter so tokens added mid-turn are picked up.
+ * @param {Turn} turn
  */
 function createUntokeniserSink(turn) {
     const { send } = turn;
     const { createUntokeniser: _createUntok } = require('../../../core/dlp/untokeniseStream');
     const _dlpRunnerForStream = require('../../../core/dlp/dlpRunner');
     turn._streamUntok = _createUntok(() => _dlpRunnerForStream.getConversationTokenMap(turn.convId));
+    /** @param {string} text */
     turn.streamContent = (text) => {
         if (!text) return;
         const safe = turn._streamUntok.push(text);
@@ -44,6 +49,10 @@ function createUntokeniserSink(turn) {
     };
 }
 
+/**
+ * @param {Turn} turn
+ * @param {string} partId
+ */
 function getThinkingPart(turn, partId) {
     if (!partId) return null;
     let part = turn.thinkingParts.find(p => p.id === partId);
@@ -58,6 +67,7 @@ function getThinkingPart(turn, partId) {
  * Replay-shaped copy of the reasoning streamed since the last snapshot.
  * Only parts that can actually be sent back matter: a signed thinking
  * block, or a redacted block with its opaque payload.
+ * @param {Turn} turn
  */
 function snapshotThinkingParts(turn) {
     const slice = turn.thinkingParts.slice(turn.thinkingSnapshotFrom);
@@ -82,6 +92,9 @@ function snapshotThinkingParts(turn) {
  * written instead of it popping in fully-formed at the end. Only
  * Claude/OpenAI/Mistral stream partial tool args; Gemini delivers them
  * complete, so there the panel just fills in once at tool completion.
+ * @param {Turn} turn
+ * @param {string} toolName
+ * @param {string} partialArgs
  */
 function maybeStreamNotebook(turn, toolName, partialArgs) {
     if (!turn.canUseNotebooks || toolName !== 'notebook_write') return;
@@ -98,8 +111,13 @@ function maybeStreamNotebook(turn, toolName, partialArgs) {
 
 // Google image models hand the image back on the stream — persist it so the
 // reply can still render it after a reload.
+/**
+ * @param {Turn} turn
+ * @param {StreamEventData & { data?: string, mimeType?: string }} data
+ */
 function persistStreamedImage(turn, data) {
     const { send, userId } = turn;
+    /** @type {{ data: string, mimeType: string, url?: string, storageKey?: string }} */
     const imgEntry = { data: data.data, mimeType: data.mimeType };
     turn.generatedImages.push(imgEntry);
     send('image', { data: data.data, mimeType: data.mimeType });
@@ -121,9 +139,10 @@ function persistStreamedImage(turn, data) {
             require('fs').writeFileSync(require('path').join(genDir, filename), Buffer.from(data.data, 'base64'));
             imgEntry.url = `/uploads/generated/${filename}`;
         }
-    } catch (e) { log.debug('ignore', e); }
+    } catch (e) { fallback('routes/ai/directChat/streamCallbacks:persistStreamedImage', e); /* ignore */ }
 }
 
+/** @param {Turn} turn */
 function createStreamCallbacks(turn) {
     const { send } = turn;
     // BFSF-261: pre-tool preamble text used to glue against the follow-up
@@ -132,8 +151,8 @@ function createStreamCallbacks(turn) {
     // each round's visible text; a lazy separator keeps the live view
     // readable and joinFinal() makes storage match the stream.
     turn.displaySegments = createDisplaySegments();
-    turn.getThinkingPart = (partId) => getThinkingPart(turn, partId);
-    turn.maybeStreamNotebook = (toolName, partialArgs) => maybeStreamNotebook(turn, toolName, partialArgs);
+    turn.getThinkingPart = /** @param {string} partId */ (partId) => getThinkingPart(turn, partId);
+    turn.maybeStreamNotebook = /** @param {string} toolName @param {string} partialArgs */ (toolName, partialArgs) => maybeStreamNotebook(turn, toolName, partialArgs);
 
     const shared = {
         send,
@@ -141,11 +160,11 @@ function createStreamCallbacks(turn) {
         maybeStreamNotebook: turn.maybeStreamNotebook,
         streamUntok: turn._streamUntok,
         isMuted: () => turn.muteAssistantText,
-        appendContent: (t) => { turn.fullContent += t; },
-        appendThinking: (t) => { turn.thinkingContent += t; },
+        appendContent: /** @param {string} t */ (t) => { turn.fullContent += t; },
+        appendThinking: /** @param {string} t */ (t) => { turn.thinkingContent += t; },
         getThinkingParts: () => turn.thinkingParts,
-        pushToolCall: (tc) => turn.streamToolCalls.push(tc),
-        setLastResponseId: (id) => { turn.lastResponseId = id; },
+        pushToolCall: /** @param {Record<string, unknown>} tc */ (tc) => turn.streamToolCalls.push(tc),
+        setLastResponseId: /** @param {string} id */ (id) => { turn.lastResponseId = id; },
     };
 
     const primary = makeStreamCallback({
@@ -161,7 +180,7 @@ function createStreamCallbacks(turn) {
             // llama-server's own numbers: cache_n/prompt_n is the prefix-cache
             // hit rate for THIS request — the measurement the whole prompt
             // layout is built around.
-            const t = data?.timings;
+            const t = /** @type {{ prompt_n?: number, cache_n?: number, prompt_ms?: number, predicted_n?: number, predicted_ms?: number } | undefined} */ (data?.timings);
             if (t && typeof t === 'object') {
                 log.info(`[DirectChat] llama timings prompt_n=${t.prompt_n} cache_n=${t.cache_n} prompt_ms=${t.prompt_ms} predicted_n=${t.predicted_n} predicted_ms=${t.predicted_ms}`);
             }

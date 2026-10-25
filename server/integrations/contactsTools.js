@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Google Contacts Tools — AI tools for managing Google Contacts
  * 
@@ -45,7 +45,7 @@ const CONTACTS_TOOLS = [
                         description: 'Number of contacts to return (1-50, default 20)'
                     }
                 },
-                required: []
+                required: /** @type {string[]} */ ([])
             }
         }
     },
@@ -94,15 +94,39 @@ const CONTACTS_TOOLS = [
 
 // ─── People API Client ─────────────────────────────────────────
 
+/**
+ * The part of a Google People person these tools read and write.
+ * @typedef {{ resourceName?: string,
+ *   names?: Array<{ givenName?: string, familyName?: string, displayName?: string }>,
+ *   emailAddresses?: Array<{ value?: string }>, phoneNumbers?: Array<{ value?: string }>,
+ *   organizations?: Array<{ name?: string, title?: string }>,
+ *   biographies?: Array<{ value?: string, contentType?: string }> }} GooglePerson
+ */
+/**
+ * The part of a googleapis people v1 client these tools call.
+ * @typedef {{ people: {
+ *   searchContacts(params: object): Promise<{ data: { results?: Array<{ person?: GooglePerson }> } }>,
+ *   connections: { list(params: object): Promise<{ data: { connections?: GooglePerson[], totalPeople?: number } }> },
+ *   get(params: object): Promise<{ data: GooglePerson }>,
+ *   createContact(params: object): Promise<{ data: GooglePerson }>,
+ *   updateContact(params: object): Promise<{ data: GooglePerson }>,
+ * } }} PeopleClient
+ */
+
+/**
+ * @param {Express.Session} session
+ * @returns {Promise<PeopleClient>}
+ */
 async function createPeopleClient(session) {
     const { createGoogleApiClient } = require('./googleClient');
-    return createGoogleApiClient(session, { api: 'people', version: 'v1', notConnectedError: 'Not connected to Google — user must log in with Google' });
+    return /** @type {Promise<PeopleClient>} */ (createGoogleApiClient(session, { api: 'people', version: 'v1', notConnectedError: 'Not connected to Google — user must log in with Google' }));
 }
 
 // ─── Format Contact ────────────────────────────────────────────
 
 const PERSON_FIELDS = 'names,emailAddresses,phoneNumbers,organizations,biographies,metadata';
 
+/** @param {GooglePerson} person */
 function formatContact(person) {
     const name = person.names?.[0] || {};
     const email = person.emailAddresses?.[0]?.value || null;
@@ -125,6 +149,12 @@ function formatContact(person) {
 
 // ─── Tool Execution ────────────────────────────────────────────
 
+/**
+ * @param {string} toolName
+ * @param {{ query?: string, maxResults?: number, resourceName?: string, firstName?: string, lastName?: string,
+ *   email?: string, phone?: string, company?: string, jobTitle?: string, notes?: string }} args
+ * @param {Express.Session} session
+ */
 async function executeContactsTool(toolName, args, session) {
     const people = await createPeopleClient(session);
 
@@ -231,10 +261,17 @@ async function executeContactsTool(toolName, args, session) {
 
 // ─── Execute Action (after user approval) ──────────────────────
 
+/**
+ * @param {{ action: string, resourceName?: string, firstName?: string | null, lastName?: string | null,
+ *   email?: string | null, phone?: string | null, company?: string | null, jobTitle?: string | null,
+ *   notes?: string | null }} action  the approved contacts draft
+ * @param {Express.Session} session
+ */
 async function executeContactsAction(action, session) {
     const people = await createPeopleClient(session);
 
     if (action.action === 'create') {
+        /** @type {GooglePerson} */
         const body = { names: [{ givenName: action.firstName, familyName: action.lastName || '' }] };
 
         if (action.email) body.emailAddresses = [{ value: action.email }];
@@ -262,6 +299,7 @@ async function executeContactsAction(action, session) {
         });
 
         const body = current.data;
+        /** @type {string[]} */
         const updateMask = [];
 
         if (action.firstName || action.lastName) {
@@ -310,6 +348,7 @@ async function executeContactsAction(action, session) {
     throw new Error(`Unknown contacts action: ${action.action}`);
 }
 
+/** @param {string} toolName */
 function isContactsTool(toolName) {
     return toolName.startsWith('contacts_');
 }

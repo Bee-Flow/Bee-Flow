@@ -1,3 +1,5 @@
+/** @typedef {import('zod').ZodString} ZodString */
+/** @typedef {import('zod').ZodNumber} ZodNumber */
 /**
  * App Studio v2 — LARGE DATASET upload/status router (multi-GB genome files).
  *
@@ -134,7 +136,7 @@ const {
     datasetInitLimiter, datasetPartLimiter, datasetCompleteLimiter, datasetStatusLimiter,
 } = require('./studioAppRateLimits');
 const { SHARD_COUNT, shardName } = require('../core/datasets/rsidIndex');
-const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 // ── Sizing (env-tunable; a NEW quota axis, deliberately not MAX_ATTACHMENT_BYTES) ──
 const PART_BYTES = parseInt(process.env.DATASET_PART_BYTES, 10) || 32 * 1024 * 1024;
@@ -147,7 +149,10 @@ const MAX_FILES_PER_APP = parseInt(process.env.STUDIO_APP_DATASET_MAX_FILES, 10)
 const largeDatasets = requireFeature('large_datasets');
 
 // ── What a caller may send ────────────────────────────────────────────
-/** An object that also accepts nothing at all: no body, or a test's bare req, reads as {}. */
+/**
+ * An object that also accepts nothing at all: no body, or a test's bare req, reads as {}.
+ * @param {{ name: ZodString; bytes: ZodNumber; kind: import('zod').ZodOptional<import('zod').ZodEnum<{ vcf: 'vcf'; }>>; }} shape
+ */
 const partOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const APP_ID_TEXT = 'The app id is the id in the app\'s address.';
@@ -255,6 +260,7 @@ function publicDataset(ds) {
 }
 
 async function deleteArtifacts(app, ds) {
+    /** @type {string[]} */
     const keys = [];
     if (ds.rawKey) keys.push(ds.rawKey);
     if (ds.dataKey) keys.push(ds.dataKey);
@@ -265,7 +271,7 @@ async function deleteArtifacts(app, ds) {
         }
     }
     for (const key of keys) {
-        try { await storageStore.deleteFile(key); } catch (err) { log.debug('best-effort — absent shards are normal', err); }
+        try { await storageStore.deleteFile(key); } catch (err) { bestEffort('routes/studioAppDatasets:deleteArtifacts', err); /* best-effort — absent shards are normal */ }
     }
 }
 
@@ -353,8 +359,8 @@ router.put('/:id/large-datasets/:datasetId/parts/:n', largeDatasets, requireAuth
     if (n === 0) {
         const sniff = sniffDatasetHead(body);
         if (!sniff.ok) {
-            await storageStore.abortMultipartUpload(ds.rawKey, ds.uploadState?.s3UploadId).catch(() => {});
-            await datasetFileStore.deleteDataset(ds.id, app.id, app.userId).catch(() => {});
+            await storageStore.abortMultipartUpload(ds.rawKey, ds.uploadState?.s3UploadId).catch((e) => bestEffort('routes/studioAppDatasets:anon', e));
+            await datasetFileStore.deleteDataset(ds.id, app.id, app.userId).catch((e) => bestEffort('routes/studioAppDatasets:anon#2', e));
             return res.status(415).json({ error: sniff.reason });
         }
     }
@@ -417,7 +423,7 @@ router.delete('/:id/large-datasets/:datasetId', largeDatasets, requireAuth, data
     if (!ds || !mayDelete(req, app, ds)) return res.status(404).json({ error: 'Dataset not found' });
 
     if (ds.status === 'uploading' && ds.uploadState?.s3UploadId) {
-        await storageStore.abortMultipartUpload(ds.rawKey, ds.uploadState.s3UploadId).catch(() => {});
+        await storageStore.abortMultipartUpload(ds.rawKey, ds.uploadState.s3UploadId).catch((e) => bestEffort('routes/studioAppDatasets:anon#3', e));
     }
     await deleteArtifacts(app, ds);
     await datasetFileStore.deleteDataset(ds.id, app.id, app.userId);
@@ -426,3 +432,8 @@ router.delete('/:id/large-datasets/:datasetId', largeDatasets, requireAuth, data
 
 module.exports = router;
 module.exports._internals = { PART_BYTES, MAX_FILE_BYTES, TOTAL_BYTES_PER_OWNER, MAX_FILES_PER_APP, publicDataset };
+
+/**
+ * @typedef {NonNullable<Awaited<ReturnType<typeof studioAppStore.getStudioApp>>>} StudioApp
+ * @typedef {NonNullable<Awaited<ReturnType<typeof datasetFileStore.getDataset>>>} Dataset
+ */

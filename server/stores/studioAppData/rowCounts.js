@@ -71,9 +71,12 @@ async function withRowCounts(appId, ownerId, mutate) {
     });
 }
 
-/** Set one table's row count (owner-scoped). Returns the full map, or null. */
+/**
+ * Set one table's row count (owner-scoped). Returns the full map, or null.
+ * @param {string | number} count
+ */
 async function setRowCount(appId, tableKey, count, ownerId) {
-    return withRowCounts(appId, ownerId, (counts) => {
+    return withRowCounts(appId, ownerId, (/** @type {{ [x: string]: number; }} */ counts) => {
         counts[tableKey] = Math.max(0, parseInt(count) || 0);
     });
 }
@@ -81,10 +84,11 @@ async function setRowCount(appId, tableKey, count, ownerId) {
 /**
  * Delta-bump one table's cached row count (+1 create, -1 delete), clamped ≥ 0.
  * Same lock as setRowCount. Returns the full map, or null when not owned.
+ * @param {string | number} delta
  */
 async function bumpRowCount(appId, tableKey, delta, ownerId) {
     const d = parseInt(delta, 10) || 0;
-    return withRowCounts(appId, ownerId, (counts) => {
+    return withRowCounts(appId, ownerId, (/** @type {{ [x: string]: string | number; }} */ counts) => {
         counts[tableKey] = Math.max(0, (parseInt(counts[tableKey], 10) || 0) + d);
     });
 }

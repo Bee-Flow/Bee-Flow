@@ -119,21 +119,21 @@ async function _scanOnce(text, plan, threshold, opts) {
                         // guard failure, so the breaker stays shut.
                         guardCapabilities.clearGuardCapabilities(endpoint.url);
                         for (const id of aiIds) customDegraded.set(id, 'custom_labels_rejected');
-                        log.warn(`[PiiDetection] guard refused custom_labels (${err.message}); retrying without them`);
+                        log.warn(`[PiiDetection] guard refused custom_labels (${/** @type {Error} */ (err).message}); retrying without them`);
                         if (plan.builtIns.length) {
                             try {
                                 guardRes = await _callGuard(text, plan.builtIns, threshold, endpoint, priority, onProgress, null);
                                 noteGuardSuccess();
                             } catch (err2) {
                                 noteGuardFailure();
-                                log.warn('[PiiDetection] guard-service unavailable:', err2.message);
-                                guardRes = { entities: [], degraded: true, degradedReason: `guard_unreachable: ${err2.message}`, degradedCategories: null };
+                                log.warn('[PiiDetection] guard-service unavailable:', /** @type {Error} */ (err2).message);
+                                guardRes = { entities: [], degraded: true, degradedReason: `guard_unreachable: ${/** @type {Error} */ (err2).message}`, degradedCategories: null };
                             }
                         }
                     } else {
                         noteGuardFailure();
-                        log.warn('[PiiDetection] guard-service unavailable:', err?.message);
-                        guardRes = { entities: [], degraded: true, degradedReason: `guard_unreachable: ${err?.message}`, degradedCategories: null };
+                        log.warn('[PiiDetection] guard-service unavailable:', /** @type {Error} */ (err)?.message);
+                        guardRes = { entities: [], degraded: true, degradedReason: `guard_unreachable: ${/** @type {Error} */ (err)?.message}`, degradedCategories: null };
                     }
                 }
             }
@@ -151,6 +151,7 @@ async function _scanOnce(text, plan, threshold, opts) {
     const degraded = !!guardRes?.degraded || customDegraded.size > 0;
     let degradedReason = guardRes?.degraded ? (guardRes.degradedReason || null) : null;
     if (!degradedReason && customDegraded.size) degradedReason = customDegraded.values().next().value || null;
+    /** @type {string[] | null} */
     let degradedCategories = null;
     if (degraded) {
         const affected = new Set(customDegraded.keys());
@@ -204,6 +205,9 @@ async function _scanOnce(text, plan, threshold, opts) {
  */
 async function detectWithCustomTypes(text, enabledCategories, threshold, plan, opts = {}) {
     const t0 = Date.now();
+    /**
+     * @param {string} how
+     */
     const done = (how, r) => log.info(
         `[PiiDetection] pii.client ms=${Date.now() - t0} chars=${text.length} `
         + `windows=${windowCountFor(text)} custom=${plan.ids.length} `

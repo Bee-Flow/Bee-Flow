@@ -4,7 +4,7 @@
  * parser; the counters it fills are read back by /api/admin/metrics.
  */
 
-const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const UNMATCHED_ROUTE = '__unmatched__';
 
@@ -33,7 +33,7 @@ function mountRequestTiming(app) {
     // Long-lived SSE streams are skipped — their duration is the stream length, not
     // request-handling latency, and would swamp the histogram.
     const httpMetrics = require('../telemetry/httpMetrics');
-    app.use((req, res, next) => {
+    app.use((/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
         const start = process.hrtime.bigint();
         res.on('finish', () => {
             try {
@@ -41,7 +41,7 @@ function mountRequestTiming(app) {
                 if (typeof ct === 'string' && ct.includes('text/event-stream')) return;
                 const ms = Number(process.hrtime.bigint() - start) / 1e6;
                 httpMetrics.recordHttp({ method: req.method, route: _normalizeRoute(req), status: res.statusCode, ms });
-            } catch (err) { log.debug('never break the response', err); }
+            } catch (err) { bestEffort('boot/requestTiming:mountRequestTiming', err); /* never break the response */ }
         });
         next();
     });

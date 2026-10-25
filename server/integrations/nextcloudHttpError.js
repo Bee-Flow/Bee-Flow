@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * One mapping from a failed Nextcloud HTTP answer to a tool error.
  *
@@ -14,18 +14,25 @@
  *   other 4xx  the status plus Nextcloud's reason
  */
 
-const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const MAX_DETAIL = 200;
 
-/** Control characters out, whitespace collapsed, cut to a fixed length. */
+/**
+ * Control characters out, whitespace collapsed, cut to a fixed length.
+ * @param {string} text
+ */
 function clean(text) {
     return String(text || '').replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, MAX_DETAIL);
 }
 
+/** @type {Record<string, string>} */
 const XML_ENTITIES = { '&lt;': '<', '&gt;': '>', '&quot;': '"', '&apos;': "'", '&amp;': '&' };
 
-/** The five basic XML entities (a Sabre message is XML text). */
+/**
+ * The five basic XML entities (a Sabre message is XML text).
+ * @param {string} text
+ */
 function decodeXml(text) {
     return text.replace(/&(lt|gt|quot|apos|amp);/g, (m) => XML_ENTITIES[m]);
 }
@@ -45,7 +52,7 @@ function extractReason(bodyText) {
         const msg = json?.ocs?.meta?.message || json?.ocs?.data?.message || json?.message;
         return typeof msg === 'string' && msg.toUpperCase() !== 'OK' ? clean(msg) : '';
     } catch (e) {
-        log.debug('[nextcloudHttpError] body is not JSON, trying the XML shape:', e.message);
+        bestEffort('integrations/nextcloudHttpError:extractReason', e); // [nextcloudHttpError] body is not JSON, trying the XML shape:
     }
     const sabre = text.match(/<s:message>([^<]*)<\/s:message>/i);
     return sabre ? clean(decodeXml(sabre[1])) : '';

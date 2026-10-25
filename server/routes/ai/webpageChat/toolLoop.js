@@ -24,6 +24,7 @@ const { WEBPAGE_BRIDGE_TOOLS } = require('../../../integrations/webpageBridgeToo
 const { WEBPAGE_KB_SEARCH_TOOL } = require('../../../core/webpages/webpageKnowledgeSearch');
 const { createToolDispatcher } = require('./tools');
 const { createValidationRepair } = require('./validation');
+const { fallback, bestEffort } = require('../../../utils/bestEffort');
 
 /**
  * Runs the rounds until the model stops calling tools (or a plan, the round
@@ -160,7 +161,7 @@ async function runToolLoop({
             const _convMap = require('../../../core/dlp/dlpRunner').getConversationTokenMap(_dlpConvId);
             const _add = buildTokenPreservationAddendum(_convMap);
             if (_add && messages[0]?.role === 'system') messages[0].content += _add;
-        } catch (err) { log.debug('best-effort', err); }
+        } catch (err) { fallback('routes/ai/webpageChat/toolLoop:runToolLoop', err); /* best-effort */ }
     }
     // Response un-tokeniser: restore [token]s minted from attachment PII back to
     // real values as chunks stream (shared by every phase below). Passthrough
@@ -238,13 +239,13 @@ async function runToolLoop({
                 ..._terminationBase(),
                 termination_type: 'error',
                 ...sanitizeError(err),
-            }).catch(() => {});
+            }).catch((e) => bestEffort('routes/ai/webpageChat/toolLoop:runToolLoop#2', e));
             send('error', { error: `Chat error: ${err.message}` });
             break;
         }
 
         if (_termLastStopReason === 'max_tokens' || _termLastStopReason === 'length') {
-            terminationStore.logTermination({ ..._terminationBase(), termination_type: 'max_tokens' }).catch(() => {});
+            terminationStore.logTermination({ ..._terminationBase(), termination_type: 'max_tokens' }).catch((e) => bestEffort('routes/ai/webpageChat/toolLoop:runToolLoop#3', e));
         }
 
         if (streamToolCalls.length === 0) {
@@ -302,7 +303,7 @@ async function runToolLoop({
                     ..._terminationBase(),
                     termination_type: 'error',
                     ...sanitizeError(err),
-                }).catch(() => {});
+                }).catch((e) => bestEffort('routes/ai/webpageChat/toolLoop:runToolLoop#4', e));
             }
             break;
         }
@@ -311,7 +312,7 @@ async function runToolLoop({
     // Hit MAX_TOOL_ROUNDS with tool calls still pending — give the model
     // one chance to summarise without offering more tools.
     if (toolCallRounds >= MAX_TOOL_ROUNDS && streamToolCalls.length > 0) {
-        terminationStore.logTermination({ ..._terminationBase(), termination_type: 'max_iterations' }).catch(() => {});
+        terminationStore.logTermination({ ..._terminationBase(), termination_type: 'max_iterations' }).catch((e) => bestEffort('routes/ai/webpageChat/toolLoop:runToolLoop#5', e));
         try {
             await adapter.stream(apiKey, apiUrl, modelId, messages, chatOptions, streamCallback);
         } catch (err) {
@@ -320,7 +321,7 @@ async function runToolLoop({
                 ..._terminationBase(),
                 termination_type: 'error',
                 ...sanitizeError(err),
-            }).catch(() => {});
+            }).catch((e) => bestEffort('routes/ai/webpageChat/toolLoop:runToolLoop#6', e));
         }
     }
 
@@ -328,3 +329,16 @@ async function runToolLoop({
 }
 
 module.exports = { runToolLoop };
+
+/**
+ * @typedef {(event: string, data: unknown) => void} Send
+ * @typedef {'html' | 'css' | 'js'} Slot
+ * @typedef {{ html: string, css: string, js: string }} SlotFiles
+ * @typedef {{ liveFiles: SlotFiles, preTurnFiles: SlotFiles, dirtySlots: Set<Slot>, readSlots: Set<string>,
+ *   touchedExtraPaths: Set<string>, validationRepairUsed: boolean, currentFramework: string,
+ *   planProposedThisTurn: boolean, pendingVisionImages: string[] }} TurnState
+ * @typedef {ReturnType<typeof import('../../../core/privacy/toolPiiGate').toolLoopGate>} ShieldGate
+ * @typedef {Awaited<ReturnType<typeof import('../../../stores/webpageStore').getWebpage>>} Webpage
+ * @typedef {Array<{ id?: string, name?: string, type?: string, status?: string, wordCount?: number, metadata?: unknown }>} WebpageSources
+ * @typedef {import('../../../core/documents/attachmentExtractor').Attachment} TurnAttachment
+ */

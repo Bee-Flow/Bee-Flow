@@ -20,6 +20,7 @@ const { noteTruncation } = require('./truncations');
 const { buildLinearEdges } = require('./linearEdges');
 const { coerceLayerInputs } = require('./layerParams');
 const { forEachConcurrencyFor, runIndexedPool } = require('./forEachConcurrency');
+const { fallback } = require('../../utils/bestEffort');
 
 // ── Parallel branches ───────────────────────────────────
 //
@@ -183,6 +184,7 @@ async function execLoop(step, ctx, runState, mode, dispatchSubStep) {
  * `runLeaf` is the dispatch-by-type closure (no iteration) from the
  * enclosing executeAutomation scope, so container steps nested in a
  * forEach still recurse correctly.
+ * @param {string} mode
  */
 async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel = null) {
     const fe = step.forEach || {};
@@ -260,6 +262,9 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
     // items started at the same moment may both call the model before the
     // first answer is stored for reuse (askOnce).
     const concurrency = forEachConcurrencyFor(step, mode);
+    /**
+     * @param {number} i
+     */
     const runItem = async (i) => {
         // Honour cancellation between items — a long fan-out (hundreds of
         // API calls) must stop promptly, not only at the next step boundary.
@@ -293,7 +298,7 @@ async function execForEachStep(step, ctx, runState, mode, runLeaf, checkCancel =
                 // Run pauses (approval, form page) and cancellation are not
                 // per-item errors — they must halt the run, not get swallowed
                 // into the results.
-                if (isRunPause(e) || e.message === 'Run cancelled') throw e;
+                if (isRunPause(e) || /** @type {Error} */ (e).message === 'Run cancelled') throw e;
                 lastErr = e;
                 if (attempt < maxAttempts && retry?.backoffMs) {
                     await new Promise(r => setTimeout(r, Number(retry.backoffMs) || 0));
@@ -500,12 +505,13 @@ function callerCanUseBlock(row, ctx) {
 }
 
 /** Resolve the published definition of a Step for a run, memoised per-run.
+ * @param {string} blockId
  *  Throws a typed error if the Step is missing, unpublished, or forbidden. */
 async function loadBlockForRun(ctx, blockId) {
     if (!ctx._blockCache) ctx._blockCache = new Map();
     if (ctx._blockCache.has(blockId)) return ctx._blockCache.get(blockId);
     const automationStore = require('../../stores/automationStore');
-    const row = await automationStore.getAutomation(blockId).catch(() => null);
+    const row = await automationStore.getAutomation(blockId).catch((e) => fallback('core/automationRunner/execFlow:loadBlockForRun', e, null));
     if (!row || row.kind !== 'block') {
         /** @type {import('./runnerError.types').RunnerError} */
         const e = new Error(`Step "${blockId}" was deleted or is unavailable.`); e.errorClass = 'block_unavailable'; throw e;
@@ -518,7 +524,7 @@ async function loadBlockForRun(ctx, blockId) {
         /** @type {import('./runnerError.types').RunnerError} */
         const e = new Error(`Step "${row.title || blockId}" has not been published yet.`); e.errorClass = 'block_unpublished'; throw e;
     }
-    const def = await automationStore.getVersionDefinition(blockId, row.publishedVersion).catch(() => null)
+    const def = await automationStore.getVersionDefinition(blockId, row.publishedVersion).catch((e) => fallback('core/automationRunner/execFlow:loadBlockForRun#2', e, null))
         || row.definition; // fall back to the working def if the snapshot is missing
     if (!def || !def.trigger) {
         /** @type {import('./runnerError.types').RunnerError} */
@@ -561,3 +567,25 @@ module.exports = {
     execParallel, execLoop, buildLinearEdges, execForEachStep,
     execCallLayer, execLayerOutput, callerCanUseBlock, loadBlockForRun, execCallBlock,
 };
+
+/**
+ * A step as the definition stores it (parsed JSON), with the fields the flow containers read.
+ * @typedef {{ id: string, type?: string, branches?: FlowStep[][], failOnAnyBranchError?: boolean,
+ *   overRef?: string, itemVar?: string, batchSize?: number|string, maxIterations?: number, body?: FlowStep[],
+ *   forEach?: { overRef?: string, itemVar?: string, maxIterations?: number, parents?: unknown, concurrency?: unknown },
+ *   retry?: { max: number, backoffMs?: number|string }, layerKey?: string, layerId?: string, blockId?: string,
+ *   inputs?: Record<string, unknown>, fields?: Record<string, unknown>, tool?: string, [key: string]: unknown }} FlowStep
+ * @typedef {{ trigger?: { id: string, params?: unknown }, steps?: FlowStep[], edges?: import('./runDagGraph').DagEdge[], title?: string,
+ *   [key: string]: unknown }} LayerDef
+ * @typedef {{ prefix?: string, parentStepId?: string|null, suppress?: boolean }} StepRecord
+ * @typedef {{ userId?: string, orgId?: string, userOrgIds?: string[], userGroupIds?: string[],
+ *   triggerSynthetic?: boolean, layerStack?: string[], layers?: Record<string, LayerDef>, stepRecord?: StepRecord,
+ *   _blockCache?: Map<string, { def: LayerDef, title: string }>, _truncations?: Array<{ stepId: string }>,
+ *   [key: string]: unknown }} FlowCtx
+ * @typedef {import('./runDagRecord').DagRunState & { loop?: Record<string, unknown>,
+ *   parallel?: Record<string, unknown>, _syntheticLoopVars?: Record<string, boolean> }} FlowRunState
+ * @typedef {Parameters<typeof runDag>[4]} DispatchSubStep
+ * @typedef {{ output?: unknown, dryRunSynthesised?: boolean, toolsWithheld?: string[],
+ *   toolsWithheldReasons?: Record<string, string> }} LeafResult
+ * @typedef {(step: FlowStep, ctx: FlowCtx, runState: FlowRunState, mode: string) => Promise<LeafResult>} RunLeaf
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * A/B experiments on a CMS block: the content fields and what is wrong with them.

@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Migration: Add pii_token_map to automation_runs (2026-08).
  *

@@ -19,6 +19,7 @@ const { provisionAnalyticsForSite } = require('./cmsAnalytics');
 const { clientRev } = require('../stores/cms/revision');
 const { mediaWarningFor } = require('../stores/cms/localeMedia');
 const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 // ── Shared handler bodies ────────────────────────────────────────
 //
@@ -26,6 +27,10 @@ const log = require('../telemetry/log');
 // and req.params.{id,locale} (where applicable). The same function is wired
 // to both /admin/* and /sites/:siteId/* routes in routes/cms.js.
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function getSitePayload(req, res) {
     const [payload, locales, liveSiteId] = await Promise.all([
         cmsStore.getAdminPayload(req.siteId),
@@ -43,11 +48,19 @@ async function getSitePayload(req, res) {
     });
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function getGraph(req, res) {
     const graph = await cmsStore.getSiteGraph(req.siteId);
     res.json(graph);
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function putSiteDoc(req, res) {
     const { site } = req.body || {};
     if (!site) return res.status(400).json({ error: 'site object required' });
@@ -58,6 +71,7 @@ async function putSiteDoc(req, res) {
         // homepage belong to the page operations, and a copy of them from an
         // editor that has been open a while would erase pages created since.
         const expectedRev = clientRev(site.rev, 'site', { route: 'PUT /site', siteId: req.siteId });
+        /** @type {{ localeOverrides?: Record<string, any> }} */
         const report = {};
         const saved = await cmsStore.updateSiteChrome(req.siteId, site, { expectedRev, report });
         // `localeOverrides`: header/footer translations re-aligned to this save's item order.
@@ -68,6 +82,10 @@ async function putSiteDoc(req, res) {
     }
 }
 
+/**
+ * @param {import('express').Request<{ locale: string }>} req
+ * @param {import('express').Response} res
+ */
 async function putSiteLocale(req, res) {
     try {
         const { override } = req.body || {};
@@ -79,6 +97,10 @@ async function putSiteLocale(req, res) {
     } catch (err) { throw new HttpError(400, 'bad_request', err.message); }
 }
 
+/**
+ * @param {import('express').Request<{ locale: string }>} req
+ * @param {import('express').Response} res
+ */
 async function deleteSiteLocale(req, res) {
     await cmsStore.deleteSiteLocaleOverride(req.siteId, req.params.locale.toLowerCase());
     res.json({ success: true });
@@ -90,6 +112,7 @@ async function deleteSiteLocale(req, res) {
 // resulting override is persisted and returned so the editor can fold it in.
 
 // Resolve the human-readable language name for a locale code (for the prompt).
+/** @param {string} locale */
 async function localeName(locale) {
     try {
         const locales = await languageStore.getAvailableLocales();
@@ -97,6 +120,10 @@ async function localeName(locale) {
     } catch (_) { return locale; }
 }
 
+/**
+ * @param {import('express').Request<{ locale: string }>} req
+ * @param {import('express').Response} res
+ */
 async function postSiteAiTranslate(req, res) {
     const locale = String(req.params.locale || '').toLowerCase();
     const defaultLocale = await cmsStore.getDefaultLocale();
@@ -131,12 +158,16 @@ async function postSiteAiTranslate(req, res) {
             : `Translated ${result.translated} fields`,
     });
 }
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function postSitePublish(req, res) {
     try {
         const result = await cmsStore.publishSite(req.siteId);
         // Best-effort: ensure this site has a Umami website so its public pages
         // have an id to report against. Fire-and-forget so publish stays fast.
-        const project = await cmsStore.getProject(req.siteId).catch(() => null);
+        const project = await cmsStore.getProject(req.siteId).catch((e) => fallback('routes/cmsSiteHandlers:postSitePublish', e, null));
         provisionAnalyticsForSite(req.siteId, {
             name: project?.name || 'CMS site',
             domain: req.get('host'),
@@ -147,6 +178,10 @@ async function postSitePublish(req, res) {
 
 // ensurePublishedSnapshot lives in ./cmsShared.js (shared with the CMS MCP server).
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function putSiteLive(req, res) {
     try {
         const { live } = req.body || {};
@@ -181,6 +216,10 @@ async function putSiteLive(req, res) {
 
 // Org-wide handlers (only mounted on /admin/*).
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function putEnabled(req, res) {
     const { enabled, siteId } = req.body || {};
     if (typeof enabled !== 'boolean') return res.status(400).json({ error: 'enabled must be a boolean' });
@@ -210,6 +249,10 @@ async function putEnabled(req, res) {
     res.json({ success: true, enabled: next !== null, liveSiteId: next });
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ */
 async function putDefaultLocale(req, res) {
     const { locale } = req.body || {};
     if (!locale || typeof locale !== 'string') return res.status(400).json({ error: 'locale required' });

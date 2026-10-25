@@ -11,7 +11,10 @@ const {
     sanitizeDataExtractionFields, sanitizeDataExtractionSource, loopItemSourceError,
 } = require('../../stepBuilders/dataExtractionStep');
 
-/** Applies the patch's fields/source to `next`: a refusal, or null. */
+/**
+ * Applies the patch's fields/source to `next`: a refusal, or null.
+ * @param {string[]} patchNotes
+ */
 function patchDataExtraction(graph, step, patch, next, draftWrap, patchNotes) {
     // data_extraction.fields is the ARRAY of declared fields — the output shape
     // — so it too bypasses the bindKey machinery (which would read `fields` as
@@ -52,3 +55,7 @@ function patchDataExtraction(graph, step, patch, next, draftWrap, patchNotes) {
 }
 
 module.exports = { patchDataExtraction };
+
+/** @typedef {import('../../draftGraph').DraftGraph} DraftGraph */
+
+/** @typedef {import('../../pendingDatatables').DraftWrap} DraftWrap */

@@ -317,3 +317,20 @@ test('orgRole is still repaired on re-bootstrap (the fix must not freeze other u
     assert.equal(state.updates.length, 1);
     assert.deepEqual(state.updates[0].updates, { orgRole: 'org_admin' });
 });
+
+test('resolveProvisioningMode fails closed to pairing_only when the stored mode cannot be read, even on an open-by-default host', async () => {
+    const prevHost = process.env.SERVER_PUBLIC_HOST;
+    const prevEnv = process.env.BEEFLOW_CONNECTOR_PROVISIONING;
+    const prevGet = MOCKS['../../stores/configStore'].getConfig;
+    process.env.SERVER_PUBLIC_HOST = 'server.beeflow.nl';
+    delete process.env.BEEFLOW_CONNECTOR_PROVISIONING;
+    try {
+        assert.equal(await helpers.resolveProvisioningMode(), 'open');
+        MOCKS['../../stores/configStore'].getConfig = async () => { throw new Error('db down'); };
+        assert.equal(await helpers.resolveProvisioningMode(), 'pairing_only');
+    } finally {
+        MOCKS['../../stores/configStore'].getConfig = prevGet;
+        if (prevHost === undefined) delete process.env.SERVER_PUBLIC_HOST; else process.env.SERVER_PUBLIC_HOST = prevHost;
+        if (prevEnv !== undefined) process.env.BEEFLOW_CONNECTOR_PROVISIONING = prevEnv;
+    }
+});

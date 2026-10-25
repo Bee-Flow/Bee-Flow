@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Module frontend runtime manifest — the pinned FE-RUNTIME contract the SPA
  * reads to lazy-mount remote modules that ship a frontend.
@@ -45,15 +45,24 @@ const NO_QUERY_TEXT = 'The module manifest takes no parameters.';
 /** Nothing. Said rather than left out: an ignored key is a promise. */
 const NO_QUERY = z.object({}, { error: onUnknownKeys(NO_QUERY_TEXT) }).strict();
 
+/**
+ * @param {string} id
+ * @param {string} version
+ */
 function assetBase(id, version) {
     return `/api/module-assets/${encodeURIComponent(id)}/${encodeURIComponent(version)}/frontend`;
 }
+/**
+ * @param {string} base
+ * @param {unknown} rel
+ */
 function assetUrl(base, rel) {
     return `${base}/${String(rel).replace(/^\/+/, '')}`;
 }
 // The default Studio-tab glyph for a module that declares none. Must be a key
 // of the SPA's ICON_MAP (moduleRuntime/registry.js); 'box' is not one.
 const DEFAULT_ICON = 'boxes';
+/** @param {string | null | undefined} v */
 function iconName(v) {
     return !v || v === 'box' ? DEFAULT_ICON : v;
 }
@@ -96,7 +105,7 @@ router.get('/frontend', requireAuth, validate({ query: NO_QUERY }), async (req, 
                 gateCapability: sa.gateCapability || (entry.capabilityIds && entry.capabilityIds[0]) || null,
             },
             entryUrl: assetUrl(base, fe.entry),
-            cssUrls: Array.isArray(fe.css) ? fe.css.map(c => assetUrl(base, c)) : [],
+            cssUrls: Array.isArray(fe.css) ? fe.css.map((/** @type {unknown} */ c) => assetUrl(base, c)) : [],
         });
     }
     const rev = require('crypto').createHash('sha256')

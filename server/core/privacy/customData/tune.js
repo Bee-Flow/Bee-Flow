@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * "Tune automatically": measure candidate settings on the admin's marked test
@@ -45,15 +45,31 @@ const MAX_AI_WORDINGS = 7;
 const EPS = 1e-9;
 const FLOOR_SWEEP = Object.freeze(Array.from({ length: 15 }, (_, i) => Math.round((0.2 + i * 0.05) * 100) / 100));
 
-const listOf = (v) => (Array.isArray(v) ? v : []);
+/**
+ * @typedef {import('../customTypes/spec').CustomDataType} CustomDataType
+ * @typedef {{ words?: Partial<CustomDataType['words']>, pattern?: Partial<CustomDataType['pattern']>, ai?: { prompt: string, floor: number } }} TuneConfig
+ * @typedef {{ config: TuneConfig, summary: ReturnType<typeof scoreAll>['summary'], length?: number, order: number, floor?: number, margin?: number }} TuneCandidate
+ * @typedef {{ engine: import('./bench').BenchEngine, spec: CustomDataType, sentences: import('./bench').BenchSentence[], examples?: string[],
+ *   candidates?: { aiLabels?: string[], patterns?: string[] }, orgTypes?: unknown,
+ *   validatePattern: (source: string, caseSensitive: boolean) => Promise<{ ok: boolean }> }} TuneInput
+ */
 
+const listOf = (/** @type {unknown} */ v) => (Array.isArray(v) ? v : []);
+
+/**
+ * @param {number} floor
+ */
 function sensitivityFor(floor) {
     if (floor >= 0.7) return 'low';
     if (floor >= 0.45) return 'medium';
     return 'high';
 }
 
-/** Negative when `a` ranks before `b`. */
+/**
+ * Negative when `a` ranks before `b`.
+ * @param {TuneCandidate} a
+ * @param {TuneCandidate} b
+ */
 function compareCandidates(a, b) {
     const fa = fScore(a.summary);
     const fb = fScore(b.summary);
@@ -67,11 +83,18 @@ function compareCandidates(a, b) {
     return a.order - b.order;
 }
 
+/**
+ * @param {TuneCandidate[]} candidates
+ */
 function rankCandidates(candidates) {
     return [...candidates].sort(compareCandidates);
 }
 
-/** Strictly better on what counts: a higher F2, or the same F2 with fewer false alarms. */
+/**
+ * Strictly better on what counts: a higher F2, or the same F2 with fewer false alarms.
+ * @param {TuneCandidate} best
+ * @param {TuneCandidate} before
+ */
 function isImprovement(best, before) {
     const fb = fScore(best.summary);
     const f0 = fScore(before.summary);
@@ -80,16 +103,20 @@ function isImprovement(best, before) {
 }
 
 /** A wording the guard accepts as a prompt: 2..60 characters, no « << » or « >> ». */
-const promptOk = (p) => typeof p === 'string' && p.trim().length >= 2 && p.trim().length <= 60 && !/<<|>>/.test(p);
+const promptOk = (/** @type {unknown} */ p) => typeof p === 'string' && p.trim().length >= 2 && p.trim().length <= 60 && !/<<|>>/.test(p);
 
+/**
+ * @param {TuneInput} input
+ */
 async function tuneWords({ engine, spec, sentences }) {
-    const cur = spec.words || {};
+    const cur = spec.words || /** @type {Partial<CustomDataType['words']>} */ ({});
     const combos = [[!!cur.caseSensitive, !!cur.wholeWord]];
     for (const cs of [false, true]) {
         for (const ww of [true, false]) {
             if (!combos.some(([a, b]) => a === cs && b === ww)) combos.push([cs, ww]);
         }
     }
+    /** @type {TuneCandidate[]} */
     const tried = [];
     for (const [caseSensitive, wholeWord] of combos) {
         const words = { ...cur, caseSensitive, wholeWord };
@@ -99,9 +126,13 @@ async function tuneWords({ engine, spec, sentences }) {
     return { before: tried[0], tried };
 }
 
+/**
+ * @param {TuneInput} input
+ */
 async function tuneAi({ engine, spec, sentences, candidates, orgTypes }) {
+    /** @type {string[]} */
     const wordings = [];
-    const add = (label, strict) => {
+    const add = (/** @type {unknown} */ label, /** @type {boolean} */ strict) => {
         const text = typeof label === 'string' ? label.trim() : '';
         if (!promptOk(text) || (strict && !LABEL_RX.test(text))) return;
         if (wordings.some((w) => w.toLowerCase() === text.toLowerCase()) || wordings.length >= MAX_AI_WORDINGS) return;
@@ -112,7 +143,9 @@ async function tuneAi({ engine, spec, sentences, candidates, orgTypes }) {
     for (const l of listOf(candidates?.aiLabels)) add(l, true);
 
     const texts = sentences.map((s) => s.text);
+    /** @type {TuneCandidate[]} */
     const tried = [];
+    /** @type {TuneCandidate | null} */
     let before = null;
     for (const prompt of wordings) {
         const { labelSet, floors } = aiGroup(spec, prompt, spec.ai.floor, orgTypes);
@@ -121,6 +154,7 @@ async function tuneAi({ engine, spec, sentences, candidates, orgTypes }) {
         for (const floor of floorsToTry) {
             if (tried.some((t) => t.config.ai.prompt === prompt && Math.abs(t.config.ai.floor - floor) <= EPS)) continue;
             const spans = decodeAi(raw, { ...floors, [spec.id]: floor }, spec.id, texts.length);
+            /** @type {TuneCandidate} */
             const entry = {
                 config: { ai: { prompt, floor } },
                 summary: scoreAll(sentences, spans).summary,
@@ -138,15 +172,17 @@ async function tuneAi({ engine, spec, sentences, candidates, orgTypes }) {
 }
 
 /** Same outcome on the test set: F2, found and false alarms all equal. */
-const sameOutcome = (a, b) => Math.abs(fScore(a.summary) - fScore(b.summary)) <= EPS
+const sameOutcome = (/** @type {TuneCandidate} */ a, /** @type {TuneCandidate} */ b) => Math.abs(fScore(a.summary) - fScore(b.summary)) <= EPS
     && a.summary.found === b.summary.found && a.summary.falseAlarms === b.summary.falseAlarms;
 
 /**
  * Per wording, walk its floors in order and give each entry its distance (in
  * steps) to the nearer end of the run of neighbouring floors that score the
  * same. See the header for why the middle of such a run is the safest floor.
+ * @param {TuneCandidate[]} tried
  */
 function markMargins(tried) {
+    /** @type {Map<string, TuneCandidate[]>} */
     const byPrompt = new Map();
     for (const t of tried) {
         const list = byPrompt.get(t.config.ai.prompt) || [];
@@ -164,15 +200,24 @@ function markMargins(tried) {
     }
 }
 
+/**
+ * @param {TuneInput} input
+ */
 async function tunePattern({ engine, spec, sentences, examples, candidates, validatePattern }) {
-    const cur = spec.pattern || {};
+    const cur = spec.pattern || /** @type {Partial<CustomDataType['pattern']>} */ ({});
     const caseSensitive = !!cur.caseSensitive;
     const texts = sentences.map((s) => s.text);
+    /**
+     * @param {Partial<CustomDataType['pattern']>} pattern
+     * @param {number} order
+     * @returns {Promise<TuneCandidate>}
+     */
     const evaluate = async (pattern, order) => {
         const { spans } = await predictLocal(engine, { ...spec, pattern }, texts);
         return { config: { pattern }, summary: scoreAll(sentences, spans).summary, length: pattern.source.length, order };
     };
     const before = await evaluate(cur, 0);
+    /** @type {TuneCandidate[]} */
     const tried = [];
     const sources = [cur.source, ...inferPatternFromExamples(examples, caseSensitive), ...listOf(candidates?.patterns)];
     const seen = new Set();
@@ -192,6 +237,10 @@ async function tunePattern({ engine, spec, sentences, examples, candidates, vali
     return { before, tried };
 }
 
+/**
+ * @param {string} method
+ * @param {TuneConfig} config
+ */
 function describeBest(method, config) {
     if (method === 'ai') return { label: config.ai.prompt, sensitivity: sensitivityFor(config.ai.floor) };
     if (method === 'pattern') {
@@ -205,6 +254,7 @@ function describeBest(method, config) {
  * Tuning needs something to measure: at least MIN_GOLD_SENTENCES sentences
  * with a marked part. Near misses (`gold: []`) are scored but do not count.
  * @throws HttpError 400 tune_needs_gold
+ * @param {unknown} sentences
  */
 function assertEnoughGold(sentences) {
     const withGold = listOf(sentences).filter((s) => Array.isArray(s?.gold) && s.gold.length > 0).length;
@@ -217,16 +267,16 @@ function assertEnoughGold(sentences) {
 }
 
 /**
- * @param {{ engine, spec, sentences, examples?: string[], candidates?: { aiLabels?: string[], patterns?: string[] },
- *           orgTypes?: object[], validatePattern: (source: string, caseSensitive: boolean) => Promise<{ok: boolean}> }} input
+ * @param {TuneInput} input
  *   `spec` is the engine-normalised draft; `sentences` the bench sentences.
- * @returns {Promise<{ best: { config, summary, describe }, before: { summary }, improved: boolean, tried: number }>}
+ * @returns {Promise<{ best: { config: TuneConfig, summary: TuneCandidate['summary'], describe: ReturnType<typeof describeBest> }, before: { summary: TuneCandidate['summary'] }, improved: boolean, tried: number }>}
  * @throws HttpError 400 tune_needs_gold when fewer than 5 sentences carry a marked part.
  */
 async function tuneType({ engine, spec, sentences, examples = [], candidates = {}, orgTypes = [], validatePattern }) {
     assertEnoughGold(sentences);
     const scoredSentences = listOf(sentences).filter((s) => Array.isArray(s.gold));
     const input = { engine, spec, sentences: scoredSentences, examples: listOf(examples), candidates, orgTypes, validatePattern };
+    /** @type {{ before: TuneCandidate, tried: TuneCandidate[] }} */
     let run;
     if (spec.method === 'words') run = await tuneWords(input);
     else if (spec.method === 'pattern') run = await tunePattern(input);

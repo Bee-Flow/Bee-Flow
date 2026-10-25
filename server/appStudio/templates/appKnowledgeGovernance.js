@@ -630,6 +630,10 @@ const BASES_BINDING = {
     limit: 50,
 };
 
+/**
+ * @param {string} id
+ * @param {number} span
+ */
 const basesList = (id, span) => ({
     id,
     type: 'list',

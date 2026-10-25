@@ -5,6 +5,7 @@
 
 const deps = require('./deps');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 const { getClient } = require('./client');
 const { buildStripeAddress } = require('./customer');
 
@@ -50,7 +51,7 @@ async function createTrialSubscription({ plan, subscriberType, subscriberId, org
     let org = null;
     if (subscriberType === 'organization' && subscriberId) {
         try { org = await deps.userStore().getOrganization(subscriberId); }
-        catch (e) { log.debug('non-fatal — fall back to name/email only', e); }
+        catch (e) { bestEffort('stripe/trial:orgLookup', e); }
     }
     const trialAddress = buildStripeAddress(org);
 
@@ -72,7 +73,7 @@ async function createTrialSubscription({ plan, subscriberType, subscriberId, org
             if (trialAddress) updates.address = trialAddress;
             await stripe.customers.update(customerId, updates);
         } catch (e) {
-            log.warn(`[Stripe] trial billing sync for org ${subscriberId} failed: ${e.message}`);
+            log.warn(`[Stripe] trial billing sync for org ${subscriberId} failed: ${/** @type {Error} */ (e).message}`);
         }
     }
 
@@ -92,8 +93,11 @@ async function createTrialSubscription({ plan, subscriberType, subscriberId, org
                 log.warn(`[Stripe] trial for ${subscriberType} ${subscriberId}: stripe_tax_enabled but no billing address — automatic_tax skipped (invoice will lack BTW lines until the address is completed)`);
             }
         }
-    } catch (e) { log.debug('non-fatal — behave as before', e); }
+    } catch (e) { bestEffort('stripe/trial:taxConfig', e); }
 
+    /**
+     * @param {boolean} withTax
+     */
     const buildTrialParams = (withTax) => ({
         customer: customerId,
         items: [{ price: plan.stripe_price_id }],
@@ -113,8 +117,8 @@ async function createTrialSubscription({ plan, subscriberType, subscriberId, org
         // tax_behavior — Stripe then rejects automatic_tax. Degrade to an
         // untaxed trial (the pre-fix behavior) instead of blocking the trial
         // entirely; the admin remedy is a plan re-sync.
-        if (automaticTax && /tax_behavior|automatic_tax|tax/i.test(e.message || '')) {
-            log.warn(`[Stripe] trial automatic_tax rejected (${e.message?.slice(0, 160)}) — retrying WITHOUT tax. Re-sync the plan so its price carries tax_behavior.`);
+        if (automaticTax && /tax_behavior|automatic_tax|tax/i.test(/** @type {Error} */ (e).message || '')) {
+            log.warn(`[Stripe] trial automatic_tax rejected (${/** @type {Error} */ (e).message?.slice(0, 160)}) — retrying WITHOUT tax. Re-sync the plan so its price carries tax_behavior.`);
             subscription = await stripe.subscriptions.create(buildTrialParams(false));
         } else {
             throw e;
@@ -145,8 +149,8 @@ async function enableAutomaticTaxForExistingSubscriptions() {
     const stripe = await getClient();
     const userStore = deps.userStore();
     const rows = [];
-    try { rows.push(...(await userStore.getAllOrgSubscriptions() || [])); } catch (e) { log.warn('[Stripe] tax backfill: org subs lookup failed:', e.message); }
-    try { rows.push(...(await userStore.getAllConsumerSubscriptions() || [])); } catch (e) { log.warn('[Stripe] tax backfill: consumer subs lookup failed:', e.message); }
+    try { rows.push(...(await userStore.getAllOrgSubscriptions() || [])); } catch (e) { log.warn('[Stripe] tax backfill: org subs lookup failed:', /** @type {Error} */ (e).message); }
+    try { rows.push(...(await userStore.getAllConsumerSubscriptions() || [])); } catch (e) { log.warn('[Stripe] tax backfill: consumer subs lookup failed:', /** @type {Error} */ (e).message); }
 
     let updated = 0;
     let skipped = 0;
@@ -160,7 +164,7 @@ async function enableAutomaticTaxForExistingSubscriptions() {
             updated++;
         } catch (e) {
             skipped++;
-            log.warn(`[Stripe] tax backfill: ${subId} skipped (${e.message?.slice(0, 160)})`);
+            log.warn(`[Stripe] tax backfill: ${subId} skipped (${/** @type {Error} */ (e).message?.slice(0, 160)})`);
         }
     }
     log.info(`[Stripe] automatic_tax backfill done — updated=${updated} skipped=${skipped} of ${rows.length} rows`);

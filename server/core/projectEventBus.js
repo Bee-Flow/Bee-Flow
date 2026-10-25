@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Cross-replica fan-out for project live updates.
  *
@@ -35,6 +35,7 @@
 const { EventEmitter } = require('events');
 const db = require('../db');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const CHANNEL_PREFIX = 'bf:project:';
 
@@ -51,6 +52,7 @@ bus.setMaxListeners(0);   // one listener per open SSE stream; the cap is noise
 let _redisDeps = { getRedis: db.getRedis, redisHealthy: db.redisHealthy };
 const getRedis = () => _redisDeps.getRedis();
 
+/** @type {import('ioredis').Redis | null} */
 let _subscriber = null;
 let _subscriberReady = false;
 const _subscribedProjects = new Set();
@@ -69,7 +71,7 @@ function _ensureSubscriber() {
     if (!r || typeof r.duplicate !== 'function') return null;
     try {
         const sub = r.duplicate();
-        sub.on('error', (e) => log.warn('[ProjectEventBus] subscriber error:', e.message));
+        sub.on('error', (/** @type {Error} */ e) => log.warn('[ProjectEventBus] subscriber error:', e.message));
         // "Distributed" means a subscriber that is actually connected and
         // subscribed, not one that merely exists: `duplicate()` returns before
         // the connection is up, and a connection lost later keeps the object.
@@ -77,7 +79,7 @@ function _ensureSubscriber() {
         sub.on('ready', () => { _subscriberReady = true; });
         sub.on('end', () => { _subscriberReady = false; });
         sub.on('close', () => { _subscriberReady = false; });
-        sub.on('message', (channel, message) => {
+        sub.on('message', (/** @type {string} */ channel, /** @type {string} */ message) => {
             try {
                 const parsed = JSON.parse(message);
                 // Redis delivers a publish back to the publishing replica too.
@@ -100,6 +102,7 @@ function _ensureSubscriber() {
     }
 }
 
+/** @param {string} projectId */
 function _channel(projectId) { return `${CHANNEL_PREFIX}${projectId}`; }
 
 /**
@@ -118,7 +121,7 @@ function subscribeProject(projectId, handler) {
         const sub = _ensureSubscriber();
         if (sub) {
             _subscribedProjects.add(projectId);
-            sub.subscribe(_channel(projectId), (err) => {
+            sub.subscribe(_channel(projectId), (/** @type {Error | null | undefined} */ err) => {
                 if (err) {
                     _subscribedProjects.delete(projectId);
                     log.warn('[ProjectEventBus] subscribe failed:', err.message);
@@ -134,7 +137,7 @@ function subscribeProject(projectId, handler) {
         // is watching.
         if (bus.listenerCount(projectId) === 0 && _subscribedProjects.has(projectId)) {
             _subscribedProjects.delete(projectId);
-            try { _subscriber?.unsubscribe(_channel(projectId)); } catch (err) { log.debug('non-fatal', err); }
+            try { _subscriber?.unsubscribe(_channel(projectId)); } catch (err) { bestEffort('core/projectEventBus:subscribeProject', err); /* non-fatal */ }
         }
     };
 }
@@ -149,6 +152,9 @@ function subscribeProject(projectId, handler) {
  *
  * Never throws: a live-feed notification must not be able to fail the action it
  * is reporting.
+ *
+ * @param {string} projectId
+ * @param {object} event
  */
 async function publishProjectEvent(projectId, event) {
     if (!projectId || !event) return;
@@ -179,6 +185,9 @@ async function publishProjectEvent(projectId, event) {
  * see. Persisting these would bloat project_events and, worse, give them cursor
  * positions — so a reconnecting client would faithfully replay a stale "Anna is
  * typing" from ten minutes ago.
+ *
+ * @param {string} projectId
+ * @param {object} event
  */
 async function publishTransient(projectId, event) {
     return publishProjectEvent(projectId, { ...event, transient: true });
@@ -189,8 +198,8 @@ async function publishTransient(projectId, event) {
  * Redis channel is `bf:project:<id>`), so a channel such as `doc:<documentId>`
  * cannot collide with a project uuid. Transient only: no row, no replay.
  */
-const subscribeChannel = (channel, handler) => subscribeProject(channel, handler);
-const publishChannel = (channel, event) => publishTransient(channel, event);
+const subscribeChannel = (/** @type {string} */ channel, /** @type {(event: object) => void} */ handler) => subscribeProject(channel, handler);
+const publishChannel = (/** @type {string} */ channel, /** @type {object} */ event) => publishTransient(channel, event);
 
 function _isHealthy() {
     try { return typeof _redisDeps.redisHealthy === 'function' ? !!_redisDeps.redisHealthy() : true; } catch (_) { return false; }

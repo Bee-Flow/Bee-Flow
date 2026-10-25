@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * THE SHARED DATATABLE RUNNER: "read/write this table, as this person, and only these columns".
  *
@@ -44,14 +45,26 @@
 
 'use strict';
 
+/** @typedef {{ field: string }} FieldRef */
+/** @typedef {FieldRef | FieldRef[]} SortSpec */
+/**
+ * What `resolveForPrincipal` returns: the table row, its scope, the caller's grade
+ * and the compiler-ready descriptor.
+ * @typedef {{ table: NonNullable<ReturnType<typeof import('../../stores/datatableStore/rowMappers').rowToDatatable>>,
+ *             scope: { kind: 'org'|'user', id: string }, scopeKey: string, grade: string,
+ *             principal: { userId?: string },
+ *             meta: Omit<import('./queryCompiler').TableMeta, 'fields'> & { key: string, access?: import('./accessFilter').TableAccess,
+ *               fields?: Array<import('./queryCompiler').CompilerField & { id: string, key: string, name?: string }> } }} ResolvedTable
+ */
+
 const queryCompiler = require('./queryCompiler');
 const accessFilter = require('./accessFilter');
 const datatableStore = require('../../stores/datatableStore');
 const datatableDbStore = require('../../stores/datatableDbStore');
-const log = require('../../telemetry/log');
 const {
     gradeForPrincipal, gradeAtLeast, datatableScopesFor, synthesizeAccess,
 } = require('../../auth/datatableAccess');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const PG = { dialect: 'pg' };
 
@@ -71,6 +84,11 @@ const ROW_ENVELOPE = Object.freeze(['id', 'updated_at']);
 
 /** Een weigering die de route letterlijk mag doorgeven: status + code + tekst. */
 class DatatableRuntimeError extends Error {
+    /**
+     * @param {number} status
+     * @param {string} code
+     * @param {string} message
+     */
     constructor(status, code, message) {
         super(message);
         this.name = 'DatatableRuntimeError';
@@ -80,6 +98,11 @@ class DatatableRuntimeError extends Error {
     }
 }
 
+/**
+ * @param {number} status
+ * @param {string} code
+ * @param {string} message
+ */
 function refuse(status, code, message) {
     return new DatatableRuntimeError(status, code, message);
 }
@@ -90,9 +113,11 @@ function refuse(status, code, message) {
  * UNCHANGED, only with the `safe` flag added, so the routes that pass only
  * `safe` refusals on verbatim (the webpage bridge) answer it as a 409 with its
  * code instead of a 500.
+ *
+ * @param {Error & { safe?: boolean }} e
  */
 function passLockedRows(e) {
-    if (e instanceof queryCompiler.RowsLockedError) e.safe = true;
+    if (e instanceof queryCompiler.RowsLockedError) /** @type {Error & { safe?: boolean }} */ (e).safe = true;
     return e;
 }
 
@@ -101,6 +126,9 @@ function passLockedRows(e) {
  *
  * Not an array → programming error (loud). An array but empty → a real, explainable refusal: the
  * binding names no column at all.
+ *
+ * @param {string[] | undefined} allowColumns
+ * @returns {string[]}
  */
 function requireAllowColumns(allowColumns) {
     if (!Array.isArray(allowColumns)) {
@@ -119,6 +147,10 @@ function requireAllowColumns(allowColumns) {
  *
  * No grade → 404 (the existence of someone else's table cannot be probed); grade too low → 403
  * (then the caller already knows that it exists). The same 404-vs-403 rule as routes/datatables.js.
+ *
+ * @param {unknown} datatableId
+ * @param {Parameters<typeof datatableScopesFor>[0]} principal
+ * @param {{ needed?: string }} [opts]
  */
 async function resolveForPrincipal(datatableId, principal, { needed = 'viewer' } = {}) {
     if (typeof datatableId !== 'string' || !datatableId) {
@@ -160,16 +192,23 @@ async function resolveForPrincipal(datatableId, principal, { needed = 'viewer' }
     };
 }
 
-/** Does this table mirror an external source? (core/dataEngine/sources) */
+/**
+ * Does this table mirror an external source? (core/dataEngine/sources)
+ * @param {ResolvedTable} resolved
+ */
 function isMirror(resolved) {
     return require('./sources').isSourceMirror(resolved?.table);
 }
 
-/** De write-through van de bron-soort van deze tabel. */
+/**
+ * De write-through van de bron-soort van deze tabel.
+ * @param {ResolvedTable} resolved
+ */
 function mirrorWrites(resolved) {
     return require('./sources').writeThrough(resolved.table);
 }
 
+/** @param {ResolvedTable} resolved */
 function mirrorCtx(resolved) {
     return mirrorWrites(resolved).contextOf({
         table: resolved.table, scope: resolved.scope, scopeKey: resolved.scopeKey,
@@ -177,7 +216,10 @@ function mirrorCtx(resolved) {
     });
 }
 
-/** De kolomsleutels die de tabel zelf declareert. */
+/**
+ * De kolomsleutels die de tabel zelf declareert.
+ * @param {ResolvedTable} resolved
+ */
 function declaredKeys(resolved) {
     const fields = Array.isArray(resolved?.meta?.fields) ? resolved.meta.fields : [];
     return fields.map(f => f && f.key).filter(k => typeof k === 'string' && k);
@@ -186,6 +228,9 @@ function declaredKeys(resolved) {
 /**
  * The intersection of "what the binding allows" and "what the table still has". A column that the
  * author has meanwhile thrown away disappears this way, without the call breaking.
+ *
+ * @param {ResolvedTable} resolved
+ * @param {string[]} allowColumns
  */
 function effectiveColumns(resolved, allowColumns) {
     const declared = new Set(declaredKeys(resolved));
@@ -197,9 +242,13 @@ function effectiveColumns(resolved, allowColumns) {
  *
  * Build it from an allow-list, never remove keys from the row: a column that is added to the table
  * next year must then not end up in the answer by itself.
+ *
+ * @param {Record<string, unknown>} row
+ * @param {string[]} columns
  */
 function projectRow(row, columns) {
     if (!row || typeof row !== 'object') return null;
+    /** @type {Record<string, unknown>} */
     const out = {};
     for (const k of ROW_ENVELOPE) if (k in row) out[k] = row[k];
     for (const k of columns) if (k in row) out[k] = row[k];
@@ -207,13 +256,18 @@ function projectRow(row, columns) {
 }
 
 /** De sorteervelden van een descriptor, in beide vormen die de compiler kent. */
+/** @param {SortSpec} [sort] */
 function sortFields(sort) {
     if (Array.isArray(sort)) return sort.map(s => s && s.field);
     if (sort && typeof sort === 'object') return [sort.field];
     return [];
 }
 
-/** Every field that is filtered or sorted on must be bound. */
+/**
+ * Every field that is filtered or sorted on must be bound.
+ * @param {string[] | (string | undefined)[] | (string | null | undefined)[]} fields
+ * @param {string[]} columns
+ */
 function assertFieldsBound(fields, columns) {
     const allowed = new Set(columns);
     for (const f of fields) {
@@ -231,6 +285,9 @@ function assertFieldsBound(fields, columns) {
  * The projection happens AFTER the query: the compiler knows no SELECT list (`SELECT *`), so the
  * database returns the whole row and this function is the place where it is decided what leaves
  * the server. That is no excuse to skip it; it is precisely why it is here and not in a route.
+ *
+ * @param {ResolvedTable} resolved
+ * @param {{ allowColumns?: string[], filters?: import('./queryCompiler').FilterSpec[], match?: string, sort?: SortSpec, limit?: number, cursor?: string }} [opts]
  */
 async function readRows(resolved, { allowColumns, filters, match, sort, limit, cursor } = {}) {
     // A mirror of an external source is refreshed in the background as soon as someone looks at it
@@ -238,7 +295,7 @@ async function readRows(resolved, { allowColumns, filters, match, sort, limit, c
     if (isMirror(resolved)) {
         try {
             require('./sources').kickStale(resolved.table, { reason: 'view' });
-        } catch (err) { log.debug('never a reason to fail a read', err); }
+        } catch (err) { bestEffort('core/dataEngine/datatableRuntime:readRows', err); /* never a reason to fail a read */ }
     }
     const columns = effectiveColumns(resolved, requireAllowColumns(allowColumns));
     if (!columns.length) {
@@ -302,6 +359,10 @@ async function readRows(resolved, { allowColumns, filters, match, sort, limit, c
  *
  * The access filter goes into the WHERE, before the GROUP BY (invariant of the compiler): a row that
  * this person may not see does not count either.
+ *
+ * @param {ResolvedTable} resolved
+ * @param {{ allowColumns?: string[], groupBy?: import('./queryCompiler').AggregateOpts['groupBy'], aggregates?: import('./queryCompiler').AggregateOpts['aggregates'],
+ *   filters?: import('./queryCompiler').FilterSpec[], match?: string, sort?: SortSpec, limit?: number }} [opts]
  */
 async function aggregateRows(resolved, { allowColumns, groupBy, aggregates, filters, match, sort, limit } = {}) {
     const columns = effectiveColumns(resolved, requireAllowColumns(allowColumns));
@@ -340,6 +401,9 @@ async function aggregateRows(resolved, { allowColumns, groupBy, aggregates, filt
  *
  * A non-bound column is REFUSED, not quietly left out: a page that thinks it has saved a field while
  * that is not so is worse than a page that gets an error message.
+ *
+ * @param {object | undefined} values
+ * @param {string[]} columns
  */
 function assertValuesBound(values, columns) {
     if (!values || typeof values !== 'object' || Array.isArray(values)) {
@@ -351,7 +415,12 @@ function assertValuesBound(values, columns) {
     return values;
 }
 
-/** Eén rij toevoegen. Vereist graad `editor` én create-recht op de descriptor. */
+/**
+ * Eén rij toevoegen. Vereist graad `editor` én create-recht op de descriptor.
+ *
+ * @param {ResolvedTable} resolved
+ * @param {{ allowColumns?: string[], values?: object }} [opts]
+ */
 async function insertRow(resolved, { allowColumns, values } = {}) {
     const columns = effectiveColumns(resolved, requireAllowColumns(allowColumns));
     const clean = await require('../../stores/lib/sheetCrypto').sealValues(resolved, assertValuesBound(values, columns));
@@ -362,6 +431,7 @@ async function insertRow(resolved, { allowColumns, values } = {}) {
         const r = await mirrorWrites(resolved).insertRow(mirrorCtx(resolved), clean);
         return { id: r.id };
     }
+    /** @type {{ sql: string; params: (string | null)[]; id: string; createdAt: string; }} */
     let compiled;
     try {
         compiled = queryCompiler.compileInsert(resolved.meta, clean, {
@@ -384,6 +454,9 @@ async function insertRow(resolved, { allowColumns, values } = {}) {
  * `expectedUpdatedAt` is verplicht, net als in routes/datatables.js: elke lezing
  * levert `updated_at` mee, dus een schrijver kán hem hebben, en zonder hem is
  * elke wijziging last-write-wins tussen twee bezoekers van dezelfde pagina.
+ *
+ * @param {ResolvedTable} resolved
+ * @param {{ allowColumns?: string[], rowId?: string, values?: object, expectedUpdatedAt?: string }} [opts]
  */
 async function updateRow(resolved, { allowColumns, rowId, values, expectedUpdatedAt } = {}) {
     const columns = effectiveColumns(resolved, requireAllowColumns(allowColumns));
@@ -401,7 +474,7 @@ async function updateRow(resolved, { allowColumns, rowId, values, expectedUpdate
         const r = await mirrorWrites(resolved).updateRow(mirrorCtx(resolved), rowId, clean, { expectedUpdatedAt });
         if (!r.changes) {
             if (!r.row) throw refuse(404, 'row_not_found', 'Not found');
-            const conflict = refuse(409, 'row_conflict', 'Someone else changed this row while you had it open');
+            const conflict = /** @type {DatatableRuntimeError & { row?: object }} */ (refuse(409, 'row_conflict', 'Someone else changed this row while you had it open'));
             conflict.row = projectRow(r.row, columns);
             throw conflict;
         }
@@ -428,7 +501,7 @@ async function updateRow(resolved, { allowColumns, rowId, values, expectedUpdate
 
     if (!out?.changes) {
         if (!row) throw refuse(404, 'row_not_found', 'Not found');
-        const conflict = refuse(409, 'row_conflict', 'Someone else changed this row while you had it open');
+        const conflict = /** @type {DatatableRuntimeError & { row?: object }} */ (refuse(409, 'row_conflict', 'Someone else changed this row while you had it open'));
         conflict.row = projectRow(row, columns);
         throw conflict;
     }
@@ -443,8 +516,8 @@ module.exports = {
     resolveForPrincipal,
     readRows,
     aggregateRows,
-    insertRow: (resolved, args) => require('../../stores/lib/sheetCrypto').withWrite(resolved, () => insertRow(resolved, args)),
-    updateRow: (resolved, args) => require('../../stores/lib/sheetCrypto').withWrite(resolved, () => updateRow(resolved, args)),
+    insertRow: (/** @type {ResolvedTable} */ resolved, /** @type {Parameters<typeof insertRow>[1]} */ args) => require('../../stores/lib/sheetCrypto').withWrite(resolved, () => insertRow(resolved, args)),
+    updateRow: (/** @type {ResolvedTable} */ resolved, /** @type {Parameters<typeof updateRow>[1]} */ args) => require('../../stores/lib/sheetCrypto').withWrite(resolved, () => updateRow(resolved, args)),
     projectRow,
     // test-only
     _effectiveColumns: effectiveColumns,

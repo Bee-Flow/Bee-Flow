@@ -26,6 +26,7 @@
  * @returns {{sql: string, params: Array}|null}  null when no mapped column changed.
  */
 function buildUpdate({ table, updates = {}, columnMap = {}, where = [], extraSet = [], quoteCols = false, returning = null, startIdx = 1 }) {
+    /** @type {string[]} */
     const setParts = [];
     const params = [];
     let idx = startIdx;
@@ -48,6 +49,7 @@ function buildUpdate({ table, updates = {}, columnMap = {}, where = [], extraSet
 
     for (const frag of extraSet) setParts.push(frag);
 
+    /** @type {string[]} */
     const whereParts = [];
     for (const w of where) {
         const colToken = quoteCols ? `"${w.col}"` : w.col;

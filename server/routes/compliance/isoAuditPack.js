@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Compliance — the auditor hand-over exports: the risk register PDF, the ISMS
  * policy pack PDF and the hash-stamped evidence bundle ZIP that carries every
@@ -31,17 +32,21 @@ const {
     resolveOrgId, REGULATION_KEY, computeVerificationSummary,
     _riskStore, _recordSoaEvidence, _buildClauseConformity,
 } = require('./shared');
+const { fallback } = require('../../utils/bestEffort');
 
 // ───────────────── ISO 27001 — remaining exports ─────────────────
 
+/** @param {string} orgId */
 async function _riskPdfData(orgId) {
     const store = _riskStore();
     const [risks, treatments, stats] = await Promise.all([
         store.listRisks(orgId), store.listTreatments(orgId), store.getStats(orgId),
     ]);
+    /** @type {Record<string, Record<string, any>[]>} */
     const byRisk = {};
     for (const tr of treatments) (byRisk[tr.risk_id] = byRisk[tr.risk_id] || []).push(tr);
     const ownerIds = [...new Set(risks.map(r => r.owner_user_id).filter(Boolean))];
+    /** @type {Record<string, string>} */
     const ownerName = {};
     for (const id of ownerIds) {
         try { const u = await userStore.getUser(id); ownerName[id] = u?.displayName || u?.username || id; }
@@ -63,7 +68,7 @@ async function _riskPdfData(orgId) {
 router.get('/iso/risks.pdf', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
-    const org = await userStore.getOrganization(orgId).catch(() => null);
+    const org = await userStore.getOrganization(orgId).catch((e) => fallback('routes/compliance/isoAuditPack:anon', e, null));
     const { rows, stats } = await _riskPdfData(orgId);
     const { buildRiskRegisterPdf } = require('../../utils/compliancePdf');
     const { buffer, hash } = await buildRiskRegisterPdf({
@@ -75,6 +80,7 @@ router.get('/iso/risks.pdf', requireAuth, requirePermission('admin_compliance'),
     res.send(buffer);
 });
 
+/** @param {string} orgId */
 async function _policyPackData(orgId) {
     const docs = (await ismsDocStore.listDocs(orgId)).filter(d => d.status === 'published' && d.current_version > 0);
     const documents = [];
@@ -88,7 +94,7 @@ async function _policyPackData(orgId) {
 router.get('/iso/policy-pack.pdf', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
-    const org = await userStore.getOrganization(orgId).catch(() => null);
+    const org = await userStore.getOrganization(orgId).catch((e) => fallback('routes/compliance/isoAuditPack:anon#2', e, null));
     const documents = await _policyPackData(orgId);
     if (!documents.length) return res.status(400).json({ error: 'no_published_policies' });
     const { buildPolicyPackPdf } = require('../../utils/compliancePdf');
@@ -106,15 +112,17 @@ router.get('/iso/policy-pack.pdf', requireAuth, requirePermission('admin_complia
 router.get('/iso/evidence-bundle.zip', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
-    const org = await userStore.getOrganization(orgId).catch(() => null);
+    const org = await userStore.getOrganization(orgId).catch((e) => fallback('routes/compliance/isoAuditPack:anon#3', e, null));
     const orgName = org?.name || orgId;
     const now = new Date().toISOString();
     const pdf = require('../../utils/compliancePdf');
     const JSZip = require('jszip');
     const zip = new JSZip();
+    /** @type {{ file: string, sha256: string }[]} */
     const manifest = [];
+    /** @type {{ file: string, reason: string, error_type: string }[]} */
     const failed = [];
-    const add = (name, buffer, hash) => { zip.file(name, buffer); manifest.push({ file: name, sha256: hash }); };
+    const add = (/** @type {string} */ name, /** @type {Buffer} */ buffer, /** @type {string} */ hash) => { zip.file(name, buffer); manifest.push({ file: name, sha256: hash }); };
     // An artefact that could not be built is RECORDED in the bundle, never
     // dropped: an auditor must be able to tell "this organisation has no
     // Statement of Applicability" from "the SoA could not be read". A pack
@@ -123,7 +131,7 @@ router.get('/iso/evidence-bundle.zip', requireAuth, requirePermission('admin_com
     // The reason is a fixed code plus the error's CLASS (its pg SQLSTATE or
     // constructor name) — never the error's own message, which routinely
     // quotes the row value that broke (BFSF-441).
-    const skip = (name, err) => {
+    const skip = (/** @type {string} */ name, /** @type {{ code?: string | number, name?: string } | null | undefined} */ err) => {
         const errorType = (err && (err.code || err.name)) ? String(err.code || err.name).slice(0, 60) : 'Error';
         failed.push({ file: name, reason: 'build_failed', error_type: errorType });
         log.warn(`[Compliance] evidence bundle: ${name} could not be built (${errorType})`);
@@ -132,15 +140,17 @@ router.get('/iso/evidence-bundle.zip', requireAuth, requirePermission('admin_com
     // Each artefact is best-effort: an empty register must not sink the bundle.
     try {
         const latest = await complianceStore.getLatestPerCheck(orgId);
+        /** @type {typeof import('../../i18n/defaults/en')} */
         const { GUI_DEFAULTS } = require('../../i18n/defaults/en');
-        const rows = latest.map(r => ({
+        const rows = latest.map((/** @type {Record<string, any>} */ r) => ({
             regulation: r.regulation, article: r.article, severity: r.severity,
             verification: registry.get(r.check_id)?.verification || 'automated',
             title: GUI_DEFAULTS[registry.get(r.check_id)?.titleKey] || r.check_id,
-            status: r.status, details: r.details, scope_id: r.scope_id || null, evidence_hash: null,
+            status: r.status, details: r.details, scope_id: r.scope_id || null, evidence_hash: /** @type {string | null} */ (null),
         }));
+        /** @type {Record<string, ReturnType<typeof computeScore>>} */
         const scores = {};
-        for (const reg of REGULATIONS) scores[REGULATION_KEY[reg]] = computeScore(latest.filter(r => r.regulation === reg));
+        for (const reg of REGULATIONS) scores[/** @type {Record<string, string>} */ (REGULATION_KEY)[reg]] = computeScore(latest.filter((/** @type {Record<string, any>} */ r) => r.regulation === reg));
         const r1 = await pdf.buildComplianceReport({ orgName, generatedAt: now, overall: computeScore(latest), ...scores, verificationSummary: computeVerificationSummary(latest), rows });
         add('compliance-report.pdf', r1.buffer, r1.hash);
     } catch (e) { skip('compliance-report.pdf', e); }

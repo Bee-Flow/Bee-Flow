@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Comment threads as a surface of the AI participation engine
  * (projects/participation): what lets the AI join a thread by itself when the
@@ -59,14 +59,18 @@ const ANSWER_CHARS = 10000;
 function makeCommentSurface(deps = {}) {
     const store = () => deps.store || require('../../stores/projectCommentStore');
     const commentCrypto = () => deps.commentCrypto || require('./commentCrypto');
-    const getProject = deps.getProject || ((id) => require('../../stores/projectStore').getProject(id));
+    const getProject = deps.getProject || ((/** @type {string} */ id) => require('../../stores/projectStore').getProject(id));
+    /** @type {ReturnType<typeof import('./passage').makeItemReader> | null} */
     let defaultReader = null;
     const itemReader = () => deps.itemReader || (defaultReader || (defaultReader = require('./passage').makeItemReader()));
     const emit = deps.emit
-        || ((projectId, event) => require('../../core/projectFeed').emitProjectEvent(projectId, event, { label: 'ProjectComments' }));
+        || ((/** @type {string} */ projectId, /** @type {Parameters<typeof import('../../core/projectFeed').emitProjectEvent>[1]} */ event) => require('../../core/projectFeed').emitProjectEvent(projectId, event, { label: 'ProjectComments' }));
     const newId = deps.newId || (() => crypto.randomUUID());
 
-    /** The thread, its project, and whether its item is still filed there. */
+    /**
+     * The thread, its project, and whether its item is still filed there.
+     * @param {string} threadId
+     */
     async function load(threadId) {
         const thread = threadId ? await store().getThreadById(threadId) : null;
         if (!thread) return null;
@@ -77,7 +81,13 @@ function makeCommentSurface(deps = {}) {
         return { thread, project };
     }
 
-    /** The passage and its section, read as `userId`; '' when it cannot be read. */
+    /**
+     * The passage and its section, read as `userId`; '' when it cannot be read.
+     * @param {NonNullable<Awaited<ReturnType<typeof import('../../stores/projectStore').getProject>>>} project
+     * @param {ReturnType<typeof import('../../stores/lib/projectCommentRows').rowToThread>} thread
+     * @param {ReturnType<Awaited<ReturnType<typeof import('./commentCrypto').forProject>>['openAnchor']>} anchor
+     * @param {string} userId
+     */
     async function passageText(project, thread, anchor, userId) {
         try {
             const item = await itemReader().read({
@@ -88,7 +98,7 @@ function makeCommentSurface(deps = {}) {
             if (!passage || !passage.found) passage = findPassage(item.markdown, anchor);
             return describePassage({ kind: thread.targetType, name: item.name, passage, tagged: false });
         } catch (err) {
-            log.warn(`[ProjectComments] passage unavailable for thread ${thread.id}: ${err && err.message}`);
+            log.warn(`[ProjectComments] passage unavailable for thread ${thread.id}: ${err && /** @type {Error} */ (err).message}`);
             return '';
         }
     }
@@ -200,7 +210,7 @@ function defaultEngine() {
         // @ts-ignore -- the engine ships with its own workstream; without it the surface stays unregistered
         return require('../participation');
     } catch (err) {
-        log.debug(`[ProjectComments] participation engine not available: ${err && err.message}`);
+        log.debug(`[ProjectComments] participation engine not available: ${err && /** @type {Error} */ (err).message}`);
         return null;
     }
 }
@@ -220,7 +230,7 @@ function ensureCommentSurface({ engine, surface } = {}) {
         if (!engine) registered = true;
         return true;
     } catch (err) {
-        log.warn(`[ProjectComments] comment surface not registered: ${err && err.message}`);
+        log.warn(`[ProjectComments] comment surface not registered: ${err && /** @type {Error} */ (err).message}`);
         return false;
     }
 }
@@ -245,7 +255,7 @@ async function notifyHumanComment({ threadId, commentId, authorUserId, orgId, li
         });
         return true;
     } catch (err) {
-        log.warn(`[ProjectComments] participation notice failed for thread ${threadId}: ${err && err.message}`);
+        log.warn(`[ProjectComments] participation notice failed for thread ${threadId}: ${err && /** @type {Error} */ (err).message}`);
         return false;
     }
 }
@@ -264,7 +274,7 @@ async function cancelCommentThread(threadId, { engine } = {}) {
         await target.cancelContainer(SURFACE, threadId);
         return true;
     } catch (err) {
-        log.warn(`[ProjectComments] participation cancel failed for thread ${threadId}: ${err && err.message}`);
+        log.warn(`[ProjectComments] participation cancel failed for thread ${threadId}: ${err && /** @type {Error} */ (err).message}`);
         return false;
     }
 }

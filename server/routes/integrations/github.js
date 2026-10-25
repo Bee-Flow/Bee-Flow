@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * GitHub Integration Routes — PAT-based
  *
@@ -31,13 +32,18 @@ const ConnectBody = z.object({
 
 // The session gate stays AHEAD of the schema: an unauthenticated caller must
 // still read 401, not a 400 about its body.
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 const requireSessionUser = (req, res, next) => {
     if (!req.session?.user?.id) return res.status(401).json({ error: 'Not authenticated' });
     next();
 };
 
 // ─── Connection Status ───────────────────────────────────────────
-router.get('/status', async (req, res) => {
+router.get('/status', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const userId = req.session?.user?.id;
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
@@ -51,7 +57,7 @@ router.get('/status', async (req, res) => {
 });
 
 // ─── Save Token ──────────────────────────────────────────────────
-router.post('/connect', requireSessionUser, validate({ body: ConnectBody }), async (req, res) => {
+router.post('/connect', requireSessionUser, validate({ body: ConnectBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const userId = req.session.user.id;
     const { token } = req.body;
 
@@ -69,7 +75,7 @@ router.post('/connect', requireSessionUser, validate({ body: ConnectBody }), asy
         return res.status(400).json({ error: 'Invalid GitHub token. Please check and try again.' });
     }
 
-    const userData = await userRes.json();
+    const userData = /** @type {{ login?: string }} */ (await userRes.json());
     const username = userData.login;
 
     // Store token and username
@@ -81,7 +87,7 @@ router.post('/connect', requireSessionUser, validate({ body: ConnectBody }), asy
 });
 
 // ─── Disconnect ──────────────────────────────────────────────────
-router.post('/disconnect', async (req, res) => {
+router.post('/disconnect', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const userId = req.session?.user?.id;
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 

@@ -1,9 +1,19 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
  * Constants and small helpers shared by the form queue (formQueue.js) and the
  * pieces it is assembled from (formQueueWork.js, formQueueRecovery.js).
+ */
+
+/**
+ * Rows and work units of the form queue. The stores hand back plain database
+ * rows, so the session, the automation and the run are records.
+ * @typedef {Record<string, any>} FormSession   a form_sessions row
+ * @typedef {Record<string, any>} FormAutomation   an automation as the runner takes it
+ * @typedef {Record<string, any>} FormRun   an automation run row
+ * @typedef {Record<string, any>} FormWork   what sits in pending_work: { kind: 'submit' | 'resume', ... }
+ * @typedef {{ automationId: string, sessionId: string, kind: string, thunk: () => Promise<any> }} FormQueueItem
  */
 
 const QUEUE_DEPTH = 25;
@@ -22,17 +32,22 @@ const RETRY_LATER_MS = 60_000;
 const MAX_RECOVERIES = 3;
 const RECOVERY_BATCH = 25;
 
+/** @param {number} ms */
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 /**
  * Another pod held the automation's running marker, so this run did nothing.
  * Our own queue cannot see theirs, hence the back-off retry in runQueued.
+ * @param {FormRun | null | undefined} run
  */
 function lostToConcurrency(run) {
     return !!run && run.status === 'cancelled' && CANCELLED_RE.test(run.error || '');
 }
 
-/** The answers-table row this journey writes to (its id rides on the trigger headers). */
+/**
+ * The answers-table row this journey writes to (its id rides on the trigger headers).
+ * @param {FormSession | null | undefined} session
+ */
 function answersRefOf(session) {
     const h = session?.triggerHeaders || {};
     return h.answers_row_id ? { datatableId: h.answers_datatable_id || null, rowId: h.answers_row_id } : null;

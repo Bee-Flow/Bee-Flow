@@ -31,13 +31,20 @@ const FIELD_PATH_HINT = 'A field is a name from the step\'s Structured output ("
  */
 const issue = (code, path, message, hint, severity = 'error') => ({ code, path, severity, message, hint });
 
+/**
+ * @param {string} v
+ */
 const shown = (v) => {
     const s = typeof v === 'string' ? v : JSON.stringify(v);
     const t = String(s === undefined ? v : s);
     return t.length > 40 ? `${t.slice(0, 39)}…` : t;
 };
 
-/** A required or optional run path at `path`. @returns {Problem|null} */
+/**
+ * A required or optional run path at `path`. @returns {Problem|null}
+ * @param {string} code
+ * @param {string} path
+ */
 function runPathProblem(code, path, value, { required }) {
     if (!present(value) || value === '') {
         return required ? issue(code, path, `${path} is required: the list or data to check against.`, RUN_PATH_HINT) : null;
@@ -55,7 +62,11 @@ function runPathProblem(code, path, value, { required }) {
     return issue(code, path, `${path} ${why}.`, RUN_PATH_HINT);
 }
 
-/** @returns {Problem|null} */
+/**
+ * @returns {Problem|null}
+ * @param {string} code
+ * @param {string} path
+ */
 function itemPathProblem(code, path, value) {
     if (!present(value) || value === '') return null;
     const fault = itemPathFault(value);
@@ -64,15 +75,26 @@ function itemPathProblem(code, path, value) {
     return issue(code, path, `${path} ${why}.`, 'Name the part of each list item that holds the value ("id", "name.en"); leave it out when the list holds plain text or numbers.');
 }
 
-/** @returns {Problem|null} */
+/**
+ * @returns {Problem|null}
+ * @param {string} code
+ * @param {string} path
+ * @param {string} value
+ */
 function fieldPathProblem(code, path, value) {
     if (parseFieldPath(value)) return null;
     if (!present(value) || value === '') return issue(code, path, `${path} is required: the field of the answer this applies to.`, FIELD_PATH_HINT);
     return issue(code, path, `${path} "${shown(value)}" is not a field path.`, FIELD_PATH_HINT);
 }
 
-/** Optional boolean keys. @returns {Problem[]} */
+/**
+ * Optional boolean keys. @returns {Problem[]}
+ * @param {string} code
+ * @param {string[]} keys
+ * @param {string} base
+ */
 function booleanProblems(code, base, entry, keys) {
+    /** @type {Problem[]} */
     const out = [];
     for (const k of keys) {
         if (present(entry[k]) && typeof entry[k] !== 'boolean') {
@@ -82,7 +104,11 @@ function booleanProblems(code, base, entry, keys) {
     return out;
 }
 
-/** Optional number within bounds. @returns {Problem|null} */
+/**
+ * Optional number within bounds. @returns {Problem|null}
+ * @param {string} code
+ * @param {string} path
+ */
 function numberProblem(code, path, value, { min, max, integer = false, what }) {
     if (!present(value)) return null;
     const ok = typeof value === 'number' && Number.isFinite(value) && value >= min && value <= max && (!integer || Number.isInteger(value));
@@ -90,17 +116,26 @@ function numberProblem(code, path, value, { min, max, integer = false, what }) {
     return ok ? null : issue(code, path, `${path} must be ${integer ? 'a whole number' : 'a number'} ${range}.`, `${what} Leave it out to use the default.`);
 }
 
-/** Keys a person typed that nothing reads: a warning, never silence. @returns {Problem[]} */
+/**
+ * Keys a person typed that nothing reads: a warning, never silence. @returns {Problem[]}
+ * @param {string} code
+ * @param {string} base
+ * @param {string[] | readonly string[]} allowed
+ */
 function unknownKeyProblems(code, base, entry, allowed) {
     const stray = Object.keys(entry).filter((k) => !allowed.includes(k));
     return stray.length ? [issue(code, base, `${base} has ${stray.map((k) => `"${shown(k)}"`).join(', ')}, which nothing reads.`, `The settings here are ${allowed.join(', ')}. Remove the rest so the entry does not look more configured than it is.`, 'warning')] : [];
 }
 
-/** @returns {Problem[]} */
+/**
+ * @returns {Problem[]}
+ * @param {string} base
+ */
 function enumEntryProblems(entry, base) {
     if (!isObject(entry)) {
         return [issue('ai_step.enum_from_invalid', base, `${base} must be an object { field, ref, value?, ignoreCase?, allowEmpty? }.`, 'Pick the field of the answer and the list that holds its allowed values.')];
     }
+    /** @type {Problem[]} */
     const out = [];
     const f = fieldPathProblem('ai_step.enum_from_invalid', `${base}.field`, entry.field);
     if (f) out.push(f);
@@ -113,7 +148,10 @@ function enumEntryProblems(entry, base) {
     return out;
 }
 
-/** @returns {Problem[]} */
+/**
+ * @returns {Problem[]}
+ * @param {string} base
+ */
 function checkEntryProblems(entry, base) {
     const code = 'ai_step.check_invalid';
     if (!isObject(entry)) {
@@ -123,6 +161,7 @@ function checkEntryProblems(entry, base) {
         return [issue(code, `${base}.kind`, `${base}.kind must be one of ${CHECK_KINDS.join(', ')}${present(entry.kind) ? `, not "${shown(entry.kind)}"` : ''}.`, 'allowedFrom: text is one of a list; numbersFrom: numbers in a text appear in the source; script: writing system; items: how many list items.')];
     }
     const kind = /** @type {keyof typeof CHECK_KEYS} */ (entry.kind);
+    /** @type {Problem[]} */
     const out = [];
     const f = fieldPathProblem(code, `${base}.field`, entry.field);
     if (f) out.push(f);
@@ -171,6 +210,7 @@ function fallbackProblems(fb) {
     if (fb.kind !== 'fail' && fb.kind !== 'value') {
         return [issue(code, 'fallback.kind', `fallback.kind must be "fail" or "value"${present(fb.kind) ? `, not "${shown(fb.kind)}"` : ''}.`, '"fail" stops the step with an error you can route; "value" fills the answer with the values you give.')];
     }
+    /** @type {Problem[]} */
     const out = [];
     if (fb.kind === 'fail') {
         if (present(fb.fields)) out.push(issue('ai_step.fallback_key_ignored', 'fallback.fields', 'fallback.fields is not used when fallback.kind is "fail".', 'Use kind "value" to fill the answer, or remove the fields.', 'warning'));
@@ -246,3 +286,14 @@ function reliabilityProblems(step) {
 }
 
 module.exports = { reliabilityProblems, enumEntryProblems, checkEntryProblems };
+
+/**
+ * One authored enumFrom / checks entry, before validation: the fields the
+ * rules read. Author JSON, so anything may be missing or of the wrong type.
+ * @typedef {{ kind?: string, field?: string, ref?: unknown, value?: unknown, sameCountAs?: unknown, script?: string, minItems?: unknown, maxItems?: unknown, tolerance?: unknown, ignoreUpTo?: unknown, minRatio?: unknown, [key: string]: unknown }} ReliabilityEntry
+ */
+
+/**
+ * An authored fallback, before validation.
+ * @typedef {{ kind?: string, fields?: Record<string, unknown>, [key: string]: unknown }} ReliabilityFallback
+ */

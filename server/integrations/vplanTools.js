@@ -36,6 +36,7 @@ const API_KEY_RE = /^[A-Za-z0-9._~-]{16,512}$/;
 const API_ENV_RE = /^[A-Za-z0-9._~-]{4,128}$/;
 
 // Capacity scope → path suffix under /board/{board_id}/capacity.
+/** @type {Record<string, string>} */
 const CAPACITY_SCOPES = {
     stage: 'stage',
     resource: 'resource',
@@ -51,6 +52,9 @@ const CAPACITY_SCOPES = {
 
 // ─── Credentials ───────────────────────────────────────────────
 
+/**
+ * @param {string} userId
+ */
 async function getVplanCredentials(userId) {
     const apiKey = await configStore.getSecret(`vplan_api_key_user_${userId}`);
     const apiEnv = await configStore.getSecret(`vplan_api_env_user_${userId}`);
@@ -62,6 +66,7 @@ async function getVplanCredentials(userId) {
  * Re-validate the stored credentials before they reach a request header. The
  * save path validates too, but a value written by an older build (or restored
  * from a backup) must never be able to inject a header.
+ * @param {{ apiKey: string; apiEnv: string; }} creds
  */
 function assertValidCredentials(creds) {
     if (!API_KEY_RE.test(creds.apiKey)) {
@@ -74,6 +79,10 @@ function assertValidCredentials(creds) {
 
 // ─── Tool execution ────────────────────────────────────────────
 
+/**
+ * @param {{ apiKey: string; apiEnv: string; }} creds
+ * @param {string} toolName
+ */
 async function runVplanTool(toolName, args, creds) {
     switch (toolName) {
         case 'vplan_whoami': {
@@ -186,6 +195,7 @@ async function runVplanTool(toolName, args, creds) {
         case 'vplan_get_card': {
             const collectionId = requireUuid(args.collectionId, 'collectionId');
             const cardId = requireUuid(args.cardId, 'cardId');
+            /** @type {{ with?: string }} */
             const query = {};
             const withParam = buildWithParam(args.with, 'card');
             if (withParam) query.with = withParam;
@@ -225,6 +235,7 @@ async function runVplanTool(toolName, args, creds) {
             return vplanList(creds, '/time_tracking', buildListQuery(args, null));
 
         case 'vplan_time_tracking_summary': {
+            /** @type {{ group_by?: string; start?: string; end?: string }} */
             const query = {};
             if (args.groupBy) {
                 const groupBy = String(args.groupBy).trim().toLowerCase();
@@ -245,6 +256,7 @@ async function runVplanTool(toolName, args, creds) {
             if (!suffix) {
                 throw new Error(`Invalid scope "${args.scope}". Use: ${Object.keys(CAPACITY_SCOPES).join(', ')}`);
             }
+            /** @type {{ date_range_start: string; date_range_end: string; time_frame?: string; stage_id?: string }} */
             const query = {
                 date_range_start: requireDate(args.dateRangeStart, 'dateRangeStart'),
                 date_range_end: requireDate(args.dateRangeEnd, 'dateRangeEnd'),
@@ -292,6 +304,10 @@ async function runVplanTool(toolName, args, creds) {
     }
 }
 
+/**
+ * @param {string} toolName
+ * @param {string} userId
+ */
 async function executeVplanTool(toolName, args, userId) {
     if (!userId) return { error: 'User context required for vPlan.' };
     if (!isVplanTool(toolName)) return { error: `Unknown vPlan tool: ${toolName}` };
@@ -306,11 +322,14 @@ async function executeVplanTool(toolName, args, userId) {
         log.info(`[vPlan] ${toolName}`);
         return await runVplanTool(toolName, args || {}, creds);
     } catch (err) {
-        log.warn(`[vPlan] ${toolName} failed: ${err.message}`);
-        return { error: `vPlan: ${err.message}` };
+        log.warn(`[vPlan] ${toolName} failed: ${/** @type {Error} */ (err).message}`);
+        return { error: `vPlan: ${/** @type {Error} */ (err).message}` };
     }
 }
 
+/**
+ * @param {string} toolName
+ */
 function isVplanTool(toolName) {
     return VPLAN_TOOL_NAMES.has(toolName);
 }
@@ -337,3 +356,24 @@ module.exports = {
     WITH_OPTIONS,
     MAX_LIMIT,
 };
+
+/** @typedef {{ apiKey: string, apiEnv: string }} VplanCreds */
+
+/** A parsed vPlan JSON response body. @typedef {{ data?: unknown[], count?: number, [key: string]: unknown }} VplanPayload */
+
+/**
+ * @typedef {{ data: unknown[], count: number, offset: number, limit: number, total?: number,
+ *   hasMore?: boolean, truncated?: boolean, message?: string, type?: string }} VplanListResult
+ */
+
+/**
+ * The tool arguments as the model sends them.
+ * @typedef {{
+ *   boardId?: string, resourceId?: string, activityId?: string, collectionId?: string, cardId?: string,
+ *   orderId?: string, stageId?: string, id?: string, type?: string, scope?: string, groupBy?: string,
+ *   timeFrame?: string, start?: string, end?: string, dateRangeStart?: string, dateRangeEnd?: string,
+ *   limit?: unknown, offset?: unknown, filters?: unknown, sort?: unknown, with?: unknown, include?: unknown,
+ *   archived?: boolean, includeAbsences?: boolean, enrichCustomFields?: boolean,
+ *   includeChecklists?: boolean, includeRelations?: boolean,
+ * }} VplanArgs
+ */

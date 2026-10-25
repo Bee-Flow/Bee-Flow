@@ -16,6 +16,7 @@
  */
 
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 /** Each Nextcloud family's app id and toolset name, in the order they are offered. */
 const NEXTCLOUD_FAMILIES = [
@@ -192,7 +193,7 @@ async function addNextcloudTools({ userId, session, userOrgId, isAppOn, addTools
             try {
                 const ncClient = D.nextcloudClient();
                 isConnectorUser = !!(await ncClient.resolveNcBinding(session, userId));
-            } catch (err) { log.debug('store unavailable — fall through to URL/app-password', err); }
+            } catch (err) { fallback('core/integrations/integrationToolFeatures:addNextcloudTools', err); /* store unavailable — fall through to URL/app-password */ }
         }
         // A user who saved their own app password may also carry a per-user
         // Nextcloud URL (Settings → Connections), which makes NC reachable even
@@ -223,11 +224,11 @@ async function addNextcloudTools({ userId, session, userOrgId, isAppOn, addTools
             // confusing refusal.
             const ncScope = await resolveNcScope({ userId, orgId: userOrgId });
             scopeOn = (id) => ncScope[id]?.mode !== 'off';
-        } catch (err) { log.debug('Layer 2 still enforces — keep offering', err); }
+        } catch (err) { fallback('core/integrations/integrationToolFeatures:addNextcloudTools#2', err); /* Layer 2 still enforces — keep offering */ }
         for (const [appId, toolset] of NEXTCLOUD_FAMILIES) {
             if (scopeOn(appId) && isAppOn(appId)) addTools(T[toolset]);
         }
-    } catch (e) { log.debug('ignore — credentials missing or store unavailable', e); }
+    } catch (e) { fallback('core/integrations/integrationToolFeatures:addNextcloudTools', e); /* no Nextcloud tools offered */ }
 }
 
 /** The org id the `automations` capability is resolved against. */
@@ -316,3 +317,10 @@ async function addStepTools(tools, { userId, userOrgId, D }) {
 module.exports = {
     addN8nTools, addFirstPartyTools, addNextcloudTools, addAgentCallableAutomations, addStepTools,
 };
+
+/**
+ * @typedef {import('./integrationToolGroups').GroupCtx} GroupCtx
+ * @typedef {import('./integrationToolGroups').GroupDeps} GroupDeps
+ * @typedef {import('./integrationToolGroups').ToolDef} ToolDef
+ * @typedef {Parameters<typeof import('../agentRuntime/toolPolicy').toolsConfigOf>[0] & { knowledge_base_ids?: string[] }} AgentConfig
+ */

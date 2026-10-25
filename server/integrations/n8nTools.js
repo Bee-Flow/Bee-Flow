@@ -420,3 +420,10 @@ module.exports = {
     isN8nTool,
     slugify,
 };
+
+/**
+ * One workflow an org admin exposed as a tool (config `n8n_workflows_org_<id>`).
+ * @typedef {{ id?: string, name: string, slug?: string, enabled?: boolean, allowKbIngestion?: boolean,
+ *   description?: string, webhookPath: string, httpMethod?: string,
+ *   inputs?: Array<{ name: string, type?: string, description?: string, required?: boolean }> }} N8nWorkflowConfig
+ */

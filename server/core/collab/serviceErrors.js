@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * How the co-editing service (./service.js) answers the routes when it
  * refuses: the client-facing texts and the mapping of the lower layers'

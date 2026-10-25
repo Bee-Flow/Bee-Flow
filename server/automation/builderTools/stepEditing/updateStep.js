@@ -357,6 +357,7 @@ function applyUpdateSteps(graph, args, draftWrap) {
     const unchanged = [];
     // Each entry's notes (repaired paths, re-pointed readers) ride along, as
     // they do on a single builder_update_step.
+    /** @type {string[]} */
     const warnings = [];
     for (const u of updates) {
         const before = JSON.stringify(findStepAnywhere(graph, (u && u.stepId) || '')?.step ?? null);
@@ -393,3 +394,7 @@ function applyUpdateSteps(graph, args, draftWrap) {
 }
 
 module.exports = { applyUpdateStep, applyUpdateSteps };
+
+/** @typedef {import('../pendingDatatables').DraftWrap} DraftWrap */
+
+/** @typedef {import('../draftGraph').DraftGraph} DraftGraph */

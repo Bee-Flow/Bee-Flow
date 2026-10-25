@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Spreadsheet documents (docType 'spreadsheet'). Mounted by
  * routes/studioDocuments.js under /api/studio-documents.
@@ -39,6 +38,7 @@ const { HttpError, notFound, forbidden } = require('../../core/http/errors');
 const { z, worded, bodyOf, typeError } = require('../../core/http/schemaParts');
 const { sheetTabsOf, newTabId, settingsWithTabs } = require('../../stores/lib/sheetDocument');
 const { sheetCsv, buildSheetWorkbook } = require('../../core/documents/sheetExport');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const NAME_TEXT = 'name is the spreadsheet\'s name, at most 200 characters.';
 const CreateBody = bodyOf({
@@ -189,7 +189,7 @@ function makeSheetRouter(deps = {}) {
                 sheetTableId: table.id,
             });
         } catch (e) {
-            await cells().dropSheetTable(userId, table.id).catch(() => undefined);
+            await cells().dropSheetTable(userId, table.id).catch((e) => bestEffort('routes/studioDocuments/sheet:startSheet', e));
             throw e;
         }
     }
@@ -277,7 +277,7 @@ function makeSheetRouter(deps = {}) {
             expectedVersionId: doc.versionId,
         });
         if (!updated) throw notFound('sheet_not_found', 'Spreadsheet not found');
-        await cells().dropSheetTable(doc.userId, removed.datatableId).catch(() => undefined);
+        await cells().dropSheetTable(doc.userId, removed.datatableId).catch((e) => bestEffort('routes/studioDocuments/sheet:makeSheetRouter', e));
         res.json({ tabs });
     }));
 
@@ -337,3 +337,5 @@ module.exports = Object.assign(makeSheetRouter(), {
     makeSheetRouter,
     sheetCsv,
 });
+
+/** @typedef {import('express').Request<{ id: string, tabId?: string }>} SheetReq */

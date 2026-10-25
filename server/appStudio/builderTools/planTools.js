@@ -50,6 +50,7 @@ function boundPlanArtifact(args) {
             const n = capStr(t?.name, L.STR); if (n) row.name = n;
             if (Array.isArray(t?.fields)) {
                 const fields = t.fields.slice(0, L.MAX_FIELDS).map((f) => {
+                    /** @type {{ key?: string; type?: string; options?: string[]; relationTo?: string }} */
                     const fr = {};
                     const fk = capStr(f?.key, L.STR); if (fk) fr.key = fk;
                     const ft = capStr(f?.type, L.STR); if (ft) fr.type = ft;
@@ -67,6 +68,7 @@ function boundPlanArtifact(args) {
 
     if (Array.isArray(args.roles)) {
         const roles = args.roles.slice(0, L.MAX_ROLES).map((r) => {
+            /** @type {{ key?: string; label?: string }} */
             const row = {};
             const k = capStr(r?.key, L.STR); if (k) row.key = k;
             const lbl = capStr(r?.label, L.LABEL); if (lbl) row.label = lbl;
@@ -77,6 +79,7 @@ function boundPlanArtifact(args) {
 
     if (Array.isArray(args.screens)) {
         const screens = args.screens.slice(0, L.MAX_SCREENS).map((s) => {
+            /** @type {{ name?: string; icon?: string; purpose?: string; contents?: string[]; forRoles?: string[] }} */
             const row = {};
             const n = capStr(s?.name, L.STR); if (n) row.name = n;
             const ic = capStr(s?.icon, L.STR); if (ic) row.icon = ic;
@@ -90,6 +93,7 @@ function boundPlanArtifact(args) {
 
     if (Array.isArray(args.datasets)) {
         const datasets = args.datasets.slice(0, L.MAX_DATASETS).map((d) => {
+            /** @type {{ name?: string; tableKey?: string; purpose?: string }} */
             const row = {};
             const n = capStr(d?.name, L.STR); if (n) row.name = n;
             const tk = capStr(d?.tableKey, L.STR); if (tk) row.tableKey = tk;
@@ -101,6 +105,7 @@ function boundPlanArtifact(args) {
 
     if (Array.isArray(args.actions)) {
         const actions = args.actions.slice(0, L.MAX_ACTIONS).map((a) => {
+            /** @type {{ name?: string; kind?: string; description?: string }} */
             const row = {};
             const n = capStr(a?.name, L.STR); if (n) row.name = n;
             const k = capStr(a?.kind, L.STR); if (k) row.kind = k;
@@ -112,6 +117,7 @@ function boundPlanArtifact(args) {
 
     if (Array.isArray(args.phases)) {
         const phases = args.phases.slice(0, L.MAX_PHASES).map((p) => {
+            /** @type {{ label?: string; covers?: string[] }} */
             const row = {};
             const lbl = capStr(p?.label, L.LABEL); if (lbl) row.label = lbl;
             const covers = capStrArray(p?.covers, L.MAX_CONTENTS, L.STR); if (covers) row.covers = covers;

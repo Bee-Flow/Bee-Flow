@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * WHAT THIS ROUTER REACHES FOR — one lazy entry per module, so requiring the
  * router costs nothing and a test can hand the whole graph in instead
@@ -50,7 +50,7 @@ function makeDefaultDeps() {
             // AI Act detector is glued in here, where a route may require both.
             const facts = require('../../playbooks/phases/complianceFacts');
             const deps = facts.defaultDeps({ signalsFromDefinition: (...a) => require('../../compliance/aiAct/signals').signalsFromDefinition(...a) });
-            return (args) => facts.enrich(args, deps);
+            return (/** @type {Parameters<typeof facts.enrich>[0]} */ args) => facts.enrich(args, deps);
         },
         guiDefaults: () => require('../../i18n/defaults/en').GUI_DEFAULTS,
         gatherFacts: () => require('../../playbooks/phases/compliancePhase').gatherFacts,

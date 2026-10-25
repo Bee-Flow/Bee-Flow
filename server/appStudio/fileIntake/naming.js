@@ -16,6 +16,9 @@
 const DEFAULT_PO_PATTERN = 'inkoopbestelbon|inkooporder|purchase.?order|purchase.?quote'
     + '|request.?for.?quotation|offerte.?aanvraag|bestelbon|\\brfq\\b|^PO[-_ ]?\\d+';
 
+/**
+ * @param {string} filename
+ */
 function baseNameOf(filename) {
     const s = String(filename || '');
     const dot = s.lastIndexOf('.');
@@ -30,6 +33,7 @@ function baseNameOf(filename) {
  * underscore / hyphen unified). Deliberately NO edit-distance and NO digit
  * tolerance — TN...3021 and TN...3022 are different plates, and a fuzzy
  * matcher that could cross them would cut the wrong steel.
+ * @param {string} filename
  */
 function canonicalBaseOf(filename) {
     return normalizeBase(baseNameOf(filename));
@@ -66,12 +70,18 @@ function normalizeBase(base) {
  * Both helpers take an extension-less base name; call them through baseNameOf.
  */
 const OPERATION_RE = /\(([^()]+)\)\s*$/;
+/**
+ * @param {string | undefined} base
+ */
 function operationOf(base) {
     const m = OPERATION_RE.exec(String(base || '').trim());
     if (!m) return '';
     const op = m[1].trim();
     return (!op || /^\d+$/.test(op)) ? '' : op.toLowerCase();
 }
+/**
+ * @param {string} base
+ */
 function withoutOperation(base) {
     const s = String(base || '').trim();
     const m = OPERATION_RE.exec(s);
@@ -79,7 +89,10 @@ function withoutOperation(base) {
     return s.slice(0, m.index).trim();
 }
 
-/** The PART a file belongs to: no extension, no operation, normalised. */
+/**
+ * The PART a file belongs to: no extension, no operation, normalised.
+ * @param {string} filename
+ */
 function partKeyOf(filename) {
     return normalizeBase(withoutOperation(baseNameOf(filename)));
 }
@@ -90,7 +103,10 @@ function partKeyOfFolder(folderPath) {
     return normalizeBase(withoutOperation(leaf.trim().toLowerCase()));
 }
 
-/** Does this read like a part number at all — long enough, and with a digit in it? */
+/**
+ * Does this read like a part number at all — long enough, and with a digit in it?
+ * @param {string} key
+ */
 function looksLikePartNumber(key) {
     return typeof key === 'string' && key.length >= 5 && /[0-9]/.test(key);
 }
@@ -108,6 +124,7 @@ function looksLikePartNumber(key) {
  * So: agreement first (the folder and its files say the same thing — that is
  * evidence, not a heuristic), then whichever of the two actually reads like a
  * part number, and only then a fallback so this always returns something.
+ * @param {string} fileKey
  */
 function partNameForFolder(folderPath, fileKey) {
     const folderKey = partKeyOfFolder(folderPath);
@@ -149,10 +166,14 @@ function sharesNumberFamily(a, b) {
 // .step — see portaal_order_4.csv, TN2306-06-9100-001). The wider 3D zoo
 // (Parasolid/ACIS/STL/natives) ranks below the portal's own interchange
 // formats: it is stored and paired, but never chosen over a .step/.dxf.
+/** @type {Record<string, number>} */
 const CAD_EXT_PREFERENCE = {
     step: 0, stp: 0, p21: 0, dxf: 1, dwg: 2, iges: 3, igs: 3,
     x_t: 4, x_b: 4, sat: 5, sab: 5, '3dm': 6, sldprt: 7, ipt: 7, stl: 8,
 };
+/**
+ * @param {string} name
+ */
 function cadPreference(name) {
     const p = CAD_EXT_PREFERENCE[extensionOf(name)];
     return p === undefined ? 9 : p;
@@ -173,6 +194,9 @@ function cadPreferenceWith(preferred) {
     return (name) => (extensionOf(name) === 'dxf' ? -1 : cadPreference(name));
 }
 
+/**
+ * @param {string} filename
+ */
 function extensionOf(filename) {
     const s = String(filename || '');
     const dot = s.lastIndexOf('.');
@@ -183,12 +207,16 @@ function extensionOf(filename) {
  * An archive entry's path, as we address it: forward slashes, no leading
  * slash. Zips written on Windows carry backslashes, and a path we do not
  * normalise is a folder we do not recognise.
+ * @param {string} name
  */
 function zipEntryPath(name) {
     return String(name || '').replace(/\\/g, '/').replace(/^\/+/, '').trim();
 }
 
-/** The folder an archive entry sits in — '' for an entry at the root. */
+/**
+ * The folder an archive entry sits in — '' for an entry at the root.
+ * @param {string} entryPath
+ */
 function folderOf(entryPath) {
     const p = String(entryPath || '');
     const cut = p.lastIndexOf('/');
@@ -221,6 +249,7 @@ const SHEET_EXTENSIONS = new Set(['xlsx', 'xlsm', 'xls', 'csv']);
  * spreadsheet; the PO pattern → purchase order; any other PDF is treated as a
  * drawing (a customer who forgot the CAD file still deserves a project line,
  * visibly incomplete); everything else is 'other'.
+ * @param {string} name
  */
 function classify(name, poRe) {
     const { cadMimeForName } = require('../../core/cad/cadTypes');

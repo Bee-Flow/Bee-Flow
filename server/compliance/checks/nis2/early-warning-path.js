@@ -34,31 +34,38 @@
 const { getAll } = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
 const incidentStore = require('../../../stores/incidentStore');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 const HOUR = 3600 * 1000;
 const URGENT_HOURS = 6;
 // NIS2 Art. 23(4)(b): incident notification within 72 h of becoming aware.
 const NOTIFICATION_HOURS = 72;
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
+/** @param {Record<string, any> | null | undefined} settings */
 function _notRelevant(settings) {
     let rel = settings && settings.framework_relevance;
     if (typeof rel === 'string') { try { rel = JSON.parse(rel); } catch { rel = null; } }
     return !!rel && rel.nis2 === 'not_relevant';
 }
 
+/** @param {Record<string, any> | null | undefined} row */
 function _regimes(row) {
     let r = row && row.regimes;
     if (typeof r === 'string') { try { r = JSON.parse(r); } catch { r = null; } }
     return Array.isArray(r) ? r : null;
 }
 
+/** @param {Record<string, any> | null | undefined} row */
 function _isNis2(row) {
     const regimes = _regimes(row);
     // A helper that already filtered on regime may omit the column — keep those rows.
     return regimes === null ? true : regimes.includes('NIS2');
 }
 
+/**
+ * @param {string} orgId
+ * @returns {Promise<{ rows: Record<string, any>[] | null, source: string, missing?: string }>}
+ */
 async function _openNis2Incidents(orgId) {
     const fn = incidentStore.listOpenClocks;
     if (typeof fn === 'function') {
@@ -68,8 +75,8 @@ async function _openNis2Incidents(orgId) {
                 return { rows: rows.filter(r => r && r.status !== 'closed' && _isNis2(r)), source: 'incidentStore.listOpenClocks' };
             }
         } catch (e) {
-            if (!NOT_PROVISIONED.has(e?.code)) throw e;
-            return { rows: null, source: 'incidentStore.listOpenClocks', missing: e.code };
+            if (!isMissingTable(e)) throw e;
+            return { rows: null, source: 'incidentStore.listOpenClocks', missing: e.code ?? 'missing_table' };
         }
     }
     try {
@@ -86,7 +93,7 @@ async function _openNis2Incidents(orgId) {
         `, [orgId]);
         return { rows, source: 'query' };
     } catch (e) {
-        if (NOT_PROVISIONED.has(e?.code)) return { rows: null, source: 'query', missing: e.code };
+        if (isMissingTable(e)) return { rows: null, source: 'query', missing: e.code ?? 'missing_table' };
         throw e;
     }
 }
@@ -94,6 +101,7 @@ async function _openNis2Incidents(orgId) {
 /**
  * The NIS2 72 h notification due date, from detected_at — never `deadline_at`
  * (see the header). No detected_at → no clock: unknown, not met.
+ * @param {Record<string, any> | null | undefined} row
  */
 function _notificationDue(row) {
     const detected = row && row.detected_at ? new Date(row.detected_at).getTime() : NaN;
@@ -102,6 +110,11 @@ function _notificationDue(row) {
     return new Date(detected + hours * HOUR);
 }
 
+/**
+ * @param {Date | null} dueAt
+ * @param {string | number | Date} sentAt
+ * @param {number} now
+ */
 function _clock(dueAt, sentAt, now) {
     const due = dueAt ? new Date(dueAt).getTime() : NaN;
     const sent = sentAt ? new Date(sentAt).toISOString() : null;
@@ -128,6 +141,7 @@ module.exports = {
     descriptionKey: 'compliance.check_nis2_early_warning_desc',
     remediationKey: 'compliance.check_nis2_early_warning_fix',
     remediationLink: 'admin/compliance/incidents',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const settings = await complianceStore.getSettings(orgId);
         if (_notRelevant(settings)) {
@@ -210,6 +224,7 @@ module.exports = {
                 details: `${overdue.length} open NIS2 incident(s) have passed a reporting deadline without the matching notification recorded (early warning 24 h, notification 72 h or final report 1 month). Record the report on the incident, or close it with an assessment.`,
             };
         }
+        /** @type {string[]} */
         const warnings = [];
         if (!channel) warnings.push('No authority/CSIRT reporting channel is configured (Compliance → Settings).');
         if (!csirtConfigured) warnings.push('No CSIRT contact is recorded (Compliance → Settings).');

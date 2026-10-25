@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The ONE error shape a mirror answers with, whoever asked — the Nextcloud
  * flavour of ../mirror/errors.SourceError, which explains the three callers
@@ -17,9 +17,15 @@
 const { SourceError, registerErrorClasses, MAX_DETAIL } = require('../mirror/errors');
 
 class NextcloudSourceError extends SourceError {
+    /**
+     * @param {string} message
+     * @param {number} status
+     * @param {string} code
+     * @param {{ errorClass?: string | null, ncTableId?: number | string | null, detail?: string | null }} [opts]
+     */
     constructor(status, code, message, { errorClass = null, ncTableId = null, detail = null } = {}) {
         super(status, code, message, {
-            errorClass: errorClass || ERROR_CLASS[code] || null,
+            errorClass: errorClass || /** @type {Record<string, string>} */ (ERROR_CLASS)[code] || null,
             detail,
             ref: ncTableId !== null ? { ncTableId } : null,
         });
@@ -48,6 +54,10 @@ registerErrorClasses(ERROR_CLASS);
  * Translate what Nextcloud answered into the refusal a Bee Flow caller gets.
  * `what` names the thing being asked for ("row", "table 4") so the sentence
  * reads as one.
+ * @param {number} status
+ * @param {string | undefined} [what]
+ * @param {string} ncMessage
+ * @param {{ ncTableId?: number | string | null }} [opts]
  */
 function fromNcResponse(status, ncMessage, what = 'table', { ncTableId = null } = {}) {
     const detail = typeof ncMessage === 'string' ? ncMessage.trim().slice(0, MAX_DETAIL) : '';
@@ -78,6 +88,9 @@ function fromNcResponse(status, ncMessage, what = 'table', { ncTableId = null } 
         `Nextcloud answered ${status} for this ${what}${tail}`, { ncTableId });
 }
 
+/**
+ * @param {{ name: string; }} e
+ */
 function isNextcloudSourceError(e) {
     return !!e && e.name === 'NextcloudSourceError';
 }

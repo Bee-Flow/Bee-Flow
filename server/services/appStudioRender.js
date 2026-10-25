@@ -32,7 +32,7 @@ const rlsGateway = require('../appStudio/rlsGateway');
 const { seedVariableDefaults } = require('../appStudio/componentSpecs');
 const { ROLE_PROBE_VIEWER_ID } = require('../appStudio/appDryRun');
 const { compile, tryEvaluate } = require('../automation/expr');
-const log = require('../telemetry/log');
+const { fallback, bestEffort } = require('../utils/bestEffort');
 
 const RUNTIME_DIR = path.join(__dirname, '..', 'vendor', 'app-runtime');
 const BUNDLE_JS = 'app-runtime.mjs';
@@ -352,7 +352,7 @@ async function captureDocument({ doc, assets, viewport }) {
                     if ((t === 'error' || t === 'warning') && consoleErrors.length < MAX_DIAG_MSGS) {
                         consoleErrors.push(`[${t}] ${m.text()}`.slice(0, 300));
                     }
-                } catch (err) { log.debug('ignore', err); }
+                } catch (err) { fallback('services/appStudioRender:captureDocument', err); /* ignore */ }
             });
             page.on('pageerror', (e) => {
                 if (pageErrors.length < MAX_DIAG_MSGS) pageErrors.push(String((e && e.message) || e).slice(0, 300));
@@ -376,15 +376,15 @@ async function captureDocument({ doc, assets, viewport }) {
             await page.waitForFunction(
                 () => window.__bfMounted === true || !!window.__bfMountError,
                 { timeout: MOUNT_WAIT_MS, polling: 100 },
-            ).catch(() => {});
+            ).catch((e) => bestEffort('services/appStudioRender:captureDocument#2', e));
             await page.waitForTimeout(SETTLE_MS);
 
-            const mountError = await page.evaluate(() => window.__bfMountError || null).catch(() => null);
+            const mountError = await page.evaluate(() => window.__bfMountError || null).catch((e) => fallback('services/appStudioRender:captureDocument#3', e, null));
             let png = null;
             try {
                 const root = await page.$('#root');
                 if (root) png = await root.screenshot({ type: 'png' });
-            } catch (err) { log.debug('fall through to viewport shot', err); }
+            } catch (err) { fallback('services/appStudioRender:captureDocument#4', err); /* fall through to viewport shot */ }
             if (!png) png = await page.screenshot({ type: 'png' });
             return { png, mountError, consoleErrors, pageErrors };
         },
@@ -412,7 +412,7 @@ async function withHardTimeout(promise, ms) {
     } finally {
         clearTimeout(t);
         // A loser that rejects later must not surface as an unhandled rejection.
-        Promise.resolve(promise).catch(() => {});
+        Promise.resolve(promise).catch((e) => bestEffort('services/appStudioRender:withHardTimeout', e));
     }
 }
 
@@ -434,7 +434,7 @@ async function boundPng(pngBuffer, vp) {
             width = m2.width || width;
             height = m2.height || height;
         }
-    } catch (err) { log.debug('sharp unavailable — keep the raw PNG', err); }
+    } catch (err) { fallback('services/appStudioRender:boundPng', err); /* sharp unavailable — keep the raw PNG */ }
     return { pngBuffer, width, height };
 }
 
@@ -581,3 +581,34 @@ module.exports = {
         resolveScreen,
     },
 };
+
+/** @typedef {import('../appStudio/actionExecutor/shared').DataModel} DataModel */
+
+/** @typedef {import('../appStudio/datasetCache').DatasetViewer} Viewer */
+
+/** @typedef {{ op?: string, value?: unknown, required?: boolean, [k: string]: unknown }} FilterEntry */
+
+/**
+ * @typedef {{ kind?: string, datasetId?: string, tableId?: string, filter?: FilterEntry[], sort?: unknown,
+ *   limit?: number, groupBy?: Array<{ field?: string, bucket?: string, as?: string }>,
+ *   aggregates?: Array<{ fn?: string, field?: string, as?: string }>, [k: string]: unknown }} DataBinding
+ */
+
+/** @typedef {{ id?: string, name?: string, [k: string]: unknown }} Screen */
+
+/** @typedef {{ screens?: Screen[], homeScreenId?: string, variables?: Parameters<typeof seedVariableDefaults>[0], design?: Record<string, unknown>, [k: string]: unknown }} AppDefinition */
+
+/** @typedef {{ id: string, userId: string }} StudioApp */
+
+/** @typedef {{ contentType: string, body: string }} RouteAsset */
+
+/** @typedef {{ width: number, height: number }} Viewport */
+
+/** @typedef {ReturnType<typeof defaultDeps>} RenderDeps */
+
+/** @typedef {{ id: string | null, name: string, email: string | null, roleKey: string }} CurrentUser */
+
+/**
+ * @typedef {{ status: string, result: unknown, error: string | null, errorCode: string | null, errorProvider: string | null,
+ *   tableId: string | null, datasetId: string | null, connectorId: string | null }} DataEntry
+ */

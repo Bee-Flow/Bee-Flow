@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Thought narrator — one short phrase for the builder's reasoning stream.
  *
@@ -57,9 +58,16 @@ const TRAILING_QUOTES = /["'“”‘’«»`]+$/;
 const TRAILING_PUNCT = /[.!;:…]+$/;
 
 /**
+ * The data of a stream event as the narrator reads it (`thinking` deltas).
+ * @typedef {{ partId?: string | number, text?: unknown }} NarratedEvent
+ */
+
+/**
  * First non-empty line, unquoted, without trailing punctuation, whitespace
  * collapsed, capped at `maxWords`. Quotes and punctuation are peeled in a loop
  * because small models produce both orders ('"Foo."' and '"Foo".').
+ * @param {number} maxWords
+ * @param {string} raw
  */
 function sanitiseSummary(raw, maxWords) {
     if (typeof raw !== 'string') return '';
@@ -79,7 +87,7 @@ function sanitiseSummary(raw, maxWords) {
     return words.slice(0, maxWords).join(' ');
 }
 
-function createThoughtNarrator({
+function createThoughtNarrator(/** @type {{ send?: (event: string, data?: object) => void, modelId?: string, chat?: (modelId: string, messages: object[], options?: object) => Promise<{ content?: string } | null | undefined>, now?: () => number, setTimeout?: typeof setTimeout, clearTimeout?: typeof clearTimeout, minIntervalMs?: number, minNewChars?: number, windowChars?: number, timeoutMs?: number, maxWords?: number, log?: (message: string) => void }} */ {
     send,
     modelId,
     chat,
@@ -103,16 +111,21 @@ function createThoughtNarrator({
     // Per-part buffers of text not yet summarised. Only the part that most
     // recently produced a delta is summarised; an older part's leftover is
     // stale by definition (the model has moved on) and is dropped.
+    /** @type {Map<string | number, string>} */
     const pending = new Map();
+    /** @type {string | number | null} */
     let activePartId = null;
 
     let inFlight = false;
+    /** @type {number | null} */
     let lastCallStartedAt = null;
+    /** @type {NodeJS.Timeout | null} */
     let timer = null;
     let closed = false;
     let disabled = false;
     let failures = 0;
     let loggedFailure = false;
+    /** @type {string | null} */
     let lastText = null;
     let seq = 0;
 
@@ -158,6 +171,10 @@ function createThoughtNarrator({
         );
     }
 
+    /**
+     * @param {string | number} partId
+     * @param {{ content?: string } | null | undefined} reply
+     */
     function onReply(partId, reply) {
         if (closed) return;
         failures = 0;
@@ -172,6 +189,7 @@ function createThoughtNarrator({
         maybeSchedule();
     }
 
+    /** @param {{ message?: string } | null | undefined} err */
     function onFailure(err) {
         if (closed) return;
         failures += 1;
@@ -202,6 +220,10 @@ function createThoughtNarrator({
         timer = setTimer(tick, wait);
     }
 
+    /**
+     * @param {string} event
+     * @param {NarratedEvent | null | undefined} data
+     */
     function observe(event, data) {
         if (closed || disabled) return;
         if (event === 'thinking') {
@@ -221,10 +243,13 @@ function createThoughtNarrator({
         }
     }
 
+    /**
+     * @param {((event: string, data?: object) => void) | null} target
+     */
     function wrap(target) {
         if (!enabled) return target;
         if (emit === null && typeof target === 'function') emit = target;
-        return (event, data) => {
+        return (/** @type {string} */ event, /** @type {NarratedEvent} */ data) => {
             // Forward first, observe second: the narrator can never delay or
             // reorder what the client sees, and a bug in here cannot break
             // the stream.
@@ -232,7 +257,7 @@ function createThoughtNarrator({
             try { observe(event, data); } catch (err) {
                 if (!loggedFailure) {
                     loggedFailure = true;
-                    log(`[thoughtNarrator] observe failed: ${err && err.message ? err.message : err}`);
+                    log(`[thoughtNarrator] observe failed: ${err && /** @type {Error} */ (err).message ? /** @type {Error} */ (err).message : err}`);
                 }
             }
         };

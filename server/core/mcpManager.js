@@ -16,6 +16,7 @@ const { buildMcpChildEnv } = require('./mcpChildEnv');
 const mcpStore = require('../stores/mcpStore');
 const configStore = require('../stores/configStore');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 /** Repo root of this service — `/app` in the Docker image. */
 const SERVER_ROOT = path.resolve(__dirname, '..');
@@ -29,6 +30,7 @@ const SERVER_ROOT = path.resolve(__dirname, '..');
  * under some dev launchers — so a relative path is not reliably resolvable.
  * Everything else (npx packages, absolute paths, flags) is passed through
  * untouched.
+ * @param {string[]} [args]
  */
 function resolveBundledArgs(args = []) {
     return (Array.isArray(args) ? args : []).map((arg) =>
@@ -75,7 +77,7 @@ async function initialize() {
         const servers = await mcpStore.getEnabledServers();
         log.info(`[MCP] Initialized — ${servers.length} server definition(s) loaded`);
     } catch (err) {
-        log.error('[MCP] Initialize error:', err.message);
+        log.error('[MCP] Initialize error:', /** @type {Error} */ (err).message);
     }
 }
 
@@ -120,6 +122,7 @@ async function getConnection(serverId, userId) {
             throw new Error('StreamableHTTP transport not available — update @modelcontextprotocol/sdk');
         }
         log.info(`[MCP] Connecting to HTTP server "${server.name}" for user ${userId}: ${server.url}`);
+        /** @type {{ Authorization?: string }} */
         const httpHeaders = {};
         // If user has an auth credential, pass it as Authorization header
         if (userEnv.AUTHORIZATION) httpHeaders['Authorization'] = userEnv.AUTHORIZATION;
@@ -167,13 +170,14 @@ async function getConnection(serverId, userId) {
                 await mcpStore.updateServer(serverId, { tools_cache: tools, status: 'ready', error: null });
             }
         }
-    } catch (err) { log.debug('best-effort — never block a runtime connection on discovery', err); }
+    } catch (err) { bestEffort('core/mcpManager:getConnection', err); /* best-effort — never block a runtime connection on discovery */ }
 
     return client;
 }
 
 /**
  * Close a pooled connection.
+ * @param {string} poolKey
  */
 async function closeConnection(poolKey) {
     const entry = connectionPool.get(poolKey);
@@ -185,7 +189,7 @@ async function closeConnection(poolKey) {
     try {
         await entry.client.close();
     } catch (err) {
-        log.warn(`[MCP] Error closing connection ${poolKey}:`, err.message);
+        log.warn(`[MCP] Error closing connection ${poolKey}:`, /** @type {Error} */ (err).message);
     }
 }
 
@@ -217,7 +221,7 @@ async function getAllToolsAsOpenAI() {
         }
         log.info(`[MCP-DEBUG] getAllToolsAsOpenAI: returning ${tools.length} total MCP tools`);
     } catch (err) {
-        log.error('[MCP] Error loading tools:', err.message);
+        log.error('[MCP] Error loading tools:', /** @type {Error} */ (err).message);
     }
 
     return tools;
@@ -253,13 +257,16 @@ async function callTool(serverId, toolName, args = {}, userId) {
 
     // OTel MCP metric — best-effort, PII-safe (server id + tool name only, no args).
     const _t0 = process.hrtime.bigint();
+    /**
+     * @param {string} status
+     */
     const _recMcp = (status) => {
         try {
             require('../telemetry/metrics').recordMcpCall({
                 server: serverId, tool: toolName, status,
                 durationMs: Number(process.hrtime.bigint() - _t0) / 1e6,
             });
-        } catch (err) { log.debug('telemetry is best-effort', err); }
+        } catch (err) { bestEffort('core/mcpManager:_recMcp', err); /* telemetry is best-effort */ }
     };
 
     try {
@@ -278,7 +285,7 @@ async function callTool(serverId, toolName, args = {}, userId) {
         // If call fails, close the connection so it's re-spawned next time
         const poolKey = `${userId}:${serverId}`;
         await closeConnection(poolKey);
-        log.error(`[MCP] Tool call failed: ${serverId}/${toolName}:`, err.message);
+        log.error(`[MCP] Tool call failed: ${serverId}/${toolName}:`, /** @type {Error} */ (err).message);
         throw err;
     }
 }
@@ -287,6 +294,8 @@ async function callTool(serverId, toolName, args = {}, userId) {
  * Test a command by spawning it temporarily and discovering tools.
  * Used by admin to validate server config before saving.
  * Returns { success, tools, error }.
+ * @param {string} [transportType]
+ * @param {string[]} [args]
  */
 async function testCommand(command, args = [], envVars = {}, transportType = 'stdio', url = null) {
     await loadSDK();
@@ -299,6 +308,7 @@ async function testCommand(command, args = [], envVars = {}, transportType = 'st
             }
             // Pass auth the same way getConnection does, so credential-gated remote
             // servers can be probed once the caller supplies their credentials.
+            /** @type {{ Authorization?: string }} */
             const httpHeaders = {};
             if (envVars.AUTHORIZATION) httpHeaders['Authorization'] = envVars.AUTHORIZATION;
             else if (envVars.API_KEY) httpHeaders['Authorization'] = `Bearer ${envVars.API_KEY}`;
@@ -325,7 +335,7 @@ async function testCommand(command, args = [], envVars = {}, transportType = 'st
 
         return { success: true, tools, error: null };
     } catch (err) {
-        return { success: false, tools: [], error: err.message };
+        return { success: false, tools: [], error: /** @type {Error} */ (err).message };
     } finally {
         if (client) {
             try { await client.close(); } catch (_) { log.debug('MCP client already closed', _); }
@@ -336,6 +346,7 @@ async function testCommand(command, args = [], envVars = {}, transportType = 'st
 /**
  * Discover tools from a server by spawning it temporarily.
  * Updates the tools_cache in the store.
+ * @param {string} serverId
  */
 async function refreshServerTools(serverId) {
     const server = await mcpStore.getServer(serverId);
@@ -364,7 +375,13 @@ async function refreshServerTools(serverId) {
 }
 
 /**
+ * @typedef {Object} AddServerArgs
+ * @property {string} [transport]
+ * @property {string} [source]
+ */
+/**
  * Add a new server definition, test it, and cache tools.
+ * @param {AddServerArgs} param0
  */
 async function addServer({ id, name, command, args = [], required_credentials = [], transport = 'stdio', url, category, description, icon, source = 'manual' }) {
     // Save to store
@@ -393,7 +410,7 @@ async function addServer({ id, name, command, args = [], required_credentials = 
     } catch (err) {
         await mcpStore.updateServer(id, {
             status: pending ? 'pending_credentials' : 'error',
-            error: pending ? null : err.message,
+            error: pending ? null : /** @type {Error} */ (err).message,
         });
     }
 
@@ -402,6 +419,7 @@ async function addServer({ id, name, command, args = [], required_credentials = 
 
 /**
  * Remove a server — close all connections and delete from store.
+ * @param {string} serverId
  */
 async function removeServer(serverId) {
     // Close all user connections for this server
@@ -422,6 +440,7 @@ async function getServersSummary() {
 
 /**
  * Get servers needing credentials for a specific user (for user settings).
+ * @param {string} userId
  */
 async function getServersForUser(userId) {
     const servers = await mcpStore.getEnabledServers();
@@ -461,6 +480,7 @@ async function getServersForUser(userId) {
  * required credential. This is how credential-gated servers (which can't be
  * probed at admin-install time) get their tools_cache populated so agents can
  * use them.
+ * @param {string} userId
  */
 async function discoverWithUserCreds(serverId, userId) {
     const server = await mcpStore.getServer(serverId);
@@ -482,6 +502,7 @@ async function discoverWithUserCreds(serverId, userId) {
 
 /**
  * Save a user's credential for an MCP server.
+ * @param {string} userId
  */
 async function saveUserCredential(userId, serverId, credKey, value) {
     await configStore.setSecret(`mcp_cred_${serverId}_${credKey}_user_${userId}`, value || '');
@@ -493,7 +514,7 @@ async function saveUserCredential(userId, serverId, credKey, value) {
     try {
         await discoverWithUserCreds(serverId, userId);
     } catch (err) {
-        log.warn(`[MCP] Post-credential tool discovery failed for ${serverId}:`, err.message);
+        log.warn(`[MCP] Post-credential tool discovery failed for ${serverId}:`, /** @type {Error} */ (err).message);
     }
 }
 

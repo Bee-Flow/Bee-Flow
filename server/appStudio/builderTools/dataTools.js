@@ -12,7 +12,6 @@ const { AGG_FNS } = require('../dataModel');
 const { parseQueryArgs, shapeTableRow, pageDatasetRows, pageMeta, queryFailure, MAX_QUERY_LIMIT } = require('./queryDataArgs');
 const { persistDraft } = require('./persistence');
 const { isDatatableBacked } = require('../datatableSource');
-const log = require('../../telemetry/log');
 const { linkedTableRefusal, rowCountsById, findModelTable, tableIdHint, persistDataModel, dataModelPersistError } = require('./dataToolsShared');
 const { mergeTableOp, applyUpsertTable, findTableRefs, applyRemoveTable, applySetRoles } = require('./dataToolsTables');
 
@@ -48,7 +47,7 @@ async function applySeedRecords(draftWrap, args) {
     const studioAppStore = require('../../stores/studioAppStore');
     let app = null;
     try { app = await studioAppStore.getStudioApp(draftWrap.appId); } catch (e) {
-        return { error: `Could not load the app: ${e.message}` };
+        return { error: `Could not load the app: ${/** @type {Error} */ (e).message}` };
     }
     if (!app) return { error: 'This app no longer exists — it may have been deleted in another tab.' };
 
@@ -65,7 +64,7 @@ async function applySeedRecords(draftWrap, args) {
             const { id } = await writeRecord(app, model, table, rec, { viewer });
             ids.push(id);
         } catch (e) {
-            failed.push({ index: i, error: e.message, ...(e.code ? { code: e.code } : {}) });
+            failed.push({ index: i, error: /** @type {Error} */ (e).message, ...(e.code ? { code: e.code } : {}) });
             if (e.code === 'quota_exceeded') {
                 // Every remaining row would hit the same wall — stop here.
                 if (i < records.length - 1) failed.push({ index: i + 1, error: `rows ${i + 1}–${records.length - 1} skipped after the quota error` });
@@ -145,7 +144,7 @@ async function applyUpsertDataset(draftWrap, args) {
             created = true;
         }
     } catch (e) {
-        return { error: `Could not save the dataset: ${e.message}` };
+        return { error: `Could not save the dataset: ${/** @type {Error} */ (e).message}` };
     }
 
     let app = null;
@@ -172,10 +171,10 @@ async function applyUpsertDataset(draftWrap, args) {
         };
     } catch (e) {
         if (created) {
-            try { await studioAppDataStore.deleteDataset(row.id, draftWrap.appId, draftWrap.userId); } catch (err) { log.debug('best-effort', err); }
+            try { await studioAppDataStore.deleteDataset(row.id, draftWrap.appId, draftWrap.userId); } catch (err) { bestEffort('appStudio/builderTools/dataTools:applyUpsertDataset', err); /* best-effort */ }
         }
         return {
-            error: `The dataset descriptor did not compile: ${e.message}`,
+            error: `The dataset descriptor did not compile: ${/** @type {Error} */ (e).message}`,
             _fixHint: `groupBy/aggregate/filter fields must be field keys on "${table.key}" (${(table.fields || []).map((f) => f.key).join(', ')}); fns: ${AGG_FNS.join(', ')}.${created ? ' The dataset was NOT saved — fix the descriptor and call again.' : ' The dataset kept the new descriptor — fix it with another app_upsert_dataset call.'}`,
         };
     }
@@ -264,6 +263,7 @@ async function applyQueryData(draftWrap, args) {
 }
 
 const { applyListDocuments } = require('./documentListTool');
+const { bestEffort } = require('../../utils/bestEffort');
 
 module.exports = {
     applyListDocuments,
@@ -285,3 +285,23 @@ module.exports = {
     linkedTableRefusal,
     MAX_QUERY_LIMIT,
 };
+
+/** @typedef {import('../builderTools').BuilderDraft} BuilderDraft */
+
+/** @typedef {import('../builderTools').ToolArgs} ToolArgs */
+
+/** @typedef {import('../builderTools').ToolResult} ToolResult */
+
+/** @typedef {{ id: string, key: string, name?: string, type: string, required?: boolean, unique?: boolean, subtype?: string, default?: unknown, options?: unknown[], relation?: { table: string, tableId?: string, displayField?: string }, computed?: { expr: string, type?: string, stored?: boolean } }} DataField */
+
+/** @typedef {{ id: string, key: string, name?: string, icon?: string|null, fields?: DataField[], access?: { default?: string, roles?: Record<string, Record<string, string|boolean>>, rowFilters?: Record<string, string> }, source?: { kind?: string, mode?: string, datatableId?: string } }} DataTable */
+
+/** @typedef {{ id: string, name?: string, kind?: string, params?: Array<{ key?: string }>, sync?: import('../connectorSync').SyncBlock }} DataConnector */
+
+/** @typedef {{ modelVersion?: number, connectors?: DataConnector[], tables?: DataTable[], roles?: Array<{ key: string, label: string }>, roleMapping?: { default?: string, byGroup?: Record<string, string> }, directory?: { orgMembers: boolean } }} DataModel */
+
+/** @typedef {{ id: string, props?: unknown, children?: RefNode[] }} RefNode */
+
+/** @typedef {{ error?: string, _fixHint?: string, model?: DataModel, table?: DataTable, hints?: string[] }} TableMerge */
+
+/** @typedef {{ ok?: boolean, version?: number, model?: DataModel, invalid?: boolean, errors?: string[], error?: string }} DataModelPersisted */

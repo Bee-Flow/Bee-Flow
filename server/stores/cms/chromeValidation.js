@@ -39,7 +39,10 @@ function listProblem(value, path) {
     return null;
 }
 
-/** A link object { kind, ... }. Empty/absent is fine; a present one needs a known kind. */
+/**
+ * A link object { kind, ... }. Empty/absent is fine; a present one needs a known kind.
+ * @param {string} path
+ */
 function linkProblem(link, path) {
     if (link === undefined || link === null) return null;
     if (!isObject(link)) return `${path} must be a link object.`;
@@ -52,7 +55,10 @@ function linkProblem(link, path) {
         || textProblem(link.pageId, `${path}.pageId`, LABEL_MAX);
 }
 
-/** Each entry of a list must be an object; `check` validates one entry. */
+/**
+ * Each entry of a list must be an object; `check` validates one entry.
+ * @param {string} path
+ */
 function eachProblem(value, path, check) {
     const bad = listProblem(value, path);
     if (bad || !Array.isArray(value)) return bad;
@@ -116,7 +122,10 @@ function footerProblem(footer) {
         || eachProblem(acc?.links, 'footer.accountability.links', plainLink);
 }
 
-/** Banner and announcement: `text` is one blob per locale, `enabled` a flag. */
+/**
+ * Banner and announcement: `text` is one blob per locale, `enabled` a flag.
+ * @param {string} name
+ */
 function textBlobProblem(section, name) {
     if (section.enabled !== undefined && typeof section.enabled !== 'boolean') return `${name}.enabled must be true or false.`;
     if (section.text === undefined || section.text === null) return null;

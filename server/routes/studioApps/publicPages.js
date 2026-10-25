@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Public pages: anonymous entry points to an app (routes/studioApps/).
  */
@@ -30,7 +30,14 @@ const MAX_PUBLIC_PAGES_PER_APP = 3;
 //   POST   /:id/public-pages           → mint one
 //   DELETE /:id/public-pages/:token    → revoke one
 
-/** Owner-only gate: a readable non-owner gets 403, a stranger the uniform 404. */
+/** @typedef {NonNullable<Awaited<ReturnType<typeof studioAppStore.getStudioApp>>>} StudioApp */
+/** @typedef {NonNullable<Awaited<ReturnType<typeof studioAppStore.getPublicPage>>>} PublicPage */
+
+/**
+ * Owner-only gate: a readable non-owner gets 403, a stranger the uniform 404.
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function loadOwnedAppForPublic(req, res) {
     const userId = req.session.user.id;
     const app = await studioAppStore.getStudioApp(req.params.id);
@@ -52,6 +59,7 @@ async function loadOwnedAppForPublic(req, res) {
  * `blockers` array so the UI can say what to fix — the anonymous route itself
  * answers a uniform 404 and explains nothing, which is right for a visitor and
  * useless for the person who built the app.
+ * @param {StudioApp} app
  */
 function publicPageBlockers(app) {
     const blockers = [];
@@ -71,6 +79,10 @@ function publicPageBlockers(app) {
     return blockers;
 }
 
+/**
+ * @param {PublicPage} page
+ * @param {import('express').Request} req
+ */
 function publicPageView(page, req) {
     return {
         token: page.token,
@@ -81,18 +93,18 @@ function publicPageView(page, req) {
     };
 }
 
-router.get('/:id/public-pages', requireAuth, async (req, res) => {
+router.get('/:id/public-pages', requireAuth, /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const app = await loadOwnedAppForPublic(req, res);
     if (!app) return undefined;
     const pages = await studioAppStore.listPublicPages(app.id);
     return res.json({
-        pages: pages.map((p) => publicPageView(p, req)),
+        pages: pages.map((/** @type {PublicPage} */ p) => publicPageView(p, req)),
         publicAccess: (app.definition && app.definition.publicAccess) || null,
         blockers: publicPageBlockers(app),
     });
 });
 
-router.post('/:id/public-pages', requireAuth, requireManageApps, async (req, res) => {
+router.post('/:id/public-pages', requireAuth, requireManageApps, /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const app = await loadOwnedAppForPublic(req, res);
     if (!app) return undefined;
     // One live URL per app is the shape the UI needs; rotating means
@@ -114,7 +126,7 @@ router.post('/:id/public-pages', requireAuth, requireManageApps, async (req, res
     });
 });
 
-router.delete('/:id/public-pages/:token', requireAuth, requireManageApps, async (req, res) => {
+router.delete('/:id/public-pages/:token', requireAuth, requireManageApps, /** @param {import('express').Request<{ id: string, token: string }>} req */ async (req, res) => {
     const app = await loadOwnedAppForPublic(req, res);
     if (!app) return undefined;
     const ok = await studioAppStore.deletePublicPage(req.params.token, app.id);

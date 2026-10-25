@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Nextcloud Connector: the emailed one-time code of the email-verification
  * branch (generation, masking the address it goes to, and the caps around it).
@@ -17,6 +17,7 @@ function generateVerificationCode() {
 
 // Mask an email for display in the connector / SPA without leaking the full
 // local-part: tomsmit@beeflow.nl → t•••t@beeflow.nl.
+/** @param {string | null | undefined} email */
 function maskEmail(email) {
     const [local = '', domain = ''] = String(email || '').split('@');
     if (!domain) return '***';

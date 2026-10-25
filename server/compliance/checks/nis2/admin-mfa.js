@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * NIS2 Art. 21(2)(j) — multi-factor authentication on privileged access.
  *
@@ -19,12 +19,13 @@ const { getAll } = require('../../../db');
 const complianceStore = require('../../../stores/complianceStore');
 const configStore = require('../../../stores/configStore');
 const { configuredSsoProviders } = require('../../lib/ssoProviders');
+const { isMissingTable } = require('../../../utils/isMissingTable');
 
 // users."orgRole" values that make someone an org admin (auth/permissions.js
 // ORG_ADMIN_VARIANTS: the current 'org_admin' and the legacy 'admin').
 const ORG_ADMIN_ROLES = ['org_admin', 'admin'];
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
+/** @param {Record<string, any> | null | undefined} settings */
 function _notRelevant(settings) {
     let rel = settings && settings.framework_relevance;
     if (typeof rel === 'string') { try { rel = JSON.parse(rel); } catch { rel = null; } }
@@ -59,6 +60,7 @@ module.exports = {
     descriptionKey: 'compliance.check_nis2_admin_mfa_desc',
     remediationKey: 'compliance.check_nis2_admin_mfa_fix',
     remediationLink: 'admin/security/users',
+    /** @param {string} orgId */
     async evaluate(orgId) {
         const settings = await complianceStore.getSettings(orgId);
         if (_notRelevant(settings)) {
@@ -79,10 +81,10 @@ module.exports = {
                   AND COALESCE(status, 'active') <> 'suspended'
             `, [orgId, ORG_ADMIN_ROLES]);
         } catch (e) {
-            if (NOT_PROVISIONED.has(e?.code)) {
+            if (isMissingTable(e)) {
                 return {
                     status: 'warn',
-                    evidence: { provisioned: false, missing: e.code },
+                    evidence: { provisioned: false, missing: e.code ?? 'missing_table' },
                     details: 'MFA columns on the user table are not provisioned yet — cannot verify admin MFA coverage.',
                 };
             }

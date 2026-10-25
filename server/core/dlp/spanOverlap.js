@@ -41,6 +41,7 @@
 
 // Matches dlpRunner's ordering; spans without a severity (the guard's model and
 // regex entities) rank 0 and are compared on length, then confidence.
+/** @type {Record<string, number>} */
 const SEVERITY_ORDER = { high: 3, medium: 2, low: 1 };
 
 function _usableSpan(s) {
@@ -63,6 +64,7 @@ function _better(a, b) {
  * splice will replace. Without this a merged span keeps the winner's ORIGINAL
  * text while covering a wider extent — the token map would then restore a
  * shorter value than was removed, silently dropping characters.
+ * @param {string | null} source
  */
 function _withText(span, source) {
     if (typeof source !== 'string') return span;
@@ -72,6 +74,10 @@ function _withText(span, source) {
     return sliced === span.text ? span : { ...span, text: sliced };
 }
 
+/**
+ * @param {string | null} source
+ * @param {boolean} [collectAlso]
+ */
 function _collapse(cluster, source, better = _better, collectAlso = false) {
     if (cluster.length === 1) return _withText(cluster[0], source);
     let offset = cluster[0].offset;
@@ -150,3 +156,8 @@ function resolveSpanOverlaps(spans, source = null, options = null) {
 }
 
 module.exports = { resolveSpanOverlaps, defaultSpanBetter: _better };
+
+/**
+ * @typedef {{ offset: number, length: number, text?: string, category?: string, alsoCategories?: string[],
+ *   severity?: string, confidence?: number }} Span
+ */

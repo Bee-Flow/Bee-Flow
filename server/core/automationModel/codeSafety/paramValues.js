@@ -17,12 +17,18 @@
 
 'use strict';
 
-const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
+/**
+ * @param {string | null | undefined} v
+ */
 function isEmpty(v) {
     return v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
 }
 
+/**
+ * @param {string | object | null} v
+ */
 function isPlainObject(v) {
     return v !== null && typeof v === 'object' && !Array.isArray(v);
 }
@@ -30,7 +36,10 @@ function isPlainObject(v) {
 const TRUE_WORDS = new Set(['true', 'yes', 'y', '1', 'on', 'ja', 'j', 'waar']);
 const FALSE_WORDS = new Set(['false', 'no', 'n', '0', 'off', 'nee', 'onwaar']);
 
-/** A number from text: "12.5", "-3", "1e3", and the Dutch "12,50". Else NaN. */
+/**
+ * A number from text: "12.5", "-3", "1e3", and the Dutch "12,50". Else NaN.
+ * @param {string} text
+ */
 function numberFrom(text) {
     const t = String(text).trim();
     if (/^-?\d+,\d{1,2}$/.test(t)) return Number(t.replace(',', '.'));
@@ -38,9 +47,13 @@ function numberFrom(text) {
     return Number(t);
 }
 
+/**
+ * @param {string} kind
+ */
 function refusal(kind, param, extra = {}) {
     const label = param.label || param.name;
     const name = param.name;
+    /** @type {Record<string, string>} */
     const texts = {
         missing: `The code step needs "${label}" (${name}), but nothing was filled in.`,
         type: `The code step needs "${label}" (${name}) to be ${extra.expected}, but got ${extra.got}.`,
@@ -53,6 +66,7 @@ function refusal(kind, param, extra = {}) {
     };
 }
 
+/** @type {Record<string, string>} */
 const EXPECTED = {
     number: 'a number',
     integer: 'a whole number',
@@ -61,6 +75,9 @@ const EXPECTED = {
     array: 'a list',
 };
 
+/**
+ * @param {string} v
+ */
 function describe(v) {
     if (typeof v === 'string') return JSON.stringify(v.length > 60 ? `${v.slice(0, 57)}...` : v);
     if (Array.isArray(v)) return 'a list';
@@ -69,7 +86,10 @@ function describe(v) {
     return String(v);
 }
 
-/** Convert one value to the declared type, or answer `{ error }`. */
+/**
+ * Convert one value to the declared type, or answer `{ error }`.
+ * @param {string} value
+ */
 function coerce(value, param) {
     const t = param.type;
     if (t === 'number' || t === 'integer') {
@@ -96,7 +116,7 @@ function coerce(value, param) {
             try {
                 const parsed = JSON.parse(value);
                 if (isPlainObject(parsed)) return { value: parsed };
-            } catch (err) { log.debug('refused below', err); }
+            } catch (err) { bestEffort('core/automationModel/codeSafety/paramValues:coerce', err); /* refused below */ }
         }
         return { error: refusal('type', param, { expected: EXPECTED.object, got: describe(value) }) };
     }
@@ -108,7 +128,7 @@ function coerce(value, param) {
                 try {
                     const parsed = JSON.parse(s);
                     if (Array.isArray(parsed)) return { value: parsed };
-                } catch (err) { log.debug('refused below', err); }
+                } catch (err) { bestEffort('core/automationModel/codeSafety/paramValues:coerce#2', err); /* refused below */ }
                 return { error: refusal('type', param, { expected: EXPECTED.array, got: describe(value) }) };
             }
             // "a, b, c" typed into a text field is a list of texts.
@@ -130,6 +150,9 @@ function coerce(value, param) {
     return { value };
 }
 
+/**
+ * @param {string} value
+ */
 function checkEnum(value, param) {
     if (!Array.isArray(param.enum) || !param.enum.length) return { value };
     for (const choice of param.enum) {
@@ -172,3 +195,12 @@ function applyParamValues(params, inputs) {
 }
 
 module.exports = { applyParamValues, numberFrom };
+
+/**
+ * A refusal: a plain sentence plus its i18n key and parameters.
+ * @typedef {{ message: string, messageKey: string, messageParams: Record<string, unknown> }} ParamRefusal
+ */
+
+/**
+ * @typedef {{ name: string, label?: string, type?: string, items?: { type?: string }, default?: unknown, required?: boolean, enum?: unknown[], [key: string]: unknown }} CodeParam
+ */

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Which spreadsheet in an order package is the bill of materials — decided by
  * looking inside it, not by which file is biggest.
@@ -61,19 +61,28 @@ const LINE_LIST_SUPPORT = [
  * "3010-009138-01". Folding every run of punctuation to a single hyphen makes
  * those three the same string. Applied to the key as well as to the row, so the
  * two can never drift.
+ * @param {unknown} text
  */
 function searchForm(text) {
     return String(text || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-/** Cell → the text it contributes. Dates and formulas degrade to their display. */
+/**
+ * Cell → the text it contributes. Dates and formulas degrade to their display.
+ * @param {unknown} value
+ */
 function cellText(value) {
     if (value === null || value === undefined) return '';
     if (value instanceof Date) return value.toISOString().slice(0, 10);
     return String(value);
 }
 
-/** The widest row in a parse — how we tell a real split from a failed one. */
+/** @typedef {{ name: string, rows: unknown[][] }} Sheet */
+
+/**
+ * The widest row in a parse — how we tell a real split from a failed one.
+ * @param {Sheet[]} sheets
+ */
 function widestRow(sheets) {
     let width = 0;
     for (const sheet of sheets) {
@@ -82,6 +91,12 @@ function widestRow(sheets) {
     return width;
 }
 
+/**
+ * @param {typeof import('@e965/xlsx')} XLSX
+ * @param {Buffer} buffer
+ * @param {Record<string, unknown>} options
+ * @returns {Sheet[] | null}
+ */
 function parseWith(XLSX, buffer, options) {
     let wb;
     try {
@@ -90,6 +105,7 @@ function parseWith(XLSX, buffer, options) {
         // spelling the part "3010-005424-01" that the files are filed under.
         wb = XLSX.read(buffer, { type: 'buffer', raw: true, cellDates: true, cellFormula: false, cellHTML: false, ...options });
     } catch { return null; }
+    /** @type {Sheet[]} */
     const out = [];
     for (const name of wb.SheetNames || []) {
         const ws = wb.Sheets[name];
@@ -115,6 +131,8 @@ function parseWith(XLSX, buffer, options) {
  * Returns null when the bytes are not a workbook at all — a caller that cannot
  * read a file learns nothing about it, which is different from learning it is
  * uninteresting.
+ * @param {Buffer} buffer
+ * @returns {Sheet[] | null}
  */
 function readWorkbook(buffer) {
     let XLSX;
@@ -131,7 +149,10 @@ function readWorkbook(buffer) {
 // family rule.
 const MIN_KEY_CHARS = 5;
 
-/** Long enough to identify a part, and with a digit in it. */
+/**
+ * Long enough to identify a part, and with a digit in it.
+ * @param {unknown} key
+ */
 function plausiblePart(key) {
     return typeof key === 'string' && key.length >= MIN_KEY_CHARS && /[0-9]/.test(key);
 }
@@ -151,6 +172,8 @@ function plausiblePart(key) {
  * evidence rather than pattern-matching. No matching row, no claim.
  *
  * Returns { keyCol, variantCol } — variantCol is -1 when one cell was enough.
+ * @param {string[]} cells
+ * @param {string} key
  */
 function findKeyColumn(cells, key) {
     for (let c = 0; c < cells.length; c += 1) {
@@ -163,7 +186,10 @@ function findKeyColumn(cells, key) {
     return null;
 }
 
-/** Does this header row read as the target schema rather than a customer's own? */
+/**
+ * Does this header row read as the target schema rather than a customer's own?
+ * @param {unknown[] | null | undefined} headerRow
+ */
 function looksLikeLineList(headerRow) {
     const heads = (headerRow || []).map((c) => cellText(c).trim().toLowerCase()).filter(Boolean);
     if (!heads.length) return false;
@@ -182,6 +208,8 @@ function looksLikeLineList(headerRow) {
  * the widest row that actually carries content — the tie-breaker between two
  * sheets that name the same parts, because the one with twelve filled columns
  * has the thickness and the one with three does not.
+ * @param {Buffer} buffer
+ * @param {{ partKeys?: string[], normalize?: (x: unknown) => string }} [opts]
  */
 function scanSheet(buffer, { partKeys = [], normalize = (x) => String(x || '').toLowerCase() } = {}) {
     if (!buffer || !buffer.length || buffer.length > MAX_SCAN_BYTES) return null;
@@ -197,6 +225,7 @@ function scanSheet(buffer, { partKeys = [], normalize = (x) => String(x || '').t
     let lineList = false;
     let where = null;                 // which column the article number sits in
 
+    /** @param {unknown[] | null | undefined} row */
     const cellsOf = (row) => (row || []).map(cellText);
 
     for (const sheet of sheets) {

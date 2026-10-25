@@ -24,6 +24,7 @@
 
 const log = require('../../telemetry/log');
 const notebookCollab = require('./notebookCollab');
+const { fallback } = require('../../utils/bestEffort');
 
 /** The HTML as the store keeps it, for "is this the same document?". @param {unknown} html */
 function canonicalHtml(html) {
@@ -47,6 +48,7 @@ function canonicalHtml(html) {
  * @param {AiDocWriterOptions} opts
  */
 function makeAiDocWriter({ notebookId, userId, baseHtml, expectedVersion, store = require('../../stores/notebookStore'), collab = () => notebookCollab.defaultFacade() }) {
+    /** @type {Array<{ userId: string, kind: 'ai' | 'user' }>} */
     const contributors = [{ userId, kind: 'ai' }];
     // The row version the next compare-and-set write may replace; each write
     // advances it, so a turn's chained edits do not trip over each other.
@@ -71,7 +73,7 @@ function makeAiDocWriter({ notebookId, userId, baseHtml, expectedVersion, store 
         return { ok: false, conflict: true };
     }
 
-    /** @param {string} realHtml @param {any} facade */
+    /** @param {string} realHtml @param {notebookCollab.CollabFacade} facade */
     async function snapshotBefore(realHtml, facade) {
         try {
             const fresh = await store.getNotebook(notebookId, userId);
@@ -96,7 +98,7 @@ function makeAiDocWriter({ notebookId, userId, baseHtml, expectedVersion, store 
         });
         let saved = await write(casVersion);
         if (!saved.ok && saved.conflict) {
-            const fresh = await store.getNotebook(notebookId, userId).catch(() => null);
+            const fresh = await store.getNotebook(notebookId, userId).catch((e) => fallback('agents/notebooks/aiDocWriter:writeRow', e, null));
             if (fresh && canonicalHtml(fresh.documentContent) === casBase) saved = await write(fresh.version);
         }
         if (saved.ok) {

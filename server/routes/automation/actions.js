@@ -43,6 +43,7 @@ const SuggestBody = z.preprocess((v) => (v === undefined || v === null ? {} : v)
     language: z.string({ error: typeError({ invalid: LANGUAGE_TEXT }) }).trim().regex(/^[a-z]{2}(-[A-Za-z]{2})?$/, LANGUAGE_TEXT).optional(),
 }).strict());
 
+/** @type {Record<string, string>} */
 const LANGUAGE_NAMES = { en: 'English', nl: 'Dutch', de: 'German', fr: 'French', es: 'Spanish', it: 'Italian' };
 const COPY_SUFFIX = ' (copy)';
 const MAX_TITLE = 200;
@@ -68,6 +69,7 @@ function copyTitle(title) {
 function describeForModel(automation, { summariseDefinition, stepNumbers }) {
     const def = automation.definition || {};
     const { summary } = summariseDefinition(def);
+    /** @type {string[]} */
     const labels = [];
     const numbers = stepNumbers(def);
     const byId = new Map((Array.isArray(def.steps) ? def.steps : []).filter(Boolean).map((s) => [s.id, s]));
@@ -215,7 +217,7 @@ function makeActionsRouter(overrides = {}) {
                 { role: 'user', content: input },
             ], { maxTokens: 160, temperature: 0.3, reasoningEffort: 'none', budgetTokens: 0 });
         } catch (e) {
-            log.error('[automation suggest-description] inference failed:', e.message);
+            log.error('[automation suggest-description] inference failed:', /** @type {Error} */ (e).message);
             throw new HttpError(502, 'suggestion_failed', 'Bee could not suggest a description right now. Please try again.');
         }
         const description = sanitiseSuggestion(result?.content);

@@ -580,3 +580,123 @@ module.exports = {
     // For tests.
     _approvalsTest: { buildApprovalWhere, rowToApproval, encodeApprovalCursor, decodeApprovalCursor },
 };
+
+/**
+ * @typedef {object} ApprovalRow
+ * @property {string} id
+ * @property {string | null} [organization_id]
+ * @property {string | null} [project_id]
+ * @property {string | null} [project_title]
+ * @property {string | null} [automation_id]
+ * @property {string | null} [automation_title]
+ * @property {string | null} [run_id]
+ * @property {string | null} [root_run_id]
+ * @property {string | null} [step_id]
+ * @property {string | null} [source]
+ * @property {string | null} [deployment_id]
+ * @property {string | null} [requested_by]
+ * @property {string | null} [studio_app_id]
+ * @property {string | null} [action_id]
+ * @property {Record<string, unknown> | null} [context]
+ * @property {import('../../automation/approvalRulebook').OnDecidedHook | null} [on_decided]
+ * @property {string | Date | null} [remind_at]
+ * @property {string | Date | null} [reminder_sent_at]
+ * @property {string | Date | null} [escalate_at]
+ * @property {string | Date | null} [escalated_at]
+ * @property {string | null} [escalate_to_user_id]
+ * @property {string | null} [escalate_to_group_id]
+ * @property {string} owner_id
+ * @property {string | null} [assignee_user_id]
+ * @property {string | null} [assignee_group_id]
+ * @property {import('../../automation/approvalRulebook').ApprovalSeat[] | null} [approvers]
+ * @property {string | null} [approval_rule]
+ * @property {number | null} [quorum_count]
+ * @property {import('../../automation/approvalRulebook').ApprovalStage[] | null} [approval_stages]
+ * @property {unknown} [stage_participants]
+ * @property {string | Date | null} [stage_entered_at]
+ * @property {string | null} [stage]
+ * @property {string | null} [final_approver_user_id]
+ * @property {string | null} [final_approver_group_id]
+ * @property {string} status
+ * @property {string | null} [prompt]
+ * @property {string | null} [details_md]
+ * @property {unknown} [fields]
+ * @property {Array<{ fileId: string, filename?: string, mimeType?: string, size?: number, label?: string | null, store?: string, [field: string]: unknown }> | null} [attachments]
+ * @property {Record<string, unknown> | null} [answers]
+ * @property {string | null} [decided_by]
+ * @property {string | null} [decided_by_name]
+ * @property {string | null} [decision_reason]
+ * @property {string | Date | null} [decided_at]
+ * @property {string | Date | null} [expires_at]
+ * @property {string | Date} created_at
+ * @property {string | Date} updated_at
+ */
+
+/**
+ * @typedef {object} CreateApprovalInput
+ * @property {string | null} [organizationId]
+ * @property {string | null} [automationId]
+ * @property {string} [automationTitle]
+ * @property {string | null} [projectId]
+ * @property {string} [projectTitle]
+ * @property {string | null} [runId]
+ * @property {string | null} [rootRunId]
+ * @property {string | null} [stepId]
+ * @property {string} ownerId
+ * @property {string | null} [assigneeUserId]
+ * @property {string | null} [assigneeGroupId]
+ * @property {string} [prompt]
+ * @property {string | null} [detailsMd]
+ * @property {unknown} [fields]
+ * @property {unknown} [attachments]
+ * @property {string | Date | null} [expiresAt]
+ * @property {string} [source]
+ * @property {string | null} [requestedBy]
+ * @property {string | null} [studioAppId]
+ * @property {string | null} [actionId]
+ * @property {unknown} [context]
+ * @property {unknown} [onDecided]
+ * @property {string | Date | null} [remindAt]
+ * @property {string | Date | null} [escalateAt]
+ * @property {string | null} [escalateToUserId]
+ * @property {string | null} [escalateToGroupId]
+ * @property {unknown[] | null} [approvers]
+ * @property {string | null} [approvalRule]
+ * @property {number | null} [quorumCount]
+ * @property {string | null} [finalApproverUserId]
+ * @property {string | null} [finalApproverGroupId]
+ * @property {unknown[] | null} [stages]
+ * @property {unknown} [stageParticipants]
+ * @property {string | null} [stageKey]
+ * @property {string | null} [deploymentId]
+ */
+
+/** @typedef {{ userId?: string, groupIds?: string[] }} ApprovalViewer */
+
+/** @typedef {{ createdAt: string | Date, id: string }} ApprovalCursor */
+
+/**
+ * @typedef {object} ApprovalFilters
+ * @property {ApprovalViewer | null} [viewer]
+ * @property {{ orgId?: string } | null} [org]
+ * @property {string | string[]} [status]
+ * @property {ApprovalCursor | null} [cursor]
+ * @property {string | null} [appId]
+ * @property {string | null} [automationId]
+ * @property {string | null} [projectId]
+ * @property {string | null} [q]
+ */
+
+/**
+ * @typedef {object} VoteRow
+ * @property {string} id
+ * @property {string} approval_id
+ * @property {string} stage
+ * @property {number | null} [seat_index]
+ * @property {string} voter_id
+ * @property {string | null} [voter_name]
+ * @property {string} decision
+ * @property {string | null} [reason]
+ * @property {unknown} [answers]
+ * @property {string | Date} created_at
+ */

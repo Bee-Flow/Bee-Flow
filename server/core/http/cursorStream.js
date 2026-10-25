@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * A cursor-based Server-Sent Events stream: the skeleton of
  * GET /api/projects/:id/stream, shared so the co-editing frames that ride on
@@ -64,7 +64,7 @@ const DEFAULTS = Object.freeze({
  */
 
 /**
- * @param {any} req
+ * @param {{ on: (arg0: string, arg1: () => void) => void; }} req
  * @param {any} res
  * @param {{
  *   cursor: number,

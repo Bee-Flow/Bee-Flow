@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Transport to the self-hosted WhisperX service (transcription + diarization).
  *
@@ -11,6 +11,10 @@ const log = require('../../telemetry/log');
 /**
  * Transcribe with the self-hosted WhisperX service. Returns a
  * Voxtral-compatible `{ text, segments:[{text,start,end,speakerId}] }` shape.
+ * @param {fs.PathLike} filePath
+ * @param {string} fileName
+ * @param {string | Blob} language
+ * @param {string | Blob} contextTerms
  */
 async function transcribeWithWhisperX(filePath, fileName, language, contextTerms) {
     // Deployment wiring (compose/k8s) wins; otherwise honour the URL an admin

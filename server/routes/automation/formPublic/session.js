@@ -1,4 +1,6 @@
-// @typecheck
+/** @typedef {import('stream').Readable} Readable */
+/** @typedef {import('express-serve-static-core').Router} Router */
+// @typecheck noImplicitAny
 /**
  * The visitor's session on a multi-page form: the poll that reports working,
  * the next page, done or error (with a trail of step titles while the
@@ -18,6 +20,7 @@ const { typicalSeconds } = require('../../../automation/formTypicalDuration');
 const { privateHeaders, loadForm, loadSession, currentRunFor, journeyRunIds, pendingPageFor } = require('./access');
 const { ipLimiter, sessionLimiter } = require('./limits');
 const { friendly } = require('./friendly');
+const { fallback, bestEffort } = require('../../../utils/bestEffort');
 
 // ── Multi-page: the visitor's session ─────────────────
 
@@ -32,6 +35,8 @@ const { friendly } = require('./friendly');
  *
  * No URL is added. The page knows its own token and session id and builds the
  * link itself, which keeps this working when the API lives on another origin.
+ * @param {Record<string, unknown> | null} form
+ * @param {Parameters<typeof journeyRunIds>[0]} session
  */
 async function resolveDownloadFields(form, session) {
     const fields = Array.isArray(form?.fields) ? form.fields : [];
@@ -42,11 +47,12 @@ async function resolveDownloadFields(form, session) {
     if (!fields.some(isFileField)) return form;
 
     const runIds = await journeyRunIds(session);
+    /** @type {Array<Record<string, unknown>>} */
     const resolved = [];
     for (const f of fields) {
         if (!isFileField(f)) { resolved.push(f); continue; }
         if (!f.fileId || runIds.length === 0) continue;
-        const file = await automationStore.getGeneratedFileForRuns(f.fileId, runIds).catch(() => null);
+        const file = await automationStore.getGeneratedFileForRuns(f.fileId, runIds).catch((e) => fallback('routes/automation/formPublic/session:resolveDownloadFields', e, null));
         if (!file) continue;
         resolved.push({
             name: f.name,
@@ -94,16 +100,25 @@ async function resolveDownloadFields(form, session) {
 // public endpoint and nothing upstream forces it to stay one.
 const PROGRESS_NOTE_MAX = 400;
 
+/**
+ * @typedef {{ id: string, type?: string, label?: string, layerKey?: string }} TrailStep
+ * @typedef {{ steps?: TrailStep[], title?: string, description?: unknown }} TrailGraph
+ * @param {TrailGraph & { layers?: Record<string, TrailGraph> }} definition
+ * @param {Array<{ status?: string, stepId?: string } | null>} steps
+ */
 function progressTrail(definition, steps) {
     const current = [...steps].reverse().find(s => s && s.status === 'running' && s.stepId);
     if (!current) return null;
 
+    /** @type {string[]} */
     const trail = [];
+    /** @type {string | null} */
     let note = null;
+    /** @type {TrailGraph} */
     let graph = definition;
     const segments = String(current.stepId).split('/');
     for (let i = 0; i < segments.length; i++) {
-        const step = (graph?.steps || []).find(x => x && x.id === segments[i]);
+        const step = (graph?.steps || []).find((/** @type {{ id: string; }} */ x) => x && x.id === segments[i]);
         if (!step) break;
         const last = i === segments.length - 1;
         if (!last) {
@@ -129,12 +144,18 @@ function progressTrail(definition, steps) {
  * A `working` response. It carries the one aggregate figure a visitor may see
  * about the automation's history: how many seconds a stretch usually takes.
  * Only ever on `working`; a page, an ending or an error never gets it.
+ * @param {string} automationId
+ * @param {{ progressNote?: string | undefined; progress?: string[] | undefined; }} [extra]
  */
 async function workingResponse(automationId, extra = {}) {
     const typical = await typicalSeconds(automationId);
     return { state: 'working', ...extra, ...(typical ? { typicalSeconds: typical } : {}) };
 }
 
+/**
+ * @param {import('express').Request<{ token: string, sid: string }>} req
+ * @param {import('express').Response} res
+ */
 async function pollSession(req, res) {
     privateHeaders(res);
     const found = await loadForm(req, res);
@@ -144,7 +165,7 @@ async function pollSession(req, res) {
     if (loaded.expired) return res.json({ state: 'expired' });
 
     const { session } = loaded;
-    await automationStore.touchFormSession(session.id).catch(() => {});
+    await automationStore.touchFormSession(session.id).catch((e) => bestEffort('routes/automation/formPublic/session:pollSession', e));
 
     // Queued behind other submissions, or the run row is not written yet.
     const automationId = found.automation.id;
@@ -203,6 +224,9 @@ async function pollSession(req, res) {
  *
  * Every miss is a 404, never a 403: a wrong id, someone else's file, an expired
  * one and a deleted blob are deliberately indistinguishable.
+ * @param {import('express').Request<{ token: string, sid: string, fileId: string }>} req
+ * @param {import('express').Response} res
+ * @param {(e: Error) => void} next
  */
 async function downloadFile(req, res, next) {
     privateHeaders(res);
@@ -216,13 +240,14 @@ async function downloadFile(req, res, next) {
     const file = await automationStore.getGeneratedFileForRuns(req.params.fileId, runIds);
     if (!file) return res.status(404).json({ error: 'Not found' });
 
+    /** @type {{ stream: Readable; contentType: string; contentLength: number; totalLength: number; contentRange: string | null; metadata: Object; }} */
     let streamed;
     try {
         streamed = await storageStore.streamFile(file.storageKey);
     } catch (e) {
         // The reaper deletes blobs before rows, so a live row with no bytes
         // is a normal race rather than a server fault.
-        log.warn(`[automation/form] generated file ${file.id} has no bytes: ${e.message}`);
+        log.warn(`[automation/form] generated file ${file.id} has no bytes: ${/** @type {Error} */ (e).message}`);
         return res.status(404).json({ error: 'Not found' });
     }
 
@@ -239,7 +264,11 @@ async function downloadFile(req, res, next) {
     return sendStream(streamed.stream, res);
 }
 
-/** GET /form/:token/s/:sid, GET /form/:token/s/:sid/file/:fileId — in that order. */
+/**
+ * GET /form/:token/s/:sid, GET /form/:token/s/:sid/file/:fileId — in that order.
+ * @param {import('express').IRouter} router
+ * @param {Router} router
+ */
 function register(router) {
     router.get('/form/:token/s/:sid', ipLimiter, sessionLimiter, friendly(pollSession, 'poll_failed', 'Could not check this form'));
     router.get('/form/:token/s/:sid/file/:fileId', ipLimiter, sessionLimiter, friendly(downloadFile, 'download_failed', 'Could not fetch this file'));

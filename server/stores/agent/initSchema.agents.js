@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Agent schema init, part 2: categories, concept/live split, persona, labels,
  * favorites, test sets and the enabledIntegrations backfill. Run by
@@ -210,7 +210,7 @@ async function backfillEnabledIntegrations() {
                     OR config::jsonb -> 'enabledIntegrations' = 'null'::jsonb
                 ))
         `);
-    } catch (e) { log.warn('[agentStore] R4 backfill skipped:', e.message); }
+    } catch (e) { log.warn('[agentStore] R4 backfill skipped:', /** @type {Error} */ (e).message); }
 }
 
 module.exports = {

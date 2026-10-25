@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // The shipped components live in <repo>/components — in the container that is
 // /components, which every compose file mounts. componentManager.deps.test.js
@@ -49,6 +50,7 @@ const ALLOWED_DEPENDENCIES = new Set([
  * Which of a component's declared dependencies are not allowed.
  * Returns [] when the component declares none, which is the common case and
  * skips npm entirely.
+ * @param {string} componentPath
  */
 function disallowedDependencies(componentPath) {
     let pkg;
@@ -70,6 +72,8 @@ function disallowedDependencies(componentPath) {
  * Never throws: a component that cannot install is skipped and reported, the
  * same posture the original code had for an npm failure. The component's
  * definition still loads, so it does not silently vanish.
+ * @param {string} componentPath
+ * @param {string} id
  */
 async function installDependencies(componentPath, id) {
     const blocked = disallowedDependencies(componentPath);
@@ -88,7 +92,7 @@ async function installDependencies(componentPath, id) {
     try {
         const pkg = JSON.parse(fs.readFileSync(path.join(componentPath, 'package.json'), 'utf8'));
         hasDeps = Object.keys(pkg.dependencies || {}).length > 0;
-    } catch (err) { log.debug('no package.json → nothing to do', err); }
+    } catch (err) { fallback('core/cms/componentManager:installDependencies', err); /* no package.json → nothing to do */ }
     if (!hasDeps) return { installed: true, blocked: [] };
 
     await new Promise((/** @type {(value?: any) => void} */ resolve) => {
@@ -110,6 +114,7 @@ async function initialize() {
     }
 
     const entries = fs.readdirSync(COMPONENTS_DIR, { withFileTypes: true });
+    /** @type {Promise<{ installed: boolean; blocked: string[]; }>[]} */
     const installPromises = [];
 
     // First pass: load all component definitions
@@ -157,6 +162,9 @@ function getComponentPath(id) {
 }
 
 // Reload a single component's definition (no reinstall of deps)
+/**
+ * @param {string} id
+ */
 async function reloadComponent(id) {
     const componentPath = path.join(COMPONENTS_DIR, id);
     const componentJsonPath = path.join(componentPath, 'component.json');

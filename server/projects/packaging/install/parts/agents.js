@@ -66,7 +66,7 @@ async function installAgents(entities, ctx, report) {
             await ctx.stamp({ ref: entity.ref, kind: 'agent', entityId: created.id, payload: config });
             report.installed.agents.push({ ref: entity.ref, id: created.id, name: entity.name });
         } catch (err) {
-            report.skipped.push({ ref: entity.ref, kind: 'agent', why: err.message });
+            report.skipped.push({ ref: entity.ref, kind: 'agent', why: /** @type {Error} */ (err).message });
         }
     }
 }

@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * GET /agents/:id/conversations/:convId — who may open an agent conversation.
  *
@@ -41,7 +42,7 @@ const { HttpError, notFound } = require('../../core/http/errors');
  * and the direct one (routes/ai/directChat/sharedDirectRead.js) both build on
  * it, so the two kinds of shared thread cannot drift.
  *
- * @param {object} conversation  the row as read with the project's key
+ * @param {{ id?: string, user_id?: string, title?: string|null, messages?: unknown, project_id?: string|null, shared_scope?: string|null, created_at?: string|Date, updated_at?: string|Date }} conversation  the row as read with the project's key
  * @param {{ projectId?: string|null, projectRole?: string|null, canPost?: boolean }} access
  * @param {object} own  the kind's own allow-listed fields
  */
@@ -67,7 +68,11 @@ function sharedThreadView(conversation, access, own) {
     };
 }
 
-/** The row fields a project member may see on a shared agent thread. */
+/**
+ * The row fields a project member may see on a shared agent thread.
+ * @param {Parameters<typeof sharedThreadView>[0] & { agent_id?: string, threadTitles?: Record<string, string> }} conversation
+ * @param {Parameters<typeof sharedThreadView>[1]} access
+ */
 function memberView(conversation, access) {
     return sharedThreadView(conversation, access, {
         agent_id: conversation.agent_id,
@@ -82,13 +87,17 @@ function memberView(conversation, access) {
  * @param {Function} [deps.getEffectiveUserId]         utils/routeHelpers.getEffectiveUserId
  */
 function makeReadAgentConversation(deps = {}) {
-    const getConversationById = (...a) => (deps.getConversationById
+    const getConversationById = (/** @type {Parameters<typeof import('../../stores/agentStore').getConversationById>} */ ...a) => (deps.getConversationById
         || require('../../stores/agentStore').getConversationById)(...a);
-    const resolveAccess = (...a) => (deps.resolveConversationAccess
+    const resolveAccess = (/** @type {Parameters<typeof import('../../stores/agent/conversationAccess').resolveConversationAccess>} */ ...a) => (deps.resolveConversationAccess
         || require('../../stores/agent/conversationAccess').resolveConversationAccess)(...a);
-    const getEffectiveUserId = (req) => (deps.getEffectiveUserId
+    const getEffectiveUserId = (/** @type {import('express').Request} */ req) => (deps.getEffectiveUserId
         || require('../../utils/routeHelpers').getEffectiveUserId)(req);
 
+    /**
+     * @param {import('express').Request<{ id: string, convId: string }>} req
+     * @param {import('express').Response} res
+     */
     return async function readAgentConversation(req, res) {
         const userId = getEffectiveUserId(req);
         const sessionUserId = req.session?.user?.id || null;

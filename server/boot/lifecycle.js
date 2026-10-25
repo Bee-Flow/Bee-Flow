@@ -1,3 +1,4 @@
+/** @typedef {import('express-serve-static-core').Express} Express */
 'use strict';
 /**
  * The process lifecycle of the server, moved verbatim out of server/index.js:
@@ -28,9 +29,18 @@ function installProcessErrorHandlers({ log = defaultLog, proc = process } = {}) 
 }
 
 /**
+ * @typedef {Object} StartServerArgs
+ * @property {Express} app
+ * @property {string | number} port
+ * @property {() => void} runStartupChecks
+ * @property {() => void} runStartupTasks
+ * @property {NodeJS.Process} [proc]
+ */
+/**
  * Create the HTTP server and start it. Returns the server at once (the webpage
  * full-tier proxy attaches its WebSocket 'upgrade' listener to it) and the
  * startup promise, which never rejects: a failure is logged and exits 1.
+ * @param {StartServerArgs} param0
  */
 function startServer({ app, port, terminalErrorHandler, runStartupChecks, runStartupTasks, log = defaultLog, proc = process, deps = {} }) {
     // Captured so the (gated, off-by-default) webpage full-tier proxy can attach a
@@ -102,7 +112,7 @@ function installGracefulShutdown({ otel, disconnectRedis, log = defaultLog, proc
             if (typeof automationRunner.stop === 'function') {
                 await automationRunner.stop({ timeoutMs: parseInt(process.env.AUTOMATION_DRAIN_TIMEOUT_MS, 10) || 25_000 });
             }
-        } catch (e) { log.warn('[Server] automation runner drain failed:', e.message); }
+        } catch (e) { log.warn('[Server] automation runner drain failed:', /** @type {Error} */ (e).message); }
         try { (deps.usageOpenObservePush || require('../jobs/usageOpenObservePush')).stop(); } catch (err) { defaultLog.debug('best-effort', err); }
         try { (deps.opsMetricsPush || require('../jobs/opsMetricsPush')).stop(); } catch (err) { defaultLog.debug('best-effort', err); }
         // Chat signals: write the last minute of counters (bounded; a lost minute is acceptable, a hung shutdown is not).
@@ -122,7 +132,7 @@ function installGracefulShutdown({ otel, disconnectRedis, log = defaultLog, proc
                 ]),
                 new Promise((resolve) => setTimeout(resolve, 10_000).unref()),
             ]);
-        } catch (e) { log.warn('[Server] Blob-engine shutdown flush failed:', e.message); }
+        } catch (e) { log.warn('[Server] Blob-engine shutdown flush failed:', /** @type {Error} */ (e).message); }
         // Flush any buffered spans/metrics so a deploy doesn't drop the last batch.
         await otel.shutdown();
         proc.exit(0);
@@ -133,3 +143,5 @@ function installGracefulShutdown({ otel, disconnectRedis, log = defaultLog, proc
 }
 
 module.exports = { installProcessErrorHandlers, startServer, installGracefulShutdown };
+
+/** @typedef {typeof defaultLog} Log */

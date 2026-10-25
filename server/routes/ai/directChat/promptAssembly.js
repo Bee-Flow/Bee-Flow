@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Direct Chat — system-prompt and message-array assembly: the stable/volatile
  * system-block split, tool hints, project instructions + KB retrieval,
@@ -27,6 +27,8 @@ const { resolveHistory, appendHistory } = require('./promptHistory');
  * CACHED system block, so it carries no date: `Today is …` used to sit here,
  * ahead of the tool hint, and rewrote the whole prefix at midnight. It now
  * rides the volatile block next to the `Now:` line.
+ * @param {{ requestSystemPrompt?: string | null, notebooksEnabled?: boolean }} p
+ * @returns {Promise<string>}
  */
 async function basePromptFor({ requestSystemPrompt, notebooksEnabled }) {
     const customPrompt = await configStore.getConfig('direct_chat_system_prompt');
@@ -49,6 +51,8 @@ async function basePromptFor({ requestSystemPrompt, notebooksEnabled }) {
  * propose_webpage_plan tool is also stripped from the toolset). It rides on
  * the volatile block: a third leading system message hangs llama-server
  * outright (local.js), and this text is one-turn-only anyway.
+ * @param {{ action?: string, planId?: string } | null | undefined} webpagePlanExecution
+ * @returns {string}
  */
 function planExecutionNote(webpagePlanExecution) {
     if (!(webpagePlanExecution && webpagePlanExecution.action === 'execute' && webpagePlanExecution.planId)) return '';
@@ -86,6 +90,7 @@ function planExecutionNote(webpagePlanExecution) {
  * from them". The access rule is core/kb/kbVisibility, one answer on every
  * surface (the hand-rolled copy here once read `orgIdsForTiers === null` as
  * super admin and let any base through).
+ * @param {{ req: import('express').Request, send: ReturnType<typeof import('../../../core/http/sseHelpers').openSse>['send'], userId: string, message: string, conversationId?: string | null, history?: Parameters<typeof resolveHistory>[0]['history'], timezone?: Parameters<typeof formatLocalNow>[0], requestSystemPrompt?: string | null, activeSkillIds?: string[] | null, requestedKbIds?: string[] | null, projectId?: string | null, notebookspaceAvailable?: boolean | null, notebookspaceContent?: string | null, notebookspaceSelection?: string | null, sidePanelWebpage?: Parameters<typeof sidePanelContext>[0]['sidePanelWebpage'], sidePanelDocument?: Parameters<typeof sidePanelContext>[0]['sidePanelDocument'], webpagePlanExecution?: Parameters<typeof planExecutionNote>[0], userOrgForTiers?: string | null, orgIdsForTiers?: Parameters<typeof attachedKbContext>[0]['orgIdsForTiers'], notebooksEnabled?: boolean, canUseNotebooks?: boolean, toolCatalogText: string, directChatTools: Parameters<typeof capabilityContextFor>[0] }} p
  */
 async function buildPromptAndHistory({ req, send, userId, message, conversationId, history, timezone, requestSystemPrompt, activeSkillIds, requestedKbIds, projectId, notebookspaceAvailable, notebookspaceContent, notebookspaceSelection, sidePanelWebpage, sidePanelDocument, webpagePlanExecution, userOrgForTiers, orgIdsForTiers, notebooksEnabled, canUseNotebooks, toolCatalogText, directChatTools }) {
     emitPhase(send, 'building_prompt');
@@ -147,6 +152,9 @@ async function buildPromptAndHistory({ req, send, userId, message, conversationI
  * conversation tokens, now that the conversation exists. Runs before the
  * input gates, so the token-preservation addendum is built from a map that
  * already holds the memory tokens. Labels stay on any failure.
+ * @param {Pick<Awaited<ReturnType<typeof buildPromptAndHistory>>, 'memorySwap' | 'volatileMessage'> & { convId?: string | null }} turn
+ * @param {string} userId
+ * @returns {Promise<boolean>}
  */
 async function applyMemorySwap(turn, userId) {
     const swap = turn.memorySwap;

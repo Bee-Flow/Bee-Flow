@@ -19,7 +19,7 @@ const { privateHeaders, loadForm, loadSession, pendingPageFor } = require('./acc
 const { ipLimiter, tokenLimiter, uploadLimiter, pickLimiter, contentLengthGuard } = require('./limits');
 const { pickCaller, declaredPickField } = require('./picks');
 const { friendly } = require('./friendly');
-const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 // Per-form upload quota inside a rolling window. There is no user to bill, so
 // the form itself carries the budget.
@@ -31,6 +31,10 @@ const guard = uploadGuard({ maxBytes: MAX_UPLOAD_MB * 1024 * 1024 });
 
 // ── GET /form/:token — what to render ─────────────────
 
+/**
+ * @param {import('express').Request<{ token: string }>} req
+ * @param {import('express').Response} res
+ */
 async function renderForm(req, res) {
     privateHeaders(res);
     const found = await loadForm(req, res);
@@ -65,6 +69,10 @@ async function renderForm(req, res) {
 
 // ── POST /form/:token/upload — one file ───────────────
 
+/**
+ * @param {import('express').Request<{ token: string }>} req
+ * @param {import('express').Response} res
+ */
 async function uploadFile(req, res) {
     privateHeaders(res);
     const found = await loadForm(req, res);
@@ -111,7 +119,7 @@ async function uploadFile(req, res) {
     if (!scan.clean) {
         // Quarantine: delete the bytes and never write the ledger row, so
         // an unscanned blob can never be claimed by a submission.
-        try { await storageStore.deleteFile(key); } catch (err) { log.debug('best-effort', err); }
+        try { await storageStore.deleteFile(key); } catch (err) { bestEffort('routes/automation/formPublic/page:uploadFile', err); /* best-effort */ }
         return res.status(422).json({ error: 'That file failed a malware scan' });
     }
 
@@ -126,6 +134,10 @@ async function uploadFile(req, res) {
 
 // ── POST /form/:token/pick — search one app_pick field's source ───────
 
+/**
+ * @param {import('express').Request<{ token: string }>} req
+ * @param {import('express').Response} res
+ */
 async function searchPick(req, res) {
     privateHeaders(res);
     const found = await loadForm(req, res);
@@ -158,13 +170,19 @@ async function searchPick(req, res) {
 
 const CONTROL_CHARS = /[\u0000-\u001f\u007f]/g;
 
+/**
+ * @param {string | null | undefined} name
+ */
 function safeFilename(name) {
     const base = String(name || 'file').split(/[\\/]/).pop() || 'file';
     // Strip control chars; keep it recognisable to the person who receives it.
     return base.replace(CONTROL_CHARS, '').slice(0, 200) || 'file';
 }
 
-/** GET /form/:token, POST /form/:token/upload, POST /form/:token/pick — in that order. */
+/**
+ * GET /form/:token, POST /form/:token/upload, POST /form/:token/pick — in that order.
+ * @param {import('express').Router} router
+ */
 function register(router) {
     router.get('/form/:token', ipLimiter, tokenLimiter, friendly(renderForm, 'form_load_failed', 'Could not load this form'));
     router.post('/form/:token/upload', ipLimiter, uploadLimiter, guard, friendly(uploadFile, 'upload_failed', 'Upload failed'));

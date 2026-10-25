@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The boot migration ladder — ONE list, two callers.
  *
@@ -281,6 +281,9 @@ const MANUAL_MIGRATIONS = [
 
 const LEDGER_TABLE = 'schema_migrations';
 
+/**
+ * @param {string} name
+ */
 function checksumOf(name) {
     const file = require.resolve(`../migrations/${name}`);
     return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
@@ -298,6 +301,10 @@ async function readLedger() {
     return new Map(rows.map((r) => [r.name, r]));
 }
 
+/**
+ * @param {string} checksum
+ * @param {string} name
+ */
 async function record(name, checksum) {
     await require('../db').run(
         `INSERT INTO ${LEDGER_TABLE} (name, checksum, applied_at) VALUES ($1, $2, now())
@@ -312,15 +319,18 @@ async function record(name, checksum) {
  * itself whether that is a warn (boot) or an exit 1 (migration runner).
  *
  * @returns {Promise<{ok: string[], skipped: string[], failed: {name: string, error: string}[]}>}
+ * @param {string[]} names
+ * @param {{ log?: Pick<Console, 'warn' | 'log'>, force?: boolean }} [opts] a Console or the telemetry logger
  */
 async function runList(names, { log = require('../telemetry/log'), force = false } = {}) {
+    /** @type {{ ok: string[], skipped: string[], failed: { name: string, error: string }[] }} */
     const out = { ok: [], skipped: [], failed: [] };
     let ledger = new Map();
     try {
         ledger = await readLedger();
     } catch (e) {
         // No ledger means the pre-ledger behaviour: run everything, record nothing.
-        log.warn(`[BootMigrations] ledger onbereikbaar, volledige ladder draait: ${e.message}`);
+        log.warn(`[BootMigrations] ledger onbereikbaar, volledige ladder draait: ${/** @type {Error} */ (e).message}`);
     }
     for (const name of names) {
         try {
@@ -338,20 +348,22 @@ async function runList(names, { log = require('../telemetry/log'), force = false
             try {
                 await record(name, checksum);
             } catch (e) {
-                log.warn(`[BootMigrations] ${name} geslaagd maar niet geregistreerd (draait volgende keer opnieuw): ${e.message}`);
+                log.warn(`[BootMigrations] ${name} geslaagd maar niet geregistreerd (draait volgende keer opnieuw): ${/** @type {Error} */ (e).message}`);
             }
         } catch (e) {
-            out.failed.push({ name, error: e.message });
-            log.warn(`[BootMigrations] ${name} faalde: ${e.message}`);
+            out.failed.push({ name, error: /** @type {Error} */ (e).message });
+            log.warn(`[BootMigrations] ${name} faalde: ${/** @type {Error} */ (e).message}`);
         }
     }
     return out;
 }
 
+/** @param {Parameters<typeof runList>[1]} [opts] */
 async function runLooseMigrations(opts) {
     return runList(LOOSE_MIGRATIONS, opts);
 }
 
+/** @param {Parameters<typeof runList>[1]} [opts] */
 async function runNlTranslations(opts) {
     return runList(NL_TRANSLATIONS, opts);
 }

@@ -188,3 +188,7 @@ const SETTINGS_READONLY = [
 const SETTINGS_REQUEST_DENY = Object.freeze(SETTINGS_FIELDS.filter(f => f.owner).map(f => f.col));
 
 module.exports = { SETTINGS_FIELDS, SETTINGS_READONLY, SETTINGS_REQUEST_DENY };
+
+/**
+ * @typedef {{ col: string, kind: 'text' | 'jsonb' | 'int' | 'bool' | 'ts' | 'date', fallback?: string | number | boolean | unknown[] | Record<string, unknown>, legacy?: boolean, ddl?: string, min?: number, max?: number, owner?: string }} SettingsField
+ */

@@ -5,25 +5,52 @@ const { EventEmitter } = require('node:events');
 const { Redis } = require('ioredis');
 const { wrapWithRedisCache, installRedisCacheWhenReady } = require('./sessionCache');
 
+/** @param {{ failSet?: boolean }} [opts] */
 function fakeRedis({ failSet = false } = {}) {
+    /** @type {Array<[string, string, string?, string?, number?]>} */
     const calls = [];
     return {
         calls,
+        /**
+         * @param {string} k
+         * @returns {Promise<string | null>}
+         */
         async get(k) { calls.push(['get', k]); return null; },
+        /** @param {[string, string, string, number]} args */
         async set(...args) {
             calls.push(['set', ...args]);
             if (failSet) throw new Error('boom');
             return 'OK';
         },
+        /** @param {string} k */
         async del(k) { calls.push(['del', k]); return 1; },
     };
 }
 
+/** @param {Record<string, Record<string, unknown>>} [rows] */
 function fakePgStore(rows = {}) {
     return {
+        /**
+         * @param {string} sid
+         * @param {(err: Error | null, session?: Record<string, unknown> | null) => void} cb
+         */
         get(sid, cb) { cb(null, rows[sid] || null); },
+        /**
+         * @param {string} sid
+         * @param {Record<string, unknown>} sess
+         * @param {(err: Error | null) => void} cb
+         */
         set(sid, sess, cb) { rows[sid] = sess; cb(null); },
+        /**
+         * @param {string} sid
+         * @param {Record<string, unknown>} sess
+         * @param {(err: Error | null) => void} cb
+         */
         touch(sid, sess, cb) { rows[sid] = sess; cb(null); },
+        /**
+         * @param {string} sid
+         * @param {(err: Error | null) => void} cb
+         */
         destroy(sid, cb) { delete rows[sid]; cb(null); },
     };
 }
@@ -37,9 +64,10 @@ test('returns the pg store unchanged without a redis client', () => {
 
 test('set writes to pg and passes the TTL in the ioredis positional EX form', async () => {
     const redis = fakeRedis();
+    /** @type {Record<string, Record<string, unknown>>} */
     const rows = {};
     const store = wrapWithRedisCache(fakePgStore(rows), redis);
-    await /** @type {Promise<void>} */ (new Promise((res, rej) => store.set('s1', { user: 1 }, (e) => (e ? rej(e) : res()))));
+    await /** @type {Promise<void>} */ (new Promise((res, rej) => store.set('s1', { user: 1 }, (/** @type {Error | null} */ e) => (e ? rej(e) : res()))));
     await tick();
     assert.deepEqual(rows.s1, { user: 1 });
     const set = redis.calls.find((c) => c[0] === 'set');
@@ -65,7 +93,7 @@ test('the TTL follows a shorter cookie expiry, capped at 15 minutes', async () =
 test('get on a cache miss falls back to pg and writes back with a TTL', async () => {
     const redis = fakeRedis();
     const store = wrapWithRedisCache(fakePgStore({ s3: { a: 1 } }), redis);
-    const got = await new Promise((res, rej) => store.get('s3', (e, v) => (e ? rej(e) : res(v))));
+    const got = await new Promise((res, rej) => store.get('s3', (/** @type {Error | null} */ e, /** @type {unknown} */ v) => (e ? rej(e) : res(v))));
     await tick();
     assert.deepEqual(got, { a: 1 });
     assert.deepEqual(redis.calls.find((c) => c[0] === 'set').slice(3), ['EX', 15 * 60]);
@@ -90,30 +118,40 @@ function expiringRedis() {
     let now = 0;
     const data = new Map();
     return {
+        /** @param {number} seconds */
         advance(seconds) { now += seconds * 1000; },
+        /** @param {string} k */
         async get(k) {
             const e = data.get(k);
             if (!e) return null;
             if (e.expiresAt !== null && now >= e.expiresAt) { data.delete(k); return null; }
             return e.value;
         },
+        /**
+         * @param {string} k
+         * @param {string} value
+         * @param {string} mode
+         * @param {number} seconds
+         */
         async set(k, value, mode, seconds) {
             data.set(k, { value, expiresAt: mode === 'EX' ? now + seconds * 1000 : null });
             return 'OK';
         },
+        /** @param {string} k */
         async del(k) { return data.delete(k) ? 1 : 0; },
     };
 }
 
 test('a cached session expires after its TTL and is then read from pg again', async () => {
     const redis = expiringRedis();
+    /** @type {Record<string, Record<string, unknown>>} */
     const rows = {};
     let pgReads = 0;
     const pg = fakePgStore(rows);
     const pgGet = pg.get;
     pg.get = (sid, cb) => { pgReads++; pgGet(sid, cb); };
     const store = wrapWithRedisCache(pg, redis);
-    const read = () => new Promise((res, rej) => store.get('s6', (e, v) => (e ? rej(e) : res(v))));
+    const read = () => new Promise((res, rej) => store.get('s6', (/** @type {Error | null} */ e, /** @type {unknown} */ v) => (e ? rej(e) : res(v))));
 
     await new Promise((res) => store.set('s6', { v: 1 }, res));
     await tick();
@@ -170,4 +208,22 @@ test('installRedisCacheWhenReady activates at once on a ready client and not at 
     const client = Object.assign(new EventEmitter(), fakeRedis(), { status: 'ready' });
     installRedisCacheWhenReady(pg, pg, client);
     assert.notEqual(pg.get, originalGet);
+});
+
+test('bustSessionsForUser rejects when the redis eviction fails, so a revoked session is not left cached silently', async () => {
+    const { bustSessionsForUser, bustSessionsForOrg } = require('./sessionCache');
+    const pool = { query: async () => ({ rows: [{ sid: 's1' }] }) };
+    const redis = { unlink: async () => { throw new Error('down'); }, del: async () => { throw new Error('down'); } };
+    const db = /** @type {any} */ ({ pool, getRedis: () => redis });
+    await assert.rejects(() => bustSessionsForUser('u1', { db }), /eviction failed/);
+    await assert.rejects(() => bustSessionsForOrg('o1', { db }), /eviction failed/);
+});
+
+test('bustSessionsForUser evicts the cached keys and returns the count', async () => {
+    const { bustSessionsForUser } = require('./sessionCache');
+    const seen = [];
+    const pool = { query: async () => ({ rows: [{ sid: 's1' }, { sid: 's2' }] }) };
+    const redis = { unlink: async (...k) => { seen.push(...k); } };
+    assert.equal(await bustSessionsForUser('u1', { db: /** @type {any} */ ({ pool, getRedis: () => redis }) }), 2);
+    assert.deepEqual(seen, ['bf:sess:s1', 'bf:sess:s2']);
 });

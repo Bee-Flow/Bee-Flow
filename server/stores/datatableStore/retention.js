@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -41,6 +41,8 @@ async function listDatatablesWithRetention() {
  *
  * Separate from bumpAfterWrite because that one also bumps `data_version`, and
  * a pass that deleted nothing changed no data.
+ * @param {string} id
+ * @param {{ kind: string, id: string }} scope
  */
 async function stampRetentionSweep(id, scope) {
     await initDB();
@@ -59,6 +61,9 @@ async function stampRetentionSweep(id, scope) {
  * takes a lock, and arithmetic drifts: a retention pass that deleted 4,000 rows
  * from a counter that was already wrong stays wrong. The sweep already knows
  * the true COUNT(*), so it hands it over rather than adding another guess.
+ * @param {string} id
+ * @param {{ kind: string, id: string }} scope
+ * @param {number} count
  */
 async function setRowCount(id, scope, count) {
     await initDB();

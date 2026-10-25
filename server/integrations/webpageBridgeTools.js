@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Webpage Bridge Tools — studio-AI tools that let the author manage which
  * platform capabilities are exposed to the running page via
@@ -30,6 +30,9 @@ const webpageGrants = require('./webpageGrants');
 // Chat tools signal failure as a returned object, never a throw. grantError
 // carries { status, code, provider } for the REST layer — the code/provider
 // ride along so the studio AI can tell the author WHICH app to connect.
+/**
+ * @param {(Error & { code?: string, provider?: string }) | null | undefined} e
+ */
 function bridgeErr(e) {
     if (!e) return { error: 'Unknown error' };
     return {
@@ -134,10 +137,25 @@ const WEBPAGE_BRIDGE_TOOLS = [
 
 const TOOL_NAMES = new Set(WEBPAGE_BRIDGE_TOOLS.map(t => t.function.name));
 
+/**
+ * @param {string} name
+ */
 function isBridgeTool(name) {
     return TOOL_NAMES.has(name);
 }
 
+/**
+ * The tool arguments as the model sends them.
+ * @typedef {{ enabled?: unknown, groundOnPage?: unknown, defaultTier?: unknown, publicEnabled?: unknown,
+ *   publicGroundOnPage?: unknown, publicSpendCapUsd?: unknown, publicDefaultTier?: unknown,
+ *   automationId?: unknown, label?: unknown, tool?: unknown, fixedArgs?: unknown }} BridgeArgs
+ */
+
+/**
+ * @param {string} toolName
+ * @param {BridgeArgs} args
+ * @param {{ webpageId: string, userId: string, session?: Express.Session }} ctx
+ */
 async function executeBridgeTool(toolName, args, { webpageId, userId, session }) {
     if (toolName === 'webpage_grant_ai') {
         // Patch merges onto the current ai slice so a partial call (e.g. only
@@ -188,14 +206,14 @@ async function executeBridgeTool(toolName, args, { webpageId, userId, session })
                 webpageId, userId, session,
                 tool: args.tool, fixedArgs: args.fixedArgs, label: args.label,
             });
-            return { success: true, tool: r.tool, integrationId: r.integrationId, granted: r.grants.integrations.map(g => g.tool) };
+            return { success: true, tool: r.tool, integrationId: r.integrationId, granted: r.grants.integrations.map((/** @type {{ tool: string }} */ g) => g.tool) };
         } catch (e) { return bridgeErr(e); }
     }
 
     if (toolName === 'webpage_revoke_integration') {
         try {
             const r = await webpageGrants.revokeIntegration({ webpageId, userId, tool: args.tool });
-            return { success: true, removed: r.removed, granted: r.grants.integrations.map(g => g.tool) };
+            return { success: true, removed: r.removed, granted: r.grants.integrations.map((/** @type {{ tool: string }} */ g) => g.tool) };
         } catch (e) { return bridgeErr(e); }
     }
 

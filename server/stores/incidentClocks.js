@@ -47,15 +47,26 @@ const REGIME_CLOCKS = Object.freeze({
     DORA: { customerNotice: true },
 });
 
+/**
+ * @param {Date} date
+ * @param {number} months
+ */
 function _addMonths(date, months) {
     return addCalendarMonths(date, months);
 }
 
-/** A CRA row that is not a vulnerability is a severe incident (Art. 14(3)/(4)). */
+/**
+ * A CRA row that is not a vulnerability is a severe incident (Art. 14(3)/(4)).
+ * @param {string | undefined} kind
+ * @param {string[]} regimes
+ */
 function _isCraSevereIncident(kind, regimes) {
     return !!kind && kind !== 'vulnerability' && regimes.includes('CRA');
 }
 
+/**
+ * @param {Date[] | (Date | null)[]} dates
+ */
 function _earliest(dates) {
     const ts = dates.filter(Boolean).map(d => d.getTime());
     return ts.length ? new Date(Math.min(...ts)) : null;
@@ -65,9 +76,11 @@ function _earliest(dates) {
  * Normalise the caller's regimes: upper-cased, known, deduped. Without any,
  * a vulnerability is a CRA matter and everything else a GDPR one — the same
  * default the column carries.
+ * @param {string} [kind]
  */
 function normalizeRegimes(input, kind) {
     const list = Array.isArray(input) ? input : (typeof input === 'string' && input ? [input] : []);
+    /** @type {string[]} */
     const out = [];
     for (const r of list) {
         const code = String(r || '').trim().toUpperCase();
@@ -98,13 +111,20 @@ function computeClocks(detectedAt, { regimes, customerNoticeHours, kind, notifie
     const detected = detectedAt instanceof Date ? detectedAt : new Date(detectedAt);
     if (Number.isNaN(detected.getTime())) throw new Error('detected_at is not a date');
     const set = normalizeRegimes(regimes);
+    /**
+     * @param {number} ms
+     */
     const at = (ms) => new Date(detected.getTime() + ms);
     const notified = notifiedAt ? new Date(notifiedAt) : null;
     const severeCra = _isCraSevereIncident(kind, set);
 
+    /** @type {Date[]} */
     const early = [];
+    /** @type {Date[]} */
     const notification = [];
+    /** @type {Date[]} */
     const finals = [];
+    /** @type {Date | null} */
     let customer = null;
     for (const code of set) {
         const c = REGIME_CLOCKS[code];
@@ -157,6 +177,9 @@ function nextOpenDeadline(row) {
     if (row.status === 'closed') return null;
     const detected = row.detected_at ? new Date(row.detected_at) : null;
     if (!detected || Number.isNaN(detected.getTime())) return null;
+    /**
+     * @param {string | number | Date} v
+     */
     const toDate = (v) => {
         if (!v) return null;
         const d = v instanceof Date ? v : new Date(v);
@@ -174,6 +197,7 @@ function nextOpenDeadline(row) {
     } catch {
         return toDate(row.deadline_at);
     }
+    /** @type {(Date | null)[]} */
     const open = [];
     if (!row.early_warning_sent_at) open.push(toDate(row.early_warning_due_at) || clocks.early_warning_due_at);
     if (!row.authority_notified_at) open.push(clocks.notification_due_at);
@@ -182,6 +206,9 @@ function nextOpenDeadline(row) {
     return _earliest(open);
 }
 
+/**
+ * @param {string | number | Date} v
+ */
 const _ms = (v) => {
     if (!v) return null;
     const t = new Date(v).getTime();
@@ -206,6 +233,9 @@ function _severeIncidentFinalDue(row) {
     }
 }
 
+/**
+ * @param {string} v
+ */
 function _jsonArray(v) {
     if (v == null) return [];
     if (Array.isArray(v)) return v;

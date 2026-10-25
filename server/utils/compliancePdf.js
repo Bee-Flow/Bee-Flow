@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Compliance PDF builders — auditor-facing documents rendered server-side with
  * pdfkit (English; the canonical compliance language of the defaults catalog).
@@ -24,13 +24,45 @@ const crypto = require('crypto');
 // them. They were born here; moving them out is the whole reason the demo
 // generator stopped shipping blank pages.
 const { INK, MUTED, LINE, newDoc: _newDoc, collect: _collect, table: _table, footer: _footer } = require('./pdfKit');
+/**
+ * @typedef {import('./pdfKit').PdfDoc} PdfDoc
+ * @typedef {string | number | Date | undefined} DocDate
+ * @typedef {{ regulation?: string, status?: string, title?: string, article?: string, severity?: string, verification?: string, scope_id?: string | null, details?: string | null, evidence_hash?: string | null }} ComplianceRow
+ * @typedef {{ total?: number, pass?: number }} VerificationCount
+ * @typedef {{ orgName?: string, generatedAt?: DocDate,
+ *   overall?: { score?: number, pass?: number, warn?: number, fail?: number, na?: number },
+ *   gdpr?: { score?: number }, aia?: { score?: number }, iso?: { total?: number, score?: number },
+ *   verificationSummary?: { automated?: VerificationCount, hybrid?: VerificationCount, attestation?: VerificationCount },
+ *   rows?: ComplianceRow[] }} ComplianceReportData
+ * @typedef {{ name?: string, purpose?: string, data_categories?: string[], data_subjects?: string[], retention?: string, transfers?: string[], security_measures?: string[] }} RopaActivity
+ * @typedef {{ operator?: string, via_network_calls?: number, outside_calls?: number, is_eu?: boolean, country_name?: string, country_code?: string, calls?: number, last_seen?: string | number | Date | null }} RopaProcessor
+ * @typedef {{ controller?: { name?: string, dpo_name?: string, dpo_email?: string, dpo_phone?: string },
+ *   generated_at?: DocDate, legal_bases?: string[], data_residency?: string,
+ *   last_reviewed_at?: string | number | Date | null, last_reviewed_by?: string | null,
+ *   activities?: RopaActivity[], scc_confirmed_operators?: { operator?: string }[], processors?: RopaProcessor[] }} RopaData
+ * @typedef {{ created_at?: DocDate, mode?: string, risk_level?: string, approved_by?: string, approved_at?: string | number | Date | null,
+ *   expires_at?: string | number | Date | null, answers?: Record<string, unknown>, mitigations?: unknown[] }} DpiaData
+ * @typedef {{ applicable?: string, source?: string, status?: string }} SoaRow
+ * @typedef {{ approved?: number, reviewed?: number, todo?: number, excluded?: number }} SoaStats
+ * @typedef {{ clause?: string | number, title?: string, status?: string, evidence?: string[], gap?: string | null }} ClauseRow
+ * @typedef {{ score_num?: number | string }} RiskRow
+ * @typedef {{ open?: number, high?: number, accepted?: number, closed?: number }} RiskStats
+ * @typedef {{ slug?: string, version?: string | number, sha256?: string, title?: string, published_at?: string | number | Date | null, body?: string }} PolicyDoc
+ */
+
+/** @type {Record<string, string>} */
 const STATUS_COLOR = { pass: '#059669', warn: '#d97706', fail: '#dc2626', not_applicable: '#64748b', pending: '#64748b' };
 
+/** @param {unknown} data */
 function hashData(data) {
     return crypto.createHash('sha256').update(JSON.stringify(data || {})).digest('hex');
 }
 
-/** Date / name / signature lines — the auditor-facing sign-off block. */
+/**
+ * Date / name / signature lines — the auditor-facing sign-off block.
+ * @param {PdfDoc} doc
+ * @param {{ role?: string }} [opts]
+ */
 function _signatureBlock(doc, { role = 'Approved by (management)' } = {}) {
     if (doc.y > doc.page.height - doc.page.margins.bottom - 110) doc.addPage();
     doc.moveDown(1.2);
@@ -48,11 +80,21 @@ function _signatureBlock(doc, { role = 'Approved by (management)' } = {}) {
     doc.x = left;
 }
 
-/** Footer on every page: integrity hash + disclaimer + page number. */
+/**
+ * Footer on every page: integrity hash + disclaimer + page number.
+ * @param {PdfDoc} doc
+ * @param {string} dataHash
+ */
 function _finalize(doc, dataHash) {
     _footer(doc, `Integrity sha256:${dataHash} — this document supports, but does not replace, legal review.`);
 }
 
+/**
+ * @param {PdfDoc} doc
+ * @param {string} title
+ * @param {string | undefined} orgName
+ * @param {DocDate} generatedAt
+ */
 function _header(doc, title, orgName, generatedAt) {
     doc.fillColor(INK).fontSize(18).font('Helvetica-Bold').text(title);
     doc.moveDown(0.2);
@@ -64,6 +106,10 @@ function _header(doc, title, orgName, generatedAt) {
     doc.moveDown(0.8);
 }
 
+/**
+ * @param {PdfDoc} doc
+ * @param {string} text
+ */
 function _sectionTitle(doc, text) {
     if (doc.y > doc.page.height - doc.page.margins.bottom - 80) doc.addPage();
     doc.moveDown(0.4);
@@ -71,6 +117,11 @@ function _sectionTitle(doc, text) {
     doc.moveDown(0.3);
 }
 
+/**
+ * @param {PdfDoc} doc
+ * @param {string} key
+ * @param {unknown} value
+ */
 function _kv(doc, key, value) {
     doc.fontSize(9.5).font('Helvetica-Bold').fillColor(MUTED).text(key.toUpperCase(), { continued: true });
     doc.font('Helvetica').fillColor(INK).text(`   ${value ?? '—'}`);
@@ -79,6 +130,7 @@ function _kv(doc, key, value) {
 
 // ─────────────────────────── Compliance report ───────────────────────────
 
+/** @param {ComplianceReportData} data */
 async function buildComplianceReport(data) {
     const dataHash = hashData(data);
     const doc = _newDoc();
@@ -100,6 +152,7 @@ async function buildComplianceReport(data) {
     doc.fontSize(8.5).fillColor(MUTED).text(
         'Automated checks reflect live system state and telemetry; self-attested items reflect administrator declarations that the tool cannot verify independently.');
 
+    /** @type {Record<string, string>} */
     const REG_LABEL = { GDPR: 'GDPR checks', AIA: 'EU AI Act checks', ISO27001: 'ISO 27001 checks' };
     for (const regulation of ['GDPR', 'AIA', 'ISO27001']) {
         const rows = (data.rows || []).filter(r => r.regulation === regulation);
@@ -129,6 +182,7 @@ async function buildComplianceReport(data) {
 
 // ─────────────────────────── ROPA ───────────────────────────
 
+/** @param {RopaData} ropa */
 async function buildRopaPdf(ropa) {
     const dataHash = hashData(ropa);
     const doc = _newDoc();
@@ -183,6 +237,7 @@ async function buildRopaPdf(ropa) {
 
 // ─────────────────────────── DPIA ───────────────────────────
 
+/** @param {{ agentName?: string, dpia?: DpiaData }} opts */
 async function buildDpiaPdf({ agentName, dpia }) {
     const dataHash = hashData({ agentName, dpia });
     const doc = _newDoc();
@@ -220,6 +275,7 @@ async function buildDpiaPdf({ agentName, dpia }) {
 // The SoA PDF is a RENDER of the row store — the decision trail lives in
 // iso_soa_entries + the evidence chain, never in this document.
 
+/** @param {{ orgName?: string, generatedAt?: DocDate, rows: SoaRow[], stats?: SoaStats }} opts */
 async function buildSoaPdf({ orgName, generatedAt, rows, stats }) {
     const dataHash = hashData({ orgName, rows, stats });
     const doc = _newDoc({ landscape: true });
@@ -234,6 +290,7 @@ async function buildSoaPdf({ orgName, generatedAt, rows, stats }) {
         + 'Control references and titles are identifiers from ISO/IEC 27001:2022 Annex A (iso.org); all decision text is the organisation\'s own.');
     doc.moveDown(0.6);
 
+    /** @type {Record<string, string>} */
     const SRC_COLOR = { auto: '#059669', connector: '#4f46e5', attest: '#d97706', inherited: '#64748b' };
     _table(doc, {
         columns: [
@@ -260,6 +317,7 @@ async function buildSoaPdf({ orgName, generatedAt, rows, stats }) {
 // SHOW exists today — and an honest 'not recorded' where it cannot. Statuses:
 // in_place | partial | not_recorded.
 
+/** @param {{ orgName?: string, generatedAt?: DocDate, clauses?: ClauseRow[] }} opts */
 async function buildClauseConformityPdf({ orgName, generatedAt, clauses }) {
     const dataHash = hashData({ orgName, clauses });
     const doc = _newDoc();
@@ -272,6 +330,7 @@ async function buildClauseConformityPdf({ orgName, generatedAt, clauses }) {
         + 'It supports — but does not replace — your ISMS, your internal auditor, and your certification body.');
     doc.moveDown(0.8);
 
+    /** @type {Record<string, { label: string, color: string }>} */
     const ST = {
         in_place: { label: 'IN PLACE', color: '#059669' },
         partial: { label: 'PARTIAL', color: '#d97706' },
@@ -299,6 +358,7 @@ async function buildClauseConformityPdf({ orgName, generatedAt, clauses }) {
 
 // ─────────────────────────── ISO 27001 — risk register ───────────────────────────
 
+/** @param {{ orgName?: string, generatedAt?: DocDate, rows: RiskRow[], stats?: RiskStats }} opts */
 async function buildRiskRegisterPdf({ orgName, generatedAt, rows, stats }) {
     const dataHash = hashData({ orgName, rows, stats });
     const doc = _newDoc({ landscape: true });
@@ -311,6 +371,7 @@ async function buildRiskRegisterPdf({ orgName, generatedAt, rows, stats }) {
         'Score = likelihood (1–5) × impact (1–5). Acceptance is a recorded human decision (who + when); the tool never accepts a risk by itself.');
     doc.moveDown(0.6);
 
+    /** @param {number} score */
     const bandColor = (score) => (score >= 16 ? '#dc2626' : score >= 10 ? '#ea580c' : score >= 5 ? '#d97706' : '#059669');
     _table(doc, {
         columns: [
@@ -337,6 +398,10 @@ async function buildRiskRegisterPdf({ orgName, generatedAt, rows, stats }) {
 // an auditor pack, and each document's sha256 pins it to the acknowledged
 // version).
 
+/**
+ * @param {PdfDoc} doc
+ * @param {unknown} body
+ */
 function _renderMarkdown(doc, body) {
     for (const rawLine of String(body || '').split('\n')) {
         const line = rawLine.trimEnd();
@@ -362,6 +427,7 @@ function _renderMarkdown(doc, body) {
     }
 }
 
+/** @param {{ orgName?: string, generatedAt?: DocDate, documents: PolicyDoc[] }} opts */
 async function buildPolicyPackPdf({ orgName, generatedAt, documents }) {
     const dataHash = hashData({ orgName, documents: documents.map(d => ({ slug: d.slug, version: d.version, sha256: d.sha256 })) });
     const doc = _newDoc();

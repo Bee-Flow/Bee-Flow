@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * CMS Routes — public read endpoints + admin CRUD for the multi-site CMS.
  *
@@ -74,6 +75,7 @@
 
 const express = require('express');
 const { synthesizeLegacyContent } = require('../core/cms/legacyContent');
+/** @type {import('express').Router & { _test?: { synthesizeLegacyContent: typeof synthesizeLegacyContent } }} */
 const router = express.Router();
 
 const cmsStore = require('../stores/cmsStore');
@@ -116,10 +118,27 @@ const {
 // page meta were ignored under a 200 (the store only takes real booleans), so
 // a page an admin had switched out of analytics was still tracked; a
 // misspelled `noAnalyitcs` likewise.
+/**
+ * @param {string} message
+ * @param {number} [max]
+ */
 const cmsText = (message, max = 500) => worded(message).max(max, message);
+/**
+ * @param {string} message
+ */
 const doc = (message) => z.record(z.string(), z.unknown(), { error: typeError({ required: message, invalid: message }) });
+/**
+ * @param {string} message
+ */
 const bool = (message) => z.boolean({ error: message });
+/**
+ * @param {string} message
+ */
 const cmsIds = (message) => z.array(cmsText(message, 200), { error: message });
+/**
+ * @param {import('zod').ZodRawShape} shape
+ * @param {string} subject
+ */
 const cmsBody = (shape, subject) => validate({ body: bodyOf(shape, subject) });
 
 const siteDocBody = cmsBody({ site: doc('site object required') }, 'Saving a site');
@@ -206,6 +225,13 @@ const aiTranslateLimiter = perUserRateLimit({ windowMs: 60_000, max: 20 });
 // null when empty so public callers don't accidentally provision a
 // project on cache-busting traffic.
 
+/**
+ * @typedef {Object} GetDefaultSiteIdArgs
+ * @property {boolean} [create]
+ */
+/**
+ * @param {GetDefaultSiteIdArgs} [param0]
+ */
 async function getDefaultSiteId({ create = false } = {}) {
     const projects = await cmsStore.listProjects();
     if (projects.length > 0) return projects[0].id;
@@ -221,6 +247,11 @@ async function getDefaultSiteId({ create = false } = {}) {
 // The stricter operator-only gate (requireSuperAdmin) lives in ./cmsAnalytics.js
 // alongside the routes that use it.
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 async function attachSiteId(req, res, next) {
     req.siteId = await getDefaultSiteId({ create: true });
     next();

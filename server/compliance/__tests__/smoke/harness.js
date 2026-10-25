@@ -23,13 +23,16 @@ const log = require('../../../telemetry/log');
 // In-memory fakes for the stores
 const _state = {
     config: /** @type {Record<string, any>} */ ({}),
-    settings: { breach_recipients: [], dpo_email: null, dpo_name: null, privacy_notice_url: null },
+    settings: /** @type {Record<string, any>} */ ({ breach_recipients: [], dpo_email: null, dpo_name: null, privacy_notice_url: null }),
     dbRows: /** @type {{query: RegExp, rows: any[]}[]} */ ([]),
     dbOne: /** @type {{query: RegExp, row: any}[]} */ ([]),
     dsrStats: /** @type {Record<string, any>} */ ({}),   // keyed by request type
     dsrOpen: /** @type {any[]} */ ([]),                  // open requests with due_at, every type
     dpia: /** @type {any} */ (null),                     // latest DPIA row per agent
     incidentDeadlines: { open: 0, overdue_unnotified: 0, nearing_deadline: 0 },
+    isoConnectorConfigs: /** @type {Record<string, any>} */ ({}),
+    isoSnapshots: /** @type {Record<string, any[]>} */ ({}),
+    incidentAttention: /** @type {{id: number, severity: string, status: string, deadline_at: string}[]} */ ([]),
 };
 
 configStore.getConfig = async (key) => _state.config[key] ?? null;
@@ -108,8 +111,14 @@ const checks = {
 // noticing). `bindRunner(null)` restores the standalone counter, so the file
 // still reports something sane if it is ever required outside node:test.
 let passed = 0, failed = 0;
+/** @type {import('node:test').TestContext | null} */
 let ctx = null;
+/** @param {import('node:test').TestContext | null} testContext */
 function bindRunner(testContext) { ctx = testContext || null; }
+/**
+ * @param {string} name
+ * @param {() => void | Promise<void>} fn
+ */
 async function t(name, fn) {
     if (ctx) {
         // The returned promise resolves even when the subtest fails; node
@@ -120,6 +129,11 @@ async function t(name, fn) {
     try { await fn(); log.info('  ✅', name); passed++; }
     catch (e) { log.error('  ❌', name, '—', e.message); failed++; }
 }
+/**
+ * @param {{ status?: string, details?: unknown }} actual
+ * @param {string} expected
+ * @param {string} msg
+ */
 function assertStatus(actual, expected, msg) {
     if (actual.status !== expected) {
         throw new Error(`${msg}: expected status "${expected}", got "${actual.status}" (details: ${actual.details})`);

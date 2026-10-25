@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * CI guard behind the "Server tests" aggregate: the file lists the shards wrote
  * (`run-tests.mjs --files-out`) must be exactly the full list of test files

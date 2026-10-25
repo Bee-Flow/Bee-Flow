@@ -9,6 +9,7 @@ const reading = require('./reading');
 const cache = require('./cache');
 const formats = require('./formats');
 const { ROW_MISSING, syncModule, refOf, conflict, flagBehind, sameValue, plan } = require('./writeThroughPlan');
+const { bestEffort } = require('../../../../utils/bestEffort');
 
 const CELLS_MODES = new Set(['sheets_api', 'graph_workbook']);
 
@@ -300,7 +301,7 @@ async function record(api, ctx, open, result) {
         if (!m || m.id === ctx.table.id) continue;
         const theirs = m.syncState && m.syncState.marker;
         if (theirs && api.markerEquals(theirs, open.probe.marker)) {
-            await datatableStore.patchSyncState(m.id, { marker: result.marker }).catch(() => null);
+            await datatableStore.patchSyncState(m.id, { marker: result.marker }).catch((e) => bestEffort('core/dataEngine/sources/spreadsheetFile/writeThroughFile:record', e));
         }
     }
 }

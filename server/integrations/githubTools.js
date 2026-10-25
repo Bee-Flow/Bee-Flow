@@ -122,12 +122,19 @@ const GITHUB_TOOLS = [
 
 // ─── Helpers ────────────────────────────────────────────────────
 
+/**
+ * @param {string} userId
+ */
 async function getToken(userId) {
     const token = await configStore.getSecret(`github_token_user_${userId}`);
     if (!token) throw new Error('GitHub not connected. Set your Personal Access Token in Settings → Connections.');
     return token;
 }
 
+/**
+ * @param {string} endpoint
+ * @param {{ method: string; headers: { 'Content-Type': string; }; body: string; }} [options]
+ */
 async function ghFetch(token, endpoint, options = {}) {
     const url = endpoint.startsWith('http') ? endpoint : `${GITHUB_API}${endpoint}`;
     const res = await fetch(url, {
@@ -153,6 +160,10 @@ async function ghFetch(token, endpoint, options = {}) {
 
 // ─── Tool Execution ─────────────────────────────────────────────
 
+/**
+ * @param {string} toolName
+ * @param {string} userId
+ */
 async function executeGitHubTool(toolName, args, userId) {
     const token = await getToken(userId);
 
@@ -299,6 +310,9 @@ async function executeGitHubTool(toolName, args, userId) {
     }
 }
 
+/**
+ * @param {string} toolName
+ */
 function isGitHubTool(toolName) {
     return toolName.startsWith('github_');
 }
@@ -308,3 +322,12 @@ module.exports = {
     executeGitHubTool,
     isGitHubTool,
 };
+
+/**
+ * @typedef {{ full_name?: string, description?: string, language?: string, stargazers_count?: number,
+ *   forks_count?: number, open_issues_count?: number, private?: boolean, default_branch?: string,
+ *   created_at?: string, updated_at?: string, topics?: string[], html_url?: string, clone_url?: string }} GhRepo
+ * @typedef {{ name?: string, protected?: boolean, commit?: { sha?: string } }} GhBranch
+ * @typedef {{ name?: string, type?: string, size?: number, path?: string, encoding?: string, content?: string,
+ *   sha?: string, html_url?: string }} GhContent
+ */

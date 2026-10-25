@@ -19,6 +19,7 @@ const crypto = require('crypto');
 const { inlineInternalImages } = require('../documents/imageInline');
 const log = require('../../telemetry/log');
 const { normalizeUsage } = require('./usageNormalizer');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 // Models that support thinking/reasoning — Gemini 3.x uses thinkingLevel.
 // Match any 3.x minor version (3, 3.1, 3.5, …) so new releases like
@@ -35,6 +36,7 @@ const THINKING_MODEL_PATTERNS_25 = [
 ];
 
 // Thinking level mapping from generic effort labels
+/** @type {Record<string, string | null>} */
 const THINKING_LEVEL_MAP = {
     low: 'low',
     minimal: 'minimal',
@@ -45,6 +47,7 @@ const THINKING_LEVEL_MAP = {
 };
 
 // Budget mapping from reasoning effort labels → token budget
+/** @type {Record<string, number>} */
 const THINKING_BUDGET_MAP = {
     minimal: 128,
     low: 1024,
@@ -83,6 +86,9 @@ class GoogleProvider extends BaseProvider {
 
     // ─── Model Helpers ───────────────────────────────────────────
 
+    /**
+     * @param {string} modelId
+     */
     supportsReasoning(modelId) {
         return THINKING_MODEL_PATTERNS_3X.some(p => p.test(modelId))
             || THINKING_MODEL_PATTERNS_25.some(p => p.test(modelId));
@@ -93,14 +99,23 @@ class GoogleProvider extends BaseProvider {
         return true;
     }
 
+    /**
+     * @param {string} modelId
+     */
     _isGemini25(modelId) {
         return THINKING_MODEL_PATTERNS_25.some(p => p.test(modelId));
     }
 
+    /**
+     * @param {string} modelId
+     */
     _isGemini3x(modelId) {
         return THINKING_MODEL_PATTERNS_3X.some(p => p.test(modelId));
     }
 
+    /**
+     * @param {string} modelId
+     */
     isImageModel(modelId) {
         return /image-preview/.test(modelId);
     }
@@ -204,7 +219,7 @@ class GoogleProvider extends BaseProvider {
                 if (msg.tool_calls && msg.tool_calls.length > 0) {
                     for (const tc of msg.tool_calls) {
                         let args = {};
-                        try { args = JSON.parse(tc.function?.arguments || '{}'); } catch (e) { log.debug('tool arguments are not valid JSON, send empty args', e); }
+                        try { args = JSON.parse(tc.function?.arguments || '{}'); } catch (e) { fallback('core/providers/google:GoogleProvider.normalizeMessages', e); /* tool arguments are not valid JSON, send empty args */ }
                         const fcPart = {
                             functionCall: {
                                 name: tc.function?.name || tc.name,
@@ -322,6 +337,9 @@ class GoogleProvider extends BaseProvider {
     // ─── Explicit Context Caching ────────────────────────────────
     // Cache system instruction + tools server-side for 90% token savings
 
+    /**
+     * @param {string} model
+     */
     async _getOrCreateCache(ai, model, systemInstruction, tools) {
         if (!systemInstruction) return null;
 
@@ -374,13 +392,16 @@ class GoogleProvider extends BaseProvider {
             log.info(`[Google] Created explicit cache: ${cacheName} (~${estimatedTokens} tokens)`);
             return cacheName;
         } catch (err) {
-            log.warn('[Google] Explicit cache creation failed (using inline):', err.message);
+            log.warn('[Google] Explicit cache creation failed (using inline):', /** @type {Error} */ (err).message);
             return null;
         }
     }
 
     // ─── Build Config ────────────────────────────────────────────
 
+    /**
+     * @param {string} model
+     */
     _buildGenerateConfig(model, options = {}) {
         const config = {};
 
@@ -413,6 +434,7 @@ class GoogleProvider extends BaseProvider {
 
         // Gemini 3.x models: use thinkingLevel
         if (this._isGemini3x(model)) {
+            /** @type {string | null} */
             let level = null;
 
             // 1. Explicit thinkingLevel from options
@@ -520,6 +542,7 @@ class GoogleProvider extends BaseProvider {
     /**
      * Non-streaming chat via SDK.
      * baseUrl is accepted for interface compatibility but ignored — SDK handles it.
+     * @param {string} model
      */
     async chat(apiKey, baseUrl, model, messages, options = {}) {
         const ai = this.createClient(apiKey, options);
@@ -582,6 +605,7 @@ class GoogleProvider extends BaseProvider {
     /**
      * Streaming chat via SDK.
      * baseUrl is accepted for interface compatibility but ignored.
+     * @param {string} model
      */
     async stream(apiKey, baseUrl, model, messages, options = {}, onEvent) {
         const ai = this.createClient(apiKey, options);
@@ -683,11 +707,11 @@ class GoogleProvider extends BaseProvider {
                 }
             }
         } catch (err) {
-            log.error('[Google] Stream error:', err.message);
+            log.error('[Google] Stream error:', /** @type {Error} */ (err).message);
             if (err.status) log.error('[Google] Error status:', err.status);
             // Log full error details for debugging
             if (err.errorDetails) log.error('[Google] Error details:', JSON.stringify(err.errorDetails));
-            onEvent('error', { error: `Google API error: ${err.message}` });
+            onEvent('error', { error: `Google API error: ${/** @type {Error} */ (err).message}` });
         }
 
         // Ensure thinking is closed — covers streams that end while still in thinking phase.
@@ -739,8 +763,11 @@ class GoogleProvider extends BaseProvider {
             config,
         });
 
+        /** @type {string | null} */
         let text = null;
+        /** @type {string | undefined | null} */
         let imageBase64 = null;
+        /** @type {string | null} */
         let mimeType = null;
 
         if (response.candidates?.[0]?.content?.parts) {
@@ -788,10 +815,12 @@ class GoogleProvider extends BaseProvider {
 
         log.info(`[Google] Music generation: "${log.textForLog(prompt)}" (${durationMs / 1000}s, ${bpm} BPM)`);
 
+        /** @type {Buffer<ArrayBuffer>[]} */
         const audioChunks = [];
 
         return new Promise(async (resolve, reject) => {
             let sessionClosed = false;
+            /** @type {NodeJS.Timeout} */
             let timeoutHandle;
 
             try {
@@ -856,14 +885,14 @@ class GoogleProvider extends BaseProvider {
                 timeoutHandle = setTimeout(() => {
                     if (!sessionClosed) {
                         sessionClosed = true;
-                        try { session.close(); } catch (e) { log.debug('ignore', e); }
+                        try { session.close(); } catch (e) { bestEffort('core/providers/google:GoogleProvider.generateMusic', e); /* ignore */ }
                         finalize();
                     }
                 }, durationMs);
 
             } catch (err) {
-                log.error('[Google] Lyria RealTime connection error:', err.message);
-                reject(new Error(`Music generation failed: ${err.message}`));
+                log.error('[Google] Lyria RealTime connection error:', /** @type {Error} */ (err).message);
+                reject(new Error(`Music generation failed: ${/** @type {Error} */ (err).message}`));
             }
 
             const finalize = () => {
@@ -1007,6 +1036,7 @@ class GoogleProvider extends BaseProvider {
         try {
             const ai = this.createClient(apiKey);
             const result = await ai.models.list();
+            /** @type {({ id: string | undefined; name: string | undefined; })[]} */
             const models = [];
             // The SDK returns a PagedIterable
             for await (const model of result) {
@@ -1020,10 +1050,63 @@ class GoogleProvider extends BaseProvider {
             log.info(`[Google] Found ${models.length} models`);
             return models;
         } catch (e) {
-            log.error('[Google] SDK listModels failed:', e.message);
+            log.error('[Google] SDK listModels failed:', /** @type {Error} */ (e).message);
             return [];
         }
     }
 }
 
 module.exports = GoogleProvider;
+
+/**
+ * @typedef {{
+ *   text?: string,
+ *   thought?: boolean,
+ *   functionCall?: { name?: string, args?: Record<string, unknown> },
+ *   functionResponse?: { name?: string, response?: unknown },
+ *   inlineData?: { data?: string, mimeType?: string },
+ *   fileData?: { fileUri?: string, mimeType?: string },
+ *   thoughtSignature?: string,
+ *   thought_signature?: string,
+ *   _toolCallId?: string,
+ * }} GooglePart
+ * @typedef {{ role: string, parts: GooglePart[] }} GoogleContent
+ * @typedef {{
+ *   id?: string,
+ *   name?: string,
+ *   type?: string,
+ *   function?: { name?: string, arguments?: string },
+ *   _thought_signature?: string,
+ *   _raw_content_parts?: GooglePart[],
+ * }} GoogleToolCall
+ * @typedef {{
+ *   role?: string,
+ *   content?: string | Array<{ type?: string, text?: string, image_url?: string | { url?: string, mimeType?: string } }> | null,
+ *   name?: string,
+ *   tool_call_id?: string,
+ *   tool_calls?: GoogleToolCall[],
+ * }} GoogleMessage
+ * @typedef {{ type?: string, function?: { name: string, description?: string, parameters?: object } }} GoogleToolDef
+ * @typedef {{
+ *   model?: string,
+ *   maxTokens?: number,
+ *   temperature?: number,
+ *   tools?: GoogleToolDef[],
+ *   toolChoice?: unknown,
+ *   thinkingLevel?: string,
+ *   reasoningEffort?: string,
+ *   reasoningSummary?: boolean,
+ *   budgetTokens?: number,
+ * }} GoogleOptions
+ * @typedef {{
+ *   maxOutputTokens?: number,
+ *   temperature?: number,
+ *   tools?: object[],
+ *   toolConfig?: { functionCallingConfig: { mode: string } },
+ *   thinkingConfig?: { includeThoughts: boolean, thinkingLevel?: string, thinkingBudget?: number },
+ *   systemInstruction?: string,
+ *   cachedContent?: string,
+ * }} GoogleConfig
+ * @typedef {{ candidates?: Array<{ content?: { parts?: GooglePart[] } }> }} GoogleResponse
+ * @typedef {(type: string, data: Record<string, unknown>) => void} GoogleOnEvent
+ */

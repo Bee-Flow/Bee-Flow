@@ -36,9 +36,13 @@ const { isPrivateHostname } = require('../../../utils/ssrfGuard');
 
 const SECURITY_TXT_PATH = '/.well-known/security.txt';
 
-/** Parse an http(s) URL; null for anything else (mailto:, garbage, empty). */
+/**
+ * Parse an http(s) URL; null for anything else (mailto:, garbage, empty).
+ * @param {string} value
+ */
 function _httpUrl(value) {
     if (typeof value !== 'string' || !value.trim()) return null;
+    /** @type {globalThis.URL} */
     let u;
     try { u = new URL(value.trim()); } catch { return null; }
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
@@ -50,6 +54,7 @@ function _httpUrl(value) {
  * `public_base_url` first, the platform's CLIENT_PUBLIC_HOST otherwise. A
  * host the probe would refuse anyway (localhost, RFC 1918, bare IPs) yields
  * null: there is nothing an auditor could fetch there either.
+ * @param {NodeJS.ProcessEnv} [env]
  */
 function _publicBaseUrl(settings, env = process.env) {
     const fromSettings = _httpUrl(settings?.public_base_url);
@@ -62,10 +67,17 @@ function _publicBaseUrl(settings, env = process.env) {
     return fromEnv.origin;
 }
 
+/**
+ * @param {string} a
+ * @param {string} b
+ */
 function _sameUrl(a, b) {
     const ua = _httpUrl(a);
     const ub = _httpUrl(b);
     if (!ua || !ub) return false;
+    /**
+     * @param {globalThis.URL} u
+     */
     const norm = u => `${u.origin}${u.pathname.replace(/\/+$/, '')}${u.search}`.toLowerCase();
     return norm(ua) === norm(ub);
 }
@@ -107,18 +119,18 @@ module.exports = {
             public_base_url: baseUrl,
             security_txt_url: securityTxtUrl,
             served: false,
-            http_status: null,
-            probe_error: null,
+            http_status: /** @type {(number | null) | null} */ (null),
+            probe_error: /** @type {string | null} */ (null),
             contact_count: 0,
-            expires: null,
+            expires: /** @type {(string | null) | null} */ (null),
             expires_valid: false,
-            expired: null,
+            expired: /** @type {(boolean | null) | null} */ (null),
             policy_published: false,
-            policy_url: null,
+            policy_url: /** @type {(string | null) | null} */ (null),
             policy_url_matches_attested: false,
             attested_policy_url: attestedPolicy ? attestedPolicy.toString() : null,
-            attested_policy_status: null,
-            attested_policy_reachable: null,
+            attested_policy_status: /** @type {(number | null) | null} */ (null),
+            attested_policy_reachable: /** @type {boolean | null} */ (null),
             psirt_contact_set: psirtSet,
             security_txt_policy_enabled: policyEnabled,
         };
@@ -186,6 +198,7 @@ module.exports = {
         }
         evidence.served = true;
 
+        /** @type {string[]} */
         const warnings = [];
         if (!parsed.expires_valid) warnings.push('the file has no valid Expires field (required by RFC 9116 §2.5.5)');
         else if (parsed.expired) warnings.push(`the file expired on ${String(parsed.expires).slice(0, 10)} — consumers treat it as stale`);
@@ -255,3 +268,5 @@ module.exports = {
 };
 
 Object.assign(module.exports, { _test: { _publicBaseUrl, _httpUrl, _sameUrl, SECURITY_TXT_PATH } });
+
+/** @typedef {import('url').URL} URL */

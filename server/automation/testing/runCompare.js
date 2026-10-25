@@ -46,6 +46,7 @@ const { AI_STEP_TYPES } = require('../automationGraph');
 const outputDiffers = require('./outputDiffers');
 const { diffJson } = require('./jsonDiff');
 const { summarizeFile, readCapped } = require('./fileSummary');
+const { fallback } = require('../../utils/bestEffort');
 
 const caps = () => ({
     maxSteps: envCap('AUTOMATION_RUN_COMPARE_MAX_STEPS', 2000),
@@ -65,12 +66,15 @@ async function aiStepIds(store, run) {
         const def = await store.getVersionDefinition?.(run.automationId, run.version);
         if (def) for (const s of require('../aiActDetect').detectAiUse(def).steps) if (s.stepId) ids.add(s.stepId);
     } catch (e) {
-        log.debug(`[automation/runCompare] version definition unavailable, AI classification by step type only: ${e.message}`);
+        log.debug(`[automation/runCompare] version definition unavailable, AI classification by step type only: ${/** @type {Error} */ (e).message}`);
     }
     return ids;
 }
 
-/** One side of the comparison: its steps by key, its readable run ids, its header. */
+/**
+ * One side of the comparison: its steps by key, its readable run ids, its header.
+ * @param {string} viewerId
+ */
 async function loadSide(run, legs, viewerId, store, aiIds) {
     const readable = (legs?.length ? legs : [run]).filter(l => canReadRunData(l, viewerId));
     const runIds = readable.map(l => l.id);
@@ -97,7 +101,7 @@ async function outputOf(entry, side, store) {
     const ref = fullOutputRefOf(out);
     // A reference to a run outside this side's readable legs is never followed.
     if (!ref || !side.runIds.includes(ref.runId)) return { ok: false };
-    const full = await Promise.resolve(store.getRunFullOutput(ref.runId, ref.stepId, ref.attempts)).catch(() => null);
+    const full = await Promise.resolve(store.getRunFullOutput(ref.runId, ref.stepId, ref.attempts)).catch((e) => fallback('automation/testing/runCompare:outputOf', e, null));
     return full == null ? { ok: false } : { ok: true, value: full };
 }
 
@@ -121,7 +125,7 @@ async function compareStep(key, ea, eb, env) {
         branchIndex: row.branchIndex ?? null,
         a: { present: !!ea, status: ea ? ea.row.status : null },
         b: { present: !!eb, status: eb ? eb.row.status : null },
-        verdict: 'same', softReason: null, kind: 'json', changes: [], changesTruncated: false,
+        verdict: 'same', softReason: /** @type {(string | null) | null} */ (null), kind: 'json', changes: /** @type {({ after?: string | undefined; before?: string | undefined; path: string; change: string; })[]} */ ([]), changesTruncated: false,
     };
     if (!ea || !eb) { out.verdict = ea ? 'only_a' : 'only_b'; return out; }
     const [oa, ob] = await Promise.all([outputOf(ea, env.sideA, env.store), outputOf(eb, env.sideB, env.store)]);
@@ -148,7 +152,11 @@ async function compareStep(key, ea, eb, env) {
     return out;
 }
 
-/** The summary of one file of one side, read through the byte cap, remembered per compare. */
+/**
+ * The summary of one file of one side, read through the byte cap, remembered per compare.
+ * @param {string} label
+ * @param {number} fileMaxBytes
+ */
 function summaryLoader(side, label, storage, fileMaxBytes) {
     return (file) => {
         const memo = side.files;
@@ -173,7 +181,7 @@ const byCreated = (x, y) => String(x.createdAt).localeCompare(String(y.createdAt
 /** FileCompare entries per stepId: the two sides' files paired in creation order. */
 async function compareFiles(sideA, sideB, env) {
     const list = async (side) => {
-        const files = await Promise.resolve(env.store.listGeneratedFilesForRuns(side.runIds)).catch(() => []);
+        const files = await Promise.resolve(env.store.listGeneratedFilesForRuns(side.runIds)).catch((e) => fallback('automation/testing/runCompare:list', e, []));
         const own = (files || []).filter(f => f.automationId === side.run.automationId).sort(byCreated);
         return env.caps.maxFiles > 0 ? own.slice(0, env.caps.maxFiles) : own;
     };
@@ -233,7 +241,7 @@ async function compareRuns(input, deps = {}) {
     // A handle resolves to a file of ITS OWN side's journey only.
     const loadFileSummary = async (fileId, which) => {
         const side = which === 'a' ? sideA : sideB;
-        const file = await Promise.resolve(store.getGeneratedFileForRuns(fileId, side.runIds)).catch(() => null);
+        const file = await Promise.resolve(store.getGeneratedFileForRuns(fileId, side.runIds)).catch((e) => fallback('automation/testing/runCompare:loadFileSummary', e, null));
         if (!file || file.automationId !== side.run.automationId) return null;
         return (which === 'a' ? loadA : loadB)(file);
     };
@@ -259,3 +267,49 @@ async function compareRuns(input, deps = {}) {
 }
 
 module.exports = { compareRuns, isSimulated };
+
+/** @typedef {Record<string, any>} RunRow  an automation_runs row as the store maps it */
+
+/** @typedef {Record<string, any>} StepRow  a run-step row as the store maps it */
+
+/** @typedef {{ row: StepRow, hidden: boolean }} StepEntry */
+
+/**
+ * @typedef {Object} Side
+ * @property {RunRow} run
+ * @property {string[]} runIds
+ * @property {Map<string, StepEntry>} byKey
+ * @property {Record<string, unknown>} header
+ * @property {Set<string>} aiIds
+ * @property {Map<string, Promise<any>>} files
+ */
+
+/**
+ * @typedef {Object} CompareEnv
+ * @property {any} store
+ * @property {any} differs
+ * @property {Side} sideA
+ * @property {Side} sideB
+ * @property {ReturnType<typeof caps>} caps
+ * @property {string[]} ignorePaths
+ * @property {object} ctx
+ * @property {(file: any) => Promise<any>} loadA
+ * @property {(file: any) => Promise<any>} loadB
+ */
+
+/**
+ * @typedef {Object} StepCompare
+ * @property {string} key
+ * @property {string} stepId
+ * @property {string | null} stepType
+ * @property {string | null} parentStepId
+ * @property {number | null} branchIndex
+ * @property {{ present: boolean, status: string | null }} a
+ * @property {{ present: boolean, status: string | null }} b
+ * @property {string} verdict
+ * @property {string | null} softReason
+ * @property {string} kind
+ * @property {import('./outputDiffers').Change[]} changes
+ * @property {boolean} changesTruncated
+ * @property {any[]} [files]
+ */

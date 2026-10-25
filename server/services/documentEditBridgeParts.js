@@ -1,5 +1,7 @@
 'use strict';
 
+const { bestEffort } = require('../utils/bestEffort');
+
 /**
  * The first two parts of the edit bridge (see documentEditBridge.js): the
  * reporting half (outline, stats, caret, selection) and the drawing half
@@ -9,7 +11,6 @@
  */
 
 /* global document, window, parent, NodeFilter, CSS, Highlight */
-const log = require('../telemetry/log');
 
 function bridgeCore(B) {
     var timers = {};
@@ -19,7 +20,7 @@ function bridgeCore(B) {
     var PAGE_PX = 297 * MM;
 
     // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration -- runs in the editor's sandboxed srcdoc frame (opaque origin, frame-ancestors 'self'); the editor checks event.source
-    function post(message) { try { parent.postMessage(message, '*'); } catch (err) { log.debug('parent gone', err); } }
+    function post(message) { try { parent.postMessage(message, '*'); } catch (err) { bestEffort('services/documentEditBridgeParts:post', err); /* parent gone */ } }
     function later(name, ms, fn) { clearTimeout(timers[name]); timers[name] = setTimeout(fn, ms); }
 
     function style() {

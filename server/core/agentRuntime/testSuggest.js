@@ -1,3 +1,4 @@
+// @typecheck strict
 'use strict';
 
 /**
@@ -91,14 +92,24 @@ const FIELD_SOURCE = Object.freeze({
 /** Wat er in het antwoord staat als bron van het voorstel als geheel. */
 const SUGGESTED_BY = 'ai';
 
+/**
+ * @param {string | undefined} v
+ * @param {number} max
+ */
 function _str(v, max) {
     if (typeof v !== 'string') return '';
     return v.trim().slice(0, max);
 }
 
+/**
+ * @param {string[]} v
+ * @param {number} items
+ * @param {number} chars
+ */
 function _list(v, items, chars) {
     if (!Array.isArray(v)) return [];
     const seen = new Set();
+    /** @type {string[]} */
     const out = [];
     for (const raw of v) {
         const s = _str(raw, chars);
@@ -110,7 +121,11 @@ function _list(v, items, chars) {
     return out;
 }
 
-/** Cut a long answer; the tail stays whole, that is where the caveats are. */
+/**
+ * Cut a long answer; the tail stays whole, that is where the caveats are.
+ * @param {string | undefined} answer
+ * @param {number} [max]
+ */
 function _forModel(answer, max = SUGGEST_LIMITS.answer) {
     const s = typeof answer === 'string' ? answer : '';
     if (s.length <= max) return s;
@@ -153,8 +168,10 @@ const SUGGEST_SYSTEM = [
  *
  * The tools used go along as CONTEXT (the model does not write them, see the header) so that a proposal
  * about "looks it up in the knowledge base" is not formulated as a `mustMention` when it is a tool expectation.
+ * @param {{ question?: string, answer?: string, toolsUsed?: string[] }} [p]
  */
 function buildSuggestionMessages({ question, answer, toolsUsed = [] } = {}) {
+    /** @type {string[]} */
     const lines = [];
     lines.push(`Question that was asked:\n${_str(question, SUGGEST_LIMITS.question)}`);
     lines.push(`<answer>\n${_forModel(answer)}\n</answer>`);
@@ -177,6 +194,7 @@ function buildSuggestionMessages({ question, answer, toolsUsed = [] } = {}) {
  * no human and no model wrote down.
  *
  * An empty `mustMention` is however readable: "I see nothing here that must be recorded" is an answer.
+ * @param {{ mustMention?: string[], notes?: string } | null} structured
  */
 function parseSuggestion(structured) {
     if (!structured || typeof structured !== 'object' || Array.isArray(structured)) return null;
@@ -194,7 +212,7 @@ function parseSuggestion(structured) {
  * shape. The two that a model never fills come back empty with source `empty` — not absent, because then the
  * screen would have to guess whether nothing was proposed or nothing exists.
  *
- * @param {{parsed: object|null, toolsUsed?: string[]}} input
+ * @param {{parsed?: { mustMention?: any, notes?: any }|null, toolsUsed?: string[]}} [input]
  * @returns {{expect: object, wrote: object, suggestedBy: string}|null}
  */
 function suggestionFrom({ parsed, toolsUsed = [] } = {}) {
@@ -233,12 +251,13 @@ function suggestionFrom({ parsed, toolsUsed = [] } = {}) {
  * Unknown narrows: a document without one readable field yields `null`, and `null` means "someone typed this
  * himself". That is the narrow side: better no AI label than a wrong label.
  *
- * @param {object} raw  `{ mustMention: 'ai', toolsExpected: 'observed', … }`
+ * @param {Record<string, unknown>} raw  `{ mustMention: 'ai', toolsExpected: 'observed', … }`
  * @returns {object|null}
  */
 function normaliseWrittenBy(raw) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-    const known = new Set(Object.values(FIELD_SOURCE));
+    const known = /** @type {Set<string>} */ (new Set(Object.values(FIELD_SOURCE)));
+    /** @type {Record<string, string>} */
     const out = {};
     for (const field of EXPECT_FIELDS) {
         const v = raw[field];

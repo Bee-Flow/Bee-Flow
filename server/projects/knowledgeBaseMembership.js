@@ -59,6 +59,11 @@ const { PROJECT_FILES_SOURCE_KIND, filesKbIdOf } = require('../core/kb/projectFi
  */
 const MAX_KB_IDS = 50;
 
+/**
+ * @param {number} status
+ * @param {string} message
+ * @param {string} code
+ */
 function httpError(status, message, code) {
     const err = new Error(message);
     err.status = status;
@@ -86,6 +91,7 @@ function httpError(status, message, code) {
  * codebase's documented single source of truth for KB read access — the same
  * function the list filter and the direct-chat KB picker use, so the paths
  * cannot drift.
+ * @param {string | undefined} projectOrganizationId
  */
 async function validateKnowledgeBaseIds(req, ids, projectOrganizationId) {
     if (!Array.isArray(ids) || ids.length === 0) return { ok: true, invalid: [] };
@@ -168,6 +174,7 @@ function storedIds(project) {
  * bases the project searches; `tenant_id`, `shared_groups`, `is_published` and
  * the document counts are the base's own governance and belong to the Knowledge
  * screens that enforce it.
+ * @param {string} projectId
  */
 async function listProjectKnowledgeBases(projectId) {
     if (!projectId) return [];

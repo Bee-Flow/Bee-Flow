@@ -84,6 +84,7 @@ function coverageVerdict(check, report) {
  * recorded (lib/errorShape.js): a driver message can quote row values and the
  * row enters the evidence chain. `timedOutAfter` is the human budget ("30 s")
  * when the listing timed out, else null.
+ * @param {string | null} timedOutAfter
  */
 function coverageFailure(check, e, timedOutAfter) {
     const { name, code } = errorShape(e);
@@ -106,7 +107,7 @@ function coverageFailure(check, e, timedOutAfter) {
  * a check that declares no population is not counted either way.
  */
 function coverageSummary(results) {
-    const rows = results.filter(r => r.scope === COVERAGE_SCOPE);
+    const rows = results.filter((/** @type {{ scope: string; }} */ r) => r.scope === COVERAGE_SCOPE);
     if (!rows.length) return null;
     let total = 0, examined = 0, unexamined = 0, unknown = 0;
     const populations = [];
@@ -142,3 +143,5 @@ module.exports = {
     coverageFailure,
     coverageSummary,
 };
+
+/** @typedef {{ kind?: string, label?: string, examined_as?: string, next_step?: string, unexamined?: { id?: string | number, label?: string }[], total?: number, examined?: number, link?: string }} CoverageReport */

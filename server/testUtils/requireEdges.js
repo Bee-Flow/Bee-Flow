@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -20,6 +20,12 @@ const SERVER_ROOT = path.resolve(__dirname, '..');
 const DEFAULT_SKIP = new Set(['node_modules', 'migrations', 'prompts', 'assets', 'coverage']);
 const REQUIRE = /require\(\s*['"](\.[^'"]+)['"]\s*\)/g;
 
+/**
+ * @param {string} dir
+ * @param {Set<string>} [skip]
+ * @param {string[]} [out]
+ * @returns {string[]}
+ */
 function productionFiles(dir, skip = DEFAULT_SKIP, out = []) {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
         if (e.name.startsWith('.')) continue;
@@ -30,7 +36,12 @@ function productionFiles(dir, skip = DEFAULT_SKIP, out = []) {
     return out;
 }
 
+/**
+ * @param {{ targets: Set<string>, root?: string, skip?: Set<string> }} opts
+ * @returns {Array<{ from: string, to: string }>}
+ */
 function requireEdges({ targets, root = SERVER_ROOT, skip = DEFAULT_SKIP }) {
+    /** @type {Array<{ from: string, to: string }>} */
     const out = [];
     for (const file of productionFiles(root, skip)) {
         const from = path.relative(root, file).split(path.sep).join('/');

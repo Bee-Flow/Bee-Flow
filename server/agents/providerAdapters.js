@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Provider Adapters — Thin wrapper providing OpenAI-style createChatCompletion
  *
@@ -19,7 +19,7 @@ const log = require('../telemetry/log');
  *
  * @param {object} params
  * @param {string} params.model — model ID (e.g. 'gpt-4.1-mini', 'mistral-small-latest')
- * @param {Array}  params.messages — [{role, content}, ...]
+ * @param {Parameters<typeof import('../core/llm/llmClient').chat>[1]} params.messages — [{role, content}, ...]
  * @param {number} [params.temperature]
  * @param {number} [params.max_tokens]
  * @returns {Promise<{choices: [{message: {role: string, content: string}}], usage: object}>}
@@ -47,7 +47,7 @@ async function createChatCompletion({ model, messages, temperature, max_tokens }
             usage: result.usage || {},
         };
     } catch (err) {
-        log.error(`[providerAdapters] createChatCompletion failed (model=${model}):`, err.message);
+        log.error(`[providerAdapters] createChatCompletion failed (model=${model}):`, /** @type {Error} */ (err).message);
         throw err;
     }
 }

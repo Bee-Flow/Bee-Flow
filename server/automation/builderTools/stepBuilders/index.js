@@ -181,3 +181,5 @@ module.exports = {
     sanitizeNoteSize,
     ADD_FOR_TYPE,
 };
+
+/** @typedef {(draft: import('../draftGraph').DraftGraph, args: Record<string, unknown>, draftWrap?: import('../refCheck').BuilderWrap) => { error?: string, added?: object, _warnings?: string[] }} StepBuilder */

@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 // Academy Custom Courses — org-admin authoring routes (draft CRUD + publish).
 //
 // Mounted at /ai/learning/admin behind requireCapability('learning_custom_content')
@@ -54,18 +55,27 @@ const L = store.LIMITS;
 const ICON_CHARS = 8;
 const ICON_TEXT = 'is one emoji (at most 8 characters).';
 
-/** "Step 3: " for an issue inside steps[2] — the editor shows only the message, so it has to say where. */
+/**
+ * "Step 3: " for an issue inside steps[2] — the editor shows only the message, so it has to say where.
+ * @param {PropertyKey[]} path
+ */
 function stepPrefix(path) {
-    return path[0] === 'steps' && Number.isInteger(path[1]) ? `Step ${path[1] + 1}: ` : '';
+    return path[0] === 'steps' && Number.isInteger(path[1]) ? `Step ${/** @type {number} */ (path[1]) + 1}: ` : '';
 }
 
 /** Every refusal of one step field — wrong type, too long, out of range — as the one sentence that field has. */
-const said = (sentence) => ({ error: (iss) => stepPrefix(iss.path) + sentence });
+const said = (/** @type {string} */ sentence) => ({ error: (/** @type {{ path?: PropertyKey[] }} */ iss) => stepPrefix(iss.path) + sentence });
 // zod 4 words a check by the check's own option, not the schema's: say it on both.
-const stepText = (sentence, max) => z.string(said(sentence)).trim().max(max, said(sentence)).optional();
-const stepNumber = (sentence, min, max) => z.number(said(sentence)).min(min, said(sentence)).max(max, said(sentence)).optional();
+const stepText = (/** @type {string} */ sentence, /** @type {number} */ max) => z.string(said(sentence)).trim().max(max, said(sentence)).optional();
+const stepNumber = (/** @type {string} */ sentence, /** @type {number} */ min, /** @type {number} */ max) => z.number(said(sentence)).min(min, said(sentence)).max(max, said(sentence)).optional();
 
-/** A step object that names the key it does not know, and the step it is in. */
+/**
+ * A step object that names the key it does not know, and the step it is in.
+ * @template {string} K
+ * @template {import('zod').ZodRawShape} S
+ * @param {K} kind
+ * @param {S} shape
+ */
 function stepObject(kind, shape) {
     return z.object({ type: z.literal(kind), ...shape }, {
         error: (iss) => (iss.code === 'unrecognized_keys'
@@ -123,7 +133,7 @@ const Step = z.discriminatedUnion('type', [
         maxAttempts: stepNumber('the number of attempts is a number from 1 to 10.', 1, 10),
     }),
 ], {
-    error: (iss) => (iss.code === 'invalid_type' || (iss.code === 'invalid_union' && iss.note === 'No matching discriminator')
+    error: (iss) => (/** @type {string} */ (iss.code) === 'invalid_type' || (iss.code === 'invalid_union' && iss.note === 'No matching discriminator')
         ? `${stepPrefix(iss.path)}a step is a slide, a quiz or an exercise.`
         : undefined),
 });
@@ -152,9 +162,14 @@ const LESSON_ID_TEXT = "lessonIds holds this organisation's lesson ids (orgl-…
  * A course. `whole` is the PUT: it replaces the stored draft, so every field
  * is required — a missing `lessonIds` used to detach every lesson. A create
  * may lean on the defaults a new course starts with.
+ * @param {boolean} whole
  */
 function courseBody(whole) {
-    const missing = (key) => `A save sends the whole course; ${key} is missing.`;
+    const missing = (/** @type {string} */ key) => `A save sends the whole course; ${key} is missing.`;
+    /**
+     * @template {import('zod').ZodType} S
+     * @param {S} schema
+     */
     const maybe = (schema) => (whole ? schema : schema.optional());
     return bodyOf(z.object({
         title: z.string({ error: typeError({ required: 'Course title is required', invalid: 'A course title is text.' }) })

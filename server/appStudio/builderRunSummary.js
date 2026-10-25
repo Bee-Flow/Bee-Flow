@@ -13,6 +13,9 @@
 
 function summariseBuilderRun(events, { iterationCap = 24 } = {}) {
     const list = Array.isArray(events) ? events : [];
+    /**
+     * @param {string} name
+     */
     const of = (name) => list.filter((e) => e && e.event === name);
     const toolCalls = of('tool_call');
     const usage = of('usage');

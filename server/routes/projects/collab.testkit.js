@@ -20,6 +20,7 @@ async function passNotebooks(req, res, next) { next(); }
  * users (header `x-test-user`), with the role gate from `roles`.
  * @param {any} w  a world from core/collab/collab.testkit.js collabWorld()
  * @param {Record<string, Record<string, string>>} roles
+ * @param {{ maxBodyBytes?: number, requireNotebooks?: (req: any, res: any, next: (err?: unknown) => void) => unknown, streamOptions?: { recheckMs?: number, [key: string]: unknown } }} [opts]
  */
 function serveCollab(w, roles, { maxBodyBytes = 64 * 1024, requireNotebooks = passNotebooks, streamOptions } = {}) {
     const http = require('node:http');
@@ -32,7 +33,7 @@ function serveCollab(w, roles, { maxBodyBytes = 64 * 1024, requireNotebooks = pa
     app.use(express.json({ limit: '20mb' }));
     app.use((req, _res, next) => {
         const who = req.headers['x-test-user'];
-        req.session = who ? { isAuthenticated: true, user: JSON.parse(who) } : {};
+        req.session = who ? { isAuthenticated: true, user: JSON.parse(/** @type {string} */ (who)) } : {};
         next();
     });
     app.use('/api/projects', makeCollabRouter({
@@ -53,9 +54,15 @@ function serveCollab(w, roles, { maxBodyBytes = 64 * 1024, requireNotebooks = pa
     app.use('/api/projects', stream);
     app.use(terminalErrorHandler);
     const server = http.createServer(app);
+    /** @type {Promise<void>} */
     const ready = new Promise((r) => server.listen(0, '127.0.0.1', r));
-    const base = async () => { await ready; return `http://127.0.0.1:${server.address().port}`; };
+    const base = async () => { await ready; return `http://127.0.0.1:${/** @type {import('node:net').AddressInfo} */ (server.address()).port}`; };
 
+    /**
+     * @param {string} method
+     * @param {string} url
+     * @param {{ body?: unknown, user?: object }} [opts]
+     */
     async function call(method, url, { body, user } = {}) {
         const headers = { 'content-type': 'application/json' };
         if (user) headers['x-test-user'] = JSON.stringify(user);

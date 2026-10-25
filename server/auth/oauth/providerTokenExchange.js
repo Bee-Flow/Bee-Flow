@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The provider half of the OAuth callback (./providerCallbackRoutes.js):
  * exchange the authorization code for tokens and read the user's profile,
@@ -14,12 +14,19 @@ const microsoftLogin = require('./microsoftLogin');
 /** @typedef {import('./providerCallbackRoutes').OAuthTokenResponse} OAuthTokenResponse */
 /** @typedef {import('./providerCallbackRoutes').OAuthUser} OAuthUser */
 
-/** Google: token endpoint + OpenID userinfo. */
+/** @typedef {{ clientId?: string, clientSecret?: string, tenantId?: string }} ProviderCredentials */
+/** @typedef {{ providers?: { google?: ProviderCredentials, microsoft?: ProviderCredentials }, oauth?: { nextcloudUrl?: string, clientId?: string, clientSecret?: string } }} ExchangeConfig */
+
+/**
+ * Google: token endpoint + OpenID userinfo.
+ * @param {{ config: ExchangeConfig, code: string, redirectUri: string, codeVerifier?: string }} args
+ */
 async function exchangeGoogle({ config, code, redirectUri, codeVerifier }) {
     let tokenData, user;
 
     const providerConfig = config.providers?.google || {};
 
+    /** @type {Record<string, string>} */
     const googleBody = {
         grant_type: 'authorization_code',
         code: code,
@@ -63,7 +70,10 @@ async function exchangeGoogle({ config, code, redirectUri, codeVerifier }) {
     return { tokenData, user };
 }
 
-/** Microsoft: token endpoint, verified id_token, Graph profile and photo. */
+/**
+ * Microsoft: token endpoint, verified id_token, Graph profile and photo.
+ * @param {{ config: ExchangeConfig, code: string, redirectUri: string, codeVerifier?: string, nonce?: string }} args
+ */
 async function exchangeMicrosoft({ config, code, redirectUri, codeVerifier, nonce }) {
     let tokenData, user;
 
@@ -77,6 +87,7 @@ async function exchangeMicrosoft({ config, code, redirectUri, codeVerifier, nonc
     log.info(`[OAuth/Microsoft] clientSecret present: ${!!providerConfig.clientSecret}`);
     log.info(`[OAuth/Microsoft] tenantId: ${tenantId}`);
 
+    /** @type {Record<string, string>} */
     const msBody = {
         grant_type: 'authorization_code',
         code: code,
@@ -137,7 +148,10 @@ async function exchangeMicrosoft({ config, code, redirectUri, codeVerifier, nonc
     return { tokenData, user };
 }
 
-/** Nextcloud: token endpoint + OCS user; records the raw uid and token expiry on the session. */
+/**
+ * Nextcloud: token endpoint + OCS user; records the raw uid and token expiry on the session.
+ * @param {{ config: ExchangeConfig, code: string, redirectUri: string, session: import('express').Request['session'] }} args
+ */
 async function exchangeNextcloud({ config, code, redirectUri, session }) {
     let tokenData, user;
 

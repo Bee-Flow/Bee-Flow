@@ -13,6 +13,7 @@ const access = require('../../support/access');
 const supportMailer = require('../../services/supportMailer');
 const { runAiAutoResponder } = require('../../services/supportAiResponder');
 const { getUserId, emitInboxEvent, inboxToReplyConfig, loadThreadInScope } = require('./inboxScope');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 async function listThreads(req, res) {
     const inboxes = await access.accessibleInboxes(req);
@@ -23,7 +24,7 @@ async function listThreads(req, res) {
         inboxIds = [inbox];
     }
     if (!inboxIds.length) return res.json({ threads: [], counts: {} });
-    const statusList = status ? status.split(',').map(s => s.trim()).filter(Boolean) : null;
+    const statusList = status ? status.split(',').map((/** @type {string} */ s) => s.trim()).filter(Boolean) : null;
     const { NOT_SUPPORT_TAG } = require('../../services/supportClassifier');
     const { tag, excludeFiltered } = req.query;
     const viewingNotSupport = tag === NOT_SUPPORT_TAG;
@@ -61,10 +62,10 @@ async function threadContext(req, res) {
     const { executeSupportTool } = require('../../integrations/supportTools');
     const ctx = { supportThreadId: thread.id };
     const [profile, organization, subscription, recent] = await Promise.all([
-        executeSupportTool('support_get_requester_profile', {}, ctx).catch(() => null),
-        executeSupportTool('support_get_organization_info', {}, ctx).catch(() => null),
-        executeSupportTool('support_get_subscription_status', {}, ctx).catch(() => null),
-        executeSupportTool('support_list_recent_threads_for_requester', { limit: 5 }, ctx).catch(() => []),
+        executeSupportTool('support_get_requester_profile', {}, ctx).catch((e) => fallback('routes/support/inboxThreads:threadContext', e, null)),
+        executeSupportTool('support_get_organization_info', {}, ctx).catch((e) => fallback('routes/support/inboxThreads:threadContext#2', e, null)),
+        executeSupportTool('support_get_subscription_status', {}, ctx).catch((e) => fallback('routes/support/inboxThreads:threadContext#3', e, null)),
+        executeSupportTool('support_list_recent_threads_for_requester', { limit: 5 }, ctx).catch((e) => fallback('routes/support/inboxThreads:threadContext#4', e, [])),
     ]);
     res.json({ profile, organization, subscription, recentThreads: Array.isArray(recent) ? recent : [] });
 }
@@ -126,8 +127,8 @@ async function replyToThread(req, res) {
         emitInboxEvent('thread_updated', thread.inbox_id, { threadId: thread.id });
         res.json({ message: { ...msg, email_send_status: sent.status } });
     } catch (sendErr) {
-        log.error('[SupportInbox] send failed:', sendErr.message);
-        await supportStore.setMessageEmailStatus(msg.id, { ok: false, error: sendErr.message, at: new Date().toISOString() });
+        log.error('[SupportInbox] send failed:', /** @type {Error} */ (sendErr).message);
+        await supportStore.setMessageEmailStatus(msg.id, { ok: false, error: /** @type {Error} */ (sendErr).message, at: new Date().toISOString() });
         throw new HttpError(502, 'reply_send_failed', 'Reply saved but sending failed', { messageId: msg.id });
     }
 }
@@ -171,17 +172,17 @@ async function patchThread(req, res) {
     }
     if (unfilter === true) {
         const current = Array.isArray(updated.tags) ? updated.tags : (Array.isArray(thread.tags) ? thread.tags : []);
-        updated = await supportStore.setThreadTags(thread.id, current.filter(tg => tg !== NOT_SUPPORT_TAG));
+        updated = await supportStore.setThreadTags(thread.id, current.filter((/** @type {string} */ tg) => tg !== NOT_SUPPORT_TAG));
         // Re-queue for a human (deliberately do NOT re-run the AI) + remember the sender.
         if (updated.status === 'open' || updated.status === 'closed') {
             updated = await supportStore.updateThread(thread.id, { status: 'awaiting_agent' });
         }
         const addr = String(thread.requester_email || '').toLowerCase().trim();
         if (addr) {
-            const inbox = await supportInboxStore.getInbox(thread.inbox_id).catch(() => null);
+            const inbox = await supportInboxStore.getInbox(thread.inbox_id).catch((e) => fallback('routes/support/inboxThreads:patchThread', e, null));
             const list = Array.isArray(inbox?.known_good_senders) ? inbox.known_good_senders : [];
             if (!list.includes(addr)) {
-                await supportInboxStore.updateInbox(thread.inbox_id, { known_good_senders: [...list, addr] }, thread.organization_id).catch(() => {});
+                await supportInboxStore.updateInbox(thread.inbox_id, { known_good_senders: [...list, addr] }, thread.organization_id).catch((e) => bestEffort('routes/support/inboxThreads:patchThread#2', e));
             }
         }
         await supportStore.recordThreadEvent({ threadId: thread.id, actorUserId: userId, actorKind: 'staff', action: 'restored_to_support' });
@@ -192,7 +193,7 @@ async function patchThread(req, res) {
 
     // On resolve, fire the internal automation trigger (fire-and-forget).
     if (status === 'resolved' && thread.status !== 'resolved') {
-        _dispatchResolved(updated, userId).catch(() => {});
+        _dispatchResolved(updated, userId).catch((e) => bestEffort('routes/support/inboxThreads:patchThread#3', e));
     }
     emitInboxEvent('thread_updated', thread.inbox_id, { threadId: thread.id });
     res.json({ thread: updated });
@@ -202,12 +203,13 @@ async function patchThread(req, res) {
  * Emit support.ticket.resolved into the automation trigger bus (org-scoped).
  * Carries a trimmed transcript so the KB-ingest template is self-contained.
  * Lazy-required + fully guarded so a missing dispatcher never breaks resolve.
+ * @param {string | null} resolvedByUserId
  */
 async function _dispatchResolved(thread, resolvedByUserId) {
     try {
         const { dispatchSupportEvent } = require('../../automation/triggerBus');
         if (typeof dispatchSupportEvent !== 'function') return;
-        const inbox = thread.inbox_id ? await supportInboxStore.getInbox(thread.inbox_id).catch(() => null) : null;
+        const inbox = thread.inbox_id ? await supportInboxStore.getInbox(thread.inbox_id).catch((e) => fallback('routes/support/inboxThreads:_dispatchResolved', e, null)) : null;
         const inboxAddress = inbox?.email_address || null;
         const msgs = await supportStore.getThreadMessages(thread.id, { includeInternal: false });
         // Only genuine customer conversations feed the KB (see supportTranscript).
@@ -228,7 +230,7 @@ async function _dispatchResolved(thread, resolvedByUserId) {
             transcript, genuineContact: true,
         }, thread.organization_id || null);
     } catch (e) {
-        log.warn('[SupportInbox] dispatchSupportEvent failed:', e.message);
+        log.warn('[SupportInbox] dispatchSupportEvent failed:', /** @type {Error} */ (e).message);
     }
 }
 

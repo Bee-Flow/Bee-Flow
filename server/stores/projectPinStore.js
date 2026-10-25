@@ -28,3 +28,5 @@ function makeProjectPinStore(db, ready = async () => {}) {
     };
 }
 module.exports = { DDL, initDB, makeProjectPinStore, ...makeProjectPinStore(pool, initDB) };
+
+/** @typedef {import('pg').Pool} Pool */

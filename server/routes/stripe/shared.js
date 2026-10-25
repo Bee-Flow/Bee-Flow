@@ -32,7 +32,7 @@ const stripeIpLimiter = perUserRateLimit({
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../../auth/permissions');
-const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // Robustly resolve the caller's organization id. The session user object
 // doesn't always carry `organizationId`/`orgId` (membership can come via
@@ -46,10 +46,10 @@ async function resolveOrgIdForUser(req) {
         try {
             const orgIds = await resolveUserOrgIds(req); // null = super-admin
             if (orgIds && orgIds.size > 0) orgId = Array.from(orgIds)[0];
-        } catch (err) { log.debug('fall through', err); }
+        } catch (err) { bestEffort('stripe/shared:resolveOrgIds', err); }
     }
     if (!orgId && user.id) {
-        try { const full = await userStore.getUser(user.id); orgId = full?.organizationId || null; } catch (err) { log.debug('ignore', err); }
+        try { const full = await userStore.getUser(user.id); orgId = full?.organizationId || null; } catch (err) { bestEffort('stripe/shared:userOrgLookup', err); }
     }
     return orgId;
 }
@@ -58,7 +58,10 @@ async function resolveOrgIdForUser(req) {
 // keys. Apply this in front of every user-facing route (status, plans,
 // checkout, portal). The webhook stays open: it's signature-verified by
 // Stripe itself and won't fire on a self-hosted install that isn't wired up.
-function requireCloud(req, res, next) {
+/**
+ * @param {NextFunction} next
+ */
+function requireCloud(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, next) {
     if ((process.env.DEPLOYMENT_MODE || 'cloud') === 'self-hosted') {
         return res.status(404).json({ error: 'not_available_in_self_hosted', message: 'Stripe checkout is a Bee Flow Cloud feature. Self-hosted installs use license keys.' });
     }
@@ -77,3 +80,5 @@ module.exports = {
     requireCloud,
     getOrigin,
 };
+
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */

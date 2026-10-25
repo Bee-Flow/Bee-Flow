@@ -1,4 +1,11 @@
-// @typecheck
+// @typecheck noImplicitAny
+const { bestEffort } = require('../../utils/bestEffort');
+
+/**
+ * @typedef {{ source: string, action: string, count: number, categories: string[], provider: string | null,
+ *           automatic: boolean, tokenizedPrompt?: string, tokenMap?: Record<string, string> }} DlpTokenisationInfo
+ */
+
 /**
  * DLP preflight — the interactive outbound scanner shared by the agent
  * (chatStream) and direct-chat paths.
@@ -24,20 +31,20 @@
  *     (for directChat's `piiTokenMap`).
  *
  * @param {Object}   p
- * @param {Array}    p.messages         Chat messages; last user message redacted in place on 'redact'.
- * @param {Object}   p.resolvedShield   Already-resolved org shield (resolveOrgShield result). Required.
+ * @param {Array<{ role?: string, content?: string | Array<{ type?: string, text?: string }> }>} p.messages         Chat messages; last user message redacted in place on 'redact'.
+ * @param {{ showRawPayload?: boolean, dlpMode?: string, piiDetectionConfidenceThreshold?: number, [key: string]: unknown }} p.resolvedShield   Already-resolved org shield (resolveOrgShield result). Required.
  * @param {string}   [p.orgId]
  * @param {string}   [p.conversationId]
  * @param {string}   [p.userId]
  * @param {*}        [p.model]          Model id used for the `privacy_payload` provider field.
  * @param {Object}   p.providerConfig   { providerType, url, displayName }
- * @param {Function} p.emit             (type, data) => void — onEvent (agent) / send (route).
+ * @param {import('../agentRuntime/phaseEvents').PhaseSend} p.emit             (type, data) => void — onEvent (agent) / send (route).
  * @param {Object}   p.audit            Base fields for logDlpDecision (org/user/agent/model/source).
  * @param {Function} [p.registerDecision] decisionQueue.register (injected for tests).
  * @param {boolean}  [p.hasAttachments]  the turn carries attachments (scanned separately).
  * @returns {Promise<{outcome:'allow'|'redacted'|'blocked'|'scan_failed', blocked:boolean,
- *   reason?:string, tokenMap?:Object, redactedText?:(string|null),
- *   userPrivacyMeta?:Object, assistantTokenisationInfo?:Object,
+ *   reason?:string, tokenMap?:Record<string, string>, redactedText?:(string|null),
+ *   userPrivacyMeta?:{ dlpRedactedCount: number, dlpCategories: string[] }, assistantTokenisationInfo?:DlpTokenisationInfo,
  *   scanStatus:string, categories:string[], tooShort:boolean, override?:boolean}>}
  *
  * Every return also says what the scan itself saw, so a caller can tell the
@@ -101,7 +108,7 @@ async function runDlpPreflight({
     // Mutate the last user message with the tokenised text. Returns the applied
     // text (so chatStream can update `processedUserMessage`) or null if nothing
     // was applied — matching the original inline `applyRedactionToMessages`.
-    const applyRedactionToMessages = (tokenizedText) => {
+    const applyRedactionToMessages = (/** @type {string} */ tokenizedText) => {
         const lastMsg = messages[messages.length - 1];
         if (!lastMsg || lastMsg.role !== 'user') return null;
         if (typeof lastMsg.content === 'string') { lastMsg.content = tokenizedText; return tokenizedText; }
@@ -114,6 +121,10 @@ async function runDlpPreflight({
 
     // Shared redact finalisation (auto + ask-redact differ only in the token
     // source, the `automatic` flag, and `decisionMs`).
+    /**
+     * @param {{ tokenizedText: string, tokenMap: Record<string, string>, automatic: boolean, decisionMs: number,
+     *           manualCount?: number }} r
+     */
     const finalizeRedaction = ({ tokenizedText, tokenMap, automatic, decisionMs, manualCount = 0 }) => {
         const appliedText = applyRedactionToMessages(tokenizedText);
         const dlpCount = Object.keys(tokenMap || {}).length;
@@ -133,6 +144,7 @@ async function runDlpPreflight({
             decisionMs,
         });
         const userPrivacyMeta = { dlpRedactedCount: dlpCount, dlpCategories: dlpCats };
+        /** @type {DlpTokenisationInfo} */
         const assistantTokenisationInfo = {
             source: 'dlp',
             action: 'redact',
@@ -154,7 +166,7 @@ async function runDlpPreflight({
                 assistantTokenisationInfo.tokenMap = tokenMap;
             }
         }
-        guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: auditCategoryList, action_taken: 'redacted' }).catch(() => {});
+        guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: auditCategoryList, action_taken: 'redacted' }).catch((e) => bestEffort('core/dlp/dlpPreflight:finalizeRedaction', e));
         return {
             outcome: /** @type {'redacted'} */ ('redacted'),
             blocked: false,
@@ -172,7 +184,7 @@ async function runDlpPreflight({
             provider: dlpResult.provider,
             reason: dlpResult.reason || 'policy_block',
         });
-        guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: categoryList, action_taken: 'blocked' }).catch(() => {});
+        guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: categoryList, action_taken: 'blocked' }).catch((e) => bestEffort('core/dlp/dlpPreflight:runDlpPreflight', e));
         return { outcome: 'blocked', blocked: true, reason: 'policy_block', ...seen };
     }
 
@@ -217,13 +229,14 @@ async function runDlpPreflight({
             defaultChoice: resolvedShield.dlpMode === 'block' ? 'block' : 'redact',
         });
 
+        /** @type {import('./decisionQueue').Decision} */
         let decision;
         try {
             decision = await promise;
         } catch (err) {
             // Timeout or abort → treat as block under fail-closed semantics.
             emit?.('dlp_blocked', { reason: err.code === 'DLP_TIMEOUT' ? 'timeout' : 'rejected', findings: [], provider: dlpResult.provider });
-            guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: categoryList, action_taken: 'blocked' }).catch(() => {});
+            guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: categoryList, action_taken: 'blocked' }).catch((e) => bestEffort('core/dlp/dlpPreflight:runDlpPreflight#2', e));
             return { outcome: 'blocked', blocked: true, reason: 'ask_timeout', ...seen };
         }
 
@@ -233,7 +246,7 @@ async function runDlpPreflight({
 
         if (decision.choice === 'block') {
             emit?.('dlp_blocked', { reason: 'user_blocked', findings: [], provider: dlpResult.provider });
-            guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: categoryList, action_taken: 'blocked' }).catch(() => {});
+            guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: categoryList, action_taken: 'blocked' }).catch((e) => bestEffort('core/dlp/dlpPreflight:runDlpPreflight#3', e));
             return { outcome: 'blocked', blocked: true, reason: 'user_blocked', ...seen };
         }
 
@@ -280,13 +293,13 @@ async function runDlpPreflight({
             automatic: false,
             decisionMs: Date.now() - scanStart,
         });
-        guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: categoryList, action_taken: 'allowed' }).catch(() => {});
+        guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: categoryList, action_taken: 'allowed' }).catch((e) => bestEffort('core/dlp/dlpPreflight:runDlpPreflight#4', e));
         return { outcome: 'allow', blocked: false, ...seen, override: true };
     }
 
     if (dlpResult.scanStatus === 'failed') {
         // fail-open took this path — still record for audit.
-        guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: 'scan_failed', action_taken: 'scan_failed' }).catch(() => {});
+        guardrailEventStore.logDlpDecision({ ...auditBase, violation_categories: 'scan_failed', action_taken: 'scan_failed' }).catch((e) => bestEffort('core/dlp/dlpPreflight:runDlpPreflight#5', e));
         return { outcome: 'scan_failed', blocked: false, ...seen };
     }
 

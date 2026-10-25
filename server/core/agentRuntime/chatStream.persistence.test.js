@@ -85,7 +85,7 @@ test('durableMessages is const, so it cannot be reassigned to the compacted prom
 });
 
 test('compaction result lands on the prompt array only', () => {
-    assert.match(SRC, /messages = compactedMessages;/,
+    assert.match(SRC, /messages = (?:\/\*\*[^*]*\*\/\s*\()?compactedMessages\)?;/,  // a JSDoc cast may wrap it
         'expected the compacted array to be assigned to the PROMPT variable');
     assert.doesNotMatch(CODE, /durableMessages.*compactedMessages/,
         'the compacted prompt must never reach the durable array');

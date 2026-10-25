@@ -794,3 +794,10 @@ module.exports = {
     // Holes → binding slots (design 4.1)
     SEAT_SHAPE_EXTRA, liftAutomationHoles, liftAppHoles, captureAppDataModel, captureWebpageKnowledgeBases,
 };
+
+/**
+ * @typedef {import('./walkers').DefinitionNode} DefinitionNode
+ * @typedef {{ rule: string, field?: string, count?: number, stepId?: string | null, layerKey?: string | null, actionId?: string | null, [k: string]: unknown }} ScrubReportEntry
+ * @typedef {{ slot: string, kind: string, ref: string | null, stepId?: string | null, actionId?: string, layerKey?: string, label: string, suggested: { allowedHosts?: string[], [k: string]: unknown } | null }} BindingSlot
+ * @typedef {{ ref?: string | null, pipeline?: boolean, connSlots?: Map<string, string> | Record<string, string>, slots?: BindingSlot[], findings?: Array<Record<string, unknown>> }} CaptureOpts
+ */

@@ -1,3 +1,5 @@
+/** @typedef {import('url').URL} URL */
+// @typecheck
 /**
  * Local / self-hosted LLM runtime routes.
  *
@@ -29,6 +31,7 @@ const { validate } = require('../../core/http/validate');
 const { openSse } = require('../../core/http/sseHelpers');
 const { requireAdminUser } = require('./requireAdminUser');
 
+/** @param {import('express').Request} req */
 async function isAdminUser(req) {
     if (req.session?.isAdmin || req.session?.user?.role === 'admin') return true;
     const userId = req.session?.user?.id;
@@ -49,6 +52,7 @@ const ENDPOINT_SCHEME = 'Only http:// and https:// endpoints are supported';
 const EndpointUrl = z.string({ error: ENDPOINT_MALFORMED })
     .trim()
     .transform((raw, ctx) => {
+        /** @type {URL} */
         let parsed;
         try {
             parsed = new URL(raw);
@@ -81,7 +85,7 @@ const PullBody = z.object({
 // ─── Catalogue ───────────────────────────────────────────────────────────────
 
 // GET /ai/local-runtimes — what can be connected, and how.
-router.get('/local-runtimes', requireAuth, (_req, res) => {
+router.get('/local-runtimes', requireAuth, (/** @type {import('express').Request} */ _req, /** @type {import('express').Response} */ res) => {
     res.json({
         runtimes: Object.entries(LOCAL_RUNTIMES).map(([type, rt]) => ({
             type,
@@ -115,15 +119,19 @@ const STARTER_MODELS = [
 ];
 
 // GET /ai/local-runtimes/models — curated starter models (Ollama tags).
-router.get('/local-runtimes/models', requireAuth, (_req, res) => {
+router.get('/local-runtimes/models', requireAuth, (/** @type {import('express').Request} */ _req, /** @type {import('express').Response} */ res) => {
     res.json({ models: STARTER_MODELS });
 });
 
 // ─── Probing ─────────────────────────────────────────────────────────────────
 
-/** Probe a single endpoint and normalise the adapter's answer for the UI. */
+/**
+ * Probe a single endpoint and normalise the adapter's answer for the UI.
+ *
+ * @param {{ type: string, url: string, apiKey?: string }} endpoint
+ */
 async function probeEndpoint({ type, url, apiKey }) {
-    const adapter = getAdapter(type, url);
+    const adapter = /** @type {ReturnType<typeof getAdapter> & Partial<InstanceType<typeof import('../../core/providers/local')>>} */ (getAdapter(type, url));
     if (typeof adapter.probe !== 'function') {
         return { ok: false, error: `'${type}' is not a self-hosted runtime type` };
     }
@@ -143,14 +151,14 @@ async function probeEndpoint({ type, url, apiKey }) {
 }
 
 // POST /ai/local-runtimes/test — { type, url, apiKey? }
-router.post('/local-runtimes/test', requireAuth, requireAdmin, validate({ body: TestBody }), async (req, res) => {
+router.post('/local-runtimes/test', requireAuth, requireAdmin, validate({ body: TestBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { type, url, apiKey } = req.body;
     try {
         res.json(await probeEndpoint({ type, url, apiKey }));
     } catch (e) {
         // A runtime that is not running is an ANSWER, not a server fault: the
         // Test-connection button is asking exactly this question.
-        res.json({ ok: false, type, url, modelCount: 0, models: [], error: e.message });
+        res.json({ ok: false, type, url, modelCount: 0, models: [], error: /** @type {Error} */ (e).message });
     }
 });
 
@@ -178,7 +186,7 @@ const DETECT_SERVICES = [
 // POST /ai/local-runtimes/detect — scan the usual suspects.
 // Fixed candidate list only: it never probes a caller-supplied address, so it
 // cannot be used as a port scanner.
-router.post('/local-runtimes/detect', requireAuth, requireAdmin, async (_req, res) => {
+router.post('/local-runtimes/detect', requireAuth, requireAdmin, async (/** @type {import('express').Request} */ _req, /** @type {import('express').Response} */ res) => {
     const candidates = [
         ...DETECT_HOSTS.flatMap(host =>
             DETECT_TARGETS.map(t => ({ type: t.type, url: `http://${host}:${t.port}${t.path}` }))
@@ -207,7 +215,7 @@ router.post('/local-runtimes/detect', requireAuth, requireAdmin, async (_req, re
 // POST /ai/local-runtimes/:id/pull — { model }
 // Streams Ollama's native NDJSON progress through as SSE so the admin UI can
 // show a real progress bar; a multi-GB pull is not something to run blind.
-router.post('/local-runtimes/:id/pull', requireAuth, requireAdmin, validate({ body: PullBody }), async (req, res) => {
+router.post('/local-runtimes/:id/pull', requireAuth, requireAdmin, validate({ body: PullBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { model } = req.body;
 
     const { providers } = await getProviders();
@@ -217,7 +225,7 @@ router.post('/local-runtimes/:id/pull', requireAuth, requireAdmin, validate({ bo
         return res.status(400).json({ error: 'That provider is not a self-hosted runtime' });
     }
 
-    const adapter = getAdapter(provider.type, provider.url);
+    const adapter = /** @type {ReturnType<typeof getAdapter> & Partial<InstanceType<typeof import('../../core/providers/local')>>} */ (getAdapter(provider.type, provider.url));
     if (typeof adapter.pullModel !== 'function' || !LOCAL_RUNTIMES[provider.type]?.canPull) {
         return res.status(400).json({
             error: `${LOCAL_RUNTIMES[provider.type]?.label || provider.type} cannot download models over the API — load the model when starting the server.`,
@@ -239,7 +247,7 @@ router.post('/local-runtimes/:id/pull', requireAuth, requireAdmin, validate({ bo
         invalidateModelCache(provider.id);
         send('done', { model });
     } catch (e) {
-        send('error', { error: e.message });
+        send('error', { error: /** @type {Error} */ (e).message });
     } finally {
         end();
     }

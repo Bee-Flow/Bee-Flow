@@ -65,6 +65,10 @@ const DEFAULT_RUN_POLICY = Object.freeze({
 });
 
 const isInt = (v) => typeof v === 'number' && Number.isInteger(v);
+/**
+ * @param {string} path
+ * @param {string} message
+ */
 const issue = (path, message) => ({ code: 'run_policy.invalid', severity: 'error', path: `runPolicy.${path}`, message });
 
 /**
@@ -82,6 +86,7 @@ function sanitizeRunPolicy(raw) {
     if (typeof raw !== 'object' || Array.isArray(raw)) {
         return { value: undefined, errors: [issue('', 'runPolicy is an object: retry, maxDurationMin, concurrency, connections, retentionDays.')] };
     }
+    /** @type {{ code: string; severity: string; path: string; message: string; }[]} */
     const errors = [];
     const value = {};
 
@@ -179,3 +184,10 @@ module.exports = {
     stepRetryFor,
     runTimeoutMsFor,
 };
+
+/**
+ * @typedef {{ retry?: { max?: number, then?: string }, maxDurationMin?: number|null, concurrency?: string,
+ *   connections?: string, retentionDays?: number|null }} RunPolicyInput
+ * @typedef {ReturnType<typeof resolveRunPolicy>} RunPolicy
+ * @typedef {{ runPolicy?: RunPolicyInput, [key: string]: unknown }} PolicyDefinition
+ */

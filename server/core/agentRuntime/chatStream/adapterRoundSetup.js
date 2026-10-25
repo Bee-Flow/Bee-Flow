@@ -14,6 +14,24 @@ const { placeVolatileBlock } = require('../../llm/promptLayout');
 const { sanitizeMessages } = require('../../../utils/messageUtils');
 const { toolSetFingerprint, systemPrefixFingerprint } = require('../../llm/promptCacheStability');
 const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
+
+/**
+ * @typedef {import('./turnState').AgentRow} AgentRow
+ * @typedef {import('./turnState').ConversationRow} ConversationRow
+ * @typedef {import('./turnState').OnEvent} OnEvent
+ * @typedef {import('./turnState').ChatMessage} ChatMessage
+ * @typedef {import('./turnState').ToolDef} ToolDef
+ * @typedef {import('./turnState').MessageMetadata} MessageMetadata
+ * @typedef {import('./turnState').ThinkingPart} ThinkingPart
+ * @typedef {import('./roundRequest').TierSettings} TierSettings
+ * @typedef {import('../../providers/usageNormalizer').RawUsage} RawUsage
+ * @typedef {{ applyTokenMapToMessages: typeof import('../../dlp/applyTokenMapToOutbound').applyTokenMapToMessages, usageStore: typeof import('../../../stores/usageStore'), tierDefaults: () => typeof import('../../llm/modelResolver').TIER_DEFAULTS }} SetupDeps
+ * @typedef {{ type?: string, name?: string, function?: { name?: string }, [key: string]: unknown }} AdapterTool
+ * @typedef {{ maxTokens: number, temperature: number, budgetTokens?: number, reasoningEffort?: string, reasoningSummary?: boolean, verbosity?: string, promptCacheKey?: string, signal?: AbortSignal, timeoutMs?: number, tools?: AdapterTool[], toolChoice?: unknown, userId?: string }} AdapterOptions
+ * @typedef {{ partId?: string, text?: string, redacted?: boolean, signature?: string, redactedData?: string }} ThinkingEventData
+ * @typedef {{ onEvent: OnEvent, _thinkingParts?: ThinkingPart[], _getThinkingPart: (partId: string) => ThinkingPart }} ThinkingCtx
+ */
 
 /**
  * Build OpenAI-format messages for the adapter's normalizeMessages.
@@ -33,6 +51,8 @@ const log = require('../../../telemetry/log');
  * (OpenAI, Azure, Mistral) or folds a late one into the next user turn
  * (local), and a self-hosted prefix cache then keeps the history instead of
  * re-reading it behind the clock line.
+ * @param {{ effectiveSystemPrompt: string, effectiveVolatilePrompt: string, finalMessages: ChatMessage[], conversation: ConversationRow }} turn
+ * @param {SetupDeps} d
  */
 function buildAdapterMessages({ effectiveSystemPrompt, effectiveVolatilePrompt, finalMessages, conversation }, d) {
     const _volatileMessage = effectiveVolatilePrompt.trim()
@@ -50,7 +70,12 @@ function buildAdapterMessages({ effectiveSystemPrompt, effectiveVolatilePrompt, 
     });
 }
 
-/** Generation settings from the tier, the per-turn composer choices and the attachment bump. */
+/**
+ * Generation settings from the tier, the per-turn composer choices and the attachment bump.
+ * @param {{ agent: AgentRow, modelToUse: string, messageMetadata: MessageMetadata, tierSettings: TierSettings }} turn
+ * @param {SetupDeps} d
+ * @returns {AdapterOptions}
+ */
 function generationOptions({ agent, modelToUse, messageMetadata, tierSettings }, d) {
     const isThinkingModel = modelToUse.includes('magistral');
     const TIER_DEFAULTS = d.tierDefaults();
@@ -83,7 +108,12 @@ function generationOptions({ agent, modelToUse, messageMetadata, tierSettings },
     };
 }
 
-/** The adapter's options for this round: generation settings, cache routing, local-runtime guards and tools. */
+/**
+ * The adapter's options for this round: generation settings, cache routing, local-runtime guards and tools.
+ * @param {{ agent: AgentRow, userId: string, messageMetadata: MessageMetadata, modelToUse: string, conversation: ConversationRow, tools: ToolDef[], signal?: AbortSignal, tierSettings: TierSettings, effectiveSystemPrompt: string, _adapterIsLocal?: boolean, _forceFinalAnswer?: boolean }} turn
+ * @param {SetupDeps} d
+ * @returns {AdapterOptions}
+ */
 function buildAdapterOptions({ agent, userId, messageMetadata, modelToUse, conversation, tools, signal, tierSettings, effectiveSystemPrompt, _adapterIsLocal, _forceFinalAnswer }, d) {
     const adapterOptions = generationOptions({ agent, modelToUse, messageMetadata, tierSettings }, d);
 
@@ -117,7 +147,7 @@ function buildAdapterOptions({ agent, userId, messageMetadata, modelToUse, conve
                 const { _mcp, _n8n, ...clean } = t;
                 return clean;
             })
-            .sort((a, b) => {
+            .sort((/** @type {{ name?: string, function?: { name?: string } }} */ a, /** @type {{ name?: string, function?: { name?: string } }} */ b) => {
                 const an = a.function?.name || a.name || '';
                 const bn = b.function?.name || b.name || '';
                 return an.localeCompare(bn);
@@ -142,6 +172,9 @@ function buildAdapterOptions({ agent, userId, messageMetadata, modelToUse, conve
  * A thinking-part lifecycle event (`thinking_start`, `thinking_signature`,
  * `thinking_stop`) applied to the turn's parts. The text itself (`thinking`)
  * is the caller's: it also feeds the flat string.
+ * @param {string} type
+ * @param {ThinkingEventData} data
+ * @param {ThinkingCtx} ctx
  */
 function applyThinkingPartEvent(type, data, { onEvent, _getThinkingPart }) {
     if (type === 'thinking_start') {
@@ -175,6 +208,8 @@ function applyThinkingPartEvent(type, data, { onEvent, _getThinkingPart }) {
  * Route a `thinking` text chunk into the right part when the provider
  * supplied a partId; otherwise append to the most recent part (or open an
  * implicit one).
+ * @param {ThinkingEventData} data
+ * @param {ThinkingCtx} ctx
  */
 function appendThinkingText(data, { _thinkingParts, _getThinkingPart }) {
     if (data.partId) {
@@ -190,7 +225,11 @@ function appendThinkingText(data, { _thinkingParts, _getThinkingPart }) {
     part.text += data.text;
 }
 
-/** Log usage for a native adapter stream (best effort). */
+/**
+ * Log usage for a native adapter stream (best effort).
+ * @param {{ agent: AgentRow, agentId: string, userId: string, modelToUse: string, messageMetadata: MessageMetadata, conversation: ConversationRow, _adapterStreamUsage: (RawUsage & { stop_reason?: string }) | null, _streamCallStart: number }} turn
+ * @param {SetupDeps} d
+ */
 async function logAdapterUsage({ agent, agentId, userId, modelToUse, messageMetadata, conversation, _adapterStreamUsage, _streamCallStart }, d) {
     try {
         await d.usageStore.logUsage({
@@ -209,7 +248,7 @@ async function logAdapterUsage({ agent, agentId, userId, modelToUse, messageMeta
             organization_id: agent.organization_id || null,
             conversation_id: conversation?.id || null,
         });
-    } catch (e) { log.debug('ignore usage errors', e); }
+    } catch (e) { bestEffort('core/agentRuntime/chatStream/adapterRoundSetup:logAdapterUsage', e); /* ignore usage errors */ }
 }
 
 module.exports = {

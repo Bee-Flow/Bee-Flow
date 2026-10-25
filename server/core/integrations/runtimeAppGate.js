@@ -20,7 +20,7 @@
  */
 
 const { ORG_EXEMPT_APPS, AUTO_ENABLED_APPS } = require('./integrationAppPolicy');
-const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 function createRuntimeAppGate({ configStore, resolveOrgAllowList, resolveOrgActiveSet, lazy }) {
     /**
@@ -49,6 +49,7 @@ function createRuntimeAppGate({ configStore, resolveOrgAllowList, resolveOrgActi
         // null = no restriction (used for NC which has its own group path); a
         // Set = only IDs in here pass the org-admin gate.
         let orgActiveSet = null;
+        /** @type {string | null} */
         let userOrgId = null;
         // The user's group ids, hoisted to function scope so gates below the
         // org-resolution block (e.g. the webpages access fallback) can reuse them
@@ -61,10 +62,11 @@ function createRuntimeAppGate({ configStore, resolveOrgAllowList, resolveOrgActi
         // NC ID set — used to skip the org-admin active filter for NC tools,
         // which are governed by the dedicated NC panel + per-group opt-out path.
         let ncIdSet = new Set();
+        let identityUnknown = false;
         try {
             const cat = require('./ncIntegrationCatalog');
             ncIdSet = cat.NC_INTEGRATION_ID_SET || new Set(cat.NC_INTEGRATION_IDS || []);
-        } catch (_) { log.debug('integration catalog unavailable, no Nextcloud ids to gate', _); }
+        } catch (_) { fallback('core/integrations/runtimeAppGate:resolveRuntimeAppGate', _); /* integration catalog unavailable, no Nextcloud ids to gate */ }
         try {
             const userStore = lazy.userStore();
             const currentUser = await userStore.getUser(userId);
@@ -99,7 +101,11 @@ function createRuntimeAppGate({ configStore, resolveOrgAllowList, resolveOrgActi
                 // Super admins without an org use the '__system__' config scope
                 userOrgId = '__system__';
             }
-        } catch (e) { log.debug('ignore', e); }
+        } catch (e) {
+            // The org allow-list and group deny-lists are unknown: deny, not "no restrictions".
+            fallback('core/integrations/runtimeAppGate:identity', e);
+            identityUnknown = true;
+        }
 
         // AUTO_ENABLED_APPS is module-scoped (integrationAppPolicy.js).
 
@@ -123,6 +129,7 @@ function createRuntimeAppGate({ configStore, resolveOrgAllowList, resolveOrgActi
         const isKnownIntegration = (appId) => !!(_capReg && _capReg.getCapability(appId)?.kind === 'integration');
 
         const isAppOn = (appId) => {
+            if (identityUnknown) return false;
             // Must be enabled at user level (a per-user UX preference).
             // extraAppSet (skill-scoped enablement) bypasses ONLY this preference:
             // an active skill may surface an app the user hasn't toggled on, but

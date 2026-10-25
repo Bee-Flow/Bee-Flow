@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * MCP library API — mounted at /api/mcp-library.
  *
@@ -31,7 +31,7 @@ const { requireFeature } = require('../license/middleware');
 const service = require('../core/customIntegrations/mcpLibrary/service');
 const members = require('../core/customIntegrations/mcpLibrary/members');
 const policyModule = require('../core/customIntegrations/mcpLibrary/policy');
-const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const router = express.Router();
 
@@ -44,6 +44,7 @@ const connectLimit = perUserRateLimit({ windowMs: 60_000, max: 12, name: 'mcp-li
 
 // ── Schemas ─────────────────────────────────────────────────────────
 
+/** @param {import('zod').ZodRawShape} shape */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const CATALOG_ID = worded('catalogId is a library id.').regex(/^[a-z0-9_]{2,40}$/, 'catalogId is a library id.');
@@ -116,7 +117,7 @@ router.get('/policy', requireAuth, requireSuperAdmin, async (req, res) => {
 });
 
 router.put('/policy', requireAuth, requireSuperAdmin, validate({ body: PolicyBody }), async (req, res) => {
-    const bad = req.body.allowedHosts.filter(h => !policyModule.normalizeHostPattern(h));
+    const bad = req.body.allowedHosts.filter(/** @param {string} h */ h => !policyModule.normalizeHostPattern(h));
     if (bad.length) {
         throw new HttpError(400, 'invalid_host', `Not a host name: ${bad.slice(0, 3).join(', ')}. Use names like mcp.example.com or *.example.com, without https:// or a path.`);
     }
@@ -124,12 +125,12 @@ router.put('/policy', requireAuth, requireSuperAdmin, validate({ body: PolicyBod
     const policy = await policyModule.setPolicy(req.body);
     try {
         await require('../stores/userStore').logAccessAudit('mcp_library.policy_update', 'platform', policyModule.POLICY_KEY, req.session.user.id, before, policy, null);
-    } catch (err) { log.debug('best effort', err); }
+    } catch (err) { bestEffort('routes/mcpLibrary:anon', err); /* best effort */ }
     // Every org's tool list and capability set depends on it.
     try {
         const ent = require('../core/entitlements/entitlements');
         ent.registry.invalidateCustomIntegrationCache();
-    } catch (err) { log.debug('best effort', err); }
+    } catch (err) { bestEffort('routes/mcpLibrary:anon#2', err); /* best effort */ }
     res.json({ policy });
 });
 
@@ -139,22 +140,26 @@ router.get('/me', requireAuth, async (req, res) => {
     res.json(await members.listForMember(req));
 });
 
-router.put('/me/:id/credential', requireAuth, connectLimit, validate({ body: CredentialBody }), async (req, res) => {
+router.put('/me/:id/credential', requireAuth, connectLimit, validate({ body: CredentialBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     res.json(await members.saveOwnCredential(req, req.params.id, req.body.value));
 });
 
-router.delete('/me/:id/credential', requireAuth, async (req, res) => {
+router.delete('/me/:id/credential', requireAuth, /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     res.json(await members.deleteOwnCredential(req, req.params.id));
 });
 
 // ── Organisation admins: the library ────────────────────────────────
 
+/**
+ * Request after the `id` param loader stashes the library row on it.
+ * @typedef {import('express').Request & { libraryRow?: Awaited<ReturnType<typeof service.loadOrgRow>> }} LibraryReq
+ */
 const org = express.Router();
 org.use(requirePrimaryOrgAdmin(), requireFeature('mcp_marketplace'));
 
 // Library row loader: another organisation's row, a builder row and a
 // missing row are all the same 404, so the API is no existence oracle.
-org.param('id', async (req, res, next, id) => {
+org.param('id', /** @param {LibraryReq} req */ async (req, res, next, id) => {
     const row = await service.loadOrgRow(req.primaryOrgId, id);
     if (!row) return next(new HttpError(404, 'not_found', 'Not found'));
     req.libraryRow = row;
@@ -174,24 +179,24 @@ org.post('/servers', connectLimit, validate({ body: InstallBody }), async (req, 
     res.status(201).json({ server });
 });
 
-org.patch('/servers/:id', connectLimit, validate({ body: UpdateBody }), async (req, res) => {
+org.patch('/servers/:id', connectLimit, validate({ body: UpdateBody }), /** @param {LibraryReq} req */ async (req, res) => {
     const server = await service.update({ orgId: req.primaryOrgId, row: req.libraryRow, actorUserId: req.session.user.id, patch: req.body });
     res.json({ server });
 });
 
-org.post('/servers/:id/refresh', connectLimit, validate({ body: NoBody }), async (req, res) => {
+org.post('/servers/:id/refresh', connectLimit, validate({ body: NoBody }), /** @param {LibraryReq} req */ async (req, res) => {
     res.json(await service.refresh({ orgId: req.primaryOrgId, row: req.libraryRow, actorUserId: req.session.user.id }));
 });
 
-org.put('/servers/:id/credential', connectLimit, validate({ body: CredentialBody }), async (req, res) => {
+org.put('/servers/:id/credential', connectLimit, validate({ body: CredentialBody }), /** @param {LibraryReq} req */ async (req, res) => {
     res.json(await service.setSharedCredential({ orgId: req.primaryOrgId, row: req.libraryRow, actorUserId: req.session.user.id, value: req.body.value }));
 });
 
-org.delete('/servers/:id', async (req, res) => {
+org.delete('/servers/:id', /** @param {LibraryReq} req */ async (req, res) => {
     res.json(await service.uninstall({ orgId: req.primaryOrgId, row: req.libraryRow, actorUserId: req.session.user.id }));
 });
 
-org.put('/server-wide/:serverId', validate({ body: ServerWideBody }), async (req, res) => {
+org.put('/server-wide/:serverId', validate({ body: ServerWideBody }), /** @param {import('express').Request<{ serverId: string }>} req */ async (req, res) => {
     const access = await service.setServerWideAccess({
         orgId: req.primaryOrgId, serverId: req.params.serverId, actorUserId: req.session.user.id, access: req.body.access,
     });

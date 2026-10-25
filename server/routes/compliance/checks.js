@@ -139,6 +139,7 @@ async function _annotateProjectNames(orgId, rows) {
 
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { fallback, bestEffort } = require('../../utils/bestEffort');
 
 const FRAMEWORK_TEXT = 'framework must be a framework id.';
 /** `?framwork=gdpr` used to drop the filter and answer with every framework's checks. */
@@ -170,7 +171,7 @@ router.get('/checks', requireAuth, requirePermission('admin_compliance'), valida
         _frameworkPolicy().activeRegulations(orgId, { req }),
         // Decisions are an annotation: unreadable → the table still renders.
         typeof complianceStore.listFindingStates === 'function'
-            ? complianceStore.listFindingStates(orgId).catch(() => [])
+            ? complianceStore.listFindingStates(orgId).catch((e) => fallback('routes/compliance/checks:anon', e, []))
             : [],
     ]);
     const states = findingState.indexStates(stateRows);
@@ -261,7 +262,7 @@ router.post('/checks/:id/auto-fix', requireAuth, requirePermission('admin_compli
             actorId,
         });
         // Re-run the check so the UI shows the fresh result.
-        await runner.runOne(orgId, req.params.id).catch(() => {});
+        await runner.runOne(orgId, req.params.id).catch((e) => bestEffort('routes/compliance/checks:anon#2', e));
         res.json({ ok: true, result });
     } catch (e) {
         if (e && e.status && e.body) return res.status(e.status).json(e.body);

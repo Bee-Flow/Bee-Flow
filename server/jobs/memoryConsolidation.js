@@ -90,7 +90,12 @@ const REVIEW_SCHEMA = {
     },
 };
 
-/** Ids-only answer -> Map(id -> keep). Unknown ids, non-boolean verdicts and repeats are ignored; null when unparseable. */
+/**
+ * Ids-only answer -> Map(id -> keep). Unknown ids, non-boolean verdicts and repeats are ignored; null when unparseable.
+ * @param {unknown} raw
+ * @param {Set<string>} allowedIds
+ * @returns {Map<string, boolean> | null}
+ */
 function parseReview(raw, allowedIds) {
     let parsed;
     const text = String(raw || '').trim();
@@ -109,7 +114,12 @@ function parseReview(raw, allowedIds) {
     return out;
 }
 
-/** Ids the model flagged as special-category data (only an explicit `sensitive: true` counts). */
+/**
+ * Ids the model flagged as special-category data (only an explicit `sensitive: true` counts).
+ * @param {unknown} raw
+ * @param {Set<string>} allowedIds
+ * @returns {Set<string>}
+ */
 function parseSensitive(raw, allowedIds) {
     let parsed;
     try { parsed = JSON.parse(String(raw || '').trim()); } catch (_) {
@@ -132,12 +142,12 @@ function realDeps() {
         log,
         now: () => Date.now(),
         // Users with something to consolidate, after the cursor.
-        listUsers: async (afterId, limit) => (await db().getAll(
+        listUsers: async (/** @type {string} */ afterId, /** @type {number} */ limit) => (await db().getAll(
             `SELECT DISTINCT user_id FROM user_memories
               WHERE status = 'active' AND origin = 'inferred' AND user_id > $1
               ORDER BY user_id LIMIT $2`, [afterId || '', limit])).map((r) => r.user_id),
         // Newest first; hydrated, because the text may be sealed.
-        listActiveInferred: async (userId, limit) => {
+        listActiveInferred: async (/** @type {string} */ userId, /** @type {number} */ limit) => {
             const rows = await db().getAll(
                 `SELECT * FROM user_memories
                   WHERE user_id = $1 AND status = 'active' AND origin = 'inferred' AND valid_to IS NULL
@@ -146,7 +156,7 @@ function realDeps() {
             return require('../stores/memoryCrypto').hydrateRows(rows);
         },
         // All active inferred rows of one user (newest first, hydrated) for the quality pass.
-        listForQuality: async (userId, limit) => {
+        listForQuality: async (/** @type {string} */ userId, /** @type {number} */ limit) => {
             const rows = await db().getAll(
                 `SELECT * FROM user_memories
                   WHERE user_id = $1 AND status = 'active' AND origin = 'inferred' AND valid_to IS NULL
@@ -155,7 +165,7 @@ function realDeps() {
             return require('../stores/memoryCrypto').hydrateRows(rows);
         },
         // Never-reviewed inferred rows, newest first, hydrated (the text may be sealed).
-        listForReview: async (userId, limit) => {
+        listForReview: async (/** @type {string} */ userId, /** @type {number} */ limit) => {
             const rows = await db().getAll(
                 `SELECT * FROM user_memories
                   WHERE user_id = $1 AND status = 'active' AND origin = 'inferred' AND valid_to IS NULL
@@ -163,13 +173,13 @@ function realDeps() {
                   ORDER BY created_at DESC LIMIT $2`, [userId, limit]);
             return require('../stores/memoryCrypto').hydrateRows(rows);
         },
-        markReviewed: async (ids, userId) => {
+        markReviewed: async (/** @type {string[]} */ ids, /** @type {string} */ userId) => {
             if (!ids.length) return 0;
             await db().run(`UPDATE user_memories SET reviewed_at = NOW() WHERE user_id = $1 AND id = ANY($2::text[])`, [userId, ids]);
             return ids.length;
         },
         // { allowed, orgId, shield, scrub }: memory off for the org or user -> not allowed.
-        reviewContext: async (userId) => {
+        reviewContext: async (/** @type {string} */ userId) => {
             const row = await db().getOne(`SELECT "organizationId" AS org FROM users WHERE id = $1`, [userId]);
             const orgId = row?.org || null;
             const policy = await require('../core/memory/memoryPolicy').resolveMemoryPolicy({ userId, orgId });
@@ -180,9 +190,9 @@ function realDeps() {
             if (!scrub) { try { scrub = !!(await require('../core/aiAgent').getAIConfig())?.piiDetectionEnabled; } catch (err) { telemetryLog.debug('fail open: no scrub flag', err); } }
             return { allowed: true, orgId, shield, scrub };
         },
-        scrubText: async (text, shield) => (await require('../core/memory/scrubMemoryContext').scrubMemoryContext(text, shield)).scrubbed,
+        scrubText: async (/** @type {string} */ text, /** @type {Parameters<typeof import('../core/memory/scrubMemoryContext').scrubMemoryContext>[1]} */ shield) => (await require('../core/memory/scrubMemoryContext').scrubMemoryContext(text, shield)).scrubbed,
         // Same model resolution and chat options as the extractor and the writer's judge.
-        judgeBatch: async ({ items, orgId, userId }) => {
+        judgeBatch: async (/** @type {{ items: Array<{ id: string, type: string, content: string }>, orgId: string | null, userId: string }} */ { items, orgId, userId }) => {
             const { resolveMemoryExtractionModel, EXTRACTION_CHAT_OPTIONS } = require('../core/memory/extractionModel');
             const model = await resolveMemoryExtractionModel({ agentModel: null, userOrgId: orgId || null, userId });
             const result = await require('../core/llm/llmClient').chat(model, [
@@ -191,7 +201,7 @@ function realDeps() {
             ], { ...EXTRACTION_CHAT_OPTIONS, maxTokens: 1024, temperature: 0, responseFormat: REVIEW_SCHEMA });
             return result?.content;
         },
-        findStaleIds: async (userId, cutoff) => (await db().getAll(
+        findStaleIds: async (/** @type {string} */ userId, /** @type {Date | string} */ cutoff) => (await db().getAll(
             `SELECT id FROM user_memories
               WHERE user_id = $1 AND status = 'active' AND origin = 'inferred' AND type NOT IN ('instruction', 'schedule_coverage')
                 AND COALESCE(importance, 0.5) < $3 AND COALESCE(last_used_at, created_at) < $2`,
@@ -201,25 +211,35 @@ function realDeps() {
         archive: (ids, userId) => lifecycle().archive(ids, userId),
         // Legacy rows were never classified: tag them so retrieval keeps them out
         // of prompts unless the user opted in to sensitive topics.
-        markSensitive: async (ids, userId) => (await db().run(
+        markSensitive: async (/** @type {string[]} */ ids, /** @type {string} */ userId) => (await db().run(
             `UPDATE user_memories SET sensitivity = 'art9' WHERE user_id = $1 AND id = ANY($2::text[]) AND COALESCE(sensitivity, 'none') <> 'art9'`,
             [userId, ids]))?.rowCount || 0,
         getCursor: async () => {
             try { const v = await config().getConfig(CURSOR_KEY); return typeof v === 'string' ? v : ''; } catch (_) { return ''; }
         },
-        setCursor: async (v) => {
-            try { await config().setConfig(CURSOR_KEY, v); } catch (e) { log.warn('[MemoryConsolidation] cursor not saved:', e.message); }
+        setCursor: async (/** @type {string} */ v) => {
+            try { await config().setConfig(CURSOR_KEY, v); } catch (e) { log.warn('[MemoryConsolidation] cursor not saved:', /** @type {Error} */ (e).message); }
         },
     };
 }
 
-const scopeKey = (r) => `${r.type}|${r.project_id || ''}|${r.agent_id || ''}`;
+const scopeKey = (/** @type {{ type?: string, project_id?: string | null, agent_id?: string | null }} */ r) => `${r.type}|${r.project_id || ''}|${r.agent_id || ''}`;
+/**
+ * @param {string | number | Date} v
+ */
 const ts = (v) => (v ? new Date(v).getTime() : 0);
 
+/**
+ * @typedef {Object} RunOnceArgs
+ * @property {number} [budgetMs]
+ */
 function createConsolidation(overrides = {}) {
     const d = { ...realDeps(), ...overrides };
 
-    /** One user: archive the stale, then merge the duplicates. */
+    /**
+     * One user: archive the stale, then merge the duplicates.
+     * @param {string} userId
+     */
     async function consolidateUser(userId) {
         const out = { merged: 0, archived: 0, cleaned: 0 };
 
@@ -276,8 +296,11 @@ function createConsolidation(overrides = {}) {
     /**
      * LLM review of one user's never-judged inferred rows. `runLeft` is how many
      * rows the whole run may still send. Returns { sent, archived }.
+     * @param {string} userId
+     * @param {number} runLeft
      */
     async function reviewUser(userId, runLeft) {
+        /** @type {{ sent: number, archived: number, sensitive?: number }} */
         const out = { sent: 0, archived: 0 };
         let left = Math.min(REVIEW_ROWS_PER_USER, runLeft);
         if (left <= 0) return out;
@@ -298,7 +321,7 @@ function createConsolidation(overrides = {}) {
                 }
                 answer = await d.judgeBatch({ items, orgId: ctx.orgId, userId });
             } catch (e) {
-                d.log.warn('[MemoryConsolidation] review call failed:', e.message);
+                d.log.warn('[MemoryConsolidation] review call failed:', /** @type {Error} */ (e).message);
                 continue;
             }
             out.sent += batch.length;
@@ -314,7 +337,10 @@ function createConsolidation(overrides = {}) {
         return out;
     }
 
-    /** One bounded pass from the saved cursor. */
+    /**
+     * One bounded pass from the saved cursor.
+     * @param {RunOnceArgs} [param0]
+     */
     async function runOnce({ budgetMs = DEFAULT_BUDGET_MS } = {}) {
         const started = d.now();
         const total = { users: 0, merged: 0, archived: 0, cleaned: 0, reviewed: 0, reviewArchived: 0, wrapped: false };
@@ -339,7 +365,7 @@ function createConsolidation(overrides = {}) {
                         total.reviewArchived += rv.archived;
                     }
                 } catch (e) {
-                    d.log.warn('[MemoryConsolidation] user failed:', e.message);
+                    d.log.warn('[MemoryConsolidation] user failed:', /** @type {Error} */ (e).message);
                 }
                 total.users++;
                 cursor = userId;
@@ -354,10 +380,12 @@ function createConsolidation(overrides = {}) {
 }
 
 let _default = null;
+/** @type {NodeJS.Timeout | null} */
 let _timer = null;
 let _running = false;
 const getDefault = () => (_default ||= createConsolidation());
 
+/** @param {RunOnceArgs} [opts] */
 async function runOnce(opts) {
     if (_running) return null;
     _running = true;

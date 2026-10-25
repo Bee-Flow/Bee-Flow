@@ -54,6 +54,7 @@ const usageStore = require('../../stores/usageStore');
 const { usageLogFields } = require('../providers/usageNormalizer');
 const { resolveDataExtractionModel, extractionRequestOptions, callExtractionModel } = require('./dataExtractionModel');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // The contract's system prompt, verbatim. The field list, the optional
 // instructions and the type rules follow it in the same message; the document
@@ -110,10 +111,15 @@ function sourceToText(value) {
  * Keep the head and the tail of an over-long document and SAY SO where the cut
  * is. The middle of a long document is where the boilerplate lives; the fields
  * an author asks for sit at either end (letterhead, totals, signatures).
+ * @param {string} text
+ * @param {number} [cap]
  */
 function truncateMiddle(text, cap = DATA_EXTRACTION_MAX_SOURCE_CHARS) {
     const s = String(text || '');
     if (s.length <= cap) return { text: s, truncated: false, omitted: 0 };
+    /**
+     * @param {number} n
+     */
     const marker = (n) => `\n\n[… ${n} characters omitted from the middle of the document; the beginning and the end are shown …]\n\n`;
     // The marker's length depends on the digit count of what it reports; a
     // second pass settles it, and a final trim keeps the result within `cap`.
@@ -136,6 +142,7 @@ function truncateMiddle(text, cap = DATA_EXTRACTION_MAX_SOURCE_CHARS) {
  * is the declared shape; a bare string is tolerated the way bind.js tolerates
  * it elsewhere — a `{{…}}` template is interpolated, a ref-looking path is
  * walked, anything else is literal text.
+ * @param {string} source
  */
 function resolveSourceText(source, runState) {
     if (source === null || source === undefined) return '';
@@ -225,6 +232,10 @@ function coerceNumber(raw) {
 
     // Thousands grouping is only grouping when it looks like it: 1-3 digits,
     // then groups of exactly three. "1.2.3" is not a number.
+    /**
+     * @param {string} int
+     * @param {string} thou
+     */
     const grouped = (int, thou) => {
         const groups = int.split(thou);
         return groups.length === 1
@@ -233,6 +244,7 @@ function coerceNumber(raw) {
     };
     const lastDot = s.lastIndexOf('.');
     const lastComma = s.lastIndexOf(',');
+    /** @type {string} */
     let normalised;
     if (lastDot >= 0 && lastComma >= 0) {
         // Both present: the LAST one is the decimal separator.
@@ -264,7 +276,15 @@ function coerceNumber(raw) {
     return negative ? -n : n;
 }
 
+/**
+ * @param {number} n
+ */
 const pad2 = (n) => String(n).padStart(2, '0');
+/**
+ * @param {number} y
+ * @param {number} m
+ * @param {number} d
+ */
 const validYmd = (y, m, d) => {
     if (m < 1 || m > 12 || d < 1 || d > 31) return false;
     const dt = new Date(Date.UTC(y, m - 1, d));
@@ -485,7 +505,7 @@ async function execDataExtraction(step, ctx, runState, mode) {
             conversation_id: ctx.automationId,
             // Normalised by the adapter (cache read/write included).
             ...usageLogFields(response && response.usage),
-        }).catch(() => {});
+        }).catch((e) => bestEffort('core/automationRunner/execDataExtraction:execDataExtraction', e));
     } catch (_) { log.warn('could not record AI usage of the extraction step', _); }
 
     const piiSummary = safety.buildPiiSummary(aiOut.categories || []);
@@ -505,3 +525,13 @@ module.exports = {
     parseExtractionReply, shapeExtractionOutput, synthesiseDryRunExtraction,
     execDataExtraction,
 };
+
+/**
+ * @typedef {{ name: string, type: string, description: string, required: boolean }} ExtractionField
+ */
+
+/**
+ * @typedef {{ id?: string, fields?: Parameters<typeof normaliseFields>[0], source?: ExtractionSource, instructions?: string }} ExtractionStep
+ * @typedef {string | { kind?: string, path?: string, [key: string]: unknown } | null | undefined} ExtractionSource
+ * @typedef {{ orgId?: string, userId?: string, cancelSignal?: AbortSignal, automationId?: string, automationTitle?: string, [key: string]: unknown }} ExtractionCtx
+ */

@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * The "Find repeating work" routes mounted on a real HTTP server, for the
  * tests next to routes/ai/automationBuilder/suggestions.js. The router comes
@@ -24,7 +23,10 @@ const { parseSse } = require('./builderStreamHarness');
 
 const ORG = 'org-1';
 
-/** Middleware that lets every request through: auth and rate limits in a test. */
+/**
+ * Middleware that lets every request through: auth and rate limits in a test.
+ * @param {() => void} next
+ */
 const pass = (_req, _res, next) => next();
 
 /**
@@ -34,7 +36,9 @@ const pass = (_req, _res, next) => next();
  */
 function mountSuggestions(test, router, { prefix = '/builder', errorHandler }) {
     if (typeof errorHandler !== 'function') throw new TypeError('mountSuggestions needs opts.errorHandler (the terminal error handler)');
+    /** @type {http.Server<typeof http.IncomingMessage, typeof http.ServerResponse> | null} */
     let server = null;
+    /** @type {string | null} */
     let base = null;
     test.before(async () => {
         const app = express();
@@ -55,11 +59,15 @@ function mountSuggestions(test, router, { prefix = '/builder', errorHandler }) {
         await new Promise((resolve) => server.close(resolve));
     });
 
-    /** The response as JSON when it is JSON, as SSE frames when it is a stream. */
+    /**
+     * The response as JSON when it is JSON, as SSE frames when it is a stream.
+     * @param {Response} res
+     */
     async function read(res) {
         const text = await res.text();
         const type = res.headers.get('content-type') || '';
         if (type.includes('text/event-stream')) return { status: res.status, frames: parseSse(text), body: null };
+        /** @type {string | null} */
         let body = null;
         try { body = text ? JSON.parse(text) : null; } catch (_) { body = text; }
         return { status: res.status, frames: [], body };

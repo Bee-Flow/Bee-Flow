@@ -186,3 +186,9 @@ module.exports = {
     fixBinding, fixSource, fixOpBindings, findingsRefusal, mapOpBindings,
     SOURCE_HINT_READ, SOURCE_HINT_TABLE,
 };
+
+/** @typedef {import('../draftGraph').DraftGraph} DraftGraph */
+
+/** @typedef {import('../pendingDatatables').DraftWrap} DraftWrap */
+
+/** @typedef {{ severity: string, path: string, message: string, hint?: string }} Finding */

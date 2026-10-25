@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * GET /api/projects/:id/principals: the invite picker's directory.
  *

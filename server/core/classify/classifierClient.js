@@ -20,6 +20,7 @@
 
 const crypto = require('node:crypto');
 const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 /** Texts per request. The service accepts 32; 16 keeps one request short. */
 const BATCH_SIZE = 16;
@@ -38,6 +39,7 @@ const PROBE_TIMEOUT_MS = 1_500;
 // service's default (classify-service/eval/MODEL-DECISIONS.md).
 const DEFAULT_THRESHOLD = 0.75;
 
+/** @type {Record<string, string>} */
 const MESSAGES = {
     topic_classifier_not_configured:
         'This step uses "is about", but no topic classifier is installed. Start classify-service and set CLASSIFY_SERVICE_URL, or remove the "is about" rules.',
@@ -73,6 +75,9 @@ const _engineByUrl = new Map();
 /** @type {{ at: number, ttl: number, value: any } | null} */
 let _probe = null;
 
+/**
+ * @param {string} reason
+ */
 function _noteFailure(reason) {
     _failures += 1;
     if (_failures >= BREAKER_THRESHOLD && Date.now() >= _openUntil) {
@@ -95,16 +100,28 @@ function _resetClassifierState() {
     _probe = null;
 }
 
+/**
+ * @param {string} engine
+ * @param {string[]} labels
+ * @param {string} text
+ */
 function _cacheKey(engine, labels, text) {
     return crypto.createHash('sha256').update(`${engine}\u0000${labels.join('\u0000')}\u0000${text}`).digest('hex');
 }
 
+/**
+ * @param {string} key
+ */
 function _cacheGet(key) {
     const hit = _cache.get(key);
     if (hit) { _cache.delete(key); _cache.set(key, hit); }
     return hit;
 }
 
+/**
+ * @param {string} key
+ * @param {Record<string, number>} scores
+ */
 function _cacheSet(key, scores) {
     _cache.set(key, scores);
     while (_cache.size > CACHE_MAX_ENTRIES) _cache.delete(_cache.keys().next().value);
@@ -118,6 +135,7 @@ function _cacheSet(key, scores) {
  * @returns {Promise<{ status: number, json: any }>}
  */
 async function _request(url, { method = 'POST', body, apiKey, signal }) {
+    /** @type {{ "Content-Type": string; "X-API-Key"?: string }} */
     const headers = { 'Content-Type': 'application/json' };
     if (apiKey) headers['X-API-Key'] = apiKey;
     const res = await fetch(url, {
@@ -127,10 +145,13 @@ async function _request(url, { method = 'POST', body, apiKey, signal }) {
         signal,
     });
     let json = null;
-    try { json = await res.json(); } catch (err) { log.debug('a non-JSON body is read as no body', err); }
+    try { json = await res.json(); } catch (err) { fallback('core/classify/classifierClient:_request', err); /* a non-JSON body is read as no body */ }
     return { status: res.status, json };
 }
 
+/**
+ * @param {number} ms
+ */
 function _sleep(ms, signal) {
     return new Promise((resolve, reject) => {
         const t = setTimeout(resolve, ms);
@@ -138,12 +159,19 @@ function _sleep(ms, signal) {
     });
 }
 
+/**
+ * @param {number} ms
+ */
 function _withTimeout(ms, signal) {
     const t = AbortSignal.timeout(ms);
     return signal ? AbortSignal.any([t, signal]) : t;
 }
 
-/** A response is only usable when every text has a number for every topic. */
+/**
+ * A response is only usable when every text has a number for every topic.
+ * @param {string[]} labels
+ * @param {number} n
+ */
 function _validResults(json, n, labels) {
     const results = json && Array.isArray(json.results) ? json.results : null;
     if (!results || results.length !== n) return null;
@@ -157,6 +185,9 @@ function _validResults(json, n, labels) {
 /**
  * One batch, retried while the service says "busy" or "still loading" and
  * the overall deadline allows.
+ * @param {{ url: string | null; apiKey: string; }} target
+ * @param {string[]} labels
+ * @param {string[]} texts
  */
 async function _classifyBatch(target, texts, labels, { signal, deadlineAt, request }) {
     let delay = 500;
@@ -177,7 +208,7 @@ async function _classifyBatch(target, texts, labels, { signal, deadlineAt, reque
         } catch (e) {
             if (signal?.aborted) throw e;
             _noteFailure('network');
-            throw new TopicClassifierError('topic_classifier_unavailable', undefined, e?.name === 'TimeoutError' ? 'timeout' : 'network');
+            throw new TopicClassifierError('topic_classifier_unavailable', undefined, /** @type {Error} */ (e)?.name === 'TimeoutError' ? 'timeout' : 'network');
         }
         const retryable = res.status === 429 || (res.status === 503 && res.json?.detail === 'model_loading');
         if (retryable && Date.now() + delay < deadlineAt) {
@@ -222,9 +253,11 @@ async function classify(texts, labels, { signal, endpoint, request = _request } 
     let engine = _engineByUrl.get(target.url) || '';
     /** @type {Array<Record<string, number>|undefined>} */
     const scores = texts.map((t) => (engine ? _cacheGet(_cacheKey(engine, labels, t)) : undefined));
+    /** @type {number[]} */
     const missing = [];
     scores.forEach((s, i) => { if (!s) missing.push(i); });
 
+    /** @type {number[][]} */
     const batches = [];
     for (let i = 0; i < missing.length; i += BATCH_SIZE) batches.push(missing.slice(i, i + BATCH_SIZE));
 
@@ -273,6 +306,7 @@ async function probe({ endpoint, request = _request, fresh = false } = {}) {
         return value;
     };
     const base = { defaultThreshold: DEFAULT_THRESHOLD, maxLabels: null, model: null };
+    /** @type {{ url: string | null; apiKey: string; }} */
     let target;
     try {
         target = endpoint || await require('./classifierEndpoint').getClassifierEndpoint();
@@ -310,6 +344,7 @@ async function probe({ endpoint, request = _request, fresh = false } = {}) {
  *   true  — it does, and the classifier answers.
  */
 async function topicClassifierFor(definition, { probeFn = probe } = {}) {
+    /** @type {string} */
     let text;
     try { text = JSON.stringify(definition || {}); } catch { return null; }
     if (!text.includes('isAbout(')) return null;

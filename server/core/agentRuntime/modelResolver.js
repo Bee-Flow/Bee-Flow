@@ -24,6 +24,8 @@ const log = require('../../telemetry/log');
  * settings", not as a tier named null.
  *
  * @returns {Promise<{modelId: string, tierKey: string|null}>}
+ * @param {string} agentModel
+ * @param {string} userMessage
  */
 async function resolveAgentModelWithTier(agentModel, userMessage, globalConfig, userContext = null) {
     // Not a tier-based model — force tier:auto resolution
@@ -82,7 +84,7 @@ async function resolveAgentModelWithTier(agentModel, userMessage, globalConfig, 
             if (!filtered.fast && tiers.fast) filtered.fast = tiers.fast;
             classifierTiers = filtered;
         } catch (err) {
-            log.info(`[AgentRuntime] Could not load permitted tiers for user ${userContext.userId}: ${err.message}`);
+            log.info(`[AgentRuntime] Could not load permitted tiers for user ${userContext.userId}: ${/** @type {Error} */ (err).message}`);
         }
     }
 
@@ -102,7 +104,7 @@ async function resolveAgentModelWithTier(agentModel, userMessage, globalConfig, 
         log.info(`[AgentRuntime] Auto: tier="${result.tier}" → model: ${model} (${result.method}: ${result.reason})`);
         return { modelId: model, tierKey: picked };
     } catch (err) {
-        log.info(`[AgentRuntime] Auto classification failed: ${err.message}, using default`);
+        log.info(`[AgentRuntime] Auto classification failed: ${/** @type {Error} */ (err).message}, using default`);
         const fallback = classifierTiers.fast?.modelId || tiers.fast?.modelId;
         return fallback
             ? { modelId: fallback, tierKey: 'fast' }
@@ -114,6 +116,9 @@ async function resolveAgentModelWithTier(agentModel, userMessage, globalConfig, 
  * The model id only. Kept as the entry point for every caller that does not
  * need the tier (KB summaries, support classifier, …) and for the test doubles
  * that stub this module with a plain string.
+ * @param {string} userMessage
+ * @param {{ userId: string; session: Express.Session | undefined; } | null} [userContext]
+ * @param {string} agentModel
  */
 async function resolveAgentModel(agentModel, userMessage, globalConfig, userContext = null) {
     const { modelId } = await resolveAgentModelWithTier(agentModel, userMessage, globalConfig, userContext);

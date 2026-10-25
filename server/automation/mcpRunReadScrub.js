@@ -5,7 +5,10 @@
  * forms that carry no run value by default. Pure, no I/O.
  */
 
-/** A credential-masked, length-capped line of an error message. */
+/**
+ * A credential-masked, length-capped line of an error message.
+ * @param {number} chars
+ */
 function errorLine(text, chars) {
     if (typeof text !== 'string' || !text) return null;
     const { redactForPersistence } = require('../core/automationModel/runLogRedaction');
@@ -27,6 +30,7 @@ const QUOTED_RE = /(?<!\w)(?:"[^"\n]*"|'[^'\n]*'|`[^`\n]*`|“[^”\n]*”|‘[^
  * identifiers become placeholders; a credential marker stays. Free text with
  * no quote around it cannot be told from engine wording, so the raw text stays
  * behind `raw: true`.
+ * @param {number} chars
  */
 function valueFreeErrorLine(text, errorClass, chars) {
     if (typeof text !== 'string' || !text) return null;
@@ -53,6 +57,7 @@ function fileNameShape(name) {
 /**
  * The tokens of a path as getRelativePath reads it, or null when it is not a
  * path. Used to see `[key="value"]` match segments before the path is applied.
+ * @param {string} path
  */
 function relativePathTokens(path) {
     const { parsePath } = require('../shared/expr/index.mjs');

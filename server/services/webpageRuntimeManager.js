@@ -43,6 +43,7 @@ const {
     isServerInContainer, imageExists, pullImage, ensureNetwork: ensureNamedNetwork,
     connectSelfToNetwork: connectSelf, removeContainerIfExists: removeContainer,
 } = require('./docker/dockerKit');
+const { fallback: fallbackSwallowed, bestEffort } = require('../utils/bestEffort');
 
 // ── Gate + tunables ─────────────────────────────────────────────────────────
 
@@ -57,6 +58,10 @@ const DEV_PORT = 5173; // Vite dev server inside the container
 // safe rather than propagate NaN into Docker's HostConfig — an unvalidated
 // `Math.max(256, NaN) * 1024 * 1024` silently becomes NaN, which dockerode
 // either rejects opaquely or (worse) Docker's API coerces unpredictably.
+/**
+ * @param {string} name
+ * @param {number} fallback
+ */
 function envInt(name, fallback, { min = 0, max = Infinity } = {}) {
     const raw = process.env[name];
     if (raw === undefined || raw === '') return fallback;
@@ -67,6 +72,10 @@ function envInt(name, fallback, { min = 0, max = Infinity } = {}) {
     }
     return Math.min(max, Math.max(min, n));
 }
+/**
+ * @param {string} name
+ * @param {number} fallback
+ */
 function envFloat(name, fallback, { min = 0, max = Infinity } = {}) {
     const raw = process.env[name];
     if (raw === undefined || raw === '') return fallback;
@@ -106,6 +115,7 @@ function getDocker() {
     return new _dockerode({ socketPath: '/var/run/docker.sock' });
 }
 
+/** @type {boolean | null} */
 let _available = null;
 async function dockerAvailable() {
     if (!isEnabled()) return false;
@@ -120,10 +130,16 @@ async function dockerAvailable() {
     return _available;
 }
 
+/**
+ * @param {string | number | boolean} webpageId
+ */
 function containerName(webpageId) {
     return `bf-wp-${String(webpageId).replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 40)}`;
 }
 
+/**
+ * @param {string | number | boolean} webpageId
+ */
 function runtimeLabels(webpageId, orgId) {
     return {
         [LABEL_KIND]: LABEL_KIND_VALUE,
@@ -137,6 +153,9 @@ function runtimeLabels(webpageId, orgId) {
 // at — both the container's VITE_BASE_PATH env (above) and the reverse proxy
 // (server/routes/webpagesFullTierProxy.js) derive from this SAME function so
 // they can never drift apart into two different strings.
+/**
+ * @param {string | number | boolean} webpageId
+ */
 function fullTierBasePath(webpageId) {
     return `/api/webpages-preview/${encodeURIComponent(webpageId)}/full/`;
 }
@@ -145,6 +164,7 @@ function fullTierBasePath(webpageId) {
  * Locked-down HostConfig — copied from pwtRunner.hostConfigCaps and tightened.
  * No process.env spread anywhere; the container only sees the allowlisted env
  * passed at create time.
+ * @param {{ NetworkMode: string; Binds: string[]; }} [extra]
  */
 function hostConfigCaps(extra = {}) {
     return {
@@ -164,6 +184,7 @@ function hostConfigCaps(extra = {}) {
 // ── Image resolution (mirrors pwtRunner.resolvePwtImage) ────────────────────
 
 const LOCAL_IMAGE_TAG = 'beeflow-webpage-runner:local';
+/** @type {string | null} */
 let _resolvedImage = null;
 
 async function resolveImage(docker) {
@@ -182,7 +203,7 @@ async function resolveImage(docker) {
         _resolvedImage = registry;
         return registry;
     } catch (e) {
-        throw new Error(`webpage-runner image unavailable. Set WEBPAGE_RUNNER_IMAGE. (${e.message})`);
+        throw new Error(`webpage-runner image unavailable. Set WEBPAGE_RUNNER_IMAGE. (${/** @type {Error} */ (e).message})`);
     }
 }
 
@@ -203,6 +224,8 @@ function connectSelfToNetwork(docker) {
  * Materialise a project's files (3 slots + extras) into `workdir` so the
  * container's bind-mount sees a real source tree. RustFS stays the source of
  * truth; the container is disposable. Returns the file count written.
+ * @param {string} workdir
+ * @param {string | number | boolean} webpageId
  */
 async function hydrateProject(webpageId, userId, workdir) {
     await fsp.mkdir(workdir, { recursive: true });
@@ -213,6 +236,10 @@ async function hydrateProject(webpageId, userId, workdir) {
     // makes a path-escape here far more consequential (host filesystem, not a
     // sandboxed container) — worth a second, cheap check at the point the path
     // actually leaves the process.
+    /**
+     * @param {string} rel
+     * @param {string | Buffer<ArrayBuffer> | undefined} content
+     */
     const writeFile = async (rel, content) => {
         const dest = path.resolve(workdir, rel);
         if (dest !== workdirResolved && !dest.startsWith(workdirResolved + path.sep)) {
@@ -224,18 +251,18 @@ async function hydrateProject(webpageId, userId, workdir) {
         count++;
     };
 
-    const slots = await webpageStore.readAllSlots(userId, webpageId).catch(() => ({}));
+    const slots = await webpageStore.readAllSlots(userId, webpageId).catch((e) => fallbackSwallowed('services/webpageRuntimeManager:hydrateProject', e, {}));
     if (slots.html) await writeFile('index.html', slots.html);
     if (slots.css) await writeFile('style.css', slots.css);
     if (slots.js) await writeFile('script.js', slots.js);
 
-    const extras = await webpageStore.listExtraFiles(webpageId).catch(() => []);
+    const extras = await webpageStore.listExtraFiles(webpageId).catch((e) => fallbackSwallowed('services/webpageRuntimeManager:hydrateProject#2', e, []));
     for (const meta of extras) {
         try {
             const f = await webpageStore.readExtraFile({ webpageId, userId, path: meta.path });
             if (!f) continue;
             await writeFile(meta.path, f.meta.isText ? f.text : f.bytes);
-        } catch (err) { log.debug('skip individual file failures', err); }
+        } catch (err) { bestEffort('services/webpageRuntimeManager:hydrateProject#3', err); /* skip individual file failures */ }
     }
     return count;
 }
@@ -245,6 +272,9 @@ async function hydrateProject(webpageId, userId, workdir) {
 // webpageId → { containerId, lastAccess, reachableHost }
 const runtimes = new Map();
 
+/**
+ * @param {string | number | boolean} webpageId
+ */
 function touch(webpageId) {
     const e = runtimes.get(webpageId);
     if (e) e.lastAccess = Date.now();
@@ -256,6 +286,9 @@ async function countOrgContainers(docker, orgId) {
     return list.length;
 }
 
+/**
+ * @param {string} name
+ */
 function removeContainerIfExists(docker, name) {
     return removeContainer(docker, name, 3);
 }
@@ -277,15 +310,20 @@ function withOrgLock(orgId, fn) {
     // The chain's tail must never reject (or every later caller for this org
     // would inherit a stale rejection) — the real error/result still reaches
     // this call's own caller via `result`.
-    orgLocks.set(orgId, result.catch(() => {}));
+    orgLocks.set(orgId, result.catch((e) => fallbackSwallowed('services/webpageRuntimeManager:withOrgLock', e)));
     return result;
 }
 
+/**
+ * @typedef {Object} EnsureRuntimeArgs
+ * @property {string | number | boolean} webpageId
+ */
 /**
  * Ensure a running dev container for this project and return its reachable base
  * { reachableHost, containerId } for the reverse proxy, or null when the full
  * tier is unavailable (gate off / no docker) so the caller can fall back to the
  * light tier. Hydrates the project files on cold start.
+ * @param {EnsureRuntimeArgs} param0
  */
 async function ensureRuntime({ webpageId, userId, orgId }) {
     if (!(await dockerAvailable())) return null;
@@ -301,6 +339,13 @@ async function ensureRuntime({ webpageId, userId, orgId }) {
     return withOrgLock(orgId, () => createRuntime({ webpageId, userId, orgId }));
 }
 
+/**
+ * @typedef {Object} CreateRuntimeArgs
+ * @property {string | number | boolean} webpageId
+ */
+/**
+ * @param {CreateRuntimeArgs} param0
+ */
 async function createRuntime({ webpageId, userId, orgId }) {
     // Re-check now that we hold this org's lock — a concurrent call for this
     // SAME webpageId may have finished creating the container while we waited.
@@ -349,6 +394,7 @@ async function createRuntime({ webpageId, userId, orgId }) {
         ExposedPorts: { [`${DEV_PORT}/tcp`]: {} },
         NetworkingConfig: { EndpointsConfig: { [NETWORK]: {} } },
     };
+    /** @type {{ NetworkMode: string; Binds: string[]; PortBindings?: { "5173/tcp": { HostIp: string; HostPort: string; }[]; } }} */
     const hostExtra = { NetworkMode: NETWORK, Binds: [`${workdir}:/project:rw`] };
     if (!inContainer) {
         hostExtra.PortBindings = { [`${DEV_PORT}/tcp`]: [{ HostIp: '127.0.0.1', HostPort: '0' }] };
@@ -359,18 +405,19 @@ async function createRuntime({ webpageId, userId, orgId }) {
     await container.start();
 
     // Resolve the address the proxy uses to reach the dev server.
+    /** @type {string} */
     let reachableHost;
     if (inContainer) {
         reachableHost = `${name}:${DEV_PORT}`;
     } else {
         const info = await container.inspect();
         const binding = info?.NetworkSettings?.Ports?.[`${DEV_PORT}/tcp`]?.[0];
-        if (!binding?.HostPort) { await container.remove({ force: true }).catch(() => {}); throw new Error('dev container did not publish a port'); }
+        if (!binding?.HostPort) { await container.remove({ force: true }).catch((e) => bestEffort('services/webpageRuntimeManager:createRuntime', e)); throw new Error('dev container did not publish a port'); }
         reachableHost = `127.0.0.1:${binding.HostPort}`;
     }
 
     await waitForReady(reachableHost).catch(async (e) => {
-        await container.remove({ force: true }).catch(() => {});
+        await container.remove({ force: true }).catch((e) => bestEffort('services/webpageRuntimeManager:createRuntime#2', e));
         throw e;
     });
 
@@ -379,7 +426,10 @@ async function createRuntime({ webpageId, userId, orgId }) {
     return entry;
 }
 
-/** Poll the dev server's TCP/HTTP until it answers or we time out. */
+/**
+ * Poll the dev server's TCP/HTTP until it answers or we time out.
+ * @param {string} reachableHost
+ */
 async function waitForReady(reachableHost) {
     const deadline = Date.now() + READY_TIMEOUT_MS;
     const url = `http://${reachableHost}/`;
@@ -390,13 +440,16 @@ async function waitForReady(reachableHost) {
             const res = await fetch(url, { signal: ctrl.signal });
             clearTimeout(t);
             if (res.status > 0) return true;
-        } catch (err) { log.debug('not up yet', err); }
+        } catch (err) { bestEffort('services/webpageRuntimeManager:waitForReady', err); /* not up yet */ }
         await new Promise(r => setTimeout(r, 750));
     }
     throw new Error('dev server did not become ready in time');
 }
 
-/** Base URL for the reverse proxy. Call touch() on every proxied request. */
+/**
+ * Base URL for the reverse proxy. Call touch() on every proxied request.
+ * @param {string} webpageId
+ */
 async function getReachableBase(webpageId) {
     const e = runtimes.get(webpageId);
     if (!e) return null;
@@ -404,13 +457,16 @@ async function getReachableBase(webpageId) {
     return `http://${e.reachableHost}`;
 }
 
+/**
+ * @param {string | number | boolean} webpageId
+ */
 async function stopRuntime(webpageId) {
     const e = runtimes.get(webpageId);
     runtimes.delete(webpageId);
     if (!(await dockerAvailable())) return;
-    try { await removeContainerIfExists(getDocker(), containerName(webpageId)); } catch (err) { log.debug('ignore', err); }
+    try { await removeContainerIfExists(getDocker(), containerName(webpageId)); } catch (err) { bestEffort('services/webpageRuntimeManager:stopRuntime', err); /* ignore */ }
     if (e) {
-        try { await fsp.rm(path.join(WORK_ROOT, String(webpageId)), { recursive: true, force: true }); } catch (err) { log.debug('ignore', err); }
+        try { await fsp.rm(path.join(WORK_ROOT, String(webpageId)), { recursive: true, force: true }); } catch (err) { bestEffort('services/webpageRuntimeManager:stopRuntime#2', err); /* ignore */ }
     }
 }
 
@@ -472,15 +528,16 @@ async function reapIdle() {
             }
         }
     } catch (e) {
-        log.warn('[WebpageRuntime] reap failed:', e.message);
+        log.warn('[WebpageRuntime] reap failed:', /** @type {Error} */ (e).message);
     }
     return { reaped };
 }
 
+/** @type {NodeJS.Timeout | null} */
 let _reaperTimer = null;
 function startReaper() {
     if (!isEnabled() || _reaperTimer) return;
-    _reaperTimer = setInterval(() => { reapIdle().catch(() => {}); }, 60_000);
+    _reaperTimer = setInterval(() => { reapIdle().catch((e) => bestEffort('services/webpageRuntimeManager:startReaper', e)); }, 60_000);
     _reaperTimer.unref?.();
 }
 function stopReaper() {
@@ -508,3 +565,10 @@ module.exports = {
     _shouldReap: shouldReap,
     _STARTUP_GRACE_MS: STARTUP_GRACE_MS,
 };
+
+/**
+ * The part of a dockerode client this module uses (dockerode ships no types).
+ * @typedef {{ id: string, start(): Promise<unknown>, stop(opts?: { t?: number }): Promise<unknown>, remove(opts?: { force?: boolean }): Promise<unknown>, inspect(): Promise<{ State?: { Running?: boolean }, NetworkSettings?: { Ports?: Record<string, Array<{ HostIp?: string, HostPort?: string }> | null> } }> }} DockerContainer
+ * @typedef {{ ping(): Promise<unknown>, getContainer(id: string): DockerContainer, createContainer(opts: Record<string, unknown>): Promise<DockerContainer>, listContainers(opts: { all?: boolean, filters?: Record<string, string[]> }): Promise<Array<{ Id: string, State: string, Labels?: Record<string, string> }>> } & import('./docker/dockerKit').DockerClient} DockerClient
+ * @typedef {{ containerId: string, lastAccess: number, reachableHost: string }} RuntimeEntry
+ */

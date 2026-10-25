@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The subscription-changes audit log read.
  */
@@ -21,7 +21,14 @@ const router = express.Router();
 // `limit` stays CLAMPED rather than refused (the handler keeps its Math.min),
 // so a caller asking for more rows than the page shows is not a 400.
 
+/**
+ * @param {string} name
+ * @param {string} what
+ */
 const one = (name, what) => worded(`${name} is ${what}.`).trim().min(1, `${name} is ${what}.`).optional();
+/**
+ * @param {string} name
+ */
 const whole = (name) => z.coerce.number({ error: typeError({ invalid: `${name} must be a number.` }) })
     .int(`${name} must be a whole number.`)
     .min(0, `${name} cannot be negative.`)
@@ -42,7 +49,7 @@ const AuditQuery = z.object({
 // ═══════════════════════════════════════
 
 // GET /api/subscriptions/audit — subscription changes audit log
-router.get('/audit', validate({ query: AuditQuery }), async (req, res) => {
+router.get('/audit', validate({ query: AuditQuery }), /** @param {import('express').Request<import('express-serve-static-core').ParamsDictionary, unknown, unknown, { targetType?: string, targetId?: string, limit?: number, offset?: number }>} req */ async (req, /** @type {import('express').Response} */ res) => {
     const { targetType, targetId, limit = 50, offset = 0 } = req.query;
     const logs = await userStore.getAuditLog({
         targetType, targetId,

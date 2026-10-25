@@ -458,3 +458,11 @@ module.exports = {
     KIND_OF_SECTION, SECTION_OF_KIND, PAYLOAD_KINDS,
     canonicalOf, hashPayload, readStagePayload, readStageShape,
 };
+
+/** @typedef {import('../../core/packaging/walkers').DefinitionNode} DefinitionNode */
+
+/** @typedef {{ query: (sql: string, params?: unknown[]) => Promise<Record<string, any>[] | { rows?: Record<string, any>[] }> }} Queryable */
+
+/** @typedef {{ client?: Queryable|null, versionId?: string|null }} ReadOpts */
+
+/** @typedef {(id: string, opts: ReadOpts, deps: Record<string, unknown>) => Promise<DefinitionNode|null>} Reader */

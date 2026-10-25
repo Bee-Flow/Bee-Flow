@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The tool surface of the CMS MCP server.
  *
@@ -305,6 +305,10 @@ const MCP_ONLY_TOOLS = [
  * MCP tool descriptor from an OpenAI-shaped builder function, with `siteId`
  * spliced in. Copies: TOOL_SCHEMAS is shared with the in-product builder, whose
  * prompt cache depends on its bytes staying put.
+ */
+/**
+ * @param {Record<string, any>} fn
+ * @param {{ readOnly: boolean, destructive?: boolean }} opts
  */
 function toMcpTool(fn, { readOnly, destructive = false }) {
     const params = (fn.parameters && typeof fn.parameters === 'object') ? fn.parameters : { type: 'object' };

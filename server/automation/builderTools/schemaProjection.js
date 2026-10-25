@@ -451,3 +451,11 @@ module.exports = {
     // For tests: the walk must never touch a property NAME.
     _stripUnrenderedKeywords: stripUnrenderedKeywords,
 };
+
+/**
+ * @typedef {{ description?: string, type?: string, enum?: string[], items?: SchemaNode,
+ *   properties?: Record<string, SchemaNode>, additionalProperties?: SchemaNode | boolean,
+ *   anyOf?: SchemaNode[], oneOf?: SchemaNode[], allOf?: SchemaNode[] }} SchemaNode
+ * @typedef {{ type?: string, function: { name: string, description?: string,
+ *   parameters?: { type?: string, properties?: Record<string, SchemaNode> } } }} ToolDef
+ */

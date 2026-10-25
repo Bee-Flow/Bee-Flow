@@ -1,3 +1,4 @@
+/** @typedef {import('../agentRuntime/chatStream/turnState').ChatMessage} ChatMessage */
 // @typecheck
 /**
  * Conversation Compaction — Reduce token usage by summarizing old messages.
@@ -68,6 +69,8 @@ const SUMMARY_FILE_TEXT_MAX_CHARS = 40_000;
  * describe messages that no longer exist — discard both and start over.
  * Single source of truth shared by needsSummarization() and compactMessages()
  * so the trigger check can never disagree with the execution.
+ * @param {string | undefined} existingSummary
+ * @param {number | undefined} summaryUpTo
  */
 function _resolveWatermark(convMessages, existingSummary, summaryUpTo) {
     const summary = typeof existingSummary === 'string' && existingSummary ? existingSummary : null;
@@ -81,6 +84,7 @@ function _resolveWatermark(convMessages, existingSummary, summaryUpTo) {
  * Whether compactMessages() would make a real summarization LLM call for this
  * input. Call sites use this to gate the user-visible "compacting" phase (and
  * its latency expectation) on actual work.
+ * @param {ChatMessage[]} messages
  */
 function needsSummarization(messages, options = {}) {
     const convMessages = messages.filter(m => m.role !== 'system');
@@ -94,6 +98,9 @@ function needsSummarization(messages, options = {}) {
  * default (off) is applied by the call sites via contextPolicy.js.
  */
 function _resolveSettings(options = {}) {
+    /**
+     * @param {number} fallback
+     */
     const asInt = (v, fallback) => (Number.isInteger(v) && v > 0 ? v : fallback);
     const threshold = asInt(options.threshold, COMPACTION_THRESHOLD);
     return {
@@ -111,6 +118,7 @@ function _resolveSettings(options = {}) {
  * prompt. Only used for the overflow guard, so the 4-chars-per-token heuristic
  * in tokenBudget is precise enough — a ±15% error moves the emergency fold by
  * a few turns and nothing else.
+ * @param {(text: string) => number} estimateTokens
  */
 function _estimateMessageTokens(msg, estimateTokens) {
     let total = 0;
@@ -163,6 +171,9 @@ function _estimateConversationTokens(convMessages) {
  */
 const OVERFLOW_RETAIN_RATIO = 0.5;
 
+/**
+ * @param {number | undefined} watermark
+ */
 function _overflowFoldTarget(convMessages, watermark, settings) {
     const { estimateTokens } = require('./tokenBudget');
     const budget = settings.overflowTokens * OVERFLOW_RETAIN_RATIO;
@@ -195,6 +206,7 @@ function _overflowFoldTarget(convMessages, watermark, settings) {
  * The caller needs the reason, not just a boolean: an overflow fold has to use
  * the token-based boundary (`_overflowFoldTarget`) to actually get back under
  * the limit, where a threshold fold uses the fixed recent window.
+ * @param {number | undefined} watermark
  */
 function _foldReason(convMessages, watermark, settings) {
     const unsummarized = convMessages.length - watermark;
@@ -442,6 +454,9 @@ function collectUniqueAttachments(messages) {
  * If hoistedAttachments are provided, the summarizer is given a separate
  * inventory block and instructed to preserve those file references verbatim.
  * The narrative stays under 200 words; the inventory is rendered alongside.
+ * @param {string | null} existingSummary
+ * @param {string | undefined} summaryModelId
+ * @param {string | null | undefined} [userOrgId]
  */
 async function generateSummary(oldMessages, existingSummary, summaryModelId, userOrgId = null, hoistedAttachments = []) {
     const llmClient = require('./llmClient');
@@ -455,6 +470,7 @@ async function generateSummary(oldMessages, existingSummary, summaryModelId, use
 
     for (const msg of oldMessages) {
         if (msg.role === 'user') {
+            /** @type {string} */
             let text;
             if (typeof msg.content === 'string') {
                 text = msg.content;
@@ -519,7 +535,7 @@ async function generateSummary(oldMessages, existingSummary, summaryModelId, use
             return summary;
         }
     } catch (err) {
-        log.error('[Compaction] Summary generation failed:', err.message);
+        log.error('[Compaction] Summary generation failed:', /** @type {Error} */ (err).message);
     }
 
     // Signal failure to the caller: compactMessages falls back to the skip
@@ -553,3 +569,19 @@ module.exports = {
     compactMessages, needsSummarization, COMPACTION_THRESHOLD, RECENT_WINDOW,
     collectUniqueAttachments, COMPACTION_MARKERS,
 };
+
+/** @typedef {{ name?: string, type?: string, url?: string, storageKey?: string, extractedText?: string, [key: string]: unknown }} Attachment */
+
+/**
+ * @typedef {object} CompactionOptions
+ * @property {boolean} [enabled]
+ * @property {number} [threshold]
+ * @property {number} [recentWindow]
+ * @property {number} [overflowTokens]
+ * @property {string} [existingSummary] - Previous compaction summary (from meta_json)
+ * @property {number} [summaryUpTo] - Watermark: how many non-system messages are already folded into existingSummary
+ * @property {string} [summaryModelId] - Model to use for summary generation (tier:fast)
+ * @property {string | null} [userOrgId] - Org ID for EU-mode tier overrides
+ */
+
+/** @typedef {ReturnType<typeof _resolveSettings>} CompactionSettings */

@@ -9,7 +9,7 @@
  */
 
 const fs = require('fs');
-const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * Detect whether the server itself is running inside a Docker container.
@@ -19,15 +19,18 @@ const log = require('../../telemetry/log');
 function isServerInContainer() {
     try {
         if (fs.existsSync('/.dockerenv')) return true;
-    } catch (err) { log.debug('ignore', err); }
+    } catch (err) { bestEffort('services/docker/dockerKit:isServerInContainer', err); /* ignore */ }
     try {
         const cgroup = fs.readFileSync('/proc/1/cgroup', 'utf8');
         return /docker|containerd|kubepods/.test(cgroup);
-    } catch (err) { log.debug('not Linux or no /proc — assume native', err); }
+    } catch (err) { bestEffort('services/docker/dockerKit:isServerInContainer#2', err); /* not Linux or no /proc — assume native */ }
     return false;
 }
 
-/** True when the image is present locally; a non-404 error propagates. */
+/**
+ * True when the image is present locally; a non-404 error propagates.
+ * @param {string} image
+ */
 async function imageExists(docker, image) {
     try {
         await docker.getImage(image).inspect();
@@ -42,6 +45,7 @@ async function imageExists(docker, image) {
  * Pull an image and resolve when the pull stream finishes. `onProgress`, when
  * given, receives every progress event; throttling and reporting stay with the
  * caller.
+ * @param {string} image
  */
 function pullImage(docker, image, onProgress) {
     return /** @type {Promise<void>} */ (new Promise((resolve, reject) => {
@@ -54,7 +58,10 @@ function pullImage(docker, image, onProgress) {
     }));
 }
 
-/** Create a bridge network unless it already exists. */
+/**
+ * Create a bridge network unless it already exists.
+ * @param {string} name
+ */
 async function ensureNetwork(docker, name) {
     try {
         await docker.getNetwork(name).inspect();
@@ -69,6 +76,7 @@ async function ensureNetwork(docker, name) {
  * Attach the server's own container (HOSTNAME = container id) to `network` so
  * it can reach a sidecar by name. Idempotent: a 403 ("already exists in
  * network") counts as success. `onError` sees any other failure.
+ * @param {string} network
  */
 async function connectSelfToNetwork(docker, network, onError) {
     const hostname = process.env.HOSTNAME;
@@ -77,17 +85,21 @@ async function connectSelfToNetwork(docker, network, onError) {
         await docker.getNetwork(network).connect({ Container: hostname });
         return true;
     } catch (err) {
-        if (err.statusCode === 403 || /already exists/i.test(err.message || '')) return true;
+        if (err.statusCode === 403 || /already exists/i.test(/** @type {Error} */ (err).message || '')) return true;
         if (onError) onError(err);
         return false;
     }
 }
 
-/** Stop (grace `stopTimeoutSec`) and force-remove a container; a 404 is fine. */
+/**
+ * Stop (grace `stopTimeoutSec`) and force-remove a container; a 404 is fine.
+ * @param {string} name
+ * @param {number} stopTimeoutSec
+ */
 async function removeContainerIfExists(docker, name, stopTimeoutSec) {
     try {
         const c = docker.getContainer(name);
-        try { await c.stop({ t: stopTimeoutSec }); } catch (err) { log.debug('may already be stopped', err); }
+        try { await c.stop({ t: stopTimeoutSec }); } catch (err) { bestEffort('services/docker/dockerKit:removeContainerIfExists', err); /* may already be stopped */ }
         await c.remove({ force: true });
     } catch (err) {
         if (err.statusCode !== 404) throw err;

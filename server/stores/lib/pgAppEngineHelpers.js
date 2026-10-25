@@ -21,6 +21,9 @@ function quoteIdent(name) {
     return '"' + String(name).replace(/"/g, '""') + '"';
 }
 
+/**
+ * @param {string} sql
+ */
 function validateSql(sql) {
     if (typeof sql !== 'string' || !sql.trim()) {
         throw new Error('sql must be a non-empty string');
@@ -39,6 +42,7 @@ function validateSql(sql) {
  * ASSERTS the placeholder count equals `expectedCount` — a mismatch means the
  * compiler and its params drifted apart, which must throw rather than bind
  * values one position off.
+ * @param {number} expectedCount
  */
 function toDollarParams(sql, expectedCount) {
     let out = '';
@@ -94,6 +98,9 @@ const OID_DATE = 1082;
 const OID_TIMESTAMP = 1114;
 const OID_TIMESTAMPTZ = 1184;
 
+/**
+ * @param {number} n
+ */
 function pad2(n) { return String(n).padStart(2, '0'); }
 
 // A DATE column parsed by the driver into a JS Date. node-postgres parses at
@@ -111,7 +118,7 @@ function dateOnlyString(v) {
 function normalizeRows(result) {
     const rows = Array.isArray(result?.rows) ? result.rows : [];
     const fields = Array.isArray(result?.fields) ? result.fields : [];
-    const fixups = fields.filter(f => f && (
+    const fixups = fields.filter((/** @type {{ dataTypeID: number; }} */ f) => f && (
         f.dataTypeID === OID_INT8 || f.dataTypeID === OID_NUMERIC
         || f.dataTypeID === OID_DATE || f.dataTypeID === OID_TIMESTAMP || f.dataTypeID === OID_TIMESTAMPTZ
     ));

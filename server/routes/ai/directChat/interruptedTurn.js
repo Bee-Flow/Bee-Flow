@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Interrupted-turn persistence for direct chat.
  *
@@ -17,6 +17,7 @@
 
 const { isSideEffect } = require('../../../automation/sideEffectMap');
 
+/** @param {unknown} args */
 function _previewArgs(args) {
     try {
         const s = JSON.stringify(args || {});
@@ -28,13 +29,13 @@ function _previewArgs(args) {
 
 /**
  * @param {Object} params
- * @param {Array}  params.baseMessages - existing conversation messages (from DB); not mutated
+ * @param {Record<string, unknown>[]}  params.baseMessages - existing conversation messages (from DB); not mutated
  * @param {string} params.tokenizedMessage - the user's message (tokenized form, as persisted normally)
- * @param {Array}  [params.persistedAttachments] - attachment metadata for the user row
- * @param {Array}  params.toolHistory - collected tool calls: { name, args, status, resultPreview }
+ * @param {unknown[]}  [params.persistedAttachments] - attachment metadata for the user row
+ * @param {{ name?: string, args?: unknown, status?: string, resultPreview?: unknown }[]}  params.toolHistory - collected tool calls: { name, args, status, resultPreview }
  * @param {string} params.errorNote - human-readable reason the turn was interrupted
- * @param {Function} [params.isSideEffect] - (toolName) => boolean; defaults to sideEffectMap
- * @returns {Array|null} full message list to persist, or null when nothing side-effecting ran
+ * @param {(toolName: string) => boolean} [params.isSideEffect] - (toolName) => boolean; defaults to sideEffectMap
+ * @returns {Record<string, unknown>[]|null} full message list to persist, or null when nothing side-effecting ran
  */
 function buildInterruptedTurnMessages({
     baseMessages,
@@ -50,6 +51,7 @@ function buildInterruptedTurnMessages({
 
     const timestamp = new Date().toISOString();
 
+    /** @type {{ role: string, content: string, timestamp: string, attachments?: unknown[] }} */
     const userSave = { role: 'user', content: tokenizedMessage, timestamp };
     if (Array.isArray(persistedAttachments) && persistedAttachments.length > 0) {
         userSave.attachments = persistedAttachments;

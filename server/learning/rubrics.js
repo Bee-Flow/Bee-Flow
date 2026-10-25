@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // Server-side rubric catalog for Learning Center exercises.
 //
 // The rubric for each exercise lives HERE, never on the client — so it can't leak
@@ -122,8 +122,9 @@ const LEGACY_RUBRICS = {
 
 const RUBRICS = { ...LEGACY_RUBRICS, ...GEN.RUBRICS };
 
+/** @param {string} exerciseId */
 function getRubric(exerciseId) {
-    return RUBRICS[exerciseId] || null;
+    return /** @type {Record<string, typeof RUBRICS[keyof typeof RUBRICS]>} */ (RUBRICS)[exerciseId] || null;
 }
 
 module.exports = { RUBRICS, getRubric };

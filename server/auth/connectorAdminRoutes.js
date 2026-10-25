@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Nextcloud Connector — admin routes
  *
@@ -45,6 +45,10 @@ const TENANT_KEY_PREFIX = 'connector_tenant_key_';
 /** Express 5 leaves `req.body` undefined without a body; a curl POST sends none. */
 const NoBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({}).strict());
 
+/**
+ * @param {import('express').Request} req
+ * @param {string} orgId
+ */
 async function isOrgAdminForOrg(req, orgId) {
     if (req.session?.isAdmin || req.session?.user?.role === 'admin') return true;
     const userId = req.session?.user?.id;
@@ -57,7 +61,7 @@ async function isOrgAdminForOrg(req, orgId) {
 // Issue (or rotate) the tenant key for a given org. Returns the key in the
 // response body — this is the ONLY moment it's visible in plaintext over
 // the wire. Caller must capture it and hand it to the customer admin.
-router.post('/admin/connector/tenants/:orgId/key', requireAuth, validate({ body: NoBody }), async (req, res) => {
+router.post('/admin/connector/tenants/:orgId/key', requireAuth, validate({ body: NoBody }), async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     const { orgId } = req.params;
     if (!orgId) return res.status(400).json({ error: 'orgId required' });
     if (!await isOrgAdminForOrg(req, orgId)) {
@@ -83,7 +87,7 @@ router.post('/admin/connector/tenants/:orgId/key', requireAuth, validate({ body:
 
 // Whether a key currently exists for this org. Never returns the key
 // itself — this is for the admin UI to show "Configured / Not configured".
-router.get('/admin/connector/tenants/:orgId/key', requireAuth, async (req, res) => {
+router.get('/admin/connector/tenants/:orgId/key', requireAuth, async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     const { orgId } = req.params;
     if (!orgId) return res.status(400).json({ error: 'orgId required' });
     if (!await isOrgAdminForOrg(req, orgId)) {
@@ -93,7 +97,7 @@ router.get('/admin/connector/tenants/:orgId/key', requireAuth, async (req, res) 
     res.json({ orgId, configured: !!existing });
 });
 
-router.delete('/admin/connector/tenants/:orgId/key', requireAuth, async (req, res) => {
+router.delete('/admin/connector/tenants/:orgId/key', requireAuth, async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
     const { orgId } = req.params;
     if (!orgId) return res.status(400).json({ error: 'orgId required' });
     if (!await isOrgAdminForOrg(req, orgId)) {

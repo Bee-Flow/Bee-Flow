@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Observed operators — which third parties this organisation's workspace
  * actually talks to.
@@ -30,7 +30,8 @@
 const { getAll } = require('../../db');
 const configStore = require('../../stores/configStore');
 const { SUPPLIER_ROW, LEDGER_ORG_SQL } = require('../../stores/integrationLocationSql');
-const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
+const { isMissingTable } = require('../../utils/isMissingTable');
 
 const WINDOW_DAYS = 30;
 
@@ -40,7 +41,6 @@ const WINDOW_DAYS = 30;
  * with "no ledger". A timeout or a dropped connection is a failed read, and
  * that is not the same claim.
  */
-const NOT_PROVISIONED = new Set(['42P01', '42703']);
 
 // LEDGER_ORG_SQL, the org filter for `integration_activity_log` (the 'default'
 // bucket also owns org-less rows), lives in stores/integrationLocationSql.js
@@ -55,10 +55,11 @@ function _localRuntimeTypes() {
         if (LOCAL_RUNTIMES && typeof LOCAL_RUNTIMES === 'object') {
             return new Set(Object.keys(LOCAL_RUNTIMES).map(k => k.toLowerCase()).concat(['local']));
         }
-    } catch (err) { log.debug('register not present in this build', err); }
+    } catch (err) { bestEffort('compliance/lib/observedOperators:_localRuntimeTypes', err); /* register not present in this build */ }
     return new Set(['ollama', 'vllm', 'llamacpp', 'lmstudio', 'sglang', 'localai', 'tgi', 'jan', 'koboldcpp', 'local']);
 }
 
+/** @type {Record<string, string>} */
 const ALIASES = {
     claude: 'anthropic',
     'google-vertex': 'google',
@@ -71,7 +72,10 @@ const ALIASES = {
     'amazon aws': 'amazon',
 };
 
-/** Canonical key for an operator name: lower-case, no corporate suffix, aliases folded. */
+/**
+ * Canonical key for an operator name: lower-case, no corporate suffix, aliases folded.
+ * @param {string} name
+ */
 function canonical(name) {
     let s = String(name || '').toLowerCase().trim();
     if (!s) return '';
@@ -81,6 +85,8 @@ function canonical(name) {
 
 /**
  * Operators seen in the outbound ledger over the last 30 days.
+ * @param {string} orgId
+ * @param {{ withCountry?: boolean }} [opts]
  * @returns {Promise<Array<{operator:string,is_eu:boolean,calls:number,country_code?:string|null}>|null>}
  *   `null` when the ledger table is not provisioned (fresh install) — callers
  *   distinguish "no ledger" from "ledger, but quiet". Any other read failure
@@ -101,13 +107,14 @@ async function fromActivityLog(orgId, { withCountry = false } = {}) {
             GROUP BY COALESCE(operator, 'unknown')
         `, [orgId]);
     } catch (e) {
-        if (NOT_PROVISIONED.has(e?.code)) return null;
+        if (isMissingTable(e)) return null;
         throw e;
     }
 }
 
 /**
  * Providers with a configured (non-revoked) connection for this org.
+ * @param {string} orgId
  * @returns {Promise<Array<{provider:string,connections:number,any_active:boolean}>>}
  */
 async function fromConnections(orgId) {
@@ -151,9 +158,12 @@ async function fromAiProviders() {
 
 /**
  * One register over all three sources.
+ * @param {string} orgId
  * @returns {Promise<{
  *   window_days:number, ledger_available:boolean, ledger_error:boolean,
- *   activity:Array, connections:Array, ai_providers:Array,
+ *   activity:Array<{operator:string,is_eu:boolean,calls:number,country_code?:string|null}>,
+ *   connections:Array<{provider:string,connections:number,any_active:boolean}>,
+ *   ai_providers:Array<{type:string,name:string|null}>,
  *   operators:Array<{operator:string,key:string,sources:string[],is_eu:boolean|null,country_code:string|null,calls_30d:number,connections:number}>
  * }>}
  */
@@ -165,11 +175,15 @@ async function collect(orgId) {
     const [activity, connections, aiProviders] = await Promise.all([
         // The register keeps its old behaviour: an unreadable ledger lists the
         // other two sources (ledger_available: false) instead of failing.
-        fromActivityLog(orgId, { withCountry: true }).catch(() => { ledgerError = true; return null; }),
+        fromActivityLog(orgId, { withCountry: true }).catch(/** @returns {null} */ () => { ledgerError = true; return null; }),
         fromConnections(orgId),
         fromAiProviders(),
     ]);
     const byKey = new Map();
+    /**
+     * @param {string} display
+     * @param {string} source
+     */
     const upsert = (display, source) => {
         const key = canonical(display);
         if (!key) return null;

@@ -69,7 +69,10 @@ function newId() {
     return `utpl_${crypto.randomBytes(8).toString('hex')}`;
 }
 
-/** True for an id this store owns — the discriminator templateRegistry reads. */
+/**
+ * True for an id this store owns — the discriminator templateRegistry reads.
+ * @param {string} id
+ */
 function isCapturedTemplateId(id) {
     return typeof id === 'string' && id.startsWith('utpl_');
 }
@@ -198,7 +201,10 @@ async function listTemplatesFor({ userId, orgIds = [] } = {}) {
     return (rows || []).map((r) => mapRow(r, { includePayload: false }));
 }
 
-/** One template WITH its payload, or null. Visibility is the caller's job. */
+/**
+ * One template WITH its payload, or null. Visibility is the caller's job.
+ * @param {string} id
+ */
 async function getTemplateById(id) {
     await initDB();
     if (!isCapturedTemplateId(id)) return null;
@@ -218,7 +224,11 @@ function canRead(template, { userId, orgIds = [] } = {}) {
     return (Array.isArray(orgIds) ? orgIds : []).includes(template.organizationId);
 }
 
-/** Delete — creator only (the route additionally allows an org admin). */
+/**
+ * Delete — creator only (the route additionally allows an org admin).
+ * @param {string} id
+ * @param {string} userId
+ */
 async function deleteTemplate(id, userId, { force = false } = {}) {
     await initDB();
     const row = await getOne('SELECT * FROM studio_app_templates WHERE id = $1', [id]);

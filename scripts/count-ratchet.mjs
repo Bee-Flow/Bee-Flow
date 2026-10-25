@@ -63,6 +63,8 @@
  *   explicit-any      `: any`, `as any` and `<any>` in non-test TypeScript: a
  *                     value the compiler stops checking. The target is a real
  *                     type, `unknown` plus narrowing, or a generic.
+ *   jsdoc-loose-type  a server JSDoc type that is exactly `{any}`, `{*}`, `{Function}`, `{Object}`
+ *                     or `{object}`: a value the compiler stops checking, written in a comment.
  *   eslint-disable    `eslint-disable`, `eslint-disable-next-line` and
  *                     `eslint-disable-line` comments in non-test code: a rule
  *                     switched off where it fires. The target is to fix the code
@@ -130,6 +132,24 @@
  *                     only comments: a failure swallowed without a trace. A
  *                     promise `.catch(() => {})` is a call, not a clause, and
  *                     is not counted. Measured in server and agent-hub.
+ *   swallowed-error  server catches that leave no trace above debug level: a catch
+ *                     clause whose only statement is `log.debug(...)`, an empty
+ *                     catch, and a promise `.catch(() => null|undefined|{}|[])`
+ *                     (or an empty function). Parse-or-default on the filesystem
+ *                     or a body (`fs.promises.stat(p).catch(() => null)`,
+ *                     `res.json().catch(() => null)`) is not counted. The AST
+ *                     predicate lives in scripts/catch-classify.mjs, which also
+ *                     buckets the sites and rewrites them. The convention is
+ *                     bestEffort() / fallback() from utils/bestEffort.js (a counter
+ *                     plus a rate-limited warn) or isMissingTable() from
+ *                     utils/isMissingTable.js, so only the expected error is swallowed.
+ *   admin-id-literal  server code (non-test) comparing a user id or username
+ *                     to the literal 'admin': the built-in platform-operator
+ *                     account written out by hand, with no name for why it is
+ *                     special. The convention is isPlatformOperator() from
+ *                     auth/platformOperator.js, the one file allowed to hold it.
+ *                     `role === 'admin'` (any super admin) is another question
+ *                     and is not counted; neither are comment lines.
  *   rollback-in-store a ROLLBACK written into a query string in stores/
  *                     (non-test): a hand-rolled BEGIN/COMMIT/ROLLBACK. The
  *                     convention is db.withTransaction() from server/db.js,
@@ -176,7 +196,7 @@ const TEST_FILE = /\.test\.[jt]sx?$/;
 const lineCount = (text) => (text.match(/\n/g) || []).length + (text.endsWith('\n') || text === '' ? 0 : 1);
 
 const BIG_FILE_LIMIT = { 'agent-hub': 400, server: 800 };
-const BIG_FILE_EXEMPT = /(^|\/)(i18n|generated|templates|fixtures)\/|\.generated\.|^scripts\/content\//;
+const BIG_FILE_EXEMPT = /(^|\/)(i18n|generated|templates|fixtures)\/|\.generated\.|^scripts\/content\/|^types\/rows\.d\.ts$/;
 
 const LINE_REF = /#L\d+|\b(?:at|on|see|zie|near|line)\s+~?L\d{2,}|\(L\d{2,}\)/i;
 const COMMENT_LINE = /^\s*(?:\/\/|\/?\*)/;
@@ -280,6 +300,9 @@ const INLINE_PGLITE_ADAPTER = /^(?:async\s+)?function\s+(?:adapt\w*|rawQuery|q|q
 // empty-catch: a catch clause whose block holds nothing, or only comments.
 // `.catch(() => {})` on a promise is a call, not a clause, and is not counted.
 const EMPTY_CATCH = /(?<![\w$.])catch\s*(?:\([^)]*\))?\s*\{\s*(?:(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/)\s*)*\}/g;
+
+// admin-id-literal: `<x>.id === 'admin'`, `userId !== 'admin'`, `username == "admin"`, either side.
+const ADMIN_ID_LITERAL = /(?:\.id|\bid|Id|\busername|Username)\s*[!=]==?\s*['"`]admin['"`]|['"`]admin['"`]\s*[!=]==?\s*[\w$.?]*(?:\.id|\bid|Id|\busername|Username)\b/g;
 
 // rollback-in-store: a ROLLBACK written into a query string by hand.
 // `ROLLBACK TO SAVEPOINT` is a step inside a transaction, not the end of one.
@@ -482,6 +505,12 @@ const METRICS = {
         what: 'explicit any types',
         advice: 'give it a real type, use unknown and narrow it, or make the function generic',
     },
+    'jsdoc-loose-type': {
+        include: (rel) => !TEST_FILE.test(rel) && /\.[cm]?[jt]s$/.test(rel) && !rel.endsWith('.d.ts'),
+        measure: countMatches(/\{\s*(?:any|\*|Function|Object|object)\s*\}/g),
+        what: 'JSDoc types that are any, *, Function, Object or object',
+        advice: 'name the real type: the shape as a typedef or inline object type, a function signature `(a: string) => void`, `unknown` plus narrowing, or a generic',
+    },
     'eslint-disable': {
         include: (rel) => !TEST_FILE.test(rel) && /\.[cm]?[jt]sx?$/.test(rel),
         measure: countMatches(/(?:\/\/|\/\*)\s*eslint-disable\b/g),
@@ -562,6 +591,23 @@ const METRICS = {
         what: 'empty catch blocks',
         advice: 'handle the error, log it (log.warn / log.debug with the reason it is safe to go on), or rethrow it; a comment alone hides the failure',
     },
+    'swallowed-error': {
+        include: (rel) => !TEST_FILE.test(rel) && !rel.startsWith('testUtils/'),
+        // Server only: the sites are `log.debug` catches and promise fallbacks of the Node code.
+        measure: (text, pkg, rel) => (pkg === 'server' ? countSwallowed(text, path.join(ROOT, pkg, rel)) : 0),
+        what: 'catches that swallow an error without a trace above debug level',
+        advice: 'use bestEffort(label, e) or fallback(label, e, value) from utils/bestEffort.js, or `if (!isMissingTable(e)) throw e;` from utils/isMissingTable.js; node scripts/catch-classify.mjs --list shows the buckets',
+    },
+    'admin-id-literal': {
+        include: (rel) => !TEST_FILE.test(rel) && !rel.startsWith('testUtils/') && rel !== 'auth/platformOperator.js',
+        measure: (text) => {
+            let n = 0;
+            for (const line of text.split('\n')) if (!COMMENT_LINE.test(line)) n += (line.match(ADMIN_ID_LITERAL) || []).length;
+            return n;
+        },
+        what: "comparisons of a user id or username to the literal 'admin'",
+        advice: 'use isPlatformOperator(userOrId) from auth/platformOperator.js instead; it names why that account is special',
+    },
     'rollback-in-store': {
         include: (rel) => !TEST_FILE.test(rel) && rel.startsWith('stores/'),
         measure: countMatches(LITERAL_ROLLBACK),
@@ -572,7 +618,9 @@ const METRICS = {
         include: (rel) => !TEST_FILE.test(rel) && rel.startsWith('routes/'),
         measure: (text, pkg, rel) => {
             let n = 0;
-            for (const [, , spec] of text.matchAll(IMPORT_SPEC)) {
+            // A JSDoc type (`typeof import('../db').getAll`) is no runtime import.
+            const code = text.replace(/\/\*[\s\S]*?\*\//g, '');
+            for (const [, , spec] of code.matchAll(IMPORT_SPEC)) {
                 if (/^(?:db|db\.js)$/.test(resolveImport(spec, rel) ?? '')) n++;
             }
             return n;
@@ -590,6 +638,9 @@ const METRICS = {
 
 const args = process.argv.slice(2);
 const [metricName, pkg] = args.filter((a) => !a.startsWith('--'));
+// The one metric that needs a parser: loaded on demand, so the others run without it.
+let countSwallowed;
+if (metricName === 'swallowed-error') ({ countSwallowed } = await import('./catch-classify.mjs'));
 const metric = METRICS[metricName];
 if (!metric || !pkg) {
     console.error(`count-ratchet: usage: node scripts/count-ratchet.mjs <${Object.keys(METRICS).join('|')}> <package> [--update] [--list]`);

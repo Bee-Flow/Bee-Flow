@@ -14,6 +14,7 @@ const { run, getOne, getAll, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { buildUpdate } = require('./lib/sqlBuilder');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const initDB = makeStoreInit('AITaskStore', _initDB);
 
@@ -53,7 +54,7 @@ async function _initDB() {
     await exec(`
         ALTER TABLE ai_tasks ALTER COLUMN max_result_length SET DEFAULT 50000;
         UPDATE ai_tasks SET max_result_length = 50000 WHERE max_result_length <= 2000;
-    `).catch(() => { /* already migrated or column doesn't exist yet */ });
+    `).catch((e) => bestEffort('stores/aiTaskStore:_initDB', e));
     log.info('[AITaskStore] PostgreSQL initialized');
 }
 
@@ -86,6 +87,9 @@ function rowToTask(r) {
     };
 }
 
+/**
+ * @param {string} str
+ */
 function safeParseJSON(str, fallback = []) {
     if (Array.isArray(str)) return str;
     try { return JSON.parse(str); } catch (_) { return fallback; }
@@ -265,6 +269,9 @@ async function resumeNeedsReauthForUser(userId) {
 // in the days_of_week JSON array. Keep in sync with the frontend day picker.
 const DOW_TOKENS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
+/**
+ * @param {string | number | Date} currentNextRun
+ */
 function advanceNextRun(currentNextRun, interval, daysOfWeek = null) {
     const d = new Date(currentNextRun);
     // Automation day-of-week mode: advance one day at a time until we hit a
@@ -296,6 +303,9 @@ function advanceNextRun(currentNextRun, interval, daysOfWeek = null) {
     return d.toISOString();
 }
 
+/**
+ * @param {string | number | Date} currentNextRun
+ */
 async function advanceSchedule(id, currentNextRun, interval, daysOfWeek = null) {
     const next = advanceNextRun(currentNextRun, interval, daysOfWeek);
     if (next) {
@@ -342,3 +352,27 @@ module.exports = {
     // Awaitbare init-ingang voor migrateDb (memoised — zelfde promise als de load-time init).
     initDB,
 };
+
+/**
+ * @typedef {object} AiTaskRow
+ * @property {string} id
+ * @property {string} user_id
+ * @property {string} title
+ * @property {string} prompt
+ * @property {string | null} repeat_interval
+ * @property {string | Date | null} next_run_at
+ * @property {string | Date | null} last_run_at
+ * @property {string | null} last_result
+ * @property {string} last_status
+ * @property {boolean} is_active
+ * @property {string} model_tier
+ * @property {string} tools_enabled
+ * @property {number} max_result_length
+ * @property {number} run_count
+ * @property {string} timezone
+ * @property {string | Date | null} created_at
+ * @property {string | null} agent_id
+ * @property {string | null} conversation_id
+ * @property {string | null} days_of_week
+ * @property {string | null} time_of_day
+ */

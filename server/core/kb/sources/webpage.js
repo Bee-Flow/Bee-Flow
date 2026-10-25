@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * A web page (or a whole site) as a knowledge source.
  *
@@ -28,7 +27,7 @@
 
 const { guardedFetch } = require('../fetchGuard');
 const { readTextOrThrowOversize, kbWebPageMaxBytes, kbSitemapMaxBytes } = require('../../http/httpResponseLimits');
-const log = require('../../../telemetry/log');
+const { fallback } = require('../../../utils/bestEffort');
 
 /** A crawl source will not walk more than this, whatever its config says. */
 const MAX_CRAWL_PAGES = 500;
@@ -90,6 +89,7 @@ function isUnchanged() {
  * re-embeddings.
  */
 async function fetch(item, stored, _ctx, _deps) {
+    /** @type {{ "User-Agent": string; "If-None-Match"?: string; "If-Modified-Since"?: string }} */
     const headers = { 'User-Agent': 'Mozilla/5.0 (compatible; BeeFlow/1.0)' };
     // The validator this page gave us last time, offered back to it. An
     // ETag is quoted (or W/-prefixed); anything else is a date.
@@ -129,7 +129,7 @@ async function fetch(item, stored, _ctx, _deps) {
     // Keep whichever validator the server gave us, so the NEXT pass can ask.
     const nextValidator = res.headers.get('etag') || res.headers.get('last-modified') || null;
     let hostname = item.url;
-    try { hostname = new URL(resolvedUrl).hostname; } catch (err) { log.debug('keep the raw url', err); }
+    try { hostname = new URL(resolvedUrl).hostname; } catch (err) { fallback('core/kb/sources/webpage:fetch', err); /* keep the raw url */ }
 
     return {
         content,
@@ -150,8 +150,11 @@ async function fetch(item, stored, _ctx, _deps) {
  * not wander onto a third-party domain the way following links does. A site
  * without one contributes its entry page and nothing else, which is the
  * honest outcome — not a crawl of everything it happens to link to.
+ * @param {string | URL} entryUrl
+ * @param {number} maxPages
  */
 async function sitemapPages(entryUrl, maxPages, ctx) {
+    /** @type {string} */
     let origin;
     try { origin = new URL(entryUrl).origin; } catch (_) { return []; }
 
@@ -162,8 +165,9 @@ async function sitemapPages(entryUrl, maxPages, ctx) {
             const text = await robots.text();
             for (const m of text.matchAll(/^\s*Sitemap:\s*(\S+)/gim)) candidates.push(m[1]);
         }
-    } catch (err) { log.debug('no robots.txt is normal', err); }
+    } catch (err) { fallback('core/kb/sources/webpage:sitemapPages', err); /* no robots.txt is normal */ }
 
+    /** @type {string[]} */
     const urls = [];
     const seenMaps = new Set();
     for (const candidate of candidates) {
@@ -187,7 +191,7 @@ async function sitemapPages(entryUrl, maxPages, ctx) {
                 if (urls.length >= maxPages) break;
             }
         } catch (e) {
-            ctx?.log?.(`sitemap ${candidate} skipped: ${e.message}`);
+            ctx?.log?.(`sitemap ${candidate} skipped: ${/** @type {Error} */ (e).message}`);
         }
     }
     return urls;

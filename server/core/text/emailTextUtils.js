@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Email/ticket text utilities — HTML→text cleanup, PII redaction, and the
  * KB-article merge prompt.
@@ -16,6 +16,7 @@
 // Ported directly from n8n Code node "Code: Cleanup HTML/Email"
 // ──────────────────────────────────────────────
 
+/** @type {Record<string, string>} */
 const NAMED_ENTITIES = {
     nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"', apos: "'",
     eacute: 'é', egrave: 'è', ecirc: 'ê', euml: 'ë', aacute: 'á', agrave: 'à', acirc: 'â', auml: 'ä',
@@ -25,9 +26,10 @@ const NAMED_ENTITIES = {
     rdquo: '”', bull: '•', middot: '·', laquo: '«', raquo: '»', deg: '°',
 };
 
+/** @param {string} str */
 function decodeHtmlEntities(str) {
     if (!str) return '';
-    return str.replace(/&(#[xX][0-9a-fA-F]{1,6}|#[0-9]{1,7}|[a-zA-Z]{2,8});/g, (m, body) => {
+    return str.replace(/&(#[xX][0-9a-fA-F]{1,6}|#[0-9]{1,7}|[a-zA-Z]{2,8});/g, (/** @type {string} */ m, /** @type {string} */ body) => {
         if (body[0] === '#') {
             const cp = body[1] === 'x' || body[1] === 'X' ? parseInt(body.slice(2), 16) : parseInt(body.slice(1), 10);
             const valid = cp > 0 && cp <= 0x10ffff && !(cp >= 0xd800 && cp <= 0xdfff);
@@ -41,7 +43,13 @@ function decodeHtmlEntities(str) {
 // scans (no backtracking), to the close tag or, when it is missing, to the end.
 const DROP_BLOCKS = new Set(['head', 'script', 'style', 'title', 'noscript', 'template']);
 
-/** Index just past the `>` of the close tag `</name  >` found after `from`, or -1. */
+/**
+ * Index just past the `>` of the close tag `</name  >` found after `from`, or -1.
+ * @param {string} s
+ * @param {string} lower
+ * @param {string} name
+ * @param {number} from
+ */
 function findCloseEnd(s, lower, name, from) {
     const needle = `</${name}`;
     let at = lower.indexOf(needle, from);
@@ -55,6 +63,7 @@ function findCloseEnd(s, lower, name, from) {
     return -1;
 }
 
+/** @param {string} s */
 function dropBlocks(s) {
     const lower = s.replace(/[A-Z]/g, c => String.fromCharCode(c.charCodeAt(0) + 32));
     const out = [];
@@ -85,6 +94,7 @@ function dropBlocks(s) {
     return out.join('');
 }
 
+/** @param {unknown} input */
 function stripHtmlToText(input) {
     let s = dropBlocks(String(input || ''));
 
@@ -124,6 +134,7 @@ function stripHtmlToText(input) {
     return s;
 }
 
+/** @param {unknown} text */
 function removeUrls(text) {
     let s = String(text || '');
 
@@ -148,6 +159,7 @@ function removeUrls(text) {
     return s;
 }
 
+/** @param {string} line */
 function looksLikePercentEncodedJunk(line) {
     const l = String(line || '');
     const matches = l.match(/%[0-9A-Fa-f]{2}/g);
@@ -161,6 +173,7 @@ function looksLikePercentEncodedJunk(line) {
     return false;
 }
 
+/** @param {unknown} text */
 function cleanEmailNoise(text) {
     let s = String(text || '');
 
@@ -242,6 +255,7 @@ function cleanEmailNoise(text) {
 /**
  * Stage 1: Full email cleanup pipeline.
  * HTML → Text → Remove URLs → Clean noise
+ * @param {unknown} rawContent
  */
 function cleanEmail(rawContent) {
     let text = stripHtmlToText(rawContent);
@@ -265,6 +279,7 @@ const PII_PATTERNS = [
 // BSN is 9 digits; 9*d1 + 8*d2 + ... + 2*d8 - 1*d9 must be divisible by 11
 // and the result must also be non-zero. This catches most false positives
 // (order numbers, tracking codes) that happen to be 9 digits.
+/** @param {string} digits */
 function isValidBsn(digits) {
     if (!/^\d{9}$/.test(digits)) return false;
     const weights = [9, 8, 7, 6, 5, 4, 3, 2, -1];
@@ -279,6 +294,12 @@ const MAC_ANCHOR_RE = /(?:mac|hwaddr|ether|bssid)[\s:=]{0,10}$/i;
 const MAC_RE = /\b([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b/g;
 const BSN_CANDIDATE_RE = /\b\d{9}\b/g;
 
+/**
+ * @param {string} text
+ * @param {RegExp} regex
+ * @param {string} replacement
+ * @param {(match: string, before: string) => boolean} accept
+ */
 function replaceWithContext(text, regex, replacement, accept) {
     let s = '';
     let lastIndex = 0;
@@ -300,10 +321,13 @@ function replaceWithContext(text, regex, replacement, accept) {
 /**
  * Redact PII and return { text, counts } where counts is keyed by PII class.
  * The `disable` array can suppress specific classes: e.g. ['mac','bsn'].
+ * @param {unknown} text
+ * @param {{ disable?: string[] }} [opts]
  */
 function redactPIIWithCounts(text, { disable = [] } = {}) {
     const disabled = new Set((disable || []).map(s => String(s).toLowerCase()));
     let s = String(text || '');
+    /** @type {Record<string, number>} */
     const counts = { email: 0, phone: 0, ip: 0, asset: 0, bsn: 0, mac: 0 };
 
     for (const { key, regex, replacement } of PII_PATTERNS) {
@@ -327,6 +351,10 @@ function redactPIIWithCounts(text, { disable = [] } = {}) {
     return { text: s, counts };
 }
 
+/**
+ * @param {unknown} text
+ * @param {{ disable?: string[] }} [opts]
+ */
 function redactPII(text, opts) {
     return redactPIIWithCounts(text, opts).text;
 }

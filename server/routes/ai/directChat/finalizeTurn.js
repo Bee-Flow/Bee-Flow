@@ -26,6 +26,7 @@ const {
 } = require('./finalizeContent');
 const { persistenceBase, buildUserRow, resolveTokenisationInfo, buildAssistantRow, buildUpdateMeta } = require('./finalizeRows');
 const { scheduleTitle, extractTurnMemories } = require('./finalizeAftercare');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 /**
  * ATTACHED KNOWLEDGE BASES. What is stored is `usableKbIds`: the ids
@@ -54,7 +55,7 @@ async function ensureConversationWithKbs({ convId, userId, modelTier, usableKbId
                 const projectStore = require('../../../stores/projectStore');
                 await projectStore.assignConversation(conv.id, validProjectId, userId, 'direct_conversations');
             } catch (e) {
-                log.warn('[DirectChat] Failed to assign conversation to project:', e.message);
+                log.warn('[DirectChat] Failed to assign conversation to project:', /** @type {Error} */ (e).message);
             }
         }
         return conv.id;
@@ -66,7 +67,7 @@ async function ensureConversationWithKbs({ convId, userId, modelTier, usableKbId
     try {
         await agentStore.setDirectConversationKnowledgeBases(convId, attachedKbIds, userId);
     } catch (kbErr) {
-        log.warn('[DirectChat] Failed to persist attached knowledge bases:', kbErr.message);
+        log.warn('[DirectChat] Failed to persist attached knowledge bases:', /** @type {Error} */ (kbErr).message);
     }
     return convId;
 }
@@ -105,7 +106,7 @@ async function persistTurn(t, conv) {
     // what they last chose ("auto" stays "auto"); otherwise model_tier is
     // frozen at creation and never reflects mid-conversation switches.
     if (modelTier) {
-        await agentStore.updateDirectConversationModelTier(convId, modelTier, userId).catch(() => {});
+        await agentStore.updateDirectConversationModelTier(convId, modelTier, userId).catch((e) => bestEffort('routes/ai/directChat/finalizeTurn:persistTurn', e));
     }
     // Memory extraction runs ONCE per turn, at the tail of
     // finalizeDirectChatTurn (the retired core/memoryExtractor used to fire
@@ -149,3 +150,5 @@ async function finalizeDirectChatTurn(turn) {
 }
 
 module.exports = { finalizeDirectChatTurn };
+
+/** @typedef {ReturnType<typeof import('./turnState').createTurnState>} Turn */

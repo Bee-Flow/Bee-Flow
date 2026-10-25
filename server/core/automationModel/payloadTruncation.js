@@ -33,7 +33,7 @@
  * Non-mutating; returns a new value tree when truncation kicks in.
  */
 
-const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 const DEFAULT_MAX_BYTES = 256 * 1024; // 256 KB per payload
 const TRUNCATED_MARKER = '__truncated__';
@@ -87,7 +87,7 @@ function shapePreview(value, opts = {}) {
                 if (typeof v !== 'string' || v.length <= level.chars) return v;
                 const parsed = parseJsonText(v);
                 if (parsed !== undefined) {
-                    try { return JSON.stringify(walk(parsed, path, depth)); } catch (err) { log.debug('fall through', err); }
+                    try { return JSON.stringify(walk(parsed, path, depth)); } catch (err) { bestEffort('core/automationModel/payloadTruncation:walk', err); /* fall through */ }
                 }
                 return `${v.slice(0, level.chars)}…`;
             }
@@ -107,7 +107,7 @@ function shapePreview(value, opts = {}) {
             const result = { preview, previewCut: cut };
             const bytes = Buffer.byteLength(JSON.stringify(result), 'utf8');
             if (bytes <= maxBytes) return result;
-        } catch (err) { log.debug('a cycle or a getter that throws: try coarser, then give up', err); }
+        } catch (err) { bestEffort('core/automationModel/payloadTruncation:shapePreview', err); /* a cycle or a getter that throws: try coarser, then give up */ }
     }
     return null;
 }

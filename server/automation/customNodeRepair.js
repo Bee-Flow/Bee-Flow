@@ -105,7 +105,12 @@ function defaultDeps(overrides = {}) {
     };
 }
 
-/** One attempt's evidence, in the one shape every exit of this module carries. */
+/**
+ * One attempt's evidence, in the one shape every exit of this module carries.
+ * @param {number} n
+ * @param {string} code
+ * @param {string | null} [error]
+ */
 function evidenceOf(n, code, { result, logs, calls } = {}, error = null, missingOutputs = []) {
     return {
         attempt: n,
@@ -126,10 +131,14 @@ function evidenceOf(n, code, { result, logs, calls } = {}, error = null, missing
 function missingFrom(result, expectOutputs) {
     if (!expectOutputs.length) return [];
     if (!isObject(result)) return [...expectOutputs];
-    return expectOutputs.filter(name => result[name] === undefined);
+    return expectOutputs.filter((/** @type {string | number} */ name) => result[name] === undefined);
 }
 
-/** A refusal: every exit that is not a body that ran. Never carries `code`. */
+/**
+ * A refusal: every exit that is not a body that ran. Never carries `code`.
+ * @param {string} reason
+ * @param {string} message
+ */
 function notRepaired(reason, message, attempts, extra = {}) {
     const last = attempts.length ? attempts[attempts.length - 1] : null;
     return {
@@ -185,6 +194,9 @@ async function repairCodeBody({
     onProgress = null,
 } = {}, deps = defaultDeps()) {
     const { runTest, proposeFix } = deps;
+    /**
+     * @param {string} type
+     */
     const emit = (type, detail) => { if (typeof onProgress === 'function') onProgress({ type, detail }); };
     const expected = (Array.isArray(expectOutputs) ? expectOutputs : []).filter(n => typeof n === 'string' && n);
     const bound = Math.max(1, Math.min(Math.round(Number(maxAttempts) || MAX_REPAIR_ATTEMPTS), ATTEMPT_CEILING));
@@ -208,13 +220,13 @@ async function repairCodeBody({
                 // Nothing about the body is known, so nothing about it may be
                 // reported — and above all it must not be handed to a model
                 // to "fix". This is the one failure that is not the author's.
-                return notRepaired('sandbox_unavailable', e.message || String(e), attempts);
+                return notRepaired('sandbox_unavailable', /** @type {Error} */ (e).message || String(e), attempts);
             }
             // runCode already says this in the author's own coordinates
             // ("at line 4, column 11"), so it is passed through verbatim
             // rather than re-wrapped: a second sentence around it is a second
             // place for the line number to go wrong.
-            evidence = evidenceOf(n, candidate, {}, e && e.message ? e.message : String(e), []);
+            evidence = evidenceOf(n, candidate, {}, e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : String(e), []);
         }
         attempts.push(evidence);
         emit(evidence.ok ? 'passed' : 'failed', { attempt: n, error: evidence.error, missingOutputs: evidence.missingOutputs });
@@ -259,7 +271,7 @@ async function repairCodeBody({
             // The fixer itself failed. That is not "the code is unfixable",
             // and reporting it as such would send the author rewriting a body
             // whose last run nobody has seen.
-            return notRepaired('repairer_failed', `The repairer could not be reached: ${e && e.message ? e.message : String(e)}`, attempts);
+            return notRepaired('repairer_failed', `The repairer could not be reached: ${e && /** @type {Error} */ (e).message ? /** @type {Error} */ (e).message : String(e)}`, attempts);
         }
 
         const next = proposedCode(answer);
@@ -312,6 +324,10 @@ function replaceStep(graph, target, next) {
 }
 
 /**
+ * @typedef {Object} RepairCustomNodeArgs
+ * @property {string} [goal]
+ */
+/**
  * The same loop, asked of a custom node instead of a loose body.
  *
  * Everything the loop needs is already declared on the node — the body, the
@@ -320,6 +336,7 @@ function replaceStep(graph, target, next) {
  * "what the node declares" and "what was tested" the same thing. On success
  * the node comes back with the repaired body in place; on failure the node is
  * NOT returned changed, for the reason in the header.
+ * @param {RepairCustomNodeArgs} [param0]
  */
 async function repairCustomNode({ definition, inputs = {}, maxAttempts, goal = '', onProgress = null } = {}, deps = defaultDeps()) {
     const { customNodeBody, customNodeContract, sandboxAllowedTools } = require('./customNode');
@@ -352,3 +369,9 @@ module.exports = {
     MAX_REPAIR_ATTEMPTS,
     ATTEMPT_CEILING,
 };
+
+/**
+ * @typedef {object} RepairDeps
+ * @property {(p: { code: string, inputs: object, limits: object, allowedTools: string[] }) => Promise<{ result?: unknown, logs?: unknown[], calls?: unknown[] }|undefined>} runTest
+ * @property {((ctx: object) => Promise<string|{ code?: string }|null>)|null} [proposeFix]
+ */

@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('./providerCallbackRoutes').OAuthUser} OAuthUser */
+// @typecheck strict
 'use strict';
 /**
  * Microsoft-specific steps of the OAuth callback (providerCallbackRoutes.js):
@@ -17,6 +18,9 @@ const log = require('../../telemetry/log');
 const { GUID } = require('../microsoftIdentity');
 
 const identityStore = () => require('../../stores/microsoftIdentityStore');
+/**
+ * @param {string | null | undefined} v
+ */
 const lower = (v) => String(v || '').toLowerCase();
 
 /**
@@ -38,6 +42,8 @@ async function autoLinkOnLogin(user, configuredTenantId, store = identityStore()
  * An unlinked login that collides with an existing account (same e-mail, or
  * an unbound legacy object id) needs an administrator: record the request.
  * @returns {Promise<boolean>} true when the login must stop with sso_link_required
+ * @param {OAuthUser} user
+ * @param {typeof import('../../stores/userStore')} userStore
  */
 async function requireAdminLink(user, userStore, store = identityStore()) {
     const collides = (user.email && await userStore.getUserByEmail(user.email))
@@ -60,7 +66,7 @@ async function trustedMicrosoftOrg(user, configuredTenantId, userStore,
     if (!GUID.test(tenant)) return null;
     const orgs = await userStore.getAllOrganizations();
     let binding = null;
-    try { binding = await getSyncBinding(); } catch (e) { log.warn(`[OAuth/microsoft] Azure sync binding unreadable: ${e.message}`); }
+    try { binding = await getSyncBinding(); } catch (e) { log.warn(`[OAuth/microsoft] Azure sync binding unreadable: ${/** @type {Error} */ (e).message}`); }
     if (binding?.syncOrganizationId && lower(binding.syncTenantId) === tenant) {
         return orgs.find((o) => o.id === binding.syncOrganizationId) || null;
     }
@@ -71,6 +77,8 @@ async function trustedMicrosoftOrg(user, configuredTenantId, userStore,
 /**
  * Store the signed-in user's Graph profile photo as an upload. Best-effort.
  * @returns {Promise<string|null>} the /uploads URL, or null without a photo
+ * @param {string | undefined} accessToken
+ * @param {OAuthUser} user
  */
 async function saveMicrosoftPhoto(accessToken, user) {
     const fs = require('fs');
@@ -90,7 +98,7 @@ async function saveMicrosoftPhoto(accessToken, user) {
         fs.writeFileSync(path.join(uploadDir, filename), Buffer.from(await photoResponse.arrayBuffer()));
         return `/uploads/${filename}`;
     } catch (photoErr) {
-        log.info(`[OAuth/Microsoft] Error fetching photo: ${photoErr.message}`);
+        log.info(`[OAuth/Microsoft] Error fetching photo: ${/** @type {Error} */ (photoErr).message}`);
         return null;
     }
 }

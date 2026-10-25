@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio data routes: what the app's owner manages. Saved datasets,
  * the data model (schema) and the app's members with their roles. The
@@ -11,7 +11,12 @@ const studioAppDataStore = require('../../stores/studioAppDataStore');
 const rlsGateway = require('../../appStudio/rlsGateway');
 const { validateDataModel } = require('../../appStudio/dataModel');
 const { loadOwnedApp, handleErr } = require('./appDataContext');
+const { bestEffort } = require('../../utils/bestEffort');
 
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function listDatasets(req, res) {
     try {
         const app = await loadOwnedApp(req, res);
@@ -21,6 +26,10 @@ async function listDatasets(req, res) {
     } catch (err) { handleErr(res, err, 'datasets.list'); }
 }
 
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function createDataset(req, res) {
     try {
         const app = await loadOwnedApp(req, res);
@@ -37,6 +46,10 @@ async function createDataset(req, res) {
     } catch (err) { handleErr(res, err, 'datasets.create'); }
 }
 
+/**
+ * @param {import('express').Request<{ id: string, datasetId: string }>} req
+ * @param {import('express').Response} res
+ */
 async function updateDataset(req, res) {
     try {
         const app = await loadOwnedApp(req, res);
@@ -51,11 +64,15 @@ async function updateDataset(req, res) {
         const dataset = await studioAppDataStore.updateDataset(req.params.datasetId, app.id, app.userId, updates);
         if (!dataset) return res.status(404).json({ error: 'Dataset not found' });
         // Descriptor/source edits change the query — drop stale cached results.
-        try { await studioAppDataStore.invalidateCache(req.params.datasetId); } catch (err) { log.debug('advisory', err); }
+        try { await studioAppDataStore.invalidateCache(req.params.datasetId); } catch (err) { bestEffort('routes/studio/appDataAdmin:updateDataset', err); /* advisory */ }
         res.json({ success: true, dataset });
     } catch (err) { handleErr(res, err, 'datasets.update'); }
 }
 
+/**
+ * @param {import('express').Request<{ id: string, datasetId: string }>} req
+ * @param {import('express').Response} res
+ */
 async function deleteDataset(req, res) {
     try {
         const app = await loadOwnedApp(req, res);
@@ -66,6 +83,10 @@ async function deleteDataset(req, res) {
     } catch (err) { handleErr(res, err, 'datasets.delete'); }
 }
 
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function getSchema(req, res) {
     try {
         const app = await loadOwnedApp(req, res);
@@ -80,6 +101,10 @@ async function getSchema(req, res) {
     } catch (err) { handleErr(res, err, 'schema.get'); }
 }
 
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function putSchema(req, res) {
     try {
         const app = await loadOwnedApp(req, res);
@@ -93,6 +118,7 @@ async function putSchema(req, res) {
         // Shape validation first, then every declared rowFilter must translate to
         // the bounded SQL subset (the ONLY free-form input a data model carries).
         const { errors } = validateDataModel(model);
+        /** @type {string[]} */
         const rowFilterErrors = [];
         for (const t of (Array.isArray(model.tables) ? model.tables : [])) {
             const rf = t && t.access && typeof t.access.rowFilters === 'object' ? t.access.rowFilters : null;
@@ -125,17 +151,21 @@ async function putSchema(req, res) {
         // recovered by the next save or by opening the app.
         try {
             const synced = (Array.isArray(model.connectors) ? model.connectors : [])
-                .filter((c) => c && c.sync && c.sync.tableId)
-                .map((c) => c.id);
+                .filter(/** @param {{ id?: string, sync?: { tableId?: string } } | null} c */ (c) => c && c.sync && c.sync.tableId)
+                .map(/** @param {{ id?: string }} c */ (c) => c.id);
             await studioAppDataStore.reconcileSyncStates(app.id, app.userId, synced);
         } catch (e) {
-            log.warn(`[StudioAppData] sync scheduling failed for app ${app.id}: ${e.message}`);
+            log.warn(`[StudioAppData] sync scheduling failed for app ${app.id}: ${/** @type {Error} */ (e).message}`);
         }
 
         res.json({ success: true, version: result.version });
     } catch (err) { handleErr(res, err, 'schema.put'); }
 }
 
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function listMembers(req, res) {
     try {
         const app = await loadOwnedApp(req, res);
@@ -145,6 +175,10 @@ async function listMembers(req, res) {
     } catch (err) { handleErr(res, err, 'members.list'); }
 }
 
+/**
+ * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Response} res
+ */
 async function addMember(req, res) {
     try {
         const app = await loadOwnedApp(req, res);
@@ -160,7 +194,7 @@ async function addMember(req, res) {
         const meta = await studioAppDataStore.getDataModel(app.id, app.userId);
         const modelRoles = (meta && meta.model && Array.isArray(meta.model.roles)) ? meta.model.roles : [];
         const validRoles = [...new Set([
-            ...modelRoles.map((r) => r && r.key).filter((k) => typeof k === 'string' && k),
+            ...modelRoles.map(/** @param {{ key?: string } | null} r */ (r) => r && r.key).filter(/** @param {string} k */ (k) => typeof k === 'string' && k),
             'member',
         ])];
         if (!validRoles.includes(roleKey)) {
@@ -173,6 +207,10 @@ async function addMember(req, res) {
     } catch (err) { handleErr(res, err, 'members.add'); }
 }
 
+/**
+ * @param {import('express').Request<{ id: string, userId: string }>} req
+ * @param {import('express').Response} res
+ */
 async function removeMember(req, res) {
     try {
         const app = await loadOwnedApp(req, res);

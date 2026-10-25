@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * The vocabulary and row shapes of the co-editing store (../collabDocStore.js,
@@ -17,6 +17,7 @@ const CONFIG_KEY_PREFIX = 'org_collab_';
 const ORIGINS = Object.freeze(['user', 'ai', 'system', 'restore', 'import']);
 const LIST_MAX = 500;
 const LOAD_RETRIES = 3;
+/** @type {readonly ('compactCount' | 'compactBytes' | 'sessionIdleMs' | 'materialiseIdleMs' | 'materialiseMaxLagMs' | 'sessionMaxMs')[]} */
 const LIST_WORK_THRESHOLDS = Object.freeze(['compactCount', 'compactBytes', 'sessionIdleMs', 'materialiseIdleMs', 'materialiseMaxLagMs', 'sessionMaxMs']);
 
 /** A refusal the caller turns into a worded 4xx. */
@@ -29,10 +30,15 @@ class CollabStoreError extends Error {
     }
 }
 
+/**
+ * @param {string | number | Date} v
+ */
 const toIso = (v) => (v ? new Date(v).toISOString() : null);
+/** @param {unknown} v */
 const toInt = (v) => (v === null || v === undefined ? 0 : Number(v));
 
 /** PGlite answers BYTEA as a Uint8Array, node-postgres as a Buffer. Callers get a Buffer. */
+/** @param {Uint8Array | Buffer | null | undefined} v */
 function toBuffer(v) {
     if (v === null || v === undefined) return null;
     if (Buffer.isBuffer(v)) return v;
@@ -76,7 +82,7 @@ function rowToDoc(r) {
     };
 }
 
-/** An update row, `body` still sealed. @param {any} r */
+/** An update row, `body` still sealed. @param {DbRow.CollabDocUpdates} r */
 function rowToUpdate(r) {
     return {
         seq: toInt(r.seq),

@@ -27,6 +27,7 @@ const { cleanVariables } = require('./variables');
 // ---------------------------------------------------------------------------
 
 function defaultTheme() {
+    /** @type {Record<string, string | null>} */
     const theme = {};
     for (const [k, spec] of Object.entries(THEME_SPEC)) {
         if (spec.optional) continue; // emit-when-present (core/cms/themeSpec.js)
@@ -38,12 +39,16 @@ function defaultTheme() {
 // def.roles (v2) — a key list only: [{ id, name }]. Definitions proper live in
 // the data store; here we just keep well-shaped { id, name } entries so role
 // references elsewhere can resolve. Absent/[] is normal (migrate seeds []).
+/**
+ * @param {(arg0: string, path: string, arg2: string) => void} push
+ */
 function cleanRoles(raw, push) {
     if (raw === undefined) return [];
     if (!Array.isArray(raw)) {
         push('roles.invalid', 'roles', 'roles must be an array of { id, name } — reset to [].');
         return [];
     }
+    /** @type {{ id: string; }[]} */
     const out = [];
     const seen = new Set();
     raw.forEach((role, i) => {
@@ -100,6 +105,7 @@ function canonicalizeAppDefinition(input) {
         else push('meta.invalid', 'meta', 'meta missing — filled with defaults.');
         out.meta = { name: 'Untitled app', description: '', icon: 'LayoutGrid' };
     } else {
+        /** @type {{ name?: string; description?: string; icon?: string }} */
         const meta = {};
         if (typeof input.meta.name === 'string' && input.meta.name.trim()) {
             meta.name = truncate(input.meta.name, LIMITS.MAX_NAME_LEN, 'meta.name', push);
@@ -126,6 +132,7 @@ function canonicalizeAppDefinition(input) {
         if (input.theme !== undefined) push('theme.invalid', 'theme', 'theme must be an object — rebuilt from defaults.');
         out.theme = defaultTheme();
     } else {
+        /** @type {Record<string, string | null>} */
         const theme = {};
         for (const [k, spec] of Object.entries(THEME_SPEC)) {
             const v = input.theme[k];
@@ -257,3 +264,23 @@ function canonicalizeAppDefinition(input) {
 }
 
 module.exports = { canonicalizeAppDefinition };
+
+/** @typedef {{ type: string, default?: string | null, optional?: boolean, values?: unknown[], presets?: string[], description?: string }} ThemeSpecEntry */
+
+/** @typedef {{ code: string, path: string, message: string }} Repair */
+
+/**
+ * @typedef {object} CanonDef  The canonicalised definition shell.
+ * @property {number} schemaVersion
+ * @property {{ name?: string, description?: string, icon?: string }} [meta]
+ * @property {Record<string, unknown>} [theme]
+ * @property {string | null} [homeScreenId]
+ * @property {Array<{ id: string, name?: string }>} [roles]
+ * @property {unknown[]} [variables]
+ * @property {import('./references').PassTwoScreen[]} [screens]
+ * @property {Record<string, Record<string, any>>} [actions]
+ * @property {unknown} [design]
+ * @property {unknown} [nav]
+ * @property {unknown} [publicAccess]
+ * @property {{ enabled: boolean, allowedDomains?: string[] }} [aiBrowsing]
+ */

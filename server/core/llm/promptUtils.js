@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Shared prompt utilities — no dependencies on agentRuntime or other heavy modules.
  * This avoids circular dependency issues when browser/ modules need prompt processing.

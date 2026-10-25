@@ -31,6 +31,7 @@ const DEFAULT_API_URL = 'https://api.pyannote.ai/v1';
 // Overridable so tests don't sleep 5s between polls.
 const POLL_INTERVAL_MS = Number(process.env.PYANNOTE_POLL_INTERVAL_MS) || 5000;
 
+/** @type {Record<string, string>} */
 const MIME_BY_EXT = {
     '.flac': 'audio/flac', '.wav': 'audio/wav', '.mp3': 'audio/mpeg',
     '.ogg': 'audio/ogg', '.opus': 'audio/ogg', '.m4a': 'audio/mp4', '.mp4': 'audio/mp4',
@@ -39,7 +40,10 @@ const MIME_BY_EXT = {
 
 const TERMINAL_STATUSES = ['succeeded', 'failed', 'canceled'];
 
-/** Strip the API key (and any long token) from an error string. */
+/**
+ * Strip the API key (and any long token) from an error string.
+ * @param {string} message
+ */
 function redact(message) {
     return String(message || '').replace(/[A-Za-z0-9_\-]{20,}/g, '[REDACTED]');
 }
@@ -57,6 +61,9 @@ function computePyannoteTimeouts({ durationSeconds = 0, env = process.env } = {}
     if (override > 0) return { pollCapMs: override };
     const dur = Number(durationSeconds) || 0;
     if (!dur) return { pollCapMs: 30 * 60_000 };
+    /**
+     * @param {number} v
+     */
     const clamp = (v) => Math.min(2 * 3600_000, Math.max(15 * 60_000, v));
     // ~2x real-time headroom for queue + processing.
     return { pollCapMs: clamp(dur * 2000) };
@@ -208,13 +215,13 @@ async function pollJob(jobId, auth, { pollCapMs, label = 'job' } = {}) {
         } catch (err) {
             // A thrown fetch is a network blip; an explicitly retriable status
             // is the API asking us to wait. Anything else is terminal.
-            const retriable = err.retriable || !err.message?.startsWith(`pyannote ${label} poll failed`);
+            const retriable = err.retriable || !/** @type {Error} */ (err).message?.startsWith(`pyannote ${label} poll failed`);
             if (!retriable) throw err;
             consecutiveFailures++;
             if (consecutiveFailures >= MAX_CONSECUTIVE_POLL_FAILURES) {
-                throw new Error(`pyannote ${label} poll failed ${consecutiveFailures} times in a row: ${redact(err.message)}`);
+                throw new Error(`pyannote ${label} poll failed ${consecutiveFailures} times in a row: ${redact(/** @type {Error} */ (err).message)}`);
             }
-            log.warn(`[Pyannote] ${label} poll attempt failed (${consecutiveFailures}/${MAX_CONSECUTIVE_POLL_FAILURES}): ${redact(err.message)} — retrying`);
+            log.warn(`[Pyannote] ${label} poll attempt failed (${consecutiveFailures}/${MAX_CONSECUTIVE_POLL_FAILURES}): ${redact(/** @type {Error} */ (err).message)} — retrying`);
             continue;
         }
         consecutiveFailures = 0;
@@ -243,3 +250,27 @@ module.exports = {
     submitJob,
     pollJob,
 };
+
+/**
+ * @typedef {object} PyannoteRow  one diarization / transcription row of a job's output
+ * @property {string} [speaker]
+ * @property {number|string} [start]
+ * @property {number|string} [end]
+ * @property {string} [text]
+ */
+
+/**
+ * @typedef {object} PyannoteOutput  a succeeded job's `output`
+ * @property {PyannoteRow[]} [turnLevelTranscription]
+ * @property {PyannoteRow[]} [wordLevelTranscription]
+ * @property {PyannoteRow[]} [diarization]
+ * @property {string} [voiceprint]  an enrollment job's template
+ * @property {string} [error]
+ */
+
+/**
+ * @typedef {object} PyannoteJob
+ * @property {string} [status]
+ * @property {PyannoteOutput} [output]
+ * @property {string} [error]
+ */

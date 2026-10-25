@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Parameters a code step declares, read from the JSDoc on `main`.
  *
@@ -25,7 +25,7 @@
 
 'use strict';
 
-const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 
 const ACRONYMS = new Set([
     'vat', 'id', 'ids', 'url', 'urls', 'uri', 'api', 'iban', 'bic', 'pdf', 'csv', 'json', 'html', 'http', 'https',
@@ -35,7 +35,10 @@ const ACRONYMS = new Set([
 
 const NAME_RE = /^[A-Za-z_$][\w$]*$/;
 
-/** "vatRate" -> "VAT rate", "customer_email" -> "Customer email", "invoiceID" -> "Invoice ID". */
+/**
+ * "vatRate" -> "VAT rate", "customer_email" -> "Customer email", "invoiceID" -> "Invoice ID".
+ * @param {string} name
+ */
 function humanise(name) {
     const words = String(name || '')
         .replace(/[_\-\s]+/g, ' ')
@@ -52,10 +55,16 @@ function humanise(name) {
     }).join(' ');
 }
 
-/** Split on `sep` at nesting depth 0, outside quotes. */
+/**
+ * Split on `sep` at nesting depth 0, outside quotes.
+ * @param {string} text
+ * @param {string} sep
+ */
 function splitTopLevel(text, sep) {
+    /** @type {string[]} */
     const out = [];
     let depth = 0;
+    /** @type {string | null} */
     let quote = null;
     let cur = '';
     for (let i = 0; i < text.length; i++) {
@@ -76,11 +85,25 @@ function splitTopLevel(text, sep) {
     return out.map((s) => s.trim()).filter((s) => s.length > 0);
 }
 
+/**
+ * @param {string} s
+ */
 function unquote(s) {
     const m = /^(['"`])([\s\S]*)\1$/.exec(s);
     return m ? m[2].replace(/\\(['"`\\])/g, '$1') : null;
 }
 
+/**
+ * The parameter shape a JSDoc type reads as.
+ * @typedef {{ type: string, format?: string, items?: { type: string }, enum?: Array<string | number>, optional?: boolean }} ParamShape
+ */
+/**
+ * One parameter of a code step, as parseJsDoc reads it.
+ * @typedef {{ name: string, label: string, description: string | null, type: string, format?: string,
+ *   items?: { type: string }, enum?: Array<string | number>, required: boolean, default?: unknown, line: number }} CodeParam
+ */
+
+/** @type {Record<string, { type: string; } | { type: string; format: string; }>} */
 const SIMPLE_TYPES = {
     string: { type: 'string' },
     number: { type: 'number' },
@@ -103,6 +126,8 @@ const SIMPLE_TYPES = {
 /**
  * A JSDoc type expression as the parameter shape the form renders:
  * `{ type, format?, items?, enum? }`. Unknown types read as string.
+ * @param {string} raw
+ * @returns {ParamShape}
  */
 function parseType(raw) {
     let text = String(raw || '').trim();
@@ -131,13 +156,16 @@ function parseType(raw) {
     return { type: 'string', optional };
 }
 
-/** A default value written in JSDoc (`[vatRate=21]`), JSON-ish. */
+/**
+ * A default value written in JSDoc (`[vatRate=21]`), JSON-ish.
+ * @param {string} raw
+ */
 function parseDefault(raw) {
     const text = String(raw).trim();
     if (text === '') return undefined;
     const quoted = unquote(text);
     if (quoted !== null) return quoted;
-    try { return JSON.parse(text); } catch (err) { log.debug('try the single-quoted form below', err); }
+    try { return JSON.parse(text); } catch (err) { bestEffort('core/automationModel/codeSafety/jsdoc:parseDefault', err); /* try the single-quoted form below */ }
     try {
         return JSON.parse(text.replace(/'((?:[^'\\]|\\.)*)'/g, (_, s) => JSON.stringify(s.replace(/\\'/g, "'"))));
     } catch (_) {
@@ -145,7 +173,11 @@ function parseDefault(raw) {
     }
 }
 
-/** Bring a default in line with the declared type where that is unambiguous. */
+/**
+ * Bring a default in line with the declared type where that is unambiguous.
+ * @param {unknown} value
+ * @param {ParamShape} shape
+ */
 function typedDefault(value, shape) {
     if (value === undefined) return undefined;
     if ((shape.type === 'number' || shape.type === 'integer') && typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value))) {
@@ -155,10 +187,16 @@ function typedDefault(value, shape) {
     return value;
 }
 
-/** Read a balanced `{...}` or `[...]` group at the start of `text`. */
+/**
+ * Read a balanced `{...}` or `[...]` group at the start of `text`.
+ * @param {string} open
+ * @param {string} close
+ * @param {string} text
+ */
 function readGroup(text, open, close) {
     if (text[0] !== open) return null;
     let depth = 0;
+    /** @type {string | null} */
     let quote = null;
     for (let i = 0; i < text.length; i++) {
         const ch = text[i];
@@ -180,6 +218,7 @@ function readGroup(text, open, close) {
 /**
  * The lines of a block comment's text (acorn's `value`, between the slash-star
  * and the star-slash) with the leading ` * ` gutter removed.
+ * @param {string} value
  */
 function commentLines(value) {
     return String(value || '').split('\n').map((line, i) => {
@@ -195,12 +234,16 @@ function commentLines(value) {
  * @param {string} value           the comment text (between the delimiters)
  * @param {number} startLine        1-based line the comment starts on
  * @param {{ inputsName?: string|null, ctxName?: string|null }} names
- * @returns {{ description: string|null, params: object[], returns: object|null }}
+ * @returns {{ description: string|null, params: CodeParam[], returns: { type: string | null, description: string | null }|null }}
+
  */
 function parseJsDoc(value, startLine, { inputsName = 'inputs', ctxName = 'ctx' } = {}) {
     const lines = commentLines(value);
+    /** @type {string[]} */
     const descLines = [];
+    /** @type {{ tag: string; text: string; line: number; }[]} */
     const tags = [];
+    /** @type {{ tag: string; text: string; line: number; } | null} */
     let current = null;
     lines.forEach((line, i) => {
         // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- one anchored tag pattern over a single comment line: linear
@@ -219,6 +262,7 @@ function parseJsDoc(value, startLine, { inputsName = 'inputs', ctxName = 'ctx' }
     });
 
     // The first paragraph is the step description.
+    /** @type {string[]} */
     const firstPara = [];
     for (const l of descLines) {
         if (!l) { if (firstPara.length) break; continue; }
@@ -228,11 +272,13 @@ function parseJsDoc(value, startLine, { inputsName = 'inputs', ctxName = 'ctx' }
 
     const params = [];
     const seen = new Set();
+    /** @type {{ type: string | null; description: string | null; }} */
     let returns = null;
     const prefixes = new Set([inputsName || 'inputs']);
     for (const t of tags) {
         if ((t.tag === 'returns' || t.tag === 'return') && !returns) {
             let text = t.text.trim();
+            /** @type {string | null} */
             let type = null;
             const g = readGroup(text, '{', '}');
             if (g) { type = g.inner.trim() || null; text = g.rest.trim(); }
@@ -245,8 +291,10 @@ function parseJsDoc(value, startLine, { inputsName = 'inputs', ctxName = 'ctx' }
         const g = readGroup(text, '{', '}');
         if (g) { typeText = g.inner; text = g.rest.trim(); }
 
+        /** @type {string} */
         let rawName;
         let optional = false;
+        /** @type {string | undefined} */
         let defaultText;
         const b = readGroup(text, '[', ']');
         if (b) {

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck strict
 /**
  * Dutch for the redesigned Learning Center (handoff "Learning Center.dc.html",
  * 2026-09-14): the 300-px rail, the curriculum map, the course screen with its

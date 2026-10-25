@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck
+// @typecheck strict
 /**
  * Dutch for notebooks as a document type (2026-10): a notebook is listed,
  * started, filtered, filed and deleted in Studio → Documents, next to pages,

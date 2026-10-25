@@ -1,15 +1,17 @@
-// @typecheck
+// @typecheck strict
 /**
  * Pipeline LLM Helpers
  * Shared LLM call utilities and JSON extraction for the component pipeline.
  */
 
 const { getAIConfig, getProviderForModel } = require('../core/aiAgent');
-const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 /**
  * Call the LLM with a system prompt, messages, and optional tools.
  * Resolves the provider and model automatically.
+ * @param {{ systemPrompt?: string, messages: { role: string, content?: string | null }[],
+ *   tools?: Record<string, unknown>[], model?: string | null, temperature?: number, maxTokens?: number }} opts
  */
 async function callLLM({ systemPrompt, messages, tools = [], model = null, temperature = 0.7, maxTokens = 4000 }) {
     const baseConfig = await getAIConfig();
@@ -19,6 +21,7 @@ async function callLLM({ systemPrompt, messages, tools = [], model = null, tempe
     let apiUrl = providerConfig.url.replace(/\/+$/, '');
     if (!apiUrl.endsWith('/v1')) apiUrl = `${apiUrl}/v1`;
 
+    /** @type {Record<string, string>} */
     const headers = { 'Content-Type': 'application/json' };
     if (providerConfig.apiKey) headers['Authorization'] = `Bearer ${providerConfig.apiKey}`;
 
@@ -33,6 +36,7 @@ async function callLLM({ systemPrompt, messages, tools = [], model = null, tempe
         content: msg.content ?? ''
     }));
 
+    /** @type {{ model: string, messages: { role: string, content: string }[], temperature: number, max_tokens: number, tools?: Record<string, unknown>[], tool_choice?: string }} */
     const requestBody = {
         model: useModel,
         messages: sanitizedMessages,
@@ -62,17 +66,18 @@ async function callLLM({ systemPrompt, messages, tools = [], model = null, tempe
 /**
  * Extract JSON from LLM response text.
  * Tries code blocks first, then raw JSON, then object extraction.
+ * @param {string} text
  */
 function extractJSON(text) {
     if (!text) return null;
     const codeBlockMatch = text.match(/```(?:json)?\s*\n([\s\S]*?)\n```/);
     if (codeBlockMatch) {
-        try { return JSON.parse(codeBlockMatch[1]); } catch (err) { log.debug('fenced block is not valid JSON, try the next strategy', err); }
+        try { return JSON.parse(codeBlockMatch[1]); } catch (err) { bestEffort('pipeline/llmHelpers:extractJSON', err); /* fenced block is not valid JSON, try the next strategy */ }
     }
-    try { return JSON.parse(text); } catch (err) { log.debug('text is not valid JSON, try the next strategy', err); }
+    try { return JSON.parse(text); } catch (err) { bestEffort('pipeline/llmHelpers:extractJSON#2', err); /* text is not valid JSON, try the next strategy */ }
     const objMatch = text.match(/\{[\s\S]*\}/);
     if (objMatch) {
-        try { return JSON.parse(objMatch[0]); } catch (err) { log.debug('brace-matched text is not valid JSON', err); }
+        try { return JSON.parse(objMatch[0]); } catch (err) { bestEffort('pipeline/llmHelpers:extractJSON#3', err); /* brace-matched text is not valid JSON */ }
     }
     return null;
 }
@@ -80,6 +85,7 @@ function extractJSON(text) {
 /**
  * Extract component JSON from LLM response text.
  * Handles the component code block format (with id, name, and code).
+ * @param {string} text
  */
 function extractComponentFromResponse(text) {
     if (!text) return null;
@@ -92,14 +98,14 @@ function extractComponentFromResponse(text) {
             if (parsed.id && parsed.name && parsed.code) {
                 return parsed;
             }
-        } catch (err) { log.debug('candidate is not valid JSON, try the next match', err); }
+        } catch (err) { bestEffort('pipeline/llmHelpers:extractComponentFromResponse', err); /* candidate is not valid JSON, try the next match */ }
     }
 
     // Try the full text as JSON
     try {
         const parsed = JSON.parse(text);
         if (parsed.id && parsed.name && parsed.code) return parsed;
-    } catch (err) { log.debug('text is not valid JSON', err); }
+    } catch (err) { bestEffort('pipeline/llmHelpers:extractComponentFromResponse#2', err); /* text is not valid JSON */ }
 
     return null;
 }

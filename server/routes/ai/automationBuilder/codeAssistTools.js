@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The code assistant's edit tools (POST /api/automation/builder/code/assist).
  *
@@ -112,12 +112,17 @@ const CODE_TOOL_NAMES = new Set(CODE_TOOLS.map(t => t.function.name));
 
 // ── Line numbers ────────────────────────────────────────────────────
 
-/** The code as the model reads it: `  12 | text`, numbered from `from`. */
+/**
+ * The code as the model reads it: `  12 | text`, numbered from `from`.
+ * @param {string} code
+ * @param {{ from?: number, to?: number | null }} [range]
+ */
 function numberLines(code, { from = 1, to = null } = {}) {
     const lines = String(code || '').split('\n');
     const last = Math.min(lines.length, to || lines.length);
     const first = Math.max(1, from);
     const width = String(last).length;
+    /** @type {string[]} */
     const out = [];
     for (let n = first; n <= last; n++) out.push(`${String(n).padStart(width)} | ${lines[n - 1]}`);
     return out.join('\n');
@@ -129,6 +134,7 @@ const NUMBER_PREFIX_RE = /^\s*\d+ \| ?/;
  * Undo a listing's line numbers when EVERY non-empty line carries one: the
  * model copied from code_read. A single numbered-looking line is left alone
  * (it could be code); a whole block of them never is.
+ * @param {string} text
  */
 function stripLineNumbers(text) {
     if (typeof text !== 'string' || !text) return text;
@@ -138,7 +144,10 @@ function stripLineNumbers(text) {
     return lines.map(l => l.replace(NUMBER_PREFIX_RE, '')).join('\n');
 }
 
-/** A whole write wrapped in a Markdown fence loses the fence. */
+/**
+ * A whole write wrapped in a Markdown fence loses the fence.
+ * @param {string} text
+ */
 function stripFence(text) {
     if (typeof text !== 'string') return text;
     const m = /^\s*```[\w-]*[ \t]*\r?\n([\s\S]*?)\r?\n?```\s*$/.exec(text);
@@ -151,6 +160,8 @@ function stripFence(text) {
  * The lines that differ between two versions, as a 1-based inclusive range in
  * the NEW text, or null when nothing changed. A pure deletion answers the line
  * where the text was (start === end).
+ * @param {string | undefined} after
+ * @param {string} before
  */
 function changedLineRange(before, after) {
     if (before === after) return null;
@@ -167,6 +178,10 @@ function changedLineRange(before, after) {
     return { startLine, endLine };
 }
 
+/**
+ * @param {{ startLine: number; endLine: number; }} range
+ * @param {string | undefined} code
+ */
 function excerpt(code, range) {
     const lines = String(code).split('\n').length;
     const from = Math.max(1, range.startLine - EXCERPT_CONTEXT_LINES);
@@ -174,12 +189,19 @@ function excerpt(code, range) {
     return numberLines(code, { from, to });
 }
 
+/**
+ * @param {string | undefined} code
+ */
 function lineCount(code) {
     return String(code || '').split('\n').length;
 }
 
 // ── Fallback summaries (when the model gave none) ──────────────────
 
+/**
+ * @param {string} op
+ * @param {{ startLine: number; endLine: number; }} range
+ */
 function fallbackSummary(op, range) {
     if (op === 'write') return { summary: 'Rewrote the code', summaryKey: 'code_step.assist.edit.write', summaryParams: {} };
     if (op === 'delete') {
@@ -195,6 +217,14 @@ function fallbackSummary(op, range) {
     };
 }
 
+/**
+ * @typedef {{ start_line?: number, end_line?: number, find_text?: string, replace_text?: string,
+ *   replace_all?: boolean, expected_text?: string, replacement?: string, code?: string, summary?: string }} CodeToolArgs
+ * @typedef {{ op: string, summary: string, summaryKey?: string, summaryParams?: Record<string, number>,
+ *   startLine: number, endLine: number }} CodeEdit
+ */
+
+/** @param {unknown} raw */
 function cleanSummary(raw) {
     if (typeof raw !== 'string') return '';
     return raw.replace(/\s+/g, ' ').trim().slice(0, 120);
@@ -204,6 +234,11 @@ function cleanSummary(raw) {
  * The edit a tool made, as the client's `edit` event and the model's result.
  * `op` is what the tool did, with a replace or patch that only removed text
  * reported as 'delete'.
+ * @param {string} tool
+ * @param {string | undefined} after
+ * @param {string} before
+ * @param {CodeToolArgs} args
+ * @param {{ removedOnly: boolean }} opts
  */
 function landed(tool, before, after, args, { removedOnly }) {
     const diff = changedLineRange(before, after);
@@ -211,7 +246,7 @@ function landed(tool, before, after, args, { removedOnly }) {
     // the lines that happen to differ from the old one.
     const range = diff && tool === 'code_write' ? { startLine: 1, endLine: Math.max(1, String(after).split('\n').length) } : diff;
     if (!range) {
-        return { code: before, edit: null, result: { ok: true, message: 'Nothing changed: the new text is the same as the old.' } };
+        return { code: before, edit: /** @type {CodeEdit | null} */ (null), result: { ok: true, message: 'Nothing changed: the new text is the same as the old.' } };
     }
     const op = tool === 'code_write' ? 'write' : (removedOnly ? 'delete' : (tool === 'code_patch' ? 'patch' : 'replace'));
     const given = cleanSummary(args && args.summary);
@@ -235,12 +270,19 @@ function landed(tool, before, after, args, { removedOnly }) {
 
 // ── The tools ───────────────────────────────────────────────────────
 
+/**
+ * @param {string | undefined} after
+ */
 function tooBig(after) {
     return after.length > MAX_CODE_CHARS
         ? { error: `The code would be ${after.length.toLocaleString('en')} characters; a code step holds at most ${MAX_CODE_CHARS.toLocaleString('en')}. Keep it smaller.` }
         : null;
 }
 
+/**
+ * @param {string} code
+ * @param {CodeToolArgs} args
+ */
 function read(code, args) {
     const total = lineCount(code);
     if (!String(code || '').trim()) return { result: { content: '', message: 'The code is empty. Use code_write to create it.' } };
@@ -249,6 +291,10 @@ function read(code, args) {
     return { result: { lines: `${from}-${to} of ${total}`, content: numberLines(code, { from, to }) } };
 }
 
+/**
+ * @param {string} code
+ * @param {CodeToolArgs} args
+ */
 function replace(code, args) {
     if (typeof args.find_text !== 'string' || !args.find_text) return { result: { error: 'find_text is required: copy the exact text to change from the code.' } };
     const replaceText = typeof args.replace_text === 'string' ? args.replace_text : '';
@@ -269,6 +315,10 @@ function replace(code, args) {
     return landed('code_replace', code, r.content, args, { removedOnly: replaceText === '' });
 }
 
+/**
+ * @param {string} code
+ * @param {CodeToolArgs} args
+ */
 function patch(code, args) {
     const start = Number(args.start_line);
     const end = Number(args.end_line);
@@ -295,6 +345,10 @@ function patch(code, args) {
     return landed('code_patch', code, next, args, { removedOnly: replacement === '' });
 }
 
+/**
+ * @param {string} code
+ * @param {CodeToolArgs} args
+ */
 function write(code, args) {
     if (typeof args.code !== 'string') return { result: { error: 'code is required: the complete new code.' } };
     const next = stripLineNumbers(stripFence(args.code));
@@ -307,7 +361,7 @@ function write(code, args) {
  * Run one tool call against `code`.
  *
  * @param {string} name   one of CODE_TOOL_NAMES
- * @param {object} args   the parsed arguments
+ * @param {CodeToolArgs} args   the parsed arguments
  * @param {string} code   the code as it stands
  * @returns {{ code: string, edit: object|null, result: object }}
  *   `code` the code after the call (unchanged on a read or a refusal), `edit`
@@ -316,6 +370,7 @@ function write(code, args) {
 function executeCodeTool(name, args, code) {
     const a = args && typeof args === 'object' ? args : {};
     const current = typeof code === 'string' ? code : '';
+    /** @type {{ code?: string, edit?: CodeEdit | null, result: Record<string, unknown> }} */
     let out;
     if (name === 'code_read') out = read(current, a);
     else if (name === 'code_replace') out = replace(current, a);

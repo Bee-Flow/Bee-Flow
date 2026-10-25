@@ -25,6 +25,7 @@
 
 const { run, getClient } = require('../db');
 const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const BATCH_SIZE = 50;
 const HARD_FAIL_DAYS = 14;
@@ -43,7 +44,7 @@ const CIRCUIT_WINDOW_MS = 5 * 60_000;         // rolling window for counting
 const CIRCUIT_HALF_OPEN_AFTER_MS = 5 * 60_000; // self-heal probe after this long
 const _circuit = {
     state: 'closed',           // 'closed' | 'open' | 'half-open'
-    failures: [],              // recent failure timestamps (ms)
+    failures: /** @type {number[]} */ ([]),              // recent failure timestamps (ms)
     openedAt: 0,
 };
 
@@ -77,8 +78,8 @@ function _recordFailure() {
                 'system',
                 null,
                 { failures: _circuit.failures.length, window_ms: CIRCUIT_WINDOW_MS }
-            ).catch(() => {});
-        } catch (err) { log.debug('audit best-effort', err); }
+            ).catch((e) => bestEffort('workers/paygDrain:_recordFailure', e));
+        } catch (err) { bestEffort('workers/paygDrain:_recordFailure#2', err); /* audit best-effort */ }
     }
 }
 
@@ -181,7 +182,7 @@ async function drainOnce(targetIdentifier = null) {
         // even if another worker grabs the same row on the next tick.
         await client.query('COMMIT');
     } catch (e) {
-        try { await client.query('ROLLBACK'); } catch (err) { log.debug('ignore', err); }
+        try { await client.query('ROLLBACK'); } catch (err) { bestEffort('workers/paygDrain:drainOnce', err); /* ignore */ }
         log.error('[PaygDrain] Claim failed:', e.message);
         return { delivered: 0, failed: 0, hardFailed: 0 };
     } finally {
@@ -219,7 +220,7 @@ async function drainOnce(targetIdentifier = null) {
                     null,
                     { identifier: row.identifier, attempts: row.attempt_count, age_days: Math.floor(ageDays) }
                 );
-            } catch (err) { log.debug('audit best-effort', err); }
+            } catch (err) { bestEffort('workers/paygDrain:drainOnce#2', err); /* audit best-effort */ }
             continue;
         }
 

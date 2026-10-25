@@ -17,6 +17,7 @@ const configStore = require('../../stores/configStore');
 // ── Default Pricing (Azure published rates, S0 tier) ─────────────────
 // Source: https://azure.microsoft.com/pricing/ (retrieved April 2026)
 
+/** @type {Record<string, number>} */
 const DEFAULTS = {
     // Document Intelligence — Prebuilt Layout model
     // $10.00 / 1,000 pages → $0.01 per page
@@ -46,6 +47,9 @@ function getOverrides() {
     return _overridesCache;
 }
 
+/**
+ * @param {string} key
+ */
 function getRate(key) {
     const overrides = getOverrides();
     return overrides[key] ?? DEFAULTS[key] ?? 0;

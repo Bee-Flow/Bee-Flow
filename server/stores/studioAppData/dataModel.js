@@ -14,6 +14,7 @@ const { storeError } = require('../lib/managedParts');
 const { initDB } = require('./schema');
 const { mapMetaRow } = require('./rowMappers');
 const { recountRows } = require('./rowCounts');
+const { bestEffort } = require('../../utils/bestEffort');
 
 // The data-model contract (appStudio/dataModel) sits in the server's import
 // cycle; the barrel hands it in through cycleDeps.
@@ -35,7 +36,7 @@ async function getDataModel(appId, ownerId, { reconcile = false } = {}) {
         try {
             await reconcileDataModel(appId, ownerId);
         } catch (e) {
-            log.warn(`[StudioAppDataStore] reconcile failed for ${appId}: ${e.message}`);
+            log.warn(`[StudioAppDataStore] reconcile failed for ${appId}: ${/** @type {Error} */ (e).message}`);
         }
     }
     const r = await getOne(
@@ -73,8 +74,8 @@ async function reconcileDataModel(appId, ownerId) {
     try {
         sqliteVersion = await deps.studioAppDbStore.getSchemaStamp(ownerId, appId);
     } catch (e) {
-        log.warn(`[StudioAppDataStore] reconcile: user_version read failed for ${appId}: ${e.message}`);
-        return { ok: false, error: e.message };
+        log.warn(`[StudioAppDataStore] reconcile: user_version read failed for ${appId}: ${/** @type {Error} */ (e).message}`);
+        return { ok: false, error: /** @type {Error} */ (e).message };
     }
     const modelVersion = meta.modelVersion;
     const drift = sqliteVersion > modelVersion;
@@ -86,7 +87,7 @@ async function reconcileDataModel(appId, ownerId) {
         try {
             await recountRows(appId, ownerId, Array.isArray(meta.model && meta.model.tables) ? meta.model.tables : []);
         } catch (e) {
-            log.warn(`[StudioAppDataStore] reconcile recount failed for ${appId}: ${e.message}`);
+            log.warn(`[StudioAppDataStore] reconcile recount failed for ${appId}: ${/** @type {Error} */ (e).message}`);
         }
     }
     return { ok: true, drift, sqliteVersion, modelVersion };
@@ -140,7 +141,9 @@ async function saveDataModelIn(io, appId, ownerId, model, { expectedVersion = nu
         );
 
         let currentModel;
+        /** @type {number} */
         let currentVersion;
+        /** @type {boolean} */
         let metaExists;
         if (cur.rows.length > 0) {
             if (cur.rows[0].owner_user_id !== ownerId) {
@@ -232,10 +235,10 @@ async function saveDataModelIn(io, appId, ownerId, model, { expectedVersion = nu
         await client.query('COMMIT');
         // Row counts can drift across a migration (table drops/recreates) —
         // take an authoritative recount, best-effort (the save is committed).
-        try { await io.recountRows(appId, ownerId, Array.isArray(model && model.tables) ? model.tables : []); } catch (err) { log.debug('advisory', err); }
+        try { await io.recountRows(appId, ownerId, Array.isArray(model && model.tables) ? model.tables : []); } catch (err) { bestEffort('stores/studioAppData/dataModel:saveDataModelIn', err); /* advisory */ }
         return { ok: true, version: nextVersion };
     } catch (e) {
-        await client.query('ROLLBACK').catch(() => {});
+        await client.query('ROLLBACK').catch((e) => bestEffort('stores/studioAppData/dataModel:saveDataModelIn#2', e));
         throw e;
     } finally {
         client.release();
@@ -321,3 +324,21 @@ module.exports = {
     additiveModel,
     reconcileDataModel,
 };
+
+/**
+ * @typedef {{ id?: string, [key: string]: unknown }} DataModelField
+ * @typedef {{ id?: string, key?: string, fields?: DataModelField[], [key: string]: unknown }} DataModelTable
+ * @typedef {{ tables?: DataModelTable[], [key: string]: unknown }} DataModel
+ */
+
+/**
+ * The collaborators saveDataModelIn works over.
+ * @typedef {{
+ *   getClient: () => Promise<import('pg').PoolClient>,
+ *   ready?: () => Promise<unknown>,
+ *   applyMigration: (ownerId: string, appId: string, plan: string[], opts: { targetVersion: number, client?: import('pg').PoolClient }) => Promise<unknown>,
+ *   isPg: () => boolean,
+ *   recountRows: typeof recountRows,
+ *   managedParts?: ReturnType<typeof import('../lib/managedParts').makeManagedParts> | null,
+ * }} DataModelIo
+ */

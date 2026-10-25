@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Agent Runtime — re-exports all modules
  * Maintains backward compatibility with require('./core/agentRuntime')

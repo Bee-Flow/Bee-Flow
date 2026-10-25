@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 // Per-company bulk reads for NMBRS (SOAP only for now): one call per company
@@ -55,14 +55,15 @@ const PERSONAL_INFO_FIELDS = [
 ];
 
 /**
- * @param {any} row
+ * @param {unknown} row
  * @param {string[]} allowed
  */
 function pickFields(row, allowed) {
     if (!row || typeof row !== 'object') return {};
+    const source = /** @type {Record<string, unknown>} */ (row);
     /** @type {Record<string, unknown>} */
     const out = {};
-    for (const key of allowed) if (key in row) out[key] = row[key];
+    for (const key of allowed) if (key in source) out[key] = source[key];
     return out;
 }
 
@@ -80,14 +81,14 @@ const EMPLOYEE_FIELDS = [
 /**
  * Collect the allowed fields of a possibly nested record into one flat object;
  * everything else, at every depth, is left behind.
- * @param {any} row
+ * @param {unknown} row
  * @param {string[]} allowed
  */
 function pickFieldsDeep(row, allowed) {
     const wanted = new Map(allowed.map((k) => [k.toLowerCase(), k]));
     /** @type {Record<string, unknown>} */
     const out = {};
-    /** @param {any} node @param {number} depth */
+    /** @param {unknown} node @param {number} depth */
     const walk = (node, depth) => {
         if (!node || typeof node !== 'object' || Array.isArray(node) || depth > 4) return;
         for (const [key, value] of Object.entries(node)) {
@@ -151,7 +152,7 @@ async function executeBulkTool(toolName, args, creds, deps) {
     const soapParams = {};
     for (const [soapName, argName] of spec.params) soapParams[soapName] = values[argName];
     let rows = deps.coerceArray(await deps.soapRequest(creds, spec.service, spec.method, soapParams));
-    if (spec.fields) rows = rows.map((/** @type {any} */ r) => pickFields(r, spec.fields));
+    if (spec.fields) rows = rows.map((/** @type {unknown} */ r) => pickFields(r, spec.fields));
     return shapePage(rows, paging, spec.scope);
 }
 

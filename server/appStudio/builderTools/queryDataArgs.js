@@ -20,6 +20,10 @@ const DEFAULT_QUERY_LIMIT = 5;
 const HIDDEN_COLUMNS = ['created_by', 'org_id'];
 const SORT_DIRS = ['asc', 'desc'];
 
+/**
+ * @param {string} error
+ * @param {string} [_fixHint]
+ */
 const bad = (error, _fixHint) => ({ error, _fixHint });
 
 /**
@@ -112,6 +116,9 @@ function shapeTableRow(row, table) {
 
 // A saved dataset is an aggregation result: the page cursor is a plain row offset.
 function encodeOffset(n) { return Buffer.from(JSON.stringify({ o: n }), 'utf8').toString('base64url'); }
+/**
+ * @param {import('buffer').WithImplicitCoercion<string>} cursor
+ */
 function decodeOffset(cursor) {
     if (!cursor) return 0;
     try {
@@ -120,7 +127,11 @@ function decodeOffset(cursor) {
     } catch (_) { return 0; }
 }
 
-/** One page of a dataset's rows. */
+/**
+ * One page of a dataset's rows.
+ * @param {string | null | undefined} cursor
+ * @param {number | undefined} limit
+ */
 function pageDatasetRows(rows, cursor, limit) {
     const start = decodeOffset(cursor);
     const page = rows.slice(start, start + limit).map(shapeRow);

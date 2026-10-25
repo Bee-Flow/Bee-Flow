@@ -165,6 +165,7 @@ function createChecks({ run, getAll, initDB }) {
      * what its score covered, and the honest value for that is `null`; inventing a
      * "fully covered" default for old rows would re-tell exactly the lie the
      * column was added to stop (compliance/runner.js, COVERAGE).
+     * @param {number} [days]
      */
     async function getScoreHistory(orgId, days = 90) {
         await initDB();

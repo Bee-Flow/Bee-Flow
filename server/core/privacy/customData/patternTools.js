@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 /**
  * Pattern helpers for the "Your own data" test bench: is a pattern safe to
@@ -27,6 +27,11 @@ const MAX_PATTERN_CHARS = 300;
 const EMPTY_MATCH_PROBES = ['', ' ', 'a', 'A1 b-2', '-'];
 const PROBE_TYPE_ID = 'cdt_0000000000';
 
+/**
+ * @param {string} source
+ * @param {boolean} caseSensitive
+ * @param {string} [extraFlags]
+ */
 function compile(source, caseSensitive, extraFlags = '') {
     try {
         return new RegExp(source, `${caseSensitive ? '' : 'i'}${extraFlags}`);
@@ -38,6 +43,8 @@ function compile(source, caseSensitive, extraFlags = '') {
 /**
  * The local rules alone, synchronous: length, compiles, no nested
  * quantifier, no empty match.
+ * @param {unknown} source
+ * @param {boolean} caseSensitive
  * @returns {{ ok: true } | { ok: false, reason: string }}
  */
 function localPatternCheck(source, caseSensitive) {
@@ -83,7 +90,7 @@ async function validatePattern(source, caseSensitive, { engine = null } = {}) {
         }
         if (!verdict || !verdict.ok) {
             const errors = Array.isArray(verdict?.errors) ? verdict.errors : [];
-            const patternError = errors.find((e) => String(e?.field || '').startsWith('pattern'));
+            const patternError = errors.find((/** @type {{ field?: string, code?: string } | null} */ e) => String(e?.field || '').startsWith('pattern'));
             // Errors about the probe's own name or tokenKey are not about the pattern.
             if (patternError || errors.length === 0) {
                 return { ok: false, reason: String(patternError?.code || 'pattern_invalid') };
@@ -93,7 +100,12 @@ async function validatePattern(source, caseSensitive, { engine = null } = {}) {
     return { ok: true };
 }
 
-/** Does `source` match EVERY example completely (anchored ^(?:source)$)? Vacuously true for none. */
+/**
+ * Does `source` match EVERY example completely (anchored ^(?:source)$)? Vacuously true for none.
+ * @param {unknown} source
+ * @param {unknown} examples
+ * @param {{ caseSensitive?: boolean }} [opts]
+ */
 function fullMatchAll(source, examples, { caseSensitive = true } = {}) {
     if (typeof source !== 'string' || !source) return false;
     const re = compile(`^(?:${source})$`, caseSensitive);
@@ -103,14 +115,17 @@ function fullMatchAll(source, examples, { caseSensitive = true } = {}) {
 
 // ── Inference ───────────────────────────────────────────────────────────────
 
-const isAlnum = (ch) => /[A-Za-z0-9]/.test(ch || '');
-const classOf = (ch) => (/[0-9]/.test(ch) ? 'D' : /[A-Z]/.test(ch) ? 'U' : /[a-z]/.test(ch) ? 'L' : null);
+const isAlnum = (/** @type {string | undefined} */ ch) => /[A-Za-z0-9]/.test(ch || '');
+const classOf = (/** @type {string} */ ch) => (/[0-9]/.test(ch) ? 'D' : /[A-Z]/.test(ch) ? 'U' : /[a-z]/.test(ch) ? 'L' : null);
 
 /** Escape a literal for use outside a character class (never escapes '-'). */
-const escapeLiteral = (s) => s.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+const escapeLiteral = (/** @type {string} */ s) => s.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
 /** Escape a character for use inside a character class. */
-const escapeInClass = (ch) => (/[\]\\^-]/.test(ch) ? `\\${ch}` : ch);
+const escapeInClass = (/** @type {string} */ ch) => (/[\]\\^-]/.test(ch) ? `\\${ch}` : ch);
 
+/**
+ * @param {string[]} values
+ */
 function commonPrefixLen(values) {
     let i = 0;
     for (;;) {
@@ -124,6 +139,7 @@ function commonPrefixLen(values) {
  * The shared literal prefix, cut back so it never ends inside a character run
  * that continues differently in some example ("KL-1" of KL-12345/KL-19812
  * becomes "KL-": the 1 belongs to the number, not to the format).
+ * @param {string[]} values
  */
 function literalPrefix(values) {
     let p = commonPrefixLen(values);
@@ -136,12 +152,18 @@ function literalPrefix(values) {
     return values[0].slice(0, p);
 }
 
+/**
+ * @param {string[]} values
+ */
 function literalSuffix(values) {
     const rev = values.map((v) => v.split('').reverse().join(''));
     return literalPrefix(rev).split('').reverse().join('');
 }
 
-/** Split a middle part into alnum fields and the separators between them. */
+/**
+ * Split a middle part into alnum fields and the separators between them.
+ * @param {string} middle
+ */
 function fields(middle) {
     const parts = [];
     const seps = [];
@@ -156,8 +178,12 @@ function fields(middle) {
     return { parts, seps };
 }
 
-/** Class runs of one field: "AB12" → [['U',2],['D',2]]. */
+/**
+ * Class runs of one field: "AB12" → [['U',2],['D',2]].
+ * @param {string} field
+ */
 function runs(field) {
+    /** @type {Array<[string | null, number]>} */
     const out = [];
     for (const ch of field) {
         const c = classOf(ch);
@@ -168,14 +194,22 @@ function runs(field) {
     return out;
 }
 
+/** @type {Record<string, string>} */
 const CLASS_SRC = { D: '\\d', U: '[A-Z]', L: '[a-z]' };
 
+/**
+ * @param {number} min
+ * @param {number} max
+ */
 function quant(min, max) {
     if (min === max) return min === 1 ? '' : `{${min}}`;
     return `{${min},${max}}`;
 }
 
-/** One class covering every character of a field across all examples. */
+/**
+ * One class covering every character of a field across all examples.
+ * @param {string[]} chars
+ */
 function unionClass(chars) {
     const hasD = chars.some((c) => classOf(c) === 'D');
     const hasU = chars.some((c) => classOf(c) === 'U');
@@ -187,6 +221,9 @@ function unionClass(chars) {
     return '[A-Za-z0-9]';
 }
 
+/**
+ * @param {string[]} values
+ */
 function strictField(values) {
     const all = values.map(runs);
     const shape = all[0].map((r) => r[0]).join('');
@@ -197,6 +234,9 @@ function strictField(values) {
     }).join('');
 }
 
+/**
+ * @param {string[]} values
+ */
 function looseField(values) {
     const lens = values.map((v) => v.length);
     const min = Math.min(...lens);
@@ -207,6 +247,11 @@ function looseField(values) {
     return `${cls}${quant(min, max)}`;
 }
 
+/**
+ * @param {string} src
+ * @param {string} first
+ * @param {string} last
+ */
 function withBoundaries(src, first, last) {
     return `${isAlnum(first) ? '\\b' : ''}${src}${isAlnum(last) ? '\\b' : ''}`;
 }
@@ -238,7 +283,7 @@ function inferPatternFromExamples(examples, caseSensitive) {
 
     const variants = [];
     if (aligned) {
-        const build = (fieldFn) => {
+        const build = (/** @type {(values: string[]) => string} */ fieldFn) => {
             let src = '';
             split[0].parts.forEach((_, i) => {
                 src += fieldFn(split.map((s) => s.parts[i]));
@@ -253,6 +298,7 @@ function inferPatternFromExamples(examples, caseSensitive) {
         const cls = `[A-Za-z0-9${sepChars.map(escapeInClass).join('')}]`;
         variants.push(`${pre}${cls}${quant(Math.min(...lens), Math.max(...lens))}${post}`);
     }
+    /** @type {string[]} */
     const out = [];
     for (const v of variants) {
         if (!v) continue;
@@ -267,6 +313,7 @@ function inferPatternFromExamples(examples, caseSensitive) {
 
 // ── In words ────────────────────────────────────────────────────────────────
 
+/** @type {Record<string, string[]>} */
 const CLASS_WORDS = {
     '\\d': ['digit', 'digits'],
     '[A-Z]': ['capital letter', 'capital letters'],
@@ -279,6 +326,7 @@ const CLASS_WORDS = {
  * "KL-\d{5}" → "KL- followed by 5 digits". Only the grammar the inference
  * writes (literals, \b, the classes above and {n} / {n,m} counts); anything
  * else returns null rather than a wrong sentence.
+ * @param {unknown} source
  */
 function describePattern(source) {
     if (typeof source !== 'string' || !source) return null;

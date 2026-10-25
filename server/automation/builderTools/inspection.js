@@ -7,7 +7,7 @@
  */
 
 const { compactSample } = require('./modelPayload');
-const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 /**
  * Reshape an OpenAI-format `parameters` block into the model-facing
@@ -75,7 +75,7 @@ function inspectGateError(tool, rawInputs, draftWrap) {
         const { describeShape, iterableFieldsOf } = require('../outputSchemas');
         shape = describeShape(tool) || null;
         iterableFields = iterableFieldsOf(tool);
-    } catch (err) { log.debug('curated shape is best-effort', err); }
+    } catch (err) { fallback('automation/builderTools/inspection:inspectGateError', err); /* curated shape is best-effort */ }
     return {
         error: `"${tool}" was added without its input schema. The exact schema is inlined below — resend the SAME builder call now with the correct param names/bindings; do NOT call builder_inspect_tool for this tool.${required.length ? ` Required params: ${required.join(', ')}.` : ''}`,
         _needsInspect: tool,
@@ -133,7 +133,7 @@ async function inspectOne(tool, draftWrap, { includeSample = true } = {}) {
             shapeHint = shapeCache.renderShapeHint(cached);
             source = 'runtime';
         }
-    } catch (_) { log.debug('no runtime-cached output shape, fall back to the curated one', _); }
+    } catch (_) { fallback('automation/builderTools/inspection:inspectOne', _); /* no runtime-cached output shape, fall back to the curated one */ }
     if (!shapeHint) {
         shapeHint = describeShape(tool);
     }
@@ -193,3 +193,11 @@ module.exports = {
     inspectGateError,
     applyInspectTool,
 };
+
+/**
+ * @typedef {import('./pendingDatatables').DraftWrap} DraftWrap
+ * @typedef {{ type?: string, description?: string, enum?: unknown[] }} ParamSpec
+ * @typedef {{ properties?: Record<string, ParamSpec>, required?: string[] }} InputSchema
+ * @typedef {DraftWrap & { _inspectGate?: boolean, _inputSchemasByTool?: Record<string, InputSchema>,
+ *   _inspectedTools?: Set<string>, _availableToolNames?: Set<string> }} InspectWrap
+ */

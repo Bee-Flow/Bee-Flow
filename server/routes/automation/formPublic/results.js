@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Keeping what a finished journey produced: a generated document opened in a
  * new notebook, and the closing page's own text saved as a notebook, exported
@@ -41,6 +42,8 @@ const { friendly } = require('./friendly');
  * the notebook. That is the same condition the router's requireAuth enforces,
  * asserted here so flipping PUBLIC_FORMS_ENABLED back on cannot silently
  * produce ownerless notebooks.
+ * @param {import('express').Request<{ token: string, sid: string, fileId: string }>} req
+ * @param {import('express').Response} res
  */
 async function openFileInNotebooks(req, res) {
     privateHeaders(res);
@@ -108,6 +111,8 @@ async function openFileInNotebooks(req, res) {
  * so a wrong, foreign or expired session id is the same 404 as everywhere
  * else in this file, and so is a journey that has not finished, or finished
  * without a closing text.
+ * @param {import('express').Request<{ token: string, sid: string }>} req
+ * @param {import('express').Response} res
  */
 async function loadResult(req, res) {
     const found = await loadForm(req, res);
@@ -134,6 +139,8 @@ async function loadResult(req, res) {
  * Signed-in only (the router's requireAuth while PUBLIC_FORMS_ENABLED is off,
  * and asserted here so flipping it back on cannot silently produce an
  * ownerless notebook).
+ * @param {import('express').Request<{ token: string, sid: string }>} req
+ * @param {import('express').Response} res
  */
 async function saveResultToNotebook(req, res) {
     privateHeaders(res);
@@ -170,6 +177,8 @@ async function saveResultToNotebook(req, res) {
  *
  * AI marking (Art. 50(2)) is requested when the automation has an AI step; the
  * organisation's policy (resolveMarking) decides whether it marks at all.
+ * @param {import('express').Request<{ token: string, sid: string, format: string }>} req
+ * @param {import('express').Response} res
  */
 async function exportResult(req, res) {
     privateHeaders(res);
@@ -197,7 +206,11 @@ async function exportResult(req, res) {
     return res.end(buffer);
 }
 
-/** The marking for an exported result, or null. A failure to resolve never blocks the download. */
+/**
+ * The marking for an exported result, or null. A failure to resolve never blocks the download.
+ * @param {import('express').Request} req
+ * @param {NonNullable<Awaited<ReturnType<typeof loadForm>>>} found
+ */
 async function exportMarking(req, found) {
     const ai = aiStepsOf(found.automation?.definition);
     if (!ai) return null;
@@ -215,7 +228,13 @@ async function exportMarking(req, found) {
  * (index.js mounts /api/webpages the same way). Required lazily, so this
  * router does not load the module registry when it is loaded itself.
  */
+/** @type {import('express').RequestHandler[] | null} */
 let webpagesGates = null;
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 function webpagesGate(req, res, next) {
     webpagesGates ||= [
         require('../../../modules').requireModule('webpages'),
@@ -232,6 +251,8 @@ function webpagesGate(req, res, next) {
  * A plain, readable article page the visitor can then restyle, extend or
  * publish in the webpage editor. Like the notebook route: a new webpage every
  * time, owned by the caller, never one of theirs written into.
+ * @param {import('express').Request<{ token: string, sid: string }>} req
+ * @param {import('express').Response} res
  */
 async function saveResultAsWebpage(req, res) {
     privateHeaders(res);
@@ -255,9 +276,10 @@ async function saveResultAsWebpage(req, res) {
     });
     // The same bookkeeping the editor's own save does: each slot's sha and
     // size go on the row, or the editor thinks the page is still empty.
+    /** @type {Record<string, unknown>} */
     const metadata = {};
     for (const [slot, content] of Object.entries(webpageSlots(result))) {
-        const { sha, size } = await webpageStore.writeSlot(userId, webpage.id, slot, content);
+        const { sha, size } = await webpageStore.writeSlot(userId, webpage.id, /** @type {'html' | 'css'} */ (slot), content);
         metadata[`${slot}Sha`] = sha;
         metadata[`${slot}Size`] = size;
     }
@@ -269,6 +291,9 @@ async function saveResultAsWebpage(req, res) {
 /**
  * The notebook's first version, 'import': where its history starts. Best-effort
  * — the notebook and its text are already saved.
+ * @param {string} notebookId
+ * @param {string} userId
+ * @param {string} html
  */
 async function recordImportedVersion(notebookId, userId, html) {
     try {
@@ -280,7 +305,11 @@ async function recordImportedVersion(notebookId, userId, html) {
     }
 }
 
-/** Notebook name: the document's, without its extension, falling back to the form's. */
+/**
+ * Notebook name: the document's, without its extension, falling back to the form's.
+ * @param {string} filename
+ * @param {NonNullable<Awaited<ReturnType<typeof loadForm>>>} found
+ */
 function notebookNameFor(filename, found) {
     const stem = String(filename || '').replace(/\.[^.]+$/, '').trim();
     return (stem || found?.trigger?.form?.title || found?.automation?.title || 'Document').slice(0, 120);
@@ -294,11 +323,12 @@ function notebookNameFor(filename, found) {
  * The escape matters: this text comes out of a document an automation generated,
  * which routinely carries model output, and the editor renders what it is
  * given.
+ * @param {string | { html?: string, text?: string } | null | undefined} parsed
  */
 function documentHtml(parsed) {
     const text = typeof parsed === 'string' ? parsed : String(parsed?.html || parsed?.text || '');
     if (/<\/?(p|h[1-6]|ul|ol|table|div|br)\b/i.test(text)) return text;
-    const escape = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const escape = (/** @type {string} */ t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const blocks = text.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
     if (blocks.length === 0) return '';
     return blocks.map(b => `<p>${escape(b).replace(/\n/g, '<br />')}</p>`).join('');
@@ -307,6 +337,7 @@ function documentHtml(parsed) {
 /**
  * POST …/file/:fileId/notebook, POST …/notebook, GET …/export/:format,
  * POST …/webpage — in that order, between the download and the resume.
+ * @param {import('express').Router} router
  */
 function register(router) {
     router.post('/form/:token/s/:sid/file/:fileId/notebook', ipLimiter, sessionLimiter, friendly(openFileInNotebooks, 'notebook_open_failed', 'Could not open this in Notebooks'));

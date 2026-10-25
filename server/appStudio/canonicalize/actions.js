@@ -16,6 +16,10 @@ const { cleanRecordValues, cleanSteps } = require('./steps');
 // Actions
 // ---------------------------------------------------------------------------
 
+/**
+ * @param {string} path
+ * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ */
 function canonAction(raw, path, push) {
     const spec = ACTION_SPECS[raw.kind];
     if (!spec) {
@@ -114,3 +118,13 @@ function canonAction(raw, path, push) {
 }
 
 module.exports = { canonAction };
+
+/**
+ * @typedef {object} ActionFieldSpec  One entry of an ACTION_SPECS `fields` table.
+ * @property {string} type
+ * @property {boolean} [required]
+ * @property {boolean} [nullable]
+ * @property {number} [maxLen]
+ * @property {unknown[]} [values]
+ * @property {unknown} [default]
+ */

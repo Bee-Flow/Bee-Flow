@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * The team-chat schema, split from stores/projectChatStore.js (which re-exports it).
