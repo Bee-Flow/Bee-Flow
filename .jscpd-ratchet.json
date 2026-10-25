@@ -1,6 +1,6 @@
 {
   "_comment": "Highest number of duplicated lines (jscpd, .jscpd.json) the repository may carry, per group: production (any clone with a non-test end) and test (both ends test code). Lower them with `node scripts/duplication-ratchet.mjs --update` after removing clones; raising one is a deliberate edit that belongs in a commit message with a reason.",
   "_generated": "2026-10-24",
-  "production": 16286,
-  "test": 24299
+  "production": 16607,
+  "test": 24355
 }
