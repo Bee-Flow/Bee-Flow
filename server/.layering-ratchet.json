@@ -1,7 +1,7 @@
 {
   "_comment": "Highest number of requires per upward (or feature-to-feature) pair of units server/ may still carry; a pair not listed has budget 0. Lower it with `node server/layering.test.js --update` after removing edges; raising a pair is a deliberate edit that belongs in a commit message with a reason. The layers are in the header of server/layering.test.js.",
-  "_generated": "2026-10-24",
-  "total": 279,
+  "_generated": "2026-10-25",
+  "total": 268,
   "pairs": {
     "agents -> projects": 1,
     "agents -> support": 1,
@@ -52,8 +52,8 @@
     "stores -> automation": 13,
     "stores -> compliance": 2,
     "stores -> core": 24,
-    "stores -> migrations": 11,
-    "stores -> services": 9,
+    "stores -> migrations": 1,
+    "stores -> services": 8,
     "stores -> workers": 1,
     "utils -> core": 1,
     "utils -> services": 3,
