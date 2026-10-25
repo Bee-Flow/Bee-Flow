@@ -75,7 +75,7 @@ const trashHandlers = makeTrashHandlers({
  * @param {string} actorUserId
  */
 async function appRefOwnerGate(definition, actorUserId) {
-    const { appTriggerRef } = require('../../automation/appTriggerContract');
+    const { appTriggerRef } = require('../../core/automationModel/appTriggerContract');
     const { appRefOwnerVerdict } = require('../../appStudio/appRefLookup');
     // No (or a half-written) back pointer → no app gate. A HALF one
     // is refused below anyway by validateDefinition

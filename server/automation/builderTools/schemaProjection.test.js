@@ -9,7 +9,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
 const { TOOL_SCHEMAS } = require('../builderTools');
-const { CORE_TOOL_NAMES } = require('../builderModelProfiles');
+const { CORE_TOOL_NAMES } = require('../../core/automationModel/builderModelProfiles');
 const { buildFewShotMessages } = require('../builderPrompt');
 const {
     projectToolSchemas, DROP_TOOLS_SMALL, LEAN_BATCH_TYPES, SET_METADATA_DESCRIPTION, UNRENDERED_KEYWORDS, _stripUnrenderedKeywords,

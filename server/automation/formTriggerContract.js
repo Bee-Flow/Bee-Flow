@@ -29,7 +29,7 @@
 
 'use strict';
 
-const { PARAM_NAME_RE } = require('./appTriggerContract');
+const { PARAM_NAME_RE } = require('../core/automationModel/appTriggerContract');
 const { canonicalizeTheme, validateTheme } = require('../core/cms/themeSpec');
 const pickSources = require('./formPickSources');
 const types = require('./formFieldTypes');

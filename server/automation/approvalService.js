@@ -66,7 +66,7 @@ async function ensureApprovalForRun(run, automation) {
             organizationId = (await userStore.getUser(run.userId))?.organizationId || null;
         } catch (err) { fallback('automation/approvalService:ensureApprovalForRun#2', err); /* consumer account */ }
     }
-    const project = await require('./approvalProject').projectStamp(automation?.projectId);
+    const project = await require('../core/automationModel/approvalProject').projectStamp(automation?.projectId);
     const row = await automationStore.createApproval({
         organizationId,
         automationId: run.automationId,

@@ -63,6 +63,8 @@
 
 'use strict';
 
+const { isObject, deepClone, claimText } = require('./portabilityClaims');
+
 const EXPORT_FORMAT = 'beeflow.apptemplate';
 const EXPORT_SCHEMA_VERSION = 1;
 
@@ -74,6 +76,7 @@ const EXPORT_SCHEMA_VERSION = 1;
  * starts rejecting every file yesterday's build wrote, including the user's own
  * backups. Adding an older number here is then the whole migration for a purely
  * additive change.
+ * @type {readonly unknown[]}
  */
 const EXPORT_SUPPORTED_VERSIONS = [1];
 
@@ -83,27 +86,6 @@ const TEMPLATE_META_FIELDS = ['version', 'title', 'description', 'category', 'ic
 
 /** How long a claim out of a file may be before it is cut. */
 const MAX_CLAIM_CHARS = { id: 64, name: 200 };
-
-/**
- * @param {ResolvedTemplate} v
- */
-function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
-
-function deepClone(value) {
-    if (value === null || typeof value !== 'object') return value;
-    try { return structuredClone(value); }
-    catch { return JSON.parse(JSON.stringify(value)); }
-}
-
-/**
- * @param {number} max
- * @param {string | undefined} value
- */
-function claimText(value, max) {
-    if (typeof value !== 'string') return null;
-    const trimmed = value.trim();
-    return trimmed ? trimmed.slice(0, max) : null;
-}
 
 /**
  * The `source` block, as a normalised CLAIM — the one place that decides what a

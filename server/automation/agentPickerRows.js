@@ -29,7 +29,7 @@
 
 'use strict';
 
-const { mayAutomationUseAgent, servesPublishedConfig } = require('./agentCatalog');
+const { mayAutomationUseAgent, servesPublishedConfig } = require('../core/automationModel/agentCatalog');
 
 /**
  * The reasons that the picker shows. Only these four; a case that does not fit is `unavailable` — vaguer,
@@ -118,7 +118,7 @@ function agentPickerRows(rows, viewer = {}) {
 module.exports = { AGENT_PICKER_REASONS, agentPickerRows, explainRefusal };
 
 /**
- * @typedef {import('./agentCatalog').AgentRuntimeRow & { id?: string, name?: unknown, description?: unknown }} PickerAgent
+ * @typedef {import('../core/automationModel/agentCatalog').AgentRuntimeRow & { id?: string, name?: unknown, description?: unknown }} PickerAgent
  * @typedef {{ userId?: string|null, orgId?: string|null, groups?: string[] }} PickerViewer
  * @typedef {{ id: string, name: string, description: string|null, scope: 'org'|'personal', canUse: boolean, reason: 'not_published'|'other_org'|'not_shared'|'unavailable'|null }} PickerRow
  */

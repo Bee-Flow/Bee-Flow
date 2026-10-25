@@ -16,7 +16,7 @@
  */
 const { listTriggerSources } = require('../triggerSources');
 const { agentCallParams } = require('../agentCallContract');
-const { PARAM_NAME_RE } = require('../appTriggerContract');
+const { PARAM_NAME_RE } = require('../../core/automationModel/appTriggerContract');
 const { isDisplayField } = require('../formTriggerContract');
 
 function eachDeclaredEvent(fn) {

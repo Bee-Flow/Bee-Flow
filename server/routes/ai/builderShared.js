@@ -10,7 +10,7 @@
 
 'use strict';
 
-const { classifyModel } = require('../../automation/builderModelProfiles');
+const { classifyModel } = require('../../core/automationModel/builderModelProfiles');
 const { isLocalProviderType } = require('../../core/providers/localModels');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');

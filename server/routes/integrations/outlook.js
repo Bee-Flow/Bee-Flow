@@ -17,8 +17,9 @@ const { executeOutlookSend, executeOutlookSaveDraft } = require('../../integrati
 const { GRAPH_ID_RE, MESSAGE_ID_TEXT, FOLDER_TEXT } = require('../../integrations/graphIds');
 const { resolveMicrosoftSession } = require('../../auth/microsoftSessionHydration');
 const { validate } = require('../../core/http/validate');
-const { z, typeError } = require('../../utils/zod');
+const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const { optionalText, draftFields, listSize } = require('./mailSchemaParts');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -43,25 +44,12 @@ const { worded } = require('../../core/http/schemaParts');
 // `Email sent via Outlook`. `replyToMessageId` is interpolated into
 // `/me/messages/${id}/reply`, so it is pinned to a Graph id too.
 
-/**
- * @param {string} name
- * @param {string} what
- */
-const required = (name, what) => worded(`${name} is required — ${what}.`).trim().min(1, `${name} is required — ${what}.`);
-/**
- * @param {string} name
- */
-const optionalText = (name) => worded(`${name} must be text.`).nullish();
-
 // GRAPH_ID_RE, FOLDER_TEXT and MESSAGE_ID_TEXT come from integrations/graphIds,
 // so the tool path (including unattended autoSend) and this route apply one rule.
 
 const MessagesQuery = z.object({
     search: worded('search must be text.').optional(),
-    top: z.coerce.number({ error: typeError({ invalid: 'top must be a number.' }) })
-        .int('top must be a whole number.')
-        .min(1, 'top must be at least 1.')
-        .optional(),
+    top: listSize('top'),
     folder: worded(FOLDER_TEXT).regex(GRAPH_ID_RE, FOLDER_TEXT).optional(),
 }).strict();
 
@@ -70,11 +58,7 @@ const MessageParams = z.object({
 }).strict();
 
 const EmailBody = z.object({
-    to: required('to', 'who the message goes to'),
-    subject: required('subject', 'what the message is about'),
-    body: required('body', 'the message itself'),
-    cc: optionalText('cc'),
-    bcc: optionalText('bcc'),
+    ...draftFields,
     replyToMessageId: worded(MESSAGE_ID_TEXT).regex(GRAPH_ID_RE, MESSAGE_ID_TEXT).nullish(),
     // Carried by the draft outlookTools builds; read by nobody here.
     conversationId: optionalText('conversationId'),

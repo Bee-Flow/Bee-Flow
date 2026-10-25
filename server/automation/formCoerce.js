@@ -18,7 +18,7 @@
 
 'use strict';
 
-const { MAX_STRING_VALUE } = require('./appTriggerContract');
+const { MAX_STRING_VALUE } = require('../core/automationModel/appTriggerContract');
 const pickSources = require('./formPickSources');
 const { isPlainObject, isDisplayField, EMAIL_RE, DATE_RE, MAX_TEXTAREA_LEN } = require('./formFieldTypes');
 const { ruleError, isVisible } = require('./formFieldRules');

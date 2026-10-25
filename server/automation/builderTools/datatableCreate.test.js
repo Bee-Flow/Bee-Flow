@@ -11,7 +11,7 @@ const assert = require('node:assert');
 const { applyCreateDatatable, createPendingDatatable, normaliseFieldArgs } = require('./datatableCreate');
 const { normalizeFields } = require('../../core/dataEngine/dataModel/datatableFields');
 const { TOOL_SCHEMAS } = require('./schemas');
-const { CORE_TOOL_NAMES } = require('../builderModelProfiles');
+const { CORE_TOOL_NAMES } = require('../../core/automationModel/builderModelProfiles');
 
 function deps(overrides = {}) {
     const calls = [];

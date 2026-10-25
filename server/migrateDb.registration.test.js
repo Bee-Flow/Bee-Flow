@@ -93,6 +93,12 @@ const EXEMPT = new Map([
     // store, which is itself registered; "CREATE TABLE" appears there only in the
     // documentation of db.exec's substring queue.
     ['stores/lib/_ddl.js', 'helper zonder eigen schema — draait DDL namens geregistreerde stores'],
+    // Lazy DDL modules the owning store calls from its own init (they lived in migrations/
+    // until 2026-10; they are in no boot ladder and no ledger): the store is the registered owner.
+    ['stores/ddl/cowork-2026-08.js', 'DDL-module van coworkStore, door die store zelf aangeroepen'],
+    ['stores/ddl/integration-connections-2026-06.js', 'DDL-module van integrationConnectionStore, door die store zelf aangeroepen'],
+    ['stores/ddl/integration-response-cache-2026-09.js', 'DDL-module van integrationCacheStore, door die store zelf aangeroepen'],
+    ['stores/ddl/org-custom-integrations-2026-06.js', 'DDL-module van orgCustomIntegrationStore, door die store zelf aangeroepen'],
     // Idem: the init memo owns no table; "CREATE TABLE" appears only in the
     // explanation of what the schemaFn of a registered store does.
     ['stores/lib/storeInit.js', 'memo zonder eigen schema — memoïseert de init van geregistreerde stores'],

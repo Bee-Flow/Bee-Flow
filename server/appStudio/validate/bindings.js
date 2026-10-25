@@ -8,7 +8,7 @@
 
 const { BINDING_KINDS, FORMULA_SCOPE_ROOTS } = require('../componentSpecs');
 const { pickClosestId } = require('../../automation/validate/helpers');
-const { relativePathTokens, suggestRelativeSpelling } = require('../../automation/validate/refPaths');
+const { relativePathTokens, suggestRelativeSpelling } = require('../../core/automationModel/refPaths');
 const { FILTER_OPS } = require('../dataModel');
 const { isObject } = require('./shared');
 const { validateFormula } = require('./formulas');

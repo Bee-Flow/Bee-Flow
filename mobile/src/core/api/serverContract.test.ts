@@ -1877,7 +1877,15 @@ describe('the chat answer, its cards and its composer (features/chat)', () => {
         const start = source.indexOf(`const ${name} = z.object({`);
         if (start < 0) return [];
         const body = source.slice(start, source.indexOf('\n}', start));
-        return [...body.matchAll(/^ {4}(\w+):/gm)].map((m) => m[1] as string);
+        const own = [...body.matchAll(/^ {4}(\w+):/gm)].map((m) => m[1] as string);
+        // `...draftFields` and the like: the shared mail pieces live in mailSchemaParts.js.
+        const spread = [...body.matchAll(/^ {4}\.\.\.(\w+),/gm)].flatMap((m) => {
+            const shared = read('routes/integrations/mailSchemaParts.js');
+            const at = shared.indexOf(`const ${m[1]} = {`);
+            if (at < 0) return [];
+            return [...shared.slice(at, shared.indexOf('\n};', at)).matchAll(/^ {4}(\w+):/gm)].map((k) => k[1] as string);
+        });
+        return [...own, ...spread];
     }
 
     /** `export const NAME = [ 'a', 'b', … ] as const;` out of a phone source file. */

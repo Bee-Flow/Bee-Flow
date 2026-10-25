@@ -44,7 +44,7 @@
 const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
 const { roleSatisfies, groupsOf } = require('./access');
-const { mayAutomationUseAgent } = require('./agentCatalog');
+const { mayAutomationUseAgent } = require('../core/automationModel/agentCatalog');
 
 /** More than this on one automation is a mistake, not a design. */
 const MAX_BINDINGS = 50;

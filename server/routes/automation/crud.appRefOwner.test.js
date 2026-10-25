@@ -59,7 +59,7 @@ mock(path.join(SERVER, 'automation/subscriptionSync'), {
     hasAppEventTrigger: () => false, appEventFingerprint: () => 'fp',
 });
 mock(path.join(SERVER, 'automation/approvalService'), { validateApprovalAssignees: async () => [] });
-mock(path.join(SERVER, 'automation/agentCatalog'), { agentCatalogForOwner: async () => null });
+mock(path.join(SERVER, 'core/automationModel/agentCatalog'), { agentCatalogForOwner: async () => null });
 mock(path.join(SERVER, 'automation/portability'), {
     buildExport: () => ({}), sanitizeImport: () => ({ automation: null, errors: [] }),
     rebindDatatables: (d) => d, rekeyDefinition: (d) => ({ definition: d }), collectPinnedNodes: () => [],

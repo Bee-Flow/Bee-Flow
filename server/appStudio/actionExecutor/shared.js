@@ -9,7 +9,7 @@
 'use strict';
 
 const { CURRENT_USER_KEYS, seedVariableDefaults } = require('../componentSpecs');
-const { tryEvaluate } = require('../../automation/expr');
+const { tryEvaluate } = require('../../shared/expr/index.mjs');
 const { bestEffort } = require('../../utils/bestEffort');
 
 // Hygiene ceiling on how many column bindings one record write resolves. Far

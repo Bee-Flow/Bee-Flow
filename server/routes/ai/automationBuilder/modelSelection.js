@@ -16,7 +16,7 @@ const configStore = require('../../../stores/configStore');
 const { getProviderForModel, getAIConfig } = require('../../../core/aiAgent');
 const { getAdapter } = require('../../../core/providers');
 const { cheapestTier } = require('../../../core/entitlements/tierAccess');
-const { getProfileForModel } = require('../../../automation/builderModelProfiles');
+const { getProfileForModel } = require('../../../core/automationModel/builderModelProfiles');
 const { applyBuilderTierFloor } = require('../builderShared');
 
 /**

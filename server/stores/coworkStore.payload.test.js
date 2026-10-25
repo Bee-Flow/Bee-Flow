@@ -32,14 +32,16 @@ const execCalls = [];
 let getOneHandler = () => null;
 let getAllHandler = () => [];
 
-const restore = installResolveStub({
-    '../db': {
+const dbDouble = {
         run: async (sql, params) => { runCalls.push({ sql, params }); return { rowCount: 1, rows: [] }; },
         getOne: async (sql, params) => getOneHandler(sql, params),
         getAll: async (sql, params) => getAllHandler(sql, params),
         exec: async (sql) => { execCalls.push(sql); },
         pool: { query: async () => ({ rows: [], rowCount: 0 }) },
-    },
+    };
+
+const restore = installResolveStub({
+    '../db': dbDouble, '../../db': dbDouble,
 });
 
 const coworkStore = require('./coworkStore');

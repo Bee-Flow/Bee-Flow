@@ -33,7 +33,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const { buildFullSystemPrompt, buildLeanSystemPrompt } = require('./builderPrompt');
-const { CORE_TOOL_NAMES } = require('./builderModelProfiles');
+const { CORE_TOOL_NAMES } = require('../core/automationModel/builderModelProfiles');
 
 const CATALOG = {
     apps: [

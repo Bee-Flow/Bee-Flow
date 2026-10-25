@@ -82,7 +82,7 @@ function checkTriggerKind({ trigger, p, pushE, pushW }) {
     // provide (contract in automation/appTriggerContract.js). Params
     // absent = a zero-input trigger, which is legal.
     if (trigger.kind === 'app_trigger') {
-        const { validateAppTriggerParams, validateAppTriggerRef } = require('../appTriggerContract');
+        const { validateAppTriggerParams, validateAppTriggerRef } = require('../../core/automationModel/appTriggerContract');
         for (const issue of validateAppTriggerParams(trigger.params)) {
             pushE({ code: `app_trigger.${issue.code}`, severity: 'error', path: p(`trigger.${issue.path}`), message: issue.message, hint: issue.hint });
         }

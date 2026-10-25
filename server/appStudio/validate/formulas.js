@@ -13,7 +13,7 @@ const { LIMITS, FORMULA_SCOPE_ROOTS, CURRENT_USER_KEYS } = require('../component
 // require()-ing the .mjs directly) keeps App Studio on the CommonJS surface the
 // rest of the server uses and is transparent to the route/store test harnesses
 // that monkeypatch Module._resolveFilename.
-const { compile } = require('../../automation/expr');
+const { compile } = require('../../shared/expr/index.mjs');
 
 // ---------------------------------------------------------------------------
 // v2 shared checks — formula compilation (NEVER execution), and reference

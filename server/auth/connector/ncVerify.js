@@ -6,7 +6,7 @@
  */
 
 const { ncHostFromUrl } = require('../orgNaming');
-const { nextcloudFetch } = require('../../integrations/nextcloudTarget');
+const { nextcloudFetch } = require('../../utils/nextcloudTarget');
 
 // Stable fallback id for Nextclouds that expose neither theming.instanceid nor
 // core.instanceid. MUST stay byte-identical to the connector's copy in

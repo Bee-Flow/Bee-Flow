@@ -20,7 +20,7 @@ const {
     getProfile,
     getProfileForModel,
     effortForIteration,
-} = require('../automation/builderModelProfiles');
+} = require('../core/automationModel/builderModelProfiles');
 
 module.exports = {
     classifyModel,

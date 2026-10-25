@@ -80,7 +80,7 @@ describe('the field types and limits', () => {
         expect(MAX_LABEL_LEN).toBe(num(src, 'MAX_LABEL_LEN'));
         expect(MAX_TEXT_LEN).toBe(num(src, 'MAX_TEXT_LEN'));
         expect(MAX_TEXTAREA_LEN).toBe(num(src, 'MAX_TEXTAREA_LEN'));
-        expect(MAX_STRING_VALUE).toBe(num(readServer('automation/appTriggerContract.js'), 'MAX_STRING_VALUE'));
+        expect(MAX_STRING_VALUE).toBe(num(readServer('core/automationModel/appTriggerContract.js'), 'MAX_STRING_VALUE'));
         expect(MAX_PICKS).toBe(num(readServer('automation/formPickSources.js'), 'MAX_PICKS'));
     });
 

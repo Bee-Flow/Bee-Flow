@@ -13,7 +13,7 @@
 const queryCompiler = require('./queryCompiler');
 const rlsGateway = require('./rlsGateway');
 const { seedVariableDefaults } = require('./componentSpecs');
-const { compile, tryEvaluate } = require('../automation/expr');
+const { compile, tryEvaluate } = require('../shared/expr/index.mjs');
 const { isDatatableBacked } = require('./datatableSource');
 const log = require('../telemetry/log');
 

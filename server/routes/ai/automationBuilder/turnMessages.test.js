@@ -18,7 +18,7 @@ const assert = require('node:assert');
 const { composeTurnMessages, stablePrefixLength } = require('./turnMessages');
 const { historyForModel } = require('./chatTurnLoop');
 const { applyCatalogOrder, catalogOrderOf } = require('../../../automation/builderPrompt/rankApps');
-const { getProfile } = require('../../../automation/builderModelProfiles');
+const { getProfile } = require('../../../core/automationModel/builderModelProfiles');
 const { systemPrefixFingerprint } = require('../../../core/llm/promptCacheStability');
 
 const app = (id, actions) => ({

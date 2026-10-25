@@ -37,7 +37,7 @@ const initDB = makeStoreInit('OrgCustomIntegrationStore', _initDB);
 
 async function _initDB() {
     try {
-        await require('../migrations/org-custom-integrations-2026-06').up();
+        await require('./ddl/org-custom-integrations-2026-06').up();
     } catch (err) {
         log.error('[OrgCustomIntegrationStore] migration error:', err.message);
     }

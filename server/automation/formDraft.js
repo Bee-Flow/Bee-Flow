@@ -50,7 +50,7 @@
 'use strict';
 
 const { FIELD_TYPES, DISPLAY_FIELD_TYPES, CHOICE_FIELD_TYPES, MAX_FIELDS, validateFormDeclaration, normalizeFields } = require('./formTriggerContract');
-const { PARAM_NAME_RE } = require('./appTriggerContract');
+const { PARAM_NAME_RE } = require('../core/automationModel/appTriggerContract');
 const { mergeRevision, currentInfoBlocks } = require('./formDraftRevise');
 
 /**

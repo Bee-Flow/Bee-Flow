@@ -97,17 +97,17 @@ const initDB = makeStoreInit('IntegrationConnectionStore', _initDB);
 
 async function _initDB() {
     try {
-        await require('../migrations/integration-connections-2026-06').up();
+        await require('./ddl/integration-connections-2026-06').up();
     } catch (err) {
         log.error('[IntegrationConnectionStore] migration error:', err.message);
     }
     try {
-        await require('../migrations/integration-connections-http-kinds-2026-07').up();
+        await require('./ddl/integration-connections-http-kinds-2026-07').up();
     } catch (err) {
         log.error('[IntegrationConnectionStore] http-kinds migration error:', err.message);
     }
     try {
-        await require('../migrations/integration-connections-hardening-2026-07').up();
+        await require('./ddl/integration-connections-hardening-2026-07').up();
     } catch (err) {
         log.error('[IntegrationConnectionStore] hardening migration error:', err.message);
     }

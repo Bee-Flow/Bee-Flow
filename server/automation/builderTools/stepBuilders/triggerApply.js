@@ -149,7 +149,7 @@ function buildFormFields(fields) {
  * validate.js re-checks names/dups/types authoritatively.
  */
 function buildAppParams(params) {
-    const { PARAM_TYPES } = require('../../appTriggerContract');
+    const { PARAM_TYPES } = require('../../../core/automationModel/appTriggerContract');
     return Array.isArray(params)
         ? params
             .filter((p) => p && typeof p === 'object' && p.name)

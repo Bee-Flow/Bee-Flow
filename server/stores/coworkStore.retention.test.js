@@ -17,8 +17,7 @@ const { installResolveStub } = require('../testUtils/stubRequire');
 const runCalls = [];
 let nextRowCount = 0;
 
-const restore = installResolveStub({
-    '../db': {
+const dbDouble = {
         run: async (sql, params) => {
             runCalls.push({ sql, params });
             return { rowCount: nextRowCount, rows: [] };
@@ -27,7 +26,10 @@ const restore = installResolveStub({
         getAll: async () => [],
         exec: async () => {}, // schema-init (migratie + aiTaskStore) wordt no-op
         pool: { query: async () => ({ rows: [], rowCount: 0 }) },
-    },
+    };
+
+const restore = installResolveStub({
+    '../db': dbDouble, '../../db': dbDouble,
 });
 
 const coworkStore = require('./coworkStore');

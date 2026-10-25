@@ -36,7 +36,7 @@ function makeLiveSideEffects(deps = {}) {
     const userStore = () => deps.userStore || require('../stores/userStore');
     const subjectReview = () => deps.subjectReview || require('../compliance/subjectReview');
     const formAnswers = () => deps.formAnswers || require('./formAnswers');
-    const agentCatalogForOwner = () => deps.agentCatalogForOwner || require('./agentCatalog').agentCatalogForOwner;
+    const agentCatalogForOwner = () => deps.agentCatalogForOwner || require('../core/automationModel/agentCatalog').agentCatalogForOwner;
     const kbStepFindings = () => deps.kbStepFindings || require('../core/kb/automationKbCheck').kbStepFindings;
 
     /**

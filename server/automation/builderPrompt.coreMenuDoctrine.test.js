@@ -20,7 +20,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const { TOOL_SCHEMAS } = require('./builderTools/schemas');
-const { CORE_TOOL_NAMES } = require('./builderModelProfiles');
+const { CORE_TOOL_NAMES } = require('../core/automationModel/builderModelProfiles');
 const { buildLeanSystemPrompt } = require('./builderPrompt');
 
 // Tools the lean prompt teaches that the core menu does not serve. EMPTY since

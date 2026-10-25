@@ -163,13 +163,13 @@ async function _doInit() {
                     AND attname = 'payload_bytes' AND NOT attisdropped) AS c`,
     ).catch((e) => fallback('stores/integrationCacheStore:_doInit', e, null));
     if (!(probe?.t && probe?.c)) {
-        await require('../migrations/integration-response-cache-2026-09').up();
+        await require('./ddl/integration-response-cache-2026-09').up();
     }
     // Runs regardless of the probe above, because half of it stamps CONFIG
     // rows and no schema probe can see those. Self-limiting (it skips any row
     // that already carries `scopes`) and non-fatal: a cache that cannot
     // migrate its consent rows must still be able to miss rather than throw.
-    await require('../migrations/integration-cache-scopes-2026-09').up()
+    await require('./ddl/integration-cache-scopes-2026-09').up()
         .catch(e => log.error('[IntegrationCache] scopes migration failed:', e.message));
 }
 
