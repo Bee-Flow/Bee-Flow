@@ -161,7 +161,8 @@ test('a slow gate is named in the summary, so a new lint:* script cannot quietly
 
 test('the branch gates compare against the merge-base, and skip without origin/main', () => {
     const fakeGit = (sha) => (_root, args) => (args[0] === 'rev-parse' ? (sha ? 'x' : null) : sha);
-    const [guard, scan] = branchGates('/repo', fakeGit('abc123'));
+    const [guard, scan, newCode] = branchGates('/repo', fakeGit('abc123'));
+    assert.strictEqual(newCode.command, 'node scripts/check-new-code-types.mjs --base abc123');
     assert.strictEqual(guard.command, 'node scripts/i18n-key-guard.mjs --base abc123');
     assert.strictEqual(scan.command, './scripts/scan-secrets.sh --range abc123..HEAD');
     assert.ok(scan.bash && !guard.bash && !guard.skip && !scan.skip);

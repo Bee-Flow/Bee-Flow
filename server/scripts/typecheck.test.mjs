@@ -12,10 +12,10 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync, existsSync, readdirSync, readFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { checkedFiles, levelOfText, parseDiagnostics, runTypecheck, strictFiles } from './typecheck.mjs';
+import { LEVELS, LEVEL_OPTIONS, checkLevels, checkedFiles, cleanAt, levelOfText, markedFiles, measure, parseDiagnostics, promote, runTypecheck, withLevel } from './typecheck.mjs';
 
 function sandbox({ marked, dep }) {
     const dir = mkdtempSync(path.join(os.tmpdir(), 'typecheck-'));
@@ -83,35 +83,104 @@ test('parseDiagnostics folds continuation lines and keeps file-less errors', () 
     assert.equal(ds[1].code, 'TS5023');
 });
 
-test('levels: `// @typecheck` is base, `// @typecheck noImplicitAny` is strict, a marker past the header window or a lookalike is neither', () => {
+// ---- levels, promote, measure ----
+
+
+test('levelOfText reads the three markers from the header only', () => {
     assert.equal(levelOfText('// @typecheck\nx\n'), 'base');
-    assert.equal(levelOfText("'use strict';\n// @typecheck noImplicitAny\n"), 'noImplicitAny');
-    assert.equal(levelOfText('// @typecheck   noImplicitAny\n'), 'noImplicitAny');
-    assert.equal(levelOfText('// @typecheck noImplicitAnything\n'), 'base');
-    assert.equal(levelOfText(`${'\n'.repeat(40)}// @typecheck noImplicitAny\n`), null);
-    assert.equal(levelOfText('// typecheck\n'), null);
+    assert.equal(levelOfText("'use strict';\n// @typecheck noImplicitAny\nx\n"), 'noImplicitAny');
+    assert.equal(levelOfText('#!/usr/bin/env node\n// @typecheck strict\n'), 'strict');
+    assert.equal(levelOfText('x\n'.repeat(40) + '// @typecheck strict\n'), null);
+    assert.equal(levelOfText('// the word @typecheck in prose\n'), null);
+    assert.equal(levelOfText('// @typechecked\n'), null);
 });
 
-test('strictFiles lists only the noImplicitAny files; checkedFiles still lists both levels', (t) => {
-    const dir = sandbox({ marked: '// @typecheck\nmodule.exports = 1;\n', dep: '// @typecheck noImplicitAny\nmodule.exports = 2;\n' });
-    t.after(() => rmSync(dir, { recursive: true, force: true }));
-    assert.deepEqual(checkedFiles(dir), ['dep.js', 'marked.js']);
-    assert.deepEqual(strictFiles(dir), ['dep.js']);
+test('withLevel rewrites only the marker line', () => {
+    assert.equal(withLevel("'use strict';\n// @typecheck\nx\n", 'noImplicitAny'), "'use strict';\n// @typecheck noImplicitAny\nx\n");
+    assert.equal(withLevel('// @typecheck strict\nx\n', 'base'), '// @typecheck\nx\n');
+    assert.equal(withLevel('x\n', 'strict'), 'x\n');
 });
 
-test('noImplicitAny: an untyped parameter passes the base run and fails the strict one, with its own generated config', (t) => {
-    const dir = sandbox({ marked: '// @typecheck noImplicitAny\nfunction f(a) { return a; }\nmodule.exports = { f };\n', dep: CLEAN_DEP });
+test('the strict level switches on the strict family and leaves catch variables alone', () => {
+    assert.deepEqual(LEVELS, ['base', 'noImplicitAny', 'strict']);
+    assert.deepEqual(LEVEL_OPTIONS.base, {});
+    assert.deepEqual(Object.keys(LEVEL_OPTIONS.strict).sort(), ['alwaysStrict', 'noImplicitAny', 'noImplicitThis', 'strictBindCallApply', 'strictFunctionTypes', 'strictNullChecks', 'useUnknownInCatchVariables']);
+    assert.equal(LEVEL_OPTIONS.strict.useUnknownInCatchVariables, false);
+});
+
+function levelSandbox(files) {
+    const dir = sandbox({ marked: '// @typecheck\nmodule.exports = 1;\n', dep: CLEAN_DEP });
+    for (const [name, text] of Object.entries(files)) writeFileSync(path.join(dir, name), text);
+    return dir;
+}
+
+test('markedFiles includes .mts and .cts, skips declarations, and reports each level', (t) => {
+    const dir = levelSandbox({
+        'a.mts': '// @typecheck strict\nexport const a: number = 1;\n',
+        'b.cts': '// @typecheck noImplicitAny\nexport {};\n',
+        'c.d.ts': '// @typecheck\ndeclare const c: number;\n',
+        'd.js': 'module.exports = 1;\n',
+    });
     t.after(() => rmSync(dir, { recursive: true, force: true }));
-    const base = runTypecheck(['marked.js'], { dir });
-    assert.deepEqual(base.diagnostics, []);
-    const strict = runTypecheck(['marked.js'], { dir, noImplicitAny: true });
-    assert.equal(strict.crashed, false);
-    assert.equal(strict.diagnostics.length, 1);
-    assert.equal(strict.diagnostics[0].code, 'TS7006');
-    assert.equal(strict.diagnostics[0].file, 'marked.js');
-    assert.ok(existsSync(path.join(dir, '.typecheck.noimplicitany.tsconfig.json')));
-    assert.ok(existsSync(path.join(dir, '.typecheck.tsconfig.json')));
-    // a single-file strict run leaves nothing behind
-    runTypecheck(['marked.js'], { dir, single: true, noImplicitAny: true });
-    assert.equal(readdirSync(dir).filter((f) => /^\.typecheck\.noimplicitany\.\d+\./.test(f)).length, 0);
+    assert.deepEqual(markedFiles(dir), [
+        { file: 'a.mts', level: 'strict' },
+        { file: 'b.cts', level: 'noImplicitAny' },
+        { file: 'marked.js', level: 'base' },
+    ]);
+    assert.deepEqual(checkedFiles(dir, '', 'strict'), ['a.mts']);
+});
+
+test('each level is checked under its own options: an implicit any fails only from noImplicitAny up', (t) => {
+    const body = 'function f(x) { return x; }\nmodule.exports = { f };\n';
+    const dir = levelSandbox({ 'base.js': `// @typecheck\n${body}`, 'nia.js': `// @typecheck noImplicitAny\n${body}` });
+    t.after(() => rmSync(dir, { recursive: true, force: true }));
+    const runs = checkLevels(markedFiles(dir), { dir });
+    const byLevel = Object.fromEntries(runs.map((r) => [r.level, r.diagnostics.map((d) => `${d.file}:${d.code}`)]));
+    assert.deepEqual(byLevel.base, []);
+    assert.deepEqual(byLevel.noImplicitAny, ['nia.js:TS7006']);
+});
+
+test('strict adds strictNullChecks: a nullable value used without a check fails there', (t) => {
+    const body = '/** @param {string | null} s */\nfunction len(s) { return s.length; }\nmodule.exports = { len };\n';
+    const dir = levelSandbox({ 's.js': `// @typecheck strict\n${body}`, 'n.js': `// @typecheck noImplicitAny\n${body}` });
+    t.after(() => rmSync(dir, { recursive: true, force: true }));
+    const byLevel = Object.fromEntries(checkLevels(markedFiles(dir), { dir }).map((r) => [r.level, r.diagnostics.map((d) => d.file)]));
+    assert.deepEqual(byLevel.strict, ['s.js']);
+    assert.deepEqual(byLevel.noImplicitAny, []);
+});
+
+test('promote moves a clean file up (two levels when it can) and leaves a failing one, tests and all', (t) => {
+    const clean = 'module.exports = { n: 1 };\n';
+    const dir = levelSandbox({
+        'clean.js': `// @typecheck\n${clean}`,
+        'anyparam.js': '// @typecheck\nfunction f(x) { return x; }\nmodule.exports = { f };\n',
+        'nullable.js': '// @typecheck\n/** @param {string | null} s */\nfunction len(s) { return s.length; }\nmodule.exports = { len };\n',
+        'clean.test.js': `// @typecheck\n${clean}`,
+    });
+    t.after(() => rmSync(dir, { recursive: true, force: true }));
+    const r = promote({ dir });
+    assert.equal(r.crashed, false);
+    assert.deepEqual(r.promoted, { 'clean.js': 'strict', 'marked.js': 'strict', 'nullable.js': 'noImplicitAny' });
+    assert.match(readFileSync(path.join(dir, 'clean.js'), 'utf8'), /^\/\/ @typecheck strict\n/);
+    assert.match(readFileSync(path.join(dir, 'anyparam.js'), 'utf8'), /^\/\/ @typecheck\n/);
+    assert.match(readFileSync(path.join(dir, 'nullable.js'), 'utf8'), /^\/\/ @typecheck noImplicitAny\n/);
+    assert.match(readFileSync(path.join(dir, 'clean.test.js'), 'utf8'), /^\/\/ @typecheck\n/, 'tests stay');
+    assert.equal(promote({ dir, tests: true }).promoted['clean.test.js'], 'strict');
+});
+
+test('measure counts the files per level and what the next level would say', (t) => {
+    const dir = levelSandbox({
+        'anyparam.js': '// @typecheck\nfunction f(x) { return x; }\nmodule.exports = { f };\n',
+        'ok.js': '// @typecheck noImplicitAny\nmodule.exports = 1;\n',
+    });
+    t.after(() => rmSync(dir, { recursive: true, force: true }));
+    const { rows, pending } = measure({ dir });
+    assert.deepEqual(rows.map((r) => `${r.level}:${r.files}`), ['base:2', 'noImplicitAny:1', 'strict:0']);
+    assert.equal(pending[0].to, 'noImplicitAny');
+    assert.equal(pending[0].errors, 1);
+    assert.equal(pending[0].clean, 1);
+    assert.equal(pending[1].to, 'strict');
+    assert.equal(pending[1].errors, 1, 'the untyped parameter fails there too');
+    assert.equal(pending[1].clean, 2);
+    assert.equal(cleanAt([], 'strict', { dir }).clean.length, 0);
 });
