@@ -5,7 +5,7 @@ import SkillDetail from './SkillDetail';
 import SkillsList from './SkillsList';
 import SkillsOverview from './SkillsOverview';
 import { filterSkills } from './skillModel';
-import { skillsApi } from './skillsApi';
+import { skillsApi } from '../../../../api/skillsApi';
 import type { Skill, UsageSummaryMap } from './skillModel.types';
 
 /**

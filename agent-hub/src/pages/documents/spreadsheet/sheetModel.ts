@@ -12,13 +12,13 @@ export type Whole = 'rows' | 'columns' | null;
 
 export const COLUMNS = 26;
 /** The server takes selections inside A1:Z{MAX_ROWS}. */
-export const MAX_ROWS = 2000;
+const MAX_ROWS = 2000;
 /** Never show fewer rows than this, and always this many beyond the last used one. */
 export const MIN_ROWS = 50;
 export const ROWS_MARGIN = 20;
 export const ADD_ROWS = 50;
 
-export function rangeOf(a: Pos, b: Pos): Range {
+function rangeOf(a: Pos, b: Pos): Range {
     return { c1: Math.min(a.col, b.col), r1: Math.min(a.row, b.row), c2: Math.max(a.col, b.col), r2: Math.max(a.row, b.row) };
 }
 

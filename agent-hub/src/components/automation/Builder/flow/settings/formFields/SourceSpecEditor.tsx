@@ -12,7 +12,7 @@ import type { SourceSpec } from './fieldEditor.types';
 const PathField = PathFieldJs;
 
 /** The cap the server applies to `limit` (formDynamicFields MAX_SOURCE_LIMIT). */
-export const SOURCE_LIMIT_MAX = 10000;
+const SOURCE_LIMIT_MAX = 10000;
 
 interface Props {
     spec: SourceSpec | null | undefined;

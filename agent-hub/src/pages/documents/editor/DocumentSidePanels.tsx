@@ -41,7 +41,7 @@ export interface DocumentSidePanelsProps {
 }
 
 /** The reader's role for the comments: the project's word, or what the document says they may do. */
-export function commentRole(doc: StudioDocument, canEdit: boolean): ProjectRole {
+function commentRole(doc: StudioDocument, canEdit: boolean): ProjectRole {
     return doc.projectRole || (canEdit ? 'editor' : 'viewer');
 }
 

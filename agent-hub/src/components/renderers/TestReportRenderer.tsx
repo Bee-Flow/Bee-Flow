@@ -1,8 +1,9 @@
-import { CheckCircle, XCircle, AlertTriangle, Clock, ChevronDown, ChevronRight, Bug, Shield, Zap, Eye } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Clock, Bug, Shield, Zap, Eye } from 'lucide-react';
 import React, { useState } from 'react';
 import MarkdownRenderer from './MarkdownRenderer';
 import type { TestCase, TestReportData } from './TestReportRenderer.types';
-import { useTranslation } from '../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
+import { TestReportRendererSection } from './TestReportRendererSection';
 
 const TestReportRenderer = ({ data }: { data?: TestReportData | null }) => {
     const { t } = useTranslation();
@@ -106,284 +107,10 @@ const TestReportRenderer = ({ data }: { data?: TestReportData | null }) => {
             </div>
 
             {/* ── Summary Stats ── */}
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(5, 1fr)',
-                gap: '0.5rem',
-                padding: '1rem 1.5rem',
-                borderBottom: '1px solid var(--border-subtle, rgba(255,255,255,0.08))',
-            }}>
-                {/* Pass rate */}
-                <div style={{
-                    textAlign: 'center',
-                    padding: '0.75rem 0.5rem',
-                    borderRadius: '0.75rem',
-                    background: 'var(--bg-tertiary, rgba(255,255,255,0.03))',
-                }}>
-                    <div style={{
-                        fontSize: '1.5rem',
-                        fontWeight: '800',
-                        color: passRate >= 80 ? '#10b981' : passRate >= 50 ? '#f59e0b' : '#ef4444',
-                        lineHeight: 1.2,
-                    }}>
-                        {passRate}%
-                    </div>
-                    <div style={{
-                        fontSize: '0.65rem',
-                        color: 'var(--text-muted, #888)',
-                        marginTop: '0.25rem',
-                        fontWeight: '600',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px',
-                    }}>
-                        {t('chat.renderers.tests_pass_rate', 'Pass Rate')}
-                    </div>
-                </div>
-                {/* Individual counts */}
-                {[
-                    { key: 'passed', val: summary.passed || 0 },
-                    { key: 'failed', val: summary.failed || 0 },
-                    { key: 'warning', val: summary.warnings || 0 },
-                    { key: 'skipped', val: summary.skipped || 0 },
-                ].map(({ key, val }) => {
-                    const sc = statusConfig[key];
-                    return (
-                        <button
-                            key={key}
-                            onClick={() => setFilter(filter === key ? 'all' : key)}
-                            style={{
-                                textAlign: 'center',
-                                padding: '0.75rem 0.5rem',
-                                borderRadius: '0.75rem',
-                                background: filter === key ? sc.bg : 'var(--bg-tertiary, rgba(255,255,255,0.03))',
-                                border: filter === key ? `1px solid ${sc.color}40` : '1px solid transparent',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s ease',
-                            }}
-                        >
-                            <div style={{
-                                fontSize: '1.5rem',
-                                fontWeight: '800',
-                                color: sc.color,
-                                lineHeight: 1.2,
-                            }}>
-                                {val}
-                            </div>
-                            <div style={{
-                                fontSize: '0.65rem',
-                                color: 'var(--text-muted, #888)',
-                                marginTop: '0.25rem',
-                                fontWeight: '600',
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.5px',
-                            }}>
-                                {sc.label}
-                            </div>
-                        </button>
-                    );
-                })}
-            </div>
+            <TestReportRendererSection2 passRate={passRate} t={t} summary={summary} statusConfig={statusConfig} setFilter={setFilter} filter={filter} />
 
             {/* ── Test Cases ── */}
-            <div style={{ padding: '0.75rem 1.5rem 1rem' }}>
-                {filteredTests.length === 0 && (
-                    <div style={{
-                        textAlign: 'center',
-                        padding: '2rem',
-                        color: 'var(--text-muted, #888)',
-                        fontSize: '0.85rem',
-                    }}>
-                        {filter !== 'all' ? t('chat.renderers.tests_none_filtered', 'No {filter} tests to display', { filter }) : t('chat.renderers.tests_none', 'No tests to display')}
-                    </div>
-                )}
-                {filteredTests.map((test, i) => {
-                    const sc = statusConfig[test.status] || statusConfig.skipped;
-                    const cat = categoryConfig[test.category];
-                    const isExpanded = expandedTests.has(i);
-                    const sev = test.severity ? severityColors[test.severity] : null;
-
-                    return (
-                        <div key={i} style={{
-                            marginBottom: '0.5rem',
-                            borderRadius: '0.75rem',
-                            border: `1px solid ${isExpanded ? sc.color + '30' : 'var(--border-subtle, rgba(255,255,255,0.06))'}`,
-                            overflow: 'hidden',
-                            transition: 'all 0.15s ease',
-                        }}>
-                            {/* Test header row */}
-                            <button
-                                onClick={() => toggleTest(i)}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.75rem',
-                                    width: '100%',
-                                    padding: '0.75rem 1rem',
-                                    background: isExpanded ? sc.bg : 'transparent',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    textAlign: 'left',
-                                    transition: 'background 0.15s ease',
-                                }}
-                            >
-                                {/* Expand chevron */}
-                                <span style={{ color: 'var(--text-muted, #888)', flexShrink: 0 }}>
-                                    {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                                </span>
-                                {/* Status icon */}
-                                <span style={{ color: sc.color, flexShrink: 0 }}>{sc.icon}</span>
-                                {/* Test name */}
-                                <span style={{
-                                    flex: 1,
-                                    fontSize: '0.85rem',
-                                    fontWeight: '500',
-                                    color: 'var(--text-primary, #fff)',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
-                                }}>
-                                    {test.name}
-                                </span>
-                                {/* Category badge */}
-                                {cat && (
-                                    <span style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: '0.25rem',
-                                        fontSize: '0.65rem',
-                                        fontWeight: '600',
-                                        color: cat.color,
-                                        background: cat.color + '18',
-                                        padding: '0.2rem 0.5rem',
-                                        borderRadius: '999px',
-                                        flexShrink: 0,
-                                    }}>
-                                        {cat.icon} {test.category}
-                                    </span>
-                                )}
-                                {/* Severity badge */}
-                                {sev && (
-                                    <span style={{
-                                        fontSize: '0.6rem',
-                                        fontWeight: '700',
-                                        color: sev,
-                                        textTransform: 'uppercase',
-                                        letterSpacing: '0.5px',
-                                        flexShrink: 0,
-                                    }}>
-                                        {test.severity}
-                                    </span>
-                                )}
-                                {/* Duration */}
-                                {test.duration && (
-                                    <span style={{
-                                        fontSize: '0.7rem',
-                                        color: 'var(--text-muted, #666)',
-                                        flexShrink: 0,
-                                    }}>
-                                        {test.duration}
-                                    </span>
-                                )}
-                            </button>
-
-                            {/* Expanded details */}
-                            {isExpanded && (
-                                <div style={{
-                                    padding: '0.75rem 1rem 1rem',
-                                    paddingLeft: '3rem',
-                                    background: sc.bg,
-                                    borderTop: `1px solid ${sc.color}15`,
-                                }}>
-                                    {/* Description */}
-                                    {test.description && (
-                                        <div style={{
-                                            fontSize: '0.8rem',
-                                            color: 'var(--text-secondary, #ccc)',
-                                            marginBottom: '0.75rem',
-                                            lineHeight: 1.5,
-                                        }}>
-                                            {test.description}
-                                        </div>
-                                    )}
-
-                                    {/* Steps */}
-                                    {test.steps && test.steps.length > 0 && (
-                                        <div style={{ marginBottom: '0.75rem' }}>
-                                            <div style={{
-                                                fontSize: '0.7rem',
-                                                fontWeight: '600',
-                                                color: 'var(--text-muted, #888)',
-                                                textTransform: 'uppercase',
-                                                letterSpacing: '0.5px',
-                                                marginBottom: '0.4rem',
-                                            }}>
-                                                {t('chat.renderers.tests_steps', 'Steps')}
-                                            </div>
-                                            <ol style={{
-                                                margin: 0,
-                                                paddingLeft: '1.25rem',
-                                                fontSize: '0.78rem',
-                                                color: 'var(--text-secondary, #ccc)',
-                                                lineHeight: 1.8,
-                                            }}>
-                                                {test.steps.map((step, si) => (
-                                                    <li key={si}>{typeof step === 'string' ? step : (step?.description || step?.action || JSON.stringify(step))}</li>
-                                                ))}
-                                            </ol>
-                                        </div>
-                                    )}
-
-                                    {/* Error */}
-                                    {test.error && (
-                                        <div style={{
-                                            padding: '0.6rem 0.75rem',
-                                            borderRadius: '0.5rem',
-                                            background: 'rgba(239, 68, 68, 0.1)',
-                                            border: '1px solid rgba(239, 68, 68, 0.2)',
-                                            marginBottom: '0.75rem',
-                                        }}>
-                                            <div style={{
-                                                fontSize: '0.7rem',
-                                                fontWeight: '600',
-                                                color: '#ef4444',
-                                                marginBottom: '0.25rem',
-                                            }}>
-                                                ❌ {t('chat.renderers.tests_error', 'Error')}
-                                            </div>
-                                            <div style={{
-                                                fontSize: '0.78rem',
-                                                color: '#fca5a5',
-                                                fontFamily: 'monospace',
-                                                whiteSpace: 'pre-wrap',
-                                                wordBreak: 'break-word',
-                                            }}>
-                                                {test.error}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* Screenshot */}
-                                    {test.screenshot && (
-                                        <div style={{ marginBottom: '0.5rem' }}>
-                                            <img
-                                                src={test.screenshot}
-                                                alt={`Screenshot: ${test.name}`}
-                                                style={{
-                                                    maxWidth: '100%',
-                                                    maxHeight: '300px',
-                                                    borderRadius: '0.5rem',
-                                                    border: '1px solid var(--border-subtle, rgba(255,255,255,0.1))',
-                                                    objectFit: 'contain',
-                                                }}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
+            <TestReportRendererSection filteredTests={filteredTests} filter={filter} t={t} statusConfig={statusConfig} categoryConfig={categoryConfig} expandedTests={expandedTests} severityColors={severityColors} toggleTest={toggleTest} />
 
             {/* ── Recommendations ── */}
             {data.recommendations && data.recommendations.length > 0 && (
@@ -433,3 +160,84 @@ const TestReportRenderer = ({ data }: { data?: TestReportData | null }) => {
 };
 
 export default TestReportRenderer;
+
+function TestReportRendererSection2({ passRate, t, summary, statusConfig, setFilter, filter }: { passRate: number; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; summary: { passed?: number; failed?: number; skipped?: number; warnings?: number; }; statusConfig: Record<string, { color: string; bg: string; icon: React.JSX.Element; label: string; }>; setFilter: React.Dispatch<React.SetStateAction<string>>; filter: string; }) {
+    return <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(5, 1fr)',
+        gap: '0.5rem',
+        padding: '1rem 1.5rem',
+        borderBottom: '1px solid var(--border-subtle, rgba(255,255,255,0.08))',
+    }}>
+        {/* Pass rate */}
+        <div style={{
+            textAlign: 'center',
+            padding: '0.75rem 0.5rem',
+            borderRadius: '0.75rem',
+            background: 'var(--bg-tertiary, rgba(255,255,255,0.03))',
+        }}>
+            <div style={{
+                fontSize: '1.5rem',
+                fontWeight: '800',
+                color: passRate >= 80 ? '#10b981' : passRate >= 50 ? '#f59e0b' : '#ef4444',
+                lineHeight: 1.2,
+            }}>
+                {passRate}%
+            </div>
+            <div style={{
+                fontSize: '0.65rem',
+                color: 'var(--text-muted, #888)',
+                marginTop: '0.25rem',
+                fontWeight: '600',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+            }}>
+                {t('chat.renderers.tests_pass_rate', 'Pass Rate')}
+            </div>
+        </div>
+        {/* Individual counts */}
+        {[
+            { key: 'passed', val: summary.passed || 0 },
+            { key: 'failed', val: summary.failed || 0 },
+            { key: 'warning', val: summary.warnings || 0 },
+            { key: 'skipped', val: summary.skipped || 0 },
+        ].map(({ key, val }) => {
+            const sc = statusConfig[key];
+            return (
+                <button
+                    key={key}
+                    onClick={() => setFilter(filter === key ? 'all' : key)}
+                    style={{
+                        textAlign: 'center',
+                        padding: '0.75rem 0.5rem',
+                        borderRadius: '0.75rem',
+                        background: filter === key ? sc.bg : 'var(--bg-tertiary, rgba(255,255,255,0.03))',
+                        border: filter === key ? `1px solid ${sc.color}40` : '1px solid transparent',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                    }}
+                >
+                    <div style={{
+                        fontSize: '1.5rem',
+                        fontWeight: '800',
+                        color: sc.color,
+                        lineHeight: 1.2,
+                    }}>
+                        {val}
+                    </div>
+                    <div style={{
+                        fontSize: '0.65rem',
+                        color: 'var(--text-muted, #888)',
+                        marginTop: '0.25rem',
+                        fontWeight: '600',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                    }}>
+                        {sc.label}
+                    </div>
+                </button>
+            );
+        })}
+    </div>;
+}
+

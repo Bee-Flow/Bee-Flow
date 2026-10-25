@@ -4,7 +4,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { authFetch, API_BASE } from '../../utils/helpers';
 
-export const notebookKeys = {
+const notebookKeys = {
     aiUserSettings: ['notebook', 'aiUserSettings'] as const,
     authAppPasswordStatus: ['notebook', 'authAppPasswordStatus'] as const,
 };

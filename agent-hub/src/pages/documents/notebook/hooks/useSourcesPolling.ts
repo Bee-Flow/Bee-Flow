@@ -16,7 +16,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
     notebookApi, uploadSourceFile, getSourceContent, renameSource as renameSourceApi,
     reorderSourcesApi, bulkDeleteSourcesApi,
-} from './notebookApi';
+} from '../../../../api/notebookApi';
 import useTranslation from '../../../../hooks/useTranslation';
 import { errorMessage } from '../../../../utils/caughtError';
 
@@ -30,7 +30,7 @@ export interface NotebookSource {
     [key: string]: unknown;
 }
 
-export type UploadStatus = 'queued' | 'uploading' | 'done' | 'failed';
+type UploadStatus = 'queued' | 'uploading' | 'done' | 'failed';
 export interface UploadItem { id: string; name: string; size: number; status: UploadStatus; error?: string }
 export interface PendingDelete { source: NotebookSource; index: number }
 
@@ -173,11 +173,12 @@ export default function useSourcesPolling({ entityId, onError, onChanged }: Opti
         for (const item of next) {
             const file = filesRef.current.get(item.id) as File;
             activeRef.current += 1;
+            const dropRow = () => setUploads((list) => list.filter((u) => u.id !== item.id));
             uploadSourceFile(forId, file)
                 .then(() => {
                     filesRef.current.delete(item.id);
                     patchUpload(item.id, { status: 'done' });
-                    setTimeout(() => setUploads((list) => list.filter((u) => u.id !== item.id)), DONE_ROW_MS);
+                    setTimeout(dropRow, DONE_ROW_MS);
                     void refreshSources();
                     onChangedRef.current?.();
                 })

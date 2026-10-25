@@ -25,7 +25,7 @@ interface InputHtmlInspectorProps {
     valueFrom?: BindingInput;
 }
 
-export default function InputHtmlInspector({ node, definition, onCommit, disabled = false }: PanelProps<InputHtmlInspectorProps>) {
+function InputHtmlInspector({ node, definition, onCommit, disabled = false }: PanelProps<InputHtmlInspectorProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const patch = usePatch(node, definition, onCommit);

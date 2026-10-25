@@ -25,7 +25,7 @@ export interface SummaryStamp {
 }
 
 /** Zo markeert de server een ingebouwd sjabloon (core/meetingNotes/summaryStamp.js). */
-export const BUILTIN_STAMP_PREFIX = 'builtin:';
+const BUILTIN_STAMP_PREFIX = 'builtin:';
 
 export const SUMMARY_STAMP = Object.freeze({
     NONE: 'none',

@@ -182,4 +182,3 @@ export function SaveNoticesPanel<N extends PanelNotice>({ open, anchorRef, notic
     );
 }
 
-export default SaveNoticeCapsule;

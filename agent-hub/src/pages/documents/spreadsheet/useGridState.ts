@@ -10,7 +10,7 @@ import { createGridActions, type Latest, type Ui } from './gridActions';
 import { cellName, type Computed } from './sheetEngine';
 import { ADD_ROWS, COLUMNS, MIN_ROWS, ROWS_MARGIN, effectiveRange, inRange, kindOf, usedColsOf } from './sheetModel';
 
-export type { After, Editing, GridActions } from './gridActions';
+export type {   GridActions } from './gridActions';
 
 export interface GridOptions {
     cells: Record<string, string>;

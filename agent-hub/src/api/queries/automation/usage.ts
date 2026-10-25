@@ -14,7 +14,7 @@ export interface OrgStepUsage {
     count: number;
 }
 
-export const automationUsageKeys = {
+const automationUsageKeys = {
     all: ['automation', 'usage'] as const,
     steps: () => [...automationUsageKeys.all, 'steps'] as const,
 };

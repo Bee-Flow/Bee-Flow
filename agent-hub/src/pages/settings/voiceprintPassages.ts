@@ -38,4 +38,3 @@ export function passageFor(locale?: string | null): string[] {
     return PASSAGES[key] || PASSAGES.en;
 }
 
-export default PASSAGES;

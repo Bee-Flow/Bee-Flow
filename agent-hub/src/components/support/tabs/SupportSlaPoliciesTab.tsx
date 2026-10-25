@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Save } from 'lucide-react';
-import { authFetch, API_BASE } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { errorMessage } from '../../../utils/caughtError';
+import { request, RefusedError, mutate, errorBody } from '../../../api/mutate';
 
 interface SlaPolicy {
     priority: string;
@@ -40,8 +41,13 @@ export default function SupportSlaPoliciesTab() {
 
     const load = useCallback(async () => {
         try {
-            const res = await authFetch(`${API_BASE}/api/support/sla-policies`);
-            if (!res.ok) return;
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/api/support/sla-policies`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                return;
+            }
             const { policies } = await res.json();
             const map: Record<string, SlaPolicy> = {};
             for (const p of policies || []) map[p.priority] = p;
@@ -54,12 +60,17 @@ export default function SupportSlaPoliciesTab() {
         setBusy(priority);
         setError(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/support/sla-policies`, {
+            try {
+                await mutate(`${API_BASE}/api/support/sla-policies`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ priority, first_response_minutes: firstMin, resolution_minutes: resMin, enabled }),
             });
-            if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Save failed'); }
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const e = errorBody(err) ?? {};
+                throw new Error(e.error || 'Save failed');
+            }
             await load();
         } catch (e) { setError(errorMessage(e)); }
         finally { setBusy(null); }

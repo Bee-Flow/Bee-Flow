@@ -24,7 +24,7 @@ import type { DemoRun } from './automationsRuns';
 type Obj = Record<string, unknown>;
 
 export const MAIL_FANOUT_AUTOMATION_ID = 'auto_demo_mail_fanout';
-export const MAIL_FANOUT_AUTOMATION_TITLE = 'Fabrikam invoice mails';
+const MAIL_FANOUT_AUTOMATION_TITLE = 'Fabrikam invoice mails';
 
 // ── The mails ────────────────────────────────────────────────────────────
 

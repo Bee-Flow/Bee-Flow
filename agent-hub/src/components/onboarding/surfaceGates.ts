@@ -37,7 +37,7 @@
  */
 
 /** navigateTo target → the gate the product puts on that screen. */
-import type { SurfaceGate } from './lessons.types';
+import type { SurfaceGate } from '../../api/lessons.types';
 
 export const NAV_SURFACE_GATES: Record<string, SurfaceGate> = {
     'agentWizard':                             { feat: [], permView: [], permWrite: ['manage_agents'] },
@@ -78,7 +78,7 @@ export const NAV_SURFACE_GATES: Record<string, SurfaceGate> = {
 };
 
 /** API path prefix → the gate the product puts on that route (longest prefix wins). */
-export const ENDPOINT_SURFACE_GATES: Record<string, SurfaceGate> = {
+const ENDPOINT_SURFACE_GATES: Record<string, SurfaceGate> = {
     '/agents':                                 { feat: [], permView: [], permWrite: [] },
     '/ai/config/chat-models':                  { feat: [], permView: [], permWrite: [] },
     '/ai/direct/conversations':                { feat: [], permView: [], permWrite: [] },

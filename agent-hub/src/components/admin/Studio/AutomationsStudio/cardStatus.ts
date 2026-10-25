@@ -18,8 +18,8 @@ import { toneLabelOf, triggerToneOf } from './triggerTone';
 import { describeCron } from '../../../automation/Builder/flow/scheduleBuilderUtils';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 
-export type Lifecycle = 'live' | 'paused' | 'draft';
-export type Outcome = 'running' | 'failed' | 'ok' | 'other' | 'never';
+type Lifecycle = 'live' | 'paused' | 'draft';
+type Outcome = 'running' | 'failed' | 'ok' | 'other' | 'never';
 
 export interface CardStatus {
     lifecycle: Lifecycle;
@@ -64,7 +64,7 @@ export function triggerShortOf(a: AutomationRecord | null | undefined, t: Transl
     return toneLabelOf(triggerToneOf(a), t);
 }
 
-export type RowMetaTone = StatusPart['tone'] | 'failed' | 'trigger';
+type RowMetaTone = StatusPart['tone'] | 'failed' | 'trigger';
 export interface RowMetaPart { tone: RowMetaTone; text: string }
 
 /**

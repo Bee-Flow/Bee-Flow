@@ -181,7 +181,7 @@ function usableFields(t: (key: string | undefined, fallbackOrParams?: string | T
 }
 
 /** Each operator as a phrase, so the row reads as a sentence. */
-export function opWord(t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string, op: string) {
+function opWord(t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string, op: string) {
     switch (op) {
         case 'eq': return t('datatables.op_eq', 'is');
         case 'neq': return t('datatables.op_neq', 'is not');

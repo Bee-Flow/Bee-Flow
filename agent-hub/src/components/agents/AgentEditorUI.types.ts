@@ -1,4 +1,4 @@
-import type { ModelEntry } from '../../utils/modelMeta';
+import type { ModelEntry } from '../../api/modelMeta';
 import type { AppUserLike } from '../projects/workspace/types';
 import type { ModelTierMap } from '../../api/queries/modelTiers';
 

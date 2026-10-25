@@ -49,7 +49,7 @@ export const DEMO_CAPABILITIES = [
 // (`use_notebooks`), separately from the licence capability above — an 'all'
 // grant would work but would also silently unlock every other gated screen,
 // which is not what a demo should be asserting about itself.
-export const DEMO_PERMISSIONS = ['use_notebooks'];
+const DEMO_PERMISSIONS = ['use_notebooks'];
 
 export const DEMO_USER = {
     id: 'demo-user',
@@ -150,7 +150,7 @@ export const COMMON_ROUTES = {
 
 /** Deterministic ids — a demo must render identically on every visit. */
 let seq = 0;
-export const demoId = (prefix: string) => `${prefix}_demo${String(++seq).padStart(4, '0')}`;
+const demoId = (prefix: string) => `${prefix}_demo${String(++seq).padStart(4, '0')}`;
 
 /**
  * Timestamps relative to page load, so a demo never shows a stale "updated

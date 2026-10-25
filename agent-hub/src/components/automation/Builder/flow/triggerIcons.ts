@@ -11,7 +11,7 @@ import type { TriggerLike } from './triggerLabels';
  * card, the automations overview and the sidebar all draw from this map, so
  * a schedule is the same clock everywhere. Names stay in ./triggerLabels.
  */
-export const TRIGGER_KIND_ICON: Readonly<Record<string, LucideIcon>> = Object.freeze({
+const TRIGGER_KIND_ICON: Readonly<Record<string, LucideIcon>> = Object.freeze({
     schedule:    Clock,
     manual:      MousePointer2,
     webhook:     Webhook,
@@ -23,7 +23,7 @@ export const TRIGGER_KIND_ICON: Readonly<Record<string, LucideIcon>> = Object.fr
 });
 
 /** Sub-icon per (provider, event): a Gmail-new-email trigger gets a Mail glyph, not the generic bolt. */
-export const APP_EVENT_ICON: Readonly<Record<string, LucideIcon>> = Object.freeze({
+const APP_EVENT_ICON: Readonly<Record<string, LucideIcon>> = Object.freeze({
     'gmail.mail.new':                  Mail,
     'gmail.label.added':               Tag,
     'google-calendar.event.changed':   Calendar,

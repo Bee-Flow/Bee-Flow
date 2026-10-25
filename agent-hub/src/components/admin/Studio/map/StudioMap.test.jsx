@@ -38,8 +38,9 @@ vi.mock('../../../../hooks/useStudioCounts', async (importOriginal) => {
 
 vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
-import { MAP_BLOCKS, MAP_EDGES, edgesOf, scopeSentence } from './studioMap';
+import { MAP_EDGES, edgesOf, scopeSentence } from './studioMap';
 import StudioMap from './StudioMap';
+import { MAP_BLOCKS } from './studioMap.constants';
 import { queryWrapper } from '../../../../test/queryWrapper';
 
 // The hooks under this tree read through React Query, so every render needs

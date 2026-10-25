@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Search, Check, Clock, Users, FileAudio, Loader2 } from 'lucide-react';
-import * as api from '../../pages/meeting-notes/lib/transcriptionsApi';
+import * as api from '../../api/transcriptionsApi';
 import { formatDuration, formatRelativeDate } from '../../pages/meeting-notes/lib/format';
 
 export interface PickerMeeting {

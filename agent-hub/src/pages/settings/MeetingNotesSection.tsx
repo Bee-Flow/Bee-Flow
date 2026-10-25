@@ -4,6 +4,7 @@ import { API_BASE, authFetch } from '../../utils/helpers';
 import { NC_BLUE, LANGS, Toggle, Row, Select } from './shared/settingsPrimitives';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
+import { mutate, errorBody, RefusedError } from '../../api/mutate';
 
 interface TalkNotesConfig {
     autoTranscribe: boolean;
@@ -55,11 +56,17 @@ export default function MeetingNotesSection() {
     const save = async () => {
         setSaving(true); setMessage(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/talk-notes-settings/user/me`, {
+            let res: Response | undefined;
+            try {
+                res = await mutate(`${API_BASE}/api/talk-notes-settings/user/me`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cfg),
             });
-            if (res.ok) setMessage({ type: 'success', text: t('settings.talk_notes.saved', "Saved") });
-            else { const e = await res.json().catch(() => ({})); setMessage({ type: 'error', text: e.error || `HTTP ${res.status}` }); }
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const e = errorBody(err) ?? {};
+                setMessage({ type: 'error', text: e.error || `HTTP ${err.status}` });
+            }
+            if (res) setMessage({ type: 'success', text: t('settings.talk_notes.saved', "Saved") });
         } catch (e) { setMessage({ type: 'error', text: errorMessage(e) }); }
         finally { setSaving(false); }
     };

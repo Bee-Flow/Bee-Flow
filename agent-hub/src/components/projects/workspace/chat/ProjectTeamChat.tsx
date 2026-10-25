@@ -7,11 +7,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, Lock, Sparkles } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError } from '../../../../api/client';
-import {
-    discardPendingMessage, newClientMsgId, useLoadOlderMessages, useProjectChatQuery, useSendTeamChatMessage,
-    useTeamChatAgents, useTeamChatMessages, useUpdateProjectChat, type PendingTeamChatMessage, type SendTeamChatMessage, type TeamChat,
-    type TeamChatAiResult, type TeamChatMessage, type TeamChatRef,
-} from '../../../../api/queries/projectChats';
+import { discardPendingMessage, newClientMsgId, useLoadOlderMessages, useProjectChatQuery, useSendTeamChatMessage, useTeamChatAgents, useUpdateProjectChat, type PendingTeamChatMessage, type SendTeamChatMessage, type TeamChat, type TeamChatAiResult, type TeamChatMessage, type TeamChatRef } from '../../../../api/queries/projectChats';
+import { useTeamChatMessages } from '../../../../api/queries/useTeamChatMessages';
 import { useProjectResourcesQuery, type Project, type ProjectRole } from '../../../../api/queries/projects';
 import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
 import { toast } from '../../../shared/Toast';
@@ -57,7 +54,7 @@ export interface ProjectTeamChatProps {
 }
 
 /** What to tell the author when the AI will not answer their message, if anything. */
-export function aiResultNotice(ai: TeamChatAiResult, askedAi: boolean, t: TranslateFn): string | null {
+function aiResultNotice(ai: TeamChatAiResult, askedAi: boolean, t: TranslateFn): string | null {
     if (ai.status === 'busy') return t('project_chat.ai_busy', 'The AI is still answering an earlier message. Ask again when it is done.');
     if (ai.status !== 'skipped') return null;
     if (ai.reason === 'limit') return t('project_chat.ai_limit', 'The AI did not answer: the AI usage limit has been reached.');

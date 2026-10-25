@@ -161,4 +161,4 @@ export function startAnalyticsEvents() {
 }
 
 // Exported for tests.
-export const _internal = { onClick, onSubmit, labelFor, DOWNLOAD_EXT };
+const _internal = { onClick, onSubmit, labelFor, DOWNLOAD_EXT };

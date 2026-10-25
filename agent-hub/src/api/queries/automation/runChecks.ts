@@ -43,7 +43,7 @@ const sendJson = (method: string, body: unknown): Init => ({
     method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
 });
 
-export const runCheckKeys = {
+const runCheckKeys = {
     all: ['automation-run-checks'] as const,
     compare: (a: string, b: string, stepId: string | null) => ['automation-run-checks', 'compare', a, b, stepId] as const,
     goldens: (automationId: string) => ['automation-run-checks', 'goldens', automationId] as const,
@@ -70,7 +70,7 @@ export function useRunCompare(runId: string | null, otherRunId: string | null, s
 
 // ── Goldens ────────────────────────────────────────────────────────────────
 
-export const GOLDEN_POLL_MS = 3000;
+const GOLDEN_POLL_MS = 3000;
 
 /** While any replay is running the list is read again every few seconds; else never. Exported for the test. */
 export function goldenPollMs(data: GoldenList | undefined): number | false {

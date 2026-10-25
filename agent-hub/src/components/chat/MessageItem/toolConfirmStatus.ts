@@ -31,10 +31,10 @@
  */
 
 /** De gesloten lijst. Alles daarbuiten is `unknown`, nooit iets geruststellends. */
-export const CONFIRM_STATUSES = Object.freeze(['pending', 'approved', 'declined', 'unknown']);
+const CONFIRM_STATUSES = Object.freeze(['pending', 'approved', 'declined', 'unknown']);
 
 /** Who set the status: the server (it has happened) or this session (it is going to happen). */
-export const DECISION_SOURCES = Object.freeze(['server', 'session']);
+const DECISION_SOURCES = Object.freeze(['server', 'session']);
 
 /** A pending tool call, as far as the confirmation status reads it. */
 export interface ConfirmCall {

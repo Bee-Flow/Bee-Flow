@@ -341,4 +341,4 @@ export default function ComplianceRail({
     );
 }
 
-export { sectionsInGroup };
+;

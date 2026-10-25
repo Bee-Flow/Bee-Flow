@@ -1,5 +1,5 @@
 import { SLOT_LANGUAGE } from '../webpageCodeFiles';
-import { isPrimaryFile, type ContentSetter, type ExtraContents, type ExtraFileMeta, type PrimaryContent } from '../webpageEditorTypes';
+import { isPrimaryFile, type ContentSetter, type ExtraContents, type ExtraFileMeta, type PrimaryContent } from '../../../api/webpageEditorTypes';
 
 /**
  * An editor tab key: a primary slot ('html' | 'css' | 'js') or
@@ -24,7 +24,7 @@ const LANGUAGE_BY_EXT: Record<string, string> = {
  * Map common file extensions to Monaco language ids. Anything unrecognised
  * renders as plain text — still editable, just no syntax highlighting.
  */
-export function pickLanguage(path: string): string {
+function pickLanguage(path: string): string {
     const ext = (path.split('.').pop() || '').toLowerCase();
     return Object.hasOwn(LANGUAGE_BY_EXT, ext) ? LANGUAGE_BY_EXT[ext] : 'plaintext';
 }

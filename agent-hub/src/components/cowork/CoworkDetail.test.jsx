@@ -22,7 +22,7 @@ const api = vi.hoisted(() => ({
     listCoworkAgents: vi.fn(),
     getCoworkStats: vi.fn(),
 }));
-vi.mock('./coworkApi', () => api);
+vi.mock('../../api/coworkApi', () => api);
 
 const item = (over = {}) => ({
     id: 'w1',

@@ -12,7 +12,7 @@ vi.mock('../../../../../licensing/LicenseContext', () => ({
 }));
 vi.mock('../../SolutionAccessDialog', () => ({ default: () => null }));
 
-import type { StageKey } from '../stagesApi';
+import type { StageKey } from '../../../../../../api/stagesApi';
 import StageSettingsTab from './StageSettingsTab';
 
 type Call = { url: string; method: string; body: Record<string, unknown> | null };

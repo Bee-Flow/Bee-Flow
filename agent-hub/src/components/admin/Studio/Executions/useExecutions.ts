@@ -8,7 +8,7 @@ import type { RunLogRow } from './runLogSentence';
 import { logger } from '../../../../utils/logger';
 
 // Date-range chip → hours (0 = all time).
-export const RANGE_HOURS: Record<string, number> = { '24h': 24, '7d': 168, '30d': 720, all: 0 };
+const RANGE_HOURS: Record<string, number> = { '24h': 24, '7d': 168, '30d': 720, all: 0 };
 
 // The chip values this UI can produce — also the allow-list for what may come
 // back OUT of storage. Everything else is treated as never stored.

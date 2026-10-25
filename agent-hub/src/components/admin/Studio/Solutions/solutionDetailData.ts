@@ -9,6 +9,7 @@ import type { ContentResources, TargetedFinding } from './SolutionContentTable';
 import useProjectStream from '../../../../hooks/useProjectStream';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { logger } from '../../../../utils/logger';
+import { request, RefusedError } from '../../../../api/mutate';
 
 /**
  * The data side of the Solution detail screen: the fetches, the live feed and
@@ -140,10 +141,13 @@ export function useSolutionData(projectId: string) {
         if (!projectId) return;
         setResourcesLoading(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/projects/${projectId}/resources`);
+            const res = await request(`${API_BASE}/api/projects/${projectId}/resources`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
             // null-vs-[] survives untouched: null = a store could not be
             // reached, and must not render as "you have none".
-            if (res.ok) setResources(await res.json());
+            if (res) setResources(await res.json());
         } catch (err) { logger.debug('keep the previous view rather than blanking it', err); } finally {
             setResourcesLoading(false);
         }
@@ -152,8 +156,14 @@ export function useSolutionData(projectId: string) {
     const fetchActivity = useCallback(async () => {
         if (!projectId) return;
         try {
-            const res = await authFetch(`${API_BASE}/api/projects/${projectId}/activity?limit=20`);
-            if (!res.ok) { setActivityFailed(true); return; }
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/api/projects/${projectId}/activity?limit=20`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                setActivityFailed(true);
+                return;
+            }
             const data = await res.json();
             setActivity(Array.isArray(data) ? data : (data.items || []));
             setActivityFailed(false);
@@ -164,8 +174,11 @@ export function useSolutionData(projectId: string) {
         if (!projectId) return;
         setGraphLoading(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/projects/${projectId}/graph`);
-            if (res.ok) setGraph(await res.json());
+            const res = await request(`${API_BASE}/api/projects/${projectId}/graph`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) setGraph(await res.json());
         } catch (err) { logger.debug('keep the previous view', err); } finally {
             setGraphLoading(false);
         }
@@ -203,8 +216,14 @@ export function useSolutionData(projectId: string) {
     const fetchMembers = useCallback(async () => {
         if (!projectId) return;
         try {
-            const res = await authFetch(`${API_BASE}/api/projects/${projectId}/members`);
-            if (!res.ok) { setMembers(null); return; }
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/api/projects/${projectId}/members`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                setMembers(null);
+                return;
+            }
             const body = await res.json();
             // Unknown stays unknown: the capsule renders nothing rather than
             // the narrower of the two possible audiences.
@@ -214,8 +233,14 @@ export function useSolutionData(projectId: string) {
 
     const fetchBlueprints = useCallback(async () => {
         try {
-            const res = await authFetch(`${API_BASE}/api/projects/package/blueprints`);
-            if (!res.ok) { setBlueprints(null); return; }
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/api/projects/package/blueprints`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                setBlueprints(null);
+                return;
+            }
             const body = await res.json();
             setBlueprints(Array.isArray(body?.blueprints) ? body.blueprints : null);
         } catch { setBlueprints(null); }

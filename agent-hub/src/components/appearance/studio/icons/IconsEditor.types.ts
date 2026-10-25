@@ -30,7 +30,7 @@ export interface BulkResult {
     message: string | undefined;
 }
 
-export type NanoSettings = { image?: { model?: string } } | null | undefined;
+type NanoSettings = { image?: { model?: string } } | null | undefined;
 
 export interface PackListItemProps {
     label: string;

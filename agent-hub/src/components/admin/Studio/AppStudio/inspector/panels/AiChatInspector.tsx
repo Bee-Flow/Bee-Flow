@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import FormField from '../../../../../shared/FormField';
 import SegmentedControl from '../../../../../shared/SegmentedControl';
-import { KbMultiSelect, ModelTierRow } from '../AiActionEditors';
+import { KbMultiSelect, ModelTierRow } from '../AiGenerateEditor';
 import { registerInspector } from '../registry';
 import type { PanelProps } from '../appDefinition';
 import { INPUT_CLS, TextAreaField, TextField, usePatch } from './kit';

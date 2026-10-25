@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 
-export const MAX_IGNORE_PATHS = 50;
+const MAX_IGNORE_PATHS = 50;
 const MAX_PATH_LENGTH = 500;
 
 interface IgnorePathsEditorProps {

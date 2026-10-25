@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 
 vi.mock('../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../lib/microsoftOAuthPopup', () => ({ openMicrosoftOAuthPopup: vi.fn() }));
+vi.mock('../../api/microsoftOAuthPopup', () => ({ openMicrosoftOAuthPopup: vi.fn() }));
 
 const state: { query: unknown; save: { mutateAsync: ReturnType<typeof vi.fn>; isPending: boolean } } = {
     query: null,
@@ -18,7 +18,7 @@ vi.mock('../../api/queries/teamsMeetingNotes', () => ({
 }));
 
 import TeamsMeetingNotesSection from './TeamsMeetingNotesSection';
-import { openMicrosoftOAuthPopup } from '../../lib/microsoftOAuthPopup';
+import { openMicrosoftOAuthPopup } from '../../api/microsoftOAuthPopup';
 
 const FULL = { microsoftConnected: true, teamsScopesGranted: true, hasMeetingWriteScope: true, hasTranscriptScope: true, needsReauth: false };
 const settings = (connection: Record<string, unknown>, over: Record<string, unknown> = {}) => ({

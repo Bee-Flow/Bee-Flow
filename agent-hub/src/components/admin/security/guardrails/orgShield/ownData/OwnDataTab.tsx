@@ -189,7 +189,7 @@ function TypesPane({ s, props }: { s: TabState; props: OwnDataTabProps }) {
     );
 }
 
-export function OwnDataTab(props: OwnDataTabProps) {
+function OwnDataTab(props: OwnDataTabProps) {
     const { f, orgId, licence, readOnly, t } = props;
     const s = useOwnDataTab(props);
 

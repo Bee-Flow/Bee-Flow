@@ -127,7 +127,7 @@ export function FilterPill({
     );
 }
 
-export interface FilterPillOption<V> {
+interface FilterPillOption<V> {
     value: V;
     label?: React.ReactNode;
     count?: number | string | null;

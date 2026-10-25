@@ -4,7 +4,7 @@ import { API_BASE, authFetch } from '../../../../utils/helpers';
 import type { AuthFetchOptions } from '../../../../utils/helpers';
 
 /** One organization in `GET /auth/organizations`. */
-export interface OrgListEntry {
+interface OrgListEntry {
     id: string;
     name?: string;
     trial_used_at?: string | null;
@@ -15,7 +15,7 @@ export interface OrgListEntry {
 /** `GET /auth/organizations`: a bare list, or wrapped under `organizations` / `orgs`. */
 export type OrgListPayload = OrgListEntry[] | { organizations?: OrgListEntry[]; orgs?: OrgListEntry[] };
 
-export function api(path: string, opts?: AuthFetchOptions) {
+function api(path: string, opts?: AuthFetchOptions) {
     return authFetch(`${API_BASE}${path}`, opts);
 }
 

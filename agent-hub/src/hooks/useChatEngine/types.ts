@@ -17,7 +17,7 @@ import type { TranslateFn } from '../useTranslation';
  */
 
 /** The live status line above the typing dots. */
-export interface CurrentPhase {
+interface CurrentPhase {
     stage?: string;
     detail?: string | null;
     startedAt?: number;
@@ -41,14 +41,14 @@ export interface SwarmWorker {
 }
 
 /** A swarm turn's plan, phases and workers, as the panel renders them. */
-export interface SwarmState {
+interface SwarmState {
     phaseStates?: Record<string, Record<string, unknown>>;
     workers?: Record<string, SwarmWorker>;
     [key: string]: unknown;
 }
 
 /** Which session skills this turn activated, and what they finished. */
-export interface SessionSkillsSnapshot {
+interface SessionSkillsSnapshot {
     activatedSkillIds?: unknown[];
     completedSkillIds?: unknown[];
     completions?: unknown[];
@@ -136,7 +136,7 @@ export interface ChatMessage {
 }
 
 /** One reasoning block of an assistant turn. */
-export interface ThinkingPart {
+interface ThinkingPart {
     id: string;
     text: string;
     startedAt?: number;
@@ -154,7 +154,7 @@ export interface SkillSummary {
 }
 
 /** One scanned attachment, as the Privacy Shield reports it. */
-export interface PiiAttachment {
+interface PiiAttachment {
     filename?: string;
     reason?: string;
     timeout?: boolean;
@@ -350,7 +350,7 @@ export interface SseDispatchContext {
 }
 
 /** A ref holding a callback prop that may not have been passed. */
-export type CallbackRef<F> = RefObject<F | undefined>;
+type CallbackRef<F> = RefObject<F | undefined>;
 
 /** Per-stream identifiers and mutable state for one turn. */
 export interface SseDispatchIds {

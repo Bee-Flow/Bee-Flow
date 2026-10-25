@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import {
     changedAppIds, chooserInitialSelection, commitSelection, foldSharedApps, isAppEnabled, selectionDelta,
 } from './toolChooserModel';
-import { grantedActionsOf } from './toolGrants';
+import { grantedActionsOf } from './toolGrants.helpers';
 
 /**
  * The staged selection of the picker.

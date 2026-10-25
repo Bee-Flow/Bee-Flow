@@ -13,7 +13,7 @@
 //   sidebar:true        — dispatch TOUR_ENSURE_SIDEBAR_EVENT first (rail auto-collapses)
 //   designerSection:'…' — dispatch TOUR_OPEN_DESIGNER_SECTION first (open that section)
 
-import type { TourAnchor } from './lessons.types';
+import type { TourAnchor } from '../../api/lessons.types';
 
 export const TOUR_ANCHORS: Record<string, TourAnchor> = {
     'nav-new-chat': { selector: '[data-tour="nav-new-chat"]', owner: 'Sidebar.jsx', reveal: { sidebar: true } },

@@ -41,7 +41,7 @@ vi.mock('../hooks/useTranscription', () => ({
 }));
 
 const deleteTranscription = vi.fn(async () => ({ success: true }));
-vi.mock('../lib/transcriptionsApi', () => ({
+vi.mock('../../../api/transcriptionsApi', () => ({
     deleteTranscription: (...a) => deleteTranscription(...a),
     patchTranscription: vi.fn(async () => ({})),
     reprocessTranscription: vi.fn(async () => ({})),

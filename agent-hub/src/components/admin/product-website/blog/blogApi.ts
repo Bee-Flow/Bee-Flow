@@ -5,7 +5,7 @@ const root = `${API_BASE}/api/cms`;
 
 export type PostStatus = 'draft' | 'scheduled' | 'published';
 
-export interface PostSeo {
+interface PostSeo {
     metaTitle: string;
     metaDescription: string;
     ogImage: string;

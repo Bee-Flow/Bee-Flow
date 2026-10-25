@@ -4,9 +4,9 @@
 import React from 'react';
 import { CLAUDE_RECOMMENDED, type TierDef, type TierDefaults } from './constants';
 import { clampToEfforts, defaultTierEffort, getModelMeta, isClaudeAdaptiveOnly, isClaudeModel, isClaudeReasoning, isGpt5, isGpt5Pro, isGpt56Plus, openAIEffortOptions, stampedEffortOptions } from './modelMeta';
-import { getModelDisplayName } from '../../../../utils/modelMeta';
+import { getModelDisplayName } from '../../../../api/modelMeta';
 import SearchableModelSelect from '../../shared/SearchableModelSelect';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
 import type { TierSettings, CatalogModel } from './tierTypes';
 
 interface TierCardProps {
@@ -48,61 +48,7 @@ export default function TierCard({
 
         return (
             <div key={tier.key} className="rounded-xl border overflow-hidden bg-[var(--bg-tertiary)] border-[var(--border-default)]">
-                <div className="p-4">
-                    <div className="flex items-center gap-3 mb-3">
-                        {tier.iconSrc
-                            ? <img src={tier.iconSrc} alt="" className="w-6 h-6 object-contain" />
-                            : <span className="text-xl">{tier.icon}</span>}
-                        <div className="flex-1">
-                            <span className="text-sm font-semibold text-[var(--text-primary)]">{tier.label}</span>
-                            <p className="text-xs text-[var(--text-muted)]">{tier.desc}</p>
-                        </div>
-                        {defaults && (
-                            <button
-                                onClick={() => setExpandedTier(isExpanded ? null : tier.key)}
-                                className="text-xs px-2 py-1 rounded-lg hover:bg-white/10 transition-colors text-[var(--text-muted)]"
-                            >
-                                {isExpanded ? t('admin_ai_config.custom_settings_open', '▲ Settings') : t('admin_ai_config.custom_settings_closed', '▼ Settings')}
-                            </button>
-                        )}
-                    </div>
-                    <SearchableModelSelect
-                        value={tierConfig.modelId || ''}
-                        label={selectedLabel}
-                        groups={byProvider}
-                        onChange={({ modelId }) => updateFn(tier.key, 'modelId', modelId)}
-                        hiddenIds={hiddenModelIds}
-                        onToggleHidden={toggleHiddenModel}
-                    />
-                    {/* Bootstrap-only model picker for the Standard tier — used
-                        for the per-conversation skill bootstrap pass to keep
-                        cost down (e.g. Haiku) regardless of the main model. */}
-                    {tier.key === 'standard' && (() => {
-                        const bootstrapModel = chatModels.find(m => m.id === tierConfig.bootstrapModelId);
-                        const bootstrapDisplayName = bootstrapModel ? getModelDisplayName(bootstrapModel) : null;
-                        const bootstrapLabel = bootstrapModel
-                            ? (bootstrapDisplayName !== bootstrapModel.id ? bootstrapDisplayName : bootstrapModel.id)
-                            : t('admin_ai_config.tier_same_as_main', 'Same as main model');
-                        return (
-                            <div className="mt-3 pt-3 border-t border-[var(--border-default)]">
-                                <label className="block text-[11px] font-semibold mb-1.5 uppercase tracking-wide text-[var(--text-muted)]">
-                                    {t('admin_ai_config.tier_bootstrap', 'Bootstrap model (cheap & fast)')}
-                                </label>
-                                <SearchableModelSelect
-                                    value={tierConfig.bootstrapModelId || ''}
-                                    label={bootstrapLabel}
-                                    groups={byProvider}
-                                    onChange={({ modelId }) => updateFn(tier.key, 'bootstrapModelId', modelId || '')}
-                                    hiddenIds={hiddenModelIds}
-                                    onToggleHidden={toggleHiddenModel}
-                                />
-                                <p className="text-[10px] mt-1.5 text-[var(--text-muted)]">
-                                    {t('admin_ai_config.tier_bootstrap_hint', 'Used once per direct chat to plan the conversation\'s Flow stages. Pick a small/fast model (e.g. Haiku) to cut planning cost. Leave empty to reuse the main model.')}
-                                </p>
-                            </div>
-                        );
-                    })()}
-                </div>
+                <TierCardSection tier={tier} defaults={defaults} setExpandedTier={setExpandedTier} isExpanded={isExpanded} t={t} tierConfig={tierConfig} selectedLabel={selectedLabel} byProvider={byProvider} updateFn={updateFn} hiddenModelIds={hiddenModelIds} toggleHiddenModel={toggleHiddenModel} chatModels={chatModels} />
                 {defaults && isExpanded && (
                     <div className="px-4 pb-4 pt-1 border-t border-[var(--border-default)]">
                         {/* Bee Flow recommended-defaults banner — only when a Claude model is selected */}
@@ -338,4 +284,60 @@ export default function TierCard({
                 )}
             </div>
         );
+}
+
+function TierCardSection({ tier, defaults, setExpandedTier, isExpanded, t, tierConfig, selectedLabel, byProvider, updateFn, hiddenModelIds, toggleHiddenModel, chatModels }: { tier: TierDef; defaults: TierDefaults | null; setExpandedTier: React.Dispatch<React.SetStateAction<string | null>>; isExpanded: boolean; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; tierConfig: TierSettings; selectedLabel: string | null; byProvider: Record<string, CatalogModel[]>; updateFn: (tierKey: string, field: string, value: unknown) => void; hiddenModelIds: string[]; toggleHiddenModel: (modelId: string) => Promise<void>; chatModels: CatalogModel[]; }) {
+    return <div className="p-4">
+        <div className="flex items-center gap-3 mb-3">
+            {tier.iconSrc
+                ? <img src={tier.iconSrc} alt="" className="w-6 h-6 object-contain" />
+                : <span className="text-xl">{tier.icon}</span>}
+            <div className="flex-1">
+                <span className="text-sm font-semibold text-[var(--text-primary)]">{tier.label}</span>
+                <p className="text-xs text-[var(--text-muted)]">{tier.desc}</p>
+            </div>
+            {defaults && (
+                <button
+                    onClick={() => setExpandedTier(isExpanded ? null : tier.key)}
+                    className="text-xs px-2 py-1 rounded-lg hover:bg-white/10 transition-colors text-[var(--text-muted)]"
+                >
+                    {isExpanded ? t('admin_ai_config.custom_settings_open', '▲ Settings') : t('admin_ai_config.custom_settings_closed', '▼ Settings')}
+                </button>
+            )}
+        </div>
+        <SearchableModelSelect
+            value={tierConfig.modelId || ''}
+            label={selectedLabel}
+            groups={byProvider}
+            onChange={({ modelId }) => updateFn(tier.key, 'modelId', modelId)}
+            hiddenIds={hiddenModelIds}
+            onToggleHidden={toggleHiddenModel} />
+        {/* Bootstrap-only model picker for the Standard tier — used
+            for the per-conversation skill bootstrap pass to keep
+            cost down (e.g. Haiku) regardless of the main model. */}
+        {tier.key === 'standard' && (() => {
+            const bootstrapModel = chatModels.find(m => m.id === tierConfig.bootstrapModelId);
+            const bootstrapDisplayName = bootstrapModel ? getModelDisplayName(bootstrapModel) : null;
+            const bootstrapLabel = bootstrapModel
+                ? (bootstrapDisplayName !== bootstrapModel.id ? bootstrapDisplayName : bootstrapModel.id)
+                : t('admin_ai_config.tier_same_as_main', 'Same as main model');
+            return (
+                <div className="mt-3 pt-3 border-t border-[var(--border-default)]">
+                    <label className="block text-[11px] font-semibold mb-1.5 uppercase tracking-wide text-[var(--text-muted)]">
+                        {t('admin_ai_config.tier_bootstrap', 'Bootstrap model (cheap & fast)')}
+                    </label>
+                    <SearchableModelSelect
+                        value={tierConfig.bootstrapModelId || ''}
+                        label={bootstrapLabel}
+                        groups={byProvider}
+                        onChange={({ modelId }) => updateFn(tier.key, 'bootstrapModelId', modelId || '')}
+                        hiddenIds={hiddenModelIds}
+                        onToggleHidden={toggleHiddenModel} />
+                    <p className="text-[10px] mt-1.5 text-[var(--text-muted)]">
+                        {t('admin_ai_config.tier_bootstrap_hint', 'Used once per direct chat to plan the conversation\'s Flow stages. Pick a small/fast model (e.g. Haiku) to cut planning cost. Leave empty to reuse the main model.')}
+                    </p>
+                </div>
+            );
+        })()}
+    </div>;
 }

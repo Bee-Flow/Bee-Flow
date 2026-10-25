@@ -49,7 +49,7 @@ const STATES = new Set<string>(['off', 'scheduled', 'on']);
 const SIGNALS: readonly ChatSignal[] = ['outcomes', 'kinds'];
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-export const chatSignalsKeys = {
+const chatSignalsKeys = {
     all: ['chat-signals'] as const,
     preference: ['chat-signals', 'preference'] as const,
     agentGate: (agentId: string) => ['chat-signals', 'agent-gate', agentId] as const,

@@ -55,7 +55,7 @@ export interface CaptureState {
 let arm: CaptureArm | null = null;
 
 /** For tests: the arm in flight, and a way to reset it between cases. */
-export function currentCaptureArm(): CaptureArm | null { return arm; }
+function currentCaptureArm(): CaptureArm | null { return arm; }
 export function resetCaptureArm(): void { arm = null; }
 
 export type ClaimDecision = 'wait' | 'disarm' | 'claim' | 'ignore';

@@ -1,4 +1,4 @@
-import type { LessonUser, StepState, LessonDoc } from '../lessons.types';
+import type { LessonUser, StepState, LessonDoc } from '../../../api/lessons.types';
 import type { LessonStep } from './SimStep.types';
 import type { TranslateParams } from '../../../hooks/useTranslation';
 

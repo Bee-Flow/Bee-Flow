@@ -19,7 +19,7 @@ import { autoCaseColor, dominantPiiGroup, PII_GROUP_COLORS, resolveEdgeColor } f
  * Pure, framework-free.
  */
 
-export const EDGE_COLOR_MODES = ['off', 'branches', 'pii'];
+const EDGE_COLOR_MODES = ['off', 'branches', 'pii'];
 
 /**
  * @param data           the rendered edge's `data` (layout.js)

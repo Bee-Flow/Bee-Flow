@@ -94,7 +94,7 @@ function Footer({
     );
 }
 
-export function TypeWizard({ init, ctx, confirm, onCommit, onCancel, t }: TypeWizardProps) {
+function TypeWizard({ init, ctx, confirm, onCommit, onCancel, t }: TypeWizardProps) {
     const [state, dispatch] = useTypeWizard(init);
     const problems = state.step === 0 ? describeProblems(state, { types: ctx.types, guardDown: ctx.guardDown }) : [];
 

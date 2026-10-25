@@ -1,7 +1,7 @@
 import { ArrowLeft, FileJson, FolderKanban, Pencil } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { API, asArray, asObject, fetchJson, jsonInit, json } from '../data/api';
+import { API, asArray, asObject, fetchJson, jsonInit, json } from '../../../../api/complianceApi';
 import useResource from '../data/useResource';
 import ScoreRing from '../shared/ScoreRing';
 import StatusPill from '../shared/StatusPill';
@@ -39,7 +39,7 @@ export const OUTCOMES = Object.freeze([
     Object.freeze({ value: 'not_applicable', tone: 'neutral', labelKey: 'compliance.custom_outcome_not_applicable', fallback: 'Not applicable' }),
 ]);
 
-export const EXPIRY_WINDOW_DAYS = 30;
+const EXPIRY_WINDOW_DAYS = 30;
 const DAY_MS = 86_400_000;
 
 /** Pure: one framework row, whether it came from /frameworks or from /custom/frameworks. */

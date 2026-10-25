@@ -79,7 +79,7 @@ export interface AccessPatch {
 }
 
 /** A person who holds a role in the app. */
-export interface AppMember {
+interface AppMember {
     userId?: string;
     roleKey?: string;
     role_key?: string;
@@ -138,8 +138,8 @@ function emptyModel() {
     return { modelVersion: 1, tables: [], roles: [], roleMapping: { default: 'app', byGroup: {} } };
 }
 
-export const APP_SCHEMA_KEY = (appId: string | null | undefined) => ['studio-app-schema', appId];
-export const APP_MEMBERS_KEY = (appId: string | null | undefined) => ['studio-app-members', appId];
+const APP_SCHEMA_KEY = (appId: string | null | undefined) => ['studio-app-schema', appId];
+const APP_MEMBERS_KEY = (appId: string | null | undefined) => ['studio-app-members', appId];
 
 /**
  * The primary RBAC hook. Exposes the model's roles/roleMapping/tables, the

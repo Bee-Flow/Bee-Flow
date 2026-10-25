@@ -7,7 +7,7 @@ import type { TrashedAutomation } from '../../../../api/queries/automation/libra
 const DAY_MS = 86_400_000;
 
 /** Whole days until the purge, never below zero; null when unknown. */
-export function daysLeft(purgeAt: string | null, now: number = Date.now()): number | null {
+function daysLeft(purgeAt: string | null, now: number = Date.now()): number | null {
     if (!purgeAt) return null;
     const at = new Date(purgeAt).getTime();
     if (!Number.isFinite(at)) return null;

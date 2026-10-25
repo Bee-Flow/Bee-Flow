@@ -6,19 +6,19 @@
 // ── CSV export ──────────────────────────────────────────────────────────────
 // Minimal RFC 4180 escaping — enough for ≤ a few thousand audit rows.
 
-export function csvEscape(v: unknown): string {
+function csvEscape(v: unknown): string {
     if (v === null || v === undefined) return '';
     const s = String(v);
     return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-export function rowsToCsv(headers: string[], rows: Array<Record<string, unknown>>): string {
+function rowsToCsv(headers: string[], rows: Array<Record<string, unknown>>): string {
     const lines = [headers.join(',')];
     for (const r of rows) lines.push(headers.map(h => csvEscape(r[h])).join(','));
     return lines.join('\n');
 }
 
-export function downloadCsv(filename: string, csv: string): void {
+function downloadCsv(filename: string, csv: string): void {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

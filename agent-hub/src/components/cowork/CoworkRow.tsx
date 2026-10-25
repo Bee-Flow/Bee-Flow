@@ -31,7 +31,7 @@ import { coworkStatus } from './coworkStatus';
 import useTranslation from '../../hooks/useTranslation';
 import { statusLabel } from '../shared/statusTokens';
 import type { TranslateFn } from '../../hooks/useTranslation';
-import type { CoworkItem } from './cowork.types';
+import type { CoworkItem } from '../../api/cowork.types';
 
 interface CoworkRowProps {
     item: CoworkItem;

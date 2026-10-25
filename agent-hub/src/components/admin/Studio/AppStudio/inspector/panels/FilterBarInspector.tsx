@@ -41,7 +41,7 @@ interface FilterBarInspectorProps {
     fields?: FilterField[];
 }
 
-export default function FilterBarInspector({ node, definition, onCommit, disabled = false }: PanelProps<FilterBarInspectorProps>) {
+function FilterBarInspector({ node, definition, onCommit, disabled = false }: PanelProps<FilterBarInspectorProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const FIELD_TYPES = getFieldTypesOptions(t);

@@ -40,4 +40,3 @@ export function CheckCard({
     );
 }
 
-export default CheckCard;

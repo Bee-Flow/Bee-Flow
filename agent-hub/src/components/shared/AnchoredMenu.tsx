@@ -77,7 +77,7 @@ const MENU_GAP = 4;
  * client box (clientWidth/clientHeight) does not. A point past the client edge
  * but still inside the border box is therefore in the gutter.
  */
-export function isScrollbarPress(e: Pick<MouseEvent, 'target' | 'clientX' | 'clientY'>): boolean {
+function isScrollbarPress(e: Pick<MouseEvent, 'target' | 'clientX' | 'clientY'>): boolean {
     const el = e.target;
     if (!(el instanceof Element)) return false;
     const cw = el.clientWidth;

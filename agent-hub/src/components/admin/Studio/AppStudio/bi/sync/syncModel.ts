@@ -9,7 +9,7 @@ export const INPUT = 'w-full rounded-md px-2 py-1.5 text-sm bg-[var(--bg-tertiar
 export const LABEL = 'text-xs font-medium text-[var(--text-secondary)]';
 
 /** One field of a table template or a proposed table. */
-export interface SyncField {
+interface SyncField {
     key: string;
     id?: string;
     [key: string]: unknown;
@@ -84,7 +84,7 @@ interface TableTemplate {
 }
 
 /** A catalog table TEMPLATE (keys + types, no ids) → a real table. */
-export function materialiseTable(template: TableTemplate, preferredKey: string, existing: Array<{ key?: string }> = []): SyncTableDraft {
+function materialiseTable(template: TableTemplate, preferredKey: string, existing: Array<{ key?: string }> = []): SyncTableDraft {
     const taken = new Set((existing || []).map((t) => t.key));
     let key = preferredKey;
     let n = 2;

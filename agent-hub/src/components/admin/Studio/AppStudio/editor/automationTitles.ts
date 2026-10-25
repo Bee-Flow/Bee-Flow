@@ -68,7 +68,7 @@ function fresh(): Record<string, string> | null {
  * Resolve the id→title map, from cache when fresh. Never rejects.
  * Exported for tests and for any caller that wants it outside React.
  */
-export function loadAutomationRows(api: AutomationLister): Promise<AutomationRows> {
+function loadAutomationRows(api: AutomationLister): Promise<AutomationRows> {
     const hit = freshRows();
     if (hit) return Promise.resolve(hit);
     if (inflight) return inflight;
@@ -88,7 +88,7 @@ export function loadAutomationRows(api: AutomationLister): Promise<AutomationRow
 }
 
 /** id → title. A thin view over loadAutomationRows — still ONE request. */
-export function loadAutomationTitles(api: AutomationLister): Promise<Record<string, string>> {
+function loadAutomationTitles(api: AutomationLister): Promise<Record<string, string>> {
     return loadAutomationRows(api).then(titlesOf);
 }
 

@@ -22,7 +22,7 @@ interface AppEmojiProps extends React.HTMLAttributes<HTMLElement> {
  *   3. Catalog default for `id`
  *   4. Empty string (component renders nothing)
  */
-export const AppEmoji = React.forwardRef<HTMLElement, AppEmojiProps>(({ id, default: explicitDefault, className = '', style = {}, title, ...rest }, ref) => {
+const AppEmoji = React.forwardRef<HTMLElement, AppEmojiProps>(({ id, default: explicitDefault, className = '', style = {}, title, ...rest }, ref) => {
     const { getCustomIcon } = useIconPack();
     const custom = id ? getCustomIcon(id) : null;
 

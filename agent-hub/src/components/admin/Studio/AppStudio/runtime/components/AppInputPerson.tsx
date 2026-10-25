@@ -31,7 +31,7 @@ import type { NodeProps } from './appNode.types';
  * piece of the contract an author has to know, so it is in the spec text too.
  */
 
-export const ORG_MEMBERS_DATASET = 'sys_org_members';
+const ORG_MEMBERS_DATASET = 'sys_org_members';
 
 const MEMBERS_BINDING = Object.freeze({ kind: 'dataset', datasetId: ORG_MEMBERS_DATASET });
 

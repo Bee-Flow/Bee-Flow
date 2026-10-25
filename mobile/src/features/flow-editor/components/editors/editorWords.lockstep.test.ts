@@ -16,6 +16,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { CLIENT_DICT, SERVER_DICT, readDict } from '@/core/i18n/dictionaryText';
+import { webSourceText } from '@/shared/testing/webModule';
+
 
 const HERE = __dirname;
 const BUILDER = path.resolve(HERE, '../../../../../../agent-hub/src/components/automation/Builder');
@@ -26,15 +28,17 @@ const WEB: Record<string, string[]> = {
         'flow/settings/triggerEditors.tsx',
         'flow/settings/triggerFilters.tsx',
         'flow/settings/FormTriggerFields.tsx',
+        'flow/settings/AppEventFields.tsx',
         'flow/ScheduleBuilder.tsx',
         'webhooks/TriggerWebhookPanel.tsx',
         'webhooks/useWebhooks.ts',
         'WebhookPanel.tsx',
     ],
-    params: ['flow/settings/fieldDesigner.tsx', 'flow/settings/triggerEditors.tsx'],
+    params: ['flow/settings/fieldDesigner.tsx', 'flow/settings/FieldRow.tsx', 'flow/settings/triggerEditors.tsx'],
     form: [
         'flow/settings/FormBuilderFields.jsx',
         'flow/settings/fieldDesigner.tsx',
+        'flow/settings/FieldRow.tsx',
         'flow/settings/triggerEditors.tsx',
         'flow/settings/FormPageWaiting.tsx',
         'flow/settings/formFields/ChoiceOptionsEditor.tsx',
@@ -170,7 +174,7 @@ const WEB_T = new RegExp(`\\{?\\s*\\bt\\(\\s*'[a-z0-9_.]+'\\s*,\\s*(?:'((?:[^'\\
  */
 function webText(files: string[]): string {
     const raw = files
-        .map((f) => fs.readFileSync(path.join(BUILDER, f), 'utf8'))
+        .map((f) => webSourceText(path.join(BUILDER, f)))
         .join('\n')
         .replace(WEB_T, (_all, single: string | undefined, double: string | undefined) => `${single ?? double ?? ''}`)
         .replace(/\{\s*['"] ['"]\s*\}/g, ' ')

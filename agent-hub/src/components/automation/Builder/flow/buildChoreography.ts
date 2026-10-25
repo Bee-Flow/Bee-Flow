@@ -1,11 +1,12 @@
-import { edgeKey } from './branchEdges';
 import { flowOrder } from './flowOrder';
-import { ROW_GAP } from './rowBands';
 import { MIN_MOVE_GAP_MS } from '../../../shared/builder/revealSchedule';
-import type { DiagramDefinition, DiagramStep } from './diagramPaneTypes';
+import type { DiagramDefinition } from './diagramPaneTypes';
 import type { Rect } from './useBuildChoreography.types';
 import type { Viewport } from '@xyflow/system';
-import type { Shot, BiasTowardNewestArgs, ShotForArgs, PlanCameraMoveArgs } from './buildChoreography.types';
+import type { Shot, ShotForArgs, PlanCameraMoveArgs } from './buildChoreography.types';
+import { COLUMNS, COL_PITCH, ROW_PITCH, WRAP_HOLD_MS, SHOTS } from './buildChoreography.constants';
+import { nodesOf, contentOf, edgeKeysOf, viewportForBounds, biasTowardNewest, interpolateFor, viewportSize, frameOf, placedRect, movesFor } from './buildChoreography.helpers';
+export { COL_PITCH,     } from './buildChoreography.constants';
 
 /**
  * The build as a film — the pure half.
@@ -22,36 +23,9 @@ import type { Shot, BiasTowardNewestArgs, ShotForArgs, PlanCameraMoveArgs } from
  * pinned by a plain node test: no React, no DOM, no timers of its own.
  */
 
-/**
- * Layout geometry the ghost slot and the camera reason about. The values are
- * `arrange.js DEFAULT_DIMS` (240×96), `dagreLayout.js DEFAULT_SPACING.ranksep`
- * (80) and `arrange.js DEFAULT_COLUMNS` (5), copied rather than imported
- * because `arrange.js` pulls in dagre and this module has to stay light
- * enough to run in a node test in milliseconds. Column pitch is card width +
- * rank gap; row pitch is card height + ROW_GAP.
- */
-const CARD_W = 240;
-const CARD_H = 96;
-const RANK_SEP = 80;
-const COLUMNS = 5;
-export const COL_PITCH = CARD_W + RANK_SEP; // 320
-export const ROW_PITCH = CARD_H + ROW_GAP; // 366
-
 // Cadence constants, revealSchedule and orderAdded are shared with the App Studio
 // editor (shared/builder/revealSchedule.js) and re-exported here unchanged.
 export { REVEAL_STAGGER_MS, REVEAL_STAGGER_MIN_MS, REVEAL_BUDGET_MS, MIN_MOVE_GAP_MS, revealSchedule, orderAdded } from '../../../shared/builder/revealSchedule';
-
-/** On a row wrap the wide shot has to be readable before the camera pushes back in. */
-export const WRAP_HOLD_MS = 900;
-
-/** Shot recipes, mirroring the fitView options the hook used before this module existed. */
-const SHOTS = Object.freeze({
-    push: Object.freeze({ padding: 0.15, minZoom: 0.85, maxZoom: 1, duration: 480 }),
-    wide: Object.freeze({ padding: 0.12, minZoom: 0.2, maxZoom: 1, duration: 700 }),
-});
-
-/** The recipes as designed — presenterMode.js derives its projector set from these. */
-export const DEFAULT_SHOTS = SHOTS;
 
 // Presenter mode (flow/presenterMode.js) frames tighter — higher zoom floors,
 // so the pushed-in cards are legible from the back of a room — without the
@@ -70,57 +44,9 @@ export function getActiveShots() {
     return activeShots;
 }
 
-/**
- * Below this zoom delta a `smooth` (zoom-out-then-in) interpolation looks like
- * a hiccup on a pan; above it a linear pan looks like the card slides under
- * the camera. Same threshold the hook applies to `setViewport`.
- */
-const LINEAR_ZOOM_DELTA = 0.05;
-
-const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
-
 // ---------------------------------------------------------------------------
 // Definitions
 // ---------------------------------------------------------------------------
-
-/** Every positionable node of a definition: trigger(s) first, then steps — the same roots `flowOrder` uses. */
-function nodesOf(def: DiagramDefinition) {
-    const roots = [def?.trigger, ...(Array.isArray(def?.triggers) ? def.triggers : [])];
-    const steps = Array.isArray(def?.steps) ? def.steps : [];
-    const out = new Map<string, DiagramStep>();
-    for (const n of [...roots, ...steps]) {
-        if (n && n.id != null && !out.has(n.id)) out.set(n.id, n);
-    }
-    return out;
-}
-
-/**
- * Key-order-insensitive serialisation. The server re-serialises the whole
- * definition per draft, so two semantically equal steps can arrive with their
- * keys in a different order; a plain JSON.stringify would then flag every card
- * as "touched" on every tool call and the wash would never stop playing.
- */
-function stableStringify(value: unknown): string {
-    if (value === null || typeof value !== 'object') return JSON.stringify(value);
-    if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
-    const keys = Object.keys(value).filter(k => (value as Record<string, unknown>)[k] !== undefined).sort();
-    return `{${keys.map(k => `${JSON.stringify(k)}:${stableStringify((value as Record<string, unknown>)[k])}`).join(',')}}`;
-}
-
-/** A step minus its `position`: a card that only moved was not edited. */
-function contentOf(step: DiagramStep | null | undefined) {
-    if (!step || typeof step !== 'object') return stableStringify(step);
-    const { position: _position, ...rest } = step;
-    return stableStringify(rest);
-}
-
-function edgeKeysOf(def: DiagramDefinition) {
-    const out = new Set<string>();
-    for (const e of Array.isArray(def?.edges) ? def.edges : []) {
-        if (e && e.from != null && e.to != null) out.add(edgeKey(e));
-    }
-    return out;
-}
 
 /**
  * What changed between two consecutive drafts.
@@ -192,103 +118,6 @@ export function nextSlotFor(frontierRect: Rect, { colWidth = COL_PITCH, cols = C
     return { x: x + colWidth, y };
 }
 
-function unionRect(rects: ({ x: number; y: number; width: number; height: number } | null | undefined)[]) {
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const r of rects) {
-        if (!r || !Number.isFinite(r.x) || !Number.isFinite(r.y)) continue;
-        const w = Number.isFinite(r.width) ? r.width : 0;
-        const h = Number.isFinite(r.height) ? r.height : 0;
-        minX = Math.min(minX, r.x);
-        minY = Math.min(minY, r.y);
-        maxX = Math.max(maxX, r.x + w);
-        maxY = Math.max(maxY, r.y + h);
-    }
-    if (!Number.isFinite(minX)) return null;
-    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
-}
-
-/**
- * React Flow's `parsePadding` for a numeric padding, verbatim
- * (`@xyflow/system parsePadding`): NOT `viewport × padding`. For 0.12 on a
- * 1100 px canvas this is 58 px a side (≈5.3 %), which is why a 6-card graph
- * lands at zoom 0.647 and not the 0.6 a naive 12 % would predict.
- */
-function paddingPx(padding: number, viewportLength: number) {
-    return Math.floor((viewportLength - viewportLength / (1 + padding)) * 0.5);
-}
-
-/**
- * `@xyflow/system getViewportForBounds` for a symmetric numeric padding,
- * re-implemented so the push-in can be computed from the layout's own rects
- * without waiting for measurement (`setViewport` is immediate; `fitView`
- * queues until nodes are initialised). Kept as a straight port so a wide shot
- * from here matches what `fitView` with the same options would produce.
- */
-function viewportForBounds(bounds: { x: number; y: number; width: number; height: number; }, size: { width: number; height: number; }, { minZoom, maxZoom, padding }: { minZoom: number; maxZoom: number; padding: number }) {
-    const { width, height } = size;
-    const px = paddingPx(padding, width);
-    const py = paddingPx(padding, height);
-    const zoom = clamp(Math.min((width - 2 * px) / bounds.width, (height - 2 * py) / bounds.height), minZoom, maxZoom);
-    const cx = bounds.x + bounds.width / 2;
-    const cy = bounds.y + bounds.height / 2;
-    let x = width / 2 - cx * zoom;
-    let y = height / 2 - cy * zoom;
-    // React Flow then nudges the view so no side ends up with less than the
-    // requested padding (only matters with asymmetric paddings or a clamped
-    // zoom); ported for fidelity.
-    const applied = appliedPadding(bounds, { x, y, zoom }, size);
-    x += -Math.min(applied.left - px, 0) + Math.min(applied.right - px, 0);
-    y += -Math.min(applied.top - py, 0) + Math.min(applied.bottom - py, 0);
-    return { x, y, zoom, px, py };
-}
-
-function appliedPadding(bounds: { x: number; y: number; width: number; height: number }, { x, y, zoom }: { x: number; y: number; zoom: number }, { width, height }: { width: number; height: number }) {
-    return {
-        left: Math.floor(bounds.x * zoom + x),
-        top: Math.floor(bounds.y * zoom + y),
-        right: Math.floor(width - ((bounds.x + bounds.width) * zoom + x)),
-        bottom: Math.floor(height - ((bounds.y + bounds.height) * zoom + y)),
-    };
-}
-
-/**
- * Shift a one-axis view offset so the flow interval [start, start + length)
- * sits inside the padded viewport (`{ length, pad }`, screen px), moving as
- * little as possible; used to keep a biased push-in honest.
- */
-function keepInside(offset: number, { start, length }: { start: number; length: number }, zoom: number, view: { length: number; pad: number }) {
-    const lo = start * zoom + offset;
-    const hi = (start + length) * zoom + offset;
-    if (lo < view.pad) return offset + (view.pad - lo);
-    if (hi > view.length - view.pad) return offset - (hi - (view.length - view.pad));
-    return offset;
-}
-
-function biasTowardNewest({ zoom, px, py }: BiasTowardNewestArgs, frame: { x: number; y: number; width: number; height: number; }, newest: { x: number; y: number; width: number; height: number; }, { width, height }: { width: number; height: number }) {
-    const nw = Number.isFinite(newest.width) ? newest.width : CARD_W;
-    const nh = Number.isFinite(newest.height) ? newest.height : CARD_H;
-    const cx = 0.4 * (frame.x + frame.width / 2) + 0.6 * (newest.x + nw / 2);
-    const cy = 0.4 * (frame.y + frame.height / 2) + 0.6 * (newest.y + nh / 2);
-    const fitsX = frame.width * zoom <= width - 2 * px;
-    const fitsY = frame.height * zoom <= height - 2 * py;
-    const spanX = fitsX ? { start: frame.x, length: frame.width } : { start: newest.x, length: nw };
-    const spanY = fitsY ? { start: frame.y, length: frame.height } : { start: newest.y, length: nh };
-    return {
-        x: keepInside(width / 2 - cx * zoom, spanX, zoom, { length: width, pad: px }),
-        y: keepInside(height / 2 - cy * zoom, spanY, zoom, { length: height, pad: py }),
-    };
-}
-
-/**
- * React Flow's 'smooth' interpolation zooms out and back in; on a pan whose
- * zoom barely changes that reads as a hiccup, so such a move goes linear.
- */
-function interpolateFor(kind: string, zoom: number, current: Viewport | undefined) {
-    const currentZoom = Number(current?.zoom);
-    if (kind === 'wide' || !Number.isFinite(currentZoom)) return 'smooth';
-    return Math.abs(zoom - currentZoom) < LINEAR_ZOOM_DELTA ? 'linear' : 'smooth';
-}
-
 export function shotFor({ kind = 'push', rects, ghostRect, viewport, current }: ShotForArgs = {}) {
     const recipe = activeShots[kind];
     const size = viewportSize(viewport);
@@ -303,24 +132,6 @@ export function shotFor({ kind = 'push', rects, ghostRect, viewport, current }: 
     const { x, y } = newest ? biasTowardNewest(base, frame, newest, size) : base;
 
     return { x, y, zoom: base.zoom, duration: recipe.duration, interpolate: interpolateFor(kind, base.zoom, current) };
-}
-
-/** `{ width, height }` when there is a viewport to frame in, else null. */
-function viewportSize(viewport: { width: number; height: number; offsetX?: number } | null | undefined) {
-    const width = Number(viewport?.width) || 0;
-    const height = Number(viewport?.height) || 0;
-    return width > 0 && height > 0 ? { width, height } : null;
-}
-
-/** The union of cards and ghost, or null when there is nothing with area to frame. */
-function frameOf(cards: { x: number; y: number; width: number; height: number }[], ghostRect: { x: number; y: number; width: number; height: number } | null | undefined) {
-    const frame = unionRect([...cards, ghostRect]);
-    return frame && frame.width > 0 && frame.height > 0 ? frame : null;
-}
-
-/** A rect with a usable position, else null — the newest card may be missing on a wide shot. */
-function placedRect(rect: { x: number; y: number; width: number; height: number } | undefined) {
-    return rect && Number.isFinite(rect.x) && Number.isFinite(rect.y) ? rect : null;
 }
 
 /**
@@ -347,25 +158,6 @@ export function isRectInView(rect: Rect, viewport: Viewport, size: { width: numb
 // Camera plan
 // ---------------------------------------------------------------------------
 
-/** Reasons that earn a push-in: something new arrived next to the frontier. */
-const PUSH_REASONS = new Set<string | undefined>(['arrival']);
-/**
- * A burst of at least this many cards closes on one wide shot (`burst_end`)
- * once its last card has departed. Two cards are a pair, not a chapter — the
- * push-ins already framed both.
- */
-export const BURST_WIDE_MIN = 3;
-/**
- * Chapter breaks: the whole shape changed or a chapter ended, so the audience
- * gets the wide shot. Nothing else moves the camera — an update on screen, a
- * refused call, a plain re-send are silent by design. `burst` is gone from
- * this list on purpose: a batch used to earn ONE wide shot at t≈0, while every
- * card was still invisible, and the camera then sat on an empty frame for the
- * whole reveal. A burst is now dealt card by card (each landing is an
- * `arrival`) and the wide shot comes at the END.
- */
-const WIDE_REASONS = new Set<string | undefined>(['wrap', 'burst_end', 'remove', 'replace', 'move', 'summarise', 'dry_run', 'finalize', 'end', 'resume']);
-
 export function planCameraMove({ reason, following = true, lastMoveAt = null, now = 0, rowWrapped = false }: PlanCameraMoveArgs = {}) {
     if (following === false) return null;
     const moves = movesFor(reason, rowWrapped);
@@ -375,14 +167,6 @@ export function planCameraMove({ reason, following = true, lastMoveAt = null, no
     const deferMs = since < MIN_MOVE_GAP_MS ? Math.ceil(MIN_MOVE_GAP_MS - since) : 0;
     const holdMs = moves.length > 1 ? WRAP_HOLD_MS : MIN_MOVE_GAP_MS;
     return { moves, holdMs, deferMs };
-}
-
-function movesFor(reason: string | undefined, rowWrapped: boolean) {
-    const isPush = PUSH_REASONS.has(reason);
-    const isWide = WIDE_REASONS.has(reason);
-    if (!isPush && !isWide) return null;
-    if (rowWrapped || reason === 'wrap') return ['wide', 'push'];
-    return isPush ? ['push'] : ['wide'];
 }
 
 // ---------------------------------------------------------------------------

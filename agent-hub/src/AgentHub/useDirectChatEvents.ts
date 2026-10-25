@@ -6,6 +6,7 @@ import type { ChatMessage } from '../hooks/useChatEngine/types';
 import type { ConversationRow } from './useConversationMeta';
 import type { AgentLike, IdRef } from './useAgentHubData';
 import { logger } from '../utils/logger';
+import { request, RefusedError } from '../api/mutate';
 
 // The "All Chats" aggregation and the window-event listeners that steer the
 // hub from outside (Settings' chat-history-mode switch, NotificationCenter's
@@ -99,8 +100,11 @@ const useDirectChatEvents = ({
             // possible) instead of generic direct chat.
             if (agentId) {
                 try {
-                    const agentRes = await authFetch(`${API_BASE}/agents/${agentId}`);
-                    if (agentRes.ok) {
+                    const agentRes = await request(`${API_BASE}/agents/${agentId}`).catch((apiErr: unknown) => {
+                        if (apiErr instanceof RefusedError) return null;
+                        throw apiErr;
+                    });
+                    if (agentRes) {
                         const agent = await agentRes.json();
                         setDirectChatMode(false);
                         setSelectedAgent(agent);

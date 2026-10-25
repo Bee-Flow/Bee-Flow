@@ -21,7 +21,7 @@ export interface CmsBlock {
 }
 
 /** The SEO fields a PageDoc carries. */
-export type CmsPageSeo = CmsSeo;
+type CmsPageSeo = CmsSeo;
 
 /** A PageDoc: one page's blocks and SEO. */
 export interface CmsPageDoc {
@@ -57,7 +57,7 @@ export interface CmsActivePage extends CmsPageDoc {
     noAnalytics?: boolean;
 }
 
-export interface CmsBlogIndexSettings {
+interface CmsBlogIndexSettings {
     title?: Record<string, string>;
     description?: Record<string, string>;
     postsPerPage?: number;

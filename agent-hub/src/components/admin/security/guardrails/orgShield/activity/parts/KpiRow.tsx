@@ -15,7 +15,7 @@ import type { Totals } from '../shieldTotals';
 import { OUTCOME_FILL, REGION_FILL, REGION_ORDER } from '../../shieldPalette';
 import { SegmentBar, Sparkline } from './miniCharts';
 
-export interface KpiSeries {
+interface KpiSeries {
     steppedIn: number[];
     found: number[];
     tool: number[];

@@ -21,7 +21,7 @@ const { api, notebookApi, client } = vi.hoisted(() => ({
     client: { get: vi.fn() },
 }));
 vi.mock('./documentsApi', () => api);
-vi.mock('./notebook/hooks/notebookApi', () => ({ notebookApi }));
+vi.mock('../../api/notebookApi', () => ({ notebookApi }));
 vi.mock('../../api/client', async (importOriginal) => ({ ...(await importOriginal<typeof import('../../api/client')>()), apiClient: client, default: client }));
 vi.mock('./DocumentEditor', () => ({ default: ({ documentId }: { documentId: string }) => <div data-testid="editor-stub">editor {documentId}</div> }));
 vi.mock('./HouseStylePanel', () => ({ default: () => <div data-testid="house-style-stub" /> }));

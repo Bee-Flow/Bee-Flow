@@ -27,7 +27,7 @@ import Tooltip from '../../../shared/Tooltip';
 
 const AnchoredMenu = AnchoredMenuJs;
 
-export const HEADER_BUTTON = 'inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-[12px] whitespace-nowrap';
+const HEADER_BUTTON = 'inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-[12px] whitespace-nowrap';
 const SECONDARY = `${HEADER_BUTTON} font-medium border border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-primary)] hover:bg-[var(--item-hover-bg)]`;
 const PRIMARY = `${HEADER_BUTTON} font-semibold disabled:opacity-60 disabled:cursor-not-allowed aria-disabled:opacity-60 aria-disabled:cursor-not-allowed`;
 const INFO = 'inline-flex items-center gap-1 text-[11px] text-[var(--text-tertiary)] min-w-0';

@@ -7,7 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { failure } from './http';
 
-export type TableColumnType = 'text' | 'number' | 'boolean' | 'date' | 'datetime' | 'mixed' | 'empty';
+type TableColumnType = 'text' | 'number' | 'boolean' | 'date' | 'datetime' | 'mixed' | 'empty';
 
 export interface TableColumn {
     key: string;
@@ -121,7 +121,7 @@ export async function fetchRunTablePage(runId: string, tableId: string, offset: 
     };
 }
 
-export const runTableKeys = {
+const runTableKeys = {
     page: (runId: string, tableId: string, offset: number, limit: number) => ['automation', 'run-table', runId, tableId, offset, limit] as const,
 };
 

@@ -5,7 +5,7 @@ import FilterPills, { type PillTone } from '../../../shared/FilterPills';
 import Pager from '../../../shared/Pager';
 import DataTable, { TableRow, TableCell } from '../../../shared/DataTable';
 import EmptyState from '../../../shared/EmptyState';
-import { API, fetchJson, asArray, jsonInit } from '../data/api';
+import { API, fetchJson, asArray, jsonInit } from '../../../../api/complianceApi';
 import { useDateFormat } from '../shared/formatDates';
 import useDrawerMode from '../shared/useDrawerMode';
 import SoaTable, { DecisionPill, type SoaControl } from './soa/SoaTable';
@@ -213,7 +213,7 @@ interface HistoryApiRow {
     note?: string;
 }
 
-export function normaliseHistoryRow(row: HistoryApiRow | null | undefined, i: number) {
+function normaliseHistoryRow(row: HistoryApiRow | null | undefined, i: number) {
     if (!row || typeof row !== 'object') return null;
     const ref = row.control_ref ?? row.ref ?? null;
     const at = row.changed_at ?? row.updated_at ?? row.at ?? null;

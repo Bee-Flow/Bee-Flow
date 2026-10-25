@@ -24,7 +24,7 @@ export interface StepRowData {
 }
 
 /** "Published · Organisation · In chat": what a building block is, in one quiet line. */
-export function stepMeta(step: StepRowData, t: TranslateFn): string {
+function stepMeta(step: StepRowData, t: TranslateFn): string {
     const parts: string[] = [
         step.publishedVersion != null
             ? t('automations.library.blockPublished', 'Published')

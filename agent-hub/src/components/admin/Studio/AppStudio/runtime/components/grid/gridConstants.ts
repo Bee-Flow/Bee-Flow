@@ -5,7 +5,7 @@ import {
     rowSelectionFeature, rowSortingFeature, sortFn_alphanumeric, sortFn_basic,
     sortFn_datetime, sortFn_text, tableFeatures,
 } from '@tanstack/react-table';
-import { ROLE_COLORS } from '../../styleResolver';
+import { ROLE_COLORS } from '../../styleResolver.constants';
 
 /**
  * The fixed tables of the App Studio data grid: the table features it

@@ -5,10 +5,11 @@ import { useCan } from '../../components/licensing/Gate';
 import Tabs from '../../components/shared/Tabs';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { TranslateFn } from '../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
 import type { SettingsUser } from './shell/settingsShellTypes';
 import AcademyContentEditor from './learning/admin/AcademyContentEditor';
 import RequiredTrainingPanel from './learning/admin/RequiredTrainingPanel';
+import { request, RefusedError } from '../../api/mutate';
 
 /** GET /ai/learning/org-overview (server/learning/orgOverview.js). */
 interface AcademyMember {
@@ -130,8 +131,13 @@ function OrgAcademyOverview() {
         setLoading(true);
         setError(null);
         try {
-            const res = await authFetch(`${API_BASE}/ai/learning/org-overview`);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/ai/learning/org-overview`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                throw new Error(`HTTP ${err.status}`);
+            }
             setData(await res.json());
         } catch (_) {
             setError(t('org.academy.load_failed', 'Could not load the learning overview.'));

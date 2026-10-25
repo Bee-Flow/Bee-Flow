@@ -200,7 +200,7 @@ const VIEW_TYPE_OF_TAB: Partial<Record<WorkspaceTabId, ViewTarget['type']>> = {
 };
 
 /** The item open inside a tab, as presence names it; null for anything else. */
-export function viewTargetOf(tab: WorkspaceTabId, sub: string | null): ViewTarget | null {
+function viewTargetOf(tab: WorkspaceTabId, sub: string | null): ViewTarget | null {
     const type = VIEW_TYPE_OF_TAB[tab];
     return type && sub ? { type, id: sub } : null;
 }

@@ -32,7 +32,7 @@ export interface RowField {
  */
 
 /** A choice as the model stores it — options are strings OR { value, label }. */
-export function optionPair(option: unknown): OptionPair {
+function optionPair(option: unknown): OptionPair {
     if (option && typeof option === 'object') {
         const value = (option as OptionObject).value ?? (option as OptionObject).label ?? '';
         return { value: String(value), label: String((option as OptionObject).label ?? value) };

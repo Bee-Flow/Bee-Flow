@@ -4,7 +4,7 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import EmptyState from '../../../shared/EmptyState';
 import FilterPills from '../../../shared/FilterPills';
 import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
-import { API, fetchJson, jsonInit } from '../data/api';
+import { API, fetchJson, jsonInit } from '../../../../api/complianceApi';
 import useDrawerMode from '../shared/useDrawerMode';
 import { PAGE_FRAME } from './audits/auditForms';
 import { kindsOfSection, matchesSection, nextClock } from './incidents/incidentClocks';
@@ -41,7 +41,7 @@ import type { IncidentRecord } from './incidents/IncidentsTable';
  * server's are numbers, a deep link's (`focusId`) a path segment. Where the
  * drawer goes follows the width the register has (useDrawerMode).
  */
-export const HEADER_ACTION_CREATE = 'create';
+const HEADER_ACTION_CREATE = 'create';
 
 const FILTERS = Object.freeze([
     Object.freeze({ id: 'all', tone: 'neutral', labelKey: 'compliance.inc_filter_all', fallback: 'All' }),
@@ -52,14 +52,14 @@ const FILTERS = Object.freeze([
 const OPEN = new Set(['open', 'assessing', 'early_warning_sent']);
 const REPORTED = new Set(['authority_notified', 'reported', 'subjects_notified']);
 
-export function bucketOf(incident: IncidentRecord) {
+function bucketOf(incident: IncidentRecord) {
     if (incident.status === 'closed') return 'closed';
     if (REPORTED.has(incident.status)) return 'reported';
     return OPEN.has(incident.status) ? 'open' : 'open';
 }
 
 /** Sort: running clocks first by due date, then reported, then closed (newest first). */
-export function sortIncidents(rows: IncidentRecord[]) {
+function sortIncidents(rows: IncidentRecord[]) {
     const rank: Record<string, number> = { open: 0, reported: 1, closed: 2 };
     return rows.slice().sort((a, b) => {
         const ra = rank[bucketOf(a)], rb = rank[bucketOf(b)];

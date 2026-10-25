@@ -272,4 +272,3 @@ export function derivePosture(f: ShieldFieldBindings, { categories = [], env = {
     };
 }
 
-export default derivePosture;

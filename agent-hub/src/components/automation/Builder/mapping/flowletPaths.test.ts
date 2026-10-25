@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { classifyRef } from './refTokens';
 import { parseValue } from './valueParts';
-import { bindingFromInput } from '../../../../utils/bindingHelpers';
+import { bindingFromInput } from '../../../../utils/bindingHelpers.helpers';
 
 /**
  * Inside an expanded flowlet a sub-step's id is namespaced `<callId>/<subId>`

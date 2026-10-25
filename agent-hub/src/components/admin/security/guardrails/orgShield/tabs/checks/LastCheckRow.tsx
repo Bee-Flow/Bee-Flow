@@ -59,4 +59,3 @@ export function LastCheckRow({ f, readOnly, t }: { f: ChecksFields; readOnly: bo
     );
 }
 
-export default LastCheckRow;

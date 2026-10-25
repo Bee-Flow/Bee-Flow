@@ -6,7 +6,7 @@
 
 export const MIN_ZOOM = 0.5;
 export const MAX_ZOOM = 5;
-export const ZOOM_STEP = 1.25;
+const ZOOM_STEP = 1.25;
 
 /** Zoom is a multiplier on "fit width": 1 = the page exactly fills the pane. */
 export function clampZoom(z: number): number {

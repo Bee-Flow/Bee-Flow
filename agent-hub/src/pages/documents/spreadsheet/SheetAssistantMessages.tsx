@@ -12,7 +12,7 @@ import type { AssistantMessage } from './useSheetAssistant';
 const CHIP = 'px-3 py-1.5 rounded-full text-[12px] text-left border border-[var(--border-default)] bg-[var(--bg-primary)] text-[var(--text-primary)] hover:bg-[var(--item-hover-bg)] disabled:opacity-50 transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent-primary)]';
 
 /** "Auto · Think" when auto was asked and the server picked, else the tier asked for. */
-export function answeredBy(msg: AssistantMessage, tiers: ModelTierMap, t: TranslateFn): string | null {
+function answeredBy(msg: AssistantMessage, tiers: ModelTierMap, t: TranslateFn): string | null {
     const asked = msg.requestedTier;
     if (!asked) return null;
     const label = (key: string) => t(tierI18nKey(key), tierLabel(key, tiers));

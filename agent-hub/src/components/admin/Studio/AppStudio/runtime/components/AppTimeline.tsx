@@ -4,7 +4,7 @@ import { hoverable } from '../hoverable';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import type { BindingInput } from '../resolveBinding.types';
 import { useRuntime } from '../RuntimeContext';
-import { isFill } from '../styleResolver';
+import { isFill } from '../styleResolver.helpers';
 import { EmptyText, ErrorText, SkeletonLines, displayValue, useStickyBinding } from '../uiBits';
 import type { NodeProps } from './appNode.types';
 

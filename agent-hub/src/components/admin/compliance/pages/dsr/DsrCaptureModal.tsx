@@ -36,7 +36,7 @@ interface CapturePayload {
 }
 
 /** `datetime-local` value for a Date (local wall time, minute precision). */
-export function toLocalInputValue(date: Date | string | number): string {
+function toLocalInputValue(date: Date | string | number): string {
     const d = date instanceof Date ? date : new Date(date);
     if (!Number.isFinite(d.getTime())) return '';
     const pad = (n: number) => String(n).padStart(2, '0');

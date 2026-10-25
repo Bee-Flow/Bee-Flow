@@ -3,7 +3,7 @@ import { useIconPack } from '../../hooks/useIconPack';
 import type { LucideIcon } from 'lucide-react';
 import { ICON_REGISTRY, FALLBACK_ICON } from './iconRegistry';
 
-export interface AppIconProps extends Omit<React.HTMLAttributes<Element>, 'style' | 'className'> {
+interface AppIconProps extends Omit<React.HTMLAttributes<Element>, 'style' | 'className'> {
     name: string;
     className?: string;
     style?: React.CSSProperties;
@@ -73,7 +73,7 @@ function useLazyIcon(name: string, wanted: boolean): LucideIcon | null | undefin
     return fullSet ? (fullSet.get(name) || null) : undefined; // undefined = loading
 }
 
-export const AppIcon = React.forwardRef<Element, AppIconProps>(({ name, className = '', style = {}, fallback, ...rest }, ref) => {
+const AppIcon = React.forwardRef<Element, AppIconProps>(({ name, className = '', style = {}, fallback, ...rest }, ref) => {
     const { getCustomIcon } = useIconPack();
 
     // Registry hit — the synchronous fast path virtually every render takes.

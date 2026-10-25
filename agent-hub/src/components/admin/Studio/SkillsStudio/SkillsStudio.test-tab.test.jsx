@@ -2,8 +2,8 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { skillsApi } from './skillsApi';
 import TestTab from './TestTab';
+import { skillsApi } from '../../../../api/skillsApi';
 
 /**
  * The Test tab (S3): run one question through the steps.
@@ -31,7 +31,7 @@ import TestTab from './TestTab';
  *     the skill.
  */
 
-vi.mock('./skillsApi', () => {
+vi.mock('../../../../api/skillsApi', () => {
     const api = {
         list: vi.fn(), usageSummary: vi.fn(), get: vi.fn(), create: vi.fn(),
         update: vi.fn(), remove: vi.fn(), improve: vi.fn(), draft: vi.fn(),

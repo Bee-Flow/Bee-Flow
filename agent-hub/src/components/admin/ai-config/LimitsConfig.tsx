@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { API_BASE } from '../../../utils/helpers';
+import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
 import type { StatusMessage } from './chatModelTiers/tierTypes';
-import { mutate, ApiError } from '../../../api/mutate';
+import { mutate, ApiError, request, RefusedError } from '../../../api/mutate';
 
 interface LimitsConfigProps {
     onNavigateToTab?: (tab: string) => void;
@@ -42,8 +42,11 @@ const LimitsConfig = ({ onNavigateToTab }: LimitsConfigProps) => {
 
     const fetchConfig = async () => {
         try {
-            const res = await authFetch(`${API_BASE}/ai/config`);
-            if (res.ok) {
+            const res = await request(`${API_BASE}/ai/config`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) {
                 const data = await res.json();
                 setValue(data.maxToolRoundsChat ?? '');
                 setKbProvider(data.kbProvider || 'auto');
@@ -118,103 +121,10 @@ const LimitsConfig = ({ onNavigateToTab }: LimitsConfigProps) => {
             )}
 
             {/* ── Self-host status summary ─────────────────────────────── */}
-            <div className="rounded-xl border p-4 mb-4 [background:var(--bg-tertiary)] [border-color:var(--border-default)]">
-                <div className="text-sm font-semibold mb-2 text-[var(--text-primary)]">{t('admin_ai_config.limits_status_title', 'Setup status')}</div>
-                <p className="text-xs mb-3 text-[var(--text-muted)]">
-                    {t('admin_ai_config.limits_status_hint', 'What this server will use right now. Click a row to jump to the tab that controls it.')}
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                    {/* Embedding model */}
-                    <button
-                        type="button"
-                        onClick={() => onNavigateToTab && onNavigateToTab('embeddings')}
-                        className="text-left px-3 py-2 rounded-lg border hover:bg-white/5 transition-colors [background:var(--bg-secondary)]! [border-color:var(--border-default)]"
-                    >
-                        <div className="text-[var(--text-muted)]">{t('admin_ai_config.limits_embed_model', 'Embedding model (global)')}</div>
-                        <div className="font-semibold mt-0.5" style={{ color: status.embedModel ? 'var(--text-primary)' : '#f59e0b' }}>
-                            {status.embedModel ? `${status.embedModel}${status.embedProvider ? ` · ${status.embedProvider}` : ''}` : t('admin_ai_config.limits_embed_not_set', 'Not set: pick one in Embeddings')}
-                        </div>
-                    </button>
-
-                    {/* Search provider */}
-                    <button
-                        type="button"
-                        onClick={() => onNavigateToTab && onNavigateToTab('webSearchInference')}
-                        className="text-left px-3 py-2 rounded-lg border hover:bg-white/5 transition-colors [background:var(--bg-secondary)]! [border-color:var(--border-default)]"
-                    >
-                        <div className="text-[var(--text-muted)]">{t('admin_ai_config.limits_search_provider', 'Web search provider')}</div>
-                        <div className="font-semibold mt-0.5 text-[var(--text-primary)]">
-                            {status.searchProvider === 'node-search' ? t('admin_ai_config.limits_search_cloud', 'Cloud-only (Serper + provider APIs)')
-                                : status.searchProvider === 'bing' ? t('admin_ai_config.limits_search_bing', 'Azure Bing Web Search')
-                                : status.searchProvider === 'disabled' ? t('admin_ai_config.disabled', 'Disabled')
-                                : t('admin_ai_config.limits_search_self', 'Self-hosted (Agent Search + Serper)')}
-                            {(status.searchProvider === 'node-search' && !status.hasSerperKey) && (
-                                <span className="ml-2 [color:#f59e0b]">{t('admin_ai_config.limits_needs_serper', '· needs Serper key')}</span>
-                            )}
-                            {(status.searchProvider === 'agent-search' && !status.hasAgentSearchUrl) && (
-                                <span className="ml-2 [color:#f59e0b]">{t('admin_ai_config.limits_needs_search_url', '· needs SEARCH_SERVICE_URL')}</span>
-                            )}
-                        </div>
-                    </button>
-
-                    {/* KB provider (current) */}
-                    <button
-                        type="button"
-                        className="text-left px-3 py-2 rounded-lg border bg-[var(--bg-secondary)] border-[var(--border-default)]"
-                    >
-                        <div className="text-[var(--text-muted)]">{t('admin_ai_config.limits_kb_provider', 'KB provider')}</div>
-                        <div className="font-semibold mt-0.5 text-[var(--text-primary)]">
-                            {kbProvider === 'auto' ? t('admin_ai_config.limits_kb_auto', 'Auto') : kbProvider === 'local' ? t('admin_ai_config.limits_kb_local', 'Local (in-process)') : t('admin_ai_config.limits_kb_remote', 'Remote search-service')}
-                        </div>
-                    </button>
-
-                    {/* CPU reranker */}
-                    <button
-                        type="button"
-                        className="text-left px-3 py-2 rounded-lg border bg-[var(--bg-secondary)] border-[var(--border-default)]"
-                    >
-                        <div className="text-[var(--text-muted)]">{t('admin_ai_config.limits_cpu_reranker', 'CPU cross-encoder reranker')}</div>
-                        <div className="font-semibold mt-0.5 text-[var(--text-primary)]">
-                            {cpuRerankerEnabled ? t('admin_ai_config.enabled', 'Enabled') : t('admin_ai_config.disabled', 'Disabled')}
-                        </div>
-                    </button>
-                </div>
-            </div>
+            <LimitsConfigSection t={t} onNavigateToTab={onNavigateToTab} status={status} kbProvider={kbProvider} cpuRerankerEnabled={cpuRerankerEnabled} />
 
             {/* ── Tool-call rounds ─────────────────────────────────────── */}
-            <div className="rounded-xl border p-4 mb-4 [background:var(--bg-tertiary)] [border-color:var(--border-default)]">
-                <div className="text-sm font-semibold text-[var(--text-primary)]">{t('admin_ai_config.limits_rounds_title', 'Tool calls per chat turn')}</div>
-                <p className="text-xs mt-0.5 mb-3 text-[var(--text-muted)]">
-                    {t('admin_ai_config.limits_rounds_hint', 'Maximum number of tool-call rounds the model is allowed before it must produce a final answer. Applies uniformly to direct chat, notebook chat, webpage chat, and the native streaming loop.')}
-                </p>
-                <div className="flex items-center gap-3">
-                    <input
-                        type="number"
-                        min="1"
-                        max="50"
-                        value={value}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue(e.target.value)}
-                        placeholder={t('admin_ai_config.limits_rounds_placeholder', 'Use per-surface defaults')}
-                        className="w-48 px-3 py-2.5 rounded-lg border outline-none text-sm [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
-                    />
-                    <span className="text-xs text-[var(--text-muted)]">
-                        {t('admin_ai_config.limits_rounds_range', 'Range 1 to 50. Leave empty to use per-surface defaults.')}
-                    </span>
-                </div>
-                <div className="mt-4">
-                    <div className="text-xs font-semibold uppercase tracking-wider mb-2 text-[var(--text-muted)]">
-                        {t('admin_ai_config.limits_surface_title', 'Per-surface defaults (when empty)')}
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                        {PER_SURFACE_DEFAULTS.map((s: { name: string; value: number }) => (
-                            <div key={s.name} className="px-3 py-2 rounded-lg text-xs [background:var(--bg-secondary)] [border:1px_solid_var(--border-default)]">
-                                <div className="text-[var(--text-muted)]">{s.name}</div>
-                                <div className="font-semibold mt-0.5 text-[var(--text-primary)]">{s.value} {t('admin_ai_config.limits_rounds_unit', 'rounds')}</div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
+            <LimitsConfigSection2 t={t} value={value} setValue={setValue} PER_SURFACE_DEFAULTS={PER_SURFACE_DEFAULTS} />
 
             {/* ── KB provider ──────────────────────────────────────────── */}
             <div className="rounded-xl border p-4 mb-4 [background:var(--bg-tertiary)] [border-color:var(--border-default)]">
@@ -285,3 +195,103 @@ const LimitsConfig = ({ onNavigateToTab }: LimitsConfigProps) => {
 };
 
 export default LimitsConfig;
+
+function LimitsConfigSection2({ t, value, setValue, PER_SURFACE_DEFAULTS }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; value: string; setValue: React.Dispatch<React.SetStateAction<string>>; PER_SURFACE_DEFAULTS: { name: string; value: number; }[]; }) {
+    return <div className="rounded-xl border p-4 mb-4 [background:var(--bg-tertiary)] [border-color:var(--border-default)]">
+        <div className="text-sm font-semibold text-[var(--text-primary)]">{t('admin_ai_config.limits_rounds_title', 'Tool calls per chat turn')}</div>
+        <p className="text-xs mt-0.5 mb-3 text-[var(--text-muted)]">
+            {t('admin_ai_config.limits_rounds_hint', 'Maximum number of tool-call rounds the model is allowed before it must produce a final answer. Applies uniformly to direct chat, notebook chat, webpage chat, and the native streaming loop.')}
+        </p>
+        <div className="flex items-center gap-3">
+            <input
+                type="number"
+                min="1"
+                max="50"
+                value={value}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setValue(e.target.value)}
+                placeholder={t('admin_ai_config.limits_rounds_placeholder', 'Use per-surface defaults')}
+                className="w-48 px-3 py-2.5 rounded-lg border outline-none text-sm [background:var(--bg-secondary)] [border-color:var(--border-default)] [color:var(--text-primary)]!" />
+            <span className="text-xs text-[var(--text-muted)]">
+                {t('admin_ai_config.limits_rounds_range', 'Range 1 to 50. Leave empty to use per-surface defaults.')}
+            </span>
+        </div>
+        <div className="mt-4">
+            <div className="text-xs font-semibold uppercase tracking-wider mb-2 text-[var(--text-muted)]">
+                {t('admin_ai_config.limits_surface_title', 'Per-surface defaults (when empty)')}
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                {PER_SURFACE_DEFAULTS.map((s: { name: string; value: number; }) => (
+                    <div key={s.name} className="px-3 py-2 rounded-lg text-xs [background:var(--bg-secondary)] [border:1px_solid_var(--border-default)]">
+                        <div className="text-[var(--text-muted)]">{s.name}</div>
+                        <div className="font-semibold mt-0.5 text-[var(--text-primary)]">{s.value} {t('admin_ai_config.limits_rounds_unit', 'rounds')}</div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    </div>;
+}
+
+function LimitsConfigSection({ t, onNavigateToTab, status, kbProvider, cpuRerankerEnabled }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; onNavigateToTab: ((tab: string) => void) | undefined; status: LimitsStatus; kbProvider: string; cpuRerankerEnabled: boolean; }) {
+    return <div className="rounded-xl border p-4 mb-4 [background:var(--bg-tertiary)] [border-color:var(--border-default)]">
+        <div className="text-sm font-semibold mb-2 text-[var(--text-primary)]">{t('admin_ai_config.limits_status_title', 'Setup status')}</div>
+        <p className="text-xs mb-3 text-[var(--text-muted)]">
+            {t('admin_ai_config.limits_status_hint', 'What this server will use right now. Click a row to jump to the tab that controls it.')}
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+            {/* Embedding model */}
+            <button
+                type="button"
+                onClick={() => onNavigateToTab && onNavigateToTab('embeddings')}
+                className="text-left px-3 py-2 rounded-lg border hover:bg-white/5 transition-colors [background:var(--bg-secondary)]! [border-color:var(--border-default)]"
+            >
+                <div className="text-[var(--text-muted)]">{t('admin_ai_config.limits_embed_model', 'Embedding model (global)')}</div>
+                <div className="font-semibold mt-0.5" style={{ color: status.embedModel ? 'var(--text-primary)' : '#f59e0b' }}>
+                    {status.embedModel ? `${status.embedModel}${status.embedProvider ? ` · ${status.embedProvider}` : ''}` : t('admin_ai_config.limits_embed_not_set', 'Not set: pick one in Embeddings')}
+                </div>
+            </button>
+
+            {/* Search provider */}
+            <button
+                type="button"
+                onClick={() => onNavigateToTab && onNavigateToTab('webSearchInference')}
+                className="text-left px-3 py-2 rounded-lg border hover:bg-white/5 transition-colors [background:var(--bg-secondary)]! [border-color:var(--border-default)]"
+            >
+                <div className="text-[var(--text-muted)]">{t('admin_ai_config.limits_search_provider', 'Web search provider')}</div>
+                <div className="font-semibold mt-0.5 text-[var(--text-primary)]">
+                    {status.searchProvider === 'node-search' ? t('admin_ai_config.limits_search_cloud', 'Cloud-only (Serper + provider APIs)')
+                        : status.searchProvider === 'bing' ? t('admin_ai_config.limits_search_bing', 'Azure Bing Web Search')
+                            : status.searchProvider === 'disabled' ? t('admin_ai_config.disabled', 'Disabled')
+                                : t('admin_ai_config.limits_search_self', 'Self-hosted (Agent Search + Serper)')}
+                    {(status.searchProvider === 'node-search' && !status.hasSerperKey) && (
+                        <span className="ml-2 [color:#f59e0b]">{t('admin_ai_config.limits_needs_serper', '· needs Serper key')}</span>
+                    )}
+                    {(status.searchProvider === 'agent-search' && !status.hasAgentSearchUrl) && (
+                        <span className="ml-2 [color:#f59e0b]">{t('admin_ai_config.limits_needs_search_url', '· needs SEARCH_SERVICE_URL')}</span>
+                    )}
+                </div>
+            </button>
+
+            {/* KB provider (current) */}
+            <button
+                type="button"
+                className="text-left px-3 py-2 rounded-lg border bg-[var(--bg-secondary)] border-[var(--border-default)]"
+            >
+                <div className="text-[var(--text-muted)]">{t('admin_ai_config.limits_kb_provider', 'KB provider')}</div>
+                <div className="font-semibold mt-0.5 text-[var(--text-primary)]">
+                    {kbProvider === 'auto' ? t('admin_ai_config.limits_kb_auto', 'Auto') : kbProvider === 'local' ? t('admin_ai_config.limits_kb_local', 'Local (in-process)') : t('admin_ai_config.limits_kb_remote', 'Remote search-service')}
+                </div>
+            </button>
+
+            {/* CPU reranker */}
+            <button
+                type="button"
+                className="text-left px-3 py-2 rounded-lg border bg-[var(--bg-secondary)] border-[var(--border-default)]"
+            >
+                <div className="text-[var(--text-muted)]">{t('admin_ai_config.limits_cpu_reranker', 'CPU cross-encoder reranker')}</div>
+                <div className="font-semibold mt-0.5 text-[var(--text-primary)]">
+                    {cpuRerankerEnabled ? t('admin_ai_config.enabled', 'Enabled') : t('admin_ai_config.disabled', 'Disabled')}
+                </div>
+            </button>
+        </div>
+    </div>;
+}

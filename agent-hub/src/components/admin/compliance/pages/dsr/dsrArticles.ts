@@ -23,7 +23,7 @@ type RowLike = (Partial<DsrRow> & {
 type Words = Readonly<Record<string, string>>;
 
 /** Request type → GDPR article. `deletion` is the stored word, `erasure` the legal one — both map. */
-export const DSR_ARTICLE: Words = Object.freeze({
+const DSR_ARTICLE: Words = Object.freeze({
     access: '15',
     rectification: '16',
     deletion: '17',
@@ -34,7 +34,7 @@ export const DSR_ARTICLE: Words = Object.freeze({
 });
 
 /** Existing `compliance.dsr_type_*` keys (DsrInboxPage's TYPE_LABEL_KEY, kept verbatim). */
-export const DSR_TYPE_KEY: Words = Object.freeze({
+const DSR_TYPE_KEY: Words = Object.freeze({
     access: 'compliance.dsr_type_access',
     rectification: 'compliance.dsr_type_rectification',
     deletion: 'compliance.dsr_type_deletion',
@@ -52,25 +52,25 @@ export const DSR_TYPES = Object.freeze(['access', 'rectification', 'deletion', '
  * (PLAN-BACKEND 3.13) — `channelOf` folds both spellings, `CHANNEL_WIRE`
  * is what a manual capture sends.
  */
-export const DSR_CHANNELS = Object.freeze(['form', 'email', 'phone', 'letter', 'other']);
+const DSR_CHANNELS = Object.freeze(['form', 'email', 'phone', 'letter', 'other']);
 /** What a DPO can pick when recording a request by hand (the form records itself). */
 export const CAPTURE_CHANNELS = Object.freeze(['email', 'phone', 'letter', 'other']);
 export const CHANNEL_WIRE: Words = Object.freeze({ form: 'public_form', email: 'email_dpo', phone: 'phone', letter: 'letter', other: 'other' });
 const CHANNEL_ALIAS: Words = Object.freeze({ public_form: 'form', dsr_form: 'form', web: 'form', email_dpo: 'email', mail: 'email', dpo_email: 'email', post: 'letter', telephone: 'phone' });
 
-export const DSR_STATES = Object.freeze(['pending', 'in_progress', 'fulfilled', 'rejected']);
-export const OPEN_STATES = Object.freeze(['pending', 'in_progress']);
-export const CLOSED_STATES = Object.freeze(['fulfilled', 'rejected']);
+const DSR_STATES = Object.freeze(['pending', 'in_progress', 'fulfilled', 'rejected']);
+const OPEN_STATES = Object.freeze(['pending', 'in_progress']);
+const CLOSED_STATES = Object.freeze(['fulfilled', 'rejected']);
 
 /**
  * GDPR Art. 12(3): one month from receipt, extendable once by two further
  * months with a reason. Calendar months, the same as the server's `due_at`
  * (stores/dsrStore.js): 31 Jan + 1 month is 28 Feb, not 2 Mar.
  */
-export const DSR_WINDOW_MONTHS = 1;
-export const DSR_EXTENSION_MONTHS = 2;
+const DSR_WINDOW_MONTHS = 1;
+const DSR_EXTENSION_MONTHS = 2;
 /** The clock turns urgent under five days — regulation-driven, passed to DeadlineClock by the host. */
-export const DSR_URGENT_BELOW_MS = 5 * DAY_MS;
+const DSR_URGENT_BELOW_MS = 5 * DAY_MS;
 
 export function articleOf(requestType: string | null | undefined) {
     return DSR_ARTICLE[String(requestType || '').toLowerCase()] ?? null;
@@ -107,7 +107,7 @@ export function channelOf(row: RowLike) {
     return DSR_CHANNELS.includes(c) ? c : 'other';
 }
 
-export const IDENTITY_STATES = Object.freeze(['verified_link', 'verified_manual', 'employee', 'pending', 'unknown']);
+const IDENTITY_STATES = Object.freeze(['verified_link', 'verified_manual', 'employee', 'pending', 'unknown']);
 
 /**
  * Identity: BE-2's `identity_status` (`verified_email_link | verified_manual |
@@ -125,7 +125,7 @@ export function identityOf(row: RowLike) {
     return 'unknown';
 }
 
-export function isIdentityVerified(row: RowLike) {
+function isIdentityVerified(row: RowLike) {
     return identityOf(row).startsWith('verified');
 }
 

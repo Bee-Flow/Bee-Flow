@@ -14,7 +14,7 @@ import { OP_GROUPS, duplicateOp, moveOp, newOp, removeOp, replaceOp, type OpKind
 const ICON_BUTTON = 'rounded p-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] disabled:opacity-30 disabled:hover:text-[var(--text-tertiary)]';
 
 /** The menu that adds an operation: grouped by what it is for, each with one sentence on what it does. */
-export function AddOpMenu({ help, onAdd, disabled }: { help: OpHelp; onAdd: (kind: OpKind) => void; disabled?: boolean }) {
+function AddOpMenu({ help, onAdd, disabled }: { help: OpHelp; onAdd: (kind: OpKind) => void; disabled?: boolean }) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     return (

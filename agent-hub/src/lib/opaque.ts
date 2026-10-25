@@ -165,7 +165,7 @@ function hexToBuf(hex: string) {
  * @param {string} password
  * @returns {Promise<{ success: boolean, recoveryKey: string, user: object }>}
  */
-export async function opaqueRegister(username: string, password: string) {
+async function opaqueRegister(username: string, password: string) {
     await opaque.ready;
 
     // Step 1: Start registration
@@ -387,7 +387,7 @@ export async function opaquePinLogin(pin: string) {
  * Check the user's OPAQUE status.
  * @returns {Promise<{ kdfMode: string, hasOpaqueRecord: boolean }>}
  */
-export async function getOpaqueStatus() {
+async function getOpaqueStatus() {
     const res = await fetch(`${API_BASE}/status`, { credentials: 'include' });
     if (!res.ok) return { kdfMode: 'legacy_argon2', hasOpaqueRecord: false };
     return res.json();

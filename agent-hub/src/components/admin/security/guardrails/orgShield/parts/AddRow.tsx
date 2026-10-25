@@ -12,7 +12,7 @@ import React, { useId, useState } from 'react';
  * accept it. Validation therefore lives with the list that knows the rules,
  * and this component never has to guess.
  */
-export function AddRow({
+function AddRow({
     onAdd, placeholder, addLabel, disabled = false, mono = false,
 }: {
     onAdd: (value: string) => string | null | undefined;

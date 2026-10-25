@@ -10,7 +10,7 @@ import { Send, ArrowLeft, Bot, User, AlertTriangle } from 'lucide-react';
 import { authFetch, API_BASE } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
-import { mutate, ApiError } from '../../api/mutate';
+import { mutate, ApiError, request, RefusedError } from '../../api/mutate';
 
 export const STATUS_LABELS: Record<string, string> = {
     open: 'Open',
@@ -119,8 +119,11 @@ export function ThreadDetail({ threadId, onBack, onChanged }: { threadId: string
     const [sending, setSending] = useState<boolean>(false);
 
     const load = useCallback(async () => {
-        const res = await authFetch(`${API_BASE}/api/support/threads/${threadId}`);
-        if (res.ok) {
+        const res = await request(`${API_BASE}/api/support/threads/${threadId}`).catch((err: unknown) => {
+            if (err instanceof RefusedError) return null;
+            throw err;
+        });
+        if (res) {
             const data = await res.json();
             setThread(data.thread);
             setMessages(data.messages || []);

@@ -5,7 +5,7 @@ import UpdatePolicySelector from './UpdatePolicySelector';
 import type { PolicyChange } from './UpdatePolicySelector';
 import type { LucideIcon } from 'lucide-react';
 import type { TranslateFn } from '../../../hooks/useTranslation';
-import type { InstallProgress, MarketplaceModuleDetail, MarketplacePricing, ModuleHealthRow } from '../../../api/queries/modules';
+import type { InstallProgress, MarketplaceModuleDetail, MarketplacePricing, ModuleHealthRow } from '../../../api/queries/modules.types';
 
 /** Server-derived pricing, plus the legacy { model, amountCents } shape older rows still carry. */
 type CardPricing = Partial<MarketplacePricing> & { model?: string; amountCents?: number | null };

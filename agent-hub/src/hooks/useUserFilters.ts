@@ -32,7 +32,7 @@ export interface UserFilters {
     via: string;
 }
 
-export const INITIAL_FILTERS: Readonly<UserFilters> = Object.freeze({
+const INITIAL_FILTERS: Readonly<UserFilters> = Object.freeze({
     search: '',
     role: 'all',
     group: 'all',

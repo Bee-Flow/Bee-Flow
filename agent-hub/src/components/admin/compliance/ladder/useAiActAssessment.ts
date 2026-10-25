@@ -17,7 +17,7 @@
  * state (`error`) — never an empty result pretending to be "not assessed".
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { API, fetchJson, jsonInit, asObject } from '../data/api';
+import { API, fetchJson, jsonInit, asObject } from '../../../../api/complianceApi';
 import { fallbackSignals, type AiActSignals } from './aiSignals';
 import type { FilmDefinition } from '../../Studio/Playbooks/stages/runFilm';
 import type { AnnexAnswer, Art5Answer, toAnswers } from './ladderOutcome';
@@ -60,9 +60,9 @@ interface AssessmentState {
     serverSignals: LadderSignals | null;
 }
 
-export const ASSESSMENT_KINDS: readonly (string | undefined)[] = Object.freeze(['automation', 'agent']);
+const ASSESSMENT_KINDS: readonly (string | undefined)[] = Object.freeze(['automation', 'agent']);
 
-export function assessmentUrl(kind: string | undefined, id: string | number | boolean) {
+function assessmentUrl(kind: string | undefined, id: string | number | boolean) {
     return `${API}/ai-act/assessments/${encodeURIComponent(String(kind))}/${encodeURIComponent(id)}`;
 }
 
@@ -71,7 +71,7 @@ function isNotFound(err: unknown) {
 }
 
 /** Server signals win; every field the server left out is filled from the client fallback. */
-export function mergeSignals(server: LadderSignals | null, fallback: LadderSignals | null) {
+function mergeSignals(server: LadderSignals | null, fallback: LadderSignals | null) {
     if (!server) return fallback || null;
     if (!fallback) return server;
     const merged = { ...fallback, ...server, source: 'server' };

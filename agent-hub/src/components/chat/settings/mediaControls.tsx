@@ -79,7 +79,7 @@ export const Toggle = ({ label, desc, value, onChange, accent }: ToggleProps) =>
     </div>
 );
 
-export const Pill = ({ label, selected, onClick, accent }: PillProps) => (
+const Pill = ({ label, selected, onClick, accent }: PillProps) => (
     <button onClick={onClick}
         className="px-2.5 py-1 rounded-md text-[10px] font-medium transition-all"
         style={{

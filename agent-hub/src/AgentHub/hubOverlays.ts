@@ -4,7 +4,7 @@
 // too. Keep it in sync with the branch order there — adding a page above the
 // overlays without adding it here reintroduces BFSF-267 ("the sidebar item
 // does nothing").
-export const PAGES_ABOVE_OVERLAYS = ['cowork', 'documents', 'apps', 'forms', 'formView'];
+const PAGES_ABOVE_OVERLAYS = ['cowork', 'documents', 'apps', 'forms', 'formView'];
 
 type Close = (() => void) | null | undefined;
 

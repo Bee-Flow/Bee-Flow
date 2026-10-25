@@ -21,7 +21,7 @@ import { emptyTests, summarise } from './testBench';
  */
 
 export type Step = 0 | 1 | 2;
-export type Block = 'words' | 'pattern' | 'ai';
+type Block = 'words' | 'pattern' | 'ai';
 
 export interface TuneInfo {
     improved: boolean;

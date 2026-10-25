@@ -20,7 +20,7 @@ import { Card } from './ui';
  * is never an upgrade question, and keeping an admin from deleting their own
  * old entry would hold their data hostage to a licence.
  */
-export function OwnDataLocked({
+function OwnDataLocked({
     types, lists, canBlockExternal, upgradeUrl, readOnly, note = null, onRemove, t,
 }: {
     types: CustomDataType[];

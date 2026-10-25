@@ -62,7 +62,7 @@ export function hasCmsFallback(pathname?: string | null): boolean {
 
 // The public router only matches this shape (note: NO underscore — the
 // server's slug charset allows `_`, but such slugs are publicly unroutable).
-export const PUBLIC_SLUG_RE = /^[a-z0-9][a-z0-9-]*$/;
+const PUBLIC_SLUG_RE = /^[a-z0-9][a-z0-9-]*$/;
 
 /**
  * Non-default locales that get a URL prefix: `/nl/pricing`, `/nl`.
@@ -88,7 +88,7 @@ export const LOCALE_PREFIXES = new Set(['nl']);
 export const BLOG_BASE = 'blog';
 
 /** Which part of the blog a URL points at. */
-export type BlogView = { view: 'index' } | { view: 'post'; postSlug: string };
+type BlogView = { view: 'index' } | { view: 'post'; postSlug: string };
 
 /** Where a pathname lands on the public site; `blog` is set for blog paths only. */
 export interface CmsPath {

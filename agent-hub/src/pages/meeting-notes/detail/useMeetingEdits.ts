@@ -1,5 +1,5 @@
 import { applyDestination } from '../lib/actionDestinations';
-import * as api from '../lib/transcriptionsApi';
+import * as api from '../../../api/transcriptionsApi';
 import { appendArtifact } from '../lib/transcriptLines';
 import type { MeetingActionItem, MeetingNote, MeetingRowPatch, SetMeeting } from './meetingDetailTypes';
 

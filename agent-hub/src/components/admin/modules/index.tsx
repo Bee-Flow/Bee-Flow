@@ -3,7 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import MarketplaceTab from './MarketplaceTab';
 import ModuleCard from './ModuleCard';
 import RemoveModuleDialog from './RemoveModuleDialog';
-import { useAdminModules, useImportModule, useRemoveModule, type AdminModule } from '../../../api/queries/modules';
+import { useAdminModules, useImportModule, useRemoveModule } from '../../../api/queries/modules';
+import { type AdminModule } from '../../../api/queries/modules.types';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useEntitlements } from '../../licensing/EntitlementsContext';
 

@@ -137,4 +137,3 @@ export function TabInspector({ node, definition, onCommit, disabled = false }: P
 registerInspector('tabs', TabsInspector);
 registerInspector('tab', TabInspector);
 
-export default TabsInspector;

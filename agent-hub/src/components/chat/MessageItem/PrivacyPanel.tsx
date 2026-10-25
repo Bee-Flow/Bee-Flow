@@ -94,28 +94,7 @@ const PrivacyPanel = ({ msg, idx, allMessages, t }: PrivacyPanelProps) => {
                         : t('privacy.action_tokenised', 'Tokenised');
     return (
         <details className="group/privacy">
-            <summary className="flex items-center gap-2 cursor-pointer text-[11px] px-2 py-1.5 rounded-lg select-none list-none [&::-webkit-details-marker]:hidden transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
-                <span className="text-xs">🔒</span>
-                <span className="font-medium">{t('privacy.panel_title', 'Privacy protection')}</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
-                    {nothingFound
-                        ? t('privacy.badge_scanned', 'scanned')
-                        : nOf(
-                            t,
-                            info.action === 'restore' ? 'privacy.badge_restored'
-                                : info.action === 'protected' ? 'privacy.badge_protected'
-                                    : 'privacy.badge_redacted',
-                            info.count,
-                            info.action === 'restore' ? '1 item restored'
-                                : info.action === 'protected' ? '1 item protected'
-                                    : '1 item redacted',
-                            info.action === 'restore' ? '{count} items restored'
-                                : info.action === 'protected' ? '{count} items protected'
-                                    : '{count} items redacted',
-                        )}
-                </span>
-                <svg className="w-2.5 h-2.5 transition-transform group-open/privacy:rotate-90 ml-auto opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-            </summary>
+            <PrivacyPanelSection t={t} nothingFound={nothingFound} info={info} />
             <div className="mt-1 px-3 py-2 rounded-lg text-[11px] leading-relaxed bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
                 <p className="mb-1.5">
                     <strong className="text-[var(--text-primary)]">{actionLabel}</strong>
@@ -318,3 +297,28 @@ const PrivacyPanel = ({ msg, idx, allMessages, t }: PrivacyPanelProps) => {
 };
 
 export default PrivacyPanel;
+
+function PrivacyPanelSection({ t, nothingFound, info }: { t: MessageT; nothingFound: boolean; info: TokenisationInfo; }) {
+    return <summary className="flex items-center gap-2 cursor-pointer text-[11px] px-2 py-1.5 rounded-lg select-none list-none [&::-webkit-details-marker]:hidden transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
+        <span className="text-xs">🔒</span>
+        <span className="font-medium">{t('privacy.panel_title', 'Privacy protection')}</span>
+        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-[var(--bg-tertiary)] text-[var(--text-secondary)]">
+            {nothingFound
+                ? t('privacy.badge_scanned', 'scanned')
+                : nOf(
+                    t,
+                    info.action === 'restore' ? 'privacy.badge_restored'
+                        : info.action === 'protected' ? 'privacy.badge_protected'
+                            : 'privacy.badge_redacted',
+                    info.count,
+                    info.action === 'restore' ? '1 item restored'
+                        : info.action === 'protected' ? '1 item protected'
+                            : '1 item redacted',
+                    info.action === 'restore' ? '{count} items restored'
+                        : info.action === 'protected' ? '{count} items protected'
+                            : '{count} items redacted'
+                )}
+        </span>
+        <svg className="w-2.5 h-2.5 transition-transform group-open/privacy:rotate-90 ml-auto opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+    </summary>;
+}

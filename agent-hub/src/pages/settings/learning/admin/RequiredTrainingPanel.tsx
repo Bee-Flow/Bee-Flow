@@ -1,10 +1,10 @@
 import { GraduationCap, Info, Loader2, Lock, Save } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import { errorMessage } from '../../../../utils/caughtError';
-import { mutate, ApiError } from '../../../../api/mutate';
+import { mutate, ApiError, request, RefusedError } from '../../../../api/mutate';
 
 interface TrainingArea {
     id: string;
@@ -50,8 +50,13 @@ export default function RequiredTrainingPanel() {
     const load = useCallback(async () => {
         setState((s) => ({ ...s, loading: true, error: null }));
         try {
-            const res = await authFetch(`${API_BASE}/ai/learning/training-rules`);
-            if (!res.ok) throw new Error(String(res.status));
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/ai/learning/training-rules`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                throw new Error(String(err.status));
+            }
             const body = await res.json();
             setState({ loading: false, error: null, catalog: body.catalog || [], courses: body.courses || [], areas: body.areas || {} });
             setDraft(body.areas || {});

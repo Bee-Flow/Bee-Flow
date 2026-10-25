@@ -10,10 +10,10 @@ import type { TeamChat, TeamChatAiMode, TeamChatAiPolicy } from '../../../../api
 import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
 import SegmentedControl from '../../../shared/SegmentedControl';
 
-export const AI_MODES: readonly TeamChatAiMode[] = Object.freeze(['off', 'mention', 'always']);
+const AI_MODES: readonly TeamChatAiMode[] = Object.freeze(['off', 'mention', 'always']);
 
 /** The short name of a mode, as the segmented control shows it. */
-export function aiModeLabel(mode: TeamChatAiMode, t: TranslateFn): string {
+function aiModeLabel(mode: TeamChatAiMode, t: TranslateFn): string {
     if (mode === 'off') return t('project_chat.ai_mode_off', 'Off');
     if (mode === 'always') return t('project_chat.ai_mode_always', 'Always');
     if (mode === 'auto') return t('project_chat.ai_mode_auto', 'Auto');

@@ -1,6 +1,6 @@
 import type { FormEvent } from 'react';
 import type { TranslateFn } from '../../hooks/useTranslation';
-import { postResendVerification, postSignup } from './loginRequests';
+import { postResendVerification, postSignup } from '../../api/loginRequests';
 import type { AuthAnswer, ClearedSignupData, OnLogin, Setter } from './loginShared';
 import { clearedSignupData } from './loginShared';
 import { validateSubmit } from './signupValidation';

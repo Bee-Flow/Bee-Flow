@@ -28,7 +28,7 @@ export interface RunFindings {
     degraded?: boolean;
 }
 
-export function newSentenceId(): string {
+function newSentenceId(): string {
     const bytes = new Uint8Array(4);
     globalThis.crypto.getRandomValues(bytes);
     return `s_${Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')}`;

@@ -45,7 +45,7 @@ interface OtherSection extends PeopleSectionBase {
     status?: string;
 }
 
-export type PeopleSection = OrgSection | OtherSection;
+type PeopleSection = OrgSection | OtherSection;
 
 interface PeopleGroupSectionProps {
     section: PeopleSection;

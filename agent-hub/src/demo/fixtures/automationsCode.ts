@@ -6,7 +6,7 @@
 
 type Obj = Record<string, unknown>;
 
-export const CODE_TO_EUROS = `/**
+const CODE_TO_EUROS = `/**
  * Converts each vendor total to euros and rounds it to cents.
  *
  * @param {object[]} totals - The totals per vendor, from the step before
@@ -50,7 +50,7 @@ function typeOf(raw: string): Obj {
 }
 
 /** A small reading of the JSDoc on main, enough for the demo's form. */
-export function demoAnalysis(code: string): Obj {
+function demoAnalysis(code: string): Obj {
     const params: Obj[] = [];
     const lines = code.split('\n');
     let description: string | null = null;
@@ -90,7 +90,7 @@ export function demoAnalysis(code: string): Obj {
 }
 
 /** The assistant's scripted turn: adds a described "minimum" input and uses it. */
-export function demoAssistCode(code: string): { code: string; reply: string; summary: string } {
+function demoAssistCode(code: string): { code: string; reply: string; summary: string } {
     if (!code.trim()) {
         return { code: CODE_TO_EUROS, reply: 'Here is a first version. It converts every vendor total to euros; the rate and the currency are inputs with a short description, so the form below the step fills itself.', summary: 'Wrote the code' };
     }

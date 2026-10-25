@@ -1,9 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import {
-    ROLE_COLORS, clampSpan, resolveHeightCss, resolveNodeStyle, resolveWidthCss, roleTextColor,
-    spanGridColumn, spaceSteps,
-} from './styleResolver';
+import { clampSpan, resolveNodeStyle, resolveWidthCss, roleTextColor, spanGridColumn, spaceSteps } from './styleResolver';
+import { ROLE_COLORS } from './styleResolver.constants';
+import { resolveHeightCss } from './styleResolver.helpers';
 
 /**
  * What the knob translators do with a value that is missing, non-numeric or

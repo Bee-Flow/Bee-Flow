@@ -66,7 +66,7 @@ function groupLabel(t: (key: string | undefined, fallbackOrParams?: string | Tra
  * unfolds the full ribbon below the row, and the search field searches the
  * whole catalog.
  */
-export const COMPACT_CHIPS = Object.freeze([
+const COMPACT_CHIPS = Object.freeze([
     { type: 'button', labelKey: 'app_studio.palette.chip_button', label: 'Button', tint: 'app' },
     { type: 'input_text', labelKey: 'app_studio.palette.chip_input', label: 'Input field', tint: 'app' },
     { type: 'table', labelKey: 'app_studio.palette.chip_table', label: 'Table view', tint: 'datatable' },

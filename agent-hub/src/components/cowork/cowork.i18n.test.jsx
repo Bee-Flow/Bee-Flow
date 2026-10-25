@@ -30,7 +30,7 @@ vi.mock('../../hooks/useTranslation', () => ({
 }));
 
 const api = vi.hoisted(() => ({ createCowork: null }));
-vi.mock('./coworkApi', () => ({
+vi.mock('../../api/coworkApi', () => ({
     composeCowork: async () => null,
     createCowork: (...a) => api.createCowork(...a),
     listCoworkAgents: async () => [],

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
 import { errorName, messageOf } from '../../utils/caughtError';
 import { logger } from '../../utils/logger';
+import { mutate, errorBody, RefusedError } from '../../api/mutate';
 
 /**
  * Press-to-talk dictation for a composer.
@@ -80,9 +81,15 @@ export default function useDictation({ onText, language = 'nl' }: UseDictationOp
             form.append('audio', blob, `dictation.${ext}`);
             form.append('language', language || 'nl');
 
-            const res = await authFetch(`${API_BASE}/api/dictate`, { method: 'POST', body: form });
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/api/dictate`, { method: 'POST', body: form });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const data = errorBody(err) ?? {};
+                throw new Error(data?.error || `Transcription failed (${err.status})`);
+            }
             const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data?.error || `Transcription failed (${res.status})`);
 
             const text = String(data.text || '').trim();
             if (!mountedRef.current) return;

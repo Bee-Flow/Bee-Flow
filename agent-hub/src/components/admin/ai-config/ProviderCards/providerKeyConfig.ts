@@ -113,4 +113,3 @@ export const PROVIDER_KEY_CONFIGS: Record<string, ProviderKeyConfig> = {
     }
 };
 
-export default PROVIDER_KEY_CONFIGS;

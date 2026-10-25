@@ -8,19 +8,8 @@ import { useEffect, useEffectEvent, useState } from 'react';
 import { normalizePermissions } from './permissionCopy';
 import { buildPurchaseReturnUrls } from './purchaseReturn';
 import type { PolicyChange } from './UpdatePolicySelector';
-import {
-    useActivateStaged,
-    useInstallModule,
-    useInstallProgress,
-    usePurchaseModule,
-    useReactivateModule,
-    useRefreshEntitlements,
-    useRollbackModule,
-    useUpdateModule,
-    useUpdatePolicy,
-    type MarketplaceModule,
-    type UpdatePolicy,
-} from '../../../api/queries/modules';
+import { useActivateStaged, useInstallModule, useInstallProgress, usePurchaseModule, useReactivateModule, useRefreshEntitlements, useRollbackModule, useUpdateModule, useUpdatePolicy } from '../../../api/queries/modules';
+import { type MarketplaceModule, type UpdatePolicy } from '../../../api/queries/modules.types';
 import { useTranslation, type TranslateParams } from '../../../hooks/useTranslation';
 import { reloadRemoteModules } from '../../../moduleRuntime/registry';
 import { logger } from '../../../utils/logger';
@@ -32,7 +21,7 @@ export interface ModuleApiError extends Error {
 }
 
 /** consent_required payload → missing permission ids, else null. */
-export function consentRequiredPermissions(e: ModuleApiError) {
+function consentRequiredPermissions(e: ModuleApiError) {
     if (e?.body?.error === 'consent_required') return e.body.missingPermissions || [];
     return null;
 }

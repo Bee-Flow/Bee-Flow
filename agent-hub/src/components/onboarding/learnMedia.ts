@@ -70,7 +70,7 @@ export interface LessonStepLike {
 }
 
 /** How long the manifest may take before the lesson plays without its video. */
-export const MANIFEST_TIMEOUT_MS = 2500;
+const MANIFEST_TIMEOUT_MS = 2500;
 
 const DEFAULT_PATH = '/learn-media';
 

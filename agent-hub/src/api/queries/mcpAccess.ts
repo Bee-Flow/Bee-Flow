@@ -14,7 +14,7 @@ import { ApiError, apiClient } from '../client';
 export type McpServerId = 'integrations' | 'automations' | 'studio' | 'cms';
 export type McpLevel = 'read' | 'write';
 
-export interface McpServerScope {
+interface McpServerScope {
     level: McpLevel;
     /** Optional allow-list of tool names within the server. */
     tools?: string[];
@@ -42,7 +42,7 @@ export interface McpTokenRecord {
 }
 
 /** Why a server is not on offer: the operator has not switched it on, or the caller lacks the right to it. */
-export type McpUnavailableReason = 'not_enabled' | 'no_access';
+type McpUnavailableReason = 'not_enabled' | 'no_access';
 
 export interface McpServerEligibility {
     available: boolean;
@@ -118,7 +118,7 @@ export class McpAccessError extends Error {
     }
 }
 
-export const mcpAccessKeys = {
+const mcpAccessKeys = {
     all: ['mcp-access'] as const,
     tokens: () => [...mcpAccessKeys.all, 'tokens'] as const,
     policy: () => [...mcpAccessKeys.all, 'policy'] as const,

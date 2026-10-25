@@ -18,10 +18,10 @@ export interface AstNode {
     text?: string;
 }
 
-export type WordOp = 'equal' | 'insert' | 'delete';
+type WordOp = 'equal' | 'insert' | 'delete';
 export interface DiffWord { op: WordOp; text: string }
 
-export type BlockOp = 'equal' | 'insert' | 'delete' | 'modify';
+type BlockOp = 'equal' | 'insert' | 'delete' | 'modify';
 export interface DiffBlock {
     op: BlockOp;
     before: AstNode | null;

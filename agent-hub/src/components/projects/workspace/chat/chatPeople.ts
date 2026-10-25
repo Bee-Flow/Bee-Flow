@@ -8,10 +8,10 @@ import { useProjectMembersQuery, type ProjectMembers } from '../../../../api/que
 import type { WorkspaceUser } from '../types';
 import { personColor } from '../memberColors';
 
-export interface ChatPerson { id: string; name: string; avatar?: ChatAvatar; color?: string }
+interface ChatPerson { id: string; name: string; avatar?: ChatAvatar; color?: string }
 
 /** A member's own picture: an emoji, or an image path or url. */
-export interface ChatAvatar { type: 'emoji' | 'image' | 'url'; value: string }
+interface ChatAvatar { type: 'emoji' | 'image' | 'url'; value: string }
 
 export interface ChatPeople {
     /** Owner and user members that have a display name, the caller included. */

@@ -4,7 +4,7 @@ import type { OrgMember, Organization } from './useOrgDirectory';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { toast } from '../../shared/Toast';
 import useOutsideDismiss from '../../../hooks/useOutsideDismiss';
-import { mutate, ApiError } from '../../../api/mutate';
+import { mutate, ApiError, errorBody, RefusedError } from '../../../api/mutate';
 
 export interface OrgGroups {
     showCreateGroup: boolean;
@@ -103,17 +103,21 @@ export default function useOrgGroups({ users, organizations, fetchData, confirm 
 
     const handleUpdateGroupAllowedTiers = async (groupId: string, newAllowedTiers: string[]) => {
         try {
-            const res = await authFetch(`${API_BASE}/auth/groups/${groupId}`, {
+            let res: Response | undefined;
+            try {
+                res = await mutate(`${API_BASE}/auth/groups/${groupId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ allowedTiers: newAllowedTiers }),
             });
-            if (res.ok) {
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const body: { error?: string } = errorBody(err) ?? {};
+                console.error('Failed to update group allowedTiers:', err.status, body);
+                toast.error(`Failed to update allowed tiers (${err.status}): ${body.error || 'unknown error'}`);
+            }
+            if (res) {
                 await fetchData();
-            } else {
-                const body: { error?: string } = await res.json().catch(() => ({}));
-                console.error('Failed to update group allowedTiers:', res.status, body);
-                toast.error(`Failed to update allowed tiers (${res.status}): ${body.error || 'unknown error'}`);
             }
         } catch (err) {
             console.error('Failed to update group allowedTiers:', err);

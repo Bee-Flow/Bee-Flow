@@ -1,4 +1,4 @@
-import type { HasFeature, LessonGate, LessonUser } from './lessons.types';
+import type { HasFeature, LessonGate, LessonUser } from '../../api/lessons.types';
 
 export interface CheckContext {
     user?: LessonUser | null;

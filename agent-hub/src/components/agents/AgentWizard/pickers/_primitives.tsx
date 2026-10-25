@@ -29,7 +29,7 @@ export function CollapsibleSection({ title, open, onToggle, children }: {
     );
 }
 
-export function Field({ label, children }: { label: ReactNode; children?: ReactNode }) {
+function Field({ label, children }: { label: ReactNode; children?: ReactNode }) {
     return (
         <div>
             <div className="text-[13px] font-medium text-[var(--text-secondary)] mb-1.5">{label}</div>

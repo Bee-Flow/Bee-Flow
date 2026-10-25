@@ -8,7 +8,7 @@ import type { Translate } from './opHelp';
 const CELL_CHARS = 80;
 
 /** The preview's own warnings in plain words. Anything else the server says is shown as it is. */
-export function warningText(message: string, t: Translate): string {
+function warningText(message: string, t: Translate): string {
     const lower = message.toLowerCase();
     if (lower.includes('preview_salt') || lower.includes('fixed secret')) {
         return t('automation_tables.preview.warn_salt', 'The preview uses a fixed secret, so the codes are not the codes a real run makes.');

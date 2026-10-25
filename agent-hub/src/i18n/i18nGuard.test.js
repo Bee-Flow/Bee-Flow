@@ -394,7 +394,7 @@ const KEY_TABLE_FILES = [
     // those keys travelled unchecked — an `en` beside a key is exactly what
     // hides a missing one, which is the reason this check exists.
     'components/admin/Studio/AppStudio/inspector/ActionsSection.tsx',
-    'components/admin/Studio/SkillsStudio/SkillStepEditor.tsx',
+    'components/admin/Studio/SkillsStudio/StepCard.tsx',
     'components/admin/Studio/SkillsStudio/SkillsOverview.tsx',
     // De statustabellen van de ISMS-registers (AUDIT_STATUS, FINDING_SEVERITY,
     // NC_STATUS, NC_SEVERITY, NC_SOURCE, OBJ_STATUS) — de opvolger van de
@@ -413,11 +413,10 @@ const KEY_TABLE_FILES = [
     'components/admin/compliance/pages/overview/deadlineRows.ts',
     'components/admin/compliance/ComplianceMobile.tsx',
     // OBLIGATION_KINDS — de soorten opleidingsverplichting.
-    'components/admin/compliance/pages/TrainingPage.tsx',
     // LEGAL_BASES, RESIDENCY, NIS2_ENTITY_CLASSES, CRA_ROLES,
     // CONFORMANCE_LEVELS, RELEVANCE_OPTIONS: de keuzelijsten van het
     // instellingenformulier reizen als DATA.
-    'components/admin/compliance/pages/settings/settingsFields.ts',
+    'components/admin/compliance/pages/settings/settingsFields.helpers.ts',
     'components/automation/Builder/flow/nodeTypeColors.ts',
     // Vier tabellen in het spoorpaneel (A4 deel C): regelkoppen, de reden dat
     // een stap ontbreekt, de weggelaten feiten en de fasenamen. Ze reizen als
@@ -427,7 +426,7 @@ const KEY_TABLE_FILES = [
     'components/automation/Builder/mapping/fieldKinds.ts',
     // The automations launcher's tab labels (TABS).
     'components/admin/Studio/AutomationsStudio/AutomationsLauncher.tsx',
-    'components/skills/SkillFormModal.tsx',
+    'components/skills/SkillFormModal.constants.ts',
     // De vier filterkoppen van de skills-grid (`{ id, key, en }`, gerenderd als
     // `{t(f.key, f.en)}`). Precies de bewaakte vorm, en tot nu toe niet op deze
     // lijst: een verzonnen sleutel in die tabel liet de guard groen.
@@ -459,7 +458,7 @@ const KEY_TABLE_FILES = [
  * a stage plans against, so an undercount is worse than a long list.
  */
 const TEXT_HELPERS = [
-    { rel: 'components/shared/statusTokens.ts' },
+    { rel: 'components/shared/statusTokens/index.ts' },
     { rel: 'components/admin/Studio/KnowledgeStudio/freshness.ts' },
     { rel: 'components/admin/Studio/KnowledgeStudio/plural.ts' },
     { rel: 'components/automation/Builder/mapping/mismatch.ts' },
@@ -492,7 +491,7 @@ const TEXT_HELPERS = [
     { rel: 'components/admin/Studio/AppStudio/rbac/rowRuleModel.ts' },
     { rel: 'components/admin/Studio/Datatables/datatableDisplay.ts', pending: 'DT — visibility sentences and GRADE_LABEL' },
     { rel: 'components/admin/Studio/SupportStudio/auditMeta.ts', pending: 'SUP — ACTION_LABEL, the whole ticket audit trail' },
-    { rel: 'components/admin/ai-config/ProviderCards/local/localRuntimeApi.ts', pending: 'A1 — TIER_LABELS plus the runtime error messages' },
+    { rel: 'api/localRuntimeApi.ts', pending: 'A1 — TIER_LABELS plus the runtime error messages' },
     { rel: 'components/admin/ai-config/chatModelTiers/modelMeta.ts', pending: 'A1 — EFFORT_LABELS and the openAIEffortOptions labels' },
     { rel: 'components/admin/product-website/analytics/filters.ts', pending: 'CMS — analytics filter names' },
     { rel: 'components/admin/product-website/analytics/heatmap/model.ts', pending: 'CMS — block-type names in the heatmap' },
@@ -718,7 +717,7 @@ describe('i18n guard', () => {
             const src = fs.readFileSync(file, 'utf8');
             const seen = new Map();
             const dups = [];
-            const re = /^\s*(['"])([A-Za-z0-9_.\-]+)\1\s*:/gm;
+            const re = /^\s*(['"])([A-Za-z0-9_.-]+)\1\s*:/gm;
             let m;
             // Line numbers are tracked incrementally. The obvious version —
             // `src.slice(0, m.index).split('\n').length` per match — copies and

@@ -17,7 +17,7 @@
  * has none yet, which is what the check warns about.
  */
 
-export const LAWFUL_BASES = Object.freeze(['consent', 'contract', 'legal_obligation', 'vital_interests', 'public_task', 'legitimate_interests']);
+const LAWFUL_BASES = Object.freeze(['consent', 'contract', 'legal_obligation', 'vital_interests', 'public_task', 'legitimate_interests']);
 /** personalDataSignals SPECIAL_KINDS: special-category and national-identifier data. */
 const SPECIAL_KINDS = Object.freeze(['health', 'id_number']);
 const REVIEW_EVERY_DAYS = 365;
@@ -34,7 +34,7 @@ const KIND_LABEL: Readonly<Record<string, string>> = Object.freeze({
 
 export interface ProjectSignal { project_id: string; name: string; kinds: string[]; sources: string[] }
 
-export interface ProjectRegistration {
+interface ProjectRegistration {
     subject_kind: 'project';
     subject_id: string;
     purpose: string | null;
@@ -70,7 +70,7 @@ const shortRef = (id: string) => `project:${id.slice(0, 8)}`;
 const registrationOf = (s: RopaProjectsState, id: string) => s.registrations.find(r => r.subject_id === id) || null;
 
 /** GET /ropa/projects: special first, then the ones without a record, then by name. */
-export function ropaProjectsBody(s: RopaProjectsState) {
+function ropaProjectsBody(s: RopaProjectsState) {
     const projects = s.projects.map(p => ({
         project_id: p.project_id, name: p.name, kinds: [...p.kinds], special: special(p.kinds), sources: [...p.sources],
         registration: registrationOf(s, p.project_id),

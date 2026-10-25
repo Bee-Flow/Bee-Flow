@@ -4,4 +4,4 @@
  * (npm run gen:shared), so the gallery renders without a fetch.
  */
 
-export { APP_DESIGN_PRESETS, getAppDesignPreset } from '@shared/appDefinition/designPresets.mjs';
+export { APP_DESIGN_PRESETS,  } from '@shared/appDefinition/designPresets.mjs';

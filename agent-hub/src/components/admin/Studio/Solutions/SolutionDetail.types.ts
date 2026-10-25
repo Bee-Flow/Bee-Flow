@@ -1,4 +1,4 @@
-import type { StageName, PipelineStage, Pipeline, StageKey } from './pipeline/stagesApi';
+import type { StageName, PipelineStage, Pipeline, StageKey } from '../../../../api/stagesApi';
 import type { PipelineReadState } from './pipeline/pipelineModel';
 
 /**

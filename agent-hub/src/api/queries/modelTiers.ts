@@ -24,12 +24,12 @@ export interface ModelTierConfig {
 
 export type ModelTierMap = Record<string, ModelTierConfig>;
 
-export const modelTierKeys = {
+const modelTierKeys = {
     all: ['model-tiers'] as const,
     forTask: (taskType: string) => [...modelTierKeys.all, taskType] as const,
 };
 
-export async function fetchModelTiers(taskType: string, signal?: AbortSignal): Promise<ModelTierMap> {
+async function fetchModelTiers(taskType: string, signal?: AbortSignal): Promise<ModelTierMap> {
     const res = await authFetch(
         `${API_BASE}/ai/config/tiers-for-user?taskType=${encodeURIComponent(taskType)}`,
         { signal },

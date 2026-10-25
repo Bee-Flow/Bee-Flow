@@ -19,10 +19,9 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { sessionSignals } from '../model';
 import { rich } from '../rich';
-import {
-    ACCENT, SERIES, Card, Empty, ErrorNote, Skeleton, StatGrid, StatTile,
-    fmt, fmtDurationMs, fmtAgo,
-} from '../ui';
+import { SERIES, Empty, StatGrid, StatTile, fmt, fmtDurationMs, fmtAgo } from '../ui';
+import { Card, ErrorNote, Skeleton } from '../AsyncCard';
+import { ACCENT } from '../BarList';
 import { useAnalyticsQuery } from '../useAnalyticsQuery';
 import type { AnalyticsScope, AnalyticsSite } from '../../analyticsApi';
 import type { DrillHandler } from '../ui.types';

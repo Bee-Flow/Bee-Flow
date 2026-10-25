@@ -36,7 +36,7 @@ export const trainingGateKeys = {
  * hides a button somebody is entitled to press, or shows one the server will
  * refuse. Of the two, the refusal is recoverable and the hidden button is not.
  */
-export async function fetchTrainingGates(signal?: AbortSignal): Promise<TrainingGateAreas> {
+async function fetchTrainingGates(signal?: AbortSignal): Promise<TrainingGateAreas> {
     try {
         const res = await authFetch(`${API_BASE}/ai/learning/training-gates`, { signal });
         if (!res.ok) return {};

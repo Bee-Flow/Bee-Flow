@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
 import { isAgentCallable } from './skillModel';
 import type { OrgGroup } from '../../../shared/VisibilityCapsule.types';
 import type { CallableAutomation } from './skillModel.types';
+import { request, RefusedError } from '../../../../api/mutate';
 
 /** An automation row as the picker reads it. */
 export interface PickerAutomation extends CallableAutomation {
@@ -11,7 +12,7 @@ export interface PickerAutomation extends CallableAutomation {
     name?: string;
 }
 export interface PickerKnowledgeBase { id: string | number; name?: string }
-export interface PickerDatatable { id: string | number; name?: string; key?: string }
+interface PickerDatatable { id: string | number; name?: string; key?: string }
 
 export interface PickerData {
     orgGroups: OrgGroup[];
@@ -71,8 +72,13 @@ const UNREAD = Object.freeze({ rows: [], ok: false });
 
 async function readList<T>(path: string, pick: (body: ListBody | null) => unknown): Promise<ReadResult<T>> {
     try {
-        const res = await authFetch(`${API_BASE}${path}`);
-        if (!res.ok) return UNREAD;
+        let res: Response;
+        try {
+            res = await request(`${API_BASE}${path}`);
+        } catch (err) {
+            if (!(err instanceof RefusedError)) throw err;
+            return UNREAD;
+        }
         const body = await res.json();
         const rows = pick(body);
         return Array.isArray(rows) ? { rows, ok: true } : UNREAD;
@@ -82,7 +88,7 @@ async function readList<T>(path: string, pick: (body: ListBody | null) => unknow
 }
 
 /** Before the first answer: four empty lists and no claim about any of them. */
-export const EMPTY_PICKER_DATA: PickerData = Object.freeze({
+const EMPTY_PICKER_DATA: PickerData = Object.freeze({
     orgGroups: [], automations: [], knowledgeBases: [], datatables: [],
     unavailable: [], loaded: false,
 });

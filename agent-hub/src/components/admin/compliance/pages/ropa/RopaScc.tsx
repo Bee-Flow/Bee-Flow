@@ -23,7 +23,7 @@ import { ActionButton as ActionButtonJs } from '../audits/auditForms';
 const AnchoredMenu = AnchoredMenuJs;
 const ActionButton = ActionButtonJs;
 
-export interface SccProcessor {
+interface SccProcessor {
     operator?: string | null;
     is_eu?: boolean;
 }

@@ -14,7 +14,7 @@
  * recognise reads as hidden, never as a guess.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { chatMonitoringUrls, fetchJson, jsonInit } from './api';
+import { chatMonitoringUrls, fetchJson, jsonInit } from '../../../../api/complianceApi';
 import {
     DPIA_RISK_LEVELS, EMPLOYEE_SURFACES, LEGAL_BASES, RETENTION, SIGNALS, SURFACES, WORKS_COUNCIL, WORKS_COUNCIL_REASONS,
     type DpiaInfo, type PutBody, type StoredSettings, type Surface, type WorksCouncilScope,
@@ -26,7 +26,7 @@ export type Cell = number | '<5' | 'hidden' | null;
 
 export interface PausedSurface { surface: string; missing: string[] }
 
-export interface ChatMonitoringEffective {
+interface ChatMonitoringEffective {
     state: 'off' | 'scheduled' | 'on';
     from: string | null;
     surfaces: Surface[];
@@ -34,7 +34,7 @@ export interface ChatMonitoringEffective {
     signals: string[];
 }
 
-export interface CatalogueSurface { id: string; population: 'employees' | 'visitors'; available: boolean }
+interface CatalogueSurface { id: string; population: 'employees' | 'visitors'; available: boolean }
 
 export interface ChatMonitoringConfig {
     settings: StoredSettings;
@@ -91,7 +91,7 @@ function parseScope(v: unknown): WorksCouncilScope {
     return { surfaces: listOf(s.surfaces, EMPLOYEE_SURFACES), signals: listOf(s.signals, SIGNALS), max_retention_days: num(s.max_retention_days) };
 }
 
-export function parseSettings(v: unknown): StoredSettings {
+function parseSettings(v: unknown): StoredSettings {
     const s = rec(v);
     return {
         enabled: s.enabled === true,
@@ -213,7 +213,7 @@ export function parseSummary(body: unknown): ChatMonitoringSummary {
     return { surfaces: SURFACES.filter((s) => s in surfaces).map((surface) => ({ surface, figures: parseFigures(surfaces[surface]) })) };
 }
 
-export const CHAT_SIGNALS_ACTIVITY_ID = 'chat-compliance-signals';
+const CHAT_SIGNALS_ACTIVITY_ID = 'chat-compliance-signals';
 
 export function parseRopa(body: unknown): { activity: RopaActivityView | null; controllerName: string | null } {
     const b = rec(body);
@@ -237,7 +237,7 @@ export function refusalOf(e: unknown): { status: number | null; code: string | n
 
 /* ───────────────────────── hooks ───────────────────────── */
 
-export const chatMonitoringKeys = {
+const chatMonitoringKeys = {
     all: ['compliance', 'chat-monitoring'] as const,
     config: ['compliance', 'chat-monitoring', 'config'] as const,
     summary: (days: number) => ['compliance', 'chat-monitoring', 'summary', days] as const,

@@ -12,7 +12,7 @@
 import { pathListShape } from './listShape';
 import { columnForSlot, detectMismatch, fieldForSlot, kindAtPath, quietDefaultId, remediesFor } from './mismatch';
 import type { Remedies, Remedy } from './mismatch.types';
-import { canonicalRefPath } from '../../../../utils/bindingHelpers';
+import { canonicalRefPath } from '../../../../utils/bindingHelpers.helpers';
 
 export interface PickOpts {
     slot?: string | null;

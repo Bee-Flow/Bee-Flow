@@ -4,6 +4,7 @@ import useTranslation from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import Section from '../../../shared/Section';
 import type { SupportInbox, SupportTeammate, SupportUser } from './supportStudio.types';
+import { mutate, errorBody, RefusedError } from '../../../../api/mutate';
 
 interface AccessGroup {
     id: string;
@@ -70,11 +71,18 @@ export default function AccessTab({ inbox, user, onChanged }: AccessTabProps) {
         if (!inboxId || !canEdit) return;
         setSaving(true); setError(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/support-inbox/inboxes/${inboxId}/access`, {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/api/support-inbox/inboxes/${inboxId}/access`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sharedGroups: nextGroups }),
             });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const d = errorBody(err) ?? {};
+                setError(d.error || t('support.access.save_failed', 'Could not save access'));
+                return;
+            }
             const d = await res.json().catch(() => ({}));
-            if (!res.ok) { setError(d.error || t('support.access.save_failed', 'Could not save access')); return; }
             setMembers(Array.isArray(d.resolvedMembers) ? d.resolvedMembers : []);
             setMode(d.mode || (nextGroups.length ? 'groups' : 'everyone'));
             onChanged?.();

@@ -19,7 +19,7 @@ export interface AddKindTilesProps {
     bare?: boolean;
 }
 
-export function addableCount(load: KindLoad | undefined): number | null {
+function addableCount(load: KindLoad | undefined): number | null {
     return load && load.status === 'ok' ? load.items.filter(i => i.inProjectId === null).length : null;
 }
 

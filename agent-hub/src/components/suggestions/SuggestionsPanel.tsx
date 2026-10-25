@@ -23,7 +23,7 @@ import { LoadingRow, Notice } from '../projects/workspace/workspaceUi';
 import { formatMessageTime } from '../projects/workspace/chat/messageGroups';
 import { logger } from '../../utils/logger';
 
-export type HighlightSuggestions = (list: Array<{ id: string; anchor: CommentAnchor }>, activeId?: string | null) => void;
+type HighlightSuggestions = (list: Array<{ id: string; anchor: CommentAnchor }>, activeId?: string | null) => void;
 
 export interface SuggestionsPanelProps {
     documentId: string;

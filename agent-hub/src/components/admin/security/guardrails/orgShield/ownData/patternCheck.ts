@@ -14,7 +14,7 @@ export type PatternCheck =
 const MAX_SOURCE = 300;
 
 /** Compile a source the way the matcher does: global, case flag optional. */
-export function compilePattern(source: string, caseSensitive = false): RegExp | null {
+function compilePattern(source: string, caseSensitive = false): RegExp | null {
     try {
         return new RegExp(source, caseSensitive ? 'g' : 'gi');
     } catch {

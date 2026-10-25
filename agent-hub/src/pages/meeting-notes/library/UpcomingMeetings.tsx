@@ -3,10 +3,10 @@ import { Calendar, Loader2, RefreshCw, Video, Mic, Dot, FileText, AlertCircle, U
 import { kindColorVar, kindTint } from '../../../components/shared/kindColors';
 import useTranslation from '../../../hooks/useTranslation';
 import { openGoogleOAuthPopup } from '../../../lib/googleOAuthPopup';
-import { openMicrosoftOAuthPopup } from '../../../lib/microsoftOAuthPopup';
+import { openMicrosoftOAuthPopup } from '../../../api/microsoftOAuthPopup';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import TagRow from '../detail/TagRow';
-import { listTalkMeetings, setMeetingRecord, listGoogleMeetMeetings, setGoogleMeetMeetingRecord, listTeamsMeetings, setTeamsMeetingRecord } from '../lib/transcriptionsApi';
+import { listTalkMeetings, setMeetingRecord, listGoogleMeetMeetings, setGoogleMeetMeetingRecord, listTeamsMeetings, setTeamsMeetingRecord } from '../../../api/transcriptionsApi';
 import { metaSegments, meetingTags, dateBlockParts, recordReasonHint, toggleStateLabel, attendeeNotices } from '../lib/upcomingMeta';
 import type { DateBlockProps, GmeetData, GmeetMeeting, ProviderChipProps, SourceState, StatusChipProps, TalkData, TalkMeeting, TeamsData, TeamsMeeting, ToggleProps, UpcomingMeetingRowProps, UpcomingMeetingsProps, UpcomingRow } from './UpcomingMeetings.types';
 import { messageOf, errorCode, errorMessage } from '../../../utils/caughtError';

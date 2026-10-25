@@ -18,7 +18,7 @@ const api = vi.hoisted(() => ({
     listCoworkRuns: vi.fn(),
     listCoworkAgents: vi.fn(),
 }));
-vi.mock('./coworkApi', () => api);
+vi.mock('../../api/coworkApi', () => api);
 
 const todayAt = (h, m = 0) => { const d = new Date(); d.setHours(h, m, 0, 0); return d; };
 

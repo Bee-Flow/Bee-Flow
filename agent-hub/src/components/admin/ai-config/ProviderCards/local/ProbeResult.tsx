@@ -5,8 +5,8 @@
 // tier picker. So a successful probe lists the model ids it found.
 
 import React from 'react';
-import type { ProbeData } from './runtimeTypes';
-import { CAT_COLORS } from '../../../../../utils/modelMeta';
+import type { ProbeData } from '../../../../../api/runtimeTypes';
+import { CAT_COLORS } from '../../../../../api/modelMeta';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 
 const MAX_SHOWN = 12;

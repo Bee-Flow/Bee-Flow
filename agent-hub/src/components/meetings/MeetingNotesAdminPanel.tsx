@@ -5,6 +5,7 @@ import { NC_BLUE, LANGS, Toggle, Row, Select } from '../../pages/settings/shared
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
 import { logger } from '../../utils/logger';
+import { mutate, errorBody, RefusedError } from '../../api/mutate';
 
 interface MeetingNotesAdminPanelProps {
     user?: { organizationId?: string } | null;
@@ -53,11 +54,17 @@ export default function MeetingNotesAdminPanel({ user }: MeetingNotesAdminPanelP
     const save = async () => {
         setSaving(true); setMessage(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/talk-notes-settings/${orgId}`, {
+            let res: Response | undefined;
+            try {
+                res = await mutate(`${API_BASE}/api/talk-notes-settings/${orgId}`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cfg),
             });
-            if (res.ok) setMessage({ type: 'success', text: t('common.saved', 'Saved') });
-            else { const e = await res.json().catch(() => ({})); setMessage({ type: 'error', text: e.error || `HTTP ${res.status}` }); }
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const e = errorBody(err) ?? {};
+                setMessage({ type: 'error', text: e.error || `HTTP ${err.status}` });
+            }
+            if (res) setMessage({ type: 'success', text: t('common.saved', 'Saved') });
         } catch (e) { setMessage({ type: 'error', text: errorMessage(e) }); }
         finally { setSaving(false); }
     };

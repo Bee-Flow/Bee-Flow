@@ -39,7 +39,7 @@ export const DAYS_WINDOW_MS = 7 * DAY_MS;
 export const OVERDUE_IN_DAYS_AFTER_MS = 48 * HOUR_MS;
 
 export type ClockState = 'ok' | 'urgent' | 'overdue' | 'done' | 'none';
-export type ClockUnit = 'days' | 'hours';
+type ClockUnit = 'days' | 'hours';
 
 /** Anything `toMs` reads: a Date, epoch ms or an ISO string. */
 export type TimeInput = Date | number | string | null | undefined;

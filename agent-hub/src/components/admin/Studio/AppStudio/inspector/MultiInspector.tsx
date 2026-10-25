@@ -34,14 +34,14 @@ function enumOptions(t: (key: string | undefined, fallbackOrParams?: string | Tr
 }
 
 /** Common knobs across a set of component types (order from the first type). */
-export function commonKnobs(types: string[]) {
+function commonKnobs(types: string[]) {
     const lists = (types || []).map(getKnobsForType).filter((l) => l.length);
     if (!lists.length) return [];
     return lists.reduce((acc, list) => acc.filter((k) => list.includes(k)));
 }
 
 /** The shared value of `knob` across nodes, or undefined when they disagree. */
-export function sharedValue(nodes: { style?: Record<string, string | number | null | undefined>; }[], knob: string) {
+function sharedValue(nodes: { style?: Record<string, string | number | null | undefined>; }[], knob: string) {
     let seen;
     let has = false;
     for (const node of nodes) {

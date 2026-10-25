@@ -15,7 +15,7 @@ import { shortModel } from './usage/format';
 import { getSourceDetails } from './usage/widgets';
 import RangeControl, { defaultRange } from './usage/RangeControl';
 import OverviewTab from './usage/OverviewTab';
-import type { StarterModel } from '../../components/admin/ai-config/ProviderCards/local/runtimeTypes';
+import type { StarterModel } from '../../api/runtimeTypes';
 import type { DropdownOption } from './PreferencesSection.types';
 import { logger } from '../../utils/logger';
 

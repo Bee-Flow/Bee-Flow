@@ -30,7 +30,7 @@ export interface TeamsNotesUserSettings extends TeamsNotesSettings {
     connection: TeamsConnection;
 }
 
-export type TeamsRecordingState = 'available' | 'transcript_only' | 'processing' | 'none';
+type TeamsRecordingState = 'available' | 'transcript_only' | 'processing' | 'none';
 
 export interface TeamsRecordingItem {
     eventId: string;
@@ -41,7 +41,7 @@ export interface TeamsRecordingItem {
     importedNoteId: string | null;
 }
 
-export const teamsMeetingNotesKeys = {
+const teamsMeetingNotesKeys = {
     userSettings: ['teamsMeetingNotes', 'userSettings'] as const,
     recordings: ['teamsMeetingNotes', 'recordings'] as const,
 };

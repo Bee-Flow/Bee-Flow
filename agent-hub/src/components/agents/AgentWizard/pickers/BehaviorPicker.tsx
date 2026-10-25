@@ -219,7 +219,7 @@ interface BehaviorPickerProps extends BehaviorBodyProps {
     inline?: boolean;
 }
 
-export default function BehaviorPicker(props: BehaviorPickerProps) {
+function BehaviorPicker(props: BehaviorPickerProps) {
     const { t, onClose, inline = false } = props;
     const popoverRef = useRef<HTMLDivElement>(null);
     useEffect(() => {

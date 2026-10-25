@@ -39,7 +39,7 @@ import type { InputAreaProps } from './index.types';
 
 // Moved to knowledgeBaseClaim.js, where the rest of the KB pill's reasoning
 // lives; still exported from here for the call sites that import it.
-export { usableInChat };
+;
 
 const InputArea = ({
     onSendMessage,

@@ -6,13 +6,13 @@ import {
 } from './pipelineModel';
 import { findingText } from './StageStatus';
 import { useStageLabel } from './StageSwitcher';
-import type { Plan, PlanAck, StageKey } from './stagesApi';
+import type { Plan, PlanAck, StageKey } from '../../../../../api/stagesApi';
 
 /** The body of the deploy dialog: every section of a plan, in reading order. */
 
 export const ROW = 'px-3 py-2 rounded-lg text-sm bg-[var(--bg-secondary)] text-[var(--text-primary)]';
 
-export function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
+function Section({ id, title, children }: { id: string; title: string; children: React.ReactNode }) {
     return (
         <section className="space-y-1.5" data-testid={`deploy-section-${id}`}>
             <h4 className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)]">{title}</h4>

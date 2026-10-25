@@ -53,39 +53,32 @@
 // `checkAvailability` stays because it is the register's contract and the one
 // place where "unknown narrows" is enforced for whatever entry comes next.
 
-import { checkPermission } from '../../../../hooks/usePermissionCheck';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
 import { kindOf, type KindKey } from '../../../shared/kindColors';
 import { studioAppForKind, studioSectionLabel } from '../studioNav';
 import type { TranslateParams } from '../../../../hooks/useTranslation';
-import type { LessonUser, HasFeature } from '../../../onboarding/lessons.types';
-import type { AttentionFinding, RawAttentionRow, AttentionBody, AttentionVerdict, AttentionRun, AttentionCtx, AttentionGate, AttentionCheck, SourceLabel, AttentionItem } from './attentionChecks.types';
+import type { LessonUser, HasFeature } from '../../../../api/lessons.types';
+import type { AttentionFinding, RawAttentionRow, AttentionBody, AttentionVerdict, AttentionRun, AttentionCtx, AttentionCheck, AttentionItem } from './attentionChecks.types';
+import { request, RefusedError } from '../../../../api/mutate';
+import { SEVERITY_RANK, SOURCE_ORDER, SOURCE_LABELS, AVAILABILITY, EMPTY_ATTENTION } from './attentionChecks.constants';
+import { runCheck } from './attentionChecks.helpers';
+export { checkAvailability, runCheck } from './attentionChecks.helpers';
+export { SEVERITY_RANK, SOURCE_ORDER, SOURCE_LABELS, AVAILABILITY, EMPTY_ATTENTION } from './attentionChecks.constants';
 export type { AttentionFinding, AttentionRun, AttentionItem } from './attentionChecks.types';
 
 /** The same helper actionChecks.js keeps private; the Studio chunk gets its own. */
 async function getJson(path: string) {
-    const res = await authFetch(`${API_BASE}${path}`);
-    if (!res.ok) throw new Error(`GET ${path} → ${res.status}`);
+    let res: Response;
+    try {
+        res = await request(`${API_BASE}${path}`);
+    } catch (err) {
+        if (!(err instanceof RefusedError)) throw err;
+        throw new Error(`GET ${path} → ${err.status}`);
+    }
     return res.json();
 }
 
 /* ── Findings ────────────────────────────────────────────────────────────── */
-
-/**
- * Errors first, then warnings, then advice. Mirrors SEVERITY_RANK in
- * server/core/findings/finding.js, so the client and the server cannot
- * disagree about what is worse.
- */
-export const SEVERITY_RANK: Readonly<Record<string, number>> = Object.freeze({ error: 0, warning: 1, info: 2 });
-
-/**
- * The six source keys the endpoint answers with, in the artboard's order.
- * Used ONLY to break a tie between two findings of equal severity.
- */
-export const SOURCE_ORDER = Object.freeze([
-    'appValidation', 'agentNoKb', 'kbEmptyInUse',
-    'automationFailing', 'solutionBlocked', 'kbSourceError',
-]);
 
 const sourceRank = (source: string) => {
     const i = SOURCE_ORDER.indexOf(source);
@@ -114,28 +107,6 @@ export function sortFindings(findings: unknown) {
         return String(a?.message || '').localeCompare(String(b?.message || ''));
     });
 }
-
-/* ── Copy ────────────────────────────────────────────────────────────────────
- * One translated line per SOURCE — the fallback sentence for a row that
- * arrives without one of its own.
- *
- * Normally a row shows the producer's OWN sentence, which is what the
- * endpoint sends and what a Solution's "To check" list shows for the same
- * finding (Solutions/SolutionControlPanel.jsx renders `finding.message`
- * verbatim). That sentence has the object's name folded into it ("Handbook
- * has 2 sources that could not refresh…") and the aggregate sends no separate
- * title, so swapping in a translated generic line would cost the name — a
- * worse row, not a better one. These lines exist for the row that has no
- * sentence at all, which would otherwise be a finding nobody can see.
- * ────────────────────────────────────────────────────────────────────────── */
-export const SOURCE_LABELS: Readonly<Record<string, SourceLabel>> = Object.freeze({
-    appValidation: { kind: 'app', key: 'studio.attention.src_app_validation', fallback: 'App has validation problems' },
-    agentNoKb: { kind: 'agent', key: 'studio.attention.src_agent_no_kb', fallback: 'Agent has no knowledge base' },
-    kbEmptyInUse: { kind: 'kb', key: 'studio.attention.src_kb_empty_in_use', fallback: 'Knowledge base is used but holds no documents' },
-    automationFailing: { kind: 'automation', key: 'studio.attention.src_automation_failing', fallback: 'Automation failed several times in a row' },
-    solutionBlocked: { kind: 'solution', key: 'studio.attention.src_solution_blocked', fallback: 'Solution has blocking findings' },
-    kbSourceError: { kind: 'kb', key: 'studio.attention.src_kb_source_error', fallback: 'Knowledge source could not refresh' },
-});
 
 /**
  * Source keys → the NAMES of the sections they cover, for the line that says
@@ -279,97 +250,7 @@ export const ATTENTION_CHECKS: Record<string, AttentionCheck> = {
 
 /* ── Gates ───────────────────────────────────────────────────────────────── */
 
-/** The three answers a gate can give. */
-export const AVAILABILITY = Object.freeze({ READY: 'ready', GATED: 'gated', UNKNOWN: 'unknown' });
-
-/**
- * May this check run for this person? Pure, and unit-tested on its own.
- *
- *   'ready'    no gate, or every gate answered yes
- *   'gated'    a gate answered no — the source is not this person's to see.
- *              Not a gap: nothing was lost that they could act on
- *   'unknown'  the gate could not be ANSWERED (no user object, no hasFeature).
- *              The check does not run and the caller names a gap, because
- *              unknown narrows — running it would be failing open on rights,
- *              and calling it empty would be failing open on the truth
- *
- * The last one is where this deliberately differs from actionChecks.js, whose
- * feature gate passes when the caller handed over no `hasFeature`. That is
- * harmless on a lesson checklist and is not harmless here.
- */
-export function checkAvailability(check: { gate?: AttentionGate } | null | undefined, ctx: AttentionCtx = {}) {
-    const gate = check?.gate;
-    if (!gate) return AVAILABILITY.READY;
-    if (gate.permission) {
-        // checkPermission(null, …) answers false, which would make "nobody is
-        // signed in yet" indistinguishable from "you may not". Ask first.
-        if (!ctx.user || typeof ctx.user !== 'object') return AVAILABILITY.UNKNOWN;
-        if (!checkPermission(ctx.user, gate.permission)) return AVAILABILITY.GATED;
-    }
-    if (gate.feature) {
-        if (typeof ctx.hasFeature !== 'function') return AVAILABILITY.UNKNOWN;
-        if (!ctx.hasFeature(gate.feature)) return AVAILABILITY.GATED;
-    }
-    return AVAILABILITY.READY;
-}
-
 /* ── The runner ──────────────────────────────────────────────────────────── */
-
-/** A run with nothing in it — and no licence to say anything is fine. */
-export const EMPTY_ATTENTION: Readonly<AttentionRun> = Object.freeze({
-    findings: [], unavailable: [], capped: [], complete: false, checked: [], skipped: [], truncated: 0,
-});
-
-/**
- * Run ONE entry to a verdict. NEVER THROWS — the three answers in order:
- *
- *   the gate says no        → gated: no rows, no gap, and no request
- *   the gate cannot answer  → a gap (unknown narrows)
- *   fetch or evaluate threw → a gap named after the check
- *
- * The same three, in the same order, as runSource in
- * server/routes/studio/attention.js. A check that hit a gap INSIDE itself
- * still returns the rows it did find: dropping them would lose real problems.
- */
-export async function runCheck(id: string, check: AttentionCheck, ctx: AttentionCtx = {}) {
-    const availability = checkAvailability(check, ctx);
-    // Not this person's to see. No rows, no gap, and nothing asked of the
-    // network: a check that may not run must not be run "just to be sure".
-    if (availability === AVAILABILITY.GATED) {
-        // `skipped: [id]`, not `[]`. A gated entry that reports nothing at all
-        // vanishes without trace — no rows, no gap, no footnote — and
-        // runAttentionChecks would then hand the screen a clean bill of health
-        // for a check that never ran. The server pushes the same key onto
-        // `gated[]` for exactly this reason.
-        return { id, availability, findings: [], gaps: [], skipped: [id], truncated: 0, whole: true };
-    }
-    // The gate could not be answered. Also nothing asked — but this one IS a
-    // gap, because nobody looked.
-    if (availability === AVAILABILITY.UNKNOWN) {
-        return { id, availability, findings: [], gaps: [`${id}:gate`], skipped: [], truncated: 0, whole: false };
-    }
-    try {
-        const data = await check.fetchState(ctx);
-        const verdict: Partial<AttentionVerdict> = check.evaluate(data as AttentionBody | null | undefined) || {};
-        return {
-            id,
-            availability,
-            findings: Array.isArray(verdict.findings) ? verdict.findings : [],
-            gaps: (Array.isArray(verdict.unavailable) ? verdict.unavailable : []).map((label) => `${id}:${label}`),
-            capped: Array.isArray(verdict.capped) ? verdict.capped : [],
-            skipped: Array.isArray(verdict.skipped) ? verdict.skipped : [],
-            truncated: typeof verdict.truncated === 'number' && Number.isFinite(verdict.truncated) ? Math.max(0, verdict.truncated) : 0,
-            whole: verdict.complete === true,
-        };
-    } catch (err) {
-        // Includes the 401/404/500 case: an endpoint that did not answer has
-        // told us nothing, and nothing is not "nothing is wrong".
-        return {
-            id, availability: 'failed', error: (err as Error)?.message || 'fetch_failed',
-            findings: [], gaps: [id], capped: [], skipped: [], truncated: 0, whole: false,
-        };
-    }
-}
 
 /**
  * Run every check. Resolves to

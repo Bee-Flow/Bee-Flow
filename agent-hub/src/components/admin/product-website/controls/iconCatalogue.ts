@@ -98,4 +98,4 @@ export const ICON_CATALOGUE: IconCategory[] = [
 ];
 
 // Flat list — handy for validation and "does this name exist" checks.
-export const ALL_CATALOGUE_ICONS = ICON_CATALOGUE.flatMap(g => g.icons);
+const ALL_CATALOGUE_ICONS = ICON_CATALOGUE.flatMap(g => g.icons);

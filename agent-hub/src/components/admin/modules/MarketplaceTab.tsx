@@ -1,14 +1,9 @@
-import { useEffect, useEffectEvent, useMemo, useState } from 'react';
+import { SetStateAction, Dispatch, useEffect, useEffectEvent, useMemo, useState } from 'react';
 import { AlertTriangle, FileUp, Loader2, Plug, Search } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
 import { useEntitlements } from '../../licensing/EntitlementsContext';
-import {
-    useConnectHub,
-    useDisconnectHub,
-    useMarketplace,
-    useModulesHealth,
-    type MarketplaceModuleDetail,
-} from '../../../api/queries/modules';
+import { useConnectHub, useDisconnectHub, useMarketplace, useModulesHealth } from '../../../api/queries/modules';
+import { type MarketplaceModuleDetail } from '../../../api/queries/modules.types';
 import MarketplaceModuleCard from './MarketplaceModuleCard';
 import ConnectHubBanner from './ConnectHubBanner';
 import ConnectHubDialog from './ConnectHubDialog';
@@ -270,27 +265,7 @@ export default function MarketplaceTab({ flash, reloadEntitlements }: Marketplac
             {overlayNodes}
 
             {/* Connection status row */}
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
-                    <Plug className="w-3.5 h-3.5 [color:#10b981]" />
-                    {t('modules.connected_to', { hub: hubUrl || '' })}
-                </div>
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => setSideloadOpen(true)}
-                        className="text-xs font-medium hover:opacity-80 flex items-center gap-1 text-[var(--text-secondary)]"
-                        data-testid="sideload-open"
-                    >
-                        <FileUp className="w-3.5 h-3.5" /> {t('modules.sideload')}
-                    </button>
-                    <button
-                        onClick={() => { setDialogError(null); setDialog('disconnect'); }}
-                        className="text-xs font-medium hover:opacity-80 text-[var(--text-secondary)]"
-                    >
-                        {t('modules.disconnect')}
-                    </button>
-                </div>
-            </div>
+            <MarketplaceTabSection t={t} hubUrl={hubUrl} setSideloadOpen={setSideloadOpen} setDialogError={setDialogError} setDialog={setDialog} />
 
             {stale && (
                 <div className="text-xs px-3 py-2 rounded-lg flex items-center gap-2 [background:rgba(245,158,11,0.12)] [color:#f59e0b]!" data-testid="marketplace-stale">
@@ -352,4 +327,28 @@ export default function MarketplaceTab({ flash, reloadEntitlements }: Marketplac
             )}
         </div>
     );
+}
+
+function MarketplaceTabSection({ t, hubUrl, setSideloadOpen, setDialogError, setDialog }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; hubUrl: string | undefined; setSideloadOpen: Dispatch<SetStateAction<boolean>>; setDialogError: Dispatch<SetStateAction<string | null>>; setDialog: Dispatch<SetStateAction<"connect" | "disconnect" | null>>; }) {
+    return <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+            <Plug className="w-3.5 h-3.5 [color:#10b981]" />
+            {t('modules.connected_to', { hub: hubUrl || '' })}
+        </div>
+        <div className="flex items-center gap-3">
+            <button
+                onClick={() => setSideloadOpen(true)}
+                className="text-xs font-medium hover:opacity-80 flex items-center gap-1 text-[var(--text-secondary)]"
+                data-testid="sideload-open"
+            >
+                <FileUp className="w-3.5 h-3.5" /> {t('modules.sideload')}
+            </button>
+            <button
+                onClick={() => { setDialogError(null); setDialog('disconnect'); } }
+                className="text-xs font-medium hover:opacity-80 text-[var(--text-secondary)]"
+            >
+                {t('modules.disconnect')}
+            </button>
+        </div>
+    </div>;
 }

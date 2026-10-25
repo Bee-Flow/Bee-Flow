@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { resizeImageForUpload } from '../../../utils/imageResize';
 import { uniqueAssetPath } from '../webpageAssetPath';
-import type { ExtraContent, ExtraContents, ExtraFileMeta } from '../webpageEditorTypes';
-import { api, fetchExtraContent } from '../webpagesApi';
+import type { ExtraContent, ExtraContents, ExtraFileMeta } from '../../../api/webpageEditorTypes';
+import { api, fetchExtraContent } from '../../../api/webpagesApi';
 import type { PageGuards } from './usePageGuards';
 import { logger } from '../../../utils/logger';
 

@@ -19,7 +19,7 @@
 import { NOTIFICATION_DEFAULTS } from '../notificationDefaults';
 import type { Channel, Delivery, Recipient, Urgency } from '../notificationDefaults';
 
-export type { Channel, Delivery, Recipient, Urgency };
+export type { Channel,  Recipient, Urgency };
 
 export type NotificationEvent = 'onError' | 'onApproval' | 'onSuccess';
 

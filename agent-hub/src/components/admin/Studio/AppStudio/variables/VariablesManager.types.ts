@@ -2,7 +2,7 @@ import type { AppDefinition, DefinitionVariable } from '../inspector/appDefiniti
 import type { UsageSite } from '../state/variableUsage';
 
 /** Where a variable is used: the node to jump to, on the screen it sits in. */
-export interface VariableRevealTarget {
+interface VariableRevealTarget {
     nodeId: string;
     screenId?: string;
 }

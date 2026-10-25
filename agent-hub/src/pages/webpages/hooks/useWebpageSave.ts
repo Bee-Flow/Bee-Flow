@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { MutableRefObject } from 'react';
-import type { ExtraContents, PrimaryContent } from '../webpageEditorTypes';
+import type { ExtraContents, PrimaryContent } from '../../../api/webpageEditorTypes';
 import { errorMessage } from '../../../utils/caughtError';
 
 /** The /api/webpages client, as far as saving needs it. */
@@ -58,8 +58,8 @@ interface UseWebpageSaveOpts {
  * incoming content and drops the previous page's dirty markers (rule 6)
  * rather than writing them to the new page.
  */
-export const SAVE_DEBOUNCE_MS = 1500;
-export const CHAT_SAVE_DEBOUNCE_MS = 800;
+const SAVE_DEBOUNCE_MS = 1500;
+const CHAT_SAVE_DEBOUNCE_MS = 800;
 
 export default function useWebpageSave({
     webpageId,

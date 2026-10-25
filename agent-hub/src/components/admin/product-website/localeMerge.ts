@@ -18,7 +18,7 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
     return v !== null && typeof v === 'object' && !Array.isArray(v);
 }
 
-export function clone(v: CmsSiteDoc | { id?: string; blocks?: CmsBlock[]; }) {
+function clone(v: CmsSiteDoc | { id?: string; blocks?: CmsBlock[]; }) {
     return v === undefined ? v : JSON.parse(JSON.stringify(v));
 }
 
@@ -26,7 +26,7 @@ export function clone(v: CmsSiteDoc | { id?: string; blocks?: CmsBlock[]; }) {
 // object keys, non-text fields) is driven by BASE; arrays merge by index; a
 // non-empty string in the override wins; an empty/missing string falls back to
 // the source. See the server function for the authoritative spec.
-export function mergeLocaleContent(base: unknown, override: unknown): unknown {
+function mergeLocaleContent(base: unknown, override: unknown): unknown {
     if (override === undefined || override === null) return base;
     if (Array.isArray(base)) {
         if (!Array.isArray(override)) return base;

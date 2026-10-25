@@ -21,7 +21,7 @@ export const SWITCH_COLS: { col: SwitchCol; labelKey: string; fallback: string }
     { col: 'internal', labelKey: 'admin.shield_matrix_col_internal', fallback: 'Own server' },
 ];
 
-export interface RowActions {
+interface RowActions {
     onTest?: () => void;
     onEdit?: () => void;
     onRemove?: () => void;
@@ -129,7 +129,7 @@ function ActionsCell({ type, actions, t }: { type: CustomDataType; actions: RowA
     );
 }
 
-export function OwnDataRow({
+function OwnDataRow({
     type, switches, onSwitch, licensed, canBlockExternal, readOnly, error, expandable, actions, t,
 }: OwnDataRowProps) {
     const status = statusFor(type, { licensed });

@@ -12,16 +12,16 @@ import React, { useId, useState } from 'react';
 import useTranslation from '../../../../../hooks/useTranslation';
 import { useDateFormat } from '../../shared/formatDates';
 import StatusPill from '../../shared/StatusPill';
-import { LEGAL_BASES } from '../settings/settingsFields';
+import { LEGAL_BASES } from '../settings/settingsFields.helpers';
 
-export interface ProjectRecord {
+interface ProjectRecord {
     purpose?: string | null;
     lawful_basis?: string | null;
     retention_days?: number | null;
     confirmed_at?: string | null;
 }
 
-export interface RopaProjectRow {
+interface RopaProjectRow {
     project_id: string;
     name: string;
     kinds: string[];

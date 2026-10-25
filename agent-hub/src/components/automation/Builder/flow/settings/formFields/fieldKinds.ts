@@ -14,7 +14,7 @@ export const CHOICE_TYPES = ['select', 'radio', 'multiselect'];
 export const RULE_TYPES = ['number', 'date', 'text', 'textarea', 'email'];
 
 /** The rule keys a type of question may carry. */
-export const RULE_KEYS_BY_TYPE: Record<string, string[]> = {
+const RULE_KEYS_BY_TYPE: Record<string, string[]> = {
     number: ['min', 'max'],
     date: ['min', 'max'],
     text: ['minLength', 'maxLength', 'pattern', 'patternMessage'],
@@ -33,13 +33,13 @@ export const hasRules = (f: EditorField): boolean => (RULE_KEYS_BY_TYPE[f.type |
  * on a question after its type changed (a `min` on what is now a text box)
  * would be refused by the server, and would be invisible in the editor.
  */
-export function clearStaleRules(nextType: string): Record<string, undefined> {
+function clearStaleRules(nextType: string): Record<string, undefined> {
     const keep = new Set(RULE_KEYS_BY_TYPE[nextType] || []);
     return Object.fromEntries(ALL_RULE_KEYS.filter(k => !keep.has(k)).map(k => [k, undefined]));
 }
 
 /** The question types that can be asked once per item (server FIELDS_FROM_TYPES). */
-export const PER_ITEM_TYPES = ['text', 'textarea', 'number', 'date', 'select', 'radio', 'checkbox'];
+const PER_ITEM_TYPES = ['text', 'textarea', 'number', 'date', 'select', 'radio', 'checkbox'];
 /** The longest binding name such a question may have (server MAX_FIELDS_FROM_NAME_LEN). */
 export const PER_ITEM_NAME_MAX = 54;
 

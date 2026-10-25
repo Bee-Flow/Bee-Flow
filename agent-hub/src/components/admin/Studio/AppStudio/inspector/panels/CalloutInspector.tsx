@@ -13,7 +13,7 @@ interface CalloutInspectorProps {
     tone?: string;
 }
 
-export default function CalloutInspector({ node, definition, onCommit, disabled = false }: PanelProps<CalloutInspectorProps>) {
+function CalloutInspector({ node, definition, onCommit, disabled = false }: PanelProps<CalloutInspectorProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const TONE_LABELS: Record<string, string | undefined> = {

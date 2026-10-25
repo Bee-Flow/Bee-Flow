@@ -25,7 +25,7 @@ export interface ParsedPaste {
 }
 
 /** One cell that would not convert, named for the preview. */
-export interface ImportProblem {
+interface ImportProblem {
     column: string;
     fieldKey: string;
     message: string;

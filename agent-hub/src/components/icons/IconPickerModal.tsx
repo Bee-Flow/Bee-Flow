@@ -1,14 +1,14 @@
 import EmojiPicker from 'emoji-picker-react';
 import { Camera, Upload, X, Loader2, Image as ImageIcon, Smile } from 'lucide-react';
 import React, { useId, useState, useRef } from 'react';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
 import Modal from '../shared/Modal';
 import { toast } from '../shared/Toast';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { EmojiClickData } from 'emoji-picker-react';
 import type { CustomIcon } from '../../hooks/useIconPack';
 import { errorMessage } from '../../utils/caughtError';
-import { mutate, ApiError } from '../../api/mutate';
+import { mutate, ApiError, errorBody, RefusedError } from '../../api/mutate';
 
 interface IconPickerModalProps {
     isOpen: boolean;
@@ -21,7 +21,7 @@ interface IconPickerModalProps {
     nanoBananaSettings?: { image?: { model?: string } } | null;
 }
 
-export function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEmoji, currentCustom, onApply, nanoBananaSettings }: IconPickerModalProps) {
+function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEmoji, currentCustom, onApply, nanoBananaSettings }: IconPickerModalProps) {
     const { t } = useTranslation();
     const [tab, setTab] = useState<'emoji' | 'image' | 'nano'>('emoji');
     const [prompt, setPrompt] = useState('');
@@ -75,7 +75,9 @@ export function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEm
         if (!prompt.trim()) return;
         setGenerating(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/icons/generate`, {
+            let res: Response | undefined;
+            try {
+                res = await mutate(`${API_BASE}/api/icons/generate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -84,13 +86,15 @@ export function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEm
                     aspectRatio: '1:1',
                 }),
             });
-            if (res.ok) {
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const data = errorBody(err) ?? {};
+                toast.error(data.error || 'Generation failed. Make sure the Google API key is configured.');
+            }
+            if (res) {
                 const data = await res.json();
                 if (data.url) onApply({ type: 'image', value: data.url });
                 else toast.error('Generation returned no image.');
-            } else {
-                const data = await res.json().catch(() => ({}));
-                toast.error(data.error || 'Generation failed. Make sure the Google API key is configured.');
             }
         } catch (err) {
             console.error('Generate Error:', err);

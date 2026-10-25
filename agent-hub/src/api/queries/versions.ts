@@ -12,7 +12,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, apiClient } from '../client';
 
-export type VersionSource =
+type VersionSource =
     | 'created' | 'checkpoint' | 'autosave' | 'named' | 'ai' | 'restore' | 'pre_restore' | 'conflict' | 'import' | 'legacy';
 
 export interface VersionContributor {
@@ -73,7 +73,7 @@ export const VERSION_NAME_MAX = 80;
 const PAGE = 50;
 const enc = encodeURIComponent;
 
-export const versionKeys = {
+const versionKeys = {
     all: (baseUrl: string) => ['versions', baseUrl] as const,
     list: (baseUrl: string) => ['versions', baseUrl, 'list'] as const,
     one: (baseUrl: string, ref: string) => ['versions', baseUrl, 'one', ref] as const,
@@ -145,7 +145,7 @@ export function peopleOfPages(pages: ReadonlyArray<Pick<VersionsPage, 'people'>>
 }
 
 /** One version's metadata from the wire, with every field present. */
-export function toVersionMeta(raw: unknown): VersionMeta | null {
+function toVersionMeta(raw: unknown): VersionMeta | null {
     if (!raw || typeof raw !== 'object') return null;
     const r = raw as Record<string, unknown>;
     if (typeof r.id !== 'string') return null;

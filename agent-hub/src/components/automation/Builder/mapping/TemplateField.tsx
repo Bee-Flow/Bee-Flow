@@ -11,7 +11,8 @@ import useVariablePicker from './useVariablePicker';
 import VariablePicker from './VariablePicker';
 import { useVariablePickerContext } from './VariablePickerContext';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { walkPath, previewValue, getAutocompleteTokenFromPrefix, detectTemplate, formatPathForInsert } from '../../../../utils/bindingHelpers';
+import { walkPath, previewValue, getAutocompleteTokenFromPrefix, formatPathForInsert } from '../../../../utils/bindingHelpers';
+import { detectTemplate } from '../../../../utils/bindingHelpers.helpers';
 import { denseInputClass } from '../flow/settings/formStyles';
 
 /**

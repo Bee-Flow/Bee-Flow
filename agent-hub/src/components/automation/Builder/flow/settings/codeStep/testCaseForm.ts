@@ -23,9 +23,9 @@ export { ASSERTION_OPS };
 export type { AssertionOp };
 
 export const TYPE_NAMES = ['string', 'number', 'boolean', 'object', 'array', 'null'] as const;
-export type TypeName = (typeof TYPE_NAMES)[number];
+type TypeName = (typeof TYPE_NAMES)[number];
 export const COUNT_COMPARISONS = ['eq', 'gte', 'lte'] as const;
-export type CountComparison = (typeof COUNT_COMPARISONS)[number];
+type CountComparison = (typeof COUNT_COMPARISONS)[number];
 
 export const NAME_MAX = 80;
 
@@ -68,7 +68,7 @@ function randomSuffix(): string {
     return counter.toString(36);
 }
 /** Unique within a form; 1 to 40 characters as the server wants. */
-export function newAssertionId(): string {
+function newAssertionId(): string {
     counter += 1;
     return `a${Date.now().toString(36)}${counter.toString(36)}${randomSuffix()}`;
 }
@@ -227,7 +227,7 @@ export function defaultValues(params: CodeParam[], otherNames: string[] = []): R
 const asText = (v: unknown): string => (v == null ? '' : typeof v === 'string' ? v : JSON.stringify(v));
 
 /** The text boxes of a saved typed input. */
-export function valuesToText(values: Record<string, unknown> | null | undefined, names: string[]): Record<string, string> {
+function valuesToText(values: Record<string, unknown> | null | undefined, names: string[]): Record<string, string> {
     const out: Record<string, string> = {};
     for (const n of names) out[n] = '';
     for (const [k, v] of Object.entries(values || {})) out[k] = asText(v);

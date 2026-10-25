@@ -4,7 +4,7 @@ import type { BuilderHeaderProps } from './BuilderHeader';
 import type { StepRow } from './header/StepCluster';
 
 /** The header's status word and its badge colours. */
-export function headerStatus(isDraft: boolean, isActive: boolean) {
+function headerStatus(isDraft: boolean, isActive: boolean) {
     const statusLabel = isDraft ? 'Draft' : (isActive ? 'Live' : 'Paused');
     const statusBadgeClass = isDraft
         ? 'bg-[var(--bg-secondary)] text-[var(--text-secondary)]'
@@ -25,7 +25,7 @@ export function secondaryTriggerOptions(def: FlowDefinition | null | undefined) 
 }
 
 /** The persisted row as the header reads it: an automation or a Step. */
-export type HeaderRow = NonNullable<BuilderHeaderProps['automation']> & StepRow & {
+type HeaderRow = NonNullable<BuilderHeaderProps['automation']> & StepRow & {
     title?: string;
     triggerType?: string | null;
 };

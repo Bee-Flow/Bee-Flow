@@ -62,7 +62,7 @@ export const FIELD_STAGE: Record<string, string> = {
 };
 
 /** Pipeline order, so the chips read left to right the way the strip does. */
-export const STAGE_ORDER = ['overview', 'detection', 'owndata', 'processing', 'outbound'];
+const STAGE_ORDER = ['overview', 'detection', 'owndata', 'processing', 'outbound'];
 
 /**
  * The two category-list fields carry BOTH panes' switches: the built-in kinds
@@ -115,4 +115,3 @@ export function dirtyStages(current: { [x: string]: unknown; }|null, snapshot: {
         .map(id => ({ id, count: counts.get(id) }));
 }
 
-export default dirtyStages;

@@ -8,7 +8,7 @@ export interface UseSmartAddStepOptions {
     palette: { open: boolean; edgeSource?: string | null };
     scopedDef: any;
     catalog: any;
-    paletteLayers: any;
+    paletteLayers: { key: string }[];
 }
 
 /**

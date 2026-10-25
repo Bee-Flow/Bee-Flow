@@ -66,7 +66,7 @@ function roleAllows(nodeOrScreen: { visibleToRoles?: string[] } | null | undefin
     if (!Array.isArray(gate) || gate.length === 0) return true;
     return gate.includes(previewRole);
 }
-export function DefaultNodeWrapper({ node, className, style, children }: NodeWrapperProps) {
+function DefaultNodeWrapper({ node, className, style, children }: NodeWrapperProps) {
     return (
         <div data-node-id={node.id} data-app-type={node.type} className={className} style={style}>
             {children}

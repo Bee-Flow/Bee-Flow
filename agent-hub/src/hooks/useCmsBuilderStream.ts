@@ -38,14 +38,14 @@ const STREAM_DROP_MESSAGE = 'The connection to the AI builder dropped while it w
  * switch (the session is SITE-scoped and shared between admins).
  */
 /** A page or site the server already persisted; the panel folds it in. */
-export interface CmsDraftEvent {
+interface CmsDraftEvent {
     siteId?: string;
     kind?: 'site' | 'page';
     pageId?: string;
     [key: string]: unknown;
 }
 
-export interface CmsDoneInfo {
+interface CmsDoneInfo {
     siteId?: string;
     createdPageIds: string[];
     touchedPageIds: string[];
@@ -54,7 +54,7 @@ export interface CmsDoneInfo {
 
 /** code ∈ subscription_limit | rate_limited | model_unavailable |
  *  transient_upstream | budget_exhausted | internal; undefined on raw drops. */
-export type CmsErrorHandler = (message: string, code?: string) => void;
+type CmsErrorHandler = (message: string, code?: string) => void;
 
 export interface UseCmsBuilderStreamOptions {
     siteId?: string | null;
@@ -64,7 +64,7 @@ export interface UseCmsBuilderStreamOptions {
     onError?: CmsErrorHandler;
 }
 
-export interface CmsSendOptions {
+interface CmsSendOptions {
     modelTier?: string;
     context?: Record<string, unknown>;
 }

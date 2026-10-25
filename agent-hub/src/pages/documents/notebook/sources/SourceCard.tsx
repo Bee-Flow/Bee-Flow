@@ -8,7 +8,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
     AlertCircle, Check, ChevronDown, ChevronUp, Copy, Eye, GripVertical, Loader2, Pencil, RotateCw, Trash2, XCircle,
 } from 'lucide-react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '../../../../hooks/useTranslation';
 import { metaFor, stageText, type SourceRow } from './sourceMeta';
 
 export interface SourceCardProps {
@@ -88,28 +88,7 @@ export default function SourceCard({
             } ${dragging ? 'opacity-40' : ''}`}
         >
             {/* drag handle / select checkbox */}
-            <div className="shrink-0 flex flex-col items-center pt-0.5">
-                {selectable ? (
-                    <button
-                        type="button"
-                        role="checkbox"
-                        aria-checked={selected}
-                        aria-label={t('notebooks.select_source', 'Select {name}', { name: source.name })}
-                        onClick={(e) => { e.stopPropagation(); onToggleSelect?.(source.id); }}
-                        className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
-                            selected ? 'bg-[var(--accent-primary)] border-[var(--accent-primary)]' : 'border-[var(--border-default)]'
-                        }`}
-                    >
-                        {selected && <Check className="w-3 h-3 text-[var(--accent-primary-fg)]" aria-hidden="true" />}
-                    </button>
-                ) : (
-                    !readOnly && (
-                        <span className="cursor-grab opacity-0 group-hover:opacity-60 transition-opacity" title={t('notebooks.drag_to_reorder', 'Drag to reorder')}>
-                            <GripVertical className="w-3.5 h-3.5 text-[var(--text-tertiary)]" aria-hidden="true" />
-                        </span>
-                    )
-                )}
-            </div>
+            <SourceCardSection selectable={selectable} selected={selected} t={t} source={source} onToggleSelect={onToggleSelect} readOnly={readOnly} />
 
             {/* Type tile */}
             <div className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${meta.tone}`} aria-hidden="true">
@@ -276,4 +255,27 @@ export default function SourceCard({
             )}
         </div>
     );
+}
+
+function SourceCardSection({ selectable, selected, t, source, onToggleSelect, readOnly }: { selectable: boolean; selected: boolean; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; source: SourceRow; onToggleSelect: ((id: string) => void) | undefined; readOnly: boolean; }) {
+    return <div className="shrink-0 flex flex-col items-center pt-0.5">
+        {selectable ? (
+            <button
+                type="button"
+                role="checkbox"
+                aria-checked={selected}
+                aria-label={t('notebooks.select_source', 'Select {name}', { name: source.name })}
+                onClick={(e) => { e.stopPropagation(); onToggleSelect?.(source.id); } }
+                className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${selected ? 'bg-[var(--accent-primary)] border-[var(--accent-primary)]' : 'border-[var(--border-default)]'}`}
+            >
+                {selected && <Check className="w-3 h-3 text-[var(--accent-primary-fg)]" aria-hidden="true" />}
+            </button>
+        ) : (
+            !readOnly && (
+                <span className="cursor-grab opacity-0 group-hover:opacity-60 transition-opacity" title={t('notebooks.drag_to_reorder', 'Drag to reorder')}>
+                    <GripVertical className="w-3.5 h-3.5 text-[var(--text-tertiary)]" aria-hidden="true" />
+                </span>
+            )
+        )}
+    </div>;
 }

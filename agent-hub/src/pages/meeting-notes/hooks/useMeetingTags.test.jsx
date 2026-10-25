@@ -1,10 +1,10 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../lib/transcriptionsApi', () => ({ listTranscriptionTags: vi.fn() }));
+vi.mock('../../../api/transcriptionsApi', () => ({ listTranscriptionTags: vi.fn() }));
 
 import useMeetingTags from './useMeetingTags';
-import { listTranscriptionTags } from '../lib/transcriptionsApi';
+import { listTranscriptionTags } from '../../../api/transcriptionsApi';
 
 /**
  * The chip vocabulary. The server counts over every note the caller may read;

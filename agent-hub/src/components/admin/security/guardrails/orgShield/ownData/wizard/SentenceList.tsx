@@ -34,7 +34,7 @@ function Legend({ tested, t }: { tested: boolean; t: TranslateFn }) {
     );
 }
 
-export function SentenceList({
+function SentenceList({
     state, dispatch, t,
 }: { state: WizardState; dispatch: React.Dispatch<WizardAction>; t: TranslateFn }) {
     const { sentences } = state.tests;

@@ -59,13 +59,13 @@ export interface LockedRelation {
  */
 
 /** Column types two tables can be matched on. A date or a checkbox is not an identifier. */
-export const MATCHABLE = new Set(['text', 'number', 'select', 'richtext']);
+const MATCHABLE = new Set(['text', 'number', 'select', 'richtext']);
 
 export const INPUT = 'w-full px-3 py-2 rounded-lg text-sm border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1';
 export const INPUT_STYLE = { background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)', outlineColor: 'var(--accent-primary)' };
 export const BTN = 'px-3 py-2 rounded-[10px] text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2';
 export const CARD = { borderRadius: 12, background: 'var(--bg-primary)', border: '1px solid var(--border-default)' };
-export const SELECT = `${INPUT} appearance-none`;
+const SELECT = `${INPUT} appearance-none`;
 
 /** The refusals a link can answer with that are about the TABLE, not the source. */
 export function messageFor(t: TranslateFn, err: WizardError | null | undefined) {
@@ -105,7 +105,7 @@ export function StepStrip({ t, at, labels }: StepStripProps) {
 export function relKeyOf(r: Relation) {
     return `${r.from.refKey}:${r.localColumn.id}>${r.to.refKey}:${r.targetColumn.id}`;
 }
-export function sameRel(a: Relation, b: Relation) { return relKeyOf(a) === relKeyOf(b); }
+function sameRel(a: Relation, b: Relation) { return relKeyOf(a) === relKeyOf(b); }
 
 /**
  * Same title in two selected tables — offered, never assumed. `tables` are

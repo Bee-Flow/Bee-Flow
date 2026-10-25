@@ -26,9 +26,9 @@ import {
     detectRuntimes,
     connectRuntime,
     disconnectRuntime,
-} from './local/localRuntimeApi';
+} from '../../../../api/localRuntimeApi';
 import RuntimeRow from './local/RuntimeRow';
-import type { ConnectRequest, DetectResult, RuntimeInfo, RuntimeProvider, StarterModel } from './local/runtimeTypes';
+import type { ConnectRequest, DetectResult, RuntimeInfo, RuntimeProvider, StarterModel } from '../../../../api/runtimeTypes';
 import ProviderCardShell, { ProviderStatusPill } from './shared/ProviderCardShell';
 
 interface LocalModelsCardProps extends ProviderCardProps {

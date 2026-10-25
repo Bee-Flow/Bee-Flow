@@ -1,7 +1,7 @@
 import { ChevronDown, GraduationCap, CheckCircle2, Plus, X } from 'lucide-react';
 import React, { useState } from 'react';
 import BreachRecipients from './BreachRecipients';
-import { RELEVANCE_OPTIONS } from './settingsFields';
+import { RELEVANCE_OPTIONS } from './settingsFields.helpers';
 import { SPAN_CLASS, groupProgress, isVisible, sectionsOf, spanOf, type SettingsForm, type SettingsSection } from './settingsLayout';
 import { useTranslation, type TranslateParams } from '../../../../../hooks/useTranslation';
 import { FilterPill } from '../../../../shared/FilterPills';
@@ -12,7 +12,7 @@ import {
 import type { OrgUser } from '../accessAuditLabels';
 import type { SettingsFieldDef, SettingsGroupDef, Contact } from './settingsFields.types';
 import type { Translate, MemberValue, SettingsValue, SettingsChange, RelevanceSetter, FieldProps, SettingsGroupProps, GroupSectionProps, MemberFillProps, GroupFieldProps, RemoveButtonProps, ListEntry, StringListProps, ContactRow, ContactListProps, RelevanceFieldProps } from './SettingsGroup.types';
-export type { MemberValue, SettingsValue, SettingsChange } from './SettingsGroup.types';
+export type { MemberValue, SettingsValue,  } from './SettingsGroup.types';
 
 export default function SettingsGroup({
     group, form, saved = null, onChange, orgUsers = null, open = true, onToggle = null,

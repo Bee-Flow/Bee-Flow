@@ -2,7 +2,7 @@ import { X, ImageDown, FileDown, Link, Copy, Check, Share2, Award, Loader2 } fro
 import { useEffect, useState } from 'react';
 import Modal from '../../../components/shared/Modal';
 import { Eyebrow, PrimaryButton, SecondaryButton } from './bits';
-import { fetchAssetObjectUrl, downloadAsset } from '../../../components/onboarding/achievements';
+import { fetchAssetObjectUrl, downloadAsset } from '../../../api/achievements';
 import type { TranslateParams } from '../../../hooks/useTranslation';
 import { logger } from '../../../utils/logger';
 

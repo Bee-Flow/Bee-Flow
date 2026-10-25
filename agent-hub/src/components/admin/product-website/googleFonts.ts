@@ -76,7 +76,7 @@ const FONT_LIBRARY: FontEntry[] = [
 // `GOOGLE_FONTS` so existing imports keep working. New code should
 // prefer the alias `FONT_NAMES`.
 export const GOOGLE_FONTS = FONT_LIBRARY.map(f => f.name);
-export const FONT_NAMES   = GOOGLE_FONTS;
+const FONT_NAMES   = GOOGLE_FONTS;
 
 // Lookup: lowercase font name → registry entry. Used by the URL builder
 // to figure out which CDN to send each picked font to.
@@ -153,7 +153,7 @@ export function buildFontsHrefs(families: Iterable<string>|null|undefined, weigh
  * predates the multi-source rewrite. New code should call
  * `buildFontsHrefs` (plural) and render one <link> per returned entry.
  */
-export function buildFontsHref(families: Iterable<string>|null|undefined, weights: number[] = [400]) {
+function buildFontsHref(families: Iterable<string>|null|undefined, weights: number[] = [400]) {
     const hrefs = buildFontsHrefs(families, weights);
     return hrefs.find(h => h.source === 'google')?.href || '';
 }

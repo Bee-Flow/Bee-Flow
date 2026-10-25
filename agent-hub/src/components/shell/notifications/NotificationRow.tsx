@@ -6,7 +6,7 @@ import useTranslation from '../../../hooks/useTranslation';
 import MarkdownRenderer from '../../renderers/MarkdownRenderer';
 import type { AppNotification } from './useNotifications';
 
-export const CATEGORY_CONFIG = {
+const CATEGORY_CONFIG = {
     info: { icon: Info, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.08)', label: 'Info' },
     heads_up: { icon: AlertTriangle, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.08)', label: 'Heads Up' },
     urgent: { icon: AlertCircle, color: '#ef4444', bg: 'rgba(239, 68, 68, 0.08)', label: 'Urgent' },
@@ -27,7 +27,7 @@ const categoryOf = (n: AppNotification): Category =>
 
 // Both kinds carry their whole output in `message` and get the same result
 // modal; only the wording around it differs.
-export const RESULT_CATEGORIES = new Set(['ai_task', 'cowork']);
+const RESULT_CATEGORIES = new Set(['ai_task', 'cowork']);
 
 export const isResult = (n: AppNotification) => RESULT_CATEGORIES.has(n.category || '');
 

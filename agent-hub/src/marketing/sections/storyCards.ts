@@ -7,7 +7,7 @@
 import { useEffect, useState } from 'react';
 import { LOCALE_PREFIXES } from '../../utils/cmsPublicRouting';
 
-export interface StoryMetric {
+interface StoryMetric {
     stat: string;
     label: string;
 }

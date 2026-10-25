@@ -50,7 +50,7 @@ export const FILTER_KIND = Object.freeze({
 });
 
 // More distinct values than this and a dropdown is a worse control than a box.
-export const FACET_LIMIT = 40;
+const FACET_LIMIT = 40;
 
 const NUMBER_FORMATS = new Set(['number', 'currency', 'percent', 'progress']);
 const DATE_FORMATS = new Set(['date', 'datetime', 'relative']);

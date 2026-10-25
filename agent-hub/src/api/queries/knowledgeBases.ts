@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { authFetch, API_BASE } from '../../utils/helpers';
 import { ApiError } from '../client';
 
-export const knowledgeBasesKeys = {
+const knowledgeBasesKeys = {
     n8nIngestible: (kbInputMode: string) => ['knowledgeBases', 'n8nIngestible', kbInputMode] as const,
 };
 

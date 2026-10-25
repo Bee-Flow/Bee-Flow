@@ -96,4 +96,4 @@ function buildMessageFromSuggestion(s?: Suggestion | null) {
     ].join('\n');
 }
 
-export { REPEAT_OPTIONS, repeatLabel, timeAgo, formatNextRun, buildMessageFromSuggestion };
+export {    formatNextRun, buildMessageFromSuggestion };

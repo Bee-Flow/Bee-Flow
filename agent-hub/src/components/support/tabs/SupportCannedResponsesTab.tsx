@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Plus, Trash2, Save } from 'lucide-react';
-import { authFetch, API_BASE } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { CannedResponse } from '../SupportInboxPanel.types';
 import { errorMessage } from '../../../utils/caughtError';
-import { mutate, ApiError } from '../../../api/mutate';
+import { mutate, ApiError, request, RefusedError, errorBody } from '../../../api/mutate';
 
 const VARS = ['{{requester_name}}', '{{requester_email}}', '{{org_name}}', '{{thread_subject}}', '{{staff_first_name}}'];
 
@@ -17,8 +17,11 @@ export default function SupportCannedResponsesTab() {
 
     const load = useCallback(async () => {
         try {
-            const res = await authFetch(`${API_BASE}/api/support/canned`);
-            if (res.ok) setItems((await res.json()).responses || []);
+            const res = await request(`${API_BASE}/api/support/canned`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) setItems((await res.json()).responses || []);
         } catch (e) { setError(errorMessage(e)); }
     }, []);
     useEffect(() => { load(); }, [load]);
@@ -27,11 +30,16 @@ export default function SupportCannedResponsesTab() {
         if (!draft.title.trim() || !draft.body.trim()) return;
         setBusy(true); setError(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/support/canned`, {
+            try {
+                await mutate(`${API_BASE}/api/support/canned`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(draft),
             });
-            if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Create failed'); }
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const e = errorBody(err) ?? {};
+                throw new Error(e.error || 'Create failed');
+            }
             setDraft({ title: '', shortcut: '', body: '' });
             await load();
         } catch (e) { setError(errorMessage(e)); }

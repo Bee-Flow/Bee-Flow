@@ -47,5 +47,5 @@ import './RecordDetailInspector';
 // AI — needs the shared model-tier + knowledge-base pickers SpecPanel can't render.
 import './AiChatInspector';
 
-export { default as BindingField } from './BindingField';
-export { default as SpecPanel } from './SpecPanel';
+;
+;

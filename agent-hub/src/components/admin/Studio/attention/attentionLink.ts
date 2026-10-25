@@ -57,4 +57,3 @@ export function attentionPath(item?: AttentionLinkItem | null): string | null {
     return `studio/${segment}/${encodeURIComponent(id)}`;
 }
 
-export default attentionPath;

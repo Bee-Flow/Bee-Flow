@@ -37,10 +37,10 @@
 export const DELETE_BLOCK_KINDS: readonly string[] = Object.freeze(['solution', 'automation', 'chat', 'agent']);
 
 /** One row of the usage contract shared/UsedByTab renders. */
-export type UsageRow = Record<string, unknown>;
+type UsageRow = Record<string, unknown>;
 
 /** The 409 payload as far as this reader looks into it. */
-export interface BlockBody {
+interface BlockBody {
     status?: number;
     code?: string;
     body?: BlockBody;

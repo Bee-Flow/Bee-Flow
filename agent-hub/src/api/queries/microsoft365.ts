@@ -19,7 +19,7 @@ export interface Microsoft365Status {
 
 const BASE = '/api/integrations/microsoft';
 
-export const microsoft365Keys = {
+const microsoft365Keys = {
     status: ['microsoft365', 'status'] as const,
 };
 

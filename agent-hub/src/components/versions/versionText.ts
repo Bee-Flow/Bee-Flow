@@ -43,7 +43,7 @@ export function statsText(t: TFn, stats: VersionStats | null | undefined): strin
 }
 
 /** A contributor's name as the reader should see it. */
-export function contributorName(t: TFn, c: VersionContributor, people: PeopleNames, currentUserId?: string | null): string {
+function contributorName(t: TFn, c: VersionContributor, people: PeopleNames, currentUserId?: string | null): string {
     if (c.kind === 'ai' && !c.userId) return t('versions.who.ai', 'AI');
     if (c.userId && c.userId === currentUserId) return t('versions.who.you', 'You');
     const p = c.userId ? people[c.userId] : undefined;
@@ -134,7 +134,7 @@ const AUTOMATIC = new Set(['autosave', 'checkpoint']);
 const FOLD_MIN = 3;
 
 /** Is this a small automatic version, the kind a reader skims past? */
-export function isQuietVersion(v: VersionMeta): boolean {
+function isQuietVersion(v: VersionMeta): boolean {
     return AUTOMATIC.has(String(v.source)) && !v.name && !v.pinned && isMinorStats(v.stats);
 }
 

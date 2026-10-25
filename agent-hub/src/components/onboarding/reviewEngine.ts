@@ -18,7 +18,7 @@
 
 import { stepType, STEP_TYPES } from './stepTypes';
 import { GENERATED_PRACTICE_LESSON_IDS } from './generated/practiceLessonIds';
-import type { LessonDoc, LessonStep, PracticeItem, ProgressMap, StepOrigin, StepState } from './lessons.types';
+import type { LessonDoc, LessonStep, PracticeItem, ProgressMap, StepOrigin, StepState } from '../../api/lessons.types';
 
 export type GetLessonFn = (lessonId: string) => LessonDoc | null | undefined;
 
@@ -51,7 +51,7 @@ export interface ReviewSessionArgs {
 export const REVIEW_STALE_DAYS = 14;
 export const REVIEW_SESSION_SIZE = 6;
 // "First try" — at most this many attempts still counts as clean/mastered.
-export const MASTERY_MAX_ATTEMPTS = 1;
+const MASTERY_MAX_ATTEMPTS = 1;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -86,7 +86,7 @@ export function stepIsReviewable(step: LessonStep | null | undefined): boolean {
     return false;
 }
 
-export function reviewableSteps(lesson: LessonDoc | null | undefined): LessonStep[] {
+function reviewableSteps(lesson: LessonDoc | null | undefined): LessonStep[] {
     return (lesson?.steps || []).filter(stepIsReviewable);
 }
 

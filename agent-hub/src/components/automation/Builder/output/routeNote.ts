@@ -23,7 +23,7 @@ export type RouteNote =
     | { kind: 'split'; parts: RoutePart[]; total: number; fanOut: boolean }
     | { kind: 'flatten'; output: PlainObject };
 
-export interface RoutePart {
+interface RoutePart {
     name: string;
     count: number;
     /** The catch-all output (`default`), said as "Otherwise". */

@@ -391,4 +391,3 @@ export function normaliseRecentItems(sectionId: string, payload?: RecentPayload)
     return normaliseRecentRows(sectionId, source.pick ? source.pick(payload) : payload);
 }
 
-export default STUDIO_RECENT_SOURCES;

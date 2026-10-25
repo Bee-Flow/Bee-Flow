@@ -4,15 +4,14 @@
  * painted in literals on the web too, so a change there fails here.
  */
 
-import fs from 'node:fs';
 
-import { AGENT_HUB_SRC } from '@/shared/testing/webModule';
+import { webSourceText } from '@/shared/testing/webModule';
 
 import { BRAND_GRADIENT, CALLOUT, CARD_ACCENT, firstColor, HERO_GRADIENT, TEST_CATEGORY, TEST_SEVERITY, TEST_STATUS } from './richPalette';
 import { MERMAID_THEME } from '../mermaid/mermaidTheme';
 import { BADGE_COLORS, BUTTON_GRADIENTS, CHANGE_DOWN, CHANGE_UP, STAT_COLORS } from '../page/pagePalette';
 
-const web = (file: string) => fs.readFileSync(`${AGENT_HUB_SRC}/components/renderers/${file}`, 'utf8');
+const web = (file: string) => webSourceText(`components/renderers/${file}`);
 const RESEARCH = web('ResearchRenderer.tsx');
 const TEST_REPORT = web('TestReportRenderer.tsx');
 // The page renderer's per-kind renderers live in sibling files.

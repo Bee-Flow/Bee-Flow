@@ -10,14 +10,14 @@ import { logger } from '../../../utils/logger';
  * in embedded iframes, and the client name header.
  */
 
-export type CmsUploadPath = 'upload' | 'upload-clip';
+type CmsUploadPath = 'upload' | 'upload-clip';
 
 export interface CmsUploadResult {
     key: string;
     url: string;
 }
 
-export const CLIP_MAX_BYTES = 500 * 1024 * 1024;
+const CLIP_MAX_BYTES = 500 * 1024 * 1024;
 
 interface UploadOptions {
     path?: CmsUploadPath;

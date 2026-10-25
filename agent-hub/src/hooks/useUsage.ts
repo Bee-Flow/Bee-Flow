@@ -46,7 +46,7 @@ export interface UsageRow {
     [key: string]: unknown;
 }
 
-export type UsageKind = 'kb' | 'agent' | 'skill' | 'datatable' | 'webpage' | 'meeting';
+type UsageKind = 'kb' | 'agent' | 'skill' | 'datatable' | 'webpage' | 'meeting';
 
 /**
  * The API path segment per kind. Only kinds with a usage endpoint appear
@@ -101,7 +101,7 @@ export function normaliseUsage(body: unknown): UsageRow[] {
  * safe to press. Dropping this at the client boundary would put the server's
  * careful distinction back where it started, so it travels with the rows.
  */
-export function normaliseUnchecked(body: unknown): string[] {
+function normaliseUnchecked(body: unknown): string[] {
     if (body && typeof body === 'object' && Array.isArray((body as { unchecked?: unknown }).unchecked)) {
         return (body as { unchecked: unknown[] }).unchecked.filter((k): k is string => typeof k === 'string');
     }
@@ -110,7 +110,7 @@ export function normaliseUnchecked(body: unknown): string[] {
 
 /** A failed read, carrying datatablesApi's fields so a caller can tell a 403
  *  from a 404 if it wants to. */
-export interface UsageError extends Error {
+interface UsageError extends Error {
     status?: number;
     code?: string | null;
     body?: unknown;

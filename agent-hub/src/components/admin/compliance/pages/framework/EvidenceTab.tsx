@@ -5,7 +5,7 @@ import DataTable, { TableRow, TableCell, type TableColumn } from '../../../../sh
 import Pager from '../../../../shared/Pager';
 import EmptyState from '../../../../shared/EmptyState';
 import { TONES } from '../../../../shared/statusTone';
-import { API, fetchJson, asArray, asObject } from '../../data/api';
+import { API, fetchJson, asArray, asObject } from '../../../../../api/complianceApi';
 import { rowKeyOf, shortHash, subjectLabel, toMs, type CheckRecord } from './checkSort';
 import type { RowCheck } from './CheckRow';
 
@@ -43,12 +43,12 @@ interface EvidencePage {
  * not an empty one), empty, rows.
  */
 
-export const PAGE_SIZE = 25;
+const PAGE_SIZE = 25;
 
 const MONO = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' };
 
 /** `{ rows, total }` from the list body — an array, `{rows,total}`, `{items,count}` or junk. */
-export function parseEvidenceBody(body: unknown) {
+function parseEvidenceBody(body: unknown) {
     const arr = asArray(body);
     if (arr) return { rows: arr, total: null };
     const obj = asObject(body) as Record<string, unknown> | null;
@@ -59,7 +59,7 @@ export function parseEvidenceBody(body: unknown) {
     return { rows, total: total === undefined ? null : Number(total) };
 }
 
-export function evidenceUrl(regulation: string, { limit = PAGE_SIZE, offset = 0 } = {}) {
+function evidenceUrl(regulation: string, { limit = PAGE_SIZE, offset = 0 } = {}) {
     const q = new URLSearchParams({ regulation: String(regulation), limit: String(limit), offset: String(offset) });
     return `${API}/evidence?${q.toString()}`;
 }
@@ -74,7 +74,7 @@ function formatWhen(value: string | number | Date | null | undefined, locale: st
     }
 }
 
-export function evidenceColumns(t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string): TableColumn[] {
+function evidenceColumns(t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string): TableColumn[] {
     return [
         { id: 'captured_at', width: '150px', label: t('compliance.tbl_ev_col_when', 'Captured') },
         { id: 'check', width: '1fr', label: t('compliance.tbl_col_check', 'Check') },

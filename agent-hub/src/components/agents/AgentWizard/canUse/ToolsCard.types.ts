@@ -31,9 +31,9 @@ export interface ToolCardRow {
 }
 /** One automation grant, as `toolGrants.automationRows` builds it. */
 export type AutomationCardRow = ReturnType<typeof automationRows>[number];
-export type OpenChooser = (request: ReturnType<typeof chooserRequest>) => void;
-export type ChangeConfirm = (appId: string, next: string) => void;
-export type ChangeActAs = (appId: string, next: string) => void;
+type OpenChooser = (request: ReturnType<typeof chooserRequest>) => void;
+type ChangeConfirm = (appId: string, next: string) => void;
+type ChangeActAs = (appId: string, next: string) => void;
 
 export interface ToolsCardProps {
     t: TranslateFn;

@@ -36,7 +36,7 @@ export interface ParsedQuestionnaire {
     error: string | null;
 }
 
-export const SEVERITIES: readonly string[] = Object.freeze(['critical', 'high', 'medium', 'low']);
+const SEVERITIES: readonly string[] = Object.freeze(['critical', 'high', 'medium', 'low']);
 const HEADER_WORDS = /^(ref|reference|nr|no|id|item|title|question|vraag|omschrijving|description|severity|ernst|evidence|bewijs)$/i;
 const TRUTHY = /^(1|true|yes|y|ja|x|required|verplicht)$/i;
 

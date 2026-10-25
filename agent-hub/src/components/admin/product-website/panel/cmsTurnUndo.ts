@@ -9,7 +9,7 @@ import { cmsApi } from '../cmsApi';
 import { isRecord, revOf, storedRev, withRev } from './cmsRevisions';
 import type { CmsPageDoc, CmsPageIndexEntry, CmsSiteDoc } from './cmsPanelTypes';
 import type { BuilderTurn } from './useCmsPanelState';
-import { mutate, ApiError } from '../../../../api/mutate';
+import { mutate, ApiError, errorBody, RefusedError } from '../../../../api/mutate';
 
 /** The site as the server holds it right now: its chrome revision and its page index. */
 interface ServerSiteState {
@@ -72,13 +72,16 @@ export async function revertBuilderTurn(siteId: string, turn: BuilderTurn): Prom
     let siteRev: number | null = null;
     const serverSite = await fetchSiteState(siteId);
     if (turn.preSite) {
-        const res = await authFetch(cmsApi.site(siteId), {
+        let res: Response;
+        try {
+            res = await mutate(cmsApi.site(siteId), {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ site: withRev(turn.preSite, serverSite.rev) }),
         });
-        if (!res.ok) {
-            const d = await res.json().catch(() => ({}));
+        } catch (apiErr) {
+            if (!(apiErr instanceof RefusedError)) throw apiErr;
+            const d = errorBody(apiErr) ?? {};
             throw new Error(d.error || 'Failed to restore site');
         }
         siteRev = storedRev(await res.json().catch(() => null), 'site');
@@ -131,13 +134,16 @@ export async function revertBuilderTurn(siteId: string, turn: BuilderTurn): Prom
         if (!pre) continue;
         const rev = await fetchPageRev(siteId, id);
         if (rev === null) continue;
-        const res = await authFetch(cmsApi.page(siteId, id), {
+        let res: Response;
+        try {
+            res = await mutate(cmsApi.page(siteId, id), {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ page: withRev(pre, rev) }),
         });
-        if (!res.ok) {
-            const d = await res.json().catch(() => ({}));
+        } catch (err) {
+            if (!(err instanceof RefusedError)) throw err;
+            const d = errorBody(err) ?? {};
             throw new Error(d.error || 'Failed to restore page');
         }
         const stored = storedRev(await res.json().catch(() => null), 'page');

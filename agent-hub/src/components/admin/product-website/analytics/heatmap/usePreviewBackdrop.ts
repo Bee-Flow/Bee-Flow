@@ -23,7 +23,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { API_BASE } from '../../../../../utils/helpers';
 
-export const PREVIEW_SRC = '/__cms_preview__?preview=1';
+const PREVIEW_SRC = '/__cms_preview__?preview=1';
 
 // The frame has to render, lay out, load fonts and settle before its height and
 // block rectangles mean anything. These are deliberately generous: measuring
@@ -32,7 +32,7 @@ const SETTLE_MS = 400;
 const READY_TIMEOUT_MS = 8000;
 
 /** `/faq` → `faq`; the homepage has no slug on the public API. */
-export function pathToSlug(path: string) {
+function pathToSlug(path: string) {
     const p = String(path || '/').split('?')[0].split('#')[0];
     const seg = p.replace(/^\/+|\/+$/g, '');
     return seg;

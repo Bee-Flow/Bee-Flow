@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import scopedStorage from '../../../../../utils/scopedStorage';
 import { VariablePickerProvider } from '../../mapping/VariablePickerContext';
 import SettingsForm from '../SettingsForm';
-import { applyBindingRename, nameProblem } from './fieldDesigner';
+import { applyBindingRename, nameProblem } from './FieldRow';
 import { extractFormState, buildPatch } from './formState';
 
 /**

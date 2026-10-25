@@ -102,7 +102,7 @@ export interface AppScreen {
 }
 
 /** A role the definition mirrors from the data model, so `visibleToRoles` references resolve. */
-export interface MirroredRole {
+interface MirroredRole {
     id: string;
     name?: string;
 }

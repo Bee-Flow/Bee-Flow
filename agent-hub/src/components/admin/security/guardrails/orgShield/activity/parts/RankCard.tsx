@@ -20,7 +20,7 @@ import React from 'react';
 import { RankBar } from './miniCharts';
 import { Panel, PanelHead } from './Panel';
 
-export interface RankItem {
+interface RankItem {
     value: string;
     label: string;
     count: number;

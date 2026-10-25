@@ -35,13 +35,13 @@ interface MarqueeProps {
 const DRAG_THRESHOLD = 4; // px before a click becomes a marquee drag
 
 /** Axis-aligned rectangle overlap test (viewport coords). */
-export function rectsIntersect(a: RectBox | null | undefined, b: RectBox | null | undefined): boolean {
+function rectsIntersect(a: RectBox | null | undefined, b: RectBox | null | undefined): boolean {
     if (!a || !b) return false;
     return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
 }
 
 /** Normalize a drag (anchor → pointer) into a {left,top,right,bottom} rect. */
-export function marqueeRect(x0: number, y0: number, x1: number, y1: number): RectBox {
+function marqueeRect(x0: number, y0: number, x1: number, y1: number): RectBox {
     return {
         left: Math.min(x0, x1),
         top: Math.min(y0, y1),
@@ -54,7 +54,7 @@ export function marqueeRect(x0: number, y0: number, x1: number, y1: number): Rec
  * Pure selection resolver — the node ids whose rect intersects `rect`.
  * `nodeRects` is [{ id, rect }]; returned order follows input order.
  */
-export function idsInMarquee(nodeRects: Array<{ id: string | null; rect: RectBox }> | null | undefined, rect: RectBox): string[] {
+function idsInMarquee(nodeRects: Array<{ id: string | null; rect: RectBox }> | null | undefined, rect: RectBox): string[] {
     const out: string[] = [];
     for (const { id, rect: r } of nodeRects || []) {
         if (id && rectsIntersect(r, rect)) out.push(id);

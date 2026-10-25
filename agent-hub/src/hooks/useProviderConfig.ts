@@ -22,12 +22,12 @@
 // optimistically instead of refetching.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { API_BASE, authFetch } from '../utils/helpers';
-import { mutate, ApiError } from '../api/mutate';
+import { API_BASE } from '../utils/helpers';
+import { mutate, ApiError, request, RefusedError } from '../api/mutate';
 
 /** The raw GET /ai/config body: per-provider has-flags and plain settings.
  *  Each card reads its own keys, so the shape stays open. */
-export interface ProviderConfig {
+interface ProviderConfig {
     /** Always a string: the server falls back to 'europe-west4' (routes/ai/config/instanceConfig.js). */
     googleVertexLocation?: string;
     /** Always a string: the server answers `|| ''` (routes/ai/config/instanceConfig.js). */
@@ -43,7 +43,7 @@ export interface ProviderMessage {
 }
 
 /** What to say through `onMessage` for either outcome; omit to stay silent. */
-export interface MutationMessages {
+interface MutationMessages {
     success?: string;
     error?: string;
 }
@@ -81,8 +81,11 @@ export default function useProviderConfig(
 
     const refresh = useCallback(async () => {
         try {
-            const res = await authFetch(`${API_BASE}/ai/config`);
-            if (res.ok) {
+            const res = await request(`${API_BASE}/ai/config`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) {
                 const data: ProviderConfig = await res.json();
                 setConfig(data);
                 onLoadedRef.current?.(data);

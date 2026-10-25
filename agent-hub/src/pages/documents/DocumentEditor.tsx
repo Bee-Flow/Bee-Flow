@@ -35,7 +35,7 @@ function Centered({ children }: { children: React.ReactNode }) {
     return <div className="flex flex-col items-center justify-center h-full gap-3 p-6 text-center bg-[var(--bg-primary)]">{children}</div>;
 }
 
-export function EditorLoading() {
+function EditorLoading() {
     const { t } = useTranslation();
     return (
         <Centered>

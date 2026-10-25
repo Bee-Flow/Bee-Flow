@@ -61,7 +61,7 @@ export const HTTP_AUTH_TYPES: HttpAuthType[] = [
 ];
 
 export const HTTP_AUTH_TYPE_BY_ID: Record<string, HttpAuthType> = Object.fromEntries(HTTP_AUTH_TYPES.map(t => [t.id, t]));
-export const HTTP_AUTH_TYPE_BY_KIND: Record<string, HttpAuthType> = Object.fromEntries(HTTP_AUTH_TYPES.map(t => [t.kind, t]));
+const HTTP_AUTH_TYPE_BY_KIND: Record<string, HttpAuthType> = Object.fromEntries(HTTP_AUTH_TYPES.map(t => [t.kind, t]));
 
 /** Short human label for a connection's kind ("Bearer token", …). */
 export function httpKindName(kind: string): string {

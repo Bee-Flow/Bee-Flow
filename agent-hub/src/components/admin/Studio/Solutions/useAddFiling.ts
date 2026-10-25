@@ -17,9 +17,9 @@ import { projectErrorText } from '../../../projects/workspace/projectErrorText';
  * again as a free one.
  */
 
-export interface Failure { key: string; label: string; reason: string }
+interface Failure { key: string; label: string; reason: string }
 export interface Filed { key: string; label: string }
-export interface CameAlong extends Filed { why: string }
+interface CameAlong extends Filed { why: string }
 
 export interface AddOutcome {
     added: Filed[];

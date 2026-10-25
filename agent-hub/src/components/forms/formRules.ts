@@ -15,7 +15,7 @@ import type { FormFieldDef, FormValue, FormValues } from './PublicFormRenderer.t
 // Display-only field types: they show something instead of collecting it, so
 // they get no entry in `values` and are skipped by every check. Mirrors the
 // server's DISPLAY_FIELD_TYPES.
-export const DISPLAY_FIELD_TYPES: ReadonlyArray<string | undefined> = ['download', 'notebook', 'info'];
+const DISPLAY_FIELD_TYPES: ReadonlyArray<string | undefined> = ['download', 'notebook', 'info'];
 export const isDisplayField = (f: FormFieldDef | null | undefined): boolean => DISPLAY_FIELD_TYPES.includes(f?.type);
 
 /** What an unanswered question holds. Mirrors the server's emptyValue(). */

@@ -43,13 +43,13 @@ export interface TurnMessage {
 }
 
 /** The three tools that write a bridge grant (server/integrations/webpageBridgeTools.js). */
-export const GRANT_TOOL_RX = /^webpage_grant_[a-z]+$/;
+const GRANT_TOOL_RX = /^webpage_grant_[a-z]+$/;
 
 /**
  * Table tools that CONNECT something. `webpage_db_exec` creates or alters the
  * page's tables; the other two only read, and a read is not a link.
  */
-export const TABLE_LINK_TOOLS: readonly string[] = Object.freeze(['webpage_db_exec']);
+const TABLE_LINK_TOOLS: readonly string[] = Object.freeze(['webpage_db_exec']);
 
 /** Tools that never represent work worth showing (the model thinking aloud). */
 const HIDDEN_TOOLS = new Set(['sequentialthinking']);

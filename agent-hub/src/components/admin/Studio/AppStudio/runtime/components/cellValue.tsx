@@ -2,7 +2,8 @@ import { Check, Minus } from 'lucide-react';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import { makeValueFormatter } from '../chartPalette';
 import { hoverable } from '../hoverable';
-import { ROLE_COLORS, roleTextColor } from '../styleResolver';
+import { roleTextColor } from '../styleResolver';
+import { ROLE_COLORS } from '../styleResolver.constants';
 import CadThumb from './CadThumb';
 import { EM_DASH, displayValue } from '../uiBits';
 import type { GridColumn } from './grid/useGridColumns';
@@ -49,7 +50,7 @@ export function alignFor(col: GridColumn) {
 
 export const ALIGN_CLASS = { left: 'text-left', right: 'text-right', center: 'text-center' };
 
-export function isHttpUrl(value: unknown) {
+function isHttpUrl(value: unknown) {
     const v = String(value || '').trim().toLowerCase();
     return v.startsWith('https://') || v.startsWith('http://');
 }

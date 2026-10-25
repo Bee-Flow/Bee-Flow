@@ -7,7 +7,7 @@
 // falls back to bundled quiz items; grading shows a friendly retry note).
 
 import { API_BASE, authFetch } from '../../utils/helpers';
-import type { PracticeItem } from './lessons.types';
+import type { PracticeItem } from '../../api/lessons.types';
 
 export interface PracticeSet {
     practiceId: string;
@@ -21,7 +21,7 @@ export interface PracticeGrade {
     error: string | null;
 }
 
-export { PRACTICE_LESSON_IDS } from './reviewEngine';
+;
 
 // Generate fresh practice items for one or more practice-able lessons.
 // Resolves to { practiceId, items: [{ id, lessonId, question, choices }] } or

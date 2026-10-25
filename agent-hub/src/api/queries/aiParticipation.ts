@@ -37,7 +37,7 @@ export interface MyAiParticipation { autoJoinOnMyMessages: boolean }
 
 const BASE = '/api/ai-participation';
 
-export const aiParticipationKeys = {
+const aiParticipationKeys = {
     all: ['aiParticipation'] as const,
     org: (orgId: string) => ['aiParticipation', 'org', orgId] as const,
     me: ['aiParticipation', 'me'] as const,

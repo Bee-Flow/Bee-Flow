@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import useAudioRecorder from './useAudioRecorder';
-import * as api from '../lib/transcriptionsApi';
+import * as api from '../../../api/transcriptionsApi';
 import { generateAutoTitle } from '../lib/format';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import { errorCode } from '../../../utils/caughtError';

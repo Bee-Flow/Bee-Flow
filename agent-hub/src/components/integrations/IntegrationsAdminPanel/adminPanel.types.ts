@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 
-export interface AdminMessage {
+interface AdminMessage {
     type: 'success' | 'error';
     text: string;
 }
@@ -54,7 +54,7 @@ interface SearchModeSettings {
     detail_level?: string;
 }
 
-export interface AgentSearchDefaults {
+interface AgentSearchDefaults {
     mode: string;
     include_citations: boolean;
     web: Partial<SearchModeSettings & { fetch_top_n: number }>;

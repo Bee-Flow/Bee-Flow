@@ -1,28 +1,17 @@
 import { AlertTriangle, Database, Loader2 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { SetStateAction, Dispatch, useEffect, useMemo, useRef, useState } from 'react';
 import { validateRowFilterExpr } from './rowFilterSubset';
 import RowRuleBuilder from './RowRuleBuilder';
-import {
-    BASE_SCOPES,
-    buildRowRule,
-    compareSourceLabel,
-    conditionProblem,
-    describeAccessOutcome,
-    describeRowRule,
-    matchBaseScope,
-    parseRowRule,
-    resolveAccessEntry,
-    ruleFields,
-    scopeToEntry,
-} from './rowRuleModel';
+import { buildRowRule, compareSourceLabel, conditionProblem, describeAccessOutcome, describeRowRule, matchBaseScope, parseRowRule, resolveAccessEntry, ruleFields, scopeToEntry } from './rowRuleModel';
+import { BASE_SCOPES } from './rowRuleModel.constants';
 import useAppRoles from './useAppRoles';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '../../../../../hooks/useTranslation';
 import { insertAtCursor } from '../../../../../utils/bindingHelpers';
 import ConfirmDialog from '../../../../shared/ConfirmDialog';
 import EmptyState from '../../../../shared/EmptyState';
 import SegmentedControl from '../../../../shared/SegmentedControl';
 import toast from '../../../../shared/Toast';
-import type { DataModelTable } from './useAppRoles';
+import type { AppRole, DataModelTable } from './useAppRoles';
 import type { AccessEntry, RuleTable, RuleCondition } from './rowRuleModel.types';
 import type { RuleDraft, RowRuleEditorProps, RawRuleBoxProps } from './RowRuleEditor.types';
 
@@ -197,30 +186,7 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }: RowRuleEd
 
     return (
         <div data-testid="row-rule-editor" className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center gap-3">
-                <label className="flex items-center gap-2 text-sm">
-                    <span className="text-[var(--text-secondary)]">{t('studio_apps_edit.rule_editor.table', 'Table')}</span>
-                    <select
-                        value={tableId}
-                        onChange={(e) => requestSwitch({ tableId: e.target.value })}
-                        aria-label={t('studio_apps_edit.rule_editor.table', 'Table')}
-                        className="rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
-                    >
-                        {tables.map((t) => <option key={t.id} value={t.id}>{t.name || t.key}</option>)}
-                    </select>
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                    <span className="text-[var(--text-secondary)]">{t('studio_apps_edit.rule_editor.role', 'Role')}</span>
-                    <select
-                        value={roleKey}
-                        onChange={(e) => requestSwitch({ roleKey: e.target.value })}
-                        aria-label={t('studio_apps_edit.rule_editor.role', 'Role')}
-                        className="rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
-                    >
-                        {roles.map((r) => <option key={r.key} value={r.key}>{r.label || r.key}</option>)}
-                    </select>
-                </label>
-            </div>
+            <RowRuleEditorSection2 t={t} tableId={tableId} requestSwitch={requestSwitch} tables={tables} roleKey={roleKey} roles={roles} />
 
             <div className="flex flex-col gap-1.5">
                 <span className="text-xs font-medium text-[var(--text-secondary)]">
@@ -240,58 +206,7 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }: RowRuleEd
                 )}
             </div>
 
-            <div className="flex flex-col gap-2">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="text-xs font-medium text-[var(--text-secondary)]">
-                        {t('studio_apps_edit.rule_editor.then_keep', 'Then keep only the rows where…')}{' '}
-                        <span className="text-[var(--text-tertiary)]">{t('studio_apps_edit.rule_editor.optional', '(optional)')}</span>
-                    </span>
-                    {draft.mode === 'build' ? (
-                        <button
-                            type="button"
-                            onClick={() => setDraft((prev) => ({ ...prev, mode: 'raw', raw: draftToRule(prev) }))}
-                            disabled={noAccess}
-                            className="text-[11px] hover:underline disabled:opacity-50 text-[var(--accent-primary)]"
-                        >
-                            {t('studio_apps_edit.rule_editor.write_myself', 'Write it myself')}
-                        </button>
-                    ) : (
-                        <button
-                            type="button"
-                            onClick={() => setDraft(seedDraft(draft.raw, table))}
-                            disabled={noAccess || !canSwitchToBuilder}
-                            className="text-[11px] hover:underline disabled:opacity-50 text-[var(--accent-primary)]"
-                        >
-                            {t('studio_apps_edit.rule_editor.back_to_picker', 'Back to the picker')}
-                        </button>
-                    )}
-                </div>
-
-                {draft.mode === 'build' ? (
-                    <RowRuleBuilder
-                        table={table}
-                        join={draft.join}
-                        conditions={draft.conditions}
-                        disabled={noAccess}
-                        onChange={(next) => setDraft((prev) => ({ ...prev, ...next }))}
-                    />
-                ) : (
-                    <>
-                        {draft.raw.trim() && !canSwitchToBuilder ? (
-                            <span className="text-[11px] text-[var(--text-tertiary)]">
-                                {t('studio_apps_edit.rule_editor.stays_text', 'This rule does more than the picker can show, so it stays as text — it is saved exactly as written.')}
-                            </span>
-                        ) : null}
-                        <RawRuleBox
-                            table={table}
-                            value={draft.raw}
-                            disabled={noAccess}
-                            error={rule.trim() && !validation.ok ? validation.error : null}
-                            onChange={(raw) => setDraft((prev) => ({ ...prev, raw }))}
-                        />
-                    </>
-                )}
-            </div>
+            <RowRuleEditorSection t={t} draft={draft} setDraft={setDraft} noAccess={noAccess} table={table} canSwitchToBuilder={canSwitchToBuilder} rule={rule} validation={validation} />
 
             <div
                 data-testid="row-rule-outcome"
@@ -328,6 +243,86 @@ export default function RowRuleEditor({ appId, onDirtyChange = null }: RowRuleEd
             />
         </div>
     );
+}
+
+function RowRuleEditorSection2({ t, tableId, requestSwitch, tables, roleKey, roles }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; tableId: string; requestSwitch: (patch: { tableId: string; } | { roleKey: string; }) => void; tables: DataModelTable[]; roleKey: string; roles: AppRole[]; }) {
+    return <div className="flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2 text-sm">
+            <span className="text-[var(--text-secondary)]">{t('studio_apps_edit.rule_editor.table', 'Table')}</span>
+            <select
+                value={tableId}
+                onChange={(e) => requestSwitch({ tableId: e.target.value })}
+                aria-label={t('studio_apps_edit.rule_editor.table', 'Table')}
+                className="rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
+            >
+                {tables.map((t) => <option key={t.id} value={t.id}>{t.name || t.key}</option>)}
+            </select>
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+            <span className="text-[var(--text-secondary)]">{t('studio_apps_edit.rule_editor.role', 'Role')}</span>
+            <select
+                value={roleKey}
+                onChange={(e) => requestSwitch({ roleKey: e.target.value })}
+                aria-label={t('studio_apps_edit.rule_editor.role', 'Role')}
+                className="rounded border px-2 py-1 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] [background:var(--bg-primary)] [border-color:var(--border-default)] [color:var(--text-primary)]!"
+            >
+                {roles.map((r) => <option key={r.key} value={r.key}>{r.label || r.key}</option>)}
+            </select>
+        </label>
+    </div>;
+}
+
+function RowRuleEditorSection({ t, draft, setDraft, noAccess, table, canSwitchToBuilder, rule, validation }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; draft: RuleDraft; setDraft: Dispatch<SetStateAction<RuleDraft>>; noAccess: boolean; table: DataModelTable | null; canSwitchToBuilder: boolean; rule: string; validation: { ok: boolean; error: string | null | undefined; }; }) {
+    return <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <span className="text-xs font-medium text-[var(--text-secondary)]">
+                {t('studio_apps_edit.rule_editor.then_keep', 'Then keep only the rows where…')}{' '}
+                <span className="text-[var(--text-tertiary)]">{t('studio_apps_edit.rule_editor.optional', '(optional)')}</span>
+            </span>
+            {draft.mode === 'build' ? (
+                <button
+                    type="button"
+                    onClick={() => setDraft((prev) => ({ ...prev, mode: 'raw', raw: draftToRule(prev) }))}
+                    disabled={noAccess}
+                    className="text-[11px] hover:underline disabled:opacity-50 text-[var(--accent-primary)]"
+                >
+                    {t('studio_apps_edit.rule_editor.write_myself', 'Write it myself')}
+                </button>
+            ) : (
+                <button
+                    type="button"
+                    onClick={() => setDraft(seedDraft(draft.raw, table))}
+                    disabled={noAccess || !canSwitchToBuilder}
+                    className="text-[11px] hover:underline disabled:opacity-50 text-[var(--accent-primary)]"
+                >
+                    {t('studio_apps_edit.rule_editor.back_to_picker', 'Back to the picker')}
+                </button>
+            )}
+        </div>
+
+        {draft.mode === 'build' ? (
+            <RowRuleBuilder
+                table={table}
+                join={draft.join}
+                conditions={draft.conditions}
+                disabled={noAccess}
+                onChange={(next) => setDraft((prev) => ({ ...prev, ...next }))} />
+        ) : (
+            <>
+                {draft.raw.trim() && !canSwitchToBuilder ? (
+                    <span className="text-[11px] text-[var(--text-tertiary)]">
+                        {t('studio_apps_edit.rule_editor.stays_text', 'This rule does more than the picker can show, so it stays as text — it is saved exactly as written.')}
+                    </span>
+                ) : null}
+                <RawRuleBox
+                    table={table}
+                    value={draft.raw}
+                    disabled={noAccess}
+                    error={rule.trim() && !validation.ok ? validation.error : null}
+                    onChange={(raw) => setDraft((prev) => ({ ...prev, raw }))} />
+            </>
+        )}
+    </div>;
 }
 
 function RawRuleBox({ table, value, onChange, disabled, error }: RawRuleBoxProps) {

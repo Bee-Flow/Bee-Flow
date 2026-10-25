@@ -28,7 +28,7 @@ export interface NewPageInput {
 }
 
 /** The routing lint's verdict on a slug: blocking issues refuse the save, the rest only warn. */
-export interface SlugIssue {
+interface SlugIssue {
     kind: 'reserved' | 'duplicate' | 'unroutable';
     blocking: boolean;
     message: string;

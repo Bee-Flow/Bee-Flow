@@ -47,7 +47,7 @@ interface ReportsTabProps {
  *                   the ISO group is shown, because hiding a working export on
  *                   an unknown state is the worse mistake)
  */
-export const REPORT_GROUPS: readonly Readonly<ReportGroup>[] = Object.freeze([
+const REPORT_GROUPS: readonly Readonly<ReportGroup>[] = Object.freeze([
     Object.freeze({
         id: 'compliance',
         icon: Scale,

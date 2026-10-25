@@ -72,7 +72,7 @@ export const DOMAIN_FALLBACK: Record<AnnexDomainId, string> = {
 };
 
 /** The areas as short names, for a sentence. */
-export const AREA_FALLBACK: Record<AnnexDomainId, string> = {
+const AREA_FALLBACK: Record<AnnexDomainId, string> = {
     biometrics: 'biometrics',
     critical_infrastructure: 'critical infrastructure',
     education: 'education',
@@ -86,7 +86,7 @@ export const AREA_FALLBACK: Record<AnnexDomainId, string> = {
 };
 
 /** The Art. 5 practices as short names. */
-export const PRACTICE_FALLBACK: Record<string, string> = {
+const PRACTICE_FALLBACK: Record<string, string> = {
     subliminal_manipulation: 'manipulating people',
     exploiting_vulnerabilities: 'exploiting vulnerable people',
     social_scoring: 'social scoring',

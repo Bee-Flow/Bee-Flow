@@ -1,6 +1,6 @@
 import { AlertTriangle, Info, Search } from 'lucide-react';
 import React from 'react';
-import type { OperatedStage } from './pipeline/stagesApi';
+import type { OperatedStage } from '../../../../api/stagesApi';
 import SolutionCard from './SolutionCard';
 import SolutionCardSkeleton from './SolutionCardSkeleton';
 import { Strip, sectionNames } from './solutionNotices';

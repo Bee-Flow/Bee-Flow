@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { KeyboardEvent } from 'react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { Loader2, Plus, Trash2, AtSign, ChevronDown, ChevronRight, ShieldCheck } from 'lucide-react';
+import { request, RefusedError } from '../../../api/mutate';
 
 interface DomainMessage {
     type: 'success' | 'error';
@@ -35,8 +36,11 @@ export default function FreeEmailDomainsPanel() {
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await authFetch(`${API_BASE}/auth/free-email-domains`);
-            if (res.ok) {
+            const res = await request(`${API_BASE}/auth/free-email-domains`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) {
                 const data = await res.json();
                 setBuiltin(Array.isArray(data.builtin) ? data.builtin : []);
                 setExtra(Array.isArray(data.extra) ? data.extra : []);
@@ -168,32 +172,7 @@ export default function FreeEmailDomainsPanel() {
             </div>
 
             {/* Extra (editable) domains */}
-            <div className="[margin-bottom:1.5rem]">
-                <div className="[font-size:0.8rem] [font-weight:600] [text-transform:uppercase] [letter-spacing:0.03em] [color:var(--text-secondary,#6b7280)] [margin-bottom:0.5rem]">
-                    {t('admin.fed_custom', 'Custom domains')} ({extra.length})
-                </div>
-                {extra.length === 0 ? (
-                    <div className="[color:var(--text-secondary,#9ca3af)] [font-size:0.875rem] [font-style:italic]">
-                        {t('admin.fed_none', 'No custom domains added.')}
-                    </div>
-                ) : (
-                    <div className="[display:flex] [flex-wrap:wrap] [gap:0.5rem]">
-                        {extra.map(domain => (
-                            <span key={domain} className="[display:inline-flex] [align-items:center] [gap:0.4rem] [padding:0.35rem_0.6rem] [border-radius:999px] [font-size:0.85rem] [background:rgba(139,92,246,0.12)] [color:#7c3aed] [border:1px_solid_rgba(139,92,246,0.3)]">
-                                {domain}
-                                <button
-                                    onClick={() => removeDomain(domain)}
-                                    disabled={saving}
-                                    title={t('admin.fed_remove', 'Remove')}
-                                    className="[display:inline-flex] [border:none] [background:transparent] [cursor:pointer] [color:#7c3aed] [padding:0]"
-                                >
-                                    <Trash2 size={14} />
-                                </button>
-                            </span>
-                        ))}
-                    </div>
-                )}
-            </div>
+            <FreeEmailDomainsPanelSection t={t} extra={extra} removeDomain={removeDomain} saving={saving} />
 
             {/* Built-in (read-only) domains */}
             <div>
@@ -217,4 +196,33 @@ export default function FreeEmailDomainsPanel() {
             </div>
         </div>
     );
+}
+
+function FreeEmailDomainsPanelSection({ t, extra, removeDomain, saving }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; extra: string[]; removeDomain: (domain: string) => Promise<void>; saving: boolean; }) {
+    return <div className="[margin-bottom:1.5rem]">
+        <div className="[font-size:0.8rem] [font-weight:600] [text-transform:uppercase] [letter-spacing:0.03em] [color:var(--text-secondary,#6b7280)] [margin-bottom:0.5rem]">
+            {t('admin.fed_custom', 'Custom domains')} ({extra.length})
+        </div>
+        {extra.length === 0 ? (
+            <div className="[color:var(--text-secondary,#9ca3af)] [font-size:0.875rem] [font-style:italic]">
+                {t('admin.fed_none', 'No custom domains added.')}
+            </div>
+        ) : (
+            <div className="[display:flex] [flex-wrap:wrap] [gap:0.5rem]">
+                {extra.map(domain => (
+                    <span key={domain} className="[display:inline-flex] [align-items:center] [gap:0.4rem] [padding:0.35rem_0.6rem] [border-radius:999px] [font-size:0.85rem] [background:rgba(139,92,246,0.12)] [color:#7c3aed] [border:1px_solid_rgba(139,92,246,0.3)]">
+                        {domain}
+                        <button
+                            onClick={() => removeDomain(domain)}
+                            disabled={saving}
+                            title={t('admin.fed_remove', 'Remove')}
+                            className="[display:inline-flex] [border:none] [background:transparent] [cursor:pointer] [color:#7c3aed] [padding:0]"
+                        >
+                            <Trash2 size={14} />
+                        </button>
+                    </span>
+                ))}
+            </div>
+        )}
+    </div>;
 }

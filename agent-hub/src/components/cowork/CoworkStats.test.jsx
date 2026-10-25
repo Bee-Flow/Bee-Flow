@@ -17,7 +17,7 @@ import CoworkStats from './CoworkStats';
  */
 
 const api = vi.hoisted(() => ({ getCoworkStats: vi.fn() }));
-vi.mock('./coworkApi', () => api);
+vi.mock('../../api/coworkApi', () => api);
 
 const stats = (over = {}) => ({
     total: 42,

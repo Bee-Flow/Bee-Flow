@@ -267,8 +267,7 @@ export function rowKey(item: RowItem | string | number | boolean | null | undefi
 }
 
 /** Convenience: the current shared expression-scope root. */
-export function useScope() {
+function useScope() {
     return useRuntime().scope || DEFAULT_RUNTIME.scope;
 }
 
-export default RuntimeContext;

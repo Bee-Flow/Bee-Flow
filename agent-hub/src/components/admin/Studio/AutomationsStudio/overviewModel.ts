@@ -80,10 +80,10 @@ export interface OverviewLane {
 export const VIEWS = Object.freeze(['list', 'cards', 'board']);
 export const SORTS = Object.freeze(['updated', 'name', 'lastRun', 'nextRun', 'status']);
 export const GROUPS = Object.freeze(['status', 'trigger', 'folder']);
-export const STATE_FILTERS = Object.freeze(['all', 'live', 'paused', 'draft', 'failing', 'running']);
+const STATE_FILTERS = Object.freeze(['all', 'live', 'paused', 'draft', 'failing', 'running']);
 export const TRIGGER_KINDS = Object.freeze(['schedule', 'manual', 'webhook', 'app_event']);
 
-export const TRIGGER_LABEL: Readonly<Record<string, string>> = Object.freeze({
+const TRIGGER_LABEL: Readonly<Record<string, string>> = Object.freeze({
     schedule: 'Schedule',
     manual: 'Manual',
     webhook: 'Webhook',
@@ -91,7 +91,7 @@ export const TRIGGER_LABEL: Readonly<Record<string, string>> = Object.freeze({
     other: 'Other',
 });
 
-export const STATUS_LABEL: Readonly<Record<string, string>> = Object.freeze({
+const STATUS_LABEL: Readonly<Record<string, string>> = Object.freeze({
     live: 'Live',
     paused: 'Paused',
     draft: 'Draft',
@@ -191,7 +191,7 @@ function visibleStepsOf(a: AutomationRecord | null | undefined) {
     return steps.filter(s => s && s.type && stepFamily(s.type) && stepFamily(s.type) !== 'trigger');
 }
 
-export const STRIP_MAX_STEPS = 5;
+const STRIP_MAX_STEPS = 5;
 
 /**
  * What the step strip draws: the trigger first, then the first STRIP_MAX_STEPS
@@ -242,7 +242,7 @@ export function isFailing(a: AutomationRecord | null | undefined) {
     return a?.lastStatus === 'error' || a?.lastStatus === 'failed';
 }
 
-export function isRunning(a: AutomationRecord | null | undefined, activeRunIds: RunIdSet | null | undefined) {
+function isRunning(a: AutomationRecord | null | undefined, activeRunIds: RunIdSet | null | undefined) {
     return a?.lastStatus === 'running' || !!activeRunIds?.has?.(a?.id);
 }
 

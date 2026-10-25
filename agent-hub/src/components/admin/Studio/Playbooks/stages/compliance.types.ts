@@ -1,7 +1,7 @@
 /** The shapes of the compliance phase's artifacts that the finding rows read. */
 
 /** The thing a finding is about. */
-export interface FindingTarget {
+interface FindingTarget {
     kind?: string;
     id?: string | number;
     name?: string;

@@ -1,9 +1,10 @@
 import { AlertTriangle, Search, ShieldAlert } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { SetStateAction, Dispatch, useCallback, useState } from 'react';
 import StateChip from './IssueStateChip';
 import { authFetch, API_BASE } from '../../utils/helpers';
-import { useTranslation } from '../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
+import { request, errorBody, RefusedError, mutate } from '../../api/mutate';
 
 interface IssueSearchResult {
     id: string;
@@ -60,9 +61,17 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }: At
         setError(null);
         try {
             const params = new URLSearchParams({ q, threadId: threadId || '' });
-            const res = await authFetch(`${API_BASE}/api/support/youtrack/search?${params}`);
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/api/support/youtrack/search?${params}`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const d = errorBody(err) ?? {};
+                setError(d.error || 'Search failed');
+                setResults([]);
+                return;
+            }
             const d = await res.json().catch(() => ({}));
-            if (!res.ok) { setError(d.error || 'Search failed'); setResults([]); return; }
             setResults(d.issues || []);
         } catch (e) {
             setError(errorMessage(e));
@@ -83,13 +92,20 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }: At
         setAttaching(true);
         setError(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/support/threads/${threadId}/issues`, {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/api/support/threads/${threadId}/issues`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ issueIds }),
             });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const d = errorBody(err) ?? {};
+                setError(d.error || 'Could not attach');
+                return;
+            }
             const d = await res.json().catch(() => ({}));
-            if (!res.ok) { setError(d.error || 'Could not attach'); return; }
             setPicked(new Set());
             setQuery('');
             setResults([]);
@@ -135,25 +151,7 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }: At
 
     return (
         <div className="mt-2 rounded border p-2 border-[var(--border-default)] bg-[var(--bg-secondary)]">
-            <div className="flex items-center gap-1.5">
-                <Search className="w-3.5 h-3.5 shrink-0 text-[var(--text-muted)]" />
-                <input
-                    autoFocus
-                    value={query}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
-                    onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && search()}
-                    placeholder={t('support.attach_issue_search_issues_or_paste_an_issue_number', 'Search issues, or paste an issue number like BFSF-441')}
-                    className="flex-1 px-2 py-1 rounded border text-xs"
-                    style={inputStyle}
-                />
-                <button
-                    onClick={search}
-                    disabled={searching}
-                    className="px-2 py-1 rounded text-xs border disabled:opacity-50 border-[var(--border-default)] text-[var(--text-secondary)]"
-                >
-                    {searching ? 'Searching…' : 'Search'}
-                </button>
-            </div>
+            <AttachIssuePanelSection query={query} setQuery={setQuery} search={search} t={t} inputStyle={inputStyle} searching={searching} />
 
             {error && (
                 <div className="text-xs mt-1.5 flex items-start gap-1.5 [color:#dc2626]!">
@@ -192,23 +190,7 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }: At
                 </div>
             )}
 
-            <div className="flex items-center justify-between gap-2 mt-2">
-                <button
-                    onClick={() => { setCreating((c: boolean) => !c); setBlocked(null); }}
-                    className="text-xs hover:underline text-[var(--text-secondary)]"
-                >
-                    {creating ? 'Back to search' : 'Nothing matches — create a new issue'}
-                </button>
-                {picked.size > 0 && (
-                    <button
-                        onClick={attach}
-                        disabled={attaching}
-                        className="px-2.5 py-1 rounded text-xs font-medium disabled:opacity-60 [background:var(--accent-primary)] [color:white]!"
-                    >
-                        {attaching ? 'Attaching…' : `Attach ${picked.size} issue${picked.size === 1 ? '' : 's'}`}
-                    </button>
-                )}
-            </div>
+            <AttachIssuePanelSection2 setCreating={setCreating} setBlocked={setBlocked} creating={creating} picked={picked} attach={attach} attaching={attaching} />
 
             {creating && (
                 <div className="mt-2 pt-2 border-t flex flex-col gap-1.5 border-[var(--border-default)]">
@@ -254,4 +236,45 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }: At
             )}
         </div>
     );
+}
+
+function AttachIssuePanelSection2({ setCreating, setBlocked, creating, picked, attach, attaching }: { setCreating: Dispatch<SetStateAction<boolean>>; setBlocked: Dispatch<SetStateAction<EgressRefusal | null>>; creating: boolean; picked: Set<string>; attach: () => Promise<void>; attaching: boolean; }) {
+    return <div className="flex items-center justify-between gap-2 mt-2">
+        <button
+            onClick={() => { setCreating((c: boolean) => !c); setBlocked(null); } }
+            className="text-xs hover:underline text-[var(--text-secondary)]"
+        >
+            {creating ? 'Back to search' : 'Nothing matches — create a new issue'}
+        </button>
+        {picked.size > 0 && (
+            <button
+                onClick={attach}
+                disabled={attaching}
+                className="px-2.5 py-1 rounded text-xs font-medium disabled:opacity-60 [background:var(--accent-primary)] [color:white]!"
+            >
+                {attaching ? 'Attaching…' : `Attach ${picked.size} issue${picked.size === 1 ? '' : 's'}`}
+            </button>
+        )}
+    </div>;
+}
+
+function AttachIssuePanelSection({ query, setQuery, search, t, inputStyle, searching }: { query: string; setQuery: Dispatch<SetStateAction<string>>; search: () => Promise<void>; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; inputStyle: { background: string; borderColor: string; color: string; }; searching: boolean; }) {
+    return <div className="flex items-center gap-1.5">
+        <Search className="w-3.5 h-3.5 shrink-0 text-[var(--text-muted)]" />
+        <input
+            autoFocus
+            value={query}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
+            onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && search()}
+            placeholder={t('support.attach_issue_search_issues_or_paste_an_issue_number', 'Search issues, or paste an issue number like BFSF-441')}
+            className="flex-1 px-2 py-1 rounded border text-xs"
+            style={inputStyle} />
+        <button
+            onClick={search}
+            disabled={searching}
+            className="px-2 py-1 rounded text-xs border disabled:opacity-50 border-[var(--border-default)] text-[var(--text-secondary)]"
+        >
+            {searching ? 'Searching…' : 'Search'}
+        </button>
+    </div>;
 }

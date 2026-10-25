@@ -16,7 +16,7 @@
 import { ClipboardList, Cloud, FileSpreadsheet } from 'lucide-react';
 import { tableIconOf } from './datatableDisplay';
 
-export const SOURCE_GLYPHS = Object.freeze({
+const SOURCE_GLYPHS = Object.freeze({
     nextcloud: Cloud,
     spreadsheet: FileSpreadsheet,
     form: ClipboardList,

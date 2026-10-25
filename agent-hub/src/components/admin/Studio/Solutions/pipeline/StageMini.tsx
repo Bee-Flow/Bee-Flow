@@ -1,6 +1,6 @@
 import React from 'react';
 import { STAGE_DOT, useStageLabel } from './StageSwitcher';
-import type { StageName } from './stagesApi';
+import type { StageName } from '../../../../../api/stagesApi';
 
 /**
  * A three-dot glyph of the pipeline for a Solution card: Dev, UAT, PRD with a
@@ -8,7 +8,7 @@ import type { StageName } from './stagesApi';
  * or fails wears a warning or error ring instead. The text label is always
  * there for assistive tech.
  */
-export interface StageMiniEntry {
+interface StageMiniEntry {
     name: StageName;
     release?: string | null;
     state?: 'ok' | 'waiting' | 'failing' | 'none';

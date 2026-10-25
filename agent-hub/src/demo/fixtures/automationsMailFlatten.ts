@@ -30,8 +30,8 @@ import type { DemoRun } from './automationsRuns';
 type Obj = Record<string, unknown>;
 type StepResult = { stepType: string; input: unknown; output: unknown };
 
-export const MAIL_FLATTEN_AUTOMATION_ID = 'auto_demo_mail_flatten';
-export const MAIL_FLATTEN_AUTOMATION_TITLE = 'Fabrikam invoices as one table';
+const MAIL_FLATTEN_AUTOMATION_ID = 'auto_demo_mail_flatten';
+const MAIL_FLATTEN_AUTOMATION_TITLE = 'Fabrikam invoices as one table';
 
 const FABRIKAM = 'Fabrikam Facturen <facturen@fabrikam.example>';
 const CONTOSO = 'Contoso Billing <billing@contoso.example>';
@@ -184,8 +184,8 @@ const recordedRun = ({ id, automationId, steps, step, stepId, count, at }: RunSe
 
 // ── Second automation: Contoso orders as lines (spec J2) ─────────────────
 
-export const ORDERS_FLATTEN_AUTOMATION_ID = 'auto_demo_orders_flatten';
-export const ORDERS_FLATTEN_AUTOMATION_TITLE = 'Contoso orders as lines';
+const ORDERS_FLATTEN_AUTOMATION_ID = 'auto_demo_orders_flatten';
+const ORDERS_FLATTEN_AUTOMATION_TITLE = 'Contoso orders as lines';
 export const ORDERS_FLATTEN_ROUTE = 'steps.of_http.output.body.orders[*].lines';
 
 const line = (id: string, sku: string, description: string, quantity: number, price: number) => ({ id, sku, description, quantity, price, status: 'open' });

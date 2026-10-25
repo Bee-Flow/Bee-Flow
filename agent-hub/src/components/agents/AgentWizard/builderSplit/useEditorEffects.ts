@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { RefObject } from 'react';
 import type { ChatMessage } from '../agentEditor.types';
-import type { EditorSnapshot } from './agentSaveTypes';
+import type { EditorSnapshot } from '../../../../api/agentSaveTypes';
 import type { EditorAgent, EditorPlan } from './editorTypes';
 import { pickAgentAvatar, DEFAULT_AGENT_EMOJI } from '../../../../utils/agentAvatar';
 import { logger } from '../../../../utils/logger';

@@ -3,7 +3,7 @@ import type { OrgGroup } from '../../api/queries/orgGroups';
 import type { RetryModelTiers } from '../../components/chat/MessageItem/MessageActionsRow';
 import type useWebpageChat from './hooks/useWebpageChat';
 import type { WebpageExtraFiles, useWebpageFileActions } from './hooks/useWebpageExtraFiles';
-import type { ContentSetter, PrimaryContent, WebpageRow } from './webpageEditorTypes';
+import type { ContentSetter, PrimaryContent, WebpageRow } from '../../api/webpageEditorTypes';
 import WebpageDataTab from './WebpageDataTab';
 import WebpageHistoryTab from './WebpageHistoryTab';
 import WebpageIDE from './WebpageIDE';

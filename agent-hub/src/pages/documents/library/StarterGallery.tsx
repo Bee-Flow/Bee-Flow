@@ -9,7 +9,7 @@ import useTranslation, { readingLocale } from '../../../hooks/useTranslation';
 import { useStarters, type Starter } from '../documentQueries';
 
 /** One of the reader's own templates, copied into a new document. */
-export interface OwnTemplate { id: string; name: string; docType?: string }
+interface OwnTemplate { id: string; name: string; docType?: string }
 
 export type NewChoice = { type: 'page' } | { type: 'notebook' } | { type: 'spreadsheet' } | { type: 'template'; template: OwnTemplate } | { type: 'designed'; starter: Starter | null } | { type: 'deck'; starter: Starter | null };
 

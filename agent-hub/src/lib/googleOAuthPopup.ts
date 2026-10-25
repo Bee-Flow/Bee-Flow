@@ -107,4 +107,3 @@ export async function openGoogleOAuthPopup({ authFetch, apiBase, onDone, onOpene
     });
 }
 
-export default openGoogleOAuthPopup;

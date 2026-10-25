@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { useCodeAnalysis, type CodeAnalysis } from '../../../../../../api/queries/automation/codeStep';
 import useDebouncedValue from '../../../../../../hooks/useDebouncedValue';
 
-export const ANALYZE_DEBOUNCE_MS = 400;
+const ANALYZE_DEBOUNCE_MS = 400;
 
 export interface StepCodeAnalysis {
     analysis: CodeAnalysis | null;

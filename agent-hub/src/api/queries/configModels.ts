@@ -8,7 +8,7 @@ import { authFetch, API_BASE } from '../../utils/helpers';
 import { ApiError } from '../client';
 import type { ModelTierMap } from './modelTiers';
 
-export const configModelsKeys = {
+const configModelsKeys = {
     configTiersForUser: ['configModels', 'configTiersForUser'] as const,
     configChatModels: ['configModels', 'configChatModels'] as const,
 };

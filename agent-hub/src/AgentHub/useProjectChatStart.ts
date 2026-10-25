@@ -148,7 +148,7 @@ function useShareNewChat(t: TranslateFn) {
 }
 
 /** The new, empty chat this start asked for is on screen, in its project. */
-export function isChatReady(start: PendingStart, view: ChatViewState): boolean {
+function isChatReady(start: PendingStart, view: ChatViewState): boolean {
     if (view.isLoading || view.activeProjectId !== start.projectId) return false;
     return start.type === 'direct'
         ? view.directChatMode && !view.selectedAgentId && !view.directConversationId

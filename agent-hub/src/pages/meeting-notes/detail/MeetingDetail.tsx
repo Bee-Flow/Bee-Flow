@@ -23,7 +23,7 @@ import useTranslation from '../../../hooks/useTranslation';
 import useUsage from '../../../hooks/useUsage';
 import useMediaQuery from '../hooks/useMediaQuery';
 import useTranscription from '../hooks/useTranscription';
-import * as api from '../lib/transcriptionsApi';
+import * as api from '../../../api/transcriptionsApi';
 import type { TranslateParams } from '../../../hooks/useTranslation';
 import type { ApiError, MeetingNote, MeetingRowPatch } from './meetingDetailTypes';
 import type { UsageRow } from '../../../hooks/useUsage';

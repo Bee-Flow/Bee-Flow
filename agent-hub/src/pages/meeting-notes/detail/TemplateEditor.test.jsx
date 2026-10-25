@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../lib/transcriptionsApi', () => ({
+vi.mock('../../../api/transcriptionsApi', () => ({
     listOrgGroups: vi.fn(),
     createSummaryTemplate: vi.fn(),
     updateSummaryTemplate: vi.fn(),
@@ -11,7 +11,7 @@ vi.mock('../lib/transcriptionsApi', () => ({
 }));
 
 import TemplateEditor from './TemplateEditor';
-import * as api from '../lib/transcriptionsApi';
+import * as api from '../../../api/transcriptionsApi';
 
 describe('TemplateEditor', () => {
     beforeEach(() => {

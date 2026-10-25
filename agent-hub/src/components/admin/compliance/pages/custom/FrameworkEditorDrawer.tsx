@@ -39,7 +39,7 @@ export interface EditorFramework {
 }
 
 export const CODE_RE = /^[A-Z0-9_]{2,24}$/;
-export const STATUSES = Object.freeze(['draft', 'active']);
+const STATUSES = Object.freeze(['draft', 'active']);
 
 /** Pure: what the user typed, shaped as the server expects it. */
 export function toBody(form: EditorForm, { isNew }: { isNew: boolean }) {

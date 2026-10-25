@@ -27,7 +27,7 @@
 //
 // Copy avoids the internal term "Direct chat" — to users this is just "chat".
 
-import type { LessonStep, LessonUser } from './lessons.types';
+import type { LessonStep, LessonUser } from '../../api/lessons.types';
 
 export const TOUR_STEPS: LessonStep[] = [
     {
@@ -187,7 +187,7 @@ export const TOUR_STEPS: LessonStep[] = [
 // registry. These steps walk through building agents and skills, so a member
 // who has Studio only for a section their role opens (Meeting Notes, say)
 // must not be sent there, nor asked to create an agent they cannot create.
-export function canUseStudio(user: LessonUser | null | undefined): boolean {
+function canUseStudio(user: LessonUser | null | undefined): boolean {
     const perms = user?.permissions || [];
     return (
         !!user?.isAdmin ||
@@ -207,7 +207,7 @@ export function filterStepsForUser<T extends { requiresStudio?: boolean }>(steps
 }
 
 // Steps actually shown to this user for the intro tour.
-export function resolveTourSteps(user: LessonUser | null | undefined): LessonStep[] {
+function resolveTourSteps(user: LessonUser | null | undefined): LessonStep[] {
     return filterStepsForUser(TOUR_STEPS, user);
 }
 

@@ -7,7 +7,7 @@ import { STAGE_DOT, useStageLabel } from './StageSwitcher';
 import {
     cancelDeployment, listDeployments, retryDeployment,
     type DeploymentSummary, type PipelineRelease, type StageKey, type StageName,
-} from './stagesApi';
+} from '../../../../../api/stagesApi';
 
 /**
  * Every deployment this stage has had, newest first.

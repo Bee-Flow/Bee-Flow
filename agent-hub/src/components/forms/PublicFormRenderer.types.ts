@@ -82,12 +82,12 @@ export type FormChangeHandler = (value: FormValue) => void;
 export type FormErrorHandler = (message: string) => void;
 export type FormValues = Record<string, FormValue>;
 
-export type UploadHandler = (file: File, fieldName: string) => Promise<{ fileId: string; filename: string; size: number }>;
-export type SearchAppHandler = (field: FormFieldDef, query: string) => Promise<{ results?: AppPickRow[]; error?: string }>;
-export type DownloadHrefHandler = (field: FormFieldDef) => string | null;
-export type OpenInNotebooksHandler = (field: FormFieldDef) => Promise<unknown>;
-export type ExportAction = () => Promise<unknown>;
-export type DownloadAsHandler = (format: 'docx' | 'pdf') => Promise<unknown>;
+type UploadHandler = (file: File, fieldName: string) => Promise<{ fileId: string; filename: string; size: number }>;
+type SearchAppHandler = (field: FormFieldDef, query: string) => Promise<{ results?: AppPickRow[]; error?: string }>;
+type DownloadHrefHandler = (field: FormFieldDef) => string | null;
+type OpenInNotebooksHandler = (field: FormFieldDef) => Promise<unknown>;
+type ExportAction = () => Promise<unknown>;
+type DownloadAsHandler = (format: 'docx' | 'pdf') => Promise<unknown>;
 
 /** An error thrown out of a submit; `fields` carries per-question messages. */
 export interface SubmitError {

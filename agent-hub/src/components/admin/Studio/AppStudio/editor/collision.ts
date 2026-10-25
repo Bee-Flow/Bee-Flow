@@ -51,7 +51,7 @@ function measurable(entry: MeasurableEntry) {
     return !!rect && rect.width > 0 && rect.height > 0;
 }
 
-export function canvasCollision(args: Parameters<CollisionDetection>[0]) {
+function canvasCollision(args: Parameters<CollisionDetection>[0]) {
     const hits = pointerWithin(args);
     if (hits.length) return hits;
 

@@ -32,7 +32,7 @@ export interface DataEntry {
 /** The entries by cache key. */
 export type DataState = Record<string, DataEntry>;
 
-export interface DataContextValue {
+interface DataContextValue {
     dataState: DataState;
     appId: string | null;
     draft: boolean;
@@ -162,4 +162,3 @@ export function useDataState() {
     return useContext(DataContext).dataState;
 }
 
-export default DataContext;

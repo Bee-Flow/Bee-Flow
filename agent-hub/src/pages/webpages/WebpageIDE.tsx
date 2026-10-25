@@ -11,7 +11,7 @@ import { useDevMode, useOpenFiles, useResponsiveChat } from './ide/useIdeState';
 import { useDragResize } from './ide/resizeHooks';
 import StatusBar from './StatusBar';
 import { useBfMarks } from './useBfMarks';
-import type { ExtraContents, ExtraFileMeta } from './webpageEditorTypes';
+import type { ExtraContents, ExtraFileMeta } from '../../api/webpageEditorTypes';
 
 export type { WebpageIDEProps } from './ide/ideProps';
 

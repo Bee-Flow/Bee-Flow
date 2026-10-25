@@ -1,6 +1,6 @@
 import { SetStateAction, useEffect, useState } from 'react';
-import { authFetch } from '../../../utils/helpers';
 import { logger } from '../../../utils/logger';
+import { request, RefusedError } from '../../../api/mutate';
 
 /**
  * Full-audio blobs are heavy (a 100-min recording is tens of MB); keep only
@@ -19,8 +19,13 @@ function decodePeaks(url: string, bins: number = 512) {
 }
 
 async function fetchAndDecode(url: string, bins: number) {
-    const res = await authFetch(url);
-    if (!res.ok) throw new Error(`audio fetch ${res.status}`);
+    let res: Response;
+    try {
+        res = await request(url);
+    } catch (apiErr) {
+        if (!(apiErr instanceof RefusedError)) throw apiErr;
+        throw new Error(`audio fetch ${apiErr.status}`);
+    }
     const buf = await res.arrayBuffer();
     // The same authenticated bytes also back the <audio> element (via a blob
     // URL) — one download instead of two, and playback keeps working in the

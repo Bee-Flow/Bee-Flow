@@ -3,6 +3,7 @@ import { Save } from 'lucide-react';
 import { authFetch, API_BASE } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { errorMessage } from '../../../utils/caughtError';
+import { mutate, errorBody, RefusedError } from '../../../api/mutate';
 
 export default function SupportToolsTab() {
     const { t } = useTranslation();
@@ -28,11 +29,16 @@ export default function SupportToolsTab() {
     const save = async () => {
         setBusy(true); setError(null); setSaved(false);
         try {
-            const res = await authFetch(`${API_BASE}/api/support/config`, {
+            try {
+                await mutate(`${API_BASE}/api/support/config`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ v2Enabled, autoResolveThreshold: Number(threshold) }),
             });
-            if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Save failed'); }
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const e = errorBody(err) ?? {};
+                throw new Error(e.error || 'Save failed');
+            }
             setSaved(true);
         } catch (e) { setError(errorMessage(e)); }
         finally { setBusy(false); }

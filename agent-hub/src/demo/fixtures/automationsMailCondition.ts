@@ -36,8 +36,8 @@ import type { DemoRun } from './automationsRuns';
 
 type Obj = Record<string, unknown>;
 
-export const MAIL_CONDITION_AUTOMATION_ID = 'auto_demo_mail_condition';
-export const MAIL_CONDITION_AUTOMATION_TITLE = 'Fabrikam attachments by type';
+const MAIL_CONDITION_AUTOMATION_ID = 'auto_demo_mail_condition';
+const MAIL_CONDITION_AUTOMATION_TITLE = 'Fabrikam attachments by type';
 
 const PDF = 'application/pdf';
 const DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -219,8 +219,8 @@ export function seedMailConditionRuns(): DemoRun[] {
 
 // ── Second automation: the attachments split by type ─────────────────────
 
-export const MAIL_SPLIT_AUTOMATION_ID = 'auto_demo_mail_split';
-export const MAIL_SPLIT_AUTOMATION_TITLE = 'Fabrikam attachments split by type';
+const MAIL_SPLIT_AUTOMATION_ID = 'auto_demo_mail_split';
+const MAIL_SPLIT_AUTOMATION_TITLE = 'Fabrikam attachments split by type';
 
 /** The outputs, in case order, and the file type each one keeps. */
 export const SPLIT_CASES = ['pdf', 'word', 'powerpoint'] as const;

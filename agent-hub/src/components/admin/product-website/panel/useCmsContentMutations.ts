@@ -2,7 +2,6 @@
 // + AI translate of the ProductWebsitePanel container — moved verbatim from
 // ProductWebsitePanel.jsx. State stays owned by the panel (threaded in).
 import { useCallback, useEffect } from 'react';
-import { authFetch } from '../../../../utils/helpers';
 import { toast } from '../../../shared/Toast';
 import { cmsApi } from '../cmsApi';
 import { setLocalePath } from '../localeMerge';
@@ -10,6 +9,7 @@ import type useCmsPanelState from './useCmsPanelState';
 import type useCmsAutosave from './useCmsAutosave';
 import type useCmsHistory from './useCmsHistory';
 import type { CmsPageDoc, CmsBlock } from './cmsPanelTypes';
+import { mutate, errorBody, RefusedError } from '../../../../api/mutate';
 
 type PanelState = ReturnType<typeof useCmsPanelState>;
 type History = ReturnType<typeof useCmsHistory>;
@@ -152,13 +152,19 @@ export default function useCmsContentMutations({
             const url = scope === 'site'
                 ? cmsApi.siteAiTranslate(siteId, activeLocale)
                 : cmsApi.pageAiTranslate(siteId, (activePage as CmsPageDoc).id, activeLocale);
-            const res = await authFetch(url, {
+            let res: Response;
+            try {
+                res = await mutate(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ modelTier: tier || 'fast' }),
             });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const data = errorBody(err) ?? {};
+                throw new Error(data.error || `Translate failed (${err.status})`);
+            }
             const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data.error || `Translate failed (${res.status})`);
             if (scope === 'site') replaceSiteOverride(activeLocale, data.override);
             else replacePageOverride((activePage as CmsPageDoc).id, activeLocale, data.override);
             setAiStatus({ state: 'done', scope, translated: data.translated, total: data.total });
@@ -223,10 +229,12 @@ export default function useCmsContentMutations({
             const url = scope === 'site'
                 ? cmsApi.siteLocaleOverride(siteId, activeLocale)
                 : cmsApi.pageLocaleOverride(siteId, (activePage as CmsPageDoc).id, activeLocale);
-            const res = await authFetch(url, { method: 'DELETE' });
-            if (!res.ok) {
-                const d = await res.json().catch(() => ({}));
-                throw new Error(d.error || `Reset failed (${res.status})`);
+            try {
+                await mutate(url, { method: 'DELETE' });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const d = errorBody(err) ?? {};
+                throw new Error(d.error || `Reset failed (${err.status})`);
             }
             if (scope === 'site') replaceSiteOverride(activeLocale, null);
             else replacePageOverride((activePage as CmsPageDoc).id, activeLocale, null);

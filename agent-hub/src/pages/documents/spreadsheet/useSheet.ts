@@ -12,7 +12,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
     createSheetTab, deleteSheetTab, getSheet, MAX_CELLS_PER_REQUEST, patchSheet, renameSheetTab,
-} from './sheetApi';
+} from '../../../api/sheetApi';
 import { evaluateSheet } from './sheetEngine';
 import { missingRefTabs, usedRowsOf } from './sheetModel';
 import useServerCells, { overlay } from './useServerCells';
@@ -21,7 +21,7 @@ import useSheetHistory from './useSheetHistory';
 export type SheetSaveState = 'saved' | 'saving' | 'unsaved' | 'error';
 
 export const SAVE_DEBOUNCE_MS = 600;
-export const sheetQueryKey = (id: string, tabId?: string) => ['studio-document-sheet', id, tabId ?? 'default'] as const;
+const sheetQueryKey = (id: string, tabId?: string) => ['studio-document-sheet', id, tabId ?? 'default'] as const;
 
 export default function useSheet(id: string) {
     const queryClient = useQueryClient();

@@ -7,7 +7,7 @@ import React from 'react';
  * signal: the icon and the words carry the meaning too.
  */
 
-export type NoticeTone = 'info' | 'warning' | 'error' | 'success';
+type NoticeTone = 'info' | 'warning' | 'error' | 'success';
 
 const BAR: Record<NoticeTone, string> = {
     info: 'border-l-[var(--accent-primary)]',

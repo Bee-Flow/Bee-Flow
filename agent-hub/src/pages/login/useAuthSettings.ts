@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { API_BASE } from '../../utils/helpers';
-import { getPublicOrganizations, getSetupStatus } from './loginRequests';
+import { getPublicOrganizations, getSetupStatus } from '../../api/loginRequests';
 
 /** What /auth/setup-status answers; only the fields this screen reads. */
 interface SetupStatus {

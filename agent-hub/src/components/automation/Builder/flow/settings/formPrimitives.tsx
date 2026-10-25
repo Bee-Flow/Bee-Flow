@@ -18,10 +18,10 @@ import {
 import { useTranslation } from '../../../../../hooks/useTranslation';
 
 export {
-    sectionHeaderClass, fieldLabelClass, subLabelClass, disclosureClass,
-    bandClass, railClass, cardClass, requiredMarkClass, FOCUS_RING, FOCUS_RING_INSET,
+    sectionHeaderClass,  subLabelClass, 
+      cardClass,   
     inputClass, textareaClass, denseInputClass, rowInputClass, controlSurfaceClass,
-    hintTextClass, requiredChipClass, optionalMarkClass, actionButtonClass,
+    hintTextClass,   actionButtonClass,
     listBadgeClass, AMBER_NOTE,
 } from './formStyles';
 

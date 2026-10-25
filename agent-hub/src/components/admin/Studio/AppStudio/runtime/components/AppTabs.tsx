@@ -1,13 +1,17 @@
 import { tryEvaluate } from '@shared/expr/engine.mjs';
 import React, { useEffect, useEffectEvent, useState } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '../../../../../../hooks/useTranslation';
 import AppIcon from '../../../../../icons/AppIcon';
 import { useFormContext } from '../formContext';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime, type ExpressionScope } from '../RuntimeContext';
-import { isFill, ROLE_COLORS, roleTextColor } from '../styleResolver';
+import { roleTextColor } from '../styleResolver';
+import { isFill } from '../styleResolver.helpers';
+import { ROLE_COLORS } from '../styleResolver.constants';
 import type { BindingInput, FormulaBinding } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
+import { ActionState } from '../actionRunner/core';
+import { DataState } from '../DataContext';
 
 interface TabProps {
     name?: string;
@@ -227,63 +231,7 @@ export default function AppTabs({ node, children }: NodeProps<TabProps>) {
             data-app-tabs="true"
             data-app-tabs-look={look === 'underline' ? undefined : look}
         >
-            <div
-                role="tablist"
-                aria-label={t('studio_apps_runtime.tabs.label', 'Tabs')}
-                className={fill ? `${stripCls} shrink-0` : stripCls}
-                style={stripStyle}
-            >
-                {shown.map((i) => {
-                    const tab = tabs[i];
-                    const isActive = i === activeIdx;
-                    const label = tab.props?.label || t('studio_apps_runtime.tabs.tab_n', 'Tab {n}', { n: i + 1 });
-                    const button = tabButton(isActive);
-                    // Badge (spec: tab.badge/badgeTone). The strip reads raw
-                    // child defs, so the binding resolves HERE, against the
-                    // base runtime scope — same rule as the visibility gates.
-                    const badge = tabBadgeContent(
-                        resolveBinding(tab.props?.badge, { actionState, dataState, scope }).value,
-                    );
-                    const badgeTone = tab.props?.badgeTone && ROLE_COLORS[tab.props.badgeTone] && tab.props.badgeTone !== 'neutral'
-                        ? tab.props.badgeTone
-                        : 'neutral';
-                    return (
-                        <button
-                            key={tab.id || i}
-                            type="button"
-                            role="tab"
-                            aria-selected={isActive}
-                            onClick={() => setActive(i)}
-                            className={button.className}
-                            style={button.style}
-                        >
-                            {tab.props?.icon ? <AppIcon name={tab.props.icon} className="w-3.5 h-3.5" /> : null}
-                            <span>{label}</span>
-                            {badge === null ? null : badgeTone === 'neutral' ? (
-                                <span
-                                    className="text-xs font-normal text-[var(--text-muted)]"
-                                    data-app-tab-badge="neutral"
-                                >
-                                    {badge}
-                                </span>
-                            ) : (
-                                <span
-                                    className="inline-flex items-center rounded-full px-1.5 font-medium leading-none"
-                                    style={{
-                                        height: '17px',
-                                        fontSize: '11px',
-                                        background: `color-mix(in srgb, ${ROLE_COLORS[badgeTone]} 16%, transparent)`,
-                                        color: roleTextColor(badgeTone),
-                                    }}
-                                    data-app-tab-badge={badgeTone}
-                                >
-                                    {badge}
-                                </span>
-                            )}
-                        </button>
-                    );
-                })}
-            </div>
+            <AppTabsSection t={t} fill={fill} stripCls={stripCls} stripStyle={stripStyle} shown={shown} tabs={tabs} activeIdx={activeIdx} tabButton={tabButton} actionState={actionState} dataState={dataState} scope={scope} setActive={setActive} />
             {shown.map((i) => (
                 <div
                     key={tabs[i].id || i}
@@ -306,6 +254,66 @@ export default function AppTabs({ node, children }: NodeProps<TabProps>) {
             ))}
         </div>
     );
+}
+
+function AppTabsSection({ t, fill, stripCls, stripStyle, shown, tabs, activeIdx, tabButton, actionState, dataState, scope, setActive }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; fill: boolean; stripCls: string; stripStyle: { borderBottom: string; borderColor?: undefined; } | { borderColor: string; borderBottom?: undefined; } | undefined; shown: number[]; tabs: TabDef[]; activeIdx: number; tabButton: (isActive: boolean) => { className: string; style: { background: string; color: string; transition: string; borderBottom?: undefined; }; } | { className: string; style: { background: string; color: string; borderColor: string; borderBottomColor: string; borderTopLeftRadius: string; borderTopRightRadius: string; transition: string; borderBottom?: undefined; } | { background: string; color: string; borderColor: string; borderTopLeftRadius: string; borderTopRightRadius: string; transition: string; borderBottom?: undefined; }; } | { className: string; style: { color: string; borderBottom: string; background?: undefined; transition?: undefined; }; }; actionState: ActionState; dataState: DataState; scope: Partial<ExpressionScope>; setActive: React.Dispatch<React.SetStateAction<number>>; }) {
+    return <div
+        role="tablist"
+        aria-label={t('studio_apps_runtime.tabs.label', 'Tabs')}
+        className={fill ? `${stripCls} shrink-0` : stripCls}
+        style={stripStyle}
+    >
+        {shown.map((i) => {
+            const tab = tabs[i];
+            const isActive = i === activeIdx;
+            const label = tab.props?.label || t('studio_apps_runtime.tabs.tab_n', 'Tab {n}', { n: i + 1 });
+            const button = tabButton(isActive);
+            // Badge (spec: tab.badge/badgeTone). The strip reads raw
+            // child defs, so the binding resolves HERE, against the
+            // base runtime scope — same rule as the visibility gates.
+            const badge = tabBadgeContent(
+                resolveBinding(tab.props?.badge, { actionState, dataState, scope }).value
+            );
+            const badgeTone = tab.props?.badgeTone && ROLE_COLORS[tab.props.badgeTone] && tab.props.badgeTone !== 'neutral'
+                ? tab.props.badgeTone
+                : 'neutral';
+            return (
+                <button
+                    key={tab.id || i}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => setActive(i)}
+                    className={button.className}
+                    style={button.style}
+                >
+                    {tab.props?.icon ? <AppIcon name={tab.props.icon} className="w-3.5 h-3.5" /> : null}
+                    <span>{label}</span>
+                    {badge === null ? null : badgeTone === 'neutral' ? (
+                        <span
+                            className="text-xs font-normal text-[var(--text-muted)]"
+                            data-app-tab-badge="neutral"
+                        >
+                            {badge}
+                        </span>
+                    ) : (
+                        <span
+                            className="inline-flex items-center rounded-full px-1.5 font-medium leading-none"
+                            style={{
+                                height: '17px',
+                                fontSize: '11px',
+                                background: `color-mix(in srgb, ${ROLE_COLORS[badgeTone]} 16%, transparent)`,
+                                color: roleTextColor(badgeTone),
+                            }}
+                            data-app-tab-badge={badgeTone}
+                        >
+                            {badge}
+                        </span>
+                    )}
+                </button>
+            );
+        })}
+    </div>;
 }
 
 /** Depth-first: does the container subtree hold a node with this id? */

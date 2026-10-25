@@ -181,7 +181,7 @@ export function crumbsOf(stack: Level[], rootText: string): Crumb[] {
     return crumbs;
 }
 
-export interface Indexed {
+interface Indexed {
     row: unknown;
     index: number;
 }

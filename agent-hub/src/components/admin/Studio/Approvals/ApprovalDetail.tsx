@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, Circle, CircleDashed, Clock, Download, ExternalLink, FileText, SkipForward, User } from 'lucide-react';
+import { ArrowLeft, Clock, Download, ExternalLink, FileText, User } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import ApprovalDecisionControls, { type ApprovalField } from './ApprovalDecisionControls';
 import { approvalSourceInfo, approvalStatusChip, formatWhen, stageChainInfo } from './approvalDisplay';
@@ -9,7 +9,9 @@ import { toast } from '../../../shared/Toast';
 import useConfirm from '../../../shared/useConfirm';
 import type { ApprovalListRow } from './useApprovals';
 import type { TranslateParams } from '../../../../hooks/useTranslation';
-import type { ApprovalVote, StagePosition, ApprovalStage, StagedProgress, PanelProgressData, ApprovalProgress, ApprovalAttachment, AuditEvent, ApprovalRecord, ApprovalDetailData, ApprovalDecisionResponse, ApprovalApi, TFn, ApprovalDetailProps, SectionProps, StatusLabelProps, PanelProgressProps, StageTimelineProps, StageStepProps, BackButtonProps } from './ApprovalDetail.types';
+import type { ApprovalVote, ApprovalStage, PanelProgressData, ApprovalProgress, ApprovalAttachment, ApprovalRecord, ApprovalDetailData, ApprovalDecisionResponse, ApprovalApi, ApprovalDetailProps, StatusLabelProps, PanelProgressProps, BackButtonProps } from './ApprovalDetail.types';
+import { waitingStageLine, auditLine, formatSize } from './ApprovalDetail.helpers';
+import { Section, StageTimeline } from './StageTimeline';
 
 export default function ApprovalDetail({ approvalId, onBack, onDecided }: ApprovalDetailProps) {
     const { t } = useTranslation();
@@ -118,57 +120,7 @@ export default function ApprovalDetail({ approvalId, onBack, onDecided }: Approv
                 be a bordered card inside a bordered card is now just the page:
                 an eyebrow saying which automation asked, the ask itself as the
                 heading, and the facts that qualify it on one quiet line. */}
-            <div className="mt-6">
-                <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)]">
-                    {sourceInfo ? (
-                        <a
-                            href={sourceInfo.href}
-                            className="hover:underline"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                window.history.pushState({}, '', sourceInfo.href);
-                                window.dispatchEvent(new PopStateEvent('popstate'));
-                            }}
-                        >
-                            {sourceInfo.label}
-                        </a>
-                    ) : (approval.automationTitle || t('approvals.automation', 'Automation'))}
-                </div>
-                <h1
-                    className="mt-1.5 text-[var(--text-primary)] whitespace-pre-wrap break-words [font-size:clamp(19px,3vw,24px)]! [font-weight:600] [letter-spacing:-0.02em] [line-height:1.3]"
-                >
-                    {approval.prompt || t('approvals.untitled', 'Approval requested')}
-                </h1>
-                <div className="mt-3 flex items-center gap-x-4 gap-y-1 flex-wrap text-[12px] text-[var(--text-tertiary)]">
-                    <span className="inline-flex items-center gap-1.5"><User size={12} />
-                        {chain
-                            ? t('approvals.chain_of', 'Chain of {n} stages', { n: String(chain.total) })
-                            : Array.isArray(approval.approvers) && approval.approvers.length
-                            ? t('approvals.panel_of', 'Panel of {n}').replace('{n}', String(approval.approvers.length))
-                            : (approval.assigneeUserId || approval.assigneeGroupId
-                                ? (approval.assigneeGroupId ? t('approvals.assigned_group', 'Assigned to a group') : t('approvals.assigned', 'Assigned'))
-                                : t('approvals.owner_decides', 'Owner decides'))}
-                    </span>
-                    <span className="inline-flex items-center gap-1.5"><Clock size={12} />
-                        {approval.status === 'pending'
-                            ? (approval.expiresAt ? `${t('approvals.decide_before_cap', 'Decide before')} ${formatWhen(approval.expiresAt)}` : t('approvals.no_deadline', 'No deadline'))
-                            : `${t('approvals.requested', 'Requested')} ${formatWhen(approval.createdAt)}`}
-                    </span>
-                    {runLink && (
-                        <a
-                            href={runLink}
-                            className="inline-flex items-center gap-1.5 text-[var(--accent-primary,#2563eb)] hover:underline"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                window.history.pushState({}, '', runLink);
-                                window.dispatchEvent(new PopStateEvent('popstate'));
-                            }}
-                        >
-                            <ExternalLink size={12} /> {t('approvals.open_run', 'Open the run')}
-                        </a>
-                    )}
-                </div>
-            </div>
+            <ApprovalDetailSection sourceInfo={sourceInfo} approval={approval} t={t} chain={chain} runLink={runLink} />
 
             {/* The snapshot, as prose rather than as a grey slab. Nothing is
                 dropped — FormRichText renders the same markdown it always
@@ -261,18 +213,58 @@ export default function ApprovalDetail({ approvalId, onBack, onDecided }: Approv
     );
 }
 
-function Section({ label, aside, children }: SectionProps) {
-    return (
-        <section className="mt-6 pt-6 border-t border-[var(--border-subtle)]">
-            {(label || aside) && (
-                <div className="flex items-baseline justify-between gap-2 flex-wrap mb-2.5">
-                    {label ? <h2 className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)]">{label}</h2> : <span />}
-                    {aside}
-                </div>
+function ApprovalDetailSection({ sourceInfo, approval, t, chain, runLink }: { sourceInfo: { source: "deployment"; label: string; text: string; target: string; href: string; } | null; approval: ApprovalRecord; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; chain: { total: number; index: number | null; name: string | null; description: string | null; } | null; runLink: string | null | undefined; }) {
+    return <div className="mt-6">
+        <div className="text-[11px] uppercase tracking-wide text-[var(--text-tertiary)]">
+            {sourceInfo ? (
+                <a
+                    href={sourceInfo.href}
+                    className="hover:underline"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        window.history.pushState({}, '', sourceInfo.href);
+                        window.dispatchEvent(new PopStateEvent('popstate'));
+                    } }
+                >
+                    {sourceInfo.label}
+                </a>
+            ) : (approval.automationTitle || t('approvals.automation', 'Automation'))}
+        </div>
+        <h1
+            className="mt-1.5 text-[var(--text-primary)] whitespace-pre-wrap break-words [font-size:clamp(19px,3vw,24px)]! [font-weight:600] [letter-spacing:-0.02em] [line-height:1.3]"
+        >
+            {approval.prompt || t('approvals.untitled', 'Approval requested')}
+        </h1>
+        <div className="mt-3 flex items-center gap-x-4 gap-y-1 flex-wrap text-[12px] text-[var(--text-tertiary)]">
+            <span className="inline-flex items-center gap-1.5"><User size={12} />
+                {chain
+                    ? t('approvals.chain_of', 'Chain of {n} stages', { n: String(chain.total) })
+                    : Array.isArray(approval.approvers) && approval.approvers.length
+                        ? t('approvals.panel_of', 'Panel of {n}').replace('{n}', String(approval.approvers.length))
+                        : (approval.assigneeUserId || approval.assigneeGroupId
+                            ? (approval.assigneeGroupId ? t('approvals.assigned_group', 'Assigned to a group') : t('approvals.assigned', 'Assigned'))
+                            : t('approvals.owner_decides', 'Owner decides'))}
+            </span>
+            <span className="inline-flex items-center gap-1.5"><Clock size={12} />
+                {approval.status === 'pending'
+                    ? (approval.expiresAt ? `${t('approvals.decide_before_cap', 'Decide before')} ${formatWhen(approval.expiresAt)}` : t('approvals.no_deadline', 'No deadline'))
+                    : `${t('approvals.requested', 'Requested')} ${formatWhen(approval.createdAt)}`}
+            </span>
+            {runLink && (
+                <a
+                    href={runLink}
+                    className="inline-flex items-center gap-1.5 text-[var(--accent-primary,#2563eb)] hover:underline"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        window.history.pushState({}, '', runLink);
+                        window.dispatchEvent(new PopStateEvent('popstate'));
+                    } }
+                >
+                    <ExternalLink size={12} /> {t('approvals.open_run', 'Open the run')}
+                </a>
             )}
-            {children}
-        </section>
-    );
+        </div>
+    </div>;
 }
 
 function StatusLabel({ status, t }: StatusLabelProps) {
@@ -325,150 +317,6 @@ function PanelProgress({ progress, votes, approval, t }: PanelProgressProps) {
     );
 }
 
-/** The stage a staged, still-pending row is sitting on. */
-function waitingStageLine(progress: StagedProgress, t: TFn) {
-    const stages = Array.isArray(progress.stages) ? progress.stages : [];
-    const current = stages.find(s => s.key === progress.stage) || null;
-    const pos = progress.position;
-    if (!current || !pos) return t('approvals.waiting_chain', 'Waiting for an earlier stage of this approval.');
-    return t('approvals.waiting_stage', 'Waiting for {name} — stage {n} of {m}.', {
-        name: current.name || t('approvals.stage_unnamed', 'this stage'),
-        n: String(pos.index),
-        m: String(pos.total),
-    });
-}
-
-function StageTimeline({ progress, approval, t }: StageTimelineProps) {
-    const stages = Array.isArray(progress.stages) ? progress.stages : [];
-    if (!stages.length) return null;
-    // "Stage 2 of 3" counts the stages that actually run, exactly as the
-    // server's stagePosition does — a skipped stage was never a step anybody
-    // waited on, so numbering it would describe a chain that never existed.
-    const activeTotal = progress.position?.total ?? stages.filter(s => s.state !== 'skipped').length;
-    const positions = stages.reduce<{ seen: number; list: (StagePosition | null)[] }>((acc, stage) => {
-        const seen = acc.seen + (stage.state === 'skipped' ? 0 : 1);
-        return { seen, list: [...acc.list, stage.state === 'skipped' ? null : { index: seen, total: activeTotal }] };
-    }, { seen: 0, list: [] }).list;
-    return (
-        <Section
-            label={t('approvals.stages_title', 'Approval chain')}
-            aside={approval.status === 'pending' && progress.position ? (
-                <span className="text-[12px] text-[var(--text-secondary)]">
-                    {t('approvals.stage_of', 'Stage {n} of {m}', {
-                        n: String(progress.position.index), m: String(progress.position.total),
-                    })}
-                </span>
-            ) : null}
-        >
-            <ol className="space-y-0">
-                {stages.map((stage, i) => (
-                    <StageStep
-                        key={stage.key || i}
-                        stage={stage}
-                        position={positions[i]}
-                        last={i === stages.length - 1}
-                        t={t}
-                    />
-                ))}
-            </ol>
-        </Section>
-    );
-}
-
-function StageStep({ stage, position, last, t }: StageStepProps) {
-    const state = stage.state;
-    const done = state === 'done';
-    const current = state === 'current';
-    const skipped = state === 'skipped';
-    const stopped = state === 'never_reached';
-
-    const marker = done
-        ? <Check size={11} className="text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-        : current
-            ? <Circle size={11} className="text-amber-600 dark:text-amber-400 fill-current" aria-hidden="true" />
-            : skipped
-                ? <SkipForward size={11} className="text-[var(--text-tertiary)]" aria-hidden="true" />
-                : <CircleDashed size={11} className="text-[var(--text-tertiary)]" aria-hidden="true" />;
-
-    const ruleLabel = stage.rule === 'first'
-        ? t('approvals.rule_first', 'First to respond decides')
-        : (stage.rule === 'quorum'
-            ? t('approvals.rule_quorum', 'At least {n} of {m} must approve')
-                .replace('{n}', String(stage.needed)).replace('{m}', String(stage.seatCount))
-            : t('approvals.rule_all', 'Everyone must approve'));
-
-    const stateLine = done
-        ? t('approvals.stage_state_done', 'Decided')
-        : current
-            ? t('approvals.stage_state_current', 'Waiting on this stage')
-            : skipped
-                ? t('approvals.stage_state_skipped', 'Skipped — its condition was not met, so the chain went straight past it')
-                : stopped
-                    ? t('approvals.stage_state_never_reached', 'Never reached — the chain stopped before this stage')
-                    : t('approvals.stage_state_waiting', 'Not started yet');
-
-    const votes = Array.isArray(stage.votes) ? stage.votes : [];
-    const muted = skipped || stopped;
-
-    return (
-        <li className="flex gap-2">
-            <div className="flex flex-col items-center shrink-0 pt-0.5">
-                <span
-                    className={`inline-flex items-center justify-center w-4 h-4 rounded-full border ${
-                        done ? 'border-emerald-500/50 bg-emerald-500/10'
-                            : current ? 'border-amber-500/60 bg-amber-500/15'
-                                : 'border-[var(--border-default)] bg-[var(--bg-secondary)]'
-                    }`}
-                >
-                    {marker}
-                </span>
-                {!last && (
-                    <span
-                        className={`w-px flex-1 min-h-[1.25rem] ${done ? 'bg-emerald-500/40' : 'bg-[var(--border-default)]'} ${muted ? 'opacity-50' : ''}`}
-                        aria-hidden="true"
-                    />
-                )}
-            </div>
-            <div className={`min-w-0 flex-1 pb-2 ${muted ? 'opacity-70' : ''}`}>
-                <div className="flex items-baseline gap-1.5 flex-wrap">
-                    <span className={`text-[13px] ${current ? 'font-semibold' : 'font-medium'} text-[var(--text-primary)] ${skipped ? 'line-through decoration-[var(--text-tertiary)]' : ''}`}>
-                        {stage.name || t('approvals.stage_unnamed', 'this stage')}
-                    </span>
-                    {position && (
-                        <span className="text-[11px] text-[var(--text-secondary)]">
-                            {t('approvals.stage_of', 'Stage {n} of {m}', { n: String(position.index), m: String(position.total) })}
-                        </span>
-                    )}
-                </div>
-                {stage.description && (
-                    <div className="text-[12px] text-[var(--text-secondary)]">{stage.description}</div>
-                )}
-                <div className="text-[11px] text-[var(--text-secondary)]">
-                    {stateLine}
-                    {!skipped && !stopped && ` · ${ruleLabel}`}
-                    {(done || current) && !skipped && ` · ${t('approvals.stage_tally', '{n} of {m} approved', {
-                        n: String(stage.approvals), m: String(stage.needed),
-                    })}`}
-                    {stage.rejects > 0 && ` · ${t('approvals.stage_declined_here', 'declined here')}`}
-                </div>
-                {votes.length > 0 && (
-                    <ul className="mt-0.5 space-y-0.5">
-                        {votes.map((v, i) => (
-                            <li key={i} className="text-[12px] text-[var(--text-secondary)] flex items-baseline gap-1.5">
-                                <span className={v.decision === 'approve' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}>
-                                    {v.decision === 'approve' ? '✓' : '✕'}
-                                </span>
-                                <span className="font-medium text-[var(--text-primary)]">{v.name || v.by}</span>
-                                {v.reason && <span className="truncate">— “{v.reason}”</span>}
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </div>
-        </li>
-    );
-}
-
 function BackButton({ onBack }: BackButtonProps) {
     const { t } = useTranslation();
     if (!onBack) return <span />;
@@ -511,32 +359,3 @@ function DecisionSummary({ approval }: { approval: ApprovalRecord }) {
     );
 }
 
-function auditLine(ev: AuditEvent, t: TFn) {
-    switch (ev.decision) {
-        case 'requested': return ev.source === 'backfill'
-            ? t('approvals.audit_recorded', 'Approval recorded')
-            : t('approvals.audit_requested', 'Approval requested');
-        case 'approved': return `${t('approvals.verb_approved', 'Approved')}${ev.comment ? ` — “${ev.comment}”` : ''}`;
-        case 'rejected': return `${t('approvals.verb_rejected', 'Rejected')} — “${ev.comment || ''}”`;
-        // The chain moving from one stage to the next. The comment carries
-        // "<stage that passed> → <stage now waiting>", which is the whole
-        // sentence — an audit trail that only said "Stage passed" would leave
-        // the reader counting stages by hand.
-        case 'stage_passed': return `${t('approvals.audit_stage_passed', 'Stage passed')}${ev.comment ? ` — ${ev.comment}` : ''}`;
-        case 'expired': return t('approvals.audit_expired', 'Expired — nobody decided before the deadline');
-        case 'escalated': return t('approvals.audit_escalated', 'Escalated — the fallback approver can now decide too');
-        case 'hook_ran': return `${t('approvals.audit_hook_ran', 'App updated')}${ev.comment ? ` — ${ev.comment}` : ''}`;
-        case 'hook_failed': return `${t('approvals.audit_hook_failed', 'App update failed')}${ev.comment ? ` — ${ev.comment}` : ''}`;
-        case 'cancelled': return ev.decidedBy
-            ? `${t('approvals.audit_withdrawn', 'Withdrawn')}${ev.comment ? ` — “${ev.comment}”` : ''}`
-            : t('approvals.audit_closed', 'Closed — the run was no longer waiting');
-        default: return ev.decision;
-    }
-}
-
-function formatSize(bytes: number | undefined) {
-    const n = Number(bytes) || 0;
-    if (n < 1024) return `${n} B`;
-    if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
-    return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-}

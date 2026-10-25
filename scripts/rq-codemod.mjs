@@ -3,7 +3,7 @@
 // shapes only. Anything outside them is skipped and reported with a reason.
 //
 //   node scripts/rq-codemod.mjs <files...> [--dry] [--mode query|mutation|both]
-//                                          [--report out.json]
+//                                          [--report out.json] [--max-lines N]
 //
 // query mode     A component with `useState` data/loading/error plus ONE
 //                `useEffect` that does a single GET through authFetch and
@@ -11,10 +11,28 @@
 //                <feature>.ts` (`useQuery`, authFetch kept INSIDE queryFn so
 //                the existing test mocks of authFetch keep working) and the
 //                component reads `data / loading / error` from it.
-// mutation mode  `const res = await authFetch(url, { method: 'POST'|... })`
-//                whose Response is checked through `res.ok` becomes `mutate()`
-//                (api/mutate.ts, throws ApiError on non-2xx); the `!res.ok`
-//                branch moves into a catch of ApiError.
+// loader mode    (part of query mode) `const load = useCallback(async () => { single GET; setX })`
+//                (or a plain async function) that ONE effect only calls (`useEffect(() => { load(); },
+//                [load])`) becomes the same hook; every other `load();` / `await load();` /
+//                `void load();` becomes `query.refetch()`. Skipped when `load` is used as a value
+//                (a prop, a dependency), or has a guard and other callers (refetch ignores `enabled`).
+// mutation mode  `const res = await authFetch(url, { method: 'POST'|... })` whose Response is checked
+//                becomes `mutate()` (api/mutate.ts, throws RefusedError, an ApiError with a numeric
+//                status, on non-2xx). The checked shapes:
+//                  - `if (!res.ok) { …; exit }`, the refused branch moving into a catch; it may read
+//                    `res.status` (-> err.status) and `await res.json().catch(() => X)`
+//                    (-> `errorBody(err) ?? X`: mutate() has read that body already);
+//                  - json first: `const d = await res.json().catch(() => X); if (!res.ok) {…}`: the
+//                    catch rebuilds `d` from the error, the success path keeps the original line;
+//                  - `if (res.ok) {A} else {B}`: B stays an else, or moves into the catch when it reads
+//                    the answer (A stays behind `if (res)`).
+//                A checked GET outside an effect body takes the same shapes through `request()` (the
+//                same function under a name that does not say "mutation"); a GET in an effect is left
+//                to query mode.
+// Left alone, with a reason: a JSON read without a fallback (it throws on a non-JSON body, errorBody
+// does not), a file the vitest setup loads (src/test/setup.ts closure: api/mutate would pin the real
+// authFetch before a suite's helpers mock exists), a file that binds one of the imported names, and,
+// with --max-lines N, a conversion that would push a file from N lines or fewer over N.
 //
 // Tests that render a converted component without a QueryClient are LISTED in
 // the report (`testsNeedingClient`); the tool never rewrites tests.
@@ -444,16 +462,17 @@ function effectCalls(fn) {
  * plan: { guard, fetch, queryStmts[], keptNodes[], okClause, catchClause, dataSetter, dataExpr,
  *         loadingSetter, errorSetter, flags }
  */
-function parseEffect(ctx, effectStmt) {
+function parseEffect(ctx, effectStmt, loader = null) {
     const { sf } = ctx;
     const call = effectStmt.expression;
-    const cb = call.arguments[0];
-    if (!cb || !(ts.isArrowFunction(cb) || ts.isFunctionExpression(cb)) || !ts.isBlock(cb.body)) throw new Skip('effect callback is not a block function');
-    const deps = call.arguments[1];
+    const cb = loader ? loader.fn : call.arguments[0];
+    if (!cb || !(ts.isArrowFunction(cb) || ts.isFunctionExpression(cb) || ts.isFunctionDeclaration(cb)) || !cb.body || !ts.isBlock(cb.body)) throw new Skip('effect callback is not a block function');
+    const deps = loader ? loader.deps : call.arguments[1];
     if (!deps || !ts.isArrayLiteralExpression(deps)) throw new Skip('effect has no dependency array');
     const depNames = [];
     for (const d of deps.elements) {
         if (!ts.isIdentifier(d)) throw new Skip('dependency the key cannot express', d.getText(sf));
+        if (loader && d.text === loader.name) continue;
         depNames.push(d.text);
     }
     const authCalls = [];
@@ -502,7 +521,12 @@ function parseEffect(ctx, effectStmt) {
     // locate the unit of work
     let inner = null; // statements of the async body
     let chain = null;
-    if (stmts.length === 1 && ts.isExpressionStatement(stmts[0])) {
+    const chainShaped = (list) => list.length === 1 && ts.isExpressionStatement(list[0]) && ts.isCallExpression(unparen(list[0].expression)) && ts.isPropertyAccessExpression(unparen(list[0].expression).expression);
+    if (loader && !chainShaped(stmts)) {
+        inner = stmts;
+    } else if (loader) {
+        chain = unparen(stmts[0].expression);
+    } else if (stmts.length === 1 && ts.isExpressionStatement(stmts[0])) {
         const ex = unparen(stmts[0].expression);
         if (ts.isCallExpression(ex) && ex.arguments.length === 0 && (ts.isArrowFunction(unparen(ex.expression)) || ts.isFunctionExpression(unparen(ex.expression))) && ts.isBlock(unparen(ex.expression).body)) {
             inner = [...unparen(ex.expression).body.statements];
@@ -813,11 +837,27 @@ function parseChain(ctx, plan, expr) {
 
 // ---- turning a plan into a hook + the component edit ---------------------------
 
-function queryOne(ctx, effectStmt) {
+function queryOne(ctx, effectStmt, loader = null) {
     const { sf, text, file } = ctx;
-    const plan = parseEffect(ctx, effectStmt);
-    const effectRange = [effectStmt.getStart(sf), effectStmt.getEnd()];
-    const inEffect = (n) => n.getStart(sf) >= effectRange[0] && n.getEnd() <= effectRange[1];
+    const plan = parseEffect(ctx, effectStmt, loader);
+    // The code that goes away: the effect, and with a loader its declaration too.
+    const regions = loader ? [loader.stmt, effectStmt] : [effectStmt];
+    const effectRange = [Math.min(...regions.map((r) => r.getStart(sf))), Math.max(...regions.map((r) => r.getEnd()))];
+    const inEffect = (n) => regions.some((r) => n.getStart(sf) >= r.getStart(sf) && n.getEnd() <= r.getEnd());
+    // Every other use of the loader must be a plain `load();` statement: it becomes `query.refetch();`.
+    // refetch() ignores `enabled`, so a loader that guards itself cannot also be called from elsewhere.
+    const callers = [];
+    if (loader) {
+        for (const id of refsOf(ctx.fn.body, loader.name, (n) => !inEffect(n))) {
+            const c = id.parent;
+            const stmtOf = c && ts.isCallExpression(c) && c.expression === id && c.arguments.length === 0 ? c.parent : null;
+            const holder = stmtOf && (ts.isAwaitExpression(stmtOf) || ts.isVoidExpression(stmtOf)) ? stmtOf.parent : stmtOf;
+            if (!holder || !ts.isExpressionStatement(holder)) throw new Skip('the loader is used as a value, not only called');
+            callers.push(id);
+        }
+        if (plan.guard.length && callers.length) throw new Skip('the loader guards itself and has other callers');
+        if (plan.chain && callers.length) throw new Skip('a promise-chain loader has other callers');
+    }
 
     // roles of the setters
     const dataStates = plan.dataItems.map((d) => ctx.states.get(d.setter));
@@ -838,7 +878,7 @@ function queryOne(ctx, effectStmt) {
     if (new Set([...dataSetters, loadingSetter, errorSetter].filter(Boolean)).size !== [...dataSetters, loadingSetter, errorSetter].filter(Boolean).length) throw new Skip('one setter plays two roles');
     // every setter called in the effect is one of the three
     const usedSetters = new Set();
-    walk(effectStmt, (n) => { if (ts.isIdentifier(n) && ctx.states.has(n.text) && !isDeclarationName(n)) usedSetters.add(n.text); });
+    for (const r of regions) walk(r, (n) => { if (ts.isIdentifier(n) && ctx.states.has(n.text) && !isDeclarationName(n)) usedSetters.add(n.text); });
     const depSetters = new Set(plan.depNames.filter((d) => ctx.states.has(d)));
     for (const s of usedSetters) {
         if (![...dataSetters, loadingSetter, errorSetter].includes(s)) throw new Skip('effect sets more than data/loading/error', s);
@@ -1126,7 +1166,7 @@ ${queryFnBody}
     // ---- component edit
     const edits = [];
     const removedImports = [];
-    for (const root of [effectStmt, ...allStates.map((x) => x.stmt)]) walk(root, (x) => { if (ts.isIdentifier(x) && ctx.imports.has(x.text)) removedImports.push(x.text); });
+    for (const root of [...regions, ...allStates.map((x) => x.stmt)]) walk(root, (x) => { if (ts.isIdentifier(x) && ctx.imports.has(x.text)) removedImports.push(x.text); });
     const hookCallArgs = paramInfo.map((p) => p.name).join(', ');
     const q = `${dataState.value}Query`;
     if (ctx.compScope.has(q) || ctx.taken.has(q)) throw new Skip('name clash', q);
@@ -1153,8 +1193,19 @@ ${queryFnBody}
             if (ctx.compScope.has('queryError') || ctx.taken.has('queryError')) throw new Skip('name clash', 'queryError');
         } else lines.push(`const ${roleStates.error.value} = ${q}.error ? ${errorExpr} : null;`);
     }
-    const ind0 = indentOf(text, effectStmt.getStart(sf));
-    edits.push({ start: effectStmt.getStart(sf), end: effectStmt.getEnd(), text: lines.join('\n' + ind0) });
+    const where = loader ? loader.stmt : effectStmt;
+    const ind0 = indentOf(text, where.getStart(sf));
+    edits.push({ start: where.getStart(sf), end: where.getEnd(), text: lines.join('\n' + ind0) });
+    if (loader) {
+        const sp = lineSpan(text, effectStmt, sf);
+        edits.push({ start: sp.start, end: sp.end, text: '' });
+        for (const id of callers) edits.push({ start: id.getStart(sf), end: id.getEnd(), text: `${q}.refetch` });
+        // a param the key needs must exist where the hook call now sits
+        for (const p of params) {
+            const decl = ctx.fn.body.statements.find((st) => ts.isVariableStatement(st) && st.declarationList.declarations.some((d) => { const nm = new Set(); collectBindingNames(d.name, nm); return nm.has(p); }));
+            if (decl && decl.getStart(sf) > loader.stmt.getStart(sf)) throw new Skip('a request value is declared after the loader', p);
+        }
+    }
     for (const st of new Set(allStates.map((x) => x.stmt))) {
         const sp = lineSpan(text, st, sf);
         edits.push({ start: sp.start, end: sp.end, text: '' });
@@ -1171,8 +1222,44 @@ ${queryFnBody}
     if (roleStates.error && /queryError/.test(errorExpr)) ctx.taken.add('queryError');
     return {
         edits,
-        info: { kind: 'query', hook: hookName, hookFile: hookAbs, feature, key: base, params: paramInfo.map((p) => p.name), removedNames: ['useState', 'useEffect', 'authFetch', 'API_BASE', 'logger', ...removedImports], effectLine: lineOf(sf, effectStmt) },
+        info: { kind: 'query', hook: hookName, hookFile: hookAbs, feature, key: base, params: paramInfo.map((p) => p.name), removedNames: ['useState', 'useEffect', 'useCallback', 'authFetch', 'API_BASE', 'logger', ...removedImports], effectLine: lineOf(sf, where), loader: loader ? loader.name : undefined },
     };
+}
+
+/**
+ * The loader an effect only calls: `useEffect(() => { load(); }, [load])` with
+ * `const load = useCallback(async () => {…}, [deps])` (or a plain async function, then the effect's own
+ * dependencies are the key). Returns { name, fn, deps, stmt } or null.
+ */
+function findLoader(fn, eff, sf) {
+    const call = eff.expression;
+    const cb = call.arguments[0];
+    const effDeps = call.arguments[1];
+    if (!cb || !(ts.isArrowFunction(cb) || ts.isFunctionExpression(cb)) || !ts.isBlock(cb.body) || cb.body.statements.length !== 1) return null;
+    const only = cb.body.statements[0];
+    if (!ts.isExpressionStatement(only)) return null;
+    let ex = unparen(only.expression);
+    if (ts.isVoidExpression(ex)) ex = unparen(ex.expression);
+    if (!ts.isCallExpression(ex) || !ts.isIdentifier(ex.expression) || ex.arguments.length) return null;
+    const name = ex.expression.text;
+    if (!effDeps || !ts.isArrayLiteralExpression(effDeps)) return null;
+    for (const st of fn.body.statements) {
+        if (ts.isFunctionDeclaration(st) && st.name && st.name.text === name && st.body) return /\bauthFetch\b/.test(st.getText(sf)) ? { name, fn: st, deps: effDeps, stmt: st } : null;
+        if (!ts.isVariableStatement(st) || st.declarationList.declarations.length !== 1) continue;
+        const d = st.declarationList.declarations[0];
+        if (!ts.isIdentifier(d.name) || d.name.text !== name || !d.initializer) continue;
+        const init = unparen(d.initializer);
+        if (ts.isCallExpression(init) && ts.isIdentifier(init.expression) && init.expression.text === 'useCallback') {
+            const f = init.arguments[0];
+            const deps = init.arguments[1];
+            if (!f || !(ts.isArrowFunction(f) || ts.isFunctionExpression(f)) || !deps || !ts.isArrayLiteralExpression(deps)) return null;
+            if (effDeps.elements.length !== 1 || !ts.isIdentifier(effDeps.elements[0]) || effDeps.elements[0].text !== name) return null;
+            return /\bauthFetch\b/.test(f.getText(sf)) ? { name, fn: f, deps, stmt: st } : null;
+        }
+        if (ts.isArrowFunction(init) || ts.isFunctionExpression(init)) return /\bauthFetch\b/.test(init.getText(sf)) ? { name, fn: init, deps: effDeps, stmt: st } : null;
+        return null;
+    }
+    return null;
 }
 
 /** Run query mode on one file. */
@@ -1206,6 +1293,22 @@ function queryFile(file, text, shared) {
         const compName = fn.name ? fn.name.text : (ts.isVariableDeclaration(fn.parent) && ts.isIdentifier(fn.parent.name) ? fn.parent.name.text : null);
         const ctx = { sf, text, file, checker, imports, topNames, states, compScope, fn, topStmt, srcRoot, hookFiles: shared.hookFiles, compName, taken: new Set(), importWants };
         for (const eff of effectCalls(fn)) {
+            const loader = findLoader(fn, eff, sf);
+            if (loader) {
+                let mutating = false;
+                walk(loader.fn, (n) => { if (isAuthFetchCall(n) && !(methodOf(n.arguments[1]).kind === 'none' || (methodOf(n.arguments[1]).kind === 'literal' && methodOf(n.arguments[1]).value === 'GET'))) mutating = true; });
+                if (mutating) { results.skipped.push({ file, kind: 'query', line: lineOf(sf, loader.stmt), reason: 'mutation inside the loader' }); continue; }
+                try {
+                    const r = queryOne(ctx, eff, loader);
+                    allEdits.push(...r.edits);
+                    for (const nme of r.info.removedNames) removed.add(nme);
+                    results.converted.push({ file, line: r.info.effectLine, ...r.info });
+                } catch (e) {
+                    if (e instanceof Skip) results.skipped.push({ file, kind: 'query', line: lineOf(sf, loader.stmt), reason: e.reason, detail: e.detail || undefined });
+                    else throw e;
+                }
+                continue;
+            }
             const hasFetch = /\bauthFetch\b/.test(eff.getText(sf));
             if (!hasFetch) continue;
             const hasMutation = (() => { let m = false; walk(eff, (n) => { if (isAuthFetchCall(n) && methodOf(n.arguments[1]).kind === 'literal' && methodOf(n.arguments[1]).value !== 'GET') m = true; }); return m; })();
@@ -1245,28 +1348,92 @@ function queryFile(file, text, shared) {
 
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
+/** Is `n` inside the callback of a useEffect / useLayoutEffect? (Those GETs belong to query and loader mode.) */
+function insideEffectCallback(n) {
+    for (let p = n.parent; p; p = p.parent) {
+        if (ts.isCallExpression(p) && ts.isIdentifier(p.expression) && /^use(?:Layout)?Effect$/.test(p.expression.text) && p.arguments[0] && hasAncestor(n, (x) => x === p.arguments[0])) return true;
+    }
+    return false;
+}
+
+/** Does the file bind `name` itself (a declaration, a parameter, an import)? Then importing it would clash or shadow. */
+function bindsName(sf, name) {
+    let hit = false;
+    walk(sf, (n) => {
+        if (hit) return;
+        if (ts.isIdentifier(n) && n.text === name && n.parent && (
+            ((ts.isVariableDeclaration(n.parent) || ts.isParameter(n.parent) || ts.isBindingElement(n.parent) || ts.isFunctionDeclaration(n.parent) || ts.isFunctionExpression(n.parent) || ts.isClassDeclaration(n.parent) || ts.isImportSpecifier(n.parent) || ts.isImportClause(n.parent) || ts.isNamespaceImport(n.parent) || ts.isInterfaceDeclaration(n.parent) || ts.isTypeAliasDeclaration(n.parent)) && n.parent.name === n)
+        )) hit = true;
+    });
+    return hit;
+}
+
+/**
+ * Files the vitest setup (src/test/setup.ts) loads before any test file registers its mocks: a module
+ * in that closure that imports api/mutate pins mutate.ts, and with it utils/helpers, to the REAL
+ * implementation for every suite, so `vi.mock('…/utils/helpers')` stops reaching authFetch.
+ */
+const setupClosures = new Map();
+function setupClosure(srcRoot) {
+    if (setupClosures.has(srcRoot)) return setupClosures.get(srcRoot);
+    const seen = new Set();
+    const resolve = (spec, from) => {
+        let base = null;
+        if (spec.startsWith('@/')) base = path.join(srcRoot, spec.slice(2));
+        else if (spec.startsWith('.')) base = path.resolve(path.dirname(from), spec);
+        if (!base) return null;
+        const tries = [base, ...['.ts', '.tsx', '.js', '.jsx'].map((e) => base + e), ...['index.ts', 'index.tsx', 'index.js', 'index.jsx'].map((i) => path.join(base, i))];
+        return tries.find((f) => /\.[tj]sx?$/.test(f) && fs.existsSync(f) && fs.statSync(f).isFile()) || null;
+    };
+    const queue = [];
+    const setup = path.join(srcRoot, 'test', 'setup.ts');
+    if (fs.existsSync(setup)) queue.push(setup);
+    while (queue.length) {
+        const f = queue.pop();
+        if (seen.has(f)) continue;
+        seen.add(f);
+        for (const m of fs.readFileSync(f, 'utf8').matchAll(/(?:\bfrom\s*|\bimport\s*\(\s*|\bimport\s+|\brequire\s*\(\s*)(['"])([^'"\n]+)\1/g)) {
+            const t = resolve(m[2], f);
+            if (t && !seen.has(t)) queue.push(t);
+        }
+    }
+    setupClosures.set(srcRoot, seen);
+    return seen;
+}
+
 function mutationFile(file, text) {
     const results = { converted: [], skipped: [], text };
     if (!/\bauthFetch\b/.test(text)) return results;
     const sf = parse(file, text);
     const srcRoot = srcRootOf(file);
     if (!srcRoot) return results;
+    if (setupClosure(srcRoot).has(path.resolve(file))) {
+        walk(sf, (n) => { if (isAuthFetchCall(n)) results.skipped.push({ file, kind: 'mutation', line: lineOf(sf, n), reason: 'loaded by the test setup (api/mutate would escape the helpers mock)' }); });
+        return results;
+    }
     const edits = [];
-    let usesApiError = false;
+    const used = new Set(); // names to import from api/mutate
     const sites = [];
     walk(sf, (n) => {
         if (!isAuthFetchCall(n)) return;
         const m = methodOf(n.arguments[1]);
-        if (m.kind === 'literal' && MUTATING.has(m.value)) sites.push(n);
+        if (m.kind === 'literal' && MUTATING.has(m.value)) sites.push({ node: n, callee: 'mutate' });
         else if (m.kind === 'dynamic') sites.push({ dynamic: true, node: n });
+        else if (m.kind === 'none' || (m.kind === 'literal' && m.value === 'GET')) sites.push({ node: n, callee: 'request', get: true });
     });
     for (const site of sites) {
-        if (site.dynamic) { results.skipped.push({ file, kind: 'mutation', line: lineOf(sf, site.node), reason: 'method is not a literal' }); continue; }
-        const line = lineOf(sf, site);
+        const line = lineOf(sf, site.node);
+        if (site.dynamic) { results.skipped.push({ file, kind: 'mutation', line, reason: 'method is not a literal' }); continue; }
+        if (site.get && insideEffectCallback(site.node)) { results.skipped.push({ file, kind: 'mutation', line, reason: 'GET inside an effect (query mode)' }); continue; }
         try {
-            const r = convertMutation(sf, text, site, edits);
-            if (r.usesApiError) usesApiError = true;
-            results.converted.push({ file, kind: 'mutation', line, shape: r.shape });
+            const mine = [];
+            const r = convertMutation(sf, text, site.node, mine, site.callee);
+            // Only the names this conversion really imports can clash with what the file binds itself.
+            const clash = [...r.uses].find((nm) => bindsName(sf, nm) && !importMap(sf).has(nm));
+            if (clash) { results.skipped.push({ file, kind: 'mutation', line, reason: 'the file already binds a name the conversion imports', detail: clash }); continue; }
+            edits.push(...mine);
+            for (const u of r.uses) used.add(u);
+            results.converted.push({ file, kind: site.get ? 'request' : 'mutation', line, shape: r.shape });
         } catch (e) {
             if (e instanceof Skip) results.skipped.push({ file, kind: 'mutation', line, reason: e.reason, detail: e.detail || undefined });
             else throw e;
@@ -1274,7 +1441,7 @@ function mutationFile(file, text) {
     }
     if (results.converted.length) {
         const mod = relModule(file, path.join(srcRoot, 'api', 'mutate'));
-        const imp = addImportEdit(text, sf, mod, ['mutate', usesApiError ? 'ApiError' : null], false);
+        const imp = addImportEdit(text, sf, mod, [...used], false);
         if (imp && (imp.text || imp.start !== imp.end)) edits.push(imp);
         let out = applyEdits(text, edits);
         out = pruneImports(file, out, new Set(['authFetch']));
@@ -1289,7 +1456,30 @@ function exits(st) {
     return false;
 }
 
-function convertMutation(sf, text, call, edits) {
+/**
+ * `await res.json().catch(() => X)` -> { awaitNode, fallback } or null. The one JSON read that
+ * mutate() has already done for a refused request: ApiError.body is that parse, null when the body
+ * was not JSON, so `errorBody(err) ?? X` gives what the `.catch(() => X)` gave.
+ */
+function jsonWithFallback(id, res) {
+    const member = id.parent;
+    if (!ts.isPropertyAccessExpression(member) || member.expression !== id || member.name.text !== 'json') return null;
+    const jsonCall = member.parent;
+    if (!ts.isCallExpression(jsonCall) || jsonCall.expression !== member || jsonCall.arguments.length) return null;
+    const catchMember = jsonCall.parent;
+    if (!ts.isPropertyAccessExpression(catchMember) || catchMember.expression !== jsonCall || catchMember.name.text !== 'catch') return null;
+    const catchCall = catchMember.parent;
+    if (!ts.isCallExpression(catchCall) || catchCall.expression !== catchMember || catchCall.arguments.length !== 1) return null;
+    const fn = catchCall.arguments[0];
+    if (!ts.isArrowFunction(fn) || fn.parameters.length || ts.isBlock(fn.body)) return null;
+    if (refsOf(fn.body, res).length) return null;
+    let top = catchCall;
+    if (top.parent && ts.isAwaitExpression(top.parent)) top = top.parent;
+    else return null;
+    return { awaitNode: top, fallback: unparen(fn.body) };
+}
+
+function convertMutation(sf, text, call, edits, callee = 'mutate') {
     const decl = call.parent && ts.isAwaitExpression(call.parent) ? call.parent.parent : null;
     if (!decl) {
         if (call.parent && ts.isPropertyAccessExpression(call.parent)) throw new Skip('promise chain');
@@ -1308,42 +1498,86 @@ function convertMutation(sf, text, call, edits) {
     const mentions = (st) => refsOf(st, res).length > 0;
     const firstIdx = after.findIndex(mentions);
     if (firstIdx < 0) throw new Skip('Response ignored (unchecked)');
-    const first = after[firstIdx];
+    const hasOkCheck = (st) => { let hit = false; walk(st, (n) => { if (ts.isPropertyAccessExpression(n) && n.name.text === 'ok' && ts.isIdentifier(n.expression) && n.expression.text === res) hit = true; }); return hit; };
+
+    // The json-first shape: `const d = await res.json().catch(() => X);` straight before the ok check.
+    let jsonStmt = null;
+    let jsonDecl = null;
+    if (firstIdx === 0 && ts.isVariableStatement(after[0]) && after[0].declarationList.declarations.length === 1 && (after[0].declarationList.flags & ts.NodeFlags.Const)) {
+        const d = after[0].declarationList.declarations[0];
+        const init = d.initializer && unparen(d.initializer);
+        if (ts.isIdentifier(d.name) && init && ts.isAwaitExpression(init)) {
+            const inner = unparen(init.expression);
+            const m = ts.isCallExpression(inner) && ts.isPropertyAccessExpression(inner.expression) && inner.expression.name.text === 'catch' ? inner.expression.expression : null;
+            const idn = m && ts.isCallExpression(m) && ts.isPropertyAccessExpression(m.expression) && m.expression.name.text === 'json' && ts.isIdentifier(m.expression.expression) && m.expression.expression.text === res ? m.expression.expression : null;
+            if (idn && jsonWithFallback(idn, res) && !d.type) { jsonStmt = after[0]; jsonDecl = d; }
+        }
+    }
+    const okIdx = jsonStmt ? 1 : firstIdx;
+    const first = after[okIdx];
+    if (!first || (jsonStmt && !mentions(first))) {
+        if (jsonStmt) throw new Skip('ok check is not the first use of the Response');
+        throw new Skip('Response ignored (unchecked)');
+    }
     if (!ts.isIfStatement(first)) {
-        const okLater = after.slice(firstIdx).some((st) => { let hit = false; walk(st, (n) => { if (ts.isPropertyAccessExpression(n) && n.name.text === 'ok' && ts.isIdentifier(n.expression) && n.expression.text === res) hit = true; }); return hit; });
+        const okLater = after.slice(firstIdx).some(hasOkCheck);
         throw new Skip(okLater ? 'ok check is not the first use of the Response' : 'no ok check (changing it would change behaviour)');
     }
     const cond = unparen(first.expression);
-    const errName = ['err', 'apiErr', 'mutateErr'].find((nme) => !refsOf(block, nme).length && !new RegExp(`\\b${nme}\\b`).test(text.slice(first.getStart(sf), first.getEnd()))) || 'mutateErr'; // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script that reads local source files; its regexes are anchored or single-class, linear
-    const restMentions = after.slice(firstIdx + 1).some(mentions);
+    const names = ['err', 'apiErr', 'mutateErr', 'requestErr', 'httpErr'];
+    const errName = names.find((nme) => !refsOf(block, nme).length && !new RegExp(`\\b${nme}\\b`).test(text.slice(first.getStart(sf), first.getEnd()))); // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script that reads local source files; its regexes are anchored or single-class, linear
+    if (!errName) throw new Skip('no free name for the caught error');
+    const rest = after.slice(okIdx + 1);
+    const restMentions = rest.some(mentions) || (jsonStmt && true);
+    const uses = new Set([callee]);
 
     const argsText = call.arguments.map((a) => a.getText(sf)).join(', ');
-    const dstmt = (n, replaceStatus) => {
-        // text of a statement list with `res.status` -> `err.status`, other res uses forbidden
+    /** Statements of the refused branch as text: `res.status` -> `err.status`, `await res.json().catch(() => X)` -> `errorBody(err) ?? X`. */
+    const refusedText = (list, why) => {
         const out = [];
-        for (const s of n) {
+        for (const s of list) {
             const base = s.getStart(sf);
             const es = [];
             for (const id of refsOf(s, res)) {
-                if (ts.isPropertyAccessExpression(id.parent) && id.parent.expression === id && id.parent.name.text === 'status') es.push({ start: id.getStart(sf) - base, end: id.parent.getEnd() - base, text: `${errName}.status` });
-                else throw new Skip('non-ok branch reads the Response');
+                if (ts.isPropertyAccessExpression(id.parent) && id.parent.expression === id && id.parent.name.text === 'status') {
+                    es.push({ start: id.getStart(sf) - base, end: id.parent.getEnd() - base, text: `${errName}.status` });
+                    continue;
+                }
+                const j = jsonWithFallback(id, res);
+                if (j) {
+                    const fb = j.fallback.getText(sf);
+                    const bare = ts.isVariableDeclaration(j.awaitNode.parent) || (ts.isParenthesizedExpression(j.awaitNode.parent)) || ts.isCallExpression(j.awaitNode.parent);
+                    const expr = `errorBody(${errName}) ?? ${ts.isBinaryExpression(j.fallback) ? `(${fb})` : fb}`;
+                    es.push({ start: j.awaitNode.getStart(sf) - base, end: j.awaitNode.getEnd() - base, text: bare ? expr : `(${expr})` });
+                    uses.add('errorBody');
+                    continue;
+                }
+                // `res.json()` with no fallback throws on a body that is not JSON; errorBody() would not.
+                if (ts.isPropertyAccessExpression(id.parent) && id.parent.expression === id && id.parent.name.text === 'json') throw new Skip(`${why} parses JSON without a fallback`);
+                throw new Skip(`${why} reads the Response`);
             }
             out.push(applyEdits(s.getText(sf), es));
         }
-        void replaceStatus;
         return out;
     };
 
     if (ts.isPrefixUnaryExpression(cond) && isNotOk(cond, res)) {
-        if (first !== after[0]) throw new Skip('statements between the request and the ok check');
+        if (!jsonStmt && first !== after[0]) throw new Skip('statements between the request and the ok check');
         if (first.elseStatement) throw new Skip('ok check has an else');
         if (!exits(first.thenStatement)) throw new Skip('non-ok branch falls through');
         const items = ts.isBlock(first.thenStatement) ? [...first.thenStatement.statements] : [first.thenStatement];
-        const bodyLines = dstmt(items);
+        // the json statement is not part of the refused branch: its result is rebuilt inside the catch
         const ind = indentOf(text, stmt.getStart(sf));
         const i2 = '    ';
-        const awaited = `await mutate(${argsText})`;
+        const awaited = `await ${callee}(${argsText})`;
         const lines = [];
+        const bodyLines = [];
+        if (jsonStmt) {
+            const j = jsonWithFallback(refsOf(jsonStmt, res)[0], res);
+            bodyLines.push(`const ${jsonDecl.name.text} = errorBody(${errName}) ?? ${ts.isBinaryExpression(j.fallback) ? `(${j.fallback.getText(sf)})` : j.fallback.getText(sf)};`);
+            uses.add('errorBody');
+        }
+        bodyLines.push(...refusedText(items, 'non-ok branch'));
         if (restMentions) {
             lines.push(`let ${res}: Response;`);
             lines.push('try {');
@@ -1353,25 +1587,44 @@ function convertMutation(sf, text, call, edits) {
             lines.push(`${i2}${awaited};`);
         }
         lines.push(`} catch (${errName}) {`);
-        lines.push(`${i2}if (!(${errName} instanceof ApiError)) throw ${errName};`);
+        lines.push(`${i2}if (!(${errName} instanceof RefusedError)) throw ${errName};`);
         for (const l of bodyLines) lines.push(`${i2}${l}`);
         lines.push('}');
+        if (jsonStmt) lines.push(jsonStmt.getText(sf));
         edits.push({ start: stmt.getStart(sf), end: first.getEnd(), text: lines.join('\n' + ind) });
-        return { shape: 'if (!res.ok) exit -> try/catch', usesApiError: true };
+        uses.add('RefusedError');
+        return { shape: jsonStmt ? 'json first, if (!res.ok) exit -> try/catch' : 'if (!res.ok) exit -> try/catch', uses };
     }
     if (isOk(cond, res)) {
+        if (jsonStmt) throw new Skip('ok check is not the first use of the Response');
         if (first !== after[0]) throw new Skip('statements between the request and the ok check');
-        // `if (res.ok) {A} [else {B}]`: B must not touch the Response
-        if (first.elseStatement && refsOf(first.elseStatement, res).length) throw new Skip('else branch reads the Response');
         if (restMentions) throw new Skip('Response used after the ok branch');
-        const dEnd = call.getEnd();
-        edits.push({ start: call.expression.getStart(sf), end: call.expression.getEnd(), text: 'mutate' });
+        const ind = indentOf(text, stmt.getStart(sf));
+        const i2 = '    ';
+        if (first.elseStatement && refsOf(first.elseStatement, res).length) {
+            // `if (res.ok) {A} else {B}` with B reading the answer: B moves into the catch, A stays behind `if (res)`.
+            const elseItems = ts.isBlock(first.elseStatement) ? [...first.elseStatement.statements] : [first.elseStatement];
+            const elseText = refusedText(elseItems, 'else branch');
+            const lines = [
+                `let ${res}: Response | undefined;`,
+                'try {',
+                `${i2}${res} = await ${callee}(${argsText});`,
+                `} catch (${errName}) {`,
+                `${i2}if (!(${errName} instanceof RefusedError)) throw ${errName};`,
+                ...elseText.map((l) => `${i2}${l}`),
+                '}',
+                `if (${res}) ${first.thenStatement.getText(sf)}`,
+            ];
+            edits.push({ start: stmt.getStart(sf), end: first.getEnd(), text: lines.join('\n' + ind) });
+            uses.add('RefusedError');
+            return { shape: 'if (res.ok) {A} else {reads body} -> catch {B}; if (res) {A}', uses };
+        }
+        edits.push({ start: call.expression.getStart(sf), end: call.expression.getEnd(), text: callee });
         const awaitExpr = call.parent; // await authFetch(...)
-        edits.push({ start: awaitExpr.getEnd(), end: awaitExpr.getEnd(), text: `.catch((${errName}: unknown) => {\n${indentOf(text, stmt.getStart(sf))}    if (${errName} instanceof ApiError) return null;\n${indentOf(text, stmt.getStart(sf))}    throw ${errName};\n${indentOf(text, stmt.getStart(sf))}})` });
-        void dEnd;
-        // `await mutate(...).catch(...)`: await binds to the whole chain only if parenthesised the other way round
+        edits.push({ start: awaitExpr.getEnd(), end: awaitExpr.getEnd(), text: `.catch((${errName}: unknown) => {\n${ind}    if (${errName} instanceof RefusedError) return null;\n${ind}    throw ${errName};\n${ind}})` });
         edits.push({ start: first.expression.getStart(sf), end: first.expression.getEnd(), text: res });
-        return { shape: 'if (res.ok) -> if (res)', usesApiError: true, needsAwaitFix: true };
+        uses.add('RefusedError');
+        return { shape: 'if (res.ok) -> if (res)', uses };
     }
     throw new Skip('the ok check is not a plain res.ok test');
 }
@@ -1407,7 +1660,7 @@ function findTestsNeedingClient(srcRoot, converted) {
 
 // ======================================================================== API
 
-export function run(files, { mode = 'both', dry = false, report = null } = {}) {
+export function run(files, { mode = 'both', dry = false, report = null, maxLines = 0 } = {}) {
     const abs = files.map((f) => path.resolve(f));
     const shared = {
         hookFiles: new HookFiles(),
@@ -1421,20 +1674,38 @@ export function run(files, { mode = 'both', dry = false, report = null } = {}) {
     const skipped = [];
     const changedFiles = new Map();
     for (const file of abs) {
-        let text = fs.readFileSync(file, 'utf8');
+        const original = fs.readFileSync(file, 'utf8');
+        let text = original;
         if (/\.test\.[tj]sx?$/.test(file) || /[\\/]src[\\/]api[\\/]/.test(file)) continue;
+        const mark = { converted: converted.length, skipped: skipped.length };
+        const hookMark = new Map([...shared.hookFiles.files].map(([k, v]) => [k, { text: v.text, n: v.hooks.length }]));
         if (mode === 'query' || mode === 'both') {
             const r = queryFile(file, text, shared);
             converted.push(...r.converted.map((c) => ({ ...c, kind: 'query' })));
             skipped.push(...r.skipped);
-            if (r.text !== text) { text = r.text; changedFiles.set(file, text); }
+            if (r.text !== text) text = r.text;
         }
         if (mode === 'mutation' || mode === 'both') {
             const r = mutationFile(file, text);
             converted.push(...r.converted);
             skipped.push(...r.skipped);
-            if (r.text !== text) { text = r.text; changedFiles.set(file, text); }
+            if (r.text !== text) text = r.text;
         }
+        if (text === original) continue;
+        // A conversion adds lines (a try/catch where an `if` stood). It must not be the thing that pushes a
+        // file over the size limit: that file is a split first, then a conversion.
+        const lines = (t) => (t.match(/\n/g) || []).length; // like wc -l, which is what the file budget measures
+        if (maxLines && lines(original) <= maxLines && lines(text) > maxLines) {
+            const dropped = converted.splice(mark.converted);
+            for (const c of dropped) skipped.push({ file, kind: c.kind === 'request' ? 'mutation' : c.kind, line: c.line, reason: `would push the file over ${maxLines} lines` });
+            for (const [k, v] of shared.hookFiles.files) {
+                const before = hookMark.get(k);
+                if (!before) shared.hookFiles.files.delete(k);
+                else { v.text = before.text; v.hooks.length = before.n; }
+            }
+            continue;
+        }
+        changedFiles.set(file, text);
     }
     const hookWrites = new Map();
     for (const [p, hf] of shared.hookFiles.files) if (hf.hooks.length) hookWrites.set(p, hf.text);
@@ -1456,7 +1727,7 @@ export function run(files, { mode = 'both', dry = false, report = null } = {}) {
 }
 
 function summarize(converted, skipped) {
-    const s = { query: { converted: 0, skipped: 0, reasons: {} }, mutation: { converted: 0, skipped: 0, reasons: {} } };
+    const s = { query: { converted: 0, skipped: 0, reasons: {} }, mutation: { converted: 0, skipped: 0, reasons: {} }, request: { converted: 0, skipped: 0, reasons: {} } };
     for (const c of converted) s[c.kind].converted += 1;
     for (const k of skipped) { s[k.kind].skipped += 1; s[k.kind].reasons[k.reason] = (s[k.kind].reasons[k.reason] || 0) + 1; }
     return s;
@@ -1467,17 +1738,18 @@ function summarize(converted, skipped) {
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
     const args = process.argv.slice(2);
     const files = [];
-    const opts = { mode: 'both', dry: false, report: null };
+    const opts = { mode: 'both', dry: false, report: null, maxLines: 0 };
     for (let i = 0; i < args.length; i++) {
         const a = args[i];
         if (a === '--dry') opts.dry = true;
         else if (a === '--mode') opts.mode = args[++i];
         else if (a === '--report') opts.report = args[++i];
+        else if (a === '--max-lines') opts.maxLines = Number(args[++i]);
         else if (a.startsWith('--')) { console.error(`unknown option ${a}`); process.exit(2); }
         else files.push(a);
     }
     if (!files.length || !['query', 'mutation', 'both'].includes(opts.mode)) {
-        console.error('usage: node scripts/rq-codemod.mjs <files...> [--dry] [--mode query|mutation|both] [--report out.json]');
+        console.error('usage: node scripts/rq-codemod.mjs <files...> [--dry] [--mode query|mutation|both] [--report out.json] [--max-lines N]');
         process.exit(2);
     }
     const r = run(files, opts);

@@ -5,10 +5,10 @@ import KnowledgeOverview from './KnowledgeOverview';
 import SourceDetail from './SourceDetail';
 import { readOrgGroups, type OrgGroup } from '../../../../api/queries/orgGroups';
 import useTranslation from '../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
 import scopedStorage from '../../../../utils/scopedStorage';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
-import { mutate, ApiError } from '../../../../api/mutate';
+import { mutate, ApiError, request, RefusedError } from '../../../../api/mutate';
 
 /**
  * Studio → Knowledge. Three screens behind one route
@@ -39,7 +39,7 @@ const HIDDEN_SUGGESTIONS_KEY = 'knowledge.suggestions.hidden';
  * this person has already waved away. One at a time on purpose — three
  * stacked suggestions read as a to-do list somebody else wrote.
  */
-export function firstVisibleSuggestion(t: TranslateFn, suggestions: KbSuggestion[], hidden: Set<string>) {
+function firstVisibleSuggestion(t: TranslateFn, suggestions: KbSuggestion[], hidden: Set<string>) {
     const list = Array.isArray(suggestions) ? suggestions : [];
     const pick = list.find(s => s && !hidden.has(`${s.kbId}:${s.agentId}`));
     if (!pick) return null;
@@ -153,8 +153,13 @@ export default function KnowledgeStudio({
      */
     const acceptSuggestion = useCallback(async (suggestion: KbSuggestion & { text: string }) => {
         try {
-            const res = await authFetch(`${API_BASE}/api/agents/${encodeURIComponent(suggestion.agentId)}`);
-            if (!res.ok) throw new Error('agent');
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/api/agents/${encodeURIComponent(suggestion.agentId)}`);
+            } catch (apiErr) {
+                if (!(apiErr instanceof RefusedError)) throw apiErr;
+                throw new Error('agent');
+            }
             const agent = await res.json();
             const config = { ...(agent?.config || {}) };
             const current = Array.isArray(config.knowledge_base_ids) ? config.knowledge_base_ids : [];

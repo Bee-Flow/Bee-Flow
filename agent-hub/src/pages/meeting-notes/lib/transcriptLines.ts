@@ -42,10 +42,10 @@ import { formatDuration, formatSpeakerLabel } from './format';
 import { segmentSpeakerId } from './playerData';
 
 /** The three things a line can be marked as, and the order they chip in. */
-export const LINE_KINDS = Object.freeze<LineKind[]>(['action', 'decision', 'question']);
+const LINE_KINDS = Object.freeze<LineKind[]>(['action', 'decision', 'question']);
 
 /** Which meeting field each kind lives in. */
-export const LINE_KIND_FIELD = Object.freeze({
+const LINE_KIND_FIELD = Object.freeze({
     action: 'actionItems',
     decision: 'decisions',
     question: 'questions',
@@ -58,7 +58,7 @@ export interface LineSegment {
 }
 
 /** One entry of the artifact lists (actions, decisions, questions) on a meeting. */
-export interface LineArtifact {
+interface LineArtifact {
     id?: unknown;
     text?: unknown;
     segmentIndex?: unknown;
@@ -74,7 +74,7 @@ export interface LineMeeting {
     questions?: unknown;
 }
 
-export type LineKind = 'action' | 'decision' | 'question';
+type LineKind = 'action' | 'decision' | 'question';
 
 export interface LineMark {
     kind: LineKind;
@@ -103,7 +103,7 @@ export function anchorOf(item?: { segmentIndex?: unknown } | null): number | nul
 }
 
 /** `mm:ss` for a segment's start — the timestamp the artifact carries. */
-export function lineTimestamp(segment?: LineSegment | null): string {
+function lineTimestamp(segment?: LineSegment | null): string {
     return formatDuration(Number(segment?.start) || 0);
 }
 

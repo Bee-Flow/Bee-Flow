@@ -15,7 +15,7 @@ import type { PiiGroup } from '../../../../../../config/piiCategories';
 
 export type MatrixColumn = 'detect' | 'external' | 'internal';
 
-export const MATRIX_COLUMNS: MatrixColumn[] = ['detect', 'external', 'internal'];
+const MATRIX_COLUMNS: MatrixColumn[] = ['detect', 'external', 'internal'];
 
 /** What the matrix needs of a localised category (see piiCategoriesLocalized). */
 export interface MatrixKind {

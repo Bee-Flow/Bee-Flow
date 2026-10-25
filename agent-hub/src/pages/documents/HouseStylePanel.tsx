@@ -1,11 +1,12 @@
 import { ArrowLeft, Check, Loader2, AlertTriangle, Upload, Trash2 } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import useTranslation from '../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
 import { getHouseStyle, saveHouseStyle, fileToDataUrl, previewDeckTheme } from './documentsApi';
 import DeckPreview from './DeckPreview';
 import DeckLookFields, { DECK_FALLBACK, DEFAULT_DECK } from './DeckLookFields';
 import type { DeckTheme } from './DeckPreview';
-import type { DeckOptions, DeckSettings, TextKey, ColourKey, HouseStyle, HouseStylePanelProps, CardProps, NoticeProps } from './HouseStylePanel.types';
+import type { DeckOptions, DeckSettings, TextKey, HouseStyle, HouseStylePanelProps, NoticeProps } from './HouseStylePanel.types';
+import { HouseStylePanelCard2, Card } from './HouseStylePanelCard2';
 /**
  * The organisation's letterhead: logo, colours, font and the company details
  * that go on every invoice.
@@ -32,12 +33,6 @@ const TEXT_FIELDS: { key: TextKey; labelKey: string; fallback: string; placehold
     { key: 'companyVat', labelKey: 'documents.style.vat', fallback: 'VAT number', placeholder: 'NL001234567B01' },
     { key: 'companyIban', labelKey: 'documents.style.iban', fallback: 'IBAN', placeholder: 'NL12 BEEF 0123 4567 89' },
     { key: 'footerText', labelKey: 'documents.style.footer', fallback: 'Footer line', placeholder: 'Hartelijk dank voor uw vertrouwen.' },
-];
-
-const COLOUR_FIELDS: { key: ColourKey; labelKey: string; fallback: string; varName: string }[] = [
-    { key: 'accent', labelKey: 'documents.style.accent', fallback: 'Accent', varName: '--doc-accent' },
-    { key: 'ink', labelKey: 'documents.style.ink', fallback: 'Text', varName: '--doc-ink' },
-    { key: 'muted', labelKey: 'documents.style.muted', fallback: 'Muted text', varName: '--doc-muted' },
 ];
 
 export default function HouseStylePanel({ onBack }: HouseStylePanelProps) {
@@ -186,127 +181,13 @@ export default function HouseStylePanel({ onBack }: HouseStylePanelProps) {
                 {error && <Notice tone="error">{error}</Notice>}
 
                 {/* ── Master switch ── */}
-                <Card>
-                    <label className="flex items-start gap-3 cursor-pointer">
-                        <input
-                            type="checkbox"
-                            checked={!!style.enabled}
-                            disabled={disabled}
-                            onChange={(e) => set('enabled', e.target.checked)}
-                            className="mt-1"
-                            data-testid="house-style-enabled"
-                        />
-                        <span>
-                            <span className="block text-sm font-semibold text-[var(--text-primary)]">
-                                {t('documents.style.enable', 'Use this house style on new documents')}
-                            </span>
-                            <span className="block text-sm text-[var(--text-muted)]">
-                                {t('documents.style.enable_hint', 'Off means nothing is applied and every document is whatever its own styling says. This is the default until you fill the letterhead in.')}
-                            </span>
-                        </span>
-                    </label>
-                </Card>
+                <HouseStylePanelCard3 style={style} disabled={disabled} set={set} t={t} />
 
                 {/* ── Logo ── */}
-                <Card title={t('documents.style.logo', 'Logo')}>
-                    <p className="text-sm mb-3 text-[var(--text-muted)]">
-                        {t('documents.style.logo_hint', 'PNG, JPEG, WebP or SVG. It is embedded in the document, so it also prints when there is no internet.')}
-                    </p>
-                    <div className="flex items-center gap-4">
-                        <div
-                            className="w-20 h-20 rounded-lg flex items-center justify-center shrink-0 overflow-hidden [background:var(--bg-tertiary)] [border:1px_solid_var(--border-subtle)]"
-                        >
-                            {style.logoDataUrl
-                                ? <img src={style.logoDataUrl} alt="" className="max-w-full max-h-full object-contain" data-testid="house-style-logo" />
-                                : <span className="text-xs text-[var(--text-tertiary)]">{t('documents.style.no_logo', 'None')}</span>}
-                        </div>
-                        <div className="flex flex-col gap-2">
-                            <label
-                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${disabled ? 'opacity-50' : 'cursor-pointer'} [background:var(--bg-tertiary)] [color:var(--text-primary)]!`}
-                            >
-                                <Upload size={14} />
-                                {t('documents.style.upload_logo', 'Choose a file')}
-                                <input
-                                    type="file"
-                                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                                    className="hidden"
-                                    disabled={disabled}
-                                    onChange={(e) => handleLogo(e.target.files?.[0])}
-                                    data-testid="house-style-logo-input"
-                                />
-                            </label>
-                            {style.logoDataUrl && !disabled && (
-                                <button
-                                    onClick={() => set('logoDataUrl', '')}
-                                    className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)]"
-                                >
-                                    <Trash2 size={13} />
-                                    {t('documents.style.remove_logo', 'Remove')}
-                                </button>
-                            )}
-                        </div>
-                        <label className="ml-auto text-xs text-[var(--text-muted)]">
-                            {t('documents.style.logo_width', 'Width (mm)')}
-                            <input
-                                type="number"
-                                min={6}
-                                max={80}
-                                value={style.logoWidthMm}
-                                disabled={disabled}
-                                onChange={(e) => set('logoWidthMm', Number(e.target.value))}
-                                className="block w-20 mt-1 px-2 py-1 rounded text-sm [background:var(--bg-tertiary)] [color:var(--text-primary)]! [border:1px_solid_var(--border-subtle)]"
-                            />
-                        </label>
-                    </div>
-                </Card>
+                <HouseStylePanelCard t={t} style={style} disabled={disabled} handleLogo={handleLogo} set={set} />
 
                 {/* ── Colours + font ── */}
-                <Card title={t('documents.style.look', 'Colours and type')}>
-                    <p className="text-sm mb-3 text-[var(--text-muted)]">
-                        {t('documents.style.look_hint', 'The assistant writes these as variables, so changing one restyles every document that uses the house style — including ones written months ago.')}
-                    </p>
-                    <div className="flex flex-wrap gap-4">
-                        {COLOUR_FIELDS.map((f) => (
-                            <label key={f.key} className="text-xs text-[var(--text-muted)]">
-                                {t(f.labelKey, f.fallback)}
-                                <span className="block font-mono text-[10px] mb-1 text-[var(--text-tertiary)]">
-                                    {f.varName}
-                                </span>
-                                <span className="flex items-center gap-2">
-                                    <input
-                                        type="color"
-                                        value={style[f.key]}
-                                        disabled={disabled}
-                                        onChange={(e) => set(f.key, e.target.value)}
-                                        className="w-9 h-9 rounded cursor-pointer"
-                                        aria-label={t(f.labelKey, f.fallback)}
-                                    />
-                                    <input
-                                        type="text"
-                                        value={style[f.key]}
-                                        disabled={disabled}
-                                        onChange={(e) => set(f.key, e.target.value)}
-                                        className="w-24 px-2 py-1 rounded text-sm font-mono [background:var(--bg-tertiary)] [color:var(--text-primary)]! [border:1px_solid_var(--border-subtle)]"
-                                    />
-                                </span>
-                            </label>
-                        ))}
-                        <label className="text-xs text-[var(--text-muted)]">
-                            {t('documents.style.font', 'Typeface')}
-                            <span className="block font-mono text-[10px] mb-1 text-[var(--text-tertiary)]">--doc-font</span>
-                            <select
-                                value={style.font}
-                                disabled={disabled}
-                                onChange={(e) => set('font', e.target.value)}
-                                className="px-2 py-2 rounded text-sm [background:var(--bg-tertiary)] [color:var(--text-primary)]! [border:1px_solid_var(--border-subtle)]"
-                            >
-                                {meta.fonts.map((f) => (
-                                    <option key={f} value={f}>{t(`documents.style.font_${f}`, f)}</option>
-                                ))}
-                            </select>
-                        </label>
-                    </div>
-                </Card>
+                <HouseStylePanelCard2 t={t} style={style} disabled={disabled} set={set} meta={meta} />
 
                 {/* ── Presentations ── */}
                 <Card title={t('documents.style.deck', 'Presentations')}>
@@ -320,26 +201,7 @@ export default function HouseStylePanel({ onBack }: HouseStylePanelProps) {
                 </Card>
 
                 {/* ── Company details ── */}
-                <Card title={t('documents.style.details', 'Company details')}>
-                    <p className="text-sm mb-3 text-[var(--text-muted)]">
-                        {t('documents.style.details_hint', 'The assistant writes these into the document itself, so you can still correct them by hand on a single invoice.')}
-                    </p>
-                    <div className="grid grid-cols-2 gap-3">
-                        {TEXT_FIELDS.map((f) => (
-                            <label key={f.key} className="text-xs text-[var(--text-muted)]">
-                                {t(f.labelKey, f.fallback)}
-                                <input
-                                    type="text"
-                                    value={style[f.key] || ''}
-                                    placeholder={f.placeholder}
-                                    disabled={disabled}
-                                    onChange={(e) => set(f.key, e.target.value)}
-                                    className="block w-full mt-1 px-2 py-1.5 rounded text-sm [background:var(--bg-tertiary)] [color:var(--text-primary)]! [border:1px_solid_var(--border-subtle)]"
-                                />
-                            </label>
-                        ))}
-                    </div>
-                </Card>
+                <HouseStylePanelCard4 t={t} style={style} disabled={disabled} set={set} />
 
                 {!disabled && (
                     <div className="flex items-center gap-3 mt-6">
@@ -364,17 +226,100 @@ export default function HouseStylePanel({ onBack }: HouseStylePanelProps) {
     );
 }
 
-function Card({ title, children }: CardProps) {
-    return (
-        <section
-            className="rounded-xl p-5 mb-4 [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]"
-        >
-            {title && (
-                <h2 className="text-sm font-semibold mb-3 text-[var(--text-primary)]">{title}</h2>
-            )}
-            {children}
-        </section>
-    );
+function HouseStylePanelCard4({ t, style, disabled, set }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; style: HouseStyle; disabled: boolean; set: (key: string, value: boolean | string | number) => void; }) {
+    return <Card title={t('documents.style.details', 'Company details')}>
+        <p className="text-sm mb-3 text-[var(--text-muted)]">
+            {t('documents.style.details_hint', 'The assistant writes these into the document itself, so you can still correct them by hand on a single invoice.')}
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+            {TEXT_FIELDS.map((f) => (
+                <label key={f.key} className="text-xs text-[var(--text-muted)]">
+                    {t(f.labelKey, f.fallback)}
+                    <input
+                        type="text"
+                        value={style[f.key] || ''}
+                        placeholder={f.placeholder}
+                        disabled={disabled}
+                        onChange={(e) => set(f.key, e.target.value)}
+                        className="block w-full mt-1 px-2 py-1.5 rounded text-sm [background:var(--bg-tertiary)] [color:var(--text-primary)]! [border:1px_solid_var(--border-subtle)]" />
+                </label>
+            ))}
+        </div>
+    </Card>;
+}
+
+function HouseStylePanelCard3({ style, disabled, set, t }: { style: HouseStyle; disabled: boolean; set: (key: string, value: boolean | string | number) => void; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; }) {
+    return <Card>
+        <label className="flex items-start gap-3 cursor-pointer">
+            <input
+                type="checkbox"
+                checked={!!style.enabled}
+                disabled={disabled}
+                onChange={(e) => set('enabled', e.target.checked)}
+                className="mt-1"
+                data-testid="house-style-enabled" />
+            <span>
+                <span className="block text-sm font-semibold text-[var(--text-primary)]">
+                    {t('documents.style.enable', 'Use this house style on new documents')}
+                </span>
+                <span className="block text-sm text-[var(--text-muted)]">
+                    {t('documents.style.enable_hint', 'Off means nothing is applied and every document is whatever its own styling says. This is the default until you fill the letterhead in.')}
+                </span>
+            </span>
+        </label>
+    </Card>;
+}
+
+function HouseStylePanelCard({ t, style, disabled, handleLogo, set }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; style: HouseStyle; disabled: boolean; handleLogo: (file: File | undefined) => Promise<void>; set: (key: string, value: boolean | string | number) => void; }) {
+    return <Card title={t('documents.style.logo', 'Logo')}>
+        <p className="text-sm mb-3 text-[var(--text-muted)]">
+            {t('documents.style.logo_hint', 'PNG, JPEG, WebP or SVG. It is embedded in the document, so it also prints when there is no internet.')}
+        </p>
+        <div className="flex items-center gap-4">
+            <div
+                className="w-20 h-20 rounded-lg flex items-center justify-center shrink-0 overflow-hidden [background:var(--bg-tertiary)] [border:1px_solid_var(--border-subtle)]"
+            >
+                {style.logoDataUrl
+                    ? <img src={style.logoDataUrl} alt="" className="max-w-full max-h-full object-contain" data-testid="house-style-logo" />
+                    : <span className="text-xs text-[var(--text-tertiary)]">{t('documents.style.no_logo', 'None')}</span>}
+            </div>
+            <div className="flex flex-col gap-2">
+                <label
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium ${disabled ? 'opacity-50' : 'cursor-pointer'} [background:var(--bg-tertiary)] [color:var(--text-primary)]!`}
+                >
+                    <Upload size={14} />
+                    {t('documents.style.upload_logo', 'Choose a file')}
+                    <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                        className="hidden"
+                        disabled={disabled}
+                        onChange={(e) => handleLogo(e.target.files?.[0])}
+                        data-testid="house-style-logo-input" />
+                </label>
+                {style.logoDataUrl && !disabled && (
+                    <button
+                        onClick={() => set('logoDataUrl', '')}
+                        className="inline-flex items-center gap-1.5 text-xs text-[var(--text-muted)]"
+                    >
+                        <Trash2 size={13} />
+                        {t('documents.style.remove_logo', 'Remove')}
+                    </button>
+                )}
+            </div>
+            <label className="ml-auto text-xs text-[var(--text-muted)]">
+                {t('documents.style.logo_width', 'Width (mm)')}
+                <input
+                    type="number"
+                    min={6}
+                    max={80}
+                    value={style.logoWidthMm}
+                    disabled={disabled}
+                    onChange={(e) => set('logoWidthMm', Number(e.target.value))}
+                    className="block w-20 mt-1 px-2 py-1 rounded text-sm [background:var(--bg-tertiary)] [color:var(--text-primary)]! [border:1px_solid_var(--border-subtle)]" />
+            </label>
+        </div>
+    </Card>;
 }
 
 function Notice({ tone, children }: NoticeProps) {

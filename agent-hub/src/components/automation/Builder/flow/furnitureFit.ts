@@ -31,7 +31,7 @@ export interface Bounds { x: number; y: number; width: number; height: number }
 /** The fraction every fit used before the furniture counted, still the floor on each side. */
 export const FIT_PADDING = 0.08;
 /** Air between a piece of furniture and the nearest card. */
-export const FURNITURE_GAP_PX = 12;
+const FURNITURE_GAP_PX = 12;
 /**
  * How far outside the cards the dashed line back to the next row runs, in
  * flow units (layout.js wraps; measured 31 at 78% and at 117%). It is not a

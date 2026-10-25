@@ -1,5 +1,5 @@
 import type { TestItem, TestRunResults, TestRun, AgentTest, Refusal, RunProgress, RunSummary, SummariseRunArgs, RefusalForArgs } from './testSetFacts.types';
-export type { TestItem, TestRunResults, TestRun, AgentTest, Refusal, RunProgress, RunSummary } from './testSetFacts.types';
+export type { TestItem,  TestRun, AgentTest, Refusal, RunProgress, RunSummary } from './testSetFacts.types';
 /** De vier toestanden van "wat weten we van de laatste run". */
 export const RUN_STATE = Object.freeze({
     NEVER: 'never',
@@ -9,7 +9,7 @@ export const RUN_STATE = Object.freeze({
 });
 
 /** Wat er met één test gebeurde. Spiegelt `testSandbox.STATUSES`. */
-export const ITEM_STATUS = Object.freeze(['pass', 'fail', 'blocked', 'error']);
+const ITEM_STATUS = Object.freeze(['pass', 'fail', 'blocked', 'error']);
 
 /**
  * The order in which a problem asks for attention.

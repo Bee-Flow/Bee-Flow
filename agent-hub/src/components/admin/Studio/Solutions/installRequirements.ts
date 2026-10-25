@@ -1,5 +1,5 @@
 import type { StepAddress, TableRequirement, BlueprintRequires, SourceClaim, GrantRow, BlueprintReadOk, BlueprintReadNone, BlueprintRead, InstallAnswers, Obj, StepVisitor } from './installRequirements.types';
-export type { StepAddress, TableRequirement, BlueprintRequires, SourceClaim, GrantRow, BlueprintReadOk, BlueprintReadNone, BlueprintRead, InstallAnswers } from './installRequirements.types';
+export type { StepAddress, TableRequirement, BlueprintRequires, SourceClaim, GrantRow, BlueprintReadOk,  BlueprintRead, InstallAnswers } from './installRequirements.types';
 const ENTITY_KINDS = ['automations', 'apps', 'webpages', 'datatables', 'agents', 'knowledgeBases'];
 
 /** The sentinel a table row uses for "make me an empty one". */

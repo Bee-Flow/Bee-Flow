@@ -42,4 +42,3 @@ export const playbooksApi = {
     remove: (id: string) => request(`${base}/${enc(id)}`, { method: 'DELETE' }),
 };
 
-export default playbooksApi;

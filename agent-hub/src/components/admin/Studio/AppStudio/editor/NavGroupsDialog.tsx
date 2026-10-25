@@ -1,10 +1,10 @@
 import { Plus, Trash2 } from 'lucide-react';
-import { useState } from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
+import { SetStateAction, Dispatch, useState } from 'react';
+import useTranslation, { TranslateParams } from '../../../../../hooks/useTranslation';
 import Modal from '../../../../shared/Modal';
 import type { AppDefinition } from '../inspector/appDefinition';
 import { IconField } from '../inspector/panels/kit';
-import type { NavDefinition } from '../runtime/shell/navModel';
+import type { NavDefinition, NavScreen } from '../runtime/shell/navModel';
 import { updateNav, updateScreen } from '../state/definitionOps';
 
 /**
@@ -168,102 +168,102 @@ export default function NavGroupsDialog({ open, definition, onCommit, onClose }:
                 </>
             }
         >
-            <div className="flex flex-col gap-4">
-                {groups.length === 0 ? (
-                    <p className="text-sm text-[var(--text-muted)]">
-                        {t('studio_apps_edit.nav_groups.empty', 'No groups yet. Ungrouped screens are listed directly; add a group to collect screens under a section label.')}
-                    </p>
-                ) : null}
-
-                {groups.map((group) => (
-                    <div
-                        key={group.id}
-                        className="rounded-lg border p-3 flex flex-col gap-3 border-[var(--border-default)]"
-                        data-nav-group-editor={group.id}
-                    >
-                        <div className="flex items-start gap-2">
-                            <div className="flex-1 min-w-0">
-                                <input
-                                    value={group.label}
-                                    maxLength={MAX_LABEL}
-                                    onChange={(e) => patchGroup(group.id, { label: e.target.value })}
-                                    aria-label={t('studio_apps_edit.nav_groups.group_label', 'Group label')}
-                                    placeholder={t('studio_apps_edit.nav_groups.group_label', 'Group label')}
-                                    className="w-full px-3 py-2 rounded-md text-sm border bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] focus:border-[var(--accent-primary)]"
-                                />
-                            </div>
-                            <button
-                                type="button"
-                                onClick={() => removeGroup(group.id)}
-                                aria-label={t('studio_apps_edit.nav_groups.delete_group_aria', 'Delete group {name}', { name: group.label || t('studio_apps_edit.nav_groups.group', 'Group') })}
-                                title={t('studio_apps_edit.nav_groups.delete_group', 'Delete group')}
-                                className="p-2 rounded-md hover:bg-[var(--bg-card-hover)] shrink-0 text-[var(--text-tertiary)]"
-                            >
-                                <Trash2 className="w-4 h-4" />
-                            </button>
-                        </div>
-
-                        <IconField
-                            label={t('studio_apps_edit.nav_groups.icon', 'Icon')}
-                            value={group.icon}
-                            onChange={(v) => patchGroup(group.id, { icon: v || null })}
-                        />
-
-                        <div className="flex flex-col gap-1">
-                            <span className="text-xs font-medium text-[var(--text-secondary)]">
-                                {t('studio_apps_edit.nav_groups.screens_in_group', 'Screens in this group')}
-                            </span>
-                            {screens.map((screen) => {
-                                const owning = owner.get(screen.id);
-                                const claimedElsewhere = owning && owning.id !== group.id;
-                                const included = group.screens.includes(screen.id);
-                                return (
-                                    <div key={screen.id}>
-                                        <label
-                                            className={`flex items-center gap-2 text-sm px-1 py-0.5 rounded ${claimedElsewhere ? 'opacity-50' : ''} text-[var(--text-primary)]`}
-                                            title={claimedElsewhere ? t('studio_apps_edit.nav_groups.already_in', 'Already in "{group}" — a screen can be in one group.', { group: owning.label || t('studio_apps_edit.nav_groups.another_group', 'another group') }) : undefined}
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                checked={included}
-                                                disabled={claimedElsewhere}
-                                                onChange={(e) => toggleScreen(group.id, screen.id, e.target.checked)}
-                                                aria-label={t('studio_apps_edit.nav_groups.screen_in_group', '{screen} in {group}', { screen: screen.name || t('studio_apps_edit.nav_groups.screen', 'Screen'), group: group.label || t('studio_apps_edit.nav_groups.group_lower', 'group') })}
-                                            />
-                                            <span className="truncate">{screen.name || t('studio_apps_edit.nav_groups.screen', 'Screen')}</span>
-                                            {screen.showInNav === false ? (
-                                                <span className="text-[10px] uppercase tracking-wide text-[var(--text-secondary)]">
-                                                    {t('studio_apps_edit.nav_groups.hidden', 'hidden')}
-                                                </span>
-                                            ) : null}
-                                        </label>
-                                        {included ? (
-                                            <input
-                                                value={descriptions[screen.id] || ''}
-                                                maxLength={MAX_DESCRIPTION}
-                                                onChange={(e) => setDescriptions((prev) => ({ ...prev, [screen.id]: e.target.value }))}
-                                                aria-label={t('studio_apps_edit.nav_groups.menu_description', 'Menu description for {screen}', { screen: screen.name || t('studio_apps_edit.nav_groups.screen_lower', 'screen') })}
-                                                placeholder={t('studio_apps_edit.nav_groups.description_placeholder', 'One line: what this screen is for')}
-                                                className="ml-6 mt-0.5 mb-1 w-[calc(100%-1.5rem)] px-2 py-1 rounded-md text-xs border bg-[var(--bg-tertiary)] border-[var(--border-subtle)] text-[var(--text-secondary)] placeholder:text-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] focus:border-[var(--accent-primary)]"
-                                            />
-                                        ) : null}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                ))}
-
-                <button
-                    type="button"
-                    onClick={addGroup}
-                    disabled={groups.length >= MAX_GROUPS}
-                    className="inline-flex items-center gap-1.5 self-start px-3 py-1.5 rounded-md border text-sm hover:bg-[var(--bg-tertiary)] disabled:opacity-50 border-[var(--border-default)] text-[var(--text-secondary)]"
-                    title={groups.length >= MAX_GROUPS ? t('studio_apps_edit.nav_groups.at_most', 'At most {max} groups', { max: MAX_GROUPS }) : undefined}
-                >
-                    <Plus className="w-4 h-4" /> {t('studio_apps_edit.nav_groups.add_group', 'Add group')}
-                </button>
-            </div>
+            <NavGroupsDialogSection groups={groups} t={t} patchGroup={patchGroup} removeGroup={removeGroup} screens={screens} owner={owner} toggleScreen={toggleScreen} descriptions={descriptions} setDescriptions={setDescriptions} addGroup={addGroup} />
         </Modal>
     );
+}
+
+function NavGroupsDialogSection({ groups, t, patchGroup, removeGroup, screens, owner, toggleScreen, descriptions, setDescriptions, addGroup }: { groups: GroupDraft[]; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; patchGroup: (id: string, patch: Partial<GroupDraft>) => void; removeGroup: (id: string) => void; screens: NavScreen[]; owner: Map<string, GroupDraft>; toggleScreen: (groupId: string, screenId: string, checked: boolean) => void; descriptions: Record<string, string>; setDescriptions: Dispatch<SetStateAction<Record<string, string>>>; addGroup: () => void; }) {
+    return <div className="flex flex-col gap-4">
+        {groups.length === 0 ? (
+            <p className="text-sm text-[var(--text-muted)]">
+                {t('studio_apps_edit.nav_groups.empty', 'No groups yet. Ungrouped screens are listed directly; add a group to collect screens under a section label.')}
+            </p>
+        ) : null}
+
+        {groups.map((group) => (
+            <div
+                key={group.id}
+                className="rounded-lg border p-3 flex flex-col gap-3 border-[var(--border-default)]"
+                data-nav-group-editor={group.id}
+            >
+                <div className="flex items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                        <input
+                            value={group.label}
+                            maxLength={MAX_LABEL}
+                            onChange={(e) => patchGroup(group.id, { label: e.target.value })}
+                            aria-label={t('studio_apps_edit.nav_groups.group_label', 'Group label')}
+                            placeholder={t('studio_apps_edit.nav_groups.group_label', 'Group label')}
+                            className="w-full px-3 py-2 rounded-md text-sm border bg-[var(--bg-tertiary)] border-[var(--border-default)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] focus:border-[var(--accent-primary)]" />
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => removeGroup(group.id)}
+                        aria-label={t('studio_apps_edit.nav_groups.delete_group_aria', 'Delete group {name}', { name: group.label || t('studio_apps_edit.nav_groups.group', 'Group') })}
+                        title={t('studio_apps_edit.nav_groups.delete_group', 'Delete group')}
+                        className="p-2 rounded-md hover:bg-[var(--bg-card-hover)] shrink-0 text-[var(--text-tertiary)]"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                </div>
+
+                <IconField
+                    label={t('studio_apps_edit.nav_groups.icon', 'Icon')}
+                    value={group.icon}
+                    onChange={(v) => patchGroup(group.id, { icon: v || null })} />
+
+                <div className="flex flex-col gap-1">
+                    <span className="text-xs font-medium text-[var(--text-secondary)]">
+                        {t('studio_apps_edit.nav_groups.screens_in_group', 'Screens in this group')}
+                    </span>
+                    {screens.map((screen) => {
+                        const owning = owner.get(screen.id);
+                        const claimedElsewhere = owning && owning.id !== group.id;
+                        const included = group.screens.includes(screen.id);
+                        return (
+                            <div key={screen.id}>
+                                <label
+                                    className={`flex items-center gap-2 text-sm px-1 py-0.5 rounded ${claimedElsewhere ? 'opacity-50' : ''} text-[var(--text-primary)]`}
+                                    title={claimedElsewhere ? t('studio_apps_edit.nav_groups.already_in', 'Already in "{group}" — a screen can be in one group.', { group: owning.label || t('studio_apps_edit.nav_groups.another_group', 'another group') }) : undefined}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={included}
+                                        disabled={claimedElsewhere}
+                                        onChange={(e) => toggleScreen(group.id, screen.id, e.target.checked)}
+                                        aria-label={t('studio_apps_edit.nav_groups.screen_in_group', '{screen} in {group}', { screen: screen.name || t('studio_apps_edit.nav_groups.screen', 'Screen'), group: group.label || t('studio_apps_edit.nav_groups.group_lower', 'group') })} />
+                                    <span className="truncate">{screen.name || t('studio_apps_edit.nav_groups.screen', 'Screen')}</span>
+                                    {screen.showInNav === false ? (
+                                        <span className="text-[10px] uppercase tracking-wide text-[var(--text-secondary)]">
+                                            {t('studio_apps_edit.nav_groups.hidden', 'hidden')}
+                                        </span>
+                                    ) : null}
+                                </label>
+                                {included ? (
+                                    <input
+                                        value={descriptions[screen.id] || ''}
+                                        maxLength={MAX_DESCRIPTION}
+                                        onChange={(e) => setDescriptions((prev) => ({ ...prev, [screen.id]: e.target.value }))}
+                                        aria-label={t('studio_apps_edit.nav_groups.menu_description', 'Menu description for {screen}', { screen: screen.name || t('studio_apps_edit.nav_groups.screen_lower', 'screen') })}
+                                        placeholder={t('studio_apps_edit.nav_groups.description_placeholder', 'One line: what this screen is for')}
+                                        className="ml-6 mt-0.5 mb-1 w-[calc(100%-1.5rem)] px-2 py-1 rounded-md text-xs border bg-[var(--bg-tertiary)] border-[var(--border-subtle)] text-[var(--text-secondary)] placeholder:text-[var(--text-muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-primary-hover)] focus:border-[var(--accent-primary)]" />
+                                ) : null}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        ))}
+
+        <button
+            type="button"
+            onClick={addGroup}
+            disabled={groups.length >= MAX_GROUPS}
+            className="inline-flex items-center gap-1.5 self-start px-3 py-1.5 rounded-md border text-sm hover:bg-[var(--bg-tertiary)] disabled:opacity-50 border-[var(--border-default)] text-[var(--text-secondary)]"
+            title={groups.length >= MAX_GROUPS ? t('studio_apps_edit.nav_groups.at_most', 'At most {max} groups', { max: MAX_GROUPS }) : undefined}
+        >
+            <Plus className="w-4 h-4" /> {t('studio_apps_edit.nav_groups.add_group', 'Add group')}
+        </button>
+    </div>;
 }

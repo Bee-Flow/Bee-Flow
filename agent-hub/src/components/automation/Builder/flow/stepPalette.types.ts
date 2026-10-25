@@ -5,7 +5,7 @@ import type { AppCategory, ItemSection, PaletteItem, RibbonApp, StepPayload } fr
 export type { PaletteItem, TranslateFn };
 
 /** An action of a catalog app, as the server sends it. */
-export interface CatalogAction {
+interface CatalogAction {
     name: string;
     label?: string;
     description?: string;

@@ -10,8 +10,8 @@ import { Check, RefreshCw, Search, X } from 'lucide-react';
 import React, { useId } from 'react';
 import type { ComponentType } from 'react';
 import useGoogleWorkspacePicker from '../../hooks/useGoogleWorkspacePicker';
-import type { UseGoogleWorkspacePickerOptions, WorkspaceItem } from '../../hooks/useGoogleWorkspacePicker';
-import useTranslation from '../../hooks/useTranslation';
+import type { UseGoogleWorkspacePickerOptions, WorkspaceConnectionStatus, WorkspaceItem } from '../../hooks/useGoogleWorkspacePicker';
+import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
 import { nOf } from '../admin/Studio/KnowledgeStudio/plural';
 import Modal from '../shared/Modal';
 
@@ -132,27 +132,7 @@ const GoogleWorkspacePickerModal = ({
                 }}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-5 py-3.5 [border-bottom:1px_solid_#e0e0e0]">
-                    <div className="flex items-center gap-3">
-                        <Icon className="w-7 h-7" />
-                        <div>
-                            <h2 id={titleId} className="text-[17px] font-medium [color:#202124]!">
-                                {title}
-                            </h2>
-                            {status.connected && status.user && (
-                                <span className="text-xs [color:#5f6368]!">
-                                    {status.user.email || status.user.displayName}
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                    <button onClick={onClose}
-                        aria-label={t('common.close', 'Close')}
-                        title={t('common.close', 'Close')}
-                        className="p-2 rounded-full hover:bg-gray-100 transition-colors [color:#5f6368]">
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
+                <GoogleWorkspacePickerModalSection Icon={Icon} titleId={titleId} title={title} status={status} onClose={onClose} t={t} />
 
                 {/* Not Connected */}
                 {!status.connected && (
@@ -313,3 +293,27 @@ const GoogleWorkspacePickerModal = ({
 };
 
 export default GoogleWorkspacePickerModal;
+
+function GoogleWorkspacePickerModalSection({ Icon, titleId, title, status, onClose, t }: { Icon: React.ComponentType<{ className?: string; }>; titleId: string; title: string; status: WorkspaceConnectionStatus; onClose: () => void; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; }) {
+    return <div className="flex items-center justify-between px-5 py-3.5 [border-bottom:1px_solid_#e0e0e0]">
+        <div className="flex items-center gap-3">
+            <Icon className="w-7 h-7" />
+            <div>
+                <h2 id={titleId} className="text-[17px] font-medium [color:#202124]!">
+                    {title}
+                </h2>
+                {status.connected && status.user && (
+                    <span className="text-xs [color:#5f6368]!">
+                        {status.user.email || status.user.displayName}
+                    </span>
+                )}
+            </div>
+        </div>
+        <button onClick={onClose}
+            aria-label={t('common.close', 'Close')}
+            title={t('common.close', 'Close')}
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors [color:#5f6368]">
+            <X className="w-5 h-5" />
+        </button>
+    </div>;
+}

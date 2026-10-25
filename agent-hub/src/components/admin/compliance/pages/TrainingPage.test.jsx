@@ -3,7 +3,8 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { attestationDueAt, needsAttestation } from './trainingAttestation';
-import TrainingPage, { OBLIGATION_KINDS } from './TrainingPage';
+import TrainingPage from './TrainingPage';
+import { OBLIGATION_KINDS } from './TrainingPageSection2';
 
 vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 

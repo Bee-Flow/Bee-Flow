@@ -125,7 +125,7 @@ function methodOptions(aiLock: string | null, t: TranslateFn) {
     ];
 }
 
-export function StepDescribe(props: StepProps) {
+function StepDescribe(props: StepProps) {
     const { state, dispatch, ctx, t } = props;
     const aiFull = aiTypeCount(ctx.types, state.type.id) >= LIMITS.aiTypes;
     let aiLock: string | null = null;

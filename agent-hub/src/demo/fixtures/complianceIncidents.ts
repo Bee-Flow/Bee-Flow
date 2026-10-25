@@ -51,7 +51,7 @@ const isCraSevereIncident = (kind: string | null | undefined, regimes: readonly 
 
 const monthsLater = (from: string | number, months: number) => new Date(addCalendarMonths(from, months) as number).toISOString();
 
-export interface IncidentNote { at: string; by: string | null; text: string }
+interface IncidentNote { at: string; by: string | null; text: string }
 
 export interface Incident {
     id: number;
@@ -114,7 +114,7 @@ const earliest = (dates: (string | null | undefined)[]): string | null => {
  * `notifiedAt` when recorded, else from the latest lawful notification
  * (detected + 72 h).
  */
-export function computeClocks(detectedAt: string, regimes: readonly string[], kind?: string | null, notifiedAt?: string | null) {
+function computeClocks(detectedAt: string, regimes: readonly string[], kind?: string | null, notifiedAt?: string | null) {
     const t = new Date(detectedAt).getTime();
     const at = (ms: number) => new Date(t + ms).toISOString();
     const severeCra = isCraSevereIncident(kind, regimes);
@@ -192,7 +192,7 @@ function regimesFor(kind: string | null | undefined, regimes: unknown): string[]
 }
 
 /** A stored row: the store's defaults, the clock columns of its regimes, and its deadline. */
-export function incidentRow(org: string, o: Seed): Incident {
+function incidentRow(org: string, o: Seed): Incident {
     const kind = o.kind || 'breach';
     const regimes = regimesFor(kind, o.regimes);
     const c = computeClocks(o.detected_at, regimes, kind, o.authority_notified_at);

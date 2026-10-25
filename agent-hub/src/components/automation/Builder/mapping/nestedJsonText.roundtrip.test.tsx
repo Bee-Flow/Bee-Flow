@@ -16,7 +16,8 @@ import BindingFieldJs, { translateForMode } from './BindingField';
 import previewBinding from './bindingPreview';
 import { classifyRef, fieldTailLabel } from './refTokens';
 import { VariablePickerProvider as ProviderJs } from './VariablePickerContext';
-import { bindingFromInput, buildConditionExpr, parseSimpleCondition, walkPath } from '../../../../utils/bindingHelpers';
+import { parseSimpleCondition, walkPath } from '../../../../utils/bindingHelpers';
+import { bindingFromInput, buildConditionExpr } from '../../../../utils/bindingHelpers.helpers';
 import { parseExprToRows, serializeRows } from '../utils/conditionModel';
 import { editor } from '../../../../test/refEditor';
 

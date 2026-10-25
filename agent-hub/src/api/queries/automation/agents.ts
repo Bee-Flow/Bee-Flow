@@ -31,8 +31,8 @@ export interface AgentToolGroup {
 }
 
 export interface AgentSkillRef { id: string; name: string; fromAgent: boolean }
-export interface NamedRef { id: string; name: string }
-export interface WithheldTool { name: string; reason: string }
+interface NamedRef { id: string; name: string }
+interface WithheldTool { name: string; reason: string }
 
 /** GET /catalog/agent/:id, normalised. Absent lists stay null (unknown), never []. */
 export interface AgentStepPreview {
@@ -63,7 +63,7 @@ export interface CatalogSkill {
 
 export interface SkillRow { id: string; name: string; description: string | null }
 
-export const agentStepKeys = {
+const agentStepKeys = {
     all: ['automation-agent-step'] as const,
     preview: (agentId: string, perms: string, tools: string | null, skills = '', disabled = '') =>
         ['automation-agent-step', 'preview', agentId, perms, tools, skills, disabled] as const,
@@ -155,7 +155,7 @@ export interface AgentStepSkillScope {
 const idListParam = (key: string, ids: string[] | undefined): string => (
     Array.isArray(ids) && ids.length > 0 ? `&${key}=${encodeURIComponent(ids.join(','))}` : '');
 
-export async function fetchAgentStepPreview(
+async function fetchAgentStepPreview(
     agentId: string, perms: string, tools: string[] | null, signal?: AbortSignal, scope: AgentStepSkillScope = {},
 ): Promise<AgentStepPreview> {
     const q = AGENT_PERMISSION_KEYS.map((k, i) => `${k}=${perms[i] === '1' ? '1' : '0'}`).join('&');
@@ -197,7 +197,7 @@ export function useAgentStepPreviewQuery(
 const FIELD_TYPES = new Set(['string', 'number', 'boolean', 'datetime', 'object', 'array']);
 
 /** Output fields from `outputFields` rows or a JSON-schema `output_schema`. */
-export function skillOutputFields(raw: Obj): SkillOutputField[] {
+function skillOutputFields(raw: Obj): SkillOutputField[] {
     if (Array.isArray(raw.outputFields)) {
         return raw.outputFields.flatMap((f): SkillOutputField[] => {
             const o = obj(f);
@@ -229,7 +229,7 @@ export function parseCatalogSkill(body: unknown, skillId: string): CatalogSkill 
     };
 }
 
-export async function fetchCatalogSkill(skillId: string, signal?: AbortSignal): Promise<CatalogSkill> {
+async function fetchCatalogSkill(skillId: string, signal?: AbortSignal): Promise<CatalogSkill> {
     const res = await authFetch(`${API_BASE}/api/automation/catalog/skill/${encodeURIComponent(skillId)}`, { signal });
     if (!res.ok) throw new Error(`skill ${res.status}`);
     return parseCatalogSkill(await res.json(), skillId);
@@ -256,7 +256,7 @@ export function parseSkillRows(body: unknown): SkillRow[] {
     });
 }
 
-export async function fetchStepSkills(signal?: AbortSignal): Promise<SkillRow[]> {
+async function fetchStepSkills(signal?: AbortSignal): Promise<SkillRow[]> {
     const res = await authFetch(`${API_BASE}/api/skills`, { signal });
     if (!res.ok) throw new Error(`skills ${res.status}`);
     return parseSkillRows(await res.json());

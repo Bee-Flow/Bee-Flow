@@ -22,4 +22,3 @@ export const logger = {
     error: console.error.bind(console),
 };
 
-export default logger;

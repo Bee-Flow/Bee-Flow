@@ -33,7 +33,7 @@ export const integrationStatusKeys = {
  * gating on it then drops the apps the org does have and calls it an empty
  * list.
  */
-export async function fetchIntegrationStatus(signal?: AbortSignal): Promise<IntegrationStatus> {
+async function fetchIntegrationStatus(signal?: AbortSignal): Promise<IntegrationStatus> {
     const res = await authFetch(`${API_BASE}/ai/user-settings`, { signal });
     if (!res.ok) throw new Error(`user-settings ${res.status}`);
     return res.json();

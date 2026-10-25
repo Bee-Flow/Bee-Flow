@@ -82,8 +82,8 @@ updates:
     # silences security-update PRs for these names: act on an alert by hand.
     ignore:
       # 7.1 reports every React Compiler finding per function (react#35873-35884):
-      # 2 errors and +508 warnings over agent-hub/.eslint-budget.json. Lift in
-      # the PR that fixes those findings or re-baselines the budget with a reason.
+      # 2 errors and +508 warnings over the agent-hub baseline. Lift in
+      # the PR that fixes those findings or re-baselines eslint-suppressions.json with a reason.
       - dependency-name: eslint-plugin-react-hooks
         versions: [">=7.1.0"]
       # 0.5 rewrote HOC detection ("major-like", its changelog): +67

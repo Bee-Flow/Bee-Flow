@@ -17,7 +17,7 @@ import type { IconType, StepPayload } from './ribbonCategories';
  * Words people use interchangeably. A query word found in a group is also
  * searched as each of its siblings; a direct hit still ranks first.
  */
-export const SYNONYM_GROUPS: readonly string[][] = [
+const SYNONYM_GROUPS: readonly string[][] = [
     ['mail', 'e-mail', 'email', 'send'],
     ['sheet', 'table', 'spreadsheet', 'datatable', 'excel'],
     ['file', 'document', 'doc', 'pdf'],
@@ -85,12 +85,12 @@ export interface RibbonResult {
 }
 
 /** The ai_step payload that puts an agent to work (applyAddNode reads `agentId`). */
-export function agentPayload(agent: AgentRow): StepPayload {
+function agentPayload(agent: AgentRow): StepPayload {
     return { kind: 'ai_step', label: agent.name, agentId: agent.id };
 }
 
 /** The ai_step payload that applies one skill without an agent (`skillIds`, first leads). */
-export function skillPayload(skill: SkillRow): StepPayload {
+function skillPayload(skill: SkillRow): StepPayload {
     return { kind: 'ai_step', label: skill.name || skill.id, skillIds: [skill.id] };
 }
 

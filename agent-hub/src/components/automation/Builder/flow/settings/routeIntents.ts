@@ -38,232 +38,17 @@
  *    a `switch`, exactly like hand-built ones.
  */
 import { tryEvaluate } from '@shared/expr/engine.mjs';
-import { appendKey } from '@shared/expr/path.mjs';
-import { fileTypeOf, fileTypesNamedIn } from '@shared/expr/rules.mjs';
-import {
-    filesListKey, fileTarget, isPlainOption, itemIsFile, listTarget, mentionsFiles,
-} from './routeIntentsFiles';
+import { fileTypesNamedIn } from '@shared/expr/rules.mjs';
+import { fileTarget, isPlainOption } from './routeIntentsFiles';
 import { pickTopicField, readTopics } from './routeTopicIntent';
-import type {
-    DateClause, IntentContext, IntentField, IntentResult, IntentResultArgs, IntentRule, MatchCountOptions, NumberClause, SuggestOptions,
-} from './routeIntents.types';
-
-// More outputs than this is not a routing decision any more, it is a lookup
-// table — and every extra output is a port on the canvas that someone has to
-// wire. A description that produces more is truncated and says so.
-const MAX_RULES = 8;
-
-const ISO_DATE = '\\d{4}-\\d{2}-\\d{2}';
-const ISO_DATE_RE = new RegExp(`^${ISO_DATE}$`);
-
-// ── Small helpers ───────────────────────────────────────────────────────
-function lastSegment(path?: string) {
-    const cleaned = String(path || '').replace(/\[(?:\*|\d+)\]/g, '');
-    return cleaned.split('.').filter(Boolean).pop() || '';
-}
-
-function fieldKey(field?: IntentField | null) {
-    return lastSegment(field?.path).toLowerCase();
-}
+import type { DateClause, IntentContext, IntentResult, IntentRule, MatchCountOptions, NumberClause, SuggestOptions } from './routeIntents.types';
+import { MAX_RULES, NUMBER_SYMBOL, NUMBER_WORD } from './routeIntents.constants';
+import { result, quote, nextDay, pickFileField, pickTextField, pickNumberField, pickDateField, namedField, findPhrases, findDateClauses, findNumberClauses, unrecognised } from './routeIntents.helpers';
 
 /** A port name: lowercase, word characters only — it labels an edge on the canvas. */
 export function slugName(text?: unknown) {
     const s = String(text || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
     return s || 'output';
-}
-
-/** Port names must be unique — two cases with one name is an unwireable node. */
-function withUniqueNames(rules: IntentRule[]) {
-    const seen = new Set<string>();
-    return rules.map((r: IntentRule) => {
-        let name = r.name;
-        let i = 1;
-        while (seen.has(name)) name = `${r.name}_${++i}`;
-        seen.add(name);
-        return { ...r, name };
-    });
-}
-
-function result({
-    kind = null, understood = '', field = null, rules = [], problem = null, problemCode = null,
-    truncated = false, filesInside = null,
-}: IntentResultArgs): IntentResult {
-    return {
-        kind, understood, field, rules: withUniqueNames(rules).slice(0, MAX_RULES),
-        problem, problemCode, truncated, filesInside,
-    };
-}
-
-function quote(value: unknown) {
-    return JSON.stringify(String(value));
-}
-
-/**
- * The number in "over 1000". Only the COMMA is treated as a thousands
- * separator: in the expression grammar a dot is a decimal point, so reading
- * `1.000` as one thousand here would silently disagree with what the very
- * same characters mean in the generated expression.
- */
-function parseNumber(raw: unknown) {
-    const cleaned = String(raw || '').replace(/,/g, '').trim();
-    if (!/^-?\d+(\.\d+)?$/.test(cleaned)) return null;
-    return Number(cleaned);
-}
-
-/**
- * The day after an ISO date, as an ISO date.
- *
- * Date fields hold whole days ("2026-01-31") in some steps and full
- * timestamps ("2026-01-31T14:02:00Z") in others, and the expression engine
- * compares both as plain strings. `<= "2026-01-31"` therefore drops every row
- * timestamped ON the 31st — the classic "the last day of my range is missing"
- * report. An exclusive `< "2026-02-01"` bound is right for both shapes, so
- * ranges are built that way and the rule NAME keeps the date the author
- * actually typed.
- */
-function nextDay(iso: string) {
-    const d = new Date(`${iso}T00:00:00Z`);
-    if (Number.isNaN(d.getTime())) return null;
-    d.setUTCDate(d.getUTCDate() + 1);
-    return d.toISOString().slice(0, 10);
-}
-
-// ── Picking the field to compare ────────────────────────────────────────
-const FILE_NAME_KEYS = /^(file|files|filename|file_name|name|path|filepath|attachment|attachments|document)$/;
-const TEXT_KEYS = /^(subject|title|name|body|text|message|content|description|summary|snippet)$/;
-const NUMBER_KEYS = /(amount|total|price|count|quantity|qty|score|size|bytes|number|age|days)$/;
-const DATE_KEYS = /(date|created|updated|modified|due|sent|received|timestamp|time|at)$/;
-
-function bestField(fields: IntentField[] | null | undefined, score: (f: IntentField) => number, minimum = 2) {
-    let best: IntentField | null = null;
-    let bestScore = 0;
-    for (const f of (fields || [])) {
-        if (!f?.path) continue;
-        const s = score(f);
-        if (s > bestScore) { best = f; bestScore = s; }
-    }
-    return bestScore >= minimum ? best : null;
-}
-
-function pickFileField(fields?: IntentField[]) {
-    return bestField(fields, (f: IntentField) => {
-        if (Array.isArray(f.sample)) return 0;
-        let s = 0;
-        // A sample that names a known file type is the strongest signal there
-        // is — stronger than any name. fileType reads "other" for anything it
-        // does not know, so an e-mail address ending in ".nl" scores nothing.
-        if (typeof f.sample === 'string' && fileTypeOf(f.sample) !== 'other') s += 3;
-        const key = fieldKey(f);
-        if (FILE_NAME_KEYS.test(key)) s += 2;
-        else if (key === 'title') s += 1;
-        return s;
-    });
-}
-
-function pickTextField(fields?: IntentField[]) {
-    return bestField(fields, (f: IntentField) => {
-        let s = 0;
-        if (typeof f.sample === 'string') s += 1;
-        if (TEXT_KEYS.test(fieldKey(f))) s += 2;
-        return s;
-    });
-}
-
-function pickNumberField(fields?: IntentField[]) {
-    return bestField(fields, (f: IntentField) => {
-        let s = 0;
-        if (typeof f.sample === 'number') s += 3;
-        if (NUMBER_KEYS.test(fieldKey(f))) s += 2;
-        return s;
-    });
-}
-
-function pickDateField(fields?: IntentField[]) {
-    return bestField(fields, (f: IntentField) => {
-        let s = 0;
-        if (typeof f.sample === 'string' && /^\d{4}-\d{2}-\d{2}/.test(f.sample.trim())) s += 3;
-        if (DATE_KEYS.test(fieldKey(f))) s += 2;
-        return s;
-    });
-}
-
-/**
- * A field the author NAMED in the description ("subject contains urgent").
- * What the author says wins over every heuristic below — they can see the
- * field list, the heuristics only see samples. Longest match wins so
- * "from email" is not shadowed by "from".
- */
-function namedField(lower: string, fields?: IntentField[] | null) {
-    let best: IntentField | null = null;
-    let bestLen = 0;
-    for (const f of (fields || [])) {
-        if (!f?.path) continue;
-        const candidates = [f.label, fieldKey(f).replace(/_/g, ' '), fieldKey(f)]
-            .filter(Boolean)
-            .map((s: unknown) => String(s).toLowerCase());
-        for (const c of candidates) {
-            if (c.length < 3 || c.length <= bestLen) continue;
-            const re = new RegExp(`(?:^|[^a-z0-9])${c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:[^a-z0-9]|$)`);
-            if (re.test(lower)) { best = f; bestLen = c.length; } // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- an escaped literal between single-character classes, no quantifier: linear
-        }
-    }
-    return best;
-}
-
-// ── Intent: contains ────────────────────────────────────────────────────
-const QUOTED_RE = /"([^"]+)"|'([^']+)'|“([^”]+)”/g;
-// A bare "with" is NOT a lead-in. "do the usual thing with these" is not a
-// request to match the word "these", and a box that answers a shrug with a
-// confident rule is worse than one that says it did not understand.
-const CONTAINS_LEAD = /\b(?:contains?|containing|mentions?|mentioning|includes?|including|with the words?)\s+(.+)$/i;
-
-function findPhrases(src: string) {
-    const quoted: string[] = [];
-    let m: RegExpExecArray | null;
-    QUOTED_RE.lastIndex = 0;
-    while ((m = QUOTED_RE.exec(src))) {
-        const phrase = (m[1] || m[2] || m[3] || '').trim();
-        if (phrase) quoted.push(phrase);
-    }
-    if (quoted.length) return quoted;
-    const lead = CONTAINS_LEAD.exec(src);
-    if (!lead) return [];
-    return lead[1]
-        .split(/\s*,\s*|\s+\band\b\s+|\s+\bor\b\s+|\s*\/\s*/i)
-        .map((s: string) => s.trim().replace(/[.!?]+$/, '').replace(/\bin (?:it|them|the (?:subject|body|text|title))\b/i, '').trim())
-        .filter((s: string) => s && s.length > 1);
-}
-
-// ── Intent: dates ───────────────────────────────────────────────────────
-const DATE_CLAUSES = [
-    { re: new RegExp(`\\bbetween\\s+(${ISO_DATE})\\s+(?:and|to|until)\\s+(${ISO_DATE})`, 'g'), kind: 'between' },
-    { re: new RegExp(`\\b(?:before|earlier than|prior to|up to)\\s+(${ISO_DATE})`, 'g'), kind: 'before' },
-    // "after the 1st" excludes the 1st; "since/from the 1st" includes it.
-    // Two different asks, so two patterns — and the exclusive bound is built
-    // from the NEXT day (see nextDay) so a timestamp at 09:00 on the 1st is
-    // not quietly read as "after the 1st".
-    { re: new RegExp(`\\bafter\\s+(${ISO_DATE})`, 'g'), kind: 'after' },
-    { re: new RegExp(`\\b(?:since|from|on or after)\\s+(${ISO_DATE})`, 'g'), kind: 'since' },
-    { re: new RegExp(`\\bon\\s+(${ISO_DATE})`, 'g'), kind: 'on' },
-];
-
-function findDateClauses(lower: string) {
-    const out: DateClause[] = [];
-    for (const { re, kind } of DATE_CLAUSES) {
-        re.lastIndex = 0;
-        let m: RegExpExecArray | null;
-        while ((m = re.exec(lower))) out.push({ kind, at: m.index, end: m.index + m[0].length, a: m[1], b: m[2] || null });
-    }
-    // The patterns overlap on purpose — "between A and B" contains something
-    // the `on` pattern would match again, and one phrase must not become two
-    // outputs. Earliest (and therefore longest-leading) clause wins its span;
-    // anything starting inside an accepted span is the same phrase read twice.
-    const kept: DateClause[] = [];
-    for (const c of out.sort((a: DateClause, b: DateClause) => (a.at - b.at) || (b.end - a.end))) {
-        if (kept.some((k: DateClause) => c.at < k.end && c.end > k.at)) continue;
-        kept.push(c);
-    }
-    return kept;
 }
 
 function dateRules(clauses: DateClause[], path: string) {
@@ -289,46 +74,6 @@ function dateRules(clauses: DateClause[], path: string) {
     }
     return rules;
 }
-
-// A date was clearly meant, but not in a form a pure function can resolve.
-const DATE_WORDS = /\b(before|after|since|older than|newer than|last (?:week|month|year|\d+ days?)|this (?:week|month|year)|yesterday|today|tomorrow|\d{1,2}[-/]\d{1,2}[-/]\d{2,4})\b/;
-
-// ── Intent: numbers ─────────────────────────────────────────────────────
-const NUM = '(-?[\\d][\\d,]*(?:\\.\\d+)?)';
-const NUMBER_CLAUSES = [
-    { re: new RegExp(`\\bbetween\\s+${NUM}\\s+(?:and|to)\\s+${NUM}`, 'g'), kind: 'between' },
-    { re: new RegExp(`\\b(?:over|more than|greater than|above|higher than|bigger than)\\s+${NUM}`, 'g'), kind: 'gt' },
-    { re: new RegExp(`\\b(?:under|less than|below|lower than|smaller than)\\s+${NUM}`, 'g'), kind: 'lt' },
-    { re: new RegExp(`\\b(?:at least|minimum of|minimum|no less than)\\s+${NUM}`, 'g'), kind: 'gte' },
-    { re: new RegExp(`\\b(?:at most|no more than|maximum of|maximum|up to)\\s+${NUM}`, 'g'), kind: 'lte' },
-];
-
-function findNumberClauses(lower: string) {
-    const out: NumberClause[] = [];
-    for (const { re, kind } of NUMBER_CLAUSES) {
-        re.lastIndex = 0;
-        let m: RegExpExecArray | null;
-        while ((m = re.exec(lower))) {
-            const a = parseNumber(m[1]);
-            const b = m[2] == null ? null : parseNumber(m[2]);
-            if (a == null || (kind === 'between' && b == null)) continue;
-            out.push({ kind, at: m.index, end: m.index + m[0].length, a, b });
-        }
-    }
-    // Same overlap rule as the dates, and here it is load-bearing rather than
-    // tidy: "no more than 100" contains "more than 100", so without it the one
-    // phrase becomes an at-most output AND an over output that says the
-    // opposite. Earliest start, longest span wins.
-    const kept: NumberClause[] = [];
-    for (const c of out.sort((x: NumberClause, y: NumberClause) => (x.at - y.at) || (y.end - x.end))) {
-        if (kept.some((k: NumberClause) => c.at < k.end && c.end > k.at)) continue;
-        kept.push(c);
-    }
-    return kept;
-}
-
-const NUMBER_SYMBOL: Record<string, string> = { gt: '>', lt: '<', gte: '>=', lte: '<=' };
-const NUMBER_WORD: Record<string, string> = { gt: 'over', lt: 'under', gte: 'at least', lte: 'at most' };
 
 function numberRules(clauses: NumberClause[], path: string) {
     return clauses.map((c: NumberClause) => (c.kind === 'between'
@@ -377,29 +122,6 @@ export function suggestOutputs(text: unknown, { fields = [], topics = false, ele
         if (answer) return answer;
     }
     return unrecognised(ctx);
-}
-
-/** The sentence for a description no intent answered. */
-function unrecognised({ lower, element, allFields }: IntentContext) {
-    if (mentionsFiles(lower) && (itemIsFile(element, allFields) || filesListKey(element, allFields))) {
-        // About files, but no type named: say which words work, and (S4)
-        // still offer to work through the files inside each item.
-        const listKey = itemIsFile(element, allFields) ? null : filesListKey(element, allFields);
-        return result({
-            problem: 'Name the file types to split by, for example “pdf, word and powerpoint”.',
-            problemCode: 'name_types',
-            filesInside: listKey ? listTarget(appendKey('item', listKey), allFields).filesInside : null,
-        });
-    }
-    if (DATE_WORDS.test(lower)) {
-        // A relative date needs the run's clock, and a dd-mm-yyyy date is
-        // ambiguous with mm-dd-yyyy. Both are refused out loud instead of
-        // being resolved to a date the author never typed.
-        return result({ problem: 'Dates have to be written in full, as 2026-01-31. A date relative to today (“last week”) is not something this box can work out on its own.' });
-    }
-    return result({
-        problem: 'Nothing recognised there yet. Try a file type (pdf, word, excel, powerpoint), words in quotes to look for, a date range written as 2026-01-31, or a number comparison such as “amount over 1000”.',
-    });
 }
 
 // The intents, in the order they are tried. Most specific first: "between

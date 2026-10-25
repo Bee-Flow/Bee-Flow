@@ -28,7 +28,7 @@ export interface MapBlock extends MapNode {
 
 export type Side = 'left' | 'right' | 'top' | 'bottom';
 
-export interface Sides {
+interface Sides {
     fromSide: Side;
     toSide: Side;
     fromOff?: number;
@@ -45,7 +45,7 @@ export interface ElbowRoute extends Sides {
     via?: readonly { x?: number; y?: number }[];
 }
 
-export type MapRoute = { type: 'self' } | CurveRoute | ElbowRoute;
+type MapRoute = { type: 'self' } | CurveRoute | ElbowRoute;
 
 /** One edge between two boxes, with the route it follows. */
 export interface MapEdge {

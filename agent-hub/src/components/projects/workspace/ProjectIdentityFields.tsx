@@ -11,9 +11,9 @@ import { CharCount, INPUT_CLASS } from './workspaceUi';
 
 // Mirrors of the server's caps (routes/projects/schemas.js), so the form
 // answers before a 400 does.
-export const MAX_NAME = 120;
-export const MAX_DESCRIPTION = 1000;
-export const MAX_INSTRUCTIONS = 8000;
+const MAX_NAME = 120;
+const MAX_DESCRIPTION = 1000;
+const MAX_INSTRUCTIONS = 8000;
 
 const ICON_OPTIONS = [
     { emoji: '📁', labelKey: 'project_home.icon.folder', label: 'Folder' },

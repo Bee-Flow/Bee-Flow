@@ -16,7 +16,7 @@ export type NotificationPrefs = Record<NotificationChannel, Record<NotificationE
 /** A change: only the events that moved. */
 export type NotificationPrefsPatch = { [C in NotificationChannel]?: Partial<Record<NotificationEvent, boolean>> };
 
-export const notificationPrefsKeys = {
+const notificationPrefsKeys = {
     me: ['notificationPrefs', 'me'] as const,
 };
 

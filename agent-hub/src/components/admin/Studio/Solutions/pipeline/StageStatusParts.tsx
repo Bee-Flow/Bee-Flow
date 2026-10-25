@@ -4,7 +4,7 @@ import { useTranslation } from '../../../../../hooks/useTranslation';
 import { pillStatusOf } from './pipelineModel';
 import { fmt, kindLabel, StatusPill, statusLabel } from './stageText';
 import { useStageLabel } from './StageSwitcher';
-import { getStage, type DeploymentSummary, type StageKey, type StageSettingsSummary } from './stagesApi';
+import { getStage, type DeploymentSummary, type StageKey, type StageSettingsSummary } from '../../../../../api/stagesApi';
 import { logger } from '../../../../../utils/logger';
 
 /** The lower sections of the Status tab: last deployment and the addresses of a stage. */

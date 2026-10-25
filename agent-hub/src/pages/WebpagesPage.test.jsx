@@ -1,5 +1,6 @@
 import { screen, fireEvent, act, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import WebpagesPage from './WebpagesPage';
 import { renderWithClient } from '../test/render';
 
 /**
@@ -95,7 +96,6 @@ vi.mock('../utils/imageResize', () => ({
     resizeImageForUpload: async (file) => ({ blob: file, mimeType: file.type }),
 }));
 
-import WebpagesPage from './WebpagesPage';
 
 /* ── fixtures ─────────────────────────────────────────────────────────── */
 

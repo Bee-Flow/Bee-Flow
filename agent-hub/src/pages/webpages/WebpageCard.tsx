@@ -3,7 +3,8 @@ import { Building2, Copy, Globe, Loader2, Lock, Pencil, Table, Trash2, Users, Wo
 import React from 'react';
 import { visibilityOf } from './webpageVisibility';
 import { kindColorVar, kindTint } from '../../components/shared/kindColors';
-import { audienceLabel, GROUPS, ORG, PERSONAL } from '../../components/shared/VisibilityCapsule';
+import { audienceLabel } from '../../components/shared/VisibilityCapsule';
+import { GROUPS, ORG, PERSONAL } from '../../components/shared/useAudienceActions';
 import type { TranslateFn } from '../../hooks/useTranslation';
 import { formatRelativeTime } from '../../utils/dateFormatters';
 import type { DateLike } from '../../utils/dateFormatters';

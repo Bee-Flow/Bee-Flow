@@ -1,6 +1,6 @@
 import { useTranslation } from '../../../../hooks/useTranslation';
 
-export type ShareImageTemplate = 'light' | 'dark' | 'brand';
+type ShareImageTemplate = 'light' | 'dark' | 'brand';
 
 export interface ShareImageDesign {
     template: ShareImageTemplate;

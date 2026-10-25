@@ -47,7 +47,7 @@ export interface CodeExtraFile {
 }
 
 /** An extra file as the editor holds it: `{ isText, content }`. */
-export interface CodeExtraContent {
+interface CodeExtraContent {
     isText?: boolean;
     content?: string;
 }
@@ -141,7 +141,7 @@ export function markFileKey(mark?: CodeMark | null): string | null {
 }
 
 /** Markeringen gegroepeerd op editor-sleutel, in de volgorde waarin ze binnenkwamen. */
-export function marksByFile(marks?: CodeMark[] | null): Map<string, CodeMark[]> {
+function marksByFile(marks?: CodeMark[] | null): Map<string, CodeMark[]> {
     const out = new Map<string, CodeMark[]>();
     for (const mark of (Array.isArray(marks) ? marks : [])) {
         const key = markFileKey(mark);
@@ -274,4 +274,3 @@ export function buildCodeFiles({
     };
 }
 
-export default buildCodeFiles;

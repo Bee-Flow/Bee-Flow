@@ -32,7 +32,7 @@ export interface ThemeState extends ThemeSettings {
     error: string | null;
 }
 
-export interface ThemeActions {
+interface ThemeActions {
     setUserOverride: (patch: Partial<ThemeSettings>) => Promise<unknown>;
     clearUserOverride: () => Promise<unknown>;
     setAdminDefault: (patch: Partial<ThemeSettings>) => Promise<unknown>;

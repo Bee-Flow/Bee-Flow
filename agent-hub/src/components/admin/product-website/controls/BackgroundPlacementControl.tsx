@@ -7,7 +7,7 @@ import {
 } from '../../../../marketing/blockStyleEnums.generated.mjs';
 
 /** The placement keys of block.style, all optional (a missing key = cover / center / no-repeat / shown on mobile). */
-export interface BackgroundPlacement {
+interface BackgroundPlacement {
     backgroundSize?: string;
     backgroundPosition?: string;
     backgroundRepeat?: string;

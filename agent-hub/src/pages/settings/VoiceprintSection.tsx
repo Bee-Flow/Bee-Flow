@@ -4,6 +4,7 @@ import { Row } from './shared/settingsPrimitives';
 import VoiceprintEnrollModal from './VoiceprintEnrollModal';
 import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import { request, RefusedError } from '../../api/mutate';
 
 interface Voiceprint {
     status?: string;
@@ -43,8 +44,14 @@ export default function VoiceprintSection() {
 
     const load = useCallback(async () => {
         try {
-            const res = await authFetch(`${API_BASE}/api/voiceprints/availability`);
-            if (!res.ok) { setState(null); return; }   // 403/404 → not licensed
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/api/voiceprints/availability`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                setState(null);
+                return;
+            }   // 403/404 → not licensed
             setState(await res.json());
         } catch (_) {
             setState(null);

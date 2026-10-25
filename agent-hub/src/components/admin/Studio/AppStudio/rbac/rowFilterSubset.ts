@@ -160,4 +160,3 @@ export function validateRowFilterExpr(expr: unknown, table?: RowFilterTable | nu
     }
 }
 
-export default validateRowFilterExpr;

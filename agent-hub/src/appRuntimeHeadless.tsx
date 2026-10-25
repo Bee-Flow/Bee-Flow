@@ -140,4 +140,3 @@ export async function mount(container: Container, {
 export { collectDataBindings } from './components/admin/Studio/AppStudio/runtime/AppDataScope';
 export { dataCacheKey } from './components/admin/Studio/AppStudio/runtime/resolveBinding';
 
-export default mount;

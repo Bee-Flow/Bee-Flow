@@ -50,7 +50,7 @@ const PRIMARY = 'inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] text-x
 type Translate = ReturnType<typeof useTranslation>['t'];
 
 /** What a choice in the gallery creates, in the library view it was made from. */
-export function newDocumentInput(choice: Exclude<NewChoice, { type: 'notebook' } | { type: 'spreadsheet' }>, view: LibraryKind, t: Translate): Omit<NewDocumentInput, 'locale' | 'folderId'> {
+function newDocumentInput(choice: Exclude<NewChoice, { type: 'notebook' } | { type: 'spreadsheet' }>, view: LibraryKind, t: Translate): Omit<NewDocumentInput, 'locale' | 'folderId'> {
     // Own templates are offered in a project only; here one would be a copy by name.
     if (choice.type === 'template') return { name: choice.template.name, kind: view };
     if (choice.type === 'page') return { name: t('documents.untitled_page', 'Untitled page'), docType: 'page', kind: 'document' };

@@ -19,7 +19,7 @@ const unitRandom = () => crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32
  * unmount.
  */
 
-export type DocumentEventHandler = (event: any) => void;
+type DocumentEventHandler = (event: any) => void;
 /** Listen to one event type; returns the unsubscribe. */
 export type DocumentSubscribe = (type: string, handler: DocumentEventHandler) => () => void;
 

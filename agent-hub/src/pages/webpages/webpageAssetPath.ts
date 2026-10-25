@@ -9,7 +9,7 @@ const EXT_FOR_MIME: Record<string, string> = {
  * Map an (possibly resize-converted) MIME type back to a file extension so the
  * stored asset path matches its bytes — the server derives MIME from the path.
  */
-export function extForMime(mime: string, name: string): string {
+function extForMime(mime: string, name: string): string {
     if (EXT_FOR_MIME[mime]) return EXT_FOR_MIME[mime];
     const fromName = (name.split('.').pop() || '').toLowerCase();
     return /^[a-z0-9]{1,5}$/.test(fromName) ? fromName : 'bin';

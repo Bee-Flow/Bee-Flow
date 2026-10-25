@@ -1,4 +1,5 @@
-import { DEFAULT_SHOTS, setActiveShots } from './buildChoreography';
+import { setActiveShots } from './buildChoreography';
+import { DEFAULT_SHOTS } from './buildChoreography.constants';
 import { lodForZoom, PRESENTER_LOD_BREAKS } from './useZoomLod';
 
 /**

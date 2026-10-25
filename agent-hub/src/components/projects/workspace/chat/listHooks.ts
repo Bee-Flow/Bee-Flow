@@ -2,19 +2,20 @@
 // fetching a thread's first message when it is older than the loaded page.
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject, useEffectEvent } from 'react';
-import { newestSeq, useLoadOlderMessages, type TeamChatMessage, type TeamChatMessages } from '../../../../api/queries/projectChats';
+import { useLoadOlderMessages, type TeamChatMessage, type TeamChatMessages } from '../../../../api/queries/projectChats';
+import { newestSeq } from '../../../../api/queries/useTeamChatMessages';
 import useStickToBottom from '../../../../hooks/useStickToBottom';
 import { mainConversation, type MessageGroup } from './messageGroups';
 import useMarkRead from './useMarkRead';
 
 /** Pages to walk back for a thread's root before giving up (PAGE messages each). */
-export const MAX_ROOT_PAGES = 20;
+const MAX_ROOT_PAGES = 20;
 
 /**
  * How many messages from others arrived while the list was scrolled away from
  * its newest end. `mainMessages` are the ones the list shows.
  */
-export function useUnseenCount(mainMessages: TeamChatMessage[], atBottom: boolean, currentUserId: string | null): number {
+function useUnseenCount(mainMessages: TeamChatMessage[], atBottom: boolean, currentUserId: string | null): number {
     const newest = newestSeq(mainMessages);
     // The newest message the reader has had the chance to see.
     const [seen, setSeen] = useState(newest);
@@ -28,7 +29,7 @@ export function useUnseenCount(mainMessages: TeamChatMessage[], atBottom: boolea
 }
 
 /** Calls `onNew` when a message of the reader's own starts sending (or is sent again) in `groups`. */
-export function useOnOwnSend(groups: MessageGroup[], onNew: () => void): void {
+function useOnOwnSend(groups: MessageGroup[], onNew: () => void): void {
     const sendingIds = groups.flatMap(g => g.items)
         .flatMap(i => (i.type === 'pending' && i.pending.status === 'sending' ? [i.pending.clientMsgId] : []));
     const signature = sendingIds.join('|');

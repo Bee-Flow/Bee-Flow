@@ -307,4 +307,3 @@ export function daysUntilMarkingDeadline(now: Date = new Date()) {
     return Math.round((deadline - today) / 86400000);
 }
 
-export default outcome;

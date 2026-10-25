@@ -29,12 +29,12 @@ function pickIcon(name: string | null): IconCmp {
 }
 
 /** "nextcloud" → "Nextcloud", "google-drive" → "Google Drive". */
-export function appName(id: string): string {
+function appName(id: string): string {
     return id.split(/[-_]/).filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
 }
 
 /** "Starts on a schedule · 4 steps": how a template begins, in plain words. */
-export function startsLine(tmpl: TemplateCard, t: TranslateFn): string {
+function startsLine(tmpl: TemplateCard, t: TranslateFn): string {
     const parts: string[] = [];
     switch (tmpl.triggerKind) {
         case null: break;
@@ -55,7 +55,7 @@ export function startsLine(tmpl: TemplateCard, t: TranslateFn): string {
 }
 
 /** "Saved by Anne de Vries · 2d ago", for an organisation's own template. */
-export function savedLine(tmpl: TemplateCard, t: TranslateFn, when: string): string {
+function savedLine(tmpl: TemplateCard, t: TranslateFn, when: string): string {
     const who = tmpl.mine
         ? t('automations.templates.savedByYou', 'Saved by you')
         : tmpl.createdByName

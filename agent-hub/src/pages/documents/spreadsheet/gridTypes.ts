@@ -4,7 +4,7 @@ import type { MutableRefObject } from 'react';
 import type { Computed } from './sheetEngine';
 import type { Pos, Whole } from './sheetModel';
 
-export interface Editing { col: number; row: number; draft: string; origin: 'grid' | 'bar' }
+interface Editing { col: number; row: number; draft: string; origin: 'grid' | 'bar' }
 /** `whole` set: the selection is whole columns (anchor/focus columns) or whole rows (anchor/focus rows). */
 export interface Ui { anchor: Pos; focus: Pos; editing: Editing | null; whole: Whole }
 /** Where the selection goes when an edit is committed. */

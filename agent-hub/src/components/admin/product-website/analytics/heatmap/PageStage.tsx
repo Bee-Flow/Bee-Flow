@@ -16,7 +16,7 @@ import React, { useLayoutEffect, useRef, useState } from 'react';
 import HeatCanvas from './HeatCanvas';
 import { blockLabel, type ScrollReach } from './model';
 import { useTranslation } from '../../../../../hooks/useTranslation';
-import { ACCENT } from '../ui';
+import { ACCENT } from '../BarList';
 
 interface PageStageProps {
     src: string;
@@ -185,4 +185,4 @@ function ScrollShade({ steps, height, width, viewportH }: ScrollShadeProps) {
     );
 }
 
-export { blockLabel };
+;

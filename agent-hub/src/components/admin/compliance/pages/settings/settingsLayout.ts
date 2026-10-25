@@ -28,7 +28,7 @@ export interface SettingsFieldSpec {
     dependsOn?: string;
 }
 
-export interface SettingsSectionSpec {
+interface SettingsSectionSpec {
     id: string;
     titleKey: string;
     titleEn: string;

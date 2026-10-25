@@ -3,6 +3,7 @@
 // from IntegrationsAdminPanel.jsx.
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import type { AdminMessage, VoiceprintPatch } from './IntegrationsAdminPanel.types';
+import { mutate, errorBody, RefusedError } from '../../../api/mutate';
 
 interface UseTranscriptionSettingsParams {
     pyannoteTranscriptionModel: string;
@@ -28,17 +29,21 @@ export default function useTranscriptionSettings({
         setPyannoteTranscriptionModel(model);
         setSavingPyannoteModel(true);
         try {
-            const res = await authFetch(`${API_BASE}/ai/config`, {
+            let res: Response | undefined;
+            try {
+                res = await mutate(`${API_BASE}/ai/config`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ pyannoteTranscriptionModel: model }),
             });
-            if (res.ok) {
-                setMessage({ type: 'success', text: model ? 'Speech model pinned' : 'Speech model set to automatic' });
-            } else {
-                const err = await res.json().catch(() => ({}));
+            } catch (apiErr) {
+                if (!(apiErr instanceof RefusedError)) throw apiErr;
+                const err = errorBody(apiErr) ?? {};
                 setPyannoteTranscriptionModel(prev);
                 setMessage({ type: 'error', text: err.error || 'Failed to save the speech model' });
+            }
+            if (res) {
+                setMessage({ type: 'success', text: model ? 'Speech model pinned' : 'Speech model set to automatic' });
             }
         } catch (_) {
             setPyannoteTranscriptionModel(prev);

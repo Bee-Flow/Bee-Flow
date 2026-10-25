@@ -7,7 +7,7 @@ import { getActionCheck, runActionCheck, applicableCriteria } from '../../../com
 import { getLearningPath } from '../../../components/onboarding/learningPaths';
 import type { CheckVerdict } from '../../../components/onboarding/actionChecks.types';
 import type { SupportUser } from '../../../components/admin/Studio/SupportStudio/supportStudio.types';
-import type { Course, LessonDoc } from '../../../components/onboarding/lessons.types';
+import type { Course, LessonDoc } from '../../../api/lessons.types';
 
 /**
  * OverviewView — artboard 3a.
@@ -219,7 +219,7 @@ interface CourseRowProps {
     onOpen: React.MouseEventHandler<HTMLButtonElement>;
 }
 
-export function CourseRow({ t, course, lessons, completedMap, locked, complete, lockedReason, onOpen }: CourseRowProps) {
+function CourseRow({ t, course, lessons, completedMap, locked, complete, lockedReason, onOpen }: CourseRowProps) {
     const state = courseState({ lessons, completedMap, locked, complete });
     const done = lessons.filter((l) => !!completedMap[l.id]).length;
     const title = t(course.titleKey, course.titleFallback);

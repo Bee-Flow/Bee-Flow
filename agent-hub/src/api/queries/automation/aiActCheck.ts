@@ -14,16 +14,16 @@ import {
     type AiActDomain, type AiActStatus, type AnnexDomainId, type Tri,
 } from './readiness';
 
-export const AI_ACT_CHECK_QUESTIONS = ['usesAi', 'externalOutput', 'sensitiveUse', 'prohibitedUse'] as const;
+const AI_ACT_CHECK_QUESTIONS = ['usesAi', 'externalOutput', 'sensitiveUse', 'prohibitedUse'] as const;
 export type AiActCheckQuestion = typeof AI_ACT_CHECK_QUESTIONS[number];
-export type AiActConfidence = 'certain' | 'likely' | 'unknown';
-export type AiActSource = 'auto' | 'mixed' | 'manual';
+type AiActConfidence = 'certain' | 'likely' | 'unknown';
+type AiActSource = 'auto' | 'mixed' | 'manual';
 
 /** One line of "why": translate by code, `text` is the English fallback. */
-export interface AiActEvidence { code: string; params: Record<string, unknown>; text: string }
+interface AiActEvidence { code: string; params: Record<string, unknown>; text: string }
 
 /** What was answered per question, by whom, and why. */
-export interface AiActFinding {
+interface AiActFinding {
     id: AiActCheckQuestion;
     answer: Tri;
     confidence: AiActConfidence;
@@ -90,7 +90,7 @@ function parseEvidence(v: unknown): AiActEvidence[] {
 const strings = (v: unknown) => list(v).filter((x): x is string => typeof x === 'string');
 
 /** Normalise a check answer. Exported for the test; tolerant of junk. */
-export function parseAiActCheck(body: unknown): AiActCheckResult {
+function parseAiActCheck(body: unknown): AiActCheckResult {
     const raw = obj(body);
     const findings = list(raw.findings).map(obj).filter(f => isQuestion(f.id)).map(f => ({
         id: f.id as AiActCheckQuestion,
@@ -131,11 +131,11 @@ export function parseAiActCheck(body: unknown): AiActCheckResult {
     };
 }
 
-export async function fetchAiActCheck(id: string, signal?: AbortSignal): Promise<AiActCheckResult> {
+async function fetchAiActCheck(id: string, signal?: AbortSignal): Promise<AiActCheckResult> {
     return parseAiActCheck(await getAutomationJson(id, '/ai-act/check', 'ai act check', signal));
 }
 
-export async function answerAiAct(id: string, answers: AiActAnswerBody): Promise<AiActCheckResult> {
+async function answerAiAct(id: string, answers: AiActAnswerBody): Promise<AiActCheckResult> {
     return parseAiActCheck(await putAutomationJson(id, '/ai-act/answers', answers, 'ai act answers'));
 }
 

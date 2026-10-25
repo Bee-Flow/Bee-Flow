@@ -1,7 +1,7 @@
 import React from 'react';
 import type { LucideIcon } from 'lucide-react';
 
-export interface TabOption<V extends string = string> {
+interface TabOption<V extends string = string> {
     value: V;
     label: string;
     icon?: LucideIcon;

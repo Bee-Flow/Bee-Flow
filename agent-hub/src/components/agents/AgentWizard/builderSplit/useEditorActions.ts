@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { createCategoryActions, createFieldUpdaters, createPublishActions } from './builderSplitActions';
-import type { Ref, Setter, EditorSnapshot } from './agentSaveTypes';
+import type { Ref, Setter, EditorSnapshot } from '../../../../api/agentSaveTypes';
 import type { CategoryRow } from '../agentEditor.types';
 import type useBuilderState from './useBuilderState';
 import useBehaviorToggles from './useBehaviorToggles';

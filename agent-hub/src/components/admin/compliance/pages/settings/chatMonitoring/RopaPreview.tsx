@@ -31,7 +31,7 @@ function subjectsOf(t: TranslateFn, form: ChatMonitoringForm): string[] {
 }
 
 /** The client-side preview: the register's fields, from the form as it stands. */
-export function previewActivity(t: TranslateFn, form: ChatMonitoringForm): RopaActivityView {
+function previewActivity(t: TranslateFn, form: ChatMonitoringForm): RopaActivityView {
     const days = Number(form.retention_days) || 90;
     const categories = [t('chat_monitoring.ropa.data_counts', 'Weekly counts per chat type (employees) and daily counts (website visitors) of how the Privacy Shield handled messages')];
     if (form.signals.includes('kinds')) categories.push(t('chat_monitoring.ropa.data_kinds', 'Counts of the kinds of personal data found, without the values; health data is never counted'));

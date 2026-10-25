@@ -33,8 +33,7 @@ export function GridEmptyState({ emptyText, isRun, addRowActionId, addRowLabel, 
                     <button
                         type="button"
                         onClick={() => runAction(addRowActionId, {})}
-                        className="inline-flex items-center gap-1.5 px-2 py-1 text-sm font-medium"
-                        style={{ color: 'var(--app-primary)' }}
+                        className="inline-flex items-center gap-1.5 px-2 py-1 text-sm font-medium [color:var(--app-primary)]!"
                     >
                         <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                         {addRowLabel || t('studio_apps_runtime.grid.add_row', 'Add row')}
@@ -54,7 +53,7 @@ export interface GridColGroupProps {
 export function GridColGroup({ selectable, columns, hasRowActions }: GridColGroupProps) {
     return (
         <colgroup>
-            {selectable !== 'none' ? <col style={{ width: 36 }} /> : null}
+            {selectable !== 'none' ? <col className="w-[36px]" /> : null}
             {columns.map((c) => (
                 <col key={c.id} style={Number.isFinite(c.size) ? { width: c.size } : undefined} />
             ))}
@@ -109,8 +108,7 @@ export function GridNoMatchRow({ colSpan, activeFilterCount, clearFilters }: { c
                         <button
                             type="button"
                             onClick={clearFilters}
-                            className="mt-2 px-2.5 py-1 text-xs font-medium border"
-                            style={{ borderColor: 'var(--border-default)', borderRadius: 'var(--app-radius)', color: 'var(--text-secondary)' }}
+                            className="mt-2 px-2.5 py-1 text-xs font-medium border [border-color:var(--border-default)] [border-radius:var(--app-radius)] [color:var(--text-secondary)]!"
                         >
                             {t('studio_apps_runtime.grid.clear_filters', 'Clear filters')}
                         </button>

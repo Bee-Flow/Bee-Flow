@@ -19,7 +19,9 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import TrendChart from '../charts/TrendChart';
 import { rich } from '../rich';
-import { ACCENT, Card, ErrorNote, Skeleton, ShareBar, fmt } from '../ui';
+import { fmt } from '../ui';
+import { Card, ErrorNote, Skeleton } from '../AsyncCard';
+import { ACCENT, ShareBar } from '../BarList';
 import { useAnalyticsQuery } from '../useAnalyticsQuery';
 import { resolveWindow, densify, bucketLabel } from '../window';
 import type { AnalyticsScope } from '../../analyticsApi';
@@ -344,4 +346,4 @@ function NotMeasured() {
     );
 }
 
-export { readVital, band, formatValue, METRICS };
+;

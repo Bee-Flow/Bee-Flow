@@ -15,7 +15,7 @@ import type { CmsLink } from '../fields';
 import type { StyleBlob } from '../primitives.types';
 import type { BlockEditorWithPagesProps } from './editorProps';
 import { set } from './shared';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
 
 // ── Media + Text ─────────────────────────────────────────────────────
 
@@ -187,134 +187,125 @@ export function MediaTextEditor({ data = {}, pages = [], onChange }: BlockEditor
             </CollapsibleCard>
 
             {/* ── Media ───────────────────────────────────────────── */}
-            <CollapsibleCard title={t('cms_site.blocks.media_text.media', 'Media')} defaultOpen={false} persistKey="blk.media-text.media">
-                <FieldSelect
-                    label={t('cms_site.blocks.media_text.media_type', 'Media type')}
-                    value={media.kind || 'image'}
-                    options={[
-                        { value: 'image',        label: t('cms_site.blocks.media_text.kind_image', 'Image') },
-                        { value: 'gif',          label: t('cms_site.blocks.media_text.kind_gif', 'GIF / Animation') },
-                        { value: 'video',        label: t('cms_site.blocks.media_text.kind_video', 'Video (embed URL)') },
-                        { value: 'video-silent', label: t('cms_site.blocks.media_text.kind_video_silent', 'Video loop (no audio)') },
-                        { value: 'clip',         label: t('cms_site.blocks.media_text.kind_clip', 'Clip (video with sound)') },
-                    ]}
-                    onChange={v => updateMedia('kind', v)}
-                />
-                {media.kind === 'gif' ? (
-                    <>
-                        <ImageField
-                            label={t('cms_site.blocks.media_text.gif_animation', 'GIF / animation')}
-                            value={media.src || ''}
-                            onChange={v => updateMedia('src', v)}
-                            accept="image/gif,image/webp,image/apng,image/png,image/jpeg"
-                            uploadLabel={t('cms_site.blocks.media_text.upload_gif', 'Upload GIF')}
-                            placeholder="https://… or /api/cms/asset/cms/…"
-                        />
-                        <TextField
-                            label={t('cms_site.blocks.media_text.alt_text', 'Alt text')}
-                            value={media.alt || ''}
-                            onChange={v => updateMedia('alt', v)}
-                            placeholder={t('cms_site.blocks.media_text.describe_the_animation', 'Describe the animation')}
-                        />
-                    </>
-                ) : media.kind === 'video-silent' ? (
-                    <>
-                        <ImageField
-                            label={t('cms_site.blocks.media_text.video', 'Video')}
-                            value={media.src || ''}
-                            onChange={v => updateMedia('src', v)}
-                            accept="video/mp4,video/webm"
-                            previewKind="video"
-                            uploadLabel={t('cms_site.blocks.media_text.upload_video', 'Upload video')}
-                            placeholder="https://… or /api/cms/asset/cms/…"
-                        />
-                        <TextField
-                            label={t('cms_site.blocks.media_text.alt_text', 'Alt text')}
-                            value={media.alt || ''}
-                            onChange={v => updateMedia('alt', v)}
-                            placeholder={t('cms_site.blocks.media_text.describe_the_video', 'Describe the video')}
-                        />
-                    </>
-                ) : media.kind === 'clip' ? (
-                    <ClipFields
-                        value={media}
-                        onPatch={patch => setField('media', { ...media, ...patch })}
-                    />
-                ) : media.kind === 'video' ? (
-                    <TextField
-                        label={t('cms_site.blocks.media_text.video_embed_url', 'Video embed URL')}
-                        value={media.src || ''}
-                        onChange={v => updateMedia('src', v)}
-                        placeholder="https://www.youtube.com/embed/… or https://player.vimeo.com/video/…"
-                        hint={t('cms_site.blocks.media_text.use_the_embed_url_not_the', 'Use the embed URL, not the public watch URL.')}
-                    />
-                ) : (
-                    <>
-                        <ImageField
-                            label={t('cms_site.blocks.media_text.image', 'Image')}
-                            value={media.src || ''}
-                            onChange={v => updateMedia('src', v)}
-                        />
-                        <TextField
-                            label={t('cms_site.blocks.media_text.alt_text', 'Alt text')}
-                            value={media.alt || ''}
-                            onChange={v => updateMedia('alt', v)}
-                            placeholder={t('cms_site.blocks.media_text.describe_the_image', 'Describe the image')}
-                        />
-                    </>
-                )}
-                {/* Frame + dark-theme pair — image-ish kinds only (the
-                    renderer routes framed images through FramedMedia;
-                    video/embed rendering is unchanged). Empty frame =
-                    legacy bare <img>, so old pages are untouched. */}
-                {(!media.kind || media.kind === 'image' || media.kind === 'gif') ? (
-                    <>
-                        <FieldSelect
-                            label={t('cms_site.blocks.media_text.frame', 'Frame')}
-                            value={media.frame || ''}
-                            options={[
-                                { value: '',         label: t('cms_site.blocks.media_text.frame_none', 'None (bare image)') },
-                                { value: 'hairline', label: t('cms_site.blocks.media_text.frame_hairline', 'Hairline frame') },
-                                { value: 'browser',  label: t('cms_site.blocks.media_text.frame_browser', 'Browser window') },
-                            ]}
-                            onChange={v => updateMedia('frame', v)}
-                        />
-                        {media.frame === 'hairline' || media.frame === 'browser' ? (
-                            <>
-                                <ImageField
-                                    label={t('cms_site.blocks.media_text.dark_theme_image_optional', 'Dark-theme image (optional)')}
-                                    value={media.srcDark || ''}
-                                    onChange={v => updateMedia('srcDark', v)}
-                                />
-                                <MediaMotionSelect value={media.motion} onChange={v => updateMedia('motion', v)} />
-                            </>
-                        ) : null}
-                    </>
-                ) : null}
-                <FieldSelect
-                    label={t('cms_site.blocks.media_text.media_position', 'Media position')}
-                    value={data.mediaPosition || 'left'}
-                    options={[
-                        { value: 'left',  label: t('cms_site.blocks.media_text.position_left', 'Left') },
-                        { value: 'right', label: t('cms_site.blocks.media_text.position_right', 'Right') },
-                    ]}
-                    onChange={v => setField('mediaPosition', v)}
-                />
-                <FieldSelect
-                    label={t('cms_site.blocks.media_text.media_size', 'Media size')}
-                    value={data.mediaSize || 'half'}
-                    options={[
-                        { value: 'half',       label: t('cms_site.blocks.media_text.size_half', 'Half (50 / 50)') },
-                        { value: 'third',      label: t('cms_site.blocks.media_text.size_third', 'One third (33 / 67)') },
-                        { value: 'two-thirds', label: t('cms_site.blocks.media_text.size_two_thirds', 'Two thirds (66 / 34)') },
-                    ]}
-                    onChange={v => setField('mediaSize', v)}
-                />
-            </CollapsibleCard>
+            <MediaTextEditorCollapsibleCard t={t} media={media} updateMedia={updateMedia} setField={setField} data={data} />
 
             <TourCard value={data.tour} onChange={v => setField('tour', v)} persistKey="blk.media-text.tour" />
 
             <BackgroundCard data={data} onChange={onChange} persistKey="blk.media-text.background" />
         </>
     );
+}
+
+function MediaTextEditorCollapsibleCard({ t, media, updateMedia, setField, data }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; media: MediaSlot; updateMedia: (key: string, value: unknown) => void; setField: (key: string, value: unknown) => void; data: MediaTextData; }) {
+    return <CollapsibleCard title={t('cms_site.blocks.media_text.media', 'Media')} defaultOpen={false} persistKey="blk.media-text.media">
+        <FieldSelect
+            label={t('cms_site.blocks.media_text.media_type', 'Media type')}
+            value={media.kind || 'image'}
+            options={[
+                { value: 'image', label: t('cms_site.blocks.media_text.kind_image', 'Image') },
+                { value: 'gif', label: t('cms_site.blocks.media_text.kind_gif', 'GIF / Animation') },
+                { value: 'video', label: t('cms_site.blocks.media_text.kind_video', 'Video (embed URL)') },
+                { value: 'video-silent', label: t('cms_site.blocks.media_text.kind_video_silent', 'Video loop (no audio)') },
+                { value: 'clip', label: t('cms_site.blocks.media_text.kind_clip', 'Clip (video with sound)') },
+            ]}
+            onChange={v => updateMedia('kind', v)} />
+        {media.kind === 'gif' ? (
+            <>
+                <ImageField
+                    label={t('cms_site.blocks.media_text.gif_animation', 'GIF / animation')}
+                    value={media.src || ''}
+                    onChange={v => updateMedia('src', v)}
+                    accept="image/gif,image/webp,image/apng,image/png,image/jpeg"
+                    uploadLabel={t('cms_site.blocks.media_text.upload_gif', 'Upload GIF')}
+                    placeholder="https://… or /api/cms/asset/cms/…" />
+                <TextField
+                    label={t('cms_site.blocks.media_text.alt_text', 'Alt text')}
+                    value={media.alt || ''}
+                    onChange={v => updateMedia('alt', v)}
+                    placeholder={t('cms_site.blocks.media_text.describe_the_animation', 'Describe the animation')} />
+            </>
+        ) : media.kind === 'video-silent' ? (
+            <>
+                <ImageField
+                    label={t('cms_site.blocks.media_text.video', 'Video')}
+                    value={media.src || ''}
+                    onChange={v => updateMedia('src', v)}
+                    accept="video/mp4,video/webm"
+                    previewKind="video"
+                    uploadLabel={t('cms_site.blocks.media_text.upload_video', 'Upload video')}
+                    placeholder="https://… or /api/cms/asset/cms/…" />
+                <TextField
+                    label={t('cms_site.blocks.media_text.alt_text', 'Alt text')}
+                    value={media.alt || ''}
+                    onChange={v => updateMedia('alt', v)}
+                    placeholder={t('cms_site.blocks.media_text.describe_the_video', 'Describe the video')} />
+            </>
+        ) : media.kind === 'clip' ? (
+            <ClipFields
+                value={media}
+                onPatch={patch => setField('media', { ...media, ...patch })} />
+        ) : media.kind === 'video' ? (
+            <TextField
+                label={t('cms_site.blocks.media_text.video_embed_url', 'Video embed URL')}
+                value={media.src || ''}
+                onChange={v => updateMedia('src', v)}
+                placeholder="https://www.youtube.com/embed/… or https://player.vimeo.com/video/…"
+                hint={t('cms_site.blocks.media_text.use_the_embed_url_not_the', 'Use the embed URL, not the public watch URL.')} />
+        ) : (
+            <>
+                <ImageField
+                    label={t('cms_site.blocks.media_text.image', 'Image')}
+                    value={media.src || ''}
+                    onChange={v => updateMedia('src', v)} />
+                <TextField
+                    label={t('cms_site.blocks.media_text.alt_text', 'Alt text')}
+                    value={media.alt || ''}
+                    onChange={v => updateMedia('alt', v)}
+                    placeholder={t('cms_site.blocks.media_text.describe_the_image', 'Describe the image')} />
+            </>
+        )}
+        {/* Frame + dark-theme pair — image-ish kinds only (the
+            renderer routes framed images through FramedMedia;
+            video/embed rendering is unchanged). Empty frame =
+            legacy bare <img>, so old pages are untouched. */}
+        {(!media.kind || media.kind === 'image' || media.kind === 'gif') ? (
+            <>
+                <FieldSelect
+                    label={t('cms_site.blocks.media_text.frame', 'Frame')}
+                    value={media.frame || ''}
+                    options={[
+                        { value: '', label: t('cms_site.blocks.media_text.frame_none', 'None (bare image)') },
+                        { value: 'hairline', label: t('cms_site.blocks.media_text.frame_hairline', 'Hairline frame') },
+                        { value: 'browser', label: t('cms_site.blocks.media_text.frame_browser', 'Browser window') },
+                    ]}
+                    onChange={v => updateMedia('frame', v)} />
+                {media.frame === 'hairline' || media.frame === 'browser' ? (
+                    <>
+                        <ImageField
+                            label={t('cms_site.blocks.media_text.dark_theme_image_optional', 'Dark-theme image (optional)')}
+                            value={media.srcDark || ''}
+                            onChange={v => updateMedia('srcDark', v)} />
+                        <MediaMotionSelect value={media.motion} onChange={v => updateMedia('motion', v)} />
+                    </>
+                ) : null}
+            </>
+        ) : null}
+        <FieldSelect
+            label={t('cms_site.blocks.media_text.media_position', 'Media position')}
+            value={data.mediaPosition || 'left'}
+            options={[
+                { value: 'left', label: t('cms_site.blocks.media_text.position_left', 'Left') },
+                { value: 'right', label: t('cms_site.blocks.media_text.position_right', 'Right') },
+            ]}
+            onChange={v => setField('mediaPosition', v)} />
+        <FieldSelect
+            label={t('cms_site.blocks.media_text.media_size', 'Media size')}
+            value={data.mediaSize || 'half'}
+            options={[
+                { value: 'half', label: t('cms_site.blocks.media_text.size_half', 'Half (50 / 50)') },
+                { value: 'third', label: t('cms_site.blocks.media_text.size_third', 'One third (33 / 67)') },
+                { value: 'two-thirds', label: t('cms_site.blocks.media_text.size_two_thirds', 'Two thirds (66 / 34)') },
+            ]}
+            onChange={v => setField('mediaSize', v)} />
+    </CollapsibleCard>;
 }

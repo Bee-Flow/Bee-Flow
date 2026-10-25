@@ -24,7 +24,7 @@
  * Negative durations do not exist. A clock that ran backwards is not a
  * measurement, so it comes out as null rather than as '-3ms'.
  */
-export function formatDurationMs(ms: number) {
+function formatDurationMs(ms: number) {
     if (!Number.isFinite(ms) || ms < 0) return null;
     return ms < 1000 ? `${Math.round(ms)}ms` : `${(ms / 1000).toFixed(1)}s`;
 }

@@ -20,8 +20,8 @@ export interface Size { w: number; h: number }
 
 export const K_MIN = 1;
 export const K_MAX = 8;
-export const FIT_PADDING = 32;
-export const CLUSTER_RADIUS = 14;
+const FIT_PADDING = 32;
+const CLUSTER_RADIUS = 14;
 /** How far a line bows away from the straight chord, as a share of its length. */
 export const BOW = 0.18;
 

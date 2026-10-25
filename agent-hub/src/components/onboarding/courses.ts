@@ -19,10 +19,10 @@
 
 import { LESSONS, getLesson, lessonVisible } from './lessons';
 import { GENERATED_COURSES } from './generated/courses';
-import type { Certificate, Course, CourseBadge, HasFeature, LessonDoc, LessonUser, ServerCatalog, Track } from './lessons.types';
+import type { Certificate, Course, CourseBadge, HasFeature, LessonDoc, LessonUser, ServerCatalog, Track } from '../../api/lessons.types';
 
 /* ── Tracks ──────────────────────────────────────────────────────────────── */
-export const TRACKS: Record<string, Track> = {
+const TRACKS: Record<string, Track> = {
     foundations: { id: 'foundations', titleKey: 'learn.track.foundations', titleFallback: 'Foundations' },
     builder: { id: 'builder', titleKey: 'learn.track.builder', titleFallback: 'Agent Builder' },
     power: { id: 'power', titleKey: 'learn.track.power', titleFallback: 'Power User' },
@@ -208,7 +208,7 @@ let activeCertificatesList: Certificate[] = CERTIFICATES;
 let activeCatalogVersion = 0;
 
 export function activeCourses(): Course[] { return activeCoursesList; }
-export function activeCertificates(): Certificate[] { return activeCertificatesList; }
+function activeCertificates(): Certificate[] { return activeCertificatesList; }
 export function catalogVersion(): number { return activeCatalogVersion; }
 
 // Merge the server catalog's STRUCTURE over the bundled PRESENTATION. Server
@@ -283,7 +283,7 @@ export function resolveCourses(user: LessonUser | null | undefined, { hasFeature
     return activeCoursesList.filter((c: Course) => courseLessons(c, user, hasFeature).length > 0);
 }
 
-export function courseEstMinutes(course: Course | null | undefined, user: LessonUser | null | undefined, hasFeature?: HasFeature): number {
+function courseEstMinutes(course: Course | null | undefined, user: LessonUser | null | undefined, hasFeature?: HasFeature): number {
     return courseLessons(course, user, hasFeature).reduce((sum: number, l: LessonDoc) => sum + (l.estMinutes || 0), 0);
 }
 
@@ -295,7 +295,7 @@ export function isCourseComplete(course: Course | null | undefined, completedMap
     return lessons.every((l: LessonDoc) => !!completedMap[l.id]);
 }
 
-export function courseLessonsDone(course: Course | null | undefined, completedMap: Record<string, boolean>, user: LessonUser | null | undefined, hasFeature?: HasFeature): number {
+function courseLessonsDone(course: Course | null | undefined, completedMap: Record<string, boolean>, user: LessonUser | null | undefined, hasFeature?: HasFeature): number {
     return courseLessons(course, user, hasFeature).filter((l: LessonDoc) => !!completedMap[l.id]).length;
 }
 
@@ -322,7 +322,7 @@ export function earnedBadgesFromProgress(completedMap: Record<string, boolean>, 
 
 // Certificate eligibility, derived. A track cert needs every course in the track
 // (that's visible to the user) complete; a count cert needs N completed courses.
-export function certificateEligible(cert: Certificate | null | undefined, doneCourseIds: string[], user: LessonUser | null | undefined, hasFeature?: HasFeature): boolean {
+function certificateEligible(cert: Certificate | null | undefined, doneCourseIds: string[], user: LessonUser | null | undefined, hasFeature?: HasFeature): boolean {
     if (cert?.rule?.type === 'count') return doneCourseIds.length >= cert.rule.n;
     if (cert?.track) {
         const trackCourses = resolveCourses(user, { hasFeature }).filter((c: Course) => c.track === cert.track);
@@ -333,7 +333,7 @@ export function certificateEligible(cert: Certificate | null | undefined, doneCo
 }
 
 // Progress toward a certificate, for the achievements UI: { done, total }.
-export function certificateProgress(cert: Certificate | null | undefined, doneCourseIds: string[], user: LessonUser | null | undefined, hasFeature?: HasFeature): { done: number; total: number } {
+function certificateProgress(cert: Certificate | null | undefined, doneCourseIds: string[], user: LessonUser | null | undefined, hasFeature?: HasFeature): { done: number; total: number } {
     if (cert?.rule?.type === 'count') {
         return { done: Math.min(doneCourseIds.length, cert.rule.n), total: cert.rule.n };
     }
@@ -351,8 +351,8 @@ export function certificateProgress(cert: Certificate | null | undefined, doneCo
  * mastery bonus for lessons proven first-try (masteredAt, v2). Levels are
  * thresholds with bee-themed labels. Tasteful — no leaderboards.
  * ──────────────────────────────────────────────────────────────────────────── */
-export const XP_PER_LESSON = 100;
-export const XP_PER_COURSE = 250;
+const XP_PER_LESSON = 100;
+const XP_PER_COURSE = 250;
 export const XP_PER_MASTERY = 50;
 
 export const LEVELS = [

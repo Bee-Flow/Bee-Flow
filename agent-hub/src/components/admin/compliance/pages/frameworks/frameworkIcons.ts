@@ -39,4 +39,3 @@ export function frameworkIcon(id: unknown): LucideIcon {
     return FRAMEWORK_ICONS[ALIASES[key] || key] || Scale;
 }
 
-export default frameworkIcon;

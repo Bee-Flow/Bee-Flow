@@ -38,7 +38,7 @@ import SettingsPage from '../pages/SettingsPage';
 import SoaPage from '../pages/SoaPage';
 import TrainingPage from '../pages/TrainingPage';
 
-export function PendingPage({ section }: { section?: { id?: string } | null }) {
+function PendingPage({ section }: { section?: { id?: string } | null }) {
     const { t } = useTranslation();
     return (
         <div className="p-6 text-[13px] text-[var(--text-tertiary)]" data-testid={`pending-page-${section?.id || ''}`}>
@@ -52,7 +52,7 @@ export function PendingPage({ section }: { section?: { id?: string } | null }) {
  * the checks page for its regulation (the same page serves gdpr, aia, iso and
  * every growing-set framework).
  */
-export const PAGES = Object.freeze({
+const PAGES = Object.freeze({
     overview: OverviewPage,
     // Every framework section renders the one checks table (fe-3); the
     // regulation comes from sections.frameworkOf(section.id).

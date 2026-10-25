@@ -132,7 +132,7 @@ export function lastStepId(def: FlowDefinition): string | null {
  * point); new→target leaves by the inserted step's FIRST output — for a
  * Filter that is `then`, and an unlabelled edge there would never fire.
  */
-export function spliceInsertedIntoEdge(
+function spliceInsertedIntoEdge(
     next: FlowDefinition,
     { sourceId, targetId, sourceHandle, label, caseName }: {
         sourceId: string; targetId: string; sourceHandle: string | null;

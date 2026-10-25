@@ -172,4 +172,3 @@ export async function routeDescription(text: string, { signal }: { signal?: Abor
     };
 }
 
-export default routeDescription;

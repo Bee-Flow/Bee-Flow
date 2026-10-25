@@ -201,4 +201,3 @@ export function buildBfDecorations(marks?: BfMark[] | null, { label, hover }: De
     });
 }
 
-export default buildBfDecorations;

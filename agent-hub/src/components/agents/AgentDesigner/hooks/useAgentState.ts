@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useUrlQueryParam } from '../../../../hooks/useUrlTab';
 import type { ModelTierMap } from '../../../../api/queries/modelTiers';
-import type { ModelEntry } from '../../../../utils/modelMeta';
+import type { ModelEntry } from '../../../../api/modelMeta';
 import type { DesignerAgent } from '../AgentListSidebar';
 import type { IntegrationStatus } from '../DesignerPanels';
 import type { OrgGroup } from '../PublishMenu';

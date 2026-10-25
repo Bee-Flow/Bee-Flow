@@ -1,17 +1,7 @@
 import { Plus, Trash2, Wand2 } from 'lucide-react';
 import React from 'react';
-import {
-    COMPARE_SOURCES,
-    blankCondition,
-    conditionProblem,
-    findRuleField,
-    hasEmptyCheck,
-    operatorsForField,
-    ownRowsCondition,
-    retypeCondition,
-    ruleFields,
-    valueKindOf,
-} from './rowRuleModel';
+import { blankCondition, conditionProblem, findRuleField, hasEmptyCheck, operatorsForField, ownRowsCondition, retypeCondition, ruleFields, valueKindOf } from './rowRuleModel';
+import { COMPARE_SOURCES } from './rowRuleModel.constants';
 import useTranslation from '../../../../../hooks/useTranslation';
 import { optionPairs } from '../tables/rowValues';
 import type { RuleTable, RuleCondition, RuleField } from './rowRuleModel.types';

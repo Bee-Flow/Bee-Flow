@@ -2,7 +2,7 @@ import type { RefObject } from 'react';
 import type { projectRouteFromPage } from './projectNavigation';
 
 /** Where Studio is pointed: a section, an optional item and sub-item, plus builder query state. */
-export interface StudioRoute {
+interface StudioRoute {
     section: string;
     id?: string | null;
     sub?: string | null;

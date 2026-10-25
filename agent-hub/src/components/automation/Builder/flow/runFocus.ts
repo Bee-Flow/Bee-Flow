@@ -138,4 +138,3 @@ function earliestStart(rows: FocusRow[]): string | null {
 // formatElapsed lives in shared/builder now (the App Studio banner uses it too).
 export { formatElapsed } from '../../../shared/builder/formatElapsed';
 
-export default computeRunFocus;

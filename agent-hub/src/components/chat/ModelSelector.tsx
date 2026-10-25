@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import useOutsideDismiss from '../../hooks/useOutsideDismiss';
-import { MISTRAL_MODEL_META, CAT_COLORS, getModelMeta } from '../../utils/modelMeta';
+import { MISTRAL_MODEL_META, CAT_COLORS, getModelMeta } from '../../api/modelMeta';
 import useTranslation from '../../hooks/useTranslation';
 
 interface ModelOption {
@@ -135,67 +135,7 @@ export default function ModelSelector({ models, value, onChange, defaultLabel, c
     return (
         <div ref={ref} className="[position:relative]">
             {/* Trigger Button */}
-            <button
-                type="button"
-                onClick={() => setOpen(!open)}
-                className="w-full text-left transition-all"
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    padding: compact ? '8px 12px' : '10px 14px',
-                    borderRadius: '12px',
-                    border: '1px solid',
-                    borderColor: open ? 'var(--accent-primary)' : 'var(--border-default)',
-                    background: 'var(--bg-tertiary)',
-                    cursor: 'pointer',
-                    minHeight: compact ? '40px' : '48px',
-                    boxShadow: open ? '0 0 0 2px rgba(99, 102, 241, 0.15)' : 'none',
-                }}
-            >
-                {selectedModel ? (
-                    <>
-                        <div style={{
-                            width: '32px', height: '32px', borderRadius: '8px',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '16px', flexShrink: 0,
-                            background: (CAT_COLORS as Record<string, string>)[selectedMeta?.cat as string] || 'rgba(107, 114, 128, 0.15)',
-                        }}>
-                            {CAT_ICONS[selectedMeta?.cat as string] || '⚙️'}
-                        </div>
-                        <div className="[flex:1] min-w-[0]">
-                            <div className="[font-size:13px] [font-weight:600] [color:var(--text-primary)] [white-space:nowrap] [overflow:hidden] [text-overflow:ellipsis]">
-                                {selectedModel.displayName || selectedModel.name}
-                            </div>
-                            {!compact && selectedMeta?.desc && (
-                                <div className="[font-size:11px] [color:var(--text-muted)] [white-space:nowrap] [overflow:hidden] [text-overflow:ellipsis]">
-                                    {selectedMeta.desc}
-                                </div>
-                            )}
-                        </div>
-                        {selectedMeta?.cat && (
-                            <span style={{
-                                fontSize: '10px', fontWeight: 600, padding: '2px 8px', borderRadius: '6px',
-                                background: (CAT_COLORS as Record<string, string>)[selectedMeta.cat] || 'rgba(107, 114, 128, 0.15)',
-                                color: CAT_TEXT_COLORS[selectedMeta.cat] || '#9ca3af',
-                                whiteSpace: 'nowrap', flexShrink: 0,
-                            }}>
-                                {selectedMeta.cat}
-                            </span>
-                        )}
-                    </>
-                ) : (
-                    <>
-                        <div className="w-[32px] h-[32px] [border-radius:8px] [display:flex] [align-items:center] [justify-content:center] [font-size:16px] [flex-shrink:0] [background:rgba(107,114,128,0.1)]">✨</div>
-                        <div className="[flex:1] [font-size:13px] [font-weight:500] [color:var(--text-secondary)]">
-                            {defaultLabel}
-                        </div>
-                    </>
-                )}
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-muted)', flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-                    <polyline points="6 9 12 15 18 9" />
-                </svg>
-            </button>
+            <ModelSelectorSection setOpen={setOpen} open={open} compact={compact} selectedModel={selectedModel} selectedMeta={selectedMeta} defaultLabel={defaultLabel} />
 
             {/* Dropdown Panel */}
             {open && (
@@ -333,4 +273,68 @@ export default function ModelSelector({ models, value, onChange, defaultLabel, c
             `}</style>
         </div>
     );
+}
+
+function ModelSelectorSection({ setOpen, open, compact, selectedModel, selectedMeta, defaultLabel }: { setOpen: React.Dispatch<React.SetStateAction<boolean>>; open: boolean; compact: boolean; selectedModel: ModelOption | undefined; selectedMeta: ModelMeta | null; defaultLabel: string | undefined; }) {
+    return <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="w-full text-left transition-all"
+        style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: compact ? '8px 12px' : '10px 14px',
+            borderRadius: '12px',
+            border: '1px solid',
+            borderColor: open ? 'var(--accent-primary)' : 'var(--border-default)',
+            background: 'var(--bg-tertiary)',
+            cursor: 'pointer',
+            minHeight: compact ? '40px' : '48px',
+            boxShadow: open ? '0 0 0 2px rgba(99, 102, 241, 0.15)' : 'none',
+        }}
+    >
+        {selectedModel ? (
+            <>
+                <div style={{
+                    width: '32px', height: '32px', borderRadius: '8px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '16px', flexShrink: 0,
+                    background: (CAT_COLORS as Record<string, string>)[selectedMeta?.cat as string] || 'rgba(107, 114, 128, 0.15)',
+                }}>
+                    {CAT_ICONS[selectedMeta?.cat as string] || '⚙️'}
+                </div>
+                <div className="[flex:1] min-w-[0]">
+                    <div className="[font-size:13px] [font-weight:600] [color:var(--text-primary)] [white-space:nowrap] [overflow:hidden] [text-overflow:ellipsis]">
+                        {selectedModel.displayName || selectedModel.name}
+                    </div>
+                    {!compact && selectedMeta?.desc && (
+                        <div className="[font-size:11px] [color:var(--text-muted)] [white-space:nowrap] [overflow:hidden] [text-overflow:ellipsis]">
+                            {selectedMeta.desc}
+                        </div>
+                    )}
+                </div>
+                {selectedMeta?.cat && (
+                    <span style={{
+                        fontSize: '10px', fontWeight: 600, padding: '2px 8px', borderRadius: '6px',
+                        background: (CAT_COLORS as Record<string, string>)[selectedMeta.cat] || 'rgba(107, 114, 128, 0.15)',
+                        color: CAT_TEXT_COLORS[selectedMeta.cat] || '#9ca3af',
+                        whiteSpace: 'nowrap', flexShrink: 0,
+                    }}>
+                        {selectedMeta.cat}
+                    </span>
+                )}
+            </>
+        ) : (
+            <>
+                <div className="w-[32px] h-[32px] [border-radius:8px] [display:flex] [align-items:center] [justify-content:center] [font-size:16px] [flex-shrink:0] [background:rgba(107,114,128,0.1)]">✨</div>
+                <div className="[flex:1] [font-size:13px] [font-weight:500] [color:var(--text-secondary)]">
+                    {defaultLabel}
+                </div>
+            </>
+        )}
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-muted)', flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+            <polyline points="6 9 12 15 18 9" />
+        </svg>
+    </button>;
 }

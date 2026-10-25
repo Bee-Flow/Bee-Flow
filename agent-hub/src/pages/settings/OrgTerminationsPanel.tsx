@@ -47,12 +47,12 @@ function StackedBarChart({ data, t }: StackedBarChartProps) {
     const periods = Object.values(buckets).sort((a, b) => a.period.localeCompare(b.period));
     const maxTotal = Math.max(...periods.map(p => TYPE_ORDER.reduce((s, t2) => s + (p[t2] as number || 0), 0)), 1);
     return (
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 140, padding: '8px 0' }}>
+        <div className="[display:flex] [align-items:flex-end] [gap:4px] h-[140px] [padding:8px_0]">
             {periods.map(p => {
                 const total = TYPE_ORDER.reduce((s, t2) => s + (p[t2] as number || 0), 0);
                 const heightPct = (total / maxTotal) * 100;
                 return (
-                    <div key={p.period} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 8 }}>
+                    <div key={p.period} className="[flex:1] [display:flex] [flex-direction:column] [align-items:center] [gap:4px] min-w-[8px]">
                         <div title={`${p.period} · ${total}`} style={{ width: '100%', height: `${heightPct}%`, minHeight: total > 0 ? 2 : 0, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', borderRadius: '4px 4px 0 0', overflow: 'hidden' }}>
                             {TYPE_ORDER.map(tk => {
                                 const v = p[tk] as number || 0;
@@ -60,7 +60,7 @@ function StackedBarChart({ data, t }: StackedBarChartProps) {
                                 return <div key={tk} style={{ height: `${(v / total) * 100}%`, background: typeMeta(tk).color }} />;
                             })}
                         </div>
-                        <span style={{ fontSize: 9, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{p.period.slice(5)}</span>
+                        <span className="[font-size:9px] [color:var(--text-muted)] [white-space:nowrap]">{p.period.slice(5)}</span>
                     </div>
                 );
             })}
@@ -70,8 +70,8 @@ function StackedBarChart({ data, t }: StackedBarChartProps) {
 
 function DetailRow({ label, value, mono }: DetailRowProps) {
     return (
-        <div style={{ display: 'flex', gap: 12, alignItems: 'baseline' }}>
-            <span style={{ minWidth: 110, fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
+        <div className="[display:flex] [gap:12px] [align-items:baseline]">
+            <span className="min-w-[110px] [font-size:11px] [color:var(--text-muted)] [text-transform:uppercase] [letter-spacing:0.04em]">{label}</span>
             <span style={{ fontFamily: mono ? 'var(--font-mono, ui-monospace, monospace)' : 'inherit', wordBreak: 'break-all', flex: 1, color: value ? 'var(--text-primary)' : 'var(--text-muted)' }}>{value || '—'}</span>
         </div>
     );
@@ -153,10 +153,7 @@ export default function OrgTerminationsPanel({ rangeParams, showTokens = true }:
         : '90px 1fr 1fr 130px 90px 50px 70px 24px';
 
     const refreshBtn = (
-        <button onClick={fetchData} title={t('org.terminations_refresh')} style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 8,
-            border: '1px solid var(--border-subtle)', background: 'var(--bg-secondary)', cursor: 'pointer', color: 'var(--text-muted)',
-        }}>
+        <button onClick={fetchData} title={t('org.terminations_refresh')} className="[display:flex] [align-items:center] [justify-content:center] w-[30px] h-[30px] [border-radius:8px] [border:1px_solid_var(--border-subtle)] [background:var(--bg-secondary)] [cursor:pointer] [color:var(--text-muted)]">
             <RefreshCw style={{ width: 13, height: 13, animation: loading ? 'spin 1s linear infinite' : 'none' }} />
         </button>
     );
@@ -166,7 +163,7 @@ export default function OrgTerminationsPanel({ rangeParams, showTokens = true }:
             <TabHeader icon={AlertTriangle} iconColor="#f43f5e" title={t('org.terminations_title')} description={t('org.terminations_subtitle')} actions={refreshBtn} />
 
             {loading && rows.length === 0 ? (
-                <Card><div style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)' }}>{t('org.terminations_loading')}</div></Card>
+                <Card><div className="[padding:32px] [text-align:center] [color:var(--text-muted)]">{t('org.terminations_loading')}</div></Card>
             ) : (
                 <>
                     {total >= TERMINATIONS_MIN_SAMPLE && errPct !== null && errPct > TERMINATIONS_ERROR_ALERT_PCT && (
@@ -204,9 +201,9 @@ export default function OrgTerminationsPanel({ rangeParams, showTokens = true }:
 
                     {/* Timeline */}
                     <Card title={t('org.terminations_over_time')} icon={Clock}>
-                        <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, flexWrap: 'wrap' }}>
+                        <div className="[display:flex] [gap:12px] [font-size:11px] [color:var(--text-muted)] [margin-bottom:6px] [flex-wrap:wrap]">
                             {TYPE_ORDER.map(tk => (
-                                <span key={tk} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <span key={tk} className="[display:flex] [align-items:center] [gap:4px]">
                                     <span style={{ width: 8, height: 8, borderRadius: 2, background: typeMeta(tk).color }} />{t(`org.terminations_type_${tk}`)}
                                 </span>
                             ))}
@@ -217,18 +214,18 @@ export default function OrgTerminationsPanel({ rangeParams, showTokens = true }:
                     {/* By agent */}
                     {byAgent.length > 0 && (
                         <Card title={t('org.terminations_by_agent')} icon={Bot}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 70px 70px 70px 70px 70px', gap: 8, padding: '6px 4px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                            <div className="[display:grid] [grid-template-columns:1fr_70px_70px_70px_70px_70px] [gap:8px] [padding:6px_4px] [font-size:10px] [font-weight:700] [text-transform:uppercase] [color:var(--text-muted)]">
                                 <span>{t('org.terminations_col_agent')}</span>
-                                <span style={{ textAlign: 'right' }}>{t('org.terminations_col_total')}</span>
-                                <span style={{ textAlign: 'right' }}>{t('org.terminations_col_max_tok')}</span>
-                                <span style={{ textAlign: 'right' }}>{t('org.terminations_col_max_iter')}</span>
-                                <span style={{ textAlign: 'right' }}>{t('org.terminations_col_errors')}</span>
-                                <span style={{ textAlign: 'right' }}>{t('org.terminations_col_aborted')}</span>
+                                <span className="[text-align:right]">{t('org.terminations_col_total')}</span>
+                                <span className="[text-align:right]">{t('org.terminations_col_max_tok')}</span>
+                                <span className="[text-align:right]">{t('org.terminations_col_max_iter')}</span>
+                                <span className="[text-align:right]">{t('org.terminations_col_errors')}</span>
+                                <span className="[text-align:right]">{t('org.terminations_col_aborted')}</span>
                             </div>
                             {byAgent.map(a => (
-                                <div key={a.agent_id || 'unknown'} style={{ display: 'grid', gridTemplateColumns: '1fr 70px 70px 70px 70px 70px', gap: 8, padding: '8px 4px', borderTop: '1px solid var(--border-subtle)', fontSize: 12, color: 'var(--text-primary)', alignItems: 'center' }}>
-                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.agent_name || a.agent_id || '—'}</span>
-                                    <span style={{ textAlign: 'right', fontWeight: 700 }}>{a.total}</span>
+                                <div key={a.agent_id || 'unknown'} className="[display:grid] [grid-template-columns:1fr_70px_70px_70px_70px_70px] [gap:8px] [padding:8px_4px] [border-top:1px_solid_var(--border-subtle)] [font-size:12px] [color:var(--text-primary)] [align-items:center]">
+                                    <span className="[overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">{a.agent_name || a.agent_id || '—'}</span>
+                                    <span className="[text-align:right] [font-weight:700]">{a.total}</span>
                                     <span style={{ textAlign: 'right', color: C.amber }}>{a.max_tokens || 0}</span>
                                     <span style={{ textAlign: 'right', color: C.orange }}>{a.max_iterations || 0}</span>
                                     <span style={{ textAlign: 'right', color: C.rose }}>{a.errors || 0}</span>
@@ -240,10 +237,10 @@ export default function OrgTerminationsPanel({ rangeParams, showTokens = true }:
 
                     {/* Detail table */}
                     <Card>
-                        <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 8, background: 'var(--bg-primary)', border: '1px solid var(--border-subtle)', flex: '0 1 220px' }}>
+                        <div className="[display:flex] [gap:8px] [margin-bottom:12px] [flex-wrap:wrap] [align-items:center]">
+                            <div className="[display:flex] [align-items:center] [gap:6px] [padding:5px_10px] [border-radius:8px] [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)] [flex:0_1_220px]">
                                 <Search style={{ width: 12, height: 12, color: 'var(--text-muted)' }} />
-                                <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('org.terminations_search_placeholder')} style={{ background: 'transparent', border: 'none', outline: 'none', fontSize: 12, color: 'var(--text-primary)', width: '100%' }} />
+                                <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('org.terminations_search_placeholder')} className="[background:transparent] [border:none] [outline:none] [font-size:12px] [color:var(--text-primary)] w-[100%]" />
                             </div>
                             <div style={filterSelectWrapper}>
                                 <Filter style={{ width: 12, height: 12, color: 'var(--text-muted)' }} />
@@ -259,8 +256,8 @@ export default function OrgTerminationsPanel({ rangeParams, showTokens = true }:
                                     {agentOptions.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                                 </select>
                             </div>
-                            <div style={{ flex: 1 }} />
-                            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{filtered.length} {t(filtered.length === 1 ? 'org.terminations_event' : 'org.terminations_events')}</span>
+                            <div className="[flex:1]" />
+                            <span className="[font-size:11px] [color:var(--text-muted)]">{filtered.length} {t(filtered.length === 1 ? 'org.terminations_event' : 'org.terminations_events')}</span>
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, padding: '8px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
@@ -269,9 +266,9 @@ export default function OrgTerminationsPanel({ rangeParams, showTokens = true }:
                             <span>{t('org.terminations_col_model')}</span>
                             <span>{t('org.terminations_col_type')}</span>
                             <span>{t('org.terminations_col_error_code')}</span>
-                            <span style={{ textAlign: 'right' }}>{t('org.terminations_col_iter')}</span>
-                            <span style={{ textAlign: 'right' }}>{t('org.terminations_col_duration')}</span>
-                            {showTokens && <span style={{ textAlign: 'right' }}>{t('org.terminations_col_tokens')}</span>}
+                            <span className="[text-align:right]">{t('org.terminations_col_iter')}</span>
+                            <span className="[text-align:right]">{t('org.terminations_col_duration')}</span>
+                            {showTokens && <span className="[text-align:right]">{t('org.terminations_col_tokens')}</span>}
                             <span></span>
                         </div>
 
@@ -283,10 +280,10 @@ export default function OrgTerminationsPanel({ rangeParams, showTokens = true }:
                             return (
                                 <div key={r.id}>
                                     <div onClick={() => setExpanded(isOpen ? null : r.id)} style={{ display: 'grid', gridTemplateColumns: cols, gap: 8, padding: '10px 8px', borderTop: '1px solid var(--border-subtle)', fontSize: 12, color: 'var(--text-primary)', alignItems: 'center', cursor: 'pointer' }}>
-                                        <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>{fmtTime(r.timestamp)}</span>
-                                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.agent_name || r.agent_id || <span className="text-[var(--text-muted)]">—</span>}</span>
-                                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-muted)' }}>{shortModel(r.model)}</span>
-                                        <span style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
+                                        <span className="[color:var(--text-muted)] [font-size:11px]">{fmtTime(r.timestamp)}</span>
+                                        <span className="[overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">{r.agent_name || r.agent_id || <span className="text-[var(--text-muted)]">—</span>}</span>
+                                        <span className="[overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap] [color:var(--text-muted)]">{shortModel(r.model)}</span>
+                                        <span className="[display:flex] [align-items:center] [flex-wrap:wrap]">
                                             <TypeBadge type={r.termination_type} t={t} />
                                             {isLargeInput(r, showTokens) && (
                                                 <span title={t('org.terminations_large_input_hint')} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 6px', borderRadius: 999, fontSize: 10, fontWeight: 600, background: `${C.amber}15`, color: C.amber, border: `1px solid ${C.amber}30`, marginLeft: 6 }}>
@@ -295,10 +292,10 @@ export default function OrgTerminationsPanel({ rangeParams, showTokens = true }:
                                             )}
                                         </span>
                                         <span style={{ fontSize: 11, color: r.error_code ? C.rose : 'var(--text-muted)' }}>{r.error_code || '—'}</span>
-                                        <span style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{r.iteration_count || 0}</span>
-                                        <span style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{fmtDuration(r.duration_ms)}</span>
+                                        <span className="[text-align:right] [color:var(--text-muted)]">{r.iteration_count || 0}</span>
+                                        <span className="[text-align:right] [color:var(--text-muted)]">{fmtDuration(r.duration_ms)}</span>
                                         {showTokens && (
-                                            <span style={{ textAlign: 'right', color: 'var(--text-muted)', display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                                            <span className="[text-align:right] [color:var(--text-muted)] [display:inline-flex] [align-items:center] [justify-content:flex-end] [gap:4px]">
                                                 {r.attachment_count > 0 && <Paperclip title={`${r.attachment_count} · ${fmtBytes(r.attachment_bytes || 0)}`} style={{ width: 11, height: 11, color: C.amber }} />}
                                                 {fmt(r.total_tokens)}
                                             </span>
@@ -306,7 +303,7 @@ export default function OrgTerminationsPanel({ rangeParams, showTokens = true }:
                                         <span style={{ color: meta.color, textAlign: 'right' }}>{isOpen ? '▾' : '▸'}</span>
                                     </div>
                                     {isOpen && (
-                                        <div style={{ padding: '12px 16px', background: 'var(--bg-primary)', fontSize: 12, color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: 6, borderTop: '1px solid var(--border-subtle)' }}>
+                                        <div className="[padding:12px_16px] [background:var(--bg-primary)] [font-size:12px] [color:var(--text-muted)] [display:flex] [flex-direction:column] [gap:6px] [border-top:1px_solid_var(--border-subtle)]">
                                             <DetailRow label={t('org.terminations_detail_source')} value={r.source} />
                                             <DetailRow label={t('org.terminations_detail_conversation')} value={r.conversation_id} mono />
                                             <DetailRow label={t('org.terminations_detail_user')} value={r.user_id} mono />
@@ -327,7 +324,7 @@ export default function OrgTerminationsPanel({ rangeParams, showTokens = true }:
                                                     <span><strong>{t('org.terminations_large_input_strong')}</strong> {t('org.terminations_large_input_explain')}</span>
                                                 </div>
                                             )}
-                                            <div style={{ marginTop: 4, fontSize: 10, color: 'var(--text-muted)', fontStyle: 'italic' }}>{t('org.terminations_privacy_note')}</div>
+                                            <div className="[margin-top:4px] [font-size:10px] [color:var(--text-muted)] [font-style:italic]">{t('org.terminations_privacy_note')}</div>
                                         </div>
                                     )}
                                 </div>

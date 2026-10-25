@@ -1,6 +1,6 @@
 import { Bold, Image as ImageIcon, Italic, Link2, List, ListOrdered, Underline, X, type LucideIcon } from 'lucide-react';
-import { useEffect, useRef, useState, type ClipboardEvent, type ChangeEvent } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import { useEffect, useRef, useState, type ClipboardEvent, type ChangeEvent, RefObject, SetStateAction, JSX, Dispatch } from 'react';
+import useTranslation, { TranslateParams } from '../../../../../../hooks/useTranslation';
 import { useFormField } from '../formContext';
 import { Field } from '../uiBits';
 import useValueFrom from '../useValueFrom';
@@ -239,23 +239,7 @@ export default function AppInputHtml({ node }: NodeProps<InputHtmlProps>) {
                 className="flex flex-col border overflow-hidden"
                 style={{ borderColor: error ? 'var(--error)' : 'var(--border-default)', borderRadius: 'var(--app-radius)', background: 'var(--bg-primary)' }}
             >
-                <div
-                    className="flex items-center flex-wrap gap-0.5 px-1.5 py-1 border-b [border-color:var(--border-default)]! [background:var(--bg-tertiary)]"
-                    role="toolbar"
-                    aria-label={t('studio_apps_runtime.rich_text.formatting', 'Formatting')}
-                >
-                    {btn('bold', Bold, () => exec('bold'), t('studio_apps_runtime.rich_text.bold', 'Bold'))}
-                    {btn('italic', Italic, () => exec('italic'), t('studio_apps_runtime.rich_text.italic', 'Italic'))}
-                    {btn('underline', Underline, () => exec('underline'), t('studio_apps_runtime.rich_text.underline', 'Underline'))}
-                    {btn('ul', List, () => exec('insertUnorderedList'), t('studio_apps_runtime.rich_text.bullets', 'Bulleted list'))}
-                    {btn('ol', ListOrdered, () => exec('insertOrderedList'), t('studio_apps_runtime.rich_text.numbered', 'Numbered list'))}
-                    {btn('link', Link2, () => setLinking((v) => !v), t('studio_apps_runtime.rich_text.link', 'Link'))}
-                    {allowImages ? btn('img', ImageIcon, () => fileRef.current?.click(), t('studio_apps_runtime.rich_text.image', 'Image')) : null}
-                    <span className="w-px h-4 mx-1 [background:var(--border-default)]" aria-hidden="true" />
-                    {select('font', t('studio_apps_runtime.rich_text.font', 'Font'), FONTS.map((f) => [f, f]), (v) => exec('fontName', v))}
-                    {select('size', t('studio_apps_runtime.rich_text.size', 'Size'), SIZES, (v) => exec('fontSize', v))}
-                    {select('color', t('studio_apps_runtime.rich_text.color', 'Color'), COLORS, (v) => exec('foreColor', v))}
-                </div>
+                <AppInputHtmlSection2 t={t} btn={btn} exec={exec} setLinking={setLinking} allowImages={allowImages} fileRef={fileRef} select={select} SIZES={SIZES} COLORS={COLORS} />
 
                 {/* An inline field rather than window.prompt: a prompt is blocked
                     outright inside the Nextcloud embedding, where the button
@@ -289,25 +273,7 @@ export default function AppInputHtml({ node }: NodeProps<InputHtmlProps>) {
                     </div>
                 ) : null}
 
-                <div
-                    ref={boxRef}
-                    id={id}
-                    role="textbox"
-                    aria-multiline="true"
-                    aria-label={label}
-                    aria-required={required || undefined}
-                    aria-invalid={error ? true : undefined}
-                    aria-describedby={error ? `${id}-error` : undefined}
-                    contentEditable
-                    suppressContentEditableWarning
-                    data-app-html-editor="true"
-                    data-placeholder={placeholder || t('studio_apps_runtime.rich_text.html_placeholder', 'Write your message…')}
-                    onInput={commit}
-                    onBlur={commit}
-                    onPaste={onPaste}
-                    className="app-richtext w-full px-2.5 py-2 text-sm outline-none overflow-auto"
-                    style={{ color: 'var(--text-primary)', minHeight: `${Math.max(3, Math.min(30, minRows)) * 1.5}rem` }}
-                />
+                <AppInputHtmlSection boxRef={boxRef} id={id} label={label} required={required} error={error} placeholder={placeholder} t={t} commit={commit} onPaste={onPaste} minRows={minRows} />
                 {allowImages ? (
                     <input
                         ref={fileRef}
@@ -329,4 +295,45 @@ export default function AppInputHtml({ node }: NodeProps<InputHtmlProps>) {
             </div>
         </Field>
     );
+}
+
+function AppInputHtmlSection2({ t, btn, exec, setLinking, allowImages, fileRef, select, SIZES, COLORS }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; btn: (key: string, Icon: LucideIcon, onClick: () => void, title: string) => JSX.Element; exec: (cmd: string, arg?: string) => void; setLinking: Dispatch<SetStateAction<boolean>>; allowImages: boolean; fileRef: RefObject<HTMLInputElement | null>; select: (key: string, title: string, options: string[][], onPick: (v: string) => void) => JSX.Element; SIZES: string[][]; COLORS: string[][]; }) {
+    return <div
+        className="flex items-center flex-wrap gap-0.5 px-1.5 py-1 border-b [border-color:var(--border-default)]! [background:var(--bg-tertiary)]"
+        role="toolbar"
+        aria-label={t('studio_apps_runtime.rich_text.formatting', 'Formatting')}
+    >
+        {btn('bold', Bold, () => exec('bold'), t('studio_apps_runtime.rich_text.bold', 'Bold'))}
+        {btn('italic', Italic, () => exec('italic'), t('studio_apps_runtime.rich_text.italic', 'Italic'))}
+        {btn('underline', Underline, () => exec('underline'), t('studio_apps_runtime.rich_text.underline', 'Underline'))}
+        {btn('ul', List, () => exec('insertUnorderedList'), t('studio_apps_runtime.rich_text.bullets', 'Bulleted list'))}
+        {btn('ol', ListOrdered, () => exec('insertOrderedList'), t('studio_apps_runtime.rich_text.numbered', 'Numbered list'))}
+        {btn('link', Link2, () => setLinking((v) => !v), t('studio_apps_runtime.rich_text.link', 'Link'))}
+        {allowImages ? btn('img', ImageIcon, () => fileRef.current?.click(), t('studio_apps_runtime.rich_text.image', 'Image')) : null}
+        <span className="w-px h-4 mx-1 [background:var(--border-default)]" aria-hidden="true" />
+        {select('font', t('studio_apps_runtime.rich_text.font', 'Font'), FONTS.map((f) => [f, f]), (v) => exec('fontName', v))}
+        {select('size', t('studio_apps_runtime.rich_text.size', 'Size'), SIZES, (v) => exec('fontSize', v))}
+        {select('color', t('studio_apps_runtime.rich_text.color', 'Color'), COLORS, (v) => exec('foreColor', v))}
+    </div>;
+}
+
+function AppInputHtmlSection({ boxRef, id, label, required, error, placeholder, t, commit, onPaste, minRows }: { boxRef: RefObject<HTMLDivElement | null>; id: string; label: string; required: boolean; error: string | null; placeholder: string | null; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; commit: () => void; onPaste: (e: ClipboardEvent<HTMLDivElement>) => void; minRows: number; }) {
+    return <div
+        ref={boxRef}
+        id={id}
+        role="textbox"
+        aria-multiline="true"
+        aria-label={label}
+        aria-required={required || undefined}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
+        contentEditable
+        suppressContentEditableWarning
+        data-app-html-editor="true"
+        data-placeholder={placeholder || t('studio_apps_runtime.rich_text.html_placeholder', 'Write your message…')}
+        onInput={commit}
+        onBlur={commit}
+        onPaste={onPaste}
+        className="app-richtext w-full px-2.5 py-2 text-sm outline-none overflow-auto"
+        style={{ color: 'var(--text-primary)', minHeight: `${Math.max(3, Math.min(30, minRows)) * 1.5}rem` }} />;
 }

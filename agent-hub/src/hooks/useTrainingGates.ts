@@ -21,7 +21,7 @@ import { queryClient } from '../api/queryClient';
  * The wire contract, including the fails-open rule, lives in
  * `api/queries/trainingGates`.
  */
-export type { TrainingGateAreas, TrainingGateState };
+;
 
 /** A lock the caller may render, with enough to name the course and progress. */
 export interface TrainingLock {

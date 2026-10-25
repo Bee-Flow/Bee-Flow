@@ -27,7 +27,7 @@ import { useProjectMembersQuery } from '../../api/queries/projects';
 import useProjectStream, { type ProjectStreamStatus } from '../../hooks/useProjectStream';
 import { readPeers, type CursorState } from './awareness';
 import { peerColor, peerColorIndex } from './colors';
-import { defaultHttp } from './http';
+import { defaultHttp } from '../../api/editorHttp';
 import { CollabProvider, type CollabHttp, type CollabKind, type CollabStatus } from './provider';
 
 export type { CollabStatus, CollabKind } from './provider';

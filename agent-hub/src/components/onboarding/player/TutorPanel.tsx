@@ -2,8 +2,8 @@ import { CornerDownLeft, Loader2, MessageCircleQuestionMark, X } from 'lucide-re
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import MarkdownRenderer from '../../renderers/MarkdownRenderer';
-import { askTutor } from '../exerciseCoach';
-import type { LessonStep } from '../lessons.types';
+import { askTutor } from '../../../api/exerciseCoach';
+import type { LessonStep } from '../../../api/lessons.types';
 
 /**
  * TutorPanel — the "Ask AI" surface available on EVERY step of the lesson

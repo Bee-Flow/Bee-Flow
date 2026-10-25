@@ -25,7 +25,7 @@ interface InputPersonProps {
  * "the dropdown is empty" is a much worse thing to debug than "you have not
  * turned this on yet".
  */
-export default function InputPersonInspector({ node, definition, onCommit, disabled = false }: PanelProps<InputPersonProps>) {
+function InputPersonInspector({ node, definition, onCommit, disabled = false }: PanelProps<InputPersonProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const patch = usePatch(node, definition, onCommit);

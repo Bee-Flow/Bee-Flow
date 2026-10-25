@@ -7,7 +7,7 @@ import { downloadRunTableCsv, useRunTablePage } from '../../../../api/queries/au
 import type { TableColumn, TableHandle } from '../../../../api/queries/automation/runTables';
 
 /** Rows on one page of the grid. */
-export const TABLE_PAGE_SIZE = 50;
+const TABLE_PAGE_SIZE = 50;
 
 const BTN = 'inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-card)] hover:text-[var(--text-primary)] disabled:opacity-40 disabled:cursor-not-allowed';
 

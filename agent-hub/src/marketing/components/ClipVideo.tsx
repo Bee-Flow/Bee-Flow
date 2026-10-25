@@ -25,7 +25,7 @@ function languageLabel(lang: string): string {
     }
 }
 
-export function hasClipSrc(media?: ClipMedia | null): boolean {
+function hasClipSrc(media?: ClipMedia | null): boolean {
     return typeof media?.src === 'string' && media.src.trim() !== '';
 }
 

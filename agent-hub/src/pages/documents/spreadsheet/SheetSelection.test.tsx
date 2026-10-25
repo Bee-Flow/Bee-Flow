@@ -12,7 +12,7 @@ import { SAVE_DEBOUNCE_MS } from './useSheet';
 const { sheetApi } = vi.hoisted(() => ({
     sheetApi: { getSheet: vi.fn(), patchSheet: vi.fn(), downloadSheetCsv: vi.fn() },
 }));
-vi.mock('./sheetApi', async (original) => ({ ...(await original<typeof import('./sheetApi')>()), ...sheetApi }));
+vi.mock('../../../api/sheetApi', async (original) => ({ ...(await original<typeof import('../../../api/sheetApi')>()), ...sheetApi }));
 vi.mock('../documentsApi', () => ({ getDocument: vi.fn(), updateDocument: vi.fn() }));
 vi.mock('../../../api/queries/modelTiers', () => ({ useModelTiersQuery: () => ({ data: {} }) }));
 

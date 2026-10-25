@@ -80,7 +80,7 @@ export function projectErrorInfo(source: unknown): ProjectErrorInfo {
 }
 
 /** The message the server sent, or the given fallback. */
-export function projectErrorMessage(e: unknown, fallback: string): string {
+function projectErrorMessage(e: unknown, fallback: string): string {
     if (e instanceof ApiError) return infoFromBody(e.body).message || fallback;
     return fallback;
 }

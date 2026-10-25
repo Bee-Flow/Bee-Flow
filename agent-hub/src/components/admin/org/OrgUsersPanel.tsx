@@ -37,7 +37,7 @@ const ORG_USERS_URL_ALIASES = { users: 'list' };
 const LEGACY_BASE_PATH = '/app/org-settings/users';
 
 /** The signed-in member, as far as this panel reads them. */
-export interface OrgUsersPanelUser {
+interface OrgUsersPanelUser {
     organizationId?: string | null;
     /** Group ids. */
     groups?: string[];

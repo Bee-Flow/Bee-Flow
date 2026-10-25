@@ -23,7 +23,7 @@
  */
 import { formatPath, readPath, scanTemplate } from '@shared/expr/path.mjs';
 import { humanizeFieldTail } from './core';
-import { detectTemplate, isCleanPath, refPathTokens } from '../../../../utils/bindingHelpers';
+import { detectTemplate, isCleanPath, refPathTokens } from '../../../../utils/bindingHelpers.helpers';
 /** A token of a reference path: a key or index, a wildcard, or a match. */
 type RefTok = { type: string; key?: string | number };
 
@@ -36,7 +36,7 @@ export interface RefInfo {
     fieldPath: string;
 }
 
-export interface LiteralToken { type: 'literal'; text: string }
+interface LiteralToken { type: 'literal'; text: string }
 export interface RefToken extends RefInfo {
     type: 'ref';
     raw: string;

@@ -51,4 +51,3 @@ export function ToolGapNote({
     );
 }
 
-export default ToolGapNote;

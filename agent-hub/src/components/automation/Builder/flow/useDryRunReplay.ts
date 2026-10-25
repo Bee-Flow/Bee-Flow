@@ -10,7 +10,7 @@ export interface ReplayRow {
     [key: string]: unknown;
 }
 
-export interface ReplayFrame {
+interface ReplayFrame {
     visibleSteps: ReplayRow[];
     currentStepId: string | undefined;
 }

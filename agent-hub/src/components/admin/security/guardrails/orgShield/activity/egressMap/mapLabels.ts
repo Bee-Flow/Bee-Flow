@@ -26,10 +26,10 @@ import type { Box, Pt, Size } from './mapGeometry';
 export type HostKinds = Array<[string, number]>;
 
 /** From this zoom on, every pin gets its label. */
-export const LABEL_ZOOM = 3;
+const LABEL_ZOOM = 3;
 /** Below LABEL_ZOOM, a pin needs this many calls for a label (the second with a kind filter on). */
-export const LABEL_MIN_CALLS = 15;
-export const LABEL_MIN_KIND_CALLS = 3;
+const LABEL_MIN_CALLS = 15;
+const LABEL_MIN_KIND_CALLS = 3;
 
 /** How many of a host's sampled calls carried `kind`: 0 when it is not in the sample. */
 export function kindCount(kinds: HostKinds | null | undefined, kind: string): number {
@@ -89,8 +89,8 @@ export function showsLabel({ n, k, kindFilter, selected, origin = false }: Label
 
 /* ── Placement ───────────────────────────────────────────────────────── */
 
-export type LabelSide = 'R' | 'L' | 'B' | 'T';
-export type TextAnchor = 'start' | 'middle' | 'end';
+type LabelSide = 'R' | 'L' | 'B' | 'T';
+type TextAnchor = 'start' | 'middle' | 'end';
 
 export interface LabelCandidate {
     key: string;

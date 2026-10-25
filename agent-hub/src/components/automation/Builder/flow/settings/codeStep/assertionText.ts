@@ -7,7 +7,7 @@ import type { TranslateFn } from '../../../../../../hooks/useTranslation';
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 
 /** "the whole result" for an empty path, else the path itself. */
-export function pathLabel(t: TranslateFn, path: string): string {
+function pathLabel(t: TranslateFn, path: string): string {
     const p = (path || '').trim();
     return p && p !== '$' ? p : t('automation_testing.path.whole', 'the whole result');
 }
@@ -31,7 +31,7 @@ export const typeName = (t: TranslateFn, name: string): string => {
 };
 
 /** "at least 3 entries" for {cmp, n}. */
-export function countPhrase(t: TranslateFn, value: unknown): string {
+function countPhrase(t: TranslateFn, value: unknown): string {
     const v = isRecord(value) ? value : {};
     const n = typeof v.n === 'number' ? v.n : 0;
     if (v.cmp === 'gte') return t('automation_testing.count.gte', 'at least {n} entries', { n });

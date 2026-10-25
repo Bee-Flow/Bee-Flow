@@ -1,39 +1,23 @@
-import {
-    AlertTriangle, CheckCircle2, HelpCircle, Info, Plus, Trash2,
-} from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import { AlertTriangle, CheckCircle2, HelpCircle } from 'lucide-react';
+import React, { useMemo } from 'react';
 import { addressOf, CREATE_EMPTY, type BlueprintReadOk, type GrantRow, type SourceClaim as SourceClaimData, type StepAddress, type TableRequirement } from './installRequirements';
-import { COUNTED_SECTIONS, countPhrase } from './solutionCounts';
 import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
 import { nOf } from '../KnowledgeStudio/plural';
 import type { Catalog, CatalogDatatable } from '../../../automation/Builder/mapping/upstream/upstream.types';
 import type { WaitlistUser } from '../../subscriptions/access/useSignupSettings';
-import type { ListStatusProps, RowProps, SourceClaimProps, ContentsStepProps, TableRowsProps, ConnectionRowsProps, ApproverRowsProps, GrantRowsProps, InstallChoices, ConnectStepProps, AccessPerson, AccessAdderProps, AccessStepProps, InstallReport, InstallPayload, ResultStepProps } from './installWizardSteps.types';
+import type { RowProps, TableRowsProps, ConnectionRowsProps, ApproverRowsProps, GrantRowsProps, InstallChoices, ConnectStepProps, InstallReport, InstallPayload, ResultStepProps } from './installWizardSteps.types';
+import { ListStatus, selectCls, selectStyle } from './AccessStep';
+;
+;
 export type { InstallChoices, InstallReport, InstallPayload } from './installWizardSteps.types';
 
-export function ListStatus({ status, testId }: ListStatusProps) {
-    const { t } = useTranslation();
-    if (status !== 'error') return null;
-    return (
-        <p className="flex items-start gap-1.5 text-[11px] text-[var(--warning)]" data-testid={testId}>
-            <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />
-            {t('solutions.install_list_failed', 'That list could not be loaded, so what you can choose from here is not the whole picture.')}
-        </p>
-    );
-}
-
-export function Row({ children, testId }: RowProps) {
+function Row({ children, testId }: RowProps) {
     return (
         <div className="px-3 py-2.5 rounded-lg space-y-1.5 bg-[var(--bg-secondary)]" data-testid={testId}>
             {children}
         </div>
     );
 }
-
-const selectCls = 'w-full px-2 py-1.5 rounded-lg text-xs border outline-none';
-const selectStyle = {
-    background: 'var(--bg-primary)', borderColor: 'var(--border-default)', color: 'var(--text-primary)',
-};
 
 /** Where a step lives, said the way somebody could go and find it. */
 function stepWhere(row: StepAddress, t: TranslateFn) {
@@ -52,92 +36,9 @@ function stepWhere(row: StepAddress, t: TranslateFn) {
  * seven things and must not word them differently.
  */
 
-function SourceClaim({ source }: SourceClaimProps) {
-    const { t } = useTranslation();
-    const name = source?.orgName;
-    if (!name) return null;
-    return (
-        <p className="flex items-start gap-2 px-3 py-2 rounded-lg text-[12px] bg-[var(--bg-secondary)] text-[var(--text-tertiary)]"
-            data-testid="install-source-claim">
-            <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" aria-hidden="true" />
-            <span>
-                {source.version
-                    ? t('solutions.install_source_claim_version',
-                        'This file says it was published by "{name}", version {version}.',
-                        { name, version: source.version })
-                    : t('solutions.install_source_claim',
-                        'This file says it was published by "{name}".', { name })}
-                {' '}
-                {t('solutions.install_source_unverified',
-                    'That is what the file says about itself — anyone who can edit the file can change it. Check with whoever sent it.')}
-            </span>
-        </p>
-    );
-}
-
-export function ContentsStep({ read, name, onName }: ContentsStepProps) {
-    const { t } = useTranslation();
-    const kinds = COUNTED_SECTIONS.map(entry => entry.section).filter(section => read.counts[section] > 0);
-
-    return (
-        <div className="space-y-4">
-            <SourceClaim source={read.source} />
-            <label className="block">
-                <span className="block text-xs mb-1 text-[var(--text-secondary)]">
-                    {t('solutions.install_name', 'Name for this Solution')}
-                </span>
-                <input
-                    value={name}
-                    onChange={(e) => onName(e.target.value)}
-                    aria-label={t('solutions.install_name', 'Name for this Solution')}
-                    className={selectCls}
-                    style={selectStyle}
-                />
-            </label>
-
-            <div>
-                <h3 className="text-sm font-medium mb-2 text-[var(--text-primary)]">
-                    {t('solutions.install_contains', 'What it brings')}
-                </h3>
-                {kinds.length === 0 ? (
-                    <p className="px-3 py-2 rounded-lg text-sm bg-[var(--bg-secondary)] text-[var(--text-tertiary)]">
-                        {t('solutions.install_nothing_in_it', 'This Blueprint carries nothing at all.')}
-                    </p>
-                ) : (
-                    <ul className="flex flex-wrap gap-1.5" data-testid="install-contents">
-                        {kinds.map(kind => (
-                            <li key={kind} className="px-2.5 py-1 rounded-lg text-xs bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
-                                {countPhrase(t, kind, read.counts[kind])}
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </div>
-
-            {/* The exporter's own honesty, forwarded. It is the most valuable
-                thing on the export screen and worth exactly as much here. */}
-            {read.notCarried.length > 0 && (
-                <div>
-                    <h3 className="text-sm font-medium mb-2 text-[var(--text-primary)]">
-                        {t('projects.blueprint_left_behind', 'What this Blueprint does not carry')}
-                    </h3>
-                    <ul className="space-y-1" data-testid="install-not-carried">
-                        {read.notCarried.map((w, i) => (
-                            <li key={i} className="flex items-start gap-2 px-3 py-2 rounded-lg text-sm bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
-                                <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-[var(--text-tertiary)]" />
-                                {w}
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
-        </div>
-    );
-}
-
 // ── Step 2: the holes, and the requests ────────────────────────────
 
-export function TableRows({ rows, catalog, choice, onChoice }: TableRowsProps) {
+function TableRows({ rows, catalog, choice, onChoice }: TableRowsProps) {
     const { t } = useTranslation();
     const tables: Array<CatalogDatatable & { key?: string }> = catalog.status === 'ok' ? (catalog.data?.datatables || []) : [];
     return rows.map(row => (
@@ -169,7 +70,7 @@ export function TableRows({ rows, catalog, choice, onChoice }: TableRowsProps) {
     ));
 }
 
-export function ConnectionRows({ rows, connections, choice, onChoice }: ConnectionRowsProps) {
+function ConnectionRows({ rows, connections, choice, onChoice }: ConnectionRowsProps) {
     const { t } = useTranslation();
     const items = connections.status === 'ok' ? (connections.data?.connections || []) : [];
     return rows.map(row => {
@@ -198,7 +99,7 @@ export function ConnectionRows({ rows, connections, choice, onChoice }: Connecti
     });
 }
 
-export function ApproverRows({ rows, people, groups, choice, onChoice }: ApproverRowsProps) {
+function ApproverRows({ rows, people, groups, choice, onChoice }: ApproverRowsProps) {
     const { t } = useTranslation();
     const users = people.status === 'ok' && Array.isArray(people.data) ? people.data : [];
     const groupList = groups.status === 'ok' && Array.isArray(groups.data) ? groups.data : [];
@@ -227,7 +128,7 @@ export function ApproverRows({ rows, people, groups, choice, onChoice }: Approve
     });
 }
 
-export function GrantRows({ rows, catalog, ticked, onTick }: GrantRowsProps) {
+function GrantRows({ rows, catalog, ticked, onTick }: GrantRowsProps) {
     const { t } = useTranslation();
     const byTool = useMemo(() => {
         const map = new Map();
@@ -359,115 +260,6 @@ export function ConnectStep({ read, catalog, connections, people, groups, choice
 }
 
 // ── Step 3: who else can reach it ──────────────────────────────────
-
-function AccessAdder({ users, groups, onAdd }: AccessAdderProps) {
-    const { t } = useTranslation();
-    const [type, setType] = useState('user');
-    const [id, setId] = useState('');
-    const [permission, setPermission] = useState('viewer');
-    const options = type === 'user' ? users : groups;
-
-    return (
-        <div className="flex flex-wrap items-end gap-2">
-                <select
-                    className={`${selectCls} w-auto`} style={selectStyle} value={type}
-                    aria-label={t('solutions.install_access_kind', 'People or groups')}
-                    onChange={(e) => { setType(e.target.value); setId(''); }}
-                >
-                    <option value="user">{t('solutions.install_access_person', 'Person')}</option>
-                    <option value="group">{t('solutions.install_access_group', 'Group')}</option>
-                </select>
-                <select
-                    className={`${selectCls} flex-1 min-w-[160px]`} style={selectStyle} value={id}
-                    aria-label={t('solutions.install_access_who', 'Who to add')}
-                    onChange={(e) => setId(e.target.value)}
-                >
-                    <option value="">{t('solutions.install_access_pick', 'Choose…')}</option>
-                    {options.map(o => (
-                        <option key={o.id} value={o.id}>{o.username || o.email || o.name || o.id}</option>
-                    ))}
-                </select>
-                <select
-                    className={`${selectCls} w-auto`} style={selectStyle} value={permission}
-                    aria-label={t('solutions.install_access_role', 'What they may do')}
-                    onChange={(e) => setPermission(e.target.value)}
-                >
-                    <option value="viewer">{t('solutions.install_role_viewer', 'Can view')}</option>
-                    <option value="editor">{t('solutions.install_role_editor', 'Can edit')}</option>
-                </select>
-                <button
-                    type="button"
-                    onClick={() => { if (id) { onAdd({ type, id, permission }); setId(''); } }}
-                    disabled={!id}
-                    className="px-2.5 py-1.5 rounded-lg text-xs border flex items-center gap-1 disabled:opacity-50 border-[var(--border-default)] text-[var(--text-secondary)]"
-                    data-testid="install-access-add"
-                >
-                    <Plus className="w-3 h-3" />
-                    {t('solutions.install_access_add', 'Add')}
-                </button>
-        </div>
-    );
-}
-
-export function AccessStep({ people, groups, access, setAccess }: AccessStepProps) {
-    const { t } = useTranslation();
-    const users: AccessPerson[] = people.status === 'ok' && Array.isArray(people.data) ? people.data : [];
-    const groupList: AccessPerson[] = groups.status === 'ok' && Array.isArray(groups.data) ? groups.data : [];
-
-    const labelFor = (entry: { type: string; id: string; permission: string }) => {
-        const found = (entry.type === 'user' ? users : groupList).find(x => x.id === entry.id);
-        return found ? (found.username || found.email || found.name || entry.id) : entry.id;
-    };
-
-    return (
-        <div className="space-y-3">
-            <p className="text-xs text-[var(--text-secondary)]">
-                {t('solutions.install_access_intro',
-                    'Who else can reach this Solution. You install as its owner either way, and you can change this later on the project page.')}
-            </p>
-
-            <AccessAdder
-                users={users}
-                groups={groupList}
-                onAdd={(entry) => {
-                    // Adding the same person twice is not a second decision.
-                    if (access.some(a => a.type === entry.type && a.id === entry.id)) return;
-                    setAccess([...access, entry]);
-                }}
-            />
-            <ListStatus status={people.status === 'error' ? 'error' : groups.status} testId="install-access-unavailable" />
-
-            {access.length === 0 ? (
-                <p className="px-3 py-2 rounded-lg text-sm bg-[var(--bg-secondary)] text-[var(--text-tertiary)]">
-                    {t('solutions.install_access_none', 'Nobody else, for now.')}
-                </p>
-            ) : (
-                <ul className="space-y-1" data-testid="install-access-list">
-                    {access.map(entry => (
-                        <li key={`${entry.type}:${entry.id}`}
-                            className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm bg-[var(--bg-secondary)] text-[var(--text-secondary)]">
-                            <span className="truncate">{labelFor(entry)}</span>
-                            <span className="flex items-center gap-2 flex-shrink-0">
-                                <span className="text-[11px] text-[var(--text-tertiary)]">
-                                    {entry.permission === 'editor'
-                                        ? t('solutions.install_role_editor', 'Can edit')
-                                        : t('solutions.install_role_viewer', 'Can view')}
-                                </span>
-                                <button
-                                    type="button"
-                                    onClick={() => setAccess(access.filter(a => !(a.type === entry.type && a.id === entry.id)))}
-                                    aria-label={t('solutions.install_access_remove', 'Remove')}
-                                >
-                                    <Trash2 className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
-                                </button>
-                            </span>
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </div>
-    );
-}
 
 // ── After the install ──────────────────────────────────────────────
 

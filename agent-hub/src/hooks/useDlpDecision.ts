@@ -15,6 +15,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { API_BASE, authFetch } from '../utils/helpers';
+import { mutate, errorBody, RefusedError } from '../api/mutate';
 
 // The server expires an unanswered decision after ten minutes of silence
 // (decisionQueue.js). While the review is open we heartbeat well under that
@@ -23,7 +24,7 @@ export const DLP_TOUCH_INTERVAL_MS = 60 * 1000;
 
 /** What the SSE reducer puts on the event. The modal feature-detects the
  *  richer fields (`reviewText`, `provider`, …), so only the id is named. */
-export interface DlpPreviewDetail {
+interface DlpPreviewDetail {
     decisionId?: string;
     reviewText?: string;
     findings?: unknown[];
@@ -35,7 +36,7 @@ export type DlpPending = DlpPreviewDetail & { kind: 'chat_text' | 'attachment' }
 export type DlpChoice = 'redact' | 'block' | 'allow';
 
 /** A span the user marked in the review UI; the server redacts exactly these. */
-export interface DlpManualAddition {
+interface DlpManualAddition {
     offset: number;
     length: number;
     [key: string]: unknown;
@@ -122,7 +123,8 @@ export default function useDlpDecision(): UseDlpDecisionReturn {
         setSubmitting(true);
         setError(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/chat/dlp-decision`, {
+            try {
+                await mutate(`${API_BASE}/api/chat/dlp-decision`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -134,9 +136,10 @@ export default function useDlpDecision(): UseDlpDecisionReturn {
                     ...(Array.isArray(manualAdditions) && manualAdditions.length > 0 ? { manualAdditions } : {}),
                 }),
             });
-            if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
-                throw new Error(data.error || `Request failed (${res.status})`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const data = errorBody(err) ?? {};
+                throw new Error(data.error || `Request failed (${err.status})`);
             }
             setPending(null);
         } catch (err) {

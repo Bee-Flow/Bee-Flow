@@ -36,7 +36,7 @@ function kindOf(v: unknown): IoKind {
 }
 
 /** One value as a short phrase. */
-export function previewValue(t: TranslateFn, v: unknown): string {
+function previewValue(t: TranslateFn, v: unknown): string {
     switch (kindOf(v)) {
         case 'empty': return t('runs.io.empty', 'empty');
         case 'list': return t('runs.io.rows', 'table · {n} rows', { n: (v as unknown[]).length });

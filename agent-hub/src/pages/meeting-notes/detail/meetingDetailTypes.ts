@@ -2,7 +2,7 @@ import type { DestinationRecord } from '../lib/actionDestinations';
 import type { PlayerSegment } from './player/player.types';
 
 /** A speaker of a note: the id, how long they spoke, and whatever else the server stores. */
-export interface MeetingSpeaker {
+interface MeetingSpeaker {
     id: string;
     speakingSeconds?: number;
     speakingTime?: string;

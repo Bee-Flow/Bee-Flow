@@ -12,7 +12,7 @@
 // defaults to 'cloud' until that endpoint resolves.
 import { useLicenseContext } from '../components/licensing/LicenseContext';
 
-export type DeploymentMode = 'cloud' | 'self-hosted';
+type DeploymentMode = 'cloud' | 'self-hosted';
 
 export interface DeploymentModeState {
     mode: DeploymentMode;

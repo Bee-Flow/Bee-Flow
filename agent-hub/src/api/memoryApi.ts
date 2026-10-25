@@ -1,7 +1,7 @@
 import { apiClient } from './client';
 
 /** The memory types the server knows (the full object is documented in the memory API contract). */
-export type MemoryType = 'instruction' | 'person' | 'project' | 'preference' | 'workflow' | 'fact' | 'context';
+type MemoryType = 'instruction' | 'person' | 'project' | 'preference' | 'workflow' | 'fact' | 'context';
 
 /** The part of a memory object the chat surfaces read. */
 export interface RecentMemory {
@@ -47,7 +47,7 @@ export async function fetchMemoriesByIds(ids: string[], signal?: AbortSignal): P
     return Array.isArray(body?.items) ? body.items : [];
 }
 
-export async function updateMemoryContent(id: string, content: string): Promise<RecentMemory | null> {
+async function updateMemoryContent(id: string, content: string): Promise<RecentMemory | null> {
     const body = await apiClient.put<{ memory?: RecentMemory }>(`${BASE}/${encodeURIComponent(id)}`, { content }, { retry: false });
     return body?.memory ?? null;
 }

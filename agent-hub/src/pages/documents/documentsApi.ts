@@ -2,6 +2,7 @@ import { API_BASE, authFetch } from '../../utils/helpers';
 import type { LibraryFilters } from './documentQueries';
 import type { NewDocumentInput } from './library/useLibrary';
 import { logger } from '../../utils/logger';
+import { request, RefusedError } from '../../api/mutate';
 
 /**
  * Client for /api/studio-documents.
@@ -166,10 +167,13 @@ export async function postPresence(id: string, beat: { clientId: string; state: 
 
 /** The composed preview (sanitised by the server) as text, for the canvas. */
 export async function fetchPreviewHtml(id: string, { signal }: { signal?: AbortSignal } = {}) {
-    const res = await authFetch(previewUrl(id, { edit: true }), { signal });
-    if (!res.ok) {
-        const err: ApiError = new Error(`HTTP ${res.status}`);
-        err.status = res.status;
+    let res: Response;
+    try {
+        res = await request(previewUrl(id, { edit: true }), { signal });
+    } catch (apiErr) {
+        if (!(apiErr instanceof RefusedError)) throw apiErr;
+        const err: ApiError = new Error(`HTTP ${apiErr.status}`);
+        err.status = apiErr.status;
         throw err;
     }
     return res.text();

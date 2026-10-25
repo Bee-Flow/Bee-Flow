@@ -1,13 +1,9 @@
-import { GraduationCap, Plus, CheckCircle2, Repeat } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
-import {
-    userName, fmtDate, labelOf, Field, TextInput, DateInput, Select, UserSelect,
-    ActionButton, Intro, ReadFailed, RegisterLayout,
-} from './audits/auditForms';
+import { GraduationCap, Plus, CheckCircle2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { fmtDate, Field, TextInput, DateInput, Select, UserSelect, ActionButton, Intro, ReadFailed, RegisterLayout } from './audits/auditForms';
 import useHeaderPrimary, { type SetHeaderActions } from './audits/useHeaderPrimary';
-import type { OrgUser } from './accessAuditLabels';
 import { attestationDueAt, needsAttestation, QUIET_UNTIL_MS } from './trainingAttestation';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
 import DataTable, { TableRow, TableCell } from '../../../shared/DataTable';
 import DeadlineClock from '../../../shared/DeadlineClock';
 import EmptyState from '../../../shared/EmptyState';
@@ -16,6 +12,8 @@ import maskEmail from '../shared/maskEmail';
 import StatusPill from '../shared/StatusPill';
 import useDrawerMode from '../shared/useDrawerMode';
 import type { ObligationDraft, Person, Obligation, TrainingState, TrainingPageArgs } from './TrainingPage.types';
+import { OBLIGATION_KINDS, TrainingPageSection2 } from './TrainingPageSection2';
+export { OBLIGATION_KINDS } from './TrainingPageSection2';
 
 /**
  * TrainingPage — personnel training (ISO 27001 cl. 7.2/7.3, AI Act Art. 4) and
@@ -33,18 +31,6 @@ import type { ObligationDraft, Person, Obligation, TrainingState, TrainingPageAr
  * (needsAttestation); any row opens the attest drawer. "Add obligation" sits
  * in the section header.
  */
-
-export const OBLIGATION_KINDS = Object.freeze({
-    policy_review: Object.freeze({ tone: 'neutral', key: 'compliance.obl_kind_policy_review', en: 'Policy review' }),
-    soa_review: Object.freeze({ tone: 'neutral', key: 'compliance.obl_kind_soa_review', en: 'SoA review' }),
-    internal_audit: Object.freeze({ tone: 'neutral', key: 'compliance.obl_kind_internal_audit', en: 'Internal audit' }),
-    management_review: Object.freeze({ tone: 'neutral', key: 'compliance.obl_kind_management_review', en: 'Management review' }),
-    training: Object.freeze({ tone: 'neutral', key: 'compliance.obl_kind_training', en: 'Training' }),
-    access_review: Object.freeze({ tone: 'neutral', key: 'compliance.obl_kind_access_review', en: 'Access review' }),
-    supplier_review: Object.freeze({ tone: 'neutral', key: 'compliance.obl_kind_supplier_review', en: 'Supplier review' }),
-    pentest: Object.freeze({ tone: 'neutral', key: 'compliance.obl_kind_pentest', en: 'Penetration test' }),
-    custom: Object.freeze({ tone: 'neutral', key: 'compliance.obl_kind_custom', en: 'Other' }),
-});
 
 const EMPTY_DRAFT: Readonly<ObligationDraft> = Object.freeze({ kind: 'policy_review', subject: '', title: '', due_at: '', recur_months: '', owner_user_id: '' });
 
@@ -222,200 +208,111 @@ export default function TrainingPage({ data = {}, isMobile = false, setHeaderAct
                 </>
             )}
         >
-            <section className="flex flex-col gap-2" data-testid="training-personnel">
-                <h3 className="m-0 text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5">
-                    <GraduationCap size={13} aria-hidden="true" />
-                    {t('compliance.training_personnel_title', 'People')}
-                </h3>
-                {personnelFailed ? (
-                    <ReadFailed testId="training-personnel-failed">
-                        {t('compliance.training_personnel_failed', 'The personnel list could not be read.')}
-                    </ReadFailed>
-                ) : (
-                    <DataTable
-                        columns={personColumns}
-                        rows={personRows}
-                        rowKey={(p) => p.user_id}
-                        loading={personnelLoading}
-                        isMobile={isMobile}
-                        ariaLabel={t('compliance.training_personnel_title', 'People')}
-                        testId="training-personnel-table"
-                        empty={<EmptyState title={t('compliance.training_no_personnel', 'No members in this organisation yet')} />}
-                        renderCard={(p) => {
-                            // Counts the server did not state render nothing (never "0 / 0").
-                            const known = p.policy_acks != null && p.policy_total != null;
-                            const acked = p.policy_acks;
-                            const total = p.policy_total;
-                            const full = known && total != null && total > 0 && acked != null && acked >= total;
-                            const dueAt = attestationDueAt(p);
-                            return (
-                                <div className="w-full min-w-0 flex items-center gap-2" data-testid={`training-person-card-${p.user_id}`}>
-                                    <button type="button" onClick={() => openAttest(p.user_id)} className="flex-1 min-w-0 text-left min-h-[44px] flex flex-col justify-center gap-1" data-testid={`training-person-open-card-${p.user_id}`}>
-                                        <span className="text-xs font-semibold text-[var(--text-primary)] truncate">{p.displayName || maskEmail(p.email)}</span>
-                                        <span className="text-[11px] text-[var(--text-tertiary)] truncate">{maskEmail(p.email)}</span>
-                                        <span className="flex items-center gap-2 min-w-0 text-[11px]">
-                                            {known && (
-                                                <StatusPill tone={full ? 'success' : (total != null && total > 0 ? 'warning' : 'neutral')} testId={`training-acks-card-${p.user_id}`}>
-                                                    {`${acked} / ${total}`}
-                                                </StatusPill>
-                                            )}
-                                            {dueAt
-                                                ? <DeadlineClock dueAt={dueAt} startedAt={p.attested_at} variant="inline" quietUntilMs={QUIET_UNTIL_MS} className="[&[data-quiet]]:font-normal" testId={`training-clock-card-${p.user_id}`} />
-                                                : <span className="text-[var(--text-tertiary)] truncate" data-testid={`training-never-card-${p.user_id}`}>{t('compliance.training_never_attested', 'Never attested')}</span>}
-                                        </span>
-                                    </button>
-                                    {needsAttestation(p) && (
-                                        <ActionButton icon={GraduationCap} disabled={state.busyId === p.user_id} onClick={() => openAttest(p.user_id)} className="flex-shrink-0 min-h-[44px]" data-testid={`training-attest-card-${p.user_id}`}>
-                                            {p.attested_at ? t('compliance.training_reattest', 'Re-attest') : t('compliance.training_attest', 'Attest training')}
-                                        </ActionButton>
-                                    )}
-                                </div>
-                            );
-                        }}
-                        renderRow={(p, ctx) => {
-                            // Both counts or neither: `?? 0` used to print "0 / 0" for a
-                            // person the server said nothing about, which reads as "this
-                            // person has acknowledged nothing" rather than "we don't know".
-                            // The phone card (renderCard, above) already does it this way.
-                            const known = typeof p.policy_acks === 'number' && typeof p.policy_total === 'number';
-                            const acked = known ? p.policy_acks : null;
-                            const total = known ? p.policy_total : null;
-                            const full = known && total != null && total > 0 && acked != null && acked >= total;
-                            const dueAt = attestationDueAt(p);
-                            return (
-                                <TableRow columns={ctx.columns} accent={full ? 'success' : (known && total != null && total > 0 ? 'warning' : 'neutral')} selected={!creating && attestFor === p.user_id}
-                                    onClick={() => openAttest(p.user_id)} testId={`training-person-${p.user_id}`}>
-                                    <TableCell column={ctx.columns[0]}>
-                                        <span className="flex flex-col min-w-0">
-                                            <span className="font-semibold text-[var(--text-primary)] truncate">{p.displayName || maskEmail(p.email)}</span>
-                                            <span className="text-[11px] text-[var(--text-tertiary)] truncate" data-testid={`training-email-${p.user_id}`}>{maskEmail(p.email)}</span>
-                                        </span>
-                                    </TableCell>
-                                    <TableCell column={ctx.columns[1]}>
-                                        {known ? (
-                                            <StatusPill tone={full ? 'success' : (total != null && total > 0 ? 'warning' : 'neutral')} testId={`training-acks-${p.user_id}`}>
-                                                {`${acked} / ${total}`}
-                                            </StatusPill>
-                                        ) : <span className="text-[var(--text-tertiary)]">—</span>}
-                                    </TableCell>
-                                    <TableCell column={ctx.columns[2]}>
-                                        {p.learning_done != null
-                                            ? <span className="text-[var(--text-secondary)] tabular-nums" data-testid={`training-learning-${p.user_id}`}>{p.learning_done}</span>
-                                            : <span className="text-[var(--text-tertiary)]">—</span>}
-                                    </TableCell>
-                                    <TableCell column={ctx.columns[3]}>
-                                        {dueAt
-                                            ? <span title={fmtDate(dueAt, resolvedLocale)}><DeadlineClock dueAt={dueAt} startedAt={p.attested_at} variant="inline" quietUntilMs={QUIET_UNTIL_MS} className="[&[data-quiet]]:font-normal" testId={`training-clock-${p.user_id}`} /></span>
-                                            : <span className="text-[var(--text-tertiary)]" data-testid={`training-never-${p.user_id}`}>{t('compliance.training_never_attested', 'Never attested')}</span>}
-                                    </TableCell>
-                                    <TableCell column={ctx.columns[4]}>
-                                        {needsAttestation(p) && (
-                                            <ActionButton size="sm" icon={GraduationCap} disabled={state.busyId === p.user_id}
-                                                onClick={(e) => { e.stopPropagation(); openAttest(p.user_id); }} data-testid={`training-attest-${p.user_id}`}>
-                                                {p.attested_at ? t('compliance.training_reattest', 'Re-attest') : t('compliance.training_attest', 'Attest training')}
-                                            </ActionButton>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        }}
-                    />
-                )}
-            </section>
+            <TrainingPageSection t={t} personnelFailed={personnelFailed} personColumns={personColumns} personRows={personRows} personnelLoading={personnelLoading} isMobile={isMobile} openAttest={openAttest} state={state} creating={creating} attestFor={attestFor} resolvedLocale={resolvedLocale} />
 
-            <section className="flex flex-col gap-2" data-testid="training-obligations">
-                <h3 className="m-0 text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5">
-                    {t('compliance.obl_title', 'Obligations')}
-                </h3>
-                {oblFailed ? (
-                    <ReadFailed testId="training-obligations-failed">
-                        {t('compliance.obl_failed', 'The obligation list could not be read.')}
-                    </ReadFailed>
-                ) : (
-                    <DataTable
-                        columns={oblColumns}
-                        rows={oblRows}
-                        loading={oblLoading}
-                        isMobile={isMobile}
-                        ariaLabel={t('compliance.obl_title', 'Obligations')}
-                        testId="training-obligations-table"
-                        empty={(
-                            <EmptyState
-                                title={t('compliance.obl_empty_title', 'Nothing on the clock')}
-                                description={t('compliance.obl_empty', 'Add the reviews, audits and trainings your ISMS owes itself; recurring ones roll forward when you complete them.')}
-                            />
-                        )}
-                        renderCard={(o) => {
-                            const done = !!o.completed_at;
-                            return (
-                                <div className="w-full min-w-0 flex items-center gap-2" data-testid={`obligation-card-${o.id}`}>
-                                    <div className="flex-1 min-w-0 flex flex-col gap-1">
-                                        <span className="text-xs font-semibold text-[var(--text-primary)] truncate">{o.title}</span>
-                                        <span className="text-[11px] text-[var(--text-tertiary)] truncate">
-                                            {/* Separators only between the parts that exist. */}
-                                            {[
-                                                <span key="kind" className="text-[var(--text-secondary)]" data-testid={`obligation-kind-card-${o.id}`}>{labelOf(t, OBLIGATION_KINDS, o.kind)}</span>,
-                                                o.subject ? <span key="subject">{o.subject}</span> : null,
-                                                o.recur_months
-                                                    ? <span key="recur" className="inline-flex items-center gap-1"><Repeat size={10} aria-hidden="true" />{t('compliance.obl_recur_every', 'every {months} months', { months: o.recur_months })}</span>
-                                                    : null,
-                                                userName(orgUsers, o.owner_user_id) ? <span key="owner">{userName(orgUsers, o.owner_user_id)}</span> : null,
-                                            ].filter(Boolean).map((part, i) => <React.Fragment key={part?.key}>{i > 0 ? ' · ' : null}{part}</React.Fragment>)}
-                                        </span>
-                                        {done ? (
-                                            <span className="text-[11px] text-[var(--text-secondary)] inline-flex items-center gap-1" data-testid={`obligation-done-card-${o.id}`}>
-                                                <CheckCircle2 size={11} aria-hidden="true" className="text-[var(--success-ink)]" />{doneOn(o)}
-                                            </span>
-                                        ) : <DeadlineClock dueAt={o.due_at} variant="inline" testId={`obligation-clock-card-${o.id}`} />}
-                                    </div>
-                                    {!done && (
-                                        <ActionButton variant="success" icon={CheckCircle2} disabled={state.busyId === o.id} onClick={() => state.completeObligation?.(o.id)}
-                                            className="flex-shrink-0 min-h-[44px]" data-testid={`obligation-complete-card-${o.id}`}>{t('compliance.obl_complete', 'Complete')}</ActionButton>
-                                    )}
-                                </div>
-                            );
-                        }}
-                        renderRow={(o, ctx) => {
-                            const done = !!o.completed_at;
-                            return (
-                                <TableRow columns={ctx.columns} accent={done ? 'success' : null} testId={`obligation-row-${o.id}`}>
-                                    <TableCell column={ctx.columns[0]} className="truncate text-[var(--text-secondary)]">
-                                        <span data-testid={`obligation-kind-${o.id}`}>{labelOf(t, OBLIGATION_KINDS, o.kind)}</span>
-                                    </TableCell>
-                                    <TableCell column={ctx.columns[1]}>
-                                        <span className="flex flex-col min-w-0">
-                                            <span className="font-semibold text-[var(--text-primary)] truncate">{o.title}</span>
-                                            <span className="text-[11px] text-[var(--text-tertiary)] truncate">
-                                                {o.subject || ''}
-                                                {o.subject && o.recur_months ? ' · ' : ''}
-                                                {o.recur_months
-                                                    ? <span className="inline-flex items-center gap-1"><Repeat size={10} aria-hidden="true" />{t('compliance.obl_recur_every', 'every {months} months', { months: o.recur_months })}</span>
-                                                    : null}
-                                            </span>
-                                        </span>
-                                    </TableCell>
-                                    <TableCell column={ctx.columns[2]}>
-                                        {done ? (
-                                            <span className="text-[11px] text-[var(--text-secondary)] inline-flex items-center gap-1" data-testid={`obligation-done-${o.id}`}>
-                                                <CheckCircle2 size={11} aria-hidden="true" className="text-[var(--success-ink)]" />{doneOn(o)}
-                                            </span>
-                                        ) : <DeadlineClock dueAt={o.due_at} variant="inline" testId={`obligation-clock-${o.id}`} />}
-                                    </TableCell>
-                                    <TableCell column={ctx.columns[3]}>
-                                        <span className="truncate text-[var(--text-secondary)]">{userName(orgUsers, o.owner_user_id) || '—'}</span>
-                                    </TableCell>
-                                    <TableCell column={ctx.columns[4]}>
-                                        {!done && (
-                                            <ActionButton size="sm" variant="success" icon={CheckCircle2} disabled={state.busyId === o.id} onClick={() => state.completeObligation?.(o.id)}
-                                                data-testid={`obligation-complete-${o.id}`}>{t('compliance.obl_complete', 'Complete')}</ActionButton>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            );
-                        }}
-                    />
-                )}
-            </section>
+            <TrainingPageSection2 t={t} oblFailed={oblFailed} oblColumns={oblColumns} oblRows={oblRows} oblLoading={oblLoading} isMobile={isMobile} orgUsers={orgUsers} doneOn={doneOn} state={state} />
         </RegisterLayout>
     );
+}
+
+function TrainingPageSection({ t, personnelFailed, personColumns, personRows, personnelLoading, isMobile, openAttest, state, creating, attestFor, resolvedLocale }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; personnelFailed: boolean; personColumns: ({ label: string; id: "member"; width: "1fr"; } | { label: string; id: "acks"; width: "120px"; } | { label: string; id: "learning"; width: "120px"; foldBelow: 1180; } | { label: string; id: "attested"; width: "170px"; } | { label: string; id: "action"; width: "150px"; })[]; personRows: Person[]; personnelLoading: boolean; isMobile: boolean; openAttest: (userId: string) => void; state: TrainingState; creating: boolean; attestFor: string | null; resolvedLocale: string; }) {
+    return <section className="flex flex-col gap-2" data-testid="training-personnel">
+        <h3 className="m-0 text-xs font-bold text-[var(--text-primary)] flex items-center gap-1.5">
+            <GraduationCap size={13} aria-hidden="true" />
+            {t('compliance.training_personnel_title', 'People')}
+        </h3>
+        {personnelFailed ? (
+            <ReadFailed testId="training-personnel-failed">
+                {t('compliance.training_personnel_failed', 'The personnel list could not be read.')}
+            </ReadFailed>
+        ) : (
+            <DataTable
+                columns={personColumns}
+                rows={personRows}
+                rowKey={(p) => p.user_id}
+                loading={personnelLoading}
+                isMobile={isMobile}
+                ariaLabel={t('compliance.training_personnel_title', 'People')}
+                testId="training-personnel-table"
+                empty={<EmptyState title={t('compliance.training_no_personnel', 'No members in this organisation yet')} />}
+                renderCard={(p) => {
+                    // Counts the server did not state render nothing (never "0 / 0").
+                    const known = p.policy_acks != null && p.policy_total != null;
+                    const acked = p.policy_acks;
+                    const total = p.policy_total;
+                    const full = known && total != null && total > 0 && acked != null && acked >= total;
+                    const dueAt = attestationDueAt(p);
+                    return (
+                        <div className="w-full min-w-0 flex items-center gap-2" data-testid={`training-person-card-${p.user_id}`}>
+                            <button type="button" onClick={() => openAttest(p.user_id)} className="flex-1 min-w-0 text-left min-h-[44px] flex flex-col justify-center gap-1" data-testid={`training-person-open-card-${p.user_id}`}>
+                                <span className="text-xs font-semibold text-[var(--text-primary)] truncate">{p.displayName || maskEmail(p.email)}</span>
+                                <span className="text-[11px] text-[var(--text-tertiary)] truncate">{maskEmail(p.email)}</span>
+                                <span className="flex items-center gap-2 min-w-0 text-[11px]">
+                                    {known && (
+                                        <StatusPill tone={full ? 'success' : (total != null && total > 0 ? 'warning' : 'neutral')} testId={`training-acks-card-${p.user_id}`}>
+                                            {`${acked} / ${total}`}
+                                        </StatusPill>
+                                    )}
+                                    {dueAt
+                                        ? <DeadlineClock dueAt={dueAt} startedAt={p.attested_at} variant="inline" quietUntilMs={QUIET_UNTIL_MS} className="[&[data-quiet]]:font-normal" testId={`training-clock-card-${p.user_id}`} />
+                                        : <span className="text-[var(--text-tertiary)] truncate" data-testid={`training-never-card-${p.user_id}`}>{t('compliance.training_never_attested', 'Never attested')}</span>}
+                                </span>
+                            </button>
+                            {needsAttestation(p) && (
+                                <ActionButton icon={GraduationCap} disabled={state.busyId === p.user_id} onClick={() => openAttest(p.user_id)} className="flex-shrink-0 min-h-[44px]" data-testid={`training-attest-card-${p.user_id}`}>
+                                    {p.attested_at ? t('compliance.training_reattest', 'Re-attest') : t('compliance.training_attest', 'Attest training')}
+                                </ActionButton>
+                            )}
+                        </div>
+                    );
+                } }
+                renderRow={(p, ctx) => {
+                    // Both counts or neither: `?? 0` used to print "0 / 0" for a
+                    // person the server said nothing about, which reads as "this
+                    // person has acknowledged nothing" rather than "we don't know".
+                    // The phone card (renderCard, above) already does it this way.
+                    const known = typeof p.policy_acks === 'number' && typeof p.policy_total === 'number';
+                    const acked = known ? p.policy_acks : null;
+                    const total = known ? p.policy_total : null;
+                    const full = known && total != null && total > 0 && acked != null && acked >= total;
+                    const dueAt = attestationDueAt(p);
+                    return (
+                        <TableRow columns={ctx.columns} accent={full ? 'success' : (known && total != null && total > 0 ? 'warning' : 'neutral')} selected={!creating && attestFor === p.user_id}
+                            onClick={() => openAttest(p.user_id)} testId={`training-person-${p.user_id}`}>
+                            <TableCell column={ctx.columns[0]}>
+                                <span className="flex flex-col min-w-0">
+                                    <span className="font-semibold text-[var(--text-primary)] truncate">{p.displayName || maskEmail(p.email)}</span>
+                                    <span className="text-[11px] text-[var(--text-tertiary)] truncate" data-testid={`training-email-${p.user_id}`}>{maskEmail(p.email)}</span>
+                                </span>
+                            </TableCell>
+                            <TableCell column={ctx.columns[1]}>
+                                {known ? (
+                                    <StatusPill tone={full ? 'success' : (total != null && total > 0 ? 'warning' : 'neutral')} testId={`training-acks-${p.user_id}`}>
+                                        {`${acked} / ${total}`}
+                                    </StatusPill>
+                                ) : <span className="text-[var(--text-tertiary)]">—</span>}
+                            </TableCell>
+                            <TableCell column={ctx.columns[2]}>
+                                {p.learning_done != null
+                                    ? <span className="text-[var(--text-secondary)] tabular-nums" data-testid={`training-learning-${p.user_id}`}>{p.learning_done}</span>
+                                    : <span className="text-[var(--text-tertiary)]">—</span>}
+                            </TableCell>
+                            <TableCell column={ctx.columns[3]}>
+                                {dueAt
+                                    ? <span title={fmtDate(dueAt, resolvedLocale)}><DeadlineClock dueAt={dueAt} startedAt={p.attested_at} variant="inline" quietUntilMs={QUIET_UNTIL_MS} className="[&[data-quiet]]:font-normal" testId={`training-clock-${p.user_id}`} /></span>
+                                    : <span className="text-[var(--text-tertiary)]" data-testid={`training-never-${p.user_id}`}>{t('compliance.training_never_attested', 'Never attested')}</span>}
+                            </TableCell>
+                            <TableCell column={ctx.columns[4]}>
+                                {needsAttestation(p) && (
+                                    <ActionButton size="sm" icon={GraduationCap} disabled={state.busyId === p.user_id}
+                                        onClick={(e) => { e.stopPropagation(); openAttest(p.user_id); } } data-testid={`training-attest-${p.user_id}`}>
+                                        {p.attested_at ? t('compliance.training_reattest', 'Re-attest') : t('compliance.training_attest', 'Attest training')}
+                                    </ActionButton>
+                                )}
+                            </TableCell>
+                        </TableRow>
+                    );
+                } } />
+        )}
+    </section>;
 }

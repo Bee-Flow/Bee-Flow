@@ -27,7 +27,7 @@ import type { ImportField, ImportTable } from '../tables/spreadsheetPaste';
 import type { AppNode } from '../inspector/appDefinition';
 
 // field type → input component type (writable fields only; computed is skipped).
-export const FIELD_INPUT_TYPE: Readonly<Record<string, string>> = Object.freeze({
+const FIELD_INPUT_TYPE: Readonly<Record<string, string>> = Object.freeze({
     text: 'input_text',
     richtext: 'input_richtext',
     number: 'input_number',
@@ -41,7 +41,7 @@ export const FIELD_INPUT_TYPE: Readonly<Record<string, string>> = Object.freeze(
 });
 
 // field type → data_grid column format (the grid's own format vocabulary).
-export const FIELD_COLUMN_FORMAT: Readonly<Record<string, string>> = Object.freeze({
+const FIELD_COLUMN_FORMAT: Readonly<Record<string, string>> = Object.freeze({
     number: 'number',
     date: 'date',
     datetime: 'date',
@@ -91,7 +91,7 @@ function normalizeOption(opt: unknown) {
 }
 
 /** A field is writable (gets a form input) when it maps to an input component. */
-export function isWritableField(field: { type?: string | number }) {
+function isWritableField(field: { type?: string | number }) {
     return !!(field && typeof field.type === 'string' && FIELD_INPUT_TYPE[field.type]);
 }
 
@@ -173,4 +173,3 @@ export function buildGridForTable(table: ImportTable, { taken }: { taken?: Itera
     return { node };
 }
 
-export default { buildFormForTable, buildGridForTable, FIELD_INPUT_TYPE, FIELD_COLUMN_FORMAT, isWritableField };

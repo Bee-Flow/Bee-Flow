@@ -146,165 +146,7 @@ export default function HomePage() {
                 </div>
             </header>
 
-            <main>
-                {/* Hero */}
-                <section style={heroSectionStyle}>
-                    <div style={heroInnerStyle} className="bf-hero-grid">
-                        <div style={heroCopyStyle}>
-                            <span style={pillStyle}>
-                                Privacy-first AI workspace · Hosted in the EU
-                            </span>
-                            <h1 style={heroTitleStyle} className="bf-hero-title">
-                                AI assistants that know your business — and keep it private.
-                            </h1>
-                            <p style={heroLeadStyle}>
-                                Bee Flow turns your documents, meetings and tools
-                                into assistants your team can use straight away.
-                                Hosted in the EU. Your data stays yours.
-                            </p>
-                            <div style={heroActionsStyle}>
-                                <a href="/app" style={primaryButtonStyle}>
-                                    Open the app
-                                    <ArrowRight size={16} aria-hidden="true" />
-                                </a>
-                                {hasPublicPlans ? (
-                                    <a href="/pricing" style={secondaryButtonStyle}>
-                                        View pricing
-                                    </a>
-                                ) : null}
-                                <a href="/privacy" style={textLinkStyle}>
-                                    Read our privacy policy
-                                </a>
-                            </div>
-                        </div>
-                        <ChatPreview />
-                    </div>
-                </section>
-
-                {/* Capabilities */}
-                <section style={sectionStyle}>
-                    <div style={sectionInnerStyle}>
-                        <header style={sectionHeaderStyle}>
-                            <h2 style={sectionTitleStyle}>
-                                Everything your team needs from AI, in one workspace.
-                            </h2>
-                            <p style={sectionLeadStyle}>
-                                One platform that handles the busywork around your
-                                documents, meetings, and day-to-day tools — without
-                                forcing anyone to learn a new way of working.
-                            </p>
-                        </header>
-                        <div style={capabilityGridStyle}>
-                            {CAPABILITIES.map(({ Icon, title, body }) => (
-                                <article key={title} style={cardStyle}>
-                                    <div style={iconTileStyle}>
-                                        <Icon size={20} strokeWidth={2} />
-                                    </div>
-                                    <h3 style={cardTitleStyle}>{title}</h3>
-                                    <p style={cardBodyStyle}>{body}</p>
-                                </article>
-                            ))}
-                        </div>
-                    </div>
-                </section>
-
-                {/* How it works */}
-                <section style={sectionAltStyle}>
-                    <div style={sectionInnerStyle}>
-                        <header style={sectionHeaderStyle}>
-                            <h2 style={sectionTitleStyle}>
-                                From signup to ready-to-use in an afternoon.
-                            </h2>
-                            <p style={sectionLeadStyle}>
-                                You don’t need an IT project to get started. Most teams
-                                are up and running on the same day.
-                            </p>
-                        </header>
-                        <ol style={stepsStyle}>
-                            {STEPS.map(({ n, title, body }) => (
-                                <li key={n} style={stepStyle}>
-                                    <div style={stepNumberStyle}>{n}</div>
-                                    <h3 style={stepTitleStyle}>{title}</h3>
-                                    <p style={stepBodyStyle}>{body}</p>
-                                </li>
-                            ))}
-                        </ol>
-                    </div>
-                </section>
-
-                {/* Use cases */}
-                <section style={sectionStyle}>
-                    <div style={sectionInnerStyle}>
-                        <header style={sectionHeaderStyle}>
-                            <h2 style={sectionTitleStyle}>Bee Flow at work.</h2>
-                            <p style={sectionLeadStyle}>
-                                A few of the everyday moments where Bee Flow earns
-                                its keep.
-                            </p>
-                        </header>
-                        <div style={useCaseGridStyle}>
-                            {USE_CASES.map(({ Icon, eyebrow, body }) => (
-                                <article key={eyebrow} style={useCaseCardStyle}>
-                                    <div style={useCaseHeaderStyle}>
-                                        <div style={useCaseIconStyle}>
-                                            <Icon size={18} strokeWidth={2} />
-                                        </div>
-                                        <span style={useCaseEyebrowStyle}>{eyebrow}</span>
-                                    </div>
-                                    <p style={useCaseBodyStyle}>{body}</p>
-                                </article>
-                            ))}
-                        </div>
-                    </div>
-                </section>
-
-                {/* Trust block */}
-                <section style={trustSectionStyle}>
-                    <div style={trustInnerStyle}>
-                        <h2 style={sectionTitleStyle}>Your data is your data.</h2>
-                        <p style={trustBodyStyle}>
-                            Bee Flow is built and operated in the Netherlands by
-                            Bee Flow B.V. Prompts and documents stay in EU data
-                            centres on Scaleway. The major US AI model providers
-                            we use — Anthropic, OpenAI, Microsoft and Google —
-                            are all certified under the EU-US Data Privacy
-                            Framework. We don’t sell your data, and we don’t use
-                            it to train anyone’s model.
-                        </p>
-                        <div style={trustActionsStyle}>
-                            <a href="/privacy" style={trustButtonStyle}>
-                                Read the privacy policy
-                            </a>
-                            <a href="/terms" style={trustButtonStyle}>
-                                Read the terms
-                            </a>
-                        </div>
-                    </div>
-                </section>
-
-                {/* Final CTA */}
-                <section style={finalCtaSectionStyle}>
-                    <div style={finalCtaInnerStyle}>
-                        <h2 style={finalCtaTitleStyle}>
-                            Bring AI into your team — without the lock-in.
-                        </h2>
-                        <p style={finalCtaLeadStyle}>
-                            Start free. Upgrade when you’re ready. Cancel any time.
-                        </p>
-                        <div style={heroActionsStyle}>
-                            <a href="/app" style={primaryButtonStyle}>
-                                Open the app
-                                <ArrowRight size={16} aria-hidden="true" />
-                            </a>
-                            <a href="#contact" style={secondaryButtonStyle}>
-                                Talk to us
-                            </a>
-                        </div>
-                    </div>
-                </section>
-
-                <ContactSection />
-            </main>
+            <HomePageMain hasPublicPlans={hasPublicPlans} />
 
             <footer style={footerStyle}>
                 <div style={footerInnerStyle}>
@@ -323,6 +165,168 @@ export default function HomePage() {
             </footer>
         </div>
     );
+}
+
+function HomePageMain({ hasPublicPlans }: { hasPublicPlans: boolean; }) {
+    return <main>
+        {/* Hero */}
+        <section style={heroSectionStyle}>
+            <div style={heroInnerStyle} className="bf-hero-grid">
+                <div style={heroCopyStyle}>
+                    <span style={pillStyle}>
+                        Privacy-first AI workspace · Hosted in the EU
+                    </span>
+                    <h1 style={heroTitleStyle} className="bf-hero-title">
+                        AI assistants that know your business — and keep it private.
+                    </h1>
+                    <p style={heroLeadStyle}>
+                        Bee Flow turns your documents, meetings and tools
+                        into assistants your team can use straight away.
+                        Hosted in the EU. Your data stays yours.
+                    </p>
+                    <div style={heroActionsStyle}>
+                        <a href="/app" style={primaryButtonStyle}>
+                            Open the app
+                            <ArrowRight size={16} aria-hidden="true" />
+                        </a>
+                        {hasPublicPlans ? (
+                            <a href="/pricing" style={secondaryButtonStyle}>
+                                View pricing
+                            </a>
+                        ) : null}
+                        <a href="/privacy" style={textLinkStyle}>
+                            Read our privacy policy
+                        </a>
+                    </div>
+                </div>
+                <ChatPreview />
+            </div>
+        </section>
+
+        {/* Capabilities */}
+        <section style={sectionStyle}>
+            <div style={sectionInnerStyle}>
+                <header style={sectionHeaderStyle}>
+                    <h2 style={sectionTitleStyle}>
+                        Everything your team needs from AI, in one workspace.
+                    </h2>
+                    <p style={sectionLeadStyle}>
+                        One platform that handles the busywork around your
+                        documents, meetings, and day-to-day tools — without
+                        forcing anyone to learn a new way of working.
+                    </p>
+                </header>
+                <div style={capabilityGridStyle}>
+                    {CAPABILITIES.map(({ Icon, title, body }) => (
+                        <article key={title} style={cardStyle}>
+                            <div style={iconTileStyle}>
+                                <Icon size={20} strokeWidth={2} />
+                            </div>
+                            <h3 style={cardTitleStyle}>{title}</h3>
+                            <p style={cardBodyStyle}>{body}</p>
+                        </article>
+                    ))}
+                </div>
+            </div>
+        </section>
+
+        {/* How it works */}
+        <section style={sectionAltStyle}>
+            <div style={sectionInnerStyle}>
+                <header style={sectionHeaderStyle}>
+                    <h2 style={sectionTitleStyle}>
+                        From signup to ready-to-use in an afternoon.
+                    </h2>
+                    <p style={sectionLeadStyle}>
+                        You don’t need an IT project to get started. Most teams
+                        are up and running on the same day.
+                    </p>
+                </header>
+                <ol style={stepsStyle}>
+                    {STEPS.map(({ n, title, body }) => (
+                        <li key={n} style={stepStyle}>
+                            <div style={stepNumberStyle}>{n}</div>
+                            <h3 style={stepTitleStyle}>{title}</h3>
+                            <p style={stepBodyStyle}>{body}</p>
+                        </li>
+                    ))}
+                </ol>
+            </div>
+        </section>
+
+        {/* Use cases */}
+        <section style={sectionStyle}>
+            <div style={sectionInnerStyle}>
+                <header style={sectionHeaderStyle}>
+                    <h2 style={sectionTitleStyle}>Bee Flow at work.</h2>
+                    <p style={sectionLeadStyle}>
+                        A few of the everyday moments where Bee Flow earns
+                        its keep.
+                    </p>
+                </header>
+                <div style={useCaseGridStyle}>
+                    {USE_CASES.map(({ Icon, eyebrow, body }) => (
+                        <article key={eyebrow} style={useCaseCardStyle}>
+                            <div style={useCaseHeaderStyle}>
+                                <div style={useCaseIconStyle}>
+                                    <Icon size={18} strokeWidth={2} />
+                                </div>
+                                <span style={useCaseEyebrowStyle}>{eyebrow}</span>
+                            </div>
+                            <p style={useCaseBodyStyle}>{body}</p>
+                        </article>
+                    ))}
+                </div>
+            </div>
+        </section>
+
+        {/* Trust block */}
+        <section style={trustSectionStyle}>
+            <div style={trustInnerStyle}>
+                <h2 style={sectionTitleStyle}>Your data is your data.</h2>
+                <p style={trustBodyStyle}>
+                    Bee Flow is built and operated in the Netherlands by
+                    Bee Flow B.V. Prompts and documents stay in EU data
+                    centres on Scaleway. The major US AI model providers
+                    we use — Anthropic, OpenAI, Microsoft and Google —
+                    are all certified under the EU-US Data Privacy
+                    Framework. We don’t sell your data, and we don’t use
+                    it to train anyone’s model.
+                </p>
+                <div style={trustActionsStyle}>
+                    <a href="/privacy" style={trustButtonStyle}>
+                        Read the privacy policy
+                    </a>
+                    <a href="/terms" style={trustButtonStyle}>
+                        Read the terms
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        {/* Final CTA */}
+        <section style={finalCtaSectionStyle}>
+            <div style={finalCtaInnerStyle}>
+                <h2 style={finalCtaTitleStyle}>
+                    Bring AI into your team — without the lock-in.
+                </h2>
+                <p style={finalCtaLeadStyle}>
+                    Start free. Upgrade when you’re ready. Cancel any time.
+                </p>
+                <div style={heroActionsStyle}>
+                    <a href="/app" style={primaryButtonStyle}>
+                        Open the app
+                        <ArrowRight size={16} aria-hidden="true" />
+                    </a>
+                    <a href="#contact" style={secondaryButtonStyle}>
+                        Talk to us
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <ContactSection />
+    </main>;
 }
 
 function ChatPreview() {

@@ -10,7 +10,7 @@ import { helpClass, labelClass } from './fieldStyles';
  * words and for its examples. Refusals are said inline by AddRow, so a
  * duplicate or an over-long value is never silently dropped.
  */
-export function ChipList({
+function ChipList({
     label, help, values, onChange, max, maxLen, placeholder, caseSensitive = false, mono = false, disabled = false, t,
 }: {
     label: string;

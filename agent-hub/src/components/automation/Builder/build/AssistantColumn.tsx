@@ -119,7 +119,7 @@ export default function AssistantColumn(p: AssistantColumnProps) {
     );
 }
 
-export interface AssistantComposerProps {
+interface AssistantComposerProps {
     state: BuilderTabState;
     flatDef: FlowDefinition | null;
     chatInput: string;

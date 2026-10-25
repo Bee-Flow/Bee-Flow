@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ExternalLink, RefreshCw, X } from 'lucide-react';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
 import useTranslation from '../../hooks/useTranslation';
 import type { GammaPreview } from '../../hooks/useChatEngine/sse/gammaPreview';
 import { messageOf } from '../../utils/caughtError';
+import { request, errorBody, RefusedError } from '../../api/mutate';
 
 function toGammaEmbedUrl(url: unknown): string | null {
     if (!url || typeof url !== 'string') return null;
@@ -61,9 +62,15 @@ export default function GammaPreviewPanel({ preview, onClose, onUpdate }: Props)
         setLoading(true);
         setError('');
         try {
-            const res = await authFetch(`${API_BASE}/integrations/gamma/generations/${encodeURIComponent(generationId)}`);
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/integrations/gamma/generations/${encodeURIComponent(generationId)}`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const data = errorBody(err) ?? {};
+                throw new Error(data.error || `Gamma status check failed (${err.status})`);
+            }
             const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data.error || `Gamma status check failed (${res.status})`);
             onUpdateRef.current?.({ ...previewRef.current, ...data });
         } catch (err) {
             setError(messageOf(err, 'Could not refresh Gamma status'));

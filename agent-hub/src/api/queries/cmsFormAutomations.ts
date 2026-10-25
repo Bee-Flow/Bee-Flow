@@ -8,7 +8,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../client';
 
 /** A form block that names an automation, as the live site's draft has it. */
-export interface FormBlockTarget {
+interface FormBlockTarget {
     blockId: string;
     pageTitle: string;
     /** True once an admin approved this block for the automation. */
@@ -29,7 +29,7 @@ interface FormAutomationsResponse {
     automations: FormAutomation[];
 }
 
-export const cmsFormAutomationKeys = {
+const cmsFormAutomationKeys = {
     all: ['cms-form-automations'] as const,
 };
 

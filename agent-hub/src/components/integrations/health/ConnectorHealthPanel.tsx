@@ -4,7 +4,8 @@ import { STATUS_META, STATUS_IDS, statusRank, orgIsBlocked } from './healthMeta'
 import type { FleetOrg } from './healthMeta';
 import OrgHealthDrawer from './OrgHealthDrawer';
 import { useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
+import { request, RefusedError } from '../../../api/mutate';
 
 /**
  * ConnectorHealthPanel — super-admin fleet overview of every Nextcloud-connected
@@ -75,8 +76,14 @@ export default function ConnectorHealthPanel({ initialOrgId = '', onNavigate }: 
         setLoading(true);
         setLoadFailed(false);
         try {
-            const res = await authFetch(`${API_BASE}/auth/admin/connector-health/fleet`);
-            if (!res.ok) { setLoadFailed(true); return; }
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/auth/admin/connector-health/fleet`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                setLoadFailed(true);
+                return;
+            }
             const data = await res.json().catch(() => null);
             if (!data || !Array.isArray(data.orgs)) { setLoadFailed(true); return; }
             setOrgs(data.orgs);

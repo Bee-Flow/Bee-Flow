@@ -1,5 +1,5 @@
 import { ExternalLink, FlaskConical, Trash2, Users, Workflow, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { SetStateAction, Dispatch, useEffect, useRef, useState } from 'react';
 import ActionChoiceCards from './ActionChoiceCards';
 import { EffectEditor, NavigateParamsEditor, ReturnedEcho, toneOptions } from './ActionEffectEditors';
 import { EDITOR_BY_KIND, defaultActionForKind } from './actionKindCatalog';
@@ -28,7 +28,7 @@ import ActionFlowEditor from '../flow/ActionFlowEditor';
 import StepSettings from '../flow/StepSettings';
 import type { TranslateParams } from '../../../../../hooks/useTranslation';
 import type { SkippedInput, WiredAutomation } from './useEventWiring';
-import type { AppDefinition, AppNode, NavigateParam } from './appDefinition';
+import type { AppAction, AppDefinition, AppNode, FormFieldRef, CommonNodeProps, NavigateParam } from './appDefinition';
 import type { ActionsSectionProps, EventWiringProps } from './ActionsSection.types';
 
 /**
@@ -209,32 +209,7 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
 
     return (
         <div className="flex flex-col gap-3">
-            <FormField label={eventLabel(t, event)}>
-                <div className="flex items-center gap-2">
-                    <select
-                        className={INPUT_CLS}
-                        value={actionId || ''}
-                        onChange={(e) => onSelectAction(e.target.value)}
-                        disabled={disabled}
-                        aria-label={t('studio_apps_insp.actions.action_for', 'Action for {event}', { event })}
-                    >
-                        <option value="">{actionId ? t('studio_apps_insp.actions.nothing_happens', 'Nothing happens') : t('studio_apps_insp.actions.choose_what_happens', 'Choose what happens…')}</option>
-                        <option value={NEW_ACTION}>{t('studio_apps_insp.actions.new_action', 'New action…')}</option>
-                        {choices.length ? (
-                            <optgroup label={t('studio_apps_insp.actions.reuse_group', 'Reuse something this app already does')}>
-                                {choices.map((c) => (
-                                    <option key={c.id} value={c.id}>{c.label}</option>
-                                ))}
-                            </optgroup>
-                        ) : null}
-                    </select>
-                    {action ? (
-                        <IconButton ariaLabel={t('studio_apps_insp.actions.delete_action', 'Delete action')} onClick={requestDelete} disabled={disabled} variant="danger">
-                            <Trash2 />
-                        </IconButton>
-                    ) : null}
-                </div>
-            </FormField>
+            <EventWiringFormField t={t} event={event} actionId={actionId} onSelectAction={onSelectAction} disabled={disabled} choices={choices} action={action} requestDelete={requestDelete} />
 
             {action ? (
                 <div className="flex flex-col gap-3">
@@ -608,40 +583,9 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
             {/* Switching a real flow back to a single thing throws the rest of
                 the steps away — the old code did it on the first change of the
                 select, with no warning. */}
-            <ConfirmDialog
-                open={!!confirmFlatten}
-                title={t('studio_apps_insp.actions.flatten_title', 'Keep only one step?')}
-                description={t('studio_apps_insp.actions.flatten_description', 'This flow has {count} steps. Changing it back to a single action keeps none of them.', { count: stepCount(action) })}
-                confirmLabel={t('studio_apps_insp.actions.flatten_confirm', 'Discard the other steps')}
-                destructive
-                onConfirm={() => {
-                    if (!confirmFlatten) return;
-                    commitAction(defaultActionForKind(confirmFlatten, definition, formFields));
-                    setConfirmFlatten(null);
-                }}
-                onCancel={() => setConfirmFlatten(null)}
-            />
+            <EventWiringConfirmDialog confirmFlatten={confirmFlatten} t={t} action={action} commitAction={commitAction} definition={definition} formFields={formFields} setConfirmFlatten={setConfirmFlatten} />
 
-            <Modal
-                open={!!flowFor}
-                onClose={() => setFlowFor(null)}
-                title={t('studio_apps_insp.actions.flow_title', 'What happens, step by step')}
-                description={t('studio_apps_insp.actions.flow_description', 'Each step runs in order. A branch runs only the path it takes.')}
-                size="full"
-            >
-                {flowFor ? (
-                    <div className="h-[70vh]">
-                        <ActionFlowEditor
-                            action={action}
-                            onChange={commitAction}
-                            definition={definition}
-                            node={node}
-                            formFields={formFields}
-                            disabled={disabled}
-                        />
-                    </div>
-                ) : null}
-            </Modal>
+            <EventWiringModal flowFor={flowFor} setFlowFor={setFlowFor} t={t} action={action} commitAction={commitAction} definition={definition} node={node} formFields={formFields} disabled={disabled} />
         </div>
     );
 }
@@ -649,5 +593,71 @@ function EventWiring({ event, node, definition, onCommit, onTestActionResult, di
 // The definition reads this section used to hold itself. Re-exported because
 // this is the path the inspector's tests reach them through.
 export {
-    enclosingForm, formNameOf, getFormFields, getFormFieldNames, screenIdOfNode, stepCount,
+     formNameOf, getFormFields,  screenIdOfNode, stepCount,
 } from './actionRefs';
+
+function EventWiringConfirmDialog({ confirmFlatten, t, action, commitAction, definition, formFields, setConfirmFlatten }: { confirmFlatten: string | null; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; action: AppAction | null; commitAction: (nextAction: AppAction) => void; definition: AppDefinition; formFields: FormFieldRef[]; setConfirmFlatten: Dispatch<SetStateAction<string | null>>; }) {
+    return <ConfirmDialog
+        open={!!confirmFlatten}
+        title={t('studio_apps_insp.actions.flatten_title', 'Keep only one step?')}
+        description={t('studio_apps_insp.actions.flatten_description', 'This flow has {count} steps. Changing it back to a single action keeps none of them.', { count: stepCount(action) })}
+        confirmLabel={t('studio_apps_insp.actions.flatten_confirm', 'Discard the other steps')}
+        destructive
+        onConfirm={() => {
+            if (!confirmFlatten) return;
+            commitAction(defaultActionForKind(confirmFlatten, definition, formFields));
+            setConfirmFlatten(null);
+        } }
+        onCancel={() => setConfirmFlatten(null)} />;
+}
+
+function EventWiringModal({ flowFor, setFlowFor, t, action, commitAction, definition, node, formFields, disabled }: { flowFor: string | null; setFlowFor: Dispatch<SetStateAction<string | null>>; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; action: AppAction | null; commitAction: (nextAction: AppAction) => void; definition: AppDefinition; node: AppNode<CommonNodeProps> | null | undefined; formFields: FormFieldRef[]; disabled: boolean; }) {
+    return <Modal
+        open={!!flowFor}
+        onClose={() => setFlowFor(null)}
+        title={t('studio_apps_insp.actions.flow_title', 'What happens, step by step')}
+        description={t('studio_apps_insp.actions.flow_description', 'Each step runs in order. A branch runs only the path it takes.')}
+        size="full"
+    >
+        {flowFor ? (
+            <div className="h-[70vh]">
+                <ActionFlowEditor
+                    action={action}
+                    onChange={commitAction}
+                    definition={definition}
+                    node={node}
+                    formFields={formFields}
+                    disabled={disabled} />
+            </div>
+        ) : null}
+    </Modal>;
+}
+
+function EventWiringFormField({ t, event, actionId, onSelectAction, disabled, choices, action, requestDelete }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; event: string; actionId: string | null; onSelectAction: (value: string | null) => void; disabled: boolean; choices: { id: string; label: string; }[]; action: AppAction | null; requestDelete: () => void; }) {
+    return <FormField label={eventLabel(t, event)}>
+        <div className="flex items-center gap-2">
+            <select
+                className={INPUT_CLS}
+                value={actionId || ''}
+                onChange={(e) => onSelectAction(e.target.value)}
+                disabled={disabled}
+                aria-label={t('studio_apps_insp.actions.action_for', 'Action for {event}', { event })}
+            >
+                <option value="">{actionId ? t('studio_apps_insp.actions.nothing_happens', 'Nothing happens') : t('studio_apps_insp.actions.choose_what_happens', 'Choose what happens…')}</option>
+                <option value={NEW_ACTION}>{t('studio_apps_insp.actions.new_action', 'New action…')}</option>
+                {choices.length ? (
+                    <optgroup label={t('studio_apps_insp.actions.reuse_group', 'Reuse something this app already does')}>
+                        {choices.map((c) => (
+                            <option key={c.id} value={c.id}>{c.label}</option>
+                        ))}
+                    </optgroup>
+                ) : null}
+            </select>
+            {action ? (
+                <IconButton ariaLabel={t('studio_apps_insp.actions.delete_action', 'Delete action')} onClick={requestDelete} disabled={disabled} variant="danger">
+                    <Trash2 />
+                </IconButton>
+            ) : null}
+        </div>
+    </FormField>;
+}

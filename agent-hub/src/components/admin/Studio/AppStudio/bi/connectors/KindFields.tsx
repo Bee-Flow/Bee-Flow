@@ -14,7 +14,7 @@ import ActionParamsFormJs from '../ActionParamsForm';
 import ConnectorChainEditorJs from '../ConnectorChainEditor';
 
 /** Patches several keys at once; `undefined`/'' removes a key. */
-export type PatchConnector = (patch: Record<string, unknown>) => void;
+type PatchConnector = (patch: Record<string, unknown>) => void;
 
 // Typed views of the .jsx editors, whose `= false` / `= []` defaults would mistype their props.
 const ActionParamsForm = ActionParamsFormJs;

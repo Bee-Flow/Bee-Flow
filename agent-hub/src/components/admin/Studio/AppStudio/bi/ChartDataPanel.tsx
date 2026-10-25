@@ -18,7 +18,7 @@ import { CHART_COLORS, chartColorAt } from '../runtime/chartPalette';
 export type ResultRow = Record<string, unknown>;
 
 /** One series of a chart binding. */
-export interface ChartSeries {
+interface ChartSeries {
     key: string;
     label?: string;
     color?: string;

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from '../../../shared/Toast';
 import { useTheme } from '../../ThemeContext';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
 import type { Dispatch, SetStateAction } from 'react';
 import type { GlassTier, ThemeSettings } from '../../ThemeContext.types';
 import { messageOf } from '../../../../utils/caughtError';
+import { request, RefusedError } from '../../../../api/mutate';
 
 /** The draft the Look editor edits: the theme knobs minus the uploaded wallpaper and its source. */
 export interface LookForm {
@@ -26,7 +27,7 @@ export interface LookForm {
     wallpaperOverlay: number;
 }
 
-export type SetLookForm = Dispatch<SetStateAction<LookForm | null>>;
+type SetLookForm = Dispatch<SetStateAction<LookForm | null>>;
 
 /** What every section of the Look editor takes. */
 export interface LookSectionProps {
@@ -65,8 +66,13 @@ export function useLookForm() {
 
     const refresh = useCallback(async () => {
         try {
-            const res = await authFetch(`${API_BASE}/api/branding/admin`);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/api/branding/admin`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                throw new Error(`HTTP ${err.status}`);
+            }
             const raw = await res.json();
             setOrgDefault(raw);
             setForm((prev: LookForm | null) => prev ? prev : buildFormFromTheme(raw));
@@ -174,7 +180,7 @@ export function useLookForm() {
     };
 }
 
-export function buildFormFromTheme(theme: ThemeSettings): LookForm {
+function buildFormFromTheme(theme: ThemeSettings): LookForm {
     return {
         preset: theme.preset,
         accent: theme.accent,

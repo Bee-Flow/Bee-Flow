@@ -19,7 +19,7 @@ import type { FlowDefinition, FlowStep, RunStepRow } from '../flow/types';
 export type BuilderMessage = StreamMessage & { toolCalls?: unknown[] | null };
 
 /** The plan the agent wrote, as the review overlay and the inline card read it. */
-export interface BuilderPlan extends ReviewPlan {
+interface BuilderPlan extends ReviewPlan {
     [key: string]: unknown;
 }
 

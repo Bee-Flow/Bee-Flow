@@ -4,7 +4,7 @@ import { configuredTierKeys } from '../../../licensing/tierMeta';
 import { buildRefineContext, diffRefinedPlan, mergeRefinedPlan } from '../state/refineMerge';
 import { errorMessage } from '../../../../utils/caughtError';
 import type { ChatMessage } from '../agentEditor.types';
-import type { EditorSnapshot, Ref, Setter } from './agentSaveTypes';
+import type { EditorSnapshot, Ref, Setter } from '../../../../api/agentSaveTypes';
 import type { ConceptPersona } from './useAgentConceptFacts';
 import type { ModelTierMap } from '../../../../api/queries/modelTiers';
 import type { Skill } from '../../../../api/queries/skills';

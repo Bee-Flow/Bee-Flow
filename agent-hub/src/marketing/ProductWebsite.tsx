@@ -659,7 +659,7 @@ function buildBlockOverrideCss(blockId: string | undefined, style: BlockStyle | 
 // resolveAssetUrl moved to ./assetUrl.js (sections import it there without
 // cycling through this module); imported for local use + re-exported so
 // existing imports keep resolving.
-export { resolveAssetUrl };
+;
 
 /**
  * Public product website. Renders enabled sections in canonical order from
@@ -899,86 +899,7 @@ export default function ProductWebsite({ content: initialContent, analytics = nu
                 No section component renders its own <main> (the standalone
                 HomePage/PricingPage ones are separate routes), so this never
                 creates a duplicate landmark. Also the skip-link target. */}
-            <main id="main">
-            {previewMode === 'chrome' ? (
-                <ChromePreviewPlaceholder />
-            ) : content.blog ? (
-                <BlogView blog={content.blog} />
-            ) : orderedBlocks ? (
-                <>
-                    {orderedBlocks.map((b: CmsBlock, orderedIndex: number) => {
-                        const Comp = SECTION_REGISTRY[b.type];
-                        const overrideCss = buildBlockOverrideCss(b.id, b.style);
-                        // Chrome positions are computed against the FULL
-                        // blocks array — orderedBlocks filters out disabled/
-                        // unknown blocks, so its own indices would make the
-                        // panel splice new sections in the wrong slot.
-                        const srcIndex = (content.blocks as CmsBlock[]).indexOf(b);
-                        const isActive = inPreview && cmsActive.blockId === b.id;
-                        return (
-                            <React.Fragment key={b.id}>
-                                {/* Insert-before zone (preview only). */}
-                                {inPreview
-                                    ? <InsertZone index={srcIndex} locked={cmsActive.locked} />
-                                    : null}
-                                {overrideCss ? <style>{overrideCss}</style> : null}
-                                <div
-                                    data-cms-block-id={b.id}
-                                    // Read by analyticsEvents.js: attributes a CTA click to its block.
-                                    data-cms-block-type={b.type}
-                                    className={`${blockWrapClasses(b.style, { type: b.type, inPreview, ...blockFlowOptions(orderedBlocks, orderedIndex) })}${isActive ? ' cms-block-active' : ''}`}
-                                    style={blockWrapStyle(b.style)}
-                                    {...experimentAttrs(b.content as Record<string, unknown> | undefined, { preview: inPreview, type: b.type })} // A/B goal attrs, see track.ts
-                                    // Clicking anywhere in the block (images,
-                                    // buttons, empty space — not just editable
-                                    // text) selects it in the panel. Bubbles up
-                                    // from descendants; doesn't preventDefault, so
-                                    // links/buttons still work. Editable-text focus
-                                    // posts the same id, which the panel dedupes.
-                                    onClick={inPreview
-                                        ? () => window.parent?.postMessage(
-                                            { type: 'cms-select', blockId: b.id }, '*')
-                                        : undefined}
-                                >
-                                    {/* Stamp this block's id onto every EditableText inside so inline edits
-                                        write back to THIS block, not the first one of its type. */}
-                                    <BlockIdContext.Provider value={b.id}>
-                                        <ExperimentSection Comp={Comp} block={b} preview={inPreview} />
-                                    </BlockIdContext.Provider>
-                                    {/* Name tag + floating toolbar (preview only) —
-                                        a view of the panel's selection/lock state. */}
-                                    {inPreview ? (
-                                        <PreviewBlockChrome
-                                            blockId={b.id}
-                                            label={cmsActive.labels[b.type] || b.type}
-                                            locked={cmsActive.locked}
-                                            isFirst={srcIndex === 0}
-                                            isLast={srcIndex === (content.blocks as CmsBlock[]).length - 1}
-                                        />
-                                    ) : null}
-                                </div>
-                            </React.Fragment>
-                        );
-                    })}
-                    {/* Insert-after-last zone (preview only). */}
-                    {inPreview
-                        ? <InsertZone index={(content.blocks as CmsBlock[]).length} locked={cmsActive.locked} />
-                        : null}
-                </>
-            ) : (
-                <>
-                    <Hero         data={content.hero} />
-                    <SocialProof  data={content.socialProof} />
-                    <Features     data={content.features} />
-                    <Steps        data={content.steps} />
-                    <Security     data={content.security} />
-                    <SECTION_REGISTRY.integrations data={{ ...content.integrations }} />
-                    <Architecture data={content.architecture} />
-                    <TechStats    data={content.techStats} />
-                    <CTA          data={content.cta} />
-                </>
-            )}
-            </main>
+            <ProductWebsiteMain previewMode={previewMode} content={content} orderedBlocks={orderedBlocks} inPreview={inPreview} cmsActive={cmsActive} />
             {showFooter ? (
                 <Footer
                     data={content.footer}
@@ -1015,6 +936,94 @@ export default function ProductWebsite({ content: initialContent, analytics = nu
                 : null}
         </div>
     );
+}
+
+function ProductWebsiteMain({ previewMode, content, orderedBlocks, inPreview, cmsActive }: { previewMode: string | null; content: SiteContent; orderedBlocks: CmsBlock[] | null; inPreview: boolean; cmsActive: CmsActiveState; }) {
+    return <main id="main">
+        {previewMode === 'chrome' ? (
+            <ChromePreviewPlaceholder />
+        ) : content.blog ? (
+            <BlogView blog={content.blog} />
+        ) : orderedBlocks ? (
+            <>
+                {orderedBlocks.map((b: CmsBlock, orderedIndex: number) => {
+                    const Comp = SECTION_REGISTRY[b.type];
+                    const overrideCss = buildBlockOverrideCss(b.id, b.style);
+                    // Chrome positions are computed against the FULL
+                    // blocks array — orderedBlocks filters out disabled/
+                    // unknown blocks, so its own indices would make the
+                    // panel splice new sections in the wrong slot.
+                    const srcIndex = (content.blocks as CmsBlock[]).indexOf(b);
+                    const isActive = inPreview && cmsActive.blockId === b.id;
+                    return (
+                        <React.Fragment key={b.id}>
+                            {/* Insert-before zone (preview only). */}
+                            {inPreview
+                                ? <InsertZone index={srcIndex} locked={cmsActive.locked} />
+                                : null}
+                            {overrideCss ? <style>{overrideCss}</style> : null}
+                            <div
+                                data-cms-block-id={b.id}
+                                // Read by analyticsEvents.js: attributes a CTA click to its block.
+                                data-cms-block-type={b.type}
+                                className={`${blockWrapClasses(b.style, { type: b.type, inPreview, ...blockFlowOptions(orderedBlocks, orderedIndex) })}${isActive ? ' cms-block-active' : ''}`}
+                                style={blockWrapStyle(b.style)}
+                                {...experimentAttrs(b.content as Record<string, unknown> | undefined, { preview: inPreview, type: b.type })} // A/B goal attrs, see track.ts
+
+
+
+
+
+
+                                // Clicking anywhere in the block (images,
+                                // buttons, empty space — not just editable
+                                // text) selects it in the panel. Bubbles up
+                                // from descendants; doesn't preventDefault, so
+                                // links/buttons still work. Editable-text focus
+                                // posts the same id, which the panel dedupes.
+                                onClick={inPreview
+                                    ? () => window.parent?.postMessage(
+                                        { type: 'cms-select', blockId: b.id }, '*')
+                                    : undefined}
+                            >
+                                {/* Stamp this block's id onto every EditableText inside so inline edits
+                                write back to THIS block, not the first one of its type. */}
+                                <BlockIdContext.Provider value={b.id}>
+                                    <ExperimentSection Comp={Comp} block={b} preview={inPreview} />
+                                </BlockIdContext.Provider>
+                                {/* Name tag + floating toolbar (preview only) —
+                                a view of the panel's selection/lock state. */}
+                                {inPreview ? (
+                                    <PreviewBlockChrome
+                                        blockId={b.id}
+                                        label={cmsActive.labels[b.type] || b.type}
+                                        locked={cmsActive.locked}
+                                        isFirst={srcIndex === 0}
+                                        isLast={srcIndex === (content.blocks as CmsBlock[]).length - 1} />
+                                ) : null}
+                            </div>
+                        </React.Fragment>
+                    );
+                })}
+                {/* Insert-after-last zone (preview only). */}
+                {inPreview
+                    ? <InsertZone index={(content.blocks as CmsBlock[]).length} locked={cmsActive.locked} />
+                    : null}
+            </>
+        ) : (
+            <>
+                <Hero data={content.hero} />
+                <SocialProof data={content.socialProof} />
+                <Features data={content.features} />
+                <Steps data={content.steps} />
+                <Security data={content.security} />
+                <SECTION_REGISTRY.integrations data={{ ...content.integrations }} />
+                <Architecture data={content.architecture} />
+                <TechStats data={content.techStats} />
+                <CTA data={content.cta} />
+            </>
+        )}
+    </main>;
 }
 
 // Placeholder body shown in the admin preview when the editor is on the

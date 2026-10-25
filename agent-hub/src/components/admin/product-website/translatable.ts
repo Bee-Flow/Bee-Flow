@@ -29,7 +29,7 @@ export interface TranslatableRow {
 }
 export interface TranslatableGroup { key: string; title: string; icon: string; rows: TranslatableRow[]; blockId?: string }
 
-export const DENY_KEYS = new Set([
+const DENY_KEYS = new Set([
     'id', 'kind', 'type', 'slug', 'src', 'href', 'url', 'link', 'anchor',
     'path', 'pageId', 'page', 'target', 'rel', 'icon', 'platform',
     'code', 'codeRight', 'popupEmbed', 'embed', 'iframe',
@@ -50,7 +50,7 @@ export const DENY_KEYS = new Set([
     // splits the report per language, an invalid one switches the test off.
     'abKey', 'abGoal',
 ]);
-export const DENY_SUFFIX = /(Style|Color|Font|Align|Size|Variant|Url|Src|Id|Link)$/;
+const DENY_SUFFIX = /(Style|Color|Font|Align|Size|Variant|Url|Src|Id|Link)$/;
 
 export function isDeniedKey(k: unknown): boolean {
     if (typeof k !== 'string') return false;
@@ -86,7 +86,7 @@ export function collectStrings(node: unknown, path: FieldPath, out: FoundString[
 // carries are offered, so the editor preview (which merges by base keys, like
 // localeMerge) shows exactly what the public site serves. The server accepts a
 // poster even when the default has none (cms_set_locale_override).
-export const MEDIA_ADDRESS_KEYS = ['src', 'srcDark', 'poster', 'captionsSrc'] as const;
+const MEDIA_ADDRESS_KEYS = ['src', 'srcDark', 'poster', 'captionsSrc'] as const;
 
 export function collectMedia(node: unknown, path: FieldPath, out: FoundString[]): void {
     if (Array.isArray(node)) {
@@ -113,7 +113,7 @@ function asText(v: unknown): string | undefined {
     return typeof v === 'string' ? v : undefined;
 }
 
-export function humanize(key: unknown): string {
+function humanize(key: unknown): string {
     return String(key)
         .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
         .replace(/[_-]+/g, ' ')

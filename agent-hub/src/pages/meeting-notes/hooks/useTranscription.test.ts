@@ -4,7 +4,7 @@ import { describe, it, expect, vi } from 'vitest';
 import useTranscription from './useTranscription';
 
 const getTranscription = vi.fn();
-vi.mock('../lib/transcriptionsApi', () => ({ getTranscription: (id: string) => getTranscription(id) }));
+vi.mock('../../../api/transcriptionsApi', () => ({ getTranscription: (id: string) => getTranscription(id) }));
 
 describe('useTranscription setLocal', () => {
     it('does not build a partial note from a function updater before the note has loaded', async () => {

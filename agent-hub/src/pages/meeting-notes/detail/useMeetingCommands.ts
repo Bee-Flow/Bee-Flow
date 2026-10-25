@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { nOf } from '../../../components/admin/Studio/KnowledgeStudio/plural';
 import { toast } from '../../../components/shared/Toast';
 import type { TranslateFn } from '../../../hooks/useTranslation';
-import * as api from '../lib/transcriptionsApi';
-import type { RegenerateArg } from '../lib/transcriptionsApi.types';
+import * as api from '../../../api/transcriptionsApi';
+import type { RegenerateArg } from '../../../api/transcriptionsApi.types';
 import type { MeetingActionItem, MeetingChapter, MeetingNote, MeetingRowPatch, SetMeeting } from './meetingDetailTypes';
 import { errorCode, errorMessage } from '../../../utils/caughtError';
 import { logger } from '../../../utils/logger';
@@ -20,7 +20,7 @@ interface RegenerateAnswer {
 }
 
 /** The note after a summary regeneration, from the server's answer. */
-export function mergeRegenerated(p: MeetingNote, res: RegenerateAnswer): MeetingNote {
+function mergeRegenerated(p: MeetingNote, res: RegenerateAnswer): MeetingNote {
     return {
         ...p,
         summary: res.summary,
@@ -77,7 +77,7 @@ function announceRegenerateOutcome(t: TranslateFn, res: RegenerateAnswer) {
 }
 
 /** Keeps accented letters as their base ("cliëntenraad" → "clientenraad") instead of deleting them. */
-export function exportFileStem(title: string | undefined): string {
+function exportFileStem(title: string | undefined): string {
     return (title || 'meeting')
         .normalize('NFKD').replace(/[̀-ͯ]/g, '')
         .replace(/[^\w -]/g, '').trim() || 'meeting';

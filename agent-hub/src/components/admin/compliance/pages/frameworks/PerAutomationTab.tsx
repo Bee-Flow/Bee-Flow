@@ -44,7 +44,7 @@ interface OutcomePill {
  * (`prohibited | high_risk | transparency | minimal | not_applicable`); the chip keys are
  * fe-8's (`keys/fe-8-ai-act-ladder.json`). Unknown outcomes fall back to neutral + the raw word.
  */
-export const OUTCOME_PILL: Readonly<Record<string, OutcomePill>> = Object.freeze({
+const OUTCOME_PILL: Readonly<Record<string, OutcomePill>> = Object.freeze({
     prohibited: { tone: 'error', key: 'compliance.ladder_outcome_chip_prohibited', fallback: 'Prohibited (Art. 5)' },
     high_risk: { tone: 'error', key: 'compliance.ladder_outcome_chip_high_risk', fallback: 'High-risk (Annex III)' },
     transparency: { tone: 'warning', key: 'compliance.ladder_outcome_chip_transparency', fallback: 'Art. 4 + Art. 50' },
@@ -52,7 +52,7 @@ export const OUTCOME_PILL: Readonly<Record<string, OutcomePill>> = Object.freeze
     not_applicable: { tone: 'neutral', key: 'compliance.ladder_outcome_chip_not_applicable', fallback: 'AI Act not applicable' },
 });
 
-export function outcomePill(outcome: string): OutcomePill {
+function outcomePill(outcome: string): OutcomePill {
     return OUTCOME_PILL[outcome] || { tone: 'neutral', key: null, fallback: String(outcome ?? '—') };
 }
 

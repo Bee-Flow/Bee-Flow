@@ -76,7 +76,7 @@ const fileUrl = (runId: string, fileId: string, tail = '') =>
     `${API_BASE}/api/automation/runs/${encodeURIComponent(runId)}/files/${encodeURIComponent(fileId)}${tail}`;
 
 /** The route a file's bytes come from. */
-export const runFileDownloadUrl = (runId: string, fileId: string) => fileUrl(runId, fileId);
+const runFileDownloadUrl = (runId: string, fileId: string) => fileUrl(runId, fileId);
 
 async function getBlob(url: string, what: string): Promise<{ blob: Blob; res: Response }> {
     const res = await authFetch(url);

@@ -1,6 +1,6 @@
 import { useCallback, useState, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import { API_BASE, ApiError, mutate } from '../../../api/mutate';
-import type { WebpagePatch, WebpageRow } from '../webpageEditorTypes';
+import type { WebpagePatch, WebpageRow } from '../../../api/webpageEditorTypes';
 import { errorMessage } from '../../../utils/caughtError';
 
 interface PublishingDeps {

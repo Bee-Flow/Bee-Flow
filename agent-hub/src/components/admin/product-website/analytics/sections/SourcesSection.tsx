@@ -18,10 +18,9 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { toChannels, channelLabel, referrerHost, pivot, type BreakdownRow, type PivotOut } from '../model';
 import { rich } from '../rich';
-import {
-    ACCENT, SERIES, Card, Empty, ErrorNote, Skeleton, SplitBar, ShareBar,
-    fmt, fmtDurationSec, rateColor, maxOf,
-} from '../ui';
+import { SERIES, Empty, SplitBar, fmt, fmtDurationSec, rateColor } from '../ui';
+import { Card, ErrorNote, Skeleton } from '../AsyncCard';
+import { ACCENT, ShareBar, maxOf } from '../BarList';
 import { useAnalyticsQuery } from '../useAnalyticsQuery';
 import type { AnalyticsScope } from '../../analyticsApi';
 import type { DrillHandler, XYRow } from '../ui.types';

@@ -1,7 +1,7 @@
 // Bundled model metadata + capability detectors for the chat-model-tier admin
 // panel. Moved verbatim from ChatModelTiersConfig.jsx; only the `export`
 // keywords are new.
-import type { ModelMeta } from '../../../../utils/modelMeta';
+import type { ModelMeta } from '../../../../api/modelMeta';
 
 // Reuse model metadata from AIConfigPanel
 export const getModelMeta = (id: string): ModelMeta | null => {
@@ -52,13 +52,13 @@ export const isClaudeAdaptiveOnly = (modelId: string | null | undefined) =>
 export const isClaudeModel = (modelId: string | null | undefined) => /^claude-/.test(modelId || '');
 
 // OpenAI reasoning models (o-series + GPT-5 and later)
-export const isOpenAIReasoning = (modelId: string | null | undefined) => /^gpt-[5-9]|^o\d/.test(modelId || '');
+const isOpenAIReasoning = (modelId: string | null | undefined) => /^gpt-[5-9]|^o\d/.test(modelId || '');
 // The GPT-5.0–5.5 line: the only one with a 'minimal' tier and a verbosity knob.
 export const isGpt5 = (modelId: string | null | undefined) => /^gpt-5/.test(modelId || '') && !isGpt56Plus(modelId);
 // Pro models reason at 'high' only (gpt-5-pro, gpt-5.2-pro, gpt-5.4-pro, …)
 export const isGpt5Pro = (modelId: string | null | undefined) => /^gpt-\d(\.\d+)?-pro$/.test(modelId || '');
 // Only codex-max accepts the 'xhigh' effort tier, on the pre-5.6 line
-export const isCodexMax = (modelId: string | null | undefined) => /codex-max/.test(modelId || '');
+const isCodexMax = (modelId: string | null | undefined) => /codex-max/.test(modelId || '');
 
 // gpt-5.6 and everything after it. A separate generation, not a point release:
 // 'minimal' is gone, 'xhigh'/'max' are general, and there is no verbosity knob.
@@ -71,7 +71,7 @@ export const isGpt56Plus = (modelId: string | null | undefined) => {
 };
 
 // gpt-6 and later drop the 'none' effort entirely — asking for it is a 400.
-export const hasNoneEffort = (modelId: string | null | undefined) => !/^gpt-[6-9]/.test(modelId || '');
+const hasNoneEffort = (modelId: string | null | undefined) => !/^gpt-[6-9]/.test(modelId || '');
 
 // Labels for an effort vocabulary the server stamped on a model (`efforts`
 // in its /models entry — Mistral's none/high). The server maps any other
@@ -150,7 +150,7 @@ export const openAIEffortOptions = (modelId: string | null | undefined): [string
     return opts;
 };
 
-export const MODEL_META: Record<string, ModelMeta> = {
+const MODEL_META: Record<string, ModelMeta> = {
     // Mistral — the current line-up (server/core/providers/mistralModels.js).
     // Magistral, Pixtral and Devstral are retired on La Plateforme; reasoning
     // is now a switch on Small 4 and Medium 3.5.

@@ -10,10 +10,10 @@ import { API_BASE, authFetch, generateMessageId } from '../utils/helpers';
 import { memoryLockOf, OPEN_MEMORY_PANEL_EVENT } from '../utils/memoryMode';
 import { hasRenderableContent, normalizeLoadedMessages, type ShapedMessage } from '../utils/messageShape';
 import scopedStorage from '../utils/scopedStorage';
-import { loadWorkspaceNotebook } from '../utils/workspaceNotebook';
+import { loadWorkspaceNotebook } from '../api/workspaceNotebook';
 import type { AppUserLike } from '../components/projects/workspace/types';
 import type { GammaPreview } from '../hooks/useChatEngine/sse/gammaPreview';
-import type { WebpageRow } from '../components/webpages/webpageRow.types';
+import type { WebpageRow } from '../api/webpagesWebpageRow.types';
 import type { PreviewSelection } from '../pages/webpages/preview/usePreviewToken';
 import type { ChatMessage } from '../hooks/useChatEngine/types';
 import type { Project } from '../api/queries/projects';
@@ -22,6 +22,7 @@ import type { ConversationRow, ConversationLabel } from './useConversationMeta';
 import type { TurnConversation } from './useProjectChatStart';
 import type { IdRef, AgentLike, HubUser, UseAgentHubDataArgs } from './useAgentHubData.types';
 import { logger } from '../utils/logger';
+import { request, RefusedError } from '../api/mutate';
 export type { IdRef, AgentLike, HubUser } from './useAgentHubData.types';
 
 // The data/engine core of AgentHub, moved verbatim from AgentHub.jsx: the
@@ -261,8 +262,13 @@ const useAgentHubData = ({
                 ? `${API_BASE}/ai/direct/conversations/${convId}`
                 : `${API_BASE}/agents/${selectedAgent?.id}/conversations/${convId}`;
             if (!directChatMode && !selectedAgent?.id) return null;
-            const res = await authFetch(url);
-            if (!res.ok) return null;
+            let res: Response;
+            try {
+                res = await request(url);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                return null;
+            }
             const data = await res.json();
             const raw = typeof data.messages === 'string' ? JSON.parse(data.messages) : (data.messages || []);
             return normalizeLoadedMessages<ChatMessage & ShapedMessage>(raw)
@@ -512,8 +518,11 @@ const useAgentHubData = ({
 
                 // Also load agent categories
                 try {
-                    const catRes = await authFetch(`${API_BASE}/agents/categories`);
-                    if (catRes.ok) {
+                    const catRes = await request(`${API_BASE}/agents/categories`).catch((err: unknown) => {
+                        if (err instanceof RefusedError) return null;
+                        throw err;
+                    });
+                    if (catRes) {
                         const cats = await catRes.json();
                         setAgentCategories(Array.isArray(cats) ? cats : []);
                     }
@@ -536,8 +545,11 @@ const useAgentHubData = ({
         try {
             // Studio is for KBs managed by the user. Webpage-owned KBs (auto-created
             // or explicitly tagged) are managed inside the webpage UI, not here.
-            const kbRes = await authFetch(`${API_BASE}/api/kb?excludeContext=webpage&t=${Date.now()}`, { cache: 'no-store' });
-            if (kbRes.ok) {
+            const kbRes = await request(`${API_BASE}/api/kb?excludeContext=webpage&t=${Date.now()}`, { cache: 'no-store' }).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (kbRes) {
                 const data = await kbRes.json();
                 if (Array.isArray(data)) {
                     setKbs(data);
@@ -608,13 +620,19 @@ const useAgentHubData = ({
                 loadDirectConversations().then(async () => {
                     try {
                         const convPrefix = initialDirectConvId;
-                        const listRes = await authFetch(`${API_BASE}/ai/direct/conversations`);
-                        if (listRes.ok) {
+                        const listRes = await request(`${API_BASE}/ai/direct/conversations`).catch((err: unknown) => {
+                            if (err instanceof RefusedError) return null;
+                            throw err;
+                        });
+                        if (listRes) {
                             const convs = await listRes.json();
                             const match = convs.find((c: { id: string; }): boolean => c.id === convPrefix || c.id.startsWith(convPrefix));
                             if (match) {
-                                const detailRes = await authFetch(`${API_BASE}/ai/direct/conversations/${match.id}`);
-                                if (detailRes.ok) {
+                                const detailRes = await request(`${API_BASE}/ai/direct/conversations/${match.id}`).catch((err: unknown) => {
+                                    if (err instanceof RefusedError) return null;
+                                    throw err;
+                                });
+                                if (detailRes) {
                                     const detailData = await detailRes.json();
                                     setCurrentDirectConversation(detailData);
                                     // The knowledge bases this chat is grounded on come from
@@ -658,8 +676,11 @@ const useAgentHubData = ({
     const loadConversations = useCallback(async (agentId: string) => {
         if (!agentId) return;
         try {
-            const res = await authFetch(`${API_BASE}/agents/${agentId}/conversations`);
-            if (res.ok) {
+            const res = await request(`${API_BASE}/agents/${agentId}/conversations`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) {
                 const data = await res.json();
                 setConversations(data.sort((a: { updated_at: string|number|Date; }, b: { updated_at: string|number|Date; }) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()));
             }
@@ -675,8 +696,11 @@ const useAgentHubData = ({
                     const convPrefix = pendingConversationId.current;
                     pendingConversationId.current = null; // only once
                     // Find full conversation ID by prefix match
-                    const res2 = await authFetch(`${API_BASE}/agents/${selectedAgent.id}/conversations`);
-                    if (res2.ok) {
+                    const res2 = await request(`${API_BASE}/agents/${selectedAgent.id}/conversations`).catch((err: unknown) => {
+                        if (err instanceof RefusedError) return null;
+                        throw err;
+                    });
+                    if (res2) {
                         const convs = await res2.json();
                         const match = convs.find((c: { id: string; }): boolean => c.id === convPrefix || c.id.startsWith(convPrefix));
                         if (match) {
@@ -787,14 +811,20 @@ const useAgentHubData = ({
 
     const loadDirectConversations = async () => {
         try {
-            const res = await authFetch(`${API_BASE}/ai/direct/conversations`);
-            if (res.ok) setDirectConversations(await res.json());
+            const res = await request(`${API_BASE}/ai/direct/conversations`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) setDirectConversations(await res.json());
         } catch (e) { console.error('Failed to load direct conversations:', e); }
     };
     const loadLabels = async () => {
         try {
-            const res = await authFetch(`${API_BASE}/ai/labels`);
-            if (res.ok) setConversationLabels(await res.json());
+            const res = await request(`${API_BASE}/ai/labels`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) setConversationLabels(await res.json());
         } catch (e) { console.error('Failed to load labels:', e); }
     };
 
@@ -803,8 +833,11 @@ const useAgentHubData = ({
             // Use the permission- and task-aware endpoint so custom tiers appear
             // only when the user's groups grant access AND the tier is allowed
             // for the direct_chat task type. Standard tiers always pass through.
-            const res = await authFetch(`${API_BASE}/ai/config/tiers-for-user?taskType=direct_chat`);
-            if (res.ok) setModelTiers(await res.json());
+            const res = await request(`${API_BASE}/ai/config/tiers-for-user?taskType=direct_chat`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) setModelTiers(await res.json());
         } catch (e) { console.error('Failed to load model tiers:', e); }
     };
 

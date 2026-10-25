@@ -1,4 +1,5 @@
-import { fillRowTemplate, isFill, spaceSteps } from '../styleResolver';
+import { spaceSteps } from '../styleResolver';
+import { fillRowTemplate, isFill } from '../styleResolver.helpers';
 import './AppCard.css';
 import type { NodeStyle } from '../../inspector/appDefinition';
 import type { NodeProps } from './appNode.types';

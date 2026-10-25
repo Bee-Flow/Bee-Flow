@@ -15,9 +15,9 @@ import { listPathLabel } from '../mapping/listPathLabel';
 import { buildRunStepMap } from '../flow/runStepLabels';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 
-export type BindingMissReason = 'missing' | 'not_run' | 'syntax' | 'error';
+type BindingMissReason = 'missing' | 'not_run' | 'syntax' | 'error';
 /** `rule`: a Condition's rule read a field none of the items have (binding log entry kind 'rule'). */
-export type BindingMissKind = 'ref' | 'template' | 'expr' | 'rule';
+type BindingMissKind = 'ref' | 'template' | 'expr' | 'rule';
 
 /** One input whose mapping found nothing (or could not be read). */
 export interface BindingWarning {

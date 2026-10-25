@@ -7,15 +7,16 @@
  * this integration half-works (the browser loads /script.js fine from the
  * public origin while every server→Umami call quietly fails).
  */
-import {
-    ArrowLeft, ExternalLink, Globe, Loader2, ShieldAlert, Video, CheckCircle2, XCircle,
-} from 'lucide-react';
+import { ArrowLeft, ExternalLink, Globe, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
-import { analyticsApi, analyticsFetch, type AnalyticsResponse, type AnalyticsSite } from '../../analyticsApi';
+import { analyticsApi, analyticsFetch, type AnalyticsResponse } from '../../analyticsApi';
 import { rich } from '../rich';
-import { ACCENT, Card, ErrorNote } from '../ui';
-import type { TrackerSettings, RecorderSettings, CheckItem, DiagnoseResponse, StatusResponse, RecorderResponse, SettingsSectionProps, RecorderCardProps, ConnectionCardProps, SitesCardProps, RowProps, FieldProps, ToggleProps, ModeChipProps } from './SettingsSection.types';
+import { Card, ErrorNote } from '../AsyncCard';
+import { ACCENT } from '../BarList';
+import type { TrackerSettings, RecorderSettings, CheckItem, DiagnoseResponse, StatusResponse, SettingsSectionProps, RecorderCardProps, ConnectionCardProps, RowProps, ModeChipProps } from './SettingsSection.types';
+import { SitesCard } from './SitesCard';
+import { TrackerCard, Field, Toggle, inputStyle, labelStyle } from './TrackerCard';
 
 export default function SettingsSection({ settings, sites = [], onSaved, onSitesChanged, onClose }: SettingsSectionProps) {
     const { t } = useTranslation();
@@ -140,42 +141,6 @@ export default function SettingsSection({ settings, sites = [], onSaved, onSites
                 </div>
             </div>
         </div>
-    );
-}
-
-/**
- * Tracker options mirrored onto the public <script> tag.
- *
- * Notably absent: a switch for web vitals. They are cookieless browser timings
- * riding along with a pageview already being sent under the same consent
- * decision — and making them optional is exactly how they ended up switched off
- * and unnoticed for the entire life of the feature.
- */
-function TrackerCard({ tracker, onChange }: { tracker: TrackerSettings; onChange: (k: string, v: string | boolean) => void; onSave?: () => Promise<void>; saving?: boolean }) {
-    const { t } = useTranslation();
-    return (
-        <Card title={t('cms_site.analytics.settings.tracker_title', 'What the tracker records')}>
-            <Field label={t('cms_site.analytics.settings.env_tag', 'Environment tag')} hint={t('cms_site.analytics.settings.env_tag_hint', 'Optional label attached to every event, so you can tell staging from production in the same Umami instance.')}>
-                <input value={tracker.tag || ''} onChange={(e) => onChange('tag', e.target.value)}
-                    placeholder={t('cms_site.analytics.settings.env_tag_ph', 'production')} style={inputStyle} />
-            </Field>
-            <Field label={t('cms_site.analytics.settings.domains', 'Only track these domains')} hint={t('cms_site.analytics.settings.domains_hint', 'Comma-separated hostnames. Leave blank to track wherever the site is served. Useful to stop a staging copy polluting your numbers.')}>
-                <input value={tracker.domains || ''} onChange={(e) => onChange('domains', e.target.value)}
-                    placeholder={t('cms_site.analytics.settings.domains_ph', 'www.example.com, example.com')} style={inputStyle} />
-            </Field>
-            <Toggle label={t('cms_site.analytics.settings.hash', 'Drop #anchors from URLs')}
-                hint={t('cms_site.analytics.settings.hash_hint', 'On by default — otherwise /pricing#plans and /pricing count as two different pages.')}
-                checked={tracker.excludeHash !== false} onChange={(v) => onChange('excludeHash', v)} />
-            <Toggle label={t('cms_site.analytics.settings.search', 'Drop ?query strings from URLs')}
-                hint={t('cms_site.analytics.settings.search_hint', 'Stronger privacy and tidier reports, but you lose UTM campaign attribution. Off by default for that reason.')}
-                checked={!!tracker.excludeSearch} onChange={(v) => onChange('excludeSearch', v)} />
-            <Toggle label={t('cms_site.analytics.settings.dnt', 'Honour Do Not Track')}
-                hint={t('cms_site.analytics.settings.dnt_hint', 'Skip visitors whose browser sends a DNT header. They then appear nowhere in your numbers.')}
-                checked={!!tracker.doNotTrack} onChange={(v) => onChange('doNotTrack', v)} />
-            <p className="[font-size:11px] [color:var(--text-muted,#777)] [margin:2px_0_0]">
-                {t('cms_site.analytics.settings.tracker_note', "Saved with the button above. Changes apply on a visitor's next page load — no republish needed. Core Web Vitals are always collected: they are browser timings only, carried by the same request as the pageview.")}
-            </p>
-        </Card>
     );
 }
 
@@ -334,83 +299,6 @@ function ConnectionCard({ configured }: ConnectionCardProps) {
     );
 }
 
-function SitesCard({ sites, onChanged }: SitesCardProps) {
-    const { t } = useTranslation();
-    const [busyId, setBusyId] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
-
-    const toggleRecording = async (site: AnalyticsSite, next: boolean) => {
-        setBusyId(site.id); setError(null);
-        try {
-            const res = await analyticsFetch(analyticsApi.recorder(), {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ siteId: site.id, enabled: next }),
-            }) as RecorderResponse | null;
-            if (res?.upstreamWarning) {
-                setError(t('cms_site.analytics.settings.recorder_warning', 'Saved, but Umami did not accept the recorder flag: {warning}', { warning: res.upstreamWarning }));
-            }
-            onChanged?.();
-        } catch (e) {
-            setError((e as Error).message);
-        } finally {
-            setBusyId(null);
-        }
-    };
-
-    const tracked = sites.filter(s => s.tracked);
-
-    return (
-        <Card title={t('cms_site.analytics.settings.sites', 'Sites')}>
-            {error && <div className="[margin-bottom:10px]"><ErrorNote message={error} compact /></div>}
-            {tracked.length === 0 ? (
-                <p className="[font-size:12px] [color:var(--text-muted,#888)] [margin:0]">
-                    {t('cms_site.analytics.settings.no_sites', 'No site is tracked yet. Publish a CMS site while tracking is enabled and it will appear here.')}
-                </p>
-            ) : (
-                <div className="[display:flex] [flex-direction:column] [gap:10px]">
-                    {tracked.map(site => (
-                        <div key={site.id} className="[display:flex] [align-items:center] [justify-content:space-between] [gap:12px] [padding:10px_12px] [border-radius:10px] [background:var(--bg-tertiary,rgba(255,255,255,0.03))]">
-                            <div className="min-w-[0]">
-                                <div className="[font-size:13px] [font-weight:700] [color:var(--text-primary,#fff)]">
-                                    {site.name}{site.live ? <span style={{ color: ACCENT, fontWeight: 600 }}> · {t('cms_site.analytics.settings.live', 'live')}</span> : null}
-                                </div>
-                                <div className="[font-size:11px] [color:var(--text-muted,#777)] [font-family:ui-monospace,monospace]">
-                                    {site.websiteId || '—'}
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => toggleRecording(site, !site.recording)}
-                                disabled={busyId === site.id}
-                                aria-pressed={!!site.recording}
-                                style={{
-                                    display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
-                                    padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700,
-                                    background: site.recording ? `${ACCENT}18` : 'transparent',
-                                    border: `1px solid ${site.recording ? `${ACCENT}66` : 'var(--border-default, rgba(255,255,255,0.12))'}`,
-                                    color: site.recording ? ACCENT : 'var(--text-secondary, #aaa)',
-                                }}
-                            >
-                                {busyId === site.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Video className="w-[13px] h-[13px]" />}
-                                {site.recording ? t('cms_site.analytics.settings.recording_on', 'Recording on') : t('cms_site.analytics.settings.record_sessions', 'Record sessions')}
-                            </button>
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            <div className="[display:flex] [gap:8px] [margin-top:12px] [align-items:flex-start] [font-size:11px] [color:var(--text-muted,#888)]">
-                <ShieldAlert className="w-[14px] h-[14px] [margin-top:1px] [flex-shrink:0] [color:#f59e0b]" />
-                <span>
-                    {rich(t('cms_site.analytics.settings.recording_note', 'Session recording powers heatmaps and replays. It loads a larger script that captures clicks, scrolling and page structure, so it only ever runs for visitors who accepted your cookie banner — {modes}. Form inputs are masked. If your cookie banner is disabled, recording can never start.'), {
-                        modes: <strong>{t('cms_site.analytics.settings.recording_modes', 'in every consent mode, including cookieless')}</strong>,
-                    })}
-                </span>
-            </div>
-        </Card>
-    );
-}
-
 // ── Small inputs ─────────────────────────────────────────────────────
 
 function Row({ label, value, mono }: RowProps) {
@@ -421,41 +309,6 @@ function Row({ label, value, mono }: RowProps) {
                 color: 'var(--text-primary, #fff)', textAlign: 'right', wordBreak: 'break-all',
                 fontFamily: mono ? 'ui-monospace, monospace' : undefined, fontSize: mono ? 11 : undefined,
             }}>{value}</span>
-        </div>
-    );
-}
-
-function Field({ label, hint, children }: FieldProps) {
-    return (
-        <div className="[margin-bottom:14px]">
-            <label style={labelStyle}>{label}</label>
-            {children}
-            {hint && <p className="[font-size:11px] [color:var(--text-muted,#777)] [margin:4px_0_0]">{hint}</p>}
-        </div>
-    );
-}
-
-function Toggle({ label, hint, checked, onChange }: ToggleProps) {
-    return (
-        <div className="[display:flex] [align-items:center] [justify-content:space-between] [margin-bottom:14px]">
-            <div>
-                <div className="[font-size:13px] [font-weight:600] [color:var(--text-primary,#fff)]">{label}</div>
-                {hint && <div className="[font-size:11px] [color:var(--text-muted,#777)]">{hint}</div>}
-            </div>
-            <button
-                onClick={() => onChange(!checked)}
-                aria-pressed={checked}
-                style={{
-                    width: 42, height: 24, borderRadius: 99, border: 'none', cursor: 'pointer', flexShrink: 0,
-                    background: checked ? ACCENT : 'var(--bg-tertiary, rgba(255,255,255,0.12))',
-                    position: 'relative', transition: 'background 0.15s',
-                }}
-            >
-                <span style={{
-                    position: 'absolute', top: 3, left: checked ? 21 : 3, width: 18, height: 18,
-                    borderRadius: '50%', background: '#fff', transition: 'left 0.15s',
-                }} />
-            </button>
         </div>
     );
 }
@@ -484,12 +337,6 @@ const iconBtnStyle: React.CSSProperties = {
     border: '1px solid var(--border-default, rgba(255,255,255,0.1))',
     color: 'var(--text-secondary, #aaa)', cursor: 'pointer',
 };
-const inputStyle: React.CSSProperties = {
-    width: '100%', boxSizing: 'border-box', marginTop: 5, padding: '8px 11px',
-    background: 'var(--bg-primary, #0f0f1a)', color: 'var(--text-primary, #fff)',
-    border: '1px solid var(--border-default, rgba(255,255,255,0.12))', borderRadius: 8, fontSize: 13,
-};
-const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--text-secondary, #ccc)' };
 const sectionLabelStyle: React.CSSProperties = {
     fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
     color: 'var(--text-muted, #888)', margin: '0 0 10px',

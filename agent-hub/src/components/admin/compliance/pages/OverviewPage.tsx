@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { ChevronRight } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
 import Disclosure from '../../../shared/Disclosure';
 import { sectionById, type Section } from '../sections';
 import { splitByToday } from '../shared/calendarMath';
@@ -47,7 +47,7 @@ import type { CheckRecord } from './framework/checkSort';
 // MiniBars); `section` is where a click lands; `legacy` is the pre-frameworks
 // overview key that still ships. `law` is the national/standard name printed
 // after the in-force date — plain data, not a translatable sentence.
-export const FRAMEWORK_CARDS: ReadonlyArray<{ fw: string; section: string; legacy: 'gdpr' | 'aia' | 'iso'; law: string | null; unit: string }> = Object.freeze([
+const FRAMEWORK_CARDS: ReadonlyArray<{ fw: string; section: string; legacy: 'gdpr' | 'aia' | 'iso'; law: string | null; unit: string }> = Object.freeze([
     Object.freeze({ fw: 'gdpr', section: 'gdpr', legacy: 'gdpr', law: 'UAVG', unit: 'checks' }),
     Object.freeze({ fw: 'aia', section: 'aia', legacy: 'aia', law: null, unit: 'checks' }),
     Object.freeze({ fw: 'iso27001', section: 'iso', legacy: 'iso', law: 'ISO/IEC 27001:2022 + Amd 1:2024', unit: 'controls' }),
@@ -247,48 +247,7 @@ export default function OverviewPage({
             {/* Three across down to an 880px page: at 1180 the cards stacked on every
                 1440px laptop (a 300px rail leaves ~1140) and pushed "Needs attention"
                 below the fold. Below 880 two across, below 600 one. */}
-            <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-3 @max-[880px]/cpage:grid-cols-2 @max-[600px]/cpage:grid-cols-1'}`} data-testid="overview-scores">
-                {FRAMEWORK_CARDS.map(card => {
-                    const meta = sectionById(card.section);
-                    const fwRecord = frameworks.byId?.(card.fw) || null;
-                    const name = meta ? t(meta.labelKey, meta.labelFallback) : card.fw;
-                    if (setupNeeded) {
-                        return (
-                            <FrameworkScoreCard
-                                key={card.fw}
-                                frameworkId={card.fw}
-                                name={name}
-                                icon={meta?.icon}
-                                placeholder
-                                placeholderNote={card.fw === 'iso27001'
-                                    ? t('compliance.setup_iso_note', 'ISMS evidence starts with the first run — every day counts towards Stage 2.')
-                                    : t('compliance.setup_score_after', 'Score after setup — {n} checks are ready', { n: fwRecord?.checks_count ?? '—' })}
-                                testId={`fw-score-card-${card.fw}`}
-                            />
-                        );
-                    }
-                    return (
-                        <FrameworkScoreCard
-                            key={card.fw}
-                            frameworkId={card.fw}
-                            name={name}
-                            icon={meta?.icon}
-                            score={overview?.frameworks_detail?.[card.fw] ?? overview?.[card.legacy] ?? null}
-                            verification={overview?.verification_summary_by_framework?.[card.fw] ?? null}
-                            soa={card.fw === 'iso27001' ? (counts?.soa ?? null) : null}
-                            history={core.scoreHistory || []}
-                            inForceSince={fwRecord?.in_force_since ?? null}
-                            law={card.law}
-                            nextMilestone={card.fw === 'aia' && nextAia
-                                ? { date: nextAia.date, label: nextAia.label ?? (nextAia.label_key ? t(nextAia.label_key, '') : '') }
-                                : null}
-                            unit={card.unit}
-                            onOpen={() => navigate?.(card.section)}
-                            testId={`fw-score-card-${card.fw}`}
-                        />
-                    );
-                })}
-            </div>
+            <OverviewPageSection isMobile={isMobile} frameworks={frameworks} t={t} setupNeeded={setupNeeded} overview={overview} counts={counts} core={core} nextAia={nextAia} navigate={navigate} />
 
             {!setupNeeded ? (
                 <OtherFrameworksCard
@@ -337,4 +296,47 @@ export default function OverviewPage({
             )}
         </div>
     );
+}
+
+function OverviewPageSection({ isMobile, frameworks, t, setupNeeded, overview, counts, core, nextAia, navigate }: { isMobile: boolean; frameworks: OverviewFrameworks; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; setupNeeded: boolean; overview: OverviewSummary | null; counts: OverviewCounts | null; core: OverviewCore; nextAia: CalendarItem | null; navigate: (sectionId: string, subId?: string, tab?: string) => void; }) {
+    return <div className={`grid gap-3 ${isMobile ? 'grid-cols-1' : 'grid-cols-3 @max-[880px]/cpage:grid-cols-2 @max-[600px]/cpage:grid-cols-1'}`} data-testid="overview-scores">
+        {FRAMEWORK_CARDS.map(card => {
+            const meta = sectionById(card.section);
+            const fwRecord = frameworks.byId?.(card.fw) || null;
+            const name = meta ? t(meta.labelKey, meta.labelFallback) : card.fw;
+            if (setupNeeded) {
+                return (
+                    <FrameworkScoreCard
+                        key={card.fw}
+                        frameworkId={card.fw}
+                        name={name}
+                        icon={meta?.icon}
+                        placeholder
+                        placeholderNote={card.fw === 'iso27001'
+                            ? t('compliance.setup_iso_note', 'ISMS evidence starts with the first run — every day counts towards Stage 2.')
+                            : t('compliance.setup_score_after', 'Score after setup — {n} checks are ready', { n: fwRecord?.checks_count ?? '—' })}
+                        testId={`fw-score-card-${card.fw}`} />
+                );
+            }
+            return (
+                <FrameworkScoreCard
+                    key={card.fw}
+                    frameworkId={card.fw}
+                    name={name}
+                    icon={meta?.icon}
+                    score={overview?.frameworks_detail?.[card.fw] ?? overview?.[card.legacy] ?? null}
+                    verification={overview?.verification_summary_by_framework?.[card.fw] ?? null}
+                    soa={card.fw === 'iso27001' ? (counts?.soa ?? null) : null}
+                    history={core.scoreHistory || []}
+                    inForceSince={fwRecord?.in_force_since ?? null}
+                    law={card.law}
+                    nextMilestone={card.fw === 'aia' && nextAia
+                        ? { date: nextAia.date, label: nextAia.label ?? (nextAia.label_key ? t(nextAia.label_key, '') : '') }
+                        : null}
+                    unit={card.unit}
+                    onOpen={() => navigate?.(card.section)}
+                    testId={`fw-score-card-${card.fw}`} />
+            );
+        })}
+    </div>;
 }

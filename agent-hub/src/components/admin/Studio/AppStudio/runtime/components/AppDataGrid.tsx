@@ -4,7 +4,7 @@ import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
-import { isFill } from '../styleResolver';
+import { isFill } from '../styleResolver.helpers';
 import { ErrorText, SkeletonLines, useStickyBinding } from '../uiBits';
 import { GridBodyRow, GridGroupHeaderRow, groupPageRows, type GridGroup } from './grid/GridBody';
 import { CellPeek } from './grid/gridCells';
@@ -256,8 +256,7 @@ export default function AppDataGrid({ node }: NodeProps<DataGridProps>) {
               * The background is opaque so rows can't show through.
               */}
             <thead
-                className="sticky top-0 z-[1]"
-                style={{ background: 'var(--bg-card)' }}
+                className="sticky top-0 z-[1] [background:var(--bg-card)]"
             >
                 {headerRow()}
                 {hasFilters ? filterRow() : null}

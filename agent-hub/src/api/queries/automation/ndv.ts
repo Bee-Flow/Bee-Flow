@@ -19,7 +19,7 @@ export interface UsageValue {
     count: number;
 }
 
-export const ndvKeys = {
+const ndvKeys = {
     all: ['automation', 'ndv'] as const,
     usageValues: (tool: string, input: string) => [...ndvKeys.all, 'usage-values', tool, input] as const,
 };
@@ -42,7 +42,7 @@ export function normaliseUsageValues(rows: unknown, max = 4): UsageValue[] {
     return out.slice(0, max);
 }
 
-export async function fetchUsageValues(tool: string, input: string, signal?: AbortSignal): Promise<UsageValue[]> {
+async function fetchUsageValues(tool: string, input: string, signal?: AbortSignal): Promise<UsageValue[]> {
     try {
         const rows = await apiClient.get<unknown>('/api/automation/_usage/values', { query: { tool, input }, signal, retry: false });
         return normaliseUsageValues(rows);

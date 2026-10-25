@@ -20,7 +20,7 @@ interface ChoiceBreakdownProps {
     q: AnswersQuestion;
 }
 
-export function ChoiceBreakdown({ t, q }: ChoiceBreakdownProps) {
+function ChoiceBreakdown({ t, q }: ChoiceBreakdownProps) {
     const values = q.breakdown?.values || [];
     if (!values.length) return <NoAnswers t={t} />;
     return <BarList rows={values.map(v => ({ label: v.value, n: v.n, pct: v.pct }))} ariaLabel={q.label} moreLabel={(n) => t('forms.answers.q_more', '{n} more', { n })} testId="q-choice" />;
@@ -31,7 +31,7 @@ interface YesNoBreakdownProps {
     q: AnswersQuestion;
 }
 
-export function YesNoBreakdown({ t, q }: YesNoBreakdownProps) {
+function YesNoBreakdown({ t, q }: YesNoBreakdownProps) {
     const b = q.breakdown || { yes: 0, no: 0 };
     if (!b.yes && !b.no) return <NoAnswers t={t} />;
     return <SplitBar segments={[{ label: t('forms.answers.q_yes', 'Yes'), n: Number(b.yes) }, { label: t('forms.answers.q_no', 'No'), n: Number(b.no) }]} ariaLabel={q.label} testId="q-yesno" />;
@@ -42,7 +42,7 @@ interface NumberBreakdownProps {
     q: AnswersQuestion;
 }
 
-export function NumberBreakdown({ t, q }: NumberBreakdownProps) {
+function NumberBreakdown({ t, q }: NumberBreakdownProps) {
     const b = q.breakdown || {};
     if (b.avg === null || b.avg === undefined) return <NoAnswers t={t} />;
     const cell = (label: string | number | bigint | null, v: number | null | undefined) => (
@@ -66,7 +66,7 @@ interface DateBreakdownProps {
     q: AnswersQuestion;
 }
 
-export function DateBreakdown({ t, q }: DateBreakdownProps) {
+function DateBreakdown({ t, q }: DateBreakdownProps) {
     const buckets = q.breakdown?.buckets || [];
     if (!buckets.length) return <NoAnswers t={t} />;
     return <TokenBarChart data={buckets.map(b => ({ x: b.bucket, n: b.n, label: monthLabel(b.bucket) }))} height={140} ariaLabel={q.label} xTickFormatter={monthLabel} seriesIndex={2} testId="q-date" />;
@@ -78,7 +78,7 @@ interface TextBreakdownProps {
     onSeeAll: (() => void) | null;
 }
 
-export function TextBreakdown({ t, q, onSeeAll }: TextBreakdownProps) {
+function TextBreakdown({ t, q, onSeeAll }: TextBreakdownProps) {
     const rel = useRelativeTime();
     const recent = (q.breakdown?.recent || []).slice(0, 5);
     if (!recent.length) return <NoAnswers t={t} />;
@@ -107,7 +107,7 @@ interface FileBreakdownProps {
     onSeeAll: (() => void) | null;
 }
 
-export function FileBreakdown({ t, q, onSeeAll }: FileBreakdownProps) {
+function FileBreakdown({ t, q, onSeeAll }: FileBreakdownProps) {
     const n = q.breakdown?.count || 0;
     return (
         <div className="flex items-center gap-3 text-xs" data-testid="q-file">
@@ -123,7 +123,7 @@ export function FileBreakdown({ t, q, onSeeAll }: FileBreakdownProps) {
     );
 }
 
-export function NoAnswers({ t }: { t: TranslateFn }) {
+function NoAnswers({ t }: { t: TranslateFn }) {
     return <p className="text-xs text-[var(--text-tertiary)]">{t('forms.answers.q_none', 'No answers in this period.')}</p>;
 }
 

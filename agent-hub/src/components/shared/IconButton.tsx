@@ -15,8 +15,8 @@ import React from 'react';
  * mouse users get a tooltip too.
  */
 
-export type IconButtonSize = 'sm' | 'md' | 'lg';
-export type IconButtonVariant = 'ghost' | 'subtle' | 'danger';
+type IconButtonSize = 'sm' | 'md' | 'lg';
+type IconButtonVariant = 'ghost' | 'subtle' | 'danger';
 
 export interface IconButtonProps {
     onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;

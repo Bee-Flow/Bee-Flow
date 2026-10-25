@@ -22,7 +22,7 @@ import { invalidateCommentThreads, type CommentAiResult, type CommentTarget, typ
 import { useProjectLive, type ProjectLiveEvent } from '../projects/workspace/ProjectLiveContext';
 import { aiFinishedNote, aiOutcomeOf, type CommentAiNote } from './commentAi';
 
-export const LIVE_WINDOW_MS = 90_000;
+const LIVE_WINDOW_MS = 90_000;
 /** Longer than any answer may take: a lost "finished" never leaves the indicator on. */
 const AI_RUNNING_MAX_MS = 150_000;
 

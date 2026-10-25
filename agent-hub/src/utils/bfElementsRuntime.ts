@@ -88,7 +88,7 @@ export const CLIENT_HANDLING: Readonly<Record<string, string>> = Object.freeze({
  * `window.beeflowBf` claiming "live" for an element that showed "unsupported"
  * on the page; the bridge was then lying to the page.
  */
-export function rendererNameOf(local?: string | null): string {
+function rendererNameOf(local?: string | null): string {
     return 'render' + String(local || '').charAt(0).toUpperCase() + String(local || '').slice(1);
 }
 
@@ -795,4 +795,3 @@ export function buildBfElementsScript() {
 })();<\/script>`;
 }
 
-export default buildBfElementsScript;

@@ -54,12 +54,12 @@ interface SpeakerRowsProps {
 // The label column width doubles as the track indent for the waveform /
 // marker rail / chapter strip, so every layer shares one time axis.
 // Keep these three in sync (same rem values, different CSS properties).
-export const SPEAKER_LABEL_CLASS = 'w-16 sm:w-28';
+const SPEAKER_LABEL_CLASS = 'w-16 sm:w-28';
 export const TRACK_INDENT_CLASS = 'ml-16 sm:ml-28';
 export const TRACK_LEFT_CLASS = 'left-16 sm:left-28';
 
 /** Rows shown while collapsed; the rest lives behind the "+N more" toggle. */
-export const DEFAULT_MAX_ROWS = 6;
+const DEFAULT_MAX_ROWS = 6;
 
 /** Arrow-key navigation for the roving tabindex grid. */
 function rovingKeyDown(e: React.KeyboardEvent<HTMLDivElement>, [r, b]: FocusPos, focusBlock: FocusBlockFn) {

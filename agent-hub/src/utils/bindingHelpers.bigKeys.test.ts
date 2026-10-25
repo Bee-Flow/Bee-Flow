@@ -8,7 +8,8 @@
  */
 import { describe, expect, it } from 'vitest';
 import { evaluate } from '@shared/expr/engine.mjs';
-import { bindingFromInput, canonicalRefPath, formatPathForInsert, walkPath } from './bindingHelpers';
+import { formatPathForInsert, walkPath } from './bindingHelpers';
+import { bindingFromInput, canonicalRefPath } from './bindingHelpers.helpers';
 
 const KEY = '12345678901234567890';
 const ROOT = { steps: { d: { output: { users: { [KEY]: { name: 'Ann' } }, list: ['a', 'b'] } } } };

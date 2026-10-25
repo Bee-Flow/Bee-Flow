@@ -63,10 +63,10 @@ export interface AiActSignals {
 }
 
 /** Steps that stand between an automation and a person outside the org. */
-export const CUSTOMER_FACING_STEP_TYPES: ReadonlyArray<unknown> = Object.freeze(['form_page']);
+const CUSTOMER_FACING_STEP_TYPES: ReadonlyArray<unknown> = Object.freeze(['form_page']);
 
 /** Steps that write model output into a file (Art. 50(2) marking subjects). */
-export const GENERATING_STEP_TYPES: ReadonlyArray<unknown> = Object.freeze(['generate_document']);
+const GENERATING_STEP_TYPES: ReadonlyArray<unknown> = Object.freeze(['generate_document']);
 
 function isObject(v: unknown): v is GraphObject { return !!v && typeof v === 'object' && !Array.isArray(v); }
 
@@ -191,4 +191,3 @@ export function fallbackSignals(kind: string, target: unknown): AiActSignals | n
     return null;
 }
 
-export default fallbackSignals;

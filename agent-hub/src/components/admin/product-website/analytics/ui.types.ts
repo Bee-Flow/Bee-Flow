@@ -5,7 +5,7 @@ import type { AnalyticsScope } from '../analyticsApi';
 // Shapes shared by ui.tsx and the analytics sections.
 
 /** An icon component that takes a style (a lucide icon, or the tinted wrapper around one). */
-export type IconComponent = ComponentType<{ style?: CSSProperties }>;
+type IconComponent = ComponentType<{ style?: CSSProperties }>;
 
 /** One row of an Umami breakdown: `x` is the dimension value, `y` its count. */
 export interface XYRow {
@@ -25,7 +25,7 @@ export type DrillHandler = (dim: string, value?: string | null) => void;
 export type StatField = number | { value?: number | null; prev?: number | null } | null | undefined;
 
 export type CompareKind = 'count' | 'rate' | 'duration' | 'ratio';
-export type CompareState = 'up' | 'down' | 'flat' | 'new' | 'none';
+type CompareState = 'up' | 'down' | 'flat' | 'new' | 'none';
 
 export interface CompareResult {
     delta: number | null;
@@ -104,7 +104,7 @@ export interface ShareBarProps {
     label?: string;
 }
 
-export interface SplitBarSegment {
+interface SplitBarSegment {
     label?: ReactNode;
     value?: number;
     color?: string;

@@ -10,6 +10,7 @@ import useInputChange from '../useInputChange';
 import type { NodeProps } from './appNode.types';
 import type { TranslateParams } from '../../../../../../hooks/useTranslation';
 import { logger } from '../../../../../../utils/logger';
+import { mutate, errorBody, RefusedError } from '../../../../../../api/mutate';
 
 /**
  * App Studio runtime — 'input_file'. Spec: server/appStudio/componentSpecs.js.
@@ -26,7 +27,7 @@ import { logger } from '../../../../../../utils/logger';
  */
 
 /** One uploaded file as the field stores it. */
-export interface FileEntry {
+interface FileEntry {
     kind?: string;
     fileId: string;
     name: string;
@@ -150,9 +151,15 @@ export default function AppInputFile({ node }: NodeProps<InputFileProps>) {
             for (const file of files) {
                 const fd = new FormData();
                 fd.append('file', file);
-                const res = await authFetch(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId as string)}/data/attachments`, { method: 'POST', body: fd });
+                let res: Response;
+                try {
+                    res = await mutate(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId as string)}/data/attachments`, { method: 'POST', body: fd });
+                } catch (err) {
+                    if (!(err instanceof RefusedError)) throw err;
+                    const data = errorBody(err) ?? {};
+                    throw new Error(friendlyUploadError(err.status, data.error, t));
+                }
                 const data = await res.json().catch(() => ({}));
-                if (!res.ok) throw new Error(friendlyUploadError(res.status, data.error, t));
                 // The route answers { success, attachment: { id, mime, size, … } };
                 // tolerate a flat body too. NEVER swallow a missing id — that
                 // silently dropped the file (upload 200'd, nothing listed).

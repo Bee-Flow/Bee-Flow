@@ -38,7 +38,7 @@ export interface TrackerOptions {
  * `data-exclude-hash` keeps #anchor links from fragmenting one page's vitals
  * (and its pageviews) across a row per anchor.
  */
-export function buildTrackerAttrs(websiteId: string | number, options: TrackerOptions = {}): Record<string, string> {
+function buildTrackerAttrs(websiteId: string | number, options: TrackerOptions = {}): Record<string, string> {
     const attrs: Record<string, string> = {
         'data-website-id': String(websiteId),
         'data-performance': 'true',

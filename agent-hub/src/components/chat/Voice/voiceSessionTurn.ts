@@ -13,6 +13,7 @@ import type {
     VoiceTool,
 } from './useVoiceSession.types';
 import { logger } from '../../../utils/logger';
+import { mutate, errorBody, RefusedError } from '../../../api/mutate';
 
 /** What one voice turn reads and writes: the hook's refs, setters and TTS player. */
 export interface VoiceTurnCtx {
@@ -244,7 +245,9 @@ export async function streamVoiceTurn(ctx: VoiceTurnCtx, blob: Blob, mimeType: s
 
 /** POST /ai/voice/session; resolves to the session info, rejects with the server's message. */
 export async function fetchVoiceSession(opts: ConnectOptions): Promise<VoiceSessionInfo> {
-    const resp = await authFetch(`${API_BASE}/ai/voice/session`, {
+    let resp: Response;
+    try {
+        resp = await mutate(`${API_BASE}/ai/voice/session`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -253,9 +256,10 @@ export async function fetchVoiceSession(opts: ConnectOptions): Promise<VoiceSess
             language: opts.language || null,
         }),
     });
-    if (!resp.ok) {
-        const j = await resp.json().catch(() => ({}));
-        throw new Error(j.message || j.error || `Failed to start voice session (${resp.status})`);
+    } catch (err) {
+        if (!(err instanceof RefusedError)) throw err;
+        const j = errorBody(err) ?? {};
+        throw new Error(j.message || j.error || `Failed to start voice session (${err.status})`);
     }
     return resp.json();
 }

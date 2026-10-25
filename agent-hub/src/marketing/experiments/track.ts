@@ -34,7 +34,7 @@ export function trackWhenReady(name: string, data: Record<string, string>, tries
 const sent = new Set<string>();
 
 /** Once per experiment and page view. */
-export function trackOnce(name: string, data: { experiment: string; variant: string }): void {
+function trackOnce(name: string, data: { experiment: string; variant: string }): void {
     const id = `${name}:${data.experiment}`;
     if (sent.has(id)) return;
     sent.add(id);

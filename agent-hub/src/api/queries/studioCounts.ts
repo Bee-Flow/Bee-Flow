@@ -45,7 +45,7 @@ export function parseStudioCounts(body: unknown): StudioCountsPayload {
     return { counts, makers };
 }
 
-export async function fetchStudioCounts(signal?: AbortSignal): Promise<StudioCountsPayload> {
+async function fetchStudioCounts(signal?: AbortSignal): Promise<StudioCountsPayload> {
     const res = await authFetch(`${API_BASE}/api/studio/counts`, { signal });
     // A read that does not land is REPORTED, not swallowed. The rail draws the
     // same nothing either way, but a screen that says "the number is not in

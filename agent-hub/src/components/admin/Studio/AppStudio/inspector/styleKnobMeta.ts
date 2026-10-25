@@ -59,11 +59,11 @@ export const STYLE_KNOBS: StyleKnobTable = {
 // width pair when it has `span` and the height pair when it has `height`, so
 // TYPE_STYLE_KNOBS below stays a verbatim mirror and the lockstep test keeps
 // its meaning.
-export const ADVANCED_WIDTH_KNOBS = ['widthMode', 'widthValue'];
-export const ADVANCED_HEIGHT_KNOBS = ['heightMode', 'heightValue'];
+const ADVANCED_WIDTH_KNOBS = ['widthMode', 'widthValue'];
+const ADVANCED_HEIGHT_KNOBS = ['heightMode', 'heightValue'];
 // Mirror of RESPONSIVE_VISIBILITY_KNOBS (componentSpecs.js) — derived from
 // span, like the width pair: a type without a grid cell has nothing to hide.
-export const RESPONSIVE_VISIBILITY_KNOBS = ['hideBelow', 'hideAbove'];
+const RESPONSIVE_VISIBILITY_KNOBS = ['hideBelow', 'hideAbove'];
 
 /**
  * What each knob is CALLED in the inspector.

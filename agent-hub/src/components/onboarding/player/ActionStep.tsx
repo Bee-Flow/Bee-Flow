@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useLicenseContext } from '../../licensing/LicenseContext';
 import { getActionCheck, runActionCheck, applicableCriteria } from '../actionChecks';
-import type { LessonUser, StepState } from '../lessons.types';
+import type { LessonUser, StepState } from '../../../api/lessons.types';
 
 /**
  * ActionStep — a verified do-it-for-real challenge (the Trailhead pattern).

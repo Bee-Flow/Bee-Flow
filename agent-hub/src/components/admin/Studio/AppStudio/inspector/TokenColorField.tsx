@@ -5,7 +5,7 @@ import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { COLOR_ROLES, HEX_RE } from './styleKnobMeta';
 import ColorPicker from '../../../../shared/ColorPicker';
 import SegmentedControl from '../../../../shared/SegmentedControl';
-import { ROLE_COLORS } from '../runtime/styleResolver';
+import { ROLE_COLORS } from '../runtime/styleResolver.constants';
 import { APP_COLOR_PRESETS } from '../runtime/themeVars';
 
 /**

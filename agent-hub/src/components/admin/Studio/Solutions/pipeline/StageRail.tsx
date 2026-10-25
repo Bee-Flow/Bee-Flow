@@ -6,7 +6,7 @@ import { actionLabel, usePipelineActions, type T } from './pipelineActions';
 import { buildColumns, type Column, type ColumnAction, type ErrorKind, type PipelineReadState } from './pipelineModel';
 import { errorText, findingText } from './StageStatus';
 import { STAGE_DOT, STAGE_ICON, STAGE_INK, STAGE_RULE, STAGE_TINT, useStageLabel } from './StageSwitcher';
-import type { Pipeline, PlanFinding, StageKey, StageName } from './stagesApi';
+import type { Pipeline, PlanFinding, StageKey, StageName } from '../../../../../api/stagesApi';
 
 /**
  * Dev → UAT → Production, always in view under the header of a Solution.

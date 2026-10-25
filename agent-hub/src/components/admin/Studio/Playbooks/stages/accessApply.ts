@@ -43,7 +43,7 @@ export interface AccessMember {
 }
 
 /** Who may open the app. */
-export interface AccessAudience {
+interface AccessAudience {
     kind?: 'private' | 'organisation' | 'groups';
     groupIds?: string[];
     groupNames?: string[];

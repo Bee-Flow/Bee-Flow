@@ -53,7 +53,7 @@ export interface HubHeaderCtx extends HeaderCtx {
     risks?: unknown;
 }
 
-export { HEADER_BUTTON, PrimaryButton, SecondaryButton, InfoChip } from './header/headerParts';
+;
 
 /**
  * The date the legal register was last checked against the official texts —

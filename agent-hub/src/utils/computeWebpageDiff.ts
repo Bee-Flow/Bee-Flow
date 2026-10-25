@@ -17,7 +17,7 @@
  */
 
 /** One line of a diff; `gap` marks skipped context. */
-export interface DiffHunk {
+interface DiffHunk {
     type: 'context' | 'add' | 'remove' | 'gap';
     text: string;
 }

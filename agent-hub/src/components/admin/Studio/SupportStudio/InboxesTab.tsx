@@ -12,7 +12,7 @@ import { toast } from '../../../shared/Toast';
 import useConfirm from '../../../shared/useConfirm';
 import type { SupportAgent, SupportInbox, SupportKb } from './supportStudio.types';
 import { logger } from '../../../../utils/logger';
-import { mutate, ApiError } from '../../../../api/mutate';
+import { mutate, ApiError, errorBody, RefusedError } from '../../../../api/mutate';
 
 interface InboxesTabProps {
     inboxes?: SupportInbox[];
@@ -51,12 +51,18 @@ export default function InboxesTab({ inboxes = [], agents = [], kbs = [], select
     const [newName, setNewName] = useState('');
 
     const createInbox = async () => {
-        const res = await authFetch(`${API_BASE}/api/support-inbox/inboxes`, {
+        let res: Response | undefined;
+        try {
+            res = await mutate(`${API_BASE}/api/support-inbox/inboxes`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ provider: newProvider, displayName: newName || `${newProvider} inbox` }),
         });
-        if (res.ok) { setCreating(false); setNewName(''); onChanged?.(); }
-        else { const d = await res.json().catch(() => ({})); toast.error(d.error || t('support.settings.create_failed', 'Could not create mailbox')); }
+        } catch (err) {
+            if (!(err instanceof RefusedError)) throw err;
+            const d = errorBody(err) ?? {};
+            toast.error(d.error || t('support.settings.create_failed', 'Could not create mailbox'));
+        }
+        if (res) { setCreating(false); setNewName(''); onChanged?.(); }
     };
 
     return (
@@ -152,9 +158,16 @@ function InboxCard({ inbox, agents, kbs, selected, onSelect, onChanged }: InboxC
         if (!ok) return;
         setDisconnecting(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/support-inbox/inboxes/${inbox.id}/disconnect`, { method: 'POST' });
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/api/support-inbox/inboxes/${inbox.id}/disconnect`, { method: 'POST' });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const d = errorBody(err) ?? {};
+                toast.error(d.error || t('support.settings.disconnect_failed', 'Disconnecting failed'));
+                return;
+            }
             const d = await res.json().catch(() => ({}));
-            if (!res.ok) { toast.error(d.error || t('support.settings.disconnect_failed', 'Disconnecting failed')); return; }
             onChanged?.();
         } finally { setDisconnecting(false); }
     };

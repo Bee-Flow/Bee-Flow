@@ -1,8 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import {
-    buildFragment, buildPill, ensureTrailingFiller, FILLER_ATTR,
-    PILL_SELECTOR, renderInto, serializeHost,
-} from './refEditorDom';
+import { ensureTrailingFiller, FILLER_ATTR, PILL_SELECTOR, renderInto, serializeHost } from './refEditorDom';
+import { buildFragment, buildPill } from './refEditorDom.helpers';
 
 /**
  * The one invariant that matters: the editor is a different PRESENTATION of the

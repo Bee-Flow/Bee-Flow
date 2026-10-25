@@ -16,7 +16,7 @@ export interface OrgCollabSettings {
 
 const BASE = '/api/org-collab';
 
-export const orgCollabKeys = {
+const orgCollabKeys = {
     org: (orgId: string) => ['orgCollab', orgId] as const,
 };
 

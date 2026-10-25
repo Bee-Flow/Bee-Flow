@@ -13,7 +13,7 @@ import { logger } from '../../../../utils/logger';
 /** A flat { dimension: value } filter set. */
 export type AnalyticsFilters = Record<string, string>;
 
-export const FILTER_LABELS: Record<string, string> = {
+const FILTER_LABELS: Record<string, string> = {
     path: 'Page',
     referrer: 'Referrer',
     title: 'Page title',
@@ -35,10 +35,10 @@ export const FILTER_LABELS: Record<string, string> = {
     utmTerm: 'UTM term',
 };
 
-export const FILTER_KEYS = Object.keys(FILTER_LABELS);
+const FILTER_KEYS = Object.keys(FILTER_LABELS);
 
 // Catalogue keys for the labels above; FILTER_LABELS stays the English default.
-export const FILTER_LABEL_KEYS: Record<string, string> = {
+const FILTER_LABEL_KEYS: Record<string, string> = {
     path: 'cms_site.analytics.filter.path',
     referrer: 'cms_site.analytics.filter.referrer',
     title: 'cms_site.analytics.filter.title',
@@ -81,7 +81,7 @@ export function withoutFilter(filters: AnalyticsFilters | null | undefined, key:
     return next;
 }
 
-export function filterCount(filters: AnalyticsFilters | null | undefined): number {
+function filterCount(filters: AnalyticsFilters | null | undefined): number {
     return Object.keys(filters || {}).length;
 }
 

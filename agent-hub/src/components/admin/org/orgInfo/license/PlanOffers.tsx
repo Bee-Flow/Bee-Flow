@@ -12,7 +12,7 @@ interface CheckoutProps {
  * The recurring-billing (automatische incasso) disclosure, shown above every
  * list of plans that leads to a Stripe checkout (BFSF-243).
  */
-export function RecurringNotice() {
+function RecurringNotice() {
     const { t } = useLicenseText();
     return (
         <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2">

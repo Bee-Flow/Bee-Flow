@@ -14,7 +14,7 @@ import type { SheetChartsState } from './useSheetCharts';
 import type { SheetState } from './useSheet';
 import { messageOf } from '../../../utils/caughtError';
 
-export const FLASH_MS = 3000;
+const FLASH_MS = 3000;
 const HISTORY_TURNS = 6;
 
 /** A selection with no kind given: one cell, or a block. */

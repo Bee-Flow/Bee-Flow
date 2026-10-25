@@ -15,7 +15,7 @@ export interface TriggerParam {
     description?: string;
 }
 
-export interface ParamSchemaProp {
+interface ParamSchemaProp {
     type: string;
     description?: string;
 }

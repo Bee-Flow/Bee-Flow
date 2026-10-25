@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const authFetch = vi.fn();
 vi.mock('../utils/helpers', () => ({ authFetch: (...a: unknown[]) => authFetch(...a), API_BASE: '/api' }));
 
-import { ApiError, mutate } from './mutate';
+import { ApiError, errorBody, mutate, request } from './mutate';
 
 const json = (status: number, body: unknown) =>
     new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -57,5 +57,18 @@ describe('mutate', () => {
             err = e;
         }
         expect(err).toBe(failure);
+    });
+
+    it('errorBody gives the parsed JSON of a refused request, null when it was not JSON', async () => {
+        authFetch.mockResolvedValue(json(422, { error: 'Bad', field: 'name' }));
+        const err = (await mutate('/api/x', { method: 'POST' }).catch((e) => e)) as ApiError;
+        expect(errorBody(err)).toEqual({ error: 'Bad', field: 'name' });
+        authFetch.mockResolvedValue(new Response('<html>', { status: 502 }));
+        const html = (await mutate('/api/x', { method: 'POST' }).catch((e) => e)) as ApiError;
+        expect(errorBody(html) ?? { fallback: true }).toEqual({ fallback: true });
+    });
+
+    it('request is mutate under a neutral name', () => {
+        expect(request).toBe(mutate);
     });
 });

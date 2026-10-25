@@ -4,7 +4,7 @@
 
 import type { TeamChatRef } from '../../../../api/queries/projectChatTypes';
 
-export type MentionKind = 'user' | 'ai' | 'agent' | 'document' | 'notebook' | 'meeting' | 'task';
+type MentionKind = 'user' | 'ai' | 'agent' | 'document' | 'notebook' | 'meeting' | 'task';
 
 export interface MentionCandidate {
     /** Unique per list: the user id, `ai`, or `agent:<id>`. */

@@ -28,7 +28,7 @@ export interface ToolCatalog {
 }
 
 /** What the validator said about ONE step. */
-export type { StepIssues };
+;
 
 /**
  * "1 of 4", and "runs 4× · one per <list>". Every member comes off the loop
@@ -45,7 +45,7 @@ export interface LoopContext {
     itemNoun?: string | null;
 }
 
-export type { RouteFollow, WholeRunNotice };
+;
 
 /** Everything the step editor derives from its props — facts, never edits. */
 export interface NodeDetailData {

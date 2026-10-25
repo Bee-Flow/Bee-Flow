@@ -13,7 +13,7 @@ import { toast } from '../../../shared/Toast';
 import { cmsApi } from '../cmsApi';
 import { ACTIVE_SITE_LS_KEY } from './helpers';
 import { logger } from '../../../../utils/logger';
-import { mutate, ApiError } from '../../../../api/mutate';
+import { mutate, ApiError, errorBody, RefusedError } from '../../../../api/mutate';
 
 type PanelState = ReturnType<typeof useCmsPanelState>;
 
@@ -84,14 +84,16 @@ export default function useCmsSiteOps({
 
     const handleRenameSite = useCallback(async (siteId: string, name: string) => {
         try {
-            const res = await authFetch(cmsApi.site(siteId), {
+            try {
+                await mutate(cmsApi.site(siteId), {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name }),
             });
-            if (!res.ok) {
-                const d = await res.json().catch(() => ({}));
-                throw new Error(d.error || `Rename failed (${res.status})`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const d = errorBody(err) ?? {};
+                throw new Error(d.error || `Rename failed (${err.status})`);
             }
             await refreshSites();
             // If we renamed the active site, refresh its payload so the
@@ -221,10 +223,12 @@ export default function useCmsSiteOps({
         });
         if (!ok) return;
         try {
-            const res = await authFetch(cmsApi.site(siteId), { method: 'DELETE' });
-            if (!res.ok) {
-                const d = await res.json().catch(() => ({}));
-                throw new Error(d.error || `Delete failed (${res.status})`);
+            try {
+                await mutate(cmsApi.site(siteId), { method: 'DELETE' });
+            } catch (apiErr) {
+                if (!(apiErr instanceof RefusedError)) throw apiErr;
+                const d = errorBody(apiErr) ?? {};
+                throw new Error(d.error || `Delete failed (${apiErr.status})`);
             }
             const list = await refreshSites();
             if (siteId === activeSiteIdRef.current) {
@@ -265,9 +269,15 @@ export default function useCmsSiteOps({
         }
         await flushSaves();
         try {
-            const res = await authFetch(cmsApi.siteDuplicate(siteId), { method: 'POST' });
+            let res: Response;
+            try {
+                res = await mutate(cmsApi.siteDuplicate(siteId), { method: 'POST' });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const data = errorBody(err) ?? {};
+                throw new Error(data.error || `Duplicate failed (${err.status})`);
+            }
             const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data.error || `Duplicate failed (${res.status})`);
             await refreshSites();
             if (data.id) await handleSwitchSite(data.id);
         } catch (err) { toast.error(`Failed to duplicate version: ${errorMessage(err)}`); }

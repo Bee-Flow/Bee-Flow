@@ -107,7 +107,7 @@ export function relativeAgo(iso: string | null | undefined, locale?: string, now
 }
 
 /** Tone of a count or a location, by state: green stayed, orange left Europe, grey otherwise. */
-export function stateInk(state: MapDestination['state']): string {
+function stateInk(state: MapDestination['state']): string {
     if (state === 'local' || state === 'eu') return 'text-[var(--success-ink)]';
     if (state === 'outside') return 'text-[var(--warning-ink)]';
     return 'text-[var(--text-secondary)]';

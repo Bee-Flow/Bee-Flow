@@ -10,7 +10,7 @@ import type { TranslateFn } from '../../../../../../hooks/useTranslation';
  * from a real answer, with Save live, and one click wrote that blank config
  * over the org's real one.
  */
-export function ShieldLoadError({ status, t }: { status: number; t: TranslateFn }) {
+function ShieldLoadError({ status, t }: { status: number; t: TranslateFn }) {
     return (
         <div className="p-6">
             <div

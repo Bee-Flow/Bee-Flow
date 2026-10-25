@@ -32,7 +32,7 @@ interface Props {
 }
 
 /** A region's name: the same words as the filter chip a header click creates. */
-export function regionLabel(region: Region, t: TranslateFn): string {
+function regionLabel(region: Region, t: TranslateFn): string {
     return wordFor(REGION_WORDS, region, t);
 }
 

@@ -5,7 +5,7 @@ import { useState } from 'react';
 import useTranslation from '../../../hooks/useTranslation';
 import type { StudioDocument } from '../documentQueries';
 import { getDocument, updateDocument } from '../documentsApi';
-import { downloadSheetCsv, downloadSheetXlsx } from './sheetApi';
+import { downloadSheetCsv, downloadSheetXlsx } from '../../../api/sheetApi';
 import type { SheetState } from './useSheet';
 import { messageOf } from '../../../utils/caughtError';
 

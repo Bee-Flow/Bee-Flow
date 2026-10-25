@@ -13,7 +13,7 @@ export interface ConsumerPlan {
     max_knowledge_sources?: number;
 }
 
-export interface ConsumerSubscription {
+interface ConsumerSubscription {
     status?: string;
     payment_status?: string;
     plan_id?: string;

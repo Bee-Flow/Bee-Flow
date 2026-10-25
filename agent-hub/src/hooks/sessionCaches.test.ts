@@ -8,7 +8,7 @@ import { queryClient } from '../api/queryClient';
 import { queryWrapper } from '../test/queryWrapper';
 import { clearSessionCaches } from './sessionCaches';
 import { useTrainingGates } from './useTrainingGates';
-import { fetchAllowedModelsByAgentType } from '../utils/modelMeta';
+import { fetchAllowedModelsByAgentType } from '../api/modelMeta';
 
 // The app's own client: the invalidators act on that singleton.
 const wrapper = queryWrapper(queryClient);

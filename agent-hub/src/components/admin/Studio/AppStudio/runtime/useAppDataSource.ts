@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { reportAppVersion } from './appVersionSignal';
-import { NOT_BATCHED, queueRead, unwrapReadResult } from './dataBatchClient';
+import { NOT_BATCHED, queueRead, unwrapReadResult } from '../../../../../api/dataBatchClient';
 import { useDataContext } from './DataContext';
-import { dataErrorFromResponse, isRateLimited, type DataError } from './dataErrors';
+import { dataErrorFromResponse, isRateLimited, type DataError } from '../../../../../api/dataErrors';
 import { dataCacheKey } from './resolveBinding';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
 import type { ConnectorBinding, DataBinding } from './resolveBinding.types';
@@ -22,7 +22,7 @@ interface ReadBody {
 // While EDITING, records are fetched in "sample" mode: a small, capped page so
 // bound grids/charts/relation inputs show real data without paying for a full
 // scan. The published run view fetches live (non-sampled).
-export const SAMPLE_LIMIT = 50;
+const SAMPLE_LIMIT = 50;
 
 /**
  * App Studio runtime — the record/records/dataset/connector fetch hook.
@@ -72,7 +72,7 @@ function qs(params: ArrayLike<unknown>|{ [s: string]: unknown; }) {
  */
 const dataError = dataErrorFromResponse;
 
-export { isRateLimited };
+;
 
 /** The page size for a record/records read — capped hard while editing. */
 function recordLimit(binding: DataBinding, sample: boolean) {

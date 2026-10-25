@@ -1,11 +1,11 @@
 import { Copy, Check, RefreshCw, Trash2, ServerCog } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
 import useConfirm from '../../shared/useConfirm';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { messageOf } from '../../../utils/caughtError';
 import { logger } from '../../../utils/logger';
-import { mutate, ApiError } from '../../../api/mutate';
+import { mutate, ApiError, request, RefusedError, errorBody } from '../../../api/mutate';
 
 interface PairingCode {
     id: string;
@@ -48,8 +48,13 @@ const OrgNcPairingPanel = () => {
         setLoading(true);
         setError(null);
         try {
-            const res = await authFetch(`${API_BASE}/auth/admin/nc-bindings/pairing-codes`);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/auth/admin/nc-bindings/pairing-codes`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                throw new Error(`HTTP ${err.status}`);
+            }
             const data = await res.json();
             setCodes(data.codes || []);
         } catch (e) {
@@ -65,13 +70,19 @@ const OrgNcPairingPanel = () => {
         setGenerating(true);
         setError(null);
         try {
-            const res = await authFetch(`${API_BASE}/auth/admin/nc-bindings/generate-pairing-code`, {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/auth/admin/nc-bindings/generate-pairing-code`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({}),
             });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const data = errorBody(err) ?? {};
+                throw new Error(data?.error || `HTTP ${err.status}`);
+            }
             const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
             await reload();
         } catch (e) {
             setError(messageOf(e, 'Failed to generate pairing code'));

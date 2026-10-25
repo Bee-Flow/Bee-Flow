@@ -9,7 +9,7 @@ interface SpacerProps {
     steps?: number;
 }
 
-export default function SpacerInspector({ node, definition, onCommit, disabled = false }: PanelProps<SpacerProps>) {
+function SpacerInspector({ node, definition, onCommit, disabled = false }: PanelProps<SpacerProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const patch = usePatch(node, definition, onCommit);

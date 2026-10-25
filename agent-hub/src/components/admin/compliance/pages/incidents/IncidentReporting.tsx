@@ -61,7 +61,7 @@ export function usesCraRoute(step: StepId): boolean {
 
 export const INPUT = 'w-full rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] px-2.5 py-1.5 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]';
 export const SECONDARY_BUTTON = 'inline-flex items-center gap-1.5 h-8 px-3 rounded-[10px] border border-[var(--border-default)] bg-[var(--bg-card)] text-[12px] font-medium text-[var(--text-primary)] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--item-hover-bg)]';
-export const PRIMARY_BUTTON = 'inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-[10px] text-[12px] font-semibold bg-[var(--accent-primary)] text-[var(--accent-primary-fg)] hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed';
+const PRIMARY_BUTTON = 'inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-[10px] text-[12px] font-semibold bg-[var(--accent-primary)] text-[var(--accent-primary-fg)] hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed';
 
 export interface StepActionProps {
     step: StepId;

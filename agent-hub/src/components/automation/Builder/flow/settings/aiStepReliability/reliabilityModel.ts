@@ -26,7 +26,7 @@ export { AI_STEP_DEFAULT_TEMPERATURE, buildReliabilityPatch, tidyCheck };
 export type { AllowedFromCheck, Binding, Check, CheckKind, EnumFrom, Fallback, ItemsCheck, NumbersFromCheck, ScriptCheck };
 
 export const SCRIPTS = ['latin', 'cyrillic', 'greek', 'arabic', 'hebrew', 'han', 'japanese', 'hangul', 'devanagari', 'thai'] as const;
-export type ScriptName = typeof SCRIPTS[number];
+type ScriptName = typeof SCRIPTS[number];
 
 export const AI_STEP_TEMPERATURE_MIN = 0;
 export const AI_STEP_TEMPERATURE_MAX = 2;

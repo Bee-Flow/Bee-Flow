@@ -2,10 +2,10 @@ import { Box, FileText, Loader2, Maximize2, Minimize2, X } from 'lucide-react';
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
-import { authFetch } from '../../../../../../utils/helpers';
 import { useDataContext } from '../DataContext';
 import { entryHref, entryName } from './AppInputFile';
 import Modal from '../../../../../shared/Modal';
+import { request, RefusedError } from '../../../../../../api/mutate';
 
 /**
  * A row's DRAWING — 3D model or PDF — small enough to sit in a table cell and
@@ -107,8 +107,13 @@ export default function CadThumb({ value, size = 44 }: { value: unknown; size?: 
             // authFetch(null) request to the relative URL "null".
             if (href === null) throw new Error('no attachment address');
             // A .step has no picture of its own, so the server draws one.
-            const res = await authFetch(kind === 'cad' ? `${href}/preview` : href);
-            if (!res.ok) throw new Error(String(res.status));
+            let res: Response;
+            try {
+                res = await request(kind === 'cad' ? `${href}/preview` : href);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                throw new Error(String(err.status));
+            }
             const blob = await res.blob();
             if (!isAlive()) return;
             const u = URL.createObjectURL(blob);

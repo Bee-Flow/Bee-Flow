@@ -19,7 +19,7 @@ import { readEventStream } from '../../../utils/sseStream';
 
 /* ── Shapes ─────────────────────────────────────────────────────────── */
 
-export interface ScanSourceApp { id: string; label: string; connected: boolean }
+interface ScanSourceApp { id: string; label: string; connected: boolean }
 
 /** One group the scan can read: mail, calendar, files or Bee Flow activity. */
 export interface ScanSourceGroup {
@@ -33,7 +33,7 @@ export interface ScanSourceGroup {
 export interface ScanSources { windowDays: number; groups: ScanSourceGroup[] }
 
 export type ScanMode = 'patterns' | 'ideas';
-export type CadenceKind = 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly' | 'irregular';
+type CadenceKind = 'daily' | 'weekdays' | 'weekly' | 'biweekly' | 'monthly' | 'irregular';
 
 export interface PatternCadence {
     kind: CadenceKind | string;
@@ -111,7 +111,7 @@ export interface ScanResult {
     focus?: string;
 }
 
-export interface ScanBody {
+interface ScanBody {
     mode?: ScanMode;
     sources?: string[];
     focus?: string;
@@ -120,7 +120,7 @@ export interface ScanBody {
     timezone?: string;
 }
 
-export type FeedbackAction = 'dismissed' | 'built' | 'asked' | 'snoozed' | 'opened';
+type FeedbackAction = 'dismissed' | 'built' | 'asked' | 'snoozed' | 'opened';
 export type ReasonCode = 'wrong_grouping' | 'do_myself' | 'already_automated' | 'privacy';
 
 export interface FeedbackBody {

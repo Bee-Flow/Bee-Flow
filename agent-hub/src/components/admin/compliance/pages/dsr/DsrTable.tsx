@@ -49,7 +49,7 @@ interface WordEntry {
  * header says so with a ↓ and aria-sort, instead of a separate "By deadline"
  * note in the toolbar.
  */
-export const DSR_COLUMNS: readonly DsrColumn[] = Object.freeze([
+const DSR_COLUMNS: readonly DsrColumn[] = Object.freeze([
     { id: 'deadline', width: '118px', labelKey: 'compliance.dsr_col_deadline', en: 'Deadline', ariaSort: 'ascending' },
     { id: 'request', width: '1fr', labelKey: 'compliance.dsr_col_request', en: 'Request' },
     { id: 'received', width: '104px', labelKey: 'compliance.dsr_col_received', en: 'Received' },
@@ -85,12 +85,12 @@ export function channelLabel(t: TranslateFn, channel: string) {
     return t(c.key, c.en);
 }
 
-export function identityLabel(t: TranslateFn, identity: string) {
+function identityLabel(t: TranslateFn, identity: string) {
     const i = IDENTITY[identity] || IDENTITY.unknown;
     return t(i.key, i.en);
 }
 
-export function stateLabel(t: TranslateFn, state: string) {
+function stateLabel(t: TranslateFn, state: string) {
     const s = STATE[state] || STATE.pending;
     return t(s.key, s.en);
 }
@@ -137,12 +137,12 @@ export function formatDateTime(ms: number | null | undefined, locale?: string) {
     return `${formatCalDate(ms, { locale, year: 'auto' })} ${formatTime(ms, locale)}`;
 }
 
-export function formatDate(ms: number | null | undefined, locale?: string) {
+function formatDate(ms: number | null | undefined, locale?: string) {
     if (ms === null || ms === undefined) return '';
     return formatCalDate(ms, { locale, year: 'auto' });
 }
 
-export function ChannelLabel({ channel, className = '' }: { channel: string; className?: string }) {
+function ChannelLabel({ channel, className = '' }: { channel: string; className?: string }) {
     const { t } = useTranslation();
     const c = CHANNEL[channel] || CHANNEL.other;
     const Icon = c.icon;
@@ -155,13 +155,13 @@ export function ChannelLabel({ channel, className = '' }: { channel: string; cla
 }
 
 /** The lifecycle state, drawn like every register's (RegisterStatePill): urgency stays with the clock. */
-export function DsrStatePill({ state, testId = 'dsr-state' }: { state: string; testId?: string }) {
+function DsrStatePill({ state, testId = 'dsr-state' }: { state: string; testId?: string }) {
     const { t } = useTranslation();
     return <RegisterStatePill state={state} testId={testId}>{stateLabel(t, state)}</RegisterStatePill>;
 }
 
 /** The row's stripe follows the clock's urgency only: red when overdue, amber when urgent, none otherwise. */
-export function accentOf(row: DsrRow, now: number): Tone | null {
+function accentOf(row: DsrRow, now: number): Tone | null {
     const { state } = clockState({ ...clockPropsOf(row), now });
     return state === 'overdue' ? 'error' : state === 'urgent' ? 'warning' : null;
 }

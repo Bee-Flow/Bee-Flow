@@ -7,7 +7,7 @@
 // It never gates content — every visible course stays reachable on every path.
 
 import { GENERATED_PATH_ORDER } from './generated/pathOrder';
-import type { LearningPath } from './lessons.types';
+import type { LearningPath } from '../../api/lessons.types';
 
 // courseOrder is DERIVED from the catalog (every course declares its pathId), not
 // hand-listed: with the 2026-09 curriculum the hand-written lists covered 9 of 20

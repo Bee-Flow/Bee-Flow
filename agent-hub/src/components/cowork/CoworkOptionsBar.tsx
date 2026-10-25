@@ -19,7 +19,7 @@ import {
     toDateInput, toTimeInput,
 } from './coworkSchedule';
 import type { LucideIcon } from 'lucide-react';
-import type { CoworkAgent, WhenPresetId, WhenState } from './cowork.types';
+import type { CoworkAgent, WhenPresetId, WhenState } from '../../api/cowork.types';
 
 type SheetName = 'when' | 'repeat' | 'agent';
 

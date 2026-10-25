@@ -31,7 +31,7 @@ export const LOG_GRID = 'grid gap-3 grid-cols-[48px_minmax(0,160px)_minmax(0,1fr
 /** A cell that only has its own column on a wide pane. */
 export const WIDE_ONLY = '@max-[1099px]/pane:hidden';
 
-export function initials(name: string): string {
+function initials(name: string): string {
     return name.split(/\s+/).filter(Boolean).map(w => w[0]).slice(0, 2).join('').toUpperCase();
 }
 

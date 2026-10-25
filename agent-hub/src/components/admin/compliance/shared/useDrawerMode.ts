@@ -29,8 +29,8 @@ export interface DrawerModeOptions {
     gap?: number;
 }
 
-export const DEFAULT_DRAWER_WIDTH = 380;
-export const DEFAULT_MIN_TABLE = 640;
+const DEFAULT_DRAWER_WIDTH = 380;
+const DEFAULT_MIN_TABLE = 640;
 const DEFAULT_GAP = 12;
 
 /** The pure rule, for a width that is already known (null = not measured yet). */

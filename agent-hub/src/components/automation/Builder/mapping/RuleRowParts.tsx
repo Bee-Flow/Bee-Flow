@@ -14,7 +14,7 @@ import useTranslation from '../../../../hooks/useTranslation';
 import { denseInputClass } from '../flow/settings/formStyles';
 
 type Translate = (key: string, fallback: string, vars?: Record<string, unknown>) => string;
-export type Quantifier = 'any' | 'every' | 'none';
+type Quantifier = 'any' | 'every' | 'none';
 
 const QUANTIFIERS: ReadonlyArray<{ key: Quantifier; en: string }> = [
     { key: 'any', en: 'any {name}' },
@@ -29,14 +29,14 @@ const FILE_TYPE_EN: Readonly<Record<string, string>> = {
 };
 
 /** A file type key as a person reads it ("powerpoint" → "PowerPoint"). */
-export function fileTypeName(key: string, t: Translate | null = null): string {
+function fileTypeName(key: string, t: Translate | null = null): string {
     const en = FILE_TYPE_EN[key];
     if (!en) return key;
     return t ? t(`condition_node.file_type.${key}`, en) : en;
 }
 
 /** "any attachment" / "every attachment" / "no attachment" for one entry named `name`. */
-export function quantifierText(quantifier: string, name: string, t: Translate | null = null): string {
+function quantifierText(quantifier: string, name: string, t: Translate | null = null): string {
     const q = QUANTIFIERS.find((x) => x.key === quantifier) || QUANTIFIERS[0];
     return t ? t(`condition_node.quantifier.${q.key}`, q.en, { name }) : q.en.replace('{name}', name);
 }

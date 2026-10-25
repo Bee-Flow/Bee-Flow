@@ -38,7 +38,7 @@ export function capturePendingPlanFromUrl(): string | null {
 }
 
 /** The remembered plan id, or null. */
-export function readPendingPlan(): string | null {
+function readPendingPlan(): string | null {
     try { return sessionStorage.getItem(KEY) || null; } catch { return null; }
 }
 
@@ -52,6 +52,6 @@ export function takePendingPlan(): string | null {
     return plan;
 }
 
-export function clearPendingPlan(): void {
+function clearPendingPlan(): void {
     try { sessionStorage.removeItem(KEY); } catch (err) { logger.debug('nothing to clear', err); }
 }

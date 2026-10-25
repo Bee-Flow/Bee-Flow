@@ -65,7 +65,7 @@ export const GRADE_LABEL = {
     editor: 'You can read and change rows',
     viewer: 'You can read rows',
 };
-export const GRADE_ORDER: Record<string, number> = { viewer: 0, editor: 1, owner: 2 };
+const GRADE_ORDER: Record<string, number> = { viewer: 0, editor: 1, owner: 2 };
 export function gradeAtLeast(grade: string | undefined, min: string) {
     return (GRADE_ORDER[grade ?? ''] ?? -1) >= (GRADE_ORDER[min] ?? 99);
 }

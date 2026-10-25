@@ -50,7 +50,7 @@ interface Props {
 }
 
 /** A usable origin, or null: an unset BEEFLOW_SERVER_LOCATION draws pins without lines. */
-export function toOrigin(raw: RawOrigin | null | undefined): MapOrigin | null {
+function toOrigin(raw: RawOrigin | null | undefined): MapOrigin | null {
     if (!raw) return null;
     const lat = Number(raw.lat);
     const lon = Number(raw.lon);

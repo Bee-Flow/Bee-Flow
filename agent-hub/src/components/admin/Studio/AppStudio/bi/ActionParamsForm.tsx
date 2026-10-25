@@ -68,7 +68,7 @@ export function paramsOfAction(action: CatalogAction | null | undefined): ParamI
 }
 
 /** Where a parameter's value comes from right now. */
-export function sourceOf(connector: Connector | null | undefined, key: string): ParamSource {
+function sourceOf(connector: Connector | null | undefined, key: string): ParamSource {
     if (connector?.fixedArgs && Object.hasOwn(connector.fixedArgs, key)) return 'pinned';
     if (Array.isArray(connector?.params) && connector.params.some((p) => p?.key === key)) return 'viewer';
     const chain = Array.isArray(connector?.chain) ? connector.chain : [];

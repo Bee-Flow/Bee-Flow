@@ -1,9 +1,10 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import { SetStateAction, JSX, Dispatch, useMemo, useState } from 'react';
+import useTranslation, { TranslateParams } from '../../../../../../hooks/useTranslation';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
-import { isFill, ROLE_COLORS } from '../styleResolver';
+import { isFill } from '../styleResolver.helpers';
+import { ROLE_COLORS } from '../styleResolver.constants';
 import { EmptyText, ErrorText, SkeletonLines, displayValue, useStickyBinding } from '../uiBits';
 import type { BindingInput } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
@@ -42,11 +43,11 @@ const DATE_ONLY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 /** d + n calendar days, LOCAL. Fixed-hour maths drifts an hour across a DST
  *  boundary, which duplicates a day and shifts the rest of the grid. */
-export function addDays(d: Date, n: number) {
+function addDays(d: Date, n: number) {
     return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
 }
 
-export function parseDay(value: unknown) {
+function parseDay(value: unknown) {
     if (value == null || value === '') return null;
     // 'YYYY-MM-DD' is a CALENDAR date, but Date() reads it as UTC midnight —
     // west of Greenwich that lands the event on the previous day.
@@ -247,47 +248,51 @@ export default function AppCalendar({ node }: NodeProps<CalendarProps>) {
                     <span key={d} className="text-[11px] font-medium py-1 text-[var(--text-muted)]">{WEEKDAY_LABELS[d]}</span>
                 ))}
             </div>
-            <div
-                className={`grid grid-cols-7 gap-px border${fill ? ' flex-1 min-h-0 overflow-y-auto' : ' overflow-hidden'} [background:var(--border-subtle,var(--border-default))] [border-color:var(--border-default)] [border-radius:var(--app-radius)]`}
-            >
-                {days.map((day) => {
-                    const key = dayKey(day);
-                    const entries = buckets.get(key) || [];
-                    const inMonth = isWeek || day.getMonth() === anchor.getMonth();
-                    return (
-                        <div
-                            key={key}
-                            data-app-calendar-day={key}
-                            className="min-h-[72px] p-1 flex flex-col gap-0.5"
-                            // The whole cell used to fade to 0.45, on top of
-                            // tokens that are already low-contrast — the day
-                            // numbers and the still-clickable chips went well
-                            // past unreadable. Only the day number dims now.
-                            style={{ background: inMonth ? 'var(--bg-card)' : 'var(--bg-secondary)' }}
-                        >
-                            <span
-                                className={`text-[11px] tabular-nums self-end ${key === todayKey ? 'font-bold' : ''}`}
-                                style={{ color: key === todayKey ? 'var(--app-primary)' : (inMonth ? 'var(--text-secondary)' : 'var(--text-muted)') }}
-                            >
-                                {day.getDate()}
-                            </span>
-                            {(expandedDay === key ? entries : entries.slice(0, MAX_CHIPS_PER_DAY)).map((entry, i) => chip(entry, i))}
-                            {entries.length > MAX_CHIPS_PER_DAY ? (
-                                // Was an inert <span>: the 4th and later events
-                                // on a day could not be reached at all.
-                                <button
-                                    type="button"
-                                    onClick={() => setExpandedDay(expandedDay === key ? null : key)}
-                                    className="text-[11px] px-1 text-left underline decoration-dotted focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--text-secondary)] [color:var(--text-secondary)]!"
-                                    aria-expanded={expandedDay === key}
-                                >
-                                    {t('studio_apps_runtime.calendar.more', '+{n} more', { n: entries.length - MAX_CHIPS_PER_DAY })}
-                                </button>
-                            ) : null}
-                        </div>
-                    );
-                })}
-            </div>
+            <AppCalendarSection fill={fill} days={days} buckets={buckets} isWeek={isWeek} anchor={anchor} todayKey={todayKey} expandedDay={expandedDay} chip={chip} setExpandedDay={setExpandedDay} t={t} />
         </div>
     );
+}
+
+function AppCalendarSection({ fill, days, buckets, isWeek, anchor, todayKey, expandedDay, chip, setExpandedDay, t }: { fill: boolean; days: Date[]; buckets: Map<string, { row: CalendarRow; start: Date; }[]>; isWeek: boolean; anchor: Date; todayKey: string; expandedDay: string | null; chip: (entry: { row: CalendarRow; }, i: string | number | bigint | null) => JSX.Element; setExpandedDay: Dispatch<SetStateAction<string | null>>; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; }) {
+    return <div
+        className={`grid grid-cols-7 gap-px border${fill ? ' flex-1 min-h-0 overflow-y-auto' : ' overflow-hidden'} [background:var(--border-subtle,var(--border-default))] [border-color:var(--border-default)] [border-radius:var(--app-radius)]`}
+    >
+        {days.map((day) => {
+            const key = dayKey(day);
+            const entries = buckets.get(key) || [];
+            const inMonth = isWeek || day.getMonth() === anchor.getMonth();
+            return (
+                <div
+                    key={key}
+                    data-app-calendar-day={key}
+                    className="min-h-[72px] p-1 flex flex-col gap-0.5"
+                    // The whole cell used to fade to 0.45, on top of
+                    // tokens that are already low-contrast — the day
+                    // numbers and the still-clickable chips went well
+                    // past unreadable. Only the day number dims now.
+                    style={{ background: inMonth ? 'var(--bg-card)' : 'var(--bg-secondary)' }}
+                >
+                    <span
+                        className={`text-[11px] tabular-nums self-end ${key === todayKey ? 'font-bold' : ''}`}
+                        style={{ color: key === todayKey ? 'var(--app-primary)' : (inMonth ? 'var(--text-secondary)' : 'var(--text-muted)') }}
+                    >
+                        {day.getDate()}
+                    </span>
+                    {(expandedDay === key ? entries : entries.slice(0, MAX_CHIPS_PER_DAY)).map((entry, i) => chip(entry, i))}
+                    {entries.length > MAX_CHIPS_PER_DAY ? (
+                        // Was an inert <span>: the 4th and later events
+                        // on a day could not be reached at all.
+                        <button
+                            type="button"
+                            onClick={() => setExpandedDay(expandedDay === key ? null : key)}
+                            className="text-[11px] px-1 text-left underline decoration-dotted focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[var(--text-secondary)] [color:var(--text-secondary)]!"
+                            aria-expanded={expandedDay === key}
+                        >
+                            {t('studio_apps_runtime.calendar.more', '+{n} more', { n: entries.length - MAX_CHIPS_PER_DAY })}
+                        </button>
+                    ) : null}
+                </div>
+            );
+        })}
+    </div>;
 }

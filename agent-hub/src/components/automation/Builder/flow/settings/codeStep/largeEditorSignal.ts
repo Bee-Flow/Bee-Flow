@@ -9,7 +9,7 @@ import { useEffect, useRef } from 'react';
 type Listener = (stepId: string) => void;
 const listeners = new Set<Listener>();
 
-export function requestLargeCodeEditor(stepId: string): void {
+function requestLargeCodeEditor(stepId: string): void {
     for (const l of [...listeners]) l(stepId);
 }
 

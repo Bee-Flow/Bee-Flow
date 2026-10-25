@@ -2,11 +2,8 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { installServer, message, reply, teamChat, type TestServer } from '../../components/projects/workspace/chat/teamChatTestKit';
 import { queryWrapper, testQueryClient } from '../../test/queryWrapper';
-import {
-    discardPendingMessage, foldIn, mergeMessages, refreshTeamChatMessage, teamChatKeys, useCreateProjectChat,
-    useLoadOlderMessages, useSendTeamChatMessage, useTeamChatAgents, useTeamChatMessages, useUpdateProjectChat,
-    type TeamChat, type TeamChatMessage, type TeamChatMessages,
-} from './projectChats';
+import { discardPendingMessage, refreshTeamChatMessage, useCreateProjectChat, useLoadOlderMessages, useSendTeamChatMessage, useTeamChatAgents, useUpdateProjectChat, type TeamChat, type TeamChatMessage, type TeamChatMessages } from './projectChats';
+import { foldIn, mergeMessages, teamChatKeys, useTeamChatMessages } from './useTeamChatMessages';
 
 const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn() }));
 vi.mock('../../utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));

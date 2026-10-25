@@ -17,7 +17,7 @@
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 
 /** One column the server describes for a form-answers table. */
-export interface FormColumn {
+interface FormColumn {
     fieldId: string;
     name?: string;
     retired?: boolean;
@@ -47,13 +47,13 @@ export function isFormAnswers(table: { managedKind?: string | null } | null | un
 }
 
 /** The columns the server describes for a form-answers table, by field id. */
-export function formColumnsOf(source: FormSource | null | undefined): Map<string, FormColumn> {
+function formColumnsOf(source: FormSource | null | undefined): Map<string, FormColumn> {
     const list = Array.isArray(source?.columns) ? source.columns : [];
     return new Map(list.map(c => [c.fieldId, c]));
 }
 
 /** The form's own description of one column (null for `run_id`/`completed_at`). */
-export function formColumnOf(source: FormSource | null | undefined, field: FormField | null | undefined): FormColumn | null {
+function formColumnOf(source: FormSource | null | undefined, field: FormField | null | undefined): FormColumn | null {
     if (!field?.id) return null;
     return formColumnsOf(source).get(field.id) || null;
 }

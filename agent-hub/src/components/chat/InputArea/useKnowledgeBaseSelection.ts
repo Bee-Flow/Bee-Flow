@@ -23,7 +23,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { KnowledgeBase } from '../../../hooks/useKnowledgeBases';
 
-import { saveAttachedKnowledgeBases } from '../conversationKbApi';
+import { saveAttachedKnowledgeBases } from '../../../api/conversationKbApi';
 import { MAX_ATTACHED_KBS, resolveKbClaim } from '../knowledgeBaseClaim';
 
 interface UseKnowledgeBaseSelectionArgs {

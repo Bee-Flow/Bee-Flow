@@ -65,7 +65,7 @@ const EMPTY_INTEG = {
 };
 
 /** The window the tab asks about: explicit dates, or a number of days. */
-export interface RangeParams {
+interface RangeParams {
     startDate?: string | null;
     endDate?: string | null;
     days?: number | null;

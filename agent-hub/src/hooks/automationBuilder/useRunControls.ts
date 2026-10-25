@@ -2,8 +2,9 @@ import { useCallback, useRef, type Dispatch, type SetStateAction } from 'react';
 import type { DryRun } from '../builderStream';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import type { AutomationBuilderState } from './types';
-import { GATEWAY_DROP, awaitRunAfterDrop, markStepFailed, settleRunStub, stepRowUnchanged } from './dryRun';
+import { GATEWAY_DROP, awaitRunAfterDrop, markStepFailed, settleRunStub, stepRowUnchanged } from '../../api/dryRun';
 import { logger } from '../../utils/logger';
+import { request, errorBody, RefusedError } from '../../api/mutate';
 
 /**
  * The run controls of the automation builder: discovering an active run,
@@ -216,9 +217,15 @@ export default function useRunControls(
         const startsFreshRun = runId !== polledRunIdRef.current && !partialRunRef.current;
         polledRunIdRef.current = runId;
         try {
-            const r = await authFetch(`${API_BASE}/api/automation/runs/${encodeURIComponent(runId)}/steps`);
+            let r: Response;
+            try {
+                r = await request(`${API_BASE}/api/automation/runs/${encodeURIComponent(runId)}/steps`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const j = errorBody(err) ?? {};
+                return null;
+            }
             const j = await r.json().catch(() => ({}));
-            if (!r.ok) return null;
             const steps = Array.isArray(j.steps) ? j.steps : [];
             // Responses are applied in ARRIVAL order, which is not issue order:
             // a slow poll landing after a newer one used to re-freeze the panels

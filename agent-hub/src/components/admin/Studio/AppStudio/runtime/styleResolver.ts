@@ -14,9 +14,10 @@
  */
 
 import type { InlineStyle, ResolvedNodeStyle, StyleKnobs, StyledNode } from './styleResolver.types';
-
-// One spacing step in px (multiplied by the --app-space density var).
-export const SPACE_STEP_PX = 4;
+import { SPACE_STEP_PX, ROLE_COLORS, HEX_RE, RADIUS_VALUES, ALIGN_VALUES, WEIGHT_VALUES, SIZE_FONT, HEIGHT_PX, FLEX_FILL, SOFT_PRIMARY_GRADIENT, HIDE_BANDS } from './styleResolver.constants';
+import { sizeNumber, resolveHeightCss } from './styleResolver.helpers';
+export { isFill, fillRowTemplate, resolveHeightCss } from './styleResolver.helpers';
+export { SPACE_STEP_PX, ROLE_COLORS, HEIGHT_PX, FLEX_FILL, SOFT_PRIMARY_GRADIENT } from './styleResolver.constants';
 
 /** calc() for N spacing steps honouring the theme density multiplier. */
 export function spaceSteps(n?: number | null): string {
@@ -24,18 +25,6 @@ export function spaceSteps(n?: number | null): string {
     if (steps <= 0) return '0px';
     return `calc(${steps * SPACE_STEP_PX}px * var(--app-space, 1))`;
 }
-
-// Role → color. primary follows the theme var; neutral uses the platform
-// text token; the status roles use the house emerald/amber/red/sky hexes
-// (see shared/statusTokens.ts / shared/Toast.tsx for the same family).
-export const ROLE_COLORS: Record<string, string> = {
-    primary: 'var(--app-primary)',
-    neutral: 'var(--text-secondary)',
-    success: '#10b981',
-    warning: '#f59e0b',
-    danger: '#ef4444',
-    info: '#0ea5e9',
-};
 
 /**
  * A role colour used as TEXT, rather than as a fill.
@@ -63,8 +52,6 @@ export const roleTextColor = (tone?: string | null): string => {
  */
 export const roleFillContrast = (tone?: string | null): string => (tone === 'danger' || tone === 'primary' ? '#ffffff' : '#111827');
 
-const HEX_RE = /^#[0-9a-fA-F]{6}$/;
-
 /** colorOrRole knob value → CSS color, or null to inherit. */
 export function resolveColor(value?: string | null): string | null {
     if (value == null) return null;
@@ -73,73 +60,10 @@ export function resolveColor(value?: string | null): string | null {
     return null;
 }
 
-// radius knob: null inherits the theme radius; 'full' is the pill shape.
-const RADIUS_VALUES: Record<string, string> = { none: '0px', sm: '4px', md: '8px', lg: '12px', full: '9999px' };
-
 export function resolveRadius(value?: string | null): string | undefined {
     if (value === undefined) return undefined;       // knob not present on this node
     if (value === null) return 'var(--app-radius)';  // inherit theme
     return RADIUS_VALUES[value] || 'var(--app-radius)';
-}
-
-const ALIGN_VALUES: Record<string, 'left' | 'center' | 'right'> = { start: 'left', center: 'center', end: 'right' };
-const WEIGHT_VALUES: Record<string, number> = { regular: 400, medium: 500, semibold: 600 };
-const SIZE_FONT: Record<string, string | null> = { sm: '0.875em', md: null, lg: '1.125em' };
-// 'xl' is the document-viewer tier: a PDF at 320px is a postage stamp, and
-// 'fill' collapses inside a tab whose ancestors are not full-height.
-export const HEIGHT_PX: Record<string, string> = { sm: '120px', md: '200px', lg: '320px', xl: '620px' };
-
-/**
- * `flex: 1 1 0` — as LONGHANDS, deliberately.
- *
- * jsdom's cssstyle does not implement the `flex` shorthand: assigning it drops
- * the declaration on the floor, so the rule was invisible to every DOM-level
- * test and the height chain could break without a single test noticing (it did,
- * for as long as height:'fill' has existed). Longhands are identical in a
- * browser and actually observable in a test.
- */
-export const FLEX_FILL = Object.freeze({ flexGrow: 1, flexShrink: 1, flexBasis: 0 });
-
-/**
- * True when this node asked to take the leftover space.
- *
- * An explicit heightMode ('px'/'pct'/'vh') overrides the preset entirely, so a
- * node that says 400px is NOT filling even if a stale `height: 'fill'` is still
- * sitting next to it — without this guard the component would add its own
- * h-full/.app-fill treatment on top of a fixed height and the two would fight.
- * For any definition without the advanced knobs this is exactly what it was.
- */
-export const isFill = (node?: StyledNode | null): boolean => !resolveHeightCss(node?.style) && node?.style?.height === 'fill';
-
-/**
- * gridTemplateRows for a container/tab/card that fills its height.
- *
- * A flat `minmax(0, 1fr)` declares ONE row, so it hands the whole height to
- * whatever lands in row 1 and pushes every later row past the bottom edge —
- * a summary above a conversation stretched to fill the panel while the
- * conversation itself was shoved off-screen. Only single-row layouts were ever
- * right.
- *
- * So: walk the 12-column flow, and give the slack to the row holding the child
- * that ASKED to fill (the last such row; the first row otherwise falls back to
- * the last row, which is where growable content nearly always sits). Every
- * other row stays at content height. One row still resolves to the old value
- * verbatim, so existing definitions render byte-identically.
- */
-export function fillRowTemplate(node?: StyledNode | null): string {
-    const kids = Array.isArray(node?.children) ? node.children : [];
-    const rows: StyledNode[][] = [];
-    let used = 0;
-    for (const kid of kids) {
-        const raw = Number(kid?.style?.span);
-        const span = Math.min(12, Math.max(1, Number.isFinite(raw) ? raw : 12));
-        if (rows.length === 0 || used + span > 12) { rows.push([kid]); used = span; }
-        else { rows[rows.length - 1].push(kid); used += span; }
-    }
-    if (rows.length <= 1) return 'minmax(0, 1fr)';
-    let grow = rows.findIndex((row) => row.some((kid) => isFill(kid)));
-    if (grow < 0) grow = rows.length - 1;
-    return rows.map((_, i) => (i === grow ? 'minmax(0, 1fr)' : 'auto')).join(' ');
 }
 
 /**
@@ -182,9 +106,6 @@ export function resolveHeight(value?: string | number | null): string | null {
 // definition without these knobs produces byte-identical output to before.
 // ---------------------------------------------------------------------------
 
-/** Whole-number knob value, or null (mirrors what canonicalize already stored). */
-const sizeNumber = (v?: number | null): number | null => (Number.isFinite(v) ? Math.round(Number(v)) : null);
-
 /**
  * widthMode/widthValue → a CSS width, or null when the grid owns the width.
  * 'pct' resolves against the grid cell — the box the author's `span` reserved.
@@ -195,22 +116,6 @@ export function resolveWidthCss(s?: StyleKnobs | null): string | null {
     const n = sizeNumber(s?.widthValue);
     if (n === null) return null;
     return mode === 'px' ? `${n}px` : `${n}%`;
-}
-
-/**
- * heightMode/heightValue → a CSS height, or null when the `height` preset owns it.
- *
- * 'pct' is emitted, not swallowed: the server rejects a percentage height whose
- * parent has no definite height (validate.js style.height_pct_indefinite), so
- * anything that reaches here has something real to measure against.
- */
-export function resolveHeightCss(s?: StyleKnobs | null): string | null {
-    const mode = s && s.heightMode;
-    if (mode !== 'px' && mode !== 'pct' && mode !== 'vh') return null;
-    const n = sizeNumber(s?.heightValue);
-    if (n === null) return null;
-    if (mode === 'pct') return `${n}%`;
-    return `${n}${mode}`;
 }
 
 /**
@@ -244,16 +149,6 @@ export function applyWidth(s: StyleKnobs | null | undefined, style: InlineStyle)
     style.maxWidth = '100%';
     return width;
 }
-
-/**
- * background: 'gradient' — a very soft wash out of the app's primary.
- *
- * Built from color-mix over transparent (NEVER a hex) so it follows whatever
- * primary the author picked and sits harmlessly over the host light/dark
- * ground; at 12% → 2% the text on it stays var(--text-primary) in both.
- */
-export const SOFT_PRIMARY_GRADIENT =
-    'linear-gradient(135deg, color-mix(in srgb, var(--app-primary) 12%, transparent), color-mix(in srgb, var(--app-primary) 2%, transparent))';
 
 export function resolveBackground(value?: string | null): string | null {
     if (value === 'surface') return 'var(--bg-card)';
@@ -345,13 +240,6 @@ function applyNodeHeight(s: StyleKnobs, style: InlineStyle): void {
     }
 }
 
-/**
- * hideBelow/hideAbove knob -> media-query classes (rules in runtime.css). A
- * class rather than an inline style for the same reason the span rides along
- * as one: only a stylesheet can read the viewport. 'none'/absent emits
- * nothing, so a definition without the knobs keeps its exact className.
- */
-const HIDE_BANDS: Array<string | undefined> = ['sm', 'md', 'lg'];
 function hideClasses(s: StyleKnobs): string {
     return (HIDE_BANDS.includes(s.hideBelow) ? ` app-hide-below-${s.hideBelow}` : '')
         + (HIDE_BANDS.includes(s.hideAbove) ? ` app-hide-above-${s.hideAbove}` : '');

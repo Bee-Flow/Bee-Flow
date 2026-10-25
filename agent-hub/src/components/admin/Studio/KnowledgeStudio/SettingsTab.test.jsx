@@ -3,7 +3,8 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { knowledgeApi } from './knowledgeApi';
-import SettingsTab, { surfacesOf, attachedCount } from './SettingsTab';
+import SettingsTab, { surfacesOf } from './SettingsTab';
+import { attachedCount } from './SettingsTabSection2';
 
 /**
  * The settings tab puts two questions next to each other that look like one:

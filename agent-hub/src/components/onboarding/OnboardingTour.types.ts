@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
-import type { StepAdvanceOn } from './lessons.types';
+import type { StepAdvanceOn } from '../../api/lessons.types';
 
 // What a tour step may wait for before it advances on its own.
-export type TourAdvanceOn = StepAdvanceOn;
+type TourAdvanceOn = StepAdvanceOn;
 
 export interface TourStep {
     id: string;

@@ -23,11 +23,11 @@
  * nothing else: the brief, the buttons and the history all still render.
  */
 import React, { useEffect, useState } from 'react';
-import * as coworkApi from './coworkApi';
+import * as coworkApi from '../../api/coworkApi';
 import { formatDuration } from './coworkFormat';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { TranslateFn } from '../../hooks/useTranslation';
-import type { CoworkStatsData } from './cowork.types';
+import type { CoworkStatsData } from '../../api/cowork.types';
 
 interface FigureProps {
     label: string;

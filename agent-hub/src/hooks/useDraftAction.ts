@@ -20,7 +20,7 @@ import { API_BASE, authFetch } from '../utils/helpers';
 
 /** 'pending' | 'executing' | 'done' | 'discarded' | `failed: <reason>` — the
  *  failure case carries the server's wording, so this stays a string. */
-export type DraftStatus = string;
+type DraftStatus = string;
 
 export type DraftStatusMap = Record<number, DraftStatus>;
 

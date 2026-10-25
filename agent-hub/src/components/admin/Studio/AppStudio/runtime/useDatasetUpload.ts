@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import useTranslation from '../../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../../utils/helpers';
+import { mutate, errorBody, RefusedError } from '../../../../../api/mutate';
 
 /**
  * App Studio runtime — chunked uploader for LARGE datasets (multi-GB VCFs).
@@ -33,14 +34,20 @@ export default function useDatasetUpload(appId: string | null | undefined) {
         abortRef.current = ac;
         const base = `${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/large-datasets`;
 
-        const initRes = await authFetch(base, {
+        let initRes: Response;
+        try {
+            initRes = await mutate(base, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: file.name, bytes: file.size, kind: 'vcf' }),
             signal: ac.signal,
         });
+        } catch (apiErr) {
+            if (!(apiErr instanceof RefusedError)) throw apiErr;
+            const init = errorBody(apiErr) ?? {};
+            throw new Error(init.error || tRef.current('studio_apps_runtime.dataset_upload.start_failed', 'Could not start the upload ({status})', { status: apiErr.status }));
+        }
         const init = await initRes.json().catch(() => ({}));
-        if (!initRes.ok) throw new Error(init.error || tRef.current('studio_apps_runtime.dataset_upload.start_failed', 'Could not start the upload ({status})', { status: initRes.status }));
         const { datasetId, partSize, partsTotal } = init;
         if (typeof datasetId !== 'string' || !datasetId || !(partSize > 0) || !Number.isInteger(partsTotal)) {
             throw new Error(tRef.current('studio_apps_runtime.dataset_upload.start_failed', 'Could not start the upload ({status})', { status: initRes.status }));
@@ -79,14 +86,20 @@ export default function useDatasetUpload(appId: string | null | undefined) {
             onProgress?.(Math.min(99, Math.floor((n / partsTotal) * 100)));
         }
 
-        const doneRes = await authFetch(`${base}/${encodeURIComponent(datasetId)}/complete`, {
+        let doneRes: Response;
+        try {
+            doneRes = await mutate(`${base}/${encodeURIComponent(datasetId)}/complete`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({}),
             signal: ac.signal,
         });
+        } catch (apiErr) {
+            if (!(apiErr instanceof RefusedError)) throw apiErr;
+            const done = errorBody(apiErr) ?? {};
+            throw new Error(done.error || tRef.current('studio_apps_runtime.dataset_upload.finish_failed', 'Could not finish the upload ({status})', { status: apiErr.status }));
+        }
         const done = await doneRes.json().catch(() => ({}));
-        if (!doneRes.ok) throw new Error(done.error || tRef.current('studio_apps_runtime.dataset_upload.finish_failed', 'Could not finish the upload ({status})', { status: doneRes.status }));
         onProgress?.(100);
         return datasetId;
     }, [appId]);

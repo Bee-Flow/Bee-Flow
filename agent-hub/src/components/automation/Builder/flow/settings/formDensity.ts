@@ -26,7 +26,7 @@ import { NODE_DEFS } from '../nodeDefs';
  * `hasContent`): hiding a thing that is switched on reads as data loss.
  */
 
-export const ADVANCED_SECTION_KEYS = new Set([
+const ADVANCED_SECTION_KEYS = new Set([
     'advanced',   // per-type "Advanced" blocks (forEach, defaultBranch, …)
     'options',    // parse_json / http_request tuning
     'headers',    // http_request

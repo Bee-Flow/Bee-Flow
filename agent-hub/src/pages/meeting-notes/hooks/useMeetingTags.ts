@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import * as api from '../lib/transcriptionsApi';
+import * as api from '../../../api/transcriptionsApi';
 
 /** One row of `GET /api/transcriptions/tags`, as the server may send it. */
 interface RawTagCount {

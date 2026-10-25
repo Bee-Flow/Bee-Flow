@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { EditorSnapshot, Ref } from './agentSaveTypes';
+import type { EditorSnapshot, Ref } from '../../../../api/agentSaveTypes';
 
 export interface BehaviorTogglesDeps {
     allowCopy: boolean;

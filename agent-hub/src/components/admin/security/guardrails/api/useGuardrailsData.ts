@@ -6,25 +6,25 @@ import type { DirectChatBinding, GuardrailCapabilities } from './guardrailsApi';
 import type { RegexRule, RuleCollection } from '../patterns/patternTypes';
 
 /** An organisation of GET /auth/organizations (the console reads only its id). */
-export interface GuardrailOrg {
+interface GuardrailOrg {
     id: string;
     name?: string;
 }
 
 /** GET /api/org-privacy-shield/:orgId — the fields this console reads. */
-export interface GuardrailOrgShield {
+interface GuardrailOrgShield {
     enabled?: boolean;
     collectionIds?: string[];
 }
 
 /** GET /api/org-privacy-shield/user/guard-status. */
-export interface GuardStatus {
+interface GuardStatus {
     configured: boolean;
     reachable: boolean;
 }
 
 /** A reference that points at a collection or rule that no longer exists. */
-export type StaleRef =
+type StaleRef =
     | { kind: 'org_collection'; orgId: string; collectionId: string }
     | { kind: 'directchat_collection'; collectionId: string }
     | { kind: 'collection_rule'; collectionId: string; ruleId: string };
@@ -37,7 +37,7 @@ export type StaleRef =
  * numbers from every family at once and the tabs would otherwise each refetch
  * the same `ai` blob.
  */
-export function useGuardrailsData() {
+function useGuardrailsData() {
     const [capabilities, setCapabilities] = useState<GuardrailCapabilities | null>(null);
     const [rules, setRules] = useState<RegexRule[]>([]);
     const [collections, setCollections] = useState<RuleCollection[]>([]);

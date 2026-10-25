@@ -12,7 +12,7 @@ import React from 'react';
  * CSS ring pattern.
  */
 
-export type SpinnerSize = 'xs' | 'sm' | 'md' | 'lg';
+type SpinnerSize = 'xs' | 'sm' | 'md' | 'lg';
 
 export interface SpinnerProps {
     size?: SpinnerSize;

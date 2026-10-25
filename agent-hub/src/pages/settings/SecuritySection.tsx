@@ -12,6 +12,7 @@ import { securityKeyMessage } from '../../components/mfa/securityKeyMessages';
 import SecurityKeysCard from '../../components/mfa/SecurityKeysCard';
 import { useTranslation } from '../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import { request, RefusedError, mutate, errorBody } from '../../api/mutate';
 
 interface MfaStatus {
     enabled: boolean;
@@ -117,8 +118,13 @@ export default function SecuritySection() {
 
     const loadStatus = async () => {
         try {
-            const res = await authFetch(`${API_BASE}/auth/mfa/status`);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/auth/mfa/status`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                throw new Error(`HTTP ${err.status}`);
+            }
             setStatus(await res.json());
             setStatusError(false);
         } catch (_) { setStatusError(true); }
@@ -147,16 +153,20 @@ export default function SecuritySection() {
     };
 
     const post = async (path: string, body?: { securityKey: AuthenticationResponseJSON; }|{ code: string; }|undefined) => {
-        const res = await authFetch(`${API_BASE}/auth/mfa/${path}`, {
+        let res: Response;
+        try {
+            res = await mutate(`${API_BASE}/auth/mfa/${path}`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body || {}),
         });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
+        } catch (apiErr) {
+            if (!(apiErr instanceof RefusedError)) throw apiErr;
+            const data = errorBody(apiErr) ?? {};
             const err: Error & { code?: string } = new Error(data.error || 'Request failed');
-            err.code = res.status === 429 ? 'rate_limited' : data.code;
+            err.code = apiErr.status === 429 ? 'rate_limited' : data.code;
             throw err;
         }
+        const data = await res.json().catch(() => ({}));
         return data;
     };
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import type { ChatMessage } from '../../../hooks/useChatEngine/types';
 import { latestAssistantId } from '../webpageChatMessages';
-import { isPrimaryFile, type PrimaryFile, type PrimarySetters } from '../webpageEditorTypes';
+import { isPrimaryFile, type PrimaryFile, type PrimarySetters } from '../../../api/webpageEditorTypes';
 
 type Resolution = 'kept' | 'undone';
 

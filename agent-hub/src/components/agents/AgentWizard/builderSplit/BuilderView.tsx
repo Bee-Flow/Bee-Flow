@@ -4,7 +4,7 @@ import BuilderChatPanel from './BuilderChatPanel';
 import BuilderMain from './BuilderMain';
 import BuilderModals from './BuilderModals';
 import { LimitWarningBanner } from './BuilderTabPanels';
-import type { Ref } from './agentSaveTypes';
+import type { Ref } from '../../../../api/agentSaveTypes';
 import type { NavigateFn, HeaderExtras } from './editorTypes';
 import type { RelativeTimeInput } from '../../../../hooks/useRelativeTime';
 import type useAgentTests from '../tests/useAgentTests';

@@ -16,13 +16,13 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { OrgSubscription } from '../admin/org/orgInfo/license/licenseShared';
 import { API_BASE } from '../../utils/helpers';
-import { cloudFetch } from '../../utils/cloudFetch';
+import { cloudFetch } from '../../api/cloudFetch';
 
 export interface Subscription extends OrgSubscription {
     status: string;
 }
 
-export interface SubscriptionContextValue {
+interface SubscriptionContextValue {
     sub: Subscription | null;
     loading: boolean;
     hasActiveSub: boolean;
@@ -82,4 +82,3 @@ export function useSubscriptionContext() {
     return useContext(SubscriptionContext);
 }
 
-export default SubscriptionContext;

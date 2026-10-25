@@ -9,7 +9,7 @@ import { SWITCH_COLS } from './OwnDataRow';
  * matrix. A switch cell has to announce which type AND which question it
  * answers, and a table cell does that on its own.
  */
-export function OwnDataTable({
+function OwnDataTable({
     caption, children, t,
 }: { caption: string; children: React.ReactNode; t: TranslateFn }) {
     const th = 'px-3 py-2 text-[10px] font-bold uppercase tracking-[0.05em] text-[var(--text-tertiary)]';

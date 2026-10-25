@@ -5,7 +5,7 @@ import StageSettingsTab from './pipeline/settings/StageSettingsTab';
 import VariablesDeclarations from './pipeline/settings/VariablesDeclarations';
 import StageHistory from './pipeline/StageHistory';
 import StageRail from './pipeline/StageRail';
-import { getPipeline, stageFromSearch, type PipelineStage, type Pipeline, type StageName, type StageKey } from './pipeline/stagesApi';
+import { getPipeline, stageFromSearch, type PipelineStage, type Pipeline, type StageName, type StageKey } from '../../../../api/stagesApi';
 import StageStatus from './pipeline/StageStatus';
 import { useStageLabel } from './pipeline/StageSwitcher';
 import Notice from './Notice';
@@ -28,9 +28,10 @@ import { formatRelative } from '../../../projects/relativeTime';
 import StudioSectionHeader from '../../../shared/StudioSectionHeader';
 import type { SolutionProject, SolutionDetailViewProps, SolutionDetailProps } from './SolutionDetail.types';
 import { logger } from '../../../../utils/logger';
+import { mutate, errorBody, RefusedError } from '../../../../api/mutate';
 export type { SolutionProject } from './SolutionDetail.types';
 
-export { blueprintVersionFor, controlBadge };
+;
 
 function SolutionDetailView({
     project, onBack, currentUserId, dataId, stage, stageRow, pipeline, pipelineState, onSelectStage, initialTab,
@@ -65,7 +66,6 @@ function SolutionDetailView({
     // The server's name is the truth; the local copy only exists so a rename
     // paints instantly and can be rolled back when the server refuses. Same
     // shape, and the same lint exemption, as StudioSectionHeader's own draft.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { setName(project.name); }, [project.name]);
 
     // The header needs all five the moment it paints: the audience capsule, the
@@ -98,13 +98,15 @@ function SolutionDetailView({
     const removeResource = async (kind: string, item: { id: string }) => {
         setRemoveError(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/projects/${project.id}/resources`, {
+            try {
+                await mutate(`${API_BASE}/api/projects/${project.id}/resources`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ kind, id: item.id, attach: false }),
             });
-            if (!res.ok) {
-                const body = await res.json().catch(() => null);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const body = errorBody(err) ?? null;
                 setRemoveError(body?.error || t('solutions.remove_failed', 'That could not be removed from the Solution.'));
                 return;
             }

@@ -23,7 +23,7 @@ const api = vi.hoisted(() => ({
     listCoworkAgents: vi.fn(),
 }));
 
-vi.mock('./coworkApi', () => api);
+vi.mock('../../api/coworkApi', () => api);
 // The agent picker is beta-gated; default the tests to "no beta".
 vi.mock('../licensing/EntitlementsContext', () => ({
     useEntitlements: () => ({ loading: false, can: () => false }),

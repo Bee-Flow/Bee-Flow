@@ -23,7 +23,7 @@ export interface VisibilityWebpage {
  * list endpoint carries it, the state is simply never reached — which is the
  * safe direction: it under-claims reach, never over-claims privacy.
  */
-export function isPubliclyShared(webpage?: VisibilityWebpage | null): boolean {
+function isPubliclyShared(webpage?: VisibilityWebpage | null): boolean {
     return Number(webpage?.publicShareCount) > 0;
 }
 

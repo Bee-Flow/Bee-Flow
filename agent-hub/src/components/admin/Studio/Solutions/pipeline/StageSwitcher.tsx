@@ -1,6 +1,6 @@
 import { FlaskConical, Hammer, Rocket, type LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../../../../hooks/useTranslation';
-import type { StageName } from './stagesApi';
+import type { StageName } from '../../../../../api/stagesApi';
 
 /**
  * What the three stages look like and are called: the dot, the ink and the border
@@ -25,7 +25,7 @@ export const STAGE_INK: Record<StageName, string> = {
     prd: 'text-[var(--stage-prd,var(--success))]',
 };
 
-export const STAGE_BORDER: Record<StageName, string> = {
+const STAGE_BORDER: Record<StageName, string> = {
     dev: 'border-[var(--border-default)]',
     uat: 'border-[var(--stage-uat,var(--warning))]',
     prd: 'border-[var(--stage-prd,var(--success))]',

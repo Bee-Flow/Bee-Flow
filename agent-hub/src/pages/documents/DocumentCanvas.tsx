@@ -22,7 +22,7 @@ import { deskColour, parseFrameMessage, type FrameKey, type FrameMessage, type F
 import { usePreviewHtml } from './documentQueries';
 import { logger } from '../../utils/logger';
 
-export interface InsertParameter { key: string; type?: string; fields?: Array<{ key: string }> }
+interface InsertParameter { key: string; type?: string; fields?: Array<{ key: string }> }
 
 export interface CanvasHandle {
     flush(): Promise<void>;
@@ -38,7 +38,7 @@ export interface CanvasHandle {
     reveal(anchor: CommentAnchor): void;
 }
 
-export interface DocumentCanvasProps {
+interface DocumentCanvasProps {
     documentId: string;
     editing: boolean;
     reloadKey: number;

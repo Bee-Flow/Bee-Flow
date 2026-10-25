@@ -5,7 +5,7 @@
 
 import type { PendingTeamChatMessage, TeamChatAuthorKind, TeamChatMessage } from '../../../../api/queries/projectChats';
 
-export const GROUP_WINDOW_MS = 5 * 60_000;
+const GROUP_WINDOW_MS = 5 * 60_000;
 
 export type ChatItem =
     | { type: 'message'; key: string; message: TeamChatMessage }

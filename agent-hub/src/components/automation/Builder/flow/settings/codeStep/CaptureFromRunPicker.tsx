@@ -9,7 +9,7 @@ const FINISHED = new Set(['success', 'error', 'cancelled']);
 const FILTERS: RunListFilters = { status: 'all', period: 0, q: '', showTests: true };
 
 /** Finished runs, newest first. Exported for the test. */
-export function finishedRuns(runs: RunRowData[]): RunRowData[] {
+function finishedRuns(runs: RunRowData[]): RunRowData[] {
     return runs
         .filter((r) => FINISHED.has(String(r.status || '')))
         .sort((a, b) => String(b.startedAt || '').localeCompare(String(a.startedAt || '')));

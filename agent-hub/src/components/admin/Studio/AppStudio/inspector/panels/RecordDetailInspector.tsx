@@ -64,7 +64,7 @@ function getFormatLabels(t: TranslateFn): Record<string, string> {
 // Mirror of record_detail.layout (componentSpecs.js) — first value is the
 // default and renders what every record_detail always rendered.
 
-export default function RecordDetailInspector({ node, definition, onCommit, disabled = false }: PanelProps<RecordDetailProps>) {
+function RecordDetailInspector({ node, definition, onCommit, disabled = false }: PanelProps<RecordDetailProps>) {
     const props = node.props || {};
     const { t } = useTranslation();
     const LAYOUT_OPTIONS = getLayoutOptionsOptions(t);

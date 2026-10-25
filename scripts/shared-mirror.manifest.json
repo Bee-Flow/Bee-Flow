@@ -116,6 +116,14 @@
                     "@/features/flow-editor/bindings/walkPath"
                 ],
                 [
+                    "../../../../utils/bindingHelpers.helpers",
+                    "@/features/flow-editor/bindings/walkPath"
+                ],
+                [
+                    "../../../../../utils/bindingHelpers.helpers",
+                    "@/features/flow-editor/bindings/walkPath"
+                ],
+                [
                     "./refTokens",
                     "@/features/flow-editor/bindings/refTokens"
                 ],
@@ -249,9 +257,13 @@
             "why": "The approval chain's caps and seat/stage sanitising (the server's rulebook): the web's settings and the phone's approval editor share one implementation; formState/approvalStages.ts re-exports it."
         },
         {
-            "source": "agent-hub/src/utils/bindingHelpers.ts",
-            "target": "mobile/src/features/flow-editor/bindings/mirror/utils/bindingHelpers.ts",
+            "source": "agent-hub/src/utils",
+            "target": "mobile/src/features/flow-editor/bindings/mirror/utils",
             "transform": "none",
+            "include": [
+                "bindingHelpers.ts",
+                "bindingHelpers.helpers.ts"
+            ],
             "importRewrite": [
                 [
                     "@shared/expr/engine.mjs",

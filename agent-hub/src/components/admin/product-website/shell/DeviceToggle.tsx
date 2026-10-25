@@ -8,7 +8,7 @@ import Tooltip from '../../../shared/Tooltip';
 // Preview device presets — a pure max-width on the stage's iframe wrapper.
 // No postMessage / renderer change: the marketing site is responsive, so
 // narrowing the frame IS the mobile preview.
-export interface DevicePreset {
+interface DevicePreset {
     key: string;
     width: number | null;
     icon: string;
@@ -16,7 +16,7 @@ export interface DevicePreset {
     titleKey: string;
 }
 
-export const DEVICES: DevicePreset[] = [
+const DEVICES: DevicePreset[] = [
     { key: 'desktop', width: null, icon: 'Monitor',    title: 'Desktop preview', titleKey: 'cms_site.site.shell.device_desktop' },
     { key: 'tablet',  width: 768,  icon: 'Tablet',     title: 'Tablet preview (768px)', titleKey: 'cms_site.site.shell.device_tablet' },
     { key: 'mobile',  width: 390,  icon: 'Smartphone', title: 'Mobile preview (390px)', titleKey: 'cms_site.site.shell.device_mobile' },
@@ -31,13 +31,13 @@ export const DEVICES: DevicePreset[] = [
 // ProductWebsitePanel. Zoom persists per user via scopedStorage;
 // rotation is session-only (a glance, not a setting).
 
-export interface ZoomLevel {
+interface ZoomLevel {
     value: string;
     label: string;
     labelKey?: string;
 }
 
-export const ZOOM_LEVELS: ZoomLevel[] = [
+const ZOOM_LEVELS: ZoomLevel[] = [
     { value: 'fit',  label: 'Fit', labelKey: 'cms_site.site.shell.zoom_fit' },
     { value: '0.5',  label: '50%' },
     { value: '0.75', label: '75%' },
@@ -77,7 +77,7 @@ export function useStageViewport() {
     return useSyncExternalStore(subscribeViewport, getViewportState);
 }
 
-export function setStageZoom(zoom: string) {
+function setStageZoom(zoom: string) {
     if (isZoom(zoom)) patchViewport({ zoom });
 }
 

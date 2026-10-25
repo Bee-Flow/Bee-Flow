@@ -14,7 +14,7 @@ import { scopesOf } from './stepGraph';
 
 export const ROW_H = 92;      // one step, plus breathing room
 export const INDENT = 56;     // how far a branch steps to the right
-export const SCOPE_GAP = 16;  // after a container's last branch
+const SCOPE_GAP = 16;  // after a container's last branch
 export const NODE_W = 260;
 
 /**

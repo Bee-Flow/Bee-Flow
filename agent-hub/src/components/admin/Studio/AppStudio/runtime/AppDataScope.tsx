@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import React, { useCallback, useMemo, useSyncExternalStore } from 'react';
 import type { ReactNode } from 'react';
-import { requestsForBindings, subscribeBatchAvailability } from './dataBatchClient';
+import { requestsForBindings, subscribeBatchAvailability } from '../../../../../api/dataBatchClient';
 import { DataProvider, useDataState } from './DataContext';
 import type { DataState } from './DataContext';
 import { dataCacheKey, resolveBinding, resolveBindingFilters, resolveBindingParams, resolveBindingShape } from './resolveBinding';

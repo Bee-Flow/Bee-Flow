@@ -3,7 +3,7 @@
 /** A filter / aggregate-shape value: a literal, or `{ kind: 'formula', expr }` resolved against the scope. */
 export type FilterValue = FormulaValue | string | number | boolean | null | undefined | (unknown[] & { kind?: undefined; expr?: undefined });
 
-export interface FormulaValue {
+interface FormulaValue {
     kind?: string;
     expr?: unknown;
 }
@@ -86,7 +86,7 @@ export interface BagArg {
     scope?: Scope;
 }
 
-export interface ActionEntry {
+interface ActionEntry {
     status?: string;
     result?: unknown;
     error?: unknown;

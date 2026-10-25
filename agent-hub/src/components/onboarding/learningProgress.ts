@@ -12,10 +12,11 @@
 import scopedStorage from '../../utils/scopedStorage';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { isEphemeralLessonId } from './lessons';
-import type { LessonProgressEntry, LessonUser, ProgressMap, StepOrigin, StepState } from './lessons.types';
+import type { LessonProgressEntry, LessonUser, ProgressMap, StepOrigin, StepState } from '../../api/lessons.types';
 import { logger } from '../../utils/logger';
+import { request, RefusedError } from '../../api/mutate';
 
-export const LEARNING_PROGRESS_KEY = 'learningProgress';
+const LEARNING_PROGRESS_KEY = 'learningProgress';
 
 const hasWindow = (): boolean => typeof window !== 'undefined';
 
@@ -40,7 +41,7 @@ export function readLearningProgress(user: LessonUser | null | undefined): Progr
 // A lesson counts as complete only when its entry carries a completedAt — a bare
 // entry that only holds resume `steps` (a lesson started but not finished) is NOT
 // complete. (Legacy entries are always { completedAt }, so this is compatible.)
-export function isLessonComplete(user: LessonUser | null | undefined, lessonId: string): boolean {
+function isLessonComplete(user: LessonUser | null | undefined, lessonId: string): boolean {
     return lessonEntryComplete(readLearningProgress(user)[lessonId]);
 }
 
@@ -155,10 +156,13 @@ export async function saveStepState(user: LessonUser | null | undefined, lessonI
 
 // Pull the authoritative map from the server and mirror it locally so a fresh
 // browser shows cross-device completion. Returns the map (falls back to local).
-export async function fetchLearningProgress(user: LessonUser | null | undefined): Promise<ProgressMap> {
+async function fetchLearningProgress(user: LessonUser | null | undefined): Promise<ProgressMap> {
     try {
-        const res = await authFetch(`${API_BASE}/ai/user-settings`);
-        if (res.ok) {
+        const res = await request(`${API_BASE}/ai/user-settings`).catch((err: unknown) => {
+            if (err instanceof RefusedError) return null;
+            throw err;
+        });
+        if (res) {
             const data = await res.json();
             const map = data?.[LEARNING_PROGRESS_KEY];
             if (map && typeof map === 'object') {

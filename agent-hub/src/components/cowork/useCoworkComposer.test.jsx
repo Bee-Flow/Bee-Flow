@@ -14,7 +14,7 @@ import useCoworkComposer from './useCoworkComposer';
 const composeCowork = vi.fn();
 const createCowork = vi.fn();
 
-vi.mock('./coworkApi', () => ({
+vi.mock('../../api/coworkApi', () => ({
     composeCowork: (...a) => composeCowork(...a),
     createCowork: (...a) => createCowork(...a),
     listCoworkAgents: async () => [],

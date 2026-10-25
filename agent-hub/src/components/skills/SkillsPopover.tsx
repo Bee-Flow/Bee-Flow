@@ -4,14 +4,15 @@ import { deriveCompletedSkillIds, classifySessionSkill, type SessionSkill } from
 import SkillFormModal from './SkillFormModal';
 import { useSkills, type SkillForm } from '../../hooks/useSkills';
 import useTranslation from '../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
 import { toast } from '../shared/Toast';
 import useConfirm from '../shared/useConfirm';
 import type { SessionSkillView, SkillsPopoverProps } from './SkillsPopover.types';
 import { logger } from '../../utils/logger';
+import { request, RefusedError, mutate, errorBody } from '../../api/mutate';
 export type { SkillsPopoverProps } from './SkillsPopover.types';
 
-export const SKILL_CAP = 5;
+const SKILL_CAP = 5;
 
 export default function SkillsPopover({
     user,
@@ -118,8 +119,13 @@ export default function SkillsPopover({
     const refreshSessionSkills = async () => {
         if (!directMode || !directConversationId) return;
         try {
-            const res = await authFetch(`${API_BASE}/ai/direct/conversations/${directConversationId}/session-skills`);
-            if (!res.ok) return;
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/ai/direct/conversations/${directConversationId}/session-skills`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                return;
+            }
             const data = await res.json();
             setSessionSkills(Array.isArray(data.skills) ? data.skills : []);
         } catch (err) { logger.debug('ignore', err); }
@@ -167,13 +173,16 @@ export default function SkillsPopover({
         }
         setRegenerating(true);
         try {
-            const res = await authFetch(`${API_BASE}/ai/direct/conversations/${directConversationId}/session-skills/regenerate`, {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/ai/direct/conversations/${directConversationId}/session-skills/regenerate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({}),
             });
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
+            } catch (apiErr) {
+                if (!(apiErr instanceof RefusedError)) throw apiErr;
+                const err = errorBody(apiErr) ?? {};
                 throw new Error(err.error || 'Failed to regenerate skills');
             }
             const data = await res.json();
@@ -190,11 +199,14 @@ export default function SkillsPopover({
         if (!directConversationId || !skillId || deletingSessionSkillId) return;
         setDeletingSessionSkillId(skillId);
         try {
-            const res = await authFetch(`${API_BASE}/ai/direct/conversations/${directConversationId}/session-skills/${skillId}`, {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/ai/direct/conversations/${directConversationId}/session-skills/${skillId}`, {
                 method: 'DELETE',
             });
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
+            } catch (apiErr) {
+                if (!(apiErr instanceof RefusedError)) throw apiErr;
+                const err = errorBody(apiErr) ?? {};
                 throw new Error(err.error || 'Failed to delete skill');
             }
             const data = await res.json();
@@ -211,13 +223,15 @@ export default function SkillsPopover({
         if (!directConversationId || !skillId) return;
         setImportingSkillId(skillId);
         try {
-            const res = await authFetch(`${API_BASE}/ai/direct/conversations/${directConversationId}/session-skills/${skillId}/import`, {
+            try {
+                await mutate(`${API_BASE}/ai/direct/conversations/${directConversationId}/session-skills/${skillId}/import`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ isShared: false, dynamicActivation: true }),
             });
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
+            } catch (apiErr) {
+                if (!(apiErr instanceof RefusedError)) throw apiErr;
+                const err = errorBody(apiErr) ?? {};
                 throw new Error(err.error || 'Failed to import skill');
             }
             setImportedSessionSkillIds(prev => prev.includes(skillId) ? prev : [...prev, skillId]);

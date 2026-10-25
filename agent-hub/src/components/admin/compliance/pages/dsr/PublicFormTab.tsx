@@ -10,7 +10,7 @@ import { useTranslation } from '../../../../../hooks/useTranslation';
 import { logger } from '../../../../../utils/logger';
 
 /** The public route App.jsx mounts before any auth handling. */
-export const PUBLIC_DSR_PATH = '/privacy/requests';
+const PUBLIC_DSR_PATH = '/privacy/requests';
 
 /** `settings.public_dsr_url` when the org has one, else this origin + the public path. */
 export function publicDsrUrl(settings: { public_dsr_url?: unknown; dsr_public_url?: unknown } | null | undefined, origin?: string | null): string {

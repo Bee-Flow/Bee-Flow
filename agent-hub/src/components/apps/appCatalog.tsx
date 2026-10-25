@@ -78,7 +78,7 @@ export interface AppAvailabilityGates {
 // (Tailwind defaults: w-4=16, w-5=20, w-6=24).
 const TW_SIZE_TO_PX: Record<string, number> = { 'w-4 h-4': 16, 'w-5 h-5': 20, 'w-6 h-6': 24 };
 
-export function renderAppLogo(id: string, sizeClass = 'w-5 h-5'): React.ReactElement {
+function renderAppLogo(id: string, sizeClass = 'w-5 h-5'): React.ReactElement {
     const px = TW_SIZE_TO_PX[sizeClass] || 20;
     // Same order as the builder's <IntegrationLogo>: an app's own glyph
     // (a Nextcloud app) before the shared brand SVG.
@@ -216,7 +216,7 @@ export function filterAvailableApps(apps: AppDef[], {
 }
 
 // Which section of the overlay an app lands in.
-export function appCategory(app: AppDef): string {
+function appCategory(app: AppDef): string {
     if (app.isStep) return app.stepCategory || 'Steps';
     if (app.isMcp) return 'MCP servers';
     if (app.isN8n) return 'n8n';
@@ -227,7 +227,7 @@ export function appCategory(app: AppDef): string {
 
 // Fixed priority for the integration buckets; step categories (priority 50)
 // sort alphabetically between them and MCP/n8n.
-export const CAT_PRIORITY: Record<string, number> = { Google: 0, Microsoft: 1, Other: 2, 'MCP servers': 100, n8n: 101 };
+const CAT_PRIORITY: Record<string, number> = { Google: 0, Microsoft: 1, Other: 2, 'MCP servers': 100, n8n: 101 };
 
 export function groupAppsByCategory(apps: AppDef[]): { byCat: Record<string, AppDef[]>; orderedCats: string[] } {
     const byCat: Record<string, AppDef[]> = {};

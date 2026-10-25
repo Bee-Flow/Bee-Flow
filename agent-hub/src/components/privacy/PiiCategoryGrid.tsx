@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import React, { useId } from 'react';
 
-export interface PiiCategory {
+interface PiiCategory {
     id: string;
     label: string;
     icon?: string;
@@ -41,7 +41,7 @@ interface PiiCategoryGridProps {
     disabled?: boolean;
 }
 
-export function PiiCategoryGrid({ value, onChange, categories, label = 'Kinds of personal data', allLabel = 'All', noneLabel = 'None', disabled = false }: PiiCategoryGridProps) {
+function PiiCategoryGrid({ value, onChange, categories, label = 'Kinds of personal data', allLabel = 'All', noneLabel = 'None', disabled = false }: PiiCategoryGridProps) {
     const selected = Array.isArray(value) ? value : [];
     const legendId = useId();
     const toggle = (id: string) => {

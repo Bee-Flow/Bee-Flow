@@ -27,7 +27,7 @@ interface RunDetailProps {
 }
 
 /** The step the right side shows: the picked one, else the last that produced something. */
-export function focusStep(rows: RunStepRecord[], selectedStepId: string | null): RunStepRecord | null {
+function focusStep(rows: RunStepRecord[], selectedStepId: string | null): RunStepRecord | null {
     return rows.find(s => s.stepId === selectedStepId)
         || [...rows].reverse().find(s => s.output != null || s.error)
         || rows[rows.length - 1] || null;

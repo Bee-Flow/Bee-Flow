@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('./notebookApi', () => ({
+vi.mock('../../../../api/notebookApi', () => ({
     notebookApi: vi.fn(),
     uploadSourceFile: vi.fn(),
     getSourceContent: vi.fn(),
@@ -11,7 +11,7 @@ vi.mock('./notebookApi', () => ({
 }));
 
 import useSourcesPolling, { UNDO_DELETE_MS } from './useSourcesPolling';
-import { notebookApi, uploadSourceFile } from './notebookApi';
+import { notebookApi, uploadSourceFile } from '../../../../api/notebookApi';
 
 const api = notebookApi as unknown as ReturnType<typeof vi.fn>;
 const upload = uploadSourceFile as unknown as ReturnType<typeof vi.fn>;

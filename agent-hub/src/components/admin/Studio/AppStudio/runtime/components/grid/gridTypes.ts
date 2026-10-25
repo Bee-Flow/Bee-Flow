@@ -4,7 +4,7 @@ import type { TABLE_FEATURES } from './gridConstants';
 /** Shared types of the App Studio data grid modules. */
 
 export type GridRecord = Record<string, any>;
-export type GridFeatures = typeof TABLE_FEATURES;
+type GridFeatures = typeof TABLE_FEATURES;
 export type GridTable = Table<GridFeatures, GridRecord>;
 export type GridRow = Row<GridFeatures, GridRecord>;
 export type RunAction = (actionId: string, payload: Record<string, unknown>) => unknown;

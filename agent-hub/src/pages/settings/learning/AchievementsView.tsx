@@ -6,7 +6,7 @@ import SegmentedProgress, { countSegments, repeatSegments } from './SegmentedPro
 import { LEVELS } from '../../../components/onboarding/courses';
 import { getCourse } from '../../../components/onboarding/courses';
 import type { LocaleCoverage } from '../../../components/admin/product-website/shell/LocaleMenu';
-import type { Course, LessonDoc } from '../../../components/onboarding/lessons.types';
+import type { Course, LessonDoc } from '../../../api/lessons.types';
 
 /**
  * AchievementsView — artboard 1d, the ONLY place all nine badges show: as

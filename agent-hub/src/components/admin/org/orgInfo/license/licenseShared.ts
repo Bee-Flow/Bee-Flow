@@ -97,7 +97,7 @@ export function intervalLabel(t: TranslateFn, iv: string | undefined): string {
 }
 
 /** A cap is real when it is set and not -1 (unlimited). */
-export function isFiniteCap(v: number | null | undefined): v is number {
+function isFiniteCap(v: number | null | undefined): v is number {
     return v !== null && v !== undefined && v !== -1;
 }
 

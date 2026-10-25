@@ -68,7 +68,7 @@ function TunePanel({
     );
 }
 
-export function StepTest(props: StepProps) {
+function StepTest(props: StepProps) {
     const { state, dispatch, ctx, t } = props;
     const test = useTestMutation(ctx.orgId);
     const tune = useTuneMutation(ctx.orgId);

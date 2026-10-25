@@ -4,7 +4,7 @@ import renderInlineMarkdown from '../markdownInline';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import type { BindingInput } from '../resolveBinding.types';
 import { useRuntime } from '../RuntimeContext';
-import { isFill } from '../styleResolver';
+import { isFill } from '../styleResolver.helpers';
 import { EM_DASH, EmptyText, ErrorText, SkeletonLines, displayValue , useStickyBinding } from '../uiBits';
 import type { NodeProps } from './appNode.types';
 
@@ -28,7 +28,7 @@ interface FieldValueProps {
     format: string;
 }
 
-export function FieldValue({ value, format }: FieldValueProps) {
+function FieldValue({ value, format }: FieldValueProps) {
     if (value == null || value === '') return <span className="text-[var(--text-muted)]">{EM_DASH}</span>;
     switch (format) {
         // The file itself, not its descriptor. Shared with the data_grid's

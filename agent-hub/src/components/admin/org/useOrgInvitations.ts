@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { API_BASE, authFetch } from '../../../utils/helpers';
-import { mutate, ApiError } from '../../../api/mutate';
+import { mutate, ApiError, request, RefusedError } from '../../../api/mutate';
 
 /** One pending invitation, as GET /auth/invitations returns it. */
 export interface Invitation {
@@ -19,7 +19,7 @@ export interface Invitation {
  * NOT go out — it is the link to hand over instead — and `upgradeLink` marks
  * the seat cap, which is a route to the upgrade flow rather than a dead end.
  */
-export interface InviteResult {
+interface InviteResult {
     success: boolean;
     message: string;
     inviteUrl?: string | null;
@@ -63,8 +63,11 @@ export default function useOrgInvitations(): OrgInvitations {
     const fetchInvitations = useCallback(async () => {
         setLoadingInvitations(true);
         try {
-            const res = await authFetch(`${API_BASE}/auth/invitations`);
-            if (res.ok) setInvitations(await res.json());
+            const res = await request(`${API_BASE}/auth/invitations`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) setInvitations(await res.json());
         } catch (err) {
             console.error('Failed to fetch invitations:', err);
         } finally {

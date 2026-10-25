@@ -5,7 +5,7 @@ import { Loader2 } from 'lucide-react';
 import React from 'react';
 import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
 
-export function typingSentence(names: string[], t: TranslateFn): string {
+function typingSentence(names: string[], t: TranslateFn): string {
     if (!names.length) return '';
     if (names.length === 1) return t('project_chat.typing_one', '{name} is typing…', { name: names[0] });
     if (names.length === 2) return t('project_chat.typing_two', '{first} and {second} are typing…', { first: names[0], second: names[1] });

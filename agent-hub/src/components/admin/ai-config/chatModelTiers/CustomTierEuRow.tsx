@@ -5,7 +5,7 @@ import React from 'react';
 import type { ModelPickerSource } from './modelPicker.types';
 import type { CustomTier } from './tierTypes';
 import type { CustomTiersState } from './useCustomTiers';
-import { getModelDisplayName } from '../../../../utils/modelMeta';
+import { getModelDisplayName } from '../../../../api/modelMeta';
 import SearchableModelSelect from '../../shared/SearchableModelSelect';
 import { useTranslation } from '../../../../hooks/useTranslation';
 

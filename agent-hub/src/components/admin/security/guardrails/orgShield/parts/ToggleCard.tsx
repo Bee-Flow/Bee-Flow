@@ -25,7 +25,7 @@ import Toggle from '../../../../../shared/Toggle';
  * so a card can stack them under its header without a double border.
  */
 
-export type RowIcon = React.ComponentType<{ className?: string; 'aria-hidden'?: boolean | 'true' | 'false' }>;
+type RowIcon = React.ComponentType<{ className?: string; 'aria-hidden'?: boolean | 'true' | 'false' }>;
 
 /** The row frame, shared with rows that have no switch (a licence-locked one). */
 export const ROW_CLASS = 'grid gap-x-4 gap-y-3 items-start px-[18px] py-3.5 border-t border-[var(--border-subtle)] first:border-t-0';
@@ -36,7 +36,7 @@ export const ROW_COLS = {
 export const ROW_TITLE = 'block m-0 text-[13px] font-semibold leading-[18px] text-[var(--text-primary)]';
 export const ROW_DESC = 'm-0 text-xs leading-[17px] text-[var(--text-secondary)]';
 
-export interface ToggleCardProps {
+interface ToggleCardProps {
     Icon?: RowIcon;
     /** A plain string: it is also the switch's accessible name. */
     title: string;
@@ -50,7 +50,7 @@ export interface ToggleCardProps {
     children?: React.ReactNode;
 }
 
-export function ToggleCard({
+function ToggleCard({
     Icon, title, description, note, checked, onChange, disabled = false, children,
 }: ToggleCardProps) {
     const id = useId();

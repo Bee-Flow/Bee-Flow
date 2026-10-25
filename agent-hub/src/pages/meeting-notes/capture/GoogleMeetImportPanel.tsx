@@ -4,7 +4,7 @@ import useTranslation from '../../../hooks/useTranslation';
 import CaptureControls from './CaptureControls';
 import { useRecorder } from '../hooks/RecorderContext';
 import useGoogleMeetConnected from '../hooks/useGoogleMeetConnected';
-import { listGoogleMeetRecordings } from '../lib/transcriptionsApi';
+import { listGoogleMeetRecordings } from '../../../api/transcriptionsApi';
 import { openGoogleOAuthPopup } from '../../../lib/googleOAuthPopup';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { errorMessage } from '../../../utils/caughtError';

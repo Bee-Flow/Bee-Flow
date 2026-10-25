@@ -10,6 +10,7 @@ import { makeCanUse } from '../../admin/Studio/studioApps';
 import type { RecentItem } from '../../../utils/studioRecentSources.types';
 import type { PublishedApp, PublishedForm } from './sidebarNav';
 import { logger } from '../../../utils/logger';
+import { request, RefusedError } from '../../../api/mutate';
 
 type Check = (id: string) => boolean;
 
@@ -162,8 +163,13 @@ export function useStudioSectionData({ currentPage, canUseCapability, hasLicense
         if (Date.now() - fetchedAt < SECTION_TTL_MS) return;
         sectionInFlightRef.current.add(sectionId);
         try {
-            const res = await authFetch(`${API_BASE}${source.url}`);
-            if (!res.ok) return;
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}${source.url}`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                return;
+            }
             const items = normaliseRecentItems(sectionId, await res.json());
             setSectionItems((prev: Record<string, RecentItem[]>) => ({ ...prev, [sectionId]: items }));
             // Stamped AFTER the load succeeds, never before: a section that

@@ -24,7 +24,7 @@
 import { HOUR_MS, DAY_MS } from '../../../../shared/deadlineMath';
 import type { IncidentRecord } from './IncidentsTable';
 
-export const INCIDENT_KINDS = Object.freeze(['breach', 'security_incident', 'vulnerability']);
+const INCIDENT_KINDS = Object.freeze(['breach', 'security_incident', 'vulnerability']);
 
 /** The register a section id shows. */
 export function kindsOfSection(sectionId: string) {
@@ -47,9 +47,9 @@ export function matchesSection(incident: IncidentRecord, sectionId: string) {
     return kindsOfSection(sectionId).includes(kindOf(incident));
 }
 
-export const CLOCK_STAGES = Object.freeze(['early_warning', 'notification', 'final_report', 'customer_notice']);
+const CLOCK_STAGES = Object.freeze(['early_warning', 'notification', 'final_report', 'customer_notice']);
 
-export const CRA_WINDOWS = Object.freeze({
+const CRA_WINDOWS = Object.freeze({
     early_warning: 24 * HOUR_MS,
     notification: 72 * HOUR_MS,
     final_report: 14 * DAY_MS,

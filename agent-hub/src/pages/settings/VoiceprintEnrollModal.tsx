@@ -3,8 +3,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { passageFor } from './voiceprintPassages';
 import Modal from '../../components/shared/Modal';
 import { useTranslation } from '../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
 import useAudioRecorder from '../meeting-notes/hooks/useAudioRecorder';
+import { mutate, errorBody, RefusedError } from '../../api/mutate';
 
 /**
  * Voice-profile enrollment.
@@ -60,12 +61,16 @@ export default function VoiceprintEnrollModal({ open, onClose, limits, onEnrolle
             form.append('consent', 'true');
             form.append('language', locale || 'nl');
             form.append('duration_seconds', String(seconds));
-            const res = await authFetch(`${API_BASE}/api/voiceprints/me`, { method: 'POST', body: form });
-            const data = await res.json().catch(() => ({}));
-            if (!res.ok) {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/api/voiceprints/me`, { method: 'POST', body: form });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const data = errorBody(err) ?? {};
                 setError(t(`voiceprint.error_${data.code || 'enroll_failed'}`, 'Recording your voice profile failed. Please try again.'));
                 return;
             }
+            const data = await res.json().catch(() => ({}));
             onEnrolled?.(data.voiceprint);
         } catch (_) {
             setError(t('voiceprint.error_enroll_failed', 'Recording your voice profile failed. Please try again.'));

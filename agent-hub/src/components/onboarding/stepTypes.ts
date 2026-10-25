@@ -22,7 +22,7 @@
 // `stepType()` MUST default to 'tour'. Never read `step.type` directly anywhere
 // else — always go through stepType() so the default stays in one place.
 
-import type { StepLike } from './lessons.types';
+import type { StepLike } from '../../api/lessons.types';
 
 export const STEP_TYPES = {
     TOUR: 'tour',
@@ -38,11 +38,11 @@ export function stepType(step: StepLike | null | undefined): string {
     return step?.type || STEP_TYPES.TOUR;
 }
 
-export function isTourStep(step: StepLike | null | undefined): boolean {
+function isTourStep(step: StepLike | null | undefined): boolean {
     return stepType(step) === STEP_TYPES.TOUR;
 }
 
-export function isInlineStep(step: StepLike | null | undefined): boolean {
+function isInlineStep(step: StepLike | null | undefined): boolean {
     // Anything the LessonPlayer renders itself (vs handing off to the engine).
     return !isTourStep(step);
 }

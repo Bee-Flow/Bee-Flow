@@ -2,9 +2,10 @@ import React, { useCallback, useEffect, useState } from 'react';
 import ProviderApiKeyCard from './ProviderApiKeyCard';
 import type { ProviderCardProps } from './ProviderApiKeyCard';
 import { PROVIDER_KEY_CONFIGS } from './providerKeyConfig';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { logger } from '../../../../utils/logger';
+import { request, RefusedError, mutate, errorBody } from '../../../../api/mutate';
 
 const EU_HOST = 'eu.api.openai.com';
 
@@ -34,8 +35,13 @@ const EuResidencyToggle = ({ onMessage }: ProviderCardProps) => {
 
     const load = useCallback(async () => {
         try {
-            const res = await authFetch(`${API_BASE}/ai/providers`);
-            if (!res.ok) return;
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/ai/providers`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                return;
+            }
             const data = await res.json();
             setProvider((data.providers || []).find((p: OpenAIProvider) => p.type === 'openai') || null);
         } catch (e) { logger.debug('Non-fatal: the card still works as an API-key card without this.', e); }
@@ -51,12 +57,19 @@ const EuResidencyToggle = ({ onMessage }: ProviderCardProps) => {
         if (saving) return;
         setSaving(true);
         try {
-            const res = await authFetch(`${API_BASE}/ai/providers/${provider.id}/region`, {
+            let res: Response | undefined;
+            try {
+                res = await mutate(`${API_BASE}/ai/providers/${provider.id}/region`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ region: isEU ? 'default' : 'eu' }),
             });
-            if (res.ok) {
+            } catch (apiErr) {
+                if (!(apiErr instanceof RefusedError)) throw apiErr;
+                const err = errorBody(apiErr) ?? {};
+                onMessage?.({ type: 'error', text: err.error || t('admin_ai_config.openai_region_failed', 'Failed to change the processing region') });
+            }
+            if (res) {
                 const data = await res.json();
                 setProvider(p => ({ ...p, url: data.url }));
                 onMessage?.({
@@ -65,9 +78,6 @@ const EuResidencyToggle = ({ onMessage }: ProviderCardProps) => {
                         ? t('admin_ai_config.openai_eu_on', 'OpenAI requests now run in the EU')
                         : t('admin_ai_config.openai_eu_off', 'OpenAI requests now use the default endpoint'),
                 });
-            } else {
-                const err = await res.json().catch(() => ({}));
-                onMessage?.({ type: 'error', text: err.error || t('admin_ai_config.openai_region_failed', 'Failed to change the processing region') });
             }
         } catch (e) {
             onMessage?.({ type: 'error', text: t('admin_ai_config.openai_region_failed', 'Failed to change the processing region') });

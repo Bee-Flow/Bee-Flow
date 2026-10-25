@@ -62,7 +62,7 @@ export interface SublineSource {
 }
 
 /** Kinds `POST /api/kb/:id/sources` accepts today (server: sources#CREATABLE_KINDS). */
-export const CREATABLE_KINDS = Object.freeze(['text', 'upload', 'webpage', 'meeting_tag', 'datatable']);
+const CREATABLE_KINDS = Object.freeze(['text', 'upload', 'webpage', 'meeting_tag', 'datatable']);
 
 /**
  * The seven buttons of the "Bron toevoegen" card, in the artboard's own
@@ -117,7 +117,7 @@ export function sourceKind(kind: string): Readonly<SourceKindDescriptor> {
 }
 
 /** Can this kind be created right now? */
-export function isCreatable(kind: string): boolean {
+function isCreatable(kind: string): boolean {
     return CREATABLE_KINDS.includes(kind);
 }
 
@@ -130,7 +130,7 @@ export function isCreatable(kind: string): boolean {
  * K10 — so the button has to be reachable and say where to go. A third state,
  * because the other two would both be lies.
  */
-export const SIGNPOST_KINDS = Object.freeze(['automation']);
+const SIGNPOST_KINDS = Object.freeze(['automation']);
 
 /** Is this kind's button live at all — either a form, or a signpost? */
 export function isOfferable(kind: string): boolean {

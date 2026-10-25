@@ -2,7 +2,7 @@ import type { MediaSlot, SectionDataBase } from './sectionData.types';
 import type { TextStyleBlob } from './sectionData.types';
 import type { BackgroundVideoData, TourData } from '../motion/motion.types';
 
-export interface HeroCta {
+interface HeroCta {
     enabled?: boolean;
     label?: string;
     style?: string;
@@ -11,12 +11,12 @@ export interface HeroCta {
     openInNewTab?: boolean;
 }
 
-export interface HeroBubble {
+interface HeroBubble {
     role?: string;
     text?: string;
 }
 
-export interface HeroTitlePart {
+interface HeroTitlePart {
     text?: string;
     gradient?: boolean;
 }

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Users } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslation';
 import { Toggle, Row, LANGS } from './shared/settingsPrimitives';
-import { openMicrosoftOAuthPopup } from '../../lib/microsoftOAuthPopup';
+import { openMicrosoftOAuthPopup } from '../../api/microsoftOAuthPopup';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import {
     useTeamsNotesUserSettings,

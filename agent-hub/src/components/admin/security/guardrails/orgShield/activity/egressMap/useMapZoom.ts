@@ -51,7 +51,7 @@ const onHit = (target: EventTarget | null) =>
     !!(target instanceof Element && target.closest('[data-map-hit]'));
 
 /** Which events start a gesture. Exported for its test. */
-export function zoomFilter(event: Event & { ctrlKey?: boolean; metaKey?: boolean; button?: number; touches?: TouchList }, onPlainWheel?: () => void): boolean {
+function zoomFilter(event: Event & { ctrlKey?: boolean; metaKey?: boolean; button?: number; touches?: TouchList }, onPlainWheel?: () => void): boolean {
     if (event.type === 'wheel') {
         if (event.ctrlKey || event.metaKey) return true;
         onPlainWheel?.();

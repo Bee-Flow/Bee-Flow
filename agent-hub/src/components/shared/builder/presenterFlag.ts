@@ -33,7 +33,7 @@ export function subscribePresenter(cb: EventListener): () => void {
     return () => window.removeEventListener(PRESENTER_EVENT, cb);
 }
 
-export function notifyPresenter(on: boolean): void {
+function notifyPresenter(on: boolean): void {
     if (typeof window === 'undefined') return;
     try { window.dispatchEvent(new CustomEvent(PRESENTER_EVENT, { detail: !!on })); } catch (err) { logger.debug('no CustomEvent — nothing listens', err); }
 }

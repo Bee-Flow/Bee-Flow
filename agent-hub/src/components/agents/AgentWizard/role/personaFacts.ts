@@ -55,8 +55,8 @@ export const PERSONA_LIMITS = Object.freeze({
 });
 
 /** Spiegel van personaPrompt.PERSONA_MODES / UNKNOWN_MODES. */
-export const PERSONA_MODES: readonly unknown[] = Object.freeze(['fields', 'free']);
-export const UNKNOWN_MODES: readonly unknown[] = Object.freeze(['honest', 'web', 'handoff']);
+const PERSONA_MODES: readonly unknown[] = Object.freeze(['fields', 'free']);
+const UNKNOWN_MODES: readonly unknown[] = Object.freeze(['honest', 'web', 'handoff']);
 
 /**
  * De vijf toonchips die de kaart aanbiedt, in artboardvolgorde. Waarden, geen
@@ -71,7 +71,7 @@ export const TONE_CHIPS = Object.freeze([
 ]);
 
 /** De chip die iets over TAAL zegt; botst met een harde `persona.language`. */
-export const TONE_CHIP_LANGUAGE = 'Dutch unless asked otherwise';
+const TONE_CHIP_LANGUAGE = 'Dutch unless asked otherwise';
 
 function isPlainObject(v: unknown): v is Record<string, unknown> {
     return !!v && typeof v === 'object' && !Array.isArray(v);
@@ -83,7 +83,7 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
  * Without that last part, one pasted paragraph in a bullet would show on screen
  * something different from what is stored.
  */
-export function clampText(value: unknown, max: number, { multiline = false }: { multiline?: boolean } = {}): string {
+function clampText(value: unknown, max: number, { multiline = false }: { multiline?: boolean } = {}): string {
     if (typeof value !== 'string') return '';
     let s = value.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '');
     s = multiline ? s.replace(/\r\n?/g, '\n') : s.replace(/[\r\n]+/g, ' ');
@@ -92,7 +92,7 @@ export function clampText(value: unknown, max: number, { multiline = false }: { 
 }
 
 /** Spiegel van `_list`: geknipt, leeg eruit, hoofdletter-ongevoelig ontdubbeld, gecapt. */
-export function clampList(value: unknown, { max, itemMax }: { max: number; itemMax: number }): string[] {
+function clampList(value: unknown, { max, itemMax }: { max: number; itemMax: number }): string[] {
     if (!Array.isArray(value)) return [];
     const seen = new Set<string>();
     const out: string[] = [];
@@ -109,7 +109,7 @@ export function clampList(value: unknown, { max, itemMax }: { max: number; itemM
 }
 
 /** De persona waar een onleesbare waarde op landt. Vers object per aanroep. */
-export function emptyPersona(): Persona {
+function emptyPersona(): Persona {
     return {
         who: '',
         tone: { chips: [], text: '' },

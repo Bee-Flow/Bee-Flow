@@ -34,7 +34,7 @@
  */
 
 /** Hoeveel plaatsvervangers er hooguit op één regel passen. */
-export const DEFAULT_TOKEN_LIMIT = 3;
+const DEFAULT_TOKEN_LIMIT = 3;
 
 /**
  * Too-short values match everywhere ("NL", "an") and would hang a demonstration
@@ -190,4 +190,3 @@ export function describePrivacyLine({
     };
 }
 
-export default describePrivacyLine;

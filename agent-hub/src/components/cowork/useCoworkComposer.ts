@@ -13,7 +13,7 @@
  * the blanks, it does not overrule a decision the user already made.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { composeCowork, createCowork, listCoworkAgents } from './coworkApi';
+import { composeCowork, createCowork, listCoworkAgents } from '../../api/coworkApi';
 import {
     buildCoworkPayload, titleFromBrief, describeSchedule, resolveWhen,
     nextOccurrence, toDateInput, toTimeInput,
@@ -22,7 +22,7 @@ import useTranslation from '../../hooks/useTranslation';
 import { useEntitlements } from '../licensing/EntitlementsContext';
 import type {
     CoworkAgent, CoworkItem, CoworkPayload, CoworkSpec, WhenState,
-} from './cowork.types';
+} from '../../api/cowork.types';
 import { messageOf } from '../../utils/caughtError';
 
 export interface UseCoworkComposerOptions {

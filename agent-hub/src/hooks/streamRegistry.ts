@@ -134,12 +134,3 @@ if (typeof window !== 'undefined') {
     window.addEventListener('pagehide', abortAllStreams);
 }
 
-export default {
-    registerStream,
-    releaseStream,
-    detachStream,
-    reattachStream,
-    isStreaming,
-    activeStreamKeys,
-    abortAllStreams,
-};

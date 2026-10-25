@@ -55,7 +55,7 @@ export interface UseCanvasWheelOptions {
 }
 
 /** React Flow's pan-and-zoom surface: the pane plus everything drawn on it. */
-export const CANVAS_SURFACE_SELECTOR = '.react-flow__renderer';
+const CANVAS_SURFACE_SELECTOR = '.react-flow__renderer';
 const NO_WHEEL_SELECTOR = '.nowheel';
 // Only what can scroll its own text. A one-line input cannot, and a scroll
 // that starts over one should still move the canvas.

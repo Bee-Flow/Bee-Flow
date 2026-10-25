@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { settingsPathForTab } from '../../../authedApp/settingsRoutes';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { logger } from '../../../utils/logger';
+import { request, RefusedError } from '../../../api/mutate';
 
 /** One notification as GET /api/notifications returns it. */
 export interface AppNotification {
@@ -34,8 +35,13 @@ export async function resolveChatTarget(n: AppNotification | null | undefined): 
     const taskId = n?.task_id || n?.taskId || null;
     if (!taskId) return NO_TARGET;
     try {
-        const res = await authFetch(`${API_BASE}/api/cowork/${taskId}`);
-        if (!res.ok) return NO_TARGET;
+        let res: Response;
+        try {
+            res = await request(`${API_BASE}/api/cowork/${taskId}`);
+        } catch (err) {
+            if (!(err instanceof RefusedError)) throw err;
+            return NO_TARGET;
+        }
         return chatTargetOf(await res.json());
     } catch (_) {
         return NO_TARGET;
@@ -91,8 +97,11 @@ export function useNotifications() {
     const fetchNotifications = useCallback(async () => {
         setLoading(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/notifications?limit=30`);
-            if (res.ok) {
+            const res = await request(`${API_BASE}/api/notifications?limit=30`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) {
                 const data = await res.json();
                 const list: AppNotification[] = data.notifications || [];
                 setNotifications(list);
@@ -107,8 +116,11 @@ export function useNotifications() {
 
     const fetchCount = useCallback(async () => {
         try {
-            const res = await authFetch(`${API_BASE}/api/notifications/unread-count`);
-            if (res.ok) {
+            const res = await request(`${API_BASE}/api/notifications/unread-count`).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) {
                 const data = await res.json();
                 const newCount: number = data.count || 0;
                 setUnreadCount(prev => {

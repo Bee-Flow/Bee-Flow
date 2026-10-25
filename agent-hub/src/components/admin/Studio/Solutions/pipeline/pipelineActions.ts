@@ -5,7 +5,7 @@ import { errorKind, type ColumnAction, type ErrorKind } from './pipelineModel';
 import {
     cancelDeployment, createStages, cutRelease, findingsFromError, newRequestKey, retryDeployment,
     type PlanFinding, type StageKey,
-} from './stagesApi';
+} from '../../../../../api/stagesApi';
 
 /**
  * What a pipeline column's button does, and what it says. Shared by the Pipeline

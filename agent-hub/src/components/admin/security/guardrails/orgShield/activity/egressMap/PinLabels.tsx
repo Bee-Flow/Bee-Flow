@@ -19,7 +19,7 @@ import { applyZoom, type Size, type ZoomState } from './mapGeometry';
 import { MUTED_FILL, ORIGIN_FILL, type DestinationCluster } from './mapModel';
 import type { MapModel } from './useMapModel';
 
-export const ORIGIN_LABEL_KEY = '__origin__';
+const ORIGIN_LABEL_KEY = '__origin__';
 /** The kind pills cover the map's top strip, the legend and the hint its bottom one. */
 const OVERLAY_INSETS = { top: 40, bottom: 44 };
 

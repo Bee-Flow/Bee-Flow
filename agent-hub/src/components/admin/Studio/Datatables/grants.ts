@@ -9,7 +9,7 @@
  * as "? A person" — and changing its grade re-sent an empty grantee.
  * Both spellings are accepted so either side can move without breaking the other.
  */
-export type GranteeType = 'user' | 'group';
+type GranteeType = 'user' | 'group';
 
 export interface DatatableGrant {
     id: string;

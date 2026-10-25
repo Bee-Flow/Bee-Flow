@@ -14,7 +14,7 @@ import { SHIELD_ROW } from '../shieldLayout';
  * there. Each pane the note concerns gets a jump button, because without it
  * the admin has the sentence and still has to work out which pane owns it.
  */
-export function ShieldClampBanner({
+function ShieldClampBanner({
     text, tabs = [], onGoTo, t,
 }: { text: string; tabs?: string[]; onGoTo: (id: string) => void; t: TranslateFn }) {
     return (

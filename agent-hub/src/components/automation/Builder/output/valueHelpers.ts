@@ -1,4 +1,4 @@
-import { walkRelativePath as walkRelativePathJs } from '../../../../utils/bindingHelpers';
+import { walkRelativePath as walkRelativePathJs } from '../../../../utils/bindingHelpers.helpers';
 
 /**
  * Small, pure helpers the output views share: shape tests, scalar text,
@@ -82,7 +82,7 @@ export function getByDotted(obj: unknown, dotted: string): unknown {
 }
 
 // Resolve a cell's value for a (possibly dotted or wildcarded) column path.
-export function cellValue(row: unknown, col: string, baseColCount: number): unknown {
+function cellValue(row: unknown, col: string, baseColCount: number): unknown {
     if (col.includes('.') || col.includes('[*]')) return getByDotted(row, col);
     return isPlainObject(row) ? row[col] : (baseColCount === 1 ? row : undefined);
 }

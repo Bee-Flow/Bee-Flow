@@ -37,9 +37,9 @@ export const APP_COLOR_PRESETS = [
     '#57534E', // stone
 ];
 
-export const RADIUS_PX: Record<string, string> = { none: '0px', sm: '4px', md: '8px', lg: '12px', xl: '16px' };
-export const DENSITY_MULT: Record<string, string> = { compact: '0.75', comfortable: '1', spacious: '1.25' };
-export const FONT_SCALE_PX: Record<string, string> = { sm: '14px', md: '15px', lg: '16px' };
+const RADIUS_PX: Record<string, string> = { none: '0px', sm: '4px', md: '8px', lg: '12px', xl: '16px' };
+const DENSITY_MULT: Record<string, string> = { compact: '0.75', comfortable: '1', spacious: '1.25' };
+const FONT_SCALE_PX: Record<string, string> = { sm: '14px', md: '15px', lg: '16px' };
 
 const DEFAULT_PRIMARY = APP_COLOR_PRESETS[0];
 

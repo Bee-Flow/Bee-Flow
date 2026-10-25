@@ -1,7 +1,9 @@
 import { AlertTriangle, Loader2, Package } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { buildResolutions, readBlueprint } from './installRequirements';
-import { AccessStep, ConnectStep, ContentsStep, ResultStep, type InstallChoices, type InstallPayload, type InstallReport } from './installWizardSteps';
+import { ConnectStep, ResultStep, type InstallChoices, type InstallPayload, type InstallReport } from './installWizardSteps';
+import { ContentsStep } from './ContentsStep';
+import { AccessStep } from './AccessStep';
 import useRemote, { readJson } from './useRemote';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import type { Catalog } from '../../../automation/Builder/mapping/upstream/upstream.types';

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { BillingPlan, ChangePreview, OrgSubscription, SubMessage } from './licenseShared';
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import { cloudFetch } from '../../../../../utils/cloudFetch';
+import { cloudFetch } from '../../../../../api/cloudFetch';
 import { API_BASE } from '../../../../../utils/helpers';
 import { errorMessage } from '../../../../../utils/caughtError';
 

@@ -39,7 +39,7 @@ export interface AudienceActionsOptions {
 }
 
 /** The props the capsule and AudienceRows have in common. */
-export interface AudienceProps {
+interface AudienceProps {
     /** translator; falls back to useTranslation() */
     t?: TranslateFn;
     agent?: AudienceEntity | null;

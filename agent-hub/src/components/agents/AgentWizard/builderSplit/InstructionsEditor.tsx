@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { ChangeEvent } from 'react';
 
-export interface InstructionsEditorProps {
+interface InstructionsEditorProps {
     initialValue?: string;
     placeholder?: string;
     onCommit?: (value: string) => void;

@@ -18,5 +18,5 @@
 export const BILLING_ACTION = '#3b82f6';
 
 /** Tinted variants of the same blue, for borders and subtle fills. */
-export const BILLING_ACTION_BORDER = 'rgba(59,130,246,0.3)';
-export const BILLING_ACTION_TINT = 'rgba(59,130,246,0.05)';
+const BILLING_ACTION_BORDER = 'rgba(59,130,246,0.3)';
+const BILLING_ACTION_TINT = 'rgba(59,130,246,0.05)';

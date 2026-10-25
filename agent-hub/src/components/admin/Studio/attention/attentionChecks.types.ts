@@ -1,4 +1,4 @@
-import type { LessonUser, HasFeature } from '../../../onboarding/lessons.types';
+import type { LessonUser, HasFeature } from '../../../../api/lessons.types';
 import type { KindKey } from '../../../shared/kindColors';
 
 /** One row of the aggregate, once it can be placed. */

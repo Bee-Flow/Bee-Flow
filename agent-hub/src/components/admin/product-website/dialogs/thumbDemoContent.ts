@@ -191,4 +191,3 @@ export function demoContentFor(type: string, variant: string | null = null) {
     return merged;
 }
 
-export default DEMO_CONTENT;

@@ -102,7 +102,7 @@ function* namesIn(r: ParsedRange) {
     }
 }
 
-export function rangeSize(r: ParsedRange) {
+function rangeSize(r: ParsedRange) {
     return (r.c2 - r.c1 + 1) * (r.r2 - r.r1 + 1);
 }
 

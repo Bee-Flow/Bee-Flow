@@ -2,11 +2,12 @@ import { useQuery } from '@tanstack/react-query';
 import { ExternalLink, Plus, Repeat, Workflow } from 'lucide-react';
 import React from 'react';
 import useTranslation from '../../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../../utils/helpers';
+import { API_BASE } from '../../../../../utils/helpers';
 import { cardRadius, kindColorVar, kindTileStyle } from '../../../../shared/kindColors';
 import { appRefParam, buildStudioSearch, segmentForSection } from '../../studioRoutes';
 import type { AutomationRow } from '../editor/automationTitles';
 import type { AppRef } from './appDefinition';
+import { request, RefusedError } from '../../../../../api/mutate';
 
 /**
  * "Which automation" — the run_automation target, as a tile instead of a button.
@@ -96,17 +97,25 @@ function runCountOf(facets: RunFacets | null | undefined, automationId: string):
 const RANGE_HOURS = 24;
 
 async function fetchFacets(automationId: string | null | undefined): Promise<RunFacets | null> {
-    const res = await authFetch(
-        `${API_BASE}/api/automation/_runs/facets?automationId=${(encodeURIComponent as (value: string | null | undefined) => string)(automationId)}&range=${RANGE_HOURS}`,
-    );
-    if (!res.ok) return null;
+    let res: Response;
+    try {
+        res = await request(`${API_BASE}/api/automation/_runs/facets?automationId=${(encodeURIComponent as (value: string | null | undefined) => string)(automationId)}&range=${RANGE_HOURS}`);
+    } catch (err) {
+        if (!(err instanceof RefusedError)) throw err;
+        return null;
+    }
     try { return (await res.json())?.facets ?? null; } catch { return null; }
 }
 
 async function fetchProjects(): Promise<ProjectRow[]> {
     // Only Solutions bundle automations; collaborative workspaces never hold one.
-    const res = await authFetch(`${API_BASE}/api/projects?kind=solution`);
-    if (!res.ok) return [];
+    let res: Response;
+    try {
+        res = await request(`${API_BASE}/api/projects?kind=solution`);
+    } catch (err) {
+        if (!(err instanceof RefusedError)) throw err;
+        return [];
+    }
     try {
         const body = await res.json();
         return Array.isArray(body?.projects) ? body.projects : (Array.isArray(body) ? body : []);

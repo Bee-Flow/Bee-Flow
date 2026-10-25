@@ -16,7 +16,7 @@ export interface AdminMcpServer {
     icon?: string;
 }
 
-export interface AgentSearchModeDefaults {
+interface AgentSearchModeDefaults {
     max_results?: number;
     fetch_top_n?: number;
     max_tokens_markdown?: number;

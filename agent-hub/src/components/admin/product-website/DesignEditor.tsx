@@ -14,11 +14,12 @@ import DarkBandControl from './controls/DarkBandControl';
 import DesignRoleControls from './controls/DesignRoleControls';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { DesignColors, DesignEditorProps, EditableDesign, ThemePreset } from './DesignEditor.types';
+import { DesignComponents, DesignLayout } from '@/marketing/ProductWebsite.types';
 
 // ColorRow / FontRow used to be defined here; they now live in
 // ./primitives. Re-export so existing imports from this module
 // (editors barrel, other panels) keep resolving.
-export { ColorRow, FontRow } from './primitives';
+;
 
 /**
  * Design tab — site-wide branding controls.
@@ -246,18 +247,7 @@ export default function DesignEditor({ design, onChange }: DesignEditorProps) {
                 </FieldRow>
 
                 <SectionDivider label="Buttons" />
-                <FieldRow label="Shape" hint="Sharp also flattens shadows and pills across the site — the whole flat idiom, not just square corners.">
-                    <SegmentedControl
-                        value={cp.buttonShape || 'soft'}
-                        onChange={v => setComponent('buttonShape', v)}
-                        options={[
-                            { value: 'pill',    label: 'Pill' },
-                            { value: 'soft',    label: 'Soft' },
-                            { value: 'rounded', label: 'Rounded' },
-                            { value: 'sharp',   label: 'Sharp' },
-                        ]}
-                    />
-                </FieldRow>
+                <DesignEditorFieldRow cp={cp} setComponent={setComponent} />
                 <FieldRow label="Size">
                     <SegmentedControl
                         value={cp.buttonSize || 'md'}
@@ -322,18 +312,7 @@ export default function DesignEditor({ design, onChange }: DesignEditorProps) {
                 </FieldRow>
 
                 <SectionDivider label="Cards" />
-                <FieldRow label="Style" hint="Hairline = 1px border, no shadow. Flat = filled, borderless. Elevated = shadowed.">
-                    <SegmentedControl
-                        value={cp.cardStyle || 'hairline'}
-                        onChange={v => setComponent('cardStyle', v)}
-                        options={[
-                            { value: 'hairline', label: 'Hairline' },
-                            { value: 'soft',     label: 'Soft' },
-                            { value: 'flat',     label: 'Flat' },
-                            { value: 'elevated', label: 'Elevated' },
-                        ]}
-                    />
-                </FieldRow>
+                <DesignEditorFieldRow2 cp={cp} setComponent={setComponent} />
                 <FieldRow label="Padding">
                     <SegmentedControl
                         value={cp.cardPadding || 'default'}
@@ -345,33 +324,11 @@ export default function DesignEditor({ design, onChange }: DesignEditorProps) {
                         ]}
                     />
                 </FieldRow>
-                <FieldRow label="Shadow depth">
-                    <SegmentedControl
-                        value={cp.shadow || 'soft'}
-                        onChange={v => setComponent('shadow', v)}
-                        options={[
-                            { value: 'none',   label: 'None' },
-                            { value: 'soft',   label: 'Soft' },
-                            { value: 'medium', label: 'Medium' },
-                            { value: 'strong', label: 'Strong' },
-                        ]}
-                    />
-                </FieldRow>
+                <DesignEditorFieldRow3 cp={cp} setComponent={setComponent} />
 
                 <DesignRoleControls colors={d.colors} components={cp} onColor={setColor} onComponent={setComponent} />
                 <SectionDivider label="Layout" />
-                <FieldRow label="Content width" hint="The max width every section aligns to.">
-                    <SegmentedControl
-                        value={ly.containerWidth || 'default'}
-                        onChange={v => setLayout('containerWidth', v)}
-                        options={[
-                            { value: 'narrow',  label: '1120' },
-                            { value: 'default', label: '1280' },
-                            { value: 'wide',    label: '1440' },
-                            { value: 'full',    label: '1760' },
-                        ]}
-                    />
-                </FieldRow>
+                <DesignEditorFieldRow4 ly={ly} setLayout={setLayout} />
                 <FieldRow label="Section rhythm" hint="Site-wide vertical spacing between sections. Individual sections can still override this in their Style tab.">
                     <SegmentedControl
                         value={ly.sectionRhythm || 'default'}
@@ -387,6 +344,62 @@ export default function DesignEditor({ design, onChange }: DesignEditorProps) {
             {confirmDialog}
         </div>
     );
+}
+
+function DesignEditorFieldRow4({ ly, setLayout }: { ly: DesignLayout; setLayout: (key: string, value: string) => void; }) {
+    return <FieldRow label="Content width" hint="The max width every section aligns to.">
+        <SegmentedControl
+            value={ly.containerWidth || 'default'}
+            onChange={v => setLayout('containerWidth', v)}
+            options={[
+                { value: 'narrow', label: '1120' },
+                { value: 'default', label: '1280' },
+                { value: 'wide', label: '1440' },
+                { value: 'full', label: '1760' },
+            ]} />
+    </FieldRow>;
+}
+
+function DesignEditorFieldRow3({ cp, setComponent }: { cp: { buttonShape: string; buttonSize: string; buttonTextColor: string; navStyle: string; navHeight: string; logoSize: string; cardStyle: string; cardPadding: string; shadow: string; } | DesignComponents; setComponent: (key: string, value: string) => void; }) {
+    return <FieldRow label="Shadow depth">
+        <SegmentedControl
+            value={cp.shadow || 'soft'}
+            onChange={v => setComponent('shadow', v)}
+            options={[
+                { value: 'none', label: 'None' },
+                { value: 'soft', label: 'Soft' },
+                { value: 'medium', label: 'Medium' },
+                { value: 'strong', label: 'Strong' },
+            ]} />
+    </FieldRow>;
+}
+
+function DesignEditorFieldRow2({ cp, setComponent }: { cp: { buttonShape: string; buttonSize: string; buttonTextColor: string; navStyle: string; navHeight: string; logoSize: string; cardStyle: string; cardPadding: string; shadow: string; } | DesignComponents; setComponent: (key: string, value: string) => void; }) {
+    return <FieldRow label="Style" hint="Hairline = 1px border, no shadow. Flat = filled, borderless. Elevated = shadowed.">
+        <SegmentedControl
+            value={cp.cardStyle || 'hairline'}
+            onChange={v => setComponent('cardStyle', v)}
+            options={[
+                { value: 'hairline', label: 'Hairline' },
+                { value: 'soft', label: 'Soft' },
+                { value: 'flat', label: 'Flat' },
+                { value: 'elevated', label: 'Elevated' },
+            ]} />
+    </FieldRow>;
+}
+
+function DesignEditorFieldRow({ cp, setComponent }: { cp: { buttonShape: string; buttonSize: string; buttonTextColor: string; navStyle: string; navHeight: string; logoSize: string; cardStyle: string; cardPadding: string; shadow: string; } | DesignComponents; setComponent: (key: string, value: string) => void; }) {
+    return <FieldRow label="Shape" hint="Sharp also flattens shadows and pills across the site — the whole flat idiom, not just square corners.">
+        <SegmentedControl
+            value={cp.buttonShape || 'soft'}
+            onChange={v => setComponent('buttonShape', v)}
+            options={[
+                { value: 'pill', label: 'Pill' },
+                { value: 'soft', label: 'Soft' },
+                { value: 'rounded', label: 'Rounded' },
+                { value: 'sharp', label: 'Sharp' },
+            ]} />
+    </FieldRow>;
 }
 
 // ── small UI atoms (kept local so the panel stays as the only consumer) ──

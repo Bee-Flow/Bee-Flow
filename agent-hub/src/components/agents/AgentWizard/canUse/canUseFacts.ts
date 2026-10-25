@@ -31,10 +31,10 @@ export const READ = Object.freeze({ LOADING: 'loading', OK: 'ok', ERROR: 'error'
 
 export type ReadState = (typeof READ)[keyof typeof READ];
 
-export type DatatableScope = 'own' | 'all';
+type DatatableScope = 'own' | 'all';
 
 /** Eén gegunde tabel: `columns` is `'*'` (elke gedeclareerde kolom) of de gekozen lijst. */
-export interface DatatableGrant {
+interface DatatableGrant {
     id: string;
     scope: DatatableScope;
     columns: string[] | '*';

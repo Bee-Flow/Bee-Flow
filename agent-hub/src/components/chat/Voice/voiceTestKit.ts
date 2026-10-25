@@ -9,7 +9,7 @@ import { authFetch } from '../../../utils/helpers';
 // chunk on stop()). Callers mock '../../../utils/helpers' themselves.
 
 /** The scripted mic energy and clock the VAD reads. */
-export const mic = { rms: 0, nowMs: 0 };
+const mic = { rms: 0, nowMs: 0 };
 
 class FakeMediaRecorder {
     state = 'inactive';

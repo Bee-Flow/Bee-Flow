@@ -2,22 +2,24 @@ import { Globe } from 'lucide-react';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import WebpageDeleteDialog from './webpages/WebpageDeleteDialog';
 import WebpageEditorPage, { type WebpageEditorPageProps } from './webpages/WebpageEditorPage';
-import { api, fetchWebpageBundle } from './webpages/webpagesApi';
+import { api, fetchWebpageBundle } from '../api/webpagesApi';
 import WebpagesList from './webpages/WebpagesList';
 import { readOrgGroups, type OrgGroup } from '../api/queries/orgGroups';
 import { useCan } from '../components/licensing/Gate';
 import { RequireTier } from '../components/licensing/LicenseContext';
 import useTranslation from '../hooks/useTranslation';
-import type { WebpageRow } from './webpages/webpageEditorTypes';
+import type { ExtraFileMeta, ExtraContents, WebpageRow } from '../api/webpageEditorTypes';
 import { logger } from '../utils/logger';
 import { useConfigChatModels } from '../api/queries/configModels';
+import { ChatMessage } from '@/hooks/useChatEngine/types';
+import { WebpageSource } from './webpages/WebpageSources';
 
 /**
  * The URL segment Studio's "New → Webpage" launcher navigates to
  * (studioApps.jsx `create.onCreate`). Reserved: no webpage can have this id,
  * and the deep-link effect below reads it as "open the list ready to create".
  */
-export const NEW_WEBPAGE_ID = 'new';
+const NEW_WEBPAGE_ID = 'new';
 
 /**
  * WebpagesPage — the Studio "Webpages" section shell (Track W0 split).
@@ -288,22 +290,25 @@ function WebpagesPageInner({ user, onBack, initialWebpageId, onWebpageChange, em
     return (
         <>
         {deleteDialog}
-        <WebpageEditorPage
-            key={loaded.webpage.id}
-            loaded={loaded}
-            user={user}
-            orgGroups={orgGroups}
-            modelTiers={modelTiers}
-            selectedTier={selectedTier}
-            onTierChange={setSelectedTier}
-            initialEditMode={editMode}
-            onClose={handleClose}
-            onSaved={handleSaved}
-            onMetaChange={handleMetaChange}
-            flushRef={flushRef}
-        />
+        <WebpagesPageInnerWebpageEditorPage loaded={loaded} user={user} orgGroups={orgGroups} modelTiers={modelTiers} selectedTier={selectedTier} setSelectedTier={setSelectedTier} editMode={editMode} handleClose={handleClose} handleSaved={handleSaved} handleMetaChange={handleMetaChange} flushRef={flushRef} />
         </>
     );
+}
+
+function WebpagesPageInnerWebpageEditorPage({ loaded, user, orgGroups, modelTiers, selectedTier, setSelectedTier, editMode, handleClose, handleSaved, handleMetaChange, flushRef }: { loaded: { webpage: WebpageRow; sources: WebpageSource[]; files: { html: string; css: string; js: string; }; chatMessages: ChatMessage[]; extraFiles: ExtraFileMeta[]; extraContents: ExtraContents; }; user: { id: string; organizationId: string; } | undefined; orgGroups: OrgGroup[]; modelTiers: {}; selectedTier: string; setSelectedTier: React.Dispatch<React.SetStateAction<string>>; editMode: boolean; handleClose: () => void; handleSaved: (id: string) => void; handleMetaChange: (id: string, patch: Partial<WebpageRow>) => void; flushRef: React.RefObject<(() => Promise<unknown>) | null>; }) {
+    return <WebpageEditorPage
+        key={loaded.webpage.id}
+        loaded={loaded}
+        user={user}
+        orgGroups={orgGroups}
+        modelTiers={modelTiers}
+        selectedTier={selectedTier}
+        onTierChange={setSelectedTier}
+        initialEditMode={editMode}
+        onClose={handleClose}
+        onSaved={handleSaved}
+        onMetaChange={handleMetaChange}
+        flushRef={flushRef} />;
 }
 
 // Licence-gated wrapper. Community-tier sessions see the upgrade panel

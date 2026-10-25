@@ -13,10 +13,10 @@
 
 import scopedStorage from '../../../utils/scopedStorage';
 import { stepType, STEP_TYPES } from '../stepTypes';
-import type { LessonUser, StepLike } from '../lessons.types';
+import type { LessonUser, StepLike } from '../../../api/lessons.types';
 import { logger } from '../../../utils/logger';
 
-export const DOCK_PREF_KEY = 'learnPlayerLayout';
+const DOCK_PREF_KEY = 'learnPlayerLayout';
 export const LAYOUTS = { MODAL: 'modal', DOCKED: 'docked' };
 
 export function isMobileViewport(): boolean {

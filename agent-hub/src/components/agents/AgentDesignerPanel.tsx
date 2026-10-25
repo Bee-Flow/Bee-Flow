@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import AgentEditorUI from './AgentEditorUI';
 import type { ToolParamConfig, AgentFormData, EditorCategory, EditorGroup, EditorOrganization } from './AgentEditorUI';
 import type { HubUser } from '../../AgentHub/useAgentHubData';
-import { filterVisibleModels } from '../../utils/modelMeta';
+import { filterVisibleModels } from '../../api/modelMeta';
 import { API_BASE, authFetch } from '../../utils/helpers';
-import { useTranslation } from '../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
 import { toast } from '../shared/Toast';
 import useConfirm from '../shared/useConfirm';
 import type { PanelAgent, AgentDesignerPanelProps } from './AgentDesignerPanel.types';
 import { mutate, ApiError } from '../../api/mutate';
+import { AgentDesignerPanelSection } from './AgentDesignerPanelSection';
 
 const AgentDesignerPanel = ({
     agent,
@@ -294,107 +295,65 @@ const AgentDesignerPanel = ({
     return (
         <div className="flex flex-col h-full bg-[var(--bg-primary)]" data-testid="agent-designer-panel">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-default)] bg-[var(--bg-secondary)]">
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center [background:linear-gradient(135deg,#f59e0b,#d97706)]">
-                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <h2 className="text-base font-semibold text-[var(--text-primary)]">
-                            {agent ? t('agent.edit_agent') : t('agent.create_agent')}
-                        </h2>
-                        <p className="text-xs text-[var(--text-muted)]">
-                            {formData.name || t('agent.new_agent')}
-                        </p>
-                    </div>
-                </div>
-                <button
-                    onClick={onClose}
-                    className="p-2 rounded-lg hover:bg-white/10 transition-all"
-                    title={t('agent.back_to_chat')}
-                >
-                    <svg className="w-5 h-5 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
+            <AgentDesignerPanelSection2 agent={agent} t={t} formData={formData} onClose={onClose} />
 
             {/* Editor Content */}
-            <div className="flex-1 overflow-hidden">
-                <AgentEditorUI
-                    data={formData}
-                    onChange={handleFieldChange}
-                    availableModels={availableModels}
-                    hasKnowledge={!!agent}
-                    hasSkills={Array.isArray(user?.betaFeatures) && user.betaFeatures.includes('skills')}
-                    user={user}
-                    agentId={agent ? agent.id : null}
-                    API_BASE={API_BASE}
-                    organizations={organizations}
-                    groups={groups}
-                    categories={categories}
-                    onCreateCategory={handleCreateCategory}
-                    urlSyncKey="editTab"
-                />
-            </div>
+            <AgentDesignerPanelSection3 formData={formData} handleFieldChange={handleFieldChange} availableModels={availableModels} agent={agent} user={user} organizations={organizations} groups={groups} categories={categories} handleCreateCategory={handleCreateCategory} />
 
             {/* Footer Actions */}
-            <div className="px-4 py-3 border-t flex items-center justify-between border-[var(--border-default)] bg-[var(--bg-secondary)]">
-                <div className="flex items-center gap-2">
-                    {agent && (
-                        <>
-                            <button
-                                onClick={handleDelete}
-                                className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:bg-red-500/20 text-[var(--error)]"
-                                data-testid="agent-delete-btn"
-                            >
-                                {t('common.delete')}
-                            </button>
-                            <button
-                                onClick={togglePublish}
-                                className={`px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition-all`}
-                                style={formData.isPublished ? {
-                                    background: 'linear-gradient(135deg, #10b981, #059669)',
-                                    color: 'white'
-                                } : {
-                                    background: 'var(--bg-tertiary)',
-                                    color: 'var(--text-muted)'
-                                }}
-                            >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    {formData.isPublished ? (
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                    ) : (
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                                    )}
-                                </svg>
-                                {formData.isPublished ? t('agent.published') : t('agent.publish')}
-                            </button>
-                        </>
-                    )}
-                </div>
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={onClose}
-                        className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:bg-white/5 text-[var(--text-muted)]"
-                    >
-                        {t('common.cancel')}
-                    </button>
-                    <button
-                        onClick={saveAgent}
-                        className="px-6 py-2 rounded-xl text-sm font-medium text-white transition-all hover:scale-[1.02] [background:linear-gradient(135deg,#8b5cf6,#6366f1)]"
-                        disabled={saving || !formData.name.trim()}
-                        data-testid="agent-save-btn"
-                    >
-                        {saving ? t('agent.saving') : agent ? t('agent.save_changes') : t('agent.create_agent')}
-                    </button>
-                </div>
-            </div>
+            <AgentDesignerPanelSection agent={agent} handleDelete={handleDelete} t={t} togglePublish={togglePublish} formData={formData} onClose={onClose} saveAgent={saveAgent} saving={saving} />
             {confirmDialog}
         </div>
     );
 };
 
 export default AgentDesignerPanel;
+
+function AgentDesignerPanelSection3({ formData, handleFieldChange, availableModels, agent, user, organizations, groups, categories, handleCreateCategory }: { formData: AgentFormData; handleFieldChange: (field: string, value: unknown) => void; availableModels: { displayName: string; name: string; desc: string; cat: string; id: string; local?: boolean; scaleway?: boolean; eugpt?: boolean; }[]; agent: PanelAgent | null | undefined; user: HubUser | null; organizations: EditorOrganization[]; groups: EditorGroup[]; categories: EditorCategory[]; handleCreateCategory: (name: string) => Promise<void>; }) {
+    return <div className="flex-1 overflow-hidden">
+        <AgentEditorUI
+            data={formData}
+            onChange={handleFieldChange}
+            availableModels={availableModels}
+            hasKnowledge={!!agent}
+            hasSkills={Array.isArray(user?.betaFeatures) && user.betaFeatures.includes('skills')}
+            user={user}
+            agentId={agent ? agent.id : null}
+            API_BASE={API_BASE}
+            organizations={organizations}
+            groups={groups}
+            categories={categories}
+            onCreateCategory={handleCreateCategory}
+            urlSyncKey="editTab" />
+    </div>;
+}
+
+function AgentDesignerPanelSection2({ agent, t, formData, onClose }: { agent: PanelAgent | null | undefined; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; formData: AgentFormData; onClose: React.MouseEventHandler<HTMLButtonElement>; }) {
+    return <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-default)] bg-[var(--bg-secondary)]">
+        <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center [background:linear-gradient(135deg,#f59e0b,#d97706)]">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+            </div>
+            <div>
+                <h2 className="text-base font-semibold text-[var(--text-primary)]">
+                    {agent ? t('agent.edit_agent') : t('agent.create_agent')}
+                </h2>
+                <p className="text-xs text-[var(--text-muted)]">
+                    {formData.name || t('agent.new_agent')}
+                </p>
+            </div>
+        </div>
+        <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-white/10 transition-all"
+            title={t('agent.back_to_chat')}
+        >
+            <svg className="w-5 h-5 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+    </div>;
+}
+

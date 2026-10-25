@@ -21,7 +21,7 @@
  * comes in the next step. What each field means is in the header of the server module.
  */
 /** One attribute of an element, as the registry describes it. */
-export interface BfAttributeDef {
+interface BfAttributeDef {
     name: string;
     required: boolean;
     aliases?: string[];
@@ -33,7 +33,7 @@ export interface BfAttributeDef {
 }
 
 /** What one surface (composer, share, snapshot, headless render) does with an element. */
-export interface BfSurfaceDef {
+interface BfSurfaceDef {
     state: string;
     why: string;
     message?: string;

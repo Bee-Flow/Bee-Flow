@@ -5,6 +5,7 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../../utils/helpers';
 import { uploadCmsFile } from '../cmsUpload';
 import { errorMessage } from '../../../../utils/caughtError';
+import { mutate, errorBody, RefusedError } from '../../../../api/mutate';
 
 /**
  * Resolve a stored image value to a displayable URL: full http(s) URLs and
@@ -83,13 +84,16 @@ async function uploadAsset(file: File, uploadPath: string, onProgress: (pct: num
     }
     const fd = new FormData();
     fd.append('file', file);
-    const res = await authFetch(`${API_BASE}/api/cms/admin/upload`, {
+    let res: Response;
+    try {
+        res = await mutate(`${API_BASE}/api/cms/admin/upload`, {
         method: 'POST',
         body: fd,
     });
-    if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || failedText(res.status));
+    } catch (err) {
+        if (!(err instanceof RefusedError)) throw err;
+        const data = errorBody(err) ?? {};
+        throw new Error(data.error || failedText(err.status));
     }
     const data = await res.json();
     return data.url;

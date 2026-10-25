@@ -1,7 +1,7 @@
 // The shapes of the run-check answers (compare, golden runs, form scenarios).
 // The readers that build them are in runChecksParse.ts; the hooks in runChecks.ts.
 
-export type CompareVerdict = 'same' | 'soft' | 'changed';
+type CompareVerdict = 'same' | 'soft' | 'changed';
 export type StepVerdict = 'same' | 'changed' | 'soft' | 'only_a' | 'only_b' | 'status_changed' | 'not_comparable';
 export type SoftReason = 'ai' | 'simulated';
 export type ChangeKind = 'added' | 'removed' | 'changed' | 'type_changed';
@@ -111,8 +111,8 @@ export interface GoldenList {
     max: number | null;
 }
 
-export interface ScenarioPage { stepId: string; fieldCount: number }
-export interface ScenarioSkip { stepId: string | null; field: string; reason: string }
+interface ScenarioPage { stepId: string; fieldCount: number }
+interface ScenarioSkip { stepId: string | null; field: string; reason: string }
 
 export interface ScenarioItem {
     scenarioId: string;
@@ -125,7 +125,7 @@ export interface ScenarioItem {
     skipped: ScenarioSkip[];
 }
 
-export interface ScenarioAnswers {
+interface ScenarioAnswers {
     trigger: Record<string, unknown> | null;
     pages: Record<string, Record<string, unknown>>;
 }

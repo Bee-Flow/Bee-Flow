@@ -14,7 +14,7 @@ import type { LucideIcon } from 'lucide-react';
 import type { EditorChain } from '../../../../editor/react/editorFacade';
 
 /** The slice of the editor ref the commands reach into. */
-export interface CommandEditorRef {
+interface CommandEditorRef {
     current?: {
         getEditor?: () => { chain?: () => { focus: () => EditorChain } } | null;
     } | null;

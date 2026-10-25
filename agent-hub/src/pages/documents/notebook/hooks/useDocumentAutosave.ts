@@ -43,7 +43,7 @@
  * edits, restores) and `resolveConflict` to resume saving after the user chose.
  */
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
-import { notebookApi } from './notebookApi';
+import { notebookApi } from '../../../../api/notebookApi';
 import { errorStatus, errorBodyRecord } from '../../../../utils/caughtError';
 import { logger } from '../../../../utils/logger';
 

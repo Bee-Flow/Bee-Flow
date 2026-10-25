@@ -30,7 +30,7 @@ interface VerbTable {
 }
 
 /** One thing a tool call put on the app, as the server's `tool_call` lists it. */
-export interface AddedItem {
+interface AddedItem {
     id?: string | number;
     type?: string;
     label?: string;
@@ -49,7 +49,7 @@ export interface AppToolCall {
 }
 
 /** A landed thing with the name the row shows for it. */
-export interface LandedItem {
+interface LandedItem {
     id: string | number | null;
     type: string | null;
     label: string | null;

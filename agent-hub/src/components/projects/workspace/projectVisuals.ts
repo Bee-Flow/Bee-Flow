@@ -52,7 +52,7 @@ export function swatchStyle(hex: string): CSSProperties {
 
 /** "Ada Lovelace" → "AL", "ada@example.org" → "A". Empty → "?". */
 /** The AI's own colour in a chat: violet, so it never reads as a colleague or as the theme's grey. */
-export const AI_HUE = 262;
+const AI_HUE = 262;
 
 /** The AI's colours in a chat, kept quiet: a hint of the project's own colour on the theme's greys. */
 export interface AiTone { ink: string; soft: string; ring: string; card: string; edge: string; bar: string }

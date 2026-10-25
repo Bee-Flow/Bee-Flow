@@ -74,4 +74,3 @@ function RunningPill({ checkedAt, t }: { checkedAt: number | null; t: TranslateF
     );
 }
 
-export default DetectionStatusPill;

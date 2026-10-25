@@ -11,7 +11,7 @@ import {
 } from '../projects/workspace/chat/mentions';
 import { Avatar, ErrorText, PrimaryButton, SecondaryButton } from '../projects/workspace/workspaceUi';
 
-export const COMMENT_MAX = 10_000;
+const COMMENT_MAX = 10_000;
 
 export interface CommentDraft { content: string; mentions: string[]; askAi: boolean }
 

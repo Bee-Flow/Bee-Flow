@@ -88,9 +88,15 @@ and `npm run lint:secrets`.
   App Studio runtime bundle and SBOM; `build-push-ghcr.yml`, `build-images.sh` and
   `build-images.ps1` all use it, and `build-images.test.mjs` asserts their service lists
   match the workflow.
-- `npm run lint:budget`: the eslint warning ratchet for `agent-hub` and `server`
-  (`scripts/eslint-budget.mjs`, budget in `<package>/.eslint-budget.json`; `--update` only
-  lowers it). The server is at 0.
+- `npm run lint:budget`: the eslint gate for `agent-hub` and `server`
+  (`scripts/eslint-budget.mjs`). The server keeps a warning ratchet (budget in
+  `server/.eslint-budget.json`; `--update` only lowers it), at 0. `agent-hub` has no warnings:
+  every rule is an error and the old violations sit in `agent-hub/eslint-suppressions.json`
+  (eslint bulk suppressions, a count per file and rule). A new violation fails; after fixing
+  some, `cd agent-hub && npm run lint:suppress:prune` drops the stale entries (eslint fails on
+  them until then). Never run `--suppress-all` to get green. `lint:eslint-disable-ratchet`
+  counts the `eslint-disable` comments in agent-hub (may only go down), and unused disable
+  directives are errors.
 - `npm run lint:ts-ratchet`: the number of `.js`/`.jsx` files under `agent-hub/src` may only
   go down. Write new files in TypeScript.
 - `npm run lint:i18n-ratchet`: the number of user-facing strings WITHOUT a key under
@@ -119,7 +125,7 @@ and `npm run lint:secrets`.
 - Count ratchets (`scripts/count-ratchet.mjs`, budget in `agent-hub/.<metric>-ratchet.json`,
   `--update` only lowers, `--list` shows where they are): `lint:style-ratchet` (`style={{…}}`
   objects; use a Tailwind class on the theme variable, `text-[var(--x)]`),
-  `lint:fire-event-ratchet` (`fireEvent` calls that `userEvent` can replace),
+  `lint:eslint-disable-ratchet`, `lint:fire-event-ratchet` (`fireEvent` calls that `userEvent` can replace),
   `lint:module-mock-ratchet`, `lint:authfetch-effect-ratchet`, `lint:big-file-ratchet`,
   `lint:dutch-comment-ratchet` and `lint:import-zones-ratchet` (agent-hub layer direction:
   `api/` and `hooks/` never import from `components/` or `pages/`, `components/` never from

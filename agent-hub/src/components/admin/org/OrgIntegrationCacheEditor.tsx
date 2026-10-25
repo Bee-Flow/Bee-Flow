@@ -15,11 +15,12 @@
 import { AlertTriangle, DatabaseZap, Loader2, Timer, Trash2 } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 
-import { useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
+import { API_BASE } from '../../../utils/helpers';
 import { errorMessage, messageOf } from '../../../utils/caughtError';
 import ChoiceCards from '../../shared/ChoiceCards';
 import { toast } from '../../shared/Toast';
+import { request, errorBody, RefusedError, mutate } from '../../../api/mutate';
 
 const MINUTES = (s: number) => Math.round(s / 60);
 
@@ -68,10 +69,13 @@ export default function OrgIntegrationCacheEditor({ orgId }: { orgId?: string | 
         setLoading(true);
         setLoadError(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/org-integration-cache/${orgId}`);
-            if (!res.ok) {
-                const body = await res.json().catch(() => ({}));
-                throw new Error(body.error || `HTTP ${res.status}`);
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/api/org-integration-cache/${orgId}`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const body = errorBody(err) ?? {};
+                throw new Error(body.error || `HTTP ${err.status}`);
             }
             const data = await res.json();
             setServer(data);
@@ -105,7 +109,9 @@ export default function OrgIntegrationCacheEditor({ orgId }: { orgId?: string | 
         if (!server || !isDirty) return;
         setSaving(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/org-integration-cache/${orgId}`, {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/api/org-integration-cache/${orgId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -113,11 +119,13 @@ export default function OrgIntegrationCacheEditor({ orgId }: { orgId?: string | 
                     scopes: { integration: scopeIntegration, http: scopeHttp, ai: scopeAi },
                 }),
             });
-            const body = await res.json().catch(() => ({}));
-            if (!res.ok) {
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const body = errorBody(err) ?? {};
                 toast.error(body.error || t('admin.integration_cache.save_failed', 'Could not save the setting'));
                 return;
             }
+            const body = await res.json().catch(() => ({}));
             toast.success(body.purged
                 ? t('admin.integration_cache.saved_purged', 'Saved. Stored answers were deleted.')
                 : t('admin.integration_cache.saved', 'Saved'));
@@ -132,12 +140,16 @@ export default function OrgIntegrationCacheEditor({ orgId }: { orgId?: string | 
     const handleClear = useCallback(async () => {
         setClearing(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/org-integration-cache/${orgId}/entries`, { method: 'DELETE' });
-            const body = await res.json().catch(() => ({}));
-            if (!res.ok) {
+            let res: Response;
+            try {
+                res = await mutate(`${API_BASE}/api/org-integration-cache/${orgId}/entries`, { method: 'DELETE' });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const body = errorBody(err) ?? {};
                 toast.error(body.error || t('admin.integration_cache.clear_failed', 'Could not clear the stored answers'));
                 return;
             }
+            const body = await res.json().catch(() => ({}));
             toast.success(t('admin.integration_cache.cleared', 'Stored answers deleted'));
             await load();
         } catch {
@@ -204,18 +216,7 @@ export default function OrgIntegrationCacheEditor({ orgId }: { orgId?: string | 
 
     return (
         <div className="space-y-5 p-1">
-            <header>
-                <h2 className="flex items-center gap-2 text-lg font-semibold">
-                    <DatabaseZap className="h-5 w-5" aria-hidden="true" />
-                    {t('admin.integration_cache.title', 'Reusing answers between runs')}
-                </h2>
-                <p className="mt-1 text-sm opacity-75">
-                    {t(
-                        'admin.integration_cache.intro',
-                        'Automations often ask the same question over and over — of a connected app, or of a web service they call directly. This decides whether the answer may be stored so a later run can use it, which means storing what the other side sent back.',
-                    )}
-                </p>
-            </header>
+            <OrgIntegrationCacheEditorHeader t={t} />
 
             {server?.killSwitch && (
                 <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
@@ -334,29 +335,48 @@ export default function OrgIntegrationCacheEditor({ orgId }: { orgId?: string | 
                 </p>
             )}
 
-            <div className="flex flex-wrap items-center gap-3">
-                <button
-                    type="button"
-                    onClick={handleSave}
-                    disabled={!isDirty || saving}
-                    className="inline-flex items-center gap-2 rounded-lg bg-[var(--accent-primary)] px-3 py-2 text-sm font-medium text-[var(--accent-primary-fg)] disabled:opacity-50"
-                >
-                    {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />}
-                    {t('common.save', 'Save')}
-                </button>
-
-                {storedEntries > 0 && (
-                    <button
-                        type="button"
-                        onClick={handleClear}
-                        disabled={clearing}
-                        className="inline-flex items-center gap-2 rounded-lg border border-[var(--border-subtle)] px-3 py-2 text-sm disabled:opacity-50"
-                    >
-                        {clearing ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />}
-                        {t('admin.integration_cache.clear', 'Delete the {{n}} stored answer(s) now').replace('{{n}}', String(storedEntries))}
-                    </button>
-                )}
-            </div>
+            <OrgIntegrationCacheEditorSection handleSave={handleSave} isDirty={isDirty} saving={saving} t={t} storedEntries={storedEntries} handleClear={handleClear} clearing={clearing} />
         </div>
     );
+}
+
+function OrgIntegrationCacheEditorHeader({ t }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; }) {
+    return <header>
+        <h2 className="flex items-center gap-2 text-lg font-semibold">
+            <DatabaseZap className="h-5 w-5" aria-hidden="true" />
+            {t('admin.integration_cache.title', 'Reusing answers between runs')}
+        </h2>
+        <p className="mt-1 text-sm opacity-75">
+            {t(
+                'admin.integration_cache.intro',
+                'Automations often ask the same question over and over — of a connected app, or of a web service they call directly. This decides whether the answer may be stored so a later run can use it, which means storing what the other side sent back.'
+            )}
+        </p>
+    </header>;
+}
+
+function OrgIntegrationCacheEditorSection({ handleSave, isDirty, saving, t, storedEntries, handleClear, clearing }: { handleSave: () => Promise<void>; isDirty: boolean; saving: boolean; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; storedEntries: number; handleClear: () => Promise<void>; clearing: boolean; }) {
+    return <div className="flex flex-wrap items-center gap-3">
+        <button
+            type="button"
+            onClick={handleSave}
+            disabled={!isDirty || saving}
+            className="inline-flex items-center gap-2 rounded-lg bg-[var(--accent-primary)] px-3 py-2 text-sm font-medium text-[var(--accent-primary-fg)] disabled:opacity-50"
+        >
+            {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />}
+            {t('common.save', 'Save')}
+        </button>
+
+        {storedEntries > 0 && (
+            <button
+                type="button"
+                onClick={handleClear}
+                disabled={clearing}
+                className="inline-flex items-center gap-2 rounded-lg border border-[var(--border-subtle)] px-3 py-2 text-sm disabled:opacity-50"
+            >
+                {clearing ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />}
+                {t('admin.integration_cache.clear', 'Delete the {{n}} stored answer(s) now').replace('{{n}}', String(storedEntries))}
+            </button>
+        )}
+    </div>;
 }

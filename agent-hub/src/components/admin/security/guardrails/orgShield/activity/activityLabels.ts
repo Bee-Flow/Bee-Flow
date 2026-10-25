@@ -29,7 +29,7 @@ import { piiCategoriesLocalized } from '../../../../../../config/piiCategories';
 import type { TranslateFn } from '../../../../../../hooks/useTranslation';
 
 /** A stored value's dictionary key and the English it defaults to. */
-export interface Words {
+interface Words {
     key: string;
     en: string;
 }
@@ -49,7 +49,7 @@ interface SurfaceRow {
  * They are worth showing and filtering by — "what went out while the scanner
  * was down" is a real question — so they are labelled, not hidden.
  */
-export const MARKERS: WordTable = {
+const MARKERS: WordTable = {
     privacy_protection_unavailable: { key: 'admin.shield_activity_marker_privacy_protection_unavailable', en: 'Protection was unavailable' },
     scan_timeout: { key: 'admin.shield_activity_marker_scan_timeout', en: 'Check ran out of time' },
     scan_overflow: { key: 'admin.shield_activity_marker_scan_overflow', en: 'File too large to fully check' },
@@ -71,7 +71,7 @@ export function isMarker(id: string): boolean {
 }
 
 /** What-we-did values → plain words. Unknown values pass through. */
-export const ACTIONS: WordTable = {
+const ACTIONS: WordTable = {
     blocked: { key: 'admin.shield_activity_action_blocked', en: 'Stopped' },
     redacted: { key: 'admin.shield_activity_action_redacted', en: 'Hidden' },
     allowed: { key: 'admin.shield_activity_action_allowed', en: 'Sent anyway' },
@@ -142,7 +142,7 @@ export function actionLabel(action: string | null | undefined, t: TranslateFn): 
 }
 
 /** One category id (or audit marker) → its label. */
-export function categoryLabel(id: string | null | undefined, t: TranslateFn, map?: Map<string, string>) {
+function categoryLabel(id: string | null | undefined, t: TranslateFn, map?: Map<string, string>) {
     if (!id) return '';
     if (map?.has(id)) return map.get(id);
     const marker = MARKERS[id];

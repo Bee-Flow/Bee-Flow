@@ -14,8 +14,8 @@ import { isPlainObject } from './valueHelpers';
 const humanizeFieldKey = humanizeFieldKeyJs as (key: string) => string;
 const kindOfValue = kindOfValueJs as (v: unknown) => string;
 
-export type ColKind = 'text' | 'number' | 'yesno' | 'date' | 'group' | 'table' | 'list' | 'file' | 'unknown';
-export type ColRole = 'name' | 'number' | 'date' | 'amount' | 'status' | null;
+type ColKind = 'text' | 'number' | 'yesno' | 'date' | 'group' | 'table' | 'list' | 'file' | 'unknown';
+type ColRole = 'name' | 'number' | 'date' | 'amount' | 'status' | null;
 
 export interface OutputColumn {
     /** Path relative to a row: `supplier`, or `supplier.name` once split. */
@@ -71,7 +71,7 @@ export function isTechnicalKey(key: string): boolean {
 const NAME_KEYS = new Set(['name', 'title', 'subject', 'filename', 'displayname', 'fullname', 'label', 'basename', 'naam', 'titel']);
 
 /** What a column is FOR, as far as the default selection cares. */
-export function roleOf(key: string, kind: ColKind): ColRole {
+function roleOf(key: string, kind: ColKind): ColRole {
     const n = norm(key.split('.').pop() || key);
     if (NAME_KEYS.has(n)) return 'name';
     if (/(number|nr|no|nummer|reference|ref|code)$/.test(n) && (kind === 'text' || kind === 'number')) return 'number';

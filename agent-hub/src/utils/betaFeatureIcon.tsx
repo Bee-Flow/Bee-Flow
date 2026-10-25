@@ -20,4 +20,3 @@ export function pickBetaIcon(idOrName?: string | null): React.ReactElement {
     return <Sparkles className="w-4 h-4" />;
 }
 
-export default pickBetaIcon;

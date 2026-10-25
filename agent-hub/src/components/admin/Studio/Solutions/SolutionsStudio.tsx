@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import { operatedStagesOf, type OperatedStage, type StageKey } from './pipeline/stagesApi';
+import { operatedStagesOf, type OperatedStage, type StageKey } from '../../../../api/stagesApi';
 import SolutionDetail from './SolutionDetail';
 import type { SolutionProject } from './SolutionDetail';
 import { readSummary } from './solutionOverviewModel';
 import SolutionsOverview from './SolutionsOverview';
 import type { SolutionsSummary, SummaryRow } from './SolutionsOverview';
 import useRemote from './useRemote';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
+import { request, errorBody, RefusedError } from '../../../../api/mutate';
 
 /**
  * Studio → Solutions: the builder's bundles.
@@ -78,12 +79,16 @@ export default function SolutionsStudio({ user, initialSolutionId = null, onNavi
 
     const fetchSummary = useCallback(async () => {
         try {
-            const res = await authFetch(`${API_BASE}/api/projects/summary`);
+            let res: Response;
+            try {
+                res = await request(`${API_BASE}/api/projects/summary`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const body = errorBody(err) ?? null;
+                setSummary(NOTHING_READ);
+                return;
+            }
             const body = await res.json().catch(() => null);
-            // The route's own 500 path carries the same shape with an empty
-            // list, so a client that ignored the status would render a clean
-            // overview. The status is not ignored here.
-            if (!res.ok) { setSummary(NOTHING_READ); return; }
             setSummary({ status: 'ok', ...readSummary(body), operatedStages: operatedStagesOf(body?.operatedStages) });
         } catch {
             setSummary(NOTHING_READ);

@@ -28,6 +28,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { webSourceText } from '@/shared/testing/webModule';
+
 import { SKIP_REASONS, statusToken, type StatusTone } from './format';
 
 const WEB_TABLE = path.resolve(
@@ -57,7 +59,7 @@ function webRows(src: string): { key: string; labelKey: string; labelEn: string 
  */
 function expandConstants(src: string, body: string): string {
     let out = body;
-    for (const m of src.matchAll(/^const ([A-Z_]+) = '([^']*)';$/gm)) {
+    for (const m of src.matchAll(/^(?:export )?const ([A-Z_]+) = '([^']*)';$/gm)) {
         out = out.split(m[1] as string).join(m[2] as string);
     }
     return out;
@@ -93,7 +95,13 @@ function lucideFile(): (name: string) => string | undefined {
     return (name) => files.get(name);
 }
 
-const src = fs.existsSync(WEB_TABLE) ? fs.readFileSync(WEB_TABLE, 'utf8') : null;
+const src = (() => {
+    try {
+        return webSourceText(WEB_TABLE);
+    } catch {
+        return null;
+    }
+})();
 
 // The mobile package is publishable on its own and someone may check it out
 // without the sibling. Skipping loudly beats failing for the wrong reason.

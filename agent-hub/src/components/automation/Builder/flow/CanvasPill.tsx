@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export type CanvasPillTone = 'neutral' | 'success' | 'warning' | 'ai' | 'trigger';
+type CanvasPillTone = 'neutral' | 'success' | 'warning' | 'ai' | 'trigger';
 
 /**
  * NodeChip's geometry (StepNodeBase.jsx) with class-based tones. NodeChip
@@ -16,7 +16,7 @@ const TONE: Readonly<Record<CanvasPillTone, string>> = Object.freeze({
     trigger: 'bg-[color-mix(in_srgb,var(--type-trigger)_16%,transparent)] text-[var(--type-trigger)]',
 });
 
-export const CANVAS_PILL = 'inline-flex items-center gap-1 text-[10px] font-semibold leading-4 px-1.5 rounded-md whitespace-nowrap tabular-nums';
+const CANVAS_PILL = 'inline-flex items-center gap-1 text-[10px] font-semibold leading-4 px-1.5 rounded-md whitespace-nowrap tabular-nums';
 
 export interface CanvasPillProps {
     tone?: CanvasPillTone;

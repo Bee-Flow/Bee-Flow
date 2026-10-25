@@ -245,5 +245,4 @@ const NanoBananaSettings = ({ isOpen, onClose, settings, onSettingsChange }: { i
     );
 };
 
-export { loadSettings, saveSettings };
-export default NanoBananaSettings;
+export { loadSettings,  };

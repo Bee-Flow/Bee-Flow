@@ -43,7 +43,7 @@ import { logger } from '../utils/logger';
 
 /** One frame off the feed. `kind` is the event name; the payload's shape is
  *  the consuming screen's business. */
-export type ProjectEventHandler = (kind: string, event: unknown) => void;
+type ProjectEventHandler = (kind: string, event: unknown) => void;
 
 /** Transport state: a live stream, degraded polling, or stopped for good. */
 export type ProjectStreamStatus = 'connecting' | 'live' | 'polling' | 'stopped';

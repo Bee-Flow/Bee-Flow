@@ -5,7 +5,7 @@
 
 export type FormFieldType = 'text' | 'email' | 'textarea' | 'select' | 'checkbox';
 
-export interface FormFieldOption {
+interface FormFieldOption {
     value: string;
     label?: string;
 }

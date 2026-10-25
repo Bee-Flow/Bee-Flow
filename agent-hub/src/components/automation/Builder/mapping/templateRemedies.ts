@@ -30,7 +30,8 @@ import { templateText } from '@shared/expr/templateText.mjs';
 import { columnPath, kindAtPath } from './mismatch';
 import { forEachPickFor } from './listShape';
 import { humanizeFieldKey } from '../flow/displayHelpers';
-import { canonicalRefPath, walkPath } from '../../../../utils/bindingHelpers';
+import { walkPath } from '../../../../utils/bindingHelpers';
+import { canonicalRefPath } from '../../../../utils/bindingHelpers.helpers';
 
 export type TemplateShape = 'list' | 'table' | 'group';
 

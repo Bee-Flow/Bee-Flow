@@ -7,7 +7,7 @@ import MachineryPage, { subjectRows, assessmentPill, signalText, CLASSIFICATIONS
 vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const fetchJson = vi.fn();
-vi.mock('../data/api', async (importOriginal) => {
+vi.mock('../../../../api/complianceApi', async (importOriginal) => {
     const actual = await importOriginal();
     return { ...actual, fetchJson: (...args) => fetchJson(...args) };
 });

@@ -15,7 +15,7 @@ export interface PatternActions {
 }
 
 /** "Hidden for 30 days · Undo", while the choice can still be taken back. */
-export function UndoNotice({ pending, onUndo, onClose }: { pending: PendingHide; onUndo: () => void; onClose: () => void }) {
+function UndoNotice({ pending, onUndo, onClose }: { pending: PendingHide; onUndo: () => void; onClose: () => void }) {
     const { t } = useTranslation();
     let what = t('automations.repeating.undoDismissed', 'Marked as not repetitive.');
     if (pending.action === 'snoozed') what = t('automations.repeating.undoSnoozed', 'Hidden for 30 days.');

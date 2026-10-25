@@ -64,7 +64,7 @@ export function kindWord(t: TranslateFn, kind: string): string {
  * Icon + word for one datatable column type, the pair the designer's "Soort"
  * cell and the row grid's column headers both show.
  */
-export default function ColumnKind({ t, type, size = 14, iconOnly = false, className = '' }: {
+function ColumnKind({ t, type, size = 14, iconOnly = false, className = '' }: {
     t: TranslateFn;
     type: string;
     size?: number;

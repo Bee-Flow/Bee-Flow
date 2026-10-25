@@ -13,7 +13,7 @@ import {
 /** A person the server named for this reader; `name` absent = unknown (a former member). */
 export type People = Record<string, { name?: string }>;
 
-export interface ContractSection { id: string; title?: string }
+interface ContractSection { id: string; title?: string }
 
 export interface StudioDocument {
     id: string;

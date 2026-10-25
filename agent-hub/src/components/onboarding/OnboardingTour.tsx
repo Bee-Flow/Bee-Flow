@@ -52,7 +52,7 @@ export default function OnboardingTour({ user, onNavigate, currentPage }: Onboar
         <div aria-live="polite">
             {/* Click-catcher — blocks the app behind the tour, EXCEPT on
                 interactive steps where the user must touch the real element. */}
-            {!interactive && <div style={{ position: 'fixed', inset: 0, zIndex: 9997 }} />}
+            {!interactive && <div className="[position:fixed] [inset:0] [z-index:9997]" />}
 
             {/* Dimmer: spotlight cutout when we have a target, else a flat scrim. */}
             <TourSpotlight rect={rect} />

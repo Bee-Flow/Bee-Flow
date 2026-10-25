@@ -16,7 +16,7 @@ import { Check, ChevronDown } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 import useOutsideDismiss from '../../../hooks/useOutsideDismiss';
 
-export interface SettingsDropdownOption {
+interface SettingsDropdownOption {
     label: string;
     value: string;
 }

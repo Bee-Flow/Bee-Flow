@@ -4,7 +4,7 @@ import { readAsDataUrl, resizeImageForUpload } from '../../../../../utils/imageR
 import { logger } from '../../../../../utils/logger';
 
 /** A staged image with what the size and type checks measured. */
-export interface PreparedImage extends StagedImage {
+interface PreparedImage extends StagedImage {
     mimeType: string;
     bytes: number;
 }
@@ -30,10 +30,10 @@ interface ImageTransfer {
  * so the user finds out in the composer instead of after a 5MB upload — the
  * server is the control, this is the courtesy.
  */
-export const IMAGE_MIME_ALLOWLIST = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+const IMAGE_MIME_ALLOWLIST = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 export const IMAGE_ACCEPT_ATTR = IMAGE_MIME_ALLOWLIST.join(',');
 export const MAX_IMAGES_PER_TURN = 4;
-export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 /** Decoded byte length of a base64 data URL's payload (no buffer allocated). */
 export function dataUrlBytes(dataUrl: string): number {

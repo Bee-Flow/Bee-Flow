@@ -85,7 +85,7 @@ export interface BackgroundVariantSelectProps {
 }
 
 /** A block's content blob: the card reads and writes only `backgroundVariant`. */
-export interface BackgroundCardData {
+interface BackgroundCardData {
     backgroundVariant?: string;
     [key: string]: unknown;
 }

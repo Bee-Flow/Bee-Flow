@@ -13,7 +13,7 @@ export interface FlightGhost {
 }
 
 /** A queued departure: the card id and the instant (ms epoch) it leaves. */
-export interface FlightDeparture {
+interface FlightDeparture {
     id?: string | null;
     at?: number;
 }

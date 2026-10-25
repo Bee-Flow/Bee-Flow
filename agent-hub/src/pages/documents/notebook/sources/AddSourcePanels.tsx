@@ -12,7 +12,7 @@ import { useCapture } from '../../../meeting-notes/capture/CaptureContext';
 const MeetingPicker = MeetingPickerJs;
 
 /** Max characters for a pasted-text source (the server re-validates on ingest). */
-export const PASTE_MAX_CHARS = 500000;
+const PASTE_MAX_CHARS = 500000;
 
 const CARD = 'shrink-0 mx-3 mb-2 rounded-xl border p-3 space-y-2 bg-[var(--bg-secondary)] border-[var(--border-default)]';
 const FIELD = 'w-full px-2.5 py-1.5 rounded-lg text-xs border outline-none bg-[var(--bg-primary)] border-[var(--border-subtle)] text-[var(--text-primary)] focus:border-[var(--accent-primary)]';

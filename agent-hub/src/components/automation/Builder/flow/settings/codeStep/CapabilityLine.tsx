@@ -7,7 +7,7 @@ import { useTranslation } from '../../../../../../hooks/useTranslation';
 import { hintTextClass } from '../formPrimitives';
 import { toolLabel } from './codeParams';
 
-export function useCapabilitySentence(caps: CodeCapabilities | null | undefined, allowedHosts: string[] = []): string | null {
+function useCapabilitySentence(caps: CodeCapabilities | null | undefined, allowedHosts: string[] = []): string | null {
     const { t } = useTranslation();
     if (!caps) return null;
     const parts: string[] = [];

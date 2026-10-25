@@ -24,7 +24,7 @@ interface Props {
 }
 
 /** Card title + one-line hint per start (artboard 5e-2). */
-export function useStartCardText() {
+function useStartCardText() {
     const { t } = useTranslation();
     return {
         manual: [t('automations.settings.start_manual', 'Manually'), t('automations.settings.start_manual_when', 'When someone starts it, for example with Test')],

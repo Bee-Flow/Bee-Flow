@@ -11,9 +11,9 @@ vi.mock('../../../shared/Toast', () => {
 
 import AiActLadderModal from './AiActLadderModal';
 import { legacyAnnexAnswers } from './ladderOutcome';
+import { API } from '../../../../api/complianceApi';
 import { authFetch } from '../../../../utils/helpers';
 import toast from '../../../shared/Toast';
-import { API } from '../data/api';
 
 // The artboard's day: 14 Sep 2026 → 79 days to 2 Dec 2026.
 const NOW = new Date(2026, 8, 14, 15, 30).getTime();

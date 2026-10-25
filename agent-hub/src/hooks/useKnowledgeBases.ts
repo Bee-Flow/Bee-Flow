@@ -38,7 +38,7 @@ import { useCallback, useEffect, useEffectEvent, useState, type ChangeEvent } fr
 import { knowledgeApi } from '../components/admin/Studio/KnowledgeStudio/knowledgeApi';
 import { toast } from '../components/shared/Toast';
 import useConfirm from '../components/shared/useConfirm';
-import { API_BASE, authFetch, mutate, ApiError } from '../api/mutate';
+import { API_BASE, authFetch, mutate, ApiError, request, RefusedError, errorBody } from '../api/mutate';
 import { errorMessage } from '../utils/caughtError';
 import { logger } from '../utils/logger';
 import { useN8nIngestible } from '../api/queries/knowledgeBases';
@@ -245,8 +245,11 @@ export default function useKnowledgeBases({
             const url = listContext
                 ? `${API_BASE}/api/kb?context=${encodeURIComponent(listContext)}`
                 : `${API_BASE}/api/kb`;
-            const res = await authFetch(url);
-            if (res.ok) setKbs(await res.json());
+            const res = await request(url).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (res) setKbs(await res.json());
         } catch (e) { console.error('Failed to fetch KBs:', e); }
         finally { setLoadingKbs(false); }
     }
@@ -329,8 +332,13 @@ export default function useKnowledgeBases({
                 if (filters.dateTo) params.set('dateTo', filters.dateTo);
                 url += `?${params.toString()}`;
             }
-            const res = await authFetch(url);
-            if (!res.ok) return;
+            let res: Response;
+            try {
+                res = await request(url);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                return;
+            }
             const body = await res.json();
             const rows = Array.isArray(body) ? body : (body.documents || []);
             if (paginateDocs) {
@@ -394,13 +402,15 @@ export default function useKnowledgeBases({
         try {
             for (let i = 0; i < ids.length; i += MAX_BULK_DELETE) {
                 const batch = ids.slice(i, i + MAX_BULK_DELETE);
-                const res = await authFetch(`${API_BASE}/api/kb/${selectedKB.id}/documents/bulk-delete`, {
+                try {
+                    await mutate(`${API_BASE}/api/kb/${selectedKB.id}/documents/bulk-delete`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ documentIds: batch }),
                 });
-                if (!res.ok) {
-                    const err = await res.json().catch(() => ({}));
+                } catch (apiErr) {
+                    if (!(apiErr instanceof RefusedError)) throw apiErr;
+                    const err = errorBody(apiErr) ?? {};
                     toast.error('Bulk delete failed: ' + (err.error || 'failed'));
                     break;
                 }
@@ -423,11 +433,19 @@ export default function useKnowledgeBases({
         if (!(await confirm({ title: `Re-index "${selectedKB.name}"?`, description: 'This will re-fetch all URL sources and re-embed all documents with the current model. This may take a while.', confirmLabel: 'Re-index' }))) return;
         setReindexing(true); setReindexStatus('Starting re-index...');
         try {
-            const res = await authFetch(`${API_BASE}/api/kb/${selectedKB.id}/reindex`, {
+            let res: Response | undefined;
+            try {
+                res = await mutate(`${API_BASE}/api/kb/${selectedKB.id}/reindex`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
             });
-            if (res.ok) {
+            } catch (apiErr) {
+                if (!(apiErr instanceof RefusedError)) throw apiErr;
+                const err = errorBody(apiErr) ?? {};
+                setReindexStatus('');
+                toast.error('Re-index failed: ' + (err.error || 'failed'));
+            }
+            if (res) {
                 const data = await res.json();
                 // The route sends { reindexed, failed, sources, unattached, details } —
                 // no `total`. `unattached` matters on its own: those documents were NOT
@@ -439,9 +457,6 @@ export default function useKnowledgeBases({
                 setReindexStatus(status);
                 fetchKBDocs(selectedKB.id); fetchKBs();
                 setTimeout(() => setReindexStatus(''), 8000);
-            } else {
-                const err = await res.json().catch(() => ({}));
-                setReindexStatus(''); toast.error('Re-index failed: ' + (err.error || 'failed'));
             }
         } catch (e) { setReindexStatus(''); toast.error('Re-index failed: ' + failureText(e)); }
         finally { setReindexing(false); }
@@ -454,17 +469,21 @@ export default function useKnowledgeBases({
         if (!selectedKB || !kbTextContent.trim()) return;
         setKbIngesting(true); setKbIngestStatus('Processing...');
         try {
-            const res = await authFetch(`${API_BASE}/api/kb/${selectedKB.id}/ingest/text`, {
+            let res: Response | undefined;
+            try {
+                res = await mutate(`${API_BASE}/api/kb/${selectedKB.id}/ingest/text`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content: kbTextContent, title: kbTextTitle || 'Text' }),
             });
-            if (res.ok) {
+            } catch (apiErr) {
+                if (!(apiErr instanceof RefusedError)) throw apiErr;
+                const err = errorBody(apiErr) ?? {};
+                setKbIngestStatus('Error: ' + (err.error || 'failed'));
+            }
+            if (res) {
                 setKbTextContent(''); setKbTextTitle(''); setKbIngestStatus('');
                 refreshAfterIngest();
-            } else {
-                const err = await res.json().catch(() => ({}));
-                setKbIngestStatus('Error: ' + (err.error || 'failed'));
             }
         } catch (e) { setKbIngestStatus('Failed: ' + failureText(e)); }
         finally { setKbIngesting(false); }
@@ -474,17 +493,21 @@ export default function useKnowledgeBases({
         if (!selectedKB || !kbUrlInput.trim()) return;
         setKbIngesting(true); setKbIngestStatus('Fetching URL...');
         try {
-            const res = await authFetch(`${API_BASE}/api/kb/${selectedKB.id}/ingest/url`, {
+            let res: Response | undefined;
+            try {
+                res = await mutate(`${API_BASE}/api/kb/${selectedKB.id}/ingest/url`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ url: kbUrlInput.trim() }),
             });
-            if (res.ok) {
+            } catch (apiErr) {
+                if (!(apiErr instanceof RefusedError)) throw apiErr;
+                const err = errorBody(apiErr) ?? {};
+                setKbIngestStatus('Error: ' + (err.error || 'failed'));
+            }
+            if (res) {
                 setKbUrlInput(''); setKbIngestStatus('');
                 refreshAfterIngest();
-            } else {
-                const err = await res.json().catch(() => ({}));
-                setKbIngestStatus('Error: ' + (err.error || 'failed'));
             }
         } catch (e) { setKbIngestStatus('Failed: ' + failureText(e)); }
         finally { setKbIngesting(false); }
@@ -494,20 +517,24 @@ export default function useKnowledgeBases({
         if (!selectedKB || !kbUrlInput.trim()) return;
         setKbIngesting(true); setKbIngestStatus('Fetching sitemap...');
         try {
-            const res = await authFetch(`${API_BASE}/api/kb/${selectedKB.id}/ingest/sitemap`, {
+            let res: Response | undefined;
+            try {
+                res = await mutate(`${API_BASE}/api/kb/${selectedKB.id}/ingest/sitemap`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ url: kbUrlInput.trim(), maxPages: sitemapMaxPages }),
             });
-            if (res.ok) {
+            } catch (apiErr) {
+                if (!(apiErr instanceof RefusedError)) throw apiErr;
+                const err = errorBody(apiErr) ?? {};
+                setKbIngestStatus('Sitemap error: ' + (err.error || 'failed'));
+            }
+            if (res) {
                 const data = await res.json();
                 setKbUrlInput('');
                 setKbIngestStatus(`Done: ${data.ingested} ingested, ${data.skipped} skipped, ${data.errors} errors`);
                 refreshAfterIngest();
                 setTimeout(() => setKbIngestStatus(''), 5000);
-            } else {
-                const err = await res.json().catch(() => ({}));
-                setKbIngestStatus('Sitemap error: ' + (err.error || 'failed'));
             }
         } catch (e) { setKbIngestStatus('Sitemap failed: ' + failureText(e)); }
         finally { setKbIngesting(false); }
@@ -517,19 +544,23 @@ export default function useKnowledgeBases({
         if (!selectedKB || !workflowId) return;
         setKbIngesting(true); setKbIngestStatus('Ingesting workflow...');
         try {
-            const res = await authFetch(`${API_BASE}/api/kb/${selectedKB.id}/ingest/n8n`, {
+            let res: Response | undefined;
+            try {
+                res = await mutate(`${API_BASE}/api/kb/${selectedKB.id}/ingest/n8n`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ workflowId, mode: n8nIngestMode }),
             });
-            if (res.ok) {
+            } catch (apiErr) {
+                if (!(apiErr instanceof RefusedError)) throw apiErr;
+                const err = errorBody(apiErr) ?? {};
+                setKbIngestStatus('Error: ' + (err.error || 'failed'));
+            }
+            if (res) {
                 const data = await res.json();
                 setKbIngestStatus(`Done: ${data.chunks} chunks`);
                 refreshAfterIngest();
                 setTimeout(() => setKbIngestStatus(''), 5000);
-            } else {
-                const err = await res.json().catch(() => ({}));
-                setKbIngestStatus('Error: ' + (err.error || 'failed'));
             }
         } catch (e) { setKbIngestStatus('Failed: ' + failureText(e)); }
         finally { setKbIngesting(false); }
@@ -542,15 +573,19 @@ export default function useKnowledgeBases({
         const formData = new FormData();
         formData.append('file', file);
         try {
-            const res = await authFetch(`${API_BASE}/api/kb/${selectedKB.id}/ingest/file`, {
+            let res: Response | undefined;
+            try {
+                res = await mutate(`${API_BASE}/api/kb/${selectedKB.id}/ingest/file`, {
                 method: 'POST', body: formData,
             });
-            if (res.ok) {
+            } catch (apiErr) {
+                if (!(apiErr instanceof RefusedError)) throw apiErr;
+                const err = errorBody(apiErr) ?? {};
+                setKbIngestStatus('Error: ' + (err.error || 'failed'));
+            }
+            if (res) {
                 setKbIngestStatus('');
                 refreshAfterIngest();
-            } else {
-                const err = await res.json().catch(() => ({}));
-                setKbIngestStatus('Error: ' + (err.error || 'failed'));
             }
         } catch (e2) { setKbIngestStatus('Failed: ' + failureText(e2)); }
         finally { setKbIngesting(false); e.target.value = ''; }
@@ -563,17 +598,20 @@ export default function useKnowledgeBases({
         try {
             for (const file of driveFiles) {
                 setKbIngestStatus(`Ingesting ${file.name}... (${ingested + 1}/${driveFiles.length})`);
-                const res = await authFetch(`${API_BASE}/api/kb/${selectedKB.id}/ingest/text`, {
+                let res: Response | undefined;
+                try {
+                    res = await mutate(`${API_BASE}/api/kb/${selectedKB.id}/ingest/text`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ content: file.content, title: file.name }),
                 });
-                if (res.ok) {
-                    ingested++;
-                } else {
-                    // Surface per-file failures instead of silently swallowing them.
-                    const err = await res.json().catch(() => ({}));
+                } catch (apiErr) {
+                    if (!(apiErr instanceof RefusedError)) throw apiErr;
+                    const err = errorBody(apiErr) ?? {};
                     console.error(`Failed to ingest ${file.name}:`, err.error);
+                }
+                if (res) {
+                    ingested++;
                 }
             }
             setKbIngestStatus('');

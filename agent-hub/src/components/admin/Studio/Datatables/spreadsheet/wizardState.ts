@@ -109,7 +109,7 @@ export interface Describe<TData> {
 }
 
 /** How the file can be written back (`write` of the file describe). */
-export interface WriteInfo {
+interface WriteInfo {
     mode: string;
     reason?: string | null;
 }
@@ -188,7 +188,7 @@ export function defaultName(file: { name?: string } | null | undefined, sheet: s
     return sheetsChosenInFile > 1 ? `${base} – ${sheet}` : base;
 }
 
-export function defaultKey(name: string): string {
+function defaultKey(name: string): string {
     return keyFromName(name);
 }
 

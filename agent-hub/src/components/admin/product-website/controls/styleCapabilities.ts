@@ -18,7 +18,7 @@ export interface StyleCapability {
     motion: boolean;
 }
 
-export const STYLE_CAPABILITIES: Record<string, StyleCapability> = {
+const STYLE_CAPABILITIES: Record<string, StyleCapability> = {
     hero:               { columns: false, motion: true },
     socialProof:        { columns: false, motion: true },
     content:            { columns: false, motion: true },

@@ -5,15 +5,5 @@
  * Groups control. Existing imports keep working; new code imports
  * VisibilityCapsule directly.
  */
-export {
-    default,
-    PERSONAL,
-    ORG,
-    GROUPS,
-    audienceModeOf,
-    makeGroupNamer,
-    joinAudienceNames,
-    audienceLabel,
-    useAudienceActions,
-    GroupChecklist,
-} from '../../../shared/VisibilityCapsule';
+export { default,      } from '../../../shared/VisibilityCapsule';
+;

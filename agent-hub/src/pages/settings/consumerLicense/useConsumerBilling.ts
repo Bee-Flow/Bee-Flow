@@ -4,6 +4,7 @@ import type { TranslateFn } from '../../../hooks/useTranslation';
 import { API_BASE, authFetch } from '../../../utils/helpers';
 import { isPaidPlan, type CheckoutMessage, type ConsumerPlan, type ConsumerUsageData } from './consumerBilling';
 import { errorMessage } from '../../../utils/caughtError';
+import { request, RefusedError } from '../../../api/mutate';
 
 /** The checkout result Stripe sends back on the URL, read once and cleaned off. */
 function readCheckoutResult(): CheckoutMessage | null {
@@ -90,8 +91,11 @@ export default function useConsumerBilling(t: TranslateFn) {
                 const status = await statusRes.json();
                 setStripeEnabled(status.enabled);
                 if (status.enabled) {
-                    const plansRes = await authFetch(`${API_BASE}/api/stripe/plans?type=consumer`);
-                    if (plansRes.ok) setPlans(await plansRes.json());
+                    const plansRes = await request(`${API_BASE}/api/stripe/plans?type=consumer`).catch((err: unknown) => {
+                        if (err instanceof RefusedError) return null;
+                        throw err;
+                    });
+                    if (plansRes) setPlans(await plansRes.json());
                 }
             }
         } catch (e) {

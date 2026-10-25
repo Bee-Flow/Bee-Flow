@@ -17,7 +17,7 @@ vi.mock('../../SolutionAccessDialog', () => ({
 
 import StageSettingsTab from './StageSettingsTab';
 import VariablesDeclarations from './VariablesDeclarations';
-import type { PipelineStage, StageKey } from '../stagesApi';
+import type { PipelineStage, StageKey } from '../../../../../../api/stagesApi';
 
 type Call = { url: string; method: string; body: Record<string, unknown> | null };
 type Handler = (c: Call) => unknown;

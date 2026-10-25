@@ -43,7 +43,7 @@ export function proposalChanges(base: FlowDefinition | null | undefined, next: F
 }
 
 // Bindings are one editable field, rather than separate kind/path/value edits.
-export function fieldChanges(before: unknown, after: unknown, path: string[] = []): FieldChange[] {
+function fieldChanges(before: unknown, after: unknown, path: string[] = []): FieldChange[] {
     if (deepEqual(before, after)) return [];
     const object = (value: unknown) => value && typeof value === 'object' && !Array.isArray(value) && !(value as FieldTree).kind;
     if (object(before) && object(after)) return [...new Set([...Object.keys(before as FieldTree), ...Object.keys(after as FieldTree)])]

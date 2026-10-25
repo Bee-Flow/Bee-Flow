@@ -24,7 +24,7 @@ import StrictnessCard from '../parts/StrictnessCard';
  * "None" here would silently switch off every one of the org's own types.
  */
 
-export interface DetectionFields {
+interface DetectionFields {
     piiCategories: string[];
     setPiiCategories: (ids: string[]) => void;
     toolPiiPolicy?: Partial<ToolPiiPolicy>;
@@ -77,7 +77,7 @@ function neverHiddenSummary(f: DetectionFields, t: TranslateFn): string {
         : t('shield_look.link_never', '{n} of your own. Matches are exact: "Shell" does not cover "Shell Advies BV".', { n });
 }
 
-export function DetectionTab({
+function DetectionTab({
     f, categories, readOnly, licence = {}, evidence = null, toggleToolPiiCat, onGoTo, t,
 }: DetectionTabProps) {
     const toggleDetect = useCallback((id: string, on: boolean) => {

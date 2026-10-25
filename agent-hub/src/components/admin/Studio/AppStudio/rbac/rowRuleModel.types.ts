@@ -8,7 +8,7 @@ export type AccessPerm = boolean | string;
 export type AccessEntry = Record<string, AccessPerm>;
 
 /** A table field as the rule pickers read it. */
-export interface RuleTableField {
+interface RuleTableField {
     key: string;
     name?: string;
     type?: string;

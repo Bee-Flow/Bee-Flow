@@ -15,7 +15,7 @@ export interface OrgMemorySettings {
     maxPerUser: number;
 }
 
-export interface OrgMemoryStats {
+interface OrgMemoryStats {
     activeMemories: number;
     users: number;
 }
@@ -32,7 +32,7 @@ export interface OrgMemorySaved extends OrgMemoryState {
 
 const BASE = '/api/org-memory';
 
-export const orgMemoryKeys = {
+const orgMemoryKeys = {
     org: (orgId: string) => ['orgMemory', orgId] as const,
 };
 

@@ -19,7 +19,7 @@ const useExpandedFlowlets = useExpandedFlowletsJs as (automationId: string | nul
 
 export interface UseExpandedFlowletGraphOptions {
     automation: any;
-    state: any;
+    state: import('./buildTabTypes').BuilderTabState;
     scopedDef: any;
     rootDef: any;
     scopeKey: string | null;

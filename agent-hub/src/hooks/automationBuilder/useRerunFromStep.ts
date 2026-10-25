@@ -24,7 +24,7 @@ const names = (ids: unknown, labelOf: (id: string) => string): string => {
 };
 
 /** The sentence for a refused re-run. Exported for the test. */
-export function rerunErrorText(err: unknown, t: Translate, labelOf: (id: string) => string): string {
+function rerunErrorText(err: unknown, t: Translate, labelOf: (id: string) => string): string {
     if (!(err instanceof AutomationRequestError)) return t('runs.rerun.error_generic', 'Could not re-run from this step.');
     const details = err.details && typeof err.details === 'object' ? err.details as Record<string, unknown> : {};
     switch (err.code) {

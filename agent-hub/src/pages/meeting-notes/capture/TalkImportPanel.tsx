@@ -3,7 +3,7 @@ import { MessageSquare, Loader2, FileAudio, Video, RefreshCw, Download } from 'l
 import useTranslation from '../../../hooks/useTranslation';
 import CaptureControls from './CaptureControls';
 import { useRecorder } from '../hooks/RecorderContext';
-import { listNextcloudTalkRecordings } from '../lib/transcriptionsApi';
+import { listNextcloudTalkRecordings } from '../../../api/transcriptionsApi';
 import { errorMessage } from '../../../utils/caughtError';
 
 interface TalkRecording {

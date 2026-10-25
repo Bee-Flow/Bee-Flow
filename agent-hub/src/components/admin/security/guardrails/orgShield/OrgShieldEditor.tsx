@@ -21,10 +21,11 @@ import ChecksTab from './tabs/ChecksTab';
 import DetectionTab from './tabs/DetectionTab';
 import OverviewTab from './tabs/OverviewTab';
 import useOrgShield from './useOrgShield';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '../../../../../hooks/useTranslation';
 import { useUrlQueryParam } from '../../../../../hooks/useUrlTab';
 import { useLicenseContext } from '../../../../licensing/LicenseContext';
 import { toast } from '../../../../shared/Toast';
+import { ShieldOrg, GuardStatus } from './useShieldEnvironment';
 
 /**
  * One organisation's Privacy Shield, as an editor.
@@ -199,44 +200,7 @@ const OrgShieldEditor = ({ orgId = null, allowOrgPicker = false, readOnly = fals
         // layout let the whole page scroll, so on the category grid the Save
         // button was three screens below the thing you had just changed.
         <div className="w-full h-full flex flex-col min-h-0 animate-fadeIn">
-            <ShieldHeader
-                orgName={orgList.find(o => o.id === selectedOrgId)?.name}
-                guard={guardStatus}
-                guardCheckedAt={guardCheckedAt}
-                strip={strip}
-                t={t}
-            >
-                {/* The org picker — never shown when the org is pinned by the
-                    caller: offering a choice the prop then overrides is worse
-                    than offering none. */}
-                {orgList.length > 1 && allowOrgPicker && !orgId && (
-                    <>
-                        <label htmlFor="org-shield-org" className="sr-only">{t('admin.shield_org_label')}</label>
-                        <select
-                            id="org-shield-org"
-                            value={selectedOrgId}
-                            onChange={e => selectOrg(e.target.value)}
-                            className="h-[30px] px-2.5 rounded-[9px] text-xs border border-[var(--border-default)] text-[var(--text-primary)] bg-[var(--bg-card)]"
-                        >
-                            {orgList.map(org => (
-                                <option key={org.id} value={org.id}>{org.name}</option>
-                            ))}
-                        </select>
-                    </>
-                )}
-                {/* Opens IN the app. It used to be a link to docs.beeflow.nl,
-                    which leaves a screen that may hold unsaved edits, is
-                    unreachable on an air-gapped self-host, and described an
-                    older version of this very page. */}
-                <button
-                    type="button"
-                    onClick={() => setHowItWorks(true)}
-                    className="inline-flex items-center gap-1.5 h-[30px] px-[11px] rounded-[9px] text-xs font-medium whitespace-nowrap hover:opacity-80 border border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-primary)]"
-                >
-                    <BookOpen className="w-[13px] h-[13px]" aria-hidden="true" />
-                    {t('admin.shield_how_this_works', 'How this works')}
-                </button>
-            </ShieldHeader>
+            <OrgShieldEditorShieldHeader orgList={orgList} selectedOrgId={selectedOrgId} guardStatus={guardStatus} guardCheckedAt={guardCheckedAt} strip={strip} t={t} allowOrgPicker={allowOrgPicker} orgId={orgId} selectOrg={selectOrg} setHowItWorks={setHowItWorks} />
 
             {/* The empty state must not paint over a PINNED org: when the caller
                 supplies an id we never fetch the org list, so it stays empty. */}
@@ -369,3 +333,44 @@ const OrgShieldEditor = ({ orgId = null, allowOrgPicker = false, readOnly = fals
 };
 
 export default OrgShieldEditor;
+
+function OrgShieldEditorShieldHeader({ orgList, selectedOrgId, guardStatus, guardCheckedAt, strip, t, allowOrgPicker, orgId, selectOrg, setHowItWorks }: { orgList: ShieldOrg[]; selectedOrgId: string; guardStatus: GuardStatus | null; guardCheckedAt: number | null; strip: React.JSX.Element | null; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; allowOrgPicker: boolean; orgId: string | null; selectOrg: (orgId: string) => Promise<void>; setHowItWorks: React.Dispatch<React.SetStateAction<boolean>>; }) {
+    return <ShieldHeader
+        orgName={orgList.find(o => o.id === selectedOrgId)?.name}
+        guard={guardStatus}
+        guardCheckedAt={guardCheckedAt}
+        strip={strip}
+        t={t}
+    >
+        {/* The org picker — never shown when the org is pinned by the
+            caller: offering a choice the prop then overrides is worse
+            than offering none. */}
+        {orgList.length > 1 && allowOrgPicker && !orgId && (
+            <>
+                <label htmlFor="org-shield-org" className="sr-only">{t('admin.shield_org_label')}</label>
+                <select
+                    id="org-shield-org"
+                    value={selectedOrgId}
+                    onChange={e => selectOrg(e.target.value)}
+                    className="h-[30px] px-2.5 rounded-[9px] text-xs border border-[var(--border-default)] text-[var(--text-primary)] bg-[var(--bg-card)]"
+                >
+                    {orgList.map(org => (
+                        <option key={org.id} value={org.id}>{org.name}</option>
+                    ))}
+                </select>
+            </>
+        )}
+        {/* Opens IN the app. It used to be a link to docs.beeflow.nl,
+            which leaves a screen that may hold unsaved edits, is
+            unreachable on an air-gapped self-host, and described an
+            older version of this very page. */}
+        <button
+            type="button"
+            onClick={() => setHowItWorks(true)}
+            className="inline-flex items-center gap-1.5 h-[30px] px-[11px] rounded-[9px] text-xs font-medium whitespace-nowrap hover:opacity-80 border border-[var(--border-default)] bg-[var(--bg-card)] text-[var(--text-primary)]"
+        >
+            <BookOpen className="w-[13px] h-[13px]" aria-hidden="true" />
+            {t('admin.shield_how_this_works', 'How this works')}
+        </button>
+    </ShieldHeader>;
+}

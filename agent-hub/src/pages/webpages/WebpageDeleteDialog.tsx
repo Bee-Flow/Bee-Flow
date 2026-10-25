@@ -1,12 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
 import { DELETE_BLOCK_KINDS, readDeleteBlock, type DeleteBlock } from './webpageDeleteBlock';
-import { deleteWebpage } from './webpagesApi';
+import { deleteWebpage } from '../../api/webpagesApi';
 import DangerZone from '../../components/shared/DangerZone';
 import Modal from '../../components/shared/Modal';
 import { kindLabelFor } from '../../components/shared/UsedByTab';
 import useTranslation from '../../hooks/useTranslation';
 import useUsage from '../../hooks/useUsage';
-import type { WebpageRow } from './webpageEditorTypes';
+import type { WebpageRow } from '../../api/webpageEditorTypes';
 import type { TranslateParams } from '../../hooks/useTranslation';
 
 /**

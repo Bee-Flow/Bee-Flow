@@ -27,9 +27,8 @@ vi.mock('../../components/shared/AudienceRows', () => ({
     ),
 }));
 
-import WebpageAudiencePanel, {
-    initialColumnChoice, countChosenColumns, countPublicColumns, otherLinksNotice,
-} from './WebpageAudiencePanel';
+import { otherLinksNotice } from './AddressCard';
+import WebpageAudiencePanel, { initialColumnChoice, countChosenColumns, countPublicColumns } from './WebpageAudiencePanel';
 
 const MODEL = {
     internal: { mode: 'personal', isPublished: false, sharedGroups: [], organizationId: null },

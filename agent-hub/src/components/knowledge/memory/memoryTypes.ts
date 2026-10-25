@@ -25,7 +25,7 @@ export const MEMORY_TYPE_IDS = [
 
 export type MemoryType = (typeof MEMORY_TYPE_IDS)[number];
 export type MemoryOrigin = 'explicit' | 'inferred' | 'imported' | 'tool';
-export type MemoryStatus = 'active' | 'pending_review' | 'archived' | 'superseded' | 'expired';
+type MemoryStatus = 'active' | 'pending_review' | 'archived' | 'superseded' | 'expired';
 export type MemorySort = 'recent' | 'last_used' | 'importance';
 export type MemoryScope = 'personal' | 'agent' | 'project' | 'all';
 export type MemoryView = 'active' | 'review' | 'archived';

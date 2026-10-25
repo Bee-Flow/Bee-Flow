@@ -25,14 +25,14 @@
  */
 import { ChevronRight, History } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { listCoworkRuns } from './coworkApi';
+import { listCoworkRuns } from '../../api/coworkApi';
 import { formatDuration, fullTimestamp } from './coworkFormat';
 import { inertMarkdownComponents, neutraliseActiveFences } from './coworkRunMarkdown';
 import { runStatusToken } from './coworkStatus';
 import { useTranslation, type TranslateParams } from '../../hooks/useTranslation';
 import MarkdownRenderer from '../renderers/MarkdownRenderer';
 import { statusLabel } from '../shared/statusTokens';
-import type { CoworkRun } from './cowork.types';
+import type { CoworkRun } from '../../api/cowork.types';
 
 /**
  * The first line of text that carries anything, with its Markdown marks
@@ -55,7 +55,7 @@ function firstMeaningfulLine(text: string | null | undefined) {
 }
 
 /** Run statuses that mean the attempt did not succeed. */
-export const FAILED_RUN_STATUSES = new Set(['error', 'failed', 'needs_reauth', 'timeout', 'cancelled']);
+const FAILED_RUN_STATUSES = new Set(['error', 'failed', 'needs_reauth', 'timeout', 'cancelled']);
 
 /** The one line the closed row shows: what came out of this run. */
 function outcomeLine(run: CoworkRun, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {

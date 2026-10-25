@@ -59,9 +59,9 @@ export type SuiteTabId = 'nextcloud' | 'google' | 'microsoft';
 export type RibbonCategoryId = 'suggested' | 'ai' | 'logic' | 'people' | 'data' | SuiteTabId | 'other_apps' | 'blocks';
 
 /** The integration categories (config/integrationCatalog) that get a tab of their own; every other one is "Other apps". */
-export const NEXTCLOUD_CATEGORY = 'Nextcloud';
-export const GOOGLE_CATEGORY = 'Google Workspace';
-export const MICROSOFT_CATEGORY = 'Microsoft 365';
+const NEXTCLOUD_CATEGORY = 'Nextcloud';
+const GOOGLE_CATEGORY = 'Google Workspace';
+const MICROSOFT_CATEGORY = 'Microsoft 365';
 
 /** Which integration category each suite tab shows. */
 export const SUITE_TABS: Readonly<Record<SuiteTabId, string>> = {
@@ -81,9 +81,9 @@ export function isSuiteTab(id: string): id is SuiteTabId {
  * here, once, as the Tailwind class every element in that colour uses (the
  * same hues as the suites' glyphs in flow/appGlyphs.jsx).
  */
-export const NEXTCLOUD_TEXT = 'text-[#0082c9]';
-export const GOOGLE_TEXT = 'text-[#4285F4]';
-export const MICROSOFT_TEXT = 'text-[#0078D4]';
+const NEXTCLOUD_TEXT = 'text-[#0082c9]';
+const GOOGLE_TEXT = 'text-[#4285F4]';
+const MICROSOFT_TEXT = 'text-[#0078D4]';
 
 /** A step tab a Bee Flow tool can live on. */
 export type NativeHomeTab = 'ai' | 'logic' | 'data';
@@ -118,7 +118,7 @@ export const NATIVE_APP_HOME: Readonly<Record<string, NativeHomeTab>> = {
 };
 
 /** The tab a Bee Flow tool lives on, or null for an outside app. */
-export function nativeHomeOf(appOrIntegrationId: string | null | undefined): NativeHomeTab | null {
+function nativeHomeOf(appOrIntegrationId: string | null | undefined): NativeHomeTab | null {
     if (!appOrIntegrationId) return null;
     return NATIVE_APP_HOME[String(appOrIntegrationId).toLowerCase().replace(/_/g, '-')] || null;
 }

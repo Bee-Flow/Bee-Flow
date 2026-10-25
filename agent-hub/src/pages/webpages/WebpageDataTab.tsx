@@ -8,7 +8,7 @@ import SegmentedControl from '../../components/shared/SegmentedControl';
 import useTranslation from '../../hooks/useTranslation';
 import type { OrgGroup } from '../../api/queries/orgGroups';
 import type { WebpageSource } from './WebpageSources';
-import type { WebpageRow } from './webpageEditorTypes';
+import type { WebpageRow } from '../../api/webpageEditorTypes';
 
 /**
  * "Data & links" — the header tab that gives a page's data surfaces a home of

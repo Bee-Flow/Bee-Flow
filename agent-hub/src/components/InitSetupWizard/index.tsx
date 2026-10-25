@@ -13,6 +13,7 @@ import StepSso from './StepSso';
 import { TIERS, type TierConfig, type TierKey } from './StepTiers';
 import { useTranslation } from '../../hooks/useTranslation';
 import { messageOf } from '../../utils/caughtError';
+import { mutate, ApiError, errorBody, RefusedError } from '../../api/mutate';
 const INPUT_CLASS = "w-full px-4 py-3 rounded-xl border-2 outline-none text-sm transition-all focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-[var(--accent-primary)] placeholder:text-gray-400";
 const INPUT_STYLE = { background: '#fff', borderColor: '#d1d5db', color: '#1f2937', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.06)' };
 
@@ -170,27 +171,39 @@ const InitSetupWizard = ({ onComplete }: { onComplete: () => void }) => {
                 }
             }
             if (Object.keys(aiBody).length > 0) {
-                const r = await authFetch(`${API_BASE}/ai/config`, {
+                try {
+                    await mutate(`${API_BASE}/ai/config`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(aiBody),
                 });
-                if (!r.ok) throw new Error('Failed to save AI configuration');
+                } catch (err) {
+                    if (!(err instanceof ApiError)) throw err;
+                    throw new Error('Failed to save AI configuration');
+                }
             }
 
             // 4. Save model tiers
             const hasAny = TIERS.some(t => tierConfig[t.key]?.modelId);
             if (hasAny) {
-                const r = await authFetch(`${API_BASE}/ai/config/chat-models`, {
+                try {
+                    await mutate(`${API_BASE}/ai/config/chat-models`, {
                     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(tierConfig),
                 });
-                if (!r.ok) throw new Error('Failed to save model tiers');
+                } catch (err) {
+                    if (!(err instanceof ApiError)) throw err;
+                    throw new Error('Failed to save model tiers');
+                }
             }
             if (!isAzure) {
                 const hasEu = TIERS.some(t => euTierConfig[t.key]?.modelId);
                 if (hasEu) {
-                    const r = await authFetch(`${API_BASE}/ai/config/chat-models-eu`, {
+                    try {
+                        await mutate(`${API_BASE}/ai/config/chat-models-eu`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(euTierConfig),
                     });
-                    if (!r.ok) throw new Error('Failed to save EU tiers');
+                    } catch (err) {
+                        if (!(err instanceof ApiError)) throw err;
+                        throw new Error('Failed to save EU tiers');
+                    }
                 }
             }
 
@@ -200,11 +213,13 @@ const InitSetupWizard = ({ onComplete }: { onComplete: () => void }) => {
                 if (msClientId.trim()) ssoBody.clientId = msClientId;
                 if (msClientSecret.trim()) ssoBody.clientSecret = msClientSecret;
                 if (msTenantId.trim()) ssoBody.tenantId = msTenantId;
-                const r = await authFetch(`${API_BASE}/auth/providers/microsoft`, {
+                try {
+                    await mutate(`${API_BASE}/auth/providers/microsoft`, {
                     method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ssoBody),
                 });
-                if (!r.ok) {
-                    const d = await r.json().catch(() => ({}));
+                } catch (err) {
+                    if (!(err instanceof RefusedError)) throw err;
+                    const d = errorBody(err) ?? {};
                     throw new Error(d.error || 'Failed to save SSO config');
                 }
             }

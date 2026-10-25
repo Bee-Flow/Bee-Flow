@@ -329,12 +329,3 @@ export function scoreSuggestions({
         .slice(0, limit);
 }
 
-export default {
-    getUsageKey,
-    recordStep,
-    readUsage,
-    readTransitions,
-    topFrequentKeys,
-    scoreSuggestions,
-    TRANSITION_RULES,
-};

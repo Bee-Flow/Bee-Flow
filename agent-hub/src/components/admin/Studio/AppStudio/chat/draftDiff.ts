@@ -109,4 +109,3 @@ function signature(obj: unknown, childKey: string | null): string | null {
     }
 }
 
-export default diffDefinitions;

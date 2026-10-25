@@ -18,7 +18,7 @@ export interface RunPolicy {
 
 const RETENTION_CHOICES = [7, 30, 90, 180, 365];
 
-export function readRunPolicy(a: SettingsAutomation | null | undefined): RunPolicy {
+function readRunPolicy(a: SettingsAutomation | null | undefined): RunPolicy {
     const raw = a?.definition?.runPolicy;
     return raw && typeof raw === 'object' && !Array.isArray(raw) ? raw as RunPolicy : {};
 }

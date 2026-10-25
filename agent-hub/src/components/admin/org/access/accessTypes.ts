@@ -11,7 +11,7 @@ export interface AccessCapability {
 }
 
 /** One group row of the group-access payload. */
-export interface AccessGroup {
+interface AccessGroup {
     id: string;
     name: string;
     granted?: string[];

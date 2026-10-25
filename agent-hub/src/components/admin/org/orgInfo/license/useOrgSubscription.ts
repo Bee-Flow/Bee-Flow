@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, useEffectEvent } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { BillingPlan, OrgSubscription, SubMessage } from './licenseShared';
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import { cloudFetch } from '../../../../../utils/cloudFetch';
+import { cloudFetch } from '../../../../../api/cloudFetch';
 import { API_BASE } from '../../../../../utils/helpers';
 import useSubscriptionActions from './useSubscriptionActions';
 import type { SubscriptionActions } from './useSubscriptionActions';

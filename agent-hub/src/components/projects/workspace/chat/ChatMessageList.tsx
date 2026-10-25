@@ -5,9 +5,8 @@
 import { ArrowDown, Loader2, MessagesSquare } from 'lucide-react';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import {
-    useDeleteTeamChatMessage, useEditTeamChatMessage, useLoadOlderMessages, useTeamChatFeedback, useTeamChatMessages, type TeamChatMessage,
-} from '../../../../api/queries/projectChats';
+import { useDeleteTeamChatMessage, useEditTeamChatMessage, useLoadOlderMessages, useTeamChatFeedback, type TeamChatMessage } from '../../../../api/queries/projectChats';
+import { useTeamChatMessages } from '../../../../api/queries/useTeamChatMessages';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { toast } from '../../../shared/Toast';
 import { projectErrorText } from '../projectErrorText';

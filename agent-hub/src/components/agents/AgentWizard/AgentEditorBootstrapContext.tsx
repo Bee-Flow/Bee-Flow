@@ -18,6 +18,7 @@ import type { OrgGroup } from '../AgentDesigner/PublishMenu';
 import type { ModelTierMap } from '../../../api/queries/modelTiers';
 import type { Skill } from '../../../api/queries/skills';
 import type { IntegrationStatus } from '../AgentDesigner/DesignerPanels';
+import { request, RefusedError } from '../../../api/mutate';
 
 const EMPTY: AgentEditorBootstrap = {
     allSkills: null,
@@ -65,8 +66,14 @@ export function AgentEditorBootstrapProvider({ children }: { children?: ReactNod
 
     const refreshCategories = useCallback(async () => {
         try {
-            const r = await authFetch(`${API_BASE}/agents/categories`);
-            if (!r.ok) { setCategoriesState(READ.ERROR); return; }
+            let r: Response;
+            try {
+                r = await request(`${API_BASE}/agents/categories`);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                setCategoriesState(READ.ERROR);
+                return;
+            }
             const list = await r.json();
             const okList = Array.isArray(list);
             setCategories(okList ? list : []);

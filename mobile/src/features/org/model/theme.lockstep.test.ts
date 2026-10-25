@@ -4,13 +4,15 @@
  * (studio/look/sections/AccentSection.jsx).
  */
 
-import fs from 'node:fs';
+
 import path from 'node:path';
+
+import { webSourceText } from '@/shared/testing/webModule';
 
 import { ACCENT_PRESETS, FONT_IDS, THEME_PRESET_IDS } from './theme';
 
 const WEB = path.resolve(__dirname, '../../../../../agent-hub/src/components/appearance');
-const read = (rel: string) => fs.readFileSync(path.join(WEB, rel), 'utf8');
+const read = (rel: string) => webSourceText(path.join(WEB, rel));
 
 function idsOf(src: string, marker: string): string[] {
     const body = src.slice(src.indexOf(marker), src.indexOf('];', src.indexOf(marker)));

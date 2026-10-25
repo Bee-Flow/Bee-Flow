@@ -11,7 +11,7 @@ export const VOICE_STATES: VoiceStates = {
 };
 
 // ─── VAD tuning ────────────────────────────────────────────────
-export const VAD_FFT_SIZE = 1024;              // analyser block size
+const VAD_FFT_SIZE = 1024;              // analyser block size
 export const VAD_POLL_MS = 50;                 // evaluate energy 20×/s
 export const VAD_SPEECH_RMS = 0.018;           // start-of-speech threshold
 export const VAD_SILENCE_RMS = 0.012;          // end-of-speech threshold (hysteresis)

@@ -2,7 +2,7 @@
 // the model (5 to 60 s) and SAVES the cell changes before it answers.
 
 import { API_BASE, authFetch } from '../../../utils/helpers';
-import { SheetApiError } from './sheetApi';
+import { SheetApiError } from '../../../api/sheetApi';
 import type { SelectionKind } from './sheetModel';
 import type { SheetChartConfig } from './sheetCharts';
 import { logger } from '../../../utils/logger';
