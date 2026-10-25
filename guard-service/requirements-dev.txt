@@ -3,10 +3,10 @@
 # No model, no torch: the unit tests use FakeGliner. The service lines carry
 # the same pins as requirements.txt, so the tests import the versions the
 # image ships; the classes that read app/config.py need pydantic-settings.
-coverage==7.16.2
-fastapi==0.143.0
+coverage==7.17.0
+fastapi==0.159.1
 pydantic==2.14.1
-pydantic-settings==2.15.0
+pydantic-settings==2.16.1
 httpx==0.28.1
 certifi==2026.10.19
 anyio==4.15.1
