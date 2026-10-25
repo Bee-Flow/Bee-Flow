@@ -370,6 +370,8 @@ jobs:
               - 'agent-hub/src/utils/integrationIcons.ts'
               - 'agent-hub/src/config/integrationCatalog.ts'
               - 'agent-hub/src/hooks/useIconPack.tsx'
+              # required by useIconPack.tsx (its react-query reader)
+              - 'agent-hub/src/api/queries/coreIconPack.ts'
               - 'agent-hub/src/components/automation/Builder/chat/AssistantFieldContext.tsx'
               - 'agent-hub/src/components/automation/Builder/{useBuilderShellState,useBuilderTabUrl}.ts'
               - 'agent-hub/src/api/queries/automation/{runs,http}.ts'
