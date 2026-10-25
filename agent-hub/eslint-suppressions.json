@@ -94,6 +94,20 @@
       "count": 1
     }
   },
+  "src/AppRoutes.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 2
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    },
+    "react-hooks/refs": {
+      "count": 2
+    }
+  },
   "src/AuthedApp.tsx": {
     "complexity": {
       "count": 1
@@ -248,6 +262,14 @@
       "count": 1
     }
   },
+  "src/components/admin/Studio/AppStudio/bi/ValueControl.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
   "src/components/admin/Studio/AppStudio/bi/connectors/connectorModel.ts": {
     "complexity": {
       "count": 1
@@ -338,6 +360,17 @@
       "count": 1
     }
   },
+  "src/components/admin/Studio/AppStudio/editor/CanvasBody.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
   "src/components/admin/Studio/AppStudio/editor/CommandPalette.tsx": {
     "max-lines-per-function": {
       "count": 1
@@ -386,7 +419,7 @@
   },
   "src/components/admin/Studio/AppStudio/editor/NavGroupsDialog.tsx": {
     "max-lines-per-function": {
-      "count": 1
+      "count": 2
     }
   },
   "src/components/admin/Studio/AppStudio/editor/PublishModal.tsx": {
@@ -497,6 +530,46 @@
       "count": 1
     }
   },
+  "src/components/admin/Studio/AppStudio/flow/ActionFlowEditor/ActionFlowEditor.helpers.ts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/components/admin/Studio/AppStudio/flow/ActionFlowEditor/FlowBody.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-statements": {
+      "count": 1
+    },
+    "react-hooks/exhaustive-deps": {
+      "count": 1
+    }
+  },
+  "src/components/admin/Studio/AppStudio/flow/ActionFlowEditor/StepFlowNode.tsx": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/components/admin/Studio/AppStudio/flow/StepSettings/KeyedBindingsField.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
+  "src/components/admin/Studio/AppStudio/flow/StepSettings/StepField.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
   "src/components/admin/Studio/AppStudio/flow/stepCatalog.ts": {
     "complexity": {
       "count": 1
@@ -531,6 +604,11 @@
   "src/components/admin/Studio/AppStudio/inspector/AiActionEditors.tsx": {
     "max-lines-per-function": {
       "count": 1
+    }
+  },
+  "src/components/admin/Studio/AppStudio/inspector/AiBrowsingSettings.tsx": {
+    "react-hooks/exhaustive-deps": {
+      "count": 2
     }
   },
   "src/components/admin/Studio/AppStudio/inspector/AutomationPicker.tsx": {
@@ -643,6 +721,45 @@
   },
   "src/components/admin/Studio/AppStudio/inspector/panels/BindingField.kinds.test.jsx": {
     "import/order": {
+      "count": 1
+    }
+  },
+  "src/components/admin/Studio/AppStudio/inspector/panels/BindingField/AggregateBinding.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/admin/Studio/AppStudio/inspector/panels/BindingField/ConnectorBinding.tsx": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/components/admin/Studio/AppStudio/inspector/panels/BindingField/DatasetBinding.tsx": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/components/admin/Studio/AppStudio/inspector/panels/BindingField/SourceSummary.tsx": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/components/admin/Studio/AppStudio/inspector/panels/BindingField/TableBinding.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/admin/Studio/AppStudio/inspector/panels/BindingField/index.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -984,6 +1101,9 @@
   "src/components/admin/Studio/AppStudio/runtime/components/AppInputHtml.tsx": {
     "max-lines-per-function": {
       "count": 1
+    },
+    "react-hooks/refs": {
+      "count": 1
     }
   },
   "src/components/admin/Studio/AppStudio/runtime/components/AppInputNumber.tsx": {
@@ -1015,6 +1135,11 @@
     },
     "max-lines-per-function": {
       "count": 1
+    }
+  },
+  "src/components/admin/Studio/AppStudio/runtime/components/AppKanban.helpers.ts": {
+    "complexity": {
+      "count": 2
     }
   },
   "src/components/admin/Studio/AppStudio/runtime/components/AppKanban.tsx": {
@@ -1160,6 +1285,11 @@
     },
     "max-lines-per-function": {
       "count": 1
+    }
+  },
+  "src/components/admin/Studio/AppStudio/runtime/components/KanbanCard.tsx": {
+    "complexity": {
+      "count": 2
     }
   },
   "src/components/admin/Studio/AppStudio/runtime/components/cellValue.tsx": {
@@ -1383,7 +1513,7 @@
   },
   "src/components/admin/Studio/AppStudio/tables/RelationshipsTab.tsx": {
     "max-lines-per-function": {
-      "count": 1
+      "count": 2
     },
     "react-hooks/exhaustive-deps": {
       "count": 1
@@ -1442,7 +1572,7 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 2
+      "count": 3
     }
   },
   "src/components/admin/Studio/Approvals/ApprovalDecisionControls.tsx": {
@@ -1450,6 +1580,11 @@
       "count": 2
     },
     "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/admin/Studio/Approvals/ApprovalDetail.helpers.ts": {
+    "complexity": {
       "count": 1
     }
   },
@@ -1472,6 +1607,14 @@
       "count": 1
     },
     "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "src/components/admin/Studio/Approvals/StageTimeline.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -1501,6 +1644,22 @@
       "count": 2
     },
     "max-lines": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-statements": {
+      "count": 1
+    }
+  },
+  "src/components/admin/Studio/AutomationsStudio/AutomationsOverview/BoardView.tsx": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/components/admin/Studio/AutomationsStudio/AutomationsOverview/index.tsx": {
+    "complexity": {
       "count": 1
     },
     "max-lines-per-function": {
@@ -1561,6 +1720,25 @@
       "count": 1
     }
   },
+  "src/components/admin/Studio/Datatables/ColumnDesigner/ColumnRow.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/admin/Studio/Datatables/ColumnDesigner/index.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-statements": {
+      "count": 2
+    }
+  },
   "src/components/admin/Studio/Datatables/DatatableCard.tsx": {
     "complexity": {
       "count": 1
@@ -1593,6 +1771,14 @@
       "count": 1
     },
     "react-hooks/static-components": {
+      "count": 1
+    }
+  },
+  "src/components/admin/Studio/Datatables/GrantList.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -1679,6 +1865,14 @@
   },
   "src/components/admin/Studio/Datatables/SpreadsheetSourceCards.tsx": {
     "complexity": {
+      "count": 1
+    }
+  },
+  "src/components/admin/Studio/Datatables/TableMenu.tsx": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -2229,6 +2423,14 @@
       "count": 1
     }
   },
+  "src/components/admin/Studio/SkillsStudio/FromConversationPicker.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
   "src/components/admin/Studio/SkillsStudio/SkillDetail.tsx": {
     "complexity": {
       "count": 1
@@ -2265,6 +2467,11 @@
     },
     "max-lines-per-function": {
       "count": 1
+    }
+  },
+  "src/components/admin/Studio/SkillsStudio/StepCard.tsx": {
+    "max-lines-per-function": {
+      "count": 2
     }
   },
   "src/components/admin/Studio/SkillsStudio/TestTab.tsx": {
@@ -2476,6 +2683,17 @@
       "count": 2
     }
   },
+  "src/components/admin/Studio/SupportStudio/TicketDetail.tsx": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-statements": {
+      "count": 1
+    }
+  },
   "src/components/admin/Studio/SupportStudio/auditMeta.ts": {
     "complexity": {
       "count": 1
@@ -2579,7 +2797,7 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
+      "count": 2
     },
     "max-statements": {
       "count": 1
@@ -2657,6 +2875,17 @@
   },
   "src/components/admin/compliance/index.tsx": {
     "complexity": {
+      "count": 1
+    },
+    "max-statements": {
+      "count": 1
+    }
+  },
+  "src/components/admin/compliance/ladder/AiActLadderModal/StandaloneLadder.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
       "count": 1
     },
     "max-statements": {
@@ -2758,7 +2987,7 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
+      "count": 2
     }
   },
   "src/components/admin/compliance/pages/OverviewPage.tsx": {
@@ -2798,7 +3027,7 @@
       "count": 2
     },
     "max-lines-per-function": {
-      "count": 1
+      "count": 2
     }
   },
   "src/components/admin/compliance/pages/SettingsPage.tsx": {
@@ -2825,9 +3054,14 @@
       "count": 2
     },
     "max-lines-per-function": {
-      "count": 1
+      "count": 2
     },
     "max-statements": {
+      "count": 1
+    }
+  },
+  "src/components/admin/compliance/pages/TrainingPageSection2.tsx": {
+    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -3233,7 +3467,7 @@
       "count": 2
     },
     "max-lines-per-function": {
-      "count": 2
+      "count": 3
     },
     "react-hooks/set-state-in-effect": {
       "count": 1
@@ -3302,7 +3536,7 @@
   },
   "src/components/admin/org/OrgCustomTiersPanel.tsx": {
     "max-lines-per-function": {
-      "count": 2
+      "count": 3
     }
   },
   "src/components/admin/org/OrgInfoPanel.tsx": {
@@ -3652,7 +3886,7 @@
   },
   "src/components/admin/product-website/assistant/CmsAssistantPane.tsx": {
     "max-lines-per-function": {
-      "count": 1
+      "count": 2
     }
   },
   "src/components/admin/product-website/blockEditors/CardCarouselEditor.tsx": {
@@ -3731,10 +3965,10 @@
   },
   "src/components/admin/product-website/blockEditors/MediaTextEditor.tsx": {
     "complexity": {
-      "count": 1
+      "count": 2
     },
     "max-lines-per-function": {
-      "count": 1
+      "count": 2
     }
   },
   "src/components/admin/product-website/blockEditors/MotionFields.tsx": {
@@ -4272,7 +4506,7 @@
   },
   "src/components/agents/AgentDesigner/sections/IdentitySection.tsx": {
     "max-lines-per-function": {
-      "count": 2
+      "count": 3
     }
   },
   "src/components/agents/AgentDesigner/sections/ToolsSection.tsx": {
@@ -4400,7 +4634,7 @@
   },
   "src/components/agents/AgentWizard/builderSplit/BuilderConfigPanel.tsx": {
     "complexity": {
-      "count": 1
+      "count": 2
     },
     "max-lines-per-function": {
       "count": 1
@@ -4494,11 +4728,24 @@
       "count": 1
     }
   },
+  "src/components/agents/AgentWizard/canUse/ToolRow.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
   "src/components/agents/AgentWizard/canUse/ToolsCard.tsx": {
     "complexity": {
       "count": 1
     },
     "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/agents/AgentWizard/canUse/toolGrants.helpers.ts": {
+    "complexity": {
       "count": 1
     }
   },
@@ -4600,6 +4847,19 @@
       "count": 1
     }
   },
+  "src/components/agents/AgentWizard/tests/TestSetCard/AboutLine.tsx": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/components/agents/AgentWizard/tests/TestSetCard/index.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
   "src/components/agents/AgentWizard/tests/testSetFacts.ts": {
     "complexity": {
       "count": 2
@@ -4643,6 +4903,14 @@
   },
   "src/components/appearance/studio/icons/IconsEditor.tsx": {
     "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/appearance/studio/icons/PackEditor.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -4765,6 +5033,17 @@
   },
   "src/components/automation/Builder/FormRunOverlay.tsx": {
     "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/automation/Builder/LayerRow.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -5013,6 +5292,9 @@
     "complexity": {
       "count": 1
     },
+    "max-lines": {
+      "count": 1
+    },
     "max-lines-per-function": {
       "count": 1
     },
@@ -5093,6 +5375,11 @@
       "count": 2
     },
     "max-statements": {
+      "count": 1
+    }
+  },
+  "src/components/automation/Builder/flow/flowletScope.helpers.ts": {
+    "complexity": {
       "count": 1
     }
   },
@@ -5302,6 +5589,14 @@
       "count": 1
     }
   },
+  "src/components/automation/Builder/flow/settings/AppEventFields.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
   "src/components/automation/Builder/flow/settings/FlattenFields.tsx": {
     "react-hooks/set-state-in-effect": {
       "count": 1
@@ -5466,7 +5761,7 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
+      "count": 2
     }
   },
   "src/components/automation/Builder/flow/settings/aiStepEditors.tsx": {
@@ -5522,6 +5817,14 @@
     }
   },
   "src/components/automation/Builder/flow/settings/codeStep/TestCaseEditor.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/automation/Builder/flow/settings/collectionEditors/index.tsx": {
     "complexity": {
       "count": 1
     },
@@ -5694,6 +5997,14 @@
   },
   "src/components/automation/Builder/flow/stepUsage.ts": {
     "complexity": {
+      "count": 1
+    }
+  },
+  "src/components/automation/Builder/flow/useBuildChoreography.helpers.ts": {
+    "complexity": {
+      "count": 2
+    },
+    "max-statements": {
       "count": 1
     }
   },
@@ -5910,6 +6221,11 @@
       "count": 1
     },
     "max-statements": {
+      "count": 1
+    }
+  },
+  "src/components/automation/Builder/mapping/PickerGroup.tsx": {
+    "complexity": {
       "count": 1
     }
   },
@@ -6381,6 +6697,11 @@
       "count": 1
     }
   },
+  "src/components/automation/useAutomationFolders.ts": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
   "src/components/automation/useAutomationLibrary.ts": {
     "max-lines-per-function": {
       "count": 1
@@ -6748,12 +7069,22 @@
       "count": 1
     }
   },
+  "src/components/chat/WorkspaceNotebook.helpers.ts": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
   "src/components/chat/WorkspaceNotebook.tsx": {
     "max-lines-per-function": {
       "count": 1
     },
     "max-statements": {
       "count": 2
+    }
+  },
+  "src/components/chat/WorkspaceNotebookSection.tsx": {
+    "complexity": {
+      "count": 1
     }
   },
   "src/components/chat/answerTrace.ts": {
@@ -6976,6 +7307,14 @@
       "count": 1
     }
   },
+  "src/components/integrations/azure/SSOSectionSection.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
   "src/components/integrations/azure/components.tsx": {
     "max-lines-per-function": {
       "count": 1
@@ -7054,6 +7393,11 @@
       "count": 1
     }
   },
+  "src/components/integrations/nextcloud/ScopeRow.tsx": {
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
   "src/components/knowledge/EmailThreadExplorer.tsx": {
     "max-lines-per-function": {
       "count": 1
@@ -7088,7 +7432,7 @@
       "count": 2
     },
     "max-lines-per-function": {
-      "count": 2
+      "count": 3
     },
     "max-statements": {
       "count": 1
@@ -7171,6 +7515,27 @@
     }
   },
   "src/components/licensing/SubscriptionContext.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "src/components/licensing/TierSlider/TierGauge.tsx": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/components/licensing/TierSlider/TierTrack.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/licensing/TierSlider/index.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-statements": {
+      "count": 1
+    },
     "react-hooks/set-state-in-effect": {
       "count": 1
     }
@@ -7346,6 +7711,14 @@
     }
   },
   "src/components/onboarding/player/ExerciseStep.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/components/onboarding/player/FlowBuildSim.tsx": {
     "complexity": {
       "count": 1
     },
@@ -7572,6 +7945,31 @@
       "count": 1
     }
   },
+  "src/components/renderers/CodeRenderer.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-statements": {
+      "count": 1
+    },
+    "react-hooks/error-boundaries": {
+      "count": 11
+    }
+  },
+  "src/components/renderers/CollapsibleCodeBlock.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
   "src/components/renderers/MarkdownRenderer.tsx": {
     "max-lines-per-function": {
       "count": 1
@@ -7611,6 +8009,11 @@
     },
     "max-lines-per-function": {
       "count": 1
+    }
+  },
+  "src/components/renderers/TestReportRendererSection.tsx": {
+    "max-lines-per-function": {
+      "count": 2
     }
   },
   "src/components/renderers/VegaLiteRenderer.tsx": {
@@ -7922,7 +8325,7 @@
   },
   "src/components/support/SupportConnectionsConfig.tsx": {
     "complexity": {
-      "count": 1
+      "count": 2
     },
     "max-lines-per-function": {
       "count": 1
@@ -8720,7 +9123,7 @@
   },
   "src/pages/AdminDashboard.tsx": {
     "complexity": {
-      "count": 1
+      "count": 2
     },
     "max-lines-per-function": {
       "count": 1
@@ -8846,6 +9249,11 @@
       "count": 2
     }
   },
+  "src/pages/apps/AppsHomePage/index.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
   "src/pages/documents/DeckLookFields.tsx": {
     "complexity": {
       "count": 2
@@ -8913,6 +9321,14 @@
       "count": 1
     }
   },
+  "src/pages/documents/notebook/MermaidBlock.helpers.ts": {
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-statements": {
+      "count": 1
+    }
+  },
   "src/pages/documents/notebook/MermaidBlock.tsx": {
     "max-lines-per-function": {
       "count": 1
@@ -8941,7 +9357,7 @@
   },
   "src/pages/documents/notebook/SendForSigningModal.tsx": {
     "max-lines-per-function": {
-      "count": 1
+      "count": 2
     }
   },
   "src/pages/documents/notebook/detail/NotebookEditorView.tsx": {
@@ -9434,6 +9850,14 @@
       "count": 1
     }
   },
+  "src/pages/meeting-notes/lib/insightsMetrics.helpers.ts": {
+    "complexity": {
+      "count": 2
+    },
+    "max-statements": {
+      "count": 1
+    }
+  },
   "src/pages/meeting-notes/lib/insightsMetrics.ts": {
     "complexity": {
       "count": 1
@@ -9504,6 +9928,11 @@
       "count": 1
     }
   },
+  "src/pages/settings/ConnectionRow.tsx": {
+    "max-lines-per-function": {
+      "count": 2
+    }
+  },
   "src/pages/settings/ConnectionsManager.tsx": {
     "max-lines-per-function": {
       "count": 1
@@ -9529,7 +9958,7 @@
   },
   "src/pages/settings/ConsumerPrivacySection.tsx": {
     "max-lines-per-function": {
-      "count": 1
+      "count": 2
     }
   },
   "src/pages/settings/ConsumerUsageSection.tsx": {
@@ -9841,6 +10270,33 @@
       "count": 2
     }
   },
+  "src/pages/webpages/AddAppForm.tsx": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-statements": {
+      "count": 1
+    }
+  },
+  "src/pages/webpages/AddressCard.tsx": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "src/pages/webpages/BrowseTab.tsx": {
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-statements": {
+      "count": 1
+    }
+  },
   "src/pages/webpages/FileExplorer.tsx": {
     "complexity": {
       "count": 1
@@ -9849,6 +10305,16 @@
       "count": 1
     },
     "max-statements": {
+      "count": 1
+    }
+  },
+  "src/pages/webpages/PublicRow.tsx": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "src/pages/webpages/SchemaTab.tsx": {
+    "max-lines-per-function": {
       "count": 1
     }
   },

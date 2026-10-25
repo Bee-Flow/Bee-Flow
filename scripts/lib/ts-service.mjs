@@ -14,7 +14,11 @@ export function loadTs() {
     return createRequire(path.join(ROOT, 'agent-hub', 'package.json'))('typescript');
 }
 
-/** `noResolve` keeps the program to `only`: imports are still resolved but their targets are not pulled in. `only`: restrict the program to these files (a rename or an extract only needs the files that touch the subject; a whole-package program takes a minute per query). */
+/** `noResolve` keeps the program to `only`: imports are still resolved but their targets are not pulled in. `only`: restrict the program to these files (a rename or an extract only needs the files that touch the subject; a whole-package program takes a minute per query).
+ * @param {string} pkgDir
+ * @param {any} [ts]
+ * @param {{ only?: string[], noResolve?: boolean }} [options]
+ */
 export function createService(pkgDir, ts = loadTs(), { only, noResolve = false } = {}) {
     const tsconfig = path.join(pkgDir, 'tsconfig.json');
     const cfg = ts.getParsedCommandLineOfConfigFile(tsconfig, {}, { ...ts.sys, onUnRecoverableConfigFileDiagnostic: () => {} });

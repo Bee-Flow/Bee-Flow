@@ -51,6 +51,7 @@
     "src/components/admin/Studio/AppStudio/state/definitionOps.ts": 800,
     "src/components/admin/Studio/AppStudio/state/sampleDefinitions.ts": 646,
     "src/components/admin/Studio/AppStudio/tables/RowsTab.tsx": 411,
+    "src/components/admin/Studio/AutomationsStudio/AutomationsOverview.tsx": 637,
     "src/components/admin/Studio/Datatables/datatableDisplay.ts": 543,
     "src/components/admin/Studio/Forms/FormsStudio.tsx": 561,
     "src/components/admin/Studio/KnowledgeStudio/AddSourcePanel.tsx": 705,

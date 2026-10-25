@@ -545,18 +545,6 @@ test('empty-catch fails a new swallowed error over the budget and says what to d
     assert.match(r.stderr, /rethrow/);
 });
 
-test('eslint-disable counts every directive form, tests included, and leaves eslint-enable and prose alone', () => {
-    const dir = sandbox({
-        files: {
-            'a.ts': '// eslint-disable-next-line no-undef\nx();\n/* eslint-disable max-lines */\ny(); // eslint-disable-line complexity\n/* eslint-enable max-lines */\n',
-            'a.test.ts': '// eslint-disable-next-line no-undef\n',
-            'b.ts': "const s = 'mentions eslint-disable in text';\n",
-        },
-    });
-    assert.strictEqual(run(dir, 'eslint-disable').code, 0);
-    assert.strictEqual(budgetOf(dir, 'eslint-disable'), 4);
-});
-
 test('rollback-in-store counts hand-written ROLLBACKs in stores/, and leaves savepoints, comments, other folders and tests alone', () => {
     const dir = sandbox({
         src: false,

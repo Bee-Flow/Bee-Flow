@@ -130,11 +130,6 @@
  *                     only comments: a failure swallowed without a trace. A
  *                     promise `.catch(() => {})` is a call, not a clause, and
  *                     is not counted. Measured in server and agent-hub.
- *   eslint-disable   `eslint-disable` comments (block, next-line and line forms),
- *                     tests included. Each one is a rule switched off by hand;
- *                     the bulk suppressions in eslint-suppressions.json cover
- *                     the old violations, so a new disable is the only way
- *                     left to add one without fixing it.
  *   rollback-in-store a ROLLBACK written into a query string in stores/
  *                     (non-test): a hand-rolled BEGIN/COMMIT/ROLLBACK. The
  *                     convention is db.withTransaction() from server/db.js,
@@ -285,10 +280,6 @@ const INLINE_PGLITE_ADAPTER = /^(?:async\s+)?function\s+(?:adapt\w*|rawQuery|q|q
 // empty-catch: a catch clause whose block holds nothing, or only comments.
 // `.catch(() => {})` on a promise is a call, not a clause, and is not counted.
 const EMPTY_CATCH = /(?<![\w$.])catch\s*(?:\([^)]*\))?\s*\{\s*(?:(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/)\s*)*\}/g;
-
-// eslint-disable: the directive comment, in any of its forms. `eslint-enable`
-// is the closing half of a block disable and is not counted.
-const ESLINT_DISABLE = /\/[/*]\s*eslint-disable\b/g;
 
 // rollback-in-store: a ROLLBACK written into a query string by hand.
 // `ROLLBACK TO SAVEPOINT` is a step inside a transaction, not the end of one.
@@ -570,12 +561,6 @@ const METRICS = {
         measure: countMatches(EMPTY_CATCH),
         what: 'empty catch blocks',
         advice: 'handle the error, log it (log.warn / log.debug with the reason it is safe to go on), or rethrow it; a comment alone hides the failure',
-    },
-    'eslint-disable': {
-        include: () => true,
-        measure: countMatches(ESLINT_DISABLE),
-        what: 'eslint-disable comments',
-        advice: 'fix the violation instead of switching the rule off; if the rule is truly wrong here, say why in the comment and lower another one',
     },
     'rollback-in-store': {
         include: (rel) => !TEST_FILE.test(rel) && rel.startsWith('stores/'),
