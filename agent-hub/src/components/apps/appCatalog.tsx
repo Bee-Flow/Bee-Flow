@@ -39,28 +39,8 @@ export interface AppDef {
     stepCategory?: string;
 }
 
-export interface N8nWorkflowSource {
-    slug: string;
-    name: string;
-    description?: string;
-}
-
-export interface McpServerSource {
-    id: string;
-    name: string;
-    toolCount?: number;
-    allConfigured?: boolean;
-    icon?: string;
-}
-
-/** A Reusable Step the user exposed to chat. */
-export interface ExposedStepSource {
-    id: string;
-    title?: string;
-    description?: string;
-    category?: string;
-    icon?: string | null;
-}
+export type { McpServerSource } from '../../api/queries/coreAppsCatalog';
+import type { ExposedStepSource, McpServerSource, N8nWorkflowSource } from '../../api/queries/coreAppsCatalog';
 
 export interface AppCatalogSources {
     n8nWorkflows?: N8nWorkflowSource[];

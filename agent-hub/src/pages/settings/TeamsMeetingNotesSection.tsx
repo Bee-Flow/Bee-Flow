@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Users } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslation';
 import { Toggle, Row, LANGS } from './shared/settingsPrimitives';
@@ -12,6 +12,8 @@ import {
 } from '../../api/queries/teamsMeetingNotes';
 import { errorMessage, messageOf } from '../../utils/caughtError';
 
+const DEFAULT_CFG: TeamsNotesSettings = { autoImport: false, autoRecordConfig: false, language: 'nl', lookbackHours: 24 };
+
 /**
  * Personal Microsoft Teams → Meeting Notes settings. Self-hides while loading,
  * when Meeting Notes is not licensed for this account (the settings request
@@ -24,17 +26,15 @@ export default function TeamsMeetingNotesSection() {
     const query = useTeamsNotesUserSettings(true);
     const save = useSaveTeamsNotesUserSettings();
     const invalidate = useInvalidateTeamsMeetingNotes();
-    const [cfg, setCfg] = useState<TeamsNotesSettings>({ autoImport: false, autoRecordConfig: false, language: 'nl', lookbackHours: 24 });
+    // The loaded values with the person's edits on top; the edits are dropped whenever the server's answer is re-read.
+    const [edits, setEdits] = useState<Partial<TeamsNotesSettings>>({});
+    const { connection: _connection, ...loaded } = query.data ?? ({} as Partial<NonNullable<typeof query.data>>);
+    const cfg: TeamsNotesSettings = { ...DEFAULT_CFG, ...loaded, ...edits };
+    const setCfg = (fn: (c: TeamsNotesSettings) => TeamsNotesSettings) => setEdits(fn(cfg));
     const [reauthing, setReauthing] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string | undefined } | null>(null);
 
     const data = query.data;
-    useEffect(() => {
-        if (!data) return;
-        const { connection: _connection, ...settings } = data;
-        setCfg((prev) => ({ ...prev, ...settings }));
-    }, [data]);
-
     if (query.isLoading || query.error || !data?.connection?.microsoftConnected) return null;
     const { connection } = data;
 
@@ -53,7 +53,7 @@ export default function TeamsMeetingNotesSection() {
         setMessage(null);
         try {
             const result = await openMicrosoftOAuthPopup({ authFetch, apiBase: API_BASE });
-            if (result.success) await invalidate();
+            if (result.success) { await invalidate(); setEdits({}); }
         } catch (e) {
             setMessage({ type: 'error', text: messageOf(e, t('settings.teams_notes_reauth_failed', 'Could not start the Microsoft reconnect. Try again.')) });
         } finally {

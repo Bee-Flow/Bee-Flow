@@ -5,7 +5,8 @@ import { nOf, pluralKey } from '../../components/admin/Studio/KnowledgeStudio/pl
 import useConfirm from '../../components/shared/useConfirm';
 import useTranslation from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
-import { formatCell, api, BrowseTab } from './BrowseTab';
+import { formatCell, BrowseTab } from './BrowseTab';
+import { webpageRequest as api } from '../../api/webpagesRequest';
 import { SchemaTab } from './SchemaTab';
 
 /**

@@ -24,26 +24,8 @@ interface HttpRequestFieldsProps extends StepEditorProps {
     catalog?: ActionCatalog | null;
 }
 
-function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSample, errorSections = new Set(), catalog = null }: HttpRequestFieldsProps) {
-    const { t } = useTranslation();
-    const [curlOpen, setCurlOpen] = useState(false);
-    const method = (draft.method || 'GET').toUpperCase();
-    const headers: Record<string, string> = draft.headers || {};
-    const headerEntries = Object.entries(headers);
-    const blockPrivateTargets = draft.blockPrivateTargets !== false;
-    // The METHOD no longer gates either tick. Many look-up APIs are POST by
-    // design (DataForSEO, GraphQL, Elasticsearch) because the query does not fit
-    // in a URL, and refusing those refused the very calls a cache is for.
-    //
-    // What stays a REFUSAL is the SSRF toggle: with private targets allowed a
-    // cache hit would launder an answer past a control a reviewer later switches
-    // back on, because no fetch happens on a hit. That one is disabled rather
-    // than merely ignored — a step that silently never reuses anything looks
-    // exactly like a slow step.
-    //
-    // For a write method the tick is ENABLED and carries a caution instead. The
-    // author is the only one who knows whether their POST searches or creates;
-    // the validator warns on the same condition, and neither blocks.
+/** What the two "reuse the answer" ticks may do for this method and SSRF setting. */
+function cacheGates(method: string, blockPrivateTargets: boolean) {
     const writeCaution = HTTP_WRITE_METHODS.has(method)
         ? `A ${method} is not promised to be a look-up — if this call creates or changes something, reusing the answer skips it.`
         : null;
@@ -56,21 +38,20 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
     const cacheInto = !blockPrivateTargets
         ? { disabled: true, disabledReason: 'Nothing is kept while private targets are allowed.' }
         : { disabled: false, disabledReason: writeCaution };
+    return { askOnce, cacheInto };
+}
 
-    // Secrets were already left out by the parser; headers merge over the existing ones.
-    const applyCurl = (p: CurlImport) => {
-        set('method', p.method);
-        set('url', p.url);
-        if (p.query) {
-            const q = draft.query;
-            const hasExisting = !!q && ((q.mode === 'json' && (q.json || '').trim()) || (q.items || []).some((r: { key: string; }) => r.key.trim()));
-            const asJson: HttpQuery = p.query.mode === 'json' ? p.query : { mode: 'json', json: JSON.stringify(Object.fromEntries((p.query.items || []).map((r) => [r.key, r.value]))), arrayFormat: 'indices' };
-            set('query', hasExisting ? (mergeMovedQuery(q, asJson) || p.query) : p.query);
-        }
-        if (Object.keys(p.headers).length) set('headers', { ...headers, ...p.headers });
-        if (p.body) set('body', p.body);
-    };
+interface HttpHeadersSectionProps {
+    headers: Record<string, string>;
+    set: (key: string, value: unknown) => void;
+    onFocusField: HttpRequestFieldsProps['onFocusField'];
+    previewSample: HttpRequestFieldsProps['previewSample'];
+    errorSections: Set<string>;
+}
 
+function HttpHeadersSection({ headers, set, onFocusField, previewSample, errorSections }: HttpHeadersSectionProps) {
+    const { t } = useTranslation();
+    const headerEntries = Object.entries(headers);
     const renameHeader = (oldKey: string, newKey: string) => {
         if (!newKey || newKey === oldKey) return;
         const next: Record<string, string> = {};
@@ -91,47 +72,6 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
     };
 
     return (
-        <>
-            <AccordionSection stepType="http_request" sectionKey="request" title={t('automations.http_request_fields.request', 'Request')} defaultOpen forceOpen={errorSections.has('request')}>
-                <FormRow label={t('automations.http_request_fields.url', 'URL')} required hint={t('automations.http_request_fields.click_a_value_in_the_right', 'Click a value in the right panel to insert it, e.g. https://api.example.com/users/{{trigger.output.id}}.')}>
-                    <TemplateField
-                        value={draft.url || ''}
-                        onChange={(next) => set('url', next)}
-                        rows={1}
-                        onFocusField={onFocusField}
-                        previewSample={previewSample}
-                        placeholder="https://api.example.com/endpoint"
-                        listAs="json"
-                    />
-                </FormRow>
-                <button type="button" onClick={() => setCurlOpen(true)} className="text-xs text-[var(--accent)] hover:opacity-80 transition mb-2">
-                    {t('http_query.curl_button', 'Import cURL')}
-                </button>
-                <CurlImportDialog open={curlOpen} onClose={() => setCurlOpen(false)} onApply={applyCurl} />
-                <FormRow label={t('automations.http_request_fields.method', 'Method')} required>
-                    <select value={method} onChange={(e) => set('method', e.target.value)} className={inputClass()}>
-                        {HTTP_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
-                    </select>
-                </FormRow>
-            </AccordionSection>
-
-            <HttpQuerySection draft={draft} set={set} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} />
-
-            <AccordionSection
-                stepType="http_request"
-                sectionKey="auth"
-                title={t('automations.http_request_fields.authentication', 'Authentication')}
-                defaultOpen={!!(draft.auth && draft.auth.connectionId)}
-                forceOpen={errorSections.has('auth')}
-            >
-                <FormRow label={t('automations.http_request_fields.credential', 'Credential')}>
-                    <HttpAuthPicker
-                        value={draft.auth?.connectionId || ''}
-                        onChange={(connectionId) => set('auth', connectionId ? { connectionId } : null)}
-                    />
-                </FormRow>
-            </AccordionSection>
-
             <AccordionSection stepType="http_request" sectionKey="headers" title={t('automations.http_request_fields.headers', 'Headers')} forceOpen={errorSections.has('headers')} hasContent={headerEntries.length > 0}>
                 {headerEntries.length === 0 && (
                     <div className="text-xs text-[var(--text-tertiary)] italic mb-2">{t('automations.http_request_fields.no_headers_set', 'No headers set.')}</div>
@@ -178,6 +118,88 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
                     <Plus size={12} /> {t('automations.http_request_fields.add_header', 'Add header')}
                 </button>
             </AccordionSection>
+    );
+}
+
+function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSample, errorSections = new Set(), catalog = null }: HttpRequestFieldsProps) {
+    const { t } = useTranslation();
+    const [curlOpen, setCurlOpen] = useState(false);
+    const method = (draft.method || 'GET').toUpperCase();
+    const headers: Record<string, string> = draft.headers || {};
+    const blockPrivateTargets = draft.blockPrivateTargets !== false;
+    // The METHOD no longer gates either tick. Many look-up APIs are POST by
+    // design (DataForSEO, GraphQL, Elasticsearch) because the query does not fit
+    // in a URL, and refusing those refused the very calls a cache is for.
+    //
+    // What stays a REFUSAL is the SSRF toggle: with private targets allowed a
+    // cache hit would launder an answer past a control a reviewer later switches
+    // back on, because no fetch happens on a hit. That one is disabled rather
+    // than merely ignored — a step that silently never reuses anything looks
+    // exactly like a slow step.
+    //
+    // For a write method the tick is ENABLED and carries a caution instead. The
+    // author is the only one who knows whether their POST searches or creates;
+    // the validator warns on the same condition, and neither blocks.
+    const { askOnce, cacheInto } = cacheGates(method, blockPrivateTargets);
+    const hasAdvanced = !!(draft.forEach || draft.askOnce || draft.cacheInto) || retryIsSet(draft);
+
+    // Secrets were already left out by the parser; headers merge over the existing ones.
+    const applyCurl = (p: CurlImport) => {
+        set('method', p.method);
+        set('url', p.url);
+        if (p.query) {
+            const q = draft.query;
+            const hasExisting = !!q && ((q.mode === 'json' && (q.json || '').trim()) || (q.items || []).some((r: { key: string; }) => r.key.trim()));
+            const asJson: HttpQuery = p.query.mode === 'json' ? p.query : { mode: 'json', json: JSON.stringify(Object.fromEntries((p.query.items || []).map((r) => [r.key, r.value]))), arrayFormat: 'indices' };
+            set('query', hasExisting ? (mergeMovedQuery(q, asJson) || p.query) : p.query);
+        }
+        if (Object.keys(p.headers).length) set('headers', { ...headers, ...p.headers });
+        if (p.body) set('body', p.body);
+    };
+
+    return (
+        <>
+            <AccordionSection stepType="http_request" sectionKey="request" title={t('automations.http_request_fields.request', 'Request')} defaultOpen forceOpen={errorSections.has('request')}>
+                <FormRow label={t('automations.http_request_fields.url', 'URL')} required hint={t('automations.http_request_fields.click_a_value_in_the_right', 'Click a value in the right panel to insert it, e.g. https://api.example.com/users/{{trigger.output.id}}.')}>
+                    <TemplateField
+                        value={draft.url || ''}
+                        onChange={(next) => set('url', next)}
+                        rows={1}
+                        onFocusField={onFocusField}
+                        previewSample={previewSample}
+                        placeholder="https://api.example.com/endpoint"
+                        listAs="json"
+                    />
+                </FormRow>
+                <button type="button" onClick={() => setCurlOpen(true)} className="text-xs text-[var(--accent)] hover:opacity-80 transition mb-2">
+                    {t('http_query.curl_button', 'Import cURL')}
+                </button>
+                <CurlImportDialog open={curlOpen} onClose={() => setCurlOpen(false)} onApply={applyCurl} />
+                <FormRow label={t('automations.http_request_fields.method', 'Method')} required>
+                    <select value={method} onChange={(e) => set('method', e.target.value)} className={inputClass()}>
+                        {HTTP_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                </FormRow>
+            </AccordionSection>
+
+            <HttpQuerySection draft={draft} set={set} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} />
+
+            <AccordionSection
+                stepType="http_request"
+                sectionKey="auth"
+                title={t('automations.http_request_fields.authentication', 'Authentication')}
+                defaultOpen={!!(draft.auth && draft.auth.connectionId)}
+                forceOpen={errorSections.has('auth')}
+            >
+                <FormRow label={t('automations.http_request_fields.credential', 'Credential')}>
+                    <HttpAuthPicker
+                        value={draft.auth?.connectionId || ''}
+                        onChange={(connectionId) => set('auth', connectionId ? { connectionId } : null)}
+                    />
+                </FormRow>
+            </AccordionSection>
+
+            <HttpHeadersSection headers={headers} set={set} onFocusField={onFocusField} previewSample={previewSample} errorSections={errorSections} />
 
             {HTTP_WRITE_METHODS.has(method) && (
                 <AccordionSection stepType="http_request" sectionKey="body" title={t('automations.http_request_fields.body', 'Body')} forceOpen={errorSections.has('body')}>
@@ -199,9 +221,9 @@ function HttpRequestFields({ draft, set, groups = [], onFocusField, previewSampl
 
             <AccordionSection
                 stepType="http_request" sectionKey="advanced" title={t('automations.http_request_fields.advanced', 'Advanced')}
-                defaultOpen={!!(draft.forEach || draft.askOnce || draft.cacheInto) || retryIsSet(draft)}
+                defaultOpen={hasAdvanced}
                 forceOpen={errorSections.has('advanced')}
-                hasContent={!!(draft.forEach || draft.askOnce || draft.cacheInto) || retryIsSet(draft)}
+                hasContent={hasAdvanced}
             >
                 <ForEachSection draft={draft} set={set} groups={groups} onFocusField={onFocusField} />
                 <RetrySection draft={draft} set={set} />

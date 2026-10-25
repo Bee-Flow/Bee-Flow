@@ -1,6 +1,7 @@
-import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import { screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { renderWithClient as render } from '@/test/render';
 import SettingsForm from './SettingsForm';
 import scopedStorage from '../../../../utils/scopedStorage';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
@@ -48,6 +49,9 @@ function renderForm(step, { onPatch = vi.fn() } = {}) {
 
 // Advanced is a mode now (the header's switch), not a button: its settings show in the full view.
 const openAdvanced = () => {};
+
+
+// The code under test reads through react-query: every render gets its own client.
 
 describe('SettingsForm — AI step tool picker', () => {
     beforeEach(() => {

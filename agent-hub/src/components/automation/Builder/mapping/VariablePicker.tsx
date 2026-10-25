@@ -9,6 +9,24 @@ import type { VariablePickerProps } from './VariablePicker.types';
 import { groupForPath, resolveLeafPreview } from './VariablePicker.helpers';
 import { PickerGroup } from './PickerGroup';
 
+function PreviewFooter({ previewLine }: { previewLine: string | null }) {
+    const { t } = useTranslation();
+    if (previewLine == null) {
+        return <span>{t('automations.variable_picker.hover_a_field_to_preview_its', 'Hover a field to preview its sample value.')}</span>;
+    }
+    return (
+        <>
+            <span className="uppercase tracking-wide">{t('automations.variable_picker.preview', 'preview')}</span>
+            <span
+                className="font-mono text-[var(--text-secondary)] truncate"
+                title={previewLine}
+            >
+                {previewLine}
+            </span>
+        </>
+    );
+}
+
 export default function VariablePicker({
     open,
     anchorEl,
@@ -76,7 +94,9 @@ export default function VariablePicker({
         };
     }, [open, onClose, anchorEl]);
 
-    const visible = scoped && focusGroup ? [focusGroup] : groups;
+    // Scoped to the clicked pill's own step until the author asks for every step.
+    const scopeGroup = scoped ? focusGroup : null;
+    const visible = scopeGroup ? [scopeGroup] : groups;
     const filteredGroups = useMemo(() => {
         if (!query) return visible;
         const q = query.toLowerCase();
@@ -107,7 +127,7 @@ export default function VariablePicker({
                     autoFocus
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder={scoped && focusGroup ? t('automations.picker.search_in', 'Search in {step}…', { step: focusGroup.label }) : 'Search variables…'}
+                    placeholder={scopeGroup ? t('automations.picker.search_in', 'Search in {step}…', { step: scopeGroup.label }) : 'Search variables…'}
                     className="flex-1 bg-transparent text-xs text-[var(--text-primary)] focus:outline-none"
                 />
                 <button
@@ -119,9 +139,9 @@ export default function VariablePicker({
                     <X size={12} />
                 </button>
             </div>
-            {scoped && focusGroup && (
+            {scopeGroup && (
                 <div className="flex items-center gap-2 px-3 py-1.5 border-b border-[var(--border-default)] text-[11px] bg-[var(--bg-secondary)]" data-testid="picker-scope">
-                    <span className="text-[var(--text-secondary)] truncate">{t('automations.picker.fields_of', 'Fields of {step}', { step: focusGroup.label })}</span>
+                    <span className="text-[var(--text-secondary)] truncate">{t('automations.picker.fields_of', 'Fields of {step}', { step: scopeGroup.label })}</span>
                     <button type="button" onClick={() => setScoped(false)} className="ml-auto shrink-0 underline text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
                         {t('automations.picker.all_steps', 'All steps')}
                     </button>
@@ -147,19 +167,7 @@ export default function VariablePicker({
                 ))}
             </div>
             <div className="px-3 py-2 border-t border-[var(--border-default)] text-[10px] text-[var(--text-tertiary)] min-h-[28px] flex items-center gap-1.5">
-                {previewLine != null ? (
-                    <>
-                        <span className="uppercase tracking-wide">{t('automations.variable_picker.preview', 'preview')}</span>
-                        <span
-                            className="font-mono text-[var(--text-secondary)] truncate"
-                            title={previewLine}
-                        >
-                            {previewLine}
-                        </span>
-                    </>
-                ) : (
-                    <span>{t('automations.variable_picker.hover_a_field_to_preview_its', 'Hover a field to preview its sample value.')}</span>
-                )}
+                <PreviewFooter previewLine={previewLine} />
             </div>
         </div>,
         document.body,

@@ -7,7 +7,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { nOf } from '../../components/admin/Studio/KnowledgeStudio/plural';
 import useConfirm from '../../components/shared/useConfirm';
 import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
+import { webpagesRequest as api } from '../../api/webpagesRequest';
 import { logger } from '../../utils/logger';
 import { mutate, errorBody, RefusedError } from '../../api/mutate';
 
@@ -23,14 +24,6 @@ const SOURCE_META: Record<string, { color: string; bg: string; labelKey: string;
     url: { color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', labelKey: 'webpages.knowledge.type_url', label: 'URL', Icon: Link2 },
     file: { color: '#6b7280', bg: 'rgba(107,114,128,0.1)', labelKey: 'webpages.knowledge.type_file', label: 'File', Icon: File },
 };
-
-function api(path: string, opts: { method?: string; body?: string; headers?: Record<string, string> } = {}) {
-    const url = `${API_BASE}/api/webpages${path}`;
-    return authFetch(url, {
-        headers: opts.body && typeof opts.body === 'string' ? { 'Content-Type': 'application/json', ...opts.headers } : opts.headers,
-        ...opts,
-    });
-}
 
 export interface WebpageSource {
     id: string;

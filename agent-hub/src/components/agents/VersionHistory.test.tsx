@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -10,6 +10,7 @@ vi.mock('../../utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
 vi.mock('../shared/Toast', () => ({ default: toastMock, toast: toastMock }));
 
 import VersionHistory from './VersionHistory';
+import { renderWithClient as render } from '@/test/render';
 
 /**
  * The version list in the legacy agent designer (AgentDesigner → Identity).
@@ -56,6 +57,8 @@ async function restoreVersionOne(onRestore: () => void) {
 beforeEach(() => {
     vi.clearAllMocks();
 });
+
+// The component reads through react-query: every render gets its own client.
 
 describe('VersionHistory restore', () => {
     it('says so when the server did not apply the restore, and does not act as if it had', async () => {

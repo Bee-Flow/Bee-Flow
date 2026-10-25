@@ -65,10 +65,14 @@ export function pickLoopList<T>(
     const itemVar = canRebind || keepsOld || !isNamed(scope.itemVar) ? r.forEach.itemVar : scope.itemVar;
     const patch = { overRef: r.forEach.overRef, itemVar, parents: r.forEach.parents };
     if (patch.overRef === scope.overRef) return { patch, bindings: undefined, note: null };
-    const rebound = canRebind && r.bindings !== bindings ? r.bindings : undefined;
-    const moved = canRebind ? r.moved : [];
-    const orphans = canRebind ? r.orphans : [];
+    const { rebound, moved, orphans } = reboundParts(canRebind, r, bindings);
     return { patch, bindings: rebound, note: { item: itemVar, kept: keepsOld ? scope.itemVar : null, moved, orphans } };
+}
+
+/** What the field rebinding changed: the new bindings (undefined when untouched), what moved, and what could not. */
+function reboundParts<T>(canRebind: boolean, r: { bindings: T; moved: string[]; orphans: string[] }, bindings: T | undefined) {
+    if (!canRebind) return { rebound: undefined, moved: [] as string[], orphans: [] as string[] };
+    return { rebound: r.bindings !== bindings ? r.bindings : undefined, moved: r.moved, orphans: r.orphans };
 }
 
 const isNamed = (v: string | undefined) => !!v && v !== 'item';

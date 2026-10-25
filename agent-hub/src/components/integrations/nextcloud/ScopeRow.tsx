@@ -1,6 +1,6 @@
-import { useEffect, useState, useEffectEvent } from 'react';
+import { useState } from 'react';
 import { ChevronRight, ChevronDown, Search, Loader2, Folder, FolderOpen } from 'lucide-react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { useNcScopeResourcesQuery } from '../../../api/queries/integrationsAdmin';
 import SegmentedControl from '../../shared/SegmentedControl';
 import type { TFn, ScopeResource, ScopeEntry, FolderNodeProps, FolderTreePickerProps, ResourcePickerProps, ScopeRowProps } from './NcScopeSection.types';
 
@@ -23,31 +23,17 @@ function scopeWords(t: TFn, entry: ScopeEntry) {
 
 const FolderNode = ({ path, label, depth, selected, onToggle, t }: FolderNodeProps) => {
     const [expanded, setExpanded] = useState(false);
-    const [children, setChildren] = useState<ScopeResource[] | null>(null); // null = not fetched
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    // null = not fetched
+    const childrenQuery = useNcScopeResourcesQuery<ScopeResource>('nextcloud', expanded, path);
+    const children: ScopeResource[] | null = childrenQuery.data ?? null;
+    const loading = childrenQuery.isFetching;
+    const error: string | null = childrenQuery.isError ? (childrenQuery.error.message || t('nc_scope.tree_error', 'Could not load folders')) : null;
     const checked = selected.includes(path);
     // An ancestor selection already covers this folder — show it as
     // implicitly on, so the tree reads like the enforcement behaves.
     const covered = !checked && selected.some((sel: string) => sel === '/' || path === sel || path.startsWith(sel + '/'));
 
-    const expand = async () => {
-        const next = !expanded;
-        setExpanded(next);
-        if (next && children === null && !loading) {
-            setLoading(true);
-            setError(null);
-            try {
-                const res = await authFetch(`${API_BASE}/api/nc-scope/resources/nextcloud?path=${encodeURIComponent(path)}`);
-                const data = await res.json().catch(() => ({}));
-                if (res.ok) setChildren(data.resources || []);
-                else setError(data.error || t('nc_scope.tree_error', 'Could not load folders'));
-            } catch (_) {
-                setError(t('nc_scope.tree_error', 'Could not load folders'));
-            }
-            setLoading(false);
-        }
-    };
+    const expand = () => setExpanded(!expanded);
 
     return (
         <div>
@@ -110,26 +96,10 @@ const FolderTreePicker = ({ selected, onToggle, t }: FolderTreePickerProps) => (
 );
 
 const ResourcePicker = ({ integrationId, resourceLabel, selected, onToggle, t }: ResourcePickerProps) => {
-    const [resources, setResources] = useState<ScopeResource[] | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const resourcesQuery = useNcScopeResourcesQuery<ScopeResource>(integrationId, true);
+    const resources: ScopeResource[] | null = resourcesQuery.data ?? null;
+    const error: string | null = resourcesQuery.isError ? (resourcesQuery.error.message || t('nc_scope.list_error', 'Could not list resources')) : null;
     const [query, setQuery] = useState('');
-
-    const runTEffect = useEffectEvent(() => {
-        let alive = true;
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/api/nc-scope/resources/${integrationId}`);
-                const data = await res.json().catch(() => ({}));
-                if (!alive) return;
-                if (res.ok) setResources(data.resources || []);
-                else setError(data.error || t('nc_scope.list_error', 'Could not list resources'));
-            } catch (_) {
-                if (alive) setError(t('nc_scope.list_error', 'Could not list resources'));
-            }
-        })();
-        return () => { alive = false; };
-    });
-    useEffect(() => { return runTEffect(); }, [integrationId]);
 
     if (error) return <p className="text-[11px] text-[var(--text-muted)]">{error}</p>;
     if (resources === null) {

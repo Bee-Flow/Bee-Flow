@@ -1,19 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { authFetch, API_BASE } from '../../../utils/helpers';
+import React from 'react';
+import { useSupportInsightsQuery } from '../../../api/queries/supportPanels';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { errorMessage } from '../../../utils/caughtError';
-
-interface Insights {
-    csat: { avg7d: number | null; avg30d: number | null; responseRate?: number; responses: number };
-    handling: {
-        aiResolved: number;
-        staffResolved: number;
-        slaBreaches: number;
-        total: number;
-        avgFirstResponseSecs: number | null;
-        avgResolutionSecs: number | null;
-    };
-}
 
 interface StatProps {
     label: string;
@@ -40,18 +28,9 @@ function Stat({ label, value, sub }: StatProps) {
 
 export default function SupportInsightsTab() {
     const { t } = useTranslation();
-    const [data, setData] = useState<Insights | null>(null);
-    const [error, setError] = useState<string | null | undefined>(null);
-
-    useEffect(() => {
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/api/support/insights`);
-                if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'Failed'); }
-                setData(await res.json());
-            } catch (e) { setError(errorMessage(e)); }
-        })();
-    }, []);
+    const insights = useSupportInsightsQuery();
+    const data = insights.data ?? null;
+    const error = insights.isError ? errorMessage(insights.error) : null;
 
     if (error) return <div className="p-6 text-sm [color:#dc2626]!">{error}</div>;
     if (!data) return <div className="p-6 text-sm text-[var(--text-muted)]">{t('support.support_insights_loading_insights', 'Loading insights…')}</div>;

@@ -6,7 +6,8 @@
 // SiteDoc/PageDoc save. Same behaviour as the page editor though: edits are
 // debounced (~700 ms) into one PUT, and `flush()` lets Publish wait for them.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { authFetch } from '../../../../utils/helpers';
+import type { AuthFetchOptions } from '../../../../utils/helpers';
+import { settled } from '../../../../api/settled';
 import {
     blogApi, EDITABLE_POST_FIELDS, postSummary,
     type AdminPost, type AdminPostSummary, type PostTranslation,
@@ -24,8 +25,9 @@ interface Options {
     onSaved?: () => void;
 }
 
-async function readJson<T>(res: Response): Promise<T> {
-    const data = await res.json().catch(() => ({}));
+async function readJson<T>(url: string, init?: AuthFetchOptions): Promise<T> {
+    const res = await settled(url, init, 'empty');
+    const data = res.ok ? await res.res.json().catch(() => ({})) : res.body;
     if (!res.ok) {
         const msg = (data && typeof data === 'object' && 'error' in data && typeof (data as { error: unknown }).error === 'string')
             ? (data as { error: string }).error
@@ -79,10 +81,9 @@ async function sendChanges(st: BlogState, { site, current, sendPost, locales, ve
     if (sendPost) {
         const body: Record<string, unknown> = {};
         for (const k of EDITABLE_POST_FIELDS) body[k] = current[k];
-        const res = await authFetch(blogApi.post(site, current.id), {
+        const { post: saved } = await readJson<{ post: AdminPost }>(blogApi.post(site, current.id), {
             method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
         });
-        const { post: saved } = await readJson<{ post: AdminPost }>(res);
         // The server owns slug uniqueness and the date of a freshly published
         // post: take its copy back — but only when nothing was typed meanwhile,
         // or it would overwrite the keystrokes in flight.
@@ -95,11 +96,10 @@ async function sendChanges(st: BlogState, { site, current, sendPost, locales, ve
         st.setPosts(list => list.map(p => (p.id === saved.id ? postSummary(saved, p.translatedLocales) : p)));
     }
     for (const locale of locales) {
-        const res = await authFetch(blogApi.postLocale(site, current.id, locale), {
+        await readJson(blogApi.postLocale(site, current.id, locale), {
             method: 'PUT', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ override: refs.translations.current[locale] || {} }),
         });
-        await readJson(res);
         st.setPosts(list => list.map(p => (p.id === current.id && !p.translatedLocales.includes(locale)
             ? { ...p, translatedLocales: [...p.translatedLocales, locale] } : p)));
     }
@@ -171,7 +171,7 @@ function useBlogDocuments(st: BlogState, saveNow: () => Promise<void>) {
         const site = refs.site.current;
         if (!site) return;
         try {
-            const data = await readJson<{ post: AdminPost; translations: Record<string, PostTranslation> }>(await authFetch(blogApi.post(site, postId)));
+            const data = await readJson<{ post: AdminPost; translations: Record<string, PostTranslation> }>(blogApi.post(site, postId));
             setTranslations(data.translations || {});
             setPost(data.post);
             setError(null);
@@ -183,10 +183,9 @@ function useBlogDocuments(st: BlogState, saveNow: () => Promise<void>) {
         if (!site) return null;
         await saveNow();
         try {
-            const res = await authFetch(blogApi.posts(site), {
+            const { post: created } = await readJson<{ post: AdminPost }>(blogApi.posts(site), {
                 method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }),
             });
-            const { post: created } = await readJson<{ post: AdminPost }>(res);
             setPosts(list => [postSummary(created), ...list]);
             setTranslations({});
             setPost(created);
@@ -202,7 +201,7 @@ function useBlogDocuments(st: BlogState, saveNow: () => Promise<void>) {
         const isOpen = refs.post.current?.id === postId;
         if (isOpen) { refs.dirtyPost.current = false; refs.dirtyLocales.current = new Set(); }
         try {
-            await readJson(await authFetch(blogApi.post(site, postId), { method: 'DELETE' }));
+            await readJson(blogApi.post(site, postId), { method: 'DELETE' });
             setPosts(list => list.filter(p => p.id !== postId));
             if (isOpen) { setPost(null); setActivePostId(null); }
             refs.onSaved.current?.();
@@ -232,7 +231,7 @@ function useBlogList(st: BlogState, siteId: string | null, enabled: boolean, sav
         const site = refs.site.current;
         if (!site) return;
         try {
-            const data = await readJson<{ posts: AdminPostSummary[] }>(await authFetch(blogApi.posts(site)));
+            const data = await readJson<{ posts: AdminPostSummary[] }>(blogApi.posts(site));
             if (refs.site.current !== site) return;
             setPosts(Array.isArray(data.posts) ? data.posts : []);
             setError(null);

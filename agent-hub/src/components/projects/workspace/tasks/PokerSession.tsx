@@ -94,6 +94,30 @@ function SessionHeader({ session, startedBy, children }: { session: Session; sta
     );
 }
 
+interface PokerCardsProps {
+    voting: boolean;
+    pending: boolean;
+    ownVote?: string | null;
+    agreed: number | null;
+    onVote: (card: string) => void;
+    onAgree: (points: number) => void;
+}
+
+function PokerCards({ voting, pending, ownVote, agreed, onVote, onAgree }: PokerCardsProps) {
+    return (
+        <div className="flex flex-wrap gap-2">
+            {voting
+                ? [...POKER_ESTIMATES.map(String), '?'].map(card => (
+                    <button key={card} type="button" disabled={pending} aria-pressed={ownVote === card} className={CARD_BUTTON}
+                        onClick={() => onVote(card)}>{card}</button>
+                ))
+                : POKER_ESTIMATES.map(point => (
+                    <button key={point} type="button" aria-pressed={agreed === point} className={CARD_BUTTON} onClick={() => onAgree(point)}>{point}</button>
+                ))}
+        </div>
+    );
+}
+
 export default function PokerSession({ projectId, session, canEdit, people, startPending, outerError }: {
     projectId: string; session: Session; canEdit: boolean; people: People; startPending: boolean;
     /** A failed start or session fetch from the panel around it. */
@@ -106,8 +130,8 @@ export default function PokerSession({ projectId, session, canEdit, people, star
     const next = useNextPokerTask(projectId);
     const cancel = useCancelPokerSession(projectId);
     const [agreed, setAgreed] = useState<number | null>(null);
-    const pending = startPending || cast.isPending || reveal.isPending || finish.isPending || next.isPending || cancel.isPending;
-    const error = outerError || cast.error || reveal.error || finish.error || next.error || cancel.error;
+    const pending = [startPending, cast.isPending, reveal.isPending, finish.isPending, next.isPending, cancel.isPending].some(Boolean);
+    const error = [outerError, cast.error, reveal.error, finish.error, next.error, cancel.error].find(Boolean);
     const personName = (id: string) => people.nameOf(id) || t('project_chat.someone', 'A member');
     const queue = session.queueTitles || [];
     const voting = session.phase === 'voting';
@@ -133,16 +157,8 @@ export default function PokerSession({ projectId, session, canEdit, people, star
 
             <div className="space-y-2">
                 <h4 className={SECTION_LABEL}>{voting ? t('project_tasks.poker_your_card', 'Your card') : t('project_tasks.poker_agreed', 'Agreed estimate')}</h4>
-                <div className="flex flex-wrap gap-2">
-                    {voting
-                        ? [...POKER_ESTIMATES.map(String), '?'].map(card => (
-                            <button key={card} type="button" disabled={pending} aria-pressed={session.ownVote === card} className={CARD_BUTTON}
-                                onClick={() => cast.mutate({ sessionId: session.sessionId, vote: card })}>{card}</button>
-                        ))
-                        : POKER_ESTIMATES.map(point => (
-                            <button key={point} type="button" aria-pressed={agreed === point} className={CARD_BUTTON} onClick={() => setAgreed(point)}>{point}</button>
-                        ))}
-                </div>
+                <PokerCards voting={voting} pending={pending} ownVote={session.ownVote} agreed={agreed}
+                    onVote={card => cast.mutate({ sessionId: session.sessionId, vote: card })} onAgree={setAgreed} />
                 {voting && <p className={`m-0 ${META}`}>{t('project_tasks.poker_change_hint', 'You can change your card until the facilitator reveals the votes.')}</p>}
             </div>
 

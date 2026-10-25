@@ -166,31 +166,42 @@ function firstModalId(definition: AppDefinition | null | undefined): string {
  * required field opens the editor on a validation error the author did not
  * cause; a default that invents a field is silently dropped on the first save.
  */
-export function defaultActionForKind(kind: string, definition: AppDefinition | null | undefined, formFields: FormFieldRef[] = []) {
-    switch (kind) {
-        case 'navigate': return { kind, screenId: definition?.screens?.[0]?.id || '' };
-        case 'toast': return { kind, message: '', tone: 'info' };
-        case 'open_url': return { kind, url: '', newTab: true };
-        case 'ai_extract': {
-            const file = formFields.find((f) => f.type === 'input_file')?.name || '';
-            return {
-                kind,
-                ...(file ? { source: bindingForField(file) } : {}),
-                schema: [{ name: 'field1', type: 'string', description: '', required: false }],
-            };
-        }
-        case 'open_modal':
-        case 'close_modal': return { kind, modalId: firstModalId(definition) };
-        case 'send_email': return { kind, connectorId: '', to: { kind: 'static', value: '' }, subject: { kind: 'static', value: '' }, body: { kind: 'static', value: '' } };
-        case 'ai_generate': return { kind, prompt: '', output: 'text', resultVar: 'result' };
-        case 'kb_query': return { kind, query: { kind: 'static', value: '' }, knowledgeBaseIds: [], resultVar: 'results' };
-        // A fresh "add a row" points at NO table on purpose. Guessing the first
-        // table would be a write to a real table the author never chose — the
-        // one default here that could quietly cost data. `values` starts empty
-        // because the columns depend on the table that is not picked yet.
-        case 'create_record': return { kind, tableId: '', values: {} };
-        case 'sequence': return { kind, steps: [] };
-        case 'run_automation':
-        default: return { kind: 'run_automation', automationId: null };
-    }
+type ActionDefaults = Record<string, unknown> & { kind: string };
+type DefaultsBuilder = (kind: string, definition: AppDefinition | null | undefined, formFields: FormFieldRef[]) => ActionDefaults;
+
+const emptyBinding = () => ({ kind: 'static', value: '' });
+
+const aiExtractDefaults: DefaultsBuilder = (kind, _definition, formFields) => {
+    const file = formFields.find((f) => f.type === 'input_file')?.name || '';
+    return {
+        kind,
+        ...(file ? { source: bindingForField(file) } : {}),
+        schema: [{ name: 'field1', type: 'string', description: '', required: false }],
+    };
+};
+
+const modalDefaults: DefaultsBuilder = (kind, definition) => ({ kind, modalId: firstModalId(definition) });
+
+const DEFAULTS_BY_KIND: Record<string, DefaultsBuilder> = {
+    navigate: (kind, definition) => ({ kind, screenId: definition?.screens?.[0]?.id || '' }),
+    toast: (kind) => ({ kind, message: '', tone: 'info' }),
+    open_url: (kind) => ({ kind, url: '', newTab: true }),
+    ai_extract: aiExtractDefaults,
+    open_modal: modalDefaults,
+    close_modal: modalDefaults,
+    send_email: (kind) => ({ kind, connectorId: '', to: emptyBinding(), subject: emptyBinding(), body: emptyBinding() }),
+    ai_generate: (kind) => ({ kind, prompt: '', output: 'text', resultVar: 'result' }),
+    kb_query: (kind) => ({ kind, query: emptyBinding(), knowledgeBaseIds: [], resultVar: 'results' }),
+    // A fresh "add a row" points at NO table on purpose. Guessing the first
+    // table would be a write to a real table the author never chose — the
+    // one default here that could quietly cost data. `values` starts empty
+    // because the columns depend on the table that is not picked yet.
+    create_record: (kind) => ({ kind, tableId: '', values: {} }),
+    sequence: (kind) => ({ kind, steps: [] }),
+};
+
+export function defaultActionForKind(kind: string, definition: AppDefinition | null | undefined, formFields: FormFieldRef[] = []): ActionDefaults {
+    const build = Object.hasOwn(DEFAULTS_BY_KIND, kind) ? DEFAULTS_BY_KIND[kind] : null;
+    // run_automation, and any kind this catalog does not know, start as an unpicked automation.
+    return build ? build(kind, definition, formFields) : { kind: 'run_automation', automationId: null };
 }

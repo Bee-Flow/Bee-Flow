@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from 'react';
-import { API_BASE, authFetch } from '../utils/helpers';
+import { API_BASE } from '../utils/helpers';
+import { fetchAuthUser, fetchMyPermissions, fetchSetupDiagnostics, fetchSetupStatus } from '../api/queries/coreAuthSession';
 import { logger } from '../utils/logger';
 import type { BootstrapDiagnostics } from './shellScreens';
 import type { PendingNcBinding } from '../components/integrations/nextcloud/NcBindingApprovalModal';
@@ -128,7 +129,7 @@ export function useAuthSession({
             // is fine (they couldn't complete the pairing anyway).
             const probeBootstrapDiagnostics = async () => {
                 try {
-                    const diagRes = await authFetch(`${API_BASE}/setup/diagnostics`, { cache: 'no-store' });
+                    const diagRes = await fetchSetupDiagnostics();
                     if (diagRes.ok) setBootstrapDiagnostics(await diagRes.json());
                 } catch (err) { logger.debug('not embedded / connector unreachable', err); }
             };
@@ -148,9 +149,9 @@ export function useAuthSession({
                 // server-side — browsers may otherwise serve a cached
                 // "needed=true" response on subsequent refreshes.
                 const [setupSettled, userSettled, permsSettled] = await Promise.allSettled([
-                    authFetch(`${API_BASE}/auth/setup-status`),
-                    authFetch(`${API_BASE}/auth/user`, { cache: 'no-store' }),
-                    authFetch(`${API_BASE}/auth/my-permissions`),
+                    fetchSetupStatus(),
+                    fetchAuthUser(),
+                    fetchMyPermissions(),
                 ]);
 
                 // Deployment mode from setup-status (available without auth).

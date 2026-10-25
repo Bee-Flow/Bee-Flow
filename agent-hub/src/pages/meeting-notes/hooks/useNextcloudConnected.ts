@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { useNextcloudConnectedQuery } from '../../../api/queries/meetingNotesConnections';
 
 /**
  * useNextcloudConnected — probes whether the current user has *any* Nextcloud
@@ -19,28 +18,5 @@ import { API_BASE, authFetch } from '../../../utils/helpers';
  *   whether the probe is still in flight
  */
 export default function useNextcloudConnected(enabled: boolean = true) {
-    const [connected, setConnected] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const probedRef = useRef(false);
-
-    useEffect(() => {
-        if (!enabled || probedRef.current) return;
-        probedRef.current = true;
-        let alive = true;
-        setLoading(true);
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/api/talk-notes-settings/user/me`);
-                const data = res.ok ? await res.json() : {};
-                if (alive) setConnected(!!data.nextcloudConnected);
-            } catch {
-                if (alive) setConnected(false);
-            } finally {
-                if (alive) setLoading(false);
-            }
-        })();
-        return () => { alive = false; };
-    }, [enabled]);
-
-    return { connected, loading };
+    return useNextcloudConnectedQuery(enabled);
 }

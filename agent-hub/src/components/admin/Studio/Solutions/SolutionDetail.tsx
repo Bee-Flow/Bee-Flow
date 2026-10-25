@@ -23,7 +23,7 @@ import SolutionInstallsTab, { installsBadge } from './SolutionInstallsTab';
 import SolutionVersionsTab from './SolutionVersionsTab';
 import { UpdateBanner, updateAvailability } from './upgradeClient';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
 import { formatRelative } from '../../../projects/relativeTime';
 import StudioSectionHeader from '../../../shared/StudioSectionHeader';
 import type { SolutionProject, SolutionDetailViewProps, SolutionDetailProps } from './SolutionDetail.types';
@@ -121,13 +121,12 @@ function SolutionDetailView({
     const rename = async (next: string) => {
         setName(next);
         try {
-            const res = await authFetch(`${API_BASE}/api/projects/${project.id}`, {
+            await mutate(`${API_BASE}/api/projects/${project.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: next }),
             });
-            if (!res.ok) setName(project.name);      // the server refused; say so by reverting
-        } catch { setName(project.name); }
+        } catch { setName(project.name); }   // the server refused (or was unreachable); say so by reverting
     };
 
     const version = useMemo(

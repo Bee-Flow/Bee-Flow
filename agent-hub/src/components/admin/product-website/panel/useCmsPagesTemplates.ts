@@ -2,7 +2,7 @@
 // ProductWebsitePanel container — moved verbatim from ProductWebsitePanel.jsx.
 // State stays owned by the panel (threaded in as arguments).
 import { useCallback, useEffect, type Dispatch, type SetStateAction } from 'react';
-import { authFetch } from '../../../../utils/helpers';
+import { settled } from '../../../../api/settled';
 import { toast } from '../../../shared/Toast';
 import { cmsApi } from '../cmsApi';
 import { exportPage as exportPageToFile, type ImportPayload } from '../pageIO';
@@ -86,12 +86,12 @@ export default function useCmsPagesTemplates({
         if (!siteId) return null;
         await drainPendingSaves();
         try {
-            const res = await authFetch(cmsApi.pages(siteId), {
+            const res = await settled(cmsApi.pages(siteId), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ title, slug, templateId }),
             });
-            const data = await res.json();
+            const data = res.ok ? await res.res.json() : res.body;
             if (!res.ok) throw new Error(data.error || 'Failed to create page');
             // Reload full payload so site index + page doc are consistent.
             await reloadPayload();
@@ -110,12 +110,12 @@ export default function useCmsPagesTemplates({
         if (!siteId) return;
         await drainPendingSaves();
         try {
-            const res = await authFetch(cmsApi.pages(siteId), {
+            const res = await settled(cmsApi.pages(siteId), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ copyFromId: pageId }),
             });
-            const data = await res.json();
+            const data = res.ok ? await res.res.json() : res.body;
             if (!res.ok) throw new Error(data.error || 'Failed to duplicate page');
             await reloadPayload();
             setActivePageId(data.id);
@@ -174,8 +174,8 @@ export default function useCmsPagesTemplates({
         if (!ok) return;
         await drainPendingSaves();
         try {
-            const res = await authFetch(cmsApi.page(siteId, pageId), { method: 'DELETE' });
-            if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+            const res = await settled(cmsApi.page(siteId, pageId), { method: 'DELETE' });
+            if (!res.ok) throw new Error(res.body.error);
             await reloadPayload();
             setActivePageId(HEADER_VIRTUAL_ID);
             setDirtySincePublish(true);
@@ -189,8 +189,8 @@ export default function useCmsPagesTemplates({
         if (!siteId) return;
         await drainPendingSaves();
         try {
-            const res = await authFetch(cmsApi.pageHomepage(siteId, pageId), { method: 'PUT' });
-            if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+            const res = await settled(cmsApi.pageHomepage(siteId, pageId), { method: 'PUT' });
+            if (!res.ok) throw new Error(res.body.error);
             await reloadPayload();
             setDirtySincePublish(true);
         } catch (err) { toast.error(`Failed to set homepage: ${(err as Error).message}`); }
@@ -207,12 +207,12 @@ export default function useCmsPagesTemplates({
                 const byId = new Map((prev.pages ?? []).map((p): [string, CmsPageIndexEntry] => [p.id, p]));
                 return { ...prev, pages: orderedIds.map((id) => byId.get(id)).filter((p): p is CmsPageIndexEntry => Boolean(p)) };
             });
-            const res = await authFetch(cmsApi.pagesOrder(siteId), {
+            const res = await settled(cmsApi.pagesOrder(siteId), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ orderedIds }),
             });
-            if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+            if (!res.ok) throw new Error(res.body.error);
             setDirtySincePublish(true);
         } catch (err) { toast.error(`Failed to reorder pages: ${(err as Error).message}`); }
     }, [activeSiteIdRef, historyResetRef, setDirtySincePublish, setSiteDoc]);

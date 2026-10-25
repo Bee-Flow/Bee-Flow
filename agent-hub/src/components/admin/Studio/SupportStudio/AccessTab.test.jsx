@@ -1,7 +1,8 @@
-import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import { screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ok } from '@/test/http';
+import { renderWithClient as render } from '@/test/render';
 import AccessTab from './AccessTab';
 import { authFetch } from '../../../../utils/helpers';
 

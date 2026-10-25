@@ -245,6 +245,8 @@ export function useRisks({ enabled = false, onChanged = noop }: UseRisksArgs = {
     };
 }
 
+const orEmpty = <T>(v: T[] | null | undefined): T[] => v || [];
+
 // ── Audits & management review ─────────────────────────────────────────────
 export function useAudit({ enabled = false, onChanged = noop }: UseAuditArgs = {}) {
     const { t } = useTranslation();
@@ -279,8 +281,8 @@ export function useAudit({ enabled = false, onChanged = noop }: UseAuditArgs = {
     const createObjective = (fields: unknown) => run(() => fetchJson(`${API}/iso/objectives`, json(fields)));
     const updateObjective = (id: Id, patch: unknown) => run(() => fetchJson(`${API}/iso/objectives/${id}`, jsonInit('PUT', patch)));
     return {
-        audits: res.data?.audits ?? (res.data ? [] : null), findings: res.data?.findings || [], reviews: res.data?.reviews || [],
-        ncs: res.data?.ncs || [], objectives: res.data?.objectives || [], mrInputs: res.data?.mr_inputs || null,
+        audits: res.data?.audits ?? (res.data ? [] : null), findings: orEmpty(res.data?.findings), reviews: orEmpty(res.data?.reviews),
+        ncs: orEmpty(res.data?.ncs), objectives: orEmpty(res.data?.objectives), mrInputs: res.data?.mr_inputs || null,
         busy, independenceWarning, refresh: res.refresh,
         createAudit, updateAudit, addFinding, createReview, createNc, updateNc, createObjective, updateObjective,
     };

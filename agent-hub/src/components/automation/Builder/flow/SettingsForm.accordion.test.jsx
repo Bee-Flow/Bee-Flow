@@ -1,6 +1,7 @@
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { renderWithClient as render } from '@/test/render';
 import SettingsForm from './SettingsForm';
 import scopedStorage from '../../../../utils/scopedStorage';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
@@ -24,6 +25,8 @@ function renderForm(step, { stepIssues = noIssues, onPatch = vi.fn(), catalog = 
     );
     return { onPatch, ...utils };
 }
+
+// The code under test reads through react-query: every render gets its own client.
 
 describe('SettingsForm — accordion sections', () => {
     beforeEach(() => {

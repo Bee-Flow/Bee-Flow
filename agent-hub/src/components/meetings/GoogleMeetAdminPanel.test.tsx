@@ -1,7 +1,8 @@
 // Organisation → Meeting templates → Google Meet Meeting Notes: every switch and
 // picker is named by its row title, and Save writes the org values.
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
+import { renderWithClient as render } from '../../test/render';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, expect, it, vi } from 'vitest';

@@ -57,6 +57,13 @@ export function readStepPayload(dataTransfer?: Pick<DataTransfer, 'getData'> | n
     } catch (_) { return null; }
 }
 
+/** The attribute of the nearest ancestor matching `selector`, or null when there is none or it is empty. */
+function idUnder(el: Element, selector: string, attr: string): string | null {
+    const hit = el.closest(selector);
+    if (!hit?.getAttribute) return null;
+    return hit.getAttribute(attr) || null;
+}
+
 /**
  * What is under the cursor on the React Flow canvas?
  *   { kind: 'toolPort', id } — an AI step's bottom tools port (id = step id)
@@ -77,21 +84,12 @@ export function readStepPayload(dataTransfer?: Pick<DataTransfer, 'getData'> | n
 export function dropTargetFromPoint(x: number, y: number, doc: Pick<Document, 'elementFromPoint'> | null = typeof document === 'undefined' ? null : document): DropTarget {
     const el = doc?.elementFromPoint?.(x, y);
     if (!el || !el.closest) return { kind: 'pane' };
-    const port = el.closest('[data-tool-port]');
-    if (port?.getAttribute) {
-        const id = port.getAttribute('data-tool-port');
-        if (id) return { kind: 'toolPort', id };
-    }
-    const edge = el.closest('.react-flow__edge');
-    if (edge?.getAttribute) {
-        const id = edge.getAttribute('data-id');
-        if (id) return { kind: 'edge', id };
-    }
-    const node = el.closest('.react-flow__node');
-    if (node?.getAttribute) {
-        const id = node.getAttribute('data-id');
-        if (id) return { kind: 'node', id };
-    }
+    const portId = idUnder(el, '[data-tool-port]', 'data-tool-port');
+    if (portId) return { kind: 'toolPort', id: portId };
+    const edgeId = idUnder(el, '.react-flow__edge', 'data-id');
+    if (edgeId) return { kind: 'edge', id: edgeId };
+    const nodeId = idUnder(el, '.react-flow__node', 'data-id');
+    if (nodeId) return { kind: 'node', id: nodeId };
     return { kind: 'pane' };
 }
 

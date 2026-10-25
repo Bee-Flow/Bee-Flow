@@ -49,6 +49,17 @@ const BrowserRunContext = createContext<BrowserRunStore | null>(null);
 
 const EMPTY = Object.freeze({});
 
+/** How each wire event folds into an action's preview. */
+const FOLD_BY_TYPE: Record<string, (cur: BrowserPreview, evt: BrowseEvent) => BrowserPreview> = {
+    queued: (cur, evt) => ({ ...cur, active: true, ended: false, queued: true, queuePosition: evt.queuePosition ?? null, url: evt.url || cur.url, task: evt.task || cur.task }),
+    start: (cur, evt) => ({ ...cur, active: true, ended: false, queued: false, url: evt.url || cur.url, task: evt.task || cur.task }),
+    // Latest frame REPLACES — never appended.
+    frame: (cur, evt) => ({ ...cur, active: true, ended: false, queued: false, frame: evt.b64 }),
+    action: (cur, evt) => ({ ...cur, active: true, ended: false, action: evt.summary || evt.tool || null }),
+    end: (cur) => ({ ...cur, ended: true, queued: false }),
+    reset: () => ({}),
+};
+
 /**
  * Create the store. Returns { previews, publish } — `previews` is a plain
  * object keyed by actionId; `publish(actionId, evt)` folds one wire event into
@@ -62,30 +73,9 @@ export function useBrowserRunStore() {
     const publish = useCallback((actionId: string, evt: BrowseEvent) => {
         if (!actionId || !evt || typeof evt.type !== 'string') return;
         const cur = ref.current[actionId] || {};
-        let next = cur;
-        switch (evt.type) {
-            case 'queued':
-                next = { ...cur, active: true, ended: false, queued: true, queuePosition: evt.queuePosition ?? null, url: evt.url || cur.url, task: evt.task || cur.task };
-                break;
-            case 'start':
-                next = { ...cur, active: true, ended: false, queued: false, url: evt.url || cur.url, task: evt.task || cur.task };
-                break;
-            case 'frame':
-                // Latest frame REPLACES — never appended.
-                next = { ...cur, active: true, ended: false, queued: false, frame: evt.b64 };
-                break;
-            case 'action':
-                next = { ...cur, active: true, ended: false, action: evt.summary || evt.tool || null };
-                break;
-            case 'end':
-                next = { ...cur, ended: true, queued: false };
-                break;
-            case 'reset':
-                next = {};
-                break;
-            default:
-                return;
-        }
+        const fold = Object.hasOwn(FOLD_BY_TYPE, evt.type) ? FOLD_BY_TYPE[evt.type] : null;
+        if (!fold) return;
+        const next = fold(cur, evt);
         ref.current = { ...ref.current, [actionId]: next };
         rerender();
     }, [rerender]);

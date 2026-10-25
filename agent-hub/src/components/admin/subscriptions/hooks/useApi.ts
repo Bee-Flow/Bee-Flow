@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SetStateAction } from 'react';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
+import { mutate, RefusedError, errorBody } from '../../../../api/mutate';
 import type { AuthFetchOptions } from '../../../../utils/helpers';
 
 /** One organization in `GET /auth/organizations`. */
@@ -15,20 +16,20 @@ interface OrgListEntry {
 /** `GET /auth/organizations`: a bare list, or wrapped under `organizations` / `orgs`. */
 export type OrgListPayload = OrgListEntry[] | { organizations?: OrgListEntry[]; orgs?: OrgListEntry[] };
 
-function api(path: string, opts?: AuthFetchOptions) {
-    return authFetch(`${API_BASE}${path}`, opts);
-}
-
 export async function apiJson(path: string, opts?: AuthFetchOptions) {
-    const res = await api(path, opts);
-    let body = null;
-    try { body = await res.json(); } catch { body = null; }
-    if (!res.ok) {
-        const err: Error & { status?: number; body?: unknown } = new Error(body?.error || `Request failed (${res.status})`);
-        err.status = res.status;
+    let res: Response;
+    try {
+        res = await mutate(`${API_BASE}${path}`, opts);
+    } catch (e) {
+        if (!(e instanceof RefusedError)) throw e;
+        const body = errorBody(e);
+        const err: Error & { status?: number; body?: unknown } = new Error(body?.error || `Request failed (${e.status})`);
+        err.status = e.status;
         err.body = body;
         throw err;
     }
+    let body = null;
+    try { body = await res.json(); } catch { body = null; }
     return body;
 }
 

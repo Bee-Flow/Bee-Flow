@@ -132,6 +132,13 @@ function NotebooksUnavailable() {
     );
 }
 
+function NotebookNotices({ notebooksEnabled, canEdit, archived }: { notebooksEnabled: boolean; canEdit: boolean; archived: boolean }) {
+    const { t } = useTranslation();
+    if (!notebooksEnabled) return <NotebooksUnavailable />;
+    if (canEdit) return null;
+    return <ViewerNote archived={archived}>{t('project_content.notebooks_viewer_note', 'You can read the notebooks in this project. Ask the owner for editor access to add or change them.')}</ViewerNote>;
+}
+
 function NotebooksList({ projectId, project, role, currentUser, onOpenSub, intent, notebooksEnabled = true }: ContentTabProps) {
     const { t } = useTranslation();
     const canEdit = canEditContent(role) && notebooksEnabled;
@@ -148,6 +155,9 @@ function NotebooksList({ projectId, project, role, currentUser, onOpenSub, inten
     const create = useNotebookCreate(projectId, (nb) => { setCreateOpen(false); open(nb); });
     const inProject = useMemo(() => new Set(items.map(n => n.id)), [items]);
     const openCreate = () => { create.reset(); setCreateOpen(true); };
+    const query = search.trim().toLocaleLowerCase();
+    const filtered = items.filter(n => `${n.name} ${n.description || ''}`.toLocaleLowerCase().includes(query));
+    const noMatches = !!search.trim() && section.status === 'ok' && filtered.length === 0;
 
     const onRemove = (nb: ProjectNotebook) => removal.remove(nb.id, {
         message: t('project_home.removed_from_project', '"{name}" removed from the project', { name: nb.name }),
@@ -169,12 +179,11 @@ function NotebooksList({ projectId, project, role, currentUser, onOpenSub, inten
                 count={section.status === 'ok' ? items.length : null}
                 primary={primary} extras={extras}
             />
-            {!notebooksEnabled && <NotebooksUnavailable />}
-            {notebooksEnabled && !canEdit && <ViewerNote archived={!!project?.archivedAt}>{t('project_content.notebooks_viewer_note', 'You can read the notebooks in this project. Ask the owner for editor access to add or change them.')}</ViewerNote>}
-            {search.trim() && section.status === 'ok' && !items.some(n => `${n.name} ${n.description || ''}`.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())) ? <p className="text-sm text-[var(--text-secondary)]">{t('project_content.no_matches', 'Nothing matches your search.')}</p> : <NotebooksBody
+            <NotebookNotices notebooksEnabled={notebooksEnabled} canEdit={canEdit} archived={!!project?.archivedAt} />
+            {noMatches ? <p className="text-sm text-[var(--text-secondary)]">{t('project_content.no_matches', 'Nothing matches your search.')}</p> : <NotebooksBody
                 status={section.status} onRetry={section.refetch} onCreate={canEdit ? openCreate : null}
                 grid={{
-                    notebooks: items.filter(n => `${n.name} ${n.description || ''}`.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())), ownerName, removingId: removal.pendingId, onOpen: open, onRemove,
+                    notebooks: filtered, ownerName, removingId: removal.pendingId, onOpen: open, onRemove,
                     isUnread: (id) => unread.isUnread('notebook', id),
                     mayRemove: (nb) => canRemoveItem(role, nb.userId, me),
                     openable: notebooksEnabled,

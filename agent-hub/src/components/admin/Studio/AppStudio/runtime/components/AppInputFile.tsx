@@ -1,7 +1,7 @@
 import { Loader2, Paperclip, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import useTranslation from '../../../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../../../utils/helpers';
+import { API_BASE } from '../../../../../../utils/helpers';
 import { useDataContext } from '../DataContext';
 import { useFormField } from '../formContext';
 import { useRuntime } from '../RuntimeContext';
@@ -204,7 +204,7 @@ export default function AppInputFile({ node }: NodeProps<InputFileProps>) {
         fireChange(next);
         if (entry && typeof entry === 'object' && entry.fileId) forgetPreview(entry.fileId);
         if (!canUpload || !entry || typeof entry !== 'object' || !entry.fileId) return;
-        authFetch(
+        mutate(
             `${API_BASE}/api/studio-apps/${encodeURIComponent(appId as string)}/data/attachments/${encodeURIComponent(entry.fileId)}`,
             { method: 'DELETE' },
         ).catch(() => { /* the field is already clear; the sweep can have the bytes */ });

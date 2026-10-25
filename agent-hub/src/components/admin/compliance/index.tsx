@@ -76,6 +76,15 @@ interface ComplianceHubProps {
     onBack?: (() => void) | null;
 }
 
+type LadderState = { kind: string; target: LadderTarget | null } | null;
+
+function HubLadder({ ladder, onClose }: { ladder: LadderState; onClose: () => void }) {
+    if (!ladder) return null;
+    return <AiActLadderModal open kind={ladder.kind} target={ladder.target} onClose={onClose} />;
+}
+
+const orgNameOf = (overview: ReturnType<typeof useComplianceCore>['overview']) => overview?.settings?.org_name || overview?.organization_name || null;
+
 export default function ComplianceHub({ activeSection = 'overview', focusCheckId = null, onNavigate, exportsEnabled = true, onBack = null }: ComplianceHubProps) {
     const { t } = useTranslation();
     const { isMobile } = useViewport();
@@ -96,12 +105,13 @@ export default function ComplianceHub({ activeSection = 'overview', focusCheckId
     const refreshCore = core.refresh;
     const showSetup = core.setupOpen;
 
+    const isActive = (...ids: string[]) => ids.includes(active);
     const attention = useComplianceAttention({ enabled: active === 'overview' });
     const frameworks = useFrameworks({ enabled: true, onChanged: () => { bump(); refreshCore(); } });
-    const calendar = useCalendar({ enabled: active === 'overview' || active === 'frameworks' || !!section.regulation });
+    const calendar = useCalendar({ enabled: isActive('overview', 'frameworks') || !!section.regulation });
 
-    const dsr = useDsr({ enabled: active === 'dsr' || active === 'overview', onChanged: bump, refreshCore });
-    const incidents = useIncidents({ enabled: active === 'incidents' || active === 'overview', onChanged: bump, refreshCore });
+    const dsr = useDsr({ enabled: isActive('dsr', 'overview'), onChanged: bump, refreshCore });
+    const incidents = useIncidents({ enabled: isActive('incidents', 'overview'), onChanged: bump, refreshCore });
     const vulnerabilities = useIncidents({ enabled: active === 'vulnerabilities', onChanged: bump, refreshCore, kind: 'vulnerability' });
     const deadlines = useComplianceDeadlines({ enabled: active === 'overview', requests: dsr.requests, incidents: incidents.incidents });
     const ropa = useRopa({ enabled: active === 'ropa', onChanged: bump, refreshCore });
@@ -141,7 +151,7 @@ export default function ComplianceHub({ activeSection = 'overview', focusCheckId
         onAddFramework: headerActions.onAddFramework || (active === 'frameworks' ? () => navigate('custom') : null),
     };
 
-    const orgName = core.overview?.settings?.org_name || core.overview?.organization_name || null;
+    const orgName = orgNameOf(core.overview);
 
 
 
@@ -153,9 +163,7 @@ export default function ComplianceHub({ activeSection = 'overview', focusCheckId
                     props={{ active, navigate, onBack, data, tab: currentTab, onTab: setTab, exportsEnabled, dl, page, section, headerCtx }} />
                 {/* The ladder (artboard 1f) is opened from Frameworks › Per automation,
                     which a phone reaches too — without this the button was a dead control. */}
-                {ladder && (
-                    <AiActLadderModal open kind={ladder.kind} target={ladder.target} onClose={() => setLadder(null)} />
-                )}
+                <HubLadder ladder={ladder} onClose={() => setLadder(null)} />
             </div>
         );
     }
@@ -163,9 +171,7 @@ export default function ComplianceHub({ activeSection = 'overview', focusCheckId
     return (
         <div className="h-full flex flex-col" data-testid="compliance-hub" data-layout="desktop">
             <DesktopLayout {...{ active, section, currentTab, setTab, navigate, onBack, counts, frameworks, core, orgName, exportsEnabled, page, headerCtx, t }} />
-            {ladder && (
-                <AiActLadderModal open kind={ladder.kind} target={ladder.target} onClose={() => setLadder(null)} />
-            )}
+            <HubLadder ladder={ladder} onClose={() => setLadder(null)} />
         </div>
     );
 }

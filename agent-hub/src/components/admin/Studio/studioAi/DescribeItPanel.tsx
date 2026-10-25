@@ -157,6 +157,43 @@ function PlanCard({ plan, dest, blocked, busyRun, copied, errorLine, onConfirm, 
     );
 }
 
+type Translate = ReturnType<typeof useTranslation>['t'];
+
+function errorText(t: Translate, code: string): string {
+    const [key, fallback] = ERROR_TEXT[code] ?? ERROR_TEXT.failed;
+    return t(key, fallback);
+}
+
+function ErrorNote({ errorLine, errorCode, t }: { errorLine: string; errorCode: string | null; t: Translate }) {
+    return (
+        <p data-testid="studio-ai-error" className="mt-1.5 text-[11.5px] text-[var(--error)]">
+            {errorLine}
+            {errorCode === 'no_model' ? (
+                <span className="text-[var(--text-tertiary)]">{` ${t('studio.ai.err_no_model_way_out', 'Pick a building block from New in the meantime.')}`}</span>
+            ) : null}
+        </p>
+    );
+}
+
+function BusyRow({ onCancel, t }: { onCancel: () => void; t: Translate }) {
+    return (
+        <>
+            <span data-testid="studio-ai-busy" className="flex items-center gap-1.5 text-[11.5px] text-[var(--text-secondary)]">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={1.75} aria-hidden="true" />
+                {t('studio.ai.busy', 'Reading your description…')}
+            </span>
+            <button
+                type="button"
+                data-testid="studio-ai-cancel"
+                onClick={onCancel}
+                className="h-8 px-3 rounded-lg text-[12px] font-medium text-[var(--text-secondary)] border border-[var(--border-default)]"
+            >
+                {t('studio.ai.cancel', 'Cancel')}
+            </button>
+        </>
+    );
+}
+
 function PanelBody({ sections, onNavigate, user, onClose }: PanelBodyProps) {
     const { t } = useTranslation();
     const [text, setText] = useState('');
@@ -241,7 +278,7 @@ function PanelBody({ sections, onNavigate, user, onClose }: PanelBodyProps) {
         } catch (err) { logger.debug('geen klembord: de tekst staat er zelf, selecteerbaar', err); }
     }, [plan]);
 
-    const errorLine = errorCode ? t(ERROR_TEXT[errorCode]?.[0] || ERROR_TEXT.failed[0], ERROR_TEXT[errorCode]?.[1] || ERROR_TEXT.failed[1]) : null;
+    const errorLine = errorCode ? errorText(t, errorCode) : null;
 
     if (phase === 'plan' && plan) {
         return (
@@ -282,14 +319,7 @@ function PanelBody({ sections, onNavigate, user, onClose }: PanelBodyProps) {
             <p className="mt-1 text-[11px] text-[var(--text-tertiary)]">
                 {t('studio.ai.hint', 'The AI picks the building blocks and shows you the plan first.')}
             </p>
-            {errorLine ? (
-                <p data-testid="studio-ai-error" className="mt-1.5 text-[11.5px] text-[var(--error)]">
-                    {errorLine}
-                    {errorCode === 'no_model' ? (
-                        <span className="text-[var(--text-tertiary)]">{` ${t('studio.ai.err_no_model_way_out', 'Pick a building block from New in the meantime.')}`}</span>
-                    ) : null}
-                </p>
-            ) : null}
+            {errorLine ? <ErrorNote errorLine={errorLine} errorCode={errorCode} t={t} /> : null}
             <div className="mt-2 flex items-center gap-2">
                 <button
                     type="button"
@@ -300,22 +330,7 @@ function PanelBody({ sections, onNavigate, user, onClose }: PanelBodyProps) {
                 >
                     {t('studio.ai.submit', 'Show the plan')}
                 </button>
-                {busy ? (
-                    <>
-                        <span data-testid="studio-ai-busy" className="flex items-center gap-1.5 text-[11.5px] text-[var(--text-secondary)]">
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={1.75} aria-hidden="true" />
-                            {t('studio.ai.busy', 'Reading your description…')}
-                        </span>
-                        <button
-                            type="button"
-                            data-testid="studio-ai-cancel"
-                            onClick={cancel}
-                            className="h-8 px-3 rounded-lg text-[12px] font-medium text-[var(--text-secondary)] border border-[var(--border-default)]"
-                        >
-                            {t('studio.ai.cancel', 'Cancel')}
-                        </button>
-                    </>
-                ) : null}
+                {busy ? <BusyRow onCancel={cancel} t={t} /> : null}
             </div>
         </div>
     );

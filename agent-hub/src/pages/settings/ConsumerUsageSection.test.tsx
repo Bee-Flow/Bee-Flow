@@ -1,6 +1,7 @@
 // Settings → Account → Usage for a consumer account. Pinned: the range
 // buttons say which one is chosen, and choosing one reloads that range.
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
+import { renderWithClient as render } from '../../test/render';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

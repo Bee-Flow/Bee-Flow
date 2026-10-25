@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { FieldRow, inputClass } from './basicFields';
 import { AssetPickerDialog } from './jsDeps';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
+import { settled } from '../../../../api/settled';
 import { uploadCmsFile } from '../cmsUpload';
 import { errorMessage } from '../../../../utils/caughtError';
 import { mutate, errorBody, RefusedError } from '../../../../api/mutate';
@@ -36,8 +37,8 @@ function useAssetLibraryAvailable(enabled: boolean): boolean {
         if (!assetLibraryProbe) {
             const probe: { settled: boolean; value: boolean; promise?: Promise<boolean> } = { settled: false, value: false };
             assetLibraryProbe = probe;
-            probe.promise = authFetch(`${API_BASE}/api/cms/admin/assets`)
-                .then((r: Response) => (r.ok ? r.json() : null))
+            probe.promise = settled(`${API_BASE}/api/cms/admin/assets`, undefined, 'empty')
+                .then(r => (r.ok ? r.res.json() : null))
                 .then((data: { unavailable?: boolean } | null) => !!(data && data.unavailable !== true))
                 .catch(() => false)
                 .then((v: boolean) => {

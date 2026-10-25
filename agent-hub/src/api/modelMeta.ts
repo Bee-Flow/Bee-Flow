@@ -206,6 +206,15 @@ const formatModelId = (id: string): string => {
     return name.split('-').map((part: string) => /^\d/.test(part) ? part : part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
 };
 
+// Models whose label the server already produced: self-hosted tags, Scaleway
+// and EU GPT catalog entries.
+const hasServerLabel = (model: string | ModelEntry): model is ModelEntry =>
+    typeof model === 'object' && !!(model?.local || model?.scaleway || model?.eugpt);
+
+// A server-provided name that adds something over the raw id (object form only).
+const distinctServerName = (model: string | ModelEntry, id: string): string | undefined =>
+    typeof model === 'object' && model?.name && model.name !== id ? model.name : undefined;
+
 // Get the display name for a model. Accepts either a raw model ID string or
 // a model object ({ id, name }). Resolution order: user alias → self-hosted
 // label from the server → metadata name → server-provided name (object form
@@ -220,52 +229,62 @@ export const getModelDisplayName = (model: string | ModelEntry): string => {
     // and the tag itself — `qwen3:30b-a3b` — is what the admin recognises.
     // formatModelId would mangle it into "Qwen3:30b A3b", so never apply it.
     // Scaleway and EU GPT models come from the server's own catalog for the same reason.
-    if (typeof model === 'object' && (model?.local || model?.scaleway || model?.eugpt)) return model.name || id;
+    if (hasServerLabel(model)) return model.name || id;
     const meta = getModelMeta(id);
     if (meta?.name) return meta.name;
-    if (typeof model === 'object' && model?.name && model.name !== id) return model.name;
-    return formatModelId(id);
+    return distinctServerName(model, id) || formatModelId(id);
 };
+
+// Coarse model-family rules, first match wins. 5.6 is its own generation:
+// different reasoning-effort vocabulary, no verbosity knob, a 1.05M window.
+// Grouping it under GPT-5 in the picker would suggest they are interchangeable,
+// and they are not.
+const FAMILY_RULES: ReadonlyArray<readonly [RegExp, string]> = [
+    [/^gpt-6/, 'GPT-6'],
+    [/^gpt-5\.6/, 'GPT-5.6'],
+    [/^gpt-5/, 'GPT-5'],
+    [/^gpt-4\.1/, 'GPT-4.1'],
+    [/^gpt-4o/, 'GPT-4o'],
+    [/^gpt-4/, 'GPT-4'],
+    [/^o\d/, 'o-series'],
+    [/^claude-/, 'Claude'],
+    [/^gemini-/, 'Gemini'],
+    [/^mistral-large/, 'Mistral Large'],
+    [/^mistral-medium/, 'Mistral Medium'],
+    [/^mistral-small/, 'Mistral Small'],
+    [/^magistral/, 'Magistral'],
+    [/^codestral/, 'Codestral'],
+    [/^devstral/, 'Devstral'],
+    [/^pixtral/, 'Pixtral'],
+    [/^ministral/, 'Ministral'],
+    [/^mistral/, 'Mistral Other'],
+];
+
+// Open-weight families served from a self-hosted runtime. Matched loosely
+// because the same weights arrive under three different id shapes
+// (`qwen3:8b`, `Qwen/Qwen3-8B`, `Qwen3-8B-Q4_K_M.gguf`). Tested on the
+// lower-cased id.
+const LOCAL_FAMILY_RULES: ReadonlyArray<readonly [RegExp, string]> = [
+    [/qwq|qwen/, 'Qwen'],
+    [/deepseek/, 'DeepSeek'],
+    [/llama|llava/, 'Llama'],
+    [/gemma/, 'Gemma'],
+    [/gpt-?oss/, 'gpt-oss'],
+    [/phi-?\d/, 'Phi'],
+    [/glm-?\d/, 'GLM'],
+    [/granite/, 'Granite'],
+    [/embed|bge-|gte-|minilm/, 'Embedding'],
+];
+
+const familyFrom = (rules: ReadonlyArray<readonly [RegExp, string]>, id: string): string | undefined =>
+    rules.find(([re]) => re.test(id))?.[1];
 
 // Coarse model-family bucket for a model ID — powers the "Family" filter
 // chips in the shared searchable model picker.
-export const getModelFamily = (modelId: string): string => {
-    if (/^gpt-6/.test(modelId)) return 'GPT-6';
-    // 5.6 is its own generation: different reasoning-effort vocabulary, no
-    // verbosity knob, a 1.05M window. Grouping it under GPT-5 in the picker
-    // would suggest they are interchangeable, and they are not.
-    if (/^gpt-5\.6/.test(modelId)) return 'GPT-5.6';
-    if (/^gpt-5/.test(modelId)) return 'GPT-5';
-    if (/^gpt-4\.1/.test(modelId)) return 'GPT-4.1';
-    if (/^gpt-4o/.test(modelId)) return 'GPT-4o';
-    if (/^gpt-4/.test(modelId)) return 'GPT-4';
-    if (/^o\d/.test(modelId)) return 'o-series';
-    if (/^claude-/.test(modelId)) return 'Claude';
-    if (/^gemini-/.test(modelId)) return 'Gemini';
-    if (/^mistral-large/.test(modelId)) return 'Mistral Large';
-    if (/^mistral-medium/.test(modelId)) return 'Mistral Medium';
-    if (/^mistral-small/.test(modelId)) return 'Mistral Small';
-    if (/^magistral/.test(modelId)) return 'Magistral';
-    if (/^codestral/.test(modelId)) return 'Codestral';
-    if (/^devstral/.test(modelId)) return 'Devstral';
-    if (/^pixtral/.test(modelId)) return 'Pixtral';
-    if (/^ministral/.test(modelId)) return 'Ministral';
-    if (/^mistral/.test(modelId)) return 'Mistral Other';
-    // Open-weight families served from a self-hosted runtime. Matched loosely
-    // because the same weights arrive under three different id shapes
-    // (`qwen3:8b`, `Qwen/Qwen3-8B`, `Qwen3-8B-Q4_K_M.gguf`).
-    const local = String(modelId).toLowerCase();
-    if (/qwq|qwen/.test(local)) return 'Qwen';
-    if (/deepseek/.test(local)) return 'DeepSeek';
-    if (/llama|llava/.test(local)) return 'Llama';
-    if (/gemma/.test(local)) return 'Gemma';
-    if (/gpt-?oss/.test(local)) return 'gpt-oss';
-    if (/phi-?\d/.test(local)) return 'Phi';
-    if (/glm-?\d/.test(local)) return 'GLM';
-    if (/granite/.test(local)) return 'Granite';
-    if (/embed|bge-|gte-|minilm/.test(local)) return 'Embedding';
-    return 'Other';
-};
+export const getModelFamily = (modelId: string): string =>
+    familyFrom(FAMILY_RULES, modelId)
+    || familyFrom(LOCAL_FAMILY_RULES, String(modelId).toLowerCase())
+    || 'Other';
 
 // Cache for allowed models config (fetched from server DB)
 let _allowedModelsCache: AllowedModelsConfig | null = null;

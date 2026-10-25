@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import type { OrgMember, Organization } from './useOrgDirectory';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
+import { settled } from '../../../api/settled';
 import { toast } from '../../shared/Toast';
 import useOutsideDismiss from '../../../hooks/useOutsideDismiss';
 import { mutate, ApiError, errorBody, RefusedError } from '../../../api/mutate';
@@ -240,12 +241,12 @@ export default function useOrgGroups({ users, organizations, fetchData, confirm 
     const addGroupMember = async (groupId: string, userId: string) => {
         setMemberBusy(true);
         try {
-            const res = await authFetch(`${API_BASE}/auth/groups/${groupId}/members`, {
+            const res = await settled(`${API_BASE}/auth/groups/${groupId}/members`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId }),
-            });
-            if (!res.ok) { const e: { error?: string } = await res.json().catch(() => ({})); toast.error(e.error || 'Failed to add member'); }
+            }, 'empty');
+            if (!res.ok) { const e: { error?: string } = res.body; toast.error(e.error || 'Failed to add member'); }
             else { setMemberAddSearch(''); await fetchData(); }
         } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
         finally { setMemberBusy(false); }
@@ -254,8 +255,8 @@ export default function useOrgGroups({ users, organizations, fetchData, confirm 
     const removeGroupMember = async (groupId: string, userId: string) => {
         setMemberBusy(true);
         try {
-            const res = await authFetch(`${API_BASE}/auth/groups/${groupId}/members/${userId}`, { method: 'DELETE' });
-            if (!res.ok) { const e: { error?: string } = await res.json().catch(() => ({})); toast.error(e.error || 'Failed to remove member'); }
+            const res = await settled(`${API_BASE}/auth/groups/${groupId}/members/${userId}`, { method: 'DELETE' }, 'empty');
+            if (!res.ok) { const e: { error?: string } = res.body; toast.error(e.error || 'Failed to remove member'); }
             else { await fetchData(); }
         } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }
         finally { setMemberBusy(false); }

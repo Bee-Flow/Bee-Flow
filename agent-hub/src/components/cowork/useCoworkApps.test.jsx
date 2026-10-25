@@ -2,6 +2,7 @@ import { render, waitFor } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import useCoworkApps from './useCoworkApps';
+import { testQueryClient, withQueryClient } from '../../test/queryWrapper';
 
 /**
  * CHARACTERISATION — the Apps state for ONE cowork item, as it behaves today.
@@ -63,8 +64,9 @@ function harness(props = {}) {
         Object.assign(api, useCoworkApps(p));
         return null;
     }
-    const utils = render(<Probe {...props} />);
-    return { api, rerender: (next) => utils.rerender(<Probe {...next} />) };
+    const client = testQueryClient();
+    const utils = render(withQueryClient(<Probe {...props} />, client));
+    return { api, rerender: (next) => utils.rerender(withQueryClient(<Probe {...next} />, client)) };
 }
 
 const ids = (apps) => apps.map(a => a.id);

@@ -1,12 +1,13 @@
 import { Shield, Globe, Search, Save, Check, ScanEye, Eye } from 'lucide-react';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import PiiActionPicker from '../../components/privacy/PiiActionPicker';
 import PiiCategoryGrid from '../../components/privacy/PiiCategoryGrid';
 import PiiSensitivityPicker from '../../components/privacy/PiiSensitivityPicker';
 import Toggle from '../../components/shared/Toggle';
 import { piiCategoriesLocalized } from '../../config/piiCategories';
 import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
+import { useConsumerShieldConfig, useConsumerGuardStatus } from '../../api/queries/settingsConsumer';
 import { mutate, ApiError } from '../../api/mutate';
 
 /** The user's own Privacy Shield config (GET /api/org-privacy-shield/user/me). */
@@ -37,6 +38,21 @@ interface GuardStatus {
  *   - PII Detection (categories, confidence threshold, action)
  *   - Show raw payload & token mapping (transparency)
  */
+const DEFAULT_CONFIG: ConsumerShieldConfig = {
+    // Secure by default — mirrors server/core/userShieldDefaults.js.
+    enabled: true,
+    euModeEnabled: false,
+    disableSearchOnUpload: false,
+    piiDetectionEnabled: true,
+    piiDetectionCategories: [],
+    piiDetectionConfidenceThreshold: 0.7,
+    piiDetectionAction: 'tokenize',
+    // Fail closed by default: if detection is unavailable, don't send
+    // unmasked text to the AI (BFSF-269).
+    piiFailureMode: 'fail_closed',
+    showRawPayload: false,
+};
+
 const ConsumerPrivacySection = () => {
     const { t } = useTranslation();
     // Full canonical category list, localised. We surface every category
@@ -46,7 +62,8 @@ const ConsumerPrivacySection = () => {
     // them is safe — at worst a checked-but-unsupported category yields
     // zero hits.
     const PII_CATEGORIES = useMemo(() => piiCategoriesLocalized(t), [t]);
-    const [loading, setLoading] = useState(true);
+    const shieldQuery = useConsumerShieldConfig<Partial<ConsumerShieldConfig>>();
+    const loading = shieldQuery.isPending;
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     // A refused or failed save used to leave the button as it was, which read
@@ -55,52 +72,16 @@ const ConsumerPrivacySection = () => {
     // Whether the values shown are the secure defaults in force rather than a
     // saved choice (BFSF-289) — the panel labels them so "on" isn't mistaken
     // for something the user configured.
-    const [implicitDefault, setImplicitDefault] = useState(false);
+    const [savedExplicitly, setSavedExplicitly] = useState(false);
+    const implicitDefault = !savedExplicitly && !!shieldQuery.data?.implicitDefault;
     // null = still probing. Tells the user whether PII detection can actually
     // run; without it "shield on, guard not installed" looked identical to
     // "shield on and working" while detection silently failed open.
-    const [guardStatus, setGuardStatus] = useState<GuardStatus | null>(null);
-    const [config, setConfig] = useState<ConsumerShieldConfig>({
-        // Secure by default — mirrors server/core/userShieldDefaults.js.
-        enabled: true,
-        euModeEnabled: false,
-        disableSearchOnUpload: false,
-        piiDetectionEnabled: true,
-        piiDetectionCategories: [],
-        piiDetectionConfidenceThreshold: 0.7,
-        piiDetectionAction: 'tokenize',
-        // Fail closed by default: if detection is unavailable, don't send
-        // unmasked text to the AI (BFSF-269).
-        piiFailureMode: 'fail_closed',
-        showRawPayload: false,
-    });
-
-    useEffect(() => {
-        const fetchConfig = async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/api/org-privacy-shield/user/me`);
-                if (res.ok) {
-                    const { implicitDefault: isImplicit, ...data } = await res.json();
-                    setConfig(prev => ({ ...prev, ...data }));
-                    setImplicitDefault(!!isImplicit);
-                }
-            } catch (e) {
-                console.error('[ConsumerPrivacy] fetch error:', e);
-            } finally {
-                setLoading(false);
-            }
-        };
-        const fetchGuardStatus = async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/api/org-privacy-shield/user/guard-status`);
-                if (res.ok) setGuardStatus(await res.json());
-            } catch (e) {
-                console.error('[ConsumerPrivacy] guard-status error:', e);
-            }
-        };
-        fetchConfig();
-        fetchGuardStatus();
-    }, []);
+    const guardStatus = useConsumerGuardStatus<GuardStatus>().data ?? null;
+    // The stored config with the person's edits on top.
+    const [edits, setEdits] = useState<Partial<ConsumerShieldConfig>>({});
+    const { implicitDefault: _implicit, ...stored } = shieldQuery.data ?? {};
+    const config: ConsumerShieldConfig = { ...DEFAULT_CONFIG, ...stored, ...edits };
 
     const handleSave = async () => {
         setSaving(true);
@@ -117,7 +98,7 @@ const ConsumerPrivacySection = () => {
             });
             if (res) {
                 setSaved(true);
-                setImplicitDefault(false); // now an explicit, stored choice
+                setSavedExplicitly(true); // now an explicit, stored choice
                 setTimeout(() => setSaved(false), 3000);
             } else {
                 setSaveError(true);
@@ -131,7 +112,7 @@ const ConsumerPrivacySection = () => {
     };
 
     const update = <K extends keyof ConsumerShieldConfig>(key: K, value: ConsumerShieldConfig[K]) => {
-        setConfig(prev => ({ ...prev, [key]: value }));
+        setEdits(prev => ({ ...prev, [key]: value }));
     };
 
     if (loading) return (

@@ -8,7 +8,7 @@ import RepliesTab from './RepliesTab';
 import type { SupportAgent, SupportInbox, SupportUser } from './supportStudio.types';
 import TemplatesTab from './TemplatesTab';
 import useTranslation from '../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { useSupportAgents, useSupportKbs, useSupportTeammates } from '../../../../api/queries/studioSupport';
 import EmptyState from '../../../shared/EmptyState';
 
 // Tab set — mirrors Organisation Settings' top pill bar. Per-inbox tabs act on
@@ -44,15 +44,9 @@ export default function SupportSettings({ inboxes = [], onChanged, user, onOpenT
     const [selectedInboxId, setSelectedInboxId] = useState(inboxes[0]?.id || null);
 
     // Reference data shared across per-inbox tabs (loaded once).
-    const [agents, setAgents] = useState<SupportAgent[]>([]);
-    const [kbs, setKbs] = useState([]);
-    const [teammates, setTeammates] = useState<{ id: string; name?: string; email?: string; }[]>([]);
-
-    useEffect(() => {
-        authFetch(`${API_BASE}/agents/all`).then(r => r.ok ? r.json() : []).then(d => setAgents(Array.isArray(d) ? d : [])).catch(() => {});
-        authFetch(`${API_BASE}/api/kb`).then(r => r.ok ? r.json() : []).then(d => setKbs(Array.isArray(d) ? d : (d.kbs || []))).catch(() => {});
-        authFetch(`${API_BASE}/api/support-inbox/teammates`).then(r => r.ok ? r.json() : {}).then((d: { teammates?: { id: string; name?: string; email?: string; }[]; }) => setTeammates(Array.isArray(d.teammates) ? d.teammates : [])).catch(() => {});
-    }, []);
+    const agents = useSupportAgents<SupportAgent>();
+    const kbs = useSupportKbs<never>();
+    const teammates = useSupportTeammates<{ id: string; name?: string; email?: string; }>();
 
     // Keep the selected inbox valid as the list changes.
     useEffect(() => {

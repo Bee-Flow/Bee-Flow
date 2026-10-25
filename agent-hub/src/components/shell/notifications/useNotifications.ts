@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { settingsPathForTab } from '../../../authedApp/settingsRoutes';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
 import { logger } from '../../../utils/logger';
-import { request, RefusedError } from '../../../api/mutate';
+import { mutate, request, RefusedError } from '../../../api/mutate';
 
 /** One notification as GET /api/notifications returns it. */
 export interface AppNotification {
@@ -66,9 +66,9 @@ function chatTargetOf(item: Record<string, string | null | undefined> | null): C
 export async function startReconnect(provider: string): Promise<void> {
     if (provider === 'google') {
         try {
-            const res = await authFetch(`${API_BASE}/api/integrations/google/auth-url`);
+            const res = await request(`${API_BASE}/api/integrations/google/auth-url`);
             const data = await res.json().catch(() => ({}));
-            if (res.ok && data.url) {
+            if (data.url) {
                 const [w, h] = [600, 700];
                 window.open(data.url, 'google-oauth', `width=${w},height=${h},left=${(screen.width - w) / 2},top=${(screen.height - h) / 2}`);
                 return;
@@ -141,13 +141,13 @@ export function useNotifications() {
     }, [fetchCount, fetchNotifications]);
 
     const markRead = async (id: string) => {
-        await authFetch(`${API_BASE}/api/notifications/${id}/read`, { method: 'POST' });
+        await mutate(`${API_BASE}/api/notifications/${id}/read`, { method: 'POST' });
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
         setUnreadCount(prev => Math.max(0, prev - 1));
     };
 
     const markAllRead = async () => {
-        await authFetch(`${API_BASE}/api/notifications/read-all`, { method: 'POST' });
+        await mutate(`${API_BASE}/api/notifications/read-all`, { method: 'POST' });
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
         setUnreadCount(0);
     };
@@ -155,7 +155,7 @@ export function useNotifications() {
     /** Delete one; resolves once the list no longer holds it. */
     const deleteNotification = async (id: string) => {
         const wasUnread = notifications.find(n => n.id === id && !n.read);
-        await authFetch(`${API_BASE}/api/notifications/${id}`, { method: 'DELETE' });
+        await mutate(`${API_BASE}/api/notifications/${id}`, { method: 'DELETE' });
         setNotifications(prev => prev.filter(n => n.id !== id));
         if (wasUnread) setUnreadCount(prev => Math.max(0, prev - 1));
     };

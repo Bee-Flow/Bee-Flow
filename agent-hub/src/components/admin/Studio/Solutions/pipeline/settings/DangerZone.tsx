@@ -31,6 +31,42 @@ export interface DangerZoneProps {
 
 const INPUT = 'w-full px-2 py-1.5 rounded-lg text-sm border border-[var(--border-default)] bg-[var(--bg-secondary)] text-[var(--text-primary)]';
 
+type Translate = ReturnType<typeof useTranslation>['t'];
+
+function resultText(t: Translate, result: NonNullable<DangerZoneProps['result']>, stageLabel: string): string {
+    const stage = { stage: stageLabel };
+    if (result === 'detached') return t('stage_settings.danger_detached', '{stage} is now an ordinary Solution. Nothing was deleted.', stage);
+    if (result === 'removal_started') return t('stage_settings.danger_removing', '{stage} is being removed. This takes a moment.', stage);
+    return t('stage_settings.danger_requested', 'Removal of {stage} was requested. Nothing is removed until the approvers agree.', stage);
+}
+
+function DeleteOptions({ deleteData, onDeleteData, gateOn, stageLabel }: { deleteData: boolean; onDeleteData: (v: boolean) => void; gateOn: boolean; stageLabel: string }) {
+    const { t } = useTranslation();
+    return (
+        <>
+            <label className="flex items-start gap-2 text-sm text-[var(--text-primary)]">
+                <input type="checkbox" checked={deleteData} onChange={(e) => onDeleteData(e.target.checked)} data-testid="danger-delete-data" className="mt-0.5" />
+                <span>{t('stage_settings.danger_delete_data', 'Also delete the tables and knowledge bases of this stage, with their data')}
+                    <span className="block text-xs text-[var(--text-tertiary)]">
+                        {deleteData
+                            ? t('stage_settings.danger_delete_data_yes', 'The data cannot be recovered.')
+                            : t('stage_settings.danger_delete_data_no', 'Left unchecked, the tables and their data stay, owned by the run-as person.')}
+                    </span>
+                </span>
+            </label>
+            {deleteData && (
+                <p className="flex items-start gap-2 text-sm text-[var(--error)]" data-testid="danger-data-warning">
+                    <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
+                    {t('stage_settings.danger_data_warning', 'This deletes the data of {stage}. It cannot be undone.', { stage: stageLabel })}
+                </p>
+            )}
+            {gateOn && (
+                <p className="text-xs text-[var(--text-secondary)]" data-testid="danger-needs-approval">{t('stage_settings.danger_needs_approval', 'Production approval is on: removing it is sent to the approvers first.')}</p>
+            )}
+        </>
+    );
+}
+
 export default function DangerZone({ solutionName, stageLabel, canAct, gateOn, busy, error, result, onSubmit }: DangerZoneProps) {
     const { t } = useTranslation();
     const [mode, setMode] = useState<RemoveMode>('detach');
@@ -44,9 +80,7 @@ export default function DangerZone({ solutionName, stageLabel, canAct, gateOn, b
     if (result) {
         return (
             <p className="px-3 py-2 rounded-lg text-sm bg-[var(--bg-secondary)] text-[var(--text-primary)]" role="status" data-testid="danger-result" data-result={result}>
-                {result === 'detached' && t('stage_settings.danger_detached', '{stage} is now an ordinary Solution. Nothing was deleted.', { stage: stageLabel })}
-                {result === 'removal_started' && t('stage_settings.danger_removing', '{stage} is being removed. This takes a moment.', { stage: stageLabel })}
-                {result === 'removal_requested' && t('stage_settings.danger_requested', 'Removal of {stage} was requested. Nothing is removed until the approvers agree.', { stage: stageLabel })}
+                {resultText(t, result, stageLabel)}
             </p>
         );
     }
@@ -68,25 +102,7 @@ export default function DangerZone({ solutionName, stageLabel, canAct, gateOn, b
                 </label>
             </fieldset>
             {mode === 'delete' && (
-                <label className="flex items-start gap-2 text-sm text-[var(--text-primary)]">
-                    <input type="checkbox" checked={deleteData} onChange={(e) => setDeleteData(e.target.checked)} data-testid="danger-delete-data" className="mt-0.5" />
-                    <span>{t('stage_settings.danger_delete_data', 'Also delete the tables and knowledge bases of this stage, with their data')}
-                        <span className="block text-xs text-[var(--text-tertiary)]">
-                            {deleteData
-                                ? t('stage_settings.danger_delete_data_yes', 'The data cannot be recovered.')
-                                : t('stage_settings.danger_delete_data_no', 'Left unchecked, the tables and their data stay, owned by the run-as person.')}
-                        </span>
-                    </span>
-                </label>
-            )}
-            {mode === 'delete' && deleteData && (
-                <p className="flex items-start gap-2 text-sm text-[var(--error)]" data-testid="danger-data-warning">
-                    <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
-                    {t('stage_settings.danger_data_warning', 'This deletes the data of {stage}. It cannot be undone.', { stage: stageLabel })}
-                </p>
-            )}
-            {mode === 'delete' && gateOn && (
-                <p className="text-xs text-[var(--text-secondary)]" data-testid="danger-needs-approval">{t('stage_settings.danger_needs_approval', 'Production approval is on: removing it is sent to the approvers first.')}</p>
+                <DeleteOptions deleteData={deleteData} onDeleteData={setDeleteData} gateOn={gateOn} stageLabel={stageLabel} />
             )}
             <label className="block text-xs text-[var(--text-tertiary)]">
                 {t('stage_settings.danger_type', 'Type the name of the Solution to confirm: {name}', { name: solutionName })}

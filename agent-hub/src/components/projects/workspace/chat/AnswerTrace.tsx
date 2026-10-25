@@ -56,15 +56,10 @@ function Body({ trace, redacted }: { trace: TeamChatTrace; redacted: number }) {
     );
 }
 
-/** The one-line note under an answer, and — when values were replaced — the panel that says how. */
-export default function AnswerTrace({ meta, projectId, chatId, messageId }: { meta: TeamChatAiMeta; projectId: string | null; chatId: string | null; messageId: string }) {
-    const { t } = useTranslation();
-    const [open, setOpen] = useState(false);
-    const canOpen = !!meta.trace && !!projectId && !!chatId;
-    const query = useTeamChatTrace(projectId || '', chatId || '', messageId, canOpen && open);
-    const depth = meta.tier ? tierLabel(meta.tier, {}) : '';
-    if (!depth && !meta.redacted) return null;
-    const summary = (
+type TFn = ReturnType<typeof useTranslation>['t'];
+
+function AnswerSummary({ meta, depth, t }: { meta: TeamChatAiMeta; depth: string; t: TFn }) {
+    return (
         <>
             <Brain className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
             <span className="font-medium">{t('project_chat.trace_title', 'How I got this answer')}</span>
@@ -83,6 +78,27 @@ export default function AnswerTrace({ meta, projectId, chatId, messageId }: { me
             )}
         </>
     );
+}
+
+function TraceDetails({ query, redacted, t }: { query: ReturnType<typeof useTeamChatTrace>; redacted: number; t: TFn }) {
+    return (
+        <>
+            {query.isPending && <p className="m-0 pt-2 text-[12px] text-[var(--text-secondary)]" role="status">{t('project_chat.trace_loading', 'Loading…')}</p>}
+            {query.isError && <p className="m-0 pt-2 text-[12px] text-[var(--error-ink)]" role="alert">{t('project_chat.trace_failed', 'This is no longer available.')}</p>}
+            {query.data && <Body trace={query.data} redacted={redacted} />}
+        </>
+    );
+}
+
+/** The one-line note under an answer, and — when values were replaced — the panel that says how. */
+export default function AnswerTrace({ meta, projectId, chatId, messageId }: { meta: TeamChatAiMeta; projectId: string | null; chatId: string | null; messageId: string }) {
+    const { t } = useTranslation();
+    const [open, setOpen] = useState(false);
+    const canOpen = !!meta.trace && !!projectId && !!chatId;
+    const query = useTeamChatTrace(projectId || '', chatId || '', messageId, canOpen && open);
+    const depth = meta.tier ? tierLabel(meta.tier, {}) : '';
+    if (!depth && !meta.redacted) return null;
+    const summary = <AnswerSummary meta={meta} depth={depth} t={t} />;
     if (!canOpen) {
         return <p className="m-0 mt-1 flex items-center flex-wrap gap-2 text-[11.5px] text-[var(--text-secondary)]" data-testid="team-chat-answer-meta">{summary}</p>;
     }
@@ -93,9 +109,7 @@ export default function AnswerTrace({ meta, projectId, chatId, messageId }: { me
                 {summary}
                 <ChevronDown className={`ml-auto w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
             </button>
-            {open && query.isPending && <p className="m-0 pt-2 text-[12px] text-[var(--text-secondary)]" role="status">{t('project_chat.trace_loading', 'Loading…')}</p>}
-            {open && query.isError && <p className="m-0 pt-2 text-[12px] text-[var(--error-ink)]" role="alert">{t('project_chat.trace_failed', 'This is no longer available.')}</p>}
-            {open && query.data && <Body trace={query.data} redacted={meta.redacted} />}
+            {open && <TraceDetails query={query} redacted={meta.redacted} t={t} />}
         </div>
     );
 }

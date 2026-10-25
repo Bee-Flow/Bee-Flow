@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import SitemapView from './SitemapView';
 import { authFetch } from '../../../utils/helpers';
+import { withQueryClient } from '@/test/render';
 
 vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
@@ -30,7 +31,7 @@ afterEach(cleanup);
 
 describe('SitemapView', () => {
     it('draws the pages with their badges and counts', async () => {
-        render(<SitemapView siteId="s1" activePageId="p1" />);
+        render(withQueryClient(<SitemapView siteId="s1" activePageId="p1" />));
         const counts = '2 pages · 1 chrome link · 0 internal links';
         expect(await screen.findByText((_, el) => el?.tagName === 'SPAN' && el.textContent === counts)).toBeTruthy();
         expect(screen.getAllByText('Home')).toHaveLength(2); // the title and the Home badge
@@ -41,7 +42,7 @@ describe('SitemapView', () => {
     it('takes a page out of the nav from its settings flyout and tells the host', async () => {
         const user = userEvent.setup();
         const onMutated = vi.fn();
-        render(<SitemapView siteId="s1" activePageId={null} onMutated={onMutated} />);
+        render(withQueryClient(<SitemapView siteId="s1" activePageId={null} onMutated={onMutated} />));
         await user.click(await screen.findByRole('button', { name: 'Edit page About' }));
         const toggle = screen.getByRole('switch');
         expect(toggle.getAttribute('aria-checked')).toBe('true');

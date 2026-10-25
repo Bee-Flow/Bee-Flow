@@ -11,7 +11,8 @@ import RecoveryCodes from '../../components/mfa/RecoveryCodes';
 import { securityKeyMessage } from '../../components/mfa/securityKeyMessages';
 import SecurityKeysCard from '../../components/mfa/SecurityKeysCard';
 import { useTranslation } from '../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
+import { postForBody } from '../../api/postForBody';
 import { request, RefusedError, mutate, errorBody } from '../../api/mutate';
 
 interface MfaStatus {
@@ -46,12 +47,11 @@ const ChangePassword = () => {
         if (newPassword !== confirm) { setErr(t('login.passwords_no_match', 'Passwords do not match')); return; }
         setBusy(true);
         try {
-            const res = await authFetch(`${API_BASE}/auth/change-password`, {
+            const { ok, body: data } = await postForBody(`${API_BASE}/auth/change-password`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ oldPassword, newPassword }),
             });
-            const data = await res.json().catch(() => ({}));
-            if (res.ok && data.success) {
+            if (ok && data.success) {
                 setOk(true); setOld(''); setNew(''); setConfirm('');
             } else {
                 setErr(data.error || t('changepw.failed', 'Failed to change password'));

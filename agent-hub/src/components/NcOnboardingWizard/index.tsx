@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { CheckCircle2, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
+import { useOrgForm, useGroups } from './useOnboardingData';
 import beeFlowLogo from '../../assets/bee-flow-logo.svg';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
@@ -45,12 +46,7 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null | undefined>(null);
 
-    // Organisation form. Pre-fill happens once on mount via GET /auth/organizations/:id.
-    const [org, setOrg] = useState({
-        name: '', email: '', tagline: '', description: '',
-        address: '', phone: '', website: '', kvk: '', vat: '',
-    });
-
+    const [org, setOrg] = useOrgForm(orgId, orgName, user?.email);
     const [syncMode, setSyncMode] = useState('mirror_all');
     const [syncGroups, setSyncGroups] = useState<string[]>([]);
     const [excludedGroups, setExcludedGroups] = useState(['admin']);
@@ -59,39 +55,7 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
     const [shieldAction, setShieldAction] = useState('tokenize');
     const [shieldCategories, setShieldCategories] = useState(DEFAULT_PII);
 
-    const [groups, setGroups] = useState<string[]>([]);
-    const [groupsLoading, setGroupsLoading] = useState(true);
-
-    // Pre-fill organisation form. Falls back to NC bootstrap data (orgName
-    // prop, user.email) when the org row's fields are still empty.
-    useEffect(() => {
-        if (!orgId) return;
-        let cancelled = false;
-        authFetch(`${API_BASE}/auth/organizations/${orgId}`).then(r => r.ok ? r.json() : null).then(j => {
-            if (cancelled) return;
-            setOrg({
-                name: j?.name || orgName || '',
-                email: j?.email || user?.email || '',
-                tagline: j?.tagline || '',
-                description: j?.description || '',
-                address: j?.address || '',
-                phone: j?.phone || '',
-                website: j?.website || '',
-                kvk: j?.kvk || '',
-                vat: j?.vat || '',
-            });
-        }).catch(() => { /* leave defaults */ });
-        return () => { cancelled = true; };
-    }, [orgId, orgName, user?.email]);
-
-    useEffect(() => {
-        if (!orgId) return;
-        let cancelled = false;
-        authFetch(`${API_BASE}/auth/admin/${orgId}/nc-sync/groups`).then(r => r.ok ? r.json() : { groups: [] }).then(j => {
-            if (!cancelled) { setGroups(j.groups || []); setGroupsLoading(false); }
-        }).catch(() => { if (!cancelled) setGroupsLoading(false); });
-        return () => { cancelled = true; };
-    }, [orgId]);
+    const { groups, groupsLoading } = useGroups(orgId);
 
     const step = STEPS[stepIdx];
     const next = () => setStepIdx(i => Math.min(i + 1, STEPS.length - 1));

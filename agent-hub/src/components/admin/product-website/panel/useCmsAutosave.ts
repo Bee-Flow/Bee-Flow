@@ -5,7 +5,8 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type useCmsPanelState from './useCmsPanelState';
 import { messageOf, errorMessage } from '../../../../utils/caughtError';
-import { authFetch } from '../../../../utils/helpers';
+import type { AuthFetchOptions } from '../../../../utils/helpers';
+import { settled } from '../../../../api/settled';
 import { toast } from '../../../shared/Toast';
 import { cmsApi } from '../cmsApi';
 import { adoptRealignedOverrides } from './realignedOverrides';
@@ -27,26 +28,36 @@ const JSON_HEADERS = { 'Content-Type': 'application/json' };
  * namespaced keys so they ride the same debounce/retry machinery as base saves
  * without colliding (real keys are 'site' or a pg_… id, never 'locale:').
  */
-function sendSave(siteId: string, key: string, payload: unknown, rev: number): Promise<Response> {
+/** One save's answer: whether the server took it, its status, and its JSON body ({} when it had none). */
+interface SaveAnswer { ok: boolean; status: number; d: SaveBody }
+interface SaveBody { code?: string; error?: string; dropped?: unknown; mediaWarning?: unknown; localeOverrides?: unknown; [field: string]: unknown }
+
+async function put(url: string, init: AuthFetchOptions): Promise<SaveAnswer> {
+    const r = await settled(url, init, 'empty');
+    if (!r.ok) return { ok: false, status: r.status, d: r.body };
+    return { ok: true, status: r.res.status, d: await r.res.json().catch(() => ({})) };
+}
+
+function sendSave(siteId: string, key: string, payload: unknown, rev: number): Promise<SaveAnswer> {
     if (key.startsWith('locale:site:')) {
         const locale = key.slice('locale:site:'.length);
-        return authFetch(cmsApi.siteLocaleOverride(siteId, locale), {
+        return put(cmsApi.siteLocaleOverride(siteId, locale), {
             method: 'PUT', headers: JSON_HEADERS, body: JSON.stringify({ override: payload }),
         });
     }
     if (key.startsWith('locale:page:')) {
         const rest = key.slice('locale:page:'.length);
         const at = rest.lastIndexOf(':');       // pageId may contain no ':'
-        return authFetch(cmsApi.pageLocaleOverride(siteId, rest.slice(0, at), rest.slice(at + 1)), {
+        return put(cmsApi.pageLocaleOverride(siteId, rest.slice(0, at), rest.slice(at + 1)), {
             method: 'PUT', headers: JSON_HEADERS, body: JSON.stringify({ override: payload }),
         });
     }
     if (key === 'site') {
-        return authFetch(cmsApi.site(siteId), {
+        return put(cmsApi.site(siteId), {
             method: 'PUT', headers: JSON_HEADERS, body: JSON.stringify({ site: withRev(payload, rev) }),
         });
     }
-    return authFetch(cmsApi.page(siteId, key), {
+    return put(cmsApi.page(siteId, key), {
         method: 'PUT', headers: JSON_HEADERS, body: JSON.stringify({ page: withRev(payload, rev) }),
     });
 }
@@ -108,7 +119,7 @@ export default function useCmsAutosave({
             for (const [i, r] of [...localeResults, ...contentResults].entries()) {
                 const key = resultKeys[i];
                 const idx = contentResults.indexOf(r);
-                const d = await r.json().catch(() => ({}));
+                const d = r.d;
                 if (!r.ok) {
                     // Keep reading the other answers: their revisions must still be recorded.
                     failure = failure ?? (r.status === 409 && d.code === CONFLICT_CODE

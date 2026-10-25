@@ -14,7 +14,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { API_BASE, authFetch } from '../utils/helpers';
+import { API_BASE } from '../utils/helpers';
 import { mutate, errorBody, RefusedError } from '../api/mutate';
 
 // The server expires an unanswered decision after ten minutes of silence
@@ -104,7 +104,7 @@ export default function useDlpDecision(): UseDlpDecisionReturn {
         const beat = () => {
             // Best-effort: a failed beat leaves the modal alone — an expired
             // decision still reports through submit's own error path.
-            authFetch(`${API_BASE}/api/chat/dlp-decision/touch`, {
+            mutate(`${API_BASE}/api/chat/dlp-decision/touch`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ decisionId }),

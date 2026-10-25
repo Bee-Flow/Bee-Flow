@@ -1,6 +1,7 @@
 import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ok, fail } from '@/test/http';
+import { withQueryClient } from '@/test/render';
 import OrgHealthBanner from './OrgHealthBanner';
 import { authFetch } from '../../../utils/helpers';
 
@@ -16,7 +17,7 @@ describe('OrgHealthBanner', () => {
             problems: [],
             users: { total: 8, active: 4, pending: 4 },
         }));
-        render(<OrgHealthBanner />);
+        render(withQueryClient(<OrgHealthBanner />));
         expect(await screen.findByText('4 user(s) are waiting for approval and cannot use AI yet.')).toBeTruthy();
         expect(screen.getByText('Approve them in the member list below to unlock access.')).toBeTruthy();
         // No org-blocked banner without error/critical problems.
@@ -33,7 +34,7 @@ describe('OrgHealthBanner', () => {
             }],
             users: { total: 8, active: 8, pending: 0 },
         }));
-        render(<OrgHealthBanner />);
+        render(withQueryClient(<OrgHealthBanner />));
         expect(await screen.findByText('AI chat is not available for your organisation yet — a configuration step is still needed.')).toBeTruthy();
         expect(screen.getByText('AI chat has not been activated for your workspace.')).toBeTruthy();
         expect(screen.getByText('Ask your Bee Flow contact to complete the setup.')).toBeTruthy();
@@ -44,28 +45,28 @@ describe('OrgHealthBanner', () => {
 
     it('renders null when healthy', async () => {
         authFetch.mockImplementation(() => ok({ health: 'ok', problems: [], users: { total: 3, active: 3, pending: 0 } }));
-        const { container } = render(<OrgHealthBanner />);
+        const { container } = render(withQueryClient(<OrgHealthBanner />));
         await waitFor(() => expect(authFetch).toHaveBeenCalled());
         expect(container.innerHTML).toBe('');
     });
 
     it('renders null on 403 (non-connector org) — silent-fail contract', async () => {
         authFetch.mockImplementation(() => fail(403, { error: 'forbidden' }));
-        const { container } = render(<OrgHealthBanner />);
+        const { container } = render(withQueryClient(<OrgHealthBanner />));
         await waitFor(() => expect(authFetch).toHaveBeenCalled());
         expect(container.innerHTML).toBe('');
     });
 
     it('renders null on network error — silent-fail contract', async () => {
         authFetch.mockImplementation(() => Promise.reject(new Error('offline')));
-        const { container } = render(<OrgHealthBanner />);
+        const { container } = render(withQueryClient(<OrgHealthBanner />));
         await waitFor(() => expect(authFetch).toHaveBeenCalled());
         expect(container.innerHTML).toBe('');
     });
 
     it('renders null on a malformed body — silent-fail contract', async () => {
         authFetch.mockImplementation(() => Promise.resolve({ ok: true, status: 200, json: async () => { throw new Error('bad json'); } }));
-        const { container } = render(<OrgHealthBanner />);
+        const { container } = render(withQueryClient(<OrgHealthBanner />));
         await waitFor(() => expect(authFetch).toHaveBeenCalled());
         expect(container.innerHTML).toBe('');
     });
@@ -76,7 +77,7 @@ describe('OrgHealthBanner', () => {
             problems: [{ code: 'x', severity: 'info', message: 'informational' }],
             users: { total: 3, active: 3, pending: 0 },
         }));
-        const { container } = render(<OrgHealthBanner />);
+        const { container } = render(withQueryClient(<OrgHealthBanner />));
         await waitFor(() => expect(authFetch).toHaveBeenCalled());
         expect(container.innerHTML).toBe('');
     });

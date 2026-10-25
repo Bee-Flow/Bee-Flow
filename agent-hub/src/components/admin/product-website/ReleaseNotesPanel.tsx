@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Check, Eye, EyeOff, Loader2, RefreshCw, Trash2 } from 'lucide-react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE } from '../../../utils/helpers';
+import { settled } from '../../../api/settled';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { messageOf } from '../../../utils/caughtError';
 import { request, RefusedError } from '../../../api/mutate';
@@ -72,10 +73,10 @@ export default function ReleaseNotesPanel() {
         setBusyId(id);
         setError('');
         try {
-            const res = await authFetch(`${API_BASE}/api/release-notes/admin/${id}${path}`, {
+            const res = await settled(`${API_BASE}/api/release-notes/admin/${id}${path}`, {
                 method,
                 ...(body ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}),
-            });
+            }, 'empty');
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
             await load();
         } catch (e) {

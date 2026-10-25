@@ -1,5 +1,6 @@
 import { useEffect, useEffectEvent, useState } from 'react';
-import { API_BASE, authFetch } from '../../../../../utils/helpers';
+import { API_BASE } from '../../../../../utils/helpers';
+import { settled } from '../../../../../api/settled';
 import { logger } from '../../../../../utils/logger';
 
 export interface ShieldOrg {
@@ -55,15 +56,15 @@ export default function useShieldEnvironment(onOrgs: (orgs: ShieldOrg[]) => void
         let cancelled = false;
         (async () => {
             try {
-                const res = await authFetch(`${API_BASE}/ai/config`);
+                const res = await settled(`${API_BASE}/ai/config`, undefined, 'empty');
                 if (res.ok && !cancelled) {
-                    const data = await res.json();
+                    const data = await res.res.json();
                     setHasWebSearchEnabled(!!(data.searchProvider && data.searchProvider !== 'disabled'));
                 }
 
-                const euRes = await authFetch(`${API_BASE}/ai/config/chat-models-eu`);
+                const euRes = await settled(`${API_BASE}/ai/config/chat-models-eu`, undefined, 'empty');
                 if (euRes.ok && !cancelled) {
-                    setHasEuModelsConfigured(hasAnyEuModel(await euRes.json()));
+                    setHasEuModelsConfigured(hasAnyEuModel(await euRes.res.json()));
                 }
 
                 // Self-scoped and cheap (the route memoises its health probe
@@ -71,9 +72,9 @@ export default function useShieldEnvironment(onOrgs: (orgs: ShieldOrg[]) => void
                 // renders nothing — an unreachable *status endpoint* is not
                 // evidence of an unreachable guard.
                 try {
-                    const guardRes = await authFetch(`${API_BASE}/api/org-privacy-shield/user/guard-status`);
+                    const guardRes = await settled(`${API_BASE}/api/org-privacy-shield/user/guard-status`, undefined, 'empty');
                     if (guardRes.ok && !cancelled) {
-                        const status = await guardRes.json();
+                        const status = await guardRes.res.json();
                         setGuardStatus({
                             configured: status.configured !== false,
                             reachable: status.reachable !== false,
@@ -82,9 +83,9 @@ export default function useShieldEnvironment(onOrgs: (orgs: ShieldOrg[]) => void
                     }
                 } catch (err) { logger.debug('stays null — see above', err); }
 
-                const orgRes = await authFetch(`${API_BASE}/auth/organizations`);
+                const orgRes = await settled(`${API_BASE}/auth/organizations`, undefined, 'empty');
                 if (orgRes.ok && !cancelled) {
-                    const orgs = await orgRes.json();
+                    const orgs = await orgRes.res.json();
                     setOrgList(orgs);
                     deliverOrgs(orgs);
                 }

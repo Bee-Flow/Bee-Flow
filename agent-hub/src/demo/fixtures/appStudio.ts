@@ -442,6 +442,65 @@ function resolveActionFormula(spec: Formula | undefined, formValues: { item?: { 
 /** What a route handler receives (the members of `DemoContext` it reads). */
 interface Ctx { state: AppState; params: Record<string, string>; query: URLSearchParams; body: Record<string, unknown> | null }
 
+type FormValues = Parameters<typeof resolveActionFormula>[1];
+
+function runPreviewStep(state: AppState, step: DefAction, formValues: FormValues) {
+    if (step.kind === 'update_record') {
+        const recordId = resolveActionFormula(step.recordId, formValues);
+        const record = (state.records[step.tableId as string] || []).find(r => r.id === recordId);
+        if (!record) return json({ ok: false, error: 'Record not found' }, 404);
+        for (const [key, spec] of Object.entries(step.values || {})) {
+            const value = resolveActionFormula(spec, formValues);
+            if (value !== undefined) record[key] = value;
+        }
+        return { ok: true, result: { success: true, record } };
+    }
+    if (step.kind === 'create_record') {
+        const all = state.records[step.tableId as string] || [];
+        const record = { id: `rec_new${all.length + 1}` };
+        all.push(record);
+        return { ok: true, result: { success: true, record } };
+    }
+    // Any other server kind succeeds neutrally — nothing external runs in
+    // a demo, and a 404 here would surface as a red toast mid-drag.
+    return { ok: true, result: { success: true } };
+}
+
+function queryTarget(state: AppState, body: Ctx['body']) {
+    const dataset = body?.datasetId ? state.datasets.find(d => d.id === body.datasetId) : undefined;
+    const descriptor = (body?.datasetId ? dataset?.descriptor : body) as AppState['datasets'][number]['descriptor'] | null | undefined;
+    const tableId = body?.datasetId ? dataset?.tableId : body?.tableId;
+    return { descriptor, tableId };
+}
+
+function countRows(rows: Record<string, unknown>[], groupField: string | undefined): Record<string, unknown>[] {
+    if (!groupField) return [{ count: rows.length }];
+    const groups = new Map<string, number>();
+    for (const r of rows) {
+        const key = String(r[groupField] ?? '');
+        groups.set(key, (groups.get(key) || 0) + 1);
+    }
+    return [...groups.entries()].map(([value, count]) => ({ [groupField]: value, count }));
+}
+
+function newDemoApp(id: string, body: Ctx['body']) {
+    const fromPipeline = body?.templateId === 'app-crm-pipeline';
+    const given = (key: string, fallback: string): string => (body?.[key] as string) || fallback;
+    return appRow({
+        id,
+        name: given('name', fromPipeline ? 'CRM pipeline' : 'Untitled app'),
+        description: given('description', ''),
+        icon: given('icon', fromPipeline ? 'Kanban' : 'LayoutDashboard'),
+        accentColor: given('accentColor', '#0369A1'),
+        definition: fromPipeline
+            ? pipelineDefinition()
+            : staticDefinition(given('name', 'Untitled app'), given('name', 'Untitled app'), 'Start from a blank canvas.'),
+        createdDays: 0, updatedMinutes: 0,
+        isPublished: false,
+    });
+}
+
+
 export const ROUTES = {
     ...COMMON_ROUTES,
 
@@ -477,19 +536,7 @@ export const ROUTES = {
     'GET /api/studio-apps': ({ state }: Ctx) => ({ apps: Object.values(state.apps).map(metaRow) }),
     'POST /api/studio-apps': ({ state, body }: Ctx) => {
         const id = `app_demo_new${Object.keys(state.apps).length + 1}`;
-        const fromPipeline = body?.templateId === 'app-crm-pipeline';
-        const created = appRow({
-            id,
-            name: (body?.name as string) || (fromPipeline ? 'CRM pipeline' : 'Untitled app'),
-            description: (body?.description as string) || '',
-            icon: (body?.icon as string) || (fromPipeline ? 'Kanban' : 'LayoutDashboard'),
-            accentColor: (body?.accentColor as string) || '#0369A1',
-            definition: fromPipeline
-                ? pipelineDefinition()
-                : staticDefinition((body?.name as string) || 'Untitled app', (body?.name as string) || 'Untitled app', 'Start from a blank canvas.'),
-            createdDays: 0, updatedMinutes: 0,
-            isPublished: false,
-        });
+        const created = newDemoApp(id, body);
         created.definitionVersion = 1;
         state.apps[id] = created;
         return { success: true, app: created };
@@ -593,25 +640,9 @@ export const ROUTES = {
     'POST /api/studio-apps/:id/data/query': ({ state, body }: Ctx) => {
         // Saved dataset or inline aggregate — both computed from state.records,
         // so the numbers always match what the board shows.
-        const descriptor = (body?.datasetId
-            ? state.datasets.find(d => d.id === body.datasetId)?.descriptor
-            : body) as AppState['datasets'][number]['descriptor'] | null | undefined;
-        const tableId = body?.datasetId
-            ? state.datasets.find(d => d.id === body.datasetId)?.tableId
-            : body?.tableId;
+        const { descriptor, tableId } = queryTarget(state, body);
         const rows = state.records[tableId as string] || [];
-        const groupField = descriptor?.groupBy?.[0]?.field;
-        let out: Record<string, unknown>[];
-        if (groupField) {
-            const groups = new Map<string, number>();
-            for (const r of rows) {
-                const key = String(r[groupField] ?? '');
-                groups.set(key, (groups.get(key) || 0) + 1);
-            }
-            out = [...groups.entries()].map(([value, count]) => ({ [groupField]: value, count }));
-        } else {
-            out = [{ count: rows.length }];
-        }
+        const out = countRows(rows, descriptor?.groupBy?.[0]?.field);
         return body?.datasetId ? { result: { rows: out } } : { rows: out };
     },
     'GET /api/studio-apps/:id/datasets': ({ state }: Ctx) => ({ datasets: state.datasets }),
@@ -631,25 +662,7 @@ export const ROUTES = {
         const steps = action?.kind === 'sequence' ? (action.steps as DefAction[]) : (action ? [action] : []);
         const step = steps[(body?.stepIndex as number) ?? 0];
         if (!step) return json({ ok: false, error: 'Unknown step' }, 400);
-        if (step.kind === 'update_record') {
-            const recordId = resolveActionFormula(step.recordId, body?.formValues as Parameters<typeof resolveActionFormula>[1]);
-            const record = (state.records[step.tableId as string] || []).find(r => r.id === recordId);
-            if (!record) return json({ ok: false, error: 'Record not found' }, 404);
-            for (const [key, spec] of Object.entries(step.values || {})) {
-                const value = resolveActionFormula(spec, body?.formValues as Parameters<typeof resolveActionFormula>[1]);
-                if (value !== undefined) record[key] = value;
-            }
-            return { ok: true, result: { success: true, record } };
-        }
-        if (step.kind === 'create_record') {
-            const all = state.records[step.tableId as string] || [];
-            const record = { id: `rec_new${all.length + 1}` };
-            all.push(record);
-            return { ok: true, result: { success: true, record } };
-        }
-        // Any other server kind succeeds neutrally — nothing external runs in
-        // a demo, and a 404 here would surface as a red toast mid-drag.
-        return { ok: true, result: { success: true } };
+        return runPreviewStep(state, step, body?.formValues as Parameters<typeof resolveActionFormula>[1]);
     },
     'POST /api/studio-apps/:id/actions/:actionId/run': () => ({ status: 'success', result: { ok: true } }),
     'GET /api/studio-apps/:id/actions/runs/:runId': () => ({ status: 'success', result: {} }),

@@ -7,10 +7,10 @@
  */
 import React, { useCallback, useEffect, useState } from 'react';
 import { Send, ArrowLeft, Bot, User, AlertTriangle } from 'lucide-react';
-import { authFetch, API_BASE } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
-import { mutate, ApiError, request, RefusedError } from '../../api/mutate';
+import { mutate, ApiError, request, RefusedError, errorBody } from '../../api/mutate';
 
 export const STATUS_LABELS: Record<string, string> = {
     open: 'Open',
@@ -47,14 +47,17 @@ export function NewThreadForm({ onCreated, onCancel }: { onCreated?: (threadId: 
         }
         setSubmitting(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/support/threads`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subject: subject.trim(), message: message.trim(), source: 'in_app' }),
-            });
-            const data = await res.json();
-            if (!res.ok) {
-                setErr(data?.error || 'Could not submit. Please try again.');
+            let data: { threadId: string };
+            try {
+                const res = await mutate(`${API_BASE}/api/support/threads`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ subject: subject.trim(), message: message.trim(), source: 'in_app' }),
+                });
+                data = await res.json();
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                setErr((errorBody(err) as { error?: string } | null)?.error || 'Could not submit. Please try again.');
                 return;
             }
             onCreated && onCreated(data.threadId);

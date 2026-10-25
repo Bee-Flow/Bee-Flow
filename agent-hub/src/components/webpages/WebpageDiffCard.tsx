@@ -25,6 +25,23 @@ const FILE_META: Record<string, { label: string; Icon: LucideIcon }> = {
     js:   { label: 'script.js',  Icon: Cpu },
 };
 
+function summaryBackground(diff: { added: number; removed: number }): string {
+    if (diff.added > 0 && diff.removed === 0) return 'rgba(22,163,74,0.85)';
+    if (diff.removed > 0 && diff.added === 0) return 'rgba(220,38,38,0.85)';
+    return 'rgba(2,132,199,0.85)';
+}
+
+const HUNK_LOOK: Record<string, { sigil: string; bg: string; fg: string }> = {
+    add: { sigil: '+', bg: 'rgba(22,163,74,0.12)', fg: 'rgb(22,101,52)' },
+    remove: { sigil: '-', bg: 'rgba(220,38,38,0.12)', fg: 'rgb(153,27,27)' },
+    gap: { sigil: ' ', bg: 'transparent', fg: 'var(--vsc-fg-muted, var(--text-tertiary))' },
+};
+const HUNK_LOOK_DEFAULT = { sigil: ' ', bg: 'transparent', fg: 'var(--vsc-fg, var(--text-primary))' };
+
+function hunkLook(type: string): { sigil: string; bg: string; fg: string } {
+    return Object.hasOwn(HUNK_LOOK, type) ? HUNK_LOOK[type] : HUNK_LOOK_DEFAULT;
+}
+
 /**
  * Compact post-edit diff card rendered below an assistant message in the
  * Webpages chat. Shows filename, +X −Y summary, and an expandable list of
@@ -56,11 +73,7 @@ export default function WebpageDiffCard({ file, diff }: WebpageDiffCardProps) {
                     className="ml-auto font-mono text-[11px] px-1.5 py-0.5 rounded"
                     style={{
                         color: noChange ? 'var(--vsc-fg-muted, var(--text-tertiary))' : '#fff',
-                        background: noChange ? 'transparent' : (diff.added > 0 && diff.removed === 0
-                            ? 'rgba(22,163,74,0.85)'
-                            : diff.removed > 0 && diff.added === 0
-                                ? 'rgba(220,38,38,0.85)'
-                                : 'rgba(2,132,199,0.85)'),
+                        background: noChange ? 'transparent' : summaryBackground(diff),
                     }}
                 >
                     {diff?.summary || '—'}
@@ -71,19 +84,7 @@ export default function WebpageDiffCard({ file, diff }: WebpageDiffCardProps) {
                     className="border-t font-mono text-[11px] overflow-x-auto [border-color:var(--vsc-border,var(--border-subtle))]! [background:var(--vsc-editor-bg,var(--bg-primary))]"
                 >
                     {diff.hunks.map((h: DiffHunk, i: number) => {
-                        const sigil = h.type === 'add' ? '+' : h.type === 'remove' ? '-' : h.type === 'gap' ? ' ' : ' ';
-                        const bg = h.type === 'add'
-                            ? 'rgba(22,163,74,0.12)'
-                            : h.type === 'remove'
-                                ? 'rgba(220,38,38,0.12)'
-                                : 'transparent';
-                        const fg = h.type === 'add'
-                            ? 'rgb(22,101,52)'
-                            : h.type === 'remove'
-                                ? 'rgb(153,27,27)'
-                                : h.type === 'gap'
-                                    ? 'var(--vsc-fg-muted, var(--text-tertiary))'
-                                    : 'var(--vsc-fg, var(--text-primary))';
+                        const { sigil, bg, fg } = hunkLook(h.type);
                         return (
                             <div
                                 key={i}

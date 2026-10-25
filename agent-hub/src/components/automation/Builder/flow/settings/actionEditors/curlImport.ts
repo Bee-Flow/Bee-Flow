@@ -25,6 +25,45 @@ const SECRET_QUERY = /api[-_]?key|token|secret|passw(or)?d|signature|credential|
 
 const isSecretHeader = (name: string) => SECRET_HEADER.test(name.trim());
 
+/** A quoted run starting at `i` ('…', $'…' or "…"): its text and the index of its closing quote; null when `text[i]` opens none. */
+function readQuoted(text: string, i: number): { text: string; end: number } | null {
+    const ch = text[i];
+    if (ch === "'") {
+        const end = text.indexOf("'", i + 1);
+        const stop = end < 0 ? text.length : end;
+        return { text: text.slice(i + 1, stop), end: stop };
+    }
+    if (ch === '$' && text[i + 1] === "'") return readAnsiQuoted(text, i + 2);
+    if (ch === '"') return readDoubleQuoted(text, i + 1);
+    return null;
+}
+
+const ANSI_ESCAPES: Record<string, string> = { n: '\n', t: '\t', r: '\r' };
+
+function readAnsiQuoted(text: string, from: number): { text: string; end: number } {
+    let out = '';
+    let j = from;
+    while (j < text.length && text[j] !== "'") {
+        if (text[j] === '\\' && j + 1 < text.length) {
+            const n = text[++j];
+            out += ANSI_ESCAPES[n] ?? n;
+        } else out += text[j];
+        j++;
+    }
+    return { text: out, end: j };
+}
+
+function readDoubleQuoted(text: string, from: number): { text: string; end: number } {
+    let out = '';
+    let j = from;
+    while (j < text.length && text[j] !== '"') {
+        if (text[j] === '\\' && j + 1 < text.length && '"\\$`'.includes(text[j + 1])) j++;
+        out += text[j];
+        j++;
+    }
+    return { text: out, end: j };
+}
+
 /** Split a shell-ish command into words: quotes, $'…', backslash escapes and line continuations. */
 export function tokenize(input: string): string[] {
     const text = input.replace(/\\\r?\n/g, ' ').replace(/\^\r?\n/g, ' ');
@@ -33,29 +72,10 @@ export function tokenize(input: string): string[] {
     let active = false;
     for (let i = 0; i < text.length; i++) {
         const ch = text[i];
-        if (ch === "'") {
-            const end = text.indexOf("'", i + 1);
-            const stop = end < 0 ? text.length : end;
-            cur += text.slice(i + 1, stop);
-            i = stop; active = true;
-        } else if (ch === '$' && text[i + 1] === "'") {
-            let j = i + 2;
-            while (j < text.length && text[j] !== "'") {
-                if (text[j] === '\\' && j + 1 < text.length) {
-                    const n = text[++j];
-                    cur += n === 'n' ? '\n' : n === 't' ? '\t' : n === 'r' ? '\r' : n;
-                } else cur += text[j];
-                j++;
-            }
-            i = j; active = true;
-        } else if (ch === '"') {
-            let j = i + 1;
-            while (j < text.length && text[j] !== '"') {
-                if (text[j] === '\\' && j + 1 < text.length && '"\\$`'.includes(text[j + 1])) j++;
-                cur += text[j];
-                j++;
-            }
-            i = j; active = true;
+        const quoted = readQuoted(text, i);
+        if (quoted) {
+            cur += quoted.text;
+            i = quoted.end; active = true;
         } else if (ch === '\\' && i + 1 < text.length) {
             cur += text[++i]; active = true;
         } else if (/\s/.test(ch)) {
@@ -70,6 +90,8 @@ const LONG_WITH_VALUE = new Set([
     'request', 'header', 'data', 'data-raw', 'data-binary', 'data-ascii', 'data-urlencode', 'form', 'form-string',
     'user', 'url', 'cookie', 'user-agent', 'referer', 'json',
 ]);
+const DATA_FLAGS = new Set(['data', 'data-raw', 'data-binary', 'data-ascii']);
+const FORM_FLAGS = new Set(['form', 'form-string']);
 const SHORT_WITH_VALUE = new Set(['X', 'H', 'd', 'F', 'u', 'b', 'A', 'e']);
 const SHORT_TO_LONG: Record<string, string> = { X: 'request', H: 'header', d: 'data', F: 'form', u: 'user', b: 'cookie', A: 'user-agent', e: 'referer' };
 
@@ -96,23 +118,24 @@ export function parseCurl(input: string): CurlImport | null {
     const warnings: string[] = [];
     let json = false;
 
+    const addHeader = (value: string) => {
+        const c = value.indexOf(':');
+        if (c <= 0) return;
+        const name = value.slice(0, c).trim();
+        const val = value.slice(c + 1).trim();
+        if (isSecretHeader(name)) skipped.push({ kind: 'header', name });
+        else headers[name] = val;
+    };
+
     const take = (long: string, value: string) => {
+        if (DATA_FLAGS.has(long)) { data.push(value); return; }
+        if (FORM_FLAGS.has(long)) { multipart = true; return; }
         switch (long) {
             case 'request': method = value.toUpperCase(); break;
             case 'url': url = value; break;
-            case 'header': {
-                const c = value.indexOf(':');
-                if (c <= 0) break;
-                const name = value.slice(0, c).trim();
-                const val = value.slice(c + 1).trim();
-                if (isSecretHeader(name)) skipped.push({ kind: 'header', name });
-                else headers[name] = val;
-                break;
-            }
-            case 'data': case 'data-raw': case 'data-binary': case 'data-ascii': data.push(value); break;
+            case 'header': addHeader(value); break;
             case 'json': data.push(value); json = true; break;
             case 'data-urlencode': data.push(encodeFormPart(value)); break;
-            case 'form': case 'form-string': multipart = true; break;
             case 'user': skipped.push({ kind: 'basic_auth', name: '-u (user:password)' }); break;
             case 'cookie': skipped.push({ kind: 'cookie', name: 'Cookie' }); break;
             case 'user-agent': headers['User-Agent'] = value; break;

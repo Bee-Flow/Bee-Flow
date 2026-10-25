@@ -1,19 +1,12 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { RefreshCw } from 'lucide-react';
 import useTranslation from '../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { useAuditEvents, type AuditFilters } from '../../../../api/queries/studioSupport';
 import { metaFor, categoryLabel, CATEGORY_IDS } from './auditMeta';
 import type { SupportInbox } from './supportStudio.types';
 import type { SupportEvent } from '../../../support/SupportInboxPanel.types';
 
 type AuditEvent = SupportEvent & { thread_id?: string | null; inbox_id?: string | null };
-
-interface AuditFilters {
-    inbox: string;
-    actor: string;
-    from: string;
-    to: string;
-}
 
 interface AuditTabProps {
     inboxes?: SupportInbox[];
@@ -27,9 +20,6 @@ interface AuditTabProps {
  */
 export default function AuditTab({ inboxes = [], onOpenThread }: AuditTabProps) {
     const { t } = useTranslation();
-    const [events, setEvents] = useState<AuditEvent[]>([]);
-    const [nextCursor, setNextCursor] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
     const [filters, setFilters] = useState<AuditFilters>({ inbox: '', actor: '', from: '', to: '' });
 
     const inboxLabel = useCallback((id?: string | null) => {
@@ -38,24 +28,7 @@ export default function AuditTab({ inboxes = [], onOpenThread }: AuditTabProps) 
         return i ? (i.email_address || i.display_name || i.provider) : t('support.audit.an_inbox', 'an inbox');
     }, [inboxes, t]);
 
-    const fetchPage = useCallback(async (cursor: string | null) => {
-        setLoading(true);
-        try {
-            const params = new URLSearchParams();
-            if (filters.inbox) params.set('inbox', filters.inbox);
-            if (filters.actor) params.set('actor', filters.actor);
-            if (filters.from) params.set('from', new Date(filters.from).toISOString());
-            if (filters.to) params.set('to', new Date(filters.to).toISOString());
-            if (cursor) params.set('cursor', cursor);
-            params.set('limit', '50');
-            const res = await authFetch(`${API_BASE}/api/support-inbox/audit?${params.toString()}`);
-            const d = await res.json().catch(() => ({ events: [] }));
-            setEvents((prev: AuditEvent[]) => cursor ? [...prev, ...(d.events || [])] : (d.events || []));
-            setNextCursor(d.nextCursor || null);
-        } finally { setLoading(false); }
-    }, [filters]);
-
-    useEffect(() => { fetchPage(null); }, [fetchPage]);
+    const { events, nextCursor, loading, loadMore, reset } = useAuditEvents<AuditEvent>(filters);
 
     return (
         <div className="max-w-4xl mx-auto py-6 px-4 space-y-4">
@@ -78,7 +51,7 @@ export default function AuditTab({ inboxes = [], onOpenThread }: AuditTabProps) 
                 <Field label={t('support.audit.to', 'To')}>
                     <input type="date" value={filters.to} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFilters(f => ({ ...f, to: e.target.value }))} className={SELECT} />
                 </Field>
-                <button onClick={() => fetchPage(null)} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]">
+                <button onClick={reset} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]">
                     <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> {t('support.common.refresh', 'Refresh')}
                 </button>
             </div>
@@ -111,7 +84,7 @@ export default function AuditTab({ inboxes = [], onOpenThread }: AuditTabProps) 
 
             {nextCursor && (
                 <div className="flex justify-center">
-                    <button onClick={() => fetchPage(nextCursor)} disabled={loading}
+                    <button onClick={loadMore} disabled={loading}
                         className="text-xs px-3 py-1.5 rounded-lg border border-[var(--border-default)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50">
                         {loading ? t('support.common.loading', 'Loading…') : t('support.nav.load_more', 'Load more')}
                     </button>

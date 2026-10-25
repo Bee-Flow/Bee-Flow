@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
+import { settled } from '../../../../api/settled';
 import type { AdminMessage, AdminOrganization, AskConfirm, OrgFormData } from './types';
 import { mutate, ApiError } from '../../../../api/mutate';
 
@@ -93,7 +94,7 @@ export default function useOrgActions({ loadData, setMessage, askConfirm, t, act
     const handleAddOrg = async () => {
         if (!orgData.name) return;
         try {
-            const res = await authFetch(`${API_BASE}/auth/organizations`, {
+            const res = await settled(`${API_BASE}/auth/organizations`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(orgData),
             });
@@ -102,7 +103,7 @@ export default function useOrgActions({ loadData, setMessage, askConfirm, t, act
                 setShowAddOrg(false);
                 loadData();
             } else {
-                const data = await res.json();
+                const data = res.body;
                 setMessage({ type: 'error', text: data.error || 'Failed to create organization' });
             }
         } catch (err) { setMessage({ type: 'error', text: 'Connection error' }); }
@@ -110,7 +111,7 @@ export default function useOrgActions({ loadData, setMessage, askConfirm, t, act
 
     const handleUpdateOrg = async () => {
         try {
-            const res = await authFetch(`${API_BASE}/auth/organizations/${orgData.id}`, {
+            const res = await settled(`${API_BASE}/auth/organizations/${orgData.id}`, {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(orgData),
             });
@@ -119,7 +120,7 @@ export default function useOrgActions({ loadData, setMessage, askConfirm, t, act
                 setShowEditOrg(false);
                 loadData();
             } else {
-                const data = await res.json();
+                const data = res.body;
                 setMessage({ type: 'error', text: data.error || 'Failed to update organization' });
             }
         } catch (err) { setMessage({ type: 'error', text: 'Connection error' }); }
@@ -137,9 +138,9 @@ export default function useOrgActions({ loadData, setMessage, askConfirm, t, act
 
     const doDeleteOrg = async (orgId: string) => {
         try {
-            const res = await authFetch(`${API_BASE}/auth/organizations/${orgId}`, { method: 'DELETE' });
+            const res = await settled(`${API_BASE}/auth/organizations/${orgId}`, { method: 'DELETE' });
             if (res.ok) { setMessage({ type: 'success', text: 'Organization deleted' }); loadData(); }
-            else { const d = await res.json(); setMessage({ type: 'error', text: d.error || 'Failed' }); }
+            else { const d = res.body; setMessage({ type: 'error', text: d.error || 'Failed' }); }
         } catch (err) { setMessage({ type: 'error', text: 'Connection error' }); }
     };
 
@@ -155,9 +156,9 @@ export default function useOrgActions({ loadData, setMessage, askConfirm, t, act
 
     const doRemoveNcBinding = async (org: AdminOrganization) => {
         try {
-            const res = await authFetch(`${API_BASE}/auth/admin/nc-bindings/org/${org.id}`, { method: 'DELETE' });
+            const res = await settled(`${API_BASE}/auth/admin/nc-bindings/org/${org.id}`, { method: 'DELETE' });
             if (res.ok) { setMessage({ type: 'success', text: t('admin.org_nc_remove_success') }); loadData(); }
-            else { const d = await res.json(); setMessage({ type: 'error', text: d.error || t('admin.org_nc_remove_error') }); }
+            else { const d = res.body; setMessage({ type: 'error', text: d.error || t('admin.org_nc_remove_error') }); }
         } catch (err) { setMessage({ type: 'error', text: 'Connection error' }); }
     };
 
@@ -186,7 +187,7 @@ export default function useOrgActions({ loadData, setMessage, askConfirm, t, act
 
     const handleOrgLogoRemove = async () => {
         if (orgData.id) {
-            await authFetch(`${API_BASE}/auth/organizations/${orgData.id}/logo`, { method: 'DELETE' });
+            await settled(`${API_BASE}/auth/organizations/${orgData.id}/logo`, { method: 'DELETE' }, 'empty');
         }
         setOrgData(p => ({ ...p, logo: '', _logoFile: null }));
     };
@@ -210,7 +211,7 @@ export default function useOrgActions({ loadData, setMessage, askConfirm, t, act
 
     const handleMyOrgLogoRemove = async () => {
         if (orgData.id) {
-            await authFetch(`${API_BASE}/auth/organizations/${orgData.id}/logo`, { method: 'DELETE' });
+            await settled(`${API_BASE}/auth/organizations/${orgData.id}/logo`, { method: 'DELETE' }, 'empty');
         }
         setOrgData(p => ({ ...p, logo: '' }));
     };

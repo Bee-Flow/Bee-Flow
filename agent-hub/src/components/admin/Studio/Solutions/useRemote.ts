@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react';
-import { authFetch } from '../../../../utils/helpers';
+import { readJson, useRemoteAnswer } from '../../../../api/queries/studioRemote';
 
 export type RemoteStatus = 'idle' | 'loading' | 'ok' | 'error';
 
@@ -7,10 +6,6 @@ export type RemoteStatus = 'idle' | 'loading' | 'ok' | 'error';
 export interface RemoteState<T = unknown> {
     status: RemoteStatus;
     data: T | null;
-}
-
-interface KeyedRemoteState<T> extends RemoteState<T> {
-    key: string | null;
 }
 
 /**
@@ -33,31 +28,13 @@ interface KeyedRemoteState<T> extends RemoteState<T> {
  * (`data` is the parsed body), `error` (asked and it did not work — `data`
  * stays null so a caller cannot accidentally render a half-answer).
  */
-export async function readJson<T = unknown>(res: Response): Promise<T | null> {
-    try { return await res.json(); } catch { return null; }
-}
+export { readJson };
 
 export default function useRemote<T = unknown>(url: string | null | undefined, enabled?: boolean): RemoteState<T> {
-    const [state, setState] = useState<KeyedRemoteState<T>>({ key: null, status: 'idle', data: null });
-    useEffect(() => {
-        if (!enabled || !url) return undefined;
-        let stopped = false;
-        (async () => {
-            try {
-                const res = await authFetch(url);
-                const body = await readJson<T>(res);
-                if (stopped) return;
-                setState({ key: url, status: res.ok ? 'ok' : 'error', data: res.ok ? body : null });
-            } catch {
-                if (!stopped) setState({ key: url, status: 'error', data: null });
-            }
-        })();
-        return () => { stopped = true; };
-    }, [url, enabled]);
-    // The answer belongs to a URL. Deriving "this one has not answered yet"
-    // rather than writing it in the effect keeps the PREVIOUS url's data from
-    // being shown for a frame under the new url's label — and a state write in
-    // an effect body is a cascading render besides.
+    const query = useRemoteAnswer<T>(url, enabled);
+    // The answer belongs to a URL (it is in the query key); while a read is in
+    // flight, or none has answered yet, the state is `loading` with no data.
     if (!enabled || !url) return { status: 'idle', data: null };
-    return state.key === url ? state : { status: 'loading', data: null };
+    if (query.isFetching || !query.data) return { status: 'loading', data: null };
+    return query.data.ok ? { status: 'ok', data: query.data.body } : { status: 'error', data: null };
 }

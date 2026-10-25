@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { MessageSquare, Loader2 } from 'lucide-react';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { API_BASE } from '../../utils/helpers';
+import { useOrgNotesSettingsQuery } from '../../api/queries/meetingNotesSettings';
 import { NC_BLUE, LANGS, Toggle, Row, Select } from '../../pages/settings/shared/settingsPrimitives';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
-import { logger } from '../../utils/logger';
 import { mutate, errorBody, RefusedError } from '../../api/mutate';
 
 interface MeetingNotesAdminPanelProps {
@@ -27,6 +27,8 @@ interface SaveMessage {
     text: string | undefined;
 }
 
+const DEFAULT_CFG: TalkNotesConfig = { autoTranscribe: false, postSummaryBack: false, recordingFolder: '/Talk/Recording', language: 'nl', autoRecord: false, autoRecordScope: 'calendar', recordingMode: 'audio', insightsPerPersonStats: true };
+
 /**
  * Org-level Nextcloud Talk → Meeting Notes settings. Mirrors the privacy-shield
  * admin pattern. Org values take precedence over each member's own settings.
@@ -36,20 +38,14 @@ export default function MeetingNotesAdminPanel({ user }: MeetingNotesAdminPanelP
     const orgId = user?.organizationId;
     // recordingFolder: Talk saves to <attachment folder>/Recording/<room token>/,
     // so /Talk/Recording is the default on a stock Nextcloud.
-    const [cfg, setCfg] = useState<TalkNotesConfig>({ autoTranscribe: false, postSummaryBack: false, recordingFolder: '/Talk/Recording', language: 'nl', autoRecord: false, autoRecordScope: 'calendar', recordingMode: 'audio', insightsPerPersonStats: true });
-    const [loading, setLoading] = useState(true);
+    const settingsQuery = useOrgNotesSettingsQuery<TalkNotesConfig>('talk', orgId);
+    const [draft, setDraft] = useState<TalkNotesConfig | null>(null);
+    // Edits replace the whole config (defaults, then the server answer, then the person's changes).
+    const cfg: TalkNotesConfig = draft ?? { ...DEFAULT_CFG, ...settingsQuery.data };
+    const setCfg = (update: (c: TalkNotesConfig) => TalkNotesConfig) => setDraft(update(cfg));
+    const loading = !!orgId && settingsQuery.isPending;
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<SaveMessage | null>(null);
-
-    useEffect(() => {
-        if (!orgId) { setLoading(false); return; }
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/api/talk-notes-settings/${orgId}`);
-                if (res.ok) { const data = await res.json(); setCfg((prev: TalkNotesConfig) => ({ ...prev, ...data })); }
-            } catch (err) { logger.debug('ignore', err); } finally { setLoading(false); }
-        })();
-    }, [orgId]);
 
     const save = async () => {
         setSaving(true); setMessage(null);

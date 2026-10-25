@@ -2,7 +2,7 @@ import { useEffect, useEffectEvent } from 'react';
 import type { MutableRefObject } from 'react';
 import type { CmsLocale, CmsLocaleOverrides, CmsPageDoc, CmsSiteDoc, CmsSiteListEntry } from './cmsPanelTypes';
 import { ACTIVE_SITE_LS_KEY } from './helpers';
-import { authFetch } from '../../../../utils/helpers';
+import { settled } from '../../../../api/settled';
 import { cmsApi } from '../cmsApi';
 import { HEADER_VIRTUAL_ID } from '../sentinels';
 import { errorMessage } from '../../../../utils/caughtError';
@@ -64,9 +64,9 @@ export function useCmsSitesList({ activeSiteIdRef, setActiveSiteId, setError, se
         let cancelled = false;
         (async () => {
             try {
-                const res = await authFetch(cmsApi.listSites());
+                const res = await settled(cmsApi.listSites(), undefined, 'empty');
                 if (!res.ok) throw new Error(`Failed to load sites (${res.status})`);
-                const data = await res.json();
+                const data = await res.res.json();
                 if (cancelled) return;
                 const list: CmsSiteListEntry[] = Array.isArray(data.sites) ? data.sites : [];
                 setSites(list);
@@ -128,9 +128,9 @@ export function useCmsSitePayload(input: SitePayloadInput) {
         pendingSaves.current = {};
         (async () => {
             try {
-                const res = await authFetch(cmsApi.site(activeSiteId));
+                const res = await settled(cmsApi.site(activeSiteId), undefined, 'empty');
                 if (!res.ok) throw new Error(`Failed to load site (${res.status})`);
-                const data: SitePayload = await res.json();
+                const data: SitePayload = await res.res.json();
                 if (cancelled) return;
                 // Server includes liveSiteId on the site payload — refresh
                 // it here in case another tab toggled live in the meantime.

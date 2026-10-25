@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { withQueryClient } from '@/test/render';
 import OrgUsersPanel from './OrgUsersPanel';
 import { authFetch } from '../../../utils/helpers';
 
@@ -73,7 +74,7 @@ describe('OrgUsersPanel — member filter bar', () => {
     });
 
     const renderPanel = async () => {
-        render(<OrgUsersPanel user={currentUser} />);
+        render(withQueryClient(<OrgUsersPanel user={currentUser} />));
         await screen.findByText('Jan de Vries');
     };
 

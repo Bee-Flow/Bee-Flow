@@ -1,9 +1,9 @@
 import { render, screen, fireEvent, waitFor, within, cleanup, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { withQueryClient } from '@/test/render';
 import OrgUsersPanel from './OrgUsersPanel';
 import { authFetch } from '../../../utils/helpers';
-
 /**
  * Characterisation suite for OrgUsersPanel — the org rights screen.
  *
@@ -146,7 +146,7 @@ const writes = () => authFetch.mock.calls
 
 const renderPanel = async (overrides = {}, currentUser = ADMIN) => {
     Object.assign(state, overrides);
-    render(<OrgUsersPanel user={currentUser} />);
+    render(withQueryClient(<OrgUsersPanel user={currentUser} />));
     await waitFor(() => expect(screen.queryByTestId('user-list-skeleton')).not.toBeInTheDocument());
 };
 
@@ -183,7 +183,7 @@ afterEach(() => {
 describe('OrgUsersPanel — loading and failed fetches', () => {
     it('shows the user-list skeleton while the first fetch is in flight', () => {
         authFetch.mockImplementation(() => new Promise(() => {}));
-        render(<OrgUsersPanel user={ADMIN} />);
+        render(withQueryClient(<OrgUsersPanel user={ADMIN} />));
         expect(screen.getByTestId('user-list-skeleton')).toBeInTheDocument();
         expect(screen.queryByText('Organisation Members')).not.toBeInTheDocument();
     });
@@ -1175,7 +1175,7 @@ describe('OrgUsersPanel — sections', () => {
     });
 
     it('takes the address of the screen that mounts it, so a tab click stays in Settings', async () => {
-        render(<OrgUsersPanel user={ADMIN} basePath="/app/settings/organisation/users" />);
+        render(withQueryClient(<OrgUsersPanel user={ADMIN} basePath="/app/settings/organisation/users" />));
         await waitFor(() => expect(screen.queryByTestId('user-list-skeleton')).not.toBeInTheDocument());
         expect(tab.basePath).toBe('/app/settings/organisation/users');
     });

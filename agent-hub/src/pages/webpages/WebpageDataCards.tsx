@@ -1,19 +1,13 @@
 import {
     AlertTriangle, Database, FileText, Loader2, RefreshCw, Table2, Workflow,
 } from 'lucide-react';
-import React, { useCallback, useEffect, useState } from 'react';
+import React from 'react';
 import useTranslation from '../../hooks/useTranslation';
 import { formatRelativeTime } from '../../utils/dateFormatters';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { useWebpageDataCardsQuery } from '../../api/queries/webpagesPanels';
 import type { Filed } from '../../components/admin/Studio/Solutions/useAddFiling';
 import type { TranslateParams } from '../../hooks/useTranslation';
 import type { TableRef, AutomationRef, WarningRef, DataCardsPayload, CardProps, ChipProps, ColumnChipsProps, TableCardProps, AutomationCardProps, WarningCardProps, KnowledgeCardProps, WebpageDataCardsProps } from './WebpageDataCards.types';
-
-const CARDS_URL = (id: string | number | boolean) => `${API_BASE}/api/webpages/${encodeURIComponent(id)}/data-cards`;
-
-async function readJson(res: Response) {
-    try { return await res.json(); } catch { return null; }
-}
 
 export function Card({ children, tone = 'default' }: CardProps) {
     const border = tone === 'warning' ? 'var(--warning)' : 'var(--border-subtle)';
@@ -213,25 +207,22 @@ function KnowledgeCard({ t, sources }: KnowledgeCardProps) {
     );
 }
 
+/** The read as the panel renders it: loading (also on "Try again"), a failure, or the payload. */
+function useDataCardsState(webpageId: WebpageDataCardsProps['webpageId']) {
+    const cardsQuery = useWebpageDataCardsQuery<DataCardsPayload>(webpageId);
+    // A failed read is NOT "nothing hangs on this page": then the author would
+    // think that his bindings are gone.
+    const state = {
+        loading: cardsQuery.isPending || cardsQuery.isFetching,
+        error: cardsQuery.isError ? (cardsQuery.error.message || 'failed') : null,
+        data: cardsQuery.data ?? null,
+    };
+    return { state, load: () => { void cardsQuery.refetch(); } };
+}
+
 export default function WebpageDataCards({ webpageId, sources = [], onNavigate = null }: WebpageDataCardsProps) {
     const { t } = useTranslation();
-    const [state, setState] = useState<{ loading: boolean; error: string | null; data: DataCardsPayload | null }>({ loading: true, error: null, data: null });
-
-    const load = useCallback(async () => {
-        setState(s => ({ ...s, loading: true, error: null }));
-        try {
-            const res = await authFetch(CARDS_URL(webpageId));
-            const body = await readJson(res);
-            if (!res.ok) throw new Error((body && body.error) || `HTTP ${res.status}`);
-            setState({ loading: false, error: null, data: body });
-        } catch (e) {
-            // A failed read is NOT "nothing hangs on this page": then the author would
-            // think that his bindings are gone.
-            setState({ loading: false, error: (e as Error).message || 'failed', data: null });
-        }
-    }, [webpageId]);
-
-    useEffect(() => { if (webpageId) load(); }, [webpageId, load]);
+    const { state, load } = useDataCardsState(webpageId);
 
     if (state.loading) {
         return (

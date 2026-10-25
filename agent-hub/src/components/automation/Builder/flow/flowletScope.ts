@@ -24,7 +24,7 @@ import type { FlowDefinition, FlowStep } from './types';
 import type { AutoMapDefinition } from '../mapping/autoMapInputs.types';
 import type { Position } from '../build/addStepModel';
 import type { ScopeStep, ScopeGraph } from './flowletScope.types';
-import { walkSteps } from './flowletScope.helpers';
+import { walkSteps, countCallsTo } from './flowletScope.helpers';
 export { layerCallScopes } from './flowletScope.helpers';
 export type { ScopeStep, ScopeGraph } from './flowletScope.types';
 export const LAYER_KEY_RE = /^[a-z][a-z0-9_]*$/;
@@ -328,21 +328,21 @@ export function setLayerDescription(def: ScopeGraph, key: string, description: s
  * @param {string} key
  * @returns {{calls: string[], callers: string[]}}
  */
+function calledLayerKeys(steps: ScopeStep[], own: string): Set<string> {
+    const calls = new Set<string>();
+    for (const step of walkSteps(steps)) {
+        if (step?.type === 'call_layer' && step.layerKey && step.layerKey !== own) calls.add(step.layerKey);
+    }
+    return calls;
+}
+
 export function getLayerDependencies(def: ScopeGraph | null | undefined, key: string) {
     const layers = def?.layers || {};
-    const calls = new Set<string>();
-    for (const step of walkSteps(layers[key]?.steps || [])) {
-        if (step?.type === 'call_layer' && step.layerKey && step.layerKey !== key) calls.add(step.layerKey);
-    }
+    const calls = calledLayerKeys(layers[key]?.steps || [], key);
     const callers = new Set<string>();
-    for (const step of walkSteps(def?.steps || [])) {
-        if (step?.type === 'call_layer' && step.layerKey === key) { callers.add('root'); break; }
-    }
+    if (countCallsTo(def?.steps || [], key) > 0) callers.add('root');
     for (const [k, layer] of Object.entries(layers)) {
-        if (k === key) continue;
-        for (const step of walkSteps(layer?.steps || [])) {
-            if (step?.type === 'call_layer' && step.layerKey === key) { callers.add(k); break; }
-        }
+        if (k !== key && countCallsTo(layer?.steps || [], key) > 0) callers.add(k);
     }
     return { calls: [...calls], callers: [...callers] };
 }

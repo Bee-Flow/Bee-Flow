@@ -1,10 +1,10 @@
 import { Check, ChevronDown, Loader2, Table } from 'lucide-react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import AnchoredMenu from '../../components/shared/AnchoredMenu';
 import { kindColorVar, kindIcon } from '../../components/shared/kindColors';
 import useTranslation from '../../hooks/useTranslation';
 import type { TranslateFn } from '../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { usePickerSourcesQuery } from '../../api/queries/webpagesPanels';
 
 /** One picked source: what the create endpoint takes in `sources`. */
 export interface BuildSource {
@@ -61,41 +61,22 @@ interface GroupProps {
 export default function SourcePicker({ value = [], onChange, disabled = false }: SourcePickerProps) {
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(false);
-    const [tables, setTables] = useState<PickerTable[] | null>(null);
-    const [automations, setAutomations] = useState<PickerAutomation[] | null>(null);
+    // Lazy: nothing is requested until the menu is first opened.
+    const [wanted, setWanted] = useState(false);
+    const sources = usePickerSourcesQuery<PickerTable, PickerAutomation>(wanted);
+    const loading = sources.isFetching;
+    const error = sources.isError || !!sources.data?.error;
+    const tables: PickerTable[] | null = sources.data?.tables ?? null;
+    const automations: PickerAutomation[] | null = sources.data?.automations ?? null;
     const anchorRef = useRef<HTMLButtonElement>(null);
-    const alive = useRef(true);
-    useEffect(() => () => { alive.current = false; }, []);
-
-    const load = useCallback(async () => {
-        setLoading(true);
-        setError(false);
-        try {
-            const [tRes, aRes] = await Promise.all([
-                authFetch(`${API_BASE}/api/datatables`),
-                authFetch(`${API_BASE}/api/automation/`),
-            ]);
-            const tBody = tRes.ok ? await tRes.json() : null;
-            const aBody = aRes.ok ? await aRes.json() : null;
-            if (!alive.current) return;
-            // One list failing is not the other list's problem — a user with no
-            // datatables licence still has automations to pick.
-            setTables(Array.isArray(tBody?.datatables) ? tBody.datatables : []);
-            setAutomations(Array.isArray(aBody?.automations) ? aBody.automations : []);
-            if (!tRes.ok && !aRes.ok) setError(true);
-        } catch {
-            if (alive.current) setError(true);
-        } finally {
-            if (alive.current) setLoading(false);
-        }
-    }, []);
 
     const toggleOpen = () => {
         const next = !open;
         setOpen(next);
-        if (next && tables === null && automations === null && !loading) load();
+        if (!next) return;
+        if (!wanted) setWanted(true);
+        // A request that threw (no answer at all) is tried again on the next open.
+        else if (sources.isError && !sources.isFetching) void sources.refetch();
     };
 
     const isPicked = (kind: BuildSource['kind'], id: string) => value.some(s => s.kind === kind && s.id === id);

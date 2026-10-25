@@ -78,6 +78,77 @@ function descriptorOf(value: unknown): FileEntry | null {
     return v && typeof v === 'object' ? v : null;
 }
 
+interface LightboxProps {
+    open: boolean;
+    onClose: () => void;
+    name: string;
+    kind: string | null;
+    url: string;
+    zoom: 'fit' | 'full';
+    onToggleZoom: () => void;
+}
+
+/** The enlarged view of a drawing: the picture (or PDF) with a zoom toggle and a close button. */
+function Lightbox({ open, onClose, name, kind, url, zoom, onToggleZoom }: LightboxProps) {
+    const { t } = useTranslation();
+    return (
+        <Modal
+            open={open}
+            onClose={onClose}
+            size="auto"
+            variant="bare"
+            label={t('studio_apps_runtime.cad.model_of', '3D model of {name}', { name })}
+            className="overflow-hidden"
+        >
+            <div
+                className="mx-auto flex flex-1 min-h-0 flex-col overflow-hidden [background:var(--bg-card)] [border-radius:var(--app-radius)] w-[min(96vw,1600px)] h-[min(92vh,1400px)]"
+            >
+                    <div className="flex shrink-0 items-center justify-between gap-3 px-3 py-2">
+                        <span className="truncate text-sm font-medium text-[var(--text-primary)]">{name}</span>
+                        <div className="flex shrink-0 items-center gap-1">
+                            {kind === 'pdf' ? null : <button
+                                type="button"
+                                onClick={onToggleZoom}
+                                aria-label={zoom === 'fit' ? t('studio_apps_runtime.cad.show_full_size', 'Show at full size') : t('studio_apps_runtime.cad.fit', 'Fit to window')}
+                                title={zoom === 'fit' ? t('studio_apps_runtime.cad.show_full_size_space', 'Full size (space)') : t('studio_apps_runtime.cad.fit_space', 'Fit to window (space)')}
+                                className="p-1 [color:var(--text-secondary)]"
+                            >
+                                {zoom === 'fit'
+                                    ? <Maximize2 className="h-4 w-4" aria-hidden="true" />
+                                    : <Minimize2 className="h-4 w-4" aria-hidden="true" />}
+                            </button>}
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                aria-label={t('studio_apps_runtime.cad.close', 'Close')}
+                                className="p-1 [color:var(--text-secondary)]"
+                            >
+                                <X className="h-4 w-4" aria-hidden="true" />
+                            </button>
+                        </div>
+                    </div>
+                    {/* Clicking the sheet itself toggles the zoom — the
+                        thing you are looking at is the thing you press. */}
+                    {kind === 'pdf' ? (
+                        // A PDF brings its own zoom and page controls; a
+                        // second set layered on top would only fight them.
+                        <iframe title={name} src={url} className="min-h-0 w-full flex-1 border-0" />
+                    ) : (
+                        <div className={`min-h-0 flex-1 ${zoom === 'fit' ? 'overflow-hidden' : 'overflow-auto'}`}>
+                            <img
+                                src={url}
+                                alt={name}
+                                onClick={onToggleZoom}
+                                className={zoom === 'fit' ? 'h-full w-full cursor-zoom-in' : 'max-w-none cursor-zoom-out'}
+                                style={zoom === 'fit' ? { objectFit: 'contain' } : undefined}
+                            />
+                        </div>
+                    )}
+            </div>
+        </Modal>
+    );
+}
+
 export default function CadThumb({ value, size = 44 }: { value: unknown; size?: number }) {
     const { t } = useTranslation();
     const { appId } = useDataContext();
@@ -173,60 +244,10 @@ export default function CadThumb({ value, size = 44 }: { value: unknown; size?: 
                     : <img src={url} alt="" className="h-full w-full [object-fit:cover]" />}
             </button>
 
-            <Modal
-                open={open}
-                onClose={() => setOpen(false)}
-                size="auto"
-                variant="bare"
-                label={t('studio_apps_runtime.cad.model_of', '3D model of {name}', { name })}
-                className="overflow-hidden"
-            >
-                <div
-                    className="mx-auto flex flex-1 min-h-0 flex-col overflow-hidden [background:var(--bg-card)] [border-radius:var(--app-radius)] w-[min(96vw,1600px)] h-[min(92vh,1400px)]"
-                >
-                        <div className="flex shrink-0 items-center justify-between gap-3 px-3 py-2">
-                            <span className="truncate text-sm font-medium text-[var(--text-primary)]">{name}</span>
-                            <div className="flex shrink-0 items-center gap-1">
-                                {kind === 'pdf' ? null : <button
-                                    type="button"
-                                    onClick={() => setZoom((z) => (z === 'fit' ? 'full' : 'fit'))}
-                                    aria-label={zoom === 'fit' ? t('studio_apps_runtime.cad.show_full_size', 'Show at full size') : t('studio_apps_runtime.cad.fit', 'Fit to window')}
-                                    title={zoom === 'fit' ? t('studio_apps_runtime.cad.show_full_size_space', 'Full size (space)') : t('studio_apps_runtime.cad.fit_space', 'Fit to window (space)')}
-                                    className="p-1 [color:var(--text-secondary)]"
-                                >
-                                    {zoom === 'fit'
-                                        ? <Maximize2 className="h-4 w-4" aria-hidden="true" />
-                                        : <Minimize2 className="h-4 w-4" aria-hidden="true" />}
-                                </button>}
-                                <button
-                                    type="button"
-                                    onClick={() => setOpen(false)}
-                                    aria-label={t('studio_apps_runtime.cad.close', 'Close')}
-                                    className="p-1 [color:var(--text-secondary)]"
-                                >
-                                    <X className="h-4 w-4" aria-hidden="true" />
-                                </button>
-                            </div>
-                        </div>
-                        {/* Clicking the sheet itself toggles the zoom — the
-                            thing you are looking at is the thing you press. */}
-                        {kind === 'pdf' ? (
-                            // A PDF brings its own zoom and page controls; a
-                            // second set layered on top would only fight them.
-                            <iframe title={name} src={url} className="min-h-0 w-full flex-1 border-0" />
-                        ) : (
-                            <div className={`min-h-0 flex-1 ${zoom === 'fit' ? 'overflow-hidden' : 'overflow-auto'}`}>
-                                <img
-                                    src={url}
-                                    alt={name}
-                                    onClick={() => setZoom((z) => (z === 'fit' ? 'full' : 'fit'))}
-                                    className={zoom === 'fit' ? 'h-full w-full cursor-zoom-in' : 'max-w-none cursor-zoom-out'}
-                                    style={zoom === 'fit' ? { objectFit: 'contain' } : undefined}
-                                />
-                            </div>
-                        )}
-                </div>
-            </Modal>
+            <Lightbox
+                open={open} onClose={() => setOpen(false)} name={name} kind={kind} url={url}
+                zoom={zoom} onToggleZoom={() => setZoom((z) => (z === 'fit' ? 'full' : 'fit'))}
+            />
         </>
     );
 }

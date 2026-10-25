@@ -1,7 +1,8 @@
 import React, { useEffect, useEffectEvent, useState, useCallback, useRef } from 'react';
 import { Users, ShieldCheck, ChevronDown } from 'lucide-react';
 import useTranslation from '../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
+import { useInboxAccess } from '../../../../api/queries/studioSupport';
 import Section from '../../../shared/Section';
 import type { SupportInbox, SupportTeammate, SupportUser } from './supportStudio.types';
 import { mutate, errorBody, RefusedError } from '../../../../api/mutate';
@@ -33,13 +34,27 @@ interface RadioProps {
  */
 const SAVE_DEBOUNCE_MS = 700;
 
-export default function AccessTab({ inbox, user, onChanged }: AccessTabProps) {
-    const { t } = useTranslation();
-    const [loading, setLoading] = useState(true);
+/** The editable access state, seeded from each fresh server read (a new inbox, or a changed answer). */
+function useAccessState(inboxId: string | undefined) {
+    const { data: access, loading } = useInboxAccess(inboxId);
     const [mode, setMode] = useState('everyone');
     const [groupIds, setGroupIds] = useState<string[]>([]);
     const [availableGroups, setAvailableGroups] = useState<AccessGroup[]>([]);
     const [members, setMembers] = useState<SupportTeammate[]>([]);
+    const [seenAccess, setSeenAccess] = useState<typeof access>(null);
+    if (access && access !== seenAccess) {
+        setSeenAccess(access);
+        setMode(access.mode || 'everyone');
+        setGroupIds(Array.isArray(access.sharedGroups) ? access.sharedGroups as string[] : []);
+        setAvailableGroups(Array.isArray(access.availableGroups) ? access.availableGroups as AccessGroup[] : []);
+        setMembers(Array.isArray(access.resolvedMembers) ? access.resolvedMembers as SupportTeammate[] : []);
+    }
+    return { loading, mode, setMode, groupIds, setGroupIds, availableGroups, members, setMembers };
+}
+
+
+export default function AccessTab({ inbox, user, onChanged }: AccessTabProps) {
+    const { t } = useTranslation();
     const [showMembers, setShowMembers] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -51,21 +66,7 @@ export default function AccessTab({ inbox, user, onChanged }: AccessTabProps) {
         || (Array.isArray(user?.permissions) && (user.permissions.includes('all') || user.permissions.includes('org_admin'))));
 
     const inboxId = inbox?.id;
-    const load = useCallback(async () => {
-        if (!inboxId) return;
-        setLoading(true); setError(null);
-        try {
-            const res = await authFetch(`${API_BASE}/api/support-inbox/inboxes/${inboxId}/access`);
-            const d = await res.json().catch(() => ({}));
-            if (res.ok) {
-                setMode(d.mode || 'everyone');
-                setGroupIds(Array.isArray(d.sharedGroups) ? d.sharedGroups : []);
-                setAvailableGroups(Array.isArray(d.availableGroups) ? d.availableGroups : []);
-                setMembers(Array.isArray(d.resolvedMembers) ? d.resolvedMembers : []);
-            }
-        } finally { setLoading(false); }
-    }, [inboxId]);
-    useEffect(() => { load(); }, [load]);
+    const { loading, mode, setMode, groupIds, setGroupIds, availableGroups, members, setMembers } = useAccessState(inboxId);
 
     const persist = useCallback(async (nextGroups: string[]) => {
         if (!inboxId || !canEdit) return;
@@ -87,7 +88,7 @@ export default function AccessTab({ inbox, user, onChanged }: AccessTabProps) {
             setMode(d.mode || (nextGroups.length ? 'groups' : 'everyone'));
             onChanged?.();
         } finally { setSaving(false); }
-    }, [inboxId, canEdit, onChanged, t]);
+    }, [inboxId, canEdit, onChanged, t, setMembers, setMode]);
 
     // Reset the touched guard whenever we (re)load a different inbox.
     useEffect(() => { touched.current = false; }, [inboxId]);

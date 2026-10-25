@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -39,6 +39,7 @@ vi.mock('../meeting-notes/hooks/useAudioRecorder', () => ({
 }));
 
 import VoiceprintSection from './VoiceprintSection';
+import { renderWithClient as render } from '../../test/render';
 import { authFetch } from '../../utils/helpers';
 
 const AVAILABLE = {

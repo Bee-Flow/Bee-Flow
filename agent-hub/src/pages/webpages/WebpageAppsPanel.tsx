@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import useAutomationApi from '../../hooks/useAutomationApi';
 import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
-import { authFetch } from '../../utils/helpers';
+import { mutate, request, RefusedError, errorBody } from '../../api/mutate';
 import type { CatalogApp } from '../../components/automation/Builder/flow/stepPalette.types';
 import type { AutomationOption, GrantedIntegration, GrantedAutomation, Grants, AutomationApi, StatusPillProps, AddAutomationFormProps, WebpageAppsPanelProps } from './WebpageAppsPanel.types';
 import { GRANTS_BASE, readJson, ConnectLink, AddAppForm } from './AddAppForm';
@@ -49,13 +49,17 @@ function AddAutomationForm({ webpageId, automations, onGranted, onError }: AddAu
     const submit = async () => {
         setSubmitting(true);
         try {
-            const res = await authFetch(GRANTS_BASE(webpageId) + '/automations', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ automationId }),
-            });
-            const body = await readJson(res);
-            if (!res.ok) { onError(body?.error || t('webpages.apps.err_add_automation', 'Could not add the automation ({status})', { status: res.status })); return; }
+            try {
+                await mutate(GRANTS_BASE(webpageId) + '/automations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ automationId }),
+                });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                onError(errorBody(err)?.error || t('webpages.apps.err_add_automation', 'Could not add the automation ({status})', { status: err.status }));
+                return;
+            }
             setAutomationId('');
             onGranted();
         } catch (e) {
@@ -125,9 +129,14 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }: Webpag
         lastFetchRef.current = Date.now();
         setError(null);
         try {
-            const res = await authFetch(GRANTS_BASE(webpageId));
-            const body = await readJson(res);
-            if (!res.ok) throw new Error(body?.error || tRef.current('webpages.apps.err_load', 'Could not load apps ({status})', { status: res.status }));
+            let body: Grants;
+            try {
+                const res = await request(GRANTS_BASE(webpageId));
+                body = await readJson(res);
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                throw new Error(errorBody(err)?.error || tRef.current('webpages.apps.err_load', 'Could not load apps ({status})', { status: err.status }));
+            }
             setGrants(body);
         } catch (e) {
             setError((e as Error).message);
@@ -165,9 +174,12 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }: Webpag
     const revoke = async (kind: string, key: string | number | boolean) => {
         setError(null);
         try {
-            const res = await authFetch(`${GRANTS_BASE(webpageId)}/${kind}/${encodeURIComponent(key)}`, { method: 'DELETE' });
-            const body = await readJson(res);
-            if (!res.ok) throw new Error(body?.error || t('webpages.apps.err_remove', 'Could not remove ({status})', { status: res.status }));
+            try {
+                await mutate(`${GRANTS_BASE(webpageId)}/${kind}/${encodeURIComponent(key)}`, { method: 'DELETE' });
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                throw new Error(errorBody(err)?.error || t('webpages.apps.err_remove', 'Could not remove ({status})', { status: err.status }));
+            }
             await load();
         } catch (e) {
             setError((e as Error).message);

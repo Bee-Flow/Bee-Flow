@@ -1,6 +1,7 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import useUsage, { usageUrl, normaliseUsage, defaultUsageFetcher, USAGE_KIND_PATH } from './useUsage';
+import useUsage, { normaliseUsage } from './useUsage';
+import { usageUrl, defaultUsageFetcher, USAGE_KIND_PATH } from '../api/queries/coreUsage';
 import { authFetch } from '../utils/helpers';
 
 vi.mock('../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));

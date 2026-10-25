@@ -1,10 +1,12 @@
 import { Save } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { SupportInbox } from './supportStudio.types';
 import { INPUT_FIELD, PRIMARY_BTN, PRIMARY_BTN_STYLE } from './supportStyles';
 import { getIntegrationById } from '../../../../config/integrationCatalog';
 import useTranslation from '../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE } from '../../../../utils/helpers';
+import { useAvailableIntegrations } from '../../../../api/queries/studioSupport';
+import { mutate, errorBody, RefusedError } from '../../../../api/mutate';
 import ConfigToggle from '../../../shared/ConfigToggle';
 import Disclosure from '../../../shared/Disclosure';
 import FormField from '../../../shared/FormField';
@@ -40,20 +42,7 @@ export default function RepliesTab({ inbox, teammates = [], onChanged }: Replies
         setForm(initForm(inbox));
     }
 
-    const [availableIntegrations, setAvailableIntegrations] = useState<string[]>([]);
-    const [intLoading, setIntLoading] = useState(false);
-    useEffect(() => {
-        const op = form.operator_user_id;
-        if (!op || !inboxId) { setAvailableIntegrations([]); return undefined; }
-        let cancelled = false;
-        setIntLoading(true);
-        authFetch(`${API_BASE}/api/support-inbox/inboxes/${inboxId}/available-integrations?operator=${encodeURIComponent(op)}`)
-            .then(r => r.ok ? r.json() : { integrations: [] })
-            .then(d => { if (!cancelled) setAvailableIntegrations(Array.isArray(d.integrations) ? d.integrations : []); })
-            .catch(() => { if (!cancelled) setAvailableIntegrations([]); })
-            .finally(() => { if (!cancelled) setIntLoading(false); });
-        return () => { cancelled = true; };
-    }, [form.operator_user_id, inboxId]);
+    const { integrations: availableIntegrations, loading: intLoading } = useAvailableIntegrations(inboxId, form.operator_user_id || undefined);
 
     const toggleToolId = (id: string) => set('enabled_tool_ids', form.enabled_tool_ids.includes(id) ? form.enabled_tool_ids.filter(x => x !== id) : [...form.enabled_tool_ids, id]);
 
@@ -61,7 +50,7 @@ export default function RepliesTab({ inbox, teammates = [], onChanged }: Replies
         if (!inbox) return;
         setSaving(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/support-inbox/inboxes/${inbox.id}`, {
+            await mutate(`${API_BASE}/api/support-inbox/inboxes/${inbox.id}`, {
                 method: 'PATCH', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     reply_mode: form.reply_mode,
@@ -75,8 +64,11 @@ export default function RepliesTab({ inbox, teammates = [], onChanged }: Replies
                     classify_suppress_autoreply: form.classify_suppress_autoreply,
                 }),
             });
-            if (!res.ok) { const d = await res.json().catch(() => ({})); toast.error(d.error || t('support.common.save_failed', 'Save failed')); }
-            else onChanged?.();
+            onChanged?.();
+        } catch (err) {
+            if (!(err instanceof RefusedError)) throw err;
+            const d = errorBody(err) ?? {};
+            toast.error(d.error || t('support.common.save_failed', 'Save failed'));
         } finally { setSaving(false); }
     };
 
