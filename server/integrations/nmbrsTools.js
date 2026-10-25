@@ -44,23 +44,7 @@ const SOAP_NS_BASE = 'https://api.nmbrs.nl/soap/v3';
 
 const SOAP_SERVICES = new Set(['DebtorService', 'CompanyService', 'EmployeeService', 'ReportService']);
 
-// The complete set of SOAP methods this module may ever call — all read-only.
-// Belt-and-suspenders: soapRequest() refuses any method not in this set, so no
-// mutation method can be reached even by a future bug.
-// NOTE: verify exact method names against the live WSDL at deploy time.
-const SOAP_METHODS_READONLY = new Set([
-    'Debtor_GetList',
-    'Company_List_GetAll',
-    'Company_List_GetByDebtor',
-    'Employee_GetByCompany',
-    'Employee_GetAllByCompany',
-    'PersonalInfo_GetCurrent',
-    'Contract_GetAll',
-    'Salary_GetList',
-    'WageComponentFixed_Get',
-    'WageComponentVar_Get',
-    'Reports_GetEmployeePayslips',
-]);
+const { SOAP_METHODS_READONLY, EMPLOYEE_TYPE_PAYROLL, EMPLOYEE_TYPE_FORMER_PAYROLL } = require('./nmbrsSoapMethods');
 
 // Validation regexes. These are the load-bearing input guards.
 const SUBDOMAIN_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i; // single DNS label, no dots/slashes
@@ -438,7 +422,7 @@ function buildSoapEnvelope(creds, service, method, params) {
 
 /** SOAP request — only read methods (SOAP_METHODS_READONLY) may be issued. */
 async function soapRequest(creds, service, method, params = {}) {
-    if (!SOAP_METHODS_READONLY.has(method)) {
+    if (!SOAP_METHODS_READONLY.has(`${service}/${method}`)) {
         throw new Error('Refused: non-read NMBRS method.');
     }
     const url = buildSoapUrl(creds.subdomain, service, creds.env);
@@ -469,7 +453,7 @@ async function fetchDebtors(creds) {
     if (creds.mode === 'rest') {
         return restListFrom(await restRequest(creds, 'debtors'));
     }
-    return coerceArray(await soapRequest(creds, 'DebtorService', 'Debtor_GetList'));
+    return coerceArray(await soapRequest(creds, 'DebtorService', 'List_GetAll'));
 }
 
 async function fetchCompanies(creds, debtorId) {
@@ -478,9 +462,9 @@ async function fetchCompanies(creds, debtorId) {
         return restListFrom(await restRequest(creds, path));
     }
     if (debtorId) {
-        return coerceArray(await soapRequest(creds, 'CompanyService', 'Company_List_GetByDebtor', { DebtorId: debtorId }));
+        return coerceArray(await soapRequest(creds, 'CompanyService', 'List_GetByDebtor', { DebtorId: debtorId }));
     }
-    return coerceArray(await soapRequest(creds, 'CompanyService', 'Company_List_GetAll'));
+    return coerceArray(await soapRequest(creds, 'CompanyService', 'List_GetAll'));
 }
 
 async function fetchEmployees(creds, companyId, activeOnly) {
@@ -489,8 +473,19 @@ async function fetchEmployees(creds, companyId, activeOnly) {
             `companies/${encodeURIComponent(companyId)}/employees`,
             activeOnly ? { active: 'true' } : null));
     }
-    const method = activeOnly ? 'Employee_GetByCompany' : 'Employee_GetAllByCompany';
-    return coerceArray(await soapRequest(creds, 'EmployeeService', method, { CompanyId: companyId }));
+    const types = activeOnly ? [EMPLOYEE_TYPE_PAYROLL] : [EMPLOYEE_TYPE_PAYROLL, EMPLOYEE_TYPE_FORMER_PAYROLL];
+    const rows = [];
+    const seen = new Set();
+    for (const EmployeeType of types) {
+        const page = coerceArray(await soapRequest(creds, 'EmployeeService', 'List_GetByCompany', { CompanyId: companyId, EmployeeType }));
+        for (const row of page) {
+            const id = row && row.Id;
+            if (id != null && seen.has(String(id))) continue;
+            if (id != null) seen.add(String(id));
+            rows.push(row);
+        }
+    }
+    return rows;
 }
 
 async function fetchEmployee(creds, employeeId) {
@@ -536,9 +531,10 @@ async function fetchPayslips(creds, employeeId, year, period) {
         if (period) query.period = String(period);
         return restListFrom(await restRequest(creds, `employees/${encodeURIComponent(employeeId)}/payslips`, query));
     }
-    const params = { EmployeeId: employeeId, Year: year };
-    if (period) params.Period = period;
-    return coerceArray(await soapRequest(creds, 'ReportService', 'Reports_GetEmployeePayslips', params));
+    // The SOAP API has no per-employee payslip call: its payslips come per
+    // company and run, as a background report. Say so instead of sending a
+    // SOAPAction Nmbrs does not recognise.
+    throw new Error('Payslips per employee are not available over the NMBRS SOAP API. Switch the NMBRS connection to the REST API to list payslips.');
 }
 
 // ─── Credentials & execution ───────────────────────────────────
