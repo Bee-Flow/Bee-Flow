@@ -1,12 +1,10 @@
-import { QueryClientProvider } from '@tanstack/react-query';
-import { renderHook as renderHookRaw, waitFor } from '@testing-library/react';
-import React from 'react';
+import { waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
+import { renderHookWithClient as renderHook } from '@/test/render';
 import useMeetingSources from './useMeetingSources';
-import { makeTestQueryClient } from '../../../test/render';
 import { authFetch } from '../../../utils/helpers';
 
 const resp = (status, body) => ({ ok: status >= 200 && status < 300, status, json: async () => body });
@@ -23,12 +21,6 @@ function mockEndpoints({ talk, gmeet }) {
         if (String(url).includes('/api/gmeet-notes-settings/user/me')) return Promise.resolve(gmeet);
         return Promise.resolve({ ok: false, status: 404, json: async () => ({}) });
     });
-}
-
-function renderHook(hook, options) {
-    const client = makeTestQueryClient();
-    const wrapper = ({ children }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
-    return renderHookRaw(hook, { wrapper, ...options });
 }
 
 describe('useMeetingSources', () => {

@@ -111,6 +111,7 @@ type PathSegment = { x1: number; y1: number; x2: number; y2: number; horizontal:
 /** The path text for the bridges one horizontal segment needs over the given verticals. */
 function hopsOnSegment(op: HorizontalOp, verticals: PathSegment[], radius: number): { text: string; hopped: boolean } {
     const seg = { x1: op.from.x, y1: op.from.y, x2: op.to.x, y2: op.to.y, horizontal: true };
+    // nosemgrep: ajinabraham.njsscan.generic.logic_bypass.node_logic_bypass -- canvas coordinates of a drawn edge, not an access decision
     const rightwards = op.to.x > op.from.x;
     const points = (verticals
         .map(v => crossing(seg, v))

@@ -14,7 +14,7 @@
  *
  * Run: cd agent-hub && npx vitest run src/components/agents/AgentWizard/pickers/FilesUploadModal.test.jsx
  */
-import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -47,6 +47,7 @@ vi.mock('../../../../utils/helpers', () => ({
     }),
 }));
 
+import { renderWithClient as render } from '@/test/render';
 import FilesUploadModal from './FilesUploadModal';
 
 // Interpolates `{count}` like the real t(), so counted phrases read as shown.
@@ -87,9 +88,7 @@ beforeEach(() => {
     docsByKb = {};
 });
 
-import { queryWrapper } from '../../../../test/queryWrapper';
 // The component reads through react-query: every render gets its own client.
-const render = (ui, opts = {}) => rtlRender(ui, { wrapper: queryWrapper(), ...opts });
 
 describe('FilesUploadModal — draft support (BFSF-270)', () => {
     it('shows the draft notice for unsaved drafts, hides it for saved agents', () => {

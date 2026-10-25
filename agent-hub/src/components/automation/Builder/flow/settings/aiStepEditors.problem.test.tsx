@@ -1,5 +1,4 @@
-import type { ReactElement } from 'react';
-import { render as rtlRender, screen, cleanup } from '@testing-library/react';
+import { screen, cleanup } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { ComponentType, ReactNode } from 'react';
 import SettingsFormJs from '../SettingsForm';
@@ -7,6 +6,7 @@ import { VariablePickerProvider as VariablePickerProviderJs } from '../../mappin
 import scopedStorage from '../../../../../utils/scopedStorage';
 import type { TranslateFn } from '../../../../../hooks/useTranslation';
 import { runStepProblem } from './runProblem';
+import { renderWithClient as render } from '@/test/render';
 
 const SettingsForm = SettingsFormJs as unknown as ComponentType<Record<string, unknown>>;
 const VariablePickerProvider = VariablePickerProviderJs as unknown as ComponentType<Record<string, unknown> & { children: ReactNode }>;
@@ -40,10 +40,8 @@ function renderForm(runStep: Record<string, unknown>) {
 
 const t: TranslateFn = (_key, fallback) => (typeof fallback === 'string' ? fallback : '');
 
-import { queryWrapper } from '../../../../../test/queryWrapper';
 
 // The code under test reads through react-query: every render gets its own client.
-const render = (ui: ReactElement, opts: Parameters<typeof rtlRender>[1] = {}) => rtlRender(ui, { wrapper: queryWrapper(), ...opts });
 
 describe('runStepProblem', () => {
     it('reads the setting and the title of a failed row only', () => {

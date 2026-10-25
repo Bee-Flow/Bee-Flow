@@ -1,8 +1,8 @@
-import { render as rtlRender, screen, cleanup, waitFor } from '@testing-library/react';
+import { screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { renderWithClient as render } from '@/test/render';
 import SettingsForm from './SettingsForm';
-import { queryWrapper } from '../../../../test/queryWrapper';
 import { editorWithValue, typeInEditor } from '../../../../test/refEditor';
 import { authFetch } from '../../../../utils/helpers';
 import scopedStorage from '../../../../utils/scopedStorage';
@@ -46,7 +46,6 @@ beforeEach(() => {
 
 
 // The code under test reads through react-query: every render gets its own client.
-const render = (ui, opts = {}) => rtlRender(ui, { wrapper: queryWrapper(), ...opts });
 
 describe('SettingsForm — guard', () => {
     it('asks what to scan and says where the two branches go', () => {

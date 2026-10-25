@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -80,13 +80,12 @@ vi.mock('../../components/admin/org/GroupAccessMatrix', async () => {
     };
 });
 
+import { renderWithClient as render } from '@/test/render';
 import OrganisationSection from './OrganisationSection';
 import { SECTIONS as INFO_SECTIONS } from '../../components/admin/org/OrgInfoPanel';
-import { queryWrapper } from '../../test/queryWrapper';
 import { authFetch } from '../../utils/helpers';
 
 // The sections read through react-query: one client per render, kept across rerender().
-const render = (ui, options) => rtlRender(ui, { wrapper: queryWrapper(), ...options });
 
 const jsonRes = (body, status = 200) => ({
     ok: status >= 200 && status < 300,
