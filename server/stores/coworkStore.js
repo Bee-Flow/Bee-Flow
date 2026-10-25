@@ -63,6 +63,7 @@ function safeParseJSON(str, fallback = []) {
     try { return JSON.parse(str); } catch (_) { return fallback; }
 }
 
+/** @param {DbRow.CoworkSchedules | null} r */
 function rowToSchedule(r) {
     if (!r) return null;
     return {
@@ -91,6 +92,7 @@ function rowToSchedule(r) {
     };
 }
 
+/** @param {DbRow.CoworkRuns | null} r */
 function rowToRun(r) {
     if (!r) return null;
     return {

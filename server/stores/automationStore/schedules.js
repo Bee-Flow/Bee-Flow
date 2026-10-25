@@ -21,7 +21,7 @@ const crypto = require('crypto');
 const { initDB, run, getAll, withTransaction } = require('./core');
 const { rowToAutomation } = require('./rowMappers');
 
-/** @param {import('pg').QueryResultRow | null} r */
+/** @param {DbRow.AutomationSchedules | null} r */
 function rowToSchedule(r) {
     if (!r) return null;
     return {

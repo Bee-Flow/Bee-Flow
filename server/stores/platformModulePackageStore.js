@@ -66,7 +66,7 @@ async function _initDB() {
 
 
 /**
- * @param {Record<string, any>} r
+ * @param {DbRow.PlatformModulePackages | null} r
  */
 function mapRow(r) {
     if (!r) return null;

@@ -82,7 +82,7 @@ function rowToDoc(r) {
     };
 }
 
-/** An update row, `body` still sealed. @param {any} r */
+/** An update row, `body` still sealed. @param {DbRow.CollabDocUpdates} r */
 function rowToUpdate(r) {
     return {
         seq: toInt(r.seq),

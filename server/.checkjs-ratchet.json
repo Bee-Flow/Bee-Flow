@@ -2,6 +2,6 @@
   "_comment": "Lowest number of server source files that must carry // @typecheck (any level), // @typecheck noImplicitAny (that level or strict) and // @typecheck strict. Raise them with `node scripts/checkjs-ratchet.mjs server --update` after moving more files up; lowering one is a deliberate edit that belongs in a commit message with a reason.",
   "_generated": "2026-10-25",
   "checkedFiles": 3386,
-  "noImplicitAnyFiles": 1930,
-  "strictFiles": 1347
+  "noImplicitAnyFiles": 1933,
+  "strictFiles": 1348
 }

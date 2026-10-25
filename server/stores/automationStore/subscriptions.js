@@ -27,7 +27,7 @@ async function createSubscription({ automationId, userId, provider, eventType, m
     return getSubscription(id);
 }
 
-/** @param {import('pg').QueryResultRow | null} r */
+/** @param {DbRow.AutomationEventSubscriptions | null} r */
 function rowToSubscription(r) {
     if (!r) return null;
     return {

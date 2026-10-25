@@ -18,7 +18,7 @@ const ROLE_RANK_SQL = `CASE s.role WHEN 'edit' THEN 3 WHEN 'view' THEN 2 WHEN 'r
 /** @type {Record<string, string>} */
 const RANK_ROLE = { 3: 'edit', 2: 'view', 1: 'run' };
 
-/** @param {import('pg').QueryResultRow | null} r */
+/** @param {DbRow.AutomationShares | null} r */
 function rowToShare(r) {
     if (!r) return null;
     return {

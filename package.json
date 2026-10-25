@@ -50,6 +50,8 @@
     "lint:unchecked-mutation-ratchet": "node scripts/count-ratchet.mjs unchecked-mutation agent-hub",
     "lint:source-text": "node scripts/source-text-tests.mjs server --gate",
     "lint:checkjs-ratchet": "node scripts/checkjs-ratchet.mjs server",
+    "lint:row-types": "node scripts/gen-row-types.mjs --check",
+    "lint:jsdoc-loose-type-ratchet": "node scripts/count-ratchet.mjs jsdoc-loose-type server",
     "lint:layering-ratchet": "node --test server/layering.test.js",
     "lint:scc-ratchet": "node scripts/scc-ratchet.mjs server agent-hub mobile",
     "lint:duplication": "node scripts/duplication-ratchet.mjs",
@@ -68,6 +70,7 @@
     "i18n:gen": "node scripts/gen-i18n-defaults.mjs",
     "learn-media:fetch": "node scripts/learn-media-fetch.mjs",
     "gen:shared": "node scripts/gen-shared-mirror.mjs",
+    "gen:row-types": "node scripts/gen-row-types.mjs",
     "count:source-text": "node scripts/source-text-tests.mjs server",
     "check:fast": "node scripts/check-fast.mjs",
     "test:scripts": "node --test scripts/*.test.mjs"

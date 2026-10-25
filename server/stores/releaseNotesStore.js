@@ -75,7 +75,7 @@ async function _initDB() {
 }
 
 /**
- * @param {import('pg').QueryResultRow | null} r
+ * @param {DbRow.ReleaseNotes | null} r
  */
 function rowToEntry(r) {
     if (!r) return null;

@@ -69,6 +69,7 @@ async function _initDB() {
         CREATE INDEX IF NOT EXISTS idx_sadf_owner ON studio_app_dataset_files(owner_id);
     `);
 }
+/** @param {DbRow.StudioAppDatasetFiles | null} row */
 function mapRow(row) {
     if (!row) return null;
     return {

@@ -129,7 +129,7 @@ async function deleteTemplate(id, userId) {
 }
 
 /**
- * @param {any} r
+ * @param {DbRow.WordTemplates} r
  */
 function mapRow(r) {
     const parseJSON = (/** @type {unknown} */ v, /** @type {unknown} */ fallback) => {

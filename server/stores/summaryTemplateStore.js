@@ -76,6 +76,7 @@ async function _initDB() {
 
 const COLS = 'id, scope, name, prompt, user_id, organization_id, group_id, is_default, version, created_by, created_at, updated_at';
 
+/** @param {DbRow.SummaryTemplates | null} r */
 function mapRow(r) {
     if (!r) return null;
     return {

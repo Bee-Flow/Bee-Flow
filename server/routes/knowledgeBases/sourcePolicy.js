@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Knowledge Bases — sources (K1): the policy and the shared helpers of the
  * sources router. Which kinds may be created and which refresh modes each

@@ -124,7 +124,10 @@ function toIso(v) {
     return v;
 }
 
-/** Map a kb_sources row to the camelCase shape routes and jobs consume. */
+/**
+ * Map a kb_sources row to the camelCase shape routes and jobs consume.
+ * @param {DbRow.KbSources | null} r
+ */
 function mapRow(r) {
     if (!r) return null;
     let config = r.config;

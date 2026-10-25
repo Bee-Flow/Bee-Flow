@@ -20,7 +20,7 @@ const crypto = require('crypto');
 
 const MAX_LISTED = 200;
 
-/** @param {import('pg').QueryResultRow | null} r */
+/** @param {DbRow.AutomationTemplates | null} r */
 function rowToTemplate(r) {
     if (!r) return null;
     let definition = r.definition_json;

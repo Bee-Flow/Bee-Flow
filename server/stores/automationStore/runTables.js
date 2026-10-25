@@ -24,7 +24,7 @@ const core = require('./core');
  */
 const dbOf = (deps) => deps || core;
 
-/** @param {import('pg').QueryResultRow | null} r */
+/** @param {DbRow.AutomationRunTables | null} r */
 function rowToRunTable(r) {
     if (!r) return null;
     return {

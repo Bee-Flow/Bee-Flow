@@ -52,7 +52,7 @@ function newPlaybookId() {
 
 
 /**
- * @param {Record<string, any>} r
+ * @param {DbRow.Playbooks | null} r
  */
 function mapRow(r) {
     if (!r) return null;

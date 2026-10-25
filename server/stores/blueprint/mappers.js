@@ -79,6 +79,7 @@ function clientHandle(client) {
 /** True for an id this store owns. */
 function isBlueprintId(id) { return typeof id === 'string' && id.startsWith('bp_'); }
 
+/** @param {DbRow.ProjectBlueprints | null} row */
 function mapRow(row, { includeManifest = true } = {}) {
     if (!row) return null;
     const meta = {

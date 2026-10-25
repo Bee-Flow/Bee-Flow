@@ -50,6 +50,7 @@ function _jsonObjectOrNull(v) {
     return v && typeof v === 'object' && !Array.isArray(v) ? v : null;
 }
 
+/** @param {DbRow.Skills} r */
 function mapRow(r) {
     return {
         id: r.id,

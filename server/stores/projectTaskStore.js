@@ -104,7 +104,7 @@ function parseLinks(v) {
 
 /**
  * A task row as stored. `title` and `description` are still sealed.
- * @param {import('pg').QueryResultRow | null} r
+ * @param {DbRow.ProjectTasks | null} r
  */
 function rowToTask(r) {
     if (!r) return null;
