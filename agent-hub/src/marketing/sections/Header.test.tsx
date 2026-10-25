@@ -12,11 +12,11 @@ const navLinks = [
     { label: 'Pricing', href: '/?slug=pricing' },
 ];
 
-const renderHeader = (activeSlug) => render(
+const renderHeader = (activeSlug: string) => render(
     <Header data={{ enabled: true, logoText: 'T', navLinks, activeSlug }} />,
 );
 
-const activeLabels = (container) =>
+const activeLabels = (container: HTMLElement) =>
     [...container.querySelectorAll('.header-nav a.active')].map(a => a.textContent);
 
 describe('Header nav active state', () => {

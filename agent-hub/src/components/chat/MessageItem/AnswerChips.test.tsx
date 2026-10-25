@@ -27,7 +27,7 @@ const SKILLS = [{ id: 's1', name: 'Offerte opstellen', icon: '📄' }];
 
 const msg = (over = {}) => ({ id: 'm-1', role: 'assistant', content: 'Dat regel ik.', ...over });
 
-const chipsInOrder = (container) => [...container.querySelectorAll(
+const chipsInOrder = (container: HTMLElement) => [...container.querySelectorAll(
     '[data-testid="citation-chip"],[data-testid="skill-chip"],[data-testid="rule-chip"]',
 )];
 
@@ -183,7 +183,7 @@ describe('BIJT — de poort is fail-closed op de component zelf', () => {
 });
 
 describe('BFSF-352: a document is one chip, and its label tells it apart', () => {
-    const note = (over) => ({ kind: 'meeting', title: 'Automation meeting notes with a long title', content: 'x', ...over });
+    const note = (over: { documentId?: string; content?: string; occurredAt?: string; }) => ({ kind: 'meeting', title: 'Automation meeting notes with a long title', content: 'x', ...over });
 
     it('several passages of one document render one chip with a count', () => {
         render(<AnswerChips showSources msg={msg({ kbSources: [

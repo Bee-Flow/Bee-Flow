@@ -26,7 +26,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 /** Editor sources, this folder and actionEditors/ under it. */
 function editorFiles() {
     const roots = [here, path.join(here, 'actionEditors')];
-    const out = [];
+    const out: string[] = [];
     for (const root of roots) {
         for (const name of fs.readdirSync(root)) {
             if (!/\.[jt]sx$/.test(name) || name.includes('.test.')) continue;

@@ -18,13 +18,13 @@ vi.mock('../../utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
 
 import StudioSearchOverlay from './StudioSearchOverlay';
 
-const answer = (body) => { fetchMock.mockResolvedValue({ ok: true, json: async () => body }); };
+const answer = (body: { query: string; tooShort: boolean; errors: never[]|string[]; results: { automations: { id: string; name: string; }[]; meetingNotes: { id: string; name: string; }[]; }|{ meetingNotes: { id: string; name: string; }[]; }|{ skills: { id: string; name: string; }[]; }|{ skills: { id: string; name: string; }[]; }|{}|{ skills: { id: string; name: string; }[]; }|{ skills: never[]; agents: never[]; }|{}; }) => { fetchMock.mockResolvedValue({ ok: true, json: async () => body }); };
 
 const renderOverlay = (props = {}) => render(
     <StudioSearchOverlay isOpen onClose={vi.fn()} onNavigate={vi.fn()} {...props} />
 );
 
-const type = (value) => fireEvent.change(screen.getByTestId('studio-search-input'), { target: { value } });
+const type = (value: string) => fireEvent.change(screen.getByTestId('studio-search-input'), { target: { value } });
 
 describe('StudioSearchOverlay', () => {
     beforeEach(() => { cleanup(); fetchMock.mockReset(); });

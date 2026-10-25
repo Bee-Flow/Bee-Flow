@@ -15,7 +15,7 @@ import {
  * 72-hour clock from 13 Sep 16:04 reads "nog 41 uur"; #2037 was "afgerond in
  * 18 dagen".
  */
-const T = (iso) => new Date(iso).getTime();
+const T = (iso: string|number|Date) => new Date(iso).getTime();
 const NOW = T('2026-09-14T09:12:00Z');
 
 describe('clockState — the 30-day DSR clock (days)', () => {
@@ -121,7 +121,7 @@ describe('clockState — the 72 h / 24 h incident clocks (hours)', () => {
     });
 
     it('up to 48 h overdue it keeps counting hours; past it, days (rounded up)', () => {
-        const start = (lateMs) => NOW - lateMs - 72 * HOUR_MS;
+        const start = (lateMs: number) => NOW - lateMs - 72 * HOUR_MS;
         const at48 = clockState({ dueAt: start(48 * HOUR_MS) + 72 * HOUR_MS, startedAt: start(48 * HOUR_MS), now: NOW });
         expect(at48.unit).toBe('hours');
         expect(at48.value).toBe(48);

@@ -13,7 +13,7 @@ import {
 // 'app'. Whatever this file says about THIS model is what the publish modal
 // promises an owner, so every expectation below is checked against the server's
 // rlsGateway resolveScope / resolveViewerRole.
-const table = (name, access) => ({ id: `tbl_${name}`, key: name.toLowerCase(), name, fields: [], access });
+const table = (name: string, access: { default: string; roles: {}|{}|{}|{}|{ staff: { read: string; delete: boolean; }; }|{}|{}|{}|{ staff: { read: string; update: string; delete: string; create: boolean; }; }|{ staff: { create: boolean; }; }|{}|{}|{}|{}|{ manager: { read: string; create: boolean; update: string; delete: string; }; }|{ manager: { read: string; create: boolean; update: string; delete: string; }; }; rowFilters: {}|{}|{}|{}|{}|{}|{}|{ staff: string; }|{}|{}|{}|{}|{ app: string; }|{}|{}|{}; }) => ({ id: `tbl_${name}`, key: name.toLowerCase(), name, fields: [], access });
 
 const ABSENCES = table('Absences', { default: 'app', roles: {}, rowFilters: {} });
 const EMPLOYEES = table('Employees', { default: 'app', roles: {}, rowFilters: {} });

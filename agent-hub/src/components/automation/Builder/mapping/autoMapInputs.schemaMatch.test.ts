@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { autoMapInputs } from './autoMapInputs';
 
-const group = (label, base, sample) => ({
+const group = (label: string, base: string, sample: { [s: string]: unknown; }|ArrayLike<unknown>) => ({
     id: label, label, kind: 'integration_action', basePath: base, sample,
     fields: Object.entries(sample).map(([k, v]) => ({ key: k, path: `${base}.${k}`, sample: v })),
 });

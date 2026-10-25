@@ -11,15 +11,15 @@
  * Run: cd agent-hub && npx vitest run src/components/ThemeContext.demo.test.jsx
  */
 import { render, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 import { ThemeProvider } from './ThemeContext';
 
-const setPath = (pathname) => {
+const setPath = (pathname: string|URL|null|undefined) => {
     window.history.replaceState({}, '', pathname);
 };
 
 describe('ThemeContext on a public feature demo', () => {
-    let fetchSpy;
+    let fetchSpy: Mock<{ (input: RequestInfo|URL,init?: RequestInit): Promise<Response>; (input: string|URL|Request,init?: RequestInit): Promise<Response>; }>;
 
     beforeEach(() => {
         fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(

@@ -36,7 +36,7 @@ import { describe, expect, it } from 'vitest';
  *     nothing can ever paint across the inspector boundary
  */
 
-async function readSource(file) {
+async function readSource(file: string) {
     const fs = await import('node:fs');
     const path = await import('node:path');
     return fs.readFileSync(path.join(__dirname, file), 'utf8');
@@ -49,7 +49,7 @@ async function readHeader() {
     return (await Promise.all(files.map(readSource))).join('\n');
 }
 
-async function readShared(file) {
+async function readShared(file: string) {
     const fs = await import('node:fs');
     const path = await import('node:path');
     return fs.readFileSync(path.resolve(__dirname, '../../../../shared', file), 'utf8');

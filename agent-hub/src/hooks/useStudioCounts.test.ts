@@ -9,7 +9,7 @@ import { useStudioCounts, parseStudioCounts, countFor, STUDIO_COUNTS_POLL_MS } f
 import { queryClient } from '../api/queryClient';
 import { queryWrapper } from '../test/queryWrapper';
 
-const ok = (body) => ({ ok: true, json: async () => body });
+const ok = (body: { counts: { automations: number; skills: number; }|{}|{ apps: number; }|{ apps: number; }|{ apps: number; }|{ apps: number; }|{ apps: number; }|{}; makers: number; }) => ({ ok: true, json: async () => body });
 
 // The app's own client, so the poll, the staleness window and the focus
 // gating are the ones the rail really runs with.
@@ -20,7 +20,7 @@ const wrapper = queryWrapper(queryClient);
 // vi.useFakeTimers without advancing the clock the test is reasoning about.
 notifyManager.setScheduler(queueMicrotask);
 
-const setVisibility = (state) => {
+const setVisibility = (state: string) => {
     Object.defineProperty(document, 'visibilityState', { value: state, configurable: true });
 };
 

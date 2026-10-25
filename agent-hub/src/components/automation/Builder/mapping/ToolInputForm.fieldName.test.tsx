@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, Matcher } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import ToolInputForm from './ToolInputForm';
 import { VariablePickerProvider } from './VariablePickerContext';
@@ -11,7 +11,7 @@ import { VariablePickerProvider } from './VariablePickerContext';
  * FULL binding path as the field name — dots make the resulting output key
  * unbindable downstream, and the value stayed bound to the wrong thing.
  */
-function renderSetFields(fields, onChange = vi.fn()) {
+function renderSetFields(fields: Record<string,unknown>|undefined, onChange = vi.fn()) {
     const utils = render(
         <VariablePickerProvider groups={[]} previewSample={null} stepLabelById={new Map()}>
             <ToolInputForm inputs={fields} onChange={onChange} keepEmptyFields allowExtraFields />
@@ -20,7 +20,7 @@ function renderSetFields(fields, onChange = vi.fn()) {
     return { onChange, ...utils };
 }
 
-const nameInput = (value) => screen.getByDisplayValue(value);
+const nameInput = (value: Matcher) => screen.getByDisplayValue(value);
 
 describe('ToolInputForm — field name commit-on-blur', () => {
     beforeEach(() => cleanup());

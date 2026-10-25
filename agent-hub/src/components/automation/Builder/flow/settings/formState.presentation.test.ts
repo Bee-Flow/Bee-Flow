@@ -1,9 +1,10 @@
 // @vitest-environment node
 import { expect, it } from 'vitest';
 import { extractFormState, buildPatch } from './formState';
+import { FormRecord } from './formState/types';
 
 /** buildPatch returns only what changed; the saved step is the merge. */
-const saved = (step, draft) => ({ ...step, ...buildPatch(step, draft) });
+const saved = (step: FormRecord, draft: FormRecord) => ({ ...step, ...buildPatch(step, draft) });
 
 /**
  * The slide's Visual picker is a VIEW over stored fields, and the deck's Look

@@ -12,7 +12,7 @@ import { buildHandoffPairs } from './insightsMetrics';
  */
 
 /** n alternating turns between two speakers, 10s each. */
-function alternating(a, b, n) {
+function alternating(a: string, b: string, n: number) {
     return Array.from({ length: n }, (_, i) => ({
         speaker: i % 2 === 0 ? a : b,
         start: i * 10,
@@ -34,7 +34,7 @@ describe('buildHandoffPairs', () => {
     it('does not collide distinct pairs that share a name prefix', () => {
         // 'Spreker 1'→'Spreker 2' and 'Spreker 1'→'Spreker 3' both used to
         // reduce to the same mangled row.
-        const segments = [];
+        const segments: { speaker: string; start: number; end: number; text: string; }[] = [];
         for (let i = 0; i < 12; i++) {
             segments.push({ speaker: 'Spreker 1', start: i * 20, end: i * 20 + 10, text: 'a' });
             segments.push({ speaker: i % 2 ? 'Spreker 2' : 'Spreker 3', start: i * 20 + 10, end: i * 20 + 20, text: 'b' });

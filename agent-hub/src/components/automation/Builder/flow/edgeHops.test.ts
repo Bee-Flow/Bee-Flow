@@ -9,8 +9,8 @@ import { hopPath, HOP_RADIUS, parsePath, pathSegments } from './edgeHops';
  * local geometry flips direction whenever a node moves.
  */
 
-const H = (x1, x2, y) => ({ x1, y1: y, x2, y2: y, horizontal: true });
-const V = (x, y1, y2) => ({ x1: x, y1, x2: x, y2, horizontal: false });
+const H = (x1: number, x2: number, y: number) => ({ x1, y1: y, x2, y2: y, horizontal: true });
+const V = (x: number, y1: number, y2: number) => ({ x1: x, y1, x2: x, y2, horizontal: false });
 
 describe('pathSegments', () => {
     it('keeps the straight pieces and drops the curved corners', () => {

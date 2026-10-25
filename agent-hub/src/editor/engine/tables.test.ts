@@ -1,18 +1,18 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { getNode } from './doc';
-import { textSelection, pos } from './selection.js';
+import { textSelection, pos, EditorState } from './selection.js';
 import {
   makeTable, appendRow, appendColumn, toggleHeaderRow,
   addRowAfter, addColumnAfter, deleteRow, deleteColumn,
 } from './tables';
 
 // A state whose caret sits in cell [row,col] of a single table at doc index 0.
-function tableState(rows, cols, header = true, row = 0, col = 0) {
+function tableState(rows: number, cols: number, header: boolean = true, row: number = 0, col: number = 0) {
   const doc = { type: 'doc', content: [makeTable(rows, cols, header)] };
   return { doc, selection: textSelection(pos([0, row, col, 0], 0)), storedMarks: null };
 }
-const tbl = (state) => getNode(state.doc, [0]);
+const tbl = (state: EditorState) => getNode(state.doc, [0]);
 
 describe('tables structural helpers', () => {
   it('appendRow adds a row at the end with the same column count', () => {

@@ -43,8 +43,8 @@ describe('conditionModel operator registry — fn operators stay in the server w
 });
 
 describe('conditionModel rule rows — equals, the quantifiers and fileType are whitelisted helpers', () => {
-    const ref = (path) => ({ kind: 'ref', path });
-    const lit = (value) => ({ kind: 'literal', value });
+    const ref = (path: string) => ({ kind: 'ref', path });
+    const lit = (value: string) => ({ kind: 'literal', value });
 
     it.each([
         [{ field: ref('item.subject'), op: 'is', value: lit('Open') }, 'equals(item.subject, "Open")', ['equals']],

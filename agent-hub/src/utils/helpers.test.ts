@@ -3,7 +3,7 @@ import { parseSaveError, generateMessageId } from './helpers';
 
 // parseSaveError only consumes res.status and res.text(); a minimal mock
 // keeps the test independent of the fetch Response implementation.
-const mockRes = (status, body) => ({ status, text: async () => body });
+const mockRes = (status: number, body: string) => ({ status, text: async () => body });
 
 describe('parseSaveError', () => {
     it('extracts the message from a JSON {error} body', async () => {

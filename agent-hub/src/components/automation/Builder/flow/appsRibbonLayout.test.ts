@@ -2,8 +2,8 @@
 import { describe, it, expect } from 'vitest';
 import { SUITE_MIN_APPS, OTHER_CATEGORY, isSuite } from './appsRibbonLayout';
 
-const app = (id) => ({ id, label: id, shortLabel: id, integrationId: id, actions: [] });
-const group = (category, n) => ({ category, apps: Array.from({ length: n }, (_, i) => app(`${category.toLowerCase()}-${i}`)) });
+const app = (id: string) => ({ id, label: id, shortLabel: id, integrationId: id, actions: [] });
+const group = (category: string, n: number) => ({ category, apps: Array.from({ length: n }, (_, i) => app(`${category.toLowerCase()}-${i}`)) });
 
 describe('appsRibbonLayout', () => {
     it('a category is a suite (one pill of its own) at SUITE_MIN_APPS apps', () => {

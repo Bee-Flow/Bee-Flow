@@ -13,7 +13,11 @@ const app = {
     definitionVersion: 7,
 };
 
-function wrapper({ children }) {
+type WrapperArgs = {
+    children?: React.ReactNode;
+};
+
+function wrapper({ children }: WrapperArgs) {
     return <AppEditorProvider app={app}>{children}</AppEditorProvider>;
 }
 

@@ -1,6 +1,7 @@
 import { render } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import AppRenderer from './AppRenderer';
+import { AppDefinition } from '../inspector/appDefinition';
 
 /**
  * View-as-role preview: AppRenderer hides screens/nodes gated away from the
@@ -8,7 +9,7 @@ import AppRenderer from './AppRenderer';
  * previewRole reproduces today's behaviour exactly.
  */
 
-function defWith(children, screenExtra = {}) {
+function defWith(children: ({ id: string; type: string; visible: boolean; visibleToRoles: string[]; props: { text: string; level: number; }; style: { span: number; }; }|{ id: string; type: string; visible: boolean; props: { text: string; level: number; }; style: { span: number; }; visibleToRoles?: undefined; })[]|{ id: string; type: string; visible: boolean; visibleWhen: string; props: { text: string; level: number; }; style: { span: number; }; }[], screenExtra = {}) {
     return {
         schemaVersion: 2,
         meta: { name: 'Test app', description: '', icon: 'LayoutGrid' },
@@ -24,7 +25,7 @@ function defWith(children, screenExtra = {}) {
     };
 }
 
-const render1 = (def, props = {}) => render(<AppRenderer definition={def} screenId="scr_t" {...props} />);
+const render1 = (def: AppDefinition|null|undefined, props = {}) => render(<AppRenderer definition={def} screenId="scr_t" {...props} />);
 
 const GATED = [
     { id: 'cmp_admin', type: 'heading', visible: true, visibleToRoles: ['admin'], props: { text: 'Admin only', level: 2 }, style: { span: 12 } },

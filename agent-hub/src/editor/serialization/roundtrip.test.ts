@@ -15,8 +15,8 @@ import { astToMarkdown } from './astToMd';
 import { htmlToAst } from './htmlToAst';
 import { markdownToAst } from './mdToAst';
 
-const mdRoundTrip = (md) => astToMarkdown(markdownToAst(md));
-const htmlRoundTrip = (html) => astToHtml(markdownToAst(astToMarkdown(htmlToAst(html))));
+const mdRoundTrip = (md: string) => astToMarkdown(markdownToAst(md));
+const htmlRoundTrip = (html: string) => astToHtml(markdownToAst(astToMarkdown(htmlToAst(html))));
 
 describe('C7 — URLs containing parentheses', () => {
     it('keeps a wikipedia-style link intact across a Markdown round-trip', () => {
