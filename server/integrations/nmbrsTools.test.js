@@ -304,6 +304,162 @@ function soapResponse(method, innerXml) {
     assert.ok(!isNmbrsTool('nmbrs_update_employee') && !isNmbrsTool('afas_query'));
     for (const m of SOAP_METHODS_READONLY) assert.ok(/Get|List|Reports_/.test(m), `read-only method name: ${m}`);
 
+    // ── salaries: Period and Year are required and sent (WSDL order) ───
+    scriptFetch([{ text: soapResponse('Salary_GetList', '<Salary><Value>3000</Value></Salary>') }]);
+    {
+        const r = await executeNmbrsTool('nmbrs_list_employee_salaries', { employeeId: '3', year: 2026, period: 5 }, 'soapU');
+        assert.strictEqual(fetchCalls[0].opts.headers.SOAPAction, 'https://api.nmbrs.nl/soap/v3/EmployeeService/Salary_GetList');
+        assert.ok(fetchCalls[0].opts.body.includes('<tns:Salary_GetList><tns:EmployeeId>3</tns:EmployeeId><tns:Period>5</tns:Period><tns:Year>2026</tns:Year></tns:Salary_GetList>'));
+        assert.deepStrictEqual(r.items, [{ Value: '3000' }]);
+    }
+    for (const args of [{ employeeId: '3', year: 2026 }, { employeeId: '3', period: 5 }, { employeeId: '3', year: 2026, period: 14 }, { employeeId: '3', year: 99, period: 5 }]) {
+        scriptFetch([]);
+        const r = await executeNmbrsTool('nmbrs_list_employee_salaries', args, 'soapU');
+        assert.ok(/Invalid (year|period)/.test(r.error), `salaries validation: ${JSON.stringify(args)} -> ${r.error}`);
+        assert.strictEqual(fetchCalls.length, 0);
+    }
+    // Wage components over SOAP: period required, WSDL order Period then Year.
+    scriptFetch([{ text: soapResponse('WageComponentFixed_Get', '') }, { text: soapResponse('WageComponentVar_Get', '') }]);
+    {
+        await executeNmbrsTool('nmbrs_list_employee_wage_components', { employeeId: '3', year: 2026, period: 5 }, 'soapU');
+        assert.ok(fetchCalls[0].opts.body.includes('<tns:EmployeeId>3</tns:EmployeeId><tns:Period>5</tns:Period><tns:Year>2026</tns:Year>'));
+    }
+    scriptFetch([]);
+    assert.ok((await executeNmbrsTool('nmbrs_list_employee_wage_components', { employeeId: '3', year: 2026 }, 'soapU')).error.includes('period'));
+    assert.strictEqual(fetchCalls.length, 0);
+
+    // ── bulk per-company tools: SOAPAction, parameter casing and order ──
+    const BULK_CASES = [
+        ['nmbrs_list_company_employments', {}, 'EmployeeService', 'Employment_GetAll_AllEmployeesByCompany', '<tns:CompanyID>9</tns:CompanyID>'],
+        ['nmbrs_list_company_lease_cars', { year: 2026, period: 3 }, 'EmployeeService', 'LeaseCar_GetAll_EmployeesByCompany', '<tns:CompanyId>9</tns:CompanyId><tns:Period>3</tns:Period><tns:Year>2026</tns:Year>'],
+        ['nmbrs_list_company_svw_settings', {}, 'EmployeeService', 'SVW_GetAll_AllEmployeesByCompany', '<tns:CompanyID>9</tns:CompanyID>'],
+        ['nmbrs_list_company_runs', { year: 2026 }, 'CompanyService', 'Run_GetList', '<tns:CompanyId>9</tns:CompanyId><tns:Year>2026</tns:Year>'],
+        ['nmbrs_list_company_personal_info', {}, 'EmployeeService', 'PersonalInfoContractSalaryAddress_GetAll_AllEmployeesByCompany', '<tns:CompanyID>9</tns:CompanyID>'],
+        ['nmbrs_list_company_contracts', {}, 'EmployeeService', 'Contract_GetAll_AllEmployeesByCompany', '<tns:CompanyID>9</tns:CompanyID>'],
+    ];
+    for (const [tool, extra, service, method, params] of BULK_CASES) {
+        assert.ok(isNmbrsTool(tool) && SOAP_METHODS_READONLY.has(`${service}/${method}`), `${tool} registered and allow-listed`);
+        scriptFetch([{ text: soapResponse(method, '<Item><Id>1</Id></Item><Item><Id>2</Id></Item>') }]);
+        const r = await executeNmbrsTool(tool, { companyId: '9', ...extra }, 'soapU');
+        assert.strictEqual(fetchCalls[0].opts.headers.SOAPAction, `https://api.nmbrs.nl/soap/v3/${service}/${method}`, tool);
+        assert.strictEqual(fetchCalls[0].url, `https://api.nmbrs.nl/soap/v3/${service}.asmx`);
+        assert.ok(fetchCalls[0].opts.body.includes(`<tns:${method}>${params}</tns:${method}>`), `${tool} envelope: ${fetchCalls[0].opts.body}`);
+        assert.ok(r.total === 2 && r.count === 2 && r.hasMore === false && r.nextOffset === null, tool);
+        // Validation: bad company id, missing year/period, bad paging: no request.
+        for (const bad of [{ companyId: '../x' }, { offset: -1 }, { limit: 0 }, { limit: 501 }, { offset: 'abc' }]) {
+            scriptFetch([]);
+            const e = await executeNmbrsTool(tool, { companyId: '9', ...extra, ...bad }, 'soapU');
+            assert.ok(/Invalid/.test(e.error), `${tool} ${JSON.stringify(bad)}: ${e.error}`);
+            assert.strictEqual(fetchCalls.length, 0);
+        }
+        if (extra.year) {
+            scriptFetch([]);
+            assert.ok((await executeNmbrsTool(tool, { companyId: '9', period: 3 }, 'soapU')).error.includes('year'));
+            assert.strictEqual(fetchCalls.length, 0);
+        }
+        if (extra.period) {
+            scriptFetch([]);
+            assert.ok((await executeNmbrsTool(tool, { companyId: '9', year: 2026 }, 'soapU')).error.includes('period'));
+            assert.strictEqual(fetchCalls.length, 0);
+        }
+        // REST mode: a clear message and no request.
+        scriptFetch([]);
+        const rest = await executeNmbrsTool(tool, { companyId: '9', ...extra }, 'restU');
+        assert.ok(/SOAP API/.test(rest.error), rest.error);
+        assert.strictEqual(fetchCalls.length, 0);
+    }
+
+    // Nested SOAP shape (one item per employee with a nested list) comes through.
+    scriptFetch([{ text: soapResponse('Employment_GetAll_AllEmployeesByCompany',
+        '<EmployeeEmploymentItem><EmployeeId>1</EmployeeId><EmployeeEmployments><Employment><EmploymentId>7</EmploymentId><InitialStartDate>2019-02-01T00:00:00</InitialStartDate></Employment></EmployeeEmployments></EmployeeEmploymentItem>') }]);
+    {
+        const r = await executeNmbrsTool('nmbrs_list_company_employments', { companyId: '9' }, 'soapU');
+        assert.strictEqual(r.items[0].EmployeeId, '1');
+        assert.strictEqual(r.items[0].EmployeeEmployments.Employment.InitialStartDate, '2019-02-01T00:00:00');
+    }
+
+    // ── privacy: BSN, address and private contact never leave the bulk personal-info tool ──
+    scriptFetch([{ text: soapResponse('PersonalInfoContractSalaryAddress_GetAll_AllEmployeesByCompany',
+        '<PersonalInfoContractSalaryAddress><EmployeeID>1</EmployeeID><FirstName>Alice</FirstName><LastName>Jansen</LastName><BSN>123456782</BSN><Street>Dorpsstraat</Street><HouseNumber>1</HouseNumber><City>Gouda</City><EmailPrivate>a@home.nl</EmailPrivate><TelephonePrivate>0612345678</TelephonePrivate><SalaryValue>3000</SalaryValue><ContractStartDate>2024-01-01T00:00:00</ContractStartDate></PersonalInfoContractSalaryAddress>') }]);
+    {
+        const r = await executeNmbrsTool('nmbrs_list_company_personal_info', { companyId: '9' }, 'soapU');
+        assert.deepStrictEqual(r.items, [{ EmployeeID: '1', FirstName: 'Alice', LastName: 'Jansen', ContractStartDate: '2024-01-01T00:00:00', SalaryValue: '3000' }]);
+        const flat = JSON.stringify(r);
+        for (const leak of ['123456782', 'Dorpsstraat', 'Gouda', 'a@home.nl', '0612345678']) assert.ok(!flat.includes(leak), `${leak} must not leak`);
+    }
+    // Row contents are never logged.
+    {
+        const logged = [];
+        const logPath = require.resolve('../telemetry/log');
+        const log = require(logPath);
+        const saved = {};
+        for (const k of ['info', 'warn', 'error', 'debug']) { saved[k] = log[k]; log[k] = (...a) => logged.push(a.join(' ')); }
+        scriptFetch([{ text: soapResponse('Contract_GetAll_AllEmployeesByCompany', '<EmployeeContractItemGlobal><EmployeeId>1</EmployeeId><Secret>TOPSECRETROW</Secret></EmployeeContractItemGlobal>') }]);
+        await executeNmbrsTool('nmbrs_list_company_contracts', { companyId: '9' }, 'soapU');
+        for (const k of Object.keys(saved)) log[k] = saved[k];
+        assert.ok(logged.length > 0 && !logged.join('\n').includes('TOPSECRETROW'), 'row contents are not logged');
+    }
+
+    // ── paging: employees page by page, nextOffset / hasMore ───────────
+    {
+        const xml = Array.from({ length: 5 }, (_, i) => `<Employee><Id>${i + 1}</Id></Employee>`).join('');
+        scriptFetch([{ text: soapResponse('List_GetByCompany', xml) }]);
+        const p1 = await executeNmbrsTool('nmbrs_list_employees', { companyId: '9', limit: 2 }, 'soapU');
+        assert.deepStrictEqual(p1.items.map((e) => e.Id), ['1', '2']);
+        assert.deepStrictEqual([p1.total, p1.offset, p1.hasMore, p1.nextOffset], [5, 0, true, 2]);
+        scriptFetch([{ text: soapResponse('List_GetByCompany', xml) }]);
+        const p3 = await executeNmbrsTool('nmbrs_list_employees', { companyId: '9', limit: 2, offset: 4 }, 'soapU');
+        assert.deepStrictEqual(p3.items.map((e) => e.Id), ['5']);
+        assert.deepStrictEqual([p3.hasMore, p3.nextOffset], [false, null]);
+        scriptFetch([{ text: soapResponse('List_GetByCompany', xml) }]);
+        const past = await executeNmbrsTool('nmbrs_list_employees', { companyId: '9', offset: 50 }, 'soapU');
+        assert.deepStrictEqual([past.items.length, past.hasMore, past.nextOffset], [0, false, null]);
+        scriptFetch([]);
+        assert.ok((await executeNmbrsTool('nmbrs_list_employees', { companyId: '9', limit: 9999 }, 'soapU')).error.includes('limit'));
+    }
+    // A page is always cut to fit under the size cap, and continuing reads everything.
+    {
+        const pad = 'x'.repeat(1000);
+        const xml = Array.from({ length: 200 }, (_, i) => `<Employee><Id>${i + 1}</Id><Pad>${pad}</Pad></Employee>`).join('');
+        const seen = [];
+        let offset = 0;
+        for (let guard = 0; guard < 20; guard++) {
+            scriptFetch([{ text: soapResponse('List_GetByCompany', xml) }]);
+            const page = await executeNmbrsTool('nmbrs_list_employees', { companyId: '9', limit: 500, offset }, 'soapU');
+            assert.ok(JSON.stringify(page.items).length <= 30000, 'page under the cap');
+            assert.ok(page.items.length > 0 && page.items.length < 500);
+            seen.push(...page.items.map((e) => e.Id));
+            if (!page.hasMore) break;
+            assert.strictEqual(page.truncated, true);
+            offset = page.nextOffset;
+        }
+        assert.strictEqual(seen.length, 200, 'every record is reachable page by page');
+        assert.strictEqual(new Set(seen).size, 200);
+    }
+
+    // ── nmbrs_get_employee: an allow-list, never the raw record (#349) ──
+    scriptFetch([{ text: soapResponse('PersonalInfo_GetCurrent', [
+        '<EmployeeNumber>42</EmployeeNumber><BSN>123456782</BSN><FirstName>Alice</FirstName><LastName>Jansen</LastName>',
+        '<Gender>female</Gender><Birthday>1990-01-02</Birthday><EmailPrivate>alice@home.nl</EmailPrivate>',
+        '<TelephonePrivate>0612345678</TelephonePrivate><EmailWork>alice@work.nl</EmailWork><IdentificationNumber>NX1234</IdentificationNumber>',
+        '<InCaseOfEmergency>Bob</InCaseOfEmergency><PartnerLastName>Pietersen</PartnerLastName>',
+    ].join('')) }]);
+    {
+        const r = await executeNmbrsTool('nmbrs_get_employee', { employeeId: '7' }, 'soapU');
+        assert.deepStrictEqual(r.employee, {
+            EmployeeNumber: '42', FirstName: 'Alice', LastName: 'Jansen', Gender: 'female', Birthday: '1990-01-02', EmailWork: 'alice@work.nl',
+        });
+        const text = JSON.stringify(r);
+        for (const leak of ['123456782', 'alice@home.nl', '0612345678', 'NX1234', 'Bob', 'Pietersen']) assert.ok(!text.includes(leak), `${leak} must not reach the model`);
+    }
+    // REST nests and camel-cases: the same allow-list applies at any depth.
+    scriptFetch([{ json: { employeeId: '7', bsn: '123456782', basicInfo: { firstName: 'Alice', lastName: 'Jansen', privateEmail: 'alice@home.nl' }, address: { street: 'Dorpsstraat', city: 'Utrecht' } } }]);
+    {
+        const r = await executeNmbrsTool('nmbrs_get_employee', { employeeId: '7' }, 'restU');
+        assert.deepStrictEqual(r.employee, { EmployeeId: '7', FirstName: 'Alice', LastName: 'Jansen' });
+        assert.ok(!/123456782|Dorpsstraat|Utrecht|alice@home/.test(JSON.stringify(r)));
+    }
+
     clearCreds('noemail');
     console.log('nmbrsTools.test.js: all tests passed');
 })().catch((err) => {
