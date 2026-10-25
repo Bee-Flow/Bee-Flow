@@ -248,3 +248,19 @@ test('stronglyConnected handles a deep chain without overflowing the stack', () 
     assert.strictEqual(sccs.length, 1);
     assert.strictEqual(sccs[0].length, N);
 });
+
+test('the cycle COUNT is gated once the budget carries it, and --update only lowers it', () => {
+    const dir = sandbox({
+        files: { 'a.js': "require('./b');", 'b.js': "require('./a');", 'c.js': "require('./d');", 'd.js': "require('./c');" },
+        budget: 2,
+    });
+    const budget = path.join(dir, 'pkg/.scc-ratchet.json');
+    assert.strictEqual(run(dir, ['--update', '--with-cycles']).code, 0);
+    assert.strictEqual(JSON.parse(fs.readFileSync(budget, 'utf8')).cycles, 2);
+    fs.writeFileSync(budget, JSON.stringify({ size: 2, cycles: 1 }));
+    const r = run(dir, []);
+    assert.strictEqual(r.code, 1);
+    assert.match(r.stderr, /2 import cycles/);
+    assert.strictEqual(run(dir, ['--update']).code, 0);
+    assert.strictEqual(JSON.parse(fs.readFileSync(budget, 'utf8')).cycles, 1, 'never raised');
+});

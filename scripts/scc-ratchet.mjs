@@ -37,7 +37,8 @@
  * Usage:
  *   node scripts/scc-ratchet.mjs <package>...           gate
  *   node scripts/scc-ratchet.mjs <package> --update     lower the budget
- *   node scripts/scc-ratchet.mjs <package> --list       the files of the largest cycle
+ *   node scripts/scc-ratchet.mjs <package> --list       the files of every cycle, largest first
+ *   node scripts/scc-ratchet.mjs <package> --update --with-cycles   also gate the NUMBER of cycles
  *
  * Every package scans <package>/src when it has one, and the package directory
  * itself when it does not (server/).
@@ -355,7 +356,8 @@ export function measure(dir) {
 /* Gate                                                                */
 /* ------------------------------------------------------------------ */
 
-function gate(pkg, { update, list }) {
+function gate(pkg, opts) {
+    const { update, list } = opts;
     const dir = path.resolve(ROOT, pkg);
     if (!fs.existsSync(dir)) {
         console.error(`scc-ratchet: ${pkg} not found — is "${pkg}" a package directory?`);
@@ -371,6 +373,7 @@ function gate(pkg, { update, list }) {
         if (size) {
             console.log(`Largest cycle (${size} files):`);
             for (const file of cycles[0]) console.log(`  ${file}`);
+            for (const c of cycles.slice(1)) console.log(`Cycle (${c.length} files): ${c.join(' <-> ')}`);
         }
         console.log('');
     }
@@ -381,6 +384,11 @@ function gate(pkg, { update, list }) {
             _comment: `Number of files the largest import cycle (strongly connected component, lazy requires included, type-only imports excluded) under ${scanned} may still have. Lower it with \`node scripts/scc-ratchet.mjs ${pkg} --update\` after a split; raising it is a deliberate edit that belongs in a commit message with a reason.`,
             _generated: new Date().toISOString().slice(0, 10),
             size: existing ? Math.min(size, existing.size) : size,
+            // The number of separate cycles (SCCs of 2+ files) may only fall too. A budget file
+            // without it is not gated on the count until `--update --with-cycles` writes it.
+            ...(!existing || existing.cycles !== undefined || opts.withCycles
+                ? { cycles: existing && existing.cycles !== undefined ? Math.min(cycles.length, existing.cycles) : cycles.length }
+                : {}),
         };
         fs.writeFileSync(budgetFile, `${JSON.stringify(next, null, 2)}\n`);
         console.log(`Budget written to ${path.relative(ROOT, budgetFile)}: ${next.size} (measured ${size}, ${cycles.length} cycles)`);
@@ -389,6 +397,10 @@ function gate(pkg, { update, list }) {
 
     if (size > existing.size) {
         console.error(`❌ ${pkg}: the largest import cycle under ${scanned} has ${size} files, budget is ${existing.size}. An import closed a loop: move the shared piece down into a module both sides can import (or inject it) rather than raising the budget (\`--list\` shows the files in the cycle).`);
+        return 1;
+    }
+    if (existing.cycles !== undefined && cycles.length > existing.cycles) {
+        console.error(`❌ ${pkg}: ${cycles.length} import cycles under ${scanned}, budget is ${existing.cycles}. An import closed a new loop: move the shared piece down into a module both sides can import (or inject it) rather than raising the budget (\`--list\` shows the cycles).`);
         return 1;
     }
     if (size < existing.size) {
@@ -402,10 +414,10 @@ function gate(pkg, { update, list }) {
 function main(argv) {
     const pkgs = argv.filter((a) => !a.startsWith('--'));
     if (!pkgs.length) {
-        console.error('scc-ratchet: usage: node scripts/scc-ratchet.mjs <package>... [--update] [--list]');
+        console.error('scc-ratchet: usage: node scripts/scc-ratchet.mjs <package>... [--update] [--list] [--with-cycles]');
         return 2;
     }
-    const opts = { update: argv.includes('--update'), list: argv.includes('--list') };
+    const opts = { update: argv.includes('--update'), list: argv.includes('--list'), withCycles: argv.includes('--with-cycles') };
     let code = 0;
     for (const pkg of pkgs) code = Math.max(code, gate(pkg, opts));
     return code;
