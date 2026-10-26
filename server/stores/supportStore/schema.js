@@ -285,18 +285,24 @@ CREATE INDEX IF NOT EXISTS idx_support_issue_links_stale  ON support_issue_links
 ALTER TABLE support_issue_links ADD COLUMN IF NOT EXISTS comments_seeded BOOLEAN NOT NULL DEFAULT false;
 `;
 
+const { throughLedger } = require('../lib/ddlLedger');
+// Schema statements of this init go through the schema ledger
+// (stores/lib/ddlLedger.js): one that already succeeded here is not sent again.
+/** @param {string} sql */
+const sendSchema = (sql) => throughLedger(sql, () => pool.query(sql));
+
 const initDB = makeStoreInit('SupportStore', _initDB);
 
 async function _initDB() {
     try {
-        await pool.query(INIT_SQL);
+        await sendSchema(INIT_SQL);
         // Widen the source CHECK to admit inbound 'email' (tenant Support inboxes).
         // Drop-then-add so it's idempotent across reboots; existing rows
         // ('in_app'/'marketing') satisfy the superset. Kept out of INIT_SQL
         // because a bare ADD CONSTRAINT would abort the whole batch on reboot.
         try {
-            await pool.query(`ALTER TABLE support_threads DROP CONSTRAINT IF EXISTS support_threads_source_check`);
-            await pool.query(`ALTER TABLE support_threads ADD CONSTRAINT support_threads_source_check
+            await sendSchema(`ALTER TABLE support_threads DROP CONSTRAINT IF EXISTS support_threads_source_check`);
+            await sendSchema(`ALTER TABLE support_threads ADD CONSTRAINT support_threads_source_check
                               CHECK (source IN ('in_app','marketing','email'))`);
         } catch (cErr) {
             log.warn('[SupportStore] source CHECK widening error (safe on fresh DB):', cErr.message);

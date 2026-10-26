@@ -65,14 +65,20 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_support_inbox_org_addr
     ON support_inboxes(organization_id, lower(email_address)) WHERE email_address IS NOT NULL;
 `;
 
+const { throughLedger } = require('./lib/ddlLedger');
+// Schema statements of this init go through the schema ledger
+// (stores/lib/ddlLedger.js): one that already succeeded here is not sent again.
+/** @param {string} sql */
+const sendSchema = (sql) => throughLedger(sql, () => pool.query(sql));
+
 const initDB = makeStoreInit('SupportInboxStore', _initDB);
 
 async function _initDB() {
     try {
-        await pool.query(INIT_SQL);
+        await sendSchema(INIT_SQL);
         // The column was kb_ingest_routine_id until 2026-10 (Automations is the
         // product name): renamed in place, once, before the ADD below.
-        await pool.query(`
+        await sendSchema(`
             DO $$ BEGIN
                 IF EXISTS (SELECT 1 FROM information_schema.columns
                             WHERE table_schema = current_schema() AND table_name = 'support_inboxes' AND column_name = 'kb_ingest_routine_id')
@@ -119,7 +125,7 @@ async function _initDB() {
                END IF;
              END $$;`,
         ]) {
-            await pool.query(sql).catch(e => log.warn('[SupportInboxStore] migration skipped:', e.message));
+            await sendSchema(sql).catch(e => log.warn('[SupportInboxStore] migration skipped:', e.message));
         }
         log.info('[SupportInboxStore] PostgreSQL initialized');
     } catch (err) {

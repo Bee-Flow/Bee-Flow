@@ -20,6 +20,7 @@
 
 const crypto = require('crypto');
 const { makeStoreInit } = require('./lib/storeInit');
+const { throughLedger } = require('./lib/ddlLedger');
 const log = require('../telemetry/log');
 
 const INIT_SQL = `
@@ -53,7 +54,8 @@ function createNotificationStore(pool, { tag = 'NotificationStore' } = {}) {
 
     async function _initDB() {
         try {
-            await pool.query(INIT_SQL);
+            // Through the schema ledger (stores/lib/ddlLedger.js): skipped once it succeeded here.
+            await throughLedger(INIT_SQL, () => pool.query(INIT_SQL));
             log.info('[NotificationStore] PostgreSQL initialized');
         } catch (err) {
             log.error('[NotificationStore] Init error:', /** @type {Error} */ (err).message);

@@ -62,11 +62,17 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_release_notes_one_unreleased
 CREATE INDEX IF NOT EXISTS idx_release_notes_status ON release_notes(status, published_at DESC);
 `;
 
+const { throughLedger } = require('./lib/ddlLedger');
+// Schema statements of this init go through the schema ledger
+// (stores/lib/ddlLedger.js): one that already succeeded here is not sent again.
+/** @param {string} sql */
+const sendSchema = (sql) => throughLedger(sql, () => pool.query(sql));
+
 const initDB = makeStoreInit('ReleaseNotesStore', _initDB);
 
 async function _initDB() {
     try {
-        await pool.query(INIT_SQL);
+        await sendSchema(INIT_SQL);
         log.info('[ReleaseNotesStore] PostgreSQL initialized');
     } catch (err) {
         log.error('[ReleaseNotesStore] Init error:', err.message);
