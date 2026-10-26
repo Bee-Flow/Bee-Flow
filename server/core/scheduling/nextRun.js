@@ -62,7 +62,7 @@ function isPlainObject(v) {
  * @param {object|null} schedule  `{ cron?, tz?, everyMinutes? }`
  * @param {number} [fromTs]
  * @param {object} [opts]
- * @param {number} [opts.consecutiveErrors=0]
+ * @param {number | null} [opts.consecutiveErrors=0]
  * @param {number} [opts.retryAfterMs=0]   a provider's own "come back in N ms"
  * @param {number} [opts.defaultMinutes=60] cadence when the schedule names none
  * @param {number} [opts.floorMinutes=0]    the fastest this kind may ever poll

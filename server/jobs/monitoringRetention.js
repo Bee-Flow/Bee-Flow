@@ -52,7 +52,7 @@ const MAX_BATCHES = 20; // ≤100k rows per table per pass — drain, don't stal
 // 181 = the check's 180-day floor + 1 day purge margin (see header).
 const MIN_RETENTION_DAYS = 181;
 const RETENTION_DAYS = (() => {
-    const env = parseInt(process.env.MONITORING_LOG_RETENTION_DAYS, 10);
+    const env = parseInt(process.env.MONITORING_LOG_RETENTION_DAYS ?? '', 10);
     if (!Number.isFinite(env)) return 400;
     if (env <= 0) return 0; // explicit opt-out
     if (env < MIN_RETENTION_DAYS) {

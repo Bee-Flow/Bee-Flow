@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * AFAS Profit Tools — Built-in tools for AI to discover and query AFAS Profit data
  *
@@ -279,8 +279,8 @@ async function executeAfasTool(toolName, args, userId) {
             if (!CONNECTOR_ID_RE.test(connectorId)) {
                 return { error: 'Invalid connectorId. Use an ID from afas_list_connectors.' };
             }
-            const take = Math.min(Math.max(parseInt(args.take) || DEFAULT_TAKE, 1), MAX_TAKE);
-            const skip = Math.max(parseInt(args.skip) || 0, 0);
+            const take = Math.min(Math.max(parseInt(String(args.take)) || DEFAULT_TAKE, 1), MAX_TAKE);
+            const skip = Math.max(parseInt(String(args.skip)) || 0, 0);
 
             /** @type {Record<string, string>} */
             const query = { skip: String(skip), take: String(take) };

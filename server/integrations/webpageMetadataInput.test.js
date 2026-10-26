@@ -28,7 +28,7 @@ test('an invalid accent_color is reported, the valid fields still apply', () => 
 
 test('a long tagline is shortened and says so', () => {
     const { updates, warnings } = sanitizeMetadata({ tagline: 'x'.repeat(100) });
-    assert.equal(updates.tagline.length, 80);
+    assert.equal(updates.tagline?.length, 80);
     assert.match(warnings[0], /shortened/);
 });
 
@@ -44,6 +44,6 @@ test('countLines', () => {
 
 test('slotTooLarge refuses above the cap only', () => {
     assert.equal(slotTooLarge('x'.repeat(MAX_SLOT_CHARS)), null);
-    assert.match(slotTooLarge('x'.repeat(MAX_SLOT_CHARS + 1)).error, /too large/);
+    assert.match(slotTooLarge('x'.repeat(MAX_SLOT_CHARS + 1))?.error, /too large/);
     assert.equal(slotTooLarge(undefined), null);
 });

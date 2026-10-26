@@ -41,8 +41,8 @@ test('reviewing source updates keeps IDs stable, replaces CSS and leaves origina
     const updated = { ...original, ...insertSection(original, { ...source, versionId: 'v2', css: 'h2 { color: blue; }' }, 'copy', { replace: true }) };
     assert.deepEqual(getContract(original).sections.map(s => s.id), getContract(updated).sections.map(s => s.id));
     assert.match(original.css, /red/); assert.doesNotMatch(updated.css, /red/);
-    assert.equal(getContract(original).sections[0].source.versionId, 'v1');
-    assert.equal(getContract(updated).sections[0].source.versionId, 'v2');
+    assert.equal(getContract(original).sections[0]?.source.versionId, 'v1');
+    assert.equal(getContract(updated).sections[0]?.source.versionId, 'v2');
 });
 
 test('removed source fields and rules no longer demand obsolete required inputs', () => {

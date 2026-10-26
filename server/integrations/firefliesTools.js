@@ -287,7 +287,7 @@ async function runFirefliesTool(toolName, args, userId) {
         const filters = parseListFilters(args);
         if ('error' in filters) return { error: filters.error };
         const variables = {
-            limit: Math.min(Math.max(parseInt(args.limit) || 10, 1), 50),
+            limit: Math.min(Math.max(parseInt(String(args.limit)) || 10, 1), 50),
             skip: filters.skip,
             title: args.title || null,
             hostEmail: args.hostEmail || null,

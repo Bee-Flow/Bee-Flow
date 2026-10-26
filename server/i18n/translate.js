@@ -11,7 +11,7 @@
 
 /**
  * 'nl-NL' / 'NL_nl' -> 'nl'; anything unusable -> 'en'.
- * @param {string} locale
+ * @param {string | null | undefined} locale
  */
 function normaliseLocale(locale) {
     const code = typeof locale === 'string' ? locale.trim().toLowerCase().split(/[-_]/)[0] : '';

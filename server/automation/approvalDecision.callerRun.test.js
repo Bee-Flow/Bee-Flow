@@ -19,7 +19,7 @@ const CONTINUED = {
     summary: 'private summary', error: null, triggerPayload: { subject: 'private' }, lastOutput: { v: 'private' },
 };
 mock('stores/automationStore', {
-    decideApproval: async (id) => ({ id, status: 'approved', ownerId: 'owner' }),
+    decideApproval: async (/** @type {string} */ id) => ({ id, status: 'approved', ownerId: 'owner' }),
     appendApprovalAudit: async () => {},
     updateRun: async () => {},
     getRun: async () => ({ ...CONTINUED, status: 'error', error: 'Approval rejected: no' }),
@@ -35,7 +35,7 @@ const { finalizeDecision } = require('./approvalDecision');
 after(() => { setImmediate(() => process.exit(process.exitCode || 0)); });
 
 const APPROVAL = { id: 'ap1', ownerId: 'owner', stepId: 'gate', source: 'run', runId: 'run1' };
-const decide = (deciderId, decision = 'approve') => finalizeDecision({
+const decide = (/** @type {string} */ deciderId, decision = 'approve') => finalizeDecision({
     approval: APPROVAL, run: { id: 'run1' }, deciderId, decision, trimmedReason: 'no', coercedAnswers: null, source: 'studio',
 });
 

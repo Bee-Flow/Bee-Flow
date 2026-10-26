@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Regression test (BFSF-184): the webpage chat's end-of-turn validation
  * repair round must leave the Claude request ending on a USER turn.
@@ -27,7 +27,7 @@ test('repair round built by validationRepairTurn ends on a user turn', () => {
     const p = new ClaudeProvider();
     const messages = [...base, ...validationRepairTurn('Done, the page is updated.', 'fix the missing image')];
     const params = p._buildSdkParams('claude-sonnet-5', messages, {});
-    const roles = params.messages.map(m => m.role);
+    const roles = params.messages.map((/** @type {{ role: string }} */ m) => m.role);
     assert.deepStrictEqual(roles, ['user', 'assistant', 'user']);
     const last = params.messages[params.messages.length - 1];
     const lastText = typeof last.content === 'string' ? last.content : JSON.stringify(last.content);

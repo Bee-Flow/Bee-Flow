@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * A scheduled run must actually send the email it was asked to send.
  *
@@ -33,7 +33,7 @@ const DISPATCHER = fs.readFileSync(path.join(__dirname, '..', 'integrations', 't
 // read: a scan that stopped at the entry point would cover almost none of it.
 // The round's steps live in agentRuntime/toolRound/ (the dispatch context in
 // toolRound/dispatch.js), read the same way.
-const folderModules = (dir) => fs.readdirSync(path.join(__dirname, 'agentRuntime', dir))
+const folderModules = (/** @type {string} */ dir) => fs.readdirSync(path.join(__dirname, 'agentRuntime', dir))
     .filter(f => f.endsWith('.js') && !f.endsWith('.test.js')).sort()
     .map(f => path.join(dir, f));
 const CHAT_STREAM = [

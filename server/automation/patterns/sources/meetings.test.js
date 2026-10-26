@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -17,7 +17,7 @@ const { collectTeamsMeetings, collectGmeetMeetings, collectTalkMeetings } = requ
 const DAY = 86_400_000;
 const NOW = Date.UTC(2026, 9, 3, 18, 0);
 const win = { now: NOW, since: NOW - 90 * DAY };
-const at = (daysAgo, h = 9) => new Date(Date.UTC(2026, 9, 3) - daysAgo * DAY + h * 3_600_000).toISOString();
+const at = (/** @type {number | string} */ daysAgo, h = 9) => new Date(Date.UTC(2026, 9, 3) - Number(daysAgo) * DAY + h * 3_600_000).toISOString();
 
 const { pg, db } = pgliteDb();
 const ctx = (userId = 'u1') => ({ userId, ...win, deps: { db } });

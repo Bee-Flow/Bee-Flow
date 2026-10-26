@@ -49,7 +49,7 @@ function contextsOf(kb) {
 
 /**
  * May this base be attached to / offered on `surface`?
- * @param {object} kb        a knowledge_bases row
+ * @param {{ usage_contexts?: unknown } | null | undefined} kb        a knowledge_bases row
  * @param {string} surface   one of SURFACES
  */
 function kbUsableIn(kb, surface) {

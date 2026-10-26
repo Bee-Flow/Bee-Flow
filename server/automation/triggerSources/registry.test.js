@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 const test = require('node:test');
 const assert = require('node:assert');
 
@@ -142,7 +142,7 @@ test('every declared/*.js provider is in the registry', () => {
         .flatMap(f => {
             const mod = require(path.join(dir, f));
             const decls = Array.isArray(mod.TRIGGER_SOURCES) ? mod.TRIGGER_SOURCES : [];
-            return decls.map(d => d.id);
+            return decls.map((/** @type {{ id: string }} */ d) => d.id);
         });
     assert.ok(expected.length > 5, 'the declared/ scan has gone stale');
 

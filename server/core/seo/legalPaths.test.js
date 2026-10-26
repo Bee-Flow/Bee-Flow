@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 const test = require('node:test');
 const assert = require('node:assert');
 const { legalRedirectTarget, LEGAL_DOCS } = require('./legalPaths');
@@ -26,7 +26,7 @@ test('unknown documents and other paths are left alone', () => {
 test('every redirect target is a routable marketing path', () => {
     for (const doc of LEGAL_DOCS) {
         const target = legalRedirectTarget(`/legal/${doc}`, locales, 'en');
-        assert.ok(parsePublicPath(target, locales), `${target} must be a CMS slug`);
+        assert.ok(parsePublicPath(String(target), locales), `${target} must be a CMS slug`);
     }
 });
 

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 const test = require('node:test');
 const assert = require('node:assert');
 
@@ -56,7 +56,7 @@ test('the Studio grants match what each role could reach before they existed', (
     // everybody could reach Approvals, the Apps directory and Forms. Anyone
     // rebalancing these on purpose should have to edit this list too.
     const mapping = getOrgRolePermissions();
-    const has = (role, id) => (mapping[role] || []).includes(id);
+    const has = (/** @type {string} */ role, /** @type {string} */ id) => (mapping[role] || []).includes(id);
 
     const BUILDER_ROLES = ['org_admin', 'agent_admin', 'agent_editor'];
     const BUILDER_PERMISSIONS = [

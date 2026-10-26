@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -18,7 +18,7 @@ const check = require('./a8-32-ticketed-changes');
 const saved = { getConfig: isoEvidenceStore.getConfig, listLatestSnapshots: isoEvidenceStore.listLatestSnapshots };
 afterEach(() => Object.assign(isoEvidenceStore, saved));
 
-const project = (key, recent) => ({ subject_id: key, payload: { source: 'youtrack', project: key, window_days: 30, recent_issues: recent, resolved_recent: 0 } });
+const project = (/** @type {string} */ key, /** @type {number} */ recent) => ({ subject_id: key, payload: { source: 'youtrack', project: key, window_days: 30, recent_issues: recent, resolved_recent: 0 } });
 
 test('the configured project is judged, not the alphabetically first one', async () => {
     isoEvidenceStore.getConfig = async () => ({ enabled: true, settings: { project: 'OPS' } });

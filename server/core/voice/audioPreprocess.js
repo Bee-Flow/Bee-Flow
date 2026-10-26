@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Audio conditioning for speech-to-text.
  *
@@ -104,7 +104,7 @@ function repackArgs(inputPath, outPath) {
  *          skipped, so it never deletes the caller's original).
  */
 async function preprocessForStt(inputPath, opts = {}) {
-    const format = FORMATS[opts.format] ? opts.format : 'wav';
+    const format = opts.format && FORMATS[opts.format] ? opts.format : 'wav';
     const { codec, format: container } = FORMATS[format];
     const label = opts.label || 'stt';
 

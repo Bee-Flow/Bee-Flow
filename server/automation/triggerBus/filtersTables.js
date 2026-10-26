@@ -1,10 +1,14 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 const { containsCI } = require('./matchUtil');
 
 /** nextcloud tables.row.* filter, split out of filters.js (file size ceiling). */
 
+/**
+ * @param {{ tableId?: unknown, actor?: unknown, values?: Record<string, unknown>, previousValues?: Record<string, unknown> | null, [k: string]: unknown } | null | undefined} payload
+ * @param {{ tableId?: unknown, actorEquals?: unknown, columnId?: unknown, valueEquals?: unknown, valueContains?: unknown, changedOnly?: boolean, [k: string]: unknown } | null | undefined} filter
+ */
 function matchNextcloudTablesRowFilter(payload, filter) {
     if (!filter) return true;
     if (filter.tableId !== undefined && filter.tableId !== null && filter.tableId !== ''
@@ -15,7 +19,7 @@ function matchNextcloudTablesRowFilter(payload, filter) {
     // Without a columnId the value filters are not skipped (that fired on every
     // row): they hold when ANY column satisfies them. A null/'' value filter is
     // unset, like an empty columnId.
-    const set = (/** @type {string | null | undefined} */ v) => v !== undefined && v !== null && v !== '';
+    const set = (/** @type {unknown} */ v) => v !== undefined && v !== null && v !== '';
     const hasCol = set(filter.columnId);
     const wantsEquals = set(filter.valueEquals);
     const wantsContains = set(filter.valueContains);

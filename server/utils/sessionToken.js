@@ -137,7 +137,7 @@ function armEviction(token, expiresAt) {
  * superseded ones from earlier renewals, still live out their TTL — closing
  * that needs a per-user index this store does not have, and it is written
  * down in the PR rather than half-built here.
- * @param {string} token
+ * @param {string | null | undefined} token
  */
 async function deleteSessionToken(token) {
     if (!token) return;

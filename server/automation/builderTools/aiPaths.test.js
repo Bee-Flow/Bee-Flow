@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * aiPaths — reading a path the AI wrote without corrupting a valid one.
  *
@@ -18,7 +18,7 @@ const assert = require('node:assert/strict');
 const { normalizeAiPath, canonicalAiPath, hasPlaceholder, placeholdersOf } = require('./aiPaths');
 const { getPath } = require('../expr');
 
-const path = p => normalizeAiPath(p).path;
+const path = (/** @type {string} */ p) => normalizeAiPath(p).path;
 
 test('a path the run can read keeps its meaning: index, wildcard, quoted keys, match', () => {
     for (const p of [

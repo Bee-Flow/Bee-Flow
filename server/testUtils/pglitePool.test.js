@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -36,7 +36,7 @@ test('a read is a SELECT with its fields, and rowCount is the row count', async 
     const res = await query('SELECT id, name FROM t ORDER BY id');
     assert.strictEqual(res.command, 'SELECT');
     assert.strictEqual(res.rowCount, 2);
-    assert.deepStrictEqual(res.fields.map((f) => f.name), ['id', 'name']);
+    assert.deepStrictEqual(res.fields.map((/** @type {{ name: string }} */ f) => f.name), ['id', 'name']);
     assert.deepStrictEqual(res.rows, [{ id: 1, name: 'a' }, { id: 2, name: 'b' }]);
     const ret = await query('UPDATE t SET name = $1 WHERE id = $2 RETURNING id', ['c', 1]);
     assert.strictEqual(ret.command, 'SELECT', 'RETURNING has result columns, as the facades counted it');

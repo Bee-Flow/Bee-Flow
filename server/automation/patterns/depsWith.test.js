@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -13,6 +13,7 @@ const assert = require('node:assert');
 const { depsWith } = require('./depsWith');
 
 test('a given collaborator is used and its loader never runs; the rest load once, on first use', () => {
+    /** @type {string[]} */
     const loaded = [];
     const loaders = {
         a: () => { loaded.push('a'); return 'real a'; },

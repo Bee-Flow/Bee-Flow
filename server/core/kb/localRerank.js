@@ -36,7 +36,7 @@ function wire(deps) {
  * what ORDER — it has no business editing them.
  *
  * @param {Array} rows      the candidates, in the order the reranker saw them
- * @param {Array} ranked    `[{ index, relevance_score }]` from the reranker
+ * @param {Array<{ index?: number, relevance_score: number } | null> | null | undefined} ranked    `[{ index, relevance_score }]` from the reranker
  * @returns {Array} the same row objects, reordered, carrying the new score
  */
 function applyRerank(rows, ranked) {

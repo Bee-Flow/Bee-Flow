@@ -94,7 +94,7 @@ function safeSourceName(raw, index = 0) {
 /**
  * The `<source>` blocks for a set of retrieved passages.
  *
- * @param {Array<Record<string, any>>} chunks          rows with `content` and a name to show
+ * @param {Array<Record<string, any>> | null | undefined} chunks          rows with `content` and a name to show
  * @param {object} [opts]
  * @param {number} [opts.maxChars] per-passage cut
  * @returns {string}

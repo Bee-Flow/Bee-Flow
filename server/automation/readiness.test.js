@@ -35,7 +35,7 @@ test('incomplete steps are counted and block; the first issue is named', () => {
     const r = computeReadiness({ automation: { definition: def }, validation: validateDefinition(def), aiAct: NOT_REQUIRED });
     assert.strictEqual(r.stepsComplete.ok, false);
     assert.ok(r.stepsComplete.issues >= 1);
-    assert.ok(r.stepsComplete.firstIssue.code);
+    assert.ok(r.stepsComplete.firstIssue?.code);
     assert.strictEqual(r.canActivate, false);
 });
 
@@ -44,7 +44,7 @@ test('a hand-written pinned sample is an issue, like at activation', () => {
     const s = stepsCompleteOf(def, { ok: true, errors: [] });
     assert.strictEqual(s.ok, false);
     assert.strictEqual(s.issues, 1);
-    assert.strictEqual(s.firstIssue.code, 'pin.edited_sample_blocks_activation');
+    assert.strictEqual(s.firstIssue?.code, 'pin.edited_sample_blocks_activation');
     const captured = { ...OK_DEF, steps: [{ ...OK_DEF.steps[0], pinnedOutput: { x: 1 }, pinnedSource: 'captured' }] };
     assert.strictEqual(stepsCompleteOf(captured, { ok: true, errors: [] }).ok, true);
 });

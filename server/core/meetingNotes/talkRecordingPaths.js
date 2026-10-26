@@ -77,7 +77,7 @@ function talkRecordingRoots(recordingFolder = DEFAULT_RECORDING_FOLDER) {
  * which then failed every downstream lookup that used it (armed-token check,
  * participant roster, Talk write-back).
  *
- * @param {string} ncPath          user-relative Nextcloud Files path
+ * @param {string | null | undefined} ncPath          user-relative Nextcloud Files path
  * @param {string} recordingFolder configured Talk recordings folder
  * @returns {string|null}
  */

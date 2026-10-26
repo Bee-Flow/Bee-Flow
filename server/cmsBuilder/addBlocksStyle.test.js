@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * cms_add_blocks accepts a per-entry `style` (same closed key set as
  * cms_update_block's stylePatch) instead of silently dropping it.
@@ -78,6 +78,6 @@ test('cms_add_blocks: an unknown type still gets the type hint when all entries 
 
 test('cms_add_blocks schema documents the style property', () => {
     const add = TOOL_SCHEMAS.find((t) => t.function.name === 'cms_add_blocks');
-    const props = add && add.function.parameters.properties.blocks.items.properties;
+    const props = add && add.function.parameters.properties.blocks?.items.properties;
     assert.ok(props && props.style, 'style is part of the entry schema');
 });

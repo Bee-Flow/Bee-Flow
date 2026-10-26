@@ -70,7 +70,11 @@ function makeItemLifecycle(deps = {}) {
      * @param {string} what
      * @param {string} kind
      * @param {string} id
-     * @param {number | null} [fallback]
+     * @param {() => Promise<T> | T} fn
+     * @param {F | null} [fallback]
+     * @returns {Promise<T | F | null>}
+     * @template T
+     * @template [F=null]
      */
     async function step(what, kind, id, fn, fallback = null) {
         try {

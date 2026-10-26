@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Every AGENT dispatch that borrows the owner's connection must ask `actAs`.
  *
@@ -34,7 +34,7 @@ const RESOLVE_RE = /resolveEffectiveIdentity\s*\(/;
 const AGENT_SCOPED_RE = /resourceType:\s*'agent'/;
 const GATE_RE = /mayLendOwnerConnection/;
 
-function walk(dir, out = []) {
+function walk(/** @type {string} */ dir, /** @type {string[]} */ out = []) {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
         if (entry.isDirectory()) {
             if (SKIP_DIRS.has(entry.name)) continue;

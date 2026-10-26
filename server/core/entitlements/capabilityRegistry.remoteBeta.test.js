@@ -86,7 +86,7 @@ test('a remote beta whose licenseFeature is a tier feature is NOT shadowed by a 
 });
 
 test('listCapabilities() lists the remote beta exactly once, as a beta', () => {
-    const listed = registry.listCapabilities().filter(c => c.id === TIER_FEATURE);
+    const listed = registry.listCapabilities().filter((/** @type {{ id: string }} */ c) => c.id === TIER_FEATURE);
     assert.strictEqual(listed.length, 1, 'no duplicate/shadow row for the tier-feature id');
     assert.strictEqual(listed[0].kind, 'beta');
 });

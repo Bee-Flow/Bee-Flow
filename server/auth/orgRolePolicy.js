@@ -135,7 +135,7 @@ async function getOrgRoleOverrides(orgId) {
  * opinion about, the default stands.
  *
  * @param {Record<string, string[]>} defaults  from getOrgRolePermissions()
- * @param {Record<string, string[]>} overrides from getOrgRoleOverrides()
+ * @param {Record<string, string[]> | null | undefined} overrides from getOrgRoleOverrides()
  * @returns {Record<string, string[]>}
  */
 function mergeRolePermissions(defaults, overrides) {

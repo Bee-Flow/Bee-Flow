@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Which versions of ONE item may be thinned out.
  *
@@ -115,7 +115,8 @@ function selectPrunable(rows, now = Date.now(), opts = {}) {
     const nowMs = timeOf(now);
     if (!Array.isArray(rows) || rows.length < 2 || !Number.isFinite(nowMs)) return [];
     const referenced = new Set(opts.referencedIds || []);
-    const cap = Number.isInteger(opts.maxPerItem) && opts.maxPerItem > 0 ? opts.maxPerItem : MAX_PER_ITEM;
+    const requestedCap = opts.maxPerItem;
+    const cap = typeof requestedCap === 'number' && Number.isInteger(requestedCap) && requestedCap > 0 ? requestedCap : MAX_PER_ITEM;
 
     // Newest first; a row without a readable time is never touched (it would
     // otherwise sort to one end and look like the oldest thing there is).

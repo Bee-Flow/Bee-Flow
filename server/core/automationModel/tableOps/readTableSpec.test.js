@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /** The read_table step's settings: defaults, clamping and the findings of a bad one. */
 
@@ -7,7 +7,7 @@ const assert = require('node:assert/strict');
 const { normalizeReadTableStep, validateReadTableStep } = require('./readTableSpec');
 
 const ref = { kind: 'ref', path: 'trigger.output.upload' };
-const codes = (step) => validateReadTableStep(step).map(f => f.code);
+const codes = (/** @type {unknown} */ step) => validateReadTableStep(step).map(f => f.code);
 
 test('normalize fills every default', () => {
     assert.deepEqual(normalizeReadTableStep({ type: 'read_table', source: ref }), {
@@ -54,7 +54,7 @@ test('a missing source is an error, a fixed value is a warning', () => {
     const [lit] = validateReadTableStep({ source: { kind: 'literal', value: 'a.xlsx' } });
     assert.equal(lit.code, 'read_table.source_literal');
     assert.equal(lit.severity, 'warning');
-    assert.match(lit.hint, /form file answer or to a generated file/);
+    assert.match(String(lit.hint), /form file answer or to a generated file/);
     assert.equal(validateReadTableStep({ source: 'a.xlsx' })[0].code, 'read_table.source_literal');
 });
 

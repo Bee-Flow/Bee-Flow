@@ -333,7 +333,7 @@ function normalizeSleepSeries(series, limit) {
         if (row.total_sleep_minutes === undefined) {
             const parts = [row.light_sleep_minutes, row.deep_sleep_minutes, row.rem_sleep_minutes]
                 .filter((v) => Number.isFinite(v));
-            if (parts.length) row.total_sleep_minutes = parts.reduce((a, b) => a + b, 0);
+            if (parts.length) row.total_sleep_minutes = parts.reduce((/** @type {number} */ a, /** @type {number} */ b) => a + b, 0);
         }
         rows.push(row);
         if (rows.length >= limit) break;

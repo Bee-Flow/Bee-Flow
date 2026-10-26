@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { scanAppToolDraft, deriveAppDraftKey, MAX_ITEMS } = require('./toolDraft');

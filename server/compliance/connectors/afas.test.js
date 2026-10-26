@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -15,7 +15,7 @@ const assert = require('node:assert/strict');
 const connector = require('./afas');
 
 const settings = { base_url: 'https://12345.rest.afas.online/ProfitRestServices', connector: 'Profit_Employees' };
-const answering = (rows) => async () => ({ ok: true, json: async () => ({ rows }) });
+const answering = (/** @type {unknown[]} */ rows) => async () => ({ ok: true, json: async () => ({ rows }) });
 
 test('a full page of 100 rows is flagged truncated', async () => {
     const [row] = await connector.collect({ secret: { token: 'abc' }, settings, safeFetch: answering(Array(100).fill({ EmployeeId: 'E1' })) });

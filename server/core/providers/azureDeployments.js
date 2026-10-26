@@ -74,7 +74,7 @@ async function refreshAzureDeployments() {
 /**
  * The model behind an Azure deployment, or the id itself when it is not a
  * mapped deployment. Accepts an `azure/` routing prefix.
- * @param {string} id
+ * @param {string | null | undefined} id
  */
 function azureModelFor(id) {
     if (typeof id !== 'string' || _models.size === 0) return id;

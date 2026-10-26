@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -15,7 +15,7 @@ const assert = require('node:assert/strict');
 
 const { CONTROLS } = require('./controls');
 
-const bucketOf = (ref) => CONTROLS.find(c => c.ref === ref)?.bucket;
+const bucketOf = (/** @type {string} */ ref) => CONTROLS.find(c => c.ref === ref)?.bucket;
 
 test('mail security and identity hygiene are connector-verified controls', () => {
     assert.equal(bucketOf('A.5.14'), 'connector', 'only the mail-security DNS probe checks it');

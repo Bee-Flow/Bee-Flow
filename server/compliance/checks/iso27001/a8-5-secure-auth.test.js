@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -21,7 +21,7 @@ const check = require('./a8-5-secure-auth');
 const savedGetConfig = configStore.getConfig;
 afterEach(() => { configStore.getConfig = savedGetConfig; });
 
-const withConfig = (cfg) => { configStore.getConfig = async (key) => cfg[key] ?? null; };
+const withConfig = (/** @type {Record<string, unknown>} */ cfg) => { configStore.getConfig = async (/** @type {string} */ key) => cfg[key] ?? null; };
 
 test('a Google provider with id and secret is SSO, although `enabled` is false', async () => {
     withConfig({ providers: { google: { clientId: 'id', clientSecret: 's', enabled: false } } });

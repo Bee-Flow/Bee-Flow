@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * routes/ai/webpageChat — the `bf-*` convention in the builder prompt.
  *
@@ -86,7 +86,7 @@ test('BITE — de lijst is AFGELEID uit de registry, niet met de hand geschreven
     }
     for (const tag of bf.tagsNeedingJs()) {
         const line = bf.vocabularyPromptLines().find(l => l.startsWith(`<${tag}>`));
-        assert.match(line, /INERT once published/, `${tag} moet in de prompt als inert bekendstaan`);
+        assert.match(String(line), /INERT once published/, `${tag} moet in de prompt als inert bekendstaan`);
     }
     assert.ok(bf.tagsNeedingJs().length >= 3, 'sanity: er zijn elementen die JS nodig hebben');
 });

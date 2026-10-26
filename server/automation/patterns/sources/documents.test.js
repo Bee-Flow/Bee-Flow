@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 'use strict';
 
 /**
@@ -17,7 +17,7 @@ const { collectDocumentUploads, MANUAL_SOURCE_TYPES } = require('./documents');
 const DAY = 86_400_000;
 const NOW = Date.UTC(2026, 9, 3, 18, 0);
 const win = { now: NOW, since: NOW - 90 * DAY };
-const ago = (d) => new Date(NOW - d * DAY).toISOString();
+const ago = (/** @type {number | string} */ d) => new Date(NOW - Number(d) * DAY).toISOString();
 
 const { pg, db } = pgliteDb();
 

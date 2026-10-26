@@ -25,7 +25,7 @@ test('the second identical rejection is named, the third says stop; a different 
 
 test('a successful NON-mutating call leaves the streak alone; no state → no-op; unserialisable args → no-op', () => {
     const state = {};
-    const mutating = (n) => n === 'add';
+    const mutating = (/** @type {string} */ n) => n === 'add';
     noteRepeatedRejection('add', { a: 1 }, { error: 'bad' }, state, { mutating });
     noteRepeatedRejection('inspect', {}, { ok: true }, state, { mutating });
     assert.equal(noteRepeatedRejection('add', { a: 1 }, { error: 'bad' }, state, { mutating })._repeated, 2);
