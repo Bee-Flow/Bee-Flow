@@ -7,13 +7,19 @@
 // (scripts/scc-ratchet.mjs). The seat-sync port sits next to this one
 // (seatSyncPort.js), installed by services/stripeService.js.
 
+const log = require('../../telemetry/log');
+
 /** @typedef {{ mode?: 'intersect' | 'reset' }} PlanOpts */
 
 /** @type {(orgId: string, planId: string, opts?: PlanOpts) => Promise<unknown>} */
 let applyPlan = async () => { throw new Error('applyPlanToOrg is not installed: services/planEntitlements.js has not loaded'); };
 
+let trialWarned = false;
 /** @type {(orgId: string) => unknown} */
-let autoGrantTrial = () => undefined;
+let autoGrantTrial = () => {
+    if (!trialWarned) { trialWarned = true; log.warn('[billingPorts] trial auto-grant not installed: require boot/lateBoundPorts in this entry point'); }
+    return undefined;
+};
 
 /** @param {typeof applyPlan} fn */
 function setApplyPlanToOrg(fn) { applyPlan = fn; }
@@ -30,7 +36,7 @@ function setMaybeAutoGrantOrgTrial(fn) { autoGrantTrial = fn; }
  */
 function applyPlanToOrg(orgId, planId, opts) { return applyPlan(orgId, planId, opts); }
 
-/** Start the configured org trial, if any. A no-op while the trial service is not loaded. */
+/** Start the configured org trial, if any. Warns once and does nothing while no entry point installed the port. */
 function maybeAutoGrantOrgTrial(/** @type {string} */ orgId) { return autoGrantTrial(orgId); }
 
 module.exports = { setApplyPlanToOrg, setMaybeAutoGrantOrgTrial, applyPlanToOrg, maybeAutoGrantOrgTrial };

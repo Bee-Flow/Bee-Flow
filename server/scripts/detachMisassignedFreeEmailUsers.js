@@ -36,6 +36,8 @@
 const path = require('path');
 const { pool } = require(path.join(__dirname, '..', 'db'));
 const userStore = require(path.join(__dirname, '..', 'stores', 'userStore'));
+// Seat sync, plan and trial ports (stores/user/*Port*.js), as the server installs them at boot.
+require('../boot/lateBoundPorts');
 const freeEmailDomains = require(path.join(__dirname, '..', 'utils', 'freeEmailDomains'));
 
 const { parseOpsArgsOrExit } = require('./lib/opsArgs');
