@@ -133,16 +133,18 @@ describe('FilterRowsEditor — a saved value the picker cannot show stays visibl
 });
 
 describe('FilterRowsEditor — the operator follows the column', () => {
-    it('resets an op the new column cannot carry', () => {
+    it('resets an op the new column cannot carry', async () => {
+        const user = userEvent.setup();
         const { last } = renderRows([{ field: 'title', op: 'contains', value: 'x' }]);
-        fireEvent.change(screen.getByLabelText('Filter field'), { target: { value: 'done' } });
+        await user.selectOptions(screen.getByLabelText('Filter field'), 'done');
         // `contains` on a yes/no column used to survive and force a text box.
         expect(last()[0].op).toBe('eq');
     });
 
-    it('keeps an op the new column can carry', () => {
+    it('keeps an op the new column can carry', async () => {
+        const user = userEvent.setup();
         const { last } = renderRows([{ field: 'title', op: 'eq', value: 'x' }]);
-        fireEvent.change(screen.getByLabelText('Filter field'), { target: { value: 'status' } });
+        await user.selectOptions(screen.getByLabelText('Filter field'), 'status');
         expect(last()[0].op).toBe('eq');
     });
 
@@ -169,9 +171,10 @@ describe('FilterRowsEditor — the ops the server implements are all reachable',
         expect(last()[0].value).toEqual(['10', '20']);
     });
 
-    it('switching to a list op discards a scalar value rather than sending it', () => {
+    it('switching to a list op discards a scalar value rather than sending it', async () => {
+        const user = userEvent.setup();
         const { last } = renderRows([{ field: 'amount', op: 'eq', value: '5' }]);
-        fireEvent.change(screen.getByLabelText('Filter operator'), { target: { value: 'between' } });
+        await user.selectOptions(screen.getByLabelText('Filter operator'), 'between');
         expect(last()[0].value).toEqual(['', '']);
     });
 });

@@ -106,7 +106,8 @@ describe('SuggestedTestForm — bewerken en opslaan', () => {
         render(<SuggestedTestForm t={t} turn={TURN} suggestion={SUGGESTION} onSave={onSave} />);
         const question = screen.getByTestId('agent-tests-field-question');
         expect(question).toHaveValue('When are you open?');
-        fireEvent.change(question, { target: { value: 'What are your opening hours?' } });
+        await user.clear(question);
+        await user.type(question, 'What are your opening hours?');
         await user.click(screen.getByTestId('agent-tests-suggest-save'));
         expect(onSave.mock.calls[0][0].question).toBe('What are your opening hours?');
     });
@@ -116,9 +117,10 @@ describe('SuggestedTestForm — bewerken en opslaan', () => {
         const onSave = vi.fn();
         render(<SuggestedTestForm t={t} turn={TURN} suggestion={SUGGESTION} onSave={onSave} />);
         fireEvent.change(screen.getByTestId('agent-tests-field-mustMention'), { target: { value: 'open until six on weekdays\n  \nfree parking' } });
-        fireEvent.change(screen.getByTestId('agent-tests-field-mustNotMention'), { target: { value: 'discount' } });
-        fireEvent.change(screen.getByTestId('agent-tests-field-toolsExpected'), { target: { value: '' } });
-        fireEvent.change(screen.getByTestId('agent-tests-field-notes'), { target: { value: '' } });
+        await user.clear(screen.getByTestId('agent-tests-field-mustNotMention'));
+        await user.type(screen.getByTestId('agent-tests-field-mustNotMention'), 'discount');
+        await user.clear(screen.getByTestId('agent-tests-field-toolsExpected'));
+        await user.clear(screen.getByTestId('agent-tests-field-notes'));
         await user.click(screen.getByTestId('agent-tests-suggest-save'));
 
         expect(onSave).toHaveBeenCalledTimes(1);

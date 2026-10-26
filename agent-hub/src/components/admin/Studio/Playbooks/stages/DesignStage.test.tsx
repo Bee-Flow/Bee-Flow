@@ -1,9 +1,10 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import DesignStage from './DesignStage';
 
 import { malformed } from '@/test/mocks';
+import userEvent from '@testing-library/user-event';
 const t = (k: string, f: string, v: unknown) => (v ? Object.entries(v).reduce((s, [a, b]) => s.replace(`{${a}}`, String(b)), f) : f);
 const DESIGN = {
     name: 'Facturen', tagline: 'Alles in één oogopslag',
@@ -43,14 +44,16 @@ describe('DesignStage — the designer\'s answer as wireframes', () => {
     });
 
     it('asks for a change: the whole design goes back to the designer, the stage says it is redrawing, and a refusal is said out loud', async () => {
+        const user = userEvent.setup();
         const dispatch = vi.fn(async () => ({ id: 'pb_1' }));
         const phase = { key: 'design', status: 'awaiting', attempt: 0, artifacts: { design: DESIGN, designName: 'Facturen', screenCount: 2, elementCount: 6, revisions: ['Zet de totalen bovenaan'] } };
         render(<DesignStage phase={phase} dispatch={dispatch} t={t} reducedMotion />);
         const input = screen.getByTestId('playbook-design-revise-input');
         // Nothing typed, nothing sent.
         expect((screen.getByTestId('playbook-design-revise-send') as HTMLInputElement).disabled).toBe(true);
-        fireEvent.change(input, { target: { value: '  Geef elke leverancier een eigen scherm  ' } });
-        await act(async () => { fireEvent.click(screen.getByTestId('playbook-design-revise-send')); });
+        await user.clear(input);
+        await user.type(input, '  Geef elke leverancier een eigen scherm  ');
+        await act(async () => { await user.click(screen.getByTestId('playbook-design-revise-send')); });
         expect(dispatch).toHaveBeenCalledWith({ type: 'revise', key: 'design', feedback: 'Geef elke leverancier een eigen scherm' });
         await waitFor(() => expect((screen.getByTestId('playbook-design-revise-input') as HTMLInputElement).value).toBe(''));
         // What was asked before stays on screen.
@@ -58,8 +61,9 @@ describe('DesignStage — the designer\'s answer as wireframes', () => {
 
         // The server refused: the design that stands is still there, with a word about it.
         dispatch.mockResolvedValueOnce(malformed<{ id: string }>(null));
-        fireEvent.change(screen.getByTestId('playbook-design-revise-input'), { target: { value: 'Maak het donker' } });
-        await act(async () => { fireEvent.click(screen.getByTestId('playbook-design-revise-send')); });
+        await user.clear(screen.getByTestId('playbook-design-revise-input'));
+        await user.type(screen.getByTestId('playbook-design-revise-input'), 'Maak het donker');
+        await act(async () => { await user.click(screen.getByTestId('playbook-design-revise-send')); });
         await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/could not redraw it/));
         expect(screen.getAllByTestId('playbook-design-screen')).toHaveLength(2);
     });

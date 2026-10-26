@@ -20,7 +20,7 @@
 // the row actually mounts it — is pinned in collectionEditors.retryMount.test.jsx,
 // because the failure it guards against is a file that was never edited.
 
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createElement } from 'react';
 import { describe, it, expect, vi } from 'vitest';
@@ -76,22 +76,24 @@ describe('the "if this fails" row', () => {
 });
 
 describe('the two fields', () => {
-    it('counts the EXTRA tries, the way the runner does', () => {
+    it('counts the EXTRA tries, the way the runner does', async () => {
+        const user = userEvent.setup();
         // execution.js loops `for (i = 1; i <= retry.max; i++)` after the
         // first attempt has already failed, so "3 times" is max: 3 and four
         // attempts in total. Writing 3 as "two more" would quietly change the
         // meaning of every step an author copies from another.
         const { set } = setup({ retry: { max: 2, backoffMs: 5000 } });
-        fireEvent.change(screen.getByRole('combobox', { name: 'Try again' }), { target: { value: '3' } });
+        await user.selectOptions(screen.getByRole('combobox', { name: 'Try again' }), '3');
         expect(set).toHaveBeenCalledWith('retry', { max: 3, backoffMs: 5000 });
     });
 
-    it('shows seconds and stores milliseconds', () => {
+    it('shows seconds and stores milliseconds', async () => {
+        const user = userEvent.setup();
         const { set } = setup({ retry: { max: 2, backoffMs: 5000 } });
         const wait = screen.getByRole('combobox', { name: 'Wait before trying again' });
         expect((wait as HTMLInputElement).value).toBe('5000');
         expect((screen.getByRole('option', { name: 'After 30 seconds' }) as HTMLInputElement).value).toBe('30000');
-        fireEvent.change(wait, { target: { value: '30000' } });
+        await user.selectOptions(wait, '30000');
         expect(set).toHaveBeenCalledWith('retry', { max: 2, backoffMs: 30000 });
     });
 

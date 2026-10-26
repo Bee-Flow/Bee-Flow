@@ -30,11 +30,13 @@ describe('RowCellEditor', () => {
         expect((input as HTMLInputElement).value).toBe('2026-03-14');
     });
 
-    it('commits a typed number as a number on blur, and not at all on Escape', () => {
+    it('commits a typed number as a number on blur, and not at all on Escape', async () => {
+        const user = userEvent.setup();
         const { onCommit, onCancel } = renderCell({ key: 'amount', name: 'Amount', type: 'number' }, 12);
         const input = screen.getByLabelText('Amount');
 
-        fireEvent.change(input, { target: { value: '18.5' } });
+        await user.clear(input);
+        await user.type(input, '18.5');
         fireEvent.keyDown(input, { key: 'Escape' });
         expect(onCancel).toHaveBeenCalled();
         expect(onCommit).not.toHaveBeenCalled();

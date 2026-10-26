@@ -100,15 +100,15 @@ describe('ComplianceStage — the closing reading', () => {
         // The person changes what they want, CHOOSES THE BASIS themselves —
         // the one thing on this form that is theirs to decide — and unticks
         // one finding.
-        fireEvent.change(screen.getByTestId('playbook-compliance-basis'), { target: { value: 'consent' } });
+        await user.selectOptions(screen.getByTestId('playbook-compliance-basis'), 'consent');
         expect(screen.queryByTestId('playbook-compliance-basis-open')).toBeNull();
-        fireEvent.change(screen.getByTestId('playbook-compliance-subject'), { target: { value: 'supplier' } });
+        await user.selectOptions(screen.getByTestId('playbook-compliance-subject'), 'supplier');
         await user.click(screen.getByTestId('playbook-compliance-notes-toggle'));
         const boxes = screen.getAllByTestId('playbook-compliance-keep');
         expect(boxes).toHaveLength(2);
         await user.click(boxes[1]);   // drop the second from the risk register
 
-        await act(async () => { fireEvent.click(screen.getByTestId('playbook-compliance-register-go')); });
+        await act(async () => { await user.click(screen.getByTestId('playbook-compliance-register-go')); });
         await waitFor(() => expect(playbooksApi.register).toHaveBeenCalledWith('pb_1', 'compliance', {
             registration: { lawfulBasis: 'consent', retentionDays: 365, retentionField: 'created_at', subjectColumn: 'supplier' },
             risks: ['personal_data_org_wide'],
@@ -193,6 +193,7 @@ describe('ComplianceStage — the verdict, and fixing what it found', () => {
     });
 
     it('Resolve proposes in words, writes only on Apply, and then reads the review again', async () => {
+        const user = userEvent.setup();
         const dispatch = vi.fn();
         asMock(playbooksApi.resolvePlan).mockResolvedValue({
             plan: {
@@ -211,14 +212,14 @@ describe('ComplianceStage — the verdict, and fixing what it found', () => {
         expect(buttons).toHaveLength(1);
         expect(screen.getByTestId('playbook-compliance-manual').textContent).toMatch(/needs you/);
 
-        await act(async () => { fireEvent.click(buttons[0]); });
+        await act(async () => { await user.click(buttons[0]); });
         await waitFor(() => expect(playbooksApi.resolvePlan).toHaveBeenCalledWith('pb_1', 'compliance', 'ai_no_guard_aut_1'));
         const proposal = screen.getByTestId('playbook-compliance-proposal');
         expect(proposal.textContent).toContain('Put a "Hide personal data" step in front of');
         expect(proposal.textContent).toMatch(/Nothing is written until you press Apply/);
         expect(playbooksApi.runPhase).not.toHaveBeenCalled();
 
-        await act(async () => { fireEvent.click(screen.getByTestId('playbook-compliance-apply')); });
+        await act(async () => { await user.click(screen.getByTestId('playbook-compliance-apply')); });
         // The write went out, and THEN the review was read again.
         await waitFor(() => expect(playbooksApi.runPhase).toHaveBeenCalledWith('pb_1', 'compliance', { recheck: true }));
         expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: 'replace' }));
@@ -230,10 +231,11 @@ describe('ComplianceStage — the verdict, and fixing what it found', () => {
     });
 
     it('Check again re-runs the review without moving the phase', async () => {
+        const user = userEvent.setup();
         const dispatch = vi.fn();
         asMock(playbooksApi.runPhase).mockResolvedValue({ playbook: { id: 'pb_1', phases: [] } });
         render(<ComplianceStage playbook={PB} phase={phaseWith()} dispatch={dispatch} t={t} />);
-        await act(async () => { fireEvent.click(screen.getByTestId('playbook-compliance-recheck')); });
+        await act(async () => { await user.click(screen.getByTestId('playbook-compliance-recheck')); });
         expect(playbooksApi.runPhase).toHaveBeenCalledWith('pb_1', 'compliance', { recheck: true });
     });
 
@@ -323,6 +325,7 @@ describe('ComplianceStage — fixing what the AI itself noticed', () => {
     });
 
     it('the register panel fills itself in with AI, and still writes nothing until Register', async () => {
+        const user = userEvent.setup();
         asMock(playbooksApi.resolvePlan).mockResolvedValue({
             plan: {
                 code: 'ai_0', title: 'Record this processing',
@@ -333,7 +336,7 @@ describe('ComplianceStage — fixing what the AI itself noticed', () => {
             },
         });
         render(<ComplianceStage playbook={PB} phase={phase} dispatch={vi.fn()} t={t} />);
-        await act(async () => { fireEvent.click(screen.getByTestId('playbook-compliance-suggest')); });
+        await act(async () => { await user.click(screen.getByTestId('playbook-compliance-suggest')); });
         // A model proposal DOES fill the field — the person asked for it by
         // pressing the button, and the gate below is still the only writer.
         await waitFor(() => expect((screen.getByTestId('playbook-compliance-basis') as HTMLInputElement).value).toBe('legal_obligation'));

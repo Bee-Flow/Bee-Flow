@@ -189,7 +189,8 @@ describe('FlowletsPanel', () => {
         // digest is the second row → its pencil opens its rename field.
         await user.click(screen.getAllByLabelText('Rename flowlet')[1]);
         const input = screen.getByDisplayValue('Send digest');
-        fireEvent.change(input, { target: { value: 'Daily digest' } });
+        await user.clear(input);
+        await user.type(input, 'Daily digest');
         fireEvent.keyDown(input, { key: 'Enter' });
         expect(props.onRenameLayer).toHaveBeenCalledWith('digest', 'Daily digest');
         // Opening rename must not have triggered a drill-in.

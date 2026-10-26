@@ -98,28 +98,32 @@ describe('OrgUsersPanel — member filter bar', () => {
     });
 
     it('filters by org role', async () => {
+        const user = userEvent.setup();
         await renderPanel();
-        fireEvent.change(screen.getByDisplayValue('admin.org_all_roles'), { target: { value: 'org_admin' } });
+        await user.selectOptions(screen.getByDisplayValue('admin.org_all_roles'), 'org_admin');
         await waitFor(() => expect(names()).toEqual(['Jan de Vries']));
     });
 
     it('filters by group', async () => {
+        const user = userEvent.setup();
         await renderPanel();
-        fireEvent.change(screen.getByDisplayValue('admin.org_all_groups'), { target: { value: 'g_sup' } });
+        await user.selectOptions(screen.getByDisplayValue('admin.org_all_groups'), 'g_sup');
         await waitFor(() => expect(names()).toEqual(['Piet Jansen']));
     });
 
     it('filters by status', async () => {
+        const user = userEvent.setup();
         await renderPanel();
-        fireEvent.change(screen.getByDisplayValue('admin.org_all_statuses'), { target: { value: 'pending' } });
+        await user.selectOptions(screen.getByDisplayValue('admin.org_all_statuses'), 'pending');
         await waitFor(() => expect(names()).toEqual(['Piet Jansen']));
     });
 
     it('composes filters rather than replacing them', async () => {
+        const user = userEvent.setup();
         await renderPanel();
-        fireEvent.change(screen.getByDisplayValue('admin.org_all_groups'), { target: { value: 'g_fin' } });
+        await user.selectOptions(screen.getByDisplayValue('admin.org_all_groups'), 'g_fin');
         await waitFor(() => expect(names()).toEqual(['Jan de Vries', 'Eva Bakker']));
-        fireEvent.change(screen.getByDisplayValue('admin.org_all_roles'), { target: { value: 'member' } });
+        await user.selectOptions(screen.getByDisplayValue('admin.org_all_roles'), 'member');
         await waitFor(() => expect(names()).toEqual(['Eva Bakker']));
     });
 
@@ -140,11 +144,12 @@ describe('OrgUsersPanel — member filter bar', () => {
     });
 
     it('offers Clear only once a filter is active, and resets every axis', async () => {
+        const user = userEvent.setup();
         await renderPanel();
         expect(screen.queryByText('Clear')).not.toBeInTheDocument();
 
         fireEvent.change(screen.getByPlaceholderText('Search by name or email…'), { target: { value: 'eva' } });
-        fireEvent.change(screen.getByDisplayValue('admin.org_all_roles'), { target: { value: 'member' } });
+        await user.selectOptions(screen.getByDisplayValue('admin.org_all_roles'), 'member');
         const clear = await screen.findByText('Clear');
 
         await userEvent.click(clear);

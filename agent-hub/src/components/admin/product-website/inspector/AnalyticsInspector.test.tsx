@@ -13,30 +13,35 @@ const siteWith = (analytics = {}, cookieBanner = { enabled: true }) => ({
 const idInput = () => screen.getByPlaceholderText('G-XXXXXXXXXX');
 
 describe('AnalyticsInspector', () => {
-    it('commits a valid measurement ID on blur (uppercased)', () => {
+    it('commits a valid measurement ID on blur (uppercased)', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         render(<AnalyticsInspector site={siteWith()} onChange={onChange} />);
-        fireEvent.change(idInput(), { target: { value: 'g-abcd1234' } });
+        await user.clear(idInput());
+        await user.type(idInput(), 'g-abcd1234');
         fireEvent.blur(idInput());
         expect(onChange).toHaveBeenCalledWith({ gaMeasurementId: 'G-ABCD1234' });
     });
 
-    it('blocks an invalid ID with a message and reverts on blur', () => {
+    it('blocks an invalid ID with a message and reverts on blur', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         render(<AnalyticsInspector site={siteWith({ gaMeasurementId: 'G-OLD11111' })} onChange={onChange} />);
         // The input strips characters that can never appear in a measurement
         // ID, so an "invalid" draft is one that's structurally wrong (G-XX).
-        fireEvent.change(idInput(), { target: { value: 'G-XX' } });
+        await user.clear(idInput());
+        await user.type(idInput(), 'G-XX');
         expect(screen.getByText(/Not a GA4 measurement ID/)).toBeInTheDocument();
         fireEvent.blur(idInput());
         expect(onChange).not.toHaveBeenCalled();
         expect((idInput() as HTMLInputElement).value).toBe('G-OLD11111');
     });
 
-    it('allows clearing the ID (disables GA)', () => {
+    it('allows clearing the ID (disables GA)', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         render(<AnalyticsInspector site={siteWith({ gaMeasurementId: 'G-OLD11111' })} onChange={onChange} />);
-        fireEvent.change(idInput(), { target: { value: '' } });
+        await user.clear(idInput());
         fireEvent.blur(idInput());
         expect(onChange).toHaveBeenCalledWith({ gaMeasurementId: '' });
     });

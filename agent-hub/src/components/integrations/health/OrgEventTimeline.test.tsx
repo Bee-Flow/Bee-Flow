@@ -1,4 +1,4 @@
-import { screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ok } from '@/test/http';
@@ -60,10 +60,11 @@ describe('OrgEventTimeline', () => {
     });
 
     it('refetches with the severity filter param', async () => {
+        const user = userEvent.setup();
         asMock(authFetch).mockImplementation(() => ok({ events: EVENTS, nextCursor: null }));
         render(<OrgEventTimeline orgId="org-b" />);
         await screen.findByText('Chat blocked: subscription');
-        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'error' } });
+        await user.selectOptions(screen.getByRole('combobox'), 'error');
         await waitFor(() => {
             expect(asMock(authFetch).mock.calls.some(([url]) => String(url).includes('severity=error'))).toBe(true);
         });

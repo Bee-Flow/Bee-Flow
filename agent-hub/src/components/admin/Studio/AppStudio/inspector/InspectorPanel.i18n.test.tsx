@@ -172,10 +172,11 @@ describe('InspectorPanel — the translated destructive path', () => {
     });
 
     it('labels the action-kind select, which has no visible name at all', async () => {
+        const user = userEvent.setup();
         await renderPanel('cmp_refre1');
         showBehaviour();
         for (const button of screen.queryAllByRole('button', { expanded: false })) {
-            if (/all options/i.test(button.textContent || '')) fireEvent.click(button);
+            if (/all options/i.test(button.textContent || '')) await user.click(button);
         }
 
         expect(screen.getByRole('combobox', { name: 'Soort actie' })).toBeInTheDocument();

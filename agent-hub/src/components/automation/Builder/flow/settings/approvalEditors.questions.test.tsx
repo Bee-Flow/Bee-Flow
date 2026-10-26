@@ -102,7 +102,8 @@ describe('the approval question list, in the builder', () => {
         const { onPatch } = renderForm();
         await user.click(await screen.findByText('Add a question'));
         const label = await screen.findByPlaceholderText('Question label');
-        fireEvent.change(label, { target: { value: 'Invoice number' } });
+        await user.clear(label);
+        await user.type(label, 'Invoice number');
         fireEvent.blur(label);
         const patch = await lastPatch(onPatch);
         expect(patch.approval.fields).toEqual([
@@ -111,9 +112,11 @@ describe('the approval question list, in the builder', () => {
     });
 
     it('rewording the label does NOT rename the binding a later step is using', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm({ fields: [question()] });
         const label = await screen.findByDisplayValue('Invoice number');
-        fireEvent.change(label, { target: { value: 'Invoice number (from the PO)' } });
+        await user.clear(label);
+        await user.type(label, 'Invoice number (from the PO)');
         fireEvent.blur(label);
         const patch = await lastPatch(onPatch);
         expect(patch.approval.fields[0].label).toBe('Invoice number (from the PO)');
@@ -129,7 +132,8 @@ describe('the approval question list, in the builder', () => {
         const { onPatch } = renderForm();
         await user.click(await screen.findByText('Add a question'));
         const label = await screen.findByPlaceholderText('Question label');
-        fireEvent.change(label, { target: { value: '2nd signature' } });
+        await user.clear(label);
+        await user.type(label, '2nd signature');
         fireEvent.blur(label);
         const patch = await lastPatch(onPatch);
         // Before this was fixed the slug was "2nd_signature": save-time
@@ -144,6 +148,7 @@ describe('the approval question list, in the builder', () => {
     });
 
     it('never prints a binding the stored definition does not have', async () => {
+        const user = userEvent.setup();
         // The name is minted when the label box is LEFT, so between the first
         // keystroke and that blur the stored name is still the placeholder —
         // and the debounce saves in that window. Printing the slug the author
@@ -155,16 +160,18 @@ describe('the approval question list, in the builder', () => {
         // through the hint instead of through a rename.
         const { onPatch } = renderForm({ fields: [{ name: 'q1', label: '', type: 'text', required: false }] });
         const label = await screen.findByPlaceholderText('Question label');
-        fireEvent.change(label, { target: { value: 'Invoice number' } });
+        await user.clear(label);
+        await user.type(label, 'Invoice number');
         const stored = (await lastPatch(onPatch)).approval.fields[0].name;
         expect(await screen.findByText(`output.answers.${stored}`)).toBeInTheDocument();
     });
 
     it('a yes/no approval still stores no fields at all', async () => {
+        const user = userEvent.setup();
         // The byte-identical half of the contract: an approval nobody added a
         // question to must keep exactly the shape it has always had.
         const { onPatch } = renderForm();
-        fireEvent.change(await screen.findByLabelText('Approval deadline'), { target: { value: '24' } });
+        await user.selectOptions(await screen.findByLabelText('Approval deadline'), '24');
         const patch = await lastPatch(onPatch);
         expect(patch.approval).toEqual({ expiresInHours: 24 });
     });

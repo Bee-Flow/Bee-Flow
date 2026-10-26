@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import type { ComponentProps } from 'react';
@@ -34,9 +34,9 @@ describe('DeckLookFields — document mode', () => {
         expect(setDeck).toHaveBeenCalledWith('preset', '');
         const numbers = screen.getByTestId('document-deck-slideNumbers');
         expect((numbers as HTMLInputElement).value).toBe('off');
-        fireEvent.change(numbers, { target: { value: '' } });
+        await user.selectOptions(numbers, '');
         expect(setDeck).toHaveBeenCalledWith('slideNumbers', undefined);
-        fireEvent.change(numbers, { target: { value: 'on' } });
+        await user.selectOptions(numbers, 'on');
         expect(setDeck).toHaveBeenCalledWith('slideNumbers', true);
         // Selects carry the inherit option too.
         expect(screen.getByTestId('document-deck-coverStyle').querySelector('option[value=""]')!.textContent).toBe('House style');
@@ -49,7 +49,7 @@ describe('DeckLookFields — document mode', () => {
         expect(screen.getByTestId('document-deck-logo-house').getAttribute('aria-checked')).toBe('true');
         await user.click(screen.getByTestId('document-deck-logo-none'));
         expect(setDeck).toHaveBeenCalledWith('logo', 'none');
-        fireEvent.change(screen.getByTestId('document-deck-logo-file'), { target: { files: [new File(['x'], 'logo.png', { type: 'image/png' })] } });
+        await user.upload(screen.getByTestId('document-deck-logo-file'), [new File(['x'], 'logo.png', { type: 'image/png' })]);
         await vi.waitFor(() => expect(setDeck).toHaveBeenCalledWith('logo', 'data:image/png;base64,AAA='));
         rerender(<DeckLookFields mode="document" testPrefix="document-deck" deck={{ logo: 'data:image/png;base64,AAA=', template: 'none' }} setDeck={setDeck} style={HOUSE} t={stub<ComponentProps<typeof DeckLookFields>['t']>(t)} />);
         expect(screen.getByTestId('document-deck-logo-own').getAttribute('aria-checked')).toBe('true');
@@ -57,7 +57,7 @@ describe('DeckLookFields — document mode', () => {
         expect(screen.getByTestId('document-deck-template-none').getAttribute('aria-checked')).toBe('true');
         await user.click(screen.getByTestId('document-deck-template-house'));
         expect(setDeck).toHaveBeenCalledWith('template', undefined);
-        fireEvent.change(screen.getByTestId('document-deck-template-file'), { target: { files: [new File(['x'], 'Conf.pptx')] } });
+        await user.upload(screen.getByTestId('document-deck-template-file'), [new File(['x'], 'Conf.pptx')]);
         await vi.waitFor(() => expect(setDeck).toHaveBeenCalledWith('template', expect.objectContaining({ name: 'Conf.pptx' })));
         // No house-style suggestions in document mode: the letterhead is not this document's to change.
         expect(screen.queryByTestId('house-style-template-suggestions')).toBeNull();

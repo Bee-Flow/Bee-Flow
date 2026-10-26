@@ -1,4 +1,4 @@
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
@@ -6,6 +6,7 @@ import scopedStorage from '../../../../utils/scopedStorage';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import { partial, stub } from '@/test/mocks';
 import type { ComponentProps } from 'react';
+import userEvent from '@testing-library/user-event';
 
 /**
  * "1 field still empty" — the footer pill (artboard 2b).
@@ -89,14 +90,16 @@ describe('SettingsForm — the "still empty" footer pill', () => {
         expect(screen.queryByTestId('settings-empty-slots')).toBeNull();
     });
 
-    it('updates while you type, not after a save', () => {
+    it('updates while you type, not after a save', async () => {
+        const user = userEvent.setup();
         // The count is read off the live DRAFT. Reading the saved step instead
         // would leave the pill claiming "1 field still empty" over a field the
         // user just filled in.
         renderForm({ id: 's1', type: 'set', label: '', fields: { name: '' } });
         expect(screen.getByTestId('settings-empty-slots').textContent).toBe('1 field still empty');
         const label = screen.getByDisplayValue('');
-        fireEvent.change(label, { target: { value: 'Renamed' } });
+        await user.clear(label);
+        await user.type(label, 'Renamed');
         // The label is not a declared slot, so the count is unchanged — but the
         // pill re-rendered off the draft rather than going stale or vanishing.
         expect(screen.getByTestId('settings-empty-slots').textContent).toBe('1 field still empty');

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
+import { render, screen, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
@@ -98,7 +98,8 @@ describe('IncidentDrawer — the GDPR breach row: filing, closing, editing', () 
     it('records the authority notification with the reference the user typed, and nothing else', async () => {
         const user = userEvent.setup();
         const { onUpdate } = drawer();
-        fireEvent.change(screen.getByTestId('inc-drawer-authority-ref'), { target: { value: '  AP-2026-118  ' } });
+        await user.clear(screen.getByTestId('inc-drawer-authority-ref'));
+        await user.type(screen.getByTestId('inc-drawer-authority-ref'), '  AP-2026-118  ');
         await user.click(screen.getByTestId('inc-drawer-authority'));
         expect(onUpdate).toHaveBeenCalledWith(4, { status: 'authority_notified', authority_reference: 'AP-2026-118' });
     });
@@ -136,7 +137,8 @@ describe('IncidentDrawer — the GDPR breach row: filing, closing, editing', () 
         const user = userEvent.setup();
         const { onUpdate } = drawer();
         expect(screen.queryByRole('button', { name: 'Save' })).toBeNull();
-        fireEvent.change(screen.getByTestId('inc-drawer-title'), { target: { value: 'Lost laptop (encrypted after all)' } });
+        await user.clear(screen.getByTestId('inc-drawer-title'));
+        await user.type(screen.getByTestId('inc-drawer-title'), 'Lost laptop (encrypted after all)');
         const save = within(screen.getByTestId('inc-drawer-foot')).getByRole('button', { name: 'Save' });
         expect((save as HTMLInputElement).disabled).toBe(false);
         await user.click(save);
@@ -148,9 +150,11 @@ describe('IncidentDrawer — the GDPR breach row: filing, closing, editing', () 
         });
     });
 
-    it('an emptied title can never be saved', () => {
+    it('an emptied title can never be saved', async () => {
+        const user = userEvent.setup();
         drawer();
-        fireEvent.change(screen.getByTestId('inc-drawer-title'), { target: { value: '   ' } });
+        await user.clear(screen.getByTestId('inc-drawer-title'));
+        await user.type(screen.getByTestId('inc-drawer-title'), '   ');
         expect((screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement).disabled).toBe(true);
     });
 
@@ -188,8 +192,10 @@ describe('IncidentDrawer — the CRA vulnerability row', () => {
         const user = userEvent.setup();
         const { onCraReport } = drawer({ incident: VULN });
         expect(screen.queryByTestId('inc-drawer-cra-full')).toBeNull();
-        fireEvent.change(screen.getByTestId('inc-drawer-cra-via'), { target: { value: 'ENISA platform' } });
-        fireEvent.change(screen.getByTestId('inc-drawer-cra-ref'), { target: { value: 'EW-77' } });
+        await user.clear(screen.getByTestId('inc-drawer-cra-via'));
+        await user.type(screen.getByTestId('inc-drawer-cra-via'), 'ENISA platform');
+        await user.clear(screen.getByTestId('inc-drawer-cra-ref'));
+        await user.type(screen.getByTestId('inc-drawer-cra-ref'), 'EW-77');
         await user.click(screen.getByTestId('inc-drawer-cra-early'));
         expect(onCraReport).toHaveBeenCalledWith(9, { stage: 'early_warning', reported_via: 'ENISA platform', reference: 'EW-77' });
         expect(screen.getByTestId('inc-drawer-next').textContent).toMatch(/never the vulnerability details/i);

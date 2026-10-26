@@ -114,7 +114,8 @@ describe('StudioSectionHeader — back and rename', () => {
         await user.click(screen.getByTestId('studio-section-title'));
         const input = screen.getByTestId('studio-section-title-input');
         expect((input as HTMLInputElement).value).toBe('Offerte-kennis');
-        fireEvent.change(input, { target: { value: '  Offertes  ' } });
+        await user.clear(input);
+        await user.type(input, '  Offertes  ');
         fireEvent.keyDown(input, { key: 'Enter' });
         expect(onRename).toHaveBeenCalledWith('Offertes');
         expect(screen.queryByTestId('studio-section-title-input')).toBeNull();
@@ -126,7 +127,7 @@ describe('StudioSectionHeader — back and rename', () => {
         renderHeader({ onRename });
         await user.click(screen.getByTestId('studio-section-title'));
         let input = screen.getByTestId('studio-section-title-input');
-        fireEvent.change(input, { target: { value: '' } });
+        await user.clear(input);
         fireEvent.blur(input);
         expect(onRename).not.toHaveBeenCalled();
 
@@ -137,7 +138,8 @@ describe('StudioSectionHeader — back and rename', () => {
 
         await user.click(screen.getByTestId('studio-section-title'));
         input = screen.getByTestId('studio-section-title-input');
-        fireEvent.change(input, { target: { value: 'Something else' } });
+        await user.clear(input);
+        await user.type(input, 'Something else');
         fireEvent.keyDown(input, { key: 'Escape' });
         expect(onRename).not.toHaveBeenCalled();
         expect(screen.getByTestId('studio-section-title')).toHaveTextContent('Offerte-kennis');

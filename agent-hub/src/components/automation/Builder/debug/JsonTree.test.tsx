@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import JsonTree, { collectMatches } from './JsonTree';
@@ -13,25 +13,31 @@ const NESTED = { level1: { level2: { level3: { leaf: 'deep' } } } };
 describe('JsonTree — search', () => {
     beforeEach(() => cleanup());
 
-    it('keeps a match and its ancestors, and drops everything else', () => {
+    it('keeps a match and its ancestors, and drops everything else', async () => {
+        const user = userEvent.setup();
         render(<JsonTree value={DATA} />);
-        fireEvent.change(screen.getByLabelText('Search keys or values'), { target: { value: 'needle' } });
+        await user.clear(screen.getByLabelText('Search keys or values'));
+        await user.type(screen.getByLabelText('Search keys or values'), 'needle');
         expect(screen.getByText('alpha:')).toBeTruthy();
         expect(screen.getByText('needle:')).toBeTruthy();
         expect(screen.queryByText('beta:')).toBeNull();
         expect(screen.queryByText('other:')).toBeNull();
     });
 
-    it('matches on values, not only on keys', () => {
+    it('matches on values, not only on keys', async () => {
+        const user = userEvent.setup();
         render(<JsonTree value={DATA} />);
-        fireEvent.change(screen.getByLabelText('Search keys or values'), { target: { value: 'here' } });
+        await user.clear(screen.getByLabelText('Search keys or values'));
+        await user.type(screen.getByLabelText('Search keys or values'), 'here');
         expect(screen.getByText('beta:')).toBeTruthy();
         expect(screen.queryByText('alpha:')).toBeNull();
     });
 
-    it('says so when nothing matches, instead of showing a blank panel', () => {
+    it('says so when nothing matches, instead of showing a blank panel', async () => {
+        const user = userEvent.setup();
         render(<JsonTree value={DATA} />);
-        fireEvent.change(screen.getByLabelText('Search keys or values'), { target: { value: 'zzz' } });
+        await user.clear(screen.getByLabelText('Search keys or values'));
+        await user.type(screen.getByLabelText('Search keys or values'), 'zzz');
         expect(screen.getByText(/Nothing matches/)).toBeTruthy();
     });
 

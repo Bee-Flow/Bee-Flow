@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AppList from './AppList';
@@ -252,9 +252,8 @@ describe('AppList', () => {
         await screen.findByText('My tracker');
 
         await user.click(screen.getByRole('button', { name: /New app/ }));
-        fireEvent.change(screen.getByPlaceholderText('e.g. Vacation requests'), {
-            target: { value: 'Vacation requests' },
-        });
+        await user.clear(screen.getByPlaceholderText('e.g. Vacation requests'));
+        await user.type(screen.getByPlaceholderText('e.g. Vacation requests'), 'Vacation requests');
         await user.click(screen.getByRole('button', { name: /Create app/ }));
 
         await waitFor(() => expect(studioAppsApi.createApp).toHaveBeenCalledWith({ name: 'Vacation requests' }));
@@ -287,7 +286,8 @@ describe('AppList', () => {
         await user.click(screen.getByRole('menuitem', { name: 'Rename' }));
 
         const input = await screen.findByLabelText('App name');
-        fireEvent.change(input, { target: { value: 'Renamed' } });
+        await user.clear(input);
+        await user.type(input, 'Renamed');
         await user.click(screen.getByRole('button', { name: 'Save' }));
 
         await waitFor(() => expect(studioAppsApi.updateApp).toHaveBeenCalledWith('app-owned', { name: 'Renamed' }));

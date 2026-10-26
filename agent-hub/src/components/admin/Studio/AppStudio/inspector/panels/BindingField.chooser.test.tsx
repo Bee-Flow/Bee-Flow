@@ -94,9 +94,10 @@ describe('BindingField — nothing chosen yet', () => {
         const utils = renderField({ kind: 'static', value: [] });
         await user.click(utils.getByText('Type the values myself'));
         const box = utils.getByLabelText('Typed-in value');
-        fireEvent.change(box, { target: { value: 'a' } });
+        await user.clear(box);
+        await user.type(box, 'a');
         utils.selectOtherNode(utils.last());
-        fireEvent.change(utils.getByLabelText('Typed-in value'), { target: { value: '' } });
+        await user.clear(utils.getByLabelText('Typed-in value'));
         utils.selectOtherNode(utils.last());
         expect(utils.queryByText('No data yet — choose where this comes from.')).toBeNull();
     });
@@ -148,26 +149,29 @@ describe('BindingField — one value out of a saved view', () => {
     });
 
     it('a stat picks the column its number comes from', async () => {
+        const user = userEvent.setup();
         asMock(authFetch).mockResolvedValue({ ok: true, status: 200, json: async () => ({ datasets: DATASETS }) });
         const utils = renderField({ kind: 'dataset', datasetId: 'ds_1', pick: { row: 'first', column: '' } }, stub<Parameters<typeof renderField>[1]>({ singleValue: true }));
         const select = await utils.findByRole('combobox', { name: 'Which column' });
-        fireEvent.change(select, { target: { value: 'open_count' } });
+        await user.selectOptions(select, 'open_count');
         expect(utils.last()).toEqual({ kind: 'dataset', datasetId: 'ds_1', pick: { row: 'first', column: 'open_count' } });
     });
 
     it('the last row is reachable too', async () => {
+        const user = userEvent.setup();
         asMock(authFetch).mockResolvedValue({ ok: true, status: 200, json: async () => ({ datasets: DATASETS }) });
         const utils = renderField({ kind: 'dataset', datasetId: 'ds_1', pick: { row: 'first', column: 'open_count' } }, stub<Parameters<typeof renderField>[1]>({ singleValue: true }));
         const select = await utils.findByRole('combobox', { name: 'Which row' });
-        fireEvent.change(select, { target: { value: 'last' } });
+        await user.selectOptions(select, 'last');
         expect(utils.last()).toEqual({ kind: 'dataset', datasetId: 'ds_1', pick: { row: 'last', column: 'open_count' } });
     });
 
     it('a hand-typed column name stays possible', async () => {
+        const user = userEvent.setup();
         asMock(authFetch).mockResolvedValue({ ok: true, status: 200, json: async () => ({ datasets: DATASETS }) });
         const utils = renderField({ kind: 'dataset', datasetId: 'ds_1', pick: { row: 'first', column: 'open_count' } }, stub<Parameters<typeof renderField>[1]>({ singleValue: true }));
         const select = await utils.findByRole('combobox', { name: 'Which column' });
-        fireEvent.change(select, { target: { value: '__own' } });
+        await user.selectOptions(select, '__own');
         fireEvent.change(utils.getByRole('textbox', { name: 'Column name' }), { target: { value: 'total' } });
         expect(utils.last()).toEqual({ kind: 'dataset', datasetId: 'ds_1', pick: { row: 'first', column: 'total' } });
     });

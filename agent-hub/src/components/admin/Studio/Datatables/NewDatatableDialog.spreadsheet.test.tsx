@@ -163,7 +163,8 @@ describe('the card', () => {
         const onCreated = vi.fn();
         open({ onCreated });
         await screen.findByRole('radio', { name: CARD });
-        fireEvent.change(screen.getByPlaceholderText('Customers'), { target: { value: 'Klanten' } });
+        await user.clear(screen.getByPlaceholderText('Customers'));
+        await user.type(screen.getByPlaceholderText('Customers'), 'Klanten');
         fireEvent.change(screen.getByPlaceholderText(/onboarding e-mail/), { target: { value: 'the list' } });
         await user.click(screen.getByRole('button', { name: /^Create$/ }));
         await waitFor(() => expect(datatablesApi.create).toHaveBeenCalled());

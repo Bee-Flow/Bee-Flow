@@ -15,6 +15,7 @@ vi.mock('@/utils/helpers', async (importOriginal) => {
 });
 import { authFetch } from '@/utils/helpers';
 import { asMock } from '@/test/mocks';
+import userEvent from '@testing-library/user-event';
 
 beforeEach(() => {
     asMock(authFetch).mockReset();
@@ -45,11 +46,13 @@ function renderPanel(node = NODE) {
 }
 
 describe('AiChatInspector — starter questions', () => {
-    it('keeps the newline that starts a second question', () => {
+    it('keeps the newline that starts a second question', async () => {
+        const user = userEvent.setup();
         const { getByLabelText, lastProps } = renderPanel();
         const field = getByLabelText('Starter questions');
 
-        fireEvent.change(field, { target: { value: 'How do I file a return?' } });
+        await user.clear(field);
+        await user.type(field, 'How do I file a return?');
         fireEvent.change(field, { target: { value: 'How do I file a return?\n' } });
         expect((field as HTMLInputElement).value).toBe('How do I file a return?\n');
 

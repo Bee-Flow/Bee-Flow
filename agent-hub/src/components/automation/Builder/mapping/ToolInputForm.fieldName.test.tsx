@@ -2,6 +2,7 @@ import { render, screen, fireEvent, cleanup, Matcher } from '@testing-library/re
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import ToolInputForm from './ToolInputForm';
 import { VariablePickerProvider } from './VariablePickerContext';
+import userEvent from '@testing-library/user-event';
 
 /**
  * Set/layer_output field-NAME editing — node-audit B12 + user report.
@@ -25,42 +26,49 @@ const nameInput = (value: Matcher) => screen.getByDisplayValue(value);
 describe('ToolInputForm — field name commit-on-blur', () => {
     beforeEach(() => cleanup());
 
-    it('typing does NOT rename per keystroke; blur commits once', () => {
+    it('typing does NOT rename per keystroke; blur commits once', async () => {
+        const user = userEvent.setup();
         const { onChange } = renderSetFields({ greeting: { kind: 'literal', value: 'hi' } });
         const input = nameInput('greeting');
-        fireEvent.change(input, { target: { value: 'salutation' } });
+        await user.clear(input);
+        await user.type(input, 'salutation');
         expect(onChange).not.toHaveBeenCalled();
         fireEvent.blur(input);
         expect(onChange).toHaveBeenCalledTimes(1);
         expect(Object.keys(onChange.mock.calls[0][0])).toEqual(['salutation']);
     });
 
-    it('clearing the name reverts on blur instead of committing an empty key', () => {
+    it('clearing the name reverts on blur instead of committing an empty key', async () => {
+        const user = userEvent.setup();
         const { onChange } = renderSetFields({ greeting: { kind: 'literal', value: 'hi' } });
         const input = nameInput('greeting');
-        fireEvent.change(input, { target: { value: '' } });
+        await user.clear(input);
         fireEvent.blur(input);
         expect(onChange).not.toHaveBeenCalled();
         expect(screen.getByDisplayValue('greeting')).toBeTruthy();
         expect(screen.getByText(/Name required/)).toBeTruthy();
     });
 
-    it('renaming onto an existing sibling shows an error and commits nothing', () => {
+    it('renaming onto an existing sibling shows an error and commits nothing', async () => {
+        const user = userEvent.setup();
         const { onChange } = renderSetFields({
             a: { kind: 'literal', value: '1' },
             b: { kind: 'literal', value: '2' },
         });
         const input = nameInput('a');
-        fireEvent.change(input, { target: { value: 'b' } });
+        await user.clear(input);
+        await user.type(input, 'b');
         fireEvent.blur(input);
         expect(onChange).not.toHaveBeenCalled();
         expect(screen.getByText(/already exists/)).toBeTruthy();
     });
 
-    it('reserved names are refused (the __proto__ silent-vanish trap)', () => {
+    it('reserved names are refused (the __proto__ silent-vanish trap)', async () => {
+        const user = userEvent.setup();
         const { onChange } = renderSetFields({ a: { kind: 'literal', value: '1' } });
         const input = nameInput('a');
-        fireEvent.change(input, { target: { value: '__proto__' } });
+        await user.clear(input);
+        await user.type(input, '__proto__');
         fireEvent.blur(input);
         expect(onChange).not.toHaveBeenCalled();
         expect(screen.getByText(/reserved name/)).toBeTruthy();
@@ -87,10 +95,12 @@ describe('ToolInputForm — field name commit-on-blur', () => {
         expect(next.field_1).toBeUndefined();
     });
 
-    it('a non-rooted dotted name is de-pathed to its last segment', () => {
+    it('a non-rooted dotted name is de-pathed to its last segment', async () => {
+        const user = userEvent.setup();
         const { onChange } = renderSetFields({ a: { kind: 'literal', value: '1' } });
         const input = nameInput('a');
-        fireEvent.change(input, { target: { value: 'some.dotted thing' } });
+        await user.clear(input);
+        await user.type(input, 'some.dotted thing');
         fireEvent.blur(input);
         const next = onChange.mock.calls[0][0];
         // suggestKeyFromPath('some.dotted thing') → identifier-safe tail.

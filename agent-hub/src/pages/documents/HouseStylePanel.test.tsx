@@ -174,7 +174,7 @@ describe('HouseStylePanel — presentations', () => {
         const user = userEvent.setup();
         await renderPanel();
         await user.click(screen.getByTestId('house-style-deck-preset-clean'));
-        fireEvent.change(screen.getByTestId('house-style-deck-tableStyle'), { target: { value: 'lines' } });
+        await user.selectOptions(screen.getByTestId('house-style-deck-tableStyle'), 'lines');
         fireEvent.change(screen.getByTestId('house-style-deck-footer'), { target: { value: 'Vertrouwelijk' } });
         await user.click(screen.getByTestId('house-style-deck-numbers'));
         await user.click(screen.getByTestId('house-style-save'));

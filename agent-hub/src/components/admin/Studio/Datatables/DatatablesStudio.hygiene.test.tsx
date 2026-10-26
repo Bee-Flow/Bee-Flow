@@ -161,9 +161,10 @@ describe('a deep link that FAILED is not reported as a permission answer', () =>
 
 describe('the Used-by tab', () => {
     const openUsage = async (usage: unknown[], props = {}) => {
+        const user = userEvent.setup();
         asMock(datatablesApi.listUsage).mockResolvedValue({ usage });
         renderStudio({ initialDatatableId: 'tbl_1', ...props });
-        fireEvent.click(await screen.findByRole('radio', { name: /Used by/ }));
+        await user.click(await screen.findByRole('radio', { name: /Used by/ }));
     };
 
     it('navigates in-app for an automation this account owns', async () => {
@@ -298,10 +299,12 @@ describe('the list can be searched, at every length', () => {
     });
 
     it('filters on name, key and purpose', async () => {
+        const user = userEvent.setup();
         asMock(datatablesApi.list).mockResolvedValue({ datatables: many, scope: ORG_SCOPE });
         renderStudio();
         const box = await screen.findByLabelText(/Search tables/i);
-        fireEvent.change(box, { target: { value: 'thing 3' } });
+        await user.clear(box);
+        await user.type(box, 'thing 3');
         expect(screen.getByText('Table 3')).toBeInTheDocument();
         expect(screen.queryByText('Table 4')).toBeNull();
     });
@@ -414,7 +417,8 @@ describe('the create dialog can provision one', () => {
 
         await user.click((await screen.findAllByRole('button', { name: /new table/i }))[0]);
         await user.click(screen.getByRole('radio', { name: /Web service answers/ }));
-        fireEvent.change(screen.getByPlaceholderText('Customers'), { target: { value: 'Answers' } });
+        await user.clear(screen.getByPlaceholderText('Customers'));
+        await user.type(screen.getByPlaceholderText('Customers'), 'Answers');
         await user.click(screen.getByRole('button', { name: /^Create$/ }));
 
         await waitFor(() => expect(datatablesApi.createManaged).toHaveBeenCalled());
@@ -438,10 +442,12 @@ describe('the create dialog can provision one', () => {
         renderStudio({ hasPermission: () => true });
 
         await user.click((await screen.findAllByRole('button', { name: /new table/i }))[0]);
-        fireEvent.change(screen.getByPlaceholderText('Customers'), { target: { value: 'Leads' } });
+        await user.clear(screen.getByPlaceholderText('Customers'));
+        await user.type(screen.getByPlaceholderText('Customers'), 'Leads');
         fireEvent.change(screen.getByPlaceholderText(/onboarding e-mail/i), { target: { value: 'inbound leads' } });
         await user.click(screen.getByRole('button', { name: /Add a column/ }));
-        fireEvent.change(screen.getAllByLabelText('Column name')[0], { target: { value: 'Company name' } });
+        await user.clear(screen.getAllByLabelText('Column name')[0]);
+        await user.type(screen.getAllByLabelText('Column name')[0], 'Company name');
         await user.click(screen.getByRole('button', { name: /^Create$/ }));
 
         await waitFor(() => expect(datatablesApi.create).toHaveBeenCalled());
@@ -454,11 +460,13 @@ describe('the create dialog can provision one', () => {
         asMock(datatablesApi.list).mockResolvedValue({ datatables: [], scope: ORG_SCOPE });
         renderStudio({ hasPermission: () => true });
         await user.click((await screen.findAllByRole('button', { name: /new table/i }))[0]);
-        fireEvent.change(screen.getByPlaceholderText('Customers'), { target: { value: 'Leads' } });
+        await user.clear(screen.getByPlaceholderText('Customers'));
+        await user.type(screen.getByPlaceholderText('Customers'), 'Leads');
         fireEvent.change(screen.getByPlaceholderText(/onboarding e-mail/i), { target: { value: 'inbound leads' } });
         await user.click(screen.getByRole('button', { name: /Add a column/ }));
         // `created_at` is a column every table already has.
-        fireEvent.change(screen.getAllByLabelText('Column name')[0], { target: { value: 'created at' } });
+        await user.clear(screen.getAllByLabelText('Column name')[0]);
+        await user.type(screen.getAllByLabelText('Column name')[0], 'created at');
 
         expect(screen.getByText(/every table already has/i)).toBeInTheDocument();
         expect((screen.getByRole('button', { name: /^Create$/ }) as HTMLButtonElement).disabled).toBe(true);

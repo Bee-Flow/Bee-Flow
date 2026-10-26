@@ -96,10 +96,12 @@ describe('SettingsForm — app_event (dynamic availability-gated providers)', ()
         expect(screen.getAllByText('needs connector').length).toBe(2);
     });
 
-    it('the picker can be searched by app name', () => {
+    it('the picker can be searched by app name', async () => {
+        const user = userEvent.setup();
         renderForm(trigger({ provider: 'gmail', event: 'mail.new', filter: null }));
         openPicker();
-        fireEvent.change(screen.getByLabelText('Search apps'), { target: { value: 'next' } });
+        await user.clear(screen.getByLabelText('Search apps'));
+        await user.type(screen.getByLabelText('Search apps'), 'next');
         expect(pickerApps()).toEqual(['Nextcloud']);
     });
 
@@ -189,8 +191,10 @@ describe('SettingsForm — app_event (dynamic availability-gated providers)', ()
         const user = userEvent.setup();
         const { onPatch } = renderForm(trigger({ provider: 'google-sheets', event: 'spreadsheet.changed', filter: null }));
         expect(screen.getByText(/Google Sheets filter/)).toBeTruthy();
-        fireEvent.change(screen.getByPlaceholderText('1AbCDeFgHiJkLmNoPqRsTuV'), { target: { value: 'sheet-1' } });
-        fireEvent.change(screen.getByPlaceholderText('Budget'), { target: { value: 'Invoices' } });
+        await user.clear(screen.getByPlaceholderText('1AbCDeFgHiJkLmNoPqRsTuV'));
+        await user.type(screen.getByPlaceholderText('1AbCDeFgHiJkLmNoPqRsTuV'), 'sheet-1');
+        await user.clear(screen.getByPlaceholderText('Budget'));
+        await user.type(screen.getByPlaceholderText('Budget'), 'Invoices');
         fireEvent.change(screen.getByPlaceholderText('A1:D100'), { target: { value: 'A1:D100' } });
         await user.click(screen.getByText('Save'));
         expect(onPatch).toHaveBeenCalledTimes(1);
@@ -203,7 +207,7 @@ describe('SettingsForm — app_event (dynamic availability-gated providers)', ()
             provider: 'google-sheets', event: 'spreadsheet.changed',
             filter: { spreadsheetId: 'sheet-1', sheet: 'Invoices' },
         }));
-        fireEvent.change(screen.getByPlaceholderText('Budget'), { target: { value: '' } });
+        await user.clear(screen.getByPlaceholderText('Budget'));
         await user.click(screen.getByText('Save'));
         expect(onPatch.mock.calls[0][0].appEvent.filter).toEqual({ spreadsheetId: 'sheet-1' });
 

@@ -122,9 +122,10 @@ describe('SettingsForm — Filter (unified If/Switch/Filter)', () => {
     });
 
     it('the Advanced mode override still flips the runtime type', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm(IF_STEP);
         openAdvanced();
-        fireEvent.change(screen.getByDisplayValue('The whole run'), { target: { value: 'items' } });
+        await user.selectOptions(screen.getByDisplayValue('The whole run'), 'items');
         save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls[0][0];
@@ -309,10 +310,11 @@ describe('SettingsForm — Filter: fan-out is opt-in per node (BFSF-356)', () =>
     });
 
     it('reads the stored choice back and lets Advanced change it in both directions', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm({ ...STORED_ROUTER, matchMode: 'all' });
         openAdvanced();
         expect(screen.getByDisplayValue('Send it to every matching output')).toBeTruthy();
-        fireEvent.change(screen.getByDisplayValue('Send it to every matching output'), { target: { value: 'first' } });
+        await user.selectOptions(screen.getByDisplayValue('Send it to every matching output'), 'first');
         save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         // Turning it off CLEARS the key rather than pinning 'first' forever.
@@ -320,10 +322,11 @@ describe('SettingsForm — Filter: fan-out is opt-in per node (BFSF-356)', () =>
     });
 
     it('a stored first-match router can be opted in on purpose', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm(STORED_ROUTER);
         openAdvanced();
         const select = screen.getByDisplayValue('Send it to the first matching output only');
-        fireEvent.change(select, { target: { value: 'all' } });
+        await user.selectOptions(select, 'all');
         save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         expect(onPatch.mock.calls[0][0].matchMode).toBe('all');

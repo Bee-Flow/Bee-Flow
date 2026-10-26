@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import type { ComponentProps } from 'react';
+import userEvent from '@testing-library/user-event';
 
 // BFSF-345 — the Wait step's duration field.
 //
@@ -29,30 +30,34 @@ const unit = () => screen.getByLabelText('Duration unit');
 beforeEach(() => cleanup());
 
 describe('SettingsForm — wait duration', () => {
-    it('lets you clear the field and type a new value without snapping back to 1', () => {
+    it('lets you clear the field and type a new value without snapping back to 1', async () => {
+        const user = userEvent.setup();
         renderWait(waitStep(5));
         expect((duration() as HTMLInputElement).value).toBe('5');
 
         // The old handler read Number('') === 0 — not NaN, so its guard never
         // fired — and clamped it straight back to 1 mid-edit.
-        fireEvent.change(duration(), { target: { value: '' } });
+        await user.clear(duration());
         expect((duration() as HTMLInputElement).value).toBe('');
 
-        fireEvent.change(duration(), { target: { value: '90' } });
+        await user.clear(duration());
+        await user.type(duration(), '90');
         expect((duration() as HTMLInputElement).value).toBe('90');
     });
 
-    it('restores the stored value when the field is left empty', () => {
+    it('restores the stored value when the field is left empty', async () => {
+        const user = userEvent.setup();
         renderWait(waitStep(30));
-        fireEvent.change(duration(), { target: { value: '' } });
+        await user.clear(duration());
         fireEvent.blur(duration());
         expect((duration() as HTMLInputElement).value).toBe('30');
     });
 
-    it('keeps the number when the unit changes instead of rounding it to zero', () => {
+    it('keeps the number when the unit changes instead of rounding it to zero', async () => {
+        const user = userEvent.setup();
         // 5 seconds shown as hours used to render 0 — below the field's own min.
         renderWait(waitStep(5));
-        fireEvent.change(unit(), { target: { value: 'hours' } });
+        await user.selectOptions(unit(), 'hours');
         expect((duration() as HTMLInputElement).value).toBe('5');
         expect(Number((duration() as HTMLInputElement).value)).toBeGreaterThanOrEqual(Number((duration() as HTMLInputElement).min));
     });
@@ -66,11 +71,13 @@ describe('SettingsForm — wait duration', () => {
         expect(duration().className).toMatch(/\bflex-1\b/);
     });
 
-    it('caps the stored value at 24 hours', () => {
+    it('caps the stored value at 24 hours', async () => {
+        const user = userEvent.setup();
         renderWait(waitStep(60));
-        fireEvent.change(unit(), { target: { value: 'hours' } });
+        await user.selectOptions(unit(), 'hours');
         // Typing is never fought mid-edit…
-        fireEvent.change(duration(), { target: { value: '48' } });
+        await user.clear(duration());
+        await user.type(duration(), '48');
         expect((duration() as HTMLInputElement).value).toBe('48');
         // …but dropping the raw text reveals the clamped, stored value.
         fireEvent.blur(duration());

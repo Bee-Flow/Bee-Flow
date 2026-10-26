@@ -54,9 +54,10 @@ beforeEach(() => {
 });
 
 async function openFilter() {
+    const user = userEvent.setup();
     render(<RowBrowser table={TABLE} />);
     await screen.findByText('a@b.c');
-    fireEvent.click(screen.getByRole('button', { name: /^Filter$/i }));
+    await user.click(screen.getByRole('button', { name: /^Filter$/i }));
     return screen.findByRole('button', { name: /Add a condition/i });
 }
 
@@ -87,7 +88,7 @@ describe('the filter is built from the table, not typed', () => {
         const test = await screen.findByLabelText(/Test to apply/i);
         expect([...(test as HTMLSelectElement).options].map(o => o.value)).toContain('contains');
 
-        fireEvent.change(screen.getByLabelText(/Column to filter on/i), { target: { value: 'total' } });
+        await user.selectOptions(screen.getByLabelText(/Column to filter on/i), 'total');
         const numeric = [...(screen.getByLabelText(/Test to apply/i) as HTMLSelectElement).options].map(o => o.value);
         expect(numeric).toContain('gte');
         // "contains" on a NUMERIC column compiles, and then never matches.
@@ -100,10 +101,10 @@ describe('applying a filter', () => {
         const user = userEvent.setup();
         await openFilter();
         await user.click(screen.getByRole('button', { name: /Add a condition/i }));
-        fireEvent.change(await screen.findByLabelText(/Column to filter on/i), { target: { value: 'stage' } });
-        fireEvent.change(screen.getByLabelText(/Test to apply/i), { target: { value: 'in' } });
+        await user.selectOptions(await screen.findByLabelText(/Column to filter on/i), 'stage');
+        await user.selectOptions(screen.getByLabelText(/Test to apply/i), 'in');
         fireEvent.change(screen.getByLabelText(/Value to compare with/i), { target: { value: 'new, won' } });
-        fireEvent.change(screen.getByLabelText(/Match all or any condition/i), { target: { value: 'any' } });
+        await user.selectOptions(screen.getByLabelText(/Match all or any condition/i), 'any');
         await user.click(screen.getByRole('button', { name: /Apply/i }));
 
         await waitFor(() => expect(lastCall().filters).toEqual([{ field: 'stage', op: 'in', value: ['new', 'won'] }]));
@@ -140,7 +141,7 @@ describe('applying a filter', () => {
         const user = userEvent.setup();
         await openFilter();
         await user.click(screen.getByRole('button', { name: /Add a condition/i }));
-        fireEvent.change(await screen.findByLabelText(/Test to apply/i), { target: { value: 'isNull' } });
+        await user.selectOptions(await screen.findByLabelText(/Test to apply/i), 'isNull');
         expect(screen.queryByLabelText(/Value to compare with/i)).toBeNull();
         await user.click(screen.getByRole('button', { name: /Apply/i }));
         await waitFor(() => expect(lastCall().filters).toEqual([{ field: 'email', op: 'isNull', value: null }]));

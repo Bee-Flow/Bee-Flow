@@ -1,6 +1,7 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import UserPicker from './UserPicker';
+import userEvent from '@testing-library/user-event';
 
 const USERS = [
     { id: 'jan', displayName: 'Jan Janssen', email: 'jan@acme.nl', phone: '0611111111', orgRole: 'org_admin' },
@@ -19,21 +20,23 @@ describe('UserPicker', () => {
         expect(c2).toBeEmptyDOMElement();
     });
 
-    it('single mode: hands the full user object to onSelect', () => {
+    it('single mode: hands the full user object to onSelect', async () => {
+        const user = userEvent.setup();
         const onSelect = vi.fn();
         render(<UserPicker users={USERS} mode="single" label="Pick" placeholder="Select…" onSelect={onSelect} />);
         const select = screen.getByRole('combobox');
         expect(screen.getByText('Jan Janssen — jan@acme.nl')).toBeInTheDocument();
-        fireEvent.change(select, { target: { value: 'jan' } });
+        await user.selectOptions(select, 'jan');
         expect(onSelect).toHaveBeenCalledWith(USERS[0]);
         expect((select as HTMLInputElement).value).toBe('jan');
     });
 
-    it('multi mode: resets the select after each pick', () => {
+    it('multi mode: resets the select after each pick', async () => {
+        const user = userEvent.setup();
         const onSelect = vi.fn();
         render(<UserPicker users={USERS} mode="multi" label="Add" placeholder="Select…" onSelect={onSelect} />);
         const select = screen.getByRole('combobox');
-        fireEvent.change(select, { target: { value: 'zoe' } });
+        await user.selectOptions(select, 'zoe');
         expect(onSelect).toHaveBeenCalledWith(USERS[1]);
         expect((select as HTMLInputElement).value).toBe('');
     });

@@ -110,7 +110,8 @@ describe('editing a row', () => {
         await renderRows();
         await user.click(screen.getByRole('button', { name: 'Edit this row' }));
         const email = await screen.findByLabelText('E-mail');
-        fireEvent.change(email, { target: { value: 'new@b.c' } });
+        await user.clear(email);
+        await user.type(email, 'new@b.c');
         await user.click(screen.getByRole('button', { name: 'Save this row' }));
 
         await waitFor(() => expect(datatablesApi.updateRow).toHaveBeenCalled());
@@ -187,13 +188,14 @@ describe('paging', () => {
 
 describe('export', () => {
     it('builds a Blob and revokes it — never an <a href download> at the API', async () => {
+        const user = userEvent.setup();
         asMock(datatablesApi.exportCsv).mockResolvedValue('id,email\nrec_1,a@b.c\n');
         const createObjectURL = vi.fn(() => 'blob:fake');
         const revokeObjectURL = vi.fn();
         vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL });
         try {
             await renderRows();
-            fireEvent.click(screen.getByRole('button', { name: /Export CSV/i }));
+            await user.click(screen.getByRole('button', { name: /Export CSV/i }));
             await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
             // A link at the API carries no auth header, and on this stack a
             // same-origin download navigates the SPA away from itself.

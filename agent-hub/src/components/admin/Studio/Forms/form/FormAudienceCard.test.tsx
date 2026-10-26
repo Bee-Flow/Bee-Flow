@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -38,14 +38,14 @@ describe('<FormAudienceCard>', () => {
         expect(screen.getByText(/Nobody yet — only you can open the form/)).toBeTruthy();
 
         await user.click(screen.getByTestId('form-audience-add-open'));
-        fireEvent.change(screen.getByTestId('form-audience-pick'), { target: { value: 'u-pat' } });
+        await user.selectOptions(screen.getByTestId('form-audience-pick'), 'u-pat');
         await user.click(screen.getByTestId('form-audience-add'));
         await waitFor(() => expect(api.setFormAudience).toHaveBeenCalledWith('au1', { audience: 'restricted', sharedGroups: [], sharedUserIds: ['u-pat'] }));
         expect((await screen.findAllByTestId('form-audience-row'))[0].textContent).toContain('Pat Jansen');
 
         await user.click(screen.getByTestId('form-audience-add-open'));
-        fireEvent.change(screen.getByLabelText('A person or a group'), { target: { value: 'group' } });
-        fireEvent.change(screen.getByTestId('form-audience-pick'), { target: { value: 'g-fin' } });
+        await user.selectOptions(screen.getByLabelText('A person or a group'), 'group');
+        await user.selectOptions(screen.getByTestId('form-audience-pick'), 'g-fin');
         await user.click(screen.getByTestId('form-audience-add'));
         await waitFor(() => expect(api.setFormAudience).toHaveBeenLastCalledWith('au1', { audience: 'restricted', sharedGroups: ['g-fin'], sharedUserIds: ['u-pat'] }));
         const rows = await screen.findAllByTestId('form-audience-row');
@@ -83,7 +83,7 @@ describe('<FormAudienceCard>', () => {
         api.setFormAudience.mockRejectedValueOnce(Object.assign(new Error('"u-sam" is not a member of this organisation.'), { status: 400, code: 'audience_user_unknown' }));
         render(<FormAudienceCard form={FORM({ mode: 'restricted', groups: [], users: [] })} canEdit onChanged={vi.fn()} />);
         await user.click(screen.getByTestId('form-audience-add-open'));
-        fireEvent.change(screen.getByTestId('form-audience-pick'), { target: { value: 'u-sam' } });
+        await user.selectOptions(screen.getByTestId('form-audience-pick'), 'u-sam');
         await user.click(screen.getByTestId('form-audience-add'));
         expect((await screen.findByRole('alert')).textContent).toContain('not a member');
         expect(screen.queryByTestId('form-audience-row')).toBeNull();

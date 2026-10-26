@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import { authFetch } from '@/utils/helpers';
@@ -117,11 +117,12 @@ describe('stat — one number, not a row array', () => {
     }];
 
     it('a saved view carries which single value the tile shows', async () => {
+        const user = userEvent.setup();
         asMock(authFetch).mockResolvedValue({ ok: true, status: 200, json: async () => ({ datasets: DATASETS }) });
         const node = { ...NODES.stat, props: { ...NODES.stat.props, value: { kind: 'dataset', datasetId: 'ds_1' } } };
         const utils = renderInspector(StatInspector, node);
         const select = await utils.findByRole('combobox', { name: 'Which column' });
-        fireEvent.change(select, { target: { value: 'created_at_month' } });
+        await user.selectOptions(select, 'created_at_month');
         expect(utils.props().value).toEqual({
             kind: 'dataset', datasetId: 'ds_1', pick: { row: 'first', column: 'created_at_month' },
         });

@@ -80,7 +80,8 @@ describe('BulletsCard — toevoegen, bewerken, verwijderen', () => {
         render(<BulletsCard t={t} variant="does" items={[]} onAdd={onAdd} />);
         await user.click(screen.getByTestId('agent-role-bullet-add'));
         const input = screen.getByTestId('agent-role-bullet-add-input');
-        fireEvent.change(input, { target: { value: 'Look up quotes' } });
+        await user.clear(input);
+        await user.type(input, 'Look up quotes');
         fireEvent.keyDown(input, { key: 'Enter' });
         expect(onAdd).toHaveBeenCalledWith('Look up quotes');
         expect(screen.getByTestId('agent-role-bullet-add')).toBeTruthy();
@@ -91,7 +92,8 @@ describe('BulletsCard — toevoegen, bewerken, verwijderen', () => {
         render(<BulletsCard t={t} variant="does" items={['One']} onAdd={() => 'duplicate'} />);
         await user.click(screen.getByTestId('agent-role-bullet-add'));
         const input = screen.getByTestId('agent-role-bullet-add-input');
-        fireEvent.change(input, { target: { value: 'one' } });
+        await user.clear(input);
+        await user.type(input, 'one');
         fireEvent.keyDown(input, { key: 'Enter' });
         expect(screen.getByTestId('agent-role-bullet-rejected').textContent).toMatch(/already in this list/i);
         // Het veld blijft open met de tekst erin: er is niets opgeslagen.
@@ -103,7 +105,8 @@ describe('BulletsCard — toevoegen, bewerken, verwijderen', () => {
         render(<BulletsCard t={t} variant="does" items={[]} onAdd={() => 'full'} />);
         await user.click(screen.getByTestId('agent-role-bullet-add'));
         const input = screen.getByTestId('agent-role-bullet-add-input');
-        fireEvent.change(input, { target: { value: 'x' } });
+        await user.clear(input);
+        await user.type(input, 'x');
         fireEvent.keyDown(input, { key: 'Enter' });
         expect(screen.getByTestId('agent-role-bullet-rejected').textContent).toMatch(/Twenty lines is the maximum/i);
     });
@@ -114,7 +117,8 @@ describe('BulletsCard — toevoegen, bewerken, verwijderen', () => {
         render(<BulletsCard t={t} variant="does" items={[]} onAdd={onAdd} />);
         await user.click(screen.getByTestId('agent-role-bullet-add'));
         const input = screen.getByTestId('agent-role-bullet-add-input');
-        fireEvent.change(input, { target: { value: 'oops' } });
+        await user.clear(input);
+        await user.type(input, 'oops');
         fireEvent.keyDown(input, { key: 'Escape' });
         expect(onAdd).not.toHaveBeenCalled();
         expect(screen.getByTestId('agent-role-bullet-add')).toBeTruthy();
@@ -126,7 +130,8 @@ describe('BulletsCard — toevoegen, bewerken, verwijderen', () => {
         render(<BulletsCard t={t} variant="does" items={['One', 'Two']} onEdit={onEdit} />);
         await user.click(screen.getAllByTestId('agent-role-bullet-text')[1]);
         const input = screen.getByTestId('agent-role-bullet-input');
-        fireEvent.change(input, { target: { value: 'Two and a half' } });
+        await user.clear(input);
+        await user.type(input, 'Two and a half');
         fireEvent.keyDown(input, { key: 'Enter' });
         expect(onEdit).toHaveBeenCalledWith(1, 'Two and a half');
     });
@@ -147,7 +152,8 @@ describe('BulletsCard — toevoegen, bewerken, verwijderen', () => {
         render(<BulletsCard t={t} variant="does" items={['One', 'Two']} onEdit={stub<ComponentProps<typeof BulletsCard>['onEdit']>(onEdit)} />);
         await user.click(screen.getAllByTestId('agent-role-bullet-text')[1]);
         const input = screen.getByTestId('agent-role-bullet-input');
-        fireEvent.change(input, { target: { value: 'one' } });
+        await user.clear(input);
+        await user.type(input, 'one');
         fireEvent.keyDown(input, { key: 'Enter' });
         expect(screen.getByTestId('agent-role-bullet-edit-rejected').textContent)
             .toBe('That line is already in this list.');

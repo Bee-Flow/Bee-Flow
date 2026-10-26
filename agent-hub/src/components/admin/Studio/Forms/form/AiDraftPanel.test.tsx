@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -37,7 +37,8 @@ describe('<AiDraftPanel>', () => {
         const { rerender } = render(<AiDraftPanel form={BLANK} onApply={onApply} />);
         expect(screen.queryByRole('radiogroup')).toBeNull();
         expect(screen.getByTestId('form-ai-run')).toBeDisabled();
-        fireEvent.change(screen.getByTestId('form-ai-text'), { target: { value: 'A vacation request form' } });
+        await user.clear(screen.getByTestId('form-ai-text'));
+        await user.type(screen.getByTestId('form-ai-text'), 'A vacation request form');
         await user.click(screen.getByTestId('form-ai-run'));
         await waitFor(() => expect(onApply).toHaveBeenCalledWith(DRAFT.form));
         expect(api.draftForm).toHaveBeenCalledWith({ mode: 'create', brief: 'A vacation request form', current: BLANK });
@@ -52,7 +53,8 @@ describe('<AiDraftPanel>', () => {
         const onApply = vi.fn();
         render(<AiDraftPanel form={FILLED} onApply={onApply} />);
         expect(screen.getByRole('radio', { name: 'Change the current questions' }).getAttribute('aria-checked')).toBe('true');
-        fireEvent.change(screen.getByTestId('form-ai-text'), { target: { value: 'add a phone number' } });
+        await user.clear(screen.getByTestId('form-ai-text'));
+        await user.type(screen.getByTestId('form-ai-text'), 'add a phone number');
         await user.click(screen.getByTestId('form-ai-run'));
         await waitFor(() => expect(onApply).toHaveBeenCalled());
         expect(api.draftForm).toHaveBeenCalledWith({ mode: 'revise', note: 'add a phone number', current: FILLED });
@@ -62,7 +64,8 @@ describe('<AiDraftPanel>', () => {
         const user = userEvent.setup();
         render(<AiDraftPanel form={FILLED} onApply={vi.fn()} />);
         await user.click(screen.getByRole('radio', { name: 'Start over from a description' }));
-        fireEvent.change(screen.getByTestId('form-ai-text'), { target: { value: 'something new' } });
+        await user.clear(screen.getByTestId('form-ai-text'));
+        await user.type(screen.getByTestId('form-ai-text'), 'something new');
         await user.click(screen.getByTestId('form-ai-run'));
         await waitFor(() => expect(api.draftForm).toHaveBeenCalledWith({ mode: 'create', brief: 'something new', current: FILLED }));
     });
@@ -71,7 +74,8 @@ describe('<AiDraftPanel>', () => {
         const user = userEvent.setup();
         const onApply = vi.fn();
         render(<AiDraftPanel form={FILLED} onApply={onApply} />);
-        fireEvent.change(screen.getByTestId('form-ai-text'), { target: { value: 'shorter' } });
+        await user.clear(screen.getByTestId('form-ai-text'));
+        await user.type(screen.getByTestId('form-ai-text'), 'shorter');
         await user.click(screen.getByTestId('form-ai-run'));
         await screen.findByTestId('form-ai-done');
         await user.click(screen.getByTestId('form-ai-undo'));
@@ -81,6 +85,7 @@ describe('<AiDraftPanel>', () => {
     });
 
     it('every refusal has its own sentence, and the box keeps its text to try again', async () => {
+        const user = userEvent.setup();
         render(<AiDraftPanel form={BLANK} onApply={vi.fn()} />);
         const cases: [{ code?: string; status?: number; message?: string }, RegExp][] = [
             [{ code: 'no_model', status: 503 }, /No AI model is set up/],
@@ -90,8 +95,9 @@ describe('<AiDraftPanel>', () => {
         ];
         for (const [err, re] of cases) {
             api.draftForm.mockRejectedValueOnce(Object.assign(new Error(err.message || 'x'), err));
-            fireEvent.change(screen.getByTestId('form-ai-text'), { target: { value: 'a brief' } });
-            fireEvent.click(screen.getByTestId('form-ai-run'));
+            await user.clear(screen.getByTestId('form-ai-text'));
+            await user.type(screen.getByTestId('form-ai-text'), 'a brief');
+            await user.click(screen.getByTestId('form-ai-run'));
             expect((await screen.findByRole('alert')).textContent).toMatch(re);
             expect((screen.getByTestId('form-ai-text') as HTMLInputElement).value).toBe('a brief');
         }

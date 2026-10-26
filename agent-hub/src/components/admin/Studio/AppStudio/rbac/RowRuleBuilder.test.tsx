@@ -1,4 +1,4 @@
-import { render, fireEvent } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
@@ -96,9 +96,10 @@ describe('RowRuleBuilder — the three picker columns', () => {
         expect(queryByLabelText('Compare with, condition 1')).toBeNull();
     });
 
-    it('re-types the value when the column changes underneath it', () => {
+    it('re-types the value when the column changes underneath it', async () => {
+        const user = userEvent.setup();
         const { getByLabelText, onChange } = setup({ conditions: [cond({ value: 'abc' })] });
-        fireEvent.change(getByLabelText('Column, condition 1'), { target: { value: 'amount' } });
+        await user.selectOptions(getByLabelText('Column, condition 1'), 'amount');
         expect(onChange.mock.calls[0][0].conditions[0]).toMatchObject({ field: 'amount', valueType: 'number', value: '' });
     });
 

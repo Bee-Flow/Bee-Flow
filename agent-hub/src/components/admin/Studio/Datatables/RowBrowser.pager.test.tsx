@@ -138,7 +138,8 @@ describe('the ‹ › pager', () => {
         await screen.findByText('p2@b.c');
 
         const box = screen.getByLabelText(/Search the rows/i);
-        fireEvent.change(box, { target: { value: 'anna' } });
+        await user.clear(box);
+        await user.type(box, 'anna');
         fireEvent.submit(box.closest('form')!);
         await waitFor(() => expect(datatablesApi.listRows).toHaveBeenLastCalledWith('tbl_1',
             expect.objectContaining({ cursor: null, q: 'anna' })));

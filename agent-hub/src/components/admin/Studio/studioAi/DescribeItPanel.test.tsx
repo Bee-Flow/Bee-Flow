@@ -135,10 +135,11 @@ describe('toestand 2 — bezig', () => {
 
 describe('toestand 3 — de schema-kaart', () => {
     const showPlan = async (over = {}, props = {}) => {
+        const user = userEvent.setup();
         routeMock.mockResolvedValue(plan(over));
         renderPanel(props);
         type('stuur elke maandag een rapport');
-        fireEvent.click(screen.getByTestId('studio-ai-submit'));
+        await user.click(screen.getByTestId('studio-ai-submit'));
         await waitFor(() => expect(screen.getByTestId('studio-ai-plan')).toBeTruthy());
     };
 
@@ -198,10 +199,11 @@ describe('toestand 3 — de schema-kaart', () => {
 
 describe('zaaien-eerlijkheid', () => {
     const showPlan = async (over = {}) => {
+        const user = userEvent.setup();
         routeMock.mockResolvedValue(plan(over));
         renderPanel();
         type('een kennisbank over onze offertes');
-        fireEvent.click(screen.getByTestId('studio-ai-submit'));
+        await user.click(screen.getByTestId('studio-ai-submit'));
         await waitFor(() => expect(screen.getByTestId('studio-ai-plan')).toBeTruthy());
     };
 
@@ -233,10 +235,11 @@ describe('zaaien-eerlijkheid', () => {
 // knowledge base". The screen may not conceal that.
 describe('naam-eerlijkheid', () => {
     const showPlan = async (over = {}) => {
+        const user = userEvent.setup();
         routeMock.mockResolvedValue(plan(over));
         renderPanel();
         type('iets bouwen');
-        fireEvent.click(screen.getByTestId('studio-ai-submit'));
+        await user.click(screen.getByTestId('studio-ai-submit'));
         await waitFor(() => expect(screen.getByTestId('studio-ai-plan')).toBeTruthy());
     };
 
@@ -269,10 +272,11 @@ describe('naam-eerlijkheid', () => {
 // a word about that a fault looks like a confident plan.
 describe('onleesbare poorten staan op de kaart', () => {
     const showPlan = async (over = {}) => {
+        const user = userEvent.setup();
         routeMock.mockResolvedValue(plan(over));
         renderPanel();
         type('een app voor offertes');
-        fireEvent.click(screen.getByTestId('studio-ai-submit'));
+        await user.click(screen.getByTestId('studio-ai-submit'));
         await waitFor(() => expect(screen.getByTestId('studio-ai-plan')).toBeTruthy());
     };
 
@@ -305,10 +309,11 @@ describe('onleesbare poorten staan op de kaart', () => {
 
 describe('fouten — nooit stilletjes een soort kiezen', () => {
     const submitWith = async (result: Parameters<typeof routeMock.mockResolvedValue>[0]) => {
+        const user = userEvent.setup();
         routeMock.mockResolvedValue(result);
         renderPanel();
         type('doe iets');
-        fireEvent.click(screen.getByTestId('studio-ai-submit'));
+        await user.click(screen.getByTestId('studio-ai-submit'));
         await waitFor(() => expect(screen.getByTestId('studio-ai-error')).toBeTruthy());
     };
 

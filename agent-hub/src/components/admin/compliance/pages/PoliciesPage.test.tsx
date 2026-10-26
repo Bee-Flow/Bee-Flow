@@ -162,7 +162,8 @@ describe('PoliciesPage', () => {
         render(<PoliciesPage {...pageProps({ policies: { save } })} />);
         await user.click(screen.getByTestId('policies-row-access-control'));
         await waitFor(() => expect(screen.getByTestId('policy-drawer-body')).toBeTruthy());
-        fireEvent.change(screen.getByTestId('policy-drawer-body'), { target: { value: 'Our own words' } });
+        await user.clear(screen.getByTestId('policy-drawer-body'));
+        await user.type(screen.getByTestId('policy-drawer-body'), 'Our own words');
         fireEvent.change(screen.getByTestId('policy-drawer-review'), { target: { value: '2027-03-03' } });
         await user.click(screen.getByTestId('policy-drawer-save'));
         expect(save).toHaveBeenCalledWith('access-control', expect.objectContaining({ body: 'Our own words', review_due_at: '2027-03-03' }));

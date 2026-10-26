@@ -7,7 +7,7 @@
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/role/UnknownCard.test.jsx
  */
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
@@ -190,10 +190,11 @@ describe('UnknownCard — de agent_call-poort en het eigenaarschap', () => {
         expect(screen.getByTestId('agent-role-handoff-blocked').textContent).toMatch(/not known here/i);
     });
 
-    it('geeft een keuze door aan de ouder', () => {
+    it('geeft een keuze door aan de ouder', async () => {
+        const user = userEvent.setup();
         const onChangeHandoff = vi.fn();
         render(<UnknownCard t={t} persona={persona('handoff')} automations={[CALLABLE]} onChangeHandoff={onChangeHandoff} {...mine} />);
-        fireEvent.change(screen.getByTestId('agent-role-handoff-select'), { target: { value: 'a1' } });
+        await user.selectOptions(screen.getByTestId('agent-role-handoff-select'), 'a1');
         expect(onChangeHandoff).toHaveBeenCalledWith('a1');
     });
 });

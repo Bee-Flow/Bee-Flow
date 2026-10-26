@@ -1,4 +1,4 @@
-import { screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderWithClient as render } from '@/test/render';
@@ -83,9 +83,11 @@ describe('SettingsForm — accordion sections', () => {
     });
 
     it('still autosaves edits (section state is decoupled from the draft)', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm({ id: 's1', type: 'ai_step', label: 'My AI', prompt: 'Do X', inputs: {}, outputFields: [] });
         const label = screen.getByDisplayValue('My AI');
-        fireEvent.change(label, { target: { value: 'Renamed AI' } });
+        await user.clear(label);
+        await user.type(label, 'Renamed AI');
         await waitFor(() => expect(onPatch).toHaveBeenCalled(), { timeout: 2000 });
     });
 

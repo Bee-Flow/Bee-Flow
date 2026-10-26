@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, expect, it, vi } from 'vitest';
 
@@ -9,6 +9,7 @@ vi.mock('../inspector/panels/BindingField/index',()=>({default:()=> <div data-te
 import DocumentFillFields from './DocumentFillFields';
 import type { ComponentProps } from 'react';
 import { partial, omitted } from '@/test/mocks';
+import userEvent from '@testing-library/user-event';
 // Every wait in this file is a POSITIVE one: the contract, the template list
 // and the onChange all do arrive, and the only question is when. One second
 // is plenty on an idle box and not enough when 1,186 test files share the
@@ -27,9 +28,10 @@ it('loads the pinned full contract outside catalog caps and keeps parameter guid
     expect(screen.getByText('Detailed instructions 54')).toBeInTheDocument();
 });
 it('reads and pins a selected template before changing the action',async()=>{
+    const user = userEvent.setup();
     const onChange=vi.fn();render(<DocumentFillFields {...omitted<ComponentProps<typeof DocumentFillFields>>()} step={partial<ComponentProps<typeof DocumentFillFields>['step']>({})} onChange={onChange}/>);
     await screen.findByRole('option',{name:'Security'}, ARRIVES);
-    fireEvent.change(screen.getByLabelText('Document template'),{target:{value:'d'}});
+    await user.selectOptions(screen.getByLabelText('Document template'), 'd');
     await waitFor(()=>expect(onChange).toHaveBeenCalledWith({documentId:'d',documentVersionId:'reviewed',values:{},sectionOverrides:{}}), ARRIVES);
     expect(api.documentRequest).toHaveBeenCalledWith('/d/contract');
 });

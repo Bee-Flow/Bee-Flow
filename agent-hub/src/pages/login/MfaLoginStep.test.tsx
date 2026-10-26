@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, type Mock } from 'vitest';
 import MfaLoginStep from './MfaLoginStep';
@@ -47,17 +47,20 @@ describe('asking for the second factor', () => {
         expect(screen.getByTestId('mfa-code-input')).toHaveAttribute('autocomplete', 'one-time-code');
     });
 
-    it('keeps the verify button dead until something is typed', () => {
+    it('keeps the verify button dead until something is typed', async () => {
+        const user = userEvent.setup();
         renderStep();
         expect(screen.getByTestId('mfa-verify-button')).toBeDisabled();
-        fireEvent.change(screen.getByTestId('mfa-code-input'), { target: { value: '123456' } });
+        await user.clear(screen.getByTestId('mfa-code-input'));
+        await user.type(screen.getByTestId('mfa-code-input'), '123456');
         expect(screen.getByTestId('mfa-verify-button')).not.toBeDisabled();
     });
 
     it('hands the trimmed code up on submit', async () => {
         const user = userEvent.setup();
         const { p } = renderStep();
-        fireEvent.change(screen.getByTestId('mfa-code-input'), { target: { value: '  123456 ' } });
+        await user.clear(screen.getByTestId('mfa-code-input'));
+        await user.type(screen.getByTestId('mfa-code-input'), '  123456 ');
         await user.click(screen.getByTestId('mfa-verify-button'));
         expect(p.onVerify).toHaveBeenCalledWith('123456');
     });
@@ -69,15 +72,18 @@ describe('asking for the second factor', () => {
     it('sends whatever was typed, however long, to the server', async () => {
         const user = userEvent.setup();
         const { p } = renderStep();
-        fireEvent.change(screen.getByTestId('mfa-code-input'), { target: { value: '1234567890' } });
+        await user.clear(screen.getByTestId('mfa-code-input'));
+        await user.type(screen.getByTestId('mfa-code-input'), '1234567890');
         await user.click(screen.getByTestId('mfa-verify-button'));
         expect(p.onVerify).toHaveBeenCalledWith('1234567890');
         expect(screen.getByTestId('mfa-code-input')).not.toHaveAttribute('maxlength');
     });
 
-    it('locks the verify button while the code is being checked', () => {
+    it('locks the verify button while the code is being checked', async () => {
+        const user = userEvent.setup();
         renderStep({ isLoading: true });
-        fireEvent.change(screen.getByTestId('mfa-code-input'), { target: { value: '123456' } });
+        await user.clear(screen.getByTestId('mfa-code-input'));
+        await user.type(screen.getByTestId('mfa-code-input'), '123456');
         expect(screen.getByTestId('mfa-verify-button')).toBeDisabled();
     });
 });
@@ -86,7 +92,8 @@ describe('the way out when the authenticator is gone', () => {
     it('swaps to a recovery code and clears whatever was half-typed', async () => {
         const user = userEvent.setup();
         renderStep();
-        fireEvent.change(screen.getByTestId('mfa-code-input'), { target: { value: '123' } });
+        await user.clear(screen.getByTestId('mfa-code-input'));
+        await user.type(screen.getByTestId('mfa-code-input'), '123');
         await user.click(screen.getByText('Use a recovery code'));
         expect(screen.getByText('Enter one of your one-time recovery codes')).toBeInTheDocument();
         expect(screen.getByTestId('mfa-code-input')).toHaveValue('');
@@ -109,7 +116,8 @@ describe('the way out when the authenticator is gone', () => {
         const user = userEvent.setup();
         const { p } = renderStep();
         await user.click(screen.getByText('Use a recovery code'));
-        fireEvent.change(screen.getByTestId('mfa-code-input'), { target: { value: 'abcd-efgh' } });
+        await user.clear(screen.getByTestId('mfa-code-input'));
+        await user.type(screen.getByTestId('mfa-code-input'), 'abcd-efgh');
         await user.click(screen.getByTestId('mfa-verify-button'));
         expect(p.onVerify).toHaveBeenCalledWith('abcd-efgh');
         expect(p.onVerify).toHaveBeenCalledTimes(1);

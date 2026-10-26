@@ -58,7 +58,7 @@ describe('BindingField — six binding kinds', () => {
         const utils = renderField({ kind: 'static', value: 'x' });
         await user.click(utils.getByRole('button', { name: 'Change' }));
         // formula/connector live behind "Something else…".
-        if (utils.queryByText(card) == null) fireEvent.click(utils.getByText('Something else…'));
+        if (utils.queryByText(card) == null) await user.click(utils.getByText('Something else…'));
         await user.click(utils.getByText(card));
         expect(utils.last()).toEqual(expected);
     });
@@ -107,7 +107,7 @@ describe('BindingField — six binding kinds', () => {
 
         // Table picker loads from GET /data/tables.
         const tableSelect = await findByRole('combobox', { name: 'Source table' });
-        fireEvent.change(tableSelect, { target: { value: 'tbl_a' } });
+        await user.selectOptions(tableSelect, 'tbl_a');
         expect(last()).toEqual({ kind: 'records', tableId: 'tbl_a' });
 
         // Re-render with the chosen table so the filter editor appears.
@@ -134,6 +134,7 @@ describe('BindingField — six binding kinds', () => {
     });
 
     it('connector mode: picking a connector + filling a param emits the connector binding', async () => {
+        const user = userEvent.setup();
         asMock(authFetch).mockResolvedValue({
             ok: true, status: 200,
             json: async () => ({ connectors: [{ id: 'conn_abc123', kind: 'rest', name: 'Items', params: [{ key: 'q', type: 'text', required: false }] }] }),
@@ -141,7 +142,7 @@ describe('BindingField — six binding kinds', () => {
         // Pick the connector (wait for the options to load first).
         const first = renderField({ kind: 'connector', connectorId: null, params: {} });
         await first.findByRole('option', { name: 'Items' });
-        fireEvent.change(first.getByRole('combobox', { name: 'Connector' }), { target: { value: 'conn_abc123' } });
+        await user.selectOptions(first.getByRole('combobox', { name: 'Connector' }), 'conn_abc123');
         expect(first.last()).toEqual({ kind: 'connector', connectorId: 'conn_abc123', params: {} });
 
         // Re-render with the chosen connector so its declared params appear.

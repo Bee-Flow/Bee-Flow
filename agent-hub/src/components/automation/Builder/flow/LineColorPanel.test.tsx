@@ -48,12 +48,13 @@ const openPanel = () => fireEvent.click(screen.getByLabelText('Line colour rules
 describe('LineColorPanel', () => {
     beforeEach(cleanup);
 
-    it('every lens is selectable — PII is never a dead button', () => {
+    it('every lens is selectable — PII is never a dead button', async () => {
+        const user = userEvent.setup();
         const { onModeChange } = renderPanel();
         for (const label of ['Off', 'Branches', 'PII']) {
             const btn = screen.getByText(label);
             expect((btn as HTMLInputElement).disabled).toBe(false);
-            fireEvent.click(btn);
+            await user.click(btn);
         }
         expect(onModeChange.mock.calls.map(c => c[0])).toEqual(['off', 'branches', 'pii']);
     });

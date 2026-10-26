@@ -129,14 +129,15 @@ function openDisclosures() {
 }
 
 describe('ActionsSection — native AI actions', () => {
-    it('offers the AI kinds and commits their defaults on switch', () => {
+    it('offers the AI kinds and commits their defaults on switch', async () => {
+        const user = userEvent.setup();
         const { getByRole, lastAction } = renderActions(formNode, { act1: { kind: 'run_automation', automationId: null } });
         openDisclosures();
         const kindSelect = getByRole('combobox', { name: 'Action kind' });
         const options = Array.from((kindSelect as HTMLSelectElement).options).map((o) => o.value);
         expect(options).toEqual(expect.arrayContaining(['ai_extract', 'ai_generate', 'kb_query']));
 
-        fireEvent.change(kindSelect, { target: { value: 'ai_generate' } });
+        await user.selectOptions(kindSelect, 'ai_generate');
         expect(lastAction()).toEqual({ kind: 'ai_generate', prompt: '', output: 'text', resultVar: 'result' });
     });
 
@@ -160,7 +161,8 @@ describe('ActionsSection — native AI actions', () => {
         expect(lastAction().schema).toEqual([{ name: 'field', type: 'string', description: '', required: false }]);
     });
 
-    it('ai_extract: the document picker offers only file inputs and stores a formula binding', () => {
+    it('ai_extract: the document picker offers only file inputs and stores a formula binding', async () => {
+        const user = userEvent.setup();
         const { getByLabelText, lastAction } = renderActions(formNode, {
             act1: { kind: 'ai_extract', schema: [{ name: 'vendor', type: 'string' }] },
         });
@@ -168,22 +170,24 @@ describe('ActionsSection — native AI actions', () => {
         const values = Array.from((select as HTMLSelectElement).options).map((o) => o.value).filter(Boolean);
         expect(values).toEqual(['upload']); // the input_text is filtered out
 
-        fireEvent.change(select, { target: { value: 'upload' } });
+        await user.selectOptions(select, 'upload');
         // A formula binding is the only kind that both validates and resolves a
         // raw form value server-side.
         expect(lastAction().source).toEqual({ kind: 'formula', expr: 'form.upload' });
     });
 
-    it('ai_extract: a fresh step points at the form\'s file input rather than erroring on a missing source', () => {
+    it('ai_extract: a fresh step points at the form\'s file input rather than erroring on a missing source', async () => {
+        const user = userEvent.setup();
         const { getByRole, lastAction } = renderActions(formNode, { act1: { kind: 'run_automation', automationId: null } });
         openDisclosures();
-        fireEvent.change(getByRole('combobox', { name: 'Action kind' }), { target: { value: 'ai_extract' } });
+        await user.selectOptions(getByRole('combobox', { name: 'Action kind' }), 'ai_extract');
         // `source` is required — defaulting it empty greets the builder with a
         // red "missing required `source`" before they have touched anything.
         expect(lastAction().source).toEqual({ kind: 'formula', expr: 'form.upload' });
     });
 
-    it('ai_extract: clearing the document input leaves it cleared', () => {
+    it('ai_extract: clearing the document input leaves it cleared', async () => {
+        const user = userEvent.setup();
         const { getByLabelText, lastAction } = renderControlled(formNode, {
             act1: {
                 kind: 'ai_extract', source: { kind: 'formula', expr: 'form.upload' },
@@ -192,7 +196,7 @@ describe('ActionsSection — native AI actions', () => {
         });
         // The one-file-input shortcut may only ever seed an UNSET source; re-running
         // it here would refill the field before another one can be chosen.
-        fireEvent.change(getByLabelText('Document input field'), { target: { value: '' } });
+        await user.selectOptions(getByLabelText('Document input field'), '');
         expect(lastAction().source).toBeNull();
         expect((getByLabelText('Document input field') as HTMLInputElement).value).toBe('');
     });

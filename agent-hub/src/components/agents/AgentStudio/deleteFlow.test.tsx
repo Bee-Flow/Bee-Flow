@@ -16,7 +16,7 @@
  *
  * Run: cd agent-hub && npx vitest run src/components/agents/AgentStudio/deleteFlow.test.jsx
  */
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 
@@ -57,8 +57,9 @@ const conflict = (body: unknown) => ({
 
 /** Press the row's delete button, then the red button in the dialog. */
 async function openAndConfirm() {
-    fireEvent.click(await screen.findByLabelText(/Delete: Helpdesk/i));
-    fireEvent.click(screen.getByText('Delete'));
+    const user = userEvent.setup();
+    await user.click(await screen.findByLabelText(/Delete: Helpdesk/i));
+    await user.click(screen.getByText('Delete'));
 }
 
 const deleteCalls = () => authFetch.mock.calls.filter(([, opt]) => opt && opt.method === 'DELETE');

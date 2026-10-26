@@ -3,7 +3,7 @@
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/role/ToneCard.test.jsx
  */
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
@@ -80,10 +80,12 @@ describe('ToneCard — de botsing met de harde taalregel', () => {
 });
 
 describe('ToneCard — de vrije toontekst', () => {
-    it('geeft elke aanslag door', () => {
+    it('geeft elke aanslag door', async () => {
+        const user = userEvent.setup();
         const onChangeText = vi.fn();
         render(<ToneCard t={t} persona={persona()} onChangeText={onChangeText} />);
-        fireEvent.change(screen.getByTestId('agent-role-tone-input'), { target: { value: 'Answer first.' } });
+        await user.clear(screen.getByTestId('agent-role-tone-input'));
+        await user.type(screen.getByTestId('agent-role-tone-input'), 'Answer first.');
         expect(onChangeText).toHaveBeenCalledWith('Answer first.');
     });
 

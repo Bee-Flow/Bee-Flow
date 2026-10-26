@@ -3,21 +3,24 @@
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/role/WhoCard.test.jsx
  */
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 import { PERSONA_LIMITS } from './personaFacts';
 import WhoCard from './WhoCard';
+import userEvent from '@testing-library/user-event';
 
 const t = (key: string, fallback?: unknown) => (typeof fallback === 'string' ? fallback : key);
 
 afterEach(() => cleanup());
 
 describe('WhoCard', () => {
-    it('geeft elke aanslag door en houdt getypte spaties heel', () => {
+    it('geeft elke aanslag door en houdt getypte spaties heel', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         render(<WhoCard t={t} value="" onChange={onChange} />);
-        fireEvent.change(screen.getByTestId('agent-role-who-input'), { target: { value: 'A colleague ' } });
+        await user.clear(screen.getByTestId('agent-role-who-input'));
+        await user.type(screen.getByTestId('agent-role-who-input'), 'A colleague ');
         expect(onChange).toHaveBeenCalledWith('A colleague ');
     });
 

@@ -1,4 +1,4 @@
-import { fireEvent, render } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import AppForm from './AppForm';
 import AppInputNumber from './AppInputNumber';
@@ -6,6 +6,7 @@ import AppInputText from './AppInputText';
 import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
 import type { ComponentProps } from 'react';
 import { omitted, stub } from '@/test/mocks';
+import userEvent from '@testing-library/user-event';
 
 /**
  * form.resetKey — a form that edits ONE selected record.
@@ -66,10 +67,12 @@ describe('AppForm — resetKey', () => {
         expect((container.querySelector('input[name="materiaal"]') as HTMLInputElement).value).toBe('');
     });
 
-    it('the same selection keeps what was typed — only a CHANGE resets', () => {
+    it('the same selection keeps what was typed — only a CHANGE resets', async () => {
+        const user = userEvent.setup();
         const { container, rerender } = render(<Harness vars={{ regel: A }} resetKey="vars.regel.id" />);
         const input = container.querySelector('input[name="dikte_mm"]');
-        fireEvent.change(input!, { target: { value: '8' } });
+        await user.clear(input!);
+        await user.type(input!, '8');
         expect((input! as HTMLInputElement).value).toBe('8');
         // A re-render with the same row (a refresh that changed nothing) is
         // not a new selection.

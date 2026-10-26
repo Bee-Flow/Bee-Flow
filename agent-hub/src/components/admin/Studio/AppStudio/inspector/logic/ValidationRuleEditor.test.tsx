@@ -1,10 +1,11 @@
 import { createRequire } from 'node:module';
-import { render, fireEvent } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import ValidationRuleEditor from './ValidationRuleEditor';
 import { stub } from '@/test/mocks';
 import type { ComponentProps } from 'react';
+import userEvent from '@testing-library/user-event';
 
 /**
  * The editor may only ever author rules the SERVER accepts — a rejected type
@@ -47,21 +48,24 @@ function renderEditor(value = [{ type: 'required' }]) {
 }
 
 describe('ValidationRuleEditor — server contract', () => {
-    it('every rule type the menu offers is saveable the moment it is picked', () => {
+    it('every rule type the menu offers is saveable the moment it is picked', async () => {
+        const user = userEvent.setup();
         const { last, getByLabelText } = renderEditor();
         const select = getByLabelText('Rule 1 type');
         const offered = Array.from((select as HTMLSelectElement).options).map((o) => o.value);
         expect(offered.length).toBeGreaterThan(1);
         for (const kind of offered) {
-            fireEvent.change(select, { target: { value: kind } });
+            await user.selectOptions(select, kind);
             expect(saveErrors(last()), `rule type ${kind}`).toEqual([]);
         }
     });
 
-    it('a bound with no native rule type compiles to a formula over `value`', () => {
+    it('a bound with no native rule type compiles to a formula over `value`', async () => {
+        const user = userEvent.setup();
         const { last, getByLabelText } = renderEditor();
-        fireEvent.change(getByLabelText('Rule 1 type'), { target: { value: 'maxLength' } });
-        fireEvent.change(getByLabelText('Rule 1 value'), { target: { value: '20' } });
+        await user.selectOptions(getByLabelText('Rule 1 type'), 'maxLength');
+        await user.clear(getByLabelText('Rule 1 value'));
+        await user.type(getByLabelText('Rule 1 value'), '20');
         expect(last()[0]).toEqual({ type: 'formula', expr: 'len(value) <= 20' });
         expect(saveErrors(last())).toEqual([]);
     });
@@ -72,14 +76,16 @@ describe('ValidationRuleEditor — server contract', () => {
         expect((getByLabelText('Rule 1 value') as HTMLInputElement).value).toBe('3');
     });
 
-    it('named formats keep their own entries', () => {
+    it('named formats keep their own entries', async () => {
+        const user = userEvent.setup();
         const { last, getByLabelText } = renderEditor();
-        fireEvent.change(getByLabelText('Rule 1 type'), { target: { value: 'email' } });
+        await user.selectOptions(getByLabelText('Rule 1 type'), 'email');
         expect(last()[0].type).toBe('format');
         expect(last()[0].format).toBe('email');
     });
 
-    it('editing a legacy rule the old editor wrote rewrites it into an accepted shape', () => {
+    it('editing a legacy rule the old editor wrote rewrites it into an accepted shape', async () => {
+        const user = userEvent.setup();
         // { type: 'min' } was offered but rejected — touching the row must not
         // carry that type through.
         const legacy = [{ type: 'min', value: 1, message: 'Too low.' }];
@@ -87,7 +93,8 @@ describe('ValidationRuleEditor — server contract', () => {
 
         const { last, getByLabelText } = renderEditor(legacy);
         expect((getByLabelText('Rule 1 type') as HTMLInputElement).value).toBe('min');
-        fireEvent.change(getByLabelText('Rule 1 value'), { target: { value: '2' } });
+        await user.clear(getByLabelText('Rule 1 value'));
+        await user.type(getByLabelText('Rule 1 value'), '2');
         expect(last()[0]).toEqual({ type: 'formula', expr: 'number(value) >= 2', message: 'Too low.' });
         expect(saveErrors(last())).toEqual([]);
     });

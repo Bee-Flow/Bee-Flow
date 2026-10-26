@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import ButtonInspector from './ButtonInspector';
 import { findNode } from '../../state/definitionOps';
 import { KITCHEN_SINK } from '../../state/sampleDefinitions';
+import userEvent from '@testing-library/user-event';
 
 // cmp_refre1: { label: 'Refresh', variant: 'secondary', iconLeft: 'RefreshCw', role: 'button' }
 const node = findNode(KITCHEN_SINK, 'cmp_refre1').node;
@@ -32,20 +33,22 @@ describe('ButtonInspector', () => {
     });
 
     // A select since the look pass: six variants no longer fit a segmented row.
-    it('variant select lists every catalog variant, in spec order, and commits the picked one', () => {
+    it('variant select lists every catalog variant, in spec order, and commits the picked one', async () => {
+        const user = userEvent.setup();
         const { onCommit, getByLabelText } = renderPanel();
         const select = getByLabelText('Button variant');
         expect(Array.from((select as HTMLSelectElement).options).map((o) => o.value))
             .toEqual(['primary', 'secondary', 'ghost', 'danger', 'outline', 'soft']);
         expect(select).toHaveValue('secondary');
-        fireEvent.change(select, { target: { value: 'soft' } });
+        await user.selectOptions(select, 'soft');
         expect(onCommit).toHaveBeenCalledTimes(1);
         expect(findNode(onCommit.mock.calls[0][0], 'cmp_refre1').node.props.variant).toBe('soft');
     });
 
-    it('re-picking the current variant is a no-op (no commit)', () => {
+    it('re-picking the current variant is a no-op (no commit)', async () => {
+        const user = userEvent.setup();
         const { onCommit, getByLabelText } = renderPanel();
-        fireEvent.change(getByLabelText('Button variant'), { target: { value: 'secondary' } });
+        await user.selectOptions(getByLabelText('Button variant'), 'secondary');
         expect(onCommit).not.toHaveBeenCalled();
     });
 

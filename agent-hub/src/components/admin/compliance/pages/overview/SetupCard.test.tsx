@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -79,8 +79,10 @@ describe('SetupCard — one path', () => {
         await user.click(screen.getByTestId('setup-card-cta'));
         expect(screen.getByTestId('setup-card-next')).toBeDisabled();
         expect(screen.getByTestId('setup-card-blocked')).toBeInTheDocument();
-        fireEvent.change(screen.getByLabelText('DPO name'), { target: { value: 'Jane' } });
-        fireEvent.change(screen.getByLabelText('DPO email'), { target: { value: 'jane@acme.example' } });
+        await user.clear(screen.getByLabelText('DPO name'));
+        await user.type(screen.getByLabelText('DPO name'), 'Jane');
+        await user.clear(screen.getByLabelText('DPO email'));
+        await user.type(screen.getByLabelText('DPO email'), 'jane@acme.example');
         expect(screen.getByTestId('setup-card-next')).not.toBeDisabled();
         await user.click(screen.getByTestId('setup-card-next'));
         expect(screen.getByTestId('setup-card').dataset.step).toBe('2');
@@ -93,7 +95,8 @@ describe('SetupCard — one path', () => {
         const user = userEvent.setup();
         const { onFinish } = renderCard({ settings: { dpo_name: 'Jane', dpo_email: 'jane@acme.nl' } });
         await user.click(screen.getByTestId('setup-card-cta'));
-        fireEvent.change(screen.getByTestId('setup-step-recipient-input'), { target: { value: 'security@acme.nl' } });
+        await user.clear(screen.getByTestId('setup-step-recipient-input'));
+        await user.type(screen.getByTestId('setup-step-recipient-input'), 'security@acme.nl');
         await user.click(screen.getByTestId('setup-step-recipient-add'));
         await user.click(screen.getByTestId('setup-card-next'));
         await waitFor(() => expect(onFinish).toHaveBeenCalledTimes(1));

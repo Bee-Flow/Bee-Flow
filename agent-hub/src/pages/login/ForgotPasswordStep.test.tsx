@@ -34,11 +34,13 @@ describe('asking where to send the link', () => {
         expect(screen.getByTestId('forgot-email-input')).toBeRequired();
     });
 
-    it('keeps the send button dead until an address is typed', () => {
+    it('keeps the send button dead until an address is typed', async () => {
+        const user = userEvent.setup();
         renderStep();
         const send = screen.getByText('Send reset link').closest('button');
         expect(send).toBeDisabled();
-        fireEvent.change(screen.getByTestId('forgot-email-input'), { target: { value: 'ada@example.com' } });
+        await user.clear(screen.getByTestId('forgot-email-input'));
+        await user.type(screen.getByTestId('forgot-email-input'), 'ada@example.com');
         expect(send).not.toBeDisabled();
     });
 
@@ -51,10 +53,12 @@ describe('asking where to send the link', () => {
     // the trim really works).
     // The two tests below therefore pin what does happen: the INPUT FIELD sanitises,
     // and only afterwards does the component look at it.
-    it('never sees the padding around an address — the email field strips it first', () => {
+    it('never sees the padding around an address — the email field strips it first', async () => {
+        const user = userEvent.setup();
         const { container, p } = renderStep();
         const input = screen.getByTestId('forgot-email-input');
-        fireEvent.change(input, { target: { value: '  ada@example.com  ' } });
+        await user.clear(input);
+        await user.type(input, '  ada@example.com  ');
         // This is the assertion that holds the mechanism: the value is already clean in the
         // field, not only in the submit handler.
         expect(input).toHaveValue('ada@example.com');
@@ -62,10 +66,12 @@ describe('asking where to send the link', () => {
         expect(p.onSubmit).toHaveBeenCalledWith('ada@example.com');
     });
 
-    it('treats an address of whitespace alone as no address at all', () => {
+    it('treats an address of whitespace alone as no address at all', async () => {
+        const user = userEvent.setup();
         const { container, p } = renderStep();
         const input = screen.getByTestId('forgot-email-input');
-        fireEvent.change(input, { target: { value: '   ' } });
+        await user.clear(input);
+        await user.type(input, '   ');
         // Same sanitising: the field is empty, so the button does not wake up …
         expect(input).toHaveValue('');
         expect(screen.getByText('Send reset link').closest('button')).toBeDisabled();

@@ -57,7 +57,8 @@ describe('IconField', () => {
 });
 
 describe('FieldKeyField', () => {
-    it('lists the fields it can see on a static source', () => {
+    it('lists the fields it can see on a static source', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         const { getByLabelText } = render(
             <FieldKeyField label="Title field" value="" onChange={onChange} source={ROWS} ariaLabel="Title field" />,
@@ -65,16 +66,17 @@ describe('FieldKeyField', () => {
         const select = getByLabelText('Title field');
         expect(Array.from((select as HTMLSelectElement).options).map((o) => o.textContent))
             .toEqual(['Pick a field…', 'title', 'status', 'Type a name myself…']);
-        fireEvent.change(select, { target: { value: 'status' } });
+        await user.selectOptions(select, 'status');
         expect(onChange).toHaveBeenCalledWith('status');
     });
 
-    it('reveals the text input behind "Type a name myself…"', () => {
+    it('reveals the text input behind "Type a name myself…"', async () => {
+        const user = userEvent.setup();
         const { getByLabelText, queryByLabelText, getByText } = render(
             <FieldKeyField label="Title field" value="" onChange={vi.fn()} source={ROWS} ariaLabel="Title field" />,
         );
         expect(queryByLabelText('Title field name')).toBeNull();
-        fireEvent.change(getByLabelText('Title field'), { target: { value: (getByText('Type a name myself…') as HTMLInputElement).value } });
+        await user.selectOptions(getByLabelText('Title field'), (getByText('Type a name myself…') as HTMLInputElement).value);
         expect(getByLabelText('Title field name')).toBeTruthy();
     });
 
@@ -116,7 +118,8 @@ describe('FieldKeyField', () => {
 });
 
 describe('FieldKeyField — reuse in the data panels', () => {
-    it('kanban "Group by" is a field list, not a remembered name', () => {
+    it('kanban "Group by" is a field list, not a remembered name', async () => {
+        const user = userEvent.setup();
         const node = {
             id: 'cmp_kan1', type: 'kanban', visible: true,
             props: { source: ROWS, columns: [], groupByField: '', titleKey: '', allowDrag: true },
@@ -131,7 +134,7 @@ describe('FieldKeyField — reuse in the data panels', () => {
         const { getByLabelText } = render(
             <KanbanInspector node={node} definition={definition} onCommit={onCommit} disabled={false} />,
         );
-        fireEvent.change(getByLabelText('Group by field'), { target: { value: 'status' } });
+        await user.selectOptions(getByLabelText('Group by field'), 'status');
         expect(onCommit.mock.calls.at(-1)![0].screens[0].sections[0].children[0].props.groupByField).toBe('status');
     });
 });

@@ -1,4 +1,4 @@
-import { fireEvent, render, waitFor } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import AppAiChat from './AppAiChat';
@@ -63,7 +63,8 @@ describe('AppAiChat', () => {
             { type: 'done' },
         ]));
         const { getByLabelText, container } = renderChat();
-        fireEvent.change(getByLabelText('Message'), { target: { value: 'hi' } });
+        await user.clear(getByLabelText('Message'));
+        await user.type(getByLabelText('Message'), 'hi');
         await user.click(getByLabelText('Send'));
 
         await waitFor(() => expect(container.textContent).toContain('Hello world'));
@@ -83,7 +84,8 @@ describe('AppAiChat', () => {
         // definition and a not-yet-published chat 404s ("Chat component not found").
         asMock(authFetch).mockResolvedValueOnce(sseResponse([{ type: 'text', text: 'ok' }, { type: 'done' }]));
         const { getByLabelText } = renderChat({ draft: true });
-        fireEvent.change(getByLabelText('Message'), { target: { value: 'hi' } });
+        await user.clear(getByLabelText('Message'));
+        await user.type(getByLabelText('Message'), 'hi');
         await user.click(getByLabelText('Send'));
         await waitFor(() => expect(authFetch).toHaveBeenCalled());
         expect(asMock(authFetch).mock.calls.at(-1)![0]).toContain('/ai/chat?draft=1');
@@ -95,11 +97,13 @@ describe('AppAiChat', () => {
         const assistantNode = { ...node, props: { ...node.props, mode: 'assistant' } };
         const { getByLabelText } = renderChat({ nodeOverride: assistantNode });
 
-        fireEvent.change(getByLabelText('Message'), { target: { value: 'q1' } });
+        await user.clear(getByLabelText('Message'));
+        await user.type(getByLabelText('Message'), 'q1');
         await user.click(getByLabelText('Send'));
         await waitFor(() => expect(authFetch).toHaveBeenCalledTimes(1));
 
-        fireEvent.change(getByLabelText('Message'), { target: { value: 'q2' } });
+        await user.clear(getByLabelText('Message'));
+        await user.type(getByLabelText('Message'), 'q2');
         await user.click(getByLabelText('Send'));
         await waitFor(() => expect(authFetch).toHaveBeenCalledTimes(2));
 
@@ -111,7 +115,8 @@ describe('AppAiChat', () => {
         const user = userEvent.setup();
         asMock(authFetch).mockResolvedValueOnce(sseResponse([{ type: 'error', error: 'The assistant failed to respond.' }]));
         const { getByLabelText, findByRole, container } = renderChat();
-        fireEvent.change(getByLabelText('Message'), { target: { value: 'hi' } });
+        await user.clear(getByLabelText('Message'));
+        await user.type(getByLabelText('Message'), 'hi');
         await user.click(getByLabelText('Send'));
 
         const alert = await findByRole('alert');

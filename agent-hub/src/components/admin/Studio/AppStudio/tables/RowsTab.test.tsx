@@ -70,7 +70,8 @@ describe('RowsTab', () => {
         await user.click(await screen.findByRole('button', { name: /^Client — click to change$/ }));
 
         const input = screen.getByLabelText('Client');
-        fireEvent.change(input, { target: { value: 'Anna de Vries' } });
+        await user.clear(input);
+        await user.type(input, 'Anna de Vries');
         fireEvent.blur(input);
 
         await waitFor(() => expect(updateRecord).toHaveBeenCalledWith('app1', 'tbl_a', 'rec_1', { client: 'Anna de Vries' }, { expectedUpdatedAt: ROW.updated_at }));
@@ -90,7 +91,7 @@ describe('RowsTab', () => {
         const choice = screen.getByLabelText('Status');
         expect(choice.tagName).toBe('SELECT');
         expect([...(choice as HTMLSelectElement).options].map((o) => o.textContent)).toEqual(['—', 'Open', 'Paid']);
-        fireEvent.change(choice, { target: { value: 'Paid' } });
+        await user.selectOptions(choice, 'Paid');
         await waitFor(() => expect(updateRecord).toHaveBeenCalledWith('app1', 'tbl_a', 'rec_1', { status: 'Paid' }, { expectedUpdatedAt: ROW.updated_at }));
     });
 
@@ -102,14 +103,16 @@ describe('RowsTab', () => {
         renderRows();
 
         await user.click((await screen.findAllByRole('button', { name: /add a row/i }))[0]);
-        fireEvent.change(screen.getAllByLabelText('Amount').at(-1)!, { target: { value: '75' } });
+        await user.clear(screen.getAllByLabelText('Amount').at(-1)!);
+        await user.type(screen.getAllByLabelText('Amount').at(-1)!, '75');
         await user.click(screen.getByRole('button', { name: /^Add$/ }));
 
         expect(await screen.findByText('Client is required')).toBeTruthy();
         // The half-typed row survives the refusal.
         expect((screen.getAllByLabelText('Amount').at(-1)! as HTMLInputElement).value).toBe('75');
 
-        fireEvent.change(screen.getAllByLabelText('Client').at(-1)!, { target: { value: 'Bram' } });
+        await user.clear(screen.getAllByLabelText('Client').at(-1)!);
+        await user.type(screen.getAllByLabelText('Client').at(-1)!, 'Bram');
         await user.click(screen.getByRole('button', { name: /^Add$/ }));
         await waitFor(() => expect(createRecord).toHaveBeenCalledWith('app1', 'tbl_a', { amount: 75, client: 'Bram' }));
         expect(await screen.findAllByRole('button', { name: /^Client — click to change$/ })).toHaveLength(2);
@@ -126,7 +129,8 @@ describe('RowsTab', () => {
         renderRows();
 
         await user.click(await screen.findByRole('button', { name: /^Client — click to change$/ }));
-        fireEvent.change(screen.getByLabelText('Client'), { target: { value: 'My edit' } });
+        await user.clear(screen.getByLabelText('Client'));
+        await user.type(screen.getByLabelText('Client'), 'My edit');
         fireEvent.blur(screen.getByLabelText('Client'));
 
         await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/Someone else changed this row/)));

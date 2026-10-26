@@ -63,7 +63,8 @@ describe('CategoryField — manage popover (BFSF-272)', () => {
 
         await user.click(screen.getAllByTitle('Rename')[0]);
         const input = screen.getByDisplayValue('Sales');
-        fireEvent.change(input, { target: { value: 'Marketing' } });
+        await user.clear(input);
+        await user.type(input, 'Marketing');
         fireEvent.keyDown(input, { key: 'Enter' });
 
         await waitFor(() => {
@@ -102,7 +103,8 @@ describe('CategoryField — manage popover (BFSF-272)', () => {
 
         await user.click(screen.getByTitle('New category'));
         const input = screen.getByPlaceholderText('New category name');
-        fireEvent.change(input, { target: { value: 'sales' } });
+        await user.clear(input);
+        await user.type(input, 'sales');
         fireEvent.keyDown(input, { key: 'Enter' });
 
         await waitFor(() => {
@@ -134,7 +136,8 @@ describe('CategoryField — variant="tag" (A3)', () => {
 
         await user.click(screen.getByTitle('New category'));
         const input = screen.getByPlaceholderText('New category name');
-        fireEvent.change(input, { target: { value: 'Support' } });
+        await user.clear(input);
+        await user.type(input, 'Support');
         fireEvent.keyDown(input, { key: 'Enter' });
         await waitFor(() => expect(onCreate).toHaveBeenCalledWith('Support'));
 
@@ -142,10 +145,11 @@ describe('CategoryField — variant="tag" (A3)', () => {
         expect(screen.getAllByText('Sales').length).toBeGreaterThan(0);
     });
 
-    it('geeft een keuze door aan de ouder, net als de volle variant', () => {
+    it('geeft een keuze door aan de ouder, net als de volle variant', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         renderField({ variant: 'tag', onChange });
-        fireEvent.change(screen.getByTestId('agent-category-select'), { target: { value: 'marketing' } });
+        await user.selectOptions(screen.getByTestId('agent-category-select'), 'marketing');
         expect(onChange).toHaveBeenCalledWith('marketing');
     });
 });

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
+import { render, screen, cleanup, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
@@ -93,9 +93,11 @@ describe('approval stages — the chain editor', () => {
     });
 
     it('renaming a stage keeps its key — the votes already cast stay attached', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm(approvalStep({ stages: CHAIN }));
         const nameBox = await screen.findByDisplayValue('Team lead');
-        fireEvent.change(nameBox, { target: { value: 'Squad lead' } });
+        await user.clear(nameBox);
+        await user.type(nameBox, 'Squad lead');
         const patch = await lastPatch(onPatch);
         expect(patch.approval.stages.map((s: { key: unknown }) => s.key)).toEqual(['s1', 's2']);
         expect(patch.approval.stages[0].name).toBe('Squad lead');
@@ -120,7 +122,7 @@ describe('approval stages — the chain editor', () => {
         await user.click(screen.getByRole('button', { name: /Add stage/ }));
         // The new row has no approver yet, so nothing is persisted until one
         // is picked — pick one, then read the chain back.
-        fireEvent.change(await screen.findByLabelText('Stage 3, approver 1'), { target: { value: 'u:u2' } });
+        await user.selectOptions(await screen.findByLabelText('Stage 3, approver 1'), 'u:u2');
         const patch = await lastPatch(onPatch);
         const keys = patch.approval.stages.map((s: { key: unknown }) => s.key);
         expect(keys).toHaveLength(3);

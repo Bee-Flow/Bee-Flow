@@ -51,13 +51,14 @@ describe('FilterRowsEditor value control', () => {
         expect(box.inputMode).toBe('decimal');
     });
 
-    it("lists a choice field's own choices", () => {
+    it("lists a choice field's own choices", async () => {
+        const user = userEvent.setup();
         const { last, getByRole, getAllByRole } = renderEditor([{ field: 'status', op: 'eq', value: '' }]);
         const select = getByRole('combobox', { name: 'Filter value' });
         expect(getAllByRole('option').map((o) => o.textContent)).toEqual(
             expect.arrayContaining(['Open', 'Closed']),
         );
-        fireEvent.change(select, { target: { value: 'closed' } });
+        await user.selectOptions(select, 'closed');
         expect(last()[0].value).toBe('closed');
     });
 

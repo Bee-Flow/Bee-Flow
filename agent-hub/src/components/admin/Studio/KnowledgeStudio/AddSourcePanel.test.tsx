@@ -31,9 +31,10 @@ beforeEach(() => { vi.clearAllMocks(); });
  */
 describe('MeetingTagForm', () => {
     async function openForm() {
+        const user = userEvent.setup();
         const onCreate = vi.fn().mockResolvedValue({});
         render(<AddSourcePanel canManage onCreate={onCreate} />);
-        fireEvent.click(screen.getByTestId('kb-add-kind-meeting_tag'));
+        await user.click(screen.getByTestId('kb-add-kind-meeting_tag'));
         return { onCreate, form: await screen.findByTestId('kb-form-meeting_tag') };
     }
 
@@ -120,12 +121,13 @@ const DATATABLE_TABLES = [{ id: 'dt1', name: 'Prices', rowCount: 212 }];
 const DATATABLE_SCHEMA = { fields: [{ key: 'name' }, { key: 'price' }, { key: 'id' }, { key: 'updated_by' }], modelVersion: 3 };
 
 async function openDatatableForm(list = DATATABLE_TABLES, schema = DATATABLE_SCHEMA) {
+    const user = userEvent.setup();
     const { datatablesApi } = await import('../Datatables/datatablesApi');
     asMock(datatablesApi.list).mockResolvedValue(list);
     asMock(datatablesApi.getSchema).mockResolvedValue(schema);
     const onCreate = vi.fn().mockResolvedValue({});
     render(<AddSourcePanel canManage onCreate={onCreate} />);
-    fireEvent.click(screen.getByTestId('kb-add-kind-datatable'));
+    await user.click(screen.getByTestId('kb-add-kind-datatable'));
     await screen.findByTestId('kb-form-datatable');
     return { onCreate, datatablesApi };
 }

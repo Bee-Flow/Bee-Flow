@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -53,7 +53,8 @@ describe('<AiTablePanel> alone', () => {
         const onApply = vi.fn();
         render(<AiTablePanel mode="create" current={{ name: '', description: '', fields: [] }} onApply={onApply} />);
         expect(screen.getByTestId('table-ai-run')).toBeDisabled();
-        fireEvent.change(screen.getByTestId('table-ai-text'), { target: { value: 'Supplier invoices' } });
+        await user.clear(screen.getByTestId('table-ai-text'));
+        await user.type(screen.getByTestId('table-ai-text'), 'Supplier invoices');
         await user.click(screen.getByTestId('table-ai-run'));
         await waitFor(() => expect(onApply).toHaveBeenCalled());
         expect(datatablesApi.draft).toHaveBeenCalledWith({ mode: 'create', brief: 'Supplier invoices', current: { name: '', description: '', fields: [] } });
@@ -61,7 +62,8 @@ describe('<AiTablePanel> alone', () => {
         expect((await screen.findByTestId('table-ai-done')).textContent).toContain('1 columns drafted');
 
         asMock(datatablesApi.draft).mockRejectedValueOnce(Object.assign(new Error('x'), { code: 'no_model', status: 503 }));
-        fireEvent.change(screen.getByTestId('table-ai-text'), { target: { value: 'again' } });
+        await user.clear(screen.getByTestId('table-ai-text'));
+        await user.type(screen.getByTestId('table-ai-text'), 'again');
         await user.click(screen.getByTestId('table-ai-run'));
         expect((await screen.findByRole('alert')).textContent).toMatch(/No AI model is set up/);
         expect((screen.getByTestId('table-ai-text') as HTMLInputElement).value).toBe('again');
@@ -79,7 +81,8 @@ describe('the New datatable dialog', () => {
         asMock(datatablesApi.create).mockResolvedValue({ datatable: { id: 'tbl_new' } });
         const onCreated = vi.fn();
         render(<NewDatatableDialog scope={partial<ComponentProps<typeof NewDatatableDialog>['scope']>({ kind: 'org' })} onClose={() => {}} onCreated={onCreated} />);
-        fireEvent.change(screen.getByTestId('new-table-ai-text'), { target: { value: 'Track supplier invoices with a status' } });
+        await user.clear(screen.getByTestId('new-table-ai-text'));
+        await user.type(screen.getByTestId('new-table-ai-text'), 'Track supplier invoices with a status');
         await user.click(screen.getByTestId('new-table-ai-run'));
         await waitFor(() => expect((screen.getByPlaceholderText('Customers') as HTMLInputElement).value).toBe('Supplier invoices'));
         expect((screen.getByPlaceholderText('Customers we have already sent the onboarding e-mail to.') as HTMLInputElement).value).toContain('One row per supplier invoice');
@@ -107,7 +110,8 @@ describe('the column designer', () => {
         render(<ColumnDesigner table={TABLE} canEdit usage={[]} onChanged={vi.fn()} />);
         await screen.findByDisplayValue('E-mail');
         expect((screen.getByTestId('columns-ai-allow') as HTMLInputElement).checked).toBe(false);
-        fireEvent.change(screen.getByTestId('columns-ai-text'), { target: { value: 'add a phone number, call e-mail "E-mail address"' } });
+        await user.clear(screen.getByTestId('columns-ai-text'));
+        await user.type(screen.getByTestId('columns-ai-text'), 'add a phone number, call e-mail "E-mail address"');
         await user.click(screen.getByTestId('columns-ai-run'));
         await waitFor(() => expect(datatablesApi.draft).toHaveBeenCalled());
         const body = asMock(datatablesApi.draft).mock.calls[0][0];
@@ -139,7 +143,8 @@ describe('the column designer', () => {
         render(<ColumnDesigner table={TABLE} canEdit usage={[]} onChanged={vi.fn()} />);
         await screen.findByDisplayValue('E-mail');
         await user.click(screen.getByTestId('columns-ai-allow'));
-        fireEvent.change(screen.getByTestId('columns-ai-text'), { target: { value: 'drop the notes' } });
+        await user.clear(screen.getByTestId('columns-ai-text'));
+        await user.type(screen.getByTestId('columns-ai-text'), 'drop the notes');
         await user.click(screen.getByTestId('columns-ai-run'));
         await waitFor(() => expect(datatablesApi.draft).toHaveBeenCalled());
         expect(asMock(datatablesApi.draft).mock.calls[0][0].allowDestructive).toBe(true);

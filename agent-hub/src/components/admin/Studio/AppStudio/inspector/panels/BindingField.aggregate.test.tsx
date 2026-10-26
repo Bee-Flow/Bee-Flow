@@ -1,9 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import React, { useState, type ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import BindingField from './BindingField';
 import { EditorChromeContext } from '../../editor/EditorChromeContext';
+import userEvent from '@testing-library/user-event';
 
 const TABLES = [
     { id: 'tbl_orders', name: 'Orders', fields: [
@@ -61,34 +62,37 @@ describe('BindingField — the aggregate editor', () => {
     });
 
     it('offers what to work out, and asks for a column once it needs one', async () => {
+        const user = userEvent.setup();
         const { last } = renderField(AGG);
         // count needs no column…
         expect(await screen.findByLabelText('What to work out')).toBeTruthy();
         expect(screen.queryByLabelText('Which column')).toBeNull();
 
         // …sum does, and one is pre-picked so the binding stays valid.
-        fireEvent.change(screen.getByLabelText('What to work out'), { target: { value: 'sum' } });
+        await user.selectOptions(screen.getByLabelText('What to work out'), 'sum');
         expect(last().aggregates[0]).toMatchObject({ fn: 'sum', field: 'total' });
         expect(await screen.findByLabelText('Which column')).toBeTruthy();
     });
 
     it('splits by a column, and drops the key again when set back', async () => {
+        const user = userEvent.setup();
         const { last } = renderField(AGG);
-        fireEvent.change(await screen.findByLabelText('Split by'), { target: { value: 'status' } });
+        await user.selectOptions(await screen.findByLabelText('Split by'), 'status');
         expect(last().groupBy).toEqual([{ field: 'status' }]);
 
-        fireEvent.change(screen.getByLabelText('Split by'), { target: { value: '' } });
+        await user.selectOptions(screen.getByLabelText('Split by'), '');
         expect(last().groupBy).toBeUndefined();
     });
 
     it('offers date buckets only for a date column', async () => {
+        const user = userEvent.setup();
         const { last } = renderField(AGG);
-        fireEvent.change(await screen.findByLabelText('Split by'), { target: { value: 'status' } });
+        await user.selectOptions(await screen.findByLabelText('Split by'), 'status');
         expect(screen.queryByLabelText('Group dates')).toBeNull();
 
-        fireEvent.change(screen.getByLabelText('Split by'), { target: { value: 'placed_at' } });
+        await user.selectOptions(screen.getByLabelText('Split by'), 'placed_at');
         expect(await screen.findByLabelText('Group dates')).toBeTruthy();
-        fireEvent.change(screen.getByLabelText('Group dates'), { target: { value: 'month' } });
+        await user.selectOptions(screen.getByLabelText('Group dates'), 'month');
         expect(last().groupBy[0]).toMatchObject({ field: 'placed_at', bucket: 'month' });
     });
 

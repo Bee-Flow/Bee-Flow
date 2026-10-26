@@ -150,7 +150,7 @@ describe('NodeDetailView — editing fields writes the JSON the author never typ
         const fresh = rows()[1];
         fireEvent.change(within(fresh).getByLabelText('Name'), { target: { value: 'amount' } });
         fireEvent.change(within(rows()[1]).getByLabelText('amount value'), { target: { value: '19.5' } });
-        fireEvent.change(within(rows()[1]).getByLabelText('Type'), { target: { value: 'number' } });
+        await user.selectOptions(within(rows()[1]).getByLabelText('Type'), 'number');
         save();
 
         await waitFor(() => expect(onSaveStep).toHaveBeenCalledTimes(1));
@@ -178,9 +178,10 @@ describe('NodeDetailView — editing fields writes the JSON the author never typ
     });
 
     it('switches a value to yes/no with a picker, not with the word "true"', async () => {
+        const user = userEvent.setup();
         const onSaveStep = openOn({ urgent: 'yes' });
-        fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'yesno' } });
-        fireEvent.change(screen.getByLabelText('urgent value'), { target: { value: 'false' } });
+        await user.selectOptions(screen.getByLabelText('Type'), 'yesno');
+        await user.selectOptions(screen.getByLabelText('urgent value'), 'false');
         save();
         await waitFor(() => expect(onSaveStep).toHaveBeenCalledTimes(1));
         expect(savedOutput(onSaveStep)).toEqual({ urgent: false });

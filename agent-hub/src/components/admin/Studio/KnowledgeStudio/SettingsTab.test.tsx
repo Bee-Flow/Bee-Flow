@@ -135,9 +135,11 @@ describe('SettingsTab', () => {
     });
 
     it('commits the name on blur, not on every keystroke', async () => {
+        const user = userEvent.setup();
         setup();
         const input = screen.getByTestId('kb-settings-name');
-        fireEvent.change(input, { target: { value: 'Handboek' } });
+        await user.clear(input);
+        await user.type(input, 'Handboek');
         expect(knowledgeApi.update).not.toHaveBeenCalled();
         fireEvent.blur(input);
         await waitFor(() => expect(knowledgeApi.update).toHaveBeenCalledWith('kb1', { name: 'Handboek' }));

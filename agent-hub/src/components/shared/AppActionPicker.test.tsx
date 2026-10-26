@@ -74,11 +74,13 @@ describe('AppActionPicker', () => {
         expect(getByRole('button', { name: /^Send email/ }).textContent).toMatch(/writes/i);
     });
 
-    it('searching narrows the RIGHT pane too, not just the app list', () => {
+    it('searching narrows the RIGHT pane too, not just the app list', async () => {
+        const user = userEvent.setup();
         // Searching "send" and still having to hunt through 15 Gmail actions
         // would defeat the point.
         const { getByLabelText, getByRole, queryByRole } = renderPicker();
-        fireEvent.change(getByLabelText('Search apps and actions'), { target: { value: 'send' } });
+        await user.clear(getByLabelText('Search apps and actions'));
+        await user.type(getByLabelText('Search apps and actions'), 'send');
         expect(getByRole('button', { name: /^Send email/ })).toBeTruthy();
         expect(queryByRole('button', { name: /^Search\b/ })).toBeNull();
     });

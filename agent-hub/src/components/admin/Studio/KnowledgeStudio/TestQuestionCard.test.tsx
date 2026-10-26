@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -34,8 +34,10 @@ const SOURCE = {
 };
 
 async function ask(text = 'Hoeveel verlof bij een huwelijk?') {
-    fireEvent.change(screen.getByTestId('kb-ask-input'), { target: { value: text } });
-    fireEvent.click(screen.getByTestId('kb-ask-submit'));
+    const user = userEvent.setup();
+    await user.clear(screen.getByTestId('kb-ask-input'));
+    await user.type(screen.getByTestId('kb-ask-input'), text);
+    await user.click(screen.getByTestId('kb-ask-submit'));
 }
 
 beforeEach(() => { vi.clearAllMocks(); });
@@ -157,8 +159,10 @@ describe('TestQuestionCard', () => {
     });
 
     it('asks nothing for an empty question', async () => {
+        const user = userEvent.setup();
         render(<TestQuestionCard kbId="kb1" />);
-        fireEvent.change(screen.getByTestId('kb-ask-input'), { target: { value: '   ' } });
+        await user.clear(screen.getByTestId('kb-ask-input'));
+        await user.type(screen.getByTestId('kb-ask-input'), '   ');
         expect((screen.getByTestId('kb-ask-submit') as HTMLInputElement).disabled).toBe(true);
         expect(knowledgeApi.ask).not.toHaveBeenCalled();
     });

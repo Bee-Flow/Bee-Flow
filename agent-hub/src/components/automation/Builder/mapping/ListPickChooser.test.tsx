@@ -82,7 +82,7 @@ describe('ListPickChooser', () => {
     it('join carries the chosen separator into the expression', async () => {
         const user = userEvent.setup();
         const { onChoose } = renderChooser('steps.g.output.results[*].subject');
-        fireEvent.change(screen.getByLabelText('Separated by'), { target: { value: '\n' } });
+        await user.selectOptions(screen.getByLabelText('Separated by'), '\n');
         await user.click(screen.getByText('All of them, joined into text'));
         expect(onChoose).toHaveBeenCalledWith({
             mode: 'join',

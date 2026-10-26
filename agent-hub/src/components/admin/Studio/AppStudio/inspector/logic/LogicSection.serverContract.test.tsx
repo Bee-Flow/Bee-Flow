@@ -129,13 +129,14 @@ describe('LogicSection — server contract', () => {
         expect(utils.onCommit).not.toHaveBeenCalled();
     });
 
-    it('clearing a visibility formula drops the key instead of storing a blank one', () => {
+    it('clearing a visibility formula drops the key instead of storing a blank one', async () => {
+        const user = userEvent.setup();
         const utils = renderLogic({
             ...BUTTON, visibleWhen: { kind: 'formula', expr: 'form.ok == true' },
         });
         const { lastNode, getByPlaceholderText } = utils;
         writeAllAsFormula(utils);
-        fireEvent.change(getByPlaceholderText("e.g. form.priority == 'high'"), { target: { value: '' } });
+        await user.clear(getByPlaceholderText("e.g. form.priority == 'high'"));
         expect(lastNode().visibleWhen).toBeUndefined();
         // A blank expression would not merely be dropped — it is a hard error.
         expect(roundTrip(defWith({ id: NODE_ID, ...BUTTON, visibleWhen: { kind: 'formula', expr: '' } })).errors.length)

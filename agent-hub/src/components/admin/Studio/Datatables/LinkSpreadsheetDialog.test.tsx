@@ -111,14 +111,16 @@ const next = () => fireEvent.click(screen.getByRole('button', { name: /^Next$/ }
 
 /** Through the files step: into Finance, tick `names`. */
 async function pickFiles(names: string[]) {
-    fireEvent.click(await screen.findByRole('button', { name: /Finance/ }));
-    for (const name of names) fireEvent.click(await screen.findByRole('checkbox', { name }));
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: /Finance/ }));
+    for (const name of names) await user.click(await screen.findByRole('checkbox', { name }));
     next();
 }
 
 /** Through the sheets step for Facturen 2026.xlsx: tick the sheet, wait for its columns. */
 async function pickFacturenSheet() {
-    fireEvent.click(await screen.findByRole('checkbox', { name: 'Facturen — Facturen 2026.xlsx' }));
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('checkbox', { name: 'Facturen — Facturen 2026.xlsx' }));
     return screen.findByRole('region', { name: 'Facturen — Facturen 2026.xlsx' });
 }
 
@@ -195,7 +197,7 @@ describe('step 2 — sheets & columns', () => {
         expect(within(sec).getAllByText('F-001', { exact: false }).length).toBeGreaterThan(0);     // preview + sample
         const totaal = within(sec).getByRole('combobox', { name: 'Type of Totaal' });
         expect(totaal).toHaveValue('text');
-        fireEvent.change(totaal, { target: { value: 'number' } });
+        await user.selectOptions(totaal, 'number');
         expect(totaal).toHaveValue('number');
         // Only the unique text/number column may be the key; the others say why not.
         expect(within(sec).getByRole('radio', { name: 'Row number (default)' })).toBeChecked();
@@ -207,7 +209,7 @@ describe('step 2 — sheets & columns', () => {
         expect(within(sec).getByRole('radio', { name: 'Factuurnummer' })).toBeChecked();
         expect(screen.getByRole('button', { name: /^Next$/ })).not.toBeDisabled();
         // Retyped to a date, the key column can no longer identify a row: back to the row number.
-        fireEvent.change(within(sec).getByRole('combobox', { name: 'Type of Factuurnummer' }), { target: { value: 'date' } });
+        await user.selectOptions(within(sec).getByRole('combobox', { name: 'Type of Factuurnummer' }), 'date');
         expect(within(sec).getByRole('radio', { name: 'Factuurnummer' })).toBeDisabled();
         expect(within(sec).getByRole('radio', { name: 'Row number (default)' })).toBeChecked();
     });
@@ -217,7 +219,7 @@ describe('step 2 — sheets & columns', () => {
         open();
         await pickFiles(['Facturen 2026.xlsx']);
         const sec = await pickFacturenSheet();
-        fireEvent.change(within(sec).getByRole('combobox', { name: 'Type of Totaal' }), { target: { value: 'number' } });
+        await user.selectOptions(within(sec).getByRole('combobox', { name: 'Type of Totaal' }), 'number');
         await user.click(within(sec).getByRole('button', { name: 'One row down' }));
         await waitFor(() => expect(datatablesApi.describeSpreadsheet).toHaveBeenCalledWith(
             { provider: 'google_drive', fileId: 'f1', sheet: 'Facturen', headerRow: 2, scope: 'organisation' },
@@ -283,7 +285,7 @@ describe('steps 3-5 — names, relations, review, link', () => {
         const { onLinked } = open();
         await pickFiles(['Facturen 2026.xlsx']);
         const sec = await pickFacturenSheet();
-        fireEvent.change(within(sec).getByRole('combobox', { name: 'Type of Totaal' }), { target: { value: 'number' } });
+        await user.selectOptions(within(sec).getByRole('combobox', { name: 'Type of Totaal' }), 'number');
         await user.click(within(sec).getByRole('radio', { name: 'Factuurnummer' }));
         next();                                                                         // names
         expect(await screen.findByDisplayValue('Facturen 2026')).toBeInTheDocument();
@@ -357,13 +359,14 @@ describe('a relation outlives neither of its ends', () => {
 
 describe('a refusal goes back to the step that can fix it', () => {
     async function toReview() {
+        const user = userEvent.setup();
         open();
         await pickFiles(['Facturen 2026.xlsx']);
         await pickFacturenSheet();
         next(); await screen.findByDisplayValue('Facturen 2026');
         next(); await screen.findByText(/at least two sheets/);
         next(); await screen.findByRole('button', { name: 'Link the sheet' });
-        fireEvent.click(screen.getByRole('button', { name: 'Link the sheet' }));
+        await user.click(screen.getByRole('button', { name: 'Link the sheet' }));
     }
     const refusal = (code: string, body: unknown) => Object.assign(new Error(code), { status: 409, code, body });
 

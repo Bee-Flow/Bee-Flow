@@ -217,7 +217,7 @@ describe('DestinationPicker — row in a table', () => {
         // A column that cannot hold a string is not offered at all.
         expect(screen.queryByLabelText('Amount')).toBeNull();
 
-        fireEvent.change(ownerSelect, { target: { value: 'assignee' } });
+        await user.selectOptions(ownerSelect, 'assignee');
         await user.click(screen.getByText('Add the row'));
         await waitFor(() => expect(addRow).toHaveBeenCalled());
         expect(addRow).toHaveBeenCalledWith('t-1', { title: 'Testlink versturen', owner: 'Tom' });

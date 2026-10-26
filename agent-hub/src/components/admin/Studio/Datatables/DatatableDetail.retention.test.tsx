@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -63,8 +63,9 @@ function renderDetail(table = TABLE) {
 }
 
 async function openRetention(table?: Parameters<typeof renderDetail>[0]) {
+    const user = userEvent.setup();
     renderDetail(table);
-    fireEvent.click(await screen.findByRole('radio', { name: /retention/i }));
+    await user.click(await screen.findByRole('radio', { name: /retention/i }));
     return screen.findByLabelText(/Date column the age is measured from/i);
 }
 
@@ -89,8 +90,9 @@ describe('the window and the date column travel together', () => {
     });
 
     it('re-saves with the new column when the column alone is changed', async () => {
+        const user = userEvent.setup();
         await openRetention({ ...TABLE, retentionDays: 30, retentionField: 'signed_at' });
-        fireEvent.change(screen.getByLabelText(/Date column the age is measured from/i), { target: { value: 'seen_at' } });
+        await user.selectOptions(screen.getByLabelText(/Date column the age is measured from/i), 'seen_at');
         await waitFor(() => expect(datatablesApi.update).toHaveBeenCalledWith('tbl_1', {
             retentionDays: 30, retentionField: 'seen_at',
         }));
@@ -111,7 +113,8 @@ describe('the window and the date column travel together', () => {
         expect(datatablesApi.update).not.toHaveBeenCalled();
         // Empty is not a window.
         expect((screen.getByRole('button', { name: /^Apply$/ }) as HTMLButtonElement).disabled).toBe(true);
-        fireEvent.change(box, { target: { value: '45' } });
+        await user.clear(box);
+        await user.type(box, '45');
         await user.click(screen.getByRole('button', { name: /^Apply$/ }));
         await waitFor(() => expect(datatablesApi.update).toHaveBeenCalledWith('tbl_1', {
             retentionDays: 45, retentionField: 'signed_at',

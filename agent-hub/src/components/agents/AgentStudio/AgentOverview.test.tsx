@@ -8,7 +8,7 @@
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentStudio/AgentOverview.test.jsx
  */
-import { render, screen, cleanup, fireEvent, within } from '@testing-library/react';
+import { render, screen, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
@@ -112,12 +112,15 @@ describe('teller, zoekveld en chips', () => {
         expect(screen.getByTestId('agent-overview-count').textContent).toBe('2');
     });
 
-    it('zoeken versmalt de lijst en zegt het als er niets overblijft', () => {
+    it('zoeken versmalt de lijst en zegt het als er niets overblijft', async () => {
+        const user = userEvent.setup();
         draw();
         const box = screen.getByLabelText('Search agents by name, purpose or category');
-        fireEvent.change(box, { target: { value: 'help' } });
+        await user.clear(box);
+        await user.type(box, 'help');
         expect(screen.getAllByTestId('agent-card')).toHaveLength(1);
-        fireEvent.change(box, { target: { value: 'zzz' } });
+        await user.clear(box);
+        await user.type(box, 'zzz');
         expect(screen.queryByTestId('agent-card')).toBeNull();
         expect(screen.getByTestId('agent-overview-no-match')).toBeTruthy();
         // Not the empty state: there ARE agents, they just fall outside the filter.

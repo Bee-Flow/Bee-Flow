@@ -83,13 +83,14 @@ describe('SiteVersionMenu export/import', () => {
         expect(input!.getAttribute('accept')).toContain('.json');
     });
 
-    it('hands the chosen file straight to the parent and resets the input', () => {
+    it('hands the chosen file straight to the parent and resets the input', async () => {
+        const user = userEvent.setup();
         const onImportFile = vi.fn();
         const { container } = renderMenu({ onImportFile });
         const input = container.querySelector('input[type="file"]');
         const file = new File(['zipbytes'], 'site.zip', { type: 'application/zip' });
 
-        fireEvent.change(input!, { target: { files: [file] } });
+        await user.upload(input as HTMLInputElement, [file]);
 
         expect(onImportFile).toHaveBeenCalledTimes(1);
         expect(onImportFile.mock.calls[0][0].name).toBe('site.zip');

@@ -1,10 +1,11 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import { buildPatch } from './settings/formState';
 import { defaultTriggerLabel, isGeneratedTriggerLabel, triggerTypeLabel } from './triggerLabels';
 import type { ComponentProps } from 'react';
+import userEvent from '@testing-library/user-event';
 
 // BFSF-339 — switching a trigger's kind left the canvas node and this modal's
 // own header both reading "Manual", because `label` was stored by the palette
@@ -53,23 +54,27 @@ describe('triggerLabels', () => {
 });
 
 describe('SettingsForm — trigger label follows the kind', () => {
-    it('renames the node when the kind changes', () => {
+    it('renames the node when the kind changes', async () => {
+        const user = userEvent.setup();
         renderTrigger(trigger());
         expect((nameField() as HTMLInputElement).value).toBe('Manual');
-        fireEvent.change(kindSelect(), { target: { value: 'schedule' } });
+        await user.selectOptions(kindSelect(), 'schedule');
         expect((nameField() as HTMLInputElement).value).toBe('Schedule');
     });
 
-    it('leaves a hand-typed name alone', () => {
+    it('leaves a hand-typed name alone', async () => {
+        const user = userEvent.setup();
         renderTrigger(trigger());
-        fireEvent.change(nameField(), { target: { value: 'Every morning at 9' } });
-        fireEvent.change(kindSelect(), { target: { value: 'schedule' } });
+        await user.clear(nameField());
+        await user.type(nameField(), 'Every morning at 9');
+        await user.selectOptions(kindSelect(), 'schedule');
         expect((nameField() as HTMLInputElement).value).toBe('Every morning at 9');
     });
 
-    it('renames a trigger that already carries an earlier kind\'s name', () => {
+    it('renames a trigger that already carries an earlier kind\'s name', async () => {
+        const user = userEvent.setup();
         renderTrigger(trigger({ kind: 'schedule', label: 'Manual' }));
-        fireEvent.change(kindSelect(), { target: { value: 'webhook' } });
+        await user.selectOptions(kindSelect(), 'webhook');
         expect((nameField() as HTMLInputElement).value).toBe('Webhook');
     });
 

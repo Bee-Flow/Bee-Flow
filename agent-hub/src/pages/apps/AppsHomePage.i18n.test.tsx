@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -59,6 +59,7 @@ import { studioAppsApi } from '../../components/admin/Studio/AppStudio/studioApp
 import scopedStorage from '../../utils/scopedStorage';
 import type { ReactNode } from 'react';
 import { asMock } from '@/test/mocks';
+import userEvent from '@testing-library/user-event';
 
 beforeEach(() => {
     vi.clearAllMocks();
@@ -221,11 +222,13 @@ describe('AppsHomePage i18n — the chrome around the grid', () => {
     });
 
     it('translates the no-match line', async () => {
+        const user = userEvent.setup();
         asMock(studioAppsApi.listAccessible).mockResolvedValue({ apps: [app('a1')] });
         render(<AppsHomePage />);
         await screen.findByText('App a1');
 
-        fireEvent.change(screen.getByRole('searchbox'), { target: { value: 'zzzz' } });
+        await user.clear(screen.getByRole('searchbox'));
+        await user.type(screen.getByRole('searchbox'), 'zzzz');
 
         expect(screen.getByText('«apps.no_matches»')).toBeInTheDocument();
         expect(screen.queryByText(/No apps match/i)).not.toBeInTheDocument();

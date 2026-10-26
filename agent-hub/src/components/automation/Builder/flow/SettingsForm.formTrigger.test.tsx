@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
+import { render, screen, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -151,7 +151,8 @@ describe('SettingsForm — form trigger', () => {
         const { onPatch } = renderForm(trigger());
         const user = userEvent.setup();
         await user.click(screen.getByLabelText('Expand question 1'));
-        fireEvent.change(screen.getByLabelText('Question 1 label'), { target: { value: 'Full name' } });
+        await user.clear(screen.getByLabelText('Question 1 label'));
+        await user.type(screen.getByLabelText('Question 1 label'), 'Full name');
         await user.click(screen.getByText('Save'));
 
         const patch = onPatch.mock.calls.at(-1)![0];

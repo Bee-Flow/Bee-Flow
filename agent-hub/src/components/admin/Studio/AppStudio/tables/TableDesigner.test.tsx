@@ -57,11 +57,12 @@ describe('TableDesigner', () => {
         expect(last().fields[0].key).toBe('invoice_date');
     });
 
-    it('lets a choice field carry its choices (the shape the server requires)', () => {
+    it('lets a choice field carry its choices (the shape the server requires)', async () => {
+        const user = userEvent.setup();
         const draft = { id: 'fld_ccc333', key: 'status', name: 'Status', type: 'text' };
         const first = renderDesigner(stub<Parameters<typeof renderDesigner>[0]>({ fields: [draft], savedTable: null }));
 
-        fireEvent.change(first.getByLabelText('Field type'), { target: { value: 'select' } });
+        await user.selectOptions(first.getByLabelText('Field type'), 'select');
         const seeded = first.last().fields[0];
         expect(seeded.type).toBe('select');
         expect(seeded.options).toEqual(['', '', '']);

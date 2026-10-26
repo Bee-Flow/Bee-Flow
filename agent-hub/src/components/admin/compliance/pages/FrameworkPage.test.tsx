@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -89,9 +89,11 @@ describe('FrameworkPage — the checks tab', () => {
         await user.click(screen.getByTestId('checks-table-toolbar-pill-all'));
         await user.click(screen.getByRole('radio', { name: 'By article' }));
         expect(rowIds()).toEqual(['GDPR-Art28-dpa', 'GDPR-Art30-ropa', 'GDPR-Art32-enc', 'GDPR-Art33-breach']);
-        fireEvent.change(screen.getByTestId('checks-table-toolbar-search'), { target: { value: 'run history' } });
+        await user.clear(screen.getByTestId('checks-table-toolbar-search'));
+        await user.type(screen.getByTestId('checks-table-toolbar-search'), 'run history');
         expect(rowIds()).toEqual(['GDPR-Art33-breach']);
-        fireEvent.change(screen.getByTestId('checks-table-toolbar-search'), { target: { value: 'zzz-nothing' } });
+        await user.clear(screen.getByTestId('checks-table-toolbar-search'));
+        await user.type(screen.getByTestId('checks-table-toolbar-search'), 'zzz-nothing');
         expect(screen.getByTestId('checks-table-no-match')).toBeInTheDocument();
     });
 

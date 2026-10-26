@@ -91,17 +91,20 @@ describe('WebpagesList — header', () => {
         expect(screen.queryByTestId('studio-section-status')).not.toBeInTheDocument();
     });
 
-    it('filters on name and tagline, and says so when nothing matches', () => {
+    it('filters on name and tagline, and says so when nothing matches', async () => {
+        const user = userEvent.setup();
         renderList({
             webpages: [row('A', 'Page A', { tagline: 'quote status' }), row('B', 'Something else')],
         });
         const search = screen.getByRole('searchbox', { name: 'Search…' });
 
-        fireEvent.change(search, { target: { value: 'quote' } });
+        await user.clear(search);
+        await user.type(search, 'quote');
         expect(screen.getByText('Page A')).toBeInTheDocument();
         expect(screen.queryByText('Something else')).not.toBeInTheDocument();
 
-        fireEvent.change(search, { target: { value: 'zzz' } });
+        await user.clear(search);
+        await user.type(search, 'zzz');
         expect(screen.getByText('No matches')).toBeInTheDocument();
         // The examples card is a suggestion, not a search result.
         expect(screen.queryByTestId('webpages-examples')).not.toBeInTheDocument();
@@ -112,18 +115,20 @@ describe('WebpagesList — header', () => {
 
 describe('WebpagesList — describe to build', () => {
     it('hands the brief and the picked sources to onBuild, then clears the bar', async () => {
+        const user = userEvent.setup();
         const onBuild = vi.fn(async () => {});
         renderList({ onBuild });
 
         const input = screen.getByRole('textbox', { name: 'Describe the page you want' });
-        fireEvent.change(input, { target: { value: '  A status page  ' } });
+        await user.clear(input);
+        await user.type(input, '  A status page  ');
 
         // Pick one table and one automation out of the chooser.
-        await act(async () => { fireEvent.click(screen.getByTestId('webpages-source-picker')); });
-        fireEvent.click(await screen.findByRole('menuitemcheckbox', { name: /Quotes/ }));
-        fireEvent.click(await screen.findByRole('menuitemcheckbox', { name: /Request from website/ }));
+        await act(async () => { await user.click(screen.getByTestId('webpages-source-picker')); });
+        await user.click(await screen.findByRole('menuitemcheckbox', { name: /Quotes/ }));
+        await user.click(await screen.findByRole('menuitemcheckbox', { name: /Request from website/ }));
 
-        await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Build' })); });
+        await act(async () => { await user.click(screen.getByRole('button', { name: 'Build' })); });
 
         expect(onBuild).toHaveBeenCalledTimes(1);
         expect((onBuild.mock.calls[0] as unknown[])[0]).toEqual({
@@ -138,12 +143,14 @@ describe('WebpagesList — describe to build', () => {
     });
 
     it('keeps the brief when the build fails', async () => {
+        const user = userEvent.setup();
         const onBuild = vi.fn(async () => { throw new Error('nope'); });
         renderList({ onBuild });
 
         const input = screen.getByRole('textbox', { name: 'Describe the page you want' });
-        fireEvent.change(input, { target: { value: 'A status page' } });
-        await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Build' })); });
+        await user.clear(input);
+        await user.type(input, 'A status page');
+        await act(async () => { await user.click(screen.getByRole('button', { name: 'Build' })); });
 
         expect(onBuild).toHaveBeenCalledTimes(1);
         expect(input).toHaveValue('A status page');
@@ -158,8 +165,8 @@ describe('WebpagesList — describe to build', () => {
     it('a picked source can be taken back off the bar', async () => {
         const user = userEvent.setup();
         renderList();
-        await act(async () => { fireEvent.click(screen.getByTestId('webpages-source-picker')); });
-        fireEvent.click(await screen.findByRole('menuitemcheckbox', { name: /Quotes/ }));
+        await act(async () => { await user.click(screen.getByTestId('webpages-source-picker')); });
+        await user.click(await screen.findByRole('menuitemcheckbox', { name: /Quotes/ }));
         expect(screen.getByTestId('webpages-build-sources')).toHaveTextContent('Quotes');
 
         await user.click(screen.getByRole('button', { name: 'Remove Quotes' }));
@@ -267,11 +274,13 @@ describe('WebpagesList — cards', () => {
         expect(props.onOpen).not.toHaveBeenCalled();
     });
 
-    it('renames from the card on Enter, once', () => {
+    it('renames from the card on Enter, once', async () => {
+        const user = userEvent.setup();
         const { props } = renderList();
         fireEvent.doubleClick(screen.getByText('Page A'));
         const input = screen.getByRole('textbox', { name: 'Rename' });
-        fireEvent.change(input, { target: { value: '  Renamed  ' } });
+        await user.clear(input);
+        await user.type(input, '  Renamed  ');
         fireEvent.keyDown(input, { key: 'Enter' });
         fireEvent.blur(input);
         expect(props.onRename).toHaveBeenCalledTimes(1);

@@ -76,7 +76,8 @@ describe('FileExplorer — i18n', () => {
         await user.click(screen.getByTitle('⟦webpages.explorer.new_file⟧'));
 
         const input = screen.getByPlaceholderText('⟦webpages.explorer.ph_file⟧');
-        fireEvent.change(input, { target: { value: 'a/b*c.js' } });
+        await user.clear(input);
+        await user.type(input, 'a/b*c.js');
 
         // The wrong segment travels as a {segment} parameter — not as a piece of
         // English pasted onto a sentence.
@@ -89,7 +90,8 @@ describe('FileExplorer — i18n', () => {
         await user.click(screen.getByTitle('⟦webpages.explorer.new_file⟧'));
 
         const input = screen.getByPlaceholderText('⟦webpages.explorer.ph_file⟧');
-        fireEvent.change(input, { target: { value: 'src/App.jsx' } });
+        await user.clear(input);
+        await user.type(input, 'src/App.jsx');
         fireEvent.keyDown(input, { key: 'Enter' });
 
         expect(screen.getByText('⟦webpages.explorer.exists_file⟧')).toBeInTheDocument();

@@ -200,7 +200,8 @@ describe('the detail', () => {
         // inputs, and an ambiguous query here would fail for a reason that has
         // nothing to do with the confirmation.
         const confirmBox = within(screen.getByTestId('danger-zone')).getByRole('textbox');
-        fireEvent.change(confirmBox, { target: { value: 'Customers' } });
+        await user.clear(confirmBox);
+        await user.type(confirmBox, 'Customers');
         expect((screen.getByRole('button', { name: /Delete for good/ }) as HTMLButtonElement).disabled).toBe(false);
     });
 
@@ -224,9 +225,10 @@ describe('the detail', () => {
 });
 
 const openSharing = async (table: Record<string, unknown>) => {
+    const user = userEvent.setup();
     asMock(datatablesApi.list).mockResolvedValue({ datatables: [table] });
     renderStudio({ initialDatatableId: 'tbl_1' });
-    fireEvent.click(await screen.findByRole('radio', { name: /Sharing/ }));
+    await user.click(await screen.findByRole('radio', { name: /Sharing/ }));
 };
 
 describe('the sharing panel states read and write separately', () => {

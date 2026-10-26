@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import ConditionBuilder from './ConditionBuilder';
@@ -28,10 +28,12 @@ describe('ConditionBuilder — typed ValueSlot', () => {
         expect(screen.getByText('greater than')).toBeTruthy();
     });
 
-    it('editing the number input re-serialises the expression', () => {
+    it('editing the number input re-serialises the expression', async () => {
+        const user = userEvent.setup();
         const { onChange } = renderBuilder({ value: 'steps.s1.output.amount > 1000' }, stub<Parameters<typeof renderBuilder>[1]>({ previewSample }));
         const numberInput = document.querySelector('input[type="number"]');
-        fireEvent.change(numberInput!, { target: { value: '2000' } });
+        await user.clear(numberInput!);
+        await user.type(numberInput!, '2000');
         expect(onChange).toHaveBeenCalledWith('steps.s1.output.amount > 2000');
     });
 

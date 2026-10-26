@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -273,7 +273,8 @@ describe('<FormsStudio> — an empty list and a failed read are different screen
         // collect is the default choice
         const radios = screen.getAllByRole('radio');
         expect(radios[0]).toBeChecked();
-        fireEvent.change(screen.getByTestId('new-form-name'), { target: { value: 'Customer feedback' } });
+        await user.clear(screen.getByTestId('new-form-name'));
+        await user.type(screen.getByTestId('new-form-name'), 'Customer feedback');
         await user.click(screen.getByTestId('new-form-create'));
         await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('studio/forms/au-form/questions'));
         const [url, init] = fetchMock.mock.calls[0];
@@ -291,7 +292,8 @@ describe('<FormsStudio> — an empty list and a failed read are different screen
         renderStudio({ onNavigate });
         await user.click(await screen.findByTestId('forms-new'));
         await screen.findByTestId('new-form-dialog');
-        fireEvent.change(screen.getByTestId('new-form-brief'), { target: { value: 'A vacation request form' } });
+        await user.clear(screen.getByTestId('new-form-brief'));
+        await user.type(screen.getByTestId('new-form-brief'), 'A vacation request form');
         // the brief box belongs to the collecting choice only
         await user.click(screen.getAllByRole('radio')[1]);
         expect(screen.queryByTestId('new-form-brief')).toBeNull();

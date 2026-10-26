@@ -1,9 +1,10 @@
-import { render, fireEvent } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import ActionsSection from './ActionsSection';
 import { findNode } from '../state/definitionOps';
 import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
+import userEvent from '@testing-library/user-event';
 
 vi.mock('../../../../../hooks/useAutomationApi', () => ({
     default: () => ({ listAutomations: vi.fn(async () => ({ automations: [] })) }),
@@ -40,10 +41,11 @@ describe('ActionsSection — multi-event wiring', () => {
         expect(getByRole('combobox', { name: 'Action for onRowSelect' })).toBeTruthy();
     });
 
-    it('wiring a new action to onRowClick writes the event key on the node', () => {
+    it('wiring a new action to onRowClick writes the event key on the node', async () => {
+        const user = userEvent.setup();
         const node = { id: 'cmp_grid1', type: 'data_grid', props: {}, style: {} };
         const { onCommit, getByRole } = renderActions(node);
-        fireEvent.change(getByRole('combobox', { name: 'Action for onRowClick' }), { target: { value: '__new' } });
+        await user.selectOptions(getByRole('combobox', { name: 'Action for onRowClick' }), '__new');
         expect(onCommit).toHaveBeenCalled();
         const nextDef = onCommit.mock.calls.at(-1)![0];
         const wired = findNode(nextDef, 'cmp_grid1').node.onRowClick;

@@ -14,6 +14,7 @@ import NodeDetailView from './NodeDetailView';
 import { omitted, stub } from '@/test/mocks';
 import type { ComponentProps } from 'react';
 import type { Mock } from 'vitest';
+import userEvent from '@testing-library/user-event';
 
 /**
  * The output sheet's field face, for the value it meets most often: prose.
@@ -84,24 +85,28 @@ describe('NodeDetailView — a multi-paragraph value keeps its paragraphs', () =
         expect(savedOutput(onSaveStep)).toEqual({ body: `${BODY}\n\nAda` });
     });
 
-    it('keeps the tall control after the last line break is deleted', () => {
+    it('keeps the tall control after the last line break is deleted', async () => {
+        const user = userEvent.setup();
         // Sticky on purpose: recomputing "is this multi-line" from the text on
         // every keystroke would swap textarea for input the moment the author
         // deleted the last newline, and the caret would go with it.
         openOn(stub<Parameters<typeof openOn>[0]>({ body: 'one\ntwo' }));
 
-        fireEvent.change(screen.getByLabelText('body value'), { target: { value: 'one two' } });
+        await user.clear(screen.getByLabelText('body value'));
+        await user.type(screen.getByLabelText('body value'), 'one two');
         expect(screen.getByLabelText('body value').tagName).toBe('TEXTAREA');
         expect((screen.getByLabelText('body value') as HTMLInputElement).value).toBe('one two');
     });
 
     it('leaves an untouched body alone when a sibling field is edited', async () => {
+        const user = userEvent.setup();
         // True before the repair too (React never writes the sanitised value
         // back on its own) — pinned here because it is the half of the bug that
         // was invisible: the JSON was still right while the box lied about it.
         const onSaveStep = openOn(stub<Parameters<typeof openOn>[0]>({ body: BODY, subject: 'Hi' }));
 
-        fireEvent.change(screen.getByLabelText('subject value'), { target: { value: 'Bye' } });
+        await user.clear(screen.getByLabelText('subject value'));
+        await user.type(screen.getByLabelText('subject value'), 'Bye');
         save();
 
         await waitFor(() => expect(onSaveStep).toHaveBeenCalledTimes(1));

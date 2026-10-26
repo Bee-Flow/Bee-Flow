@@ -45,18 +45,20 @@ describe('flowSummary — what the north-west chip counts', () => {
 describe('DiagramPane — overlay zones', () => {
     beforeEach(cleanup);
 
-    it('opens the assistant with the selected step through the context menu', () => {
+    it('opens the assistant with the selected step through the context menu', async () => {
+        const user = userEvent.setup();
         const onAskAssistant = vi.fn();
         const { container } = renderCanvas({ onAskAssistant });
         fireEvent.contextMenu(container.querySelector('.react-flow__node[data-id="a"]')!, { clientX: 200, clientY: 200 });
-        fireEvent.click(screen.getByRole('menuitem', { name: /ask the assistant/i }));
+        await user.click(screen.getByRole('menuitem', { name: /ask the assistant/i }));
         expect(onAskAssistant).toHaveBeenCalledWith('a');
     });
 
-    it('opens the assistant with canvas selection on Ctrl+J', () => {
+    it('opens the assistant with canvas selection on Ctrl+J', async () => {
+        const user = userEvent.setup();
         const onAskAssistant = vi.fn();
         const { container } = renderCanvas({ onAskAssistant, onNodeClick: vi.fn() });
-        fireEvent.click(container.querySelector('.react-flow__node[data-id="a"]')!);
+        await user.click(container.querySelector('.react-flow__node[data-id="a"]')!);
         fireEvent.keyDown(document, { key: 'j', ctrlKey: true });
         expect(onAskAssistant).toHaveBeenCalledWith('a');
     });
@@ -82,7 +84,8 @@ describe('DiagramPane — overlay zones', () => {
         expect(screen.getByRole('button', { name: /arrange/i })).toBeTruthy();
     });
 
-    it('south-west: the Flowlets button appears only when the host wires it, and reports its state', () => {
+    it('south-west: the Flowlets button appears only when the host wires it, and reports its state', async () => {
+        const user = userEvent.setup();
         renderCanvas();
         expect(screen.queryByTitle(/Flowlets — manage/)).toBeNull();
         cleanup();
@@ -91,7 +94,7 @@ describe('DiagramPane — overlay zones', () => {
         const btn = screen.getByTitle(/Flowlets — manage/);
         expect(btn.getAttribute('aria-pressed')).toBe('true');
         expect(btn.textContent).toContain('2');
-        fireEvent.click(btn);
+        await user.click(btn);
         expect(onToggleFlowlets).toHaveBeenCalledTimes(1);
     });
 

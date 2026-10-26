@@ -1,8 +1,9 @@
-import { render, fireEvent } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import AppForm from './AppForm';
 import AppInputNumber from './AppInputNumber';
 import { RuntimeProvider, DEFAULT_RUNTIME, buildScope } from '../RuntimeContext';
+import userEvent from '@testing-library/user-event';
 
 /**
  * valueFrom on a number field (spec: input_number.valueFrom).
@@ -49,13 +50,15 @@ describe('AppInputNumber — valueFrom', () => {
         expect((container.querySelector('input') as HTMLInputElement).value).toBe('3');
     });
 
-    it('stays editable after the push', () => {
+    it('stays editable after the push', async () => {
+        const user = userEvent.setup();
         const { container } = renderNumber(
             { valueFrom: { kind: 'formula', expr: 'vars.regel.dikte_mm' } },
             { regel: { dikte_mm: 12 } },
         );
         const input = container.querySelector('input');
-        fireEvent.change(input!, { target: { value: '8' } });
+        await user.clear(input!);
+        await user.type(input!, '8');
         expect(input!.value).toBe('8');
     });
 });

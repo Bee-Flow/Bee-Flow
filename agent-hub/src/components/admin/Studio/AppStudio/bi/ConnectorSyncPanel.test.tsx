@@ -1,4 +1,4 @@
-import { fireEvent, render, waitFor } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -218,17 +218,19 @@ describe('ConnectorSyncPanel — once it fills a table', () => {
     });
 
     it('changes the cadence without dropping the rest of the sync block', async () => {
+        const user = userEvent.setup();
         const { getByRole, onChange } = renderPanel({ connector: SYNCED, tables: TABLES });
-        fireEvent.change(getByRole('combobox', { name: /refresh schedule/i }), { target: { value: '1440' } });
+        await user.selectOptions(getByRole('combobox', { name: /refresh schedule/i }), '1440');
         const patched = onChange.mock.calls[0][0].sync;
         expect(patched.schedule).toEqual({ everyMinutes: 1440 });
         expect(patched.tableId).toBe('tbl_new001');
         expect(patched.incremental).toEqual({ field: 'modifiedTime', format: 'iso' });
     });
 
-    it('switches to a custom cron schedule', () => {
+    it('switches to a custom cron schedule', async () => {
+        const user = userEvent.setup();
         const { getByRole, onChange } = renderPanel({ connector: SYNCED, tables: TABLES });
-        fireEvent.change(getByRole('combobox', { name: /refresh schedule/i }), { target: { value: 'cron' } });
+        await user.selectOptions(getByRole('combobox', { name: /refresh schedule/i }), 'cron');
         expect(onChange.mock.calls[0][0].sync.schedule.cron).toBeTruthy();
     });
 

@@ -90,7 +90,8 @@ describe('the shell (2a/2c)', () => {
         expect(items[items.length - 1]).toContain('Delete this table…');
         await user.click(screen.getByTestId('menu-rename'));
         const input = await screen.findByTestId('studio-section-title-input');
-        fireEvent.change(input, { target: { value: 'PB duidelijk' } });
+        await user.clear(input);
+        await user.type(input, 'PB duidelijk');
         fireEvent.keyDown(input, { key: 'Enter' });
         await waitFor(() => expect(datatablesApi.update).toHaveBeenCalledWith('tbl_1', { name: 'PB duidelijk' }));
 
@@ -115,7 +116,8 @@ describe('the shell (2a/2c)', () => {
         expect(await screen.findByTestId('danger-dependents')).toHaveTextContent('Playbook');
         const confirm = screen.getByRole('button', { name: /Delete for good/ });
         expect((confirm as HTMLInputElement).disabled).toBe(true);
-        fireEvent.change(within(screen.getByTestId('danger-zone')).getByRole('textbox'), { target: { value: 'PB vaag' } });
+        await user.clear(within(screen.getByTestId('danger-zone')).getByRole('textbox'));
+        await user.type(within(screen.getByTestId('danger-zone')).getByRole('textbox'), 'PB vaag');
         expect((screen.getByRole('button', { name: /Delete for good/ }) as HTMLButtonElement).disabled).toBe(false);
     });
 

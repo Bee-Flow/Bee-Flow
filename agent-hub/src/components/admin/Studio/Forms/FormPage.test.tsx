@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -82,7 +82,8 @@ describe('<FormPage>', () => {
         const user = userEvent.setup();
         renderPage();
         await screen.findByTestId('builder-stub');
-        fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Feedback 2026' } });
+        await user.clear(screen.getByLabelText('Title'));
+        await user.type(screen.getByLabelText('Title'), 'Feedback 2026');
         await user.click(screen.getByTestId('form-save'));
         await waitFor(() => expect(api.updateAutomation).toHaveBeenCalled());
         const [id, body] = api.updateAutomation.mock.calls[0];
@@ -96,7 +97,8 @@ describe('<FormPage>', () => {
         const user = userEvent.setup();
         renderPage();
         await screen.findByTestId('builder-stub');
-        fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Changed' } });
+        await user.clear(screen.getByLabelText('Title'));
+        await user.type(screen.getByLabelText('Title'), 'Changed');
         await user.click(screen.getByRole('tab', { name: /Share/ }));
         expect(await screen.findByText('Unsaved changes')).toBeTruthy();
         await user.click(screen.getByRole('button', { name: 'Keep editing' }));

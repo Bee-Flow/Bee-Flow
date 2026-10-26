@@ -12,6 +12,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { MeetingNotesProcessedFilterFields, FILTER_FORM_BY_KEY } from './triggerFilters';
+import userEvent from '@testing-library/user-event';
 
 function setup(initial = {}) {
     const filter: Record<string, unknown> = { ...initial };
@@ -88,19 +89,20 @@ describe('het meeting-notes tagfilter', () => {
         expect(screen.getByText(/exactly and case-sensitively/i)).toBeTruthy();
     });
 
-    it('houdt "elke aanleiding" en "alleen een nieuwe notitie" uit elkaar', () => {
+    it('houdt "elke aanleiding" en "alleen een nieuwe notitie" uit elkaar', async () => {
+        const user = userEvent.setup();
         const { filter, setFilter } = setup();
         const select = screen.getByRole('combobox');
         expect((select as HTMLInputElement).value).toBe('');   // geen mening = alle drie de aanleidingen
 
-        fireEvent.change(select, { target: { value: 'no' } });
+        await user.selectOptions(select, 'no');
         expect(setFilter).toHaveBeenCalledWith('reprocessed', false);
         expect(filter.reprocessed).toBe(false);
 
-        fireEvent.change(select, { target: { value: 'yes' } });
+        await user.selectOptions(select, 'yes');
         expect(setFilter).toHaveBeenCalledWith('reprocessed', true);
 
-        fireEvent.change(select, { target: { value: '' } });
+        await user.selectOptions(select, '');
         // Leaving it out is something other than false: the key is cleared.
         expect(setFilter).toHaveBeenCalledWith('reprocessed', undefined);
         expect('reprocessed' in filter).toBe(false);
