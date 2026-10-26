@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * MFA (TOTP) management endpoints — mounted at /auth/mfa.
  *
@@ -62,6 +62,7 @@ async function ensureUserRow(userId) {
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
+const { sessionUser } = require('../core/http/sessionUser');
 
 /**
  * `force` means "throw away the secret I am already showing and mint a new
@@ -121,8 +122,8 @@ const AssistBody = z.object({
 }).strict();
 
 router.get('/status', requireAuth, async (req, res) => {
-    const row = await userStore.getUser(req.session.user.id);
-    const keys = row?.mfa_enabled ? await userStore.listSecurityKeys(req.session.user.id) : [];
+    const row = await userStore.getUser(sessionUser(req).id);
+    const keys = row?.mfa_enabled ? await userStore.listSecurityKeys(sessionUser(req).id) : [];
     res.json({
         enabled: !!row?.mfa_enabled,
         recoveryCodesRemaining: mfa.remainingRecoveryCodes(row?.mfa_recovery_codes),
@@ -165,7 +166,7 @@ router.post('/setup', requireAuth, validate({ body: SetupBody }), async (req, re
         && (Date.now() - existing.mintedAt) < SETUP_SECRET_TTL_MS;
     const secret = fresh ? existing.secret : mfa.generateSecret();
     req.session.mfaSetupSecret = { secret, mintedAt: fresh ? existing.mintedAt : Date.now() };
-    const label = /** @type {string} */ (req.session.user.displayName || req.session.user.id);
+    const label = /** @type {string} */ (sessionUser(req).displayName || sessionUser(req).id);
     const otpauthUrl = mfa.otpauthUrl(secret, label);
     const qr = await mfa.qrDataUrl(otpauthUrl);
     req.session.save((err) => {
@@ -185,7 +186,7 @@ router.post('/enable', requireAuth, mfaCodeLimiter, validate({ body: EnableBody 
     if (!mfa.verifyTotp(pending, req.body.code)) {
         return res.status(400).json({ error: 'Invalid code. Check your authenticator app and try again.', code: 'invalid_code' });
     }
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const row = await ensureUserRow(userId);
     if (!row) return res.status(400).json({ error: 'User not found' });
     if (row.mfa_enabled) {
@@ -241,7 +242,7 @@ const PROOF_REFUSALS = {
  */
 function refuseProof(res, code, userId) {
     if (code === 'mfa_secret_unreadable') return unreadableSecret(res, userId);
-    return res.status(400).json({ error: PROOF_REFUSALS[code] || PROOF_REFUSALS.invalid_code, code: code || 'invalid_code' });
+    return res.status(400).json({ error: (code && PROOF_REFUSALS[code]) || PROOF_REFUSALS.invalid_code, code: code || 'invalid_code' });
 }
 
 // Proof that works on /disable and /regenerate as well as on the security-key
@@ -252,7 +253,7 @@ const proof = createSecondFactorProof({ userStore, mfa, ceremony });
 // Turn off MFA — requires proof of a current factor: an authenticator code, an
 // unused recovery code, or a security key. Takes the security keys with it.
 router.post('/disable', requireAuth, mfaCodeLimiter, validate({ body: ProofBody }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const row = await userStore.getUser(userId);
     if (!row?.mfa_enabled) return res.json({ success: true });
 
@@ -275,7 +276,7 @@ router.post('/disable', requireAuth, mfaCodeLimiter, validate({ body: ProofBody 
 // the same write, so a failure midway never costs the user a code without
 // giving new ones.
 router.post('/recovery-codes/regenerate', requireAuth, mfaCodeLimiter, validate({ body: ProofBody }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const row = await userStore.getUser(userId);
     if (!row?.mfa_enabled) return res.status(400).json({ error: 'MFA not enabled', code: 'mfa_not_enabled' });
 

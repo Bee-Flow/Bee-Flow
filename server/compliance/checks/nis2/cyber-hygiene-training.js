@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * NIS2 Art. 21(2)(g) + Art. 20(2) — basic cyber-hygiene practices and
  * cybersecurity training.
@@ -144,14 +144,14 @@ module.exports = {
                 details: `The ${unpublished.join(' and ')} polic${unpublished.length > 1 ? 'ies are' : 'y is'} not published — staff cannot acknowledge what does not exist. ${covered} of ${population} member(s) are covered by an external training attestation alone.`,
             };
         }
-        if (pct >= PASS_PCT) {
+        if (pct !== null && pct >= PASS_PCT) {
             return {
                 status: 'pass',
                 evidence,
                 details: `${covered} of ${population} member(s) (${pct} %) acknowledged the current policies or hold a training attestation from the last ${ATTEST_MAX_DAYS} days.`,
             };
         }
-        if (pct >= WARN_PCT) {
+        if (pct !== null && pct >= WARN_PCT) {
             return {
                 status: 'warn',
                 evidence,

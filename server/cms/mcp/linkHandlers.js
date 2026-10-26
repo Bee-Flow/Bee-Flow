@@ -48,7 +48,7 @@ function createLinkHandlers({ deps, cmsStore, resolveSite }) {
         if (unknown.length) return err(`Unknown field: ${unknown.slice(0, 5).join(', ')}.`, { _fixHint: 'Send siteId and external.' });
         const external = args.external === true;
         const site = await resolveSite(args);
-        if (site.error) return err(site.error);
+        if (site.error || !site.siteId) return err(site.error ?? 'No site was resolved.');
         if (external && !takeExternalRun(ctx.userId)) {
             return err(`External link checks are limited to ${EXTERNAL_MAX_PER_WINDOW} per ${EXTERNAL_WINDOW_MS / 60000} minutes. Ask again later, or run it without external.`);
         }

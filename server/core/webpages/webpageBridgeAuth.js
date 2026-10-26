@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Webpage Bridge Auth — author-context resolver shared by all three webpage
  * runtime bridges (AI / Automations / Integrations).

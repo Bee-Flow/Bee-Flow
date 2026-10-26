@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * What a retrieved chunk cannot say about itself, read from its `documents`
  * row (kind, meeting date, table rows, the metadata bag for relationHop).
@@ -68,7 +68,7 @@ async function enrichWithDocumentFacts(rows, { client: borrowed = null } = {}) {
               WHERE d.id = ANY($1::uuid[])`,
             [ids]
         );
-        const byId = new Map(docs.map(d => [d.doc_id, d]));
+        const byId = new Map(docs.map((/** @type {{ doc_id: string }} */ d) => [d.doc_id, d]));
 
         for (const row of rows) {
             const doc = row?.document_id ? byId.get(String(row.document_id).toLowerCase()) : null;

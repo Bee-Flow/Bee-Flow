@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Header cells → datatable fields, deterministically — the spreadsheet twin
  * of ../nextcloudTable/columns.js, with one difference that shapes everything:
@@ -217,7 +217,7 @@ function fieldsFromSheet(columns, {
     const typeByHash = new Map();
     for (const [k, v] of Object.entries(overrides || {})) {
         const type = v && typeof v === 'object' ? v.type : /** @type {string} */ (v);
-        if (!DECLARABLE_TYPES.includes(type)) continue;
+        if (typeof type !== 'string' || !DECLARABLE_TYPES.includes(type)) continue;
         const entry = priorEntries[k];
         const hash = (entry && entry.headerHash) || (parseFieldId(k) || {}).headerHash || (/^[0-9a-f]{10}$/.test(k) ? k : null);
         if (hash) typeByHash.set(hash, type);
@@ -229,7 +229,7 @@ function fieldsFromSheet(columns, {
     const plan = kept.map((c, i) => {
         const d = described[i];
         let type = typeByHash.get(d.headerHash)
-            || (DECLARABLE_TYPES.includes(c.type) ? c.type : null)
+            || (typeof c.type === 'string' && DECLARABLE_TYPES.includes(c.type) ? c.type : null)
             || (priorByHash.get(d.headerHash) && priorByHash.get(d.headerHash).entry && priorByHash.get(d.headerHash).entry.type)
             || null;
         if (c.type && !DECLARABLE_TYPES.includes(c.type) && !typeByHash.has(d.headerHash)) {

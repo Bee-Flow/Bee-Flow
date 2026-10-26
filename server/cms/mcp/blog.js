@@ -122,7 +122,7 @@ function createBlogHandlers(deps) {
     /** @param {ToolArgs} args */
     async function listPosts(args) {
         const site = await resolveSite(args);
-        if (site.error) return err(site.error);
+        if (site.error || !site.siteId) return err(site.error ?? 'No site was resolved.');
         const limit = Math.min(LIST_MAX, Math.max(1, Number.isInteger(args.limit) ? args.limit : 50));
         const offset = Math.max(0, Number.isInteger(args.offset) ? args.offset : 0);
         const search = typeof args.search === 'string' ? args.search.toLowerCase().slice(0, 100) : '';
@@ -148,7 +148,7 @@ function createBlogHandlers(deps) {
     /** @param {ToolArgs} args */
     async function getPost(args) {
         const site = await resolveSite(args);
-        if (site.error) return err(site.error);
+        if (site.error || !site.siteId) return err(site.error ?? 'No site was resolved.');
         const post = await findPost(site.siteId, args);
         if (!post) return notFoundHint(site.siteId, args);
         const all = (await cmsStore.collectPostLocaleOverrides(site.siteId, { fresh: true }))[post.id] || {};
@@ -176,7 +176,7 @@ function createBlogHandlers(deps) {
         if (picked.error) return picked.error;
         if (!picked.fields.title || !picked.fields.title.trim()) return err('title is required.');
         const site = await resolveSite(args);
-        if (site.error) return err(site.error);
+        if (site.error || !site.siteId) return err(site.error ?? 'No site was resolved.');
         if (!takeWriteBudget(ctx.userId)) return budgetSpent();
         let post;
         try { post = await cmsStore.createPost(site.siteId, picked.fields); } catch (e) { return storeError(e); }
@@ -215,7 +215,7 @@ function createBlogHandlers(deps) {
             return err('Nothing to change.', { _fixHint: 'Pass at least one post field, bodyEdits or appendBody.' });
         }
         const site = await resolveSite(args);
-        if (site.error) return err(site.error);
+        if (site.error || !site.siteId) return err(site.error ?? 'No site was resolved.');
         const post = await findPost(site.siteId, { postId: args.postId });
         if (!post) return notFoundHint(site.siteId, args);
 
@@ -256,7 +256,7 @@ function createBlogHandlers(deps) {
      */
     async function deletePost(args, ctx) {
         const site = await resolveSite(args);
-        if (site.error) return err(site.error);
+        if (site.error || !site.siteId) return err(site.error ?? 'No site was resolved.');
         const post = await findPost(site.siteId, { postId: args.postId });
         if (!post) return notFoundHint(site.siteId, args);
         if (!takeWriteBudget(ctx.userId)) return budgetSpent();
@@ -273,7 +273,7 @@ function createBlogHandlers(deps) {
         const locale = String(args.locale || '').toLowerCase();
         if (!cmsStore.isValidLocale(locale)) return err(`"${String(args.locale).slice(0, 20)}" is not a language code such as "nl".`);
         const site = await resolveSite(args);
-        if (site.error) return err(site.error);
+        if (site.error || !site.siteId) return err(site.error ?? 'No site was resolved.');
         if (locale === await cmsStore.getDefaultLocale()) {
             return err(`"${locale}" is the default language: edit the post itself with cms_update_post.`);
         }
@@ -311,7 +311,7 @@ function createBlogHandlers(deps) {
         }
         if (args.title === undefined && args.description === undefined && args.postsPerPage === undefined) return err('Nothing to change.');
         const site = await resolveSite(args);
-        if (site.error) return err(site.error);
+        if (site.error || !site.siteId) return err(site.error ?? 'No site was resolved.');
         if (!takeWriteBudget(ctx.userId)) return budgetSpent();
         const merge = (/** @type {Record<string, string>} */ base, /** @type {Record<string, unknown> | undefined} */ patch) => {
             const out = { ...base };

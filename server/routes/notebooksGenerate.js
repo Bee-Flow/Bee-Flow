@@ -36,6 +36,7 @@ const { shieldNotebookPrompt } = require('../agents/notebooks/notebookAiShield')
 const { asEditor, text } = require('./notebooksShared');
 // requireAuth is the canonical gate from auth/permissions (see routes/notebooks.js).
 const { requireAuth } = require('../auth/permissions');
+const { sessionUser } = require('../core/http/sessionUser');
 
 // ── What a caller may send ─────────────────────────────────────────
 // Closed bodies (see routes/notebooksShared.js).
@@ -59,7 +60,7 @@ const REMOVED_GEN_TYPES = new Set(['studyGuide', 'flashcards', 'quiz', 'audio_ov
 
 router.post('/:id/generate/:type', requireAuth, validate({ body: GenerateBody }), asEditor, /** @param {NotebookReq} req */ async (req, res) => {
     try {
-        const userId = req.session.user.id;
+        const userId = sessionUser(req).id;
         const notebookId = req.params.id;
         const type = req.params.type;
         const { modelTier } = req.body;
@@ -251,7 +252,7 @@ ${shield.units[0]}${shield.addendum}`;
 // using the notebook's attached sources.
 router.post('/:id/ai-fill', requireAuth, validate({ body: AiFillBody }), asEditor, /** @param {NotebookReq} req */ async (req, res) => {
     try {
-        const userId = req.session.user.id;
+        const userId = sessionUser(req).id;
         const nb = req.notebook;
 
         const { documentContent, modelTier } = req.body;

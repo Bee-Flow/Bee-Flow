@@ -260,7 +260,7 @@ function buildSeed(model, rowsByTable, maxRows) {
  * place they are allowed to differ.
  * @param {number} maxRows
  */
-function normalizeSeed(model, rawSeed, maxRows, { fileRefs = null } = {}) {
+function normalizeSeed(model, rawSeed, maxRows, /** @type {{ fileRefs?: Set<string> | null }} */ { fileRefs = null } = {}) {
     const tables = Array.isArray(model && model.tables) ? model.tables : [];
     const byId = new Map(tables.map((t) => [t.id, t]));
     const seed = {};

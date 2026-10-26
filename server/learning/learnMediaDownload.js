@@ -1,5 +1,5 @@
 /** @typedef {import('url').URL} URL */
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * HTTP download helpers for the Learning Center video pack (learnMediaInstall.js):
@@ -33,9 +33,10 @@ async function openUrl(source, { fetchImpl = globalThis.fetch, what = 'download'
     for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
         if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLoopback(url))) throw new Error(`${what} must be an https URL`);
         const res = await fetchImpl(url, { redirect: 'manual', signal });
-        if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
+        const location = res.headers.get('location');
+        if (res.status >= 300 && res.status < 400 && location) {
             if (res.body) await res.body.cancel().catch((e) => bestEffort('learning/learnMediaDownload:openUrl', e));
-            url = new URL(res.headers.get('location'), url);
+            url = new URL(location, url);
             continue;
         }
         if (!res.ok || !res.body) throw new Error(`download failed: HTTP ${res.status}`);

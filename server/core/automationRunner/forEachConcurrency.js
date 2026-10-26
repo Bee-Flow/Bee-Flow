@@ -57,7 +57,7 @@ function forEachConcurrencyFor(step, mode) {
     if (!step) return 1;
     if (step.type === 'integration_action') {
         return mode === 'live' && PARALLEL_READ_TOOLS.has(step.tool) && !step.askOnce
-            ? PARALLEL_READ_TOOLS.get(step.tool) : 1;
+            ? (PARALLEL_READ_TOOLS.get(step.tool) ?? 1) : 1;
     }
     if (step.type !== 'ai_step' && step.type !== 'data_extraction') return 1;
     if (step.type === 'ai_step' && aiStepCanCallTools(step)) return 1;

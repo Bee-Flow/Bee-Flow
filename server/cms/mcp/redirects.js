@@ -99,7 +99,7 @@ function createRedirectHandlers(deps) {
     /** @param {ToolArgs} args */
     async function listRedirects(args) {
         const site = await resolveSite(args);
-        if (site.error) return err(site.error);
+        if (site.error || !site.siteId) return err(site.error ?? 'No site was resolved.');
         const doc = await cmsStore.getRedirects(site.siteId, { fresh: true });
         return { result: { siteId: site.siteId, count: doc.redirects.length, redirects: doc.redirects, allowedHosts: doc.allowedHosts } };
     }
@@ -113,7 +113,7 @@ function createRedirectHandlers(deps) {
         if (unknown.length) return err(`Unknown field: ${unknown.slice(0, 5).join(', ')}.`, { _fixHint: 'Send from, to, status and external.' });
         if (typeof args.from !== 'string' || typeof args.to !== 'string') return err('from and to must be text.');
         const site = await resolveSite(args);
-        if (site.error) return err(site.error);
+        if (site.error || !site.siteId) return err(site.error ?? 'No site was resolved.');
         try {
             const { entry, redirects } = await cmsStore.setRedirect(site.siteId, {
                 from: args.from, to: args.to, status: args.status, external: args.external === true,
@@ -132,7 +132,7 @@ function createRedirectHandlers(deps) {
      */
     async function deleteRedirect(args, ctx) {
         const site = await resolveSite(args);
-        if (site.error) return err(site.error);
+        if (site.error || !site.siteId) return err(site.error ?? 'No site was resolved.');
         const doc = await cmsStore.getRedirects(site.siteId, { fresh: true });
         let target = null;
         if (typeof args.id === 'string' && args.id) target = doc.redirects.find((/** @type {Redirect} */ r) => r.id === args.id);

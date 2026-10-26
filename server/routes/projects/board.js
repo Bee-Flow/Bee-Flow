@@ -7,6 +7,7 @@ const { validate } = require('../../core/http/validate');
 const { projectAccessDeps } = require('./roleGate');
 const { badRequest, conflict, notFound } = require('../../core/http/errors');
 const { bestEffort } = require('../../utils/bestEffort');
+const { sessionUser } = require('../../core/http/sessionUser');
 const STATUSES = ['todo', 'doing', 'done'];
 /**
  * @typedef {{ id: string, title: string, status: string, wipLimit: number | null }} BoardColumn
@@ -77,7 +78,7 @@ function makeBoardRouter(deps = {}) {
             row.columns_sealed = seal(columns);
             return { columns, assignments: row.assignments };
         });
-        await emit(req.params.id, 'task.board.updated', req.session.user.id);
+        await emit(req.params.id, 'task.board.updated', sessionUser(req).id);
         res.json(result);
     });
     router.post('/:id/board/tasks', requireRole('editor'), validate({ body: Create }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
@@ -87,12 +88,12 @@ function makeBoardRouter(deps = {}) {
             const column = decode(row).find(c => c.id === req.body.columnId);
             if (!column) throw notFound();
             const store = (deps.taskStoreFor || require('../../stores/projectTaskStore').makeProjectTaskStore)(client);
-            await store.createTask({ id, projectId: req.params.id, title: box.sealTitle(id, req.body.title), description: box.sealContent(id, id, ''), status: column.status, createdBy: req.session.user.id });
+            await store.createTask({ id, projectId: req.params.id, title: box.sealTitle(id, req.body.title), description: box.sealContent(id, id, ''), status: column.status, createdBy: sessionUser(req).id });
             row.assignments[id] = column.id;
             return { id };
         });
-        try { await (deps.audit || require('../../stores/projectStore').logActivity)(req.params.id, req.session.user.id, 'task.created', { targetType: 'project_task', targetId: id }); } catch (err) { bestEffort('routes/projects/board:makeBoardRouter', err); /* activity must not turn a saved task into a failed create */ }
-        await emit(req.params.id, 'task.created', req.session.user.id, id);
+        try { await (deps.audit || require('../../stores/projectStore').logActivity)(req.params.id, sessionUser(req).id, 'task.created', { targetType: 'project_task', targetId: id }); } catch (err) { bestEffort('routes/projects/board:makeBoardRouter', err); /* activity must not turn a saved task into a failed create */ }
+        await emit(req.params.id, 'task.created', sessionUser(req).id, id);
         res.status(201).json(result);
     });
     router.patch('/:id/board/tasks/:taskId', requireRole('editor'), validate({ body: Move }), async (/** @type {import('express').Request<{ id: string, taskId: string }>} */ req, /** @type {import('express').Response} */ res) => {
@@ -108,7 +109,7 @@ function makeBoardRouter(deps = {}) {
             row.assignments[req.params.taskId] = column.id;
             return { ok: true };
         });
-        await emit(req.params.id, 'task.updated', req.session.user.id, req.params.taskId);
+        await emit(req.params.id, 'task.updated', sessionUser(req).id, req.params.taskId);
         res.json(result);
     });
     return router;

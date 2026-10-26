@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Run-history retention job (§WS3.1).
  *
@@ -29,7 +29,7 @@ const { recordJobRun } = require('../telemetry/metrics');
 const log = require('../telemetry/log');
 
 const RETENTION_DAYS = (() => {
-    const env = parseInt(process.env.AUTOMATION_RUN_RETENTION_DAYS, 10);
+    const env = parseInt(process.env.AUTOMATION_RUN_RETENTION_DAYS ?? '', 10);
     return Number.isFinite(env) ? env : 90;
 })();
 const BATCH_SIZE = 5000;

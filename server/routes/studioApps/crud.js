@@ -35,6 +35,7 @@ const { CreateAppBody, UpdateAppBody, DefinitionBody, RefQuery } = require('./sc
 const { requireManageApps, audienceFor, refuseRead, resolveOwnerOrgId } = require('./access');
 const { managedOf, MAX_CATEGORY_LEN, sanitizeAppRow, loadDataRefs } = require('./appHelpers');
 const { fallback } = require('../../utils/bestEffort');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 const router = express.Router();
 
@@ -48,7 +49,7 @@ router.get('/', requireAuth, async (req, res) => {
 
 router.get('/mine', requireAuth, async (req, res) => {
     const { userId, orgIdArr } = await audienceFor(req);
-    const apps = await studioAppStore.getStudioAppsByUser(req.session.user.id);
+    const apps = await studioAppStore.getStudioAppsByUser(sessionUser(req).id);
     // Attach a compact per-app storage usage field so the gallery can flag
     // apps nearing the DB cap (owner "Storage 82%" pill) without a second
     // fetch. dbRatio is server-computed so the client never needs the cap.
@@ -102,7 +103,7 @@ router.get('/usage', requireAuth, requirePrimaryOrgAdmin(), async (req, res) => 
 });
 
 router.post('/', requireAuth, requireManageApps, validate({ body: CreateAppBody }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const { name, description, icon, accentColor, templateId } = req.body || {};
     const cleanName = (typeof name === 'string' && name.trim())
         ? name.trim().slice(0, LIMITS.MAX_NAME_LEN)
@@ -178,7 +179,7 @@ router.post('/', requireAuth, requireManageApps, validate({ body: CreateAppBody 
 });
 
 router.get('/:id', requireAuth, async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const app = await studioAppStore.getStudioApp(req.params.id);
     if (!app) return res.status(404).json({ error: 'App not found' });
 
@@ -211,7 +212,7 @@ router.get('/:id', requireAuth, async (req, res) => {
  * 404 would leave the card unable to tell them apart.
  */
 router.get('/:id/ref', requireAuth, validate({ query: RefQuery }), async (req, res) => {
-    const viewerUserId = req.session.user.id;
+    const viewerUserId = sessionUser(req).id;
     const app = await studioAppStore.getStudioApp(req.params.id);
     const ref = {
         appId: req.params.id,
@@ -222,7 +223,7 @@ router.get('/:id/ref', requireAuth, validate({ query: RefQuery }), async (req, r
 });
 
 router.put('/:id', requireAuth, requireManageApps, validate({ body: UpdateAppBody }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const { name, description, icon, accentColor, category } = req.body || {};
 
     const updates = {};
@@ -270,7 +271,7 @@ router.put('/:id', requireAuth, requireManageApps, validate({ body: UpdateAppBod
 
 // Owner-only CAS save of the working definition.
 router.put('/:id/definition', requireAuth, requireManageApps, validate({ body: DefinitionBody }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const { definition, baseVersion } = req.body || {};
     if (!definition || typeof definition !== 'object' || Array.isArray(definition)) {
         return res.status(400).json({ error: 'definition (object) is required' });
@@ -322,7 +323,7 @@ router.put('/:id/definition', requireAuth, requireManageApps, validate({ body: D
 });
 
 router.delete('/:id', requireAuth, requireManageApps, async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     // deleteStudioApp is owner-scoped — non-owners get null (404, no leak).
     const deleted = await studioAppStore.deleteStudioApp(req.params.id, userId);
     if (!deleted) return res.status(404).json({ error: 'App not found' });

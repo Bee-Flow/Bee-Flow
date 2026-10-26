@@ -26,6 +26,7 @@ const { openSse } = require('../../../core/http/sseHelpers');
 const { requireAuth } = require('../../../auth/permissions');
 const { layerAgentRateLimit } = require('./rateLimits');
 const { loadOrCreateDraft, persistDraftWrap } = require('./builderDraft');
+const { sessionUser } = require('../../../core/http/sessionUser');
 
 const SAVE_FIRST = 'Save the automation first, then build a flowlet.';
 const INSTRUCTION_TEXT = 'An instruction is required.';
@@ -60,7 +61,7 @@ const LayerAgentBody = z.preprocess((v) => (v === undefined || v === null ? {} :
  *         layer_agent_done, draft (final definition), done | error.
  */
 router.post('/layer-agent', requireAuth, layerAgentRateLimit, validate({ body: LayerAgentBody }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const { automationId, instruction, mode, layerKey: existingKey, title } = req.body;
 
     // Flush headers + 10s heartbeat — the flowlet agent (with sub-agents)

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Periodic prunes started at boot.
  *
@@ -19,8 +19,8 @@ function startPruneSchedulers() {
         const runOrgHealthPrune = async () => {
             try {
                 const r = await orgHealthStore.pruneOld({
-                    eventRetentionDays: parseInt(process.env.ORG_HEALTH_EVENT_RETENTION_DAYS, 10) || 90,
-                    resolvedProblemRetentionDays: parseInt(process.env.ORG_HEALTH_RESOLVED_RETENTION_DAYS, 10) || 30,
+                    eventRetentionDays: parseInt(process.env.ORG_HEALTH_EVENT_RETENTION_DAYS ?? '', 10) || 90,
+                    resolvedProblemRetentionDays: parseInt(process.env.ORG_HEALTH_RESOLVED_RETENTION_DAYS ?? '', 10) || 30,
                 });
                 if (r && (r.events || r.resolvedProblems || r.unattributed)) {
                     log.info(`[OrgHealth] pruned events=${r.events} resolvedProblems=${r.resolvedProblems} unattributed=${r.unattributed}`);

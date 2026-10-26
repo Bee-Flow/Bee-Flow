@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * App Studio Builder — the persisted builder-session snapshot the client
  * rehydrates from on mount (GET /session/:appId).
@@ -22,6 +22,7 @@ const studioAppStore = require('../../../stores/studioAppStore');
 const { requireAuth } = require('../../../auth/permissions');
 const { validate } = require('../../../core/http/validate');
 const { z } = require('../../../utils/zod');
+const { sessionUser } = require('../../../core/http/sessionUser');
 
 const NoQuery = z.object({}).strict();
 
@@ -29,7 +30,7 @@ const NoQuery = z.object({}).strict();
 // on mount to rehydrate chat history + validation state after a refresh or
 // SSE drop. Owner-scoped inside getBuilderSession (non-owners get null).
 router.get('/session/:appId', requireAuth, validate({ query: NoQuery }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const snapshot = await studioAppStore.getBuilderSession(/** @type {string} */ (req.params.appId), userId);
     if (!snapshot) return res.status(404).json({ error: 'No builder session for this app' });
     res.json({ snapshot });

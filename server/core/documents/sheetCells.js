@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The cells of a SPREADSHEET document, kept in a datatable.
  *
@@ -198,6 +198,7 @@ function makeSheetCells(deps = {}) {
         /** @type {string | null} */
         let cursor = null;
         for (;;) {
+            /** @type {{ rows: Record<string, unknown>[], hasMore?: boolean, nextCursor?: string | null }} */
             const page = await runtime().readRows(resolved, {
                 allowColumns: ALLOW_COLUMNS, sort: { field: 'row_no', dir: 'asc' }, limit: PAGE, cursor,
             });

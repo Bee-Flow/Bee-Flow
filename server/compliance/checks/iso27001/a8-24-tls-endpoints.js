@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * ISO 27001 A.8.24 — TLS on public endpoints: certificate validity/expiry and
  * protocol version from the tls-endpoints connector snapshots. Complements the

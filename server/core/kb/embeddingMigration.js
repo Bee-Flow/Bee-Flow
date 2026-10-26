@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * Keeps the stored knowledge-base vectors in the space of the CONFIGURED
@@ -290,7 +290,7 @@ let running = null;
  * @param {{ reason?: string, deps?: MigrationDeps }} [opts]
  * @returns {Promise<{ status: string, chunks?: number, dim?: number }>}
  */
-function ensureKbEmbeddingsCurrent({ reason = 'check', deps = null } = {}) {
+function ensureKbEmbeddingsCurrent({ reason = 'check', deps } = {}) {
     if (running) return running;
     running = migrateAndRetry(deps || defaultDeps(), { reason })
         .catch((err) => {

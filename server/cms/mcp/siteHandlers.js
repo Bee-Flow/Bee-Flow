@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * The site-level CMS-over-MCP tools (./dispatch.js maps tool names to them):
@@ -52,7 +52,7 @@ function createSiteHandlers({ deps, cmsStore, live, resolveSite, loadDraft, vali
     /** @param {ToolArgs} args */
     async function duplicateSite(args) {
         const site = await resolveSite(args);
-        if (site.error) return err(site.error);
+        if (site.error || !site.siteId) return err(site.error ?? 'No site was resolved.');
         const created = await cmsStore.duplicateProject(site.siteId);
         return { result: { ...created, copiedFrom: site.siteId, note: 'A new draft version. It is not live; pass its id as siteId to work on it.' } };
     }
@@ -76,7 +76,7 @@ function createSiteHandlers({ deps, cmsStore, live, resolveSite, loadDraft, vali
      */
     async function deletePage(args, ctx) {
         const site = await resolveSite(args);
-        if (site.error) return err(site.error);
+        if (site.error || !site.siteId) return err(site.error ?? 'No site was resolved.');
         const pageId = String(args.pageId || '');
         const entry = site.project.pages.find((/** @type {PageEntry} */ p) => p.id === pageId);
         if (!entry) return err(`Page "${pageId.slice(0, 60)}" is not in this site.`, { _fixHint: `Known page ids: ${site.project.pages.map((/** @type {PageEntry} */ p) => `${p.id} (${p.slug})`).join(', ') || 'none'}.` });
@@ -103,7 +103,7 @@ function createSiteHandlers({ deps, cmsStore, live, resolveSite, loadDraft, vali
     /** @param {ToolArgs} args */
     async function getSiteSettings(args) {
         const site = await resolveSite(args);
-        if (site.error) return err(site.error);
+        if (site.error || !site.siteId) return err(site.error ?? 'No site was resolved.');
         const wanted = Array.isArray(args.sections) && args.sections.length
             ? args.sections.filter((/** @type {string} */ s) => [...SETTING_SECTIONS, 'analytics'].includes(s))
             : [...SETTING_SECTIONS, 'analytics'];
@@ -129,7 +129,7 @@ function createSiteHandlers({ deps, cmsStore, live, resolveSite, loadDraft, vali
         if (!sent.length) return err('Nothing to change.', { _fixHint: `Pass at least one of: name, ${SETTING_SECTIONS.join(', ')}, analytics.` });
 
         const found = await resolveSite(args);
-        if (found.error) return err(found.error);
+        if (found.error || !found.siteId) return err(found.error ?? 'No site was resolved.');
         // What to change, validated first and applied below to the SiteDoc as stored then.
         /** @type {Record<string, any>} */
         const sectionPatches = {};
@@ -203,7 +203,7 @@ function createLocaleHandlers({ deps, cmsStore, resolveSite }) {
     /** @param {ToolArgs} args */
     async function getLocaleOverrides(args) {
         const site = await resolveSite(args);
-        if (site.error) return err(site.error);
+        if (site.error || !site.siteId) return err(site.error ?? 'No site was resolved.');
         const wantedLocale = args.locale ? String(args.locale).toLowerCase() : null;
         const { siteByLocale, pagesByLocale } = await deps.cmsParts.collectLocaleOverrides(site.siteId, { fresh: true });
         /** @type {Record<string, any>} */
@@ -226,7 +226,7 @@ function createLocaleHandlers({ deps, cmsStore, resolveSite }) {
         const locale = String(args.locale || '').toLowerCase();
         if (!cmsStore.isValidLocale(locale)) return err(`"${String(args.locale).slice(0, 20)}" is not a language code such as "en", "nl" or "pt-br".`);
         const site = await resolveSite(args);
-        if (site.error) return err(site.error);
+        if (site.error || !site.siteId) return err(site.error ?? 'No site was resolved.');
         const pageId = typeof args.pageId === 'string' && args.pageId ? args.pageId : null;
         if (pageId && !site.project.pages.some((/** @type {PageEntry} */ p) => p.id === pageId)) {
             return err(`Page "${pageId}" is not in this site.`, { _fixHint: `Known page ids: ${site.project.pages.map((/** @type {PageEntry} */ p) => `${p.id} (${p.slug})`).join(', ') || 'none'}.` });

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Who is asking, in the shape `kbVisibility.filterKbIdsForUser` needs.
  *
@@ -12,8 +12,12 @@
  * So: one resolver, always a Set, and a failure that NARROWS.
  */
 
-/** `{ orgIds: Set, userGroups: string[] }` for a user id. Never throws. */
 const log = require('../../telemetry/log');
+
+/**
+ * `{ orgIds: Set, userGroups: string[] }` for a user id. Never throws.
+ * @param {string | null | undefined} userId
+ */
 async function askerContext(userId) {
     if (!userId) return { orgIds: new Set(), userGroups: [] };
     let orgIds = new Set();

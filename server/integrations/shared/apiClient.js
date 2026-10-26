@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * jsonApiRequest — the hardened choke point for outbound calls to
  * user/org-configured third-party APIs (H10).
@@ -67,7 +67,7 @@ async function jsonApiRequest(url, opts = {}) {
     }
 
     const reqHeaders = { ...headers };
-    /** @type {string} */
+    /** @type {string | undefined} */
     let payload;
     if (body !== undefined && body !== null) {
         payload = typeof body === 'string' ? body : JSON.stringify(body);

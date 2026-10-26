@@ -469,7 +469,7 @@ async function getProviderAuth(userId, provider) {
  * don't depend on session tokens.
  * @param {string} userId
  */
-async function buildUserAuth(userId, { enabledIntegrations = [], providerHint = null } = {}) {
+async function buildUserAuth(userId, /** @type {{ enabledIntegrations?: string[], providerHint?: string | null }} */ { enabledIntegrations = [], providerHint = null } = {}) {
     const required = providersForIntegrations(enabledIntegrations);
     // No OAuth-backed integrations — return a bare shim. `getIntegrationTools`
     // can still load configStore-backed tools (Fireflies/YouTrack/Gamma/etc).

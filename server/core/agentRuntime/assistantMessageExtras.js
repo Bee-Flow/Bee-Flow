@@ -17,7 +17,7 @@ const { bestEffort, fallback } = require('../../utils/bestEffort');
  * @typedef {{ piiDetection: () => typeof import('../privacy/piiDetection'), dlpRunner: () => typeof import('../dlp/dlpRunner') }} Privacy
  * @typedef {{ id?: string } | null | undefined} ConversationRef
  * @typedef {{ resultPreview?: unknown, args?: Record<string, unknown> }} ToolHistoryEntry
- * @typedef {{ id?: string, text?: string, startedAt?: number, endedAt?: number, redacted?: boolean, signature?: string, redactedData?: string, phase?: string }} ThinkingPart
+ * @typedef {{ id?: string, text?: string, startedAt?: number, endedAt?: number | null, redacted?: boolean, signature?: string, redactedData?: string, phase?: string }} ThinkingPart
  * @typedef {{ source: string, action: string, count: number, categories: string[], provider: string, automatic: boolean, tokenMap: Record<string, string>, rawResponse?: string, rawTruncated?: boolean }} TokenisationInfo
  */
 

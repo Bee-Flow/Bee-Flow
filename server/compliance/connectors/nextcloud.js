@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Nextcloud serverinfo connector — workplace-software evidence for
  * A.8.19/A.8.8: which server version is running and whether app updates are
@@ -40,6 +40,7 @@ module.exports = {
             throw new Error('nextcloud secret needs { username, password } (admin + app password)');
         }
 
+        if (!safeFetch) throw new Error('nextcloud: the collector was not given an SSRF-guarded fetch');
         const res = await safeFetch(`${baseUrl}/ocs/v2.php/apps/serverinfo/api/v1/info?format=json`, {
             headers: {
                 'Authorization': `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`,

@@ -13,6 +13,7 @@ const router = express.Router();
 const automationStore = require('../../stores/automationStore');
 const { getDeliverableEvents, isPushPending } = require('../../automation/deliverableEvents');
 const { makeAutomationAccess } = require('../../automation/access');
+const { sessionUser } = require('../../core/http/sessionUser');
 const automationAccess = makeAutomationAccess({ store: automationStore });
 
 /**
@@ -32,8 +33,8 @@ router.post('/:id/diagnose-trigger', async (req, res) => {
     if (!await automationAccess.guard(req, res, a, 'edit')) return;
     // The trigger listens on the OWNER's account, so that is what is diagnosed.
     // The caller's session only stands in when the caller is the owner.
-    const userId = a.userId || req.session.user.id;
-    const ownSession = userId === req.session.user.id ? req.session : null;
+    const userId = a.userId || sessionUser(req).id;
+    const ownSession = userId === sessionUser(req).id ? req.session : null;
 
     const trig = a.definition?.trigger;
     const provider = trig?.appEvent?.provider;

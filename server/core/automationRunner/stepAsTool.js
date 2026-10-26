@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * A published Reusable Step invoked as a chat tool (extracted verbatim from
  * automationRunner.js). Loads the block's published version, runs it through
@@ -11,6 +11,8 @@ const { fallback } = require('../../utils/bestEffort');
 
 /**
  * @param {string} blockId
+ * @param {unknown} args
+ * @param {{ userId?: string, callerAgentId?: string | null, callerConversationId?: string | null, startedByUserId?: string | null } | null | undefined} ctx
  */
 async function runStepAsTool(blockId, args, ctx, { mode = 'live' } = {}) {
     const automationStore = require('../../stores/automationStore');

@@ -20,6 +20,7 @@ const { CheckBody, DraftQuery } = require('./schemas');
 const { requireManageApps, audienceFor, refuseRead } = require('./access');
 const { loadOwnedAutomations, loadDataRefs } = require('./appHelpers');
 const { fallback } = require('../../utils/bestEffort');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 const router = express.Router();
 
@@ -41,7 +42,7 @@ const router = express.Router();
  * stranger the uniform 404 so existence never leaks.
  */
 router.post('/:id/check', requireAuth, validate({ body: CheckBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const app = await studioAppStore.getStudioApp(req.params.id);
     if (!app) return res.status(404).json({ error: 'App not found' });
 
@@ -107,7 +108,7 @@ router.post('/:id/check', requireAuth, validate({ body: CheckBody }), /** @param
  * version + hash. → { ok:true, fromVersion, toVersion, version, dataInstall? }
  */
 router.post('/:id/template-upgrade', requireAuth, requireManageApps, /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const app = await studioAppStore.getStudioApp(req.params.id);
     if (!app) return res.status(404).json({ error: 'App not found' });
 
@@ -229,7 +230,7 @@ async function buildRuntimeViewer(app, userId, userGroups) {
 }
 
 router.get('/:id/runtime', requireAuth, validate({ query: DraftQuery }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const app = await studioAppStore.getStudioApp(req.params.id);
     if (!app) return res.status(404).json({ error: 'App not found' });
 

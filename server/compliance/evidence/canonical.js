@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Canonical JSON for the compliance evidence chain.
  *
@@ -80,8 +80,8 @@ function compareCodePoints(a, b) {
         if (x.done && y.done) return 0;
         if (x.done) return -1;
         if (y.done) return 1;
-        const cx = x.value.codePointAt(0);
-        const cy = y.value.codePointAt(0);
+        const cx = x.value.codePointAt(0) ?? 0;
+        const cy = y.value.codePointAt(0) ?? 0;
         if (cx !== cy) return cx - cy;
     }
 }

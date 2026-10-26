@@ -133,7 +133,7 @@ function createScreenshotHandler({ deps, resolveSite, takeBudget, shotBudget }) 
             return { result: { note: 'Screenshot budget spent' }, text: `Screenshot budget spent (${SHOT_MAX_PER_WINDOW} per ${SHOT_WINDOW_MS / 60000} minutes); each one is a headless browser page. Keep editing and take the next one when the budget refills.` };
         }
         const site = await resolveSite(args);
-        if (site.error) return err(site.error);
+        if (site.error || !site.siteId) return err(site.error ?? 'No site was resolved.');
         const shot = await deps.screenshots.render({
             siteId: site.siteId,
             pageId: args.pageId,

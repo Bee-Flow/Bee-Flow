@@ -27,6 +27,7 @@ const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, choice, idList, NO_QUERY } = require('./schemas');
 const { FRAMEWORKS, RUNTIMES } = require('../../integrations/webpageFramework');
 const log = require('../../telemetry/log');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 // ── What a page may carry ───────────────────────────────────────────
 //
@@ -74,7 +75,7 @@ const UpdateBody = bodyOf({
 
 function register(router) {
     router.post('/', requireAuth, validate({ body: CreateBody, query: NO_QUERY }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-        const userId = req.session.user.id;
+        const userId = sessionUser(req).id;
         const { name, description, instructions, framework, runtime } = req.body;
         const prompt = (req.body.prompt || '').trim().slice(0, MAX_PROMPT_CHARS);
 
@@ -171,7 +172,7 @@ function register(router) {
     });
 
     router.get('/:id', requireAuth, validate({ query: NO_QUERY }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-        const userId = req.session.user.id;
+        const userId = sessionUser(req).id;
         // Try owner-scoped read first (preserves owner-only RustFS path).
         let webpage = await webpageStore.getWebpage(req.params.id, userId);
         if (!webpage) {

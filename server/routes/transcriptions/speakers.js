@@ -17,6 +17,7 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, NO_QUERY } = require('./schemas');
 const { fallback } = require('../../utils/bestEffort');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 // ── What a speaker edit may carry ───────────────────────────────────
 //
@@ -55,7 +56,7 @@ const ReidentifyBody = bodyOf({
 // Owner-only.
 
 router.patch('/:id/speakers', requireAuth, validate({ body: SpeakersBody, query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const { renames = {}, merges = [] } = req.body;
 
     const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
@@ -180,7 +181,7 @@ router.patch('/:id/speakers', requireAuth, validate({ body: SpeakersBody, query:
 // was in the room) is accepted and, when given, drives the mapping. Owner-only.
 
 router.post('/:id/reidentify-speakers', requireAuth, validate({ body: ReidentifyBody, query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const userOrgId = await resolveUserOrgFromReq(req);
     const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
     const transcription = await transcriptionStore.getTranscription(req.params.id, userId, { orgIds, userGroupIds, isSuperAdmin });

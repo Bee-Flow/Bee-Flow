@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * bucket: sort a column into labelled groups: numeric bands (lowest value
@@ -101,7 +101,7 @@ function apply(op, input, ctx) {
                 else {
                     const x = toNumber(cell);
                     let k = 0;
-                    while (x !== null && k < cut.length && x >= cut[k]) k++;
+                    while (x !== null && cut && k < cut.length && x >= cut[k]) k++;
                     label = x === null ? null : labels[k];
                 }
             }

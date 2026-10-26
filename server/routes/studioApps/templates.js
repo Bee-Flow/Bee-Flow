@@ -18,6 +18,7 @@ const { requireAuth } = require('../../auth/permissions');
 const { DownloadQuery } = require('./schemas');
 const { requireManageApps, audienceFor, resolveOwnerOrgId } = require('./access');
 const { fallback } = require('../../utils/bestEffort');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 const router = express.Router();
 
@@ -49,7 +50,7 @@ router.get('/templates/:templateId', requireAuth, async (/** @type {import('expr
 // non-utpl_ id is the honest answer rather than a 403 implying it might work
 // with more rights.
 router.delete('/templates/:templateId', requireAuth, requireManageApps, async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const { orgIdArr } = await audienceFor(req);
     const templateId = /** @type {string} */ (req.params.templateId);
     if (!studioAppTemplateStore.isCapturedTemplateId(templateId)) {
@@ -60,8 +61,8 @@ router.delete('/templates/:templateId', requireAuth, requireManageApps, async (r
 
     // An org admin may clear out a template a departed colleague left in
     // the org's gallery; the store's own rule is creator-only.
-    const isOrgAdmin = !!req.session.user.isSuperAdmin
-        || (req.session.user.isOrgAdmin && existing.organizationId
+    const isOrgAdmin = !!sessionUser(req).isSuperAdmin
+        || (sessionUser(req).isOrgAdmin && existing.organizationId
             && orgIdArr.includes(existing.organizationId));
     const out = await studioAppTemplateStore.deleteTemplate(templateId, userId, { force: isOrgAdmin });
     if (out.notFound) return res.status(404).json({ error: 'Template not found' });
@@ -153,7 +154,7 @@ router.get('/templates/:templateId/export', requireAuth, requireManageApps, vali
 const templateImportLimiter = perUserRateLimit({ windowMs: 60_000, max: 10 });
 router.post('/templates/import', requireAuth, requireManageApps, templateImportLimiter, async (req, res) => {
     try {
-        const userId = req.session.user.id;
+        const userId = sessionUser(req).id;
         const body = req.body || {};
         const envelope = (body && typeof body === 'object' && body.envelope !== undefined) ? body.envelope : body;
 
