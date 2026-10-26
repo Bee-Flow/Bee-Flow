@@ -16,7 +16,6 @@
 
 const { test, after } = require('node:test');
 const assert = require('node:assert');
-const Module = require('module');
 
 process.env.NODE_ENV = 'test';
 process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'test-session-secret-at-least-32-chars-long';

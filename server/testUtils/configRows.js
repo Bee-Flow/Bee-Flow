@@ -57,7 +57,7 @@ function useConfigRows() {
      * @param {unknown} [params]
      */
     async function query(sql, params) {
-        const text = typeof sql === 'string' ? sql : String(/** @type {any} */ (sql)?.text || '');
+        const text = typeof sql === 'string' ? sql : (typeof sql === 'object' && sql !== null && 'text' in sql ? String(sql.text) : '');
         const values = Array.isArray(params) ? params : [];
         if (/^\s*SELECT\s+value\s+FROM\s+config\s+WHERE\s+key\s*=\s*\$1/i.test(text)) {
             const key = String(values[0]);
@@ -86,8 +86,8 @@ function useConfigRows() {
         if (/^\s*(INSERT|UPDATE|DELETE)\b/i.test(text)) writes.push({ sql: text, params: values });
         return MISSING;
     }
-    db.pool.query = /** @type {any} */ (query);
-    db.pool.connect = /** @type {any} */ (async () => ({ query, release() {} }));
+    // A pool stand-in, not a full pg pool: assigned through Object.assign, which takes any shape.
+    Object.assign(db.pool, { query, connect: async () => ({ query, release() {} }) });
     // After the pool is ours: configStore runs a re-encryption scan when it loads.
     const { _applyInvalidation } = require('../stores/configStore');
 

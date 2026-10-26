@@ -192,12 +192,11 @@ function createRecordingDb({ tables = {}, matchers = {}, onQuery } = {}) {
             const real = require('../db');
             const saved = { query: real.pool.query, connect: real.pool.connect };
             const query = async (/** @type {unknown} */ sql, /** @type {unknown[]} */ params = []) => {
-                const text = typeof sql === 'string' ? sql : String(/** @type {any} */ (sql)?.text || '');
+                const text = typeof sql === 'string' ? sql : (typeof sql === 'object' && sql !== null && 'text' in sql ? String(sql.text) : '');
                 calls.pool.push({ sql: text, params });
                 return dispatch(text, params);
             };
-            real.pool.query = /** @type {any} */ (query);
-            real.pool.connect = /** @type {any} */ (async () => client);
+            Object.assign(real.pool, { query, connect: async () => client });
             return function restore() {
                 real.pool.query = saved.query;
                 real.pool.connect = saved.connect;

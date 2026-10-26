@@ -8,59 +8,19 @@
  * the cached module objects so we test the precedence math, not the DB.
  *
  * The monkeypatching alone was never enough: merely REQUIRING those stores pulls
- * in `db.js`, which builds a real pg Pool at module load, and configStore opens a
- * dedicated pg Client for its LISTEN/NOTIFY invalidation channel. That produced
- * ECONNREFUSED 127.0.0.1:5432 on every run. So the DB itself is cut at the seam:
- * `installResolveStub` redirects the `db` module (at all three require depths used
- * in this repo) and the `pg` driver to in-memory doubles. Nothing else is stubbed —
- * the resolver, the capability registry, the licence tier math and the real store
- * modules all load and run for real.
- *
- * NOTE on the stub keys: they are the require strings AS WRITTEN INSIDE the
- * modules being loaded, not relative to this file. stores/*.js and services/*.js
- * say require('../db'); core/<domain>/*.js says require('../../db'); a few
- * modules one level deeper say require('../../../db'). A key that matches nothing
- * fails SILENTLY (the real module loads), so all three depths are listed.
- *
- * The stub stays installed for the whole file — the resolver lazily requires
- * further stores (modules/index, orgCustomIntegrationStore,
- * integrationConnectionStore) on the FIRST resolve, long after module load, and
- * restoring early lets those reach the real db.js.
+ * in `db.js`, which builds a real pg Pool at module load. That produced
+ * ECONNREFUSED 127.0.0.1:5432 on every run. So the DB itself is cut at the seam
+ * the stores already share, `db.pool` (testUtils/routeHarness.js recordDb): the
+ * pool answers no rows and records what it was asked. Nothing is stubbed in the
+ * module cache — the resolver, the capability registry, the licence tier math and
+ * the real store modules all load and run for real.
  */
 
-const { describe, it, before, after } = require('node:test');
+const { describe, it, before } = require('node:test');
 const assert = require('node:assert');
 
-// ── DB seam ──────────────────────────────────────────────────────────────
-// Every store still runs its real module-load schema init; it just fails fast
-// and loudly against these doubles instead of dialling 127.0.0.1:5432. Each
-// store already catches its own init failure, exactly as it does in production
-// when the DB is briefly unreachable.
-const noDb = async () => { throw new Error('[test] DB access is stubbed out in this unit test'); };
-const dbStub = {
-    pool: { query: noDb, connect: noDb, on() {}, end: async () => {}, totalCount: 0, idleCount: 0, waitingCount: 0 },
-    getRedis: () => null,
-    redisHealthy: () => false,
-    disconnectRedis: async () => {},
-    run: noDb,
-    getOne: noDb,
-    getAll: noDb,
-    exec: noDb,
-    getClient: noDb,
-    withTransaction: noDb,
-    makeStoreInit: () => async () => {},
-    getPoolStats: () => ({ total: 0, idle: 0, waiting: 0 }),
-    _runTransaction: noDb,
-    _instrumentClient: (c) => c,
-};
-class StubPgClient {
-    on() { return this; }
-    async connect() { throw new Error('[test] pg is stubbed out in this unit test'); }
-    async query() { throw new Error('[test] pg is stubbed out in this unit test'); }
-    async end() {}
-}
-const pgStub = { Client: StubPgClient, Pool: StubPgClient, types: { setTypeParser() {} } };
-
+// Every store still runs its real module-load schema init, against a pool that
+// answers no rows instead of dialling 127.0.0.1:5432.
 // The real modules over a recording pool, so nothing opens a connection.
 require('../../testUtils/routeHarness').recordDb();
 

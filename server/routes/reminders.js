@@ -133,5 +133,4 @@ router.post('/:id/complete', async (req, res) => {
     res.json({ success: ok });
 });
 
-module.exports = router;
-module.exports._deps = _deps;
+module.exports = Object.assign(router, { _deps });

@@ -119,7 +119,6 @@ async function init() {
         // Reached ONLY when the env vars are absent — never as a fallback for a
         // reachability failure. See the note in the catch below.
         try {
-            // STORAGE_LOCAL_ROOT moves the fallback directory (a test points it at a temp dir).
             localRoot = path.resolve(process.env.STORAGE_LOCAL_ROOT || path.join(__dirname, '..', 'data', 'storage'));
             fs.mkdirSync(localRoot, { recursive: true });
             mode = 'local';

@@ -44,7 +44,10 @@ function perToken(perMillion) {
 
 const TIER_SUFFIX = { batch: '_batches', flex: '_flex', priority: '_priority' };
 
-/** @param {any} r the entry's tiers / longCtx, as litellm field names */
+/**
+ * @param {{ tiers?: Partial<Record<'batch' | 'flex' | 'priority', { input: number, output: number, cacheRead?: number }>>,
+ *   longCtx?: { threshold: number, input: number, output: number, cacheRead?: number } }} r the entry's tiers / longCtx, as litellm field names
+ */
 function tierFields(r) {
     /** @type {Record<string, number>} */
     const out = {};
@@ -70,7 +73,7 @@ function tierFields(r) {
  *   longCtx?: Rate & { threshold: number } }>} rates USD per 1M tokens, keyed as the file keys them
  */
 async function loadPricing(rates) {
-    /** @type {Record<string, any>} */
+    /** @type {Record<string, Record<string, unknown>>} */
     const file = {};
     for (const [key, r] of Object.entries(rates)) {
         file[key] = {
@@ -83,9 +86,12 @@ async function loadPricing(rates) {
         };
     }
     const realFetch = globalThis.fetch;
-    globalThis.fetch = /** @type {any} */ (async (/** @type {unknown} */ url) => {
-        if (!PRICING_URL_RE.test(String(url))) throw new Error(`pricingFeed: unexpected fetch ${String(url)}`);
-        return { ok: true, status: 200, json: async () => structuredClone(file) };
+    // A fetch stand-in for the one URL pricingService reads, assigned through Object.assign (any shape).
+    Object.assign(globalThis, {
+        fetch: async (/** @type {unknown} */ url) => {
+            if (!PRICING_URL_RE.test(String(url))) throw new Error(`pricingFeed: unexpected fetch ${String(url)}`);
+            return { ok: true, status: 200, json: async () => structuredClone(file) };
+        },
     });
     try {
         await require('../core/llm/pricingService').fetchAllPricing(true);

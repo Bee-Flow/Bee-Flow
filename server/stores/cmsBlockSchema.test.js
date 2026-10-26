@@ -18,13 +18,6 @@ process.env.NODE_ENV = 'test';
 process.env.MASTER_ENCRYPTION_KEY = 'test-master-key-for-unit-tests-32chars!!';
 process.env.CONFIG_INVALIDATION_LISTENER = '0';
 
-const mockDb = {
-    exec: async () => ({}),
-    run: async () => ({ rows: [], rowCount: 0 }),
-    getAll: async () => [],
-    getClient: async () => ({ query: async () => ({ rows: [] }), release() {} }),
-    getOne: async () => null,
-};
 // The real db.js over a recording pool, so nothing opens a connection.
 require('../testUtils/routeHarness').recordDb();
 

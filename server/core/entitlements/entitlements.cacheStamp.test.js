@@ -14,40 +14,14 @@
  *   - a memo under ANOTHER build's stamp is ignored — two different stamps
  *     are two different keys, so the foreign entry is simply a miss.
  *
- * DB seam + mock baseline copied from entitlements.test.js (see the NOTE there
- * on stub keys and why the stub stays installed for the whole file).
+ * DB seam as in entitlements.test.js: the real stores load over a recording pool.
  *
  * Run: cd server && node --test --test-force-exit core/entitlements/entitlements.cacheStamp.test.js
  */
 
-const { test, after } = require('node:test');
+const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
-// ── DB seam (identical to entitlements.test.js) ──────────────────────────
-const noDb = async () => { throw new Error('[test] DB access is stubbed out in this unit test'); };
-const dbStub = {
-    pool: { query: noDb, connect: noDb, on() {}, end: async () => {}, totalCount: 0, idleCount: 0, waitingCount: 0 },
-    getRedis: () => null,
-    redisHealthy: () => false,
-    disconnectRedis: async () => {},
-    run: noDb,
-    getOne: noDb,
-    getAll: noDb,
-    exec: noDb,
-    getClient: noDb,
-    withTransaction: noDb,
-    makeStoreInit: () => async () => {},
-    getPoolStats: () => ({ total: 0, idle: 0, waiting: 0 }),
-    _runTransaction: noDb,
-    _instrumentClient: (c) => c,
-};
-class StubPgClient {
-    on() { return this; }
-    async connect() { throw new Error('[test] pg is stubbed out in this unit test'); }
-    async query() { throw new Error('[test] pg is stubbed out in this unit test'); }
-    async end() {}
-}
-const pgStub = { Client: StubPgClient, Pool: StubPgClient, types: { setTypeParser() {} } };
 
 // The real modules over a recording pool, so nothing opens a connection.
 require('../../testUtils/routeHarness').recordDb();
