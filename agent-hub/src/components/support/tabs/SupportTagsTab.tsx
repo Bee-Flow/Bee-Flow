@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
+import { useSupportTagTaxonomyQuery } from '../../../api/queries/supportPanels';
 import { Plus, Trash2 } from 'lucide-react';
 import { API_BASE } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { errorMessage } from '../../../utils/caughtError';
-import { mutate, ApiError, request, RefusedError, errorBody } from '../../../api/mutate';
+import { mutate, ApiError, RefusedError, errorBody } from '../../../api/mutate';
 
 interface SupportTag {
     id: string;
@@ -12,24 +13,19 @@ interface SupportTag {
     organization_id?: string | null;
 }
 
+const EMPTY_TAGS: SupportTag[] = [];
+
 export default function SupportTagsTab() {
     const { t } = useTranslation();
-    const [tags, setTags] = useState<SupportTag[]>([]);
     const [name, setName] = useState('');
     const [color, setColor] = useState('#64748b');
-    const [error, setError] = useState<string | null | undefined>(null);
+    const [actionError, setError] = useState<string | null | undefined>(null);
     const [busy, setBusy] = useState(false);
 
-    const load = useCallback(async () => {
-        try {
-            const res = await request(`${API_BASE}/api/support/tags`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (res) setTags((await res.json()).tags || []);
-        } catch (e) { setError(errorMessage(e)); }
-    }, []);
-    useEffect(() => { load(); }, [load]);
+    const tagsQuery = useSupportTagTaxonomyQuery<SupportTag>();
+    const tags = tagsQuery.data ?? EMPTY_TAGS;
+    const load = async () => { await tagsQuery.refetch(); };
+    const error = actionError ?? (tagsQuery.isError ? errorMessage(tagsQuery.error) : null);
 
     const create = async () => {
         if (!name.trim()) return;

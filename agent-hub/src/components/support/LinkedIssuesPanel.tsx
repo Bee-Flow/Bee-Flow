@@ -3,7 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import AttachIssuePanel from './AttachIssuePanel';
 import StateChip from './IssueStateChip';
 import { API_BASE } from '../../utils/helpers';
-import { useYouTrackStatusQuery } from '../../api/queries/supportPanels';
+import { linkedIssuesKey, useLinkedIssuesQuery, useYouTrackStatusQuery } from '../../api/queries/supportPanels';
+import { useQueryClient } from '@tanstack/react-query';
 import type { YouTrackStatus } from '../../api/queries/supportPanels';
 import useConfirm from '../shared/useConfirm';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -175,12 +176,17 @@ interface LinkedIssuesPanelProps {
     onChanged?: () => void;
 }
 
+const NO_ISSUES: LinkedIssue[] = [];
+
 export default function LinkedIssuesPanel({ thread, onChanged }: LinkedIssuesPanelProps) {
     const { t } = useTranslation();
     const threadId = thread?.id || null;
     const { confirm, confirmDialog } = useConfirm();
-    const [issues, setIssues] = useState<LinkedIssue[]>([]);
-    const [loading, setLoading] = useState<boolean>(false);
+    const queryClient = useQueryClient();
+    const issuesQuery = useLinkedIssuesQuery<LinkedIssue>(threadId);
+    const issues = issuesQuery.data ?? NO_ISSUES;
+    const loading = issuesQuery.isFetching;
+    const setIssues = (next: LinkedIssue[]) => queryClient.setQueryData(linkedIssuesKey(threadId), next);
     const [refreshing, setRefreshing] = useState<boolean>(false);
     const status: YouTrackStatus | null = useYouTrackStatusQuery().data ?? null;
     const [error, setError] = useState<string | null | undefined>(null);
@@ -188,26 +194,7 @@ export default function LinkedIssuesPanel({ thread, onChanged }: LinkedIssuesPan
     const [reverseFor, setReverseFor] = useState<string | null>(null);
     const [reverse, setReverse] = useState<ReverseThread[]>([]);
 
-    const load = useCallback(async () => {
-        if (!threadId) return;
-        setLoading(true);
-        try {
-            const res = await request(`${API_BASE}/api/support/threads/${threadId}/issues`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (res) {
-                const d = await res.json();
-                setIssues(d.issues || []);
-            }
-        } catch (e) {
-            console.warn('[Support] linked issues:', errorMessage(e));
-        } finally {
-            setLoading(false);
-        }
-    }, [threadId]);
-
-    useEffect(() => { load(); }, [load]);
+    const load = async () => { await issuesQuery.refetch(); };
 
     // Moving to another ticket closes the attach panel: a half-typed search
     // must never land on a different customer's ticket.

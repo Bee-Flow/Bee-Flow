@@ -1,30 +1,26 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState } from 'react';
+import { useSupportCannedResponsesQuery } from '../../../api/queries/supportPanels';
 import { Plus, Trash2, Save } from 'lucide-react';
 import { API_BASE } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
 import type { CannedResponse } from '../SupportInboxPanel.types';
 import { errorMessage } from '../../../utils/caughtError';
-import { mutate, ApiError, request, RefusedError, errorBody } from '../../../api/mutate';
+import { mutate, ApiError, RefusedError, errorBody } from '../../../api/mutate';
 
 const VARS = ['{{requester_name}}', '{{requester_email}}', '{{org_name}}', '{{thread_subject}}', '{{staff_first_name}}'];
 
+const EMPTY_CANNED: CannedResponse[] = [];
+
 export default function SupportCannedResponsesTab() {
     const { t } = useTranslation();
-    const [items, setItems] = useState<CannedResponse[]>([]);
-    const [error, setError] = useState<string | null | undefined>(null);
+    const [actionError, setError] = useState<string | null | undefined>(null);
     const [draft, setDraft] = useState({ title: '', shortcut: '', body: '' });
     const [busy, setBusy] = useState(false);
 
-    const load = useCallback(async () => {
-        try {
-            const res = await request(`${API_BASE}/api/support/canned`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (res) setItems((await res.json()).responses || []);
-        } catch (e) { setError(errorMessage(e)); }
-    }, []);
-    useEffect(() => { load(); }, [load]);
+    const cannedQuery = useSupportCannedResponsesQuery<CannedResponse>();
+    const items = cannedQuery.data ?? EMPTY_CANNED;
+    const load = async () => { await cannedQuery.refetch(); };
+    const error = actionError ?? (cannedQuery.isError ? errorMessage(cannedQuery.error) : null);
 
     const create = async () => {
         if (!draft.title.trim() || !draft.body.trim()) return;

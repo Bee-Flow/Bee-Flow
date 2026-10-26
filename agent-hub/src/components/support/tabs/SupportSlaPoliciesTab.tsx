@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useSupportSlaPoliciesQuery } from '../../../api/queries/supportPanels';
 import { Save } from 'lucide-react';
 import { API_BASE } from '../../../utils/helpers';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { errorMessage } from '../../../utils/caughtError';
-import { request, RefusedError, mutate, errorBody } from '../../../api/mutate';
+import { RefusedError, mutate, errorBody } from '../../../api/mutate';
 
 interface SlaPolicy {
     priority: string;
@@ -33,28 +34,17 @@ const DEFAULTS: Record<string, SlaDefaults> = {
     low: { first: 1440, resolution: 5760 },
 };
 
+const NO_POLICIES: Record<string, SlaPolicy> = {};
+
 export default function SupportSlaPoliciesTab() {
     const { t } = useTranslation();
-    const [rows, setRows] = useState<Record<string, SlaPolicy>>({});
     const [busy, setBusy] = useState<string | null>(null);
-    const [error, setError] = useState<string | null | undefined>(null);
+    const [actionError, setError] = useState<string | null | undefined>(null);
 
-    const load = useCallback(async () => {
-        try {
-            let res: Response;
-            try {
-                res = await request(`${API_BASE}/api/support/sla-policies`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                return;
-            }
-            const { policies } = await res.json();
-            const map: Record<string, SlaPolicy> = {};
-            for (const p of policies || []) map[p.priority] = p;
-            setRows(map);
-        } catch (e) { setError(errorMessage(e)); }
-    }, []);
-    useEffect(() => { load(); }, [load]);
+    const slaQuery = useSupportSlaPoliciesQuery<SlaPolicy>();
+    const rows: Record<string, SlaPolicy> = slaQuery.data ?? NO_POLICIES;
+    const load = async () => { await slaQuery.refetch(); };
+    const error = actionError ?? (slaQuery.isError ? errorMessage(slaQuery.error) : null);
 
     const save = async (priority: string, firstMin: number, resMin: number, enabled: boolean) => {
         setBusy(priority);

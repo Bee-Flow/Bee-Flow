@@ -2,19 +2,18 @@ import {
     AlertTriangle, AlertOctagon, ZapOff, RefreshCcw, XCircle,
     Clock, Filter, Search, Bot, Paperclip, FileWarning, RefreshCw,
 } from 'lucide-react';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { fNum as fmt, fmtTime, fmtDuration, fmtBytes, shortModel } from './usage/format';
 import { Card, MetricCard, MetricGrid, MonitorHero, TabHeader, AlertBanner, EmptyInline, TOKENS } from './usage/kit';
 import { SEMANTIC } from '../../config/analyticsConfig';
 import { useTranslation, type TranslateParams } from '../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { useOrgTerminationsQuery } from '../../api/queries/orgReports';
 import { TYPE_ORDER, isLargeInput } from '../../utils/terminationsModel';
 import type { RangeParams } from '../../utils/usageHelpers';
 import type { TypeBadgeProps, StackedBarChartProps, DetailRowProps, TerminationRow, TerminationsByType, OrgTerminationsPanelProps } from './OrgTerminationsPanel.types';
 
 const TERMINATIONS_ERROR_ALERT_PCT = 5;
 const TERMINATIONS_MIN_SAMPLE = 10;
-const API = `${API_BASE}/api/terminations/org`;
 
 const C = SEMANTIC;
 
@@ -77,48 +76,28 @@ function DetailRow({ label, value, mono }: DetailRowProps) {
     );
 }
 
+const NO_REPORT: { summary: null; timeline: never[]; rows: never[]; byAgent: never[] } = { summary: null, timeline: [], rows: [], byAgent: [] };
+
 export default function OrgTerminationsPanel({ rangeParams, showTokens = true }: OrgTerminationsPanelProps) {
     const { t } = useTranslation();
-    const [loading, setLoading] = useState(true);
-    const [summary, setSummary] = useState<{ total: number; by_type: TerminationsByType } | null>(null);
-    const [timeline, setTimeline] = useState<{ period: string; termination_type: string; count: number }[]>([]);
-    const [rows, setRows] = useState<TerminationRow[]>([]);
-    const [byAgent, setByAgent] = useState<{
-        aborted?: number;
-        max_iterations?: number; agent_id?: string; agent_name?: string; total: number; max_tokens?: number; errors?: number
-}[]>([]);
+    const q = rangeParams?.startDate
+        ? `?startDate=${encodeURIComponent(rangeParams.startDate)}&endDate=${encodeURIComponent(String(rangeParams.endDate))}`
+        : (rangeParams?.days != null ? `?days=${rangeParams.days}` : '');
+    const report = useOrgTerminationsQuery<
+        { total: number; by_type: TerminationsByType },
+        { period: string; termination_type: string; count: number },
+        TerminationRow,
+        { aborted?: number; max_iterations?: number; agent_id?: string; agent_name?: string; total: number; max_tokens?: number; errors?: number }
+    >(q, rangeParams?.interval || 'day');
+    const fetchData = () => { report.refetch(); };
+    const loading = report.isFetching;
+    const { summary, timeline, rows, byAgent } = report.data ?? NO_REPORT;
 
     const [filterType, setFilterType] = useState('');
     const [filterAgent, setFilterAgent] = useState('');
     const [search, setSearch] = useState('');
     const [expanded, setExpanded] = useState<string | null>(null);
 
-    const fetchData = useCallback(async () => {
-        setLoading(true);
-        try {
-            const q = rangeParams?.startDate
-                ? `?startDate=${encodeURIComponent(rangeParams.startDate)}&endDate=${encodeURIComponent(String(rangeParams.endDate))}`
-                : (rangeParams?.days != null ? `?days=${rangeParams.days}` : '');
-            const intervalQ = (q ? '&' : '?') + `interval=${rangeParams?.interval || 'day'}`;
-            const [sumR, tlR, listR, agR] = await Promise.all([
-                authFetch(`${API}/summary${q}`),
-                authFetch(`${API}/timeline${q}${intervalQ}`),
-                authFetch(`${API}${q}${q ? '&' : '?'}limit=200`),
-                authFetch(`${API}/by-agent${q}`),
-            ]);
-            const sj = async (r: Response) => { try { return r.ok ? await r.json() : null; } catch { return null; } };
-            const [sum, tl, list, ag] = await Promise.all([sj(sumR), sj(tlR), sj(listR), sj(agR)]);
-            setSummary(sum);
-            setTimeline(tl?.rows || []);
-            setRows(list?.rows || []);
-            setByAgent(ag?.rows || []);
-        } catch (e) {
-            console.error('[OrgTerminations] fetch error:', e);
-        }
-        setLoading(false);
-    }, [rangeParams]);
-
-    useEffect(() => { fetchData(); }, [fetchData]);
 
     const filtered = useMemo(() => {
         let data = rows;

@@ -3,6 +3,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { API_BASE, authFetch } from '../../utils/helpers';
+import { readOrNull } from './refusableRead';
 import { logger } from '../../utils/logger';
 
 export interface SupportInsights {
@@ -73,3 +74,68 @@ export function useYouTrackStatusQuery() {
         retry: false,
     });
 }
+
+const supportAdminKeys = {
+    tags: ['support', 'admin-tags'] as const,
+    canned: ['support', 'admin-canned'] as const,
+    sla: ['support', 'admin-sla'] as const,
+};
+
+/** GET /api/support/tags (the tag taxonomy tab). */
+export function useSupportTagTaxonomyQuery<T>() {
+    return useQuery<T[] | null, Error>({
+        queryKey: supportAdminKeys.tags,
+        queryFn: async ({ signal }) => {
+            const body = await readOrNull<{ tags?: T[] }>(`${API_BASE}/api/support/tags`, signal);
+            return body ? body.tags || [] : null;
+        },
+        staleTime: 0,
+        retry: false,
+    });
+}
+
+/** GET /api/support/canned (the canned responses tab). */
+export function useSupportCannedResponsesQuery<T>() {
+    return useQuery<T[] | null, Error>({
+        queryKey: supportAdminKeys.canned,
+        queryFn: async ({ signal }) => {
+            const body = await readOrNull<{ responses?: T[] }>(`${API_BASE}/api/support/canned`, signal);
+            return body ? body.responses || [] : null;
+        },
+        staleTime: 0,
+        retry: false,
+    });
+}
+
+/** GET /api/support/sla-policies, keyed by priority (the SLA tab). */
+export function useSupportSlaPoliciesQuery<T extends { priority: string }>() {
+    return useQuery<Record<string, T> | null, Error>({
+        queryKey: supportAdminKeys.sla,
+        queryFn: async ({ signal }) => {
+            const body = await readOrNull<{ policies?: T[] }>(`${API_BASE}/api/support/sla-policies`, signal);
+            if (!body) return null;
+            const map: Record<string, T> = {};
+            for (const p of body.policies || []) map[p.priority] = p;
+            return map;
+        },
+        staleTime: 0,
+        retry: false,
+    });
+}
+
+/** GET the issues linked to one ticket; a refusal reads as null (the panel keeps what it shows). */
+export function useLinkedIssuesQuery<T>(threadId: string | null) {
+    return useQuery<T[] | null, Error>({
+        queryKey: ['support', 'linked-issues', threadId] as const,
+        enabled: !!threadId,
+        queryFn: async ({ signal }) => {
+            const body = await readOrNull<{ issues?: T[] }>(`${API_BASE}/api/support/threads/${threadId}/issues`, signal);
+            return body ? body.issues || [] : null;
+        },
+        staleTime: 0,
+        retry: false,
+    });
+}
+
+/** The cache key of a ticket's linked issues, for a caller that writes the answer of a refresh into it. */
+export const linkedIssuesKey = (threadId: string | null) => ['support', 'linked-issues', threadId] as const;

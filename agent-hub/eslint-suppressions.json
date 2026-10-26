@@ -3565,11 +3565,6 @@
       "count": 1
     }
   },
-  "src/components/admin/org/useOrgInvitations.ts": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/components/admin/org/userManagement/OrganizationModal.tsx": {
     "max-lines-per-function": {
       "count": 1
@@ -8093,11 +8088,6 @@
       "count": 1
     }
   },
-  "src/components/support/tabs/SupportCannedResponsesTab.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/components/support/useSupportSelectedThread.ts": {
     "react-hooks/set-state-in-effect": {
       "count": 2
@@ -9739,9 +9729,6 @@
     },
     "max-lines-per-function": {
       "count": 2
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/pages/settings/OrgMcpConnections.tsx": {
@@ -9751,12 +9738,9 @@
   },
   "src/pages/settings/OrgTerminationsPanel.tsx": {
     "complexity": {
-      "count": 3
+      "count": 2
     },
     "max-lines-per-function": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
