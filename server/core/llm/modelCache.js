@@ -214,7 +214,10 @@ function invalidateModelCache(providerId) {
 async function getAllCachedModelIds() {
     const CONFIG_KEY = 'ai_providers';
     const providersRaw = await configStore.getConfig(CONFIG_KEY);
-    const providers = providersRaw ? JSON.parse(providersRaw) : [];
+    // getConfig already JSON-parses the stored value: a second parse of the
+    // array it returns threw. A string form is still accepted.
+    const parsed = typeof providersRaw === 'string' ? JSON.parse(providersRaw) : providersRaw;
+    const providers = Array.isArray(parsed) ? parsed : [];
     const providerMap = {};
     for (const p of providers) {
         providerMap[p.id] = { name: p.name, type: p.type };

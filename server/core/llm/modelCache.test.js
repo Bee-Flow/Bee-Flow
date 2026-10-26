@@ -176,6 +176,19 @@ test('getAllCachedModelIds lists every cached model once per provider name', asy
     ], 'p2 is not in the ai_providers record, so it is listed as Unknown');
 });
 
+test('getAllCachedModelIds reads the ai_providers record in the shape the real getConfig returns', async () => {
+    // configStore.getConfig JSON-parses the stored value, so the record arrives
+    // as an array, not the string the stub above hands back. A second
+    // JSON.parse of that array threw.
+    store.ai = { providers: [provider()] };
+    store.providersRaw = /** @type {any} */ ([{ id: 'p1', name: 'OpenAI', type: 'openai' }]);
+    await getModelsForProvider('p1');
+
+    const all = await getAllCachedModelIds();
+    assert.ok(all.length > 0);
+    assert.ok(all.every(r => r.providerName === 'OpenAI' && r.providerType === 'openai'));
+});
+
 // ─── getProviderForModel ─────────────────────────────────────────────────────
 
 test('getProviderForModel returns the connection record of the provider that serves the model', async () => {
