@@ -13,7 +13,6 @@
 
 const assert = require('assert');
 const test = require('node:test');
-const Module = require('module');
 
 process.env.NODE_ENV = 'test';
 process.env.MASTER_ENCRYPTION_KEY = 'test-master-key-for-unit-tests-32chars!!';
@@ -26,10 +25,8 @@ const mockDb = {
     getClient: async () => ({ query: async () => ({ rows: [] }), release() {} }),
     getOne: async () => null,
 };
-const dbPath = require.resolve('./../db');
-require.cache[dbPath] = new Module(dbPath);
-require.cache[dbPath].exports = mockDb;
-require.cache[dbPath].loaded = true;
+// The real db.js over a recording pool, so nothing opens a connection.
+require('../testUtils/routeHarness').recordDb();
 
 const { sanitizeBlocks } = require('./cmsStore');
 

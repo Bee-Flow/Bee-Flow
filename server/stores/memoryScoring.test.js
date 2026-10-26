@@ -19,24 +19,8 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 
-// ── Stub the database before memoryStore's module-level initDB() ──────
-const dbPath = require.resolve('../db');
-require.cache[dbPath] = {
-    id: dbPath,
-    filename: dbPath,
-    loaded: true,
-    exports: {
-        pool: { connect: async () => { throw new Error('no db in this test'); } },
-        run: async () => ({ rowCount: 0 }),
-        getOne: async () => null,
-        getAll: async () => [],
-        exec: async () => {},
-        getClient: async () => { throw new Error('no db in this test'); },
-        withTransaction: async () => { throw new Error('no db in this test'); },
-        makeStoreInit: (_tag, schemaFn) => schemaFn,
-        getRedis: () => null,
-    },
-};
+// The real db.js over a recording pool, so nothing opens a connection.
+require('../testUtils/routeHarness').recordDb();
 
 const {
     renderedLength, renderedBullet, rrfFuse, finalScore,
