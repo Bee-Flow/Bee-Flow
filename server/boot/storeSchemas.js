@@ -23,9 +23,11 @@
  *
  * CHEAP ON EVERY BOOT AFTER THE FIRST. Each init runs through the schema ledger
  * (stores/lib/ddlLedger.js, the same `schema_migrations` table as the boot
- * ladder), so a store whose statements all succeeded before costs one ledger
- * read and sends no DDL; a statement that is new to this database runs. There
- * is no hand-maintained "is the newest column there yet" probe left to forget.
+ * ladder), so a store whose statements all succeeded before costs a ledger
+ * read and sends only its overwriting statements (DEFAULT, TYPE, constraints,
+ * CREATE OR REPLACE, COMMENT, DO), never the create-if-missing bulk; a
+ * statement that is new to this database runs. There is no hand-maintained
+ * "is the newest column there yet" probe left to forget.
  *
  * NOT AWAITED, for the same reason the module-level kick-offs never were: the
  * listener is already up, the inits are idempotent and serialized against each

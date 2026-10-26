@@ -18,20 +18,27 @@
  * runDdl (stores/lib/_ddl.js).
  *
  * THE GRANULARITY is one statement, keyed by the sha256 of its exact text. A
- * statement is skipped only when that exact text already succeeded for this
- * unit on this database, so:
+ * statement is skipped only when it merely creates what is missing (below) and
+ * that exact text already succeeded for this unit on this database, so:
  *   - a new or edited statement always runs (a different text, a different key);
  *   - a statement on a branch the init did not take before (an extension that
  *     appeared, a legacy column that was there) runs the first time it is reached;
  *   - a failed or tolerated statement is never recorded and runs again next boot.
  * A unit-level checksum over the file could not promise the second point.
  *
- * WHAT IS NEVER SKIPPED. Only statements that are schema and nothing else:
- * they start with CREATE / ALTER / DROP / COMMENT ON / DO and contain no data
- * statement (INSERT INTO, UPDATE … SET, DELETE FROM, TRUNCATE, MERGE, COPY).
- * A DO block that also fixes rows, a temporary table, a SELECT, a backfill:
- * those run exactly as before. Code outside an init (a request, a detached
- * job after its init finished) is never touched.
+ * WHAT MAY BE SKIPPED: only "create it if it is missing" (isCreateIfMissing in
+ * ddlStatements.js): CREATE TABLE / INDEX / SEQUENCE / EXTENSION / SCHEMA … IF
+ * NOT EXISTS, and ALTER TABLE whose every clause is ADD COLUMN IF NOT EXISTS.
+ * That is the bulk, and where the boot time went.
+ *
+ * WHAT ALWAYS RUNS. Every statement that makes something SO: CREATE OR REPLACE,
+ * SET / DROP DEFAULT, ALTER COLUMN … TYPE, a constraint dropped and added,
+ * COMMENT ON, RENAME, DROP, and every DO block (it may call anything). Those
+ * are recorded but sent on every boot, as before the ledger, so an older
+ * replica that put its own definition back during a rolling upgrade is
+ * overruled on the next boot. Data statements (INSERT, UPDATE … SET, DELETE,
+ * TRUNCATE, MERGE, COPY), temporary tables, a SELECT and code outside an init
+ * (a request, a detached job after its init finished) are not touched at all.
  *
  * A LEDGER THAT LIES IS CAUGHT. Every recorded entry also stores the OID of
  * each relation its statements name (table, index, sequence, view; null for
@@ -39,16 +46,17 @@
  * (dropped, recreated, restored from a dump) or came back (a retired index an
  * older replica recreated), the whole unit runs again. What the ledger cannot
  * see is a column, constraint, default or function changed by hand, or by an
- * older replica that still runs its own DDL during a rolling upgrade, on a
- * table that is still the same; BEEFLOW_DDL_LEDGER=off or `db:migrate --force`
- * runs every statement again.
+ * older replica that dropped one, on a table that is still the same: what is
+ * skipped only ever creates, so nothing an older version changed in place
+ * survives a boot. BEEFLOW_DDL_LEDGER=off or `db:migrate --force` runs every
+ * statement again.
  *
  * FAIL-OPEN. The ledger only ever decides to SKIP, so every failure of its own
  * (no table yet, no connection, a db double without `ledgerQuery`) falls back
  * to running the whole init, which is what happened before it existed. It
  * never fails an init.
  *
- * FILES. ddlStatements.js reads a statement (key, schema-only, relations);
+ * FILES. ddlStatements.js reads a statement (key, schema-only, create-if-missing, relations);
  * ddlLedgerTable.js owns the table and reads and writes one unit's entry; this
  * module decides, per running init, what is skipped.
  *
@@ -62,7 +70,7 @@
 const { AsyncLocalStorage } = require('node:async_hooks');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
-const { statementKey, isSchemaOnly, relationsIn } = require('./ddlStatements');
+const { statementKey, isSchemaOnly, isCreateIfMissing, relationsIn } = require('./ddlStatements');
 const { LEDGER_TABLE, ensureLedgerTable, loadUnit, recordUnit } = require('./ddlLedgerTable');
 
 const UNIT_PREFIX = 'store:';
@@ -74,8 +82,10 @@ const UNIT_PREFIX = 'store:';
  * @property {string} unit             ledger name, `store:<tag>`
  * @property {Set<string>} recorded    statement keys this unit already applied on this database
  * @property {Map<string, string>} applied  key -> statement text, applied this run (executed or skipped)
- * @property {number} executed
+ * @property {number} executed      statements new to this database
+ * @property {number} reran         recorded, but of a kind that always runs
  * @property {number} skipped
+ * @property {boolean} reshaped     a statement that ran may have dropped or renamed a relation
  * @property {boolean} closed          set when the init returned: later work passes straight through
  */
 
@@ -88,7 +98,7 @@ const settings = {
 };
 
 /** Process totals, for the migration runner's summary line. */
-const stats = { units: 0, unitsUnchanged: 0, executed: 0, skipped: 0 };
+const stats = { units: 0, unitsUnchanged: 0, executed: 0, reran: 0, skipped: 0 };
 
 /** @param {unknown} e */
 const _msg = (e) => (e instanceof Error ? e.message : String(e));
@@ -115,7 +125,7 @@ async function runUnit(tag, schemaFn, query) {
     /** @type {UnitContext} */
     const ctx = {
         unit: UNIT_PREFIX + tag, recorded: new Set(), applied: new Map(),
-        executed: 0, skipped: 0, closed: false,
+        executed: 0, reran: 0, skipped: 0, reshaped: false, closed: false,
     };
     if (!settings.force) {
         try {
@@ -132,7 +142,9 @@ async function runUnit(tag, schemaFn, query) {
         ctx.closed = true;
     }
     stats.units++;
-    if (ctx.executed === 0 && _sameKeys(new Set(ctx.applied.keys()), ctx.recorded)) {
+    // Nothing new, and nothing that ran can have moved a relation's OID: the
+    // entry is still exact, so no write.
+    if (ctx.executed === 0 && !ctx.reshaped && _sameKeys(new Set(ctx.applied.keys()), ctx.recorded)) {
         stats.unitsUnchanged++;
         return result;
     }
@@ -147,7 +159,8 @@ async function runUnit(tag, schemaFn, query) {
 /** @type {Map<string, number>} */
 const _inflight = new Map();
 
-/** @typedef {(event: { unit: string, outcome: 'executed' | 'skipped', sql: string }) => void} Observer */
+/** @typedef {'executed' | 'reran' | 'skipped'} Outcome executed: new here; reran: recorded but always runs */
+/** @typedef {(event: { unit: string, outcome: Outcome, sql: string }) => void} Observer */
 /** @type {Set<Observer>} */
 const _observers = new Set();
 
@@ -161,9 +174,11 @@ function observe(fn) {
     return () => { _observers.delete(fn); };
 }
 
-/** @param {UnitContext} ctx @param {'executed' | 'skipped'} outcome @param {string} sql */
+/** @param {UnitContext} ctx @param {Outcome} outcome @param {string} sql */
 function _emit(ctx, outcome, sql) {
-    if (outcome === 'executed') { ctx.executed++; stats.executed++; } else { ctx.skipped++; stats.skipped++; }
+    ctx[outcome]++;
+    stats[outcome]++;
+    if (outcome !== 'skipped' && /\b(?:DROP|RENAME)\b/i.test(sql)) ctx.reshaped = true;
     for (const fn of _observers) {
         // An observer never breaks an init.
         try { fn({ unit: ctx.unit, outcome, sql }); } catch (e) { bestEffort('stores/lib/ddlLedger:observer', e); }
@@ -171,10 +186,10 @@ function _emit(ctx, outcome, sql) {
 }
 
 /**
- * Send one statement through the ledger: skipped when this unit already
- * applied exactly this text, otherwise run by `send` and recorded on success.
- * Outside a running init, or for anything that is not schema only, it is
- * `send()` unchanged.
+ * Send one statement through the ledger: skipped when it only creates what is
+ * missing and this unit already applied exactly this text, otherwise run by
+ * `send` and recorded on success. Outside a running init, or for anything that
+ * is not schema only, it is `send()` unchanged.
  *
  * @template R
  * @param {string} sql
@@ -185,7 +200,8 @@ async function throughLedger(sql, send) {
     const ctx = als.getStore();
     if (!ctx || ctx.closed || !isSchemaOnly(sql)) return send();
     const key = statementKey(sql);
-    if (ctx.recorded.has(key)) {
+    const recorded = ctx.recorded.has(key);
+    if (recorded && isCreateIfMissing(sql)) {
         ctx.applied.set(key, sql);
         _emit(ctx, 'skipped', sql);
         return { rows: [], rowCount: 0, command: 'SKIPPED', fields: [] };
@@ -194,7 +210,7 @@ async function throughLedger(sql, send) {
     try {
         const res = await send();
         ctx.applied.set(key, sql);
-        _emit(ctx, 'executed', sql);
+        _emit(ctx, recorded ? 'reran' : 'executed', sql);
         return res;
     } finally {
         const n = (_inflight.get(sql) || 1) - 1;
@@ -203,13 +219,14 @@ async function throughLedger(sql, send) {
 }
 
 /**
- * For runDdl, which sends a list inside one transaction: is this statement
- * already applied in the running unit? Marks it applied when it is.
+ * For runDdl, which sends a list inside one transaction: may this statement be
+ * skipped (create-if-missing, already applied in the running unit)? Marks it
+ * applied when it may.
  * @param {string} sql
  */
 function alreadyApplied(sql) {
     const ctx = als.getStore();
-    if (!ctx || ctx.closed || !isSchemaOnly(sql)) return false;
+    if (!ctx || ctx.closed || !isCreateIfMissing(sql)) return false;
     const key = statementKey(sql);
     if (!ctx.recorded.has(key)) return false;
     ctx.applied.set(key, sql);
@@ -276,6 +293,7 @@ module.exports = {
     stats,
     // ddlStatements.js, re-exported for the colocated test
     isSchemaOnly,
+    isCreateIfMissing,
     statementKey,
     relationsIn,
     currentUnit,

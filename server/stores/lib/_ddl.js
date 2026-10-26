@@ -235,9 +235,10 @@ function runDdl(tag, statements, opts = {}) {
     if (typeof tag !== 'string' || tag.trim() === '') {
         throw new TypeError('runDdl: tag moet een niet-lege string zijn');
     }
-    // Inside a store init, a statement that already succeeded for that store on
-    // this database is dropped here (stores/lib/ddlLedger.js), and a list of
-    // nothing but those costs no lock and no transaction at all.
+    // Inside a store init, a create-if-missing statement that already succeeded
+    // for that store on this database is dropped here (stores/lib/ddlLedger.js;
+    // an overwriting one stays), and a list of nothing but those costs no lock
+    // and no transaction at all.
     const list = (Array.isArray(statements) ? statements : [statements]).map(_normalize)
         .filter((stmt) => !alreadyApplied(stmt.sql));
     const lockTimeout = opts.lockTimeout || DEFAULT_LOCK_TIMEOUT;

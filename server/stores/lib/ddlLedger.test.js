@@ -44,18 +44,17 @@ const q = async (sql, params) => (await rawQuery(sql, params)).rows;
  * @param {() => Promise<unknown>} schemaFn
  */
 async function boot(tag, schemaFn) {
-    /** @type {string[]} */ const executed = [];
-    /** @type {string[]} */ const skipped = [];
+    /** @type {Record<string, string[]>} */
+    const seen = { executed: [], reran: [], skipped: [] };
     const stop = ledger.observe((e) => {
-        if (e.unit !== ledger.UNIT_PREFIX + tag) return;
-        (e.outcome === 'executed' ? executed : skipped).push(e.sql.replace(/\s+/g, ' ').trim());
+        if (e.unit === ledger.UNIT_PREFIX + tag) seen[e.outcome].push(e.sql.replace(/\s+/g, ' ').trim());
     });
     try {
         await makeStoreInit(tag, async () => { await schemaFn(); })();
     } finally {
         stop();
     }
-    return { executed, skipped };
+    return { executed: seen.executed, reran: seen.reran, skipped: seen.skipped };
 }
 
 /** @param {string} table @param {string} column */
@@ -83,6 +82,34 @@ test('only schema statements without data in them are skippable', () => {
         'CREATE OR REPLACE FUNCTION f() RETURNS trigger AS $f$ BEGIN INSERT INTO log VALUES (1); RETURN NEW; END $f$ LANGUAGE plpgsql',
         'TRUNCATE t',
     ]) assert.strictEqual(ledger.isSchemaOnly(sql), false, sql);
+});
+
+test('only "create it if it is missing" may be skipped', () => {
+    for (const sql of [
+        'CREATE TABLE IF NOT EXISTS t (id int, x text DEFAULT \'a;b\', CHECK (id > 0))',
+        'CREATE UNIQUE INDEX IF NOT EXISTS uq ON t(lower(x)) WHERE x IS NOT NULL',
+        'ALTER TABLE t\n  ADD COLUMN IF NOT EXISTS a TEXT,\n  -- a comment that says DROP\n  ADD COLUMN IF NOT EXISTS b NUMERIC(3,2) DEFAULT 0.85',
+        'CREATE TABLE IF NOT EXISTS a (id int);\nCREATE INDEX IF NOT EXISTS ia ON a(id);\nALTER TABLE a ADD COLUMN IF NOT EXISTS b int;',
+        'CREATE SEQUENCE IF NOT EXISTS s',
+        'CREATE EXTENSION IF NOT EXISTS pg_trgm',
+    ]) assert.strictEqual(ledger.isCreateIfMissing(sql), true, sql);
+    for (const sql of [
+        'CREATE OR REPLACE FUNCTION f() RETURNS int AS $f$ SELECT 1 $f$ LANGUAGE sql',
+        'CREATE OR REPLACE VIEW v AS SELECT 1',
+        'ALTER TABLE t ALTER COLUMN a SET DEFAULT 1',
+        'ALTER TABLE t ALTER COLUMN a DROP DEFAULT',
+        'ALTER TABLE t ALTER COLUMN a TYPE bigint',
+        'ALTER TABLE t DROP CONSTRAINT IF EXISTS c',
+        'ALTER TABLE t ADD CONSTRAINT c CHECK (a > 0)',
+        "COMMENT ON COLUMN t.a IS 'done'",
+        'DO $$ BEGIN PERFORM 1; END $$',
+        'DROP INDEX IF EXISTS idx_old',
+        'ALTER TABLE t RENAME COLUMN a TO b',
+        'ALTER TABLE t ADD COLUMN IF NOT EXISTS a int, ALTER COLUMN b SET NOT NULL',
+        'CREATE TABLE IF NOT EXISTS a (id int); ALTER TABLE a ALTER COLUMN id SET DEFAULT 0',
+        'CREATE INDEX i ON t(a)',
+        'CREATE TRIGGER trg BEFORE INSERT ON t FOR EACH ROW EXECUTE FUNCTION f()',
+    ]) assert.strictEqual(ledger.isCreateIfMissing(sql), false, sql);
 });
 
 test('the relations a unit touches are read from its statements', () => {
@@ -308,4 +335,48 @@ test('a fresh database without any ledger table gets one on the first init', asy
     const r = await boot('LedgerBootstrap', async () => { await db.exec('CREATE TABLE IF NOT EXISTS ledger_t6 (id INT)'); });
     assert.strictEqual(r.executed.length, 1);
     assert.strictEqual((await q(`SELECT count(*)::int AS n FROM schema_migrations WHERE name = 'store:LedgerBootstrap'`))[0].n, 1);
+});
+
+test('a statement that OVERWRITES runs on every boot, even recorded, and undoes an older version', async () => {
+    const overwrites = [
+        'ALTER TABLE ledger_t7 ALTER COLUMN status SET DEFAULT \'new\'',
+        'ALTER TABLE ledger_t7 ALTER COLUMN n TYPE BIGINT',
+        'ALTER TABLE ledger_t7 DROP CONSTRAINT IF EXISTS ledger_t7_status_chk',
+        "ALTER TABLE ledger_t7 ADD CONSTRAINT ledger_t7_status_chk CHECK (status IN ('new', 'old', 'done'))",
+        "COMMENT ON COLUMN ledger_t7.status IS 'v2'",
+        'CREATE OR REPLACE VIEW ledger_v7 AS SELECT id, status FROM ledger_t7',
+    ];
+    const create = 'CREATE TABLE IF NOT EXISTS ledger_t7 (id INT, status TEXT, n INT)';
+    const fn = async () => { await db.exec(create); for (const s of overwrites) await db.exec(s); };
+    await boot('LedgerOverwrite', fn);
+
+    // An older replica, mid rolling upgrade, puts its own definitions back.
+    await q(`ALTER TABLE ledger_t7 ALTER COLUMN status SET DEFAULT 'old'`);
+    await q(`ALTER TABLE ledger_t7 DROP CONSTRAINT ledger_t7_status_chk`);
+    await q(`ALTER TABLE ledger_t7 ADD CONSTRAINT ledger_t7_status_chk CHECK (status IN ('old'))`);
+    await q(`COMMENT ON COLUMN ledger_t7.status IS 'v1'`);
+
+    const r = await boot('LedgerOverwrite', fn);
+    assert.deepStrictEqual(r.skipped, [create], 'only the create-if-missing statement is skipped');
+    assert.deepStrictEqual(r.reran, overwrites.map((s) => s.replace(/\s+/g, ' ')), 'every overwrite ran again');
+    assert.deepStrictEqual(r.executed, []);
+    const [col] = await q(`SELECT column_default, col_description('ledger_t7'::regclass, 2) AS note
+                             FROM information_schema.columns WHERE table_name = 'ledger_t7' AND column_name = 'status'`);
+    assert.match(col.column_default, /'new'/);
+    assert.strictEqual(col.note, 'v2');
+    const [chk] = await q(`SELECT pg_get_constraintdef(oid) AS def FROM pg_constraint WHERE conname = 'ledger_t7_status_chk'`);
+    assert.match(chk.def, /done/, 'the newer CHECK is back');
+});
+
+test('a DO block always runs, even when it is recorded', async () => {
+    await q('CREATE TABLE IF NOT EXISTS ledger_do_log (at TIMESTAMPTZ DEFAULT now())');
+    await q(`CREATE OR REPLACE FUNCTION ledger_do_note() RETURNS void AS $f$ INSERT INTO ledger_do_log DEFAULT VALUES $f$ LANGUAGE sql`);
+    const block = 'DO $$ BEGIN PERFORM ledger_do_note(); END $$';
+    const fn = () => db.exec(block);
+    const first = await boot('LedgerDo', fn);
+    const second = await boot('LedgerDo', fn);
+    assert.strictEqual(first.executed.length, 1);
+    assert.deepStrictEqual(second.reran, [block]);
+    assert.deepStrictEqual(second.skipped, []);
+    assert.strictEqual((await q('SELECT count(*)::int AS n FROM ledger_do_log'))[0].n, 2, 'the function it calls ran on both boots');
 });

@@ -145,8 +145,8 @@ const initDB = makeStoreInit('IntegrationCache', _doInit);
 async function _doInit() {
     // The schema lives in stores/ddl/integration-response-cache-2026-09, kept
     // apart so a DBA can see that this table exists. No probe in front of it:
-    // the schema ledger (stores/lib/ddlLedger.js) skips each statement that
-    // already succeeded here and runs a new one, and the payload_bytes
+    // the schema ledger (stores/lib/ddlLedger.js) skips each create-if-missing
+    // statement that already succeeded here and runs a new one, and the payload_bytes
     // backfill is a recorded one-time step of the same ledger.
     await require('./ddl/integration-response-cache-2026-09').up();
     // Runs on every init, because half of it stamps CONFIG

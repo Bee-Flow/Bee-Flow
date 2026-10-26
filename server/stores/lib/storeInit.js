@@ -32,7 +32,8 @@
  * the schemaFn runs as one unit of the schema ledger (stores/lib/ddlLedger.js,
  * row `store:<tag>` in schema_migrations): every schema statement it sends
  * through db.exec, db.run or runDdl that already succeeded for this tag on this
- * database is skipped, and a new or changed one runs. So the tag is the
+ * database is skipped when it only creates what is missing (an overwriting
+ * one runs on every boot), and a new or changed one runs. So the tag is the
  * ledger's name for the store: keep it stable and unique (a rename makes the
  * store run its whole schema once more, which is safe). A double without
  * `ledgerQuery` runs the schemaFn exactly as before.

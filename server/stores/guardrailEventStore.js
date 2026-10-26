@@ -10,9 +10,9 @@ const { runDdl } = require('./lib/_ddl');
 const log = require('../telemetry/log');
 
 // Single-flight init (makeStoreInit). No warm-boot probe: the schema ledger
-// (stores/lib/ddlLedger.js) skips every statement below that already
-// succeeded on this database and runs a new or changed one, so adding DDL here
-// needs nothing else.
+// (stores/lib/ddlLedger.js) skips every create-if-missing statement below that
+// already succeeded on this database, runs the DROP every boot, and runs a new
+// or changed one, so adding DDL here needs nothing else.
 const initDB = makeStoreInit('GuardrailEventStore', _doInit);
 
 async function _doInit() {

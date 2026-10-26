@@ -51,8 +51,9 @@ function destHostFrom(tlsServername, serverEndpoint) {
 // statements at the head of EVERY read and write; then a hand-maintained
 // warm-boot probe skipped the whole ladder once the newest column existed,
 // which silently skipped any new DDL whose author forgot the probe. Now the
-// schema ledger (stores/lib/ddlLedger.js) skips each statement that already
-// succeeded on this database and runs a new or changed one: adding DDL to
+// schema ledger (stores/lib/ddlLedger.js) skips each create-if-missing
+// statement that already succeeded on this database and runs every overwrite
+// and every new or changed one: adding DDL to
 // this init or integrationActivitySchema.js needs nothing else.
 const initDB = makeStoreInit('IntegrationActivityStore', _doInit);
 

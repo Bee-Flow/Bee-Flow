@@ -127,7 +127,9 @@ PROFILES="core guard" ./selfhost.sh
 starts. Each step is recorded in a `schema_migrations` table once it succeeds, so a later start
 skips it; the steps are idempotent anyway, and a step whose file changed runs again. The tables
 of every feature are recorded there too, one statement at a time: a statement that is new in the
-release runs on your database, one that already ran is not sent again. The first start after
+release runs on your database, and one that only creates a missing table, index or column is not
+sent again once it ran. Statements that change something in place (a default, a type, a check, a
+function) run on every start, so nothing an older version left behind survives. The first start after
 upgrading to a build that has the ledger runs everything once more and records it. You don't have
 to do anything for a normal upgrade, but you should verify (next section) rather than assume.
 

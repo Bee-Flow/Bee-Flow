@@ -101,7 +101,7 @@ async function runMigrations({ log = console, force = false } = {}) {
     ddlLedger.setForce(false);
     const units = ddlLedger.stats.units - before.units;
     log.log(`  ◌  schema-ledger: ${units} store-schema's, ${ddlLedger.stats.unitsUnchanged - before.unitsUnchanged} ongewijzigd; `
-        + `${ddlLedger.stats.executed - before.executed} statements gedraaid, ${ddlLedger.stats.skipped - before.skipped} al toegepast`);
+        + `${ddlLedger.stats.executed - before.executed} nieuw, ${ddlLedger.stats.reran - before.reran} altijd-opnieuw (overschrijvend), ${ddlLedger.stats.skipped - before.skipped} al toegepast`);
 
     // De boot-ladder die de oude runner altijd oversloeg: losse datamigraties
     // en de NL-catalogi, uit dezelfde lijsten die de server bij boot draait.

@@ -13,7 +13,8 @@
  *     no schema statement of a store init bypasses the ledger (THE GATE: a store
  *     whose DDL runs outside makeStoreInit, or through a raw pool/client query,
  *     is a red test here, with its name);
- *   - an unchanged install, once settled, sends no schema statement at all;
+ *   - an unchanged install, once settled, skips every create-if-missing
+ *     statement and re-sends only the ones that overwrite (and DO blocks);
  *   - an existing install whose ledger is empty, holds stale keys, or predates
  *     the store schemas (no DDL columns) upgrades without an error and without
  *     losing a row;
@@ -83,18 +84,21 @@ const quiet = /** @type {Console} */ (/** @type {unknown} */ ({ log() {}, info()
 async function migrate(opts = {}) {
     storeInit._resetAllForTests();
     /** @type {{ unit: string, sql: string }[]} */ const executed = [];
+    /** @type {string[]} */ const reran = [];
     let skipped = 0;
     const stop = ledger.observe((e) => {
         if (e.outcome === 'executed') executed.push({ unit: e.unit, sql: e.sql.replace(/\s+/g, ' ').trim().slice(0, 160) });
+        else if (e.outcome === 'reran') reran.push(e.sql);
         else skipped++;
     });
     const realLoose = bootMigrations.runLooseMigrations;
     bootMigrations.runLooseMigrations = (o) => { watching = false; return realLoose(o); };
     bypassed.length = 0;
     watching = true;
+    const started = Date.now();
     try {
         const report = await runMigrations({ log: quiet, ...opts });
-        return { report, executed, skipped, bypassed: [...bypassed] };
+        return { report, executed, reran, skipped, ms: Date.now() - started, bypassed: [...bypassed] };
     } finally {
         watching = false;
         stop();
@@ -118,8 +122,9 @@ const failures = (report) => report.failed.map((f) => `${f.name}: ${f.error}`);
 /** @type {string[]} */ let freshTables = [];
 /** @type {string[]} */ let freshUnits = [];
 
-test('fresh install: every table, a ledger unit per store, and no schema statement outside the ledger', async () => {
+test('fresh install: every table, a ledger unit per store, and no schema statement outside the ledger', async (t) => {
     const r = await migrate();
+    t.diagnostic(`fresh install: ${r.executed.length} schema statements, ${r.ms} ms`);
     assert.deepStrictEqual(failures(r.report), []);
     assert.deepStrictEqual(r.report.unverified, []);
 
@@ -145,16 +150,20 @@ test('fresh install: every table, a ledger unit per store, and no schema stateme
     assert.ok(r.bypassed.some((b) => OUTSIDE_THE_LEDGER[0].re.test(b.sql)), 'the gate saw nothing at all; is it still watching?');
 });
 
-test('an unchanged install, once settled, sends no schema statement at all', async () => {
+test('a settled install skips every create-if-missing statement and re-sends only the overwrites', async (t) => {
     // The second boot may still run a branch the first could not take (a
     // migration module that waits for a table a later store creates); the
-    // third has nothing left.
+    // third has nothing new left.
     const second = await migrate();
     assert.deepStrictEqual(failures(second.report), []);
     const third = await migrate();
     assert.deepStrictEqual(failures(third.report), []);
-    assert.deepStrictEqual(third.executed, [], 'a settled install re-sent schema statements');
-    assert.ok(third.skipped > 900, `only ${third.skipped} statements were recognised as applied`);
+    assert.deepStrictEqual(third.executed, [], 'a settled install found schema statements it had not applied');
+    assert.deepStrictEqual(third.reran.filter((sql) => ledger.isCreateIfMissing(sql)), [],
+        'a create-if-missing statement was sent again');
+    assert.ok(third.skipped > 700, `only ${third.skipped} create-if-missing statements were skipped`);
+    assert.ok(third.reran.length > 0, 'the overwriting statements run on every boot');
+    t.diagnostic(`settled boot: ${third.skipped} skipped, ${third.reran.length} re-sent (overwrite / DO), ${third.ms} ms; second boot ${second.ms} ms`);
     assert.deepStrictEqual(await tableNames(), freshTables);
     assert.deepStrictEqual(third.bypassed.filter((b) => !OUTSIDE_THE_LEDGER.some((a) => a.re.test(b.sql))), []);
 });
@@ -255,7 +264,7 @@ test('boot and db:migrate run the same list through the same ledger', async () =
     /** @type {Promise<unknown>} */ let previous = Promise.resolve();
     let executed = 0;
     let skipped = 0;
-    const stop = ledger.observe((e) => { if (e.outcome === 'executed') executed++; else skipped++; });
+    const stop = ledger.observe((e) => { if (e.outcome === 'executed') executed++; else if (e.outcome === 'skipped') skipped++; });
     try {
         const report = require('./storeSchemas').startStoreSchemas({
             log: quiet,
@@ -278,7 +287,7 @@ test('boot and db:migrate run the same list through the same ledger', async () =
         stop();
     }
     assert.strictEqual(executed, 0, 'boot found every statement db:migrate applied');
-    assert.ok(skipped > 900);
+    assert.ok(skipped > 700);
 });
 
 after(async () => {

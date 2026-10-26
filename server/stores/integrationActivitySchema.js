@@ -11,8 +11,9 @@
  *                            state (see integrationLocationSql.js)
  *
  * Every statement here runs inside the store's init, so it goes through the
- * schema ledger (stores/lib/ddlLedger.js): skipped once it succeeded on this
- * database, run when it is new or changed. The two backfills are one-time
+ * schema ledger (stores/lib/ddlLedger.js): a create-if-missing statement is
+ * skipped once it succeeded on this database, the DO block and the DROP run
+ * every boot, and a new or changed one runs. The two backfills are one-time
  * steps of the same ledger (`once`), recorded only when they finished.
  */
 
