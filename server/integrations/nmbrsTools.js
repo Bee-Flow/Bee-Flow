@@ -48,6 +48,8 @@ const SOAP_SERVICES = new Set(['DebtorService', 'CompanyService', 'EmployeeServi
 const { NMBRS_TOOLS: BASE_TOOLS } = require('./nmbrsToolDefs');
 const { NMBRS_BULK_TOOLS, isBulkTool, executeBulkTool, pickFieldsDeep, EMPLOYEE_FIELDS } = require('./nmbrsBulkTools');
 const { truncateRows, shapeList, parsePaging, shapePage } = require('./nmbrsPaging');
+const { cachedRowsFor, clearNmbrsPageCacheForUser } = require('./nmbrsPageCacheBinding');
+const { validId, parseYear, parsePeriod } = require('./nmbrsArgs');
 
 const NMBRS_TOOLS = [...BASE_TOOLS, ...NMBRS_BULK_TOOLS];
 
@@ -57,7 +59,6 @@ const { SOAP_METHODS_READONLY, EMPLOYEE_TYPE_PAYROLL, EMPLOYEE_TYPE_FORMER_PAYRO
 const SUBDOMAIN_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i; // single DNS label, no dots/slashes
 const TOKEN_RE = /^[\x21-\x7E]{16,512}$/;                     // printable ASCII, no whitespace/CRLF
 const EMAIL_RE = /^[^\s@,;]{1,128}@[^\s@,;]{1,128}$/;
-const ID_RE = /^[A-Za-z0-9_-]{1,64}$/;                        // entity-id args (NMBRS ids are numeric)
 const REST_PATH_RE = /^[A-Za-z0-9/_-]{1,200}$/;               // defence-in-depth on internally-built paths
 
 const xmlParser = new XMLParser({
@@ -475,30 +476,13 @@ async function getNmbrsCredentials(userId) {
     return { mode, subdomain: String(subdomain).trim(), token, email: email || '', env };
 }
 
-/** @param {unknown} value */
-function validId(value) {
-    return ID_RE.test(String(value || '').trim());
-}
-
-/** @param {string} value a year as the model sent it (parseInt also takes a number) */
-function parseYear(value) {
-    const y = parseInt(value, 10);
-    return (Number.isInteger(y) && y >= 1900 && y <= 2100) ? y : null;
-}
-
-/** @param {string} value a period as the model sent it (parseInt also takes a number) */
-function parsePeriod(value) {
-    if (value === undefined || value === null || value === '') return null;
-    const p = parseInt(value, 10);
-    return (Number.isInteger(p) && p >= 1 && p <= 13) ? p : 'invalid';
-}
-
 /**
  * @param {string} toolName
  * @param {Record<string, any>} args tool arguments as the model sent them
  * @param {string} userId
+ * @param {{ orgId?: string | null }} [context]
  */
-async function executeNmbrsTool(toolName, args = {}, userId) {
+async function executeNmbrsTool(toolName, args = {}, userId, context = {}) {
     if (!userId) return { error: 'User context required for NMBRS.' };
     const creds = await getNmbrsCredentials(userId);
     if (!creds) {
@@ -524,7 +508,8 @@ async function executeNmbrsTool(toolName, args = {}, userId) {
                 log.info(`[NMBRS] Listing employees for company ${companyId} (activeOnly=${activeOnly})`);
                 const paging = parsePaging(args);
                 if ('error' in paging) return { error: paging.error };
-                return shapePage(await fetchEmployees(creds, companyId, activeOnly), paging, 'employees');
+                const employees = await cachedRowsFor(creds, userId, context.orgId)({ tool: toolName, companyId, args: { activeOnly }, fetchRows: () => fetchEmployees(creds, companyId, activeOnly), fresh: paging.offset === 0 });
+                return shapePage(employees, paging, 'employees');
             }
             case 'nmbrs_get_employee': {
                 const employeeId = String(args.employeeId || '').trim();
@@ -571,7 +556,7 @@ async function executeNmbrsTool(toolName, args = {}, userId) {
             }
             default:
                 if (isBulkTool(toolName)) {
-                    return await executeBulkTool(toolName, args, creds, { soapRequest, coerceArray, validId, parseYear, parsePeriod, log });
+                    return await executeBulkTool(toolName, args, creds, { soapRequest, coerceArray, validId, parseYear, parsePeriod, log, cachedRows: cachedRowsFor(creds, userId, context.orgId) });
                 }
                 return { error: `Unknown NMBRS tool: ${toolName}` };
         }
@@ -591,6 +576,7 @@ module.exports = {
     executeNmbrsTool,
     isNmbrsTool,
     getNmbrsCredentials,
+    clearNmbrsPageCacheForUser,
     // Pure helpers exported for unit tests.
     escapeXml,
     buildSoapUrl,
