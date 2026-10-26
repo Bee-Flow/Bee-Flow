@@ -4,7 +4,8 @@
  * Pure helpers and one hook, no JSX, so they test without a DOM tree.
  */
 
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
+import { usePublicStoriesQuery } from '../../api/queries/publicSite';
 import { LOCALE_PREFIXES } from '../../utils/cmsPublicRouting';
 
 interface StoryMetric {
@@ -96,21 +97,10 @@ function pageLocale(): string {
  * Fail-soft: an error leaves the list empty.
  */
 export function useStories(limit: number, sectorId: string, skip: boolean): StoryCard[] | null {
-    const [cards, setCards] = useState<StoryCard[] | null>(null);
-    useEffect(() => {
-        if (skip) return undefined;
-        let cancelled = false;
-        const qs = new URLSearchParams({ limit: String(limit) });
-        const locale = pageLocale();
-        if (locale) qs.set('locale', locale);
-        if (sectorId) qs.set('sector', sectorId);
-        fetch(`/api/cms/stories?${qs.toString()}`, { credentials: 'omit' })
-            .then((r) => (r.ok ? r.json() : null))
-            .then((payload: { stories?: unknown } | null) => {
-                if (!cancelled && payload) setCards(asStoryCards(payload.stories));
-            })
-            .catch(() => null);
-        return () => { cancelled = true; };
-    }, [limit, sectorId, skip]);
-    return cards;
+    const qs = new URLSearchParams({ limit: String(limit) });
+    const locale = pageLocale();
+    if (locale) qs.set('locale', locale);
+    if (sectorId) qs.set('sector', sectorId);
+    const payload = usePublicStoriesQuery(qs.toString(), !skip).data;
+    return useMemo(() => (payload ? asStoryCards(payload.stories) : null), [payload]);
 }

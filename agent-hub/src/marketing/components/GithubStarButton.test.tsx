@@ -1,6 +1,7 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
+import { renderWithClient } from '../../test/render';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import GithubStarButton, { DEFAULT_REPO_URL, accessibleName, forgetGithubStats, formatStars, normaliseRepoUrl, safeRepoUrl, statsMatch } from './GithubStarButton';
+import GithubStarButton, { DEFAULT_REPO_URL, accessibleName, formatStars, normaliseRepoUrl, safeRepoUrl, statsMatch } from './GithubStarButton';
 
 function stubFetch(result: { ok: boolean; json?: unknown } | 'reject') {
     const fetchMock = vi.fn(() => (result === 'reject'
@@ -13,26 +14,25 @@ function stubFetch(result: { ok: boolean; json?: unknown } | 'reject') {
 describe('GithubStarButton', () => {
     afterEach(() => {
         vi.unstubAllGlobals();
-        forgetGithubStats();
     });
 
     it('shows the count from our own server, never from GitHub', async () => {
         const fetchMock = stubFetch({ ok: true, json: { stars: 1234 } });
-        render(<GithubStarButton label="GitHub" starsFallback={10} />);
+        renderWithClient(<GithubStarButton label="GitHub" starsFallback={10} />);
         await waitFor(() => expect(screen.getByText(formatStars(1234) as string)).toBeTruthy());
         expect(fetchMock).toHaveBeenCalledTimes(1);
-        expect(fetchMock.mock.calls[0]).toEqual(['/api/public/github-stats', { credentials: 'omit' }]);
+        expect(fetchMock.mock.calls[0]).toEqual(['/api/public/github-stats', expect.objectContaining({ credentials: 'omit' })]);
     });
 
     it('uses the manual fallback while the server has no number', async () => {
         stubFetch({ ok: false });
-        render(<GithubStarButton starsFallback={42} />);
+        renderWithClient(<GithubStarButton starsFallback={42} />);
         expect(screen.getByText('42')).toBeTruthy();
     });
 
     it('is a plain GitHub link when there is no count at all', async () => {
         stubFetch('reject');
-        render(<GithubStarButton label="GitHub" />);
+        renderWithClient(<GithubStarButton label="GitHub" />);
         const link = screen.getByRole('link', { name: 'GitHub (opens in a new tab)' });
         expect(link.getAttribute('href')).toBe(DEFAULT_REPO_URL);
         expect(link.getAttribute('rel')).toContain('noopener');
@@ -46,8 +46,8 @@ describe('GithubStarButton', () => {
 
     it('shows the live count only for the repository the server reports', async () => {
         stubFetch({ ok: true, json: { stars: 1234, url: 'https://github.com/Bee-Flow/Bee-Flow' } });
-        render(<GithubStarButton label="Ours" repoUrl="https://github.com/bee-flow/bee-flow.git/" starsFallback={7} />);
-        render(<GithubStarButton label="Theirs" repoUrl="https://github.com/acme/app" starsFallback={7} />);
+        renderWithClient(<GithubStarButton label="Ours" repoUrl="https://github.com/bee-flow/bee-flow.git/" starsFallback={7} />);
+        renderWithClient(<GithubStarButton label="Theirs" repoUrl="https://github.com/acme/app" starsFallback={7} />);
         await waitFor(() => expect(screen.getByRole('link', { name: /^Ours,/ }).textContent).toContain(formatStars(1234) as string));
         // Another repository never shows the server's number, only its own manual count.
         const theirs = screen.getByRole('link', { name: /^Theirs/ });
@@ -57,14 +57,14 @@ describe('GithubStarButton', () => {
 
     it('without an address of its own it shows the live count and links to that repository', async () => {
         stubFetch({ ok: true, json: { stars: 5, url: 'https://github.com/owner/repo' } });
-        render(<GithubStarButton />);
+        renderWithClient(<GithubStarButton />);
         await waitFor(() => expect(screen.getByRole('link').getAttribute('href')).toBe('https://github.com/owner/repo'));
         expect(screen.getByRole('link').getAttribute('aria-label')).toBe('GitHub, 5 stars (opens in a new tab)');
     });
 
     it('the desktop header and the mobile menu share one request', async () => {
         const fetchMock = stubFetch({ ok: true, json: { stars: 3 } });
-        render(<><GithubStarButton label="Desktop" /><GithubStarButton label="Mobile" /></>);
+        renderWithClient(<><GithubStarButton label="Desktop" /><GithubStarButton label="Mobile" /></>);
         await waitFor(() => expect(screen.getByRole('link', { name: /^Mobile, 3 stars/ })).toBeTruthy());
         expect(fetchMock).toHaveBeenCalledTimes(1);
     });

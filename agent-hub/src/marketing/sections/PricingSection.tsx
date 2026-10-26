@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import { usePublicPlansQuery } from '../../api/queries/publicSite';
 import SectionFrame from '../components/SectionFrame';
 import { sectionBgClass } from './sectionBg';
 import { inlineTextStyle } from './textStyle';
@@ -236,30 +237,13 @@ export default function Pricing({ data }: { data?: PricingData }) {
     // so we just reset on data change like the legacy block did.
     useEffect(() => { setActiveInterval(defaultInterval); }, [defaultInterval]);
 
-    const [state, setState] = useState<{ loading: boolean; error: string | null; plans: PublicPlan[] }>({ loading: true, error: null, plans: [] });
-
+    const plansQuery = usePublicPlansQuery<PublicPlan>('', true);
+    // A failure hides the section (the page stays whole); warn so it surfaces in preview/development.
+    // `warn`, not `error`: Lighthouse's best-practices audit flags console.error.
     useEffect(() => {
-        let cancelled = false;
-        setState(s => ({ ...s, loading: true, error: null }));
-        fetch('/api/billing/public-plans', { credentials: 'omit' })
-            .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
-            .then(payload => {
-                if (cancelled) return;
-                const plans = Array.isArray(payload?.plans) ? payload.plans : [];
-                setState({ loading: false, error: null, plans });
-            })
-            .catch(err => {
-                if (cancelled) return;
-                // Silent on the page (no broken error UI) — log so it
-                // surfaces during preview/development. `warn`, not `error`:
-                // this is a degraded state the page handles (the section
-                // hides), and a console.error here is what Lighthouse's
-                // best-practices audit flags as "browser errors were logged".
-                console.warn('[pricing] public-plans fetch failed:', err.message);
-                setState({ loading: false, error: err.message || 'fetch failed', plans: [] });
-            });
-        return () => { cancelled = true; };
-    }, []);
+        if (plansQuery.error) console.warn('[pricing] public-plans fetch failed:', plansQuery.error.message);
+    }, [plansQuery.error]);
+    const state = { loading: plansQuery.isPending, plans: plansQuery.data ?? [] };
 
     // Every plan for this audience, regardless of interval — the basis for
     // deciding whether the monthly/yearly switch has anything to switch.

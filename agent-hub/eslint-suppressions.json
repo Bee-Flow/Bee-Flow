@@ -8608,14 +8608,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "no-restricted-syntax": {
-      "count": 1
-    }
-  },
-  "src/marketing/PricingPage.tsx": {
-    "no-restricted-syntax": {
-      "count": 1
     }
   },
   "src/marketing/ProductWebsite.tsx": {
@@ -8655,16 +8647,6 @@
   },
   "src/marketing/components/FramedMedia.tsx": {
     "complexity": {
-      "count": 1
-    }
-  },
-  "src/marketing/components/GithubStarButton.tsx": {
-    "no-restricted-syntax": {
-      "count": 1
-    }
-  },
-  "src/marketing/components/LanguageSwitcher.tsx": {
-    "no-restricted-syntax": {
       "count": 1
     }
   },
@@ -8739,9 +8721,6 @@
   "src/marketing/sections/GitHubStats.tsx": {
     "complexity": {
       "count": 1
-    },
-    "no-restricted-syntax": {
-      "count": 1
     }
   },
   "src/marketing/sections/HeaderView.tsx": {
@@ -8763,11 +8742,6 @@
       "count": 1
     },
     "max-statements": {
-      "count": 1
-    }
-  },
-  "src/marketing/sections/LatestPosts.tsx": {
-    "no-restricted-syntax": {
       "count": 1
     }
   },
@@ -8795,9 +8769,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "no-restricted-syntax": {
-      "count": 1
     }
   },
   "src/marketing/sections/ReleaseNotes.tsx": {
@@ -8805,9 +8776,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    },
-    "no-restricted-syntax": {
       "count": 1
     }
   },
@@ -8860,11 +8828,6 @@
   "src/marketing/sections/formBlockApi.ts": {
     "no-restricted-syntax": {
       "count": 2
-    }
-  },
-  "src/marketing/sections/storyCards.ts": {
-    "no-restricted-syntax": {
-      "count": 1
     }
   },
   "src/pages/AdminDashboard.tsx": {

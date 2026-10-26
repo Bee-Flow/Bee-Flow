@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useReleaseNotesQuery } from '../../api/queries/publicSite';
 import { Sparkles, Wrench, ArrowUpCircle, ExternalLink, type LucideIcon } from 'lucide-react';
 import SectionHeader from '../components/SectionHeader';
 import EditableText from '../components/EditableText';
@@ -110,20 +110,7 @@ export default function ReleaseNotes({ data }: { data?: ReleaseNotesData | null 
     // GitHubStats and Pricing, the other sections that fetch on mount.
     const isDisabled = data && data.enabled === false;
 
-    const [entries, setEntries] = useState<ReleaseEntry[] | null>(null);
-
-    useEffect(() => {
-        let cancelled = false;
-        fetch('/api/release-notes/public', { credentials: 'omit' })
-            .then(r => (r.ok ? r.json() : null))
-            .then(payload => {
-                if (cancelled || !payload || !Array.isArray(payload.entries)) return;
-                setEntries(payload.entries);
-            })
-            // Fail-soft: no console.error — a handled degradation is not an error.
-            .catch(() => {});
-        return () => { cancelled = true; };
-    }, []);
+    const entries = useReleaseNotesQuery<ReleaseEntry>().data ?? null;
 
     if (isDisabled) return null;
 

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
+import { useGithubStatsQuery } from '../../api/queries/publicSite';
 import { Star } from 'lucide-react';
 import { Github } from '../../components/icons/brandIcons';
 import './githubStarButton.css';
@@ -52,27 +53,6 @@ interface GithubStats {
     url?: string;
 }
 
-let statsRequest: Promise<GithubStats | null> | null = null;
-
-/** The page's one request for the server's cached numbers; every button shares it. */
-function loadGithubStats(): Promise<GithubStats | null> {
-    if (!statsRequest) {
-        statsRequest = fetch('/api/public/github-stats', { credentials: 'omit' })
-            .then((r) => (r.ok ? r.json() : null))
-            .then((payload: { stars?: unknown; url?: unknown } | null) => (payload ? {
-                stars: typeof payload.stars === 'number' ? payload.stars : undefined,
-                url: typeof payload.url === 'string' ? payload.url : undefined,
-            } : null))
-            // Fail-soft: the manual fallback count (or no count) is the degraded look.
-            .catch(() => null);
-    }
-    return statsRequest;
-}
-
-/** Tests only: forget the shared request so the next button fetches again. */
-export function forgetGithubStats(): void {
-    statsRequest = null;
-}
 
 /** Whether the server's numbers belong to the repository the button links to. */
 export function statsMatch(repoUrl: string | undefined, statsUrl: string | undefined): boolean {
@@ -81,13 +61,11 @@ export function statsMatch(repoUrl: string | undefined, statsUrl: string | undef
 }
 
 function useGithubStats(): GithubStats | null {
-    const [stats, setStats] = useState<GithubStats | null>(null);
-    useEffect(() => {
-        let cancelled = false;
-        loadGithubStats().then((s) => { if (!cancelled) setStats(s); });
-        return () => { cancelled = true; };
-    }, []);
-    return stats;
+    const payload = useGithubStatsQuery().data;
+    return useMemo(() => (payload ? {
+        stars: typeof payload.stars === 'number' ? payload.stars : undefined,
+        url: typeof payload.url === 'string' ? payload.url : undefined,
+    } : null), [payload]);
 }
 
 export interface GithubStarButtonProps {

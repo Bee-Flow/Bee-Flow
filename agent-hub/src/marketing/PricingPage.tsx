@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { usePublicPlansQuery } from '../api/queries/publicSite';
 import { API_BASE } from '../utils/helpers';
 import ContactSection from './sections/ContactSection';
 import beeFlowLogo from '../assets/bee-flow-logo.svg';
@@ -31,28 +32,14 @@ function formatLimit(value: number|null, singular: string, plural?: string) {
 }
 
 export default function PricingPage() {
-    const [state, setState] = useState<{ status: string; plans: Plan[] }>({ status: 'loading', plans: [] });
+    const plansQuery = usePublicPlansQuery<Plan>(API_BASE, false);
+    // An error reads as the same friendly empty state (nothing is surfaced to anonymous visitors).
+    const state = { status: plansQuery.isPending ? 'loading' : 'ok', plans: plansQuery.data ?? [] };
 
     useEffect(() => {
         const prev = document.title;
         document.title = 'Pricing — Bee Flow';
-        let cancelled = false;
-        fetch(`${API_BASE}/api/billing/public-plans`)
-            .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
-            .then(data => {
-                if (cancelled) return;
-                setState({ status: 'ok', plans: Array.isArray(data?.plans) ? data.plans : [] });
-            })
-            .catch(() => {
-                // Don't surface fetch errors to anonymous visitors — fall
-                // through to the same friendly empty state.
-                if (cancelled) return;
-                setState({ status: 'error', plans: [] });
-            });
-        return () => {
-            cancelled = true;
-            document.title = prev;
-        };
+        return () => { document.title = prev; };
     }, []);
 
     return (
