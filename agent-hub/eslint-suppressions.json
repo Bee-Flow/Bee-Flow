@@ -7953,14 +7953,6 @@
       "count": 1
     }
   },
-  "src/components/shell/sidebar/useApprovalsNav.ts": {
-    "complexity": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/components/shell/sidebar/useScrolledAwayNav.ts": {
     "react-hooks/set-state-in-effect": {
       "count": 1

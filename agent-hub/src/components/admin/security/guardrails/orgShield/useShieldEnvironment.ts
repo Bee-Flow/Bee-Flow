@@ -1,7 +1,7 @@
-import { useEffect, useEffectEvent, useState } from 'react';
-import { API_BASE } from '../../../../../utils/helpers';
-import { settled } from '../../../../../api/settled';
-import { logger } from '../../../../../utils/logger';
+import { useEffect, useEffectEvent } from 'react';
+import {
+    useShieldAiConfigQuery, useShieldEuModelsQuery, useShieldGuardStatusQuery, useShieldOrganizationsQuery,
+} from '../../../../../api/queries/shellReads';
 
 export interface ShieldOrg {
     id: string;
@@ -43,60 +43,29 @@ function hasAnyEuModel(euModels: Record<string, { modelId?: string } | null>): b
  * decoration. (Custom terms and patterns keep working; they need no model.)
  * `derivePosture` has a `guard` row; this is its feed.
  */
+const NO_ORGS: ShieldOrg[] = [];
+
 export default function useShieldEnvironment(onOrgs: (orgs: ShieldOrg[]) => void): ShieldEnvironment {
-    const [loading, setLoading] = useState(true);
-    const [orgList, setOrgList] = useState<ShieldOrg[]>([]);
-    const [hasEuModelsConfigured, setHasEuModelsConfigured] = useState(false);
-    const [hasWebSearchEnabled, setHasWebSearchEnabled] = useState(false);
-    const [guardStatus, setGuardStatus] = useState<GuardStatus | null>(null);
-    const [guardCheckedAt, setGuardCheckedAt] = useState<number | null>(null);
-    const deliverOrgs = useEffectEvent((orgs: ShieldOrg[]) => onOrgs(orgs));
+    const aiConfig = useShieldAiConfigQuery<{ searchProvider?: string }>();
+    const euModels = useShieldEuModelsQuery<Record<string, { modelId?: string } | null>>();
+    const guard = useShieldGuardStatusQuery<{ configured?: boolean; reachable?: boolean }>();
+    const orgs = useShieldOrganizationsQuery<ShieldOrg>();
+    const orgList = orgs.data ?? NO_ORGS;
 
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            try {
-                const res = await settled(`${API_BASE}/ai/config`, undefined, 'empty');
-                if (res.ok && !cancelled) {
-                    const data = await res.res.json();
-                    setHasWebSearchEnabled(!!(data.searchProvider && data.searchProvider !== 'disabled'));
-                }
+    // The caller decides whether it may pick one of the orgs once they land.
+    const deliverOrgs = useEffectEvent((list: ShieldOrg[]) => onOrgs(list));
+    const landedOrgs = orgs.data;
+    useEffect(() => { if (landedOrgs) deliverOrgs(landedOrgs); }, [landedOrgs]);
 
-                const euRes = await settled(`${API_BASE}/ai/config/chat-models-eu`, undefined, 'empty');
-                if (euRes.ok && !cancelled) {
-                    setHasEuModelsConfigured(hasAnyEuModel(await euRes.res.json()));
-                }
-
-                // Self-scoped and cheap (the route memoises its health probe
-                // for 15s). A failure here leaves the status `null`, which
-                // renders nothing — an unreachable *status endpoint* is not
-                // evidence of an unreachable guard.
-                try {
-                    const guardRes = await settled(`${API_BASE}/api/org-privacy-shield/user/guard-status`, undefined, 'empty');
-                    if (guardRes.ok && !cancelled) {
-                        const status = await guardRes.res.json();
-                        setGuardStatus({
-                            configured: status.configured !== false,
-                            reachable: status.reachable !== false,
-                        });
-                        setGuardCheckedAt(Date.now());
-                    }
-                } catch (err) { logger.debug('stays null — see above', err); }
-
-                const orgRes = await settled(`${API_BASE}/auth/organizations`, undefined, 'empty');
-                if (orgRes.ok && !cancelled) {
-                    const orgs = await orgRes.res.json();
-                    setOrgList(orgs);
-                    deliverOrgs(orgs);
-                }
-            } catch (e) {
-                console.error('[OrgShield] Failed to fetch config', e);
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
-        })();
-        return () => { cancelled = true; };
-    }, []);
-
-    return { loading, orgList, hasEuModelsConfigured, hasWebSearchEnabled, guardStatus, guardCheckedAt };
+    const status = guard.data;
+    return {
+        loading: [aiConfig, euModels, guard, orgs].some(q => q.isPending),
+        orgList,
+        hasEuModelsConfigured: !!euModels.data && hasAnyEuModel(euModels.data),
+        hasWebSearchEnabled: !!(aiConfig.data?.searchProvider && aiConfig.data.searchProvider !== 'disabled'),
+        // A failure leaves the status null, which renders nothing: an unreachable
+        // status endpoint is not evidence of an unreachable guard.
+        guardStatus: status ? { configured: status.configured !== false, reachable: status.reachable !== false } : null,
+        guardCheckedAt: status ? guard.dataUpdatedAt : null,
+    };
 }
