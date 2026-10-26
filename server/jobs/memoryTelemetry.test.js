@@ -1,10 +1,11 @@
-// @typecheck
+// @typecheck strict
 const { test, afterEach } = require('node:test');
 const assert = require('node:assert');
 
 const log = require('../telemetry/log');
 const job = require('./memoryTelemetry');
 
+/** @type {string[]} */
 const lines = [];
 const origInfo = log.info;
 log.info = (m) => { lines.push(String(m)); };

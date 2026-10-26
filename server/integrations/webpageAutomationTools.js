@@ -258,6 +258,7 @@ async function executeWebpageAutomationTool(toolName, args, ctx) {
     const resolved = await resolveWebpageForAccess(webpageId, ctx, accessMode);
     if (resolved.error) return { error: resolved.error };
     const ownerUserId = resolved.ownerUserId;
+    if (!ownerUserId) return { error: 'The owner of that webpage could not be resolved.' };
 
     if (toolName === 'webpage_db_schema' || toolName === 'webpage_db_query' || toolName === 'webpage_db_exec') {
         const dbArgs = { sql: args?.sql, params: args?.params };

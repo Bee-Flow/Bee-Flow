@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * "Which of these knowledge bases may this person actually search, here?"
  *
@@ -53,9 +53,9 @@ const log = require('../../telemetry/log');
  * @param {Set<string>|string[]|null} p.orgIds  coerced to a Set; empty, never null
  * @param {string[]} [p.userGroups]
  * @param {string} [p.surface]        'direct_chat' | 'agent' | 'ai_step' | 'webpage'
- * @param {string} [p.context]        for the drop log; defaults to the surface
+ * @param {string | null} [p.context]        for the drop log; defaults to the surface
  * @param {any} [p.deps]           { kbStore, filterKbIdsForUser } — tests only
- * @param {string} [p.agentId]
+ * @param {string | null} [p.agentId]
  * @returns {Promise<string[]>}
  */
 async function resolveUsableKbIds(kbIds, {

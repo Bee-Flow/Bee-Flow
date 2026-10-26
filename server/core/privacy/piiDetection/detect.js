@@ -33,6 +33,9 @@ const log = require('../../../telemetry/log');
  *
  * opts.customTypes (tests, the test bench): resolve the custom ids against
  * these types instead of the process registry.
+ * @param {string} text
+ * @param {string[] | null} [enabledCategories]  category ids; null for the defaults
+ * @param {number} [confidenceThreshold]
  */
 async function detectPii(text, enabledCategories = null, confidenceThreshold = DEFAULT_PII_CONFIDENCE_THRESHOLD, opts = {}) {
     if (hasCustomIds(enabledCategories)) {

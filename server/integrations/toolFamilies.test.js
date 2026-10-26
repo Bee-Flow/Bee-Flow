@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * integrations/toolFamilies × core/tools/toolDispatcher: the walk the
  * dispatcher's former if-chain made, now as registered families.
@@ -12,6 +12,7 @@ const assert = require('node:assert/strict');
 
 // Patched BEFORE toolFamilies loads: it binds hasPermission at require time.
 const permissions = require('../auth/permissions');
+/** @type {string[]} */
 const permissionCalls = [];
 permissions.hasPermission = async (userId, perm) => { permissionCalls.push(perm); return false; };
 
@@ -20,7 +21,7 @@ require('./toolFamilies');
 const { listToolFamilies, getToolFamily } = require('../core/tools/toolFamilyRegistry');
 const { executeTool, executeNextcloudFamilyTool } = require('../core/tools/toolDispatcher');
 
-function ownerOf(toolName) {
+function ownerOf(/** @type {string} */ toolName) {
     return listToolFamilies().find(f => f.isTool(toolName))?.name || null;
 }
 

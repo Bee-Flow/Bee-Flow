@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The single-row write-through and the checks every write shares, for
  * ./writeThrough.js (which documents the contract and the order) and
@@ -114,7 +114,7 @@ function assertRowId(rowId) {
  * @param {{ name?: string, code?: string } | null | undefined} e
  */
 function isNotFound(w, e) {
-    return isSourceError(e) && w.notFound.has(e.code);
+    return isSourceError(e) && !!e && typeof e.code === 'string' && w.notFound.has(e.code);
 }
 
 /**

@@ -12,11 +12,12 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const { installResolveStub } = require('../../testUtils/stubRequire');
 
+/** @type {{ raw: unknown, opts?: { userOrgId?: string, userId?: string } } | null} */
 let captured = null;
 
 const restore = installResolveStub({
     '../llm/modelResolver': {
-        resolveModelForTier: async (raw, opts) => { captured = { raw, opts }; return null; },
+        resolveModelForTier: async (/** @type {unknown} */ raw, /** @type {{ userOrgId?: string, userId?: string } | undefined} */ opts) => { captured = { raw, opts }; return null; },
         TIER_DEFAULTS: { fast: {} },
     },
     '../aiAgent': { getProviderForModel: async () => ({}) },

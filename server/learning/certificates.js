@@ -130,7 +130,7 @@ function buildUrls(record, verifyToken) {
     if (record.isPublic && base && verifyToken) {
         const verifyUrl = `${base}/verify/${verifyToken}`;
         out.verifyUrl = verifyUrl;
-        const issued = new Date(record.issuedAt);
+        const issued = new Date(String(record.issuedAt));
         const params = new URLSearchParams({
             startTask: 'CERTIFICATION_NAME',
             name: record.title,

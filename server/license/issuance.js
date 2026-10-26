@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * License Issuance — Outbound callout to license.beeflow.nl
  *

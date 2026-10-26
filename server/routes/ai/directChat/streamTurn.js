@@ -50,6 +50,7 @@ const { validate } = require('../../../core/http/validate');
 // Typed, not closed: see the header of ./turnSchema.js.
 const { DirectTurnBody } = require('./turnSchema');
 const { fallback } = require('../../../utils/bestEffort');
+const { sessionUser } = require('../../../core/http/sessionUser');
 
 const TITLE_HOLD_MS = 15_000;
 
@@ -197,7 +198,7 @@ async function releaseTurn(turn) {
 
 router.post('/chat/direct/stream', requireAuth, validate({ body: DirectTurnBody }), async (req, res) => {
     const { message, conversationId, modelTier, history, attachments, imageGenSettings, nanoBananaSettings, disabledMedia, webSearchEnabled = true, notebookspaceContent, notebookspaceSelection, notebookspaceAvailable, sidePanelWebpage, sidePanelDocument, projectId, timezone, systemPrompt: requestSystemPrompt, activeSkillIds, reasoningEffort: requestReasoningEffort, sessionSkills: requestSessionSkills, activatedSessionSkillIds: requestActivatedSessionSkillIds, knowledgeBaseIds: requestedKbIds, planExecution: webpagePlanExecution } = req.body;
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
 
     if (!message && (!attachments || attachments.length === 0)) {
         return res.status(400).json({ error: 'Message or attachments required' });

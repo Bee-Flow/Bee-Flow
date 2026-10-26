@@ -28,7 +28,7 @@ const restoreStores = installResolveStub({
 after(() => restoreStores());
 
 const llmClient = require('./llmClient');
-const t = (raw) => llmClient._sanitiseTitle(raw);
+const t = (/** @type {unknown} */ raw) => llmClient._sanitiseTitle(raw);
 
 test('a plain title passes through, quotes stripped and whitespace collapsed', () => {
     assert.equal(t('Bee Flow Presentation'), 'Bee Flow Presentation');

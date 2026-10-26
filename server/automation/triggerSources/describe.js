@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Prompt-facing descriptions of the declared trigger sources.
  *
@@ -16,13 +16,13 @@ const { listTriggerSources } = require('./index');
 
 function describeSourcesForPrompt({ maxEventsPerProvider = 12 } = {}) {
     const sources = listTriggerSources({ includeHidden: false })
-        .map(src => ({ src, events: (src.events || []).filter(e => !e.hidden) }))
+        .map(src => ({ src, events: (src.events || []).filter((/** @type {{ hidden?: boolean }} */ e) => !e.hidden) }))
         .filter(({ events }) => events.length > 0);
 
     const providerList = sources.map(({ src }) => src.id).join(' | ');
 
     const eventList = sources.map(({ src, events }) => {
-        const ids = events.map(e => e.id);
+        const ids = events.map((/** @type {{ id: string }} */ e) => e.id);
         const shown = ids.slice(0, maxEventsPerProvider);
         // The count, not a bare ellipsis: a model reading "…" cannot tell one
         // event more from forty. The chat builder also gets every event of the

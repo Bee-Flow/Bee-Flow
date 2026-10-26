@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * What may leave Bee Flow for a YouTrack issue — and nothing else.
  *

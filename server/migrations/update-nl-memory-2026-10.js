@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck
+// @typecheck strict
 /**
  * Dutch for the memory work (Oct 2026): the memory manager in Knowledge
  * (views, filters, review queue, bulk actions), the chat controls and the
@@ -290,7 +290,7 @@ async function up() {
     const languageStore = require('../stores/languageStore');
     let added = 0;
     let reworded = 0;
-    await languageStore.mutateGUITranslations('nl', (current) => {
+    await languageStore.mutateGUITranslations('nl', (/** @type {Record<string, string>} */ current) => {
         const result = applyNl(current);
         added = result.added;
         reworded = result.reworded;

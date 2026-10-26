@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The read side of the chat's notebook tools (integrations/workspaceTools.js
  * notebook_read): a Markdown notebook read as an outline, one section, the
@@ -14,7 +14,7 @@
  * @param {string | undefined} text
  */
 function wordCount(text) {
-    return text.split(/\s+/).filter(Boolean).length;
+    return (text ?? '').split(/\s+/).filter(Boolean).length;
 }
 
 /**

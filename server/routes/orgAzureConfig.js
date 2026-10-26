@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Organization Azure Configuration API
  *
@@ -372,7 +372,7 @@ router.put('/:orgId', requireAuth, platformConfigGate, validate({ body: ConfigBo
         }
     }
 
-    log.info(`[OrgAzureConfig] Saved ${section || 'config'} for org ${orgId} by ${req.session.user.id}`);
+    log.info(`[OrgAzureConfig] Saved ${section || 'config'} for org ${orgId} by ${req.session.user?.id}`);
     res.json({ ok: true });
 });
 
@@ -388,7 +388,7 @@ router.post('/:orgId/sync-groups', requireAuth, /** @param {import('express').Re
         return res.status(403).json({ error: 'Only organization admins can trigger group sync' });
     }
 
-    log.info(`[AzureGroupSync] Sync triggered for org ${orgId} by ${req.session.user.id}`);
+    log.info(`[AzureGroupSync] Sync triggered for org ${orgId} by ${req.session.user?.id}`);
     const result = await syncAzureGroupsToOrg(orgId);
     res.json(result);
 });
@@ -419,7 +419,7 @@ router.put('/:orgId/sync-groups/settings', requireAuth, /** @param {import('expr
     const updates = { ...req.body };
 
     const settings = await setSyncSettings(orgId, updates);
-    log.info(`[AzureGroupSync] Settings updated for org ${orgId} by ${req.session.user.id}:`, updates);
+    log.info(`[AzureGroupSync] Settings updated for org ${orgId} by ${req.session.user?.id}:`, updates);
     res.json({ ok: true, settings });
 });
 

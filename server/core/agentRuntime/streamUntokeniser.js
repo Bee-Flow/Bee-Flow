@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Streaming agent chat — DLP un-tokeniser event wrapper.
  *
@@ -43,7 +43,8 @@ function createUntokenisingEventWrapper({ onEvent, dlpShield, conversation }) {
         const _shouldWrapUntokeniser = (_dlpConvMap && Object.keys(_dlpConvMap).length > 0) || _piiMayFire;
         if (_shouldWrapUntokeniser) {
             const { createUntokeniser } = require('../dlp/untokeniseStream');
-            _ut = createUntokeniser(() => _dlpRunner.getConversationTokenMap(conversation?.id));
+            const untokeniser = createUntokeniser(() => _dlpRunner.getConversationTokenMap(conversation?.id));
+            _ut = untokeniser;
             const _rawOnEvent = onEvent;
             onEvent = (type, data) => {
                 if (type === 'content' && data && typeof data.text === 'string') {
@@ -53,13 +54,13 @@ function createUntokenisingEventWrapper({ onEvent, dlpShield, conversation }) {
                             _rawResponseBuffer = _rawResponseBuffer.slice(0, RAW_BUFFER_MAX) + '…';
                         }
                     }
-                    const safe = _ut.push(data.text);
+                    const safe = untokeniser.push(data.text);
                     if (safe) _rawOnEvent(type, { ...data, text: safe });
                     return;
                 }
                 // On any non-content event (tool-call, thinking, done-ish), flush
                 // whatever is buffered so we never leave a partial token dangling.
-                const tail = _ut.flush();
+                const tail = untokeniser.flush();
                 if (tail) _rawOnEvent('content', { text: tail });
                 // `content_replace` overwrites the whole rendered assistant
                 // message on the client (useChatEngine sets contentRef from
@@ -72,7 +73,7 @@ function createUntokenisingEventWrapper({ onEvent, dlpShield, conversation }) {
                 // before its content_replace for exactly this reason. Storage
                 // stays tokenised — only the display copy is restored.
                 //
-                // NOT via `_ut.restore()`: that shares the `replacedTokens` ledger
+                // NOT via `untokeniser.restore()`: that shares the `replacedTokens` ledger
                 // with `push()`, and this text is a cleaned copy of content already
                 // streamed (and already counted) chunk by chunk — re-running the
                 // substitution over it counted every echo twice and inflated the
@@ -90,7 +91,7 @@ function createUntokenisingEventWrapper({ onEvent, dlpShield, conversation }) {
                 // any redacted artefacts) must be reversed here just as for content,
                 // or they leak the token mechanics into the UI (BFSF-253).
                 if (type === 'thinking' && data && typeof data.text === 'string') {
-                    _rawOnEvent(type, { ...data, text: _ut.restore(data.text) });
+                    _rawOnEvent(type, { ...data, text: untokeniser.restore(data.text) });
                     return;
                 }
                 _rawOnEvent(type, data);

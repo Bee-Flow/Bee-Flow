@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * What a streaming turn RUNS ON: which agent row, which model and provider,
  * which tools, which conversation — and the shared-thread turn lock.

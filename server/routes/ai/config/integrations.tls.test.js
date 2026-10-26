@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Outbound n8n calls verify certificates unless somebody opted out on purpose.
  *
@@ -29,7 +29,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const SERVER = path.resolve(__dirname, '../../..');
-const read = (rel) => fs.readFileSync(path.join(SERVER, rel), 'utf8');
+const read = (/** @type {string} */ rel) => fs.readFileSync(path.join(SERVER, rel), 'utf8');
 
 const CALLERS = ['routes/ai/config/integrations.js', 'integrations/n8nTools.js', 'integrations/n8nWorkflowTools.js'];
 

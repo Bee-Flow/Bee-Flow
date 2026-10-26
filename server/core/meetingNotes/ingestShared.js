@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * What the Meeting Notes ingest modules share: the error a provider wrapper
  * maps to an HTTP answer, and the best-effort removal of a scratch file.
@@ -25,6 +25,6 @@ class IngestError extends Error {
 /**
  * @param {string | undefined} p
  */
-function safeUnlink(p) { try { fs.unlinkSync(p); } catch (_) { log.debug('file already gone', _); } }
+function safeUnlink(p) { if (!p) return; try { fs.unlinkSync(p); } catch (_) { log.debug('file already gone', _); } }
 
 module.exports = { IngestError, safeUnlink };

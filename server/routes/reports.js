@@ -31,6 +31,7 @@ const memoryStore = require('../stores/memoryStore');
 const { requireAuth, requirePermission } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
 const { z, datetimeWithOffset } = require('../utils/zod');
+const { sessionUser } = require('../core/http/sessionUser');
 
 const router = express.Router();
 
@@ -86,7 +87,7 @@ router.get('/types', requireAuth, async (req, res) => {
 // Generate a specific report
 router.get('/:type', requireAuth, requirePermission('admin_monitoring'), validate({ query: ReportQuery }), /** @param {import('express').Request<{ type: string }, any, any, import('qs').ParsedQs & { startDate?: string, endDate?: string }>} req */ async (req, res) => {
     const { type } = req.params;
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
 
     let reportData;
     const { startDate, endDate } = req.query;

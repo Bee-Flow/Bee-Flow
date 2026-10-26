@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The TEXT of a file a visitor attached to an automation's form.
  *
@@ -119,7 +119,7 @@ async function readUploadText(claimed, { storageStore = null } = {}) {
         // visitor "send me the spreadsheet, not a photo of it".
         return { textError: `No text could be read from ${filename} — that file type is not a document (PDF, Word, Excel, CSV or text).` };
     }
-    if (Number.isFinite(claimed.size) && claimed.size > MAX_PARSE_BYTES) {
+    if (typeof claimed.size === 'number' && Number.isFinite(claimed.size) && claimed.size > MAX_PARSE_BYTES) {
         return { textError: `${filename} is too large to read into the run (over ${Math.floor(MAX_PARSE_BYTES / 1024 / 1024)} MB). The file is still attached.` };
     }
 

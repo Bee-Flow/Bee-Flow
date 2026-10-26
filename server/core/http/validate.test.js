@@ -11,8 +11,8 @@ const Body = z.object({
     limit: z.coerce.number().int().min(1).max(100).default(20),
 }).strict();
 
-function run(mw, req) {
-    return new Promise((resolve) => mw(req, {}, (err) => resolve(err)));
+function run(/** @type {(req: unknown, res: unknown, next: (err?: unknown) => void) => void} */ mw, /** @type {unknown} */ req) {
+    return new Promise((resolve) => mw(req, {}, (/** @type {unknown} */ err) => resolve(err)));
 }
 
 test('replaces the part with the parsed value: trimmed, coerced, defaults applied', async () => {

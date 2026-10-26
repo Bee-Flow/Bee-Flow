@@ -242,7 +242,7 @@ async function getAgentTools(agentId) {
     try {
         const { agent, ownerOrgId } = await ownerLookup;
         let effectiveIntegrations = null;
-        if (agent?.userId) {
+        if (typeof agent?.userId === 'string' && agent.userId) {
             const entitlements = _deps.entitlements();
             const snap = await entitlements.resolveEntitlements({
                 userId: agent.userId,

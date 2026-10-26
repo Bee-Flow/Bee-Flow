@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // Compute the set of tier keys a given user is allowed to select.
 // Mirrors the gating logic in GET /ai/config/tiers-for-user so server-side
 // validators (e.g. the agent PUT endpoint) can reject tiers the user can't use.
@@ -16,6 +16,9 @@ const STANDARD_TIER_KEYS = ['fast', 'standard', 'swarm', 'thinking', 'writer', '
 // Load global + org custom tiers (org wins on id collision). Mirrors
 // loadMergedCustomTiers in routes/ai/config.js — kept here so the validator
 // doesn't depend on the route file.
+/**
+ * @param {string} orgId
+ */
 async function loadMergedCustomTiersForOrg(orgId) {
     const global = (await configStore.getConfig('custom_chat_model_tiers').catch((e) => fallback('core/entitlements/userTiers:loadMergedCustomTiersForOrg', e, []))) || [];
     const org = orgId

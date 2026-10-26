@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -27,6 +27,7 @@
  * Server copy of `splitWildcardPath` in
  * agent-hub/src/components/automation/Builder/flow/datetimeTarget.js; keep the
  * two in step.
+ * @param {unknown} path
  */
 function splitWildcardPath(path) {
     const s = String(path || '');
@@ -47,6 +48,7 @@ function splitWildcardPath(path) {
  * step that already has an `arrayRef` key is taken as written. `now` reads no
  * input date at all, so a stale column left in its `input` ran fine in single
  * mode and implies nothing.
+ * @param {{ arrayRef?: unknown, op?: string, input?: unknown, input2?: unknown, [k: string]: unknown } | null | undefined} step
  */
 function impliedListMode(step) {
     if (!step || (step.arrayRef !== undefined && step.arrayRef !== null)) return null;

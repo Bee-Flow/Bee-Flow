@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The live-build harness compares a stored binding with the brief's
  * expectation by the path the RUN reads, not by its spelling.
@@ -27,7 +27,7 @@ test('a stored canonical path matches an expectation in another spelling of the 
 
 test('an expectation in the bracket spelling is a ref, not a literal', () => {
     assert.strictEqual(bindingMismatch({ kind: 'ref', path: 'steps["a 1"].output.x' }, 'steps["a 1"].output.x'), null);
-    assert.match(bindingMismatch({ kind: 'literal', value: 'steps["a 1"].output.x' }, 'steps["a 1"].output.x'), /^expected ref/);
+    assert.match(String(bindingMismatch({ kind: 'literal', value: 'steps["a 1"].output.x' }, 'steps["a 1"].output.x')), /^expected ref/);
 });
 
 test('plain text is still a literal expectation', () => {

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 const { scanTemplate } = require('../expr');
@@ -8,7 +8,7 @@ const { normalizeAiPath } = require('./aiPaths');
  * Every `loop.<var>` a set of canonical bindings reads — ref paths and the
  * {{…}} placeholders inside templates — with the var name.
  */
-function loopVarsReadBy(value, out = [], depth = 0) {
+function loopVarsReadBy(/** @type {LoopVal} */ value, /** @type {{ v: string, path: string }[]} */ out = [], depth = 0) {
     if (depth > 12 || value === null || value === undefined) return out;
     if (Array.isArray(value)) { for (const v of value) loopVarsReadBy(v, out, depth + 1); return out; }
     if (typeof value === 'string') {

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -15,6 +15,7 @@ const assert = require('node:assert/strict');
 const fs = require('fs');
 
 const log = require('../../telemetry/log');
+/** @type {string[]} */
 const logged = [];
 const { warn, error } = log;
 log.warn = (...args) => { logged.push(args.join(' ')); };

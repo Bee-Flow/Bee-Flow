@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The SSRF guard: one address table, one host screen, one guarded dispatcher.
  *
@@ -41,111 +41,18 @@
 'use strict';
 
 const dns = require('dns');
+const { parseIPv4Numeric, formatIPv4, looksNumericLabel, parseIPv6, isForbiddenIPv4Int } = require('./ssrfGuardParseIPv6');
 
-// ── IPv4 parsing (inet_aton semantics) ────────────────────────────
-
-// Parses one dot-separated part in decimal / 0x-hex / 0-octal form.
-// Returns null when the part is not a clean numeric token.
-function parseIPv4Part(part) {
-    if (/^0x[0-9a-f]+$/i.test(part)) return parseInt(part.slice(2), 16);
-    if (/^0[0-7]*$/.test(part)) return parseInt(part, 8);
-    if (/^[1-9][0-9]*$/.test(part)) return parseInt(part, 10);
-    return null;
-}
-
-// inet_aton: 1 part = 32-bit value, 2 parts = a.b24, 3 parts = a.b.c16,
-// 4 parts = dotted quad. Returns the address as an unsigned 32-bit int,
-// or null when any part is malformed / out of range.
-function parseIPv4Numeric(parts) {
-    if (!Array.isArray(parts) || parts.length < 1 || parts.length > 4) return null;
-    const nums = [];
-    for (const p of parts) {
-        const v = parseIPv4Part(p);
-        if (v === null || !Number.isFinite(v)) return null;
-        nums.push(v);
-    }
-    // The final part covers all remaining bytes; the leading parts are octets.
-    const last = nums[nums.length - 1];
-    if (last < 0 || last >= 2 ** (8 * (4 - (nums.length - 1)))) return null;
-    let n = last;
-    for (let i = 0; i < nums.length - 1; i++) {
-        if (nums[i] < 0 || nums[i] > 255) return null;
-        n += nums[i] * 2 ** (8 * (3 - i));
-    }
-    return n >>> 0;
-}
-
-function formatIPv4(n) {
-    return `${n >>> 24}.${(n >>> 16) & 255}.${(n >>> 8) & 255}.${n & 255}`;
-}
-
-// True when the label could plausibly be a numeric IPv4 part — even an
-// invalid one like "08" or "0x". Hosts made entirely of such labels are
-// treated as (possibly malformed) IPs, never as DNS names.
-function looksNumericLabel(label) {
-    return /^0x[0-9a-f]*$/i.test(label) || /^[0-9]+$/.test(label);
-}
-
-// ── IPv6 parsing ──────────────────────────────────────────────────
-
-// Returns a 16-entry byte array, or null when malformed. Accepts an
-// embedded IPv4 tail ("::ffff:127.0.0.1") and strips %zone identifiers.
-function parseIPv6(input) {
-    let s = String(input);
-    const zone = s.indexOf('%');
-    if (zone !== -1) s = s.slice(0, zone);
-    if (!s) return null;
-
-    let head = s;
-    let tail = null;
-    const dc = s.indexOf('::');
-    if (dc !== -1) {
-        if (s.indexOf('::', dc + 1) !== -1) return null;
-        head = s.slice(0, dc);
-        tail = s.slice(dc + 2);
-    }
-
-    const parseGroups = (part, v4TailAllowed) => {
-        if (part === '') return [];
-        const segs = part.split(':');
-        const out = [];
-        for (let i = 0; i < segs.length; i++) {
-            const seg = segs[i];
-            if (v4TailAllowed && i === segs.length - 1 && seg.includes('.')) {
-                const v4 = parseIPv4Numeric(seg.split('.'));
-                if (v4 === null) return null;
-                out.push((v4 >>> 16) & 0xffff, v4 & 0xffff);
-                continue;
-            }
-            if (!/^[0-9a-f]{1,4}$/i.test(seg)) return null;
-            out.push(parseInt(seg, 16));
-        }
-        return out;
-    };
-
-    const headGroups = parseGroups(head, tail === null);
-    if (headGroups === null) return null;
-    let groups;
-    if (tail === null) {
-        if (headGroups.length !== 8) return null;
-        groups = headGroups;
-    } else {
-        const tailGroups = parseGroups(tail, true);
-        if (tailGroups === null) return null;
-        if (headGroups.length + tailGroups.length > 7) return null;
-        const fill = new Array(8 - headGroups.length - tailGroups.length).fill(0);
-        groups = [...headGroups, ...fill, ...tailGroups];
-    }
-    const bytes = [];
-    for (const g of groups) {
-        bytes.push((g >> 8) & 0xff, g & 0xff);
-    }
-    return bytes;
-}
+// ── IPv4 / IPv6 parsing lives in ./ssrfGuardParseIPv6 ─────────────
 
 // RFC 5952-style text form (lowercase, longest zero run compressed,
 // v4-mapped kept in mixed notation).
+/**
+ * @param {number[]} bytes
+ * @returns {string}
+ */
 function formatIPv6(bytes) {
+    /** @type {number[]} */
     const groups = [];
     for (let i = 0; i < 16; i += 2) groups.push((bytes[i] << 8) | bytes[i + 1]);
     if (groups[0] === 0 && groups[1] === 0 && groups[2] === 0 && groups[3] === 0
@@ -169,19 +76,7 @@ function formatIPv6(bytes) {
 
 // ── Forbidden range checks (numeric, never regex-on-strings) ──────
 
-function isForbiddenIPv4Int(n) {
-    const top = n >>> 24;
-    if (top === 0) return true;                                   // 0.0.0.0/8
-    if (top === 10) return true;                                  // 10.0.0.0/8
-    if (top === 127) return true;                                 // 127.0.0.0/8
-    if (((n & 0xffc00000) >>> 0) === 0x64400000) return true;     // 100.64.0.0/10 (CGNAT)
-    if ((n >>> 16) === 0xa9fe) return true;                       // 169.254.0.0/16
-    if (((n & 0xfff00000) >>> 0) === 0xac100000) return true;     // 172.16.0.0/12
-    if ((n >>> 16) === 0xc0a8) return true;                       // 192.168.0.0/16
-    if (n === 0xffffffff) return true;                            // broadcast
-    return false;
-}
-
+/** @param {number[]} bytes @returns {boolean} */
 function isForbiddenIPv6Bytes(bytes) {
     let leadingZeroBytes = 0;
     while (leadingZeroBytes < 16 && bytes[leadingZeroBytes] === 0) leadingZeroBytes++;
@@ -204,6 +99,8 @@ function isForbiddenIPv6Bytes(bytes) {
  * broadcast, unspecified, or an IPv4-mapped IPv6 form of any of those.
  * Fail-closed: anything that does not parse as an IP is also forbidden —
  * callers only pass literal IPs (resolved addresses / numeric hostnames).
+ * @param {unknown} ip
+ * @returns {boolean}
  */
 function isForbiddenAddress(ip) {
     if (typeof ip !== 'string' || ip.length === 0) return true;
@@ -225,6 +122,8 @@ function isForbiddenAddress(ip) {
  *     forbidden, never fall through to DNS.
  *   - ip6: canonical is the RFC 5952 text form, or null when malformed.
  *   - name: canonical is lowercased with brackets/trailing dot stripped.
+ * @param {unknown} host
+ * @returns {HostClass}
  */
 function normalizeHostname(host) {
     let h = String(host || '').trim().toLowerCase();
@@ -253,6 +152,8 @@ const BLOCKED_HOSTNAMES = new Set(['localhost', 'metadata.google.internal']);
  * IP (in any spelling) that is forbidden or malformed. A DNS name is NOT
  * blocked here; its addresses are checked at lookup time.
  * Normalises surrounding whitespace, case, brackets and one trailing dot.
+ * @param {unknown} host
+ * @returns {boolean}
  */
 function isBlockedHost(host) {
     if (typeof host !== 'string') return true;
@@ -274,8 +175,12 @@ function isBlockedHost(host) {
  * violation. Returns { url, addresses } on success.
  *
  * `options.lookup` exists for tests; production callers use dns.promises.
+ * @param {unknown} rawUrl
+ * @param {{ requireHttps?: boolean, lookup?: typeof dns.promises.lookup }} [options]
+ * @returns {Promise<{ url: URL, addresses: string[] }>}
  */
 async function assertPublicHttpsTarget(rawUrl, { requireHttps = true, lookup = dns.promises.lookup } = {}) {
+    /** @type {URL} */
     let url;
     try {
         url = new URL(String(rawUrl));
@@ -327,38 +232,48 @@ const genericUnresolved = () => new Error('Target host could not be resolved.');
  * multi-record answer cannot smuggle a private address past a single-address
  * happy path, and answers in whichever shape the caller asked for.
  *
- * @param {object} [options]
- * @param {Function} [options.lookup]      base resolver (default: dns.lookup); injectable for tests
- * @param {(host: string) => Error} [options.refuse]      error for a forbidden target
- * @param {(host: string) => Error} [options.unresolved]  error for an empty answer
+ * @param {{ lookup?: Resolver, refuse?: (host: string) => Error, unresolved?: (host: string) => Error }} [options]
+ *   lookup: base resolver (default: dns.lookup), injectable for tests; refuse: error for a forbidden target;
+ *   unresolved: error for an empty answer
+ * @returns {GuardedLookup}
  */
 function makeGuardedLookup({ lookup, refuse = genericRefusal, unresolved = genericUnresolved } = {}) {
     // Without an injected resolver, dns.lookup is read at call time.
+    /** @type {Resolver} */
     const resolve = lookup || ((host, opts, cb) => dns.lookup(host, opts, cb));
-    return function guardedLookup(hostname, options, callback) {
-        if (typeof options === 'function') {
-            callback = options;
-            options = {};
-        }
-        const opts = options || {};
+    /** @type {GuardedLookup} */
+    const guardedLookup = (hostname, options, callback) => {
+        const cb = typeof options === 'function' ? options : callback;
+        if (typeof cb !== 'function') throw new TypeError('A lookup callback is required.');
+        const opts = typeof options === 'function' ? {} : (options || {});
+        // Node's net module ignores the answer when err is set; the placeholder only satisfies the callback type.
+        const noAnswer = opts.all ? [] : '';
         if (isBlockedHost(hostname)) {
-            process.nextTick(callback, refuse(hostname));
+            process.nextTick(cb, refuse(hostname), noAnswer);
             return;
         }
         resolve(hostname, { ...opts, all: true }, (err, addresses, family) => {
-            if (err) return callback(err);
+            if (err) return cb(err, noAnswer);
+            /** @type {Array<{ address?: unknown, family?: number } | null | undefined>} */
             const list = (Array.isArray(addresses) ? addresses : [{ address: addresses, family }])
                 .map(e => (typeof e === 'string' ? { address: e, family: e.includes(':') ? 6 : 4 } : e));
-            if (list.length === 0) return callback(unresolved(hostname));
+            if (list.length === 0) return cb(unresolved(hostname), noAnswer);
             for (const entry of list) {
                 if (!entry || typeof entry.address !== 'string' || isForbiddenAddress(entry.address)) {
-                    return callback(refuse(hostname));
+                    return cb(refuse(hostname), noAnswer);
                 }
             }
-            if (opts.all) return callback(null, list);
-            callback(null, list[0].address, list[0].family);
+            /** @type {dns.LookupAddress[]} */
+            const answers = [];
+            for (const entry of list) {
+                if (!entry || typeof entry.address !== 'string') continue; // unreachable: screened above
+                answers.push({ address: entry.address, family: entry.family ?? (entry.address.includes(':') ? 6 : 4) });
+            }
+            if (opts.all) return cb(null, answers);
+            cb(null, answers[0].address, answers[0].family);
         });
     };
+    return guardedLookup;
 }
 
 /**
@@ -368,6 +283,7 @@ function makeGuardedLookup({ lookup, refuse = genericRefusal, unresolved = gener
  *
  * @param {import("undici").buildConnector.connector} baseConnect                 an undici connector (buildConnector result)
  * @param {(host: string) => Error} refuse
+ * @returns {import("undici").buildConnector.connector}
  */
 function guardConnector(baseConnect, refuse = genericRefusal) {
     return function guardedConnect(opts, callback) {
@@ -395,10 +311,7 @@ function guardConnector(baseConnect, refuse = genericRefusal) {
  * it was built with, so both need the flag).
  * undici is required lazily so the pure helpers stay dependency-free.
  *
- * @param {object} [options]
- * @param {Function} [options.lookup]
- * @param {(host: string) => Error} [options.refuse]
- * @param {(host: string) => Error} [options.unresolved]
+ * @param {{ lookup?: Resolver, refuse?: (host: string) => Error, unresolved?: (host: string) => Error }} [options]
  */
 function createGuardedDispatcher({ lookup, refuse = genericRefusal, unresolved = genericUnresolved } = {}) {
     const { Agent, buildConnector } = require('undici');
@@ -409,6 +322,7 @@ function createGuardedDispatcher({ lookup, refuse = genericRefusal, unresolved =
     return new Agent({ allowH2: false, connect: guardConnector(baseConnect, refuse) });
 }
 
+/** @type {import('undici').Agent | null} */
 let sharedDispatcher = null;
 
 /**
@@ -423,6 +337,8 @@ function createPinnedDispatcher() {
  * fetch() with the full guard stack: pre-flight DNS validation, no
  * redirects (each hop must be re-validated by the caller), and the pinned
  * dispatcher. Callers supply their own AbortController/timeout via options.
+ * @param {string | URL} rawUrl
+ * @param {import('undici').RequestInit} [options]
  */
 async function safeFetch(rawUrl, options = {}) {
     await assertPublicHttpsTarget(rawUrl);
@@ -449,7 +365,9 @@ module.exports = {
 };
 
 /**
- * @typedef {(err: NodeJS.ErrnoException | null, address?: string | dns.LookupAddress[], family?: number) => void} LookupCallback
+ * @typedef {(err: NodeJS.ErrnoException | null, address: string | dns.LookupAddress[], family?: number) => void} LookupCallback
  * @typedef {(err: NodeJS.ErrnoException | null, address?: string | Array<string | dns.LookupAddress>, family?: number) => void} ResolverCallback
  * @typedef {(host: string, opts: dns.LookupOptions, cb: ResolverCallback) => void} Resolver
+ * @typedef {{ kind: 'name', canonical: string } | { kind: 'ip4' | 'ip6', canonical: string | null }} HostClass  a hostname told apart: a DNS name, or an IP literal (canonical null when malformed)
+ * @typedef {(hostname: string, options: dns.LookupOptions | LookupCallback, callback?: LookupCallback) => void} GuardedLookup
  */

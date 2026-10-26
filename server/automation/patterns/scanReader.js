@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * The one way a "Find repeating work" scan reads a connected app, in either
@@ -46,7 +46,7 @@ const depsFor = (overrides) => depsWith(LOADERS, overrides);
  * @param {AbortSignal | undefined} b
  */
 function bothSignals(a, b) {
-    const list = [a, b].filter(Boolean);
+    const list = [a, b].filter((s) => s !== undefined);
     return list.length > 1 ? AbortSignal.any(list) : list[0];
 }
 

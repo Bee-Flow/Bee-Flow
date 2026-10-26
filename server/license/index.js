@@ -370,7 +370,7 @@ async function resolveTier(scope) {
  *   3. consumer_subscriptions on userId.
  *   4. Community fallback.
  */
-async function getLicenseStatus({ organizationId = null, userId = null, orgIds = null, superAdmin = false } = {}) {
+async function getLicenseStatus(/** @type {{ organizationId?: string | null, userId?: string | null, orgIds?: string[] | null, superAdmin?: boolean }} */ { organizationId = null, userId = null, orgIds = null, superAdmin = false } = {}) {
     // Snapshot the server-wide licence once. `serverLicense` is exposed on
     // every response (mode-independent) so the admin Server-licence panel can
     // always display it. Whether it OVERRIDES per-org billing depends on the
@@ -581,7 +581,7 @@ function _nudgeEntitlementRefresh() {
     }
 }
 
-async function activateLicense({ token, organizationId = null, userId = null, activatedBy = null, scope: explicitScope = null }) {
+async function activateLicense(/** @type {{ token: string, organizationId?: string | null, userId?: string | null, activatedBy?: string | null, scope?: string | null }} */ { token, organizationId = null, userId = null, activatedBy = null, scope: explicitScope = null }) {
     // Admin-issued blob path — no JWT verify, trust comes from the activate
     // endpoint's existing admin/org-admin gate.
     if (typeof token === 'string' && token.startsWith(adminIssuance.BLOB_PREFIX)) {
@@ -709,7 +709,7 @@ async function activateLicense({ token, organizationId = null, userId = null, ac
  * along with `scope: 'server'`) targets the server-wide override row.
  * Org/user lookups are unchanged for backward compatibility.
  */
-async function deactivateLicenseForScope({ organizationId = null, userId = null, deactivatedBy = null, scope = null } = {}) {
+async function deactivateLicenseForScope(/** @type {{ organizationId?: string | null, userId?: string | null, deactivatedBy?: string | null, scope?: string | null }} */ { organizationId = null, userId = null, deactivatedBy = null, scope = null } = {}) {
     let lic = null;
     if (scope === 'server') {
         lic = await store.getActiveLicenseForServer();

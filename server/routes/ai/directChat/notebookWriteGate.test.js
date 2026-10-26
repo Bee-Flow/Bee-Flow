@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Notebook-write gate (BFSF-169).
  *
@@ -34,7 +34,7 @@ test('write tools are recognised; read is not gated', () => {
 test('denies a spontaneous write: no intent, panel closed', () => {
     const r = gate({ message: 'Summarise the French Revolution' });
     assert.strictEqual(r.allowed, false);
-    assert.match(r.reason, /explicitly/i, 'the model is told what would unlock it');
+    assert.match(String(r.reason), /explicitly/i, 'the model is told what would unlock it');
 });
 
 test('allows when the user names the notebook (EN and NL)', () => {
@@ -57,7 +57,7 @@ test('denies the attachment-Q&A shape even with the panel open', () => {
     // notebook_write that surfaced as "Error generating response".
     const r = gate({ message: 'what is in the file?', hasAttachment: true, notebookPanelOpen: true });
     assert.strictEqual(r.allowed, false);
-    assert.match(r.reason, /attached file/i);
+    assert.match(String(r.reason), /attached file/i);
 });
 
 test('an attachment turn with explicit write intent is allowed through', () => {
@@ -75,7 +75,7 @@ test('a long attachment question is not treated as the Q&A shape', () => {
     // but for the write-intent reason rather than the attachment reason.
     const r = gate({ message: long, hasAttachment: true });
     assert.strictEqual(r.allowed, false);
-    assert.match(r.reason, /has not asked/i);
+    assert.match(String(r.reason), /has not asked/i);
 });
 
 test('non-string messages do not throw', () => {

@@ -60,7 +60,7 @@ function build({ shares = SHARES, users = USERS, admins = ['adm', 'otherAdmin'],
                 return shares;
             },
         },
-        getUser: async (id) => { calls.getUser++; return users[id] || null; },
+        getUser: async (/** @type {string} */ id) => { calls.getUser++; return /** @type {Record<string, unknown>} */ (users)[id] || null; },
         hasPermission: async (id, perm) => { calls.hasPermission++; return perm === 'manage_automations' && admins.includes(id); },
     });
     return { access, calls };
@@ -172,7 +172,7 @@ test('mayReadRun: view reads every run, run only the runs it started', () => {
 
 test('guard answers 403 with the needed role, and hands back the access otherwise', async () => {
     const { access } = build();
-    const res = { statusCode: 200, body: null, status(c) { this.statusCode = c; return this; }, json(b) { this.body = b; return this; } };
+    const res = { statusCode: 200, body: null, status(/** @type {number} */ c) { this.statusCode = c; return this; }, json(/** @type {unknown} */ b) { this.body = b; return this; } };
     const denied = await access.guard({ session: { user: { id: 'vic' } } }, res, A, 'edit');
     assert.strictEqual(denied, null);
     assert.strictEqual(res.statusCode, 403);

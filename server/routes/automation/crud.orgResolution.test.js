@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The organisation an automation route acts for must come from the database, and
  * every call site must await it.
@@ -39,7 +39,7 @@ const FILES = ['crudContext.js', 'crud.js', 'folders.js', 'forms.js', 'importExp
 // Strip comments before asserting, the way routes/datatables.test.js does: the
 // header comment explains the bug by NAMING the session field it replaced, and
 // a naive scan reads that explanation as the bug itself.
-const stripComments = (raw) => raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+const stripComments = (/** @type {string} */ raw) => raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 const SOURCES = FILES.map(file => ({ file, src: stripComments(fs.readFileSync(path.join(__dirname, file), 'utf8')) }));
 const CRUD = SOURCES.map(s => s.src).join('\n');
 
@@ -54,7 +54,7 @@ test('orgOf resolves from the database, never from the session', () => {
 
 test('every orgOf call site awaits it', () => {
     const calls = SOURCES.flatMap(({ file, src }) => src.split('\n')
-        .map((line, i) => ({ line, n: `${file}:${i + 1}` })))
+        .map((/** @type {string} */ line, /** @type {number} */ i) => ({ line, n: `${file}:${i + 1}` })))
         .filter(({ line }) => /\borgOf\(req\)/.test(line) && !/const orgOf =/.test(line));
 
     assert.ok(calls.length >= 5, `expected several call sites, found ${calls.length}`);

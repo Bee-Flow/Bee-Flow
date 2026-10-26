@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Knowledge Bases — shared route helpers.
  *
@@ -59,6 +59,7 @@ const SEARCH_SERVICE_URL = process.env.SEARCH_SERVICE_URL || 'https://services.b
 // a second copy is how 'ai_step' ends up valid in the picker and unknown to
 // the check.
 const { SURFACES } = require('../../core/kb/usageContexts');
+const { sessionUser } = require('../../core/http/sessionUser');
 const VALID_USAGE_CONTEXTS = new Set(SURFACES);
 
 /**
@@ -116,7 +117,7 @@ const { guardedFetch } = require('../../core/kb/fetchGuard');
 
 // Auth helper
 /** @param {import('express').Request} req */
-const getUserId = (req) => req.session?.user?.id || null;
+const getUserId = (/** @type {import('express').Request} */ req) => sessionUser(req).id;
 
 // Resolve user's group IDs (used for shared_groups filtering) — delegates
 // to the audience home (auth/audience.js), the single source of truth for

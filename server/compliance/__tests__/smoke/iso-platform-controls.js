@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Smoke scenarios — ISO 27001 controls proven by the platform itself:
  * A.5.15 access control, A.8.5 secure authentication, A.8.24 cryptography,
@@ -52,7 +52,7 @@ module.exports = async function isoPlatformControls() {
         resetState();
         _state.config['providers'] = { google: { clientId: 'abc', clientSecret: 's' } };
         const saved = encryptionSingleton.unlockUserDEK;
-        delete encryptionSingleton.unlockUserDEK;
+        Reflect.deleteProperty(encryptionSingleton, 'unlockUserDEK');
         try {
             assertStatus(await checks.isoSecureAuth.evaluate(), 'fail', 'no lockout api');
         } finally { encryptionSingleton.unlockUserDEK = saved; }
@@ -76,7 +76,7 @@ module.exports = async function isoPlatformControls() {
         resetState();
         process.env.MASTER_ENCRYPTION_KEY = 'set';
         const saved = encryptionSingleton.rewrapUserDEK;
-        delete encryptionSingleton.rewrapUserDEK;
+        Reflect.deleteProperty(encryptionSingleton, 'rewrapUserDEK');
         try {
             assertStatus(await checks.isoCryptography.evaluate(), 'fail', 'missing export');
         } finally { encryptionSingleton.rewrapUserDEK = saved; }

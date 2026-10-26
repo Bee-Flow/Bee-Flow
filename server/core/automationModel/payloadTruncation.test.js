@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The 256 KB truncation cap and its sentinel.
  *
@@ -72,8 +72,8 @@ test('fullOutputRefOf finds nothing where no copy was kept', () => {
 });
 
 test('a ref without a usable attempt number reads as the first attempt', () => {
-    assert.strictEqual(fullOutputRefOf({ __truncated__: true, [FULL_OUTPUT_REF]: { runId: 'r', stepId: 's' } }).attempts, 1);
-    assert.strictEqual(fullOutputRefOf({ __truncated__: true, [FULL_OUTPUT_REF]: { runId: 'r', stepId: 's', attempts: 0 } }).attempts, 1);
+    assert.strictEqual(fullOutputRefOf({ __truncated__: true, [FULL_OUTPUT_REF]: { runId: 'r', stepId: 's' } })?.attempts, 1);
+    assert.strictEqual(fullOutputRefOf({ __truncated__: true, [FULL_OUTPUT_REF]: { runId: 'r', stepId: 's', attempts: 0 } })?.attempts, 1);
 });
 
 test('fullOutputMaxBytes: a default, an override, 0 to switch off, and junk falls back', () => {

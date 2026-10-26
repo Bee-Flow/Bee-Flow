@@ -89,7 +89,7 @@ function scanKey({ text, categories, threshold, engineFingerprint, scope }) {
     const cats = categories === null || categories === undefined
         ? '\u0000all'
         : [...categories].sort().join(',');
-    const thr = Number.isFinite(threshold) ? threshold.toFixed(4) : '\u0000default';
+    const thr = typeof threshold === 'number' && Number.isFinite(threshold) ? threshold.toFixed(4) : '\u0000default';
     const geometry = `${MAX_REQUEST_CHARS}:${WINDOW_OVERLAP_CHARS}`;
     const material = [
         String(LEDGER_KEY_VERSION), scope || 'g', engineFingerprint,
@@ -113,7 +113,7 @@ function scanKey({ text, categories, threshold, engineFingerprint, scope }) {
 const _pack = e => ({
     o: e.offset, l: e.length, c: e.category,
     ...(e.label && e.label !== e.category && !isCustomTypeId(e.category) ? { lb: e.label } : {}),
-    ...(Number.isFinite(e.confidence) ? { cf: Math.round(e.confidence * 1000) / 1000 } : {}),
+    ...(typeof e.confidence === 'number' && Number.isFinite(e.confidence) ? { cf: Math.round(e.confidence * 1000) / 1000 } : {}),
     ...(Array.isArray(e.alsoCategories) && e.alsoCategories.length ? { ac: e.alsoCategories } : {}),
 });
 /**

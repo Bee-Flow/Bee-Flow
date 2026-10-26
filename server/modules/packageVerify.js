@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * `.bfmod` package verifier — PURE, in-memory, NO fs writes.
  *
@@ -241,7 +241,7 @@ async function verifyPackage(buf, opts = {}) {
         return fail('bad_manifest');
     }
     const mv = validateManifest(manifest);
-    if (!mv.ok) return fail(mv.error);
+    if (!mv.ok) return fail(mv.error ?? 'bad_manifest');
 
     // ── integrity.json + signature.jws presence ──────────────────────────
     const integrityBuf = files.get('integrity.json');

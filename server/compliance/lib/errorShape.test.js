@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * errorShape — what of a thrown error may be written down: the class and the
@@ -33,7 +33,7 @@ test('errorLabel names the class and the code', () => {
 test('stackFrames keeps the "at" lines and drops every line of a multi-line message', () => {
     const frames = stackFrames(pgError());
     assert.ok(frames.length > 0, 'the frames are kept');
-    assert.ok(frames.split('\n').every(l => /^\s+at\s/.test(l)));
+    assert.ok(frames.split('\n').every((/** @type {string} */ l) => /^\s+at\s/.test(l)));
     assert.ok(!frames.includes('jan@example.com') && !frames.includes('duplicate key'));
     assert.strictEqual(stackFrames(null), '');
 });

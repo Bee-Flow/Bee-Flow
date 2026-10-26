@@ -18,7 +18,7 @@ let _lastKeyHash = null;
  * an id breaks out of the string literal and changes which records match, so an
  * org id containing `'` could make a customer lookup return another tenant's
  * customer. Rejects control characters outright and escapes backslash + quote.
- * @param {string} value
+ * @param {string | null | undefined} value
  */
 function escapeSearchValue(value) {
     const s = String(value == null ? '' : value);

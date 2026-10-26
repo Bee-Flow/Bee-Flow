@@ -101,7 +101,7 @@ function isPrivateHostname(host) {
  * screens private or ANY resolved address is private. Handles both the
  * single-address and `all: true` (Happy Eyeballs) callback shapes.
  *
- * @param {Function} [baseLookup]
+ * @param {import('../core/http/ssrfGuard').Resolver} [baseLookup]
  */
 function makeValidatingLookup(baseLookup = dns.lookup) {
     return canonical.makeGuardedLookup({ lookup: baseLookup, refuse: privateAddressError, unresolved: unresolvedError });

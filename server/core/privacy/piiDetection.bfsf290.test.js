@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * BFSF-290 regression: the Dutch message from the ticket (its shape, with
  * fictional values) must leave the box with every PII value replaced by a
@@ -24,7 +24,7 @@ const MESSAGE = 'Ruben@example.com is het e-mailadres van Ruben van der Laar. '
 
 // What a healthy guard-service scan returns for it (offsets computed below so
 // the fixture can't silently drift out of sync with the sentence).
-function entity(text, category, label) {
+function entity(/** @type {string} */ text, /** @type {string} */ category, /** @type {string} */ label) {
     const offset = MESSAGE.indexOf(text);
     assert.notEqual(offset, -1, `fixture out of sync: "${text}" not in the message`);
     return { text, category, label, confidence: 0.9, offset, length: text.length };

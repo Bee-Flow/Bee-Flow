@@ -133,7 +133,7 @@ function passes(gate, req, res) {
  * `approvals` only when a gate field is in the body). `when` null: always.
  * @param {string} feature
  */
-function gate(d, feature, when = null) {
+function gate(d, feature, /** @type {((req: import('express').Request) => boolean) | null} */ when = null) {
     let mw = null;
     return async function stageFeatureGate(req, res, next) {
         if (when && !when(req)) return next();

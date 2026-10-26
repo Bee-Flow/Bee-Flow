@@ -120,7 +120,7 @@ function resolveOrgByEmailDomain(email, orgs, freeDomains) {
  * account found by domain match, which must keep the groups it already had. The
  * create path passes nothing, so its result is unchanged.
  */
-function planNewSSOUserPlacement(org, { existingGroups = [] } = {}) {
+function planNewSSOUserPlacement(org, /** @type {{ existingGroups?: string[] }} */ { existingGroups = [] } = {}) {
     const keep = Array.isArray(existingGroups) ? existingGroups : [];
     if (!org || !org.id) {
         return { organizationId: '', orgRole: '', status: 'active', groups: [...keep] };

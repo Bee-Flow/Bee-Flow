@@ -101,7 +101,7 @@ function escapeControlChars(text) {
  * Returns `{ ok, value, repaired }` — `repaired` says whether the rescue was
  * needed, so a caller can log that its model is producing malformed JSON
  * instead of never finding out.
- * @param {string} text
+ * @param {string | null | undefined} text
  */
 function parseJsonish(text) {
     if (typeof text !== 'string' || !text.trim()) return { ok: false, repaired: false };

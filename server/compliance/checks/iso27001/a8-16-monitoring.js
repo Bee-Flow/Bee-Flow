@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * ISO 27001 A.8.16 — monitoring activities: the org's log platform
  * (OpenObserve) must actually receive data and have at least one enabled

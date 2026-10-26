@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Form field vocabulary: the types, the predicates over them, the length
  * limits and the two operator-tunable caps.
@@ -49,7 +49,7 @@ const isPickField = (/** @type {{ type: string; }} */ f) => f?.type === 'app_pic
 const isChoiceField = (/** @type {{ type: string; }} */ f) => CHOICE_FIELD_TYPES.includes(f?.type);
 const isInfoField = (/** @type {{ type: string; }} */ f) => f?.type === 'info';
 /** A field whose choices or whose questions come from run data. */
-const isDynamicField = (f) => !!(f && (f.optionsFrom || f.fieldsFrom));
+const isDynamicField = (/** @type {{ optionsFrom?: unknown, fieldsFrom?: unknown, [k: string]: unknown } | null | undefined} */ f) => !!(f && (f.optionsFrom || f.fieldsFrom));
 
 const MAX_FIELDS = 40;
 const MAX_LABEL_LEN = 120;
@@ -90,6 +90,7 @@ const formOptionsCap = () => envCap('AUTOMATION_FORM_MAX_OPTIONS', 200);
 /** How many questions one `fieldsFrom` template may expand into (env AUTOMATION_FORM_MAX_FIELDS_FROM; 0 = unlimited). */
 const formFieldsFromCap = () => envCap('AUTOMATION_FORM_MAX_FIELDS_FROM', 50);
 
+/** @param {unknown} v */
 function isPlainObject(v) {
     return v !== null && typeof v === 'object' && !Array.isArray(v);
 }

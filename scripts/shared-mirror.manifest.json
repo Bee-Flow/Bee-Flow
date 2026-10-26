@@ -191,6 +191,18 @@
             "why": "The SSRF guard of the component's fetches (safeGet.js); a component cannot require server/."
         },
         {
+            "source": "server/core/http/ssrfGuardParseIPv6.js",
+            "target": "components/webpage-to-markdown/ssrfGuardParseIPv6.js",
+            "transform": "none",
+            "why": "The IP parsing the SSRF guard requires next to itself; a component cannot require server/."
+        },
+        {
+            "source": "server/core/http/ssrfGuardParseIPv6.js",
+            "target": "components/website-sitemap-fetcher/ssrfGuardParseIPv6.js",
+            "transform": "none",
+            "why": "The IP parsing the SSRF guard requires next to itself; a component cannot require server/."
+        },
+        {
             "source": "server/i18n/defaults/themePresets.js",
             "target": "agent-hub/src/components/admin/product-website/themePresets.generated.mjs",
             "transform": "cjs-to-esm",

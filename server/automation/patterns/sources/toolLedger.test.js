@@ -15,6 +15,7 @@ const NOW = Date.UTC(2026, 9, 3, 18, 0);
 const win = { now: NOW, since: NOW - 90 * DAY };
 
 test('maps ledger rows to tool events, keyed by conversation', async () => {
+    /** @type {Array<{ userId: string, since?: string | Date }>} */
     const calls = [];
     const rows = [
         { tool_name: 'gmail_search', integration_type: 'gmail', timestamp: new Date(NOW - 3 * DAY), conversation_id: 'c1' },
@@ -26,7 +27,7 @@ test('maps ledger rows to tool events, keyed by conversation', async () => {
     });
     assert.strictEqual(calls.length, 1);
     assert.strictEqual(calls[0].userId, 'u1');
-    assert.strictEqual(calls[0].since.getTime(), win.since);
+    assert.strictEqual(new Date(calls[0].since ?? NaN).getTime(), win.since);
     assert.deepStrictEqual(events.map((e) => [e.source, e.objectType, e.app, e.verb, e.sessionKey]), [
         ['ledger', 'tool', 'gmail', 'gmail_search', 'c1'],
         ['ledger', 'tool', 'google_sheets', 'sheets_append_rows', 'c1'],

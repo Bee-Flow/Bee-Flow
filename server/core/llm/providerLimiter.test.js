@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createProviderLimiter, limiterKeyFor, estimateRequestTokens, rateLimitInfo } = require('./providerLimiter');
@@ -261,9 +261,9 @@ test('rateLimitInfo reads status, error type and retryAfterMs; other errors give
     const typed = Object.assign(new Error('x'), { error: { type: 'overloaded_error' } });
     assert.deepEqual(rateLimitInfo(typed), { status: null, retryAfterMs: null });
     const viaMessage = rateLimitInfo(new Error('Mistral API error 429: slow down'));
-    assert.equal(viaMessage.status, 429);
+    assert.equal(viaMessage?.status, 429);
     const viaMs = Object.assign(rateErr(429), { retryAfterMs: 1500 });
-    assert.equal(rateLimitInfo(viaMs).retryAfterMs, 1500);
+    assert.equal(rateLimitInfo(viaMs)?.retryAfterMs, 1500);
     const viaResponse = Object.assign(rateErr(429), { response: { headers: new Headers({ 'retry-after': '2' }) } });
-    assert.equal(rateLimitInfo(viaResponse).retryAfterMs, 2000);
+    assert.equal(rateLimitInfo(viaResponse)?.retryAfterMs, 2000);
 });

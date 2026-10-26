@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * What the gallery shows about a template without opening it: the integrations
@@ -7,6 +7,7 @@
  */
 
 // Coarse integration id from a tool name (for the gallery "requires" tags).
+/** @param {string | null | undefined} tool */
 function coarseIntegrationFromTool(tool) {
     if (!tool) return null;
     if (tool.startsWith('nextcloud')) return 'nextcloud';
@@ -23,6 +24,7 @@ function coarseIntegrationFromTool(tool) {
 // Derive which integrations a template touches + whether its trigger fires
 // today (poller-backed / schedule) or needs the pending Bee Flow ExApp
 // connector (push-pending). Used for honest gallery badges — visual only.
+/** @param {{ definition?: { trigger?: { kind?: unknown, appEvent?: { provider?: string, event?: string } }, steps?: { type?: string, tool?: string }[] } | null }} t */
 function deriveTemplateMeta(t) {
     const { isPollerBacked, isWebhookBacked, isBotBacked, isPushPending } = require('./deliverableEvents');
     const def = t.definition || {};

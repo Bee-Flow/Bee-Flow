@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The tier that produced an agent's model travels with the model id.
  *
@@ -28,9 +28,9 @@ const ONE_MODEL_TIERS = {
 let classifierTier = 'thinking';
 
 const restore = installResolveStub({
-    '../aiAgent': { resolveModelId: (m) => m || 'global-default' },
+    '../aiAgent': { resolveModelId: (/** @type {string} */ m) => m || 'global-default' },
     '../../stores/configStore': {
-        getConfig: async (key) => (key === 'chat_model_tiers' ? ONE_MODEL_TIERS : null),
+        getConfig: async (/** @type {string} */ key) => (key === 'chat_model_tiers' ? ONE_MODEL_TIERS : null),
     },
     '../entitlements/userTiers': { getPermittedTierKeys: async () => new Set(Object.keys(ONE_MODEL_TIERS)) },
     '../llm/promptClassifier': {

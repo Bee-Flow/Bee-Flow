@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Step Routes — REST API for reusable building blocks ("Steps", kind='block').
  *
@@ -69,6 +69,7 @@ router.use(requireBetaFeature('automations'));
 
 const { requireActiveOrgForMutations } = require('../auth');
 const { fallback } = require('../utils/bestEffort');
+const { sessionUser } = require('../core/http/sessionUser');
 router.use(requireActiveOrgForMutations());
 
 /** A real boolean, never the text "false" — which is true. */
@@ -144,7 +145,7 @@ router.get('/', async (req, res) => {
 
 // Create a Step (draft).
 router.post('/', validate({ body: CreateBody }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const { title, description } = req.body;
     // Absent means "start from the skeleton"; anything else is a definition,
     // validated below — never a string quietly swapped for the skeleton.
@@ -169,7 +170,7 @@ router.post('/', validate({ body: CreateBody }), async (req, res) => {
 // set the agent actually gets injected). Registered before /:id so the literal
 // path wins. Lightweight projection (no definition).
 router.get('/chat-tools', async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const callable = await automationStore.getCallableStepsForUser(userId, { orgIds: [] }).catch((e) => fallback('routes/step:anon', e, []));
     const tools = callable
         .filter(s => s.ownerId === userId && s.exposeAsTool)
@@ -204,7 +205,7 @@ router.get('/:id', /** @param {import('express').Request<{ id: string }>} req */
 });
 
 router.put('/:id', validate({ body: UpdateBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const existing = await automationStore.getAutomation(req.params.id);
     if (!existing || existing.kind !== 'block') return res.status(404).json({ error: 'Not found' });
     if (existing.userId !== userId) return res.status(403).json({ error: 'Forbidden' });
@@ -229,7 +230,7 @@ router.put('/:id', validate({ body: UpdateBody }), /** @param {import('express')
 });
 
 router.delete('/:id', /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const existing = await automationStore.getAutomation(req.params.id);
     if (!existing || existing.kind !== 'block') return res.status(404).json({ error: 'Not found' });
     if (existing.userId !== userId) return res.status(403).json({ error: 'Forbidden' });
@@ -247,7 +248,7 @@ router.delete('/:id', /** @param {import('express').Request<{ id: string }>} req
 
 // Publish: snapshot the current draft so consumers pick up the change.
 router.post('/:id/publish', /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const existing = await automationStore.getAutomation(req.params.id);
     if (!existing || existing.kind !== 'block') return res.status(404).json({ error: 'Not found' });
     if (existing.userId !== userId) return res.status(403).json({ error: 'Forbidden' });
@@ -270,7 +271,7 @@ router.post('/:id/publish', /** @param {import('express').Request<{ id: string }
 });
 
 router.put('/:id/sharing', validate({ body: SharingBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const existing = await automationStore.getAutomation(req.params.id);
     if (!existing || existing.kind !== 'block') return res.status(404).json({ error: 'Not found' });
     if (existing.userId !== userId) return res.status(403).json({ error: 'Forbidden' });
@@ -280,7 +281,7 @@ router.put('/:id/sharing', validate({ body: SharingBody }), /** @param {import('
 });
 
 router.put('/:id/expose', validate({ body: ExposeBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const existing = await automationStore.getAutomation(req.params.id);
     if (!existing || existing.kind !== 'block') return res.status(404).json({ error: 'Not found' });
     if (existing.userId !== userId) return res.status(403).json({ error: 'Forbidden' });
@@ -289,7 +290,7 @@ router.put('/:id/expose', validate({ body: ExposeBody }), /** @param {import('ex
 });
 
 router.get('/:id/versions', /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const existing = await automationStore.getAutomation(req.params.id);
     if (!existing || existing.kind !== 'block') return res.status(404).json({ error: 'Not found' });
     if (existing.userId !== userId) return res.status(403).json({ error: 'Forbidden' });
@@ -299,7 +300,7 @@ router.get('/:id/versions', /** @param {import('express').Request<{ id: string }
 
 // Test the DRAFT with sample inputs (dry-run, owner-only, runs as the owner).
 router.post('/:id/test', validate({ body: TestBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const existing = await automationStore.getAutomation(req.params.id);
     if (!existing || existing.kind !== 'block') return res.status(404).json({ error: 'Not found' });
     if (existing.userId !== userId) return res.status(403).json({ error: 'Forbidden' });
@@ -311,7 +312,7 @@ router.post('/:id/test', validate({ body: TestBody }), /** @param {import('expre
     };
     const runner = require('../core/automationRunner');
     const run = await runner.executeAutomation(synthetic, {
-        triggerKind: 'dry_run', triggerPayload: req.body.inputs || {}, mode: 'dry_run', startedByUserId: req.session.user.id,
+        triggerKind: 'dry_run', triggerPayload: req.body.inputs || {}, mode: 'dry_run', startedByUserId: sessionUser(req).id,
     });
     const steps = await automationStore.getRunSteps(run.id);
     res.json({ run, steps });

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 const { test } = require('node:test');
 const assert = require('node:assert');
 const { attachmentBlockAudit } = require('./attachmentBlockAudit');
@@ -32,7 +32,7 @@ test('overflow / timeout / degraded stay held scan failures', () => {
 test('the reason is a comma-separated marker, never fused into a category with a pipe', () => {
     for (const reason of ['user_blocked', 'ask_timeout']) {
         const r = attachmentBlockAudit(reason, ['Person', 'MedicalCondition']);
-        assert.ok(!r.violation_categories.includes('|'));
+        assert.ok(!r.violation_categories?.includes('|'));
         assert.deepEqual(decodeCategories(r.violation_categories), ['MedicalCondition', 'Person', reason]);
     }
 });

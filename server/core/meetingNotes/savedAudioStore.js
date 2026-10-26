@@ -56,6 +56,8 @@ function savedAudioKey(basename) {
  * may be blank or wrong for anything written before types were set. The old
  * `|| 'audio/mpeg'` default labelled every browser recording (WebM/Opus) as MP3,
  * which browsers refuse to decode.
+ * @param {string} nameOrKey
+ * @param {string | null} [reported]  the type the object store reports
  */
 function contentTypeForAudio(nameOrKey, reported = null) {
     const ext = path.extname(String(nameOrKey || '')).toLowerCase();

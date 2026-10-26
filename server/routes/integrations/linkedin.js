@@ -18,6 +18,7 @@ const router = express.Router();
 const configStore = require('../../stores/configStore');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 const SCOPES = ['openid', 'profile', 'w_member_social'];
 
@@ -173,7 +174,7 @@ const requireSessionUser = (req, res, next) => {
 
 // ─── Post to LinkedIn ────────────────────────────────────────────
 router.post('/post', requireSessionUser, validate({ body: PostBody }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
 
     const accessToken = await configStore.getSecret(`linkedin_access_token_user_${userId}`);
     const personId = await configStore.getConfig(`linkedin_person_id_user_${userId}`);

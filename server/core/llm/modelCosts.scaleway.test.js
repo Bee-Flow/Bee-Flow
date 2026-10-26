@@ -32,7 +32,7 @@ const restore = installResolveStub({
         setConfig: () => {},
     },
     './pricingService': {
-        getPricingByKey: (key) => SCALEWAY_KEYED[key] || null,
+        getPricingByKey: (/** @type {string} */ key) => /** @type {Record<string, unknown>} */ (SCALEWAY_KEYED)[key] || null,
         getModelPricing: () => WRONG_HOST_RATE,
         initPricing: () => {},
         getAllModelPricing: () => ({ 'expensive-frontier-model': { input: 15, output: 120 } }),

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -33,7 +33,7 @@ test('run, getOne, getAll and getClient share the one session', async () => {
 });
 
 test('db.tx runs inside one transaction', async () => {
-    await assert.rejects(db.tx(async (c) => {
+    await assert.rejects(db.tx(async (/** @type {{ query: Function }} */ c) => {
         await c.query('DELETE FROM t');
         throw new Error('roll back');
     }));

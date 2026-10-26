@@ -63,7 +63,7 @@ function makeAnswerWriter(deps = {}) {
     });
     const llmChat = deps.llmChat || ((modelId, messages, options) => require('../../core/llm/llmClient').chat(modelId, messages, options));
     const logUsage = deps.logUsage || ((entry) => require('../../stores/usageStore').logUsage(entry));
-    const timeoutMs = Number.isFinite(deps.timeoutMs) && deps.timeoutMs > 0 ? deps.timeoutMs : DEFAULT_TIMEOUT_MS;
+    const timeoutMs = typeof deps.timeoutMs === 'number' && Number.isFinite(deps.timeoutMs) && deps.timeoutMs > 0 ? deps.timeoutMs : DEFAULT_TIMEOUT_MS;
 
     function transcript(messages, names, askerName) {
         const lines = [];

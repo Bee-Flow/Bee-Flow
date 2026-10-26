@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 /**
@@ -15,6 +15,7 @@ const { LEASE_MS, LEASE_RENEW_MS } = require('./formQueueShared');
  */
 function createFormLeases({ automationStore, queues }) {
     /** @type {NodeJS.Timeout | null} */
+    /** @type {ReturnType<typeof setInterval> | null} */
     let renewTimer = null;
 
     function heldSessionIds() {
@@ -31,7 +32,7 @@ function createFormLeases({ automationStore, queues }) {
         if (renewTimer) return;
         renewTimer = setInterval(() => {
             const ids = heldSessionIds();
-            if (!ids.length) { clearInterval(renewTimer); renewTimer = null; return; }
+            if (!ids.length) { clearInterval(renewTimer ?? undefined); renewTimer = null; return; }
             automationStore.renewFormSessionLeases(ids, LEASE_MS)
                 .catch(/** @param {Error} e */ e => log.warn('[automation/form] lease renewal failed:', e.message));
         }, LEASE_RENEW_MS);

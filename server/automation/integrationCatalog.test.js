@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Unit tests for the visual-builder catalog enrichments.
  *
@@ -60,7 +60,7 @@ const { resolveIntegration } = require('../core/integrations/integrationToolMap'
 }
 
 // ── 2. Cycle detection (mirrors DiagramPane.createsCycle) ───────────────
-function createsCycle(def, from, to) {
+function createsCycle(/** @type {{ edges?: { from: string, to: string }[], [k: string]: unknown }} */ def, /** @type {string} */ from, /** @type {string} */ to) {
     const adj = new Map();
     for (const e of (def.edges || [])) {
         if (!adj.has(e.from)) adj.set(e.from, []);

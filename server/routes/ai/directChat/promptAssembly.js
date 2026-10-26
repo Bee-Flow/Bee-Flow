@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Direct Chat — system-prompt and message-array assembly: the stable/volatile
  * system-block split, tool hints, project instructions + KB retrieval,

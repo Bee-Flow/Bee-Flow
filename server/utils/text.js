@@ -12,7 +12,7 @@
  */
 
 /**
- * @param {string} text
+ * @param {string | null | undefined} text
  */
 function countWords(text) {
     const t = String(text ?? '').trim();
@@ -23,7 +23,7 @@ function countWords(text) {
  * Cheap Markdown → plain-ish text, good enough for a 300-char excerpt.
  * NOT a renderer — inline underscores etc. inside words are sacrificed for
  * simplicity.
- * @param {string} md
+ * @param {string | null | undefined} md
  */
 function stripMarkdownLite(md) {
     return String(md ?? '')

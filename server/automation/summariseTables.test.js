@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /** The plain-language lines of read_table and table, in the summary and in the builder's step list. */
 
@@ -16,12 +16,12 @@ test('describeTableStep: one plain sentence per table step, null for anything el
         describeTableStep({ type: 'read_table', source: { kind: 'ref', path: 'trigger.output.upload' }, sheets: ['Data'], label: 'Open the export' }, '1.'),
         '1. Read table from `trigger.output.upload` (sheets: Data) — Open the export.',
     );
-    assert.match(describeTableStep({ type: 'read_table' }, '1.'), /a file that is not picked yet/);
+    assert.match(String(describeTableStep({ type: 'read_table' }, '1.')), /a file that is not picked yet/);
     assert.equal(
         describeTableStep({ type: 'table', source: { kind: 'ref', path: 'steps.r.output.table' }, ops: [{ op: 'group' }, { op: 'pivot' }, { op: 'sample', enabled: false }] }, '2.'),
         '2. Edit table: group, pivot on `steps.r.output.table`.',
     );
-    assert.match(describeTableStep({ type: 'table', ops: [] }, '2.'), /no operations yet/);
+    assert.match(String(describeTableStep({ type: 'table', ops: [] }, '2.')), /no operations yet/);
     assert.equal(describeTableStep({ type: 'set' }, '1.'), null);
 });
 

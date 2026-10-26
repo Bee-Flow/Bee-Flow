@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Login Routes — the two session-mutating endpoints on one's own account:
  * profile update (avatar, display name) and logout. Split out of
@@ -16,6 +16,7 @@ const { sanitizePlainText } = require('../../utils/htmlSanitizer');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 /**
  * An enum whose every refusal is a sentence. `invalid_type_error` alone is not
@@ -64,9 +65,9 @@ router.post('/update-profile', requireAuth, validate({ body: ProfileBody }), asy
     if (!ok) throw new Error(`update-profile: updateUser wrote nothing for '${userId}'`);
 
     // Reflect changes in session
-    if (updates.avatar !== undefined) req.session.user.avatar = updates.avatar;
-    if (updates.avatarType !== undefined) req.session.user.avatarType = updates.avatarType;
-    if (updates.displayName !== undefined) req.session.user.displayName = updates.displayName;
+    if (updates.avatar !== undefined) sessionUser(req).avatar = updates.avatar;
+    if (updates.avatarType !== undefined) sessionUser(req).avatarType = updates.avatarType;
+    if (updates.displayName !== undefined) sessionUser(req).displayName = updates.displayName;
 
     req.session.save((err) => {
         if (err) log.error('Session save error:', err);

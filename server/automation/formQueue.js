@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -150,7 +150,7 @@ function createFormQueue(overrides = {}) {
                 throw e;
             }
             if (!lostToConcurrency(run)) {
-                if (sessionId && run?.id) await automationStore.attachFormSessionRun(sessionId, run.id).catch((e) => bestEffort('automation/formQueue:runQueued', e));
+                if (sessionId && run?.id) await automationStore.attachFormSessionRun(sessionId, run.id).catch((/** @type {unknown} */ e) => bestEffort('automation/formQueue:runQueued', e));
                 await clearPending(sessionId);
                 return;
             }
@@ -175,6 +175,7 @@ function createFormQueue(overrides = {}) {
         try {
             while (q.items.length && !stopping) {
                 const item = q.items.shift();
+                if (!item) break; // the loop condition saw a non-empty queue
                 q.current = item;
                 try {
                     await runQueued(item);

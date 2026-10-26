@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Which model answers in a team chat: the depth the asking member picked
  * (the same tiers a normal chat's slider offers, depths only), resolved for
@@ -24,7 +24,7 @@ async function resolveChatModel({ userId, orgId, modelTier = null, message = '' 
     const resolver = deps.resolver || require('../core/llm/modelResolver');
     const getProviderForModel = deps.getProviderForModel || ((id) => require('../core/aiAgent').getProviderForModel(id));
     const scope = { userOrgId: orgId || null, userId };
-    let tierName = DEPTH_TIERS.includes(modelTier) ? modelTier : MODEL_TIER;
+    let tierName = modelTier && DEPTH_TIERS.includes(modelTier) ? modelTier : MODEL_TIER;
     if (modelTier === 'auto') {
         // The same classifier a normal chat uses, over the depth tiers only.
         try {

@@ -26,7 +26,7 @@ test('external on request: 404 is an error, query string is not reported', async
     const report = await runLinkCheck('pj_aaaa', { external: true }, { cmsStore: store(), probe });
     assert.equal(report.external.checked, 2);
     const gone = report.problems.find((p) => p.code === 'external_gone');
-    assert.equal(gone.url, 'https://example.org/dead');
+    assert.equal(gone?.url, 'https://example.org/dead');
     assert.ok(!JSON.stringify(report).includes('k=1'));
     assert.equal(asValidationWarnings(report)[0].code, 'broken_link');
 });

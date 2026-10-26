@@ -75,7 +75,7 @@ function makeChatShield(deps = {}) {
     const validateInputForPii = deps.validateInputForPii
         || ((/** @type {Parameters<typeof import('../core/privacy/piiDetection').validateInputForPii>} */ ...args) => require('../core/privacy/piiDetection').validateInputForPii(...args));
 
-    const detectPii = deps.detectPii || ((...args) => require('../core/privacy/piiDetection').detectPii(...args));
+    const detectPii = deps.detectPii || ((/** @type {Parameters<typeof import('../core/privacy/piiDetection').detectPii>} */ ...args) => require('../core/privacy/piiDetection').detectPii(...args));
     const logGuardrailEvent = deps.logGuardrailEvent
         || ((event) => require('../stores/guardrailEventStore').logGuardrailEvent(event));
 

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 const { test } = require('node:test');
@@ -12,9 +12,9 @@ const { collectVariableWrites } = require('./collectVariableRefs');
  * the runtime walks gets its own case.
  */
 
-const sorted = (set) => [...set].sort();
+const sorted = (/** @type {Iterable<string>} */ set) => [...set].sort();
 
-function appWith(actions, children = []) {
+function appWith(/** @type {unknown} */ actions, /** @type {unknown[]} */ children = []) {
     return {
         screens: [{ sections: [{ children }] }],
         actions,

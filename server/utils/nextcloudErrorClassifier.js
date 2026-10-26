@@ -66,7 +66,7 @@ function nextcloudAppOf(tool) {
 }
 
 /**
- * @param {Error|string|{error?: string, message?: string}} input
+ * @param {Error|string|{error?: string, message?: string}|null|undefined} input
  * @param {{ tool?: string | null }} [opts] the tool that failed; makes "no access" app-aware
  * @returns {{code:string, category:string, message:string, remediation:string, errorClass:string}}
  */

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 // Part 1 of the TOOL_SCHEMAS array (split out of schemas.js; order is preserved there).
 

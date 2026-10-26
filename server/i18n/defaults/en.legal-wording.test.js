@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The legal claims the Compliance Center's English strings make, pinned to
  * what the law actually says (round 2 legal-wording review, 7 Oct 2026).
@@ -21,7 +21,7 @@ const assert = require('node:assert/strict');
 const { GUI_DEFAULTS } = require('./en');
 const { POLICY_SEEDS } = require('../../compliance/iso/policySeeds');
 
-function s(key) {
+function s(/** @type {string} */ key) {
     const value = GUI_DEFAULTS[`compliance.${key}`];
     assert.equal(typeof value, 'string', `compliance.${key} is in the dictionary`);
     return value;

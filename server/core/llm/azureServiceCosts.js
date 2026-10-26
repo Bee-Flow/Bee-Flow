@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Azure Service Cost Estimation — pricing for non-LLM Azure services
  *
@@ -31,6 +31,7 @@ const DEFAULTS = {
 // ── Admin Overrides ──────────────────────────────────────────────────
 
 const CONFIG_KEY = 'azure_service_cost_overrides';
+/** @type {Record<string, number>} */
 let _overridesCache = {};
 let _overridesCacheTTL = 0;
 const CACHE_DURATION = 60_000; // refresh every 60s

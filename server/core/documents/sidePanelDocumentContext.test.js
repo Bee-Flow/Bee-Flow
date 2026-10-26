@@ -1,10 +1,10 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert');
 const { buildDirectNote, buildAgentContent, MAX_CONTENT_CHARS } = require('./sidePanelDocumentContext');
 
-const deps = (doc) => ({ documentStore: { getDocument: async (id, userId) => (doc && id === doc.id && userId === 'u1' ? doc : null) } });
+const deps = (/** @type {{ id: string } | null} */ doc) => ({ documentStore: { getDocument: async (/** @type {string} */ id, /** @type {string} */ userId) => (doc && id === doc.id && userId === 'u1' ? doc : null) } });
 const DOC = { id: 'd1', name: 'Offerte\nfoo', docType: 'quote', bodyHtml: '<h1>Titel</h1><p>Hallo <b>wereld</b></p><script>x()</script>' };
 
 test('direct note names the open document; nothing without a panel or when unreadable', async () => {

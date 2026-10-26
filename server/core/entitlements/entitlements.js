@@ -492,7 +492,7 @@ function computeReasons({ ceiling, effective }) {
 }
 
 // ── public: resolveEntitlements ────────────────────────────────────────────
-async function resolveEntitlements({ userId = null, orgId = null, session = null, req = null, tierHint = null } = {}) {
+async function resolveEntitlements(/** @type {import('./entitlementTypes').EntitlementCtx} */ { userId = null, orgId = null, session = null, req = null, tierHint = null } = {}) {
     // Request-path cache (mirrors license/middleware): memoised on the session
     // with a short TTL, versioned by the server-licence counter. Org/group grant
     // writes call bustSessionsForOrg (deletes the session) so the cache clears.
@@ -701,7 +701,7 @@ function requireCapability(capId) {
 // and background runners can never drift. Unlike the middleware factory it
 // FAILS CLOSED on an unknown capId / degraded resolve (returns false) rather
 // than throwing, because it runs in hot paths that must not crash a runner.
-async function hasCapability(capId, { userId = null, orgId = null, session = null, req = null, tierHint = null } = {}) {
+async function hasCapability(capId, /** @type {import('./entitlementTypes').EntitlementCtx} */ { userId = null, orgId = null, session = null, req = null, tierHint = null } = {}) {
     const cap = registry.getCapability(capId);
     if (!cap) return false;
     let snap;
@@ -722,7 +722,7 @@ async function hasCapability(capId, { userId = null, orgId = null, session = nul
 // Batch helper for sites that test SEVERAL capabilities at once (tool-selection
 // loops, e.g. skills/flow/swarm in one pass). One resolveEntitlements; `.has()`
 // reuses the snapshot so callers don't re-resolve per capability.
-async function resolveCapabilitySet({ userId = null, orgId = null, session = null, req = null, tierHint = null } = {}) {
+async function resolveCapabilitySet(/** @type {import('./entitlementTypes').EntitlementCtx} */ { userId = null, orgId = null, session = null, req = null, tierHint = null } = {}) {
     let snapshot;
     try {
         snapshot = await resolveEntitlements({ userId, orgId, session, req, tierHint });

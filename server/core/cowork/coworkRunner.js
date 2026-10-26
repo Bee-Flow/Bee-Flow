@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Cowork Runner — the scheduler tick for cowork schedules.
  *
@@ -66,7 +66,7 @@ async function processDueCowork() {
 //
 // Window: COWORK_RUN_RETENTION_DAYS (default 90). Set to 0 to disable.
 const RETENTION_DAYS = (() => {
-    const env = parseInt(process.env.COWORK_RUN_RETENTION_DAYS, 10);
+    const env = parseInt(process.env.COWORK_RUN_RETENTION_DAYS ?? '', 10);
     return Number.isFinite(env) ? env : 90;
 })();
 const RETENTION_BATCH_SIZE = 5000;

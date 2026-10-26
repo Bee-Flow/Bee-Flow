@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -109,9 +109,10 @@ const EXEMPT = new Map([
     ['stores/lib/ddlLedger.js', 'the schema ledger itself; names CREATE TABLE only in its explanation of what it skips'],
 ]);
 
-function ddlOwners(root) {
+function ddlOwners(/** @type {string} */ root) {
+    /** @type {string[]} */
     const out = [];
-    const walk = (dir) => {
+    const walk = (/** @type {string} */ dir) => {
         for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
             const p = path.join(dir, e.name);
             if (e.isDirectory()) { walk(p); continue; }

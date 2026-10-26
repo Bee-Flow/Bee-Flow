@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * ingestTeamsRecording — turn a finished Microsoft Teams meeting into a
  * Meeting Note.

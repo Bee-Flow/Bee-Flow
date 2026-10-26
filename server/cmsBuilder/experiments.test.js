@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { experimentWarnings } = require('./experiments');
 
-const codes = (content) => experimentWarnings({ content }, 'c').map(w => w.code);
+const codes = (/** @type {unknown} */ content) => experimentWarnings({ content }, 'c').map(w => w.code);
 
 test('a block without experiment fields has no warnings', () => {
     assert.deepEqual(codes({ title: 'Hello' }), []);

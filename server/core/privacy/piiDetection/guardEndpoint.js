@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Where the PII Guard lives — endpoint + api key, resolved at request time and
  * held briefly so an admin installing the guard takes effect without a restart.
@@ -14,6 +14,7 @@ const { fallback } = require('../../../utils/bestEffort');
 //   1. configStore `pii_guard_url` / `pii_guard_api_key` (admin install action)
 //   2. env `PII_SERVICE_URL` / `PII_SERVICE_API_KEY` (legacy / k8s manifest)
 
+/** @type {{ url: string | null, apiKey: string } | null} */
 let _endpointCache = null;
 let _endpointCacheAt = 0;
 const ENDPOINT_CACHE_TTL_MS = 10_000;

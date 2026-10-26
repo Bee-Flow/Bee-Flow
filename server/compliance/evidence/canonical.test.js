@@ -14,11 +14,11 @@ const crypto = require('crypto');
 
 const { canonicalJSON, hashPayload, compareCodePoints } = require('./canonical');
 
-const sha256 = (s) => crypto.createHash('sha256').update(s).digest('hex');
+const sha256 = (/** @type {string} */ s) => crypto.createHash('sha256').update(s).digest('hex');
 
 // What node-postgres hands back for a JSONB column: the document re-parsed
 // from Postgres' own printing of it (keys in JSONB order, numerics shortest).
-function jsonbRoundTrip(value) {
+function jsonbRoundTrip(/** @type {unknown} */ value) {
     return JSON.parse(JSON.stringify(value));
 }
 

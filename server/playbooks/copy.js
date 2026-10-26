@@ -38,7 +38,7 @@ const LANGUAGE_NAMES = Object.freeze({
 /**
  * 'nl-NL' → 'nl'; anything that is not a language code → `fallback`.
  * @param {string} [fallback]
- * @param {string} value
+ * @param {string | null | undefined} value
  */
 function normaliseLocale(value, fallback = 'nl') {
     const raw = String(value == null ? '' : value).trim().toLowerCase().replace('_', '-');
@@ -48,7 +48,7 @@ function normaliseLocale(value, fallback = 'nl') {
 
 /**
  * The language a model prompt asks for, by name.
- * @param {string} locale
+ * @param {string | null | undefined} locale
  */
 function languageName(locale) {
     return LANGUAGE_NAMES[normaliseLocale(locale, 'en')] || 'English';

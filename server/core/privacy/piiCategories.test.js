@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Canonical PII-category encoding — the one vocabulary all producers write
  * and all readers parse.
@@ -52,7 +52,7 @@ test('encodeCategories: deduped, sorted, bare-comma joined, null when empty', ()
     );
     assert.strictEqual(encodeCategories([]), null);
     assert.strictEqual(encodeCategories(null), null);
-    assert.ok(!encodeCategories(['Email', 'Person']).includes(', '), 'the wire encoding has no spaces');
+    assert.ok(!encodeCategories(['Email', 'Person'])?.includes(', '), 'the wire encoding has no spaces');
 });
 
 test('decodeCategories reads both eras', () => {

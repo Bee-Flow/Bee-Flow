@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * releaseNotesFormat — the shared contract for release-note drafting.
  *
@@ -119,8 +119,9 @@ function normaliseLines(input, cap = MAX_SUBJECTS) {
  * still runs there: it is also what re-validates an entry that arrived over the
  * wire at /ingest, where the shape is whatever the caller sent.
  */
+/** @param {unknown} parsed */
 function coerceDraft(parsed) {
-    const obj = (parsed && typeof parsed === 'object') ? parsed : {};
+    const obj = (parsed && typeof parsed === 'object') ? /** @type {{ items?: unknown, title?: unknown, lead?: unknown }} */ (parsed) : {};
     const rawItems = Array.isArray(obj.items) ? obj.items : [];
 
     /** @type {{ kind: string; title: string; body: string; }[]} */
@@ -147,6 +148,7 @@ function coerceDraft(parsed) {
 }
 
 /** Strip a code fence the model may have added despite being told not to. */
+/** @param {string} text */
 function stripFence(text) {
     return String(text || '').trim()
         .replace(/^```(?:json)?\s*\n?/i, '')

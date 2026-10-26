@@ -18,6 +18,7 @@ const { z, onUnknownKeys, typeError } = require('../../utils/zod');
 const { bodyOf, idList, NO_QUERY } = require('./schemas');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 // ── What a publication may carry ────────────────────────────────────
 //
@@ -55,7 +56,7 @@ function register(router) {
     // ── Thumbnail (rendered preview) ────────────────────────────────────
 
     router.get('/:id/thumbnail', requireAuth, validate({ query: ThumbnailQuery }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
-        const userId = req.session.user.id;
+        const userId = sessionUser(req).id;
         // Same visibility logic as GET /:id — owner OR org/group-published.
         let webpage = await webpageStore.getWebpage(req.params.id, userId);
         if (!webpage) {
@@ -97,7 +98,7 @@ function register(router) {
     // ── Publish (org/group visibility) ──────────────────────────────────
 
     router.patch('/:id/publish', requireAuth, validate({ body: PublishBody, query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
-        const userId = req.session.user.id;
+        const userId = sessionUser(req).id;
         const wp = await webpageStore.getWebpageRaw(req.params.id);
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });
 

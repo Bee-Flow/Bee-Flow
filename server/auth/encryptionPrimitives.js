@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Zero-knowledge envelope encryption: the primitives.
  *
@@ -289,7 +289,9 @@ function secureClear(buffer) {
  */
 function formatRecoveryKey(buffer) {
     const hex = buffer.toString('hex').toUpperCase();
-    return hex.match(/.{1,8}/g).join('-');
+    const groups = hex.match(/.{1,8}/g);
+    if (!groups) throw new Error('formatRecoveryKey: the key buffer is empty');
+    return groups.join('-');
 }
 
 /**

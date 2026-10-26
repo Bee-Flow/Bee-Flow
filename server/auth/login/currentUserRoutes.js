@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Login Routes — what the signed-in session reports about itself: the /user
  * payload (identity, encryption state, MFA enrolment, NC onboarding, feature
@@ -17,6 +17,7 @@ const { isEncryptionEnabledForUser, isSsoPinRequiredForUser } = require('../../s
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 const ID_TEXT = 'Name the consent you want to change.';
 const GRANTED_TEXT = 'Say whether the consent is given or withdrawn.';
@@ -76,7 +77,7 @@ router.get('/user', async (req, res) => {
                 simpleMode: await (async () => {
                     try {
                         const configStore = require('../../stores/configStore');
-                        return !!(await configStore.getConfig(`simple_mode_user_${req.session.user.id}`));
+                        return !!(await configStore.getConfig(`simple_mode_user_${sessionUser(req).id}`));
                     } catch (_) { return false; }
                 })(),
                 // Memory master switch (Settings → Memory). The client treats
@@ -86,7 +87,7 @@ router.get('/user', async (req, res) => {
                 memoryEnabled: await (async () => {
                     try {
                         const { isMemoryEnabledForUser } = require('../../core/memory/memoryPolicy');
-                        return await isMemoryEnabledForUser(req.session.user.id);
+                        return await isMemoryEnabledForUser(sessionUser(req).id);
                     } catch (_) { return true; }
                 })(),
                 // The user's own opt-in for sensitive topics (Settings → Memory).
@@ -95,7 +96,7 @@ router.get('/user', async (req, res) => {
                     try {
                         const { memorySensitiveOptInKey } = require('../../core/memory/memoryPolicy');
                         const configStore = require('../../stores/configStore');
-                        return (await configStore.getConfig(memorySensitiveOptInKey(req.session.user.id))) === true;
+                        return (await configStore.getConfig(memorySensitiveOptInKey(sessionUser(req).id))) === true;
                     } catch (_) { return false; }
                 })(),
                 // The organisation's memory policy, so the SPA can show
@@ -103,7 +104,7 @@ router.get('/user', async (req, res) => {
                 ...(await (async () => {
                     try {
                         const { getOrgMemorySettings } = require('../../core/memory/memoryPolicy');
-                        const org = await getOrgMemorySettings(req.session.user.organizationId || null);
+                        const org = await getOrgMemorySettings(sessionUser(req).organizationId || null);
                         return { orgMemoryEnabled: org.enabled, sensitiveOptInAllowed: org.sensitiveOptInAllowed };
                     } catch (_) { return { orgMemoryEnabled: true, sensitiveOptInAllowed: false }; }
                 })())
@@ -114,9 +115,9 @@ router.get('/user', async (req, res) => {
             // from before the feature was gated off would otherwise still pop
             // the PIN-setup screen.
             ...(await (async () => {
-                const enabled = await isEncryptionEnabledForUser(req.session.user.id);
+                const enabled = await isEncryptionEnabledForUser(sessionUser(req).id);
                 // Managed tier: the org escrow holds the key, so no PIN prompt.
-                const pinRequired = enabled && await isSsoPinRequiredForUser(req.session.user.id);
+                const pinRequired = enabled && await isSsoPinRequiredForUser(sessionUser(req).id);
                 return {
                     encryptionEnabled: enabled,
                     needsEncryptionSetup: pinRequired && !!req.session.needsEncryptionSetup,

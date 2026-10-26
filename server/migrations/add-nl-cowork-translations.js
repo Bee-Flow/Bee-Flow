@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck
+// @typecheck strict
 /**
  * One-time migration: Dutch for the Cowork sidebar entry (2026-08).
  *
@@ -36,7 +36,7 @@ async function up() {
     // together, so that no intermediate state becomes visible.
     let added = 0;
     let removed = 0;
-    await languageStore.mutateGUITranslations('nl', (merged) => {
+    await languageStore.mutateGUITranslations('nl', (/** @type {Record<string, string>} */ merged) => {
         added = 0; removed = 0; // de mutator kan opnieuw draaien — tel per poging
         for (const [key, value] of Object.entries(NL_TRANSLATIONS)) {
             if (!merged[key]) {

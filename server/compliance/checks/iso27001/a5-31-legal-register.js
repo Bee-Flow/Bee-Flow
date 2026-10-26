@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * ISO 27001 A.5.31 — legal, statutory, regulatory and contractual
  * requirements: is the legal register this hub scores against still current?
@@ -31,7 +31,7 @@ const FAIL_AFTER_DAYS = 365;
 async function _activeFrameworks(orgId) {
     try {
         const regs = await frameworkPolicy.activeRegulations(orgId || 'default');
-        const list = [...regs].map(code => frameworks.byRegulation(code)).filter(Boolean);
+        const list = [...regs].map(code => frameworks.byRegulation(code)).filter((fw) => fw !== null && fw !== undefined);
         if (list.length) return { list, scope: 'active' };
     } catch (err) { bestEffort('compliance/checks/iso27001/a5-31-legal-register:_activeFrameworks', err); /* the policy could not be read: judge the whole catalogue */ }
     return { list: frameworks.listBuiltin(), scope: 'catalogue' };

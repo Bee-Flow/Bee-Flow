@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The composer is the only thing standing between AI-authored (and then
  * hand-edited) markup and a real Chromium running ON THE SERVER. These tests
@@ -23,7 +23,7 @@ const {
 } = require('./documentCompose');
 
 /** Parse a composed document and RUN whatever scripts survived. */
-function parseAndRun(html) {
+function parseAndRun(/** @type {string} */ html) {
     return new JSDOM(html, { runScripts: 'dangerously' });
 }
 

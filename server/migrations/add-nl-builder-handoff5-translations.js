@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck
+// @typecheck strict
 /**
  * Dutch for the automation builder, design handoff 5 (2026-09-28):
  * the header and its status pill, the ribbon, the Settings page and its
@@ -74,7 +74,7 @@ function applyNl(merged) {
 async function up() {
     const languageStore = require('../stores/languageStore');
     let added = 0;
-    await languageStore.mutateGUITranslations('nl', (current) => {
+    await languageStore.mutateGUITranslations('nl', (/** @type {Record<string, string>} */ current) => {
         const result = applyNl(current);
         added = result.added;
         return result.merged;

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Row identity: a plain key is used verbatim, anything else is hashed, row
  * numbers become `r<n>`, blank rows and duplicates never get an id.
@@ -22,7 +22,7 @@ test('a plain key is the id itself; case matters; whitespace is normalised', () 
 });
 
 test('a key outside the verbatim charset becomes k_ + sha256[0:32], deterministically', () => {
-    const expected = (s) => `k_${crypto.createHash('sha256').update(s, 'utf8').digest('hex').slice(0, 32)}`;
+    const expected = (/** @type {string} */ s) => `k_${crypto.createHash('sha256').update(s, 'utf8').digest('hex').slice(0, 32)}`;
     assert.equal(identity.rowIdFromKey('Jan de Vries'), expected('Jan de Vries'));
     assert.equal(identity.rowIdFromKey('Jan   de\tVries'), expected('Jan de Vries'));      // collapsed whitespace
     assert.equal(identity.rowIdFromKey('F/2026/001'), expected('F/2026/001'));
@@ -30,8 +30,8 @@ test('a key outside the verbatim charset becomes k_ + sha256[0:32], deterministi
     assert.equal(identity.rowIdFromKey('Zürich'), expected('Zürich'));
     assert.equal(identity.rowIdFromKey('x'.repeat(61)), expected('x'.repeat(61)));
     assert.equal(identity.rowIdFromKey('x'.repeat(60)), 'x'.repeat(60));
-    assert.match(identity.rowIdFromKey('Jan de Vries'), /^k_[0-9a-f]{32}$/);
-    assert.ok(identity.rowIdFromKey('Jan de Vries').length <= 64);
+    assert.match(String(identity.rowIdFromKey('Jan de Vries')), /^k_[0-9a-f]{32}$/);
+    assert.ok(identity.rowIdFromKey('Jan de Vries')?.length <= 64);
 });
 
 test('a blank key gives no id', () => {

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 /** @type {Record<string, { accent: string, ink: string, font: string, fontSize: number, lineHeight: number, margin: number }>} */
@@ -12,7 +12,7 @@ const PRESETS = {
  *   lineHeight?: number, logoWidth?: number, logoPosition?: string, showHeader?: boolean, showFooter?: boolean }} [design]
  */
 function designCss(design = {}) {
-    const d = { ...PRESETS.neutral, ...PRESETS[design.preset], ...design };
+    const d = { ...PRESETS.neutral, ...(design.preset === undefined ? {} : PRESETS[design.preset]), ...design };
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- /^#[\da-f]{6}$/ is anchored with a bounded count: linear
     const color = (/** @type {string} */ v, /** @type {string} */ fallback) => /^#[\da-f]{6}$/i.test(v) ? v : fallback;
     const num = (/** @type {unknown} */ v, /** @type {number} */ min, /** @type {number} */ max, /** @type {number} */ fallback) => Number.isFinite(Number(v)) ? Math.min(max, Math.max(min, Number(v))) : fallback;

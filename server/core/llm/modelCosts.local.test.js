@@ -31,7 +31,7 @@ const restore = installResolveStub({
         setConfig: () => {},
     },
     './pricingService': {
-        getModelPricing: (name) => PRICING[name] || null,
+        getModelPricing: (/** @type {string} */ name) => /** @type {Record<string, unknown>} */ (PRICING)[name] || null,
         initPricing: () => {},
         getAllModelPricing: () => PRICING,
     },

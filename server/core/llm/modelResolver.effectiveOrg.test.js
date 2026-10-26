@@ -13,7 +13,9 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const { installResolveStub } = require('../../testUtils/stubRequire');
 
+/** @type {unknown} */
 let orgIdsResult;              // what resolveUserOrgIds returns
+/** @type {unknown} */
 let userRow;                   // what getUser returns
 const calls = { resolveUserOrgIds: 0, getUser: 0, getAllGroups: 0 };
 

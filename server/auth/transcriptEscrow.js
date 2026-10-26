@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The key a TRANSCRIPTION is encrypted under.
  *
@@ -103,6 +103,9 @@ function _cacheSet(orgId, key) {
     _cache.set(orgId, { at: Date.now(), key });
 }
 
+/**
+ * @param {string} [orgId]  one org, or every org when omitted
+ */
 function invalidateTranscriptKeyCache(orgId) {
     if (orgId === undefined) {
         for (const [, v] of _cache) secureClear(v.key);
@@ -228,7 +231,7 @@ function transcriptionKey(dek, transcriptionId) {
  * @param {Buffer<ArrayBufferLike>} newOrk
  * @param {string} rawOrgId
  */
-async function rewrapForRotation(rawOrgId, oldOrk, newOrk, deps = {}) {
+async function rewrapForRotation(rawOrgId, oldOrk, newOrk, /** @type {{ getOne?: typeof import('../db').getOne }} */ deps = {}) {
     const orgId = _normOrgId(rawOrgId);
     if (!orgId) return null;
     const getOne = deps.getOne || require('../db').getOne;

@@ -48,7 +48,7 @@ beforeEach(() => {
     memoStats = { hits: 0, misses: 0, durableHits: 0, refused: 0, entries: 0, bytes: 0 };
 });
 
-function automation(steps, edges) {
+function automation(/** @type {unknown[]} */ steps, /** @type {unknown[]} */ edges) {
     return {
         id: 'auto-reuse', version: 1, userId: 'user-1', organizationId: null,
         title: 'reuse summary', triggerType: 'manual',

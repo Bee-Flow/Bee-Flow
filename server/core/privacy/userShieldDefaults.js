@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Defaults for the *user-level* Privacy Shield (consumer accounts, no org).
  *
@@ -56,7 +56,7 @@ function buildUserShieldConfig(choices = {}, { updatedBy = 'system-signup' } = {
     const c = choices && typeof choices === 'object' ? choices : {};
 
     const categories = Array.isArray(c.piiDetectionCategories)
-        ? c.piiDetectionCategories.filter(id => valid.has(id))
+        ? c.piiDetectionCategories.filter((/** @type {string} */ id) => valid.has(id))
         : [...USER_SHIELD_DEFAULTS.piiDetectionCategories];
 
     const threshold = typeof c.piiDetectionConfidenceThreshold === 'number'

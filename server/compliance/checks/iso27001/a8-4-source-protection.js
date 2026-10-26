@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * ISO 27001 A.8.4 — access to source code: default-branch protection from the
  * github connector snapshots. An unprotected default branch on any monitored

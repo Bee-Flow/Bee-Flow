@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Google Workspace directory connector — identity-population evidence for the
  * access-management controls (A.5.16/A.5.18/A.8.2): how many accounts exist,
@@ -89,6 +89,7 @@ module.exports = {
 
     /** @param {import('./index').CollectArgs} args */
     async collect({ secret, settings, safeFetch }) {
+        if (!safeFetch) throw new Error('google-workspace: the collector was not given an SSRF-guarded fetch');
         let token = secret?.access_token || null;
         if (!token) {
             const clientEmail = secret?.client_email || secret?.clientEmail;

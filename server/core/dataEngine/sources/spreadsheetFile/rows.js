@@ -35,7 +35,7 @@ function rowFromSheet(raw, { columnMap, fieldsById, relationIndexes = new Map(),
         columnMap, fieldsById, relationIndexes, labelIndexes,
         /** @param {{ col?: number, type?: string }} entry @param {{ key: string, type?: string }} field */
         readCell: (entry, field) => {
-            const cell = Number.isInteger(entry.col) && entry.col < cells.length ? cells[entry.col] : null;
+            const cell = typeof entry.col === 'number' && Number.isInteger(entry.col) && entry.col < cells.length ? cells[entry.col] : null;
             const value = readCell(cell, { ...entry, type: entry.type || field.type });
             if (value === null && !isBlank(cell) && coercion && typeof coercion === 'object') {
                 coercion[field.key] = (coercion[field.key] || 0) + 1;

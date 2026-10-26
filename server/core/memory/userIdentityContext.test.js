@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * buildUserIdentity: the account block the chat prompt carries, and the known
  * values the memory tokeniser replaces without a detector.
@@ -38,7 +38,7 @@ test('no user or nothing known: no block', () => {
 test('loadUserIdentity reads the org and never throws', async () => {
     const userStore = {
         getUser: async () => ({ displayName: 'Ada Visser', organizationId: 'o1' }),
-        getOrganization: async (id) => (id === 'o1' ? { name: 'Example BV' } : null),
+        getOrganization: async (/** @type {string} */ id) => (id === 'o1' ? { name: 'Example BV' } : null),
     };
     const r = await loadUserIdentity('u1', { userStore });
     assert.match(r.text, /Organisation: Example BV/);

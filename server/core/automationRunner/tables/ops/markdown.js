@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /** A small table as markdown: header labels, then one line per row. */
 
@@ -12,7 +12,7 @@ function cellText(v, max) {
     if (v === null || v === undefined) return '';
     let s = typeof v === 'string' ? v : String(v);
     s = s.replace(/\r\n|\r|\n/g, ' ').replace(/\|/g, '\\|').trim();
-    return s.length > max ? `${s.slice(0, max - 1)}…` : s;
+    return max !== undefined && s.length > max ? `${s.slice(0, max - 1)}…` : s;
 }
 
 /**
@@ -21,7 +21,7 @@ function cellText(v, max) {
  * @param {{ maxCellChars?: number }} [opts]
  */
 function toMarkdown(columns, rows, opts = {}) {
-    const max = opts.maxCellChars > 0 ? opts.maxCellChars : DEFAULT_MAX_CELL_CHARS;
+    const max = (opts.maxCellChars ?? 0) > 0 ? opts.maxCellChars : DEFAULT_MAX_CELL_CHARS;
     if (!columns.length) return '';
     /**
      * @param {string[]} cells

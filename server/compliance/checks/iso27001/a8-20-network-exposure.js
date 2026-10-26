@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * ISO 27001 A.8.20 — network security: no Scaleway security group may open
  * an admin port (22 SSH, 5432 PostgreSQL, 6379 Redis, 3306 MySQL) to the

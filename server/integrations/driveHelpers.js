@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Pure helpers of the Drive tools (driveTools.js): MIME inference, the file
  * shape handed to the model, and the paged "recent files" query.
@@ -100,7 +100,7 @@ async function listRecentDriveFiles(drive, args, { now = Date.now() } = {}) {
         if (!Number.isFinite(ms)) throw new Error('since must be an ISO date/time');
         sinceIso = new Date(ms).toISOString();
     }
-    const want = Math.min(Math.max(parseInt(args?.maxResults) || 50, 1), RECENT_MAX_RESULTS);
+    const want = Math.min(Math.max(parseInt(String(args?.maxResults)) || 50, 1), RECENT_MAX_RESULTS);
 
     const files = [];
     /** @type {string | undefined} */

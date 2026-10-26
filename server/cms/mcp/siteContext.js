@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * Per-call site plumbing for the CMS-over-MCP tools (./dispatch.js): which
@@ -101,7 +101,7 @@ function createSiteContext({ cmsStore, live, builder, validateDraft }) {
         const rest = { ...args };
         delete rest.siteId; // our envelope, not a builder argument
         const site = await resolveSite(args);
-        if (site.error) return err(site.error);
+        if (site.error || !site.siteId) return err(site.error ?? 'No site was resolved.');
         const draftWrap = await loadDraft(site.siteId, ctx);
         const result = await builder.applyToolCall(draftWrap, name, rest);
         const ok = !(result && typeof result === 'object' && result.error);

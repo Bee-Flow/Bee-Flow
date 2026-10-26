@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Instance-wide IP allow-lists for the MCP endpoints, set by the operator in
  * the environment (prod: the beeflow-config ConfigMap or deploy-prd server_env).
@@ -23,6 +23,7 @@
 const { parseCidrList } = require('./ipMatch');
 const log = require('../../telemetry/log');
 
+/** @type {Readonly<Record<string, string>>} */
 const SERVER_VARS = Object.freeze({
     integrations: 'INTEGRATIONS_MCP_IP_ALLOWLIST',
     automations: 'AUTOMATION_MCP_IP_ALLOWLIST',

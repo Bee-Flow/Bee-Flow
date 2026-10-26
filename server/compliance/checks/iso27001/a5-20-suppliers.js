@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * ISO 27001 A.5.20 / A.5.22 / A.5.23 — Supplier agreements, supplier
  * monitoring and cloud services.
@@ -77,7 +77,7 @@ module.exports = {
         const settings = await complianceStore.getSettings(orgId);
         const attested = new Set(
             (Array.isArray(settings.scc_confirmed_operators) ? settings.scc_confirmed_operators : [])
-                .map(e => String(e?.operator || '').toLowerCase()).filter(Boolean)
+                .map((/** @type {{ operator?: unknown } | null | undefined} */ e) => String(e?.operator || '').toLowerCase()).filter(Boolean)
         );
         const uncovered = operators.filter(o => !attested.has(String(o.operator).toLowerCase()));
         const nonEu = operators.filter(o => !o.is_eu);

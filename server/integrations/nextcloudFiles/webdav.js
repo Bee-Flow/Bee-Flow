@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Nextcloud WebDAV plumbing shared by the file tools — the multistatus XML
  * parser, the PROPFIND body, path building and the binary upload helper.
@@ -174,7 +174,7 @@ async function uploadBinaryFile(ncFetch, root, path, buffer, contentType, authEr
         return { error: `Upload failed (${res.status}): ${text.slice(0, 200)}` };
     }
     let fileId = parseOcFileId(res.headers && typeof res.headers.get === 'function' ? res.headers.get('oc-fileid') : null);
-    if (!fileId && opts.wantFileId) {
+    if (!fileId && opts.wantFileId && opts.baseUrl && opts.uid) {
         try {
             const stat = await statFile(ncFetch, root, path, opts.baseUrl, opts.uid);
             fileId = stat && stat.fileId ? String(stat.fileId) : null;

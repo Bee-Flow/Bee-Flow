@@ -25,7 +25,7 @@ function ncHostFromUrl(ncBaseUrl) {
 // tell otherwise-identical "Nextcloud" orgs apart, e.g. "Nextcloud (nc.e380.net)".
 // Skips the suffix when the name already carries the host (custom-themed instances).
 /**
- * @param {string} themingName
+ * @param {string | null | undefined} themingName
  * @param {string} ncBaseUrl
  */
 function buildAutoOrgName(themingName, ncBaseUrl) {

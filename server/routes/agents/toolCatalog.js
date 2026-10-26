@@ -104,6 +104,7 @@ const { effectOf } = require('../../automation/sideEffectMap');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { fallback } = require('../../utils/bestEffort');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 // Bounded like every other user-facing list here: the registry is ours, but a
 // response is a response.
@@ -112,7 +113,7 @@ const MAX_ACTIONS_PER_APP = 500;
 const NoQuery = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({}).strict());
 
 router.get('/tool-catalog', requireAuth, validate({ query: NoQuery }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
 
     // The strict availability gate. A throw here is "I could not check",
     // which is neither yes nor no — see the header.

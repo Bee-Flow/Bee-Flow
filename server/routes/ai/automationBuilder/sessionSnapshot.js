@@ -31,6 +31,7 @@ const { validate } = require('../../../core/http/validate');
 const { z } = require('../../../utils/zod');
 const { applyPendingDatatables, keptDatatables } = require('./applyPendingDatatables');
 const { clientSnapshot } = require('./datatableTurn');
+const { sessionUser } = require('../../../core/http/sessionUser');
 
 const NoQuery = z.object({}).strict();
 
@@ -38,7 +39,7 @@ const NoQuery = z.object({}).strict();
 // the client on mount to rehydrate chat history + draft + last validation
 // after a refresh or SSE drop. Mirror to the SSE `resume` event payload.
 router.get('/session/:automationId', requireAuth, validate({ query: NoQuery }), async (/** @type {import('express').Request<{ automationId: string }>} */ req, /** @type {import('express').Response} */ res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const snapshot = await automationStore.getBuilderSession(req.params.automationId, userId);
     if (!snapshot) return res.status(404).json({ error: 'No builder session for this automation' });
     res.json({ snapshot: clientSnapshot(snapshot) });
@@ -68,7 +69,7 @@ router.post('/session/:automationId/review', requireAuth, requireActiveOrgForMut
     revisionId: z.string().min(1).max(200),
 }).strict() }), async (/** @type {import('express').Request<{ automationId: string }>} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
     try {
-        const userId = req.session.user.id;
+        const userId = sessionUser(req).id;
         const snapshot = await automationStore.getBuilderSession(req.params.automationId, userId);
         if (!snapshot) return res.status(404).json({ error: 'No builder session for this automation' });
         const { key, kind, status } = REVIEW_OUTCOMES[req.body.action];

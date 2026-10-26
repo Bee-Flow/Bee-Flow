@@ -21,7 +21,7 @@ const isoEvidenceStore = require('../../../stores/isoEvidenceStore');
  * @param {string} orgId
  * @param {string} connector - connector id, e.g. 'github'
  * @param {string} notEnabledDetails - the check's own "not enabled" text
- * @returns {Promise<{result?: any, config?: any, snaps?: any[]}>}
+ * @returns {Promise<{ result: { status: string, evidence: any, details: string }, config?: undefined, snaps?: undefined } | { result?: undefined, config: any, snaps: any[] }>}
  *   `result` is the not_applicable answer to return as is.
  */
 async function readConnectorSnapshots(orgId, connector, notEnabledDetails) {

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * A small constant evaluator: what a string (or number, or array of them)
  * expression is, when the code alone decides it.
@@ -174,7 +174,7 @@ function makeFolder(env) {
             && callee.object.type === 'Identifier' && callee.object.name === 'String' && env.isFree('String')
             && ((/** @type {import('acorn').Identifier | import('acorn').PrivateIdentifier} */ (callee.property)).name === 'fromCharCode' || (/** @type {import('acorn').Identifier | import('acorn').PrivateIdentifier} */ (callee.property)).name === 'fromCodePoint')) {
             const args = argValues(node.arguments, depth);
-            if (!args || !args.every((/** @type {number} */ n) => typeof n === 'number' && n >= 0 && n <= 0x10ffff)) return undefined;
+            if (!args || !args.every((n) => typeof n === 'number' && n >= 0 && n <= 0x10ffff)) return undefined;
             try { return capped(String.fromCodePoint(.../** @type {number[]} */ (args))); } catch (_) { return undefined; }
         }
         // atob('...'), decodeURIComponent('...'), unescape('...')

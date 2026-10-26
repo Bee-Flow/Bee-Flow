@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The Outlook mail samples carry an attachment, so a flatten after Outlook
  * "Read many" is planned before any run (spec A-7, J4).
@@ -26,7 +26,7 @@ test('outlook_read_many: routeLevels finds the attachments as a list of records'
 
 test('outlook_read_many: the message id is copied as messageId (attachments have their own id)', () => {
     const plan = flattenPlan(root(), 'steps.o.output.messages[*].attachments');
-    const id = plan.parents[0].fields.find(f => f.from === 'id');
+    const id = plan.parents[0].fields.find((/** @type {{ from: string }} */ f) => f.from === 'id');
     assert.deepStrictEqual(id, { from: 'id', to: 'messageId', mode: 'copy' });
     assert.ok(plan.left.some(l => l.key === 'body'));
 });

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Unit tests for the connector JWT verifier.
  *
@@ -18,9 +18,9 @@ const { _verifyHs256, _isOrgAdminRequester, _resolveRequesterNcUid, _resolveSess
 const KEY = 'test-tenant-key-32-bytes-minimum-please';
 const NOW = Math.floor(Date.now() / 1000);
 
-function mintToken(payload, key = KEY, headerOverrides = {}) {
+function mintToken(/** @type {Record<string, unknown>} */ payload, key = KEY, headerOverrides = {}) {
     const header = { alg: 'HS256', typ: 'JWT', ...headerOverrides };
-    const enc = (obj) => Buffer.from(JSON.stringify(obj))
+    const enc = (/** @type {unknown} */ obj) => Buffer.from(JSON.stringify(obj))
         .toString('base64')
         .replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
     const h = enc(header);

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 /**
@@ -125,7 +125,10 @@ function isSkip(answer) {
  * @returns {number}
  */
 const num = (u, ...keys) => {
-    for (const k of keys) if (Number.isFinite(u?.[k])) return u[k];
+    for (const k of keys) {
+        const v = u?.[k];
+        if (Number.isFinite(v)) return v;
+    }
     return 0;
 };
 

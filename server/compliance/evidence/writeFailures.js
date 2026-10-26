@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
@@ -44,7 +44,7 @@ const { fallback } = require('../../utils/bestEffort');
 const MAX_ENTRIES_PER_ORG = 50;
 const MAX_ORGS = 200;
 
-/** @type {Map<string, {count:number, first_at:string, last_at:string, entries:Array}>} */
+/** @type {Map<string, {count:number, first_at:string, last_at:string, entries:Record<string, unknown>[]}>} */
 const byOrg = new Map();
 
 /**
@@ -109,7 +109,7 @@ function onEvidenceWriteFailed(row) {
  * the org — the common case, and the one the client renders as nothing.
  *
  * @param {string} orgId
- * @returns {{count:number, first_at:string, last_at:string, recent:Array}|null}
+ * @returns {{count:number, first_at:string, last_at:string, recent:Record<string, unknown>[]}|null}
  */
 function writeFailureSummary(orgId) {
     const bucket = byOrg.get(orgId == null ? 'unknown' : String(orgId));

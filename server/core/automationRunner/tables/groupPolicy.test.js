@@ -1,11 +1,11 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { minGroupFloorFor, effectiveMinN, policyKey } = require('./groupPolicy');
 
 const limits = { minGroupFloor: 10 };
-const asking = (value) => ({ limits, getConfig: async (key) => { assert.equal(key, 'org_org1_automation_table_policy'); return value; } });
+const asking = (/** @type {unknown} */ value) => ({ limits, getConfig: async (/** @type {string} */ key) => { assert.equal(key, 'org_org1_automation_table_policy'); return value; } });
 
 test('policyKey is per organisation', () => {
     assert.equal(policyKey('org1'), 'org_org1_automation_table_policy');

@@ -42,6 +42,7 @@ const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
 const { bestEffort } = require('../utils/bestEffort');
+const { sessionUser } = require('../core/http/sessionUser');
 
 /** A whole number on the query string, refused in words when it is not one.
  * @param {string} name @param {number} min @param {string} what */
@@ -86,15 +87,15 @@ function rateLimited(userId) {
 /** @param {{ session: import('express').Request['session'] }} req @param {string} action @param {Record<string, unknown>} [meta] */
 function audit(req, action, meta = {}) {
     try {
-        const userId = req.session.user.id;
-        userStore.logAccessAudit(action, 'pii_vault', userId, userId, null, meta, req.session.user.organizationId || null);
+        const userId = sessionUser(req).id;
+        userStore.logAccessAudit(action, 'pii_vault', userId, userId, null, meta, sessionUser(req).organizationId || null);
     } catch (err) { bestEffort('routes/piiVault:audit', err); /* auditing must never fail the request */ }
 }
 
 /** @typedef {import('express').Request<{}, any, any, import('zod').infer<typeof ListQuery>>} VaultListReq */
 /** GET / — the caller's vault, decrypted. */
 router.get('/', requireAuth, validate({ query: ListQuery }), /** @param {VaultListReq} req */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     if (rateLimited(userId)) return res.status(429).json({ error: 'Too many requests' });
 
     const limit = Math.min(req.query.limit ?? 200, 500);
@@ -103,7 +104,7 @@ router.get('/', requireAuth, validate({ query: ListQuery }), /** @param {VaultLi
 
     const { entries, total } = await vault.listForUser(userId, {
         search, limit, offset,
-        orgId: req.session.user.organizationId || undefined,
+        orgId: sessionUser(req).organizationId || undefined,
     });
     audit(req, 'pii_vault.read', { returned: entries.length, total });
     res.json({ entries, total, limit, offset, maxEntries: vault.MAX_ENTRIES_PER_USER });
@@ -117,7 +118,7 @@ router.get('/', requireAuth, validate({ query: ListQuery }), /** @param {VaultLi
  * client confirms with that wording before calling.
  */
 router.delete('/:id', requireAuth, validate({ query: NO_QUERY, body: NO_BODY }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const ok = await vault.deleteEntry(userId, req.params.id);
     if (!ok) return res.status(404).json({ error: 'Entry not found' });
     audit(req, 'pii_vault.delete', { entryId: req.params.id });
@@ -131,7 +132,7 @@ router.delete('/:id', requireAuth, validate({ query: NO_QUERY, body: NO_BODY }),
  * on, and "delete one" must never be able to arrive here as "delete all".
  */
 router.delete('/', requireAuth, validate({ query: NO_QUERY, body: NO_BODY }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const removed = await vault.clearForUser(userId);
     audit(req, 'pii_vault.clear', { removed });
     res.json({ ok: true, removed });

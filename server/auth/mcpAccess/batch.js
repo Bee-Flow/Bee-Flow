@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * JSON-RPC batches on the MCP endpoints.
  *
@@ -13,9 +13,10 @@
 const MAX_BATCH_SIZE = 20;
 
 /** Is this request body a batch larger than the cap? */
-const batchTooLarge = (body) => Array.isArray(body) && body.length > MAX_BATCH_SIZE;
+const batchTooLarge = (/** @type {unknown} */ body) => Array.isArray(body) && body.length > MAX_BATCH_SIZE;
 
 /** Refuse an oversized batch as a JSON-RPC Invalid Request. Nothing was executed. */
+/** @param {import('express').Response} res */
 function rpcBatchTooLarge(res) {
     return res.status(400).json({
         jsonrpc: '2.0',

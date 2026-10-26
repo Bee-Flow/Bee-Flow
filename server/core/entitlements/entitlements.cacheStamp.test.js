@@ -40,7 +40,7 @@ const dbStub = {
     makeStoreInit: () => async () => {},
     getPoolStats: () => ({ total: 0, idle: 0, waiting: 0 }),
     _runTransaction: noDb,
-    _instrumentClient: (c) => c,
+    _instrumentClient: (/** @type {unknown} */ c) => c,
 };
 class StubPgClient {
     on() { return this; }

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Characterisation of install.js: the golden behaviour pinned before the file
  * was split into install/ (context, provenance, parts per kind, grants, the
@@ -44,7 +44,7 @@ const EVERY_KIND = () => ({
     agents: [{ ref: 'agt_1', name: 'Helper', config: { tools: { t1: { actAs: 'owner' } } } }],
 });
 
-const STRIP = (v) => JSON.parse(JSON.stringify(v));
+const STRIP = (/** @type {unknown} */ v) => JSON.parse(JSON.stringify(v));
 
 test('GOLDEN: the export surface of install.js', () => {
     assert.deepStrictEqual(Object.keys(require('./install')).sort(), [

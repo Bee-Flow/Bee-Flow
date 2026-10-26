@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Login Routes — the caller's own permission snapshot: permissions, groups,
  * organisations, allowed agent types and the entitlement-derived feature map

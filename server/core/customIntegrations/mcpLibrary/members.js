@@ -17,6 +17,7 @@ const { authOfRow, libraryDefinition, sharedGrantFor, listOrgGrants, providerOf,
 
 const deps = require('./deps');
 const { fallback } = require('../../../utils/bestEffort');
+const { sessionUser } = require('../../http/sessionUser');
 
 const store = () => deps.store();
 const connStore = () => deps.connStore();
@@ -33,7 +34,7 @@ const mcpClient = () => deps.mcpClient();
  * @returns {Promise<MemberContext>}
  */
 async function memberContext(req) {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const user = await userStore().getUser(userId);
     const orgId = user && user.organizationId;
     if (!orgId) return { userId, orgId: null, effective: new Set() };

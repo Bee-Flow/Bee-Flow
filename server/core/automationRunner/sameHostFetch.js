@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 const MAX_AUTH_REDIRECTS = 5;
@@ -7,11 +7,16 @@ const MAX_AUTH_REDIRECTS = 5;
  * fetch() for a request that carries an injected credential: redirects are
  * followed by hand and only while they stay on the original host. A hop to
  * another host throws instead of carrying the credential along.
+ * @template {{ status: number, headers: { get(name: string): string | null } }} R
+ * @param {(url: string | URL, init: RequestInit) => Promise<R>} fetchImpl
  * @param {string | URL} url
+ * @param {RequestInit} [init]
+ * @returns {Promise<R>}
  */
 async function fetchFollowingSameHost(fetchImpl, url, init) {
     const host = new URL(url).hostname.toLowerCase();
     let current = url;
+    /** @type {RequestInit} */
     let req = { ...init, redirect: 'manual' };
     for (let hop = 0; hop <= MAX_AUTH_REDIRECTS; hop += 1) {
         const r = await fetchImpl(current, req);

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck
+// @typecheck strict
 /**
  * Migration: Dutch translations for the BFSF bug-sweep UI keys (2026-07).
  *
@@ -130,7 +130,7 @@ async function up() {
     // de bewuste herformuleringen doordrukken samen.
     let added = 0;
     let forced = 0;
-    await languageStore.mutateGUITranslations('nl', (merged) => {
+    await languageStore.mutateGUITranslations('nl', (/** @type {Record<string, string>} */ merged) => {
         added = 0; forced = 0; // de mutator kan opnieuw draaien — tel per poging
         for (const [key, value] of Object.entries(NL_TRANSLATIONS)) {
             if (!merged[key]) {

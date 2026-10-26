@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Unit tests for officegen's CSV builder — the hardened plain-text sibling of
  * `buildSpreadsheet`. The dangerous part of CSV is not the format but the
@@ -13,7 +13,7 @@ const assert = require('assert');
 const office = require('./officegen');
 
 /** Decode a buildCsv buffer to text, asserting on + stripping the BOM. */
-function decode(buffer, { expectBom = true } = {}) {
+function decode(/** @type {Buffer} */ buffer, { expectBom = true } = {}) {
     const text = buffer.toString('utf8');
     if (expectBom) {
         assert.deepStrictEqual([...buffer.slice(0, 3)], [0xef, 0xbb, 0xbf], 'UTF-8 BOM at buffer start');

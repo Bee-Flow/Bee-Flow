@@ -19,7 +19,7 @@ const definition = {
     ],
 };
 
-const row = (stepId, extra = {}) => ({ stepId, parentStepId: null, stepType: 'integration_action', attempts: 1, status: 'success', ...extra });
+const row = (/** @type {string} */ stepId, extra = {}) => ({ stepId, parentStepId: null, stepType: 'integration_action', attempts: 1, status: 'success', ...extra });
 
 test('success: a list of N names the step, the count, the noun and the folder', () => {
     const o = buildRunOutcome({

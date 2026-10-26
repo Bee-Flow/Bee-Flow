@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Unit tests for the custom-integration runner's pure helpers.
  *
@@ -309,7 +309,7 @@ const {
     assert.strictEqual(extractErrorMessage('plain text garbage'), null, 'unstructured body → null (mapped reason only)');
     assert.strictEqual(extractErrorMessage(''), null);
     const long = JSON.stringify({ message: 'x'.repeat(500) });
-    assert.strictEqual(extractErrorMessage(long).length, 300, 'capped at 300 chars');
+    assert.strictEqual(extractErrorMessage(long)?.length, 300, 'capped at 300 chars');
 }
 
 console.log('customIntegrationRunner.test.js: all tests passed');

@@ -1,11 +1,11 @@
-// @typecheck
+// @typecheck strict
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { splitAtCellBreaks, isFragment } = require('./cellSplit');
 const { tokenizeText } = require('./tokenizer');
 
 const P = new Set(['van', 'de', 'der', 'ter', 't', 's']);
-const span = (text, value, category) => ({ offset: text.indexOf(value), length: value.length, category, text: value });
+const span = (/** @type {string} */ text, /** @type {string} */ value, /** @type {string} */ category) => ({ offset: text.indexOf(value), length: value.length, category, text: value });
 
 test('a span over three cells becomes one span per cell (BFSF-299; values fictional)', () => {
     const text = 'Dorpsstraat 4\n1234 AB\nUtrecht';

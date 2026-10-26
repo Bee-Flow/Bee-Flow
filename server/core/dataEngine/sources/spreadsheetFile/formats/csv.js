@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * CSV, read and edited BYTE-FAITHFULLY — a hand parser, no dependency.
  *
@@ -103,7 +103,7 @@ function encodeCp1252(text) {
     for (let i = 0; i < text.length; i += 1) {
         const cp = text.charCodeAt(i);
         if (cp < 0x80 || (cp >= 0xa0 && cp <= 0xff)) out[i] = cp;
-        else if (CP1252_ENCODE.has(cp)) out[i] = CP1252_ENCODE.get(cp);
+        else if (CP1252_ENCODE.has(cp)) out[i] = CP1252_ENCODE.get(cp) ?? 0x3f;
         else out[i] = 0x3f;                                   // '?' — a char the file's own encoding cannot hold
     }
     return out;
@@ -446,7 +446,7 @@ async function editInPlace(buffer, { headerRow = 1, ops = [], columns = {}, csv:
     }
     let span = 0;
     headerRec.fields.forEach((f, c) => { if (headerText(f) !== '') span = c + 1; });
-    if (Number.isInteger(expectSpan) && expectSpan > 0 && Math.min(span, maxCols) !== expectSpan) {
+    if (typeof expectSpan === 'number' && Number.isInteger(expectSpan) && expectSpan > 0 && Math.min(span, maxCols) !== expectSpan) {
         throw new SpreadsheetSourceError(409, 'spreadsheet_conflict',
             `The file has ${span} columns, not the ${expectSpan} this row was located in — the file changed shape; try again in a moment.`);
     }

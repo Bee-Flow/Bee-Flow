@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Unattended-run session resolution (extracted verbatim from engine.js):
  * vault-backed OAuth session building for scheduled/offline runs, connector
@@ -36,6 +36,10 @@ const log = require('../../telemetry/log');
 // resolveConnectorAuth (nextcloudClient.js) and isConnectorUser gate on.
 // Without it, NC tools throw on scheduled/offline runs (no warm web session).
 // getUser() returns raw columns, so the uid is `nc_uid` (snake_case).
+/**
+ * @param {{ connectorOrgId?: string | null, connectorNcUid?: string | null, user?: { id?: string, email?: string | null, provider?: string, ncUid?: string | null, [k: string]: unknown }, [k: string]: unknown } | null | undefined} session
+ * @param {{ provider?: string, organizationId?: string | null, nc_uid?: string | null } | null | undefined} userRow
+ */
 function withConnectorIdentity(session, userRow) {
     if (!session || !userRow || userRow.provider !== 'nextcloud_connector') return session;
     session.connectorOrgId = session.connectorOrgId || userRow.organizationId || null;
