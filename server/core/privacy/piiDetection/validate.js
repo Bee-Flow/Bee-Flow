@@ -16,7 +16,7 @@
 // validateInputForPii runs (request time, not load time) aiAgent has long
 // finished initialising.
 const log = require('../../../telemetry/log');
-const { getAIConfig, _shieldCategories, _logLabel, _tokenizeWithVault, _applyAllowlist, _report, validateOutputForPii } = require('./validateValidateOutputForPii');
+const { getAIConfig, _shieldCategories, _logLabel, _tokenizeWithVault, _applyAllowlist, _report, validateOutputForPii } = require('./validateOutput');
 
 /**
  * The Error this module throws: the PII verdict (or the reason detection was
@@ -26,8 +26,8 @@ const { getAIConfig, _shieldCategories, _logLabel, _tokenizeWithVault, _applyAll
  */
 
 /**
- * @typedef {import('./validateValidateOutputForPii').PiiGateReport} PiiGateReport
- * @typedef {import('./validateValidateOutputForPii').PiiEntity} PiiEntity
+ * @typedef {import('./validateOutput').PiiGateReport} PiiGateReport
+ * @typedef {import('./validateOutput').PiiEntity} PiiEntity
  */
 
 const configStore = require('../../../stores/configStore');

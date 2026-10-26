@@ -1,5 +1,4 @@
 // @typecheck strict
-const express = require('express');
 const { z, onUnknownKeys, typeError } = require('../../utils/zod');
 const complianceStore = require('../../stores/complianceStore');
 const V = require('../../stores/lib/chatMonitoringVocab');
@@ -7,7 +6,6 @@ const rules = require('../../stores/lib/chatMonitoringRules');
 const { isOrgAdminForOrg, isSuperAdmin } = require('../../auth/permissions');
 const { onEvidenceWriteFailed } = require('../../compliance/evidence/writeFailures');
 
-const router = express.Router();
 
 const CHECK_ID = 'GDPR-Art35-chat-monitoring-safeguards';
 
@@ -138,4 +136,4 @@ function addEvidence(orgId, payload) {
     return complianceStore.addEvidence(row).catch(onEvidenceWriteFailed(row));
 }
 
-module.exports = { router, SHORT_DAYS, DAY_MS, CATALOGUE_FUTURE_SURFACES, STRUCTURAL_CODES, PutBody, SummaryQuery, NoQuery, actorOf, dayOf, inVocab, vocabList, canWiden, columnsFromBody, addEvidence };
+module.exports = { SHORT_DAYS, DAY_MS, CATALOGUE_FUTURE_SURFACES, STRUCTURAL_CODES, PutBody, SummaryQuery, NoQuery, actorOf, dayOf, inVocab, vocabList, canWiden, columnsFromBody, addEvidence };

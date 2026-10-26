@@ -29,7 +29,9 @@
  * URL text, no DPIA reference text, no actor.
  */
 
-const { router, SHORT_DAYS, DAY_MS, CATALOGUE_FUTURE_SURFACES, STRUCTURAL_CODES, PutBody, SummaryQuery, NoQuery, actorOf, dayOf, inVocab, vocabList, canWiden, columnsFromBody, addEvidence } = require('./chatMonitoringColumnsFromBody');
+const express = require('express');
+const router = express.Router();
+const { SHORT_DAYS, DAY_MS, CATALOGUE_FUTURE_SURFACES, STRUCTURAL_CODES, PutBody, SummaryQuery, NoQuery, actorOf, dayOf, inVocab, vocabList, canWiden, columnsFromBody, addEvidence } = require('./chatMonitoringParts');
 const complianceStore = require('../../stores/complianceStore');
 const dpiaStore = require('../../stores/dpiaStore');
 const userStore = require('../../stores/userStore');
