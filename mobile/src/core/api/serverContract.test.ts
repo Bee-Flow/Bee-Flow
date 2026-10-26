@@ -650,8 +650,8 @@ describe('the 409 delete guards (src/core/api/deleteGuard.ts)', () => {
         for (const token of IN_USE_BODY) expect(slice).toContain(token);
         expect(slice).toMatch(/\(?req\.query\)?\.confirm === true/);
         expect(read('routes/transcriptions/noteActions.js')).toMatch(/DeleteQuery = z\.object\(\{ confirm: flag\(/);
-        // `flag` is what turns the phone's '1' into that `true`.
-        expect(read('routes/transcriptions/schemas.js')).toMatch(/const flag = [^\n]*'1'[\s\S]{0,120}v === '1'/);
+        // `flag` (shared by the transcription and webpage routes) is what turns the phone's '1' into that `true`.
+        expect(read('core/http/queryStringParts.js')).toMatch(/const flag = [^\n]*'1'[\s\S]{0,120}v === '1'/);
     });
 
     it('knowledge bases: the in_use body, and ?confirm=1 compared as a string', () => {

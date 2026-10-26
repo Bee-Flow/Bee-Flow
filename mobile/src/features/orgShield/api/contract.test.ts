@@ -65,8 +65,8 @@ describe('routes/orgPrivacyShield.js', () => {
             "clamped.push('toolPiiPolicy.external')",
             "res.json({ configured: true, reachable: !!health })",
             'updatedAt: new Date().toISOString()',
-            'updatedBy: req.session.user.id',
         ]);
+        expect(shield).toMatch(/updatedBy: (?:req\.session\.user\.id|sessionUser\(req\)\.id)\b/);
         expectAll(orgShieldCore, ["stalenessWarnings.push({ collectionId: colId, reason: 'collection_not_found' })"]);
         // The old "Always hide these" list is validated with the data types now,
         // and still answered per term (kept for one release).

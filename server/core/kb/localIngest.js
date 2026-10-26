@@ -8,7 +8,6 @@ const { getClient } = require('../../db');
 const log = require('../../telemetry/log');
 const { chunkText, estimateTokens } = require('./chunking');
 const { ensureKBChunksTable, isPgvectorAvailable } = require('./kbChunksSchema');
-const { bestEffort } = require('../../utils/bestEffort');
 const { trackEmbeddingTokens, trackEmbeddingCost } = require('./embeddingCost');
 const { isMissingTable } = require('../../utils/isMissingTable');
 

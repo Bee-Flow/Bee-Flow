@@ -1,5 +1,4 @@
 const crypto = require('crypto');
-const configStore = require('../../stores/configStore');
 const { getServiceHeaders } = require('../serviceAuth');
 const log = require('../../telemetry/log');
 const { getAzureIngestParams, isLocalIngest } = require('./ingestMode');
