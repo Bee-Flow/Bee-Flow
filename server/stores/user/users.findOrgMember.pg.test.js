@@ -15,20 +15,10 @@ process.env.NODE_ENV = 'test';
 
 const assert = require('node:assert/strict');
 const { test, before, after } = require('node:test');
-const { installResolveStub } = require('../../testUtils/stubRequire');
-const { pgliteDb } = require('../../testUtils/pgliteDb');
+const { usePglitePool } = require('../../testUtils/pglitePool');
 
-const { pg, db } = pgliteDb();
-const restore = installResolveStub({
-    '../../db': {
-        run: (sql, params) => db.query(sql, params),
-        getOne: async (sql, params) => (await db.query(sql, params)).rows[0] || null,
-        getAll: async (sql, params) => (await db.query(sql, params)).rows,
-        getClient: async () => { throw new Error('not used'); },
-    },
-    './schema': { initDB: async () => {} },
-    './subscriptions': { getEffectiveLimits: async () => ({ max_users: null }) },
-});
+// The real db.js over PGlite: the pool is the seam, no module mocking.
+const { pg, close } = usePglitePool();
 const users = require('./users');
 
 before(async () => {
@@ -40,7 +30,7 @@ before(async () => {
         ['dora', 'dora@example.test', 'org_a'],
     ]) await pg.query('INSERT INTO users (id, email, "organizationId") VALUES ($1, $2, $3)', [id, email, org]);
 });
-after(async () => { restore(); await pg.close(); });
+after(close);
 
 test("the 'default' bucket finds users without an organisation, however it is stored", async () => {
     assert.equal(await users.findOrgMemberIdByEmail('default', 'ANNA@example.test'), 'anna', "'' is no organisation");
