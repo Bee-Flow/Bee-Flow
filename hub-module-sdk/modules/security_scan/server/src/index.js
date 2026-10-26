@@ -22,6 +22,7 @@ const reportBuilderMod = require('./reportBuilder');
 const { makeDriver } = require('./driver');
 const { makeWorker } = require('./worker');
 const { mountSecurityRoutes } = require('./routes');
+const { errMessage } = require('./errors');
 
 const MODULE_ID = 'security_scan';
 
@@ -31,7 +32,7 @@ const TICK_INTERVAL_MS = 15000;
 const REAP_INTERVAL_MS = 120000;
 
 /**
- * @param {any} host
+ * @param {import('../../../../types/host').Host} host
  */
 function createModule(host) {
     // Wire the pieces via small factories, each receiving only the host
@@ -53,13 +54,13 @@ function createModule(host) {
         try {
             await worker.drainOnce();
         } catch (e) {
-            host.log.error(`[${MODULE_ID}] drain tick failed: ${e.message}`);
+            host.log.error(`[${MODULE_ID}] drain tick failed: ${errMessage(e)}`);
         }
         if (_tickCount % REAP_EVERY_N_TICKS === 0) {
             try {
                 await worker.reapRunners();
             } catch (e) {
-                host.log.error(`[${MODULE_ID}] reap tick failed: ${e.message}`);
+                host.log.error(`[${MODULE_ID}] reap tick failed: ${errMessage(e)}`);
             }
         }
     }

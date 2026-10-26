@@ -128,6 +128,39 @@ describe('ExecutionsTable: the "What happened" cell', () => {
     });
 });
 
+// ── who may run it again ────────────────────────────────────────────────────
+describe('ExecutionsTable — "Run it again" follows canStart', () => {
+    beforeEach(() => {
+        cleanup();
+        apiMock.retryRun = vi.fn().mockResolvedValue({});
+    });
+
+    it('is in the ⋯ menu of a failed run the reader may start', async () => {
+        const user = userEvent.setup();
+        renderTable([run({ status: 'error', canStart: true })]);
+        await user.click(screen.getByTitle('Actions'));
+        await user.click(screen.getByRole('button', { name: 'Run it again' }));
+        await waitFor(() => expect(apiMock.retryRun).toHaveBeenCalledWith('a1', 'r1'));
+    });
+
+    it('is left out for a viewer, whose other actions stay', async () => {
+        const user = userEvent.setup();
+        renderTable([run({ status: 'error', canStart: false })]);
+        await user.click(screen.getByTitle('Actions'));
+        expect(screen.queryByRole('button', { name: 'Run it again' })).toBeNull();
+        expect(screen.getByRole('button', { name: 'Open this run' })).toBeTruthy();
+    });
+
+    it('says the friendly sentence when the server refuses the start anyway', async () => {
+        const user = userEvent.setup();
+        apiMock.retryRun = vi.fn().mockRejectedValue(Object.assign(new Error('raw server text'), { code: 'automation_run_forbidden' }));
+        renderTable([run({ status: 'error' })]);
+        await user.click(screen.getByTitle('Actions'));
+        await user.click(screen.getByRole('button', { name: 'Run it again' }));
+        expect(await screen.findByText('You can view this automation but not start it. Ask the owner for run access.')).toBeTruthy();
+    });
+});
+
 // ── the two approval gates, as the LIST answers them ────────────────────────
 describe('ExecutionsTable — the ⋯ menu on a waiting run', () => {
     beforeEach(() => {

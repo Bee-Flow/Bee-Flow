@@ -16,10 +16,11 @@
 
 const config = require('./config');
 const setupConfig = require('./setupConfig');
-const { withWarmupRetry } = require('./appApiClient');
+const { withWarmupRetry, appApiHeaders } = require('./appApiClient');
 const { ocsSucceeded } = require('./ocs');
 const { parseAllowedUrl } = require('./remoteHost');
 const log = require('./log');
+const { errMessage } = require('./errors');
 
 const FORM_ID = 'beeflow_admin';
 const FIELD_MODE = 'deployment_mode';
@@ -65,17 +66,6 @@ const FORM_SCHEME = {
     ],
 };
 
-function appApiHeaders() {
-    return {
-        'Content-Type': 'application/json',
-        'OCS-APIRequest': 'true',
-        'Accept': 'application/json',
-        'EX-APP-ID': config.appId,
-        'EX-APP-VERSION': config.appVersion,
-        'AUTHORIZATION-APP-API': Buffer.from(`:${config.appSecret}`).toString('base64'),
-    };
-}
-
 async function registerSettingsForm() {
     const url = `${config.nextcloudUrl}/ocs/v1.php/apps/app_api/api/v1/ui/settings`;
     const res = await withWarmupRetry(() => fetch(url, {
@@ -94,6 +84,12 @@ async function registerSettingsForm() {
     log.info(`[Init] Declarative settings form registered (${FORM_ID})`);
 }
 
+/**
+ * The two appconfig keys this panel owns, by key.
+ * @typedef {Record<string, string | undefined>} StoredValues
+ */
+
+/** @returns {Promise<StoredValues>} */
 async function _readStoredValues() {
     const url = `${config.nextcloudUrl}/ocs/v1.php/apps/app_api/api/v1/ex-app/config/get-values`;
     const res = await fetch(url, {
@@ -105,11 +101,12 @@ async function _readStoredValues() {
     if (!res.ok) {
         throw new Error(`Read settings HTTP ${res.status}`);
     }
-    const body = /** @type {any} */ (await res.json());
+    const body = /** @type {{ ocs?: { data?: { configkey?: string, configvalue?: string }[] } } | null} */ (await res.json());
     // OCS wraps payloads as `{ ocs: { meta: {...}, data: [...] } }`. NC's
     // get-values returns an array of `{ configkey, configvalue }` pairs;
     // missing keys are simply absent rather than null.
     const data = body?.ocs?.data ?? [];
+    /** @type {StoredValues} */
     const out = {};
     for (const row of data) {
         if (row?.configkey) out[row.configkey] = row.configvalue;
@@ -117,6 +114,10 @@ async function _readStoredValues() {
     return out;
 }
 
+/**
+ * @param {StoredValues} values
+ * @returns {string | null}
+ */
 function _resolveTargetUrl(values) {
     // Only act when an explicit value exists in NC. Falling through to the
     // form's `default` here would silently flip a freshly-installed sandbox
@@ -133,12 +134,13 @@ function _resolveTargetUrl(values) {
     try {
         parseAllowedUrl(url, { label: 'Self-hosted API URL' });
     } catch (err) {
-        log.warn(`[Settings] ignoring the configured Bee Flow server URL: ${err.message}`);
+        log.warn(`[Settings] ignoring the configured Bee Flow server URL: ${errMessage(err)}`);
         return null;
     }
     return url;
 }
 
+/** @type {string | null} */
 let _lastApplied = null;
 
 let _envPinLogged = false;
@@ -160,11 +162,12 @@ async function applyStoredValuesIfChanged() {
         }
         return;
     }
+    /** @type {StoredValues} */
     let values;
     try {
         values = await _readStoredValues();
     } catch (err) {
-        log.warn(`[Settings] poll failed (non-fatal): ${err.message}`);
+        log.warn(`[Settings] poll failed (non-fatal): ${errMessage(err)}`);
         return;
     }
     const target = _resolveTargetUrl(values);
@@ -198,7 +201,7 @@ async function applyStoredValuesIfChanged() {
     } catch (err) {
         rebootstrapOk = false;
         config.apiBaseUrl = previousUrl;
-        log.warn(`[Settings] re-bootstrap failed; keeping previous apiBaseUrl ${previousUrl}. Detail: ${err.message}`);
+        log.warn(`[Settings] re-bootstrap failed; keeping previous apiBaseUrl ${previousUrl}. Detail: ${errMessage(err)}`);
     }
 
     if (rebootstrapOk) {
@@ -208,7 +211,7 @@ async function applyStoredValuesIfChanged() {
                 apiBaseUrl: target,
             });
         } catch (err) {
-            log.warn(`[Settings] persistence skipped: ${err.message}`);
+            log.warn(`[Settings] persistence skipped: ${errMessage(err)}`);
         }
         _lastApplied = fingerprint;
     }
@@ -217,6 +220,7 @@ async function applyStoredValuesIfChanged() {
     // the radio off and on for the connector to reattempt.
 }
 
+/** @type {NodeJS.Timeout | null} */
 let _pollTimer = null;
 
 function startPolling() {

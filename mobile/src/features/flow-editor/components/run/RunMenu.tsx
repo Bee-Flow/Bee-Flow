@@ -9,6 +9,7 @@
 import React from 'react';
 
 import { useTranslation } from '@/core/i18n';
+import { VIEW_ONLY_RUN_HINT } from '@/features/automations';
 import type { FlowDefinition } from '@/features/flow-editor/model';
 import { useConfirm } from '@/shared/patterns';
 import { ActionMenu, useToast, type ActionMenuItem } from '@/shared/ui';
@@ -22,12 +23,15 @@ export function RunMenu({
     runs,
     definition,
     onOpenStep,
+    canRunLive = true,
 }: {
     visible: boolean;
     onClose: () => void;
     runs: TestRuns;
     definition: FlowDefinition | null;
     onOpenStep: (stepId: string) => void;
+    /** false when the server says this person may not start a run: Run live stays, disabled, with the reason. */
+    canRunLive?: boolean;
 }) {
     const t = useTranslation();
     const confirm = useConfirm();
@@ -60,8 +64,10 @@ export function RunMenu({
             id: 'live',
             label: t('automations.header.run_live', 'Run live'),
             icon: 'Play',
-            accessibilityHint: t('automations.header.run_live_hint', 'Executes every step for real'),
-            disabled: runs.running,
+            accessibilityHint: canRunLive
+                ? t('automations.header.run_live_hint', 'Executes every step for real')
+                : t('automations.run.viewOnlyHint', VIEW_ONLY_RUN_HINT),
+            disabled: runs.running || !canRunLive,
             onPress: () => void runLive(),
         },
         ...runs.starts.map((start) => ({

@@ -89,9 +89,9 @@ test('a reusable Step (kind block) is not an automation to run', async () => {
 });
 
 test('authorisation is the product\'s: owner or a role that may run; anything else reads as not found', async () => {
-    // The product's own ranking (automation/access.js): run < view < edit < owner, so a role
-    // that can view can also press Run now.
-    for (const role of ['owner', 'edit', 'view', 'run']) {
+    // The product's own rule (automation/access.js mayStartRun): the run role and edit and
+    // up start it; a view share reads it but does not (its own test below).
+    for (const role of ['owner', 'edit', 'run']) {
         const s = setup({ role });
         assert.equal((await run(s, {})).status, 'started', role);
     }
@@ -300,4 +300,14 @@ test('the guide and the instructions keep activation a human decision', async ()
     const section = require('./mcpRunTools').guideSection();
     assert.match(section, /Activation is still a human decision/);
     assert.match(section, /never activates, publishes or edits/);
+});
+
+test('a view share is refused with automation_run_forbidden; edit and run shares start it', async () => {
+    const viewer = setup({ role: 'view' });
+    const out = await run(viewer, {});
+    assert.equal(out.code, 'automation_run_forbidden');
+    assert.equal(viewer.calls.run.length, 0);
+    assert.equal(viewer.calls.audit.length, 0, 'a refusal writes no run audit row');
+    assert.equal((await run(setup({ role: 'edit' }), {})).status, 'started');
+    assert.equal((await run(setup({ role: 'run' }), {})).status, 'started');
 });

@@ -27,7 +27,8 @@
  *   2. arguments: the input is an object under a size cap;
  *   3. the automation exists, is an automation (not a reusable Step), belongs to
  *      an organisation the caller is in, and the caller holds `run` on it
- *      (anything else answers 404: whether it exists is not told);
+ *      (anything else answers 404: whether it exists is not told); a `view`
+ *      share sees it but may not start it (403 automation_run_forbidden);
  *   4. it is active;
  *   5. the "runs with your own connections" notice, when it applies to a
  *      caller who is not the owner, has been acknowledged in the product;
@@ -117,6 +118,8 @@ function makeRunNow(overrides = {}) {
     const store = () => overrides.store || require('../stores/automationStore');
     const access = () => overrides.access || require('./access').makeAutomationAccess({ store: store() });
     const roleSatisfies = overrides.roleSatisfies || ((role, need) => require('./access').roleSatisfies(role, need));
+    const mayStartRun = (found) => require('./access').mayStartRun(found);
+    const runStartForbidden = () => require('./access').runStartForbidden();
     const getUser = overrides.getUser || ((id) => require('../stores/userStore').getUser(id));
     const resolveOrgs = overrides.resolveOrgs || ((user) => require('../auth/mcpAccess/orgResolve').resolveMcpOrgs(user));
     const runner = () => overrides.runner || require('../core/automationRunner');
@@ -142,8 +145,11 @@ function makeRunNow(overrides = {}) {
             try { orgs = await resolveOrgs(user); } catch { throw notFound(); }
             if (!orgs.all.includes(stored.organizationId)) throw notFound();
         }
-        const { role } = await access().roleFor(stored, userId);
+        const found = await access().roleFor(stored, userId);
+        const { role } = found;
         if (!roleSatisfies(role, 'run')) throw notFound();
+        // A viewer knows it exists, so this one is a plain refusal, not a 404.
+        if (!mayStartRun(found)) throw runStartForbidden();
         return { stored, role, orgId: stored.organizationId || user.organizationId || null };
     }
 

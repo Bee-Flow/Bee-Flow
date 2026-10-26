@@ -198,7 +198,7 @@ async function sharedWithCaller(req) {
         const rows = await automationStore.listAutomationsSharedWithUser(me.id, {
             orgId: me.organizationId, groupIds: groupsOf(me),
         });
-        return (rows || []).map(r => projectForViewer(r, { role: r.myRole, via: 'share' }));
+        return (rows || []).map(r => projectForViewer(r, { role: r.myRole, via: 'share', ...(r.runShare ? { runShare: true } : {}) }));
     } catch (e) {
         log.warn('[automation list] shared automations unavailable:', /** @type {Error} */ (e).message);
         return [];

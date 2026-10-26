@@ -118,6 +118,13 @@ export interface Automation {
      * guess, and GET /:id/counts has it.
      */
     pendingChanges?: number;
+    /**
+     * May this caller start a run (Run now, run again)? The server's answer
+     * (server/automation/access.js mayStartRun, set by projectForViewer): a view
+     * share may read an automation but not start it. Absent from a server that
+     * predates the field, which reads as "not known" and keeps the button.
+     */
+    canStart?: boolean;
 }
 
 export interface AutomationRun {
@@ -144,6 +151,8 @@ export interface AutomationRun {
     errorClass: string | null;
     /** Failures absorbed by an on_error branch. The run still says 'success'. */
     handledErrorCount: number;
+    /** May this caller run it again? Present on GET /runs/:id; absent = not known. See Automation.canStart. */
+    canStart?: boolean;
     /**
      * Present only on GET /runs/:id, when the journey continued into a later
      * leg — the row you opened reports THAT leg's outcome (webhooksAndRunOps.js).

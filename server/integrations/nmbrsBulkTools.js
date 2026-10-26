@@ -124,7 +124,7 @@ function isBulkTool(toolName) {
  * @param {string} toolName
  * @param {Record<string, any>} args
  * @param {{ mode: string }} creds
- * @param {{ soapRequest: (creds: any, service: string, method: string, params: Record<string, unknown>) => Promise<unknown>, coerceArray: (node: unknown) => any[], validId: (v: unknown) => boolean, parseYear: (v: unknown) => number | null, parsePeriod: (v: unknown) => number | null | 'invalid', log: { info: (m: string) => void } }} deps
+ * @param {{ soapRequest: (creds: any, service: string, method: string, params: Record<string, unknown>) => Promise<unknown>, coerceArray: (node: unknown) => any[], validId: (v: unknown) => boolean, parseYear: (v: unknown) => number | null, parsePeriod: (v: unknown) => number | null | 'invalid', log: { info: (m: string) => void }, cachedRows?: import('./nmbrsPageCacheBinding').CachedRows }} deps
  */
 async function executeBulkTool(toolName, args, creds, deps) {
     const spec = /** @type {Record<string, any>} */ (BULK_SPECS)[toolName];
@@ -151,8 +151,19 @@ async function executeBulkTool(toolName, args, creds, deps) {
     /** @type {Record<string, unknown>} */
     const soapParams = {};
     for (const [soapName, argName] of spec.params) soapParams[soapName] = values[argName];
-    let rows = deps.coerceArray(await deps.soapRequest(creds, spec.service, spec.method, soapParams));
-    if (spec.fields) rows = rows.map((/** @type {unknown} */ r) => pickFields(r, spec.fields));
+    // The full list is fetched once per read: page 1 (offset 0) always asks NMBRS, later pages
+    // come from the short-lived cache. The allow-list runs BEFORE the cache, so it only holds
+    // the fields the model may see. Every argument that changes the list is in `listArgs`.
+    const fetchRows = async () => {
+        let fetched = deps.coerceArray(await deps.soapRequest(creds, spec.service, spec.method, soapParams));
+        if (spec.fields) fetched = fetched.map((/** @type {unknown} */ r) => pickFields(r, spec.fields));
+        return fetched;
+    };
+    const listArgs = { ...values };
+    delete listArgs.companyId;
+    const rows = deps.cachedRows
+        ? await deps.cachedRows({ tool: toolName, companyId, args: listArgs, fetchRows, fresh: paging.offset === 0 })
+        : await fetchRows();
     return shapePage(rows, paging, spec.scope);
 }
 

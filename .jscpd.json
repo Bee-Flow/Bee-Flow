@@ -55,6 +55,7 @@
     "mobile/src/features/projects/mirror/**",
     "mobile/src/features/orgShield/mirror/**",
     "mobile/src/shared/markdown/mirror/**",
+    "nextcloud-connector/src/shared/**",
     "guard-service/app/shared/**",
     "classify-service/app/shared/**",
     "**/*.generated.mjs",

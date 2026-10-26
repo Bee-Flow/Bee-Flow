@@ -2,6 +2,7 @@ import { Check, ChevronDown, Eye, Play } from 'lucide-react';
 import { useState } from 'react';
 import useTranslation from '../../../../hooks/useTranslation';
 import useDismiss from './useDismiss';
+import { viewOnlyRunHint } from '../../../../api/queries/automation/runAccess';
 
 export interface RunTriggerOption { id: string; label: string; kind?: string }
 
@@ -9,6 +10,8 @@ interface TestRunMenuProps {
     busy?: boolean;
     onDryRun?: ((from: string | null) => void) | null;
     onRunLive?: ((from: string | null) => void) | null;
+    /** false when the server says this caller may not start a run: "Run live" stays, disabled, with the reason. */
+    canRunLive?: boolean;
     /** The ADDITIONAL entry points of a multi-trigger automation; empty otherwise. */
     triggers?: RunTriggerOption[];
     primaryLabel?: string;
@@ -23,7 +26,7 @@ const ITEM = 'w-full text-left px-3 py-2 text-[13px] hover:bg-[var(--bg-secondar
  * deliberate step further away. Both handlers get the chosen trigger id
  * (null = the primary), so the shell sends that trigger's own sample.
  */
-export default function TestRunMenu({ busy = false, onDryRun, onRunLive, triggers = [], primaryLabel = 'Primary trigger' }: TestRunMenuProps) {
+export default function TestRunMenu({ busy = false, onDryRun, onRunLive, canRunLive = true, triggers = [], primaryLabel = 'Primary trigger' }: TestRunMenuProps) {
     const { t } = useTranslation();
     const { open, setOpen, ref } = useDismiss();
     const [fromId, setFromId] = useState<string | null>(null);
@@ -84,11 +87,18 @@ export default function TestRunMenu({ busy = false, onDryRun, onRunLive, trigger
                         </span>
                     </button>
                     {typeof onRunLive === 'function' && (
-                        <button type="button" role="menuitem" onClick={() => pick(onRunLive)} className={ITEM}>
+                        <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => pick(onRunLive)}
+                            disabled={!canRunLive}
+                            title={canRunLive ? undefined : viewOnlyRunHint(t)}
+                            className={`${ITEM} disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
                             <Play size={14} className="mt-0.5 shrink-0 text-[var(--accent-primary)]" />
                             <span className="min-w-0">
                                 <span className="block text-[var(--text-primary)]">{t('automations.header.run_live', 'Run live')}</span>
-                                <span className="block text-[11px] text-[var(--text-tertiary)]">{t('automations.header.run_live_hint', 'Executes every step for real')}</span>
+                                <span className="block text-[11px] text-[var(--text-tertiary)]">{canRunLive ? t('automations.header.run_live_hint', 'Executes every step for real') : viewOnlyRunHint(t)}</span>
                             </span>
                         </button>
                     )}

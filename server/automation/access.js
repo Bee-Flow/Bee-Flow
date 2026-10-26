@@ -10,7 +10,8 @@
  *   owner  the person the automation belongs to. Steps run as them.
  *   edit   change steps and settings, activate, publish, pause. Not delete,
  *          not change who it is shared with, not hand it to someone else.
- *   view   read the steps and every run, read-only.
+ *   view   read the steps and every run, read-only. A viewer does NOT start
+ *          runs (mayStartRun): `view` ranks above `run` for reading only.
  *   run    start it (manual run, Test, an app button later) and see ONLY the
  *          runs they started themselves.
  *
@@ -44,6 +45,7 @@
 
 const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
+const { HttpError } = require('../core/http/errors');
 
 const ROLES = Object.freeze(['run', 'view', 'edit']);
 const RANK = Object.freeze({ run: 1, view: 2, edit: 3, owner: 4 });
@@ -55,6 +57,26 @@ function roleSatisfies(role, need) {
     const have = RANK[role];
     const want = RANK[need];
     return typeof have === 'number' && typeof want === 'number' && have >= want;
+}
+
+/**
+ * May this caller START a run (Run now, run again, an agent or MCP start)? The
+ * `run` role exists for exactly that, and edit and up may; `view` is read-only,
+ * so the rank order (view above run) answers reading, never starting. A view
+ * share next to a run share (roleFor's `runShare`) still starts.
+ *
+ * @param {string|null|undefined|{ role?: string|null, runShare?: boolean }} access  a role, or a roleFor answer
+ */
+function mayStartRun(access) {
+    const role = typeof access === 'string' ? access : access?.role;
+    if (typeof access === 'object' && access?.runShare === true) return true;
+    return role === 'run' || roleSatisfies(role, 'edit');
+}
+
+/** The 403 for a caller who may see an automation but not start it. */
+function runStartForbidden() {
+    return new HttpError(403, 'automation_run_forbidden',
+        'You can view this automation but not start it. Ask its owner for the run or edit role.');
 }
 
 /** The strongest of a list of share roles, or null. */
@@ -109,7 +131,7 @@ function makeAutomationAccess(overrides = {}) {
      * @param {object|null} automation  a store row (rowToAutomation shape)
      * @param {string|null} userId
      * @param {{ session?: any }} [opts]
-     * @returns {Promise<{ role: 'owner'|'edit'|'view'|'run'|null, via: 'owner'|'admin'|'share'|null }>}
+     * @returns {Promise<{ role: 'owner'|'edit'|'view'|'run'|null, via: 'owner'|'admin'|'share'|null, runShare?: true }>}
      */
     async function roleFor(automation, userId, { session = null } = {}) {
         if (!automation || !userId) return NONE;
@@ -125,26 +147,44 @@ function makeAutomationAccess(overrides = {}) {
             if (admin) return { role: 'owner', via: 'admin' };
             const shares = await store().listSharesForAutomation(automation.id);
             const groups = new Set(groupsOf(user));
-            const role = strongestRole((shares || [])
+            const mine = (shares || [])
                 .filter(s => (s.principalType === 'user' && s.principalId === userId)
                     || (s.principalType === 'group' && groups.has(s.principalId)))
-                .map(s => s.role));
-            return role ? { role, via: 'share' } : NONE;
+                .map(s => s.role);
+            const role = strongestRole(mine);
+            if (!role) return NONE;
+            // `view` outranks `run` for reading but does not start runs: a run
+            // share beside it keeps that right (mayStartRun).
+            return role === 'view' && mine.includes('run') ? { role, via: 'share', runShare: true } : { role, via: 'share' };
         } catch (e) {
             log.warn(`[automation access] role lookup failed for ${automation.id} / ${userId}: ${e.message}`);
             return NONE;
         }
     }
 
-    /** True when `user` may do what `need` asks on `automation`. */
+    /**
+     * True when `user` may do what `need` asks on `automation`. `need` is a role
+     * name, or 'start' for starting a run (mayStartRun).
+     */
     async function canAccessAutomation(automation, user, need, opts = {}) {
         const userId = typeof user === 'string' ? user : user?.id;
-        const { role } = await roleFor(automation, userId, opts);
-        return roleSatisfies(role, need);
+        const access = await roleFor(automation, userId, opts);
+        return need === 'start' ? mayStartRun(access) : roleSatisfies(access.role, need);
     }
 
     /**
-     * Route helper: the caller's access, or `null` after answering 403.
+     * May this caller start a run of the automation with this id (run it again)?
+     * True, false, or null when the automation cannot be read. Asked of the
+     * automation, the retry route's own gate, never of a run.
+     */
+    async function canStartById(automationId, userId, session = null) {
+        const a = await Promise.resolve(store().getAutomation(automationId)).catch((e) => fallback('automation/access:canStartById', e, null));
+        return a ? mayStartRun(await roleFor(a, userId, { session })) : null;
+    }
+
+    /**
+     * Route helper: the caller's access, or `null` after answering 403. `need`
+     * 'start' is starting a run (mayStartRun); a viewer gets runStartForbidden.
      *
      *   const access = await guard(req, res, a, 'edit'); if (!access) return;
      *
@@ -155,8 +195,10 @@ function makeAutomationAccess(overrides = {}) {
     async function guard(req, res, automation, need) {
         const userId = req?.session?.user?.id || null;
         const access = await roleFor(automation, userId, { session: req?.session || null });
-        if (roleSatisfies(access.role, need)) return access;
-        res.status(403).json({ error: 'Forbidden', code: 'automation_forbidden', need });
+        if (need === 'start' ? mayStartRun(access) : roleSatisfies(access.role, need)) return access;
+        // 'start' (a run): a caller who can see it is told why, as a thrown 403.
+        if (need === 'start' && access.role) throw runStartForbidden();
+        res.status(403).json({ error: 'Forbidden', code: 'automation_forbidden', need: need === 'start' ? 'run' : need });
         return null;
     }
 
@@ -185,7 +227,7 @@ function makeAutomationAccess(overrides = {}) {
         return null;
     }
 
-    return { roleFor, canAccessAutomation, guard, runGuard, organisationOf };
+    return { roleFor, canAccessAutomation, canStartById, guard, runGuard, organisationOf };
 }
 
 /**
@@ -193,6 +235,9 @@ function makeAutomationAccess(overrides = {}) {
  *
  *   myRole     'owner'|'edit'|'view'|'run' ('owner' for an org admin too)
  *   accessVia  'owner'|'admin'|'share'
+ *   canStart   mayStartRun(access): may this caller start a run (Run now, run
+ *              again)? The client reads this instead of re-deriving it from
+ *              `myRole`, which cannot see a run share beside a view share.
  *
  * Anyone but the owner loses `builderSession` (the owner's own builder chat).
  * A run-only caller gets the TRIGGERS of the copy their run executes (the
@@ -204,7 +249,8 @@ function projectForViewer(automation, access) {
     if (!automation) return automation;
     const role = access?.role || null;
     const via = access?.via || null;
-    const out = { ...automation, myRole: role, accessVia: via };
+    const out = { ...automation, myRole: role, accessVia: via, canStart: mayStartRun(access) };
+    delete out.runShare;
     if (via !== 'owner') out.builderSession = null;
     if (role === 'run') {
         const def = require('../core/automationRunner/definitionForRun')
@@ -240,6 +286,8 @@ module.exports = {
     NEEDS,
     RANK,
     roleSatisfies,
+    mayStartRun,
+    runStartForbidden,
     strongestRole,
     groupsOf,
     makeAutomationAccess,

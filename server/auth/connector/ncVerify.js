@@ -5,24 +5,8 @@
  * starts with). Split out of auth/connectorBootstrap.js, which re-exports it.
  */
 
-const { ncHostFromUrl } = require('../orgNaming');
+const { stableInstanceIdFallback } = require('../orgNaming');
 const { nextcloudFetch } = require('../../utils/nextcloudTarget');
-
-// Stable fallback id for Nextclouds that expose neither theming.instanceid nor
-// core.instanceid. MUST stay byte-identical to the connector's copy in
-// nextcloud-connector/src/bootstrap.js so the id the connector sends in
-// X-Beeflow-NC-Instance-Id matches the value we re-derive here. Keyed on the NC
-// host (not the NC version) so it doesn't drift across upgrades and silently
-// re-provision a duplicate org.
-/**
- * @param {string} ncBaseUrl
- * @param {string | null | undefined} themingName
- */
-function stableInstanceIdFallback(ncBaseUrl, themingName) {
-    const host = ncHostFromUrl(ncBaseUrl);
-    if (host) return `nc-host:${host}`;
-    return `nc:${themingName || 'nextcloud'}`;
-}
 
 // Spoofing defence: GET <ncBaseUrl>/ocs/v2.php/cloud/capabilities and verify
 // the instance id round-trips. Necessary but not sufficient — an attacker

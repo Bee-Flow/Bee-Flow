@@ -121,11 +121,17 @@ async function getActiveWindow(now = Date.now()) {
     }
     if (!raw) return null;
 
-    let win;
-    try {
-        win = JSON.parse(raw);
-    } catch (_e) {
-        return null;
+    // configStore.getConfig already JSON-parses a stored value, so the window
+    // normally arrives as an object; parsing it a second time threw and made
+    // every announced window read as "none". A string (an older facade, a
+    // value that did not parse in the store) is still accepted.
+    let win = raw;
+    if (typeof raw === 'string') {
+        try {
+            win = JSON.parse(raw);
+        } catch (_e) {
+            return null;
+        }
     }
     return _isActive(win, now) ? win : null;
 }

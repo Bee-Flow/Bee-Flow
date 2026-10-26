@@ -181,8 +181,12 @@ async function getUserByEmailVerificationToken(tokenHash) {
 async function findOrgMemberIdByEmail(organizationId, email) {
     if (!organizationId || !email) return null;
     await initDB();
+    // 'default' is the bucket of users WITHOUT an organisation ("organizationId"
+    // '' or NULL), the same bucket the DSR intake files their requests under.
+    // Matching the literal alone found none of them, so their scan said "no
+    // account" and every count after it was zero.
     const u = await getOne(
-        'SELECT id FROM users WHERE LOWER(email) = LOWER($1) AND "organizationId" = $2',
+        'SELECT id FROM users WHERE LOWER(email) = LOWER($1) AND COALESCE(NULLIF("organizationId", \'\'), \'default\') = $2',
         [email, organizationId],
     );
     return u?.id || null;
