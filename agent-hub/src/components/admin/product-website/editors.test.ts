@@ -59,8 +59,9 @@ const EXPORT_NAMES = [
 
 describe('editors barrel', () => {
     it('exposes all 37 exports (28 as of the 2026-07 split + compare-table + github-stats + release-notes + blog-latest + tabs + story-header + customer-stories + product-mockup + card-carousel)', () => {
+        const surface = Object.entries(editors);
         for (const name of EXPORT_NAMES) {
-            expect((editors as Record<string, unknown>)[name], `export "${name}" should be defined`).toBeDefined();
+            expect(surface.find(([key]) => key === name)?.[1], `export "${name}" should be defined`).toBeDefined();
         }
     });
 

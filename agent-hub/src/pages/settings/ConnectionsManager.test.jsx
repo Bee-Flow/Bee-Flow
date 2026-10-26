@@ -80,6 +80,7 @@ describe('ConnectionsManager — http provider', () => {
         await user.clear(byPlaceholder('Client ID'));
         await user.type(byPlaceholder('Client ID'), 'client-abc');
         await user.clear(byPlaceholder('Client secret'));
+        // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- a fake value typed into the form under test
         await user.type(byPlaceholder('Client secret'), 's3cr3t-value');
         await user.clear(byPlaceholder('Scopes (space-separated, optional)'));
         await user.type(byPlaceholder('Scopes (space-separated, optional)'), 'read write');
