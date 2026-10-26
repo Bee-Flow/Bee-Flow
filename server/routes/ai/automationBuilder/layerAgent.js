@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Automation Builder — POST /layer-agent (SSE): build or refine ONE inline
  * flowlet with a focused thinking-model sub-agent, separate from the chat.

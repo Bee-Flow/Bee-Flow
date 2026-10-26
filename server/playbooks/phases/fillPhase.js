@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Phase `fill` — run the automation once so the table has rows before the app
  * is built on it. Mirrors routes/automation/runs.js: `executeAutomation`

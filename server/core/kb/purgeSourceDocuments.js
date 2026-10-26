@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -88,6 +88,7 @@ async function purgeSourceDocuments({
     const rounds = Number(maxRounds) > 0 ? Number(maxRounds) : MAX_ROUNDS;
 
     let deleted = 0;
+    /** @type {{ documentId: string, error: string }[]} */
     const errors = [];
     let complete = false;
 

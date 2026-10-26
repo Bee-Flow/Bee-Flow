@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Web-Search Inference Routing
  *
@@ -61,7 +61,7 @@ function sanitizeEmbedConfig(raw) {
  */
 function sanitizeRerankConfig(raw) {
     if (!raw || typeof raw !== 'object') return { ...DEFAULTS.rerank };
-    const method = RERANK_METHODS.has(raw.method) ? raw.method : DEFAULTS.rerank.method;
+    const method = typeof raw.method === 'string' && RERANK_METHODS.has(raw.method) ? raw.method : DEFAULTS.rerank.method;
     if (method !== 'provider') return { method, providerId: '', modelId: '' };
     const { providerId, modelId } = sanitizeProviderModel(raw);
     // Provider method without a target falls back to cosine — half-configured is invalid.

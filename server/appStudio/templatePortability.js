@@ -133,7 +133,7 @@ function exportFilename(template) {
  * that the recipient will have to wire up.
  * @param {ResolvedTemplate} template
  */
-function buildExport(template, { exportedAt = null, source = null } = {}) {
+function buildExport(template, /** @type {{ exportedAt?: string | null, source?: unknown }} */ { exportedAt = null, source = null } = {}) {
     /** @type {string[]} */
     const warnings = [];
     if (!isObject(template)) {

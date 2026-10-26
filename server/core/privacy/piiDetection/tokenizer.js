@@ -168,7 +168,7 @@ const _TOKEN_NAME_RE = /^\[([a-z0-9_]+)_(\d+)\]$/;
 /**
  * @returns {{ tokenizedText: string, tokenMap: Record<string, string>, sweptEntities: import('./nameSweep').SweptSpan[] }}
  */
-function tokenizeText(text, entities, existingTokenMap = null, options = {}) {
+function tokenizeText(text, entities, /** @type {Record<string, string> | null} */ existingTokenMap = null, options = {}) {
     if (!entities || entities.length === 0) return { tokenizedText: text, tokenMap: {}, sweptEntities: [] };
 
     // Seed counters + value→token reverse index from the conversation's

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Catalog and template gallery: read, delete, export, import (routes/studioApps/).
  *

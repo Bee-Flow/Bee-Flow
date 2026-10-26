@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * How many items of a "run once per item" step may be in flight at once, and
  * the worker pool that runs them (execForEachStep).
@@ -40,7 +40,10 @@ function forEachMaxConcurrency() {
     return Number.isInteger(n) && n >= 0 ? n : DEFAULT_MAX_CONCURRENCY;
 }
 
-/** The step's own `forEach.concurrency` when it is a usable integer, else null. */
+/**
+ * The step's own `forEach.concurrency` when it is a usable integer, else null.
+ * @param {{ forEach?: { concurrency?: unknown } } | null | undefined} step
+ */
 function stepConcurrency(step) {
     const v = Number(step && step.forEach && step.forEach.concurrency);
     if (!Number.isFinite(v) || v < 1) return null;

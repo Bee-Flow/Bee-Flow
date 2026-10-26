@@ -188,7 +188,7 @@ function makeSheetAssistant(deps = {}) {
          * @returns {Promise<SheetEntry>}
          */
         async function loadTab(tab) {
-            if (loaded.has(tab.id)) return loaded.get(tab.id);
+            const hit = loaded.get(tab.id); if (hit) return hit;
             const { cells: original } = await cellsApi().readSheet(doc.userId, tab.datatableId);
             const entry = { tab, original, staged: { ...original }, shown: {}, name: tab.name, tableId: tab.datatableId };
             loaded.set(tab.id, entry);

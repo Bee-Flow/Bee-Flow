@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The relevance gate: one short structured call to the fast tier that decides
  * whether the AI should join a conversation now. It never answers; it only

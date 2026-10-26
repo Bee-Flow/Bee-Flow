@@ -28,7 +28,7 @@ class SourceError extends Error {
     /**
      * @param {string} message
      */
-    constructor(status, code, message, { errorClass = null, ref = null, detail = null, datatableId = null } = {}) {
+    constructor(status, code, message, /** @type {{ errorClass?: string | null, ref?: unknown, detail?: unknown, datatableId?: string | null }} */ { errorClass = null, ref = null, detail = null, datatableId = null } = {}) {
         super(message);
         this.name = 'SourceError';
         this.status = status;

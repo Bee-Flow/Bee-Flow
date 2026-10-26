@@ -19,7 +19,7 @@ const MISTRAL_OCR_MODEL = 'mistral-ocr-latest';
  * key when the default provider IS Mistral. Using it otherwise would send the
  * documents to api.mistral.ai together with another vendor's key. The explicit
  * `mistral_api_key` secret (`mistralApiKey`) is always a Mistral key.
- * @param {{ mistralOcrApiKey?: string, mistralApiKey?: string, url?: string, providerType?: string, apiKey?: string }} config
+ * @param {import('../llm/modelCache').AIConfig} config
  * @returns {string | null}
  */
 function resolveMistralOcrKey(config) {

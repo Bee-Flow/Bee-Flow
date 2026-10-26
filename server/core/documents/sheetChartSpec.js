@@ -1,5 +1,5 @@
 /** @typedef {import('./sheetChartFields').ChartFields} ChartFields */
-// @typecheck
+// @typecheck strict
 /**
  * Charts on a spreadsheet, as the chat's document_write adds them.
  *
@@ -97,7 +97,7 @@ async function addCharts(doc, charts, deps, changes = {}) {
     const sheet = latest.settings?.sheet || {};
     try {
         const updated = await documents.updateDocument(doc.id, actor, {
-            settings: { ...latest.settings, sheet: { ...sheet, charts: [...(sheet.charts || []).filter((c) => !(changes.removed || []).includes(c.id)).map((c) => (changes.updated || []).find((u) => u.id === c.id) || c), ...charts] } },
+            settings: { ...latest.settings, sheet: { ...sheet, charts: [...(sheet.charts || []).filter((/** @type {{ id: string }} */ c) => !(changes.removed || []).includes(c.id)).map((/** @type {{ id: string }} */ c) => (changes.updated || []).find((u) => u.id === c.id) || c), ...charts] } },
             expectedVersionId: latest.versionId,
         });
         if (!updated) return { error: 'The spreadsheet was not found.' };

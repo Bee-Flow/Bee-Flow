@@ -224,7 +224,7 @@ class FeatureServiceUnavailableError extends Error {
     }
 }
 
-async function getUserBetaFeatures(userId, session = null, { tierHint = null } = {}) {
+async function getUserBetaFeatures(userId, /** @type {import('./entitlementTypes').SessionLike | null} */ session = null, { tierHint = null } = {}) {
     if (session?.isAdmin) {
         return BETA_FEATURES.map(f => f.id);
     }
@@ -397,7 +397,7 @@ function resolveFeatureAliases(featureId) {
  * Aliased feature IDs (a deprecated id pointing at its canonical replacement
  * via `aliasOf`) are treated as equivalent.
  */
-async function userHasBetaFeature(userId, featureId, session = null) {
+async function userHasBetaFeature(userId, featureId, /** @type {import('./entitlementTypes').SessionLike | null} */ session = null) {
     const ent = require('./entitlements');
     // Unified path: for any capability with a registry row, the single resolver
     // (resolveEntitlements) is the source of truth — identical to the route-mount

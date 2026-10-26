@@ -31,7 +31,7 @@ function isPrivateHost(hostname) {
  * @returns {Promise<{ payload, policy, auditBase, guarded, destination }>}
  * @param {string} mode
  */
-async function guardOutbound(step, ctx, mode, { toolName, payload, destination = 'external', integMeta = null }) {
+async function guardOutbound(step, ctx, mode, /** @type {{ toolName: string, payload: unknown, destination?: string, integMeta?: Record<string, unknown> | null }} */ { toolName, payload, destination = 'external', integMeta = null }) {
     const policy = await safety.resolveAutomationPolicy(ctx);
     const auditBase = safety.buildAuditBase(ctx, step);
     let guarded;
