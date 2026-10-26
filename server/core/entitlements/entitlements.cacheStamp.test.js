@@ -22,7 +22,6 @@
 
 const { test, after } = require('node:test');
 const assert = require('node:assert/strict');
-const { installResolveStub } = require('../../testUtils/stubRequire');
 
 // ── DB seam (identical to entitlements.test.js) ──────────────────────────
 const noDb = async () => { throw new Error('[test] DB access is stubbed out in this unit test'); };
@@ -50,13 +49,8 @@ class StubPgClient {
 }
 const pgStub = { Client: StubPgClient, Pool: StubPgClient, types: { setTypeParser() {} } };
 
-const restore = installResolveStub({
-    '../db': dbStub,
-    '../../db': dbStub,
-    '../../../db': dbStub,
-    pg: pgStub,
-});
-after(() => restore());
+// The real modules over a recording pool, so nothing opens a connection.
+require('../../testUtils/routeHarness').recordDb();
 
 const license = require('../../license/index');
 const betaFeatures = require('./betaFeatures');

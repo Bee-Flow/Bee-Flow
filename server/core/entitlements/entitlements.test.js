@@ -30,7 +30,6 @@
 
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert');
-const { installResolveStub } = require('../../testUtils/stubRequire');
 
 // ── DB seam ──────────────────────────────────────────────────────────────
 // Every store still runs its real module-load schema init; it just fails fast
@@ -62,13 +61,8 @@ class StubPgClient {
 }
 const pgStub = { Client: StubPgClient, Pool: StubPgClient, types: { setTypeParser() {} } };
 
-const restore = installResolveStub({
-    '../db': dbStub,
-    '../../db': dbStub,
-    '../../../db': dbStub,
-    pg: pgStub,
-});
-after(() => restore());
+// The real modules over a recording pool, so nothing opens a connection.
+require('../../testUtils/routeHarness').recordDb();
 
 const registry = require('./capabilityRegistry');
 const license = require('../../license/index');
