@@ -1,11 +1,12 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { aiProvidersKey, useAiProvidersQuery } from '../../../../api/queries/adminConfigReads';
 import ProviderApiKeyCard from './ProviderApiKeyCard';
 import type { ProviderCardProps } from './ProviderApiKeyCard';
 import { PROVIDER_KEY_CONFIGS } from './providerKeyConfig';
 import { API_BASE } from '../../../../utils/helpers';
 import { useTranslation } from '../../../../hooks/useTranslation';
-import { logger } from '../../../../utils/logger';
-import { request, RefusedError, mutate, errorBody } from '../../../../api/mutate';
+import { RefusedError, mutate, errorBody } from '../../../../api/mutate';
 
 const EU_HOST = 'eu.api.openai.com';
 
@@ -30,24 +31,10 @@ interface OpenAIProvider {
  */
 const EuResidencyToggle = ({ onMessage }: ProviderCardProps) => {
     const { t } = useTranslation();
-    const [provider, setProvider] = useState<OpenAIProvider | null>(null);
+    const queryClient = useQueryClient();
+    const providers = useAiProvidersQuery<OpenAIProvider>().data;
+    const provider = providers?.find(p => p.type === 'openai') || null;
     const [saving, setSaving] = useState(false);
-
-    const load = useCallback(async () => {
-        try {
-            let res: Response;
-            try {
-                res = await request(`${API_BASE}/ai/providers`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                return;
-            }
-            const data = await res.json();
-            setProvider((data.providers || []).find((p: OpenAIProvider) => p.type === 'openai') || null);
-        } catch (e) { logger.debug('Non-fatal: the card still works as an API-key card without this.', e); }
-    }, []);
-
-    useEffect(() => { load(); }, [load]);
 
     if (!provider) return null;
 
@@ -71,7 +58,7 @@ const EuResidencyToggle = ({ onMessage }: ProviderCardProps) => {
             }
             if (res) {
                 const data = await res.json();
-                setProvider(p => ({ ...p, url: data.url }));
+                queryClient.setQueryData<OpenAIProvider[] | null>(aiProvidersKey, (all) => (all || []).map(p => (p.id === provider.id ? { ...p, url: data.url } : p)));
                 onMessage?.({
                     type: 'success',
                     text: data.region === 'eu'

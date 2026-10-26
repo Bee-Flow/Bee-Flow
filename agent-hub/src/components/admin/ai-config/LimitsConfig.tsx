@@ -1,11 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useAiConfigQuery } from '../../../api/queries/aiConfigRead';
+import useDraftOverServer from '../../../hooks/useDraftOverServer';
 import { API_BASE } from '../../../utils/helpers';
 import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
 import type { StatusMessage } from './chatModelTiers/tierTypes';
-import { mutate, ApiError, request, RefusedError } from '../../../api/mutate';
+import { mutate, ApiError } from '../../../api/mutate';
 
 interface LimitsConfigProps {
     onNavigateToTab?: (tab: string) => void;
+}
+
+/** The keys of GET /ai/config this card reads. */
+interface LimitsConfigData {
+    maxToolRoundsChat?: number | string | null;
+    kbProvider?: string | null;
+    cpuRerankerEnabled?: boolean;
+    embeddingModel?: string | null;
+    embeddingProviderId?: string | null;
+    searchProvider?: string | null;
+    hasSerperKey?: boolean;
+    hasAgentSearchUrl?: boolean;
 }
 
 interface LimitsStatus {
@@ -24,47 +38,29 @@ const LimitsConfig = ({ onNavigateToTab }: LimitsConfigProps) => {
         { name: t('admin_ai_config.limits_surface_webpage', 'Webpage chat'), value: 10 },
         { name: t('admin_ai_config.limits_surface_native', 'Native streaming loop'), value: 10 },
     ];
-    const [value, setValue] = useState('');
-    const [kbProvider, setKbProvider] = useState('auto');
-    const [cpuRerankerEnabled, setCpuRerankerEnabled] = useState(true);
-    const [status, setStatus] = useState<LimitsStatus>({
-        embedModel: null,
-        embedProvider: null,
-        searchProvider: null,
-        hasSerperKey: false,
-        hasAgentSearchUrl: false,
-    });
-    const [loading, setLoading] = useState(true);
+    const aiConfig = useAiConfigQuery<LimitsConfigData>();
+    const stored = aiConfig.data?.config;
+    const serverForm = useMemo(() => ({
+        value: String(stored?.maxToolRoundsChat ?? ''),
+        kbProvider: stored?.kbProvider || 'auto',
+        cpuRerankerEnabled: stored?.cpuRerankerEnabled !== false,
+    }), [stored]);
+    const { value: form, patch, discard } = useDraftOverServer(serverForm);
+    const { value, kbProvider, cpuRerankerEnabled } = form;
+    const setValue: React.Dispatch<React.SetStateAction<string>> = (next) => patch({ value: typeof next === 'function' ? next(value) : next });
+    const setKbProvider = (next: string) => patch({ kbProvider: next });
+    const status: LimitsStatus = useMemo(() => ({
+        embedModel: stored?.embeddingModel || null,
+        embedProvider: stored?.embeddingProviderId || null,
+        searchProvider: stored?.searchProvider || 'agent-search',
+        hasSerperKey: !!stored?.hasSerperKey,
+        hasAgentSearchUrl: !!stored?.hasAgentSearchUrl,
+    }), [stored]);
+    const loading = aiConfig.isPending;
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<StatusMessage | null>(null);
+    const { refetch: fetchConfig } = aiConfig;
 
-    useEffect(() => { fetchConfig(); }, []);
-
-    const fetchConfig = async () => {
-        try {
-            const res = await request(`${API_BASE}/ai/config`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (res) {
-                const data = await res.json();
-                setValue(data.maxToolRoundsChat ?? '');
-                setKbProvider(data.kbProvider || 'auto');
-                setCpuRerankerEnabled(data.cpuRerankerEnabled !== false);
-                setStatus({
-                    embedModel: data.embeddingModel || null,
-                    embedProvider: data.embeddingProviderId || null,
-                    searchProvider: data.searchProvider || 'agent-search',
-                    hasSerperKey: !!data.hasSerperKey,
-                    hasAgentSearchUrl: !!data.hasAgentSearchUrl,
-                });
-            }
-        } catch (e) {
-            console.error('Failed to load limits:', e);
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleSave = async () => {
         setSaving(true);
@@ -85,7 +81,7 @@ const LimitsConfig = ({ onNavigateToTab }: LimitsConfigProps) => {
             });
             if (res) {
                 setMessage({ type: 'success', text: t('admin_ai_config.limits_saved', 'Saved') });
-                fetchConfig();
+                fetchConfig().then(discard);
             } else {
                 setMessage({ type: 'error', text: t('admin_ai_config.limits_save_failed', 'Failed to save') });
             }
@@ -171,7 +167,7 @@ const LimitsConfig = ({ onNavigateToTab }: LimitsConfigProps) => {
                     <input
                         type="checkbox"
                         checked={cpuRerankerEnabled}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCpuRerankerEnabled(e.target.checked)}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => patch({ cpuRerankerEnabled: e.target.checked })}
                         className="rounded"
                     />
                     <span className="text-sm text-[var(--text-primary)]">

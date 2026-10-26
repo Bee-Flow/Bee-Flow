@@ -100,3 +100,31 @@ export function useSkillPickerListsQuery<Group, Automation, Kb, Table>(enabled: 
         retry: false,
     });
 }
+
+/** The cache key of the AI providers list, for the card that writes a changed endpoint into it. */
+export const aiProvidersKey = ['admin-config', 'ai-providers'] as const;
+
+/** GET /ai/providers: the configured providers; a refusal reads as null (the card hides). */
+export function useAiProvidersQuery<P>() {
+    return useQuery<P[] | null, Error>({
+        queryKey: aiProvidersKey,
+        queryFn: async ({ signal }) => {
+            const data = await readOrNull<{ providers?: P[] }>(`${API_BASE}/ai/providers`, signal);
+            return data ? data.providers || [] : null;
+        },
+        staleTime: 0,
+        retry: false,
+    });
+}
+
+export interface WebSearchInferenceAnswer<Config, Summary> { config?: Config; embedSummary?: Summary }
+
+/** GET /ai/config/web-search-inference: the embed / rerank / cleanup model choices and the inherited embedding summary. */
+export function useWebSearchInferenceQuery<Config, Summary>() {
+    return useQuery<WebSearchInferenceAnswer<Config, Summary> | null, Error>({
+        queryKey: ['admin-config', 'web-search-inference'] as const,
+        queryFn: ({ signal }) => readOrNull<WebSearchInferenceAnswer<Config, Summary>>(`${API_BASE}/ai/config/web-search-inference`, signal),
+        staleTime: 0,
+        retry: false,
+    });
+}

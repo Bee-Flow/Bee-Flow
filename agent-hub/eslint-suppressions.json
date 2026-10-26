@@ -2695,7 +2695,7 @@
   },
   "src/components/admin/ai-config/WebSearchInferenceConfig.tsx": {
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/admin/ai-config/chatModelTiers/ChatTiersSection.tsx": {
