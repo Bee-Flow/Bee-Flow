@@ -71,8 +71,7 @@ function syncRows(table, opts) {
  * table, so a read site can call it unconditionally behind its answer.
  */
 function kickStale(table, opts) {
-    const adapter = sourceOf(table);
-    return adapter ? adapter.sync.kickStale(table, opts) : false;
+    return require('./mirror/kickStale').kickStale(table, opts);
 }
 
 /** The write-through module for a table's kind (insertRow/updateRow/deleteRow, the batch forms, contextOf). */

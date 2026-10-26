@@ -41,6 +41,8 @@ const restore = installResolveStub({
     './ncApi': { forLinker: () => ({ getRow: async () => { if (!world.ncRow) throw new Error('404'); return world.ncRow; } }) },
     './relations': { buildRelationIndexes: async () => ({ relationIndexes: new Map(), labelIndexes: new Map(), warnings: [] }) },
     './sync': { kickStale: (t, o) => { world.kicked.push([t.id, o && o.reason]); return true; } },
+    // mirror/kickStale.js reaches the same module by its own request string
+    '../nextcloudTable/sync': { kickStale: (t, o) => { world.kicked.push([t.id, o && o.reason]); return true; } },
 });
 const events = require('./events');
 test.after(() => restore());
