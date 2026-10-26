@@ -192,7 +192,7 @@ export default function useEventWiring({
     event, node, definition, onCommit, onTestActionResult, automations, setAutomations, titleFor, appId = null,
 }: UseEventWiringOptions): EventWiring {
     const { t } = useTranslation();
-    const actions = definition?.actions || {};
+    const actions = useMemo(() => definition?.actions || {}, [definition?.actions]);
     const actionId = typeof node?.[event] === 'string' ? node[event] as string : null;
     const action = actionId ? actions[actionId] : null;
 

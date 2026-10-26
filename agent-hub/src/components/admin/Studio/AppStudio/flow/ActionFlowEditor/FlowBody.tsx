@@ -30,7 +30,7 @@ export function FlowBody({ action, onChange, definition, node = null, disabled =
     const graph = useMemo(() => stepsToGraph(withIds, t), [withIds, t]);
     const positions = useMemo(() => layoutGraph(graph.nodes), [graph.nodes]);
 
-    const screens = definition?.screens || [];
+    const screens = useMemo(() => definition?.screens || [], [definition?.screens]);
     const references = useStepReferences(definition);
     const selected = graph.nodes.find((n): n is StepNode => n.id === selectedId && !n.isEntry) || null;
 

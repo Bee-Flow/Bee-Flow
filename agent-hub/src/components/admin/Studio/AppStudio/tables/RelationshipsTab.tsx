@@ -151,7 +151,7 @@ function Canvas({ tables, connectors, onChange, onOpenTable, disabled }: CanvasP
             for (const child of c.sync.children || []) if (child?.tableId) m.set(child.tableId, name);
         }
         return m;
-    }, [connectors]);
+    }, [connectors, tr]);
 
     const nodes = useMemo(() => (tables || []).map((t) => ({
         id: t.id,

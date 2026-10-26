@@ -91,7 +91,7 @@ export default function ComplianceStage({ playbook = null, phase, dispatch, t, p
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showLow, setShowLow] = useState(false);
-    const kept = keep === null ? findings.map((f) => f.code) : [...keep];
+    const kept = useMemo(() => (keep === null ? findings.map((f) => f.code) : [...keep]), [keep, findings]);
 
     // ── re-reading after a fix ──────────────────────────────────────
     const [rechecking, setRechecking] = useState(false);

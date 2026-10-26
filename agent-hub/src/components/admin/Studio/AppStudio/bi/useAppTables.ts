@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { API_BASE, authFetch } from '@/utils/helpers';
@@ -57,7 +57,7 @@ export default function useAppTables(appId: string | null | undefined) {
         retry: false,
     });
 
-    const tables = Array.isArray(query.data) ? query.data : [];
+    const tables = useMemo(() => (Array.isArray(query.data) ? query.data : []), [query.data]);
     const fieldsFor = useCallback((tableRef: string | null | undefined) => fieldsForTable(tables, tableRef), [tables]);
 
     return {

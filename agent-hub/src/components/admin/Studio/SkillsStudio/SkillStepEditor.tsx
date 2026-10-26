@@ -61,7 +61,7 @@ export default function SkillStepEditor({
     onOpenRef = null,
 }: SkillStepEditorProps) {
     const { t } = useTranslation();
-    const rows = Array.isArray(steps) ? steps : [];
+    const rows = useMemo(() => (Array.isArray(steps) ? steps : []), [steps]);
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
