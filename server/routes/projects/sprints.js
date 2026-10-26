@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Sprints inside a project: named time boxes the team fills with tasks,
  * estimates in planning poker, starts and completes. One sprint per project
@@ -38,6 +38,7 @@ const { validate } = require('../../core/http/validate');
 const { projectAccessDeps } = require('./roleGate');
 const { badRequest, notFound, conflict } = require('../../core/http/errors');
 const S = require('./sprintSchemas');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 /**
  * @param {object} [deps]
@@ -62,7 +63,7 @@ function makeProjectSprintsRouter(deps = {}) {
     const logActivity = deps.logActivity
         || ((/** @type {string} */ projectId, /** @type {string} */ actorId, /** @type {string} */ action, /** @type {Parameters<typeof import('../../stores/projectStore').logActivity>[3]} */ details) => require('../../stores/projectStore').logActivity(projectId, actorId, action, details));
     const newId = deps.newId || (() => crypto.randomUUID());
-    const userIdOf = (/** @type {import('express').Request} */ req) => req.session.user.id;
+    const userIdOf = (/** @type {import('express').Request} */ req) => sessionUser(req).id;
 
     /** @param {import('express').Request<{ id: string }>} req */
     async function loadProject(req) {

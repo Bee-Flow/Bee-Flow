@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Notification Routes — REST API for in-app notifications.
  *
@@ -15,6 +15,7 @@ const notificationStore = require('../stores/notificationStore');
 const { pool } = require('../db');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
+const { sessionUser } = require('../core/http/sessionUser');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -84,13 +85,14 @@ async function ownsNotification(userId, id) {
         'SELECT 1 FROM notifications WHERE id = $1 AND user_id = $2',
         [id, userId]
     );
-    return rowCount > 0;
+    return (rowCount ?? 0) > 0;
+
 }
 
 /** @typedef {import('express').Request<{}, any, any, import('zod').infer<typeof ListQuery>>} NotificationListReq */
 // GET / — list notifications
 router.get('/', requireUser, validate({ query: ListQuery }), /** @param {NotificationListReq} req */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const { unread: unreadOnly = false, limit = 50 } = req.query;
     const notifications = await notificationStore.getNotifications(userId, { unreadOnly, limit });
     res.json({ notifications });
@@ -98,19 +100,19 @@ router.get('/', requireUser, validate({ query: ListQuery }), /** @param {Notific
 
 // GET /unread-count — quick badge count
 router.get('/unread-count', requireUser, async (req, res) => {
-    const count = await notificationStore.getUnreadCount(req.session.user.id);
+    const count = await notificationStore.getUnreadCount(sessionUser(req).id);
     res.json({ count });
 });
 
 // POST /read-all — mark all as read (must be before /:id/read to avoid route conflict)
 router.post('/read-all', requireUser, validate({ body: NoBody }), async (req, res) => {
-    const count = await notificationStore.markAllRead(req.session.user.id);
+    const count = await notificationStore.markAllRead(sessionUser(req).id);
     res.json({ success: true, marked: count });
 });
 
 // POST /:id/read — mark one as read
 router.post('/:id/read', requireUser, validate({ body: NoBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
 
     // 404 rather than 403 — a distinct "exists but isn't yours" answer would
     // turn this route into an id-existence oracle.
@@ -124,7 +126,7 @@ router.post('/:id/read', requireUser, validate({ body: NoBody }), async (/** @ty
 
 // DELETE /:id — delete one
 router.delete('/:id', requireUser, async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
 
     if (!await ownsNotification(userId, req.params.id)) {
         return res.status(404).json({ error: 'Notification not found' });

@@ -238,8 +238,14 @@ function isPermissionLookupDegraded() {
     return Date.now() - _lastPermLookupFailedAt < 60_000; // 1-min sticky
 }
 
-// Helper to check if user has a specific permission
+/**
+ * Helper to check if user has a specific permission
+ * @param {string} userId
+ * @param {string} permission
+ * @param {import('../core/entitlements/betaFeatures').SessionLike | null} [session]
+ */
 async function hasPermission(userId, permission, session = null) {
+
     const perms = await getUserPermissions(userId, session);
     return perms.includes('all') || perms.includes(permission);
 }

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Gamma Integration Routes
  *
@@ -18,6 +18,7 @@ const router = express.Router();
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../../auth/permissions');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -36,7 +37,7 @@ router.get('/generations/:generationId', requireAuth, validate({ params: Generat
     const result = await executeGammaTool(
         'gamma_get_generation_status',
         { generationId: req.params.generationId },
-        req.session.user.id,
+        sessionUser(req).id,
     );
 
     if (result?.error) {

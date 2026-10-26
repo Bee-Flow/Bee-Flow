@@ -121,7 +121,7 @@ const LOCAL_URL_PATTERNS = [
 /**
  * Get the correct provider adapter.
  *
- * @param {string} [providerType] - Provider type ('openai', 'mistral', 'claude', etc.)
+ * @param {string | null} [providerType] - Provider type ('openai', 'mistral', 'claude', etc.)
  * @param {string} [url] - Provider URL (used for auto-detection if type is unknown)
  * @returns {BaseProvider} Provider adapter instance
  */

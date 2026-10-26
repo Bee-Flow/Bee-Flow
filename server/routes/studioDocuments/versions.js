@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * A Studio document's history: the uniform versions API every item with a
  * history answers (notebooks answer the same shape at /api/notebooks/:id).
@@ -34,6 +34,7 @@ const express = require('express');
 const { validate } = require('../../core/http/validate');
 const { HttpError, notFound, forbidden } = require('../../core/http/errors');
 const { worded, bodyOf, queryOf, wholeNumber, z } = require('../../core/http/schemaParts');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 const NAME_TEXT = 'name is the version\'s name, at most 80 characters, or null to clear it.';
 const S = {
@@ -83,9 +84,9 @@ function makeDocumentVersionsRouter(deps = {}) {
         || (() => require('../../jobs/documentVersionRetention').listPinnedVersionIds(require('../../db').pool)))();
 
     /** @param {import('express').Request} req */
-    const userIdOf = (req) => req.session.user.id;
+    const userIdOf = (req) => sessionUser(req).id;
     /** @param {import('express').Request} req */
-    const orgIdOf = (req) => req.session.connectorOrgId || req.session.user.organizationId || null;
+    const orgIdOf = (req) => req.session.connectorOrgId || sessionUser(req).organizationId || null;
     /** @param {import('express').Request} req */
     const context = async (req) => ({ userId: userIdOf(req), isAdmin: await hasPermission(userIdOf(req), 'org_admin', req.session) });
 

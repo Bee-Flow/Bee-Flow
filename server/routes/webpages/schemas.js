@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The zod vocabulary from which the request schemas of this router are built.
  *
@@ -24,7 +24,11 @@
 const { z, onUnknownKeys, typeError } = require('../../utils/zod');
 const { worded, choice } = require('../../core/http/schemaParts');
 
-/** A body that also accepts no body: Express 5 then leaves `req.body` undefined. */
+/**
+ * A body that also accepts no body: Express 5 then leaves `req.body` undefined.
+ * @template {import('zod').ZodRawShape} S
+ * @param {S} shape
+ */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape).strict(),
@@ -38,7 +42,11 @@ const flag = (message) => choice(['true', '1', 'false', '0'], message)
     .transform((v) => v === 'true' || v === '1')
     .optional();
 
-/** Text that a person types: trimmed, not empty. */
+/**
+ * Text that a person types: trimmed, not empty.
+ * @param {string} message
+ * @param {number} [max]
+ */
 const text = (message, max = 2000) => worded(message).trim().min(1, message).max(max, message);
 
 /**

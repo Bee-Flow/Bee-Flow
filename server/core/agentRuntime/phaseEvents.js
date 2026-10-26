@@ -39,7 +39,7 @@ function emitPhaseEnd(send, stage, durationMs) {
  * @template T
  * @param {PhaseSend} send
  * @param {string} stage
- * @param {string | undefined} detail
+ * @param {string | null | undefined} detail
  * @param {() => Promise<T> | T} fn
  * @returns {Promise<T>}
  */

@@ -21,9 +21,11 @@ function createBuildToolHint({ lazy }) {
     /**
      * Build human-readable integration hints for the system prompt.
      * @param {Array} tools - Tool definitions array
+     * @param {string | null} [_userId]
      * @returns {Promise<string>} Integration hint string to append to system prompt
      */
     async function buildToolHint(tools, _userId = null) {
+
         if (tools.length === 0) return '';
 
         /** @type {string[]} */

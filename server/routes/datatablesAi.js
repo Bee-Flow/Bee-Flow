@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * "Build it with AI" — draft or revise a datatable's columns from a brief.
  * (Studio → Datatables, Sep 2026; the form twin is routes/automation/formsAi.js.)
@@ -55,6 +55,7 @@ const { choice } = require('./datatables/schemas');
 const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
 const { bestEffort } = require('../utils/bestEffort');
+const { sessionUser } = require('../core/http/sessionUser');
 
 const NOTE_TEXT = `A change request is at most ${MAX_NOTE_CHARS} characters — shorten it, or split it into two.`;
 const BRIEF_TEXT = `A table description is at most ${MAX_BRIEF_CHARS} characters — shorten it, or leave out what the columns do not need.`;
@@ -81,7 +82,8 @@ function refused(req, res) {
     let error = /** @type {(Error & { status?: number, code?: string, details?: unknown }) | null} */ (null);
     validateDraft(req, res, (err) => { error = err || null; });
     if (!error) return false;
-    res.status(error.status).json({ error: error.message, code: error.code, details: error.details });
+    res.status(error.status ?? 500).json(
+{ error: error.message, code: error.code, details: error.details });
     return true;
 }
 
@@ -91,7 +93,7 @@ const MAX_TOKENS = 4000;
 /** @param {import('express').Request} req */
 async function orgIdOf(req) {
     const userStore = require('../stores/userStore');
-    const user = await userStore.getUser(req.session.user.id);
+    const user = await userStore.getUser(sessionUser(req).id);
     return user?.organizationId || null;
 }
 
@@ -173,7 +175,7 @@ async function draft(req, res) {
     if (current?.managedKind && isSchemaLockedKind(current.managedKind)) {
         return res.status(409).json({ error: 'The columns of this table are not yours to change here.', code: 'schema_locked' });
     }
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const userOrgId = await orgIdOf(req);
     const modelId = await resolveModel({ userId, userOrgId });
     if (!modelId) throw new HttpError(503, 'no_model', 'No AI model is configured for this workspace.');

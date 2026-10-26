@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Public pages: anonymous entry points to an app (routes/studioApps/).
  */
@@ -12,6 +12,7 @@ const publicAccess = require('../../appStudio/publicAccess');
 const publicationAudit = require('../../appStudio/publicationAudit');
 const { publicAppUrlForToken } = require('../../automation/publicUrl');
 const { requireManageApps, audienceFor } = require('./access');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 const router = express.Router();
 
@@ -39,7 +40,7 @@ const MAX_PUBLIC_PAGES_PER_APP = 3;
  * @param {import('express').Response} res
  */
 async function loadOwnedAppForPublic(req, res) {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const app = await studioAppStore.getStudioApp(req.params.id);
     if (!app) { res.status(404).json({ error: 'App not found' }); return null; }
     if (!studioAppStore.canWriteStudioApp(app, userId)) {
@@ -62,6 +63,7 @@ async function loadOwnedAppForPublic(req, res) {
  * @param {StudioApp} app
  */
 function publicPageBlockers(app) {
+    /** @type {{ code: string; message: string; }[]} */
     const blockers = [];
     const draft = app.definition && typeof app.definition === 'object' ? app.definition : null;
     const published = app.publishedDefinition && typeof app.publishedDefinition === 'object' ? app.publishedDefinition : null;
@@ -114,11 +116,11 @@ router.post('/:id/public-pages', requireAuth, requireManageApps, /** @param {imp
     if (existing.length >= MAX_PUBLIC_PAGES_PER_APP) {
         return res.status(409).json({ error: `An app can have at most ${MAX_PUBLIC_PAGES_PER_APP} public URLs — revoke one first.` });
     }
-    const page = await studioAppStore.createPublicPage(app.id, req.session.user.id);
+    const page = await studioAppStore.createPublicPage(app.id, sessionUser(req).id);
     // The single largest exposure change the studio can make: from here the
     // app answers to anyone on the internet with the link, with no account.
     await publicationAudit.auditPublicPage({
-        app, actorId: req.session.user.id, token: page?.token, created: true,
+        app, actorId: sessionUser(req).id, token: page?.token, created: true,
     });
     return res.status(201).json({
         page: publicPageView({ ...page, createdAt: new Date().toISOString(), lastSeenAt: null }, req),
@@ -132,7 +134,7 @@ router.delete('/:id/public-pages/:token', requireAuth, requireManageApps, /** @p
     const ok = await studioAppStore.deletePublicPage(req.params.token, app.id);
     if (!ok) return res.status(404).json({ error: 'Public page not found' });
     await publicationAudit.auditPublicPage({
-        app, actorId: req.session.user.id, token: req.params.token, created: false,
+        app, actorId: sessionUser(req).id, token: req.params.token, created: false,
     });
     return res.json({ success: true });
 });

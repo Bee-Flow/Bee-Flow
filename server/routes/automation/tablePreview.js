@@ -1,4 +1,5 @@
-// @typecheck noImplicitAny
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
+// @typecheck strict
 /**
  * The builder's live preview of a `table` step:
  *
@@ -30,6 +31,7 @@ const { TABLE_ID_RE, COLUMN_TYPES } = require('../../core/automationRunner/table
 const { listToTable } = require('../../core/automationRunner/tables/listSource');
 const { tableRouterDeps } = require('./tableRouterDeps');
 const log = require('../../telemetry/log');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 const MAX_PREVIEW_ROWS = 50;
 const HARD_ROWS = 100_000;
@@ -125,13 +127,17 @@ function makeTablePreviewRouter(overrides = {}) {
     const router = express.Router();
     const { store, tables, limitsNow, access, journey } = tableRouterDeps(overrides);
 
-    /** @type {{ rpm: number, run: ReturnType<typeof perUserRateLimit> | null }} */
-    let limiter = { rpm: 0, run: null };
-    /** @type {import('express').RequestHandler} */
+    /** @type {{ rpm: number, run: ReturnType<typeof perUserRateLimit> } | null} */
+    let limiter = null;
+    /**
+     * @type {import('express').RequestHandler}
+     * @param {NextFunction} next
+     */
     const previewLimiter = (req, res, next) => {
         const rpm = limitsNow().previewRpm;
         if (rpm <= 0) return next();
-        if (limiter.rpm !== rpm) limiter = { rpm, run: perUserRateLimit({ windowMs: 60_000, max: rpm }) };
+        if (!limiter || limiter.rpm !== rpm) limiter = { rpm, run: perUserRateLimit({ windowMs: 60_000, max: rpm }) };
+
         return limiter.run(req, res, next);
     };
 
@@ -173,7 +179,7 @@ function makeTablePreviewRouter(overrides = {}) {
     router.post('/:id/table-preview', previewLimiter, validate({ body: Body }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
         const automation = await store().getAutomation(req.params.id);
         if (!automation) throw new HttpError(404, 'automation_not_found', 'Not found');
-        const me = req.session.user.id;
+        const me = sessionUser(req).id;
         const { role } = await access.roleFor(automation, me, { session: req.session });
         if (!role) throw new HttpError(404, 'automation_not_found', 'Not found');
         if (!await access.guard(req, res, automation, 'edit')) return undefined;

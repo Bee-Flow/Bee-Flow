@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Nextcloud Talk → Meeting Notes settings API.
  *
@@ -97,11 +97,12 @@ const OrgSettingsBody = z.object({
 const { requireAuth } = require('../auth/permissions');
 
 const { isOrgAdminForOrg: isOrgAdmin } = require('../auth/permissions');
+const { sessionUser } = require('../core/http/sessionUser');
 
 // ── User-level (consumer / self) ─────────────────────────
 // Declared before /:orgId so "user" isn't captured as an orgId param.
 router.get('/user/me', requireAuth, async (req, res) => {
-    const config = await talkNotes.getUserSettings(req.session.user.id);
+    const config = await talkNotes.getUserSettings(sessionUser(req).id);
     // Surface whether the user has a Nextcloud connection at all (to hide the
     // section for non-NC accounts) and whether the Talk recording backend is
     // available (to gate the auto-record toggle).
@@ -109,17 +110,17 @@ router.get('/user/me', requireAuth, async (req, res) => {
     let recordingEnabled = false;
     try {
         const ncClient = require('../integrations/nextcloudClient');
-        nextcloudConnected = await ncClient.isConnected(req.session, req.session.user.id);
+        nextcloudConnected = await ncClient.isConnected(req.session, sessionUser(req).id);
         if (nextcloudConnected) {
             const talk = require('../integrations/nextcloudTalkTools');
-            recordingEnabled = (await talk.getTalkRecordingCapability(req.session, req.session.user.id)).recordingEnabled;
+            recordingEnabled = (await talk.getTalkRecordingCapability(req.session, sessionUser(req).id)).recordingEnabled;
         }
     } catch (err) { log.debug('treat as not connected', err); }
     res.json({ ...config, nextcloudConnected, recordingEnabled });
 });
 
 router.put('/user/me', requireAuth, validate({ body: UserSettingsBody }), async (req, res) => {
-    const config = await talkNotes.saveUserSettings(req.session.user.id, req.body);
+    const config = await talkNotes.saveUserSettings(sessionUser(req).id, req.body);
     res.json({ ok: true, config });
 });
 
@@ -138,7 +139,7 @@ router.put('/:orgId', requireAuth, validate({ body: OrgSettingsBody }), async (/
     if (!(await isOrgAdmin(req, orgId))) {
         return res.status(403).json({ error: 'Only organization admins can manage these settings' });
     }
-    const config = await talkNotes.saveOrgSettings(orgId, req.body, req.session.user.id);
+    const config = await talkNotes.saveOrgSettings(orgId, req.body, sessionUser(req).id);
     res.json({ ok: true, config });
 });
 

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Transcriptions — multi-meeting AI report.
  *
@@ -22,6 +22,7 @@ const { worded, bodyOf, idList, NO_QUERY } = require('./schemas');
  * Get an Anthropic client using the provider key for Claude.
  */
 const llmClient = require('../../core/llm/llmClient');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 // ── Multi-meeting AI report ──────────────────────────────
 
@@ -62,7 +63,7 @@ function sanitizeEnvelopeAttr(value) {
 }
 
 router.post('/report', requireAuth, validate({ body: ReportBody, query: NO_QUERY }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const { ids, prompt } = req.body;
     const question = prompt.slice(0, 4000);
     if (ids.length > REPORT_MAX_NOTES) {
@@ -124,7 +125,9 @@ ${useTranscripts ? '' : '\nNote: you received meeting summaries and artifacts, n
     // Same DLP shield policy as direct chat, mapped for a non-interactive
     // endpoint: block → 403, redact → tokenised input (detokenised answer),
     // ask → conservative auto-redact (there is no SSE channel to ask on).
+    /** @type {Record<string, string> | null} */
     let tokenMap = null;
+    /** @type {string | null} */
     let dlpConversationId = null;
     // Until the shield has been resolved we do not KNOW whether this org
     // requires redaction, so an error before that point is treated the same

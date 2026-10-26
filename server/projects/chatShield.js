@@ -73,7 +73,8 @@ function makeChatShield(deps = {}) {
     const getAIConfig = deps.getAIConfig || (() => require('../core/aiAgent').getAIConfig());
     const dlp = () => deps.dlp || require('../core/dlp/dlpRunner');
     const validateInputForPii = deps.validateInputForPii
-        || ((...args) => require('../core/privacy/piiDetection').validateInputForPii(...args));
+        || ((/** @type {Parameters<typeof import('../core/privacy/piiDetection').validateInputForPii>} */ ...args) => require('../core/privacy/piiDetection').validateInputForPii(...args));
+
     const detectPii = deps.detectPii || ((...args) => require('../core/privacy/piiDetection').detectPii(...args));
     const logGuardrailEvent = deps.logGuardrailEvent
         || ((event) => require('../stores/guardrailEventStore').logGuardrailEvent(event));

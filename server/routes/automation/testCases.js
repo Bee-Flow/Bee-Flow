@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Test cases on a code step or a custom node.
  *
@@ -35,6 +35,7 @@ const { HttpError } = require('../../core/http/errors');
 const { envCap } = require('../../automation/mcpRunReadCaps');
 const { findCodeStep, captureFixture, runTestCases } = require('../../automation/testing/testCases');
 const { CreateBody, UpdateBody, RunBody, ListQuery } = require('./testCaseSchemas');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 const perStepMax = () => envCap('AUTOMATION_TEST_CASES_PER_STEP_MAX', 50);
 const assertionsMax = () => envCap('AUTOMATION_TEST_ASSERTIONS_MAX', 50);
@@ -144,6 +145,7 @@ function makeTestCasesRouter(overrides = {}) {
         if (cap > 0 && await testing().countTestCases(a.id, body.stepId) >= cap) {
             throw new HttpError(409, 'test_case_limit', `A step can have at most ${cap} test cases.`);
         }
+        /** @type {string | null} */
         let fixtureId = null;
         if (body.input.kind === 'run') {
             const fixture = await captureFromRun(req, res, a, body.stepId, body.input);
@@ -159,7 +161,7 @@ function makeTestCasesRouter(overrides = {}) {
             fixtureId,
             expect: body.expect || 'success',
             assertions: body.assertions || [],
-            createdBy: req.session.user.id,
+            createdBy: sessionUser(req).id,
         });
         res.status(201).json({ testCase });
     });

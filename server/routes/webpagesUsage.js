@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Web pages — who uses one (W5 part B).
  *
@@ -56,6 +56,7 @@ const webpageUsage = require('../core/webpages/webpageUsage');
 const { requireAuth } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
 const { z, onUnknownKeys } = require('../utils/zod');
+const { sessionUser } = require('../core/http/sessionUser');
 
 /** Niets. Gezegd in plaats van weggelaten: een genegeerde sleutel is een belofte. */
 const NO_QUERY = z.object({}, { error: onUnknownKeys('This usage list takes no parameters; it always covers every kind.') }).strict();
@@ -64,7 +65,7 @@ router.get('/:id/usage', requireAuth, validate({ query: NO_QUERY }), async (req,
     // `usageForWebpage` catches each sub-question separately; if the lookup itself falls over,
     // then a 500 (the terminal handler) — never an empty `usage`, because that is the one sentence
     // that this route must not utter by accident.
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const wp = await webpageStore.getWebpage(req.params.id, userId);
     if (!wp) return res.status(404).json({ error: 'Webpage not found' });
 

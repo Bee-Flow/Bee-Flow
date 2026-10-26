@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * CMS route shared middleware — mechanical extraction from routes/cms.js so
  * the CMS AI builder route (routes/ai/cmsBuilder.js) and the analytics router
@@ -34,12 +34,33 @@ async function canAdminCms(session) {
     return !!(userId && await hasPermission(userId, 'all', session));
 }
 
+/**
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 async function requireAdmin(req, res, next) {
     if (!req.session?.user) return res.status(401).json({ error: 'Unauthorized' });
     if (await canAdminCms(req.session)) return next();
     return res.status(403).json({ error: 'Admin access required' });
 }
 
+/**
+ * The site the request is about: attachSiteIdFromParam (or the live-site middleware)
+ * sets it before any handler runs, so a missing one is a wiring mistake, not a bad request.
+ * @param {{ siteId?: string }} req
+ * @returns {string}
+ */
+function siteIdOf(req) {
+    if (!req.siteId) throw new HttpError(404, 'cms_site_not_found', 'Site not found');
+    return req.siteId;
+}
+
+/**
+ * @param {import('express').Request<{ siteId: string }>} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 async function attachSiteIdFromParam(req, res, next) {
     const { siteId } = req.params;
     if (!siteId || !SITE_ID_RE.test(siteId)) {
@@ -95,6 +116,7 @@ async function getLiveSiteId() {
     return null;
 }
 
+/** @param {string | null} siteId */
 async function setLiveSiteId(siteId) {
     if (siteId === null) {
         await configStore.setConfig(KEY_CMS_LIVE_SITE_ID, null);
@@ -117,11 +139,17 @@ async function setLiveSiteId(siteId) {
 // half-finished go-live. Idempotent: an existing snapshot is kept.
 const PUBLISH_TIMEOUT_MS = 30000;
 
-async function ensurePublishedSnapshot(siteId, { timeoutMs = PUBLISH_TIMEOUT_MS } = {}) {
+/**
+ * @param {string} siteId
+ * @param {{ timeoutMs?: number }} [options]
+ */
+async function ensurePublishedSnapshot(siteId, {
+ timeoutMs = PUBLISH_TIMEOUT_MS } = {}) {
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- SITE_ID_RE is anchored with one bounded class run: linear
     if (typeof siteId !== 'string' || !SITE_ID_RE.test(siteId)) {
         throw new HttpError(400, 'cms_invalid_site_id', 'Invalid siteId');
     }
+    /** @type {NodeJS.Timeout | undefined} */
     let timer;
     try {
         const project = await cmsStore.getProject(siteId);
@@ -145,7 +173,9 @@ async function ensurePublishedSnapshot(siteId, { timeoutMs = PUBLISH_TIMEOUT_MS 
 }
 
 module.exports = {
+    siteIdOf,
     requireAdmin,
+
     canAdminCms,
     ensurePublishedSnapshot,
     attachSiteIdFromParam,

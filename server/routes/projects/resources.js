@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * What is filed into a project, and how those pieces are wired together.
  *
@@ -55,9 +55,11 @@ function makeResourcesRouter(deps) {
         if (typeof membership.sectionsFor !== 'function') return null;
         const sections = /** @type {Array<string | { section?: string }>} */ (membership.sectionsFor(containerKind));
         if (!Array.isArray(sections)) return null;
-        return new Set(sections
-            .map(entry => (typeof entry === 'string' ? entry : entry?.section))
-            .filter(Boolean));
+        return new Set(sections.flatMap((entry) => {
+            const section = typeof entry === 'string' ? entry : entry?.section;
+            return section ? [section] : [];
+        }));
+
     }
 
     /**

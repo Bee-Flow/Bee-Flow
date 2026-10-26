@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The colour of a person in a project.
  *
@@ -21,6 +21,7 @@ const { bodyOf, worded } = require('../../core/http/schemaParts');
 const { lazyProjectRoleGate } = require('./roleGate');
 const { forbidden, notFound, badRequest } = require('../../core/http/errors');
 const { isMemberColor, MEMBER_COLORS } = require('../../projects/memberColors');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 const COLOR_TEXT = 'color is one of the project colours, like #3b82f6, or null for the automatic one.';
 const Body = bodyOf({ color: worded(COLOR_TEXT).trim().max(16, COLOR_TEXT).nullable() }, 'Colouring a person');
@@ -43,7 +44,7 @@ function makeMemberColorsRouter(deps = {}) {
         || ((/** @type {string} */ projectId, /** @type {Parameters<typeof import('../../core/projectFeed').emitProjectEvent>[1]} */ event) => require('../../core/projectFeed').emitProjectEvent(projectId, event, { label: 'ProjectMemberColors' }));
 
     router.put('/:id/members/:userId/color', requireRole('viewer'), validate({ body: Body }), async (req, res) => {
-        const me = req.session.user.id;
+        const me = sessionUser(req).id;
         const target = req.params.userId;
         if (req.projectRole !== 'owner' && target !== me) {
             throw forbidden('not_your_colour', 'You can change your own colour; the project owner can change anyone\'s.');

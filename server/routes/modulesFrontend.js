@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Module frontend runtime manifest — the pinned FE-RUNTIME contract the SPA
  * reads to lazy-mount remote modules that ship a frontend.
@@ -72,7 +72,8 @@ router.get('/frontend', requireAuth, validate({ query: NO_QUERY }), async (req, 
 
     const out = [];
     for (const row of rows) {
-        if (!remoteCatalog.isRemoteRow(row)) continue;
+        if (!row || !remoteCatalog.isRemoteRow(row)) continue;
+
         // Runtime source of truth: imported + entitled (timestamp gate).
         if (!(await modules.isModuleActive(row.moduleId))) continue;
 

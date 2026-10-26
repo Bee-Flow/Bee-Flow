@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Reminder Routes — REST API for user-bound reminders.
  *
@@ -33,6 +33,7 @@ const reminderStore = require('../stores/reminderStore');
 const { validate } = require('../core/http/validate');
 const { z, datetimeWithOffset } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
+const { sessionUser } = require('../core/http/sessionUser');
 
 const TITLE_TEXT = 'A reminder needs a title.';
 const WHEN_TEXT = 'remindAt is a date and time with its zone, e.g. 2026-09-22T09:00:00.000Z.';
@@ -70,7 +71,7 @@ router.use(requireSignedIn);
 
 // GET / — list reminders
 router.get('/', validate({ query: ListQuery }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const includeCompleted = req.query.completed === 'true' || req.query.completed === '1';
     const reminders = await reminderStore.getReminders(userId, { includeCompleted });
     res.json(reminders);
@@ -78,7 +79,7 @@ router.get('/', validate({ query: ListQuery }), async (req, res) => {
 
 // POST / — create reminder
 router.post('/', validate({ body: CreateBody }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const { title, message, remindAt, repeatInterval } = req.body;
     const reminder = await reminderStore.createReminder({
         userId,
@@ -92,7 +93,7 @@ router.post('/', validate({ body: CreateBody }), async (req, res) => {
 
 // PUT /:id — update reminder
 router.put('/:id', validate({ body: UpdateBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
 
     // Verify ownership
     const existing = await reminderStore.getReminder(req.params.id);
@@ -108,7 +109,7 @@ router.put('/:id', validate({ body: UpdateBody }), /** @param {import('express')
 
 // DELETE /:id — delete reminder
 router.delete('/:id', async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
 
     const existing = await reminderStore.getReminder(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Not found' });
@@ -120,7 +121,7 @@ router.delete('/:id', async (req, res) => {
 
 // POST /:id/complete — mark completed
 router.post('/:id/complete', async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
 
     const existing = await reminderStore.getReminder(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Not found' });

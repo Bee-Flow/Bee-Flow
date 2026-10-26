@@ -46,8 +46,11 @@ const PG_UNIQUE_VIOLATION = '23505';
  *
  * A SQLSTATE is never echoed: `e.code` on a pg error is five digits and means
  * nothing to a client, so only the codes this file mints are passed through.
+ * @param {import('express').Response} res
+ * @param {{ kind: 'org' | 'user', id: string } | null} [scope]
  */
 function answerDatatableError(res, e, scope = null) {
+
     if (e?.code === PG_UNIQUE_VIOLATION && String(e.constraint || '') === 'uq_datatables_scope_key') {
         return res.status(409).json({
             error: scope?.kind === 'user'

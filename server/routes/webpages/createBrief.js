@@ -1,5 +1,6 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 const { fallback } = require('../../utils/bestEffort');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 /**
  * What the build bar sends along with POST /, checked and turned into a brief.
@@ -101,7 +102,7 @@ function deriveNameFromPrompt(prompt) {
  */
 async function resolveCreateSources(req, sources) {
     if (!sources.length) return [];
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     /** @type {{ kind: string; id: string; name: string; }[]} */
     const resolved = [];
 

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Workflow execution over HTTP: run a workflow graph, run a workflow as a
  * subworkflow.
@@ -29,6 +29,7 @@ const router = express.Router();
 const { getUserAuth } = require('../utils/routeHelpers');
 const { requireAuth } = require('../auth');
 const { bestEffort } = require('../utils/bestEffort');
+const { sessionUser } = require('../core/http/sessionUser');
 
 const WORKFLOW_TEXT = 'workflow is the graph to run: { nodes: [...], edges: [...] }.';
 const Graph = z.object({
@@ -59,7 +60,7 @@ router.post('/execute', requireAuth, validate({ body: ExecuteBody }), async (req
     const userAuth = await getUserAuth(req);
     // requireAuth guarantees a session user here — the old `|| 'anonymous'`
     // fallback (anonymous execution without a record) can no longer occur.
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const workflowStore = require('../stores/workflowStore');
 
     // Create execution record (include workflow structure for visual replay)
@@ -101,7 +102,7 @@ router.post('/subworkflow/:workflowId', requireAuth, validate({ body: Subworkflo
     const { inputData, callerId } = req.body;
     const userAuth = await getUserAuth(req);
     // requireAuth guarantees a session user — see POST /execute above.
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const workflowStore = require('../stores/workflowStore');
 
     // Get the target workflow. getWorkflow scopes by userId (owner,

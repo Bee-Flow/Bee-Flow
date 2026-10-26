@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * AI Routes — Slim Router Mount
  * 
@@ -65,7 +65,8 @@ const notebookChatGate = (req, res, next) => {
     // requireCapability answers feature_locked/feature_disabled itself, or hands a
     // 503 entitlement_unavailable to next(err). The continuation runs for BOTH, so
     // it must forward an error and only run the operator kill-switch on success.
-    return notebookCapGate(req, res, (err) => (err ? next(err) : notebookKillSwitch(req, res, next)));
+    return notebookCapGate(req, res, (/** @type {unknown} */ err) => (err ? next(err) : notebookKillSwitch(req, res, next))
+);
 };
 router.use(notebookChatGate);
 router.use('/', notebookChatRoutes);

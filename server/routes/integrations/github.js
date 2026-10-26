@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * GitHub Integration Routes — PAT-based
  *
@@ -15,6 +15,7 @@ const router = express.Router();
 const configStore = require('../../stores/configStore');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -58,7 +59,7 @@ router.get('/status', async (/** @type {import('express').Request} */ req, /** @
 
 // ─── Save Token ──────────────────────────────────────────────────
 router.post('/connect', requireSessionUser, validate({ body: ConnectBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const { token } = req.body;
 
     // Validate token by fetching user profile

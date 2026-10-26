@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Shared plumbing for the Stripe routers — the rate limiters, the cloud-only
  * gate, and caller/organisation resolution.
@@ -39,17 +39,20 @@ const { bestEffort } = require('../../utils/bestEffort');
 // groups), so fall back to the shared RBAC resolver and finally a DB lookup.
 // Without this, an org admin whose session lacks organizationId was wrongly
 // treated as a consumer and blocked from subscribing to org plans.
+/** @param {import('express').Request} req */
 async function resolveOrgIdForUser(req) {
-    const user = req.session?.user || {};
-    let orgId = user.organizationId || user.orgId || null;
+    const user = req.session?.user;
+    /** @type {string | null} */
+    let orgId = user?.organizationId || user?.orgId || null;
     if (!orgId) {
         try {
             const orgIds = await resolveUserOrgIds(req); // null = super-admin
             if (orgIds && orgIds.size > 0) orgId = Array.from(orgIds)[0];
         } catch (err) { bestEffort('stripe/shared:resolveOrgIds', err); }
     }
-    if (!orgId && user.id) {
-        try { const full = await userStore.getUser(user.id); orgId = full?.organizationId || null; } catch (err) { bestEffort('stripe/shared:userOrgLookup', err); }
+    if (!orgId && user?.id) {
+        try { const full = await userStore.getUser(user.id);
+ orgId = full?.organizationId || null; } catch (err) { bestEffort('stripe/shared:userOrgLookup', err); }
     }
     return orgId;
 }
@@ -68,7 +71,9 @@ function requireCloud(/** @type {import('express').Request} */ req, /** @type {i
     next();
 }
 
+/** @param {import('express').Request} req */
 function getOrigin(req) {
+
     return `${req.protocol}://${req.get('host')}`;
 }
 

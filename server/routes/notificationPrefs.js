@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Notification preference routes — what I am told about, per channel.
  *
@@ -13,6 +13,7 @@ const router = express.Router();
 const notificationPrefsStore = require('../stores/notificationPrefsStore');
 const { validate } = require('../core/http/validate');
 const { z, closedObject, bodyOf, typeError } = require('../core/http/schemaParts');
+const { sessionUser } = require('../core/http/sessionUser');
 
 const EVENT_TEXT = 'Each event is true or false.';
 /**
@@ -39,11 +40,11 @@ function requireUser(req, res, next) {
 }
 
 router.get('/', requireUser, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-    res.json(await notificationPrefsStore.getPrefs(req.session.user.id));
+    res.json(await notificationPrefsStore.getPrefs(sessionUser(req).id));
 });
 
 router.put('/', requireUser, validate({ body: PrefsBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     await notificationPrefsStore.setPrefs(userId, { bell: req.body.bell, email: req.body.email });
     res.json(await notificationPrefsStore.getPrefs(userId));
 });
