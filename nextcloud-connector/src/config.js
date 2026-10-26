@@ -38,6 +38,7 @@ const isAutoTenantKey = (rawTenantKey === 'auto' || rawTenantKey === '');
  * @property {string | null} tenantKey        filled in at runtime (env, bootstrap cache or the bootstrap call)
  * @property {boolean} isAutoTenantKey
  * @property {string | null} organizationId
+ * @property {string | null} organizationName
  * @property {string | null} ncInstanceId
  * @property {string} apiBaseUrl
  * @property {string} embedBaseUrl
@@ -77,6 +78,9 @@ const config = {
     isAutoTenantKey,
     // Cache for auto-provisioned tenant key + org id. Written by bootstrap.js.
     organizationId: null,
+    // Display name of that org, from the same bootstrap response; shown back to
+    // the admin by /setup/clear-cache. Null until a binding is applied.
+    organizationName: null,
     ncInstanceId: null,
     // Override only for staging / on-prem. Default points at the Bee Flow dev
     // environment.

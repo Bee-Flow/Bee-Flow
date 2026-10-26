@@ -518,8 +518,7 @@ router.post('/clear-cache', requireNcAdmin, limits.rebind, express.json(), async
         res.json({
             ok: true,
             organizationId: config.organizationId,
-            // The connector config has never carried an organisation name, so this has always been null.
-            organizationName: null,
+            organizationName: config.organizationName,
             tenantKeyFingerprint: tenantKeyFingerprint(),
         });
     } catch (err) {

@@ -544,6 +544,7 @@ async function applyTenantKeyResponse(json, ncInstanceId) {
     if (!tenantKey) throw new Error('Bootstrap response missing tenantKey');
     config.tenantKey = tenantKey;
     config.organizationId = json.organizationId ?? null;
+    config.organizationName = json.organizationName ?? null;
     config.ncInstanceId = ncInstanceId ?? null;
     await writeCache({
         tenantKey,
@@ -744,6 +745,7 @@ async function _provisionFlow() {
     if (cached?.tenantKey) {
         config.tenantKey = cached.tenantKey;
         config.organizationId = cached.organizationId || null;
+        config.organizationName = cached.organizationName || null;
         config.ncInstanceId = cached.ncInstanceId || null;
         // Pin to the server this org was provisioned on. A changed default (or
         // picker) URL must not silently move a bound connector to a different
@@ -964,6 +966,7 @@ async function invalidateAndRebootstrap({ pairingCode } = /** @type {{ pairingCo
     const prev = {
         tenantKey: config.tenantKey,
         organizationId: config.organizationId,
+        organizationName: config.organizationName,
         ncInstanceId: config.ncInstanceId,
         /** @type {string | null} */
         cacheFile: null,
@@ -979,6 +982,7 @@ async function invalidateAndRebootstrap({ pairingCode } = /** @type {{ pairingCo
         await deletePendingFile();
         config.tenantKey = null;
         config.organizationId = null;
+        config.organizationName = null;
         config.ncInstanceId = null;
         if (pairingCode) {
             config.pairingCode = pairingCode;
@@ -1000,6 +1004,7 @@ async function invalidateAndRebootstrap({ pairingCode } = /** @type {{ pairingCo
         log.warn(`[Bootstrap] re-bootstrap failed (${errMessage(err)}); rolling back to previous tenant key`);
         config.tenantKey = prev.tenantKey;
         config.organizationId = prev.organizationId;
+        config.organizationName = prev.organizationName;
         config.ncInstanceId = prev.ncInstanceId;
         config.pairingCode = prev.pairingCode;
         if (prev.cacheFile) {
