@@ -42,12 +42,12 @@
  * `admin` and for `nonexistent_zzz1`.
  *
  * STORAGE
- * Redis when it is configured and healthy, so a limit is fleet-wide rather than
- * per-replica; an in-memory fallback otherwise, which is what self-hosted
- * installs without Redis use. Every storage operation FAILS OPEN: a throttle
- * that turns a Redis blip into an authentication outage has done more damage
- * than the attack it was guarding against. See utils/perUserRateLimit.js, which
- * makes the same trade for the coarse request caps mounted alongside this.
+ * Redis when configured and healthy (fleet-wide limits); an in-memory store
+ * otherwise, as self-hosted installs without Redis use. A failing Redis call
+ * falls back to that store with the same limits (per replica, a bestEffort warn
+ * at most once a minute): never fail open (an outage is no free run at the
+ * passwords), never fail closed (no Redis blip becomes an auth outage). See
+ * loginThrottle.storeDown.test.js, and utils/perUserRateLimit.js for the caps.
  */
 const crypto = require('crypto');
 const { clientIp, isPrivateIp } = require('./signupGuards');
