@@ -6,26 +6,40 @@
 
 import { useQuery } from '@tanstack/react-query';
 
-const publicSiteKeys = {
-    all: ['public-site'] as const,
-    githubStats: () => [...publicSiteKeys.all, 'github-stats'] as const,
-    releaseNotes: () => [...publicSiteKeys.all, 'release-notes'] as const,
-    plans: (base: string) => [...publicSiteKeys.all, 'plans', base] as const,
-    posts: (qs: string) => [...publicSiteKeys.all, 'posts', qs] as const,
-    stories: (qs: string) => [...publicSiteKeys.all, 'stories', qs] as const,
-    locales: (base: string) => [...publicSiteKeys.all, 'locales', base] as const,
-};
-
-/** GET `url` with the browser's own fetch: a public page has no session, so authFetch's token handling has no place here. */
-function publicFetch(url: string, signal: AbortSignal | undefined, omitCredentials: boolean): Promise<Response> {
-    // eslint-disable-next-line no-restricted-syntax -- public, no-auth endpoints
-    return fetch(url, { ...(omitCredentials ? { credentials: 'omit' as const } : {}), signal });
+interface PublicReadOptions<T> {
+    /** Public readers wait for a visibility condition; undefined reads as enabled. */
+    enabled?: boolean;
+    /** False keeps the session cookies on the request (the locales read always sent them). */
+    omitCredentials?: boolean;
+    /** True makes a refusal an error instead of null (the pricing block tells "failed" from "empty"). */
+    strict?: boolean;
+    /** Shapes the body; its result is the cached value. A refusal skips it. */
+    pick?: (body: unknown) => T;
 }
 
-/** GET `url`; the JSON body, or null when the server refused. */
-async function getPublicJson<T>(url: string, signal?: AbortSignal, omitCredentials = true): Promise<T | null> {
-    const res = await publicFetch(url, signal, omitCredentials);
-    return res.ok ? ((await res.json()) as T) : null;
+/**
+ * ONE fail-soft reader for the public GETs: the JSON body, or null when the
+ * server refused. A public page has no session, so this is the browser's own
+ * fetch and authFetch's token handling has no place here. The query key is
+ * ['public-site', ...key], so a block can be invalidated by prefix.
+ */
+function usePublicRead<T, R = T | null>(key: readonly unknown[], url: string, options: PublicReadOptions<R> = {}) {
+    const { enabled, omitCredentials = true, strict, pick } = options;
+    return useQuery<R, Error>({
+        queryKey: ['public-site', ...key],
+        queryFn: async ({ signal }) => {
+            // eslint-disable-next-line no-restricted-syntax -- public, no-auth endpoints
+            const res = await fetch(url, { ...(omitCredentials ? { credentials: 'omit' as const } : {}), signal });
+            if (!res.ok) {
+                if (strict) throw new Error(`HTTP ${res.status}`);
+                return null as R;
+            }
+            const body: unknown = await res.json();
+            return pick ? pick(body) : (body as R);
+        },
+        enabled,
+        retry: false,
+    });
 }
 
 /** What /api/public/github-stats answers (the server caches GitHub's numbers). */
@@ -39,25 +53,18 @@ export interface GithubStatsPayload {
 
 /** The server's cached repo numbers; null when unavailable. Shared by every GitHub block on a page. */
 export function useGithubStatsQuery() {
-    return useQuery<GithubStatsPayload | null>({
-        queryKey: publicSiteKeys.githubStats(),
-        queryFn: async ({ signal }) => {
-            const payload = await getPublicJson<GithubStatsPayload>('/api/public/github-stats', signal);
-            return payload && typeof payload === 'object' ? payload : null;
-        },
-        retry: false,
+    return usePublicRead<GithubStatsPayload>(['github-stats'], '/api/public/github-stats', {
+        pick: (payload) => (payload && typeof payload === 'object' ? (payload as GithubStatsPayload) : null),
     });
 }
 
 /** The public release notes entries (raw rows); null when unavailable. */
 export function useReleaseNotesQuery<T>() {
-    return useQuery<T[] | null>({
-        queryKey: publicSiteKeys.releaseNotes(),
-        queryFn: async ({ signal }) => {
-            const payload = await getPublicJson<{ entries?: unknown }>('/api/release-notes/public', signal);
-            return payload && Array.isArray(payload.entries) ? (payload.entries as T[]) : null;
+    return usePublicRead<T[]>(['release-notes'], '/api/release-notes/public', {
+        pick: (payload) => {
+            const entries = (payload as { entries?: unknown } | null)?.entries;
+            return Array.isArray(entries) ? (entries as T[]) : null;
         },
-        retry: false,
     });
 }
 
@@ -67,43 +74,27 @@ export function useReleaseNotesQuery<T>() {
  * ('' for the CMS blocks, API_BASE for the stand-alone pages).
  */
 export function usePublicPlansQuery<T>(base: string, omitCredentials: boolean) {
-    return useQuery<T[], Error>({
-        queryKey: [...publicSiteKeys.plans(base), omitCredentials],
-        queryFn: async ({ signal }) => {
-            const res = await publicFetch(`${base}/api/billing/public-plans`, signal, omitCredentials);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const payload = await res.json();
-            return Array.isArray(payload?.plans) ? payload.plans : [];
+    return usePublicRead<T, T[]>(['plans', base, omitCredentials], `${base}/api/billing/public-plans`, {
+        omitCredentials,
+        strict: true,
+        pick: (payload) => {
+            const plans = (payload as { plans?: unknown } | null)?.plans;
+            return Array.isArray(plans) ? (plans as T[]) : [];
         },
-        retry: false,
     });
 }
 
 /** The newest visible blog posts of the live site, for a query string; null when unavailable. */
 export function usePublicBlogPostsQuery<T>(qs: string) {
-    return useQuery<T | null>({
-        queryKey: publicSiteKeys.posts(qs),
-        queryFn: ({ signal }) => getPublicJson<T>(`/api/cms/blog/posts?${qs}`, signal),
-        retry: false,
-    });
+    return usePublicRead<T>(['posts', qs], `/api/cms/blog/posts?${qs}`);
 }
 
 /** The live site's published customer stories, for a query string; null when unavailable. */
 export function usePublicStoriesQuery(qs: string, enabled: boolean) {
-    return useQuery<{ stories?: unknown } | null>({
-        queryKey: publicSiteKeys.stories(qs),
-        queryFn: ({ signal }) => getPublicJson<{ stories?: unknown }>(`/api/cms/stories?${qs}`, signal),
-        enabled,
-        retry: false,
-    });
+    return usePublicRead<{ stories?: unknown }>(['stories', qs], `/api/cms/stories?${qs}`, { enabled });
 }
 
 /** The locales the org enabled (public endpoint, session cookies as sent before); null when unavailable. */
 export function usePublicLocalesQuery<T>(base: string, enabled: boolean) {
-    return useQuery<T | null>({
-        queryKey: publicSiteKeys.locales(base),
-        queryFn: ({ signal }) => getPublicJson<T>(`${base}/api/languages/public/locales`, signal, false),
-        enabled,
-        retry: false,
-    });
+    return usePublicRead<T>(['locales', base], `${base}/api/languages/public/locales`, { enabled, omitCredentials: false });
 }
