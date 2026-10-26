@@ -23,6 +23,7 @@
 
 const log = require('../../telemetry/log');
 const { exec, run } = require('../../db');
+const { once } = require('../lib/ddlLedger');
 
 const TABLE = 'integration_response_cache';
 
@@ -55,10 +56,13 @@ async function up() {
 
     // Rows written before the column existed report no size, and a NULL in the
     // SUM would silently under-count the org against its byte cap.
-    const { rowCount } = await run(
-        `UPDATE ${TABLE} SET payload_bytes = length(payload) WHERE payload_bytes IS NULL`,
-    );
-    if (rowCount) log.info(`[Migration] integration-response-cache-2026-09: sized ${rowCount} existing row(s)`);
+    // A one-time step of the schema ledger: it used to sit behind the store's
+    // probe, so it runs when this unit's ledger entry does not have it yet.
+    const SIZE_SQL = `UPDATE ${TABLE} SET payload_bytes = length(payload) WHERE payload_bytes IS NULL`;
+    await once('payload_bytes backfill', SIZE_SQL, async () => {
+        const { rowCount } = await run(SIZE_SQL);
+        if (rowCount) log.info(`[Migration] integration-response-cache-2026-09: sized ${rowCount} existing row(s)`);
+    });
 }
 
 module.exports = { up, TABLE };

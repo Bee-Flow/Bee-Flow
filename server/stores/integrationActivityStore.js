@@ -47,35 +47,16 @@ function destHostFrom(tlsServername, serverEndpoint) {
     return host || null;
 }
 
-// Single-flight init. The old version awaited ~25 DDL statements at the head
-// of EVERY read and write; concurrent boot calls each ran the full ladder.
-// Now: one shared promise, and a warm-boot probe on the NEWEST schema object
-// so an already-migrated table costs a single SELECT.
-// ⚠ When adding DDL (integrationActivitySchema.js), point the probe at the
-// newest column/table or the new DDL will be silently skipped on existing installs.
+// Single-flight init (makeStoreInit). The old version awaited ~25 DDL
+// statements at the head of EVERY read and write; then a hand-maintained
+// warm-boot probe skipped the whole ladder once the newest column existed,
+// which silently skipped any new DDL whose author forgot the probe. Now the
+// schema ledger (stores/lib/ddlLedger.js) skips each statement that already
+// succeeded on this database and runs a new or changed one: adding DDL to
+// this init or integrationActivitySchema.js needs nothing else.
 const initDB = makeStoreInit('IntegrationActivityStore', _doInit);
 
 async function _doInit() {
-    // Probe the NEWEST schema objects (bump when adding DDL): the newest
-    // column, the LAST-created table, and the absence of the retired index,
-    // so a partial failure anywhere in the ladder forces a full, idempotent
-    // re-run instead of being skipped forever. location_note is the marker the
-    // location backfill leaves when it has reached every row.
-    const probe = await getOne(`
-        SELECT
-            (SELECT 1 FROM information_schema.columns
-              WHERE table_name = 'integration_activity_log' AND column_name = 'peers') AS col,
-            (to_regclass('compliance_signal_debounce') IS NOT NULL) AS tbl,
-            (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_integ_org') AS retired,
-            (SELECT col_description(a.attrelid, a.attnum) FROM pg_attribute a
-              WHERE a.attrelid = to_regclass('integration_activity_log')
-                AND a.attname = 'location_state') AS location_note
-    `).catch((e) => fallback('stores/integrationActivityStore:_doInit', e, null));
-    if (probe && probe.col && probe.tbl && !probe.retired) {
-        if (!schema.locationBackfillDone(probe.location_note)) schema.startLocationBackfill();
-        return;
-    }
-
     await exec(`
         CREATE TABLE IF NOT EXISTS integration_activity_log (
             id SERIAL PRIMARY KEY,
@@ -118,8 +99,13 @@ async function _doInit() {
 
     // Every pre-rework row gets a location state. DETACHED on purpose: every
     // write awaits initDB, and a backfill over a large ledger must not hold
-    // the first write of the boot hostage.
-    schema.startLocationBackfill();
+    // the first write of the boot hostage. Not started again once it marked
+    // itself done (the column comment it writes when every row has a state).
+    const note = await getOne(`
+        SELECT col_description(a.attrelid, a.attnum) AS location_note FROM pg_attribute a
+         WHERE a.attrelid = to_regclass('integration_activity_log') AND a.attname = 'location_state'
+    `).catch((e) => fallback('stores/integrationActivityStore:_doInit', e, null));
+    if (!schema.locationBackfillDone(note?.location_note)) schema.startLocationBackfill();
 }
 
 log.info('[IntegrationActivityStore] Initialized (PostgreSQL)');
