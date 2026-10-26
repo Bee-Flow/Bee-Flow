@@ -1,0 +1,167 @@
+/**
+ * BulletsCard: "Does" and "Does not" (A3 part A).
+ *
+ * The most serious claim on this screen stands under "Does not": what stands there is an INSTRUCTION, not a block. That line
+ * must stand there, and it must point to the mechanism that IS hard.
+ *
+ * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/role/BulletsCard.test.jsx
+ */
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+
+import BulletsCard from './BulletsCard';
+import { PERSONA_LIMITS } from './personaFacts';
+import { type TranslateParams } from '@/hooks/useTranslation';
+import { type ComponentProps } from 'react';
+import { stub } from '@/test/mocks';
+
+const t = (key: string, fallback: string, params: TranslateParams) => {
+    let s = typeof fallback === 'string' ? fallback : key;
+    for (const [k, v] of Object.entries(params || {})) s = s.split(`{${k}}`).join(String(v));
+    return s;
+};
+
+afterEach(() => cleanup());
+
+describe('BulletsCard — "Doet niet" is een belofte die niemand afdwingt', () => {
+    it('zegt op het scherm dat de regels het model sturen en niets blokkeren', () => {
+        render(<BulletsCard t={t} variant="doesNot" items={['Promise a discount']} readOnly />);
+        const note = screen.getByTestId('agent-role-does-not-note');
+        expect(note.textContent).toMatch(/nothing here blocks the action/i);
+    });
+
+    it('wijst naar wat wél hard is: de app, tabel of automatisering weghalen of laten bevestigen', () => {
+        render(<BulletsCard t={t} variant="doesNot" items={['Promise a discount']} readOnly />);
+        const note = screen.getByTestId('agent-role-does-not-note').textContent;
+        expect(note).toMatch(/Can use/);
+        expect(note).toMatch(/ask first/i);
+    });
+
+    it('zegt bij "Doet wel" dat een regel geen toegang uitdeelt', () => {
+        render(<BulletsCard t={t} variant="does" items={['Start a new quote']} readOnly />);
+        expect(screen.getByTestId('agent-role-does-note').textContent)
+            .toMatch(/does not hand it the app, table or automation/i);
+        expect(screen.queryByTestId('agent-role-does-not-note')).toBeNull();
+    });
+
+    it('houdt de regel weg bij een lege alleen-lezen kaart — daar valt niets te beloven', () => {
+        render(<BulletsCard t={t} variant="doesNot" items={[]} readOnly />);
+        expect(screen.queryByTestId('agent-role-does-not-note')).toBeNull();
+        expect(screen.getByTestId('agent-role-does-not-empty')).toBeTruthy();
+    });
+});
+
+describe('BulletsCard — de lijst', () => {
+    it('tekent elke regel', () => {
+        render(<BulletsCard t={t} variant="does" items={['One', 'Two']} readOnly />);
+        expect(screen.getAllByTestId('agent-role-bullet')).toHaveLength(2);
+    });
+
+    it('zegt "niets" alleen als de lijst echt leeg is', () => {
+        const { rerender } = render(<BulletsCard t={t} variant="does" items={[]} readOnly />);
+        expect(screen.getByTestId('agent-role-does-empty')).toBeTruthy();
+        rerender(<BulletsCard t={t} variant="does" items={['One']} readOnly />);
+        expect(screen.queryByTestId('agent-role-does-empty')).toBeNull();
+    });
+
+    it('biedt geen bewerkknoppen aan in alleen-lezen', () => {
+        render(<BulletsCard t={t} variant="does" items={['One']} readOnly />);
+        expect(screen.queryByTestId('agent-role-bullet-add')).toBeNull();
+        expect(screen.queryByTestId('agent-role-bullet-remove')).toBeNull();
+        expect(screen.queryByTestId('agent-role-bullet-text')).toBeNull();
+    });
+});
+
+describe('BulletsCard — toevoegen, bewerken, verwijderen', () => {
+    it('geeft een nieuwe regel door aan de ouder', async () => {
+        const user = userEvent.setup();
+        const onAdd = vi.fn(() => null);
+        render(<BulletsCard t={t} variant="does" items={[]} onAdd={onAdd} />);
+        await user.click(screen.getByTestId('agent-role-bullet-add'));
+        const input = screen.getByTestId('agent-role-bullet-add-input');
+        fireEvent.change(input, { target: { value: 'Look up quotes' } });
+        fireEvent.keyDown(input, { key: 'Enter' });
+        expect(onAdd).toHaveBeenCalledWith('Look up quotes');
+        expect(screen.getByTestId('agent-role-bullet-add')).toBeTruthy();
+    });
+
+    it('vertelt waarom een dubbele regel niet verschijnt, in plaats van hem te laten verdampen', async () => {
+        const user = userEvent.setup();
+        render(<BulletsCard t={t} variant="does" items={['One']} onAdd={() => 'duplicate'} />);
+        await user.click(screen.getByTestId('agent-role-bullet-add'));
+        const input = screen.getByTestId('agent-role-bullet-add-input');
+        fireEvent.change(input, { target: { value: 'one' } });
+        fireEvent.keyDown(input, { key: 'Enter' });
+        expect(screen.getByTestId('agent-role-bullet-rejected').textContent).toMatch(/already in this list/i);
+        // Het veld blijft open met de tekst erin: er is niets opgeslagen.
+        expect((screen.getByTestId('agent-role-bullet-add-input') as HTMLInputElement).value).toBe('one');
+    });
+
+    it('vertelt dat twintig het maximum is', async () => {
+        const user = userEvent.setup();
+        render(<BulletsCard t={t} variant="does" items={[]} onAdd={() => 'full'} />);
+        await user.click(screen.getByTestId('agent-role-bullet-add'));
+        const input = screen.getByTestId('agent-role-bullet-add-input');
+        fireEvent.change(input, { target: { value: 'x' } });
+        fireEvent.keyDown(input, { key: 'Enter' });
+        expect(screen.getByTestId('agent-role-bullet-rejected').textContent).toMatch(/Twenty lines is the maximum/i);
+    });
+
+    it('laat Escape de invoer afbreken zonder de ouder te storen', async () => {
+        const user = userEvent.setup();
+        const onAdd = vi.fn(() => null);
+        render(<BulletsCard t={t} variant="does" items={[]} onAdd={onAdd} />);
+        await user.click(screen.getByTestId('agent-role-bullet-add'));
+        const input = screen.getByTestId('agent-role-bullet-add-input');
+        fireEvent.change(input, { target: { value: 'oops' } });
+        fireEvent.keyDown(input, { key: 'Escape' });
+        expect(onAdd).not.toHaveBeenCalled();
+        expect(screen.getByTestId('agent-role-bullet-add')).toBeTruthy();
+    });
+
+    it('bewerkt een bestaande regel op index', async () => {
+        const user = userEvent.setup();
+        const onEdit = vi.fn();
+        render(<BulletsCard t={t} variant="does" items={['One', 'Two']} onEdit={onEdit} />);
+        await user.click(screen.getAllByTestId('agent-role-bullet-text')[1]);
+        const input = screen.getByTestId('agent-role-bullet-input');
+        fireEvent.change(input, { target: { value: 'Two and a half' } });
+        fireEvent.keyDown(input, { key: 'Enter' });
+        expect(onEdit).toHaveBeenCalledWith(1, 'Two and a half');
+    });
+
+    it('verwijdert op index', async () => {
+        const user = userEvent.setup();
+        const onRemove = vi.fn();
+        render(<BulletsCard t={t} variant="does" items={['One', 'Two']} onRemove={onRemove} />);
+        await user.click(screen.getAllByTestId('agent-role-bullet-remove')[0]);
+        expect(onRemove).toHaveBeenCalledWith(0);
+    });
+
+    it('zegt het als een BEWERKING geweigerd wordt, en houdt het veld open', async () => {
+        const user = userEvent.setup();
+        // Editing a rule to something that is already in the list let two in and one out. `editBullet` returns `'duplicate'` for that.
+        // Here that reason appears on the screen, instead of an empty space.
+        const onEdit = vi.fn(() => 'duplicate');
+        render(<BulletsCard t={t} variant="does" items={['One', 'Two']} onEdit={stub<ComponentProps<typeof BulletsCard>['onEdit']>(onEdit)} />);
+        await user.click(screen.getAllByTestId('agent-role-bullet-text')[1]);
+        const input = screen.getByTestId('agent-role-bullet-input');
+        fireEvent.change(input, { target: { value: 'one' } });
+        fireEvent.keyDown(input, { key: 'Enter' });
+        expect(screen.getByTestId('agent-role-bullet-edit-rejected').textContent)
+            .toBe('That line is already in this list.');
+        expect(screen.getByTestId('agent-role-bullet-input')).toBeTruthy();
+    });
+
+    it('beide invoervelden staan op de grens van de server', async () => {
+        const user = userEvent.setup();
+        // Without `maxLength`, `_list` in personaPrompt.js silently cuts a rule of 400 characters off at 300. That is the
+        // truncation that this card must prevent.
+        render(<BulletsCard t={t} variant="does" items={['One']} onAdd={() => null} onEdit={() => null} />);
+        await user.click(screen.getByTestId('agent-role-bullet-add'));
+        expect((screen.getByTestId('agent-role-bullet-add-input') as HTMLInputElement).maxLength).toBe(PERSONA_LIMITS.bullet);
+        await user.click(screen.getAllByTestId('agent-role-bullet-text')[0]);
+        expect((screen.getByTestId('agent-role-bullet-input') as HTMLInputElement).maxLength).toBe(PERSONA_LIMITS.bullet);
+    });
+});

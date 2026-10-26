@@ -3291,11 +3291,6 @@
       "count": 1
     }
   },
-  "src/components/admin/modules/PermissionConsentDialog.test.jsx": {
-    "import/order": {
-      "count": 1
-    }
-  },
   "src/components/admin/modules/SideloadDialog.tsx": {
     "complexity": {
       "count": 1
