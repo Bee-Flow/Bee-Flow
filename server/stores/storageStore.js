@@ -119,7 +119,7 @@ async function init() {
         // Reached ONLY when the env vars are absent — never as a fallback for a
         // reachability failure. See the note in the catch below.
         try {
-            localRoot = path.resolve(__dirname, '..', 'data', 'storage');
+            localRoot = path.resolve(process.env.STORAGE_LOCAL_ROOT || path.join(__dirname, '..', 'data', 'storage'));
             fs.mkdirSync(localRoot, { recursive: true });
             mode = 'local';
             clearRetry();

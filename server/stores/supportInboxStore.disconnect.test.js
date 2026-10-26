@@ -20,31 +20,21 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const { installResolveStub } = require('../testUtils/stubRequire');
+const { recordDb } = require('../testUtils/routeHarness');
 
 process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'x'.repeat(48);
 
-// Recording pool. `rowCounts` lets a case say what the scoped write matched.
-const queries = [];
+// The real db.js over a recording pool. `rowCounts` lets a case say what the scoped write matched.
 let rowCountFor = () => 1;
-
-const pool = {
-    query: async (sql, params = []) => {
-        queries.push({ sql: String(sql), params });
-        return { rows: [], rowCount: rowCountFor(String(sql), params) };
-    },
-};
-
-const restore = installResolveStub({ '../db': { pool, makeStoreInit: () => async () => {} } });
+const db = recordDb((sql, params) => ({ rows: [], rowCount: rowCountFor(String(sql), params) }));
 const store = require('./supportInboxStore');
-// initDB runs the CREATE TABLE batch through the same stub; harmless.
 
 function reset(counts = () => 1) {
-    queries.length = 0;
+    db.reset();
     rowCountFor = counts;
 }
 
-const mutations = () => queries.filter(q => /^\s*(UPDATE|DELETE|INSERT)/i.test(q.sql));
+const mutations = () => db.calls.filter(q => /^\s*(UPDATE|DELETE|INSERT)/i.test(q.sql));
 
 test('deleteInbox purges the mailbox threads instead of detaching them', async () => {
     reset();
@@ -111,4 +101,3 @@ test('disconnectInbox touches no threads when the org scope does not match', asy
     assert.ok(!mutations().some(q => /support_threads/i.test(q.sql)));
 });
 
-test.after(() => restore());

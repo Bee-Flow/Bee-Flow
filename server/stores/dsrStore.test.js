@@ -19,7 +19,6 @@ const { test, before, beforeEach, after } = require('node:test');
 const assert = require('node:assert');
 
 const { createRecordingDb } = require('../testUtils/mockDb');
-const { installResolveStub } = require('../testUtils/stubRequire');
 const { addCalendarMonths } = require('../utils/calendarMonths');
 
 const rows = [];
@@ -137,7 +136,7 @@ const mock = createRecordingDb({
         return undefined;
     },
 });
-const restore = installResolveStub({ '../db': mock.db });
+const restore = mock.attachPool();
 const store = require('./dsrStore');
 
 let bootDdl = [];
@@ -146,7 +145,7 @@ before(async () => {
     await store.initDB();
     // Snapshot both channels here — beforeEach resets the recorder.
     bootClient = mock.calls.client.map(c => c.sql);
-    bootDdl = [...mock.calls.exec.map(c => c.sql), ...bootClient];
+    bootDdl = [...mock.calls.pool.map(c => c.sql), ...bootClient];
 });
 after(() => restore());
 beforeEach(() => { rows.length = 0; nextId = 1; mock.reset(); });
@@ -295,16 +294,20 @@ test('extend: once only, needs a reason, due_at = extended_until = created_at + 
 test('extend: the DB guard alone also refuses (row read as unextended, UPDATE hits nothing)', async () => {
     const row = await seed();
     // Simulate a concurrent extension landing between the read and the UPDATE.
-    const realGetOne = mock.db.getOne;
-    mock.db.getOne = async (sql, params) => {
-        const r = await realGetOne(sql, params);
-        if (r) { row.extended_at = new Date(); return { ...r, extended_at: null }; }
-        return r;
+    const pool = require('../db').pool;
+    const realQuery = pool.query;
+    pool.query = async (sql, params) => {
+        const res = await realQuery.call(pool, sql, params);
+        if (/^\s*SELECT/i.test(sql) && res.rows.length) {
+            row.extended_at = new Date();
+            return { ...res, rows: res.rows.map((r) => ({ ...r, extended_at: null })) };
+        }
+        return res;
     };
     try {
         await assert.rejects(() => store.extend('orgA', row.id, { reason: 'x', by: 'u' }), store.AlreadyExtendedError);
     } finally {
-        mock.db.getOne = realGetOne;
+        pool.query = realQuery;
     }
 });
 
@@ -389,7 +392,7 @@ test('listRequests returns the new columns (e-mail unmasked — masking is the r
     rows.push({ id: 2, organization_id: 'orgB', request_type: 'access', subject_email: 'other@example.test', status: 'pending', timeline: [] });
     const list = await store.listRequests('orgA');
     assert.strictEqual(list.length, 1, 'org-scoped');
-    const sql = mock.calls.getAll[0].sql;
+    const sql = mock.reads().at(-1).sql;
     for (const col of ['channel', 'identity_status', 'identity_verified_at', 'created_by', 'started_at', 'started_by',
         'extended_until', 'extension_reason', 'extended_by', 'extended_at', 'due_at', 'timeline']) {
         assert.match(sql, new RegExp(`\\b${col}\\b`), col);
@@ -402,7 +405,7 @@ test('listRequests returns the new columns (e-mail unmasked — masking is the r
 
 test('listOpenWithDeadlines: open statuses ordered by due_at, org-scoped, and NO subject_email in the SELECT', async () => {
     await store.listOpenWithDeadlines('orgA');
-    const c = mock.calls.getAll[0];
+    const c = mock.reads().at(-1);
     assert.match(c.sql, /WHERE organization_id = \$1 AND status = ANY\(\$2\)/);
     assert.deepStrictEqual(c.params, ['orgA', ['pending', 'in_progress']]);
     assert.match(c.sql, /ORDER BY due_at ASC/);
@@ -443,7 +446,7 @@ test('getSlaStats counts overdue from due_at: not at the deadline, yes one secon
     rows.at(-1).due_at = at(-10 * D);
     assert.strictEqual((await store.getSlaStats('orgA', 'access', 365)).overdue, 3);
 
-    const c = mock.calls.getOne[0];
+    const c = mock.reads().at(-1);
     assert.strictEqual(c.params[0], 'orgA', 'org-scoped');
     assert.strictEqual(c.params[1], 'access', 'and scoped to the request type');
     assert.deepStrictEqual(

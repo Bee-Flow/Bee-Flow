@@ -10,16 +10,10 @@
 
 const assert = require('assert');
 
-// Stub configStore (same trick as the other integration tool tests).
-const configStorePath = require.resolve('../stores/configStore');
-require.cache[configStorePath] = {
-    id: configStorePath,
-    filename: configStorePath,
-    loaded: true,
-    exports: {
-        getSecret: async () => 'fake-key',
-    },
-};
+// The real configStore over a config table the test fills (testUtils/configRows.js).
+const { useConfigRows } = require('../testUtils/configRows');
+const config = useConfigRows();
+config.rows.fireflies_api_key_user_u1 = 'fake-key';
 
 const { executeFirefliesTool, normalizeTitle, classifyTitleMatches } = require('./firefliesTools');
 

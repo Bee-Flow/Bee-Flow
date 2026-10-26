@@ -23,33 +23,22 @@
  * but with its `chat` stubbed so no SDK/network is touched.
  *
  * DB-free: llmClient requires `../aiAgent`, whose provider config
- * (core/llm/providerConfig.js) requires `../../stores/configStore`. Loading
- * that store pulled in real Postgres work at require time — its CREATE TABLE
- * + its dedicated `pg` LISTEN client — so it is cut with installResolveStub;
- * the key is the require string exactly as written in the module that
- * requires it. Nothing under test is stubbed: llmClient, the provider
- * adapters and claude.js all load for real (probe: `../../db` is still
- * required by core/llm/modelCache.js and still loads — it only constructs a
- * lazy pg Pool, opens no socket, and its monitor timer is unref'd).
+ * (core/llm/providerConfig.js) requires `../../stores/configStore`. The real
+ * store loads and reads an empty `config` table through the shared pool double
+ * (testUtils/configRows.js), so nothing here touches the module cache. Nothing
+ * under test is stubbed: llmClient, the provider adapters and claude.js all
+ * load for real (`../../db` only constructs a lazy pg Pool and opens no socket).
  */
 
 const { test, after } = require('node:test');
 const assert = require('node:assert');
 
-const { installResolveStub } = require('../../testUtils/stubRequire');
+const { useConfigRows } = require('../../testUtils/configRows');
 
-// Key = the require string as written inside core/llm/providerConfig.js (NOT
-// relative to this file). A mismatch here fails silently: the real store
-// loads and the DB connection comes back.
-const restoreStores = installResolveStub({
-    '../../stores/configStore': {
-        getConfig: async () => null,
-        setConfig: async () => {},
-        getSecret: async () => null,
-        setSecret: async () => {},
-    },
-});
-after(() => restoreStores());
+// The real configStore, its table empty: every key reads as absent.
+const config = useConfigRows();
+
+after(config.restore);
 
 const llmClient = require('./llmClient');
 const { googleAdapter, openaiAdapter, claudeAdapter, mistralAdapter } = require('../providers/index');

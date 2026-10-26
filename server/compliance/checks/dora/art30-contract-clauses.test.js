@@ -6,17 +6,16 @@
  */
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { installResolveStub } = require('../../../testUtils/stubRequire');
 
 const ORG = 'org-a';
 const EMAIL = /[\w.+-]+@[\w-]+\.[\w.-]+/;
 const DAY = 86400e3;
 const fx = { settings: {} };
-const restore = installResolveStub({
-    '../../../stores/complianceStore': { getSettings: async (orgId) => ({ organization_id: orgId, ...fx.settings }) },
-});
+// The real complianceStore over a recording pool; its settings row is what getSettings used to be stubbed to.
+require('../../../testUtils/routeHarness').recordDb((sql, params) => (/FROM compliance_settings/i.test(sql)
+    ? { rows: [((orgId) => ({ organization_id: orgId, ...fx.settings }))(params && params[0])] }
+    : undefined));
 const check = require('./art30-contract-clauses');
-test.after(() => restore());
 
 const ago = (days) => new Date(Date.now() - days * DAY).toISOString();
 const noPii = (r) => assert.doesNotMatch(JSON.stringify(r), EMAIL);

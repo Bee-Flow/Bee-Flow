@@ -1,7 +1,7 @@
 /**
  * umamiClient unit tests.
  *
- * configStore is pre-mocked via the require cache to return nothing, so the
+ * the real configStore reads an empty config table, so the
  * client resolves its endpoint from env vars (no DB needed). global.fetch is
  * stubbed per-test to assert request shape + exercise the find-or-create and
  * auth paths.
@@ -10,16 +10,10 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-function mock(relPath, exports) {
-    const resolved = require.resolve(relPath);
-    require.cache[resolved] = { id: resolved, filename: resolved, loaded: true, exports };
-}
-
-// No DB in tests — config reads return empty so env vars drive the client.
-mock('../../stores/configStore', {
-    getConfig: async () => null,
-    getSecret: async () => '',
-});
+// No DB in tests: the real configStore reads an empty config table, so env vars drive the client.
+const { useConfigRows } = require('../../testUtils/configRows');
+const config = useConfigRows();
+test.after(config.restore);
 
 const umami = require('./umamiClient');
 

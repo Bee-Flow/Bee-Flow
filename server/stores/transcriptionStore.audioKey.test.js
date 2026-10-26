@@ -9,8 +9,7 @@
  *
  * Also covers the disk-first lookup the repair sweep runs.
  *
- * Stubs ../db via the require-cache (same trick as transcriptionStore.gmeet.test.js)
- * — no Postgres needed.
+ * The real db.js runs over a recording pool — no Postgres needed.
  *
  * Run: cd server && node --test stores/transcriptionStore.audioKey.test.js
  */
@@ -18,21 +17,18 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-function stub(p, exports) {
-    const filename = require.resolve(p);
-    require.cache[filename] = { id: filename, filename, loaded: true, exports };
-}
-
 const runCalls = [];
 const execCalls = [];
 let getAllResult = [];
 const getAllCalls = [];
 
-stub('../db', {
-    exec: async (sql) => { execCalls.push(sql); },
-    run: async (sql, params) => { runCalls.push({ sql, params }); return { rowCount: 1, rows: [] }; },
-    getOne: async () => null,
-    getAll: async (sql, params) => { getAllCalls.push({ sql, params }); return getAllResult; },
+// The real db.js over a recording pool: schema statements land in `execCalls`,
+// writes in `runCalls`, reads in `getAllCalls` and answer `getAllResult`.
+require('../testUtils/routeHarness').recordDb((sql, params) => {
+    if (/^\s*(CREATE|ALTER)/i.test(sql)) { execCalls.push(sql); return undefined; }
+    if (/^\s*SELECT/i.test(sql)) { getAllCalls.push({ sql, params }); return { rows: getAllResult }; }
+    if (/^\s*(INSERT|UPDATE|DELETE)/i.test(sql)) { runCalls.push({ sql, params }); return { rows: [], rowCount: 1 }; }
+    return undefined;
 });
 
 const store = require('./transcriptionStore');

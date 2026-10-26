@@ -8,22 +8,17 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { installResolveStub } = require('../../../testUtils/stubRequire');
+const { recordDb } = require('../../../testUtils/routeHarness');
 
 // Per table: a row, or an Error to throw.
 const fx = { integration_activity_log: null, guardrail_events: null };
-const restore = installResolveStub({
-    '../../../db': {
-        getOne: async (sql) => {
-            const table = /FROM (\w+)/.exec(sql)[1];
-            const v = fx[table];
-            if (v instanceof Error) throw v;
-            return v;
-        },
-    },
+// The real db.js over a recording pool: a SELECT answers the row of its table.
+recordDb((sql) => {
+    const v = fx[/FROM (\w+)/.exec(sql)[1]];
+    if (v instanceof Error) throw v;
+    return v ? { rows: [v] } : undefined;
 });
 const check = require('./art26-6-log-retention');
-test.after(restore);
 test.beforeEach(() => { fx.integration_activity_log = null; fx.guardrail_events = null; });
 
 function pgError(message, code) {

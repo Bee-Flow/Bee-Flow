@@ -9,21 +9,12 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-// The store is the only dependency worth faking, and loginAudit requires it
-// lazily from inside write() — so seeding the module cache is enough, with no
-// resolve hook and no fixture module to keep in sync. The real store is never
-// loaded, which also keeps this file off the database.
-const rows = [];
-const mockUserStore = {
-    logAccessAudit: async (action, targetType, targetId, changedBy, oldValues, newValues, organizationId) => {
-        rows.push({ action, targetType, targetId, changedBy, oldValues, newValues, organizationId });
-    },
-};
-const STORE = require.resolve('../stores/userStore.js');
-require.cache[STORE] = { id: STORE, filename: STORE, loaded: true, exports: mockUserStore };
+// The real userStore.logAccessAudit over a recording pool (testUtils/accessAuditRows.js).
+const { useAccessAuditRows } = require('../testUtils/accessAuditRows');
+const auditRows = useAccessAuditRows();
+const rows = auditRows.rows;
 
 const loginAudit = require('./loginAudit');
-test.after(() => { delete require.cache[STORE]; });
 
 const reqWith = (over = {}) => ({
     headers: { 'user-agent': 'Mozilla/5.0 probe', 'x-forwarded-for': '203.0.113.9, 10.0.0.1' },
@@ -31,7 +22,7 @@ const reqWith = (over = {}) => ({
     ...over,
 });
 
-test.beforeEach(() => { rows.length = 0; });
+test.beforeEach(auditRows.reset);
 
 test('a failed login never stores what was typed', async () => {
     // The realistic worst case: the password went into the username field.
@@ -107,16 +98,12 @@ test('an unbounded user-agent cannot inflate the row', async () => {
 });
 
 test('a broken store never breaks an authentication', async () => {
-    const original = mockUserStore.logAccessAudit;
-    mockUserStore.logAccessAudit = async () => { throw new Error('audit table is gone'); };
-    try {
-        // No rejection: a gap in a log beats an outage of the login.
-        await loginAudit.auditLoginSuccess(reqWith(), { user: { id: 'usr_7' }, method: 'password' });
-        await loginAudit.auditLoginFailure(reqWith(), { userId: null, identifier: 'x' });
-        await loginAudit.auditLoginBlocked(reqWith(), { userId: 'usr_7', reason: 'throttled' });
-    } finally {
-        mockUserStore.logAccessAudit = original;
-    }
+    auditRows.failOn(true);
+    // No rejection: a gap in a log beats an outage of the login.
+    await loginAudit.auditLoginSuccess(reqWith(), { user: { id: 'usr_7' }, method: 'password' });
+    await loginAudit.auditLoginFailure(reqWith(), { userId: null, identifier: 'x' });
+    await loginAudit.auditLoginBlocked(reqWith(), { userId: 'usr_7', reason: 'throttled' });
+    assert.deepStrictEqual(rows, []);
 });
 
 test('a request with no headers at all still produces a row', async () => {

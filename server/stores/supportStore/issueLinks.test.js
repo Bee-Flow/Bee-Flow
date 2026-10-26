@@ -28,14 +28,12 @@ const assert = require('node:assert');
 process.env.NODE_ENV = 'test';
 
 const { PGlite } = require('@electric-sql/pglite');
-const { pgliteQuery } = require('../../testUtils/pglitePool');
-const { installResolveStub } = require('../../testUtils/stubRequire');
+const { usePglitePool } = require('../../testUtils/pglitePool');
 
 const pg = new PGlite();
 
-const query = pgliteQuery(pg);
-
-const restoreStubs = installResolveStub({ '../../db': { pool: { query } } });
+// db.js's pool answered by the same PGlite the test seeds.
+const { query, restore: restorePool } = usePglitePool(pg);
 const links = require('./issueLinks');
 
 const ISSUE = 'BFSF-900';
@@ -91,7 +89,7 @@ beforeEach(async () => {
 });
 
 after(async () => {
-    restoreStubs();
+    restorePool();
     await pg.close();
 });
 

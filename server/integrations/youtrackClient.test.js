@@ -14,11 +14,10 @@ const assert = require('node:assert');
 
 process.env.NODE_ENV = 'test';
 
-const { installResolveStub } = require('../testUtils/stubRequire');
+const { useConfigRows } = require('../testUtils/configRows');
 
-const restoreStubs = installResolveStub({
-    '../stores/configStore': { getSecret: async () => null, getConfig: async () => null },
-});
+// The real configStore over an empty config table.
+const config = useConfigRows();
 const ytc = require('./youtrackClient');
 
 const CREDS = { baseUrl: 'https://yt.example.com', token: 'test-token' };
@@ -38,7 +37,7 @@ beforeEach(() => {
 
 after(() => {
     global.fetch = realFetch;
-    restoreStubs();
+    config.restore();
 });
 
 test('issue reads ask for commentsCount and hand it back', async () => {

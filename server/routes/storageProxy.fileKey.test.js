@@ -25,36 +25,21 @@ process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'unit-test-session-se
 const test = require('node:test');
 const assert = require('node:assert');
 const http = require('node:http');
-const Module = require('module');
-const { Readable } = require('node:stream');
 
-// Every key the store is asked for lands in `served`.
-const served = [];
+const { useLocalStorage } = require('../testUtils/localStorage');
 
-const MOCKS = {
-    '../stores/storageStore': {
-        isAvailable: () => true,
-        streamFile: async (key) => {
-            served.push(key);
-            return { stream: Readable.from(['bytes']), contentType: 'image/png', contentLength: 5 };
-        },
-    },
-};
-
-const MOCK_IDS = {};
-for (const [request, exportsObj] of Object.entries(MOCKS)) {
-    const mockId = `mock:storage-proxy-file-key:${request}`;
-    MOCK_IDS[request] = mockId;
-    require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
-}
-const originalResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /routes[\\/]storageProxy\.js$/.test(parent.filename)
-        && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
-        return MOCK_IDS[request];
-    }
-    return originalResolve.call(this, request, parent, ...rest);
-};
+// The real storageStore on its local-disk backend. Every file holds its own key
+// as its bytes, so the body of a response proves which key the route read.
+const storage = useLocalStorage();
+const KEYS = [
+    'users/me/uploads/50% off.png',
+    'users/me/uploads/a%41.png',
+    'users/me/uploads/aA.png',
+    'users/me/uploads/photo.png',
+    'users/me/notebooks/n1/Überschrift (1).png',
+    'shared/logo.png',
+    'users/victim/uploads/secret.png',
+];
 
 const express = require('express');
 const router = require('./storageProxy');
@@ -66,6 +51,8 @@ let server;
 let port;
 
 test.before(async () => {
+    await storage.ready();
+    for (const key of KEYS) await storage.put(key, key, 'image/png');
     const app = express();
     app.use((req, _res, next) => { req.session = { user: { id: 'me' } }; next(); });
     app.use('/api/storage', router);
@@ -75,11 +62,9 @@ test.before(async () => {
 });
 
 test.after(async () => {
-    Module._resolveFilename = originalResolve;
     await new Promise((resolve) => server.close(resolve));
+    storage.close();
 });
-
-test.beforeEach(() => { served.length = 0; });
 
 /** A GET with the path sent exactly as written — no client-side normalisation of `..`. */
 function get(path) {
@@ -98,22 +83,21 @@ test('the URL minted for a name with a percent sign and a space is served, not a
     const key = 'users/me/uploads/50% off.png';
     const res = await get(buildProxyUrl(key));
     assert.strictEqual(res.status, 200, res.body);
-    assert.deepStrictEqual(served, [key]);
+    assert.strictEqual(res.body, key, 'the file read is the one minted for');
 });
 
 test('a name that looks percent-encoded is looked up as itself, not as the character it spells', async () => {
     const key = 'users/me/uploads/a%41.png';
     const res = await get(buildProxyUrl(key));
     assert.strictEqual(res.status, 200, res.body);
-    assert.deepStrictEqual(served, [key], 'not users/me/uploads/aA.png');
+    assert.strictEqual(res.body, key, 'not users/me/uploads/aA.png');
 });
 
 test('plain keys, and keys with characters that need encoding, still arrive whole', async () => {
     for (const key of ['users/me/uploads/photo.png', 'users/me/notebooks/n1/Überschrift (1).png', 'shared/logo.png']) {
-        served.length = 0;
         const res = await get(buildProxyUrl(key));
         assert.strictEqual(res.status, 200, key);
-        assert.deepStrictEqual(served, [key]);
+        assert.strictEqual(res.body, key);
     }
 });
 
@@ -124,12 +108,12 @@ test('traversal is still refused on the final key', async () => {
     ]) {
         const res = await get(path);
         assert.strictEqual(res.status, 403, path);
+        assert.ok(!res.body.includes('secret'), 'no file bytes came back');
     }
-    assert.deepStrictEqual(served, []);
 });
 
 test('another user\'s file is still refused', async () => {
     const res = await get(buildProxyUrl('users/victim/uploads/secret.png'));
     assert.strictEqual(res.status, 403);
-    assert.deepStrictEqual(served, []);
+    assert.ok(!res.body.includes('secret'), 'the file exists, and its bytes stayed in storage');
 });

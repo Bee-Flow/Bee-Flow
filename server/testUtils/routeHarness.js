@@ -48,22 +48,26 @@ const BOOTSTRAP = /^\s*(CREATE|ALTER|DROP|COMMENT|BEGIN|COMMIT|ROLLBACK|SAVEPOIN
 /**
  * Record every query instead of sending it. `answer(sql, params)` may return a
  * `{ rows }` result for the query; anything else answers no rows. `queries`
- * holds the ones that read or write data, `all` every statement.
+ * holds the ones that read or write data, `calls` the same with their params,
+ * `all` every statement.
+ *
+ * @param {(sql: string, params?: any) => any} [answer]
  */
 function recordDb(answer = () => undefined) {
     const db = require('../db');
     const queries = [];
     const all = [];
+    const calls = [];
     const query = async (sql, params) => {
         const text = typeof sql === 'string' ? sql : sql?.text || '';
         all.push(text);
-        if (!BOOTSTRAP.test(text)) queries.push(text);
+        if (!BOOTSTRAP.test(text)) { queries.push(text); calls.push({ sql: text, params }); }
         const out = answer(text, params);
         return out ? { rowCount: (out.rows || []).length, ...out } : { rows: [], rowCount: 0 };
     };
     db.pool.query = query;
     db.pool.connect = async () => ({ query, release() {} });
-    const reset = () => { queries.length = 0; all.length = 0; };
+    const reset = () => { queries.length = 0; all.length = 0; calls.length = 0; };
     /**
      * Stores that initialise when they are loaded keep querying for a while
      * after the router is required (schema, backfills). Wait until the
@@ -78,7 +82,7 @@ function recordDb(answer = () => undefined) {
         }
         reset();
     }
-    return { queries, all, reset, settle };
+    return { queries, calls, all, reset, settle };
 }
 
 const needsSession = (req, res, next) => {

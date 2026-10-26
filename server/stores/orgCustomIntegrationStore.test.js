@@ -6,24 +6,13 @@
  */
 
 const assert = require('assert');
-const Module = require('module');
 
 process.env.NODE_ENV = 'test';
 process.env.MASTER_ENCRYPTION_KEY = 'test-master-key-for-unit-tests-32chars!!';
 process.env.INTEGRATION_CONNECTIONS_BACKFILL = '0'; // no boot timer in tests
 
-// ── Mock ../db before the store loads ───────────────────────────────
-const mockDb = {
-    exec: async () => ({}),
-    run: async () => ({ rows: [], rowCount: 0 }),
-    getOne: async () => null,
-    getAll: async () => [],
-    getClient: async () => ({ query: async () => ({ rows: [] }), release() {} }),
-};
-const dbPath = require.resolve('../db');
-require.cache[dbPath] = new Module(dbPath);
-require.cache[dbPath].exports = mockDb;
-require.cache[dbPath].loaded = true;
+// The real db.js over a recording pool, so nothing opens a connection.
+require('../testUtils/routeHarness').recordDb();
 
 const store = require('./orgCustomIntegrationStore');
 const { SLUG_RE, SLUG_LENGTH } = store._internals;

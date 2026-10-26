@@ -8,20 +8,8 @@
  */
 
 const assert = require('assert');
-
-// Stub the skillStore module before requiring sessionSkillRuntime so the
-// runtime's `require('../../stores/skillStore')` returns our stub instead of
-// reaching for PostgreSQL.
-const skillStorePath = require.resolve('../../stores/skillStore');
-require.cache[skillStorePath] = {
-    id: skillStorePath,
-    filename: skillStorePath,
-    loaded: true,
-    exports: {
-        createSkill: async () => { throw new Error('skillStore.createSkill not stubbed for this test'); },
-        getSkillsByIds: async () => [],
-    },
-};
+// The real modules over a recording pool, so nothing opens a connection.
+require('../../testUtils/routeHarness').recordDb();
 
 const {
     bootstrapSessionSkills, // exercised via parseSkillPayload-style adapter mock
