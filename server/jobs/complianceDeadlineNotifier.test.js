@@ -360,3 +360,25 @@ test('without a notify log the tiers still fire (loud beats silent) and the job 
     assert.strictEqual(jobRuns[0].job, 'compliance_deadlines');
     assert.strictEqual(jobRuns[0].status, 'ok');
 });
+
+test("a DSR in the 'default' bucket nudges that bucket's admins, users stored without an organisation", async () => {
+    // The admin lookup against a real Postgres: 'default' is users whose
+    // "organizationId" is '' or NULL, the same bucket the DSR intake files a
+    // request from such a user under.
+    const { PGlite } = require('@electric-sql/pglite');
+    const pg = new PGlite();
+    try {
+        await pg.exec(`CREATE TABLE users (id TEXT PRIMARY KEY, "organizationId" TEXT DEFAULT '', role TEXT, "orgRole" TEXT)`);
+        await pg.query(`INSERT INTO users VALUES ('op', '', 'admin', NULL), ('dpo', NULL, 'user', 'dpo'), ('member', '', 'user', NULL), ('other', 'org_a', 'admin', NULL)`);
+        const rows = [{ id: 7, request_type: 'access', status: 'pending', due_at: at(-1 * DAY) }];
+        const { deps, sent } = harness({
+            getAll: async (sql, params) => (await pg.query(sql, params)).rows,
+            dsrStore: { listOpenWithDeadlines: async (orgId) => (orgId === 'default' ? rows : []) },
+        });
+        await run(deps);
+        const dsr = sent.filter(n => /Data-subject request/.test(n.title));
+        assert.deepStrictEqual(dsr.map(n => n.userId).sort(), ['dpo', 'op'], 'both admins of the bucket, nobody else');
+    } finally {
+        await pg.close();
+    }
+});
