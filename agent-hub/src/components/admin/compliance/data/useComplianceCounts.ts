@@ -18,7 +18,8 @@
  * review_due}, audits:{planned}, training:{done,total}, connectors:{count,
  * next_sweep_at}, evidence:{rows,chain_ok,algorithm}, onboarded, setup_step }.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { API, fetchJson, asObject } from '../../../../api/complianceApi';
 
 const COMPLIANCE_COUNTS_POLL_MS = 30_000;
@@ -95,44 +96,26 @@ interface UseComplianceCountsArgs {
 }
 
 export default function useComplianceCounts({ enabled = true, poll = true, keys = null }: UseComplianceCountsArgs = {}) {
-    const [counts, setCounts] = useState<Record<string, unknown> | null>(null);
-    const [failed, setFailed] = useState(false);
-    const alive = useRef(true);
-    useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
-
     const url = keys && keys.length ? `${API}/counts?keys=${encodeURIComponent(keys.join(','))}` : `${API}/counts`;
 
-    const load = useCallback(async () => {
-        try {
-            const body = await fetchJson(url);
-            if (!alive.current) return;
-            setCounts(parseCounts(body));
-            setFailed(false);
-        } catch {
-            if (alive.current) setFailed(true);
-        }
-    }, [url]);
-
-    useEffect(() => {
-        if (!enabled) return undefined;
-        load();
-        if (!poll) return undefined;
-        let timer: NodeJS.Timeout | null = null;
-        const tick = () => {
-            if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
-            load();
-        };
-        timer = setInterval(tick, COMPLIANCE_COUNTS_POLL_MS);
-        const onVisible = () => { if (document.visibilityState === 'visible') load(); };
-        document.addEventListener('visibilitychange', onVisible);
-        return () => {
-            if (timer) clearInterval(timer);
-            document.removeEventListener('visibilitychange', onVisible);
-        };
-    }, [enabled, poll, load]);
+    // Polled every 30 s while the tab is visible (a hidden tab neither polls nor
+    // is stale when it comes back: focus refetches); `failed` tells "not in
+    // yet" from "could not read".
+    const query = useQuery<Record<string, unknown> | null>({
+        queryKey: ['compliance', 'counts', url],
+        enabled,
+        queryFn: async () => parseCounts(await fetchJson(url)),
+        refetchInterval: poll ? COMPLIANCE_COUNTS_POLL_MS : false,
+        refetchIntervalInBackground: false,
+        refetchOnWindowFocus: poll,
+        staleTime: 0,
+        retry: false,
+    });
+    const { refetch } = query;
+    const refresh = useCallback(async () => { await refetch(); }, [refetch]);
 
     // Mutations call bump() so the rail catches up without waiting for the poll.
-    const bump = useCallback(() => { if (enabled) load(); }, [enabled, load]);
+    const bump = useCallback(() => { if (enabled) refetch(); }, [enabled, refetch]);
 
-    return { counts, failed, bump, refresh: load };
+    return { counts: query.data ?? null, failed: query.isError, bump, refresh };
 }

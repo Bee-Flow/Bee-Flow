@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useComplianceRead } from '../../../../../api/queries/complianceReads';
 import { FileJson, Fingerprint } from 'lucide-react';
 import { useTranslation, type TranslateParams } from '../../../../../hooks/useTranslation';
 import DataTable, { TableRow, TableCell, type TableColumn } from '../../../../shared/DataTable';
@@ -111,27 +112,18 @@ export default function EvidenceTab({
     testId = 'evidence-tab',
 }: EvidenceTabProps) {
     const { t, locale } = useTranslation();
-    const [offset, setOffset] = useState(0);
-    const [state, setState] = useState('loading'); // loading | ready | failed
-    const [page, setPage] = useState<EvidencePage | null>(null);         // { rows, total }
-
-    useEffect(() => { setOffset(0); }, [regulation]);
-
-    useEffect(() => {
-        if (!regulation) return undefined;
-        let alive = true;
-        setState('loading');
-        fetchJson(evidenceUrl(regulation, { limit: pageSize, offset }))
-            .then((body) => {
-                if (!alive) return;
-                const parsed = parseEvidenceBody(body);
-                if (!parsed) { setState('failed'); return; }
-                setPage(parsed);
-                setState('ready');
-            })
-            .catch(() => { if (alive) setState('failed'); });
-        return () => { alive = false; };
-    }, [regulation, offset, pageSize]);
+    // The page offset restarts at 0 for another regulation.
+    const [paging, setPaging] = useState({ regulation, offset: 0 });
+    const offset = paging.regulation === regulation ? paging.offset : 0;
+    const setOffset = (next: number) => setPaging({ regulation, offset: next });
+    const evidenceQuery = useComplianceRead<EvidencePage>(
+        ['evidence', regulation, pageSize, offset],
+        evidenceUrl(regulation, { limit: pageSize, offset }),
+        parseEvidenceBody,
+        !!regulation,
+    );
+    const state = evidenceQuery.isError ? 'failed' : (evidenceQuery.isSuccess && !evidenceQuery.isFetching ? 'ready' : 'loading'); // loading | ready | failed
+    const page: EvidencePage | null = evidenceQuery.data ?? null;
 
     const { titleOf, subjectOf } = useMemo(() => {
         const byCheck = new Map<string, RowCheck>();

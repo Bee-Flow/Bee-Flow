@@ -1,5 +1,6 @@
 import { ArrowLeft, FileJson, FolderKanban, Pencil } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useComplianceRead } from '../../../../api/queries/complianceReads';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { API, asArray, asObject, fetchJson, jsonInit, json } from '../../../../api/complianceApi';
 import useResource from '../data/useResource';
@@ -107,13 +108,30 @@ export default function CustomFrameworksPage(props: CustomFrameworksPageProps) {
     const [openId, setOpenId] = useState<string | null>(focusId ? String(focusId) : null);
     const [editing, setEditing] = useState<EditorFramework | null>(null);      // framework row | {} for "new" | null
     const [attesting, setAttesting] = useState<JoinedCheck | null>(null);  // joined check row | null
-    const [history, setHistory] = useState<{ id: string; outcome: string; attested_at: string }[] | null>(null);
-    const [historyFailed, setHistoryFailed] = useState(false);
     const [busyId, setBusyId] = useState<string | number | null>(null);
-    const [detail, setDetail] = useState<CustomFrameworkDetail | null>(null);
-    const [detailFailed, setDetailFailed] = useState(false);
-
-    useEffect(() => { if (focusId) setOpenId(String(focusId)); }, [focusId]);
+    const [seenFocusId, setSeenFocusId] = useState(focusId);
+    if (focusId !== seenFocusId) {
+        setSeenFocusId(focusId);
+        if (focusId) setOpenId(String(focusId));
+    }
+    // The open framework's checks; the page shows a failure note instead when it cannot be read.
+    const detailQuery = useComplianceRead<CustomFrameworkDetail>(
+        ['custom-framework', openId],
+        `${API}/custom/frameworks/${encodeURIComponent(openId ?? '')}`,
+        (b) => asObject(b) as CustomFrameworkDetail | null,
+        !!openId,
+    );
+    const detail = openId ? detailQuery.data ?? null : null;
+    const detailFailed = !!openId && detailQuery.isError;
+    // A check's earlier attestations, read when the attest drawer opens; null while they load.
+    const historyQuery = useComplianceRead<{ id: string; outcome: string; attested_at: string }[]>(
+        ['custom-check-attestations', attesting?.id],
+        `${API}/custom/checks/${encodeURIComponent(attesting?.id ?? '')}/attestations`,
+        (b) => (Array.isArray(b) ? b : []),
+        !!attesting,
+    );
+    const history = attesting ? historyQuery.data ?? null : null;
+    const historyFailed = !!attesting && historyQuery.isError;
 
     const openNew = useCallback(() => setEditing({}), []);
     useEffect(() => {
@@ -124,34 +142,22 @@ export default function CustomFrameworksPage(props: CustomFrameworksPageProps) {
     const selected = useMemo(() => (list || []).find(f => f.id === openId) || null, [list, openId]);
     const results = useMemo(() => indexResults(core.checks), [core.checks]);
 
-    const loadDetail = useCallback(async (id: string | number | boolean) => {
-        setDetail(null);
-        setDetailFailed(false);
-        try {
-            const body = await fetchJson(`${API}/custom/frameworks/${encodeURIComponent(id)}`);
-            setDetail(asObject(body) as CustomFrameworkDetail | null);
-        } catch {
-            setDetailFailed(true);
-        }
-    }, []);
-
-    useEffect(() => { if (openId) loadDetail(openId); else { setDetail(null); setDetailFailed(false); } }, [openId, loadDetail]);
-
     // The built-in catalogue for the "satisfied by" picker — only while a framework is open.
     const registry = useResource<BuiltinCheck[]>(`${API}/registry`, {
         enabled: !!openId,
         parse: (b) => { const o = asObject(b) as { checks?: BuiltinCheck[] } | null; return o && Array.isArray(o.checks) ? o.checks : null; },
     });
 
+    const { refetch: refetchDetail } = detailQuery;
     const refreshAll = useCallback(async () => {
         await Promise.all([
             fw.refresh?.(),
             hubList === null ? own.refresh() : Promise.resolve(),
-            openId ? loadDetail(openId) : Promise.resolve(),
+            openId ? refetchDetail() : Promise.resolve(),
         ].filter(Boolean));
         data.bump?.();
         await core.refresh?.();
-    }, [fw, hubList, own, openId, loadDetail, data, core]);
+    }, [fw, hubList, own, openId, refetchDetail, data, core]);
 
     const saveFramework = async (body: ReturnType<typeof toBody>, framework: EditorFramework | null) => {
         const isNew = !framework?.id;
@@ -207,15 +213,7 @@ export default function CustomFrameworksPage(props: CustomFrameworksPageProps) {
         } finally { setBusyId(null); }
     };
 
-    const openAttest = async (row: JoinedCheck) => {
-        setAttesting(row);
-        setHistory(null);
-        setHistoryFailed(false);
-        try {
-            const body = await fetchJson(`${API}/custom/checks/${encodeURIComponent(row.id)}/attestations`);
-            setHistory(Array.isArray(body) ? body : []);
-        } catch { setHistoryFailed(true); }
-    };
+    const openAttest = async (row: JoinedCheck) => { setAttesting(row); };
 
     const attest = async ({ outcome, statement, evidence_refs: refs }: AttestBody) => {
         if (!attesting) return;

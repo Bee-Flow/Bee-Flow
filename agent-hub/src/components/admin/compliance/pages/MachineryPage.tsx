@@ -1,5 +1,6 @@
 import { Factory, PenLine } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useComplianceRead } from '../../../../api/queries/complianceReads';
 import { useTranslation, type TranslateParams } from '../../../../hooks/useTranslation';
 import DataTable, { TableRow, TableCell } from '../../../shared/DataTable';
 import DeadlineClock from '../../../shared/DeadlineClock';
@@ -165,9 +166,23 @@ export default function MachineryPage(props: MachineryPageProps) {
     // 503 not_provisioned: the detector module is absent on this deployment.
     const notProvisioned = readFailed && /\b503\b/.test(readError);
 
-    const [openId, setOpenId] = useState<string | null>(null);
-    const [history, setHistory] = useState<{ id: string; classification: string; attested_at: string }[] | null>(null);
-    const [historyFailed, setHistoryFailed] = useState(false);
+    const [openId, setOpenId] = useState<string | null>(focusId ? String(focusId) : null);
+    // A deep link opens the drawer the same way a row does, history included.
+    const [seenFocusId, setSeenFocusId] = useState(focusId);
+    if (focusId !== seenFocusId) {
+        setSeenFocusId(focusId);
+        if (focusId) setOpenId(String(focusId));
+    }
+    // The subject's earlier attestations; null while they load.
+    const attestations = useComplianceRead<{ id: string; classification: string; attested_at: string }[]>(
+        ['machinery-attestations', openId],
+        `${API}/machinery/subjects/${encodeURIComponent(openId ?? '')}/attestations`,
+        (b) => (Array.isArray(b) ? b : []),
+        !!openId,
+    );
+    const history = attestations.data ?? null;
+    const historyFailed = attestations.isError;
+    const openSubject = useCallback(async (subjectId: string) => { setOpenId(subjectId); }, []);
     const [busy, setBusy] = useState(false);
 
     // The header's "Scan again" (registerSpecs machinery → onRefreshMachinery) re-reads the table.
@@ -175,22 +190,6 @@ export default function MachineryPage(props: MachineryPageProps) {
         setHeaderActions?.({ onRefreshMachinery: res.refresh });
         return () => setHeaderActions?.({});
     }, [setHeaderActions, res.refresh]);
-
-    const openSubject = useCallback(async (subjectId: string) => {
-        setOpenId(subjectId);
-        setHistory(null);
-        setHistoryFailed(false);
-        try {
-            const body = await fetchJson(`${API}/machinery/subjects/${encodeURIComponent(subjectId)}/attestations`);
-            setHistory(Array.isArray(body) ? body : []);
-        } catch {
-            setHistoryFailed(true);
-        }
-    }, []);
-
-    // A deep link opens the drawer the same way a row does, history included:
-    // setting the id alone left "Earlier attestations" loading for good.
-    useEffect(() => { if (focusId) openSubject(String(focusId)); }, [focusId, openSubject]);
 
     const selected = useMemo(() => (rows || []).find(r => r.subject_id === openId) || null, [rows, openId]);
 

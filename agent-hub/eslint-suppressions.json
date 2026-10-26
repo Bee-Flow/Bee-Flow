@@ -2760,11 +2760,6 @@
       "count": 1
     }
   },
-  "src/components/admin/compliance/data/useComplianceCounts.ts": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/components/admin/compliance/index.tsx": {
     "max-statements": {
       "count": 1

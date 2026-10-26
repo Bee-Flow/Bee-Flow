@@ -1,6 +1,7 @@
-import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import { screen, cleanup, waitFor } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { renderWithClient } from '@/test/render';
 import PortabilityPage, { rowTone, isPortable, coverageSummary, routeLines } from './PortabilityPage';
 
 vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
@@ -51,7 +52,7 @@ const props = (over = {}) => ({ isMobile: false, setHeaderActions: vi.fn(), ...o
 describe('PortabilityPage', () => {
     it('reads GET /portability and renders one row per kind', async () => {
         fetchJson.mockResolvedValueOnce(matrix());
-        render(<PortabilityPage {...props()} />);
+        renderWithClient(<PortabilityPage {...props()} />);
         await waitFor(() => expect(screen.getAllByTestId('pf-row').length).toBe(5));
         expect(fetchJson.mock.calls[0][0]).toMatch(/\/portability$/);
         expect([...screen.getAllByTestId('pf-kind')].map(el => el.dataset.kind))
@@ -60,7 +61,7 @@ describe('PortabilityPage', () => {
 
     it('a kind without an export route renders in error ink with the product-gap note and no format chips', async () => {
         fetchJson.mockResolvedValueOnce(matrix());
-        render(<PortabilityPage {...props()} />);
+        renderWithClient(<PortabilityPage {...props()} />);
         await waitFor(() => expect(screen.getAllByTestId('pf-gap').length).toBe(2));
         const gap = screen.getAllByTestId('pf-gap')[0];
         expect(gap.style.color).toBe('var(--error-ink)');
@@ -73,7 +74,7 @@ describe('PortabilityPage', () => {
 
     it('a declared route that is no longer served is red too — a broken export is not a covered export', async () => {
         fetchJson.mockResolvedValueOnce(matrix());
-        render(<PortabilityPage {...props()} />);
+        renderWithClient(<PortabilityPage {...props()} />);
         await waitFor(() => expect(screen.getAllByTestId('pf-row').length).toBe(5));
         const flags = screen.getAllByTestId('pf-mounted');
         expect(flags.map(f => f.dataset.mounted)).toEqual(['true', 'true', 'false', 'none', 'none']);
@@ -84,7 +85,7 @@ describe('PortabilityPage', () => {
 
     it('lists every declared route, marks a render-only one, and never prints a 0 for an unknown count', async () => {
         fetchJson.mockResolvedValueOnce(matrix());
-        render(<PortabilityPage {...props()} />);
+        renderWithClient(<PortabilityPage {...props()} />);
         await waitFor(() => expect(screen.getAllByTestId('pf-row').length).toBe(5));
         const routeCells = screen.getAllByTestId('pf-route');
         expect(routeCells.map(r => r.textContent.trim())).toEqual([
@@ -103,7 +104,7 @@ describe('PortabilityPage', () => {
     it('names the platform-wide kind, and reports the coverage to the header with its refresh', async () => {
         fetchJson.mockResolvedValueOnce(matrix());
         const p = props();
-        render(<PortabilityPage {...p} />);
+        renderWithClient(<PortabilityPage {...p} />);
         await waitFor(() => expect(screen.getByTestId('pf-footer')).toBeTruthy());
         expect(screen.getAllByTestId('pf-row')[1].textContent).toContain('platform-wide');
         await waitFor(() => expect(p.setHeaderActions).toHaveBeenCalledWith(
@@ -113,7 +114,7 @@ describe('PortabilityPage', () => {
 
     it('says the coverage once in the body: the footer sentence, not a second pill in the intro', async () => {
         fetchJson.mockResolvedValueOnce(matrix());
-        render(<PortabilityPage {...props()} />);
+        renderWithClient(<PortabilityPage {...props()} />);
         await waitFor(() => expect(screen.getByTestId('pf-footer')).toBeTruthy());
         expect(screen.getByTestId('pf-footer').textContent).toContain('2 of 5 kinds have a working export route');
         expect(screen.queryByTestId('pf-coverage')).toBeNull();
@@ -123,7 +124,7 @@ describe('PortabilityPage', () => {
 
     it('a failed read is its own state, not an empty matrix', async () => {
         fetchJson.mockRejectedValueOnce(new Error('404 Not Found'));
-        render(<PortabilityPage {...props()} />);
+        renderWithClient(<PortabilityPage {...props()} />);
         await waitFor(() => expect(screen.getByTestId('portability-page-failed')).toBeTruthy());
         expect(screen.queryByTestId('pf-table')).toBeNull();
         expect(screen.queryByTestId('pf-row')).toBeNull();
@@ -131,7 +132,7 @@ describe('PortabilityPage', () => {
 
     it('shows skeleton rows while the matrix is loading', () => {
         fetchJson.mockReturnValueOnce(new Promise(() => {}));
-        render(<PortabilityPage {...props()} />);
+        renderWithClient(<PortabilityPage {...props()} />);
         expect(screen.getAllByTestId('table-skeleton-row').length).toBeGreaterThan(0);
         expect(screen.queryByTestId('pf-footer')).toBeNull();
     });
@@ -162,7 +163,7 @@ describe('pure helpers', () => {
 describe('PortabilityPage — phone (artboard 1h)', () => {
     it('takes the card path: one card per kind, gaps and routes kept', async () => {
         fetchJson.mockResolvedValueOnce(matrix());
-        render(<PortabilityPage {...props({ isMobile: true })} />);
+        renderWithClient(<PortabilityPage {...props({ isMobile: true })} />);
         await waitFor(() => expect(screen.getAllByTestId('pf-card').length).toBe(5));
         expect(screen.getByTestId('pf-table').dataset.view).toBe('cards');
         expect(screen.queryAllByTestId('pf-row').length).toBe(0);
