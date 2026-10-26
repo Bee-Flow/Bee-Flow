@@ -327,8 +327,19 @@ async function executeKbSearch(toolName, toolArgs, context) {
  */
 async function executeOutlook(toolName, toolArgs, context) {
     const { session, userId } = context;
+    const { parseMailbox, SHARED_MAILBOX_NOT_LENDABLE_TEXT } = require('../core/integrations/outlookMailbox.mts');
+    const needsSharedMailbox = parseMailbox(toolArgs?.mailbox).shared;
+    // A shared mailbox opens with the credential of whoever holds it, so it is
+    // only ever opened with the asker's OWN connection: never through a lent
+    // connection, and never as an acting identity (the asker is not the
+    // integration user then). Lending a connection lends that person's own
+    // mailbox, not every shared mailbox they can reach.
+    if (needsSharedMailbox && (context.lentConnection || (context.askerUserId && context.askerUserId !== userId))) {
+        const { HttpError } = require('../core/http/errors');
+        throw new HttpError(403, 'shared_mailbox_not_lendable', SHARED_MAILBOX_NOT_LENDABLE_TEXT);
+    }
     const { resolveMicrosoftSession } = require('../auth/microsoftSessionHydration');
-    const msSession = (await resolveMicrosoftSession(session, userId)) || session;
+    const msSession = (await resolveMicrosoftSession(session, userId, { needsSharedMailbox })) || session;
     return await executeOutlookTool(toolName, toolArgs, msSession, { autoSend: !!context.autoSend });
 }
 

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Outlook Tools — Built-in tools for AI to search, read, and compose Outlook emails
  * 
@@ -9,6 +10,13 @@ const { graphFetch, graphBatch, isMicrosoftConnected } = require('./msGraphClien
 const { idList } = require('./shared/idList');
 const log = require('../telemetry/log');
 const { GRAPH_ID_RE, MESSAGE_ID_TEXT, FOLDER_TEXT, assertGraphId } = require('./graphIds');
+// Own mailbox ("me") or a shared one: the address rule, the Graph path, the
+// scope check and the error wording all come from one place.
+const {
+    MAILBOX_PARAM, parseMailbox, mailboxBase, assertSharedScopes, mapGraphMailboxError, mailboxLogRef,
+    sharedMailboxDeniedText,
+} = require('../core/integrations/outlookMailbox.mts');
+const { HttpError } = require('../core/http/errors');
 
 /**
  * Tool definitions in OpenAI function-calling format.
@@ -29,7 +37,8 @@ const OUTLOOK_TOOLS = [
                     maxResults: {
                         type: 'integer',
                         description: 'Maximum number of results to return (1-20, default 10)'
-                    }
+                    },
+                    mailbox: { ...MAILBOX_PARAM },
                 },
                 required: ['query']
             }
@@ -46,7 +55,8 @@ const OUTLOOK_TOOLS = [
                     messageId: {
                         type: 'string',
                         description: 'The Outlook message ID to read (from outlook_search results)'
-                    }
+                    },
+                    mailbox: { ...MAILBOX_PARAM },
                 },
                 required: ['messageId']
             }
@@ -64,7 +74,8 @@ const OUTLOOK_TOOLS = [
                         type: 'array',
                         items: { type: 'string' },
                         description: 'Outlook message ids, at most 100 (e.g. the `id` of every outlook_search result). A list of search results works too: each one\'s id is used.'
-                    }
+                    },
+                    mailbox: { ...MAILBOX_PARAM },
                 },
                 required: ['messageIds']
             }
@@ -97,7 +108,8 @@ const OUTLOOK_TOOLS = [
                     maxPages: {
                         type: 'integer',
                         description: 'Optional: follow Graph paging for up to this many pages (1-10, default 1). Above 1, maxResults may go up to 200.'
-                    }
+                    },
+                    mailbox: { ...MAILBOX_PARAM },
                 },
                 required: []
             }
@@ -134,7 +146,8 @@ const OUTLOOK_TOOLS = [
                     replyToMessageId: {
                         type: 'string',
                         description: 'For replies: Outlook message ID of the email being replied to (from outlook_search or outlook_read results). Omit for new emails.'
-                    }
+                    },
+                    mailbox: { ...MAILBOX_PARAM },
                 },
                 required: ['to', 'subject', 'body']
             }
@@ -212,18 +225,25 @@ function batchError(res) {
  * attachment lists of those that have any, also batched. Two to ten requests
  * for 100 emails, where outlook_read made up to 200.
  * @param {object} session - a Microsoft session (SSO or the vault shim)
- * @param {{ messageIds?: unknown }} args
+ * @param {{ messageIds?: unknown, mailbox?: unknown }} args
  * @param {{ batch?: Function }} [deps]
  */
 async function readManyOutlookMessages(session, args, { batch = graphBatch } = {}) {
+    const mailbox = parseMailbox(args?.mailbox);
+    const base = mailboxBase(mailbox);
     const all = idList(args?.messageIds);
     const wanted = all.slice(0, READ_MANY_MAX);
     const failed = wanted.filter(id => !GRAPH_ID_RE.test(id)).map(id => ({ id, error: MESSAGE_ID_TEXT }));
     const valid = wanted.filter(id => GRAPH_ID_RE.test(id));
     // Batch request ids are positions: a Graph message id can be 150+ characters.
     const reads = valid.length > 0
-        ? await batch(session, valid.map((id, i) => ({ id: String(i), url: `/me/messages/${id}?$select=${READ_SELECT}` })))
+        ? await batch(session, valid.map((id, i) => ({ id: String(i), url: `${base}/messages/${id}?$select=${READ_SELECT}` })))
         : new Map();
+    // A shared mailbox the user cannot open answers 403 on every request in
+    // the batch: that is one fact about the mailbox, not a hundred failed ids.
+    if (mailbox.shared && [...reads.values()].some(res => res?.status === 403)) {
+        throw mapGraphMailboxError({ status: 403 }, mailbox);
+    }
     const found = [];
     const notFound = [];
     valid.forEach((id, i) => {
@@ -234,7 +254,7 @@ async function readManyOutlookMessages(session, args, { batch = graphBatch } = {
     });
     const withFiles = found.filter(msg => msg.hasAttachments);
     const lists = withFiles.length > 0
-        ? await batch(session, withFiles.map((msg, i) => ({ id: String(i), url: `/me/messages/${msg.id}/attachments?$select=${ATTACHMENT_SELECT}` })))
+        ? await batch(session, withFiles.map((msg, i) => ({ id: String(i), url: `${base}/messages/${msg.id}/attachments?$select=${ATTACHMENT_SELECT}` })))
         : new Map();
     const attachmentsOf = new Map(withFiles.map((msg, i) => {
         const res = lists.get(String(i));
@@ -274,10 +294,11 @@ const OPEN_LOWER_BOUND = '1900-01-01T00:00:00Z';
  * cap is reached. `since` becomes a `ge` filter on the folder's date field;
  * Graph wants the $orderby property first in $filter, so it leads.
  *
- * @param {object} args - tool arguments
+ * @param {{ maxResults?: number|string, folder?: string, unreadOnly?: boolean, since?: string|null, maxPages?: number|string }} args - tool arguments
  * @param {(path: string) => Promise<any>} fetchPage - Graph GET (path or absolute nextLink URL)
+ * @param {string} [base] - the mailbox's Graph prefix: `/me` (default) or `/users/{address}`
  */
-async function listRecentMessages(args, fetchPage) {
+async function listRecentMessages(args, fetchPage, base = '/me') {
     const { maxResults = 10, folder = 'inbox', unreadOnly = false, since } = args || {};
     const maxPages = Math.min(Math.max(parseInt(args?.maxPages) || 1, 1), LIST_RECENT_MAX_PAGES);
     const want = maxPages > 1
@@ -304,7 +325,7 @@ async function listRecentMessages(args, fetchPage) {
     else if (unreadOnly) filters.push(`${orderField} ge ${OPEN_LOWER_BOUND}`);
     if (unreadOnly) filters.push('isRead eq false');
 
-    let path = `/me/mailFolders/${folder}/messages?$top=${top}&$orderby=${orderField} desc&$select=${LIST_RECENT_SELECT}`;
+    let path = `${base}/mailFolders/${folder}/messages?$top=${top}&$orderby=${orderField} desc&$select=${LIST_RECENT_SELECT}`;
     if (filters.length) {
         path += `&$filter=${filters.join(' and ')}`;
     }
@@ -358,18 +379,44 @@ async function listRecentMessages(args, fetchPage) {
  *   user to approve. Only unattended callers (the automation runner, a
  *   scheduled agent run) set it — there is nobody to click Send there, and a
  *   draft would sit unsent forever. Same contract as gmail_compose.
+ * @returns {Promise<any>} the tool's JSON result (its shape differs per tool)
  */
 async function executeOutlookTool(toolName, args, session, opts = {}) {
     if (!isMicrosoftConnected(session)) {
         throw new Error('Not connected to Outlook — user must log in with Microsoft');
     }
+    // Which mailbox, checked at the moment of use (every call, every run):
+    // the address, and the connection's shared-mailbox scopes. Microsoft then
+    // decides about Full Access; its 403 comes back in the same words.
+    const mailbox = parseMailbox(args?.mailbox);
+    assertSharedScopes(mailbox, session);
+    try {
+        return await runOutlookTool(toolName, args, session, opts, mailbox);
+    } catch (err) {
+        throw mapGraphMailboxError(err, mailbox);
+    }
+}
+
+/**
+ * The tool body, on an already-resolved mailbox.
+ * @param {string} toolName
+ * @param {Object} args
+ * @param {Object} session
+ * @param {{ autoSend?: boolean }} opts
+ * @param {import('../core/integrations/outlookMailbox.mts').Mailbox} mailbox
+ */
+async function runOutlookTool(toolName, args, session, opts, mailbox) {
+    const base = mailboxBase(mailbox);
+    // The draft and the result name the shared mailbox so the approval card
+    // sends from the same place; the own mailbox stays implicit, as before.
+    const mailboxField = mailbox.shared ? { mailbox: mailbox.address } : {};
 
     if (toolName === 'outlook_search') {
         const { query, maxResults = 10 } = args;
         const top = Math.min(Math.max(parseInt(maxResults) || 10, 1), 20);
 
         const data = await graphFetch(
-            `/me/messages?$search="${encodeURIComponent(query)}"&$top=${top}&$select=id,subject,from,toRecipients,receivedDateTime,bodyPreview,hasAttachments,isRead`,
+            `${base}/messages?$search="${encodeURIComponent(query)}"&$top=${top}&$select=id,subject,from,toRecipients,receivedDateTime,bodyPreview,hasAttachments,isRead`,
             session
         );
 
@@ -388,24 +435,26 @@ async function executeOutlookTool(toolName, args, session, opts = {}) {
             results: messages,
             total: messages.length,
             query,
+            ...mailboxField,
             note: 'Results are sorted by relevance, not date. If you need the latest emails, use outlook_list_recent instead.',
         };
 
     } else if (toolName === 'outlook_list_recent') {
-        return listRecentMessages(args, (path) => graphFetch(path, session));
+        const listed = await listRecentMessages(args, (path) => graphFetch(path, session), base);
+        return { ...listed, ...mailboxField };
 
     } else if (toolName === 'outlook_read') {
         const { messageId } = args;
         if (!messageId) throw new Error('messageId is required');
         assertGraphId(messageId, MESSAGE_ID_TEXT);
 
-        const msg = await graphFetch(`/me/messages/${messageId}?$select=${READ_SELECT}`, session);
+        const msg = await graphFetch(`${base}/messages/${messageId}?$select=${READ_SELECT}`, session);
         const result = shapeOutlookMessage(msg);
 
         // Fetch attachments if present
         if (msg.hasAttachments) {
             try {
-                const attachData = await graphFetch(`/me/messages/${messageId}/attachments?$select=${ATTACHMENT_SELECT}`, session);
+                const attachData = await graphFetch(`${base}/messages/${messageId}/attachments?$select=${ATTACHMENT_SELECT}`, session);
                 result.attachments = shapeOutlookAttachments(attachData.value);
             } catch (e) {
                 log.info('[Outlook] Could not fetch attachments:', e.message);
@@ -428,7 +477,7 @@ async function executeOutlookTool(toolName, args, session, opts = {}) {
         if (replyToMessageId) {
             try {
                 const original = await graphFetch(
-                    `/me/messages/${replyToMessageId}?$select=conversationId`,
+                    `${base}/messages/${replyToMessageId}?$select=conversationId`,
                     session
                 );
                 conversationId = original.conversationId || null;
@@ -438,14 +487,15 @@ async function executeOutlookTool(toolName, args, session, opts = {}) {
         }
 
         if (opts.autoSend) {
-            await executeOutlookSend({ to, cc, bcc, subject, body, replyToMessageId }, session);
-            log.info(`[Outlook] (autoSend) Email sent to ${String(to).split(',').length} recipient(s)`);
+            await executeOutlookSend({ to, cc, bcc, subject, body, replyToMessageId, ...mailboxField }, session);
+            log.info(`[Outlook] (autoSend) Email sent to ${String(to).split(',').length} recipient(s) from mailbox ${mailboxLogRef(mailbox)}`);
             return {
                 sent: true,
                 to,
                 subject,
                 replyToMessageId: replyToMessageId || null,
                 conversationId: conversationId || null,
+                ...mailboxField,
                 message: `Email sent to ${to}.`,
             };
         }
@@ -462,6 +512,7 @@ async function executeOutlookTool(toolName, args, session, opts = {}) {
                 body,
                 replyToMessageId: replyToMessageId || null,
                 conversationId: conversationId || null,
+                ...mailboxField,
             },
             message: `Email draft prepared for ${to}. Waiting for user approval to send.`,
         };
@@ -524,12 +575,47 @@ async function executeOutlookSend(draft, session) {
         throw new Error('Not connected to Outlook');
     }
 
+    // A shared mailbox is checked again here: the approval card posts the
+    // draft back later, and the connection may have changed since.
+    const mailbox = parseMailbox(draft?.mailbox);
+    assertSharedScopes(mailbox, session);
+    const base = mailboxBase(mailbox);
     const message = buildOutlookMessage(draft);
+    try {
+        await sendOutlookMessage(draft, message, session, base);
+    } catch (err) {
+        throw mapSendError(err, mailbox);
+    }
+    return { success: true, message: 'Email sent via Outlook' };
+}
 
+/**
+ * A refused send from a shared mailbox: Full Access lets a user read it, but
+ * sending AS it is a separate Exchange permission (Send As).
+ * @param {unknown} err
+ * @param {import('../core/integrations/outlookMailbox.mts').Mailbox} mailbox
+ */
+function mapSendError(err, mailbox) {
+    const mapped = mapGraphMailboxError(err, mailbox);
+    if (mapped instanceof HttpError && mapped.code === 'shared_mailbox_denied') {
+        return new HttpError(403, 'shared_mailbox_denied',
+            `${sharedMailboxDeniedText()} To send from it, the administrator must also grant you Send As on that mailbox, and the connection needs Mail.Send.Shared.`);
+    }
+    return mapped;
+}
+
+/**
+ * The Graph call of a send: a reply on the original, or a new mail.
+ * @param {OutlookDraft} draft
+ * @param {ReturnType<typeof buildOutlookMessage>} message
+ * @param {Object} session
+ * @param {string} base - `/me` or `/users/{address}`
+ */
+async function sendOutlookMessage(draft, message, session, base) {
     // If replying, use the reply endpoint
     if (draft.replyToMessageId) {
         assertGraphId(draft.replyToMessageId, MESSAGE_ID_TEXT);
-        await graphFetch(`/me/messages/${draft.replyToMessageId}/reply`, session, {
+        await graphFetch(`${base}/messages/${draft.replyToMessageId}/reply`, session, {
             method: 'POST',
             body: JSON.stringify({
                 message: {
@@ -544,8 +630,9 @@ async function executeOutlookSend(draft, session) {
             }),
         });
     } else {
-        // New email
-        await graphFetch('/me/sendMail', session, {
+        // New email. From a shared mailbox, /users/{address}/sendMail sends
+        // AS that mailbox (Mail.Send.Shared + Send As).
+        await graphFetch(`${base}/sendMail`, session, {
             method: 'POST',
             body: JSON.stringify({
                 message,
@@ -553,8 +640,6 @@ async function executeOutlookSend(draft, session) {
             }),
         });
     }
-
-    return { success: true, message: 'Email sent via Outlook' };
 }
 
 /**
@@ -563,6 +648,12 @@ async function executeOutlookSend(draft, session) {
 async function executeOutlookSaveDraft(draft, session) {
     if (!isMicrosoftConnected(session)) {
         throw new Error('Not connected to Outlook');
+    }
+    // Writing a draft INTO a shared mailbox needs Mail.ReadWrite.Shared, which
+    // Bee Flow deliberately does not ask for (see routes/integrations/microsoft365.js).
+    if (parseMailbox(draft?.mailbox).shared) {
+        throw new HttpError(400, 'shared_mailbox_draft_unsupported',
+            'A draft cannot be saved in a shared mailbox. Send the email, or remove the shared mailbox to save the draft in your own mailbox.');
     }
 
     const message = buildOutlookMessage(draft);
@@ -614,6 +705,6 @@ module.exports = {
  * @typedef {{ id?: string, name?: string, contentType?: string, size?: number }} GraphAttachment
  * @typedef {ReturnType<typeof shapeOutlookMessage> & { attachments?: ReturnType<typeof shapeOutlookAttachments> }} ShapedMessage
  * @typedef {{ to?: string, cc?: string|null, bcc?: string|null, subject?: string, body?: string,
- *   replyToMessageId?: string|null }} OutlookDraft
+ *   replyToMessageId?: string|null, mailbox?: string|null }} OutlookDraft
  * @typedef {{ emailAddress: { address: string } }} RecipientOut
  */

@@ -20,6 +20,9 @@ const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const { optionalText, draftFields, listSize } = require('./mailSchemaParts');
+const { isValidMailbox } = require('../../core/integrations/outlookMailbox.mts');
+
+const MAILBOX_TEXT = 'mailbox is "me" or the e-mail address of a shared mailbox.';
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -63,6 +66,10 @@ const EmailBody = z.object({
     // Carried by the draft outlookTools builds; read by nobody here.
     conversationId: optionalText('conversationId'),
     _provider: z.enum(['microsoft'], { error: () => '_provider is microsoft on this route.' }).optional(),
+    // The shared mailbox outlook_compose drafted in ("me" or absent: the
+    // user's own). Becomes a path segment, so it is checked here AND again by
+    // outlookTools (parseMailbox), with the connection's scopes, at send time.
+    mailbox: worded(MAILBOX_TEXT).max(320, MAILBOX_TEXT).refine(isValidMailbox, MAILBOX_TEXT).nullish(),
 }).strict();
 
 /**

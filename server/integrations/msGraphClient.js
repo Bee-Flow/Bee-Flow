@@ -217,11 +217,22 @@ async function graphFetch(path, session, options = {}) {
     if (!response.ok) {
         const errorBody = await response.text().catch(() => '');
         let errorMsg = `Microsoft Graph API error: ${response.status}`;
+        /** @type {string | null} */
+        let graphCode = null;
         try {
             const parsed = JSON.parse(errorBody);
             errorMsg = parsed.error?.message || errorMsg;
+            graphCode = typeof parsed.error?.code === 'string' ? parsed.error.code : null;
         } catch (_) { fallback('integrations/msGraphClient:graphFetch', _); /* error body is not JSON, keep the status-based message */ }
-        throw new Error(errorMsg);
+        // The message stays what callers have always matched on. Graph's status
+        // and code ride along under their own names (not `status`, which the
+        // terminal error handler would read as "show this to the client") for
+        // callers that must tell a 403 from a 404: a shared mailbox
+        // (core/integrations/outlookMailbox.mts mapGraphMailboxError).
+        const err = /** @type {Error & { graphStatus?: number, graphCode?: string | null }} */ (new Error(errorMsg));
+        err.graphStatus = response.status;
+        err.graphCode = graphCode;
+        throw err;
     }
 
     // Handle 202 Accepted / 204 No Content (empty body responses)
