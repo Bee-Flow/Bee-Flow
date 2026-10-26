@@ -29,7 +29,10 @@
 
 const express = require('express');
 const router = express.Router();
-const reminderStore = require('../stores/reminderStore');
+// What the handlers reach through. Production never touches this; a test swaps
+// a field (the pattern core/privacy/orgShield.js uses) instead of intercepting
+// the module system.
+const _deps = { reminderStore: require('../stores/reminderStore') };
 const { validate } = require('../core/http/validate');
 const { z, datetimeWithOffset } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
@@ -72,7 +75,7 @@ router.use(requireSignedIn);
 router.get('/', validate({ query: ListQuery }), async (req, res) => {
     const userId = req.session.user.id;
     const includeCompleted = req.query.completed === 'true' || req.query.completed === '1';
-    const reminders = await reminderStore.getReminders(userId, { includeCompleted });
+    const reminders = await _deps.reminderStore.getReminders(userId, { includeCompleted });
     res.json(reminders);
 });
 
@@ -80,7 +83,7 @@ router.get('/', validate({ query: ListQuery }), async (req, res) => {
 router.post('/', validate({ body: CreateBody }), async (req, res) => {
     const userId = req.session.user.id;
     const { title, message, remindAt, repeatInterval } = req.body;
-    const reminder = await reminderStore.createReminder({
+    const reminder = await _deps.reminderStore.createReminder({
         userId,
         title,
         message,
@@ -95,12 +98,12 @@ router.put('/:id', validate({ body: UpdateBody }), /** @param {import('express')
     const userId = req.session.user.id;
 
     // Verify ownership
-    const existing = await reminderStore.getReminder(req.params.id);
+    const existing = await _deps.reminderStore.getReminder(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Not found' });
     if (existing.userId !== userId) return res.status(403).json({ error: 'Forbidden' });
 
     const { title, message, remindAt, repeatInterval } = req.body;
-    const ok = await reminderStore.updateReminder(req.params.id, {
+    const ok = await _deps.reminderStore.updateReminder(req.params.id, {
         title, message, remindAt, repeatInterval,
     });
     res.json({ success: ok });
@@ -110,11 +113,11 @@ router.put('/:id', validate({ body: UpdateBody }), /** @param {import('express')
 router.delete('/:id', async (req, res) => {
     const userId = req.session.user.id;
 
-    const existing = await reminderStore.getReminder(req.params.id);
+    const existing = await _deps.reminderStore.getReminder(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Not found' });
     if (existing.userId !== userId) return res.status(403).json({ error: 'Forbidden' });
 
-    const ok = await reminderStore.deleteReminder(req.params.id);
+    const ok = await _deps.reminderStore.deleteReminder(req.params.id);
     res.json({ success: ok });
 });
 
@@ -122,12 +125,13 @@ router.delete('/:id', async (req, res) => {
 router.post('/:id/complete', async (req, res) => {
     const userId = req.session.user.id;
 
-    const existing = await reminderStore.getReminder(req.params.id);
+    const existing = await _deps.reminderStore.getReminder(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Not found' });
     if (existing.userId !== userId) return res.status(403).json({ error: 'Forbidden' });
 
-    const ok = await reminderStore.markCompleted(req.params.id);
+    const ok = await _deps.reminderStore.markCompleted(req.params.id);
     res.json({ success: ok });
 });
 
 module.exports = router;
+module.exports._deps = _deps;
