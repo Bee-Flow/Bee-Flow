@@ -42,10 +42,11 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');
-const { withWarmupRetry } = require('./appApiClient');
+const { withWarmupRetry, appApiHeaders } = require('./appApiClient');
 const { secretMatches, decodeAuthHeader } = require('./auth');
 const rateLimit = require('./rateLimit');
 const log = require('./log');
+const { errMessage } = require('./errors');
 
 // Brute-force gate on the inbound AppAPI shared-secret check. AppAPI itself
 // never presents a bad one, so only failures are billed and real deliveries are
@@ -62,21 +63,25 @@ const SECRET_FILE = 'talk-bot.json';
 const BOT_NAME = 'Bee Flow';
 const BOT_DESCRIPTION = 'Runs Bee Flow automations from this conversation. Add the bot to a conversation to let automations react to what is said in it.';
 
+/** @type {string | null} */
 let _secret = null;
 
+/** @returns {string} */
 function secretPath() {
     return path.join(config.persistentStorage, SECRET_FILE);
 }
 
+/** @returns {string | null} */
 function loadSecret() {
     if (_secret) return _secret;
     try {
-        const raw = JSON.parse(fs.readFileSync(secretPath(), 'utf8'));
+        const raw = /** @type {{ secret?: unknown } | null} */ (JSON.parse(fs.readFileSync(secretPath(), 'utf8')));
         if (raw && typeof raw.secret === 'string' && raw.secret) _secret = raw.secret;
     } catch (_) { /* not registered yet, or unreadable — treated as absent */ }
     return _secret;
 }
 
+/** @param {string} secret */
 function saveSecret(secret) {
     _secret = secret;
     try {
@@ -85,19 +90,8 @@ function saveSecret(secret) {
     } catch (err) {
         // Non-fatal: the bot works until the container restarts, at which point
         // re-registration mints a fresh secret anyway.
-        log.warn(`[TalkBot] could not persist the bot secret: ${err.message}`);
+        log.warn(`[TalkBot] could not persist the bot secret: ${errMessage(err)}`);
     }
-}
-
-function appApiHeaders() {
-    return {
-        'Content-Type': 'application/json',
-        'OCS-APIRequest': 'true',
-        'Accept': 'application/json',
-        'EX-APP-ID': config.appId,
-        'EX-APP-VERSION': config.appVersion,
-        'AUTHORIZATION-APP-API': Buffer.from(`:${config.appSecret}`).toString('base64'),
-    };
 }
 
 /**
@@ -107,6 +101,7 @@ function appApiHeaders() {
  */
 async function registerTalkBot() {
     const url = `${config.nextcloudUrl}${TALK_BOT_API}`;
+    /** @type {Response} */
     let res;
     try {
         res = await withWarmupRetry(() => fetch(url, {
@@ -116,7 +111,7 @@ async function registerTalkBot() {
             signal: AbortSignal.timeout(5_000),
         }), { label: 'talk-bot', budgetMs: 30_000 });
     } catch (err) {
-        log.warn(`[TalkBot] registration request failed: ${err.message}`);
+        log.warn(`[TalkBot] registration request failed: ${errMessage(err)}`);
         return { ok: false, reason: 'request-failed' };
     }
 
@@ -132,7 +127,7 @@ async function registerTalkBot() {
         return { ok: false, reason: `http-${res.status}` };
     }
 
-    const body = /** @type {any} */ (await res.json().catch(() => null));
+    const body = /** @type {{ ocs?: { data?: { secret?: string } } } | null} */ (await res.json().catch(() => null));
     const secret = body?.ocs?.data?.secret;
     if (!secret) {
         // Without the secret we cannot verify a single delivery, so treat this
@@ -162,6 +157,10 @@ async function unregisterTalkBot() {
  * enforces for browser traffic. Constant-time via secretMatches; EX-APP-ID is
  * checked when present. Returns false on a missing/mismatched secret.
  */
+/**
+ * @param {import('express').Request} req
+ * @returns {boolean}
+ */
 function verifyInboundAppApi(req) {
     const decoded = decodeAuthHeader(req.headers['authorization-app-api']);
     if (!decoded || !secretMatches(decoded.secret)) return false;
@@ -173,6 +172,51 @@ function verifyInboundAppApi(req) {
 /**
  * Activity Streams envelope → Bee Flow trigger. Returns null for anything we
  * don't turn into a trigger (joins, leaves, system messages).
+ *
+ * @typedef {object} ActivityObject
+ * @property {string | number} [id]
+ * @property {string} [name]
+ * @property {string} [content]
+ * @property {string} [mediaType]
+ * @property {{ object?: { id?: string | number } }} [inReplyTo]
+ * @property {ActivityObject} [object]  the reacted-to message, inside an `Undo`
+ *
+ * @typedef {object} TalkActivity  an Activity Streams 2.0 envelope as Talk sends it
+ * @property {string} [type]
+ * @property {{ id?: string, name?: string }} [actor]
+ * @property {{ id?: string, name?: string }} [target]
+ * @property {ActivityObject} [object]
+ * @property {string} [content]
+ *
+ * @typedef {object} TalkMessagePayload
+ * @property {string | number | null} messageId
+ * @property {string | number | null} roomToken
+ * @property {string | null} roomName
+ * @property {string | null} actor
+ * @property {string | null} actorType
+ * @property {string | null} actorName
+ * @property {string} message
+ * @property {Record<string, unknown> | null} parameters  mention placeholders by key
+ * @property {boolean} isMarkdown
+ * @property {string | number | null} inReplyTo
+ * @property {string} datetime
+ *
+ * @typedef {object} TalkReactionPayload
+ * @property {string | number | null} messageId
+ * @property {string | number | null} roomToken
+ * @property {string | null} roomName
+ * @property {string | null} actor
+ * @property {string | null} actorType
+ * @property {string | null} actorName
+ * @property {string} reaction
+ * @property {boolean} removed
+ * @property {string} datetime
+ *
+ * @typedef {{ event: 'talk.message.received', payload: TalkMessagePayload }
+ *   | { event: 'talk.reaction.added', payload: TalkReactionPayload }} MappedActivity
+ *
+ * @param {TalkActivity | null | undefined} body
+ * @returns {MappedActivity | null}
  */
 function mapActivity(body) {
     if (!body || typeof body !== 'object') return null;
@@ -189,9 +233,10 @@ function mapActivity(body) {
         // rendered mentions live in parameters, so the raw message keeps
         // placeholders like {mention-call1}. Callers get both.
         let message = '';
+        /** @type {Record<string, unknown> | null} */
         let parameters = null;
         try {
-            const parsed = JSON.parse(body.object.content || '{}');
+            const parsed = /** @type {{ message?: unknown, parameters?: Record<string, unknown> | null }} */ (JSON.parse(body.object.content || '{}'));
             message = typeof parsed.message === 'string' ? parsed.message : '';
             parameters = parsed.parameters || null;
         } catch (_) { message = String(body.object.content || ''); }
@@ -266,11 +311,12 @@ const AGENT_TASK_TYPE = 'core:contextagent:interaction';
 // Does this message @mention the bot? Prefer Talk's structured mention
 // parameters (the accurate "@" signal); fall back to the bot name appearing in
 // the raw text so it still works if a delivery omits parameters.
+/** @param {{ parameters?: Record<string, unknown> | null, message?: string } | null | undefined} payload */
 function mentionsBot(payload) {
     const params = payload?.parameters;
     if (params && typeof params === 'object') {
         for (const v of Object.values(params)) {
-            if (v && typeof v === 'object'
+            if (v && typeof v === 'object' && 'name' in v
                 && String(v.name || '').toLowerCase() === BOT_NAME.toLowerCase()) {
                 return true;
             }
@@ -281,6 +327,7 @@ function mentionsBot(payload) {
 
 // Recover the question from a mention message: drop Talk's {mention-…}
 // placeholders and a literal "@Bee Flow", collapse whitespace.
+/** @param {{ message?: string } | null | undefined} payload */
 function extractQuestion(payload) {
     return String(payload?.message || '')
         .replace(/\{mention-[^}]*\}/g, ' ')
@@ -291,7 +338,12 @@ function extractQuestion(payload) {
 
 // Ask the SaaS agent, reusing the same signed execute endpoint the Task
 // Processing providers use. Returns the answer text (possibly empty).
+/**
+ * @param {{ question: string, ncUid: string | null, roomToken: string | number }} args
+ * @returns {Promise<string>}
+ */
 async function askSaaSAgent({ question, ncUid, roomToken }) {
+    if (!config.tenantKey || !config.ncInstanceId) throw new Error('connector not yet bootstrapped');
     const apiPath = '/api/nextcloud/task-processing/execute';
     const body = JSON.stringify({
         taskType: AGENT_TASK_TYPE,
@@ -317,7 +369,7 @@ async function askSaaSAgent({ question, ncUid, roomToken }) {
     if (!res.ok) {
         throw new Error(`SaaS ${res.status}: ${(await res.text().catch(() => '')).slice(0, 200)}`);
     }
-    const data = /** @type {any} */ (await res.json().catch(() => null));
+    const data = /** @type {{ output?: string | { output?: string } } | null} */ (await res.json().catch(() => null));
     const out = data?.output;
     if (out && typeof out === 'object') return String(out.output || '').trim();
     return typeof out === 'string' ? out.trim() : '';
@@ -325,6 +377,11 @@ async function askSaaSAgent({ question, ncUid, roomToken }) {
 
 // Post a message back to a conversation as the bot. Auth is the bot signature
 // over RANDOM + message (spreed docs/bots.md), NOT a user session.
+/**
+ * @param {string | number} token
+ * @param {string} msg
+ * @param {string | number | null | undefined} replyTo
+ */
 async function _sendBotMessage(token, msg, replyTo) {
     const secret = loadSecret();
     if (!secret) throw new Error('no bot secret — cannot post');
@@ -334,6 +391,7 @@ async function _sendBotMessage(token, msg, replyTo) {
     const signature = crypto.createHmac('sha256', secret).update(random + msg).digest('hex');
     const referenceId = crypto.createHash('sha256').update(`${random}:${msg}`).digest('hex');
     const url = `${config.nextcloudUrl}/ocs/v2.php/apps/spreed/api/v1/bot/${encodeURIComponent(token)}/message`;
+    /** @type {{ message: string, referenceId: string, replyTo?: number }} */
     const bodyObj = { message: msg, referenceId };
     if (Number.isFinite(Number(replyTo)) && Number(replyTo) > 0) bodyObj.replyTo = Number(replyTo);
     const res = await fetch(url, {
@@ -351,6 +409,11 @@ async function _sendBotMessage(token, msg, replyTo) {
     return res;
 }
 
+/**
+ * @param {string | number} token
+ * @param {unknown} message
+ * @param {string | number | null | undefined} [replyTo]
+ */
 async function postBotMessage(token, message, replyTo) {
     const msg = String(message || '').slice(0, 32000);
     if (!msg) return;
@@ -366,6 +429,7 @@ async function postBotMessage(token, message, replyTo) {
     }
 }
 
+/** @param {TalkMessagePayload} payload */
 async function handleMention(payload) {
     const roomToken = payload?.roomToken;
     if (!roomToken) return;
@@ -373,7 +437,7 @@ async function handleMention(payload) {
     if (!question) {
         await postBotMessage(roomToken,
             'Hi! Mention me with a question — e.g. "@Bee Flow what changed in my calendar today?"',
-            payload.messageId).catch(e => log.warn(`[TalkBot] reply failed: ${e.message}`));
+            payload.messageId).catch(e => log.warn(`[TalkBot] reply failed: ${errMessage(e)}`));
         return;
     }
     try {
@@ -381,7 +445,7 @@ async function handleMention(payload) {
         await postBotMessage(roomToken, answer || 'I could not find an answer to that.', payload.messageId);
         log.info(`[TalkBot] answered @mention in room ${roomToken} (uid=${log.ref(payload.actor)})`);
     } catch (err) {
-        log.warn(`[TalkBot] @mention answer failed for room ${roomToken}: ${err.message}`);
+        log.warn(`[TalkBot] @mention answer failed for room ${roomToken}: ${errMessage(err)}`);
         await postBotMessage(roomToken,
             'Sorry — I could not answer that just now. Please try again in a moment.',
             payload.messageId).catch(() => {});
@@ -407,6 +471,7 @@ router.post(BOT_ROUTE, express.json({ type: () => true, limit: '256kb' }), async
     }
     sigLimiter.succeed();
 
+    /** @type {TalkActivity | null} */
     const body = (req.body && typeof req.body === 'object') ? req.body : null;
     const mapped = mapActivity(body);
     if (!mapped) {
@@ -427,7 +492,7 @@ router.post(BOT_ROUTE, express.json({ type: () => true, limit: '256kb' }), async
         && mapped.payload.actorType === 'users'
         && mentionsBot(mapped.payload)) {
         handleMention(mapped.payload)
-            .catch(err => log.warn(`[TalkBot] handleMention crashed: ${err.message}`));
+            .catch(err => log.warn(`[TalkBot] handleMention crashed: ${errMessage(err)}`));
     }
 
     const payloadBody = JSON.stringify({
@@ -457,7 +522,7 @@ router.post(BOT_ROUTE, express.json({ type: () => true, limit: '256kb' }), async
             log.warn(`[TalkBot] SaaS returned ${r.status}: ${t.slice(0, 200)}`);
         }
     } catch (err) {
-        log.warn(`[TalkBot] forward failed: ${err.message}`);
+        log.warn(`[TalkBot] forward failed: ${errMessage(err)}`);
     }
     res.json({ ok: true, event: mapped.event });
 });

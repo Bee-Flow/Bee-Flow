@@ -59,8 +59,9 @@
 
 const crypto = require('crypto');
 const config = require('./config');
-const { withWarmupRetry } = require('./appApiClient');
+const { withWarmupRetry, appApiHeaders } = require('./appApiClient');
 const log = require('./log');
+const { errMessage } = require('./errors');
 
 const WEBHOOKS_API = '/ocs/v2.php/apps/webhook_listeners/api/v1/webhooks';
 
@@ -75,6 +76,10 @@ const HOOK_PATH = '/hooks/nextcloud';
  * installed — registration failures for those are logged once at debug level
  * instead of counted as errors.
  */
+/** @typedef {{ class: string, event: string, optional?: boolean }} HookEvent */
+/** @typedef {{ id?: number | string, event?: string }} WebhookRow  a row of NC's webhook_listeners list */
+
+/** @type {HookEvent[]} */
 const EVENTS = [
     // ── Files ────────────────────────────────────────────────────────────
     { class: 'OCP\\Files\\Events\\Node\\NodeCreatedEvent', event: 'file.new' },
@@ -124,6 +129,7 @@ const EVENT_BY_CLASS = Object.freeze(
  * the `/nc/*` proxy. Deterministic, so re-registration is stable and rotating
  * the tenant key rotates this too.
  */
+/** @returns {string | null} */
 function hookSecret() {
     if (!config.tenantKey) return null;
     return crypto.createHmac('sha256', config.tenantKey)
@@ -131,6 +137,7 @@ function hookSecret() {
         .digest('hex');
 }
 
+/** @returns {string} */
 function hookUri() {
     // Nextcloud calls itself; AppAPI's ExApp proxy forwards to us. This is the
     // same reachability path bootstrap.js uses for connector_callback_url, so
@@ -139,17 +146,10 @@ function hookUri() {
     return `${ncBase}/index.php/apps/app_api/proxy/${config.appId}${HOOK_PATH}`;
 }
 
-function appApiHeaders() {
-    return {
-        'Content-Type': 'application/json',
-        'OCS-APIRequest': 'true',
-        'Accept': 'application/json',
-        'EX-APP-ID': config.appId,
-        'EX-APP-VERSION': config.appVersion,
-        'AUTHORIZATION-APP-API': Buffer.from(`:${config.appSecret}`).toString('base64'),
-    };
-}
-
+/**
+ * @param {string} body
+ * @returns {WebhookRow[] | null}
+ */
 function ocsData(body) {
     try {
         return JSON.parse(body)?.ocs?.data ?? null;
@@ -158,7 +158,11 @@ function ocsData(body) {
     }
 }
 
-/** Body for one webhook row. See the header for why `tokenNeeded` is absent. */
+/**
+ * Body for one webhook row. See the header for why `tokenNeeded` is absent.
+ * @param {HookEvent} entry
+ * @param {string} secret
+ */
 function webhookBody(entry, secret) {
     return {
         httpMethod: 'POST',
@@ -175,7 +179,10 @@ function webhookBody(entry, secret) {
     };
 }
 
-/** Existing rows for our callback URI, keyed by event class. */
+/**
+ * Existing rows for our callback URI, keyed by event class.
+ * @returns {Promise<Map<string, WebhookRow>>}
+ */
 async function listExisting() {
     const url = `${config.nextcloudUrl}${WEBHOOKS_API}?uri=${encodeURIComponent(hookUri())}`;
     const res = await fetch(url, {
@@ -190,6 +197,7 @@ async function listExisting() {
         throw err;
     }
     const rows = ocsData(await res.text()) || [];
+    /** @type {Map<string, WebhookRow>} */
     const byClass = new Map();
     for (const row of rows) {
         if (row && row.event) byClass.set(row.event, row);
@@ -197,6 +205,12 @@ async function listExisting() {
     return byClass;
 }
 
+/**
+ * @param {HookEvent} entry
+ * @param {Map<string, WebhookRow>} existing
+ * @param {string} secret
+ * @returns {Promise<{ ok: true, updated: boolean } | { ok: false, status: number, body: string }>}
+ */
 async function upsertOne(entry, existing, secret) {
     const body = webhookBody(entry, secret);
     const row = existing.get(entry.class);
@@ -217,6 +231,7 @@ async function upsertOne(entry, existing, secret) {
 }
 
 let _registered = false;
+/** @type {NodeJS.Timeout | null} */
 let _retryTimer = null;
 
 /**
@@ -231,6 +246,7 @@ async function ensureWebhookListeners() {
         return { ok: false, reason: 'no-tenant-key', registered: 0, skipped: 0, failed: 0 };
     }
 
+    /** @type {Map<string, WebhookRow>} */
     let existing;
     try {
         // The list call is the capability probe: a 404 means webhook_listeners
@@ -240,13 +256,13 @@ async function ensureWebhookListeners() {
             budgetMs: 30_000,
         });
     } catch (err) {
-        if (err.status === 404) {
+        if (err instanceof Error && err.status === 404) {
             log.warn('[Webhooks] The webhook_listeners app is not enabled on this Nextcloud — '
                 + 'push triggers are unavailable. Enable it with `occ app:enable webhook_listeners`. '
                 + 'Polling-based triggers keep working.');
             return { ok: false, reason: 'app-disabled', registered: 0, skipped: 0, failed: 0 };
         }
-        log.warn(`[Webhooks] Could not list existing webhooks: ${err.message}`);
+        log.warn(`[Webhooks] Could not list existing webhooks: ${errMessage(err)}`);
         return { ok: false, reason: 'list-failed', registered: 0, skipped: 0, failed: 0 };
     }
 
@@ -283,11 +299,12 @@ async function ensureWebhookListeners() {
  * when /init runs (no tenant key yet), and an admin may enable
  * webhook_listeners after installing us.
  */
+/** @param {number} [intervalMs] */
 function startRetry(intervalMs = 60_000) {
     if (_retryTimer || _registered) return;
     _retryTimer = setInterval(() => {
         ensureWebhookListeners().catch(err =>
-            log.warn(`[Webhooks] retry failed: ${err.message}`));
+            log.warn(`[Webhooks] retry failed: ${errMessage(err)}`));
     }, intervalMs);
     _retryTimer.unref?.();
 }
@@ -307,6 +324,7 @@ function stopRetry() {
 async function unregisterWebhookListeners() {
     stopRetry();
     if (!config.nextcloudUrl || !config.tenantKey) return;
+    /** @type {Map<string, WebhookRow>} */
     let existing;
     try {
         existing = await listExisting();

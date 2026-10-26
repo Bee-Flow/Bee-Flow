@@ -9,6 +9,7 @@
  * admin via `occ app_api:app:setenv bee_flow KEY VALUE` after install.
  */
 
+/** @param {string} name */
 function required(name) {
     const v = process.env[name];
     if (!v) throw new Error(`Missing required env var: ${name}`);
@@ -24,6 +25,28 @@ function required(name) {
 const rawTenantKey = process.env.BEEFLOW_TENANT_KEY || 'auto';
 const isAutoTenantKey = (rawTenantKey === 'auto' || rawTenantKey === '');
 
+/**
+ * @typedef {object} ConnectorConfig
+ * @property {string} appId
+ * @property {string} appSecret
+ * @property {string} appVersion
+ * @property {string} appHost
+ * @property {number} appPort
+ * @property {string} persistentStorage
+ * @property {string} nextcloudUrl
+ * @property {string | null} nextcloudPublicUrl
+ * @property {string | null} tenantKey        filled in at runtime (env, bootstrap cache or the bootstrap call)
+ * @property {boolean} isAutoTenantKey
+ * @property {string | null} organizationId
+ * @property {string | null} ncInstanceId
+ * @property {string} apiBaseUrl
+ * @property {string} embedBaseUrl
+ * @property {string | null} pairingCode
+ * @property {number} jwtTtlSeconds
+ * @property {number} sigSkewSeconds
+ */
+
+/** @type {ConnectorConfig} */
 const config = {
     // ── AppAPI-injected ────────────────────────────────────────
     appId: process.env.APP_ID || 'bee_flow',

@@ -17,12 +17,26 @@ const fs = require('fs');
 const path = require('path');
 const { parseAllowedUrl } = require('./remoteHost');
 const log = require('./log');
+const { errMessage } = require('./errors');
 
 const FILE_NAME = 'setup-config.json';
+/** @type {readonly string[]} */
 const VALID_MODES = ['cloud', 'self-hosted', 'custom'];
 const CLOUD_URL = 'https://server.beeflow.nl';
 
+/**
+ * What setup-config.json holds. Every field is optional: a file written by an older version
+ * carries fewer of them.
+ * @typedef {object} SetupConfig
+ * @property {string} [mode]
+ * @property {string} [apiBaseUrl]
+ * @property {string | null} [publicNcUrl]
+ * @property {string} [savedAt]
+ */
+
+/** @type {SetupConfig | null} */
 let cached = null;
+/** @type {string | null} */
 let storageDir = null;
 
 function _filePath() {
@@ -30,6 +44,10 @@ function _filePath() {
     return path.join(storageDir, FILE_NAME);
 }
 
+/**
+ * @param {string} persistentStorage
+ * @returns {SetupConfig | null}
+ */
 function init(persistentStorage) {
     storageDir = persistentStorage;
     try {
@@ -41,17 +59,22 @@ function init(persistentStorage) {
         try {
             cached = JSON.parse(fs.readFileSync(file, 'utf8'));
         } catch (err) {
-            log.warn(`[setupConfig] corrupted ${FILE_NAME}; ignoring (${err.message})`);
+            log.warn(`[setupConfig] corrupted ${FILE_NAME}; ignoring (${errMessage(err)})`);
             cached = null;
         }
     }
     return cached;
 }
 
+/** @returns {SetupConfig | null} */
 function get() {
     return cached;
 }
 
+/**
+ * @param {{ mode: string, apiBaseUrl: string | null | undefined }} choice
+ * @returns {SetupConfig}
+ */
 function save({ mode, apiBaseUrl }) {
     if (!VALID_MODES.includes(mode)) {
         throw new Error(`invalid mode "${mode}" (allowed: ${VALID_MODES.join(', ')})`);
@@ -79,6 +102,10 @@ function save({ mode, apiBaseUrl }) {
 // to call back into this Nextcloud for ownership verification + runtime
 // callbacks. Lives in the same file as the apiBaseUrl picker. `null` to
 // clear (fall back to NEXTCLOUD_URL).
+/**
+ * @param {string | null | undefined} url
+ * @returns {SetupConfig}
+ */
 function savePublicNcUrl(url) {
     const v = url ? String(url).trim().replace(/\/+$/, '') : null;
     if (v) parseAllowedUrl(v, { label: 'publicNcUrl' });
@@ -92,6 +119,7 @@ function savePublicNcUrl(url) {
     return cached;
 }
 
+/** @returns {string | null} */
 function chosenPublicNcUrl() {
     if (cached && cached.publicNcUrl) return cached.publicNcUrl;
     return null;
@@ -106,6 +134,7 @@ function clear() {
 /**
  * Return the user-chosen apiBaseUrl, or null if none has been set.
  * Caller decides how to combine with the env-var fallback.
+ * @returns {string | null}
  */
 function chosenApiBaseUrl() {
     if (cached && cached.apiBaseUrl) return cached.apiBaseUrl;

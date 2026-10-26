@@ -42,6 +42,8 @@ const config = require('./config');
 const { ncHttpsAgent, ncTlsMode } = require('./ncTls');
 const rateLimit = require('./rateLimit');
 const log = require('./log');
+const { isExpressResponse } = require('./httpGuards');
+const { errMessage } = require('./errors');
 
 const ALLOWED_PREFIXES = ['/ocs/', '/remote.php/dav/', '/index.php/apps/'];
 
@@ -62,6 +64,8 @@ const sigLimiter = rateLimit.penalise('nc-proxy-sig', { limit: 60, windowMs: 60_
  * (developer_manual/prologue/security.html); refusing it outright is the
  * stricter form and costs nothing here, because no legitimate WebDAV or OCS URL
  * contains a `..` segment.
+ * @param {string | undefined} rawUrl
+ * @returns {boolean}
  */
 function isAllowedNcPath(rawUrl) {
     const withoutQuery = String(rawUrl || '').split('?')[0];
@@ -69,6 +73,7 @@ function isAllowedNcPath(rawUrl) {
     // Decode repeatedly: `%252e%252e` is `%2e%2e` after one pass and `..` after
     // two, and NC/HaRP may decode once before we ever see the request.
     for (let i = 0; i < 3; i++) {
+        /** @type {string} */
         let next;
         try { next = decodeURIComponent(decoded); } catch { break; }
         if (next === decoded) break;
@@ -86,6 +91,7 @@ function isAllowedNcPath(rawUrl) {
 
 const EMPTY_BODY_SHA256 = crypto.createHash('sha256').update('').digest('hex');
 
+/** @param {import('express').Request} req */
 function bodyHashOf(req) {
     const body = req.body;
     if (Buffer.isBuffer(body) && body.length) {
@@ -109,11 +115,21 @@ function bodyHashOf(req) {
 // `% & = + #`, space, CR and LF escaped. Injective, and strict: an escape that
 // is not valid UTF-8 throws (URLSearchParams would fold %FF and %FE together).
 const CANONICAL_MARKER = 'c1';
+/**
+ * @param {string} s
+ * @param {RegExp} re
+ */
 const escChars = (s, re) => s.replace(re,
     (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'));
+/** @param {string} s */
 const formDecode = (s) => decodeURIComponent(s.replace(/\+/g, ' '));
 
+/**
+ * @param {string} query
+ * @returns {string}
+ */
 function canonicalQuery(query) {
+    /** @type {string[]} */
     const out = [];
     for (const part of String(query).split('&')) {
         if (!part) continue;
@@ -127,6 +143,10 @@ function canonicalQuery(query) {
 
 // Decoded path with `% ? CR LF` escaped, plus the canonical query. null when
 // any escape is invalid: the canonical scheme is then refused outright.
+/**
+ * @param {string} rawUrl
+ * @returns {string | null}
+ */
 function canonicalSignedPath(rawUrl) {
     try {
         const q = rawUrl.indexOf('?');
@@ -141,8 +161,13 @@ function canonicalSignedPath(rawUrl) {
 // The SaaS sends `X-Beeflow-Sig: <unixSeconds>.<hexHmac>`. Skew tolerance
 // is governed by config.sigSkewSeconds (BEEFLOW_SIG_SKEW_SECONDS). Without
 // the tenant key (bootstrap hasn't completed), we deny all /nc/* — fail-closed.
+/**
+ * @param {import('express').Request} req
+ * @returns {boolean}
+ */
 function verifyHmac(req) {
-    if (!config.tenantKey) return false;
+    const tenantKey = config.tenantKey;
+    if (!tenantKey) return false;
     const sigHeader = req.headers['x-beeflow-sig'];
     if (!sigHeader || typeof sigHeader !== 'string') return false;
     const dot = sigHeader.indexOf('.');
@@ -185,7 +210,7 @@ function verifyHmac(req) {
     const canonical = canonicalSignedPath(rawPath);
     if (canonical !== null) {
         const message = `${ts}\n${signedMethod}\n${canonical}\n${ncUid}\n${bodyHashOf(req)}\n${CANONICAL_MARKER}`;
-        const expected = crypto.createHmac('sha256', config.tenantKey).update(message).digest();
+        const expected = crypto.createHmac('sha256', tenantKey).update(message).digest();
         if (crypto.timingSafeEqual(expected, sigBuf)) return true;
     }
     // Legacy: a CR/LF in the path could otherwise forge extra message fields.
@@ -203,7 +228,7 @@ function verifyHmac(req) {
     for (const path of paths) {
         for (const suffix of suffixes) {
             const message = `${ts}\n${signedMethod}\n${path}\n${ncUid}${suffix}`;
-            const expected = crypto.createHmac('sha256', config.tenantKey).update(message).digest();
+            const expected = crypto.createHmac('sha256', tenantKey).update(message).digest();
             if (crypto.timingSafeEqual(expected, sigBuf)) return true;
         }
     }
@@ -212,7 +237,8 @@ function verifyHmac(req) {
 
 function buildNcProxy() {
     const isHttps = String(config.nextcloudUrl || '').startsWith('https://');
-    return createProxyMiddleware({
+    /** @type {import('http-proxy-middleware').Options<import('express').Request, import('express').Response>} */
+    const options = {
         target: config.nextcloudUrl,
         changeOrigin: true,
         // Match the connector→NC TLS posture from ncTls.js for the reverse
@@ -259,16 +285,19 @@ function buildNcProxy() {
                     proxyReq.end();
                 }
             },
-            error: (err, req, /** @type {any} */ res) => {
-                log.error(`[NcProxy] ${req.method} ${req.url}: ${err.message}`);
+            error: (err, req, res) => {
+                if (!isExpressResponse(res)) return;
+                log.error(`[NcProxy] ${req.method} ${req.url}: ${errMessage(err)}`);
                 if (!res.headersSent) {
                     res.status(502).json({ error: 'Nextcloud is unreachable from the connector' });
                 }
             },
         },
-    });
+    };
+    return createProxyMiddleware(options);
 }
 
+/** @param {import('express').Express} app */
 function mount(app) {
     const proxy = buildNcProxy();
     // Buffer the body as raw bytes for every content type. Two reasons: the
@@ -327,8 +356,10 @@ function mount(app) {
  * Counting it makes the precursor visible to an admin (and to
  * /setup/diagnostics) BEFORE the ban lands.
  */
+/** @type {{ total: number, consecutive: number, lastAt: string | null, lastReason: string | null }} */
 const _sigFailures = { total: 0, consecutive: 0, lastAt: null, lastReason: null };
 
+/** @param {import('express').Request} req */
 function _recordSigFailure(req) {
     _sigFailures.total += 1;
     _sigFailures.consecutive += 1;

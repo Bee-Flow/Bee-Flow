@@ -12,6 +12,8 @@ const http = require('http');
 const https = require('https');
 const config = require('./config');
 const log = require('./log');
+const { errMessage } = require('./errors');
+const { isExpressResponse } = require('./httpGuards');
 
 // How long the SaaS may take to send RESPONSE HEADERS before we give up.
 // Deliberately not a whole-request timeout: an SSE chat turn legitimately
@@ -38,6 +40,10 @@ const RESPONSE_HEADERS_TIMEOUT_MS = parseInt(
 // observed bug. Gating on the content-type express.json() actually parses
 // makes correctness ours instead of a transitive dependency's internals.
 // test/chatStream.regression.test.js pins the behaviour either way.
+/**
+ * @param {import('express').Request} req
+ * @returns {boolean}
+ */
 function hasParsedJsonBody(req) {
     const ct = String(req.headers['content-type'] || '').toLowerCase();
     if (!ct.includes('json')) return false;
@@ -67,13 +73,17 @@ const httpsAgent = new https.Agent(AGENT_OPTS);
 
 // Network-class errors where the socket/pool is suspect. Anything else
 // (protocol errors, aborts) is not a stale-pool symptom and never retried.
+/** @typedef {import('http-proxy-middleware').RequestHandler<import('express').Request, import('express').Response>} ProxyHandler */
+/** @typedef {import('http-proxy-middleware').Options<import('express').Request, import('express').Response>} ProxyOptions */
+
 const NETWORK_ERROR_CODES = new Set([
     'ECONNRESET', 'ECONNREFUSED', 'EPIPE', 'EHOSTUNREACH', 'ETIMEDOUT', 'EAI_AGAIN',
 ]);
 
+/** @param {http.Agent} agent */
 function dropFreeSockets(agent) {
     for (const list of Object.values(agent.freeSockets || {})) {
-        for (const socket of [...list]) {
+        for (const socket of [...(list || [])]) {
             try { socket.destroy(); } catch (_) { /* already gone */ }
         }
     }
@@ -82,8 +92,18 @@ function dropFreeSockets(agent) {
 // Shared failover: purge the free pool and, for idempotent requests that
 // haven't sent headers yet, re-dispatch through the middleware exactly once.
 // Returns true when a retry was dispatched (caller must not respond).
+/**
+ * @param {object} args
+ * @param {Error} args.err
+ * @param {import('express').Request} args.req
+ * @param {import('express').Response} args.res
+ * @param {http.Agent} args.agent
+ * @param {ProxyHandler} args.middleware  the proxy to run the request through again
+ * @param {() => void} args.onExhausted  what to do when the request is not retried
+ * @returns {boolean} true when the request went round again
+ */
 function retryOnceOnNetworkError({ err, req, res, agent, middleware, onExhausted }) {
-    if (!NETWORK_ERROR_CODES.has(err.code)) return false;
+    if (!err.code || !NETWORK_ERROR_CODES.has(err.code)) return false;
     dropFreeSockets(agent);
     const idempotent = req.method === 'GET' || req.method === 'HEAD';
     if (!idempotent || res.headersSent || req.__beeflowRetried) return false;
@@ -102,12 +122,14 @@ function retryOnceOnNetworkError({ err, req, res, agent, middleware, onExhausted
 // (e.g. /agents) are NOT shell paths and stay proxied to the SaaS API.
 const SPA_SHELL = /^\/(assets\/|js\/|img\/|fonts\/|module-shims\/|monaco\/|favicon|app-icon\.svg$|n8n-color\.png$|BeeFlow-logo|bee-flow-logo|index\.html$|$)/;
 
+/** @param {string} urlPath */
 function isSpaShellPath(urlPath) {
     return SPA_SHELL.test(String(urlPath).split('?')[0]);
 }
 
 // Map a connector-local shell path onto the cloud's `/embed/` storage prefix:
 // `/` → `/embed/`, `/assets/x.js` → `/embed/assets/x.js`.
+/** @param {string} p */
 function rewriteToEmbed(p) {
     return '/embed' + p;
 }
@@ -115,8 +137,8 @@ function rewriteToEmbed(p) {
 function buildApiProxy() {
     const isHttps = String(config.apiBaseUrl || '').startsWith('https://');
     const agent = isHttps ? httpsAgent : httpAgent;
-    let mw; // self-reference for the one-shot retry in the error handler
-    mw = createProxyMiddleware({
+    /** @type {ProxyOptions} */
+    const options = {
         target: config.apiBaseUrl,
         changeOrigin: true,
         agent,
@@ -287,8 +309,9 @@ function buildApiProxy() {
                     }
                 }
             },
-            error: (err, req, /** @type {any} */ res) => {
-                log.error(`[Proxy] ${req.method} ${req.url}: ${err.message}${req.__beeflowRetried ? ' (after retry)' : ''}`);
+            error: (err, req, res) => {
+                if (!isExpressResponse(res)) return;
+                log.error(`[Proxy] ${req.method} ${req.url}: ${errMessage(err)}${req.__beeflowRetried ? ' (after retry)' : ''}`);
                 const respond502 = () => {
                     if (!res.headersSent) {
                         res.status(502).json({
@@ -303,7 +326,9 @@ function buildApiProxy() {
                 respond502();
             },
         },
-    });
+    };
+    /** @type {ProxyHandler} */
+    const mw = createProxyMiddleware(options); // the error handler above reaches it for the one-shot retry
     return mw;
 }
 
@@ -327,8 +352,8 @@ function buildApiProxy() {
 function buildEmbedProxy() {
     const isHttps = String(config.embedBaseUrl || '').startsWith('https://');
     const agent = isHttps ? httpsAgent : httpAgent;
-    let mw; // self-reference for the one-shot retry in the error handler
-    mw = createProxyMiddleware({
+    /** @type {ProxyOptions} */
+    const options = {
         target: config.embedBaseUrl,
         changeOrigin: true,
         agent,
@@ -357,7 +382,7 @@ function buildEmbedProxy() {
                 // baked /public bundle rather than 502 (shell requests are
                 // all GET, so every one qualifies for the retry).
                 const fallback = () => {
-                    log.warn(`[EmbedProxy] ${req.method} ${req.url}: ${err.message} — falling back to baked /public`);
+                    log.warn(`[EmbedProxy] ${req.method} ${req.url}: ${errMessage(err)} — falling back to baked /public`);
                     if (!res.headersSent && typeof req.__shellNext === 'function') {
                         return req.__shellNext();
                     }
@@ -372,7 +397,9 @@ function buildEmbedProxy() {
                 fallback();
             },
         },
-    });
+    };
+    /** @type {ProxyHandler} */
+    const mw = createProxyMiddleware(options); // the error handler above reaches it for the one-shot retry
     return mw;
 }
 
