@@ -9691,11 +9691,6 @@
       "count": 1
     }
   },
-  "src/pages/settings/PolicyAcknowledgements.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/pages/settings/PreferencesSection.tsx": {
     "complexity": {
       "count": 1

@@ -1,6 +1,7 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { renderWithClient } from '@/test/render';
 
 /**
  * Characterisation of the member-facing ISMS policy acknowledgements panel
@@ -63,8 +64,10 @@ const postCalls = () => authFetch.mock.calls.filter(c => c[1]?.method === 'POST'
 /** Mount and wait until the first list call has resolved into a render. */
 async function mount(opts) {
     serve(opts);
-    const view = render(<PolicyAcknowledgements />);
+    const view = renderWithClient(<PolicyAcknowledgements />);
     await waitFor(() => expect(listCalls().length).toBeGreaterThan(0));
+    // The query cache hands its answer to the component on a timer: let it land.
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
     return view;
 }
 
@@ -82,7 +85,7 @@ beforeEach(() => { cleanup(); vi.clearAllMocks(); });
 describe('PolicyAcknowledgements — when the panel is visible at all', () => {
     it('renders nothing at all before the first response lands', () => {
         authFetch.mockImplementation(() => new Promise(() => {}));
-        const { container } = render(<PolicyAcknowledgements />);
+        const { container } = renderWithClient(<PolicyAcknowledgements />);
         expect(container).toBeEmptyDOMElement();
     });
 
@@ -115,7 +118,7 @@ describe('PolicyAcknowledgements — when the panel is visible at all', () => {
 
     it('stays invisible when the network call rejects', async () => {
         authFetch.mockRejectedValue(new Error('offline'));
-        const { container } = render(<PolicyAcknowledgements />);
+        const { container } = renderWithClient(<PolicyAcknowledgements />);
         await waitFor(() => expect(authFetch).toHaveBeenCalled());
         await waitFor(() => expect(container).toBeEmptyDOMElement());
     });
@@ -242,7 +245,7 @@ describe('PolicyAcknowledgements — reading a policy body', () => {
             if (u.endsWith('/body')) throw new Error('offline');
             return jsonRes([DOC]);
         });
-        render(<PolicyAcknowledgements />);
+        renderWithClient(<PolicyAcknowledgements />);
         await user.click(await screen.findByRole('button'));
         expect(await screen.findByRole('button', { name: /I have read and understood this policy/ })).toBeEnabled();
     });
@@ -261,16 +264,18 @@ describe('PolicyAcknowledgements — reading a policy body', () => {
         await waitFor(() => expect(bodyCalls()).toHaveLength(2));
     });
 
-    it('opening a second policy drops the first body immediately, back to a spinner, before the new one lands', async () => {
-        const user = userEvent.setup();
-        const slowB = deferred();
+    /** Two published policies, A and B; `body` answers their body requests by url. */
+    async function mountTwoPolicies(body) {
         await mount({
-            list: jsonRes([
-                { ...DOC, slug: 'a', title: 'Policy A' },
-                { ...DOC, slug: 'b', title: 'Policy B' },
-            ]),
-            body: (u) => (u.includes('/a/') ? jsonRes({ body: 'body of A' }) : slowB.promise),
+            list: jsonRes([{ ...DOC, slug: 'a', title: 'Policy A' }, { ...DOC, slug: 'b', title: 'Policy B' }]),
+            body,
         });
+        return userEvent.setup();
+    }
+
+    it('opening a second policy drops the first body immediately, back to a spinner, before the new one lands', async () => {
+        const slowB = deferred();
+        const user = await mountTwoPolicies((u) => (u.includes('/a/') ? jsonRes({ body: 'body of A' }) : slowB.promise));
         await user.click(within(rowFor('Policy A')).getByRole('button'));
         expect(await screen.findByText('body of A')).toBeInTheDocument();
 
@@ -284,24 +289,18 @@ describe('PolicyAcknowledgements — reading a policy body', () => {
         expect(screen.queryByText('body of A')).toBeNull();
     });
 
-    it('a slow first body lands under the SECOND policy — no request is cancelled or keyed (wart)', async () => {
-        const user = userEvent.setup();
+    it('a slow first body never lands under the SECOND policy: the body is keyed by the policy it was asked for', async () => {
         const slowA = deferred();
-        await mount({
-            list: jsonRes([
-                { ...DOC, slug: 'a', title: 'Policy A' },
-                { ...DOC, slug: 'b', title: 'Policy B' },
-            ]),
-            body: (u) => (u.includes('/a/') ? slowA.promise : jsonRes({ body: 'body of B' })),
-        });
+        const user = await mountTwoPolicies((u) => (u.includes('/a/') ? slowA.promise : jsonRes({ body: 'body of B' })));
         await user.click(within(rowFor('Policy A')).getByRole('button'));
         await user.click(within(rowFor('Policy B')).getByRole('button'));
         expect(await screen.findByText('body of B')).toBeInTheDocument();
 
         slowA.resolve(jsonRes({ body: 'body of A' }));
-        // Policy A's text is now rendered inside Policy B's expanded panel.
-        expect(await screen.findByText('body of A')).toBeInTheDocument();
-        expect(within(rowFor('Policy B')).getByText('body of A')).toBeInTheDocument();
+        // A's late answer is kept for A; Policy B's panel still shows B's own body.
+        await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+        expect(screen.queryByText('body of A')).toBeNull();
+        expect(within(rowFor('Policy B')).getByText('body of B')).toBeInTheDocument();
     });
 });
 
