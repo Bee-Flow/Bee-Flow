@@ -9,6 +9,14 @@
 // unused argument or binding with `_`; a destructuring that exists to drop
 // keys (`const { secret, ...rest } = row`) is fine as it is.
 //
+// Size and complexity limits (sizeComplexityRules) are errors too, with the
+// same thresholds as agent-hub/eslint.config.js. The violations that predate
+// them are recorded per file and per rule in eslint-suppressions.json
+// (eslint's bulk suppressions): a NEW violation fails, a fixed one makes its
+// suppression stale and fails until `npm run lint:suppress:prune` drops it
+// (scripts/eslint-budget.mjs, SUPPRESSIONS MODE). Never run --suppress-all to
+// get green. Tests are exempt (override at the end of this file).
+//
 // Run: npm run lint    (or: npx eslint .)
 
 const globals = require('globals');
@@ -43,6 +51,16 @@ const correctnessRules = {
     }],
 };
 
+// Function size and complexity limits, as in agent-hub. Only these four rules:
+// max-lines, max-statements and max-nested-callbacks are not enforced on the
+// server (the long-function and big-file ratchets cover size there).
+const sizeComplexityRules = {
+    'max-lines-per-function': ['error', { max: 80, skipBlankLines: true, skipComments: true, IIFEs: true }],
+    complexity: ['error', { max: 15 }],
+    'max-depth': ['error', 4],
+    'max-params': ['error', 5],
+};
+
 module.exports = [
     {
         ignores: [
@@ -62,7 +80,7 @@ module.exports = [
             sourceType: 'commonjs',
             globals: { ...globals.node },
         },
-        rules: correctnessRules,
+        rules: { ...correctnessRules, ...sizeComplexityRules },
     },
     {
         files: ['**/*.mjs'],
@@ -71,7 +89,7 @@ module.exports = [
             sourceType: 'module',
             globals: { ...globals.node },
         },
-        rules: correctnessRules,
+        rules: { ...correctnessRules, ...sizeComplexityRules },
     },
     {
         files: [
@@ -146,6 +164,13 @@ module.exports = [
             sourceType: 'module',
             globals: { ...globals.node },
         },
-        rules: correctnessRules,
+        rules: { ...correctnessRules, ...sizeComplexityRules },
+    },
+    {
+        // Tests are exempt from the size and complexity limits: a describe
+        // block is a table of cases and splitting it buys nothing. (Same
+        // exemption as agent-hub.)
+        files: ['**/*.test.{js,cjs,mjs}', 'testUtils/**'],
+        rules: Object.fromEntries(Object.keys(sizeComplexityRules).map((rule) => [rule, 'off'])),
     },
 ];

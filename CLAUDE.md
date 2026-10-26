@@ -89,12 +89,14 @@ and `npm run lint:secrets`.
   `build-images.ps1` all use it, and `build-images.test.mjs` asserts their service lists
   match the workflow.
 - `npm run lint:budget`: the eslint gate for `agent-hub` and `server`
-  (`scripts/eslint-budget.mjs`). The server keeps a warning ratchet (budget in
-  `server/.eslint-budget.json`; `--update` only lowers it), at 0. `agent-hub` has no warnings:
-  every rule is an error and the old violations sit in `agent-hub/eslint-suppressions.json`
-  (eslint bulk suppressions, a count per file and rule). A new violation fails; after fixing
-  some, `cd agent-hub && npm run lint:suppress:prune` drops the stale entries (eslint fails on
-  them until then). Never run `--suppress-all` to get green. `lint:eslint-disable-ratchet`
+  (`scripts/eslint-budget.mjs`). Both run in suppressions mode: no warnings, every rule is an
+  error, and the old violations sit in `agent-hub/eslint-suppressions.json` and
+  `server/eslint-suppressions.json` (eslint bulk suppressions, a count per file and rule). The
+  server's size rules (`complexity` 15, `max-lines-per-function` 80, `max-depth` 4,
+  `max-params` 5, the agent-hub thresholds; tests exempt) are suppressed that way. A new
+  violation fails; after fixing some, `cd agent-hub && npm run lint:suppress:prune` (or the
+  same in `server`) drops the stale entries (eslint fails on them until then). Never run
+  `--suppress-all` to get green. `lint:eslint-disable-ratchet`
   counts the `eslint-disable` comments in agent-hub (may only go down), and unused disable
   directives are errors.
 - `npm run lint:ts-ratchet`: the number of `.js`/`.jsx` files under `agent-hub/src` may only

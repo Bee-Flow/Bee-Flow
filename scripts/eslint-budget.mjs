@@ -17,7 +17,7 @@
  * one leaves a stale suppression, which eslint reports (exit 2) and this gate
  * fails on until `--update` runs `eslint --prune-suppressions`. A file cannot
  * trade one rule's violations for another's, which a single total allowed.
- * agent-hub runs in this mode; the packages without the file keep the budget.
+ * agent-hub and server run in this mode; the packages without the file keep the budget.
  *
  * Errors are not budgeted; one error fails, as `eslint` itself would.
  *
