@@ -156,8 +156,6 @@ async function unregisterTalkBot() {
  * empty userId for this service-level forward) — the same boundary auth.js
  * enforces for browser traffic. Constant-time via secretMatches; EX-APP-ID is
  * checked when present. Returns false on a missing/mismatched secret.
- */
-/**
  * @param {import('express').Request} req
  * @returns {boolean}
  */

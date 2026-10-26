@@ -355,8 +355,8 @@ function mount(app) {
  * A 401 here is therefore an operational signal, not just an auth outcome.
  * Counting it makes the precursor visible to an admin (and to
  * /setup/diagnostics) BEFORE the ban lands.
+ * @type {{ total: number, consecutive: number, lastAt: string | null, lastReason: string | null }}
  */
-/** @type {{ total: number, consecutive: number, lastAt: string | null, lastReason: string | null }} */
 const _sigFailures = { total: 0, consecutive: 0, lastAt: null, lastReason: null };
 
 /** @param {import('express').Request} req */

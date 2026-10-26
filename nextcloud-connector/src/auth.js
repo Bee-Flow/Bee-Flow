@@ -115,6 +115,11 @@ function decodeAuthHeader(header) {
 }
 
 /**
+ * The part of `GET /ocs/v2.php/cloud/users/{uid}` this file reads.
+ * @typedef {{ ocs?: { data?: { id: string, email?: string | null, displayname?: string, display_name?: string, groups?: string[] } } }} OcsUserResponse
+ */
+
+/**
  * Look up a Nextcloud user via OCS using the same shared-secret auth.
  *
  * Cached per-uid for 60s. The connector hits this on EVERY browser request
@@ -122,13 +127,8 @@ function decodeAuthHeader(header) {
  * and derive the user's email. Without the cache, each request adds an
  * extra HTTP round-trip to NC just to get data that rarely changes —
  * doubling perceived latency on every SPA action.
+ * @type {Map<string, { user: NextcloudUser, expiresAt: number }>}
  */
-/** @type {Map<string, { user: NextcloudUser, expiresAt: number }>} */
-/**
- * The part of `GET /ocs/v2.php/cloud/users/{uid}` this file reads.
- * @typedef {{ ocs?: { data?: { id: string, email?: string | null, displayname?: string, display_name?: string, groups?: string[] } } }} OcsUserResponse
- */
-
 const _userCache = new Map(); // uid → { user, expiresAt }
 const USER_CACHE_TTL_MS = 60_000;
 

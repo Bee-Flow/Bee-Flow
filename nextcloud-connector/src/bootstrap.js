@@ -46,18 +46,18 @@ const { errMessage, errCode, errText } = require('./errors');
  * A pending binding, as kept in memory and in pending-bootstrap.json: either "an org admin has to
  * approve" (pollUrl) or "the admin has to type the emailed code" (verifyUrl and friends).
  * @typedef {object} PendingBinding
- * @property {string} pendingId
+ * @property {string} [pendingId]
  * @property {'verification'} [kind]
  * @property {string} [pollUrl]
  * @property {string} [verifyUrl]
  * @property {string} [resendUrl]
  * @property {string} [retargetUrl]
- * @property {string} expiresAt
+ * @property {string} [expiresAt]
  * @property {string | null} [maskedEmail]
  * @property {string | null} [organizationName]
  * @property {boolean} [emailSent]
  * @property {string} [ncInstanceId]
- * @typedef {Partial<PendingBinding> & { status: string }} PendingState  what heartbeat and /setup/diagnostics show
+ * @typedef {PendingBinding & { status: string }} PendingState  what heartbeat and /setup/diagnostics show
  *
  * What /auth/connector/bootstrap and its pending/verify/resend/retarget routes answer. The SaaS
  * decides which fields are present; every one is optional here.
@@ -166,11 +166,12 @@ async function deletePendingFile() {
 }
 
 /**
- * @returns {Promise<NcCapabilities>}
- */
-/**
  * `ocs.data` of /cloud/capabilities, reduced to what is read.
  * @typedef {{ version?: { string?: string }, capabilities?: { theming?: { name?: string, instanceid?: string }, core?: { instanceid?: string } } }} NcCapabilitiesData
+ */
+
+/**
+ * @returns {Promise<NcCapabilities>}
  */
 async function fetchCapabilities() {
     const url = `${config.nextcloudUrl}/ocs/v2.php/cloud/capabilities?format=json`;
@@ -292,12 +293,14 @@ function adminNoEmailError() {
 /**
  * @param {string} uid
  * @param {NcUserInfo} info
- * @returns {NcAdmin}
+ * @returns {NcAdmin | null}  null when the user has no email address
  */
 function pickAdmin(uid, info) {
+    const email = info.email;
+    if (!email) return null;
     return {
         uid,
-        email: info.email,
+        email,
         displayName: info.displayname || info['display-name'] || uid,
     };
 }
@@ -323,7 +326,8 @@ async function fetchAdmins() {
     if (adminUids) {
         for (const uid of adminUids) {
             const info = await fetchUserInfo(uid);
-            if (info?.email) out.push(pickAdmin(uid, info));
+            const admin = info ? pickAdmin(uid, info) : null;
+            if (admin) out.push(admin);
         }
         // Admin group resolved but no member has an email — can't reliably
         // link to a Bee Flow account.
@@ -346,7 +350,8 @@ async function fetchAdmins() {
             if (!info) continue;
             const groups = info.groups || [];
             if (groups.includes('admin')) {
-                if (info.email) out.push(pickAdmin(uid, info));
+                const admin = pickAdmin(uid, info);
+                if (admin) out.push(admin);
                 else sawAdminWithoutEmail = true;
             }
         }
@@ -535,11 +540,13 @@ function armTaskPolling() {
  * @param {string | undefined} ncInstanceId
  */
 async function applyTenantKeyResponse(json, ncInstanceId) {
-    config.tenantKey = json.tenantKey;
-    config.organizationId = json.organizationId;
-    config.ncInstanceId = ncInstanceId;
+    const tenantKey = json.tenantKey;
+    if (!tenantKey) throw new Error('Bootstrap response missing tenantKey');
+    config.tenantKey = tenantKey;
+    config.organizationId = json.organizationId ?? null;
+    config.ncInstanceId = ncInstanceId ?? null;
     await writeCache({
-        tenantKey: json.tenantKey,
+        tenantKey,
         organizationId: json.organizationId,
         organizationName: json.organizationName,
         ncInstanceId,
@@ -564,7 +571,7 @@ async function applyTenantKeyResponse(json, ncInstanceId) {
  * @param {PendingBinding} pending
  */
 async function pollPendingBinding(pending) {
-    const stopAt = new Date(pending.expiresAt).getTime() + POLL_GRACE_AFTER_EXPIRY_MS;
+    const stopAt = new Date(pending.expiresAt ?? NaN).getTime() + POLL_GRACE_AFTER_EXPIRY_MS;
     pendingState = {
         pendingId: pending.pendingId,
         pollUrl: pending.pollUrl,
@@ -585,14 +592,14 @@ async function pollPendingBinding(pending) {
         }
         if (res.status === 202) continue;
         if (res.status === 410) {
-            const body = await res.json().catch(() => ({}));
+            const body = /** @type {SaasBootstrapResponse} */ (await res.json().catch(() => ({})));
             log.warn(`[Bootstrap] Pending binding ${body.status || 'denied/expired'} — abandoning poll`);
             pendingState = { ...pendingState, status: body.status || 'denied' };
             await deletePendingFile();
             return;
         }
         if (res.ok) {
-            const json = /** @type {any} */ (await res.json());
+            const json = /** @type {SaasBootstrapResponse} */ (await res.json());
             if (!json.tenantKey) {
                 log.warn('[Bootstrap] Pending poll returned 200 without tenantKey — retrying');
                 continue;
@@ -648,7 +655,7 @@ async function submitVerificationCode(code) {
         err.code = 'saas_unreachable';
         throw err;
     }
-    const json = await res.json().catch(() => ({}));
+    const json = /** @type {SaasBootstrapResponse} */ (await res.json().catch(() => ({})));
     if (res.ok && json.tenantKey) {
         await applyTenantKeyResponse(json, pending.ncInstanceId);
         await clearErrorFile();
@@ -686,7 +693,7 @@ async function resendVerificationCode() {
         err.code = 'saas_unreachable';
         throw err;
     }
-    const json = await res.json().catch(() => ({}));
+    const json = /** @type {SaasBootstrapResponse} */ (await res.json().catch(() => ({})));
     if (res.ok && json.ok) {
         const updated = {
             ...pending,
@@ -713,6 +720,7 @@ async function resendVerificationCode() {
 // different key than the SaaS stored and every per-user JWT 403'd. Collapsing
 // all concurrent callers onto one in-flight run means exactly one provision (one
 // mint) happens; once it caches the key, later calls take the fast cached path.
+/** @type {Promise<void> | null} */
 let _bootstrapInFlight = null;
 /**
  * @returns {Promise<void>}
@@ -766,7 +774,7 @@ async function _provisionFlow() {
     // covers connector restart inside the approval window.
     const existingPending = await readPendingFile();
     if (existingPending) {
-        const expiresMs = new Date(existingPending.expiresAt).getTime();
+        const expiresMs = new Date(existingPending.expiresAt ?? NaN).getTime();
         const stillValid = Number.isFinite(expiresMs) && Date.now() < expiresMs + POLL_GRACE_AFTER_EXPIRY_MS;
         if (stillValid && (existingPending.kind === 'verification' || existingPending.verifyUrl)) {
             // Email-code verification waits on the admin entering the code in
@@ -817,6 +825,7 @@ async function _provisionFlow() {
 
     let res;
     try {
+        /** @type {Record<string, string>} */
         const headers = {
             'Content-Type': 'application/json',
             'X-Beeflow-Source': 'nextcloud-connector',
@@ -854,7 +863,7 @@ async function _provisionFlow() {
     }
 
     if (res.status === 202) {
-        const json = /** @type {any} */ (await res.json());
+        const json = /** @type {SaasBootstrapResponse} */ (await res.json());
         // Same-domain match — confirm via an emailed code entered in the
         // embedded view. No polling: the connector waits for the admin to
         // submit the code through /setup/verify-email-code, which calls
@@ -865,6 +874,7 @@ async function _provisionFlow() {
                 await recordBootstrapError(e, 'saas_response');
                 throw e;
             }
+            /** @type {PendingBinding} */
             const pending = {
                 kind: 'verification',
                 pendingId: json.pendingId,
@@ -917,7 +927,7 @@ async function _provisionFlow() {
         await recordBootstrapError(e, 'saas_post', { remediation: parsed?.remediation });
         throw e;
     }
-    const json = /** @type {any} */ (await res.json());
+    const json = /** @type {SaasBootstrapResponse} */ (await res.json());
     if (!json.tenantKey) {
         const e = new Error('Bootstrap response missing tenantKey');
         await recordBootstrapError(e, 'saas_response');
@@ -955,6 +965,7 @@ async function invalidateAndRebootstrap({ pairingCode } = /** @type {{ pairingCo
         tenantKey: config.tenantKey,
         organizationId: config.organizationId,
         ncInstanceId: config.ncInstanceId,
+        /** @type {string | null} */
         cacheFile: null,
         pairingCode: config.pairingCode,
     };
@@ -1041,7 +1052,7 @@ async function requestVerificationCode({ uid, email, displayName }) {
         err.code = 'saas_unreachable';
         throw err;
     }
-    const json = await res.json().catch(() => ({}));
+    const json = /** @type {SaasBootstrapResponse} */ (await res.json().catch(() => ({})));
     if (res.ok && json.ok) {
         const updated = {
             ...pending,

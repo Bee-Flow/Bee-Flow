@@ -37,4 +37,14 @@ function errText(err) {
     return String(message || err || '');
 }
 
-module.exports = { errMessage, errCode, errText };
+/**
+ * A caught value as an Error, for handlers that read `.code`, `.status` or `.message` of it. An Error
+ * is returned as it is; anything else is wrapped, keeping its text.
+ * @param {unknown} e
+ * @returns {Error}
+ */
+function asError(e) {
+    return e instanceof Error ? e : new Error(errMessage(e));
+}
+
+module.exports = { errMessage, errCode, errText, asError };

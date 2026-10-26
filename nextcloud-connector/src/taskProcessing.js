@@ -88,8 +88,8 @@ const EShapeType = {
  * watchdog deadline from it (see watchdogMsFor). Keep it roughly honest per
  * type: too low and slow-but-fine answers get killed, too high and a hung SaaS
  * leaves the user on a spinner for longer than they will wait.
+ * @type {TaskType[]}
  */
-/** @type {TaskType[]} */
 const TASK_TYPES = [
     { id: 'core:text2text', name: 'Bee Flow', expectedRuntime: 30 },
     { id: 'core:text2text:chat', name: 'Bee Flow (chat)', expectedRuntime: 30 },
@@ -267,13 +267,6 @@ async function reportResult(taskId, { output, errorMessage, userFacingErrorMessa
 }
 
 /**
- * Hand a task to the Bee Flow SaaS.
- *
- * Signed with the tenant key over the body, the same scheme every other
- * connector→SaaS call uses. `taskType` travels alongside the input so the SaaS
- * can pick the right prompt without re-deriving it from shapes.
- */
-/**
  * How long we let one task run before giving up on it.
  *
  * Nextcloud will NOT time our task out. `MAX_TASK_AGE_SECONDS` in its
@@ -318,6 +311,11 @@ const USER_ERRORS = {
 };
 
 /**
+ * Hand a task to the Bee Flow SaaS.
+ *
+ * Signed with the tenant key over the body, the same scheme every other
+ * connector→SaaS call uses. `taskType` travels alongside the input so the SaaS
+ * can pick the right prompt without re-deriving it from shapes.
  * @param {NcTask} task
  * @param {{ timeoutMs?: number }} [options]
  * @returns {Promise<TaskOutput>}

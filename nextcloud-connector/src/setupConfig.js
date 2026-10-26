@@ -72,11 +72,11 @@ function get() {
 }
 
 /**
- * @param {{ mode: string, apiBaseUrl: string | null | undefined }} choice
- * @returns {SetupConfig}
+ * @param {{ mode: string | undefined, apiBaseUrl: string | null | undefined }} choice
+ * @returns {SetupConfig & { mode: string, apiBaseUrl: string }}
  */
 function save({ mode, apiBaseUrl }) {
-    if (!VALID_MODES.includes(mode)) {
+    if (!mode || !VALID_MODES.includes(mode)) {
         throw new Error(`invalid mode "${mode}" (allowed: ${VALID_MODES.join(', ')})`);
     }
     const url = String(apiBaseUrl || '').replace(/\/+$/, '');
@@ -95,7 +95,7 @@ function save({ mode, apiBaseUrl }) {
     };
     fs.writeFileSync(_filePath(), JSON.stringify(next, null, 2), { mode: 0o600 });
     cached = next;
-    return cached;
+    return next;
 }
 
 // Persist the admin-supplied public NC URL — the one Bee Flow Cloud uses
@@ -104,7 +104,7 @@ function save({ mode, apiBaseUrl }) {
 // clear (fall back to NEXTCLOUD_URL).
 /**
  * @param {string | null | undefined} url
- * @returns {SetupConfig}
+ * @returns {SetupConfig & { publicNcUrl: string | null }}
  */
 function savePublicNcUrl(url) {
     const v = url ? String(url).trim().replace(/\/+$/, '') : null;
@@ -116,7 +116,7 @@ function savePublicNcUrl(url) {
     };
     fs.writeFileSync(_filePath(), JSON.stringify(next, null, 2), { mode: 0o600 });
     cached = next;
-    return cached;
+    return next;
 }
 
 /** @returns {string | null} */

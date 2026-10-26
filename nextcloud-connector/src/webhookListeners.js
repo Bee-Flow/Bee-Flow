@@ -70,16 +70,16 @@ const WEBHOOKS_API = '/ocs/v2.php/apps/webhook_listeners/api/v1/webhooks';
 // session; the shared secret in `authData` is what authenticates it.
 const HOOK_PATH = '/hooks/nextcloud';
 
+/** @typedef {{ class: string, event: string, optional?: boolean }} HookEvent */
+/** @typedef {{ id?: number | string, event?: string }} WebhookRow  a row of NC's webhook_listeners list */
+
 /**
  * Event classes we subscribe to, and the Bee Flow trigger id each maps to.
  * `optional: true` marks classes that only exist when an optional app is
  * installed — registration failures for those are logged once at debug level
  * instead of counted as errors.
+ * @type {HookEvent[]}
  */
-/** @typedef {{ class: string, event: string, optional?: boolean }} HookEvent */
-/** @typedef {{ id?: number | string, event?: string }} WebhookRow  a row of NC's webhook_listeners list */
-
-/** @type {HookEvent[]} */
 const EVENTS = [
     // ── Files ────────────────────────────────────────────────────────────
     { class: 'OCP\\Files\\Events\\Node\\NodeCreatedEvent', event: 'file.new' },
@@ -128,8 +128,8 @@ const EVENT_BY_CLASS = Object.freeze(
  * tenant key, so the value stored in Nextcloud's database is useless against
  * the `/nc/*` proxy. Deterministic, so re-registration is stable and rotating
  * the tenant key rotates this too.
+ * @returns {string | null}
  */
-/** @returns {string | null} */
 function hookSecret() {
     if (!config.tenantKey) return null;
     return crypto.createHmac('sha256', config.tenantKey)
@@ -298,8 +298,8 @@ async function ensureWebhookListeners() {
  * Keep trying until registration succeeds. Bootstrap may still be in flight
  * when /init runs (no tenant key yet), and an admin may enable
  * webhook_listeners after installing us.
+ * @param {number} [intervalMs]
  */
-/** @param {number} [intervalMs] */
 function startRetry(intervalMs = 60_000) {
     if (_retryTimer || _registered) return;
     _retryTimer = setInterval(() => {

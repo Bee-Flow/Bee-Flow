@@ -299,8 +299,8 @@ function normalisePayload(event, envelope) {
  * alternative (firing `completed` whenever `done` is merely set) would re-fire
  * on every subsequent edit of an already-finished card, which is the kind of
  * trigger that gets an automation switched off.
+ * @type {Map<string | number, { done: string | boolean | null, stackId: string | number | null }>}
  */
-/** @type {Map<string | number, { done: string | boolean | null, stackId: string | number | null }>} */
 const CARD_STATE = new Map();
 const CARD_STATE_MAX = 5000;
 
