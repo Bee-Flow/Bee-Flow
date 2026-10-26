@@ -21,7 +21,6 @@ const test = require('node:test');
 const assert = require('node:assert');
 
 const { createRecordingDb } = require('../testUtils/mockDb');
-const { installResolveStub } = require('../testUtils/stubRequire');
 
 process.env.NODE_ENV = 'test';
 
@@ -60,7 +59,7 @@ const mock = createRecordingDb({
             : undefined),
     },
 });
-installResolveStub({ '../db': mock.db });
+mock.attachPool(); // the real ../db over the recording pool
 
 const store = require('./studioAppStore');
 
@@ -115,8 +114,8 @@ test('deleteStudioApp refuses a foreign app and issues no DELETE', async () => {
     reset();
     const out = await store.deleteStudioApp('app-bob', 'alice');
     assert.strictEqual(out, null);
-    assert.ok(!calls.run.some(c => /^DELETE/i.test(c.sql.trim())), 'no DELETE for a foreign app');
-    const lookup = calls.getOne.find(c => /FROM studio_apps/i.test(c.sql));
+    assert.ok(!calls.pool.some(c => /^DELETE/i.test(c.sql.trim())), 'no DELETE for a foreign app');
+    const lookup = calls.pool.find(c => /FROM studio_apps/i.test(c.sql));
     assert.match(lookup.sql, /user_id\s*=\s*\$2/i, 'lookup must scope by user_id');
 });
 
@@ -152,7 +151,7 @@ test('builder-session mutations are owner-scoped', async () => {
     // clearBuilderSession carries user_id.
     reset();
     await store.clearBuilderSession('app-bob', 'alice');
-    const clr = calls.run.find(c => /builder_session\s*=\s*NULL/i.test(c.sql));
+    const clr = calls.pool.find(c => /builder_session\s*=\s*NULL/i.test(c.sql));
     assert.match(clr.sql, /WHERE\s+id\s*=\s*\$1\s+AND\s+user_id\s*=\s*\$2/i);
     assert.deepStrictEqual(clr.params, ['app-bob', 'alice']);
 });
@@ -173,7 +172,7 @@ test('listVersions is user-scoped and meta-only', async () => {
     const own = await store.listVersions('app-alice', 'alice');
     assert.strictEqual(own.length, 1);
     assert.ok(!('definition' in own[0]), 'listVersions must not return the definition payload');
-    const q = calls.getAll.find(c => /FROM studio_app_versions/i.test(c.sql));
+    const q = calls.pool.find(c => /FROM studio_app_versions/i.test(c.sql));
     assert.match(q.sql, /user_id\s*=\s*\$2/i, 'listVersions must scope by user_id');
     const sel = q.sql.match(/^\s*SELECT([\s\S]*?)FROM/i)[1];
     assert.ok(!/\bdefinition\b/i.test(sel), 'listVersions must not select the definition column');
@@ -183,7 +182,7 @@ test('getVersion refuses a foreign version id under an owned app', async () => {
     reset();
     assert.strictEqual(await store.getVersion('app-alice', 'v-bob', 'alice'), null);
     assert.strictEqual(await store.getVersion('app-bob', 'v-bob', 'alice'), null);
-    const q = calls.getOne.find(c => /FROM studio_app_versions/i.test(c.sql));
+    const q = calls.pool.find(c => /FROM studio_app_versions/i.test(c.sql));
     assert.match(q.sql, /app_id\s*=\s*\$2\s+AND\s+user_id\s*=\s*\$3/i);
 });
 
@@ -197,7 +196,7 @@ test('app list queries are meta-only: no definition/builder_session in SELECT or
         assert.ok(!('publishedDefinition' in row), 'list rows must not carry published_definition');
         assert.ok(!('builderSession' in row), 'list rows must not carry builder_session');
     }
-    for (const c of calls.getAll.filter(c => /FROM studio_apps/i.test(c.sql))) {
+    for (const c of calls.pool.filter(c => /FROM studio_apps/i.test(c.sql))) {
         const sel = c.sql.match(/^\s*SELECT([\s\S]*?)FROM/i)[1];
         assert.ok(!/\*/.test(sel), 'list queries must not SELECT *');
         assert.ok(!/\bdefinition\b/i.test(sel), 'list queries must not select definition');

@@ -15,35 +15,21 @@
  * Run: cd server && node --test --test-force-exit stores/supportStore/threads.update.test.js
  */
 
-const { test, beforeEach, after } = require('node:test');
+const { test, beforeEach } = require('node:test');
 const assert = require('node:assert');
 
 process.env.NODE_ENV = 'test';
 
-const { installResolveStub } = require('../../testUtils/stubRequire');
+const { recordDb } = require('../../testUtils/routeHarness');
 
-const queries = [];
-const stub = {
-    pool: {
-        async query(sql, params) {
-            queries.push({ sql, params });
-            return { rows: [{ id: 'thr-1' }], rowCount: 1 };
-        },
-    },
-    async exec() {},
-    async run() { return { rowCount: 0, rows: [] }; },
-    async getOne() { return null; },
-    async getAll() { return []; },
-};
-
-const restore = installResolveStub({ '../../db': stub });
-after(() => restore());
+// The real db.js over a recording pool; every statement answers one row.
+const db = recordDb(() => ({ rows: [{ id: 'thr-1' }], rowCount: 1 }));
 
 const threads = require('./threads');
 
-beforeEach(() => { queries.length = 0; });
+beforeEach(db.reset);
 
-const updates = () => queries.filter(q => /^UPDATE support_threads/i.test(q.sql.trim()));
+const updates = () => db.calls.filter(q => /^UPDATE support_threads/i.test(q.sql.trim()));
 
 test('a known field is written, and the timestamp goes with it', async () => {
     await threads.updateThread('thr-1', { priority: 'high' });
@@ -72,11 +58,11 @@ test('sla_paused is derived from the status transition, and an explicit value wi
     await threads.updateThread('thr-1', { status: 'awaiting_user' });
     assert.ok(updates()[0].params.includes(true), 'waiting on the customer pauses the clock');
 
-    queries.length = 0;
+    db.reset();
     await threads.updateThread('thr-1', { status: 'open' });
     assert.ok(updates()[0].params.includes(false), 'any other status resumes it');
 
-    queries.length = 0;
+    db.reset();
     await threads.updateThread('thr-1', { status: 'awaiting_user', sla_paused: false });
     assert.ok(updates()[0].params.includes(false), 'an explicit sla_paused is not overruled');
 });

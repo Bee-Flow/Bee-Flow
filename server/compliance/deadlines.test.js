@@ -14,15 +14,12 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
 const deadlines = require('./deadlines');
-const { installResolveStub } = require('../testUtils/stubRequire');
+const { recordDb } = require('../testUtils/routeHarness');
 
 // The store's pure clock rule (nextOpenDeadline, REGIME_CLOCKS), loaded over a
-// db double so no pool is opened; only the pure functions are used.
-const restoreDb = installResolveStub({
-    '../db': { run: async () => ({ rows: [], rowCount: 0 }), getOne: async () => null, getAll: async () => [], exec: async () => {} },
-});
+// recording pool so no connection is opened; only the pure functions are used.
+recordDb();
 const incidentStore = require('../stores/incidentStore');
-restoreDb();
 
 const NOW = Date.parse('2026-09-14T12:00:00Z');
 const H = 3600 * 1000;

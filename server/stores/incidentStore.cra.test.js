@@ -11,7 +11,6 @@ const { test, before, beforeEach, after } = require('node:test');
 const assert = require('node:assert');
 
 const { createRecordingDb } = require('../testUtils/mockDb');
-const { installResolveStub } = require('../testUtils/stubRequire');
 const { addCalendarMonths } = require('../utils/calendarMonths');
 
 const rows = [];
@@ -93,15 +92,15 @@ const mock = createRecordingDb({
         return undefined;
     },
 });
-const restore = installResolveStub({ '../db': mock.db });
+const restore = mock.attachPool();
 const store = require('./incidentStore');
 
 let bootDdl = '';
 let bootReads = '';
 before(async () => {
     await store.initDB();
-    bootDdl = [...mock.calls.exec.map(c => c.sql), ...mock.calls.client.map(c => c.sql)].join('\n');
-    bootReads = mock.calls.getAll.map(c => c.sql).join('\n');
+    bootDdl = [...mock.calls.pool.map(c => c.sql), ...mock.calls.client.map(c => c.sql)].join('\n');
+    bootReads = mock.reads().map(c => c.sql).join('\n');
 });
 after(() => restore());
 beforeEach(() => {
@@ -541,21 +540,21 @@ test('listOpenClocks: every not-closed row with all clock columns, org-scoped, e
     rows[0].status = 'closed';
     mock.reset();
     const list = await store.listOpenClocks('orgA');
-    const sql = mock.calls.getAll[0].sql;
+    const sql = mock.reads().at(-1).sql;
     assert.match(sql, /WHERE organization_id = \$1 AND status <> 'closed'/);
     assert.match(sql, /ORDER BY deadline_at ASC/);
     for (const col of ['kind', 'regimes', 'early_warning_due_at', 'early_warning_sent_at', 'final_report_due_at',
         'final_report_sent_at', 'customer_notice_due_at', 'customer_notified_at', 'authority_notified_at', 'reported_via', 'exploited_in_wild']) {
         assert.match(sql, new RegExp(`\\b${col}\\b`), col);
     }
-    assert.deepStrictEqual(mock.calls.getAll[0].params, ['orgA']);
+    assert.deepStrictEqual(mock.reads().at(-1).params, ['orgA']);
     // The equality matcher cannot see `<> 'closed'`; the org filter it can.
     assert.ok(list.every(r => r.organization_id === 'orgA'));
 });
 
 test('listIncidents accepts kind; getDeadlineStats counts open vulnerabilities', async () => {
     await store.listIncidents('orgA', { kind: 'vulnerability', status: 'open', limit: 10 });
-    const q = mock.calls.getAll[0];
+    const q = mock.reads().at(-1);
     assert.match(q.sql, /AND status = \$2/);
     assert.match(q.sql, /AND kind = \$3/);
     assert.deepStrictEqual(q.params, ['orgA', 'open', 'vulnerability', 10]);
@@ -563,7 +562,7 @@ test('listIncidents accepts kind; getDeadlineStats counts open vulnerabilities',
 
     mock.reset();
     await store.getDeadlineStats('orgA');
-    const s = mock.calls.getOne[0];
+    const s = mock.reads().at(-1);
     assert.match(s.sql, /kind = 'vulnerability' AND status <> 'closed'\)::int AS vulnerabilities_open/);
     assert.deepStrictEqual(s.params[1], ['open', 'assessing', 'early_warning_sent'], 'an early warning keeps the row open');
 });
@@ -634,7 +633,7 @@ test('getDeadlineStats: a notified row, a closed row and a row with nothing due 
     assert.strictEqual(s.nearing_deadline, 0);
     assert.strictEqual(s.open, 2, 'the notified row and the null-deadline row are still open');
 
-    const params = mock.calls.getOne.at(-1).params;
+    const params = mock.reads().at(-1).params;
     assert.strictEqual(params[0], 'orgA', 'org-scoped');
 });
 
@@ -679,13 +678,13 @@ test('listNeedingAttention: the notifier picks up everything due inside 24 hours
 
     const list = await store.listNeedingAttention('orgA');
     assert.deepStrictEqual(list.map(r => r.id), [overdue.id, inside.id], 'earliest deadline first');
-    const q = mock.calls.getAll.at(-1);
+    const q = mock.reads().at(-1);
     assert.deepStrictEqual(q.params, ['orgA', ['open', 'assessing', 'early_warning_sent']]);
 });
 
 test('hasRecentAutoIncident asks per org and per source inside the window', async () => {
     await store.hasRecentAutoIncident('orgA', 'dlp_signal', 6);
-    const q = mock.calls.getOne.at(-1);
+    const q = mock.reads().at(-1);
     assert.match(q.sql, /organization_id = \$1 AND source = \$2/);
     assert.match(q.sql, /detected_at >= NOW\(\) - \(\$3 \|\| ' hours'\)::interval/);
     assert.deepStrictEqual(q.params, ['orgA', 'dlp_signal', '6']);
