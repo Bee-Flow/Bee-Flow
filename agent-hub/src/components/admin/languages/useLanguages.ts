@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { languagesKey, useLanguagesQuery, type LanguagesAnswer } from '../../../api/queries/adminConfigReads';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { LANGUAGES_API, getLanguages, sendLanguages, sendLanguagesJson } from '../../../api/languages';
@@ -50,36 +52,29 @@ async function downloadExport(code: string) {
     URL.revokeObjectURL(url);
 }
 
+const NO_LOCALES: LocaleEntry[] = [];
+const NO_CATALOG: CatalogEntry[] = [];
+
 /** The installed locales, the catalogue, the selection and every locale-level action. */
 export default function useLanguages(): LanguagesState {
     const { t } = useTranslation();
-    const [locales, setLocales] = useState<LocaleEntry[]>([]);
-    const [catalog, setCatalog] = useState<CatalogEntry[]>([]);
-    const [selectedLocale, setSelectedLocale] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+    const queryClient = useQueryClient();
+    const languages = useLanguagesQuery<LocaleEntry, CatalogEntry>();
+    const locales = languages.data?.locales ?? NO_LOCALES;
+    const catalog = languages.data?.catalog ?? NO_CATALOG;
+    // The locale list the server returns after a write replaces the cached one.
+    const setLocales = useCallback((next: LocaleEntry[]) => {
+        queryClient.setQueryData<LanguagesAnswer<LocaleEntry, CatalogEntry>>(languagesKey, (prev) => ({ catalog: prev?.catalog ?? NO_CATALOG, locales: next }));
+    }, [queryClient]);
+    // Until one is chosen, the first non-English locale (or English) is selected.
+    const [chosenLocale, setSelectedLocale] = useState<string | null>(null);
+    const selectedLocale = chosenLocale || locales.find(l => l.code !== 'en')?.code || locales[0]?.code || null;
+    const [actionError, setError] = useState('');
+    const error = actionError || (languages.isError ? t('admin_languages.error_load', 'Failed to load languages') : '');
+    const loading = languages.isPending;
     const [showAddModal, setShowAddModal] = useState(false);
     const { confirm, confirmDialog } = useConfirm();
-
-    const fetchLocales = useCallback(async () => {
-        try {
-            const res = await getLanguages();
-            const data = await res.json();
-            setLocales(data.locales || []);
-            setCatalog(data.catalog || []);
-            if (data.locales?.length > 0) {
-                // Auto-select first non-English locale, or English — unless one is chosen.
-                const nonEn = data.locales.find((l: LocaleEntry) => l.code !== 'en');
-                setSelectedLocale(cur => cur || nonEn?.code || data.locales[0].code);
-            }
-        } catch (err) {
-            setError(t('admin_languages.error_load', 'Failed to load languages'));
-        } finally {
-            setLoading(false);
-        }
-    }, [t]);
-
-    useEffect(() => { fetchLocales(); }, [fetchLocales]);
+    const { refetch: fetchLocales } = languages;
 
     const handleAddLocale = async (code: string, name: string) => {
         try {

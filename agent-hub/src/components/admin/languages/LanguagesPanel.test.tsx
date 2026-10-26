@@ -1,4 +1,5 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, screen, waitFor } from '@testing-library/react';
+import { renderWithClient } from '../../../test/render';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import LanguagesPanel from './LanguagesPanel';
@@ -38,7 +39,7 @@ afterEach(cleanup);
 describe('LanguagesPanel', () => {
     it('opens the first non-English locale and saves an inline GUI translation on blur', async () => {
         const user = userEvent.setup();
-        render(<LanguagesPanel />);
+        renderWithClient(<LanguagesPanel />);
         expect(await screen.findByText('chat.send')).toBeTruthy();
         expect(screen.getByText('0 / 2 (0%)')).toBeTruthy();
         const input = screen.getByPlaceholderText('Send');
@@ -51,7 +52,7 @@ describe('LanguagesPanel', () => {
 
     it('filters the keys and lists only catalogue languages that are not installed', async () => {
         const user = userEvent.setup();
-        render(<LanguagesPanel />);
+        renderWithClient(<LanguagesPanel />);
         await user.type(await screen.findByPlaceholderText('Search keys or values...'), 'stop');
         expect(screen.queryByText('chat.send')).toBeNull();
         expect(screen.getByText('chat.stop')).toBeTruthy();

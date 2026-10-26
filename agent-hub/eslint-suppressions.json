@@ -3248,11 +3248,6 @@
       "count": 1
     }
   },
-  "src/components/admin/languages/useLanguages.ts": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/components/admin/modules/MarketplaceModuleCard.tsx": {
     "complexity": {
       "count": 1
