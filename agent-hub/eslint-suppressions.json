@@ -696,11 +696,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/AppStudio/inspector/panels/BindingField.kinds.test.jsx": {
-    "import/order": {
-      "count": 1
-    }
-  },
   "src/components/admin/Studio/AppStudio/inspector/panels/BindingField/AggregateBinding.tsx": {
     "complexity": {
       "count": 1
@@ -778,11 +773,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/admin/Studio/AppStudio/inspector/panels/kit.test.jsx": {
-    "import/order": {
       "count": 1
     }
   },
