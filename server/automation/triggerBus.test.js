@@ -9,20 +9,8 @@
  */
 
 const assert = require('assert');
-
-// Stub automationStore so loading triggerBus doesn't run initDB().
-const storePath = require.resolve('../stores/automationStore');
-require.cache[storePath] = {
-    id: storePath,
-    filename: storePath,
-    loaded: true,
-    exports: {
-        getSubscriptionsForProvider: async () => [],
-        updateSubscription: async () => null,
-        getPollingSubscriptions: async () => [],
-        getExpiringSubscriptions: async () => [],
-    },
-};
+// The real modules over a recording pool, so nothing opens a connection.
+require('../testUtils/routeHarness').recordDb();
 
 const {
     matchGmailMailFilter,
