@@ -1,5 +1,9 @@
-// @typecheck
-/** @typedef {import('./validate').PiiError} PiiError */
+// @typecheck strict
+/**
+ * @typedef {import('./validate').PiiError} PiiError
+ * @typedef {{ category: string, label: string, text?: string, confidence?: number, [k: string]: unknown }} PiiEntity  one detected span
+ * @typedef {{ hasPii: boolean, entities: PiiEntity[] }} PiiScanResult  the detector's answer
+ */
 
 const log = require('../../../telemetry/log');
 const { buildAllowMatcher, filterAllowedEntities } = require('../../dlp/allowTerms');
@@ -19,19 +23,21 @@ function getAIConfig() {
  * The stored list, aliased, with ids nobody knows dropped. "Your own data"
  * ids stay (the scan resolves them), and a list whose built-in part is empty
  * keeps meaning "every built-in category" when custom ids sit next to it.
+ * @param {string[]} list
  */
 function _shieldCategories(list) {
+    const aliases = /** @type {Record<string, string>} */ (LEGACY_CATEGORY_ALIASES);
     const known = list
-        .map(id => LEGACY_CATEGORY_ALIASES[id] || id)
+        .map(id => aliases[id] || id)
         .filter(id => ALL_PII_CATEGORY_IDS.includes(id) || isCustomTypeId(id));
     return withBuiltinDefault(known);
 }
 
 /** What a log line may say about an entity: a custom type by id, never by its name. */
-const _logLabel = (e) => (isCustomTypeId(e.category) ? e.category : e.label);
+const _logLabel = (/** @type {PiiEntity} */ e) => (isCustomTypeId(e.category) ? e.category : e.label);
 
 /**
- * @param {Map|Object|null} existingTokenMap  The conversation's accumulated
+ * @param {Record<string, string> | null} existingTokenMap  The conversation's accumulated
  *   token map. Without it, every turn restarts the per-category counters at 1,
  *   so turn 2's `[email_1]` is a DIFFERENT address than turn 1's and overwrites
  *   it when the maps are merged — the restore path then hands the user, or a
@@ -47,6 +53,10 @@ const _logLabel = (e) => (isCustomTypeId(e.category) ? e.category : e.label);
  * tokens in agent chat and fresh ones in direct chat for the same value.
  *
  * `vaultUserId` absent → behaves exactly as before.
+ * @param {string} inputText
+ * @param {PiiEntity[]} entities
+ * @param {Record<string, string> | null} existingTokenMap  the conversation's accumulated token map (see above)
+ * @param {string | null | undefined} vaultUserId
  */
 async function _tokenizeWithVault(inputText, entities, existingTokenMap, vaultUserId) {
     if (!vaultUserId) return tokenizeText(inputText, entities, existingTokenMap);
@@ -71,10 +81,20 @@ async function _tokenizeWithVault(inputText, entities, existingTokenMap, vaultUs
  * term was let through on the first send and hard-blocked (or tokenised) on an
  * identical send within the 5-minute TTL: enforcement decided by LRU state.
  *
- * @param {{hasPii:boolean, entities:Array}|null} result  raw scan result
- * @param {object|null} orgShieldConfig  the READING org's shield
- * @returns {{hasPii:boolean, entities:Array}|null} a new object when anything
- *   was allowlisted away; the input untouched otherwise.
+ * @overload
+ * @param {PiiScanResult} result  raw scan result
+ * @param {Parameters<typeof buildAllowMatcher>[0] | null} orgShieldConfig  the READING org's shield
+ * @returns {PiiScanResult} a new object when anything was allowlisted away; the input untouched otherwise.
+ */
+/**
+ * @overload
+ * @param {PiiScanResult | null} result
+ * @param {Parameters<typeof buildAllowMatcher>[0] | null} orgShieldConfig
+ * @returns {PiiScanResult | null}
+ */
+/**
+ * @param {PiiScanResult | null} result
+ * @param {Parameters<typeof buildAllowMatcher>[0] | null} orgShieldConfig
  */
 function _applyAllowlist(result, orgShieldConfig) {
     if (!result || !result.hasPii || !Array.isArray(result.entities)) return result;
@@ -85,6 +105,7 @@ function _applyAllowlist(result, orgShieldConfig) {
     // Category + count only, never the value — same contract as the detection
     // log. But never silent: a detection that vanishes without a trace looks
     // exactly like a broken detector.
+    /** @type {Record<string, number>} */
     const byCat = {};
     for (const e of filtered.allowed) byCat[e.category] = (byCat[e.category] || 0) + 1;
     log.info(`[PiiDetection] allowlist kept ${filtered.allowed.length} span(s) unredacted:`,
@@ -128,6 +149,7 @@ function _report(report, status, entities, decision) {
 
 /**
  * Validate agent output for PII.
+ * @param {string | null | undefined} content
  */
 async function validateOutputForPii(content) {
     const aiConfig = await getAIConfig();
@@ -141,10 +163,10 @@ async function validateOutputForPii(content) {
     const cached = cacheGet(key);
     if (cached) {
         if (!cached.hasPii) return;
-        const categoryList = [...new Set(cached.entities.map(e => e.label))].join(', ');
+        const categoryList = [...new Set(cached.entities.map((/** @type {PiiEntity} */ e) => e.label))].join(', ');
         const err = /** @type {PiiError} */ (new Error(`PII Detected: Response contains sensitive personal information (${categoryList}).`));
         err.piiEntities = cached.entities;
-        err.violationCodes = cached.entities.map(e => `PII:${e.category}`);
+        err.violationCodes = cached.entities.map((/** @type {PiiEntity} */ e) => `PII:${e.category}`);
         throw err;
     }
 
@@ -193,12 +215,12 @@ async function validateOutputForPii(content) {
             return;
         }
 
-        const categoryList = [...new Set(result.entities.map(e => e.label))].join(', ');
+        const categoryList = [...new Set(result.entities.map((/** @type {PiiEntity} */ e) => e.label))].join(', ');
         log.warn(`[PiiDetection] PII in output | ${categoryList}`);
 
         const err = /** @type {PiiError} */ (new Error(`PII Detected: Response contains sensitive personal information (${categoryList}).`));
         err.piiEntities = result.entities;
-        err.violationCodes = result.entities.map(e => `PII:${e.category}`);
+        err.violationCodes = result.entities.map((/** @type {PiiEntity} */ e) => `PII:${e.category}`);
         throw err;
 
     } catch (e) {

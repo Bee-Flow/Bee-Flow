@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The policy gates — validateInputForPii and validateOutputForPii: resolve the
  * org's categories and threshold, scan, apply the never-redact allowlist, then
@@ -25,7 +25,10 @@ const { getAIConfig, _shieldCategories, _logLabel, _tokenizeWithVault, _applyAll
  *                     privacyUnavailableKind?: string, degradedReason?: string, degradedCategories?: string[] }} PiiError
  */
 
-/** @typedef {import('./validateValidateOutputForPii').PiiGateReport} PiiGateReport */
+/**
+ * @typedef {import('./validateValidateOutputForPii').PiiGateReport} PiiGateReport
+ * @typedef {import('./validateValidateOutputForPii').PiiEntity} PiiEntity
+ */
 
 const configStore = require('../../../stores/configStore');
 // Leaf modules, no requires back into this file — safe inside the cycle above.
@@ -122,6 +125,7 @@ async function validateInputForPii(/** @type {Array<{ role?: string, content?: s
             //
             // So: only fall back when the answer is unambiguous. Same guard
             // directChat.js already applies at :1528 and :2126.
+            /** @type {Record<string, { piiDetectionCategories?: unknown, piiDetectionConfidenceThreshold?: unknown } | undefined>} */
             const allConfigs = await configStore.getAllConfig() || {};
             const shieldKeys = Object.keys(allConfigs).filter(k => k.startsWith('org_privacy_shield_'));
             if (shieldKeys.length === 1) return allConfigs[shieldKeys[0]];
@@ -138,9 +142,10 @@ async function validateInputForPii(/** @type {Array<{ role?: string, content?: s
                 confidenceThreshold = shieldConfig.piiDetectionConfidenceThreshold;
             }
             log.info(`[PiiDetection] Using org shield: ${enabledCategories.length}/${ALL_PII_CATEGORY_IDS.length} categories (Email=${enabledCategories.includes('Email')}), confidence ≥ ${confidenceThreshold}`);
-        } else if (aiConfig.piiDetectionCategories?.length > 0) {
+        } else if (aiConfig.piiDetectionCategories && aiConfig.piiDetectionCategories.length > 0) {
+            const aliases = /** @type {Record<string, string>} */ (LEGACY_CATEGORY_ALIASES);
             enabledCategories = aiConfig.piiDetectionCategories
-                .map(id => LEGACY_CATEGORY_ALIASES[id] || id)
+                .map(id => aliases[id] || id)
                 .filter(id => ALL_PII_CATEGORY_IDS.includes(id));
             log.info(`[PiiDetection] Using AI config: ${enabledCategories.length}/${ALL_PII_CATEGORY_IDS.length} categories, confidence ≥ ${confidenceThreshold}`);
         } else {
@@ -163,7 +168,7 @@ async function validateInputForPii(/** @type {Array<{ role?: string, content?: s
         const hit = _applyAllowlist(cached, orgShieldConfig);
         log.info(`[PiiDetection] Cache hit → ${hit.hasPii ? 'PII found' : 'clean'}`);
         if (hit.hasPii) {
-            const categoryList = [...new Set(hit.entities.map(e => e.label))].join(', ');
+            const categoryList = [...new Set(hit.entities.map((/** @type {PiiEntity} */ e) => e.label))].join(', ');
             if (MASKING_ACTIONS.has(piiAction)) {
                 const { tokenizedText, tokenMap } = await _tokenizeWithVault(inputText, hit.entities, existingTokenMap, vaultUserId);
                 log.warn(`[PiiDetection] Tokenizing ${hit.entities.length} entities (cached): ${[...new Set(hit.entities.map(_logLabel))].join(', ')}`);
@@ -172,7 +177,7 @@ async function validateInputForPii(/** @type {Array<{ role?: string, content?: s
             }
             const err = /** @type {PiiError} */ (new Error(`PII Detected: Message contains sensitive personal information (${categoryList}). Please remove PII before sending.`));
             err.piiEntities = hit.entities;
-            err.violationCodes = hit.entities.map(e => `PII:${e.category}`);
+            err.violationCodes = hit.entities.map((/** @type {PiiEntity} */ e) => `PII:${e.category}`);
             _report(report, 'found', hit.entities, 'blocked');
             throw err;
         }
@@ -214,7 +219,7 @@ async function validateInputForPii(/** @type {Array<{ role?: string, content?: s
             const affected = result.degradedCategories;
             const requested = Array.isArray(enabledCategories) && enabledCategories.length
                 ? enabledCategories : null;
-            if (affected && requested && !affected.some(c => requested.includes(c))) {
+            if (affected && requested && !affected.some((/** @type {string} */ c) => requested.includes(c))) {
                 log.warn(`[PiiDetection] Detection DEGRADED (${result.degradedReason || 'unknown'}) but only for [${affected.join(', ')}], none of which this scope requested — continuing with the result`);
             } else if (piiFailureMode === 'fail_open') {
                 log.warn(`[PiiDetection] Detection DEGRADED (${result.degradedReason || 'unknown'}) — fail_open: allowing content UNMASKED`);
@@ -275,7 +280,7 @@ async function validateInputForPii(/** @type {Array<{ role?: string, content?: s
             return null;
         }
 
-        const categoryList = [...new Set(result.entities.map(e => e.label))].join(', ');
+        const categoryList = [...new Set(result.entities.map((/** @type {PiiEntity} */ e) => e.label))].join(', ');
         // Counts, category names and confidences only — never span text.
         //
         // This used to emit `snippets`, up to 20 characters of EVERY detected
@@ -289,7 +294,7 @@ async function validateInputForPii(/** @type {Array<{ role?: string, content?: s
         // line actually had — "why did this fire / why is it under threshold" —
         // without the payload.
         const breakdown = result.entities
-            .map(e => `${_logLabel(e)}@${Math.round(e.confidence * 100)}%`)
+            .map((/** @type {PiiEntity} */ e) => `${_logLabel(e)}@${Math.round((e.confidence ?? 0) * 100)}%`)
             .join(' | ');
         log.warn(`[PiiDetection] PII detected | categories: ${[...new Set(result.entities.map(_logLabel))].join(', ')} | ${result.entities.length} entities | ${ms}ms`);
         log.warn(`[PiiDetection] Confidences: ${breakdown}`);
@@ -305,7 +310,7 @@ async function validateInputForPii(/** @type {Array<{ role?: string, content?: s
         // Default: block
         const err = /** @type {PiiError} */ (new Error(`PII Detected: Message contains sensitive personal information (${categoryList}). Please remove PII before sending.`));
         err.piiEntities = result.entities;
-        err.violationCodes = result.entities.map(e => `PII:${e.category}`);
+        err.violationCodes = result.entities.map((/** @type {PiiEntity} */ e) => `PII:${e.category}`);
         _report(report, 'found', result.entities, 'blocked');
         throw err;
 
