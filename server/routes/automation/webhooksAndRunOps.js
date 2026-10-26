@@ -190,7 +190,7 @@ router.get('/runs/:id', async (req, res) => {
         const pending = await automationStore.getPendingApprovalIdsForRuns([run.journeyRunId || run.id]).catch((e) => fallback('routes/automation/webhooksAndRunOps:anon#2', e, null));
         run.approvalId = pending?.get(run.journeyRunId || run.id) || null;
     }
-    res.json({ run: redactRunForViewer(run, req.session.user.id) });
+    res.json({ run: { ...redactRunForViewer(run, req.session.user.id), canStart: (await automationAccess.canStartById(run.automationId, req.session.user.id, req.session)) === true } });
 });
 
 router.get('/runs/:id/steps', async (req, res) => {
@@ -252,7 +252,7 @@ router.post('/:id/runs/:runId/retry', runTriggerLimiter, async (req, res) => {
     const userId = req.session.user.id;
     const a = await automationStore.getAutomation(req.params.id);
     if (!a) return res.status(404).json({ error: 'Not found' });
-    const access = await automationAccess.guard(req, res, a, 'run');
+    const access = await automationAccess.guard(req, res, a, 'start');
     if (!access) return;
     const original = await automationStore.getRun(req.params.runId);
     if (!original) return res.status(404).json({ error: 'Run not found' });
@@ -687,7 +687,7 @@ router.post('/:id/agent-invoke', runTriggerLimiter, validate({ body: AgentInvoke
     const automation = require('../../core/automationRunner/definitionForRun').automationForRun(
         await automationStore.getAutomation(req.params.id), { mode: 'live' });
     if (!automation) throw new HttpError(404, 'automation_not_found', 'Automation not found.');
-    if (!await automationAccess.guard(req, res, automation, 'run')) return;
+    if (!await automationAccess.guard(req, res, automation, 'start')) return;
     const trigger = automation.definition?.trigger;
     if (!trigger || trigger.kind !== 'agent_call') {
         throw new HttpError(409, 'not_agent_callable', 'Automation is not declared as agent-callable. Set trigger.kind = "agent_call".');

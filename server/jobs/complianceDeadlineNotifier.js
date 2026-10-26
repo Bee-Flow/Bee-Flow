@@ -91,8 +91,8 @@ async function _notifyAdmins(d, orgId, title, message, link) {
     if (!store?.createNotification) return;
     try {
         const rows = await d.getAll(
-            `SELECT id FROM users WHERE "organizationId" = $1 AND (role = 'admin' OR "orgRole" IN ('org_admin', 'admin', 'dpo'))`,
-            [orgId],
+            `SELECT id FROM users WHERE COALESCE(NULLIF("organizationId", ''), 'default') = $1 AND (role = 'admin' OR "orgRole" IN ('org_admin', 'admin', 'dpo'))`,
+            [orgId], // 'default' is the bucket of users without an organisation ('' or NULL)
         );
         for (const u of rows || []) {
             await store.createNotification({ userId: u.id, category: 'urgent', title, message, link }).catch((e) => bestEffort('jobs/complianceDeadlineNotifier:_notifyAdmins', e));

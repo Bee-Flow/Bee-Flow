@@ -171,6 +171,20 @@ test('shared with me: a live automation keeps its (non-enumerable) live copy', a
     assert.ok(!Object.keys(row).includes('liveDefinition'), 'still never serialised');
 });
 
+test('shared with me: a view share beside a run share keeps the right to start', async () => {
+    await seedAutomation('s7-both', { updatedAt: '2026-09-05' });
+    await store.replaceSharesForAutomation('s7-both', [
+        { principalType: 'user', principalId: 'vera', role: 'view' },
+        { principalType: 'group', principalId: 'g-fin', role: 'run' },
+    ], 'owner');
+    const both = (await store.listAutomationsSharedWithUser('vera', { orgId: 'org1', groupIds: ['g-fin'] })).find(r => r.id === 's7-both');
+    assert.strictEqual(both.myRole, 'view');
+    assert.strictEqual(both.runShare, true);
+    const viewOnly = (await store.listAutomationsSharedWithUser('vera', { orgId: 'org1', groupIds: [] })).find(r => r.id === 's7-both');
+    assert.strictEqual(viewOnly.myRole, 'view');
+    assert.ok(!viewOnly.runShare, 'a view share alone does not start runs');
+});
+
 test('an org-less automation counts in its owner\'s organisation', async () => {
     await seedAutomation('s6-orgless', { org: null });
     await store.replaceSharesForAutomation('s6-orgless', [{ principalType: 'user', principalId: 'ed', role: 'view' }], 'owner');

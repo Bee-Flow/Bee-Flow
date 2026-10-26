@@ -157,6 +157,22 @@ test('GET /:id: every role that may see it, with myRole; run-only gets the trigg
     assert.strictEqual(runner.body.summary, null);
 });
 
+test('canStart: the automation, its run list and a single run all say who may start a run', async () => {
+    const expect = { owner: true, adm: true, ed: true, ron: true, vic: false };
+    for (const [who, may] of Object.entries(expect)) {
+        const one = await call('GET', '/a1', { as: who });
+        assert.strictEqual(one.body.automation.canStart, may, `GET /a1 as ${who}`);
+        const runs = await call('GET', '/a1/runs', { as: who });
+        assert.strictEqual(runs.body.canStart, may, `GET /a1/runs as ${who}`);
+        assert.ok(runs.body.runs.every(r => r.canStart === may), `run rows as ${who}`);
+    }
+    assert.strictEqual((await call('GET', '/runs/run-owner', { as: 'vic' })).body.run.canStart, false);
+    assert.strictEqual((await call('GET', '/runs/run-owner', { as: 'ed' })).body.run.canStart, true);
+    assert.strictEqual((await call('GET', '/runs/run-ron', { as: 'ron' })).body.run.canStart, true);
+    const list = await call('GET', '/', { as: 'vic' });
+    assert.strictEqual(list.body.automations[0].canStart, false, 'the shared list says so too');
+});
+
 test('PUT /:id: an editor may not move the automation into a folder', async () => {
     const res = await call('PUT', '/a1', { as: 'ed', body: { folderId: 'f1' } });
     assert.strictEqual(res.status, 403);
@@ -243,4 +259,36 @@ test('GET /: the caller\'s own automations and the ones shared with them, each w
     const [userId, opts] = seen.sharedArgs.find(([u]) => u === 'vic');
     assert.strictEqual(userId, 'vic');
     assert.deepStrictEqual(opts, { orgId: 'org1', groupIds: ['g-fin'] });
+});
+
+test('a viewer may not start a run on any path; an editor and a run share may', async () => {
+    seen.executed.length = 0;
+    const refusals = [
+        ['POST', '/a1/run', {}],
+        ['POST', '/a1/runs/run-owner/retry', {}],
+        ['POST', '/a1/agent-invoke', { args: {} }],
+    ];
+    for (const [method, path, body] of refusals) {
+        const res = await call(method, path, { as: 'vic', body });
+        assert.strictEqual(res.status, 403, `${method} ${path} as vic: ${JSON.stringify(res.body)}`);
+        assert.strictEqual(res.body.code, 'automation_run_forbidden', `${method} ${path} as vic`);
+    }
+    assert.strictEqual(seen.executed.length, 0, 'no refusal started a run');
+
+    const editorLive = await call('POST', '/a1/run', { as: 'ed', body: {} });
+    assert.strictEqual(editorLive.status, 200, JSON.stringify(editorLive.body));
+    const editorRetry = await call('POST', '/a1/runs/run-owner/retry', { as: 'ed', body: {} });
+    assert.strictEqual(editorRetry.status, 200, JSON.stringify(editorRetry.body));
+    // Past the role gate: the next refusal is the trigger kind, not the role.
+    const editorInvoke = await call('POST', '/a1/agent-invoke', { as: 'ed', body: { args: {} } });
+    assert.strictEqual(editorInvoke.body.code, 'not_agent_callable', JSON.stringify(editorInvoke.body));
+    const runnerInvoke = await call('POST', '/a1/agent-invoke', { as: 'ron', body: { args: {} } });
+    assert.strictEqual(runnerInvoke.body.code, 'not_agent_callable', JSON.stringify(runnerInvoke.body));
+    assert.strictEqual(seen.executed.length, 2);
+    assert.deepStrictEqual(seen.executed.map(e => e.opts.startedByUserId), ['ed', 'ed']);
+});
+
+test('a viewer still READS what the run gate guards: the automation and its runs', async () => {
+    assert.strictEqual((await call('GET', '/a1', { as: 'vic' })).status, 200);
+    assert.strictEqual((await call('GET', '/a1/runs', { as: 'vic' })).status, 200);
 });

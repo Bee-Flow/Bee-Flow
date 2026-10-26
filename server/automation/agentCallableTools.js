@@ -255,7 +255,7 @@ async function dispatchAgentCallableTool(toolMeta, args, ctx, deps = {}) {
             throw refuse('caller_missing', 'This automation runs with the connections of the person who asks, and nobody is asking.', 'caller_required');
         }
         const access = deps.automationAccess || makeAutomationAccess({ store });
-        if (!await access.canAccessAutomation(automation, asker, 'run')) {
+        if (!await access.canAccessAutomation(automation, asker, 'start')) { // a view share does not start runs
             throw refuse('caller_no_access', 'You do not have access to run this automation.', 'automation_forbidden');
         }
     }

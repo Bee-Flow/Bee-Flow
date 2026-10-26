@@ -9,6 +9,8 @@ interface ActionProps {
     onClick: () => void;
     disabled?: boolean;
     expanded?: boolean;
+    /** Shown on hover instead of the label, e.g. why the action is disabled. */
+    hint?: string;
 }
 
 /**
@@ -16,7 +18,7 @@ interface ActionProps {
  * shows the icon alone, named for screen readers and on hover, so the run's
  * sentence keeps the room; wider panes show the words too.
  */
-export default function RunAction({ icon: Icon, label, onClick, disabled = false, expanded }: ActionProps) {
+export default function RunAction({ icon: Icon, label, onClick, disabled = false, expanded, hint }: ActionProps) {
     return (
         <button
             type="button"
@@ -25,7 +27,7 @@ export default function RunAction({ icon: Icon, label, onClick, disabled = false
             disabled={disabled}
             aria-label={label}
             aria-expanded={expanded}
-            title={label}
+            title={hint || label}
         >
             <Icon size={14} aria-hidden className="shrink-0" />
             <span className="hidden @[1100px]/rundetail:inline">{label}</span>

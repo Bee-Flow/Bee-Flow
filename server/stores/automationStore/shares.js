@@ -103,13 +103,14 @@ function makeSharesStore(db, { ready = async () => {}, managedParts = null } = {
         await ready();
         if (!userId || !orgId) return [];
         const r = await db.query(
-            `SELECT base.*, sr.rank AS share_rank,
+            `SELECT base.*, sr.rank AS share_rank, sr.has_run AS share_has_run,
                     COALESCE(NULLIF(o."displayName", ''), o.username) AS owner_name
                FROM (${AUTOMATION_SELECT}
                       WHERE a.deleted_at IS NULL
                         AND COALESCE(a.kind, 'automation') = 'automation'
                         AND a.user_id <> $1) base
-               JOIN (SELECT s.automation_id, MAX(${ROLE_RANK_SQL}) AS rank
+               JOIN (SELECT s.automation_id, MAX(${ROLE_RANK_SQL}) AS rank,
+                            BOOL_OR(s.role = 'run') AS has_run
                        FROM automation_shares s
                       WHERE (s.principal_type = 'user' AND s.principal_id = $1)
                          OR (s.principal_type = 'group' AND s.principal_id = ANY($2::text[]))
@@ -124,8 +125,10 @@ function makeSharesStore(db, { ready = async () => {}, managedParts = null } = {
         // list row shows the triggers of the LIVE definition (access.js).
         return r.rows.map((row) => {
             // The list row carries two extra fields the mapped row type lacks.
-            const a = /** @type {ReturnType<typeof rowToAutomation> & { myRole?: string | null, owner?: { userId: string, name: string | null } }} */ (rowToAutomation(row));
+            const a = /** @type {ReturnType<typeof rowToAutomation> & { myRole?: string | null, runShare?: boolean, owner?: { userId: string, name: string | null } }} */ (rowToAutomation(row));
             a.myRole = RANK_ROLE[row.share_rank] || null;
+            // A view share beside a run share still starts runs (access.js roleFor).
+            if (a.myRole === 'view' && row.share_has_run) a.runShare = true;
             a.owner = { userId: row.user_id, name: row.owner_name || null };
             return a;
         }).filter(a => a.myRole);

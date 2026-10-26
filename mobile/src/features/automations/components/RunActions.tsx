@@ -6,8 +6,11 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
-import { Button } from '@/shared/ui';
+import { Button, Text } from '@/shared/ui';
+
+import { VIEW_ONLY_RUN_HINT } from '../model/runAccess';
 
 const makeStyles = (theme: Theme) =>
     StyleSheet.create({
@@ -26,14 +29,18 @@ export function RunActions({
     decide,
     stop,
     retry,
+    canRetry = true,
 }: {
     awaitingApproval: boolean;
     live: boolean;
     decide: Action<'approve' | 'reject'>;
     stop: Action;
     retry: Action;
+    /** false when the server says this person may not start a run (a view share). */
+    canRetry?: boolean;
 }) {
     const styles = useThemedStyles(makeStyles);
+    const t = useTranslation();
     if (awaitingApproval) {
         return (
             <View style={styles.pair}>
@@ -64,14 +71,23 @@ export function RunActions({
             />
         );
     }
+    const hint = t('automations.run.viewOnlyHint', VIEW_ONLY_RUN_HINT);
     return (
-        <Button
-            label="Run it again"
-            variant="secondary"
-            fullWidth
-            loading={retry.pending}
-            onPress={() => retry.run()}
-            accessibilityHint="Replays this run with the same trigger data"
-        />
+        <>
+            <Button
+                label="Run it again"
+                variant="secondary"
+                fullWidth
+                loading={retry.pending}
+                disabled={!canRetry}
+                onPress={() => retry.run()}
+                accessibilityHint={canRetry ? 'Replays this run with the same trigger data' : hint}
+            />
+            {canRetry ? null : (
+                <Text variant="label" tone="tertiary">
+                    {hint}
+                </Text>
+            )}
+        </>
     );
 }

@@ -13,7 +13,7 @@ const assert = require('node:assert');
 
 const { installResolveStub } = require('../../testUtils/stubRequire');
 
-const store = { ai: null, providersRaw: null };
+const store = { ai: null };
 const adapter = { calls: [], models: [] };
 // A provider carrying this key stands for one whose discovery call fails.
 const FAILING_KEY = 'sk-broken';
@@ -22,7 +22,6 @@ const restore = installResolveStub({
     '../../stores/configStore': {
         getConfig: async (key) => {
             if (key === 'ai') return store.ai;
-            if (key === 'ai_providers') return store.providersRaw;
             return null;
         },
         setConfig: async (key, value) => { if (key === 'ai') store.ai = value; },
@@ -56,7 +55,6 @@ const ids = (list) => list.map(m => m.id);
 
 test.beforeEach(() => {
     store.ai = null;
-    store.providersRaw = null;
     adapter.calls = [];
     adapter.models = [{ id: 'gpt-4o' }, { id: 'gpt-4o-mini' }];
     invalidateModelCache();
@@ -160,20 +158,29 @@ test('invalidating one provider leaves the others cached; invalidating all drops
 
 // ─── getAllCachedModelIds ────────────────────────────────────────────────────
 
-test('getAllCachedModelIds lists every cached model once per provider name', async () => {
+test('getAllCachedModelIds names every cached model after its provider in config ai', async () => {
     store.ai = { providers: [provider(), provider({ id: 'p2', name: 'Mirror', type: 'azure' })] };
-    store.providersRaw = JSON.stringify([{ id: 'p1', name: 'OpenAI', type: 'openai' }]);
     await getModelsForProvider('p1');
     await getModelsForProvider('p2');
 
     const all = await getAllCachedModelIds();
     const rows = all.map(r => `${r.providerName}/${r.providerType}/${r.id}`).sort();
     assert.deepStrictEqual(rows, [
+        'Mirror/azure/gpt-4o',
+        'Mirror/azure/gpt-4o-mini',
         'OpenAI/openai/gpt-4o',
         'OpenAI/openai/gpt-4o-mini',
-        'Unknown/unknown/gpt-4o',
-        'Unknown/unknown/gpt-4o-mini',
-    ], 'p2 is not in the ai_providers record, so it is listed as Unknown');
+    ]);
+});
+
+test('getAllCachedModelIds lists a cached provider no longer in config ai as Unknown', async () => {
+    store.ai = { providers: [provider(), provider({ id: 'p2', name: 'Mirror', type: 'azure' })] };
+    await getModelsForProvider('p2');
+    store.ai = { providers: [provider()] };
+
+    const all = await getAllCachedModelIds();
+    assert.ok(all.length > 0);
+    assert.ok(all.every(r => r.providerName === 'Unknown' && r.providerType === 'unknown'));
 });
 
 // ─── getProviderForModel ─────────────────────────────────────────────────────

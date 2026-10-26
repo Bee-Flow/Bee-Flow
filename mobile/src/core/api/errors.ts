@@ -64,6 +64,17 @@ function describeForbidden(error: ApiError): DescribedError {
             retryable: false,
         };
     }
+    if (errorCode(error) === 'automation_run_forbidden') {
+        // The same sentence the web shows next to a run button a viewer cannot press.
+        return {
+            title: translate('mobile.error.run_forbidden_title', 'You cannot start this'),
+            message: translate(
+                'automations.run.viewOnlyHint',
+                'You can view this automation but not start it. Ask the owner for run access.',
+            ),
+            retryable: false,
+        };
+    }
     if (errorCode(error) === 'not_editable') {
         return {
             title: translate('mobile.error.not_editable_title', 'Not yours to edit'),

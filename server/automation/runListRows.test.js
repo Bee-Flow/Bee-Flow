@@ -125,6 +125,23 @@ test('decorate: the org log gets no names and no approval lookups; a failing loo
     assert.deepEqual(await decorator.decorate([]), []);
 });
 
+test('decorate: canStart rides on every row of one automation, or is asked once per automation', async () => {
+    const decorator = makeRunRowDecorator({ store: {} });
+    const rows = [{ id: 'r1', automationId: 'a1', status: 'error' }, { id: 'r2', automationId: 'a1', status: 'error' }, { id: 'r3', automationId: 'a2', status: 'error' }];
+    const viewer = await decorator.decorate(rows, { canStart: false });
+    assert.deepEqual(viewer.map(r => r.canStart), [false, false, false]);
+
+    const asked = [];
+    const mixed = await decorator.decorate(rows, {
+        canStartFor: async (id) => { asked.push(id); if (id === 'a2') throw new Error('lookup down'); return id === 'a1'; },
+    });
+    assert.deepEqual(asked.sort(), ['a1', 'a2'], 'once per distinct automation, never per row');
+    assert.deepEqual(mixed.map(r => r.canStart), [true, true, undefined], 'a failed lookup leaves the field off');
+
+    const plain = await decorator.decorate(rows);
+    assert.ok(plain.every(r => !('canStart' in r)), 'unknown stays unknown');
+});
+
 test('segmentCounts: all / failed / waiting / running', () => {
     assert.deepEqual(segmentCounts({ success: 2, error: 1, awaiting_approval: 1, awaiting_form: 1, running: 1, queued: 1, cancelled: 1 }), {
         all: 8, failed: 1, waiting: 2, running: 2,

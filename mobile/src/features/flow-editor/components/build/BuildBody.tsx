@@ -10,6 +10,7 @@ import { View, type ViewStyle } from 'react-native';
 
 import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
+import { mayStartRun } from '@/features/automations';
 import type { FlowCatalog } from '@/features/flow-editor/api';
 import { useDraftState, type FlowDraft } from '@/features/flow-editor/hooks';
 import type { FlowDefinition } from '@/features/flow-editor/model';
@@ -77,7 +78,7 @@ export function BuildBody({ draft, definition, card, catalog, editing, runs, onA
     ) : null;
     return (
         <>
-            <BuildToolbar store={draft.store} tab={tab} onTab={showTab} runs={runs} onOpenStep={onOpen} assistant={assistant} />
+            <BuildToolbar store={draft.store} tab={tab} onTab={showTab} runs={runs} onOpenStep={onOpen} assistant={assistant} canRunLive={mayStartRun(draft.automation)} />
             <LocalDraftBanner local={draft.local} />
             <SaveBanner store={draft.store} />
             {banner}
