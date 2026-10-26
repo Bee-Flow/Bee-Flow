@@ -38,6 +38,24 @@ function checkIntegrationAction(ctx, step, at) {
                 }
             }
         }
+        checkOutlookMailbox(ctx, step, at);
+    }
+}
+
+/**
+ * An Outlook step's `mailbox`, when it is written out (a literal): "me" or a
+ * shared mailbox's address. A bound value is checked when the step runs.
+ * @param {string} at
+ */
+function checkOutlookMailbox(ctx, step, at) {
+    const { pushE } = ctx;
+    if (typeof step.tool !== 'string' || !step.tool.startsWith('outlook_')) return;
+    const b = isObject(step.inputs) ? step.inputs.mailbox : undefined;
+    const value = isObject(b) && b.kind === 'literal' ? b.value : (typeof b === 'string' ? b : undefined);
+    if (value === undefined || value === null) return;
+    const { isValidMailbox } = require('../../../core/integrations/outlookMailbox.mts');
+    if (!isValidMailbox(value)) {
+        pushE({ code: 'integration_action.mailbox_invalid', severity: 'error', path: at + '.inputs.mailbox', message: `Step ${step.id}: the mailbox is not an e-mail address.`, hint: 'Use "me" (or leave it empty) for your own mailbox, or the address of a shared mailbox.' });
     }
 }
 

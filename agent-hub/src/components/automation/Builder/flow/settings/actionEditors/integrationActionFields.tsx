@@ -15,6 +15,8 @@ import { ForEachSection, RetrySection, retryIsSet, type StepEditorProps } from '
 import { runStepProblem } from '../runProblem';
 import { isTablesRowTool, withoutValuesInput } from '../tablesRowValues';
 import TablesRowValuesEditor from '../TablesRowValuesEditor';
+import OutlookMailboxPicker from '../outlookMailbox/OutlookMailboxPicker';
+import { isOutlookTool, mailboxFromBinding, withoutMailboxInput } from '../outlookMailbox/outlookMailbox';
 import { AskOnceRow, askOnceAvailability } from './askOnceRow';
 import { deepenedForEach, DeepenPlan, findNestedColumn, nestedListPick, rebindToNewItem } from '../../../mapping/deepenForEach';
 import { expectedShapeFor } from '../../../mapping/listShape';
@@ -103,7 +105,18 @@ function IntegrationActionFields({ step, draft, set, catalog, groups = [], onFoc
     const inputSchema = action?.inputSchema || null;
     // What the form shows: a Tables row's `values` map has its own editor and
     // is never something to fill with one field.
-    const formSchema = isTablesRowTool(currentTool) ? withoutValuesInput(inputSchema) as typeof inputSchema : inputSchema;
+    // An Outlook step's `mailbox` gets the picker above the form, unless it is
+    // bound to data (trigger.output.mailbox): then the generic field shows it.
+    const outlookMailbox = isOutlookTool(currentTool) && inputSchema?.properties && 'mailbox' in inputSchema.properties
+        ? mailboxFromBinding((draft.inputs || {}).mailbox)
+        : null;
+    const formSchema = isTablesRowTool(currentTool)
+        ? withoutValuesInput(inputSchema) as typeof inputSchema
+        : outlookMailbox !== null ? withoutMailboxInput(inputSchema) : inputSchema;
+    const setOutlookMailbox = (next: string | undefined) => set('inputs', (cur: Record<string, unknown> | undefined) => {
+        const { mailbox: _old, ...rest } = cur || {};
+        return next ? { ...rest, mailbox: { kind: 'literal', value: next } } : rest;
+    });
     const askAi = useAiAutoMap({ inputs: draft.inputs || {}, api: mappingApi });
     // Inputs the wand filled get the same small "auto" pill a connect-time
     // auto-map leaves (step.autoMapped) until the author edits them. Local:
@@ -236,6 +249,9 @@ function IntegrationActionFields({ step, draft, set, catalog, groups = [], onFoc
                 defaultOpen forceOpen={errorSections.has('inputs')}
                 meta={<FieldHint title={t('automations.integration_action_fields.about_inputs', 'About Inputs')}>{inputSchema ? 'Field values passed to the tool. Pick a variable from the right panel to bind upstream output.' : 'No schema found for this tool — using generic key/value rows.'}</FieldHint>}
             >
+                {outlookMailbox !== null && (
+                    <OutlookMailboxPicker value={outlookMailbox} onChange={setOutlookMailbox} />
+                )}
                 <ToolInputForm
                     inputs={draft.inputs || {}}
                     onChange={(next) => set('inputs', next)}

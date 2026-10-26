@@ -56,6 +56,20 @@ APP_EVENT TRIGGERS (pick the most specific; use filters to narrow):
     EXAMPLE: {kind:"app_event",appProvider:"gmail",appEvent:"label.added",
              filter:{labelId:"Label_3"}}
 
+  ── Microsoft 365 (Outlook) ──
+  • mail.new — fires on every new email in the inbox.
+    Filters: mailbox — omit (or "me") for the user's own inbox, or the address
+             of a SHARED mailbox the user has Full Access to (checked about
+             once a minute; the Microsoft connection needs the .Shared scopes).
+    Payload: {changeType, resource, resourceData:{id}, mailbox} — no body.
+    EXAMPLE — the team inbox:
+      {kind:"app_event",appProvider:"msgraph",appEvent:"mail.new",
+       filter:{mailbox:"support@example.com"}}
+    Read it with outlook_read {messageId: trigger.output.resourceData.id,
+    mailbox: trigger.output.mailbox}, and pass the same mailbox to every
+    outlook_* step that searches, replies or sends there: a reply or a send
+    with that mailbox goes out FROM the shared mailbox.
+
   ── Google Calendar ──
   • event.changed — fires when any event in the user's primary calendar
     is created, updated, or cancelled.

@@ -160,6 +160,20 @@ test("the card's own draft still sends and still saves", async () => {
     assert.ok(touched.some((t) => t.what === 'draft'));
 });
 
+test('a shared-mailbox draft from the card carries its mailbox to the send; a bad one is refused here', async () => {
+    const sent = await dispatch({ method: 'POST', url: '/send', body: draft({ mailbox: 'team@example.test' }) });
+    assert.strictEqual(sent.statusCode, 200);
+    assert.strictEqual(touched.find((t) => t.what === 'send').args[0].mailbox, 'team@example.test');
+
+    touched.length = 0;
+    for (const mailbox of ['team', '../users/ceo@example.test', 7]) {
+        const res = await dispatch({ method: 'POST', url: '/send', body: draft({ mailbox }) });
+        assert.strictEqual(res.statusCode, 400, JSON.stringify(mailbox));
+        assert.match(res.body.error, /mailbox is "me" or the e-mail address of a shared mailbox/);
+    }
+    assert.deepStrictEqual(touched, []);
+});
+
 test('a message id that is not a Graph id is refused before the read', async () => {
     const res = await dispatch({ method: 'GET', url: `/messages/${encodeURIComponent('../mailFolders')}` });
     assert.strictEqual(res.statusCode, 400);

@@ -67,29 +67,55 @@ async function hydrateMicrosoftSessionFromVault(session) {
  * `save()`: on the shim that lands in the vault, never on
  * `session.accessToken` of the caller's (Google) session.
  *
+ * With `needsSharedMailbox`, a Microsoft session whose grant is KNOWN to lack
+ * the shared-mailbox scopes (a plain Microsoft login asks for Mail.Read and
+ * Mail.Send only) gives way to the vault credential when that one has them:
+ * the user reconnected Microsoft in Settings → Connections precisely to get
+ * them, and the login session would otherwise keep answering 403.
+ *
  * @param {any} session - the caller's session (Express or automation shim)
  * @param {string|null} [userId] - who the credential belongs to; defaults to
  *   the session's user
+ * @param {{ needsSharedMailbox?: boolean }} [opts]
  * @returns {Promise<any|null>} a session-shaped object, or null when the user
  *   has no working Microsoft credential
  */
-async function resolveMicrosoftSession(session, userId = null) {
-    if (session?.oauthProvider === 'microsoft' && session?.accessToken) return session;
+async function resolveMicrosoftSession(session, userId = null, opts = {}) {
+    if (session?.oauthProvider === 'microsoft' && session?.accessToken) {
+        if (!opts.needsSharedMailbox) return session;
+        const { hasSharedMailboxScopes } = require('./permissionsOAuth');
+        const scope = typeof session.oauthScope === 'string' && session.oauthScope.trim() ? session.oauthScope : null;
+        if (scope === null || hasSharedMailboxScopes(scope)) return session;
+        const ownerId = userId || session?.user?.id || session?.userId || null;
+        const vault = ownerId ? await vaultCredential(ownerId) : null;
+        if (vault?.accessToken && hasSharedMailboxScopes(vault.scope)) {
+            return buildMicrosoftShim(vault, { userId: vault.userId || ownerId, user: session?.user || null });
+        }
+        return session;
+    }
 
     const ownerId = userId || session?.user?.id || session?.userId || null;
     let cred = session?.automationProviders?.microsoft || null;
     if (!cred?.accessToken) {
         if (!ownerId) return null;
-        try {
-            const { getProviderAuth } = require('./automationAuth');
-            cred = await getProviderAuth(ownerId, 'microsoft');
-        } catch (e) {
-            log.warn(`[MicrosoftConnector] vault lookup failed for user ${ownerId}: ${e.message}`);
-            return null;
-        }
+        cred = await vaultCredential(ownerId);
     }
     if (!cred?.accessToken) return null;
     return buildMicrosoftShim(cred, { userId: cred.userId || ownerId, user: session?.user || null });
+}
+
+/**
+ * The user's Microsoft vault credential (refreshed when close to expiry), or null.
+ * @param {string} ownerId
+ */
+async function vaultCredential(ownerId) {
+    try {
+        const { getProviderAuth } = require('./automationAuth');
+        return await getProviderAuth(ownerId, 'microsoft');
+    } catch (e) {
+        log.warn(`[MicrosoftConnector] vault lookup failed for user ${ownerId}: ${e.message}`);
+        return null;
+    }
 }
 
 /**

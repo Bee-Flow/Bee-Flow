@@ -75,6 +75,7 @@ test('agent_call and app_trigger are proposable from the lean band, with the bin
 const MATCHER_SOURCES = [
     path.join('triggerBus', 'filters.js'),
     path.join('triggerBus', 'filtersTables.js'),
+    path.join('triggerBus', 'filtersMsGraph.js'),
     'triggerBus.js',
     path.join('triggerBus', 'pollers', 'googleCalendar.js'),
     path.join('triggerBus', 'pollers', 'nextcloud.js'),

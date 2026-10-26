@@ -238,3 +238,69 @@ test('renewExpiringSubscriptions escalates with the renewal threshold on HTTP fa
     await graph.renewExpiringSubscriptions(noToken.ctx);
     assert.deepStrictEqual(noToken.calls.escalations, [{ id: 's2', threshold: RENEW_FAILURE_THRESHOLD, msg: 'no access token' }]);
 });
+
+// ── Shared mailboxes and the Microsoft token ────────────────────────────────
+//
+// Graph refuses change notifications on a shared mailbox for delegated access
+// ("Mail.Read.Shared ... do not support subscribing to change notifications on
+// items in shared or delegated folders"), so a shared mailbox's mail.new is
+// polled (pollers/msGraphMail.mts) and never subscribed or renewed at Graph.
+
+test('a shared mailbox is never subscribed at Graph (it is polled)', async () => {
+    process.env.PUBLIC_BASE_URL = 'https://test.example.com';
+    let called = false;
+    await withFetch(
+        async () => { called = true; return { ok: true, json: async () => ({ id: 'x' }) }; },
+        async () => {
+            const result = await graph.provisionSubscription(
+                { id: 's1', provider: 'msgraph', eventType: 'mail.new', userId: 'u1', automationId: 'a1', filter: { mailbox: 'team@contoso.com' } },
+                SAMPLE_SESSION,
+            );
+            assert.strictEqual(result, null);
+        },
+    );
+    assert.strictEqual(called, false);
+    delete process.env.PUBLIC_BASE_URL;
+});
+
+test('the own mailbox ("me" or no mailbox) is still subscribed on me/mailFolders(Inbox)/messages', async () => {
+    process.env.PUBLIC_BASE_URL = 'https://test.example.com';
+    const bodies = [];
+    await withFetch(
+        async (url, opts) => { bodies.push(JSON.parse(opts.body)); return { ok: true, json: async () => ({ id: 'graph-1', expirationDateTime: 'x' }) }; },
+        async () => {
+            for (const filter of [null, { mailbox: 'me' }]) {
+                const result = await graph.provisionSubscription(
+                    { id: 's1', provider: 'msgraph', eventType: 'mail.new', userId: 'u1', automationId: 'a1', filter }, SAMPLE_SESSION);
+                assert.strictEqual(result?.externalRef, 'graph-1');
+            }
+        },
+    );
+    assert.deepStrictEqual(bodies.map(b => b.resource), ["me/mailFolders('Inbox')/messages", "me/mailFolders('Inbox')/messages"]);
+    delete process.env.PUBLIC_BASE_URL;
+});
+
+test('renewal skips a shared mailbox\'s row: it has nothing at Graph to renew, and is not escalated', async () => {
+    const { ctx, calls } = renewCtx([
+        { id: 's1', provider: 'msgraph', eventType: 'mail.new', userId: 'u1', externalRef: null, filter: { mailbox: 'team@contoso.com' } },
+    ]);
+    let called = false;
+    await withFetch(async () => { called = true; return { ok: true, status: 200 }; }, () => graph.renewExpiringSubscriptions(ctx));
+    assert.strictEqual(called, false);
+    assert.deepStrictEqual(calls.escalations, []);
+});
+
+test('the Microsoft token is used even when the session\'s primary is Google', async () => {
+    const mixed = {
+        oauthProvider: 'google', accessToken: 'google-at',
+        automationProviders: { google: { accessToken: 'google-at' }, microsoft: { accessToken: 'ms-at' } },
+    };
+    assert.strictEqual(graph.microsoftTokenOf(mixed), 'ms-at');
+    assert.strictEqual(graph.microsoftTokenOf({ oauthProvider: 'microsoft', accessToken: 'ms-sso' }), 'ms-sso');
+    assert.strictEqual(graph.microsoftTokenOf({ oauthProvider: 'google', accessToken: 'google-at' }), null);
+
+    const { ctx } = renewCtx([{ id: 's1', provider: 'msgraph', eventType: 'mail.new', userId: 'u1', externalRef: 'graph-1' }], { session: /** @type {any} */ (mixed) });
+    const auth = [];
+    await withFetch(async (url, opts) => { auth.push(opts.headers.Authorization); return { ok: true, status: 200 }; }, () => graph.renewExpiringSubscriptions(ctx));
+    assert.deepStrictEqual(auth, ['Bearer ms-at'], 'never the Google token to Graph');
+});

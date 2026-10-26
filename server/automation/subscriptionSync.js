@@ -12,10 +12,26 @@
  * activate. Same code, same callers, one more entry point.
  */
 
-const automationStore = require("../stores/automationStore");
-const triggerBus = require("./triggerBus");
+const REAL_AUTOMATION_STORE = require("../stores/automationStore");
+const REAL_TRIGGER_BUS = require("./triggerBus");
 const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
+
+// Test seam (_setDepsForTests): the store and the trigger bus this module talks
+// to, swapped for fakes by a test instead of through the module cache. Same
+// convention as triggerBus._setDepsForTests; read at call time.
+/** @type {any} */
+let automationStore = REAL_AUTOMATION_STORE;
+/** @type {any} */
+let triggerBus = REAL_TRIGGER_BUS;
+
+/**
+ * @param {{ automationStore?: any, triggerBus?: any } | null} [over] omit to restore the real ones
+ */
+function _setDepsForTests(over = null) {
+    automationStore = over?.automationStore || REAL_AUTOMATION_STORE;
+    triggerBus = over?.triggerBus || REAL_TRIGGER_BUS;
+}
 
 /**
  * Reconcile app_event subscriptions for one automation. Reads the trigger
@@ -131,7 +147,9 @@ async function syncOneAppEventTrigger(automationId, userId, trig, prior = null) 
     /** @type {string} */
     let mode;
     if (provider === 'msgraph') {
-        mode = triggerBus.getPublicBaseUrl() ? 'webhook' : 'polling';
+        // A shared mailbox is always polled: Graph refuses change
+        // notifications on it for delegated access (pollers/msGraphMail.mts).
+        mode = !watchesSharedMailbox(event, trig.appEvent?.filter) && triggerBus.getPublicBaseUrl() ? 'webhook' : 'polling';
     } else if (provider === 'github') {
         mode = 'webhook';
     } else if (provider === 'nextcloud') {
@@ -211,7 +229,20 @@ async function syncOneAppEventTrigger(automationId, userId, trig, prior = null) 
     }
 }
 
-module.exports = { syncAppEventSubscription, revokeRemoteSubscriptions, hasAppEventTrigger, appEventFingerprint };
+/**
+ * Does this msgraph trigger watch a shared mailbox? An address that does not
+ * parse counts as one too: polled, the poller then reports it every tick
+ * instead of a webhook quietly watching the own inbox.
+ * @param {string} event
+ * @param {Record<string, unknown> | null | undefined} filter
+ */
+function watchesSharedMailbox(event, filter) {
+    if (event !== 'mail.new' || !filter || filter.mailbox === undefined || filter.mailbox === null) return false;
+    const { parseMailbox } = require('../core/integrations/outlookMailbox.mts');
+    try { return parseMailbox(filter.mailbox).shared; } catch { return true; }
+}
+
+module.exports = { _setDepsForTests, syncAppEventSubscription, revokeRemoteSubscriptions, hasAppEventTrigger, appEventFingerprint };
 
 /** @typedef {{ id?: string, kind?: string, appEvent?: { provider?: string, event?: string, filter?: Record<string, unknown>|null } }} AppTrigger */
 

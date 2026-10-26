@@ -61,8 +61,9 @@ const MS_CONNECT_SCOPES = Object.freeze([
     'Mail.Send.Shared',
 ]);
 
-// Scopes that must be present before a shared mailbox can work at all.
-const SHARED_MAILBOX_SCOPES = ['Mail.Read.Shared', 'Mail.Send.Shared'];
+// Which scopes a shared mailbox needs, and whether a grant has them, is one
+// rule shared with the Outlook tools and the trigger.
+const { hasSharedMailboxScopes } = require('../../core/integrations/outlookMailbox.mts');
 
 async function getMicrosoftClientConfig() {
     const config = await loadConfig();
@@ -94,16 +95,6 @@ function statesMatch(received, expected) {
     if (typeof received !== 'string' || typeof expected !== 'string') return false;
     if (!received || !expected || received.length !== expected.length) return false;
     return crypto.timingSafeEqual(Buffer.from(received), Buffer.from(expected));
-}
-
-/**
- * Did the grant actually include the shared-mailbox scopes?
- * @param {string | null | undefined} scope
- */
-function hasSharedMailboxScopes(scope) {
-    const granted = String(scope || '').toLowerCase();
-    if (!granted) return false;
-    return SHARED_MAILBOX_SCOPES.every((s) => granted.includes(s.toLowerCase()));
 }
 
 // ─── Generate OAuth URL ──────────────────────────────────────────
