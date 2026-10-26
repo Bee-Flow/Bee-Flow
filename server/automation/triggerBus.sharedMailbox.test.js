@@ -40,6 +40,8 @@ mock(path.join(SERVER, 'auth/automationAuth'), {
     getProviderAuth: async () => null,
 });
 
+// What boot/featureRegistrations.js does at start-up: the msGraph client the poller asks core for.
+require('../integrations/integrationClients');
 const triggerBus = require('./triggerBus');
 /** @type {any[]} */
 const dispatched = [];
@@ -80,6 +82,7 @@ test('no Full Access: nothing fires, the row is stamped and the failure escalate
     answer = () => ({ status: 403, body: { error: { code: 'ErrorAccessDenied', message: 'Access is denied.' } } });
     SUBS = [row()];
     await triggerBus.runPollingPass();
+    assert.strictEqual(requests.length, 1, 'Graph was asked, and refused');
     assert.deepStrictEqual(dispatched, []);
     assert.deepStrictEqual(calls.increments, ['shared-sub']);
     assert.ok(calls.updates.some(u => u.id === 'shared-sub' && u.updates.lastPolledAt));

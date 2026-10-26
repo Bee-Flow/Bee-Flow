@@ -7,7 +7,7 @@ import SettingsFormJs from '../../SettingsForm';
 import { VariablePickerProvider as VariablePickerProviderJs } from '../../../mapping/VariablePickerContext';
 import scopedStorage from '../../../../../../utils/scopedStorage';
 import OutlookMailboxPicker from './OutlookMailboxPicker';
-import { FILTER_FORM_BY_KEY } from '../triggerFilters';
+import { OutlookMailNewFilterFields } from './OutlookMailNewFilterFields';
 import { isMailboxAddress, mailboxFromBinding, withoutMailboxInput } from './outlookMailbox';
 
 const SettingsForm = SettingsFormJs as unknown as ComponentType<Record<string, unknown>>;
@@ -133,10 +133,8 @@ describe('an Outlook step in the builder', () => {
 
 describe('the Outlook "New email" trigger', () => {
     it('has the mailbox picker, says a shared inbox is polled, and writes filter.mailbox', async () => {
-        const Form = FILTER_FORM_BY_KEY['msgraph.mail.new'];
-        expect(Form).toBeTruthy();
         const setFilter = vi.fn();
-        render(<Form filter={{}} setFilter={setFilter} />);
+        render(<OutlookMailNewFilterFields filter={{}} setFilter={setFilter} />);
         await userEvent.click(screen.getByRole('radio', { name: 'Shared mailbox' }));
         expect(screen.getByText(/about once a minute/)).toBeTruthy();
         await userEvent.type(screen.getByLabelText('Shared mailbox address'), 'a@b.co');

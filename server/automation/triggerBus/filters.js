@@ -515,41 +515,7 @@ function matchMeetingProcessedFilter(payload, filter) {
  * @param {string} provider
  * @param {string} event
  */
-/**
- * msgraph mail.new: `mailbox` is configuration (which inbox to watch), not a
- * payload field, with one guarantee on top: the own inbox's pushed
- * notification is fanned out to every msgraph mail.new row of that user
- * (dispatchEvent), and must never start an automation that watches a SHARED
- * mailbox. Every event names its mailbox ("me" from the webhook route, the
- * address from the poller), so a filter that names a mailbox only takes
- * events of that mailbox. A filter without one (the own inbox, or an any/none
- * entry of the DSL) leaves it open: a shared mailbox's events reach only its
- * own row anyway, the poller dispatches to that row alone.
- * The other keys keep the shallow exact-match semantics they always had.
- * @param {TriggerPayload} payload
- * @param {TriggerFilter} filter
- */
-function matchMsGraphMailFilter(payload, filter) {
-    if (!filter || typeof filter !== 'object') return matchFilter(payload, null);
-    const { mailbox: _mailbox, ...rest } = filter;
-    if (Object.prototype.hasOwnProperty.call(filter, 'mailbox')) {
-        const { parseMailbox } = require('../../core/integrations/outlookMailbox.mts');
-        let want;
-        let got;
-        try {
-            want = parseMailbox(filter.mailbox);
-            got = parseMailbox(payload?.mailbox);
-        } catch {
-            return false;
-        }
-        if (want.shared !== got.shared) return false;
-        if (want.shared && got.shared && want.address !== got.address) return false;
-    }
-    return matchFilter(payload, Object.keys(rest).length ? rest : null);
-}
-
 function pickMatcher(provider, event) {
-    if (provider === 'msgraph' && event === 'mail.new') return matchMsGraphMailFilter;
     if (provider === 'support' && event === 'ticket.resolved') return matchSupportTicketResolvedFilter;
     if (provider === 'meeting-notes' && event === 'meeting.processed') return matchMeetingProcessedFilter;
     if (provider === 'gmail' && event === 'mail.new') return matchGmailMailFilter;
@@ -592,10 +558,10 @@ function pickMatcher(provider, event) {
         if (event === 'notification.new')  return matchNextcloudNotificationFilter;
         if (event === 'user.status.changed') return matchNextcloudUserStatusFilter;
     }
-    return matchFilter;
+    return provider === 'msgraph' && event === 'mail.new' ? require('./filtersMsGraph').matchMsGraphMailFilter : matchFilter;
 }
 
-module.exports = { matchGmailMailFilter, matchGmailLabelFilter, matchCalendarChangedFilter, matchCalendarUpcomingFilter, matchDriveFileNewFilter, matchSheetsChangedFilter, matchNextcloudFileFilter, matchNextcloudShareFilter, matchNextcloudShareGenericFilter, matchNextcloudActivityFilter, matchNextcloudNotificationFilter, matchNextcloudCommentFilter, matchNextcloudTagFilter, matchNextcloudFormsSubmittedFilter, matchNextcloudTablesRowFilter, matchSupportTicketResolvedFilter, matchMeetingProcessedFilter, matchNextcloudCalendarFilter, matchNextcloudCalendarUpcomingFilter, matchNextcloudDeckCardFilter, matchNextcloudDeckCardMovedFilter, matchNextcloudTalkMessageFilter, matchNextcloudTalkReactionFilter, matchNextcloudTaskFilter, matchNextcloudUserStatusFilter, matchMsGraphMailFilter, containsCI, pickMatcher };
+module.exports = { matchGmailMailFilter, matchGmailLabelFilter, matchCalendarChangedFilter, matchCalendarUpcomingFilter, matchDriveFileNewFilter, matchSheetsChangedFilter, matchNextcloudFileFilter, matchNextcloudShareFilter, matchNextcloudShareGenericFilter, matchNextcloudActivityFilter, matchNextcloudNotificationFilter, matchNextcloudCommentFilter, matchNextcloudTagFilter, matchNextcloudFormsSubmittedFilter, matchNextcloudTablesRowFilter, matchSupportTicketResolvedFilter, matchMeetingProcessedFilter, matchNextcloudCalendarFilter, matchNextcloudCalendarUpcomingFilter, matchNextcloudDeckCardFilter, matchNextcloudDeckCardMovedFilter, matchNextcloudTalkMessageFilter, matchNextcloudTalkReactionFilter, matchNextcloudTaskFilter, matchNextcloudUserStatusFilter, containsCI, pickMatcher };
 
 /** @typedef {Record<string, any>} TriggerPayload  an event payload: loose provider JSON, shape differs per provider */
 

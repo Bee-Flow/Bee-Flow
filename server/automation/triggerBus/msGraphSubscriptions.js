@@ -51,7 +51,8 @@ const { getPublicBaseUrl } = require('../publicUrl');
  * AND Microsoft had their Google token sent to Graph, and every subscribe and
  * renew failed with 401. The Microsoft credential sits under
  * automationProviders.microsoft then.
- * @param {any} session
+ * @param {{ oauthProvider?: string | null, accessToken?: string | null,
+ *   automationProviders?: { microsoft?: { accessToken?: string | null } | null } | null } | null | undefined} session
  * @returns {string | null}
  */
 function microsoftTokenOf(session) {

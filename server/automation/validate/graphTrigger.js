@@ -203,7 +203,7 @@ if (scope === 'root' && trigger.kind === 'app_event'
  * address (the same rule as the Outlook steps, core/integrations/outlookMailbox.mts).
  * Only "New email" can watch a shared mailbox: it is polled, and the other
  * Microsoft events have no poller.
- * @param {any} trigger
+ * @param {{ kind?: string, appEvent?: { provider?: string, event?: string, filter?: Record<string, unknown> | null } } | null | undefined} trigger
  * @param {string} at - the trigger's path, e.g. "trigger" or "triggers[1]"
  * @param {(f: any) => void} pushE
  */

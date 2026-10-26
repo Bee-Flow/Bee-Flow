@@ -14,9 +14,9 @@ const { GRAPH_ID_RE, MESSAGE_ID_TEXT, FOLDER_TEXT, assertGraphId } = require('./
 // scope check and the error wording all come from one place.
 const {
     MAILBOX_PARAM, parseMailbox, mailboxBase, assertSharedScopes, mapGraphMailboxError, mailboxLogRef,
-    sharedMailboxDeniedText,
 } = require('../core/integrations/outlookMailbox.mts');
-const { HttpError } = require('../core/http/errors');
+// Sending, replying and saving a draft (the approval card's route uses them too).
+const { buildOutlookMessage, executeOutlookSend, executeOutlookSaveDraft } = require('./outlookSend');
 
 /**
  * Tool definitions in OpenAI function-calling format.
@@ -371,15 +371,15 @@ async function listRecentMessages(args, fetchPage, base = '/me') {
  * Execute an Outlook tool call.
  *
  * @param {string} toolName
- * @param {Object} args
- * @param {Object} session - a Microsoft session (SSO or the vault shim)
+ * @param {OutlookArgs} args
+ * @param {OutlookSession} session - a Microsoft session (SSO or the vault shim)
  * @param {Object} [opts]
  * @param {boolean} [opts.autoSend=false] - For outlook_compose: when true the
  *   mail is sent straight away instead of returning an email_draft for the
  *   user to approve. Only unattended callers (the automation runner, a
  *   scheduled agent run) set it — there is nobody to click Send there, and a
  *   draft would sit unsent forever. Same contract as gmail_compose.
- * @returns {Promise<any>} the tool's JSON result (its shape differs per tool)
+ * @returns {Promise<OutlookToolResult>} the tool's JSON result (its shape differs per tool)
  */
 async function executeOutlookTool(toolName, args, session, opts = {}) {
     if (!isMicrosoftConnected(session)) {
@@ -400,8 +400,8 @@ async function executeOutlookTool(toolName, args, session, opts = {}) {
 /**
  * The tool body, on an already-resolved mailbox.
  * @param {string} toolName
- * @param {Object} args
- * @param {Object} session
+ * @param {OutlookArgs} args
+ * @param {OutlookSession} session
  * @param {{ autoSend?: boolean }} opts
  * @param {import('../core/integrations/outlookMailbox.mts').Mailbox} mailbox
  */
@@ -523,150 +523,6 @@ async function runOutlookTool(toolName, args, session, opts, mailbox) {
 }
 
 /**
- * Split a comma-separated address list into Graph recipient objects.
- */
-function toRecipientList(value) {
-    return String(value || '')
-        .split(',')
-        .map(e => e.trim())
-        .filter(Boolean)
-        .map(address => ({ emailAddress: { address } }));
-}
-
-/**
- * Build the Graph message resource shared by send, reply and save-draft.
- * One builder on purpose: the send path used to be the only one that carried
- * bccRecipients, so replies and saved drafts silently dropped a BCC the user
- * had typed and the draft card had shown them.
- */
-function buildOutlookMessage(draft) {
-    // toRecipientList tolerates a missing value (String(undefined || '') -> []),
-    // which turned the pre-existing loud TypeError on a recipient-less draft
-    // into a silent success: save-draft POSTed {toRecipients: []} and reported
-    // "Email saved as draft in Outlook". outlook_compose already requires `to`
-    // on every draft including replies, so anything arriving here without one
-    // is a hand-crafted POST to /api/integrations/outlook/{send,draft} and
-    // should fail, not be half-honoured.
-    if (!draft.to || !String(draft.to).trim()) {
-        throw new Error('to is required');
-    }
-
-    const message = {
-        subject: draft.subject,
-        body: {
-            contentType: 'Text',
-            content: draft.body,
-        },
-        toRecipients: toRecipientList(draft.to),
-    };
-
-    if (draft.cc) message.ccRecipients = toRecipientList(draft.cc);
-    if (draft.bcc) message.bccRecipients = toRecipientList(draft.bcc);
-
-    return message;
-}
-
-/**
- * Execute an approved Outlook email send via Microsoft Graph API.
- * Called after user clicks "Send" on the email draft.
- */
-async function executeOutlookSend(draft, session) {
-    if (!isMicrosoftConnected(session)) {
-        throw new Error('Not connected to Outlook');
-    }
-
-    // A shared mailbox is checked again here: the approval card posts the
-    // draft back later, and the connection may have changed since.
-    const mailbox = parseMailbox(draft?.mailbox);
-    assertSharedScopes(mailbox, session);
-    const base = mailboxBase(mailbox);
-    const message = buildOutlookMessage(draft);
-    try {
-        await sendOutlookMessage(draft, message, session, base);
-    } catch (err) {
-        throw mapSendError(err, mailbox);
-    }
-    return { success: true, message: 'Email sent via Outlook' };
-}
-
-/**
- * A refused send from a shared mailbox: Full Access lets a user read it, but
- * sending AS it is a separate Exchange permission (Send As).
- * @param {unknown} err
- * @param {import('../core/integrations/outlookMailbox.mts').Mailbox} mailbox
- */
-function mapSendError(err, mailbox) {
-    const mapped = mapGraphMailboxError(err, mailbox);
-    if (mapped instanceof HttpError && mapped.code === 'shared_mailbox_denied') {
-        return new HttpError(403, 'shared_mailbox_denied',
-            `${sharedMailboxDeniedText()} To send from it, the administrator must also grant you Send As on that mailbox, and the connection needs Mail.Send.Shared.`);
-    }
-    return mapped;
-}
-
-/**
- * The Graph call of a send: a reply on the original, or a new mail.
- * @param {OutlookDraft} draft
- * @param {ReturnType<typeof buildOutlookMessage>} message
- * @param {Object} session
- * @param {string} base - `/me` or `/users/{address}`
- */
-async function sendOutlookMessage(draft, message, session, base) {
-    // If replying, use the reply endpoint
-    if (draft.replyToMessageId) {
-        assertGraphId(draft.replyToMessageId, MESSAGE_ID_TEXT);
-        await graphFetch(`${base}/messages/${draft.replyToMessageId}/reply`, session, {
-            method: 'POST',
-            body: JSON.stringify({
-                message: {
-                    toRecipients: message.toRecipients,
-                    ccRecipients: message.ccRecipients || [],
-                    // The reply payload used to forward to/cc only, so a BCC
-                    // on a reply was thrown away after the card had displayed
-                    // it and the send was reported as succeeded.
-                    bccRecipients: message.bccRecipients || [],
-                },
-                comment: draft.body,
-            }),
-        });
-    } else {
-        // New email. From a shared mailbox, /users/{address}/sendMail sends
-        // AS that mailbox (Mail.Send.Shared + Send As).
-        await graphFetch(`${base}/sendMail`, session, {
-            method: 'POST',
-            body: JSON.stringify({
-                message,
-                saveToSentItems: true,
-            }),
-        });
-    }
-}
-
-/**
- * Save an Outlook email as a draft.
- */
-async function executeOutlookSaveDraft(draft, session) {
-    if (!isMicrosoftConnected(session)) {
-        throw new Error('Not connected to Outlook');
-    }
-    // Writing a draft INTO a shared mailbox needs Mail.ReadWrite.Shared, which
-    // Bee Flow deliberately does not ask for (see routes/integrations/microsoft365.js).
-    if (parseMailbox(draft?.mailbox).shared) {
-        throw new HttpError(400, 'shared_mailbox_draft_unsupported',
-            'A draft cannot be saved in a shared mailbox. Send the email, or remove the shared mailbox to save the draft in your own mailbox.');
-    }
-
-    const message = buildOutlookMessage(draft);
-
-    const result = await graphFetch('/me/messages', session, {
-        method: 'POST',
-        body: JSON.stringify(message),
-    });
-
-    return { success: true, draftId: result.id, message: 'Email saved as draft in Outlook' };
-}
-
-/**
  * Check if a tool name is an Outlook tool.
  */
 function isOutlookTool(toolName) {
@@ -704,7 +560,10 @@ module.exports = {
  *   conversationId?: string }} GraphMessage
  * @typedef {{ id?: string, name?: string, contentType?: string, size?: number }} GraphAttachment
  * @typedef {ReturnType<typeof shapeOutlookMessage> & { attachments?: ReturnType<typeof shapeOutlookAttachments> }} ShapedMessage
- * @typedef {{ to?: string, cc?: string|null, bcc?: string|null, subject?: string, body?: string,
- *   replyToMessageId?: string|null, mailbox?: string|null }} OutlookDraft
- * @typedef {{ emailAddress: { address: string } }} RecipientOut
+  * @typedef {{ query?: string, maxResults?: number|string, messageId?: string, messageIds?: unknown,
+ *   to?: string, cc?: string, bcc?: string, subject?: string, body?: string, replyToMessageId?: string,
+ *   folder?: string, unreadOnly?: boolean, since?: string|null, maxPages?: number|string, mailbox?: unknown }} OutlookArgs  the arguments of an outlook_* call
+ * @typedef {import('./msGraphClient').MsSession & { oauthProvider?: string }} OutlookSession
+ * @typedef {{ [key: string]: unknown, _action?: string, draft?: Record<string, unknown>, sent?: boolean, mailbox?: string,
+ *   messages?: unknown[], results?: unknown[] }} OutlookToolResult  what an outlook_* call answers (loose JSON per tool)
  */

@@ -4,6 +4,7 @@ import { getIntegrationIcon } from '../../../../../config/integrationIcons';
 import TriggerProviderPicker from '../TriggerProviderPicker';
 import { FormRow, inputClass } from './formPrimitives';
 import { FILTER_FORM_BY_KEY } from './triggerFilters';
+import { OutlookMailNewFilterFields } from './outlookMailbox/OutlookMailNewFilterFields';
 import type { AppEventFieldsProps } from './triggerEditors.types';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 
@@ -137,6 +138,9 @@ export function AppEventFields({ draft, set, setNested, catalog = null }: AppEve
             )}
 
             {FilterForm && <FilterForm filter={filter} setFilter={setF} />}
+            {/* Outlook "New email": which inbox it watches. Kept out of FILTER_FORM_BY_KEY,
+                whose map the phone's flow editor ports one to one (mobile has no picker yet). */}
+            {provider === 'msgraph' && event === 'mail.new' && <OutlookMailNewFilterFields filter={filter} setFilter={setF} />}
         </>
     );
 }

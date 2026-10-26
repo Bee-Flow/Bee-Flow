@@ -42,6 +42,25 @@ function microsoftRefreshScope(grantedScope) {
     return granted || MICROSOFT_SCOPES.join(' ');
 }
 
+/**
+ * The delegated scopes a SHARED mailbox needs (Settings → Connections asks
+ * for them on top of the login set; routes/integrations/microsoft365.js).
+ * Held here with the rest of the Microsoft scopes; the Outlook tools, the
+ * trigger and the status route read the check from here
+ * (core/integrations/outlookMailbox.mts re-exports it).
+ */
+const SHARED_MAILBOX_SCOPES = Object.freeze(['Mail.Read.Shared', 'Mail.Send.Shared']);
+
+/**
+ * Did the grant include both shared-mailbox scopes? (Case-insensitive, as Microsoft echoes them.)
+ * @param {unknown} scope
+ */
+function hasSharedMailboxScopes(scope) {
+    const granted = String(scope || '').toLowerCase();
+    if (!granted) return false;
+    return SHARED_MAILBOX_SCOPES.every((s) => granted.includes(s.toLowerCase()));
+}
+
 // OAuth Provider Configurations
 const OAUTH_PROVIDERS = {
     google: {
@@ -97,6 +116,8 @@ async function saveConfig(config) {
 
 module.exports = {
     MICROSOFT_SCOPES,
+    SHARED_MAILBOX_SCOPES,
+    hasSharedMailboxScopes,
     microsoftRefreshScope,
     OAUTH_PROVIDERS,
     loadConfig,

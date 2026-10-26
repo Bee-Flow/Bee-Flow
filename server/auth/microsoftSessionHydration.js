@@ -83,8 +83,8 @@ async function hydrateMicrosoftSessionFromVault(session) {
 async function resolveMicrosoftSession(session, userId = null, opts = {}) {
     if (session?.oauthProvider === 'microsoft' && session?.accessToken) {
         if (!opts.needsSharedMailbox) return session;
-        const { grantedScopeOf, hasSharedMailboxScopes } = require('../core/integrations/outlookMailbox.mts');
-        const scope = grantedScopeOf(session);
+        const { hasSharedMailboxScopes } = require('./permissionsOAuth');
+        const scope = typeof session.oauthScope === 'string' && session.oauthScope.trim() ? session.oauthScope : null;
         if (scope === null || hasSharedMailboxScopes(scope)) return session;
         const ownerId = userId || session?.user?.id || session?.userId || null;
         const vault = ownerId ? await vaultCredential(ownerId) : null;

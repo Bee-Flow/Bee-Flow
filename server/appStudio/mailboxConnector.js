@@ -27,8 +27,7 @@ const {
     MAILBOX_TABLE_TEMPLATES,
 } = require('./mailboxTableTemplates');
 const { fallback } = require('../utils/bestEffort');
-// The words for "no access to this shared mailbox" are shared with the Outlook
-// automation steps and trigger, so the user reads one instruction everywhere.
+// One wording for "no access", shared with the Outlook automation steps and trigger.
 const { sharedMailboxDeniedText } = require('../core/integrations/outlookMailbox.mts');
 
 const MAX_MAILBOX_ROWS = 200;

@@ -10,7 +10,8 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-const { pickMatcher, matchMsGraphMailFilter } = require('./filters');
+const { pickMatcher } = require('./filters');
+const { matchMsGraphMailFilter } = require('./filtersMsGraph');
 const { applyDslFilter } = require('../triggers/dslFilters');
 
 const own = { changeType: 'created', resourceData: { id: 'M1' }, mailbox: 'me' };

@@ -317,7 +317,7 @@ async function graphBatch(session, requests, { signal = null } = {}) {
 
 /**
  * Check if the current session is connected to Microsoft.
- * @param {Express.Session} session
+ * @param {{ accessToken?: string | null, oauthProvider?: string | null } | null | undefined} session
  */
 function isMicrosoftConnected(session) {
     return !!(session?.accessToken && session?.oauthProvider === 'microsoft');

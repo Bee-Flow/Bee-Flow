@@ -33,8 +33,14 @@ const { MAILBOX_EMAIL_RE } = nodeRequire('../dataEngine/dataModel/vocabulary.js'
 /** The value that means "the signed-in user's own mailbox". */
 export const OWN_MAILBOX = 'me';
 
+// The scopes themselves live with the other Microsoft scopes (auth/permissionsOAuth.js).
+const oauthScopes = nodeRequire('../../auth/permissionsOAuth.js') as {
+    SHARED_MAILBOX_SCOPES: readonly string[];
+    hasSharedMailboxScopes: (scope: unknown) => boolean;
+};
+
 /** What a connection must have been granted before a shared mailbox can work at all. */
-export const SHARED_MAILBOX_SCOPES: readonly string[] = Object.freeze(['Mail.Read.Shared', 'Mail.Send.Shared']);
+export const SHARED_MAILBOX_SCOPES: readonly string[] = oauthScopes.SHARED_MAILBOX_SCOPES;
 
 export type Mailbox = { shared: false } | { shared: true; address: string };
 
@@ -96,9 +102,7 @@ export function mailboxResource(mailbox: Mailbox): string {
 
 /** Did the grant include both shared-mailbox scopes? (Case-insensitive, as Microsoft echoes them.) */
 export function hasSharedMailboxScopes(scope: unknown): boolean {
-    const granted = String(scope || '').toLowerCase();
-    if (!granted) return false;
-    return SHARED_MAILBOX_SCOPES.every((s) => granted.includes(s.toLowerCase()));
+    return oauthScopes.hasSharedMailboxScopes(scope);
 }
 
 interface ScopedSession {
