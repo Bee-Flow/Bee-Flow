@@ -8,6 +8,7 @@ import DashCard from '@/components/shared/dashboard/DashCard';
 import { datatablesApi } from '../../Datatables/datatablesApi';
 import DatatableSharing from '../../Datatables/DatatableSharing';
 import type { DtTable } from '../../Datatables/rowBrowser/rowBrowserModel';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 const LINK_BTN = 'inline-flex items-center gap-1.5 text-xs underline-offset-2 hover:underline';
 
@@ -29,10 +30,9 @@ export default function ShareTab({ detail, canEdit, onNavigate, onChanged }: Sha
     const answers = detail?.answers || null;
     const [table, setTable] = useState<DtTable | null>(null);
     const [tableError, setTableError] = useState<Error | null>(null);
+    useAdjustOnChange([answers?.datatableId], () => { setTable(null); setTableError(null); });
     useEffect(() => {
         let alive = true;
-        setTable(null);
-        setTableError(null);
         if (!answers?.datatableId) return undefined;
         datatablesApi.get(answers.datatableId)
             .then((body) => { if (alive) setTable(body?.datatable || null); })

@@ -5,6 +5,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import type { PreviewSurface } from './previewSurfaces';
 import type { DraftPayload } from '../useLookForm';
 import { logger } from '@/utils/logger';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 type PreviewStatus = 'loading' | 'ready' | 'timeout' | 'session-expired';
 
@@ -80,9 +81,8 @@ export default function LookPreviewIframe({ surface, draftPayload, onReload }: P
          
     }, [reloadKey, surface.id]);
 
+    useAdjustOnChange([reloadKey, surface.id], () => { setStatus('loading'); setErrorMsg(''); });
     useEffect(() => {
-        setStatus('loading');
-        setErrorMsg('');
         versionRef.current = 0;
         if (readyTimerRef.current) clearTimeout(readyTimerRef.current);
         readyTimerRef.current = setTimeout(

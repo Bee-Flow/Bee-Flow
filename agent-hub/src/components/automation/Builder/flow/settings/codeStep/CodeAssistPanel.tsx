@@ -4,6 +4,7 @@ import { Check, Loader2, RotateCcw, Send, Sparkles, Square } from 'lucide-react'
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { AssistTurn } from './useCodeAssistChat';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 interface CodeAssistPanelProps {
     turns: AssistTurn[];
@@ -64,13 +65,13 @@ function TurnView({ turn, last, onKeep, onUndo }: { turn: AssistTurn; last: bool
 
 export default function CodeAssistPanel({ turns, busy, codeIsEmpty, onSend, onStop, onKeep, onUndo, prefill = null }: CodeAssistPanelProps) {
     const { t } = useTranslation();
-    const [text, setText] = useState('');
+    const [text, setText] = useState(() => prefill?.text ?? '');
     const listRef = useRef<HTMLUListElement | null>(null);
     const boxRef = useRef<HTMLTextAreaElement | null>(null);
 
+    useAdjustOnChange([prefill], () => { if (prefill) setText(prefill.text); });
     useEffect(() => {
         if (!prefill) return;
-        setText(prefill.text);
         boxRef.current?.focus();
     }, [prefill]);
     useEffect(() => {

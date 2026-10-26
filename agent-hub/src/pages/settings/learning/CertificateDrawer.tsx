@@ -5,6 +5,7 @@ import { Eyebrow, PrimaryButton, SecondaryButton } from './bits';
 import { fetchAssetObjectUrl, downloadAsset } from '@/api/achievements';
 import type { TranslateParams } from '@/hooks/useTranslation';
 import { logger } from '@/utils/logger';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 /**
  * CertificateDrawer — artboard 1e: the in-app drawer for an issued
@@ -41,10 +42,10 @@ export default function CertificateDrawer({ cert, busy, onTogglePublic, onClose,
     const [imgError, setImgError] = useState(false);
     const [copied, setCopied] = useState(false);
 
+    useAdjustOnChange([cert.imageUrl], () => { setImgSrc(null); setImgError(false); });
     useEffect(() => {
         let url: string;
         let cancelled = false;
-        setImgSrc(null); setImgError(false);
         (async () => {
             try {
                 url = await fetchAssetObjectUrl(cert.imageUrl as string);

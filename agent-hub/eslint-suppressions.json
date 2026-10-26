@@ -1466,9 +1466,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/components/admin/Studio/Approvals/ApprovalsStudio.tsx": {
@@ -1604,9 +1601,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/components/admin/Studio/Datatables/DatatableSharing.tsx": {
@@ -1690,9 +1684,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -1904,9 +1895,6 @@
   "src/components/admin/Studio/Forms/answers/ResponseDrawer.tsx": {
     "complexity": {
       "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/components/admin/Studio/Forms/form/AiDraftPanel.tsx": {
@@ -1935,11 +1923,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/admin/Studio/Forms/form/ShareTab.tsx": {
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -2640,9 +2623,6 @@
   "src/components/admin/compliance/data/registers.ts": {
     "max-params": {
       "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/components/admin/compliance/data/useComplianceCore.ts": {
@@ -2925,9 +2905,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/components/admin/compliance/pages/dsr/DsrTable.tsx": {
@@ -3040,9 +3017,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -3216,9 +3190,6 @@
     },
     "max-lines-per-function": {
       "count": 3
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/components/admin/monitoring/UsageExplorerPage.tsx": {
@@ -3536,9 +3507,6 @@
       "count": 1
     },
     "no-restricted-syntax": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -4644,9 +4612,6 @@
     },
     "react-hooks/preserve-manual-memoization": {
       "count": 2
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/components/appearance/studio/look/sections/AdvancedGlassDisclosure.tsx": {
@@ -5412,11 +5377,6 @@
       "count": 1
     }
   },
-  "src/components/automation/Builder/flow/settings/codeStep/CodeAssistPanel.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/components/automation/Builder/flow/settings/codeStep/CodeEditorField.tsx": {
     "max-lines-per-function": {
       "count": 1
@@ -5670,14 +5630,6 @@
     }
   },
   "src/components/automation/Builder/flow/useLiveNodeMirror.ts": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
-  "src/components/automation/Builder/flow/useNodeContextMenu.ts": {
-    "react-hooks/exhaustive-deps": {
-      "count": 1
-    },
     "react-hooks/set-state-in-effect": {
       "count": 1
     }
@@ -6142,9 +6094,6 @@
   },
   "src/components/automation/Builder/useBuilderHydration.ts": {
     "react-hooks/exhaustive-deps": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -7031,11 +6980,6 @@
       "count": 1
     }
   },
-  "src/components/licensing/SubscriptionContext.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/components/licensing/TierSlider/TierGauge.tsx": {
     "complexity": {
       "count": 1
@@ -7142,9 +7086,6 @@
   "src/components/meeting-picker/MeetingPicker.tsx": {
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/components/meetings/GoogleMeetAdminPanel.tsx": {
@@ -7195,11 +7136,6 @@
   },
   "src/components/onboarding/generated/lessons.js": {
     "max-lines": {
-      "count": 1
-    }
-  },
-  "src/components/onboarding/learnMedia.ts": {
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -7658,11 +7594,6 @@
       "count": 1
     }
   },
-  "src/components/shell/sidebar/useScrolledAwayNav.ts": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/components/shell/sidebar/useSidebarFlyouts.ts": {
     "max-lines-per-function": {
       "count": 1
@@ -7959,11 +7890,6 @@
       "count": 1
     },
     "max-statements": {
-      "count": 1
-    }
-  },
-  "src/editor/nodeviews/ImageView.tsx": {
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -9153,16 +9079,8 @@
       "count": 1
     }
   },
-  "src/pages/meeting-notes/hooks/useTranscription.ts": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/pages/meeting-notes/hooks/useWaveform.ts": {
     "max-statements": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -9457,9 +9375,6 @@
   "src/pages/settings/learning/CertificateDrawer.tsx": {
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/pages/settings/learning/LearningRail.tsx": {
@@ -9715,11 +9630,6 @@
     }
   },
   "src/pages/webpages/ide/useIdeState.ts": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
-  "src/pages/webpages/preview/usePreviewToken.ts": {
     "react-hooks/set-state-in-effect": {
       "count": 1
     }

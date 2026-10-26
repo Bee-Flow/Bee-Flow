@@ -1,6 +1,7 @@
 import { SetStateAction, useEffect, useState } from 'react';
 import { logger } from '@/utils/logger';
 import { request, RefusedError } from '@/api/mutate';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 /**
  * Full-audio blobs are heavy (a 100-min recording is tens of MB); keep only
@@ -76,9 +77,16 @@ export default function useWaveform(url: string, bins: number = 512) {
     // Keyed by url so a stale (revoked) blob URL is never handed out for a
     // different meeting while the new one is still decoding.
     const [blobState, setBlobState] = useState<{ url: string | null; objectUrl: string | null }>({ url: null, objectUrl: null });
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(!!url);
     const [error, setError] = useState<Error | null>(null);
 
+    // A new recording starts from nothing (during render, before the decode).
+    useAdjustOnChange([url, bins], () => {
+        setPeaks(null);
+        setDuration(0);
+        setError(null);
+        setLoading(!!url);
+    });
     useEffect(() => {
         // `cancelled` is per effect RUN, not a shared ref. A ref set back to
         // false at the top of the next run un-cancelled the previous one, so
@@ -88,11 +96,7 @@ export default function useWaveform(url: string, bins: number = 512) {
         // URL was never revoked. One leak per switch.
         let cancelled = false;
         let createdUrl: string|null = null;
-        setPeaks(null);
-        setDuration(0);
-        setError(null);
-        if (!url) { setLoading(false); return undefined; }
-        setLoading(true);
+        if (!url) return undefined;
         decodePeaks(url, bins)
             .then((r: { peaks: SetStateAction<null>; duration: SetStateAction<number>; blob: Blob|MediaSource; }) => {
                 if (cancelled) return;

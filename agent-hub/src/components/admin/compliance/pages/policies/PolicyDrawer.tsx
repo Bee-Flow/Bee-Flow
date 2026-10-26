@@ -11,6 +11,7 @@ import {
 import type { OrgUser } from '../accessAuditLabels';
 import type { RowLike } from '@/components/shared/DataTable';
 import { logger } from '@/utils/logger';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 /**
  * PolicyDrawer — the editor for one ISMS policy document (ISO 27001 A.5.1 /
@@ -89,12 +90,14 @@ export default function PolicyDrawer({
     const [confirming, setConfirming] = useState(false);
 
     const loadDoc = useEffectEvent((s: string) => onLoadDoc?.(s));
-    useEffect(() => {
-        let alive = true;
+    useAdjustOnChange([slug], () => {
         setDraft(null);
         setBaseline(null);
         setFailed(false);
         setConfirming(false);
+    });
+    useEffect(() => {
+        let alive = true;
         if (!slug) return undefined;
         (async () => {
             try {

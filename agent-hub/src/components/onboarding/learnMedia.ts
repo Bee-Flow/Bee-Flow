@@ -34,6 +34,7 @@
 import { useEffect, useState } from 'react';
 import { API_BASE } from '../../utils/helpers';
 import { STEP_TYPES, stepType } from './stepTypes';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 export interface LearnVideoVariant {
     file: string;
@@ -252,11 +253,10 @@ export function resetLearnManifestCache(): void {
  */
 export function useLearnManifest(enabled: boolean): LearnManifestState {
     const [state, setState] = useState<LearnManifestState>(() => (enabled ? (settled || { status: 'loading' }) : { status: 'unavailable' }));
+    useAdjustOnChange([enabled], () => setState(enabled ? (settled || { status: 'loading' }) : { status: 'unavailable' }));
     useEffect(() => {
-        if (!enabled) { setState({ status: 'unavailable' }); return undefined; }
+        if (!enabled || settled) return undefined;
         let alive = true;
-        if (settled) { setState(settled); return undefined; }
-        setState({ status: 'loading' });
         loadLearnManifest().then((s) => { if (alive) setState(s); });
         return () => { alive = false; };
     }, [enabled]);

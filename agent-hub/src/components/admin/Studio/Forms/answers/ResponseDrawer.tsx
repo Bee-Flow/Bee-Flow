@@ -6,6 +6,7 @@ import Modal from '@/components/shared/Modal';
 import { cellText } from '../../Datatables/datatableDisplay';
 import { datatablesApi } from '../../Datatables/datatablesApi';
 import type { AnswersQuestion, AnswersRecent } from './useAnswersSummary';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 const BTN = 'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs border transition-colors hover:bg-[var(--bg-tertiary)]';
 
@@ -28,10 +29,9 @@ export default function ResponseDrawer({ datatableId, response, questions, mine,
     const rel = useRelativeTime();
     const [row, setRow] = useState<Record<string, unknown> | null>(null);
     const [error, setError] = useState<Error | null>(null);
+    useAdjustOnChange([datatableId, response?.rowId], () => { setRow(null); setError(null); });
     useEffect(() => {
         let alive = true;
-        setRow(null);
-        setError(null);
         if (!response?.rowId) return undefined;
         datatablesApi.getRow(datatableId, response.rowId)
             .then((body) => { if (alive) setRow(body?.row || body || null); })

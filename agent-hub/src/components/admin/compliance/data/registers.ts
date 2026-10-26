@@ -19,6 +19,7 @@ import type { AccessAuditRow } from '../pages/accessAuditLabels';
 import type { DpiaRecord } from '../pages/dpia/DpiaDrawer';
 import type { Id, UseDpiaArgs, UseIncidentsArgs, UseSoaArgs, SoaBody, UsePoliciesArgs, UseConnectorsArgs, UseRisksArgs, UseAuditArgs, UseTrainingArgs, UseAccessAuditArgs, AccessAuditLog, AccessAuditFilter, OrgUserRow, UseOrgUsersArgs } from './registers.types';
 import { noop } from './useRopa';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 export { useDsr } from './useDsr';
 export { useRopa } from './useRopa';
 export type { OrgUserRow } from './registers.types';
@@ -329,12 +330,12 @@ export function useAccessAudit({ enabled = false }: UseAccessAuditArgs = {}) {
         }
         return q;
     }, [filter]);
+    useAdjustOnChange([enabled, query, offset], () => { if (enabled) setExportError(null); });
     useEffect(() => {
         if (!enabled) return undefined;
         let cancelled = false;
         const q = new URLSearchParams(query);
         q.set('offset', String(offset));
-        setExportError(null);
         fetchJson(`${API}/access-audit?${q.toString()}`)
             .then((d) => { if (!cancelled) setData(d); })
             .catch((e) => { if (!cancelled) setData({ error: e.message }); });

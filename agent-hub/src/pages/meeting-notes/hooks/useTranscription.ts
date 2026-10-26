@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState , useLayoutEffect } from 'react';
 import * as api from '@/api/transcriptionsApi';
 import type { MeetingNote } from '../detail/meetingDetailTypes';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 /** A new note, or a function of the current one (the callers only run once a note has loaded). */
 type LocalUpdate = MeetingNote | ((prev: MeetingNote) => MeetingNote);
 
 export default function useTranscription(id: string | null | undefined) {
     const [data, setData] = useState<MeetingNote | null>(null);
-    const [loading, setLoading] = useState<boolean>(false);
+    const [loading, setLoading] = useState<boolean>(!!id);
     // The caught value as it was thrown. TODO(err-unknown): MeetingDetail.jsx hands it to
     // MeetingLoadError, which still reads it as an ApiError; read it with the caughtError helpers there.
     const [error, setError] = useState<unknown>(null);
@@ -26,18 +27,21 @@ export default function useTranscription(id: string | null | undefined) {
         return () => { mounted.current = false; };
     }, []);
 
-    useEffect(() => {
-        // Clear the PREVIOUS note before fetching the new one. This only reset
-        // `data` when `id` went falsy, so selecting a note that then failed to
-        // load left the old note on screen while the library highlighted the
-        // new one — and every action in the detail view (rename, delete,
-        // action items) targeted the note still in `data`. A user who trusted
-        // the highlight and pressed Delete destroyed a different meeting.
+    // Clear the PREVIOUS note before fetching the new one (during render, so
+    // no frame shows it). This only reset `data` when `id` went falsy, so
+    // selecting a note that then failed to load left the old note on screen
+    // while the library highlighted the new one — and every action in the
+    // detail view (rename, delete, action items) targeted the note still in
+    // `data`. A user who trusted the highlight and pressed Delete destroyed a
+    // different meeting.
+    useAdjustOnChange([id], () => {
         setData(null);
         setError(null);
-        if (!id) { setLoading(false); return; }
+        setLoading(!!id);
+    });
+    useEffect(() => {
+        if (!id) return;
         let cancelled = false;
-        setLoading(true);
         api.getTranscription(id)
             .then((res: MeetingNote) => { if (!cancelled && mounted.current) setData(res); })
             .catch((err: unknown) => { if (!cancelled && mounted.current) setError(err); })

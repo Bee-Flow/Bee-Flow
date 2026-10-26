@@ -327,10 +327,9 @@ function adaptRow(u: DatatableUsageRow | null | undefined) {
 function useUsage(tableId: string) {
     const [usage, setUsage] = useState<UsageSourceRow[] | null>(null);
     const [error, setError] = useState<string | null>(null);
+    useAdjustOnChange([tableId], () => { setUsage(null); setError(null); });
     useEffect(() => {
         let alive = true;
-        setUsage(null);
-        setError(null);
         datatablesApi.listUsage(tableId)
             .then(b => { if (alive) setUsage(Array.isArray(b?.usage) ? b.usage : []); })
             // A failed usage read must not leave the list at null forever: the

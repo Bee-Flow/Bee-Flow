@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Search, Check, Clock, Users, FileAudio, Loader2 } from 'lucide-react';
 import * as api from '../../api/transcriptionsApi';
 import { formatDuration, formatRelativeDate } from '../../pages/meeting-notes/lib/format';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 export interface PickerMeeting {
     id: string;
@@ -56,9 +57,9 @@ export default function MeetingPicker({
     const [hoveredId, setHoveredId] = useState<string | null>(null);
     const [previews, setPreviews] = useState<Record<string, MeetingPreview>>({}); // id -> { summary, title }
 
+    useAdjustOnChange([autoLoad], () => { if (autoLoad) setLoading(true); });
     useEffect(() => {
         if (!autoLoad) return;
-        setLoading(true);
         api.listTranscriptions()
             .then(setMeetings)
             .catch((e: Error) => setError(e.message))

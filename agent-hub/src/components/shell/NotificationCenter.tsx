@@ -42,7 +42,7 @@ export default function NotificationCenter({ variant = 'row' }: { variant?: 'row
     const inbox = useNotifications();
     const { notifications, fetchNotifications, markRead } = inbox;
 
-    useAdjustOnChange([open, fetchNotifications], () => { if (open) setExpandedId(null); });
+    useAdjustOnChange([open], () => { if (open) setExpandedId(null); });
     useEffect(() => {
         if (open) fetchNotifications();
     }, [open, fetchNotifications]);

@@ -3,6 +3,7 @@ import { API_BASE } from '@/utils/helpers';
 import { errorMessage, isAbortError, messageOf } from '@/utils/caughtError';
 import { logger } from '@/utils/logger';
 import { mutate, ApiError } from '@/api/mutate';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 /** The selection the preview's bridge script posts back. */
 export interface PreviewSelection {
@@ -53,8 +54,9 @@ export function usePreviewToken(webpageId: string | undefined, refreshKey: numbe
     const [dbToken, setDbToken] = useState<string | null>(null);
     const [, setDbTokenExpiresAt] = useState(0);
 
+    useAdjustOnChange([webpageId, refreshKey], () => { if (!webpageId) { setDbToken(null); setDbTokenExpiresAt(0); } });
     useEffect(() => {
-        if (!webpageId) { setDbToken(null); setDbTokenExpiresAt(0); return; }
+        if (!webpageId) return;
         const controller = new AbortController();
         let cancelled = false;
         (async () => {

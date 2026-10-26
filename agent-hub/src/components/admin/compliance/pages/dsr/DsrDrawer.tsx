@@ -32,6 +32,7 @@ import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import type { DsrRow } from './dsr.types';
 import type { VerifyIdentityBody } from './DsrIdentity';
 import type { Translate, RequestId, FulfilBody, DiscoverySource, DiscoveryBody, DiscoveryKey, DiscoveryFacts, DrawerBodyProps, DrawerHeaderProps, DsrDrawerProps } from './DsrDrawer.types';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 export type { FulfilBody, DiscoveryBody } from './DsrDrawer.types';
 
 const SECONDARY = 'flex-1 inline-flex items-center justify-center gap-1.5 h-[30px] px-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-card)] text-[12px] font-medium text-[var(--text-primary)] disabled:opacity-50';
@@ -111,10 +112,10 @@ export function discoveryChips(t: Translate, discovery: DiscoveryBody | null | u
 
 function useLazy<T>(loader: ((id: RequestId) => Promise<T>) | undefined, id: RequestId | undefined) {
     const [value, setValue] = useState<T | null | undefined>(undefined);
+    useAdjustOnChange([loader, id], () => setValue(undefined));
     useEffect(() => {
-        if (!loader || id === null || id === undefined) { setValue(undefined); return undefined; }
+        if (!loader || id === null || id === undefined) return undefined;
         let alive = true;
-        setValue(undefined);
         Promise.resolve()
             .then(() => loader(id))
             .then(v => { if (alive) setValue(v ?? null); })

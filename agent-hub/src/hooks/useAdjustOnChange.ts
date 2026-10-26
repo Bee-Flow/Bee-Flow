@@ -12,6 +12,11 @@ import { useState } from 'react';
  * painted. Unlike an effect it does not run on mount: the state's initial value
  * already matches.
  *
+ * The deps must keep their identity when only this component re-renders:
+ * props, state and memoised values do. A value created anew on every render
+ * (an inline object or function, a hook result that is not memoised) differs
+ * on every pass, and the adjustment then loops until React gives up.
+ *
  * `adjust` gets the deps as they were before the change. It may only set state
  * of the component that calls this hook, and must do nothing else (no fetch, no
  * ref, no parent callback).

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 /**
  * Tracks which secondary-nav rows have scrolled above the visible scroll
@@ -14,8 +15,9 @@ export function useScrolledAwayNav(isOpen: boolean, scrollRef: RefObject<HTMLEle
     const [hiddenSecondaryKeys, setHiddenSecondaryKeys] = useState<Set<string>>(() => new Set());
     const observerRef = useRef<IntersectionObserver | null>(null);
 
+    useAdjustOnChange([isOpen, scrollRef], () => { if (!isOpen) setHiddenSecondaryKeys(new Set()); });
     useEffect(() => {
-        if (!isOpen) { setHiddenSecondaryKeys(new Set()); return; }
+        if (!isOpen) return;
         const root = scrollRef.current;
         if (!root) return;
         const observer = new IntersectionObserver((entries) => {
