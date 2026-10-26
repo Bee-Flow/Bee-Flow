@@ -277,8 +277,8 @@ router.post('/', requirePermission('manage_skills'), validate({ body: CreateSkil
         // characters (the cap that keeps the system prompt bounded).
         const { name, description, instructions, workflow, rules, examples, icon, isShared, dynamicActivation, sharedGroups, automationId, enabledIntegrations } = req.body;
 
-        let cleanedGroups;
-        cleanedGroups = await validateSharedGroupsForOrg(orgId, sharedGroups);
+        const cleanedGroups = await validateSharedGroupsForOrg(orgId, sharedGroups);
+        await require('./skills/automationLink').assertMayLinkAutomation(automationId, req.session.user.id);
         const skill = await skillStore.createSkill({
             orgId,
             userId: req.session.user.id,
@@ -416,13 +416,11 @@ router.put('/:id', requirePermission('manage_skills'), validate({ body: UpdateSk
         const existing = await skillStore.getSkill(req.params.id, orgId, req.session.user.id, { canManage: true });
         if (!existing) return res.status(404).json({ error: 'Skill not found' });
         if (!existing.canEdit) return res.status(403).json({ error: 'You cannot edit this skill', code: 'not_editable' });
+        await require('./skills/automationLink').assertMayLinkAutomation(automationId, req.session.user.id, existing.automationId);
 
         // Validate sharedGroups belong to the skill's org. `undefined` means
         // "leave as-is" — the store preserves the existing value.
-        let cleanedGroups;
-        if (sharedGroups !== undefined) {
-            cleanedGroups = await validateSharedGroupsForOrg(orgId, sharedGroups);
-        }
+        const cleanedGroups = sharedGroups !== undefined ? await validateSharedGroupsForOrg(orgId, sharedGroups) : undefined;
         const updated = await skillStore.updateSkill(req.params.id, req.session.user.id, {
             name, description, instructions, workflow, rules, examples, icon, isShared, dynamicActivation,
             sharedGroups: cleanedGroups,

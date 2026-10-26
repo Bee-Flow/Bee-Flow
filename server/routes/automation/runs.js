@@ -38,7 +38,7 @@ router.post('/:id/run', runTriggerLimiter, validate({ body: RunBody }), async (r
     // (unpublished changes), which is an editor's tool and needs `edit`. The
     // run executes AS THE OWNER and records who pressed the button in
     // startedByUserId.
-    const access = await automationAccess.guard(req, res, a, isTest ? 'edit' : 'run');
+    const access = await automationAccess.guard(req, res, a, isTest ? 'edit' : 'start');
     if (!access) return;
     const ownerId = a.userId || userId;
     // The first time somebody other than the owner runs an automation that uses

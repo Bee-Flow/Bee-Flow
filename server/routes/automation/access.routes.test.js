@@ -244,3 +244,35 @@ test('GET /: the caller\'s own automations and the ones shared with them, each w
     assert.strictEqual(userId, 'vic');
     assert.deepStrictEqual(opts, { orgId: 'org1', groupIds: ['g-fin'] });
 });
+
+test('a viewer may not start a run on any path; an editor and a run share may', async () => {
+    seen.executed.length = 0;
+    const refusals = [
+        ['POST', '/a1/run', {}],
+        ['POST', '/a1/runs/run-owner/retry', {}],
+        ['POST', '/a1/agent-invoke', { args: {} }],
+    ];
+    for (const [method, path, body] of refusals) {
+        const res = await call(method, path, { as: 'vic', body });
+        assert.strictEqual(res.status, 403, `${method} ${path} as vic: ${JSON.stringify(res.body)}`);
+        assert.strictEqual(res.body.code, 'automation_run_forbidden', `${method} ${path} as vic`);
+    }
+    assert.strictEqual(seen.executed.length, 0, 'no refusal started a run');
+
+    const editorLive = await call('POST', '/a1/run', { as: 'ed', body: {} });
+    assert.strictEqual(editorLive.status, 200, JSON.stringify(editorLive.body));
+    const editorRetry = await call('POST', '/a1/runs/run-owner/retry', { as: 'ed', body: {} });
+    assert.strictEqual(editorRetry.status, 200, JSON.stringify(editorRetry.body));
+    // Past the role gate: the next refusal is the trigger kind, not the role.
+    const editorInvoke = await call('POST', '/a1/agent-invoke', { as: 'ed', body: { args: {} } });
+    assert.strictEqual(editorInvoke.body.code, 'not_agent_callable', JSON.stringify(editorInvoke.body));
+    const runnerInvoke = await call('POST', '/a1/agent-invoke', { as: 'ron', body: { args: {} } });
+    assert.strictEqual(runnerInvoke.body.code, 'not_agent_callable', JSON.stringify(runnerInvoke.body));
+    assert.strictEqual(seen.executed.length, 2);
+    assert.deepStrictEqual(seen.executed.map(e => e.opts.startedByUserId), ['ed', 'ed']);
+});
+
+test('a viewer still READS what the run gate guards: the automation and its runs', async () => {
+    assert.strictEqual((await call('GET', '/a1', { as: 'vic' })).status, 200);
+    assert.strictEqual((await call('GET', '/a1/runs', { as: 'vic' })).status, 200);
+});

@@ -14,6 +14,8 @@
  *     owner's organisation;
  *   - every lookup failure is "no role" (fail closed);
  *   - roleSatisfies: run < view < edit < owner, for every pair;
+ *   - mayStartRun / need 'start': run, edit and up start a run, a view share
+ *     does not (unless a run share sits beside it);
  *   - projectForViewer strips the owner's builder chat for anyone else and
  *     leaves a run-only caller the triggers alone;
  *   - mayReadRun: view reads every run, run only the runs it started;
@@ -27,7 +29,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const {
-    makeAutomationAccess, roleSatisfies, strongestRole, projectForViewer, mayReadRun, groupsOf,
+    makeAutomationAccess, roleSatisfies, strongestRole, projectForViewer, mayReadRun, groupsOf, mayStartRun,
 } = require('./access');
 
 const USERS = {
@@ -77,7 +79,7 @@ test('user and group shares grant their role; the strongest share wins', async (
     assert.deepStrictEqual(await access.roleFor(A, 'ed'), { role: 'edit', via: 'share' });
     assert.deepStrictEqual(await access.roleFor(A, 'vic'), { role: 'view', via: 'share' }, 'groups as JSON text');
     assert.deepStrictEqual(await access.roleFor(A, 'ron'), { role: 'run', via: 'share' });
-    assert.deepStrictEqual(await access.roleFor(A, 'both'), { role: 'view', via: 'share' }, 'run directly + view via group = view');
+    assert.deepStrictEqual(await access.roleFor(A, 'both'), { role: 'view', via: 'share', runShare: true }, 'run directly + view via group = view, and still starts runs');
     assert.deepStrictEqual(await access.roleFor(A, 'stranger'), { role: null, via: null });
 });
 
@@ -131,12 +133,13 @@ test('roleSatisfies: run < view < edit < owner', () => {
 test('canAccessAutomation answers the matrix per need', async () => {
     const { access } = build();
     const expect = {
-        owner: { run: true, view: true, edit: true, owner: true },
-        adm: { run: true, view: true, edit: true, owner: true },
-        ed: { run: true, view: true, edit: true, owner: false },
-        vic: { run: true, view: true, edit: false, owner: false },
-        ron: { run: true, view: false, edit: false, owner: false },
-        stranger: { run: false, view: false, edit: false, owner: false },
+        owner: { run: true, view: true, edit: true, owner: true, start: true },
+        adm: { run: true, view: true, edit: true, owner: true, start: true },
+        ed: { run: true, view: true, edit: true, owner: false, start: true },
+        vic: { run: true, view: true, edit: false, owner: false, start: false },
+        ron: { run: true, view: false, edit: false, owner: false, start: true },
+        both: { run: true, view: true, edit: false, owner: false, start: true },
+        stranger: { run: false, view: false, edit: false, owner: false, start: false },
     };
     for (const [user, needs] of Object.entries(expect)) {
         for (const [need, want] of Object.entries(needs)) {
@@ -179,4 +182,11 @@ test('guard answers 403 with the needed role, and hands back the access otherwis
     assert.deepStrictEqual(res.body, { error: 'Forbidden', code: 'automation_forbidden', need: 'edit' });
     const res2 = { status() { throw new Error('must not answer'); } };
     assert.deepStrictEqual(await access.guard({ session: { user: { id: 'ed' } } }, res2, A, 'edit'), { role: 'edit', via: 'share' });
+});
+
+test('mayStartRun: run, edit and owner start a run; view, nothing and nonsense do not', () => {
+    for (const role of ['run', 'edit', 'owner']) assert.strictEqual(mayStartRun(role), true, role);
+    for (const role of ['view', null, undefined, 'admin']) assert.strictEqual(mayStartRun(role), false, String(role));
+    assert.strictEqual(mayStartRun({ role: 'view', runShare: true }), true, 'a run share beside a view share');
+    assert.strictEqual(mayStartRun({ role: 'view' }), false);
 });
