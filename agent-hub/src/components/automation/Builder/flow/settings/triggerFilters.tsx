@@ -6,6 +6,7 @@ import { useTranslation } from '../../../../../hooks/useTranslation';
 import { nOf } from '../../../../admin/Studio/KnowledgeStudio/plural';
 import { AMBER_NOTE, hintTextClass, inputClass, sectionHeaderClass, FormRow } from './formPrimitives';
 import type { FilterFieldsProps } from './triggerFilters.types';
+import OutlookMailboxPicker from './outlookMailbox/OutlookMailboxPicker';
 export function GmailFilterFields({ filter, setFilter }: FilterFieldsProps) {
     const { t } = useTranslation();
     return (
@@ -586,6 +587,21 @@ export function MeetingNotesProcessedFilterFields({ filter, setFilter }: FilterF
     );
 }
 
+/**
+ * msgraph.mail.new: which inbox the trigger watches. The own inbox is a Graph
+ * subscription; a shared mailbox is polled (Graph has no change notifications
+ * for shared mailboxes on delegated access), which the hint says.
+ */
+export function OutlookMailNewFilterFields({ filter, setFilter }: FilterFieldsProps) {
+    return (
+        <OutlookMailboxPicker
+            value={typeof filter.mailbox === 'string' ? filter.mailbox : undefined}
+            onChange={(next) => setFilter('mailbox', next)}
+            polled
+        />
+    );
+}
+
 // Unmapped combos render no filter form (the runtime still applies the DSL
 // filter via applyDslFilter). Individual exports above stay for tests.
 export const FILTER_FORM_BY_KEY: Record<string, React.ComponentType<FilterFieldsProps>> = {
@@ -611,4 +627,5 @@ export const FILTER_FORM_BY_KEY: Record<string, React.ComponentType<FilterFields
     'nextcloud.notification.new': NextcloudNotificationFilterFields,
     'support.ticket.resolved': SupportTicketResolvedFilterFields,
     'meeting-notes.meeting.processed': MeetingNotesProcessedFilterFields,
+    'msgraph.mail.new': OutlookMailNewFilterFields,
 };

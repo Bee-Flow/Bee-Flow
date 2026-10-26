@@ -3441,4 +3441,13 @@ export default {
     "automations.form_builder_fields.type_radio": "Choice buttons",
     "automations.form_builder_fields.type_multiselect": "Several choices",
     "automations.form_builder_fields.type_info": "Text block",
+    "automations.outlook_mailbox.label": "Mailbox",
+    "automations.outlook_mailbox.mine": "My mailbox",
+    "automations.outlook_mailbox.shared": "Shared mailbox",
+    "automations.outlook_mailbox.address_label": "Shared mailbox address",
+    "automations.outlook_mailbox.address_placeholder": "team@example.com",
+    "automations.outlook_mailbox.invalid": "Enter the e-mail address of the shared mailbox.",
+    "automations.outlook_mailbox.trigger_hint": "Bee Flow checks this inbox for new mail about once a minute, as you. Your Microsoft administrator must give you Full Access to the mailbox.",
+    "automations.outlook_mailbox.step_hint": "Bee Flow searches, reads and replies in this mailbox as you; mail sent from this step goes out from the shared mailbox. Your Microsoft administrator must give you Full Access (and Send As to send).",
+    "automations.outlook_mailbox.needs_reconnect": "Your Microsoft connection has no shared-mailbox access yet. Reconnect Microsoft in Settings → Connections.",
 };
