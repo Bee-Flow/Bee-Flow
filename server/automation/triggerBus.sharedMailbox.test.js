@@ -12,40 +12,37 @@
  */
 const { test } = require('node:test');
 const assert = require('node:assert');
-const path = require('path');
-
-const SERVER = path.resolve(__dirname, '..');
-const { mockModule: mock } = require('../testUtils/moduleMock');
-
-/** @type {any[]} */
-let SUBS = [];
-const calls = { /** @type {any[]} */ updates: [], /** @type {string[]} */ increments: [], /** @type {string[]} */ resets: [] };
-mock(path.join(SERVER, 'stores/automationStore'), {
-    getPollingSubscriptions: async () => SUBS,
-    updateSubscription: async (/** @type {string} */ id, /** @type {any} */ updates) => { calls.updates.push({ id, updates }); return true; },
-    incrementSubscriptionFailures: async (/** @type {string} */ id) => { calls.increments.push(id); return { consecutiveFailures: 1, errorNotifiedAt: null }; },
-    resetSubscriptionFailures: async (/** @type {string} */ id) => { calls.resets.push(id); },
-    getAutomation: async () => null,
-    getExpiringSubscriptions: async () => [],
-    getSubscriptionsForProvider: async () => [],
-});
-mock(path.join(SERVER, 'stores/userStore'), { getUser: async () => ({ provider: 'local' }) });
-let SCOPE = 'Mail.Read Mail.Send Mail.Read.Shared Mail.Send.Shared';
-mock(path.join(SERVER, 'auth/automationAuth'), {
-    // Google first, as buildUserAuth picks it when the user has both.
-    buildUserAuth: async () => ({
-        accessToken: 'google-at', refreshToken: null, oauthProvider: 'google',
-        automationProviders: { google: { accessToken: 'google-at' }, microsoft: { accessToken: 'ms-at', refreshToken: 'ms-rt', scope: SCOPE } },
-    }),
-    getProviderAuth: async () => null,
-});
 
 // What boot/featureRegistrations.js does at start-up: the msGraph client the poller asks core for.
 require('../integrations/integrationClients');
 const triggerBus = require('./triggerBus');
+
+/** @type {any[]} */
+let SUBS = [];
+let SCOPE = 'Mail.Read Mail.Send Mail.Read.Shared Mail.Send.Shared';
 /** @type {any[]} */
 const dispatched = [];
-triggerBus._setDepsForTests({ dispatchToSubscription: () => (/** @type {any} */ sub, /** @type {any} */ ev) => { dispatched.push({ sub: sub.id, ev }); return []; } });
+const calls = { /** @type {any[]} */ updates: [], /** @type {string[]} */ increments: [], /** @type {string[]} */ resets: [] };
+
+// The polling pass runs against fakes handed in through its own seam.
+triggerBus._setDepsForTests({
+    automationStore: {
+        getPollingSubscriptions: async () => SUBS,
+        updateSubscription: async (/** @type {string} */ id, /** @type {any} */ updates) => { calls.updates.push({ id, updates }); return true; },
+        incrementSubscriptionFailures: async (/** @type {string} */ id) => { calls.increments.push(id); return { consecutiveFailures: 1, errorNotifiedAt: null }; },
+        resetSubscriptionFailures: async (/** @type {string} */ id) => { calls.resets.push(id); },
+    },
+    userStore: () => ({ getUser: async () => ({ provider: 'local' }) }),
+    // Google first, as buildUserAuth picks it when the user has both.
+    automationAuth: () => ({
+        buildUserAuth: async () => ({
+            accessToken: 'google-at', refreshToken: null, oauthProvider: 'google',
+            automationProviders: { google: { accessToken: 'google-at' }, microsoft: { accessToken: 'ms-at', refreshToken: 'ms-rt', scope: SCOPE } },
+        }),
+        getProviderAuth: async () => null,
+    }),
+    dispatchToSubscription: () => (/** @type {any} */ sub, /** @type {any} */ ev) => { dispatched.push({ sub: sub.id, ev }); return []; },
+});
 test.after(() => triggerBus._setDepsForTests());
 
 const CURSOR = JSON.stringify({ t: '2026-10-26T09:00:00Z', ids: [], m: 'shared:' + require('crypto').createHash('sha256').update('team@contoso.com').digest('hex').slice(0, 10) });
