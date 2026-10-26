@@ -53,7 +53,9 @@ test('boot DDL creates the append-only table and the per-target index', () => {
         assert.ok(bootDdl.includes(col), col);
     }
     assert.match(bootDdl, /CREATE INDEX IF NOT EXISTS idx_ai_act_assess_target ON compliance_ai_act_assessments\(organization_id, target_kind, target_id, created_at DESC\)/);
-    assert.ok(!/UPDATE|DELETE/.test(bootDdl), 'append-only: no mutation of history at boot');
+    // The schema ledger (schema_migrations) records the boot; the assessments
+    // themselves are never updated or deleted.
+    assert.ok(!/UPDATE\s+compliance_ai_act_assessments|DELETE\s+FROM\s+compliance_ai_act_assessments/i.test(bootDdl), 'append-only: no mutation of history at boot');
 });
 
 test('record: inserts org-scoped with jsonb signals/answers, expiry defaults to +12 months', async () => {

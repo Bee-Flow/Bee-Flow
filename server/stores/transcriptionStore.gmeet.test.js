@@ -34,6 +34,8 @@ const db = require('../testUtils/routeHarness').recordDb((sql, params) => {
     // Schema work, including the boot-time clean-up of dangling project ids, is not a request.
     if (/^\s*(CREATE|ALTER)/i.test(sql) || /project_id NOT IN \(SELECT id FROM projects\)/.test(sql)) { execCalls.push(sql); return undefined; }
     if (/^\s*SELECT/i.test(sql)) { getOneCalls.push({ sql, params }); return { rows: getOneResult ? [getOneResult] : [] }; }
+    // The schema ledger records the store's first init; only the store's own writes count here.
+    if (/schema_migrations/.test(sql)) return { rows: [], rowCount: 0 };
     if (/^\s*(INSERT|UPDATE|DELETE)/i.test(sql)) { runCalls.push({ sql, params }); return runResult; }
     return undefined;
 });
