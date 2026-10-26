@@ -20,6 +20,11 @@ const { generatePresentationStep } = require('./presentationStep');
 const { redactPdfStep } = require('./redactStep');
 const log = require('../../telemetry/log');
 
+// Required by a variable path, like core/versioning/stats.js does its bundle:
+// agent-hub's typecheck follows literal requires into this file's imports, and
+// a .mts module needs compiler options that check does not run with.
+const COPY_DOCUMENT_STEP = './copyDocumentStep.mts';
+
 // ── Public entry ────────────────────────────────────────────────────
 
 /**
@@ -63,6 +68,10 @@ async function executeDataStep(app, model, step, ctx = {}) {
             // A PDF in, the same PDF without the marks that identify a person
             // or the customer out: same store, same attachment descriptor.
             case 'redact_pdf': return await redactPdfStep(app, model, step, ctx);
+            // A Studio document copied into the owner's library (optionally
+            // wearing another deck's look), the start of a compare. Reads go
+            // through the app's document pool, which the run route puts in ctx.
+            case 'copy_document': return await require(COPY_DOCUMENT_STEP).copyDocumentStep(app, model, step, ctx);
             case 'file_intake': {
                 // Lives in its own module (it is a whole small pipeline); the
                 // helpers travel as an argument so the modules never require

@@ -76,8 +76,8 @@ test('formula scope roots include every documented root', () => {
 
 // ── Component catalog ───────────────────────────────────────────────────────
 
-test('catalog grew from 19 (v1) to 54 types, all earlier types retained', () => {
-    assert.equal(COMPONENT_TYPES.length, 54); // +input_dataset, +browser_view, +approval_list, +input_html (HTML mail editor), +pdf_compare
+test('catalog grew from 19 (v1) to 57 types, all earlier types retained', () => {
+    assert.equal(COMPONENT_TYPES.length, 57); // +input_dataset, +browser_view, +approval_list, +input_html (HTML mail editor), +pdf_compare, +document_viewer, +document_compare, +input_document
     const v1 = ['heading', 'text', 'button', 'image', 'divider', 'spacer', 'callout', 'stat', 'keyValue', 'table', 'list', 'card', 'form', 'input_text', 'input_textarea', 'input_number', 'input_select', 'input_checkbox', 'input_date'];
     for (const t of v1) assert.ok(COMPONENT_TYPES.includes(t), `dropped v1 type ${t}`);
     for (const t of ['data_grid', 'chart', 'pivot', 'input_file', 'input_richtext', 'input_html', 'input_datetime', 'input_relation', 'input_person', 'input_multiselect', 'tabs', 'tab', 'modal', 'repeater']) {
@@ -98,6 +98,8 @@ test('catalog grew from 19 (v1) to 54 types, all earlier types retained', () => 
     assert.ok(COMPONENT_TYPES.includes('file_preview'), 'missing content type file_preview');
     // pdf_compare: two PDFs (original + redacted copy) with the changed regions marked.
     assert.ok(COMPONENT_TYPES.includes('pdf_compare'), 'missing content type pdf_compare');
+    // Studio documents in an app: one read-only, a picker, and what changed between two.
+    for (const t of ['document_viewer', 'document_compare', 'input_document']) assert.ok(COMPONENT_TYPES.includes(t), `missing document type ${t}`);
     // v3: a workflow's stages, attachments as cards, and the state of the
     // connector feeding the app — the three things every mature app drew by
     // hand out of a list, a grid and a hope.
@@ -173,7 +175,9 @@ test('step kinds are partitioned into client-only and data-mutating', () => {
     // request_approval sits with them: it creates a durable approval record
     // (a data write with a notification side effect), acts-as-owner like
     // every record write — server by definition.
-    assert.deepEqual(DATA_MUTATING_STEP_KINDS, ['run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse']);
+    // copy_document writes a new document into the OWNER's library, read
+    // through the app's document pool: server by definition.
+    assert.deepEqual(DATA_MUTATING_STEP_KINDS, ['run_automation', 'create_record', 'update_record', 'delete_record', 'request_approval', 'ai_extract', 'ai_generate', 'kb_query', 'send_email', 'generate_file', 'fill_document', 'generate_presentation', 'redact_pdf', 'file_intake', 'dataset_query', 'ai_browse', 'copy_document']);
     // …and none of the new file/dataset/browse steps is a bare v1 ACTION kind —
     // they are sequence steps only, which is what keeps the v1 action editors untouched.
     assert.ok(!ACTION_KINDS.includes('generate_file'));
