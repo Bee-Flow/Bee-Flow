@@ -8,15 +8,10 @@ const { dynamicUpdate, parseJSON } = require('./shared');
 const log = require('../../telemetry/log');
 const { eraseSuggestionTraces, stagesRunBy, assertNotStageRunAs, eraseCmsUploadTickets, deleteUser } = require('./usersDelete');
 const { sanitizeUserNames, isNewCredential, createUser, SeatCapExceededError, createUserWithSeatCheck } = require('./usersCreate');
-const { setSeatSync } = require('./seatSyncPort');
+const { syncSeatQuantity } = require('./seatSyncPort');
 const { bestEffort } = require('../../utils/bestEffort');
 
-// Stripe seat sync for usersCreate.js / usersDelete.js (they must not require the
-// billing services: see seatSyncPort.js). Required lazily, as before.
-setSeatSync(async (orgId) => {
-    const { syncSeatQuantityForOrg } = require('../../services/stripeService');
-    await syncSeatQuantityForOrg(orgId);
-});
+// Stripe seat sync goes through seatSyncPort.js: services/stripeService.js installs it.
 
 // ── Users ─────────────────────────────
 async function getAllUsers() {
@@ -308,8 +303,7 @@ async function updateUser(userId, updates) {
             if (wasActive !== nowActive) {
                 Promise.resolve().then(async () => {
                     try {
-                        const { syncSeatQuantityForOrg } = require('../../services/stripeService');
-                        await syncSeatQuantityForOrg(existing.organizationId);
+                        await syncSeatQuantity(existing.organizationId);
                     } catch (err) { bestEffort('stores/user/users:updateUser', err); /* best-effort */ }
                 });
             }
