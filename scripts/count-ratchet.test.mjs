@@ -205,6 +205,26 @@ test('module-mock also counts a test that mocks through a testUtils helper, and 
     assert.strictEqual(budgetOf(dir, 'module-mock'), 5);
 });
 
+test('module-mock counts a test file that swaps a module through vitest or jest, once, and nothing else', () => {
+    const dir = sandbox({
+        files: {
+            'a.test.tsx': "vi.mock('../api/client', () => ({ apiClient: {} }));\nvi.mock('../utils/helpers');\n",
+            'b.test.ts': "beforeEach(() => { vi.doMock('./x', () => ({})); });\n",
+            'c.test.tsx': "jest.mock('expo-router', () => ({}));\n",
+            'd.test.ts': "jest.doMock('@/core/api/client', () => ({}));\n",
+            // A typed view of a mocked value, a spy, a fake function, and the
+            // words in a comment or a string are not a module swap.
+            'clean1.test.ts': "const m = vi.mocked(fn);\nvi.spyOn(api, 'get');\nconst f = vi.fn();\njest.fn();\n",
+            'clean2.test.tsx': "// no vi.mock( here\nconst s = 'jest.mock(x)';\n",
+            // Source that helps tests build a mock is not itself a test.
+            'test/mocks.ts': "vi.mock('../i18n');\n",
+        },
+    });
+    assert.strictEqual(run(dir, 'module-mock').code, 0);
+    assert.strictEqual(budgetOf(dir, 'module-mock'), 4);
+    assert.match(run(dir, 'module-mock', ['--list']).stdout, /1\s+src\/a\.test\.tsx/);
+});
+
 test('module-mock lists every export of a testUtils helper that writes require.cache or hooks the resolver', () => {
     const utils = path.join(HERE, '..', 'server', 'testUtils');
     const script = fs.readFileSync(SCRIPT, 'utf8');

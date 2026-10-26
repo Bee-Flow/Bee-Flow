@@ -32,7 +32,12 @@
  *                     installResolveStub, preloadStubs, ...). Moving a test from the
  *                     raw patch to a helper does not lower the count; only
  *                     injecting through the module's init()/factory seam does
- *                     (phase 2, point 6).
+ *                     (phase 2, point 6). In agent-hub and mobile the module
+ *                     system is the test runner's: a test file calling
+ *                     `vi.mock(`, `vi.doMock(`, `jest.mock(` or `jest.doMock(`
+ *                     counts the same way (`vi.mocked(` is a type helper, not a
+ *                     mock). The target there is a prop, a context provider or
+ *                     a msw handler instead of swapping the module.
  *   authfetch-outside-api  non-test files outside src/api/ that call
  *                     authFetch themselves (utils/helpers.js, where it is
  *                     defined, not counted). The data layer is src/api/:
@@ -215,7 +220,9 @@ const MODULE_MOCK_HELPERS = [
     'installRunnerIdentityStubs', 'installCrudRouteStubs', 'createBuilderStream',
 ];
 const MODULE_MOCK_PATTERN = new RegExp(
-    `require\\.cache|Module\\._load|_resolveFilename|(?<![\\w$.])(?:${MODULE_MOCK_HELPERS.join('|')})\\s*\\(`,
+    `require\\.cache|Module\\._load|_resolveFilename|(?<![\\w$.])(?:${MODULE_MOCK_HELPERS.join('|')})\\s*\\(`
+    // The test runners' module registry (vitest in agent-hub, jest in mobile).
+    + '|(?<![\\w$.])(?:vi|jest)\\s*\\.\\s*(?:mock|doMock)\\s*\\(',
 );
 
 /** Physical lines, as `wc -l` counts them — the unit the plan measured in. */
@@ -550,7 +557,7 @@ const METRICS = {
         // On the code only: a comment that explains why a test does NOT use require.cache is not a mock.
         measure: (text) => (MODULE_MOCK_PATTERN.test(blankNonCode(text)) ? 1 : 0),
         what: 'test files mocking through the module system',
-        advice: 'inject the dependency through the module\'s init()/factory seam instead',
+        advice: 'inject the dependency through the module\'s init()/factory seam (server), or a prop, context provider or msw handler (agent-hub, mobile), instead',
     },
     'authfetch-effect': {
         include: (rel) => !TEST_FILE.test(rel),
