@@ -128,7 +128,7 @@ async function executeMapsTool(toolName, args) {
             };
         }
 
-        const route = data.routes[0];
+        const route = data.routes?.[0];
         const leg = route.legs[0];
 
         // Extract step-by-step directions (strip HTML tags)
@@ -171,7 +171,7 @@ async function executeMapsTool(toolName, args) {
         const { query } = args;
         if (!query) return { error: 'query is required' };
 
-        const radius = Math.min(Math.max(parseInt(args.radius) || 5000, 100), 50000);
+        const radius = Math.min(Math.max(parseInt(String(args.radius)) || 5000, 100), 50000);
 
         log.info(`[Maps] Places search: "${query}"`);
 

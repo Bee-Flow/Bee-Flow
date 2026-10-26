@@ -125,10 +125,17 @@ PROFILES="core guard" ./selfhost.sh
 
 **3. Migrations run at server start.** The server brings its schema up to date every time it
 starts. Each step is recorded in a `schema_migrations` table once it succeeds, so a later start
-skips it; the steps are idempotent anyway, and a step whose file changed runs again. The first
-start after upgrading to a build that has the ledger runs the whole ladder once more and records
-it. You don't have to do anything for a normal upgrade, but you should verify (next section)
-rather than assume.
+skips it; the steps are idempotent anyway, and a step whose file changed runs again. The tables
+of every feature are recorded there too, one statement at a time: a statement that is new in the
+release runs on your database, and one that only creates a missing table, index or column is not
+sent again once it ran. Statements that change something in place (a default, a type, a check, a
+function) run on every start, so nothing an older version left behind survives. The first start after
+upgrading to a build that has the ledger runs everything once more and records it. You don't have
+to do anything for a normal upgrade, but you should verify (next section) rather than assume.
+
+If a table, column or index was changed by hand and you want the server to apply its full schema
+again, run `docker exec beeflow-server node migrateDb.js --force` (or start once with
+`BEEFLOW_DDL_LEDGER=off`). Both are safe: every step is idempotent.
 
 ## Verify the upgrade
 

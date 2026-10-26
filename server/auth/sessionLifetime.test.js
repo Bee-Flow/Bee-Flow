@@ -54,6 +54,7 @@ test('a mistyped value is reported, not swallowed', () => {
 
     // …but an absent setting is not a mistake and must stay quiet, or the
     // warning becomes noise every installation learns to ignore.
+    /** @type {string[]} */
     const quietSaid = [];
     sessionMaxAgeMs({}, (m) => quietSaid.push(m));
     assert.deepStrictEqual(quietSaid, []);

@@ -1,22 +1,18 @@
 // @typecheck strict
 /**
  * Agent Schema Init - Shared PostgreSQL table creation for all agent sub-modules
- * Uses a promise singleton to prevent concurrent CREATE TABLE races.
+ * Memoised through makeStoreInit, which also prevents concurrent CREATE TABLE races.
  */
 
 const base = require('./initSchema.base');
 const agents = require('./initSchema.agents');
-
-/** @type {Promise<void> | null} */
-let initPromise = null;
+const { makeStoreInit } = require('../lib/storeInit');
 
 const { AGENT_CATEGORY_NAME_INDEX_SQL } = agents;
 
-async function initDB() {
-    if (initPromise) return initPromise;
-    initPromise = _doInit();
-    return initPromise;
-}
+// The shared store memo (stores/lib/storeInit.js): one run however many
+// callers, a retry after a failure, and the schema ledger.
+const initDB = makeStoreInit('AgentSchema', _doInit);
 
 async function _doInit() {
     await base.createCoreTables();

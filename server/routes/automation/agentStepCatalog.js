@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * What an agent, and a skill, bring to ONE AI step: the data behind the step
  * editor's "Who does the thinking" block (Studio → Automations, handoff 5,
@@ -48,6 +48,7 @@ function integrationOfTool(name, def, resolveIntegration) {
         const id = def._custom.integrationId || def._custom.id;
         return { integration: `custom:${id}`, label: def._custom.name || 'Custom integration' };
     }
+    /** @type {{ integration?: string; label?: string; } | null} */
     let r = null;
     try { r = typeof resolveIntegration === 'function' ? resolveIntegration(name) : null; } catch (_) { r = null; }
     if (r && r.integration) return { integration: r.integration, label: r.label || r.integration };
@@ -174,7 +175,7 @@ async function agentSkills(skillIds, ctx, deps) {
     if (!ctx.orgId) return [];
     const rows = await deps.skillStore.getSkillsByIds(ids, ctx.orgId, ctx.userId);
     const byId = new Map((Array.isArray(rows) ? rows : []).filter((r) => r && r.id).map((r) => [r.id, r]));
-    return ids.filter((id) => byId.has(id)).map((id) => ({ id, name: byId.get(id).name || id, fromAgent: true }));
+    return ids.filter((id) => byId.has(id)).map((id) => ({ id, name: byId.get(id)?.name || id, fromAgent: true }));
 }
 
 /**
@@ -196,11 +197,13 @@ async function describeAgentForStep({ binding, gate, withheld, ctx, deps }) {
     try { knowledgeBases = await visibleKnowledgeBases(config.knowledge_base_ids, ctx, deps); } catch (e) {
         log.warn('[automation/catalog] agent knowledge bases unavailable:', e && e.message);
     }
+    /** @type {{ id: string; name: string; fromAgent: boolean; }[] | null} */
     let skills = null;
     try { skills = await agentSkills(config.attachedSkillIds, ctx, deps); } catch (e) {
         log.warn('[automation/catalog] agent skills unavailable:', e && e.message);
     }
-    const allowed = ((gate && gate.tools) || []).map((t) => t && t.function && t.function.name).filter(Boolean);
+    const allowed = ((gate && gate.tools) || []).flatMap((t) => (t && t.function && t.function.name ? [t.function.name] : []));
+
     return {
         version: agentVersion(agent),
         scope: agentScope(agent),

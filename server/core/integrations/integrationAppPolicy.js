@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -32,6 +32,9 @@ const ORG_EXEMPT_APPS = ['workspace', 'regex-gen', 'kb-ingest', 'memory', 'autom
 // text; ncCatalogDrift.test.js is what now fails the build if it drifts again.
 const AUTO_ENABLED_APPS = ['agent-search', 'browser-fetch', 'workspace', 'image-gen', 'music-gen', 'video-gen', 'elevenlabs', 'google-maps', 'linkedin', 'github', 'google-contacts', 'google-keep', 'outlook', 'outlook-readonly', 'ms-calendar', 'onedrive', 'ms-contacts', 'google-groups', 'n8n', 'nextcloud', 'nextcloud-calendar', 'nextcloud-contacts', 'nextcloud-deck', 'nextcloud-mail', 'nextcloud-notifications', 'nextcloud-talk', 'nextcloud-tasks', 'nextcloud-notes', 'nextcloud-activity', 'nextcloud-tables', 'nextcloud-forms', 'nextcloud-teams', 'nextcloud-status', 'webpages', 'memory', 'automation-evolution'];
 
+/**
+ * @param {{ userHasBetaFeature: typeof import('../entitlements/betaFeatures').userHasBetaFeature, lazy: { webpageStore: () => typeof import('../../stores/webpageStore') } }} deps
+ */
 function createWebpageToolsAllowed({ userHasBetaFeature, lazy }) {
     /**
      * May this user receive the webpage automation tools (webpages_*, webpage_db_*)?

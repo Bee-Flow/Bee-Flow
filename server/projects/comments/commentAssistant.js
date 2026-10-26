@@ -234,7 +234,7 @@ function makeCommentAssistant(deps = {}) {
     const logUsage = deps.logUsage || ((/** @type {Parameters<typeof import('../../stores/usageStore').logUsage>[0]} */ entry) => require('../../stores/usageStore').logUsage(entry));
     const recordReply = deps.recordReply
         || ((/** @type {Parameters<typeof import('../../stores/projectAiParticipationStore').recordDecision>[0]} */ decision) => require('../../stores/projectAiParticipationStore').recordDecision(decision));
-    const timeoutMs = Number.isFinite(deps.timeoutMs) && deps.timeoutMs > 0 ? deps.timeoutMs : DEFAULT_TIMEOUT_MS;
+    const timeoutMs = typeof deps.timeoutMs === 'number' && Number.isFinite(deps.timeoutMs) && deps.timeoutMs > 0 ? deps.timeoutMs : DEFAULT_TIMEOUT_MS;
     const newId = deps.newId || (() => crypto.randomUUID());
 
     /**

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * automationStore — automation evolution proposals (automation_evolutions) and
  * the run-outcome summaries an evolution is proposed from and judged by.
@@ -137,7 +137,7 @@ async function runOutcomeSummary(automationId, { since = null, minVersion = null
     const params = [automationId];
     let clause = `r.automation_id = $1 AND r.mode = 'live'`;
     if (since) { params.push(since); clause += ` AND r.started_at >= $${params.length}`; }
-    if (Number.isInteger(minVersion)) { params.push(minVersion); clause += ` AND r.version >= $${params.length}`; }
+    if (typeof minVersion === 'number' && Number.isInteger(minVersion)) { params.push(minVersion); clause += ` AND r.version >= $${params.length}`; }
     const rows = await getAll(
         `SELECT r.status, r.error_class, r.root_step_id, r.handled_error_count, r.duration_ms
            FROM automation_runs r

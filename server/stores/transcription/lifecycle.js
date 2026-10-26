@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * A note's lifecycle outside its content: the reaper for stuck runs, the
  * publish toggle, and the delete with its audio cleanup (local file and the
@@ -46,6 +46,10 @@ async function timeoutStuckTranscriptions({ stuckMinutes = 180 } = {}) {
  *   all: the UI reported "shared with the organisation" and no colleague could
  *   ever see it. Notes get a NULL org whenever they were made before the user
  *   joined an org, or by a path that had no org context.
+ * @param {string} id
+ * @param {string} ownerId
+ * @param {boolean | null | undefined} isPublished
+ * @param {string[]} sharedGroups
  */
 async function setPublished(id, ownerId, isPublished, sharedGroups, orgId = null) {
     await initDB();
@@ -64,6 +68,10 @@ async function setPublished(id, ownerId, isPublished, sharedGroups, orgId = null
     return rowCount > 0;
 }
 
+/**
+ * @param {string} id
+ * @param {string} userId
+ */
 async function deleteTranscription(id, userId) {
     await initDB();
     const { rowCount, rows } = await run(

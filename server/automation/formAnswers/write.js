@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * FORM ANSWERS — a submission becomes a row.
  *

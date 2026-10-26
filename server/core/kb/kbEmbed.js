@@ -1,7 +1,7 @@
 const crypto = require('crypto');
-const configStore = require('../../stores/configStore');
 const { getServiceHeaders } = require('../serviceAuth');
 const log = require('../../telemetry/log');
+const { getAzureIngestParams, isLocalIngest } = require('./ingestMode');
 
 const SEARCH_SERVICE_URL = process.env.SEARCH_SERVICE_URL || 'https://services.beeflow.nl';
 
@@ -43,27 +43,9 @@ function simhash64(text) {
     return signed;
 }
 
-/**
- * Read Azure embedding credentials from configStore.
- * Returns { use_azure, azure_endpoint?, azure_key?, azure_model? }
- */
-async function getAzureIngestParams() {
-    const useAzure = !!(await configStore.getConfig('use_azure_doc_processing'));
-    if (!useAzure) return { use_azure: false };
-    return {
-        use_azure: true,
-        azure_endpoint: await configStore.getConfig('azure_openai_embedding_endpoint') || '',
-        azure_key: await configStore.getSecret('azure_openai_embedding_key') || '',
-        azure_model: await configStore.getConfig('azure_openai_embedding_model') || 'text-embedding-3-small',
-    };
-}
-
 function byteLength(content) {
     try { return Buffer.byteLength(String(content), 'utf8'); } catch (_) { return null; }
 }
-
-/** Local ingestion embeds with the configured model; the search service uses its own. */
-const isLocalIngest = (azureParams, kbProvider) => !!azureParams.use_azure || kbProvider === 'local';
 
 /**
  * Chunk + embed `content` for an existing documents row. Local dispatcher or

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Agent Tools - Manage which components an agent can use + param configs
  */
@@ -10,6 +10,8 @@ const log = require('../../telemetry/log');
 
 /**
  * @param {string} agentId
+ * @param {string} componentId
+ * @param {object | null | undefined} params
  */
 async function addAgentTool(agentId, componentId, params = null) {
     await initDB();
@@ -18,23 +20,23 @@ async function addAgentTool(agentId, componentId, params = null) {
     await run('INSERT INTO agent_tools (id, agent_id, component_id, params_json) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING', [id, agentId, componentId, params ? JSON.stringify(params) : null]);
 }
 
+/**
+ * @param {string} agentId
+ * @param {string} componentId
+ */
 async function removeAgentTool(agentId, componentId) {
     await initDB();
     await run('DELETE FROM agent_tools WHERE agent_id = $1 AND component_id = $2', [agentId, componentId]);
 }
 
-/**
- * @param {string} agentId
- */
+/** @param {string} agentId */
 async function getAgentTools(agentId) {
     await initDB();
     const rows = await getAll('SELECT component_id, params_json FROM agent_tools WHERE agent_id = $1', [agentId]);
     return rows.map(row => row.component_id);
 }
 
-/**
- * @param {string} agentId
- */
+/** @param {string} agentId */
 async function getAgentToolsWithParams(agentId) {
     await initDB();
     const rows = await getAll('SELECT component_id, params_json FROM agent_tools WHERE agent_id = $1', [agentId]);
@@ -49,8 +51,10 @@ async function getAgentToolsWithParams(agentId) {
 // (empty array when an agent has no tools), so callers can do `map.get(id)`
 // without null checks. Single query via `= ANY($1)` instead of one-per-agent.
 
+/** @param {string[]} agentIds */
 async function getAgentToolsBatch(agentIds) {
     await initDB();
+    /** @type {Map<string, string[]>} */
     const map = new Map();
     if (!Array.isArray(agentIds) || agentIds.length === 0) return map;
     for (const id of agentIds) map.set(id, []);
@@ -62,8 +66,10 @@ async function getAgentToolsBatch(agentIds) {
     return map;
 }
 
+/** @param {string[]} agentIds */
 async function getAgentToolsWithParamsBatch(agentIds) {
     await initDB();
+    /** @type {Map<string, ToolEntry[]>} */
     const map = new Map();
     if (!Array.isArray(agentIds) || agentIds.length === 0) return map;
     for (const id of agentIds) map.set(id, []);
@@ -93,13 +99,15 @@ async function assertToolsWriteAllowed(agentId, nextOf, managedWrite) {
     const projectId = row && row.project_id;
     if (!projectId || !(await managedParts.managedInfo(projectId))) return;
     const current = await getAgentToolsWithParams(agentId);
-    const asMap = (list) => Object.fromEntries((list || []).map((t) => [t.componentId, t.params || null]));
+    const asMap = (/** @type {Array<{ componentId: string, params?: object | null }> | null | undefined} */ list) => Object.fromEntries((list || []).map((t) => [t.componentId, t.params || null]));
     if (managedParts.changedKeysOf({ tools: asMap(current) }, { tools: asMap(nextOf(current)) }).length === 0) return;
     await managedParts.assertManagedWrite({ kind: 'agent', projectId, changedKeys: ['tools'], managedWrite });
 }
 
 /**
  * @param {string} agentId
+ * @param {string | null | undefined} componentId
+ * @param {object | null | undefined} params
  */
 async function updateAgentToolParams(agentId, componentId, params, { managedWrite = null } = {}) {
     await initDB();
@@ -110,6 +118,8 @@ async function updateAgentToolParams(agentId, componentId, params, { managedWrit
 
 /**
  * @param {string} agentId
+ * @param {string[]} componentIds
+ * @param {Record<string, object | null | undefined>} [toolParams]
  */
 async function setAgentTools(agentId, componentIds, toolParams = {}, { managedWrite = null } = {}) {
     await initDB();
@@ -129,3 +139,5 @@ module.exports = {
 };
 
 /** @typedef {{ componentId: string, params?: object | null }} ToolWithParams */
+
+/** @typedef {{ componentId: string, params: object | null }} ToolEntry */

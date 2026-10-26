@@ -1,5 +1,5 @@
 /** @typedef {import('./messageCrypto').CryptoContext} CryptoContext */
-// @typecheck
+// @typecheck strict
 /**
  * Conversation title encryption.
  *
@@ -72,9 +72,11 @@ function sealTitle(title, conversationId, type, ctx) {
  * not take down the other forty, and the caller substitutes a placeholder. The
  * loud-failure rule exists to stop a silent empty read from being written BACK
  * over good data — and nothing writes a title as a side effect of listing it.
+ * @param {string | null | undefined} stored
  * @param {string} conversationId
  * @param {string} type
  * @param {CryptoContext} ctx
+ * @returns {string | null | undefined}
  */
 function openTitle(stored, conversationId, type, ctx) {
     if (!isEnvelope(stored)) return stored;
@@ -92,8 +94,11 @@ function openTitle(stored, conversationId, type, ctx) {
 /**
  * Decrypt the `title` on a set of rows in place-ish (returns new objects).
  * `id` is taken from each row, so this works for both conversation tables.
+ * @template {{ id: string, title?: string | null }} R
+ * @param {R[]} rows
  * @param {string} type
  * @param {CryptoContext} ctx
+ * @returns {R[]}
  */
 function openTitles(rows, type, ctx) {
     if (!Array.isArray(rows) || !rows.length) return rows;

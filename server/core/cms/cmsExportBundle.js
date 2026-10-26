@@ -1,5 +1,5 @@
 /** @typedef {import('stream').Readable} Readable */
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * CMS export bundle — the .zip form of a site export.
  *
@@ -266,7 +266,7 @@ async function restoreAssets(assets, { overwrite = false } = {}) {
                 metadata = { sanitized: '1' };
             }
 
-            await storageStore.uploadFile(asset.key, body, contentType, metadata);
+            await storageStore.uploadFile(asset.key, body, contentType, metadata ?? undefined);
             scheduleVariants({ key: asset.key, source: body, contentType, storage: storageStore })
                 .catch((e) => log.warn(`[CmsBundle] variants of ${asset.key} not scheduled: ${e.message}`));
             written++;

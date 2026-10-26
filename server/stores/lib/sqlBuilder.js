@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * stores/lib/sqlBuilder.js (M6) — buildUpdate: the generalized dynamic UPDATE
  * builder behind userStore.dynamicUpdate and ~30 hand-rolled setClause blocks.
@@ -13,21 +13,22 @@
 /**
  * Build a parameterized UPDATE.
  *
- * @param {Object} p
+ * @param {object} p
  * @param {string} p.table                  Table name (a literal from the call site).
- * @param {Object} p.updates                jsKey → value; only keys present in columnMap are used.
- * @param {Object} p.columnMap              jsKey → 'db_col' | { col, cast?:'jsonb', transform?:(v)=>v }.
- * @param {Array}  [p.where]                [{ col, value }] — AND-joined; cols are call-site literals.
+ * @param {Record<string, unknown>} [p.updates]  jsKey → value; only keys present in columnMap are used.
+ * @param {Record<string, ColumnSpec>} [p.columnMap]  jsKey → 'db_col' | { col, cast?:'jsonb', transform?:(v)=>v }.
+ * @param {Array<{ col: string, value: unknown }>} [p.where]  AND-joined; cols are call-site literals.
  * @param {Array<string>} [p.extraSet]      verbatim SET fragments (e.g. 'updated_at = NOW()', 'version = version + 1').
  *                                          Only appended when ≥1 mapped column changed.
  * @param {boolean} [p.quoteCols]           double-quote SET/WHERE column identifiers (userStore family).
- * @param {string}  [p.returning]           RETURNING clause body (e.g. '*').
+ * @param {string | null} [p.returning]     RETURNING clause body (e.g. '*').
  * @param {number}  [p.startIdx]            first placeholder index (default 1).
- * @returns {{sql: string, params: Array}|null}  null when no mapped column changed.
+ * @returns {{ sql: string, params: unknown[] } | null}  null when no mapped column changed.
  */
 function buildUpdate({ table, updates = {}, columnMap = {}, where = [], extraSet = [], quoteCols = false, returning = null, startIdx = 1 }) {
     /** @type {string[]} */
     const setParts = [];
+    /** @type {unknown[]} */
     const params = [];
     let idx = startIdx;
 
@@ -65,3 +66,5 @@ function buildUpdate({ table, updates = {}, columnMap = {}, where = [], extraSet
 }
 
 module.exports = { buildUpdate };
+
+/** @typedef {string | { col: string, cast?: string, transform?: ((value: unknown) => unknown) | null }} ColumnSpec */

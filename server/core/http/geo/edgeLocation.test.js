@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * edgeLocation — CDN edge headers, believed only on the network's own ASN.
  *

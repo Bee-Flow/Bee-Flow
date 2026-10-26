@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Tests for the Nextcloud SSRF target policy.
  *
@@ -15,7 +15,7 @@ const assert = require('node:assert');
 
 const { assertAllowedNextcloudHost, isAllowedNextcloudHost, isMetadataHost } = require('./nextcloudTarget');
 
-function withPrivateHostsAllowed(fn) {
+function withPrivateHostsAllowed(/** @type {() => unknown} */ fn) {
     const prev = process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS;
     process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS = '1';
     try { fn(); } finally {

@@ -59,7 +59,7 @@ async function processAttachments(attachments = [], lastMsg, userId = null, opts
         attachmentAskFlow: () => require('../dlp/attachmentAskFlow'),
     });
     const ctx = {
-        modelSupportsVision: modelSupportsVisionById(opts.modelId),
+        modelSupportsVision: modelSupportsVisionById(opts.modelId ?? ''),
         persistedByLive: opts.persistedByLive || null,
         maybeScan,
         userId,

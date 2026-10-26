@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The feature-demo block's poster and caption (issue #251): seeded defaults and
  * the validator warnings an AI builder turn gets back.

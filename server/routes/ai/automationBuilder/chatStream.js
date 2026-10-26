@@ -94,9 +94,10 @@ const { MAX_ITERATIONS } = require('./turnStop');
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../../../auth/permissions');
 const { validate } = require('../../../core/http/validate');
+const { sessionUser } = require('../../../core/http/sessionUser');
 
 router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuery, body: TurnBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const {
         message,
         builderSessionId: clientSession,
@@ -235,8 +236,9 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
         // untouched. The wrap happens here, not at declaration, so the
         // pre-loop events (session, resume, model_selected) stay a plain write.
         if (narrationModelId) {
-            turn.narrator = createThoughtNarrator({ send: sendRaw, modelId: narrationModelId });
-            turn.send = turn.narrator.wrap(sendRaw);
+            const narrator = createThoughtNarrator({ send: sendRaw, modelId: narrationModelId });
+            turn.narrator = narrator;
+            turn.send = narrator.wrap(sendRaw);
         }
         turn.iter = await runBuildLoop(turn);
 

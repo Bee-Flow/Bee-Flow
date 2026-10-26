@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck
+// @typecheck strict
 /**
  * Dutch for keys that still read English in a Dutch workspace (2026-10).
  *
@@ -47,7 +47,7 @@ async function up() {
     const languageStore = require('../stores/languageStore');
     const { GUI_DEFAULTS } = require('../i18n/defaults/en');
     let changed = 0;
-    await languageStore.mutateGUITranslations('nl', (current) => {
+    await languageStore.mutateGUITranslations('nl', (/** @type {Record<string, string>} */ current) => {
         const result = applyNl(current, GUI_DEFAULTS);
         changed = result.changed;
         return result.merged;

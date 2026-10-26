@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 const express = require('express');
 require('../../stores/agentStore');
 const agentRuntime = require('../../core/agentRuntime');
@@ -64,7 +64,8 @@ router.get('/meta/models', requireAuth, validate({ query: NoQuery }), async (/**
 
     // Fetch models from all providers in parallel
     const results = await Promise.all(
-        providerData.providers.map(async (provider) => {
+        providerData.providers.map(async (/** @type {{ id: string, name: string, type: string, url: string, apiKey?: string }} */ provider) => {
+
             try {
                 /** @type {{ "Content-Type": string; Authorization?: string }} */
                 const headers = { 'Content-Type': 'application/json' };

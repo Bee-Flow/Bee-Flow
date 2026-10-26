@@ -2,8 +2,9 @@
  * Store-level tests — integration activity ledger.
  *
  * Pins the contracts the monitoring rework introduced:
- *  1. initDB is single-flight and probes before running DDL — the old version
- *     awaited ~25 DDL statements at the head of EVERY read and write.
+ *  1. initDB is single-flight — the old version awaited ~25 DDL statements at
+ *     the head of EVERY read and write; skipping them on a warm boot is the
+ *     schema ledger's job now (stores/lib/ddlLedger.js), not a probe's.
  *  2. buildFilters honors userId and excludeDryRun, and matches PII categories
  *     EXACTLY (the old ILIKE '%cat%' was a substring match).
  *  3. getRecentIntegrationActivity scopes by userId — this was the consumer
@@ -139,8 +140,11 @@ test('the ladder adds the location columns, nullable, without any new index', ()
     }
     assert.ok(!/location_state[^\n]*DEFAULT/.test(ladder), 'no default: adding it must not rewrite the table');
     assert.ok(!dbCalls.exec.some(s => /CREATE INDEX[^\n]*(location_state|asn|lat)/.test(s)), 'volume table: no new index');
-    // The warm-boot probe points at the newest column, so existing installs run this.
-    assert.match(dbCalls.getOne[0].sql, /column_name = 'peers'/);
+    // No warm-boot probe in front of the ladder any more (it skipped new DDL whose
+    // author forgot to move it): the schema ledger decides per statement. The
+    // only catalog read left is the location backfill's done-marker.
+    assert.ok(!dbCalls.getOne.some((c) => /column_name = 'peers'|idx_integ_org'/.test(c.sql)), 'the warm-boot probe is back');
+    assert.ok(dbCalls.getOne.some((c) => /col_description[\s\S]*location_state/.test(c.sql)), 'the backfill marker is read');
 });
 
 test('buildFilters: excludeDryRun, userId, and EXACT pii-category match', () => {

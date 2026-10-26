@@ -29,6 +29,7 @@ test('a redirect to another host is refused: the credential never goes there', a
 });
 
 test('a 302 turns a POST into a GET without a body, a 307 keeps both', async () => {
+    /** @type {Array<[string | undefined, unknown]>} */
     const seen = [];
     let n = 0;
     await fetchFollowingSameHost(async (url, init) => { seen.push([init.method, init.body]); return ++n === 1 ? res(302, '/b') : res(200); }, 'https://h.test/a', { method: 'POST', body: 'x' });

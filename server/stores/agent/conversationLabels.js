@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Conversation Labels - User-defined labels for organizing conversations
  */
@@ -8,11 +8,17 @@ const { run, getAll } = require('../../db');
 const { initDB } = require('./initSchema');
 const { buildUpdate } = require('../lib/sqlBuilder');
 
+/** @param {string} userId */
 async function listLabels(userId) {
     await initDB();
     return getAll('SELECT id, name, color, created_at FROM conversation_labels WHERE user_id = $1 ORDER BY created_at ASC', [userId]);
 }
 
+/**
+ * @param {string} userId
+ * @param {string} name
+ * @param {string} color
+ */
 async function createLabel(userId, name, color) {
     await initDB();
     const id = randomUUID();
@@ -22,6 +28,11 @@ async function createLabel(userId, name, color) {
 
 const LABEL_COLUMNS = { name: 'name', color: 'color' };
 
+/**
+ * @param {string} id
+ * @param {string} userId
+ * @param {Record<string, unknown>} updates
+ */
 async function updateLabel(id, userId, updates) {
     await initDB();
     const built = buildUpdate({
@@ -35,6 +46,10 @@ async function updateLabel(id, userId, updates) {
     return rowCount > 0;
 }
 
+/**
+ * @param {string} id
+ * @param {string} userId
+ */
 async function deleteLabel(id, userId) {
     await initDB();
     const { rowCount } = await run('DELETE FROM conversation_labels WHERE id = $1 AND user_id = $2', [id, userId]);

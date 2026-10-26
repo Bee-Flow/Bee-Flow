@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Apps API Routes - CRUD for App Marketplace.
  *
@@ -65,6 +65,7 @@ const UpdateAppBody = z.object({
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../auth/permissions');
+const { sessionUser } = require('../core/http/sessionUser');
 
 // Build the audience entity shape that `canSeePublished` expects, mapping
 // the apps schema (`created_by`) to the generic `owner_id` field.
@@ -80,7 +81,7 @@ function asAudienceEntity(app) {
 
 // GET /apps — list apps the current user is allowed to see
 router.get('/', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const orgIds = await resolveUserOrgIds(req);
     const userGroups = await resolveUserGroups(userId);
     const apps = await appStore.getPublishedAppsForUser(orgIds, userGroups, userId);
@@ -89,7 +90,7 @@ router.get('/', requireAuth, async (/** @type {import('express').Request} */ req
 
 // GET /apps/mine — list apps created by current user (drafts included)
 router.get('/mine', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-    const apps = await appStore.getAppsByUser(req.session.user.id);
+    const apps = await appStore.getAppsByUser(sessionUser(req).id);
     res.json(apps);
 });
 
@@ -99,7 +100,7 @@ router.get('/:id', requireAuth, async (/** @type {import('express').Request<{ id
     if (!app) {
         return res.status(404).json({ error: 'App not found' });
     }
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const orgIds = await resolveUserOrgIds(req);
     const userGroups = await resolveUserGroups(userId);
     if (!canSeePublished(asAudienceEntity(app), { userId, orgIds, userGroups })) {
@@ -111,8 +112,8 @@ router.get('/:id', requireAuth, async (/** @type {import('express').Request<{ id
 // POST /apps — create/publish a new app, scoped to the caller's org
 router.post('/', requireAuth, validate({ body: CreateAppBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { name, description, code, thumbnail, sharedGroups, isPublished } = req.body;
-    const userId = req.session.user.id;
-    const username = /** @type {string} */ (req.session.user.username) || userId;
+    const userId = sessionUser(req).id;
+    const username = /** @type {string} */ (sessionUser(req).username) || userId;
 
     // Auto-assign the user's first organization. Apps without an org are
     // only visible to super admins, so the marketplace would feel broken
@@ -142,7 +143,7 @@ router.post('/', requireAuth, validate({ body: CreateAppBody }), async (/** @typ
 router.put('/:id', requireAuth, validate({ body: UpdateAppBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const { name, description, code, thumbnail, isPublished, sharedGroups } = req.body;
     const appId = req.params.id;
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
 
     const existing = await appStore.getApp(appId);
     if (!existing) {
@@ -193,7 +194,7 @@ router.delete('/:id', requireAuth, async (/** @type {import('express').Request<{
     if (!existing) {
         return res.status(404).json({ error: 'App not found' });
     }
-    if (existing.created_by !== req.session.user.id) {
+    if (existing.created_by !== sessionUser(req).id) {
         return res.status(403).json({ error: 'Not authorized to delete this app' });
     }
 

@@ -178,6 +178,7 @@ function sanitizeMapping(mapping, ruledOutNames) {
  * @param {{lockedNames?: Object<string,string>,
  *          ruledOutNames?: Object<string,string[]>,
  *          expectedSpeakers?: number|null}} [opts]
+ * @param {string | null} [userOrgId]
  */
 async function identifySpeakerNames(segments, speakerIds, language, userName, userOrgId = null, participantNames = [], opts = {}) {
     const lockedNames = opts && opts.lockedNames && Object.keys(opts.lockedNames).length ? opts.lockedNames : null;

@@ -27,6 +27,8 @@ const {
     MAILBOX_TABLE_TEMPLATES,
 } = require('./mailboxTableTemplates');
 const { fallback } = require('../utils/bestEffort');
+// One wording for "no access", shared with the Outlook automation steps and trigger.
+const { sharedMailboxDeniedText } = require('../core/integrations/outlookMailbox.mts');
 
 const MAX_MAILBOX_ROWS = 200;
 // How many conversations one threaded run will expand in full. Each costs a
@@ -63,9 +65,7 @@ function classifyMailboxError(err, connector) {
 
     if (status === 403) {
         if (isShared) {
-            return mailboxError(403,
-                `No access to the shared mailbox ${connector.address}. Your Microsoft administrator must grant you Full Access, and the connection needs the Mail.Read.Shared permission — reconnect Microsoft in Settings → Connections.`,
-                'shared_mailbox_denied');
+            return mailboxError(403, sharedMailboxDeniedText(connector.address), 'shared_mailbox_denied');
         }
         return mailboxError(403, 'This mailbox refused the request.', 'mailbox_denied');
     }

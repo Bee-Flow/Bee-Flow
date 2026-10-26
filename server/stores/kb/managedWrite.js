@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * stores/kb/managedWrite.js — the Solution-stage write guard of a knowledge
  * base: refuse a change to a managed base without a deployment's capability,
@@ -48,8 +48,11 @@ function makeKbWriteGuard(managedParts) {
     /**
      * The update keys whose value would change the row: `updateKB` COALESCEs, so
      * a null leaves a column as it is, except `categoryId: null`, which clears.
+     * @param {Record<string, unknown> | null} row  the row as read under the lock
+     * @param {Record<string, unknown> | null | undefined} fields
      */
     function kbUpdateChanges(row, fields) {
+        /** @type {Record<string, unknown>} */
         const incoming = {};
         for (const [k, v] of Object.entries(fields || {})) {
             if (v === undefined) continue;

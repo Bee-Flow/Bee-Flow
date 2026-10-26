@@ -73,7 +73,7 @@ async function resolveOrgScope(req) {
 
 /**
  * Single source of truth: "may this user work this inbox?".
- * @param {{ organization_id?: string, created_by?: string, shared_groups?: string|string[] }} inbox - support_inboxes row (must include organization_id,
+ * @param {{ organization_id?: string, created_by?: string, shared_groups?: string|string[] } | null | undefined} inbox - support_inboxes row (must include organization_id,
  *   created_by, shared_groups)
  * @param {string} userId
  * @param {Set<string>|null|undefined} orgIds - null = super admin; a Set = the user's

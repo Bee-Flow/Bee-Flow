@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Invariant tests for the side-effect map.
  *

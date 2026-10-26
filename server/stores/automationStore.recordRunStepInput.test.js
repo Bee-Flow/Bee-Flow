@@ -21,26 +21,16 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-const statements = [];
-function mock(relPath, exports) {
-    const resolved = require.resolve(relPath);
-    require.cache[resolved] = { id: resolved, filename: resolved, loaded: true, exports };
-}
-mock('../db', {
-    run: async (sql, params) => { statements.push({ sql, params }); return { rowCount: 1, rows: [] }; },
-    getOne: async () => null,
-    getAll: async () => [],
-    exec: async () => {},
-    getClient: async () => ({}),
-    pool: { query: async () => ({ rows: [] }) },
-});
+// The real db.js over a recording pool; every write answers one row.
+const db = require('../testUtils/routeHarness').recordDb(() => ({ rows: [], rowCount: 1 }));
+const statements = db.calls;
 
 const store = require('./automationStore');
 
 const stepWrite = () => statements.find(s => /INSERT INTO automation_run_steps/.test(s.sql));
 
 test('the conflict update preserves an input the row already has', async () => {
-    statements.length = 0;
+    db.reset();
     await store.recordRunStep({
         runId: 'r1', stepId: 's1', stepType: 'ai_step', attempts: 1,
         status: 'running', startedAt: new Date().toISOString(),
@@ -57,7 +47,7 @@ test('the conflict update preserves an input the row already has', async () => {
 });
 
 test('a completing write still carries its own input', async () => {
-    statements.length = 0;
+    db.reset();
     await store.recordRunStep({
         runId: 'r1', stepId: 's1', stepType: 'ai_step', attempts: 1,
         status: 'success', startedAt: new Date().toISOString(), finishedAt: new Date().toISOString(),

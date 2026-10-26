@@ -65,7 +65,7 @@ async function getFullConfig() {
     return await configStore.getConfig('ai') || {};
 }
 
-// Get AI config (returns the default/active provider config for backward compatibility)
+/** Get AI config (the default/active provider config, for backward compatibility). @returns {Promise<import('./modelCache').AIConfig>} */
 async function getAIConfig() {
     try {
         const ai = await configStore.getConfig('ai') || {};

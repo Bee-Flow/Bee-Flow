@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * content_pii_signals — does a piece of project content hold personal data,
  * as far as the last background scan could tell? One row per subject.
@@ -50,9 +50,7 @@ const DDL = `
         ON content_pii_signals(organization_id, project_id);
 `;
 
-/**
- * @param {Record<string, any> | null | undefined} r
- */
+/** @param {Record<string, any> | null | undefined} r */
 function _toRow(r) {
     if (!r) return null;
     let categories = r.categories;
@@ -72,7 +70,7 @@ function _toRow(r) {
 }
 
 /**
- * @param {{ query: (sql: string, params?: any[]) => Promise<{rows: any[], rowCount?: number}> }} db
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{rows: any[], rowCount?: number | null}> }} db
  * @param {{ ready?: () => Promise<unknown> }} [opts]
  */
 function makeContentPiiSignalStore(db, { ready = async () => {} } = {}) {

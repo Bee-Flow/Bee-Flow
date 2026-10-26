@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // The bodies and queries of the run operations (routes/automation/webhooksAndRunOps.js),
 // split out of it. Every schema is `.strict()`.
 const { z, typeError } = require('../../utils/zod');
@@ -14,6 +14,8 @@ const { worded } = require('../../core/http/schemaParts');
  * A body that also accepts NO body at all. Express 5 leaves `req.body`
  * undefined when a POST carries none, and several of these are sent exactly
  * that way — an approve with no body has always meant "approve".
+ * @template {import('zod').ZodRawShape} S
+ * @param {S} shape
  */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 

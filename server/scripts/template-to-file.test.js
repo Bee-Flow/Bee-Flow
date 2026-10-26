@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * template-to-file — the bridge from a template MODULE to an importable file.
  *
@@ -24,7 +24,7 @@ const { loadFromModule } = require('./template-to-file');
 const { buildExport, sanitizeImport } = require('../appStudio/templatePortability');
 const { getTemplate } = require('../appStudio/templates');
 
-function writeModule(body) {
+function writeModule(/** @type {string} */ body) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tpl-'));
     const file = path.join(dir, `m${Math.random().toString(36).slice(2)}.js`);
     fs.writeFileSync(file, body, 'utf8');

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * ISO Obligation Store — the single due-date engine for the ISMS process
  * layer (ISO 27001 cl. 9.2/9.3, A.5.36, A.6.3, A.8.8 …).
@@ -137,7 +137,7 @@ async function createObligation(orgId, input, actorId = null) {
     if (!orgId) throw new Error('organization_id is required');
     if (!input?.title) throw new Error('title is required');
     if (!input?.due_at) throw new Error('due_at is required');
-    const kind = VALID_KINDS.has(input.kind) ? input.kind : 'custom';
+    const kind = typeof input.kind === 'string' && VALID_KINDS.has(input.kind) ? input.kind : 'custom';
     const { rows } = await run(`
         INSERT INTO iso_obligations
             (organization_id, kind, subject, title, owner_user_id, due_at,

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Local adapter — system messages are folded into a template-safe shape.
  *
@@ -18,7 +18,7 @@ const assert = require('node:assert');
 const LocalProvider = require('./local');
 const { foldLateSystemMessages, LATE_SYSTEM_FRAME } = LocalProvider;
 
-const roles = (ms) => ms.map(m => m.role).join(',');
+const roles = (/** @type {{ role: string }[]} */ ms) => ms.map(m => m.role).join(',');
 
 test('the common shape — one system message, first — passes through untouched', () => {
     const msgs = [{ role: 'system', content: 'S' }, { role: 'user', content: 'u' }, { role: 'assistant', content: 'a' }];

@@ -85,7 +85,7 @@ test('monthly refresh: nothing to do when the loaded editions are current', asyn
     const thisMonth = new Date().toISOString().slice(0, 7);
     geoDb.__setReadersForTests({ city: reader(CITY), asn: reader(ASN), date: thisMonth });
     let fetched = 0;
-    const updated = await geoDb._autoUpdate(async () => { fetched++; return { status: 404 }; });
+    const updated = await geoDb._autoUpdate(async () => { fetched++; return { status: 404, ok: false, arrayBuffer: async () => new ArrayBuffer(0) }; });
     assert.strictEqual(updated, false);
     assert.strictEqual(fetched, 0, 'no download when the month is already loaded');
 });
@@ -98,7 +98,7 @@ test('monthly refresh: a stale edition triggers a download into GEO_DB_DIR', asy
         const urls = [];
         // Nothing published (404 for both months): the refresh reports the gap
         // instead of pretending, and never touches the loaded readers.
-        await assert.rejects(geoDb._autoUpdate(async (url) => { urls.push(url); return { status: 404 }; }), /no DB-IP city edition/);
+        await assert.rejects(geoDb._autoUpdate(async (url) => { urls.push(url); return { status: 404, ok: false, arrayBuffer: async () => new ArrayBuffer(0) }; }), /no DB-IP city edition/);
         assert.ok(urls.length >= 1 && urls.every(u => u.startsWith('https://download.db-ip.com/free/dbip-city-lite-')));
         assert.strictEqual(geoDb.status().available, true);
     } finally {

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Counter floors — the tokenizer half of the tokenization vault.
  *

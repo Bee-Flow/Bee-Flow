@@ -199,6 +199,32 @@ if (scope === 'root' && trigger.kind === 'app_event'
 }
 
 /**
+ * An Outlook trigger's `filter.mailbox`: "me"/absent or a shared mailbox's
+ * address (the same rule as the Outlook steps, core/integrations/outlookMailbox.mts).
+ * Only "New email" can watch a shared mailbox: it is polled, and the other
+ * Microsoft events have no poller.
+ * @param {{ kind?: string, appEvent?: { provider?: string, event?: string, filter?: Record<string, unknown> | null } } | null | undefined} trigger
+ * @param {string} at - the trigger's path, e.g. "trigger" or "triggers[1]"
+ * @param {(f: any) => void} pushE
+ */
+function checkMailboxTrigger(trigger, at, pushE) {
+    if (trigger?.kind !== 'app_event' || trigger.appEvent?.provider !== 'msgraph') return;
+    const mailbox = trigger.appEvent?.filter?.mailbox;
+    if (mailbox === undefined || mailbox === null) return;
+    const { parseMailbox } = require('../../core/integrations/outlookMailbox.mts');
+    let shared = false;
+    try {
+        shared = parseMailbox(mailbox).shared;
+    } catch {
+        pushE({ code: 'trigger.mailbox_invalid', severity: 'error', path: `${at}.appEvent.filter.mailbox`, message: 'The trigger\'s mailbox is not an e-mail address.', hint: 'Leave it empty (or "me") for your own inbox, or enter the address of the shared mailbox.' });
+        return;
+    }
+    if (shared && trigger.appEvent?.event !== 'mail.new') {
+        pushE({ code: 'trigger.mailbox_unsupported_event', severity: 'error', path: `${at}.appEvent.filter.mailbox`, message: `"${trigger.appEvent?.event}" can only watch your own mailbox; a shared mailbox works with "New email".`, hint: 'Remove the mailbox, or use the "New email" event.' });
+    }
+}
+
+/**
  * The primary trigger: its id, its kind (fixed layer_input in a contract
  * scope), position, pinned sample data and deliverability.
  */
@@ -232,6 +258,7 @@ function checkPrimaryTrigger(ctx, deliverableEvents) {
     checkPinnedOutput(trigger, p('trigger'), { pushE, isTrigger: true });
 
     checkTriggerDeliverability(ctx, deliverableEvents);
+    checkMailboxTrigger(trigger, p('trigger'), pushE);
     // An app_event trigger with no provider/event can NEVER fire: the
     // subscription sync silently skips it, so the automation activated green and
     // then did nothing, with no diagnostic anywhere (C6). Completeness-listed:
@@ -243,4 +270,4 @@ function checkPrimaryTrigger(ctx, deliverableEvents) {
     }
 }
 
-module.exports = { checkPrimaryTrigger, checkScheduleTrigger };
+module.exports = { checkPrimaryTrigger, checkScheduleTrigger, checkMailboxTrigger };

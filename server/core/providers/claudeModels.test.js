@@ -77,13 +77,13 @@ test('no capability drifts from the adapter regexes the catalog replaced', () =>
     // covered vision only, and missed that legacy 3.x models had silently
     // become "reasoning-capable" and would be sent a `thinking` param they
     // reject.
-    const OLD_REASONING = (m) => (/^claude-haiku-4-5/.test(m)
+    const OLD_REASONING = (/** @type {string} */ m) => (/^claude-haiku-4-5/.test(m)
         ? false
         : /^claude-(opus|sonnet)-[45]/.test(m) || /^claude-(fable|mythos)/.test(m));
-    const OLD_CONTEXT_EDITING = (m) => /^claude-(opus|sonnet)-[45]/.test(m)
+    const OLD_CONTEXT_EDITING = (/** @type {string} */ m) => /^claude-(opus|sonnet)-[45]/.test(m)
         || /^claude-haiku-4-5/.test(m)
         || /^claude-(fable|mythos)/.test(m);
-    const OLD_VISION = (m) =>
+    const OLD_VISION = (/** @type {string} */ m) =>
         /claude-3|claude-opus-[45]|claude-sonnet-[45]|claude-haiku-4|claude-fable|claude-mythos/.test(m);
 
     const ids = [

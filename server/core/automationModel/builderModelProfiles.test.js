@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Unit tests for model-class banding used by the automation builder.
  *

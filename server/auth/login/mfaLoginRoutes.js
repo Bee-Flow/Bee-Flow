@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Login Routes — the second factor of a password login: TOTP / recovery-code
  * verification for a session held in mfaPending. Enrolment lives in

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * A component cannot name its own npm dependencies.
  *
@@ -27,7 +27,7 @@ const path = require('node:path');
 const { ALLOWED_DEPENDENCIES, disallowedDependencies, installDependencies } = require('./componentManager');
 
 /** A throwaway component directory with the given package.json. */
-function fixture(pkg) {
+function fixture(/** @type {Record<string, unknown> | null} */ pkg) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bf-component-'));
     if (pkg !== null) fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify(pkg, null, 2));
     return dir;

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 const { bestEffort } = require('../../utils/bestEffort');
 
 /**
@@ -11,6 +11,7 @@ const { bestEffort } = require('../../utils/bestEffort');
 /**
  * @param {string} agentId
  * @param {string} [action]
+ * @param {string | null | undefined} orgId
  */
 async function _notifySync(orgId, agentId, action = 'pending') {
     if (!orgId) return;

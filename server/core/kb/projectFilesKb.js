@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The knowledge base that holds a project's files, as RETRIEVAL sees it.
  *
@@ -40,7 +40,10 @@ const log = require('../../telemetry/log');
 /** `knowledge_bases.source_kind` of a project's files base. */
 const PROJECT_FILES_SOURCE_KIND = 'project_files';
 
-/** The files-base id a project records, or null. */
+/**
+ * The files-base id a project records, or null.
+ * @param {{ filesKbId?: unknown } | null | undefined} project
+ */
 function filesKbIdOf(project) {
     const id = project && project.filesKbId;
     return typeof id === 'string' && id ? id : null;
@@ -82,7 +85,7 @@ async function searchableProjectKbIds(project, { filterAttached, includeFiles = 
     if (!project) return [];
     const filesKbId = filesKbIdOf(project);
     const stored = Array.isArray(project.knowledgeBaseIds) ? project.knowledgeBaseIds : [];
-    const attached = stored.filter(id => typeof id === 'string' && id && id !== filesKbId);
+    const attached = stored.filter((/** @type {unknown} */ id) => typeof id === 'string' && id && id !== filesKbId);
 
     const kept = attached.length > 0 && typeof filterAttached === 'function'
         ? await filterAttached(attached)

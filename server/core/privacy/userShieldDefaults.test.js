@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * BFSF-289: the shield written at consumer signup.
  *

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * edgeLocation — which edge of a global network answered, from its headers.
  *
@@ -22,6 +22,7 @@
 
 'use strict';
 
+/** @type {Record<string, Array<string | number>>} IATA code → [city, country code, lat, lon] */
 const AIRPORTS = require('./iataAirports.json');
 
 const AMAZON = [16509, 14618];
@@ -54,7 +55,7 @@ const RULES = [
 ];
 
 /**
- * @param {string} value
+ * @param {string | null | undefined} value
  * @param {RegExp} re
  */
 function _m(value, re) {
@@ -68,7 +69,8 @@ function _m(value, re) {
  */
 function airport(code) {
     const e = code ? AIRPORTS[String(code).toUpperCase()] : null;
-    return e ? { city: e[0], country_code: e[1], lat: e[2], lon: e[3] } : null;
+    return e ? { city: String(e[0]), country_code: String(e[1]), lat: Number(e[2]), lon: Number(e[3]) } : null;
+
 }
 
 /**

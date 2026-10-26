@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Privacy Shield tokens on the DISPLAY read of a conversation (direct and
  * agent chats): the stored messages keep their `[person_1]` placeholders, and
@@ -19,7 +19,10 @@ const { bestEffort } = require('../../utils/bestEffort');
 /** @type {((conversationId: string) => Promise<Record<string, string>>) | null} */
 let tokenMapReader = null;
 
-/** core/dlp/dlpRunner.js hands over its decrypting reader. */
+/**
+ * core/dlp/dlpRunner.js hands over its decrypting reader.
+ * @param {((conversationId: string) => Promise<Record<string, string>>) | null | undefined} fn
+ */
 function setTokenMapReader(fn) {
     tokenMapReader = typeof fn === 'function' ? fn : null;
 }
@@ -28,6 +31,7 @@ function setTokenMapReader(fn) {
 // (`{ _bfenc, iv, tag, ct }`, the stored column of an org that encrypts its
 // token maps) or a stray key — would be replaced inside ordinary words
 // ("produ" + the ciphertext of `ct`), so it is dropped before restoring.
+/** @param {Record<string, unknown> | null | undefined} map */
 function _onlyTokens(map) {
     if (!map || typeof map !== 'object' || Array.isArray(map) || map._bfenc) return null;
     /** @type {Record<string, string>} */
@@ -43,6 +47,7 @@ function _onlyTokens(map) {
  * uses). Never throws; without a reader or a map the messages show their
  * placeholders, never ciphertext.
  * @param {{ id: string, pii_token_map?: unknown }} row
+ * @returns {Promise<Record<string, string> | null>}
  */
 async function _displayTokenMap(row) {
     if (!row || !row.pii_token_map || !tokenMapReader) return null;
@@ -61,12 +66,16 @@ async function _displayTokenMap(row) {
 // Lazy-require inside the function: same circular-dep reason as
 // piiDetection.js→aiAgent — capturing a destructure at module load
 // can grab a stale snapshot of the cycle's partial exports.
+/**
+ * @param {StoredMessage[]} messages
+ * @param {Record<string, unknown> | null | undefined} [convTokenMap]
+ */
 function _restoreTokensInMessages(messages, convTokenMap = null) {
     if (!Array.isArray(messages)) return messages;
     const restoreTokens = require('../../core/privacy/piiDetection/tokenRestore').restoreTokens;
     if (typeof restoreTokens !== 'function') return messages;
-    convTokenMap = _onlyTokens(convTokenMap);
-    const convMapHasEntries = !!convTokenMap && Object.keys(convTokenMap).length > 0;
+    const tokenMap = _onlyTokens(convTokenMap);
+    const convMapHasEntries = !!tokenMap && Object.keys(tokenMap).length > 0;
     return messages.map(m => {
         if (!m || typeof m.content !== 'string') return m;
         // User messages: use the per-message tokenMap (existing behaviour).
@@ -88,7 +97,7 @@ function _restoreTokensInMessages(messages, convTokenMap = null) {
         // a conversation reload.
         if (m.role === 'assistant' && convMapHasEntries) {
             try {
-                return { ...m, content: restoreTokens(m.content, convTokenMap) };
+                return { ...m, content: restoreTokens(m.content, tokenMap) };
             } catch (e) {
                 bestEffort('stores/agent/tokenDisplay:_restoreTokensInMessages#2', e); // [Conversations] assistant tokens not restored for display:
             }
@@ -98,3 +107,5 @@ function _restoreTokensInMessages(messages, convTokenMap = null) {
 }
 
 module.exports = { setTokenMapReader, _restoreTokensInMessages, _displayTokenMap, _onlyTokens };
+
+/** @typedef {import('./normalizeStoredMessages').StoredMessage} StoredMessage */

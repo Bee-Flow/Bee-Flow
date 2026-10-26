@@ -2,7 +2,8 @@
 // at /api/integrations/microsoft). The Settings tile reads its status here and
 // disconnects through here; connecting is the popup in lib/microsoftOAuthPopup.
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useContext } from 'react';
+import { QueryClient, QueryClientContext, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../client';
 import { integrationStatusKeys } from './integrationStatus';
 
@@ -23,15 +24,37 @@ const microsoft365Keys = {
     status: ['microsoft365', 'status'] as const,
 };
 
+async function fetchStatus({ signal }: { signal: AbortSignal }): Promise<Microsoft365Status> {
+    const body = await apiClient.get<Microsoft365Status>(`${BASE}/status`, { signal, retry: false });
+    return body || { configured: false, connected: false };
+}
+
 export function useMicrosoft365Status() {
     return useQuery<Microsoft365Status, Error>({
         queryKey: microsoft365Keys.status,
-        queryFn: async ({ signal }) => {
-            const body = await apiClient.get<Microsoft365Status>(`${BASE}/status`, { signal, retry: false });
-            return body || { configured: false, connected: false };
-        },
+        queryFn: fetchStatus,
         retry: false,
     });
+}
+
+// Stands in when a surface renders without a QueryClientProvider (a builder
+// panel in a unit test): the query is then off and nothing is fetched.
+const DETACHED_CLIENT = new QueryClient();
+
+/**
+ * The status where it is only a HINT (the Outlook mailbox picker: "your
+ * connection has no shared-mailbox access yet"). Same query and cache key as
+ * useMicrosoft365Status; without a provider it stays idle instead of throwing,
+ * so a panel never breaks over a hint.
+ */
+export function useOptionalMicrosoft365Status() {
+    const client = useContext(QueryClientContext);
+    return useQuery<Microsoft365Status, Error>({
+        queryKey: microsoft365Keys.status,
+        queryFn: fetchStatus,
+        retry: false,
+        enabled: !!client,
+    }, client || DETACHED_CLIENT);
 }
 
 /**

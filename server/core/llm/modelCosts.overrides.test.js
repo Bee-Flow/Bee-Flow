@@ -17,28 +17,20 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-const { installResolveStub } = require('../../testUtils/stubRequire');
+const { useConfigRows } = require('../../testUtils/configRows');
+const { loadPricing } = require('../../testUtils/pricingFeed');
 
-// An async store like the real one: getConfig resolves, mutateConfig applies
-// the mutator to the stored value and resolves with the result.
-const store = { value: null, failRead: false, reads: 0 };
-installResolveStub({
-    '../../stores/configStore': {
-        getConfig: async () => {
-            store.reads += 1;
-            if (store.failRead) throw new Error('db down');
-            return store.value;
-        },
-        mutateConfig: async (_key, mutator) => { store.value = mutator(store.value); return store.value; },
-        setConfig: async () => { throw new Error('writes go through mutateConfig'); },
-    },
-    './pricingService': {
-        getModelPricing: (name) => (name === 'listed-model' ? { input: 3, output: 15 } : null),
-        getPricingByKey: () => null,
-        initPricing: () => { },
-        getAllModelPricing: () => ({ 'listed-model': { input: 3, output: 15 } }),
-    },
-});
+// The real configStore over a config table; `store` is a view of the override
+// row (and of the table being down), so the cases below read as they did.
+const config = useConfigRows();
+const OVERRIDES_KEY = 'model_cost_overrides';
+const store = {
+    get value() { return Object.prototype.hasOwnProperty.call(config.rows, OVERRIDES_KEY) ? config.rows[OVERRIDES_KEY] : null; },
+    set value(v) { if (v === null) delete config.rows[OVERRIDES_KEY]; else config.rows[OVERRIDES_KEY] = v; },
+    set failRead(down) { config.failOn(down ? true : null); },
+};
+test.before(() => loadPricing({ 'listed-model': { input: 3, output: 15 } }));
+test.after(config.restore);
 
 const costs = require('./modelCosts');
 

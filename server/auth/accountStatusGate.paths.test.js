@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Every way into a session asks the account-status gate.
  *
@@ -31,7 +31,7 @@ const { execFileSync } = require('node:child_process');
 // This file lives in server/auth/, and every path below is relative to it.
 const AUTH = __dirname;
 const REPO = path.resolve(AUTH, '../..');
-const read = (rel) => fs.readFileSync(path.join(AUTH, rel), 'utf8');
+const read = (/** @type {string} */ rel) => fs.readFileSync(path.join(AUTH, rel), 'utf8');
 
 /**
  * The four paths that complete a sign-in, each with the reason it counts.

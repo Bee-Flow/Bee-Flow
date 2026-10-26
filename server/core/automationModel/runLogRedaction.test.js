@@ -12,7 +12,7 @@
 const assert = require('assert');
 const { redactForPersistence, safeOutputKeysForTool, SECRET_PATTERNS, SENSITIVE_KEY_RE, REDACTED_MARKER_RE } = require('./runLogRedaction');
 
-function redact(value, secretValues = []) {
+function redact(/** @type {unknown} */ value, /** @type {unknown[]} */ secretValues = []) {
     return redactForPersistence(value, { secretValues });
 }
 

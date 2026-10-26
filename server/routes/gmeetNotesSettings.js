@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Google Meet → Meeting Notes settings API.
  *
@@ -24,6 +24,7 @@ const { z, typeError } = require('../utils/zod');
 const { worded, choice } = require('../core/http/schemaParts');
 const { bodyOf, LANGUAGE_TEXT, toggleFields, lookbackHoursField } = require('./meetingNotesSettingsSchema');
 const { fallback } = require('../utils/bestEffort');
+const { sessionUser } = require('../core/http/sessionUser');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -70,21 +71,21 @@ const SettingsBody = bodyOf({
 // ── User-level (consumer / self) ─────────────────────────
 // Declared before /:orgId so "user" isn't captured as an orgId param.
 router.get('/user/me', requireAuth, async (req, res) => {
-    const config = await gmeetNotes.getUserSettings(req.session.user.id);
+    const config = await gmeetNotes.getUserSettings(sessionUser(req).id);
     // Surface the Google connection state (live session or vault credential)
     // plus whether the Meet scopes were granted, so the UI can show the
     // connect / reconnect prompts instead of a dead settings section.
     let credential = null;
     try {
         const credStore = require('../stores/automationCredentialStore');
-        credential = await credStore.getCredential(req.session.user.id, 'google');
+        credential = await credStore.getCredential(sessionUser(req).id, 'google');
     } catch (err) { fallback('routes/gmeetNotesSettings:anon', err); /* treat as no stored credential */ }
     const connection = gmeetNotes.deriveConnectionStatus({ session: req.session, credential });
     res.json({ ...config, connection });
 });
 
 router.put('/user/me', requireAuth, validate({ body: SettingsBody }), async (req, res) => {
-    const config = await gmeetNotes.saveUserSettings(req.session.user.id, req.body);
+    const config = await gmeetNotes.saveUserSettings(sessionUser(req).id, req.body);
     res.json({ ok: true, config });
 });
 
@@ -103,7 +104,7 @@ router.put('/:orgId', requireAuth, validate({ body: SettingsBody }), async (/** 
     if (!(await isOrgAdmin(req, orgId))) {
         return res.status(403).json({ error: 'Only organization admins can manage these settings' });
     }
-    const config = await gmeetNotes.saveOrgSettings(orgId, req.body, req.session.user.id);
+    const config = await gmeetNotes.saveOrgSettings(orgId, req.body, sessionUser(req).id);
     res.json({ ok: true, config });
 });
 

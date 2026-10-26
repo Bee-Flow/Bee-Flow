@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -12,7 +12,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { addCalendarMonths } = require('./calendarMonths');
 
-const iso = (d) => d.toISOString();
+const iso = (/** @type {Date} */ d) => d.toISOString();
 
 test('an ordinary month keeps the day and the time of day', () => {
     assert.equal(iso(addCalendarMonths('2027-03-05T09:30:00.000Z', 1)), '2027-04-05T09:30:00.000Z');

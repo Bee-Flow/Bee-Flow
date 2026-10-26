@@ -14,20 +14,13 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const rows = [];
-const STORE = require.resolve('../stores/userStore.js');
-require.cache[STORE] = {
-    id: STORE, filename: STORE, loaded: true,
-    exports: {
-        logAccessAudit: async (action, targetType, targetId, changedBy, oldValues, newValues, organizationId) => {
-            rows.push({ action, targetType, targetId, changedBy, oldValues, newValues, organizationId });
-        },
-    },
-};
+// The real userStore.logAccessAudit over a recording pool (testUtils/accessAuditRows.js).
+const { useAccessAuditRows } = require('../testUtils/accessAuditRows');
+const auditRows = useAccessAuditRows();
+const rows = auditRows.rows;
 
 const audit = require('./publicationAudit');
-test.after(() => { delete require.cache[STORE]; });
-test.beforeEach(() => { rows.length = 0; });
+test.beforeEach(auditRows.reset);
 
 const APP = { id: 'app_1', name: 'Expense claims', userId: 'usr_owner', organizationId: 'org_7' };
 
@@ -103,16 +96,11 @@ test('no row carries the app definition', async () => {
 });
 
 test('a broken audit store never fails a publish', async () => {
-    const store = require('../stores/userStore');
-    const original = store.logAccessAudit;
-    store.logAccessAudit = async () => { throw new Error('audit table is gone'); };
-    try {
-        await audit.auditPublishChange({ app: APP, actorId: 'u', isPublished: true, sharedGroups: [] });
-        await audit.auditPublicPage({ app: APP, actorId: 'u', token: 't', created: true });
-        await audit.auditNextcloudMenu({ app: APP, actorId: 'u', enabled: true });
-    } finally {
-        store.logAccessAudit = original;
-    }
+    auditRows.failOn(true);
+    await audit.auditPublishChange({ app: APP, actorId: 'u', isPublished: true, sharedGroups: [] });
+    await audit.auditPublicPage({ app: APP, actorId: 'u', token: 't', created: true });
+    await audit.auditNextcloudMenu({ app: APP, actorId: 'u', enabled: true });
+    assert.deepStrictEqual(rows, [], 'nothing was stored, and nothing threw');
 });
 
 test('every route that changes who can reach an app writes a row', () => {

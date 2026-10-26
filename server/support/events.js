@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The support SSE bus.
  *
@@ -26,7 +26,7 @@ supportEvents.setMaxListeners(50);
  * Emit one event. Never throws — a broken listener must not fail a request.
  * @param {string} event
  */
-function emit(event, payload) {
+function emit(event, /** @type {unknown} */ payload) {
     try {
         supportEvents.emit('event', { event, data: payload });
     } catch (err) { bestEffort('support/events:emit', err); /* a listener blew up; the caller's work still stands */ }

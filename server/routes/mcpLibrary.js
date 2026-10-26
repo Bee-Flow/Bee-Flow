@@ -32,6 +32,7 @@ const service = require('../core/customIntegrations/mcpLibrary/service');
 const members = require('../core/customIntegrations/mcpLibrary/members');
 const policyModule = require('../core/customIntegrations/mcpLibrary/policy');
 const { bestEffort } = require('../utils/bestEffort');
+const { sessionUser } = require('../core/http/sessionUser');
 
 const router = express.Router();
 
@@ -124,7 +125,7 @@ router.put('/policy', requireAuth, requireSuperAdmin, validate({ body: PolicyBod
     const before = await policyModule.getPolicy();
     const policy = await policyModule.setPolicy(req.body);
     try {
-        await require('../stores/userStore').logAccessAudit('mcp_library.policy_update', 'platform', policyModule.POLICY_KEY, req.session.user.id, before, policy, null);
+        await require('../stores/userStore').logAccessAudit('mcp_library.policy_update', 'platform', policyModule.POLICY_KEY, sessionUser(req).id, before, policy, null);
     } catch (err) { bestEffort('routes/mcpLibrary:anon', err); /* best effort */ }
     // Every org's tool list and capability set depends on it.
     try {
@@ -175,30 +176,30 @@ org.post('/probe', connectLimit, validate({ body: ProbeBody }), async (req, res)
 });
 
 org.post('/servers', connectLimit, validate({ body: InstallBody }), async (req, res) => {
-    const server = await service.install({ orgId: req.primaryOrgId, actorUserId: req.session.user.id, input: req.body });
+    const server = await service.install({ orgId: req.primaryOrgId, actorUserId: sessionUser(req).id, input: req.body });
     res.status(201).json({ server });
 });
 
 org.patch('/servers/:id', connectLimit, validate({ body: UpdateBody }), /** @param {LibraryReq} req */ async (req, res) => {
-    const server = await service.update({ orgId: req.primaryOrgId, row: req.libraryRow, actorUserId: req.session.user.id, patch: req.body });
+    const server = await service.update({ orgId: req.primaryOrgId, row: req.libraryRow, actorUserId: sessionUser(req).id, patch: req.body });
     res.json({ server });
 });
 
 org.post('/servers/:id/refresh', connectLimit, validate({ body: NoBody }), /** @param {LibraryReq} req */ async (req, res) => {
-    res.json(await service.refresh({ orgId: req.primaryOrgId, row: req.libraryRow, actorUserId: req.session.user.id }));
+    res.json(await service.refresh({ orgId: req.primaryOrgId, row: req.libraryRow, actorUserId: sessionUser(req).id }));
 });
 
 org.put('/servers/:id/credential', connectLimit, validate({ body: CredentialBody }), /** @param {LibraryReq} req */ async (req, res) => {
-    res.json(await service.setSharedCredential({ orgId: req.primaryOrgId, row: req.libraryRow, actorUserId: req.session.user.id, value: req.body.value }));
+    res.json(await service.setSharedCredential({ orgId: req.primaryOrgId, row: req.libraryRow, actorUserId: sessionUser(req).id, value: req.body.value }));
 });
 
 org.delete('/servers/:id', /** @param {LibraryReq} req */ async (req, res) => {
-    res.json(await service.uninstall({ orgId: req.primaryOrgId, row: req.libraryRow, actorUserId: req.session.user.id }));
+    res.json(await service.uninstall({ orgId: req.primaryOrgId, row: req.libraryRow, actorUserId: sessionUser(req).id }));
 });
 
 org.put('/server-wide/:serverId', validate({ body: ServerWideBody }), /** @param {import('express').Request<{ serverId: string }>} req */ async (req, res) => {
     const access = await service.setServerWideAccess({
-        orgId: req.primaryOrgId, serverId: req.params.serverId, actorUserId: req.session.user.id, access: req.body.access,
+        orgId: req.primaryOrgId, serverId: req.params.serverId, actorUserId: sessionUser(req).id, access: req.body.access,
     });
     res.json({ access });
 });

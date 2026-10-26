@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * The small zod pieces every route schema needs, so that each refusal reads
@@ -16,7 +16,10 @@
 
 const { z, typeError, onUnknownKeys } = require('../../utils/zod');
 
-/** A string whose every refusal — including "you left it out" — is a sentence. */
+/**
+ * A string whose every refusal — including "you left it out" — is a sentence.
+ * @param {string} message
+ */
 const worded = (message) => z.string({ error: message });
 
 // How many unknown keys a refusal names, and how much of each: the names are
@@ -24,6 +27,11 @@ const worded = (message) => z.string({ error: message });
 const NAMED_KEYS = 3;
 const KEY_ECHO = 40;
 
+/**
+ * @param {readonly string[]} keys
+ * @param {readonly string[]} known
+ * @param {string} subject
+ */
 function unknownKeysText(keys, known, subject) {
     const named = keys.slice(0, NAMED_KEYS).map((k) => `"${String(k).slice(0, KEY_ECHO)}"`);
     const rest = keys.length - named.length;
@@ -33,43 +41,74 @@ function unknownKeysText(keys, known, subject) {
     return `${subject} does not take ${list}. ${known.length ? `It takes: ${known.join(', ')}.` : 'It takes no fields.'}`;
 }
 
-/** An object that refuses a key it does not know, naming what `subject` does take. */
+/**
+ * An object that refuses a key it does not know, naming what `subject` does take.
+ * @template {import('zod').ZodRawShape} S
+ * @param {S} shape
+ * @param {string} [subject]
+ */
 const closedObject = (shape, subject = 'This request') => {
     const known = Object.keys(shape);
-    const error = (iss) => (iss.code === 'unrecognized_keys'
+    const error = (/** @type {import('zod').core.$ZodRawIssue} */ iss) => (iss.code === 'unrecognized_keys'
         ? unknownKeysText(iss.keys, known, subject)
         : iss.code === 'invalid_type' ? `${subject} takes a JSON object.` : undefined);
     return z.object(shape, { error }).strict();
 };
 
-/** Express 5 leaves `req.body` undefined without a body; read that as `{}`. */
+/**
+ * Express 5 leaves `req.body` undefined without a body; read that as `{}`.
+ * @param {import('zod').ZodType} schema
+ */
 const orEmpty = (schema) => z.preprocess((v) => (v === undefined || v === null ? {} : v), schema);
 
-/** A closed body that also accepts no body at all. */
+/**
+ * A closed body that also accepts no body at all.
+ * @template {import('zod').ZodRawShape} S
+ * @param {S} shape
+ * @param {string} [subject]
+ */
 const bodyOf = (shape, subject = 'This request') => orEmpty(closedObject(shape, subject));
 
-/** A closed query string. */
+/**
+ * A closed query string.
+ * @template {import('zod').ZodRawShape} S
+ * @param {S} shape
+ * @param {string} [subject]
+
+ */
 const queryOf = (shape, subject = 'This request') => orEmpty(closedObject(shape, subject));
 
-/** One of a fixed list, refused with the list rather than zod's enum text. */
+/**
+ * One of a fixed list, refused with the list rather than zod's enum text.
+ * @param {string[] | readonly string[] | [string, ...string[]]} values
+ * @param {string} message
+ */
 const choice = (values, message) => z.enum(values, { error: () => message });
 
 /**
  * An on/off flag. Only the booleans and their exact spellings count: the
  * string "false" used to read as true wherever a handler wrote `!!x`.
+ * @param {string} message
  */
 const flag = (message) => z.preprocess(
     (v) => (v === 'true' ? true : v === 'false' ? false : v),
     z.boolean({ error: message }),
 );
 
-/** A whole number within [min, max], from JSON or from the digits of a query string. */
+/**
+ * A whole number within [min, max], from JSON or from the digits of a query string.
+ * @param {string} message
+ */
 const wholeNumber = (message, { min = 0, max = Number.MAX_SAFE_INTEGER } = {}) => z.preprocess(
     (v) => (typeof v === 'string' && /^-?\d+$/.test(v.trim()) ? Number(v.trim()) : v),
     z.number({ error: message }).int(message).min(min, message).max(max, message),
 );
 
-/** A list of ids, each a non-empty string. */
+/**
+ * A list of ids, each a non-empty string.
+ * @param {string} message
+ * @param {number} [max]
+ */
 const idList = (message, max = 200) => z.array(worded(message).trim().min(1, message).max(200, message), { error: message }).max(max, message);
 
 module.exports = { z, typeError, onUnknownKeys, worded, closedObject, orEmpty, bodyOf, queryOf, choice, flag, wholeNumber, idList, unknownKeysText };

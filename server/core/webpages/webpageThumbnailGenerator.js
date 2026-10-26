@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Webpage thumbnail generator.
  *
@@ -94,7 +94,7 @@ async function renderThumbnail({ userId, webpageId }) {
                 // about:blank-equivalent isolation, so do the same here.
                 javaScriptEnabled: true,
             },
-            async (context) => {
+            async (/** @type {import('playwright').BrowserContext} */ context) => {
                 const page = await context.newPage();
                 // Cap navigation + JS so a broken page can't hang the worker forever.
                 page.setDefaultTimeout(RENDER_TIMEOUT_MS);

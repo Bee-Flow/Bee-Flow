@@ -143,14 +143,14 @@ async function saveNote(row, savedAudio) {
 /**
  * @param {object} opts
  * @param {string} opts.userId             Bee Flow user who owns the note
- * @param {string} [opts.orgId]            org id (model-tier + EU resolution)
+ * @param {string | null} [opts.orgId]            org id (model-tier + EU resolution)
  * @param {string} [opts.filePath]         local recording file (consumed); absent only with transcriptResponse
  * @param {string} [opts.fileName]         display name (default: basename)
  * @param {string} [opts.language]         BCP-47-ish lang code (default 'nl')
- * @param {string} [opts.provider]         explicit provider override
- * @param {string} [opts.contextTerms]     bias terms for the transcriber
- * @param {string} [opts.titleHint]        fallback title
- * @param {string} [opts.userName]         recorder's first name (speaker hint)
+ * @param {string | null} [opts.provider]         explicit provider override
+ * @param {string | null} [opts.contextTerms]     bias terms for the transcriber
+ * @param {string | null} [opts.titleHint]        fallback title
+ * @param {string | null} [opts.userName]         recorder's first name (speaker hint)
  * @param {string[]}[opts.participantNames] real attendee roster for diarization
  * @param {string} [opts.source]           provenance tag ('nextcloud', 'gmeet', …)
  * @param {string} [opts.sourceUri]        canonical dedup key

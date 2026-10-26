@@ -74,7 +74,7 @@ function entityList(entities) {
 /**
  * Every real member id that still appears in a captured payload.
  *
- * @param {object|object[]} entities   captured entities, each with its `ref`
+ * @param {object | object[] | null | undefined} entities   captured entities, each with its `ref`
  * @param {Iterable<string>} memberIds the real ids of every member
  * @returns {{ref: string|null, path: string, id: string}[]}
  */
@@ -110,9 +110,9 @@ const TABLE_TOKEN = /(?<![A-Za-z0-9_])tbl_[0-9a-f]{12}(?![A-Za-z0-9_])/g;
  * not know are left alone, and so is anything that merely CONTAINS a token
  * (`tbl_…_backup`, `xtbl_…`).
  *
- * @param {string} source
+ * @param {string | null} source
  * @param {Map<string,string>|Object<string,string>} idMap  old id → new id
- * @returns {{text: string, substitutions: {from: string, to: string, count: number}[]}}
+ * @returns {{text: string | null, substitutions: {from: string, to: string, count: number}[]}}
  */
 function substituteTableTokens(source, idMap) {
     if (typeof source !== 'string') return { text: source, substitutions: [] };

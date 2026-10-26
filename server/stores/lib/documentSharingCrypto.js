@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 const content = require('./documentCrypto');

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * There is exactly ONE memory extractor, and direct chat runs it once.
  *
@@ -29,7 +29,7 @@ const path = require('path');
 const SERVER_ROOT = path.resolve(__dirname, '..', '..');
 const SKIP_DIRS = new Set(['node_modules', 'data', 'uploads', '.git']);
 
-function walkJs(dir, out = []) {
+function walkJs(/** @type {string} */ dir, /** @type {string[]} */ out = []) {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
         if (entry.name.startsWith('.') || SKIP_DIRS.has(entry.name)) continue;
         const full = path.join(dir, entry.name);
@@ -40,7 +40,7 @@ function walkJs(dir, out = []) {
 }
 
 /** Strip comments so a mention in prose is not mistaken for a call. */
-function stripComments(src) {
+function stripComments(/** @type {string} */ src) {
     return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 }
 

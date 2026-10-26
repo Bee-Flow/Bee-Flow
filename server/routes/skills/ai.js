@@ -51,6 +51,7 @@ const {
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 const { bestEffort } = require('../../utils/bestEffort');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 /**
  * A drafting call is one model call on somebody's keystroke. Ten a minute is
@@ -64,7 +65,7 @@ const MAX_TOKENS = 2000;
 /** @param {import('express').Request} req */
 async function orgIdOf(req) {
     const userStore = require('../../stores/userStore');
-    const user = await userStore.getUser(req.session.user.id);
+    const user = await userStore.getUser(sessionUser(req).id);
     return user?.organizationId || null;
 }
 
@@ -153,7 +154,7 @@ async function draft(req, res) {
     if (!sentence) {
         return res.status(400).json({ error: 'Describe in one sentence what the skill should do.', code: 'no_sentence' });
     }
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const userOrgId = await orgIdOf(req);
 
     const answer = await askForDraft({
@@ -178,7 +179,7 @@ async function improve(req, res) {
     try {
         const skillStore = require('../../stores/skillStore');
         const { hasPermission } = require('../../auth/permissions');
-        const userId = req.session.user.id;
+        const userId = sessionUser(req).id;
         const orgId = await orgIdOf(req);
 
         let canManage = false;

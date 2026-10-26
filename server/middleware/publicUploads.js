@@ -27,7 +27,7 @@
 const PUBLIC_SUBTREES = ['agents/'];
 
 /**
- * @param {string} urlPath  The path within the /uploads mount (e.g. '/a.png').
+ * @param {string | null | undefined} urlPath  The path within the /uploads mount (e.g. '/a.png').
  * @returns {boolean} true when it may be served anonymously.
  */
 function isPublicUploadPath(urlPath) {

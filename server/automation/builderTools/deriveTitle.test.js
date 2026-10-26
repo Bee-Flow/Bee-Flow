@@ -22,7 +22,7 @@ const BRIEFS = path.join(__dirname, '..', '..', 'scripts', 'builder-briefs');
 const BRIEF_FIXTURES = Object.fromEntries(
     fs.readdirSync(BRIEFS).map((f) => [f.replace(/\.json$/, ''), JSON.parse(fs.readFileSync(path.join(BRIEFS, f), 'utf8')).brief]),
 );
-const loadBriefFixture = (name) => BRIEF_FIXTURES[name];
+const loadBriefFixture = (/** @type {string} */ name) => BRIEF_FIXTURES[name];
 
 test('the six briefs derive the titles a person would pick', () => {
     const expected = {
@@ -51,8 +51,8 @@ test('a stated title wins over every other rule, in four spellings and three quo
     assert.equal(deriveTitle({ brief: "Title: 'It's a test of the naming'" }), "It's a test of the naming");
     assert.equal(deriveTitle({ brief: 'Titel: ‘’s Ochtends de post’' }), '’s Ochtends de post');
     // The same pattern the playbook stage mirrors client-side.
-    assert.equal(TITLE_IN_BRIEF_RE.exec(loadBriefFixture('playbook-invoice-automation'))[1], 'Facturen inlezen');
-    assert.equal(TITLE_IN_BRIEF_RE.exec(loadBriefFixture('playbook-invoice-app'))[1], 'Facturen');
+    assert.equal(TITLE_IN_BRIEF_RE.exec(loadBriefFixture('playbook-invoice-automation'))?.[1], 'Facturen inlezen');
+    assert.equal(TITLE_IN_BRIEF_RE.exec(loadBriefFixture('playbook-invoice-app'))?.[1], 'Facturen');
 });
 
 test('"name" mid-sentence is a field, not a title statement — the sentence rule names the automation instead', () => {

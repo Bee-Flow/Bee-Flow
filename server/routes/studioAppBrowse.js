@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * App Studio — the streaming AI-browse bridge.
  *
@@ -54,12 +54,14 @@ const { resolveAudienceContext } = require('../auth/audience');
 const { requireAuth } = require('../auth/permissions');
 const { browseStepLimiter, aiStepLimiter } = require('./studioAppRateLimits');
 const { bestEffort } = require('../utils/bestEffort');
+const { sessionUser } = require('../core/http/sessionUser');
 
 const MAX_BODY_BYTES = 64 * 1024;
 const jsonBody = express.json({ limit: MAX_BODY_BYTES });
 // A browse holds a browser slot up to 90 s + up to 45 s queue wait; the hard
 // server cap is above that sum so a real browse finishes and only a hang is cut.
-const BROWSE_HARD_MS = parseInt(process.env.STUDIO_APP_BROWSE_HARD_MS, 10) || 240_000;
+const BROWSE_HARD_MS = parseInt(String(process.env.STUDIO_APP_BROWSE_HARD_MS), 10)
+ || 240_000;
 const HEARTBEAT_MS = 15_000;
 
 // The driver's event names → the step-stream wire types. Frame/action payloads
@@ -123,7 +125,7 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
     if (!(await aiStepLimiter.check(req, res))) return;
 
     try {
-        const userId = req.session.user.id;
+        const userId = sessionUser(req).id;
         const actionId = req.params.actionId;
         const app = await loadVisibleApp(req, res);
         if (!app) return;
@@ -171,8 +173,8 @@ router.post('/:id/actions/:actionId/step/stream', requireAuth, jsonBody, validat
             const vars = sanitizeBag(req.body.vars);
             const result = /** @type {{ ok: boolean, result?: unknown, error?: string, code?: string, limit?: number, used?: number }} */ (await actionExecutor.executeDataStep(app, dataModel, step, {
                 viewerId: userId,
-                viewerName: req.session.user.name || null,
-                viewerEmail: req.session.user.email || null,
+                viewerName: sessionUser(req).name || null,
+                viewerEmail: sessionUser(req).email || null,
                 role,
                 orgId: app.organizationId || null,
                 actionId,

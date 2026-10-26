@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -16,6 +16,7 @@ const pd = require('./projectData');
 const MAX_IDS = 500;
 
 /** Every project id a result row refers to: its subject, and its offenders. */
+/** @param {{ scope_id?: unknown, evidence?: { project_id?: unknown, offenders?: { project_id?: unknown }[] } | null } | null | undefined} row */
 function projectIdsOfRow(row) {
     const out = new Set();
     const scope = row && row.scope_id ? String(row.scope_id) : '';
@@ -43,6 +44,7 @@ async function projectNames(orgId, ids, query = pd.defaultQuery()) {
         SELECT p.id, p.name FROM projects p
         WHERE ${pd.orgMatch('p.organization_id')} AND p.id = ANY($2::text[])
     `, [orgId, list]);
+    /** @type {Record<string, unknown>} */
     const out = {};
     for (const r of rows || []) if (r && r.id) out[String(r.id)] = r.name;
     return out;

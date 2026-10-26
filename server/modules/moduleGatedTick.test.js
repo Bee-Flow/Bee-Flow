@@ -21,19 +21,11 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
-const Module = require('module');
 
 process.env.NODE_ENV = 'test';
 
-// Stub ../db before the module chain loads (same idiom as catalog.test.js).
-const dbPath = require.resolve('../db');
-require.cache[dbPath] = new Module(dbPath);
-require.cache[dbPath].exports = {
-    exec: async () => ({}), run: async () => ({ rows: [], rowCount: 0 }),
-    getOne: async () => null, getAll: async () => [],
-    getClient: async () => ({ query: async () => ({ rows: [] }), release() {} }),
-};
-require.cache[dbPath].loaded = true;
+// The real db.js over a recording pool, so nothing opens a connection.
+require('../testUtils/routeHarness').recordDb();
 
 const mods = require('./index');
 

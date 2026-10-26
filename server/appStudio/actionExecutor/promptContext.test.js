@@ -20,7 +20,7 @@ const assert = require('node:assert/strict');
 const { serializePromptContext, MAX_PROMPT_CONTEXT_CHARS } = require('./aiSteps');
 
 /** A row roughly the weight of a real projectregel (file descriptors included). */
-const row = (i) => ({
+const row = (/** @type {number} */ i) => ({
     pos: i * 10,
     basisnaam: `mw2604-01-${3000 + i}-001`,
     cad_bestand: `MW2604-01-${3000 + i}-001.step`,

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * core/privacy/chatSignalsNotice.js: what a chat is told about chat signals.
  *

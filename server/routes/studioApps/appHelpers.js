@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Small helpers the Studio app routes share (routes/studioApps/).
  *
@@ -53,7 +53,7 @@ function sanitizeAppRow(app) {
 /** @param {string} ownerId */
 async function loadOwnedAutomations(ownerId) {
     const owned = await automationStore.getAutomationsForUser(ownerId);
-    return (owned || []).map(a => ({ id: a.id, userId: a.userId, isActive: a.isActive }));
+    return (owned || []).flatMap(a => (a ? [a] : [])).map(a => ({ id: a.id, userId: a.userId, isActive: a.isActive }));
 }
 
 // The app's data model and dataset ids in the shape that validate.js expects for

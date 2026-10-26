@@ -408,8 +408,8 @@ function incomingText(list, labels) {
 /**
  * Per-field changes of `next` relative to `prev`.
  *
- * @param {object} prevDef
- * @param {object} nextDef
+ * @param {object | null | undefined} prevDef
+ * @param {object | null | undefined} nextDef
  * @param {{ names?: { agent?: Record<string,string>, datatable?: Record<string,string>, knowledgeBase?: Record<string,string> }, fullText?: boolean }} [opts]
  *   `fullText`: a changed long-text setting (code, prompt, message, ...) also carries
  *   beforeText / afterText (fieldDiffText.js), for the line diff.

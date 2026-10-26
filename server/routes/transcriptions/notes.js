@@ -20,6 +20,7 @@ const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { whole, NO_QUERY } = require('./schemas');
 const { bestEffort } = require('../../utils/bestEffort');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 // The bookmark of the list, and nothing else. `.strict()`, because every other
 // parameter one would expect here — a filter on tag, on status, on period — came
@@ -29,7 +30,7 @@ const ListQuery = z.object({ limit: whole('limit'), offset: whole('offset') }).s
 // ── List transcriptions ──────────────────────────────────
 
 router.get('/', requireAuth, validate({ query: ListQuery }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const limit = Math.min(/** @type {{limit?: number}} */ (/** @type {unknown} */ (req.query)).limit ?? 50, 100);
     const offset = Math.max(/** @type {{offset?: number}} */ (/** @type {unknown} */ (req.query)).offset ?? 0, 0);
     // Reap async jobs stuck in 'processing' (e.g. server restarted mid-run) so
@@ -57,7 +58,7 @@ router.get('/:id', requireAuth,
     (req, res, next) => (RESERVED_GET_PATHS.has(/** @type {string} */ (req.params.id)) ? next('route') : next()),
     validate({ query: NO_QUERY }),
     async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
     const transcription = await transcriptionStore.getTranscription(/** @type {string} */ (req.params.id), userId, { orgIds, userGroupIds, isSuperAdmin });
     if (!transcription) return res.status(404).json({ error: 'Transcription not found' });
@@ -70,7 +71,7 @@ router.get('/:id', requireAuth,
 // same Google Meet code / Talk room, ACL-checked twice (this note + the
 // previous one). Notes without a series link answer { previous: null }.
 router.get('/:id/series-previous', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const ctx = await resolveAccessContext(req);
     const transcription = await transcriptionStore.getTranscription(/** @type {string} */ (req.params.id), userId, ctx);
     if (!transcription) return res.status(404).json({ error: 'Not found' });

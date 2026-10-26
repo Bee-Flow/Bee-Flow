@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -63,6 +63,7 @@ const { pool } = require('../../db');
 const log = require('../../telemetry/log');
 
 /** Every kind this can find, in the order the Used-by tab lists them. */
+/** @type {readonly UsageKind[]} */
 const KINDS = Object.freeze(['task', 'cowork', 'support', 'automation', 'app', 'webpage']);
 
 /** Ids per round trip. A scan is one pass per kind; the ids ride along. */
@@ -166,7 +167,8 @@ const SCANS = Object.freeze({
  * it on first use), and a cached "absent" would keep a whole feature invisible
  * to the delete guard until the process restarts. If the probe itself fails
  * every kind is reported absent, which lands in `partial` — the narrow answer.
- * @param {readonly string[]} kinds
+ * @param {readonly UsageKind[]} kinds
+ * @param {Db} db
  */
 async function probeTables(kinds, db) {
     const tables = kinds.map(k => SCANS[k].table);
@@ -181,9 +183,7 @@ async function probeTables(kinds, db) {
     }
 }
 
-/**
- * @param {string[]} ids
- */
+/** @param {string[]} ids */
 function chunk(ids) {
     /** @type {string[][]} */
     const out = [];
@@ -194,14 +194,16 @@ function chunk(ids) {
 /**
  * Raw scan rows for a set of agent ids.
  *
- * @returns {Promise<{ rows: Array<{agentId,kind,id,title,role,ownerId,lastAt}>, partial: string[] }>}
+ * @returns {Promise<{ rows: UsageRow[], partial: string[] }>}
  * @param {string[]} agentIds
+ * @param {Db} db
  */
 async function _scan(agentIds, db) {
     const ids = [...new Set((Array.isArray(agentIds) ? agentIds : []).filter(Boolean).map(String))];
     if (ids.length === 0) return { rows: [], partial: [] };
 
     const present = await probeTables(KINDS, db);
+    /** @type {UsageRow[]} */
     const rows = [];
     /** @type {string[]} */
     const partial = [];
@@ -245,8 +247,8 @@ async function _scan(agentIds, db) {
  *
  * @param {string} agentId
  * @param {object} [opts]
- * @param {object} [opts.db]  injection seam for the tests
- * @returns {Promise<{ rows: Array, partial: string[] }>} `partial` names the
+ * @param {Db} [opts.db]  injection seam for the tests
+ * @returns {Promise<{ rows: Array<Omit<UsageRow, 'agentId'>>, partial: string[] }>} `partial` names the
  *   kinds that could NOT be answered. Never treat it as "nothing".
  */
 async function usageForAgent(agentId, { db = pool } = {}) {
@@ -264,6 +266,8 @@ async function usageForAgent(agentId, { db = pool } = {}) {
  * Every requested id gets an entry, so a caller iterating the result never
  * has to decide what a missing key means.
  *
+ * @param {string[]} agentIds
+ * @param {{ db?: Db }} [opts]
  * @returns {Promise<Record<string, {counts: Record<string, number>, partial: string[]}>>}
  */
 async function usageCountsForAgents(agentIds, { db = pool } = {}) {
@@ -315,6 +319,7 @@ function unknownUsage() {
  * If A2 decides an org admin should see these names, that is a widening to
  * make deliberately, against whatever rule governs who may list an
  * organisation's automations — not something to inherit by accident from here.
+ * @param {Array<Omit<UsageRow, 'agentId'>> | null | undefined} rows
  * @param {string} userId
  */
 function redactForeign(rows, userId) {
@@ -335,4 +340,6 @@ module.exports = {
 
 /** @typedef {import('pg').Pool} Pool */
 
-/** @typedef {{ agentId: string, kind: string, id: string | null, title: string | null, role: string, ownerId: string | null, lastAt: unknown }} UsageRow */
+/** @typedef {'task' | 'cowork' | 'support' | 'automation' | 'app' | 'webpage'} UsageKind */
+/** @typedef {Pick<import('pg').Pool, 'query'>} Db */
+/** @typedef {{ agentId: string, kind: UsageKind, id: string | null, title: string | null, role: string, ownerId: string | null, lastAt: unknown }} UsageRow */

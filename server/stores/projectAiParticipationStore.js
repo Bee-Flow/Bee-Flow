@@ -70,9 +70,7 @@ const toInt = (v) => (v === null || v === undefined ? 0 : Number(v));
 /** @param {unknown} n */
 const secs = (n) => Math.max(0, Math.round(Number(n) || 0));
 
-/**
- * @param {Record<string, any>} r
- */
+/** @param {Record<string, any>} r */
 function rowToWatch(r) {
     if (!r) return null;
     return {
@@ -93,9 +91,7 @@ function rowToWatch(r) {
     };
 }
 
-/**
- * @param {Record<string, any>} r
- */
+/** @param {Record<string, any>} r */
 function rowToDecision(r) {
     if (!r) return null;
     return {
@@ -125,8 +121,8 @@ const code = (v) => (typeof v === 'string' && /^[a-z0-9_]{1,64}$/.test(v) ? v : 
 
 /**
  * @typedef {{
- *   query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }>,
- *   tx: <T>(fn: (q: { query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }) => Promise<T>) => Promise<T>,
+ *   query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }>,
+ *   tx: <T>(fn: (q: { query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }> }) => Promise<T>) => Promise<T>,
  * }} StoreDb
  */
 
@@ -251,7 +247,7 @@ function makeWatches(db, ready, newId) {
 
     /**
      * The claim itself, holding CLAIM_LOCK: nothing another replica claimed is invisible here.
-     * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }} q
+     * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }> }} q
      * @param {number} n
      * @param {string} claimId
      * @param {string[]} served
@@ -330,9 +326,7 @@ function makeWatches(db, ready, newId) {
 function makeDecisions(db, ready, newId) {
     // ── Decisions ──────────────────────────────────────────────────────────
 
-    /**
-     * @param {Record<string, any>} d
-     */
+    /** @param {Record<string, any>} d */
     function decisionParams(d) {
         return [
             d.projectId, d.orgId || null, d.surface, d.containerId, d.triggerMessageId || null,

@@ -50,7 +50,7 @@ const PRUNE_EVERY_MS = 60 * 60_000;
 function makeParticipationJob(deps = {}) {
     const store = () => deps.store || require('../stores/projectAiParticipationStore');
     const engine = () => deps.engine || require('../projects/participation').defaultEngine();
-    const concurrency = Number.isInteger(deps.concurrency) && deps.concurrency > 0 ? deps.concurrency : CONCURRENCY;
+    const concurrency = typeof deps.concurrency === 'number' && Number.isInteger(deps.concurrency) && deps.concurrency > 0 ? deps.concurrency : CONCURRENCY;
     const now = deps.now || (() => Date.now());
     const newId = deps.newId || (() => crypto.randomUUID());
     const recordJobRun = deps.recordJobRun || ((/** @type {Parameters<typeof import('../telemetry/metrics').recordJobRun>[0]} */ run) => require('../telemetry/metrics').recordJobRun(run));

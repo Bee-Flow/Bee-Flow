@@ -12,13 +12,8 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert');
-
-// ── Stub automationStore before requiring the module under test ──────────
-const storePath = require.resolve('../stores/automationStore');
-require.cache[storePath] = {
-    id: storePath, filename: storePath, loaded: true,
-    exports: { getCallableStepsForUser: async () => [] },
-};
+// The real modules over a recording pool, so nothing opens a connection.
+require('../testUtils/routeHarness').recordDb();
 
 const { stepToTool } = require('./agentCallableTools');
 

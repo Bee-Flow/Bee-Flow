@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Notebooks in the Documents library.
  *
@@ -73,7 +73,10 @@ function notebookBranchSql(bound) {
         FROM notebooks n WHERE ${where.join(' AND ')}`;
 }
 
-/** Same rule as a document's categories (documentStore validate). */
+/**
+ * Same rule as a document's categories (documentStore validate).
+ * @param {unknown} categories
+ */
 function normaliseCategories(categories) {
     const list = Array.isArray(categories) ? categories : [];
     return [...new Set(list.map((x) => String(x).trim().slice(0, 80)).filter(Boolean))].slice(0, 30);
@@ -94,6 +97,7 @@ async function setNotebookFiling(userId, notebookId, filing, assertFolder) {
     await ready();
     /** @type {string[]} */
     const sets = [];
+    /** @type {Array<string | null>} */
     const params = [notebookId, userId];
     if (filing.folderId !== undefined) {
         if (filing.folderId) await assertFolder(filing.folderId, userId);
@@ -123,6 +127,7 @@ async function setNotebookFiling(userId, notebookId, filing, assertFolder) {
  * @param {{ query: (sql: string, params?: unknown[]) => Promise<any> }} client
  * @param {string} userId
  * @param {string} folderId
+ * @param {string | null | undefined} parentId
  */
 async function reparentNotebooks(client, userId, folderId, parentId) {
     const { rows } = await client.query(`SELECT to_regclass('public.notebooks') IS NOT NULL AS present,

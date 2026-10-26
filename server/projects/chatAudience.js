@@ -74,9 +74,7 @@ async function listChatAgents(project, { userId }, deps = {}) {
     const { mayAutomationUseAgent } = require('../core/automationModel/agentCatalog');
     const SYSTEM_OWNERS = ['system', 'swarm'];
 
-    /**
-     * @param {string} id
-     */
+    /** @param {string} id */
     const identityOf = async (id) => {
         const user = await getUser(id);
         return { userId: id, orgId: user?.organizationId || null, groups: (await resolveUserGroups(id)) || [] };
@@ -88,7 +86,7 @@ async function listChatAgents(project, { userId }, deps = {}) {
     ]);
     const byId = new Map();
     for (const a of [...(own || []), ...(published || [])]) {
-        if (a && a.id && !SYSTEM_OWNERS.includes(a.owner_id)) byId.set(a.id, a);
+        if (a && a.id && !SYSTEM_OWNERS.includes(a.owner_id ?? '')) byId.set(a.id, a);
     }
 
     const audience = await audienceOf(project);

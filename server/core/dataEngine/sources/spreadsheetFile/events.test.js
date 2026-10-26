@@ -203,7 +203,7 @@ test('a hint without a user or a provider, or for an account with no mirrors, is
 });
 
 test('the adapter hands the registry this module', () => {
-    const adapter = require('./adapter');
+    const adapter = require('./kindAdapter');
     assert.strictEqual(adapter.events, events);
     assert.strictEqual(typeof adapter.events.onFileEvent, 'function');
     assert.strictEqual(typeof adapter.events.onProviderHint, 'function');

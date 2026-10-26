@@ -74,7 +74,7 @@ const ALIASES = {
 
 /**
  * Canonical key for an operator name: lower-case, no corporate suffix, aliases folded.
- * @param {string} name
+ * @param {string | null | undefined} name
  */
 function canonical(name) {
     let s = String(name || '').toLowerCase().trim();

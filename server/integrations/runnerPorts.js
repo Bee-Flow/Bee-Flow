@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The integrations feature's side of core/automationRunner/featurePorts.js:
  * what the automation runner (core) calls in integrations/ without requiring

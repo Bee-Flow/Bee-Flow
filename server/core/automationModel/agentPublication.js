@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Does this agent row run on its PUBLISHED config?
  *
@@ -34,6 +34,7 @@
 
 'use strict';
 
+/** @param {{ runtimeSource?: unknown, published_version?: unknown } | null | undefined} agent */
 function servesPublishedConfig(agent) {
     if (!agent) return false;
     if (typeof agent.runtimeSource === 'string') return agent.runtimeSource === 'published';

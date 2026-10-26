@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Host names: the lists two rules match against, and the one matcher the
  * analyser, the validator and the run-time host manifest all use, so "is this
@@ -123,7 +123,7 @@ function onDomain(host, domain) {
  * bare `host:port` / `host/path` forms of the listed domains. Used to match
  * string constants against the mining and collection lists.
  */
-function hostsInText(text) {
+function hostsInText(/** @type {unknown} */ text) {
     const out = new Set();
     const s = String(text || '');
     const re = /\b[a-z][a-z0-9+.-]*:\/\/([^\s/?#'"`<>\\]+)/gi;

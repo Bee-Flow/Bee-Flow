@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The zod vocabulary this router's request schemas are built from.
  *
@@ -27,7 +27,11 @@ const { z } = require('../../utils/zod');
 const { worded, choice } = require('../../core/http/schemaParts');
 const dataModel = require('../../core/dataEngine/dataModel/vocabulary');
 
-/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
+/**
+ * A body that also accepts no body at all: Express 5 leaves `req.body` undefined then.
+ * @template {import('zod').ZodRawShape} S
+ * @param {S} shape
+ */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape).strict(),
@@ -40,6 +44,7 @@ const bodyOf = (shape) => z.preprocess(
  * accepted — and anything else is REFUSED rather than read as "no". A
  * confirmation that silently fails to confirm is worse than one that is
  * missing: the person clicked the button and the server disagreed in silence.
+ * @param {string} message
  */
 const flag = (message) => choice(['true', '1', 'false', '0'], message)
     .transform((v) => v === 'true' || v === '1')
@@ -87,7 +92,10 @@ const scopeWord = () => worded(SCOPE_TEXT).trim().min(1, SCOPE_TEXT).optional();
 const ROW_SCOPE_TEXT = 'Rows are visible to everyone with access, or only to whoever added them';
 const rowScopeWord = () => choice(['all', 'own'], ROW_SCOPE_TEXT);
 
-/** A field a route only carries through: an id minted elsewhere. */
+/**
+ * A field a route only carries through: an id minted elsewhere.
+ * @param {string} message
+ */
 const idText = (message) => worded(message).trim().min(1, message);
 
 /**

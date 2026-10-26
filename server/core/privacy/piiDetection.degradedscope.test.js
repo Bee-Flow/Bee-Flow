@@ -18,7 +18,7 @@
  *   - no degraded_categories at all (older guard)  → fail closed as before
  *   - a degraded result is NEVER cached, including on the new continue path
  *
- * Isolated from the DB: aiAgent + configStore are stubbed in the require cache,
+ * Isolated from the DB: the real configStore reads a table the test fills (testUtils/configRows.js),
  * and a real local HTTP server plays the guard so the full detectPii path runs.
  *
  * Run: node --test server/core/piiDetection.degradedscope.test.js
@@ -30,17 +30,10 @@ const { test, before, after } = require('node:test');
 
 process.env.NODE_ENV = 'test';
 
-function stub(id, exports) {
-    const resolved = require.resolve(id);
-    require.cache[resolved] = { id: resolved, filename: resolved, loaded: true, exports };
-    return resolved;
-}
-stub('../aiAgent', { getAIConfig: async () => ({ piiDetectionEnabled: false, piiDetectionAction: 'block' }) });
-stub('../../stores/configStore', {
-    getConfig: async () => null,
-    getSecret: async () => '',
-    getAllConfig: async () => ({}),
-});
+// The real configStore and aiAgent over a config table the test fills: the AI config is the 'ai' row.
+const { useConfigRows } = require('../../testUtils/configRows');
+const config = useConfigRows();
+config.rows.ai = { piiDetectionEnabled: false, piiDetectionAction: 'block' };
 
 // What the fake guard returns next, and what it was asked for.
 let nextResponse = null;

@@ -14,7 +14,7 @@ const assert = require('node:assert');
 const { execForEachStep } = require('./execFlow');
 
 const STATE = { trigger: { output: {} }, steps: { a1: { output: { items: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] } } }, vars: {}, secrets: {}, loop: {} };
-const step = (tool) => ({ id: 's', type: 'integration_action', tool, forEach: { overRef: 'steps.a1.output.items', itemVar: 'x' } });
+const step = (/** @type {string} */ tool) => ({ id: 's', type: 'integration_action', tool, forEach: { overRef: 'steps.a1.output.items', itemVar: 'x' } });
 
 function measuringLeaf() {
     const seen = { active: 0, max: 0 };

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Context policy — how much of a conversation the model actually gets to see.
  *
@@ -166,8 +166,8 @@ function invalidateContextPolicy(orgId) {
  */
 function contextWindowFor(modelId) {
     // An Azure deployment answers with the window of the model behind it.
-    modelId = require('../providers/azureDeployments').azureModelFor(modelId);
-    const m = String(modelId || '').toLowerCase();
+    const effectiveId = modelId ? require('../providers/azureDeployments').azureModelFor(modelId) : modelId;
+    const m = String(effectiveId || '').toLowerCase();
     if (!m) return 128_000;
 
     // A self-hosted runtime's window is whatever it was started with, and a
@@ -175,7 +175,7 @@ function contextWindowFor(modelId) {
     // 128k on the next. The local adapter records the number llama-server
     // reports (providers/localModels), and that beats every guess below.
     const { localContextWindowFor } = require('../providers/localModels');
-    const reported = localContextWindowFor(modelId);
+    const reported = localContextWindowFor(effectiveId);
     if (reported) return reported;
 
     // Claude windows come from the catalog rather than a regex, for the same

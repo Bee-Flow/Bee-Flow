@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The 409 gate for DELETE /:id — see the explanation below.
  *
@@ -34,9 +34,11 @@ const log = require('../../telemetry/log');
  * back as an empty list, and an empty list is exactly the sentence someone clicks through.
  * That is why a scan that failed here reports ALL kinds as not checked rather than as
  * zero — unknown narrows.
+ * @param {{ id: string, name?: string }} wp
  * @param {string} userId
  */
 async function describeWebpageDeleteBlock(wp, userId) {
+
     let scan;
     try {
         scan = await webpageUsage.usageForWebpage(wp);

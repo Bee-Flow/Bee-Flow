@@ -58,7 +58,7 @@ async function qrDataUrl(otpauth) {
     return QRCode.toDataURL(otpauth, { margin: 1, width: 220 });
 }
 
-/** @param {string} secretPlain @param {string} token */
+/** @param {string | null | undefined} secretPlain @param {string} token */
 function verifyTotp(secretPlain, token) {
     if (!secretPlain || !token) return false;
     const clean = String(token).replace(/\s+/g, '');

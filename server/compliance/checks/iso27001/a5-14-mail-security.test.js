@@ -21,17 +21,17 @@ const check = require('./a5-14-mail-security');
 const saved = { getConfig: isoEvidenceStore.getConfig, listLatestSnapshots: isoEvidenceStore.listLatestSnapshots };
 afterEach(() => Object.assign(isoEvidenceStore, saved));
 
-function stub(config, snaps = []) {
+function stub(/** @type {unknown} */ config, /** @type {unknown[]} */ snaps = []) {
     isoEvidenceStore.getConfig = async () => (typeof config === 'function' ? config() : config);
     isoEvidenceStore.listLatestSnapshots = async () => snaps;
 }
 
-const full = (domain) => ({
+const full = (/** @type {string} */ domain) => ({
     subject_id: domain,
     fetched_at: '2026-10-01T00:00:00Z',
     payload: { domain, spf: { present: true }, dmarc: { present: true, policy: 'reject' }, dkim: { found_selectors: ['google'] } },
 });
-const open = (domain) => ({
+const open = (/** @type {string} */ domain) => ({
     subject_id: domain,
     payload: { domain, spf: { present: false }, dmarc: { present: false }, dkim: { found_selectors: [] } },
 });

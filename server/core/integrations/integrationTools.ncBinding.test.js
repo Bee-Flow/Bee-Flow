@@ -48,7 +48,7 @@ const ncClient = require('../../integrations/nextcloudClient');
 const ent = require('../entitlements/entitlements');
 const { getIntegrationTools } = require('./integrationTools');
 
-function snap({ integration = [] } = {}) {
+function snap(/** @type {{ integration?: string[] }} */ { integration = [] } = {}) {
     return {
         degraded: false,
         tier: 'enterprise',

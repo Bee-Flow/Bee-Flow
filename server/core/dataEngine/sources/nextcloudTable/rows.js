@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * One Nextcloud row → one mirror row: `{ id, values }`.
  *
@@ -21,7 +21,8 @@ const { cellToLocal } = require('./values');
  */
 function mirrorRowFromNc(ncRow, ctx) {
     const byColumnId = new Map();
-    for (const cell of Array.isArray(ncRow && ncRow.data) ? ncRow.data : []) {
+    const cells = ncRow && ncRow.data;
+    for (const cell of Array.isArray(cells) ? cells : []) {
         if (cell && cell.columnId !== undefined) byColumnId.set(String(cell.columnId), cell.value);
     }
     return deriveRow(String(ncRow.id), {

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Dry-run taint: which binding roots read synthesized data.
  *
@@ -59,7 +59,7 @@ test('a step whose only tainted input is bracketed is synthetic', () => {
 });
 
 test('a formula read behind a minus sign is tainted (the runner reads it as minus, then the path)', () => {
-    const synthetic = (value, ctx = CTX) => stepInputsSynthetic({ inputs: { v: { kind: 'expr', value } } }, RUN, ctx);
+    const synthetic = (/** @type {unknown} */ value, ctx = CTX) => stepInputsSynthetic({ inputs: { v: { kind: 'expr', value } } }, RUN, ctx);
     for (const f of ['-steps.read.output.n', '100-steps.read.output.n', 'abs(-steps.read.output.n)', '10*-steps.read.output.n', 'x-loop.msg.id']) {
         assert.strictEqual(synthetic(f), true, f);
     }

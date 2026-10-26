@@ -120,7 +120,7 @@ function cleanStage(raw, index, { interpolate = null } = {}) {
  * is treated as met (the caller does not support conditions); a stage whose
  * condition evaluates false is kept and marked `skipped`.
  */
-function desugarApprovalStages(cfg, { interpolate = null, evaluateWhen = null } = {}) {
+function desugarApprovalStages(cfg, /** @type {{ interpolate?: ((text: string) => string) | null, evaluateWhen?: ((expr: unknown) => boolean) | null }} */ { interpolate = null, evaluateWhen = null } = {}) {
     const a = (cfg && typeof cfg === 'object') ? cfg : {};
 
     let authored = null;

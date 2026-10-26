@@ -2672,6 +2672,10 @@
             "id": "AAMkAGI2…",
             "@odata.type": "#Microsoft.Graph.Message"
           }
+        },
+        {
+          "key": "mailbox",
+          "sample": "me"
         }
       ],
       "sample": {
@@ -2681,7 +2685,8 @@
         "resourceData": {
           "id": "AAMkAGI2…",
           "@odata.type": "#Microsoft.Graph.Message"
-        }
+        },
+        "mailbox": "me"
       }
     },
     "msgraph.mail.flagged": {

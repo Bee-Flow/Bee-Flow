@@ -12,7 +12,7 @@ const metrics = require('./httpMetrics');
 test('eventLoopDelayMs returns numeric quantiles', () => {
     const eld = metrics.eventLoopDelayMs();
     for (const q of ['p50', 'p99', 'max', 'mean']) {
-        assert.strictEqual(typeof eld[q], 'number', `${q} is a number`);
+        assert.strictEqual(typeof /** @type {Record<string, unknown>} */ (eld)[q], 'number', `${q} is a number`);
         assert.ok(eld[q] >= 0, `${q} is non-negative`);
         assert.ok(Number.isFinite(eld[q]), `${q} is finite`);
     }

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * stores/notebook/notebooks.js — notebook CRUD: create, read (owner or
  * project member), the single content-write choke point with its Markdown
@@ -85,9 +85,7 @@ async function getNotebooks(userId, { limit = 50, offset = 0, type } = {}) {
     return rows.map(mapNotebookRow);
 }
 
-/**
- * @param {string} userId
- */
+/** @param {string} userId */
 async function listNotebookCards(userId, opts = {}) {
     await initDB();
     const { sql, params } = buildListCardsQuery(userId, opts);
@@ -209,7 +207,7 @@ async function updateNotebookLocked(id, userId, updates, client, lockedRow) {
         //     itself is still saved either way; losing the user's edit would be
         //     far worse than a stale mirror.
         let md = updates.documentMd;
-        /** @type {string} */
+        /** @type {string | undefined} */
         let derivedFormat;
         if (md === undefined) {
             const body = docContent;
@@ -296,7 +294,7 @@ async function updateNotebookLocked(id, userId, updates, client, lockedRow) {
     const written = contentChanged && await isCoEdited(client, 'notebook', id) ? null : await client.query(sql, params);
     if (!written) return { ok: false, conflict: true, coEdited: true };
     const { rowCount, rows } = written;
-    if (rowCount > 0) return { ok: true, conflict: false, version: rows && rows[0] ? rows[0].version : undefined };
+    if ((rowCount ?? 0) > 0) return { ok: true, conflict: false, version: rows && rows[0] ? rows[0].version : undefined };
     if (typeof updates.expectedVersion !== 'number') return { ok: false, conflict: false };
     // rowCount 0 with a version predicate is ambiguous: either the row moved
     // under us (conflict) or the caller may not write it at all (not found).

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * A `find_rows` cursor stored as a bare "{{…}}" string — the shape the AI
  * builder used to store — is a template, read like the binding it stands for.

@@ -1,5 +1,5 @@
 /** @typedef {import('url').URL} URL */
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * OpenObserve monitoring connector — is the org's log platform actually
  * receiving data, retaining it, and wired to alert someone (A.8.16
@@ -69,6 +69,7 @@ module.exports = {
 
     /** @param {import('./index').CollectArgs} args */
     async collect({ secret, settings, safeFetch }) {
+        if (!safeFetch) throw new Error('openobserve: the collector was not given an SSRF-guarded fetch');
         const base = String(settings?.base_url || '').trim().replace(/\/+$/, '');
         if (!base) return [];
         /** @type {URL} */

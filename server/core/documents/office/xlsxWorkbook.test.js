@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Cell values in the .xlsx writer: text is text, a formula is only what the
  * caller marks as one ({ formula }).
@@ -12,9 +12,9 @@ const JSZip = require('jszip');
 const { buildXlsxWorkbook } = require('./xlsxWorkbook');
 const { rowsToMatrix } = require('./officegen');
 
-async function sheetXml(sheets, opts) {
+async function sheetXml(/** @type {unknown} */ sheets, /** @type {unknown} */ opts = undefined) {
     const zip = await JSZip.loadAsync(await buildXlsxWorkbook(sheets, opts));
-    return zip.file('xl/worksheets/sheet1.xml').async('string');
+    return zip.file('xl/worksheets/sheet1.xml')?.async('string');
 }
 
 test('text starting with = + - @ tab or CR is written as a text cell', async () => {
@@ -58,7 +58,7 @@ test('sheet names follow the Excel rules', async () => {
         { name: "''", matrix: [] },
         { name: '', matrix: [] },
     ]));
-    const wb = await zip.file('xl/workbook.xml').async('string');
+    const wb = await zip.file('xl/workbook.xml')?.async('string');
     const names = [...wb.matchAll(/<sheet name="([^"]*)"/g)].map((m) => m[1]);
     assert.strictEqual(names.length, 7);
     for (const n of names) {

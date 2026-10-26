@@ -99,6 +99,7 @@ const { makeTurnUsageLogger } = require('./usageAccounting');
 const { runBuildLoop } = require('./buildLoop');
 const { handleProposedPlan, runAutoFinalizeNet, persistTurnSnapshot, classifyTurnOutcome } = require('./turnClosing');
 const { bestEffort } = require('../../../utils/bestEffort');
+const { sessionUser } = require('../../../core/http/sessionUser');
 
 // Each builder turn is a multi-iteration LLM conversation chaining many tool
 // calls — expensive. Same ceiling as the automation builder: 12/min/user.
@@ -115,7 +116,7 @@ const MAX_ITERATIONS = 24;
 const MAX_CHECKPOINTS_PER_TURN = 5;
 
 router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     // Wall-clock start of the turn — feeds the usage row's duration_ms and the
     // structured observability line (Wave 6c). Set before any SSE so a turn that
     // dies mid-stream still reports a real duration from the outer catch.

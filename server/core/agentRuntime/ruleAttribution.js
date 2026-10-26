@@ -356,7 +356,7 @@ function withTimeout(promise, ms, label) {
  * @param {boolean} p.testChat     `testChat.isTestChat(messageMetadata)`. Anything
  *                                 that is not literally `true` is not a pass —
  *                                 see the header on why this flag lives here.
- * @param {object} p.persona       the DRAFT persona (`getAgent(id).persona`)
+ * @param {object | null | undefined} p.persona       the DRAFT persona (`getAgent(id).persona`)
  * @param {object} p.configInfo    `testChat.testChatConfigInfo(agent)`, or the
  *                                 `versionInfo(views)` of routes/agents/tests.js
  * @param {string} p.answer        the agent's answer

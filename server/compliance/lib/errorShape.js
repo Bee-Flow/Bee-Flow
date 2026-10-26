@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -48,7 +48,7 @@ function stackFrames(e) {
     const message = typeof e?.message === 'string' ? e.message : '';
     const at = message ? stack.indexOf(message) : -1;
     if (at !== -1) stack = stack.slice(0, at) + stack.slice(at + message.length);
-    return stack.split('\n').filter(line => /^\s+at\s/.test(line)).slice(0, 12).join('\n');
+    return stack.split('\n').filter((/** @type {string} */ line) => /^\s+at\s/.test(line)).slice(0, 12).join('\n');
 }
 
 module.exports = { errorShape, errorLabel, stackFrames };

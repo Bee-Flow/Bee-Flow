@@ -255,16 +255,13 @@ test('every tier is reported, not just the selectable ones', async () => {
 // encryption on — and its SSO users were shown "Set Up Data Encryption" and
 // asked for a PIN protecting nothing.
 
-/** Run fn with userStore mocked to resolve `users`. */
+/** Run fn with the user store's getUser mocked to resolve `users`. */
 async function withUsers(users, fn) {
-    const usPath = require.resolve(path.join(__dirname, 'userStore'));
-    const prev = require.cache[usPath];
-    require.cache[usPath] = {
-        id: 'us-mock', filename: 'us-mock', loaded: true,
-        exports: { async getUser(id) { return users[id] || null; } },
-    };
+    const userModule = require('./user/users');
+    const prev = userModule.getUser;
+    userModule.getUser = async (id) => users[id] || null;
     try { return await fn(); } finally {
-        if (prev) require.cache[usPath] = prev; else delete require.cache[usPath];
+        userModule.getUser = prev;
     }
 }
 

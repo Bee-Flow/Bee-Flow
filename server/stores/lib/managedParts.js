@@ -155,7 +155,10 @@ function makeManagedParts(deps) {
 
     const toInfo = (s) => (s ? { solutionId: s.solutionId, stage: s.stage, stageProjectId: s.projectId } : null);
 
-    /** null | {solutionId, stage, stageProjectId}, through the cached stage lookup. */
+    /**
+     * null | {solutionId, stage, stageProjectId}, through the cached stage lookup.
+     * @param {string | null | undefined} projectId
+     */
     async function managedInfo(projectId) {
         if (typeof projectId !== 'string' || !projectId) return null;
         return toInfo(await stageOfProject(projectId));
@@ -165,6 +168,7 @@ function makeManagedParts(deps) {
      * The stage a knowledge base is managed by (stamped into, or listed on, a
      * stage project), with its content mode, or null.
      *
+     * @param {string | null | undefined} kbId
      * @returns {Promise<null|{solutionId: string, stage: string, stageProjectId: string, ref: string|null, contentMode: 'shell'|'carry'}>}
      */
     async function managedInfoForKb(kbId) {
@@ -175,7 +179,10 @@ function makeManagedParts(deps) {
         return info ? { ...info, ref: hit.ref ?? null, contentMode: hit.contentMode === 'carry' ? 'carry' : 'shell' } : null;
     }
 
-    /** True when `managedWrite` names an active deployment of exactly this stage project. */
+    /**
+     * True when `managedWrite` names an active deployment of exactly this stage project.
+     * @param {{ managedWrite?: { deploymentId?: string } | null, projectId: string, client?: DbQueryable | null }} args
+     */
     async function hasCapability({ managedWrite, projectId, client = null }) {
         const deploymentId = managedWrite && typeof managedWrite === 'object' ? managedWrite.deploymentId : null;
         if (typeof deploymentId !== 'string' || !deploymentId || !projectId) return false;

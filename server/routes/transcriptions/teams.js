@@ -22,6 +22,7 @@ const { validate } = require('../../core/http/validate');
 const { worded, bodyOf, bool, NO_QUERY } = require('./schemas');
 const { lazyDeps } = require('../../core/meetingNotes/lazyDeps');
 const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 /** Collaborators, loaded on first use; tests swap them through `router.init()`. */
 const { deps: d, init } = lazyDeps({
@@ -66,7 +67,7 @@ const TEAMS_ERROR_STATUS = {
  * @param {import('express').Request} req
  */
 async function resolveTeamsSession(req) {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     let credential = null;
     try {
         credential = await d.credentialStore.getCredential(userId, 'microsoft');
@@ -96,7 +97,7 @@ const FromTeamsBody = bodyOf({
 });
 
 router.get('/teams-meetings', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const orgId = await resolveUserOrgFromReq(req);
     const settings = await d.settings.resolveTeamsNotesSettings({ orgId, userId });
     const { session, connection } = await resolveTeamsSession(req);
@@ -145,7 +146,7 @@ router.get('/teams-meetings', requireAuth, validate({ query: NO_QUERY }), async 
 // switches on Teams' own "record automatically" when the settings ask for it;
 // that outcome is reported in `autoRecordingConfig` and never fails the PATCH.
 router.patch('/teams-meetings/:eventId', requireAuth, validate({ body: TeamsPrefBody, query: NO_QUERY }), /** @param {import('express').Request<{ eventId: string }>} req @param {import('express').Response} res */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const { eventId } = req.params;
     const { record, seriesMasterId, applyToSeries } = req.body;
     const orgId = await resolveUserOrgFromReq(req);
@@ -188,7 +189,7 @@ router.patch('/teams-meetings/:eventId', requireAuth, validate({ body: TeamsPref
 });
 
 router.get('/teams-imports', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
-    const jobs = await d.importStore.listRecentJobsForUser(req.session.user.id, 7);
+    const jobs = await d.importStore.listRecentJobsForUser(sessionUser(req).id, 7);
     res.json({
         items: jobs.map(j => ({
             id: j.id,
@@ -207,7 +208,7 @@ router.get('/teams-imports', requireAuth, validate({ query: NO_QUERY }), async (
 // organized, with whether Teams has a recording or transcript for them
 // ('available' | 'transcript_only' | 'processing' | 'none').
 router.get('/teams-recordings', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const { session, connection } = await resolveTeamsSession(req);
     if (!session || !connection.teamsScopesGranted) return res.json({ connection, items: [] });
 
@@ -250,7 +251,7 @@ router.get('/teams-recordings', requireAuth, validate({ query: NO_QUERY }), asyn
 // Manual import of a finished Teams meeting. 202 { jobId, status } when Teams
 // has not finished processing the recording yet; classified 4xx otherwise.
 router.post('/from-teams', requireAuth, validate({ body: FromTeamsBody, query: NO_QUERY }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const { event_id, language, context_terms } = req.body;
     req.setTimeout(600000); res.setTimeout(600000);
 

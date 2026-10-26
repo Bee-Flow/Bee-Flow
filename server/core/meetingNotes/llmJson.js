@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Tolerant JSON extraction from LLM replies — pure, no deps.
  *
@@ -17,7 +17,7 @@
  * Parse a JSON array from an LLM reply, salvaging a truncated tail.
  *
  * @param {string} content Raw model reply.
- * @returns {{ value: Array, salvaged: boolean }|null} null when nothing usable.
+ * @returns {{ value: Array<Record<string, any>>, salvaged: boolean }|null} null when nothing usable.
  */
 function parseJsonArray(content) {
     const slice = sliceBetween(content, '[', ']');
@@ -90,6 +90,7 @@ function tryParse(text) {
     try { return JSON.parse(text); } catch (_) { return undefined; }
 }
 
+/** @param {unknown} v */
 function isPlainObject(v) {
     return v !== null && typeof v === 'object' && !Array.isArray(v);
 }

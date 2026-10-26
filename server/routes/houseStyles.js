@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * House Styles API
  *
@@ -93,6 +93,7 @@ async function isOrgMember(req, orgId) {
 }
 
 const { isOrgAdminForOrg: isOrgAdmin } = require('../auth/permissions');
+const { sessionUser } = require('../core/http/sessionUser');
 
 // ── List ───────────────────────────────────────────────────────────
 router.get('/:orgId', requireAuth, async (/** @type {import('express').Request<{ orgId: string }>} */ req, res) => {
@@ -151,7 +152,7 @@ router.post('/:orgId', requireAuth, upload.single('file'), validate({ body: Uplo
         description,
         docxBuffer: req.file.buffer,
         styleMeta,
-        createdBy: req.session.user.id,
+        createdBy: sessionUser(req).id,
         makeDefault,
     });
     res.status(201).json(created);

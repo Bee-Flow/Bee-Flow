@@ -132,3 +132,28 @@ test('hydrateMicrosoftSessionFromVault still never mixes providers', async () =>
     assert.strictEqual(session.oauthProvider, 'google');
     assert.strictEqual(session.accessToken, 'google-at');
 });
+
+// ── A shared mailbox needs the .Shared scopes ───────────────────────────────
+
+test('shared mailbox: a Microsoft login without the .Shared scopes gives way to a vault credential that has them', async () => {
+    credFixture = { userId: 'u1', orgId: 'o1', accessToken: 'vault-at', refreshToken: 'vault-rt', scope: 'Mail.Read Mail.Send Mail.Read.Shared Mail.Send.Shared' };
+    const sso = { user: { id: 'u1' }, oauthProvider: 'microsoft', accessToken: 'sso-at', oauthScope: 'openid Mail.Read Mail.Send' };
+    const shim = await resolveMicrosoftSession(sso, null, { needsSharedMailbox: true });
+    assert.notStrictEqual(shim, sso);
+    assert.strictEqual(shim.accessToken, 'vault-at');
+    assert.strictEqual(sso.accessToken, 'sso-at', 'the login session is left alone');
+    // Without the need, the login session is used as it always was.
+    assert.strictEqual(await resolveMicrosoftSession(sso), sso);
+});
+
+test('shared mailbox: the login session stays when it already has the scopes, records none, or the vault has nothing better', async () => {
+    const granted = { user: { id: 'u1' }, oauthProvider: 'microsoft', accessToken: 'sso-at', oauthScope: 'Mail.Read.Shared Mail.Send.Shared' };
+    assert.strictEqual(await resolveMicrosoftSession(granted, null, { needsSharedMailbox: true }), granted);
+    const unknown = { user: { id: 'u1' }, oauthProvider: 'microsoft', accessToken: 'sso-at' };
+    assert.strictEqual(await resolveMicrosoftSession(unknown, null, { needsSharedMailbox: true }), unknown);
+    assert.strictEqual(lookups.length, 0, 'no vault read when the session can already say');
+    credFixture = { userId: 'u1', orgId: 'o1', accessToken: 'vault-at', scope: 'Mail.Read' };
+    const narrow = { user: { id: 'u1' }, oauthProvider: 'microsoft', accessToken: 'sso-at', oauthScope: 'Mail.Read' };
+    assert.strictEqual(await resolveMicrosoftSession(narrow, null, { needsSharedMailbox: true }), narrow,
+        'then the tool answers with the reconnect message');
+});

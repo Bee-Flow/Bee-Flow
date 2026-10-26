@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 /**
@@ -115,9 +115,7 @@ async function requireCapability(c, hits, managedWrite) {
  * @param {Record<string, any> | null | undefined} next
  */
 function changedTableIds(before, next) {
-    /**
-     * @param {Record<string, any> | null | undefined} m
-     */
+    /** @param {Record<string, any> | null | undefined} m */
     const index = (m) => {
         /** @type {Map<string, string>} */
         const out = new Map();
@@ -167,9 +165,7 @@ async function mirrorReconcileExemptIds(c, before, next, ids) {
         const a = entryOf(before, row.id);
         const b = entryOf(next, row.id);
         if (!a || !b) continue;
-        /**
-         * @param {Record<string, any>} t
-         */
+        /** @param {Record<string, any>} t */
         const strip = (t) => {
             const { fields: _fields, ...rest } = t;
             if (b.name === row.name) delete rest.name;

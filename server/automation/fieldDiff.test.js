@@ -14,7 +14,7 @@ const {
     fieldDiff, describeChange, describeVersion, describeText, isLayoutOnlyChange, stepIdsOf, stepNumbers, toolLabel, stripLayout,
 } = require('./fieldDiff');
 
-const clone = (x) => JSON.parse(JSON.stringify(x));
+const clone = (/** @type {unknown} */ x) => JSON.parse(JSON.stringify(x));
 
 // Start → Read invoice → Summarise, the shape of the 5d artboard.
 const BASE = {
@@ -83,7 +83,7 @@ test('an added step: the kind of step as "after", step_added, and it counts in s
 
 test('a removed step, and the step after it "moved": connections changed', () => {
     const next = clone(BASE);
-    next.steps = next.steps.filter((s) => s.id !== 'read');
+    next.steps = next.steps.filter((/** @type {{ id: string }} */ s) => s.id !== 'read');
     next.edges = [{ from: 'trg', to: 'sum' }];
     const changes = fieldDiff(BASE, next);
     const removed = changes.find((c) => c.change === 'removed');

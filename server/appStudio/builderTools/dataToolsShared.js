@@ -84,7 +84,7 @@ function tableIdHint(model) {
  *   { invalid:true, errors }      — validateDataModel rejected (self-repair)
  *   { error }                     — persistent conflict / not found / store failure
  */
-async function persistDataModel(draftWrap, nextModel, { rebase = null } = {}) {
+async function persistDataModel(draftWrap, nextModel, /** @type {{ rebase?: ((serverModel: Record<string, unknown>) => Record<string, unknown> | null) | null }} */ { rebase = null } = {}) {
     if (!draftWrap.appId) {
         const created = await persistDraft(draftWrap);
         if (created.error) return created;

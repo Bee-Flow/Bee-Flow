@@ -38,11 +38,14 @@ const MAX_COLUMNS_PER_DATATABLE = 200;
 
 // ── Reading a (possibly junk) stored config ─────────────────────────
 
+/** @param {unknown} v */
 function _plainObject(v) {
     return !!v && typeof v === 'object' && !Array.isArray(v);
 }
 
-/** The `tools` map of a config, or null when there is nothing usable there. */
+/**
+ * The `tools` map of a config, or null when there is nothing usable there.
+ */
 function toolsConfigOf(config) {
     if (!_plainObject(config)) return null;
     return _plainObject(config.tools) ? config.tools : null;

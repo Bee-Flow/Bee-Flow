@@ -31,6 +31,7 @@
 
 const { run, getOne, getAll, exec } = require('../db');
 const { runDdl } = require('./lib/_ddl');
+const { makeStoreInit } = require('./lib/storeInit');
 const { buildUpdate } = require('./lib/sqlBuilder');
 
 const SOURCE_KINDS = Object.freeze([
@@ -44,8 +45,6 @@ const AUTO_REFRESH_MODES = Object.freeze(['schedule', 'on_change', 'after_meetin
 
 const DEFAULT_STALE_MINUTES = 15;
 const MAX_ERROR_LEN = 500;
-
-let schemaPromise = null;
 
 async function createSchema() {
     await exec(`
@@ -101,12 +100,7 @@ async function createSchema() {
  * `knowledge_bases` to exist — call from knowledgeBases.initDB(), or rely on
  * initDB() below which waits for the parent first.
  */
-function ensureSchema() {
-    if (!schemaPromise) {
-        schemaPromise = createSchema().catch((e) => { schemaPromise = null; throw e; });
-    }
-    return schemaPromise;
-}
+const ensureSchema = makeStoreInit('KbSources', createSchema);
 
 async function initDB() {
     // The parent store creates knowledge_bases + documents and calls

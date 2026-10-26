@@ -10,7 +10,7 @@ test('the review counts the app\'s public links from studio_app_public_pages', a
         playbookStore: { savePhases: async () => ({ ok: true, version: 2 }) },
         studioAppStore: {
             getStudioApp: async () => ({ id: 'app1', userId: 'me', name: 'App', isPublished: true }),
-            listPublicPages: async (appId) => (appId === 'app1' ? [{ id: 't1' }, { id: 't2' }] : []),
+            listPublicPages: async (/** @type {string} */ appId) => (appId === 'app1' ? [{ id: 't1' }, { id: 't2' }] : []),
         },
         studioAppDataStore: { getDataModel: async () => null, listMembers: async () => [] },
         frameworkPolicy: { activeRegulations: async () => new Set() },

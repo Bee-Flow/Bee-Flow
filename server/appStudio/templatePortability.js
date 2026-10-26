@@ -133,7 +133,7 @@ function exportFilename(template) {
  * that the recipient will have to wire up.
  * @param {ResolvedTemplate} template
  */
-function buildExport(template, { exportedAt = null, source = null } = {}) {
+function buildExport(template, /** @type {{ exportedAt?: string | null, source?: unknown }} */ { exportedAt = null, source = null } = {}) {
     /** @type {string[]} */
     const warnings = [];
     if (!isObject(template)) {
@@ -147,7 +147,7 @@ function buildExport(template, { exportedAt = null, source = null } = {}) {
     for (const field of TEMPLATE_PAYLOAD_FIELDS) {
         if (template[field] !== undefined) out[field] = deepClone(template[field]);
     }
-    out.version = Number.isInteger(template.version) && template.version > 0 ? template.version : 1;
+    out.version = typeof template.version === 'number' && Number.isInteger(template.version) && template.version > 0 ? template.version : 1;
     out.title = claimText(template.title, 80) || 'App template';
     out.tags = Array.isArray(out.tags) ? out.tags.filter((t) => typeof t === 'string') : [];
 

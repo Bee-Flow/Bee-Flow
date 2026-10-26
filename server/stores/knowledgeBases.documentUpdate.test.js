@@ -12,35 +12,24 @@
  * Run: cd server && node --test --test-force-exit stores/knowledgeBases.documentUpdate.test.js
  */
 
-const { test, before, beforeEach, after } = require('node:test');
+const { test, before, beforeEach } = require('node:test');
 const assert = require('node:assert');
 
 process.env.NODE_ENV = 'test';
 
-const { installResolveStub } = require('../testUtils/stubRequire');
+const { recordDb } = require('../testUtils/routeHarness');
 
-const calls = { getOne: [] };
-const stub = {
-    async exec() {},
-    async run() { return { rowCount: 0, rows: [] }; },
-    async getOne(sql, params) {
-        calls.getOne.push({ sql, params });
-        return { id: 'doc-1', title: 'stored title' };
-    },
-    async getAll() { return []; },
-    async getClient() { return null; },
-};
-
-const restore = installResolveStub({ '../db': stub });
-after(() => restore());
+// The real db.js over a recording pool: every statement the store sends is kept
+// with its params, and each one answers the stored row.
+const db = recordDb(() => ({ rows: [{ id: 'doc-1', title: 'stored title' }] }));
 
 const kb = require('./knowledgeBases');
 
-before(async () => { await kb.initDB(); calls.getOne.length = 0; });
-beforeEach(() => { calls.getOne.length = 0; });
+before(async () => { await kb.initDB(); db.reset(); });
+beforeEach(db.reset);
 
-const lastSql = () => calls.getOne[calls.getOne.length - 1].sql;
-const lastParams = () => calls.getOne[calls.getOne.length - 1].params;
+const lastSql = () => db.calls[db.calls.length - 1].sql;
+const lastParams = () => db.calls[db.calls.length - 1].params;
 
 test('an empty patch still stamps updated_at and returns the row', async () => {
     const row = await kb.replaceDocumentContent('doc-1', {});

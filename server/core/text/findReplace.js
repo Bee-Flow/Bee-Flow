@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Find-and-replace over a text slot, for tools an LLM drives.
  *
@@ -124,7 +124,7 @@ function locateOriginalRange(original, needle) {
             lastWasSpace = false;
         }
     }
-    const trimmedStart = normalized.match(/^\s*/)[0].length;
+    const trimmedStart = normalized.length - normalized.trimStart().length;
     normalized = normalized.trim();
 
     const hit = normalized.indexOf(normNeedle);

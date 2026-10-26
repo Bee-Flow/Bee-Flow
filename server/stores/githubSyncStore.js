@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * GitHub Sync Store — PostgreSQL-backed sync state tracking
  *
@@ -37,6 +37,7 @@ async function _initDB() {
 
 // ── Config key helpers ───────────────────────────────────────────
 
+/** @param {string} orgId */
 function _configKey(orgId) { return `github_sync_config_${orgId}`; }
 
 // ── Org Sync Configuration ───────────────────────────────────────
@@ -44,6 +45,7 @@ function _configKey(orgId) { return `github_sync_config_${orgId}`; }
 /**
  * Get the GitHub sync configuration for an organization.
  * Returns null if not configured.
+ * @param {string} orgId
  */
 async function getOrgSyncConfig(orgId) {
     const raw = await configStore.getConfig(_configKey(orgId));
@@ -62,6 +64,8 @@ async function getOrgSyncConfig(orgId) {
 
 /**
  * Save GitHub sync configuration for an organization.
+ * @param {string} orgId
+ * @param {Record<string, unknown>} config
  */
 async function setOrgSyncConfig(orgId, config) {
     await configStore.setConfig(_configKey(orgId), {
@@ -77,6 +81,7 @@ async function setOrgSyncConfig(orgId, config) {
 
 /**
  * Remove GitHub sync configuration for an organization.
+ * @param {string} orgId
  */
 async function deleteOrgSyncConfig(orgId) {
     await configStore.deleteConfig(_configKey(orgId));
@@ -90,6 +95,7 @@ async function deleteOrgSyncConfig(orgId) {
  * Mark a resource as needing sync (called after create/update/delete).
  * @param {string} resourceType
  * @param {string} resourceId
+ * @param {string} orgId
  */
 async function markPending(orgId, resourceType, resourceId) {
     await initDB();
@@ -106,6 +112,7 @@ async function markPending(orgId, resourceType, resourceId) {
  * Mark a resource as 'deleted' — pending removal from GitHub.
  * @param {string} resourceType
  * @param {string} resourceId
+ * @param {string} orgId
  */
 async function markDeleted(orgId, resourceType, resourceId) {
     await initDB();
@@ -122,6 +129,9 @@ async function markDeleted(orgId, resourceType, resourceId) {
  * Update sync state after a successful push.
  * @param {string} resourceType
  * @param {string} contentSha
+ * @param {string} orgId
+ * @param {string} resourceId
+ * @param {string | null | undefined} commitSha
  */
 async function markSynced(orgId, resourceType, resourceId, contentSha, commitSha) {
     await initDB();
@@ -140,6 +150,8 @@ async function markSynced(orgId, resourceType, resourceId, contentSha, commitSha
  * Mark a resource sync as errored.
  * @param {string} resourceType
  * @param {string} errorMessage
+ * @param {string} orgId
+ * @param {string} resourceId
  */
 async function markError(orgId, resourceType, resourceId, errorMessage) {
     await initDB();
@@ -153,6 +165,8 @@ async function markError(orgId, resourceType, resourceId, errorMessage) {
 /**
  * Get sync state for a single resource.
  * @param {string} resourceType
+ * @param {string} orgId
+ * @param {string} resourceId
  */
 async function getSyncState(orgId, resourceType, resourceId) {
     await initDB();
@@ -166,6 +180,7 @@ async function getSyncState(orgId, resourceType, resourceId) {
  * Get all resources that need a (re)push for an org — pending, errored, or
  * deleted. Errored items are included so an incremental "Push Pending" retries
  * previously-failed pushes instead of leaving them stuck.
+ * @param {string} orgId
  */
 async function getPendingChanges(orgId) {
     await initDB();
@@ -177,6 +192,7 @@ async function getPendingChanges(orgId) {
 
 /**
  * Get full sync overview for an org (counts by status).
+ * @param {string} orgId
  */
 async function getSyncOverview(orgId) {
     await initDB();
@@ -197,6 +213,7 @@ async function getSyncOverview(orgId) {
 
 /**
  * Get all sync states for an org (for detailed UI display).
+ * @param {string} orgId
  */
 async function getAllSyncStates(orgId) {
     await initDB();
@@ -209,6 +226,8 @@ async function getAllSyncStates(orgId) {
 /**
  * Remove sync state record (after file deleted from GitHub).
  * @param {string} resourceType
+ * @param {string} orgId
+ * @param {string} resourceId
  */
 async function removeSyncState(orgId, resourceType, resourceId) {
     await initDB();
@@ -220,6 +239,7 @@ async function removeSyncState(orgId, resourceType, resourceId) {
 
 /**
  * Update the last full sync timestamp on the org config.
+ * @param {string} orgId
  */
 async function updateLastFullSync(orgId) {
     const config = await getOrgSyncConfig(orgId);

@@ -238,8 +238,27 @@ async function getAllCachedModelIds() {
     return result;
 }
 
-// Get the provider config for a specific model
-// This queries all providers to find which one owns the model
+/**
+ * The AI config record the chat paths read: the default provider's, or the one that owns a model.
+ * @typedef {{
+ *   url: string, model: string, apiKey: string,
+ *   providerType?: string | null, providerId?: string, providerName?: string,
+ *   mistralApiKey?: string | null, lakeraApiKey?: string, mistralOcrApiKey?: string | null,
+ *   regexGuardrails?: { enabled?: boolean, action?: string, rules?: { id: string, pattern?: string, name?: string, [k: string]: unknown }[], collections?: { id: string, name?: string, ruleIds?: string[], [k: string]: unknown }[], [k: string]: unknown } | null,
+ *   piiFailureMode?: string,
+ *   piiDetectionEnabled?: boolean, piiDetectionCategories?: string[] | null, piiDetectionConfidenceThreshold?: number,
+ *   piiDetectionAction?: string, piiDetectionScope?: { userInput: boolean, agentOutput: boolean },
+ *   embeddingModel?: string | null, embeddingProviderId?: string | null,
+ *   providers?: unknown[], defaultProviderId?: string | null,
+ *   project?: string | null, location?: string | null, serviceAccountKey?: string | null,
+ * }} AIConfig
+ */
+
+/**
+ * The provider config for a specific model: queries all providers to find which one owns it.
+ * @param {string} modelId
+ * @returns {Promise<AIConfig>}
+ */
 async function getProviderForModel(modelId) {
     // Resolve display names to model IDs
     modelId = resolveModelId(modelId) || modelId;

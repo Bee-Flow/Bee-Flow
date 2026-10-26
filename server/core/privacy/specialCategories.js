@@ -29,7 +29,7 @@ const SPECIAL_KINDS = Object.freeze(['health']);
 
 /**
  * Whether one category, in any spelling a producer has used, is a special category.
- * @param {string | ParsedQs | (string | ParsedQs)[] | undefined} category
+ * @param {string | ParsedQs | (string | ParsedQs)[] | null | undefined} category
  */
 function isSpecialCategory(category) {
     if (category === null || category === undefined || String(category).trim() === '') return false;

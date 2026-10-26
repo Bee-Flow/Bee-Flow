@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The organisation's MCP access policy. Org admins only, on their own org.
  *
@@ -15,6 +15,7 @@ const { requirePrimaryOrgAdmin } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
 const { PolicySchema, getOrgMcpPolicy, saveOrgMcpPolicy } = require('../auth/mcpAccess/orgPolicy');
 const { z, onUnknownKeys } = require('../utils/zod');
+const { sessionUser } = require('../core/http/sessionUser');
 
 const router = express.Router();
 
@@ -26,7 +27,7 @@ router.get('/', requirePrimaryOrgAdmin(), validate({ query: NO_QUERY }), async (
 });
 
 router.put('/', requirePrimaryOrgAdmin(), validate({ body: PolicySchema }), async (req, res) => {
-    const policy = await saveOrgMcpPolicy(req.primaryOrgId, req.body, req.session.user.id);
+    const policy = await saveOrgMcpPolicy(req.primaryOrgId, req.body, sessionUser(req).id);
     res.json({ policy });
 });
 

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * YouTrack connector — change/work-tracking evidence for A.8.32: recent
  * issue activity in the designated operations project shows that changes
@@ -42,6 +42,7 @@ module.exports = {
             '$top': '100',
         });
 
+        if (!safeFetch) throw new Error('youtrack: the collector was not given an SSRF-guarded fetch');
         const res = await safeFetch(`${baseUrl}/api/issues?${params}`, {
             headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
         });

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Deployment / maintenance window announcements.
  *
@@ -67,7 +67,7 @@ function _clampEta(etaSeconds) {
  */
 function _isActive(win, now = Date.now()) {
     if (!win || typeof win !== 'object') return false;
-    const endsAt = Date.parse(win.endsAt);
+    const endsAt = Date.parse(win.endsAt ?? '');
     if (!Number.isFinite(endsAt)) return false;
     return endsAt > now;
 }

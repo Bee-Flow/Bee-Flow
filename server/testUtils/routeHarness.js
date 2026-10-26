@@ -40,29 +40,34 @@ const USER = { id: 'u1', organizationId: 'org1', role: 'user', email: 'u1@exampl
 
 // Schema bootstrap the stores run on their own, whenever they are first
 // loaded or used: DDL, the transaction and lock plumbing around it, and the
-// catalogue reads that decide whether a migration is needed. None of it is a
-// request reaching a store, so `queries` leaves it out.
-const BOOTSTRAP = /^\s*(CREATE|ALTER|DROP|COMMENT|BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE|SET|DO\b)|pg_advisory|information_schema|pg_catalog|pg_extension|pg_indexes|to_regclass/i;
+// catalogue reads that decide whether a migration is needed, and the schema
+// ledger's reads and writes (schema_migrations, stores/lib/ddlLedger.js). None
+// of it is a request reaching a store, so `queries` leaves it out.
+const BOOTSTRAP = /^\s*(CREATE|ALTER|DROP|COMMENT|BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE|SET|DO\b)|pg_advisory|information_schema|pg_catalog|pg_extension|pg_indexes|to_regclass|\bschema_migrations\b/i;
 
 /**
  * Record every query instead of sending it. `answer(sql, params)` may return a
  * `{ rows }` result for the query; anything else answers no rows. `queries`
- * holds the ones that read or write data, `all` every statement.
+ * holds the ones that read or write data, `calls` the same with their params,
+ * `all` every statement.
+ *
+ * @param {(sql: string, params?: any) => any} [answer]
  */
 function recordDb(answer = () => undefined) {
     const db = require('../db');
     const queries = [];
     const all = [];
+    const calls = [];
     const query = async (sql, params) => {
         const text = typeof sql === 'string' ? sql : sql?.text || '';
         all.push(text);
-        if (!BOOTSTRAP.test(text)) queries.push(text);
+        if (!BOOTSTRAP.test(text)) { queries.push(text); calls.push({ sql: text, params }); }
         const out = answer(text, params);
         return out ? { rowCount: (out.rows || []).length, ...out } : { rows: [], rowCount: 0 };
     };
     db.pool.query = query;
     db.pool.connect = async () => ({ query, release() {} });
-    const reset = () => { queries.length = 0; all.length = 0; };
+    const reset = () => { queries.length = 0; all.length = 0; calls.length = 0; };
     /**
      * Stores that initialise when they are loaded keep querying for a while
      * after the router is required (schema, backfills). Wait until the
@@ -77,7 +82,7 @@ function recordDb(answer = () => undefined) {
         }
         reset();
     }
-    return { queries, all, reset, settle };
+    return { queries, calls, all, reset, settle };
 }
 
 const needsSession = (req, res, next) => {

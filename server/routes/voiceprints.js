@@ -67,6 +67,7 @@ const voiceprintStore = require('../stores/voiceprintStore');
 const voiceprintClient = require('../core/voice/voiceprintClient');
 const { requireAuth, isOrgAdminForOrg, resolveUserOrgIds } = require('../auth/permissions');
 const { VOICEPRINT_CONSENT_ID, VOICEPRINT_CONSENT_VERSION } = require('../legal/documentRegistry');
+const { sessionUser } = require('../core/http/sessionUser');
 
 const CONSENT_DOC_ID = VOICEPRINT_CONSENT_ID;
 const CONSENT_VERSION = VOICEPRINT_CONSENT_VERSION;
@@ -157,7 +158,7 @@ function clientIp(req) {
  * @param {import('express').Request} req
  */
 async function freshUser(req) {
-    return userStore.getUser(req.session.user.id);
+    return userStore.getUser(sessionUser(req).id);
 }
 
 // ── Self (the only write surface) ────────────────────────────────────
@@ -192,7 +193,7 @@ router.get('/availability', requireAuth, async (req, res) => {
 
 /** The caller's own voiceprint — metadata only, never the template. */
 router.get('/me', requireAuth, async (req, res) => {
-    const meta = await voiceprintStore.getVoiceprintForUser(req.session.user.id);
+    const meta = await voiceprintStore.getVoiceprintForUser(sessionUser(req).id);
     res.json({ voiceprint: meta, enrolled: !!(meta && meta.status === 'ready') });
 });
 
@@ -293,7 +294,7 @@ router.post('/me', requireAuth, enrollLimiter, receiveRecording, validate({ body
 
 /** Delete the caller's own voice profile. Also withdraws the recorded consent. */
 router.delete('/me', requireAuth, validate({ body: NoBody }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const removed = await voiceprintStore.deleteVoiceprintForUser(userId);
     if (removed) await recordConsentWithdrawal(req, userId);
     res.json({ ok: true, removed });
@@ -376,9 +377,9 @@ router.delete('/org/:orgId/user/:userId', requireAuth, /** @param {import('expre
     }
     const removed = await voiceprintStore.deleteVoiceprintForUser(userId);
     if (removed) {
-        log.info(`[Voiceprints] ${req.session.user.id} revoked the voice profile of ${userId} (org ${orgId})`);
+        log.info(`[Voiceprints] ${sessionUser(req).id} revoked the voice profile of ${userId} (org ${orgId})`);
         await userStore.logAccessAudit(
-            'voiceprint.revoke', 'user', userId, req.session.user.id,
+            'voiceprint.revoke', 'user', userId, sessionUser(req).id,
             { enrolled: true }, { enrolled: false }, orgId,
         );
     }

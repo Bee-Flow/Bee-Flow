@@ -8,26 +8,14 @@ const { run, getOne, getAll, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { runDdl } = require('./lib/_ddl');
 const log = require('../telemetry/log');
-const { fallback } = require('../utils/bestEffort');
 
-// Single-flight init with a warm-boot probe — see integrationActivityStore.js
-// for the rationale. The probe targets the NEWEST schema object this init
-// creates (currently the partial live index); bump it when adding DDL.
+// Single-flight init (makeStoreInit). No warm-boot probe: the schema ledger
+// (stores/lib/ddlLedger.js) skips every create-if-missing statement below that
+// already succeeded on this database, runs the DROP every boot, and runs a new
+// or changed one, so adding DDL here needs nothing else.
 const initDB = makeStoreInit('GuardrailEventStore', _doInit);
 
 async function _doInit() {
-    // Probe the new partial index, the LAST index in the create ladder, AND
-    // the absence of the retired idx_guardrail_org: with only the mid-sequence
-    // check, a transient failure after that index was created made every retry
-    // early-return and permanently skip the remaining DDL (incl. the DROP).
-    const probe = await getOne(`
-        SELECT
-            (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_guardrail_org_ts_live') AS live,
-            (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_guardrail_type') AS last,
-            (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_guardrail_org') AS retired
-    `).catch((e) => fallback('stores/guardrailEventStore:_doInit', e, null));
-    if (probe && probe.live && probe.last && !probe.retired) return;
-
     await exec(`
         CREATE TABLE IF NOT EXISTS guardrail_events (
             id SERIAL PRIMARY KEY,

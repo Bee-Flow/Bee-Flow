@@ -108,7 +108,7 @@ function pickToolHints(annotations) {
  * caps: <= MAX_TOOLS tools, each schema JSON <= MAX_TOOL_SCHEMA_CHARS
  * (oversize tools are dropped, not trimmed). Returns { tools, warnings }.
  */
-function normalizeAndFilterTools(rawTools, toolAllowList = null) {
+function normalizeAndFilterTools(rawTools, /** @type {string[] | null} */ toolAllowList = null) {
     const warnings = [];
     const list = Array.isArray(rawTools) ? rawTools : [];
     const allow = Array.isArray(toolAllowList) ? new Set(toolAllowList.filter(t => typeof t === 'string')) : null;

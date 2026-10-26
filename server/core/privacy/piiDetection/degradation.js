@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Degraded-mode handling — turning a guard's degraded reason into the kind of
  * failure the user is told about.
@@ -18,7 +18,7 @@
  * Note this changes only the COPY. All three remain fail-closed; a privacy
  * control does not get weaker because we can describe it better.
  */
-function classifyDegradation(degradedReason) {
+function classifyDegradation(/** @type {unknown} */ degradedReason) {
     const reason = String(degradedReason || '');
     if (/input_too_large/.test(reason)) return 'too_large';
     if (/timeout/i.test(reason)) return 'timeout';

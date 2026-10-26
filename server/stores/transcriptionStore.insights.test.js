@@ -3,7 +3,7 @@
  *
  * These are the mechanically riskiest edits of the feature: a hand-numbered
  * 29-column INSERT, a conditional tags UPDATE, and a hand-built ACL query for
- * the recurring-series card. A fake `db` module is injected into require.cache
+ * the recurring-series card. The real db.js runs over a recording pool
  * so every query's text + params are captured instead of hitting Postgres.
  *
  * Run: cd server && node --test stores/transcriptionStore.insights.test.js
@@ -14,18 +14,14 @@ const assert = require('node:assert');
 
 const state = { calls: [], runResult: { rowCount: 1, rows: [] }, oneRow: null, allRows: [] };
 
-const dbPath = require.resolve('../db');
-require.cache[dbPath] = {
-    id: dbPath,
-    filename: dbPath,
-    loaded: true,
-    exports: {
-        exec: async (sql) => { state.calls.push({ fn: 'exec', sql }); },
-        run: async (sql, params) => { state.calls.push({ fn: 'run', sql, params }); return state.runResult; },
-        getOne: async (sql, params) => { state.calls.push({ fn: 'getOne', sql, params }); return state.oneRow; },
-        getAll: async (sql, params) => { state.calls.push({ fn: 'getAll', sql, params }); return state.allRows; },
-    },
-};
+// The real db.js over a recording pool: DDL, writes and reads all land in `state.calls`;
+// a write answers `runResult`, a read the `oneRow` or else the `allRows` the case set.
+require('../testUtils/routeHarness').recordDb((sql, params) => {
+    state.calls.push({ sql, params });
+    if (/^\s*SELECT/i.test(sql)) return { rows: state.oneRow ? [state.oneRow] : state.allRows };
+    if (/^\s*(INSERT|UPDATE|DELETE)/i.test(sql)) return state.runResult;
+    return undefined;
+});
 
 const store = require('./transcriptionStore');
 

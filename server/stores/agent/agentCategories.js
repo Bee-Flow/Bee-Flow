@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Agent categories of an organisation: list, create, rename, reassign, delete.
  */
@@ -8,6 +8,7 @@ const { run, getOne, getAll } = require('../../db');
 const { initDB } = require('./initSchema');
 const { buildUpdate } = require('../lib/sqlBuilder');
 
+/** @param {string | null | undefined} orgId */
 async function getAgentCategories(orgId) {
     await initDB();
     if (orgId) {
@@ -16,6 +17,12 @@ async function getAgentCategories(orgId) {
     return getAll('SELECT * FROM agent_categories ORDER BY name ASC');
 }
 
+/**
+ * @param {string | null | undefined} orgId
+ * @param {string} name
+ * @param {string | null | undefined} icon
+ * @param {string | null | undefined} color
+ */
 async function createAgentCategory(orgId, name, icon, color) {
     await initDB();
     const id = randomUUID();
@@ -27,18 +34,24 @@ async function createAgentCategory(orgId, name, icon, color) {
 // BFSF-272: full category management. The DELETE route has preferred this
 // helper since 2026-03 (`typeof agentStore.countAgentsInCategory === 'function'`)
 // but it never existed — every delete paid a full getAllAgents() scan.
+/** @param {string} id */
 async function countAgentsInCategory(id) {
     await initDB();
     const row = await getOne('SELECT COUNT(*)::int AS n FROM agents WHERE category_id = $1', [id]);
     return row?.n || 0;
 }
 
+/** @param {string} id */
 async function getAgentCategory(id) {
     await initDB();
     return getOne('SELECT * FROM agent_categories WHERE id = $1', [id]);
 }
 
 // Case-insensitive duplicate lookup inside one org (NULL org = global bucket).
+/**
+ * @param {string | null | undefined} orgId
+ * @param {string | null | undefined} name
+ */
 async function findAgentCategoryByName(orgId, name) {
     await initDB();
     return getOne(
@@ -48,13 +61,13 @@ async function findAgentCategoryByName(orgId, name) {
 }
 
 const CATEGORY_COLUMNS = {
-    name: { col: 'name', transform: (v) => String(v).trim() },
+    name: { col: 'name', transform: (/** @type {unknown} */ v) => String(v).trim() },
     icon: 'icon',
     color: 'color',
 };
 
 /**
- * @param id
+ * @param {string} id
  * @param {{ name?: string, icon?: string, color?: string }} [opts]
  */
 async function updateAgentCategory(id, { name, icon, color } = {}) {
@@ -73,6 +86,10 @@ async function updateAgentCategory(id, { name, icon, color } = {}) {
 // Move every agent in `fromId` to `toId` (null = uncategorise). Bumps `rev`
 // so open editors reconcile via the existing 409 flow instead of silently
 // clobbering (same precedent as transferAgentOwner).
+/**
+ * @param {string} fromId
+ * @param {string | null | undefined} toId
+ */
 async function reassignAgentsCategory(fromId, toId = null) {
     await initDB();
     const { rowCount } = await run(
@@ -85,6 +102,10 @@ async function reassignAgentsCategory(fromId, toId = null) {
 // `orgId` (when provided) scopes the delete to that org — BFSF-272: the old
 // unscoped delete let any manage_agents holder remove another org's category
 // by id. Pass undefined only for super-admin callers.
+/**
+ * @param {string} id
+ * @param {string | null | undefined} orgId
+ */
 async function deleteAgentCategory(id, orgId = undefined) {
     await initDB();
     // Unset category_id on agents that use this category

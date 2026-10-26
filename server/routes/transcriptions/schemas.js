@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The zod vocabulary from which the request schemas of this router are built.
  *
@@ -21,27 +21,9 @@
 
 'use strict';
 
-const { z, typeError } = require('../../utils/zod');
+const { z } = require('../../utils/zod');
 const { worded, choice } = require('../../core/http/schemaParts');
-
-/** A body that also accepts no body: Express 5 then leaves `req.body` undefined. */
-const bodyOf = (shape) => z.preprocess(
-    (v) => (v === undefined || v === null ? {} : v),
-    z.object(shape).strict(),
-);
-
-/** Een "ja" op de query string. `?confirm=1` en `?confirm=true` allebei. */
-const flag = (message) => choice(['true', '1', 'false', '0'], message)
-    .transform((v) => v === 'true' || v === '1')
-    .optional();
-
-/** Een geheel getal op de query string. */
-const whole = (name) => z.coerce.number({ error: typeError({ invalid: `${name} is een getal.` }) })
-    .int(`${name} is een heel getal.`)
-    .optional();
-
-/** Een lijst van id's — wat er ín staat is aan de store om te toetsen. */
-const idList = (message) => z.array(worded(message).trim().min(1, message), { error: message });
+const { bodyOf, flag, whole, idList } = require('../../core/http/queryStringParts');
 
 /**
  * A real boolean, never a string.
@@ -50,6 +32,7 @@ const idList = (message) => z.array(worded(message).trim().min(1, message), { er
  * meeting. `"false"` is true, so whoever switched recording OFF with a text instead
  * of a boolean switched it ON — and `{}` or a typo switched it off. On this router
  * that is the difference between a meeting that is recorded and one that is not.
+ * @param {string} message
  */
 const bool = (message) => z.boolean({ error: message });
 

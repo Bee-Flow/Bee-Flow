@@ -15,29 +15,20 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-const { installResolveStub } = require('../../testUtils/stubRequire');
+const { useConfigRows } = require('../../testUtils/configRows');
+const { loadPricing } = require('../../testUtils/pricingFeed');
 
-// Stands in for the community pricing data. `getModelPricing` deliberately
-// answers with a wildly wrong rate for every id: any test that ends up there
-// instead of on the Scaleway path fails loudly rather than by a few cents.
-const WRONG_HOST_RATE = { input: 9.99, output: 99.9 };
+// Stands in for the community pricing data, fed through the fetch the real
+// pricingService uses. Every bare id below answers with a wildly wrong rate:
+// any test that ends up there instead of on the Scaleway path fails loudly
+// rather than by a few cents.
+const WRONG_HOST_RATE = { input: 9.99, output: 99.9, cacheRead: 0 };
 const SCALEWAY_KEYED = {
     'scaleway/openai/gpt-oss-120b': { input: 0.15, output: 0.60, cacheRead: 0 },
     'scaleway/qwen/qwen3.6-35b-a3b': { input: 0.25, output: 1.50, cacheRead: 0 },
 };
-
-const restore = installResolveStub({
-    '../../stores/configStore': {
-        getConfig: () => null,      // no admin cost overrides
-        setConfig: () => {},
-    },
-    './pricingService': {
-        getPricingByKey: (key) => SCALEWAY_KEYED[key] || null,
-        getModelPricing: () => WRONG_HOST_RATE,
-        initPricing: () => {},
-        getAllModelPricing: () => ({ 'expensive-frontier-model': { input: 15, output: 120 } }),
-    },
-});
+const WRONG_HOST_IDS = ['gpt-oss-120b', 'qwen3.6-35b-a3b', 'glm-5.2', 'qwen4-500b-a30b', 'deepseek-v4-flash-0731'];
+const config = useConfigRows(); // no admin cost overrides
 
 const {
     registerScalewayModel,
@@ -45,7 +36,11 @@ const {
 } = require('../providers/scalewayModels');
 const { getModelCost, computeCost } = require('./modelCosts');
 
-test.after(() => restore());
+test.before(() => loadPricing({
+    ...SCALEWAY_KEYED,
+    ...Object.fromEntries(WRONG_HOST_IDS.map((id) => [id, WRONG_HOST_RATE])),
+}));
+test.after(config.restore);
 test.beforeEach(() => _resetScalewayModelRegistry());
 
 test('an unregistered model still takes the community price', () => {

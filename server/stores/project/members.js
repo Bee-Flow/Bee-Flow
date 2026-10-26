@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * stores/project/members.js — sharing (invite, role, revoke), ownership
  * hand-over and transfer, and the access check. Split out of
@@ -31,6 +31,9 @@ function makeMemberFns({ run, getOne, getAll, initDB, refuseStageBound }) {
      *
      * Returns the share id — the existing one when this was an update.
      * @param {string} [permission]
+     * @param {string} projectId
+     * @param {string} sharedWithType
+     * @param {string} sharedWithId
      */
     async function shareProject(projectId, sharedWithType, sharedWithId, permission = 'viewer', invitedBy = null) {
         await initDB();
@@ -47,6 +50,7 @@ function makeMemberFns({ run, getOne, getAll, initDB, refuseStageBound }) {
         return row?.id || id;
     }
 
+    /** @param {string} shareId */
     async function getShareById(shareId) {
         await initDB();
         const r = await getOne('SELECT * FROM project_shares WHERE id = $1', [shareId]);
@@ -64,6 +68,7 @@ function makeMemberFns({ run, getOne, getAll, initDB, refuseStageBound }) {
 
     /**
      * @param {string} role
+     * @param {string} shareId
      */
     async function updateMemberRole(shareId, role) {
         await initDB();
@@ -149,12 +154,14 @@ function makeMemberFns({ run, getOne, getAll, initDB, refuseStageBound }) {
         return rows?.length ? { ok: true } : { ok: false, reason: 'owner_changed' };
     }
 
+    /** @param {string} shareId */
     async function unshareProject(shareId) {
         await initDB();
         const { rowCount } = await run('DELETE FROM project_shares WHERE id = $1', [shareId]);
         return rowCount > 0;
     }
 
+    /** @param {string} projectId */
     async function getProjectShares(projectId) {
         await initDB();
         const rows = await getAll('SELECT * FROM project_shares WHERE project_id = $1 ORDER BY created_at', [projectId]);

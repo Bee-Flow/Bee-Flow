@@ -21,7 +21,7 @@ const { applyCatalogOrder, catalogOrderOf } = require('../../../automation/build
 const { getProfile } = require('../../../core/automationModel/builderModelProfiles');
 const { systemPrefixFingerprint } = require('../../../core/llm/promptCacheStability');
 
-const app = (id, actions) => ({
+const app = (/** @type {string} */ id, /** @type {string[]} */ actions) => ({
     id, label: id, available: true,
     actions: actions.map(n => ({ name: n, description: `${n} does a thing`, sideEffect: false, inputSchema: { type: 'object', properties: { a: {} }, required: ['a'] } })),
 });

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * GDPR Art. 12: a privacy-notice address without a scheme still fails, but it
  * is on record, so the check must not claim that nothing is set.
@@ -8,14 +8,13 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { installResolveStub } = require('../../../testUtils/stubRequire');
 
 const state = { settings: {} };
-const restore = installResolveStub({
-    '../../../stores/complianceStore': { async getSettings() { return state.settings; } },
-});
+// The real complianceStore over a recording pool; its settings row is what getSettings used to be stubbed to.
+require('../../../testUtils/routeHarness').recordDb((sql, params) => (/FROM compliance_settings/i.test(sql)
+    ? { rows: [((_orgId) => state.settings)(params && params[0])] }
+    : undefined));
 const check = require('./art12-privacy-notice');
-test.after(() => restore());
 
 test('an address without a scheme fails with what is wrong with it, not "not set"', async () => {
     state.settings = { privacy_notice_url: 'www.acme.eu/privacy' };

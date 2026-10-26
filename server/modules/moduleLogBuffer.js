@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Per-module in-memory log ring — the backing store for the admin "module
  * logs" dialog. hostApi.makeLogger writes through here (debug lines are
@@ -65,7 +65,7 @@ function append(moduleId, level, args) {
 /**
  * Newest-last slice of a module's log ring.
  * @param {string} moduleId
- * @param {{limit?:number, level?:string}} opts
+ * @param {{limit?:number, level?:string | null}} opts
  */
 function get(moduleId, { limit = 200, level = null } = {}) {
     const buf = _buffers.get(moduleId);

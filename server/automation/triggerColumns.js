@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Derive the `automations` row columns that mirror the definition's trigger.
  *
@@ -14,14 +14,16 @@
  * `PUT /api/automations/:id` now derives the columns through this helper.
  *
  * Pure; safe on partial/malformed definitions.
- *
- * @param {object|null|undefined} def  an automation definition
- * @returns {{triggerType: string, scheduleCron: string|null, scheduleTz: string}}
  */
+
 const DEFAULT_SCHEDULE_TZ = 'Europe/Amsterdam';
 
+/**
+ * @param {unknown} def  an automation definition (anything: a malformed one yields the manual defaults)
+ * @returns {{triggerType: string, scheduleCron: string|null, scheduleTz: string}}
+ */
 function triggerColumnsFromDefinition(def) {
-    const trigger = (def && typeof def === 'object') ? def.trigger : null;
+    const trigger = (def && typeof def === 'object') ? /** @type {{ trigger?: { kind?: string, schedule?: { cron?: string, tz?: string } } | null }} */ (def).trigger : null;
     return {
         triggerType: trigger?.kind || 'manual',
         scheduleCron: trigger?.schedule?.cron || null,

@@ -15,7 +15,7 @@ const { getAutomation } = require('./automations');
  * through a deploy only; its sharing stays the stage's own. Lazy, like the
  * guard in automations.js; `override` is a test's own instance.
  * @param {{ projectId?: string | null, changedKeys: string[], managedWrite?: { deploymentId?: string } | null,
- * client?: { query: (sql: string, params?: unknown[]) => Promise<{ rows: import('pg').QueryResultRow[], rowCount?: number }> } | null,
+ * client?: { query: (sql: string, params?: unknown[]) => Promise<{ rows: import('pg').QueryResultRow[], rowCount?: number | null }> } | null,
  * managedParts?: typeof import('../managedPartsDefault') | null }} opts
  */
 async function assertStepWrite({ projectId, changedKeys, managedWrite = null, client = null, managedParts = null }) {
@@ -27,7 +27,7 @@ async function assertStepWrite({ projectId, changedKeys, managedWrite = null, cl
  * The stage a Step row sits in (its project), read and row-locked before a
  * guarded write: on a transaction's client the lock holds until its write, so
  * no filing into a stage or deploy lands between the check and the write.
- * @param {{ query: (sql: string, params?: unknown[]) => Promise<{ rows: import('pg').QueryResultRow[], rowCount?: number }> }} q
+ * @param {{ query: (sql: string, params?: unknown[]) => Promise<{ rows: import('pg').QueryResultRow[], rowCount?: number | null }> }} q
  * @param {string} id
  */
 async function stepProjectId(q, id) {
@@ -210,7 +210,7 @@ async function setStepSharing(id, sharing, { managedWrite = null } = {}) {
  * setStepSharing's write on a `{ query }` handle. Answers whether a Step row
  * was updated.
  *
- * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }} q
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }> }} q
  * @param {string} id
  * @param {{ isPublished?: boolean, sharedGroups?: string[] }} sharing
  * @param {{ managedWrite?: { deploymentId?: string }|null, managedParts?: any }} [opts]
@@ -244,7 +244,7 @@ async function setStepExpose(id, exposeAsTool, { managedWrite = null } = {}) {
  * setStepExpose's write on a `{ query }` handle. Answers whether a Step row
  * was updated.
  *
- * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }} q
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }> }} q
  * @param {string} id
  * @param {boolean} exposeAsTool
  * @param {{ managedWrite?: { deploymentId?: string }|null, managedParts?: any }} [opts]

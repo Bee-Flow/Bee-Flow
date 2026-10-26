@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -19,12 +19,12 @@ const check = require('./a6-5-offboarding-feed');
 const saved = { getConfig: isoEvidenceStore.getConfig, listLatestSnapshots: isoEvidenceStore.listLatestSnapshots };
 afterEach(() => Object.assign(isoEvidenceStore, saved));
 
-function stub(config, snaps = []) {
+function stub(/** @type {unknown} */ config, /** @type {unknown[]} */ snaps = []) {
     isoEvidenceStore.getConfig = async () => (typeof config === 'function' ? config() : config);
     isoEvidenceStore.listLatestSnapshots = async () => snaps;
 }
 
-const feed = (name, payload) => ({ subject_id: name, payload: { source: 'afas', connector: name, fields: ['EmployeeId'], fetched: true, ...payload } });
+const feed = (/** @type {string} */ name, /** @type {Record<string, unknown>} */ payload) => ({ subject_id: name, payload: { source: 'afas', connector: name, fields: ['EmployeeId'], fetched: true, ...payload } });
 
 test('a config read that fails warns; it is not "connector not enabled"', async () => {
     stub(() => { throw Object.assign(new Error('x'), { code: '57014' }); });

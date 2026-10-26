@@ -23,39 +23,25 @@ process.env.NODE_ENV = 'test';
 
 const test = require('node:test');
 const assert = require('node:assert');
-const Module = require('module');
 
 // Every store call lands in `touched`. A refused request must leave it empty.
 const touched = [];
 
-const MOCKS = {
-    '../stores/reminderStore': {
-        getReminders: async (userId, opts) => { touched.push({ what: 'getReminders', args: [userId, opts] }); return []; },
-        getReminder: async (id) => ({ id, userId: 'u1' }),
-        createReminder: async (p) => { touched.push({ what: 'createReminder', args: [p] }); return { id: 'r1', ...p }; },
-        updateReminder: async (id, u) => { touched.push({ what: 'updateReminder', args: [id, u] }); return true; },
-        deleteReminder: async () => true,
-        markCompleted: async () => true,
-    },
+// What the route's store calls do here: reads and writes are recorded in `touched`.
+const reminderStore = {
+    getReminders: async (userId, opts) => { touched.push({ what: 'getReminders', args: [userId, opts] }); return []; },
+    getReminder: async (id) => ({ id, userId: 'u1' }),
+    createReminder: async (p) => { touched.push({ what: 'createReminder', args: [p] }); return { id: 'r1', ...p }; },
+    updateReminder: async (id, u) => { touched.push({ what: 'updateReminder', args: [id, u] }); return true; },
+    deleteReminder: async () => true,
+    markCompleted: async () => true,
 };
 
-const MOCK_IDS = {};
-for (const [request, exportsObj] of Object.entries(MOCKS)) {
-    const mockId = `mock:reminders-validation:${request}`;
-    MOCK_IDS[request] = mockId;
-    require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
-}
-const originalResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /routes[\\/]reminders\.js$/.test(parent.filename)
-        && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
-        return MOCK_IDS[request];
-    }
-    return originalResolve.call(this, request, parent, ...rest);
-};
-
+// The real store loads over a recording pool; the handlers reach it through the
+// router's _deps, which this file swaps for the double above.
+require('../testUtils/routeHarness').recordDb();
 const router = require('./reminders');
-test.after(() => { Module._resolveFilename = originalResolve; });
+Object.assign(router._deps, { reminderStore });
 
 // A schema refusal travels as an error to the terminal handler, so the
 // harness has to answer one the way index.js does.

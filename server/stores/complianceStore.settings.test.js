@@ -42,7 +42,6 @@ const CHAT_MONITORING_COLUMNS = [
     'chat_monitoring_prior_consultation_at', 'chat_monitoring_notice_url', 'chat_monitoring_notice_published_at',
     'chat_monitoring_enabled_at', 'chat_monitoring_enabled_by',
 ];
-const { installResolveStub } = require('../testUtils/stubRequire');
 
 const settingsRows = [];
 const notifyRows = [];
@@ -61,14 +60,14 @@ const mock = createRecordingDb({
         return undefined;
     },
 });
-const restore = installResolveStub({ '../db': mock.db });
+const restore = mock.attachPool();
 const store = require('./complianceStore');
 
 // The boot DDL is captured once: beforeEach() resets the recorder.
 let bootDdl = '';
 before(async () => {
     await store.initDB();
-    bootDdl = [...mock.calls.exec.map(c => c.sql), ...mock.calls.client.map(c => c.sql)].join('\n');
+    bootDdl = [...mock.calls.pool.map(c => c.sql), ...mock.calls.client.map(c => c.sql)].join('\n');
 });
 after(() => restore());
 beforeEach(() => {
@@ -222,7 +221,7 @@ test('legacy: saveSettings returns the re-read settings row', async () => {
     settingsRows.push({ ...LEGACY_ROW });
     const out = await store.saveSettings('orgA', { dpo_name: 'x' });
     assert.strictEqual(out.organization_id, 'orgA');
-    assert.ok(mock.calls.getOne.length >= 2, 'reads the row before the write and once more after it');
+    assert.ok(mock.reads().length >= 2, 'reads the row before the write and once more after it');
 });
 
 test('getSettings returns the empty shape for an org without a row', async () => {

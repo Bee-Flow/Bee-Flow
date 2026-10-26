@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Builder tools — reading a value path the AI wrote.
  *
@@ -180,7 +180,7 @@ function hasPlaceholder(text) {
 }
 
 /** The trimmed inner text of every `{{ … }}` placeholder (quote-aware). */
-function placeholdersOf(text) {
+function placeholdersOf(/** @type {unknown} */ text) {
     return typeof text === 'string' ? scanTemplate(text).filter(p => p.type === 'ref').map(p => p.inner) : [];
 }
 

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * pyannoteAI model selection.
  *

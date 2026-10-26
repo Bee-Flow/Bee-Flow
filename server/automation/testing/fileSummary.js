@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * A fingerprint of a generated file, small enough to compare two of them
@@ -135,9 +135,8 @@ async function slideParts(buffer) {
     const names = Object.keys(zip.files);
     if (names.length > MAX_ZIP_ENTRIES) throw new Error('too many parts in the archive');
     const slideNames = names
-        .map((n) => ({ n, m: /^ppt\/slides\/slide(\d+)\.xml$/.exec(n) }))
-        .filter((x) => x.m)
-        .sort((a, b) => Number(a.m[1]) - Number(b.m[1]))
+        .flatMap((n) => { const m = /^ppt\/slides\/slide(\d+)\.xml$/.exec(n); return m ? [{ n, order: Number(m[1]) }] : []; })
+        .sort((a, b) => a.order - b.order)
         .map((x) => x.n)
         .slice(0, MAX_SLIDES);
     /** @type {{ kind: string; index: number; title: string; textChars: number; textHash: string; }[]} */

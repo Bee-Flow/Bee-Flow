@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Streaming agent chat — SSE-based tool-calling loop with real-time events
  * This is the primary chat function used by the frontend
@@ -44,6 +44,7 @@ const log = require('../../../telemetry/log');
 // project thread's turn lock is released (see ./turnLoop).
 let _turnCallSeq = 0;
 
+/** @param {...unknown} args  forwarded verbatim to chatWithAgentStreamImpl, which appends the call id */
 async function chatWithAgentStream(...args) {
     const _t0 = Date.now();
     let _status = 'ok';

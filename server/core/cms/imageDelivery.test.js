@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 const test = require('node:test');
 const assert = require('node:assert');
 const { variantSrcSet, columnSizes, DEFAULT_SIZES, preloadLink } = require('./imageDelivery');

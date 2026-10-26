@@ -6,12 +6,10 @@ const { run, getOne, getAll } = require('../../db');
 const { initDB } = require('./schema');
 const { getOrgSubscription, setOrgSubscription, setConsumerSubscription, isManualOverrideActive } = require('./subscriptions');
 const { logSubscriptionAudit } = require('./audit');
+const billingPorts = require('./billingPorts');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
-// Lazy require: usage/payg loads this store.
-/**
- * @param {string | null} orgId
- */
+/** Lazy require: usage/payg loads this store. @param {string | null} orgId */
 const invalidatePayg = (orgId, userId) => { try { require('../usage/payg').invalidatePaygCache(orgId, userId); } catch (err) { bestEffort('billingLifecycle:invalidatePaygCache', err); } };
 // ── Notification idempotency ─────────────────────────────
 // Returns true when we have NOT yet sent this kind to this target — caller
@@ -374,7 +372,7 @@ async function downgradeOrgToFreePlan(orgId, { changedBy = 'system', reason = 'd
         log.warn(`[UserStore] downgradeOrgToFreePlan: setOrgSubscription failed for org ${orgId}`);
         return null;
     }
-    try { await require('../../services/planEntitlements').applyPlanToOrg(orgId, freeId, { mode: 'reset' }); }
+    try { await billingPorts.applyPlanToOrg(orgId, freeId, { mode: 'reset' }); }
     catch (e) { log.warn(`[UserStore] downgradeOrgToFreePlan applyPlanToOrg failed for ${orgId}:`, /** @type {Error} */ (e).message); }
     invalidatePayg(orgId, null);
     await logSubscriptionAudit('downgrade_to_free', 'organization', orgId, changedBy, before, { plan_id: freeId, reason });

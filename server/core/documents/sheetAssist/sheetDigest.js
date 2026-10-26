@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * What the spreadsheet assistant SEES of a sheet, in as few tokens as the job
  * allows.
@@ -113,7 +113,7 @@ function errorList(/** @type {Shown} */ shown, max = 30) {
 /**
  * @param {Cells} cells
  * @param {Shown} shown
- * @param {{ name: string, selection?: { c0: number, r0: number, c1: number, r1: number } | null, selectionKind?: string|null, tabs?: { id: string, name: string }[], activeTab?: string|null, charts?: { id: string, type: string, title?: string }[] }} o
+ * @param {{ name: string, selection?: { c0: number, r0: number, c1: number, r1: number } | null, selectionKind?: string|null, tabs?: { id: string, name: string }[] | null, activeTab?: string|null, charts?: { id: string, type: string, title?: string }[] | null }} o
  * @returns {string}
  */
 function sheetDigest(cells, shown, { name, selection = null, selectionKind = null, tabs = null, activeTab = null, charts = null }) {

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Package loader — the lifecycle engine for DOWNLOADABLE remote modules.
  *
@@ -108,7 +108,7 @@ async function dispatchRouter(req, res, next) {
         const first = rawPath.split('/').filter(Boolean)[0];
         if (!first) return res.status(404).json({ error: 'not_found' });
         const entry = _dispatch.get(first);
-        if (!entry) return res.status(404).json({ error: 'not_found' });
+        if (!entry || !entry.handle) return res.status(404).json({ error: 'not_found' });
 
         let active = false;
         try { active = await runtime().isModuleActive(first); } catch (_) { active = false; }

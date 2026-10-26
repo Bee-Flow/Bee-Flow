@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 // Split from license/index so stores/user/users can read the seat cap without
@@ -9,6 +9,7 @@ const store = require('./store');
  * Return the seat cap from the active license metadata, or null when no
  * active license is present or the license does not set a cap. Useful for
  * enforcing per-license seat limits on user creation.
+ * @param {string} organizationId
  */
 async function getMaxSeatsForOrg(organizationId) {
     if (!organizationId) return null;

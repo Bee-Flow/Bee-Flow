@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Automation Builder — POST /label-steps: fast-tier auto-label and auto-icon
  * for the steps in a flow.
@@ -22,6 +22,7 @@ const { resolveModelForTierName } = require('../../../core/llm/modelResolver');
 const llmClient = require('../../../core/llm/llmClient');
 const { requireAuth } = require('../../../auth/permissions');
 const { summariseLayerRateLimit } = require('./rateLimits');
+const { sessionUser } = require('../../../core/http/sessionUser');
 
 // ── Auto-label + auto-icon for steps ────────────────────────────────────────
 // The builder asks the FAST tier to name each step (a short human label + a
@@ -105,7 +106,7 @@ function describeStepForLabel(s) {
  * applies them and never overwrites a manual edit.
  */
 router.post('/label-steps', requireAuth, summariseLayerRateLimit, validate({ body: LabelStepsBody }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const { userHasBetaFeature } = require('../../../core/entitlements/betaFeatures');
     if (!await userHasBetaFeature(userId, 'automations', req.session)) {
         return res.status(403).json({ error: 'The Automations beta is not enabled for your organisation.' });

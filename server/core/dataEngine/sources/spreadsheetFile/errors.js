@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The ONE error shape a spreadsheet mirror answers with — the same contract as
  * ../nextcloudTable/errors.js, read by the same three callers:

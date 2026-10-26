@@ -33,7 +33,7 @@ async function names(over = {}) {
         message: 'hi', notebookspaceContent: undefined, activeSkillIds: [], userOrgForTiers: null,
         ...over,
     });
-    return out.directChatTools.map(t => t.function.name);
+    return out.directChatTools.map(t => t.function?.name);
 }
 
 test('the web-search app carries read_url', () => {

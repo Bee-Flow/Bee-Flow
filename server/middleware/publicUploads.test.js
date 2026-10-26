@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The /uploads allowlist.
  *
@@ -82,8 +82,9 @@ test('an empty path is not public', () => {
 // ── Middleware wiring ────────────────────────────────────────────────
 
 test('the middleware 404s a private path and passes a public one', () => {
+    /** @type {number[]} */
     const calls = [];
-    const res = { sendStatus: (c) => { calls.push(c); return res; } };
+    const res = { sendStatus: (/** @type {number} */ c) => { calls.push(c); return res; } };
 
     let nexted = 0;
     publicUploadsOnly({ path: '/saved-recordings/x.webm' }, res, () => nexted++);

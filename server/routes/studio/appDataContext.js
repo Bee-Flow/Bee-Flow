@@ -21,6 +21,7 @@ const datatableSource = require('../../appStudio/datatableSource');
 const { resolveAudienceContext } = require('../../auth/audience');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { fallback } = require('../../utils/bestEffort');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 /**
  * @typedef {import('../../appStudio/builderTools/dataTools').DataTable} DataTable
@@ -113,7 +114,7 @@ async function audienceFor(req) {
  * @param {import('express').Response} res
  */
 async function loadVisibleApp(req, res) {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const app = await studioAppStore.getStudioApp(req.params.id);
     if (!app) { res.status(404).json({ error: 'App not found' }); return null; }
     if (app.userId !== userId) {
@@ -132,7 +133,7 @@ async function loadVisibleApp(req, res) {
  * @param {import('express').Response} res
  */
 async function loadOwnedApp(req, res) {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const app = await studioAppStore.getStudioApp(req.params.id);
     if (!app) { res.status(404).json({ error: 'App not found' }); return null; }
     if (!studioAppStore.canWriteStudioApp(app, userId)) {
@@ -193,7 +194,7 @@ function handleErr(res, err, _where) {
 async function resolveDataContext(req, res, { tableId } = {}) {
     const app = await loadVisibleApp(req, res);
     if (!app) return null;
-    const viewerId = req.session.user.id;
+    const viewerId = sessionUser(req).id;
 
     const meta = await studioAppDataStore.getDataModel(app.id, app.userId);
     const model = /** @type {DataModel | null} */ (meta && meta.model && typeof meta.model === 'object' ? meta.model : null);

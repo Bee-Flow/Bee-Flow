@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -17,7 +17,12 @@ const assert = require('node:assert/strict');
 const { runWithRequestId } = require('../telemetry/log');
 const { modelUnreachable, modelLookupFailed, UNREACHABLE_TEXT, LOOKUP_TEXT } = require('./modelFailure');
 
+/**
+ * @template T
+ * @param {() => T} fn
+ */
 function quietly(fn) {
+    /** @type {string[]} */
     const lines = [];
     const orig = console.error;
     console.error = (...a) => lines.push(a.map((x) => (x instanceof Error ? x.message : String(x))).join(' '));

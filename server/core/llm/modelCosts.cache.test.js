@@ -18,28 +18,21 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-const { installResolveStub } = require('../../testUtils/stubRequire');
+const { useConfigRows } = require('../../testUtils/configRows');
+const { loadPricing } = require('../../testUtils/pricingFeed');
 
-// Deterministic stand-in for the community pricing data — no network fetch.
-// Rates are USD per 1M tokens.
+// Deterministic stand-in for the community pricing data, fed through the fetch
+// the real pricingService uses — no network. Rates are USD per 1M tokens.
 const PRICING = {
     'claude-sonnet-4-5': { input: 3, output: 15, cacheRead: 0.3 },
     'gpt-4o': { input: 2.5, output: 10, cacheRead: 1.25 },
 };
-
-const restore = installResolveStub({
-    '../../stores/configStore': { getConfig: () => null, setConfig: () => { } },
-    './pricingService': {
-        getModelPricing: (name) => PRICING[name] || null,
-        getPricingByKey: () => null,
-        initPricing: () => { },
-        getAllModelPricing: () => PRICING,
-    },
-});
+const config = useConfigRows(); // no admin cost overrides
 
 const { computeCost, computeCostSplit, getCacheDiscount } = require('./modelCosts');
 
-test.after(() => restore());
+test.before(() => loadPricing(PRICING));
+test.after(config.restore);
 
 const near = (a, b, msg) => assert.ok(Math.abs(a - b) < 1e-9, `${msg} — got ${a}, expected ${b}`);
 const round = (n) => Math.round(n * 10000) / 10000;

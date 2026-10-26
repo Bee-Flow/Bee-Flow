@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * What a run says about an iteration cap that cut a list short.
  *
@@ -47,7 +47,7 @@ function noteTruncation({ step, ctx, runState, processed, total, unit = 'items',
     const run = ctx && Array.isArray(ctx._truncations) ? ctx._truncations : null;
     // One entry per step (as bindingMisses.js): a capped step inside a Loop
     // reports on every iteration and is still one line in the summary.
-    const same = run && run.find(r => r.stepId === entry.stepId);
+    const same = run && run.find((/** @type {{ stepId: string }} */ r) => r.stepId === entry.stepId);
     if (same) Object.assign(same, entry);
     else if (run && run.length < MAX_RUN_TRUNCATIONS) run.push(entry);
     const warnings = runState && Array.isArray(runState._templateWarnings) ? runState._templateWarnings : null;
@@ -58,7 +58,10 @@ function noteTruncation({ step, ctx, runState, processed, total, unit = 'items',
     return entry;
 }
 
-/** The summary's tail: '' for none, else " — N step(s) stopped at an iteration cap: …". */
+/**
+ * The summary's tail: '' for none, else " — N step(s) stopped at an iteration cap: …".
+ * @param {unknown} list
+ */
 function truncationSummary(list) {
     if (!Array.isArray(list) || !list.length) return '';
     const n = list.length;

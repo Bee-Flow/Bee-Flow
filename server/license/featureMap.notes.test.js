@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Unit — featureMap.js notes must not contradict the router they describe.
  *
@@ -40,7 +40,7 @@ assert.ok(
 // dropping to 0 while routeCount stays > 0 — it would no longer be each
 // route's own middleware, so this stays a claim about behaviour (which
 // requests the gate actually covers), not about the router.use text itself.
-function readSource(rel) {
+function readSource(/** @type {string} */ rel) {
     return fs.readFileSync(path.join(__dirname, '..', rel), 'utf8');
 }
 const datasetsFile = readSource('routes/studioAppDatasets.js');

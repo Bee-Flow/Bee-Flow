@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Stream retry helpers — extracted from chatStream.js so they can be unit
  * tested without dragging in the full agent-runtime require graph (stores,
@@ -56,7 +56,7 @@ function classifyStreamError(error) {
  * @template T
  * @param {() => Promise<T>} fn - Async function to execute
  * @param {number} maxRetries - Maximum retry attempts (default 3)
- * @param {AbortSignal} [signal] - client-disconnect signal; aborts the loop
+ * @param {AbortSignal | null} [signal] - client-disconnect signal; aborts the loop
  * @returns {Promise<T>} Result of fn()
  */
 async function retryStreamCall(fn, maxRetries = 3, signal = null) {

@@ -29,9 +29,10 @@ async function readBuffer(key) {
 
 // The DB pointer is changed in the sharing transaction; old bytes are removed
 // only after commit, and newly uploaded bytes are removed on rollback.
-/** @param {import('./documentCrypto').QueryClient} client @param {{ id: string, storage_key?: string }} row @param {import('./documentCrypto').DocumentResource} resource @param {import('./documentCrypto').CryptoContext | null} context @param {{ created: string[], replaced: string[] }} files */
+/** @param {import('./documentCrypto').QueryClient} client @param {{ id: string, storage_key?: string }} row @param {import('./documentCrypto').DocumentResource} resource @param {import('./documentCrypto').CryptoContext | null} context @param {{ created: string[], replaced: string[] }} [files] */
 async function transition(client, row, resource, context, files) {
     if (!row.storage_key || row.storage_key.startsWith('local:')) return;
+    if (!files) throw new Error('notebookFileCrypto.transition needs the files tracker to record the new and the replaced key');
     const buffer = await readBuffer(row.storage_key);
     const key = `${row.storage_key}.encrypted-${crypto.randomUUID()}`;
     files.created.push(key);

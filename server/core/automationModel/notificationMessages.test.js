@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * automation/notificationMessages: what a notification says outside the Bee
  * Flow bell (name + event + link only), the bundle line and the daily summary.

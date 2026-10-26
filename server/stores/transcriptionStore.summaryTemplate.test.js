@@ -10,7 +10,7 @@
  *      prompt must not leave an old stamp behind);
  *   3. shapeRow returns them without inventing a version for them.
  *
- * Fake `db` in require.cache; no Postgres.
+ * The real db.js over a recording pool; no Postgres.
  *
  * Run: cd server && node --test --test-force-exit stores/transcriptionStore.summaryTemplate.test.js
  */
@@ -23,18 +23,16 @@ const assert = require('node:assert');
 // not a test.
 const state = { calls: [], ddl: [], runResult: { rowCount: 1, rows: [] }, oneRow: null, allRows: [] };
 
-const dbPath = require.resolve('../db');
-require.cache[dbPath] = {
-    id: dbPath,
-    filename: dbPath,
-    loaded: true,
-    exports: {
-        exec: async (sql) => { state.calls.push({ fn: 'exec', sql }); state.ddl.push(sql); },
-        run: async (sql, params) => { state.calls.push({ fn: 'run', sql, params }); return state.runResult; },
-        getOne: async (sql, params) => { state.calls.push({ fn: 'getOne', sql, params }); return state.oneRow; },
-        getAll: async (sql, params) => { state.calls.push({ fn: 'getAll', sql, params }); return state.allRows; },
-    },
-};
+// The real db.js over a recording pool: DDL, writes and reads all land in `state.calls`
+// (schema statements also in `state.ddl`); a write answers `runResult`, a read the
+// `oneRow` or else the `allRows` the case set.
+require('../testUtils/routeHarness').recordDb((sql, params) => {
+    state.calls.push({ sql, params });
+    if (/^\s*(CREATE|ALTER)/i.test(sql)) { state.ddl?.push(sql); return undefined; }
+    if (/^\s*SELECT/i.test(sql)) return { rows: state.oneRow ? [state.oneRow] : state.allRows };
+    if (/^\s*(INSERT|UPDATE|DELETE)/i.test(sql)) return state.runResult;
+    return undefined;
+});
 
 const store = require('./transcriptionStore');
 

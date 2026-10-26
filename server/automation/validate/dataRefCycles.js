@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Steps that read each other's output in a loop.
  *
@@ -15,7 +15,11 @@ const { TOPIC_HOST_SPEC } = require('../expr');
 const { refHead, tryParseExpr, exprStepIds } = require('./refPaths');
 const { collectStepRefs } = require('./stepRules/refSurfaces');
 
-/** The ids of the steps this step reads: `steps.<id>` in a path, a placeholder or an expression. */
+/**
+ * The ids of the steps this step reads: `steps.<id>` in a path, a placeholder or an expression.
+ * @param {unknown} step
+ * @returns {Set<string>}
+ */
 function stepsReadBy(step) {
     const out = new Set();
     for (const r of collectStepRefs(step)) {
@@ -42,7 +46,7 @@ function readCycles(reads) {
     const onStack = new Set();
     /** @type {string[]} */
     const stack = [];
-    /** @type {((string | undefined)[])[]} */
+    /** @type {string[][]} */
     const found = [];
     /**
      * @param {string} v
@@ -56,11 +60,16 @@ function readCycles(reads) {
             else if (onStack.has(w)) low.set(v, Math.min(low.get(v), index.get(w)));
         }
         if (low.get(v) === index.get(v)) {
-            /** @type {(string | undefined)[]} */
+            /** @type {string[]} */
             const comp = [];
             /** @type {string | undefined} */
             let w;
-            do { w = stack.pop(); onStack.delete(w); comp.push(w); } while (w !== v);
+            do {
+                w = stack.pop();
+                if (w === undefined) break; // v itself is on the stack, so the loop ends at v first
+                onStack.delete(w);
+                comp.push(w);
+            } while (w !== v);
             if (comp.length > 1) found.push(comp.reverse());
         }
     };

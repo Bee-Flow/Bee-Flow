@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Reading agents: by owner, one row, and one agent with its tools and params.
  */
@@ -9,6 +9,7 @@ const { getAgentTools, getAgentToolsBatch } = require('./agentTools');
 const log = require('../../telemetry/log');
 const { parseConfig, buildToolParams } = require('./agentRows');
 
+/** @param {string} ownerId */
 async function getAgents(ownerId) {
     await initDB();
     const agents = await getAll("SELECT * FROM agents WHERE owner_id = $1 OR owner_id = 'system' ORDER BY updated_at DESC", [ownerId]);
@@ -20,9 +21,7 @@ async function getAgents(ownerId) {
 // every agent-by-id read goes through this so a caller that needs BOTH views
 // (GET /agents/:id) does not pay for the row twice, and both views are
 // guaranteed to describe the SAME snapshot.
-/**
- * @param {string} id
- */
+/** @param {string} id */
 async function _loadAgentRow(id) {
     await initDB();
     const row = await getOne('SELECT * FROM agents WHERE id = $1', [id]);
@@ -43,6 +42,12 @@ async function _loadAgentRow(id) {
  * born from a failed read would come back as an explicit "clear the column"
  * and delete a role nobody touched. A missing key means "preserve" all the way
  * down to the SET list.
+ */
+/**
+ * @template {object} B
+ * @param {B} base
+ * @param {AgentDbRow} row
+ * @returns {B & { persona?: unknown }}
  */
 function _withPersona(base, row) {
     try {
@@ -72,3 +77,5 @@ async function getAgent(id) {
 module.exports = { getAgents, _loadAgentRow, _withPersona, getAgent };
 
 /** @typedef {import('../../routes/agents/crud').AgentRow} AgentRow */
+
+/** @typedef {import('./agentRows').AgentDbRow} AgentDbRow */

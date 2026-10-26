@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * "Where may this knowledge base be used?" — the surface question, which is a
  * different question from "who may read it".
@@ -35,6 +35,7 @@ const EDITABLE_SURFACES = Object.freeze(['agent', 'direct_chat', 'ai_step']);
 /**
  * The contexts on a KB row, or `null` when none was ever expressed.
  * The column is jsonb, but some read paths hand back the raw TEXT.
+ * @param {{ usage_contexts?: unknown } | null | undefined} kb
  */
 function contextsOf(kb) {
     const raw = kb?.usage_contexts;
@@ -48,7 +49,7 @@ function contextsOf(kb) {
 
 /**
  * May this base be attached to / offered on `surface`?
- * @param {object} kb        a knowledge_bases row
+ * @param {{ usage_contexts?: unknown } | null | undefined} kb        a knowledge_bases row
  * @param {string} surface   one of SURFACES
  */
 function kbUsableIn(kb, surface) {
@@ -57,10 +58,13 @@ function kbUsableIn(kb, surface) {
     return list.includes(surface);
 }
 
-/** Normalise a payload's contexts to storable values, or null to leave as-is. */
+/**
+ * Normalise a payload's contexts to storable values, or null to leave as-is.
+ * @param {unknown} input
+ */
 function normaliseContexts(input) {
     if (!Array.isArray(input)) return null;
-    const out = input.filter(v => SURFACES.includes(v));
+    const out = input.filter((/** @type {string} */ v) => SURFACES.includes(v));
     return out.length ? [...new Set(out)] : null;
 }
 

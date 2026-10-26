@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * chat_signal_counts — chat signals: how the Privacy Shield handled chat
  * messages, as counters only.
@@ -97,7 +97,7 @@ function _invalidField(r) {
 }
 
 /**
- * @param {{ query: (sql: string, params?: any[]) => Promise<{rows: any[], rowCount?: number}> }} db
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{rows: any[], rowCount?: number | null}> }} db
  * @param {{ ready?: () => Promise<unknown> }} [opts]
  */
 function makeChatSignalStore(db, { ready = async () => {} } = {}) {

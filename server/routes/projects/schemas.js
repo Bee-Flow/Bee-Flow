@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * What the project routes accept (routes/projects.js and ./packaging.js).
@@ -28,7 +28,14 @@ const INSTRUCTIONS_MAX = 8000;
 const ID_MAX = 200;
 
 const NAME_TEXT = 'Name is required';
+/**
+ * @param {number} max
+ * @param {string} message
+ */
 const text = (max, message) => worded(message).max(max, message);
+/**
+ * @param {string} message
+ */
 const anId = (message) => worded(message).trim().min(1, message).max(ID_MAX, message);
 
 // Blank is not a name: PUT {"name": ""} used to blank the project's name.

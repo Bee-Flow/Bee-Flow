@@ -189,7 +189,7 @@ jobs:
               # ...a re-export of this one
               - 'server/core/automationModel/refPaths.js'
               - 'server/core/automationRunner/definitionForRun.js'
-              - 'server/core/http/errors.js'
+              - 'server/core/http/{errors,queryStringParts}.js'
               # required by errors.js
               - 'server/shared/httpErrors.js'
               # The mobile parity series (flow editor, access, compliance,

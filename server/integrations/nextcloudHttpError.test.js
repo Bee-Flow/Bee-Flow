@@ -1,10 +1,10 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert');
 const { nextcloudHttpError, extractReason } = require('./nextcloudHttpError');
 
-const res = (status, body = '') => ({ status, text: async () => body });
+const res = (/** @type {number} */ status, body = '') => ({ status, text: async () => body });
 const AUTH = 'Bee Flow connector could not reach Nextcloud';
 
 test('401 is the connector message, nothing else', async () => {

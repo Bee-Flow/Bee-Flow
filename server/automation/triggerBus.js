@@ -320,13 +320,12 @@ const ctx = {
     ncScopeGuard: () => require('../core/integrations/ncScopeGuard'),
     notificationStore: () => require('../stores/notificationStore'),
     loadSession: (userId) => loadSession(userId),
+    microsoftSession: (session, userId, opts) => require('../auth/microsoftSessionHydration').resolveMicrosoftSession(session, userId, opts),
+    msGraphClient: () => require('../core/integrations/integrationClients').integrationClient('msGraph'),
     escalate: (sub, threshold, errorMsg) => escalateSubscriptionFailure(sub, threshold, errorMsg),
 };
 
-/**
- * @param {number} threshold
- * @param {string} errorMsg
- */
+/** @param {number} threshold @param {string} errorMsg */
 function escalateSubscriptionFailure(sub, threshold, errorMsg) {
     return escalateWithCtx(ctx, sub, threshold, errorMsg);
 }
@@ -336,6 +335,7 @@ const POLLERS = {
     'google-calendar': createGoogleCalendarPollers(ctx),
     'google-drive': createGoogleDrivePollers(ctx),
     nextcloud: createNextcloudPollers(ctx),
+    msgraph: require('./triggerBus/pollers/msGraphMail.mts').createMsGraphPollers(ctx), // polling-mode rows: a shared mailbox's mail.new
 };
 
 function renewExpiringSubscriptions() {

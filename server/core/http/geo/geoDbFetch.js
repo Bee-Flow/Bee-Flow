@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * geoDbFetch — download the free DB-IP Lite databases (City + ASN).
  *
@@ -29,12 +29,23 @@ const gunzip = promisify(zlib.gunzip);
 
 const BASE_URL = 'https://download.db-ip.com/free';
 
+/** @typedef {(url: string, init: { signal: AbortSignal }) => Promise<{ status: number, ok: boolean, arrayBuffer(): Promise<ArrayBuffer> }>} FetchImpl The global fetch fits. */
+
+
 // Minimum inflated sizes: the 2026 editions are ~130 MB (city) and ~10 MB
 // (asn). A file far below that is a truncated download or an error page.
+/**
+ * A property of whatever a reader answered, or undefined.
+ * @param {unknown} record
+ * @param {string} key
+ */
+const field = (record, key) => (typeof record === 'object' && record !== null ? Reflect.get(record, key) : undefined);
+
 const KINDS = {
-    city: { minBytes: 20 * 1024 * 1024, check: (r) => typeof r?.country?.iso_code === 'string' },
-    asn: { minBytes: 1024 * 1024, check: (r) => Number.isInteger(r?.autonomous_system_number) },
+    city: { minBytes: 20 * 1024 * 1024, check: (/** @type {unknown} */ r) => typeof field(field(r, 'country'), 'iso_code') === 'string' },
+    asn: { minBytes: 1024 * 1024, check: (/** @type {unknown} */ r) => Number.isInteger(field(r, 'autonomous_system_number')) },
 };
+
 const PROBE_IP = '8.8.8.8';
 
 /**
@@ -73,7 +84,7 @@ function newestLocal(dir, kind) {
     let names = [];
     try { names = fs.readdirSync(dir); } catch { return null; }
     const re = new RegExp(`^dbip-${kind}-lite-(\\d{4}-\\d{2})\\.mmdb$`);
-    const hits = names.map(n => n.match(re)).filter(Boolean).sort((a, b) => b[1].localeCompare(a[1]));
+    const hits = names.flatMap((n) => { const m = n.match(re); return m ? [m] : []; }).sort((a, b) => b[1].localeCompare(a[1]));
     return hits.length ? { month: hits[0][1], file: path.join(dir, hits[0][0]) } : null;
 }
 
@@ -100,6 +111,7 @@ function validateMmdb(buf, kind) {
  * @param {string} kind
  * @param {number} timeoutMs
  * @param {string} month
+ * @param {FetchImpl} fetchImpl
  */
 async function _download(kind, month, fetchImpl, timeoutMs) {
     const url = `${BASE_URL}/dbip-${kind}-lite-${month}.mmdb.gz`;
@@ -119,7 +131,7 @@ async function _download(kind, month, fetchImpl, timeoutMs) {
  * @param {Array<'city'|'asn'>} [opts.kinds]
  * @param {Date} [opts.now]
  * @param {boolean} [opts.force]     download even when the current month is present
- * @param {Function} [opts.fetchImpl]
+ * @param {FetchImpl} [opts.fetchImpl]
  * @param {number} [opts.timeoutMs]
  * @returns {Promise<Array<{kind:string, month:string, file:string, downloaded:boolean}>>}
  */

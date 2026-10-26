@@ -48,6 +48,7 @@ const { isMapsTool, executeMapsTool } = require('./mapsTools');
 const { isLinkedInTool, executeLinkedInTool } = require('./linkedinTools');
 const { isGitHubTool, executeGitHubTool } = require('./githubTools');
 const { isOutlookTool, executeOutlookTool } = require('./outlookTools');
+const { outlookSessionFor } = require('./outlookSession');
 const { isMsCalendarTool, executeMsCalendarTool } = require('./msCalendarTools');
 const { isOneDriveTool, executeOneDriveTool } = require('./oneDriveTools');
 const { isMsContactsTool, executeMsContactsTool } = require('./msContactsTools');
@@ -326,9 +327,7 @@ async function executeKbSearch(toolName, toolArgs, context) {
  * @param {ToolCtx} context
  */
 async function executeOutlook(toolName, toolArgs, context) {
-    const { session, userId } = context;
-    const { resolveMicrosoftSession } = require('../auth/microsoftSessionHydration');
-    const msSession = (await resolveMicrosoftSession(session, userId)) || session;
+    const msSession = await outlookSessionFor(toolArgs, context);
     return await executeOutlookTool(toolName, toolArgs, msSession, { autoSend: !!context.autoSend });
 }
 

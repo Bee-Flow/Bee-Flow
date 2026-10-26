@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * DPIA Store — Data Protection Impact Assessment per agent (GDPR Art. 35).
  *
@@ -44,7 +44,7 @@ const VALID_MODES = new Set(['attestation', 'questionnaire']);
  */
 async function upsertAssessment(orgId, agentId, input) {
     await initDB();
-    const mode = VALID_MODES.has(input?.mode) ? input.mode : 'attestation';
+    const mode = typeof input?.mode === 'string' && VALID_MODES.has(input.mode) ? input.mode : 'attestation';
     const riskLevel = input?.risk_level || 'medium';
     const expiresAt = input?.expires_at || null;
     const answersJson = JSON.stringify(input?.answers || {});

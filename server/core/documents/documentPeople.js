@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Display names for the people a documents answer mentions: the owner and
  * last editor on a library row, the authors of versions, the peers present.
@@ -29,7 +29,7 @@ function displayNameOf(user) {
 async function describePeople(ids, orgId, deps = {}) {
     const getUser = deps.getUser || ((id) => require('../../stores/userStore').getUser(id));
     const log = deps.log || require('../../telemetry/log');
-    const unique = [...new Set([...ids].filter((id) => typeof id === 'string' && id))].slice(0, MAX_PEOPLE);
+    const unique = [...new Set([...ids].flatMap((id) => (typeof id === 'string' && id ? [id] : [])))].slice(0, MAX_PEOPLE);
     /** @type {Record<string, { name?: string }>} */
     const people = {};
     await Promise.all(unique.map(async (id) => {

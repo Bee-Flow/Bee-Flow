@@ -558,7 +558,7 @@ function pickMatcher(provider, event) {
         if (event === 'notification.new')  return matchNextcloudNotificationFilter;
         if (event === 'user.status.changed') return matchNextcloudUserStatusFilter;
     }
-    return matchFilter;
+    return provider === 'msgraph' && event === 'mail.new' ? require('./filtersMsGraph').matchMsGraphMailFilter : matchFilter;
 }
 
 module.exports = { matchGmailMailFilter, matchGmailLabelFilter, matchCalendarChangedFilter, matchCalendarUpcomingFilter, matchDriveFileNewFilter, matchSheetsChangedFilter, matchNextcloudFileFilter, matchNextcloudShareFilter, matchNextcloudShareGenericFilter, matchNextcloudActivityFilter, matchNextcloudNotificationFilter, matchNextcloudCommentFilter, matchNextcloudTagFilter, matchNextcloudFormsSubmittedFilter, matchNextcloudTablesRowFilter, matchSupportTicketResolvedFilter, matchMeetingProcessedFilter, matchNextcloudCalendarFilter, matchNextcloudCalendarUpcomingFilter, matchNextcloudDeckCardFilter, matchNextcloudDeckCardMovedFilter, matchNextcloudTalkMessageFilter, matchNextcloudTalkReactionFilter, matchNextcloudTaskFilter, matchNextcloudUserStatusFilter, containsCI, pickMatcher };

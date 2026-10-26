@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * The publishing CMS-over-MCP tools (./dispatch.js maps tool names to them;
@@ -43,7 +43,7 @@ function createPublishHandlers({ deps, cmsStore, live, resolveSite, loadDraft, v
      */
     async function publish(args, ctx) {
         const site = await resolveSite(args);
-        if (site.error) return err(site.error);
+        if (site.error || !site.siteId) return err(site.error ?? 'No site was resolved.');
         const published = await cmsStore.publishSite(site.siteId);
         if (deps.afterPublish) await Promise.resolve(deps.afterPublish(site.siteId, ctx)).catch((e) => log.warn('[CMS] afterPublish hook failed:', e.message));
         await deps.audit('cms.publish.mcp', 'cms_site', site.siteId, ctx.userId, null, { tokenName: ctx.token.name }, ctx.orgId || null);
@@ -90,7 +90,7 @@ function createPublishHandlers({ deps, cmsStore, live, resolveSite, loadDraft, v
      */
     async function setLiveSite(args, ctx) {
         const site = await resolveSite({ siteId: args.siteId });
-        if (site.error) return err(site.error);
+        if (site.error || !site.siteId) return err(site.error ?? 'No site was resolved.');
         const goLive = args.live !== false;
         if (goLive) {
             // Publish first: a version without a snapshot must never become

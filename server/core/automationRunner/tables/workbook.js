@@ -266,7 +266,7 @@ async function readWorkbookTables(buffer, options = {}) {
             `The file is ${(buffer.length / MIB).toFixed(1)} MB; the most this server reads is ${Math.round(limits.maxFileBytes / MIB)} MB. `
             + 'An administrator can raise the limit with AUTOMATION_TABLE_MAX_FILE_BYTES (0 = unlimited).');
     }
-    const headerRow = Number.isInteger(options.headerRow) && options.headerRow >= 1 ? Math.min(options.headerRow, 50) : 1;
+    const headerRow = typeof options.headerRow === 'number' && Number.isInteger(options.headerRow) && options.headerRow >= 1 ? Math.min(options.headerRow, 50) : 1;
     const o = { ...options, headerRow, limits };
     return lazy.formats().withSlot(async () => {
         const format = await detectFormat(buffer, options.format, limits);

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Login Routes — what the signup form needs before it submits: the (optional)
  * public organisation directory and the pending-signup blob the OAuth flows
@@ -100,7 +100,7 @@ router.post('/pending-signup', signupIpLimiter, validate({ body: PendingSignupBo
     }
     // Connector-only + geo gating (OAuth signup entry point)
     const gate = await checkWebSignupAllowed(req);
-    if (!gate.ok) return res.status(gate.status).json({ error: gate.error, code: gate.code });
+    if (!gate.ok) return res.status(gate.status ?? 403).json({ error: gate.error, code: gate.code });
     // The OAuth signup entry point. Without the same bot gate as POST /signup,
     // the CAPTCHA would only cover half the ways a tenant can be created.
     const captcha = await signupCaptcha.verifyCaptcha(req.body.captchaToken, req);

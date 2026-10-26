@@ -10,7 +10,6 @@ const { test, before, beforeEach, after } = require('node:test');
 const assert = require('node:assert');
 
 const { createRecordingDb } = require('../testUtils/mockDb');
-const { installResolveStub } = require('../testUtils/stubRequire');
 
 const rows = [];
 const mock = createRecordingDb({
@@ -31,13 +30,13 @@ const mock = createRecordingDb({
         return undefined;
     },
 });
-const restore = installResolveStub({ '../db': mock.db });
+const restore = mock.attachPool();
 const store = require('./platformReleaseStore');
 
 let bootDdl = '';
 before(async () => {
     await store.initDB();
-    bootDdl = mock.calls.exec.map(c => c.sql).join('\n');
+    bootDdl = [...mock.calls.pool, ...mock.calls.client].map(c => c.sql).join('\n');
 });
 after(() => restore());
 beforeEach(() => { rows.length = 0; mock.reset(); });
@@ -89,18 +88,18 @@ test('upsertSeen validation: git sha shape, sha256 sbom hash, version trimmed/ca
 
 test('latest / get / listRecent read newest first with a bounded limit', async () => {
     await store.latest();
-    assert.match(mock.calls.getOne[0].sql, /ORDER BY first_seen_at DESC\s+LIMIT 1/);
+    assert.match(mock.reads().at(-1).sql, /ORDER BY first_seen_at DESC\s+LIMIT 1/);
 
     await store.get(SHA.toUpperCase());
-    assert.match(mock.calls.getOne[1].sql, /WHERE build_sha = \$1/);
-    assert.deepStrictEqual(mock.calls.getOne[1].params, [SHA]);
+    assert.match(mock.reads().at(-1).sql, /WHERE build_sha = \$1/);
+    assert.deepStrictEqual(mock.reads().at(-1).params, [SHA]);
     await assert.rejects(() => store.get('zzz'), /buildSha/);
 
     await store.listRecent(5);
-    assert.match(mock.calls.getAll[0].sql, /ORDER BY first_seen_at DESC\s+LIMIT \$1/);
-    assert.deepStrictEqual(mock.calls.getAll[0].params, [5]);
+    assert.match(mock.reads().at(-1).sql, /ORDER BY first_seen_at DESC\s+LIMIT \$1/);
+    assert.deepStrictEqual(mock.reads().at(-1).params, [5]);
     await store.listRecent('lots');
-    assert.deepStrictEqual(mock.calls.getAll[1].params, [20], 'garbage → default');
+    assert.deepStrictEqual(mock.reads().at(-1).params, [20], 'garbage → default');
     await store.listRecent(10_000);
-    assert.deepStrictEqual(mock.calls.getAll[2].params, [500], 'capped');
+    assert.deepStrictEqual(mock.reads().at(-1).params, [500], 'capped');
 });

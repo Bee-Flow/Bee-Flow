@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The compliance_settings column table: SETTINGS_FIELDS (writable columns),
  * SETTINGS_READONLY (columns with their own writers) and SETTINGS_REQUEST_DENY

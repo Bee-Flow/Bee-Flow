@@ -55,7 +55,6 @@ const { run, getOne } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { createSecretBox } = require('../utils/secretBox');
 const log = require('../telemetry/log');
-const { fallback } = require('../utils/bestEffort');
 
 const TABLE = 'integration_response_cache';
 
@@ -144,28 +143,13 @@ function cacheKey(parts) {
 const initDB = makeStoreInit('IntegrationCache', _doInit);
 
 async function _doInit() {
-    // The schema lives in server/migrations/integration-response-cache-2026-09
-    // so a DBA reading the migrations folder can see that this table exists.
-    // This call is the belt: a fresh replica can reach a cache write before a
-    // standalone `db:migrate` has run.
-    //
-    // The probe checks the COLUMN, not just the table: an installation that got
-    // the table from this store's old lazy DDL has no payload_bytes, and
-    // skipping on `to_regclass` alone would leave the quota counting NULLs
-    // forever.
-    // pg_attribute against the regclass, not information_schema by table NAME:
-    // this box also carries per-tenant schemas, and a name match in one of
-    // those would report a column the search_path cannot actually see.
-    const probe = await getOne(
-        `SELECT to_regclass('${TABLE}') AS t,
-                (SELECT 1 FROM pg_attribute
-                  WHERE attrelid = to_regclass('${TABLE}')
-                    AND attname = 'payload_bytes' AND NOT attisdropped) AS c`,
-    ).catch((e) => fallback('stores/integrationCacheStore:_doInit', e, null));
-    if (!(probe?.t && probe?.c)) {
-        await require('./ddl/integration-response-cache-2026-09').up();
-    }
-    // Runs regardless of the probe above, because half of it stamps CONFIG
+    // The schema lives in stores/ddl/integration-response-cache-2026-09, kept
+    // apart so a DBA can see that this table exists. No probe in front of it:
+    // the schema ledger (stores/lib/ddlLedger.js) skips each create-if-missing
+    // statement that already succeeded here and runs a new one, and the payload_bytes
+    // backfill is a recorded one-time step of the same ledger.
+    await require('./ddl/integration-response-cache-2026-09').up();
+    // Runs on every init, because half of it stamps CONFIG
     // rows and no schema probe can see those. Self-limiting (it skips any row
     // that already carries `scopes`) and non-fatal: a cache that cannot
     // migrate its consent rows must still be able to miss rather than throw.

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -18,7 +18,7 @@ const check = require('./a8-13-backups');
 const saved = { getConfig: isoEvidenceStore.getConfig, listLatestSnapshots: isoEvidenceStore.listLatestSnapshots };
 afterEach(() => Object.assign(isoEvidenceStore, saved));
 
-function stub(summary) {
+function stub(/** @type {unknown} */ summary) {
     isoEvidenceStore.getConfig = async () => ({ enabled: true });
     isoEvidenceStore.listLatestSnapshots = async () => [{ subject_id: 'summary', payload: summary }];
 }

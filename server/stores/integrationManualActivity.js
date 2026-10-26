@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The two reads "Find repeating work" makes on the outbound-call ledger
  * (integration_activity_log), split out of integrationActivityStore.js, which
@@ -30,16 +30,14 @@ const DEFAULT_WINDOW_DAYS = 90;
 const DEFAULT_LIMIT = 5000;
 const MAX_LIMIT = 20000;
 
-/**
- * @param {string | Date | undefined} since
- */
+/** @param {string | Date | undefined} since */
 function sinceOf(since) {
     const t = since instanceof Date ? since.getTime() : (since == null ? NaN : Date.parse(String(since)));
     return new Date(Number.isFinite(t) ? t : Date.now() - DEFAULT_WINDOW_DAYS * 86400_000).toISOString();
 }
 
 /**
- * @param {{ query: (sql: string, params?: any[]) => Promise<{rows: any[], rowCount?: number}> }} db
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{rows: any[], rowCount?: number | null}> }} db
  * @param {{ ready?: () => Promise<unknown> }} [opts]
  */
 function makeManualActivityReader(db, { ready = async () => {} } = {}) {
@@ -96,7 +94,10 @@ function makeManualActivityReader(db, { ready = async () => {} } = {}) {
     return { getManualToolEvents, getAutomatedToolNames };
 }
 
-/** Default reader on the real pool; `ready` is the ledger store's initDB. */
+/**
+ * Default reader on the real pool; `ready` is the ledger store's initDB.
+ * @param {() => Promise<unknown>} ready
+ */
 function defaultReader(ready) {
     return makeManualActivityReader({ query: (sql, params) => run(sql, params) }, { ready });
 }

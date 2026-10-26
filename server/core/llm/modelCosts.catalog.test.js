@@ -26,41 +26,33 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-const { installResolveStub } = require('../../testUtils/stubRequire');
+const { useConfigRows } = require('../../testUtils/configRows');
+const { loadPricing } = require('../../testUtils/pricingFeed');
 
+// The community pricing data, fed through the fetch the real pricingService
+// uses. Rates are USD per 1M tokens.
 const PRICING = {
     'gpt-4o': { input: 2.5, output: 10, cacheRead: 1.25 },
     'claude-sonnet-4-5': { input: 3, output: 15, cacheRead: 0.3 },
-    'flex-capable': { input: 2, output: 8, cacheRead: 0.5 },
-    'long-capable': { input: 3, output: 15, cacheRead: 0.3 },
-    'expensive-frontier-model': { input: 15, output: 120 },
-};
-const DETAIL = {
     'flex-capable': {
-        ...PRICING['flex-capable'], source: 'community', key: 'flex-capable',
-        tiers: { flex: { input: 1, output: 4, cacheRead: 0.25 }, priority: { input: 3.5, output: 14 } }, longCtx: null,
+        input: 2, output: 8, cacheRead: 0.5,
+        tiers: { flex: { input: 1, output: 4, cacheRead: 0.25 }, priority: { input: 3.5, output: 14 } },
     },
     'long-capable': {
-        ...PRICING['long-capable'], source: 'community', key: 'long-capable',
-        tiers: {}, longCtx: { threshold: 200000, input: 6, output: 22.5, cacheRead: 0.6 },
+        input: 3, output: 15, cacheRead: 0.3,
+        longCtx: { threshold: 200000, input: 6, output: 22.5, cacheRead: 0.6 },
     },
+    'expensive-frontier-model': { input: 15, output: 120 },
 };
 
-const overrides = { value: null };
-const restore = installResolveStub({
-    '../../stores/configStore': {
-        getConfig: async () => overrides.value,
-        mutateConfig: async (_k, fn) => { overrides.value = fn(overrides.value); return overrides.value; },
-        setConfig: () => { },
-    },
-    './pricingService': {
-        getModelPricing: (name) => PRICING[name] || null,
-        getModelPricingDetail: (name) => DETAIL[name] || (PRICING[name] ? { ...PRICING[name], source: 'community', key: name, tiers: {}, longCtx: null } : null),
-        getPricingByKey: () => null,
-        initPricing: () => { },
-        getAllModelPricing: () => PRICING,
-    },
-});
+// The real configStore over a config table: the admin cost overrides live in one row.
+const config = useConfigRows();
+const OVERRIDES_KEY = 'model_cost_overrides';
+const overrides = {
+    get value() { return Object.prototype.hasOwnProperty.call(config.rows, OVERRIDES_KEY) ? config.rows[OVERRIDES_KEY] : null; },
+    set value(v) { if (v === null) delete config.rows[OVERRIDES_KEY]; else config.rows[OVERRIDES_KEY] = v; },
+};
+test.before(() => loadPricing(PRICING));
 
 const catalog = require('../../stores/lib/priceCatalog');
 const costs = require('./modelCosts');
@@ -68,7 +60,7 @@ const { registerLocalModel, _resetLocalModelRegistry } = require('../providers/l
 const { registerScalewayModel, _resetScalewayModelRegistry } = require('../providers/scalewayModels');
 const { registerEuServedModel, _resetEuServedRegistry } = require('../providers/openaiModels');
 
-test.after(() => restore());
+test.after(config.restore);
 test.beforeEach(async () => {
     catalog.clear();
     overrides.value = null;

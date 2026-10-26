@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Unit tests for the org-health additions to connectorJwt:
  *
@@ -22,13 +22,13 @@ const crypto = require('node:crypto');
 const connectorJwt = require('./connectorJwt');
 const { _unverifiedEmailDomain, _resolveTenant } = connectorJwt;
 
-function b64url(obj) {
+function b64url(/** @type {unknown} */ obj) {
     return Buffer.from(JSON.stringify(obj))
         .toString('base64')
         .replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
 }
 
-function mintToken(payload, key = 'some-key') {
+function mintToken(/** @type {Record<string, unknown>} */ payload, key = 'some-key') {
     const h = b64url({ alg: 'HS256', typ: 'JWT' });
     const p = b64url(payload);
     const sig = crypto.createHmac('sha256', key)

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Compliance — evidence: uploading and streaming back file attachments, and
  * the per-check evidence-chain history.
@@ -111,7 +111,8 @@ const CHAIN_LIMIT_MAX = 2000;
  * @param {number} max
  */
 function _int(v, dflt, min, max) {
-    const n = Number.parseInt(v, 10);
+    const n = Number.parseInt(String(v), 10);
+
     if (!Number.isFinite(n)) return dflt;
     return Math.max(min, Math.min(n, max));
 }

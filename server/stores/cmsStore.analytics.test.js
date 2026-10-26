@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Store tests for the site-level Google Analytics field (site.analytics)
  * and the per-page noAnalytics flag.

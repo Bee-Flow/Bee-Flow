@@ -83,7 +83,7 @@ function asStrArray(v) { return Array.isArray(v) ? v.filter(x => typeof x === 's
  * settings page silently overrode every member's own choice with the form
  * defaults — and there was no way to hand a setting back.
  */
-async function resolveTalkNotesSettings({ orgId = null, userId = null } = {}) {
+async function resolveTalkNotesSettings(/** @type {{ orgId?: string | null, userId?: string | null }} */ { orgId = null, userId = null } = {}) {
     const org = orgId ? await configStore.getConfig(orgKey(orgId)).catch((e) => fallback('core/meetingNotes/talkNotesSettings:resolveTalkNotesSettings', e, null)) : null;
     const user = userId ? await configStore.getConfig(userKey(userId)).catch((e) => fallback('core/meetingNotes/talkNotesSettings:resolveTalkNotesSettings#2', e, null)) : null;
     const has = (doc, k) => doc && k in doc && doc[k] !== null && doc[k] !== undefined;

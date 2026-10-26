@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * The media CMS-over-MCP tools (./dispatch.js maps tool names to them): the
@@ -58,7 +58,7 @@ function createAssetHandlers({ deps, resolveSite }) {
             return err('Uploads need a named MCP token. Create one in Settings → Security → MCP tokens (with the cms server at write level) and connect with it.');
         }
         const site = await resolveSite(args);
-        if (site.error) return err(site.error);
+        if (site.error || !site.siteId) return err(site.error ?? 'No site was resolved.');
         const contentType = String(args.contentType || '').split(';')[0].trim().toLowerCase();
         const cap = maxBytesFor(contentType);
         if (cap === null) {
@@ -133,7 +133,7 @@ function createScreenshotHandler({ deps, resolveSite, takeBudget, shotBudget }) 
             return { result: { note: 'Screenshot budget spent' }, text: `Screenshot budget spent (${SHOT_MAX_PER_WINDOW} per ${SHOT_WINDOW_MS / 60000} minutes); each one is a headless browser page. Keep editing and take the next one when the budget refills.` };
         }
         const site = await resolveSite(args);
-        if (site.error) return err(site.error);
+        if (site.error || !site.siteId) return err(site.error ?? 'No site was resolved.');
         const shot = await deps.screenshots.render({
             siteId: site.siteId,
             pageId: args.pageId,

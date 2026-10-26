@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Test kit: the notebookChat router with its dependencies stubbed.
  *

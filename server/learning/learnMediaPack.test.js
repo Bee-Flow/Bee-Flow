@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Guard for the pinned Learning Center video pack (learning/learnMediaPack.json,
  * generated when a pack is published): when the pin exists it must be valid and
@@ -37,8 +37,8 @@ test('the lesson files are found and use videos (guards the extraction below)', 
 test('learnMediaPack.json is a valid pin whose videos all belong to a lesson', { skip: !fs.existsSync(PIN_PATH) && 'no learnMediaPack.json yet (no pack published for this build): nothing to check' }, () => {
     const pinned = JSON.parse(fs.readFileSync(PIN_PATH, 'utf8'));
     const pin = validatePin(pinned);
-    assert.match(pin.baseUrl, /^https:\/\//, 'the pinned base URL must be https');
+    assert.match(String(pin.baseUrl), /^https:\/\//, 'the pinned base URL must be https');
     const lessons = new Set(lessonVideoIds());
-    const orphans = pin.videoIds.filter((id) => !lessons.has(id));
+    const orphans = (pin.videoIds ?? []).filter((id) => !lessons.has(id));
     assert.deepStrictEqual(orphans, [], `the pinned pack has videos no lesson plays: ${orphans.join(', ')}`);
 });

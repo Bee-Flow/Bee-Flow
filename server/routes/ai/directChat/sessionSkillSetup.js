@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Direct Chat — chat-local session-skill state for the Flow (standard) tier:
  * conversation-meta load (compaction summary, OpenAI response chaining id,

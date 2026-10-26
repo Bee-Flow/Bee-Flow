@@ -5,7 +5,7 @@
  *
  * A datatable whose ROWS come from somewhere else carries a `managed_kind`
  * naming its source kind (dataModel/managedTables.js is the contract). Each
- * kind has an ADAPTER (`<kind>/adapter.js`) with one interface — sync,
+ * kind has an ADAPTER (`<kind>/kindAdapter.js`, over `<kind>/adapter.js`) with one interface — sync,
  * write-through, linking, events, the public projection of its `source`
  * block — and the shared engine under ./mirror does everything that is the
  * same for all of them. Consumers never string-compare a kind: they ask
@@ -29,8 +29,8 @@
 const { managedKindSpec } = require('../dataModel/managedTables');
 
 const KINDS = Object.freeze({
-    get nextcloud_table() { return require('./nextcloudTable/adapter'); },
-    get spreadsheet_file() { return require('./spreadsheetFile/adapter'); },
+    get nextcloud_table() { return require('./nextcloudTable/kindAdapter'); },
+    get spreadsheet_file() { return require('./spreadsheetFile/kindAdapter'); },
 });
 
 const SOURCE_KINDS = Object.freeze(Object.keys(KINDS));
@@ -71,8 +71,7 @@ function syncRows(table, opts) {
  * table, so a read site can call it unconditionally behind its answer.
  */
 function kickStale(table, opts) {
-    const adapter = sourceOf(table);
-    return adapter ? adapter.sync.kickStale(table, opts) : false;
+    return require('./mirror/kickStale').kickStale(table, opts);
 }
 
 /** The write-through module for a table's kind (insertRow/updateRow/deleteRow, the batch forms, contextOf). */

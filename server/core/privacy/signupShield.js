@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Build an org Privacy-Shield config object from a signup-wizard payload.
  *
@@ -42,7 +42,7 @@ function buildSignupShieldConfig(orgDetails = {}, { updatedBy = 'system-signup' 
     if (ps && typeof ps === 'object') {
         enabled = ps.enabled !== false;
         categories = Array.isArray(ps.piiDetectionCategories) ? ps.piiDetectionCategories : [];
-        action = VALID_PII_ACTIONS.includes(ps.piiDetectionAction) ? ps.piiDetectionAction : 'block';
+        action = typeof ps.piiDetectionAction === 'string' && VALID_PII_ACTIONS.includes(ps.piiDetectionAction) ? ps.piiDetectionAction : 'block';
         euMode = !!ps.euModeEnabled;
     } else {
         // Legacy coarse level. 'basic' leaves categories empty → runtime falls

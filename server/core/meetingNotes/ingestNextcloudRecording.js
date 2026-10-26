@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * ingestNextcloudRecording — download a recording from Nextcloud Files and
  * run it through Bee Flow's own transcription pipeline (the tenant's

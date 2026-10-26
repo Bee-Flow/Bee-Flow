@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Single source of truth for "will this app_event trigger actually fire?"
  *
@@ -122,6 +122,10 @@ const PUSH_PENDING = {
     ]),
 };
 
+/**
+ * @param {...Iterable<string>} sets
+ * @returns {Set<string>}
+ */
 function union(...sets) {
     const out = new Set();
     for (const s of sets) for (const v of s) out.add(v);

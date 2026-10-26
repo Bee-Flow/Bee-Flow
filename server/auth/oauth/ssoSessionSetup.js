@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The session half of the OAuth callback (./providerCallbackRoutes.js): where
  * the user stands with an organisation (binding an org-less account by
@@ -60,7 +60,7 @@ async function resolveOrgStanding({ provider, user, msTenant, signupIntent }) {
     if (!userHasOrg && !isPersonalAccount && (provider === 'microsoft' || (user.email && user.email.includes('@')))) {
         const matchingOrg = provider === 'microsoft'
             ? await microsoftLogin.trustedMicrosoftOrg(user, msTenant, userStore)
-            : resolveOrgByEmailDomain(user.email, await userStore.getAllOrganizations(), await getEffectiveFreeEmailDomains());
+            : resolveOrgByEmailDomain(user.email ?? '', await userStore.getAllOrganizations(), await getEffectiveFreeEmailDomains());
 
         if (matchingOrg) {
             // Same auto-approve/pending decision the create path makes, from

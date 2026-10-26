@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Login Routes — first-run instance setup: the pre-auth /setup-status payload
  * (signup toggles, locales, branding, captcha config) and the one-shot /setup
@@ -45,7 +45,7 @@ router.get('/setup-status', async (/** @type {import('express').Request} */ req,
     try {
         const languageStore = require('../../stores/languageStore');
         const locales = await languageStore.getAvailableLocales();
-        availableLocales = locales.map(l => ({ code: l.code, name: l.name }));
+        availableLocales = locales.map((/** @type {{ code: string, name: string }} */ l) => ({ code: l.code, name: l.name }));
     } catch (err) {
         log.error('[Auth] setup-status — failed to load locales:', /** @type {Error} */ (err).message);
     }

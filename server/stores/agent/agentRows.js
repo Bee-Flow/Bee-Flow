@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Agent row projections: the draft/published split (runtime vs draft view),
  * the persona strip, config parsing and the tool-parameter map.
@@ -12,6 +12,10 @@ const { getAgentToolsWithParams } = require('./agentTools');
 // pick the wrong one by accident. The scalar published_* columns
 // (published_version / published_rev / published_at) DO pass through: they
 // are what "Saved · v8" and "n unpublished changes" are computed from.
+/**
+ * @param {AgentDbRow} row
+ * @returns {AgentDbRow}
+ */
 function _stripPublishedBlobs(row) {
     if (!row) return row;
     const { published_config, published_system_prompt, ...rest } = row;
@@ -27,6 +31,7 @@ function _stripPublishedBlobs(row) {
 //     (new agents, and every existing agent until the A2 backfill runs).
 //   - published_config IS NOT NULL: belt-and-braces against a half-written
 //     row; a NULL blob can never be served as "the published config".
+/** @param {AgentDbRow | null | undefined} row */
 function isSplitActive(row) {
     if (!row) return false;
     if (row.owner_id === 'system' || row.owner_id === 'swarm') return false;
@@ -37,6 +42,10 @@ function isSplitActive(row) {
 // Raw row → raw row whose config/system_prompt are what the RUNTIME must use,
 // plus `runtimeSource: 'published' | 'live'` so a consumer (and a test) can
 // tell which one it got. Applied BEFORE parseConfig.
+/**
+ * @param {AgentDbRow} row
+ * @returns {AgentDbRow & { runtimeSource: 'published' | 'live' }}
+ */
 function projectRuntime(row) {
     if (!row) return row;
     if (!isSplitActive(row)) return { ..._stripPublishedBlobs(row), runtimeSource: 'live' };
@@ -56,6 +65,10 @@ function projectRuntime(row) {
 // and a screen that says "you are testing your concept" has to be able to tell
 // those two apart. The published blobs are stripped here exactly as everywhere
 // else, so asking for the draft never doubles the payload.
+/**
+ * @param {AgentDbRow} row
+ * @returns {AgentDbRow & { runtimeSource: 'draft' }}
+ */
 function projectDraft(row) {
     if (!row) return row;
     return { ..._stripPublishedBlobs(row), runtimeSource: 'draft' };
@@ -69,14 +82,23 @@ function projectDraft(row) {
 // may only chat with the agent, not `getForRuntime`. Stripping here rather
 // than deleting at each call site means a NEW reader inherits the narrow
 // answer instead of the wide one.
+/**
+ * @param {AgentDbRow} row
+ * @returns {AgentDbRow}
+ */
 function _stripPersona(row) {
     if (!row || !('persona' in row)) return row;
     const { persona, ...rest } = row;
     return rest;
 }
 
-function parseConfig(agent) {
-    agent = _stripPersona(_stripPublishedBlobs(agent));
+/**
+ * @param {AgentDbRow} row
+ * @returns {ParsedAgent}
+ */
+function parseConfig(row) {
+    const agent = _stripPersona(_stripPublishedBlobs(row));
+    if (!agent) throw new TypeError('parseConfig needs an agent row');
     const config = agent.config ? (typeof agent.config === 'string' ? JSON.parse(agent.config) : agent.config) : {};
     // Legacy agents stored their picture inside config.avatar instead of the
     // dedicated column. Fall through on read so the UI keeps showing them
@@ -93,7 +115,9 @@ function parseConfig(agent) {
 // Convert a list of { componentId, params } (from getAgentToolsWithParams or its
 // batch variant) into the tool_params shape the API exposes:
 //   { [componentId]: { [paramName]: { value, fixed: true } } }
+/** @param {Array<{ componentId: string, params: object | null }>} toolsWithParams */
 function buildToolParamsFromList(toolsWithParams) {
+    /** @type {Record<string, Record<string, { value: unknown, fixed: true }>>} */
     const tool_params = {};
     for (const t of toolsWithParams) {
         if (t.params) {
@@ -106,9 +130,7 @@ function buildToolParamsFromList(toolsWithParams) {
     return tool_params;
 }
 
-/**
- * @param {string} agentId
- */
+/** @param {string} agentId */
 async function buildToolParams(agentId) {
     const toolsWithParams = await getAgentToolsWithParams(agentId);
     return buildToolParamsFromList(toolsWithParams);
@@ -177,7 +199,7 @@ module.exports = { _stripPublishedBlobs, isSplitActive, projectRuntime, projectD
  *   published_version?: number | null,
  *   name?: string,
  *   description?: string | null,
- *   model?: string,
+ *   model?: string | null,
  *   rev?: number,
  *   is_published?: boolean,
  *   published_rev?: number | null,
@@ -189,4 +211,9 @@ module.exports = { _stripPublishedBlobs, isSplitActive, projectRuntime, projectD
  *   embed_enabled?: boolean | null,
  *   runtimeSource?: 'published' | 'live' | 'draft',
  * }} ParsedAgent
+ */
+
+/**
+ * A parsed agent with its component tool grants attached (what getAgent and getForRuntime hand out).
+ * @typedef {ParsedAgent & { tools: string[], tool_params: Record<string, Record<string, { value: unknown, fixed: true }>> }} AgentWithTools
  */

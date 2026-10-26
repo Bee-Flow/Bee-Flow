@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Rate limiters for the anonymous authentication surface.
  *
@@ -58,7 +58,7 @@ function skipUntrustedIp(req) {
  * @param {number} d
  */
 const num = (v, d) => {
-    const n = parseInt(v, 10);
+    const n = parseInt(v ?? '', 10);
     return Number.isFinite(n) && n > 0 ? n : d;
 };
 

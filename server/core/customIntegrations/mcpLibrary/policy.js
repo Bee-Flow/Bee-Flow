@@ -1,5 +1,5 @@
 /** @typedef {import('url').URL} URL */
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The server-wide rule for what ORGANISATION admins may install in their MCP
  * library. Set by the server administrator (super-admin), read on every
@@ -62,7 +62,7 @@ function normalizePolicy(raw) {
         try { value = JSON.parse(value); } catch (_) { value = null; }
     }
     if (!value || typeof value !== 'object' || Array.isArray(value)) return { ...DEFAULT_POLICY, allowedHosts: [] };
-    const remote = REMOTE_MODES.includes(value.remote) ? value.remote : DEFAULT_POLICY.remote;
+    const remote = typeof value.remote === 'string' && REMOTE_MODES.includes(value.remote) ? value.remote : DEFAULT_POLICY.remote;
     const hosts = Array.isArray(value.allowedHosts) ? value.allowedHosts : [];
     const allowedHosts = [...new Set(hosts.map(normalizeHostPattern).filter(Boolean))].slice(0, MAX_ALLOWED_HOSTS);
     return { remote, allowedHosts };
@@ -88,7 +88,7 @@ function hostMatches(pattern, host) {
  * 'host_not_allowed'. Name-level only: whether the name resolves to a public
  * address is the SSRF guard's job, at connect time.
  * @param {string | PolicyInput | null | undefined} policy
- * @param {string} rawUrl
+ * @param {string | null | undefined} rawUrl
  */
 function checkUrl(policy, rawUrl) {
     const p = normalizePolicy(policy);
@@ -103,7 +103,7 @@ function checkUrl(policy, rawUrl) {
     if (official) return { allowed: true, official: true };
     if (p.remote === 'official') return { allowed: false, reason: 'not_official' };
     if (p.remote === 'allowlist') {
-        return p.allowedHosts.some(pattern => hostMatches(pattern, host))
+        return p.allowedHosts.some(pattern => !!pattern && hostMatches(pattern, host))
             ? { allowed: true, official: false }
             : { allowed: false, reason: 'host_not_allowed' };
     }

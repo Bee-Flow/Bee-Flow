@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * OneDrive Routes — REST API for OneDrive integration UI
  *
@@ -27,7 +27,9 @@ const MS_DOWNLOAD_HOST_SUFFIXES = [
     '.1drv.com', '.1drv.ms', '.onedrive.com', '.files.1drv.com',
     '.microsoftpersonalcontent.com', '.office.net', '.live.com',
 ];
+/** @param {unknown} raw */
 function isMicrosoftDownloadUrl(raw) {
+
     let u;
     try { u = new URL(String(raw)); } catch { return false; }
     if (u.protocol !== 'https:' || u.username || u.password) return false;

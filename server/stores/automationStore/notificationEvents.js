@@ -72,7 +72,7 @@ function rowToEvent(r) {
 }
 
 /**
- * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }} db
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }> }} db
  * @param {{ ready?: () => Promise<void> }} [opts]
  */
 function makeNotificationEventsStore(db, { ready = async () => {} } = {}) {

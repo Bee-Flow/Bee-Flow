@@ -20,25 +20,15 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-const { installResolveStub } = require('../../testUtils/stubRequire');
+const { useConfigRows } = require('../../testUtils/configRows');
 
-const fixtures = { map: {}, throwOn: null };
-const restore = installResolveStub({
-    '../../stores/configStore': {
-        getConfig: async (key) => {
-            if (fixtures.throwOn && key === fixtures.throwOn) throw new Error('cfg boom');
-            return Object.prototype.hasOwnProperty.call(fixtures.map, key) ? fixtures.map[key] : null;
-        },
-    },
-});
+// The real configStore; its table is config.rows.
+const config = useConfigRows();
 
 const { resolveModelForTierName } = require('./modelResolver');
 
-test.after(() => restore());
-test.beforeEach(() => {
-    fixtures.map = {};
-    fixtures.throwOn = null;
-});
+test.after(config.restore);
+test.beforeEach(config.reset);
 
 test('geen tier ingericht en geen fallback gevraagd → null, geen ingevuld model', async () => {
     const model = await resolveModelForTierName('fast', { userOrgId: 'org1', userId: 'u1' });
@@ -61,39 +51,39 @@ test('een expliciet gevraagde fallback werkt nog steeds — opt-in, niet default
 });
 
 test('met configuratie komt het GEKOZEN model terug, niet iets anders', async () => {
-    fixtures.map['chat_model_tiers'] = { fast: { modelId: 'org-chosen-fast' } };
+    config.rows['chat_model_tiers'] = { fast: { modelId: 'org-chosen-fast' } };
     const model = await resolveModelForTierName('fast', { userOrgId: 'org1', userId: 'u1' });
     assert.strictEqual(model, 'org-chosen-fast');
 });
 
 test('een expliciete fallback verdringt het gekozen model niet', async () => {
-    fixtures.map['chat_model_tiers'] = { fast: { modelId: 'org-chosen-fast' } };
+    config.rows['chat_model_tiers'] = { fast: { modelId: 'org-chosen-fast' } };
     const model = await resolveModelForTierName('fast', { fallback: 'never-used' });
     assert.strictEqual(model, 'org-chosen-fast');
 });
 
 test('een tier zonder eigen model valt op de fast-tier terug, niet op een hardgecodeerd model', async () => {
-    fixtures.map['chat_model_tiers'] = { fast: { modelId: 'org-chosen-fast' } };
+    config.rows['chat_model_tiers'] = { fast: { modelId: 'org-chosen-fast' } };
     const model = await resolveModelForTierName('thinking', { userOrgId: 'org1' });
     assert.strictEqual(model, 'org-chosen-fast', 'de fast-tier is de ingerichte terugval');
 
     // ... but without a fast tier there is nothing, and then null is the answer.
-    fixtures.map['chat_model_tiers'] = { writer: { modelId: 'org-writer' } };
+    config.rows['chat_model_tiers'] = { writer: { modelId: 'org-writer' } };
     assert.strictEqual(await resolveModelForTierName('thinking', { userOrgId: 'org1' }), null);
 });
 
 test('een lege tier-map is "niets ingericht", niet "pak maar iets"', async () => {
-    fixtures.map['chat_model_tiers'] = {};
+    config.rows['chat_model_tiers'] = {};
     assert.strictEqual(await resolveModelForTierName('fast', { userOrgId: 'org1' }), null);
 });
 
 test('EU-mode ruilt het model, maar verzint er geen als er geen is', async () => {
-    fixtures.map['org_privacy_shield_org1'] = { enabled: true, euModeEnabled: true };
-    fixtures.map['chat_model_tiers_eu'] = { fast: { modelId: 'eu-fast' } };
-    fixtures.map['chat_model_tiers'] = { fast: { modelId: 'global-fast' } };
+    config.rows['org_privacy_shield_org1'] = { enabled: true, euModeEnabled: true };
+    config.rows['chat_model_tiers_eu'] = { fast: { modelId: 'eu-fast' } };
+    config.rows['chat_model_tiers'] = { fast: { modelId: 'global-fast' } };
     assert.strictEqual(await resolveModelForTierName('fast', { userOrgId: 'org1' }), 'eu-fast');
 
-    fixtures.map['chat_model_tiers_eu'] = {};
-    fixtures.map['chat_model_tiers'] = {};
+    config.rows['chat_model_tiers_eu'] = {};
+    config.rows['chat_model_tiers'] = {};
     assert.strictEqual(await resolveModelForTierName('fast', { userOrgId: 'org1' }), null);
 });

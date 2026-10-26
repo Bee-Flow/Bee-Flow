@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Microsoft Teams calendar helper — mirror of `gmeetCalendar.js` for Outlook.
  *
@@ -25,7 +25,7 @@ const MAX_PAGES = 3;
 
 /**
  * True for a Teams meeting join URL (work/school or personal Teams).
- * @param {string} url
+ * @param {string | null | undefined} url
  */
 function isTeamsJoinUrl(url) {
     return typeof url === 'string' && TEAMS_JOIN_RE.test(url.trim());

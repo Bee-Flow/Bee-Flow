@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * What a person typed into a run's forms, kept so the same run can be played
  * again (a form scenario, a golden replay).
@@ -32,7 +32,10 @@
 
 const { normalizeFields, isDisplayField, isFormTriggerDefinition } = require('../formTriggerContract');
 
-/** @param {unknown} v */
+/**
+ * @param {unknown} v
+ * @returns {v is Record<string, unknown>}
+ */
 const isPlainObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 
 /**

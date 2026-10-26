@@ -16,31 +16,23 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-const { installResolveStub } = require('../../testUtils/stubRequire');
+const { useConfigRows } = require('../../testUtils/configRows');
+const { loadPricing } = require('../../testUtils/pricingFeed');
 
-// A tiny deterministic pricing table stands in for the community data, without a
-// network fetch. (It has no family for the models below, on purpose.)
+// A tiny deterministic pricing table stands in for the community data, fed
+// through the fetch the real pricingService uses. (It has no family for the
+// models below, on purpose.)
 const PRICING = {
     'deepseek-r1': { input: 0.55, output: 2.19 },
     'expensive-frontier-model': { input: 15, output: 120 },
 };
-
-const restore = installResolveStub({
-    '../../stores/configStore': {
-        getConfig: () => null,      // no admin cost overrides
-        setConfig: () => {},
-    },
-    './pricingService': {
-        getModelPricing: (name) => PRICING[name] || null,
-        initPricing: () => {},
-        getAllModelPricing: () => PRICING,
-    },
-});
+const config = useConfigRows(); // no admin cost overrides
 
 const { registerLocalModel, _resetLocalModelRegistry } = require('../providers/localModels');
 const { getModelCost, computeCost, computeCostSplit, rateUsage, listUnknownModels, resetUnknownModels } = require('./modelCosts');
 
-test.after(() => restore());
+test.before(() => loadPricing(PRICING));
+test.after(config.restore);
 test.beforeEach(() => { _resetLocalModelRegistry(); resetUnknownModels(); });
 
 test('a registered self-hosted model costs nothing', () => {
@@ -55,7 +47,7 @@ test('a registered self-hosted model costs nothing', () => {
 
 test('the €0 answer beats the cloud list price for the same open-weight model', () => {
     // Served from a cloud host, deepseek-r1 has a real per-token price…
-    assert.deepStrictEqual(getModelCost('deepseek-r1'), { input: 0.55, output: 2.19 });
+    assert.deepStrictEqual(getModelCost('deepseek-r1'), { input: 0.55, output: 2.19, cacheRead: 0 });
     // …run on the customer's own GPU, it must not inherit it.
     registerLocalModel('deepseek-r1');
     assert.deepStrictEqual(getModelCost('deepseek-r1'), { input: 0, output: 0, cacheRead: 0 });

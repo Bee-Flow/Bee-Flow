@@ -12,30 +12,18 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { installResolveStub } = require('../testUtils/stubRequire');
+const { recordDb } = require('../testUtils/routeHarness');
 
-const runCalls = [];
 let nextRowCount = 0;
 
-const dbDouble = {
-        run: async (sql, params) => {
-            runCalls.push({ sql, params });
-            return { rowCount: nextRowCount, rows: [] };
-        },
-        getOne: async () => null,
-        getAll: async () => [],
-        exec: async () => {}, // schema-init (migratie + aiTaskStore) wordt no-op
-        pool: { query: async () => ({ rows: [], rowCount: 0 }) },
-    };
-
-const restore = installResolveStub({
-    '../db': dbDouble, '../../db': dbDouble,
-});
+// The real db.js over a recording pool; a write matches `nextRowCount` rows.
+const db = recordDb(() => ({ rows: [], rowCount: nextRowCount }));
+const runCalls = db.calls;
 
 const coworkStore = require('./coworkStore');
 
 test('de sweep verwijdert uitsluitend gesloten rijen ouder dan de cutoff', async () => {
-    runCalls.length = 0;
+    db.reset();
     nextRowCount = 3;
 
     const cutoff = '2026-06-01T00:00:00.000Z';
@@ -55,7 +43,7 @@ test('de sweep verwijdert uitsluitend gesloten rijen ouder dan de cutoff', async
 });
 
 test('een expliciete batchlimiet wordt doorgegeven', async () => {
-    runCalls.length = 0;
+    db.reset();
     nextRowCount = 0;
 
     const n = await coworkStore.deleteRunsOlderThan('2026-06-01T00:00:00.000Z', { limit: 500 });
@@ -64,4 +52,3 @@ test('een expliciete batchlimiet wordt doorgegeven', async () => {
     assert.strictEqual(del.params[1], 500);
 });
 
-test.after(() => restore());

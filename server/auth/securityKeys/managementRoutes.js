@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Security-key management — mounted at /auth/mfa next to the TOTP routes.
  *
@@ -32,6 +32,7 @@ const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { credentialJson } = require('./schemas');
 const { saveChallenge } = require('./saveChallenge');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 const MAX_KEYS_PER_USER = 10;
 const NAME_MAX = 60;
@@ -105,19 +106,19 @@ function createSecurityKeyManagementRouter(deps) {
      * @param {Record<string, any>|null} after
      */
     const audit = (req, action, before, after) => userStore.logAccessAudit(
-        action, 'user', req.session.user.id, req.session.user.id, before, after,
-        req.session.user.organizationId || null,
+        action, 'user', sessionUser(req).id, sessionUser(req).id, before, after,
+        sessionUser(req).organizationId || null,
     );
 
     router.get('/security-keys', requireAuth, async (req, res) => {
-        const keys = await userStore.listSecurityKeys(req.session.user.id);
+        const keys = await userStore.listSecurityKeys(sessionUser(req).id);
         res.json({ keys: keys.map(publicView) });
     });
 
     router.post('/security-keys/proof/options', requireAuth, codeLimiter, validate({ body: EmptyBody }), async (req, res) => {
         const rp = relyingPartyOf(req);
         if (!rp) throw unavailable();
-        const options = await proof.proofOptions(req.session, req.session.user.id, rp);
+        const options = await proof.proofOptions(req.session, sessionUser(req).id, rp);
         if (!options) {
             throw new HttpError(409, 'no_security_key_here', 'None of your security keys is registered for this address.');
         }
@@ -126,7 +127,7 @@ function createSecurityKeyManagementRouter(deps) {
     });
 
     router.post('/security-keys/registration/options', requireAuth, codeLimiter, validate({ body: OptionsBody }), async (req, res) => {
-        const userId = req.session.user.id;
+        const userId = sessionUser(req).id;
         const rp = relyingPartyOf(req);
         if (!rp) throw unavailable();
         const row = await ensureUserRow(userId);
@@ -138,7 +139,7 @@ function createSecurityKeyManagementRouter(deps) {
         if (proven) {
             const result = await proof.verify(req.session, row, req.body);
             if (!result.ok) {
-                throw new HttpError(400, result.code || 'invalid_code', PROOF_REFUSALS[result.code] || PROOF_REFUSALS.invalid_code);
+                throw new HttpError(400, result.code || 'invalid_code', (result.code && PROOF_REFUSALS[result.code]) || PROOF_REFUSALS.invalid_code);
             }
             if (result.recoveryCodes) {
                 await userStore.updateUser(userId, { mfaRecoveryCodes: JSON.stringify(result.recoveryCodes) });
@@ -161,7 +162,7 @@ function createSecurityKeyManagementRouter(deps) {
     });
 
     router.post('/security-keys/registration/verify', requireAuth, codeLimiter, validate({ body: VerifyBody }), async (req, res) => {
-        const userId = req.session.user.id;
+        const userId = sessionUser(req).id;
         const record = ceremony.takeChallenge(req.session, 'securityKeyRegistration');
         if (!record) {
             throw new HttpError(400, 'registration_expired', 'That took too long. Start adding the key again.');
@@ -216,13 +217,13 @@ function createSecurityKeyManagementRouter(deps) {
     });
 
     router.patch('/security-keys/:id', requireAuth, validate({ params: IdParams, body: RenameBody }), async (req, res) => {
-        const ok = await userStore.renameSecurityKey(req.session.user.id, req.params.id, req.body.name);
+        const ok = await userStore.renameSecurityKey(sessionUser(req).id, req.params.id, req.body.name);
         if (!ok) throw new HttpError(404, 'not_found', 'Security key not found.');
         res.json({ success: true });
     });
 
     router.delete('/security-keys/:id', requireAuth, validate({ params: IdParams }), async (req, res) => {
-        const userId = req.session.user.id;
+        const userId = sessionUser(req).id;
         const [row, keys] = await Promise.all([userStore.getUser(userId), userStore.listSecurityKeys(userId)]);
         if (!keys.some((k) => k.id === req.params.id)) throw new HttpError(404, 'not_found', 'Security key not found.');
         if (row?.mfa_enabled && !row.mfa_secret && keys.length === 1) {

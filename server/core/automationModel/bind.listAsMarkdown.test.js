@@ -29,7 +29,7 @@ const state = {
         },
     },
 };
-const md = (tpl) => interpolateTemplate(tpl, state, { listAsMarkdown: true });
+const md = (/** @type {string} */ tpl) => interpolateTemplate(tpl, state, { listAsMarkdown: true });
 
 test('a list of plain values becomes a markdown bullet list', () => {
     const out = md('**Wat de concurrentie doet:** {{steps.s1.output.findings}}');

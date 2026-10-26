@@ -23,7 +23,7 @@ const PLAN = [
     'Finalize',
 ].map(text => ({ text, done: false }));
 const fresh = () => PLAN.map(t => ({ ...t }));
-const mark = (todos, idx) => { for (const i of idx) todos[i].done = true; return todos; };
+const mark = (/** @type {{ text: string, done?: boolean }[]} */ todos, /** @type {number[]} */ idx) => { for (const i of idx) todos[i].done = true; return todos; };
 
 test('the trigger item ticks when the trigger is proposed', () => {
     assert.deepStrictEqual(inferPlanProgress(fresh(), { name: 'builder_propose_trigger', args: { kind: 'manual' }, result: { trigger: { kind: 'manual' } } }), [0]);

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Webpage Plan Tool — propose_webpage_plan
  *
@@ -103,7 +103,7 @@ function executeProposeWebpagePlan(args) {
         // models still produce well-formed plans during the transition.
         let action = s?.action;
         if (action === 'partial_edit') action = 'edit';
-        if (!['edit', 'create', 'rewrite'].includes(action)) action = 'edit';
+        if (typeof action !== 'string' || !['edit', 'create', 'rewrite'].includes(action)) action = 'edit';
         return {
             file: sanitizePlanFile(s?.file),
             action,

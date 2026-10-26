@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Nextcloud Teams Tools — the org chart Nextcloud actually shares against.
  *
@@ -70,7 +70,7 @@ function mapTeam(c) {
         // `initiator` block describing the caller's own membership.
         memberCount: c.population ?? null,
         myLevel: c.initiator ? levelName(c.initiator.level) : null,
-        personal: !!(c.config & 2),
+        personal: !!((c.config ?? 0) & 2),
     };
 }
 

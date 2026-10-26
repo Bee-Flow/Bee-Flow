@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Zero-knowledge envelope encryption: SSO/OAuth users with an encryption PIN.
  *
@@ -46,7 +46,7 @@ function bindUserStore(store) {
  * 
  * @param {string} userId
  * @param {string} encryptionPin - User-chosen PIN (min 6 chars)
- * @param {Buffer} [existingDEK] - Optional existing DEK to re-wrap (legacy migration)
+ * @param {Buffer | null} [existingDEK] - Optional existing DEK to re-wrap (legacy migration)
  * @returns {Promise<{ dek: Buffer, recoveryKey: string }>}
  */
 async function setupSSOUserDEK(userId, encryptionPin, existingDEK = null) {

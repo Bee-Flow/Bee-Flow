@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The in-app billing view's invoice surface — the caller's own invoice list and
  * an ownership-checked proxy for a single Stripe-hosted invoice PDF.
@@ -13,6 +13,7 @@ const stripeService = require('../../services/stripeService');
 const userStore = require('../../stores/userStore');
 const { requireCloud, requireAuth, resolveOrgIdForUser } = require('./shared');
 const log = require('../../telemetry/log');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 const router = express.Router();
 
@@ -20,7 +21,7 @@ const router = express.Router();
 router.get('/invoices', requireCloud, requireAuth, async (req, res) => {
     if (!(await stripeService.isEnabled())) return res.json({ invoices: [] });
 
-    const user = req.session.user;
+    const user = sessionUser(req);
     const orgId = await resolveOrgIdForUser(req);
     const isConsumer = !!user?.isConsumerAccount || !orgId;
 
@@ -43,7 +44,7 @@ router.get('/invoices/:id/pdf', requireCloud, requireAuth, async (req, res, next
     try {
         if (!(await stripeService.isEnabled())) return res.status(400).json({ error: 'Stripe payments are not enabled' });
 
-        const user = req.session.user;
+        const user = sessionUser(req);
         const orgId = await resolveOrgIdForUser(req);
         const isConsumer = !!user?.isConsumerAccount || !orgId;
 

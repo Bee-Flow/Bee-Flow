@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck
+// @typecheck strict
 /**
  * Dutch for "Find repeating work" (Studio > Automations, 2026-10): the source
  * tiles (Mail, Calendar & meetings, Files, Bee Flow activity), the scan drawn
@@ -210,7 +210,7 @@ function applyNl(merged) {
 async function up() {
     const languageStore = require('../stores/languageStore');
     let added = 0;
-    await languageStore.mutateGUITranslations('nl', (current) => {
+    await languageStore.mutateGUITranslations('nl', (/** @type {Record<string, string>} */ current) => {
         const result = applyNl(current);
         added = result.added;
         return result.merged;

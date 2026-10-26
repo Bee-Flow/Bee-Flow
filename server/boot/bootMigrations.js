@@ -27,6 +27,11 @@
  * the same time may both run the same entry. The NL catalogues deliberately
  * run AFTER one another — read-modify-write of the same 'nl' row (see
  * add-nl-cowork).
+ *
+ * The same table is the ledger of the store schemas: one row per store init,
+ * named `store:<tag>`, with the keys of the schema statements it applied
+ * (stores/lib/ddlLedger.js). stores/lib/ddlLedgerTable.js owns the table's
+ * DDL; readLedger below asks it for the table instead of creating its own.
  */
 
 'use strict';
@@ -280,7 +285,7 @@ const MANUAL_MIGRATIONS = [
     'agents-published-config',
 ];
 
-const LEDGER_TABLE = 'schema_migrations';
+const { LEDGER_TABLE, ensureLedgerTable } = require('../stores/lib/ddlLedgerTable');
 
 /**
  * @param {string} name
@@ -293,11 +298,9 @@ function checksumOf(name) {
 /** name → {checksum, applied_at} for every recorded entry; creates the table on first use. */
 async function readLedger() {
     const db = require('../db');
-    await db.exec(`CREATE TABLE IF NOT EXISTS ${LEDGER_TABLE} (
-        name TEXT PRIMARY KEY,
-        applied_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-        checksum TEXT NOT NULL
-    )`);
+    // One owner of the ledger table's own DDL: the store schemas record in it
+    // too (stores/lib/ddlLedger.js, rows named `store:<tag>`).
+    await ensureLedgerTable(typeof db.ledgerQuery === 'function' ? db.ledgerQuery : (sql) => db.exec(sql));
     const rows = await db.getAll(`SELECT name, checksum, applied_at FROM ${LEDGER_TABLE}`);
     return new Map(rows.map((r) => [r.name, r]));
 }

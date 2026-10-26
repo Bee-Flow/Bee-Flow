@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Signup access guards — connector-only mode + geo-blocking for account creation.
  *
@@ -179,7 +179,7 @@ async function resolveSignupLocale(req, explicitLocale) {
     try {
         const languageStore = require('../stores/languageStore');
         const locales = await languageStore.getAvailableLocales();
-        const known = new Set((locales || []).map(l => l && l.code).filter(Boolean));
+        const known = new Set((locales || []).map((/** @type {{ code?: string } | null} */ l) => l && l.code).filter(Boolean));
 
         const candidate = (explicitLocale ?? req?.body?.locale);
         if (typeof candidate === 'string' && known.has(candidate)) return candidate;

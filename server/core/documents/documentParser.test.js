@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * parseDocument's PDF fallback (core/documents/documentParser.js) — the path a
  * PDF takes when Mistral OCR is not configured.
@@ -17,7 +17,7 @@ const assert = require('node:assert');
 const { newDoc, collect } = require('../../utils/pdfKit');
 const { parseDocument } = require('./documentParser');
 
-async function pdfWith(text) {
+async function pdfWith(/** @type {string} */ text) {
     const doc = newDoc();
     const done = collect(doc);
     doc.fontSize(12).text(text);

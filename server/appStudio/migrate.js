@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio — schema migrations.
  *
@@ -21,6 +21,10 @@
 
 const { SCHEMA_VERSION_CURRENT } = require('./componentSpecs');
 
+/**
+ * @param {unknown} v
+ * @returns {v is Record<string, unknown>}
+ */
 function isPlainObject(v) {
     return v !== null && typeof v === 'object' && !Array.isArray(v);
 }
@@ -29,11 +33,21 @@ function isPlainObject(v) {
  * Upgrade a v1 (or already-v2) definition to the current schema version.
  * Non-object input is returned unchanged — canonicalize/validate own the
  * "not an object" error path, and this must never throw on garbage.
+ * @overload
+ * @param {Record<string, unknown>} def
+ * @returns {Record<string, unknown>}
  */
+/**
+ * @overload
+ * @param {unknown} def
+ * @returns {unknown}
+ */
+/** @param {unknown} def */
 function migrateV1toV2(def) {
     if (!isPlainObject(def)) return def;
     // Shallow copy preserves every nested reference by identity (lossless);
     // canonicalize deep-copies anything it decides to keep afterwards.
+    /** @type {Record<string, unknown>} */
     const out = { ...def, schemaVersion: SCHEMA_VERSION_CURRENT };
     if (!('roles' in out)) out.roles = [];
     return out;

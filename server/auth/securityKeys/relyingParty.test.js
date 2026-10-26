@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The relying party a ceremony is bound to. What matters is that the caller
  * cannot pick it: an Origin header is attacker-controlled outside a browser,

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // Redirects of one site: the manual list and the automatic 301 a slug change
 // leaves behind. Own config key (cms_project_{siteId}_redirects), not a field
 // of the SiteDoc: the admin editor saves the whole SiteDoc, and a stale copy of
@@ -37,7 +37,7 @@ async function getRedirects(siteId, { fresh = false } = {}) {
  */
 async function mutate(siteId, mutator) {
     assertSiteId(siteId);
-    return configStore.mutateConfig(redirectsKey(siteId), (cur) => {
+    return configStore.mutateConfig(redirectsKey(siteId), (/** @type {unknown} */ cur) => {
         const next = mutator(normalizeDoc(cur));
         return normalizeDoc(next);
     });
@@ -65,6 +65,7 @@ async function setRedirect(siteId, input) {
 /**
  * @returns {Promise<boolean>} whether an entry was removed
  * @param {string} siteId
+ * @param {string} id
  */
 async function removeRedirect(siteId, id) {
     let removed = false;

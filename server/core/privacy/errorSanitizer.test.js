@@ -1,9 +1,9 @@
-// @typecheck
+// @typecheck strict
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { classifyErrorCode } = require('./errorSanitizer');
 
-function apiError(status, message) {
+function apiError(/** @type {number} */ status, /** @type {string} */ message) {
     const err = new Error(message);
     err.status = status;
     return err;

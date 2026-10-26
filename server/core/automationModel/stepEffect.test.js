@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /** stepEffect: the effect of a step from its type and fields (stepEffect.js). */
 

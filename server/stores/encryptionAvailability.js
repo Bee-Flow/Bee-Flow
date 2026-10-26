@@ -27,6 +27,7 @@ const { TIERS, resolvePolicy } = require('./encryptionPolicy');
 // Reads a cached verdict only; this module never loads the OPAQUE WASM.
 const { getServerSetupStatus } = require('../auth/opaqueSetup');
 const log = require('../telemetry/log');
+const users = require('./user/users');
 
 const FEATURE = 'encryption';
 
@@ -208,8 +209,7 @@ async function getEncryptionAvailability(orgId) {
  */
 async function isEncryptionEnabledForUser(userId) {
     try {
-        const userStore = require('./userStore');
-        const user = await userStore.getUser(userId);
+        const user = await users.getUser(userId);
         if (!user) return false;
         const orgId = user.organizationId;
         if (!orgId) return false;
@@ -238,8 +238,7 @@ async function isEncryptionEnabledForUser(userId) {
 async function isSsoPinRequiredForUser(userId) {
     try {
         if (!(await isEncryptionEnabledForUser(userId))) return false;
-        const userStore = require('./userStore');
-        const user = await userStore.getUser(userId);
+        const user = await users.getUser(userId);
         return (await resolvePolicy(user?.organizationId)).tier !== 'managed';
     } catch (_) {
         return false;

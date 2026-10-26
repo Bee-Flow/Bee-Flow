@@ -1,4 +1,9 @@
 /**
+ * The spreadsheet-file ADAPTER CORE: the members the sync pipeline drives. The
+ * adapter the registry hands out is adapter.js, this plus the `sync`,
+ * `writeThrough`, `link` and `events` modules; they sit on the other side of
+ * this file so that none of them has to require the adapter back (import cycle).
+ *
  * The spreadsheet-file ADAPTER — the same interface as
  * ../nextcloudTable/adapter.js, answered in terms of files, sheets and the
  * three storages (index.js explains what differs from a Nextcloud table).
@@ -256,22 +261,6 @@ const adapter = {
         if (!raw || typeof raw.id !== 'string' || !raw.id) return null;
         return rowFromSheet(raw, { ...ctx, coercion: raw.coercion || null });
     },
-
-    get sync() { return require('./sync'); },
-
-    /**
-     * The file first, then the copy (writeThrough.js): a read-only file is
-     * refused before anything is probed, never written locally and swept by
-     * the next pass.
-     */
-    get writeThrough() { return require('./writeThrough'); },
-    get link() { return require('./link'); },
-    /**
-     * A storage push (events.js): a Nextcloud `file.*` event or a OneDrive
-     * drive hint marks the mirror stale and kicks a pass — never a row patch,
-     * a file event carries no row.
-     */
-    get events() { return require('./events'); },
 
     /**
      * The kind-specific half of the public projection (routes keep the

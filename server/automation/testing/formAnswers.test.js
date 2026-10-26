@@ -15,8 +15,8 @@ const formTrigger = { id: 'trg_form', kind: 'form', form: { fields: [
     { name: 'intro', type: 'info', label: 'Intro', content: 'Read me' },
 ] } };
 
-const page = (id, fields, extra = {}) => ({ id, type: 'form_page', form: { fields }, ...extra });
-const row = (stepId, output, extra = {}) => ({ runId: 'r2', stepId, parentStepId: null, stepType: 'form_page', attempts: 1, status: 'success', output, ...extra });
+const page = (/** @type {string} */ id, /** @type {unknown[]} */ fields, extra = {}) => ({ id, type: 'form_page', form: { fields }, ...extra });
+const row = (/** @type {string} */ stepId, /** @type {unknown} */ output, extra = {}) => ({ runId: 'r2', stepId, parentStepId: null, stepType: 'form_page', attempts: 1, status: 'success', output, ...extra });
 
 test('form-trigger answers are filtered to the declared, non-display fields', () => {
     const definition = { trigger: formTrigger, steps: [] };

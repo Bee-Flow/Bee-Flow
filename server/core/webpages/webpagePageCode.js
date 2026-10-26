@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 const storageStore = require('../../stores/storageStore');
 const webpageStore = require('../../stores/webpageStore');
 
@@ -19,17 +19,21 @@ const webpageStore = require('../../stores/webpageStore');
  * not read cannot yield a marking, and that is not distinguishable from "nothing is here".
  *
  * @returns {Promise<{readable:boolean, html:string, css:string, js:string, extras:Array<{path:string,text:string}>}>}
+ * @param {string} userId
+ * @param {string} webpageId
  */
 async function readPageCode(userId, webpageId) {
     const unreadable = { readable: false, html: '', css: '', js: '', extras: [] };
     try {
         if (typeof storageStore.isAvailable === 'function' && !storageStore.isAvailable()) return unreadable;
     } catch { return unreadable; }
+    /** @type {{ html: string; css: string; js: string; } | null} */
     let slots = null;
     try { slots = await webpageStore.readAllSlots(userId, webpageId); }
     catch { return unreadable; }
     if (!slots || typeof slots !== 'object') return unreadable;
 
+    /** @type {{ path: string; text: string; }[]} */
     const extras = [];
     try {
         const metas = await webpageStore.listExtraFiles(webpageId);

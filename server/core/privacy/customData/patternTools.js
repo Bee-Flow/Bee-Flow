@@ -67,7 +67,7 @@ function localPatternCheck(source, caseSensitive) {
  * engine's validation may be.
  * @param {string} source
  * @param {boolean} caseSensitive
- * @param {{ engine?: { validateTypeSpec?: Function } }} [opts]
+ * @param {{ engine?: { validateTypeSpec?: Function } | null }} [opts]
  * @returns {Promise<{ ok: true } | { ok: false, reason: string }>}
  */
 async function validatePattern(source, caseSensitive, { engine = null } = {}) {

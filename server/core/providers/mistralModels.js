@@ -275,7 +275,7 @@ function describeMistralModel(modelId) {
  * @returns {string|undefined} the value to send, or undefined to omit it — for
  *   a model without a switch, or when nothing was asked (the model's default)
  * @param {string} modelId
- * @param {string} requested
+ * @param {string | undefined} requested
  */
 function normalizeMistralEffort(modelId, requested) {
     if (!requested || typeof requested !== 'string') return undefined;
@@ -391,7 +391,7 @@ function isMistralServedModel(modelId) {
 /**
  * True for Mistral's regional-processing hosts (api.eu.mistral.ai,
  * api.us.mistral.ai). The default api.mistral.ai is not regional.
- * @param {string | URL} url
+ * @param {string | URL | null | undefined} url
  */
 function isMistralRegionalUrl(url) {
     if (!url || typeof url !== 'string') return false;

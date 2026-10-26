@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The MCP bearer token: mint it, read it, verify it.
  *
@@ -58,7 +58,7 @@ function parseToken(raw) {
 /**
  * @param {string} b
  */
-function safeEqual(a, b) {
+function safeEqual(/** @type {unknown} */ a, b) {
     const bufA = Buffer.from(String(a || ''), 'utf8');
     const bufB = Buffer.from(String(b || ''), 'utf8');
     if (bufA.length !== bufB.length) return false;
@@ -66,7 +66,7 @@ function safeEqual(a, b) {
 }
 
 /** Resolve a Bearer token to a Bee Flow user id, or null. */
-async function authenticateToken(authorization) {
+async function authenticateToken(/** @type {unknown} */ authorization) {
     const raw = String(authorization || '').replace(/^Bearer\s+/i, '').trim();
     const parsed = parseToken(raw);
     if (!parsed) return null;

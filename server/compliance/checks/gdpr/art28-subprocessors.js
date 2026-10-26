@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * GDPR Art. 28 — processor contracts (DPAs).
  *
@@ -67,7 +67,7 @@ module.exports = {
         const settings = await complianceStore.getSettings(orgId);
         const attested = new Set(
             (Array.isArray(settings.scc_confirmed_operators) ? settings.scc_confirmed_operators : [])
-                .map(e => String(e?.operator || '').toLowerCase()).filter(Boolean)
+                .map((/** @type {{ operator?: unknown } | null | undefined} */ e) => String(e?.operator || '').toLowerCase()).filter(Boolean)
         );
         const uncovered = operators.filter(o => !attested.has(String(o.operator).toLowerCase()));
         const evidence = {

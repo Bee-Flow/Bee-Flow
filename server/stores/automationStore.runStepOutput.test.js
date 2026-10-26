@@ -14,11 +14,8 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-function mock(relPath, exports) {
-    const resolved = require.resolve(relPath);
-    require.cache[resolved] = { id: resolved, filename: resolved, loaded: true, exports };
-}
-mock('../db', { run: async () => {}, getOne: async () => null, getAll: async () => [], exec: async () => {}, getClient: async () => ({}), pool: { query: async () => ({ rows: [] }) } });
+// The real db.js over a recording pool: this file only exercises pure row mappers.
+require('../testUtils/routeHarness').recordDb();
 
 const store = require('./automationStore');
 

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Unit tests — HMAC-derived certificate identifiers.
  *

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The caller's own "Don't count my chat turns" preference (GDPR Art. 21).
  *
@@ -27,6 +27,7 @@ const { validate } = require('../core/http/validate');
 // still exists in the DB, cached 5 s, and destroys deleted-user sessions).
 const { requireAuth } = require('../auth/permissions');
 const objections = require('../stores/chatSignalObjectionStore');
+const { sessionUser } = require('../core/http/sessionUser');
 
 const NO_QUERY = z.object({}, { error: onUnknownKeys('Your chat-signals preference is always your own; it takes no query parameters.') }).strict();
 const COUNTED_TEXT = 'counted is true or false.';
@@ -37,7 +38,7 @@ const PreferenceBody = z.object({
 // GET /preference: are the caller's chat turns counted? A read error reads as
 // "not counted" (the store's rule: when in doubt, do not count).
 router.get('/preference', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
-    const objecting = await objections.isObjecting(req.session.user.id);
+    const objecting = await objections.isObjecting(sessionUser(req).id);
     res.set('Cache-Control', 'no-store');
     res.json({ counted: !objecting });
 });
@@ -47,7 +48,7 @@ router.get('/preference', requireAuth, validate({ query: NO_QUERY }), async (req
 // correlation id, and the switch in the chat says it did not save.
 router.put('/preference', requireAuth, validate({ query: NO_QUERY, body: PreferenceBody }), async (req, res) => {
     const { counted } = req.body;
-    await objections.setObjecting(req.session.user.id, !counted);
+    await objections.setObjecting(sessionUser(req).id, !counted);
     res.set('Cache-Control', 'no-store');
     res.json({ counted });
 });

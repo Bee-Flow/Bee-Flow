@@ -14,6 +14,7 @@ const { buildExport, sanitizeImport, rebindDatatables, rekeyDefinition, stripApp
 const { syncDatatableUsage } = require('../../automation/datatableUsageSync');
 const { syncKbSources } = require('../../core/kb/kbSourceSync');
 const { orgOf, kbFindingsFor, automationAccess } = require('./crudContext');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 /**
  * The datatables THIS caller may use, in the shape portability.rebindDatatables
@@ -75,7 +76,7 @@ function registerTemplateAndImportRoutes(router) {
     // 'org') lead the list; the built-in ones follow (source 'builtin').
     router.get('/templates', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const { listTemplatesFor, CATEGORIES } = require('../../automation/templates');
-        const templates = await listTemplatesFor({ userId: req.session.user.id, orgId: await orgOf(req) });
+        const templates = await listTemplatesFor({ userId: sessionUser(req).id, orgId: await orgOf(req) });
         res.json({ templates, categories: CATEGORIES });
     });
 
@@ -87,7 +88,7 @@ function registerTemplateAndImportRoutes(router) {
     });
 
     router.post('/import', importLimiter, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-        const userId = req.session.user.id;
+        const userId = sessionUser(req).id;
         const { automation: incoming, errors: importErrors } = sanitizeImport(req.body);
         if (!incoming || importErrors.length > 0) {
             return res.status(400).json({ error: 'Invalid import file', details: importErrors });
@@ -165,7 +166,7 @@ function registerTemplateAndImportRoutes(router) {
         // built. Non-blocking, like every other import finding: the draft lands
         // inactive and activate re-checks — but the author is told now, while
         // they still remember what the automation was supposed to read.
-        warnings = [...warnings, ...await kbFindingsFor(definition, req, req.session.user.id, 'draft')];
+        warnings = [...warnings, ...await kbFindingsFor(definition, req, sessionUser(req).id, 'draft')];
 
         // And the back-pointer to an app button comes off — the SAME rule as on
         // export, now on the way in too. `buildExport` removed it, so a truly
@@ -213,7 +214,7 @@ function registerTemplateAndImportRoutes(router) {
         // An import arrives with its knowledge base BLANKED (portability scrubs
         // it), so this usually attaches nothing — until the importer picks a
         // base of their own, at which point the next save attaches it.
-        await syncKbSources(a.id, definition, { userId: req.session.user.id, title: a.title });
+        await syncKbSources(a.id, definition, { userId: sessionUser(req).id, title: a.title });
         // Appended LAST because the catalog pass above reassigns `warnings`
         // wholesale — pushing them earlier would drop every one of them.
         res.json({ automation: a, warnings: [...warnings, ...datatableFindings(renamedId)] });

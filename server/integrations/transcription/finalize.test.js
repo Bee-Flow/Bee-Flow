@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The shared tail of every chat-tool transcription provider. The provider
  * wiring (what each handler hands in) is pinned end to end in
@@ -51,6 +51,7 @@ test('speaker map, transcript lines and max segment end', () => {
 });
 
 test('finalizeTranscript: names come from the unrenamed lines and are applied to the result', async () => {
+    /** @type {unknown[]} */
     const seen = [];
     const res = await fin.finalizeTranscript({
         segments: SEGS.map(s => ({ ...s })),

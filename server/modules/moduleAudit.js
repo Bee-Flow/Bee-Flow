@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Module lifecycle audit — a NEVER-THROW wrapper over the host's existing
  * access_audit_log (userStore.logAccessAudit) with target_type
@@ -23,7 +23,7 @@ function userStore() { return _userStore || (_userStore = require('../stores/use
  * @param {string} moduleId
  * @param {string|null} actorId  null for system-initiated events
  * @param {Record<string, unknown>} [meta]    after-image metadata (status/version/etc.)
- * @param {Record<string, unknown>} [before]  optional before-image
+ * @param {Record<string, unknown> | null} [before]  optional before-image
  */
 async function emit(action, moduleId, actorId = null, meta = {}, before = null) {
     try {

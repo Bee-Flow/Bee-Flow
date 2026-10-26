@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * DOES THIS TEXT TELL ITS READER THAT AI WAS INVOLVED — asked of the guard
  * sidecar, and answered `null` every single time the sidecar cannot say.
@@ -152,7 +152,7 @@ function _resetDisclosureCircuit() {
  * throws is not cached by Node, so re-entering it once per agent would re-run
  * the store's module body for every row of a sweep.
  */
-/** @type {() => Promise<{ url: string | null; apiKey: string; }>} */
+/** @type {(() => Promise<{ url: string | null; apiKey: string; }>) | null | undefined} */
 let _resolveEndpoint;
 function _endpointResolver() {
     if (_resolveEndpoint === undefined) {
@@ -241,7 +241,7 @@ async function classifyDisclosure(text, {
     try {
         // ALLOW-LIST, not a filtered row. The classifier needs the sentence
         // and has no use for whose sentence it is (BFSF-441).
-        result = await post(`${target.url}/disclosure`, { text: body }, target.apiKey, timeoutMs);
+        result = await post(`${target.url}/disclosure`, { text: body }, target.apiKey || '', timeoutMs);
     } catch (e) {
         if (e && e.unsupported) {
             _unsupportedUrl = target.url;

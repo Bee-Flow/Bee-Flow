@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Structural keys of the motion options (issue 244) must never reach the
  * translator: a "translated" poster key, fit or overlay would break the block.

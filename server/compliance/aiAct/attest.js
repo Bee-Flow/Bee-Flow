@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * EU AI Act — record one attestation: assess, append the register row, write
  * the evidence row and emit the event.
@@ -51,7 +51,7 @@ async function attest({ orgId, kind, id, signals, answers, actorId, validMonths,
         answers: result.answers,
         outcome: result.outcome,
         attestedBy: actorId || null,
-        expiresAt: Number.isInteger(validMonths) && validMonths > 0
+        expiresAt: typeof validMonths === 'number' && Number.isInteger(validMonths) && validMonths > 0
             ? assess.expiresAt(attestedAt, validMonths)
             : result.expires_at,
         source,
@@ -74,13 +74,13 @@ async function attest({ orgId, kind, id, signals, answers, actorId, validMonths,
             payload,
         });
     } catch (e) {
-        log.warn('[compliance/aiAct] evidence row failed:', e.message);
+        log.warn('[compliance/aiAct] evidence row failed:', /** @type {Error} */ (e).message);
     }
     try {
         const name = (events.EVENTS && events.EVENTS.AI_ACT_ATTESTED) || 'ai_act_attested';
         events.emit(name, { orgId, targetKind: kind, targetId: id, outcome: result.outcome, actorId: actorId || null });
     } catch (e) {
-        log.warn('[compliance/aiAct] event emit failed:', e.message);
+        log.warn('[compliance/aiAct] event emit failed:', /** @type {Error} */ (e).message);
     }
     return { row, result };
 }

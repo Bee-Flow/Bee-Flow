@@ -180,6 +180,7 @@ const COMPONENT_TYPES = Object.keys(COMPONENT_SPECS);
 const CONTAINER_TYPES = COMPONENT_TYPES.filter((t) => COMPONENT_SPECS[t].container);
 const INPUT_TYPES = COMPONENT_TYPES.filter((t) => COMPONENT_SPECS[t].isInput);
 
+/** @param {string} type */
 function getSpec(type) { return COMPONENT_SPECS[type] || null; }
 
 /**

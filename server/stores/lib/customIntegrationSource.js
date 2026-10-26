@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Which family an org_custom_integrations row belongs to, read from the row
  * alone: an MCP library install (kind 'mcp_remote' whose running definition
@@ -13,12 +13,16 @@
 
 const LIBRARY_SOURCE = 'mcp_library';
 
-/** The definition that runs: the activated snapshot, or the draft for a draft row. */
+/**
+ * The definition that runs: the activated snapshot, or the draft for a draft row.
+ * @param {IntegrationRow | null | undefined} row
+ */
 function runningDefinition(row) {
     if (!row || typeof row !== 'object') return null;
     return row.activatedDefinition || row.activated_definition || row.definition || null;
 }
 
+/** @param {IntegrationRow | null | undefined} row */
 function isLibraryRow(row) {
     if (!row || row.kind !== 'mcp_remote') return false;
     const def = runningDefinition(row);

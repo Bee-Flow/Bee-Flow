@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Project task due-date notifier — a daily tick that rings the bell of the
  * people a task is given to: the day before it is due, on the day, and every
@@ -40,11 +40,12 @@ const dayOf = (/** @type {number} */ ms) => new Date(ms).toISOString().slice(0, 
 function reminderFor(dueDate, today, tomorrow, sent) {
     /** @type {'due_1d'|'due_today'|'overdue'|null} */
     let tier = null;
+    /** @type {string | null} */
     let marker = null;
     if (dueDate === tomorrow) { tier = 'due_1d'; marker = 'due_1d'; }
     else if (dueDate === today) { tier = 'due_today'; marker = 'due_today'; }
     else if (dueDate < today) { tier = 'overdue'; marker = `overdue:${today}`; }
-    if (!tier || sent === marker) return null;
+    if (!tier || marker === null || sent === marker) return null;
     return { tier, marker };
 }
 

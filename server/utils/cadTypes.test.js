@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The shared CAD type table — one allowlist, three consumers (uploadGuard,
  * mailboxAttachments, attachmentExtractor). These tests pin the mapping so a

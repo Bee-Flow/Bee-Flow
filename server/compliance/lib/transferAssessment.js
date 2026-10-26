@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Art-44 transfer assessment over the grouped ledger rows of the last 30 days
  * (compliance/checks/gdpr/art44-external-transfers.js runs the query).
@@ -22,6 +22,9 @@
 // that mostly cannot say where data went.
 const UNLOCATED_WARN_RATIO = 0.05;
 
+/**
+ * @param {{ location_state?: string, is_local?: boolean, is_eu?: boolean }} row
+ */
 function rowState(row) {
     if (row.location_state) return row.location_state;
     if (row.is_local) return 'local';
@@ -55,7 +58,7 @@ function assessTransfers(transfers, sccConfirmed) {
     const totalNonEu = nonEuUnconfirmed.length + nonEuConfirmed.length;
     // The rows are grouped per operator AND country (and flags), so one
     // operator in two countries is two rows: count distinct operators.
-    const opKey = (r) => String(r.operator || '').toLowerCase() || `unknown:${r.country_code || '?'}`;
+    const opKey = (/** @type {{ operator?: string, country_code?: string }} */ r) => String(r.operator || '').toLowerCase() || `unknown:${r.country_code || '?'}`;
     const unconfirmedOps = new Set(nonEuUnconfirmed.map(opKey)).size;
     const confirmedOps = new Set(nonEuConfirmed.map(opKey)).size;
     const viaUnattested = viaNetwork.filter(r => !r.scc_confirmed);

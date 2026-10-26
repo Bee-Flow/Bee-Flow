@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Unit tests for same-batch side-effect tool-call dedup.
  *
@@ -9,7 +9,7 @@ const test = require('node:test');
 const assert = require('assert');
 const { dedupeSideEffectToolCalls } = require('./toolCallDedupe');
 
-const call = (name, args, id) => ({
+const call = (/** @type {string} */ name, /** @type {unknown} */ args, /** @type {string} */ id = '') => ({
     id: id || `call_${Math.random().toString(36).slice(2)}`,
     function: { name, arguments: typeof args === 'string' ? args : JSON.stringify(args) },
 });

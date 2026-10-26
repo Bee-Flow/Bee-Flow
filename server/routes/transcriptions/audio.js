@@ -19,6 +19,7 @@ const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { flag } = require('./schemas');
 const { bestEffort } = require('../../utils/bestEffort');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 // `?download=1` is the rescue-hatch parameter and the only one this route reads. Strict, because `?downlaod=1` streamed the recording back `inline`: the browser played it instead of saving it, and for a browser recording without a durable copy, saving it is the only way out.
 const DOWNLOAD_TEXT = 'download is true of false.';
@@ -27,7 +28,7 @@ const AudioQuery = z.object({ download: flag(DOWNLOAD_TEXT) }).strict();
 // ── Serve audio file for playback ────────────────────────
 
 router.get('/:id/audio', requireAuth, validate({ query: AudioQuery }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
     const transcription = await transcriptionStore.getTranscription(req.params.id, userId, { orgIds, userGroupIds, isSuperAdmin });
     if (!transcription) return res.status(404).json({ error: 'Not found' });

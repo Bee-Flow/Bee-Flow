@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // Roles — role CRUD and the default-roles seed.
 
 const { run, getOne, getAll } = require('../../db');
@@ -13,9 +13,7 @@ async function getAllRoles() {
     return rows.map(r => ({ ...r, permissions: parseJSON(r.permissions, []) }));
 }
 
-/**
- * @param {{ id: string; name: string; description: string; permissions: string[]; }} roleData
- */
+/** @param {{ id: string; name: string; description: string; permissions: string[]; }} roleData */
 async function createRole(roleData) {
     await initDB();
     const { id, name, description, permissions } = roleData;
@@ -26,6 +24,7 @@ async function createRole(roleData) {
 
 /**
  * @param {string} roleId
+ * @param {Record<string, unknown>} updates
  */
 async function updateRole(roleId, updates) {
     await initDB();
@@ -39,6 +38,7 @@ async function updateRole(roleId, updates) {
     try { const q = dynamicUpdate('roles', roleId, updateMap, colMap); if (q) await run(q.sql, q.params); return true; } catch (e) { log.error(e); return false; }
 }
 
+/** @param {string} roleId */
 async function deleteRole(roleId) { await initDB(); const { rowCount } = await run('DELETE FROM roles WHERE id = $1', [roleId]); return rowCount > 0; }
 
 async function initDefaultRoles() {

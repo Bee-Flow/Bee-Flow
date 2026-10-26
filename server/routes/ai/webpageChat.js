@@ -49,6 +49,7 @@ const { validate } = require('../../core/http/validate');
 // The chat engine's bag: typed, not closed (see routes/ai/directChat/turnSchema.js).
 const { WebpageTurnBody } = require('./directChat/turnSchema');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBody }), async (req, res) => {
     const {
@@ -57,7 +58,7 @@ router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBod
         planExecution, // { planId, action: 'execute' } when user approved a plan
         chatMode: rawChatMode, // 'ask' | 'auto' | 'plan'
     } = req.body;
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     // Sanitise mode — fall back to 'auto' for unknown values.
     const chatMode = ['ask', 'auto', 'plan'].includes(rawChatMode) ? rawChatMode : 'auto';
 

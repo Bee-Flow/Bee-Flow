@@ -130,7 +130,7 @@ function adminSupportTabPath(threadId) {
  * Returns an origin without a trailing slash; `override` (an org's
  * `public_base_url` setting) wins when it parses.
  */
-function publicBaseUrl(override = null) {
+function publicBaseUrl(/** @type {string | null} */ override = null) {
     const candidates = [override, process.env.PUBLIC_SHARE_BASE_URL, process.env.PUBLIC_APP_URL];
     for (const raw of candidates) {
         if (typeof raw !== 'string' || !raw.trim()) continue;

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * GitHub Integration Routes — PAT-based
  *
@@ -15,6 +15,7 @@ const router = express.Router();
 const configStore = require('../../stores/configStore');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
+const { sessionUser, requireSessionUser } = require('../../core/http/sessionUser');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -30,17 +31,6 @@ const ConnectBody = z.object({
     token: z.string({ error: TOKEN_TEXT }).trim().min(1, TOKEN_TEXT),
 }).strict();
 
-// The session gate stays AHEAD of the schema: an unauthenticated caller must
-// still read 401, not a 400 about its body.
-/**
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
- */
-const requireSessionUser = (req, res, next) => {
-    if (!req.session?.user?.id) return res.status(401).json({ error: 'Not authenticated' });
-    next();
-};
 
 // ─── Connection Status ───────────────────────────────────────────
 router.get('/status', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
@@ -58,7 +48,7 @@ router.get('/status', async (/** @type {import('express').Request} */ req, /** @
 
 // ─── Save Token ──────────────────────────────────────────────────
 router.post('/connect', requireSessionUser, validate({ body: ConnectBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const { token } = req.body;
 
     // Validate token by fetching user profile

@@ -1,10 +1,10 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { RULE_TESTS, normalizeRules, compileRule } = require('./rules');
 
-const check = (test_, value, cell, extra = {}) => compileRule({ test: test_, value, ...extra })(cell);
+const check = (/** @type {string} */ test_, /** @type {unknown} */ value, /** @type {unknown} */ cell, extra = {}) => compileRule({ test: test_, value, ...extra })(cell);
 
 test('the vocabulary is complete', () => {
     assert.deepEqual(RULE_TESTS, ['equals', 'not_equals', 'contains', 'not_contains', 'starts_with', 'ends_with', 'in', 'not_in', 'gt', 'gte', 'lt', 'lte', 'between', 'is_empty', 'is_not_empty', 'contains_item']);

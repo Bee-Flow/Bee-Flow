@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * Keeps the stored knowledge-base vectors in the space of the CONFIGURED
@@ -68,8 +68,8 @@ function defaultDeps() {
         configStore: require('../../stores/configStore'),
         resolveTarget: () => require('../embed/resolveTarget').resolveEmbedTarget(),
         embed: (/** @type {string[]} */ texts) => require('../embed/dispatch').dispatchEmbedTexts(texts, { kind: 'passage', strict: true }),
-        usesLocalIngest: () => require('./kbIngestionHelpers').usesLocalIngest(),
-        trackCost: (/** @type {string[]} */ texts) => require('./localKBIngest').trackEmbeddingCost(texts),
+        usesLocalIngest: () => require('./ingestMode').usesLocalIngest(),
+        trackCost: (/** @type {string[]} */ texts) => require('./embeddingCost').trackEmbeddingCost(texts),
         retryFailed: retryDimensionFailures,
     };
 }
@@ -240,6 +240,17 @@ async function migrateAndRetry(deps, opts) {
 }
 
 /**
+ * The source sync the retry drives (sources/index.js syncSource). Installed at
+ * boot (boot/lateBoundPorts.js): the sources require the ingestion helpers,
+ * which reach this module back through the local ingest (import cycle).
+ * @type {(source: unknown, opts: { reason: string, timeBudgetMs: number }) => Promise<unknown>}
+ */
+let syncSource = async () => { throw new Error('KB source sync is not installed'); };
+
+/** @param {typeof syncSource} fn */
+function setSourceSync(fn) { syncSource = fn; }
+
+/**
  * Documents that failed on a dimension mismatch, retried through their
  * source (an upload source re-extracts its failed rows, a web source
  * re-fetches). Documents without a source stay as they are: re-uploading
@@ -253,7 +264,6 @@ async function retryDimensionFailures() {
     );
     if (!rows || rows.length === 0) return 0;
     const kbSources = require('../../stores/kbSources');
-    const { syncSource } = require('./sources');
     let retried = 0;
     for (const { source_id: sourceId } of rows) {
         try {
@@ -280,7 +290,7 @@ let running = null;
  * @param {{ reason?: string, deps?: MigrationDeps }} [opts]
  * @returns {Promise<{ status: string, chunks?: number, dim?: number }>}
  */
-function ensureKbEmbeddingsCurrent({ reason = 'check', deps = null } = {}) {
+function ensureKbEmbeddingsCurrent({ reason = 'check', deps } = {}) {
     if (running) return running;
     running = migrateAndRetry(deps || defaultDeps(), { reason })
         .catch((err) => {
@@ -291,4 +301,4 @@ function ensureKbEmbeddingsCurrent({ reason = 'check', deps = null } = {}) {
     return running;
 }
 
-module.exports = { ensureKbEmbeddingsCurrent, FINGERPRINT_KEY, _test: { migrate, fingerprintOf } };
+module.exports = { ensureKbEmbeddingsCurrent, setSourceSync, FINGERPRINT_KEY, _test: { migrate, fingerprintOf } };

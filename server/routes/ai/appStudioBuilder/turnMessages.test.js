@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The App Studio turn composition: one folded user message, few-shot policy,
  * head-anchored history — and the prefix that two turns share byte for byte.
@@ -43,7 +43,7 @@ test('a turn never contains two consecutive user messages, and the machine notes
 });
 
 test('few-shots: every turn on the small profile, first turn only elsewhere, none for Gemini 3', () => {
-    const shots = (c) => c.fewShotMessages.length;
+    const shots = (/** @type {{ fewShotMessages: unknown[] }} */ c) => c.fewShotMessages.length;
     assert.ok(shots(composeAppTurnMessages({ profile: small, modelId: 'gemma', sys: SYS, history: [], notes: [], userTurnContent: 'a' })) > 0);
     assert.ok(shots(composeAppTurnMessages({ profile: small, modelId: 'gemma', sys: SYS, history: [{ role: 'user', content: 'x' }, { role: 'assistant', content: 'y' }], notes: [], userTurnContent: 'a' })) > 0, 'small keeps them on turn 2');
     assert.ok(shots(composeAppTurnMessages({ profile: mid, modelId: 'claude', sys: SYS, history: [], notes: [], userTurnContent: 'a' })) > 0);
@@ -70,7 +70,7 @@ test('history is windowed head-first in whole blocks, never a sliding tail', () 
     const kept = c.windowedHistory;
     assert.ok(kept.length < 40 && kept.length > 0);
     assert.equal(kept[0].role, 'user', 'the window never starts mid-exchange');
-    assert.equal(kept.at(-1).content, long.at(-1).content, 'the newest message survives');
+    assert.equal(kept.at(-1)?.content, long.at(-1)?.content, 'the newest message survives');
     // Appending two more messages under the same budget keeps the same head
     // until a block boundary is crossed — the prefix survives the append.
     const c2 = composeAppTurnMessages({ profile: { ...small, historyBudgetTokens: 3000 }, modelId: 'gemma', sys: SYS, history: [...long, { role: 'user', content: 'tiny' }, { role: 'assistant', content: 'ok' }], notes: [], userTurnContent: 'y' });

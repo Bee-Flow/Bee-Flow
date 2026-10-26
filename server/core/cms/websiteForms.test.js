@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 require('../../boot/featureModules'); // core looks feature modules up by name (core/featureModules.js)
@@ -25,7 +25,7 @@ test('declaredFields keeps the website subset, in order, named by the block fiel
             { id: 'topic', type: 'select', options: [{ value: 'a', label: 'A' }] },
         ],
     });
-    assert.deepStrictEqual(fields.map((f) => [f.name, f.type]), [['email', 'email'], ['topic', 'select']]);
+    assert.deepStrictEqual(fields.map((/** @type {{ name: string, type: string }} */ f) => [f.name, f.type]), [['email', 'email'], ['topic', 'select']]);
 });
 
 test('consent is only required when enabled and worded', () => {
@@ -37,7 +37,7 @@ test('consent is only required when enabled and worded', () => {
 
 test('findFormBlock only finds an enabled form block with a sane id', () => {
     const snap = { pages: { p1: { blocks: [{ id: 'blk_a', type: 'form' }, { id: 'blk_b', type: 'form', enabled: false }, { id: 'blk_c', type: 'faq' }] } } };
-    assert.strictEqual(findFormBlock(snap, 'blk_a').pageId, 'p1');
+    assert.strictEqual(findFormBlock(snap, 'blk_a')?.pageId, 'p1');
     assert.strictEqual(findFormBlock(snap, 'blk_b'), null);
     assert.strictEqual(findFormBlock(snap, 'blk_c'), null);
     assert.strictEqual(findFormBlock(snap, '../x'), null);

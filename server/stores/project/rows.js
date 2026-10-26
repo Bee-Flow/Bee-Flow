@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * stores/project/rows.js — the project row as the API speaks it, the kind
  * vocabulary, the permission vocabulary and the "no sharing schema" SQLSTATEs.
@@ -23,12 +23,18 @@ function kindForNewProject(kind) {
     throw new TypeError(`A project kind is 'workspace' or 'solution', not ${JSON.stringify(kind)}.`);
 }
 
-/** A stored kind as the API speaks it: one of the two, or null (legacy). */
+/**
+ * A stored kind as the API speaks it: one of the two, or null (legacy).
+ * @param {{ kind?: string | null } | null | undefined} row
+ */
 function kindOf(row) {
     return row && (row.kind === 'workspace' || row.kind === 'solution') ? row.kind : null;
 }
 
-/** A projects row as the API speaks it (getProject, and each listUserProjects row). */
+/**
+ * A projects row as the API speaks it (getProject, and each listUserProjects row).
+ * @param {DbRow.Projects} row
+ */
 function mapProjectRow(row) {
     return {
         id: row.id,
@@ -72,9 +78,7 @@ function mapProjectRow(row) {
 }
 
 // Translate legacy permission vocabulary so external callers don't break.
-/**
- * @param {string} permission
- */
+/** @param {string} permission */
 function normalizePermission(permission) {
     if (permission === 'view') return 'viewer';
     if (permission === 'edit') return 'editor';

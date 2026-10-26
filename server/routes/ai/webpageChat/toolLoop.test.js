@@ -16,10 +16,11 @@ const test = require('node:test');
 const assert = require('node:assert');
 const { installResolveStub } = require('../../../testUtils/stubRequire');
 
+/** @type {{ termination_type: string, agent_name: string }[]} */
 const logged = [];
 const restore = installResolveStub({
     '../../../stores/configStore': { async getConfig() { return null; } },
-    '../../../stores/terminationStore': { async logTermination(row) { logged.push(row); } },
+    '../../../stores/terminationStore': { async logTermination(/** @type {{ termination_type: string, agent_name: string }} */ row) { logged.push(row); } },
 });
 test.after(() => restore());
 

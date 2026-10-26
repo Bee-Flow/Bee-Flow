@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * App Store - PostgreSQL management for Published Apps
  * Stores app metadata and HTML code for the App Marketplace.
@@ -99,7 +99,7 @@ async function getPublishedApps() {
  *
  * @param {Set<string>|null} userOrgIds - From resolveUserOrgIds(req). null = super admin.
  * @param {string[]} userGroups - User's group IDs.
- * @param {string} userId - For owner-pass-through on personal drafts.
+ * @param {string | null} [userId] - For owner-pass-through on personal drafts.
  */
 async function getPublishedAppsForUser(userOrgIds, userGroups = [], userId = null) {
     await initDB();

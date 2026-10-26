@@ -55,7 +55,7 @@ async function deciderName(userId) {
  * travels into the resume decision object and the response, so downstream
  * steps can read steps.<id>.output.votes.
  */
-async function finalizeDecision({ approval, run, deciderId, decision, trimmedReason, coercedAnswers, source, votes = null }) {
+async function finalizeDecision(/** @type {{ approval: any, run: any, deciderId: any, decision: any, trimmedReason: any, coercedAnswers: any, source: any, votes?: unknown[] | null }} */ { approval, run, deciderId, decision, trimmedReason, coercedAnswers, source, votes = null }) {
     const runless = isRunless(approval);
     const decidedByName = await deciderName(deciderId);
     const decidedAt = new Date().toISOString();

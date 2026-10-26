@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Request shaping — the window/in-flight/breaker constants, the two-queue
  * admission gate that bounds what this client has in flight, the short circuit
@@ -56,6 +56,7 @@ let _inflight = 0;
 //
 // 'interactive' = someone is watching a spinner (chat input, tool results).
 // 'bulk'        = document/background work (attachments, notebook ingestion).
+/** @type {Record<'interactive' | 'bulk', Array<(value?: unknown) => void>>} */
 const _slotWaiters = { interactive: [], bulk: [] };
 let _bulkInflight = 0;
 // Bulk may never occupy every slot: one is always kept free for interactive
@@ -86,6 +87,7 @@ function releaseSlot(priority = 'interactive') {
 
     // Interactive first, except when bulk has been starved for a while.
     const preferBulk = _interactiveStreak >= BULK_STARVATION_LIMIT;
+    /** @type {Array<'interactive' | 'bulk'>} */
     const order = preferBulk ? ['bulk', 'interactive'] : ['interactive', 'bulk'];
     for (const lane of order) {
         if (lane === 'bulk' && !_bulkMayStart()) continue;

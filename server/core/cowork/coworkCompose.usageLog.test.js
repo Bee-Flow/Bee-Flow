@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The compose call itself is also usage: one LLM call per brief, which before this existed
  * threw away its response.usage. Pinned here: it goes through the same sink as every other
@@ -12,6 +12,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 const { installResolveStub } = require('../../testUtils/stubRequire');
 
+/** @type {Record<string, unknown>[]} */
 const logged = [];
 let usageSinkDown = false;
 
@@ -43,7 +44,7 @@ const restore = installResolveStub({
         }),
     },
     '../../stores/usageStore': {
-        logUsage: async (entry) => {
+        logUsage: async (/** @type {Record<string, unknown>} */ entry) => {
             if (usageSinkDown) throw new Error('usage sink down');
             logged.push(entry);
         },
@@ -75,7 +76,7 @@ test('de compose-call logt zijn verbruik onder eigenaar en org', async () => {
     assert.strictEqual(entry.prompt_tokens, 11);
     assert.strictEqual(entry.completion_tokens, 4);
     assert.strictEqual(entry.total_tokens, 15);
-    assert.ok(entry.duration_ms >= 0);
+    assert.ok(Number(entry.duration_ms) >= 0);
 });
 
 test('een falende usage-log duwt de spec niet naar de fallback', async () => {

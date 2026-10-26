@@ -7,7 +7,7 @@
  * PROPFIND when the header is missing (connector hop), and which base URL a
  * link may be built from.
  *
- * DB-free: configStore is stubbed (the house style reads it).
+ * DB-free: the config table is empty (the house style reads it).
  *
  * Run: node --test --test-force-exit integrations/nextcloudFiles/officeDocuments.presentation.test.js
  */
@@ -18,10 +18,8 @@ const test = require('node:test');
 const assert = require('node:assert');
 const JSZip = require('jszip');
 
-const { installResolveStub } = require('../../testUtils/stubRequire');
-installResolveStub({
-    '../../stores/configStore': { getConfig: async () => null, setConfig: async () => {} },
-});
+const { useConfigRows } = require('../../testUtils/configRows');
+useConfigRows(); // the real configStore over an empty config table
 
 const { executeOfficeDocumentTool } = require('./officeDocuments');
 

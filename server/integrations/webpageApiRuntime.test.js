@@ -4,6 +4,7 @@ const assert = require('node:assert');
 const { preloadStubs } = require('../testUtils/stubRequire');
 
 test('the Privacy Shield policy is resolved with the page name (webpage rows have `name`, not `title`)', async () => {
+    /** @type {Array<{ pageTitle: string }>} */
     const seen = [];
     const mods = {
         '../automation/codeSandbox': { isAvailable: () => true },
@@ -14,7 +15,7 @@ test('the Privacy Shield policy is resolved with the page name (webpage rows hav
         },
         '../core/tools/toolDispatcher': { executeTool: async () => ({}) },
         '../core/webpages/webpageEgress': {
-            resolveWebpagePolicy: async (args) => { seen.push(args); throw new Error('stop here'); },
+            resolveWebpagePolicy: async (/** @type {{ pageTitle: string }} */ args) => { seen.push(args); throw new Error('stop here'); },
         },
     };
     preloadStubs(require, mods);

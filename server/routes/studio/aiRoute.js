@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * POST /api/studio/ai/route — "Describe it, AI picks the building blocks".
  * (Bee Flow Builder redesign, Sep 2026, Track H4.)
@@ -318,9 +318,9 @@ function buildRouteTool(availableKinds) {
  */
 function buildRouteMessages(text, availableKinds) {
     const catalogue = (Array.isArray(availableKinds) ? availableKinds : [])
-        .map(k => KIND_BY_KEY.get(k))
-        .filter(Boolean)
+        .flatMap((k) => { const kind = KIND_BY_KEY.get(k); return kind ? [kind] : []; })
         .map(k => `- ${k.key}: ${k.blurb}`)
+
         .join('\n');
     const system = [
         'You route a request to ONE building block in a no-code workspace.',

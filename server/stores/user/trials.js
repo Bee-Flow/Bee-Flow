@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // Trial gate — one-shot trial markers on orgs/users plus the durable
 // email-scoped trial history.
 
@@ -9,6 +9,10 @@ const log = require('../../telemetry/log');
 // ── Trial gate ─────────────────────────────
 // Marks an org or user as having used its one-time trial. Idempotent —
 // callers can re-invoke safely; the column only moves forward in time.
+/**
+ * @param {string} targetType
+ * @param {string | null | undefined} targetId
+ */
 async function markTrialUsed(targetType, targetId) {
     await initDB();
     if (!targetId) return false;
@@ -24,6 +28,7 @@ async function markTrialUsed(targetType, targetId) {
     return false;
 }
 
+/** @param {string} orgId */
 async function hasOrgUsedTrial(orgId) {
     await initDB();
     const r = await getOne('SELECT trial_used_at FROM organizations WHERE id = $1', [orgId]);
@@ -33,6 +38,10 @@ async function hasOrgUsedTrial(orgId) {
 // Email-scoped trial history check. Durable across delete + recreate of the
 // same orgs/users so the trial gate survives row deletion. Caller normalises
 // case + trims; we mirror the same normalisation in INSERT and SELECT.
+/**
+ * @param {string} scope
+ * @param {string | null | undefined} email
+ */
 async function hasEmailUsedTrial(scope, email) {
     await initDB();
     if (!email) return false;
@@ -45,9 +54,7 @@ async function hasEmailUsedTrial(scope, email) {
     return !!row;
 }
 
-/**
- * @param {{ scope?: string, email?: string, subscriberId?: string, planId?: string, stripeCustomerId?: string, stripeSubscriptionId?: string, trialEndDate?: string|Date }} [opts]
- */
+/** @param {{ scope?: string, email?: string, subscriberId?: string, planId?: string, stripeCustomerId?: string, stripeSubscriptionId?: string, trialEndDate?: string|Date }} [opts] */
 async function recordTrialHistory({ scope, email, subscriberId, planId, stripeCustomerId, stripeSubscriptionId, trialEndDate } = {}) {
     await initDB();
     if (!email || !scope) return;
@@ -85,6 +92,7 @@ async function backfillTrialHistory() {
     }
 }
 
+/** @param {string} userId */
 async function hasUserUsedTrial(userId) {
     await initDB();
     const r = await getOne('SELECT trial_used_at FROM users WHERE id = $1', [userId]);

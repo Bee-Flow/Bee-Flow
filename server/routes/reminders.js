@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Reminder Routes — REST API for user-bound reminders.
  *
@@ -29,10 +29,14 @@
 
 const express = require('express');
 const router = express.Router();
-const reminderStore = require('../stores/reminderStore');
+// What the handlers reach through. Production never touches this; a test swaps
+// a field (the pattern core/privacy/orgShield.js uses) instead of intercepting
+// the module system.
+const _deps = { reminderStore: require('../stores/reminderStore') };
 const { validate } = require('../core/http/validate');
 const { z, datetimeWithOffset } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
+const { sessionUser } = require('../core/http/sessionUser');
 
 const TITLE_TEXT = 'A reminder needs a title.';
 const WHEN_TEXT = 'remindAt is a date and time with its zone, e.g. 2026-09-22T09:00:00.000Z.';
@@ -70,17 +74,17 @@ router.use(requireSignedIn);
 
 // GET / — list reminders
 router.get('/', validate({ query: ListQuery }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const includeCompleted = req.query.completed === 'true' || req.query.completed === '1';
-    const reminders = await reminderStore.getReminders(userId, { includeCompleted });
+    const reminders = await _deps.reminderStore.getReminders(userId, { includeCompleted });
     res.json(reminders);
 });
 
 // POST / — create reminder
 router.post('/', validate({ body: CreateBody }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const { title, message, remindAt, repeatInterval } = req.body;
-    const reminder = await reminderStore.createReminder({
+    const reminder = await _deps.reminderStore.createReminder({
         userId,
         title,
         message,
@@ -92,15 +96,15 @@ router.post('/', validate({ body: CreateBody }), async (req, res) => {
 
 // PUT /:id — update reminder
 router.put('/:id', validate({ body: UpdateBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
 
     // Verify ownership
-    const existing = await reminderStore.getReminder(req.params.id);
+    const existing = await _deps.reminderStore.getReminder(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Not found' });
     if (existing.userId !== userId) return res.status(403).json({ error: 'Forbidden' });
 
     const { title, message, remindAt, repeatInterval } = req.body;
-    const ok = await reminderStore.updateReminder(req.params.id, {
+    const ok = await _deps.reminderStore.updateReminder(req.params.id, {
         title, message, remindAt, repeatInterval,
     });
     res.json({ success: ok });
@@ -108,26 +112,26 @@ router.put('/:id', validate({ body: UpdateBody }), /** @param {import('express')
 
 // DELETE /:id — delete reminder
 router.delete('/:id', async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
 
-    const existing = await reminderStore.getReminder(req.params.id);
+    const existing = await _deps.reminderStore.getReminder(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Not found' });
     if (existing.userId !== userId) return res.status(403).json({ error: 'Forbidden' });
 
-    const ok = await reminderStore.deleteReminder(req.params.id);
+    const ok = await _deps.reminderStore.deleteReminder(req.params.id);
     res.json({ success: ok });
 });
 
 // POST /:id/complete — mark completed
 router.post('/:id/complete', async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
 
-    const existing = await reminderStore.getReminder(req.params.id);
+    const existing = await _deps.reminderStore.getReminder(req.params.id);
     if (!existing) return res.status(404).json({ error: 'Not found' });
     if (existing.userId !== userId) return res.status(403).json({ error: 'Forbidden' });
 
-    const ok = await reminderStore.markCompleted(req.params.id);
+    const ok = await _deps.reminderStore.markCompleted(req.params.id);
     res.json({ success: ok });
 });
 
-module.exports = router;
+module.exports = Object.assign(router, { _deps });

@@ -1,6 +1,6 @@
 /** @typedef {import('stream').Readable} Readable */
 /** @typedef {import('express-serve-static-core').Router} Router */
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The visitor's session on a multi-page form: the poll that reports working,
  * the next page, done or error (with a trail of step titles while the
@@ -122,7 +122,8 @@ function progressTrail(definition, steps) {
         if (!step) break;
         const last = i === segments.length - 1;
         if (!last) {
-            const layer = definition?.layers?.[step.layerKey] || null;
+            const layer = (step.layerKey && definition?.layers?.[step.layerKey]) || null;
+
             if (step.label) trail.push(step.label);
             else if (layer?.title) trail.push(layer.title);
             if (!layer) break;

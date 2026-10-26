@@ -11,7 +11,6 @@ const { test, before, beforeEach, after } = require('node:test');
 const assert = require('node:assert');
 
 const { createRecordingDb } = require('../testUtils/mockDb');
-const { installResolveStub } = require('../testUtils/stubRequire');
 
 const frameworks = [];
 const checks = [];
@@ -123,13 +122,13 @@ const mock = createRecordingDb({
         return undefined;
     },
 });
-const restore = installResolveStub({ '../db': mock.db });
+const restore = mock.attachPool();
 const store = require('./customFrameworkStore');
 
 let bootDdl = '';
 before(async () => {
     await store.initDB();
-    bootDdl = mock.calls.exec.map(c => c.sql).join('\n');
+    bootDdl = [...mock.calls.pool, ...mock.calls.client].map(c => c.sql).join('\n');
 });
 after(() => restore());
 beforeEach(() => { frameworks.length = 0; checks.length = 0; attestations.length = 0; seq = 1; mock.reset(); });
@@ -202,7 +201,7 @@ test('list/get: org-scoped, archived hidden unless asked, checks_count attached,
 
     const visible = await store.listFrameworks('orgA');
     assert.deepStrictEqual(visible.map(f => f.code), ['A1']);
-    assert.match(mock.calls.getAll[0].sql, /WHERE f\.organization_id = \$1 AND f\.status <> 'archived'/);
+    assert.match(mock.reads().at(-1).sql, /WHERE f\.organization_id = \$1 AND f\.status <> 'archived'/);
     const all = await store.listFrameworks('orgA', { includeArchived: true });
     assert.deepStrictEqual(all.map(f => f.code).sort(), ['A1', 'B1']);
 
@@ -301,9 +300,9 @@ test('listChecks / getCheck / deleteCheck are org-scoped; delete leaves attestat
     mock.reset();
 
     await store.listChecks('orgA', fw.id);
-    assert.match(mock.calls.getAll[0].sql, /WHERE organization_id = \$1 AND framework_id = \$2\s+ORDER BY sort_order ASC, ref ASC/);
+    assert.match(mock.reads().at(-1).sql, /WHERE organization_id = \$1 AND framework_id = \$2\s+ORDER BY sort_order ASC, ref ASC/);
     await store.getCheck('orgA', checks[0].id);
-    assert.match(mock.calls.getOne[0].sql, /WHERE c\.organization_id = \$1 AND c\.id = \$2/);
+    assert.match(mock.reads().at(-1).sql, /WHERE c\.organization_id = \$1 AND c\.id = \$2/);
 
     assert.strictEqual(await store.deleteCheck('orgB', checks[0].id), false);
     assert.strictEqual(checks.length, 2);
@@ -370,24 +369,24 @@ test('attest: subjects are separate chains; validation of outcome / check id / e
 
 test('latestAttestation / listAttestations / listExpiring / listLatestByPrefix: scoped statements', async () => {
     await store.latestAttestation('orgA', 'CUSTOM-ACME-1', null);
-    const latest = mock.calls.getOne[0];
+    const latest = mock.reads().at(-1);
     assert.match(latest.sql, /WHERE organization_id = \$1 AND check_id = \$2 AND subject_id IS NOT DISTINCT FROM \$3 AND superseded_at IS NULL/);
     assert.match(latest.sql, /ORDER BY attested_at DESC\s+LIMIT 1/);
     assert.deepStrictEqual(latest.params, ['orgA', 'CUSTOM-ACME-1', null]);
 
     await store.listAttestations('orgA', 'CUSTOM-ACME-1', 'S', { limit: 5 });
-    const hist = mock.calls.getAll[0];
+    const hist = mock.reads().at(-1);
     assert.match(hist.sql, /WHERE organization_id = \$1 AND check_id = \$2 AND subject_id IS NOT DISTINCT FROM \$3\s+ORDER BY attested_at DESC/);
     assert.ok(!/superseded_at IS NULL/.test(hist.sql), 'history includes superseded rows');
     assert.deepStrictEqual(hist.params, ['orgA', 'CUSTOM-ACME-1', 'S', 5]);
 
     await store.listExpiring('orgA', 14);
-    const exp = mock.calls.getAll[1];
+    const exp = mock.reads().at(-1);
     assert.match(exp.sql, /superseded_at IS NULL\s+AND expires_at IS NOT NULL AND expires_at < NOW\(\) \+ \(\$2 \|\| ' days'\)::interval/);
     assert.deepStrictEqual(exp.params, ['orgA', '14']);
 
     await store.listLatestByPrefix('orgA', 'CUSTOM-AC_ME-');
-    const pre = mock.calls.getAll[2];
+    const pre = mock.reads().at(-1);
     assert.match(pre.sql, /check_id LIKE \$2 AND superseded_at IS NULL/);
     assert.deepStrictEqual(pre.params, ['orgA', 'CUSTOM-AC\\_ME-%'], 'LIKE metacharacters escaped');
 });

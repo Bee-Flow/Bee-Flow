@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Countries: the GDPR jurisdiction set, display names and flags.
  *
@@ -50,7 +50,7 @@ try {
 
 /**
  * ISO-2 → English name; the code itself when unknown; null for no code.
- * @param {string} code
+ * @param {string | null | undefined} code
  */
 function countryName(code) {
     if (!code) return null;
@@ -65,13 +65,18 @@ function countryName(code) {
     return cc;
 }
 
-/** ISO-2 → flag emoji; a globe for anything else. */
+/**
+ * ISO-2 → flag emoji; a globe for anything else.
+ * @param {string | null | undefined} code
+ */
 function countryFlag(code) {
     if (!code || String(code).length !== 2 || !/^[a-z]{2}$/i.test(String(code))) return '🌐';
     return String.fromCodePoint(...[...String(code).toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
 }
 
+/** @param {string | null | undefined} code */
 function isEuEea(code) {
+
     return !!code && EU_EEA_COUNTRIES.has(String(code).toUpperCase());
 }
 

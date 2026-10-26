@@ -145,12 +145,19 @@ const TRIGGER_PROMPT_NOTES = Object.freeze({
     },
     'approvals.approval.requested': { filters: [], fields: ['approvalId', 'prompt', 'requestedBy', 'expiresAt'] },
     'msgraph.mail.new': {
-        group: 'msgraph', filters: [], fields: ['resourceData.id'],
+        // mailbox: read by matchMsGraphMailFilter and the poller (triggerBus/pollers/msGraphMail.mts).
+        filters: ['mailbox (a shared mailbox address; omit = the user\'s own inbox)'],
+        fields: ['resourceData.id', 'mailbox'],
         // resourceData.id: the Graph change-notification envelope always names the changed item there.
+        // mailbox: set by the webhook route ("me") and the poller (the address).
+        extraFields: ['resourceData.id', 'mailbox'],
+        note: 'a Graph notification, no body — read it with outlook_read {messageId: trigger.output.resourceData.id, mailbox: trigger.output.mailbox}; pass the same mailbox to every Outlook step that answers it.',
+    },
+    'msgraph.mail.flagged': {
+        group: 'msgraph', filters: [], fields: ['resourceData.id'],
         extraFields: ['resourceData.id'],
         note: 'a Graph notification, no body — read the item with the matching Outlook/OneDrive tool.',
     },
-    'msgraph.mail.flagged': { group: 'msgraph' },
     'msgraph.event.created': { group: 'msgraph' },
     'msgraph.event.changed': { group: 'msgraph' },
     'msgraph.file.new': { group: 'msgraph' },

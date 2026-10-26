@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App membership and roles (the RLS input). The studio_app_members PK has no
  * owner column, so every owner mutation is gated by ownsApp.
@@ -8,7 +8,11 @@ const { run, getOne, getAll } = require('../../db');
 const { initDB } = require('./schema');
 const { mapMemberRow } = require('./rowMappers');
 
-/** Ownership gate for the ownerless studio_app_members PK. */
+/**
+ * Ownership gate for the ownerless studio_app_members PK.
+ * @param {string | null | undefined} appId
+ * @param {string | null | undefined} ownerId
+ */
 async function ownsApp(appId, ownerId) {
     if (!appId || !ownerId) return false;
     const r = await getOne(`SELECT 1 FROM studio_apps WHERE id = $1 AND user_id = $2`, [appId, ownerId]);
@@ -20,6 +24,9 @@ async function ownsApp(appId, ownerId) {
 /**
  * Add or re-role a member. Owner-gated via ownsApp (the PK has no owner col).
  * @param {string} [roleKey]
+ * @param {string} appId
+ * @param {string} ownerId
+ * @param {string} memberUserId
  */
 async function addMember(appId, ownerId, memberUserId, roleKey = 'member') {
     await initDB();
@@ -42,7 +49,11 @@ async function addMember(appId, ownerId, memberUserId, roleKey = 'member') {
     return row ? mapMemberRow(row) : null;
 }
 
-/** Members of an app — owner-gated. */
+/**
+ * Members of an app — owner-gated.
+ * @param {string} appId
+ * @param {string} ownerId
+ */
 async function listMembers(appId, ownerId) {
     await initDB();
     if (!(await ownsApp(appId, ownerId))) return [];
@@ -52,6 +63,11 @@ async function listMembers(appId, ownerId) {
     return rows.map(mapMemberRow);
 }
 
+/**
+ * @param {string} appId
+ * @param {string} ownerId
+ * @param {string} memberUserId
+ */
 async function removeMember(appId, ownerId, memberUserId) {
     await initDB();
     if (!(await ownsApp(appId, ownerId))) return false;
@@ -63,6 +79,8 @@ async function removeMember(appId, ownerId, memberUserId) {
  * A viewer's own role in an app. Deliberately NOT owner-scoped — this is the
  * RLS gateway resolving the caller's own membership, not an owner mutating
  * someone else's. Returns the role_key or null.
+ * @param {string} appId
+ * @param {string} userId
  */
 async function getMemberRole(appId, userId) {
     await initDB();

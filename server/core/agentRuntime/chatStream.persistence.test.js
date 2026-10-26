@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * BFSF-307 — the compacted LLM prompt must never be persisted as history.
  *

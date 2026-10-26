@@ -217,6 +217,7 @@ test('walkSteps descends into loop bodies and parallel branches', () => {
             ],
         },
     ];
+    /** @type {string[]} */
     const seen = [];
     walkSteps(steps, (s) => seen.push(s.id));
     assert.deepStrictEqual(seen, ['a', 'lp', 'b', 'par', 'c', 'd']);

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Conversation search shared by the agent and the direct conversation stores.
  *
@@ -195,9 +195,13 @@ async function searchConversationRows(spec, deps, userId, query, filters, encryp
     return { results, searchCtx };
 }
 
-/** Newest first, as both stores return search results. */
+/**
+ * Newest first, as both stores return search results.
+ * @param {{ updated_at: string | number | Date }} a
+ * @param {{ updated_at: string | number | Date }} b
+ */
 function byUpdatedDesc(a, b) {
-    return /** @type {any} */ (new Date(b.updated_at)) - /** @type {any} */ (new Date(a.updated_at));
+    return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
 }
 
 module.exports = { searchConversationRows, byUpdatedDesc, AGENT_SEARCH, DIRECT_SEARCH };

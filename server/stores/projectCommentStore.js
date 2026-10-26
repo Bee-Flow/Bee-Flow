@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Comment threads on the pages, notebooks and designed documents filed in a
  * project: people discussing a passage, with the AI answering when asked (or

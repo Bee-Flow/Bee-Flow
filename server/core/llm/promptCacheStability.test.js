@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Prompt-cache prefix stability.
  *
@@ -122,7 +122,7 @@ test('the pre-fix shape — one combined system message — is detectably unstab
     // Guards the inverse: if someone re-merges the halves, this is what the
     // adapter sees, and the assertion above would silently start passing on a
     // prefix that changes every second.
-    const combined = (now) => provider.extractSystem([
+    const combined = (/** @type {string} */ now) => provider.extractSystem([
         { role: 'system', content: `You are Bee Flow.\nNow: ${now}` },
     ]);
 

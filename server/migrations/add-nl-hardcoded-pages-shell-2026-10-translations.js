@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck
+// @typecheck strict
 /**
  * Dutch for the user-facing text that agent-hub used to hard-code in English
  * (2026-10): the pages, the app shell, chat, meetings, renderers and the other
@@ -53,7 +53,7 @@ function applyNl(merged) {
 async function up() {
     const languageStore = require('../stores/languageStore');
     let added = 0;
-    await languageStore.mutateGUITranslations('nl', (current) => {
+    await languageStore.mutateGUITranslations('nl', (/** @type {Record<string, string>} */ current) => {
         const result = applyNl(current);
         added = result.added;
         return result.merged;

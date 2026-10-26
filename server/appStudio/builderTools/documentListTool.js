@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 const log = require('../../telemetry/log');
@@ -13,6 +13,9 @@ const log = require('../../telemetry/log');
 // letterhead of whoever pressed the button.
 const DOCUMENT_LIST_LIMIT = 50;
 
+/**
+ * @param {{ userId: string }} draftWrap
+ */
 async function applyListDocuments(draftWrap) {
     const documentStore = require('../../stores/documentStore');
     let templates = [];
@@ -33,7 +36,7 @@ async function applyListDocuments(draftWrap) {
             docType: t.docType,
             kind: t.kind,
             versionId: t.versionId,
-            placeholders: (Array.isArray(t.placeholders) ? t.placeholders : []).map(p => ({
+            placeholders: (Array.isArray(t.placeholders) ? t.placeholders : []).map((/** @type {{ key?: unknown, kind?: unknown, fields?: unknown }} */ p) => ({
                 key: p.key,
                 kind: p.kind,
                 ...(Array.isArray(p.fields) ? { fields: p.fields } : {}),

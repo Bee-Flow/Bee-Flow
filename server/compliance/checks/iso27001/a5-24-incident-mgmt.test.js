@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -26,7 +26,7 @@ afterEach(() => {
     incidentStore.listNeedingAttention = saved.listNeedingAttention;
 });
 
-function stub(deadlines) {
+function stub(/** @type {unknown} */ deadlines) {
     complianceStore.getSettings = async () => ({ breach_recipients: ['dpo@example.com'] });
     incidentStore.getDeadlineStats = async () => (typeof deadlines === 'function' ? deadlines() : deadlines);
     incidentStore.listNeedingAttention = async () => [];

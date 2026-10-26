@@ -56,7 +56,7 @@ async function resolveUserPermissionsForAudit(userId) {
 // NOTE: `session` here is the CALLER's. If you are asking about someone else,
 // you want resolveUserPermissionsForAudit(userId) above — passing a caller
 // session makes this return ['all'] for any target.
-async function getUserPermissions(userId, session = null) {
+async function getUserPermissions(userId, /** @type {import('../core/entitlements/entitlementTypes').SessionLike | null} */ session = null) {
     // Admin-flagged sessions get full access
     if (session?.isAdmin) return ['all'];
 
@@ -238,8 +238,14 @@ function isPermissionLookupDegraded() {
     return Date.now() - _lastPermLookupFailedAt < 60_000; // 1-min sticky
 }
 
-// Helper to check if user has a specific permission
-async function hasPermission(userId, permission, session = null) {
+/**
+ * Helper to check if user has a specific permission
+ * @param {string} userId
+ * @param {string} permission
+ * @param {import('../core/entitlements/betaFeatures').SessionLike | null} [session]
+ */
+async function hasPermission(userId, permission, /** @type {import('../core/entitlements/entitlementTypes').SessionLike | null} */ session = null) {
+
     const perms = await getUserPermissions(userId, session);
     return perms.includes('all') || perms.includes(permission);
 }

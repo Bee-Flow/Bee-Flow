@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Agentic AI bridge (POST /:id/ai/ask, see ./webpagesPreviewAsk.js): the tool
  * surface built from the page's `bridge_grants`, and the clamp on what a tool
@@ -65,7 +65,8 @@ function integrationToolDef(grant) {
             ...params,
             properties: props,
             required: Array.isArray(params.required)
-                ? params.required.filter((/** @type {string} */ k) => !(k in grant.fixedArgs))
+                ? params.required.filter((/** @type {string} */ k) => !(k in (grant.fixedArgs ?? {}))
+)
                 : params.required,
         };
     }

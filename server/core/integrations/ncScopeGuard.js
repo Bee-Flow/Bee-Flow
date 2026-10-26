@@ -203,7 +203,7 @@ async function checkToolCall({ toolName, toolArgs = {}, userId, orgId = null, ag
  * @param {Function} run  invoked only if the call is allowed
  * @returns the executor's result, filtered — or the structured denial
  */
-async function guardedNcCall(toolName, toolArgs, { userId, session = null, orgId = null, agentId = null }, run) {
+async function guardedNcCall(toolName, toolArgs, /** @type {{ userId: string, session?: import('../entitlements/entitlementTypes').SessionLike | null, orgId?: string | null, agentId?: string | null }} */ { userId, session = null, orgId = null, agentId = null }, run) {
     const denial = await checkToolCall({ toolName, toolArgs, userId, orgId, agentId, session });
     if (denial) return denial;
     const raw = await run();

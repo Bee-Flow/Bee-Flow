@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The JSONB array columns of a transcriptions row, read tolerantly and written
  * coerced. Pure.
@@ -29,7 +29,10 @@ function parseJsonArray(value) {
     return [];
 }
 
-/** Coerce an inbound array field on the WRITE side, so rows never go bad. */
+/**
+ * Coerce an inbound array field on the WRITE side, so rows never go bad.
+ * @param {unknown} value
+ */
 function toArray(value) {
     return Array.isArray(value) ? value : [];
 }

@@ -22,7 +22,7 @@ const {
     attachShareUrls,
 } = require('./webpageShareUrls');
 
-const buildUrl = (raw) => `https://beeflow.nl/share/${raw}`;
+const buildUrl = (/** @type {string} */ raw) => `https://beeflow.nl/share/${raw}`;
 const NOW = Date.parse('2026-08-11T12:00:00.000Z');
 
 const LIVE = { id: 'live', createdBy: 'owner-1', allowedEmails: ['finance@acme.test'], revokedAt: null, expiresAt: null };
@@ -76,7 +76,7 @@ test('a missing token map is survivable, not a crash', () => {
 
 test('every share keeps its other fields and the list keeps its order', () => {
     const rows = attachShareUrls([LIVE, REVOKED, EXPIRED], { live: 'raw-abc' }, buildUrl, NOW);
-    assert.deepStrictEqual(rows.map(r => r.id), ['live', 'dead', 'old']);
+    assert.deepStrictEqual(rows.map((/** @type {{ id: string }} */ r) => r.id), ['live', 'dead', 'old']);
     assert.strictEqual(rows[0].createdBy, 'owner-1');
 });
 

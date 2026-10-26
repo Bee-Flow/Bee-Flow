@@ -26,9 +26,13 @@
  *                     but cannot be converted either; there are four, so the
  *                     floor of this metric is not quite zero.
  *   module-mock       test files that stub a dependency by reaching into the
- *                     module system (`require.cache`, `Module._load`,
- *                     `_resolveFilename`). The target is injection through the
- *                     stores' init()/factory seams (phase 2, point 6).
+ *                     module system: `require.cache`, `Module._load`,
+ *                     `_resolveFilename`, or a call to a server/testUtils helper
+ *                     that does the same for them (MODULE_MOCK_HELPERS: mockModule,
+ *                     installResolveStub, preloadStubs, ...). Moving a test from the
+ *                     raw patch to a helper does not lower the count; only
+ *                     injecting through the module's init()/factory seam does
+ *                     (phase 2, point 6).
  *   authfetch-outside-api  non-test files outside src/api/ that call
  *                     authFetch themselves (utils/helpers.js, where it is
  *                     defined, not counted). The data layer is src/api/:
@@ -191,6 +195,20 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const TEST_FILE = /\.test\.[jt]sx?$/;
+
+// The testUtils helpers that write require.cache or hook Module._resolveFilename
+// on the test's behalf (server/testUtils/). A test calling one of them mocks
+// through the module system exactly as one writing require.cache by hand does.
+// A new testUtils helper that does so belongs in this list; the ratchet's own
+// test keeps it in step with the helpers actually present.
+const MODULE_MOCK_HELPERS = [
+    'mockModule', 'stubRequire', 'installResolveStub', 'preloadStubs', 'evictModule',
+    'serverStubber', 'installAiStepHarness', 'installAiAnswerCacheKit',
+    'installRunnerIdentityStubs', 'installCrudRouteStubs', 'createBuilderStream',
+];
+const MODULE_MOCK_PATTERN = new RegExp(
+    `require\\.cache|Module\\._load|_resolveFilename|(?<![\\w$.])(?:${MODULE_MOCK_HELPERS.join('|')})\\s*\\(`,
+);
 
 /** Physical lines, as `wc -l` counts them — the unit the plan measured in. */
 const lineCount = (text) => (text.match(/\n/g) || []).length + (text.endsWith('\n') || text === '' ? 0 : 1);
@@ -452,7 +470,8 @@ const METRICS = {
     },
     'module-mock': {
         include: (rel) => TEST_FILE.test(rel),
-        measure: (text) => (/require\.cache|Module\._load|_resolveFilename/.test(text) ? 1 : 0),
+        // On the code only: a comment that explains why a test does NOT use require.cache is not a mock.
+        measure: (text) => (MODULE_MOCK_PATTERN.test(blankNonCode(text)) ? 1 : 0),
         what: 'test files mocking through the module system',
         advice: 'inject the dependency through the module\'s init()/factory seam instead',
     },

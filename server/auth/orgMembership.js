@@ -79,7 +79,7 @@ function orgIdsForUser(userRow, allGroups = []) {
 
 /**
  * Does this user reach `orgId` by either path?
- * @param {string} orgId
+ * @param {string | null | undefined} orgId
  */
 function isMemberOfOrg(userRow, allGroups, orgId) {
     if (!orgId) return false;

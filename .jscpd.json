@@ -60,6 +60,7 @@
     "classify-service/app/shared/**",
     "**/*.generated.mjs",
     "components/*/ssrfGuard.js",
+    "components/*/ssrfGuardParseIPv6.js",
     "components/webpage-to-markdown/htmlToMarkdown.js",
     "components/website-sitemap-fetcher/safeGet.js",
     "deploy/**",

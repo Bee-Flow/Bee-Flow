@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The pure half of the dependents index: which steps touch which table, and
  * where each step sits in the graph.
