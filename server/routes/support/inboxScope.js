@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Tenant Support Inbox: who the caller is and what they may reach. The
  * support_inbox permission check, the org scope, the per-inbox access gate
@@ -16,9 +16,10 @@ const access = require('../../support/access');
 // /api/support/stream skips them and the tenant /stream forwards only in-scope inboxes.
 const { supportEvents } = require('../support');
 const { bestEffort } = require('../../utils/bestEffort');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 /** @param {import('express').Request} req */
-function getUserId(req) { return req.session?.user?.id || null; }
+function getUserId(req) { return sessionUser(req).id; }
 
 /**
  * @param {string} event

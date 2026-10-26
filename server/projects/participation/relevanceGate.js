@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The relevance gate: one short structured call to the fast tier that decides
  * whether the AI should join a conversation now. It never answers; it only
@@ -278,7 +278,7 @@ function makeRelevanceGate(deps = {}) {
     };
     const logUsage = deps.logUsage || ((entry) => require('../../stores/usageStore').logUsage(entry));
     const estimateTokens = deps.estimateTokens || ((text) => require('../../core/llm/tokenBudget').estimateTokens(text));
-    const timeoutMs = Number.isFinite(deps.timeoutMs) && deps.timeoutMs > 0 ? deps.timeoutMs : GATE_TIMEOUT_MS;
+    const timeoutMs = typeof deps.timeoutMs === 'number' && Number.isFinite(deps.timeoutMs) && deps.timeoutMs > 0 ? deps.timeoutMs : GATE_TIMEOUT_MS;
     const now = deps.now || (() => Date.now());
     const newId = deps.newId || (() => crypto.randomUUID());
 

@@ -1,4 +1,5 @@
-// @typecheck noImplicitAny
+const { sessionUser } = require('../../core/http/sessionUser');
+// @typecheck strict
 /**
  * The pieces that every /api/studio aggregate shares.
  *
@@ -93,7 +94,7 @@ function makeLazyDeps(loaders) {
  */
 
 /** @param {import('express').Request} req */
-const userIdOf = (req) => req.session?.user?.id || null;
+const userIdOf = (/** @type {import('express').Request} */ req) => sessionUser(req).id;
 /** @param {import('express').Request} req */
 const orgIdOf = (req) => req.session?.user?.organizationId || /** @type {string | undefined} */ (req.session?.user?.orgId) || null;
 

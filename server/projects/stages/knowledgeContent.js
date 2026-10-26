@@ -135,7 +135,7 @@ async function hasLocalChunkTable(db) {
 async function listCarriedDocuments(kbId, deps = {}, opts = {}) {
     const d = { ...defaultDeps(), ...deps };
     const ref = opts.ref || null;
-    const maxDocs = Number.isInteger(opts.maxDocs) && opts.maxDocs > 0 ? opts.maxDocs : MAX_DOCS;
+    const maxDocs = typeof opts.maxDocs === 'number' && Number.isInteger(opts.maxDocs) && opts.maxDocs > 0 ? opts.maxDocs : MAX_DOCS;
     /** @type {object[]} */
     const findings = [];
     const blocking = (/** @type {string} */ code, /** @type {Record<string, unknown>} */ extra = {}) => findings.push({ code, severity: 'blocking', ref, kbId, ...extra });

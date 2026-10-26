@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The legacy-fallback switch: the new name wins, the old one still counts.
  *
@@ -12,7 +12,7 @@ const assert = require('node:assert/strict');
 
 const { automationAuthLegacy } = require('./automationAuthLegacy');
 
-function withEnv(env, fn) {
+function withEnv(/** @type {Record<string, string | undefined>} */ env, /** @type {() => unknown} */ fn) {
     const saved = { a: process.env.AUTOMATION_AUTH_LEGACY, r: process.env.ROUTINE_AUTH_LEGACY };
     for (const [k, v] of Object.entries(env)) {
         if (v === undefined) delete process.env[k]; else process.env[k] = v;

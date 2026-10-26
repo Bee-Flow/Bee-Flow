@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * NIS2 Art. 21(2)(f) — policies and procedures to assess the effectiveness of
  * the cybersecurity risk-management measures.
@@ -99,7 +99,7 @@ module.exports = {
             };
         }
 
-        const candidates = [audit.at, review.at].filter(Boolean).map(x => new Date(x).getTime());
+        const candidates = [audit.at, review.at].flatMap((x) => (x ? [new Date(x).getTime()] : []));
         const lastReviewAt = candidates.length ? new Date(Math.max(...candidates)).toISOString() : null;
         const reviewAge = _ageDays(lastReviewAt);
         const sweepAge = _ageDays(sweep.at);
@@ -123,14 +123,14 @@ module.exports = {
                 details: 'No internal audit has been closed and no management review has been held — the effectiveness of the measures has never been assessed.',
             };
         }
-        if (reviewAge > REVIEW_GRACE_DAYS) {
+        if (reviewAge !== null && reviewAge > REVIEW_GRACE_DAYS) {
             return {
                 status: 'fail',
                 evidence,
                 details: `The last effectiveness review is ${reviewAge} days old — more than ${REVIEW_GRACE_DAYS} days without an audit or management review.`,
             };
         }
-        if (reviewAge > REVIEW_OK_DAYS) {
+        if (reviewAge !== null && reviewAge > REVIEW_OK_DAYS) {
             return {
                 status: 'warn',
                 evidence,

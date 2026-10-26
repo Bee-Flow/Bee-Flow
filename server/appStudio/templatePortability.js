@@ -147,7 +147,7 @@ function buildExport(template, /** @type {{ exportedAt?: string | null, source?:
     for (const field of TEMPLATE_PAYLOAD_FIELDS) {
         if (template[field] !== undefined) out[field] = deepClone(template[field]);
     }
-    out.version = Number.isInteger(template.version) && template.version > 0 ? template.version : 1;
+    out.version = typeof template.version === 'number' && Number.isInteger(template.version) && template.version > 0 ? template.version : 1;
     out.title = claimText(template.title, 80) || 'App template';
     out.tags = Array.isArray(out.tags) ? out.tags.filter((t) => typeof t === 'string') : [];
 

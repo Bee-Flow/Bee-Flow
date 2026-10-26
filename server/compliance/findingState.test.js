@@ -53,7 +53,7 @@ test('the subject label the runner stamps on a row is a name, not part of the fi
 });
 
 test('a check can name its own stable subset', () => {
-    const def = { fingerprintOf: (ev) => (ev.offenders || []).map(o => o.project_id).sort() };
+    const def = { fingerprintOf: (/** @type {{ offenders?: { project_id: string }[] }} */ ev) => (ev.offenders || []).map((o) => o.project_id).sort() };
     const a = { status: 'warn', evidence: { offenders: [{ project_id: 'p1', count: 2 }], total: 2 } };
     const b = { status: 'warn', evidence: { offenders: [{ project_id: 'p1', count: 5 }], total: 5 } };
     const c = { status: 'warn', evidence: { offenders: [{ project_id: 'p1' }, { project_id: 'p2' }] } };
@@ -82,6 +82,6 @@ test('states are indexed per check and slot, and the public shape never carries 
     assert.strictEqual(fs.stateFor(idx, row), stored);
     assert.strictEqual(fs.stateFor(idx, { ...row, scope_id: 'project:2' }), null);
     const pub = fs.publicState(stored, row, null, NOW);
-    assert.deepStrictEqual(Object.keys(pub).sort(), ['active', 'actor_id', 'reason', 'state', 'until', 'updated_at']);
-    assert.strictEqual(pub.active, true);
+    assert.deepStrictEqual(Object.keys(pub ?? {}).sort(), ['active', 'actor_id', 'reason', 'state', 'until', 'updated_at']);
+    assert.strictEqual(pub?.active, true);
 });

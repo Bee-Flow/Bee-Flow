@@ -139,7 +139,7 @@ function applyScreenConstraints(design, c, { maxSections = 6 } = {}) {
         })).filter((s) => s.sections.length);
         if (dropped) changes.push(`dropped ${dropped} detail element${dropped === 1 ? '' : 's'}`);
     }
-    if (c.exact && Number.isFinite(c.screens) && screens.length > c.screens) {
+    if (c.exact && typeof c.screens === 'number' && Number.isFinite(c.screens) && screens.length > c.screens) {
         const keep = screens.slice(0, c.screens);
         const extra = screens.slice(c.screens);
         const last = keep[keep.length - 1];

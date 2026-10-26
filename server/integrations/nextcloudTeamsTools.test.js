@@ -45,7 +45,7 @@ test('member levels round-trip between name and integer', () => {
     // The level tool must not offer 'owner' — ownership transfer is a
     // different upstream operation.
     const levelTool = NEXTCLOUD_TEAMS_TOOLS.find(t => t.function.name === 'nextcloud_teams_set_member_level');
-    assert.deepEqual(levelTool.function.parameters.properties.level.enum, ['member', 'moderator', 'admin']);
+    assert.deepEqual(levelTool?.function.parameters.properties.level?.enum, ['member', 'moderator', 'admin']);
 });
 
 test('a team maps to the fields an agent can act on', () => {
@@ -86,5 +86,5 @@ test('the remove tool names the id it actually needs', () => {
     // The description is load-bearing: an agent handed "ralph" instead of the
     // member id gets a confusing 404 from Nextcloud.
     const tool = NEXTCLOUD_TEAMS_TOOLS.find(t => t.function.name === 'nextcloud_teams_remove_member');
-    assert.match(tool.function.parameters.properties.memberId.description, /NOT the Nextcloud user id/i);
+    assert.match(tool?.function.parameters.properties.memberId?.description, /NOT the Nextcloud user id/i);
 });

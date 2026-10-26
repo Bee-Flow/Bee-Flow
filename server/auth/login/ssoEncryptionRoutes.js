@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Login Routes — the SSO user's encryption PIN: first-time setup, unlock,
  * PIN change and recovery-key rescue of the DEK. Split out of
@@ -99,6 +99,7 @@ router.post('/sso-encryption-unlock', validate({ body: UnlockBody }), async (/**
     if (result.wrongPin) {
         return res.status(401).json({ error: 'Incorrect PIN' });
     }
+    if (!result.dek) throw new Error('SSO unlock answered without a key');
     req.session.encryptionKey = result.dek.toString('base64');
     req.session.needsEncryptionPin = false;
     req.session.needsEncryptionSetup = false;
@@ -126,6 +127,8 @@ router.post('/sso-change-pin', validate({ body: ChangePinBody }), async (/** @ty
     if (unlockResult.needsSetup) {
         return res.status(400).json({ error: 'Encryption not set up yet' });
     }
+
+    if (!unlockResult.dek) throw new Error('SSO unlock answered without a key');
 
     // Re-wrap DEK with new PIN
     log.info(`[Auth] SSO PIN change: re-wrapping DEK for user ${userId}`);

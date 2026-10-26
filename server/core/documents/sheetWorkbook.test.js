@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * sheetWorkbook — only the tabs a formula names are read, keyed by tab name,
  * so the editor and the chat compute `Klanten!A1` instead of #REF!.
@@ -27,8 +27,9 @@ test('a formula names the tabs it needs; text and the active tab do not count', 
 });
 
 test('reads those tabs once each, and the engine computes over them', async () => {
+    /** @type {unknown[][]} */
     const reads = [];
-    const sheetCells = { async readSheet(owner, table) { reads.push([owner, table]); return { cells: { L2: 'ZZP', L3: 'MKB', L4: 'ZZP' } }; } };
+    const sheetCells = { async readSheet(/** @type {string} */ owner, /** @type {string} */ table) { reads.push([owner, table]); return { cells: { L2: 'ZZP', L3: 'MKB', L4: 'ZZP' } }; } };
     const refTabs = await readReferencedTabs({ userId: 'u1' }, TABS, 't3', PIVOT, sheetCells);
     assert.deepStrictEqual(reads, [['u1', 'dt1']]);
     const shown = evaluateSheet(PIVOT, { workbook: { ...refTabs, Draaitabel: PIVOT }, activeSheet: 'Draaitabel' });

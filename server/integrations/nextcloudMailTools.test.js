@@ -58,12 +58,12 @@ test('mail_list_mailboxes normalises specialRole and no longer invents a message
         { databaseId: 3, name: 'Old', specialUse: ['\\Archive'] },
     ];
     const { out } = await run(executeNextcloudMailTool, 'nextcloud_mail_list_mailboxes', { accountId: 1 }, async () => json(200, boxes));
-    assert.deepStrictEqual(out.mailboxes.map(m => m.specialRole), [null, 'sent', 'archive']);
-    assert.ok(out.mailboxes.every(m => !('totalMessages' in m)));
+    assert.deepStrictEqual(out.mailboxes.map((/** @type {{ specialRole?: unknown }} */ m) => m.specialRole), [null, 'sent', 'archive']);
+    assert.ok(out.mailboxes.every((/** @type {object} */ m) => !('totalMessages' in m)));
 });
 
 test('mail errors: 403 is a permission error, 400 and 409 are explained, a timeout names the fix', async () => {
-    const status = async (s) => (await run(executeNextcloudMailTool, 'nextcloud_mail_read', { messageId: 1 }, async () => json(s, {}))).out.error;
+    const status = async (/** @type {number} */ s) => (await run(executeNextcloudMailTool, 'nextcloud_mail_read', { messageId: 1 }, async () => json(s, {}))).out.error;
     assert.match(await status(403), /Permission denied for mail read/);
     assert.match(await status(400), /Check the accountId/);
     assert.match(await status(409), /syncing/);
@@ -90,7 +90,7 @@ test('the classifier does not give Mail errors the Files advice', async () => {
 
 
 // ── Attachment size cap (TOOL_FILE_MAX_BYTES) ───────────────────────────
-function binaryReply(buf, headers = {}) {
+function binaryReply(/** @type {Buffer} */ buf, headers = {}) {
     return { ok: true, status: 200, headers: new Headers(headers), text: async () => buf.toString(), arrayBuffer: async () => Uint8Array.from(buf).buffer };
 }
 

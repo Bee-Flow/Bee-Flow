@@ -31,7 +31,7 @@ const TOKEN_MAP = {
  * an object envelope, stringify, and hand it to a `$1::jsonb` parameter — which
  * node-postgres reads back as a parsed object.
  */
-function storeAsJsonb(mapObj, { encrypt }) {
+function storeAsJsonb(/** @type {Record<string, string>} */ mapObj, /** @type {{ encrypt: boolean }} */ { encrypt }) {
     let payload = JSON.stringify(mapObj);
     if (encrypt) {
         payload = JSON.stringify(encryptField(payload, { key: KEY, aad: AAD, encrypt: true, asObject: true }));

@@ -286,8 +286,8 @@ function tooBig(after) {
 function read(code, args) {
     const total = lineCount(code);
     if (!String(code || '').trim()) return { result: { content: '', message: 'The code is empty. Use code_write to create it.' } };
-    const from = Number.isInteger(args.start_line) && args.start_line > 0 ? args.start_line : 1;
-    const to = Number.isInteger(args.end_line) && args.end_line >= from ? Math.min(args.end_line, total) : total;
+    const from = typeof args.start_line === 'number' && Number.isInteger(args.start_line) && args.start_line > 0 ? args.start_line : 1;
+    const to = typeof args.end_line === 'number' && Number.isInteger(args.end_line) && args.end_line >= from ? Math.min(args.end_line, total) : total;
     return { result: { lines: `${from}-${to} of ${total}`, content: numberLines(code, { from, to }) } };
 }
 

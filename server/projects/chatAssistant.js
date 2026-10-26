@@ -151,9 +151,9 @@ function makeChatAssistant(deps = {}) {
         const { REASON_TEXT } = require('./participation/relevanceGate');
         return /** @type {Readonly<Record<string, string>>} */ (REASON_TEXT)[reasonCode] || 'the conversation seemed to need you';
     });
-    const timeoutMs = Number.isFinite(deps.timeoutMs) && deps.timeoutMs > 0 ? deps.timeoutMs : DEFAULT_TIMEOUT_MS;
-    const lockPollMs = Number.isFinite(deps.lockPollMs) && deps.lockPollMs > 0 ? deps.lockPollMs : DEFAULT_LOCK_POLL_MS;
-    const lockWaitMs = Number.isFinite(deps.lockWaitMs) && deps.lockWaitMs > 0 ? deps.lockWaitMs : timeoutMs * TOOL_TIMEOUT_FACTOR + LOCK_MARGIN_MS;
+    const timeoutMs = typeof deps.timeoutMs === 'number' && Number.isFinite(deps.timeoutMs) && deps.timeoutMs > 0 ? deps.timeoutMs : DEFAULT_TIMEOUT_MS;
+    const lockPollMs = typeof deps.lockPollMs === 'number' && Number.isFinite(deps.lockPollMs) && deps.lockPollMs > 0 ? deps.lockPollMs : DEFAULT_LOCK_POLL_MS;
+    const lockWaitMs = typeof deps.lockWaitMs === 'number' && Number.isFinite(deps.lockWaitMs) && deps.lockWaitMs > 0 ? deps.lockWaitMs : timeoutMs * TOOL_TIMEOUT_FACTOR + LOCK_MARGIN_MS;
     const newId = deps.newId || (() => crypto.randomUUID());
 
     /**

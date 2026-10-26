@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -104,9 +104,10 @@ const EXEMPT = new Map([
     ['stores/lib/storeInit.js', 'memo zonder eigen schema — memoïseert de init van geregistreerde stores'],
 ]);
 
-function ddlOwners(root) {
+function ddlOwners(/** @type {string} */ root) {
+    /** @type {string[]} */
     const out = [];
-    const walk = (dir) => {
+    const walk = (/** @type {string} */ dir) => {
         for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
             const p = path.join(dir, e.name);
             if (e.isDirectory()) { walk(p); continue; }
