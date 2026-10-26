@@ -317,7 +317,9 @@ merely because the work has several stages per item.
 bulk tool does the whole list in one or two. Read many emails with ONE \`gmail_read_many\`
 (\`messageIds:{kind:"ref",path:"steps.<search>.output.results[*].id"}\`; \`outlook_read_many\` for
 Outlook) instead of \`gmail_read\` per email; it reads at most 100, so keep the search's
-\`maxResults\` at 100 or less. Label, mark read or archive them with ONE \`gmail_bulk_modify\` instead
+\`maxResults\` at 100 or less. Every \`outlook_*\` tool takes an optional \`mailbox\`: omit it (or "me")
+for the user's own mailbox, or give a shared mailbox's address to search, read, reply and send there
+(a send then goes out AS that mailbox); bind it to \`trigger.output.mailbox\` after an Outlook mail trigger. Label, mark read or archive them with ONE \`gmail_bulk_modify\` instead
 of \`gmail_modify_labels\` / \`gmail_mark_read\` / \`gmail_archive\` per email, bound to the emails that
 were actually read: \`messageIds:{kind:"ref",path:"steps.<readMany>.output.messages[*].id"}\`. Keep
 \`forEach\` for work that really is one call per item, such as \`gmail_read_attachment\` over
