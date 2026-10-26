@@ -27,10 +27,20 @@
  * gets it back verbatim — that is how a test neutralises schema creation
  * (`makeStoreInit: () => async () => {}`). The identity check is what keeps the
  * real db.js, which re-exports this very function, from recursing into itself.
+ *
+ * THE LEDGER. With the real db.js (or any facade that exports `ledgerQuery`)
+ * the schemaFn runs as one unit of the schema ledger (stores/lib/ddlLedger.js,
+ * row `store:<tag>` in schema_migrations): every schema statement it sends
+ * through db.exec, db.run or runDdl that already succeeded for this tag on this
+ * database is skipped, and a new or changed one runs. So the tag is the
+ * ledger's name for the store: keep it stable and unique (a rename makes the
+ * store run its whole schema once more, which is safe). A double without
+ * `ledgerQuery` runs the schemaFn exactly as before.
  */
 
 'use strict';
 const log = require('../../telemetry/log');
+const { runUnit } = require('./ddlLedger');
 
 // Resolved lazily and by two routes, exactly as _ddl.js does: '../db' is the
 // request the hermetic store tests intercept, '../../db' is the real module.
@@ -43,11 +53,14 @@ function _dbFacade() {
     }
 }
 
-function _memoized(tag, schemaFn) {
+function _memoized(tag, schemaFn, db) {
     let promise = null;
-    return function ensureInit() {
+    // The facade's ledgerQuery (real db.js, or a test that opts in) puts the
+    // init in the schema ledger; a double without one runs it as before.
+    const ledgerQuery = typeof db.ledgerQuery === 'function' ? db.ledgerQuery : undefined;
+    const ensureInit = function ensureInit() {
         if (!promise) {
-            promise = Promise.resolve().then(schemaFn).catch((err) => {
+            promise = Promise.resolve().then(() => runUnit(tag, schemaFn, ledgerQuery)).catch((err) => {
                 promise = null;   // allow retry on the next call
                 log.error(`[${tag}] Init error:`, err && err.message);
                 throw err;
@@ -55,6 +68,20 @@ function _memoized(tag, schemaFn) {
         }
         return promise;
     };
+    _all.add(() => { promise = null; });
+    return ensureInit;
+}
+
+/** @type {Set<() => void>} */
+const _all = new Set();
+
+/**
+ * Forget every memo, so the next call of each init runs its schema again: a
+ * second boot of the same process, for the ledger's integration test. Never
+ * called by the server.
+ */
+function _resetAllForTests() {
+    for (const reset of _all) reset();
 }
 
 /**
@@ -68,7 +95,7 @@ function makeStoreInit(tag, schemaFn) {
     if (typeof db.makeStoreInit === 'function' && db.makeStoreInit !== makeStoreInit) {
         return db.makeStoreInit(tag, schemaFn);
     }
-    return _memoized(tag, schemaFn);
+    return _memoized(tag, schemaFn, db);
 }
 
-module.exports = { makeStoreInit };
+module.exports = { makeStoreInit, _resetAllForTests };

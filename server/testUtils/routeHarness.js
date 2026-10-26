@@ -40,9 +40,10 @@ const USER = { id: 'u1', organizationId: 'org1', role: 'user', email: 'u1@exampl
 
 // Schema bootstrap the stores run on their own, whenever they are first
 // loaded or used: DDL, the transaction and lock plumbing around it, and the
-// catalogue reads that decide whether a migration is needed. None of it is a
-// request reaching a store, so `queries` leaves it out.
-const BOOTSTRAP = /^\s*(CREATE|ALTER|DROP|COMMENT|BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE|SET|DO\b)|pg_advisory|information_schema|pg_catalog|pg_extension|pg_indexes|to_regclass/i;
+// catalogue reads that decide whether a migration is needed, and the schema
+// ledger's reads and writes (schema_migrations, stores/lib/ddlLedger.js). None
+// of it is a request reaching a store, so `queries` leaves it out.
+const BOOTSTRAP = /^\s*(CREATE|ALTER|DROP|COMMENT|BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE|SET|DO\b)|pg_advisory|information_schema|pg_catalog|pg_extension|pg_indexes|to_regclass|\bschema_migrations\b/i;
 
 /**
  * Record every query instead of sending it. `answer(sql, params)` may return a

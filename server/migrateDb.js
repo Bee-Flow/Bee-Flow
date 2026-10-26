@@ -18,14 +18,15 @@
  *   - failure is loud: exit 1 with the names; a store without an awaitable entry point
  *     counts as NOT VERIFIED and is named, instead of being glossed over.
  *
- * The store DDL is idempotent and runs on every call; the boot ladder (data migrations +
- * NL catalogues) is in the `schema_migrations` ledger of boot/bootMigrations.js and is skipped
- * once it is registered. An existing installation runs that ladder once more in full (idempotent)
- * the first time and then registers it.
+ * Both halves are in the `schema_migrations` ledger: a store schema statement that already
+ * succeeded for that store is skipped (stores/lib/ddlLedger.js), and a boot-ladder entry (data
+ * migrations + NL catalogues, boot/bootMigrations.js) whose file has not changed is skipped. An
+ * existing installation runs everything once more in full (idempotent) the first time and then
+ * registers it; --force runs both in full again.
  *
  * Usage:
  *   node migrateDb.js                    # everything, exit 1 on any error
- *   node migrateDb.js --force            # also re-run the registered boot ladder
+ *   node migrateDb.js --force            # also re-run every recorded schema statement and boot-ladder entry
  *   npm run db:migrate                   # the same
  *   docker exec beeflow-server node migrateDb.js
  *   MIGRATE_TIMEOUT_MS=1200000 node migrateDb.js   # more generous watchdog
@@ -54,6 +55,10 @@ async function runMigrations({ log = console, force = false } = {}) {
     // Pre-create user_sessions (connect-pg-simple uses its own pool.query which
     // bypasses our serialized exec()). Awaited, als losse statements.
     const { pool } = require('./db');
+    // --force re-runs every store schema statement too, not only the boot ladder.
+    const ddlLedger = require('./stores/lib/ddlLedger');
+    ddlLedger.setForce(force);
+    const before = { ...ddlLedger.stats };
     try {
         await pool.query(`CREATE TABLE IF NOT EXISTS "user_sessions" (
             "sid" varchar NOT NULL COLLATE "default",
@@ -92,6 +97,11 @@ async function runMigrations({ log = console, force = false } = {}) {
             log.error(`  ❌ ${store.name}: ${/** @type {Error} */ (err).message}`);
         }
     }
+
+    ddlLedger.setForce(false);
+    const units = ddlLedger.stats.units - before.units;
+    log.log(`  ◌  schema-ledger: ${units} store-schema's, ${ddlLedger.stats.unitsUnchanged - before.unitsUnchanged} ongewijzigd; `
+        + `${ddlLedger.stats.executed - before.executed} statements gedraaid, ${ddlLedger.stats.skipped - before.skipped} al toegepast`);
 
     // De boot-ladder die de oude runner altijd oversloeg: losse datamigraties
     // en de NL-catalogi, uit dezelfde lijsten die de server bij boot draait.

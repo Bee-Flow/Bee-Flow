@@ -72,6 +72,7 @@
 
 'use strict';
 const log = require('../../telemetry/log');
+const { alreadyApplied, track } = require('./ddlLedger');
 
 /**
  * The db facade is resolved LAZILY and via two routes, so that runDdl sees under
@@ -152,7 +153,7 @@ async function _runLocked(tag, list, lockTimeout) {
     if (typeof db.withTransaction !== 'function') {
         for (const stmt of list) {
             try {
-                await db.exec(stmt.sql);
+                await track(stmt.sql, () => db.exec(stmt.sql));
             } catch (err) {
                 if (!isSqlStateError(err)) throw err;
                 const entry = {
@@ -184,7 +185,7 @@ async function _runLocked(tag, list, lockTimeout) {
         for (const stmt of list) {
             await client.query('SAVEPOINT beeflow_ddl_stmt');
             try {
-                await client.query(stmt.sql);
+                await track(stmt.sql, () => client.query(stmt.sql));
                 await client.query('RELEASE SAVEPOINT beeflow_ddl_stmt');
             } catch (err) {
                 // No SQLSTATE = the server never answered (connection
@@ -234,7 +235,11 @@ function runDdl(tag, statements, opts = {}) {
     if (typeof tag !== 'string' || tag.trim() === '') {
         throw new TypeError('runDdl: tag moet een niet-lege string zijn');
     }
-    const list = (Array.isArray(statements) ? statements : [statements]).map(_normalize);
+    // Inside a store init, a statement that already succeeded for that store on
+    // this database is dropped here (stores/lib/ddlLedger.js), and a list of
+    // nothing but those costs no lock and no transaction at all.
+    const list = (Array.isArray(statements) ? statements : [statements]).map(_normalize)
+        .filter((stmt) => !alreadyApplied(stmt.sql));
     const lockTimeout = opts.lockTimeout || DEFAULT_LOCK_TIMEOUT;
     if (!LOCK_TIMEOUT_RE.test(lockTimeout)) {
         throw new TypeError(`runDdl: ongeldige lockTimeout '${lockTimeout}' (verwacht bv. '500ms', '15s', '1min')`);

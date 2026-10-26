@@ -28,6 +28,7 @@ const log = require('./telemetry/log');
 // because `db.makeStoreInit` is the seam a test overrides to neutralise
 // schema creation, and migrateDb reads it from this facade.
 const { makeStoreInit } = require('./stores/lib/storeInit');
+const { throughLedger } = require('./stores/lib/ddlLedger');
 
 // ── PostgreSQL ──────────────────────────────────────────
 // Core database for users, agents, configs, conversations, etc.
@@ -205,6 +206,9 @@ async function _timedQuery(sql, params) {
  * @returns {Promise<{ rowCount: number, rows: any[] }>}
  */
 async function run(sql, params = []) {
+    // Schema statements sent through run() (migrations/ modules a store init
+    // calls) take the same ledger path as exec(); with parameters it is data.
+    if (params.length === 0) return throughLedger(sql, () => _timedQuery(sql, params));
     return _timedQuery(sql, params);
 }
 
@@ -238,6 +242,13 @@ async function getAll(sql, params = []) {
  */
 let _schemaQueue = Promise.resolve();
 async function exec(sql) {
+    // Inside a store's schema init a statement that already succeeded there
+    // is skipped (stores/lib/ddlLedger.js); everywhere else this is a no-op.
+    return throughLedger(sql, () => _exec(sql));
+}
+
+/** @param {string} sql */
+async function _exec(sql) {
     // CREATE TABLE / ALTER TABLE statements must be serialized to prevent
     // PostgreSQL implicit row-type creation races on fresh DBs.
     // We use a JS-level queue + a dedicated client connection so we don't
@@ -453,6 +464,10 @@ module.exports = {
     getClient,
     withTransaction,
     makeStoreInit,
+    // The schema ledger's own reads and writes (stores/lib/ddlLedger.js). Late
+    // bound, so a test that swaps pool.query swaps these too. A db double
+    // without it keeps the ledger off.
+    ledgerQuery: (sql, params) => pool.query(sql, params),
     isSqlStateError,
     getPoolStats,
     // internal — exported for unit tests (DB-free)
