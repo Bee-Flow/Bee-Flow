@@ -17,7 +17,7 @@ const { HttpError } = require('../../core/http/errors');
 const { makeSheetRouter, sheetCsv } = require('./sheet');
 const { makeSheetGate, sheetsVisible } = require('./sheetGate');
 
-const state = { cells: {}, writes: [], created: [], dropped: [], copies: [], updates: [], gateOpen: true, failCreate: false, asked: [], overLimit: false };
+const state = { cells: {}, writes: [], created: [], dropped: [], copies: [], updates: [], gateOpen: true, failCreate: false, failUpdate: false, fullAfterTables: Infinity, asked: [], overLimit: false };
 const baseSettings = () => ({ sheet: { tabs: [{ id: 't1', name: 'Budget', datatableId: 'dt1' }] } });
 const DOCS = {
     s1: { id: 's1', userId: 'owner', name: 'Budget', docType: 'spreadsheet', settings: baseSettings() },
@@ -40,6 +40,7 @@ const router = makeSheetRouter({
             return { id: 'new-doc', ...input };
         },
         async updateDocument(id, _ctx, { settings }) {
+            if (state.failUpdate) throw new HttpError(409, 'document_conflict', 'The document changed meanwhile.');
             // Like a plain column write: the settings sent ARE the settings (no merge to lean on).
             state.updates.push([id, settings]);
             if (id === 'new-doc') return { id, settings, versionId: 'v-copy-2' };
@@ -50,7 +51,10 @@ const router = makeSheetRouter({
         },
     },
     cells: {
-        async createSheetTable({ ownerUserId, name }) { return { id: `dt-${ownerUserId}-${name}` }; },
+        async createSheetTable({ ownerUserId, name }) {
+            if (state.fullAfterTables-- <= 0) throw Object.assign(new Error('You already have 2000 spreadsheet tabs, the most allowed is 2000.'), { status: 409, code: 'quota_exceeded', errorClass: 'datatable_quota', expose: true });
+            return { id: `dt-${ownerUserId}-${name}` };
+        },
         async dropSheetTable(userId, id) { state.dropped.push([userId, id]); return true; },
         async copyCells(...a) { state.copies.push(a); },
         async readSheet(ownerUserId, tableId) {
@@ -81,7 +85,7 @@ const router = makeSheetRouter({
 const api = h.serve('/api/studio-documents', router);
 test.after(api.close);
 test.beforeEach(() => {
-    Object.assign(state, { cells: { A1: '2', A2: '3', A3: '=A1*A2' }, writes: [], created: [], dropped: [], copies: [], updates: [], gateOpen: true, failCreate: false, asked: [], overLimit: false });
+    Object.assign(state, { cells: { A1: '2', A2: '3', A3: '=A1*A2' }, writes: [], created: [], dropped: [], copies: [], updates: [], gateOpen: true, failCreate: false, failUpdate: false, fullAfterTables: Infinity, asked: [], overLimit: false });
     DOCS.s1.settings = baseSettings();
 });
 
@@ -308,6 +312,40 @@ test('a one-tab copy without charts needs no second save', async () => {
     const res = { statusCode: 0, body: null, status(c) { this.statusCode = c; return this; }, json(b) { this.body = b; return this; } };
     await router.duplicateSheet({ session: { user: { id: 'editor' } }, body: {} }, res, DOCS.s1);
     assert.deepStrictEqual(state.updates, []);
+});
+
+test('a tab the document refuses takes its new table with it', async () => {
+    state.failUpdate = true;
+    const res = await as('owner', 'POST', '/s1/sheet/tabs', { name: 'Costs' });
+    assert.strictEqual(res.status, 409);
+    assert.deepStrictEqual(state.dropped, [['owner', 'dt-owner-Costs']]);
+});
+
+test('a refused new tab says which limit it hit', async () => {
+    state.fullAfterTables = 0;
+    const res = await as('owner', 'POST', '/s1/sheet/tabs', { name: 'Costs' });
+    assert.strictEqual(res.status, 409);
+    assert.strictEqual(res.body.code, 'quota_exceeded');
+    assert.match(res.body.error, /spreadsheet tabs/);
+    assert.deepStrictEqual(state.dropped, []);
+});
+
+test('a copy that cannot finish gives back the tables it made', async () => {
+    DOCS.s1.settings = { sheet: { tabs: [{ id: 't1', name: 'Budget', datatableId: 'dt1' }, { id: 't2', name: 'Costs', datatableId: 'dt2' }] } };
+    const res = { statusCode: 0, body: null, status(c) { this.statusCode = c; return this; }, json(b) { this.body = b; return this; } };
+    // The tab cap is reached on the second tab.
+    state.fullAfterTables = 1;
+    await assert.rejects(router.duplicateSheet({ session: { user: { id: 'editor' } }, body: {} }, res, DOCS.s1), (e) => e.code === 'quota_exceeded');
+    assert.deepStrictEqual(state.dropped, [['editor', 'dt-editor-Budget — copy']]);
+    assert.deepStrictEqual(state.created, []);
+    // The document itself is refused: every table goes back.
+    Object.assign(state, { fullAfterTables: Infinity, failCreate: true, dropped: [] });
+    await assert.rejects(router.duplicateSheet({ session: { user: { id: 'editor' } }, body: {} }, res, DOCS.s1));
+    assert.deepStrictEqual(state.dropped, [['editor', 'dt-editor-Budget — copy'], ['editor', 'dt-editor-Costs — copy']]);
+    // The tab list of the copy is refused: the copy keeps its first tab, the rest go back.
+    Object.assign(state, { failCreate: false, failUpdate: true, dropped: [] });
+    await assert.rejects(router.duplicateSheet({ session: { user: { id: 'editor' } }, body: {} }, res, DOCS.s1));
+    assert.deepStrictEqual(state.dropped, [['editor', 'dt-editor-Costs — copy']]);
 });
 
 test('a viewer cannot change tabs', async () => {

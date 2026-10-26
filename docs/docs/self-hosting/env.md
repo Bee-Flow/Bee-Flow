@@ -80,6 +80,20 @@ Each limit is in bytes, has a generous default, and `0` means no limit. They kee
 | `KB_SITEMAP_MAX_BYTES` | `52428800` (50 MB) | Largest sitemap a crawl reads (the sitemap specification's own maximum). A bigger one is skipped; the entry page is still indexed. |
 | `ATTACHMENT_MAX_BYTES` | `26214400` (25 MB) | Largest single attachment the Email Sender component adds, a file or a downloaded http(s) URL. Files come only from `ATTACHMENTS_DIR` (created when missing; default `beeflow-attachments` in the temp directory). |
 
+## Datatable storage limits
+
+The storage envelope of datatables, per organisation (or per account, for personal tables). Each is an integer, has a generous default, and `0` means no limit. They keep one organisation from growing the shared database without bound; raise or remove them on a large server. A person who reaches one sees which limit it is and what to do: delete what they no longer need, or ask you to raise it.
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `DATATABLE_MAX_TABLES_PER_SCOPE` | `200` | Tables people make: in Studio → Datatables, through an automation, an app, a form's answers or a linked Nextcloud table or spreadsheet. `0` = unlimited. |
+| `DATATABLE_MAX_SHEET_TABLES_PER_SCOPE` | `2000` | Spreadsheet tabs in Documents. Each tab of a spreadsheet (one started in Documents, or a workbook opened in chat) keeps its cells in a table of its own; those count here, not on the table cap above. `0` = unlimited. |
+| `DATATABLE_MAX_ROWS_PER_TABLE` | `100000` | Rows in one table. `0` = unlimited. |
+| `DATATABLE_MAX_ROWS_PER_SCOPE` | `500000` | Rows across all tables, spreadsheet tabs included. `0` = unlimited. |
+| `DATATABLE_MAX_MB_PER_SCOPE` | `256` | On-disk storage of all tables, spreadsheet tabs included, in MB. Once reached, no new rows, tables or spreadsheet tabs are added until something is deleted. `0` = unlimited. |
+
+The hourly datatable sweep (switched off with `DATATABLE_RETENTION_DISABLED`) also removes a spreadsheet tab's table that no document points at any more, a day after it was made: what is left when creating a spreadsheet or tab failed half-way. Tables people make, and the tabs of a deleted (archived) spreadsheet, are never removed by it.
+
 ## AI steps and automation concurrency
 
 Limits for automations that call a model. Each is an integer, has a generous default, and `0` means no limit (the exception is `LLM_RATE_LIMIT_RETRIES`, where `0` means no retry). They protect the model provider's account and the server's memory, not the user: raise or remove them on a large installation. See [Reliable AI steps](../studio/ai-steps.md) for what they do from the builder's side.

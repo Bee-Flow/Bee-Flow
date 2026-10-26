@@ -18,6 +18,8 @@ const SS = require('./add-nl-datatables-spreadsheets-translations');
 // … and the form-answers half (`datatables.frm_*`) lives with the Forms
 // catalogue, which is the fourth member of the union.
 const FA = require('./add-nl-forms-answers-translations');
+// … and the storage-limit refusals (`datatables.quota_*`) have their own, the fifth.
+const QU = require('./add-nl-datatable-quota-translations');
 const { GUI_DEFAULTS } = require('../i18n/defaults/en');
 
 test('every English datatables.* key has a Dutch one (or is declared identical)', () => {
@@ -29,6 +31,6 @@ test('every English datatables.* key has a Dutch one (or is declared identical)'
     // confirm"), so half-translated is the one outcome worth failing a build.
     const same = new Set([...SAME_AS_ENGLISH, ...NC.SAME_AS_ENGLISH, ...SS.SAME_AS_ENGLISH, ...FA.SAME_AS_ENGLISH]);
     const untranslated = Object.keys(GUI_DEFAULTS)
-        .filter(k => k.startsWith('datatables.') && !(k in NL_TRANSLATIONS) && !(k in NC.NL_TRANSLATIONS) && !(k in SS.NL_TRANSLATIONS) && !(k in FA.NL_TRANSLATIONS) && !same.has(k));
+        .filter(k => k.startsWith('datatables.') && !(k in NL_TRANSLATIONS) && !(k in NC.NL_TRANSLATIONS) && !(k in SS.NL_TRANSLATIONS) && !(k in FA.NL_TRANSLATIONS) && !(k in QU.NL_TRANSLATIONS) && !same.has(k));
     assert.deepStrictEqual(untranslated, []);
 });
