@@ -24,6 +24,7 @@ const Module = require('module');
 
 // Every config write lands in `touched`. A refused request must leave it empty.
 const touched = [];
+const clearedNmbrsCache = [];
 const pass = (req, res, next) => next();
 
 const MOCKS = {
@@ -42,6 +43,7 @@ const MOCKS = {
         SUBDOMAIN_RE: /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i,
         TOKEN_RE: /^[\x21-\x7E]{16,512}$/,
         EMAIL_RE: /^[^\s@,;]{1,128}@[^\s@,;]{1,128}$/,
+        clearNmbrsPageCacheForUser: (userId) => { clearedNmbrsCache.push(userId); },
     },
     '../../../integrations/vplanTools': {
         API_KEY_RE: /^[A-Za-z0-9._~-]{16,512}$/,
@@ -236,4 +238,13 @@ test('the NMBRS form as the settings screen sends it is accepted and stored lowe
     const res = await post({ nmbrsApiMode: 'SOAP', nmbrsEnv: 'production', nmbrsSubdomain: 'mycompany', nmbrsEmail: 'a@b.nl', nmbrsToken: 'abcdefghijklmnop1234' });
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(written('nmbrs_api_mode_user_u1').value, 'soap');
+});
+
+test('changing or removing the NMBRS connection forgets the lists cached under it; other settings do not', async () => {
+    clearedNmbrsCache.length = 0;
+    assert.strictEqual((await post({ nmbrsToken: '' })).statusCode, 200);
+    assert.deepStrictEqual(clearedNmbrsCache, ['u1'], 'removing the token clears the cache of that user');
+    clearedNmbrsCache.length = 0;
+    assert.strictEqual((await post({ afasEnvType: '' })).statusCode, 200);
+    assert.deepStrictEqual(clearedNmbrsCache, []);
 });
