@@ -11,27 +11,15 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-const { installResolveStub } = require('../../testUtils/stubRequire');
+const { useConfigRows } = require('../../testUtils/configRows');
 
-const fixtures = { map: {}, throwOn: null, calls: [] };
-const restore = installResolveStub({
-    '../../stores/configStore': {
-        getConfig: async (key) => {
-            fixtures.calls.push(key);
-            if (fixtures.throwOn && key === fixtures.throwOn) throw new Error('cfg boom');
-            return Object.prototype.hasOwnProperty.call(fixtures.map, key) ? fixtures.map[key] : null;
-        },
-    },
-});
+// The real configStore; its table is config.rows, the keys it was asked for are config.reads.
+const config = useConfigRows();
 
 const { getUserTierMap, getTierConfig } = require('./modelResolver');
 
-test.after(() => restore());
-test.beforeEach(() => {
-    fixtures.map = {};
-    fixtures.throwOn = null;
-    fixtures.calls = [];
-});
+test.after(config.restore);
+test.beforeEach(config.reset);
 
 const BASE = {
     fast: { modelId: 'm-fast', label: 'Fast' },
@@ -39,7 +27,7 @@ const BASE = {
 };
 
 test('base tiers pass through when no custom tiers are configured', async () => {
-    fixtures.map['chat_model_tiers'] = structuredClone(BASE);
+    config.rows['chat_model_tiers'] = structuredClone(BASE);
     const tiers = await getUserTierMap({ userOrgId: null, userId: 'u1' });
     assert.strictEqual(tiers.fast.modelId, 'm-fast');
     assert.strictEqual(tiers.smart.modelId, 'm-smart');
@@ -47,12 +35,12 @@ test('base tiers pass through when no custom tiers are configured', async () => 
 });
 
 test('org custom tier beats global on id collision; custom:true stamped', async () => {
-    fixtures.map['chat_model_tiers'] = structuredClone(BASE);
-    fixtures.map['custom_chat_model_tiers'] = [
+    config.rows['chat_model_tiers'] = structuredClone(BASE);
+    config.rows['custom_chat_model_tiers'] = [
         { id: 'custom:a', modelId: 'g-a', label: 'Global A', maxTokens: 1000 },
         { id: 'custom:b', modelId: 'g-b', label: 'Global B' },
     ];
-    fixtures.map['custom_chat_model_tiers_org_org1'] = [
+    config.rows['custom_chat_model_tiers_org_org1'] = [
         { id: 'custom:a', modelId: 'o-a', label: 'Org A', temperature: 0.2 },
     ];
     const tiers = await getUserTierMap({ userOrgId: 'org1', userId: 'u1' });
@@ -65,9 +53,9 @@ test('org custom tier beats global on id collision; custom:true stamped', async 
 });
 
 test('EU mode (org shield) swaps euModelId on custom tiers', async () => {
-    fixtures.map['chat_model_tiers'] = structuredClone(BASE);
-    fixtures.map['org_privacy_shield_org1'] = { enabled: true, euModeEnabled: true };
-    fixtures.map['custom_chat_model_tiers'] = [
+    config.rows['chat_model_tiers'] = structuredClone(BASE);
+    config.rows['org_privacy_shield_org1'] = { enabled: true, euModeEnabled: true };
+    config.rows['custom_chat_model_tiers'] = [
         { id: 'custom:b', modelId: 'g-b', euModelId: 'g-b-eu' },
         { id: 'custom:c', modelId: 'g-c' }, // no euModelId → keeps modelId
     ];
@@ -77,24 +65,24 @@ test('EU mode (org shield) swaps euModelId on custom tiers', async () => {
 });
 
 test('no userOrgId → the org-scoped custom-tier key is never fetched', async () => {
-    fixtures.map['chat_model_tiers'] = structuredClone(BASE);
-    fixtures.map['custom_chat_model_tiers'] = [{ id: 'custom:a', modelId: 'g-a' }];
+    config.rows['chat_model_tiers'] = structuredClone(BASE);
+    config.rows['custom_chat_model_tiers'] = [{ id: 'custom:a', modelId: 'g-a' }];
     await getUserTierMap({ userOrgId: null, userId: 'u1' });
-    assert.ok(!fixtures.calls.some(k => k.startsWith('custom_chat_model_tiers_org_')));
+    assert.ok(!config.reads.some(k => k.startsWith('custom_chat_model_tiers_org_')));
 });
 
 test('configStore failure inside the merge degrades to base tiers', async () => {
-    fixtures.map['chat_model_tiers'] = structuredClone(BASE);
-    fixtures.throwOn = 'custom_chat_model_tiers';
+    config.rows['chat_model_tiers'] = structuredClone(BASE);
+    config.failOn('custom_chat_model_tiers');
     const tiers = await getUserTierMap({ userOrgId: 'org1', userId: 'u1' });
     assert.strictEqual(tiers.fast.modelId, 'm-fast');
     assert.ok(!Object.keys(tiers).some(k => k.startsWith('custom:')));
 });
 
 test('non-array custom configs are tolerated', async () => {
-    fixtures.map['chat_model_tiers'] = structuredClone(BASE);
-    fixtures.map['custom_chat_model_tiers'] = { not: 'an array' };
-    fixtures.map['custom_chat_model_tiers_org_org1'] = 'nope';
+    config.rows['chat_model_tiers'] = structuredClone(BASE);
+    config.rows['custom_chat_model_tiers'] = { not: 'an array' };
+    config.rows['custom_chat_model_tiers_org_org1'] = 'nope';
     const tiers = await getUserTierMap({ userOrgId: 'org1', userId: 'u1' });
     assert.strictEqual(tiers.fast.modelId, 'm-fast');
     assert.ok(!Object.keys(tiers).some(k => k.startsWith('custom:')));
@@ -107,14 +95,14 @@ test('non-array custom configs are tolerated', async () => {
 // setting there is), the thinking tiers on a value that maps to `high`.
 
 test('Mistral: the fast tier on a reasoning model asks for none', async () => {
-    fixtures.map['chat_model_tiers'] = { fast: { modelId: 'mistral-small-latest' } };
+    config.rows['chat_model_tiers'] = { fast: { modelId: 'mistral-small-latest' } };
     const cfg = await getTierConfig('fast');
     assert.strictEqual(cfg.reasoningEffort, 'none');
 });
 
 test('Mistral: the thinking tiers ask for a value that maps to high', async () => {
     const { normalizeMistralEffort } = require('../providers/mistralModels');
-    fixtures.map['chat_model_tiers'] = {
+    config.rows['chat_model_tiers'] = {
         thinking: { modelId: 'mistral-small-latest' },
         deep_thinking: { modelId: 'mistral-medium-latest' },
         standard: { modelId: 'mistral-small-latest' },
@@ -128,7 +116,7 @@ test('Mistral: the thinking tiers ask for a value that maps to high', async () =
 });
 
 test('Mistral: an admin-chosen effort is kept, and a model without the switch is left alone', async () => {
-    fixtures.map['chat_model_tiers'] = {
+    config.rows['chat_model_tiers'] = {
         fast: { modelId: 'mistral-small-latest', reasoningEffort: 'high' },
         standard: { modelId: 'mistral-large-latest' },
     };

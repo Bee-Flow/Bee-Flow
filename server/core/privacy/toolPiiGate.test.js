@@ -12,12 +12,11 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const { installResolveStub } = require('../../testUtils/stubRequire');
+const { useConfigRows } = require('../../testUtils/configRows');
 
-const restore = installResolveStub({
-    '../../stores/configStore': { getConfig: async () => null, setConfig: async () => true, getAllConfig: async () => ({}) },
-});
-test.after(() => restore());
+// The real configStore over an empty config table.
+const config = useConfigRows();
+test.after(config.restore);
 
 const gate = require('./toolPiiGate');
 

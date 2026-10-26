@@ -12,13 +12,12 @@
 const { test, after } = require('node:test');
 const assert = require('node:assert');
 
-const { installResolveStub } = require('../../testUtils/stubRequire');
-const restoreStores = installResolveStub({
-    '../../stores/configStore': {
-        getConfig: async () => null, setConfig: async () => {}, getSecret: async () => null, setSecret: async () => {},
-    },
-});
-after(() => restoreStores());
+const { useConfigRows } = require('../../testUtils/configRows');
+
+// The real configStore, its table empty: every key reads as absent.
+const config = useConfigRows();
+
+after(config.restore);
 
 const llmClient = require('./llmClient');
 const { realClaudeAdapter, realGeminiAdapter, assertClaudeEntry, assertGeminiEntry } = require('../providers/usageHarness');
