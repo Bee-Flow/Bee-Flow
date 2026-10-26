@@ -34,6 +34,10 @@ const COMPLETENESS_CODES = new Set([
     // An expr binding that does not parse is half-typed mid-keystroke too; it
     // still blocks finalize and go-live (stage 'activate').
     'expr.parse',
+    // A mailbox address is half-typed mid-keystroke as well ("team@"); it
+    // still blocks go-live, and the step re-checks it at every run.
+    'integration_action.mailbox_invalid',
+    'trigger.mailbox_invalid',
     'integration_action.tool_missing',
     'integration_action.tool_unknown',
     'integration_action.param_missing',
