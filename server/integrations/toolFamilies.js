@@ -357,7 +357,7 @@ const INTEGRATION_TOOL_FAMILIES = [
     { name: 'signrequest', order: 130, isTool: isSignRequestTool, execute: byUser(executeSignRequestTool) },
     { name: 'gamma', order: 140, isTool: isGammaTool, execute: byUser(executeGammaTool) },
     { name: 'afas', order: 150, isTool: isAfasTool, execute: byUser(executeAfasTool) },
-    { name: 'nmbrs', order: 160, isTool: isNmbrsTool, execute: byUser(executeNmbrsTool) },
+    { name: 'nmbrs', order: 160, isTool: isNmbrsTool, execute: (n, a, ctx) => executeNmbrsTool(n, a, ctx.userId, { orgId: ctx.orgId }) },
     { name: 'vplan', order: 170, isTool: isVplanTool, execute: byUser(executeVplanTool) },
     // The run scope lets scaleway_download_invoice keep the PDF for this
     // automation run and hand on a generated_file handle.

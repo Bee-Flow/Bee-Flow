@@ -22,11 +22,12 @@
  */
 
 const config = require('./config');
-const { withWarmupRetry } = require('./appApiClient');
+const { withWarmupRetry, appApiHeaders } = require('./appApiClient');
 const { decodeAuthHeader, secretMatches, HDR } = require('./auth');
 const { ocsSucceeded } = require('./ocs');
 const rateLimit = require('./rateLimit');
 const log = require('./log');
+const { errMessage } = require('./errors');
 
 /**
  * Is this caller presenting the AppAPI shared secret?
@@ -40,6 +41,8 @@ const log = require('./log');
  * container name, i.e. exactly the internal-network shape
  * developer_manual/prologue/security.html calls out under "Sensitive data
  * exposure". Those fields go only to a caller that holds the secret.
+ * @param {import('express').Request} req
+ * @returns {boolean}
  */
 function isTrustedLifecycleCaller(req) {
     const decoded = decodeAuthHeader(req.headers?.[HDR.auth]);
@@ -81,6 +84,11 @@ function isTrustedLifecycleCaller(req) {
 const INIT_UNTRUSTED_LIMIT = 3;
 const INIT_UNTRUSTED_WINDOW_MS = 15 * 60 * 1000;
 
+/**
+ * @param {string} route
+ * @param {string} why  completes the sentence in the one log line
+ * @returns {boolean}
+ */
 function untrustedLifecycleAllowed(route, why) {
     const verdict = rateLimit.consume(`lifecycle-${route}`, 'untrusted', {
         limit: INIT_UNTRUSTED_LIMIT,
@@ -103,6 +111,7 @@ function untrustedLifecycleAllowed(route, why) {
     return false;
 }
 
+/** @param {import('express').Express} app */
 function registerLifecycle(app) {
     app.get('/heartbeat', (req, res) => {
         // Surface bootstrap state so the NC admin viewing the ExApp page
@@ -111,8 +120,11 @@ function registerLifecycle(app) {
         // advisory for our own diagnostics (consumed by the SPA error
         // overlay and `app_api:app:heartbeat` operators).
         const trusted = isTrustedLifecycleCaller(req);
+        /** @type {ReturnType<typeof import('./bootstrap').getPendingState> | null} */
         let pending = null;
+        /** @type {ReturnType<typeof import('./bootstrap').getLastErrorState> | null} */
         let lastError = null;
+        /** @type {typeof import('./bootstrap') | null} */
         let bs = null;
         try {
             bs = require('./bootstrap');
@@ -174,10 +186,10 @@ function registerLifecycle(app) {
 
         setImmediate(() => {
             runInitInBackground().catch(err => {
-                log.error(`[Init] Background setup failed: ${err.message}`);
+                log.error(`[Init] Background setup failed: ${errMessage(err)}`);
                 // Surface the error to AppAPI so `--wait-finish` exits cleanly
                 // instead of polling forever.
-                reportInitProgress(0, err.message).catch(() => {});
+                reportInitProgress(0, errMessage(err)).catch(() => {});
             });
         });
     });
@@ -206,8 +218,10 @@ function registerLifecycle(app) {
 // concurrent second run pure cost: before this guard the runs stacked, and 20
 // requests put 380 requests in flight against Nextcloud at once. Callers that
 // arrive mid-run join the run already in progress and see its outcome.
+/** @type {Promise<void> | null} */
 let _initInFlight = null;
 
+/** @returns {Promise<void>} */
 function runInitInBackground() {
     if (_initInFlight) return _initInFlight;
     _initInFlight = runInitOnce().finally(() => { _initInFlight = null; });
@@ -225,7 +239,7 @@ async function runInitOnce() {
             const { bootstrapIfNeeded } = require('./bootstrap');
             await bootstrapIfNeeded();
         } catch (err) {
-            log.warn(`[Init] Bootstrap retry failed (non-fatal): ${err.message}`);
+            log.warn(`[Init] Bootstrap retry failed (non-fatal): ${errMessage(err)}`);
         }
     }
     await reportInitProgress(25).catch(() => {});
@@ -233,13 +247,13 @@ async function runInitOnce() {
     // 2. NC UI registrations — independent, run in parallel.
     const declarativeSettings = require('./declarativeSettings');
     await Promise.allSettled([
-        registerTopMenu().catch(err => log.warn(`[Init] TopMenu register failed: ${err.message}`)),
-        registerEmbedScript().catch(err => log.warn(`[Init] Embed script register failed: ${err.message}`)),
-        declarativeSettings.registerSettingsForm().catch(err => log.warn(`[Init] Settings form register failed: ${err.message}`)),
+        registerTopMenu().catch(err => log.warn(`[Init] TopMenu register failed: ${errMessage(err)}`)),
+        registerEmbedScript().catch(err => log.warn(`[Init] Embed script register failed: ${errMessage(err)}`)),
+        declarativeSettings.registerSettingsForm().catch(err => log.warn(`[Init] Settings form register failed: ${errMessage(err)}`)),
         // Studio-app menu entries (a top-menu icon per published app). A no-op
         // until bootstrap has a tenant key; the poller catches up afterwards.
         require('./studioAppMenus').syncStudioAppMenus()
-            .catch(err => log.warn(`[Init] Studio-app menu sync failed: ${err.message}`)),
+            .catch(err => log.warn(`[Init] Studio-app menu sync failed: ${errMessage(err)}`)),
     ]);
     declarativeSettings.startPolling();
     await reportInitProgress(60).catch(() => {});
@@ -249,17 +263,6 @@ async function runInitOnce() {
     await reportInitProgress(100).catch(() => {});
 
     log.info(`[Init] Background setup completed in ${Date.now() - t0}ms`);
-}
-
-function appApiHeaders() {
-    return {
-        'Content-Type': 'application/json',
-        'OCS-APIRequest': 'true',
-        'Accept': 'application/json',
-        'EX-APP-ID': config.appId,
-        'EX-APP-VERSION': config.appVersion,
-        'AUTHORIZATION-APP-API': Buffer.from(`:${config.appSecret}`).toString('base64'),
-    };
 }
 
 async function registerTopMenu() {
@@ -324,18 +327,18 @@ async function registerEmbedScript() {
 // Talk-bot webhook rather than an event subscription.
 async function registerEventListeners() {
     const { ensureWebhookListeners, startRetry } = require('./webhookListeners');
-    const { registerTalkBot } = /** @type {any} */ (require('./talkBot'));
+    const { registerTalkBot } = require('./talkBot');
     const { registerTaskProcessing } = require('./taskProcessing');
     const { registerFilesActions } = require('./filesActions');
     // Independent of the webhook registration: Talk bots are a different
     // mechanism with a different failure mode (Talk simply not installed).
-    await registerTalkBot().catch(err => log.warn(`[Init] Talk bot registration failed: ${err.message}`));
-    await registerTaskProcessing().catch(err => log.warn(`[Init] Task Processing registration failed: ${err.message}`));
+    await registerTalkBot().catch(err => log.warn(`[Init] Talk bot registration failed: ${errMessage(err)}`));
+    await registerTaskProcessing().catch(err => log.warn(`[Init] Task Processing registration failed: ${errMessage(err)}`));
     // AppAPI mounts its Files plugin only if some ExApp has registered a file
     // action, so this call is what puts Bee Flow in the right-click menu at all.
-    await registerFilesActions().catch(err => log.warn(`[Init] Files action registration failed: ${err.message}`));
+    await registerFilesActions().catch(err => log.warn(`[Init] Files action registration failed: ${errMessage(err)}`));
     const result = await ensureWebhookListeners().catch(err => {
-        log.warn(`[Init] Webhook registration failed: ${err.message}`);
+        log.warn(`[Init] Webhook registration failed: ${errMessage(err)}`);
         return { ok: false };
     });
     if (!result.ok) {
@@ -350,7 +353,7 @@ async function registerEventListeners() {
 
 async function unregisterEventListeners() {
     const { unregisterWebhookListeners } = require('./webhookListeners');
-    const { unregisterTalkBot } = /** @type {any} */ (require('./talkBot'));
+    const { unregisterTalkBot } = require('./talkBot');
     const { unregisterTaskProcessing } = require('./taskProcessing');
     const { unregisterFilesActions } = require('./filesActions');
     await Promise.allSettled([
@@ -365,6 +368,10 @@ async function unregisterEventListeners() {
 // with `{progress: 0-100, error?: string}`. AppAPI's `waitInitStepFinish`
 // polls the same field every 0.1s; reporting 100 unblocks `--wait-finish`,
 // reporting `error` does the same with a failure exit.
+/**
+ * @param {number} percent
+ * @param {string} [errorMessage]
+ */
 async function reportInitProgress(percent, errorMessage) {
     const url = `${config.nextcloudUrl}/ocs/v2.php/apps/app_api/ex-app/status`;
     const body = errorMessage

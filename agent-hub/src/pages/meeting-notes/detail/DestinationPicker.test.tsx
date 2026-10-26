@@ -136,6 +136,32 @@ describe('DestinationPicker — start an automation', () => {
         expect(screen.queryByText('On new mail')).toBeNull();
     });
 
+    it('leaves out an automation the server says this person may not start (a view share)', async () => {
+        const user = userEvent.setup();
+        listAutomations.mockResolvedValue({
+            automations: [
+                { id: 'a-1', title: 'Shared to view', canStart: false, definition: { trigger: { kind: 'manual' } } },
+                { id: 'a-2', title: 'Shared to run', canStart: true, definition: { trigger: { kind: 'manual' } } },
+                { id: 'a-5', title: 'Older server', definition: { trigger: { kind: 'manual' } } },
+            ],
+        });
+        open();
+        await user.click(screen.getByText('Start an automation'));
+        expect(await screen.findByText('Shared to run')).toBeTruthy();
+        expect(screen.getByText('Older server')).toBeTruthy();
+        expect(screen.queryByText('Shared to view')).toBeNull();
+    });
+
+    it('says the friendly sentence when the start is still refused (automation_run_forbidden)', async () => {
+        const user = userEvent.setup();
+        run.mockRejectedValue(Object.assign(new Error('raw'), { code: 'automation_run_forbidden' }));
+        const onPicked = open();
+        await user.click(screen.getByText('Start an automation'));
+        await user.click(await screen.findByText('Testlink versturen'));
+        expect(await screen.findByRole('alert')).toHaveTextContent('You can view this automation but not start it. Ask the owner for run access.');
+        expect(onPicked).not.toHaveBeenCalled();
+    });
+
     it('runs it with the allow-listed payload and records the run', async () => {
         const user = userEvent.setup();
         run.mockResolvedValue({ accepted: true, run: { id: 'run-9' } });

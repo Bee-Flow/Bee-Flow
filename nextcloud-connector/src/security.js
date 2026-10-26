@@ -41,7 +41,12 @@ const config = require('./config');
 const rateLimit = require('./rateLimit');
 const log = require('./log');
 
+/**
+ * @param {string | null | undefined} url
+ * @returns {string | null}
+ */
 function originOf(url) {
+    if (!url) return null;
     try { return new URL(url).origin; } catch { return null; }
 }
 
@@ -53,8 +58,10 @@ function originOf(url) {
  * when the browser reaches Nextcloud on an origin the connector never sees —
  * a reverse proxy in front of NC, or a dev box where NEXTCLOUD_URL is
  * `http://host.docker.internal` while the browser is on `http://localhost`.
+ * @returns {Set<string>}
  */
 function trustedEmbedOrigins() {
+    /** @type {Set<string>} */
     const set = new Set();
     for (const u of [config.nextcloudUrl, config.nextcloudPublicUrl]) {
         const o = originOf(u);
@@ -100,6 +107,7 @@ const ORIGIN_LOG_MAX_LINES = 10;
 const MAX_ORIGIN_KEY_LEN = 300;
 const OVERSIZED_ORIGIN_KEY = '(oversized origin header)';
 
+/** @param {string} key */
 function shouldWarnAboutOrigin(key) {
     // Once per origin per window …
     const seen = rateLimit.consume('embed-origin-seen', key,
@@ -110,12 +118,13 @@ function shouldWarnAboutOrigin(key) {
         { limit: ORIGIN_LOG_MAX_LINES, windowMs: ORIGIN_LOG_WINDOW_MS }).allowed;
 }
 
+/** @param {import('express').Request} req */
 function frameAncestorsFor(req) {
     const trusted = trustedEmbedOrigins();
     const ancestors = new Set(["'self'", ...trusted]);
     for (const hdr of ['origin', 'referer']) {
         const value = req.headers?.[hdr];
-        if (!value) continue;
+        if (!value || typeof value !== 'string') continue;
         const origin = originOf(value);
         if (!origin) continue;
         if (trusted.has(origin)) continue; // already listed
@@ -135,7 +144,12 @@ function frameAncestorsFor(req) {
     return [...ancestors].join(' ');
 }
 
-/** Headers every connector response carries. */
+/**
+ * Headers every connector response carries.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
 function securityHeaders(req, res, next) {
     res.setHeader('Content-Security-Policy', `frame-ancestors ${frameAncestorsFor(req)}`);
     // The embedded app is served from this origin; a mistyped Content-Type on a
@@ -160,6 +174,9 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
  * initiator was a different site — it cannot be set by fetch(), XHR or a form.
  * Everything else (same-origin, same-site, none, or a request with no such
  * header at all) passes and is authenticated by whatever that route requires.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
 function rejectCrossSiteWrites(req, res, next) {
     if (SAFE_METHODS.has(req.method)) return next();

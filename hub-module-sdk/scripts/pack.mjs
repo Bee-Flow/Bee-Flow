@@ -28,14 +28,34 @@ import { pathToFileURL } from 'node:url';
 const require = createRequire(import.meta.url);
 const JSZip = require('jszip');
 
+/**
+ * The fields of a module's manifest.json this script reads or fills in; the rest is the module's own.
+ * @typedef {object} BfmodManifest
+ * @property {string} [id]
+ * @property {string} [version]
+ * @property {string} [minAppVersion]
+ * @property {string} [maxAppVersion]
+ * @property {number | string} [hostApiVersion]
+ * @property {string} [min_app_version]
+ * @property {string} [max_app_version]
+ * @property {number | string} [host_api_version]
+ */
+
 const EXCLUDE_NAMES = new Set(['integrity.json', 'signature.jws', '.DS_Store']);
 const EXCLUDE_DIRS = new Set(['node_modules', '.git']);
 
+/** @param {crypto.BinaryLike} buf */
 function sha256hex(buf) {
     return crypto.createHash('sha256').update(buf).digest('hex');
 }
 
-/** Recursively list files under `dir`, returning POSIX relpaths. */
+/**
+ * Recursively list files under `dir`, returning POSIX relpaths.
+ * @param {string} dir
+ * @param {string} [base]
+ * @param {string[]} [out]
+ * @returns {string[]}
+ */
 function walk(dir, base = dir, out = []) {
     for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
         if (ent.isDirectory()) {
@@ -51,11 +71,17 @@ function walk(dir, base = dir, out = []) {
     return out;
 }
 
+/**
+ * @param {string} moduleDir
+ * @param {string | null} [outFile]
+ * @returns {Promise<{ out: string, files: number, sha256: string }>}
+ */
 async function pack(moduleDir, outFile) {
     const manifestPath = path.join(moduleDir, 'manifest.json');
     if (!fs.existsSync(manifestPath)) {
         throw new Error(`manifest.json not found in ${moduleDir} — run build.mjs first`);
     }
+    /** @type {BfmodManifest} */
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     if (!manifest.id || !manifest.version) {
         throw new Error('manifest.json missing id/version');
@@ -86,6 +112,7 @@ async function pack(moduleDir, outFile) {
     if (!rels.includes('manifest.json')) throw new Error('manifest.json not walked — unexpected');
 
     // Compute integrity over every packaged file.
+    /** @type {{ algo: 'sha256', files: Record<string, string> }} */
     const integrity = { algo: 'sha256', files: {} };
     const buffers = new Map();
     for (const rel of rels) {

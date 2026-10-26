@@ -4,6 +4,7 @@ import { shouldAutoOpenFormOverlay, awaitingFormStepId, dismissKey } from './flo
 import { runWithCallerNotice } from './callerNotice';
 import { acknowledgeCallerNotice, fetchCallerNotice } from '../../../api/queries/automation/callerNotice';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { runStartRefusal } from '../../../api/queries/automation/runAccess';
 import type { BuilderTab } from './useBuilderTabUrl';
 import type { Dispatch, SetStateAction } from 'react';
 import type useAutomationApi from '../../../hooks/useAutomationApi';
@@ -238,7 +239,7 @@ export default function useBuilderRuns({
         }
         // Same as onDryRun: settle the live progress stub so a failed run-start
         // can't strand the builder in "running" forever (BFSF-360).
-        catch (e: unknown) { noteManagedRefusal(e); setError((e as Error).message); settleRun(); throw e; }
+        catch (e: unknown) { noteManagedRefusal(e); setError(runStartRefusal(t, e) || (e as Error).message); settleRun(); throw e; }
         finally { stopWatch(); setBusy(false); }
     };
 

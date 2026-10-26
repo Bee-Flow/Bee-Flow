@@ -45,6 +45,8 @@ export interface RunRowData {
     parentRunId?: string | null;
     /** The pending approval a waiting run waits on (rows with status awaiting_*). */
     approvalId?: string | null;
+    /** May the reader run it again? The server's answer (runAccess.ts); absent = not known. */
+    canStart?: boolean | null;
 }
 
 export interface RunStepRecord {

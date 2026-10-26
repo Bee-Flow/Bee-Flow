@@ -258,6 +258,18 @@ describe('automation payloads (server/stores/automationStore/rowMappers.js)', ()
         expect(functionSlice(source, 'liveFields')).toContain("...(r.pending_changes !== undefined ? { pendingChanges:");
     });
 
+    it('tells the phone who may start a run: canStart on the automation, the run list and a single run', () => {
+        // Mirrored by Automation.canStart / AutomationRun.canStart. The phone
+        // hides Run now / Run it again / Run live on `canStart === false` and
+        // never re-derives it from a role: a view share beside a run share
+        // still starts, which only the server's roleFor can see.
+        const access = read('automation/access.js');
+        expect(functionSlice(access, 'projectForViewer')).toContain('canStart: mayStartRun(access)');
+        expect(read('routes/automation/webhooksAndRunOps.js')).toContain('canStart: (await automationAccess.canStartById(');
+        expect(read('routes/automation/webhooksAndRunOps.js')).toContain('canStartById(run.automationId');
+        expect(access).toContain("'automation_run_forbidden'");
+    });
+
     it('rowToRun still maps every field the run screens read', () => {
         expect(
             missingFrom(functionSlice(source, 'rowToRun'), [

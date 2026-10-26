@@ -427,6 +427,33 @@ test('caller mode: the real access check lets the owner and refuses an outsider'
     assert.strictEqual(lastRun, null);
 });
 
+test('caller mode: the real access check refuses a view share and lets an edit or run share start it', async () => {
+    reset(callerFlow());
+    fakeStore.bindings = [['auto_1', 'agt_1']];
+    fakeStore.listSharesForAutomation = async () => [
+        { principalType: 'user', principalId: 'vic', role: 'view' },
+        { principalType: 'user', principalId: 'ed', role: 'edit' },
+        { principalType: 'user', principalId: 'ron', role: 'run' },
+    ];
+    const { makeAutomationAccess } = require('./access');
+    const access = makeAutomationAccess({
+        store: fakeStore, hasPermission: async () => false,
+        getUser: async (id) => ({ id, organizationId: 'org_1', groups: [] }),
+    });
+    const deps = { ...bindingDeps, automationAccess: access };
+    await assert.rejects(
+        () => dispatchAgentCallableTool({ id: 'auto_1' }, {}, { userId: 'vic', askerUserId: 'vic', agentId: 'agt_1' }, deps),
+        (e) => e.code === 'automation_forbidden',
+    );
+    assert.strictEqual(lastRun, null);
+    for (const who of ['ed', 'ron']) {
+        lastRun = null;
+        await dispatchAgentCallableTool({ id: 'auto_1' }, {}, { userId: who, askerUserId: who, agentId: 'agt_1' }, deps);
+        assert.strictEqual(lastRun.opts.startedByUserId, who);
+    }
+    fakeStore.listSharesForAutomation = async () => [];
+});
+
 test('an automation called from inside a caller-mode run records that run\'s starter, not nobody', () => {
     const trace = { callerAgentId: 'agt_1', callerConversationId: null, callerRunId: 'run-9', callerRootRunId: 'run-9' };
     // Inside an owner-mode run nothing asked, so nothing is recorded (as before).

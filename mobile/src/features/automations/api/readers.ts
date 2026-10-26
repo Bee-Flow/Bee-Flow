@@ -57,6 +57,7 @@ export const readAutomation: (raw: unknown) => Automation = shapeOf({
     liveAt: optStrOrNull,
     neverLive: field.optBool,
     pendingChanges: field.optNum,
+    canStart: field.optBool,
 });
 
 /** GET /:id/counts (routes/automation/actions.js). The phone reads the pending figure; the tab counts are the web header's. */
@@ -85,6 +86,7 @@ export const readRun: (raw: unknown) => AutomationRun = shapeOf({
     awaitingStepExpiresAt: field.strOrNull,
     errorClass: field.strOrNull,
     handledErrorCount: field.num(0),
+    canStart: field.optBool,
     journeyRunId: field.optStr,
 });
 

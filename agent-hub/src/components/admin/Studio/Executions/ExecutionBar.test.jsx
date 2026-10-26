@@ -280,6 +280,28 @@ describe('ExecutionBar — the action buttons', () => {
         expect(screen.queryByRole('button', { name: /Run it again/ })).toBeNull();
     });
 
+    it('disables "Run it again" with the reason for a reader who may not start a run, and offers it to one who may', async () => {
+        const user = userEvent.setup();
+        const onRetry = vi.fn().mockResolvedValue(undefined);
+        const { unmount } = renderBar({ run: baseRun({ status: 'error', canStart: false }), onRetry });
+        const blocked = screen.getByRole('button', { name: /Run it again/ });
+        expect(blocked.disabled).toBe(true);
+        expect(blocked.getAttribute('title')).toBe('You can view this automation but not start it. Ask the owner for run access.');
+        await user.click(blocked);
+        expect(onRetry).not.toHaveBeenCalled();
+        unmount();
+        renderBar({ run: baseRun({ status: 'error', canStart: true }), onRetry });
+        expect(screen.getByRole('button', { name: /Run it again/ }).disabled).toBe(false);
+    });
+
+    it('says the friendly sentence when the server still refuses the start (automation_run_forbidden)', async () => {
+        const user = userEvent.setup();
+        const onRetry = vi.fn().mockRejectedValue(Object.assign(new Error('You can view this automation but not start it. Ask its owner for the run or edit role.'), { code: 'automation_run_forbidden', status: 403 }));
+        renderBar({ run: baseRun({ status: 'error' }), onRetry });
+        await user.click(screen.getByRole('button', { name: /Run it again/ }));
+        await waitFor(() => expect(screen.getByRole('alert').textContent).toBe('You can view this automation but not start it. Ask the owner for run access.'));
+    });
+
     it('does not offer a retry for a successful run', () => {
         renderBar({ run: baseRun({ status: 'success' }) });
         expect(screen.queryByRole('button', { name: /Run it again/ })).toBeNull();

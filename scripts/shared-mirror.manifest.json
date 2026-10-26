@@ -12,7 +12,8 @@
         "mobile/src/features/orgShield/mirror",
         "mobile/src/shared/markdown/mirror",
         "guard-service/app/shared",
-        "classify-service/app/shared"
+        "classify-service/app/shared",
+        "nextcloud-connector/src/shared"
     ],
     "entries": [
         {
@@ -355,6 +356,12 @@
                 "startup.py"
             ],
             "why": "The API-key middleware and the fail-closed start-up check, identical in both sidecars. The classify-service image builds with context ./classify-service and cannot see python-shared/; tests live in python-shared/tests."
+        },
+        {
+            "source": "server/auth/orgNaming.js",
+            "target": "nextcloud-connector/src/shared/orgNaming.js",
+            "transform": "none",
+            "why": "How a Nextcloud instance is named: ncHostFromUrl and stableInstanceIdFallback. The connector sends the fallback id as X-Beeflow-NC-Instance-Id and the server re-derives it (auth/connector/ncVerify.js), so a drift would silently re-provision a duplicate org. The connector image builds with context ./nextcloud-connector and cannot see server/."
         }
     ]
 }
