@@ -19,16 +19,21 @@
  *   config.failOn('chat_model_tiers');                            // that key's query throws
  *
  * `rows` maps a key to the value as the code would have passed it to
- * setConfig (objects are stored as JSON, anything else as text); a key that is
+ * setConfig (stored as JSON); a key that is
  * not there has no row. Changing `rows` drops configStore's 60 s cache, so
  * the next read sees it. Writes (INSERT/UPDATE/DELETE) are recorded in
- * `writes` and otherwise ignored.
+ * `writes`; a setConfig also lands in `rows`, as the real table would hold it.
  */
+
+// configStore opens its LISTEN client unless NODE_ENV is 'test'.
+if (!process.env.NODE_ENV) process.env.NODE_ENV = 'test';
 
 const MISSING = Object.freeze({ rows: [], rowCount: 0 });
 
 /** @param {unknown} value */
-const encode = (value) => (typeof value === 'object' ? JSON.stringify(value) : String(value));
+// A string goes in as a JSON string, so it reads back as that string even when its text looks like
+// JSON ("true", "42"); the store parses either form.
+const encode = (value) => JSON.stringify(value);
 
 function useConfigRows() {
     const db = require('../db');
@@ -37,11 +42,11 @@ function useConfigRows() {
     const reads = [];
     /** @type {Record<string, unknown>} */
     const table = {};
-    /** @type {string | null} */
+    /** @type {string | boolean | null} */
     let failing = null;
     /** @param {string} key */
     function read(key) {
-        if (failing === key) throw new Error('database is down');
+        if (failing === true || failing === key) throw new Error('database is down');
         return Object.prototype.hasOwnProperty.call(table, key) ? table[key] : undefined;
     }
     /** @type {Array<{ sql: string, params: unknown[] }>} */
@@ -73,6 +78,11 @@ function useConfigRows() {
             const all = Object.keys(table).map((key) => ({ key, value: encode(table[key]) }));
             return { rows: all, rowCount: all.length };
         }
+        if (/^\s*INSERT\s+INTO\s+config\b/i.test(text) && values.length >= 2) {
+            // setConfig / setSecret: the row is kept, as the code stored it (configStore drops its own cache entry).
+            const [key, stored] = /** @type {[string, string]} */ (values);
+            try { table[key] = JSON.parse(stored); } catch { table[key] = stored; }
+        }
         if (/^\s*(INSERT|UPDATE|DELETE)\b/i.test(text)) writes.push({ sql: text, params: values });
         return MISSING;
     }
@@ -92,8 +102,8 @@ function useConfigRows() {
         rows,
         reads,
         writes,
-        /** The query for this key fails, as it does when the database is down; null clears it. */
-        failOn(/** @type {string | null} */ key) { failing = key; flush(); },
+        /** Reads of this key fail, as they do when the database is down; `true` fails every read, null clears. */
+        failOn(/** @type {string | boolean | null} */ key) { failing = key; flush(); },
         /** Back to an empty table, nothing failing, nothing recorded. */
         reset() { for (const k of Object.keys(table)) delete table[k]; failing = null; reads.length = 0; writes.length = 0; flush(); },
         restore() {

@@ -3,23 +3,15 @@
  *
  * Run: node integrations/afasTools.test.js
  *
- * No network/DB needed — `configStore` is stubbed (same trick as
- * firefliesTools.test.js) and `global.fetch` is scripted per case.
+ * No network/DB needed — the real `configStore` reads a table the test fills and `global.fetch` is scripted per case.
  */
 
 const assert = require('assert');
 
-// Stub configStore before requiring the module under test.
-const SECRETS = {};
-const configStorePath = require.resolve('../stores/configStore');
-require.cache[configStorePath] = {
-    id: configStorePath,
-    filename: configStorePath,
-    loaded: true,
-    exports: {
-        getSecret: async (key) => SECRETS[key] ?? null,
-    },
-};
+// The real configStore over a config table the test fills (testUtils/configRows.js).
+const { useConfigRows } = require('../testUtils/configRows');
+const config = useConfigRows();
+const SECRETS = config.rows;
 
 const {
     executeAfasTool,

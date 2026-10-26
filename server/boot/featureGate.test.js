@@ -8,13 +8,10 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-let flag = null;
-let readError = null;
-const filename = require.resolve('../stores/configStore');
-require.cache[filename] = {
-    id: filename, filename, loaded: true,
-    exports: { getConfig: async () => { if (readError) throw readError; return flag; } },
-};
+// The real configStore over a config table the test fills (testUtils/configRows.js).
+const { useConfigRows } = require('../testUtils/configRows');
+const config = useConfigRows();
+test.after(config.restore);
 
 const { featureGate } = require('./featureGate');
 
@@ -26,7 +23,7 @@ async function pass(gate) {
     return { res, nexted, err };
 }
 
-test.beforeEach(() => { flag = null; readError = null; });
+test.beforeEach(config.reset);
 
 test('an unset flag lets the request through', async () => {
     const { nexted } = await pass(featureGate('notebooks', 'Notebooks'));
@@ -34,7 +31,7 @@ test('an unset flag lets the request through', async () => {
 });
 
 test('a flag set to false is a 403 that names the feature', async () => {
-    flag = false;
+    config.rows.feature_notebooks_enabled = false;
     const { res, nexted } = await pass(featureGate('notebooks', 'Notebooks'));
     assert.strictEqual(nexted, false);
     assert.strictEqual(res.statusCode, 403);
@@ -42,7 +39,7 @@ test('a flag set to false is a 403 that names the feature', async () => {
 });
 
 test('an unreadable flag is a 503, never a pass', async () => {
-    readError = new Error('connection refused');
+    config.failOn(true);
     const { res, nexted, err } = await pass(featureGate('projects', 'Projects'));
     assert.strictEqual(nexted, false);
     // refused via the terminal handler (wire shape: auth/gates.wire.test.js)
