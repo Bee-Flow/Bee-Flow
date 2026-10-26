@@ -18,19 +18,22 @@ process.env.NODE_ENV = 'test';
 const { test, beforeEach, after } = require('node:test');
 const assert = require('node:assert');
 
-const { installResolveStub } = require('../testUtils/stubRequire');
+const db = require('../db');
 
 const down = () => Promise.reject(new Error('ECONNRESET'));
 let commands = 0;
 const brokenRedis = {
+    status: 'ready',
     set: () => { commands++; return down(); },
     incr: () => { commands++; return down(); },
     get: () => { commands++; return down(); },
     pttl: () => { commands++; return down(); },
     del: () => { commands++; return down(); },
 };
-const restore = installResolveStub({ '../db': { getRedis: () => brokenRedis, redisHealthy: () => true } });
-after(restore);
+// The real db.js, with its shared Redis client swapped for one that is "ready"
+// but fails every command.
+const realRedis = db._setRedisClient(brokenRedis);
+after(() => { db._setRedisClient(realRedis); });
 
 const log = require('../telemetry/log');
 const { resetBestEffort, bestEffortCounts } = require('../utils/bestEffort');

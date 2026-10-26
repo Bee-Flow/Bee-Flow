@@ -10,25 +10,22 @@
 
 process.env.NODE_ENV = 'test';
 
-const { test, after } = require('node:test');
+const { test } = require('node:test');
 const assert = require('node:assert');
-const { installResolveStub } = require('../../testUtils/stubRequire');
 
 /** @type {Record<string, string>} */
 const ROLE = { olga: 'owner', ed: 'edit', ron: 'run', vic: 'view' };
 /** @type {Array<{ userId: string, need: string }>} */
 const asked = [];
-const restore = installResolveStub({
-    '../../stores/automationStore': { getAutomation: async (/** @type {string} */ id) => (id === 'au-1' ? { id, userId: 'olga' } : null) },
-    '../../automation/access': {
-        canAccessAutomation: async (/** @type {unknown} */ _a, /** @type {string} */ userId, /** @type {string} */ need) => {
-            asked.push({ userId, need });
-            return need === 'start' && ['owner', 'edit', 'run'].includes(ROLE[userId]);
-        },
+const deps = {
+    getAutomation: async (/** @type {string} */ id) => (id === 'au-1' ? { id, userId: 'olga' } : null),
+    canAccessAutomation: async (/** @type {unknown} */ _a, /** @type {string} */ userId, /** @type {string} */ need) => {
+        asked.push({ userId, need });
+        return need === 'start' && ['owner', 'edit', 'run'].includes(ROLE[userId]);
     },
-});
-after(restore);
-const { assertMayLinkAutomation } = require('./automationLink');
+};
+const { assertMayLinkAutomation: link } = require('./automationLink');
+const assertMayLinkAutomation = (/** @type {string|null} */ id, /** @type {string} */ userId, /** @type {string|null} */ current = null) => link(id, userId, current, deps);
 
 const forbidden = (/** @type {any} */ e) => e.status === 403 && e.code === 'automation_link_forbidden';
 
