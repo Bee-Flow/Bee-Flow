@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import ActionsSection from './ActionsSection';
 import { findNode } from '../state/definitionOps';
+import type { ReactNode } from 'react';
+import { malformed } from '@/test/mocks';
 
 vi.mock('../../../../../hooks/useAutomationApi', () => ({
     default: () => ({ listAutomations: vi.fn(async () => ({ automations: [] })) }),
@@ -17,11 +19,11 @@ vi.mock('../../../../../hooks/useAutomationApi', () => ({
  * this one" stops that, and that deleting names what it breaks first.
  */
 
-function button(id, label, extra = {}) {
+function button(id: string, label: string, extra = {}) {
     return { id, type: 'button', props: { label }, style: {}, ...extra };
 }
 
-function defWith(children, actions = {}) {
+function defWith(children: ReactNode, actions = {}) {
     return {
         schemaVersion: 2,
         meta: { name: 'T' },
@@ -34,7 +36,7 @@ function defWith(children, actions = {}) {
 
 // The real inspector re-renders from the committed definition, so the harness
 // does too — a fork/delete assertion is only meaningful on the next render.
-function renderActions(definition, nodeId) {
+function renderActions(definition: Parameters<typeof findNode>[0], nodeId: Parameters<typeof findNode>[1]) {
     const onCommit = vi.fn();
     function Harness() {
         const [def, setDef] = useState(definition);
@@ -56,17 +58,17 @@ const TOAST = { kind: 'toast', message: 'Saved', tone: 'success' };
 
 describe('ActionsSection — shared actions', () => {
     it('offers a new action first and leaves the slot empty by default', () => {
-        const def = defWith([button('cmp_a', 'A')]);
+        const def = defWith(malformed<Parameters<typeof defWith>[0]>([button('cmp_a', 'A')]));
         const { getByRole } = renderActions(def, 'cmp_a');
         const select = getByRole('combobox', { name: 'Action for onClick' });
-        expect(select.value).toBe('');
+        expect((select as HTMLInputElement).value).toBe('');
         expect(within(select).getByRole('option', { name: 'Choose what happens…' })).toBeTruthy();
         expect(within(select).getByRole('option', { name: 'New action…' })).toBeTruthy();
     });
 
     it('marks how many other components already run each listed action', () => {
         const def = defWith(
-            [button('cmp_a', 'A'), button('cmp_b', 'B', { onClick: 'act_1' }), button('cmp_c', 'C', { onClick: 'act_1' })],
+            malformed<Parameters<typeof defWith>[0]>([button('cmp_a', 'A'), button('cmp_b', 'B', { onClick: 'act_1' }), button('cmp_c', 'C', { onClick: 'act_1' })]),
             { act_1: TOAST },
         );
         const { getByRole } = renderActions(def, 'cmp_a');
@@ -76,7 +78,7 @@ describe('ActionsSection — shared actions', () => {
 
     it('says an action is shared, and by whom, above its editor', () => {
         const def = defWith(
-            [button('cmp_a', 'Save', { onClick: 'act_1' }), button('cmp_b', 'Send', { onClick: 'act_1' })],
+            malformed<Parameters<typeof defWith>[0]>([button('cmp_a', 'Save', { onClick: 'act_1' }), button('cmp_b', 'Send', { onClick: 'act_1' })]),
             { act_1: TOAST },
         );
         const { getByText } = renderActions(def, 'cmp_a');
@@ -85,7 +87,7 @@ describe('ActionsSection — shared actions', () => {
     });
 
     it('says nothing about sharing when only this component runs the action', () => {
-        const def = defWith([button('cmp_a', 'Save', { onClick: 'act_1' })], { act_1: TOAST });
+        const def = defWith(malformed<Parameters<typeof defWith>[0]>([button('cmp_a', 'Save', { onClick: 'act_1' })]), { act_1: TOAST });
         const { queryByText } = renderActions(def, 'cmp_a');
         expect(queryByText(/shared with/i)).toBeNull();
     });
@@ -93,7 +95,7 @@ describe('ActionsSection — shared actions', () => {
     it('"Only for this one" forks a copy and leaves the other component on the original', async () => {
         const user = userEvent.setup();
         const def = defWith(
-            [button('cmp_a', 'Save', { onClick: 'act_1' }), button('cmp_b', 'Send', { onClick: 'act_1' })],
+            malformed<Parameters<typeof defWith>[0]>([button('cmp_a', 'Save', { onClick: 'act_1' }), button('cmp_b', 'Send', { onClick: 'act_1' })]),
             { act_1: TOAST },
         );
         const { getByRole, lastDef, queryByText } = renderActions(def, 'cmp_a');
@@ -112,7 +114,7 @@ describe('ActionsSection — shared actions', () => {
     it('editing a forked action no longer reaches the component it was shared with', async () => {
         const user = userEvent.setup();
         const def = defWith(
-            [button('cmp_a', 'Save', { onClick: 'act_1' }), button('cmp_b', 'Send', { onClick: 'act_1' })],
+            malformed<Parameters<typeof defWith>[0]>([button('cmp_a', 'Save', { onClick: 'act_1' }), button('cmp_b', 'Send', { onClick: 'act_1' })]),
             { act_1: TOAST },
         );
         const { getByRole, getByPlaceholderText, lastDef } = renderActions(def, 'cmp_a');
@@ -126,7 +128,7 @@ describe('ActionsSection — shared actions', () => {
 
     it('deletes a lone action without stopping to ask', async () => {
         const user = userEvent.setup();
-        const def = defWith([button('cmp_a', 'Save', { onClick: 'act_1' })], { act_1: TOAST });
+        const def = defWith(malformed<Parameters<typeof defWith>[0]>([button('cmp_a', 'Save', { onClick: 'act_1' })]), { act_1: TOAST });
         const { getByRole, lastDef } = renderActions(def, 'cmp_a');
         await user.click(getByRole('button', { name: /delete action/i }));
         expect(lastDef().actions.act_1).toBeUndefined();
@@ -136,7 +138,7 @@ describe('ActionsSection — shared actions', () => {
     it('names the other components before deleting a shared action', async () => {
         const user = userEvent.setup();
         const def = defWith(
-            [button('cmp_a', 'Save', { onClick: 'act_1' }), button('cmp_b', 'Send', { onClick: 'act_1' })],
+            malformed<Parameters<typeof defWith>[0]>([button('cmp_a', 'Save', { onClick: 'act_1' }), button('cmp_b', 'Send', { onClick: 'act_1' })]),
             { act_1: TOAST },
         );
         const { getByRole, onCommit, lastDef } = renderActions(def, 'cmp_a');
@@ -155,10 +157,10 @@ describe('ActionsSection — shared actions', () => {
     it('warns about components that show what the action produced', async () => {
         const user = userEvent.setup();
         const def = defWith(
-            [
+            malformed<Parameters<typeof defWith>[0]>([
                 button('cmp_a', 'Save', { onClick: 'act_1' }),
                 { id: 'cmp_t', type: 'text', props: { text: { kind: 'actionResult', actionId: 'act_1', path: 'summary' } }, style: {} },
-            ],
+            ]),
             { act_1: TOAST },
         );
         const { getByRole } = renderActions(def, 'cmp_a');
@@ -169,7 +171,7 @@ describe('ActionsSection — shared actions', () => {
     it('cancelling the warning leaves the wiring alone', async () => {
         const user = userEvent.setup();
         const def = defWith(
-            [button('cmp_a', 'Save', { onClick: 'act_1' }), button('cmp_b', 'Send', { onClick: 'act_1' })],
+            malformed<Parameters<typeof defWith>[0]>([button('cmp_a', 'Save', { onClick: 'act_1' }), button('cmp_b', 'Send', { onClick: 'act_1' })]),
             { act_1: TOAST },
         );
         const { getByRole, onCommit } = renderActions(def, 'cmp_a');

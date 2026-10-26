@@ -2,18 +2,19 @@ import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import { useSidebarFlyouts, headingInto } from './useSidebarFlyouts';
+import { partial, stub } from '@/test/mocks';
 
 /* The sidebar flyouts open beside a row and are taller than it. Cutting the
    corner from the row to a low item in the panel crosses the rows below it
    and the gap — this hook must read that as "on my way to the panel", not
    as "hovering something else". Geometry is faked: jsdom lays nothing out. */
 
-const rect = (left, top, width, height) => ({ left, top, width, height, right: left + width, bottom: top + height });
-const anchorAt = (top) => ({ getBoundingClientRect: () => rect(20, top, 260, 40) });
+const rect = (left: number, top: number, width: number, height: number) => ({ left, top, width, height, right: left + width, bottom: top + height });
+const anchorAt = (top: number) => ({ getBoundingClientRect: () => rect(20, top, 260, 40) });
 
 // A stand-in for the panel NavRow renders: the hook finds it by test id.
-let panels = [];
-const mountPanel = (testid, r) => {
+let panels: unknown[] = [];
+const mountPanel = (testid: string, r: DOMRect) => {
     const el = document.createElement('div');
     el.setAttribute('data-testid', testid);
     el.getBoundingClientRect = () => r;
@@ -21,13 +22,13 @@ const mountPanel = (testid, r) => {
     panels.push(el);
 };
 
-const move = (x, y) => act(() => {
+const move = (x: number, y: number) => act(() => {
     document.dispatchEvent(new MouseEvent('mousemove', { clientX: x, clientY: y, bubbles: true }));
 });
 
 beforeEach(() => { vi.useFakeTimers(); });
 afterEach(() => {
-    panels.forEach(el => el.remove());
+    panels.forEach((el) => (el as HTMLElement).remove());
     panels = [];
     vi.useRealTimers();
 });
@@ -37,41 +38,41 @@ const setup = () => renderHook(() => useSidebarFlyouts({ current: null }));
 describe('headingInto', () => {
     const panel = rect(480, 500, 288, 1000);
     it('is true for a diagonal that meets the panel edge', () => {
-        expect(headingInto({ x: 300, y: 545 }, { x: 320, y: 570 }, panel)).toBe(true);
+        expect(headingInto({ x: 300, y: 545 }, { x: 320, y: 570 }, partial<Parameters<typeof headingInto>[2]>(panel))).toBe(true);
     });
     it('is false when moving straight down the sidebar', () => {
-        expect(headingInto({ x: 300, y: 545 }, { x: 300, y: 600 }, panel)).toBe(false);
+        expect(headingInto({ x: 300, y: 545 }, { x: 300, y: 600 }, partial<Parameters<typeof headingInto>[2]>(panel))).toBe(false);
     });
     it('is false when moving away from the panel', () => {
-        expect(headingInto({ x: 300, y: 545 }, { x: 280, y: 560 }, panel)).toBe(false);
+        expect(headingInto({ x: 300, y: 545 }, { x: 280, y: 560 }, partial<Parameters<typeof headingInto>[2]>(panel))).toBe(false);
     });
     it('is false for a diagonal that would miss the panel', () => {
-        expect(headingInto({ x: 300, y: 545 }, { x: 310, y: 300 }, panel)).toBe(false);
+        expect(headingInto({ x: 300, y: 545 }, { x: 310, y: 300 }, partial<Parameters<typeof headingInto>[2]>(panel))).toBe(false);
     });
     it('is true once the pointer is over the panel', () => {
-        expect(headingInto({ x: 600, y: 800 }, { x: 600, y: 810 }, panel)).toBe(true);
+        expect(headingInto({ x: 600, y: 800 }, { x: 600, y: 810 }, partial<Parameters<typeof headingInto>[2]>(panel))).toBe(true);
     });
     it('ignores a panel that has no layout', () => {
-        expect(headingInto({ x: 300, y: 545 }, { x: 320, y: 570 }, rect(0, 0, 0, 0))).toBe(false);
+        expect(headingInto({ x: 300, y: 545 }, { x: 320, y: 570 }, partial<Parameters<typeof headingInto>[2]>(rect(0, 0, 0, 0)))).toBe(false);
     });
 });
 
 describe('useSidebarFlyouts — aim detection', () => {
     it('opens a panel on hover at once', () => {
         const { result } = setup();
-        act(() => result.current.hoverFlyout('studio', anchorAt(525)));
+        act(() => result.current.hoverFlyout('studio', stub<Parameters<typeof result.current.hoverFlyout>[1]>(anchorAt(525))));
         expect(result.current.flyout?.key).toBe('studio');
     });
 
     it('keeps the panel while the pointer crosses the row below on its way there', () => {
         const { result } = setup();
-        act(() => result.current.hoverFlyout('studio', anchorAt(525)));
-        mountPanel('flyout-studio', rect(480, 505, 288, 1000));
+        act(() => result.current.hoverFlyout('studio', stub<Parameters<typeof result.current.hoverFlyout>[1]>(anchorAt(525))));
+        mountPanel('flyout-studio', partial<Parameters<typeof mountPanel>[1]>(rect(480, 505, 288, 1000)));
         // Leave the Studio row diagonally, over the Apps row, aiming at the panel.
         move(300, 545);
         move(330, 590);
         act(() => result.current.scheduleFlyoutClose('studio'));
-        act(() => result.current.hoverFlyout('apps', anchorAt(593)));
+        act(() => result.current.hoverFlyout('apps', stub<Parameters<typeof result.current.hoverFlyout>[1]>(anchorAt(593))));
         expect(result.current.flyout?.key).toBe('studio');
         act(() => vi.advanceTimersByTime(180));
         expect(result.current.flyout?.key).toBe('studio');
@@ -87,11 +88,11 @@ describe('useSidebarFlyouts — aim detection', () => {
 
     it('swaps to the hovered row once the pointer stops heading for the panel', () => {
         const { result } = setup();
-        act(() => result.current.hoverFlyout('studio', anchorAt(525)));
-        mountPanel('flyout-studio', rect(480, 505, 288, 1000));
+        act(() => result.current.hoverFlyout('studio', stub<Parameters<typeof result.current.hoverFlyout>[1]>(anchorAt(525))));
+        mountPanel('flyout-studio', partial<Parameters<typeof mountPanel>[1]>(rect(480, 505, 288, 1000)));
         move(300, 545);
         move(330, 590);
-        act(() => result.current.hoverFlyout('apps', anchorAt(593)));
+        act(() => result.current.hoverFlyout('apps', stub<Parameters<typeof result.current.hoverFlyout>[1]>(anchorAt(593))));
         expect(result.current.flyout?.key).toBe('studio');
         // Changes its mind: settles on the Apps row and moves along it.
         move(200, 610);
@@ -102,11 +103,11 @@ describe('useSidebarFlyouts — aim detection', () => {
 
     it('does not swap when the pointer has left the row that asked', () => {
         const { result } = setup();
-        act(() => result.current.hoverFlyout('studio', anchorAt(525)));
-        mountPanel('flyout-studio', rect(480, 505, 288, 1000));
+        act(() => result.current.hoverFlyout('studio', stub<Parameters<typeof result.current.hoverFlyout>[1]>(anchorAt(525))));
+        mountPanel('flyout-studio', partial<Parameters<typeof mountPanel>[1]>(rect(480, 505, 288, 1000)));
         move(300, 545);
         move(330, 590);
-        act(() => result.current.hoverFlyout('apps', anchorAt(593)));
+        act(() => result.current.hoverFlyout('apps', stub<Parameters<typeof result.current.hoverFlyout>[1]>(anchorAt(593))));
         // Veers off past the panel's bottom, no longer over Apps either.
         move(340, 1700);
         move(345, 1750);
@@ -116,18 +117,18 @@ describe('useSidebarFlyouts — aim detection', () => {
 
     it('swaps immediately when the hover is not on course for the open panel', () => {
         const { result } = setup();
-        act(() => result.current.hoverFlyout('studio', anchorAt(525)));
-        mountPanel('flyout-studio', rect(480, 505, 288, 1000));
+        act(() => result.current.hoverFlyout('studio', stub<Parameters<typeof result.current.hoverFlyout>[1]>(anchorAt(525))));
+        mountPanel('flyout-studio', partial<Parameters<typeof mountPanel>[1]>(rect(480, 505, 288, 1000)));
         move(200, 545);
         move(200, 600);     // straight down the sidebar
-        act(() => result.current.hoverFlyout('apps', anchorAt(593)));
+        act(() => result.current.hoverFlyout('apps', stub<Parameters<typeof result.current.hoverFlyout>[1]>(anchorAt(593))));
         expect(result.current.flyout?.key).toBe('apps');
     });
 
     it('still closes after the grace period when the pointer simply leaves', () => {
         const { result } = setup();
-        act(() => result.current.hoverFlyout('studio', anchorAt(525)));
-        mountPanel('flyout-studio', rect(480, 505, 288, 1000));
+        act(() => result.current.hoverFlyout('studio', stub<Parameters<typeof result.current.hoverFlyout>[1]>(anchorAt(525))));
+        mountPanel('flyout-studio', partial<Parameters<typeof mountPanel>[1]>(rect(480, 505, 288, 1000)));
         move(300, 545);
         move(280, 545);
         act(() => result.current.scheduleFlyoutClose('studio'));
@@ -137,8 +138,8 @@ describe('useSidebarFlyouts — aim detection', () => {
 
     it('gives up holding a close once the cap runs out', () => {
         const { result } = setup();
-        act(() => result.current.hoverFlyout('studio', anchorAt(525)));
-        mountPanel('flyout-studio', rect(480, 505, 288, 1000));
+        act(() => result.current.hoverFlyout('studio', stub<Parameters<typeof result.current.hoverFlyout>[1]>(anchorAt(525))));
+        mountPanel('flyout-studio', partial<Parameters<typeof mountPanel>[1]>(rect(480, 505, 288, 1000)));
         move(300, 545);
         move(330, 590);
         act(() => result.current.scheduleFlyoutClose('studio'));
@@ -151,13 +152,13 @@ describe('useSidebarFlyouts — aim detection', () => {
 
     it('applies the same rule to the second level', () => {
         const { result } = setup();
-        act(() => result.current.hoverFlyout('studio', anchorAt(525)));
-        act(() => result.current.hoverSubFlyout('automations', anchorAt(580)));
-        mountPanel('subflyout-automations', rect(776, 575, 288, 400));
+        act(() => result.current.hoverFlyout('studio', stub<Parameters<typeof result.current.hoverFlyout>[1]>(anchorAt(525))));
+        act(() => result.current.hoverSubFlyout('automations', stub<Parameters<typeof result.current.hoverSubFlyout>[1]>(anchorAt(580))));
+        mountPanel('subflyout-automations', partial<Parameters<typeof mountPanel>[1]>(rect(776, 575, 288, 400)));
         move(600, 600);
         move(640, 640);
         act(() => result.current.scheduleSubFlyoutClose('automations'));
-        act(() => result.current.hoverSubFlyout('datatables', anchorAt(690)));
+        act(() => result.current.hoverSubFlyout('datatables', stub<Parameters<typeof result.current.hoverSubFlyout>[1]>(anchorAt(690))));
         act(() => vi.advanceTimersByTime(180));
         expect(result.current.subFlyout?.key).toBe('automations');
         move(850, 800);
@@ -167,11 +168,11 @@ describe('useSidebarFlyouts — aim detection', () => {
 
     it('a click swaps regardless of where the pointer is going', () => {
         const { result } = setup();
-        act(() => result.current.hoverFlyout('studio', anchorAt(525)));
-        mountPanel('flyout-studio', rect(480, 505, 288, 1000));
+        act(() => result.current.hoverFlyout('studio', stub<Parameters<typeof result.current.hoverFlyout>[1]>(anchorAt(525))));
+        mountPanel('flyout-studio', partial<Parameters<typeof mountPanel>[1]>(rect(480, 505, 288, 1000)));
         move(300, 545);
         move(330, 590);
-        act(() => result.current.openFlyout('apps', anchorAt(593)));
+        act(() => result.current.openFlyout('apps', stub<Parameters<typeof result.current.openFlyout>[1]>(anchorAt(593))));
         expect(result.current.flyout?.key).toBe('apps');
     });
 });

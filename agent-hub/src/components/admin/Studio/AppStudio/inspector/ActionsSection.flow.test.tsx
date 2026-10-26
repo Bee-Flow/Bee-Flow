@@ -17,7 +17,10 @@ vi.mock('../../../../shared/Toast', () => {
     return { default: toast, toast };
 });
 import toast from '../../../../shared/Toast';
+import type { ComponentProps } from 'react';
+import { stub } from '@/test/mocks';
 
+import type { AppDefinition } from './appDefinition';
 vi.mock('../../../../../hooks/useAutomationApi', () => ({
     default: () => ({
         listAutomations: vi.fn(async () => ({ automations: AUTOMATIONS })),
@@ -38,7 +41,7 @@ vi.mock('../studioAppsApi', () => ({
 
 const NODE = { id: 'cmp_b1', type: 'button', props: { label: 'Go' }, style: {}, onClick: 'act_a' };
 
-function defWith(action) {
+function defWith(action: unknown) {
     return {
         schemaVersion: 2,
         meta: { name: 'T' },
@@ -51,17 +54,17 @@ function defWith(action) {
     };
 }
 
-function renderSection(action) {
+function renderSection(action: unknown) {
     const onCommit = vi.fn();
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     function Harness() {
-        const [definition, setDefinition] = useState(defWith(action));
+        const [definition, setDefinition] = useState<AppDefinition>(stub<AppDefinition>(defWith(action)));
         return (
             <QueryClientProvider client={client}>
-                <StudioScopeProvider definition={definition} node={NODE}>
+                <StudioScopeProvider definition={stub<ComponentProps<typeof StudioScopeProvider>['definition']>(definition)} node={NODE}>
                     <ActionsSection
                         node={NODE}
-                        definition={definition}
+                        definition={stub<ComponentProps<typeof ActionsSection>['definition']>(definition)}
                         onCommit={(next) => { setDefinition(next); onCommit(next); }}
                         disabled={false}
                     />
@@ -108,7 +111,7 @@ describe('stepCount', () => {
 describe('ActionsSection — a multi-step action is no longer invisible', () => {
     it('says what it is instead of claiming to be an automation', () => {
         renderSection(SEQUENCE);
-        expect(screen.getByRole('combobox', { name: 'Action kind' }).value).toBe('sequence');
+        expect((screen.getByRole('combobox', { name: 'Action kind' }) as HTMLInputElement).value).toBe('sequence');
         expect(screen.getByText(/3 steps, run in order/i)).toBeTruthy();
     });
 
@@ -194,7 +197,7 @@ describe('ActionsSection — turning an action into a flow keeps its effects', (
         fireEvent.change(screen.getByLabelText('Action kind'), { target: { value: 'sequence' } });
 
         const steps = lastAction().steps;
-        expect(steps.map((s) => s.kind)).toEqual(['run_automation', 'toast', 'navigate']);
+        expect(steps.map((s: { kind: unknown }) => s.kind)).toEqual(['run_automation', 'toast', 'navigate']);
         expect(steps[1]).toMatchObject({ message: 'Saved!', tone: 'success' });
         expect(steps[2]).toMatchObject({ screenId: 'scr_b' });
         // The effect keys do not ride along on the step — nothing reads them
@@ -212,7 +215,7 @@ describe('ActionsSection — turning an action into a flow keeps its effects', (
         fireEvent.change(screen.getByLabelText('Action kind'), { target: { value: 'sequence' } });
 
         // A flow stops at the step that fails, so there is nowhere to put it.
-        expect(lastAction().steps.map((s) => s.kind)).toEqual(['run_automation']);
+        expect(lastAction().steps.map((s: { kind: unknown }) => s.kind)).toEqual(['run_automation']);
         expect(lastAction().steps[0]).not.toHaveProperty('onError');
         expect(toast.info).toHaveBeenCalledWith(expect.stringMatching(/on error/i));
     });

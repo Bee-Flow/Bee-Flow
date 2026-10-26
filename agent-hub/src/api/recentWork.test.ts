@@ -17,7 +17,7 @@ const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn() }));
 
 vi.mock('../utils/helpers', () => ({
     API_BASE: '',
-    authFetch: (...args) => fetchMock(...args),
+    authFetch: (...args: Parameters<typeof fetchMock>) => fetchMock(...args),
 }));
 
 import {
@@ -26,14 +26,15 @@ import {
     runRecentWork, statusLabel, statuslessKinds, timeOf,
 } from './recentWork';
 import { RECENT_STATUS, STUDIO_RECENT_SOURCES } from '../utils/studioRecentSources';
+import { partial, stub } from '@/test/mocks';
 
 /* ── Fixtures ─────────────────────────────────────────────────────────────── */
 
-const ok = (body) => ({ ok: true, status: 200, json: async () => body });
-const fail = (status) => ({ ok: false, status, json: async () => ({}) });
+const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body });
+const fail = (status: number) => ({ ok: false, status, json: async () => ({}) });
 
 /** A section as studioNavSections yields it (only what this model reads). */
-const section = (id, over = {}) => ({
+const section = (id: string, over = {}) => ({
     id, urlSegment: id, kind: null, locked: null, ...over,
 });
 
@@ -63,7 +64,7 @@ describe('recentSourcesFor', () => {
     });
 
     it('slaat een descriptor zonder segment over — die kan nergens heen', () => {
-        const { asked } = recentSourcesFor([{ id: 'skills', urlSegment: null }]);
+        const { asked } = recentSourcesFor(stub<Parameters<typeof recentSourcesFor>[0]>([{ id: 'skills', urlSegment: null }]));
         expect(asked).toEqual([]);
     });
 
@@ -130,39 +131,39 @@ describe('evaluateRecentSection', () => {
     });
 
     it('een onbekende sectie levert een gat, geen throw', () => {
-        expect(evaluateRecentSection({ sectionId: 'nope', urlSegment: 'nope' }, [])).toEqual({ entries: [], whole: false });
+        expect(evaluateRecentSection(partial<Parameters<typeof evaluateRecentSection>[0]>({ sectionId: 'nope', urlSegment: 'nope' }), [])).toEqual({ entries: [], whole: false });
     });
 });
 
 /* ── Samenvoegen ──────────────────────────────────────────────────────────── */
 
 describe('mergeRecentEntries', () => {
-    const at = (key, iso) => ({ key, at: iso === null ? null : Date.parse(iso), updatedAt: iso });
+    const at = (key: string, iso: string) => ({ key, at: iso === null ? null : Date.parse(iso), updatedAt: iso });
 
     it('nieuwste eerst, over de secties heen', () => {
-        const merged = mergeRecentEntries([
+        const merged = mergeRecentEntries(partial<Parameters<typeof mergeRecentEntries>[0]>([
             [at('a:1', '2026-09-01T10:00:00Z')],
             [at('b:1', '2026-09-03T10:00:00Z'), at('b:2', '2026-09-02T10:00:00Z')],
-        ]);
+        ]));
         expect(merged.map((m) => m.key)).toEqual(['b:1', 'b:2', 'a:1']);
     });
 
     it('rijen zonder leesbare tijd staan achteraan, maar vallen niet weg', () => {
-        const merged = mergeRecentEntries([[at('a:1', null), at('b:1', '2026-09-01T10:00:00Z')]]);
+        const merged = mergeRecentEntries(partial<Parameters<typeof mergeRecentEntries>[0]>([[at('a:1', stub<Parameters<typeof at>[1]>(null)), at('b:1', '2026-09-01T10:00:00Z')]]));
         expect(merged.map((m) => m.key)).toEqual(['b:1', 'a:1']);
     });
 
     it('een gelijke tijd geeft een vaste volgorde — geen geschuif tussen renders', () => {
-        const one = mergeRecentEntries([[at('b:1', '2026-09-01T10:00:00Z'), at('a:1', '2026-09-01T10:00:00Z')]]);
-        const two = mergeRecentEntries([[at('a:1', '2026-09-01T10:00:00Z'), at('b:1', '2026-09-01T10:00:00Z')]]);
+        const one = mergeRecentEntries(partial<Parameters<typeof mergeRecentEntries>[0]>([[at('b:1', '2026-09-01T10:00:00Z'), at('a:1', '2026-09-01T10:00:00Z')]]));
+        const two = mergeRecentEntries(partial<Parameters<typeof mergeRecentEntries>[0]>([[at('a:1', '2026-09-01T10:00:00Z'), at('b:1', '2026-09-01T10:00:00Z')]]));
         expect(one.map((m) => m.key)).toEqual(two.map((m) => m.key));
     });
 
     it('kapt af op de limiet', () => {
         const many = Array.from({ length: 20 }, (_, i) => at(`a:${i}`, `2026-09-0${(i % 9) + 1}T10:00:00Z`));
-        expect(mergeRecentEntries([many])).toHaveLength(RECENT_LIMIT);
-        expect(mergeRecentEntries([many], 3)).toHaveLength(3);
-        expect(mergeRecentEntries([many], 0)).toHaveLength(0);
+        expect(mergeRecentEntries(partial<Parameters<typeof mergeRecentEntries>[0]>([many]))).toHaveLength(RECENT_LIMIT);
+        expect(mergeRecentEntries(partial<Parameters<typeof mergeRecentEntries>[0]>([many]), 3)).toHaveLength(3);
+        expect(mergeRecentEntries(partial<Parameters<typeof mergeRecentEntries>[0]>([many]), 0)).toHaveLength(0);
     });
 
     it('verdraagt lege en kapotte invoer', () => {
@@ -218,7 +219,7 @@ describe('runRecentWork', () => {
         section('aiTasks', { urlSegment: 'automations', kind: 'automation' }),
         section('knowledge', { kind: 'kb' }),
     ];
-    const answer = (byUrl) => fetchMock.mockImplementation(async (url) => byUrl[url] || fail(404));
+    const answer = (byUrl: Record<string, unknown>) => fetchMock.mockImplementation(async (url) => byUrl[url] || fail(404));
 
     it('voegt de secties samen en zegt dat het compleet is', async () => {
         answer({
@@ -291,7 +292,7 @@ describe('STATUS_LABELS', () => {
 
     it('een onbekende code valt terug op "status onbekend", nooit op niets', () => {
         expect(statusLabel('iets-nieuws')).toBe(STATUS_LABELS[RECENT_STATUS.UNKNOWN]);
-        expect(statusLabel(undefined)).toBe(STATUS_LABELS[RECENT_STATUS.UNKNOWN]);
+        expect(statusLabel(stub<Parameters<typeof statusLabel>[0]>(undefined))).toBe(STATUS_LABELS[RECENT_STATUS.UNKNOWN]);
     });
 
     it('"geen status" en "status onbekend" dragen allebei een uitleg', () => {
@@ -353,7 +354,7 @@ describe('runRecentWork — twee stiltes die geen stilte mogen zijn', () => {
 
     it('een INGEBOUWDE sectie zonder bron blijft bewust stil', async () => {
         // Forms and Runs deliberately have none: a form IS an automation, and a run is an event. That is not a gap.
-        const result = await runRecentWork([{ id: 'forms', urlSegment: 'forms', labelKey: 'x' }]);
+        const result = await runRecentWork(stub<Parameters<typeof runRecentWork>[0]>([{ id: 'forms', urlSegment: 'forms', labelKey: 'x' }]));
         expect(result.unsupported).toEqual([]);
         expect(result.complete).toBe(true);
     });

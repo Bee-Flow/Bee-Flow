@@ -4,6 +4,8 @@ import {
     filesSelectedIn, isProviderError, keyColumnEligible, mergeColumns, newSelection, sheetKeyOf, sheetLabelOf, sheetsChosenIn,
     ssReasonText, stepForError,
 } from './wizardState';
+import type { TranslateParams } from '@/hooks/useTranslation';
+import { partial, stub } from '@/test/mocks';
 
 /**
  * The wizard's rules, judged without a DOM: what a table is called, which
@@ -12,7 +14,7 @@ import {
  * sends the person back to.
  */
 
-const t = (key, fallback, params) => Object.entries(params || {}).reduce((s, [k, v]) => s.replace(`{${k}}`, String(v)), fallback);
+const t = (key: string, fallback: string, params: TranslateParams) => Object.entries(params || {}).reduce((s, [k, v]) => s.replace(`{${k}}`, String(v)), fallback);
 
 const FILE = { provider: 'google_drive', id: 'f1', name: 'Facturen 2026.xlsx', format: 'xlsx', path: null };
 const NC_FILE = { provider: 'nextcloud_files', id: '4711', name: 'klanten.csv', format: 'csv', path: '/Documents/klanten.csv' };
@@ -67,14 +69,14 @@ describe('default names', () => {
 
 describe('dedupeKeys', () => {
     it('suffixes _2, _3 on untouched keys in selection order and leaves a typed key alone', () => {
-        const mk = (sheetKey, name, extra = {}) => ({ sheetKey, name, key: '', keyTouched: false, ...extra });
+        const mk = (sheetKey: string, name: string, extra = {}) => ({ sheetKey, name, key: '', keyTouched: false, ...extra });
         const sel = new Map([
             ['a', mk('a', 'Klanten')],
             ['b', mk('b', 'Klanten')],
             ['c', mk('c', 'Klanten')],
             ['d', mk('d', 'Other', { key: 'klanten_2', keyTouched: true })],
         ]);
-        const out = dedupeKeys(sel);
+        const out = dedupeKeys(stub<Parameters<typeof dedupeKeys>[0]>(sel));
         expect([...out.values()].map(s => s.key)).toEqual(['klanten', 'klanten_3', 'klanten_4', 'klanten_2']);
         expect(out.get('d')).toBe(sel.get('d'));
     });
@@ -95,12 +97,12 @@ describe('counting', () => {
 describe('keyColumnEligible', () => {
     const CANDIDATES = [0, 2];
     it('is only a column the server found unique, still text or number, with a header', () => {
-        expect(keyColumnEligible({ col: 2, header: 'Factuurnummer', type: 'text', blankHeader: false }, CANDIDATES)).toEqual({ ok: true, reason: null });
-        expect(keyColumnEligible({ col: 0, header: 'Nr', type: 'number', blankHeader: false }, CANDIDATES)).toEqual({ ok: true, reason: null });
-        expect(keyColumnEligible({ col: 1, header: 'Leverancier', type: 'text', blankHeader: false }, CANDIDATES)).toEqual({ ok: false, reason: 'repeats' });
-        expect(keyColumnEligible({ col: 2, header: '', type: 'text', blankHeader: true }, CANDIDATES)).toEqual({ ok: false, reason: 'no_header' });
+        expect(keyColumnEligible(partial<Parameters<typeof keyColumnEligible>[0]>({ col: 2, header: 'Factuurnummer', type: 'text', blankHeader: false }), CANDIDATES)).toEqual({ ok: true, reason: null });
+        expect(keyColumnEligible(partial<Parameters<typeof keyColumnEligible>[0]>({ col: 0, header: 'Nr', type: 'number', blankHeader: false }), CANDIDATES)).toEqual({ ok: true, reason: null });
+        expect(keyColumnEligible(partial<Parameters<typeof keyColumnEligible>[0]>({ col: 1, header: 'Leverancier', type: 'text', blankHeader: false }), CANDIDATES)).toEqual({ ok: false, reason: 'repeats' });
+        expect(keyColumnEligible(partial<Parameters<typeof keyColumnEligible>[0]>({ col: 2, header: '', type: 'text', blankHeader: true }), CANDIDATES)).toEqual({ ok: false, reason: 'no_header' });
         // Retyped to a date after the server said "unique": no longer an identifier.
-        expect(keyColumnEligible({ col: 2, header: 'Datum', type: 'date', blankHeader: false }, CANDIDATES)).toEqual({ ok: false, reason: 'type' });
+        expect(keyColumnEligible(partial<Parameters<typeof keyColumnEligible>[0]>({ col: 2, header: 'Datum', type: 'date', blankHeader: false }), CANDIDATES)).toEqual({ ok: false, reason: 'type' });
         expect(keyColumnEligible(null, CANDIDATES).ok).toBe(false);
     });
 });
@@ -117,7 +119,7 @@ describe('mergeColumns', () => {
             { col: 1, header: 'Bedrag', type: 'text' },
             { col: 2, header: 'Nieuw', type: 'text' },
         ];
-        expect(mergeColumns(prev, next)).toEqual([
+        expect(mergeColumns(partial<Parameters<typeof mergeColumns>[0]>(prev), partial<Parameters<typeof mergeColumns>[1]>(next))).toEqual([
             { col: 0, header: 'Datum', type: 'text', typeTouched: true },
             { col: 1, header: 'Bedrag', type: 'text' },
             { col: 2, header: 'Nieuw', type: 'text' },
@@ -145,7 +147,7 @@ describe('buildLinkBody', () => {
             from: { refKey: a.sheetKey, provider: 'google_drive', fileId: 'f1', sheet: 'Facturen' }, localColumn: { id: '2', title: 'Factuurnummer', type: 'text', col: 2 },
             to: { refKey: b.sheetKey, provider: 'nextcloud_files', fileId: '4711', sheet: 'klanten' }, targetColumn: { id: '0', title: 'Naam', type: 'text', col: 0 },
         }];
-        expect(buildLinkBody({ scope: 'organisation', selection: sel, relations })).toEqual({
+        expect(buildLinkBody(stub<Parameters<typeof buildLinkBody>[0]>({ scope: 'organisation', selection: sel, relations }))).toEqual({
             scope: 'organisation',
             tables: [
                 {
@@ -168,7 +170,7 @@ describe('buildLinkBody', () => {
 
     it('never sends a letter as the key column', () => {
         const a = { ...newSelection(FILE, 'Facturen'), name: 'x', key: 'x', keyColumn: 'C' };
-        expect(buildLinkBody({ scope: 'personal', selection: new Map([[a.sheetKey, a]]), relations: [] }).tables[0].keyColumn).toBeNull();
+        expect(buildLinkBody(stub<Parameters<typeof buildLinkBody>[0]>({ scope: 'personal', selection: new Map([[a.sheetKey, a]]), relations: [] })).tables[0].keyColumn).toBeNull();
     });
 
     it('a csv\'s only sheet is `null` on the wire, in the table AND in a relation end — never the word "null"', () => {
@@ -181,7 +183,7 @@ describe('buildLinkBody', () => {
             from: { refKey: xlsx.sheetKey, provider: 'google_drive', fileId: 'f1', sheet: 'Facturen' }, localColumn: { id: '1', title: 'Leverancier', type: 'text', col: 1 },
             to: { refKey: csv.sheetKey, provider: 'nextcloud_files', fileId: '4711', sheet: null }, targetColumn: { id: '0', title: 'Naam', type: 'text', col: 0 },
         }];
-        const body = buildLinkBody({ scope: 'organisation', selection: new Map([[csv.sheetKey, csv], [xlsx.sheetKey, xlsx]]), relations });
+        const body = buildLinkBody(stub<Parameters<typeof buildLinkBody>[0]>({ scope: 'organisation', selection: new Map([[csv.sheetKey, csv], [xlsx.sheetKey, xlsx]]), relations }));
         expect(body.tables[0].sheet).toBeNull();
         expect(body.relations[0].to.sheet).toBeNull();
         expect(JSON.stringify(body)).not.toMatch(/"null"/);
@@ -207,7 +209,7 @@ describe('a csv\'s unnamed sheet', () => {
 });
 
 describe('stepForError', () => {
-    const err = (code, body = {}) => Object.assign(new Error(code), { code, body });
+    const err = (code: string, body = {}) => Object.assign(new Error(code), { code, body });
     it('routes a taken technical name to the names step', () => {
         expect(stepForError(err('key_taken', { key: 'facturen' }))).toEqual({ step: 'names', key: 'facturen', fileKey: null, sheetKey: null });
     });

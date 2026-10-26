@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import ActionFlowEditor from './ActionFlowEditor';
+import type { ComponentProps } from 'react';
+import { stub } from '@/test/mocks';
 
 vi.mock('../studioAppsApi', () => ({
     studioAppsApi: { getCatalog: vi.fn(async () => ({ components: {}, actions: { stepSpecs: STEP_SPECS_STUB } })) },
@@ -38,7 +40,7 @@ const DEFINITION = {
     actions: {},
 };
 
-function renderFlow(initial) {
+function renderFlow(initial: unknown) {
     const onChange = vi.fn();
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     function Harness() {
@@ -46,7 +48,7 @@ function renderFlow(initial) {
         return (
             <QueryClientProvider client={client}>
                 <ActionFlowEditor
-                    action={action}
+                    action={stub<ComponentProps<typeof ActionFlowEditor>['action']>(action)}
                     onChange={(next) => { setAction(next); onChange(next); }}
                     definition={DEFINITION}
                 />
@@ -57,7 +59,7 @@ function renderFlow(initial) {
     return { onChange, last: () => onChange.mock.calls.at(-1)?.[0], ...utils };
 }
 
-const seq = (steps) => ({ kind: 'sequence', steps });
+const seq = (steps: unknown[]) => ({ kind: 'sequence', steps });
 
 describe('ActionFlowEditor — reading an action', () => {
     it('draws one node per step', () => {
@@ -229,7 +231,7 @@ describe('ActionFlowEditor — editing a step', () => {
         fireEvent.click(screen.getByText('Go to screen'));
         const control = await screen.findByLabelText('Screen');
         expect(control.tagName).toBe('SELECT');
-        expect([...control.options].map((o) => o.textContent)).toContain('Detail');
+        expect([...(control as HTMLSelectElement).options].map((o) => o.textContent)).toContain('Detail');
     });
 
     it('editing a step inside a branch keeps it in that branch', async () => {
@@ -256,7 +258,7 @@ describe('ActionFlowEditor — editing a step', () => {
  * re-drag of the edges.
  */
 describe('ActionFlowEditor — the automation builder’s tools', () => {
-    const seqOf = (...msgs) => seq(msgs.map((m) => ({ kind: 'toast', message: m })));
+    const seqOf = (...msgs: string[]) => seq(msgs.map((m) => ({ kind: 'toast', message: m })));
 
     it('right-click offers duplicate and delete', () => {
         renderFlow(seqOf('one'));
@@ -270,7 +272,7 @@ describe('ActionFlowEditor — the automation builder’s tools', () => {
         const { last } = renderFlow(seqOf('one', 'two'));
         fireEvent.contextMenu(screen.getByText('one'));
         await user.click(screen.getByRole('menuitem', { name: /duplicate/i }));
-        expect(last().steps.map((s) => s.message)).toEqual(['one', 'one', 'two']);
+        expect(last().steps.map((s: { message: unknown }) => s.message)).toEqual(['one', 'one', 'two']);
     });
 
     it('duplicating a branch step copies what is inside it', async () => {
@@ -291,7 +293,7 @@ describe('ActionFlowEditor — the automation builder’s tools', () => {
         const { last } = renderFlow(seqOf('one', 'two'));
         fireEvent.contextMenu(screen.getByText('one'));
         await user.click(screen.getByRole('menuitem', { name: /delete/i }));
-        expect(last().steps.map((s) => s.message)).toEqual(['two']);
+        expect(last().steps.map((s: { message: unknown }) => s.message)).toEqual(['two']);
     });
 
     /**
@@ -307,10 +309,10 @@ describe('ActionFlowEditor — the automation builder’s tools', () => {
         const { last } = renderFlow(seqOf('one', 'two', 'three'));
         fireEvent.click(screen.getByText('one'));
         await user.click(screen.getByRole('button', { name: /move this step later/i }));
-        expect(last().steps.map((s) => s.message)).toEqual(['two', 'one', 'three']);
+        expect(last().steps.map((s: { message: unknown }) => s.message)).toEqual(['two', 'one', 'three']);
 
         await user.click(screen.getByRole('button', { name: /move this step earlier/i }));
-        expect(last().steps.map((s) => s.message)).toEqual(['one', 'two', 'three']);
+        expect(last().steps.map((s: { message: unknown }) => s.message)).toEqual(['one', 'two', 'three']);
     });
 
     it('will not move a step out of its own branch', async () => {
@@ -319,8 +321,8 @@ describe('ActionFlowEditor — the automation builder’s tools', () => {
         ]));
         fireEvent.click(screen.getByText('only one'));
         // First and last of its scope, so neither direction is offered.
-        expect(screen.getByRole('button', { name: /move this step earlier/i }).disabled).toBe(true);
-        expect(screen.getByRole('button', { name: /move this step later/i }).disabled).toBe(true);
+        expect((screen.getByRole('button', { name: /move this step earlier/i }) as HTMLButtonElement).disabled).toBe(true);
+        expect((screen.getByRole('button', { name: /move this step later/i }) as HTMLButtonElement).disabled).toBe(true);
     });
 
     it('reorders inside a branch without touching the steps around it', async () => {
@@ -331,7 +333,7 @@ describe('ActionFlowEditor — the automation builder’s tools', () => {
         ]));
         fireEvent.click(screen.getByText('a'));
         await user.click(screen.getByRole('button', { name: /move this step later/i }));
-        expect(last().steps[0].then.map((s) => s.message)).toEqual(['b', 'a']);
+        expect(last().steps[0].then.map((s: { message: unknown }) => s.message)).toEqual(['b', 'a']);
         expect(last().steps[1].message).toBe('after');
     });
 
@@ -341,6 +343,6 @@ describe('ActionFlowEditor — the automation builder’s tools', () => {
         fireEvent.click(screen.getByText('one'));
         await user.click(screen.getByRole('button', { name: /move this step later/i }));
         await user.click(screen.getByRole('button', { name: /move this step later/i }));
-        expect(last().steps.map((s) => s.message)).toEqual(['two', 'three', 'one']);
+        expect(last().steps.map((s: { message: unknown }) => s.message)).toEqual(['two', 'three', 'one']);
     });
 });

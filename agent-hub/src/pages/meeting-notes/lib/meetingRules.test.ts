@@ -19,6 +19,7 @@ import {
     runCountOf,
     triggerConditionOf,
 } from './meetingRules';
+import { partial, malformed, stub } from '@/test/mocks';
 
 const meetingTrigger = (filter = {}) => ({
     id: 'trg', type: 'trigger', kind: 'app_event',
@@ -53,36 +54,36 @@ describe('triggerConditionOf', () => {
             trigger: meetingTrigger({ tags: ['sales', 'sales'] }),
             triggers: [meetingTrigger({ tags: 'support' }), { kind: 'webhook' }],
         });
-        expect(cond.tags).toEqual(['sales', 'support']);
-        expect(cond.extra).toBe(false);
+        expect(cond!.tags).toEqual(['sales', 'support']);
+        expect(cond!.extra).toBe(false);
     });
 
     it('reads the three-valued reprocessed, and only when every trigger agrees', () => {
-        expect(triggerConditionOf({ trigger: meetingTrigger({}) }).reprocessed).toBeUndefined();
-        expect(triggerConditionOf({ trigger: meetingTrigger({ reprocessed: false }) }).reprocessed).toBe(false);
-        expect(triggerConditionOf({ trigger: meetingTrigger({ reprocessed: true }) }).reprocessed).toBe(true);
+        expect(triggerConditionOf({ trigger: meetingTrigger({}) })!.reprocessed).toBeUndefined();
+        expect(triggerConditionOf({ trigger: meetingTrigger({ reprocessed: false }) })!.reprocessed).toBe(false);
+        expect(triggerConditionOf({ trigger: meetingTrigger({ reprocessed: true }) })!.reprocessed).toBe(true);
 
         const mixed = triggerConditionOf({
             trigger: meetingTrigger({ reprocessed: true }),
             triggers: [meetingTrigger({ reprocessed: false })],
         });
-        expect(mixed.reprocessed).toBeUndefined();
-        expect(mixed.extra).toBe(true);
+        expect(mixed!.reprocessed).toBeUndefined();
+        expect(mixed!.extra).toBe(true);
     });
 
     it('flags a filter key it cannot read — the DSL today, anything added later', () => {
         // any/none/expr/age narrow the rule further (triggers/dslFilters.js).
-        expect(triggerConditionOf({ trigger: meetingTrigger({ tags: ['x'], expr: 'trigger.tags != null' }) }).extra).toBe(true);
-        expect(triggerConditionOf({ trigger: meetingTrigger({ none: [{ tags: ['secret'] }] }) }).extra).toBe(true);
+        expect(triggerConditionOf({ trigger: meetingTrigger({ tags: ['x'], expr: 'trigger.tags != null' }) })!.extra).toBe(true);
+        expect(triggerConditionOf({ trigger: meetingTrigger({ none: [{ tags: ['secret'] }] }) })!.extra).toBe(true);
         // A key nobody has written yet must land in the same bucket, not vanish.
-        expect(triggerConditionOf({ trigger: meetingTrigger({ attendeeCountAtLeast: 3 }) }).extra).toBe(true);
+        expect(triggerConditionOf({ trigger: meetingTrigger({ attendeeCountAtLeast: 3 }) })!.extra).toBe(true);
         // An explicitly-undefined key is not a condition.
-        expect(triggerConditionOf({ trigger: meetingTrigger({ tags: ['x'], expr: undefined }) }).extra).toBe(false);
+        expect(triggerConditionOf({ trigger: meetingTrigger({ tags: ['x'], expr: undefined }) })!.extra).toBe(false);
     });
 });
 
 describe('consequencesOf', () => {
-    const def = (steps, extra = {}) => ({ trigger: meetingTrigger(), steps, edges: [], ...extra });
+    const def = (steps: unknown[], extra = {}) => ({ trigger: meetingTrigger(), steps, edges: [], ...extra });
 
     it('names the three step kinds it can describe', () => {
         const out = consequencesOf(def([
@@ -172,13 +173,13 @@ describe('consequencesOf', () => {
 
 describe('openability', () => {
     it('links only what the reader positively owns', () => {
-        expect(openability({ userId: 'me' }, 'me')).toBe('ok');
-        expect(openability({ userId: 'you' }, 'me')).toBe('foreign');
+        expect(openability(partial<Parameters<typeof openability>[0]>({ userId: 'me' }), 'me')).toBe('ok');
+        expect(openability(partial<Parameters<typeof openability>[0]>({ userId: 'you' }), 'me')).toBe('foreign');
         // Unknown narrows: no owner on the row, or no signed-in id, is not a
         // licence to link at a route that 403s on exactly this.
-        expect(openability({}, 'me')).toBe('unknown');
-        expect(openability({ userId: 'me' }, null)).toBe('unknown');
-        expect(openability(null, 'me')).toBe('unknown');
+        expect(openability(malformed<Parameters<typeof openability>[0]>({}), 'me')).toBe('unknown');
+        expect(openability(partial<Parameters<typeof openability>[0]>({ userId: 'me' }), null)).toBe('unknown');
+        expect(openability(stub<Parameters<typeof openability>[0]>(null), 'me')).toBe('unknown');
     });
 });
 
@@ -189,8 +190,8 @@ describe('runCountOf', () => {
         // The folder is there and this automation is not in it: a real zero.
         expect(runCountOf({ automationId: {} }, 'a-1')).toBe(0);
         // No folder: then NOBODY has counted. That was the same answer as above, and the card turned it into "no runs of yours" — a claim about runs that were not counted.
-        expect(runCountOf(null, 'a-1')).toBeNull();
-        expect(runCountOf({ status: {} }, 'a-1')).toBeNull();
+        expect(runCountOf(stub<Parameters<typeof runCountOf>[0]>(null), 'a-1')).toBeNull();
+        expect(runCountOf(stub<Parameters<typeof runCountOf>[0]>({ status: {} }), 'a-1')).toBeNull();
         expect(runCountOf({ automationId: { 'a-1': 'lots' } }, 'a-1')).toBe(0);
     });
 });
@@ -199,9 +200,9 @@ describe('facetsReadable', () => {
     it('zegt of er überhaupt geteld is', () => {
         expect(facetsReadable({ automationId: {} })).toBe(true);
         expect(facetsReadable({ automationId: { 'a-1': 2 } })).toBe(true);
-        expect(facetsReadable({ status: {} })).toBe(false);   // 200, andere vorm
+        expect(facetsReadable(stub<Parameters<typeof facetsReadable>[0]>({ status: {} }))).toBe(false);   // 200, andere vorm
         expect(facetsReadable(null)).toBe(false);
-        expect(facetsReadable(undefined)).toBe(false);
+        expect(facetsReadable(stub<Parameters<typeof facetsReadable>[0]>(undefined))).toBe(false);
     });
 });
 
@@ -209,7 +210,7 @@ describe('ruleHref', () => {
     it('uses the segment the router itself parses', () => {
         expect(ruleHref('a-1')).toBe('studio/automations/a-1');
         expect(ruleHref('a/1')).toBe('studio/automations/a%2F1');
-        expect(ruleHref(null)).toBeNull();
+        expect(ruleHref(stub<Parameters<typeof ruleHref>[0]>(null))).toBeNull();
     });
 });
 
@@ -232,6 +233,6 @@ describe('composerSeed', () => {
         expect(seeded.startsWith(COMPOSER_SEED)).toBe(true);
         expect(seeded).toContain('put decisions in the sales wiki');
         expect(composerSeed('')).toBe(COMPOSER_SEED);
-        expect(composerSeed(undefined)).toBe(COMPOSER_SEED);
+        expect(composerSeed(stub<Parameters<typeof composerSeed>[0]>(undefined))).toBe(COMPOSER_SEED);
     });
 });

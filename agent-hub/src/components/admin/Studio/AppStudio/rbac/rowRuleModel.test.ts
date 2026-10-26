@@ -2,6 +2,7 @@ import { createRequire } from 'module';
 import { describe, it, expect } from 'vitest';
 import { blankCondition, buildRowRule, conditionProblem, describeAccessOutcome, describeRowRule, matchBaseScope, operatorsForField, ownRowsCondition, parseRowRule, resolveAccessEntry, retypeCondition, ruleFields, scopeToEntry, serializeCondition } from './rowRuleModel';
 import { BASE_SCOPES } from './rowRuleModel.constants';
+import { partial, stub } from '@/test/mocks';
 
 // The gateway the expression actually has to survive. Required through Node so
 // the picker output is checked against the SAME translator the server runs.
@@ -22,7 +23,7 @@ const table = {
     ],
 };
 
-function cond(patch) {
+function cond(patch: Record<string, unknown>) {
     return { id: 'c', field: 'owner_id', op: '==', source: 'value', value: '', valueType: 'string', ...patch };
 }
 
@@ -47,8 +48,8 @@ describe('base access presets say what they actually grant', () => {
 });
 
 describe('the access a role already has', () => {
-    const withAccess = (access) => ({ ...table, access });
-    const gatewayEntry = (t, role) => ({
+    const withAccess = (access: unknown) => ({ ...table, access });
+    const gatewayEntry = (t: Parameters<typeof gateway.resolveScope>[0], role: Parameters<typeof gateway.resolveScope>[1]) => ({
         read: gateway.resolveScope(t, role, 'read'),
         create: gateway.resolveScope(t, role, 'create'),
         update: gateway.resolveScope(t, role, 'update'),
@@ -66,7 +67,7 @@ describe('the access a role already has', () => {
         ];
         for (const access of cases) {
             const t = withAccess(access);
-            expect(resolveAccessEntry(t, 'member')).toEqual(gatewayEntry(t, 'member'));
+            expect(resolveAccessEntry(stub<Parameters<typeof resolveAccessEntry>[0]>(t), 'member')).toEqual(gatewayEntry(t, 'member'));
         }
     });
 
@@ -76,8 +77,8 @@ describe('the access a role already has', () => {
 
     it('keeps the four actions apart instead of guessing them from reading', () => {
         const t = withAccess({ default: 'app', roles: { member: { read: 'all', create: false, update: 'none', delete: 'none' } } });
-        expect(resolveAccessEntry(t, 'member')).toEqual({ read: 'all', create: false, update: 'none', delete: 'none' });
-        expect(matchBaseScope(resolveAccessEntry(t, 'member'))).toBeNull();
+        expect(resolveAccessEntry(stub<Parameters<typeof resolveAccessEntry>[0]>(t), 'member')).toEqual({ read: 'all', create: false, update: 'none', delete: 'none' });
+        expect(matchBaseScope(resolveAccessEntry(stub<Parameters<typeof resolveAccessEntry>[0]>(t), 'member'))).toBeNull();
     });
 });
 
@@ -97,18 +98,18 @@ describe('field and operator choices come from the table', () => {
     });
 
     it('offers date wording for dates and only is/is not for yes-no', () => {
-        const dateOps = operatorsForField({ type: 'date' }).map((o) => o.label);
+        const dateOps = operatorsForField(partial<Parameters<typeof operatorsForField>[0]>({ type: 'date' })).map((o) => o.label);
         expect(dateOps).toContain('is after');
-        expect(operatorsForField({ type: 'bool' }).map((o) => o.op)).toEqual(['==', '!=']);
+        expect(operatorsForField(partial<Parameters<typeof operatorsForField>[0]>({ type: 'bool' })).map((o) => o.op)).toEqual(['==', '!=']);
         // NULL cannot be compared in the subset, so the label promises "blank", not "empty".
-        expect(operatorsForField({ type: 'text' }).map((o) => o.label)).toContain('is blank');
+        expect(operatorsForField(partial<Parameters<typeof operatorsForField>[0]>({ type: 'text' })).map((o) => o.label)).toContain('is blank');
     });
 
     it('keeps an operator a hand-typed rule already uses', () => {
-        expect(operatorsForField({ type: 'text' }, '>').map((o) => o.op)).toContain('>');
+        expect(operatorsForField(partial<Parameters<typeof operatorsForField>[0]>({ type: 'text' }), '>').map((o) => o.op)).toContain('>');
         // `date == ""` is not offered, but a stored rule that uses it keeps its own choice.
-        expect(operatorsForField({ type: 'date' }).map((o) => o.op)).not.toContain('empty');
-        expect(operatorsForField({ type: 'date' }, 'empty').map((o) => o.op)).toContain('empty');
+        expect(operatorsForField(partial<Parameters<typeof operatorsForField>[0]>({ type: 'date' })).map((o) => o.op)).not.toContain('empty');
+        expect(operatorsForField(partial<Parameters<typeof operatorsForField>[0]>({ type: 'date' }), 'empty').map((o) => o.op)).toContain('empty');
     });
 });
 
@@ -267,7 +268,7 @@ describe('who ends up seeing what', () => {
     const parsed = parseRowRule('record.owner_id == viewer.id', table);
     const summary = describeRowRule(parsed, table);
 
-    const outcome = (scope, rest = {}) => describeAccessOutcome({
+    const outcome = (scope: string, rest = {}) => describeAccessOutcome({
         entry: scopeToEntry(scope), roleLabel: 'Member', tableName: 'Salaries', ...rest,
     });
 
@@ -339,9 +340,9 @@ describe('starting points', () => {
     });
 
     it('re-types the value when the field changes underneath it', () => {
-        const next = retypeCondition(cond({ op: 'empty', value: 'abc' }), { key: 'amount', type: 'number' });
+        const next = retypeCondition(cond({ op: 'empty', value: 'abc' }), partial<Parameters<typeof retypeCondition>[1]>({ key: 'amount', type: 'number' }));
         expect(next).toMatchObject({ field: 'amount', op: '==', valueType: 'number', value: '' });
-        const back = retypeCondition(next, { key: 'approved', type: 'bool' });
+        const back = retypeCondition(next, partial<Parameters<typeof retypeCondition>[1]>({ key: 'approved', type: 'bool' }));
         expect(back).toMatchObject({ field: 'approved', valueType: 'bool', value: 'true' });
     });
 });

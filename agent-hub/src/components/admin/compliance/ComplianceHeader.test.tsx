@@ -4,10 +4,13 @@ import { describe, it, expect, vi } from 'vitest';
 import ComplianceHeader, { headerSpec, HEADER_SPECS, worstScore } from './ComplianceHeader';
 import { sectionById } from './sections';
 import { PRIMARY_ACTION_STYLE } from '../../shared/StudioSectionHeader';
+import type { TranslateParams } from '@/hooks/useTranslation';
+import type { ComponentProps } from 'react';
+import { partial, stub } from '@/test/mocks';
 
 vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
-const t = (key, fallback, vars) => {
+const t = (key: string, fallback: string, vars: TranslateParams) => {
     let s = typeof fallback === 'string' ? fallback : key;
     for (const [k, v] of Object.entries((typeof fallback === 'object' ? fallback : vars) || {})) s = s.replace(`{${k}}`, String(v));
     return s;
@@ -15,12 +18,12 @@ const t = (key, fallback, vars) => {
 
 const core = { overview: { onboarded: true, last_run_at: '2026-09-14T07:12:00Z' }, onboarded: true, running: false, runNow: vi.fn(), checks: [{ regulation: 'GDPR' }, { regulation: 'GDPR' }, { regulation: 'AIA' }] };
 const counts = { attention_open: 7, last_run: { at: '2026-09-14T07:12:00Z', interval_hours: 6 }, frameworks: { gdpr: { score: 79 }, aia: { score: 58 }, iso27001: { score: 88 } }, soa: { approved: 9, total: 93 }, dsr: { overdue: 1 } };
-const dl = (u) => u;
+const dl = (u: string) => u;
 const noDownloads = () => null;
 
 describe('ComplianceHeader — overview and frameworks', () => {
     it('overview: "{n} open" pill, last-run chip, report link, "Run now" primary in PRIMARY_ACTION_STYLE', async () => {
-        render(<ComplianceHeader section={sectionById('overview')} tab="status" onTab={vi.fn()} ctx={{ counts, core, dl, api: '/api/compliance' }} />);
+        render(<ComplianceHeader section={sectionById('overview')} tab="status" onTab={vi.fn()} ctx={partial<ComponentProps<typeof ComplianceHeader>['ctx']>({ counts, core, dl, api: '/api/compliance' })} />);
         expect(screen.getByTestId('header-pill')).toHaveTextContent(/^7 open$/);
         expect(screen.getByTestId('header-info')).toHaveTextContent(/Last run \d{2}:\d{2} · every 6 h/);
         expect(screen.getByTestId('header-secondary')).toHaveAttribute('href', '/api/compliance/report.pdf');
@@ -34,13 +37,13 @@ describe('ComplianceHeader — overview and frameworks', () => {
 
     it('overview: the pill tone is the worst of ALL frameworks (DORA too), with a check only when all is green', () => {
         const green = { ...counts, frameworks: { gdpr: { score: 95 }, aia: { score: 92 }, iso27001: { score: 94 } } };
-        const { unmount } = render(<ComplianceHeader section={sectionById('overview')} tab="status" onTab={vi.fn()} ctx={{ counts: green, core }} />);
+        const { unmount } = render(<ComplianceHeader section={sectionById('overview')} tab="status" onTab={vi.fn()} ctx={partial<ComponentProps<typeof ComplianceHeader>['ctx']>({ counts: green, core })} />);
         expect(screen.getByTestId('header-pill')).toHaveAttribute('data-tone', 'success');
         expect(screen.getByTestId('header-pill').querySelector('svg')).toHaveClass('lucide-circle-check');
         unmount();
         // The three core frameworks are green; an enabled DORA at 58 is not.
         const dora = { ...green, frameworks: { ...green.frameworks, dora: { score: 58 } } };
-        render(<ComplianceHeader section={sectionById('overview')} tab="status" onTab={vi.fn()} ctx={{ counts: dora, core }} />);
+        render(<ComplianceHeader section={sectionById('overview')} tab="status" onTab={vi.fn()} ctx={partial<ComponentProps<typeof ComplianceHeader>['ctx']>({ counts: dora, core })} />);
         expect(screen.getByTestId('header-pill')).not.toHaveAttribute('data-tone', 'success');
         expect(screen.getByTestId('header-pill').querySelector('svg')).toHaveClass('lucide-triangle-alert');
         expect(worstScore(dora)).toBe(58);
@@ -50,20 +53,20 @@ describe('ComplianceHeader — overview and frameworks', () => {
 
     it('overview before setup: neutral setup pill, primary disabled', () => {
         const c = { ...core, onboarded: false, overview: { onboarded: false } };
-        render(<ComplianceHeader section={sectionById('overview')} tab="status" onTab={vi.fn()} ctx={{ counts: { setup_step: 2 }, core: c, dl, api: '/x' }} />);
+        render(<ComplianceHeader section={sectionById('overview')} tab="status" onTab={vi.fn()} ctx={partial<ComponentProps<typeof ComplianceHeader>['ctx']>({ counts: { setup_step: 2 }, core: c, dl, api: '/x' })} />);
         expect(screen.getByTestId('header-pill')).toHaveTextContent('Setup · step 2 of 4');
         expect(screen.getByTestId('header-primary')).toBeDisabled();
     });
 
     it('with downloads off there is no report button at all, never a dead one', () => {
-        render(<ComplianceHeader section={sectionById('overview')} tab="status" onTab={vi.fn()} ctx={{ counts, core, dl: noDownloads, api: '/x' }} />);
+        render(<ComplianceHeader section={sectionById('overview')} tab="status" onTab={vi.fn()} ctx={partial<ComponentProps<typeof ComplianceHeader>['ctx']>({ counts, core, dl: noDownloads, api: '/x' })} />);
         expect(screen.queryByTestId('header-secondary')).toBeNull();
         expect(screen.queryByText('Report (PDF)')).toBeNull();
-        expect(headerSpec({ section: sectionById('overview'), counts, core, dl: noDownloads, api: '/x' }, t).secondary).toBeNull();
+        expect(headerSpec(partial<Parameters<typeof headerSpec>[0]>({ section: sectionById('overview'), counts, core, dl: noDownloads, api: '/x' }), stub<Parameters<typeof headerSpec>[1]>(t)).secondary).toBeNull();
     });
 
     it('a framework section: score pill from counts, checks tab count, "Run again", and no report download', () => {
-        render(<ComplianceHeader section={sectionById('gdpr')} tab="checks" onTab={vi.fn()} ctx={{ counts, core, dl, api: '/x', frameworks: { byId: () => ({ in_force_since: '2018-05-25' }) } }} />);
+        render(<ComplianceHeader section={sectionById('gdpr')} tab="checks" onTab={vi.fn()} ctx={stub<ComponentProps<typeof ComplianceHeader>['ctx']>({ counts, core, dl, api: '/x', frameworks: { byId: () => ({ in_force_since: '2018-05-25' }) } })} />);
         expect(screen.getByTestId('header-pill')).toHaveTextContent('79 · A few items need attention');
         expect(screen.getByTestId('header-info')).toHaveTextContent('In force since 2018-05-25');
         expect(screen.getByTestId('header-primary')).toHaveTextContent('Run again');
@@ -80,7 +83,7 @@ describe('ComplianceHeader — overview and frameworks', () => {
         expect(chip.className).not.toMatch(/\bborder\b|\bh-8\b|bg-\[var\(--bg-card\)\]/);
         expect(chip.className).toContain('text-[var(--text-tertiary)]');
         const trigger = screen.getByRole('button', { name: 'Art. 33 · 72 hours to the authority' });
-        expect(trigger.closest('span.hidden').className).toContain('@max-[1180px]/objhead:inline-flex');
+        expect(trigger.closest('span.hidden')!.className).toContain('@max-[1180px]/objhead:inline-flex');
         await userEvent.tab();
         expect(trigger).toHaveFocus();
         expect(await screen.findByRole('tooltip')).toHaveTextContent('Art. 33 · 72 hours to the authority');
@@ -90,20 +93,20 @@ describe('ComplianceHeader — overview and frameworks', () => {
 
 describe('ComplianceHeader — register sections', () => {
     it('unknown counts → no pill, no tab badge (never a 0)', () => {
-        const spec = headerSpec({ section: sectionById('gdpr'), counts: null, core: { ...core, checks: [] }, dl, api: '/x' }, t);
+        const spec = headerSpec({ section: sectionById('gdpr'), counts: null, core: { ...core, checks: [] }, dl, api: '/x' }, stub<Parameters<typeof headerSpec>[1]>(t));
         expect(spec.pill).toBeNull();
-        expect(spec.tabCounts.checks).toBeUndefined();
-        const soa = headerSpec({ section: sectionById('soa'), counts: null, soa: { soa: null }, dl, api: '/x' }, t);
+        expect(spec.tabCounts!.checks).toBeUndefined();
+        const soa = headerSpec({ section: sectionById('soa'), counts: null, soa: { soa: null }, dl, api: '/x' }, stub<Parameters<typeof headerSpec>[1]>(t));
         expect(soa.pill).toBeNull();
-        const overview = headerSpec({ section: sectionById('overview'), counts: null, core }, t);
+        const overview = headerSpec(partial<Parameters<typeof headerSpec>[0]>({ section: sectionById('overview'), counts: null, core }), stub<Parameters<typeof headerSpec>[1]>(t));
         expect(overview.pill).toBeNull();
     });
 
     it('dsr: overdue pill in error tone, window chip, the capture primary only when the page registered it', () => {
-        const withAction = headerSpec({ section: sectionById('dsr'), counts, dsr: { requests: [{}, {}], refresh: vi.fn() }, onCaptureRequest: vi.fn(), dl }, t);
+        const withAction = headerSpec({ section: sectionById('dsr'), counts, dsr: { requests: [{}, {}], refresh: vi.fn() }, onCaptureRequest: vi.fn(), dl }, stub<Parameters<typeof headerSpec>[1]>(t));
         expect(withAction.primary).not.toBeNull();
-        expect(withAction.tabCounts.requests).toBe(2);
-        const without = headerSpec({ section: sectionById('dsr'), counts, dsr: { requests: null }, dl }, t);
+        expect(withAction.tabCounts!.requests).toBe(2);
+        const without = headerSpec({ section: sectionById('dsr'), counts, dsr: { requests: null }, dl }, stub<Parameters<typeof headerSpec>[1]>(t));
         expect(without.primary).toBeNull();
         expect(without.secondary).toBeNull();
         render(<ComplianceHeader section={sectionById('dsr')} tab="requests" onTab={vi.fn()} ctx={{ counts, dsr: { requests: [], refresh: vi.fn() }, dl }} />);
@@ -112,7 +115,7 @@ describe('ComplianceHeader — register sections', () => {
     });
 
     it('incidents: the pill names the next stage and its hours, toned by the rail\'s urgency rule', () => {
-        const at = (hours, stage = 'authority', open = 2) => headerSpec({ section: sectionById('incidents'), counts: { incidents: { open, hours_left: hours, next_stage: stage } } }, t).pill;
+        const at = (hours: number, stage = 'authority', open = 2) => headerSpec({ section: sectionById('incidents'), counts: { incidents: { open, hours_left: hours, next_stage: stage } } }, stub<Parameters<typeof headerSpec>[1]>(t)).pill;
         const { rerender } = render(at(40));
         expect(screen.getByTestId('header-pill')).toHaveTextContent('2 open · authority notice in 40 h');
         expect(screen.getByTestId('header-pill')).toHaveAttribute('data-tone', 'neutral');
@@ -125,9 +128,9 @@ describe('ComplianceHeader — register sections', () => {
         rerender(at(10, 'customer_notice'));
         expect(screen.getByTestId('header-pill')).toHaveTextContent('customer notice in 10 h');
         // An older server without a stage keeps the plain clock wording.
-        rerender(at(30, null));
+        rerender(at(30, stub<Parameters<typeof at>[1]>(null)));
         expect(screen.getByTestId('header-pill')).toHaveTextContent('2 open · 30 h to the deadline');
-        rerender(at(null, null, 0));
+        rerender(at(stub<Parameters<typeof at>[0]>(null), stub<Parameters<typeof at>[1]>(null), 0));
         expect(screen.getByTestId('header-pill')).toHaveTextContent('No incident running');
         expect(screen.getByTestId('header-pill')).toHaveAttribute('data-tone', 'neutral');
     });
@@ -152,7 +155,7 @@ describe('ComplianceHeader — layout and tabs', () => {
     });
 
     it('layout="phone" with tabs: the tab menu sits in the bar', () => {
-        render(<ComplianceHeader layout="phone" section={sectionById('gdpr')} tab="checks" onTab={vi.fn()} ctx={{ counts, core }} />);
+        render(<ComplianceHeader layout="phone" section={sectionById('gdpr')} tab="checks" onTab={vi.fn()} ctx={partial<ComponentProps<typeof ComplianceHeader>['ctx']>({ counts, core })} />);
         expect(within(screen.getByTestId('compliance-header-bar')).getByTestId('studio-section-tab-menu')).toBeInTheDocument();
         expect(within(screen.getByTestId('compliance-header-actions')).getByTestId('header-primary')).toHaveTextContent('Run again');
     });
@@ -168,8 +171,8 @@ describe('ComplianceHeader — layout and tabs', () => {
 
     it('asks StudioSectionHeader for the compact tab fold and a title that never collapses', () => {
         render(<ComplianceHeader section={sectionById('audits')} tab="audits" onTab={vi.fn()} ctx={{}} />);
-        expect(screen.getByRole('radiogroup').closest('div.flex-shrink-0').className).toContain('@max-[900px]/objhead:hidden');
-        expect(screen.getByTestId('studio-section-title').parentElement.className).toMatch(/^shrink-0 /);
+        expect(screen.getByRole('radiogroup').closest('div.flex-shrink-0')!.className).toContain('@max-[900px]/objhead:hidden');
+        expect(screen.getByTestId('studio-section-title').parentElement!.className).toMatch(/^shrink-0 /);
         expect(screen.getByTestId('studio-section-title')).toHaveTextContent('Audits & reviews');
     });
 

@@ -6,7 +6,10 @@ import { describeAction, actionOptions } from './actionLabels';
 import MultiInspector from './MultiInspector';
 import { TabsInspector } from './panels/TabsInspector';
 import { KNOB_LABELS, STYLE_KNOBS, knobLabel } from './styleKnobMeta';
+import type { ReactNode, ComponentProps } from 'react';
+import { malformed, stub } from '@/test/mocks';
 
+import type { AppDefinition } from './appDefinition';
 /**
  * The inspector's own affordances: what a control is CALLED, what a delete
  * destroys, and whether an action can be told apart from its id.
@@ -76,7 +79,7 @@ describe('describeAction', () => {
 
 // ── Destructive confirmations ───────────────────────────────────────────────
 
-function defWithNodes(children) {
+function defWithNodes(children: ReactNode) {
     return {
         schemaVersion: 2,
         screens: [{ id: 'scr_a', name: 'S', sections: [{ id: 'sec_a', children }] }],
@@ -90,11 +93,11 @@ describe('MultiInspector — bulk delete', () => {
     ] };
     const heading = { id: 'cmp_h', type: 'heading', props: { text: 'Hi', level: 2 }, style: {} };
 
-    function renderMulti(children, ids) {
+    function renderMulti(children: ReactNode, ids: ComponentProps<typeof MultiInspector>['ids']) {
         const onCommit = vi.fn();
         render(
             <MultiInspector
-                definition={defWithNodes(children)}
+                definition={stub<ComponentProps<typeof MultiInspector>['definition']>(defWithNodes(children))}
                 ids={ids}
                 onCommit={onCommit}
                 disabled={false}
@@ -108,7 +111,7 @@ describe('MultiInspector — bulk delete', () => {
     // all, and a bulk delete is where the most is at stake.
     it('asks before destroying a selection that holds other components', async () => {
         const user = userEvent.setup();
-        const onCommit = renderMulti([card, heading], ['cmp_card', 'cmp_h']);
+        const onCommit = renderMulti(malformed<Parameters<typeof renderMulti>[0]>([card, heading]), ['cmp_card', 'cmp_h']);
         await user.click(screen.getByLabelText('Delete selected'));
         expect(onCommit).not.toHaveBeenCalled();
         expect(screen.getByText('Delete 2 components?')).toBeTruthy();
@@ -120,7 +123,7 @@ describe('MultiInspector — bulk delete', () => {
     it('does not ask when nothing in the selection holds anything', async () => {
         const user = userEvent.setup();
         const other = { id: 'cmp_h2', type: 'heading', props: { text: 'Yo', level: 2 }, style: {} };
-        const onCommit = renderMulti([heading, other], ['cmp_h', 'cmp_h2']);
+        const onCommit = renderMulti(malformed<Parameters<typeof renderMulti>[0]>([heading, other]), ['cmp_h', 'cmp_h2']);
         await user.click(screen.getByLabelText('Delete selected'));
         expect(onCommit).toHaveBeenCalled();
     });
@@ -137,7 +140,7 @@ describe('MultiInspector — shared background knob', () => {
         const onCommit = vi.fn();
         const utils = render(
             <MultiInspector
-                definition={defWithNodes([cardA, { ...cardB, style: styleB }])}
+                definition={stub<ComponentProps<typeof MultiInspector>['definition']>(defWithNodes(malformed<Parameters<typeof defWithNodes>[0]>([cardA, { ...cardB, style: styleB }])))}
                 ids={['cmp_c1', 'cmp_c2']}
                 onCommit={onCommit}
                 disabled={false}
@@ -150,7 +153,7 @@ describe('MultiInspector — shared background knob', () => {
     it('offers every background value, panel and gradient included', () => {
         const { getByRole } = renderCards({ background: 'surface' }); // same value → not mixed
         const select = getByRole('combobox', { name: 'Background' });
-        expect(Array.from(select.options).map((o) => o.value))
+        expect(Array.from((select as HTMLSelectElement).options).map((o) => o.value))
             .toEqual(['none', 'surface', 'tint', 'panel', 'gradient']);
         expect(select).toHaveValue('surface');
     });
@@ -161,9 +164,9 @@ describe('MultiInspector — shared background knob', () => {
         const select = getByRole('combobox', { name: 'Background' });
         expect(select).toHaveValue('');
         fireEvent.change(select, { target: { value: 'gradient' } });
-        const next = onCommit.mock.calls.at(-1)[0];
+        const next = onCommit.mock.calls.at(-1)![0];
         const children = next.screens[0].sections[0].children;
-        expect(children.map((n) => n.style.background)).toEqual(['gradient', 'gradient']);
+        expect(children.map((n: HTMLElement) => n.style.background)).toEqual(['gradient', 'gradient']);
     });
 });
 
@@ -182,12 +185,12 @@ describe('TabsInspector — deleting a tab', () => {
     function renderTabs() {
         const onCommit = vi.fn();
         function Harness() {
-            const [def, setDef] = useState(defWithNodes([tabs]));
-            const node = def.screens[0].sections[0].children[0];
+            const [def, setDef] = useState<AppDefinition>(stub<AppDefinition>(defWithNodes(malformed<Parameters<typeof defWithNodes>[0]>([tabs]))));
+            const node = def.screens![0].sections![0].children![0];
             return (
                 <TabsInspector
                     node={node}
-                    definition={def}
+                    definition={stub<ComponentProps<typeof TabsInspector>['definition']>(def)}
                     onCommit={(next) => { setDef(next); onCommit(next); }}
                     disabled={false}
                 />
