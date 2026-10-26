@@ -157,6 +157,7 @@ const NAMESPACES = {
     "studio_apps_insp": require('./studio_apps_insp.js'),
     "studio_apps_panels": require('./studio_apps_panels.js'),
     "studio_apps_runtime": require('./studio_apps_runtime.js'),
+    "studio_app_documents": require('./studio_app_documents.js'),
     "studio_misc": require('./studio_misc.js'),
 };
 
