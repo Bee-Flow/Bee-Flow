@@ -29,6 +29,15 @@
  *   4. DATATABLE_RETENTION_DISABLED. A permanent operator brake, available
  *      during the incident it exists for.
  *
+ * ── AND THE SPREADSHEET TABS NO DOCUMENT POINTS AT ──────────────────
+ * The same pass drops a spreadsheet tab's table (`document_sheet`) that no
+ * document, no stored version and no consumer names, once it is older than a
+ * day (stores/datatableStore/orphanSheets.js says exactly what "names" means).
+ * Such a table is a grid nobody can open, left by a create that failed between
+ * the table and its document, and it still counted against its owner. Tables
+ * people make are never touched, nor the tables of an archived spreadsheet
+ * (a restore brings them back). DATATABLE_RETENTION_DISABLED stops this too.
+ *
  * ── AND ONE THING IT DOES NOT REACH ─────────────────────────────────
  * An automation's `find_rows` step copies what it read into
  * `automation_run_steps.output`, which is reaped only by age under
@@ -65,6 +74,12 @@ const MAX_ROWS_PER_TABLE_PER_PASS = 5000;
 // each chunk is one transaction — so a failure mid-pass leaves whole chunks
 // applied and the rest untouched, never half a statement.
 const DELETE_CHUNK = 500;
+
+// A sheet's table exists a moment before the document that names it; a day
+// is far past any create that is still running.
+const ORPHAN_SHEET_GRACE_HOURS = 24;
+// Tables one pass may drop: a surprise is a partial cleanup, not a wipe.
+const MAX_ORPHAN_SHEETS_PER_PASS = 200;
 
 /**
  * Retention is the TABLE's own rule, so it runs at owner grade.
@@ -197,9 +212,35 @@ async function reconcileRowCount(table, meta, scopeKey) {
 }
 
 /**
- * One pass over every table in the deployment that has a retention window.
+ * Drop the spreadsheet tab tables no document points at (see the header).
+ * Never throws: a failure here must not hide the row sweep's result.
+ * @returns {Promise<{ dropped: number }>}
+ */
+async function sweepOrphanSheetTables() {
+    let dropped = 0;
+    try {
+        const orphans = await datatableStore.listOrphanSheetTables({
+            graceHours: ORPHAN_SHEET_GRACE_HOURS, limit: MAX_ORPHAN_SHEETS_PER_PASS,
+        });
+        for (const table of orphans) {
+            try {
+                if (await datatableDbStore.dropDatatable(table.id, table.scope)) dropped += 1;
+            } catch (e) {
+                log.warn(`[datatableRetention] could not drop orphaned spreadsheet table ${table.id}: ${e.message}`);
+            }
+        }
+    } catch (e) {
+        log.error('[datatableRetention] orphaned spreadsheet tables not swept:', e.message);
+    }
+    if (dropped) log.info(`[datatableRetention] dropped ${dropped} spreadsheet table(s) no document points at`);
+    return { dropped };
+}
+
+/**
+ * One pass over every table in the deployment that has a retention window,
+ * then over the spreadsheet tab tables no document points at.
  *
- * @returns {Promise<{deleted:number, tables:number, skipped:number, disabled?:boolean, ts?:string}>}
+ * @returns {Promise<{deleted:number, tables:number, skipped:number, orphanSheetTables?:number, disabled?:boolean, ts?:string}>}
  */
 async function datatableRetentionPass() {
     if (killSwitchOn()) {
@@ -230,9 +271,10 @@ async function datatableRetentionPass() {
         ok = false;
         log.error('[datatableRetention] pass error:', e.message);
     }
+    const { dropped: orphanSheetTables } = await sweepOrphanSheetTables();
     recordJobRun({ job: 'datatable_retention', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });
     if (deleted) log.info(`[datatableRetention] deleted ${deleted} row(s) across ${tables} table(s)`);
-    return { deleted, tables, skipped, ts: new Date().toISOString() };
+    return { deleted, tables, skipped, orphanSheetTables, ts: new Date().toISOString() };
 }
 
 module.exports = {
@@ -240,6 +282,9 @@ module.exports = {
     killSwitchOn,
     MAX_ROWS_PER_TABLE_PER_PASS,
     DELETE_CHUNK,
+    ORPHAN_SHEET_GRACE_HOURS,
+    MAX_ORPHAN_SHEETS_PER_PASS,
+    sweepOrphanSheetTables,
     // test-only
     _sweepTable: sweepTable,
 };

@@ -129,8 +129,11 @@ describe('NewDatatableDialog — what a refusal says', () => {
         expect(await submitRefused(Object.assign(new Error('whatever'), { code: 'key_taken' }))).toBe('There is already a table with this key. Pick another one.');
     });
 
-    it('knows the quota refusal', async () => {
-        expect(await submitRefused(Object.assign(new Error('whatever'), { code: 'quota_exceeded' }))).toBe('You have reached the limit on tables here.');
+    it('shows the quota refusal in the server\'s words, which say what to do', async () => {
+        const said = 'This organisation already has 200 datatables, the most allowed is 200. Delete tables you no longer need under Studio → Datatables, or ask your administrator to raise the limit.';
+        expect(await submitRefused(Object.assign(new Error(said), { code: 'quota_exceeded' }))).toBe(said);
+        cleanup();
+        expect(await submitRefused(Object.assign(new Error(''), { code: 'quota_exceeded' }))).toBe('You have reached the limit on tables here.');
     });
 
     it('falls back to the server sentence, and then to a generic one', async () => {

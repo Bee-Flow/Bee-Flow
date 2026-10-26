@@ -74,7 +74,8 @@ async function listDatatablesForScope(scope) {
 }
 
 /**
- * What one tenant consumes: tables, rows and on-disk bytes.
+ * What one tenant consumes: tables people make, spreadsheet tabs (`document_sheet`,
+ * a separate cap in core/dataEngine/datatableLimits), rows and bytes of every table.
  *
  * The counters are read, never recomputed. `row_count` is arithmetic
  * (bumpAfterWrite, no lock) re-synced by jobs/datatableRetention, and
@@ -93,7 +94,8 @@ async function scopeUsage(scope, { client = null } = {}) {
     assertScope(scope, 'scopeUsage');
     const q = client ? (/** @type {string} */ sql, /** @type {any[]} */ p) => client.query(sql, p) : async (/** @type {string} */ sql, /** @type {any[]} */ p) => ({ rows: await getAll(sql, p) });
     const counts = await q(
-        `SELECT COUNT(*)::int AS table_count, COALESCE(SUM(row_count), 0)::bigint AS row_total
+        `SELECT COUNT(*) FILTER (WHERE managed_kind IS DISTINCT FROM 'document_sheet')::int AS table_count,
+                COUNT(*) FILTER (WHERE managed_kind = 'document_sheet')::int AS sheet_count, COALESCE(SUM(row_count), 0)::bigint AS row_total
            FROM datatables WHERE scope_kind = $1 AND scope_id = $2`,
         [scope.kind, scope.id],
     );
@@ -103,11 +105,8 @@ async function scopeUsage(scope, { client = null } = {}) {
     );
     const c = (counts.rows || [])[0] || {};
     const m = (meta.rows || [])[0] || {};
-    return {
-        tables: Number(c.table_count) || 0,
-        rows: Number(c.row_total) || 0,
-        bytes: Number(m.size_bytes) || 0,
-    };
+    return { tables: Number(c.table_count) || 0, sheetTables: Number(c.sheet_count) || 0,
+        rows: Number(c.row_total) || 0, bytes: Number(m.size_bytes) || 0 };
 }
 
 /**
@@ -175,7 +174,7 @@ async function getTableMeta(scope, datatableId) {
  * @param {object}   [opts]
  * @param {import('pg').PoolClient|null} [opts.client]  the caller's transaction, when they own one.
  * @param {{deploymentId?: string}|null} [opts.managedWrite]  the deploy's capability (see above).
- * @param {(usage: {tables:number, rows:number, bytes:number}) => Promise<any>} [opts.assertQuota]
+ * @param {(usage: {tables:number, sheetTables:number, rows:number, bytes:number}) => Promise<any>} [opts.assertQuota]
  *   Runs with the tenant's usage read UNDER the model row's FOR UPDATE lock and
  *   BEFORE anything is written. Injected rather than imported for the same
  *   reason applyPhysical is — this store keeps no engine dependency — and it

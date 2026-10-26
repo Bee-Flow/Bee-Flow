@@ -8,7 +8,9 @@
  * sheet row, `row_no` its number, `a` … `z` what was typed in each column.
  * Keeping the cells there, rather than in the document row, makes a sheet's
  * data what every other datatable is: readable by automations and apps, sortable,
- * exportable, counted in the same quota, erased with the same person.
+ * exportable, erased with the same person. Each tab's table counts on the
+ * owner's spreadsheet-tab cap and their storage limit, not on the cap of
+ * tables people make (core/dataEngine/datatableLimits).
  *
  * What is stored is what was TYPED: a value, or a formula as text
  * (`=SUM(A1:A3)`). Formulas are evaluated by the shared sheet engine
@@ -143,6 +145,7 @@ const isRowConflict = (/** @type {any} */ e) => e && e.status === 409 && e.code 
  * @param {(userId: string) => any} [deps.userScope]
  * @param {(kind: string) => any} [deps.spec]
  * @param {(id: string, scope: any) => Promise<boolean>} [deps.drop]   datatableDbStore.dropDatatable
+ * @param {(e: unknown, userId: string) => Promise<unknown>} [deps.localize]   datatableLimits.localizeQuotaError
  */
 function makeSheetCells(deps = {}) {
     const runtime = () => deps.runtime || require('../dataEngine/datatableRuntime');
@@ -152,6 +155,7 @@ function makeSheetCells(deps = {}) {
     const userScope = (/** @type {string} */ userId) => (deps.userScope || require('../../stores/datatableStore').userScope)(userId);
     const spec = () => (deps.spec || require('../dataEngine/dataModel/managedTables').managedKindSpec)('document_sheet');
     const drop = (/** @type {string} */ id, /** @type {any} */ scope) => (deps.drop || require('../../stores/datatableDbStore').dropDatatable)(id, scope);
+    const localize = (/** @type {unknown} */ e, /** @type {string} */ userId) => (deps.localize || require('../dataEngine/datatableLimits').localizeQuotaError)(e, userId);
 
     /**
      * The owner's table, resolved as the owner. A missing one is the sheet's own 410.
@@ -181,11 +185,16 @@ function makeSheetCells(deps = {}) {
     async function createSheetTable({ ownerUserId, name, projectId = null }) {
         const kind = spec();
         const label = `Spreadsheet: ${String(name || 'Untitled').trim() || 'Untitled'}`.slice(0, 120);
-        return provision({
-            scope: userScope(ownerUserId), ownerUserId, spec: kind,
-            key: `sheet_${crypto.randomBytes(6).toString('hex')}`,
-            name: label, description: kind.defaultDescription, projectId,
-        });
+        try {
+            return await provision({
+                scope: userScope(ownerUserId), ownerUserId, spec: kind,
+                key: `sheet_${crypto.randomBytes(6).toString('hex')}`,
+                name: label, description: kind.defaultDescription, projectId,
+            });
+        } catch (e) {
+            // A full scope says so in the owner's language, with what to do about it.
+            throw await localize(e, ownerUserId);
+        }
     }
 
     /**

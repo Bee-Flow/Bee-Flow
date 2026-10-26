@@ -205,9 +205,10 @@ function columnDef(field, tableKeyById, dialect) {
  * (a schema save, the repair button) is a no-op.
  *
  * @param {object} table
- * @param {{ tableKeyById?: Map<string,string>, rowScope?: 'all'|'own' }} [ctx]
+ * @param {{ tableKeyById?: Map<string,string>, rowScope?: 'all'|'own', dialect?: string }} [ctx]
  *   id→key map so same-db relations resolve to a real FOREIGN KEY (omit for a
- *   standalone, FK-less table), plus the table's row scope.
+ *   standalone, FK-less table), plus the table's row scope, plus the dialect
+ *   (engineFlag.resolveDialect).
  */
 function ddlForTable(table, ctx = {}) {
     const dialect = resolveDialect(ctx);

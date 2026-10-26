@@ -46,6 +46,19 @@ test('no access, or a failing import, changes nothing and does not throw', async
     assert.doesNotMatch(importNote({ ...result, truncated: [], unsupportedFunctions: [], skippedSheets: [] }), /cut|Not imported|kept as typed/);
 });
 
+test('a refusal by a storage limit reaches the model as a note, with what to do', async () => {
+    const events = [];
+    const refusal = Object.assign(new Error('You already have 2000 spreadsheet tabs, the most allowed is 2000. Remove tabs you no longer need from your spreadsheets, or ask your administrator to raise the limit.'), { code: 'quota_exceeded', status: 409 });
+    const out = await importUploadedSpreadsheet({
+        req: {}, send: (e) => events.push(e), userId: 'u', buffer: Buffer.from('x'), att,
+        deps: { sheetsAllowedFor: async () => true, importWorkbook: async () => { throw refusal; } },
+    });
+    assert.deepStrictEqual(out.base, {});
+    assert.match(out.note, /"Budget\.xlsx" could not be opened as a document, only its text is available: You already have 2000 spreadsheet tabs/);
+    assert.match(out.note, /ask your administrator to raise the limit/);
+    assert.deepStrictEqual(events, [], 'nothing opens in the side panel');
+});
+
 test('which attachments are spreadsheets', () => {
     for (const a of [{ name: 'a.ods' }, { name: 'A.XLSX' }, { name: 'x', type: 'text/csv' }, { name: 'x', type: 'application/vnd.oasis.opendocument.spreadsheet' }]) assert.ok(isSpreadsheetUpload(a), a.name);
     assert.ok(!isSpreadsheetUpload({ name: 'a.pdf', type: 'application/pdf' }));
