@@ -1,5 +1,11 @@
 // @typecheck noImplicitAny
 /**
+ * The Nextcloud Tables ADAPTER CORE: the members the sync and write-through
+ * pipelines drive. The adapter the registry hands out is kindAdapter.js, this plus
+ * the `sync`, `writeThrough`, `link` and `events` modules; they sit on the other
+ * side of this file so that none of them has to require the adapter back
+ * (import cycle).
+ *
  * The Nextcloud Tables ADAPTER — what the shared mirror engine (../mirror)
  * asks a source kind, answered in Nextcloud's terms.
  *
@@ -127,36 +133,6 @@ const adapter = {
     labelFieldFor(rel, target) {
         return require('./relations').labelFieldFor(rel, target);
     },
-
-    get sync() { return require('./sync'); },
-    get writeThrough() { return require('./writeThrough'); },
-    get link() {
-        const link = require('./link');
-        return {
-            ...link,
-            /**
-             * PUT /:id/source — the one setting a Nextcloud mirror has. There
-             * is no schedule to set: a mirror is live (mirror/staleness.js).
-             * @param {NcSource} source
-             * @param {{ refreshOnView?: unknown, [k: string]: unknown } | null | undefined} body
-             */
-            applySettings(source, body) {
-                const next = { ...source };
-                const b = body || {};
-                for (const k of Object.keys(b)) {
-                    if (k !== 'refreshOnView') {
-                        const e = new Error(`"${k}" is not a setting of a Nextcloud table`);
-                        e.status = 400;
-                        e.code = 'unknown_field';
-                        throw e;
-                    }
-                }
-                if (b.refreshOnView !== undefined) next.refreshOnView = b.refreshOnView !== false;
-                return { next, stale: false };
-            },
-        };
-    },
-    get events() { return require('./events'); },
 
     /**
      * The kind-specific half of the public projection (routes keep the envelope).

@@ -7,6 +7,9 @@ const { dynamicUpdate, parseJSON } = require('./shared');
 const { deleteUser, assertNotStageRunAs } = require('./users');
 const { setOrgSubscription } = require('./subscriptions');
 const { getDefaultOrgPlanId } = require('./billingLifecycle');
+const { logAccessAudit } = require('./audit');
+const billingPorts = require('./billingPorts'); // the billing services install these: see billingPorts.js
+const { applyDefaultEncryptionTier } = require('../initialTier');
 const log = require('../../telemetry/log');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
 
@@ -175,7 +178,7 @@ async function createOrganization(orgData, { autoGrantTrial = true } = {}) {
                     // Seed integrations + beta-feature enablement from the plan
                     // so new orgs immediately have the right defaults switched on.
                     try {
-                        await require('../../services/planEntitlements').applyPlanToOrg(id, defaultPlanId, { mode: 'reset' });
+                        await billingPorts.applyPlanToOrg(id, defaultPlanId, { mode: 'reset' });
                     } catch (e) { log.warn('[UserStore] applyPlanToOrg (default plan) failed:', e.message); }
                 } else {
                     // setOrgSubscription returns false (not throws) on DB error, so
@@ -194,19 +197,15 @@ async function createOrganization(orgData, { autoGrantTrial = true } = {}) {
         // — any write that beats it is written in plaintext. It narrows to 'none'
         // on every failure and never throws, so org creation cannot fail on it.
         try {
-            await require('../initialTier').applyDefaultEncryptionTier(id);
+            await applyDefaultEncryptionTier(id, { userStore: { updateOrganization, logAccessAudit } });
         } catch (e) {
-            // applyDefaultEncryptionTier does not throw; this is the backstop for
-            // the require itself. The org stays on 'none', which is where it was.
             log.error('[UserStore] initial encryption tier could not be applied:', e.message);
         }
         // Fire-and-forget: if a global trial-offer plan is configured for orgs,
         // start the trial in Stripe asynchronously. Failure must not block org
         // creation; trialService swallows errors and logs warnings.
         if (autoGrantTrial) {
-            setImmediate(() => {
-                require('../../services/trialService').maybeAutoGrantOrgTrial(id);
-            });
+            setImmediate(() => billingPorts.maybeAutoGrantOrgTrial(id));
         }
         // Pre-generate the outbound webhook signing key so the very first
         // outbound webhook for this org carries a valid signature. Lazy
