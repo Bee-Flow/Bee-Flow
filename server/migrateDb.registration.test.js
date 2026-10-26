@@ -187,7 +187,9 @@ const RAW_DDL_EXEMPT = new Map([
 const RAW_SCHEMA_QUERY = /\.query\(\s*(?:[`'"]\s*(?:--[^\n]*\n\s*)*(?:CREATE|ALTER|DROP|COMMENT\s+ON|DO\s)|\w*(?:INIT|SCHEMA|DDL)\w*\s*\))/gi;
 
 test('no store sends schema statements past the schema ledger', () => {
+    /** @type {string[]} */
     const offenders = [];
+    /** @param {string} dir */
     const walk = (dir) => {
         for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
             const p = path.join(dir, e.name);
@@ -220,7 +222,9 @@ test('every raw-DDL exemption still names an existing file', () => {
 test('every makeStoreInit tag is unique (it names the store in the schema ledger)', () => {
     /** Two stores under one tag would overwrite each other's ledger entry. */
     const seen = new Map();
+    /** @type {string[]} */
     const dupes = [];
+    /** @param {string} dir */
     const walk = (dir) => {
         for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
             const p = path.join(dir, e.name);
