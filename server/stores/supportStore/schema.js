@@ -14,6 +14,7 @@
  */
 
 const { pool } = require('../../db');
+const { throughLedger } = require('../lib/ddlLedger');
 const { makeStoreInit } = require('../lib/storeInit');
 const log = require('../../telemetry/log');
 
@@ -285,7 +286,6 @@ CREATE INDEX IF NOT EXISTS idx_support_issue_links_stale  ON support_issue_links
 ALTER TABLE support_issue_links ADD COLUMN IF NOT EXISTS comments_seeded BOOLEAN NOT NULL DEFAULT false;
 `;
 
-const { throughLedger } = require('../lib/ddlLedger');
 // Schema statements of this init go through the schema ledger
 // (stores/lib/ddlLedger.js): one that already succeeded here is not sent again.
 /** @param {string} sql */

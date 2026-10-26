@@ -104,7 +104,7 @@ const EXEMPT = new Map([
     ['stores/lib/storeInit.js', 'memo zonder eigen schema — memoïseert de init van geregistreerde stores'],
     // The schema ledger itself: its one table (schema_migrations, shared with
     // boot/bootMigrations.js) is created on first use by ensureLedgerTable.
-    ['stores/lib/ddlLedger.js', "the schema ledger's own table, created on first use (ensureLedgerTable)"],
+    ['stores/lib/ddlLedgerTable.js', "the schema ledger's own table, created on first use (ensureLedgerTable)"],
 ]);
 
 function ddlOwners(root) {

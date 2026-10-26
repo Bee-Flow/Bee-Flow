@@ -72,7 +72,7 @@
 
 'use strict';
 const log = require('../../telemetry/log');
-const { alreadyApplied, track } = require('./ddlLedger');
+const { alreadyApplied, throughLedger } = require('./ddlLedger');
 
 /**
  * The db facade is resolved LAZILY and via two routes, so that runDdl sees under
@@ -153,7 +153,7 @@ async function _runLocked(tag, list, lockTimeout) {
     if (typeof db.withTransaction !== 'function') {
         for (const stmt of list) {
             try {
-                await track(stmt.sql, () => db.exec(stmt.sql));
+                await throughLedger(stmt.sql, () => db.exec(stmt.sql));
             } catch (err) {
                 if (!isSqlStateError(err)) throw err;
                 const entry = {
@@ -185,7 +185,7 @@ async function _runLocked(tag, list, lockTimeout) {
         for (const stmt of list) {
             await client.query('SAVEPOINT beeflow_ddl_stmt');
             try {
-                await track(stmt.sql, () => client.query(stmt.sql));
+                await throughLedger(stmt.sql, () => client.query(stmt.sql));
                 await client.query('RELEASE SAVEPOINT beeflow_ddl_stmt');
             } catch (err) {
                 // No SQLSTATE = the server never answered (connection

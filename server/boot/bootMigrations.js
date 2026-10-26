@@ -30,8 +30,8 @@
  *
  * The same table is the ledger of the store schemas: one row per store init,
  * named `store:<tag>`, with the keys of the schema statements it applied
- * (stores/lib/ddlLedger.js). That module owns the table's DDL; readLedger
- * below asks it for the table instead of creating its own.
+ * (stores/lib/ddlLedger.js). stores/lib/ddlLedgerTable.js owns the table's
+ * DDL; readLedger below asks it for the table instead of creating its own.
  */
 
 'use strict';
@@ -284,7 +284,7 @@ const MANUAL_MIGRATIONS = [
     'agents-published-config',
 ];
 
-const { LEDGER_TABLE, ensureLedgerTable } = require('../stores/lib/ddlLedger');
+const { LEDGER_TABLE, ensureLedgerTable } = require('../stores/lib/ddlLedgerTable');
 
 /**
  * @param {string} name
