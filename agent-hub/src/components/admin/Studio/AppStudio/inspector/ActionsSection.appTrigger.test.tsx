@@ -3,7 +3,7 @@ import { render, fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ActionsSection, { getFormFields } from './ActionsSection';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 /**

@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import ActionsSection from './ActionsSection';
 import { findNode } from '../state/definitionOps';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 /**

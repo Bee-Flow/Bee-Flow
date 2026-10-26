@@ -3,8 +3,8 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import NowRunningStrip from './NowRunningStrip';
-import { type TranslateParams } from '@/hooks/useTranslation';
-import { type ComponentProps } from 'react';
+import type { TranslateParams } from '@/hooks/useTranslation';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 vi.mock('../../../../hooks/useTranslation', () => ({

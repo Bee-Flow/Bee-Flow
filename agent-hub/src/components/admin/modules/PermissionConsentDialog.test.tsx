@@ -14,7 +14,7 @@ const t = (key: string, a: string, b: TranslateParams) => {
 vi.mock('../../../hooks/useTranslation', () => ({ useTranslation: () => ({ t, locale: 'en' }) }));
 
 import PermissionConsentDialog from './PermissionConsentDialog';
-import { type TranslateParams } from '@/hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 
 const MODULE = { id: 'pro', name: 'Pro Module' };
 

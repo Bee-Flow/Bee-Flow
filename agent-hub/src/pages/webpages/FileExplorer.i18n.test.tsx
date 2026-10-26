@@ -24,8 +24,8 @@ vi.mock('../../hooks/useTranslation', () => ({
 }));
 
 import FileExplorer from './FileExplorer';
-import { type ReactNode } from 'react';
-import { type TranslateParams } from '@/hooks/useTranslation';
+import type { ReactNode } from 'react';
+import type { TranslateParams } from '@/hooks/useTranslation';
 
 // One file in a folder (for the folder row) and one at the top level — the
 // per-file actions sit on the file row, and a folder stays closed.

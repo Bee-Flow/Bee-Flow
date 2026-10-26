@@ -2,8 +2,7 @@ import { act, fireEvent, render } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import AppFilterBar from './AppFilterBar';
 import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
-import { type ReactElement } from 'react';
-import { type ComponentProps } from 'react';
+import type { ReactElement, ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 function withRuntime(ui: ReactElement, overrides = {}) {

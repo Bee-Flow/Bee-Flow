@@ -6,7 +6,7 @@ import { authFetch } from '../../../../../../utils/helpers';
 import { DataProvider } from '../DataContext';
 import { RuntimeProvider, DEFAULT_RUNTIME } from '../RuntimeContext';
 import { asMock, stub } from '@/test/mocks';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 vi.mock('../../../../../../utils/helpers', () => ({
     API_BASE: '',

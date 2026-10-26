@@ -7,7 +7,7 @@ vi.mock('../../../../utils/helpers', () => ({
 }));
 
 import SolutionExportDialog, { ExportCompleteness } from './SolutionExportDialog';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 /**
  * The export dialog's own claim — not the Blueprint tab's, which has its own

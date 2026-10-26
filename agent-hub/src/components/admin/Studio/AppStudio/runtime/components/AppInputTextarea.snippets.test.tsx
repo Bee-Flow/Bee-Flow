@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import AppForm from './AppForm';
 import AppInputTextarea, { activeToken, matchSnippets } from './AppInputTextarea';
 import { RuntimeProvider, DEFAULT_RUNTIME } from '../RuntimeContext';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 /**

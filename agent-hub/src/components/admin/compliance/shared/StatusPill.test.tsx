@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { TriangleAlert } from 'lucide-react';
 import { describe, it, expect } from 'vitest';
 import StatusPill from './StatusPill';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub, malformed } from '@/test/mocks';
 
 describe('StatusPill — hairline in the raw tone, text in the ink tone', () => {

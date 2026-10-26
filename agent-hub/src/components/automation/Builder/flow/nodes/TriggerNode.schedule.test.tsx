@@ -3,7 +3,7 @@ import { ReactFlowProvider } from '@xyflow/react';
 import { describe, it, expect, beforeEach } from 'vitest';
 import TriggerNode from './TriggerNode';
 import { NodeRuntimeContext } from '../NodeRuntimeContext';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { partial } from '@/test/mocks';
 
 /**

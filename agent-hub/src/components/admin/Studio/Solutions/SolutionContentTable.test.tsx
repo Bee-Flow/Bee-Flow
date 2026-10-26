@@ -9,7 +9,7 @@ vi.mock('../../../../utils/helpers', () => ({
 
 import SolutionContentTable, { BANDS, worstByEntity } from './SolutionContentTable';
 import { SECTIONS } from './solutionSections';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { omitted, stub } from '@/test/mocks';
 
 /**

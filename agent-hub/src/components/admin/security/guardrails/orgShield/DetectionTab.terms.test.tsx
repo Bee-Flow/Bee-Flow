@@ -16,7 +16,7 @@ import { describe, it, expect, vi } from 'vitest';
 
 import DetectionTab from './tabs/DetectionTab';
 import { piiCategoriesLocalized } from '../../../../../config/piiCategories';
-import { type TranslateParams } from '@/hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import { stub } from '@/test/mocks';
 
 const t = (key: string, fallback: string, params: TranslateParams) => {

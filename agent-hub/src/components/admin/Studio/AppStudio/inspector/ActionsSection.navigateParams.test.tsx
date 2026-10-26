@@ -6,7 +6,7 @@ import ActionsSection from './ActionsSection';
 import StudioScopeProvider from './logic/StudioScopeProvider';
 
 import { stub } from '@/test/mocks';
-import { type AppDefinition } from './appDefinition';
+import type { AppDefinition } from './appDefinition';
 vi.mock('../../../../../hooks/useAutomationApi', () => ({
     default: () => ({ listAutomations: vi.fn(async () => ({ automations: [] })) }),
     safeText: vi.fn(async () => ''),

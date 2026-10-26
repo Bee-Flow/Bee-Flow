@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import RowCellEditor from './RowCellEditor';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 /**

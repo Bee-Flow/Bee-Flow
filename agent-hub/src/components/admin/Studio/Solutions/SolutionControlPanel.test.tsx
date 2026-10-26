@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 
 import SolutionControlPanel, { isBlocking } from './SolutionControlPanel';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 /**

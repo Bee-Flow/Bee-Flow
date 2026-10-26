@@ -30,7 +30,7 @@ vi.mock('../../../components/admin/Studio/KnowledgeStudio/knowledgeApi', () => {
 import { TABS } from './MeetingHeader';
 import SummaryActionsLayout from './SummaryActionsLayout';
 import { omitted } from '@/test/mocks';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 const meeting = {
     id: 't-1',

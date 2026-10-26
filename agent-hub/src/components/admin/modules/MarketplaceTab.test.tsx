@@ -17,7 +17,7 @@ vi.mock('../../../moduleRuntime/registry', () => ({ reloadRemoteModules: vi.fn()
 import MarketplaceTab from './MarketplaceTab';
 import { authFetch } from '../../../utils/helpers';
 import { asMock } from '@/test/mocks';
-import { type TranslateParams } from '@/hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 
 const jsonRes = (body: unknown, status = 200) => Promise.resolve({
     ok: status >= 200 && status < 300,

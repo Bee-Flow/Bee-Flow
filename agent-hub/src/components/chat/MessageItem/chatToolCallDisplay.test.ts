@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { describeChatTool, detailOf, detailPayload, errorOf, resultFor, visibleToolHistory } from './chatToolCallDisplay';
 import { stub } from '@/test/mocks';
-import { type TranslateParams } from '@/hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 
 const entry = (name: string, extra = {}) => ({ name, args: {}, status: 'done', startTime: 1000, endTime: 1840, ...extra });
 

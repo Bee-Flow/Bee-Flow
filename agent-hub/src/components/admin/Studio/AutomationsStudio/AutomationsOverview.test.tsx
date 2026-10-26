@@ -15,7 +15,7 @@ vi.mock('../../../../utils/scopedStorage', () => ({
 
 import AutomationsOverview from './AutomationsOverview';
 import { stub } from '@/test/mocks';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 const row = (over: { id?: unknown } = {}) => ({
     id: over.id || Math.random().toString(36).slice(2),

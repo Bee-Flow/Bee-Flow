@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { withQueryClient } from '@/test/render';
 import OrgUsersPanel from './OrgUsersPanel';
 import { authFetch } from '../../../utils/helpers';
-import { type TranslateParams } from '@/hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import { asMock } from '@/test/mocks';
 
 /**

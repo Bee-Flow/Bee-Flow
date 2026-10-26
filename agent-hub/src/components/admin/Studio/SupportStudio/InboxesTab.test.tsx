@@ -4,7 +4,7 @@ import { ok } from '@/test/http';
 import InboxesTab from './InboxesTab';
 import { authFetch } from '../../../../utils/helpers';
 import { asMock, stub } from '@/test/mocks';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));

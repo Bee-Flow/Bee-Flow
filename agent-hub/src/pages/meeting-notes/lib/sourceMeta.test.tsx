@@ -8,7 +8,7 @@ import LibraryEmptyState from '../library/LibraryEmptyState';
 import MeetingCard from '../library/MeetingCard';
 import MeetingRow from '../library/MeetingRow';
 import { omitted, stub } from '@/test/mocks';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 describe('getSourceMeta', () => {
     it('maps talk and talk-auto to a Talk chip', () => {

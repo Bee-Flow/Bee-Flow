@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import ValueBuilder from './ValueBuilder';
 import { VariablePickerProvider } from './VariablePickerContext';
 import { editor, editorValue, typeInEditor } from '../../../../test/refEditor';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 /**

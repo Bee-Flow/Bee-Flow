@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import AppButton from './AppButton';
 import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
-import { type ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import { runtimeValue } from '@/test/appRuntime';
 import { stub } from '@/test/mocks';
 

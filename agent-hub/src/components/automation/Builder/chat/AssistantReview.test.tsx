@@ -5,7 +5,7 @@ import PlanReview from './PlanReview';
 import ProposalCard from './ProposalCard';
 import { reviewedProposal } from './proposalChanges';
 import WorkModePicker from './WorkModePicker';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 afterEach(cleanup);

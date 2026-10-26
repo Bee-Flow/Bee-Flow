@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { type ReactNode, type ComponentProps } from 'react';
+import type { ReactNode, ComponentProps } from 'react';
 import { partial } from '@/test/mocks';
 
 /**

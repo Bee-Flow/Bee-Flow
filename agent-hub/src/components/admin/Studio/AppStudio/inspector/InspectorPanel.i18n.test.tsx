@@ -72,9 +72,8 @@ vi.mock('../../../../../hooks/useAutomationApi', () => ({
 import InspectorPanel from './InspectorPanel';
 import { AppEditorProvider, useAppEditor } from '../state/AppEditorContext';
 import { KITCHEN_SINK } from '../state/sampleDefinitions';
-import { type TranslateParams } from '@/hooks/useTranslation';
-import { type ReactNode } from 'react';
-import { type ComponentProps } from 'react';
+import type { TranslateParams } from '@/hooks/useTranslation';
+import type { ReactNode, ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 // The catalog-driven Content panel reads the component catalog through

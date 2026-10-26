@@ -42,9 +42,8 @@ vi.mock('./useBfMarks', () => ({
 }));
 
 import WebpageIDE from './WebpageIDE';
-import { type ReactNode } from 'react';
-import { type TranslateParams } from '@/hooks/useTranslation';
-import { type ComponentProps } from 'react';
+import type { ReactNode, ComponentProps } from 'react';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import { partial, omitted } from '@/test/mocks';
 
 const USER = { id: 'u1' };

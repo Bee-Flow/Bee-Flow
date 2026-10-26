@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest';
 
 import MessageItem from './index';
 import { normalizeLoadedMessages } from '../../../utils/messageShape';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 // A reloaded direct-chat assistant message: the server sends no `id`.

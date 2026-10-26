@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 
 import { describeClamps, describeClampsOnLoad, describeSaveResult } from './orgShieldClamps';
-import { type TranslateParams } from '@/hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 
 /**
  * The sentence an admin reads after a save that landed but not exactly as

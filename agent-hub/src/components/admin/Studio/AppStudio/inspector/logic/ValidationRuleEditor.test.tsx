@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import ValidationRuleEditor from './ValidationRuleEditor';
 import { stub } from '@/test/mocks';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 /**
  * The editor may only ever author rules the SERVER accepts — a rejected type

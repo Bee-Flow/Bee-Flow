@@ -2,7 +2,7 @@ import { render } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import AppPageHeader from './AppPageHeader';
 import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
-import { type ReactElement } from 'react';
+import type { ReactElement } from 'react';
 
 /**
  * AppPageHeader — the look pass (props.look, spec componentSpecs.js).

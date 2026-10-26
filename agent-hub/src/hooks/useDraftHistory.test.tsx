@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react';
 import { StrictMode, useState } from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import useDraftHistory from './useDraftHistory';
-import { type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 /**
  * Harness: a tiny stateful consumer mirroring how the editors use the hook —

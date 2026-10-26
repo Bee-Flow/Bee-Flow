@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { computeDragEnd, PALETTE_PREFIX } from './dnd';
 import { computeDropHint } from './dropHint';
 import { moveNode } from '../state/definitionOps';
-import { type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { malformed } from '@/test/mocks';
 
 /**

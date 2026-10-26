@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildStepLabelMap, buildRunStepLabelMap, runStepLabel, resolveOwningStepId, humanizeIssueText, humanizeFieldKey, describeRuleExpr } from './displayHelpers';
 import { partial } from '@/test/mocks';
-import { type TranslateParams } from '@/hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 
 const def = {
     trigger: { id: 'trg', label: 'Manual trigger' },

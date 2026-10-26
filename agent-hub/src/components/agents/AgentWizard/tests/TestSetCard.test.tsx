@@ -19,7 +19,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import TestSetCard from './TestSetCard';
 import { refusalFor, startProgress, applyRunEvent, endProgress } from './testSetFacts';
 import { READ } from '../canUse/canUseFacts';
-import { type TranslateParams } from '@/hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 
 const t = (key: string, fallback: string, params: TranslateParams) => {
     let s = typeof fallback === 'string' ? fallback : key;

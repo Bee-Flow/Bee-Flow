@@ -6,7 +6,7 @@ import React from 'react';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ValidationLine } from './formPrimitives';
 import { VariablePickerProvider } from '../../mapping/VariablePickerContext';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 /**
  * The drawer's half of "one failure, one language" (the canvas half is

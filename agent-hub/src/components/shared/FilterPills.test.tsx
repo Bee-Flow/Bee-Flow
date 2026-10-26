@@ -4,7 +4,7 @@ import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import FilterPills, { FilterPill, PILL_TONES, pillStyle } from './FilterPills';
 import { FilterChip } from '../../pages/meeting-notes/library/LibraryFilters';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub, malformed } from '@/test/mocks';
 
 /**

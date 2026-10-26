@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import ThemePanel from './ThemePanel';
 import { updateAiBrowsing } from '../state/definitionOps';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { malformed, stub } from '@/test/mocks';
 
 /**

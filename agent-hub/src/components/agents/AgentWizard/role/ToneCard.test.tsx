@@ -9,7 +9,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 
 import { PERSONA_LIMITS } from './personaFacts';
 import ToneCard from './ToneCard';
-import { type TranslateParams } from '@/hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 
 const t = (key: string, fallback: string, params: TranslateParams) => {
     let s = typeof fallback === 'string' ? fallback : key;

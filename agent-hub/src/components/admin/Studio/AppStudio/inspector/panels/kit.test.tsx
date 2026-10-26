@@ -18,7 +18,7 @@ vi.mock('@/utils/helpers', async (importOriginal) => {
 });
 import { authFetch } from '@/utils/helpers';
 import { asMock, stub } from '@/test/mocks';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 const TASKS = {
     id: 'tbl_task', key: 'tasks', name: 'Tasks',

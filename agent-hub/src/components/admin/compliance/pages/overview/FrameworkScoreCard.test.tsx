@@ -4,7 +4,7 @@ import { Bot } from 'lucide-react';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import FrameworkScoreCard from './FrameworkScoreCard';
-import { type TranslateParams } from '@/hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 
 function tr(key: string, fallbackOrParams?: string | TranslateParams, paramsArg?: TranslateParams | null) {
     const hasFallback = typeof fallbackOrParams === 'string';

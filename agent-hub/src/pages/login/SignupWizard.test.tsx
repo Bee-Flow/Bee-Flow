@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import SignupWizard from './SignupWizard';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { partial, omitted } from '@/test/mocks';
 
 // The wizard shell is what we're testing; the step bodies are heavy (API calls,

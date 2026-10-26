@@ -4,7 +4,7 @@ import { describe, it, expect, vi, type Mock } from 'vitest';
 import MfaLoginStep from './MfaLoginStep';
 import { securityKeysSupported } from '../../api/queries/securityKeys';
 import { omitted } from '@/test/mocks';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 /**
  * CHARACTERISATION — the second-factor prompt exactly as it behaves today (L0).

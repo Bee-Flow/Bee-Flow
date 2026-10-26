@@ -4,7 +4,7 @@ import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import MeetingLibrary from './MeetingLibrary';
 import { omitted } from '@/test/mocks';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 /**
  * A failed list load must not render as an empty library.

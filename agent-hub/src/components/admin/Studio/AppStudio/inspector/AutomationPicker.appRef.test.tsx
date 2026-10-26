@@ -10,7 +10,7 @@ vi.mock('../../../../../utils/helpers', async (importOriginal) => ({
 }));
 
 import AutomationPicker from './AutomationPicker';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { partial } from '@/test/mocks';
 
 /**

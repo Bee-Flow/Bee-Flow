@@ -7,7 +7,7 @@ vi.mock('../../../../../pages/documents/documentsApi',()=>api);
 vi.mock('../../../../../hooks/useTranslation',()=>({default:()=>({locale:'en'})}));
 vi.mock('../inspector/panels/BindingField/index',()=>({default:()=> <div data-testid="binding"/>}));
 import DocumentFillFields from './DocumentFillFields';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { partial, omitted } from '@/test/mocks';
 // Every wait in this file is a POSITIVE one: the contract, the template list
 // and the onChange all do arrive, and the only question is when. One second

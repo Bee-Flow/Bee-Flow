@@ -6,8 +6,8 @@ import { READ } from './canUseFacts';
 import { automationRows, toolRows } from './toolGrants';
 import { ACT_AS, CONFIRM } from './toolGrants.helpers';
 import ToolsCard from './ToolsCard';
-import { type TranslateParams } from '@/hooks/useTranslation';
-import { type ComponentProps } from 'react';
+import type { TranslateParams } from '@/hooks/useTranslation';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 /**

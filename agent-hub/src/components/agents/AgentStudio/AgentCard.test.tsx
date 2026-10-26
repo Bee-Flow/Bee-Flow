@@ -18,7 +18,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 vi.mock('../../../hooks/useTranslation', () => import('../../../test/useTranslationMock'));
 
 import AgentCard from './AgentCard';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 const t = (key: string, fallback: string) => (typeof fallback === 'string' ? fallback : key);

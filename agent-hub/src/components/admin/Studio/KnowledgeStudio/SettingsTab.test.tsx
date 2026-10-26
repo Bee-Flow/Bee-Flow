@@ -6,7 +6,7 @@ import { knowledgeApi } from './knowledgeApi';
 import SettingsTab, { surfacesOf } from './SettingsTab';
 import { attachedCount } from './SettingsTabSection2';
 import { omitted, partial, malformed } from '@/test/mocks';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 /**
  * The settings tab puts two questions next to each other that look like one:

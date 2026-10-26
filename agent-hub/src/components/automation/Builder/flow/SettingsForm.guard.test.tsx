@@ -8,7 +8,7 @@ import { authFetch } from '../../../../utils/helpers';
 import scopedStorage from '../../../../utils/scopedStorage';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import { asMock } from '@/test/mocks';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 vi.mock('../../../../utils/helpers', async (orig) => ({
     ...(await orig()),

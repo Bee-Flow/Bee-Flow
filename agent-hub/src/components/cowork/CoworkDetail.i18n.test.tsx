@@ -32,7 +32,7 @@ const api = vi.hoisted(() => ({
 vi.mock('../../api/coworkApi', () => api);
 
 import CoworkDetail from './CoworkDetail';
-import { type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 const item = {
     id: 'w1',

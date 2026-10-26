@@ -47,8 +47,8 @@ vi.mock('../../components/admin/Studio/AppStudio/studioAppsApi', () => {
 import AppsHomePage from './AppsHomePage';
 import { studioAppsApi } from '../../components/admin/Studio/AppStudio/studioAppsApi';
 import scopedStorage from '../../utils/scopedStorage';
-import { type TranslateParams } from '@/hooks/useTranslation';
-import { type ReactNode } from 'react';
+import type { TranslateParams } from '@/hooks/useTranslation';
+import type { ReactNode } from 'react';
 import { asMock } from '@/test/mocks';
 
 const app = (id: string, extra = {}) => ({ id, name: `App ${id}`, isPublished: true, ...extra });

@@ -6,7 +6,7 @@ import SettingsForm from './SettingsForm';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import { extractFormState, buildPatch } from './settings/formState';
 import scopedStorage from '../../../../utils/scopedStorage';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 // The URL panel talks to the API on mount; the form editor itself is what is

@@ -5,8 +5,8 @@ import { describe, it, expect, vi } from 'vitest';
 
 import TestChatNotice from './TestChatNotice';
 import ToolConfirmCard from './ToolConfirmCard';
-import { type TranslateParams } from '@/hooks/useTranslation';
-import { type ComponentProps } from 'react';
+import type { TranslateParams } from '@/hooks/useTranslation';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 /**

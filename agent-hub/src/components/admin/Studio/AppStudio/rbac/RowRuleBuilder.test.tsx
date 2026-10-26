@@ -4,7 +4,7 @@ import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import RowRuleBuilder from './RowRuleBuilder';
 import { buildRowRule } from './rowRuleModel';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 const table = {

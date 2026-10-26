@@ -2,7 +2,7 @@ import { render, cleanup } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, afterEach } from 'vitest';
 import CardActionWrapper from './CardActionWrapper';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 // The wrapper originally hard-coded target="_blank" because cardUrl was only
 // ever an external URL. Cards now also link to our own pages (the /compare hub

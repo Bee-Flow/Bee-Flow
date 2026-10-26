@@ -5,7 +5,7 @@ import DataExtractionNode from './DataExtractionNode';
 import { NodeRuntimeContext } from '../NodeRuntimeContext';
 import { dataExtractionSummary } from '../nodeSummaries';
 import { partial, stub } from '@/test/mocks';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 /**
  * The Extract data card: the AI family's chrome, no tools port, and at a

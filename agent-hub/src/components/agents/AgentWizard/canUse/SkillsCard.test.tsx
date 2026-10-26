@@ -14,7 +14,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { READ } from './canUseFacts';
 import SkillsCard from './SkillsCard';
 import { CHOOSER_SECTION } from './toolChooser';
-import { type TranslateParams } from '@/hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 
 const t = (key: string, fallback: string, params: TranslateParams) => {
     let s = typeof fallback === 'string' ? fallback : key;

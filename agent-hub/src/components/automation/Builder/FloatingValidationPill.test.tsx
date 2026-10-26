@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import FloatingValidationPill from './FloatingValidationPill';
 import { omitted } from '@/test/mocks';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 const def = {
     trigger: { id: 'trg', label: 'Manual trigger' },

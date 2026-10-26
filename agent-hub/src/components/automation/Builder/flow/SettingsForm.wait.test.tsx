@@ -2,7 +2,7 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 // BFSF-345 — the Wait step's duration field.
 //

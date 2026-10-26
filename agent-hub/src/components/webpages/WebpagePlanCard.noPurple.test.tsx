@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import WebpagePlanCard from './WebpagePlanCard';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 // Hard project rule: no purple/violet/indigo anywhere. The pending plan tone

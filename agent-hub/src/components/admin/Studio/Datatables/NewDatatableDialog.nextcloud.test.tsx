@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { datatablesApi } from './datatablesApi';
 import NewDatatableDialog from './NewDatatableDialog';
 import { asMock, stub } from '@/test/mocks';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 /**
  * The third card — "A table from Nextcloud" — and its hand-off to the wizard.

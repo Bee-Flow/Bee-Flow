@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GeneratedFiles } from './GeneratedMedia';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { partial } from '@/test/mocks';
 
 /**

@@ -56,7 +56,7 @@ vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationPara
 import { STUDIO_APPS, resolveStudioNav } from './studioApps';
 import StudioHomeHeader from './StudioHomeHeader';
 import { queryWrapper } from '../../../test/queryWrapper';
-import { type ReactElement } from 'react';
+import type { ReactElement } from 'react';
 
 // The hooks under this tree read through React Query, so every render needs
 // a client above it — a fresh one per render, never the app singleton.

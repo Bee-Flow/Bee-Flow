@@ -25,7 +25,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { omitted } from '@/test/mocks';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 const api = { suggestRouteRules: vi.fn() };
 vi.mock('../../../../../hooks/useAutomationApi', () => ({ default: () => api }));

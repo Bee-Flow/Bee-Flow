@@ -16,7 +16,7 @@ import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect } from 'vitest';
 import { FormWaitingView } from './PublicFormRenderer';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 describe('FormWaitingView', () => {

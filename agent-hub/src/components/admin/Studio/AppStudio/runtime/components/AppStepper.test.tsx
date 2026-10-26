@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import AppStepper from './AppStepper';
 import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
 import { runtimeValue } from '@/test/appRuntime';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 /**

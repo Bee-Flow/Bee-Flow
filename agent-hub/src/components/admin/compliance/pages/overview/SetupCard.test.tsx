@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import SetupCard from './SetupCard';
-import { type TranslateParams } from '@/hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 
 // The tiles reuse the shipped wizard keys (`compliance.wizard_step_*`,
 // `compliance.lb_*`, `compliance.residency_*`), so the stub reads the real

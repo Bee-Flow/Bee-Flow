@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect } from 'vitest';
 import AppTabs, { tabBadgeContent } from './AppTabs';
 import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
-import { type ReactElement } from 'react';
+import type { ReactElement } from 'react';
 
 /**
  * tabs.look (spec: server/appStudio/componentSpecs.js).

@@ -4,7 +4,7 @@ import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import Info from './Info';
 import FieldHint from '../../../automation/Builder/flow/FieldHint';
-import { type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 /**
  * BFSF-362 regression — "field help tooltip overflows panel bounds and

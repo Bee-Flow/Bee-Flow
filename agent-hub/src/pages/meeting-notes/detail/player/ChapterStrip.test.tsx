@@ -4,7 +4,7 @@ import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import ChapterStrip from './ChapterStrip';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { partial } from '@/test/mocks';
 
 // Blocks in the shape normalizeChapters produces.

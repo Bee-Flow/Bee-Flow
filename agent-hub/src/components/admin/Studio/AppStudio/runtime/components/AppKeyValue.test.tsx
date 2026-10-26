@@ -2,7 +2,7 @@ import { render } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import AppKeyValue from './AppKeyValue';
 import { RuntimeProvider, DEFAULT_RUNTIME } from '../RuntimeContext';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 /**

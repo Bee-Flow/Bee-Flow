@@ -7,7 +7,7 @@ vi.mock('../../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn(
 
 import useAppRoles, { mergeAccess } from './useAppRoles';
 import { authFetch } from '../../../../../utils/helpers';
-import { type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { asMock, stub } from '@/test/mocks';
 
 const resp = (status: number, body: unknown) => ({ ok: status >= 200 && status < 300, status, json: async () => body });

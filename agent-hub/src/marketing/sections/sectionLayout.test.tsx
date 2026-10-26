@@ -16,7 +16,7 @@ import { render } from '@testing-library/react';
 import { describe, it, expect, afterEach } from 'vitest';
 import Integrations from './Integrations.jsx';
 import Steps from './Steps.jsx';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 const chapters = (items: unknown[]) => render(

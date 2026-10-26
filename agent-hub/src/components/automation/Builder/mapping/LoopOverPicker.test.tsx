@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import LoopOverPicker from './LoopOverPicker';
 import { VariablePickerProvider } from './VariablePickerContext';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { partial } from '@/test/mocks';
 
 const groups = [

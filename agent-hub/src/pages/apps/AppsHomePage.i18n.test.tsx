@@ -57,7 +57,7 @@ vi.mock('../../components/admin/Studio/AppStudio/studioAppsApi', () => {
 import AppsHomePage from './AppsHomePage';
 import { studioAppsApi } from '../../components/admin/Studio/AppStudio/studioAppsApi';
 import scopedStorage from '../../utils/scopedStorage';
-import { type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { asMock } from '@/test/mocks';
 
 beforeEach(() => {

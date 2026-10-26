@@ -7,7 +7,7 @@ import ColumnDesigner from './ColumnDesigner';
 import { datatablesApi } from './datatablesApi';
 import NewDatatableDialog from './NewDatatableDialog';
 import { asMock, partial } from '@/test/mocks';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 /**
  * "Build it with AI" for a table:

@@ -3,7 +3,7 @@ import React from 'react';
 import { describe, it, expect } from 'vitest';
 import SentInputsTable, { buildRows } from './SentInputsTable';
 import { partial, stub } from '@/test/mocks';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 /**
  * "What gets sent", read-first. The interesting cases are all the ones where

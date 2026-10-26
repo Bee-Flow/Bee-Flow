@@ -32,7 +32,7 @@ vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationP
 import { STUDIO_APPS, resolveStudioNav } from '../studioApps';
 import DescribeItPanel from './DescribeItPanel';
 import { takeSeed } from './handoff';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 const allOpen = () => resolveStudioNav(STUDIO_APPS, {

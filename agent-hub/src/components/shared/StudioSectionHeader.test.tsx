@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { Settings } from 'lucide-react';
 import { describe, expect, it, vi } from 'vitest';
 import StudioSectionHeader, { OBJHEAD, OBJHEAD_FOLD, PRIMARY_ACTION_STYLE } from './StudioSectionHeader';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 /**

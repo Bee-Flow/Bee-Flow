@@ -79,7 +79,7 @@ vi.mock('../studioAppsApi', () => {
 import AppEditorShell from './AppEditorShell';
 import { useAppEditor } from '../state/AppEditorContext';
 import { KITCHEN_SINK } from '../state/sampleDefinitions';
-import { type TranslateParams } from '@/hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 
 // The palette reads the session-cached component catalog, so the shell needs
 // the QueryClient it always has around it in the app.

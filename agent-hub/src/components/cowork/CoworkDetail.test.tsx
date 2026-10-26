@@ -4,7 +4,7 @@ import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import CoworkDetail from './CoworkDetail';
 import { queryWrapper } from '../../test/queryWrapper';
-import { type ReactElement } from 'react';
+import type { ReactElement } from 'react';
 
 // A fresh React Query client per render: the hooks below read through one.
 const render = (ui: ReactElement, options?: RenderOptions<typeof import("@testing-library/dom/types/queries"),HTMLElement,HTMLElement>|undefined) => rtlRender(ui, { wrapper: queryWrapper(), ...options });

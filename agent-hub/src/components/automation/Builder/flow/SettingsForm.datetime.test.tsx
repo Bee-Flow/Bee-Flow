@@ -4,7 +4,7 @@ import { dateInputPatch } from './datetimeTarget';
 import SettingsForm from './SettingsForm';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import { extractFormState, buildPatch } from './settings/formState';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 /**
  * Date & time over a whole column (BFSF-375).

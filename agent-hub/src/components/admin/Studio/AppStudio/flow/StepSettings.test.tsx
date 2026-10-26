@@ -7,7 +7,7 @@ import { authFetch } from '@/utils/helpers';
 import StepSettings from './StepSettings';
 import { EditorChromeContext } from '../editor/EditorChromeContext';
 import { asMock, stub } from '@/test/mocks';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 /**
  * A reference is a PICK, never a typed id.

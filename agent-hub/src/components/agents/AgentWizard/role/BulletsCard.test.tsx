@@ -12,8 +12,8 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 
 import BulletsCard from './BulletsCard';
 import { PERSONA_LIMITS } from './personaFacts';
-import { type TranslateParams } from '@/hooks/useTranslation';
-import { type ComponentProps } from 'react';
+import type { TranslateParams } from '@/hooks/useTranslation';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 const t = (key: string, fallback: string, params: TranslateParams) => {

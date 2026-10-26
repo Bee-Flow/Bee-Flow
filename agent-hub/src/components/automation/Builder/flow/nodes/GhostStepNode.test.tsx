@@ -3,7 +3,7 @@ import { ReactFlowProvider } from '@xyflow/react';
 import React from 'react';
 import { describe, it, expect, beforeEach } from 'vitest';
 import GhostStepNode from './GhostStepNode';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { partial, stub } from '@/test/mocks';
 
 /**

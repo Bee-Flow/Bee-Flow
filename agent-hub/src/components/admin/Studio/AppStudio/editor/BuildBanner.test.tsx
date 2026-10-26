@@ -3,7 +3,7 @@ import React from 'react';
 import { describe, expect, it } from 'vitest';
 import BuildBanner from './BuildBanner';
 import { BuildCueContext, BuildCueValue } from './BuildCueContext';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 // The English fallbacks render (no translation provider mounted), which is

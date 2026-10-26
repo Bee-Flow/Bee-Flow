@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import CanvasSouthBar from './CanvasSouthBar';
 import { nodeTypeLabel } from './nodeDefs';
 import { describeToolCall, ToolCall } from '../chat/toolCallDisplay';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 /**

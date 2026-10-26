@@ -22,7 +22,7 @@ vi.mock('../../shell/NavLink', () => ({ default: ({ children, ...p }: ComponentP
 
 import StudioRail from './StudioRail';
 import { renderWithClient as render } from '../../../test/render';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { partial } from '@/test/mocks';
 
 const SECTIONS = [

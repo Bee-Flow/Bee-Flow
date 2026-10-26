@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
 import scopedStorage from '../../../../utils/scopedStorage';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 const noIssues = { errors: [], warnings: [] };
 

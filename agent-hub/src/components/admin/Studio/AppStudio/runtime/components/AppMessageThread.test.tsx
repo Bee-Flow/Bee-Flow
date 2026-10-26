@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import AppMessageThread from './AppMessageThread';
 import { RuntimeProvider, DEFAULT_RUNTIME } from '../RuntimeContext';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 /**

@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import LogicSection from './LogicSection';
 import { findNode } from '../../state/definitionOps';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 /**

@@ -19,8 +19,8 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 
 import SuggestedTestForm from './SuggestedTestForm';
 import { refusalFor } from './testSetFacts';
-import { type TranslateParams } from '@/hooks/useTranslation';
-import { type ComponentProps } from 'react';
+import type { TranslateParams } from '@/hooks/useTranslation';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 const t = (key: string, fallback: string, params: TranslateParams) => {

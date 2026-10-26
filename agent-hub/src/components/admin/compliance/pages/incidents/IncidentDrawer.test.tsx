@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import IncidentDrawer, { savePatch, craBody } from './IncidentDrawer';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 vi.mock('../../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));

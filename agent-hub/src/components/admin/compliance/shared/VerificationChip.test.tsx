@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import VerificationChip, { VERIFICATION_KINDS } from './VerificationChip';
 import { omitted } from '@/test/mocks';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 describe('VerificationChip — measured vs declared must never look alike', () => {
     it('automated: solid border-default hairline, one ScanSearch glyph, the existing label + hint', () => {

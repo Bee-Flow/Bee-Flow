@@ -3,8 +3,8 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import DeadlineClock, { clockLabel, clockRowLabel, clockShortLabel, resolveClock, useNow } from './DeadlineClock';
 import { DAY_MS, HOUR_MS } from './deadlineMath';
-import { type TranslateParams } from '@/hooks/useTranslation';
-import { type ComponentProps } from 'react';
+import type { TranslateParams } from '@/hooks/useTranslation';
+import type { ComponentProps } from 'react';
 import { malformed } from '@/test/mocks';
 
 /**

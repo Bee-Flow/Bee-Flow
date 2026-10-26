@@ -5,7 +5,7 @@ import SettingsForm from './SettingsForm';
 import { editor, typeInEditor } from '../../../../test/refEditor';
 import scopedStorage from '../../../../utils/scopedStorage';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { partial, stub } from '@/test/mocks';
 
 /**

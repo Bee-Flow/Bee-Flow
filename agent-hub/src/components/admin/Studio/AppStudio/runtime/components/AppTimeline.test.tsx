@@ -2,8 +2,7 @@ import { render, RenderResult } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import AppTimeline from './AppTimeline';
 import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
-import { type ReactElement } from 'react';
-import { type ComponentProps } from 'react';
+import type { ReactElement, ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 /**

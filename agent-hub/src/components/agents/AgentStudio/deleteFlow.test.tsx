@@ -40,7 +40,7 @@ vi.mock('../AgentWizard/AgentEditorBootstrapContext', () => ({
 }));
 
 import AgentStudio from './index';
-import { type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 // `can_edit: true` is not decoration: since A5 part C the card shows the bin only on an
 // EXPLICIT true (`/agents/all` always sets it; `/agents/system` does not, and such a row

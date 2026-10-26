@@ -2,7 +2,7 @@
 import { describe, expect, it, test } from 'vitest';
 import nodeLogicSummary, { collectLogicMarks, countLogicMarks, subtreeHasLogic } from './nodeLogicSummary';
 import { stub } from '@/test/mocks';
-import { type TranslateParams } from '@/hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 
 /**
  * The canvas drew components and nothing else. "Which button does something?

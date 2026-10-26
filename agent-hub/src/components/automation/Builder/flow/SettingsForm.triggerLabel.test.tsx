@@ -4,7 +4,7 @@ import SettingsForm from './SettingsForm';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import { buildPatch } from './settings/formState';
 import { defaultTriggerLabel, isGeneratedTriggerLabel, triggerTypeLabel } from './triggerLabels';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 // BFSF-339 — switching a trigger's kind left the canvas node and this modal's
 // own header both reading "Manual", because `label` was stored by the palette

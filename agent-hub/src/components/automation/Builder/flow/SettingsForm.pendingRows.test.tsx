@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import { buildPatch } from './settings/formState';
 import scopedStorage from '../../../../utils/scopedStorage';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 
 /**
  * Pending rows — "I clicked Add a document and it vanished".

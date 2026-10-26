@@ -5,7 +5,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DatatableDetail from './DatatableDetail';
 import { datatablesApi } from './datatablesApi';
 import { asMock, stub } from '@/test/mocks';
-import { type ComponentProps } from 'react';
 
 /**
  * The retention tab, which is the only control in this section that DELETES

@@ -58,7 +58,7 @@ import ComponentRibbon from './ComponentRibbon';
 import * as scopedStorage from '../../../../../utils/scopedStorage';
 import { AppEditorProvider } from '../state/AppEditorContext';
 import { KITCHEN_SINK } from '../state/sampleDefinitions';
-import { type TranslateParams } from '@/hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 
 const RIBBON_TAB_KEY = 'appStudioRibbonTab';
 

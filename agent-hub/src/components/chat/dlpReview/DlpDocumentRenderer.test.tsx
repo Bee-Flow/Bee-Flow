@@ -2,7 +2,7 @@ import { render, screen, cleanup } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, beforeEach } from 'vitest';
 import DlpDocumentRenderer from './DlpDocumentRenderer';
-import { type ComponentProps } from 'react';
+import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 const SHEET = '| Naam | Bedrag |\n| --- | --- |\n| Jan Jansen | 100 |\n| Piet Puk | 250 |\n';
