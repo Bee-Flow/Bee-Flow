@@ -75,6 +75,7 @@ function secretPath() {
 function loadSecret() {
     if (_secret) return _secret;
     try {
+        // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- reads the bot secret from its file at runtime; nothing is hardcoded
         const raw = /** @type {{ secret?: unknown } | null} */ (JSON.parse(fs.readFileSync(secretPath(), 'utf8')));
         if (raw && typeof raw.secret === 'string' && raw.secret) _secret = raw.secret;
     } catch (_) { /* not registered yet, or unreadable — treated as absent */ }
