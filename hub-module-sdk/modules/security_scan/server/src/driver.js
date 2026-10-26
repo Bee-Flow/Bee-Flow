@@ -23,12 +23,61 @@ const path = require('path');
 
 const { makeZapClient } = require('./zapClient');
 const aggressionPolicy = require('./aggression');
+const { errMessage } = require('./errors');
+
+/**
+ * @typedef {import('../../../../types/host').Host} Host
+ * @typedef {import('../../../../types/host').ChatMessage} ChatMessage
+ * @typedef {import('../../../../types/host').UnifiedTool} UnifiedTool
+ * @typedef {import('./reportBuilder').Finding} Finding
+ * @typedef {import('./reportBuilder').Severity} Severity
+ * @typedef {import('./reportBuilder').SeverityCounts} SeverityCounts
+ * @typedef {import('./store').EngineDescriptor} EngineDescriptor
+ * @typedef {import('./store').JsonObject} JsonObject
+ * @typedef {import('./scanRunner.service').ExecFn} ExecFn
+ * @typedef {import('./scanRunner.service').ZapEndpoint} ZapEndpoint
+ * @typedef {import('./scanRunner.service').LineSink} LineSink
+ * @typedef {ReturnType<typeof import('./store').makeSecurityScanStore>} ScanStore
+ * @typedef {ReturnType<typeof import('./reportBuilder').create>} ReportBuilder
+ *
+ * What the model passes to a tool: a JSON object whose fields each tool reads and coerces itself.
+ * @typedef {Record<string, unknown>} ToolInput
+ *
+ * What a tool answers the model with.
+ * @typedef {Record<string, unknown>} ToolResult
+ *
+ * Run a scan engine inside the toolbox and read its JSON report back.
+ * @typedef {(engine: string, options?: { tags?: string, templates?: string }) => Promise<{ json: unknown, exitCode: number, timedOut: boolean }>} RunEngine
+ *
+ * Everything runAgentScan needs for one scan.
+ * @typedef {object} AgentScanArgs
+ * @property {string} scanId
+ * @property {string} targetUrl
+ * @property {EngineDescriptor[]} engines
+ * @property {string} userId
+ * @property {string | null} [organizationId]
+ * @property {string | null} [modelTier]
+ * @property {string | null} [aggression]
+ * @property {number | null} [maxSteps]
+ * @property {ZapEndpoint} zap
+ * @property {{ exec: ExecFn }} terminal
+ * @property {LineSink} [onLine]
+ * @property {RunEngine} runEngine
+ *
+ * @typedef {object} AgentScanOutcome
+ * @property {'completed' | 'cancelled' | 'error'} status
+ * @property {JsonObject} [reportJson]
+ * @property {string | null} [reportWebpageId]
+ * @property {SeverityCounts} [severitySummary]
+ * @property {string} [error]
+ */
 
 const SCAN_PROMPT_PATH = path.join(__dirname, 'prompts', 'security-scan-prompt.md');
 
 const DEFAULT_MAX_STEPS = parseInt(process.env.SECURITY_AGENT_MAX_STEPS || '60', 10);
 const MAX_STEPS_CEILING = parseInt(process.env.SECURITY_AGENT_MAX_STEPS_CEILING || '300', 10);
 const FALLBACK_MODEL = 'claude-sonnet-4-6';
+/** @type {Severity[]} */
 const SEVERITIES = ['high', 'medium', 'low', 'informational'];
 const FALLBACK_TIER = 'tier:thinking';
 
@@ -41,6 +90,7 @@ const TERMINAL_MAX_TIMEOUT_MS = () => parseInt(process.env.SECURITY_TERMINAL_MAX
 const TERMINAL_OUTPUT_CAP = parseInt(process.env.SECURITY_TERMINAL_OUTPUT_CAP || '16000', 10);
 
 // Shell-quote a value for safe single-command interpolation.
+/** @param {unknown} v */
 function _shq(v) {
     return `'${String(v).replace(/'/g, `'\\''`)}'`;
 }
@@ -48,6 +98,10 @@ function _shq(v) {
 // Resolve an agent-supplied path under WORK_DIR; null if it escapes the sandbox
 // dir (defence in depth — the container is already isolated, but file tools
 // shouldn't wander outside the scratch dir).
+/**
+ * @param {unknown} p
+ * @returns {string | null}
+ */
 function _safeWorkPath(p) {
     const raw = String(p || '').trim();
     if (!raw) return null;
@@ -61,6 +115,7 @@ function _loadPrompt() {
     catch (_) { return ''; }
 }
 
+/** @param {unknown} m */
 function isClaude(m) {
     return typeof m === 'string' && /^claude/i.test(m);
 }
@@ -190,6 +245,10 @@ const TOOLS = [
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
+/**
+ * @param {unknown} raw
+ * @returns {Severity}
+ */
 function _clampSeverity(raw) {
     const s = String(raw || '').trim().toLowerCase();
     if (s === 'high' || s === 'critical') return 'high';
@@ -201,6 +260,10 @@ function _clampSeverity(raw) {
 // One-line, log-safe summary of a tool input. Never surfaces secrets — the
 // only secret in play (the ZAP api.key) lives inside zapClient and is never in
 // a tool input.
+/**
+ * @param {ToolInput | null | undefined} input
+ * @returns {string}
+ */
 function _summarizeInput(input) {
     if (!input || typeof input !== 'object') return '';
     const parts = [];
@@ -219,6 +282,10 @@ function _summarizeInput(input) {
 // Compact ZAP alert payload for the tool_result — drop the heavy HTML fields
 // (we keep those in the normalized findings) and cap the list so a noisy target
 // can't blow up the context window.
+/**
+ * @param {readonly (import('./zapClient').ZapAlert | null | undefined)[] | null | undefined} alerts
+ * @param {number} [cap]
+ */
 function _compactAlerts(alerts, cap = 40) {
     const arr = Array.isArray(alerts) ? alerts : [];
     return arr.slice(0, cap).map(a => ({
@@ -234,6 +301,10 @@ function _compactAlerts(alerts, cap = 40) {
 // expects. The Claude adapter converts it back to input_schema internally;
 // OpenAI/Mistral/Google use it as-is. Kept as a derived copy so TOOLS stays the
 // single source of truth (and the helpers test keeps asserting on it).
+/**
+ * @param {{ name: string, description?: string, input_schema?: object }[]} tools
+ * @returns {UnifiedTool[]}
+ */
 function _toUnifiedTools(tools) {
     return (Array.isArray(tools) ? tools : []).map((t) => ({
         type: 'function',
@@ -249,6 +320,7 @@ const UNIFIED_TOOLS = _toUnifiedTools(TOOLS);
 // Plain-language description of what each aggression level permits. Steers the
 // agent's use of the free-form terminal (which can't be perfectly gated); the
 // structured zap_active_scan tool is additionally hard-gated.
+/** @type {Record<string, string>} */
 const AGGRESSION_GUIDANCE = {
     recon: 'RECON ONLY — discovery and passive reconnaissance (crawl, httpx, subfinder, whatweb, dig, curl, nmap TCP-connect). Do NOT send attack traffic, run ZAP active scan, fuzz, or run sqlmap.',
     passive: 'PASSIVE — recon plus non-intrusive scanning: ZAP passive alerts, safe Nuclei templates, testssl. Do NOT run ZAP active scan, fuzzing, or sqlmap attacks.',
@@ -256,6 +328,10 @@ const AGGRESSION_GUIDANCE = {
     offensive: 'OFFENSIVE — full authorized offensive testing: everything in ACTIVE plus sqlmap attacks and exploit-confirmation probes. Still no data destruction or exfiltration beyond what proves a finding.',
 };
 
+/**
+ * @param {{ targetUrl: string, engines: EngineDescriptor[], aggression: string, activeAllowed: boolean }} args
+ * @returns {string}
+ */
 function _buildSeedMessage({ targetUrl, engines, aggression, activeAllowed }) {
     const engineList = Array.isArray(engines) ? engines : [];
     const engineNames = engineList.map(e => (e && e.engine) ? e.engine : String(e)).filter(Boolean);
@@ -287,25 +363,28 @@ A sensible flow: zap_spider → zap_passive_status → zap_list_alerts, then run
 // ── Factory ────────────────────────────────────────────────────────────────
 
 /**
- * @param {object} deps
- * @param {any} deps.store         — the security scan store instance
- * @param {any} deps.reportBuilder — host-bound report builder (reportBuilder.create(host))
- * @param {any} deps.host          — the module host API (ai/usage seams)
+ * @param {{ store?: ScanStore, reportBuilder?: ReportBuilder, host?: Host }} [deps]
+ *        store - the security scan store instance; reportBuilder - host-bound report builder
+ *        (reportBuilder.create(host)); host - the module host API (ai/usage seams)
  */
-function makeDriver({ store, reportBuilder, host } = /** @type {any} */ ({})) {
+function makeDriver({ store, reportBuilder, host } = {}) {
     if (!store || !reportBuilder || !host) throw new Error('makeDriver: store, reportBuilder and host are required');
     const securityScanStore = store;
     const securityReportBuilder = reportBuilder;
+    /** @type {Host['ai']['resolveModelForTier']} */
     const resolveModelForTier = (ref, opts) => host.ai.resolveModelForTier(ref, opts);
+    /** @type {Host['ai']['getAdapter']} */
     const getAdapter = (type, url) => host.ai.getAdapter(type, url);
+    /** @type {Host['ai']['getProviderForModel']} */
     const getProviderForModel = (modelId) => host.ai.getProviderForModel(modelId);
+    /** @type {Host['usage']['logUsage']} */
     const logUsage = (entry) => host.usage.logUsage(entry);
 
     /**
      * Run the agentic security-scan tool-use loop.
      *
-     * @param {any} args  — see the built-in securityScanDriver.runAgentScan.
-     * @returns {Promise<{status:'completed'|'cancelled'|'error', reportJson?:object, reportWebpageId?:string|null, severitySummary?:object, error?:string}>}
+     * @param {AgentScanArgs} args  see the built-in securityScanDriver.runAgentScan.
+     * @returns {Promise<AgentScanOutcome>}
      */
     async function runAgentScan({
         scanId,
@@ -322,7 +401,7 @@ function makeDriver({ store, reportBuilder, host } = /** @type {any} */ ({})) {
         runEngine,
     }) {
         const stepCap = Math.min(
-            Math.max(parseInt(maxSteps, 10) || DEFAULT_MAX_STEPS, 1),
+            Math.max(parseInt(String(maxSteps), 10) || DEFAULT_MAX_STEPS, 1),
             MAX_STEPS_CEILING,
         );
 
@@ -333,10 +412,11 @@ function makeDriver({ store, reportBuilder, host } = /** @type {any} */ ({})) {
         // Single clock read at entry — keeps timestamps reproducible-ish.
         const startedAt = new Date().toISOString();
 
+        /** @param {unknown} line */
         const log = async (line) => {
             if (!line) return;
             try { await securityScanStore.appendProgress(scanId, line); } catch (_) {}
-            if (typeof onLine === 'function') { try { onLine(line); } catch (_) {} }
+            if (typeof onLine === 'function') { try { onLine(String(line)); } catch (_) {} }
         };
 
         // Resolve the user-selected model tier to a concrete model id, then route
@@ -346,6 +426,7 @@ function makeDriver({ store, reportBuilder, host } = /** @type {any} */ ({})) {
         const resolved = await resolveModelForTier(tierRef, { userOrgId: organizationId, userId });
 
         let modelId = resolved || FALLBACK_MODEL;
+        /** @type {import('../../../../types/host').ProviderRecord | null} */
         let provider = null;
         try {
             provider = await getProviderForModel(modelId);
@@ -366,7 +447,9 @@ function makeDriver({ store, reportBuilder, host } = /** @type {any} */ ({})) {
 
         // Per-engine finding arrays — fed to securityReportBuilder.aggregate() at
         // the end.
+        /** @type {Finding[][]} */
         const findingArrays = [];
+        /** @type {Finding[]} */
         const zapFindings = [];      // rebuilt from the latest listAlerts result
         findingArrays.push(zapFindings);
 
@@ -381,6 +464,11 @@ function makeDriver({ store, reportBuilder, host } = /** @type {any} */ ({})) {
         let erroredOut = false;
 
         // ── Tool dispatcher ───────────────────────────────────────────────────
+        /**
+         * @param {string | undefined} name
+         * @param {ToolInput} input
+         * @returns {Promise<ToolResult>}
+         */
         async function dispatch(name, input) {
             switch (name) {
                 case 'zap_spider': {
@@ -421,7 +509,7 @@ function makeDriver({ store, reportBuilder, host } = /** @type {any} */ ({})) {
 
                 case 'zap_list_alerts': {
                     const baseurl = String(input?.baseurl || targetUrl);
-                    const alerts = await zapClient.listAlerts({ baseurl, riskFilter: input?.riskFilter || undefined });
+                    const alerts = await zapClient.listAlerts({ baseurl, riskFilter: /** @type {string | string[] | undefined} */ (input?.riskFilter || undefined) });
                     const list = Array.isArray(alerts) ? alerts : [];
 
                     // Rebuild the ZAP finding bucket (in place) from the latest
@@ -506,7 +594,7 @@ function makeDriver({ store, reportBuilder, host } = /** @type {any} */ ({})) {
                 case 'terminal_exec': {
                     const command = String(input?.command || '').trim();
                     if (!command) return { ok: false, error: 'command is required' };
-                    const reqTimeout = parseInt(input?.timeoutMs, 10);
+                    const reqTimeout = parseInt(String(input?.timeoutMs), 10);
                     const timeoutMs = Number.isFinite(reqTimeout)
                         ? Math.min(Math.max(reqTimeout, 1000), TERMINAL_MAX_TIMEOUT_MS())
                         : TERMINAL_TIMEOUT_MS();
@@ -526,8 +614,8 @@ function makeDriver({ store, reportBuilder, host } = /** @type {any} */ ({})) {
                         });
                     } catch (e) {
                         securityScanStore.publishEvent(scanId, 'terminal', { exitCode: -1, done: true });
-                        await log(`[agent] terminal_exec failed: ${e.message}`);
-                        return { ok: false, error: e.message };
+                        await log(`[agent] terminal_exec failed: ${errMessage(e)}`);
+                        return { ok: false, error: errMessage(e) };
                     }
 
                     const exitCode = result?.exitCode != null ? result.exitCode : null;
@@ -549,7 +637,7 @@ function makeDriver({ store, reportBuilder, host } = /** @type {any} */ ({})) {
                     try {
                         result = await terminal.exec(cmd, { onChunk: () => {}, timeoutMs: 20000 });
                     } catch (e) {
-                        return { ok: false, error: e.message };
+                        return { ok: false, error: errMessage(e) };
                     }
                     const ok = result?.exitCode === 0;
                     await log(`[agent] file_write ${p} (${content.length} bytes)${ok ? '' : ' — failed'}`);
@@ -567,7 +655,7 @@ function makeDriver({ store, reportBuilder, host } = /** @type {any} */ ({})) {
                             timeoutMs: 20000,
                         });
                     } catch (e) {
-                        return { ok: false, error: e.message };
+                        return { ok: false, error: errMessage(e) };
                     }
                     if (result?.exitCode !== 0 && !out) return { ok: false, error: 'file not found or unreadable' };
                     return { ok: true, path: p, content: out.slice(0, 20000) };
@@ -601,6 +689,7 @@ function makeDriver({ store, reportBuilder, host } = /** @type {any} */ ({})) {
 
         // ── The loop ──────────────────────────────────────────────────────────
         const systemPrompt = _loadPrompt();
+        /** @type {ChatMessage[]} */
         const messages = [];
         if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
         messages.push({ role: 'user', content: _buildSeedMessage({ targetUrl, engines, aggression: effectiveAggression, activeAllowed }) });
@@ -616,15 +705,17 @@ function makeDriver({ store, reportBuilder, host } = /** @type {any} */ ({})) {
                 }
                 stepCount += 1;
 
+                /** @type {import('../../../../types/host').ChatResponse} */
                 let response;
                 try {
+                    if (!adapter) throw new Error(`no adapter for provider type ${provider.providerType}`);
                     response = await adapter.chat(provider.apiKey, provider.url, modelId, messages, {
                         maxTokens: 4096,
                         tools: UNIFIED_TOOLS,
                         toolChoice: 'auto',
                     });
                 } catch (e) {
-                    await log(`[agent] llm error: ${e.message}`);
+                    await log(`[agent] llm error: ${errMessage(e)}`);
                     erroredOut = true;
                     break;
                 }
@@ -662,11 +753,12 @@ function makeDriver({ store, reportBuilder, host } = /** @type {any} */ ({})) {
                 // Normalize each tool call to { id, name, input } regardless of provider.
                 const toolUses = toolCalls.map((tc) => {
                     const fn = tc.function || tc;
+                    /** @type {ToolInput} */
                     let input = {};
                     try {
                         input = typeof fn.arguments === 'string'
                             ? JSON.parse(fn.arguments || '{}')
-                            : (fn.arguments || fn.input || {});
+                            : (fn.arguments || ('input' in fn ? fn.input : undefined) || {});
                     } catch (_) { input = {}; }
                     return { id: tc.id, name: fn.name, input };
                 });
@@ -681,6 +773,7 @@ function makeDriver({ store, reportBuilder, host } = /** @type {any} */ ({})) {
                     break;
                 }
 
+                /** @type {ChatMessage[]} */
                 const toolMessages = [];
                 for (const tu of toolUses) {
                     if (securityScanStore.isCancelRequested(scanId)) { cancelled = true; break; }
@@ -694,11 +787,12 @@ function makeDriver({ store, reportBuilder, host } = /** @type {any} */ ({})) {
                     });
                     await log(`[agent] ${tu.name} ${summary}`);
 
+                    /** @type {ToolResult} */
                     let result;
                     try {
                         result = await dispatch(tu.name, tu.input || {});
                     } catch (e) {
-                        result = { ok: false, error: e.message };
+                        result = { ok: false, error: errMessage(e) };
                     }
 
                     toolMessages.push({
@@ -716,7 +810,7 @@ function makeDriver({ store, reportBuilder, host } = /** @type {any} */ ({})) {
                 await log(`[agent] reached MAX_STEPS=${stepCap}, ending`);
             }
         } catch (e) {
-            await log(`[agent] session aborted: ${e.message}`);
+            await log(`[agent] session aborted: ${errMessage(e)}`);
             erroredOut = true;
         }
 
@@ -724,10 +818,12 @@ function makeDriver({ store, reportBuilder, host } = /** @type {any} */ ({})) {
         const finishedAt = new Date().toISOString();
         const { findings, severitySummary } = securityReportBuilder.aggregate(findingArrays);
 
+        /** @type {string | null} */
         let reportWebpageId = null;
-        let html, css;
+        /** @type {{ html: string, css: string } | null} */
+        let page = null;
         try {
-            ({ html, css } = securityReportBuilder.renderReportHtml({
+            page = securityReportBuilder.renderReportHtml({
                 targetUrl,
                 engines,
                 findings,
@@ -735,16 +831,16 @@ function makeDriver({ store, reportBuilder, host } = /** @type {any} */ ({})) {
                 startedAt,
                 finishedAt,
                 narrative: doneReport,
-            }));
+            });
         } catch (e) {
-            await log(`[agent] report render failed: ${e.message}`);
+            await log(`[agent] report render failed: ${errMessage(e)}`);
         }
 
-        if (html != null) {
+        if (page) {
             reportWebpageId = await securityReportBuilder
-                .persistReportWebpage({ userId, targetUrl, html, css })
+                .persistReportWebpage({ userId, targetUrl, html: page.html, css: page.css })
                 .catch(async (e) => {
-                    await log(`[agent] report webpage persist failed: ${e.message}`);
+                    await log(`[agent] report webpage persist failed: ${errMessage(e)}`);
                     return null;
                 });
         }

@@ -18,6 +18,38 @@
 
 // Canonical severity scale, ordered most→least severe. Used for sorting,
 // bucketing and summary keys so every engine speaks the same language.
+/**
+ * @typedef {'high' | 'medium' | 'low' | 'informational'} Severity
+ * @typedef {import('../../../../types/host').Host} Host
+ * @typedef {{ high: number, medium: number, low: number, informational: number }} SeverityCounts
+ *
+ * One finding, normalised from any engine (or recorded by the agent itself).
+ * @typedef {object} Finding
+ * @property {string} engine           'zap' | 'nuclei' | 'testssl' | 'agent'
+ * @property {string} name
+ * @property {Severity} severity
+ * @property {string} [confidence]
+ * @property {string} [description]
+ * @property {string} [solution]
+ * @property {string} [reference]
+ * @property {string} [evidence]
+ * @property {number} [instanceCount]
+ * @property {string[]} [sampleInstances]
+ */
+
+/**
+ * The parts of an engine's own report that are read below. All optional: a report may be partial or garbage.
+ * @typedef {{ riskcode?: string | number, alert?: string, name?: string, confidence?: string | number, desc?: string,
+ *   description?: string, solution?: string, reference?: string, count?: string | number, instances?: ({ uri?: string } | null)[] }} ZapReportAlert
+ * @typedef {{ alerts?: (ZapReportAlert | null)[] }} ZapReportSite
+ * @typedef {{ site?: ZapReportSite | ZapReportSite[] }} ZapReport
+ * @typedef {{ info?: { name?: string, severity?: string, description?: string, remediation?: string, reference?: string | string[] },
+ *   'template-id'?: string, templateID?: string, 'matched-at'?: string, matched?: string, host?: string, url?: string }} NucleiEntry
+ * @typedef {{ id?: string, severity?: string, finding?: string }} TestsslRow
+ * @typedef {Finding & { instanceCount: number, sampleInstances: string[] }} CountedFinding
+ */
+
+/** @type {readonly Severity[]} */
 const SEVERITY_ORDER = ['high', 'medium', 'low', 'informational'];
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -26,6 +58,8 @@ const SEVERITY_ORDER = ['high', 'medium', 'low', 'informational'];
  * HTML-escape a value for safe interpolation into the report. Findings come
  * from third-party scanners pointed at attacker-influenced targets, so every
  * scrap of engine text is treated as hostile and escaped before rendering.
+ * @param {unknown} v
+ * @returns {string}
  */
 function esc(v) {
     if (v === null || v === undefined) return '';
@@ -42,17 +76,23 @@ function esc(v) {
  * SECURITY: the model's text is untrusted, so we esc() FIRST and only then add
  * our own tags for a tiny safe subset (headings, bold/italic, inline code,
  * bullet/numbered lists, paragraphs). No raw HTML from the model ever survives.
+ * @param {unknown} md
+ * @returns {string}
  */
 function renderMarkdown(md) {
     const src = String(md || '').replace(/\r\n/g, '\n').trim();
     if (!src) return '';
+    /** @param {string} s */
     const inline = (s) => esc(s)
         .replace(/`([^`]+)`/g, '<code>$1</code>')
         .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
         .replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
+    /** @type {string[]} */
     const out = [];
+    /** @type {string[]} */
     let para = [];
-    let list = null; // 'ul' | 'ol'
+    /** @type {'ul' | 'ol' | null} */
+    let list = null;
     const flushPara = () => { if (para.length) { out.push(`<p>${inline(para.join(' '))}</p>`); para = []; } };
     const flushList = () => { if (list) { out.push(`</${list}>`); list = null; } };
     for (const raw of src.split('\n')) {
@@ -71,6 +111,10 @@ function renderMarkdown(md) {
 }
 
 // Coerce whatever the scanner handed us into a non-empty trimmed string, or ''.
+/**
+ * @param {unknown} v
+ * @returns {string}
+ */
 function str(v) {
     if (v === null || v === undefined) return '';
     return String(v).trim();
@@ -78,6 +122,7 @@ function str(v) {
 
 // Pull the hostname out of a target URL for display + the webpage name. Falls
 // back to the raw string if it doesn't parse as a URL (e.g. bare host:port).
+/** @param {string} targetUrl */
 function hostOf(targetUrl) {
     try {
         return new URL(targetUrl).host || str(targetUrl);
@@ -87,6 +132,10 @@ function hostOf(targetUrl) {
 }
 
 // Clamp arbitrary engine severity labels onto the canonical scale.
+/**
+ * @param {unknown} raw
+ * @returns {Severity}
+ */
 function clampSeverity(raw) {
     const s = str(raw).toLowerCase();
     if (s === 'high' || s === 'critical') return 'high';
@@ -109,15 +158,19 @@ function clampSeverity(raw) {
  * OWASP ZAP — JSON report has `site[].alerts[]`, each alert carrying a
  * `riskcode` (3=High, 2=Medium, 1=Low, 0=Informational), `confidence`,
  * `desc`/`solution`/`reference` (HTML fragments), and `instances[]`.
+ * @param {unknown} json  the ZAP JSON report
+ * @returns {Finding[]}
  */
 function normalizeZap(json) {
+    /** @type {Finding[]} */
     const out = [];
-    const sites = Array.isArray(json?.site) ? json.site : (json?.site ? [json.site] : []);
+    const report = /** @type {ZapReport | null | undefined} */ (json);
+    const sites = Array.isArray(report?.site) ? report.site : (report?.site ? [report.site] : []);
     for (const site of sites) {
         const alerts = Array.isArray(site?.alerts) ? site.alerts : [];
         for (const a of alerts) {
             if (!a) continue;
-            const riskcode = parseInt(a.riskcode, 10);
+            const riskcode = parseInt(String(a.riskcode), 10);
             const severity = riskcode === 3 ? 'high'
                 : riskcode === 2 ? 'medium'
                 : riskcode === 1 ? 'low'
@@ -133,8 +186,8 @@ function normalizeZap(json) {
                 description: stripTags(a.desc || a.description),
                 solution: stripTags(a.solution) || undefined,
                 reference: stripTags(a.reference) || undefined,
-                instanceCount: instances.length || parseInt(a.count, 10) || 0,
-                sampleInstances: instances.slice(0, 5).map(i => str(i.uri)).filter(Boolean),
+                instanceCount: instances.length || parseInt(String(a.count), 10) || 0,
+                sampleInstances: instances.slice(0, 5).map(i => str(i?.uri)).filter(Boolean),
             });
         }
     }
@@ -145,22 +198,26 @@ function normalizeZap(json) {
  * Nuclei — `-je` writes either a JSON array or newline-delimited JSON objects.
  * Each entry has `info.severity`, `info.name`, `info.description`,
  * `info.remediation`, `info.reference`, and a `matched-at`/`host` locator.
+ * @param {unknown} json  a JSON array, newline-delimited JSON, or an object
+ * @returns {Finding[]}
  */
 function normalizeNuclei(json) {
     const entries = coerceJsonLines(json);
     // Nuclei emits one row per match; collapse duplicates of the same template
     // into a single finding with an instance count + sample locators.
+    /** @type {Map<string, CountedFinding>} */
     const byKey = new Map();
-    for (const e of entries) {
-        if (!e || typeof e !== 'object') continue;
+    for (const entry of entries) {
+        if (!entry || typeof entry !== 'object') continue;
+        const e = /** @type {NucleiEntry} */ (entry);
         const info = e.info && typeof e.info === 'object' ? e.info : {};
         const name = str(info.name) || str(e['template-id']) || str(e.templateID) || 'Nuclei finding';
         const severity = clampSeverity(info.severity);
         const key = `${e['template-id'] || e.templateID || name}|${severity}`;
         const locator = str(e['matched-at'] || e.matched || e.host || e.url);
         const ref = Array.isArray(info.reference) ? info.reference.filter(Boolean).join(', ') : str(info.reference);
-        if (byKey.has(key)) {
-            const f = byKey.get(key);
+        const f = byKey.get(key);
+        if (f) {
             f.instanceCount += 1;
             if (locator && f.sampleInstances.length < 5 && !f.sampleInstances.includes(locator)) {
                 f.sampleInstances.push(locator);
@@ -185,12 +242,18 @@ function normalizeNuclei(json) {
  * testssl.sh — `--jsonfile` writes a flat array of { id, severity, finding }
  * objects (severity ∈ HIGH/MEDIUM/LOW/OK/INFO/WARN). We drop the OK rows —
  * they're "this is fine" noise — and surface everything that flags a concern.
+ * @param {unknown} json  the testssl.sh JSON report
+ * @returns {Finding[]}
  */
 function normalizeTestssl(json) {
-    const rows = Array.isArray(json) ? json : (Array.isArray(json?.scanResult) ? json.scanResult : []);
+    const wrapped = /** @type {{ scanResult?: unknown } | null | undefined} */ (json);
+    /** @type {unknown[]} */
+    const rows = Array.isArray(json) ? json : (Array.isArray(wrapped?.scanResult) ? wrapped.scanResult : []);
+    /** @type {Finding[]} */
     const out = [];
-    for (const r of rows) {
-        if (!r || typeof r !== 'object') continue;
+    for (const row of rows) {
+        if (!row || typeof row !== 'object') continue;
+        const r = /** @type {TestsslRow} */ (row);
         const rawSev = str(r.severity).toUpperCase();
         // OK / DEBUG rows are passing checks — not findings.
         if (rawSev === 'OK' || rawSev === 'DEBUG' || rawSev === '') continue;
@@ -213,6 +276,10 @@ function normalizeTestssl(json) {
 
 // Best-effort HTML→text: drop tags, collapse whitespace. ZAP ships HTML in its
 // text fields; we don't want markup leaking into an escaped plain-text cell.
+/**
+ * @param {unknown} v
+ * @returns {string}
+ */
 function stripTags(v) {
     const s = str(v);
     if (!s) return '';
@@ -227,6 +294,10 @@ function stripTags(v) {
 // Accept an already-parsed array, a parsed object, or a raw string that is
 // either JSON or newline-delimited JSON (Nuclei's `-je` default). Returns a
 // flat array of parsed entries; never throws.
+/**
+ * @param {unknown} json
+ * @returns {unknown[]}
+ */
 function coerceJsonLines(json) {
     if (Array.isArray(json)) return json;
     if (json && typeof json === 'object') return [json];
@@ -238,6 +309,7 @@ function coerceJsonLines(json) {
         const parsed = JSON.parse(trimmed);
         return Array.isArray(parsed) ? parsed : [parsed];
     } catch (_) { /* fall through to line-delimited */ }
+    /** @type {unknown[]} */
     const out = [];
     for (const line of trimmed.split('\n')) {
         const l = line.trim();
@@ -254,13 +326,17 @@ function coerceJsonLines(json) {
  * summary. `findingArrays` is an array-of-arrays (one per engine). Findings
  * are sorted high→informational, then by instance count desc, so the report's
  * table leads with what matters.
+ * @param {unknown} findingArrays
+ * @returns {{ findings: Finding[], severitySummary: SeverityCounts }}
  */
 function aggregate(findingArrays) {
+    /** @type {Finding[]} */
     const findings = [];
     for (const arr of (Array.isArray(findingArrays) ? findingArrays : [])) {
         if (Array.isArray(arr)) findings.push(...arr);
     }
 
+    /** @type {SeverityCounts} */
     const severitySummary = { high: 0, medium: 0, low: 0, informational: 0 };
     for (const f of findings) {
         const sev = SEVERITY_ORDER.includes(f.severity) ? f.severity : 'informational';
@@ -282,6 +358,7 @@ function aggregate(findingArrays) {
 // Severity → palette. Strictly red / amber / blue / slate — never purple,
 // violet or indigo (hard project rule). These are the only colored accents in
 // the whole report; everything else is neutral gray.
+/** @type {Record<Severity, { label: string, color: string, bg: string, border: string }>} */
 const SEVERITY_STYLE = {
     high: { label: 'High', color: '#b91c1c', bg: '#fef2f2', border: '#fecaca' },
     medium: { label: 'Medium', color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
@@ -289,12 +366,17 @@ const SEVERITY_STYLE = {
     informational: { label: 'Informational', color: '#475569', bg: '#f8fafc', border: '#e2e8f0' },
 };
 
+/** @type {Record<string, string>} */
 const ENGINE_LABEL = {
     zap: 'OWASP ZAP',
     nuclei: 'Nuclei',
     testssl: 'testssl.sh',
 };
 
+/**
+ * @param {string | number | Date | null | undefined} ts
+ * @returns {string}
+ */
 function fmtTimestamp(ts) {
     if (!ts) return '—';
     try {
@@ -313,12 +395,13 @@ function fmtTimestamp(ts) {
  *
  * @param {object} p
  * @param {string} p.targetUrl
- * @param {Array}  p.engines           — engine descriptors [{engine, intensity?}]
- * @param {Array}  p.findings          — aggregated, sorted findings
- * @param {any} p.severitySummary   — { high, medium, low, informational }
+ * @param {{ engine: string, intensity?: string }[]} p.engines  engine descriptors
+ * @param {Finding[]} p.findings           aggregated, sorted findings
+ * @param {SeverityCounts | null} [p.severitySummary]
  * @param {string} p.startedAt
  * @param {string} p.finishedAt
  * @param {string} [p.narrative]  agent-written assessment, markdown
+ * @returns {{ html: string, css: string }}
  */
 function renderReportHtml({ targetUrl, engines, findings, severitySummary, startedAt, finishedAt, narrative }) {
     const host = hostOf(targetUrl);
@@ -367,7 +450,7 @@ function renderReportHtml({ targetUrl, engines, findings, severitySummary, start
         <tr class="finding finding--${sev}">
             <td class="finding__sev"><span class="badge badge--${sev}">${esc(s.label)}</span></td>
             <td class="finding__engine">${esc(ENGINE_LABEL[f.engine] || f.engine)}</td>
-            <td class="finding__count">${parseInt(f.instanceCount, 10) || 0}</td>
+            <td class="finding__count">${parseInt(String(f.instanceCount), 10) || 0}</td>
             <td class="finding__detail">
                 <div class="finding__name">${i + 1}. ${esc(f.name)} ${confidence}</div>
                 ${f.description ? `<p class="finding__desc">${esc(f.description)}</p>` : ''}
@@ -610,7 +693,8 @@ h2 { margin: 0 0 1rem; font-size: 1.15rem; letter-spacing: -0.01em; }
  * webpageStore sequence (createWebpage → writeSlot × 2 → updateWebpageMetadata)
  * is encapsulated by the host — one `host.webpages.persist({...})` call.
  *
- * @param {any} host    — the module host API (needs host.webpages.persist)
+ * @param {Pick<Host, 'webpages'>} host - the module host API (needs host.webpages.persist)
+ * @param {{ userId: string, targetUrl: string, html: string, css: string }} report
  * @returns {Promise<string>} the new webpage id.
  */
 async function persistReportWebpage(host, { userId, targetUrl, html, css }) {
@@ -632,6 +716,7 @@ async function persistReportWebpage(host, { userId, targetUrl, html, css }) {
 /**
  * Build the host-bound report-builder the driver consumes: the pure functions
  * plus a persistReportWebpage closed over `host`.
+ * @param {Host} host
  */
 function create(host) {
     return {
@@ -640,7 +725,7 @@ function create(host) {
         normalizeTestssl,
         aggregate,
         renderReportHtml,
-        persistReportWebpage: (opts) => persistReportWebpage(host, opts),
+        persistReportWebpage: (/** @type {{ userId: string, targetUrl: string, html: string, css: string }} */ opts) => persistReportWebpage(host, opts),
     };
 }
 

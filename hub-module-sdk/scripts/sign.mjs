@@ -31,17 +31,26 @@ import { pathToFileURL } from 'node:url';
 const require = createRequire(import.meta.url);
 const JSZip = require('jszip');
 
+/** @param {crypto.BinaryLike} buf */
 function sha256hex(buf) {
     return crypto.createHash('sha256').update(buf).digest('hex');
 }
 
+/** @param {string | Uint8Array} input */
 const b64url = (input) => Buffer.from(input).toString('base64url');
 
 /** kid = sha256(SPKI public PEM string).slice(0,16) — mirrors verify.js kidForPem. */
+/** @param {crypto.BinaryLike} publicPem */
 function kidForPem(publicPem) {
     return crypto.createHash('sha256').update(publicPem).digest('hex').slice(0, 16);
 }
 
+/**
+ * @param {object} header
+ * @param {object} payload
+ * @param {string} privatePem
+ * @returns {string}
+ */
 function signJws(header, payload, privatePem) {
     const signingInput = `${b64url(JSON.stringify(header))}.${b64url(JSON.stringify(payload))}`;
     const sig = crypto.sign('RSA-SHA256', Buffer.from(signingInput), {
@@ -69,12 +78,14 @@ async function signBuffer(bfmodBuf, privatePem, publicPem, opts = {}) {
 
     const manifestFile = zip.file('manifest.json');
     if (!manifestFile) throw new Error('manifest.json missing');
+    /** @type {{ id?: string, version?: string, minAppVersion?: string, min_app_version?: string, hostApiVersion?: number | string, host_api_version?: number | string }} */
     const manifest = JSON.parse((await manifestFile.async('nodebuffer')).toString('utf8'));
 
     const pubPem = publicPem
         || crypto.createPublicKey(privatePem).export({ type: 'spki', format: 'pem' });
     const kid = kidForPem(pubPem);
 
+    /** @type {Record<string, string | number | undefined>} */
     const payload = {
         iss: 'license.beeflow.nl/modules',
         module_id: manifest.id,
@@ -117,7 +128,7 @@ async function main() {
     const publicPem = pubPath ? fs.readFileSync(path.resolve(pubPath), 'utf8') : undefined;
     const bfmodBuf = fs.readFileSync(path.resolve(bfmodPath));
 
-    const { buf, kid } = await signBuffer(bfmodBuf, privatePem, publicPem, { licenseClass: /** @type {any} */ (licenseClass) });
+    const { buf, kid } = await signBuffer(bfmodBuf, privatePem, publicPem, { licenseClass: licenseClass === 'free' || licenseClass === 'paid' ? licenseClass : undefined });
     fs.writeFileSync(path.resolve(bfmodPath), buf);
     console.log(`Signed ${bfmodPath}`);
     console.log(`  kid: ${kid}`);

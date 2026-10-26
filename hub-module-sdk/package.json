@@ -23,6 +23,7 @@
     "jszip": "^3.10.2"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "@types/node": "^22.20.5",
     "c8": "^12.0.0",
     "eslint": "^9.39.5",
