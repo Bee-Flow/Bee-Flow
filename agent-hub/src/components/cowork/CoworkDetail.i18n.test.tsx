@@ -136,7 +136,7 @@ describe('the detail pane under a key-echoing translator', () => {
 
     it('translates the words the run history says about an empty run', async () => {
         await renderPane([run({ producedOutput: false })]);
-        const row = screen.getByTestId('cowork-run');
+        const row = await screen.findByTestId('cowork-run');
         expect(keysOn(row).some(k => k.startsWith('cowork.history.'))).toBe(true);
     });
 
