@@ -12,10 +12,26 @@
  * activate. Same code, same callers, one more entry point.
  */
 
-const automationStore = require("../stores/automationStore");
-const triggerBus = require("./triggerBus");
+const REAL_AUTOMATION_STORE = require("../stores/automationStore");
+const REAL_TRIGGER_BUS = require("./triggerBus");
 const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
+
+// Test seam (_setDepsForTests): the store and the trigger bus this module talks
+// to, swapped for fakes by a test instead of through the module cache. Same
+// convention as triggerBus._setDepsForTests; read at call time.
+/** @type {any} */
+let automationStore = REAL_AUTOMATION_STORE;
+/** @type {any} */
+let triggerBus = REAL_TRIGGER_BUS;
+
+/**
+ * @param {{ automationStore?: any, triggerBus?: any } | null} [over] omit to restore the real ones
+ */
+function _setDepsForTests(over = null) {
+    automationStore = over?.automationStore || REAL_AUTOMATION_STORE;
+    triggerBus = over?.triggerBus || REAL_TRIGGER_BUS;
+}
 
 /**
  * Reconcile app_event subscriptions for one automation. Reads the trigger
@@ -226,7 +242,7 @@ function watchesSharedMailbox(event, filter) {
     try { return parseMailbox(filter.mailbox).shared; } catch { return true; }
 }
 
-module.exports = { syncAppEventSubscription, revokeRemoteSubscriptions, hasAppEventTrigger, appEventFingerprint };
+module.exports = { _setDepsForTests, syncAppEventSubscription, revokeRemoteSubscriptions, hasAppEventTrigger, appEventFingerprint };
 
 /** @typedef {{ id?: string, kind?: string, appEvent?: { provider?: string, event?: string, filter?: Record<string, unknown>|null } }} AppTrigger */
 

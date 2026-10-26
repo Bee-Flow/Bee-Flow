@@ -9,28 +9,28 @@
  */
 const test = require('node:test');
 const assert = require('node:assert');
-const { installResolveStub } = require('../testUtils/stubRequire');
+const { syncAppEventSubscription, _setDepsForTests } = require('./subscriptionSync');
 
 /** @type {any[]} */
 const created = [];
 /** @type {any[]} */
 const provisioned = [];
-const restore = installResolveStub({
-    '../stores/automationStore': {
+// The store and the trigger bus go in through subscriptionSync's own seam, not the module cache.
+_setDepsForTests({
+    automationStore: {
         getSubscriptionsForAutomation: async () => [],
         deleteSubscriptionsForAutomation: async () => {},
         createSubscription: async (/** @type {any} */ row) => { const sub = { id: `sub${created.length + 1}`, ...row }; created.push(sub); return sub; },
         updateSubscription: async () => {},
     },
-    './triggerBus': {
+    triggerBus: {
         getPublicBaseUrl: () => 'https://bee.example.test',
         loadSession: async () => ({ oauthProvider: 'microsoft', accessToken: 'ms-at' }),
         provisionSubscription: async (/** @type {any} */ sub) => { provisioned.push(sub.id); return { externalRef: 'g1', expiresAt: 'x', clientState: 'c' }; },
         revokeSubscription: async () => true,
     },
 });
-const { syncAppEventSubscription } = require('./subscriptionSync');
-test.after(() => restore());
+test.after(() => _setDepsForTests());
 test.beforeEach(() => { created.length = 0; provisioned.length = 0; });
 
 const def = (/** @type {any} */ filter, event = 'mail.new') => ({ trigger: { id: 't1', kind: 'app_event', appEvent: { provider: 'msgraph', event, filter } } });
