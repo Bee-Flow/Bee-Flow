@@ -71,7 +71,7 @@ async function attributeTestChatTurn({ agent, agentId, userId, userMessage, mess
         const _editorView = await agentStore.getAgent(agentId);
         const _attribution = await ruleAttribution().attributeTurn({
             testChat: true,
-            persona: _editorView ? _editorView.persona : null,
+            persona: _editorView && typeof _editorView.persona === 'object' ? _editorView.persona : null,
             configInfo: testChatMod.testChatConfigInfo(agent),
             answer: fullResponse,
             question: typeof userMessage === 'string' ? userMessage : '',

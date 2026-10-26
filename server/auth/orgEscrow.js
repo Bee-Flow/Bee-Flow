@@ -85,9 +85,7 @@ function _cacheGet(orgId) {
     return hit.key;
 }
 
-/**
- * @param {NonSharedBuffer | Buffer<ArrayBuffer>} key
- */
+/** @param {NonSharedBuffer | Buffer<ArrayBuffer>} key */
 function _cacheSet(orgId, key) {
     if (_orkCache.size >= ORK_CACHE_MAX) {
         const oldest = _orkCache.keys().next().value;
@@ -309,6 +307,7 @@ async function unwrapUserDek(stored, rawOrgId, userId) {
  *
  * @param {string} userId
  * @param {string|null} [orgIdHint] avoids a user lookup when the caller knows it
+ * @param {{ seedDek?: string | Buffer | null }} [opts] seedDek: the session key a first escrow adopts
  * @returns {Promise<Buffer|null>} DEK, or null if the user does not exist
  */
 async function getOrCreateUserDek(userId, orgIdHint = undefined, { seedDek = null } = {}) {

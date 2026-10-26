@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Streaming agent chat — guardrail / moderation hard block.
  *
@@ -11,9 +11,7 @@
 const agentStore = require('../../stores/agentStore');
 const log = require('../../telemetry/log');
 
-/**
- * @param {{ moderationViolation: string | null, guardrailViolation: string | null, onEvent: import('./chatStream/turnState').OnEvent, messageMetadata: import('./chatStream/turnState').MessageMetadata, durableMessages: import('./chatStream/turnState').ChatMessage[], persistDurable: () => Promise<void>, isEphemeral: boolean, conversation: import('./chatStream/turnState').ConversationRow, userAuth: import('./chatStream/turnState').UserAuth, processedUserMessage: string, userMessage: string, modelToUse: string, _serializeConversationWrite: typeof import('./chatStream/turnHistory')._serializeConversationWrite }} opts
- */
+/** @param {{ moderationViolation: string | null, guardrailViolation: string | null, onEvent: import('./chatStream/turnState').OnEvent, messageMetadata: import('./chatStream/turnState').MessageMetadata, durableMessages: import('./chatStream/turnState').ChatMessage[], persistDurable: () => Promise<void>, isEphemeral: boolean, conversation: import('./chatStream/turnState').ConversationRow, userAuth: import('./chatStream/turnState').UserAuth, processedUserMessage: string, userMessage: string, modelToUse: string, _serializeConversationWrite: typeof import('./chatStream/turnHistory')._serializeConversationWrite }} opts */
 async function respondGuardrailHardBlock({ moderationViolation, guardrailViolation, onEvent, messageMetadata, durableMessages, persistDurable, isEphemeral, conversation, userAuth, processedUserMessage, userMessage, modelToUse, _serializeConversationWrite }) {
         const violationType = moderationViolation || guardrailViolation;
 

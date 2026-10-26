@@ -88,7 +88,7 @@ function hostMatches(pattern, host) {
  * 'host_not_allowed'. Name-level only: whether the name resolves to a public
  * address is the SSRF guard's job, at connect time.
  * @param {string | PolicyInput | null | undefined} policy
- * @param {string} rawUrl
+ * @param {string | null | undefined} rawUrl
  */
 function checkUrl(policy, rawUrl) {
     const p = normalizePolicy(policy);

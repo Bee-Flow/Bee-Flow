@@ -18,7 +18,7 @@
  * @property {string} [ownerId]
  * @property {string|null} [organizationId]
  * @property {string[]} [knowledgeBaseIds]
- * @property {string} [filesKbId]
+ * @property {string | null} [filesKbId]
  */
 
 /** Where the project's chats may use the base. Not an access rule (see core/kb/usageContexts.js). */

@@ -18,4 +18,4 @@ require('../core/tools/automationExecutorPort')
 require('../core/privacy/customTypes/registry')
     .setOrgShieldResolver((orgId) => require('../core/privacy/orgShield').resolveOrgShield(orgId));
 require('../stores/configStore')
-    .setLegacySecretResolver((...args) => require('../stores/integrationConnectionStore').getLegacySecretValue(...args));
+    .setLegacySecretResolver((/** @type {string} */ key) => require('../stores/integrationConnectionStore').getLegacySecretValue(key));

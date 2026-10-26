@@ -50,7 +50,7 @@ try {
 
 /**
  * ISO-2 → English name; the code itself when unknown; null for no code.
- * @param {string} code
+ * @param {string | null | undefined} code
  */
 function countryName(code) {
     if (!code) return null;
