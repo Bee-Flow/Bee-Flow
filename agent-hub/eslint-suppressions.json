@@ -2474,16 +2474,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/Solutions/pipeline/StageHistory.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
-  "src/components/admin/Studio/Solutions/pipeline/StageStatusParts.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/components/admin/Studio/Solutions/pipeline/pipelineModel.ts": {
     "complexity": {
       "count": 1
@@ -2588,11 +2578,6 @@
   "src/components/admin/Studio/SupportStudio/SupportSettings.tsx": {
     "complexity": {
       "count": 1
-    }
-  },
-  "src/components/admin/Studio/SupportStudio/TemplatesTab.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 2
     }
   },
   "src/components/admin/Studio/SupportStudio/TicketDetail.tsx": {

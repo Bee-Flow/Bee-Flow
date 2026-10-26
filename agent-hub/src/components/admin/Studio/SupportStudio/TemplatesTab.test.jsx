@@ -1,8 +1,9 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { screen, fireEvent, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ok } from '@/test/http';
 import TemplatesTab from './TemplatesTab';
+import { renderWithClient } from '../../../../test/render';
 import { authFetch } from '../../../../utils/helpers';
 
 vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
@@ -19,7 +20,7 @@ describe('TemplatesTab', () => {
             if (String(url).includes('/api/support-inbox/canned')) return ok({ canned: [] });
             return ok({});
         });
-        render(<TemplatesTab />);
+        renderWithClient(<TemplatesTab />);
         const input = await screen.findByPlaceholderText('New tag name');
         fireEvent.change(input, { target: { value: 'billing' } });
         // Tags + Canned each have an "Add"; the Tags one renders first.

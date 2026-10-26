@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useStudioCannedQuery, useStudioTagsQuery } from '../../../../api/queries/supportPanels';
 import { Plus, Trash2 } from 'lucide-react';
 import useTranslation from '../../../../hooks/useTranslation';
 import { API_BASE } from '../../../../utils/helpers';
@@ -6,7 +7,7 @@ import Section from '../../../shared/Section';
 import FormField from '../../../shared/FormField';
 import { INPUT_FIELD, PRIMARY_BTN, PRIMARY_BTN_STYLE } from './supportStyles';
 import type { CannedResponse } from '../../../support/SupportInboxPanel.types';
-import { mutate, ApiError, request, RefusedError, errorBody } from '../../../../api/mutate';
+import { mutate, ApiError, RefusedError, errorBody } from '../../../../api/mutate';
 
 interface SupportTag {
     id: string;
@@ -14,6 +15,9 @@ interface SupportTag {
     color?: string | null;
     organization_id?: string | null;
 }
+
+const NO_TAGS: SupportTag[] = [];
+const NO_CANNED: CannedResponse[] = [];
 
 /**
  * TemplatesTab — organisation-wide tag taxonomy + canned replies. All reads and
@@ -31,19 +35,14 @@ export default function TemplatesTab() {
 
 function Tags() {
     const { t } = useTranslation();
-    const [tags, setTags] = useState<SupportTag[]>([]);
+    const tagsQuery = useStudioTagsQuery<SupportTag>();
+    const tags = tagsQuery.data ?? NO_TAGS;
     const [name, setName] = useState('');
     const [color, setColor] = useState('#64748b');
     const [error, setError] = useState<string | null>(null);
 
-    const load = useCallback(async () => {
-        const res = await request(`${API_BASE}/api/support-inbox/tags`).catch((err: unknown) => {
-            if (err instanceof RefusedError) return null;
-            throw err;
-        });
-        if (res) setTags((await res.json()).tags || []);
-    }, []);
-    useEffect(() => { load(); }, [load]);
+    const { refetch } = tagsQuery;
+    const load = useCallback(async () => { await refetch(); }, [refetch]);
 
     const create = async () => {
         if (!name.trim()) return;
@@ -93,19 +92,14 @@ function Tags() {
 
 function Canned() {
     const { t } = useTranslation();
-    const [items, setItems] = useState<CannedResponse[]>([]);
+    const cannedQuery = useStudioCannedQuery<CannedResponse>();
+    const items = cannedQuery.data ?? NO_CANNED;
     const [adding, setAdding] = useState(false);
     const [form, setForm] = useState({ title: '', shortcut: '', body: '' });
     const [error, setError] = useState<string | null>(null);
 
-    const load = useCallback(async () => {
-        const res = await request(`${API_BASE}/api/support-inbox/canned`).catch((err: unknown) => {
-            if (err instanceof RefusedError) return null;
-            throw err;
-        });
-        if (res) setItems((await res.json()).canned || []);
-    }, []);
-    useEffect(() => { load(); }, [load]);
+    const { refetch } = cannedQuery;
+    const load = useCallback(async () => { await refetch(); }, [refetch]);
 
     const create = async () => {
         if (!form.title.trim() || !form.body.trim()) { setError(t('support.canned.required', 'Title and body are required.')); return; }

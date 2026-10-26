@@ -1,11 +1,13 @@
 import { AlertTriangle, Loader2 } from 'lucide-react';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { stageHistoryKey, useStageHistoryQuery } from '../../../../../api/queries/stageReads';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { errorKind, pillStatusOf, rowActionOf, type Column, type ErrorKind, type RowAction } from './pipelineModel';
 import { StatusPill, fmt, kindLabel, statusLabel } from './stageText';
 import { STAGE_DOT, useStageLabel } from './StageSwitcher';
 import {
-    cancelDeployment, listDeployments, retryDeployment,
+    cancelDeployment, retryDeployment,
     type DeploymentSummary, type PipelineRelease, type StageKey, type StageName,
 } from '../../../../../api/stagesApi';
 
@@ -109,21 +111,15 @@ export function ReleasesList({ releases, columns }: { releases: PipelineRelease[
 
 export default function StageHistory({ solutionId, stage, canAct, refreshKey = 0, onChanged }: StageHistoryProps) {
     const { t } = useTranslation();
-    const [rows, setRows] = useState<DeploymentSummary[] | null>(null);
-    const [cursor, setCursor] = useState<string | null>(null);
-    const [failed, setFailed] = useState(false);
+    const queryClient = useQueryClient();
+    const history = useStageHistoryQuery(solutionId, stage, refreshKey);
+    const rows = useMemo(() => history.data?.pages.flatMap(p => p.deployments) ?? null, [history.data]);
+    const cursor = history.hasNextPage ? history.data?.pages.at(-1)?.nextCursor ?? null : null;
+    const failed = history.isError;
     const [busyId, setBusyId] = useState<string | null>(null);
     const [problem, setProblem] = useState<ErrorKind | null>(null);
-
-    const load = useCallback(async (after: string | null) => {
-        const res = await listDeployments(solutionId, stage, after);
-        if (!res.ok || !Array.isArray(res.data?.deployments)) { setFailed(true); return; }
-        setFailed(false);
-        setCursor(res.data.nextCursor || null);
-        setRows(prev => (after && prev ? [...prev, ...res.data.deployments] : res.data.deployments));
-    }, [solutionId, stage]);
-
-    useEffect(() => { load(null); }, [load, refreshKey]);
+    // Back to the first page: what a deployment action changes can be anywhere in the list.
+    const reloadFirstPage = () => queryClient.resetQueries({ queryKey: stageHistoryKey(solutionId, stage) });
 
     const act = async (row: DeploymentSummary, what: 'retry' | 'cancel') => {
         setBusyId(row.id);
@@ -131,7 +127,7 @@ export default function StageHistory({ solutionId, stage, canAct, refreshKey = 0
         const res = what === 'retry' ? await retryDeployment(solutionId, row.id) : await cancelDeployment(solutionId, row.id);
         setBusyId(null);
         if (!res.ok) { setProblem(errorKind(res)); return; }
-        await load(null);
+        await reloadFirstPage();
         onChanged?.();
     };
 
@@ -174,7 +170,7 @@ export default function StageHistory({ solutionId, stage, canAct, refreshKey = 0
             {cursor && (
                 <button
                     type="button"
-                    onClick={() => load(cursor)}
+                    onClick={() => history.fetchNextPage()}
                     className="min-h-10 px-3 rounded-[var(--radius-sm)] text-xs border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-card-hover)] focus-visible:ring-2 focus-visible:ring-[var(--accent-primary)]"
                 >
                     {t('solution_stages.load_more', 'Show older')}

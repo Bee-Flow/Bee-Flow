@@ -152,3 +152,39 @@ export function useTicketEventsQuery<E>(threadId: string) {
         retry: false,
     });
 }
+
+const studioAdminKeys = {
+    tags: ['support', 'studio-tags'] as const,
+    canned: ['support', 'studio-canned'] as const,
+    sla: ['support', 'studio-sla'] as const,
+};
+
+/** GET /api/support-inbox/tags: the organisation's tag taxonomy (Support studio); a refusal reads as none. */
+export function useStudioTagsQuery<T>() {
+    return useQuery<T[], Error>({
+        queryKey: studioAdminKeys.tags,
+        queryFn: async ({ signal }) => (await readOrNull<{ tags?: T[] }>(`${API_BASE}/api/support-inbox/tags`, signal))?.tags || [],
+        staleTime: 0,
+        retry: false,
+    });
+}
+
+/** GET /api/support-inbox/canned: the organisation's canned replies; a refusal reads as none. */
+export function useStudioCannedQuery<T>() {
+    return useQuery<T[], Error>({
+        queryKey: studioAdminKeys.canned,
+        queryFn: async ({ signal }) => (await readOrNull<{ canned?: T[] }>(`${API_BASE}/api/support-inbox/canned`, signal))?.canned || [],
+        staleTime: 0,
+        retry: false,
+    });
+}
+
+/** GET /api/support-inbox/sla-policies: the SLA targets per priority; a refusal reads as none. */
+export function useStudioSlaPoliciesQuery<T>() {
+    return useQuery<T[], Error>({
+        queryKey: studioAdminKeys.sla,
+        queryFn: async ({ signal }) => (await readOrNull<{ policies?: T[] }>(`${API_BASE}/api/support-inbox/sla-policies`, signal))?.policies || [],
+        staleTime: 0,
+        retry: false,
+    });
+}
