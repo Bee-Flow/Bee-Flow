@@ -149,6 +149,11 @@ let tableId = null;
 
 before(async () => {
     await pg.exec("SET TIME ZONE 'UTC'");
+    // configStore starts its schema in the background when it is first used.
+    // PGlite is ONE session: create it now, or a lazy start inside one of
+    // this file's transactions lands in that transaction and is rolled back
+    // with it (the retention pass reads config).
+    await require('../stores/configStore').initDB();
     await datatableStore.initDB();
     // listUsage LEFT JOINs `automations` to name the automation in the refusal,
     // and reads its definition (step position and type) and last run.

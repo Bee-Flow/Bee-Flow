@@ -50,6 +50,12 @@ const cap = () => ({ deploymentId: deployment.id });
 
 before(async () => {
     swap(userStore, 'getUser', async (id) => ({ id, organizationId: 'org1', groups: [] }));
+    // The user and config stores start their schema in the background (seeds
+    // at require time, or a first read). PGlite is ONE session: finish them
+    // now, or one lands inside a transaction of this file and is rolled back
+    // with it.
+    await userStore.initDB().catch(() => undefined);
+    await require('./configStore').initDB();
     await projectStore.initDB();
     await solutionStageStore.initDB();
     await skillStore.initDB();
