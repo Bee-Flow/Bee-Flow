@@ -11,13 +11,10 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const { installResolveStub } = require('../../testUtils/stubRequire');
 
-const restore = installResolveStub({
-    '../nextcloudClient': { REQUEST_TIMEOUT_MS: 20000, webdavRoot: (b, u) => `${b}/remote.php/dav/files/${u}` },
-});
+// The real nextcloudClient (it pulls the database in at load) over a recording pool.
+require('../../testUtils/routeHarness').recordDb();
 const { executeFileOperationTool } = require('./fileOperations');
-test.after(() => restore());
 
 const ROOT = 'https://nc.example.test/remote.php/dav/files/alice';
 
