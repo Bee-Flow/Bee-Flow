@@ -135,7 +135,7 @@ router.post('/', requireAuth, validate({ body: CreateAppBody }), async (/** @typ
         assignOrgId,
         sharedGroups ?? []
     );
-    log.info(`[Apps] Created app: ${name} by user ${username} in org ${assignOrgId || 'none'}`);
+    log.info(`[Apps] Created app ${app?.id} by user ${userId} in org ${assignOrgId || 'none'}`);
     res.status(201).json(app);
 });
 

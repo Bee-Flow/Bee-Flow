@@ -130,10 +130,10 @@ router.post('/register/finish', requireAuth, opaqueRegisterLimiter, validate({ b
     // then be handed a session as that user — account takeover by
     // username, plus destruction of their key wrapping. /pin/register/
     // finish below always did this correctly; this one did not.
-    const username = req.session.user.id;
+    const userId = req.session.user.id;
     // Migration path: the account exists (created by /auth/signup, which
     // establishes the session this route now requires).
-    const user = await userStore.getUser(username);
+    const user = await userStore.getUser(userId);
     if (!user) {
         return res.status(404).json({ error: 'User not found — create account first via /auth/signup' });
     }
@@ -144,7 +144,7 @@ router.post('/register/finish', requireAuth, opaqueRegisterLimiter, validate({ b
     // row becomes permanently unreadable. The server cannot tell the two
     // apart, so make it a deliberate act instead of a silent one.
     if (user.wrappedDEK && req.body.confirmReplace !== true) {
-        log.warn(`[OPAQUE] Refused to replace existing wrapped DEK for ${username} without confirmReplace`);
+        log.warn(`[OPAQUE] Refused to replace existing wrapped DEK for ${userId} without confirmReplace`);
         return res.status(409).json({
             error: 'This account already has an encryption key. Replacing it makes existing encrypted data unreadable unless you re-wrapped the same DEK. Retry with confirmReplace: true.',
             code: 'dek_already_exists',
@@ -160,7 +160,7 @@ router.post('/register/finish', requireAuth, opaqueRegisterLimiter, validate({ b
     // would otherwise show "unknown" for the accounts on the newer scheme.
     // Note that the PIN registration further down does NOT do this — see
     // the note there.
-    await userStore.updateUser(username, {
+    await userStore.updateUser(userId, {
         opaqueRecord: registrationRecord,
         kdfMode: 'opaque_v1',
         wrappedDEK: JSON.stringify(wrappedDEK),
@@ -169,7 +169,7 @@ router.post('/register/finish', requireAuth, opaqueRegisterLimiter, validate({ b
         passwordChangedAt: new Date(),
     });
 
-    log.info(`[OPAQUE] Registration complete for user ${username} (mode: opaque_v1)`);
+    log.info(`[OPAQUE] Registration complete for user ${userId} (mode: opaque_v1)`);
 
     // Set session — H11: rotate the session id on establishment
     // (session fixation). Note: NO encryptionKey in session — client
@@ -575,7 +575,7 @@ router.post('/pin/login/finish', requireAuth, opaqueLoginLimiter, validate({ bod
             }
         }
 
-        log.info(`[OPAQUE] PIN login complete for SSO user ${pending.username}`);
+        log.info(`[OPAQUE] PIN login complete for SSO user ${req.session.user.id}`);
 
         req.session.save((err) => {
             if (err) log.error('Session save error:', err);

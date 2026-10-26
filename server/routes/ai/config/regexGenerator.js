@@ -124,7 +124,7 @@ router.post('/generate-regex', requireAuth, requireAdmin, validate({ body: Gener
         for (const toolCall of assistantMsg.tool_calls) {
             const toolName = toolCall.function.name;
             const toolArgs = JSON.parse(toolCall.function.arguments || '{}');
-            log.info(`[RegexGenerator] Executing tool: ${toolName}`, toolArgs);
+            log.info(`[RegexGenerator] Executing tool: ${toolName}(${Object.keys(toolArgs || {}).join(', ')})`);
 
             const result = await executeRegexGeneratorTool(toolName, toolArgs);
             messages.push({

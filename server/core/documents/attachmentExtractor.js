@@ -203,7 +203,7 @@ async function extractPdf(buffer, att, opts) {
     const insufficient = isTextInsufficient(text, numPages);
     const garbage = !insufficient && isTextLikelyGarbage(text);
     if (garbage) {
-        log.warn(`[AttachmentExtractor] pdfjs returned ${text.length} chars but the content looks like CID/font junk for ${att.name} — falling through to OCR.`);
+        log.warn(`[AttachmentExtractor] pdfjs returned ${text.length} chars but the content looks like CID/font junk for ${log.nameForLog(att.name)} — falling through to OCR.`);
     }
     if (!insufficient && !garbage) {
         return { kind: 'text', text, pages, source: 'pdfjs', meta: baseMeta };
@@ -257,7 +257,7 @@ async function extractOfficeDoc(buffer, att) {
             return { kind: 'text', text, source: 'documentParser', meta: { extractedChars: text.length } };
         }
     } catch (err) {
-        log.warn(`[AttachmentExtractor] documentParser failed for ${att.name}: ${/** @type {Error} */ (err).message}`);
+        log.warn(`[AttachmentExtractor] documentParser failed for ${log.nameForLog(att.name)}: ${/** @type {Error} */ (err).message}`);
     }
     return { kind: 'failed', reason: 'Office document extraction failed', meta: {} };
 }
@@ -390,7 +390,7 @@ async function extractCadWithViews(buffer, att, opts = {}) {
             meta: { ...(base.meta || {}), rendered: true, ...meta },
         };
     } catch (err) {
-        log.warn(`[attachmentExtractor/cad] ${att.name}: ${/** @type {Error} */ (err).message}`);
+        log.warn(`[attachmentExtractor/cad] ${log.nameForLog(att.name)}: ${/** @type {Error} */ (err).message}`);
         return base;
     }
 }

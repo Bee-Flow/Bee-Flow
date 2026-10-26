@@ -73,8 +73,8 @@ async function rerankLlamaCpp(query, documents, topN) {
             signal: AbortSignal.timeout(TIMEOUT_MS),
         });
         if (!res.ok) {
-            const body = await res.text().catch(() => '');
-            log.warn(`[LlamaCppRerank] ${res.status}: ${body.slice(0, 200)}`);
+            const detail = await res.text().catch(() => '');
+            log.warn(`[LlamaCppRerank] ${res.status}: ${detail.slice(0, 200)}`);
             return [];
         }
         const data = /** @type {{ results?: any[] } | null} */ (await res.json());

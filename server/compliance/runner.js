@@ -276,7 +276,7 @@ async function _runSafe(check, orgId, subject) {
             CHECK_TIMEOUT_MS,
             'check',
         );
-        if (DEBUG) log.debug(`[ComplianceRunner] ${check.id}${subject ? `#${subject.id}` : ''} ${r?.status || 'not_applicable'} in ${Date.now() - started} ms`);
+        if (DEBUG) log.debug(`[ComplianceRunner] ${check.id}${subject?.id ? `#${subject.id}` : ''} ${r?.status || 'not_applicable'} in ${Date.now() - started} ms`);
         return {
             status: r?.status || 'not_applicable',
             evidence: r?.evidence || {},

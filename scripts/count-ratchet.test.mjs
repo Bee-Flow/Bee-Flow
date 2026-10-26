@@ -423,6 +423,56 @@ test('log-user-content counts log calls carrying a prompt, file name, e-mail or 
     assert.strictEqual(budgetOf(dir, 'log-user-content'), 2);
 });
 
+test('log-user-content counts every log call that hands a personal value to the log, once per call', () => {
+    const dir = sandbox({
+        src: false,
+        files: {
+            'personal.js': [
+                "log.info(`[Auth] approved ${user.id} (${user.email || 'no email'})`);",
+                "console.warn('signup blocked for', requesterEmail);",
+                "log.info(`[Proxy] UA=${req.get('User-Agent')}`);",
+                'log.info(`[Proxy] from ${req.ip}`);',
+                'log.info(`[SignRequest] to ${signers.map(s => s.email).join(", ")}`);',
+                'log.info(`[Mail] subject "${subject}"`);',
+                "log.error('[Webhook] got', req.body);",
+                'log.info(`[Contacts] ${action.firstName} ${action.lastName}`);',
+                'log.info(`[OAuth] user ${user.id} (${user.displayName}) phone ${phone}`);',
+                'log.info(`[Upload] ${att.name}`);',
+                'log.info(`[Whisper] Transcribing ${audioFileName}`);',
+                'bestEffort(`mail:${toEmail}`, e);',
+                // Multi-line call, with the value on a later line.
+                "log.warn(\n    '[x] failed',\n    { who: email },\n);",
+            ].join('\n') + '\n',
+            'safe.js': [
+                'log.info(`[Auth] approved ${user.id}`);',
+                'log.info(`[Mail] sent to ${log.textForLog(user.email)}`);',
+                'log.info(`[Upload] ${log.nameForLog(att.name)} (${prompt.length} chars)`);',
+                'log.info(`[Mail] subject ${subject?.length ?? 0} chars`);',
+                'log.info(`[Mail] address set=${!!address} name set=${!!displayName}`);',
+                "log.info(`[Rule] ${subject ? 'with' : 'without'} a subject`);",
+                // Another property of a holder is another value; a key is not a value.
+                'log.warn(`[License] ${resp.status} ${body.status}`);',
+                "log.info('[x]', JSON.stringify({ email: 1 }).length);",
+                // A tool's or a model's name is not a person's.
+                'log.info(`[Tool] ${tool.name} ${bestWhisper.displayName}`);',
+                // A header named in an explanation is not a header read.
+                "log.warn('check that the proxy forwards X-Forwarded-For');",
+                // The words in strings and comments are not values.
+                "log.info('email sent'); // user.email",
+                'isValidEmail(email);',
+            ].join('\n') + '\n',
+            'a.test.js': 'log.info(`${user.email}`);\n',
+            // An operator CLI prints to the operator's terminal, not to the server log.
+            'scripts/listUsers.js': 'console.log(`${u.email}`);\n',
+        },
+    });
+    assert.strictEqual(run(dir, 'log-user-content').code, 0);
+    assert.strictEqual(budgetOf(dir, 'log-user-content'), 13);
+    const list = run(dir, 'log-user-content', ['--list']).stdout;
+    assert.match(list, /\b13\s+personal\.js/);
+    assert.doesNotMatch(list, /safe\.js|listUsers|a\.test/);
+});
+
 test('--list on a package without a budget lists and writes no budget file', () => {
     const dir = sandbox({ src: false, files: { 'a.js': "res.status(500).json({ error: 'x' });\n" } });
     assert.strictEqual(run(dir, 'status-5xx', ['--list']).code, 0);

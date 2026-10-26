@@ -98,7 +98,7 @@ async function evaluateGeo(ip, cfg) {
             _warnedPrivateIpWithGeoOn = true;
             log.warn(
                 `[SignupGuards] geo policy is '${cfg.geoMode}' but the client IP resolves to `
-                + `'${ip || '(none)'}', a private/unknown address — every signup will be ALLOWED `
+                + `${ip ? 'a private' : 'no'} address — every signup will be ALLOWED `
                 + 'regardless of country. The client IP is not reaching the app; check that the '
                 + 'load balancer and ingress preserve it (PROXY protocol / X-Forwarded-For) and '
                 + 'that trust-proxy hop count matches.',

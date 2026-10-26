@@ -67,7 +67,7 @@ async function runToolCalls(toolCalls, { messages, shieldGate, dispatchTool }) {
             toolArgs = {};
         }
 
-        log.info(`[AITaskRunner]   Tool call: ${toolName}(${JSON.stringify(toolArgs).substring(0, 100)})`);
+        log.info(`[AITaskRunner]   Tool call: ${toolName}(${Object.keys(toolArgs || {}).join(', ')})`);
 
         const refusal = await shieldGate.refuse(toolName, toolArgs);
         if (refusal) {

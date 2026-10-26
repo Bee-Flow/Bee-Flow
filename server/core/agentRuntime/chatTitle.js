@@ -37,7 +37,7 @@ async function generateChatTitle(userMessage, modelOverride = null, userOrgId = 
             systemPrompt,
             { maxInputChars: 1600 },
         );
-        log.info('[generateChatTitle] Generated title:', title);
+        log.info(`[generateChatTitle] Generated title (${title.length} chars)`);
         return title.slice(0, 40);
     } catch (error) {
         log.error('[generateChatTitle] Error:', /** @type {Error} */ (error).message);

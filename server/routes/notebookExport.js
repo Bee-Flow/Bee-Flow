@@ -443,7 +443,7 @@ router.post('/:id/export/nextcloud', requireAuth, requireNotebookOwner, validate
 
         const relativePath = `/${targetFolderRaw}/${finalName}`;
         const browserUrl = `${nextcloudUrl}/apps/files/?dir=${encodeURIComponent('/' + targetFolderRaw)}`;
-        log.info(`[Export] Uploaded to Nextcloud: ${relativePath}`);
+        log.info(`[Export] Uploaded to Nextcloud: ${log.nameForLog(finalName)}`);
 
         return res.json({
             success: true,

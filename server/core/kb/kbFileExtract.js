@@ -1,3 +1,4 @@
+const path = require('node:path');
 const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
 
@@ -112,7 +113,8 @@ async function extractFileContentWithMeta(buffer, mime, filename) {
         filename?.match(/\.(docx|pptx|csv|xlsx|xls)$/i)
     ) {
         const { parseDocument } = require('../documents/documentParser');
-        log.info(`[KBHelpers] Extraction: documentParser (${filename.split('.').pop()})`);
+        const ext = path.extname(filename).slice(1).toLowerCase();
+        log.info(`[KBHelpers] Extraction: documentParser (${ext})`);
         if (isSpreadsheetFile(mime, filename)) meta.sheetNames = readSheetNames(buffer);
         return { text: await parseDocument(buffer, mime, filename), meta };
     }

@@ -213,7 +213,7 @@ async function executeElevenLabsTool(toolName, toolArgs, send, /** @type {import
             source = 'elevenlabs_music';
             model = toolArgs.model || elSettings.musicModel || 'music_v1';
 
-            log.info(`[ElevenLabs Tool] Music: "${promptText.substring(0, 80)}" (${model})`);
+            log.info(`[ElevenLabs Tool] Music: ${String(promptText || '').length} chars (${model})`);
             result = await elevenlabsProvider.generateSong(apiKey, promptText, {
                 duration_seconds: toolArgs.duration_seconds || elSettings.musicDuration || 30,
                 instrumental: toolArgs.instrumental !== undefined ? toolArgs.instrumental : (elSettings.instrumental || false),
@@ -225,7 +225,7 @@ async function executeElevenLabsTool(toolName, toolArgs, send, /** @type {import
             source = 'elevenlabs_tts';
             model = toolArgs.model || elSettings.ttsModel || 'eleven_flash_v2_5';
 
-            log.info(`[ElevenLabs Tool] TTS: "${promptText.substring(0, 80)}" (${model})`);
+            log.info(`[ElevenLabs Tool] TTS: ${String(promptText || '').length} chars (${model})`);
             result = await elevenlabsProvider.textToSpeech(apiKey, promptText, {
                 voice_id: toolArgs.voice_id || elSettings.ttsVoice,
                 model,
@@ -237,7 +237,7 @@ async function executeElevenLabsTool(toolName, toolArgs, send, /** @type {import
             source = 'elevenlabs_sfx';
             model = 'sound_effects_v2';
 
-            log.info(`[ElevenLabs Tool] SFX: "${promptText.substring(0, 80)}"`);
+            log.info(`[ElevenLabs Tool] SFX: ${String(promptText || '').length} chars`);
             result = await elevenlabsProvider.generateSoundEffect(apiKey, promptText, {
                 duration_seconds: toolArgs.duration_seconds || sfxSettings.duration || 5,
                 prompt_influence: sfxSettings.promptInfluence,

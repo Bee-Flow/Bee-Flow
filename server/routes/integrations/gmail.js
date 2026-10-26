@@ -247,7 +247,7 @@ router.post('/send', validate({ body: EmailBody }), async (req, res, next) => {
 
         const result = await gmail.users.messages.send(sendParams);
 
-        log.info(`[Gmail] Email sent successfully: ${result.data.id} to ${to}`);
+        log.info(`[Gmail] Email sent successfully: ${result.data.id} to ${String(to || '').split(',').filter(Boolean).length} recipient(s)`);
         res.json({
             success: true,
             messageId: result.data.id,
@@ -298,7 +298,7 @@ router.post('/draft', validate({ body: EmailBody }), async (req, res, next) => {
 
         const result = await gmail.users.drafts.create(draftParams);
 
-        log.info(`[Gmail] Draft saved successfully: ${result.data.id} for ${to}`);
+        log.info(`[Gmail] Draft saved successfully: ${result.data.id} for ${String(to || '').split(',').filter(Boolean).length} recipient(s)`);
         res.json({
             success: true,
             draftId: result.data.id,

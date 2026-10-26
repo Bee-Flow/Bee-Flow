@@ -138,7 +138,7 @@ router.get('/callback', /** @param {import('express').Request<{}, any, any, { co
         delete req.session.linkedinRedirectUri;
         req.session.save?.();
 
-        log.info(`[LinkedIn] Connected for user ${userId} (${name})`);
+        log.info(`[LinkedIn] Connected for user ${userId}`);
         res.send(callbackHTML(`Connected as ${name}!`, true));
     } catch (err) {
         log.error('[LinkedIn] Token exchange error:', err.message);

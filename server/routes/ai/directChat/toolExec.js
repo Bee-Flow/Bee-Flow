@@ -131,7 +131,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
         };
     }
 
-    log.info(`[DirectChat] Executing ${streamed ? 'streamed ' : ''}tool: ${toolName}`, toolArgs);
+    log.info(`[DirectChat] Executing ${streamed ? 'streamed ' : ''}tool: ${toolName}(${Object.keys(toolArgs || {}).join(', ')})`);
     ctx.send('tool_start', { name: toolName, args: toolArgs });
 
     // Privacy Shield tool block lists ("Outside tools" / "Own server"), the

@@ -85,7 +85,7 @@ function buildRawRequestBody({ agentId, modelToUse, conversation, tools, _forceF
         model: modelToUse,
         toolsCount: tools.length,
         toolNames: tools.map(t => t.function?.name),
-        systemPromptPreview: effectiveSystemPrompt.substring(0, 200) + '...',
+        systemPromptChars: effectiveSystemPrompt.length,
     });
     return requestBody;
 }

@@ -70,10 +70,10 @@ async function importUploadedSpreadsheet({ req, send, userId, buffer, att, docum
         documentScope?.markCreated(result.documentId);
         // filename: the upload's own name, so the client can put the Open button on its chip right away
         send('document_open', { documentId: result.documentId, name: result.name, docType: 'spreadsheet', filename: att.name });
-        log.info(`[DirectChat] Imported spreadsheet ${att.name} as document ${result.documentId} (${result.tabs.length} tab(s))`);
+        log.info(`[DirectChat] Imported spreadsheet ${log.nameForLog(att.name)} as document ${result.documentId} (${result.tabs.length} tab(s))`);
         return { base: { documentId: result.documentId }, note: `\n${importNote(result)}` };
     } catch (e) {
-        log.warn(`[DirectChat] Spreadsheet import failed for ${att.name}, using the text only: ${/** @type {Error} */ (e).message}`);
+        log.warn(`[DirectChat] Spreadsheet import failed for ${log.nameForLog(att.name)}, using the text only: ${/** @type {Error} */ (e).message}`);
         return NOTHING;
     }
 }

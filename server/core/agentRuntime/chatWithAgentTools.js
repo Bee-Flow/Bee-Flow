@@ -119,7 +119,7 @@ async function executeChatToolCall(toolCall, ctx) {
     // Get fixed params for this tool if any
     const fixedParams = toolParamsMap[toolName] || null;
 
-    log.info(`[Agent] Executing tool: ${toolName}`, toolArgs, fixedParams ? `(with fixed: ${JSON.stringify(fixedParams)})` : '');
+    log.info(`[Agent] Executing tool: ${toolName}(${Object.keys(toolArgs || {}).join(', ')})${fixedParams ? ` (with fixed: ${Object.keys(fixedParams).join(', ')})` : ''}`);
 
     const refusal = await toolPiiGate.refuseToolCall({
         toolName, args: toolArgs, shield: orgShield,

@@ -72,7 +72,7 @@ router.post('/connect', requireSessionUser, validate({ body: ConnectBody }), asy
     await configStore.setSecret(`github_token_user_${userId}`, token);
     await configStore.setConfig(`github_username_user_${userId}`, username);
 
-    log.info(`[GitHub] Connected for user ${userId} (${username})`);
+    log.info(`[GitHub] Connected for user ${userId}`);
     res.json({ success: true, username });
 });
 

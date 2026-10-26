@@ -311,7 +311,7 @@ router.post('/:id/sources/drive', requireAuth, validate({ body: DriveBody }), as
         // Background: ingest
         if (file.content) {
             ingestDriveSource(notebookId, source.id, userId, file.content, file.name).catch(err => {
-                log.error(`[Notebooks] Drive ingestion failed for ${file.name}:`, err.message);
+                log.error(`[Notebooks] Drive ingestion failed for ${log.nameForLog(file.name)}:`, err.message);
             });
         } else {
             empty.push(source);

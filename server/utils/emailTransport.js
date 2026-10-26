@@ -4,6 +4,14 @@ const log = require('../telemetry/log');
 
 const OAUTH_TOKENS_KEY = 'service_email_oauth_tokens';
 
+/**
+ * How many addresses a `to` holds, for the log: the addresses themselves are personal data.
+ * @param {string | string[] | undefined} to
+ */
+function recipientCount(to) {
+    return (Array.isArray(to) ? to : String(to || '').split(',')).filter((a) => String(a).trim()).length;
+}
+
 /** Load the stored Gmail OAuth token blob, or null if not connected. */
 async function _loadOAuthTokens() {
     const raw = await configStore.getSecret(OAUTH_TOKENS_KEY);
@@ -27,7 +35,7 @@ async function getServiceEmailConfig() {
     const tokens = await _loadOAuthTokens();
     const displayName = await configStore.getConfig('service_email_display_name') || '';
     const configured = !!(address && tokens && tokens.refreshToken);
-    log.info(`[EmailService] Config: address=${address || '(empty)'}, connected=${configured}, displayName=${displayName || '(empty)'}`);
+    log.info(`[EmailService] Config: address set=${!!address}, connected=${configured}, display name set=${!!displayName}`);
     return { configured, address: address || '', displayName };
 }
 
@@ -54,7 +62,7 @@ async function completeOAuthConnect({ code, redirectUri }) {
     const { tokens, emailAddress } = await providerClients.exchangeCode('gmail', { code, redirectUri });
     await _saveOAuthTokens(tokens);
     await configStore.setConfig('service_email_address', emailAddress || '');
-    log.info(`[EmailService] Connected service email account: ${emailAddress}`);
+    log.info(`[EmailService] Connected service email account ${log.textForLog(emailAddress)}`);
     return { address: emailAddress };
 }
 
@@ -98,7 +106,7 @@ async function _buildRawMessage({ from, to, cc, bcc, replyTo, subject, text, htm
  * @returns {Promise<{ success: boolean, messageId?: string, error?: string }>}
  */
 async function sendServiceEmail({ to, subject, text, html, cc, bcc, replyTo }) {
-    log.info(`[EmailService] sendServiceEmail — to=${to}, subject="${subject}"`);
+    log.info(`[EmailService] sendServiceEmail — ${recipientCount(to)} recipient(s)`);
     try {
         const address = await configStore.getConfig('service_email_address');
         const tokens = await _loadOAuthTokens();
@@ -119,10 +127,10 @@ async function sendServiceEmail({ to, subject, text, html, cc, bcc, replyTo }) {
             cc, bcc, replyTo, subject, text, html,
         });
 
-        log.info(`[EmailService] Sending via Gmail API from "${fromName}" <${address}> → ${to}`);
+        log.info(`[EmailService] Sending via Gmail API → ${recipientCount(to)} recipient(s)`);
         const sent = await gmail.users.messages.send({ userId: 'me', requestBody: { raw } });
 
-        log.info(`[EmailService] ✅ Email sent: ${sent.data.id} → ${to}`);
+        log.info(`[EmailService] ✅ Email sent: ${sent.data.id} → ${recipientCount(to)} recipient(s)`);
         return {
             success: true,
             messageId: sent.data.id,

@@ -202,7 +202,7 @@ router.post('/grant', validate({ body: GrantBody }), async (req, res) => {
             }).catch(e => ({ success: false, error: e.message }));
             result.emailDelivery = delivery;
             if (!delivery?.success) {
-                log.warn(`[Admin License] email.delivery_failed to=${deliverEmail} reason=${delivery?.error || 'unknown'}`);
+                log.warn(`[Admin License] email.delivery_failed to=${log.textForLog(deliverEmail)} reason=${delivery?.error || 'unknown'}`);
                 try {
                     const userStore = require('../stores/userStore');
                     await userStore.logSubscriptionAudit('email_send_failed', 'license', result.license.id, actorId(req), null, { to: deliverEmail, reason: delivery?.error || 'unknown' });

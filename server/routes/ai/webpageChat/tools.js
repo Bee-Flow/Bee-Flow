@@ -140,7 +140,7 @@ function createToolDispatcher({
             } catch (err) { fallback('routes/ai/webpageChat/tools:dispatchToolCall#2', err); /* best-effort: leave args tokenized on error */ }
         }
 
-        log.info(`[WebpageChat] Tool: ${toolName}(${JSON.stringify(toolArgs).substring(0, 160)})`);
+        log.info(`[WebpageChat] Tool: ${toolName}(${Object.keys(toolArgs || {}).join(', ')})`);
         send('tool_start', { name: toolName, args: toolArgs });
 
         // Privacy Shield tool block lists ("Outside tools" / "Own server"),
