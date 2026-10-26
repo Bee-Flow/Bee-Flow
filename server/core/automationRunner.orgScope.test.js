@@ -20,23 +20,10 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-function mock(relPath, exports) {
-    const resolved = require.resolve(relPath);
-    require.cache[resolved] = { id: resolved, filename: resolved, loaded: true, exports };
-}
-
 // The runner pulls in the world at require time; none of it is needed to test
 // the rule itself, so the heavy leaves are stubbed before it loads.
-mock('../stores/automationStore', {});
-mock('../stores/userStore', { getUser: async () => null, getOrganization: async () => null });
-mock('../stores/configStore', { getConfig: async () => null, getSecret: async () => '' });
-mock('../stores/notificationStore', {});
-mock('../stores/usageStore', { logUsage: () => Promise.resolve() });
-mock('../stores/terminationStore', { logTermination: () => Promise.resolve() });
-mock('../db', { pool: { query: async () => ({ rows: [] }) } });
-mock('./aiAgent', { getProviderForModel: async () => null, getAIConfig: async () => ({}) });
-mock('./providers', { getAdapter: () => ({}) });
-mock('../automation/codeSandbox', { run: async () => ({}) });
+// The real modules over a recording pool, so nothing opens a connection.
+require('../testUtils/routeHarness').recordDb();
 
 const { _runOrgFor: runOrgFor } = require('./automationRunner');
 
