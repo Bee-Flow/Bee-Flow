@@ -166,7 +166,7 @@ describe('KnowledgeTab: files', () => {
         renderTab('editor');
         await user.click(await screen.findByRole('button', { name: 'Delete brief.pdf' }));
         await user.click(screen.getByTestId('confirm-dialog-confirm'));
-        await waitFor(() => expect(client.delete).toHaveBeenCalledWith('/api/projects/p1/files/f1', { retry: false }));
+        await waitFor(() => expect(client.delete).toHaveBeenCalledWith('/api/projects/p1/files/f1'));
     });
 });
 
@@ -183,7 +183,7 @@ describe('KnowledgeTab: knowledge bases', () => {
         expect(within(dialog).queryByRole('button', { name: 'Add Handbook' })).not.toBeInTheDocument();
         await user.click(within(dialog).getByRole('button', { name: 'Add Sales playbook' }));
         await waitFor(() => expect(client.put).toHaveBeenCalledWith(
-            '/api/projects/p1/resources', { kind: 'knowledge_base', id: 'kb-2', attach: true }, { retry: false },
+            '/api/projects/p1/resources', { kind: 'knowledge_base', id: 'kb-2', attach: true },
         ));
     });
 
@@ -196,7 +196,7 @@ describe('KnowledgeTab: knowledge bases', () => {
         act(() => undo.last().onExpire());
         await waitFor(() => expect(client.put).toHaveBeenCalledTimes(1));
         expect(client.put).toHaveBeenCalledWith(
-            '/api/projects/p1/resources', { kind: 'knowledge_base', id: 'kb-1', attach: false }, { retry: false },
+            '/api/projects/p1/resources', { kind: 'knowledge_base', id: 'kb-1', attach: false },
         );
     });
 

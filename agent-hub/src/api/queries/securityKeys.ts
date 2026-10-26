@@ -149,7 +149,7 @@ type SecondFactorProof = { code: string } | { securityKey: AuthenticationRespons
 /** Touch a key the account already has, as proof. Throws like the ceremonies. */
 export async function proveWithSecurityKey(): Promise<{ securityKey: AuthenticationResponseJSON }> {
     const started = await apiClient.post<{ options: PublicKeyCredentialRequestOptionsJSON }>(
-        '/auth/mfa/security-keys/proof/options', {}, { retry: false },
+        '/auth/mfa/security-keys/proof/options', {},
     );
     if (!started?.options) throw new ApiError('No proof options', { status: 500 });
     return { securityKey: await startAuthentication({ optionsJSON: started.options }) };
@@ -171,12 +171,11 @@ export async function addSecurityKey({ name, proof }: AddSecurityKeyInput): Prom
     const started = await apiClient.post<{ options: PublicKeyCredentialCreationOptionsJSON }>(
         '/auth/mfa/security-keys/registration/options',
         { ...(proof ?? {}), ...(name ? { name } : {}) },
-        { retry: false },
     );
     if (!started?.options) throw new ApiError('No registration options', { status: 500 });
     const response = await startRegistration({ optionsJSON: started.options });
     const done = await apiClient.post<{ recoveryCodes?: unknown }>(
-        '/auth/mfa/security-keys/registration/verify', { response }, { retry: false },
+        '/auth/mfa/security-keys/registration/verify', { response },
     );
     const codes = done?.recoveryCodes;
     return Array.isArray(codes) ? { recoveryCodes: codes.filter((c): c is string => typeof c === 'string') } : {};
@@ -194,7 +193,7 @@ export function useRenameSecurityKey() {
     const qc = useQueryClient();
     return useMutation<unknown, unknown, { id: string; name: string }>({
         mutationFn: ({ id, name }) =>
-            apiClient.patch(`/auth/mfa/security-keys/${encodeURIComponent(id)}`, { name }, { retry: false }),
+            apiClient.patch(`/auth/mfa/security-keys/${encodeURIComponent(id)}`, { name }),
         onSuccess: () => { qc.invalidateQueries({ queryKey: securityKeyKeys.all }); },
     });
 }
@@ -202,7 +201,7 @@ export function useRenameSecurityKey() {
 export function useRemoveSecurityKey() {
     const qc = useQueryClient();
     return useMutation<unknown, unknown, string>({
-        mutationFn: (id) => apiClient.delete(`/auth/mfa/security-keys/${encodeURIComponent(id)}`, { retry: false }),
+        mutationFn: (id) => apiClient.delete(`/auth/mfa/security-keys/${encodeURIComponent(id)}`),
         onSuccess: () => { qc.invalidateQueries({ queryKey: securityKeyKeys.all }); },
     });
 }
@@ -224,12 +223,12 @@ export interface SecurityKeyLoginResult {
  */
 export async function signInWithSecurityKey(): Promise<SecurityKeyLoginResult> {
     const started = await apiClient.post<{ options: PublicKeyCredentialRequestOptionsJSON }>(
-        '/auth/mfa/security-key/options', {}, { retry: false },
+        '/auth/mfa/security-key/options', {},
     );
     if (!started?.options) throw new ApiError('No authentication options', { status: 500 });
     const response = await startAuthentication({ optionsJSON: started.options });
     const done = await apiClient.post<SecurityKeyLoginResult>(
-        '/auth/mfa/security-key/verify-login', { response }, { retry: false },
+        '/auth/mfa/security-key/verify-login', { response },
     );
     return done ?? {};
 }

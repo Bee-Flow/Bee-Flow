@@ -50,7 +50,6 @@ export function useSetFormAutomationEnabled() {
         mutationFn: ({ id, enabled }) => apiClient.put(
             `/api/cms/admin/form-automations/${encodeURIComponent(id)}`,
             { enabled },
-            { retry: false },
         ),
         onSettled: () => qc.invalidateQueries({ queryKey: cmsFormAutomationKeys.all }),
     });
@@ -63,7 +62,6 @@ export function useSetFormBlockApproved() {
         mutationFn: ({ automationId, blockId, approved }) => apiClient.put(
             `/api/cms/admin/form-automations/${encodeURIComponent(automationId)}/blocks/${encodeURIComponent(blockId)}`,
             { approved },
-            { retry: false },
         ),
         onSettled: () => qc.invalidateQueries({ queryKey: cmsFormAutomationKeys.all }),
     });

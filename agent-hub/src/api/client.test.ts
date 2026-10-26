@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const authFetch = vi.fn();
 vi.mock('../utils/helpers', () => ({ authFetch: (...a: unknown[]) => authFetch(...a), API_BASE: '/base' }));
 
-import { createJsonResource, type JsonResourceError } from './client';
+import { apiClient, ApiError, createJsonResource, type JsonResourceError } from './client';
 
 const json = (status: number, body: unknown) =>
     new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -88,5 +88,77 @@ describe('createJsonResource', () => {
         const request = createJsonResource('', { retry: { attempts: 1, base: 0 } });
         await expect(request('/x')).resolves.toEqual({ ok: true });
         expect(authFetch).toHaveBeenCalledTimes(2);
+    });
+});
+
+describe('apiClient retry', () => {
+    beforeEach(() => { authFetch.mockReset(); });
+
+    /** Runs a request to completion, letting every backoff timer fire. */
+    async function settle<T>(p: Promise<T>): Promise<T> {
+        vi.useFakeTimers();
+        try {
+            const out = p.then((v) => ({ v }), (e: unknown) => ({ e }));
+            await vi.runAllTimersAsync();
+            const r = await out;
+            if ('e' in r) throw r.e;
+            return r.v;
+        } finally {
+            vi.useRealTimers();
+        }
+    }
+
+    it('sends a POST once on a 5xx: a retried write could run twice', async () => {
+        authFetch.mockResolvedValue(json(503, { error: 'busy' }));
+        const err = await settle(apiClient.post('/x', { a: 1 })).catch((e: unknown) => e) as ApiError;
+        expect(err).toBeInstanceOf(ApiError);
+        expect(err.status).toBe(503);
+        expect(authFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('sends PUT, PATCH and DELETE once on a 5xx as well', async () => {
+        authFetch.mockResolvedValue(json(500, { error: 'boom' }));
+        await settle(apiClient.put('/x', {})).catch(() => null);
+        await settle(apiClient.patch('/x', {})).catch(() => null);
+        await settle(apiClient.delete('/x')).catch(() => null);
+        expect(authFetch.mock.calls.map((c) => c[1].method)).toEqual(['PUT', 'PATCH', 'DELETE']);
+    });
+
+    it('sends a POST once when the network fails', async () => {
+        authFetch.mockRejectedValue(new TypeError('Failed to fetch'));
+        await expect(settle(apiClient.post('/x', {}))).rejects.toThrow('Failed to fetch');
+        expect(authFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('still retries a GET on a 5xx, twice by default', async () => {
+        authFetch
+            .mockResolvedValueOnce(json(502, { error: 'bad gateway' }))
+            .mockResolvedValueOnce(json(503, { error: 'busy' }))
+            .mockResolvedValueOnce(json(200, { ok: true }));
+        await expect(settle(apiClient.get('/x'))).resolves.toEqual({ ok: true });
+        expect(authFetch).toHaveBeenCalledTimes(3);
+    });
+
+    it('never retries a 4xx GET, and a GET can opt out', async () => {
+        authFetch.mockResolvedValue(json(404, { error: 'gone' }));
+        await settle(apiClient.get('/x')).catch(() => null);
+        expect(authFetch).toHaveBeenCalledTimes(1);
+        authFetch.mockReset();
+        authFetch.mockResolvedValue(json(500, { error: 'boom' }));
+        await settle(apiClient.get('/x', { retry: false })).catch(() => null);
+        expect(authFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('retries a POST whose caller opts in, with `true` or its own attempts', async () => {
+        authFetch
+            .mockResolvedValueOnce(json(503, { error: 'busy' }))
+            .mockResolvedValueOnce(json(201, { id: 'c1' }));
+        await expect(settle(apiClient.post('/x', {}, { retry: { attempts: 1 } }))).resolves.toEqual({ id: 'c1' });
+        expect(authFetch).toHaveBeenCalledTimes(2);
+
+        authFetch.mockReset();
+        authFetch.mockResolvedValue(json(500, { error: 'boom' }));
+        await settle(apiClient.post('/x', {}, { retry: true })).catch(() => null);
+        expect(authFetch).toHaveBeenCalledTimes(3);
     });
 });

@@ -136,7 +136,7 @@ describe('DocumentsTab: list', () => {
         act(() => undo.last().onExpire());
         await waitFor(() => expect(client.put).toHaveBeenCalledTimes(1));
         expect(client.put).toHaveBeenCalledWith(
-            '/api/projects/p1/resources', { kind: 'document', id: 'd-theirs', attach: false }, { retry: false },
+            '/api/projects/p1/resources', { kind: 'document', id: 'd-theirs', attach: false },
         );
         expect(client.delete).not.toHaveBeenCalled();
     });
@@ -187,7 +187,7 @@ describe('DocumentsTab: create failure and add', () => {
         expect(within(dialog).queryByRole('button', { name: 'Add Budget 2027' })).not.toBeInTheDocument();
         await user.click(within(dialog).getByRole('button', { name: 'Add Draft letter' }));
         await waitFor(() => expect(client.put).toHaveBeenCalledWith(
-            '/api/projects/p1/resources', { kind: 'document', id: 'd-other', attach: true }, { retry: false },
+            '/api/projects/p1/resources', { kind: 'document', id: 'd-other', attach: true },
         ));
     });
 });
@@ -223,7 +223,7 @@ describe('DocumentsTab: new document gallery', () => {
         await user.click(await screen.findByTestId('documents-new'));
         await user.click(await screen.findByTestId('documents-new-page'));
         await waitFor(() => expect(onOpenSub).toHaveBeenCalledWith('d-new'));
-        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/documents', { name: 'Untitled page', docType: 'page' }, { retry: false });
+        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/documents', { name: 'Untitled page', docType: 'page' });
     });
 
     it('creates a presentation and a spreadsheet when chosen', async () => {
@@ -233,10 +233,10 @@ describe('DocumentsTab: new document gallery', () => {
         await user.click(await screen.findByTestId('documents-new'));
         await user.click(await screen.findByTestId('documents-new-presentation'));
         await waitFor(() => expect(onOpenSub).toHaveBeenCalledWith('d-new'));
-        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/documents', { name: 'Untitled presentation', docType: 'presentation' }, { retry: false });
+        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/documents', { name: 'Untitled presentation', docType: 'presentation' });
         await user.click(await screen.findByTestId('documents-new'));
         await user.click(await screen.findByTestId('documents-new-spreadsheet'));
-        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/documents', { name: 'Untitled spreadsheet', docType: 'spreadsheet' }, { retry: false }));
+        await waitFor(() => expect(client.post).toHaveBeenCalledWith('/api/projects/p1/documents', { name: 'Untitled spreadsheet', docType: 'spreadsheet' }));
     });
 
     it('copies one of my own templates', async () => {
@@ -246,7 +246,7 @@ describe('DocumentsTab: new document gallery', () => {
         await user.click(await screen.findByTestId('documents-new'));
         await user.click(await screen.findByRole('button', { name: 'Welcome letter' }));
         await waitFor(() => expect(onOpenSub).toHaveBeenCalledWith('d-new'));
-        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/documents', { name: 'Welcome letter', templateId: 't-letter' }, { retry: false });
+        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/documents', { name: 'Welcome letter', templateId: 't-letter' });
     });
 
     it('makes a project notebook and opens it in the notebooks tab', async () => {
@@ -258,7 +258,7 @@ describe('DocumentsTab: new document gallery', () => {
         await user.click(await screen.findByTestId('documents-new'));
         await user.click(await screen.findByTestId('documents-new-notebook'));
         await waitFor(() => expect(onOpenTab).toHaveBeenCalledWith('notebooks', 'nb-new'));
-        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/notebooks', { name: 'Untitled notebook' }, { retry: false });
+        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/notebooks', { name: 'Untitled notebook' });
         expect(onOpenSub).not.toHaveBeenCalled();
     });
 

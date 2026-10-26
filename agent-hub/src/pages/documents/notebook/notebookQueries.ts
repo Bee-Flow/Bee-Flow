@@ -115,7 +115,7 @@ export function useNotebookConversation(id: string | null) {
 export function useRenameNotebook(id: string) {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: (name: string) => apiClient.put(`/api/notebooks/${encodeURIComponent(id)}`, { name }, { retry: false }),
+        mutationFn: (name: string) => apiClient.put(`/api/notebooks/${encodeURIComponent(id)}`, { name }),
         onSuccess: (_data, name) => {
             qc.setQueryData<NotebookDetailData>(notebookKeys.detail(id), (prev) => (prev ? { ...prev, notebook: { ...prev.notebook, name } } : prev));
         },
@@ -125,6 +125,6 @@ export function useRenameNotebook(id: string) {
 /** Start the private chat over (the history is deleted for the caller only). */
 export function useClearNotebookChat(id: string) {
     return useMutation({
-        mutationFn: () => apiClient.delete(`/api/notebooks/${encodeURIComponent(id)}/conversation`, { retry: false }),
+        mutationFn: () => apiClient.delete(`/api/notebooks/${encodeURIComponent(id)}/conversation`),
     });
 }

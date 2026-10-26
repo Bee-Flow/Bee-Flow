@@ -194,7 +194,7 @@ export function useCreateProjectDocument(projectId: string) {
         mutationFn: async (vars) => {
             let body: { document?: ProjectDocument } | null;
             try {
-                body = await apiClient.post<{ document?: ProjectDocument }>(`/api/projects/${enc(projectId)}/documents`, vars, { retry: false });
+                body = await apiClient.post<{ document?: ProjectDocument }>(`/api/projects/${enc(projectId)}/documents`, vars);
             } catch (e) {
                 throw toProjectError(e, 'Could not create the document');
             }
@@ -213,7 +213,7 @@ export function useCreateProjectNotebook(projectId: string) {
         mutationFn: async (vars) => {
             let body: { notebook?: ProjectNotebook } | null;
             try {
-                body = await apiClient.post<{ notebook?: ProjectNotebook }>(`/api/projects/${enc(projectId)}/notebooks`, vars, { retry: false });
+                body = await apiClient.post<{ notebook?: ProjectNotebook }>(`/api/projects/${enc(projectId)}/notebooks`, vars);
             } catch (e) {
                 throw toProjectError(e, 'Could not create the notebook');
             }
@@ -282,7 +282,7 @@ export function useDeleteProjectFile(projectId: string) {
     return useMutation<void, Error, string>({
         mutationFn: async (fileId) => {
             try {
-                await apiClient.delete(`/api/projects/${enc(projectId)}/files/${enc(fileId)}`, { retry: false });
+                await apiClient.delete(`/api/projects/${enc(projectId)}/files/${enc(fileId)}`);
             } catch (e) {
                 throw toProjectError(e, 'Could not delete the file');
             }

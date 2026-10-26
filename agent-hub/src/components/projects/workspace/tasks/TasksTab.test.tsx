@@ -183,7 +183,7 @@ describe('TasksTab', () => {
         renderTab();
         const row = await screen.findByTestId('project-task-2');
         await user.click(within(row).getByRole('button', { name: 'Mark as done' }));
-        await waitFor(() => expect(client.patch).toHaveBeenCalledWith('/api/projects/p1/tasks/2', { status: 'done' }, expect.anything()));
+        await waitFor(() => expect(client.patch).toHaveBeenCalledWith('/api/projects/p1/tasks/2', { status: 'done' }));
     });
 
     it('offers "From a meeting" in the New menu, and board settings only on the board', async () => {
@@ -244,7 +244,7 @@ describe('TasksTab', () => {
         expect(within(screen.getByRole('dialog')).getByLabelText('Priority')).toHaveValue('high');
         expect(screen.getByText('ops')).toBeInTheDocument();
         expect(screen.getByDisplayValue('Step one')).toBeInTheDocument();
-        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/tasks/2/improve', {}, expect.anything());
+        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/tasks/2/improve', {});
         expect(client.patch).not.toHaveBeenCalled();
     });
 
@@ -264,7 +264,7 @@ describe('TasksTab', () => {
             expect(client.delete).not.toHaveBeenCalled();
             act(() => undo.last().onExpire());
             await waitFor(() => expect(client.delete).toHaveBeenCalledTimes(1));
-            expect(client.delete).toHaveBeenCalledWith('/api/projects/p1/tasks/2', expect.anything());
+            expect(client.delete).toHaveBeenCalledWith('/api/projects/p1/tasks/2');
         });
 
         it('brings the task back on Undo and never calls the API', async () => {
@@ -284,7 +284,7 @@ describe('TasksTab', () => {
             await user.click(await screen.findByTestId('delete-task-3'));
             expect(screen.queryByTestId('board-task-3')).not.toBeInTheDocument();
             act(() => undo.last().onExpire());
-            await waitFor(() => expect(client.delete).toHaveBeenCalledWith('/api/projects/p1/tasks/3', expect.anything()));
+            await waitFor(() => expect(client.delete).toHaveBeenCalledWith('/api/projects/p1/tasks/3'));
         });
 
         it('offers it to the owner for every task, to an editor only for the tasks they made, and to a viewer never', async () => {
@@ -358,7 +358,7 @@ describe('TasksTab: keyboard and saving', () => {
         const row = await screen.findByTestId('project-task-2');
         within(row).getByRole('button', { name: 'Mark as done' }).focus();
         await user.keyboard('{Enter}');
-        await waitFor(() => expect(client.patch).toHaveBeenCalledWith('/api/projects/p1/tasks/2', { status: 'done' }, expect.anything()));
+        await waitFor(() => expect(client.patch).toHaveBeenCalledWith('/api/projects/p1/tasks/2', { status: 'done' }));
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
@@ -451,7 +451,7 @@ it('opens planning, edits a task date range, and sends only changed fields', asy
     fireEvent.change(start, { target: { value: '2026-10-02' } });
     fireEvent.change(due, { target: { value: '2026-10-06' } });
     await user.click(within(dialog).getByRole('button', { name: 'Save' }));
-    await waitFor(() => expect(client.patch).toHaveBeenCalledWith('/api/projects/p1/tasks/1', { startDate: '2026-10-02', dueDate: '2026-10-06' }, expect.anything()));
+    await waitFor(() => expect(client.patch).toHaveBeenCalledWith('/api/projects/p1/tasks/1', { startDate: '2026-10-02', dueDate: '2026-10-06' }));
 });
 
 describe('closing a task with unsaved changes', () => {
@@ -485,7 +485,7 @@ describe('closing a task with unsaved changes', () => {
     it('Save sends the change', async () => {
         const { user, dialog } = await editTitle();
         await user.click(within(dialog).getByTestId('task-unsaved-save'));
-        await waitFor(() => expect(client.patch).toHaveBeenCalledWith('/api/projects/p1/tasks/1', { title: 'Task 1 updated' }, expect.anything()));
+        await waitFor(() => expect(client.patch).toHaveBeenCalledWith('/api/projects/p1/tasks/1', { title: 'Task 1 updated' }));
     });
 });
 
@@ -556,6 +556,6 @@ describe('planning dependencies', () => {
         expect(await screen.findByTestId('dependency-1:2')).toBeInTheDocument();
         await user.click(screen.getByRole('button', { name: 'Connect dependency from Task 1' }));
         await user.click(screen.getByRole('button', { name: 'Make Task 2 depend on the selected task' }));
-        await waitFor(() => expect(client.patch).toHaveBeenCalledWith('/api/projects/p1/tasks/2', { links: [{ kind: 'task', id: '1', relation: 'depends_on' }] }, expect.anything()));
+        await waitFor(() => expect(client.patch).toHaveBeenCalledWith('/api/projects/p1/tasks/2', { links: [{ kind: 'task', id: '1', relation: 'depends_on' }] }));
     });
 });

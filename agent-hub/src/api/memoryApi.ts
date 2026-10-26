@@ -33,9 +33,7 @@ export async function fetchRecentMemories(
  * fact the memory replaced; an ordinary delete never restores anything.
  */
 export async function deleteMemory(id: string, opts: { undo?: boolean } = {}): Promise<void> {
-    await apiClient.delete(`${BASE}/${encodeURIComponent(id)}`, {
-        retry: false, ...(opts.undo ? { query: { undo: '1' } } : {}),
-    });
+    await apiClient.delete(`${BASE}/${encodeURIComponent(id)}`, opts.undo ? { query: { undo: '1' } } : undefined);
 }
 
 /** The caller's readable active memories among these ids (at most 50). Unreadable ones are absent. */
@@ -48,14 +46,14 @@ export async function fetchMemoriesByIds(ids: string[], signal?: AbortSignal): P
 }
 
 async function updateMemoryContent(id: string, content: string): Promise<RecentMemory | null> {
-    const body = await apiClient.put<{ memory?: RecentMemory }>(`${BASE}/${encodeURIComponent(id)}`, { content }, { retry: false });
+    const body = await apiClient.put<{ memory?: RecentMemory }>(`${BASE}/${encodeURIComponent(id)}`, { content });
     return body?.memory ?? null;
 }
 
 /** Forget every memory learned in one conversation; resolves with how many went. */
 export async function deleteMemoriesByConversation(conversationId: string): Promise<number> {
     const body = await apiClient.delete<{ deleted?: number }>(
-        `${BASE}/by-conversation/${encodeURIComponent(conversationId)}`, { retry: false },
+        `${BASE}/by-conversation/${encodeURIComponent(conversationId)}`,
     );
     return typeof body?.deleted === 'number' ? body.deleted : 0;
 }

@@ -101,7 +101,7 @@ describe('NotebooksTab: cards', () => {
         act(() => undo.last().onExpire());
         await waitFor(() => expect(client.put).toHaveBeenCalledTimes(1));
         expect(client.put).toHaveBeenCalledWith(
-            '/api/projects/p1/resources', { kind: 'notebook', id: 'nb-1', attach: false }, { retry: false },
+            '/api/projects/p1/resources', { kind: 'notebook', id: 'nb-1', attach: false },
         );
     });
 
@@ -124,7 +124,7 @@ describe('NotebooksTab: create and add', () => {
         await user.type(within(dialog).getByLabelText('Description (optional)'), 'What we charge');
         await user.click(screen.getByRole('button', { name: 'Create and open' }));
         await waitFor(() => expect(onOpenSub).toHaveBeenCalledWith('nb-new'));
-        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/notebooks', { name: 'Pricing', description: 'What we charge' }, { retry: false });
+        expect(client.post).toHaveBeenCalledWith('/api/projects/p1/notebooks', { name: 'Pricing', description: 'What we charge' });
     });
 
     it('does not submit an empty name', async () => {
@@ -166,7 +166,7 @@ describe('NotebooksTab: a reader who may not use notebooks', () => {
         expect(screen.queryByRole('dialog')).toBeNull();
         // The viewer note would contradict the reason above it.
         expect(screen.queryByText(/Ask the owner for editor access/)).toBeNull();
-        expect(client.post).not.toHaveBeenCalledWith('/api/projects/p1/notebooks', expect.anything(), expect.anything());
+        expect(client.post).not.toHaveBeenCalledWith('/api/projects/p1/notebooks', expect.anything());
     });
 
     it('an empty project offers no create either', async () => {

@@ -3,7 +3,8 @@
 //   - automatic JSON serialisation / parsing
 //   - URLSearchParams build-out for `query`
 //   - propagation of an `AbortSignal` (React Query provides one per query)
-//   - exponential-backoff retry for network/5xx (callers can override)
+//   - exponential-backoff retry for network/5xx/408/429 on GET, HEAD and
+//     OPTIONS only; a write retries only when its caller opts in
 //   - a single throw site (`ApiError`) carrying status + parsed body
 //
 // Domain hooks (see /api/queries/) should consume `apiClient` rather than
@@ -47,16 +48,31 @@ export interface RequestOptions {
     /** Additional headers; Content-Type is set automatically when body is JSON. */
     headers?: Record<string, string>;
     /**
-     * Retry behaviour. `false` disables retries. Partial objects merge into
-     * the default { attempts: 2, base: 250 }.
+     * Retry on a network error, 5xx, 408 or 429. Left out: a GET, HEAD or
+     * OPTIONS retries with the default { attempts: 2, base: 250 }, any other
+     * method sends once — a retried write whose first attempt did land (the
+     * 5xx came after the commit, or the answer was lost) runs twice. `false`
+     * never retries; `true` or a partial object (merged into the default)
+     * retries whatever the method: opt in only where the server makes a
+     * repeat harmless (a client-generated id it stores once).
      */
-    retry?: false | Partial<RetryOptions>;
+    retry?: boolean | Partial<RetryOptions>;
 }
 
 const DEFAULT_RETRY: RetryOptions = {
     attempts: 2,
     base: 250,
 };
+
+/** The methods that retry without being asked: they do not change anything on the server. */
+const IDEMPOTENT_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+/** The retry plan for one request, or null for a single attempt. */
+function retryPlan(method: string, retry: RequestOptions['retry']): RetryOptions | null {
+    if (retry === false) return null;
+    if (retry === undefined) return IDEMPOTENT_METHODS.has(method.toUpperCase()) ? DEFAULT_RETRY : null;
+    return { ...DEFAULT_RETRY, ...(retry === true ? {} : retry) };
+}
 
 function buildUrl(path: string, query?: QueryParams): string {
     const url = path.startsWith('http') ? path : `${API_BASE}${path}`;
@@ -102,8 +118,7 @@ async function attempt<T>(method: string, path: string, opts: AttemptOptions = {
 }
 
 async function request<T>(method: string, path: string, opts: AttemptOptions = {}): Promise<T | null> {
-    const retry: RetryOptions | null =
-        opts.retry === false ? null : { ...DEFAULT_RETRY, ...(opts.retry || {}) };
+    const retry = retryPlan(method, opts.retry);
     let lastErr: unknown;
     for (let i = 0; i <= (retry ? retry.attempts : 0); i++) {
         try {
@@ -142,8 +157,8 @@ export default apiClient;
 // ---------------------------------------------------------------------------
 // createJsonResource — the `request()` every studio API module used to carry
 // its own copy of. Unlike `apiClient` it keeps those modules' contract
-// exactly: ONE attempt (no retry unless asked: a retried POST is a second
-// write), the server's `error` text verbatim (falling back to
+// exactly: ONE attempt for every method, a GET included (no retry unless
+// asked), the server's `error` text verbatim (falling back to
 // "Request failed (<status>)"), and a thrown Error carrying `status`, `code`
 // and the parsed `body`. The resolved value is the parsed JSON body, or null
 // when the answer had none.

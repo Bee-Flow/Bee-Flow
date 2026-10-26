@@ -138,7 +138,7 @@ function usePokerAction<TInput extends object>(projectId: string, action: string
     return useMutation<{ session?: PokerSession | null; task?: ProjectTask; ok?: boolean }, Error, TInput>({
         mutationFn: async input => {
             const body = await write('Could not update planning poker',
-                () => apiClient.post<{ session?: PokerSession | null; task?: ProjectTask; ok?: boolean }>(pokerPath(projectId) + `/${action}`, input, { retry: false }));
+                () => apiClient.post<{ session?: PokerSession | null; task?: ProjectTask; ok?: boolean }>(pokerPath(projectId) + `/${action}`, input));
             if (!body) throw new Error('Could not update planning poker');
             return body;
         },
@@ -159,7 +159,7 @@ export function useCreateTask(projectId: string) {
     const qc = useQueryClient();
     return useMutation<ProjectTask, Error, TaskInput>({
         mutationFn: async (input) => {
-            const body = await write('Could not create the task', () => apiClient.post<{ task?: ProjectTask }>(tasksPath(projectId), input, { retry: false }));
+            const body = await write('Could not create the task', () => apiClient.post<{ task?: ProjectTask }>(tasksPath(projectId), input));
             if (!body?.task) throw new Error('Could not create the task');
             return body.task;
         },
@@ -174,7 +174,7 @@ export function useUpdateTask(projectId: string) {
     return useMutation<ProjectTask, Error, { id: string; patch: TaskPatch }, { previous?: { tasks: ProjectTask[]; role: ProjectRole | null } }>({
         mutationKey,
         mutationFn: async ({ id, patch }) => {
-            const body = await write('Could not change the task', () => apiClient.patch<{ task?: ProjectTask }>(`${tasksPath(projectId)}/${enc(id)}`, patch, { retry: false }));
+            const body = await write('Could not change the task', () => apiClient.patch<{ task?: ProjectTask }>(`${tasksPath(projectId)}/${enc(id)}`, patch));
             if (!body?.task) throw new Error('Could not change the task');
             return body.task;
         },
@@ -213,7 +213,7 @@ export function useDeleteTask(projectId: string) {
     const qc = useQueryClient();
     return useMutation<void, Error, string>({
         mutationFn: async (id) => {
-            await write('Could not delete the task', () => apiClient.delete(`${tasksPath(projectId)}/${enc(id)}`, { retry: false }));
+            await write('Could not delete the task', () => apiClient.delete(`${tasksPath(projectId)}/${enc(id)}`));
         },
         onSuccess: () => { qc.invalidateQueries({ queryKey: projectKeys.tasks(projectId) }); },
     });
@@ -224,7 +224,7 @@ export function useCreateTasksBatch(projectId: string) {
     const qc = useQueryClient();
     return useMutation<{ tasks: ProjectTask[]; skipped: number }, Error, TaskInput[]>({
         mutationFn: async (items) => {
-            const body = await write('Could not create the tasks', () => apiClient.post<{ tasks?: ProjectTask[]; skipped?: number }>(`${tasksPath(projectId)}/batch`, { items }, { retry: false }));
+            const body = await write('Could not create the tasks', () => apiClient.post<{ tasks?: ProjectTask[]; skipped?: number }>(`${tasksPath(projectId)}/batch`, { items }));
             return { tasks: body?.tasks || [], skipped: body?.skipped || 0 };
         },
         onSuccess: () => { qc.invalidateQueries({ queryKey: projectKeys.tasks(projectId) }); },
@@ -265,7 +265,7 @@ export function useImproveMeetingTasks(projectId: string, meetingId: string) {
     return useMutation<MeetingTaskImprovement[], Error, void>({
         mutationFn: async () => {
             const body = await write('The AI could not improve the tasks', () => apiClient.post<{ items?: MeetingTaskImprovement[] }>(
-                `/api/projects/${enc(projectId)}/meetings/${enc(meetingId)}/task-suggestions/improve`, {}, { retry: false }));
+                `/api/projects/${enc(projectId)}/meetings/${enc(meetingId)}/task-suggestions/improve`, {}));
             return Array.isArray(body?.items) ? body!.items! : [];
         },
     });
@@ -276,7 +276,7 @@ export function useImproveTask(projectId: string) {
     return useMutation<TaskSuggestion, Error, string>({
         mutationFn: async (taskId) => {
             const body = await write('The AI could not improve the task', () => apiClient.post<{ suggestion?: TaskSuggestion }>(
-                `${tasksPath(projectId)}/${enc(taskId)}/improve`, {}, { retry: false }));
+                `${tasksPath(projectId)}/${enc(taskId)}/improve`, {}));
             if (!body?.suggestion) throw new Error('The AI could not improve the task');
             return body.suggestion;
         },

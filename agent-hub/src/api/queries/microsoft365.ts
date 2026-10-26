@@ -73,7 +73,7 @@ export function useInvalidateMicrosoft365() {
 export function useDisconnectMicrosoft365() {
     const invalidate = useInvalidateMicrosoft365();
     return useMutation<unknown, Error, void>({
-        mutationFn: () => apiClient.post(`${BASE}/disconnect`, {}, { retry: false }),
+        mutationFn: () => apiClient.post(`${BASE}/disconnect`, {}),
         onSettled: () => invalidate(),
     });
 }
