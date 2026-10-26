@@ -25,7 +25,6 @@
  * model at cloud rates until the entry expired.
  */
 
-const configStore = require('../../stores/configStore');
 const { getRedis } = require('../../db');
 const log = require('../../telemetry/log');
 const { isLocalProviderType, registerLocalModel } = require('../providers/localModels');
@@ -212,12 +211,10 @@ function invalidateModelCache(providerId) {
  * Returns objects with provider info to differentiate same-named models.
  */
 async function getAllCachedModelIds() {
-    const CONFIG_KEY = 'ai_providers';
-    const providersRaw = await configStore.getConfig(CONFIG_KEY);
-    // getConfig already JSON-parses the stored value: a second parse of the
-    // array it returns threw. A string form is still accepted.
-    const parsed = typeof providersRaw === 'string' ? JSON.parse(providersRaw) : providersRaw;
-    const providers = Array.isArray(parsed) ? parsed : [];
+    // The provider records live in config `ai` (ai.providers), the same source
+    // getProviderForModel reads. An `ai_providers` key was read here before,
+    // but nothing ever wrote it, so every model was listed as provider 'Unknown'.
+    const { providers = [] } = await getProviders();
     const providerMap = {};
     for (const p of providers) {
         providerMap[p.id] = { name: p.name, type: p.type };
