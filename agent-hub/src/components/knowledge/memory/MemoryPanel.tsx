@@ -1,7 +1,7 @@
 import { Lightbulb, ChevronLeft, Plus, CheckSquare, Trash2, Download } from 'lucide-react';
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { toast } from '../../shared/Toast';
 import useConfirm from '../../shared/useConfirm';
 import LoadingState from '../../shared/LoadingState';

@@ -13,7 +13,7 @@ import { BackgroundVideoCard } from './MotionFields';
 import type { BackgroundVideoValue } from './MotionFields';
 import type { CtaButtonValue } from './shared';
 import type { StyleBlob } from '../primitives.types';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // ── CTA Banner ───────────────────────────────────────────────────────
 

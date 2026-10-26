@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { useCmsRedirectActions, useCmsRedirects } from '../../../../api/queries/cmsRedirects';
-import type { CmsRedirect } from '../../../../api/queries/cmsRedirects';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useCmsRedirectActions, useCmsRedirects } from '@/api/queries/cmsRedirects';
+import type { CmsRedirect } from '@/api/queries/cmsRedirects';
 
 const inputClass = 'w-full px-2 py-1 rounded text-xs font-mono border bg-[var(--bg-tertiary)] text-[var(--text-primary)] border-[var(--border-default)] focus:outline-none focus:border-[var(--accent-primary)]';
 const labelClass = 'text-[10px] text-[var(--text-muted)]';

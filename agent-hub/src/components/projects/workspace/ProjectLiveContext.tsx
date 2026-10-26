@@ -1,4 +1,4 @@
-import { discoveryKeys } from '../../../api/queries/projectDiscovery';
+import { discoveryKeys } from '@/api/queries/projectDiscovery';
 // One live connection per open project, shared by every panel on the page.
 //
 // The project workspace shows several lists that other people change while you
@@ -10,11 +10,11 @@ import { discoveryKeys } from '../../../api/queries/projectDiscovery';
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import useProjectStream, { type ProjectStreamReady, type ProjectStreamStatus } from '../../../hooks/useProjectStream';
-import { apiClient } from '../../../api/client';
-import { changeKeys } from '../../../api/queries/projectChanges';
-import { projectKeys } from '../../../api/queries/projects';
-import { logger } from '../../../utils/logger';
+import useProjectStream, { type ProjectStreamReady, type ProjectStreamStatus } from '@/hooks/useProjectStream';
+import { apiClient } from '@/api/client';
+import { changeKeys } from '@/api/queries/projectChanges';
+import { projectKeys } from '@/api/queries/projects';
+import { logger } from '@/utils/logger';
 
 export type ProjectLiveHandler = (kind: string, event: ProjectLiveEvent) => void;
 

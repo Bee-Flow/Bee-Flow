@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { ColumnChips, ColumnSelect } from '../TableColumnSelect';
 import { planOpColumns, type Aggregate, type GroupOp } from '../tableOpModel';
 import { AGG_FNS } from '../tableOpModel';

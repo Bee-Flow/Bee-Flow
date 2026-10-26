@@ -1,5 +1,5 @@
 import React from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { registerInspector } from '../registry';
 import type { PanelProps } from '../appDefinition';
 import { SelectField, usePatch } from './kit';

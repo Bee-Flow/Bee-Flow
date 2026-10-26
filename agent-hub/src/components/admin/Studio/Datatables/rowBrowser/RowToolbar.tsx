@@ -3,9 +3,9 @@ import { CHIP_BTN, CHIP_STYLE, LINK_BTN, SUBTLE, rowsWord } from './rowBrowserMo
 import type { DtMirror, DtTable } from './rowBrowserModel';
 import type { RowPages } from './useRowPages';
 import type { RowWrites } from './useRowWrites';
-import useRelativeTime from '../../../../../hooks/useRelativeTime';
-import useTranslation from '../../../../../hooks/useTranslation';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import useTranslation from '@/hooks/useTranslation';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 
 interface RowToolbarProps {
     pages: RowPages;

@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { CompareSide } from '../../../../api/queries/automation/runChecks';
-import { useRunCompare } from '../../../../api/queries/automation/runChecks';
-import { useRunSteps } from '../../../../api/queries/automation/runs';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { CompareSide } from '@/api/queries/automation/runChecks';
+import { useRunCompare } from '@/api/queries/automation/runChecks';
+import { useRunSteps } from '@/api/queries/automation/runs';
 import { buildRunStepLabelMap, runStepLabel } from '../flow/displayHelpers';
 import RunCompareStep from './RunCompareStep';
 import { compareErrorText } from './runChecksErrors';

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationMock'));
 
 import MediaGallery from './MediaGallery';
 import RemoveModuleDialog from './RemoveModuleDialog';

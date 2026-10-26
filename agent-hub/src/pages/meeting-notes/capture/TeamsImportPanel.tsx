@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { Video, Loader2, RefreshCw, Download, Check, Clock } from 'lucide-react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import CaptureControls from './CaptureControls';
 import { useRecorder } from '../hooks/RecorderContext';
 import {
     useTeamsRecordings,
     useInvalidateTeamsMeetingNotes,
     type TeamsRecordingItem,
-} from '../../../api/queries/teamsMeetingNotes';
-import { openMicrosoftOAuthPopup } from '../../../api/microsoftOAuthPopup';
-import { API_BASE, authFetch } from '../../../utils/helpers';
-import { errorMessage } from '../../../utils/caughtError';
+} from '@/api/queries/teamsMeetingNotes';
+import { openMicrosoftOAuthPopup } from '@/api/microsoftOAuthPopup';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import { errorMessage } from '@/utils/caughtError';
 
 /**
  * Manual import of a finished Microsoft Teams meeting. Lists the meetings the

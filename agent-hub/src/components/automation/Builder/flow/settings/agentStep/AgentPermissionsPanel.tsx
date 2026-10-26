@@ -7,11 +7,11 @@
 // it as a fact about their agent and turn off a permission it needed.
 import { Cloud, Globe, ShieldCheck } from 'lucide-react';
 import type { ReactNode } from 'react';
-import type { AgentPermissions, AgentStepPreview } from '../../../../../../api/queries/automation/agents';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { AgentPermissions, AgentStepPreview } from '@/api/queries/automation/agents';
+import type { TranslateFn } from '@/hooks/useTranslation';
 // The product's counted-phrase helper: the i18n guard knows it and checks
 // both halves of the pair.
-import { nOf } from '../../../../../admin/Studio/KnowledgeStudio/plural';
+import { nOf } from '@/components/admin/Studio/KnowledgeStudio/plural';
 import { humanizeToolName } from '../../displayHelpers';
 import { SectionNote, hintTextClass } from '../formPrimitives';
 import { toolGroupsOf, withheldReasonText } from './agentStepModel';

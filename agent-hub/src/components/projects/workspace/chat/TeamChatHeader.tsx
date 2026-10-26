@@ -6,15 +6,15 @@
 
 import { Building2, MoreHorizontal, PauseCircle, Search, Users } from 'lucide-react';
 import React, { useRef, useState } from 'react';
-import useNow from '../../../../hooks/useNow';
-import type { ProjectRole } from '../../../../api/queries/projects';
+import useNow from '@/hooks/useNow';
+import type { ProjectRole } from '@/api/queries/projects';
 import {
     useDeleteProjectChat, useTeamChatAiPolicy, useUpdateProjectChat, type TeamChat, type TeamChatPatch,
-} from '../../../../api/queries/projectChats';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import AnchoredMenuJs from '../../../shared/AnchoredMenu';
-import { toast } from '../../../shared/Toast';
-import useConfirm from '../../../shared/useConfirm';
+} from '@/api/queries/projectChats';
+import { useTranslation } from '@/hooks/useTranslation';
+import AnchoredMenuJs from '@/components/shared/AnchoredMenu';
+import { toast } from '@/components/shared/Toast';
+import useConfirm from '@/components/shared/useConfirm';
 import type { AgentSummary } from '../homeQueries';
 import { projectErrorText } from '../projectErrorText';
 import { StudioSectionHeader } from '../studioParts';

@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { FlowDefinition } from './flow/types';
 import type { RowAnswer } from './unwrapRow';
-import type { BuilderSnapshot } from '../../../hooks/builderStream';
-import type { AutomationBuilderState } from '../../../hooks/useAutomationBuilderStream';
-import { fetchBuilderSessionSnapshot } from '../../../api/queries/automationBuilderReads';
-import { logger } from '../../../utils/logger';
+import type { BuilderSnapshot } from '@/hooks/builderStream';
+import type { AutomationBuilderState } from '@/hooks/useAutomationBuilderStream';
+import { fetchBuilderSessionSnapshot } from '@/api/queries/automationBuilderReads';
+import { logger } from '@/utils/logger';
 
 /**
  * The persisted row behind the builder — an automation, or a reusable Step.

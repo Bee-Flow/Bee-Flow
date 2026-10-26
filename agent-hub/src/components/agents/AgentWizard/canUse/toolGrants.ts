@@ -30,10 +30,10 @@
  * i18n guard reads also stand.
  */
 
-import { isAgentCallable } from '../../../admin/Studio/SkillsStudio/skillModel';
+import { isAgentCallable } from '@/components/admin/Studio/SkillsStudio/skillModel';
 import { READ } from './canUseFacts';
 import type { ToolApp } from './toolCatalogTypes';
-import type { CallableAutomation } from '../../../admin/Studio/SkillsStudio/skillModel.types';
+import type { CallableAutomation } from '@/components/admin/Studio/SkillsStudio/skillModel.types';
 import type { AutomationLike, ToolsConfig, ToolsConfigIn, SelectionMap, ToolRowsArgs, AutomationRowsArgs } from './toolGrants.types';
 import { UNSAFE_OBJECT_KEYS, CONFIRM, ACT_AS, isPlainObject, uniqueStrings, isAppKey, grantedActionsOf, claimantsOf, effectiveActionsOf, hasCuratedGrants, cloneTools, toolRow } from './toolGrants.helpers';
 ;

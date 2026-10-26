@@ -20,8 +20,8 @@
  * what visitors actually saw, not the current draft.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../../utils/helpers';
+import { useTranslation } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
 
 const PREVIEW_SRC = '/__cms_preview__?preview=1';
 

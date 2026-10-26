@@ -2,7 +2,7 @@ import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { testQueryClient, withQueryClient } from '../../../../test/queryWrapper';
+import { testQueryClient, withQueryClient } from '@/test/queryWrapper';
 import type { NotebookDetailData } from '../notebookQueries';
 
 // ── Seams: the editor, the live session, the network ────────────────
@@ -21,7 +21,7 @@ const h = vi.hoisted(() => ({
     historyProps: null as null | Record<string, unknown>,
 }));
 
-vi.mock('../../../../editor/react/RichTextEditor.jsx', () => ({
+vi.mock('@/editor/react/RichTextEditor.jsx', () => ({
     default: forwardRef(function FakeEditor(props: Record<string, unknown>, ref) {
         h.editorProps = props;
         const html = useRef(String(props.content || ''));
@@ -47,16 +47,16 @@ vi.mock('../../../../editor/react/RichTextEditor.jsx', () => ({
         );
     }),
 }));
-vi.mock('../../../../editor/collab/useCollab', () => ({
+vi.mock('@/editor/collab/useCollab', () => ({
     default: (opts: Record<string, unknown>) => { h.collabOpts.push(opts); return opts.enabled ? h.collab : null; },
 }));
-vi.mock('../../../../editor/react/CollabPresence', () => ({ default: () => <span data-testid="presence" /> }));
-vi.mock('../../../../components/versions/VersionHistoryPanel', () => ({
+vi.mock('@/editor/react/CollabPresence', () => ({ default: () => <span data-testid="presence" /> }));
+vi.mock('@/components/versions/VersionHistoryPanel', () => ({
     default: (props: Record<string, unknown>) => { h.historyProps = props; return <aside data-testid="history" data-can-edit={String(props.canEdit)} />; },
 }));
-vi.mock('../../../../components/versions/VersionCompare', () => ({ default: () => <div data-testid="compare" /> }));
-vi.mock('../../../../components/comments/CommentsPanel', () => ({ default: () => <aside data-testid="comments" /> }));
-vi.mock('../../../../hooks/useChatEngine', () => ({
+vi.mock('@/components/versions/VersionCompare', () => ({ default: () => <div data-testid="compare" /> }));
+vi.mock('@/components/comments/CommentsPanel', () => ({ default: () => <aside data-testid="comments" /> }));
+vi.mock('@/hooks/useChatEngine', () => ({
     default: () => ({ messages: [], setMessages: vi.fn(), isLoading: false, sendMessage: vi.fn(), stopGenerating: vi.fn(), retryMessage: vi.fn(), editAndRegenerate: vi.fn() }),
 }));
 vi.mock('../NotebookChat', () => ({
@@ -64,10 +64,10 @@ vi.mock('../NotebookChat', () => ({
 }));
 vi.mock('../hooks/useModelTiers', () => ({ default: () => ({ modelTiers: {}, selectedTier: 'fast', setSelectedTier: vi.fn() }) }));
 vi.mock('../hooks/useExportTargets', () => ({ default: () => ({ signRequestConfigured: false, nextcloudConfigured: false }) }));
-vi.mock('../../../../api/notebookApi', async (orig) => ({ ...(await orig<Record<string, unknown>>()), notebookApi: h.notebookApi }));
-vi.mock('../../../../api/client', async (orig) => ({ ...(await orig<Record<string, unknown>>()), apiClient: h.api, default: h.api }));
-vi.mock('../../../../components/meeting-picker/MeetingPicker', () => ({ default: () => null }));
-vi.mock('../../../meeting-notes/capture/CaptureContext', () => ({ useCapture: () => ({ openCapture: () => {} }) }));
+vi.mock('@/api/notebookApi', async (orig) => ({ ...(await orig<Record<string, unknown>>()), notebookApi: h.notebookApi }));
+vi.mock('@/api/client', async (orig) => ({ ...(await orig<Record<string, unknown>>()), apiClient: h.api, default: h.api }));
+vi.mock('@/components/meeting-picker/MeetingPicker', () => ({ default: () => null }));
+vi.mock('@/pages/meeting-notes/capture/CaptureContext', () => ({ useCapture: () => ({ openCapture: () => {} }) }));
 
 import NotebookEditorView from './NotebookEditorView';
 

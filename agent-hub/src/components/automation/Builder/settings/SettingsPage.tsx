@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { readinessStamp, useReadiness } from '../../../../api/queries/automation/readiness';
+import { useTranslation } from '@/hooks/useTranslation';
+import { readinessStamp, useReadiness } from '@/api/queries/automation/readiness';
 import AssistantCapabilities from '../chat/AssistantCapabilities';
 import AdvancedSection from './AdvancedSection';
 import AiActSection, { aiActOpen, aiActVisible } from './AiActSection';

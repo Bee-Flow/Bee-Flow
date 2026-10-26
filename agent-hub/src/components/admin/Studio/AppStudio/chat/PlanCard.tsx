@@ -1,6 +1,6 @@
 import { Database, HelpCircle, Layers, Plus, Shield, Trash2, Users, type LucideIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type React from 'react';
 import { ROW_ID } from './PlanCard.rowId';
 import type { PlanObjectRow, PlanRow, PlanList, PlanDraft, PlanCardProps, SectionProps, RowProps, AddRowProps } from './PlanCard.types';

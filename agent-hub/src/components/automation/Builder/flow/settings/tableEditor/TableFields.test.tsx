@@ -1,8 +1,8 @@
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import scopedStorage from '../../../../../../utils/scopedStorage';
-import { PREVIEW_DELAY_MS } from '../../../../../../hooks/automationBuilder/useTablePreview';
+import scopedStorage from '@/utils/scopedStorage';
+import { PREVIEW_DELAY_MS } from '@/hooks/automationBuilder/useTablePreview';
 import { COLUMNS, GROUPS, HANDLE, SAMPLE, SOURCE, TableHarness, fakePreview, okResponse, op, opResult } from './testKit';
 
 const GROUP = (extra: Record<string, unknown> = {}) => op('group', 'op1', { by: ['Region'], aggregates: [{ fn: 'sum', column: 'Amount', as: 'Total' }], ...extra });

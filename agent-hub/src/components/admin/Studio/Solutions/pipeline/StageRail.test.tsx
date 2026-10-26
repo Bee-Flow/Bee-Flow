@@ -3,13 +3,13 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: (...args: unknown[]) => (globalThis as unknown as { __authFetch: (...a: unknown[]) => unknown }).__authFetch(...args),
 }));
 
 import StageRail, { type StageRailProps } from './StageRail';
-import type { Pipeline, PipelineStage } from '../../../../../api/stagesApi';
+import type { Pipeline, PipelineStage } from '@/api/stagesApi';
 
 /**
  * The strip under the header of a Solution: where each stage stands, the one

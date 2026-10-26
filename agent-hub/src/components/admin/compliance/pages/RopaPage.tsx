@@ -1,10 +1,10 @@
 import { RefreshCw, CheckCircle2, ExternalLink, FileDown } from 'lucide-react';
 import React, { useEffect, useMemo, useRef } from 'react';
-import type { TranslateFn, TranslateParams } from '../../../../hooks/useTranslation';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { DataTableContext, TableColumn } from '../../../shared/DataTable';
-import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '../../../shared/DataTable';
-import EmptyState from '../../../shared/EmptyState';
+import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { DataTableContext, TableColumn } from '@/components/shared/DataTable';
+import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '@/components/shared/DataTable';
+import EmptyState from '@/components/shared/EmptyState';
 import type { DateLike } from '../shared/formatDates';
 import { useDateFormat } from '../shared/formatDates';
 import StatusPill from '../shared/StatusPill';

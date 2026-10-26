@@ -18,8 +18,8 @@
  * nor another pin. A label with no free spot is left out; the tooltip still has it.
  */
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
-import { fNum } from '../../../../../../../pages/settings/usage/format';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { fNum } from '@/pages/settings/usage/format';
 import type { Box, Pt, Size } from './mapGeometry';
 
 /** Kinds found in a host's sampled calls, most first, as [category id, calls]. */

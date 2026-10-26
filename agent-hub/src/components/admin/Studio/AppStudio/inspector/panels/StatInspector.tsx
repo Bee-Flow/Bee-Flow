@@ -1,5 +1,5 @@
 import React from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { registerInspector } from '../registry';
 import BindingField from './BindingField';
 import { TextField, IconField, SelectField, usePatch } from './kit';

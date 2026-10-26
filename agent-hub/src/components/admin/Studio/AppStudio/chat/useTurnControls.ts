@@ -2,7 +2,7 @@ import { useCallback, useEffect, useEffectEvent, useRef } from 'react';
 import type { Dispatch, RefObject } from 'react';
 import { boundTableIdFor, canAutoSendApp } from './builderPaneModel';
 import type { EditorChrome } from './builderPaneModel';
-import type { AppBuilderSendOptions } from '../../../../../hooks/useAppBuilderStream';
+import type { AppBuilderSendOptions } from '@/hooks/useAppBuilderStream';
 import type { AppDefinition } from '../inspector/appDefinition';
 import type { AppEditorAction } from '../state/appEditorState';
 

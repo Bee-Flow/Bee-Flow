@@ -1,5 +1,5 @@
 import { builtInOnly } from './ownData/ownDataModel';
-import { presetFor } from '../../../../privacy/PiiSensitivityPicker';
+import { presetFor } from '@/components/privacy/PiiSensitivityPicker';
 import type { GuardStatus, Posture, PostureRow } from './overview/types';
 import type { ShieldFieldBindings } from './useShieldFields';
 

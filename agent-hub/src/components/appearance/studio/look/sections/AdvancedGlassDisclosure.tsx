@@ -1,13 +1,13 @@
 import React from 'react';
-import Disclosure from '../../../../shared/Disclosure';
-import FormField from '../../../../shared/FormField';
-import SegmentedControl from '../../../../shared/SegmentedControl';
-import Slider from '../../../../shared/Slider';
+import Disclosure from '@/components/shared/Disclosure';
+import FormField from '@/components/shared/FormField';
+import SegmentedControl from '@/components/shared/SegmentedControl';
+import Slider from '@/components/shared/Slider';
 import { SECTION_IDS } from '../useLookForm';
 import type { LookForm, LookSectionProps } from '../useLookForm';
-import type { GlassTier } from '../../../ThemeContext.types';
+import type { GlassTier } from '@/components/appearance/ThemeContext.types';
 
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 type TierKey = 'subtle' | 'default' | 'opaque';
 type TierFormKey = 'glassTierSubtle' | 'glassTierDefault' | 'glassTierOpaque';

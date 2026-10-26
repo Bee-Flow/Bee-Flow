@@ -16,7 +16,7 @@ import { RuntimeProvider, DEFAULT_RUNTIME } from '../RuntimeContext';
  *     keystroke; a request per render would drain the read limiter.
  */
 
-vi.mock('../../../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: 'https://api.test',
     authFetch: (...args) => globalThis.__authFetch(...args),
 }));

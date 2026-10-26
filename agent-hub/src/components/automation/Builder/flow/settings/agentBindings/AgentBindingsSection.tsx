@@ -8,8 +8,8 @@ import { useState } from 'react';
 import {
     AgentBindingsError, useAgentBindings, useSaveAgentBindings,
     type AgentBindings, type BoundAgent,
-} from '../../../../../../api/queries/automation/agentBindings';
-import { useTranslation, type TranslateFn } from '../../../../../../hooks/useTranslation';
+} from '@/api/queries/automation/agentBindings';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { EmptySectionNote, FormRow, SectionNote, hintTextClass, inputClass } from '../formPrimitives';
 import { pickableAgents, refusalText, withAgent, withoutAgent } from './agentBindingsModel';
 

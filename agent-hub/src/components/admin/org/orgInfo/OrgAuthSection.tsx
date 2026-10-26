@@ -3,7 +3,7 @@ import { useRef } from 'react';
 import type { Dispatch, KeyboardEvent, SetStateAction } from 'react';
 import type { OrgFormData } from './useOrgInfoForm';
 import { AUTH_METHODS, AllowedDomainsEditor } from './orgInfoShared';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 interface AuthMethodGroupProps {
     t: TranslateFn;

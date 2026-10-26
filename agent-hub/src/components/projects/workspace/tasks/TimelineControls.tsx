@@ -3,9 +3,9 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRight, Check, ChevronLeft, ChevronRight, SlidersHorizontal } from 'lucide-react';
-import type { ProjectTask } from '../../../../api/queries/projectTasks';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import AnchoredMenuJs from '../../../shared/AnchoredMenu';
+import type { ProjectTask } from '@/api/queries/projectTasks';
+import { useTranslation } from '@/hooks/useTranslation';
+import AnchoredMenuJs from '@/components/shared/AnchoredMenu';
 import { addDays, monday, type TimelineRelation } from './taskPlanning';
 import { todayKey } from './taskText';
 import { MENU_ITEM, MENU_SECTION, TOOLBAR_BUTTON } from './planningParts';

@@ -1,10 +1,10 @@
 import { X, ImageDown, FileDown, Link, Copy, Check, Share2, Award, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import Modal from '../../../components/shared/Modal';
+import Modal from '@/components/shared/Modal';
 import { Eyebrow, PrimaryButton, SecondaryButton } from './bits';
-import { fetchAssetObjectUrl, downloadAsset } from '../../../api/achievements';
-import type { TranslateParams } from '../../../hooks/useTranslation';
-import { logger } from '../../../utils/logger';
+import { fetchAssetObjectUrl, downloadAsset } from '@/api/achievements';
+import type { TranslateParams } from '@/hooks/useTranslation';
+import { logger } from '@/utils/logger';
 
 /**
  * CertificateDrawer — artboard 1e: the in-app drawer for an issued

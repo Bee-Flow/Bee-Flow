@@ -1,7 +1,7 @@
 // The input part of the test-case form: type values, or take them from a
 // recorded run (read-only once taken).
 import type { ReactNode } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import CaptureFromRunPicker from './CaptureFromRunPicker';
 import RadioRow from './RadioRow';
 import type { CaseDraft } from './testCaseForm';

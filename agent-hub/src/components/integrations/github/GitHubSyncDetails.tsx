@@ -1,5 +1,5 @@
 import { Bot, Sparkles } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { GitHubSyncDetail } from './githubSync.types';
 
 /** The per-resource sync states, newest sync info and any error message. */

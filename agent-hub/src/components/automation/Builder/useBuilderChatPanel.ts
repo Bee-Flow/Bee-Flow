@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import type { Dispatch, MouseEvent as ReactMouseEvent, RefObject, SetStateAction } from 'react';
-import useModelTierSelection from '../../../hooks/useModelTierSelection';
-import type { ModelTierMap } from '../../../hooks/useModelTierSelection';
-import useStickToBottom from '../../../hooks/useStickToBottom';
-import scopedStorage from '../../../utils/scopedStorage';
+import useModelTierSelection from '@/hooks/useModelTierSelection';
+import type { ModelTierMap } from '@/hooks/useModelTierSelection';
+import useStickToBottom from '@/hooks/useStickToBottom';
+import scopedStorage from '@/utils/scopedStorage';
 
 export interface BuilderChatPanel {
     assistantOpen: boolean;

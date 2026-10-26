@@ -1,6 +1,6 @@
 import { CheckCircle2, Circle, Loader2, ListTodo } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * Read-only live checklist of the builder agent's self-managed plan

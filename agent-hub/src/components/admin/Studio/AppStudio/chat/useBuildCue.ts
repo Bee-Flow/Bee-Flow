@@ -4,7 +4,7 @@ import { describeAppToolCall } from './appToolCallDisplay';
 import { countComponents } from './builderPaneModel';
 import type { EditorChrome } from './builderPaneModel';
 import type { DoneInfo, RevealCue } from './useBuilderTurn';
-import type { BuilderEngine, BuilderMessage, BuilderTodo, BuilderTurn } from '../../../../../hooks/builderStream';
+import type { BuilderEngine, BuilderMessage, BuilderTodo, BuilderTurn } from '@/hooks/builderStream';
 import type { ToolDraft } from '../editor/ghostCellDraft';
 import type { BuildCueValue, BuildPhaseInfo } from '../editor/BuildCueContext';
 import type { AppDefinition } from '../inspector/appDefinition';

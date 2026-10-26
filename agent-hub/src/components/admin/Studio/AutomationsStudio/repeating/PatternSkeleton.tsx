@@ -1,4 +1,4 @@
-import { familyClasses } from '../../../../automation/Builder/flow/canvasClasses';
+import { familyClasses } from '@/components/automation/Builder/flow/canvasClasses';
 
 /**
  * The pattern list's layout: one column, two side by side once the tab is

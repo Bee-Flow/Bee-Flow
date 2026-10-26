@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { meetingNotesKey, useTranscriptionsQuery } from '../../../api/queries/meetingLibrary';
+import { meetingNotesKey, useTranscriptionsQuery } from '@/api/queries/meetingLibrary';
 import type { MeetingNote, MeetingRowPatch } from '../detail/meetingDetailTypes';
 
 const NO_NOTES: MeetingNote[] = [];

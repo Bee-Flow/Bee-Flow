@@ -1,17 +1,17 @@
 import { X } from 'lucide-react';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { useEffect, useMemo, useState } from 'react';
 import { INPUT_CLS } from './panels/kit';
 import ExpressionInput from './logic/ExpressionInput';
-import FormField from '../../../../shared/FormField';
-import SegmentedControl from '../../../../shared/SegmentedControl';
-import Toggle from '../../../../shared/Toggle';
-import IconButton from '../../../../shared/IconButton';
-import ModelTierSelector from '../../../../licensing/ModelTierSelector';
-import useModelTierSelection from '../../../../../hooks/useModelTierSelection';
-import { useStudioKnowledgeBases } from '../../../../../api/queries/studioApps';
+import FormField from '@/components/shared/FormField';
+import SegmentedControl from '@/components/shared/SegmentedControl';
+import Toggle from '@/components/shared/Toggle';
+import IconButton from '@/components/shared/IconButton';
+import ModelTierSelector from '@/components/licensing/ModelTierSelector';
+import useModelTierSelection from '@/hooks/useModelTierSelection';
+import { useStudioKnowledgeBases } from '@/api/queries/studioApps';
 import { bindingForField, fieldNameFromBinding, sanitizeVarName, type SchemaField } from './aiFieldMatching';
-import type { TranslateParams } from '../../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { AiAction, KnowledgeBase, SchemaMeta, ModelTierRowProps, FieldSourcePickerProps, SchemaFieldsEditorProps, KbMultiSelectProps, ResultVarFieldProps, AiGenerateEditorProps } from './AiActionEditors.types';
 
 const schemaTypeOptions = (t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) => [

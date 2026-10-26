@@ -6,10 +6,10 @@ import type { ActiveRun } from './ProjectOverviewTab';
 import type { InstallsBody, ReleasesBody } from './releaseModel';
 import { isBlocking } from './SolutionControlPanel';
 import type { ContentResources, TargetedFinding } from './SolutionContentTable';
-import useProjectStream from '../../../../hooks/useProjectStream';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
-import { logger } from '../../../../utils/logger';
-import { request, RefusedError } from '../../../../api/mutate';
+import useProjectStream from '@/hooks/useProjectStream';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import { logger } from '@/utils/logger';
+import { request, RefusedError } from '@/api/mutate';
 
 /**
  * The data side of the Solution detail screen: the fetches, the live feed and

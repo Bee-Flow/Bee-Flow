@@ -3,7 +3,7 @@ import { IntegrationLogo } from './jsComponents';
 import type { KeyboardEvent, RefObject } from 'react';
 import { Search } from 'lucide-react';
 import { stepDragProps } from '../stepDrag';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { RibbonResult } from './ribbonSearch';
 import type { StepPayload } from './ribbonCategories';
 

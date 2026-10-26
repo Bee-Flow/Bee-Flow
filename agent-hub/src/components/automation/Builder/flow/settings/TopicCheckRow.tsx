@@ -1,6 +1,6 @@
 import { Loader2, ScanSearch } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * In the Suggest-outputs preview, where the match count would be: "is about"

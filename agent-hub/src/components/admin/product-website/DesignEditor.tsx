@@ -8,11 +8,11 @@ import AppIcon from '../../icons/AppIcon';
 import useConfirm from '../../shared/useConfirm';
 // Self-hosted Fontshare @font-face — needed here so the picker's dropdown
 // previews render in the chosen face. Same CSS file the iframe imports via ProductWebsite.tsx.
-import '../../../marketing/self-hosted-fonts.css';
+import '@/marketing/self-hosted-fonts.css';
 import DisplayTrackingControl from './controls/DisplayTrackingControl';
 import DarkBandControl from './controls/DarkBandControl';
 import DesignRoleControls from './controls/DesignRoleControls';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { DesignColors, DesignEditorProps, EditableDesign, ThemePreset } from './DesignEditor.types';
 import { DesignComponents, DesignLayout } from '@/marketing/ProductWebsite.types';
 

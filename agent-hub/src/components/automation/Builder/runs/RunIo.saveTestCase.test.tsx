@@ -6,8 +6,8 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { RunStepRecord } from '../../../../api/queries/automation/runs';
-import { withQueryClient } from '../../../../test/queryWrapper';
+import type { RunStepRecord } from '@/api/queries/automation/runs';
+import { withQueryClient } from '@/test/queryWrapper';
 import RunIo from './RunIo';
 
 const step = (over: Partial<RunStepRecord> = {}): RunStepRecord => ({

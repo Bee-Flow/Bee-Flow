@@ -4,10 +4,10 @@
 
 import { Bot, BookOpen, CheckSquare, CornerUpLeft, FileText, Mic, SendHorizontal, Sparkles, X } from 'lucide-react';
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useEffectEvent } from 'react';
-import type { TeamChatRef } from '../../../../api/queries/projectChatTypes';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import TierSlider from '../../../licensing/TierSlider';
-import { ComposerShell } from '../../../shared/ComposerBox';
+import type { TeamChatRef } from '@/api/queries/projectChatTypes';
+import { useTranslation } from '@/hooks/useTranslation';
+import TierSlider from '@/components/licensing/TierSlider';
+import { ComposerShell } from '@/components/shared/ComposerBox';
 import { CHAT_COLUMN_CLASS } from './chatColumn';
 import { readDraft, writeDraft } from './drafts';
 import { isImeEnter, isImeKey } from './ime';

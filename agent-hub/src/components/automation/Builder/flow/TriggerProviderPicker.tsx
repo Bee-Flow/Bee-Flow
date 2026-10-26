@@ -1,8 +1,8 @@
 import { Search, X, Check } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
-import { getIntegrationIcon } from '../../../../config/integrationIcons';
-import Modal from '../../../shared/Modal';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { getIntegrationIcon } from '@/config/integrationIcons';
+import Modal from '@/components/shared/Modal';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /** One app that can start an automation, with the events it can trigger on. */
 interface TriggerProvider {

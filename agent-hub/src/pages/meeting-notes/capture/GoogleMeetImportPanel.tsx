@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Video, Loader2, RefreshCw, Download, Check } from 'lucide-react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import CaptureControls from './CaptureControls';
 import { useRecorder } from '../hooks/RecorderContext';
 import useGoogleMeetConnected from '../hooks/useGoogleMeetConnected';
-import { listGoogleMeetRecordings } from '../../../api/transcriptionsApi';
-import { openGoogleConsentPopup } from '../../../api/oauthPopupLaunchers';
-import { errorMessage } from '../../../utils/caughtError';
+import { listGoogleMeetRecordings } from '@/api/transcriptionsApi';
+import { openGoogleConsentPopup } from '@/api/oauthPopupLaunchers';
+import { errorMessage } from '@/utils/caughtError';
 
 interface MeetRecording {
     eventId: string;

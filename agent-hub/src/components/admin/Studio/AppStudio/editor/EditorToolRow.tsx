@@ -1,9 +1,9 @@
 import { Redo2, Undo2 } from 'lucide-react';
 import { CompactComponentBar } from './ComponentRibbon';
 import ScreenTabs from './ScreenTabs';
-import IconButton from '../../../../shared/IconButton';
+import IconButton from '@/components/shared/IconButton';
 import { useAppEditor } from '../state/AppEditorContext';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { AppDefinition } from '../inspector/appDefinition';
 import type { AppEditorValue } from '../state/appEditorState';
 

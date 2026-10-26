@@ -13,13 +13,13 @@ import React, { useMemo } from 'react';
 import {
     articleOf, channelOf, clockPropsOf, identityOf, isClosed, receivedAtOf, stateOf, typeKeyOf,
 } from './dsrArticles';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import type { DataTableContext, TableColumn } from '../../../../shared/DataTable';
-import DataTable, { TableCell, TableRow } from '../../../../shared/DataTable';
-import DeadlineClock, { useNow } from '../../../../shared/DeadlineClock';
-import { clockState } from '../../../../shared/deadlineMath';
-import type { Tone } from '../../../../shared/statusTone';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { DataTableContext, TableColumn } from '@/components/shared/DataTable';
+import DataTable, { TableCell, TableRow } from '@/components/shared/DataTable';
+import DeadlineClock, { useNow } from '@/components/shared/DeadlineClock';
+import { clockState } from '@/components/shared/deadlineMath';
+import type { Tone } from '@/components/shared/statusTone';
 import { formatCalDate, intlLocale } from '../../shared/calendarMath';
 import { maskEmail } from '../../shared/maskEmail';
 import RegisterStatePill from '../../shared/RegisterStatePill';

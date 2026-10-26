@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ProjectActivityItem } from '../../../api/queries/projects';
+import type { ProjectActivityItem } from '@/api/queries/projects';
 import { activityCategory, changeMeta, describeActivity, isContentChange, type ActivityNames } from './activityText';
 
 // The English fallback, interpolated: what t() renders before the catalogue loads.

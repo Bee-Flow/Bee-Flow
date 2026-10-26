@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, AlertTriangle, Copy, Check, X } from 'lucide-react';
-import { API_BASE } from '../../../utils/helpers';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { errorMessage } from '../../../utils/caughtError';
-import { logger } from '../../../utils/logger';
-import { mutate, errorBody, RefusedError } from '../../../api/mutate';
+import { API_BASE } from '@/utils/helpers';
+import { useTranslation } from '@/hooks/useTranslation';
+import { errorMessage } from '@/utils/caughtError';
+import { logger } from '@/utils/logger';
+import { mutate, errorBody, RefusedError } from '@/api/mutate';
 
 export interface PendingNcBinding {
     id: string;

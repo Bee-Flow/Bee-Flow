@@ -2,11 +2,11 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import SitemapView from './SitemapView';
-import { authFetch } from '../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 import { withQueryClient } from '@/test/render';
 
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const fetchMock = vi.mocked(authFetch);
 const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body }) as unknown as Response;

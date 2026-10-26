@@ -1,13 +1,13 @@
 import { Sun, Moon, Sparkles, Eye, Palette, FileText, Gem, BookOpen } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import React from 'react';
-import { THEME_PRESETS } from '../../../ThemeContext';
-import type { ThemeOption } from '../../../ThemeContext.types';
+import { THEME_PRESETS } from '@/components/appearance/ThemeContext';
+import type { ThemeOption } from '@/components/appearance/ThemeContext.types';
 
 import PresetCard from '../../shared/PresetCard';
 import { SECTION_IDS } from '../useLookForm';
 import type { LookForm, LookSectionProps } from '../useLookForm';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const PRESET_ICONS: Record<string, LucideIcon> = {
     light: Sun,

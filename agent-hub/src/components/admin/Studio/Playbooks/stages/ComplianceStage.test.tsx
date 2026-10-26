@@ -16,7 +16,7 @@ vi.mock('../playbooksApi', () => {
     };
     return { playbooksApi, default: playbooksApi };
 });
-vi.mock('../../../../../hooks/useAutomationApi', () => ({ default: () => ({ updateAutomation: vi.fn(async () => ({})) }) }));
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => ({ updateAutomation: vi.fn(async () => ({})) }) }));
 
 const PB = { id: 'pb_1', title: 'Invoice Insights' };
 

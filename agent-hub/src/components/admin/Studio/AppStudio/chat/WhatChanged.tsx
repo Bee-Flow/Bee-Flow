@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronRight, History, Undo2 } from 'lucide-react';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { AppDefinition } from '../inspector/appDefinition';
 import { findNode } from '../state/definitionOps';
 

@@ -3,9 +3,9 @@ import React from 'react';
 import {
     OBJ_STATUS, labelOf, userName, fmtDate, ActionButton as ActionButtonJs, Fact as FactJs,
 } from './auditForms';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import DeadlineClockJs from '../../../../shared/DeadlineClock';
-import SideDrawerJs, { DrawerFooter as DrawerFooterJs } from '../../../../shared/SideDrawer';
+import { useTranslation } from '@/hooks/useTranslation';
+import DeadlineClockJs from '@/components/shared/DeadlineClock';
+import SideDrawerJs, { DrawerFooter as DrawerFooterJs } from '@/components/shared/SideDrawer';
 import RegisterStatePill from '../../shared/RegisterStatePill';
 import type { DrawerMode } from '../../shared/useDrawerMode';
 import type { OrgUser } from '../accessAuditLabels';

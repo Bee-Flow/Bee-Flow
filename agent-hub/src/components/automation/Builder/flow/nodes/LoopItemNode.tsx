@@ -3,7 +3,7 @@ import { CornerDownRight } from 'lucide-react';
 import React from 'react';
 import { nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import { typeColorVar, typeTint } from '../nodeTypeColors';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { NodeStep } from './nodeProps';
 
 /**

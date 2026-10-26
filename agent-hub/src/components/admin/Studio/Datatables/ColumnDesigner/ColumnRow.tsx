@@ -3,10 +3,10 @@ import React, { useState } from 'react';
 import { ColumnKindIcon, kindWord } from '../ColumnKind';
 import { columnLabel, keyFromName } from '../datatableDisplay';
 import { TypeSelect } from '../NewDatatableDialog';
-import Tooltip from '../../../../shared/Tooltip';
+import Tooltip from '@/components/shared/Tooltip';
 import { cellText } from '../../AppStudio/tables/rowValues';
 import type { UsageSummaryProps, ColumnRowProps } from '../ColumnDesigner.types';
-import { logger } from '../../../../../utils/logger';
+import { logger } from '@/utils/logger';
 import { managedHint } from './ColumnDesigner.helpers';
 
 // Ronde 2's 24|1fr|190|260|32: the grip alone, the name with its pill, the

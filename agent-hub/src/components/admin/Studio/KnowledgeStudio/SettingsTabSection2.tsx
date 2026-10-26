@@ -1,7 +1,7 @@
 import { Bot, MessageSquare, Workflow } from 'lucide-react';
-import { kindColorVar } from '../../../shared/kindColors';
-import type { UsageRow } from '../../../../hooks/useUsage';
-import type { TranslateParams } from '../../../../hooks/useTranslation';
+import { kindColorVar } from '@/components/shared/kindColors';
+import type { UsageRow } from '@/hooks/useUsage';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { SurfaceCardProps } from './SettingsTab.types';
 
 /** The three surfaces the Studio offers. 'webpage' stays hidden — auto-created bases own it. */

@@ -6,7 +6,7 @@ import {
 import { partLabel, whyNot, whyText } from './relatedText';
 import { SECTIONS } from './solutionSections';
 import Notice from './Notice';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * "Comes along": under the checklist, what else the ticked parts need and

@@ -1,6 +1,6 @@
 import { FieldRow } from '../fields';
 import { SegmentedControl } from '../primitives';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /** Letter-spacing of the hero display headline: an enum, never a free value. */
 export default function DisplayTrackingControl({ value, onChange }: { value?: string; onChange: (value: string) => void }) {

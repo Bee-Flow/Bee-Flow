@@ -1,7 +1,7 @@
 import type { ServerPlaybook } from './usePlaybook';
 import type { Phase, PlaybookEvent } from './phaseMachine';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import type { AppUserLike } from '../../../projects/workspace/types';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import type { AppUserLike } from '@/components/projects/workspace/types';
 
 /** What a playbook was started with, as far as the film reads it. */
 export interface PlaybookOptions {

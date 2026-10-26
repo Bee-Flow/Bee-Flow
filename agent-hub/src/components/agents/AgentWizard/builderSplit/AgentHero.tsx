@@ -3,13 +3,13 @@ import React from 'react';
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import type { CategoryResult, CategoryRow, ReadState } from '../agentEditor.types';
-import type { ModelTierMap } from '../../../../api/queries/modelTiers';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import { TIER_META, customTierMeta } from '../../../licensing/tierMeta';
+import type { ModelTierMap } from '@/api/queries/modelTiers';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { TIER_META, customTierMeta } from '@/components/licensing/tierMeta';
 import CategoryField from '../CategoryField';
 import { READ } from '../canUse/canUseFacts';
 import AvatarPicker from '../pickers/AvatarPicker';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /**
  * AgentHero: the identity ROW of the agent editor, directly under the shared

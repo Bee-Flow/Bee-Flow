@@ -2,8 +2,8 @@
 // capabilities and approvals. Debounced by 400 ms, so typing sends one
 // request per pause, not one per key.
 import { useMemo } from 'react';
-import { useCodeAnalysis, type CodeAnalysis } from '../../../../../../api/queries/automation/codeStep';
-import useDebouncedValue from '../../../../../../hooks/useDebouncedValue';
+import { useCodeAnalysis, type CodeAnalysis } from '@/api/queries/automation/codeStep';
+import useDebouncedValue from '@/hooks/useDebouncedValue';
 
 const ANALYZE_DEBOUNCE_MS = 400;
 

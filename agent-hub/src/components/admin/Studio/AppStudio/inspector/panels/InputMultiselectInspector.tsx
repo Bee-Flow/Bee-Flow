@@ -1,7 +1,7 @@
 import React from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import Toggle from '../../../../../shared/Toggle';
-import { RepeatableList, inputCls } from '../../../../product-website/fields';
+import useTranslation from '@/hooks/useTranslation';
+import Toggle from '@/components/shared/Toggle';
+import { RepeatableList, inputCls } from '@/components/admin/product-website/fields';
 import { PrefillField } from './inputPanels';
 import { registerInspector } from '../registry';
 import type { PanelProps } from '../appDefinition';

@@ -1,11 +1,11 @@
 import { useEffect, useRef, useEffectEvent } from 'react';
-import { API_BASE, authFetch, parseSaveError } from '../../../../utils/helpers';
-import { mutate, request, RefusedError, errorBody } from '../../../../api/mutate';
-import { logger } from '../../../../utils/logger';
-import { filterVisibleModels, fetchAllowedModelsByAgentType } from '../../../../api/modelMeta';
-import { toast } from '../../../shared/Toast';
-import useConfirm from '../../../shared/useConfirm';
-import { messageOf } from '../../../../utils/caughtError';
+import { API_BASE, authFetch, parseSaveError } from '@/utils/helpers';
+import { mutate, request, RefusedError, errorBody } from '@/api/mutate';
+import { logger } from '@/utils/logger';
+import { filterVisibleModels, fetchAllowedModelsByAgentType } from '@/api/modelMeta';
+import { toast } from '@/components/shared/Toast';
+import useConfirm from '@/components/shared/useConfirm';
+import { messageOf } from '@/utils/caughtError';
 import type { AgentSaveBody, ApiOptions, ApiState, DesignerAgent, DesignerMessage } from './useAgentApi.types';
 
 /**

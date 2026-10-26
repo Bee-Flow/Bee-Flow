@@ -1,8 +1,8 @@
 import type React from 'react';
-import Modal from '../../../shared/Modal';
+import Modal from '@/components/shared/Modal';
 import DiagramPaneJs from '../DiagramPane';
-import useTranslation from '../../../../hooks/useTranslation';
-import { useVersionDefinitionQuery } from '../../../../api/queries/automation/versions';
+import useTranslation from '@/hooks/useTranslation';
+import { useVersionDefinitionQuery } from '@/api/queries/automation/versions';
 
 // DiagramPane is JavaScript; say which props this read-only use passes.
 const DiagramPane = DiagramPaneJs;

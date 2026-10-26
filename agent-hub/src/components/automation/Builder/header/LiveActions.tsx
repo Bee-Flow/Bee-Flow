@@ -1,5 +1,5 @@
 import { AlertTriangle, Check, Loader2, Pause, Power, Upload } from 'lucide-react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { LiveState } from './liveState';
 
 export type SavingState = 'idle' | 'saving' | 'saved' | 'error';

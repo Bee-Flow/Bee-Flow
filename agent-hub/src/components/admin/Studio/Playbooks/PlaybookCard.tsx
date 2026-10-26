@@ -1,10 +1,10 @@
 import { ChevronRight, Clapperboard } from 'lucide-react';
 import React from 'react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { Phase } from './phaseMachine';
 import { playbookStatusLabel } from './playbookView';
 import { phaseLabel } from './recipes';
-import { kindTileStyle } from '../../../shared/kindColors';
+import { kindTileStyle } from '@/components/shared/kindColors';
 
 /** A playbook as the list returns it. */
 export interface PlaybookListItem {

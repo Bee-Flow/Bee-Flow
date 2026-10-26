@@ -2,7 +2,7 @@
 // caret is.
 
 import React from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 export interface EditorStatusBarProps {
     words: number | null;

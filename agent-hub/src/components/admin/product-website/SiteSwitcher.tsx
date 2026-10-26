@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { MouseEvent } from 'react';
-import useOutsideDismiss from '../../../hooks/useOutsideDismiss';
+import useOutsideDismiss from '@/hooks/useOutsideDismiss';
 import AppIcon from '../../icons/AppIcon';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { CmsSiteListEntry } from './panel/cmsPanelTypes';
 
 interface SiteSwitcherProps {

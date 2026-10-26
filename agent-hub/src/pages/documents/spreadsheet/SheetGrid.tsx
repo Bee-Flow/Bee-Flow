@@ -4,7 +4,7 @@
 // useGridPointer.ts, state in useGridState.ts.
 
 import React, { useCallback, useId, useMemo, useRef, useState } from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { handleGridKey } from './gridKeys';
 import SheetAskLayer from './SheetAskLayer';
 import SheetChartOverlay from './SheetChartOverlay';

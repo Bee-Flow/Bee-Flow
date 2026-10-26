@@ -11,7 +11,7 @@ vi.mock('./playbooksApi', () => {
     return { playbooksApi, default: playbooksApi };
 });
 vi.mock('../Datatables/datatablesApi', () => ({ datatablesApi: { list: vi.fn(async () => ({ datatables: [{ id: 'tbl_ex', name: 'Facturen', rowCount: 32, managedKind: 'nextcloud_table' }] })) } }));
-vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn(async () => ({ ok: true, json: async () => [{ id: 'g1', name: 'Finance' }] })) }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn(async () => ({ ok: true, json: async () => [{ id: 'g1', name: 'Finance' }] })) }));
 
 const BUILTIN = {
     id: 'invoice_tracker', title: 'Facturen bijhouden', description: 'Read invoices.', source: 'builtin',

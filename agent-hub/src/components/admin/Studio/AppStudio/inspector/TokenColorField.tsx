@@ -1,10 +1,10 @@
 import { Check } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { COLOR_ROLES, HEX_RE } from './styleKnobMeta';
-import ColorPicker from '../../../../shared/ColorPicker';
-import SegmentedControl from '../../../../shared/SegmentedControl';
+import ColorPicker from '@/components/shared/ColorPicker';
+import SegmentedControl from '@/components/shared/SegmentedControl';
 import { ROLE_COLORS } from '../runtime/styleResolver.constants';
 import { APP_COLOR_PRESETS } from '../runtime/themeVars';
 

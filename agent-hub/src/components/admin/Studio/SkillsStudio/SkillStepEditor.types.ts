@@ -1,5 +1,5 @@
 import type { RefObject } from 'react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { Step, StepRef } from './skillModel.types';
 
 export type { Step, StepRef };

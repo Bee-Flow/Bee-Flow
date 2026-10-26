@@ -2,10 +2,10 @@ import { CheckCircle2, Repeat } from 'lucide-react';
 import React from 'react';
 import { userName, labelOf, ActionButton, ReadFailed } from './audits/auditForms';
 import type { OrgUser } from './accessAuditLabels';
-import { TranslateParams } from '../../../../hooks/useTranslation';
-import DataTable, { TableRow, TableCell } from '../../../shared/DataTable';
-import DeadlineClock from '../../../shared/DeadlineClock';
-import EmptyState from '../../../shared/EmptyState';
+import { TranslateParams } from '@/hooks/useTranslation';
+import DataTable, { TableRow, TableCell } from '@/components/shared/DataTable';
+import DeadlineClock from '@/components/shared/DeadlineClock';
+import EmptyState from '@/components/shared/EmptyState';
 import type { Obligation, TrainingState } from './TrainingPage.types';
 
 export const OBLIGATION_KINDS = Object.freeze({

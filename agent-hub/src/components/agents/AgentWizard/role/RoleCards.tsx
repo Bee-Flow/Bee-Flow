@@ -8,7 +8,7 @@ import RoleCard, { RoleNote } from './RoleCard';
 import ToneCard from './ToneCard';
 import UnknownCard from './UnknownCard';
 import WhoCard from './WhoCard';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * The five cards of the "Rol" tab (Agents artboard 1c, A3 part A): the first

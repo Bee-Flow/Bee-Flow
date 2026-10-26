@@ -2,7 +2,7 @@ import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, us
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Plus } from 'lucide-react';
 import React, { useMemo } from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { moveItem, newLocalId } from './skillModel';
 import type { SkillStepEditorProps, Step, StepRef } from './SkillStepEditor.types';
 import { StepCard } from './StepCard';

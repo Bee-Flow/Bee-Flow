@@ -1,6 +1,6 @@
 // Findings as editor markers, and a line jump that works in both editors.
 
-import type { CodeAnalysis } from '../../../../../../api/queries/automation/codeStep';
+import type { CodeAnalysis } from '@/api/queries/automation/codeStep';
 
 export interface MarkerData {
     startLineNumber: number;

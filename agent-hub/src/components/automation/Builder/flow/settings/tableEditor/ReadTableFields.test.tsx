@@ -2,8 +2,8 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import scopedStorage from '../../../../../../utils/scopedStorage';
-import { VariablePickerProvider } from '../../../mapping/VariablePickerContext';
+import scopedStorage from '@/utils/scopedStorage';
+import { VariablePickerProvider } from '@/components/automation/Builder/mapping/VariablePickerContext';
 import ReadTableFields from './ReadTableFields';
 import { fileOptions } from './fileSources';
 

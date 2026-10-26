@@ -2,7 +2,7 @@ import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-libra
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { STATUS_COLORS } from '../../../../constants/palette';
+import { STATUS_COLORS } from '@/constants/palette';
 
 /**
  * The custom edge's own logic: identity colour on the stroke, tinted case

@@ -7,9 +7,9 @@ import { clampToEfforts, getModelMeta, isClaudeAdaptiveOnly, isClaudeReasoning, 
 import type { ModelPickerSource } from './modelPicker.types';
 import type { CustomTier } from './tierTypes';
 import type { CustomTiersState } from './useCustomTiers';
-import { getModelDisplayName } from '../../../../api/modelMeta';
+import { getModelDisplayName } from '@/api/modelMeta';
 import SearchableModelSelect from '../../shared/SearchableModelSelect';
-import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
 
 interface CustomTierCardProps extends ModelPickerSource {
     tier: CustomTier;

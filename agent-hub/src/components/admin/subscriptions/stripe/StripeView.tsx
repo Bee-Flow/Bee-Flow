@@ -1,10 +1,10 @@
 import { CreditCard, Settings, Shield, Euro, ExternalLink, CheckCircle, Loader2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { StripeKeyField } from './StripeKeyField';
-import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
-import { messageOf } from '../../../../utils/caughtError';
-import { Button } from '../../../shared/Button';
-import { toast } from '../../../shared/Toast';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import { messageOf } from '@/utils/caughtError';
+import { Button } from '@/components/shared/Button';
+import { toast } from '@/components/shared/Toast';
 import { apiJson } from '../hooks/useApi';
 import { Badge, Dot } from '../ui/Badge';
 import { Banner } from '../ui/Banner';
@@ -13,7 +13,7 @@ import { Field, Select, Input } from '../ui/Input';
 import { SectionHeader } from '../ui/SectionHeader';
 import { Spinner } from '../ui/Spinner';
 import { Toggle } from '../ui/Toggle';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /** What the Stripe card shows of `GET /ai/config`: the secrets only as present or not. */
 interface StripeConfig {

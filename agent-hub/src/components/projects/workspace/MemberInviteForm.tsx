@@ -7,10 +7,10 @@
 
 import { UserPlus, X } from 'lucide-react';
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { ApiError } from '../../../api/client';
-import type { Principal } from '../../../api/queries/automation/people';
-import { useInviteMember, useProjectPrincipals, type ProjectMembers } from '../../../api/queries/projects';
-import useTranslation from '../../../hooks/useTranslation';
+import { ApiError } from '@/api/client';
+import type { Principal } from '@/api/queries/automation/people';
+import { useInviteMember, useProjectPrincipals, type ProjectMembers } from '@/api/queries/projects';
+import useTranslation from '@/hooks/useTranslation';
 import PrincipalPicker, { PrincipalAvatar, principalDetail } from '../../automation/Builder/settings/PrincipalPicker';
 import { projectErrorText } from './projectErrorText';
 import { ErrorText, GhostButton, PrimaryButton, SELECT_CLASS } from './workspaceUi';

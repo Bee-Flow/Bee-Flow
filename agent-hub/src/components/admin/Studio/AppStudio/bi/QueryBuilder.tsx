@@ -5,11 +5,11 @@ import ChartDataPanel, { deriveChartMapping } from './ChartDataPanel';
 import FilterRowsEditor, { NO_VALUE_OPS, type FilterRow } from './FilterRowsEditor';
 import useAppTables, { fieldsForTable } from './useAppTables';
 import useDatasets from './useDatasets';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { runPreview } from './runPreview';
-import Modal from '../../../../shared/Modal';
-import toast from '../../../../shared/Toast';
-import { inputCls, RepeatableList } from '../../../product-website/fields';
+import Modal from '@/components/shared/Modal';
+import toast from '@/components/shared/Toast';
+import { inputCls, RepeatableList } from '@/components/admin/product-website/fields';
 import { useEditorChrome } from '../editor/EditorChromeContext';
 import AppChart from '../runtime/components/AppChart';
 import { DEFAULT_RUNTIME, RuntimeProvider, type RuntimeValue } from '../runtime/RuntimeContext';
@@ -18,7 +18,7 @@ import type { BuiltView } from '../inspector/panels/BindingField.types';
 import type { DatasetGroup } from './useDatasets';
 import type { ChartMapping } from './ChartDataPanel';
 import type { TableColumn } from '../inspector/aiFieldMatching';
-import type { TranslateParams } from '../../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 
 /**
  * App Studio BI — the visual Query Builder.

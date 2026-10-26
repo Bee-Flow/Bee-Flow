@@ -1,14 +1,14 @@
 import { LayoutTemplate, Loader2, PenTool, Wand2 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { DesignElement, DesignScreen, DesignSection, Phase, PlaybookEvent, PlaybookLike } from '../phaseMachine';
 import type { StageType } from './stageChrome';
 import StageShell from './StageShell';
 import { isBusy, panelCard, STAGE_BUTTON, stageType } from './stageChrome';
-import { revealSchedule } from '../../../../shared/builder/revealSchedule';
-import { TONES } from '../../../../shared/statusTone';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
+import { revealSchedule } from '@/components/shared/builder/revealSchedule';
+import { TONES } from '@/components/shared/statusTone';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 
 const SCREEN_STAGGER_MS = 450;
 const EMPTY: readonly DesignScreen[] = Object.freeze([]);

@@ -2,7 +2,7 @@ import { Check, ChevronDown, Hammer, Hand, ListChecks, MessageCircleQuestion } f
 import type { LucideIcon } from 'lucide-react';
 
 import { useEffect, useRef, useState } from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { isPlanStatusInProgress } from './planBuild';
 import { WORK_MODE_SHORTCUT_LABEL } from './workModeShortcut';
 

@@ -10,9 +10,9 @@
 import React from 'react';
 import type { ModelPickerSource } from './modelPicker.types';
 import type { ModelSetting } from './useModelSetting';
-import { getModelDisplayName } from '../../../../api/modelMeta';
+import { getModelDisplayName } from '@/api/modelMeta';
 import SearchableModelSelect from '../../shared/SearchableModelSelect';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface MemoryExtractionModelSectionProps extends ModelPickerSource {
     memoryModel: ModelSetting['model'];

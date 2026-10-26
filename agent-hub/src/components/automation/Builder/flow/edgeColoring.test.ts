@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { decorateRunEdges, identityColorForEdge } from './edgeColoring';
 import { PII_GROUP_COLORS } from './edgeColors';
-import { CHART_SERIES, STATUS_COLORS } from '../../../../constants/palette';
+import { CHART_SERIES, STATUS_COLORS } from '@/constants/palette';
 import { stub } from '@/test/mocks';
 
 describe('identityColorForEdge', () => {

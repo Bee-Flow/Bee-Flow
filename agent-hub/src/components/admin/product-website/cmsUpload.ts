@@ -1,5 +1,5 @@
-import { API_BASE, getSessionToken } from '../../../utils/helpers';
-import { logger } from '../../../utils/logger';
+import { API_BASE, getSessionToken } from '@/utils/helpers';
+import { logger } from '@/utils/logger';
 
 /**
  * Upload to the CMS with real progress.

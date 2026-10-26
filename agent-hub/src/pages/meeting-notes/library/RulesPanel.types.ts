@@ -1,6 +1,6 @@
-import type { TranslateFn } from '../../../hooks/useTranslation';
-import type { AutomationApiError } from '../../../hooks/useAutomationApi';
-import type { RepeatingSuggestion } from '../../../api/queries/automation/repeating';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import type { AutomationApiError } from '@/hooks/useAutomationApi';
+import type { RepeatingSuggestion } from '@/api/queries/automation/repeating';
 
 export type { TranslateFn };
 import type { consequencesOf, triggerConditionOf } from '../lib/meetingRules';

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { toast } from '../../../../shared/Toast';
-import Toggle from '../../../../shared/Toggle';
+import { useTranslation } from '@/hooks/useTranslation';
+import { toast } from '@/components/shared/Toast';
+import Toggle from '@/components/shared/Toggle';
 import { saveDirectChatGuardrails } from '../api/guardrailsApi';
-import { messageOf } from '../../../../../utils/caughtError';
+import { messageOf } from '@/utils/caughtError';
 import type { DirectChatBinding } from '../api/guardrailsApi';
 import type { RuleCollection } from '../patterns/patternTypes';
 

@@ -6,8 +6,8 @@
 // server will say: not an address yet, or a Microsoft connection without
 // shared-mailbox access (Settings → Connections).
 import React, { useId, useState } from 'react';
-import { useOptionalMicrosoft365Status } from '../../../../../../api/queries/microsoft365';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useOptionalMicrosoft365Status } from '@/api/queries/microsoft365';
+import { useTranslation } from '@/hooks/useTranslation';
 import { AMBER_NOTE, hintTextClass, inputClass } from '../formPrimitives';
 import { isMailboxAddress, isOwnMailbox } from './outlookMailbox';
 

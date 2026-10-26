@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Database, GitBranch, Puzzle, Sparkles, Users, Zap } from 'lucide-react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { AppGlyph } from './appGlyphs';
 import {
     CANVAS_CARD, CANVAS_CARD_COMPACT, CARD_DASHED, EYEBROW, ICON_TILE, ICON_TILE_COMPACT,

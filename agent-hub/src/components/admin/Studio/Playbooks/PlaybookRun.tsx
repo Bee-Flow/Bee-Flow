@@ -17,16 +17,16 @@ import AutomationStage from './stages/AutomationStage';
 import TableStage from './stages/TableStage';
 import usePlaybook, { type ServerPlaybook } from './usePlaybook';
 import usePresenterFlag from './usePresenterFlag';
-import { useReducedMotion } from '../../../../hooks/useReducedMotion';
-import useTranslation from '../../../../hooks/useTranslation';
-import { setItem } from '../../../../utils/scopedStorage';
-import { formatElapsed } from '../../../shared/builder/formatElapsed';
-import { kindTileStyle } from '../../../shared/kindColors';
-import useConfirm from '../../../shared/useConfirm';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import type { AppUserLike } from '../../../projects/workspace/types';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
+import useTranslation from '@/hooks/useTranslation';
+import { setItem } from '@/utils/scopedStorage';
+import { formatElapsed } from '@/components/shared/builder/formatElapsed';
+import { kindTileStyle } from '@/components/shared/kindColors';
+import useConfirm from '@/components/shared/useConfirm';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import type { AppUserLike } from '@/components/projects/workspace/types';
 import type { PlaybookOptions, StageProps, PlaybookRunProps } from './PlaybookRun.types';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /**
  * One open playbook — the film. Left, the PhaseRail; right, the stage of

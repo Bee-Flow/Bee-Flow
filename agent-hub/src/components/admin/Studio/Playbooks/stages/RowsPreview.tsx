@@ -1,10 +1,10 @@
 import { ExternalLink, Loader2, Table2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { ArtifactField } from '../phaseMachine';
-import { revealSchedule } from '../../../../shared/builder/revealSchedule';
-import { kindColorVar } from '../../../../shared/kindColors';
+import { revealSchedule } from '@/components/shared/builder/revealSchedule';
+import { kindColorVar } from '@/components/shared/kindColors';
 import { cellText } from '../../Datatables/datatableDisplay';
 import { datatablesApi } from '../../Datatables/datatablesApi';
 

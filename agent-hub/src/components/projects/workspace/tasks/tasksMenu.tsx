@@ -4,7 +4,7 @@
 
 import { Check } from 'lucide-react';
 import React from 'react';
-import AnchoredMenuJs from '../../../shared/AnchoredMenu';
+import AnchoredMenuJs from '@/components/shared/AnchoredMenu';
 
 /** The shared AnchoredMenu: portal, outside click, Escape and the arrow-key menu pattern. */
 export const AnchoredMenu = AnchoredMenuJs;

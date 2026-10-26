@@ -7,8 +7,8 @@ import { humanizeFieldKey } from '../displayHelpers';
 import FieldKeyCombobox from '../../mapping/FieldKeyCombobox';
 import type { FieldKeyOption } from '../../mapping/FieldKeyCombobox';
 import type { OnFocusField } from '../../mapping/focusField.types';
-import AnchoredMenu from '../../../../shared/AnchoredMenu';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import AnchoredMenu from '@/components/shared/AnchoredMenu';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /** An operation as the editor holds it: `start` belongs to the row-number op and may be mid-edit. */
 type EditableOp = SetOperation & { start?: number | '' };

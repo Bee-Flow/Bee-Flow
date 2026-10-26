@@ -1,6 +1,6 @@
 import { InlineHint, BackgroundCard } from '../primitives';
 import { set, SectionHeaderFields, GroupedItemsField, type BlockData, type SectionHeaderData } from './shared';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // ── Architecture ──────────────────────────────────────────────────────
 

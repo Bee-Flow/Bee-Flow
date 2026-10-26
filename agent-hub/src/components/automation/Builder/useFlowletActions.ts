@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import type { MutableRefObject } from 'react';
-import useFlowletAgentStream from '../../../hooks/useFlowletAgentStream';
+import useFlowletAgentStream from '@/hooks/useFlowletAgentStream';
 import { toast } from '../../shared/Toast';
 import {
     deleteLayerFromDefinition, deleteLayerAndCalls,

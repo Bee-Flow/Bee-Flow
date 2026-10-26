@@ -2,8 +2,8 @@
 // words, and the result, log and "would have called" the same way "Try it"
 // shows them.
 import { CheckCircle2, XCircle } from 'lucide-react';
-import type { Assertion, TestCase, TestRunResult } from '../../../../../../api/queries/automation/testCases';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import type { Assertion, TestCase, TestRunResult } from '@/api/queries/automation/testCases';
+import { useTranslation } from '@/hooks/useTranslation';
 import { assertionSentence, failureSentence, reasonSentence } from './assertionText';
 import { Result } from './CodeTryPanel';
 

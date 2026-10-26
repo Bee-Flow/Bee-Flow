@@ -10,7 +10,7 @@
 // execCode. If those change, this is the text that has to change with them.
 import { AlertTriangle, Globe, KeyRound, Lock, Plug, ScrollText, type LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { hintTextClass, subLabelClass } from '../formPrimitives';
 import type { CodeContract } from './readCodeContract';
 

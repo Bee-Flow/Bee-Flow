@@ -6,8 +6,8 @@
 // SiteDoc/PageDoc save. Same behaviour as the page editor though: edits are
 // debounced (~700 ms) into one PUT, and `flush()` lets Publish wait for them.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { AuthFetchOptions } from '../../../../utils/helpers';
-import { settled } from '../../../../api/settled';
+import type { AuthFetchOptions } from '@/utils/helpers';
+import { settled } from '@/api/settled';
 import {
     blogApi, EDITABLE_POST_FIELDS, postSummary,
     type AdminPost, type AdminPostSummary, type PostTranslation,

@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import useVoiceSession from './useVoiceSession';
 import type { UseVoiceSessionArgs, VoiceState, VoiceStates, VoiceTool } from './useVoiceSession.types';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 function ToolChip({ tool }: { tool: VoiceTool }) {
     const running = tool.status === 'running';

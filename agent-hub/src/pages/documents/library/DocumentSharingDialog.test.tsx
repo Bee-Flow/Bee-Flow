@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, expect, it, vi } from 'vitest';
-import { withQueryClient } from '../../../test/queryWrapper';
+import { withQueryClient } from '@/test/queryWrapper';
 import DocumentSharingDialog from './DocumentSharingDialog';
 
 const { request } = vi.hoisted(() => ({ request: vi.fn() }));

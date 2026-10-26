@@ -1,8 +1,8 @@
 import { Undo2, Wand2 } from 'lucide-react';
 import React from 'react';
 
-import Button from '../../../../../../shared/Button';
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import Button from '@/components/shared/Button';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { falseAlarmsLine, tuneDescribeLine } from '../ownDataCopy';
 import type { TuneInfo } from '../useTypeWizard';
 

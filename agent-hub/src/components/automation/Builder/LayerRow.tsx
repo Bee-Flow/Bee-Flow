@@ -1,6 +1,6 @@
 import { Trash2, Sparkles, Loader2, ChevronRight, ChevronDown, Pencil, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { DepLineProps, LayerAiComposerProps, LayerRowProps, PreviewRow } from './FlowletsPanel.types';
 import { stop } from './FlowletsPanel.helpers';
 

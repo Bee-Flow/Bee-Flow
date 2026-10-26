@@ -1,16 +1,16 @@
 import { AlertTriangle, ClipboardPaste, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import PasteImportPanel from './PasteImportPanel';
 import { PAGE_SIZE, createRecord, deleteRecord, listRecords, updateRecord, type RowRecord } from './recordsApi';
 import RowCellEditor from './RowCellEditor';
 import { cellText } from './rowValues';
 import { importableFields, type ImportTable, type ImportField } from './spreadsheetPaste';
-import ConfirmDialog from '../../../../shared/ConfirmDialog';
-import toast from '../../../../shared/Toast';
+import ConfirmDialog from '@/components/shared/ConfirmDialog';
+import toast from '@/components/shared/Toast';
 import type { TableColumn } from '../inspector/aiFieldMatching';
 import type { RowsField, RowsTable, RecordWriteError, RowsTabProps } from './RowsTab.types';
-import { logger } from '../../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 export default function RowsTab({ appId, table, tables = [], fieldsUnsaved = false }: RowsTabProps) {
     const { t } = useTranslation();

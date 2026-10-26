@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import type { RefObject } from 'react';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
-import toast from '../../../../../shared/Toast';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import toast from '@/components/shared/Toast';
 
 /** What the autosave flush resolves to; it never rejects. */
 export type FlushResult = { ok?: boolean; error?: string } | null | undefined | void;

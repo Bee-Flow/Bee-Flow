@@ -1,9 +1,9 @@
 import { useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { languagesKey, useLanguagesQuery, type LanguagesAnswer } from '../../../api/queries/adminConfigReads';
+import { languagesKey, useLanguagesQuery, type LanguagesAnswer } from '@/api/queries/adminConfigReads';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { LANGUAGES_API, getLanguages, sendLanguages, sendLanguagesJson } from '../../../api/languages';
+import { useTranslation } from '@/hooks/useTranslation';
+import { LANGUAGES_API, getLanguages, sendLanguages, sendLanguagesJson } from '@/api/languages';
 import useConfirm from '../../shared/useConfirm';
 
 export { LANGUAGES_API };

@@ -1,7 +1,7 @@
 import React from 'react';
-import { useSupportInsightsQuery } from '../../../api/queries/supportPanels';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { errorMessage } from '../../../utils/caughtError';
+import { useSupportInsightsQuery } from '@/api/queries/supportPanels';
+import { useTranslation } from '@/hooks/useTranslation';
+import { errorMessage } from '@/utils/caughtError';
 
 interface StatProps {
     label: string;

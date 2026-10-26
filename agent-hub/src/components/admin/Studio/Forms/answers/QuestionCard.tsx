@@ -1,7 +1,7 @@
 import React from 'react';
 import { breakdownFor } from './QuestionBreakdowns';
-import DashCard from '../../../../shared/dashboard/DashCard';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import DashCard from '@/components/shared/dashboard/DashCard';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { AnswersQuestion } from './useAnswersSummary';
 
 interface QuestionCardProps {

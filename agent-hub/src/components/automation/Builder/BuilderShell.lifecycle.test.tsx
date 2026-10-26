@@ -13,7 +13,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
  * back what the shell gave them, `authFetch` stands in for the server.
  */
 
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 vi.mock('../../shared/Toast', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 vi.mock('./DiagramPane', () => ({ default: () => null, applyAddNode: (d: unknown) => d }));
 vi.mock('../../chat/InputArea', () => ({ default: () => null }));
@@ -33,8 +33,8 @@ vi.mock('./TriggerDiagnosePanel', () => ({ default: (p: any) => { diagnose = p; 
 vi.mock('./settings/AiActQuestionsDialog', () => ({ default: (p: any) => { aiAct = p; return null; } }));
 
 import BuilderShellJsx from './BuilderShell';
-import { queryWrapper } from '../../../test/queryWrapper';
-import { authFetch } from '../../../utils/helpers';
+import { queryWrapper } from '@/test/queryWrapper';
+import { authFetch } from '@/utils/helpers';
 
 const BuilderShell = BuilderShellJsx as unknown as React.ComponentType<Record<string, unknown>>;
 const render = (ui: React.ReactElement) => rtlRender(ui, { wrapper: queryWrapper() });

@@ -2,13 +2,13 @@ import { ShieldCheck, Crown, Building2, Loader2 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import CeilingSection from './access/CeilingSection';
 import GroupAccessMatrix from './GroupAccessMatrix';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE } from '../../../utils/helpers';
-import { mutate, request, RefusedError } from '../../../api/mutate';
+import { useTranslation } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { mutate, request, RefusedError } from '@/api/mutate';
 import { useEntitlements } from '../../licensing/EntitlementsContext';
 import type { Organization } from './useOrgDirectory';
 import type { AdminCurrentUser } from './userManagement/types';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /**
  * AccessPermissionsPanel — the hub for configuring beta / integration / core

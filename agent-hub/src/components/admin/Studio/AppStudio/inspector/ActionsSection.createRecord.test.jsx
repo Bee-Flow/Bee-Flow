@@ -22,11 +22,11 @@ const { canonicalizeAppDefinition } = require('../../../../../../../server/appSt
  *      (covered from the other side in runtime/useActionRunner.actionKinds).
  */
 
-vi.mock('../../../../shared/Toast', () => {
+vi.mock('@/components/shared/Toast', () => {
     const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn() };
     return { default: toast, toast };
 });
-vi.mock('../../../../../hooks/useAutomationApi', () => ({
+vi.mock('@/hooks/useAutomationApi', () => ({
     default: () => ({ listAutomations: vi.fn(async () => ({ automations: [] })) }),
     safeText: vi.fn(async () => ''),
 }));

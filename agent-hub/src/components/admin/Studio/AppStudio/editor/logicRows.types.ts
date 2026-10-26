@@ -1,5 +1,5 @@
 import type { AppNode, CommonNodeProps, AppDefinition } from '../inspector/appDefinition';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { AutomationRow } from './automationTitles';
 
 /** All components of one screen, flat, with their definition path attached. */

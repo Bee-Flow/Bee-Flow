@@ -1,5 +1,5 @@
 import { TableProperties } from 'lucide-react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import { tableSummary } from '../tableSummaries';
 import StepNodeBaseJs from './StepNodeBase';

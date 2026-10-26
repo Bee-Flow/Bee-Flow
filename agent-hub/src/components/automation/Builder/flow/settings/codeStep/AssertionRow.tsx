@@ -3,7 +3,7 @@
 // (and checked with the same grammar the server reads).
 import { Trash2 } from 'lucide-react';
 import { useId } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import {
     ASSERTION_OPS,
     type AssertionDraft,

@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import Tabs from '../../../../shared/Tabs';
+import Tabs from '@/components/shared/Tabs';
 import AccessMatrix from '../rbac/AccessMatrix';
 import RolesManager from '../rbac/RolesManager';
 import RowRuleEditor from '../rbac/RowRuleEditor';
 import { listVariables } from '../state/definitionOps';
 import TablesManager from '../tables/TablesManager';
 import VariablesManager from '../variables/VariablesManager';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { Dispatch } from 'react';
 import type { AppDefinition } from '../inspector/appDefinition';
 import type { AppEditorAction } from '../state/appEditorState';

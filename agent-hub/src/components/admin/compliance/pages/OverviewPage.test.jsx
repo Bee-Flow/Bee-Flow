@@ -17,7 +17,7 @@ function tr(key, fallbackOrParams, paramsArg) {
     }
     return value;
 }
-vi.mock('../../../../hooks/useTranslation', () => ({
+vi.mock('@/hooks/useTranslation', () => ({
     useTranslation: () => ({ t: tr, locale: 'en', resolvedLocale: 'en' }),
 }));
 

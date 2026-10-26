@@ -6,7 +6,7 @@ import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 import userEvent from '@testing-library/user-event';
 
-vi.mock('../../../../../hooks/useAutomationApi', () => ({
+vi.mock('@/hooks/useAutomationApi', () => ({
     default: () => ({ listAutomations: vi.fn(async () => ({ automations: [] })) }),
     safeText: vi.fn(async () => ''),
 }));

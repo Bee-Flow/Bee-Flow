@@ -4,7 +4,7 @@
  * two sentences that count rows.
  */
 import type { CSSProperties } from 'react';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { datatablesApi } from '../datatablesApi';
 
 /** One declared column of a datatable, as the schema returns it. */

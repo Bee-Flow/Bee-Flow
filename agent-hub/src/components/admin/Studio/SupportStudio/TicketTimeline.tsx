@@ -1,9 +1,9 @@
 import React, { useCallback } from 'react';
-import { useTicketEventsQuery } from '../../../../api/queries/supportPanels';
-import useTranslation from '../../../../hooks/useTranslation';
+import { useTicketEventsQuery } from '@/api/queries/supportPanels';
+import useTranslation from '@/hooks/useTranslation';
 import { metaFor } from './auditMeta';
 import type { SupportTeammate } from './supportStudio.types';
-import type { SupportEvent } from '../../../support/SupportInboxPanel.types';
+import type { SupportEvent } from '@/components/support/SupportInboxPanel.types';
 
 const NO_EVENTS: SupportEvent[] = [];
 

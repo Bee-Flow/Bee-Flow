@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { FeedbackItem } from './feedback/feedbackModel';
 import { FeedbackPage } from './FeedbackPage';
 
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 vi.mock('../../renderers/MarkdownRenderer', () => ({ default: ({ content }: { content: string }) => <div data-testid="md">{content}</div> }));
 
 const feedback: FeedbackItem[] = [

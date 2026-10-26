@@ -10,7 +10,7 @@ import type { TierConfigsState } from './useTierConfigs';
 import { TIERS } from './constants';
 import CustomTierEuRow from './CustomTierEuRow';
 import TierCard from './TierCard';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface EuTiersSectionProps extends ModelPickerSource {
     euConfig: TierConfig;

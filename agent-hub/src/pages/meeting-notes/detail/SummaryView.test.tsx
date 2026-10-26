@@ -4,7 +4,7 @@ import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // MarkdownRenderer isn't under test — stub it to plain text.
-vi.mock('../../../components/renderers/MarkdownRenderer', () => ({ default: ({ content }: { content?: string }) => <div>{content}</div> }));
+vi.mock('@/components/renderers/MarkdownRenderer', () => ({ default: ({ content }: { content?: string }) => <div>{content}</div> }));
 
 import SummaryView from './SummaryView';
 import type { ComponentProps } from 'react';

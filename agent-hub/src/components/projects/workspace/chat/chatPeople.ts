@@ -4,7 +4,7 @@
 // users are not in it, so a caller must be ready for an empty name.
 
 import { useMemo } from 'react';
-import { useProjectMembersQuery, type ProjectMembers } from '../../../../api/queries/projects';
+import { useProjectMembersQuery, type ProjectMembers } from '@/api/queries/projects';
 import type { WorkspaceUser } from '../types';
 import { personColor } from '../memberColors';
 

@@ -1,13 +1,13 @@
 import React from 'react';
 import type { ReactNode } from 'react';
 import { TriangleAlert } from 'lucide-react';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import type { DataTableContext } from '../../../../shared/DataTable';
-import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '../../../../shared/DataTable';
-import { DrawerId } from '../../../../shared/SideDrawer';
-import type { Tone } from '../../../../shared/statusTone';
-import { TONES, toneOfSeverity } from '../../../../shared/statusTone';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { DataTableContext } from '@/components/shared/DataTable';
+import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '@/components/shared/DataTable';
+import { DrawerId } from '@/components/shared/SideDrawer';
+import type { Tone } from '@/components/shared/statusTone';
+import { TONES, toneOfSeverity } from '@/components/shared/statusTone';
 import RegisterStatePill from '../../shared/RegisterStatePill';
 import type { Member, RiskRow } from './riskDraft';
 

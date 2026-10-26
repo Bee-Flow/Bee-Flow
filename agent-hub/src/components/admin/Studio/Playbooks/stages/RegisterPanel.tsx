@@ -1,8 +1,8 @@
 import { AlertTriangle, BookOpen, CheckCircle2, ExternalLink, Info, Loader2, Sparkles } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { TONES } from '../../../../shared/statusTone';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import { TONES } from '@/components/shared/statusTone';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { basisOptions, dateColumns, registrationDefaults, registrationSources, retentionWords, subjectColumns, type RetentionPreview, type ReviewFacts } from './complianceView';
 import { playbooksApi } from '../playbooksApi';
 

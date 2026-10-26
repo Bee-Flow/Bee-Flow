@@ -4,10 +4,10 @@
  * Moved verbatim from BuilderSplit; composed by useAgentSave.ts.
  */
 import { useCallback } from 'react';
-import { createAgent, publishAgentVersion } from '../../../../api/agentEditor';
-import { parseSaveError } from '../../../../utils/helpers';
-import { adoptedPromptAfterSave, saveAgent } from '../../../../api/agentSaveApi';
-import type { AgentSaveDeps, ConflictCtx, Loose, Setter } from '../../../../api/agentSaveTypes';
+import { createAgent, publishAgentVersion } from '@/api/agentEditor';
+import { parseSaveError } from '@/utils/helpers';
+import { adoptedPromptAfterSave, saveAgent } from '@/api/agentSaveApi';
+import type { AgentSaveDeps, ConflictCtx, Loose, Setter } from '@/api/agentSaveTypes';
 
 /**
  * Publish content (POST /agents/:id/publish-version).

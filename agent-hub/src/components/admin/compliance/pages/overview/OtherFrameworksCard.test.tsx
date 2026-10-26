@@ -10,7 +10,7 @@ import OtherFrameworksCard, { otherFrameworkRows } from './OtherFrameworksCard';
  * own score with the counts as fallback, the open count from the checks, and
  * nothing at all for an org with only the three core frameworks.
  */
-vi.mock('../../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const t = (key: string, fallback?: string, vars?: Record<string, unknown>) => {
     let s = fallback ?? key;

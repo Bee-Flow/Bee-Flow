@@ -3,9 +3,9 @@
 
 import React, { useRef, useState } from 'react';
 import { MoreHorizontal, Plus, Target } from 'lucide-react';
-import type { ProjectTask } from '../../../../api/queries/projectTasks';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import AnchoredMenuJs from '../../../shared/AnchoredMenu';
+import type { ProjectTask } from '@/api/queries/projectTasks';
+import { useTranslation } from '@/hooks/useTranslation';
+import AnchoredMenuJs from '@/components/shared/AnchoredMenu';
 import type { useChatPeople } from '../chat/chatPeople';
 import { PriorityIcon, TypeChip } from './TaskFields';
 import { storyPoints, workItemType } from './taskPlanning';

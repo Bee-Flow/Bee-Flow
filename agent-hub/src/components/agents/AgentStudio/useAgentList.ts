@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import type { AgentListRow } from './agentCardFacts';
-import { useAgentListQuery } from '../../../api/queries/sharedReads';
-import { messageOf } from '../../../utils/caughtError';
+import { useAgentListQuery } from '@/api/queries/sharedReads';
+import { messageOf } from '@/utils/caughtError';
 
 export interface AgentList {
     agents: AgentListRow[];

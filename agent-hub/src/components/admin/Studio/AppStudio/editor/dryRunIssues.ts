@@ -17,9 +17,9 @@
  * "Show me" can jump to a component the validator never named a path for.
  */
 
-import type { TranslateFn, TranslateParams } from '../../../../../hooks/useTranslation';
+import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
 import type { AppDefinition } from '../inspector/appDefinition';
-import { resolveTarget } from '../../../../shared/resolveTarget';
+import { resolveTarget } from '@/components/shared/resolveTarget';
 
 /** resolveTarget handles a missing definition (it answers null), whatever its JSDoc says. */
 export type ResolveTargetFn = (

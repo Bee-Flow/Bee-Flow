@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { controlSurfaceClass, FormRow } from './formPrimitives';
 import { DirectoryOptions } from './approvalStages';
 import { seatFromSelectValue, seatSelectValue } from './approvalTypes';

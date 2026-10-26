@@ -1,7 +1,7 @@
-import { useEntitlements } from '../../../components/licensing/EntitlementsContext';
-import { useCan } from '../../../components/licensing/Gate';
-import usePermissionCheck from '../../../hooks/usePermissionCheck';
-import useProjectsAvailable from '../../../hooks/useProjectsAvailable';
+import { useEntitlements } from '@/components/licensing/EntitlementsContext';
+import { useCan } from '@/components/licensing/Gate';
+import usePermissionCheck from '@/hooks/usePermissionCheck';
+import useProjectsAvailable from '@/hooks/useProjectsAvailable';
 import type { SettingsUser } from './settingsShellTypes';
 
 // Stable identity for usePermissionCheck (its memo keys on the array reference).

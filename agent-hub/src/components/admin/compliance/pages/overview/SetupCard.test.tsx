@@ -9,8 +9,8 @@ import type { TranslateParams } from '@/hooks/useTranslation';
 // `compliance.lb_*`, `compliance.residency_*`), so the stub reads the real
 // English dictionary first and only then the inline fallback — exactly the
 // order `useTranslation` uses.
-vi.mock('../../../../../hooks/useTranslation', async () => {
-    const { default: EN } = await import('../../../../../i18n/en-defaults');
+vi.mock('@/hooks/useTranslation', async () => {
+    const { default: EN } = await import('@/i18n/en-defaults');
     const t = (key: string, fallbackOrParams?: string | TranslateParams, paramsArg?: TranslateParams | null) => {
         const hasFallback = typeof fallbackOrParams === 'string';
         const params = hasFallback ? paramsArg : fallbackOrParams;

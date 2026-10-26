@@ -1,7 +1,7 @@
 // The words the step drawer puts in its header and column headers (round 4,
 // artboards 4a/4b/4c). Pure and React-free, so every sentence has a test of
 // its own and the header component only arranges them.
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { actionDisplayLabel } from '../flow/displayHelpers';
 import { nodeDesc, nodeTypeLabel, stepFamily } from '../flow/nodeDefs';
 import { defaultTriggerLabel, triggerTypeLabel } from '../flow/triggerLabels';

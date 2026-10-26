@@ -6,8 +6,8 @@ import type { Connector, InspectResult, IntegrationCatalog } from './connectorMo
 import { AppToolFields, RestFields } from './KindFields';
 import MailboxFields from './MailboxFields';
 import TestPanel from './TestPanel';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import Disclosure from '../../../../../shared/Disclosure';
+import useTranslation from '@/hooks/useTranslation';
+import Disclosure from '@/components/shared/Disclosure';
 import ConnectorSyncPanelJs from '../ConnectorSyncPanel';
 import type { ModelTable } from '../../tables/tablesManagerModel';
 

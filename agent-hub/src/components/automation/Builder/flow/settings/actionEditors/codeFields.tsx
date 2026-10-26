@@ -13,8 +13,8 @@
 // the author's view and nothing is lost.
 import { Maximize2 } from 'lucide-react';
 import { Suspense, useEffect, useMemo, useState } from 'react';
-import { lazyWithI18n } from '../../../../../../utils/lazyWithReload';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { lazyWithI18n } from '@/utils/lazyWithReload';
+import { useTranslation } from '@/hooks/useTranslation';
 import AccordionSection from '../../AccordionSection';
 import { ForEachSection, RetrySection, retryIsSet } from '../collectionEditors';
 import CapabilityLine from '../codeStep/CapabilityLine';
@@ -23,8 +23,8 @@ import { upstreamFieldsFrom, type InputsMap } from '../codeStep/codeParams';
 import CodeSourceBlock, { codeInputsRoundTrip } from '../codeStep/CodeSourceBlock';
 import FindingsBanner from '../codeStep/FindingsBanner';
 import { useLargeEditorRequest } from '../codeStep/largeEditorSignal';
-import type { Group } from '../../../mapping/upstream/upstream.types';
-import type { OnFocusField } from '../../../mapping/focusField.types';
+import type { Group } from '@/components/automation/Builder/mapping/upstream/upstream.types';
+import type { OnFocusField } from '@/components/automation/Builder/mapping/focusField.types';
 import type { LargeEditorTab } from '../codeStep/CodeLargeEditor';
 
 const CodeLargeEditor = lazyWithI18n(() => import('../codeStep/CodeLargeEditor'));

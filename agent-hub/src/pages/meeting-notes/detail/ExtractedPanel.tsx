@@ -1,7 +1,7 @@
 import { AlertTriangle, ArrowUpRight, Loader2, Users } from 'lucide-react';
 import { useMemo } from 'react';
-import { isForeignRow, kindLabelFor, usageHref } from '../../../components/shared/UsedByTab';
-import useTranslation from '../../../hooks/useTranslation';
+import { isForeignRow, kindLabelFor, usageHref } from '@/components/shared/UsedByTab';
+import useTranslation from '@/hooks/useTranslation';
 import { formatSpeakerLabel } from '../lib/format';
 import { buildInsightsModel } from '../lib/insightsMetrics';
 import { buildFollowUpStats } from '../lib/insightsMetrics.helpers';
@@ -13,8 +13,8 @@ import {
     buildSpeakerCheck,
 } from '../lib/transcriptOutputs';
 import { BarRow, EmptyState, MetricRow, TabHeading, duration } from './insights/primitives';
-import type { TranslateParams } from '../../../hooks/useTranslation';
-import type { UsageRow } from '../../../hooks/useUsage';
+import type { TranslateParams } from '@/hooks/useTranslation';
+import type { UsageRow } from '@/hooks/useUsage';
 import type { MeetingNote } from './meetingDetailTypes';
 import type { InsightsModel } from './insights/insights.types';
 

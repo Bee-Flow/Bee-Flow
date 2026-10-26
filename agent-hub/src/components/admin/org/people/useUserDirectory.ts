@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { membershipFor, parseGroupIds } from './orgMembership';
-import type { DirectoryUser } from '../../../../hooks/useUserFilters';
+import type { DirectoryUser } from '@/hooks/useUserFilters';
 import type { AdminGroup, AdminOrganization } from '../userManagement/types';
 
 interface DirGroup { id: string; name?: string; organizationId?: string | null }

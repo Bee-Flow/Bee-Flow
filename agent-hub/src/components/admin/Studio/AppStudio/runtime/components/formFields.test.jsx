@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { authFetch } from '@/utils/helpers';
 import AppForm from './AppForm';
 import AppInputDate from './AppInputDate';
 import AppInputDatetime from './AppInputDatetime';
@@ -10,7 +11,6 @@ import AppInputRichtext from './AppInputRichtext';
 import AppInputSelect from './AppInputSelect';
 import AppInputText from './AppInputText';
 import { nowLocalIso, todayIso } from './localDate';
-import { authFetch } from '../../../../../../utils/helpers';
 import { DataProvider } from '../DataContext';
 import { dataCacheKey } from '../resolveBinding';
 import AppInputRelation from './AppInputRelation';
@@ -18,7 +18,7 @@ import { CANDIDATE_LIMIT } from './AppInputRelation';
 import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
 
 // AppInputFile uploads through the app's attachment store — stub the network.
-vi.mock('../../../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(async () => ({ ok: true, json: async () => ({ success: true, attachment: { id: 'att-1', mime: 'application/pdf', size: 4, sha: 'c'.repeat(64), scanned: true } }) })),
 }));

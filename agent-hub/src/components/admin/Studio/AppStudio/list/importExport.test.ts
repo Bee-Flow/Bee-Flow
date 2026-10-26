@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { filePreview, humanBytes, importMetaLine, importProvenanceText } from './importExport';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /** The English fallback with its {placeholders} filled, as useTranslation renders it. */
 const t: TranslateFn = (_key, fallback, params) => String(fallback ?? '')

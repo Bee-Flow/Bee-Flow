@@ -1,15 +1,15 @@
 import { FlaskConical, Link2, Rocket, UserRound, Wrench } from 'lucide-react';
 import React from 'react';
 import SaveStateIndicator from './SaveStateIndicator';
-import { isImageAvatar, resolveAvatarSrc } from '../../../../utils/agentAvatar';
-import { managedOf } from '../../../shared/managedPart';
-import ManagedPartBanner from '../../../shared/ManagedPartBanner';
-import StatusActionPill from '../../../shared/StatusActionPill';
-import StudioSectionHeader, { OBJHEAD, PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
-import VisibilityCapsule from '../../../shared/VisibilityCapsule';
-import type { TranslateFn, TranslateParams } from '../../../../hooks/useTranslation';
-import type { StudioSectionHeaderTab } from '../../../projects/workspace/studioParts';
-import type { AudienceEntity, OrgGroup } from '../../../shared/VisibilityCapsule.types';
+import { isImageAvatar, resolveAvatarSrc } from '@/utils/agentAvatar';
+import { managedOf } from '@/components/shared/managedPart';
+import ManagedPartBanner from '@/components/shared/ManagedPartBanner';
+import StatusActionPill from '@/components/shared/StatusActionPill';
+import StudioSectionHeader, { OBJHEAD, PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
+import VisibilityCapsule from '@/components/shared/VisibilityCapsule';
+import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
+import type { StudioSectionHeaderTab } from '@/components/projects/workspace/studioParts';
+import type { AudienceEntity, OrgGroup } from '@/components/shared/VisibilityCapsule.types';
 
 /**
  * AgentEditorHeader — the 48px header of the agent editor (Bee Flow Builder redesign, Sept 2026;

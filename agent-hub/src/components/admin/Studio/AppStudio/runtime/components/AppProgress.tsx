@@ -1,4 +1,4 @@
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { resolveBinding } from '../resolveBinding';
 import type { BindingInput } from '../resolveBinding.types';
 import { useRuntime } from '../RuntimeContext';

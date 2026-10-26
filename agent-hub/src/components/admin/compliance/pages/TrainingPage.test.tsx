@@ -7,7 +7,7 @@ import TrainingPage from './TrainingPage';
 import { OBLIGATION_KINDS } from './TrainingPageSection2';
 import { stub } from '@/test/mocks';
 
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 afterEach(cleanup);
 

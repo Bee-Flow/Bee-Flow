@@ -1,10 +1,10 @@
 import React, { useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ArrowUpDown, Check, Search } from 'lucide-react';
-import AnchoredMenu from '../../../components/shared/AnchoredMenu';
-import { FilterPill as FilterChip } from '../../../components/shared/FilterPills';
-import useTranslation from '../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import AnchoredMenu from '@/components/shared/AnchoredMenu';
+import { FilterPill as FilterChip } from '@/components/shared/FilterPills';
+import useTranslation from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * The library rail's controls (Meeting Notes artboard 1a, the 300px rail):

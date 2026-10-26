@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { OutputColumn } from './columns';
 import { canOpen } from './levels';
 import { cellOf } from './perItem';

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Shield, KeyRound, Users, AtSign, Activity } from 'lucide-react';
 import GuardrailsHub from './guardrails/GuardrailsHub';
 import SSOConfigPanel from './SSOConfigPanel';

@@ -7,11 +7,11 @@
 
 import { AlertTriangle, Loader2, UsersRound } from 'lucide-react';
 import React, { useState } from 'react';
-import { useOrgCollab, useSaveOrgCollab, type OrgCollabSettings } from '../../../api/queries/orgCollab';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useOrgCollab, useSaveOrgCollab, type OrgCollabSettings } from '@/api/queries/orgCollab';
+import { useTranslation } from '@/hooks/useTranslation';
 import ConfirmDialog from '../../shared/ConfirmDialog';
 import Toggle from '../../shared/Toggle';
-import { errorStatus } from '../../../utils/caughtError';
+import { errorStatus } from '@/utils/caughtError';
 
 function Switch({ orgId, server }: { orgId: string; server: OrgCollabSettings }) {
     const { t } = useTranslation();

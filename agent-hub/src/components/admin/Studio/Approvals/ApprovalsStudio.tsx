@@ -4,9 +4,9 @@ import ApprovalDetail from './ApprovalDetail';
 import { approvalOriginText, approvalStatusChip, formatWhen, STATUS_TABS } from './approvalDisplay';
 import useApprovals from './useApprovals';
 import type { ApprovalListRow } from './useApprovals';
-import useTranslation from '../../../../hooks/useTranslation';
-import { RequireTier } from '../../../licensing/LicenseContext';
-import { logger } from '../../../../utils/logger';
+import useTranslation from '@/hooks/useTranslation';
+import { RequireTier } from '@/components/licensing/LicenseContext';
+import { logger } from '@/utils/logger';
 
 /**
  * The Approvals section: every request waiting on a person, and the durable

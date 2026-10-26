@@ -1,8 +1,8 @@
 import { FolderOpen, MessageSquare, Upload } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
-import PublishMenuJsx from '../../../agents/AgentWizard/pickers/PublishMenu';
-import type { OrgGroup } from '../../../shared/VisibilityCapsule.types';
+import useTranslation from '@/hooks/useTranslation';
+import PublishMenuJsx from '@/components/agents/AgentWizard/pickers/PublishMenu';
+import type { OrgGroup } from '@/components/shared/VisibilityCapsule.types';
 
 const PublishMenu = PublishMenuJsx;
 

@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import scopedStorage from '../../../../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 import type { EditorChrome } from '../../chat/builderPaneModel';
 import type { BuildCueValue } from '../BuildCueContext';
 import { CHAT } from './ShellPanes';

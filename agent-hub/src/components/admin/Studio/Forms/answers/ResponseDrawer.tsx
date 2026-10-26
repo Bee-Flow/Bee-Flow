@@ -1,8 +1,8 @@
 import { ExternalLink, Loader2, Table2, Workflow } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import useRelativeTime from '../../../../../hooks/useRelativeTime';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import Modal from '../../../../shared/Modal';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import { useTranslation } from '@/hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
 import { cellText } from '../../Datatables/datatableDisplay';
 import { datatablesApi } from '../../Datatables/datatablesApi';
 import type { AnswersQuestion, AnswersRecent } from './useAnswersSummary';

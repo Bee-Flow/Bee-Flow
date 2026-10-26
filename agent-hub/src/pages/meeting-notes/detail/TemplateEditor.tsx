@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Loader2, Trash2, User, Building2, Users } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import Modal from '../../../components/shared/Modal';
-import useConfirm from '../../../components/shared/useConfirm';
-import useTranslation from '../../../hooks/useTranslation';
-import * as api from '../../../api/transcriptionsApi';
+import Modal from '@/components/shared/Modal';
+import useConfirm from '@/components/shared/useConfirm';
+import useTranslation from '@/hooks/useTranslation';
+import * as api from '@/api/transcriptionsApi';
 import type { BuiltinTemplate, CustomTemplate, OrgGroup } from './summaryTemplates.types';
-import { errorMessage } from '../../../utils/caughtError';
+import { errorMessage } from '@/utils/caughtError';
 
 interface TemplateEditorProps {
     open: boolean;

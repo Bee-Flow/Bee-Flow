@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { humanizeFieldKey as humanizeFieldKeyJs } from '../flow/displayHelpers';
 import FieldKindIconJs from '../mapping/FieldKindIcon';
 import { KIND_WORD as KIND_WORD_JS, isPlaceholder as isPlaceholderJs, kindOfValue as kindOfValueJs } from '../mapping/fieldKinds';

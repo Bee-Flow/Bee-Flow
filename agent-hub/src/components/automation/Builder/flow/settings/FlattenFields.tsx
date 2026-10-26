@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { listPathLabel } from '../../mapping/listPathLabel';
 import PathFieldJs from '../../mapping/PathField';
 import { collectArrayPaths as collectArrayPathsJs } from '../../mapping/upstream';

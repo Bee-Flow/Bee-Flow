@@ -2,7 +2,7 @@ import { nodeTypeLabel } from './nodeDefs';
 import { typeGroupOf } from './nodeTypeColors';
 import { nativeHomeOrigin } from './ribbon/ribbonCategories';
 import { AI_STEP, buildStepGroups, orderedAppCategories } from './stepPalette';
-import { resolveIntegrationFromTool } from '../../../../utils/integrationIcons';
+import { resolveIntegrationFromTool } from '@/utils/integrationIcons';
 import type { PaletteCatalog } from './stepPalette.types';
 
 /**

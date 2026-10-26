@@ -2,7 +2,7 @@ import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { ProjectTask } from '../../../../api/queries/projectTasks';
+import type { ProjectTask } from '@/api/queries/projectTasks';
 import TaskBoard from './TaskBoard';
 
 const task = { id: 'a', title: 'Drag this card', status: 'todo', priority: 'normal', labels: [], links: [], checklist: [], assigneeIds: [], dueDate: null, sortOrder: 1 } as unknown as ProjectTask;

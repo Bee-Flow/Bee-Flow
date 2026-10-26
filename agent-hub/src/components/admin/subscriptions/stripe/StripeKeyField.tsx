@@ -1,8 +1,8 @@
 import { Save, Trash2, CheckCircle } from 'lucide-react';
 import React from 'react';
 import type { ReactNode } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { Button } from '../../../shared/Button';
+import { useTranslation } from '@/hooks/useTranslation';
+import { Button } from '@/components/shared/Button';
 import { Field } from '../ui/Input';
 
 interface StripeKeyFieldProps {

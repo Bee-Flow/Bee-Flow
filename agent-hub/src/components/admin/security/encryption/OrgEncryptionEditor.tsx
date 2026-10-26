@@ -21,13 +21,13 @@ import { Lock, ShieldCheck, ShieldOff, KeyRound, AlertTriangle } from 'lucide-re
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import EncryptExistingData from './EncryptExistingData';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { errorMessage, messageOf } from '../../../../utils/caughtError';
-import { API_BASE } from '../../../../utils/helpers';
-import ChoiceCards from '../../../shared/ChoiceCards';
-import type { ChoiceCardOption } from '../../../shared/ChoiceCards';
-import { toast } from '../../../shared/Toast';
-import { request, errorBody, RefusedError, mutate } from '../../../../api/mutate';
+import { useTranslation } from '@/hooks/useTranslation';
+import { errorMessage, messageOf } from '@/utils/caughtError';
+import { API_BASE } from '@/utils/helpers';
+import ChoiceCards from '@/components/shared/ChoiceCards';
+import type { ChoiceCardOption } from '@/components/shared/ChoiceCards';
+import { toast } from '@/components/shared/Toast';
+import { request, errorBody, RefusedError, mutate } from '@/api/mutate';
 
 type EncryptionTier = 'none' | 'managed' | 'zk';
 

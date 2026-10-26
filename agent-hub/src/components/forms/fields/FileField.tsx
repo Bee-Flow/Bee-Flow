@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Loader2, Paperclip, X } from 'lucide-react';
-import { messageOf } from '../../../utils/caughtError';
+import { messageOf } from '@/utils/caughtError';
 import type { FileFieldProps } from '../PublicFormRenderer.types';
 
 

@@ -2,10 +2,10 @@ import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { withQueryClient } from '../../../../test/queryWrapper';
+import { withQueryClient } from '@/test/queryWrapper';
 
 const h = vi.hoisted(() => ({ get: vi.fn() }));
-vi.mock('../../../../api/client', async (orig) => ({ ...(await orig<Record<string, unknown>>()), apiClient: { get: h.get }, default: { get: h.get } }));
+vi.mock('@/api/client', async (orig) => ({ ...(await orig<Record<string, unknown>>()), apiClient: { get: h.get }, default: { get: h.get } }));
 vi.mock('./NotebookEditorView', () => ({ default: ({ data }: { data: { notebook: { name: string } } }) => <div data-testid="view">{data.notebook.name}</div> }));
 
 import NotebookDetail from './NotebookDetail';

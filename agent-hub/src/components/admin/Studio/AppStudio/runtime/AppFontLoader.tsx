@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
 import { GOOGLE_FONT_FAMILIES } from './appDesign';
 import type { AppDesign } from './appDesign';
-import { buildFontsHrefs } from '../../../product-website/googleFonts';
+import { buildFontsHrefs } from '@/components/admin/product-website/googleFonts';
 // Self-hosted @font-face declarations (Satoshi, General Sans, Cabinet Grotesk)
 // — a plain import so the bytes are served from Bee Flow itself. Idempotent:
 // the bundler includes the stylesheet once however many modules import it.
-import '../../../../../marketing/self-hosted-fonts.css';
+import '@/marketing/self-hosted-fonts.css';
 
 /**
  * Loads the typeface an app's design asks for.

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useTranslation } from '../../../hooks/useTranslation';
-import type { ScenarioDetail, ScenarioItem } from '../../../api/queries/automation/runChecks';
-import { useFormScenario, useFormScenarios } from '../../../api/queries/automation/runChecks';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { ScenarioDetail, ScenarioItem } from '@/api/queries/automation/runChecks';
+import { useFormScenario, useFormScenarios } from '@/api/queries/automation/runChecks';
 
 /** The saved answers for one page: the start form's, or those of the paused page `stepId`. */
 function answersForPage(detail: ScenarioDetail, stepId: string | null): Record<string, unknown> {

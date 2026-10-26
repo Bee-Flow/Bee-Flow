@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Link as LinkIcon, PenLine, RotateCcw } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { RunRowData } from '../../../../api/queries/automation/runs';
-import { retriedRunId, useRetryRun } from '../../../../api/queries/automation/runs';
-import { mayStartRun, runStartRefusal, viewOnlyRunHint } from '../../../../api/queries/automation/runAccess';
-import { toast } from '../../../shared/Toast';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { RunRowData } from '@/api/queries/automation/runs';
+import { retriedRunId, useRetryRun } from '@/api/queries/automation/runs';
+import { mayStartRun, runStartRefusal, viewOnlyRunHint } from '@/api/queries/automation/runAccess';
+import { toast } from '@/components/shared/Toast';
 import { runMeta, runSentence, runTone } from './runOutcome';
 import RunStatusIcon from './RunStatusIcon';
 import RunAction from './RunAction';

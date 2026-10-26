@@ -39,7 +39,7 @@ describe('the new-automation seed', () => {
         expect(GATES).toContain('export async function createFormAutomation');
         const body = GATES.slice(GATES.indexOf('export async function createFormAutomation'));
         // The form goes through the same createAutomationDraft as the manual seed.
-        expect(body).toContain("await import('../../../api/queries/automation/createDraft')");
+        expect(body).toContain("await import('@/api/queries/automation/createDraft')");
         expect(body).toContain('return createAutomationDraft(ctx, {');
         expect(body).toContain(
             "trigger: { id: 'trg', type: 'trigger', kind: 'form', form: { ...form, title: title || form.title, ...(collect ? { collect: true } : {}) }, output: {} },",
@@ -58,6 +58,6 @@ describe('the new-automation seed', () => {
     it('studioApps.jsx still hands out both helpers', () => {
         expect(BARREL).toMatch(/export \{[^}]*\bcreateFormAutomation\b[^}]*\} from '\.\/studioGates';/);
         expect(BARREL).toMatch(/export async function createAutomationDraft\(ctx[^,]*, options[^)]*\) \{/);
-        expect(BARREL).toContain("await import('../../../api/queries/automation/createDraft')");
+        expect(BARREL).toContain("await import('@/api/queries/automation/createDraft')");
     });
 });

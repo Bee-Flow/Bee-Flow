@@ -1,7 +1,7 @@
 import { ArrowUpRight, Workflow } from 'lucide-react';
-import { nOf } from '../../../components/admin/Studio/KnowledgeStudio/plural';
-import { cardRadius, kindTileStyle } from '../../../components/shared/kindColors';
-import { automation as automationStatus } from '../../../components/shared/statusOf';
+import { nOf } from '@/components/admin/Studio/KnowledgeStudio/plural';
+import { cardRadius, kindTileStyle } from '@/components/shared/kindColors';
+import { automation as automationStatus } from '@/components/shared/statusOf';
 import { consequencesOf, openability, runCountOf, triggerConditionOf } from '../lib/meetingRules';
 import type { TranslateFn, RuleRow, RunLabelInput, RuleFooterProps, RuleCardProps, TriggerCondition, Consequences } from './RulesPanel.types';
 

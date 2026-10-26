@@ -1,8 +1,8 @@
 import { tryEvaluate } from '@shared/expr/engine.mjs';
 import { useCallback, useMemo, useState } from 'react';
 import type React from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import AppIcon from '../../../../../icons/AppIcon';
+import useTranslation from '@/hooks/useTranslation';
+import AppIcon from '@/components/icons/AppIcon';
 import { buildPeekIndex, peekBadgeLabel, peekBadgeTone, peekKey, type PeekGroupLabel, type PeekRow } from '../listPeek';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';

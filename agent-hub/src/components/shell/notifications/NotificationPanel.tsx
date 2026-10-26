@@ -4,7 +4,7 @@
 import { Bell, Check, CheckCheck, BellOff } from 'lucide-react';
 import { useMemo } from 'react';
 import type { CSSProperties } from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import NotificationRow from './NotificationRow';
 import type { NotificationRowActions } from './NotificationRow';
 import type { AppNotification } from './useNotifications';

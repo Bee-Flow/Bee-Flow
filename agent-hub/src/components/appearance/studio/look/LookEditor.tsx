@@ -12,7 +12,7 @@ import RadiusSection from './sections/RadiusSection';
 import TypographySection from './sections/TypographySection';
 import WallpaperSection from './sections/WallpaperSection';
 import { useLookForm, SECTION_IDS } from './useLookForm';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const SPLIT_VIEWPORT_PX = 1100;
 

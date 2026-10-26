@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { X } from 'lucide-react';
-import useOutsideDismiss from '../../../hooks/useOutsideDismiss';
-import useTranslation from '../../../hooks/useTranslation';
+import useOutsideDismiss from '@/hooks/useOutsideDismiss';
+import useTranslation from '@/hooks/useTranslation';
 
 interface MediaSettingsPopoverProps {
     isOpen: boolean;

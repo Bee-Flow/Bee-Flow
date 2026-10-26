@@ -15,7 +15,7 @@ import { useVariablePickerContext } from '../../mapping/VariablePickerContext';
 import {
     fieldLabelClass, hintTextClass, optionalMarkClass, requiredChipClass,
 } from './formStyles';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export {
     sectionHeaderClass,  subLabelClass, 

@@ -1,8 +1,8 @@
 import { ChevronDown, Timer } from 'lucide-react';
 import React, { useId, useState } from 'react';
-import { useTranslation, type TranslateParams } from '../../../../../hooks/useTranslation';
-import DeadlineClock, { useNow } from '../../../../shared/DeadlineClock';
-import { DAY_MS, HOUR_MS } from '../../../../shared/deadlineMath';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import DeadlineClock, { useNow } from '@/components/shared/DeadlineClock';
+import { DAY_MS, HOUR_MS } from '@/components/shared/deadlineMath';
 import ArticleRef from '../../shared/ArticleRef';
 import { deadlineRef, deadlineSubjectKind, emptyLines, splitDeadlines, targetOf, type EmptyLineEntry, type DeadlineRowItem } from './deadlineRows';
 

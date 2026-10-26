@@ -7,14 +7,14 @@
 
 import { BookOpen, CheckSquare, ChevronDown, Layers3, Mic, Settings2, User } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useBoardActions, useProjectBoard } from '../../../../api/queries/projectBoard';
+import { useBoardActions, useProjectBoard } from '@/api/queries/projectBoard';
 import {
     TASK_PRIORITIES, useDeleteTask, useProjectTasksQuery, useUpdateTask, type ProjectTask, type TaskStatus,
-} from '../../../../api/queries/projectTasks';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import scopedStorage from '../../../../utils/scopedStorage';
-import EmptyState from '../../../shared/EmptyState';
-import { toast } from '../../../shared/Toast';
+} from '@/api/queries/projectTasks';
+import { useTranslation } from '@/hooks/useTranslation';
+import scopedStorage from '@/utils/scopedStorage';
+import EmptyState from '@/components/shared/EmptyState';
+import { toast } from '@/components/shared/Toast';
 import { useChatPeople } from '../chat/chatPeople';
 import { projectErrorText } from '../projectErrorText';
 import { StudioSectionHeader } from '../studioParts';
@@ -34,7 +34,7 @@ import TasksToolbar, { type TasksView } from './TasksToolbar';
 import { todayKey } from './taskText';
 import { useTaskDialog, type NewTaskPreset } from './useTaskDialog';
 import './projectTasks.css';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 type View = TasksView;
 const VIEW_KEY = 'projectTasksView';

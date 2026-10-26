@@ -2,17 +2,17 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { withQueryClient } from '../../../../test/queryWrapper';
-import { authFetch } from '../../../../utils/helpers';
-import { toast } from '../../../shared/Toast';
+import { withQueryClient } from '@/test/queryWrapper';
+import { authFetch } from '@/utils/helpers';
+import { toast } from '@/components/shared/Toast';
 import RunRow from './RunRow';
 import RunList from './RunList';
 import RunDetailHeader from './RunDetailHeader';
 import TestRunMenu from '../header/TestRunMenu';
-import type { RunRowData } from '../../../../api/queries/automation/runs';
+import type { RunRowData } from '@/api/queries/automation/runs';
 
-vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../shared/Toast', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/components/shared/Toast', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 vi.mock('./GoldenControl', () => ({ default: () => null }));
 vi.mock('./CompareWithMenu', () => ({ default: () => null }));
 

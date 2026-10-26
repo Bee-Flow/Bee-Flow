@@ -11,7 +11,7 @@ import { resolveBinding } from './resolveBinding';
 import { RuntimeProvider, ScopeProvider, DEFAULT_RUNTIME, buildScope, rowKey, useRuntime, type ExpressionScope, type RuntimeValue } from './RuntimeContext';
 import { resolveNodeStyle, resolveSectionStyle } from './styleResolver';
 import { themeVars } from './themeVars';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type React from 'react';
 import type { ActionState } from './actionRunner/core';
 import type { AppRendererProps, NodeWrapperProps, FlagInput, ThemeLike, UnknownTypeProps, FormulaErrorBadgeProps, DisabledWrapProps, RenderChildrenOpts, RenderNodeProps } from './AppRenderer.types';

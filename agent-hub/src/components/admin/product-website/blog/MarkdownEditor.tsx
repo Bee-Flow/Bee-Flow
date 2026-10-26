@@ -2,7 +2,7 @@ import { useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { Bold, Code, Heading2, Heading3, Image as ImageIcon, Italic, Link2, List, ListOrdered, Minus, Quote, Upload } from 'lucide-react';
 import { AssetPickerDialog } from './jsComponents';
 import { uploadCmsFile } from '../cmsUpload';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import {
     imageMarkdown, insertBlock, insertLink, toggleLinePrefix, wordCount, wrapSelection, type TextState,
 } from './markdownCommands';

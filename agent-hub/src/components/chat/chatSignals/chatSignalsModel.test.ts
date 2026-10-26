@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CHAT_MONITORING_OFF, type ChatMonitoringStatus, type ShieldStatus } from '../../../api/queries/shieldStatus';
+import { CHAT_MONITORING_OFF, type ChatMonitoringStatus, type ShieldStatus } from '@/api/queries/shieldStatus';
 import { formatNoticeDate, lineKey, markerFor, noticeFor, payloadFor } from './chatSignalsModel';
 
 const VERSION = '2026-10-14T09:00:00.000Z';

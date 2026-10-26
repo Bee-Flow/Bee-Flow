@@ -4,9 +4,9 @@ import { kindBarClass, kindInkClass } from './kindBar';
 import { groupNoteRows, noteRowsOf, readReleases } from './releaseModel';
 import type { NoteRow as NoteRowData, ReleaseRemote, ReleaseRow, ReleasesBody } from './releaseModel';
 import { Strip } from './solutionNotices';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { formatRelative } from '../../../projects/relativeTime';
-import { kindIcon, kindOf } from '../../../shared/kindColors';
+import { useTranslation } from '@/hooks/useTranslation';
+import { formatRelative } from '@/components/projects/relativeTime';
+import { kindIcon, kindOf } from '@/components/shared/kindColors';
 import { nOf } from '../KnowledgeStudio/plural';
 
 /**

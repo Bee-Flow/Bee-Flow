@@ -3,8 +3,8 @@
 
 import { BookOpen, Check, CircleDot, Layers3, Plus, Signal, SignalHigh, User, X } from 'lucide-react';
 import React, { useId, useState } from 'react';
-import type { ChecklistItem, TaskPriority, TaskStatus } from '../../../../api/queries/projectTasks';
-import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
+import type { ChecklistItem, TaskPriority, TaskStatus } from '@/api/queries/projectTasks';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import type { WorkItemType } from './taskPlanning';
 import { checklistProgress, priorityLabel, priorityTone, statusLabel } from './taskText';
 

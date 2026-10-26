@@ -2,10 +2,10 @@ import { RefreshCw } from 'lucide-react';
 import { ClearFilters, FilterMenu, JumpBox, JumpButton, SECONDARY_DEFAULTS, SecondarySelects, narrowedWords } from './RunLogFilterControls';
 import type { AutomationOption, RunLogFilters, SecondaryFilterProps } from './RunLogFilterControls';
 import { runIdFromText } from './runLanguage';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import FilterPillsJs from '../../../shared/FilterPills';
-import type { PillTone } from '../../../shared/FilterPills';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import FilterPillsJs from '@/components/shared/FilterPills';
+import type { PillTone } from '@/components/shared/FilterPills';
 
 const FilterPills = FilterPillsJs;
 

@@ -2,7 +2,7 @@ import React from 'react';
 import { InlineHint, BackgroundVariantSelect } from '../primitives';
 import type { BlockEditorProps } from './editorProps';
 import { set } from './shared';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { ConsentCard, DestinationCard, FieldsCard, MessagesCard, TextCard } from './FormEditorParts';
 import type { FormData } from './FormEditorParts';
 

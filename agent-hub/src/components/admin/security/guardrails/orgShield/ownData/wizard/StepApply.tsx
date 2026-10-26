@@ -1,8 +1,8 @@
 import { TriangleAlert } from 'lucide-react';
 import React from 'react';
 
-import Toggle from '../../../../../../shared/Toggle';
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import Toggle from '@/components/shared/Toggle';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import LicenceLock from '../../parts/LicenceLock';
 import { placeholderOf } from '../ownDataCopy';
 import type { SwitchCol } from '../ownDataModel';

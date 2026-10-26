@@ -1,11 +1,11 @@
 import { useRef, useState } from 'react';
-import type { useTranslation } from '../../../../../hooks/useTranslation';
+import type { useTranslation } from '@/hooks/useTranslation';
 import type { DeployRequest } from './DeployDialog';
 import { errorKind, type ColumnAction, type ErrorKind } from './pipelineModel';
 import {
     cancelDeployment, createStages, cutRelease, findingsFromError, newRequestKey, retryDeployment,
     type PlanFinding, type StageKey,
-} from '../../../../../api/stagesApi';
+} from '@/api/stagesApi';
 
 /**
  * What a pipeline column's button does, and what it says. Shared by the Pipeline

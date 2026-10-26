@@ -3,18 +3,18 @@ import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } fro
 import { playbooksApi } from './playbooksApi';
 import { initialInputValues, inputsOf, needsApprover, type RecipeInput, type RecipePhase } from './recipeForm';
 import { RECIPES } from './recipes';
-import { readOrgGroups, type OrgGroup } from '../../../../api/queries/orgGroups';
-import useTranslation, { readingLocale } from '../../../../hooks/useTranslation';
-import { useModelTiersQuery } from '../../../../api/queries/modelTiers';
-import { DEPTH_TIER_KEYS, configuredTierKeys, tierI18nKey, tierLabel } from '../../../licensing/tierMeta';
-import Modal from '../../../shared/Modal';
-import SegmentedControl from '../../../shared/SegmentedControl';
-import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
+import { readOrgGroups, type OrgGroup } from '@/api/queries/orgGroups';
+import useTranslation, { readingLocale } from '@/hooks/useTranslation';
+import { useModelTiersQuery } from '@/api/queries/modelTiers';
+import { DEPTH_TIER_KEYS, configuredTierKeys, tierI18nKey, tierLabel } from '@/components/licensing/tierMeta';
+import Modal from '@/components/shared/Modal';
+import SegmentedControl from '@/components/shared/SegmentedControl';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import ChoiceCard from '../Datatables/ChoiceCard';
 import { canLinkNextcloud } from '../Datatables/datatableDisplay';
 import { datatablesApi } from '../Datatables/datatablesApi';
-import type { PermissionUser } from '../../../../hooks/usePermissionCheck';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { PermissionUser } from '@/hooks/usePermissionCheck';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { PlaybookListItem } from './PlaybookCard';
 import type { NewRecipeInput, RecipeDoc, StaticRecipe, ApiError, NewPlaybookDialogProps, RecipePreviewProps } from './NewPlaybookDialog.types';
 

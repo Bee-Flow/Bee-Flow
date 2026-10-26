@@ -1,6 +1,6 @@
 import React from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import Slider from '../../../../../shared/Slider';
+import useTranslation from '@/hooks/useTranslation';
+import Slider from '@/components/shared/Slider';
 import { registerInspector } from '../registry';
 import { usePatch } from './kit';
 import type { PanelProps } from '../appDefinition';

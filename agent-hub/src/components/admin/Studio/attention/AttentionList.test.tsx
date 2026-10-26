@@ -25,7 +25,7 @@ vi.mock('./attentionChecks', async (importOriginal) => ({
     runAttentionChecks: (...args: Parameters<typeof runMock>) => runMock(...args),
 }));
 
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 import AttentionList from './AttentionList';
 

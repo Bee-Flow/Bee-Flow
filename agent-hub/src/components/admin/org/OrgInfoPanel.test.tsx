@@ -10,12 +10,12 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AllowedDomainsEditor } from './orgInfo/orgInfoShared';
-import { useTranslation } from '../../../hooks/useTranslation';
-import OrganisationSection from '../../../pages/settings/OrganisationSection';
+import { useTranslation } from '@/hooks/useTranslation';
+import OrganisationSection from '@/pages/settings/OrganisationSection';
 import { withQueryClient } from '@/test/render';
 
 const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn() }));
-vi.mock('../../../utils/helpers', async (importOriginal) => ({
+vi.mock('@/utils/helpers', async (importOriginal) => ({
     ...(await importOriginal<Record<string, unknown>>()),
     API_BASE: '',
     authFetch: fetchMock,

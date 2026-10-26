@@ -198,7 +198,7 @@ export const STUDIO_SECTIONS: StudioSectionDescriptor[] = [
             labelKey: 'studio.new.skill',
             labelFallback: 'Skill',
             onCreate: async ({ onNavigate, t }) => {
-                const { API_BASE, authFetch } = await import('../../../utils/helpers');
+                const { API_BASE, authFetch } = await import('@/utils/helpers');
                 const res = await authFetch(`${API_BASE}/api/skills`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -273,7 +273,7 @@ export const STUDIO_SECTIONS: StudioSectionDescriptor[] = [
         // builderAutomationId '' with no route), so this creates the row the
         // builder would have created on first save and opens it.
         create: { labelKey: 'studio.new.automation', labelFallback: 'Automation', onCreate: async (ctx) => {
-            const { createAutomationDraft } = await import('../../../api/queries/automation/createDraft');
+            const { createAutomationDraft } = await import('@/api/queries/automation/createDraft');
             return createAutomationDraft(ctx);
         } },
         // BFSF-226: this tab was previously shown unconditionally, so

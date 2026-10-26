@@ -1,5 +1,5 @@
 import { ArrowRightFromLine, Plus, Repeat, Table } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { UsedByEntry } from './usedBy';
 
 /** A family's chip colours, spelled out so Tailwind sees every class. */

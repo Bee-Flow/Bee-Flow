@@ -2,15 +2,15 @@
 // ProductWebsitePanel container — moved verbatim from ProductWebsitePanel.jsx.
 // State stays owned by the panel (threaded in as arguments).
 import { useCallback, useEffect, type Dispatch, type SetStateAction } from 'react';
-import { settled } from '../../../../api/settled';
-import { toast } from '../../../shared/Toast';
+import { settled } from '@/api/settled';
+import { toast } from '@/components/shared/Toast';
 import { cmsApi } from '../cmsApi';
 import { exportPage as exportPageToFile, type ImportPayload } from '../pageIO';
 import { HEADER_VIRTUAL_ID } from '../sentinels';
 import type { CmsLocale, CmsLocaleOverrides, CmsPageDoc, CmsPageIndexEntry, CmsSiteDoc } from './cmsPanelTypes';
 import type { CmsTemplateSummary } from './useCmsPanelState';
-import { logger } from '../../../../utils/logger';
-import { request, RefusedError, errorBody, mutate } from '../../../../api/mutate';
+import { logger } from '@/utils/logger';
+import { request, RefusedError, errorBody, mutate } from '@/api/mutate';
 
 /** The template-save dialog's page: the page plus the blocks resolved for it. */
 type PendingTemplatePage = { id: string; blocks?: unknown[]; [key: string]: unknown };

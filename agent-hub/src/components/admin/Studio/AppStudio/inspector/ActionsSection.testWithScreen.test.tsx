@@ -4,12 +4,12 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../../../hooks/useAutomationApi', () => ({
+vi.mock('@/hooks/useAutomationApi', () => ({
     default: () => ({ listAutomations: vi.fn(async () => ({ automations: [AUTOMATION] })) }),
     safeText: vi.fn(async () => ''),
 }));
 
-vi.mock('../../../../../utils/helpers', async (importOriginal) => ({
+vi.mock('@/utils/helpers', async (importOriginal) => ({
     ...(await importOriginal()),
     API_BASE: '',
     authFetch: (...args: Parameters<typeof authFetch>) => authFetch(...args),

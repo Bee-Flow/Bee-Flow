@@ -1,4 +1,4 @@
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /** The config a new source is created with; which fields are set depends on its kind. */
 interface NewSourceConfig {

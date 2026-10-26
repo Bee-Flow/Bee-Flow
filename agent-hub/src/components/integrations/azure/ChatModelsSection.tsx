@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { SectionCard, SearchableModelSelect } from './components';
 import { TIERS, TIER_DEFAULTS, isReasoningCapable, isClaudeReasoning, type Tier } from './constants';
 import type { ProviderModel } from './loadChatModels';

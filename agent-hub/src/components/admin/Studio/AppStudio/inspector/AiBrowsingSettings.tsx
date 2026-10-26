@@ -1,7 +1,7 @@
 import React from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
-import FormField from '../../../../shared/FormField';
-import Toggle from '../../../../shared/Toggle';
+import useTranslation from '@/hooks/useTranslation';
+import FormField from '@/components/shared/FormField';
+import Toggle from '@/components/shared/Toggle';
 import type { SectionTitleProps, AiBrowsingSettingsProps } from './ThemePanel.types';
 
 export function SectionTitle({ children }: SectionTitleProps) {

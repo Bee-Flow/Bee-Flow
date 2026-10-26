@@ -5,8 +5,8 @@
 
 import { AlertTriangle, Check, CircleDot, GitMerge, Loader2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import useRelativeTime from '../../../hooks/useRelativeTime';
-import useTranslation from '../../../hooks/useTranslation';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import useTranslation from '@/hooks/useTranslation';
 import type { SaveState } from '../useDocumentAutosave';
 
 export interface SaveStatusChipProps {

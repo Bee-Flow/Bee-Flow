@@ -1,4 +1,4 @@
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /** English fallbacks for the memory type labels; the keys are `chat.memory.type_<type>`. */
 const TYPE_EN: Record<string, string> = {

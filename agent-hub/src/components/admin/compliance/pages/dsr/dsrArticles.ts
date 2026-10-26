@@ -9,7 +9,7 @@
  *
  * No React, no English: labels live in the components through `t()`.
  */
-import { addCalendarMonths, DAY_MS } from '../../../../shared/deadlineMath';
+import { addCalendarMonths, DAY_MS } from '@/components/shared/deadlineMath';
 import type { DsrRow } from './dsr.types';
 
 /** A request row as the readers take it: any subset of the columns, or none at all. */

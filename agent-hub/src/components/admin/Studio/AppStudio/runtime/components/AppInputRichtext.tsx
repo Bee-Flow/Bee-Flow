@@ -1,12 +1,12 @@
 import { Bold, Italic, Link2, List, ListOrdered, X, type LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { useFormField } from '../formContext';
 import { Field } from '../uiBits';
 import useValueFrom from '../useValueFrom';
 import type { BindingInput } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
-import { logger } from '../../../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /**
  * App Studio runtime — 'input_richtext'. Spec: server/appStudio/componentSpecs.js.

@@ -1,9 +1,9 @@
 import { AlertTriangle, Lock } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import { ApprovalStagesEditor } from '../../../../../automation/Builder/flow/settings/approvalStages';
-import { newStageKey, sanitizeApprovalStages } from '../../../../../automation/Builder/flow/settings/formState';
-import Button from '../../../../../shared/Button';
+import { useTranslation } from '@/hooks/useTranslation';
+import { ApprovalStagesEditor } from '@/components/automation/Builder/flow/settings/approvalStages';
+import { newStageKey, sanitizeApprovalStages } from '@/components/automation/Builder/flow/settings/formState';
+import Button from '@/components/shared/Button';
 import type { Directory, GatePatch } from './stageSettingsApi';
 import { policyProblems, type ApprovalStage, type GateOutcome, type SettingsError, type StageSettings } from './stageSettingsModel';
 

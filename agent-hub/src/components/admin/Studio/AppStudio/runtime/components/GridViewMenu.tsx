@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Settings2 } from 'lucide-react';
 import { VIEW_OPTIONS } from './gridViewPrefs';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * The reader's own controls for one grid: how tall the rows are, how they are

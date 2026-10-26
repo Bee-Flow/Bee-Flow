@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Check, ArrowUpRight, Sparkles, Loader2, RotateCcw, Lightbulb } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { gradeExercise, getHint } from '../../../api/exerciseCoach';
-import type { ExerciseGrade } from '../../../api/exerciseCoach';
-import type { LessonStep, StepState } from '../../../api/lessons.types';
+import { useTranslation } from '@/hooks/useTranslation';
+import { gradeExercise, getHint } from '@/api/exerciseCoach';
+import type { ExerciseGrade } from '@/api/exerciseCoach';
+import type { LessonStep, StepState } from '@/api/lessons.types';
 
 // Small circular score gauge (0–100). Amber for partial, green on pass. Never
 // purple. A null score (coach unavailable) renders a neutral dash.

@@ -10,15 +10,15 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { READ } from './canUse/canUseFacts';
-import { readSkills } from '../../../api/queries/skills';
-import { API_BASE, authFetch } from '../../../utils/helpers';
-import { isAbortError } from '../../../utils/caughtError';
+import { readSkills } from '@/api/queries/skills';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import { isAbortError } from '@/utils/caughtError';
 import type { AgentEditorBootstrap, AutomationRow, CategoryRow, ReadState } from './agentEditor.types';
 import type { OrgGroup } from '../AgentDesigner/PublishMenu';
-import type { ModelTierMap } from '../../../api/queries/modelTiers';
-import type { Skill } from '../../../api/queries/skills';
+import type { ModelTierMap } from '@/api/queries/modelTiers';
+import type { Skill } from '@/api/queries/skills';
 import type { IntegrationStatus } from '../AgentDesigner/DesignerPanels';
-import { request, RefusedError } from '../../../api/mutate';
+import { request, RefusedError } from '@/api/mutate';
 
 const EMPTY: AgentEditorBootstrap = {
     allSkills: null,

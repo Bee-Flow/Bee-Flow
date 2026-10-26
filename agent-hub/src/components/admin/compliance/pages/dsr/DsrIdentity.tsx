@@ -1,6 +1,6 @@
 import { BadgeCheck } from 'lucide-react';
 import React, { useEffect, useId, useRef, useState } from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { identityOf } from './dsrArticles';
 
 /**

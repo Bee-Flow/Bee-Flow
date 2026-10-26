@@ -1,4 +1,4 @@
-import type { TranslateParams } from '../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { Schedule } from '../builderSplit/useAgentSchedules';
 import type { EditorAgent } from '../builderSplit/editorTypes';
 

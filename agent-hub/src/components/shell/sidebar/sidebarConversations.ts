@@ -3,7 +3,7 @@
  * by date, and how a row is opened, deleted and badged. Split out of
  * Sidebar.jsx without a change in behaviour.
  */
-import { isImageAvatar, resolveAvatarSrc, DEFAULT_AGENT_EMOJI } from '../../../utils/agentAvatar';
+import { isImageAvatar, resolveAvatarSrc, DEFAULT_AGENT_EMOJI } from '@/utils/agentAvatar';
 
 type Translate = (key: string, fallback?: string) => string;
 

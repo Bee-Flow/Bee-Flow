@@ -2,7 +2,7 @@ import React from 'react';
 import { Braces, Sparkles } from 'lucide-react';
 import { nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase, { ForEachBadge, NodeChip } from './StepNodeBase';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { StepNodeProps } from './nodeProps';
 
 export default function ParseJsonNode({ id, data }: StepNodeProps) {

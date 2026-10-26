@@ -3,14 +3,14 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderWithClient as render } from '@/test/render';
 import SettingsForm from './SettingsForm';
-import { editorWithValue, typeInEditor } from '../../../../test/refEditor';
-import { authFetch } from '../../../../utils/helpers';
-import scopedStorage from '../../../../utils/scopedStorage';
+import { editorWithValue, typeInEditor } from '@/test/refEditor';
+import { authFetch } from '@/utils/helpers';
+import scopedStorage from '@/utils/scopedStorage';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import { asMock } from '@/test/mocks';
 import type { ComponentProps } from 'react';
 
-vi.mock('../../../../utils/helpers', async (orig) => ({
+vi.mock('@/utils/helpers', async (orig) => ({
     ...(await orig()),
     API_BASE: '',
     authFetch: vi.fn(),

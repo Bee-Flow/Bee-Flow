@@ -1,13 +1,13 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { ArrowDown, Info, Lock, MessageSquare, MessageSquarePlus, Sparkles } from 'lucide-react';
-import MessageItem from '../../../components/chat/MessageItem';
-import InputArea from '../../../components/chat/InputArea';
-import EmptyState from '../../../components/shared/EmptyState';
+import MessageItem from '@/components/chat/MessageItem';
+import InputArea from '@/components/chat/InputArea';
+import EmptyState from '@/components/shared/EmptyState';
 import CitationChips from './CitationChips';
-import useTranslation from '../../../hooks/useTranslation';
-import type { ComposerAttachment } from '../../../components/chat/InputArea/useFileIntake';
-import type { ChatMessage } from '../../../components/chat/MessageItem/messageTypes';
-import type { RetryModelTiers } from '../../../components/chat/MessageItem/MessageActionsRow';
+import useTranslation from '@/hooks/useTranslation';
+import type { ComposerAttachment } from '@/components/chat/InputArea/useFileIntake';
+import type { ChatMessage } from '@/components/chat/MessageItem/messageTypes';
+import type { RetryModelTiers } from '@/components/chat/MessageItem/MessageActionsRow';
 
 /* ── NotebookChat — AI chat panel for right side ─────────────── */
 interface NotebookChatProps {

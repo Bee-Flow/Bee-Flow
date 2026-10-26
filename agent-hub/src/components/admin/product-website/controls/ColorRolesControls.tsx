@@ -1,7 +1,7 @@
 import { FieldRow } from '../fields';
 import { ColorRow, SectionDivider, SegmentedControl } from '../primitives';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { DesignColors, DesignComponents } from '../../../../marketing/ProductWebsite.types';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { DesignColors, DesignComponents } from '@/marketing/ProductWebsite.types';
 
 type RoleKey = 'cta' | 'link' | 'highlight' | 'tile';
 

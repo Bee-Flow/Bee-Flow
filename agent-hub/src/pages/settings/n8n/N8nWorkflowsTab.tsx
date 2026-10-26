@@ -1,5 +1,5 @@
 import { Check, Info, Plus, RefreshCw, Search, Workflow } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import WorkflowRow from './N8nWorkflowEditor';
 import type { N8nWorkflows } from './useN8nState';
 

@@ -2,10 +2,10 @@ import { AlertTriangle, Download, Loader2, Package } from 'lucide-react';
 import React, { useState } from 'react';
 import Notice from './Notice';
 import { CARD, ROW, TabCard } from './TabParts';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../utils/helpers';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import { mutate, errorBody, RefusedError } from '../../../../api/mutate';
+import { useTranslation } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { mutate, errorBody, RefusedError } from '@/api/mutate';
 
 interface BlueprintReport {
     counts?: { automations?: number; apps?: number; webpages?: number };

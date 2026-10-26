@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import useMediaQuery from '../../../../../pages/meeting-notes/hooks/useMediaQuery';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import useMediaQuery from '@/pages/meeting-notes/hooks/useMediaQuery';
+import { useTranslation } from '@/hooks/useTranslation';
 import { humanizeFieldKey } from '../displayHelpers';
 import {
     candidatesOf, freshPlan, nounsOf, routeOf, toggleField,

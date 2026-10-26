@@ -299,7 +299,7 @@ export async function createFormAutomation(
     const { defaultFormDeclaration } = await import('../../automation/Builder/flow/settings/FormBuilderFields');
     const form = defaultFormDeclaration();
     const name = title || ctx.t('studio.new.untitled_form', 'Untitled form');
-    const { createAutomationDraft } = await import('../../../api/queries/automation/createDraft');
+    const { createAutomationDraft } = await import('@/api/queries/automation/createDraft');
     return createAutomationDraft(ctx, {
         title: name,
         trigger: { id: 'trg', type: 'trigger', kind: 'form', form: { ...form, title: title || form.title, ...(collect ? { collect: true } : {}) }, output: {} },

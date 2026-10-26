@@ -18,12 +18,12 @@ import {
     type WizardError,
     type WizardFile,
 } from './spreadsheet/wizardState';
-import useTranslation from '../../../../hooks/useTranslation';
-import { getIntegrationLogo } from '../../../../utils/integrationLogos';
-import Modal from '../../../shared/Modal';
-import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
+import useTranslation from '@/hooks/useTranslation';
+import { getIntegrationLogo } from '@/utils/integrationLogos';
+import Modal from '@/components/shared/Modal';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import type { StorageProbe } from './newDatatable/useLinkSources';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { SourceError } from './sourceMirrors';
 
 /** A column the relations editor lists, plus the 0-based `col` the wire addresses it by. */

@@ -1,10 +1,10 @@
 import { Archive, Save } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useTranslation, type TranslateParams } from '../../../../../hooks/useTranslation';
-import SideDrawer, { DrawerSection } from '../../../../shared/SideDrawer';
-import type { SideDrawerMode } from '../../../../shared/SideDrawer';
-import { TONES } from '../../../../shared/statusTone';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import SideDrawer, { DrawerSection } from '@/components/shared/SideDrawer';
+import type { SideDrawerMode } from '@/components/shared/SideDrawer';
+import { TONES } from '@/components/shared/statusTone';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 
 /**
  * FrameworkEditorDrawer — create or edit one org-defined framework

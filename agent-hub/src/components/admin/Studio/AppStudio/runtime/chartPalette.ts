@@ -52,7 +52,7 @@ export function resolveSeriesColor(color: unknown, index: number, palette: strin
 // Axis / grid / tooltip styling — platform tokens only. Shared with the
 // product's own dashboards (components/shared/charts) and re-exported here so
 // App Studio's charts and the Studio's charts cannot drift apart.
-export { CHART_AXIS, CHART_GRID_STROKE, CHART_TOOLTIP_STYLE } from '../../../../shared/charts/chartChrome';
+export { CHART_AXIS, CHART_GRID_STROKE, CHART_TOOLTIP_STYLE } from '@/components/shared/charts/chartChrome';
 
 /**
  * A number formatter for tick / tooltip values. `valueFormat` is the chart's

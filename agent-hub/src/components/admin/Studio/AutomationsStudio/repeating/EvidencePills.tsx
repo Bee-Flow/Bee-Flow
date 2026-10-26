@@ -1,6 +1,6 @@
-import type { RepeatingSuggestion } from '../../../../../api/queries/automation/repeating';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import CanvasPill from '../../../../automation/Builder/flow/CanvasPill';
+import type { RepeatingSuggestion } from '@/api/queries/automation/repeating';
+import { useTranslation } from '@/hooks/useTranslation';
+import CanvasPill from '@/components/automation/Builder/flow/CanvasPill';
 import { evidencePills } from './patternView';
 
 /**

@@ -1,5 +1,5 @@
 import type { KeyboardEvent, MouseEvent } from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import WebpageChat from '../WebpageChat';
 import { ResizeHandle } from './IdeChrome';
 import type { WebpageIDEProps } from './ideProps';

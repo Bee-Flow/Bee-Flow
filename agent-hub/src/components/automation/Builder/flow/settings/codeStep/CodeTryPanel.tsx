@@ -3,10 +3,10 @@
 // the result, the log lines and what it WOULD have called come back.
 import { Loader2, Play } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { useCodeTest, type CodeParam, type CodeTestResult } from '../../../../../../api/queries/automation/codeStep';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useCodeTest, type CodeParam, type CodeTestResult } from '@/api/queries/automation/codeStep';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { InputsMap } from './codeParams';
-import { logger } from '../../../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /** A starting value per input: the literal typed in the form, else the default, else empty. */
 export function tryValuesFrom(params: CodeParam[], inputs: InputsMap, otherNames: string[]): Record<string, string> {

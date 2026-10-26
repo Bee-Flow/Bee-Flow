@@ -1,12 +1,12 @@
 import { cleanup, screen, waitFor } from '@testing-library/react';
-import { renderWithClient } from '../../../test/render';
+import { renderWithClient } from '@/test/render';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import LanguagesPanel from './LanguagesPanel';
-import { authFetch } from '../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const fetchMock = vi.mocked(authFetch);
 const json = (body: unknown) => ({ ok: true, json: async () => body }) as unknown as Response;

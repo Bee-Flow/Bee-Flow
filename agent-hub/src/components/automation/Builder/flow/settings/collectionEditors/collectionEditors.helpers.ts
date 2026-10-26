@@ -1,11 +1,11 @@
 import { getList } from '@shared/expr/path.mjs';
-import { type TranslateParams } from '../../../../../../hooks/useTranslation';
-import { listPathLabel } from '../../../mapping/listPathLabel';
-import { collectArrayPaths } from '../../../mapping/upstream';
-import { fieldLabelText, routeFieldLabel } from '../../../mapping/upstream/routeFieldLabel';
+import { type TranslateParams } from '@/hooks/useTranslation';
+import { listPathLabel } from '@/components/automation/Builder/mapping/listPathLabel';
+import { collectArrayPaths } from '@/components/automation/Builder/mapping/upstream';
+import { fieldLabelText, routeFieldLabel } from '@/components/automation/Builder/mapping/upstream/routeFieldLabel';
 import { humanizeFieldKey } from '../../displayHelpers';
-import type { Group } from '../../../mapping/upstream/upstream.types';
-import type { ForEachSpec } from '../../../mapping/templateRemedies';
+import type { Group } from '@/components/automation/Builder/mapping/upstream/upstream.types';
+import type { ForEachSpec } from '@/components/automation/Builder/mapping/templateRemedies';
 
 export function retryTriesLabel(n: number) {
     if (n === 1) return 'Once';

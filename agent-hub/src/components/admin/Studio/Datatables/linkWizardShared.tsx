@@ -1,6 +1,6 @@
 import { Check, Link2, Lock, Plus, X } from 'lucide-react';
 import React, { useState } from 'react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { WizardError } from './spreadsheet/wizardState';
 
 /** A column as the editor sees it: the wizard's own column mapped onto `{ id, title, type }`. */

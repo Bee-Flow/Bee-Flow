@@ -1,6 +1,6 @@
 import React from 'react';
-import useNow from '../../../hooks/useNow';
-import useTranslation from '../../../hooks/useTranslation';
+import useNow from '@/hooks/useNow';
+import useTranslation from '@/hooks/useTranslation';
 import Modal from '../../shared/Modal';
 
 export default function ImageLightbox({ lightboxImage, setLightboxImage }: { lightboxImage: unknown; setLightboxImage: (img: null) => void }) {

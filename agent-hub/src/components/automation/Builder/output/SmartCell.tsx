@@ -1,6 +1,6 @@
 import type { MouseEvent } from 'react';
 import { ChevronRight, Table } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { summariseCell, type Tone } from './cellSummary';
 import type { OutputColumn } from './columns';
 import { problemText } from './perItem';

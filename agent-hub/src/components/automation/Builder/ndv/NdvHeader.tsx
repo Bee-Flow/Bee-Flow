@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight, CircleCheck, CircleX, Loader2, Maximize2, Minimize2, Play, RotateCcw, X } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import SaveStatus from '../../../shared/SaveStatus';
+import { useTranslation } from '@/hooks/useTranslation';
+import SaveStatus from '@/components/shared/SaveStatus';
 import type { FlowStep } from '../flow/types';
 import { familyVarClass } from './familyVar';
 import { PILL_CLASS, type StatusPill } from './ndvModel';

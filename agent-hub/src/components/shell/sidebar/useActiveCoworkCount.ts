@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useActiveCoworkCountQuery } from '../../../api/queries/shellSidebar';
+import { useActiveCoworkCountQuery } from '@/api/queries/shellSidebar';
 
 /**
  * How much is currently running or scheduled, shown as a badge on the Cowork

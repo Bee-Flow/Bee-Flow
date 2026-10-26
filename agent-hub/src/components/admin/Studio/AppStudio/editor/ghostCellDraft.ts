@@ -16,7 +16,7 @@
  */
 
 import type { ComponentEntry } from './dnd';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { AppDefinition } from '../inspector/appDefinition';
 import { APP_COMPONENT_TYPES } from '../runtime/componentRegistry';
 import { findNode, findScreen, findSection } from '../state/definitionOps';

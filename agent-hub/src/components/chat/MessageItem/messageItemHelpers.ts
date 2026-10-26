@@ -1,4 +1,4 @@
-import { API_BASE } from '../../../utils/helpers';
+import { API_BASE } from '@/utils/helpers';
 
 /**
  * May the public embed widget show where its answer came from?

@@ -1,9 +1,9 @@
-import useRelativeTime from '../../../../../hooks/useRelativeTime';
-import { formatDate } from '../../../../../utils/dateFormatters';
-import BarList from '../../../../shared/charts/BarList';
-import SplitBar from '../../../../shared/charts/SplitBar';
-import TokenBarChart from '../../../../shared/charts/TokenBarChart';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import { formatDate } from '@/utils/dateFormatters';
+import BarList from '@/components/shared/charts/BarList';
+import SplitBar from '@/components/shared/charts/SplitBar';
+import TokenBarChart from '@/components/shared/charts/TokenBarChart';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { AnswersQuestion } from './useAnswersSummary';
 
 const fmt = new Intl.NumberFormat();

@@ -2,10 +2,10 @@ import { Check, Copy } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import AiTranslateControl, { AiTranslateResult } from './AiTranslateControl';
 import { LANGUAGES_API } from './useLanguages';
-import useAiTranslate, { translateRequest } from '../../../hooks/useAiTranslate';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { getLanguages, sendLanguagesJson } from '../../../api/languages';
-import { logger } from '../../../utils/logger';
+import useAiTranslate, { translateRequest } from '@/hooks/useAiTranslate';
+import { useTranslation } from '@/hooks/useTranslation';
+import { getLanguages, sendLanguagesJson } from '@/api/languages';
+import { logger } from '@/utils/logger';
 
 /** GET /api/languages/:locale/prompts */
 interface PromptData {

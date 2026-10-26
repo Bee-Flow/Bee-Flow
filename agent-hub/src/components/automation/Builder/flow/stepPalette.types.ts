@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { AppCategory, ItemSection, PaletteItem, RibbonApp, StepPayload } from './ribbon/ribbonCategories';
 
 export type { PaletteItem, TranslateFn };

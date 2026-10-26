@@ -3,17 +3,17 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../../../../utils/helpers', () => ({ authFetch: vi.fn() }));
-vi.mock('../../../shared/Toast', () => {
+vi.mock('@/utils/helpers', () => ({ authFetch: vi.fn() }));
+vi.mock('@/components/shared/Toast', () => {
     const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn(), dismiss: vi.fn() };
     return { default: toast, toast };
 });
 
+import { API } from '@/api/complianceApi';
+import toast from '@/components/shared/Toast';
+import { authFetch } from '@/utils/helpers';
 import AiActLadderModal from './AiActLadderModal';
 import { legacyAnnexAnswers } from './ladderOutcome';
-import { API } from '../../../../api/complianceApi';
-import { authFetch } from '../../../../utils/helpers';
-import toast from '../../../shared/Toast';
 
 // The artboard's day: 14 Sep 2026 → 79 days to 2 Dec 2026.
 const NOW = new Date(2026, 8, 14, 15, 30).getTime();

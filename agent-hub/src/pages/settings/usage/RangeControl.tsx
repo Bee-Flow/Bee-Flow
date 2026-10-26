@@ -6,7 +6,7 @@
 import { Calendar } from 'lucide-react';
 import React from 'react';
 import { toLocalInput } from './format';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 export interface UsageRange {
     preset: string;

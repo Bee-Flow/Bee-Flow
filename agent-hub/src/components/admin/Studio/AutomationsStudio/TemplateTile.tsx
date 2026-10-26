@@ -1,11 +1,11 @@
 import { Download, Sparkles } from 'lucide-react';
 import { useId } from 'react';
 import type { ComponentType } from 'react';
-import type { TemplateCard } from '../../../../api/queries/automation/templates';
-import useRelativeTime from '../../../../hooks/useRelativeTime';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import AppIconJs from '../../../icons/AppIcon';
+import type { TemplateCard } from '@/api/queries/automation/templates';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import AppIconJs from '@/components/icons/AppIcon';
 
 const AppIcon = AppIconJs;
 

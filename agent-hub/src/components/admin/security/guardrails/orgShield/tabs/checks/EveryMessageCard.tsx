@@ -1,6 +1,6 @@
 import React from 'react';
 
-import ChoiceCards, { type ChoiceCardOption } from '../../../../../../shared/ChoiceCards';
+import ChoiceCards, { type ChoiceCardOption } from '@/components/shared/ChoiceCards';
 import ToggleCard from '../../parts/ToggleCard';
 import { CheckCard } from './CheckCard';
 import type { ChecksFields, ChecksLicence, TranslateFn } from './checksTypes';

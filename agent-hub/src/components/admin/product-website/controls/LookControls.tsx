@@ -1,6 +1,6 @@
 import { FieldRow } from '../fields';
 import { SegmentedControl } from '../primitives';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /** The look keys of block.style (a missing key = the default look). */
 interface BlockLook {

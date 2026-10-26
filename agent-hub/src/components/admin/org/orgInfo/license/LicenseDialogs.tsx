@@ -2,7 +2,7 @@ import { AlertTriangle, Loader2, Zap } from 'lucide-react';
 import { intervalLabel, planCurrencySymbol, useLicenseText } from './licenseShared';
 import type { BillingPlan, ChangePreview } from './licenseShared';
 import type { OrgSubscriptionState } from './useOrgSubscription';
-import Modal from '../../../../shared/Modal';
+import Modal from '@/components/shared/Modal';
 
 const SECONDARY_BUTTON = 'px-3 py-1.5 rounded-lg text-[12px] font-semibold border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] disabled:opacity-50';
 const PANEL = 'w-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-card)] p-5 space-y-4';

@@ -4,9 +4,9 @@
  * POST …/preview-change). Only what the page reads is named; the server owns
  * the rest.
  */
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import { formatDate } from '../../../../../utils/dateFormatters';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { formatDate } from '@/utils/dateFormatters';
 
 /** A sellable plan: an offer on the checkout list, or a target to change to. */
 export interface BillingPlan {

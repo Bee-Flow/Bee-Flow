@@ -1,9 +1,9 @@
 import { X } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import Modal from '../../../shared/Modal';
-import type { AutomationListRow, AutomationFolder } from '../../../automation/useAutomationLibrary';
-import { buildFolderTree, flattenFolderTree, moveTargets } from '../../../automation/folderTree';
+import { useTranslation } from '@/hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
+import type { AutomationListRow, AutomationFolder } from '@/components/automation/useAutomationLibrary';
+import { buildFolderTree, flattenFolderTree, moveTargets } from '@/components/automation/folderTree';
 
 // Left padding per nesting level, as whole Tailwind classes (a class built from
 // a number is not generated). Deeper than the table stays at the last step.

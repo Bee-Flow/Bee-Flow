@@ -3,8 +3,8 @@
 
 import { ChevronDown, ChevronRight, FolderPlus } from 'lucide-react';
 import React, { useState } from 'react';
-import { useCreateProject, type Project } from '../../../api/queries/projects';
-import useTranslation from '../../../hooks/useTranslation';
+import { useCreateProject, type Project } from '@/api/queries/projects';
+import useTranslation from '@/hooks/useTranslation';
 import {
     ColorSwatches, DescriptionField, IconPicker, InstructionsField, NameField,
 } from './ProjectIdentityFields';
@@ -12,7 +12,7 @@ import { projectErrorText } from './projectErrorText';
 import { DEFAULT_PROJECT_COLOR, DEFAULT_PROJECT_ICON, projectTileStyle } from './projectVisuals';
 import { StudioSectionHeader } from './studioParts';
 import { ErrorText, PrimaryButton, SecondaryButton } from './workspaceUi';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 interface CreateDraft {
     name: string;

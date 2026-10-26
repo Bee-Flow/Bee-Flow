@@ -8,7 +8,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
     AlertCircle, Check, ChevronDown, ChevronUp, Copy, Eye, GripVertical, Loader2, Pencil, RotateCw, Trash2, XCircle,
 } from 'lucide-react';
-import useTranslation, { TranslateParams } from '../../../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '@/hooks/useTranslation';
 import { metaFor, stageText, type SourceRow } from './sourceMeta';
 
 export interface SourceCardProps {

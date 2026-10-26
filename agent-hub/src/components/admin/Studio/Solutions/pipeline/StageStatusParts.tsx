@@ -1,12 +1,12 @@
 import { AlertTriangle, Check, Copy, Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
-import { useStageSettingsQuery } from '../../../../../api/queries/stageReads';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useStageSettingsQuery } from '@/api/queries/stageReads';
+import { useTranslation } from '@/hooks/useTranslation';
 import { pillStatusOf } from './pipelineModel';
 import { fmt, kindLabel, StatusPill, statusLabel } from './stageText';
 import { useStageLabel } from './StageSwitcher';
-import type { DeploymentSummary, StageKey, StageSettingsSummary } from '../../../../../api/stagesApi';
-import { logger } from '../../../../../utils/logger';
+import type { DeploymentSummary, StageKey, StageSettingsSummary } from '@/api/stagesApi';
+import { logger } from '@/utils/logger';
 
 /** The lower sections of the Status tab: last deployment and the addresses of a stage. */
 

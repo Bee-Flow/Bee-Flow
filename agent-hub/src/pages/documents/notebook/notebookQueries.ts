@@ -13,7 +13,7 @@
  * refetches behind it on focus or reconnect.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '../../../api/client';
+import { apiClient } from '@/api/client';
 import type { NotebookSource } from './hooks/useSourcesPolling';
 
 export type NotebookRole = 'owner' | 'editor' | 'viewer';

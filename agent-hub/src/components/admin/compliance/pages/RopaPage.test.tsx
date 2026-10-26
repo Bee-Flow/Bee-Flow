@@ -3,11 +3,11 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import RopaPage, { sccConfirmedSet, hasDoraColumns } from './RopaPage';
-import { TABLE_FOLDED_ONLY } from '../../../shared/DataTable';
+import { TABLE_FOLDED_ONLY } from '@/components/shared/DataTable';
 import type { Mock } from 'vitest';
 import { stub } from '@/test/mocks';
 
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 afterEach(cleanup);
 

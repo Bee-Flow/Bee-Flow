@@ -5,8 +5,8 @@
  * Rows from before handoff 5 carry no outcome, so each helper falls back to
  * what those rows do carry (status, summary, error, triggerKind).
  */
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import type { RunRowData } from '../../../../api/queries/automation/runs';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import type { RunRowData } from '@/api/queries/automation/runs';
 
 export type RunTone = 'success' | 'error' | 'waiting' | 'running' | 'neutral';
 

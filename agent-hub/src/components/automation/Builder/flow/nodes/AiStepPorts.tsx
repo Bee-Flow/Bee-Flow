@@ -4,7 +4,7 @@
 // unless the host hands the canvas an in-app `onNavigate`.
 import { BookOpen, Bot, Zap } from 'lucide-react';
 import type { MouseEvent, ReactNode } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useNodeRuntime } from '../NodeRuntimeContext';
 import { studioHref, studioTarget } from '../studioLinks';
 import type { StudioLinkSection } from '../studioLinks';

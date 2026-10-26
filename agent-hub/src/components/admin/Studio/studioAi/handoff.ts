@@ -1,4 +1,4 @@
-import { createAutomationDraft } from '../../../../api/queries/automation/createDraft';
+import { createAutomationDraft } from '@/api/queries/automation/createDraft';
 import { createFormAutomation, studioLockHint, type StudioCreateCtx, type Translate } from '../studioGates';
 import { studioAppForKind } from '../studioNav';
 

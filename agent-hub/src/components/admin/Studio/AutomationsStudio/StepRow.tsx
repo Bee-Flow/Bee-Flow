@@ -1,8 +1,8 @@
 import { History, Package, Trash2 } from 'lucide-react';
 import type { KeyboardEvent } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import { StepIcon as StepIconJs } from '../../../automation/Builder/flow/stepIcons';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { StepIcon as StepIconJs } from '@/components/automation/Builder/flow/stepIcons';
 
 const StepIcon = StepIconJs;
 

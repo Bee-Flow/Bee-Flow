@@ -6,7 +6,7 @@ import type { AgentListRow, CategoryLike } from './agentCardFacts';
 import EmptyState from '../../shared/EmptyState';
 import { PRIMARY_ACTION_STYLE } from '../../shared/StudioSectionHeader';
 import { useAgentEditorBootstrap } from '../AgentWizard/AgentEditorBootstrapContext';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { OrgGroup } from '../AgentDesigner/PublishMenu';
 
 export interface AgentOverviewProps<T extends AgentListRow> {

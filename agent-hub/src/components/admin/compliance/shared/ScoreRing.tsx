@@ -1,5 +1,5 @@
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { TONES, toneOfScore, type Tone } from '../../../shared/statusTone';
+import { useTranslation } from '@/hooks/useTranslation';
+import { TONES, toneOfScore, type Tone } from '@/components/shared/statusTone';
 
 /**
  * ScoreRing — the 0–100 conic score ring of the Compliance Center (redesign,

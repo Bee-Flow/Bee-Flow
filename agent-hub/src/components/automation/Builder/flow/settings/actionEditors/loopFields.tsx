@@ -1,14 +1,14 @@
 // The loop editor: what to iterate over, how many items at a time, and the
 // steps that run once per item.
 import { Workflow } from 'lucide-react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import LoopBodyEditor from '../../../mapping/LoopBodyEditor';
-import LoopOverPicker from '../../../mapping/LoopOverPicker';
+import { useTranslation } from '@/hooks/useTranslation';
+import LoopBodyEditor from '@/components/automation/Builder/mapping/LoopBodyEditor';
+import LoopOverPicker from '@/components/automation/Builder/mapping/LoopOverPicker';
 import AccordionSection from '../../AccordionSection';
 import { FormRow, inputClass } from '../formPrimitives';
 import type { StepEditorProps } from '../collectionEditors';
-import type { ModelTierConfig } from '../../../../../../hooks/useModelTierSelection';
-import type { UpstreamDefinition, UpstreamNode } from '../../../mapping/upstream/upstream.types';
+import type { ModelTierConfig } from '@/hooks/useModelTierSelection';
+import type { UpstreamDefinition, UpstreamNode } from '@/components/automation/Builder/mapping/upstream/upstream.types';
 import type { ActionCatalog } from './integrationActionFields';
 import type { BlockCatalogEntry } from './flowletCallFields';
 

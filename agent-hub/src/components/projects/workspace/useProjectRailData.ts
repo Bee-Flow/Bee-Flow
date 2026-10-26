@@ -4,13 +4,13 @@ import {
     Activity, BookOpen, CheckSquare, FileText, House, MessagesSquare, Mic, NotebookPen, Settings, Users,
 } from 'lucide-react';
 import type React from 'react';
-import { useProjectChatsQuery } from '../../../api/queries/projectChats';
-import { useProjectFilesQuery } from '../../../api/queries/projectContent';
-import { useProjectTasksQuery } from '../../../api/queries/projectTasks';
+import { useProjectChatsQuery } from '@/api/queries/projectChats';
+import { useProjectFilesQuery } from '@/api/queries/projectContent';
+import { useProjectTasksQuery } from '@/api/queries/projectTasks';
 import {
     useProjectMembersQuery, useProjectQuery, useProjectResourcesQuery, useProjectThreadsQuery, type Project, type ProjectRole,
-} from '../../../api/queries/projects';
-import useTranslation from '../../../hooks/useTranslation';
+} from '@/api/queries/projects';
+import useTranslation from '@/hooks/useTranslation';
 import { kindColorVar } from '../../shared/kindColors';
 import { roleOfProject, type WorkspaceTabId } from './types';
 import { useProjectUnread } from './useProjectUnread';

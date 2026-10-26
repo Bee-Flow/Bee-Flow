@@ -1,12 +1,12 @@
 import { CheckSquare, MessageSquare, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import { useCreateProjectChat } from '../../../../api/queries/projectChats';
-import { useProjectTasksQuery } from '../../../../api/queries/projectTasks';
-import type { Project } from '../../../../api/queries/projects';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useCreateProjectChat } from '@/api/queries/projectChats';
+import { useProjectTasksQuery } from '@/api/queries/projectTasks';
+import type { Project } from '@/api/queries/projects';
+import { useTranslation } from '@/hooks/useTranslation';
 import { projectErrorText } from '../projectErrorText';
 import type { StartChat } from '../types';
-import { ComposerShell } from '../../../shared/ComposerBox';
+import { ComposerShell } from '@/components/shared/ComposerBox';
 import { ErrorText, INPUT_CLASS, PrimaryButton } from '../workspaceUi';
 import { MAX_MESSAGE_LENGTH } from './ChatComposer';
 import { rememberFirstAnswer } from './firstAnswer';

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import { autoCaseColor, dominantPiiGroup, EDGE_COLOR_KEYS, PII_GROUP_COLORS, resolveEdgeColor } from './edgeColors';
-import { STATUS_COLORS, CHART_SERIES } from '../../../../constants/palette';
+import { STATUS_COLORS, CHART_SERIES } from '@/constants/palette';
 import { stub } from '@/test/mocks';
 
 describe('edgeColors', () => {

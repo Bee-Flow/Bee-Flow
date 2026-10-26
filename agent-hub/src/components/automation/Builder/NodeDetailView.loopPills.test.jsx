@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 const { api } = vi.hoisted(() => ({
     api: { getCatalog: vi.fn().mockResolvedValue({ apps: [], triggerOutputs: {} }) },
 }));
-vi.mock('../../../hooks/useAutomationApi', () => ({ default: () => api }));
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => api }));
 
 // A switchable dictionary over the REAL useTranslation. Off by default (every
 // other test in this file reads the shipped English), and switched on by the
@@ -14,7 +14,7 @@ vi.mock('../../../hooks/useAutomationApi', () => ({ default: () => api }));
 // happening to be English in the source. Without this a hardcoded "In" would
 // still match a t('automations.ndv.in') that falls back to "In".
 const { transOverride } = vi.hoisted(() => ({ transOverride: { current: null } }));
-vi.mock('../../../hooks/useTranslation', async (importOriginal) =>
+vi.mock('@/hooks/useTranslation', async (importOriginal) =>
     (await import('@/test/translationOverride')).overrideTranslation(await importOriginal(), transOverride));
 
 import { composeInlineGraph } from './flow/inlineFlowlets';

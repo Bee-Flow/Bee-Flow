@@ -1,8 +1,8 @@
 import { Brain, ChevronRight, Lock } from 'lucide-react';
 import React, { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
 import type { ChatMessage } from './messageTypes';
-import useTranslation from '../../../hooks/useTranslation';
-import type { TranslateParams } from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 
 // Normalise whatever shape we have for msg.thinking / msg.thinkingParts into a
 // uniform array. Handles three cases:

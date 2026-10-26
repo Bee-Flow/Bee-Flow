@@ -3,16 +3,16 @@ import {
     PanelLeftClose, PanelLeftOpen, Redo2, Sparkles, Stethoscope, Undo2, Webhook,
 } from 'lucide-react';
 import type { ReactNode, RefObject } from 'react';
-import useTranslation from '../../../hooks/useTranslation';
-import { setStudioMenuHidden, useStudioMenuHidden } from '../../../hooks/useStudioChrome';
-import { useAutomationCounts } from '../../../api/queries/automation/meta';
+import useTranslation from '@/hooks/useTranslation';
+import { setStudioMenuHidden, useStudioMenuHidden } from '@/hooks/useStudioChrome';
+import { useAutomationCounts } from '@/api/queries/automation/meta';
 import { IconPicker as IconPickerJsx } from './flow/stepIcons';
 import type { OrgGroup } from '../../shared/VisibilityCapsule.types';
 import type { BuilderTab } from './useBuilderTabUrl';
 import LiveActions, { SavingPill, type SavingState } from './header/LiveActions';
 import LiveStatusPill from './header/LiveStatusPill';
 import { liveStateOf, type LiveRow } from './header/liveState';
-import { mayStartRun } from '../../../api/queries/automation/runAccess';
+import { mayStartRun } from '@/api/queries/automation/runAccess';
 import { CategoryField, StepActionCluster, type StepRow, type StepSharing } from './header/StepCluster';
 import TestRunMenu, { type RunTriggerOption } from './header/TestRunMenu';
 import TitleField, { type HeaderScope } from './header/TitleField';

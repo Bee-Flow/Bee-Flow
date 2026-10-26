@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ReactNode } from 'react';
-import Modal from '../../../shared/Modal';
+import Modal from '@/components/shared/Modal';
 
 /**
  * ModalShell — the ONE dialog container for the CMS admin, drawn inside the

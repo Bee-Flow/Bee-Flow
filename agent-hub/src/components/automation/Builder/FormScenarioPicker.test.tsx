@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { withQueryClient } from '../../../test/queryWrapper';
-import { authFetch } from '../../../utils/helpers';
+import { withQueryClient } from '@/test/queryWrapper';
+import { authFetch } from '@/utils/helpers';
 import PublicFormRenderer from '../../forms/PublicFormRenderer';
 import type { FormDef } from '../../forms/PublicFormRenderer.types';
 import FormScenarioPicker from './FormScenarioPicker';
 
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 const reply = (status: number, body: unknown) =>
     Promise.resolve({ ok: status < 400, status, headers: new Headers(), json: async () => body } as unknown as Response);

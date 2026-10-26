@@ -1,9 +1,9 @@
 import { memo, useCallback, useMemo } from 'react';
 import { Clock } from 'lucide-react';
 import StepOutputTab from './StepOutputTab';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { deepEqual as deepEqualJs } from '../../../../utils/deepEqual';
-import { statusLabel, tokenForStep } from '../../../shared/statusTokens';
+import { useTranslation } from '@/hooks/useTranslation';
+import { deepEqual as deepEqualJs } from '@/utils/deepEqual';
+import { statusLabel, tokenForStep } from '@/components/shared/statusTokens';
 import { summariseData as summariseDataJs } from '../flow/dataSummary';
 import { stepPayload } from '../flow/stepPayload';
 import { buildRunStepLabelMap } from '../flow/displayHelpers';
@@ -14,7 +14,7 @@ import { usedByDownstream } from '../output/usedBy';
 import { runStepTypeMap } from '../runs/bindingMisses';
 import { routeContextOf, routeSummaryOf, type RouteContext } from '../output/routeNote';
 import { flattenPromotedKeys } from '../output/columns';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 const deepEqual = deepEqualJs as (a: unknown, b: unknown) => boolean;
 const summariseData = summariseDataJs as (value: unknown) => { label: string } | null;

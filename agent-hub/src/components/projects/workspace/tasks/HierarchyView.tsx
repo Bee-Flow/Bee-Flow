@@ -5,15 +5,15 @@
 
 import { ChevronsDownUp, ChevronsUpDown, ListTree, Plus } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import type { ProjectTask } from '../../../../api/queries/projectTasks';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import scopedStorage from '../../../../utils/scopedStorage';
-import EmptyState from '../../../shared/EmptyState';
+import type { ProjectTask } from '@/api/queries/projectTasks';
+import { useTranslation } from '@/hooks/useTranslation';
+import scopedStorage from '@/utils/scopedStorage';
+import EmptyState from '@/components/shared/EmptyState';
 import type { useChatPeople } from '../chat/chatPeople';
 import { GhostButton } from '../workspaceUi';
 import { HierarchyRow } from './HierarchyRow';
 import { buildWorkTree, storyPoints, workItemType, type WorkNode, type WorkRollup } from './taskPlanning';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 const GROUP_LABEL = 'text-[11px] font-semibold uppercase tracking-[0.05em] text-[var(--text-tertiary)] m-0';
 

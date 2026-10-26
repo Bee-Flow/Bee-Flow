@@ -1,6 +1,6 @@
-import { API_BASE, authFetch } from '../../../../utils/helpers';
+import { API_BASE, authFetch } from '@/utils/helpers';
 import { SECTIONS, itemLabel, type SolutionSection } from './solutionSections';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /**
  * Where "Add to this Solution" gets its candidates, and how a candidate becomes

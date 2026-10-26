@@ -1,9 +1,9 @@
 // The link pre-check of Publish: internal links only (the server resolves them
 // against the site's own pages, posts and redirects, no network). A failed or
 // slow check never blocks publishing; it only means no warning is shown.
-import { mutate } from '../../../../api/mutate';
+import { mutate } from '@/api/mutate';
 import { cmsApi } from '../cmsApi';
-import type { ConfirmOptions } from '../../../shared/useConfirm';
+import type { ConfirmOptions } from '@/components/shared/useConfirm';
 
 const CHECK_TIMEOUT_MS = 8000;
 

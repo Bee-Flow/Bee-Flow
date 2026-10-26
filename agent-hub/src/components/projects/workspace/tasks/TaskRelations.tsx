@@ -5,8 +5,8 @@
 
 import { Plus, Search, X } from 'lucide-react';
 import React, { useRef, useState } from 'react';
-import { linkKey, type ProjectTask, type TaskLink } from '../../../../api/queries/projectTasks';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { linkKey, type ProjectTask, type TaskLink } from '@/api/queries/projectTasks';
+import { useTranslation } from '@/hooks/useTranslation';
 import { LINK_ICON, useTaskLinks, type LinkOption } from './taskLinks';
 import { SelectField } from '../workspaceUi';
 import { TypeIcon } from './TaskFields';

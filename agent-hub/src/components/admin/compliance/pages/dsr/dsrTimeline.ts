@@ -9,7 +9,7 @@
  * roster, or as "a handler" when the roster does not know it, never as the
  * raw id.
  */
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { channelOf, completedAtOf, dueAtOf, isOverdue, receivedAtOf, stateOf } from './dsrArticles';
 import { channelLabel, formatDateTime } from './DsrTable';
 

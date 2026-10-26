@@ -3,7 +3,7 @@ import { walkPath } from '../resolveBinding';
 import { roleTextColor } from '../styleResolver';
 import { ROLE_COLORS } from '../styleResolver.constants';
 import { displayValue } from '../uiBits';
-import type { TranslateParams } from '../../../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { PeekPanelOpts } from './AppList.types';
 
 /** Panel width; also the space the row needs on its right to open there. */

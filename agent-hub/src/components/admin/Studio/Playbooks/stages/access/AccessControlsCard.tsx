@@ -1,7 +1,7 @@
 import { Check, LayoutGrid, Lock, Search, Users } from 'lucide-react';
 import React from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { AudienceKind, DirectoryGroup, DirectoryUser, RoleOption, ScreenPlan } from './accessScreenTypes';
 
 const AUDIENCES = ['private', 'organisation', 'groups'] as const;

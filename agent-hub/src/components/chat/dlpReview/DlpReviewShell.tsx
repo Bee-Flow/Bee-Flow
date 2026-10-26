@@ -10,9 +10,9 @@ import DlpChatTextRenderer from './DlpChatTextRenderer';
 import DlpDocumentRenderer from './DlpDocumentRenderer';
 import { mergeSpans, nextManualId } from './dlpFindingsState';
 import DlpFindingsSummaryBar from './DlpFindingsSummaryBar';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import Modal from '../../shared/Modal';
-import type { DlpChoice, DlpPending } from '../../../hooks/useDlpDecision';
+import type { DlpChoice, DlpPending } from '@/hooks/useDlpDecision';
 import type { DlpSpan, ManualSpan } from './dlpFindingsState';
 
 export interface DlpReviewPending {

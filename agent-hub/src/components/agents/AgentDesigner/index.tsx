@@ -16,8 +16,8 @@ import { BehaviorSection as BehaviorSectionJs } from "./sections/BehaviorSection
 import { IdentitySection as IdentitySectionJs } from "./sections/IdentitySection";
 import { ToolsSection as ToolsSectionJs } from "./sections/ToolsSection";
 import type { DesignerSectionProps } from "./sections/sectionProps";
-import { useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE, authFetch } from "../../../utils/helpers";
+import { useTranslation } from '@/hooks/useTranslation';
+import { API_BASE, authFetch } from "@/utils/helpers";
 
 /** The designer's state (hooks/useAgentState.ts). */
 type DesignerState = ReturnType<typeof useAgentState>;

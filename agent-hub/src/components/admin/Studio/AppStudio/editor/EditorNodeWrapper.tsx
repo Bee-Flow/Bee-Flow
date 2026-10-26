@@ -7,9 +7,9 @@ import { SPAN_INERT_PARENTS, claimPointerDown, findNode, pillFor, selectionRoots
 import type { LogicMark } from './nodeWrapper/nodeWrapperModel';
 import { useCellSortable } from './nodeWrapper/useCellSortable';
 import { useNodeResize } from './nodeWrapper/useNodeResize';
-import ConfirmDialog from '../../../../shared/ConfirmDialog';
-import useTranslation from '../../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import ConfirmDialog from '@/components/shared/ConfirmDialog';
+import useTranslation from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { AppDefinition, AppNode } from '../inspector/appDefinition';
 import { getKnobsForType } from '../inspector/styleKnobMeta';
 import { getComponentEntry } from '../runtime/componentRegistry';

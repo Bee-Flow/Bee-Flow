@@ -2,7 +2,7 @@
 // primitives, so a keystroke re-renders the edited cell and nothing else.
 
 import React from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import SheetCell from './SheetCell';
 import type { CellResult, Computed } from './sheetEngine';
 import { explainError } from './sheetErrors';

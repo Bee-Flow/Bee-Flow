@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import useAutomationApi from '../../../../../hooks/useAutomationApi';
+import useAutomationApi from '@/hooks/useAutomationApi';
 
 /** One automation, as the list endpoint returns it. */
 export interface AutomationRow {

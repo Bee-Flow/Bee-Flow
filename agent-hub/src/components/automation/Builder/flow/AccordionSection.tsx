@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import CollapsibleSection from './CollapsibleSection';
 import { hiddenInSimple, resolveMode, useFormDensity } from './settings/formDensity';
-import scopedStorage from '../../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 
 interface AccordionSectionProps {
     stepType: string;

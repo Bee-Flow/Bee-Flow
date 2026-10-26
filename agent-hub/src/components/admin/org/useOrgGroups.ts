@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import type { OrgMember, Organization } from './useOrgDirectory';
-import { API_BASE } from '../../../utils/helpers';
-import { settled } from '../../../api/settled';
+import { API_BASE } from '@/utils/helpers';
+import { settled } from '@/api/settled';
 import { toast } from '../../shared/Toast';
-import useOutsideDismiss from '../../../hooks/useOutsideDismiss';
-import { mutate, ApiError, errorBody, RefusedError } from '../../../api/mutate';
+import useOutsideDismiss from '@/hooks/useOutsideDismiss';
+import { mutate, ApiError, errorBody, RefusedError } from '@/api/mutate';
 
 export interface OrgGroups {
     showCreateGroup: boolean;

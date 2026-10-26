@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import scopedStorage from '../../../utils/scopedStorage';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import scopedStorage from '@/utils/scopedStorage';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { BuilderTab } from './useBuilderTabUrl';
 
 const WORK_MODES: readonly string[] = ['discuss', 'approve', 'plan', 'build'];

@@ -4,7 +4,7 @@ import CanUseCard, { EmptyRow, LinkButton, UnreadableNotice } from './CanUseCard
 import { READ } from './canUseFacts';
 import { CHOOSER_SECTION, chooserRequest } from './toolChooser';
 import { ACT_AS_KIND, CONFIRM } from './toolGrants.helpers';
-import { SECTION_LBL } from '../../../shell/sidebar/sidebarTokens';
+import { SECTION_LBL } from '@/components/shell/sidebar/sidebarTokens';
 import type { AutomationCardRow, ToolApp, ToolsCardProps, TranslateFn } from './ToolsCard.types';
 import { RowWarning, ToolRow } from './ToolRow';
 /**

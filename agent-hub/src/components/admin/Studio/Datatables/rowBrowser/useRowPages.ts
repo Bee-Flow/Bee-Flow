@@ -10,11 +10,11 @@
  * between pages.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { messageOf } from '../../../../../utils/caughtError';
+import { messageOf } from '@/utils/caughtError';
 import { PAGE, SEARCHABLE, rowsApi } from './rowBrowserModel';
 import type { DtColumn, DtRow, DtTable, RowFilter, RowSort } from './rowBrowserModel';
 import { filterDescriptor } from './typedViews';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 export function useRowPages(table: DtTable, t: TranslateFn, initialFilters: RowFilter[] | null, reloadKey: unknown) {
     const [rows, setRows] = useState<DtRow[] | null>(null);

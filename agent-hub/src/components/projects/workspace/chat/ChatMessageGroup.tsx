@@ -4,11 +4,11 @@
 
 import { Bot, Sparkles } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Avatar } from '../workspaceUi';
 import ChatMessageBubble, { type MessageContext } from './ChatMessageBubble';
 import { inkOf } from '../memberColors';
-import { kindColorVar, kindTint } from '../../../shared/kindColors';
+import { kindColorVar, kindTint } from '@/components/shared/kindColors';
 import { CHAT_COLUMN_CLASS } from './chatColumn';
 import { formatMessageTime, type MessageGroup } from './messageGroups';
 import SystemNotice from './SystemNotice';

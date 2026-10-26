@@ -1,9 +1,9 @@
 import { FlaskConical, Plus } from 'lucide-react';
 import React, { useId, useState } from 'react';
 
-import Button from '../../../../../../shared/Button';
-import Disclosure from '../../../../../../shared/Disclosure';
-import { customDataErrorCode, useTestMutation } from '../../../../../../../api/queries/customData';
+import Button from '@/components/shared/Button';
+import Disclosure from '@/components/shared/Disclosure';
+import { customDataErrorCode, useTestMutation } from '@/api/queries/customData';
 import { errorLine } from '../ownDataCopy';
 import type { Span } from '../ownDataModel';
 import { LIMITS, resolveType } from '../ownDataModel';

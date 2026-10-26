@@ -8,8 +8,8 @@ import {
     type CollisionDetection, type DragEndEvent, type DragStartEvent,
 } from '@dnd-kit/core';
 import React, { useMemo, useState } from 'react';
-import { DEFAULT_COLUMNS, taskColumn, type BoardColumn } from '../../../../api/queries/projectBoard';
-import { type ProjectTask, type TaskStatus } from '../../../../api/queries/projectTasks';
+import { DEFAULT_COLUMNS, taskColumn, type BoardColumn } from '@/api/queries/projectBoard';
+import { type ProjectTask, type TaskStatus } from '@/api/queries/projectTasks';
 import type { useChatPeople } from '../chat/chatPeople';
 import { DragCard } from './BoardCard';
 import Lane from './BoardColumn';

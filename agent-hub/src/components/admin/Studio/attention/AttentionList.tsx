@@ -2,11 +2,11 @@ import { AlertCircle, AlertTriangle, Info } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { attentionSourceNames, runAttentionChecks, summarizeAttention, type AttentionItem, type AttentionRun } from './attentionChecks';
 import { attentionPath } from './attentionLink';
-import { useTranslation, type TranslateParams } from '../../../../hooks/useTranslation';
-import FindingRow from '../../../shared/FindingRow';
-import { kindColorVar, kindIcon } from '../../../shared/kindColors';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import FindingRow from '@/components/shared/FindingRow';
+import { kindColorVar, kindIcon } from '@/components/shared/kindColors';
 import { nOf } from '../KnowledgeStudio/plural';
-import type { HasFeature, LessonUser } from '../../../../api/lessons.types';
+import type { HasFeature, LessonUser } from '@/api/lessons.types';
 
 /**
  * "Needs attention" — the list at the top of Studio's Start screen.

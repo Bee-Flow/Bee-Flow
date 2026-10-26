@@ -1,5 +1,5 @@
 import { ArrowUpRight, ExternalLink, Workflow } from 'lucide-react';
-import { kindColorVar } from '../../../../shared/kindColors';
+import { kindColorVar } from '@/components/shared/kindColors';
 import { automationHref } from '../inspector/AutomationTile';
 import { getComponentEntry } from '../runtime/componentRegistry';
 import type { TFn, LogicTableRow, RevealFn, LogicRowProps, StatusCellProps, GroupHeadingProps, LogicTableProps } from './LogicaTab.types';

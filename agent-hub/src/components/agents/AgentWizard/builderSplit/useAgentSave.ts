@@ -10,14 +10,14 @@
  * them, so the effects fire in the same order.
  */
 import { useCallback, useEffect, useRef, useState, useEffectEvent } from 'react';
-import { API_BASE } from '../../../../utils/helpers';
-import { saveAgent, adoptedPromptAfterSave } from '../../../../api/agentSaveApi';
+import { API_BASE } from '@/utils/helpers';
+import { saveAgent, adoptedPromptAfterSave } from '@/api/agentSaveApi';
 import useAgentAutosave from '../state/useAgentAutosave';
 import { conflictHandlers, usePublishVersion, useSaveDraft } from './agentSaveFlows';
-import type { AgentSaveDeps, Conflict, EditorSnapshot, LimitWarning, Loose, Ref, SentRefs, Setter } from '../../../../api/agentSaveTypes';
-import { logger } from '../../../../utils/logger';
+import type { AgentSaveDeps, Conflict, EditorSnapshot, LimitWarning, Loose, Ref, SentRefs, Setter } from '@/api/agentSaveTypes';
+import { logger } from '@/utils/logger';
 
-export type { AgentSaveDeps, EditorSnapshot } from '../../../../api/agentSaveTypes';
+export type { AgentSaveDeps, EditorSnapshot } from '@/api/agentSaveTypes';
 
 /** The autosave hook's callbacks: what happens after a save lands, conflicts or is refused. */
 function autosaveCallbacks(d: AgentSaveDeps, { sentPersonaRef, sentSystemPromptRef }: SentRefs, setConflict: Setter<Conflict | null>) {

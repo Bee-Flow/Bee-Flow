@@ -1,7 +1,7 @@
 import { Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 
 interface FillInCardProps {
     onFillIn?: (sentence: string) => void;

@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { SetStateAction, JSX, Dispatch, useMemo, useState } from 'react';
-import useTranslation, { TranslateParams } from '../../../../../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '@/hooks/useTranslation';
 import { resolveBinding, walkPath } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { isFill } from '../styleResolver.helpers';

@@ -6,7 +6,7 @@ import GuiStringEditor from './GuiStringEditor';
 import PromptEditor from './PromptEditor';
 import useLanguages from './useLanguages';
 import type { LanguagesState } from './useLanguages';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 type Section = 'gui' | 'prompts' | 'emails';
 

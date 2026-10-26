@@ -1,9 +1,9 @@
 import { AlertTriangle, Braces, FunctionSquare, SlidersHorizontal, type LucideIcon } from 'lucide-react';
 import React, { type RefObject } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import ConditionField from './ConditionField';
 import useExpressionEditing, { conditionCanHold, useConditionToggle } from './useExpressionEditing';
-import VariablePicker from '../../../../../automation/Builder/mapping/VariablePicker';
+import VariablePicker from '@/components/automation/Builder/mapping/VariablePicker';
 import { FORMULA_SCOPE_ROOTS } from '../styleKnobMeta';
 import type { AppDefinition, AppNode } from '../appDefinition';
 

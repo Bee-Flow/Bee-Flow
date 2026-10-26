@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import { extractFormState, buildPatch } from './settings/formState';
-import scopedStorage from '../../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 import { partial, stub } from '@/test/mocks';
 import type { ComponentProps } from 'react';
 

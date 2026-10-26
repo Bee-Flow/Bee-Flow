@@ -2,14 +2,14 @@ import { Stethoscope } from 'lucide-react';
 import React from 'react';
 import IntegrationLogo from './IntegrationLogo';
 import StepNodeBase, { NodeChip } from './StepNodeBase';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { appRefDisplay, triggerAppRef, useAppRefLabel } from '../appRefLabel';
 import { humanizeFieldKey } from '../displayHelpers';
 import { nodeTypeLabel } from '../nodeDefs';
 import { describeCron } from '../scheduleBuilderUtils';
 import { TRIGGER_ICONS, triggerIconKey } from '../triggerIcons';
 import { APP_EVENT_TYPE_LABEL, triggerTypeLabel } from '../triggerLabels';
-import type { AppRef } from '../../../../admin/Studio/AppStudio/inspector/appDefinition';
+import type { AppRef } from '@/components/admin/Studio/AppStudio/inspector/appDefinition';
 import type { AppEventConfig, AppEventFilter, StepNodeProps, SummaryText, TFn } from './nodeProps';
 
 /**

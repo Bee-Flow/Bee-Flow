@@ -2,12 +2,12 @@ import { AlertCircle, BarChart3, Check, ClipboardList, Link2, Loader2, Plus, Ref
 import React, { useCallback, useEffect, useState } from 'react';
 import FormPage from './FormPage';
 import NewFormDialog from './NewFormDialog';
-import useAutomationApi from '../../../../hooks/useAutomationApi';
-import useRelativeTime from '../../../../hooks/useRelativeTime';
-import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
-import EmptyState from '../../../shared/EmptyState';
-import { kindColorVar, kindTint } from '../../../shared/kindColors';
-import { toast } from '../../../shared/Toast';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import EmptyState from '@/components/shared/EmptyState';
+import { kindColorVar, kindTint } from '@/components/shared/kindColors';
+import { toast } from '@/components/shared/Toast';
 import { nOf } from '../KnowledgeStudio/plural';
 import type { FormAnswers, FormDetail } from './form/useFormDetail';
 import type { FormListRow, FormAudienceLike, StudioError, StatusPillProps, CopyLinkButtonProps, FormRowProps, FormsBodyProps, FormsHeaderProps, FormsStudioProps } from './FormsStudio.types';

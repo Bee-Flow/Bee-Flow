@@ -10,7 +10,7 @@
  */
 import { Search, CornerDownLeft } from 'lucide-react';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import Modal from '../../../../components/shared/Modal';
+import Modal from '@/components/shared/Modal';
 import type { PaletteCommand } from './buildCommands';
 
 interface CommandPaletteProps {

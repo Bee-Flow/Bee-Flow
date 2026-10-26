@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { API_BASE } from '../../../utils/helpers';
-import { settled } from '../../../api/settled';
-import type { AuthFetchOptions } from '../../../utils/helpers.types';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { errorMessage } from '../../../utils/caughtError';
+import { API_BASE } from '@/utils/helpers';
+import { settled } from '@/api/settled';
+import type { AuthFetchOptions } from '@/utils/helpers.types';
+import { useTranslation } from '@/hooks/useTranslation';
+import { errorMessage } from '@/utils/caughtError';
 
 /** A pending Microsoft identity link request. */
 interface LinkRequest {

@@ -1,7 +1,7 @@
 import React from 'react';
 import Dropdown from './Dropdown';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import AppIcon from '../../../icons/AppIcon';
+import { useTranslation } from '@/hooks/useTranslation';
+import AppIcon from '@/components/icons/AppIcon';
 import type { CmsLocale } from '../panel/cmsPanelTypes';
 
 export interface LocaleCoverage {

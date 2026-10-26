@@ -3,13 +3,13 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ColumnKindIcon } from './ColumnKind';
 import { columnLabel, columnTypeKind, expiringSoonCutoffIso } from './datatableDisplay';
 import { datatablesApi } from './datatablesApi';
-import useTranslation from '../../../../hooks/useTranslation';
-import { errorCode, errorMessage } from '../../../../utils/caughtError';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
+import { errorCode, errorMessage } from '@/utils/caughtError';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { CSSProperties } from 'react';
 import type { DtColumn } from './rowBrowser/rowBrowserModel';
-import SegmentedControl from '../../../shared/SegmentedControl';
-import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
+import SegmentedControl from '@/components/shared/SegmentedControl';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 
 /**
  * How long the rows are kept, and what that means (Datatables artboard 1f,

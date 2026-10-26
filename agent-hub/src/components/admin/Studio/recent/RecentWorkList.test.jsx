@@ -20,15 +20,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const { runMock } = vi.hoisted(() => ({ runMock: vi.fn() }));
 
-vi.mock('../../../../api/recentWork', async (importOriginal) => ({
+vi.mock('@/api/recentWork', async (importOriginal) => ({
     ...(await importOriginal()),
     runRecentWork: (...args) => runMock(...args),
 }));
 
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
+import { RECENT_STATUS } from '@/utils/studioRecentSources';
 import RecentWorkList from './RecentWorkList';
-import { RECENT_STATUS } from '../../../../utils/studioRecentSources';
 
 /* ── Fixtures ─────────────────────────────────────────────────────────────── */
 

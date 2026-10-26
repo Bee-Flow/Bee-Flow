@@ -1,5 +1,5 @@
 import { Download, MoreHorizontal } from 'lucide-react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import useDismiss from './useDismiss';
 
 interface Props {

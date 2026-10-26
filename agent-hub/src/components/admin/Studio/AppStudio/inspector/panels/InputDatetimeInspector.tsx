@@ -1,8 +1,8 @@
 import React from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import FormField from '../../../../../shared/FormField';
-import SegmentedControl from '../../../../../shared/SegmentedControl';
-import Toggle from '../../../../../shared/Toggle';
+import useTranslation from '@/hooks/useTranslation';
+import FormField from '@/components/shared/FormField';
+import SegmentedControl from '@/components/shared/SegmentedControl';
+import Toggle from '@/components/shared/Toggle';
 import { registerInspector } from '../registry';
 import type { PanelProps } from '../appDefinition';
 import { TextField , usePatch } from './kit';

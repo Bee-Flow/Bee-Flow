@@ -3,11 +3,11 @@ import {
     PROGRESS, applyRunEvent, endProgress, refusalFor, startProgress,
     type AgentTest, type Refusal, type RunProgress, type TestRun,
 } from './testSetFacts';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
-import { readEventStream } from '../../../../utils/sseStream';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import { readEventStream } from '@/utils/sseStream';
 import { READ, type ReadState } from '../canUse/canUseFacts';
-import { logger } from '../../../../utils/logger';
-import { request, RefusedError } from '../../../../api/mutate';
+import { logger } from '@/utils/logger';
+import { request, RefusedError } from '@/api/mutate';
 
 /**
  * The reads and the actions behind the test-set card (A4 part D).

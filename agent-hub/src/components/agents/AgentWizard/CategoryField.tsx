@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import ConfirmDialog from '../../shared/ConfirmDialog';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
 import type { CategoryResult, CategoryRow } from './agentEditor.types';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 export interface CategoryFieldProps {
     t: TranslateFn;

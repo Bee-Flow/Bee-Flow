@@ -1,10 +1,10 @@
 import { Lock } from 'lucide-react';
 import React, { useId, useState } from 'react';
 
-import Button from '../../../../../../shared/Button';
-import Disclosure from '../../../../../../shared/Disclosure';
-import Toggle from '../../../../../../shared/Toggle';
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import Button from '@/components/shared/Button';
+import Disclosure from '@/components/shared/Disclosure';
+import Toggle from '@/components/shared/Toggle';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { LIMITS } from '../ownDataModel';
 import { checkPattern, inferPattern } from '../patternCheck';
 import { LinkButton, Note } from '../ui';

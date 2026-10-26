@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { repeatingApi } from '../../../../../api/queries/automation/repeating';
-import type { ScanEventHandler, ScanResult, ScanSources } from '../../../../../api/queries/automation/repeating';
+import { repeatingApi } from '@/api/queries/automation/repeating';
+import type { ScanEventHandler, ScanResult, ScanSources } from '@/api/queries/automation/repeating';
 import { queryWrapper } from '@/test/queryWrapper';
 import useRepeatingScan, { IDLE_RUN, finalResult, reduceRun, scanError, viewerTimeZone } from './useRepeatingScan';
 import type { RunState } from './useRepeatingScan';

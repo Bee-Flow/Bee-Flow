@@ -8,7 +8,7 @@
 // eleven months) waits behind one "Show {n} later" toggle, so the card never
 // lists a clock a year out next to a 72-hour one.
 
-import { DAY_MS, toMs } from '../../../../shared/deadlineMath';
+import { DAY_MS, toMs } from '@/components/shared/deadlineMath';
 import { complianceActionPath, resolveTarget } from '../../data/actions';
 
 /** A row from GET /deadlines (or the client fallback, data/aggregates.deadlinesFromRegisters). */

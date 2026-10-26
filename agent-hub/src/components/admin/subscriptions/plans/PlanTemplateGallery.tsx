@@ -2,7 +2,7 @@ import { Building2, Users, Check, TrendingUp, Star, Info } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { PLAN_TEMPLATES } from './planTemplates';
 import type { PlanTemplate } from './planTemplates.types';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Badge } from '../ui/Badge';
 import { Banner } from '../ui/Banner';
 import { Modal } from '../ui/Modal';

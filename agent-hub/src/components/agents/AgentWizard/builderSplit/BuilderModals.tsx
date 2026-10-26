@@ -5,11 +5,11 @@ import { ScheduleModal } from '../pickers/SchedulePickers';
 import type { ReactNode } from 'react';
 import EnableEmbedConfirmModal from './EnableEmbedConfirmModal';
 import ScheduleDeleteModal from './ScheduleDeleteModal';
-import type { Ref } from '../../../../api/agentSaveTypes';
+import type { Ref } from '@/api/agentSaveTypes';
 import type useAgentSave from './useAgentSave';
 import type useBuilderState from './useBuilderState';
 import type useEditorActions from './useEditorActions';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 interface Props {
     t: TranslateFn;

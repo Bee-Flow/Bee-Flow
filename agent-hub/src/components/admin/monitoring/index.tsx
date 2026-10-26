@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
 import { Activity, RefreshCw, ChevronRight, Calendar } from 'lucide-react';
 import { rowCost, type AgentUsage, type ChartPoint, type ModelUsage, type ToolUsage, type UsageRecord, type UsageSummary, type UserUsage } from './shared';
 import { COLORS } from './shared/SvgAreaChart';
@@ -13,7 +13,7 @@ import { monitoringUrl } from './monitoringUrl';
 import type { DrawerDetail, ModelRate } from './drawer/drawerTypes';
 import type { FeedbackItem } from './feedback/feedbackModel';
 import type { MonitoringPanelProps } from './index.types';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 import { API, AI_API, FEEDBACK_API, RANGES, PAGES, styles } from './monitoring.constants';
 import { rangeToFilter, prevPeriodFilter, autoInterval, toLocalInput, fetchJson } from './monitoring.helpers';
 

@@ -17,7 +17,7 @@
  * "rejoin" that changed nothing left the page in a silent fork.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { NoticeWithAction } from './NotebookNotice';
 import type { NotebookCollabState } from './useNotebookCollab';
 

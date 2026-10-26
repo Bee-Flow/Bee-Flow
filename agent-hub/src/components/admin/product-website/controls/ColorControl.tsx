@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { FieldRow } from '../fields';
 import { parseRgbaOverlay, composeRgba } from './colorUtils';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * ColorControl — the ONE color affordance for the CMS admin. Swatch button

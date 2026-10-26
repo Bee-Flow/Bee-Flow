@@ -2,7 +2,7 @@
 // empty state. Split out of AgentDesigner/index.jsx without a change in
 // behaviour.
 import { INTEGRATION_CATALOG } from './integrations';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import KnowledgePanelJs from '../../knowledge/KnowledgePanel';
 
 const KnowledgePanel = KnowledgePanelJs;

@@ -1,4 +1,4 @@
-import { useAgentConceptFactsQuery } from '../../../../api/queries/agentWizardFacts';
+import { useAgentConceptFactsQuery } from '@/api/queries/agentWizardFacts';
 import { READ } from '../canUse/canUseFacts';
 
 /** The persona column of an agent; the editor reads its language. */

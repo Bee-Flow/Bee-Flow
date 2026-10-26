@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from 'react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../utils/helpers';
-import Modal from '../../../shared/Modal';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import Modal from '@/components/shared/Modal';
 import { ALL_INTEGRATIONS } from './constants';
 import type { AdminGroup, OrgFormData } from './types';
 

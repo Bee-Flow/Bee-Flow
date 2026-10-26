@@ -4,8 +4,8 @@
 
 import { ChevronRight, Sparkles } from 'lucide-react';
 import React, { useId, useState } from 'react';
-import { TASK_PRIORITIES, type ChecklistItem, type MeetingTaskSuggestion, type TaskPriority } from '../../../../api/queries/projectTasks';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { TASK_PRIORITIES, type ChecklistItem, type MeetingTaskSuggestion, type TaskPriority } from '@/api/queries/projectTasks';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Avatar, SelectField } from '../workspaceUi';
 import { CHIP_CLASS, LabelChip, PriorityIcon } from './TaskFields';
 import { priorityLabel } from './taskText';

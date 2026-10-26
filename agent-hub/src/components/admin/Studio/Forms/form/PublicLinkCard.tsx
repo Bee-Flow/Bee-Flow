@@ -1,9 +1,9 @@
 import { Check, ExternalLink, Link2, Loader2, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import useAutomationApi from '../../../../../hooks/useAutomationApi';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import DashCard from '../../../../shared/dashboard/DashCard';
-import useConfirm from '../../../../shared/useConfirm';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import { useTranslation } from '@/hooks/useTranslation';
+import DashCard from '@/components/shared/dashboard/DashCard';
+import useConfirm from '@/components/shared/useConfirm';
 import { publicFormPath } from '../FormsStudio';
 import type { FormDetail } from './useFormDetail';
 

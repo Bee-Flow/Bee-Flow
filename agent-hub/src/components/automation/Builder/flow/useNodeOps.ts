@@ -4,7 +4,7 @@ import { prefixAddedStep, parseInlineId } from './inlineFlowlets';
 import { seedPositions } from './layout';
 import { applyDeleteNodes, applyDuplicateNode, applyDetachNode, applyPatchStep } from './nodeOps';
 import type { FlowDefinition } from './types';
-import type { RealOutputMap } from '../../../../hooks/useUpstreamVariables';
+import type { RealOutputMap } from '@/hooks/useUpstreamVariables';
 import type { DefinitionEmitter, DiagramDefinition, DiagramStep, RunByStep, StepId } from './diagramPaneTypes';
 
 /** The inputs the node operations read at call time (also read by useNodeDragWiring). */

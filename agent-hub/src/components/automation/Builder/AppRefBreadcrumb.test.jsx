@@ -2,7 +2,7 @@ import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../utils/helpers', async (importOriginal) => ({
+vi.mock('@/utils/helpers', async (importOriginal) => ({
     ...(await importOriginal()),
     authFetch: (...args) => authFetch(...args),
 }));
@@ -147,7 +147,7 @@ describe('nothing to draw', () => {
 describe('uitloggen wist wat deze kijker mocht zien', () => {
     it('clearSessionCaches() laat de volgende lezer opnieuw vragen', async () => {
         const { loadAppRef } = await import('./flow/appRefLabel');
-        const { clearSessionCaches } = await import('../../../hooks/sessionCaches');
+        const { clearSessionCaches } = await import('@/hooks/sessionCaches');
 
         authFetch.mockResolvedValue(ok({ status: 'ok', ...REF, appName: 'Expenses', canOpen: true }));
         expect((await loadAppRef(REF)).appName).toBe('Expenses');

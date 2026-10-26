@@ -23,7 +23,7 @@ let failIngest = false;
 // Documents per knowledge base, in the shape GET /api/kb/:id/documents sends.
 let docsByKb = {};
 
-vi.mock('../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(async (url, opts = {}) => {
         fetchCalls.push({ url, method: opts.method || 'GET', body: opts.body });

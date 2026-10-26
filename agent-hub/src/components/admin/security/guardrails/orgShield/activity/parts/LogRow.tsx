@@ -10,7 +10,7 @@
 import { ChevronDown } from 'lucide-react';
 import React from 'react';
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { ENTRY_WORDS, OUTCOME_SHORT_WORDS, REGION_WORDS, actionLabel, wordFor } from '../activityLabels';
 import { shortLocation } from '../egressMap/locationCopy';
 import type { MapDestination } from '../egressMap/mapModel';

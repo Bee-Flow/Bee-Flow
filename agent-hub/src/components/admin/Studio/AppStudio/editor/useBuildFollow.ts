@@ -7,7 +7,7 @@ import type { ToolDraft } from './ghostCellDraft';
 import type { RevealCue } from '../chat/useBuilderTurn';
 import type { AppDefinition } from '../inspector/appDefinition';
 import type { AppEditorAction } from '../state/appEditorState';
-import { MIN_MOVE_GAP_MS } from '../../../../shared/builder/revealSchedule';
+import { MIN_MOVE_GAP_MS } from '@/components/shared/builder/revealSchedule';
 import { findScreen } from '../state/definitionOps';
 
 interface FollowInputs {

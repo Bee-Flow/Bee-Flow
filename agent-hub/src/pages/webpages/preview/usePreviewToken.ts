@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
-import { API_BASE } from '../../../utils/helpers';
-import { errorMessage, isAbortError, messageOf } from '../../../utils/caughtError';
-import { logger } from '../../../utils/logger';
-import { mutate, ApiError } from '../../../api/mutate';
+import { API_BASE } from '@/utils/helpers';
+import { errorMessage, isAbortError, messageOf } from '@/utils/caughtError';
+import { logger } from '@/utils/logger';
+import { mutate, ApiError } from '@/api/mutate';
 
 /** The selection the preview's bridge script posts back. */
 export interface PreviewSelection {

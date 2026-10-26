@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import { useRecordChatMonitoringDpia } from '../../../data/useChatMonitoring';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useRecordChatMonitoringDpia } from '@/components/admin/compliance/data/useChatMonitoring';
 import { ActionButton, DateInput, Field, Select, TextArea } from './formAtoms';
 import { DPIA_RISK_LEVELS, type RiskLevel } from './chatMonitoringForm';
 import { riskLabel } from './chatMonitoringLabels';

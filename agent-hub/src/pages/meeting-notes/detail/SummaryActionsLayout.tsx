@@ -1,6 +1,6 @@
 import React from 'react';
-import UsedByTab from '../../../components/shared/UsedByTab';
-import useTranslation from '../../../hooks/useTranslation';
+import UsedByTab from '@/components/shared/UsedByTab';
+import useTranslation from '@/hooks/useTranslation';
 import SummaryView from './SummaryView';
 import ActionItemsList from './ActionItemsList';
 import DecisionsQuestionsPanel from './DecisionsQuestionsPanel';
@@ -11,10 +11,10 @@ import { TABS } from './MeetingHeader';
 import useMediaQuery from '../hooks/useMediaQuery';
 import type { MeetingNote, MeetingActionItem } from './meetingDetailTypes';
 import type { DestinationRecord } from '../lib/actionDestinations';
-import type { RegenerateArg } from '../../../api/transcriptionsApi.types';
+import type { RegenerateArg } from '@/api/transcriptionsApi.types';
 import type { CustomTemplate, SummaryTemplates } from './summaryTemplates.types';
 import type { PlayerSegment } from './player/player.types';
-import type { UsageRow } from '../../../hooks/useUsage';
+import type { UsageRow } from '@/hooks/useUsage';
 
 /**
  * The body under the meeting head, driven by the head's tab strip (Meeting

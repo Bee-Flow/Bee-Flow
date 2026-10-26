@@ -1,6 +1,6 @@
 import type { RouteResult } from './routeApi';
 import type { destinationForKind, NavRow } from './handoff';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type React from 'react';
 
 /**

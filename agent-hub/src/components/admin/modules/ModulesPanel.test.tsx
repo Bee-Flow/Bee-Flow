@@ -3,16 +3,16 @@ import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import ModulesPanel from './index';
-import { authFetch } from '../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 import { asMock } from '@/test/mocks';
 
 const reloadSpy = vi.hoisted(() => vi.fn());
 
 // apiClient (api/client.ts) rides on authFetch — mocking helpers controls the
 // whole network layer. Entitlements reload + t() are stubbed for determinism.
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 vi.mock('../../licensing/EntitlementsContext', () => ({ useEntitlements: () => ({ reload: reloadSpy }) }));
-vi.mock('../../../hooks/useTranslation', () => ({
+vi.mock('@/hooks/useTranslation', () => ({
     useTranslation: () => ({ t: (key: string) => key }),
 }));
 

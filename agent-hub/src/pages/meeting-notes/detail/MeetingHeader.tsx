@@ -3,13 +3,13 @@ import {
     BarChart3, Copy, Download, FileText, Link2, MoreHorizontal, RefreshCw, ScrollText, Sparkles, Trash2, UsersRound,
     type LucideIcon,
 } from 'lucide-react';
-import AnchoredMenu from '../../../components/shared/AnchoredMenu';
-import StudioSectionHeader, { OBJHEAD_FOLD } from '../../../components/shared/StudioSectionHeader';
-import useTranslation from '../../../hooks/useTranslation';
+import AnchoredMenu from '@/components/shared/AnchoredMenu';
+import StudioSectionHeader, { OBJHEAD_FOLD } from '@/components/shared/StudioSectionHeader';
+import useTranslation from '@/hooks/useTranslation';
 import { formatDuration, formatRelativeDate } from '../lib/format';
 import { getSourceMeta } from '../lib/sourceMeta';
 import type { MeetingNote } from './meetingDetailTypes';
-import type { TranslateParams } from '../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 
 /**
  * The meeting's 48px head — the shared StudioSectionHeader (Track 0.2) with

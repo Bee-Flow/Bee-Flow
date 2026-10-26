@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import { controlSurfaceClass, CONTROL_BORDER_STRONG, FOCUS_RING } from '../../../../../automation/Builder/flow/settings/formStyles';
-import AppIcon from '../../../../../icons/AppIcon';
-import FormField from '../../../../../shared/FormField';
-import IconPicker from '../../../../product-website/controls/IconPicker';
+import useTranslation from '@/hooks/useTranslation';
+import { controlSurfaceClass, CONTROL_BORDER_STRONG, FOCUS_RING } from '@/components/automation/Builder/flow/settings/formStyles';
+import AppIcon from '@/components/icons/AppIcon';
+import FormField from '@/components/shared/FormField';
+import IconPicker from '@/components/admin/product-website/controls/IconPicker';
 import useAppTables, { fieldsForTable } from '../../bi/useAppTables';
 import { useEditorChrome } from '../../editor/EditorChromeContext';
 import { updateNodeProps } from '../../state/definitionOps';

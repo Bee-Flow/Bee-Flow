@@ -20,14 +20,14 @@ import type {
 import ColorControl from './controls/ColorControl';
 import { FieldRow, inputCls } from './fields';
 import { GOOGLE_FONTS, fontStack } from './googleFonts';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import AppIcon from '../../icons/AppIcon';
 // Self-hosted Fontshare @font-face — needed so FontRow's dropdown previews
 // render in the chosen face. Same CSS file DesignEditor and the preview
 // iframe import; loading it here keeps font previews working for every
 // consumer of FontRow regardless of which module loads first.
-import '../../../marketing/self-hosted-fonts.css';
-import { logger } from '../../../utils/logger';
+import '@/marketing/self-hosted-fonts.css';
+import { logger } from '@/utils/logger';
 
 /**
  * primitives.jsx — shared micro-widgets for the CMS admin panels.

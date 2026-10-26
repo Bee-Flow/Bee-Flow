@@ -4,9 +4,9 @@ import { buildAgentTabs, publishedVersionOf } from './AgentEditorHeader';
 import type { EditorAgent } from './editorTypes';
 import type { IntegrationStatus } from '../../AgentDesigner/DesignerPanels';
 import useAgentConceptFacts from './useAgentConceptFacts';
-import { agentUsageFetcher } from '../../../../api/agentEditor';
-import useUsage from '../../../../hooks/useUsage';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import { agentUsageFetcher } from '@/api/agentEditor';
+import useUsage from '@/hooks/useUsage';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 interface Inputs {
     t: TranslateFn;

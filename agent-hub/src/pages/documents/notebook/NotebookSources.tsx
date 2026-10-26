@@ -6,15 +6,15 @@
  */
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { CheckSquare, Globe, Mic, Trash2, Type, Upload, type LucideIcon } from 'lucide-react';
-import ConfirmDialog from '../../../components/shared/ConfirmDialog';
-import EmptyState from '../../../components/shared/EmptyState';
-import useTranslation, { TranslateParams } from '../../../hooks/useTranslation';
+import ConfirmDialog from '@/components/shared/ConfirmDialog';
+import EmptyState from '@/components/shared/EmptyState';
+import useTranslation, { TranslateParams } from '@/hooks/useTranslation';
 import SourceActivity from './SourceActivity';
 import SourceCard from './sources/SourceCard';
 import SourcePreviewModal, { type SourcePreview } from './sources/SourcePreviewModal';
 import { AddUrlPanel, MeetingSourcePanel, PasteTextPanel, type MeetingMode } from './sources/AddSourcePanels';
 import { SOURCE_META, type SourceRow } from './sources/sourceMeta';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 ;
 

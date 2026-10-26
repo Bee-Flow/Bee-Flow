@@ -4,8 +4,8 @@
 // seen what arrived below, so the chat stays unread until they get there.
 
 import { useEffect, useRef, useState } from 'react';
-import { useMarkTeamChatRead } from '../../../../api/queries/projectChats';
-import { newestSeq, useTeamChatMessages } from '../../../../api/queries/useTeamChatMessages';
+import { useMarkTeamChatRead } from '@/api/queries/projectChats';
+import { newestSeq, useTeamChatMessages } from '@/api/queries/useTeamChatMessages';
 
 export default function useMarkRead(projectId: string, chatId: string, atBottom = true) {
     const { data } = useTeamChatMessages(projectId, chatId);

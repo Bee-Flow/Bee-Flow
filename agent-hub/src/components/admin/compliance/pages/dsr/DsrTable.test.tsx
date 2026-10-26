@@ -3,7 +3,7 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { countByFilter, matchesQuery, sortByDeadline } from './dsrArticles';
 import DsrTable, { formatReceived, shownEmailOf } from './DsrTable';
-import { DAY_MS } from '../../../../shared/deadlineMath';
+import { DAY_MS } from '@/components/shared/deadlineMath';
 import { partial } from '@/test/mocks';
 
 /**
@@ -11,7 +11,7 @@ import { partial } from '@/test/mocks';
  * full e-mail address, closed rows read "completed in n days".
  */
 
-vi.mock('../../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const NOW = new Date('2026-09-14T09:12:00Z').getTime();
 const iso = (ms: number) => new Date(ms).toISOString();

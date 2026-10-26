@@ -1,7 +1,7 @@
 import { type ChangeEvent, useCallback, useEffect, useState } from 'react';
 import type { StudioApp } from './types';
-import useTranslation from '../../../../../hooks/useTranslation';
-import toast from '../../../../shared/Toast';
+import useTranslation from '@/hooks/useTranslation';
+import toast from '@/components/shared/Toast';
 import { studioAppsApi } from '../studioAppsApi';
 
 /**

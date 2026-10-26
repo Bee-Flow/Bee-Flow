@@ -1,8 +1,8 @@
 import { type DryRunIssue, type ResolveTargetFn } from './dryRunIssues';
 import type { IssueTarget, PublishModalProps, TranslateFn } from './PublishModal.types';
 import { GROUPS, ORG, PRIVATE } from './publishAccessSummary';
-import { resolveTarget } from '../../../../shared/resolveTarget';
-import toast from '../../../../shared/Toast';
+import { resolveTarget } from '@/components/shared/resolveTarget';
+import toast from '@/components/shared/Toast';
 
 /** Which audience the app is CURRENTLY published to. */
 export function audienceOf(app: PublishModalProps['app'] | null | undefined): string {

@@ -1,5 +1,5 @@
 import React from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 /**
  * "Row 1 · steps 1–5" — the gutter label above a wrapped row (design 1a).

@@ -11,8 +11,8 @@
 
 import { ChevronRight } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { HEADLINE_FALLBACK, TONES, headlineKeyOfScore, toneOfScore } from '../../../../shared/statusTone';
+import { useTranslation } from '@/hooks/useTranslation';
+import { HEADLINE_FALLBACK, TONES, headlineKeyOfScore, toneOfScore } from '@/components/shared/statusTone';
 import { visibleSections } from '../../ComplianceRail';
 import { openChecksFor, type CheckLike } from '../../data/openChecks';
 import { railScore } from '../../railMeta';

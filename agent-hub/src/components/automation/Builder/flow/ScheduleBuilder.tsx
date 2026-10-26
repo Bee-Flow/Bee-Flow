@@ -1,6 +1,6 @@
 import React, { useEffect, useEffectEvent, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Calendar, Clock, AlertCircle } from 'lucide-react';
-import useAutomationApi from '../../../../hooks/useAutomationApi';
+import useAutomationApi from '@/hooks/useAutomationApi';
 import { fieldLabelClass, inputClass } from './settings/formStyles';
 import {
     WEEKDAYS,
@@ -10,8 +10,8 @@ import {
     describeCron,
     type SchedulePreset,
 } from './scheduleBuilderUtils';
-import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
-import { messageOf } from '../../../../utils/caughtError';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import { messageOf } from '@/utils/caughtError';
 
 interface ScheduleBuilderProps {
     cron?: string | null;

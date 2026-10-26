@@ -1,7 +1,7 @@
 import { Sparkles } from 'lucide-react';
 import React from 'react';
 import { createPortal } from 'react-dom';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { ComponentEntry } from './dnd';
 import type { GhostCellDraft } from './ghostCellDraft';
 import { APP_COMPONENT_TYPES } from '../runtime/componentRegistry';

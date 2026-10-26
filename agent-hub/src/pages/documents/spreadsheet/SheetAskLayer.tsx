@@ -5,7 +5,7 @@
 
 import { Sparkles } from 'lucide-react';
 import React, { useRef } from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import SheetAskBox from './SheetAskBox';
 import type { SelectionKind } from './sheetModel';
 import type { GridState } from './useGridState';

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Mic } from 'lucide-react';
-import EmptyState from '../../../components/shared/EmptyState';
-import useTranslation from '../../../hooks/useTranslation';
+import EmptyState from '@/components/shared/EmptyState';
+import useTranslation from '@/hooks/useTranslation';
 
 interface LibraryEmptyStateProps {
     onCapture: () => void;

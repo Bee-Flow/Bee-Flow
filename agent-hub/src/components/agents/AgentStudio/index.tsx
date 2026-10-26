@@ -6,7 +6,7 @@ import UnsavedChangesModal from './UnsavedChangesModal';
 import useAgentDelete from './useAgentDelete';
 import useAgentList from './useAgentList';
 import WizardLanding from './WizardLanding';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { AgentEditorBootstrapProvider } from '../AgentWizard/AgentEditorBootstrapContext';
 import BuilderSplit from '../AgentWizard/BuilderSplit';
 import type { AgentListRow } from './agentCardFacts';

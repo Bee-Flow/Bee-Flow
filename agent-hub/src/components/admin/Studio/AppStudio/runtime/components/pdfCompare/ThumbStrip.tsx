@@ -1,4 +1,4 @@
-import useTranslation from '../../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import PageCanvas from './PageCanvas';
 import type { ChangeRegion } from './pdfCompareMath';
 import type { PdfDocHandle } from './pdfTypes';

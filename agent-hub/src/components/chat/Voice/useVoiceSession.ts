@@ -22,7 +22,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { messageOf } from '../../../utils/caughtError';
+import { messageOf } from '@/utils/caughtError';
 import { VAD_POLL_MS, VOICE_STATES, openVadPipeline, pickMimeType, playTtsAudio, releaseVoiceResources } from './voiceSessionAudio';
 import { runVadTick } from './voiceSessionVad';
 import { fetchVoiceSession, streamVoiceTurn } from './voiceSessionTurn';

@@ -11,7 +11,7 @@
  * "half protected" finding, can be tested without a render.
  */
 
-import type { PiiGroup } from '../../../../../../config/piiCategories';
+import type { PiiGroup } from '@/config/piiCategories';
 
 export type MatrixColumn = 'detect' | 'external' | 'internal';
 

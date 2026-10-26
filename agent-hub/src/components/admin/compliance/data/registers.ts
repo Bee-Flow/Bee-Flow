@@ -10,9 +10,9 @@
  * hook object itself.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
-import { toast } from '../../../shared/Toast';
-import { API, fetchJson, json, jsonInit, asArray } from '../../../../api/complianceApi';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import { toast } from '@/components/shared/Toast';
+import { API, fetchJson, json, jsonInit, asArray } from '@/api/complianceApi';
 import useResource from './useResource';
 import type { SoaControl } from '../pages/soa/SoaTable';
 import type { AccessAuditRow } from '../pages/accessAuditLabels';

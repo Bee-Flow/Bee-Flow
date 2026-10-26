@@ -7,8 +7,8 @@
 // fallback. The server's sentence is always English, so a code a screen can
 // reach belongs in this list, not in the fallback.
 
-import { projectErrorInfo } from '../../../api/queries/projectErrors';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import { projectErrorInfo } from '@/api/queries/projectErrors';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 // Only a chat's own owner can make it private again (it is re-encrypted
 // under their key), so the sentence says who has to act, not "you".

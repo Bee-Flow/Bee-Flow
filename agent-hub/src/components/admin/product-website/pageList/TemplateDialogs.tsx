@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { AppIcon } from '../fieldKit/jsDeps';
 import { ModalShell, formatTemplateDate, slugIssues } from './pageListShared';
 import type { NewPageInput, PageTemplate } from './pageListShared';

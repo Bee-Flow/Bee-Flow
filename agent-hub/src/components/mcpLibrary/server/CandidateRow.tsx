@@ -1,7 +1,7 @@
 import { BadgeCheck, Check, ExternalLink, Globe, KeyRound, Loader2, Plus, Server } from 'lucide-react';
 import { useId, useState } from 'react';
-import type { ServerMcpCandidate } from '../../../api/queries/serverMcp';
-import { useTranslation } from '../../../hooks/useTranslation';
+import type { ServerMcpCandidate } from '@/api/queries/serverMcp';
+import { useTranslation } from '@/hooks/useTranslation';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
 import ServerLogo from '../ServerLogo';
 import { CHIP, CHIP_SUCCESS, INPUT, PRIMARY_BTN, QUIET_BTN, SECONDARY_BTN } from '../ui';

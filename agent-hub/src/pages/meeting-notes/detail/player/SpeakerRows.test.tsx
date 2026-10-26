@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import SpeakerRows from './SpeakerRows';
-import { NEUTRAL_SPEAKER_COLOR } from '../../../../config/meetingNotesConfig';
+import { NEUTRAL_SPEAKER_COLOR } from '@/config/meetingNotesConfig';
 import { buildSpeakerRows, buildSpeakerColorMap } from '../../lib/playerData';
 
 const DURATION = 6000;

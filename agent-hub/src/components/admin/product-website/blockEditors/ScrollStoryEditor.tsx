@@ -6,7 +6,7 @@ import { set, SectionHeaderFields } from './shared';
 import type { SectionHeaderData } from './shared';
 import { StepMediaFields } from './StepMediaFields';
 import type { StepMedia } from './StepMediaFields';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 type StoryStep = { title?: string; body?: string; media?: StepMedia };
 type ScrollStoryData = SectionHeaderData & { steps?: StoryStep[] };

@@ -1,17 +1,17 @@
 import { Check, CircleAlert, FlaskConical, Play, TriangleAlert, type LucideIcon } from 'lucide-react';
 import { SetStateAction, Dispatch, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { refKindKey } from './skillModel';
-import { skillsApi, type SkillTestPayload, type SkillTestRun, type SkillTestStepResult } from '../../../../api/skillsApi';
-import type { JsonResourceError } from '../../../../api/client';
-import useRelativeTime from '../../../../hooks/useRelativeTime';
-import useTranslation from '../../../../hooks/useTranslation';
-import { kindColorVar, kindTint } from '../../../shared/kindColors';
-import { usageHref } from '../../../shared/UsedByTab';
-import type { TranslateFn, TranslateParams } from '../../../../hooks/useTranslation';
+import { skillsApi, type SkillTestPayload, type SkillTestRun, type SkillTestStepResult } from '@/api/skillsApi';
+import type { JsonResourceError } from '@/api/client';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import useTranslation from '@/hooks/useTranslation';
+import { kindColorVar, kindTint } from '@/components/shared/kindColors';
+import { usageHref } from '@/components/shared/UsedByTab';
+import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
 import type { Step } from './skillModel.types';
-import type { RelativeTimeInput } from '../../../../hooks/useRelativeTime';
+import type { RelativeTimeInput } from '@/hooks/useRelativeTime';
 import type { TestTabProps, StepRowProps, RunRowProps } from './TestTab.types';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /**
  * "Test" — one question through the steps (Skills artboard 1c, left).

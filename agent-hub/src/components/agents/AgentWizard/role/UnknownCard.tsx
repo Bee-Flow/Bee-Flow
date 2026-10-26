@@ -2,9 +2,9 @@ import { Ban, Globe, Hand, HandHelping, Loader2, Workflow } from 'lucide-react';
 import React from 'react';
 import { READ, handoffBlockedBecause, handoffChoices, selectedHandoff, type HandoffRow, type HandoffSelection, type Persona } from './personaFacts';
 import RoleCard, { RoleEmpty, RoleNote } from './RoleCard';
-import { nOf } from '../../../admin/Studio/KnowledgeStudio/plural';
-import ChoiceCards from '../../../shared/ChoiceCards';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import { nOf } from '@/components/admin/Studio/KnowledgeStudio/plural';
+import ChoiceCards from '@/components/shared/ChoiceCards';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * "If it does not know": what happens outside the knowledge (Agents artboard 1c).

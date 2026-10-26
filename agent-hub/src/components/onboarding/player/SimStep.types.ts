@@ -1,5 +1,5 @@
-import type { TranslateFn } from '../../../hooks/useTranslation';
-import type { LessonStep, SimConfig, StepState } from '../../../api/lessons.types';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import type { LessonStep, SimConfig, StepState } from '@/api/lessons.types';
 
 export type { LessonStep, SimConfig, TranslateFn };
 

@@ -1,4 +1,4 @@
-import type { CustomIcon, IconMap } from '../../../../hooks/useIconPack';
+import type { CustomIcon, IconMap } from '@/hooks/useIconPack';
 
 /** One catalogue entry: the key, its label and the emoji shown until a pack overrides it. */
 export interface IconEntry {

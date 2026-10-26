@@ -3,7 +3,7 @@ import { InlineHint, CollapsibleCard, FieldSelect, MonoTextarea, BackgroundCard 
 import { ClipFields, type ClipValue } from './ClipFields';
 import { set, SectionHeaderFields, type BlockData, type SectionHeaderData } from './shared';
 import VariantPicker from './VariantPicker';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // One FramedMedia slot editor — shared media shape
 // { src, srcDark, alt, frame, kind }. Used for `media` and (in the pair

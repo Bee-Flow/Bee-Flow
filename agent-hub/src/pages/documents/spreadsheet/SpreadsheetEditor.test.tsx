@@ -2,7 +2,7 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { withQueryClient } from '../../../test/queryWrapper';
+import { withQueryClient } from '@/test/queryWrapper';
 import type { StudioDocument } from '../documentQueries';
 import SpreadsheetEditor from './SpreadsheetEditor';
 import { SAVE_DEBOUNCE_MS } from './useSheet';
@@ -18,7 +18,7 @@ const { sheetApi, docApi } = vi.hoisted(() => ({
     sheetApi: { getSheet: vi.fn(), patchSheet: vi.fn(), downloadSheetCsv: vi.fn(), downloadSheetXlsx: vi.fn() },
     docApi: { getDocument: vi.fn(), updateDocument: vi.fn() },
 }));
-vi.mock('../../../api/sheetApi', async (original) => ({ ...(await original<typeof import('../../../api/sheetApi')>()), ...sheetApi }));
+vi.mock('@/api/sheetApi', async (original) => ({ ...(await original<typeof import('@/api/sheetApi')>()), ...sheetApi }));
 vi.mock('../documentsApi', () => docApi);
 
 const DOC = { id: 'doc-1', userId: 'u1', name: 'Budget', docType: 'spreadsheet', bodyHtml: '', versionId: 'v1' } as StudioDocument;

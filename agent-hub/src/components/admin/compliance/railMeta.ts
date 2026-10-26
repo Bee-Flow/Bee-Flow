@@ -22,7 +22,7 @@
 import { countFor } from './data/useComplianceCounts';
 import { toneOfScore } from '../../shared/statusTone';
 import { DAY_MS, HOUR_MS } from '../../shared/deadlineMath';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 interface RailSection {
     id: string;

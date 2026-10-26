@@ -1,4 +1,4 @@
-import { kindOf } from '../../../shared/kindColors';
+import { kindOf } from '@/components/shared/kindColors';
 
 /**
  * Tailwind cannot see a class built at runtime, so the kind colours the content

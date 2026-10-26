@@ -8,7 +8,7 @@
 // draft — and a refusal throws the server's text verbatim, which the callers
 // put in front of the person ("Could not create the form. …").
 
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE, authFetch } from '@/utils/helpers';
 
 /** What a create needs from its caller: where to go next and how to say "Untitled". */
 export interface AutomationDraftCtx {

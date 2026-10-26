@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
-import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import {
     PAGE_SIZE, crumbsOf, drill, jumpTo, levelPattern, openStack, pageView, patchTop, resolveLevels, returnOf, rootStack, up,
     type Level, type PageView, type Return,

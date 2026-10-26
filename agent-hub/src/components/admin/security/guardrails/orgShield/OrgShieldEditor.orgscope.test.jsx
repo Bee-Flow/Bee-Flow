@@ -20,20 +20,20 @@
 import { screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(),
 }));
 
-vi.mock('../../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
-vi.mock('../../../../licensing/LicenseContext', () => ({
+vi.mock('@/components/licensing/LicenseContext', () => ({
     useLicenseContext: () => ({ tier: 'enterprise', hasFeature: () => true, hasTier: () => true }),
 }));
 
+import { renderWithClient } from '@/test/render';
+import { authFetch } from '@/utils/helpers';
 import OrgShieldEditor from './OrgShieldEditor';
-import { renderWithClient } from '../../../../../test/render';
-import { authFetch } from '../../../../../utils/helpers';
 
 const ORGS = [
     { id: 'org-alpha', name: 'Alpha BV' },

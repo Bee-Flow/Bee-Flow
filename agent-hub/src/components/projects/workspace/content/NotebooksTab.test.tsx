@@ -2,7 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { withQueryClient } from '../../../../test/queryWrapper';
+import { withQueryClient } from '@/test/queryWrapper';
 import { EDITOR_ID, getRouter, MEMBERS, OWNER_ID, pending, tabProps, type RouteAnswer } from './contentTestKit';
 import type { ContentTabProps } from './types';
 import { useUndoCapture } from '../undoTestKit';
@@ -10,8 +10,8 @@ import { useUndoCapture } from '../undoTestKit';
 // Fresh spies per test (assigned in beforeEach) rather than reset ones: the
 // module mock hands out this object, and the code reads its methods per call.
 const { client } = vi.hoisted(() => ({ client: {} as Record<'get' | 'post' | 'put' | 'patch' | 'delete', ReturnType<typeof vi.fn>> }));
-vi.mock('../../../../api/client', async (importOriginal) => ({
-    ...(await importOriginal<typeof import('../../../../api/client')>()),
+vi.mock('@/api/client', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/api/client')>()),
     apiClient: client,
     default: client,
 }));
@@ -138,7 +138,7 @@ describe('NotebooksTab: create and add', () => {
 
     it('shows the refusal on the row when adding an existing notebook fails', async () => {
         const user = userEvent.setup();
-        const { ApiError } = await import('../../../../api/client');
+        const { ApiError } = await import('@/api/client');
         client.get.mockImplementation(routes(NOTEBOOKS, {
             '/api/notebooks': { notebooks: [{ id: 'nb-9', name: 'Old notes', projectId: 'p-other' }] },
         }));
@@ -178,7 +178,7 @@ describe('NotebooksTab: a reader who may not use notebooks', () => {
 
     it('a create the server refuses with notebooks_unavailable is said in words, not as the server’s English', async () => {
         const user = userEvent.setup();
-        const { ApiError } = await import('../../../../api/client');
+        const { ApiError } = await import('@/api/client');
         client.post.mockImplementation(async () => {
             throw new ApiError('HTTP 403', { status: 403, body: { error: 'Notebooks are not available to you, so no notebook was created.', code: 'notebooks_unavailable' } });
         });

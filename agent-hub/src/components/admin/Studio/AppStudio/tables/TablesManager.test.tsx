@@ -8,11 +8,11 @@ vi.mock('../studioAppsApi', () => {
     const studioAppsApi = { getSchema: vi.fn(), saveSchema: vi.fn() };
     return { studioAppsApi, default: studioAppsApi };
 });
-vi.mock('../../../../shared/Toast', () => {
+vi.mock('@/components/shared/Toast', () => {
     const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn() };
     return { default: toast, toast };
 });
-vi.mock('../../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 // The relationship canvas is covered by RelationshipsTab.test.jsx. Here we only
 // care that the tab hangs off the same model and the same Save — mounting real
 // ReactFlow for that would cost more than the assertion is worth.
@@ -25,8 +25,8 @@ vi.mock('./RelationshipsTab', () => ({
 }));
 
 import TablesManager from './TablesManager';
-import { authFetch } from '../../../../../utils/helpers';
-import toast from '../../../../shared/Toast';
+import { authFetch } from '@/utils/helpers';
+import toast from '@/components/shared/Toast';
 import { studioAppsApi } from '../studioAppsApi';
 import { asMock } from '@/test/mocks';
 

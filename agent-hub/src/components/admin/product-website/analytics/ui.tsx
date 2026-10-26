@@ -12,8 +12,8 @@
  * colour and nothing is allowed to fall back to the shared default.
  */
 import { type ReactNode } from 'react';
-import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
-import { TrendChip } from '../../../../pages/settings/usage/kit';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import { TrendChip } from '@/pages/settings/usage/kit';
 import { SortableTable } from '../../monitoring/shared';
 import { Empty, fmt } from '../../monitoring/shared/SvgAreaChart';
 import type { BreakdownRow, BreakdownTableProps, CompareKind, CompareResult, RenderStatTileArgs, SplitBarProps, StatField, StatTileProps, XYRow } from './ui.types';

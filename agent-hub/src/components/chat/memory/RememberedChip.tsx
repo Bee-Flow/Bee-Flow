@@ -1,8 +1,8 @@
 import { Check } from 'lucide-react';
 import React, { useState } from 'react';
-import useRememberedMemories from '../../../hooks/useRememberedMemories';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { openMemoryPanel } from '../../../utils/memoryMode';
+import useRememberedMemories from '@/hooks/useRememberedMemories';
+import { useTranslation } from '@/hooks/useTranslation';
+import { openMemoryPanel } from '@/utils/memoryMode';
 import { toast } from '../../shared/Toast';
 import { deleteMemory } from './memoryApi';
 import { shortMemory } from './memoryLabels';

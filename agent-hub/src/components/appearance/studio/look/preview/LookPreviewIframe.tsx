@@ -1,10 +1,10 @@
 import { Loader2, AlertTriangle, RotateCw, LogIn } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { buildPreviewUrl } from './previewSurfaces';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { PreviewSurface } from './previewSurfaces';
 import type { DraftPayload } from '../useLookForm';
-import { logger } from '../../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 type PreviewStatus = 'loading' | 'ready' | 'timeout' | 'session-expired';
 

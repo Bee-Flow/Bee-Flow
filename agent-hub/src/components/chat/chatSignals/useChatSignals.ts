@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
-import { useAgentChatSignalsGate, useChatSignalsPreference, useSetChatSignalsPreference } from '../../../api/queries/chatSignals';
-import type { ChatSignalsTurnSurface } from '../../../hooks/useChatEngine/turnEndpoint';
-import useShieldStatus from '../../../hooks/useShieldStatus';
+import { useAgentChatSignalsGate, useChatSignalsPreference, useSetChatSignalsPreference } from '@/api/queries/chatSignals';
+import type { ChatSignalsTurnSurface } from '@/hooks/useChatEngine/turnEndpoint';
+import useShieldStatus from '@/hooks/useShieldStatus';
 import { noticeFor, payloadFor, type NoticeModel } from './chatSignalsModel';
 
 /**

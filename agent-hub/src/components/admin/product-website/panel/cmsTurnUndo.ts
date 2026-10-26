@@ -4,12 +4,12 @@
 // holds RIGHT NOW (the one the panel loaded is older than the turn's own saves).
 // The chrome save does not carry the page list, so the page index is restored
 // through the page operations: settings of each page, order, homepage.
-import { authFetch } from '../../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 import { cmsApi } from '../cmsApi';
 import { isRecord, revOf, storedRev, withRev } from './cmsRevisions';
 import type { CmsPageDoc, CmsPageIndexEntry, CmsSiteDoc } from './cmsPanelTypes';
 import type { BuilderTurn } from './useCmsPanelState';
-import { mutate, ApiError, errorBody, RefusedError } from '../../../../api/mutate';
+import { mutate, ApiError, errorBody, RefusedError } from '@/api/mutate';
 
 /** The site as the server holds it right now: its chrome revision and its page index. */
 interface ServerSiteState {

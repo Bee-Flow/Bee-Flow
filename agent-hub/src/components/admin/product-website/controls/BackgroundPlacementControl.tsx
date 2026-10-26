@@ -1,10 +1,10 @@
 import { FieldRow, Toggle } from '../fields';
 import { PxSizeInput, SegmentedControl } from '../primitives';
 import type { SegmentedOption } from '../primitives.types';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import {
     BG_POSITIONS, BG_REPEATS, BG_SIZE_PX_MAX, BG_SIZE_PX_MIN, backgroundSizePx, cleanBackgroundSize,
-} from '../../../../marketing/blockStyleEnums.generated.mjs';
+} from '@/marketing/blockStyleEnums.generated.mjs';
 
 /** The placement keys of block.style, all optional (a missing key = cover / center / no-repeat / shown on mobile). */
 interface BackgroundPlacement {

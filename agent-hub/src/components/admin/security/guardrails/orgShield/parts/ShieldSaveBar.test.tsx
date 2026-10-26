@@ -10,7 +10,7 @@ import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ShieldSaveBar } from './ShieldSaveBar';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 const t: TranslateFn = (key: string, fallbackOrParams, paramsArg) => {
     const fallback = typeof fallbackOrParams === 'string' ? fallbackOrParams : key;

@@ -6,16 +6,16 @@ const { fetchMock, toastMock } = vi.hoisted(() => ({
     fetchMock: vi.fn(),
     toastMock: { error: vi.fn(), success: vi.fn(), info: vi.fn(), dismiss: vi.fn() },
 }));
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationMock'));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
 vi.mock('../../shared/Toast', () => ({ toast: toastMock, default: toastMock }));
 vi.mock('../../automation/Builder/flow/settings/FormBuilderFields', () => ({
     defaultFormDeclaration: () => ({ title: 'New form', fields: [{ name: 'q1' }] }),
 }));
 
+import { queryWrapper } from '@/test/queryWrapper';
 import { NewMenu, NewMenuButton, buildNewMenuModel, createFormAutomation } from './NewMenu';
 import { STUDIO_APPS, resolveStudioNav } from './studioApps';
-import { queryWrapper } from '../../../test/queryWrapper';
 
 // The hooks under this tree read through React Query, so every render needs
 // a client above it — a fresh one per render, never the app singleton.

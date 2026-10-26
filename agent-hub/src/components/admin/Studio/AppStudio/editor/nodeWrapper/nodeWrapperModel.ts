@@ -5,8 +5,8 @@
  */
 import { CheckCircle2, Eye, Lock, Sigma, Workflow, Zap } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
-import { kindColorVar } from '../../../../../shared/kindColors';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { kindColorVar } from '@/components/shared/kindColors';
 import type { AppDefinition, AppNode } from '../../inspector/appDefinition';
 import { findNode as findNodeJs } from '../../state/definitionOps';
 import type { LogicSummaryMark } from '../nodeLogicSummary';

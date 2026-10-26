@@ -1,6 +1,6 @@
 import { Check, Send, Link2, AlertCircle } from 'lucide-react';
-import { ORG_ROLES } from '../../../../config/orgRoles';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { ORG_ROLES } from '@/config/orgRoles';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { OrgInvitations } from '../useOrgInvitations';
 
 type InviteFormProps = Pick<OrgInvitations,

@@ -5,8 +5,8 @@ import type { DtColumn, DtMirror, DtRow, DtTable } from './rowBrowserModel';
 import { RowCellEditor } from './typedViews';
 import type { RowPages } from './useRowPages';
 import type { RowWrites } from './useRowWrites';
-import useRelativeTime from '../../../../../hooks/useRelativeTime';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import useTranslation from '@/hooks/useTranslation';
 // App Studio's formatter, not the local one: it takes the FIELD rather than a
 // type string, so it can render a select's label and a multiselect's list.
 import { cellText } from '../../AppStudio/tables/rowValues';

@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { appendKey } from '@shared/expr/path.mjs';
 import { ChevronDown, ChevronRight, ChevronUp, CircleAlert, X } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import FieldKindIconJs from '../mapping/FieldKindIcon';
 import { kindOfValue as kindOfValueJs } from '../mapping/fieldKinds';
 import { humanizeFieldKey as humanizeFieldKeyJs } from '../flow/displayHelpers';

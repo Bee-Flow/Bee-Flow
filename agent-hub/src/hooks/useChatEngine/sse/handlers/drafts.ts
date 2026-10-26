@@ -1,5 +1,5 @@
 import type { SseEventData } from '../../types';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 import type { SseHandlerMap } from '../handlerTypes';
 
 /**

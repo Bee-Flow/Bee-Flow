@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import { useTranslation, type TranslateParams } from '../../../../hooks/useTranslation';
-import DataTable, { TableRow, TableCell } from '../../../shared/DataTable';
-import EmptyState from '../../../shared/EmptyState';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import DataTable, { TableRow, TableCell } from '@/components/shared/DataTable';
+import EmptyState from '@/components/shared/EmptyState';
 import StatusPill from '../shared/StatusPill';
 import useDrawerMode from '../shared/useDrawerMode';
 import { Intro, ReadFailed, RegisterLayout } from './audits/auditForms';

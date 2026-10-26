@@ -1,7 +1,7 @@
 import { Clock, Lightbulb, Plug } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { settingsPathForTab } from '../../../../../authedApp/settingsRoutes';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { settingsPathForTab } from '@/authedApp/settingsRoutes';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export type EmptyKind = 'no_connected' | 'no_sources' | 'not_enough_history' | 'nothing';
 

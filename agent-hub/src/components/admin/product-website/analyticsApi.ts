@@ -7,10 +7,10 @@
  * cmsAnalytics.js). The websiteId is resolved server-side from siteId, so
  * nothing here can address another install's data.
  */
-import { API_BASE } from '../../../utils/helpers';
+import { API_BASE } from '@/utils/helpers';
 import type { SeriesPoint } from './analytics/window';
 import type { StatField, XYRow } from './analytics/ui.types';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /** Range and filter params shared by every data call. */
 export interface AnalyticsRequestOpts {

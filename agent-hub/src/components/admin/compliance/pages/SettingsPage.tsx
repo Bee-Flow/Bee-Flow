@@ -1,8 +1,8 @@
 import { ChevronDown, Save } from 'lucide-react';
 import React, { useEffect, useId, useMemo, useState } from 'react';
-import { useTranslation, type TranslateParams } from '../../../../hooks/useTranslation';
-import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
-import useConfirm from '../../../shared/useConfirm';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
+import useConfirm from '@/components/shared/useConfirm';
 import StatusPill from '../shared/StatusPill';
 import { PAGE_FRAME } from './audits/auditForms';
 import ChatMonitoringCard from './settings/chatMonitoring/ChatMonitoringCard';
@@ -11,7 +11,7 @@ import SettingsGroup, { type MemberValue, type SettingsValue } from './settings/
 import { groupProgress, type SettingsForm } from './settings/settingsLayout';
 import type { SettingsGroupDef } from './settings/settingsFields.types';
 import type { OrgUser } from './accessAuditLabels';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /**
  * SettingsPage — the compliance settings form, grouped per framework.

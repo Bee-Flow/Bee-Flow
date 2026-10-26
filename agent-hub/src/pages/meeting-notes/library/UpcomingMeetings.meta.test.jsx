@@ -6,17 +6,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  * The Scheduled row (M5) on screen: date block + `time · duration · participants · provider`, the tags from meeting_prefs, and the footer line about what happens to the OTHER participants. The rules themselves are in `../lib/upcomingMeta.js` (and are tested there); here what matters is that the row really shows them.
  */
 
-vi.mock('../../../api/transcriptionsApi', () => ({
+vi.mock('@/api/transcriptionsApi', () => ({
     listTalkMeetings: vi.fn(),
     setMeetingRecord: vi.fn(),
     listGoogleMeetMeetings: vi.fn(),
     setGoogleMeetMeetingRecord: vi.fn(),
 }));
-vi.mock('../../../lib/googleOAuthPopup', () => ({ openGoogleOAuthPopup: vi.fn() }));
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/lib/googleOAuthPopup', () => ({ openGoogleOAuthPopup: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
+import { listTalkMeetings, listGoogleMeetMeetings, setMeetingRecord } from '@/api/transcriptionsApi';
 import UpcomingMeetings from './UpcomingMeetings';
-import { listTalkMeetings, listGoogleMeetMeetings, setMeetingRecord } from '../../../api/transcriptionsApi';
 
 const talkMeeting = (over = {}) => ({
     talkToken: 'tok1', uid: 'uid1', title: 'Talk standup',

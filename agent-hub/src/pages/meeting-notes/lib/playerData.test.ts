@@ -4,7 +4,7 @@ import {
     buildSpeakerRows, buildSpeakerColorMap, speakerColor, segmentSpeakerId,
     segmentAtTime, segmentNearTime, normalizeChapters,
 } from './playerData';
-import { SPEAKER_COLORS, NEUTRAL_SPEAKER_COLOR } from '../../../config/meetingNotesConfig';
+import { SPEAKER_COLORS, NEUTRAL_SPEAKER_COLOR } from '@/config/meetingNotesConfig';
 import { stub } from '@/test/mocks';
 
 const HOUR_40 = 6028; // 1:40:28

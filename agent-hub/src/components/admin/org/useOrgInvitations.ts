@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useOrgInvitationsQuery } from '../../../api/queries/orgAdminReads';
+import { useOrgInvitationsQuery } from '@/api/queries/orgAdminReads';
 import type { Dispatch, SetStateAction } from 'react';
-import { API_BASE } from '../../../utils/helpers';
-import { mutate, ApiError, RefusedError, errorBody } from '../../../api/mutate';
+import { API_BASE } from '@/utils/helpers';
+import { mutate, ApiError, RefusedError, errorBody } from '@/api/mutate';
 
 /** One pending invitation, as GET /auth/invitations returns it. */
 export interface Invitation {

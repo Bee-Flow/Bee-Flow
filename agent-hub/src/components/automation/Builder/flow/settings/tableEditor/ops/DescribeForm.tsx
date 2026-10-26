@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { ColumnChips } from '../TableColumnSelect';
 import type { DescribeOp } from '../tableOpModel';
 import { NumberInput, Radios } from './inputs';

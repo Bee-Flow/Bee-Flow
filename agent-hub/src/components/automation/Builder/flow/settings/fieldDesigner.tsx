@@ -36,7 +36,7 @@
 import { Plus } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { denseInputClass } from './formPrimitives';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { BindingNameFieldProps, DesignedField, FieldDesignerProps } from './fieldDesigner.types';
 import { applyBindingRename, FieldRow } from './FieldRow';
 export { PLACEHOLDER_NAME_RE, nameProblem, applyBindingRename } from './FieldRow';

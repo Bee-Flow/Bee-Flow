@@ -1,6 +1,6 @@
 import type React from 'react';
 import type { SourceClaim as SourceClaimData, BlueprintReadOk, TableRequirement, StepAddress, GrantRow } from './installRequirements';
-import type { Catalog } from '../../../automation/Builder/mapping/upstream/upstream.types';
+import type { Catalog } from '@/components/automation/Builder/mapping/upstream/upstream.types';
 import type { WaitlistUser } from '../../subscriptions/access/useSignupSettings';
 
 /**

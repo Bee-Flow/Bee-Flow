@@ -15,7 +15,7 @@ import { defaultFormPageDeclaration, defaultFormEndingDeclaration } from './Form
 import { FormRow, inputClass } from './formPrimitives';
 import FormTriggerFields from './FormTriggerFields';
 import type { FormPageFieldsProps, ParamFieldsProps, TriggerFieldsProps } from './triggerEditors.types';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { AppEventFields } from './AppEventFields';
 function TriggerFields({ draft, set, setNested, errorSections = new Set(), catalog = null, automation = null, stepId = null, isSecondaryTrigger = false, onTestSubmit = null, onRenameField = null, formEditor = null }: TriggerFieldsProps) {
     const { t } = useTranslation();

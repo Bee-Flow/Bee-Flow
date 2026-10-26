@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE, authFetch } from '@/utils/helpers';
 import {
     filterConfigured, filterDiscovered, withInputs, workflowFromDiscovered,
     type DiscoveredWorkflow, type FlashMessage, type N8nDiagnostics, type N8nInput, type N8nWorkflow,
     type PermissionSummary, type TestResult,
 } from './n8nModel';
-import { errorMessage } from '../../../utils/caughtError';
-import { request, RefusedError, mutate, errorBody } from '../../../api/mutate';
+import { errorMessage } from '@/utils/caughtError';
+import { request, RefusedError, mutate, errorBody } from '@/api/mutate';
 
 /** The status line's message, and clearing it after a while. */
 export function useFlashMessage() {

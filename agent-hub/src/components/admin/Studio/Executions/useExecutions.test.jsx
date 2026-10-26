@@ -6,10 +6,10 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 // fresh (vi.fn) per test so call assertions stay isolated.
 const { apiMock } = vi.hoisted(() => ({ apiMock: {} }));
 
-vi.mock('../../../../hooks/useAutomationApi', () => ({ default: () => apiMock }));
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => apiMock }));
 
+import scopedStorage, { setCurrentUser } from '@/utils/scopedStorage';
 import useExecutions, { statusFilterToServer, sanitizeStoredFilters } from './useExecutions';
-import scopedStorage, { setCurrentUser } from '../../../../utils/scopedStorage';
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 const iso = () => new Date().toISOString();

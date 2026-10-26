@@ -6,9 +6,9 @@ import EditLabelInline from './EditLabelInline';
 import type { ConvLabel } from './EditLabelInline';
 import type { DeleteResult, SidebarConversation } from './sidebarConversations';
 import { ACCENT_BAR_CONV, CONV_ROW, TEXT_ACTIVE, TEXT_IDLE } from './sidebarTokens';
-import type { Project } from '../../../api/queries/projects';
-import useOutsideDismiss from '../../../hooks/useOutsideDismiss';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { Project } from '@/api/queries/projects';
+import useOutsideDismiss from '@/hooks/useOutsideDismiss';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { projectChipStyle, projectIcon } from '../../projects/workspace/projectVisuals';
 import useConfirm from '../../shared/useConfirm';
 

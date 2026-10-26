@@ -1,6 +1,6 @@
 import { AlertTriangle, CheckCircle2, Info, Loader2 } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import ControlFindingGroup, { isBlocking, type ControlFinding } from './ControlFindingGroup';
 import { Strip, sectionNames } from './solutionNotices';
 

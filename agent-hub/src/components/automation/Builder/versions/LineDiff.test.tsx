@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
-import type { FieldChange } from '../../../../api/queries/automation/versions';
+import type { FieldChange } from '@/api/queries/automation/versions';
 import FieldDiffTable from './FieldDiffTable';
 import LineDiff from './LineDiff';
 

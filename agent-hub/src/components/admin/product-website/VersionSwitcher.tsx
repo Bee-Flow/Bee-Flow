@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import AppIcon from '../../icons/AppIcon';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { CmsSiteListEntry } from './panel/cmsPanelTypes';
 
 interface VersionSwitcherProps {

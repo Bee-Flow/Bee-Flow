@@ -1,13 +1,13 @@
 import { AlertTriangle, ArrowRight, CheckCircle2, MessageSquare, Pencil, RotateCcw, Square, SkipForward, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import MarkdownRenderer from '../../../renderers/MarkdownRenderer';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
 import { CLIENT_RUN, kindOf } from './phaseMachine';
 import type { Phase } from './phaseMachine';
 import { errorText } from './playbookView';
 import { STAGE_BUTTON, STAGE_BUTTON_GHOST, stageType } from './stages/stageChrome';
 import { phaseLabel } from './recipes';
-import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 
 /**
  * The pause between phases. Three faces:

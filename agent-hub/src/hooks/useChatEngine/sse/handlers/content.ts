@@ -1,6 +1,6 @@
 import { appendPhase } from '../../phaseTrail';
 import { completedTools, summarizeWorkItem } from '../../workSummary';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 import type { SseHandlerMap } from '../handlerTypes';
 
 /**

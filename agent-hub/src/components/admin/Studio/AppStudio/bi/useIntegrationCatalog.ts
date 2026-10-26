@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import useAutomationApi from '../../../../../hooks/useAutomationApi';
+import useAutomationApi from '@/hooks/useAutomationApi';
 import type { CatalogAction } from './connectors/connectorModel';
 
 /**

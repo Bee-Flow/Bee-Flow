@@ -14,11 +14,11 @@ import { ErrorItem, ScreenshotItem } from './TranscriptItems';
 import type { TranscriptImage } from './TranscriptItems';
 import WhatChanged from './WhatChanged';
 import type { TurnChange } from './WhatChanged';
-import type { BuilderMessage } from '../../../../../hooks/builderStream';
+import type { BuilderMessage } from '@/hooks/builderStream';
 import type { BuildPhaseInfo } from '../editor/BuildCueContext';
-import useTranslation from '../../../../../hooks/useTranslation';
-import MessageBubble from '../../../../automation/Builder/chat/MessageBubble';
-import BuilderWaitingCard from '../../../../shared/builder/BuilderWaitingCard';
+import useTranslation from '@/hooks/useTranslation';
+import MessageBubble from '@/components/automation/Builder/chat/MessageBubble';
+import BuilderWaitingCard from '@/components/shared/builder/BuilderWaitingCard';
 
 /** The empty pane's invitation. */
 export function TranscriptEmptyState() {

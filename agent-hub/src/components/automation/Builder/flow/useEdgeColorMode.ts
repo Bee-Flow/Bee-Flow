@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import scopedStorage from '../../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 
 export type EdgeColorMode = 'branches' | 'off' | 'pii';
 

@@ -1,7 +1,7 @@
 // Bundled model metadata + capability detectors for the chat-model-tier admin
 // panel. Moved verbatim from ChatModelTiersConfig.jsx; only the `export`
 // keywords are new.
-import type { ModelMeta } from '../../../../api/modelMeta';
+import type { ModelMeta } from '@/api/modelMeta';
 
 // Reuse model metadata from AIConfigPanel
 export const getModelMeta = (id: string): ModelMeta | null => {

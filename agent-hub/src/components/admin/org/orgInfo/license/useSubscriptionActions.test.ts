@@ -1,10 +1,10 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import useSubscriptionActions from './useSubscriptionActions';
-import { cloudFetch } from '../../../../../api/cloudFetch';
+import { cloudFetch } from '@/api/cloudFetch';
 
-vi.mock('../../../../../api/cloudFetch', () => ({ cloudFetch: vi.fn() }));
-vi.mock('../../../../../utils/helpers', () => ({ API_BASE: '' }));
+vi.mock('@/api/cloudFetch', () => ({ cloudFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '' }));
 
 const fetchMock = vi.mocked(cloudFetch);
 const t = (_key: string, fallback?: unknown) => (typeof fallback === 'string' ? fallback : _key);

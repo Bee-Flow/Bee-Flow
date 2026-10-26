@@ -24,19 +24,19 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderWithClient } from '@/test/render';
 
-vi.mock('../../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(),
 }));
 
-vi.mock('../../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
-vi.mock('../../../../licensing/LicenseContext', () => ({
+vi.mock('@/components/licensing/LicenseContext', () => ({
     useLicenseContext: () => ({ tier: 'enterprise', hasFeature: () => true, hasTier: () => true }),
 }));
 
 import OrgShieldEditor from './OrgShieldEditor';
-import { authFetch } from '../../../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 import { asMock } from '@/test/mocks';
 
 const ORG_ID = 'org-alpha';

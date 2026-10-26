@@ -1,11 +1,11 @@
 import { Loader2, Check, AlertTriangle, Lock, Layers, Sparkles, Settings, ListChecks } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { getIntegrationIcon } from '../../../../config/integrationIcons';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../utils/helpers';
-import { messageOf } from '../../../../utils/caughtError';
+import { getIntegrationIcon } from '@/config/integrationIcons';
+import { useTranslation } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { messageOf } from '@/utils/caughtError';
 import type { AccessCapability, AccessData, AccessKindSection, AccessMessage } from './accessTypes';
-import { mutate, ApiError, request, RefusedError } from '../../../../api/mutate';
+import { mutate, ApiError, request, RefusedError } from '@/api/mutate';
 
 /**
  * OrgAccessEditor — the super-admin "Organisation access" menu: which

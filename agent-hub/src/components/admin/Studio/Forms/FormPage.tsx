@@ -6,12 +6,12 @@ import SettingsTab from './form/SettingsTab';
 import ShareTab from './form/ShareTab';
 import useFormDetail, { FormDraft } from './form/useFormDetail';
 import { formLiveness, publicFormPath, type FormListRow } from './FormsStudio';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import ManagedPartBanner from '../../../shared/ManagedPartBanner';
-import StudioSectionHeader, { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
-import Tabs from '../../../shared/Tabs';
-import { toast } from '../../../shared/Toast';
-import useConfirm from '../../../shared/useConfirm';
+import { useTranslation } from '@/hooks/useTranslation';
+import ManagedPartBanner from '@/components/shared/ManagedPartBanner';
+import StudioSectionHeader, { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
+import Tabs from '@/components/shared/Tabs';
+import { toast } from '@/components/shared/Toast';
+import useConfirm from '@/components/shared/useConfirm';
 
 /**
  * Studio → Forms → one form. Tabs: Questions · Share · Answers · Settings for

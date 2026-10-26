@@ -1,12 +1,12 @@
 import React from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import Slider from '../../../../../shared/Slider';
-import { RepeatableList, inputCls } from '../../../../product-website/fields';
+import useTranslation from '@/hooks/useTranslation';
+import Slider from '@/components/shared/Slider';
+import { RepeatableList, inputCls } from '@/components/admin/product-website/fields';
 import { registerInspector } from '../registry';
 import BindingField from './BindingField';
 import { FieldKeyField, TextField, SelectField, usePatch } from './kit';
 import type { PanelProps } from '../appDefinition';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { FieldKeyFieldProps } from './kit';
 
 interface TableColumn {

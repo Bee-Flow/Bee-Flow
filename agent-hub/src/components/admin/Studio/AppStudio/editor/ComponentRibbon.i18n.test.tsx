@@ -28,7 +28,7 @@ vi.mock('../studioAppsApi', () => ({
 // vi.mock's factory is hoisted above every import, so the stub is built
 // inside it — a module-scope helper would not exist yet when the first
 // component in the tree imports the hook.
-vi.mock('../../../../../hooks/useTranslation', () => {
+vi.mock('@/hooks/useTranslation', () => {
     const NL: Record<string, string> = {
         'app_studio.palette.tab_start_here': 'Begin hier',
         'app_studio.palette.tab_all': 'Alles',
@@ -55,7 +55,7 @@ vi.mock('../../../../../hooks/useTranslation', () => {
 });
 
 import ComponentRibbon from './ComponentRibbon';
-import * as scopedStorage from '../../../../../utils/scopedStorage';
+import * as scopedStorage from '@/utils/scopedStorage';
 import { AppEditorProvider } from '../state/AppEditorContext';
 import { KITCHEN_SINK } from '../state/sampleDefinitions';
 import type { TranslateParams } from '@/hooks/useTranslation';

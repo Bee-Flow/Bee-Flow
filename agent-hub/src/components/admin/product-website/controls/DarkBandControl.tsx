@@ -1,6 +1,6 @@
 import { FieldRow } from '../fields';
 import { SegmentedControl } from '../primitives';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /** What blocks with a dark band are filled with: an enum, never a free colour. */
 export default function DarkBandControl({ value, onChange }: { value?: string; onChange: (value: string) => void }) {

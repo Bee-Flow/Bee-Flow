@@ -6,10 +6,10 @@
 import { AppWindow, ClipboardList, FileText, Handshake, LayoutGrid, PenLine, Search, ShieldCheck, Store } from 'lucide-react';
 import type { ComponentType, ReactNode } from 'react';
 import { appAccent } from './sidebarTokens';
-import { countFor } from '../../../hooks/useStudioCounts';
-import type { StudioCounts } from '../../../hooks/useStudioCounts';
-import { recentForms, rememberFormOpened } from '../../../utils/formRecents';
-import { STUDIO_RECENT_SOURCES } from '../../../utils/studioRecentSources';
+import { countFor } from '@/hooks/useStudioCounts';
+import type { StudioCounts } from '@/hooks/useStudioCounts';
+import { recentForms, rememberFormOpened } from '@/utils/formRecents';
+import { STUDIO_RECENT_SOURCES } from '@/utils/studioRecentSources';
 import { groupStudioApps, studioLockHint } from '../../admin/Studio/studioApps';
 import { studioLanding, studioSectionLabel } from '../../admin/Studio/studioNav';
 import type { StudioNavUser } from '../../admin/Studio/studioNav';

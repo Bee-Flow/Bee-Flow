@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { interpolate } from '../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import { interpolate } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { isSharedWithMe, roleLabel, roleOf, automationStatusParts } from './automationStatus';
 
 const t: TranslateFn = (_key, fallback, params) =>

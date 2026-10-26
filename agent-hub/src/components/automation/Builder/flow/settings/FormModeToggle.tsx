@@ -1,7 +1,7 @@
 import { ChevronRight } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import SegmentedControl from '../../../../shared/SegmentedControl';
+import { useTranslation } from '@/hooks/useTranslation';
+import SegmentedControl from '@/components/shared/SegmentedControl';
 import type { FormMode } from './formDensity';
 
 interface Props {

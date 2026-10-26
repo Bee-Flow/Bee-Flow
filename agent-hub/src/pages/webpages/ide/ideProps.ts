@@ -1,10 +1,10 @@
-import type useChatEngine from '../../../hooks/useChatEngine';
-import type { ChatAttachment } from '../../../hooks/useChatEngine/historyAttachment';
-import type { ChatMessage } from '../../../hooks/useChatEngine/types';
-import type { RetryModelTiers } from '../../../components/chat/MessageItem/MessageActionsRow';
+import type useChatEngine from '@/hooks/useChatEngine';
+import type { ChatAttachment } from '@/hooks/useChatEngine/historyAttachment';
+import type { ChatMessage } from '@/hooks/useChatEngine/types';
+import type { RetryModelTiers } from '@/components/chat/MessageItem/MessageActionsRow';
 import type { PreviewSelection } from '../preview/usePreviewToken';
 import type { WebpageSource } from '../WebpageSources';
-import type { ContentSetter, ExtraContents, ExtraFileMeta, WebpageRow } from '../../../api/webpageEditorTypes';
+import type { ContentSetter, ExtraContents, ExtraFileMeta, WebpageRow } from '@/api/webpageEditorTypes';
 
 type ChatEngine = ReturnType<typeof useChatEngine>;
 

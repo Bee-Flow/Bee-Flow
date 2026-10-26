@@ -1,7 +1,7 @@
 import { Pin } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import { ITEM_TYPES, useProjectPins, useProjectSearch, useSetProjectPin } from '../../../api/queries/projectDiscovery';
-import useTranslation from '../../../hooks/useTranslation';
+import { ITEM_TYPES, useProjectPins, useProjectSearch, useSetProjectPin } from '@/api/queries/projectDiscovery';
+import useTranslation from '@/hooks/useTranslation';
 import Modal from '../../shared/Modal';
 import { itemTab } from './ProjectDiscovery';
 import { projectErrorText } from './projectErrorText';

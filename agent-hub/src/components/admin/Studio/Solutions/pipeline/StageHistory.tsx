@@ -1,15 +1,15 @@
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { stageHistoryKey, useStageHistoryQuery } from '../../../../../api/queries/stageReads';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { stageHistoryKey, useStageHistoryQuery } from '@/api/queries/stageReads';
+import { useTranslation } from '@/hooks/useTranslation';
 import { errorKind, pillStatusOf, rowActionOf, type Column, type ErrorKind, type RowAction } from './pipelineModel';
 import { StatusPill, fmt, kindLabel, statusLabel } from './stageText';
 import { STAGE_DOT, useStageLabel } from './StageSwitcher';
 import {
     cancelDeployment, retryDeployment,
     type DeploymentSummary, type PipelineRelease, type StageKey, type StageName,
-} from '../../../../../api/stagesApi';
+} from '@/api/stagesApi';
 
 /**
  * Every deployment this stage has had, newest first.

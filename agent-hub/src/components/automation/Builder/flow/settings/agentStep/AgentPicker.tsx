@@ -8,8 +8,8 @@
 import { ArrowUpRight, Bot } from 'lucide-react';
 import { useState } from 'react';
 import type { MouseEvent } from 'react';
-import type { AgentStepPreview } from '../../../../../../api/queries/automation/agents';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { AgentStepPreview } from '@/api/queries/automation/agents';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { studioHref, studioTarget } from '../../studioLinks';
 import { EmptySectionNote, SectionNote, hintTextClass } from '../formPrimitives';
 import { agentMetaLine } from './agentStepModel';

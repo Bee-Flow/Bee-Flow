@@ -1,4 +1,4 @@
-import type { TranslateParams } from '../../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 
 const enumLabels = (t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string): Record<string, string> => ({
     none: t('studio_apps_insp.theme.enum_none', 'None'), sm: 'S', md: 'M', lg: 'L', xl: 'XL',

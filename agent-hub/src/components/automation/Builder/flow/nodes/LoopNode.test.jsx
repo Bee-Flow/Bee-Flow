@@ -14,7 +14,7 @@ import { statusVar } from '../nodeTypeColors';
 // kept an "s" glued on in JavaScript while the expanded card had long since
 // moved to a key pair.
 const { transOverride } = vi.hoisted(() => ({ transOverride: { current: null } }));
-vi.mock('../../../../../hooks/useTranslation', async (importOriginal) =>
+vi.mock('@/hooks/useTranslation', async (importOriginal) =>
     (await import('@/test/translationOverride')).overrideTranslation(await importOriginal(), transOverride));
 
 /**

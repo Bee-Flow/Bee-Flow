@@ -4,7 +4,7 @@ import {
     addAndPlace, addNode, autoMapToastMessage, defaultAddPosition, findNode, lastStepId, LOOP_BODY_REFUSALS, wiringFor,
 } from './addStepModel';
 import type { AddStepOptions, AddStepPayload, Position, Wiring } from './addStepModel';
-import { toast } from '../../../shared/Toast';
+import { toast } from '@/components/shared/Toast';
 import { createLayerInDefinition, getScopedGraph, setScopedGraph } from '../flow/flowletScope';
 import { flowToScopePosition as flowToScopePositionJs, parseInlineId, prefixAddedStep } from '../flow/inlineFlowlets';
 import { normalizeDefinitionShape, emptyGraph } from '../flow/normalizeDefinition';
@@ -12,8 +12,8 @@ import { followAfterAdd } from '../flow/routeFollowNotes';
 import { defaultTriggerLabel } from '../flow/triggerLabels';
 import type { FlowDefinition, FlowStep } from '../flow/types';
 import { applyAutoMapToStep as applyAutoMapToStepJs } from '../mapping/autoMapInputs';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import type { RealOutputMap } from '../../../../hooks/useUpstreamVariables';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import type { RealOutputMap } from '@/hooks/useUpstreamVariables';
 
 type Translate = (key: string, fallback: string, vars?: Record<string, unknown>) => string;
 

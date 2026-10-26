@@ -3,10 +3,10 @@ import { memo, useCallback, useEffect, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import AiTranslateControl, { AiTranslateResult } from './AiTranslateControl';
 import { LANGUAGES_API } from './useLanguages';
-import useAiTranslate, { translateRequest } from '../../../hooks/useAiTranslate';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { getLanguages, sendLanguagesJson } from '../../../api/languages';
-import { logger } from '../../../utils/logger';
+import useAiTranslate, { translateRequest } from '@/hooks/useAiTranslate';
+import { useTranslation } from '@/hooks/useTranslation';
+import { getLanguages, sendLanguagesJson } from '@/api/languages';
+import { logger } from '@/utils/logger';
 
 const FIELD_STYLE = { borderColor: 'var(--border-default)', color: 'var(--text-primary)', outline: 'none' };
 const TH_STYLE = { color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-default)' };

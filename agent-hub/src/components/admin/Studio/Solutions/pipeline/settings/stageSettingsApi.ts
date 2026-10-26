@@ -1,5 +1,5 @@
-import { API_BASE, authFetch } from '../../../../../../utils/helpers';
-import type { ApiResult, StageKey } from '../../../../../../api/stagesApi';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import type { ApiResult, StageKey } from '@/api/stagesApi';
 import {
     readDecls, readRequirements, readSettings, readValues,
     type ApprovalPolicy, type RemoveMode, type StageSettings, type VariableDecl, type VariableValue,

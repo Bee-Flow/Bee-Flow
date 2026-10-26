@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { ReactNode } from 'react';
 import { SECTIONS } from './constants';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const ACCENT_BAR: Record<string, string> = {
     blue:    'bg-blue-500',

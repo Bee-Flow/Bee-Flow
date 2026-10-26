@@ -1,6 +1,6 @@
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import React, { type CSSProperties } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Card as BaseCard } from '../../monitoring/shared';
 import { Empty } from '../../monitoring/shared/SvgAreaChart';
 import type { AsyncCardProps, CardProps, ErrorNoteProps, SkeletonProps } from './ui.types';

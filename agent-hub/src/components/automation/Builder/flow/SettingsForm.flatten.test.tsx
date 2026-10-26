@@ -2,7 +2,7 @@ import { FLATTEN_MAIL_STEP, flattenMailRoot } from '@shared/expr/corpus.mjs';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import scopedStorage from '../../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import { NODE_DEFS } from './nodeDefs';
 import SettingsFormJs from './SettingsForm';

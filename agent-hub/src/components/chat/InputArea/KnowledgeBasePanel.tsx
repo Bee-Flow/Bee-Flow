@@ -18,7 +18,7 @@
  */
 import React from 'react';
 
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { MAX_ATTACHED_KBS, toggledIds } from '../knowledgeBaseClaim';
 
 interface KnowledgeBaseRow {

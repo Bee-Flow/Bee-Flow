@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { FormRow, inputClass } from './formPrimitives';
 import { CollectionArrayRefField } from './collectionEditors';
 import type { RouteRule } from './routeEditorsModel';

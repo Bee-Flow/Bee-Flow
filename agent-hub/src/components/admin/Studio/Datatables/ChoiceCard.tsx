@@ -1,5 +1,5 @@
 import React from 'react';
-import { kindColorVar, kindIcon } from '../../../shared/kindColors';
+import { kindColorVar, kindIcon } from '@/components/shared/kindColors';
 
 interface ChoiceCardProps {
     name: string;

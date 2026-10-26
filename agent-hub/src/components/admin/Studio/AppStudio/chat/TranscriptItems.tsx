@@ -1,6 +1,6 @@
 import { AlertTriangle, RotateCcw, X } from 'lucide-react';
 import { friendlyBuilderError } from './builderPaneModel';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 /** A picture in the transcript (`{ kind:'image' }`). */
 export interface TranscriptImage {

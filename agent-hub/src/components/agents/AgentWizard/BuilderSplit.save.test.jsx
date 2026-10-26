@@ -11,12 +11,12 @@ import { screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
-vi.mock('../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}), text: async () => '' })),
     parseSaveError: vi.fn(async () => ({ message: 'save failed' })),
 }));
-vi.mock('../../../api/queries/automation/agentBindings', () => ({
+vi.mock('@/api/queries/automation/agentBindings', () => ({
     useLinkedAutomationIds: () => ({ data: undefined }),
 }));
 vi.mock('../../renderers/MarkdownRenderer', () => ({
@@ -24,8 +24,8 @@ vi.mock('../../renderers/MarkdownRenderer', () => ({
 }));
 
 import { renderWithClient as render } from '@/test/render';
+import { authFetch } from '@/utils/helpers';
 import BuilderSplit from './BuilderSplit';
-import { authFetch } from '../../../utils/helpers';
 
 const DEFAULT_FETCH = authFetch.getMockImplementation();
 afterEach(() => { cleanup(); authFetch.mockImplementation(DEFAULT_FETCH); authFetch.mockClear(); });

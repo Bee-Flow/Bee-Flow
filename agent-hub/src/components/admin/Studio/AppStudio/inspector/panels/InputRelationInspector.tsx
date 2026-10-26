@@ -1,12 +1,12 @@
 import React from 'react';
 import { FieldKeyField, TextField, usePatch, INPUT_CLS } from './kit';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import ExpressionInput from '../logic/ExpressionInput';
 import { registerInspector } from '../registry';
 import useAppTables from '../../bi/useAppTables';
 import { useEditorChrome } from '../../editor/EditorChromeContext';
-import FormField from '../../../../../shared/FormField';
-import Toggle from '../../../../../shared/Toggle';
+import FormField from '@/components/shared/FormField';
+import Toggle from '@/components/shared/Toggle';
 import type { PanelProps } from '../appDefinition';
 
 interface InputRelationProps {

@@ -7,7 +7,7 @@
 import { useCallback } from 'react';
 import { appendKey, appendWildcard, pathKeys } from '@shared/expr/path.mjs';
 import { singularKey } from '@shared/expr/rules.mjs';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useVariablePickerContext } from '../../mapping/VariablePickerContext';
 import { humanizeFieldKey, ruleSentence } from '../displayHelpers';
 import type { FilesInside } from './routeIntentsFiles';

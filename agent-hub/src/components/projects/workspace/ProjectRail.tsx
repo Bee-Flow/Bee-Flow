@@ -6,9 +6,9 @@
 
 import { ArrowLeft, Search } from 'lucide-react';
 import React from 'react';
-import { useProjectMembersQuery, type Project, type ProjectRole } from '../../../api/queries/projects';
-import useTranslation from '../../../hooks/useTranslation';
-import useViewport from '../../../hooks/useViewport';
+import { useProjectMembersQuery, type Project, type ProjectRole } from '@/api/queries/projects';
+import useTranslation from '@/hooks/useTranslation';
+import useViewport from '@/hooks/useViewport';
 import { useProjectLive } from './ProjectLiveContext';
 import ProjectSwitcherMenu from './ProjectSwitcherMenu';
 import { normalizeWorkspaceTab, type WorkspaceTabId } from './types';

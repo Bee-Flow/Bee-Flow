@@ -1,7 +1,7 @@
 import { Search, Sparkles, Bot } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import Modal from '../../../shared/Modal';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export interface QuickSwitcherItem {
     id?: string;

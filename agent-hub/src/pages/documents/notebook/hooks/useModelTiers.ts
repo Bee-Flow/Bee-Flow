@@ -6,8 +6,8 @@
  * generation requests.
  */
 import { useState } from 'react';
-import type { ModelTierMap } from '../../../../api/queries/modelTiers';
-import { useConfigChatModels } from '../../../../api/queries/configModels';
+import type { ModelTierMap } from '@/api/queries/modelTiers';
+import { useConfigChatModels } from '@/api/queries/configModels';
 
 const EMPTY_MODEL_TIERS: ModelTierMap = {};
 

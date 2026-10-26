@@ -2,8 +2,8 @@ import { ChevronLeft, ChevronRight, Loader2, Trash2 } from 'lucide-react';
 import { CHIP_BTN, CHIP_STYLE, LINK_BTN, SUBTLE, windowText } from './rowBrowserModel';
 import type { RowPages } from './useRowPages';
 import type { RowWrites } from './useRowWrites';
-import useTranslation from '../../../../../hooks/useTranslation';
-import ConfirmDialog from '../../../../shared/ConfirmDialog';
+import useTranslation from '@/hooks/useTranslation';
+import ConfirmDialog from '@/components/shared/ConfirmDialog';
 
 /** The error line and the ticked-rows bar. aria-live: a failed save lands here without moving focus. */
 export function RowNotices({ pages, writes, canWrite }: { pages: RowPages; writes: RowWrites; canWrite: boolean }) {

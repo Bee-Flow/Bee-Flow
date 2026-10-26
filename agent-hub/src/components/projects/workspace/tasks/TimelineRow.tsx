@@ -5,8 +5,8 @@
 import React from 'react';
 import { ArrowLeft, ArrowRight, Check, Link2 } from 'lucide-react';
 import { useDraggable } from '@dnd-kit/core';
-import type { ProjectTask } from '../../../../api/queries/projectTasks';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import type { ProjectTask } from '@/api/queries/projectTasks';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { useChatPeople } from '../chat/chatPeople';
 import { monday, rangePlacement, taskRange, type DateMove } from './taskPlanning';
 import { Faces, StatusDot } from './planningParts';

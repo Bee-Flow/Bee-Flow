@@ -1,15 +1,15 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../../shared/Toast', () => {
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/components/shared/Toast', () => {
     const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn() };
     return { default: toast, toast };
 });
 
 import useActionRunner from './useActionRunner';
-import { authFetch } from '../../../../../utils/helpers';
-import toast from '../../../../shared/Toast';
+import { authFetch } from '@/utils/helpers';
+import toast from '@/components/shared/Toast';
 import { asMock } from '@/test/mocks';
 
 // Matches POLL_INTERVAL_MS in actionRunner/core.ts.

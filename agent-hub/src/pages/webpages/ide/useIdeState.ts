@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import scopedStorage from '../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 import type { FileKey } from './ideFiles';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 // Below this container width the 3-pane layout is too cramped, so the chat
 // collapses to a top-bar toggle and the preview takes the full width.

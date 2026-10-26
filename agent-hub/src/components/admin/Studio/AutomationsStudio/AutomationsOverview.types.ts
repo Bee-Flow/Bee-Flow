@@ -1,6 +1,6 @@
 import type { AutomationRecord, RunIdSet, OverviewLane } from './overviewModel';
 import type { AutomationRowProps } from './AutomationRow';
-import type { ProjectContextPillProject } from '../../../chat/ProjectContextPill';
+import type { ProjectContextPillProject } from '@/components/chat/ProjectContextPill';
 import type React from 'react';
 
 /** Builds the props one row, card or tile is given. */

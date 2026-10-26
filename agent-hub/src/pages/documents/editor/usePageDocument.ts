@@ -4,15 +4,15 @@
 // assistant's edits. PageEditor.tsx is the screen around it.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { CollabHandle } from '../../../editor/collab/useCollab';
-import useCollab from '../../../editor/collab/useCollab';
-import useTranslation from '../../../hooks/useTranslation';
-import { projectErrorText } from '../../../components/projects/workspace/projectErrorText';
+import type { CollabHandle } from '@/editor/collab/useCollab';
+import useCollab from '@/editor/collab/useCollab';
+import useTranslation from '@/hooks/useTranslation';
+import { projectErrorText } from '@/components/projects/workspace/projectErrorText';
 import { downloadPdf, fetchRendered, getDocument, updateDocument } from '../documentsApi';
 import type { StudioDocument } from '../documentQueries';
 import useDocumentAutosave from '../useDocumentAutosave';
 import usePageRecovery from './usePageRecovery';
-import { errorMessage } from '../../../utils/caughtError';
+import { errorMessage } from '@/utils/caughtError';
 
 // A page embeds its pictures (the PDF renderer fetches nothing), so each is
 // kept small; the whole page has the store's 512 KB cap. The same cap holds

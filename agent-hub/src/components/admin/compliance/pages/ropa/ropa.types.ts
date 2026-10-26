@@ -1,4 +1,4 @@
-import type { RowLike } from '../../../../shared/DataTable';
+import type { RowLike } from '@/components/shared/DataTable';
 import type { SetHeaderActions } from '../audits/useHeaderPrimary';
 import type { ProjectRecordBody, RopaProjectsBody } from './RopaProjects';
 import type { SccCellProps } from './RopaScc';

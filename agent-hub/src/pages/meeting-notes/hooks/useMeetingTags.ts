@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { useMeetingTagCountsQuery } from '../../../api/queries/meetingLibrary';
+import { useMeetingTagCountsQuery } from '@/api/queries/meetingLibrary';
 
 /** A tag with the number of notes carrying it. */
 interface TagCount {

@@ -3,8 +3,8 @@
 // at the address the run will call.
 import { Plus, X } from 'lucide-react';
 import { useState, type ComponentType, type ReactNode } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import TemplateFieldJs from '../../../mapping/TemplateField';
+import { useTranslation } from '@/hooks/useTranslation';
+import TemplateFieldJs from '@/components/automation/Builder/mapping/TemplateField';
 import AccordionSection from '../../AccordionSection';
 import { FormRow, inputClass } from '../formPrimitives';
 import {

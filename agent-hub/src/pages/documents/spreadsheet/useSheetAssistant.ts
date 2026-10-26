@@ -7,12 +7,12 @@
 // writes the old values back through the normal edit path.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { askSheetAssistant, type AssistantChange, type AssistantTurn } from './sheetAssistantApi';
 import type { SelectionKind } from './sheetModel';
 import type { SheetChartsState } from './useSheetCharts';
 import type { SheetState } from './useSheet';
-import { messageOf } from '../../../utils/caughtError';
+import { messageOf } from '@/utils/caughtError';
 
 const FLASH_MS = 3000;
 const HISTORY_TURNS = 6;

@@ -15,7 +15,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const authFetch = vi.fn();
 
 vi.mock('../DataContext', () => ({ useDataContext: () => ({ appId: 'app_1' }) }));
-vi.mock('../../../../../../utils/helpers', async (importOriginal) => ({
+vi.mock('@/utils/helpers', async (importOriginal) => ({
     ...(await importOriginal()),
     authFetch: (...args) => authFetch(...args),
 }));

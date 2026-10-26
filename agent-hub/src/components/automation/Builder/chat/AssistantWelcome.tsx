@@ -1,6 +1,6 @@
 import { Bell, Code, Eye, Filter, Mail, Repeat, Sparkles, WandSparkles } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { FlowDefinition, FlowStep } from '../flow/types';
 
 interface AssistantWelcomeProps {

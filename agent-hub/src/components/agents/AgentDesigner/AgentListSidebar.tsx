@@ -1,7 +1,7 @@
 // The Agent Designer's left column: the agents, with create / duplicate /
 // delete. Split out of AgentDesigner/index.jsx without a change in behaviour.
-import { useTranslation } from '../../../hooks/useTranslation';
-import { isImageAvatar, resolveAvatarSrc, pickAgentAvatar } from '../../../utils/agentAvatar';
+import { useTranslation } from '@/hooks/useTranslation';
+import { isImageAvatar, resolveAvatarSrc, pickAgentAvatar } from '@/utils/agentAvatar';
 
 export interface DesignerAgent {
     id: string;

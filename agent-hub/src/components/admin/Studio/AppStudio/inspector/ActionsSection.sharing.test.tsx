@@ -7,7 +7,7 @@ import { findNode } from '../state/definitionOps';
 import type { ReactNode } from 'react';
 import { malformed } from '@/test/mocks';
 
-vi.mock('../../../../../hooks/useAutomationApi', () => ({
+vi.mock('@/hooks/useAutomationApi', () => ({
     default: () => ({ listAutomations: vi.fn(async () => ({ automations: [] })) }),
     safeText: vi.fn(async () => ''),
 }));

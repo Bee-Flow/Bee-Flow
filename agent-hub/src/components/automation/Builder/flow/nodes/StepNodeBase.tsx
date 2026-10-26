@@ -7,7 +7,7 @@ import { StepNodeText, StepNodeTile } from './StepNodeFace';
 import { SourcePorts, ToolPort } from './StepNodePorts';
 import { useStepNodeRuntime } from './useStepNodeRuntime';
 import { useZoomLod, LOD_FAR, LOD_NEAR } from '../useZoomLod';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { Binding, NodeStep, StepNodeBaseProps } from './StepNodeBase.types';
 /**
  * Shared chrome for every step-type node — the 240×72 card of the Bee Flow

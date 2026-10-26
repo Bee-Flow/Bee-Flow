@@ -4,7 +4,7 @@ import { nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase, { NodeChip } from './StepNodeBase';
 import IntegrationLogo from './IntegrationLogo';
 import { humanizeToolName } from '../displayHelpers';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { StepNodeProps } from './nodeProps';
 
 /**

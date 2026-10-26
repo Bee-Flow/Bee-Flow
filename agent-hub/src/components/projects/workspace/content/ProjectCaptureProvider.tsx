@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ProjectCaptureContext, resetCaptureArm, useCaptureWorker } from './useProjectMeetingCapture';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { SecondaryButton } from '../workspaceUi';
-import { toast } from '../../../shared/Toast';
+import { toast } from '@/components/shared/Toast';
 
 export default function ProjectCaptureProvider({ children, onNavigate }: { children: React.ReactNode; onNavigate: (page: string) => void }) {
     const { t } = useTranslation();

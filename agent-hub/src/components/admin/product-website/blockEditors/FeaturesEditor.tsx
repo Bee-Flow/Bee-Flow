@@ -5,8 +5,8 @@ import type { BlockEditorProps } from './editorProps';
 import { set, SectionHeaderFields, CardActionFields } from './shared';
 import type { CardActionItem, SectionHeaderData } from './shared';
 import VariantPicker from './VariantPicker';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { MEDIA_HEIGHTS } from '../../../../marketing/blockStyleEnums.generated.mjs';
+import { useTranslation } from '@/hooks/useTranslation';
+import { MEDIA_HEIGHTS } from '@/marketing/blockStyleEnums.generated.mjs';
 
 
 // ── Features ──────────────────────────────────────────────────────────

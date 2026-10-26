@@ -3,7 +3,7 @@ import type { LucideIcon } from 'lucide-react';
 import { tableSourceOf } from './tablesManagerModel';
 import type { ModelTable, TableSource } from './tablesManagerModel';
 import type { ManagerTab } from './useDataModel';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 interface TabBarProps {
     activeTab: ManagerTab;

@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import EN_DEFAULTS from '@/i18n/en-defaults';
+import { STUDIO_GLYPH_ICONS } from '@/utils/integrationLogos';
 import {
     STUDIO_APPS, STUDIO_CATEGORIES, DEFAULT_STUDIO_CATEGORY,
     groupStudioApps, makeCanUse, resolveStudioNav, studioLockHint, createAutomationDraft,
@@ -7,14 +9,12 @@ import {
 import studioGatesSource from './studioGates.ts?raw';
 import studioRegistrySource from './studioRegistry.tsx?raw';
 import studioSectionsSource from './studioSections.ts?raw';
-import EN_DEFAULTS from '../../../i18n/en-defaults';
-import { STUDIO_GLYPH_ICONS } from '../../../utils/integrationLogos';
 import { KIND_KEYS } from '../../shared/kindColors';
 
 // The lazy onCreate callbacks import()` this module at call time; mocking it
 // here means the dynamic import resolves to the mock too.
 const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn() }));
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
 // createFormAutomation import()s the builder's form declaration at call time.
 vi.mock('../../automation/Builder/flow/settings/FormBuilderFields', () => ({
     defaultFormDeclaration: () => ({ title: 'New form', fields: [{ name: 'q1' }] }),
@@ -641,7 +641,7 @@ describe('import discipline', () => {
             ...src.matchAll(/^import\s+['"]([^'"]+)['"]/gm),
         ].map((m) => m[1]);
         expect(specifiers.length).toBeGreaterThan(0);
-        const allowed = new Set(['react', '../../../utils/lazyWithReload', './studioSections']);
+        const allowed = new Set(['react', '@/utils/lazyWithReload', './studioSections']);
         for (const spec of specifiers) {
             expect(allowed.has(spec), `top-level import of "${spec}" would pull it into the main chunk`).toBe(true);
         }

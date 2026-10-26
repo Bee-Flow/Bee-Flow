@@ -14,8 +14,8 @@
  * and to try again later (`rejoin`). Nothing here interrupts typing.
  */
 import { useEffect, useState } from 'react';
-import useCollab, { type CollabHandle } from '../../../../editor/collab/useCollab';
-import { collabIsActive } from '../../../../editor/react/useEditorCollab';
+import useCollab, { type CollabHandle } from '@/editor/collab/useCollab';
+import { collabIsActive } from '@/editor/react/useEditorCollab';
 import type { NotebookSaveMode } from './NotebookSaveStatus';
 
 const SLOW_MS = 8000;

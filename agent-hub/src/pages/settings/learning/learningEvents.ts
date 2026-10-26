@@ -1,4 +1,4 @@
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 // Cross-surface navigation into the Learning Center.
 //
 // The lesson player is mounted at App level and outlives the settings page, so

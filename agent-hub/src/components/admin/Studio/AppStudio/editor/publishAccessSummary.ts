@@ -29,7 +29,7 @@
  * about the tables that stayed silent about those would be a false comfort.
  */
 
-import type { TranslateFn, TranslateParams } from '../../../../../hooks/useTranslation';
+import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
 
 /** How much of a table a role reaches. `create` is a plain boolean instead. */
 type RowScope = 'none' | 'own' | 'all';

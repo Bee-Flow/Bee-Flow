@@ -11,9 +11,9 @@ import {
 import type { SitemapPage, SitemapSite } from './sitemap/sitemapGraph';
 import { EdgePopover, NodeCard, SitemapLegend, SitemapToolbar } from './sitemap/SitemapParts';
 import useSitemapDrag from './sitemap/useSitemapDrag';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { useCmsSitePayload } from '../../../api/queries/cmsSitePayload';
-import { describeError } from '../../../utils/caughtError';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useCmsSitePayload } from '@/api/queries/cmsSitePayload';
+import { describeError } from '@/utils/caughtError';
 
 /**
  * SitemapView — top-down tree of the site's pages.

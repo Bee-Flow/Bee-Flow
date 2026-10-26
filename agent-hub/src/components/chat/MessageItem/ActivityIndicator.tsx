@@ -4,10 +4,10 @@ import {
 } from 'lucide-react';
 import React from 'react';
 import { visibleToolHistory } from './chatToolCallDisplay';
-import type { SkillSummary } from '../../../hooks/useChatEngine/types';
-import useTranslation from '../../../hooks/useTranslation';
-import type { TranslateParams } from '../../../hooks/useTranslation';
-import { getToolLabel, getToolIcon, toolNameToCatalogId } from '../../../utils/helpers';
+import type { SkillSummary } from '@/hooks/useChatEngine/types';
+import useTranslation from '@/hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
+import { getToolLabel, getToolIcon, toolNameToCatalogId } from '@/utils/helpers';
 import AppEmoji from '../../icons/AppEmoji';
 
 export interface ToolRow {

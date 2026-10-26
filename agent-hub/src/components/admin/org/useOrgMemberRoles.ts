@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../utils/helpers';
-import { mutate, ApiError } from '../../../api/mutate';
+import { useTranslation } from '@/hooks/useTranslation';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import { mutate, ApiError } from '@/api/mutate';
 
 /**
  * A role change the server refused with 'confirm_self_demotion': allowed, but

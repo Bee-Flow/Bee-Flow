@@ -49,6 +49,7 @@
     "lint:line-ref-ratchet": "node scripts/count-ratchet.mjs line-ref agent-hub && node scripts/count-ratchet.mjs line-ref server && node scripts/count-ratchet.mjs line-ref mobile",
     "lint:dutch-comment-ratchet": "node scripts/count-ratchet.mjs dutch-comment agent-hub && node scripts/count-ratchet.mjs dutch-comment server",
     "lint:import-zones-ratchet": "node scripts/count-ratchet.mjs import-zones agent-hub",
+    "lint:deep-imports-ratchet": "node scripts/count-ratchet.mjs deep-imports agent-hub",
     "lint:unchecked-mutation-ratchet": "node scripts/count-ratchet.mjs unchecked-mutation agent-hub",
     "lint:source-text": "node scripts/source-text-tests.mjs server --gate",
     "lint:checkjs-ratchet": "node scripts/checkjs-ratchet.mjs server",

@@ -12,16 +12,16 @@ const AUTOMATIONS = [{
     definition: { trigger: { kind: 'app_trigger', params: [{ name: 'email', type: 'string', required: true }, { name: 'amount', type: 'number' }] } },
 }];
 
-vi.mock('../../../../shared/Toast', () => {
+vi.mock('@/components/shared/Toast', () => {
     const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn() };
     return { default: toast, toast };
 });
-import toast from '../../../../shared/Toast';
+import toast from '@/components/shared/Toast';
 import type { ComponentProps } from 'react';
 import { stub } from '@/test/mocks';
 
 import type { AppDefinition } from './appDefinition';
-vi.mock('../../../../../hooks/useAutomationApi', () => ({
+vi.mock('@/hooks/useAutomationApi', () => ({
     default: () => ({
         listAutomations: vi.fn(async () => ({ automations: AUTOMATIONS })),
         createAutomation: vi.fn(async () => ({ automation: { id: 'aut_new', title: 'New automation for this app' } })),

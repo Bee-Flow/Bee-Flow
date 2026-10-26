@@ -1,13 +1,13 @@
 import { CalendarDays, FolderOpen, Mail, Plus, RefreshCw, Search, Workflow, X } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useId } from 'react';
-import type { ScanSourceGroup } from '../../../../../api/queries/automation/repeating';
-import { settingsPathForTab } from '../../../../../authedApp/settingsRoutes';
-import useRelativeTime from '../../../../../hooks/useRelativeTime';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { AppGlyph } from '../../../../automation/Builder/flow/appGlyphs';
-import { CANVAS_BUTTON_PRIMARY, CANVAS_CHIP, EYEBROW } from '../../../../automation/Builder/flow/canvasClasses';
-import MiniNode from '../../../../automation/Builder/flow/MiniNode';
+import type { ScanSourceGroup } from '@/api/queries/automation/repeating';
+import { settingsPathForTab } from '@/authedApp/settingsRoutes';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import { useTranslation } from '@/hooks/useTranslation';
+import { AppGlyph } from '@/components/automation/Builder/flow/appGlyphs';
+import { CANVAS_BUTTON_PRIMARY, CANVAS_CHIP, EYEBROW } from '@/components/automation/Builder/flow/canvasClasses';
+import MiniNode from '@/components/automation/Builder/flow/MiniNode';
 import { groupLabel } from './patternView';
 
 const GROUP_ICON: Readonly<Record<string, ReactNode>> = Object.freeze({

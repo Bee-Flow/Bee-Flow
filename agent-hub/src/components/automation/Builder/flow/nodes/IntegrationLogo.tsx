@@ -1,7 +1,7 @@
 import React from 'react';
-import { getIntegrationGlyph, renderIntegrationGlyph } from '../../../../../utils/integrationGlyphs';
-import { useIntegrationIcon, resolveIntegrationFromTool } from '../../../../../utils/integrationIcons';
-import { getIntegrationLogo } from '../../../../../utils/integrationLogos';
+import { getIntegrationGlyph, renderIntegrationGlyph } from '@/utils/integrationGlyphs';
+import { useIntegrationIcon, resolveIntegrationFromTool } from '@/utils/integrationIcons';
+import { getIntegrationLogo } from '@/utils/integrationLogos';
 
 /**
  * IntegrationLogo

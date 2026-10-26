@@ -2,7 +2,7 @@ import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState, type ComponentType } from 'react';
 import { afterEach, describe, expect, it } from 'vitest';
-import { VariablePickerProvider as ProviderJs } from '../../../mapping/VariablePickerContext';
+import { VariablePickerProvider as ProviderJs } from '@/components/automation/Builder/mapping/VariablePickerContext';
 import FormBuilderFieldsJs from '../FormBuilderFields';
 
 // JavaScript components whose props TypeScript infers from their defaults.

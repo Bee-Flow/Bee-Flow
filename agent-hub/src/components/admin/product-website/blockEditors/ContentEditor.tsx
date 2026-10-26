@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ClipFields } from './ClipFields';
-import { useTranslation, type TranslateParams } from '../../../../hooks/useTranslation';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
 import {
     migrateLegacyContent,
     makeColumn,
@@ -9,10 +9,10 @@ import {
     type ContentData,
     type ContentElement,
     type LegacyContent,
-} from '../../../../marketing/sections/contentMigration';
+} from '@/marketing/sections/contentMigration';
 import type { BlockData } from './shared';
 import type { StyleBlob } from '../primitives.types';
-import useConfirm from '../../../shared/useConfirm';
+import useConfirm from '@/components/shared/useConfirm';
 import { TextField, Toggle, ImageField, RepeatableList, LinkField, FieldRow, inputCls, type CmsPageOption } from '../fields';
 import {
     InlineHint,

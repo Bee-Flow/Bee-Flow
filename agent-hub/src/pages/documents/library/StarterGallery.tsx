@@ -4,8 +4,8 @@
 
 import { BookOpen, FileText, NotebookPen, Plus, Presentation, Sheet } from 'lucide-react';
 import React from 'react';
-import Modal from '../../../components/shared/Modal';
-import useTranslation, { readingLocale } from '../../../hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
+import useTranslation, { readingLocale } from '@/hooks/useTranslation';
 import { useStarters, type Starter } from '../documentQueries';
 
 /** One of the reader's own templates, copied into a new document. */

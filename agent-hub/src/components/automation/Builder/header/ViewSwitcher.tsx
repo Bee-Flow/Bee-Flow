@@ -1,7 +1,7 @@
 import { Check, ChevronDown } from 'lucide-react';
-import useTranslation from '../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import SegmentedControl from '../../../shared/SegmentedControl';
+import useTranslation from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import SegmentedControl from '@/components/shared/SegmentedControl';
 import type { BuilderTab } from '../useBuilderTabUrl';
 import useDismiss from './useDismiss';
 

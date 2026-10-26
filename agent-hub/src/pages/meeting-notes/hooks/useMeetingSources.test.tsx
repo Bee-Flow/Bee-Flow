@@ -1,11 +1,11 @@
 import { waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 import { renderHookWithClient as renderHook } from '@/test/render';
 import useMeetingSources from './useMeetingSources';
-import { authFetch } from '../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 import { asMock } from '@/test/mocks';
 
 const resp = (status: number, body: unknown) => ({ ok: status >= 200 && status < 300, status, json: async () => body });

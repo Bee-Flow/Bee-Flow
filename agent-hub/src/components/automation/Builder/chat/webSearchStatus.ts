@@ -10,7 +10,7 @@
  * 'off' is the user's own choice and needs no reason: the switch stays usable.
  */
 
-import type { BuilderWebSearchStatus } from '../../../../hooks/useAutomationBuilderStream';
+import type { BuilderWebSearchStatus } from '@/hooks/useAutomationBuilderStream';
 
 type Translate = (key: string, fallback: string) => string;
 

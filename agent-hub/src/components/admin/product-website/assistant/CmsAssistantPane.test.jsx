@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 // Tier selection fetches /ai/config/tiers-for-user — stub it out entirely.
-vi.mock('../../../../hooks/useModelTierSelection', () => ({
+vi.mock('@/hooks/useModelTierSelection', () => ({
     default: () => ({ modelTiers: {}, selectedTier: 'auto', setSelectedTier: vi.fn() }),
 }));
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import type { PreviewFn } from '../../../../../../api/queries/automation/tablePreview';
-import { useVariablePickerContext } from '../../../mapping/VariablePickerContext';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { PreviewFn } from '@/api/queries/automation/tablePreview';
+import { useVariablePickerContext } from '@/components/automation/Builder/mapping/VariablePickerContext';
 import AccordionSection from '../../AccordionSection';
 import { hintTextClass, inputClass } from '../formPrimitives';
 import StepField from './StepField';

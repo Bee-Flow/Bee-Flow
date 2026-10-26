@@ -4,8 +4,8 @@
 
 import { AlertTriangle, BookOpen, Link2 } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import { useProjectSection, type ProjectKnowledgeBase } from '../../../../api/queries/projectContent';
-import useTranslation from '../../../../hooks/useTranslation';
+import { useProjectSection, type ProjectKnowledgeBase } from '@/api/queries/projectContent';
+import useTranslation from '@/hooks/useTranslation';
 import { Card, GhostButton, Notice, RemoveButton, SecondaryButton } from '../workspaceUi';
 import { KnowledgeBasePicker } from './pickers';
 import { useRemoveFromProject } from './useContentActions';

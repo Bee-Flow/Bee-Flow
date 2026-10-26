@@ -4,9 +4,9 @@
 import React, { useCallback, useState } from 'react';
 import {
     useCreateTask, useDeleteTask, useUpdateTask, type ProjectTask, type TaskInput, type TaskLink, type TaskPatch,
-} from '../../../../api/queries/projectTasks';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import useConfirm from '../../../shared/useConfirm';
+} from '@/api/queries/projectTasks';
+import { useTranslation } from '@/hooks/useTranslation';
+import useConfirm from '@/components/shared/useConfirm';
 import { projectErrorText } from '../projectErrorText';
 import { canEditProject, type WorkspaceTabId, type WorkspaceTabProps } from '../types';
 import { mayDeleteTask } from './DeleteTaskButton';

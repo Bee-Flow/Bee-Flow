@@ -3,12 +3,12 @@
 // keeps its place when an older page is added above.
 
 import { ArrowDown, Loader2, MessagesSquare } from 'lucide-react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useDeleteTeamChatMessage, useEditTeamChatMessage, useLoadOlderMessages, useTeamChatFeedback, type TeamChatMessage } from '../../../../api/queries/projectChats';
-import { useTeamChatMessages } from '../../../../api/queries/useTeamChatMessages';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { toast } from '../../../shared/Toast';
+import { useDeleteTeamChatMessage, useEditTeamChatMessage, useLoadOlderMessages, useTeamChatFeedback, type TeamChatMessage } from '@/api/queries/projectChats';
+import { useTeamChatMessages } from '@/api/queries/useTeamChatMessages';
+import { useTranslation } from '@/hooks/useTranslation';
+import { toast } from '@/components/shared/Toast';
 import { projectErrorText } from '../projectErrorText';
 import { GhostButton, Notice, Skeleton } from '../workspaceUi';
 import type { MessageContext } from './ChatMessageBubble';

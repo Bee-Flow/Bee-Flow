@@ -3,11 +3,11 @@
 // a number box. Controlled and free of step logic.
 import { getList } from '@shared/expr/path.mjs';
 import { useMemo, type ComponentType } from 'react';
-import { useTranslation, type TranslateFn } from '../../../../../../hooks/useTranslation';
-import type { OnFocusField } from '../../../mapping/focusField.types';
-import PathFieldJs from '../../../mapping/PathField';
-import { collectArrayPaths } from '../../../mapping/upstream';
-import { useVariablePickerContext } from '../../../mapping/VariablePickerContext';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import type { OnFocusField } from '@/components/automation/Builder/mapping/focusField.types';
+import PathFieldJs from '@/components/automation/Builder/mapping/PathField';
+import { collectArrayPaths } from '@/components/automation/Builder/mapping/upstream';
+import { useVariablePickerContext } from '@/components/automation/Builder/mapping/VariablePickerContext';
 import { FormRow, denseInputClass } from '../formPrimitives';
 import type { FieldKind, FieldPathOption } from './reliabilityModel';
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { CodeParam } from '../../../../../../api/queries/automation/codeStep';
-import type { TestCase } from '../../../../../../api/queries/automation/testCases';
+import type { CodeParam } from '@/api/queries/automation/codeStep';
+import type { TestCase } from '@/api/queries/automation/testCases';
 import {
     assertionFromBody,
     assertionProblems,

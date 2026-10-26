@@ -19,11 +19,11 @@ const { api } = vi.hoisted(() => ({
         listFormPages: vi.fn(), createFormPage: vi.fn(), rotateFormPage: vi.fn(),
     },
 }));
-vi.mock('../../../../hooks/useAutomationApi', () => ({ default: () => api }));
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => api }));
 vi.mock('./answers/AnswersDashboard', () => ({
     default: ({ datatableId, grade, mine }: { datatableId?: unknown; grade?: unknown; mine?: unknown }) => <div data-testid="dash-stub" data-table={datatableId} data-grade={grade || ''} data-mine={String(!!mine)} />,
 }));
-vi.mock('../../../automation/Builder/flow/settings/FormBuilderFields', () => ({
+vi.mock('@/components/automation/Builder/flow/settings/FormBuilderFields', () => ({
     default: ({ form, onChange }: { form: { title?: string }; onChange: (...args: unknown[]) => void }) => (
         <div data-testid="builder-stub">
             <input aria-label="Title" value={form.title || ''} onChange={(e) => onChange({ ...form, title: e.target.value })} />

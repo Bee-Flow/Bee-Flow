@@ -1,12 +1,12 @@
 import { Copy, Check, X } from 'lucide-react';
 import React, { useEffect, useId, useRef, useState } from 'react';
 
-import { useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE } from '../../../utils/helpers';
-import { errorBody, mutate, RefusedError } from '../../../api/mutate';
+import { useTranslation } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { errorBody, mutate, RefusedError } from '@/api/mutate';
 import Modal from '../../shared/Modal';
 import { memoryRefusal } from './memoryErrors';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 // The prompt goes to ANOTHER assistant, so it stays English whatever the UI language is.
 const EXPORT_PROMPT = `Export all of my stored memories and any context you've learned about me from past conversations. Preserve my words verbatim where possible, especially for instructions and preferences.

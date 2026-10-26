@@ -1,6 +1,6 @@
 // The error codes a cell can show, in plain words (for the tooltip).
 
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 const KNOWN_ERRORS: Array<[string, string, string]> = [
     ['#DIV/0', 'spreadsheet.error.div0', 'Division by zero.'],

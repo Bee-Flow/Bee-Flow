@@ -1,5 +1,5 @@
 import { Users } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface AutoApproveCardProps {
     autoApprove: boolean;

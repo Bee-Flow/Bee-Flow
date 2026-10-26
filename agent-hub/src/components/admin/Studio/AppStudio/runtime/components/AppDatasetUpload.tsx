@@ -1,8 +1,8 @@
 import { Dna, Loader2, UploadCloud, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../../../utils/helpers';
-import { useStudioLargeDatasets } from '../../../../../../api/queries/studioApps';
+import useTranslation from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { useStudioLargeDatasets } from '@/api/queries/studioApps';
 import { useDataContext } from '../DataContext';
 import { useFormField } from '../formContext';
 import { useRuntime } from '../RuntimeContext';
@@ -10,8 +10,8 @@ import { Field } from '../uiBits';
 import useDatasetUpload from '../useDatasetUpload';
 import useInputChange from '../useInputChange';
 import type { NodeProps } from './appNode.types';
-import { logger } from '../../../../../../utils/logger';
-import { request, errorBody, RefusedError } from '../../../../../../api/mutate';
+import { logger } from '@/utils/logger';
+import { request, errorBody, RefusedError } from '@/api/mutate';
 
 /**
  * App Studio runtime — 'input_dataset'. Spec: server/appStudio/componentSpecs.js.

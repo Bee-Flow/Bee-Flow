@@ -1,8 +1,8 @@
 import { AlertTriangle, AppWindow, Database, Plug, Plus, Trash2, Workflow } from 'lucide-react';
 import { connectorProblem, labelForKind } from './connectorModel';
 import type { Connector, ConnectorGroup, IntegrationCatalog } from './connectorModel';
-import { getIntegrationIcon } from '../../../../../../config/integrationIcons';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import { getIntegrationIcon } from '@/config/integrationIcons';
+import useTranslation from '@/hooks/useTranslation';
 
 interface ConnectorRowProps {
     c: Connector;

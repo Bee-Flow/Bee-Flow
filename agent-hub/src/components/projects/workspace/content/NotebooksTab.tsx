@@ -1,4 +1,4 @@
-import { useNotebookDetail } from '../../../../pages/documents/notebook/notebookQueries';
+import { useNotebookDetail } from '@/pages/documents/notebook/notebookQueries';
 // Notebooks tab of the project workspace: the notebooks filed in the project
 // as a card grid, "New notebook" straight into it, and "Add existing" from
 // the caller's own. A notebook opens in the notebook editor itself.
@@ -13,12 +13,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import React, { lazy, Suspense, useMemo, useState } from 'react';
 import {
     useCreateProjectNotebook, useProjectSection, type ProjectNotebook,
-} from '../../../../api/queries/projectContent';
-import { projectKeys } from '../../../../api/queries/projects';
-import useTranslation from '../../../../hooks/useTranslation';
+} from '@/api/queries/projectContent';
+import { projectKeys } from '@/api/queries/projects';
+import useTranslation from '@/hooks/useTranslation';
 import { projectErrorText } from '../projectErrorText';
 import SectionToolbar from '../SectionToolbar';
-import EmptyState from '../../../shared/EmptyState';
+import EmptyState from '@/components/shared/EmptyState';
 import { GhostButton, Notice, PrimaryButton, ViewerNote, SecondaryButton, Skeleton, WorkspaceColumn } from '../workspaceUi';
 import NewItemDialog, { type NewItemValues } from './NewItemDialog';
 import { NotebookPicker } from './pickers';
@@ -27,7 +27,7 @@ import { useMarkSeenWhenOpen, useProjectUnread } from '../useProjectUnread';
 import { canEditContent, canRemoveItem, type ContentTabProps } from './types';
 import { useMemberNames, useRemoveFromProject } from './useContentActions';
 
-const NotebookDetail = lazy(() => import('../../../../pages/documents/notebook/detail/NotebookDetail'));
+const NotebookDetail = lazy(() => import('@/pages/documents/notebook/detail/NotebookDetail'));
 
 /** One notebook, full width inside the project, with its own Back to the grid. */
 function NotebookPane({ projectId, notebookId, currentUser, onOpenSub }: {

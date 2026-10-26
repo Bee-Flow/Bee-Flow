@@ -5,8 +5,8 @@ import { LogOut } from 'lucide-react';
 import React from 'react';
 import {
     useDeleteProject, useProjectMembersQuery, useRemoveMember, type Project, type ProjectRole,
-} from '../../../api/queries/projects';
-import useTranslation from '../../../hooks/useTranslation';
+} from '@/api/queries/projects';
+import useTranslation from '@/hooks/useTranslation';
 import useConfirm from '../../shared/useConfirm';
 import { projectErrorText } from './projectErrorText';
 import { DangerZone } from './studioParts';

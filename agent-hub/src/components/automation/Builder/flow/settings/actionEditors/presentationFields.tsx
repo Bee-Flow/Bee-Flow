@@ -1,11 +1,11 @@
 // The presentation editor: slides in, a PowerPoint or PDF deck out — the
 // slide source, the file, and the deck's look.
 import { Plus, Trash2 } from 'lucide-react';
-import TemplateField from '../../../mapping/TemplateField';
+import TemplateField from '@/components/automation/Builder/mapping/TemplateField';
 import AccordionSection from '../../AccordionSection';
 import { FormRow, inputClass } from '../formPrimitives';
-import { TranslateParams, useTranslation } from '../../../../../../hooks/useTranslation';
-import type { OnFocusField } from '../../../mapping/focusField.types';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import type { OnFocusField } from '@/components/automation/Builder/mapping/focusField.types';
 import type { StepEditorProps } from '../collectionEditors';
 import { FormRecord } from '../formState/types';
 

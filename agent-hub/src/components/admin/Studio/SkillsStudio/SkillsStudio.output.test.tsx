@@ -18,7 +18,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
  *      "Element type is invalid" on the section's MAIN tab.
  */
 
-afterEach(() => { cleanup(); vi.resetModules(); vi.doUnmock('../../../automation/Builder/flow/settings/aiStepEditors'); });
+afterEach(() => { cleanup(); vi.resetModules(); vi.doUnmock('@/components/automation/Builder/flow/settings/aiStepEditors'); });
 
 const SCHEMA = {
     type: 'object',
@@ -32,7 +32,7 @@ const SCHEMA = {
 
 async function loadCard({ withEditor }: { withEditor?: unknown }) {
     vi.resetModules();
-    vi.doMock('../../../automation/Builder/flow/settings/aiStepEditors', () => (withEditor
+    vi.doMock('@/components/automation/Builder/flow/settings/aiStepEditors', () => (withEditor
         ? {
             StructuredOutputFields: ({ fields, onChange }: { fields?: unknown[]; onChange: (...args: unknown[]) => void }) => (
                 <button type="button" data-testid="rows" onClick={() => onChange([])}>
@@ -111,8 +111,8 @@ describe('the "Delivers" card', () => {
      */
     it('follows the REAL aiStepEditors module, which every mocked test above is blind to', async () => {
         vi.resetModules();
-        vi.doUnmock('../../../automation/Builder/flow/settings/aiStepEditors');
-        const real = await import('../../../automation/Builder/flow/settings/aiStepEditors');
+        vi.doUnmock('@/components/automation/Builder/flow/settings/aiStepEditors');
+        const real = await import('@/components/automation/Builder/flow/settings/aiStepEditors');
         const Card = (await import('./OutputFieldsCard')).default;
         const onChange = vi.fn();
         render(<Card outputSchema={SCHEMA} onChange={onChange} />);

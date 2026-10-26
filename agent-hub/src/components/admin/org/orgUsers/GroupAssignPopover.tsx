@@ -1,5 +1,5 @@
 import { Check, Plus, Search, UserPlus } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { OrgGroupRow } from '../useOrgDirectory';
 import type { OrgGroups } from '../useOrgGroups';
 

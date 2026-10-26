@@ -6,9 +6,9 @@ import OrgShieldEditor from './orgShield/OrgShieldEditor';
 import HealthBanner from './overview/HealthBanner';
 import StatStrip from './overview/StatStrip';
 import PatternsView from './patterns/PatternsView';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import Spinner from '../../../shared/Spinner';
-import Tabs from '../../../shared/Tabs';
+import { useTranslation } from '@/hooks/useTranslation';
+import Spinner from '@/components/shared/Spinner';
+import Tabs from '@/components/shared/Tabs';
 
 /**
  * Guardrail Configs — the server-operator console.

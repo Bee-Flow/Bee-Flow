@@ -1,8 +1,8 @@
 // The http_request editor: the call itself (URL, method, credential, headers,
 // body), its options, and the two Advanced ticks about not calling twice.
 import { Plus, X } from 'lucide-react';
-import { TranslateParams, useTranslation } from '../../../../../../hooks/useTranslation';
-import TemplateField from '../../../mapping/TemplateField';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import TemplateField from '@/components/automation/Builder/mapping/TemplateField';
 import AccordionSection from '../../AccordionSection';
 import { ForEachSection, RetrySection, retryIsSet, type StepEditorProps } from '../collectionEditors';
 import { FormRow, inputClass } from '../formPrimitives';

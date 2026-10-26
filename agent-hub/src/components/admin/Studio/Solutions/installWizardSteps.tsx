@@ -1,9 +1,9 @@
 import { AlertTriangle, CheckCircle2, HelpCircle } from 'lucide-react';
 import React, { useMemo } from 'react';
 import { addressOf, CREATE_EMPTY, type BlueprintReadOk, type GrantRow, type SourceClaim as SourceClaimData, type StepAddress, type TableRequirement } from './installRequirements';
-import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { nOf } from '../KnowledgeStudio/plural';
-import type { Catalog, CatalogDatatable } from '../../../automation/Builder/mapping/upstream/upstream.types';
+import type { Catalog, CatalogDatatable } from '@/components/automation/Builder/mapping/upstream/upstream.types';
 import type { WaitlistUser } from '../../subscriptions/access/useSignupSettings';
 import type { RowProps, TableRowsProps, ConnectionRowsProps, ApproverRowsProps, GrantRowsProps, InstallChoices, ConnectStepProps, InstallReport, InstallPayload, ResultStepProps } from './installWizardSteps.types';
 import { ListStatus, selectCls, selectStyle } from './AccessStep';

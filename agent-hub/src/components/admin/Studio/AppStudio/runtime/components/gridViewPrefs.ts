@@ -1,4 +1,4 @@
-import { logger } from '../../../../../../utils/logger';
+import { logger } from '@/utils/logger';
 /**
  * Per-viewer display preferences for a data_grid.
  *

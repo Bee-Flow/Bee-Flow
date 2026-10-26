@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import Modal from '../../../shared/Modal';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
 import type { AdminPermission, RoleFormData } from './types';
 
 const PERMISSION_GROUPS = [

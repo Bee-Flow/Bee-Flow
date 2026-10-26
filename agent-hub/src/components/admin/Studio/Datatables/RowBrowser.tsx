@@ -10,7 +10,7 @@ import RowsTable from './rowBrowser/RowsTable';
 import RowToolbar from './rowBrowser/RowToolbar';
 import { useRowPages } from './rowBrowser/useRowPages';
 import { useRowWrites } from './rowBrowser/useRowWrites';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 /**
  * The rows, as they actually are — and editable (Datatables artboard 1e).

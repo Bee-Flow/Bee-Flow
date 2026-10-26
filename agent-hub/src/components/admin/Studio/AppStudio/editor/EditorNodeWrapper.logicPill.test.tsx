@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 // The pill asks for the automation's own name; the shared cache behind it is
 // the only network this file touches, and it is stubbed per test.
 const listAutomations = vi.fn();
-vi.mock('../../../../../hooks/useAutomationApi', () => ({
+vi.mock('@/hooks/useAutomationApi', () => ({
     default: () => ({ listAutomations }),
 }));
 

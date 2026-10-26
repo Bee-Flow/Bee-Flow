@@ -1,6 +1,6 @@
 import { Bot, MessageSquare, User } from 'lucide-react';
 import type { SnapshotMessage } from './feedbackModel';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { COLORS, fmtTime } from '../shared';
 import { MarkdownRenderer } from '../sharedTyped';
 

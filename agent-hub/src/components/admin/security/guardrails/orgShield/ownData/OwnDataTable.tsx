@@ -1,6 +1,6 @@
 import React from 'react';
 
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { SWITCH_COLS } from './OwnDataRow';
 
 /**

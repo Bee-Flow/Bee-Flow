@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useEffectEvent } from 'react';
-import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE } from '../../../utils/helpers';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
 import useConfirm from '../../shared/useConfirm';
-import { request, RefusedError, mutate, errorBody } from '../../../api/mutate';
+import { request, RefusedError, mutate, errorBody } from '@/api/mutate';
 
 interface OrgTier {
     id: string;

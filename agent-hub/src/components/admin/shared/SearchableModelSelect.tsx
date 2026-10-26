@@ -19,10 +19,10 @@
 
 import React, { useState, useId, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { getModelMeta, getModelDisplayName, getModelFamily } from '../../../api/modelMeta';
-import type { ModelEntry } from '../../../api/modelMeta';
+import { getModelMeta, getModelDisplayName, getModelFamily } from '@/api/modelMeta';
+import type { ModelEntry } from '@/api/modelMeta';
 import Modal from '../../shared/Modal';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface SelectableModel extends ModelEntry {
     providerId?: string;

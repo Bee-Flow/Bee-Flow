@@ -1,7 +1,7 @@
 import { OctagonAlert } from 'lucide-react';
 import React from 'react';
 
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * The load failed, so every field would hold a constructor default, not this

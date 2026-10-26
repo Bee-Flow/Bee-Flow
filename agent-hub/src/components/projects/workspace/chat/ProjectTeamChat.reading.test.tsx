@@ -14,11 +14,11 @@ import {
 } from './teamChatTestKit';
 
 const { fetchMock, stream } = vi.hoisted(() => ({ fetchMock: vi.fn(), stream: { onEvent: null } as StreamHolder }));
-vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
-vi.mock('../../../../hooks/useProjectStream', () => ({
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
+vi.mock('@/hooks/useProjectStream', () => ({
     default: (opts: { onEvent: StreamHolder['onEvent'] }) => { stream.onEvent = opts.onEvent; },
 }));
-vi.mock('../../../renderers/MarkdownRenderer', () => ({
+vi.mock('@/components/renderers/MarkdownRenderer', () => ({
     default: ({ content }: { content: string }) => <div data-testid="markdown">{content}</div>,
 }));
 

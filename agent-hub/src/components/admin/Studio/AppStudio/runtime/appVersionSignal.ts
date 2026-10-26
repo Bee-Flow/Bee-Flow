@@ -1,4 +1,4 @@
-import { logger } from '../../../../../utils/logger';
+import { logger } from '@/utils/logger';
 /**
  * A one-way signal: "the server just told us which published version it is
  * serving".

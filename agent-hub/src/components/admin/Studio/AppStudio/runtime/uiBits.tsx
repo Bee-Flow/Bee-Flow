@@ -1,8 +1,8 @@
 import { useRef } from 'react';
 import type React from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
-import Illustration from '../../../../shared/illustrations';
-import type { IllustrationName } from '../../../../shared/illustrations';
+import useTranslation from '@/hooks/useTranslation';
+import Illustration from '@/components/shared/illustrations';
+import type { IllustrationName } from '@/components/shared/illustrations';
 
 /**
  * App Studio runtime — tiny shared visual primitives for the 19 components.

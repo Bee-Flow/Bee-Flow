@@ -4,11 +4,11 @@
  * headings and lists). A failure is reported to the page's notice.
  */
 import { useCallback, useRef, type ChangeEvent, type MutableRefObject } from 'react';
-import { API_BASE } from '../../../../utils/helpers';
-import useTranslation from '../../../../hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import useTranslation from '@/hooks/useTranslation';
 import type { NotebookEditorHandle } from './editorHandle';
-import { errorMessage } from '../../../../utils/caughtError';
-import { mutate, errorBody, RefusedError } from '../../../../api/mutate';
+import { errorMessage } from '@/utils/caughtError';
+import { mutate, errorBody, RefusedError } from '@/api/mutate';
 
 export function useImportFile(notebookId: string, editorRef: MutableRefObject<NotebookEditorHandle | null>, onError: (message: string) => void) {
     const { t } = useTranslation();

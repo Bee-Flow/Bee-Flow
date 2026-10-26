@@ -1,5 +1,5 @@
 import type { CmsSiteDoc } from './cmsPanelTypes';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import BlogInspector from '../blog/BlogInspector';
 import type { BlogSettings } from '../blog/BlogInspector';
 import BlogPostList from '../blog/BlogPostList';

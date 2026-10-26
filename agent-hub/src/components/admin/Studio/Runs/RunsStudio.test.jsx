@@ -13,8 +13,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 const apiMock = vi.hoisted(() => ({}));
 const panelProps = vi.hoisted(() => ({ current: [] }));
 
-vi.mock('../../../../hooks/useAutomationApi', () => ({ default: () => apiMock }));
-vi.mock('../../../../hooks/useTranslation', () => ({
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => apiMock }));
+vi.mock('@/hooks/useTranslation', () => ({
     useTranslation: () => ({ t: (key, fallback, params) => interpolate(fallback ?? key, params), locale: 'en' }),
 }));
 const interpolate = (s, params) => String(s).replace(/\{(\w+)\}/g, (m, k) => (params && k in params ? String(params[k]) : m));

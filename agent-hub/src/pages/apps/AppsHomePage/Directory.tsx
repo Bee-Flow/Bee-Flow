@@ -1,6 +1,6 @@
 import { ChevronRight } from 'lucide-react';
-import AppIcon from '../../../components/icons/AppIcon';
-import useTranslation from '../../../hooks/useTranslation';
+import AppIcon from '@/components/icons/AppIcon';
+import useTranslation from '@/hooks/useTranslation';
 import type { AppCardProps, SectionLabelProps, DirectoryProps } from '../AppsHomePage.types';
 import { CATEGORY_LABELS, CARD_CLASSES, CARD_STYLE, GRID_CLASSES, DESC_CLASSES } from './AppsHomePage.constants';
 import { accentTile, appCategory, isNewlyPublished } from './AppsHomePage.helpers';

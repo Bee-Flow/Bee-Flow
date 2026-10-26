@@ -2,10 +2,10 @@ import { Plus, X } from 'lucide-react';
 import React, { useMemo } from 'react';
 import FormulaField from './FormulaField';
 import StudioScopeProvider, { valueGroup } from './StudioScopeProvider';
-import IconButton from '../../../../../shared/IconButton';
+import IconButton from '@/components/shared/IconButton';
 import { INPUT_CLS } from '../panels/kit';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { AppDefinition, AppNode, ValidationRule } from '../appDefinition';
 
 /**

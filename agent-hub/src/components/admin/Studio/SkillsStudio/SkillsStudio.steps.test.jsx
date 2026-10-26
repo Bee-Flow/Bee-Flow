@@ -17,7 +17,7 @@ import SkillStepEditor from './SkillStepEditor';
  *   - a read-only viewer gets no affordance at all — not a disabled one.
  */
 
-vi.mock('../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(async () => ({ ok: true, status: 200, json: async () => ({}) })),
 }));

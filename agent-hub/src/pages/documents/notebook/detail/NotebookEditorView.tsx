@@ -11,12 +11,12 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState , useLayoutEffect } from 'react';
 import { BookOpen, History, ListTree, MessagesSquare } from 'lucide-react';
-import RichTextEditorJs from '../../../../editor/react/RichTextEditor.jsx';
-import CollabPresence from '../../../../editor/react/CollabPresence';
-import VersionHistoryPanel from '../../../../components/versions/VersionHistoryPanel';
-import CommentsPanel from '../../../../components/comments/CommentsPanel';
-import useTranslation from '../../../../hooks/useTranslation';
-import useRelativeTime from '../../../../hooks/useRelativeTime';
+import RichTextEditorJs from '@/editor/react/RichTextEditor.jsx';
+import CollabPresence from '@/editor/react/CollabPresence';
+import VersionHistoryPanel from '@/components/versions/VersionHistoryPanel';
+import CommentsPanel from '@/components/comments/CommentsPanel';
+import useTranslation from '@/hooks/useTranslation';
+import useRelativeTime from '@/hooks/useRelativeTime';
 import useModelTiers from '../hooks/useModelTiers';
 import useExportTargets from '../hooks/useExportTargets';
 import useSourcesPolling, { type NotebookSource } from '../hooks/useSourcesPolling';
@@ -38,8 +38,8 @@ import useAiFill from './useAiFill';
 import { isEmptyDocument, useMarkNotebookSeen, useNotebookShortcuts } from './notebookBehaviour';
 import { useImportFile } from './useImportFile';
 import type { NotebookEditorHandle } from './editorHandle';
-import { errorMessage } from '../../../../utils/caughtError';
-import { logger } from '../../../../utils/logger';
+import { errorMessage } from '@/utils/caughtError';
+import { logger } from '@/utils/logger';
 
 export interface NotebookEditorViewProps {
     data: NotebookDetailData;

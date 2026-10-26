@@ -22,14 +22,14 @@ import PublishModal from './PublishModal';
 import { toSaveNotices } from './saveNotices';
 import type { SavePayload } from './saveNotices';
 import { SaveStatusChip as SaveStatusChipJs } from './SaveStatusPill';
-import IconButton from '../../../../shared/IconButton';
-import { managedOf, managedRefusalOf } from '../../../../shared/managedPart';
-import type { ManagedBannerInfo } from '../../../../shared/managedPart';
-import ManagedPartBanner from '../../../../shared/ManagedPartBanner';
+import IconButton from '@/components/shared/IconButton';
+import { managedOf, managedRefusalOf } from '@/components/shared/managedPart';
+import type { ManagedBannerInfo } from '@/components/shared/managedPart';
+import ManagedPartBanner from '@/components/shared/ManagedPartBanner';
 import type { AppDefinition } from '../inspector/appDefinition';
 import { useAppEditorState } from '../state/appEditorState';
 import { listDefinitionRoles } from '../state/definitionOps';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 export { PANEL_VIEWS };
 

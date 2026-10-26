@@ -3,7 +3,7 @@ import type { Node } from '@xyflow/react';
 import { Layers } from 'lucide-react';
 import React from 'react';
 
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import FloatingValidationPill from '../FloatingValidationPill';
 import ArrangeMenu from './ArrangeMenu';
 import CanvasLegend, { LegendToggle } from './CanvasLegend';

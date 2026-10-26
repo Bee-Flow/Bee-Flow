@@ -1,9 +1,9 @@
 import React, { useRef, useState } from 'react';
 import { Upload, Loader2 } from 'lucide-react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import CaptureControls from './CaptureControls';
 import { useRecorder } from '../hooks/RecorderContext';
-import { errorMessage, errorCode as caughtErrorCode } from '../../../utils/caughtError';
+import { errorMessage, errorCode as caughtErrorCode } from '@/utils/caughtError';
 
 export default function UploadPanel({ onComplete }: { onComplete?: () => void }) {
     const { t } = useTranslation();

@@ -1,7 +1,7 @@
 import { newFieldId, slugifyKey } from './TableDesigner';
 import type { ModelTable } from './tablesManagerModel';
 import type { Connector } from '../bi/connectors/connectorModel';
-import type { TranslateFn, TranslateParams } from '../../../../../hooks/useTranslation';
+import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
 
 /** t() when the caller has one, the English default otherwise (tests, non-React callers). */
 const tr = (t: TranslateFn, key: string, en: string, params?: TranslateParams) => (t

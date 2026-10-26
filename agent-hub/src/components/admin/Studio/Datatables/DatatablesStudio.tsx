@@ -4,13 +4,13 @@ import DatatableCard from './DatatableCard';
 import DatatableDetail from './DatatableDetail';
 import { datatablesApi } from './datatablesApi';
 import NewDatatableDialog from './NewDatatableDialog';
-import useTranslation from '../../../../hooks/useTranslation';
-import EmptyState from '../../../shared/EmptyState';
-import { kindIcon, kindTileStyle } from '../../../shared/kindColors';
-import StudioSectionHeader, { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
-import type { TranslateParams } from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
+import EmptyState from '@/components/shared/EmptyState';
+import { kindIcon, kindTileStyle } from '@/components/shared/kindColors';
+import StudioSectionHeader, { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { DtTable } from './rowBrowser/rowBrowserModel';
-import type { PermissionUser } from '../../../../hooks/usePermissionCheck';
+import type { PermissionUser } from '@/hooks/usePermissionCheck';
 import type { ConnectionOption } from '../Solutions/pipeline/settings/stageSettingsApi';
 
 /**

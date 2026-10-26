@@ -3,7 +3,7 @@ import {
     type LucideIcon,
 } from 'lucide-react';
 
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { reviewCopy, reviewHeading, settingName } from './overviewCopy';
 import type { GoTo, PostureRow, Tone } from './types';
 

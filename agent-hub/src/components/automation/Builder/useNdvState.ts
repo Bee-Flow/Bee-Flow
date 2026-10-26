@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import scopedStorage from '../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 import { densityForOpen } from './flow/settings/formDensity';
 import useFormModePreference from './flow/settings/useFormModePreference';
 

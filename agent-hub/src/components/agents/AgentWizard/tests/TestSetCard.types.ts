@@ -1,6 +1,6 @@
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { Refusal, RunSummary, RunProgress, TestItem, AgentTest, TestRun } from './testSetFacts';
-import type { RelativeTimeInput } from '../../../../hooks/useRelativeTime';
+import type { RelativeTimeInput } from '@/hooks/useRelativeTime';
 import type React from 'react';
 
 export interface StatusDotProps {

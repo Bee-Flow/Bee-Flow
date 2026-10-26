@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { ScenarioItem } from '../../../../api/queries/automation/runChecks';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { ScenarioItem } from '@/api/queries/automation/runChecks';
 import {
     useDeleteFormScenario, useDryRunFormScenario, useFormScenarios, useRenameFormScenario,
-} from '../../../../api/queries/automation/runChecks';
+} from '@/api/queries/automation/runChecks';
 import HelpPopover from './HelpPopover';
 import { scenarioErrorText } from './runChecksErrors';
 import { PRIMARY_BTN, SECONDARY_BTN, TEXT_INPUT } from './runChecksStyles';

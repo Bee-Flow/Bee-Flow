@@ -1,6 +1,6 @@
 import { Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { useRuntime } from '../RuntimeContext';
 import { EmptyText, INPUT_CLASS, inputStyle } from '../uiBits';
 import type { NodeProps } from './appNode.types';

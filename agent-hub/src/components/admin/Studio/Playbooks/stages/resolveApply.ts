@@ -1,4 +1,4 @@
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { ResolveCall, ResolvePlan } from './compliance.types';
 /**
  * Applying an approved fix — pure, so the order and the failure behaviour are

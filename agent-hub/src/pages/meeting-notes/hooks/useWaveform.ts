@@ -1,6 +1,6 @@
 import { SetStateAction, useEffect, useState } from 'react';
-import { logger } from '../../../utils/logger';
-import { request, RefusedError } from '../../../api/mutate';
+import { logger } from '@/utils/logger';
+import { request, RefusedError } from '@/api/mutate';
 
 /**
  * Full-audio blobs are heavy (a 100-min recording is tens of MB); keep only

@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '../../../shared/DataTable';
-import EmptyState from '../../../shared/EmptyState';
+import { useTranslation } from '@/hooks/useTranslation';
+import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '@/components/shared/DataTable';
+import EmptyState from '@/components/shared/EmptyState';
 import useDrawerMode from '../shared/useDrawerMode';
 import { Intro, RegisterLayout } from './audits/auditForms';
 import DpiaDrawer, { DpiaPill, DPIA_DRAWER_WIDTH } from './dpia/DpiaDrawer';
 import type { DpiaRecord, DpiaRow } from './dpia/DpiaDrawer';
-import type { RowLike } from '../../../shared/DataTable';
+import type { RowLike } from '@/components/shared/DataTable';
 
 export { defaultExpiry } from './dpia/DpiaDrawer';
 

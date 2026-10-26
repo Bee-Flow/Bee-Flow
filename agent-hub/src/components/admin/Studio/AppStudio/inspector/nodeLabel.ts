@@ -1,4 +1,4 @@
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { AppNode } from './appDefinition';
 import { getComponentEntry } from '../runtime/componentRegistry';
 

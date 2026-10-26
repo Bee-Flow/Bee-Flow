@@ -1,9 +1,9 @@
 import { AlertTriangle, CheckCircle2, ChevronDown, ExternalLink, Loader2, RefreshCw, ScaleIcon, ShieldCheck } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { API_BASE } from '../../../../../utils/helpers';
+import { API_BASE } from '@/utils/helpers';
 import StageShell from './StageShell';
-import { TONES } from '../../../../shared/statusTone';
-import useAutomationApi from '../../../../../hooks/useAutomationApi';
+import { TONES } from '@/components/shared/statusTone';
+import useAutomationApi from '@/hooks/useAutomationApi';
 import { studioAppsApi } from '../../AppStudio/studioAppsApi';
 import { playbooksApi } from '../playbooksApi';
 import { CENTER_PATH, groupFindings, methodLine, verdictOf, writtenWords, type ComplianceArtifacts } from './complianceView';
@@ -11,9 +11,9 @@ import FindingRow from './FindingRow';
 import RegisterPanel from './RegisterPanel';
 import { applyResolvePlan, resolveSummary } from './resolveApply';
 import type { Finding, ResolvePlan } from './compliance.types';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { Phase, PlaybookEvent, PlaybookLike } from '../phaseMachine';
-import { request, errorBody, RefusedError } from '../../../../../api/mutate';
+import { request, errorBody, RefusedError } from '@/api/mutate';
 
 /** One write, at the endpoint that owns it. Throws with the status on it. */
 async function put(path: string, body: unknown, method: string = 'PUT') {

@@ -2,7 +2,7 @@ import { ChevronUp, ListTodo } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import BuilderPlanChecklist from './BuilderPlanChecklist';
 import type { PlanTodo } from './BuilderPlanChecklist';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 interface Props {
     todos?: PlanTodo[] | null;

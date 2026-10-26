@@ -16,8 +16,8 @@
 //     kept as a version when it still is), never left to a reload.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { CollabHandle } from '../../../editor/collab/useCollab';
-import useTranslation from '../../../hooks/useTranslation';
+import type { CollabHandle } from '@/editor/collab/useCollab';
+import useTranslation from '@/hooks/useTranslation';
 import { readDraft, type Draft } from '../useDocumentAutosave';
 
 interface PageRecoveryOptions {

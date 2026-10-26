@@ -2,7 +2,7 @@ import React from 'react';
 import type { CSSProperties } from 'react';
 import { StepIcon } from '../stepIcons';
 import { describeStepResult } from '../stepResultChip';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { NodeRunStep } from './nodeProps';
 import type { CardText } from './StepNodeBase.types';
 

@@ -2,11 +2,11 @@ import { X, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import FormSaveScenario from './FormSaveScenario';
 import FormScenarioPicker from './FormScenarioPicker';
-import apiClient from '../../../api/client';
-import { useTranslation, type TranslateParams } from '../../../hooks/useTranslation';
+import apiClient from '@/api/client';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
 import PublicFormRenderer from '../../forms/PublicFormRenderer';
 import type { FormDef, FormFieldDef } from '../../forms/PublicFormRenderer.types';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 function headerTitle(t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string, attached: boolean, hasStep: boolean) {
     if (attached) return t('automations.form_run_overlay.live_run_title', 'Live run — this page is waiting for you');

@@ -1,10 +1,10 @@
 import React, { type Dispatch, type SetStateAction } from 'react';
 import { Mail, Send, Loader, FileText, X, ExternalLink } from 'lucide-react';
-import { API_BASE, authFetch } from '../../../utils/helpers';
-import type { DraftStatusMap } from '../../../hooks/useDraftAction';
-import useTranslation from '../../../hooks/useTranslation';
-import { errorMessage } from '../../../utils/caughtError';
-import { logger } from '../../../utils/logger';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import type { DraftStatusMap } from '@/hooks/useDraftAction';
+import useTranslation from '@/hooks/useTranslation';
+import { errorMessage } from '@/utils/caughtError';
+import { logger } from '@/utils/logger';
 
 interface EmailDraft {
     to?: string;

@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Info } from 'lucide-react';
-import useOutsideDismiss from '../../../../hooks/useOutsideDismiss';
-import MarkdownRenderer from '../../../renderers/MarkdownRenderer';
+import useOutsideDismiss from '@/hooks/useOutsideDismiss';
+import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
 
 /**
  * Compact "what this automation does" affordance for the header title row: an

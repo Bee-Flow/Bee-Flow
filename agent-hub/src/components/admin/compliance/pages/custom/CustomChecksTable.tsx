@@ -1,13 +1,13 @@
 import { PenLine, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation, type TranslateParams } from '../../../../../hooks/useTranslation';
-import DataTable, { TableRow, TableCell } from '../../../../shared/DataTable';
-import EmptyState from '../../../../shared/EmptyState';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import DataTable, { TableRow, TableCell } from '@/components/shared/DataTable';
+import EmptyState from '@/components/shared/EmptyState';
 import { REGULATION_LABEL, formatRef, regulationLabel } from '../../shared/ArticleRef';
 import SeverityTag from '../../shared/SeverityTag';
 import StatusPill from '../../shared/StatusPill';
 import VerificationChip from '../../shared/VerificationChip';
-import type { Tone } from '../../../../shared/statusTone';
+import type { Tone } from '@/components/shared/statusTone';
 
 type Translate = (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
 

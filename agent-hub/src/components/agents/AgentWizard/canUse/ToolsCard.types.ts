@@ -1,4 +1,4 @@
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { ReadState } from '../agentEditor.types';
 import type { ToolApp } from './toolCatalogTypes';
 import type { chooserRequest } from './toolChooser';

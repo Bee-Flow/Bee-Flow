@@ -2,7 +2,7 @@ import { parseExpr } from '@shared/expr/engine.mjs';
 import { validateRowFilterExpr } from './rowFilterSubset';
 import type { ExprNode } from './rowFilterSubset';
 import type { AccessEntry, AccessOutcomeArgs, ParsedRowRule, RowRule, RuleCondition, RuleField, RuleTable } from './rowRuleModel.types';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { SYSTEM_FIELDS, COMPARE_SOURCES, SOURCE_LABEL, BASE_SCOPES, ACCESS_MODES, ACTIONS, OPS_BY_KIND, OP_LABELS, DATE_OP_LABELS, CMP, CANON, MIRROR, NOT_PICKABLE } from './rowRuleModel.constants';
 import { tr, normalizePerm, defaultPerm, serializeValue, flattenLogic, readPath, readLiteral, describeWrites, describeNoRows } from './rowRuleModel.helpers';
 ;

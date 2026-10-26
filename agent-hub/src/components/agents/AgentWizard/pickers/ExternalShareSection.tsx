@@ -15,14 +15,14 @@
 import { ExternalLink, Globe, Lock, Mail, Copy, Check, Trash2, Plus, RefreshCw } from 'lucide-react';
 import React, { useCallback, useMemo, useState } from 'react';
 import type { FocusEvent } from 'react';
-import { errorMessage } from '../../../../utils/caughtError';
-import { copyText } from '../../../../utils/copyText';
-import { API_BASE } from '../../../../utils/helpers';
-import { mutate } from '../../../../api/mutate';
-import { useWebpagePublicShares } from '../../../../api/queries/webpageShares';
-import useConfirm from '../../../shared/useConfirm';
-import { TranslateParams, useTranslation } from '../../../../hooks/useTranslation';
-import { logger } from '../../../../utils/logger';
+import { errorMessage } from '@/utils/caughtError';
+import { copyText } from '@/utils/copyText';
+import { API_BASE } from '@/utils/helpers';
+import { mutate } from '@/api/mutate';
+import { useWebpagePublicShares } from '@/api/queries/webpageShares';
+import useConfirm from '@/components/shared/useConfirm';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import { logger } from '@/utils/logger';
 
 type AccessMode = 'unlisted' | 'password' | 'email';
 

@@ -1,8 +1,8 @@
 import { CalendarPlus, CheckCircle, Clock, Gift } from 'lucide-react';
 import { useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { Button } from '../../../shared/Button';
-import { toast } from '../../../shared/Toast';
+import { useTranslation } from '@/hooks/useTranslation';
+import { Button } from '@/components/shared/Button';
+import { toast } from '@/components/shared/Toast';
 import type { PlanRecord } from '../plans/usePlanForm';
 import { Banner } from '../ui/Banner';
 import { Field, Select } from '../ui/Input';

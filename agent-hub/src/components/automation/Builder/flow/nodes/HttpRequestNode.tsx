@@ -3,8 +3,8 @@ import { Globe, ShieldAlert } from 'lucide-react';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase, { NodeChip, ForEachBadge } from './StepNodeBase';
 import { humanizeTemplate } from '../displayHelpers';
-import { inputFromBinding } from '../../../../../utils/bindingHelpers';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { inputFromBinding } from '@/utils/bindingHelpers';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { StepNodeProps } from './nodeProps';
 
 export default function HttpRequestNode({ id, data }: StepNodeProps) {

@@ -1,6 +1,6 @@
 import React from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { TONES, toneOfSeverity } from '../../../shared/statusTone';
+import { useTranslation } from '@/hooks/useTranslation';
+import { TONES, toneOfSeverity } from '@/components/shared/statusTone';
 
 /**
  * SeverityTag — the small uppercase weight word on an OPEN check row

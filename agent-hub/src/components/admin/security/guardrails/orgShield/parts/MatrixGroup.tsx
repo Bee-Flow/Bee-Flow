@@ -1,6 +1,6 @@
 import React from 'react';
 
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { MatrixColumn, MatrixGroup as Group, MatrixKind, MatrixSelection } from './categoryMatrixModel';
 import {
     COLUMN_NAME, GROUP_DOT, GROUP_KEYS, OTHER_GROUP_DOT, hiddenInGroup, leftWithTools,

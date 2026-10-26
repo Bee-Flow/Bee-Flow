@@ -2,7 +2,7 @@ import { flexRender } from '@tanstack/react-table';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import type { CSSProperties, FocusEvent, KeyboardEvent, MouseEvent } from 'react';
 import { tryEvaluate } from '@shared/expr/engine.mjs';
-import useTranslation from '../../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { roleTextColor } from '../../styleResolver';
 import { ROLE_COLORS } from '../../styleResolver.constants';
 import { EM_DASH } from '../../uiBits';

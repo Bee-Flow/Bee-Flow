@@ -1,5 +1,5 @@
-import { getJSON, setJSON } from '../../../../utils/scopedStorage';
-import { logger } from '../../../../utils/logger';
+import { getJSON, setJSON } from '@/utils/scopedStorage';
+import { logger } from '@/utils/logger';
 
 /**
  * Pure-logic engine for the automations builder's "smart Add-step" menu.

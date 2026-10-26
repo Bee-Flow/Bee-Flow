@@ -2,7 +2,7 @@ import { render, screen, cleanup } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { DryRunBadge, RunStatusBadge, RunStatusIcon } from './RunStatusBits';
-import { STATUS_TOKENS } from '../../../shared/statusTokens';
+import { STATUS_TOKENS } from '@/components/shared/statusTokens';
 
 /**
  * The two primitives every run surface paints with — the runs table, the run

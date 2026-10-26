@@ -6,9 +6,9 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { ArrowUpRight, GripVertical, MoreHorizontal } from 'lucide-react';
 import React, { useRef, useState } from 'react';
-import type { BoardColumn } from '../../../../api/queries/projectBoard';
-import type { ProjectTask } from '../../../../api/queries/projectTasks';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import type { BoardColumn } from '@/api/queries/projectBoard';
+import type { ProjectTask } from '@/api/queries/projectTasks';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { useChatPeople } from '../chat/chatPeople';
 import DeleteTaskButton from './DeleteTaskButton';
 import { LabelChip, PriorityIcon, TypeChip } from './TaskFields';

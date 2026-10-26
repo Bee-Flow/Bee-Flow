@@ -14,10 +14,10 @@ import {
 } from './formState';
 import ConditionBuilder from '../../mapping/ConditionBuilder';
 import type { ApprovalSeat } from './formState/approvalStages';
-import type { ApprovalStage } from '../../../../admin/Studio/Solutions/pipeline/settings/stageSettingsModel';
+import type { ApprovalStage } from '@/components/admin/Studio/Solutions/pipeline/settings/stageSettingsModel';
 import type { ApprovalDirectory, SetDraft } from './approvalTypes';
 import type { OnFocusField } from '../../mapping/focusField.types';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /** A seat ({userId}|{groupId}|null) as the value one <select> encodes. */
 function seatSelectValue(seat: ApprovalSeat | null) {

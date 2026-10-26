@@ -5,8 +5,8 @@ import type { GitHubSyncConfig } from './githubSync.types';
 import { GitHubSyncActions } from './GitHubSyncActions';
 import { GitHubSyncDetails } from './GitHubSyncDetails';
 import { useGitHubSync } from './useGitHubSync';
-import type { PermissionUser } from '../../../hooks/usePermissionCheck';
-import { useTranslation } from '../../../hooks/useTranslation';
+import type { PermissionUser } from '@/hooks/usePermissionCheck';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface GitHubSyncPanelProps {
     user: PermissionUser | null | undefined;

@@ -3,7 +3,7 @@ import React from 'react';
 import { kindBarClass, kindInkClass } from './kindBar';
 import { SECTIONS, type SolutionItem } from './solutionSections';
 import { ROW, TabCard, TabNote, TabSpinner } from './TabParts';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * What this project IS, at a glance.

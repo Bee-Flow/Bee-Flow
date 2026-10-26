@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { AlertCircle, Lock, Plug, Share2 } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /** One way to fix a failed step, as the server's error classifier offers it. */
 export interface ErrorFix {

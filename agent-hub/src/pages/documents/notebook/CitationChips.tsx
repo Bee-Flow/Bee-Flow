@@ -40,9 +40,9 @@
  */
 import { FileText } from 'lucide-react';
 import { passageCountOf, passagesNote, whenLabel } from './citationText';
-import { kindColorVar, kindIcon } from '../../../components/shared/kindColors';
-import type { CitationChip } from '../../../components/chat/MessageItem/answerChips';
-import type { TranslateFn, TranslateParams } from '../../../hooks/useTranslation';
+import { kindColorVar, kindIcon } from '@/components/shared/kindColors';
+import type { CitationChip } from '@/components/chat/MessageItem/answerChips';
+import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
 
 /** `kind` on a citation is a retrieval kind; map the ones with a Studio glyph. */
 /** A citation as a chip reads it; every field may be absent. */

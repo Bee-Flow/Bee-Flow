@@ -13,7 +13,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 const calls: unknown[] = [];
 let handler: (url: string, opts?: unknown) => Promise<unknown> = async () => ({ ok: true, json: async () => ({}) });
 
-vi.mock('../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(async (url, opts = {}) => {
         calls.push(url);

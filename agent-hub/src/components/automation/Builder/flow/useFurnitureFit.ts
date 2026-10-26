@@ -1,7 +1,7 @@
 import { useReactFlow, useStoreApi, type FitViewOptions } from '@xyflow/react';
 import { useCallback, useMemo } from 'react';
 import { furniturePadding } from './furnitureFit';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /**
  * The canvas's own fits, clear of its furniture (flow/furnitureFit.ts).

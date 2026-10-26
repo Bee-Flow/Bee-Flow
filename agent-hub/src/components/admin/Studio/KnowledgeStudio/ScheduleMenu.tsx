@@ -1,8 +1,8 @@
 import { Check } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
-import AnchoredMenu from '../../../shared/AnchoredMenu';
-import type { AnchoredMenuProps } from '../../../shared/AnchoredMenu';
+import useTranslation from '@/hooks/useTranslation';
+import AnchoredMenu from '@/components/shared/AnchoredMenu';
+import type { AnchoredMenuProps } from '@/components/shared/AnchoredMenu';
 
 /** What the menu hands back: a refresh mode, and for a schedule its cron and zone. */
 export interface ScheduleChange {

@@ -23,7 +23,7 @@ import { lodForZoom, PRESENTER_LOD_BREAKS } from './useZoomLod';
  * quirk). It is read once, on mount, by DiagramPane.
  */
 // The flag itself is shared with the App Studio editor (shared/builder/presenterFlag).
-export { PRESENTER_KEY, readPresenter, writePresenter } from '../../../shared/builder/presenterFlag';
+export { PRESENTER_KEY, readPresenter, writePresenter } from '@/components/shared/builder/presenterFlag';
 
 export { PRESENTER_LOD_BREAKS };
 

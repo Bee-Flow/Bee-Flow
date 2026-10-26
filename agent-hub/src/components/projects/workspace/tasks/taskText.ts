@@ -1,5 +1,5 @@
-import type { ChecklistItem, TaskPriority, TaskStatus } from '../../../../api/queries/projectTasks';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { ChecklistItem, TaskPriority, TaskStatus } from '@/api/queries/projectTasks';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 export function statusLabel(t: TranslateFn, status: TaskStatus): string {
     if (status === 'doing') return t('project_tasks.status_doing', 'In progress');

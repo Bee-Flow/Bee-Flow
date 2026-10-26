@@ -1,9 +1,9 @@
 // One project conversation: members and AI work in the same place.
 import { MessageSquare, Send, Users } from 'lucide-react';
 import React, { useState } from 'react';
-import type { Project, ProjectRole } from '../../../api/queries/projects';
-import { useCreateProjectChat } from '../../../api/queries/projectChats';
-import useTranslation from '../../../hooks/useTranslation';
+import type { Project, ProjectRole } from '@/api/queries/projects';
+import { useCreateProjectChat } from '@/api/queries/projectChats';
+import useTranslation from '@/hooks/useTranslation';
 import { rememberFirstAnswer } from './chat/firstAnswer';
 import { isImeEnter } from './chat/ime';
 import { projectErrorText } from './projectErrorText';

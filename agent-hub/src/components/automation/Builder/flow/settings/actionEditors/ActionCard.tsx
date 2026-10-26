@@ -1,9 +1,9 @@
 import { Check, ChevronDown, Wrench } from 'lucide-react';
 import { useRef, useState } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import AnchoredMenuJs from '../../../../../shared/AnchoredMenu';
+import { useTranslation } from '@/hooks/useTranslation';
+import AnchoredMenuJs from '@/components/shared/AnchoredMenu';
 import { humanizeToolName } from '../../displayHelpers';
-import { ProblemNote } from '../../../mapping/toolInput/ParamExtras';
+import { ProblemNote } from '@/components/automation/Builder/mapping/toolInput/ParamExtras';
 import IntegrationLogoJs from '../../nodes/IntegrationLogo';
 
 /**

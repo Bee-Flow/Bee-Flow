@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from 'react';
-import { API_BASE } from '../../../../utils/helpers';
+import { API_BASE } from '@/utils/helpers';
 import type { AdminOrganization, OrgFormData } from './types';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export interface MyOrganizationSectionProps {
     myOrg: AdminOrganization | undefined;

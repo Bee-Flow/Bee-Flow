@@ -7,11 +7,11 @@
 import { DatabaseZap } from 'lucide-react';
 import React, { useState } from 'react';
 
-import { useBackfillJobQuery, useStartBackfill, type BackfillSurfaceStats } from '../../../../api/queries/encryptionBackfill';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import ConfirmDialog from '../../../shared/ConfirmDialog';
-import { toast } from '../../../shared/Toast';
-import { messageOf } from '../../../../utils/caughtError';
+import { useBackfillJobQuery, useStartBackfill, type BackfillSurfaceStats } from '@/api/queries/encryptionBackfill';
+import { useTranslation } from '@/hooks/useTranslation';
+import ConfirmDialog from '@/components/shared/ConfirmDialog';
+import { toast } from '@/components/shared/Toast';
+import { messageOf } from '@/utils/caughtError';
 
 interface Props {
     orgId: string;

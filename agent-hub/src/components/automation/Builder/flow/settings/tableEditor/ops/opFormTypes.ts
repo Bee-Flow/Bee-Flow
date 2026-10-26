@@ -1,5 +1,5 @@
-import type { TableColumn } from '../../../../../../../api/queries/automation/runTables';
-import type { DescribedColumn } from '../../../../../../../api/queries/automation/tablePreview';
+import type { TableColumn } from '@/api/queries/automation/runTables';
+import type { DescribedColumn } from '@/api/queries/automation/tablePreview';
 import type { OpHelp } from '../opHelp';
 import type { FieldIssue, TableOp } from '../tableOpModel';
 

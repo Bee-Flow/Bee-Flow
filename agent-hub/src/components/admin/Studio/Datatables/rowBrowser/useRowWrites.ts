@@ -10,8 +10,8 @@ import { BULK_DELETE_MAX, rowsApi } from './rowBrowserModel';
 import type { DtRow, DtTable } from './rowBrowserModel';
 import { sourceErrorMessage } from './typedViews';
 import type { RowPages } from './useRowPages';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import { messageOf, errorCode, errorBodyRecord } from '../../../../../utils/caughtError';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { messageOf, errorCode, errorBodyRecord } from '@/utils/caughtError';
 
 interface RowWriteInputs {
     table: DtTable;

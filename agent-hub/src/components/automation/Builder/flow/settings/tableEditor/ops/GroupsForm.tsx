@@ -1,4 +1,4 @@
-import { useTranslation } from '../../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { ColumnSelect } from '../TableColumnSelect';
 import { GROUPS_MIN_N, type GroupsOp, type Split } from '../tableOpModel';
 import { AddButton, Check, ListInput, NumberInput, Row, TextInput } from './inputs';

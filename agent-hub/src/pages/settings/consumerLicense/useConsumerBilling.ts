@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { takePendingPlan } from '../../../components/billing/pendingPlan';
-import type { TranslateFn } from '../../../hooks/useTranslation';
-import { API_BASE } from '../../../utils/helpers';
-import { useConsumerBillingData } from '../../../api/queries/settingsConsumer';
+import { takePendingPlan } from '@/components/billing/pendingPlan';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { useConsumerBillingData } from '@/api/queries/settingsConsumer';
 import { isPaidPlan, type CheckoutMessage, type ConsumerPlan, type ConsumerUsageData } from './consumerBilling';
-import { mutate, errorBody, RefusedError } from '../../../api/mutate';
+import { mutate, errorBody, RefusedError } from '@/api/mutate';
 
 /** The checkout result Stripe sends back on the URL, read once and cleaned off. */
 function readCheckoutResult(): CheckoutMessage | null {

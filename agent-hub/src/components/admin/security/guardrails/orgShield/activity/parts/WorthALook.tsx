@@ -7,7 +7,7 @@
 import { ArrowRight, Check, ListFilter, MapPinOff, ScanSearch, TriangleAlert } from 'lucide-react';
 import React from 'react';
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { isShowing, type Finding, type FindingAction, type FindingId, type FindingTone } from '../shieldFindings';
 import { findingCopy } from './findingCopy';
 import { Eyebrow } from './Panel';

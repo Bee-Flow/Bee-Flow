@@ -4,11 +4,11 @@ import Brand from './Brand';
 import type { NavModel, NavScreen } from './navModel';
 import UserMenu from './UserMenu';
 import type { UserMenuViewer } from './UserMenu';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import AppIcon from '../../../../../icons/AppIcon';
+import useTranslation from '@/hooks/useTranslation';
+import AppIcon from '@/components/icons/AppIcon';
 import type { AppDefinition } from '../../inspector/appDefinition';
 import type { NavigateFn } from '../actionRunner/runnerContext';
-import { logger } from '../../../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /**
  * NavSidebar — the left-rail shell layout (nav.style 'sidebar'). Brand on

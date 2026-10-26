@@ -1,9 +1,9 @@
 import { AlertTriangle, Check, Database, ExternalLink, Loader2, Sparkles, Workflow, X, LayoutGrid } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import React, { useCallback, useState } from 'react';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import { TONES } from '../../../../shared/statusTone';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { TONES } from '@/components/shared/statusTone';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import { isResolvable, linkFor, severityTone, severityWord, targetWords } from './complianceView';
 import type { ComplianceFacts, Finding, ResolvePlan } from './compliance.types';
 

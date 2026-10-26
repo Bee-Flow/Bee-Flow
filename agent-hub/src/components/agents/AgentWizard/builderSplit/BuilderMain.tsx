@@ -3,7 +3,7 @@ import { AGENT_TAB_IDS } from './AgentEditorHeader';
 import BuilderConfigPanel from './BuilderConfigPanel';
 import { CanUseTabPanel, TestTabPanel, UsedByTabPanel } from './BuilderTabPanels';
 import type { NavigateFn } from './editorTypes';
-import type { RelativeTimeInput } from '../../../../hooks/useRelativeTime';
+import type { RelativeTimeInput } from '@/hooks/useRelativeTime';
 import type useAgentTests from '../tests/useAgentTests';
 import type useAgentBootstrapData from './useAgentBootstrapData';
 import type useAgentSchedules from './useAgentSchedules';
@@ -11,7 +11,7 @@ import type useBuilderState from './useBuilderState';
 import type useCanUseTab from './useCanUseTab';
 import type useEditorActions from './useEditorActions';
 import type useEditorDerived from './useEditorDerived';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 interface Props {
     t: TranslateFn;

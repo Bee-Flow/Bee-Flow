@@ -1,11 +1,11 @@
 import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { withQueryClient } from '../../../test/queryWrapper';
+import { withQueryClient } from '@/test/queryWrapper';
 import BuilderHeader, { type BuilderHeaderProps } from './BuilderHeader';
 
 const authFetch = vi.hoisted(() => vi.fn());
-vi.mock('../../../utils/helpers', async (importOriginal) => ({
+vi.mock('@/utils/helpers', async (importOriginal) => ({
     ...(await importOriginal<Record<string, unknown>>()),
     API_BASE: '',
     authFetch,

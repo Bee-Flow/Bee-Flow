@@ -5,7 +5,7 @@ import {
   ChevronDown, CheckSquare, Palette, Pilcrow,
 } from 'lucide-react';
 import type React from 'react';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { selectionText } from '../editorDom';
 import {
   Btn as BtnJs, Dropdown as DropdownJs, Item as ItemJs, MenuDivider as MenuDividerJs,

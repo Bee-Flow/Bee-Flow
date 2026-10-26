@@ -1,6 +1,6 @@
 import { Check, Copy } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import renderInlineMarkdown from '../markdownInline';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';

@@ -11,7 +11,7 @@
 // and the tests mock `authFetch` with a bare `{ ok, status, json }`.
 
 import { useQuery } from '@tanstack/react-query';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE, authFetch } from '@/utils/helpers';
 
 export interface AgentPermissions {
     startAutomations: boolean;

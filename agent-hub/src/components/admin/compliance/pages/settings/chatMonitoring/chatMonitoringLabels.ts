@@ -4,7 +4,7 @@
  * Languages panel can reach it. A code this release does not know falls back
  * to the code itself rather than to a guess.
  */
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 export function surfaceLabel(t: TranslateFn, id: string): string {
     switch (id) {

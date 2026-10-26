@@ -14,9 +14,9 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderWithClient } from '../../../../../../test/render';
+import { renderWithClient } from '@/test/render';
 
-vi.mock('../../../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(),
 }));
@@ -25,10 +25,10 @@ vi.mock('../../../../../../utils/helpers', () => ({
 // interpolation. A mock that drops the params renders "Filter on {person}"
 // for every row, so nothing on this pane can be told apart by name — and the
 // filter labels are exactly how a keyboard or screen-reader user picks one.
-vi.mock('../../../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 let licensed = true;
-vi.mock('../../../../../licensing/LicenseContext', () => ({
+vi.mock('@/components/licensing/LicenseContext', () => ({
     useLicenseContext: () => ({
         tier: 'enterprise',
         hasFeature: (f) => (f === 'advanced_usage_monitoring' ? licensed : true),
@@ -37,7 +37,7 @@ vi.mock('../../../../../licensing/LicenseContext', () => ({
     }),
 }));
 
-import { authFetch } from '../../../../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 import OrgShieldEditor from '../OrgShieldEditor';
 
 const ORG_ID = 'org-alpha';

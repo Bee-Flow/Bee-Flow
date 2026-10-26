@@ -4,7 +4,7 @@
 
 import { ArrowUpRight } from 'lucide-react';
 import React from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { complianceActionPath } from '../../data/actions';
 
 interface Offender { project_id?: string; link?: string | null }

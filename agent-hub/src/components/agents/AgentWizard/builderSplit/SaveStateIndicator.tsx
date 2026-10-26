@@ -1,5 +1,5 @@
 import { Check } from 'lucide-react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 export interface SaveStateIndicatorProps {
     t: TranslateFn;

@@ -1,5 +1,5 @@
 import { RotateCw } from 'lucide-react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { FormRow, inputClass } from '../formPrimitives';
 import type { RetryWaitTotalProps, RetrySectionProps } from '../collectionEditors.types';
 import { retryTriesLabel, retryWaitLabel, retryChoices, retryRowCap } from './collectionEditors.helpers';

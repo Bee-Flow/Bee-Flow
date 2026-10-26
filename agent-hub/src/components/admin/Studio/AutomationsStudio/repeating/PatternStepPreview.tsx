@@ -1,10 +1,10 @@
 import { Clock } from 'lucide-react';
-import type { Pattern } from '../../../../../api/queries/automation/repeating';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import type { MiniFamily } from '../../../../automation/Builder/flow/canvasClasses';
-import MiniFlow from '../../../../automation/Builder/flow/MiniFlow';
-import type { MiniNodeProps } from '../../../../automation/Builder/flow/MiniNode';
+import type { Pattern } from '@/api/queries/automation/repeating';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { MiniFamily } from '@/components/automation/Builder/flow/canvasClasses';
+import MiniFlow from '@/components/automation/Builder/flow/MiniFlow';
+import type { MiniNodeProps } from '@/components/automation/Builder/flow/MiniNode';
 
 const MAX_STEPS = 3;
 const STEP_FAMILIES: ReadonlySet<string> = new Set(['app', 'ai', 'data', 'branch']);

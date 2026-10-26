@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import useNow from '../../../hooks/useNow';
-import useTranslation from '../../../hooks/useTranslation';
+import useNow from '@/hooks/useNow';
+import useTranslation from '@/hooks/useTranslation';
 
 /** Premium inline audio player with optional album art */
 interface AudioPlayerInlineProps {

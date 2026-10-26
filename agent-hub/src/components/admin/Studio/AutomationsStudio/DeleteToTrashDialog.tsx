@@ -1,7 +1,7 @@
 import { X } from 'lucide-react';
 import { useId } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import Modal from '../../../shared/Modal';
+import { useTranslation } from '@/hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
 
 /**
  * Confirm deleting an automation. A delete is no longer final: the automation

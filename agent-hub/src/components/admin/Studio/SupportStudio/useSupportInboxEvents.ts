@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { API_BASE, isDemoMode } from '../../../../utils/helpers';
-import { logger } from '../../../../utils/logger';
+import { API_BASE, isDemoMode } from '@/utils/helpers';
+import { logger } from '@/utils/logger';
 
 /**
  * Subscribe to /api/support-inbox/stream (SSE). Calls onEvent(type, data) for

@@ -20,7 +20,7 @@
 import { Info } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 
-import { useTranslation, type TranslateFn } from '../../../../../../../hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { listRows } from './destinationGroups';
 import { DestinationList } from './DestinationList';
 import type { EgressMapFilters } from './egressMapContract';

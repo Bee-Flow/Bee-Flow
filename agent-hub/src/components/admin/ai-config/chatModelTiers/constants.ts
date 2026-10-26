@@ -1,7 +1,7 @@
 // Tier registry, per-tier defaults and the Bee Flow recommended Claude
 // defaults for the chat-model-tier admin panel. Moved verbatim from
 // ChatModelTiersConfig.jsx; only the `export` keywords are new.
-import beeFlowIcon from '../../../../assets/BeeFlow-logo-Icon-2026.svg';
+import beeFlowIcon from '@/assets/BeeFlow-logo-Icon-2026.svg';
 
 export interface TierDef {
     key: string;

@@ -8,7 +8,7 @@
  */
 import React from 'react';
 import type { ReactNode } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { fmt } from '../ui';
 import { ACCENT } from '../BarList';
 

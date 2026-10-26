@@ -1,8 +1,8 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, expect, it, vi } from 'vitest';
-import { repeatingApi } from '../../../../../api/queries/automation/repeating';
-import type { ScanEventHandler, ScanResult, ScanSources } from '../../../../../api/queries/automation/repeating';
+import { repeatingApi } from '@/api/queries/automation/repeating';
+import type { ScanEventHandler, ScanResult, ScanSources } from '@/api/queries/automation/repeating';
 import { withQueryClient } from '@/test/queryWrapper';
 import RepeatingWorkPanel from './RepeatingWorkPanel';
 import type { RepeatingWorkPanelProps } from './RepeatingWorkPanel';

@@ -1,6 +1,6 @@
 import { Euro, TrendingUp, Info, Users } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { CURRENCY_SYMBOL } from '../../constants';
 import { Banner } from '../../ui/Banner';
 import { ChoiceCards } from '../../ui/Choice';

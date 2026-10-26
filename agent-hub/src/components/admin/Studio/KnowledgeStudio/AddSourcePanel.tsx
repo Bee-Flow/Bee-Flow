@@ -1,12 +1,12 @@
 import { ArrowLeft, Loader2, Upload as UploadIcon, Workflow } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { ADD_SOURCE_KINDS, isOfferable, sourceKind } from './sourceKinds';
-import useTranslation from '../../../../hooks/useTranslation';
-import { kindColorVar } from '../../../shared/kindColors';
-import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
-import Tooltip from '../../../shared/Tooltip';
-import useRelativeTime from '../../../../hooks/useRelativeTime';
-import { errorBodyRecord, errorCode, errorMessage, messageOf } from '../../../../utils/caughtError';
+import useTranslation from '@/hooks/useTranslation';
+import { kindColorVar } from '@/components/shared/kindColors';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
+import Tooltip from '@/components/shared/Tooltip';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import { errorBodyRecord, errorCode, errorMessage, messageOf } from '@/utils/caughtError';
 import type { AddSourcePanelProps, FormProps, KindButtonProps, NewSource, SignpostProps, SubmitProps, TableField, TableOption, UploadFormProps } from './AddSourcePanel.types';
 
 /** The server's own cap (routes/knowledgeBases/sources.js): 3..500000 chars. */
@@ -431,7 +431,7 @@ function MeetingTagForm({ t, busy, onSubmit }: FormProps) {
     // by hand is still a tag, and the server checks it either way.
     useEffect(() => {
         let alive = true;
-        import('../../../../api/transcriptionsApi')
+        import('@/api/transcriptionsApi')
             .then(api => api.listTranscriptionTags())
             .then(list => { if (alive) setVocabulary(Array.isArray(list) ? list : []); })
             .catch(() => {});

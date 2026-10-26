@@ -2,21 +2,21 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { withQueryClient } from '../../../../test/queryWrapper';
+import { withQueryClient } from '@/test/queryWrapper';
 import { EDITOR_ID, getRouter, MEMBERS, OWNER_ID, tabProps } from '../content/contentTestKit';
-import type { ProjectTask } from '../../../../api/queries/projectTasks';
+import type { ProjectTask } from '@/api/queries/projectTasks';
 
 const { client } = vi.hoisted(() => ({ client: {} as Record<'get' | 'post' | 'put' | 'patch' | 'delete', ReturnType<typeof vi.fn>> }));
-vi.mock('../../../../api/client', async (importOriginal) => ({
-    ...(await importOriginal<typeof import('../../../../api/client')>()),
+vi.mock('@/api/client', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/api/client')>()),
     apiClient: client,
     default: client,
 }));
-vi.mock('../../../../api/queries/modelTiers', () => ({ useModelTiersQuery: () => ({ data: {} }) }));
+vi.mock('@/api/queries/modelTiers', () => ({ useModelTiersQuery: () => ({ data: {} }) }));
 
 import TasksTab from './TasksTab';
 import { useUndoCapture } from '../undoTestKit';
-import scopedStorage, { setCurrentUser } from '../../../../utils/scopedStorage';
+import scopedStorage, { setCurrentUser } from '@/utils/scopedStorage';
 
 const task = (id: string, extra: Partial<ProjectTask> = {}): ProjectTask => ({
     id, title: `Task ${id}`, description: '', status: 'todo', priority: 'normal', labels: [], checklist: [], sortOrder: 1000, source: null,

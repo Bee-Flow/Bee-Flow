@@ -7,10 +7,10 @@ import { sameInlineScope } from './inlineFlowlets';
 import { seedPositions } from './layout';
 import { createsCycle } from '../applyAddNode';
 import { applyAutoMapToStep } from '../mapping/autoMapInputs';
-import { toast } from '../../../shared/Toast';
+import { toast } from '@/components/shared/Toast';
 import { isTerminalStep } from './terminalSteps';
 import type { DiagramDefinition, DiagramEdge, DiagramStep, FlowNode, Rf } from './diagramPaneTypes';
-import type { RealOutputMap } from '../../../../hooks/useUpstreamVariables';
+import type { RealOutputMap } from '@/hooks/useUpstreamVariables';
 
 /** The edge a canvas button was clicked on (edges.jsx threads its identity). */
 export interface EdgeClick {

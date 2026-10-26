@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { authFetch } from '../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 import { AutomationRequestError } from './http';
 import { downloadRunTableCsv, fetchRunTablePage, isTableHandle, tableHandlesIn } from './runTables';
 
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 const ID1 = 'rtb_0123456789abcdef0123456789abcdef';
 const ID2 = 'rtb_fedcba9876543210fedcba9876543210';

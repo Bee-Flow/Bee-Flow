@@ -1,6 +1,6 @@
 import { AlertTriangle, ArrowDown, ArrowRight, Loader2 } from 'lucide-react';
 import React, { useEffect } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import DeployDialog from './DeployDialog';
 import { actionLabel, usePipelineActions, type T } from './pipelineActions';
 import {
@@ -9,7 +9,7 @@ import {
 import { STAGE_ICON, STAGE_INK, STAGE_RULE, STAGE_TINT, useStageLabel } from './StageSwitcher';
 import { ReleasesList } from './StageHistory';
 import { errorText, findingText, statusLabel } from './StageStatus';
-import type { Pipeline, StageKey } from '../../../../../api/stagesApi';
+import type { Pipeline, StageKey } from '@/api/stagesApi';
 
 /**
  * The Pipeline tab of a Dev Solution: three columns (Dev, UAT, Production), the

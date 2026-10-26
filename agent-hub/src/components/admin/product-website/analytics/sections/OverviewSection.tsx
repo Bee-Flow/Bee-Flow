@@ -17,8 +17,8 @@
  */
 import { Users, Eye, MousePointerClick, Timer, Activity, TrendingUp, Layers } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { errorMessage } from '../../../../../utils/caughtError';
+import { useTranslation } from '@/hooks/useTranslation';
+import { errorMessage } from '@/utils/caughtError';
 import { analyticsApi, analyticsFetch } from '../../analyticsApi';
 import type { AnalyticsResponse } from '../../analyticsApi';
 import TrendChart from '../charts/TrendChart';

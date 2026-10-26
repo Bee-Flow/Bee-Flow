@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { BookOpen, CircleCheck, X } from 'lucide-react';
-import Modal from '../../../shared/Modal';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
+import { useTranslation } from '@/hooks/useTranslation';
 import {
     AI_ACT_QUESTIONS, useAiActSuggestion, useSaveAiActCheck,
     type AiActAnswers, type AiActDomain, type AiActQuestion, type AiActReason, type AiActState, type AiActSuggestion,
     type AnnexDomainId, type Tri,
-} from '../../../../api/queries/automation/readiness';
+} from '@/api/queries/automation/readiness';
 import { PRIMARY_BTN, SECONDARY_BTN } from './settingsUi';
 import { DOMAIN_FALLBACK, questionText, reasonText, type QuestionText } from './aiActCopy';
 

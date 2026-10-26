@@ -1,13 +1,13 @@
 import { cleanup, screen, waitFor } from '@testing-library/react';
-import { renderWithClient } from '../../../test/render';
+import { renderWithClient } from '@/test/render';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { isMultiTenantId, isTenantIdValid } from './sso/MicrosoftSsoTab';
 import SSOConfigPanel from './SSOConfigPanel';
-import { authFetch } from '../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationMock'));
 const hasFeature = vi.fn(() => true);
 vi.mock('../../licensing/LicenseContext', () => ({ useLicenseContext: () => ({ hasFeature }) }));
 vi.mock('./MicrosoftIdentityPanel', () => ({ default: () => <div data-testid="ms-identity" /> }));

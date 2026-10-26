@@ -15,7 +15,7 @@ import useAppDataSource from './useAppDataSource';
  * boundary: "Cannot read properties of null (reading 'tableId')".
  */
 
-vi.mock('../../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: vi.fn(async () => { throw new Error('must not fetch'); }),
 }));

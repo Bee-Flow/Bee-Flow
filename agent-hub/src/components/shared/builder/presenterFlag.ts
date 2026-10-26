@@ -3,8 +3,8 @@
  * builders (automations and App Studio): a presenter who switched it on for the
  * automation film expects the app film to be in the same mode.
  */
-import scopedStorage from '../../../utils/scopedStorage';
-import { logger } from '../../../utils/logger';
+import scopedStorage from '@/utils/scopedStorage';
+import { logger } from '@/utils/logger';
 
 export const PRESENTER_KEY = 'automations.canvas.presenter';
 

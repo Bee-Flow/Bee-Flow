@@ -8,7 +8,7 @@ import {
     type AgentUsage, type FilterState, type ModelUsage, type SortableColumn, type UsageRecord, type UserUsage,
 } from './shared';
 import type { ModelRate } from './drawer/drawerTypes';
-import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
 
 interface UsageExplorerPageProps {
     byModel: ModelUsage[];

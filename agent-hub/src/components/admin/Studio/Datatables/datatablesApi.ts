@@ -30,9 +30,9 @@
  * managed } }` (managedPart.managedOf reads it).
  */
 
-import { createJsonResource } from '../../../../api/client';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
-import { fromError } from '../../../shared/managedPart';
+import { createJsonResource } from '@/api/client';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import { fromError } from '@/components/shared/managedPart';
 import type {
     Body,
     ConfirmBreakingOptions,
@@ -41,7 +41,7 @@ import type {
     SpreadsheetBrowseOptions,
     SpreadsheetDescribeOptions,
 } from './datatablesApi.types';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 const base = `${API_BASE}/api/datatables`;
 const enc = encodeURIComponent;

@@ -2,7 +2,7 @@ import React from 'react';
 import ProviderApiKeyCard from './ProviderApiKeyCard';
 import type { ProviderCardProps } from './ProviderApiKeyCard';
 import { PROVIDER_KEY_CONFIGS } from './providerKeyConfig';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // One Scaleway secret key opens every Scaleway API, so this is the same key the
 // Whisper transcription integration uses (Admin → Integrations → Transcription).

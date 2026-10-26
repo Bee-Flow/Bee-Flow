@@ -5,9 +5,9 @@
  */
 import { useState } from 'react';
 import { Mic, X } from 'lucide-react';
-import MeetingPickerJs from '../../../../components/meeting-picker/MeetingPicker';
-import useTranslation from '../../../../hooks/useTranslation';
-import { useCapture } from '../../../meeting-notes/capture/CaptureContext';
+import MeetingPickerJs from '@/components/meeting-picker/MeetingPicker';
+import useTranslation from '@/hooks/useTranslation';
+import { useCapture } from '@/pages/meeting-notes/capture/CaptureContext';
 
 const MeetingPicker = MeetingPickerJs;
 

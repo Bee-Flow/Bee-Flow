@@ -1,6 +1,6 @@
 import { AlertTriangle } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /** A read that failed (or is still running) said where it matters: unknown is never shown as empty. */
 export default function LoadWarning({ text, onRetry, testId }: { text: string; onRetry?: () => void; testId?: string }) {

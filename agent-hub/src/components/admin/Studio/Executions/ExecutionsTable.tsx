@@ -4,8 +4,8 @@ import ExecutionsFilterBar from './ExecutionsFilterBar';
 import { canOpenRun, runStreamEnabled } from './runScope';
 import useExecutions from './useExecutions';
 import useRunStream from './useRunStream';
-import useAutomationApi from '../../../../hooks/useAutomationApi';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import { useTranslation } from '@/hooks/useTranslation';
 import { dayBucketLabel } from '../AutomationsStudio/historyUtils';
 import type { RunLogRow } from './runLogSentence';
 

@@ -1,10 +1,10 @@
 import { KeyRound, Plus, Upload, Copy, CalendarPlus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { GrantWizard } from './GrantWizard';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { Button } from '../../../shared/Button';
-import EmptyState from '../../../shared/EmptyState';
-import { toast } from '../../../shared/Toast';
+import { useTranslation } from '@/hooks/useTranslation';
+import { Button } from '@/components/shared/Button';
+import EmptyState from '@/components/shared/EmptyState';
+import { toast } from '@/components/shared/Toast';
 import { TIER_PRESETS } from '../constants';
 import { useResource, apiJson } from '../hooks/useApi';
 import { Badge, type BadgeTone } from '../ui/Badge';

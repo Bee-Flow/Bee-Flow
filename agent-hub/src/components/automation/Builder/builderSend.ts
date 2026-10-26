@@ -1,7 +1,7 @@
 import type { MutableRefObject } from 'react';
-import type { AutomationBuilderSendOptions, AutomationBuilderState } from '../../../hooks/useAutomationBuilderStream';
-import { errorMessage } from '../../../utils/caughtError';
-import scopedStorage from '../../../utils/scopedStorage';
+import type { AutomationBuilderSendOptions, AutomationBuilderState } from '@/hooks/useAutomationBuilderStream';
+import { errorMessage } from '@/utils/caughtError';
+import scopedStorage from '@/utils/scopedStorage';
 import { followUpPlanId } from './chat/planBuild';
 import { isBlankDefinition, normalizeDefinitionShape } from './flow/normalizeDefinition';
 import type { FlowDefinition } from './flow/types';

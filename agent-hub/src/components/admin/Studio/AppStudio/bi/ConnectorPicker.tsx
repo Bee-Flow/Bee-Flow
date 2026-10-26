@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import type { Connector } from './connectors/connectorModel';
 import useIntegrationCatalog, { type CatalogApp, type CatalogAppAction } from './useIntegrationCatalog';
-import useTranslation from '../../../../../hooks/useTranslation';
-import AppActionPicker from '../../../../shared/AppActionPicker';
-import Modal from '../../../../shared/Modal';
+import useTranslation from '@/hooks/useTranslation';
+import AppActionPicker from '@/components/shared/AppActionPicker';
+import Modal from '@/components/shared/Modal';
 
 /**
  * App Studio — pick apps and actions for connectors, in bulk.

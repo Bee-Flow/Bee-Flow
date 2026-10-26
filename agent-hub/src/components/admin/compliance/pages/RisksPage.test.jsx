@@ -5,10 +5,10 @@ import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { severityOfScore } from './risks/RisksTable';
 import RisksPage, { matchesFilter, sortRisks } from './RisksPage';
 
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const fetchJson = vi.fn();
-vi.mock('../../../../api/complianceApi', async (importOriginal) => {
+vi.mock('@/api/complianceApi', async (importOriginal) => {
     const actual = await importOriginal();
     return { ...actual, fetchJson: (...args) => fetchJson(...args) };
 });

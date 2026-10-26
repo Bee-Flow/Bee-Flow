@@ -1,10 +1,10 @@
 import { ChevronDown, ChevronRight, Package, Plus } from 'lucide-react';
 import { useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import scopedStorage from '../../../../utils/scopedStorage';
+import { useTranslation } from '@/hooks/useTranslation';
+import scopedStorage from '@/utils/scopedStorage';
 import StepRow from './StepRow';
 import type { StepRowData } from './StepRow';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 const OPEN_KEY = 'automationBlocksOpen';
 

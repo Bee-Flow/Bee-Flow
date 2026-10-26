@@ -1,8 +1,8 @@
 import { useEffect, useEffectEvent, useState } from 'react';
-import { fetchAppRefRecord } from '../../../../api/queries/automationBuilderReads';
-import { appRefParam, parseAppRefParam } from '../../../admin/Studio/studioRoutes';
+import { fetchAppRefRecord } from '@/api/queries/automationBuilderReads';
+import { appRefParam, parseAppRefParam } from '@/components/admin/Studio/studioRoutes';
 import type { FlowDefinition } from './types';
-import type { AppRef } from '../../../admin/Studio/AppStudio/inspector/appDefinition';
+import type { AppRef } from '@/components/admin/Studio/AppStudio/inspector/appDefinition';
 
 /** The server's answer for one reference (server/appStudio/appRefLookup.js). */
 export interface AppRefRecord {

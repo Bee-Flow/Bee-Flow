@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { STUDIO_RECENT_SOURCES } from '@/utils/studioRecentSources';
 import { STUDIO_APPS, createFormAutomation } from './studioApps';
-import { STUDIO_RECENT_SOURCES } from '../../../utils/studioRecentSources';
 
 /**
  * The decisions ONE section made — as opposed to studioApps.test.jsx, which

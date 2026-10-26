@@ -6,10 +6,10 @@
 import React, { useCallback, useMemo } from 'react';
 import {
     useMyDocumentsQuery, useMyMeetingsQuery, useMyNotebooksQuery, useReadableKnowledgeBasesQuery,
-} from '../../../../api/queries/projectContent';
-import { useAttachResource } from '../../../../api/queries/projects';
-import useRelativeTime from '../../../../hooks/useRelativeTime';
-import useTranslation from '../../../../hooks/useTranslation';
+} from '@/api/queries/projectContent';
+import { useAttachResource } from '@/api/queries/projects';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import useTranslation from '@/hooks/useTranslation';
 import ItemPickerDialog, { type PickerItem } from './ItemPickerDialog';
 import { docTypeLabel, formatMeetingDuration } from './labels';
 

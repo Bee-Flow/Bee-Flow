@@ -1,8 +1,8 @@
 import React from 'react';
 import { TextField, usePatch } from './kit';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { registerInspector } from '../registry';
-import Toggle from '../../../../../shared/Toggle';
+import Toggle from '@/components/shared/Toggle';
 import type { PanelProps } from '../appDefinition';
 
 interface InputPersonProps {

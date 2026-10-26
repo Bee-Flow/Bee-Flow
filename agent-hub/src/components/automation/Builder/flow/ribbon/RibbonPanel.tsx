@@ -1,4 +1,4 @@
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import SuggestedPanel from './SuggestedPanel';
 import AiPanel from './AiPanel';
 import CommandsPanel from './CommandsPanel';

@@ -3,8 +3,8 @@ import { keyOf } from './AddKindList';
 import { attachItem, type AddItem, type KindLoad } from './addPartsSources';
 import { comingAlong, type RelatedState } from './relatedParts';
 import { partLabel, whyText } from './relatedText';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { projectErrorText } from '../../../projects/workspace/projectErrorText';
+import { useTranslation } from '@/hooks/useTranslation';
+import { projectErrorText } from '@/components/projects/workspace/projectErrorText';
 
 /**
  * Files the ticked items and what they need, one PUT each, and says what

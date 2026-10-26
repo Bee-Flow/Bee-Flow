@@ -1,8 +1,8 @@
 import { Eye, TriangleAlert, X } from 'lucide-react';
 import React, { useId } from 'react';
 
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
-import Toggle from '../../../../../shared/Toggle';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import Toggle from '@/components/shared/Toggle';
 import AddRow from './AddRow';
 
 /**

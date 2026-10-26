@@ -24,9 +24,9 @@
  * Class strings are written out in full: Tailwind only generates what it can
  * read in the source.
  */
-import { triggerIconKey } from '../../../automation/Builder/flow/triggerIcons';
+import { triggerIconKey } from '@/components/automation/Builder/flow/triggerIcons';
 import type { AutomationDefinition, AutomationRecord } from './overviewModel';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 export const TRIGGER_TONES = Object.freeze(['schedule', 'manual', 'mail', 'nextcloud', 'form', 'app', 'other'] as const);
 export type TriggerTone = typeof TRIGGER_TONES[number];

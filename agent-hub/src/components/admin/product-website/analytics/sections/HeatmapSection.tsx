@@ -19,7 +19,7 @@
  */
 import { Flame, ShieldAlert, MoveVertical, AlertTriangle } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import {
     toPoints, groupByWidth, attributeToBlocks, blockLabel, toScrollReach, reachAt,
     type ScrollReach,

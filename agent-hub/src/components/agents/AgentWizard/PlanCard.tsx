@@ -1,7 +1,7 @@
 import { BookOpen, FileText, Search, Sparkles, Plug, Plus } from 'lucide-react';
 import React from 'react';
-import useTranslation from '../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { INTEGRATION_CATALOG } from '../AgentDesigner/integrations';
 
 const CAPABILITY_ICONS = [

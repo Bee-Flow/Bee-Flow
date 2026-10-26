@@ -11,7 +11,7 @@
 import { describe, it, expect } from 'vitest';
 import { nOf, pluralKey } from './plural';
 import { sublineFor } from './sourceKinds';
-import EN from '../../../../i18n/en-defaults';
+import EN from '@/i18n/en-defaults';
 
 const t = (key: string, fallback: string, params: Record<string, unknown> = {}) =>
     String((EN as Record<string, string>)[key] ?? fallback).replace(/\{(\w+)\}/g, (_, k) => String(params[k] ?? `{${k}}`));

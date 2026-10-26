@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import type { RefObject } from 'react';
-import { TOUR_OPEN_DESIGNER_SECTION } from '../../../onboarding/tourSteps';
+import { TOUR_OPEN_DESIGNER_SECTION } from '@/components/onboarding/tourSteps';
 
 const KNOWN_SECTIONS = new Set(['identity', 'knowledge', 'tools', 'behavior']);
 

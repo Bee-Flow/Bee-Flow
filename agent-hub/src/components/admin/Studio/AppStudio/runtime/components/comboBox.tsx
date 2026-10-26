@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { ChevronDown, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { KeyboardEvent, ReactNode } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { Field, INPUT_CLASS, inputStyle } from '../uiBits';
 import useAppDataSource from '../useAppDataSource';
 

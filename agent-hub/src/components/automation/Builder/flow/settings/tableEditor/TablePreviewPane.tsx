@@ -1,7 +1,7 @@
 import { AlertTriangle, Loader2 } from 'lucide-react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import type { TablePreviewState } from '../../../../../../hooks/automationBuilder/useTablePreview';
-import type { Finding, TablePreviewOk } from '../../../../../../api/queries/automation/tablePreview';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { TablePreviewState } from '@/hooks/automationBuilder/useTablePreview';
+import type { Finding, TablePreviewOk } from '@/api/queries/automation/tablePreview';
 import { hintTextClass } from '../formStyles';
 import type { Translate } from './opHelp';
 

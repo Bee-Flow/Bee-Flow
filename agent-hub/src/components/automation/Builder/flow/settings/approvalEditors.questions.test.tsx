@@ -2,7 +2,7 @@ import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/re
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
 import { approvalQuestionName } from './approvalEditors';
-import scopedStorage from '../../../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 import { VariablePickerProvider } from '../../mapping/VariablePickerContext';
 
 /**
@@ -26,7 +26,7 @@ import { VariablePickerProvider } from '../../mapping/VariablePickerContext';
  * is the worst possible shape for this feature.
  */
 
-vi.mock('../../../../../hooks/useAutomationApi', () => ({
+vi.mock('@/hooks/useAutomationApi', () => ({
     default: () => ({
         approvalDirectory: async () => ({ members: [{ id: 'u1', name: 'Ada' }], groups: [] }),
     }),

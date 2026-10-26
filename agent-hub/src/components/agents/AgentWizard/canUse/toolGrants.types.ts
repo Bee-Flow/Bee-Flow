@@ -1,4 +1,4 @@
-import type { CallableAutomation } from '../../../admin/Studio/SkillsStudio/skillModel.types';
+import type { CallableAutomation } from '@/components/admin/Studio/SkillsStudio/skillModel.types';
 import type { ToolApp } from './toolCatalogTypes';
 
 /** An automation row as the Tools card reads it (list endpoint or detail). */

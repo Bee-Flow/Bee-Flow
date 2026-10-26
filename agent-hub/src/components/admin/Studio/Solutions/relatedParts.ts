@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { API_BASE } from '../../../../utils/helpers';
-import { mutate, ApiError } from '../../../../api/mutate';
+import { API_BASE } from '@/utils/helpers';
+import { mutate, ApiError } from '@/api/mutate';
 
 /**
  * What else comes along when parts are added to a Solution.

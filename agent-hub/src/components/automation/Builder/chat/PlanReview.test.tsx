@@ -6,7 +6,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import PlanReview from './PlanReview';
 
-vi.mock('../../../../hooks/useTranslation', () => ({
+vi.mock('@/hooks/useTranslation', () => ({
     default: () => ({ t: (_k: string, d: string) => d }),
     useTranslation: () => ({ t: (_k: string, d: string) => d }),
 }));

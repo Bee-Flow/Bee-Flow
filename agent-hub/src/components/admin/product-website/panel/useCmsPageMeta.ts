@@ -4,11 +4,11 @@ import { useCallback } from 'react';
 import type { CmsActivePage, CmsPageDoc } from './cmsPanelTypes';
 import type useCmsAutosave from './useCmsAutosave';
 import type useCmsPanelState from './useCmsPanelState';
-import { errorMessage, messageOf } from '../../../../utils/caughtError';
-import { toast } from '../../../shared/Toast';
+import { errorMessage, messageOf } from '@/utils/caughtError';
+import { toast } from '@/components/shared/Toast';
 import { cmsApi } from '../cmsApi';
 import { noteSavedRev } from './cmsRevisions';
-import { mutate, errorBody, RefusedError } from '../../../../api/mutate';
+import { mutate, errorBody, RefusedError } from '@/api/mutate';
 
 type PanelState = ReturnType<typeof useCmsPanelState>;
 

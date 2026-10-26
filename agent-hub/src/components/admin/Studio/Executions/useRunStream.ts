@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import useAutomationApi from '../../../../hooks/useAutomationApi';
-import { logger } from '../../../../utils/logger';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import { logger } from '@/utils/logger';
 
 /** How the updates are arriving: SSE, the 5 s polling fallback, or not at all. */
 export type RunStreamState = 'live' | 'polling' | 'paused';

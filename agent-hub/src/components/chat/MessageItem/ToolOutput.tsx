@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Terminal, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { ChatMessage } from './messageTypes';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 interface ToolResultRow { title?: string; url?: string; content?: string }
 

@@ -2,7 +2,7 @@ import { Eye, EyeOff, Check, AlertTriangle, Loader2, Search } from 'lucide-react
 import React, { useId, useState, useRef } from 'react';
 import { getModelMeta, getDisplayName } from './constants';
 import type { ModelOption } from './constants';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import Modal from '../../shared/Modal';
 
 /* ── Input field ─────────────────────────────────────────────────────── */

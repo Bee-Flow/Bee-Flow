@@ -2,7 +2,7 @@
 // drawer, the step drawer and the form-test overlay. Split out of BuildTab
 // without a change in behaviour.
 import { Suspense } from 'react';
-import { lazyWithI18n } from '../../../../utils/lazyWithReload';
+import { lazyWithI18n } from '@/utils/lazyWithReload';
 import { runIdentityOf } from './runIdentity';
 import { autoMapToastMessage } from './addStepModel';
 import type { BuildTabProps } from './buildTabTypes';
@@ -12,7 +12,7 @@ import {
 } from './jsComponents';
 import type { DiagramPaneProps } from './jsComponents';
 import type { BuildTabModel } from './useBuildTabModel';
-import { toast } from '../../../shared/Toast';
+import { toast } from '@/components/shared/Toast';
 import type { CatalogTable } from '../chat/pendingTables';
 
 // The form-test overlay (with the scenario picker) opens on demand.

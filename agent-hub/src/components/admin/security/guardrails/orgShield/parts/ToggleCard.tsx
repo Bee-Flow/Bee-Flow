@@ -1,6 +1,6 @@
 import React, { useId } from 'react';
 
-import Toggle from '../../../../../shared/Toggle';
+import Toggle from '@/components/shared/Toggle';
 
 /**
  * One setting row inside a shared card: title, description, switch — plus

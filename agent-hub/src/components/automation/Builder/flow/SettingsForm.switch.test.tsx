@@ -1,8 +1,8 @@
 import { render, screen, cleanup } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SettingsForm from './SettingsForm';
-import { editorValue, editorWithValue, typeInEditor } from '../../../../test/refEditor';
-import scopedStorage from '../../../../utils/scopedStorage';
+import { editorValue, editorWithValue, typeInEditor } from '@/test/refEditor';
+import scopedStorage from '@/utils/scopedStorage';
 import { VariablePickerProvider } from '../mapping/VariablePickerContext';
 import type { ComponentProps } from 'react';
 

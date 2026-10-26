@@ -15,7 +15,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 
 // Display names come from a registry; pin one so the "display name when it
 // differs from the id, else the id" rule is what the test reads.
-vi.mock('../../../../api/modelMeta', () => ({
+vi.mock('@/api/modelMeta', () => ({
     getModelDisplayName: (m: { id: string }) => (m.id === 'qwen2.5:1.5b' ? 'Qwen 2.5 1.5B' : m.id),
 }));
 

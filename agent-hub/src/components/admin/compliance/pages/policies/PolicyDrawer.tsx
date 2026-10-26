@@ -1,16 +1,16 @@
 import { useEffect, useEffectEvent, useState } from 'react';
 import { Save, UploadCloud } from 'lucide-react';
 import { baselineOf, draftOf, publishQuestion, unchangedSincePublished, type FullPolicyDoc, type PolicyDraft, type PolicyBaseline } from './policyDraft';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import SideDrawer, { DrawerSection, DrawerId, DrawerFooter, type SideDrawerMode } from '../../../../shared/SideDrawer';
-import FindingRow from '../../../../shared/FindingRow';
+import { useTranslation } from '@/hooks/useTranslation';
+import SideDrawer, { DrawerSection, DrawerId, DrawerFooter, type SideDrawerMode } from '@/components/shared/SideDrawer';
+import FindingRow from '@/components/shared/FindingRow';
 import RegisterStatePill from '../../shared/RegisterStatePill';
 import {
     Field, TextInput, DateInput, UserSelect, ActionButton, INPUT_CLASS, ReadFailed,
 } from '../audits/auditForms';
 import type { OrgUser } from '../accessAuditLabels';
-import type { RowLike } from '../../../../shared/DataTable';
-import { logger } from '../../../../../utils/logger';
+import type { RowLike } from '@/components/shared/DataTable';
+import { logger } from '@/utils/logger';
 
 /**
  * PolicyDrawer — the editor for one ISMS policy document (ISO 27001 A.5.1 /

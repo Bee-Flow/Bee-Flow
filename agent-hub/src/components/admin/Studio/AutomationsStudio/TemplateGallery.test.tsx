@@ -3,10 +3,10 @@ import { act, cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../icons/AppIcon', () => ({ default: () => null }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/components/icons/AppIcon', () => ({ default: () => null }));
 
-import { authFetch } from '../../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 import TemplateGallery from './TemplateGallery';
 
 const fetchMock = vi.mocked(authFetch);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import type { FrameworkTag } from '../pages/framework/checkSort';
 
 /**

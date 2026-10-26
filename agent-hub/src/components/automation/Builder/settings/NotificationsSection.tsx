@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronDown, ChevronRight, Newspaper } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { useAutomationShares } from '../../../../api/queries/automation/people';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useAutomationShares } from '@/api/queries/automation/people';
 import NotificationEventEditor, {
     EventIcon, channelLabel, eventQualifier, eventTitle, recipientLabel, useRecipientNames,
 } from './NotificationEventEditor';
@@ -10,7 +10,7 @@ import {
     type EventSettings, type NotificationEvent, type NotificationSettings,
 } from './notificationSettings';
 import { SectionHeading, withDefinition, type SaveFn, type SettingsAutomation } from './settingsUi';
-import { messageOf } from '../../../../utils/caughtError';
+import { messageOf } from '@/utils/caughtError';
 
 /*
  * The overview folds by its OWN width (@container/notify). Wide: the matrix of

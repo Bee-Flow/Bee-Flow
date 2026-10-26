@@ -8,11 +8,11 @@
  * to its folder. Signing reports inside its own dialog.
  */
 import { useCallback, useState } from 'react';
-import { API_BASE, authFetch } from '../../../../utils/helpers';
-import { embedImagesAsBase64 } from '../../../../utils/imageEmbedding';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import { embedImagesAsBase64 } from '@/utils/imageEmbedding';
 import { renderMermaidToSVG, svgToPngDataUrl } from '../MermaidBlock';
-import useTranslation, { type TranslateFn } from '../../../../hooks/useTranslation';
-import { errorMessage } from '../../../../utils/caughtError';
+import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
+import { errorMessage } from '@/utils/caughtError';
 
 export interface NotebookNotice { kind: 'error' | 'success' | 'info'; message: string | undefined; link?: { href: string; label: string } | null }
 

@@ -1,7 +1,7 @@
 import { Ban, Eye, OctagonAlert, ShieldCheck, UserCheck, Users } from 'lucide-react';
 import { Fragment } from 'react';
 
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { OUTCOME_TEXT } from '../shieldPalette';
 import { isGuardDown, type GuardStatus, type OverviewFields } from './types';
 

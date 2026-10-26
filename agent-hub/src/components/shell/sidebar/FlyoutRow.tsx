@@ -4,8 +4,8 @@ import { ACCENT_BAR, ICON_ACTIVE, ICON_IDLE, ROW_ACTIVE, ROW_IDLE, SECTION_LBL }
 import type { NavItem } from './sidebarNav';
 import type { RecentItem } from './useStudioSectionData';
 import type { FlyoutPosition } from './useSidebarFlyouts';
-import type { TranslateFn } from '../../../hooks/useTranslation';
-import { formatRelativeTime } from '../../../utils/dateFormatters';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { formatRelativeTime } from '@/utils/dateFormatters';
 
 type FlyoutRowItem = Omit<NavItem, 'icon'> & {
     icon?: React.ComponentType<{ className?: string; style?: React.CSSProperties; strokeWidth?: number }>;

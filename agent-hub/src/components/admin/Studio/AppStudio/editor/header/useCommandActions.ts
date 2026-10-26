@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import type { Dispatch, RefObject } from 'react';
 import type { HeaderView } from './headerModel';
 import type { ViewOpts } from './useHeaderView';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { AppDefinition } from '../../inspector/appDefinition';
 import type { AppEditorAction, EditorMode } from '../../state/appEditorState';
 

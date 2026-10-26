@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import useOutsideDismiss from '../../../../hooks/useOutsideDismiss';
+import useOutsideDismiss from '@/hooks/useOutsideDismiss';
 
 /**
  * Open state for a small header menu that closes on a mousedown outside it

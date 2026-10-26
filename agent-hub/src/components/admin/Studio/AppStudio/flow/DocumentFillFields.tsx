@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { documentRequest, listTemplates } from '../../../../../pages/documents/documentsApi';
-import useDocumentText from '../../../../../pages/documents/useDocumentText';
+import { documentRequest, listTemplates } from '@/pages/documents/documentsApi';
+import useDocumentText from '@/pages/documents/useDocumentText';
 import BindingField from '../inspector/panels/BindingField';
 import { INPUT_CLS } from '../inspector/panels/kit';
 import type { AppAction, AppDefinition, AppNode, FormFieldRef } from '../inspector/appDefinition';

@@ -8,7 +8,7 @@ import type {
 } from './actionRunner/runnerContext';
 import type { DataState } from './DataContext';
 import { reconcileVariableDefaults, seedVariableDefaults } from './appVariables';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 export { SERVER_STEP_KINDS } from './actionRunner/core';
 

@@ -10,7 +10,7 @@ import ConnectorList from './connectors/ConnectorList';
 import { groupConnectors, newConnectorId } from './connectors/connectorModel';
 import type { Connector } from './connectors/connectorModel';
 import useIntegrationCatalogJs from './useIntegrationCatalog';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { useEditorChrome } from '../editor/EditorChromeContext';
 
 export { connectorProblem } from './connectors/connectorModel';

@@ -1,7 +1,7 @@
 import React from 'react';
 import Notice from './Notice';
 import type { AddOutcome } from './useAddFiling';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 /**
  * What the last "Add" did: what was added, what came along with it and why,

@@ -1,19 +1,19 @@
 import { act, render, screen } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { changeKeys } from '../../../api/queries/projectChanges';
-import { discoveryKeys } from '../../../api/queries/projectDiscovery';
-import { projectKeys } from '../../../api/queries/projects';
-import type { UseProjectStreamOptions } from '../../../hooks/useProjectStream';
-import { testQueryClient, withQueryClient } from '../../../test/queryWrapper';
+import { changeKeys } from '@/api/queries/projectChanges';
+import { discoveryKeys } from '@/api/queries/projectDiscovery';
+import { projectKeys } from '@/api/queries/projects';
+import type { UseProjectStreamOptions } from '@/hooks/useProjectStream';
+import { testQueryClient, withQueryClient } from '@/test/queryWrapper';
 import { ProjectLiveProvider, useProjectLive } from './ProjectLiveContext';
 
 const { post, stream } = vi.hoisted(() => ({ post: vi.fn(), stream: { options: null as null | UseProjectStreamOptions } }));
-vi.mock('../../../api/client', async (importOriginal) => ({
+vi.mock('@/api/client', async (importOriginal) => ({
     ...(await importOriginal<Record<string, unknown>>()),
     apiClient: { post, get: vi.fn() },
 }));
-vi.mock('../../../hooks/useProjectStream', () => ({
+vi.mock('@/hooks/useProjectStream', () => ({
     default: (options: UseProjectStreamOptions) => { stream.options = options; },
 }));
 

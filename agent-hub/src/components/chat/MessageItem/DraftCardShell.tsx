@@ -22,7 +22,7 @@
 
 import { Check, Loader, X, type LucideIcon } from 'lucide-react';
 import React from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 interface DraftCardShellProps {
     status: string;

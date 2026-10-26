@@ -1,5 +1,5 @@
 import { AlertTriangle, Loader2 } from 'lucide-react';
-import Modal from '../../../../shared/Modal';
+import Modal from '@/components/shared/Modal';
 import type { DestructiveConfirmProps } from '../ColumnDesigner.types';
 import { nameList } from './ColumnDesigner.helpers';
 

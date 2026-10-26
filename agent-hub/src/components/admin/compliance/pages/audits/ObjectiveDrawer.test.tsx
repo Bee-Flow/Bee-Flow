@@ -13,7 +13,7 @@ import type { Objective } from './ObjectiveDrawer';
  * Reactivate for an achieved or dropped one.
  */
 
-vi.mock('../../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 afterEach(cleanup);
 

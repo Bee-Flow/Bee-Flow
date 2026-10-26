@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import useTranslation from '../../../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../../../../utils/helpers';
-import type { AuthFetchOptions } from '../../../../../utils/helpers';
+import useTranslation from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import type { AuthFetchOptions } from '@/utils/helpers';
 
 /**
  * App Studio BI — saved-dataset CRUD hook (owner-only endpoints).

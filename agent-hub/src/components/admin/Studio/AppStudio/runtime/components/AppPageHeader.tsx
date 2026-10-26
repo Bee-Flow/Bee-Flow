@@ -1,7 +1,7 @@
 import React from 'react';
 import type { ReactNode } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import AppIcon from '../../../../../icons/AppIcon';
+import useTranslation from '@/hooks/useTranslation';
+import AppIcon from '@/components/icons/AppIcon';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { spaceSteps } from '../styleResolver';

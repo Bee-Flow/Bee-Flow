@@ -4,7 +4,7 @@
 // under the cursor are offered.
 
 import React, { useMemo, useRef } from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { functionNames } from './sheetEngine';
 import type { GridState } from './useGridState';
 

@@ -7,8 +7,8 @@
 import { FlaskConical, X } from 'lucide-react';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { RunStepRecord } from '../../../../api/queries/automation/runs';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import type { RunStepRecord } from '@/api/queries/automation/runs';
+import { useTranslation } from '@/hooks/useTranslation';
 import TestCaseEditor from '../flow/settings/codeStep/TestCaseEditor';
 
 interface SaveAsTestCaseActionProps {

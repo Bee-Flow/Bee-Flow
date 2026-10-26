@@ -34,7 +34,7 @@
  */
 
 import { nOf } from '../KnowledgeStudio/plural';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type {
     Step,
     Rule,

@@ -4,7 +4,7 @@ import { Sparkles, X } from 'lucide-react';
 import type { AddStepPayload } from './addStepModel';
 import type { BuilderProposal } from './buildTabTypes';
 import { AddStepMenu, DiagramPane } from './jsComponents';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { previewCatalog } from '../chat/pendingTables';
 import type { CatalogTable } from '../chat/pendingTables';
 

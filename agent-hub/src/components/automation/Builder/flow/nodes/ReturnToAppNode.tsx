@@ -1,6 +1,6 @@
 import { AppWindow } from 'lucide-react';
 import React from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import StepNodeBase from './StepNodeBase';
 import type { StepNodeProps } from './nodeProps';

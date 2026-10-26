@@ -14,9 +14,9 @@
  */
 
 import type { ToolTimes } from '../answerTrace.types';
-import type { SkillSummary } from '../../../hooks/useChatEngine/types';
-import type { TranslateFn } from '../../../hooks/useTranslation';
-import { getToolLabel } from '../../../utils/helpers';
+import type { SkillSummary } from '@/hooks/useChatEngine/types';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { getToolLabel } from '@/utils/helpers';
 
 /** One tool call of a turn, as `toolHistory` records it. */
 export interface ToolEntry {

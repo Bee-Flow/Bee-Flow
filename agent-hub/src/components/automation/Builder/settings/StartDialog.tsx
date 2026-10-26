@@ -1,15 +1,15 @@
 import { CalendarClock, ClipboardList, FilePlus, Info, Mail, MousePointerClick, X, Zap } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { useTriggerProvidersQuery } from '../../../../api/queries/automation/settings';
-import Modal from '../../../shared/Modal';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useTriggerProvidersQuery } from '@/api/queries/automation/settings';
+import Modal from '@/components/shared/Modal';
 import { defaultFormDeclaration } from '../flow/settings/FormBuilderFields';
 import ScheduleInWords from './ScheduleInWords';
 import { PRIMARY_BTN, SECONDARY_BTN } from './settingsUi';
 import { START_CARDS, cardFromTrigger, cronFromWords, triggerFromChoice, wordsFromCron } from './startChoice';
 import type { ScheduleWords, StartCard, TriggerStep } from './startChoice';
-import { messageOf } from '../../../../utils/caughtError';
+import { messageOf } from '@/utils/caughtError';
 
 export const START_CARD_ICON: Record<StartCard, LucideIcon> = {
     manual: MousePointerClick, schedule: CalendarClock, file: FilePlus, form: ClipboardList, email: Mail, app: Zap,

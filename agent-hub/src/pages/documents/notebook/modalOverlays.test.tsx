@@ -7,7 +7,7 @@ import CitationOverlay from './CitationOverlay';
 import SendForSigningModal from './SendForSigningModal';
 import CommandPalette from './shell/CommandPalette';
 
-vi.mock('../../../utils/helpers', async (importOriginal) => ({
+vi.mock('@/utils/helpers', async (importOriginal) => ({
     ...(await importOriginal<Record<string, unknown>>()),
     authFetch: vi.fn(async (url: string) => ({
         ok: true,

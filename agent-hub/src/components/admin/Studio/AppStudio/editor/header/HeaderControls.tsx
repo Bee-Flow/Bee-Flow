@@ -5,9 +5,9 @@
 import { Database, Eye, Pencil, Shield, UploadCloud, Workflow } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { HeaderView, PublishState, RevealTarget } from './headerModel';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import SegmentedControl from '../../../../../shared/SegmentedControl';
-import StatusActionPill from '../../../../../shared/StatusActionPill';
+import useTranslation from '@/hooks/useTranslation';
+import SegmentedControl from '@/components/shared/SegmentedControl';
+import StatusActionPill from '@/components/shared/StatusActionPill';
 import { SaveNoticeCapsule, SaveNoticesPanel } from '../SaveStatusPill';
 import type { SaveNotice } from '../saveNotices';
 

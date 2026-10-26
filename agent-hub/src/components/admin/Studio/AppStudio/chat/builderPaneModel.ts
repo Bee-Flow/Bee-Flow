@@ -3,7 +3,7 @@
  * families an AI turn invalidates, the auto-send rule, the component count the
  * build farewell reports, and the table a selection is bound to.
  */
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { BuildCueValue } from '../editor/BuildCueContext';
 import type { AppDefinition } from '../inspector/appDefinition';
 import { findNode } from '../state/definitionOps';

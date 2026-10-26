@@ -3,8 +3,8 @@ import React from 'react';
 import { beforeEach, expect, it, vi } from 'vitest';
 
 const api=vi.hoisted(()=>({documentRequest:vi.fn(),listTemplates:vi.fn()}));
-vi.mock('../../../../../pages/documents/documentsApi',()=>api);
-vi.mock('../../../../../hooks/useTranslation',()=>({default:()=>({locale:'en'})}));
+vi.mock('@/pages/documents/documentsApi',()=>api);
+vi.mock('@/hooks/useTranslation',()=>({default:()=>({locale:'en'})}));
 vi.mock('../inspector/panels/BindingField/index',()=>({default:()=> <div data-testid="binding"/>}));
 import DocumentFillFields from './DocumentFillFields';
 import type { ComponentProps } from 'react';

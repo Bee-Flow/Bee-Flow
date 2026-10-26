@@ -1,7 +1,7 @@
 // Section registry + gating for the super-admin integrations panel.
 // Moved verbatim from IntegrationsAdminPanel.jsx.
 import { Cloud, ExternalLink, Layers, Mail, Search as SearchIcon, Settings } from 'lucide-react';
-import { INTEGRATION_CATALOG } from '../../../config/integrationCatalog';
+import { INTEGRATION_CATALOG } from '@/config/integrationCatalog';
 
 export const SECTIONS = [
     { id: 'features', labelKey: 'admin.integ_features', icon: Layers, color: '#10b981' },

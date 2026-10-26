@@ -3,7 +3,7 @@ import type { PanelView } from './panelView';
 import { StageEmptyOverlay } from './PanelSlots';
 import type useCmsPagesTemplates from './useCmsPagesTemplates';
 import type useCmsPanelState from './useCmsPanelState';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { SaveTemplateDialog } from '../PageList';
 import { isVirtualPageId } from '../sentinels';
 import SitemapView from '../SitemapView';

@@ -1,7 +1,7 @@
 /** Shapes of the Upcoming panel (GET /api/transcriptions/{talk,gmeet,teams}-meetings). */
 import type { LucideIcon } from 'lucide-react';
-import type { TranslateFn } from '../../../hooks/useTranslation';
-import type { TranscriptionsApiError } from '../../../api/jsonOrThrow';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import type { TranscriptionsApiError } from '@/api/jsonOrThrow';
 import type { UpcomingMeeting } from '../lib/upcomingMeta';
 
 ;

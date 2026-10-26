@@ -10,7 +10,7 @@
  */
 import { Filter, GitBranch, Repeat, Target, Plus, X } from 'lucide-react';
 import React, { useState } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Empty, fmt, paletteAt } from '../ui';
 import { Card, ErrorNote, Skeleton } from '../AsyncCard';
 import { ACCENT } from '../BarList';

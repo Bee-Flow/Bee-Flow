@@ -2,7 +2,7 @@
 // get it written, changed or trimmed, and keep or undo each turn.
 import { Check, Loader2, RotateCcw, Send, Sparkles, Square } from 'lucide-react';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { AssistTurn } from './useCodeAssistChat';
 
 interface CodeAssistPanelProps {

@@ -14,9 +14,9 @@ import {
     PanelLeft, MessageSquare, Command as CommandIcon,
     type LucideIcon,
 } from 'lucide-react';
-import StudioSectionHeader from '../../../components/shared/StudioSectionHeader';
-import useTranslation from '../../../hooks/useTranslation';
-import useViewport from '../../../hooks/useViewport';
+import StudioSectionHeader from '@/components/shared/StudioSectionHeader';
+import useTranslation from '@/hooks/useTranslation';
+import useViewport from '@/hooks/useViewport';
 import useDrawerState from './hooks/useDrawerState';
 import useResizableWidth from './hooks/useResizableWidth';
 import Drawer from './shell/Drawer';

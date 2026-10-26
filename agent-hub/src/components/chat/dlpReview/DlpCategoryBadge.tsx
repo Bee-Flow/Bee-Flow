@@ -4,10 +4,10 @@
  * config/dlpCategoryColors.ts for why).
  */
 import React from 'react';
-import { categoryStyle, confidenceLabel } from '../../../config/dlpCategoryColors';
-import { piiCategoryById } from '../../../config/piiCategories';
-import { useTranslation } from '../../../hooks/useTranslation';
-import type { PiiConfidenceBand, PiiFindingSource } from '../../../config/dlpCategoryColors';
+import { categoryStyle, confidenceLabel } from '@/config/dlpCategoryColors';
+import { piiCategoryById } from '@/config/piiCategories';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { PiiConfidenceBand, PiiFindingSource } from '@/config/dlpCategoryColors';
 
 interface DlpCategoryBadgeProps {
     categoryId: string;

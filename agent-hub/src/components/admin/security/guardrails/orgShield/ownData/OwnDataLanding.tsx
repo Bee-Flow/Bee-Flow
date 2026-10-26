@@ -1,7 +1,7 @@
 import { ArrowRight, Plus } from 'lucide-react';
 import React, { useId, useState } from 'react';
 
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import OwnDataIntro, { SectionLabel } from './OwnDataIntro';
 import type { CustomDataType } from './ownDataModel';
 import { LIMITS } from './ownDataModel';

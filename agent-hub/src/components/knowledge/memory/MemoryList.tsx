@@ -1,7 +1,7 @@
 import { Lightbulb, Trash2, RotateCcw } from 'lucide-react';
 import React from 'react';
 
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import EmptyState from '../../shared/EmptyState';
 import Spinner from '../../shared/Spinner';
 import MemoryRow from './MemoryRow';

@@ -5,7 +5,7 @@ import {
 import type { PaletteCatalog, PaletteLayer } from '../stepPalette.types';
 import { topFrequentKeys } from '../stepUsage';
 import type { IconType, StepPayload, PaletteItem } from './ribbonCategories';
-import type { OrgStepUsage } from '../../../../../api/queries/automation/usage';
+import type { OrgStepUsage } from '@/api/queries/automation/usage';
 
 /**
  * The Suggested tab (design 5a): "Fits after <step>" cards read off what the

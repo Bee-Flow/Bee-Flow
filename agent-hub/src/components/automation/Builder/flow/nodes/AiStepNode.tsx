@@ -1,10 +1,10 @@
 import { Sparkles, Hammer, Bot, Zap, type LucideIcon } from 'lucide-react';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { TOOL_HANDLE_ID, toolStateOf, aiStepPortCounts, aiStepCardText } from '../aiToolNodes';
 import { nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import AiStepPorts from './AiStepPorts';
 import StepNodeBase, { NodeChip, ForEachBadge } from './StepNodeBase';
-import type { TranslateParams } from '../../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { StepNodeData } from './nodeProps';
 
 const VARIANT_ICON: Record<string, LucideIcon> = { agent: Bot, skill: Zap, instruction: Sparkles };

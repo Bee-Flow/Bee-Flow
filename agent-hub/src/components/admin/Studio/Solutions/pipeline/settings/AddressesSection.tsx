@@ -1,7 +1,7 @@
 import { Check, Copy } from 'lucide-react';
 import React, { useState } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import { logger } from '../../../../../../utils/logger';
+import { useTranslation } from '@/hooks/useTranslation';
+import { logger } from '@/utils/logger';
 
 /**
  * The addresses that reach this stage from outside (design 3.3): the pages it

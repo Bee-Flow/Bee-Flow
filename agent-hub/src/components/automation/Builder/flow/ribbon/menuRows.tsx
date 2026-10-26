@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Bot, Layers, Zap } from 'lucide-react';
 import { actionLabelMap, uiDescription } from '../appLabels';
 import { typeGroupOf } from '../nodeTypeColors';
-import { getIntegrationById } from '../../../../../config/integrationCatalog';
+import { getIntegrationById } from '@/config/integrationCatalog';
 import { AppGlyph, IntegrationLogo } from './jsComponents';
 import { FAMILY_TEXT } from './ribbonCategories';
 import type { IconType, PaletteItem, RibbonApp, StepPayload } from './ribbonCategories';

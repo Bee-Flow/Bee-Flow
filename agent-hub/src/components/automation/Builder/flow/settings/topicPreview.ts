@@ -19,7 +19,7 @@ import { parseExpr, evaluate } from '@shared/expr/engine.mjs';
 import {
     TOPIC_HOST_SPEC, topicCallsOf, normalizeTopicText, makeTopicHost,
 } from '@shared/expr/topics.mjs';
-import { logger } from '../../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /** The preview endpoint's ceiling (server/routes/ai/automationBuilder/topicPreview.js). */
 export const MAX_PREVIEW_TEXTS = 25;

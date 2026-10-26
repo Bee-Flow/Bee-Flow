@@ -1,8 +1,8 @@
 import React from 'react';
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { TONES } from '../../../../shared/statusTone';
-import { kindTileStyle } from '../../../../shared/kindColors';
+import { TONES } from '@/components/shared/statusTone';
+import { kindTileStyle } from '@/components/shared/kindColors';
 import { heroCard, stagePadding, stageType, WIDTH } from './stageChrome';
 
 /**

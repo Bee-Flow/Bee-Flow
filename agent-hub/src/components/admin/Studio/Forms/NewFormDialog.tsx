@@ -1,10 +1,10 @@
 import { ClipboardList, Loader2, Sparkles } from 'lucide-react';
 import React, { useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { errorMessage } from '../../../../utils/caughtError';
-import { kindColorVar } from '../../../shared/kindColors';
-import Modal from '../../../shared/Modal';
-import { PRIMARY_ACTION_STYLE } from '../../../shared/StudioSectionHeader';
+import { useTranslation } from '@/hooks/useTranslation';
+import { errorMessage } from '@/utils/caughtError';
+import { kindColorVar } from '@/components/shared/kindColors';
+import Modal from '@/components/shared/Modal';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import ChoiceCard from '../Datatables/ChoiceCard';
 import { parkSeed } from '../studioAi/handoff';
 import { createFormAutomation } from '../studioGates';

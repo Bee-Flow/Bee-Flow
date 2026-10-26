@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { configFields } from './runIo';
 import { buildRunStepLabelMap, buildRunStepMap } from '../flow/displayHelpers';
 

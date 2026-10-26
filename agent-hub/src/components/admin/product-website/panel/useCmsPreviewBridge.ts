@@ -4,7 +4,7 @@
 // ProductWebsitePanel.jsx. State stays owned by the panel (threaded in).
  
 import { useCallback, useEffect, useEffectEvent, type Dispatch, type SetStateAction } from 'react';
-import { toast } from '../../../shared/Toast';
+import { toast } from '@/components/shared/Toast';
 import { mergePreviewPage, mergePreviewSite } from '../localeMerge';
 import { buildPreviewContent } from '../preview/previewContent';
 import { isChromeEntryId } from '../sentinels';

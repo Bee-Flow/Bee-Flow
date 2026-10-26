@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SetStateAction } from 'react';
-import { API_BASE } from '../../../../utils/helpers';
-import { mutate, RefusedError, errorBody } from '../../../../api/mutate';
-import type { AuthFetchOptions } from '../../../../utils/helpers';
+import { API_BASE } from '@/utils/helpers';
+import { mutate, RefusedError, errorBody } from '@/api/mutate';
+import type { AuthFetchOptions } from '@/utils/helpers';
 
 /** One organization in `GET /auth/organizations`. */
 interface OrgListEntry {

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { AppIcon } from '../fieldKit/jsDeps';
 import PageMenu from './PageMenu';
 import { normalizeSlugForInput, slugIssues } from './pageListShared';

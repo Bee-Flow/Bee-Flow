@@ -1,6 +1,6 @@
 import { X } from 'lucide-react';
 import React, { useState, useRef, useEffect } from 'react';
-import type { TranslateFn } from '../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 export interface ConvLabel {
     id: string;

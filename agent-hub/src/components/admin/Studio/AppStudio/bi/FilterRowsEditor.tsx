@@ -1,13 +1,13 @@
 import { FunctionSquare, Pencil, Type, Undo2 } from 'lucide-react';
 import { useState } from 'react';
-import useTranslation from '../../../../../hooks/useTranslation';
-import Toggle from '../../../../shared/Toggle';
-import { RepeatableList } from '../../../product-website/fields';
+import useTranslation from '@/hooks/useTranslation';
+import Toggle from '@/components/shared/Toggle';
+import { RepeatableList } from '@/components/admin/product-website/fields';
 import ExpressionInput from '../inspector/logic/ExpressionInput';
 import { INPUT_CLS } from '../inspector/panels/kit';
 import type { AppDefinition, AppNode } from '../inspector/appDefinition';
 import type { FormulaValue, FilterValue, Stash, FilterRow, FilterField, FilterRowsEditorProps } from './FilterRowsEditor.types';
-import { logger } from '../../../../../utils/logger';
+import { logger } from '@/utils/logger';
 import { allowedOps, opsFor, isFormulaValue, choicesOf, valueControlFor, isNumeric, emptyValueFor } from './FilterRowsEditor.helpers';
 import { ValueControl } from './ValueControl';
 export type { FilterRow } from './FilterRowsEditor.types';

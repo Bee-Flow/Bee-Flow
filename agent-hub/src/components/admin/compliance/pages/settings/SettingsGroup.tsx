@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 import BreachRecipients from './BreachRecipients';
 import { RELEVANCE_OPTIONS } from './settingsFields.helpers';
 import { SPAN_CLASS, groupProgress, isVisible, sectionsOf, spanOf, type SettingsForm, type SettingsSection } from './settingsLayout';
-import { useTranslation, type TranslateParams } from '../../../../../hooks/useTranslation';
-import { FilterPill } from '../../../../shared/FilterPills';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import { FilterPill } from '@/components/shared/FilterPills';
 import { formatDay } from '../../shared/formatDates';
 import {
     Field, TextInput, DateInput, Select, UserSelect, Toggle, ActionButton, INPUT_CLASS, LABEL_CLASS,

@@ -10,7 +10,7 @@ import type { AssistantField } from '../useBuilderShellState';
 import {
     AssistantWelcome, InputArea, MessageBubble, ProposalCard, WorkModePicker,
 } from './jsComponents';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import BuilderWaitingCard from '../chat/BuilderWaitingCard';
 import PlanInlineCard from '../chat/PlanInlineCard';
 import QuestionsCard from '../chat/QuestionsCard';

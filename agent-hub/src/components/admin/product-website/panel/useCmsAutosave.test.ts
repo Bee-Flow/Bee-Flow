@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import useCmsPanelState from './useCmsPanelState';
 import useCmsAutosave from './useCmsAutosave';
-import { toast } from '../../../shared/Toast';
+import { toast } from '@/components/shared/Toast';
 import { noteSavedRev, resetSavedRevs } from './cmsRevisions';
 
 interface SavedRequest {

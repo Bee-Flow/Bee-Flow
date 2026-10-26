@@ -5,8 +5,8 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { AuthFetchOptions } from '../../../utils/helpers';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import type { AuthFetchOptions } from '@/utils/helpers';
+import { API_BASE, authFetch } from '@/utils/helpers';
 import type {
     Memory, MemorySort, MemoryScope, MemoryStats, MemoryType, MemoryView,
 } from './memoryTypes';

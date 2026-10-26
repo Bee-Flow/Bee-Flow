@@ -1,5 +1,5 @@
 // The value control of one check: the right box for its operation.
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { typeName } from './assertionText';
 import { COUNT_COMPARISONS, TYPE_NAMES, type AssertionDraft } from './testCaseForm';
 

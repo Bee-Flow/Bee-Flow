@@ -2,11 +2,11 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { authFetch } from '../../../../utils/helpers';
-import { withQueryClient } from '../../../../test/queryWrapper';
+import { authFetch } from '@/utils/helpers';
+import { withQueryClient } from '@/test/queryWrapper';
 import RunTableChips from './RunTableChips';
 
-vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 const ID1 = 'rtb_0123456789abcdef0123456789abcdef';
 const ID2 = 'rtb_fedcba9876543210fedcba9876543210';

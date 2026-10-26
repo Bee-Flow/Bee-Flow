@@ -1,4 +1,4 @@
-import type { ChatMessage as EngineMessage } from '../../../hooks/useChatEngine/types';
+import type { ChatMessage as EngineMessage } from '@/hooks/useChatEngine/types';
 import type { TerminalActivity } from './TerminalProgress';
 import type { TestChatInfo } from './TestChatNotice';
 

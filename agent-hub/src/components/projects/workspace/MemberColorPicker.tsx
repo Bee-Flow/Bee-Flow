@@ -4,7 +4,7 @@
 
 import { Check } from 'lucide-react';
 import React, { useRef, useState } from 'react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import AnchoredMenuJs from '../../shared/AnchoredMenu';
 import { MEMBER_COLORS } from './memberColors';
 

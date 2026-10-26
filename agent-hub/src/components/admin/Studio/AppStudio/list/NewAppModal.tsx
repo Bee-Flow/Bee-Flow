@@ -5,12 +5,12 @@ import ImportPanel from './ImportPanel';
 import TemplateGallery from './TemplateGallery';
 import type { OpenOptions, StudioApp, StudioTemplate } from './types';
 import useImportFile from './useImportFile';
-import useTranslation from '../../../../../hooks/useTranslation';
-import Modal from '../../../../shared/Modal';
-import Tabs from '../../../../shared/Tabs';
-import toast from '../../../../shared/Toast';
+import useTranslation from '@/hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
+import Tabs from '@/components/shared/Tabs';
+import toast from '@/components/shared/Toast';
 import { studioAppsApi } from '../studioAppsApi';
-import { messageOf } from '../../../../../utils/caughtError';
+import { messageOf } from '@/utils/caughtError';
 
 // ── New-app modal ───────────────────────────────────────────────────
 

@@ -1,9 +1,9 @@
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { useEffect, useEffectEvent, useMemo, useRef } from 'react';
 import { INPUT_CLS } from './panels/kit';
-import FormField from '../../../../shared/FormField';
-import SegmentedControl from '../../../../shared/SegmentedControl';
-import Toggle from '../../../../shared/Toggle';
+import FormField from '@/components/shared/FormField';
+import SegmentedControl from '@/components/shared/SegmentedControl';
+import Toggle from '@/components/shared/Toggle';
 import useAppTables, { fieldsForTable } from '../bi/useAppTables';
 import { useEditorChrome } from '../editor/EditorChromeContext';
 import { autoMapping, bindingForField, extractableColumns, fieldNameFromBinding, isUntouchedSchema, schemaFromColumns, writableColumns, type FormulaBinding, type SchemaField, type TableColumn } from './aiFieldMatching';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import type { VersionRow } from '../../../../api/queries/automation/versions';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import type { VersionRow } from '@/api/queries/automation/versions';
 import { describeVersion, formatValue, groupVersions, milestonesOnly, settingName, versionMeta, versionTitle, worksTheSame } from './versionText';
 
 // The fallback text with its {params} filled in, like the real hook without a catalogue.

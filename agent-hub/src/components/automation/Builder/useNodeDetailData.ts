@@ -14,11 +14,11 @@ import { usedPathsIn } from './mapping/boundPaths';
 import { buildRealOutputMap, buildSampleRoot } from './mapping/realOutputs';
 import { buildToolOutputMap, describeNode } from './mapping/upstream';
 import type { ToolOutputMap, TriggerOutputs } from './mapping/upstream/upstream.types';
-import useAutomationApi from '../../../hooks/useAutomationApi';
-import useUpstreamVariables from '../../../hooks/useUpstreamVariables';
-import type { UpstreamGroup } from '../../../hooks/useUpstreamVariables';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { walkPath } from '../../../utils/bindingHelpers';
+import useAutomationApi from '@/hooks/useAutomationApi';
+import useUpstreamVariables from '@/hooks/useUpstreamVariables';
+import type { UpstreamGroup } from '@/hooks/useUpstreamVariables';
+import { useTranslation } from '@/hooks/useTranslation';
+import { walkPath } from '@/utils/bindingHelpers';
 import { initialValues } from '../../forms/PublicFormRenderer';
 
 /** The tool schemas the editor draws its output guesses from. */

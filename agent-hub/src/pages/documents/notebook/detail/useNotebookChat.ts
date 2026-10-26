@@ -14,12 +14,12 @@
  * it is ignored here.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
-import useChatEngine from '../../../../hooks/useChatEngine';
-import type { ChatMessage } from '../../../../hooks/useChatEngine/types';
-import { apiClient } from '../../../../api/client';
+import useChatEngine from '@/hooks/useChatEngine';
+import type { ChatMessage } from '@/hooks/useChatEngine/types';
+import { apiClient } from '@/api/client';
 import { useClearNotebookChat, useNotebookConversation, type ChatHistoryMessage } from '../notebookQueries';
 import type { NotebookEditorHandle } from './editorHandle';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 export interface SelectionPayload { text: string; from: number | null; to: number | null; action: string }
 

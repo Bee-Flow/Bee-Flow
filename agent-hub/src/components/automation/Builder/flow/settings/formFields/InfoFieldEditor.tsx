@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import TemplateFieldJs from '../../../mapping/TemplateField';
+import { useTranslation } from '@/hooks/useTranslation';
+import TemplateFieldJs from '@/components/automation/Builder/mapping/TemplateField';
 import { textareaClass } from '../formPrimitives';
 import type { FieldEditorProps } from './fieldEditor.types';
 import { INFO_MAX_LEN } from './fieldKinds';

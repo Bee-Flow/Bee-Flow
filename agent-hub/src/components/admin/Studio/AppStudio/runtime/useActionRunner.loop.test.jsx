@@ -11,17 +11,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  * expr; authFetch and Toast are mocked.
  */
 
-vi.mock('../../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../../shared/Toast', () => {
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/components/shared/Toast', () => {
     const toast = { success: vi.fn(), error: vi.fn(), info: vi.fn() };
     return { default: toast, toast };
 });
 vi.mock('./components/AppModal', () => ({ openAppModal: vi.fn(), closeAppModal: vi.fn() }));
 
+import toast from '@/components/shared/Toast';
+import { authFetch } from '@/utils/helpers';
 import { dataCacheKey } from './resolveBinding';
 import useActionRunner from './useActionRunner';
-import { authFetch } from '../../../../../utils/helpers';
-import toast from '../../../../shared/Toast';
 
 const resp = (status, body, ok = status >= 200 && status < 300) => ({ ok, status, json: async () => body });
 

@@ -1,4 +1,4 @@
-import { API_BASE } from '../../../../../utils/helpers';
+import { API_BASE } from '@/utils/helpers';
 
 /**
  * The transport a PUBLIC Studio-app page installs (see pages/apps/PublicAppPage

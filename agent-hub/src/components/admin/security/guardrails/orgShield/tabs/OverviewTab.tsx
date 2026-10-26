@@ -1,6 +1,6 @@
 import { Layers, ShieldOff } from 'lucide-react';
 
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { ShieldEvidence } from '../activity/useShieldEvidence';
 import { reviewItems } from '../orgShieldPosture';
 import ComplianceLink from '../overview/ComplianceLink';

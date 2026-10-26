@@ -9,13 +9,13 @@ const t = (key: string, a: string, b: TranslateParams) => {
     return params ? `${key} ${Object.values(params).join(' ')}` : key;
 };
 
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../hooks/useTranslation', () => ({ useTranslation: () => ({ t, locale: 'en' }) }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/hooks/useTranslation', () => ({ useTranslation: () => ({ t, locale: 'en' }) }));
 vi.mock('../../licensing/EntitlementsContext', () => ({ useEntitlements: () => ({ tier: 'enterprise' }) }));
-vi.mock('../../../moduleRuntime/registry', () => ({ reloadRemoteModules: vi.fn() }));
+vi.mock('@/moduleRuntime/registry', () => ({ reloadRemoteModules: vi.fn() }));
 
 import MarketplaceTab from './MarketplaceTab';
-import { authFetch } from '../../../utils/helpers';
+import { authFetch } from '@/utils/helpers';
 import { asMock } from '@/test/mocks';
 import type { TranslateParams } from '@/hooks/useTranslation';
 

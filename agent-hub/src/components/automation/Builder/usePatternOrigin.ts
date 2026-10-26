@@ -1,7 +1,7 @@
 import { QueryClientContext } from '@tanstack/react-query';
 import { useCallback, useContext, useRef } from 'react';
-import { repeatingApi, repeatingKeys } from '../../../api/queries/automation/repeating';
-import type { FeedbackBody, RepeatingSuggestion, ScanResult } from '../../../api/queries/automation/repeating';
+import { repeatingApi, repeatingKeys } from '@/api/queries/automation/repeating';
+import type { FeedbackBody, RepeatingSuggestion, ScanResult } from '@/api/queries/automation/repeating';
 import { feedbackSuggestion } from '../../admin/Studio/AutomationsStudio/repeating/patternView';
 
 /** The "Find repeating work" suggestion a new builder was opened from. */

@@ -6,7 +6,7 @@ import { set, SectionHeaderFields } from './shared';
 import type { SectionHeaderData } from './shared';
 import { StepMediaFields } from './StepMediaFields';
 import type { StepMedia } from './StepMediaFields';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 type Hotspot = { x?: number; y?: number; label?: string; body?: string };
 type TourStep = { title?: string; body?: string; media?: StepMedia; hotspots?: Hotspot[] };

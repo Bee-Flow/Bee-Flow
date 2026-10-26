@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
-import useTranslation, { type TranslateFn } from '../../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../../utils/helpers';
-import { mutate, errorBody, RefusedError } from '../../../../../api/mutate';
+import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { mutate, errorBody, RefusedError } from '@/api/mutate';
 
 /**
  * PUT one part. Resolves null when the server took it, or the part number it

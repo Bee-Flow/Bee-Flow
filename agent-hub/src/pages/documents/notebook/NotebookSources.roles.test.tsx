@@ -4,7 +4,7 @@ import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import NotebookSources from './NotebookSources';
 
-vi.mock('../../../components/meeting-picker/MeetingPicker', () => ({ default: () => null }));
+vi.mock('@/components/meeting-picker/MeetingPicker', () => ({ default: () => null }));
 vi.mock('../../meeting-notes/capture/CaptureContext', () => ({ useCapture: () => ({ openCapture: () => {} }) }));
 
 const SOURCES = [

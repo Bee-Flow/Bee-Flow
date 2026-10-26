@@ -1,5 +1,5 @@
 import type { ComponentType, CSSProperties, ReactNode } from 'react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { AnalyticsScope } from '../analyticsApi';
 
 // Shapes shared by ui.tsx and the analytics sections.

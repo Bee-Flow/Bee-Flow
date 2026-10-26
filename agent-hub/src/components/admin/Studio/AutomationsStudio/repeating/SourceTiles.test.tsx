@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import type { ScanSourceGroup } from '../../../../../api/queries/automation/repeating';
+import type { ScanSourceGroup } from '@/api/queries/automation/repeating';
 import SourceTiles, { ScanAction } from './SourceTiles';
 import type { SourceTilesProps } from './SourceTiles';
 

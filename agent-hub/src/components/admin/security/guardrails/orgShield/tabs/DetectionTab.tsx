@@ -1,7 +1,7 @@
 import { Eye, ScanSearch, Tags } from 'lucide-react';
 import React, { useCallback, useMemo } from 'react';
 
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { ShieldEvidence } from '../activity/useShieldEvidence';
 import type { ToolPiiPolicy } from '../orgShieldDoc';
 import { builtInOnly, customOnly } from '../ownData/ownDataModel';

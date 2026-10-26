@@ -3,7 +3,7 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
-import type { SheetData } from '../../../api/sheetApi';
+import type { SheetData } from '@/api/sheetApi';
 
 type Cells = Record<string, string>;
 

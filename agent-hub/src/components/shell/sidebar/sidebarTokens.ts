@@ -1,4 +1,4 @@
-import scopedStorage from '../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 
 /* ─── Design tokens ─── */
 export const ROW = 'w-full flex items-center gap-2.5 px-3 h-9 rounded-lg transition-all duration-150 text-left relative';

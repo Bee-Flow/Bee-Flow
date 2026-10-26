@@ -18,11 +18,11 @@ import {
     SectionTitle, ListRow, TrendChip, CollapsibleSection, ShowMore, EmptyInline, TOKENS,
 } from './kit';
 import { Avatar, IconBadge, getSourceDetails } from './widgets';
-import { tierLabel, TIER_META } from '../../../components/licensing/tierMeta';
-import { paletteColor as getColor, OVERVIEW_COST_ALERT } from '../../../config/analyticsConfig';
-import { computeHalfPeriodDelta } from '../../../utils/usageHelpers';
-import type { TranslateParams } from '../../../hooks/useTranslation';
-import type { StarterModel } from '../../../api/runtimeTypes';
+import { tierLabel, TIER_META } from '@/components/licensing/tierMeta';
+import { paletteColor as getColor, OVERVIEW_COST_ALERT } from '@/config/analyticsConfig';
+import { computeHalfPeriodDelta } from '@/utils/usageHelpers';
+import type { TranslateParams } from '@/hooks/useTranslation';
+import type { StarterModel } from '@/api/runtimeTypes';
 import type { InOutBarProps, InOutLabelProps, LegendProps, TimelineRow, SummaryRow, UsageMetrics, UserRow, ModelRow, SourceRow, ModelUserRow, AgentModelRow, AgentGroup, AzureServiceType, AzureTypeRow, SubscriptionInfo, TrendChartProps, OverviewTabProps } from './OverviewTab.types';
 // ── Overview-local primitives (used only here) ───────────────────────────────
 const InOutBar = ({ input, output, height = 5, style }: InOutBarProps) => {

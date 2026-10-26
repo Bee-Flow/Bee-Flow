@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ReactNode } from 'react';
-import type { TranslateFn, TranslateParams } from '../../../../../hooks/useTranslation';
+import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
 
 /**
  * A translated sentence with React elements inside it (`<code>`, `<strong>`).

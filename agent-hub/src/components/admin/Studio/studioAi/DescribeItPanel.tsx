@@ -2,11 +2,11 @@ import { Copy, Loader2, Lock, Sparkles } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { destinationForKind, kindLabel, parkSeed, type NavRow } from './handoff';
 import { routeDescription, type RouteResult } from './routeApi';
-import { useTranslation, type TranslateFn } from '../../../../hooks/useTranslation';
-import { kindColorVar, kindIcon, kindTint } from '../../../shared/kindColors';
-import Modal from '../../../shared/Modal';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import { kindColorVar, kindIcon, kindTint } from '@/components/shared/kindColors';
+import Modal from '@/components/shared/Modal';
 import type { RoutePlan, Destination, BlockRowProps, PlanCaveatsProps, PlanCardProps, PanelBodyProps, DescribeItPanelProps } from './DescribeItPanel.types';
-import { logger } from '../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 const CARD_CLASS = 'rounded-xl border border-[var(--border-default)] px-3.5 py-3';
 

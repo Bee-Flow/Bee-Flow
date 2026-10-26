@@ -7,8 +7,8 @@
 // its cursor when the author's typing adds or removes a parameter.
 import { ChevronDown, ChevronRight, Code2 } from 'lucide-react';
 import { useMemo, useState, type ComponentType } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
-import ToolInputFormJs from '../../../mapping/ToolInputForm';
+import { useTranslation } from '@/hooks/useTranslation';
+import ToolInputFormJs from '@/components/automation/Builder/mapping/ToolInputForm';
 import { FormRow, SectionNote, hintTextClass } from '../formPrimitives';
 import { buildPatch, extractFormState } from '../formState';
 import CodeEditorField from './CodeEditorField';

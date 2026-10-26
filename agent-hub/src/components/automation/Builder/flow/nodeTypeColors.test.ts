@@ -8,8 +8,8 @@ import {
     TYPE_GROUPS, typeGroupOf, typeColorVar, typeTint, typeTileStyle, cardChrome, cardRadius,
     STATUS_VAR, STATUS_BADGE, statusVar, miniMapColor, CARD_W, CARD_H,
 } from './nodeTypeColors';
-import { readAppCss, readStylesheet } from '../../../../test/appStylesheets';
-import { STATUS_TOKENS, tokenFor } from '../../../shared/statusTokens';
+import { readAppCss, readStylesheet } from '@/test/appStylesheets';
+import { STATUS_TOKENS, tokenFor } from '@/components/shared/statusTokens';
 import { stub } from '@/test/mocks';
 
 /**

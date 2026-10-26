@@ -1,6 +1,6 @@
 import { Cloud, FileSpreadsheet } from 'lucide-react';
 import React from 'react';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import ChoiceCard from '../ChoiceCard';
 import { ssReasonText } from '../spreadsheet/wizardState';
 import type { Linkable, StorageProbe } from './useLinkSources';

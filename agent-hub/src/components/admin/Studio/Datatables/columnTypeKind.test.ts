@@ -7,7 +7,7 @@ import {
     filterEntry, opTakesList, opTakesNoValue, opsForColumn, retentionCutoffIso, rowExpiry,
     tableKindOf,
 } from './datatableDisplay';
-import { KINDS, KIND_WORD } from '../../../automation/Builder/mapping/fieldKinds';
+import { KINDS, KIND_WORD } from '@/components/automation/Builder/mapping/fieldKinds';
 import { partial, stub } from '@/test/mocks';
 
 /**

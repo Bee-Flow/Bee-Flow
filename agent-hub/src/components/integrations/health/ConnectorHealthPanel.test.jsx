@@ -2,11 +2,11 @@ import { render, screen, fireEvent, cleanup, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ok, fail } from '@/test/http';
+import { authFetch } from '@/utils/helpers';
 import ConnectorHealthPanel from './ConnectorHealthPanel';
-import { authFetch } from '../../../utils/helpers';
 
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationMock'));
 // The drawer mounts its own timeline fetch; stub it so this file stays about
 // the fleet table. The drawer has its own colocated test.
 vi.mock('./OrgHealthDrawer', () => ({

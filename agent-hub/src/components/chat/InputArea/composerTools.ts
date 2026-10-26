@@ -19,12 +19,12 @@
  */
 import { Brain, Globe, LayoutGrid, Paperclip, Phone } from 'lucide-react';
 
-import { nextMemoryMode } from '../../../utils/memoryMode';
-import scopedStorage from '../../../utils/scopedStorage';
+import { nextMemoryMode } from '@/utils/memoryMode';
+import scopedStorage from '@/utils/scopedStorage';
 import { memoryHint } from '../memory/memoryModeCopy';
 import type { ComponentType } from 'react';
-import type { TranslateFn } from '../../../hooks/useTranslation';
-import type { MemoryLock, MemoryMode } from '../../../utils/memoryMode';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import type { MemoryLock, MemoryMode } from '@/utils/memoryMode';
 
 export interface ComposerToolsProps {
     t: TranslateFn;

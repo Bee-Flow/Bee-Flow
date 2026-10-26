@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { ChevronDown, ChevronUp, Settings2 } from 'lucide-react';
-import { LANGUAGES } from '../../../config/meetingNotesConfig';
+import { LANGUAGES } from '@/config/meetingNotesConfig';
 import { useRecorder } from '../hooks/RecorderContext';
 
 // The engine selector was removed — uploads always use the server-configured

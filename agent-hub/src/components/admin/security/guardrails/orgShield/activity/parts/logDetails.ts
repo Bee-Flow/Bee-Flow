@@ -7,7 +7,7 @@
  * event; operator, address, result, tool and place for a call.
  */
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { ENTRY_WORDS, wordFor } from '../activityLabels';
 import { placeLabel } from '../egressMap/locationCopy';
 import type { MapDestination } from '../egressMap/mapModel';

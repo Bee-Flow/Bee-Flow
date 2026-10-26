@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { aiProvidersKey, useAiProvidersQuery } from '../../../../api/queries/adminConfigReads';
+import { aiProvidersKey, useAiProvidersQuery } from '@/api/queries/adminConfigReads';
 import ProviderApiKeyCard from './ProviderApiKeyCard';
 import type { ProviderCardProps } from './ProviderApiKeyCard';
 import { PROVIDER_KEY_CONFIGS } from './providerKeyConfig';
-import { API_BASE } from '../../../../utils/helpers';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { RefusedError, mutate, errorBody } from '../../../../api/mutate';
+import { API_BASE } from '@/utils/helpers';
+import { useTranslation } from '@/hooks/useTranslation';
+import { RefusedError, mutate, errorBody } from '@/api/mutate';
 
 const EU_HOST = 'eu.api.openai.com';
 

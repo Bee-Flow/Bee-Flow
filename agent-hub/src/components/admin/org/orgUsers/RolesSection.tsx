@@ -1,7 +1,7 @@
 import { ChevronDown, ChevronRight, Shield, Users } from 'lucide-react';
 import type { Dispatch, SetStateAction } from 'react';
-import { ORG_ROLES, permissionsForRole } from '../../../../config/orgRoles';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { ORG_ROLES, permissionsForRole } from '@/config/orgRoles';
+import { useTranslation } from '@/hooks/useTranslation';
 import RolePermissionEditor from '../RolePermissionEditor';
 import type { OrgMember, OrgRolePermissions } from '../useOrgDirectory';
 

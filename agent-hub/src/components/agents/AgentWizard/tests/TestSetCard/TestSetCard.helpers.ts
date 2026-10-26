@@ -1,5 +1,5 @@
 import { REFUSAL, type AgentTest, type Refusal } from '../testSetFacts';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /**
  * The sentence for one problem.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { dpiaPill, EMPTY_FORM, formFromRecord, formReady, isExpired, mitigationList, questionnaireBody } from './DpiaDrawer';
 
 const t: TranslateFn = (key: string, fallback, params) => {

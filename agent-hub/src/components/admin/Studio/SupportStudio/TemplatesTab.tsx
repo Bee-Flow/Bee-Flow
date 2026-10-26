@@ -1,13 +1,13 @@
 import React, { useState, useCallback } from 'react';
-import { useStudioCannedQuery, useStudioTagsQuery } from '../../../../api/queries/supportPanels';
+import { useStudioCannedQuery, useStudioTagsQuery } from '@/api/queries/supportPanels';
 import { Plus, Trash2 } from 'lucide-react';
-import useTranslation from '../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../utils/helpers';
-import Section from '../../../shared/Section';
-import FormField from '../../../shared/FormField';
+import useTranslation from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import Section from '@/components/shared/Section';
+import FormField from '@/components/shared/FormField';
 import { INPUT_FIELD, PRIMARY_BTN, PRIMARY_BTN_STYLE } from './supportStyles';
-import type { CannedResponse } from '../../../support/SupportInboxPanel.types';
-import { mutate, ApiError, RefusedError, errorBody } from '../../../../api/mutate';
+import type { CannedResponse } from '@/components/support/SupportInboxPanel.types';
+import { mutate, ApiError, RefusedError, errorBody } from '@/api/mutate';
 
 interface SupportTag {
     id: string;

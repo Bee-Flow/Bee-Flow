@@ -1,7 +1,7 @@
 import { Lock } from 'lucide-react';
 import React from 'react';
 import type { ReactNode } from 'react';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 interface LicenceLockProps {
     children?: ReactNode;

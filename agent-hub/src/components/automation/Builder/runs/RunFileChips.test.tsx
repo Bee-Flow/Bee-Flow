@@ -2,11 +2,11 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { authFetch } from '../../../../utils/helpers';
-import { generatedFilesOf, previewKindOf } from '../../../../api/queries/automation/runFiles';
+import { authFetch } from '@/utils/helpers';
+import { generatedFilesOf, previewKindOf } from '@/api/queries/automation/runFiles';
 import RunFileChips from './RunFileChips';
 
-vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 const kept = (over: Record<string, unknown> = {}) => ({
     fileId: 'file-1', filename: 'Quote-001.pdf', mimeType: 'application/pdf', size: 2048, format: 'pdf',

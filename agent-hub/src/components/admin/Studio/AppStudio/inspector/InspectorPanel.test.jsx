@@ -13,7 +13,7 @@ import { KITCHEN_SINK } from '../state/sampleDefinitions';
 
 // ActionsSection / AutomationPicker resolve automation titles through the house
 // automations API — stub the network away.
-vi.mock('../../../../../hooks/useAutomationApi', () => ({
+vi.mock('@/hooks/useAutomationApi', () => ({
     default: () => ({ listAutomations: vi.fn(async () => ({ automations: [] })) }),
     safeText: vi.fn(async () => ''),
 }));

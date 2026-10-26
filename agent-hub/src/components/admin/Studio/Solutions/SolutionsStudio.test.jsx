@@ -3,12 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderWithClient as render } from '@/test/render';
 
-vi.mock('../../../../utils/helpers', () => ({
+vi.mock('@/utils/helpers', () => ({
     API_BASE: '',
     authFetch: (...args) => globalThis.__authFetch(...args),
 }));
 // The live feed needs an EventSource; the workspace must render without one.
-vi.mock('../../../../hooks/useProjectStream', () => ({ default: () => {} }));
+vi.mock('@/hooks/useProjectStream', () => ({ default: () => {} }));
 
 import SolutionsStudio from './SolutionsStudio';
 

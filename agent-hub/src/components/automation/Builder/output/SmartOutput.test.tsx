@@ -1,7 +1,7 @@
 import { render, screen, within, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { setCurrentUser } from '../../../../utils/scopedStorage';
+import { setCurrentUser } from '@/utils/scopedStorage';
 import OutputView from '../OutputView';
 import RunNote from './RunNote';
 import SmartOutput, { smartRowsOf } from './SmartOutput';

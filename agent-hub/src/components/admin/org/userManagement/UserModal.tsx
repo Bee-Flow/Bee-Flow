@@ -1,9 +1,9 @@
 import { Building, ChevronDown, Image, Smile } from 'lucide-react';
 import type { Dispatch, SetStateAction } from 'react';
-import { ORG_ROLES } from '../../../../config/orgRoles';
-import type { TranslateFn, TranslateParams } from '../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../utils/helpers';
-import Modal from '../../../shared/Modal';
+import { ORG_ROLES } from '@/config/orgRoles';
+import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import Modal from '@/components/shared/Modal';
 import type { AdminGroup, AdminOrganization, UserFormData } from './types';
 
 const EMOJI_CHOICES = ['😀', '😎', '🤖', '👨', '👩', '👤', '🧑‍💻', '👨‍💼', '👩‍💼', '🦸', '🧙', '👷', '🎅', '🐝', '🦊', '🐱', '🐶', '🐻', '🦁', '🐸', '🌟', '⭐', '🔥', '💡', '🎯', '🚀', '💻', '🛡️', '🎨', '📊', '🔧', '⚡'];

@@ -1,6 +1,6 @@
 import { Ban, Check, Plus, Trash2 } from 'lucide-react';
 import React from 'react';
-import useTranslation, { type TranslateFn } from '../../../../hooks/useTranslation';
+import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
 import { newLocalId } from './skillModel';
 import type { Rule } from './skillModel.types';
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { deleteMemoriesByConversation } from '../../chat/memory/memoryApi';
 import ConfirmDialog from '../../shared/ConfirmDialog';
 import { toast } from '../../shared/Toast';

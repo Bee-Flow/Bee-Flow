@@ -1,8 +1,8 @@
 import { ChevronDown, Lock, Plus, Sparkles, type LucideIcon } from 'lucide-react';
 import React, { useMemo, useRef, useState } from 'react';
 import { createFormAutomation, groupStudioApps, studioLockHint } from './studioGates';
-import { useTrainingGates, trainingLockHint, type TrainingLock } from '../../../hooks/useTrainingGates';
-import { useTranslation, type TranslateFn } from '../../../hooks/useTranslation';
+import { useTrainingGates, trainingLockHint, type TrainingLock } from '@/hooks/useTrainingGates';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import AnchoredMenu from '../../shared/AnchoredMenu';
 import { kindColorVar, kindIcon, kindTint } from '../../shared/kindColors';
 import { toast } from '../../shared/Toast';

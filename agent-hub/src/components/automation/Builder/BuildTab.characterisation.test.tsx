@@ -3,7 +3,7 @@ import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BuildTab from './BuildTab';
 import { createLayerInDefinition as createLayerJs } from './flow/flowletScope';
-import scopedStorage from '../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 
 /**
  * The golden behaviour of BuildTab's main paths, pinned before the file was
@@ -27,7 +27,7 @@ const api = {
     summariseLayer: vi.fn(() => Promise.resolve({ summary: ' Sends the mail. ' })),
 };
 
-vi.mock('../../../hooks/useAutomationApi', () => ({ default: () => api }));
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => api }));
 vi.mock('../../shared/Toast', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 vi.mock('./DiagramPane', async () => {
     const real = await import('./applyAddNode');

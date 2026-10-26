@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import useTranslation from '../../../hooks/useTranslation';
-import scopedStorage from '../../../utils/scopedStorage';
+import useTranslation from '@/hooks/useTranslation';
+import scopedStorage from '@/utils/scopedStorage';
 import { formatNoticeDate, type NoticeModel } from './chatSignalsModel';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /**
  * A one-time banner above the chat-signals line, once per version: a new

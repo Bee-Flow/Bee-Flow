@@ -3,7 +3,7 @@
 
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import type { TeamChatMessage } from '../../../../api/queries/projectChats';
+import type { TeamChatMessage } from '@/api/queries/projectChats';
 import useChatSearch from './useChatSearch';
 
 let seq = 0;

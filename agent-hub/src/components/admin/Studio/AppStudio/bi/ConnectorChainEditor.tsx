@@ -3,7 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { paramsOfAction } from './ActionParamsForm';
 import type { Connector, ChainSuggestion } from './connectors/connectorModel';
 import useIntegrationCatalog from './useIntegrationCatalog';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 /**
  * App Studio — combine actions into one connector.

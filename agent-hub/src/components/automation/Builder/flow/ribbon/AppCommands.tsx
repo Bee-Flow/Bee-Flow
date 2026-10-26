@@ -2,7 +2,7 @@ import { CmdButton, RibbonDropdown, AppGlyph } from './jsComponents';
 import type { ReactNode } from 'react';
 import { uiDescription } from '../appLabels';
 import { stepDragProps } from '../stepDrag';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { AppActionsList, DropdownPill } from './MenuPanel';
 import { actionPayload, appDescription, appRow } from './menuRows';
 import type { RowPill } from './PillRow';

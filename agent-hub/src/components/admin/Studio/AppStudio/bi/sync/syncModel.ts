@@ -3,7 +3,7 @@
  * a mailbox or an /inspect proposal turns into, the refresh choices, and the
  * honest copy for each kind of incremental loading.
  */
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 export const INPUT = 'w-full rounded-md px-2 py-1.5 text-sm bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[var(--text-primary)]';
 export const LABEL = 'text-xs font-medium text-[var(--text-secondary)]';

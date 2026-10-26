@@ -1,7 +1,7 @@
 import { Check, Lock, Pause, X } from 'lucide-react';
 import React from 'react';
 import type { CSSProperties, ReactNode } from 'react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { Phase } from './phaseMachine';
 import { phaseFact } from './playbookView';
 import { phaseLabel } from './recipes';

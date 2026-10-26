@@ -8,9 +8,9 @@ import type { DraggableSyntheticListeners } from '@dnd-kit/core';
 import { claimPointerDown, LOGIC_MARK_ICONS } from './nodeWrapperModel';
 import type { LogicMark, LogicPillSpec } from './nodeWrapperModel';
 import type { NodeResize } from './useNodeResize';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import IconButton from '../../../../../shared/IconButton';
-import { kindColorVar } from '../../../../../shared/kindColors';
+import useTranslation from '@/hooks/useTranslation';
+import IconButton from '@/components/shared/IconButton';
+import { kindColorVar } from '@/components/shared/kindColors';
 
 /** The pill itself — see pillFor for the shape and the artboard it comes from. */
 export function LogicPill({ pill }: { pill: LogicPillSpec }) {

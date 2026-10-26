@@ -1,8 +1,8 @@
 import React, { useMemo, useRef, useEffect } from 'react';
 import { Check, Loader2, Lock, type LucideIcon } from 'lucide-react';
 import { classifySessionSkill, deriveCompletedSkillIds } from '../../skills/sessionSkillState';
-import beeFlowIcon from '../../../assets/BeeFlow-logo-Icon-2026.svg';
-import useTranslation, { type TranslateFn } from '../../../hooks/useTranslation';
+import beeFlowIcon from '@/assets/BeeFlow-logo-Icon-2026.svg';
+import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
 import { nOf } from '../../admin/Studio/KnowledgeStudio/plural';
 
 /**

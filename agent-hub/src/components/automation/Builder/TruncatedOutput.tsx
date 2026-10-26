@@ -1,9 +1,9 @@
 import { useState, type ReactNode } from 'react';
 import { AlertTriangle, Loader2 } from 'lucide-react';
-import { useTranslation } from '../../../hooks/useTranslation';
-import type { TranslateFn } from '../../../hooks/useTranslation';
-import { formatBytes } from '../../../utils/dateFormatters';
-import { fetchRunFullOutput, fullOutputRefOf, type FullOutputRef } from '../../../api/queries/runFullOutput';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { formatBytes } from '@/utils/dateFormatters';
+import { fetchRunFullOutput, fullOutputRefOf, type FullOutputRef } from '@/api/queries/runFullOutput';
 
 /**
  * A step output the run history had to cut short (BFSF-402).

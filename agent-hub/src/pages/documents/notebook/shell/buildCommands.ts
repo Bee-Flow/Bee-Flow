@@ -11,7 +11,7 @@ import {
     MessagesSquare, ListTree, MessageSquarePlus, Type, FileUp, Search, Keyboard,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import type { EditorChain } from '../../../../editor/react/editorFacade';
+import type { EditorChain } from '@/editor/react/editorFacade';
 
 /** The slice of the editor ref the commands reach into. */
 interface CommandEditorRef {

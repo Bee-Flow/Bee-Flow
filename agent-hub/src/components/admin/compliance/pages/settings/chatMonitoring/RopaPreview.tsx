@@ -1,6 +1,6 @@
 import React from 'react';
-import { useTranslation, type TranslateFn } from '../../../../../../hooks/useTranslation';
-import { useChatMonitoringRopa, type RopaActivityView } from '../../../data/useChatMonitoring';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import { useChatMonitoringRopa, type RopaActivityView } from '@/components/admin/compliance/data/useChatMonitoring';
 import { isEmployeeSurface, type ChatMonitoringForm } from './chatMonitoringForm';
 import { surfaceLabel } from './chatMonitoringLabels';
 

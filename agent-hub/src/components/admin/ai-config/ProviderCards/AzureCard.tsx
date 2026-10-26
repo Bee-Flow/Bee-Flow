@@ -3,8 +3,8 @@ import type { ProviderCardProps } from './ProviderApiKeyCard';
 import DeleteConfirmButtons from './shared/DeleteConfirmButtons';
 import SecretInput from './shared/SecretInput';
 import ProviderCardShell, { ProviderStatusPill, PROVIDER_INPUT_CLS, PROVIDER_INPUT_STYLE } from './shared/ProviderCardShell';
-import useProviderConfig from '../../../../hooks/useProviderConfig';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import useProviderConfig from '@/hooks/useProviderConfig';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const AzureConfigCard = ({ onMessage }: ProviderCardProps) => {
     const { t } = useTranslation();

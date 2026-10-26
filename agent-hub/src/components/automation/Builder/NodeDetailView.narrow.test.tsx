@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const { api } = vi.hoisted(() => ({
     api: { getCatalog: vi.fn().mockResolvedValue({ apps: [], triggerOutputs: {} }) },
 }));
-vi.mock('../../../hooks/useAutomationApi', () => ({ default: () => api }));
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => api }));
 
 import { aiStepProps, renderInQueryClient as render } from './ndv/ndvTestProps';
 import NodeDetailViewJs from './NodeDetailView';

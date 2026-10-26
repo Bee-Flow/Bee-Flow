@@ -4,10 +4,10 @@
 
 import React, { useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Info, Plus, Trash2, X } from 'lucide-react';
-import { useBoardActions, type ProjectBoard, type BoardColumn } from '../../../../api/queries/projectBoard';
-import { TASK_STATUSES } from '../../../../api/queries/projectTasks';
-import useTranslation from '../../../../hooks/useTranslation';
-import Modal from '../../../shared/Modal';
+import { useBoardActions, type ProjectBoard, type BoardColumn } from '@/api/queries/projectBoard';
+import { TASK_STATUSES } from '@/api/queries/projectTasks';
+import useTranslation from '@/hooks/useTranslation';
+import Modal from '@/components/shared/Modal';
 import { ErrorText, GhostButton, PrimaryButton, SecondaryButton, SelectField } from '../workspaceUi';
 import { statusLabel } from './taskText';
 import { projectErrorText } from '../projectErrorText';

@@ -1,6 +1,6 @@
-import { countFor, type StudioCounts } from '../../../../hooks/useStudioCounts';
-import { cardChrome } from '../../../automation/Builder/flow/nodeTypeColors';
-import { cardRadius as kindCardRadius, kindColorVar } from '../../../shared/kindColors';
+import { countFor, type StudioCounts } from '@/hooks/useStudioCounts';
+import { cardChrome } from '@/components/automation/Builder/flow/nodeTypeColors';
+import { cardRadius as kindCardRadius, kindColorVar } from '@/components/shared/kindColors';
 import { STUDIO_CATEGORIES, type Translate } from '../studioGates';
 import { studioAppForKind } from '../studioNav';
 import type { BlockMeta, CountState, EdgeGeometry, ElbowRoute, MapEdge, MapNode, Point, Side } from './studioMap.types';

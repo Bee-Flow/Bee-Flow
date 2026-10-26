@@ -3,7 +3,7 @@
 
 import { ListTree, X } from 'lucide-react';
 import React from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { OutlineItem } from '../canvasBridge';
 import { ICON_BUTTON } from './ui';
 

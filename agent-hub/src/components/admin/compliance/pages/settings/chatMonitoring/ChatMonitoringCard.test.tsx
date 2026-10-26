@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent, { type UserEvent } from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
-import { queryWrapper } from '../../../../../../test/queryWrapper';
+import { queryWrapper } from '@/test/queryWrapper';
 import ChatMonitoringCard from './ChatMonitoringCard';
 import { addDaysUtc, defaultStartDate, utcDay } from './chatMonitoringForm';
 

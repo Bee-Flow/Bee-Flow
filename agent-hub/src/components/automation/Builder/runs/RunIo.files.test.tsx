@@ -1,9 +1,9 @@
 import { render, screen, cleanup } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { RunStepRecord } from '../../../../api/queries/automation/runs';
+import type { RunStepRecord } from '@/api/queries/automation/runs';
 import RunIo from './RunIo';
 
-vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 const row = (output: unknown) => ({
     runId: 'run-1', stepId: 'doc', stepType: 'generate_document', status: 'success', input: {}, output,

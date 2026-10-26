@@ -8,8 +8,8 @@ import {
     fmt, fmtDuration, fmtTime, shortModel, COLORS,
     Card, Empty, MetricCard
 } from './shared';
-import { TYPE_ORDER, isLargeInput, LARGE_ATTACHMENT_BYTES_THRESHOLD, LARGE_INPUT_TOKEN_THRESHOLD } from '../../../utils/terminationsModel';
-import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
+import { TYPE_ORDER, isLargeInput, LARGE_ATTACHMENT_BYTES_THRESHOLD, LARGE_INPUT_TOKEN_THRESHOLD } from '@/utils/terminationsModel';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
 import type { TypeMeta, TerminationRow, TerminationSummary, TimelineRow, AgentTerminations, TypeBadgeProps, TerminationsPageProps, DetailRowProps } from './TerminationsPage.types';
 import { API, TYPE_META, typeLabel, fetchJson, rangeQuery, fmtBytes, filterSelectWrapper, filterSelectStyle } from './TerminationsPage.helpers';
 import { StackedBarChart } from './StackedBarChart';

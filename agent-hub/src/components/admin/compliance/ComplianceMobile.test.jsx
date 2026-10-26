@@ -18,7 +18,7 @@ import { attentionTarget } from './mobile/MobileHomeOverview';
  * Nothing here fetches: the hub owns the data and hands the same object every
  * page gets. So the fixtures below ARE the contract with fe-1.
  */
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const COUNTS = {
     attention_open: 3,

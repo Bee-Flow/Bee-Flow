@@ -23,9 +23,9 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import DlpCategoryBadge from './DlpCategoryBadge';
 import { customLabel } from './DlpFindingsSummaryBar';
 import { buildRuns } from './dlpFindingsState';
-import { categoryStyle } from '../../../config/dlpCategoryColors';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { textOffsetFromPoint } from '../../../utils/textSelection';
+import { categoryStyle } from '@/config/dlpCategoryColors';
+import { useTranslation } from '@/hooks/useTranslation';
+import { textOffsetFromPoint } from '@/utils/textSelection';
 import AnchoredMenu from '../../shared/AnchoredMenu';
 import type { AddSpanHandler, DlpSpan, RemoveSpanHandler } from './dlpFindingsState';
 

@@ -1,9 +1,9 @@
 import { BookOpen, CalendarClock, ExternalLink } from 'lucide-react';
 import { useMemo } from 'react';
-import useNow from '../../../../../hooks/useNow';
+import useNow from '@/hooks/useNow';
 import { frameworkIdOf, type CheckRecord } from './checkSort';
 import { disclosureFails, isArt50Phase, shortTitlesOf } from './phaseRules';
-import { useTranslation, type TranslateParams } from '../../../../../hooks/useTranslation';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
 import { parseDay, daysUntil, SOON_DAYS } from '../../shared/calendarMath';
 import RegulatoryCalendar, { type CalendarItem } from '../../shared/RegulatoryCalendar';
 import TimelinePhases from '../../shared/TimelinePhases';

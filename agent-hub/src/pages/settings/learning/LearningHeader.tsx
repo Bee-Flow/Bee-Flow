@@ -1,10 +1,10 @@
 import { ArrowLeft, Check, ChevronDown, Compass } from 'lucide-react';
 import React, { useRef, useState } from 'react';
-import { LEARNING_PATHS } from '../../../components/onboarding/learningPaths';
-import type { StudioSectionHeaderTab } from '../../../components/projects/workspace/studioParts';
-import AnchoredMenu from '../../../components/shared/AnchoredMenu';
-import SegmentedControl from '../../../components/shared/SegmentedControl';
-import type { TranslateParams } from '../../../hooks/useTranslation';
+import { LEARNING_PATHS } from '@/components/onboarding/learningPaths';
+import type { StudioSectionHeaderTab } from '@/components/projects/workspace/studioParts';
+import AnchoredMenu from '@/components/shared/AnchoredMenu';
+import SegmentedControl from '@/components/shared/SegmentedControl';
+import type { TranslateParams } from '@/hooks/useTranslation';
 
 /**
  * LearningHeader — the 48px row of every Learning Center screen (handoff

@@ -3,12 +3,12 @@ import type { useAccessAudit } from '../data/registers';
 import { useMemo, useState } from 'react';
 import { actionLabel, actorName, detailOf, metaFor, subjectOf, when, type AccessAuditRow, type OrgUser } from './accessAuditLabels';
 import { Field, DateInput, UserSelect, ActionButton, Intro, ReadFailed, RegisterLayout } from './audits/auditForms';
-import { useTranslation, type TranslateParams } from '../../../../hooks/useTranslation';
-import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '../../../shared/DataTable';
-import EmptyState from '../../../shared/EmptyState';
-import FilterPills from '../../../shared/FilterPills';
-import Pager from '../../../shared/Pager';
-import { TONES } from '../../../shared/statusTone';
+import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import DataTable, { TableRow, TableCell, TABLE_FOLDED_ONLY } from '@/components/shared/DataTable';
+import EmptyState from '@/components/shared/EmptyState';
+import FilterPills from '@/components/shared/FilterPills';
+import Pager from '@/components/shared/Pager';
+import { TONES } from '@/components/shared/statusTone';
 
 /**
  * AccessAuditPage — the access & authentication trail (ISO/IEC 27001 A.8.15 and

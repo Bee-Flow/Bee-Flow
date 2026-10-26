@@ -1,5 +1,5 @@
 import { FileSpreadsheet } from 'lucide-react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
 import { readTableSummary } from '../tableSummaries';
 import StepNodeBaseJs from './StepNodeBase';

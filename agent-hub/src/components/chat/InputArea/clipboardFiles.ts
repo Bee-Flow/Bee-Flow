@@ -19,8 +19,8 @@
  * separate from the composer's wiring in usePasteAttachments.js so the quirks
  * above can be read (and corrected) on their own.
  */
-import { logger } from '../../../utils/logger';
-import { errorMessage } from '../../../utils/caughtError';
+import { logger } from '@/utils/logger';
+import { errorMessage } from '@/utils/caughtError';
 
 /** Extract files from clipboardData (sync — classic approach) */
 export function extractPasteFiles(clipboardData: DataTransfer | null | undefined): File[] {

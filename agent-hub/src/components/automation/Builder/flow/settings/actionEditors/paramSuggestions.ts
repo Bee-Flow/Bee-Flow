@@ -4,8 +4,8 @@
 // safe default: the root folder for a folder or path, today for a date.
 // Never applied on its own: the drawer shows it, the author clicks it.
 import { humanizeFieldTail } from '../../displayHelpers';
-import type { InputSchema } from '../../../mapping/autoMapInputs.types';
-import type { UpstreamGroup } from '../../../mapping/deepFields';
+import type { InputSchema } from '@/components/automation/Builder/mapping/autoMapInputs.types';
+import type { UpstreamGroup } from '@/components/automation/Builder/mapping/deepFields';
 
 export interface Suggestion {
     binding: { kind: string; value?: unknown; path?: string };

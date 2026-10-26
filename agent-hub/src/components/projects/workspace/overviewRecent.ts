@@ -2,8 +2,8 @@
 // and meetings in one list, newest first. Pure: the caller decides what an
 // entry looks like and where it opens.
 
-import type { TeamChat } from '../../../api/queries/projectChats';
-import type { ProjectResources, ProjectThread } from '../../../api/queries/projects';
+import type { TeamChat } from '@/api/queries/projectChats';
+import type { ProjectResources, ProjectThread } from '@/api/queries/projects';
 
 export type RecentKind = 'team_chat' | 'ai_chat' | 'document' | 'notebook' | 'meeting';
 

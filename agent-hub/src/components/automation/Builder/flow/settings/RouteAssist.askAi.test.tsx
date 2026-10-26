@@ -28,7 +28,7 @@ import { omitted } from '@/test/mocks';
 import type { ComponentProps } from 'react';
 
 const api = { suggestRouteRules: vi.fn() };
-vi.mock('../../../../../hooks/useAutomationApi', () => ({ default: () => api }));
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => api }));
 
 const { default: RouteAssist } = await import('./RouteAssist');
 

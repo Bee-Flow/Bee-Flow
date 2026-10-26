@@ -6,7 +6,7 @@ import { SECTIONS } from './sections';
 import { omitted, partial } from '@/test/mocks';
 import type { ComponentProps } from 'react';
 
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
 const COUNTS = {
     attention_open: 7,

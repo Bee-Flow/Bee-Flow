@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Save } from 'lucide-react';
-import { API_BASE } from '../../../utils/helpers';
-import { useSupportConfigQuery } from '../../../api/queries/supportPanels';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { errorMessage } from '../../../utils/caughtError';
-import { mutate, errorBody, RefusedError } from '../../../api/mutate';
+import { API_BASE } from '@/utils/helpers';
+import { useSupportConfigQuery } from '@/api/queries/supportPanels';
+import { useTranslation } from '@/hooks/useTranslation';
+import { errorMessage } from '@/utils/caughtError';
+import { mutate, errorBody, RefusedError } from '@/api/mutate';
 
 export default function SupportToolsTab() {
     const { t } = useTranslation();

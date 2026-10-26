@@ -1,5 +1,5 @@
 import { Workflow, X } from 'lucide-react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { DirectoryOptions } from './approvalStages';
 import { actionButtonClass, controlSurfaceClass, FormRow, hintTextClass } from './formPrimitives';
 import { seatFromSelectValue, seatSelectValue } from './approvalTypes';

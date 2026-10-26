@@ -1,11 +1,11 @@
 import type { AriaAttributes, ButtonHTMLAttributes, ChangeEvent, CSSProperties, InputHTMLAttributes, ReactNode, Ref, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { cloneElement, createElement as h, isValidElement, useId } from 'react';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
-import type { SideDrawerMode } from '../../../../shared/SideDrawer';
-import { PRIMARY_ACTION_STYLE } from '../../../../shared/StudioSectionHeader';
-import type { Tone } from '../../../../shared/statusTone';
-import { TONES } from '../../../../shared/statusTone';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import type { SideDrawerMode } from '@/components/shared/SideDrawer';
+import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
+import type { Tone } from '@/components/shared/statusTone';
+import { TONES } from '@/components/shared/statusTone';
 import type { DateLike } from '../../shared/formatDates';
 import { formatDay, formatDayTime } from '../../shared/formatDates';
 import type { OrgUser } from '../accessAuditLabels';

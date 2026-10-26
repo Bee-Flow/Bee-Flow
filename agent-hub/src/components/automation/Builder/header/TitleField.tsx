@@ -1,6 +1,6 @@
 import { Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 /** A flowlet the canvas is scoped to: the title row becomes a breadcrumb. */
 export interface HeaderScope { key: string; title?: string; refCount?: number; empty?: boolean }

@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import AccordionSection from '../../AccordionSection';
 import { WAIT_UNIT_FACTOR, clampWaitSeconds, waitUnitFor, type WaitUnit } from '../../waitDuration';
 import { controlSurfaceClass, FormRow } from '../formPrimitives';

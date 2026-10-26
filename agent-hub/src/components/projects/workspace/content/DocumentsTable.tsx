@@ -1,14 +1,14 @@
-import { useViewport } from '../../../../hooks/useViewport';
+import { useViewport } from '@/hooks/useViewport';
 // The documents filed in a project, as a table: name (with a dot when
 // somebody else changed it since the reader last looked), type, owner, and
 // when and by whom it was last changed.
 
 import { FileText, NotebookPen, Presentation } from 'lucide-react';
 import React from 'react';
-import type { ProjectDocument } from '../../../../api/queries/projectContent';
-import useRelativeTime from '../../../../hooks/useRelativeTime';
-import useTranslation from '../../../../hooks/useTranslation';
-import { useDocTypeLabel } from '../../../../pages/documents/library/labels';
+import type { ProjectDocument } from '@/api/queries/projectContent';
+import useRelativeTime from '@/hooks/useRelativeTime';
+import useTranslation from '@/hooks/useTranslation';
+import { useDocTypeLabel } from '@/pages/documents/library/labels';
 import ItemViewers from '../ItemViewers';
 import { RemoveButton } from '../workspaceUi';
 import { DataTable, TableCell, TableRow, type TableColumn } from './typedShared';

@@ -4,7 +4,7 @@
 // at a time, and the CSV is handed to the browser as a blob, never linked.
 
 import { useQuery } from '@tanstack/react-query';
-import { API_BASE, authFetch } from '../../../utils/helpers';
+import { API_BASE, authFetch } from '@/utils/helpers';
 import { failure } from './http';
 
 type TableColumnType = 'text' | 'number' | 'boolean' | 'date' | 'datetime' | 'mixed' | 'empty';

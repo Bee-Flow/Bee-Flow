@@ -5,9 +5,9 @@
 
 import { ArrowDownUp, CalendarClock, CalendarRange, Flag, Kanban, List, ListTree, Search, SlidersHorizontal, UserX, X } from 'lucide-react';
 import React, { useRef, useState } from 'react';
-import { TASK_PRIORITIES, type TaskPriority } from '../../../../api/queries/projectTasks';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import SegmentedControl from '../../../shared/SegmentedControl';
+import { TASK_PRIORITIES, type TaskPriority } from '@/api/queries/projectTasks';
+import { useTranslation } from '@/hooks/useTranslation';
+import SegmentedControl from '@/components/shared/SegmentedControl';
 import type { useChatPeople } from '../chat/chatPeople';
 import { Avatar, GhostButton } from '../workspaceUi';
 import { activeFilterCount, NO_FILTERS, type TaskFilters, type TaskSort } from './taskFilters';

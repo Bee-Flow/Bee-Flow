@@ -4,8 +4,8 @@
 
 import { BarChart3, Download, Sparkles, Table2 } from 'lucide-react';
 import React, { useRef, useState } from 'react';
-import { StudioSectionHeader } from '../../../components/projects/workspace/studioParts';
-import useTranslation, { type TranslateFn } from '../../../hooks/useTranslation';
+import { StudioSectionHeader } from '@/components/projects/workspace/studioParts';
+import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
 import type { People, StudioDocument } from '../documentQueries';
 import SaveStatusChip from '../editor/SaveStatusChip';
 import FormulaBar from './FormulaBar';
@@ -17,7 +17,7 @@ import SheetGrid from './SheetGrid';
 import SheetStatusBar from './SheetStatusBar';
 import SheetTabs from './SheetTabs';
 import { BUTTON, Notice, SheetLoadError, SheetSkeleton } from './SheetStates';
-import { SheetApiError } from '../../../api/sheetApi';
+import { SheetApiError } from '@/api/sheetApi';
 import { selectionFor } from './sheetModel';
 import useAssistantTier from './useAssistantTier';
 import useGridState from './useGridState';
@@ -25,7 +25,7 @@ import useSheetAsk from './useSheetAsk';
 import useSheetAssistant from './useSheetAssistant';
 import useSheet, { type SheetState } from './useSheet';
 import useSheetActions from './useSheetActions';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 export interface SpreadsheetEditorProps {
     initial: StudioDocument;

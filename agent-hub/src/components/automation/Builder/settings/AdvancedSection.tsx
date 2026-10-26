@@ -1,10 +1,10 @@
 import { ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import WebhookPanel from '../WebhookPanel';
 import { Choice, FieldGrid, ReadOnlyFieldset, SELECT, useDebouncedSave, withDefinition } from './settingsUi';
 import type { SaveFn, SettingsAutomation } from './settingsUi';
-import { messageOf } from '../../../../utils/caughtError';
+import { messageOf } from '@/utils/caughtError';
 
 /** `definition.runPolicy` (server: core/automationRunner/runPolicy.js). */
 export interface RunPolicy {

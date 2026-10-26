@@ -13,7 +13,7 @@ import AiDraftPanel, { isBlankForm } from './AiDraftPanel';
  */
 
 const { api } = vi.hoisted(() => ({ api: { draftForm: vi.fn() } }));
-vi.mock('../../../../../hooks/useAutomationApi', () => ({ default: () => api }));
+vi.mock('@/hooks/useAutomationApi', () => ({ default: () => api }));
 
 const BLANK = { title: 'Get in touch', fields: [{ name: 'name' }, { name: 'email' }, { name: 'message' }] };
 const FILLED = { title: 'Feedback', collect: true, fields: [{ name: 'email', type: 'email', label: 'Your e-mail' }] };

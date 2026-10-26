@@ -21,14 +21,14 @@ import { partial } from '@/test/mocks';
 
 const granted = new Set();
 
-vi.mock('../../../licensing/LicenseContext', () => ({
+vi.mock('@/components/licensing/LicenseContext', () => ({
     // Behaves like the real RequireTier's feature branch: children when the
     // capability is effective, the upgrade panel otherwise.
     RequireTier: ({ feature, children }: { feature?: unknown; children?: ReactNode }) => (
         granted.has(feature) ? children : <div data-testid="upgrade-prompt">{String(feature)}</div>
     ),
 }));
-vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationMock'));
 vi.mock('./ApprovalDetail', () => ({
     default: ({ approvalId }: { approvalId?: unknown }) => <div data-testid="approval-detail">{String(approvalId)}</div>,
 }));

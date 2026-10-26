@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
-import { API_BASE } from '../../../../utils/helpers';
-import { settled } from '../../../../api/settled';
+import { API_BASE } from '@/utils/helpers';
+import { settled } from '@/api/settled';
 import type { AdminGroup, AdminMessage, AdminOrganization, AdminPermission, AdminRole, AdminUser } from './types';
 
 export interface UserManagementData {

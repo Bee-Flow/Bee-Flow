@@ -1,12 +1,12 @@
 import { Pencil } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { HeaderApp } from './headerModel';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import { kindTileStyle } from '../../../../../shared/kindColors';
-import toast from '../../../../../shared/Toast';
+import useTranslation from '@/hooks/useTranslation';
+import { kindTileStyle } from '@/components/shared/kindColors';
+import toast from '@/components/shared/Toast';
 import { studioAppsApi } from '../../studioAppsApi';
-import AppIcon from '../../../../../icons/AppIcon';
-import { errorMessage } from '../../../../../../utils/caughtError';
+import AppIcon from '@/components/icons/AppIcon';
+import { errorMessage } from '@/utils/caughtError';
 
 interface AppNameFieldProps {
     app: HeaderApp;

@@ -19,7 +19,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
  * server.
  */
 
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 vi.mock('../../shared/Toast', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 vi.mock('./DiagramPane', () => ({ default: () => null, applyAddNode: (d) => d }));
 vi.mock('../../chat/InputArea', () => ({ default: () => null }));
@@ -38,9 +38,9 @@ vi.mock('./BuilderHeader', () => ({ default: (p) => { header = p; return null; }
 vi.mock('./BuildTab', () => ({ default: (p) => { buildTab = p; header = p.headerProps; return null; } }));
 vi.mock('./SettingsTab', () => ({ default: () => null }));
 
+import { queryWrapper } from '@/test/queryWrapper';
+import { authFetch } from '@/utils/helpers';
 import BuilderShell from './BuilderShell';
-import { queryWrapper } from '../../../test/queryWrapper';
-import { authFetch } from '../../../utils/helpers';
 
 // The hooks under this tree read through React Query, so every render needs
 // a client above it — a fresh one per render, never the app singleton.

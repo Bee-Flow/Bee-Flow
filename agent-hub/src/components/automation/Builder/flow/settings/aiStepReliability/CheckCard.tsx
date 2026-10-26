@@ -1,6 +1,6 @@
 import { Trash2 } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useTranslation } from '../../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import FieldHint from '../../FieldHint';
 import { cardClass } from '../formPrimitives';
 import { ProblemRing } from '../runProblem';

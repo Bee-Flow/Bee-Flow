@@ -1,6 +1,6 @@
 import React, { memo, useRef, useState } from 'react';
 import PlayerTooltip from './PlayerTooltip';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { formatDuration } from '../../lib/format';
 import type { PlayerChapter } from './player.types';
 

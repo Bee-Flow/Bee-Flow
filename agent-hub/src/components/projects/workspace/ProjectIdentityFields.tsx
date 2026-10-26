@@ -4,7 +4,7 @@
 
 import { Check } from 'lucide-react';
 import React, { useId } from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import FormField from '../../shared/FormField';
 import { safeProjectColor, swatchStyle } from './projectVisuals';
 import { CharCount, INPUT_CLASS } from './workspaceUi';

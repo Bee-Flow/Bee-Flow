@@ -6,7 +6,7 @@
 // changes neither what is asked nor where the box sits.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { selectionLabel } from './sheetAskText';
 import { selectionFor, type Range, type SelectionKind } from './sheetModel';
 import type { AssistantTier } from './useAssistantTier';

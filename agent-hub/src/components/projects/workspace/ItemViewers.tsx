@@ -2,8 +2,8 @@
 // team chat header: the people the live feed saw with this item open.
 
 import React from 'react';
-import { useProjectMembersQuery } from '../../../api/queries/projects';
-import useTranslation from '../../../hooks/useTranslation';
+import { useProjectMembersQuery } from '@/api/queries/projects';
+import useTranslation from '@/hooks/useTranslation';
 import { useProjectLive, viewKey, type ViewTarget } from './ProjectLiveContext';
 import { ViewerStack } from './workspaceUi';
 

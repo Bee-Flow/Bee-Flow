@@ -11,7 +11,7 @@
  * stays mounted and says what was done (never focus dropped on <body>).
  */
 import { useCallback, useRef, useState, type ReactNode, type RefObject } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { INLINE_LINK } from './formStyles';
 
 export interface RouteFollow {

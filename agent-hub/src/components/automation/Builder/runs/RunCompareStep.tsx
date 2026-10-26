@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import type { Change, StepCompare, StepVerdict } from '../../../../api/queries/automation/runChecks';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { Change, StepCompare, StepVerdict } from '@/api/queries/automation/runChecks';
 import RunCompareFiles from './RunCompareFiles';
 import { notComparableHint, softChipText, stepVerdictText } from './runCompareText';
 

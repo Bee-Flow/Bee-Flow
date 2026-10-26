@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import type { TeamChatMessage } from '../../../../api/queries/projectChatTypes';
+import type { TeamChatMessage } from '@/api/queries/projectChatTypes';
 import { excerptOf, formatDayLabel, groupMessages, isNewDay, mainConversation, summarizeThreads, threadConversation } from './messageGroups';
 import {
     findMentionQuery, insertMention, matchCandidates, mentions, resolveMentions, splitMentions, type MentionCandidate,

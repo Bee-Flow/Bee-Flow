@@ -7,7 +7,7 @@
  */
 import React from 'react';
 import { AlertCircle, CheckCircle2, Info, X } from 'lucide-react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import type { NotebookNotice as Notice } from './useNotebookExports';
 
 export interface NoticeWithAction extends Notice {

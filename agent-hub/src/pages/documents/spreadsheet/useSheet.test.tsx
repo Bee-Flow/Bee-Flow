@@ -1,10 +1,10 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { queryWrapper } from '../../../test/queryWrapper';
+import { queryWrapper } from '@/test/queryWrapper';
 import useSheet, { SAVE_DEBOUNCE_MS } from './useSheet';
 
 const { api } = vi.hoisted(() => ({ api: { getSheet: vi.fn(), patchSheet: vi.fn() } }));
-vi.mock('../../../api/sheetApi', async (original) => ({ ...(await original<typeof import('../../../api/sheetApi')>()), getSheet: api.getSheet, patchSheet: api.patchSheet }));
+vi.mock('@/api/sheetApi', async (original) => ({ ...(await original<typeof import('@/api/sheetApi')>()), getSheet: api.getSheet, patchSheet: api.patchSheet }));
 
 const sheet = (cells: Record<string, string> = {}, readOnly = false) => ({ columns: 26, rows: 0, cells, readOnly });
 

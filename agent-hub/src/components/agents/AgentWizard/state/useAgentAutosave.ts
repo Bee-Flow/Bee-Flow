@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { errorMessage } from '../../../../utils/caughtError';
-import type { Conflict, EditorSnapshot, LimitWarning } from '../../../../api/agentSaveTypes';
-import type { SaveResult, SavedAgent } from '../../../../api/agentSaveApi';
+import { errorMessage } from '@/utils/caughtError';
+import type { Conflict, EditorSnapshot, LimitWarning } from '@/api/agentSaveTypes';
+import type { SaveResult, SavedAgent } from '@/api/agentSaveApi';
 
 type AutosaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 

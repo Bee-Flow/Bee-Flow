@@ -41,20 +41,20 @@ vi.mock('./attention/attentionChecks', async (importOriginal) => ({
 
 // "Laatst bewerkt" haalt tot negen lijsten op; hier afgevangen, want de regels
 // eromheen staan in recent/recentWork.test.js en recent/RecentWorkList.test.jsx.
-vi.mock('../../../api/recentWork', async (importOriginal) => ({
+vi.mock('@/api/recentWork', async (importOriginal) => ({
     ...(await importOriginal()),
     runRecentWork: (...args) => recentRun(...args),
 }));
 
 // The card at the bottom reads GET /api/studio/counts once on mount. Only
 // intercepted here: its own behaviour is in map/StudioMap.test.jsx.
-vi.mock('../../../utils/helpers', async (importOriginal) => ({
+vi.mock('@/utils/helpers', async (importOriginal) => ({
     ...(await importOriginal()),
     authFetch: (...args) => authFetchMock(...args),
 }));
 
-vi.mock('../../../hooks/useTranslation', () => import('@/test/useTranslationMock'));
-vi.mock('../../../moduleRuntime/registry', () => ({ useRuntimeStudioApps: () => [] }));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationMock'));
+vi.mock('@/moduleRuntime/registry', () => ({ useRuntimeStudioApps: () => [] }));
 vi.mock('../../licensing/LicenseContext', () => ({
     useLicenseContext: () => ({ hasFeature: (f) => licenseMock.hasFeature(f), deploymentMode: 'cloud' }),
 }));
@@ -67,8 +67,8 @@ vi.mock('../../licensing/EntitlementsContext', () => ({
     }),
 }));
 
+import { queryWrapper } from '@/test/queryWrapper';
 import StudioStart from './StudioStart';
-import { queryWrapper } from '../../../test/queryWrapper';
 
 // The hooks under this tree read through React Query, so every render needs
 // a client above it — a fresh one per render, never the app singleton.

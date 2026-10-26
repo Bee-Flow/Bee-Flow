@@ -1,7 +1,7 @@
 import React from 'react';
 import { INTEGRATION_CATALOG } from '../integrations';
-import ConnectionPolicyPicker from '../../../shared/ConnectionPolicyPicker';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import ConnectionPolicyPicker from '@/components/shared/ConnectionPolicyPicker';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { DesignerSectionProps } from './sectionProps';
 
 export const ToolsSection = ({

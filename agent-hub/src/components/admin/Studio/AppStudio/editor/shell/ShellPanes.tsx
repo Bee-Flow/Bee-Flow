@@ -6,9 +6,9 @@
 import { PanelLeftClose, PanelRightClose, PanelRightOpen, Sparkles } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import type { ReactNode } from 'react';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import scopedStorage from '../../../../../../utils/scopedStorage';
-import PanelResizerJs from '../../../../../shared/PanelResizer';
+import useTranslation from '@/hooks/useTranslation';
+import scopedStorage from '@/utils/scopedStorage';
+import PanelResizerJs from '@/components/shared/PanelResizer';
 import type { ActiveDrag } from './useCanvasDrag';
 
 const PanelResizer = PanelResizerJs;

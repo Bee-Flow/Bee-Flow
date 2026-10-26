@@ -1,6 +1,6 @@
 import { parseExpr } from '@shared/expr/engine.mjs';
-import type { TranslateFn, TranslateParams } from '../../../../../hooks/useTranslation';
-import { errorMessage } from '../../../../../utils/caughtError';
+import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
+import { errorMessage } from '@/utils/caughtError';
 
 /**
  * App Studio RBAC — client mirror of the server's row-filter subset validator.

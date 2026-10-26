@@ -1,4 +1,4 @@
-import MarkdownRenderer from '../../../renderers/MarkdownRenderer';
+import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
 
 /**
  * A line the model wrote, drawn with its inline markdown (bold, italics, code,

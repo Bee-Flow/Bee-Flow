@@ -1,5 +1,5 @@
 import { todayIso } from './localDate';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { useFormField } from '../formContext';
 import type { BindingInput } from '../resolveBinding.types';
 import { Field, INPUT_CLASS, inputStyle } from '../uiBits';

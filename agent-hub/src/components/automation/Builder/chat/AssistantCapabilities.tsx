@@ -1,5 +1,5 @@
 import { Check, Lock } from 'lucide-react';
-import useTranslation from '../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import WorkModePicker, { WORK_MODES } from './WorkModePicker';
 import type { WorkMode } from './WorkModePicker';
 

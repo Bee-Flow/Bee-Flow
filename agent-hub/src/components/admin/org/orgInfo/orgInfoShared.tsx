@@ -2,7 +2,7 @@ import { CreditCard, KeyRound, Shield, Lock, Brain, DatabaseZap, Info, Globe, X,
 import { cloneElement, isValidElement, useId, useState, useRef } from 'react';
 import type { KeyboardEvent, ReactElement, ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 // Map a 3-letter currency code to its glyph for inline display.
 const currencySym = (c: string | null | undefined): string => ({ EUR: '€', USD: '$', GBP: '£' }[String(c || 'EUR').toUpperCase()] || (c || '€'));

@@ -8,10 +8,10 @@
 // as a crash, so an older server simply shows less.
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { API_BASE, authFetch } from '../../../utils/helpers';
-import { readEventStream } from '../../../utils/sseStream';
+import { API_BASE, authFetch } from '@/utils/helpers';
+import { readEventStream } from '@/utils/sseStream';
 import { apiClient, ApiError } from '../../client';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 type CodeParamType = 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array';
 

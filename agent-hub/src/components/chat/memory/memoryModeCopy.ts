@@ -1,5 +1,5 @@
-import type { TranslateFn } from '../../../hooks/useTranslation';
-import type { MemoryLock, MemoryMode } from '../../../utils/memoryMode';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import type { MemoryLock, MemoryMode } from '@/utils/memoryMode';
 
 const STATE_EN: Record<MemoryMode, string> = { on: 'On', read: 'Read only', off: 'Off for this chat' };
 

@@ -6,9 +6,9 @@ import type { AppMetaUpdate } from './chat/useBuilderTurn';
 import AppEditorShell from './editor/AppEditorShell';
 import type { HeaderApp } from './editor/header/headerModel';
 import { studioAppsApi } from './studioAppsApi';
-import useTranslation from '../../../../hooks/useTranslation';
-import { errorStatus, messageOf } from '../../../../utils/caughtError';
-import toast from '../../../shared/Toast';
+import useTranslation from '@/hooks/useTranslation';
+import { errorStatus, messageOf } from '@/utils/caughtError';
+import toast from '@/components/shared/Toast';
 
 export interface AppStudioSectionProps {
     initialAppId?: string | null;

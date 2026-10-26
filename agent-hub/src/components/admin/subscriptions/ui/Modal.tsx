@@ -2,8 +2,8 @@ import { X } from 'lucide-react';
 import React, { useId } from 'react';
 import type { ReactNode } from 'react';
 import { IconButton } from './IconButton';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import SharedModal from '../../../shared/Modal';
+import { useTranslation } from '@/hooks/useTranslation';
+import SharedModal from '@/components/shared/Modal';
 
 /**
  * The subscriptions console's dialog skin — header, scrolling body, optional

@@ -5,9 +5,9 @@
  */
 import React, { useMemo } from 'react';
 import DlpCategoryBadge from './DlpCategoryBadge';
-import { useTranslation } from '../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import type { DlpSpan } from './dlpFindingsState';
-import type { PiiConfidenceBand, PiiFindingSource } from '../../../config/dlpCategoryColors';
+import type { PiiConfidenceBand, PiiFindingSource } from '@/config/dlpCategoryColors';
 
 interface DlpFindingsSummaryBarProps {
     spans: DlpSpan[];

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
-import useConfirm from '../../../../../shared/useConfirm';
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import useConfirm from '@/components/shared/useConfirm';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import type { ToolPiiPolicy } from '../orgShieldDoc';
 import AllowTermsChips from '../parts/AllowTermsChips';
 import type { TypeErrorEntry } from './OwnDataList';

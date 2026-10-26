@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import { toast } from '../../shared/Toast';
 import type { SavingState } from './header/LiveActions';
-import { logger } from '../../../utils/logger';
+import { logger } from '@/utils/logger';
 import type { FlowDefinition } from './flow/types';
 
 

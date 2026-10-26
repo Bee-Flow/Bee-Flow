@@ -1,7 +1,7 @@
 // Words and numbers the content tabs show for an item: a document's type, a
 // meeting's length and status, a file's size.
 
-import type { TranslateFn } from '../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 /** The document types the server knows, in the words a person uses. */
 export function docTypeLabel(t: TranslateFn, docType: string | null | undefined): string {

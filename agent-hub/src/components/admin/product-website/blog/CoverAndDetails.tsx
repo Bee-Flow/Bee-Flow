@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { AppIcon, CollapsibleCard, FieldRow, ImageField, TextField } from './jsComponents';
 import { POST_LIMITS, normalizePostSlug, type AdminPost } from './blogApi';
 

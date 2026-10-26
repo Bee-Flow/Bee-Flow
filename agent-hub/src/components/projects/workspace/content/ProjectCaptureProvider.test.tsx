@@ -7,10 +7,10 @@ const fake = vi.hoisted(() => ({
     recorder: { version: 0, lastResultId: null as string | null, uploading: false, recorder: { state: 'idle' }, consumeLastResult: vi.fn() },
     attach: vi.fn(), filed: vi.fn(),
 }));
-vi.mock('../../../../pages/meeting-notes/capture/CaptureContext', () => ({ useCapture: () => fake.capture }));
-vi.mock('../../../../pages/meeting-notes/hooks/RecorderContext', () => ({ useRecorder: () => fake.recorder }));
-vi.mock('../../../../api/queries/projects', () => ({ useAttachResource: (projectId: string) => ({ mutateAsync: (body: unknown) => fake.attach(projectId, body) }) }));
-vi.mock('../../../shared/Toast', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock('@/pages/meeting-notes/capture/CaptureContext', () => ({ useCapture: () => fake.capture }));
+vi.mock('@/pages/meeting-notes/hooks/RecorderContext', () => ({ useRecorder: () => fake.recorder }));
+vi.mock('@/api/queries/projects', () => ({ useAttachResource: (projectId: string) => ({ mutateAsync: (body: unknown) => fake.attach(projectId, body) }) }));
+vi.mock('@/components/shared/Toast', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 import ProjectCaptureProvider from './ProjectCaptureProvider';
 import useProjectMeetingCapture, { resetCaptureArm } from './useProjectMeetingCapture';
 function Tab() {

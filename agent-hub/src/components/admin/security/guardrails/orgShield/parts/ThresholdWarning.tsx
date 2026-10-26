@@ -1,8 +1,8 @@
 import { Info } from 'lucide-react';
 import React from 'react';
 
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
-import { presetFor } from '../../../../../privacy/PiiSensitivityPicker';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { presetFor } from '@/components/privacy/PiiSensitivityPicker';
 
 /**
  * The warning for an off-scale CUSTOM sensitivity.

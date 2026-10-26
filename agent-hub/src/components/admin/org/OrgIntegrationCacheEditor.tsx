@@ -15,12 +15,12 @@
 import { AlertTriangle, DatabaseZap, Loader2, Timer, Trash2 } from 'lucide-react';
 import React, { useCallback, useEffect, useState } from 'react';
 
-import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE } from '../../../utils/helpers';
-import { errorMessage, messageOf } from '../../../utils/caughtError';
+import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { errorMessage, messageOf } from '@/utils/caughtError';
 import ChoiceCards from '../../shared/ChoiceCards';
 import { toast } from '../../shared/Toast';
-import { request, errorBody, RefusedError, mutate } from '../../../api/mutate';
+import { request, errorBody, RefusedError, mutate } from '@/api/mutate';
 
 const MINUTES = (s: number) => Math.round(s / 60);
 

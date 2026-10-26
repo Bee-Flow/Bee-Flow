@@ -1,11 +1,11 @@
 import { Loader2, Check, AlertTriangle, Lock, Users, ShieldCheck, Sparkles, Settings, Layers, Search } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { getIntegrationIcon } from '../../../config/integrationIcons';
-import { useTranslation } from '../../../hooks/useTranslation';
-import { API_BASE } from '../../../utils/helpers';
-import { messageOf } from '../../../utils/caughtError';
+import { getIntegrationIcon } from '@/config/integrationIcons';
+import { useTranslation } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import { messageOf } from '@/utils/caughtError';
 import type { AccessCapability, AccessData, AccessKindSection, AccessMessage } from './access/accessTypes';
-import { mutate, ApiError, request, RefusedError } from '../../../api/mutate';
+import { mutate, ApiError, request, RefusedError } from '@/api/mutate';
 
 /**
  * GroupAccessMatrix — the org "Access & Permissions" surface.

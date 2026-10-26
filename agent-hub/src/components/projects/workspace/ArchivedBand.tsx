@@ -3,8 +3,8 @@
 
 import { Archive } from 'lucide-react';
 import React from 'react';
-import { useProjectMembersQuery, useRestoreProject, type Project } from '../../../api/queries/projects';
-import useTranslation from '../../../hooks/useTranslation';
+import { useProjectMembersQuery, useRestoreProject, type Project } from '@/api/queries/projects';
+import useTranslation from '@/hooks/useTranslation';
 import toast from '../../shared/Toast';
 import { projectErrorText } from './projectErrorText';
 import { ErrorText, Notice, PrimaryButton } from './workspaceUi';

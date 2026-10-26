@@ -1,11 +1,11 @@
 import { useCallback } from 'react';
-import { API_BASE } from '../../../../utils/helpers';
-import { useAgentKnowledgeBaseList } from '../../../../api/queries/agentWizardFacts';
-import { toast } from '../../../shared/Toast';
+import { API_BASE } from '@/utils/helpers';
+import { useAgentKnowledgeBaseList } from '@/api/queries/agentWizardFacts';
+import { toast } from '@/components/shared/Toast';
 import { READ } from '../canUse/canUseFacts';
 import type { ReadState } from '../agentEditor.types';
-import { messageOf } from '../../../../utils/caughtError';
-import { mutate } from '../../../../api/mutate';
+import { messageOf } from '@/utils/caughtError';
+import { mutate } from '@/api/mutate';
 
 /** A knowledge base as `GET /api/kb` lists it. */
 export interface KnowledgeBaseRow {

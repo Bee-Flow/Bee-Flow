@@ -7,7 +7,7 @@
 import { ScrollText, SearchX } from 'lucide-react';
 import React from 'react';
 
-import type { TranslateFn } from '../../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { formatDay } from '../shieldDates';
 import { groupByDay, type StreamRow } from '../shieldStream';
 import { LOG_GRID, LogRow, WIDE_ONLY } from './LogRow';

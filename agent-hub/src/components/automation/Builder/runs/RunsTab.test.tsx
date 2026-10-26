@@ -2,16 +2,16 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { withQueryClient } from '../../../../test/queryWrapper';
-import { authFetch } from '../../../../utils/helpers';
+import { withQueryClient } from '@/test/queryWrapper';
+import { authFetch } from '@/utils/helpers';
 import RunsTab from './RunsTab';
-import { runListQuery, facetCounts, retriedRunId } from '../../../../api/queries/automation/runs';
+import { runListQuery, facetCounts, retriedRunId } from '@/api/queries/automation/runs';
 
-vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
-vi.mock('../../../shared/Toast', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/components/shared/Toast', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 // The live stream and the canvas view are other components' business.
-vi.mock('../../../admin/Studio/Executions/useRunStream', () => ({ default: () => 'live' }));
-vi.mock('../../../admin/Studio/Executions/ExecutionView', () => ({ default: () => <div data-testid="canvas-view" /> }));
+vi.mock('@/components/admin/Studio/Executions/useRunStream', () => ({ default: () => 'live' }));
+vi.mock('@/components/admin/Studio/Executions/ExecutionView', () => ({ default: () => <div data-testid="canvas-view" /> }));
 vi.mock('../OutputView', () => ({ default: ({ value }: { value: unknown }) => <pre data-testid="output">{JSON.stringify(value)}</pre> }));
 
 const today = new Date();

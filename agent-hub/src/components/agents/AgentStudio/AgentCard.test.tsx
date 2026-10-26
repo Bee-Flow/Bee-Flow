@@ -15,7 +15,7 @@ import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
-vi.mock('../../../hooks/useTranslation', () => import('../../../test/useTranslationMock'));
+vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationMock'));
 
 import AgentCard from './AgentCard';
 import type { ComponentProps } from 'react';

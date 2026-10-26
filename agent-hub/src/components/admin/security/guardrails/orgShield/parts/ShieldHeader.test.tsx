@@ -10,7 +10,7 @@ import { act, render, screen } from '@testing-library/react';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { TranslateFn } from '../../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 
 const t: TranslateFn = (key: string, fallbackOrParams, paramsArg) => {
     const fallback = typeof fallbackOrParams === 'string' ? fallbackOrParams : key;
@@ -18,7 +18,7 @@ const t: TranslateFn = (key: string, fallbackOrParams, paramsArg) => {
     return Object.entries(params || {}).reduce((out, [k, v]) => out.split(`{${k}}`).join(String(v)), fallback);
 };
 
-vi.mock('../../../../../../hooks/useTranslation', () => ({
+vi.mock('@/hooks/useTranslation', () => ({
     useTranslation: () => ({ t, locale: 'en' }),
     __esModule: true,
 }));

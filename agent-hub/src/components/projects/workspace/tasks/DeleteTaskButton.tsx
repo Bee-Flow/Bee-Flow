@@ -4,8 +4,8 @@
 
 import { Trash2 } from 'lucide-react';
 import React from 'react';
-import type { ProjectTask } from '../../../../api/queries/projectTasks';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import type { ProjectTask } from '@/api/queries/projectTasks';
+import { useTranslation } from '@/hooks/useTranslation';
 import { MenuItem } from './tasksMenu';
 
 /** The server lets the author of a task and the project owner delete it; everyone else asks one of them. */

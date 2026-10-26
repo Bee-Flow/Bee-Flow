@@ -1,8 +1,8 @@
 import React from 'react';
 import { Circle, CircleCheck, CircleDashed, CircleX, UserCog } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { readinessStamp, useReadiness, type Readiness } from '../../../../api/queries/automation/readiness';
-import { useAiActCheck, type AiActCheckResult } from '../../../../api/queries/automation/aiActCheck';
+import { useTranslation } from '@/hooks/useTranslation';
+import { readinessStamp, useReadiness, type Readiness } from '@/api/queries/automation/readiness';
+import { useAiActCheck, type AiActCheckResult } from '@/api/queries/automation/aiActCheck';
 import AiActAutoCard from './AiActAutoCard';
 import { aiActVisible, canRecordAiAct } from './AiActSection';
 import type { SettingsAutomation } from './settingsUi';

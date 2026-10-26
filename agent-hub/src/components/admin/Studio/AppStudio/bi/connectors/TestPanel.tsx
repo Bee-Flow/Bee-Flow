@@ -1,10 +1,10 @@
 import { AlertTriangle, CheckCircle2, Loader2, Plug } from 'lucide-react';
 import { useState } from 'react';
-import { postConnector } from '../../../../../../api/connectorHttp';
+import { postConnector } from '@/api/connectorHttp';
 import { INPUT, LABEL, previewGrid, testFailureMessage } from './connectorModel';
 import type { Connector } from './connectorModel';
-import useTranslation from '../../../../../../hooks/useTranslation';
-import { messageOf } from '../../../../../../utils/caughtError';
+import useTranslation from '@/hooks/useTranslation';
+import { messageOf } from '@/utils/caughtError';
 
 type TestResult = { status: 'running' } | { status: 'done'; rows: unknown[] } | { status: 'error'; message: string };
 

@@ -2,9 +2,9 @@
 // container — moved verbatim from ProductWebsitePanel.jsx. State stays owned
 // by the panel (threaded in as arguments).
 import { useCallback, useMemo } from 'react';
-import type useConfirm from '../../../shared/useConfirm';
-import { errorMessage } from '../../../../utils/caughtError';
-import { toast } from '../../../shared/Toast';
+import type useConfirm from '@/components/shared/useConfirm';
+import { errorMessage } from '@/utils/caughtError';
+import { toast } from '@/components/shared/Toast';
 import { revertBuilderTurn } from './cmsTurnUndo';
 import { HEADER_VIRTUAL_ID, isVirtualPageId } from '../sentinels';
 import type { CmsPageDoc, CmsSiteDoc } from './cmsPanelTypes';

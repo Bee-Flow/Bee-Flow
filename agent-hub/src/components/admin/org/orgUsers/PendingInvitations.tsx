@@ -1,6 +1,6 @@
 import { X, Mail, Clock } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import RoleBadge from '../../../shared/RoleBadge';
+import { useTranslation } from '@/hooks/useTranslation';
+import RoleBadge from '@/components/shared/RoleBadge';
 import type { Invitation } from '../useOrgInvitations';
 
 interface PendingInvitationsProps {

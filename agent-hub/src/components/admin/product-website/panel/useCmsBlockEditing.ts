@@ -3,7 +3,7 @@
 // ProductWebsitePanel.jsx. State stays owned by the panel (threaded in).
  
 import { useCallback } from 'react';
-import scopedStorage from '../../../../utils/scopedStorage';
+import scopedStorage from '@/utils/scopedStorage';
 import { BLOCK_DEFAULTS } from '../editors';
 import { cloneBlock, newBlockId } from './helpers';
 import { applyChromeEdit, chromeStoragePath } from '../preview/previewContent';

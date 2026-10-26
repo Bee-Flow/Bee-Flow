@@ -1,7 +1,7 @@
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { ComponentProps, ReactNode } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import PathField from '../../mapping/PathField';
 import { cardClass, FormRow, rowInputClass } from './formPrimitives';
 import { INLINE_LINK } from './formStyles';

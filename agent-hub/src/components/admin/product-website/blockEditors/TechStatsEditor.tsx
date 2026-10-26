@@ -5,7 +5,7 @@ import type { BlockEditorProps } from './editorProps';
 import { set, SectionHeaderFields } from './shared';
 import type { SectionHeaderData } from './shared';
 import type { StyleBlob } from '../primitives.types';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // ── Tech Stats ────────────────────────────────────────────────────────
 

@@ -1,12 +1,12 @@
 import { GraduationCap, Info, Loader2, Lock, Save } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { trainingRulesKey, useTrainingRulesQuery, type TrainingRulesRead } from '../../../../api/queries/learningReads';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../utils/helpers';
-import type { TranslateFn } from '../../../../hooks/useTranslation';
-import { errorMessage } from '../../../../utils/caughtError';
-import { mutate, ApiError } from '../../../../api/mutate';
+import { trainingRulesKey, useTrainingRulesQuery, type TrainingRulesRead } from '@/api/queries/learningReads';
+import { useTranslation } from '@/hooks/useTranslation';
+import { API_BASE } from '@/utils/helpers';
+import type { TranslateFn } from '@/hooks/useTranslation';
+import { errorMessage } from '@/utils/caughtError';
+import { mutate, ApiError } from '@/api/mutate';
 
 interface TrainingArea {
     id: string;

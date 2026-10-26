@@ -1,13 +1,13 @@
 import { Folder } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { useAutomationFoldersQuery } from '../../../../api/queries/automation/settings';
+import { useTranslation } from '@/hooks/useTranslation';
+import { useAutomationFoldersQuery } from '@/api/queries/automation/settings';
 import { IconPicker as IconPickerJsx, StepIcon } from '../flow/stepIcons';
 import DescriptionSuggestion from './DescriptionSuggestion';
 import GeneralActions from './GeneralActions';
 import { FIELD, FieldGrid, FieldLabel, ReadOnlyFieldset, SELECT, SectionHeading, useDebouncedSave } from './settingsUi';
 import type { SaveFn, SettingsAutomation } from './settingsUi';
-import { messageOf } from '../../../../utils/caughtError';
+import { messageOf } from '@/utils/caughtError';
 
 const IconPicker = IconPickerJsx;
 

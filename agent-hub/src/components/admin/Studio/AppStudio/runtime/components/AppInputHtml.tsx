@@ -1,12 +1,12 @@
 import { Bold, Image as ImageIcon, Italic, Link2, List, ListOrdered, Underline, X, type LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState, type ClipboardEvent, type ChangeEvent, RefObject, SetStateAction, JSX, Dispatch } from 'react';
-import useTranslation, { TranslateParams } from '../../../../../../hooks/useTranslation';
+import useTranslation, { TranslateParams } from '@/hooks/useTranslation';
 import { useFormField } from '../formContext';
 import { Field } from '../uiBits';
 import useValueFrom from '../useValueFrom';
 import type { BindingInput } from '../resolveBinding.types';
 import type { NodeProps } from './appNode.types';
-import { logger } from '../../../../../../utils/logger';
+import { logger } from '@/utils/logger';
 
 /**
  * App Studio runtime — 'input_html'. Spec: server/appStudio/componentSpecs.js.

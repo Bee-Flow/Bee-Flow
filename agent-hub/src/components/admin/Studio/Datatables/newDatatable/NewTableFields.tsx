@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ReactNode } from 'react';
-import type { TranslateFn } from '../../../../../hooks/useTranslation';
+import type { TranslateFn } from '@/hooks/useTranslation';
 import { INPUT, INPUT_STYLE } from './constants';
 
 interface NewTableFieldsProps {

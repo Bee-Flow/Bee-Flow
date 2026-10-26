@@ -1,6 +1,6 @@
 import { AlertCircle, FileImage, type LucideIcon } from 'lucide-react';
 import type { KeyboardEventHandler, MouseEventHandler } from 'react';
-import useTranslation from '../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { formatBytes } from '../webpageCodeFiles';
 
 /**

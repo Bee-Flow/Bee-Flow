@@ -1,5 +1,5 @@
 import { Bot, Zap } from 'lucide-react';
-import useTranslation from '../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 import { nativeAppPills } from './AppCommands';
 import type { OpenState } from './AppCommands';
 import { planPills } from './CommandsPanel';

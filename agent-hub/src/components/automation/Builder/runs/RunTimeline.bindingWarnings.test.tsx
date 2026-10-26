@@ -1,6 +1,6 @@
 import { render, screen, cleanup } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import type { RunStepRecord } from '../../../../api/queries/automation/runs';
+import type { RunStepRecord } from '@/api/queries/automation/runs';
 import RunTimeline from './RunTimeline';
 
 const MISS = { field: 'to', kind: 'ref', path: 'steps.read.output.contact.email', reason: 'missing', count: 4 };

@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { filterAvailableIntegrations } from './integrationAvailability';
 import { INTEGRATION_CATALOG } from './integrations';
-import { INTEGRATION_CATALOG as CANONICAL } from '../../../config/integrationCatalog';
+import { INTEGRATION_CATALOG as CANONICAL } from '@/config/integrationCatalog';
 
 /**
  * The app catalogue of the agent surfaces is DERIVED.

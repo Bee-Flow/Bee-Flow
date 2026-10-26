@@ -1,9 +1,9 @@
 import { type CSSProperties } from 'react';
 import { AlertOctagon, ZapOff, RefreshCcw, XCircle } from 'lucide-react';
 import { COLORS } from './shared';
-import { type TranslateParams } from '../../../hooks/useTranslation';
+import { type TranslateParams } from '@/hooks/useTranslation';
 import type { TypeMeta } from './TerminationsPage.types';
-import { request, RefusedError } from '../../../api/mutate';
+import { request, RefusedError } from '@/api/mutate';
 
 export const API = (import.meta.env.VITE_API_URL || '') + '/api/terminations';
 

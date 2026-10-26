@@ -4,17 +4,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Stub collaborators not under test.
 vi.mock('./CaptureControls', () => ({ default: () => null }));
-vi.mock('../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
+vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 vi.mock('../hooks/useGoogleMeetConnected', () => ({ default: vi.fn() }));
-vi.mock('../../../api/transcriptionsApi', () => ({ listGoogleMeetRecordings: vi.fn() }));
-vi.mock('../../../lib/googleOAuthPopup', () => ({ openGoogleOAuthPopup: vi.fn() }));
+vi.mock('@/api/transcriptionsApi', () => ({ listGoogleMeetRecordings: vi.fn() }));
+vi.mock('@/lib/googleOAuthPopup', () => ({ openGoogleOAuthPopup: vi.fn() }));
 
 const recorderMock = { current: null };
 vi.mock('../hooks/RecorderContext', () => ({ useRecorder: () => recorderMock.current }));
 
+import { listGoogleMeetRecordings } from '@/api/transcriptionsApi';
+import { openGoogleOAuthPopup } from '@/lib/googleOAuthPopup';
 import GoogleMeetImportPanel from './GoogleMeetImportPanel';
-import { listGoogleMeetRecordings } from '../../../api/transcriptionsApi';
-import { openGoogleOAuthPopup } from '../../../lib/googleOAuthPopup';
 import useGoogleMeetConnected from '../hooks/useGoogleMeetConnected';
 
 const ITEMS = [

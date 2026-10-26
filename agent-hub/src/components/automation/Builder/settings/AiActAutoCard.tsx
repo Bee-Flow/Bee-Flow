@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { CircleCheck, ClipboardCheck, Loader2, OctagonX } from 'lucide-react';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { formatDate } from '../../../../utils/dateFormatters';
-import { useAiActCheck, useAnswerAiAct, type AiActCheckResult } from '../../../../api/queries/automation/aiActCheck';
+import { useTranslation } from '@/hooks/useTranslation';
+import { formatDate } from '@/utils/dateFormatters';
+import { useAiActCheck, useAnswerAiAct, type AiActCheckResult } from '@/api/queries/automation/aiActCheck';
 import AiActWizard from './AiActWizard';
 import AiActQuestions, { draftBody, draftComplete, initialDraft, visibleQuestions, type AiActDraft } from './AiActQuestions';
 import { answerWord, findingLabel, outcomeText, reasonText } from './aiActCopy';

@@ -1,6 +1,6 @@
 import { Edit2, Tag, Trash2 } from 'lucide-react';
 import type { AdminRole } from './types';
-import { useTranslation } from '../../../../hooks/useTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export interface RolesSectionProps {
     roles: AdminRole[];

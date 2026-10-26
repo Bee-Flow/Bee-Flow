@@ -3,7 +3,7 @@
 // reader has already loaded, in memory, and walks the matches up and down.
 
 import { useMemo, useState } from 'react';
-import type { TeamChatMessage } from '../../../../api/queries/projectChats';
+import type { TeamChatMessage } from '@/api/queries/projectChats';
 
 export interface ChatSearch {
     query: string;

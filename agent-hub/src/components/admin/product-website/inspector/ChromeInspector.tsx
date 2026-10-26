@@ -1,5 +1,5 @@
 import type { ComponentProps } from 'react';
-import AppIcon from '../../../icons/AppIcon';
+import AppIcon from '@/components/icons/AppIcon';
 import AnnouncementEditor from '../blockEditors/AnnouncementEditor';
 import type { BlockData } from '../blockEditors/shared';
 import CookieBannerEditor from '../CookieBannerEditor';

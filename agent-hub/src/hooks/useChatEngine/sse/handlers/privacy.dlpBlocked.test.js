@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
-import EN_DEFAULTS from '../../../../i18n/en-defaults';
-import { interpolate } from '../../../useTranslation';
+import { interpolate } from '@/hooks/useTranslation';
+import EN_DEFAULTS from '@/i18n/en-defaults';
 import { dispatchSSEEvent } from '../dispatch';
 
 /**

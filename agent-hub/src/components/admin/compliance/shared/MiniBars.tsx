@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
-import useNow from '../../../../hooks/useNow';
+import useNow from '@/hooks/useNow';
 import { bucketHistory, formatDelta, type HistoryRow } from './miniBarsMath';
-import { useTranslation } from '../../../../hooks/useTranslation';
-import { TONES, toneOfScore, type Tone } from '../../../shared/statusTone';
+import { useTranslation } from '@/hooks/useTranslation';
+import { TONES, toneOfScore, type Tone } from '@/components/shared/statusTone';
 
 /**
  * MiniBars — the twelve-bar score trend on a framework card (Compliance

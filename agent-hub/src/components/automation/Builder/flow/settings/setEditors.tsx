@@ -2,10 +2,10 @@
 // verbatim from SettingsForm.jsx.
 import { appendKey } from '@shared/expr/path.mjs';
 import { useMemo, useState, type JSX } from 'react';
-import { useTranslation } from '../../../../../hooks/useTranslation';
-import { walkPath } from '../../../../../utils/bindingHelpers';
-import { skipGroupOfStep } from '../../../../shared/statusTokens/statusTokens.helpers';
-import { type RunStepLike } from '../../../../shared/statusTokens/statusTokens.types';
+import { useTranslation } from '@/hooks/useTranslation';
+import { walkPath } from '@/utils/bindingHelpers';
+import { skipGroupOfStep } from '@/components/shared/statusTokens/statusTokens.helpers';
+import { type RunStepLike } from '@/components/shared/statusTokens/statusTokens.types';
 import JsonTreePicker from '../../mapping/JsonTreePicker';
 import PathField from '../../mapping/PathField';
 import { sampleToFields } from '../../mapping/upstream';

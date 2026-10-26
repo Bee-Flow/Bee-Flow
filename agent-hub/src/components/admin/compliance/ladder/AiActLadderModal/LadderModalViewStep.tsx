@@ -1,6 +1,6 @@
 import { ANNEX_III_CATEGORIES, ANNEX_III_ARTICLES, ANNEX_III_FROM, type DomainAnswers } from '../ladderOutcome';
-import { type TranslateParams } from '../../../../../hooks/useTranslation';
-import { TONES } from '../../../../shared/statusTone';
+import { type TranslateParams } from '@/hooks/useTranslation';
+import { TONES } from '@/components/shared/statusTone';
 import { formatCalDate } from '../../shared/calendarMath';
 import type { AnnexQuestionsProps } from '../AiActLadderModal.types';
 import { tint, Step } from './LadderModalViewStep2';

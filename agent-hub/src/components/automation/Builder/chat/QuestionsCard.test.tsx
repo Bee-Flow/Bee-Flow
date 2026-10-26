@@ -11,7 +11,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import QuestionsCard from './QuestionsCard';
 
-vi.mock('../../../../hooks/useTranslation', () => {
+vi.mock('@/hooks/useTranslation', () => {
     const t = (_k: string, d: string, p?: Record<string, unknown>) => d.replace(/\{(\w+)\}/g, (_m, k) => String(p?.[k] ?? `{${k}}`));
     return { default: () => ({ t }), useTranslation: () => ({ t }) };
 });

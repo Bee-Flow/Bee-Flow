@@ -1,8 +1,8 @@
-import type { TranslateParams } from '../../../../../hooks/useTranslation';
+import type { TranslateParams } from '@/hooks/useTranslation';
 import type { DsrRow } from './dsr.types';
 import type { VerifyIdentityBody } from './DsrIdentity';
 import type { OrgUser } from './dsrTimeline';
-import type { SideDrawerMode } from '../../../../shared/SideDrawer';
+import type { SideDrawerMode } from '@/components/shared/SideDrawer';
 
 export type Translate = (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string;
 

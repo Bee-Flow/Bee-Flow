@@ -2,7 +2,7 @@ import { AlertTriangle, Loader2 } from 'lucide-react';
 import React from 'react';
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import { TONES } from '../../../../shared/statusTone';
+import { TONES } from '@/components/shared/statusTone';
 
 /**
  * One sentence, where a stage has nothing else to show.
