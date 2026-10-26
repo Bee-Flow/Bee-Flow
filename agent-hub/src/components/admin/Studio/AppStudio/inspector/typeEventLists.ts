@@ -19,6 +19,8 @@ export const TYPE_EVENT_LISTS: Record<string, string[]> = {
     // Fires when a dataset becomes the value: on pick, or on upload AFTER the
     // background ingest reaches 'ready' (an indexing dataset is not queryable).
     input_dataset: ['onChange'],
+    // Fires when a Studio document is picked (or cleared).
+    input_document: ['onChange'],
     message_thread: ['onRowClick'],
     kanban: ['onRowClick', 'onCardMove'],
     calendar: ['onRowClick'],

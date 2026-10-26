@@ -4,6 +4,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import AppRenderer from './AppRenderer';
 import { APP_COMPONENT_TYPES, getComponentEntry, PALETTE_CATEGORIES } from './componentRegistry';
 import { KITCHEN_SINK, V2_RICH, V21_BATCH } from '../state/sampleDefinitions';
+import { DOCUMENTS_SAMPLE } from '../state/sampleDocumentDefinition';
 
 // A permissive theme'd definition scaffold for one-off nodes.
 function defWith(children, actions = {}) {
@@ -46,6 +47,7 @@ function renderBothScreens(mode, props = {}) {
             <AppRenderer definition={KITCHEN_SINK} screenId="scr_form01" mode={mode} {...props} />
             <AppRenderer definition={V2_RICH} screenId="scr_rich01" mode={mode} {...props} />
             <AppRenderer definition={V21_BATCH} screenId="scr_v21a01" mode={mode} {...props} />
+            <AppRenderer definition={DOCUMENTS_SAMPLE} screenId="scr_docs01" mode={mode} {...props} />
         </>,
     );
 }
@@ -53,7 +55,7 @@ function renderBothScreens(mode, props = {}) {
 describe('componentRegistry', () => {
     it('covers exactly the 52 spec types, each with full palette metadata', () => {
         const types = Object.keys(APP_COMPONENT_TYPES);
-        expect(types).toHaveLength(54); // +pdf_compare, +input_dataset, +browser_view, +approval_list, +input_html (HTML mail editor)
+        expect(types).toHaveLength(57); // +document_viewer, +document_compare, +input_document, +pdf_compare, +input_dataset, +browser_view, +approval_list, +input_html (HTML mail editor)
         for (const type of types) {
             const entry = APP_COMPONENT_TYPES[type];
             expect(entry.Component, `${type}.Component`).toBeTypeOf('function');
@@ -68,7 +70,7 @@ describe('componentRegistry', () => {
     });
 
     it('the fixtures exercise every registry type', () => {
-        const fixtureTypes = new Set([...collectTypes(KITCHEN_SINK), ...collectTypes(V2_RICH), ...collectTypes(V21_BATCH)]);
+        const fixtureTypes = new Set([...collectTypes(KITCHEN_SINK), ...collectTypes(V2_RICH), ...collectTypes(V21_BATCH), ...collectTypes(DOCUMENTS_SAMPLE)]);
         for (const type of Object.keys(APP_COMPONENT_TYPES)) {
             expect(fixtureTypes.has(type), `fixture missing type '${type}'`).toBe(true);
         }
