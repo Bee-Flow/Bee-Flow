@@ -20,17 +20,11 @@ const assert = require('node:assert');
 
 let nextRows = [];
 const queries = [];
-function mock(relPath, exports) {
-    const resolved = require.resolve(relPath);
-    require.cache[resolved] = { id: resolved, filename: resolved, loaded: true, exports };
-}
-mock('../db', {
-    run: async () => ({ rowCount: 0, rows: [] }),
-    getOne: async () => null,
-    getAll: async (sql, params) => { queries.push({ sql, params }); return nextRows; },
-    exec: async () => {},
-    getClient: async () => ({}),
-    pool: { query: async () => ({ rows: [] }) },
+// The real db.js over a recording pool: every read is kept in `queries` and answers `nextRows`.
+require('../testUtils/routeHarness').recordDb((sql, params) => {
+    if (!/^\s*SELECT/i.test(sql)) return undefined;
+    queries.push({ sql, params });
+    return { rows: nextRows };
 });
 
 const store = require('./automationStore');
