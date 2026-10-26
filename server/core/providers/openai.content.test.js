@@ -10,25 +10,20 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert');
-const Module = require('module');
-const { Readable } = require('stream');
 
 process.env.NODE_ENV = 'test';
 process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'unit-test-session-secret-0123456789abcdef';
 
-function mock(id, exports) {
-    const p = require.resolve(id);
-    const m = new Module(p);
-    m.exports = exports;
-    m.loaded = true;
-    require.cache[p] = m;
-}
+const { useLocalStorage } = require('../../testUtils/localStorage');
 
+// The real storageStore on its local-disk backend, in a temp directory.
+const storage = useLocalStorage();
 const PNG_BYTES = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-mock('../../stores/storageStore', {
-    isAvailable: () => true,
-    streamFile: async () => ({ stream: Readable.from([PNG_BYTES]), contentType: 'image/png', contentLength: PNG_BYTES.length }),
+test.before(async () => {
+    await storage.ready();
+    await storage.put('users/u1/uploads/upload_1_abcd.png', PNG_BYTES, 'image/png');
 });
+test.after(storage.close);
 
 const { generateTempDownloadUrl } = require('../../utils/tempDownloadUrl');
 const OpenAIProvider = require('./openai');
