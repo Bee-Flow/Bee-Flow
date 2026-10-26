@@ -92,12 +92,11 @@ describe('AppDataGrid', () => {
         expect(bodyRowTexts(container)[0]).toBe('Zoe');
     });
 
-    it('filters rows via the search box', async () => {
+    it('filters rows via the search box', () => {
         const { container, getByLabelText } = withRuntime(
             <AppDataGrid node={gridNode({}, { searchable: true })} />,
         );
-        await user.clear(getByLabelText('Search rows'));
-        await user.type(getByLabelText('Search rows'), 'Amy');
+        fireEvent.change(getByLabelText('Search rows'), { target: { value: 'Amy' } });
         const texts = bodyRowTexts(container);
         expect(texts).toEqual(['Amy']);
     });
@@ -142,7 +141,7 @@ describe('AppDataGrid', () => {
         expect(payload.item.id).toBeTruthy();
     });
 
-    it('fires an update via runAction on inline edit', async () => {
+    it('fires an update via runAction on inline edit', () => {
         const runAction = vi.fn();
         const node = gridNode(
             { onRowSelect: 'act_update' },
@@ -150,8 +149,7 @@ describe('AppDataGrid', () => {
         );
         const utils = withRuntime(<AppDataGrid node={node} />, { runAction });
         const input = openCell(utils);
-        await user.clear(input);
-        await user.type(input, 'Zed');
+        fireEvent.change(input, { target: { value: 'Zed' } });
         fireEvent.blur(input);
         expect(runAction).toHaveBeenCalledWith('act_update', expect.objectContaining({
             formValues: expect.objectContaining({ name: 'Zed', __edited: 'name' }),
@@ -170,7 +168,7 @@ describe('AppDataGrid', () => {
         }));
     });
 
-    it('rolls the inline-edit overlay back when the update action fails', async () => {
+    it('rolls the inline-edit overlay back when the update action fails', () => {
         const node = gridNode(
             { onRowSelect: 'act_update' },
             { columns: [{ key: 'name', label: 'Name', format: 'text', editable: true }] },
@@ -187,8 +185,7 @@ describe('AppDataGrid', () => {
         const utils = render(ui({}));
         const { rerender } = utils;
         const input = openCell(utils);
-        await user.clear(input);
-        await user.type(input, 'Zed');
+        fireEvent.change(input, { target: { value: 'Zed' } });
         fireEvent.blur(input);
         expect(cellText(utils)).toBe('Zed');
 
@@ -197,7 +194,7 @@ describe('AppDataGrid', () => {
         expect(cellText(utils)).toBe('Zoe');
     });
 
-    it('queues a second inline edit while a commit is running and dispatches it on settle', async () => {
+    it('queues a second inline edit while a commit is running and dispatches it on settle', () => {
         // useActionRunner's re-entry guard silently drops a run of an action
         // that is still 'running' — the grid must queue instead, or the second
         // cell of a fast Tab-through entry is never saved.
@@ -218,15 +215,13 @@ describe('AppDataGrid', () => {
         const utils = render(ui({}));
         const { rerender } = utils;
         const first = openCell(utils, 0);
-        await user.clear(first);
-        await user.type(first, 'Zed');
+        fireEvent.change(first, { target: { value: 'Zed' } });
         fireEvent.blur(first);
         expect(runAction).toHaveBeenCalledTimes(1);
 
         rerender(ui({ act_update: { status: 'running', result: undefined, error: null } }));
         const second = openCell(utils, 1);
-        await user.clear(second);
-        await user.type(second, 'Ann');
+        fireEvent.change(second, { target: { value: 'Ann' } });
         fireEvent.blur(second);
         // Not dispatched while the first commit is live — queued, and its
         // optimistic value stays on screen.
@@ -238,7 +233,7 @@ describe('AppDataGrid', () => {
         expect(runAction.mock.calls[1][1].formValues).toMatchObject({ name: 'Ann', __edited: 'name' });
     });
 
-    it('drops the inline-edit overlay once refetched rows arrive', async () => {
+    it('drops the inline-edit overlay once refetched rows arrive', () => {
         const columns = [{ key: 'name', label: 'Name', format: 'text', editable: true }];
         const served = [{ ...ROWS[0], name: 'Server' }, ...ROWS.slice(1)];
         const ui = (rows) => (
@@ -253,8 +248,7 @@ describe('AppDataGrid', () => {
         const utils = render(ui(ROWS));
         const { rerender } = utils;
         const input = openCell(utils);
-        await user.clear(input);
-        await user.type(input, 'Zed');
+        fireEvent.change(input, { target: { value: 'Zed' } });
         fireEvent.blur(input);
         expect(cellText(utils)).toBe('Zed');
 
@@ -388,8 +382,7 @@ describe('AppDataGrid — look variants', () => {
         const { getByLabelText } = utils;
         // inline edit still commits
         const input = openCell(utils);
-        await user.clear(input);
-        await user.type(input, 'Zed');
+        fireEvent.change(input, { target: { value: 'Zed' } });
         fireEvent.blur(input);
         expect(runAction).toHaveBeenCalledWith('act_update', expect.objectContaining({
             formValues: expect.objectContaining({ name: 'Zed' }),
@@ -436,23 +429,21 @@ describe('AppDataGrid — click to edit', () => {
         expect(document.activeElement).toBe(input);
     });
 
-    it('Escape reverts and commits nothing', async () => {
+    it('Escape reverts and commits nothing', () => {
         const runAction = vi.fn();
         const utils = withRuntime(<AppDataGrid node={editableNode()} />, { runAction });
         const input = openCell(utils);
-        await user.clear(input);
-        await user.type(input, 'Zed');
+        fireEvent.change(input, { target: { value: 'Zed' } });
         fireEvent.keyDown(input, { key: 'Escape' });
         expect(runAction).not.toHaveBeenCalled();
         expect(cellText(utils, 0)).toBe('Zoe');
     });
 
-    it('Enter commits and closes the editor', async () => {
+    it('Enter commits and closes the editor', () => {
         const runAction = vi.fn();
         const utils = withRuntime(<AppDataGrid node={editableNode()} />, { runAction });
         const input = openCell(utils);
-        await user.clear(input);
-        await user.type(input, 'Zed');
+        fireEvent.change(input, { target: { value: 'Zed' } });
         fireEvent.keyDown(input, { key: 'Enter' });
         expect(runAction).toHaveBeenCalledTimes(1);
         expect(utils.queryAllByLabelText('Edit cell')).toHaveLength(0);
@@ -521,31 +512,27 @@ describe('AppDataGrid — filters that can be seen and undone', () => {
         columns: cols || [{ key: 'name', label: 'Name', format: 'text', filterable: true }],
     });
 
-    it('a filtered view says so, from any scroll position', async () => {
+    it('a filtered view says so, from any scroll position', () => {
         // A column filter lives in a header row that scrolls away, and a term
         // left in the search box looks like an empty table. The count is the
         // only thing that stays put.
         const utils = withRuntime(<AppDataGrid node={filterableNode()} />);
         expect(utils.container.querySelector('[data-app-grid-filters]')).toBeNull();
 
-        await user.clear(utils.getByLabelText('Search rows'));
-        await user.type(utils.getByLabelText('Search rows'), 'zzz');
+        fireEvent.change(utils.getByLabelText('Search rows'), { target: { value: 'zzz' } });
         expect(utils.container.querySelector('[data-app-grid-filters]').getAttribute('data-app-grid-filters')).toBe('1');
     });
 
-    it('counts the search box and the column filters together', async () => {
+    it('counts the search box and the column filters together', () => {
         const utils = withRuntime(<AppDataGrid node={filterableNode()} />);
-        await user.clear(utils.getByLabelText('Search rows'));
-        await user.type(utils.getByLabelText('Search rows'), 'z');
-        await user.clear(utils.getByLabelText('Filter Name'));
-        await user.type(utils.getByLabelText('Filter Name'), 'o');
+        fireEvent.change(utils.getByLabelText('Search rows'), { target: { value: 'z' } });
+        fireEvent.change(utils.getByLabelText('Filter Name'), { target: { value: 'o' } });
         expect(utils.container.querySelector('[data-app-grid-filters]').getAttribute('data-app-grid-filters')).toBe('2');
     });
 
     it('clearing puts every row back', async () => {
         const utils = withRuntime(<AppDataGrid node={filterableNode()} />);
-        await user.clear(utils.getByLabelText('Search rows'));
-        await user.type(utils.getByLabelText('Search rows'), 'zzz');
+        fireEvent.change(utils.getByLabelText('Search rows'), { target: { value: 'zzz' } });
         expect(utils.getByText('No rows match')).toBeTruthy();
 
         await user.click(utils.getByText('Clear filters'));
@@ -554,14 +541,13 @@ describe('AppDataGrid — filters that can be seen and undone', () => {
         expect(utils.container.querySelector('[data-app-grid-filters]')).toBeNull();
     });
 
-    it('the empty state explains itself instead of printing four flat words', async () => {
+    it('the empty state explains itself instead of printing four flat words', () => {
         const utils = withRuntime(<AppDataGrid node={filterableNode()} />);
-        await user.clear(utils.getByLabelText('Search rows'));
-        await user.type(utils.getByLabelText('Search rows'), 'zzz');
+        fireEvent.change(utils.getByLabelText('Search rows'), { target: { value: 'zzz' } });
         expect(utils.getByText('One filter is hiding the rest.')).toBeTruthy();
     });
 
-    it('a column that names its values filters by picking one', async () => {
+    it('a column that names its values filters by picking one', () => {
         const utils = withRuntime(<AppDataGrid node={filterableNode([{
             key: 'name', label: 'Name', format: 'badge', filterable: true,
             toneMap: [{ value: 'Zoe', label: 'Zoe', tone: 'success' }, { value: 'Amy', label: 'Amy', tone: 'info' }],
@@ -570,7 +556,7 @@ describe('AppDataGrid — filters that can be seen and undone', () => {
         expect(select.tagName).toBe('SELECT');
         expect(Array.from(select.options).map((o) => o.value)).toEqual(['', 'Zoe', 'Amy']);
 
-        await user.selectOptions(select, 'Amy');
+        fireEvent.change(select, { target: { value: 'Amy' } });
         // Read the BODY, not the document: 'Zoe' is still an <option> in the
         // filter itself, which is not the same as a row being on screen.
         const bodyText = () => Array.from(utils.container.querySelectorAll('tbody td')).map((td) => td.textContent);
@@ -586,10 +572,8 @@ describe('AppDataGrid — filters that can be seen and undone', () => {
             { key: 'score', label: 'Score', format: 'number', filterable: true },
         ])} />);
         expect(utils.getByLabelText('Filter Score from').getAttribute('type')).toBe('number');
-        await user.clear(utils.getByLabelText('Filter Score from'));
-        await user.type(utils.getByLabelText('Filter Score from'), '20');
-        await user.clear(utils.getByLabelText('Filter Score to'));
-        await user.type(utils.getByLabelText('Filter Score to'), '40');
+        fireEvent.change(utils.getByLabelText('Filter Score from'), { target: { value: '20' } });
+        fireEvent.change(utils.getByLabelText('Filter Score to'), { target: { value: '40' } });
         expect(bodyRowTexts(utils.container)).toEqual(['Zoe', 'Max', 'Bea']);
         // One chip, in words, that undoes just this filter.
         const chip = utils.container.querySelector('[data-app-grid-chip="score"]');
@@ -599,7 +583,7 @@ describe('AppDataGrid — filters that can be seen and undone', () => {
         expect(utils.container.querySelector('[data-app-grid-chip]')).toBeNull();
     });
 
-    it('a badge column with few values offers them as a pick list without a toneMap', async () => {
+    it('a badge column with few values offers them as a pick list without a toneMap', () => {
         const utils = withRuntime(<AppDataGrid node={filterableNode([
             { key: 'name', label: 'Name', format: 'text' },
             { key: 'status', label: 'Status', format: 'badge', filterable: true },
@@ -607,7 +591,7 @@ describe('AppDataGrid — filters that can be seen and undone', () => {
         const select = utils.getByLabelText('Filter Status');
         expect(select.tagName).toBe('SELECT');
         expect(Array.from(select.options).map((o) => o.value)).toEqual(['', 'done', 'open']);
-        await user.selectOptions(select, 'done');
+        fireEvent.change(select, { target: { value: 'done' } });
         expect(bodyRowTexts(utils.container)).toEqual(['Amy', 'Bea']);
         expect(utils.container.querySelector('[data-app-grid-chip="status"]').textContent).toContain('done');
     });
@@ -632,25 +616,23 @@ describe('AppDataGrid — filters that can be seen and undone', () => {
         expect(utils.container.querySelector('[data-app-grid-filters]')).toBeNull();
     });
 
-    it('a check column filters yes/no', async () => {
+    it('a check column filters yes/no', () => {
         const rows = [{ id: 1, name: 'a', paid: true }, { id: 2, name: 'b', paid: false }, { id: 3, name: 'c', paid: 'yes' }];
         const utils = withRuntime(<AppDataGrid node={gridNode({}, {
             source: { kind: 'static', value: rows },
             columns: [{ key: 'name', label: 'Name' }, { key: 'paid', label: 'Paid', format: 'check', filterable: true }],
         })} />);
-        await user.selectOptions(utils.getByLabelText('Filter Paid'), 'true');
+        fireEvent.change(utils.getByLabelText('Filter Paid'), { target: { value: 'true' } });
         expect(bodyRowTexts(utils.container)).toEqual(['a', 'c']);
-        await user.selectOptions(utils.getByLabelText('Filter Paid'), 'false');
+        fireEvent.change(utils.getByLabelText('Filter Paid'), { target: { value: 'false' } });
         expect(bodyRowTexts(utils.container)).toEqual(['b']);
     });
 
-    it('beside chips the count button becomes "Clear all"', async () => {
+    it('beside chips the count button becomes "Clear all"', () => {
         const utils = withRuntime(<AppDataGrid node={filterableNode()} />);
-        await user.clear(utils.getByLabelText('Search rows'));
-        await user.type(utils.getByLabelText('Search rows'), 'z');
+        fireEvent.change(utils.getByLabelText('Search rows'), { target: { value: 'z' } });
         expect(utils.getByText('1 filter')).toBeTruthy();
-        await user.clear(utils.getByLabelText('Filter Name'));
-        await user.type(utils.getByLabelText('Filter Name'), 'o');
+        fireEvent.change(utils.getByLabelText('Filter Name'), { target: { value: 'o' } });
         expect(utils.getByText('Clear all')).toBeTruthy();
     });
 
@@ -890,10 +872,10 @@ describe('AppDataGrid — bulk actions on the selection', () => {
         expect(container.querySelector('[data-app-grid-selection]')).toBeFalsy();
     });
 
-    it('stays out of the builder canvas', async () => {
+    it('stays out of the builder canvas', () => {
         const { container } = withRuntime(<AppDataGrid node={bulkNode()} />, { mode: 'edit' });
         const boxes = container.querySelectorAll('tbody input[type="checkbox"]');
-        if (boxes.length >= 2) { await user.click(boxes[0]); await user.click(boxes[1]); }
+        if (boxes.length >= 2) { fireEvent.click(boxes[0]); fireEvent.click(boxes[1]); }
         const bar = container.querySelector('[data-app-grid-selection]');
         if (bar) expect(within(bar).queryByText('Verwijderen')).toBeNull();
     });
@@ -1259,8 +1241,7 @@ describe('AppDataGrid — table engine parity', () => {
         );
         await user.click(getByLabelText('Next page'));
         expect(bodyRowTexts(container)).toEqual(['Max', 'Bea']);
-        await user.clear(getByLabelText('Search rows'));
-        await user.type(getByLabelText('Search rows'), 'e');
+        fireEvent.change(getByLabelText('Search rows'), { target: { value: 'e' } });
         await findByText('Amy');
         // 'e' also hits the status column (done/open), so all five rows match:
         // what matters is that page 1 is showing again, not page 2.
