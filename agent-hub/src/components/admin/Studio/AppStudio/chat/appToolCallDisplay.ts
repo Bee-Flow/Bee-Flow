@@ -33,7 +33,7 @@ interface VerbTable {
 interface AddedItem {
     id?: string | number;
     type?: string;
-    label?: string;
+    label?: string | null;
 }
 
 /** A builder tool call as the stream delivers it; the bounded `arguments`/`result` are free-form JSON. */

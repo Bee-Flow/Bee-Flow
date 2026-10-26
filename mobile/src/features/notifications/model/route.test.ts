@@ -4,7 +4,7 @@
  * The table in route.ts translates every link shape the server mints (the
  * writers are enumerated in its header; the same list is frozen server-side
  * in server/core/appPaths.test.js and web-side in
- * agent-hub/src/authedApp/appRoutes.test.js). This test pins each minted
+ * agent-hub/src/authedApp/appRoutes.test.ts). This test pins each minted
  * shape to its native outcome so the three sides cannot drift apart: a
  * server that renames a path without updating this table sends every tap of
  * that notification to the wrong screen — or, via pushRoute.ts, silently to

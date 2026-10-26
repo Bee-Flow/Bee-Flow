@@ -13,7 +13,7 @@
  * release of backward compat". Three parties parse these exact strings:
  *
  *   - agent-hub/src/authedApp/appRoutes.js   (pageFromPath + legacy aliases;
- *     frozen by agent-hub/src/authedApp/appRoutes.test.js)
+ *     frozen by agent-hub/src/authedApp/appRoutes.test.ts)
  *   - mobile/src/features/notifications/route.ts  (translateWebLink — the
  *     native app translates each shape to its own screen)
  *   - every mail archive and external tracker a link was ever delivered to

@@ -18,3 +18,12 @@ export function fail<T>(
 ): Promise<{ ok: false; status: number; json: () => Promise<T | undefined> }> {
     return Promise.resolve({ ok: false, status, json: async () => body });
 }
+
+/**
+ * A fetch-like stub typed as a `Response`, for `mockResolvedValue` on a mocked
+ * `fetch`/`authFetch`. Tests give only the members the code under test reads
+ * (`ok`, `status`, `json`, `text`); the one cast lives here.
+ */
+export function asResponse(partial: Partial<Response>): Response {
+    return partial as Response;
+}

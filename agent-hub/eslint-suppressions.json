@@ -691,11 +691,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/AppStudio/inspector/panels/AiChatInspector.test.jsx": {
-    "import/order": {
-      "count": 1
-    }
-  },
   "src/components/admin/Studio/AppStudio/inspector/panels/BindingField.chooser.test.jsx": {
     "import/order": {
       "count": 1
@@ -8529,11 +8524,6 @@
   "src/hooks/useIconPack.tsx": {
     "react-hooks/set-state-in-effect": {
       "count": 1
-    }
-  },
-  "src/hooks/useIntegrationStatus.test.js": {
-    "import/order": {
-      "count": 2
     }
   },
   "src/hooks/useKnowledgeBases.ts": {

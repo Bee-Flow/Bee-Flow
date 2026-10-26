@@ -11,7 +11,7 @@
  * Both fixtures are deep-frozen: definition ops are immutable by contract,
  * so any accidental mutation throws loudly in tests and dev.
  */
-
+import type { AppDefinition } from '../inspector/appDefinition';
 function deepFreeze<T>(obj: T): T {
     if (obj && typeof obj === 'object' && !Object.isFrozen(obj)) {
         Object.freeze(obj);
@@ -21,7 +21,7 @@ function deepFreeze<T>(obj: T): T {
 }
 
 /** Mirror of server emptyDefinition('Untitled app') with stable fixture ids. */
-export const BLANK_APP = deepFreeze({
+export const BLANK_APP = deepFreeze<AppDefinition>({
     schemaVersion: 1,
     meta: { name: 'Untitled app', description: '', icon: 'LayoutGrid' },
     theme: { primary: '#0F766E', radius: 'md', density: 'comfortable', fontScale: 'md', appearance: 'auto' },
@@ -37,7 +37,7 @@ export const BLANK_APP = deepFreeze({
     actions: {},
 });
 
-export const KITCHEN_SINK = deepFreeze({
+export const KITCHEN_SINK = deepFreeze<AppDefinition>({
     schemaVersion: 1,
     meta: {
         name: 'Kitchen sink',
@@ -307,7 +307,7 @@ export const KITCHEN_SINK = deepFreeze({
  *     `computed` prop reading the per-row `item` scope.
  * Every field is optional and back-compatible, so a v1 renderer ignores them.
  */
-export const V2_SHOWCASE = deepFreeze({
+export const V2_SHOWCASE = deepFreeze<AppDefinition>({
     schemaVersion: 1,
     meta: {
         name: 'Logic showcase',
@@ -407,7 +407,7 @@ const V2_RICH_ROWS = [
     { id: 2, name: 'Bo', region: 'US', amount: 20, open: 7 },
     { id: 3, name: 'Cy', region: 'EU', amount: 5, open: 2 },
 ];
-export const V2_RICH = deepFreeze({
+export const V2_RICH = deepFreeze<AppDefinition>({
     schemaVersion: 2,
     meta: { name: 'Rich components', description: 'Every v2 rich component.', icon: 'LayoutGrid' },
     theme: { primary: '#0F766E', radius: 'md', density: 'comfortable', fontScale: 'md', appearance: 'auto' },
@@ -525,7 +525,7 @@ const V21_FILES = [
     { id: 'att_2', filename: 'photo.jpg', mime_type: 'image/jpeg', size: 91240, file: { name: 'photo.jpg', mimeType: 'image/jpeg' } },
     { id: 'att_3', filename: 'parts.xlsx', mime_type: 'application/vnd.ms-excel', size: 15870, file: { name: 'parts.xlsx', mimeType: 'application/vnd.ms-excel' } },
 ];
-export const V21_BATCH = deepFreeze({
+export const V21_BATCH = deepFreeze<AppDefinition>({
     schemaVersion: 2,
     meta: { name: 'v2.1 components', description: 'Every v2.1 component.', icon: 'LayoutGrid' },
     theme: { primary: '#0F766E', radius: 'md', density: 'comfortable', fontScale: 'md', appearance: 'auto' },
