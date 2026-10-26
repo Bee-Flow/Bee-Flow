@@ -23,6 +23,7 @@ const log = require('../../telemetry/log');
  * falling through to the global default. Callers should treat that as "no tier
  * settings", not as a tier named null.
  *
+ * @param {{ userId?: string | null, session?: Express.Session | null } | null} [userContext]
  * @returns {Promise<{modelId: string, tierKey: string|null}>}
  * @param {string} agentModel
  * @param {string} userMessage

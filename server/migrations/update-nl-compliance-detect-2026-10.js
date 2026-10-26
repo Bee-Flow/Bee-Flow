@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck
+// @typecheck strict
 /**
  * Dutch for the Compliance Center's round 2 detection and legal-wording fixes
  * (Oct 2026): the DSR clock is one calendar month (GDPR Art. 12(3)), not 30
@@ -44,7 +44,7 @@ const DATA_SHA256 = '43baa60b548d7a48b7f97dbe94731d26bfdd4b7fd97c86a2e0b4e4009d5
 
 const NL_TRANSLATIONS = Object.freeze({ ...DATA.translations });
 const NL_REWORDED = Object.freeze(Object.fromEntries(
-    Object.entries(DATA.reworded).map(([key, { was, now }]) => [key, Object.freeze({ was: Object.freeze([].concat(was)), now })]),
+    Object.entries(DATA.reworded).map(([key, { was, now }]) => [key, Object.freeze({ was: Object.freeze(/** @type {string[]} */ ([]).concat(was)), now })]),
 ));
 
 /**
@@ -75,7 +75,7 @@ async function up() {
     const languageStore = require('../stores/languageStore');
     let added = 0;
     let reworded = 0;
-    await languageStore.mutateGUITranslations('nl', (current) => {
+    await languageStore.mutateGUITranslations('nl', (/** @type {Record<string, string>} */ current) => {
         const result = applyNl(current);
         added = result.added;
         reworded = result.reworded;

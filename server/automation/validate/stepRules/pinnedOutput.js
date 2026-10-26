@@ -1,11 +1,15 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Pinned sample data — the rules for a payload an author saved onto a node so
  * the node serves it instead of running. One function for steps and triggers
  * alike, so the two cannot drift.
  */
 
-const { isObject } = require('../helpers');
+/**
+ * @param {unknown} v
+ * @returns {v is Record<string, unknown>}
+ */
+const isObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 // Pinned sample data is persisted inside definition_json and re-snapshotted
 // into automation_versions on every save, so its size is this validator's
 // problem. The cap is the run history's own per-payload cap, IMPORTED rather
@@ -54,6 +58,7 @@ const { BRANCHER_TYPES } = require('../constants');
  * a parallel branch, where the runtime synthesizes a linear chain rather than
  * reading authored edges. The shape rule still applies there; only the
  * does-it-match-an-edge half is skipped.
+ * @param {{ id?: string, type?: string, pinnedOutput?: unknown } | null | undefined} node  the step or trigger carrying the pin
  * @param {string} at
  */
 function checkPinnedOutput(node, at, /** @type {{pushE?: any, outgoingLabels?: any, isTrigger?: boolean}} */ { pushE, outgoingLabels = null, isTrigger = false } = {}) {

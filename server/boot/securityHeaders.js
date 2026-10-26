@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Response headers applied to every request before any router sees it: the
  * helmet baseline, the Permissions-Policy the clipboard paste depends on, the
@@ -7,6 +7,7 @@
  * app registers them in.
  */
 
+/** @param {import('express').Express} app */
 function applySecurityHeaders(app) {
     // ── Security headers (helmet) ─────────────────────────────────────────────────
     const helmet = /** @type {any} */ (require('helmet'));

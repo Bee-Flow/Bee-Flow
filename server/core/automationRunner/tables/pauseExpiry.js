@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Keep a journey's tables alive while it waits.
  *
@@ -32,7 +32,7 @@ async function extendJourneyTablesForPause(store, run, deadline) {
     if (!run || !Number.isFinite(at)) return 0;
     try {
         const chain = await store.getRunsInChain(run.rootRunId || run.id);
-        const runIds = new Set((chain || []).map(r => r.id));
+        const runIds = new Set((chain || []).map((/** @type {{ id: string }} */ r) => r.id));
         runIds.add(run.id);
         const ids = await store.listLiveRunTableIdsForRuns([...runIds]);
         if (!ids.length) return 0;

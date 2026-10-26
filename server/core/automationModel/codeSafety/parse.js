@@ -83,7 +83,9 @@ function forEachNode(root, fn) {
     /** @type {Array<[import('acorn').AnyNode, import('acorn').AnyNode | null]>} */
     const stack = [[root, null]];
     while (stack.length) {
-        const [node, parent] = stack.pop();
+        const entry = stack.pop();
+        if (!entry) break;
+        const [node, parent] = entry;
         if (!node || typeof node.type !== 'string') continue;
         fn(node, parent);
         const keys = Object.keys(node);

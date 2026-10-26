@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 /**
@@ -495,7 +495,7 @@ function parseGrading(structured) {
     // it does not decide pass or fail, so a grader that got the enum wrong has
     // still graded. 'overall' is the vaguest of the six, which is the right
     // place to land when the model did not say.
-    const decidedBy = DECIDED_BY.includes(structured.decidedBy) ? structured.decidedBy : 'overall';
+    const decidedBy = typeof structured.decidedBy === 'string' && DECIDED_BY.includes(structured.decidedBy) ? structured.decidedBy : 'overall';
     return { pass, reason: _str(structured.reason, LIMITS.reason), decidedBy };
 }
 

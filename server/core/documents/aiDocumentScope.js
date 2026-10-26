@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Which Studio documents the chat model may touch in a turn.
  *
@@ -110,7 +110,7 @@ function createDocumentScope({ sidePanelDocument, history, message } = {}) {
             userTexts.push(textOf(msg.content));
         } else if (msg.role === 'assistant') {
             for (const t of Array.isArray(msg.toolHistory) ? msg.toolHistory : []) {
-                if (t && CREATE_TOOLS.has(t.name) && typeof t.resultPreview === 'string') {
+                if (t && typeof t.name === 'string' && CREATE_TOOLS.has(t.name) && typeof t.resultPreview === 'string') {
                     const m = CREATED_RE.exec(t.resultPreview);
                     if (m) markCreated(m[1]);
                 }

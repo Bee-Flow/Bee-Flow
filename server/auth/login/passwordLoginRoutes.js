@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Login Routes — username/password sign-in: the abuse gate, the constant-time
  * credential check and the MFA hand-off. Split out of auth/loginRoutes.js.
@@ -125,6 +125,7 @@ router.post('/admin-login', loginIpLimiter, validate({ body: LoginBody }), async
         return loginThrottle.denyLogin(res, gate.retryAfterSec);
     }
 
+    /** @type {{ id: string, displayName: string, role: string, avatar?: string | null, avatarType?: string | null } | null} */
     let user = null;
     let isAdmin = false;
     let storedUser = null;

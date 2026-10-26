@@ -175,7 +175,10 @@ function scheduleOf(definition, triggerStepId = null) {
     return trig && trig.schedule && typeof trig.schedule === 'object' ? trig.schedule : null;
 }
 
-/** Does this trigger's schedule skip public holidays? Only a literal `true` does. */
+/**
+ * Does this trigger's schedule skip public holidays? Only a literal `true` does.
+ * @param {string | null} [triggerStepId]
+ */
 function scheduleSkipsHolidays(definition, triggerStepId = null) {
     return scheduleOf(definition, triggerStepId)?.skipHolidays === true;
 }

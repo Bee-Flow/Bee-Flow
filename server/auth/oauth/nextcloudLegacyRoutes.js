@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Legacy Nextcloud OAuth — /login and /callback, the pre-multi-provider URIs
  * that Nextcloud OAuth clients configured before /callback/:provider existed
@@ -190,7 +190,7 @@ router.get('/callback', async (req, res) => {
             return res.status(REFUSAL.status).json(REFUSAL.body);
         }
 
-        req.session.user = user;
+        req.session.user = user ?? undefined;
         req.session.isAuthenticated = true;
         req.session.isAdmin = freshUserLegacy?.role === 'admin';
 

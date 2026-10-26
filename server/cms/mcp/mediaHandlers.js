@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * The media CMS-over-MCP tools (./dispatch.js maps tool names to them): the
@@ -58,7 +58,7 @@ function createAssetHandlers({ deps, resolveSite }) {
             return err('Uploads need a named MCP token. Create one in Settings → Security → MCP tokens (with the cms server at write level) and connect with it.');
         }
         const site = await resolveSite(args);
-        if (site.error) return err(site.error);
+        if (site.error || !site.siteId) return err(site.error ?? 'No site was resolved.');
         const contentType = String(args.contentType || '').split(';')[0].trim().toLowerCase();
         const cap = maxBytesFor(contentType);
         if (cap === null) {

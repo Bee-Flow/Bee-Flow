@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The relation indexes a refresh builds (../mirror/relations explains the
  * 'match' and 'nc' kinds, the owner-grade read and first-wins ambiguity).
@@ -16,7 +16,7 @@ const mirror = require('../mirror/relations');
 /**
  * The mirror field on the target that holds Nextcloud column `ncColumnId`.
  * @param {NcSourceColumns | null | undefined} targetSource
- * @param {number|string} ncColumnId
+ * @param {number|string|undefined} ncColumnId
  */
 function targetFieldForNcColumn(targetSource, ncColumnId) {
     for (const [fieldId, entry] of Object.entries((targetSource && targetSource.columnMap) || {})) {

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck
+// @typecheck strict
 /**
  * Dutch for the forced 2FA setup screen on a phone (BFSF-280): the one-line
  * explanation of what two-factor authentication is, the tap-to-add link that
@@ -59,7 +59,7 @@ async function up() {
     const languageStore = require('../stores/languageStore');
     // One atomic edit (advisory lock across replicas): add and reword together.
     let counts = { added: 0, reworded: 0 };
-    await languageStore.mutateGUITranslations('nl', (current) => {
+    await languageStore.mutateGUITranslations('nl', (/** @type {Record<string, string>} */ current) => {
         const { merged, added, reworded } = applyNl(current);
         counts = { added, reworded };
         return merged;

@@ -52,7 +52,11 @@ const SECTION_ILLEGAL_HEIGHT_MODES = ['pct'];
 
 const SECTION_HEIGHT_MODES = STYLE_KNOBS.heightMode.values.filter((m) => !SECTION_ILLEGAL_HEIGHT_MODES.includes(m));
 
-/** "px 24-4000, vh 5-100" — the per-unit windows of a unitInt knob, optionally narrowed to `modes`. */
+/**
+ * "px 24-4000, vh 5-100" — the per-unit windows of a unitInt knob, optionally narrowed to `modes`.
+ * @param {string} knobName
+ * @param {string[] | null} [modes]
+ */
 const unitList = (knobName, modes = null) => Object.entries(STYLE_KNOBS[knobName].units)
     .filter(([unit]) => !modes || modes.includes(unit))
     .map(([unit, r]) => `${unit} ${r.min}-${r.max}`)

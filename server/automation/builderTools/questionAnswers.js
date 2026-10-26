@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Reading the text the chat sends after a question card ("Q: ...\nA: ...", one
  * block per question, a blank line between). One port for both readers: the
@@ -16,7 +16,11 @@
 
 const PAIR = /^Q: ([^\n]+)\nA: ([^\n]+)$/;
 
-/** Q/A message text → [{prompt, answer}], or null when it is not exactly that shape. */
+/**
+ * Q/A message text → [{prompt, answer}], or null when it is not exactly that shape.
+ * @param {unknown} content
+ * @returns {{ prompt: string, answer: string }[] | null}
+ */
 function parseAnswersText(content) {
     if (typeof content !== 'string' || !content.startsWith('Q: ')) return null;
     const answers = [];

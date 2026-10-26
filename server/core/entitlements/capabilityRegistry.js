@@ -305,7 +305,7 @@ async function listCustomIntegrationCapabilities(orgId) {
 }
 
 /** Drop one org's TTL entry (e.g. after activate/deactivate) or all of them. */
-function invalidateCustomIntegrationCache(orgId = null) {
+function invalidateCustomIntegrationCache(/** @type {string | null} */ orgId = null) {
     if (orgId == null) { _customByOrg.clear(); return; }
     _customByOrg.delete(customOrgKey(orgId));
 }

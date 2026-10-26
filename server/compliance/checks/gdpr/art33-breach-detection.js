@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * GDPR Art. 33 — Breach notification readiness AND live 72-hour compliance.
  *
@@ -42,7 +42,7 @@ module.exports = {
     async evaluate(orgId) {
         const settings = await complianceStore.getSettings(orgId);
         const recipients = Array.isArray(settings.breach_recipients) ? settings.breach_recipients : [];
-        const validRecipients = recipients.filter(r => typeof r === 'string' && /@/.test(r));
+        const validRecipients = recipients.filter((/** @type {unknown} */ r) => typeof r === 'string' && /@/.test(r));
 
         /** @type {{ open: number, overdue_unnotified: number, nearing_deadline: number, gdpr_overdue_unnotified?: number, gdpr_nearing_deadline?: number }} */
         let deadlines = { open: 0, overdue_unnotified: 0, nearing_deadline: 0 };

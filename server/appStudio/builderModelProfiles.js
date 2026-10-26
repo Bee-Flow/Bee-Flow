@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio builder — model capability profiles.
  *
@@ -74,6 +74,7 @@ const APP_CORE_TOOL_NAMES = new Set([
  */
 const _coreMenus = new WeakMap();
 /**
+ * @param {{ toolset?: string } | null | undefined} profile
  * @param {{ type: string; function: { name: string; description: string; parameters: object; }; }[]} toolSchemas
  */
 function selectToolMenu(profile, toolSchemas) {

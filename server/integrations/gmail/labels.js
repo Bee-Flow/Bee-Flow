@@ -41,6 +41,7 @@ async function listLabels(gmail, cacheKey, { fresh = false } = {}) {
  *
  * With a `cacheKey` (the session) the label list is reused for a minute; a
  * name the cached list does not know (a label made since) asks Gmail once more.
+ * @param {WeakKey | null} [cacheKey]  the session the label list is cached for
  */
 async function resolveLabelIds(gmail, entries, cacheKey = null) {
     const list = Array.isArray(entries) ? entries.filter(Boolean) : (entries ? [entries] : []);

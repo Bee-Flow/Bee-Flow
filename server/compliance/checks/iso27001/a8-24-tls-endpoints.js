@@ -31,6 +31,7 @@ module.exports = {
         const read = await readConnectorSnapshots(orgId, 'tls-endpoints', 'TLS-endpoint connector not enabled — list your public endpoints under ISO 27001 → Connectors.');
         if (read.result) return read.result;
         const { snaps } = read;
+        if (!snaps) return noSnapshotYet('tls-endpoints', 'Connector enabled but its snapshots could not be read.', { endpoints: 0 });
         const probed = snaps.filter(s => !s.payload?.skipped);
         if (!probed.length) return noSnapshotYet('tls-endpoints', 'Connector enabled but no endpoints probed yet — add endpoints or run a sweep.', { endpoints: 0 });
         const rows = probed.map(s => ({

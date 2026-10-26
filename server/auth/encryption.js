@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Zero-Knowledge Envelope Encryption Module
  * 
@@ -98,8 +98,6 @@ const publicExports = {
 // Only expose key DERIVATION in test/development — unlike the envelope
 // helpers, deriveKEK is the expensive Argon2 path and exposing it invites
 // call sites that should be going through unlockUserDEK instead.
-if (process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development') {
-    publicExports.deriveKEK = deriveKEK;
-}
+const derivationExports = (process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'development') ? { deriveKEK } : {};
 
-module.exports = publicExports;
+module.exports = { ...publicExports, ...derivationExports };

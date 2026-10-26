@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * signupCaptcha.js — bot protection for the anonymous signup surface.
  *
@@ -92,6 +92,7 @@ async function verifyCaptcha(token, req) {
     }
 
     const name = provider();
+    if (!name) return { ok: false, code: 'captcha_unavailable', error: 'Verification is temporarily unavailable. Please try again shortly.' }; // isEnabled() saw a provider
     const body = new URLSearchParams({
         secret: String(process.env.SIGNUP_CAPTCHA_SECRET || '').trim(),
         response: token.trim(),

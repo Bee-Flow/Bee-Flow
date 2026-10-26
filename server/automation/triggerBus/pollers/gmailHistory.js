@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Paginated Gmail history walk shared by the gmail pollers (mail.new,
  * label.added) in ./gmail.js.
@@ -28,6 +28,7 @@ const MAX_GMAIL_HISTORY_PAGES = 10;
  * @returns {Promise<{ nextCursor: string|null, capped: boolean, latestHistoryId: string|null, lastProcessedHistoryId: string|null }>}
  */
 async function walkGmailHistory(gmail, { startHistoryId, historyTypes, onRecord, maxEvents, maxPages = MAX_GMAIL_HISTORY_PAGES }) {
+    /** @type {string | undefined} */
     let pageToken;
     let latestHistoryId = null;        // newest historyId Gmail reported
     let lastProcessedHistoryId = null; // historyId of the last record we drained

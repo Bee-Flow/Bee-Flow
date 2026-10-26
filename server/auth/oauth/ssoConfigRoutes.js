@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * OAuth/SSO configuration API (admin only) — the instance-wide Nextcloud OAuth
  * settings, the per-provider client credentials, and the sso_saml gate that
@@ -159,6 +159,7 @@ router.get('/providers', requireSuperAdmin, async (req, res) => {
 // which crash-looped the server). The licence middleware is required lazily +
 // memoised so this file has no load-order dependency on it.
 /** @type {import('express').RequestHandler | null} */
+/** @type {import('express').RequestHandler | null} */
 let _ssoSamlGate = null;
 // Tagged (auth/gateMeta.js) so the route walk can see what this enforces.
 // paramDependent because the verdict genuinely depends on :provider — Nextcloud
@@ -176,13 +177,11 @@ const requireSsoProvider = tagGate((/** @type {import('express').Request} */ req
     // Nextcloud OAuth is Community — let it through. Everything else needs the
     // Enterprise `sso_saml` licence feature.
     if (provider === 'nextcloud') return next();
-    if (!_ssoSamlGate) {
-        // Unified gate — sso_saml is a non-togglable core capability, so the
-        // resolver grants it implicitly whenever it's in the tier/plan ceiling
-        // (equivalent to the old requireFeature, but on the one resolver).
-        _ssoSamlGate = require('../../core/entitlements/entitlements').requireCapability('sso_saml');
-    }
-    return _ssoSamlGate(req, res, next);
+    // Unified gate — sso_saml is a non-togglable core capability, so the
+    // resolver grants it implicitly whenever it's in the tier/plan ceiling
+    // (equivalent to the old requireFeature, but on the one resolver).
+    const gate = _ssoSamlGate || (_ssoSamlGate = require('../../core/entitlements/entitlements').requireCapability('sso_saml'));
+    return gate(req, res, next);
 }, { axis: 'capability', id: 'sso_saml', param: 'provider', paramDependent: true, note: 'Nextcloud OAuth is Community and exempt; every other provider needs sso_saml.' });
 
 router.get('/providers/:provider', requireSuperAdmin, requireSsoProvider, async (req, res) => {

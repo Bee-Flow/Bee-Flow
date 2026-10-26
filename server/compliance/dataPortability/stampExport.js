@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * stampExport(kind) — Express middleware that records "an export of <kind>
  * was performed" in the compliance evidence chain after a 2xx response.
@@ -93,11 +93,14 @@ async function record(req, res, kind, format) {
 
 /**
  * @param {string} kind an exportRegistry kind ('automations', 'datatables', …)
- * @param {{format?:string}} [opts] fixed format when the response header does not say
+ * @param {{format?: string | null}} [opts] fixed format when the response header does not say
  * @returns {import('express').RequestHandler}
  */
 function stampExport(kind, { format = null } = {}) {
     if (!kind || typeof kind !== 'string') throw new Error('stampExport(kind): kind is required');
+    /**
+     * @param {() => void} next
+     */
     return function stampExport(req, res, next) {
         // Route tests drive handlers with a bare `{ status, json }` response
         // double; a stamp that assumed an EventEmitter would turn every one of
