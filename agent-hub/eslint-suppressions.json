@@ -313,11 +313,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/AppStudio/chat/QuickActions.test.jsx": {
-    "import/order": {
-      "count": 1
-    }
-  },
   "src/components/admin/Studio/AppStudio/chat/WhatChanged.tsx": {
     "max-lines-per-function": {
       "count": 1

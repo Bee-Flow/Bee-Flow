@@ -17,7 +17,7 @@
  *     again).
  *
  * The CLIENT half lives in
- * agent-hub/src/components/automation/Builder/flow/terminalSteps.test.js:
+ * agent-hub/src/components/automation/Builder/flow/terminalSteps.test.ts:
  * that compares the browser copy with the list below and guards the five canvas
  * places plus the `end` family. Both halves are needed — no single module crosses
  * the server/agent-hub boundary.
