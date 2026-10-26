@@ -1,51 +1,33 @@
-import { useCallback, useEffect, useState } from 'react';
-import { supportInboxApi } from '../../api/supportInboxApi';
-import { errorMessage } from '../../utils/caughtError';
+import { useCallback, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import type { SupportEvent, SupportMessage, SupportThread } from './SupportInboxPanel.types';
-import { logger } from '../../utils/logger';
+import { supportInboxKeys, useSupportEventsQuery, useSupportThreadQuery } from '../../api/queries/supportInbox';
 
-/** The open thread with its messages and its activity log, reloaded whenever the selection changes. */
+const NO_MESSAGES: SupportMessage[] = [];
+const NO_EVENTS: SupportEvent[] = [];
+
+/** The open thread with its messages and its activity log; opening another thread starts from the thread itself. */
 export function useSupportSelectedThread(selectedId: string | null) {
-    const [thread, setThread] = useState<SupportThread | null>(null);
-    const [messages, setMessages] = useState<SupportMessage[]>([]);
-    const [showActivity, setShowActivity] = useState(false);
-    const [activity, setActivity] = useState<SupportEvent[]>([]);
+    const queryClient = useQueryClient();
+    const threadQuery = useSupportThreadQuery<SupportThread, SupportMessage>(selectedId);
+    // The activity panel is open for one thread; another selection closes it.
+    const [activityFor, setActivityFor] = useState<string | null>(null);
+    const showActivity = !!selectedId && activityFor === selectedId;
+    const setShowActivity = useCallback(
+        (update: (open: boolean) => boolean) => setActivityFor(update(showActivity) ? selectedId : null),
+        [selectedId, showActivity],
+    );
+    const eventsQuery = useSupportEventsQuery<SupportEvent>(selectedId, showActivity);
 
+    // Re-read one thread (after a reply, an edit, or a server event about it).
     const fetchThread = useCallback(async (id: string | null) => {
-        if (!id) return;
-        try {
-            const res = await supportInboxApi.thread(id);
-            if (res.ok) {
-                const data = await res.json();
-                setThread(data.thread);
-                setMessages(data.messages || []);
-            }
-        } catch (e) {
-            console.warn('[Support] fetchThread:', errorMessage(e));
-        }
-    }, []);
+        if (id) await queryClient.invalidateQueries({ queryKey: supportInboxKeys.thread(id) });
+    }, [queryClient]);
 
-    useEffect(() => {
-        if (selectedId) fetchThread(selectedId);
-        else { setThread(null); setMessages([]); }
-        setShowActivity(false);
-        setActivity([]);
-    }, [selectedId, fetchThread]);
-
-    const fetchActivity = useCallback(async () => {
-        if (!selectedId) return;
-        try {
-            const res = await supportInboxApi.events(selectedId);
-            if (res.ok) {
-                const data = await res.json();
-                setActivity(Array.isArray(data?.events) ? data.events : []);
-            }
-        } catch (err) { logger.warn('thread activity load failed', err); }
-    }, [selectedId]);
-
-    useEffect(() => {
-        if (showActivity && selectedId) fetchActivity();
-    }, [showActivity, selectedId, fetchActivity]);
-
-    return { thread, messages, fetchThread, showActivity, setShowActivity, activity };
+    return {
+        thread: selectedId ? threadQuery.data?.thread ?? null : null,
+        messages: selectedId ? threadQuery.data?.messages ?? NO_MESSAGES : NO_MESSAGES,
+        fetchThread, showActivity, setShowActivity,
+        activity: showActivity ? eventsQuery.data ?? NO_EVENTS : NO_EVENTS,
+    };
 }

@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback } from 'react';
+import { useSummaryTemplatesQuery } from '../../api/queries/meetingLibrary';
 import { FileText } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslation';
-import * as api from '../../api/transcriptionsApi';
 import TemplateManager from '../meeting-notes/detail/TemplateManager';
 import type { SummaryTemplates } from '../meeting-notes/detail/summaryTemplates.types';
 
@@ -12,25 +12,13 @@ import type { SummaryTemplates } from '../meeting-notes/detail/summaryTemplates.
  */
 export default function SummaryTemplatesSection() {
     const { t } = useTranslation();
-    const [data, setData] = useState<SummaryTemplates | null>(null);
-    const [available, setAvailable] = useState(true);
-    const [loading, setLoading] = useState(true);
+    const query = useSummaryTemplatesQuery();
+    const data: SummaryTemplates | null = query.data ?? null;
+    const { refetch } = query;
+    const reload = useCallback(async () => { await refetch(); }, [refetch]);
 
-    const reload = useCallback(async () => {
-        try {
-            const res = await api.listSummaryTemplates();
-            setData(res);
-        } catch (_) {
-            setAvailable(false);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => { reload(); }, [reload]);
-
-    if (loading) return null;
-    if (!available) return null;
+    // Hidden while the first answer is pending and when the API refuses (not licensed).
+    if (query.isPending || query.isError) return null;
 
     const mine = (data?.custom || []).filter((tpl) => tpl.scope === 'user');
 

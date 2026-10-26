@@ -1,4 +1,5 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
+import { renderWithClient } from '../../../test/render';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AgentStudio from './index';
@@ -84,7 +85,7 @@ function mount({ hasPermission = () => true, systemMode = false, startInWizard =
     const onEditingChange = vi.fn();
     // AgentStudio.jsx infers `initialAgentId?: null` from its `= null` default; its contract is a string id.
     const widened: Record<string, unknown> = { initialAgentId: initialAgentId ?? null };
-    render(<AgentStudio user={{ id: 'u1' }} onClose={vi.fn()} onNavigate={onNavigate} hasPermission={hasPermission}
+    renderWithClient(<AgentStudio user={{ id: 'u1' }} onClose={vi.fn()} onNavigate={onNavigate} hasPermission={hasPermission}
         systemMode={systemMode} startInWizard={startInWizard} onEditingChange={onEditingChange} {...widened} />);
     return { onNavigate, onEditingChange };
 }

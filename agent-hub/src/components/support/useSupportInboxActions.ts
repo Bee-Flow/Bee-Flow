@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useSupportCannedQuery } from '../../api/queries/supportInbox';
 import { supportInboxApi } from '../../api/supportInboxApi';
 import { errorMessage } from '../../utils/caughtError';
 import type { CannedResponse, SupportThread, ThreadPatch } from './SupportInboxPanel.types';
 import { logger } from '../../utils/logger';
+
+const NO_CANNED: CannedResponse[] = [];
 
 interface RefreshDeps {
     selectedId: string | null;
@@ -87,7 +90,7 @@ export function useSupportReplyComposer({ selectedId, fetchThread, fetchThreads 
     const [reply, setReply] = useState('');
     const [internalNote, setInternalNote] = useState(false);
     const [sending, setSending] = useState(false);
-    const [cannedResponses, setCannedResponses] = useState<CannedResponse[]>([]);
+    const cannedResponses = useSupportCannedQuery<CannedResponse>().data ?? NO_CANNED;
     const [showCanned, setShowCanned] = useState(false);
 
     const sendReply = async () => {
@@ -106,16 +109,6 @@ export function useSupportReplyComposer({ selectedId, fetchThread, fetchThreads 
             setSending(false);
         }
     };
-
-    // Load canned responses once (used by the reply composer picker).
-    useEffect(() => {
-        (async () => {
-            try {
-                const res = await supportInboxApi.canned();
-                if (res.ok) { const d = await res.json(); setCannedResponses(d.responses || []); }
-            } catch (err) { logger.warn('canned responses load failed', err); }
-        })();
-    }, []);
 
     const insertCanned = async (canned: CannedResponse) => {
         try {

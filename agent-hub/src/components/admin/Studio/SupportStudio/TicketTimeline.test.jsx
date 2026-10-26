@@ -1,7 +1,8 @@
-import { render, screen, cleanup } from '@testing-library/react';
+import { screen, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ok } from '@/test/http';
 import TicketTimeline from './TicketTimeline';
+import { renderWithClient } from '../../../../test/render';
 import { authFetch } from '../../../../utils/helpers';
 
 vi.mock('../../../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
@@ -18,7 +19,7 @@ describe('TicketTimeline', () => {
                 { id: 'e3', actor_kind: 'staff', action: 'staff_reply', actor_user_id: 'u1', payload: {}, created_at: '2026-06-29T10:05:00Z' },
             ],
         }));
-        render(<TicketTimeline threadId="t1" teammates={[{ id: 'u1', name: 'Bob' }]} />);
+        renderWithClient(<TicketTimeline threadId="t1" teammates={[{ id: 'u1', name: 'Bob' }]} />);
         expect(await screen.findByText('Email received')).toBeTruthy();
         expect(screen.getByText('AI replied')).toBeTruthy();
         expect(screen.getByText('Replied')).toBeTruthy();
@@ -28,7 +29,7 @@ describe('TicketTimeline', () => {
 
     it('shows an empty state when there are no events', async () => {
         authFetch.mockImplementation(() => ok({ events: [] }));
-        render(<TicketTimeline threadId="t1" />);
+        renderWithClient(<TicketTimeline threadId="t1" />);
         expect(await screen.findByText('No activity yet.')).toBeTruthy();
     });
 });

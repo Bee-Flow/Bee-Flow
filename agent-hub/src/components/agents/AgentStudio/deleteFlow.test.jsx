@@ -16,7 +16,7 @@
  *
  * Run: cd agent-hub && npx vitest run src/components/agents/AgentStudio/deleteFlow.test.jsx
  */
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 
@@ -40,6 +40,7 @@ vi.mock('../AgentWizard/AgentEditorBootstrapContext', () => ({
 }));
 
 import AgentStudio from './index';
+import { renderWithClient } from '../../../test/render';
 
 // `can_edit: true` is not decoration: since A5 part C the card shows the bin only on an
 // EXPLICIT true (`/agents/all` always sets it; `/agents/system` does not, and such a row
@@ -74,7 +75,7 @@ afterEach(cleanup);
 
 describe('delete → 409 → delete anyway', () => {
     it('does NOT send confirm on the first press', async () => {
-        render(<AgentStudio user={{ id: 'u1' }} />);
+        renderWithClient(<AgentStudio user={{ id: 'u1' }} />);
         await openAndConfirm();
         await waitFor(() => expect(deleteCalls().length).toBe(1));
         expect(String(deleteCalls()[0][0])).not.toContain('confirm');
@@ -96,7 +97,7 @@ describe('delete → 409 → delete anyway', () => {
             return ok([AGENT]);
         });
 
-        render(<AgentStudio user={{ id: 'u1' }} />);
+        renderWithClient(<AgentStudio user={{ id: 'u1' }} />);
         await openAndConfirm();
 
         // The refusal became a readable dialog, not an error string.
@@ -121,7 +122,7 @@ describe('delete → 409 → delete anyway', () => {
             return ok([AGENT]);
         });
 
-        render(<AgentStudio user={{ id: 'u1' }} />);
+        renderWithClient(<AgentStudio user={{ id: 'u1' }} />);
         await openAndConfirm();
 
         await screen.findByTestId('delete-blocked');
@@ -146,7 +147,7 @@ describe('delete → 409 → delete anyway', () => {
             }
             return ok([AGENT]);
         });
-        render(<AgentStudio user={{ id: 'u1' }} />);
+        renderWithClient(<AgentStudio user={{ id: 'u1' }} />);
         await openAndConfirm();
         await screen.findByTestId('delete-blocked-chat-unknown');
         expect(screen.queryByTestId('delete-blocked-chat')).toBeNull();
@@ -161,7 +162,7 @@ describe('delete → 409 → delete anyway', () => {
             }
             return ok([AGENT]);
         });
-        render(<AgentStudio user={{ id: 'u1' }} />);
+        renderWithClient(<AgentStudio user={{ id: 'u1' }} />);
         await openAndConfirm();
         await screen.findByTestId('delete-blocked');
 
@@ -182,19 +183,19 @@ describe('de naden van het overzicht', () => {
     it('/app/agent-wizard opent de wizard, niet het overzicht', async () => {
         // Without `startInWizard`, that deep link lands on the card grid and silently means
         // something other than what it says.
-        render(<AgentStudio user={{ id: 'u1' }} startInWizard />);
+        renderWithClient(<AgentStudio user={{ id: 'u1' }} startInWizard />);
         expect(await screen.findByTestId('wizard')).toBeTruthy();
         expect(screen.queryByTestId('agent-card')).toBeNull();
     });
 
     it('zonder die vlag is het overzicht de landing', async () => {
-        render(<AgentStudio user={{ id: 'u1' }} />);
+        renderWithClient(<AgentStudio user={{ id: 'u1' }} />);
         expect(await screen.findByTestId('agent-card')).toBeTruthy();
         expect(screen.queryByTestId('wizard')).toBeNull();
     });
 
     it('vraagt de used-by-tellers op — dit scherm is de enige plek die ze toont', async () => {
-        render(<AgentStudio user={{ id: 'u1' }} />);
+        renderWithClient(<AgentStudio user={{ id: 'u1' }} />);
         await screen.findByTestId('agent-card');
         const list = authFetch.mock.calls.map(([url]) => String(url)).find(u => u.includes('/agents/all'));
         expect(list).toContain('usage=1');
@@ -207,7 +208,7 @@ describe('de naden van het overzicht', () => {
             }
             return ok({ success: true });
         });
-        render(<AgentStudio user={{ id: 'u1' }} />);
+        renderWithClient(<AgentStudio user={{ id: 'u1' }} />);
         const card = await screen.findByTestId('agent-card');
         expect(card.textContent).toContain('Sales team');
         expect(card.textContent).not.toContain('g1');

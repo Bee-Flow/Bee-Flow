@@ -139,3 +139,16 @@ export function useLinkedIssuesQuery<T>(threadId: string | null) {
 
 /** The cache key of a ticket's linked issues, for a caller that writes the answer of a refresh into it. */
 export const linkedIssuesKey = (threadId: string | null) => ['support', 'linked-issues', threadId] as const;
+
+/** The audit trail of one ticket in the Support studio (newest first); a refusal reads as no events. */
+export function useTicketEventsQuery<E>(threadId: string) {
+    return useQuery<E[], Error>({
+        queryKey: ['support', 'ticket-events', threadId] as const,
+        queryFn: async ({ signal }) => {
+            const body = await readOrNull<{ events?: unknown }>(`${API_BASE}/api/support-inbox/threads/${threadId}/events`, signal);
+            return Array.isArray(body?.events) ? body.events as E[] : [];
+        },
+        staleTime: 0,
+        retry: false,
+    });
+}

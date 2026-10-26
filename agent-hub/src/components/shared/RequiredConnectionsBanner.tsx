@@ -1,10 +1,8 @@
-import React, { useState, useEffect, useEffectEvent } from 'react';
+import React from 'react';
+import { useRequiredConnectionsQuery } from '../../api/queries/sharedReads';
 import { settingsPathForTab } from '../../authedApp/settingsRoutes';
-import { API_BASE } from '../../utils/helpers';
 import { AlertCircle } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslation';
-import { logger } from '../../utils/logger';
-import { request, RefusedError } from '../../api/mutate';
 
 /**
  * RequiredConnectionsBanner — recipient pre-flight for a shared resource. Shows
@@ -15,8 +13,6 @@ import { request, RefusedError } from '../../api/mutate';
  * Renders nothing when there's nothing to connect (the common case), so it's
  * safe to mount unconditionally on a resource the user is about to use.
  */
-
-const BASE = `${API_BASE}/api/integrations/connections`;
 
 interface RequiredConnectionsBannerProps {
     resourceType: string;
@@ -31,30 +27,8 @@ interface RequiredConnection {
 
 const RequiredConnectionsBanner = ({ resourceType, resourceId, providers, purpose = "to use all of this agent's tools" }: RequiredConnectionsBannerProps) => {
     const { t } = useTranslation();
-    const [required, setRequired] = useState<RequiredConnection[]>([]);
-    const list = (providers || []).filter(Boolean);
-
-    const listKey = list.join(',');
-    const runListEffect = useEffectEvent(() => {
-        let alive = true;
-        (async () => {
-            if (!resourceId || list.length === 0) return;
-            try {
-                const qs = new URLSearchParams({ resourceType, resourceId, providers: list.join(',') });
-                let res: Response;
-                try {
-                    res = await request(`${BASE}/required?${qs.toString()}`);
-                } catch (err) {
-                    if (!(err instanceof RefusedError)) throw err;
-                    return;
-                }
-                const data = await res.json();
-                if (alive) setRequired(data.requiresConnection || []);
-            } catch (err) { logger.debug('silent', err); }
-        })();
-        return () => { alive = false; };
-    });
-    useEffect(() => { return runListEffect(); }, [resourceType, resourceId, listKey]);
+    const list = (providers || []).filter((p): p is string => !!p);
+    const required = useRequiredConnectionsQuery<RequiredConnection>(resourceType, resourceId, list).data ?? [];
 
     if (required.length === 0) return null;
 

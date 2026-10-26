@@ -1,4 +1,5 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
+import { renderWithClient } from '../../test/render';
 import userEvent from '@testing-library/user-event';
 import { act } from 'react';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
@@ -101,7 +102,7 @@ const openThread = async (user: ReturnType<typeof userEvent.setup>, subject = 'P
 
 describe('SupportInboxPanel: list', () => {
     it('shows the counters, the rows and what a row carries', async () => {
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         expect(await screen.findByText('Printer on fire')).toBeInTheDocument();
         expect(screen.getByText('Customer Support')).toBeInTheDocument();
         expect(screen.getByText('4 active · 5 resolved')).toBeInTheDocument();
@@ -125,13 +126,13 @@ describe('SupportInboxPanel: list', () => {
 
     it('shows an empty list as "No threads"', async () => {
         threads = [];
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         expect(await screen.findByText('No threads')).toBeInTheDocument();
     });
 
     it('queries by the chosen filter, and by the search text on Enter', async () => {
         const user = userEvent.setup();
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         await screen.findByText('Printer on fire');
         await user.click(screen.getByRole('button', { name: 'Resolved (5)' }));
         await waitFor(() => expect(calls()).toContain('GET /api/support/threads?status=resolved'));
@@ -144,14 +145,14 @@ describe('SupportInboxPanel: list', () => {
     it('offers the follow-up queue when something is waiting, and asks for it with followup=1', async () => {
         counts = { ...counts, followup: 3 };
         const user = userEvent.setup();
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         await user.click(await screen.findByRole('button', { name: 'Follow-up (3)' }));
         await waitFor(() => expect(calls()).toContain('GET /api/support/threads?followup=1'));
     });
 
     it('refreshes from the header button', async () => {
         const user = userEvent.setup();
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         await screen.findByText('Printer on fire');
         const before = calls().filter((c) => c.startsWith('GET /api/support/threads?')).length;
         await user.click(screen.getByTitle('Refresh'));
@@ -160,7 +161,7 @@ describe('SupportInboxPanel: list', () => {
 
     it('switches between the inbox and the two config views', async () => {
         const user = userEvent.setup();
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         await screen.findByText('Printer on fire');
         await user.click(screen.getByRole('button', { name: /AI configuration/ }));
         expect(screen.getByTestId('ai-config')).toBeInTheDocument();
@@ -176,7 +177,7 @@ describe('SupportInboxPanel: list', () => {
 describe('SupportInboxPanel: bulk', () => {
     it('selects rows, shows the bar and posts the action', async () => {
         const user = userEvent.setup();
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         await screen.findByText('Printer on fire');
         const boxes = screen.getAllByRole('checkbox');
         await user.click(boxes[0]);
@@ -190,7 +191,7 @@ describe('SupportInboxPanel: bulk', () => {
 
     it('sends a priority and a tag, and clears the selection', async () => {
         const user = userEvent.setup();
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         await screen.findByText('Printer on fire');
         const boxes = screen.getAllByRole('checkbox');
         await user.click(boxes[0]);
@@ -219,7 +220,7 @@ describe('SupportInboxPanel: thread detail', () => {
             ],
         };
         const user = userEvent.setup();
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         await openThread(user);
         expect(calls()).toContain('GET /api/support/threads/t1');
         expect(screen.getByText('From: Ann <ann@example.com>')).toBeInTheDocument();
@@ -240,7 +241,7 @@ describe('SupportInboxPanel: thread detail', () => {
 
     it('hides the Resolve button on a resolved thread', async () => {
         detail = { thread: thread({ id: 't2', status: 'resolved' }), messages: [] };
-        render(<SupportInboxPanel focusThreadId="t2" />);
+        renderWithClient(<SupportInboxPanel focusThreadId="t2" />);
         await screen.findByText(/^From:/);
         expect(calls()).toContain('GET /api/support/threads/t2');
         expect(within(document.body).queryAllByRole('button', { name: 'Resolve' })).toHaveLength(0);
@@ -248,7 +249,7 @@ describe('SupportInboxPanel: thread detail', () => {
 
     it('patches status, priority and tags', async () => {
         const user = userEvent.setup();
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         await openThread(user);
         await user.selectOptions(screen.getByDisplayValue('Open'), 'awaiting_user');
         await waitFor(() => expect(patches()).toHaveLength(1));
@@ -263,7 +264,7 @@ describe('SupportInboxPanel: thread detail', () => {
 
     it('resolves from the header button', async () => {
         const user = userEvent.setup();
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         await openThread(user);
         const resolve = screen.getAllByRole('button', { name: /^Resolve$/ }).at(-1);
         await user.click(resolve as HTMLElement);
@@ -273,7 +274,7 @@ describe('SupportInboxPanel: thread detail', () => {
     it('shows the follow-up banner and clears it', async () => {
         detail = { thread: thread({ followup_needed_at: '2026-01-01', followup_reason: 'issue moved' }), messages: [] };
         const user = userEvent.setup();
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         await openThread(user);
         expect(screen.getByText('Needs a follow-up.')).toBeInTheDocument();
         expect(screen.getByText(/issue moved/)).toBeInTheDocument();
@@ -284,7 +285,7 @@ describe('SupportInboxPanel: thread detail', () => {
     it('warns about a message whose email failed to send', async () => {
         detail = { thread: thread(), messages: [message({ email_send_status: { ok: false, error: 'SMTP down' } })] };
         const user = userEvent.setup();
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         await openThread(user);
         expect(screen.getByText('Outbound email failed for one of the messages in this thread.')).toBeInTheDocument();
         expect(screen.getByText('SMTP down')).toBeInTheDocument();
@@ -293,7 +294,7 @@ describe('SupportInboxPanel: thread detail', () => {
     it('falls back to "Unknown error" for a failed send without text', async () => {
         detail = { thread: thread(), messages: [message({ email_send_status: { ok: false } })] };
         const user = userEvent.setup();
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         await openThread(user);
         expect(screen.getByText('Unknown error')).toBeInTheDocument();
     });
@@ -301,7 +302,7 @@ describe('SupportInboxPanel: thread detail', () => {
     it('loads the activity log when opened and refetches the thread from the linked issues panel', async () => {
         events = [{ id: 'e1', created_at: new Date().toISOString(), actor_kind: 'staff', actor_user_id: 'abcdefghijkl', action: 'status', payload: { to: 'resolved' } }];
         const user = userEvent.setup();
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         await openThread(user);
         expect(calls()).not.toContain('GET /api/support/threads/t1/events');
         await user.click(screen.getByRole('button', { name: /Activity log/ }));
@@ -316,7 +317,7 @@ describe('SupportInboxPanel: thread detail', () => {
 
     it('says so when the log is empty', async () => {
         const user = userEvent.setup();
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         await openThread(user);
         await user.click(screen.getByRole('button', { name: /Activity log/ }));
         expect(await screen.findByText('No events recorded yet.')).toBeInTheDocument();
@@ -326,7 +327,7 @@ describe('SupportInboxPanel: thread detail', () => {
 describe('SupportInboxPanel: reply', () => {
     it('sends a reply and an internal note', async () => {
         const user = userEvent.setup();
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         await openThread(user);
         const send = screen.getByRole('button', { name: /Send reply/ });
         expect(send).toBeDisabled();
@@ -353,7 +354,7 @@ describe('SupportInboxPanel: reply', () => {
             return ok({ mailbox: null, responses: [] });
         }) as never);
         const user = userEvent.setup();
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         await openThread(user);
         const box = screen.getByPlaceholderText(/^Reply to the customer/);
         await user.type(box, 'Hello');
@@ -365,7 +366,7 @@ describe('SupportInboxPanel: reply', () => {
     it('offers the canned responses on "/" and inserts the rendered one', async () => {
         canned = [{ id: 'c1', title: 'Greeting', shortcut: '/hi', body: 'Hello there' }];
         const user = userEvent.setup();
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         await openThread(user);
         const box = screen.getByPlaceholderText(/^Reply to the customer/);
         expect(screen.queryByText('Greeting')).toBeNull();
@@ -387,7 +388,7 @@ describe('SupportInboxPanel: reply', () => {
         const base = fetchMock.getMockImplementation();
         fetchMock.mockImplementation(((url: string, opts?: { method?: string }) => (/render$/.test(url) ? Promise.reject(new Error('x')) : base?.(url, opts))) as never);
         const user = userEvent.setup();
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         await openThread(user);
         await user.click(await screen.findByRole('button', { name: 'Templates' }));
         await user.click(await screen.findByRole('button', { name: /Greeting/ }));
@@ -400,7 +401,7 @@ describe('SupportInboxPanel: mailbox', () => {
 
     it('shows the banner for a connected mailbox, only in the inbox view', async () => {
         const user = userEvent.setup();
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         expect(await screen.findByText('An email box is feeding this inbox')).toBeInTheDocument();
         expect(screen.getByText(/3 tickets here came in over a connected mailbox \(2 still active\) · last message just now/)).toBeInTheDocument();
         await user.click(screen.getByRole('button', { name: /Connections/ }));
@@ -409,20 +410,20 @@ describe('SupportInboxPanel: mailbox', () => {
 
     it('uses the singular for one ticket and omits the empty parts', async () => {
         mailbox = { connected: true, count: 1 };
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         expect(await screen.findByText(/1 ticket here came in over a connected mailbox\. Disconnecting removes them/)).toBeInTheDocument();
     });
 
     it('shows no banner without a connected mailbox', async () => {
         mailbox = { connected: false, count: 3 };
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         await screen.findByText('Printer on fire');
         expect(screen.queryByText('An email box is feeding this inbox')).toBeNull();
     });
 
     it('asks twice-worded confirmation, then disconnects and reloads', async () => {
         const user = userEvent.setup();
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         await user.click(await screen.findByRole('button', { name: /Disconnect mailbox/ }));
         const dialog = await screen.findByRole('dialog', { name: 'Disconnect the email box from Customer Support?' });
         expect(dialog).toHaveTextContent('3 tickets that came in over that mailbox will be permanently deleted');
@@ -435,7 +436,7 @@ describe('SupportInboxPanel: mailbox', () => {
 
     it('does nothing when the confirmation is cancelled', async () => {
         const user = userEvent.setup();
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         await user.click(await screen.findByRole('button', { name: /Disconnect mailbox/ }));
         const dialog = await screen.findByRole('dialog', { name: 'Disconnect the email box from Customer Support?' });
         await user.click(within(dialog).getByRole('button', { name: /Cancel/ }));
@@ -445,7 +446,7 @@ describe('SupportInboxPanel: mailbox', () => {
     it('toasts the server error when disconnecting fails', async () => {
         disconnectStatus = 500;
         const user = userEvent.setup();
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         await user.click(await screen.findByRole('button', { name: /Disconnect mailbox/ }));
         const dialog = await screen.findByRole('dialog');
         await user.click(within(dialog).getByRole('button', { name: 'Disconnect' }));
@@ -457,7 +458,7 @@ describe('SupportInboxPanel: mailbox', () => {
 describe('SupportInboxPanel: live stream', () => {
     it('refreshes the list on thread_created, and the open thread on its own update', async () => {
         const user = userEvent.setup();
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         await openThread(user);
         const listCalls = () => calls().filter((c) => c.startsWith('GET /api/support/threads?')).length;
         const threadCalls = () => calls().filter((c) => c === 'GET /api/support/threads/t1').length;
@@ -475,14 +476,14 @@ describe('SupportInboxPanel: live stream', () => {
 
     it('drops the selection when the threads were purged', async () => {
         const user = userEvent.setup();
-        render(<SupportInboxPanel />);
+        renderWithClient(<SupportInboxPanel />);
         await openThread(user);
         act(() => FakeEventSource.last?.emit('threads_purged'));
         expect(await screen.findByText('Select a thread to view the conversation')).toBeInTheDocument();
     });
 
     it('closes the stream on unmount', async () => {
-        const { unmount } = render(<SupportInboxPanel />);
+        const { unmount } = renderWithClient(<SupportInboxPanel />);
         await screen.findByText('Printer on fire');
         const es = FakeEventSource.last;
         unmount();
