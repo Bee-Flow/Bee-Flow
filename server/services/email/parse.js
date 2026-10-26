@@ -11,7 +11,7 @@ function getGmailHeader(headers, name) {
 }
 
 /**
- * @param {string} data
+ * @param {string | null | undefined} data
  */
 function decodeBase64Url(data) {
     if (!data) return '';

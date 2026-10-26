@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Mistral model catalog, effort mapping and the served/regional registries.
  *
@@ -90,7 +90,7 @@ test('prices: list price with the cached rate, pricing key exact', () => {
 
 test('cache read ratio: 10% on the current line-up', () => {
     for (const id of ['mistral-small-latest', 'mistral-medium-latest', 'mistral-large-latest', 'ministral-8b-latest', 'codestral-latest']) {
-        assert.ok(Math.abs(m.mistralCacheReadRatio(id) - 0.1) < 1e-9, id);
+        assert.ok(Math.abs(Number(m.mistralCacheReadRatio(id)) - 0.1) < 1e-9, id);
     }
     assert.strictEqual(m.mistralCacheReadRatio('unknown-model'), null);
 });

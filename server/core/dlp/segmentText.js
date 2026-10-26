@@ -49,7 +49,7 @@ const BOUNDARY_MASK = (1 << 12) - 1;
  *   sent to the detector. Entity offsets from a scan are relative to `scanText`
  *   and become absolute by adding `scanStart`.
  */
-function segmentText(text, opts = {}) {
+function segmentText(/** @type {string | null | undefined} */ text, opts = {}) {
     const str = typeof text === 'string' ? text : '';
     const overlapChars = Number.isFinite(opts.overlapChars) ? opts.overlapChars : 256;
     const maxChars = Number.isFinite(opts.maxChars) ? opts.maxChars : 8000;

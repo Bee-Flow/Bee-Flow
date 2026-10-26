@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Segmentation is the foundation the scan ledger sits on: if a segment can be
@@ -14,7 +14,7 @@ const MAX = 8000;
 const OVERLAP = 256;
 const opts = { maxChars: MAX, overlapChars: OVERLAP };
 
-function build(n, seed = 'a') {
+function build(/** @type {number} */ n, seed = 'a') {
     // Prose-ish with paragraph breaks, deterministic.
     let s = '';
     let i = 0;

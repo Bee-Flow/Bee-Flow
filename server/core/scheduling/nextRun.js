@@ -63,7 +63,7 @@ function isPlainObject(v) {
  * @param {number} [fromTs]
  * @param {object} [opts]
  * @param {number | null} [opts.consecutiveErrors=0]
- * @param {number} [opts.retryAfterMs=0]   a provider's own "come back in N ms"
+ * @param {number | null} [opts.retryAfterMs=0]   a provider's own "come back in N ms"
  * @param {number} [opts.defaultMinutes=60] cadence when the schedule names none
  * @param {number} [opts.floorMinutes=0]    the fastest this kind may ever poll
  * @returns {string} ISO timestamp

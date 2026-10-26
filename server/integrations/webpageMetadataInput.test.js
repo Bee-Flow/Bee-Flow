@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { sanitizeMetadata, sanitizeIcon, countLines, slotTooLarge, MAX_SLOT_CHARS } = require('./webpageMetadataInput');
@@ -44,6 +44,6 @@ test('countLines', () => {
 
 test('slotTooLarge refuses above the cap only', () => {
     assert.equal(slotTooLarge('x'.repeat(MAX_SLOT_CHARS)), null);
-    assert.match(slotTooLarge('x'.repeat(MAX_SLOT_CHARS + 1))?.error, /too large/);
+    assert.match(String(slotTooLarge('x'.repeat(MAX_SLOT_CHARS + 1))?.error), /too large/);
     assert.equal(slotTooLarge(undefined), null);
 });

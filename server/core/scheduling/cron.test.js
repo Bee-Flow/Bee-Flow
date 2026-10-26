@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -26,7 +26,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 
 const { parseCron, nextRunAt } = require('./cron');
-const at = (iso) => Date.parse(iso);
+const at = (/** @type {string} */ iso) => Date.parse(iso);
 
 // ── Baseline semantics (pinned against the pre-rewrite behaviour) ────────
 
@@ -78,8 +78,8 @@ test('the result is always strictly in the future and lands on a whole minute', 
     const from = at('2026-08-10T12:00:30Z');
     for (const c of ['* * * * *', '*/5 * * * *', '0 * * * *', '30 9 * * *']) {
         const iso = nextRunAt(c, 'Europe/Amsterdam', from);
-        assert.ok(Date.parse(iso) > from, `${c} must be strictly after fromTs`);
-        assert.strictEqual(Date.parse(iso) % 60_000, 0, `${c} must land on a whole minute`);
+        assert.ok(Date.parse(String(iso)) > from, `${c} must be strictly after fromTs`);
+        assert.strictEqual(Date.parse(String(iso)) % 60_000, 0, `${c} must land on a whole minute`);
     }
 });
 
@@ -146,7 +146,7 @@ test('fall back never yields a next run in the past (America/Santiago switches a
         const from = at('2026-04-05T02:30:00Z') + m * 60_000;
         for (const c of ['* * * * *', '*/5 * * * *', '10 23 * * *']) {
             const iso = nextRunAt(c, 'America/Santiago', from);
-            if (iso) assert.ok(Date.parse(iso) > from, `${c} @ ${new Date(from).toISOString()} → ${iso} is in the past`);
+            if (iso) assert.ok(Date.parse(String(iso)) > from, `${c} @ ${new Date(from).toISOString()} → ${iso} is in the past`);
         }
     }
 });

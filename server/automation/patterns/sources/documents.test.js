@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 /**
@@ -17,7 +17,7 @@ const { collectDocumentUploads, MANUAL_SOURCE_TYPES } = require('./documents');
 const DAY = 86_400_000;
 const NOW = Date.UTC(2026, 9, 3, 18, 0);
 const win = { now: NOW, since: NOW - 90 * DAY };
-const ago = (/** @type {number | string} */ d) => new Date(NOW - Number(d) * DAY).toISOString();
+const ago = (/** @type {number | string | null} */ d) => new Date(NOW - Number(d) * DAY).toISOString();
 
 const { pg, db } = pgliteDb();
 
@@ -58,7 +58,7 @@ test('only the user\'s own manual uploads, oldest first, as templates', async ()
         assert.strictEqual(e.objectType, 'document');
         assert.strictEqual(e.app, 'beeflow');
         assert.strictEqual(e.verb, 'doc.uploaded');
-        assert.match(e.sessionKey, /^kb:[0-9a-f]{16}$/);
+        assert.match(String(e.sessionKey), /^kb:[0-9a-f]{16}$/);
     }
     assert.strictEqual(events[0].sessionKey, events[1].sessionKey, 'same knowledge base, same key');
     assert.ok(!JSON.stringify(events).includes('kb-1'));

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The raw-id sweep, and the one repair it allows.
  *
@@ -70,7 +70,7 @@ test('token substitution is whole-token only', () => {
         'tbl_aaaaaaaaaaaa',               // not in the map: untouched
     ].join('\n');
     const { text, substitutions } = substituteTableTokens(source, map);
-    assert.deepStrictEqual(text.split('\n'), [
+    assert.deepStrictEqual(text?.split('\n'), [
         'read("tbl_ffffffffffff")',
         'tbl_ffffffffffff.rows',
         'tbl_0123456789abc',

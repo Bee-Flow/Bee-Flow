@@ -23,7 +23,7 @@ const LocalProvider = require('./local');
 const MESSAGES = [{ role: 'user', content: 'Plan a meeting with Tom and Lisa on Monday at 10:00.' }];
 
 /** max_tokens as it would go out on the wire. */
-function ceilingFor(flavor, options) {
+function ceilingFor(/** @type {string} */ flavor, /** @type {Record<string, unknown>} */ options) {
     const provider = new LocalProvider(flavor);
     return provider.buildRequestBody('gemma-4-26b-a4b', MESSAGES, options).max_tokens;
 }

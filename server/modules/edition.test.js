@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Edition switch — the core-only build proof.
  *
@@ -34,7 +34,7 @@ const SERVER = path.resolve(__dirname, '..');
  * given env, and return the parsed result. stdout is not a clean channel here
  * either — dotenv and store inits log on require — so the payload is fenced.
  */
-function inEdition(env, expr) {
+function inEdition(/** @type {Record<string, string>} */ env, /** @type {string} */ expr) {
     // Promise.resolve so an expression may be async — isModuleActive is.
     const script = `
         const catalog = require(${JSON.stringify(path.join(__dirname, 'catalog.js'))});
@@ -52,7 +52,7 @@ function inEdition(env, expr) {
     return JSON.parse(m[1]);
 }
 
-const availability = env => inEdition(env,
+const availability = (/** @type {Record<string, string>} */ env) => inEdition(env,
     'Object.fromEntries(catalog.listModules().map(m => [m.id, m.available !== false]))');
 
 test('with neither variable set, every surface is available', () => {

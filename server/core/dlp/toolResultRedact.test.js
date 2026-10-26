@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -22,7 +22,7 @@ const assert = require('node:assert');
 const { redactAndTokenizeToolResult } = require('./toolResultRedact');
 
 /** A detected span for the first occurrence of `value`. */
-function ent(text, value, category, label = category) {
+function ent(/** @type {string} */ text, /** @type {string} */ value, /** @type {string} */ category, label = category) {
     const offset = text.indexOf(value);
     assert.ok(offset >= 0, `fixture: "${value}" not in text`);
     return { text: value, category, label, offset, length: value.length };

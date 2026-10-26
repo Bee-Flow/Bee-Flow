@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The shared pdfkit helpers — and the one bug that made them shared.
  *
@@ -24,12 +24,12 @@ const { PDFParse } = require('pdf-parse');
 
 const { newDoc, collect, table, footer } = require('./pdfKit');
 
-async function pages(buffer) {
+async function pages(/** @type {Buffer} */ buffer) {
     return (await PDFDocument.load(buffer)).getPageCount();
 }
 
 /** The text layer, so a test can assert what a reader would actually see. */
-async function textOf(buffer) {
+async function textOf(/** @type {Buffer} */ buffer) {
     const parser = new PDFParse({ data: new Uint8Array(buffer) });
     try { return (await parser.getText()).text; } finally { await parser.destroy(); }
 }

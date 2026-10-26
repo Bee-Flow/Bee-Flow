@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 /**
@@ -17,7 +17,7 @@ const { collectTeamsMeetings, collectGmeetMeetings, collectTalkMeetings } = requ
 const DAY = 86_400_000;
 const NOW = Date.UTC(2026, 9, 3, 18, 0);
 const win = { now: NOW, since: NOW - 90 * DAY };
-const at = (/** @type {number | string} */ daysAgo, h = 9) => new Date(Date.UTC(2026, 9, 3) - Number(daysAgo) * DAY + h * 3_600_000).toISOString();
+const at = (/** @type {number | string | null} */ daysAgo, h = 9) => new Date(Date.UTC(2026, 9, 3) - Number(daysAgo) * DAY + h * 3_600_000).toISOString();
 
 const { pg, db } = pgliteDb();
 const ctx = (userId = 'u1') => ({ userId, ...win, deps: { db } });
@@ -90,7 +90,7 @@ test('teams: own, held, not opted out, inside the window; series as an opaque ke
     assert.ok(events.every((e) => e.source === 'meetings' && e.objectType === 'meeting' && e.app === 'teams' && e.verb === 'meeting.held'));
     const keys = new Set(events.map((e) => e.sessionKey));
     assert.strictEqual(keys.size, 2, 'the series and the one-off');
-    assert.ok([...keys].every((k) => /^series:[0-9a-f]{16}$/.test(k)));
+    assert.ok([...keys].every((k) => /^series:[0-9a-f]{16}$/.test(String(k))));
     assert.ok(events.every((e) => e.durationMs === 30 * 60_000));
     const text = JSON.stringify(events);
     assert.ok(!text.includes('SERIES-1') && !text.includes('teams.example'), 'no raw ids or URLs');

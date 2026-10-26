@@ -107,7 +107,7 @@ const AUTO_TIER_TIEBREAK = ['deep_thinking', 'smart', 'pro', 'thinking', 'standa
  * 'custom:*' (separate routing semantics) and 'swarm' (multi-agent runtime),
  * matching the tier filter the chat classifier applies.
  *
- * @param {Object} tiers - tier map from getEUAwareTiers ({ [tier]: { modelId } })
+ * @param {Object | null | undefined} })
  * @returns {{ tier: string, modelId: string } | null} null when nothing is configured
  */
 function selectAutoBuilderTier(tiers) {

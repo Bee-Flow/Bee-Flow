@@ -18,7 +18,7 @@ const crypto = require('crypto');
  * serialised in a different order still produce different prefixes, and this
  * is the cheapest way to see that in a log line or assert it in a test.
  *
- * @param {Array<Record<string, any>>} tools OpenAI-shape tool definitions.
+ * @param {Array<Record<string, any>> | null | undefined} tools OpenAI-shape tool definitions.
  * @returns {string} 12-char hex digest; `'none'` for an empty/absent list.
  */
 function toolSetFingerprint(tools) {
@@ -37,7 +37,7 @@ function toolSetFingerprint(tools) {
  * prefix cache the bytes are what count. Logged beside sys= so a session
  * whose tool bytes moved is visible without diffing 30 kB by hand.
  *
- * @param {Array<Record<string, any>>} tools OpenAI-shape tool definitions.
+ * @param {Array<Record<string, any>> | null | undefined} tools OpenAI-shape tool definitions.
  * @returns {string} 12-char hex digest; `'none'` for an empty/absent list.
  */
 function toolBytesFingerprint(tools) {
