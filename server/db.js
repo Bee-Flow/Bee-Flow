@@ -162,19 +162,6 @@ function getRedis() { return _redis.client; }
 /** True when Redis is connected and ready for commands. */
 function redisHealthy() { return _redis.client?.status === 'ready'; }
 
-/**
- * Test seam: swap the shared Redis client for a double (null removes it), and
- * get the previous one back to restore. `redisHealthy()` reads `status`, so a
- * double that should count as connected carries `status: 'ready'`.
- * @param {any} client
- * @returns {any}
- */
-function _setRedisClient(client) {
-    const previous = _redis.client;
-    _redis.client = client;
-    return previous;
-}
-
 /** Gracefully disconnect Redis (call during shutdown). */
 async function disconnectRedis() {
     if (_redis.client) {
@@ -473,5 +460,4 @@ module.exports = {
     _instrumentClient,
     _redisOptions,
     _failFastWhenDisconnected,
-    _setRedisClient,
 };

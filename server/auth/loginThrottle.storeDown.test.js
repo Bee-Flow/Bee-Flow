@@ -18,26 +18,22 @@ process.env.NODE_ENV = 'test';
 const { test, beforeEach, after } = require('node:test');
 const assert = require('node:assert');
 
-const db = require('../db');
-
 const down = () => Promise.reject(new Error('ECONNRESET'));
 let commands = 0;
 const brokenRedis = {
-    status: 'ready',
     set: () => { commands++; return down(); },
     incr: () => { commands++; return down(); },
     get: () => { commands++; return down(); },
     pttl: () => { commands++; return down(); },
     del: () => { commands++; return down(); },
 };
-// The real db.js, with its shared Redis client swapped for one that is "ready"
-// but fails every command.
-const realRedis = db._setRedisClient(brokenRedis);
-after(() => { db._setRedisClient(realRedis); });
+const throttle = require('./loginThrottle');
+// "Ready" but failing every command: the throttle's own Redis seam, no module stubbing.
+throttle._seam.redis = /** @type {import('ioredis').Redis} */ (/** @type {unknown} */ (brokenRedis));
+after(() => { delete throttle._seam.redis; });
 
 const log = require('../telemetry/log');
 const { resetBestEffort, bestEffortCounts } = require('../utils/bestEffort');
-const throttle = require('./loginThrottle');
 
 const LABEL = 'loginThrottle:redis-fallback-memory';
 const req = (ip = '203.0.113.9') => ({ ip, headers: {}, socket: { remoteAddress: ip } });

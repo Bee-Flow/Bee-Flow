@@ -19,9 +19,17 @@ const { HttpError } = require('../../core/http/errors');
  * module both sit above this one in the import graph). A caller passes its own
  * in the fourth argument only to test the decision without them.
  */
+/**
+ * @typedef {{
+ *   getAutomation: (id: string) => Promise<Record<string, unknown> | null | undefined>,
+ *   canAccessAutomation: (automation: Record<string, unknown>, userId: string, need: string) => Promise<boolean>,
+ * }} LinkDeps
+ */
+
+/** @type {LinkDeps} */
 const defaultDeps = {
     getAutomation: (/** @type {string} */ id) => require('../../stores/automationStore').getAutomation(id),
-    canAccessAutomation: (/** @type {any} */ automation, /** @type {string} */ userId, /** @type {string} */ need) =>
+    canAccessAutomation: (/** @type {Record<string, unknown>} */ automation, /** @type {string} */ userId, /** @type {string} */ need) =>
         require('../../automation/access').canAccessAutomation(automation, userId, need),
 };
 
@@ -30,7 +38,7 @@ const defaultDeps = {
  * @param {string|null|undefined} automationId  the link the request asks for
  * @param {string} userId
  * @param {string|null|undefined} [currentAutomationId]  the link the skill already has
- * @param {{ getAutomation: (id: string) => Promise<any>, canAccessAutomation: (automation: any, userId: string, need: string) => Promise<boolean> }} [deps]
+ * @param {LinkDeps} [deps]
  * @returns {Promise<void>}
  */
 async function assertMayLinkAutomation(automationId, userId, currentAutomationId = null, deps = defaultDeps) {

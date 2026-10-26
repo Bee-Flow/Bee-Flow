@@ -226,13 +226,11 @@ function memSweep() {
 const _sweep = setInterval(memSweep, 60_000);
 if (_sweep.unref) _sweep.unref();
 
+/** Test seam: a Redis double (or null) used instead of the shared client. */
+const _seam = /** @type {{ redis?: import('ioredis').Redis | null }} */ ({});
 function redis() {
-    try {
-        const { getRedis, redisHealthy } = require('../db');
-        return redisHealthy() ? getRedis() : null;
-    } catch (_) {
-        return null;
-    }
+    if (_seam.redis !== undefined) return _seam.redis;
+    try { const { getRedis, redisHealthy } = require('../db'); return redisHealthy() ? getRedis() : null; } catch (_) { return null; }
 }
 
 /**
@@ -758,4 +756,5 @@ module.exports = {
     sleep,
     CONFIG,
     _resetMemory,
+    _seam,
 };
