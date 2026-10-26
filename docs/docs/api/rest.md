@@ -4,7 +4,23 @@ title: REST reference
 
 # REST reference
 
-The most-used endpoints, grouped by area. Auth column abbreviations: **P** = public · **U** = user JWT · **A** = admin JWT · **S** = signed (HMAC / AppAPI).
+A hand-written tour of the most-used endpoints, grouped by area. For **every** route the server
+mounts (about 1,800), with the permission, licence feature and capability each one needs and the
+fields its request accepts, see the generated [endpoint reference](reference.md); it is read from
+the code on every change, so where the two differ, the generated one is right. The same data as an
+OpenAPI 3.1 document: [openapi.json](pathname:///openapi.json).
+
+Auth column abbreviations:
+
+- **P**: public. The route has no gate in front of it. Login, health and similar routes.
+- **U**: a signed-in user. A browser sends its session cookie (`connect.sid`); a script or the
+  Nextcloud connector sends a signed bearer JWT with `X-Beeflow-Source: nextcloud-connector`.
+  The login itself hands out no token. See [Authentication](auth.md).
+- **A**: a signed-in user who is also an admin: a platform admin, an admin of the organisation
+  in the path, or the named permission (for example `admin_compliance`). The exact gate is in the
+  endpoint reference.
+- **S**: authenticated by a signature or a secret instead of a user: an HMAC over the body, or a
+  token in the path.
 
 ## Health
 
@@ -13,7 +29,7 @@ The most-used endpoints, grouped by area. Auth column abbreviations: **P** = pub
 | GET | `/api/health` | P | `{status, version, tier}` |
 | GET | `/api/guard/health` | P | Guard sidecar health probe |
 
-A global Prometheus `/metrics` endpoint is on the roadmap but not currently exposed — see [Reference → Telemetry](../reference/telemetry.md).
+There is no public `/metrics` endpoint. Admins can read the in-memory counters at `GET /api/admin/metrics` (JSON, or Prometheus text with `?format=prometheus`) — see [Reference → Telemetry](../reference/telemetry.md).
 
 ## Auth & sessions
 
@@ -28,7 +44,7 @@ A global Prometheus `/metrics` endpoint is on the roadmap but not currently expo
 | GET | `/auth/user` | U | Current user record |
 | GET | `/auth/my-permissions` | U | Permissions, groups, orgs, beta features |
 | POST | `/auth/update-profile` | U | Update profile (name, avatar, language) |
-| POST | `/api/session-token` | U | Issue popup→iframe session token |
+| GET | `/api/session-token` | U | Mint a bridge token for a popup→iframe handoff or a native client; send it back as the `X-Session-Token` header. The response is `{token, expiresIn}` |
 | GET | `/auth/admin/signup-settings` | A | Read signup config |
 | PUT | `/auth/admin/signup-settings` | A | Write signup config |
 | GET | `/auth/admin/waitlist` | A | List pending signups |
@@ -58,30 +74,29 @@ There is no handshake endpoint and no consent endpoint under `/auth`. The
 connector signs its own JWT and presents it on every request — see
 [Authentication → Nextcloud session](auth.md#nextcloud-session).
 
-## Users & API keys
+## Users, organisations and groups
+
+User, organisation and group management lives under `/auth`, not `/api`. There are no API keys:
+see [Authentication](auth.md#scripted--server-to-server-access) for how a script signs in.
 
 | Method | Path | Auth | Purpose |
 |--------|------|:----:|---------|
-| GET | `/api/users` | A | List org users |
-| POST | `/api/users` | A | Invite user |
-| PATCH | `/api/users/:id` | A | Update user |
-| DELETE | `/api/users/:id` | A | Delete user (soft) |
-| GET | `/api/api-keys` | U | List my keys |
-| POST | `/api/api-keys` | U | Create new key (returned once) |
-| DELETE | `/api/api-keys/:id` | U | Revoke key |
-
-## Organisations
-
-| Method | Path | Auth | Purpose |
-|--------|------|:----:|---------|
-| GET | `/api/organisation` | U | Current org settings |
-| PATCH | `/api/organisation` | A | Update org settings |
-| GET | `/api/organisation/groups` | U | List groups |
-| POST | `/api/organisation/groups` | A | Create group |
-| PATCH | `/api/organisation/groups/:id` | A | Update group |
-| DELETE | `/api/organisation/groups/:id` | A | Delete group |
-| POST | `/api/organisation/groups/:id/members` | A | Add member |
-| DELETE | `/api/organisation/groups/:id/members/:userId` | A | Remove member |
+| GET | `/auth/users` | U | List users: an org admin sees their organisation, everyone else only themselves |
+| POST | `/auth/users` | A | Create a user in an organisation you administer |
+| PUT | `/auth/users/:id` | A | Update a user |
+| DELETE | `/auth/users/:id` | A | Delete a user |
+| POST | `/auth/users/me/leave-org` | U | Leave your organisation |
+| GET | `/auth/organizations` | U | List the organisations you can see |
+| POST | `/auth/organizations` | A | Create an organisation (platform admin) |
+| GET | `/auth/organizations/:id` | U | Read an organisation |
+| PUT | `/auth/organizations/:id` | A | Update an organisation |
+| DELETE | `/auth/organizations/:id` | A | Delete an organisation (platform admin) |
+| GET | `/auth/groups` | U | List groups |
+| POST | `/auth/groups` | A | Create a group |
+| PUT | `/auth/groups/:id` | A | Update a group |
+| DELETE | `/auth/groups/:id` | A | Delete a group |
+| POST | `/auth/groups/:id/members` | A | Add members |
+| DELETE | `/auth/groups/:id/members/:userId` | A | Remove a member |
 
 ## Agents
 
@@ -92,10 +107,10 @@ Agents are mounted at `/agents` (not `/api/agents`).
 | GET | `/agents` | U | List visible agents |
 | POST | `/agents` | U | Create agent |
 | GET | `/agents/:id` | U | Read agent |
-| PATCH | `/agents/:id` | U | Update agent |
+| PUT | `/agents/:id` | U | Update agent |
 | DELETE | `/agents/:id` | U | Delete agent |
-| POST | `/agents/:id/publish` | U | Publish to Marketplace |
-| POST | `/agents/:id/duplicate` | U | Fork an existing agent |
+| PATCH | `/agents/:id/publish` | U | Switch publishing on or off and set who can see the agent |
+| POST | `/agents/:id/publish-version` | U | Publish the current concept as a new version |
 | GET | `/agents/:id/tools` | U | Resolved tool list for this agent + user |
 
 ## Conversations & messages
@@ -115,11 +130,12 @@ Direct (no-agent) chat conversations live under `/ai/direct/conversations` inste
 
 ## Chat (streaming)
 
-The chat router is mounted at `/ai`. Streaming uses SSE — see [Streaming](sse.md) for the event protocol.
+Agent chat sits under the agent (`/agents/:id/chat…`); direct chat and the other chat surfaces are mounted at `/ai`. Streaming uses SSE — see [Streaming](sse.md) for the event protocol.
 
 | Method | Path | Auth | Purpose |
 |--------|------|:----:|---------|
-| POST | `/ai/chat` | U | Agent chat — stream a turn (SSE) |
+| POST | `/agents/:id/chat/stream` | U | Agent chat — stream a turn (SSE). An agent with embedding switched on also answers without a session |
+| POST | `/agents/:id/chat` | U | Agent chat — one turn, answered as plain JSON |
 | POST | `/ai/chat/direct/stream` | U | Direct (no-agent) chat — stream a turn (SSE) |
 | GET | `/ai/direct/conversations` | U | List direct-mode conversations |
 | GET | `/ai/direct/conversations/:id` | U | Read direct conversation |
@@ -128,7 +144,7 @@ The chat router is mounted at `/ai`. Streaming uses SSE — see [Streaming](sse.
 
 ## Knowledge bases
 
-Standalone knowledge bases (org-wide, used by agents and direct chat) live under `/api/kb`. Agent-scoped knowledge (older API) lives under `/agents/:id/knowledge`.
+Knowledge bases (org-wide, used by agents and direct chat) live under `/api/kb`. There is no agent-scoped knowledge API any more: an agent uses the knowledge bases attached to it.
 
 | Method | Path | Auth | Purpose |
 |--------|------|:----:|---------|
@@ -139,7 +155,7 @@ Standalone knowledge bases (org-wide, used by agents and direct chat) live under
 | DELETE | `/api/kb/:id` | U | Delete KB |
 | GET | `/api/kb/published` | U | List published / shared KBs |
 | GET | `/api/kb/categories` | U | List categories |
-| POST | `/api/kb/categories` | A | Create category (requires `manage_knowledge`) |
+| POST | `/api/kb/categories` | U | Create category (requires the `manage_knowledge` permission) |
 | GET | `/api/kb/:id/documents` | U | List documents |
 | POST | `/api/kb/:id/ingest/file` | U | Upload a document (multipart) |
 | POST | `/api/kb/:id/ingest/text` | U | Ingest plain text |
@@ -149,17 +165,6 @@ Standalone knowledge bases (org-wide, used by agents and direct chat) live under
 | GET | `/api/kb/favorites` | U | List my favourite KBs |
 | PUT | `/api/kb/:id/favorite` | U | Mark KB as favourite |
 | DELETE | `/api/kb/:id/favorite` | U | Unmark KB |
-
-Legacy agent-scoped knowledge endpoints (kept for backwards compat):
-
-| Method | Path | Auth | Purpose |
-|--------|------|:----:|---------|
-| GET | `/agents/:id/knowledge` | U | List agent-attached knowledge items |
-| POST | `/agents/:id/knowledge` | U | Attach text/URL knowledge to an agent |
-| POST | `/agents/:id/knowledge/upload` | U | Upload a file (multipart) |
-| POST | `/agents/:id/knowledge/url` | U | Attach by URL |
-| POST | `/agents/:id/knowledge/search` | U | Search this agent's knowledge |
-| DELETE | `/agents/:id/knowledge/:itemId` | U | Remove a knowledge item |
 
 ## Automations
 
@@ -240,21 +245,26 @@ marketplace: skills are written, not browsed or installed.
 
 | Method | Path | Auth | Purpose |
 |--------|------|:----:|---------|
-| GET | `/api/integrations` | U | List my connected integrations |
-| POST | `/api/integrations/:id/connect` | U | Start OAuth/key flow |
-| DELETE | `/api/integrations/:id` | U | Disconnect |
-| GET | `/admin/:orgId/nc-integrations` | A | Org-level NC integration toggles |
-| PUT | `/admin/:orgId/nc-integrations` | A | Update org-level toggles |
-| GET | `/admin/:orgId/nc-integrations/groups` | A | Per-group disable lists |
-| PUT | `/admin/:orgId/nc-integrations/groups/:groupId` | A | Update per-group disables |
+| GET | `/api/integrations/connections` | U | List my connections |
+| POST | `/api/integrations/connections` | U | Add a connection |
+| PATCH | `/api/integrations/connections/:id` | U | Update a connection |
+| DELETE | `/api/integrations/connections/:id` | U | Remove a connection |
+| GET | `/auth/admin/:orgId/nc-integrations` | A | Org-level NC integration toggles |
+| PUT | `/auth/admin/:orgId/nc-integrations` | A | Update org-level toggles |
+| GET | `/auth/admin/:orgId/nc-integrations/groups` | A | Per-group disable lists |
+| PUT | `/auth/admin/:orgId/nc-integrations/groups/:groupId` | A | Update per-group disables |
+
+Each provider has its own connect and disconnect routes under `/api/integrations/<provider>/` (Google, Microsoft, GitHub, Withings and others); they are in the [endpoint reference](reference/api-integrations.md).
 
 ## License
 
 | Method | Path | Auth | Purpose |
 |--------|------|:----:|---------|
 | GET | `/api/license/status` | U | Active tier + features + limits |
-| POST | `/api/license/apply` | A | Apply a JWT licence key |
-| DELETE | `/api/license` | A | Revert to Community |
+| POST | `/api/license/activate` | A | Apply a JWT licence key |
+| POST | `/api/license/refresh` | A | Fetch the licence again from the licence server |
+| GET | `/api/license/health` | A | State of the licence refresher |
+| DELETE | `/api/license/deactivate` | A | Revert to Community |
 
 ## Audit & compliance (Enterprise+)
 
@@ -272,14 +282,17 @@ Gated by the `compliance_hub_gdpr` license feature. The hub is a check-runner �
 | PUT | `/api/compliance/settings` | A | Write compliance settings |
 | POST | `/api/compliance/settings/onboarded` | A | Mark the compliance hub as onboarded |
 
-## Webhooks
+## Incoming webhooks
+
+Routes that other systems call. None of them uses a user session.
 
 | Method | Path | Auth | Purpose |
 |--------|------|:----:|---------|
-| POST | `/webhook/audit-events` | S | Receive SIEM-bound audit events (self) |
-| POST | `/webhook/license-revocation` | S | Receive licence revocation push |
+| POST | `/api/automation/webhook/:slug` | S | Automation webhook trigger (see Automations above) |
+| POST | `/api/stripe/webhook` | S | Stripe billing events (Bee Flow cloud only; verified with Stripe's signature) |
+| POST | `/auth/webhook/nc-user-sync` | S | Nextcloud user events forwarded by the connector |
 
 ## Notes
 
 - Errors are JSON ([format](index.md#error-format)).
-- Streaming endpoints (`/ai/chat`, `/ai/chat/direct/stream`, `/api/voice/turn`) speak SSE — see [Streaming](sse.md).
+- Streaming endpoints (`/agents/:id/chat/stream`, `/ai/chat/direct/stream`, `/ai/voice/turn`) speak SSE — see [Streaming](sse.md).

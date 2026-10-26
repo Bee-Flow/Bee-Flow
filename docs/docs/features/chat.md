@@ -103,7 +103,7 @@ Every tool call shows up inline as a clickable row in the conversation. Click it
 | Created | First user message |
 | Active | Agent is generating |
 | Completed | Agent emits `done` event |
-| Cancelled | User clicks stop, or `/api/chat/:id/cancel` is called |
+| Cancelled | User clicks stop (the client closes the stream and the server stops the turn) |
 | Deleted | User clicks delete (soft-delete; purged after 30 days) |
 
 Conversations are stored in Postgres (`conversations`, `messages`, `tool_calls` tables). Retention is org-configurable; the default is "until the user deletes it".

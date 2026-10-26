@@ -9,13 +9,17 @@ Bee Flow exposes a REST + Server-Sent Events API. The web frontend (`agent-hub`)
 | Base URL | Use |
 |----------|-----|
 | `https://server.beeflow.nl` | Hosted SaaS |
-| `https://beeflow.example.com/api` | Self-hosted |
-| `http://localhost:3101/api` | Local dev |
+| `https://beeflow.example.com` | Self-hosted |
+| `http://localhost:3101` | Local dev |
+
+Paths are given in full, from the base URL. Not everything sits under `/api`: sign-in is under
+`/auth`, agents under `/agents`, chat under `/ai`.
 
 ## Pages
 
-- [Authentication](auth.md) — how to obtain a session JWT or API key.
-- [REST reference](rest.md) — endpoints by area.
+- [Authentication](auth.md) — the session cookie, the connector's bearer JWT and the other credentials.
+- [REST reference](rest.md) — a tour of the most-used endpoints.
+- [Endpoint reference](reference.md) — every route, generated from the server (also as [OpenAPI 3.1](pathname:///openapi.json)).
 - [Streaming (SSE)](sse.md) — chat streams and tool-call events.
 
 ## Versioning
@@ -34,50 +38,50 @@ Endpoints marked `Deprecated` in this docs site continue to work for at least 6 
 
 ## Error format
 
-All errors return JSON:
+Errors are JSON. `error` is a message written for the caller; `correlationId` is the id to quote
+when you ask for help (it matches the server log). `code` and `details` are present when the route
+raised a typed error:
 
 ```json
 {
-  "error": "tier_limit",
-  "message": "Your tier doesn't allow more than 20 agents",
-  "details": { "tier": "pro", "limit": 20, "current": 20 },
-  "requestId": "req_2026..."
+  "error": "A folder needs a name.",
+  "code": "invalid_request",
+  "details": [{ "path": "body.name", "message": "A folder needs a name." }],
+  "correlationId": "5b0c0f9e-..."
 }
 ```
 
+Some gates answer with their own body instead, for example `{"error": "Not authenticated"}` (401)
+or `{"error": "feature_locked", "feature": "...", "required": "...", "current": "...", "upgrade_url": "..."}`
+(403, the licence tier does not include the feature).
+
 | Status | When |
 |--------|------|
-| 400 | Bad request — body or query is malformed. |
-| 401 | Missing / invalid auth. |
-| 402 | Tier limit hit (`error: "tier_limit"`). |
-| 403 | Auth ok, but feature not in your tier (`error: "license_feature_required"`). |
-| 404 | Not found / wrong tenant. |
-| 409 | Conflict (e.g. resource already exists). |
-| 422 | Semantic validation failed (e.g. invalid cron). |
-| 429 | Rate-limited. Retry-After header present. |
-| 500 | Server bug. `requestId` lets us trace it. |
-| 503 | Upstream model provider down or overloaded. |
+| 400 | Bad request: the body, query or path parameters failed validation (`code: "invalid_request"`). |
+| 401 | Not signed in, or the session no longer belongs to an existing user. |
+| 402 | The organisation is suspended (`org_suspended`). |
+| 403 | Signed in, but the role or permission is not enough, or the licence tier does not include the feature (`feature_locked`, `tier_required`). |
+| 404 | Not found, or in another tenant. |
+| 409 | Conflict (for example the resource already exists, or is still in use). |
+| 410 | The organisation is archived and read-only (`org_archived`). |
+| 413 | The body is too large. |
+| 429 | Rate-limited. |
+| 500 | Server bug. The body carries only a generic message and the `correlationId`. |
+| 503 | A dependency is unavailable (`auth_unavailable`, `tier_unavailable`), or the upstream model provider is down or overloaded. |
 
 ## Rate limits
 
-Default per-IP + per-user limits at the reverse proxy (self-hosters) and at the SaaS edge:
-
-| Endpoint family | Default | Burst |
-|-----------------|---------|-------|
-| `/ai/chat` | 60 / min | 120 |
-| `/agents` | 120 / min | 200 |
-| `/api/kb/*` | 30 / min | 60 |
-| `/auth/*` | 30 / min | 60 |
-| `/api/automation/webhook/*` | 600 / min | 1200 |
-
-Set on the reverse proxy or via `RATE_LIMIT_*` env vars on the server (Redis-backed).
+There is no single rate-limit table. Limits are set per route inside the server (sign-in, chat
+streams, public webhooks, uploads and others each have their own), and a request over its limit
+answers `429`. A reverse proxy in front of a self-hosted install can add limits of its own.
 
 ## CORS
 
-The hosted SaaS allows requests from `https://beeflow.nl`. Self-hosted: configure via `CORS_ALLOWED_ORIGINS=` (comma-separated). For embedded chat, list every parent origin.
+The hosted SaaS allows requests from `https://beeflow.nl`. Self-hosted: configure via `CORS_ORIGIN=` (comma-separated). For embedded chat, list every parent origin.
 
 ## Where to next
 
 - [Authentication](auth.md)
 - [REST reference](rest.md)
+- [Endpoint reference](reference.md)
 - [Streaming (SSE)](sse.md)

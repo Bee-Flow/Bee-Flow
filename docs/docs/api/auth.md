@@ -6,12 +6,20 @@ title: Authentication
 
 Bee Flow authenticates a browser client with a **server-side session cookie**, and a connector
 client with a **bearer JWT**. These are different mechanisms — the password login does not issue a
-token.
+token. Two narrower credentials sit beside them: a short-lived **bridge token** for clients that
+cannot keep the cookie, and **MCP tokens** that open only the `/mcp` endpoints.
 
 - Browser / SPA: a `connect.sid` cookie (name overridable via `COOKIE_NAME`), backed by an
   `express-session` store. The password login establishes it; there is nothing to pass by hand.
 - Nextcloud connector: an `Authorization: Bearer <jwt>` header **plus** the marker header
   `X-Beeflow-Source: nextcloud-connector`. Without the marker the JWT is ignored.
+- Bridge token: a signed-in session mints one with `GET /api/session-token` (`{token, expiresIn}`)
+  and a popup, an embedded iframe or the Android app presents it as `X-Session-Token` on every
+  request, where the server rebuilds the session from it. It lives one hour by default and 30 days
+  for the Android app.
+- MCP token: `Authorization: Bearer bfmcp...`, accepted only by the `/mcp` endpoints (Bee Flow as an
+  MCP server). A user mints and revokes them in Settings (`/api/mcp-tokens`); a token grants what
+  that user can do in chat, limited to the scopes it was given.
 
 ## Ways to obtain credentials
 
@@ -19,6 +27,8 @@ token.
 |--------|-------------|----------|
 | Username / password | Self-hosted standalone, no NC | session cookie, 30 days (configurable) |
 | Nextcloud session | Embedded in Nextcloud (connector flow) | JWT, 300 s by default, re-minted per request |
+| Bridge token | Popup, iframe or native app that cannot share the cookie | 1 hour; 30 days for the Android app |
+| MCP token | An MCP client calling `/mcp` | until revoked or its expiry |
 | OAuth / OIDC (Google, Microsoft Entra, Nextcloud) | Standalone with SSO | session cookie, 30 days (configurable) |
 
 :::note
@@ -56,7 +66,7 @@ Response — note there is **no token**; the session cookie on the response is t
 Subsequent requests carry the cookie:
 
 ```http
-GET /api/agents
+GET /agents
 Cookie: connect.sid=s%3A...
 ```
 
@@ -124,7 +134,7 @@ There is no API-key panel. A script authenticates the same way the Nextcloud con
 short-lived HS256 JWT with the org's tenant key and send it with the marker header.
 
 ```http
-GET /api/agents
+GET /agents
 Authorization: Bearer <jwt signed with the org tenant key>
 X-Beeflow-Source: nextcloud-connector
 ```
@@ -187,7 +197,8 @@ secret per provider, plus the tenant id for Entra. Bee Flow's redirect URI is
 |------------|----------|---------|
 | Browser session | 30 days from sign-in, `SESSION_MAX_AGE_DAYS` | none by default — see below |
 | Connector JWT | `BEEFLOW_JWT_TTL_SECONDS` (default 300 s) | minted per request by the connector; nothing to renew |
-| API key | until revoked | manual rotation |
+| Bridge token | 1 hour (30 days for the Android app) | mint a new one with `GET /api/session-token` |
+| MCP token | until revoked, or the expiry it was given | mint a new one in Settings |
 | OAuth / OIDC browser session | the same — it is the same session | the same |
 
 ### Session lifetime, corrected
@@ -216,7 +227,10 @@ the installation to make.
 
 ## Header / cookie precedence
 
-If both are present, **`Authorization` header wins**. This lets a browser session coexist with API-key calls from the same origin.
+If a request carries both a valid session cookie and a connector `Authorization` header, **the
+cookie session wins**: the connector middleware reuses a live session as it is and only reads the
+header when there is no session, or the session's user no longer exists. So a browser session and
+connector calls from the same origin do not fight; the header is never an override.
 
 ## Logout
 
@@ -224,36 +238,46 @@ If both are present, **`Authorization` header wins**. This lets a browser sessio
 POST /auth/logout
 ```
 
-Clears the cookie + records the JWT in a server-side denylist for its remaining lifetime. API keys are not affected — revoke them in the UI.
+Destroys the server-side session and, if the request carries an `X-Session-Token`, deletes that
+bridge token too, so a signed-out phone is signed out. A connector JWT is not revoked: it expires
+by itself within its short lifetime. MCP tokens are not affected — revoke them in Settings.
 
-## Inspecting your token
+## Inspecting your session
 
 ```http
 GET /auth/user
-Authorization: Bearer <jwt>
 ```
 
-Returns the user record + the resolved tier features:
+Answers `200` with `{"authenticated": false, ...}` when there is no session (the login screen
+uses this to learn which sign-in providers are on), and with the user otherwise:
 
 ```json
 {
-  "id": "u_abc",
-  "email": "alice@example.com",
-  "displayName": "Alice",
-  "role": "admin",
-  "organizationId": "org_xyz",
-  "tier": "pro",
-  "features": ["automations", "voice", "..."],
-  "limits": { "users": 25, "agents": 20, "messages": 50000 }
+  "authenticated": true,
+  "user": {
+    "id": "u_abc",
+    "email": "alice@example.com",
+    "displayName": "Alice",
+    "role": "admin",
+    "isAdmin": true,
+    "provider": "local",
+    "organizationId": "org_xyz",
+    "orgRole": ""
+  }
 }
 ```
 
+The user object carries more fields (names, avatar, memory and display preferences) than shown.
+What the user may do is at `GET /auth/my-permissions`; the licence tier and its limits are at
+`GET /api/license/status`.
+
 ## Common errors
 
-| Status | `error` | Meaning |
-|--------|---------|---------|
-| 401 | `missing_token` | No session cookie, and no `Authorization` + `X-Beeflow-Source` pair. |
-| 401 | `invalid_token` | JWT signature mismatch or revoked. |
-| 401 | `expired_token` | `exp` in the past. Re-login or refresh. |
-| 403 | `forbidden` | Auth ok, role insufficient. |
-| 403 | `license_feature_required` | Tier doesn't include the feature. |
+| Status | Body | Meaning |
+|--------|------|---------|
+| 401 | `{"error": "Not authenticated"}` | No session, and no valid connector header. |
+| 401 | `{"error": "User no longer exists"}` | The session belongs to a deleted account; it has been destroyed. |
+| 401 | `{"error": "Invalid connector token"}` | The connector JWT did not verify, or has expired. |
+| 403 | `{"error": "..."}` | Signed in, but the role or permission is not enough. |
+| 403 | `{"error": "feature_locked", "feature": "...", "required": "...", "upgrade_url": "..."}` | The licence tier does not include the feature. |
+| 503 | `{"error": "auth_unavailable"}` | The account check could not run (database down). Retry. |

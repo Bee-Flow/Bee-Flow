@@ -82,6 +82,12 @@ and `npm run lint:secrets`.
   `editorCollab.cjs` are generated from `agent-hub/src/editor/` (`cd server && npm run
   build:editor-md` / `build:editor-collab`, with the esbuild the server locks). Each carries a
   sha256 of its inputs in its banner; the check recomputes it and fails on a stale bundle.
+- `npm run lint:api-reference`: `docs/static/openapi.json`, `docs/docs/api/reference.md` and
+  `docs/docs/api/reference/*.md` are GENERATED from the running app's router (every route, the gates
+  on its middleware chain, the zod schemas of its `validate({ body, query, params })`) by
+  `scripts/gen-api-reference.mjs`. A route or schema change makes them stale: run
+  `npm run gen:api-reference` and commit. It loads the server app, so it needs `server/node_modules`;
+  `check:fast` leaves it out and ci.yml's `server-checks` job runs it. Do not hand-edit those files.
 - `npm run lint:compose-drift`: the same third-party image has the same tag in every
   `docker-compose*.yml`, and the profiles used there match `ALL_PROFILES` in `selfhost.sh`.
 - Local images = CI images: `scripts/stage-server-context.sh` stages the server image's
