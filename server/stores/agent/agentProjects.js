@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Agents filed into projects (Solution membership): listing, counting, filing,
  * and clearing a deleted project from its agents.
@@ -25,6 +25,7 @@ const { initDB } = require('./initSchema');
  * because they may see the agent's NAME would be a disclosure the project role
  * never granted. Whoever opens the agent still goes through the agents routes,
  * which apply their own checks.
+ * @param {string | null | undefined} projectId
  */
 async function listProjectAgents(projectId) {
     await initDB();
@@ -58,6 +59,7 @@ async function listProjectAgents(projectId) {
  * appears in no row is genuinely EMPTY, which is why the caller distinguishes a
  * missing key (0) from a failed read (the whole call rejects) rather than
  * folding both into a zero.
+ * @param {string[]} projectIds
  */
 async function countProjectAgents(projectIds) {
     await initDB();
@@ -83,6 +85,9 @@ async function countProjectAgents(projectIds) {
  * token over the agent's CONCEPT (name, prompt, config); filing the same agent
  * into a project changes none of that, and bumping it here would make an open
  * editor's next save collide with a change it cannot see.
+ * @param {string} agentId
+ * @param {string} userId
+ * @param {string | null | undefined} projectId
  */
 async function setAgentProject(agentId, userId, projectId) {
     await initDB();
@@ -98,6 +103,7 @@ async function setAgentProject(agentId, userId, projectId) {
  *
  * Soft reference, so nothing clears it automatically — and deleting a project
  * must never destroy the agents its members built inside it.
+ * @param {string} projectId
  */
 async function clearProjectFromAgents(projectId) {
     await initDB();

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Server geo resolver — the platform's one door to IP location.
  *

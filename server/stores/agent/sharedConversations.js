@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Sharing a conversation into a project, and reading a project's shared threads.
  *

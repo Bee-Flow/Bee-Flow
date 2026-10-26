@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * What a part GET says about the stage that manages it (design 5.3): every
  * builder route adds `managed: null | {solutionId, solutionName, stage,
@@ -15,7 +15,12 @@
 
 const UNDEFINED_TABLE = '42P01';
 
-/** Run a read that may hit a table another store has not created yet. */
+/**
+ * Run a read that may hit a table another store has not created yet.
+ * @template T
+ * @param {() => Promise<T>} fn
+ * @returns {Promise<T | null>}
+ */
 async function tolerant(fn) {
     try {
         return await fn();

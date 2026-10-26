@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * ISO Evidence Store — connector configuration + hashed evidence snapshots.
  *
@@ -55,6 +55,7 @@ async function _initDB() {
 // with nothing changed (github.js, scaleway.js, tls-endpoints.js).
 const VOLATILE_KEYS = new Set(['days_remaining', 'oldest_open_days', 'oldest_high_critical_days', 'newest_backup_age_days']);
 
+/** @param {Record<string, unknown> | null | undefined} payload */
 function hashPayload(payload) {
     const json = JSON.stringify(payload || {}, (k, v) => (VOLATILE_KEYS.has(k) ? undefined : v));
     return crypto.createHash('sha256').update(json).digest('hex');
@@ -62,16 +63,27 @@ function hashPayload(payload) {
 
 // ── Connector configs ──
 
+/** @param {string} orgId */
 async function listConfigs(orgId) {
     await initDB();
     return getAll(`SELECT * FROM iso_connector_configs WHERE organization_id = $1 ORDER BY connector_id`, [orgId]);
 }
 
+/**
+ * @param {string} orgId
+ * @param {string} connectorId
+ */
 async function getConfig(orgId, connectorId) {
     await initDB();
     return getOne(`SELECT * FROM iso_connector_configs WHERE organization_id = $1 AND connector_id = $2`, [orgId, connectorId]);
 }
 
+/**
+ * @param {string} orgId
+ * @param {string} connectorId
+ * @param {Record<string, unknown>} patch
+ * @param {string | null | undefined} actorId
+ */
 async function upsertConfig(orgId, connectorId, patch, actorId) {
     await initDB();
     const existing = await getConfig(orgId, connectorId);
@@ -94,6 +106,11 @@ async function upsertConfig(orgId, connectorId, patch, actorId) {
     return getConfig(orgId, connectorId);
 }
 
+/**
+ * @param {string} orgId
+ * @param {string} connectorId
+ * @param {{ status: string, error?: unknown }} result
+ */
 async function markSweep(orgId, connectorId, { status, error = null }) {
     await initDB();
     await run(`
@@ -114,6 +131,10 @@ async function listEnabledConfigs() {
  * Persist one snapshot; returns { changed, hash }. `changed` is true when the
  * payload hash differs from the previous snapshot for the same subject — the
  * drift signal the collector turns into CONTROL_DRIFT.
+ * @param {string} orgId
+ * @param {string} connectorId
+ * @param {string} subjectId
+ * @param {Record<string, unknown> | null | undefined} payload
  */
 async function saveSnapshot(orgId, connectorId, subjectId, payload) {
     await initDB();
@@ -146,6 +167,11 @@ async function saveSnapshot(orgId, connectorId, subjectId, payload) {
     return { changed: true, hash };
 }
 
+/**
+ * @param {string} orgId
+ * @param {string} connectorId
+ * @param {string} subjectId
+ */
 async function getLatestSnapshot(orgId, connectorId, subjectId) {
     await initDB();
     return getOne(`
@@ -155,7 +181,11 @@ async function getLatestSnapshot(orgId, connectorId, subjectId) {
     `, [orgId, connectorId, subjectId]);
 }
 
-/** Latest snapshot per subject for one connector. */
+/**
+ * Latest snapshot per subject for one connector.
+ * @param {string} orgId
+ * @param {string} connectorId
+ */
 async function listLatestSnapshots(orgId, connectorId) {
     await initDB();
     return getAll(`

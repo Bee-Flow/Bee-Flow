@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 /**
@@ -50,7 +50,7 @@ function assertConsumerKind(kind, who) {
  * @param {string | undefined} mode
  */
 function normalizeMode(mode) {
-    return USAGE_MODES.includes(mode) ? mode : 'read';
+    return typeof mode === 'string' && USAGE_MODES.includes(mode) ? mode : 'read';
 }
 
 /**

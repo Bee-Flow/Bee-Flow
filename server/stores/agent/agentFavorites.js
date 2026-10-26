@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Agent Favorites - Per-user favorited agents.
  * Replaces the legacy client-side localStorage `agentFavorites` so that
@@ -8,6 +8,7 @@
 const { run, getAll } = require('../../db');
 const { initDB } = require('./initSchema');
 
+/** @param {string} userId */
 async function listFavorites(userId) {
     await initDB();
     const rows = await getAll(
@@ -17,6 +18,10 @@ async function listFavorites(userId) {
     return rows.map(r => r.agent_id);
 }
 
+/**
+ * @param {string} userId
+ * @param {string} agentId
+ */
 async function addFavorite(userId, agentId) {
     await initDB();
     await run(
@@ -26,6 +31,10 @@ async function addFavorite(userId, agentId) {
     );
 }
 
+/**
+ * @param {string} userId
+ * @param {string} agentId
+ */
 async function removeFavorite(userId, agentId) {
     await initDB();
     await run(

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Studio App Store — PostgreSQL persistence for App Studio apps.
  *
@@ -37,7 +37,7 @@ require('./studioApp/deps').install({
     db: require('../db'),
     log: require('../telemetry/log'),
     // Lazy, as they always were: required on first use, not at load.
-    migration: (name) => require(`../migrations/${name}`),
+    migration: (/** @type {string} */ name) => require(`../migrations/${name}`),
     managedPartsDefault: () => require('./managedPartsDefault'),
     engineFlag: () => require('../utils/engineFlag'),
     projectStore: () => require('./projectStore'),

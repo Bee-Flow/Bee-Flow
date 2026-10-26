@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Agent Stats - Reporting statistics across agents and conversations
  */
@@ -24,6 +24,7 @@ async function getSystemStats(startDate = null, endDate = null) {
     }
 
     let totalMessages = 0;
+    /** @type {Record<string, number>} */
     const agentMessageCounts = {};
     for (const row of allConvs) {
         try {
@@ -36,6 +37,7 @@ async function getSystemStats(startDate = null, endDate = null) {
     return { totalAgents, totalConversations, activeConversations, totalMessages, agentMessageCounts };
 }
 
+/** @param {string} agentId */
 async function getAgentStats(agentId, startDate = null, endDate = null) {
     await initDB();
     const stats = await getOne(`SELECT

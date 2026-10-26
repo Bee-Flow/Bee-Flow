@@ -30,9 +30,7 @@ class CollabStoreError extends Error {
     }
 }
 
-/**
- * @param {string | number | Date} v
- */
+/** @param {string | number | Date} v */
 const toIso = (v) => (v ? new Date(v).toISOString() : null);
 /** @param {unknown} v */
 const toInt = (v) => (v === null || v === undefined ? 0 : Number(v));
@@ -102,7 +100,7 @@ const DOC_COLUMNS = `id, project_id, resource_kind, resource_id, field, ywire, k
     last_edit_at, seeded_at, created_by, created_at, updated_at`;
 
 /**
- * @typedef {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }} Q
+ * @typedef {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }> }} Q
  * @typedef {{ clientId: number, to: number }} ClientClock  `to` is the exclusive end clock of that client's structs
  */
 

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Notification Store — PostgreSQL-backed notifications for task outcomes.
  *
@@ -44,7 +44,7 @@ CREATE INDEX IF NOT EXISTS idx_notifications_task ON notifications(task_id);
 `;
 
 /**
- * @param {{query: Function}} pool - the shared pg Pool, or any double of it.
+ * @param {DbQueryable} pool - the shared pg Pool, or any double of it.
  * @param {{tag?: string}} [opts] - tag only changes the init error log prefix.
  */
 function createNotificationStore(pool, { tag = 'NotificationStore' } = {}) {
@@ -65,7 +65,7 @@ function createNotificationStore(pool, { tag = 'NotificationStore' } = {}) {
 
     /**
      * Create a notification.
-     * @param {{ userId: string, taskId?: string, category?: string, title: string, message?: string, link?: string }} data
+     * @param {{ userId: string, taskId?: string, category?: string, title: string, message?: string, link?: string | null }} data
      *   link — optional in-app path the client navigates to when the notification is
      *          opened (e.g. `/app/settings/help_support?thread=<id>`).
      */
@@ -117,6 +117,7 @@ function createNotificationStore(pool, { tag = 'NotificationStore' } = {}) {
 
     /**
      * Get unread count for a user.
+     * @param {string} userId
      */
     async function getUnreadCount(userId) {
         await initDB();
@@ -173,11 +174,12 @@ function createNotificationStore(pool, { tag = 'NotificationStore' } = {}) {
             'UPDATE notifications SET read = TRUE WHERE id = $1 AND user_id = $2',
             [id, userId]
         );
-        return rowCount > 0;
+        return (rowCount ?? 0) > 0;
     }
 
     /**
      * Mark all notifications as read for a user.
+     * @param {string} userId
      */
     async function markAllRead(userId) {
         await initDB();
@@ -203,16 +205,17 @@ function createNotificationStore(pool, { tag = 'NotificationStore' } = {}) {
             'DELETE FROM notifications WHERE id = $1 AND user_id = $2',
             [id, userId]
         );
-        return rowCount > 0;
+        return (rowCount ?? 0) > 0;
     }
 
     /**
      * Delete all notifications for a user (used during user deletion).
+     * @param {string} userId
      */
     async function deleteUserNotifications(userId) {
         await initDB();
         const { rowCount } = await pool.query('DELETE FROM notifications WHERE user_id = $1', [userId]);
-        if (rowCount > 0) log.info(`[NotificationStore] Deleted ${rowCount} notification(s) for user ${userId}`);
+        if ((rowCount ?? 0) > 0) log.info(`[NotificationStore] Deleted ${rowCount} notification(s) for user ${userId}`);
         return rowCount;
     }
 

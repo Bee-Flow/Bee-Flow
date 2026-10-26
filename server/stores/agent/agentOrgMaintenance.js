@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Organisation-wide agent maintenance: dropping a deleted skill from every
  * agent, and moving an agent to a new owner.
@@ -11,8 +11,8 @@ const { buildUpdate } = require('../lib/sqlBuilder');
 const { _notifySync } = require('./agentSync');
 
 const SCRUB_COLUMNS = {
-    config: { col: 'config', transform: (v) => JSON.stringify(v) },
-    publishedConfig: { col: 'published_config', cast: 'jsonb', transform: (v) => JSON.stringify(v) },
+    config: { col: 'config', transform: (/** @type {unknown} */ v) => JSON.stringify(v) },
+    publishedConfig: { col: 'published_config', cast: 'jsonb', transform: (/** @type {unknown} */ v) => JSON.stringify(v) },
 };
 
 // Remove a skill id from every agent's config.attachedSkillIds — in the
@@ -20,6 +20,10 @@ const SCRUB_COLUMNS = {
 // an agent is in split mode, so scrubbing only the concept would leave the
 // deleted skill referenced by exactly the config that runs.
 // Called when a skill is deleted so dangling references don't linger in agent configs.
+/**
+ * @param {string | null | undefined} orgId
+ * @param {string | null | undefined} skillId
+ */
 async function scrubSkillFromAllAgents(orgId, skillId) {
     await initDB();
     if (!skillId) return 0;
@@ -29,15 +33,13 @@ async function scrubSkillFromAllAgents(orgId, skillId) {
     const params = orgId ? [orgId, `%${skillId}%`] : [`%${skillId}%`];
     const rows = await getAll(query, params);
     let scrubbed = 0;
-    /**
-     * @param {string} raw
-     */
+    /** @param {string} raw */
     const without = (raw) => {
         let cfg;
         try { cfg = typeof raw === 'string' ? JSON.parse(raw) : (raw || {}); } catch (_) { cfg = {}; }
         const ids = Array.isArray(cfg.attachedSkillIds) ? cfg.attachedSkillIds : null;
         if (!ids || !ids.includes(skillId)) return null;
-        return { ...cfg, attachedSkillIds: ids.filter(x => x !== skillId) };
+        return { ...cfg, attachedSkillIds: ids.filter((/** @type {string} */ x) => x !== skillId) };
     };
     for (const row of rows) {
         const cfg = without(row.config);

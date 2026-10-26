@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Suggestion Scan Cache — caches the result of a Automations "Find repeating work"
  * scan so the (expensive) analysis isn't re-run on every panel open.
@@ -76,16 +76,12 @@ function safeJson(v, fallback) {
     try { return JSON.parse(v); } catch { return fallback; }
 }
 
-/**
- * @param {string | null | undefined} [mode]
- */
+/** @param {string | null | undefined} [mode] */
 function normaliseMode(mode) {
-    return MODES.includes(mode) ? mode : null;
+    return typeof mode === 'string' && MODES.includes(mode) ? mode : null;
 }
 
-/**
- * @param {import('pg').QueryResultRow | null} r
- */
+/** @param {import('pg').QueryResultRow | null} r */
 function mapRow(r) {
     if (!r) return null;
     return {
@@ -108,7 +104,7 @@ function mapRow(r) {
 }
 
 /**
- * @param {{ query: (sql: string, params?: any[]) => Promise<{rows: any[], rowCount?: number}> }} db
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{rows: any[], rowCount?: number | null}> }} db
  * @param {{ ready?: () => Promise<unknown> }} [opts]
  */
 function makeSuggestionScanCache(db, { ready = async () => {} } = {}) {
@@ -249,9 +245,7 @@ function makeSuggestionScanCache(db, { ready = async () => {} } = {}) {
     }
 
     /** Drop every cached scan for a scope. Returns the number of rows removed. */
-    /**
-     * @param {{ scopeKey?: string }} opts
-     */
+    /** @param {{ scopeKey?: string }} opts */
     async function invalidateForScope({ scopeKey }) {
         if (!scopeKey) return 0;
         const res = await q(`DELETE FROM suggestion_scan_cache WHERE scope_key = $1`, [scopeKey]);

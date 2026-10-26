@@ -119,7 +119,7 @@ async function clearProjectFromSkills(projectId, opts = {}) {
  * starts unshared, an existing one keeps its sharing. No GitHub sync: Dev is
  * the source.
  *
- * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }} client
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }> }} client
  * @param {{ id?: string|null, ownerId: string, orgId: string|null, projectId: string,
  *           fields?: Record<string, any>, managedWrite: { deploymentId?: string }|null }} args
  * @returns {Promise<ReturnType<typeof mapRow>>}

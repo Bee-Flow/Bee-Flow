@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * automation_shares — who an automation is shared with, and in which role
  * (Studio → Automations handoff 5). The table comes from
@@ -34,7 +34,7 @@ function rowToShare(r) {
 
 /**
  * @param {{
- *   query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }>,
+ *   query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }>,
  *   tx: <T>(fn: (q: { query: (sql: string, params?: any[]) => Promise<{ rows: any[] }> }) => Promise<T>) => Promise<T>,
  * }} db
  * @param {{ ready?: () => Promise<void>, managedParts?: { assertManagedWrite: Function }|null }} [opts]

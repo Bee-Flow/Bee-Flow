@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Meeting notes as project content (projects/membership.js, kind 'meeting'):
  * filing, detaching, the project's card listing and counts, and the detach
@@ -28,6 +28,10 @@ const { parseJsonArray } = require('./jsonArrays');
  * refused with a 409 that says so, rather than quietly widening or replacing
  * who can read it. (The publish route refuses the other direction: a filed
  * note cannot be published.)
+ * @param {string | null | undefined} id
+ * @param {string | null | undefined} userId
+ * @param {string | null | undefined} projectId
+ * @param {string[]} callerOrgIds
  */
 async function setTranscriptionProject(id, userId, projectId, callerOrgIds = []) {
     await initDB();
@@ -54,6 +58,9 @@ async function setTranscriptionProject(id, userId, projectId, callerOrgIds = [])
  * Take a meeting note out of ONE project. With `userId`, only when that person
  * owns it; with null, whoever owns it, which projects/membership.js allows only
  * the owner of that project. Scoped to `projectId` either way.
+ * @param {string | null | undefined} id
+ * @param {string | null | undefined} projectId
+ * @param {string | null | undefined} userId
  */
 async function detachTranscriptionFromProject(id, projectId, userId = null) {
     await initDB();
@@ -70,6 +77,7 @@ async function detachTranscriptionFromProject(id, projectId, userId = null) {
  * The meeting notes filed into a project, as cards: what a list row shows and
  * nothing it does not. No transcript, summary or snippet leaves here: those
  * are the note's content, read through getTranscription when someone opens it.
+ * @param {string | null | undefined} projectId
  */
 async function listProjectMeetings(projectId, { limit = 100, offset = 0 } = {}) {
     await initDB();
@@ -99,6 +107,7 @@ async function listProjectMeetings(projectId, { limit = 100, offset = 0 } = {}) 
 /**
  * How many meeting notes each of these projects holds, in ONE query. Missing
  * from the map means none; a failed read rejects.
+ * @param {string[]} projectIds
  */
 async function countProjectMeetings(projectIds) {
     await initDB();
@@ -112,7 +121,10 @@ async function countProjectMeetings(projectIds) {
     return new Map(rows.map(r => [r.project_id, Number(r.n) || 0]));
 }
 
-/** Detach every meeting note from a deleted project; the notes stay their owners'. */
+/**
+ * Detach every meeting note from a deleted project; the notes stay their owners'.
+ * @param {string | null | undefined} projectId
+ */
 async function clearProjectFromTranscriptions(projectId) {
     await initDB();
     if (!projectId) return 0;

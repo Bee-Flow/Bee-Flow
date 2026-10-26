@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * chat_signal_objections — "Don't count my chat turns" (GDPR Art. 21).
  *
@@ -27,7 +27,7 @@ const MEMO_TTL_MS = 30_000;
 const MEMO_MAX = 5000;
 
 /**
- * @param {{ query: (sql: string, params?: any[]) => Promise<{rows: any[], rowCount?: number}> }} db
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{rows: any[], rowCount?: number | null}> }} db
  * @param {{ ready?: () => Promise<unknown>, now?: () => number }} [opts]
  */
 function makeChatSignalObjectionStore(db, { ready = async () => {}, now = Date.now } = {}) {

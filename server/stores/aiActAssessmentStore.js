@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * AI Act Assessment Store — the per-automation / per-agent classification
  * (AI Act Art. 5 prohibited practices, Art. 50 transparency, Annex III
@@ -91,7 +91,7 @@ async function record(orgId, kind, targetId, { signals, answers, outcome, attest
     if (!orgId) throw new Error('organization_id is required');
     _kind(kind);
     if (targetId == null || String(targetId).trim() === '') throw new Error('target_id is required');
-    if (!OUTCOMES.has(outcome)) throw new Error(`invalid outcome "${outcome}"`);
+    if (typeof outcome !== 'string' || !OUTCOMES.has(outcome)) throw new Error(`invalid outcome "${outcome}"`);
     const attestedAt = new Date();
     let expires;
     if (expiresAt === undefined) expires = _defaultExpiry(attestedAt);
@@ -115,7 +115,7 @@ async function record(orgId, kind, targetId, { signals, answers, outcome, attest
         attestedBy || null,
         attestedAt,
         expires,
-        SOURCES.has(source) ? source : null,
+        typeof source === 'string' && SOURCES.has(source) ? source : null,
         evidence && typeof evidence === 'object' && !Array.isArray(evidence) ? JSON.stringify(evidence) : null,
     ]);
     return rows[0] || null;

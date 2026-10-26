@@ -105,7 +105,7 @@ function makeStageLookup() {
  * `managedParts` is the guard (stores/lib/managedParts.js); a test passes its
  * own instance, the app the module's default.
  *
- * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }} db
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }> }} db
  * @param {{ ready?: () => Promise<void>, managedParts?: { assertManagedWrite: Function }|null }} [opts]
  */
 function makeLifecycleStore(db, { ready = async () => {}, managedParts = null } = {}) {

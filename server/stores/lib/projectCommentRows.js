@@ -114,7 +114,7 @@ function assertChoice(value, allowed, code, label) {
 }
 
 /**
- * @typedef {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }} Queryable
+ * @typedef {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }> }} Queryable
  * @typedef {{ id: string, authorKind?: 'user'|'assistant', authorUserId?: string|null, agentId?: string|null,
  *             content: string, mentions?: string[], mentionsAi?: boolean, replyTo?: string|null,
  *             clientMsgId?: string|null, aiTrigger?: string|null }} NewComment  `content` sealed

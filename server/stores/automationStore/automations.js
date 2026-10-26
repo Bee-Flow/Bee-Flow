@@ -682,7 +682,7 @@ async function deleteAutomation(id, { managedWrite = null, managedParts = null }
  * is locked while the managed-write guard decides, so no filing into a stage
  * or deploy lands between the check and the DELETE. Answers whether a row went.
  *
- * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }} q
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }> }} q
  * @param {string} id
  * @param {{ managedWrite?: { deploymentId?: string }|null, managedParts?: any }} [opts]
  */

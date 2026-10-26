@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Who pays per call: the PAYG (metered) target and the plan currency of a
  * subscriber, behind one short-lived per-subscriber cache. The cache is this
@@ -23,6 +23,10 @@ function _isSelfHosted() {
 const _paygCache = new Map();
 const PAYG_CACHE_TTL_MS = 60_000;
 
+/**
+ * @param {string | null | undefined} organizationId
+ * @param {string | null | undefined} userId
+ */
 async function _resolvePaygTarget(organizationId, userId) {
     // Self-hosted installs have no PAYG plan and no Stripe wiring. Skip the
     // resolver entirely so the AI hot path is free of billing lookups when
@@ -76,6 +80,10 @@ async function _resolvePaygTarget(organizationId, userId) {
 // fixed-plan and consumer-default callers so the USD→currency conversion
 // is applied uniformly across all rows. Shares the PAYG cache map: keys
 // are prefixed with `cur:` to avoid collision.
+/**
+ * @param {string | null | undefined} organizationId
+ * @param {string | null | undefined} userId
+ */
 async function _resolvePlanCurrency(organizationId, userId) {
     if (_isSelfHosted()) return 'USD';
     if (!organizationId && !userId) return 'EUR';
@@ -95,6 +103,10 @@ async function _resolvePlanCurrency(organizationId, userId) {
     return currency;
 }
 
+/**
+ * @param {string | null | undefined} organizationId
+ * @param {string | null | undefined} userId
+ */
 function invalidatePaygCache(organizationId, userId) {
     if (organizationId) _paygCache.delete(`org:${organizationId}`);
     if (userId) _paygCache.delete(`user:${userId}`);

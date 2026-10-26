@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Reading the JSON columns of a chat message back into their shapes. Each
  * keeps only what the wire contract names and drops the rest, so a column that
@@ -7,9 +7,7 @@
 
 'use strict';
 
-/**
- * @param {unknown} v
- */
+/** @param {unknown} v */
 function parseMentions(v) {
     if (Array.isArray(v)) return v.filter((x) => typeof x === 'string');
     if (typeof v === 'string') {
@@ -35,7 +33,7 @@ function parseAiMeta(v) {
         ...(Array.isArray(meta.usedSources) ? { usedSources: parseRefs(meta.usedSources).slice(0, 20) } : {}),
         tier: str(meta.tier),
         requestedTier: str(meta.requestedTier),
-        redacted: Number.isFinite(meta.redacted) ? Math.max(0, Math.floor(meta.redacted)) : 0,
+        redacted: typeof meta.redacted === 'number' && Number.isFinite(meta.redacted) ? Math.max(0, Math.floor(meta.redacted)) : 0,
         categories: Array.isArray(meta.categories) ? meta.categories.map(str).filter(Boolean).slice(0, 20) : [],
     };
 }

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Release Notes Store — customer-facing changelog entries.
  *
@@ -74,9 +74,7 @@ async function _initDB() {
     }
 }
 
-/**
- * @param {DbRow.ReleaseNotes | null} r
- */
+/** @param {DbRow.ReleaseNotes | null} r */
 function rowToEntry(r) {
     if (!r) return null;
     return {
@@ -179,9 +177,7 @@ async function getUnreleased() {
     return rowToEntry(rows[0]);
 }
 
-/**
- * @param {string} id
- */
+/** @param {string} id */
 async function getById(id) {
     await initDB();
     const { rows } = await pool.query('SELECT * FROM release_notes WHERE id = $1', [id]);
@@ -222,7 +218,7 @@ const ENTRY_COLUMNS = {
     title: 'title',
     lead: 'lead',
     items: { col: 'items', cast: 'jsonb', transform: /** @param {unknown} v */ (v) => JSON.stringify(v) },
-    version: { col: 'version', transform: /** @param {string | null} v */ (v) => v || null },
+    version: { col: 'version', transform: /** @param {unknown} v */ (v) => v || null },
 };
 
 /**
@@ -275,13 +271,11 @@ async function unpublishEntry(id) {
     return rowToEntry(rows[0]);
 }
 
-/**
- * @param {string} id
- */
+/** @param {string} id */
 async function deleteEntry(id) {
     await initDB();
     const { rowCount } = await pool.query('DELETE FROM release_notes WHERE id = $1', [id]);
-    return rowCount > 0;
+    return (rowCount ?? 0) > 0;
 }
 
 module.exports = {

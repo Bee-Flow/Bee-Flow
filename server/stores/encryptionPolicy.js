@@ -135,6 +135,7 @@ const _cache = new Map(); // orgKey -> { at, policy }
 const CACHE_TTL_MS = 30_000;
 const CACHE_MAX = 500;
 
+/** @param {string} key */
 function _cacheGet(key) {
     const hit = _cache.get(key);
     if (!hit) return null;
@@ -142,6 +143,7 @@ function _cacheGet(key) {
     return hit.policy;
 }
 
+/** @param {string} key */
 function _cacheSet(key, policy) {
     if (_cache.size >= CACHE_MAX) {
         // Cheap eviction: drop the oldest inserted entry.
@@ -151,6 +153,7 @@ function _cacheSet(key, policy) {
     _cache.set(key, { at: Date.now(), policy });
 }
 
+/** @param {string | null | undefined} orgId */
 function invalidatePolicyCache(orgId) {
     if (orgId === undefined) _cache.clear();
     else _cache.delete(String(orgId || ''));
@@ -201,7 +204,7 @@ const DISABLED_POLICY = Object.freeze(policyFromRow(null));
  * policy, which means "write plaintext". It never throws — an encryption
  * policy lookup must not be able to take down a chat request.
  *
- * @param {string|null} orgId
+ * @param {string | null | undefined} orgId
  * @returns {Promise<{ tier: string, enabled: boolean, scope: Record<string, boolean> }>}
  */
 async function resolvePolicy(orgId) {

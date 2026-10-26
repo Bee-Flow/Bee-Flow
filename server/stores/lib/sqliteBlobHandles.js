@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -33,12 +33,15 @@ function createHandleLoader({ handles, maybeEvict, dbKey, workDir, storage, runQ
         workDirReady = true;
     }
 
+    /** @param {string} id */
     function localPathFor(id) {
         return path.join(workDir, `${id}.db`);
     }
 
     /**
      * @param {string} localPath
+     * @param {string} ownerId
+     * @param {string} id
      */
     async function downloadIfExists(ownerId, id, localPath) {
         if (!storage.isAvailable()) return false;
@@ -54,6 +57,10 @@ function createHandleLoader({ handles, maybeEvict, dbKey, workDir, storage, runQ
         }
     }
 
+    /**
+     * @param {string} ownerId
+     * @param {string} id
+     */
     async function getHandle(ownerId, id) {
         await ensureWorkDir();
         const existing = handles.get(id);
@@ -89,6 +96,10 @@ function createHandleLoader({ handles, maybeEvict, dbKey, workDir, storage, runQ
         }
     }
 
+    /**
+     * @param {string} ownerId
+     * @param {string} id
+     */
     async function openCold(ownerId, id) {
         // Optional per-entity gate, checked ONCE per handle lifetime (a refused
         // entity never gets a handle, so there is nothing to cache). The studio

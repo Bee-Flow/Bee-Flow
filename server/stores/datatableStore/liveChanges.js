@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 /**
@@ -90,7 +90,7 @@ function notifyDatatableChanged(datatableId, { delayMs = LIVE_DEBOUNCE_MS, arm =
     const timer = setTimeout(() => {
         _liveTimers.delete(datatableId);
         // Tests inject arm / reSnapshot; they replace the registered consumers.
-        const injected = [arm, reSnapshot].filter(Boolean).map(listener => ({ listener, label: 'injected' }));
+        const injected = [arm, reSnapshot].filter((fn) => typeof fn === 'function').map(listener => ({ listener, label: 'injected' }));
         const targets = injected.length ? injected : _listeners;
         if (!targets.length && !_warnedNoListener) {
             _warnedNoListener = true;

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * The comment-level half of the project comment store (../projectCommentStore.js):
@@ -188,7 +188,7 @@ function makeCommentReads(db, ready, { threadPage }) {
      */
     async function pageComments(threadId, { beforeSeq = null } = {}) {
         await ready();
-        const before = Number.isInteger(beforeSeq) && beforeSeq > 0 ? beforeSeq : null;
+        const before = typeof beforeSeq === 'number' && Number.isInteger(beforeSeq) && beforeSeq > 0 ? beforeSeq : null;
         const r = await db.query(
             `SELECT c.*, COUNT(*) OVER () AS matching
                FROM project_comments c

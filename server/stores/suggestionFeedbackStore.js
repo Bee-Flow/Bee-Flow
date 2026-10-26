@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Suggestion Feedback Store — records what the user did with a Automations
  * "Find repeating work" suggestion so the next scan can suppress or re-rank it.
@@ -93,13 +93,9 @@ const clip = (v, max) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 
 // numbers, dates, ids) and the title loses any address, link or host. Pure
 // functions, no I/O.
 const lazyTemplating = () => require('../automation/patterns/templating');
-/**
- * @param {unknown} v
- */
+/** @param {unknown} v */
 const safeTemplate = (v) => clip(typeof v === 'string' ? lazyTemplating().maskText(v) : null, 500);
-/**
- * @param {unknown} v
- */
+/** @param {unknown} v */
 const safeTitle = (v) => clip(typeof v === 'string' ? lazyTemplating().maskContacts(v, { words: true }) : null, 200);
 
 /**
@@ -125,9 +121,7 @@ function toStoredSuggestion(suggestion) {
     return Object.keys(kept).length ? kept : null;
 }
 
-/**
- * @param {import('pg').QueryResultRow | null} r
- */
+/** @param {import('pg').QueryResultRow | null} r */
 function mapRow(r) {
     if (!r) return null;
     return {
@@ -148,7 +142,7 @@ function mapRow(r) {
 }
 
 /**
- * @param {{ query: (sql: string, params?: any[]) => Promise<{rows: any[], rowCount?: number}> }} db
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{rows: any[], rowCount?: number | null}> }} db
  * @param {{ ready?: () => Promise<unknown> }} [opts]
  */
 function makeSuggestionFeedbackStore(db, { ready = async () => {} } = {}) {
@@ -191,7 +185,7 @@ function makeSuggestionFeedbackStore(db, { ready = async () => {} } = {}) {
 
         let expiresExpr = 'NULL';
         if (EXPIRING_ACTIONS.includes(action)) {
-            const ttl = Number.isFinite(ttlDays) && ttlDays > 0 ? ttlDays : DEFAULT_TTL_DAYS;
+            const ttl = typeof ttlDays === 'number' && Number.isFinite(ttlDays) && ttlDays > 0 ? ttlDays : DEFAULT_TTL_DAYS;
             params.push(String(ttl));
             expiresExpr = `NOW() + ($${params.length} || ' days')::interval`;
         }
@@ -262,9 +256,7 @@ function makeSuggestionFeedbackStore(db, { ready = async () => {} } = {}) {
     }
 
     /** Art. 17: every feedback row of this user. */
-    /**
-     * @param {string} userId
-     */
+    /** @param {string} userId */
     async function purgeForUser(userId) {
         if (!userId) return 0;
         const res = await q(`DELETE FROM automation_suggestion_feedback WHERE user_id = $1`, [String(userId)]);

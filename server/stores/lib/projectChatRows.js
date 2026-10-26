@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * The vocabulary and row shapes of the project chat store
@@ -26,9 +26,7 @@ class ProjectChatStoreError extends Error {
     }
 }
 
-/**
- * @param {string | number | Date} v
- */
+/** @param {string | number | Date} v */
 const toIso = (v) => (v ? new Date(v).toISOString() : null);
 /** @param {unknown} v */
 const toInt = (v) => (v === null || v === undefined ? 0 : Number(v));
@@ -88,11 +86,9 @@ function rowToMessage(r) {
     };
 }
 
-/**
- * @param {number | undefined} limit
- */
+/** @param {number | undefined} limit */
 const clampLimit = (limit) => {
-    const n = Number.isInteger(limit) ? limit : DEFAULT_PAGE;
+    const n = typeof limit === 'number' && Number.isInteger(limit) ? limit : DEFAULT_PAGE;
     return Math.min(Math.max(n, 1), MAX_PAGE);
 };
 

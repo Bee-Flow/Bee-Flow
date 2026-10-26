@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Azure Service Usage Store — tracks API calls to Azure services
  *
@@ -97,6 +97,7 @@ async function logAzureServiceUsage(entry) {
 
 /**
  * @param {number} [startIdx]
+ * @param {Record<string, unknown> | null | undefined} filters
  */
 function buildFilters(filters, startIdx = 1) {
     /** @type {string[]} */

@@ -1,10 +1,11 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 // Split from documentSharing so stores/user/groups can revoke shares without
 // pulling in the sharing crypto (which reaches back into auth/ and userStore).
 const { getAll, run } = require('../../db');
 
+/** @param {string} groupId */
 async function revokeGroupShares(groupId) {
     // Stores are initialized independently; only touch installed sharing columns.
     const tables = await getAll(`SELECT table_name FROM information_schema.columns

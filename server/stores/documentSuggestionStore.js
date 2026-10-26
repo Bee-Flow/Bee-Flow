@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Suggestions on a document: changes the AI (or a person) PROPOSES and a human
  * accepts or rejects one by one. One row per suggestion (one hunk of a batch).
@@ -94,7 +94,7 @@ const typeOf = (targetType, targetId) => `document_suggestion:${targetId}`;
 
 /**
  * @typedef {import('pg').QueryResultRow} SuggestionRow
- * @typedef {(sql: string, params?: unknown[]) => Promise<{ rows: SuggestionRow[], rowCount?: number }>} SuggestionQuery
+ * @typedef {(sql: string, params?: unknown[]) => Promise<{ rows: SuggestionRow[], rowCount?: number | null }>} SuggestionQuery
  * @typedef {{ type: string, id: string, userId?: string, organizationId?: string|null, projectId?: string|null,
  *   visibility?: string, sharingAudience?: string }} SuggestionResource
  */
@@ -191,7 +191,7 @@ function makeDocumentSuggestionStore(db, { ready = async () => {}, crypto: crypt
     /** @param {string} targetType @param {string} targetId @param {{ status?: string|string[] }} [opts] */
     async function list(targetType, targetId, { status } = {}) {
         await ready();
-        const statuses = status ? [].concat(status) : null;
+        const statuses = status ? (Array.isArray(status) ? status : [status]) : null;
         const { rows } = await db.query(
             `SELECT * FROM document_suggestions WHERE target_type = $1 AND target_id = $2
              ${statuses ? 'AND status = ANY($3)' : ''} ORDER BY created_at, position, id`,
@@ -242,7 +242,7 @@ function makeDocumentSuggestionStore(db, { ready = async () => {}, crypto: crypt
     async function setStatus(ids, status, { resolvedBy = null, appliedVersionId = null, from = ['open'] } = {}) {
         await ready();
         if (!STATUSES.includes(status) || status === 'open') throw new DocumentSuggestionError('bad_status', 'Unknown status');
-        const list = [...new Set([].concat(ids || []).map(String))];
+        const list = [...new Set((Array.isArray(ids) ? ids : ids ? [ids] : []).map(String))];
         if (list.length === 0) return [];
         const { rows } = await db.query(
             `UPDATE document_suggestions SET status = $2, resolved_by = $3, resolved_at = NOW(), applied_version_id = $4

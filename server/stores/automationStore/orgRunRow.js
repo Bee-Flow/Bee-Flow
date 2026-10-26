@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The organisation-wide run row, split out of runs.js (its doc comment below is
  * the contract). runs.js maps the SQL row first (rowToRunWithAutomation) and
@@ -44,6 +44,7 @@
  * than in the glance. If a later stage wants the tighter reading, the change
  * is to drop these two fields from THIS list and leave the class behind; the
  * run itself stays reachable by its owner either way.
+ * @param {OrgRunSource} full
  * @param {string | null} [viewerUserId]
  */
 function projectOrgRun(full, viewerUserId = null) {
@@ -82,3 +83,5 @@ function projectOrgRun(full, viewerUserId = null) {
 }
 
 module.exports = { projectOrgRun };
+
+/** @typedef {{ connectionsMode?: string | null, startedByUserId?: string | null, [key: string]: unknown }} OrgRunSource a run row with its automation (runs.js rowToRunWithAutomation) */
