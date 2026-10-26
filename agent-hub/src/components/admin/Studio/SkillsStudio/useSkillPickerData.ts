@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { API_BASE } from '../../../../utils/helpers';
+import { useCallback, useMemo } from 'react';
+import { useSkillPickerListsQuery } from '../../../../api/queries/adminConfigReads';
 import { isAgentCallable } from './skillModel';
 import type { OrgGroup } from '../../../shared/VisibilityCapsule.types';
 import type { CallableAutomation } from './skillModel.types';
-import { request, RefusedError } from '../../../../api/mutate';
 
 /** An automation row as the picker reads it. */
 export interface PickerAutomation extends CallableAutomation {
@@ -23,14 +22,6 @@ export interface PickerData {
     loaded: boolean;
     reload?: () => void;
 }
-
-interface ListBody {
-    automations?: unknown[];
-    knowledgeBases?: unknown[];
-    datatables?: unknown[];
-}
-
-interface ReadResult<T> { rows: T[]; ok: boolean }
 
 export interface ListStatus {
     loaded?: boolean;
@@ -68,25 +59,6 @@ export interface ListStatus {
  * NOT offered — failing closed here costs one entry in a picker; failing
  * open costs a promise the runtime cannot keep.
  */
-const UNREAD = Object.freeze({ rows: [], ok: false });
-
-async function readList<T>(path: string, pick: (body: ListBody | null) => unknown): Promise<ReadResult<T>> {
-    try {
-        let res: Response;
-        try {
-            res = await request(`${API_BASE}${path}`);
-        } catch (err) {
-            if (!(err instanceof RefusedError)) throw err;
-            return UNREAD;
-        }
-        const body = await res.json();
-        const rows = pick(body);
-        return Array.isArray(rows) ? { rows, ok: true } : UNREAD;
-    } catch {
-        return UNREAD;
-    }
-}
-
 /** Before the first answer: four empty lists and no claim about any of them. */
 const EMPTY_PICKER_DATA: PickerData = Object.freeze({
     orgGroups: [], automations: [], knowledgeBases: [], datatables: [],
@@ -94,46 +66,34 @@ const EMPTY_PICKER_DATA: PickerData = Object.freeze({
 });
 
 export default function useSkillPickerData(enabled = true): PickerData {
-    const [data, setData] = useState<PickerData>(EMPTY_PICKER_DATA);
-    const [attempt, setAttempt] = useState(0);
-
+    const query = useSkillPickerListsQuery<OrgGroup, PickerAutomation, PickerKnowledgeBase, PickerDatatable>(enabled);
+    const { refetch } = query;
     /** Ask all four again. Safe to call while a read is in flight. */
-    const reload = useCallback(() => setAttempt(n => n + 1), []);
+    const reload = useCallback(() => { refetch(); }, [refetch]);
 
-    useEffect(() => {
-        if (!enabled) return undefined;
-        let alive = true;
-        (async () => {
-            const [groups, automations, kbs, tables] = await Promise.all([
-                readList<OrgGroup>('/auth/groups', (b) => b),
-                readList<PickerAutomation>('/api/automation', (b) => b?.automations),
-                readList<PickerKnowledgeBase>('/api/kb?context=agent', (b) => (Array.isArray(b) ? b : b?.knowledgeBases)),
-                readList<PickerDatatable>('/api/datatables', (b) => b?.datatables),
-            ]);
-            if (!alive) return;
-            setData({
-                orgGroups: groups.rows,
-                automations: automations.rows.filter(isAgentCallable),
-                knowledgeBases: kbs.rows,
-                datatables: tables.rows,
-                // The ids a consumer names on screen. `loaded` stays false
-                // while `enabled` is false — nothing was asked, so nothing is
-                // known, and that is not the same as an empty org either.
-                unavailable: ([
-                    ['groups', groups], ['automations', automations],
-                    ['kbs', kbs], ['tables', tables],
-                ] as const).filter(([, read]) => !read.ok).map(([id]) => id),
-                loaded: true,
-                reload,
-            });
-        })();
-        return () => { alive = false; };
-    }, [enabled, attempt, reload]);
-
+    const lists = query.data;
     // `reload` is on the object from the FIRST render too, so Retry is offered
     // over the very first failure as well. Memoised: consumers key `useMemo`
     // and prop identity on this object.
-    return useMemo(() => (data.reload ? data : { ...data, reload }), [data, reload]);
+    return useMemo(() => {
+        if (!lists) return { ...EMPTY_PICKER_DATA, reload };
+        const { groups, automations, kbs, tables } = lists;
+        return {
+            orgGroups: groups.rows,
+            automations: automations.rows.filter(isAgentCallable),
+            knowledgeBases: kbs.rows,
+            datatables: tables.rows,
+            // The ids a consumer names on screen. `loaded` stays false while
+            // `enabled` is false - nothing was asked, so nothing is known, and
+            // that is not the same as an empty org either.
+            unavailable: ([
+                ['groups', groups], ['automations', automations],
+                ['kbs', kbs], ['tables', tables],
+            ] as const).filter(([, read]) => !read.ok).map(([id]) => id),
+            loaded: true,
+            reload,
+        };
+    }, [lists, reload]);
 }
 
 /**

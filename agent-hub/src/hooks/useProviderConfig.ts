@@ -22,8 +22,10 @@
 // optimistically instead of refetching.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { aiConfigKey, useAiConfigQuery, type AiConfigRead } from '../api/queries/aiConfigRead';
 import { API_BASE } from '../utils/helpers';
-import { mutate, ApiError, request, RefusedError } from '../api/mutate';
+import { mutate, ApiError } from '../api/mutate';
 
 /** The raw GET /ai/config body: per-provider has-flags and plain settings.
  *  Each card reads its own keys, so the shape stays open. */
@@ -66,7 +68,9 @@ export interface UseProviderConfigReturn {
 export default function useProviderConfig(
     { onMessage, onLoaded }: UseProviderConfigOptions = {},
 ): UseProviderConfigReturn {
-    const [config, setConfig] = useState<ProviderConfig | null>(null);
+    const queryClient = useQueryClient();
+    const query = useAiConfigQuery<ProviderConfig>();
+    const config = query.data?.config ?? null;
     const [saving, setSaving] = useState(false);
     // Keep the latest callbacks in refs so callers can pass inline functions
     // without retriggering the initial fetch.
@@ -79,33 +83,30 @@ export default function useProviderConfig(
         if (text) onMessageRef.current?.({ type, text });
     }, []);
 
-    const refresh = useCallback(async () => {
-        try {
-            const res = await request(`${API_BASE}/ai/config`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (res) {
-                const data: ProviderConfig = await res.json();
-                setConfig(data);
-                onLoadedRef.current?.(data);
-                return data;
-            }
-        } catch (e) {
-            console.error('Failed to fetch AI config:', e);
-        }
-        return null;
-    }, []);
-
+    // The form is hydrated from every real read (a refresh, the first load),
+    // never from a local patch: those keep the read number they came from.
+    const answer = query.data;
+    const hydratedRead = useRef<number | null>(null);
     useEffect(() => {
-        refresh();
-    }, [refresh]);
+        if (!answer || answer.read < 0 || answer.read === hydratedRead.current) return;
+        hydratedRead.current = answer.read;
+        if (answer.config) onLoadedRef.current?.(answer.config);
+    }, [answer]);
+
+    const { refetch } = query;
+    const refresh = useCallback(async () => {
+        const result = await refetch();
+        return result.isError ? null : result.data?.config ?? null;
+    }, [refetch]);
 
     // Merge a partial update into the cached config (e.g. flip a has-flag
     // after a successful save/delete without a refetch).
     const patchConfig = useCallback((partial: ProviderConfig) => {
-        setConfig(prev => ({ ...(prev || {}), ...partial }));
-    }, []);
+        queryClient.setQueryData<AiConfigRead<ProviderConfig>>(aiConfigKey, (prev) => ({
+            read: prev?.read ?? -1,
+            config: { ...(prev?.config || {}), ...partial },
+        }));
+    }, [queryClient]);
 
     const save = useCallback(async (body: unknown, { success, error }: MutationMessages = {}) => {
         setSaving(true);

@@ -54,23 +54,8 @@
     }
   },
   "src/AgentHub/useAgentHubData.ts": {
-    "max-depth": {
-      "count": 1
-    },
-    "max-lines": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
-    },
-    "max-statements": {
-      "count": 2
-    },
-    "react-hooks/exhaustive-deps": {
-      "count": 2
-    },
-    "react-hooks/immutability": {
-      "count": 9
     }
   },
   "src/AgentHub/useConversationMeta.ts": {
@@ -80,9 +65,6 @@
   },
   "src/AgentHub/useDirectChatEvents.ts": {
     "max-depth": {
-      "count": 1
-    },
-    "max-lines-per-function": {
       "count": 1
     },
     "max-statements": {
@@ -2492,16 +2474,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/Solutions/pipeline/StageHistory.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
-  "src/components/admin/Studio/Solutions/pipeline/StageStatusParts.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/components/admin/Studio/Solutions/pipeline/pipelineModel.ts": {
     "complexity": {
       "count": 1
@@ -2608,11 +2580,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/SupportStudio/TemplatesTab.tsx": {
-    "react-hooks/set-state-in-effect": {
-      "count": 2
-    }
-  },
   "src/components/admin/Studio/SupportStudio/TicketDetail.tsx": {
     "complexity": {
       "count": 2
@@ -2713,7 +2680,7 @@
   },
   "src/components/admin/ai-config/WebSearchInferenceConfig.tsx": {
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/admin/ai-config/chatModelTiers/ChatTiersSection.tsx": {
@@ -2775,11 +2742,6 @@
   },
   "src/components/admin/compliance/data/useComplianceCore.ts": {
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/admin/compliance/data/useComplianceCounts.ts": {
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -3266,11 +3228,6 @@
       "count": 1
     }
   },
-  "src/components/admin/languages/useLanguages.ts": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/components/admin/modules/MarketplaceModuleCard.tsx": {
     "complexity": {
       "count": 1
@@ -3562,11 +3519,6 @@
       "count": 1
     },
     "max-statements": {
-      "count": 1
-    }
-  },
-  "src/components/admin/org/useOrgInvitations.ts": {
-    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -4573,11 +4525,6 @@
       "count": 1
     },
     "react-hooks/immutability": {
-      "count": 1
-    }
-  },
-  "src/components/agents/AgentWizard/builderSplit/useAgentSchedules.ts": {
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -7981,14 +7928,6 @@
       "count": 1
     }
   },
-  "src/components/shell/sidebar/useApprovalsNav.ts": {
-    "complexity": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
-    }
-  },
   "src/components/shell/sidebar/useScrolledAwayNav.ts": {
     "react-hooks/set-state-in-effect": {
       "count": 1
@@ -8091,16 +8030,6 @@
   "src/components/support/SupportDrawer.tsx": {
     "max-lines-per-function": {
       "count": 1
-    }
-  },
-  "src/components/support/tabs/SupportCannedResponsesTab.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/support/useSupportSelectedThread.ts": {
-    "react-hooks/set-state-in-effect": {
-      "count": 2
     }
   },
   "src/components/webpages/SideWebpagePanel.tsx": {
@@ -8608,14 +8537,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "no-restricted-syntax": {
-      "count": 1
-    }
-  },
-  "src/marketing/PricingPage.tsx": {
-    "no-restricted-syntax": {
-      "count": 1
     }
   },
   "src/marketing/ProductWebsite.tsx": {
@@ -8655,16 +8576,6 @@
   },
   "src/marketing/components/FramedMedia.tsx": {
     "complexity": {
-      "count": 1
-    }
-  },
-  "src/marketing/components/GithubStarButton.tsx": {
-    "no-restricted-syntax": {
-      "count": 1
-    }
-  },
-  "src/marketing/components/LanguageSwitcher.tsx": {
-    "no-restricted-syntax": {
       "count": 1
     }
   },
@@ -8739,9 +8650,6 @@
   "src/marketing/sections/GitHubStats.tsx": {
     "complexity": {
       "count": 1
-    },
-    "no-restricted-syntax": {
-      "count": 1
     }
   },
   "src/marketing/sections/HeaderView.tsx": {
@@ -8763,11 +8671,6 @@
       "count": 1
     },
     "max-statements": {
-      "count": 1
-    }
-  },
-  "src/marketing/sections/LatestPosts.tsx": {
-    "no-restricted-syntax": {
       "count": 1
     }
   },
@@ -8795,9 +8698,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "no-restricted-syntax": {
-      "count": 1
     }
   },
   "src/marketing/sections/ReleaseNotes.tsx": {
@@ -8805,9 +8705,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    },
-    "no-restricted-syntax": {
       "count": 1
     }
   },
@@ -8860,11 +8757,6 @@
   "src/marketing/sections/formBlockApi.ts": {
     "no-restricted-syntax": {
       "count": 2
-    }
-  },
-  "src/marketing/sections/storyCards.ts": {
-    "no-restricted-syntax": {
-      "count": 1
     }
   },
   "src/pages/AdminDashboard.tsx": {
@@ -9776,9 +9668,6 @@
     },
     "max-lines-per-function": {
       "count": 2
-    },
-    "react-hooks/set-state-in-effect": {
-      "count": 1
     }
   },
   "src/pages/settings/OrgMcpConnections.tsx": {
@@ -9788,12 +9677,9 @@
   },
   "src/pages/settings/OrgTerminationsPanel.tsx": {
     "complexity": {
-      "count": 3
+      "count": 2
     },
     "max-lines-per-function": {
-      "count": 1
-    },
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   },
@@ -9801,11 +9687,6 @@
     "complexity": {
       "count": 1
     },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/pages/settings/PolicyAcknowledgements.tsx": {
     "max-lines-per-function": {
       "count": 1
     }

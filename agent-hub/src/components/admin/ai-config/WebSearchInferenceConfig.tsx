@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useWebSearchInferenceQuery } from '../../../api/queries/adminConfigReads';
+import useDraftOverServer from '../../../hooks/useDraftOverServer';
 import { API_BASE } from '../../../utils/helpers';
 import { getModelMeta, getModelDisplayName, type ModelEntry } from '../../../api/modelMeta';
 import SearchableModelSelect from '../shared/SearchableModelSelect';
 import { useTranslation, type TranslateParams } from '../../../hooks/useTranslation';
-import { mutate, ApiError, request, RefusedError } from '../../../api/mutate';
+import { mutate, ApiError } from '../../../api/mutate';
 
 const getRerankMethods = (t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) => [
     {
@@ -45,6 +47,17 @@ interface WebSearchInferenceConfigProps {
 }
 
 type EmbedSummary = { providerId: string | null; providerName: string | null; modelId: string | null };
+type InferenceConfig = {
+    embed: { providerId: string; modelId: string };
+    rerank: { method: string; providerId: string; modelId: string };
+    cleanup: { providerId: string; modelId: string };
+};
+const DEFAULT_INFERENCE_CONFIG: InferenceConfig = {
+    embed: { providerId: '', modelId: '' },
+    rerank: { method: 'cosine', providerId: '', modelId: '' },
+    cleanup: { providerId: '', modelId: '' },
+};
+const NO_EMBED_SUMMARY: EmbedSummary = { providerId: null, providerName: null, modelId: null };
 
 const isChatModel = (m: InferenceModel): boolean => {
     const meta = getModelMeta(m.id);
@@ -75,35 +88,16 @@ function inheritedEmbedName(summary: EmbedSummary): string | null {
 const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }: WebSearchInferenceConfigProps) => {
     const { t } = useTranslation();
     const RERANK_METHODS = getRerankMethods(t);
-    const [config, setConfig] = useState({
-        embed: { providerId: '', modelId: '' },
-        rerank: { method: 'cosine', providerId: '', modelId: '' },
-        cleanup: { providerId: '', modelId: '' },
-    });
-    const [embedSummary, setEmbedSummary] = useState<{ providerId: string | null; providerName: string | null; modelId: string | null }>({ providerId: null, providerName: null, modelId: null });
-    const [loading, setLoading] = useState(true);
+    const inference = useWebSearchInferenceQuery<InferenceConfig, EmbedSummary>();
+    const stored = inference.data;
+    const serverConfig = useMemo(() => stored?.config ?? DEFAULT_INFERENCE_CONFIG, [stored]);
+    const { value: config, patch, discard } = useDraftOverServer(serverConfig);
+    const setConfig: React.Dispatch<React.SetStateAction<InferenceConfig>> = (next) => patch(typeof next === 'function' ? next(config) : next);
+    const embedSummary: EmbedSummary = stored?.embedSummary ?? NO_EMBED_SUMMARY;
+    const loading = inference.isPending;
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<{ type: string; text: string; } | null>(null);
-
-    const fetchAll = async () => {
-        try {
-            const res = await request(`${API_BASE}/ai/config/web-search-inference`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (res) {
-                const data = await res.json();
-                if (data.config) setConfig(data.config);
-                if (data.embedSummary) setEmbedSummary(data.embedSummary);
-            }
-        } catch (e) {
-            console.error('Failed to load web-search inference config:', e);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => { fetchAll(); }, []);
+    const { refetch: fetchAll } = inference;
 
     const handleSave = async () => {
         setSaving(true);
@@ -118,7 +112,7 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }: WebSearch
             });
             if (res) {
                 setMessage({ type: 'success', text: t('admin_ai_config.limits_saved', 'Saved') });
-                fetchAll();
+                fetchAll().then(discard);
             } else {
                 setMessage({ type: 'error', text: t('admin_ai_config.limits_save_failed', 'Failed to save') });
             }

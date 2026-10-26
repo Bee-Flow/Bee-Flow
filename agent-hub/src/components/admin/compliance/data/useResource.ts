@@ -15,8 +15,13 @@
  *
  * `onError` receives the error and may return a fallback value to store
  * (today's hooks store `{ error }` or `[]` — each register keeps its habit).
+ *
+ * It is a query underneath (a key of its own per mounted caller, so two callers
+ * with different `parse` never share a parsed answer): the section's first
+ * open reads it, `refresh()` reads it again, and `setData` edits the cached copy.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useId } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchJson } from '../../../../api/complianceApi';
 
 interface UseResourceOptions<T> {
@@ -26,40 +31,40 @@ interface UseResourceOptions<T> {
     deps?: readonly unknown[];
 }
 
+/** What one read settled on: the value to show and whether the read failed. */
+interface Read<T> { value: T | null; failed: boolean }
+
 export default function useResource<T = unknown>(url: string, { enabled = true, parse = (b) => b as T, onError = null, deps = [] }: UseResourceOptions<T> = {}) {
-    const [data, setData] = useState<T | null>(null);
-    const [failed, setFailed] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const requested = useRef(false);
-    const alive = useRef(true);
-    useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+    const queryClient = useQueryClient();
+    const callerId = useId();
+    const key = ['compliance', 'resource', callerId, url, ...deps] as const;
+    const query = useQuery<Read<T>>({
+        queryKey: key,
+        enabled: enabled && !!url,
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => {
+            try {
+                return { value: parse(await fetchJson(url)), failed: false };
+            } catch (e) {
+                const fallback = onError ? onError(e) : undefined;
+                // A fallback is stored; without one the previous value stays (null before the first read).
+                return { value: fallback === undefined ? (queryClient.getQueryData<Read<T>>(key)?.value ?? null) : fallback, failed: true };
+            }
+        },
+    });
+    const { refetch } = query;
 
     const refresh = useCallback(async () => {
         if (!url) return null;
-        setLoading(true);
-        try {
-            const body = await fetchJson(url);
-            const value = parse(body);
-            if (alive.current) { setData(value); setFailed(false); }
-            return value;
-        } catch (e) {
-            const fallback = onError ? onError(e) : undefined;
-            if (alive.current) {
-                setFailed(true);
-                if (fallback !== undefined) setData(fallback);
-            }
-            return fallback === undefined ? null : fallback;
-        } finally {
-            if (alive.current) setLoading(false);
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `deps` is the caller's own list; the inline parse/onError are covered by it
-    }, [url, ...deps]);
+        const result = await refetch();
+        return result.data?.value ?? null;
+    }, [url, refetch]);
 
-    useEffect(() => {
-        if (!enabled || requested.current || !url) return;
-        requested.current = true;
-        refresh();
-    }, [enabled, url, refresh]);
+    const setData = useCallback((next: T | null) => {
+        queryClient.setQueryData<Read<T>>(key, (prev) => ({ value: next, failed: prev?.failed ?? false }));
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- `key` is rebuilt from url, deps and the id each render
+    }, [queryClient, url, callerId, ...deps]);
 
-    return { data, setData, refresh, loading, failed };
+    return { data: query.data?.value ?? null, setData, refresh, loading: query.isFetching, failed: query.data?.failed ?? false };
 }

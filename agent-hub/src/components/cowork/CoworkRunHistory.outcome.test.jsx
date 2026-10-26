@@ -1,7 +1,8 @@
-import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { act, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import CoworkRunHistory from './CoworkRunHistory';
+import { renderWithClient } from '../../test/render';
 
 /**
  * CW-13 — the line a closed row says about what came OUT of the run, and the
@@ -41,7 +42,7 @@ function deferred() {
 
 async function renderHistory(runs = [], total = null, props = {}) {
     api.listCoworkRuns.mockResolvedValue({ runs, total: total == null ? runs.length : total });
-    const utils = render(<CoworkRunHistory coworkId="w1" reloadKey={0} {...props} />);
+    const utils = renderWithClient(<CoworkRunHistory coworkId="w1" reloadKey={0} {...props} />);
     await waitFor(() => expect(screen.queryByText(/Loading history/)).not.toBeInTheDocument());
     return utils;
 }
@@ -190,13 +191,13 @@ describe('CoworkRunHistory — the card around it', () => {
     it('keeps the card, heading and all, while it is loading and when it is empty', async () => {
         const d = deferred();
         api.listCoworkRuns.mockReturnValue(d.promise);
-        render(<CoworkRunHistory coworkId="w1" reloadKey={0} />);
+        renderWithClient(<CoworkRunHistory coworkId="w1" reloadKey={0} />);
         expect(within(screen.getByTestId('cowork-history')).getByRole('heading', { level: 3 })).toBeInTheDocument();
 
         await act(async () => { d.resolve({ runs: [], total: 0 }); });
         const card = screen.getByTestId('cowork-history');
         expect(within(card).getByRole('heading', { level: 3 })).toBeInTheDocument();
-        expect(within(card).getByTestId('cowork-no-runs')).toBeInTheDocument();
+        expect(await within(card).findByTestId('cowork-no-runs')).toBeInTheDocument();
     });
 });
 

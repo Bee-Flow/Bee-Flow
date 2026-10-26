@@ -5,7 +5,8 @@
  * Run: cd agent-hub && npx vitest run src/marketing/sections/CustomerStories.test.tsx
  */
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
+import { renderWithClient } from '../../test/render';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, afterEach } from 'vitest';
 import CustomerStories from './CustomerStories';
@@ -26,7 +27,7 @@ afterEach(() => window.history.replaceState({}, '', '/'));
 
 describe('CustomerStories', () => {
     it('draws one linked card per story, with at most two figures', () => {
-        render(<CustomerStories data={data} />);
+        renderWithClient(<CustomerStories data={data} />);
         const link = screen.getByRole('link', { name: 'Customer a: Story a' });
         expect(link.getAttribute('href')).toBe('/a');
         expect(screen.getAllByRole('article')).toHaveLength(3);
@@ -34,7 +35,7 @@ describe('CustomerStories', () => {
     });
 
     it('filters by sector and keeps the filter an accessible pressed-state group', async () => {
-        render(<CustomerStories data={data} />);
+        renderWithClient(<CustomerStories data={data} />);
         const all = screen.getByRole('button', { name: 'All' });
         expect(all.getAttribute('aria-pressed')).toBe('true');
         await userEvent.click(screen.getByRole('button', { name: 'Public' }));
@@ -45,21 +46,21 @@ describe('CustomerStories', () => {
     });
 
     it('has no filter for one sector, or when switched off', () => {
-        const { unmount } = render(<CustomerStories data={{ ...data, items: [item('a', 'fin', 'Finance')] }} />);
+        const { unmount } = renderWithClient(<CustomerStories data={{ ...data, items: [item('a', 'fin', 'Finance')] }} />);
         expect(screen.queryByRole('button')).toBeNull();
         unmount();
-        render(<CustomerStories data={{ ...data, showFilter: false }} />);
+        renderWithClient(<CustomerStories data={{ ...data, showFilter: false }} />);
         expect(screen.queryByRole('button')).toBeNull();
     });
 
     it('renders nothing without stories on the published site, a scaffold in the editor', () => {
-        expect(render(<CustomerStories data={{ enabled: true, items: [] }} />).container.innerHTML).toBe('');
+        expect(renderWithClient(<CustomerStories data={{ enabled: true, items: [] }} />).container.innerHTML).toBe('');
         window.history.replaceState({}, '', '/?preview=1');
-        const { container } = render(<CustomerStories data={{ enabled: true, items: [] }} />);
+        const { container } = renderWithClient(<CustomerStories data={{ enabled: true, items: [] }} />);
         expect(container.querySelector('.story-empty')).not.toBeNull();
     });
 
     it('renders nothing when disabled', () => {
-        expect(render(<CustomerStories data={{ ...data, enabled: false }} />).container.innerHTML).toBe('');
+        expect(renderWithClient(<CustomerStories data={{ ...data, enabled: false }} />).container.innerHTML).toBe('');
     });
 });

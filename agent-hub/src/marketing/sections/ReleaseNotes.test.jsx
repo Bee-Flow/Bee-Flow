@@ -2,10 +2,11 @@
  * ReleaseNotes section — rendering and the fail-soft contract.
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import ReleaseNotes, { groupByKind, formatReleaseDate } from './ReleaseNotes';
+import { renderWithClient } from '../../test/render';
 
 const ENTRY = {
     id: 'e1',
@@ -80,7 +81,7 @@ describe('formatReleaseDate', () => {
 describe('ReleaseNotes', () => {
     it('renders a published entry with its version, headline and items', async () => {
         mockFetch({ entries: [ENTRY] });
-        render(<ReleaseNotes data={{ enabled: true, title: 'What\'s new' }} />);
+        renderWithClient(<ReleaseNotes data={{ enabled: true, title: 'What\'s new' }} />);
         await waitFor(() => expect(screen.getByText('Faster chat')).toBeInTheDocument());
         expect(screen.getByText('prod-2026.08.11-1')).toBeInTheDocument();
         expect(screen.getByText('Projects')).toBeInTheDocument();
@@ -89,33 +90,33 @@ describe('ReleaseNotes', () => {
 
     it('groups items under their kind headings', async () => {
         mockFetch({ entries: [ENTRY] });
-        render(<ReleaseNotes data={{ enabled: true, kindLabels: { feature: 'Nieuw', fix: 'Opgelost' } }} />);
+        renderWithClient(<ReleaseNotes data={{ enabled: true, kindLabels: { feature: 'Nieuw', fix: 'Opgelost' } }} />);
         await waitFor(() => expect(screen.getByText('Nieuw')).toBeInTheDocument());
         expect(screen.getByText('Opgelost')).toBeInTheDocument();
     });
 
     it('renders nothing when disabled', () => {
-        const { container } = render(<ReleaseNotes data={{ enabled: false }} />);
+        const { container } = renderWithClient(<ReleaseNotes data={{ enabled: false }} />);
         expect(container).toBeEmptyDOMElement();
     });
 
     it('FAIL-SOFT: renders nothing on the live site when nothing is published', async () => {
         mockFetch({ entries: [] });
-        const { container } = render(<ReleaseNotes data={{ enabled: true, title: 'What\'s new' }} />);
+        const { container } = renderWithClient(<ReleaseNotes data={{ enabled: true, title: 'What\'s new' }} />);
         await waitFor(() => expect(global.fetch).toHaveBeenCalled());
         expect(container).toBeEmptyDOMElement();
     });
 
     it('FAIL-SOFT: a failed fetch renders nothing rather than an error', async () => {
         mockFetch(null, { ok: false });
-        const { container } = render(<ReleaseNotes data={{ enabled: true }} />);
+        const { container } = renderWithClient(<ReleaseNotes data={{ enabled: true }} />);
         await waitFor(() => expect(global.fetch).toHaveBeenCalled());
         expect(container).toBeEmptyDOMElement();
     });
 
     it('a rejected fetch does not throw', async () => {
         global.fetch = vi.fn(() => Promise.reject(new Error('offline')));
-        const { container } = render(<ReleaseNotes data={{ enabled: true }} />);
+        const { container } = renderWithClient(<ReleaseNotes data={{ enabled: true }} />);
         await waitFor(() => expect(global.fetch).toHaveBeenCalled());
         expect(container).toBeEmptyDOMElement();
     });
@@ -123,7 +124,7 @@ describe('ReleaseNotes', () => {
     it('honours the limit — compact shows one release, not the archive', async () => {
         const second = { ...ENTRY, id: 'e2', version: 'prod-2026.08.01-1', title: 'Older release' };
         mockFetch({ entries: [ENTRY, second] });
-        render(<ReleaseNotes data={{ enabled: true, variant: 'compact', limit: 1 }} />);
+        renderWithClient(<ReleaseNotes data={{ enabled: true, variant: 'compact', limit: 1 }} />);
         await waitFor(() => expect(screen.getByText('Faster chat')).toBeInTheDocument());
         expect(screen.queryByText('Older release')).not.toBeInTheDocument();
     });
@@ -131,14 +132,14 @@ describe('ReleaseNotes', () => {
     it('full variant shows more than one release', async () => {
         const second = { ...ENTRY, id: 'e2', version: 'prod-2026.08.01-1', title: 'Older release' };
         mockFetch({ entries: [ENTRY, second] });
-        render(<ReleaseNotes data={{ enabled: true, variant: 'full' }} />);
+        renderWithClient(<ReleaseNotes data={{ enabled: true, variant: 'full' }} />);
         await waitFor(() => expect(screen.getByText('Faster chat')).toBeInTheDocument());
         expect(screen.getByText('Older release')).toBeInTheDocument();
     });
 
     it('reads from the public endpoint, which serves published entries only', async () => {
         mockFetch({ entries: [] });
-        render(<ReleaseNotes data={{ enabled: true }} />);
+        renderWithClient(<ReleaseNotes data={{ enabled: true }} />);
         await waitFor(() => expect(global.fetch).toHaveBeenCalled());
         expect(global.fetch.mock.calls[0][0]).toBe('/api/release-notes/public');
     });

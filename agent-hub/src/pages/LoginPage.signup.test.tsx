@@ -1,8 +1,9 @@
-import { render, screen, act, waitFor } from '@testing-library/react';
+import { screen, act, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { FormEvent } from 'react';
 import { ok, fail } from '@/test/http';
+import { renderWithClient } from '@/test/render';
 import LoginPage from './LoginPage';
 import type { SignupData } from './login/signupValidation';
 
@@ -88,7 +89,7 @@ afterEach(() => { vi.restoreAllMocks(); window.history.replaceState({}, '', '/')
 
 async function renderWizard() {
     const onLogin = vi.fn();
-    render(<LoginPage onLogin={onLogin} />);
+    renderWithClient(<LoginPage onLogin={onLogin} />);
     await screen.findByTestId('signup-wizard');
     return onLogin;
 }
@@ -254,7 +255,7 @@ describe('the OAuth popup inside an iframe', () => {
         reply('/auth/setup-status', { ...SETUP_STATUS, isGoogleConfigured: true });
         reply('/auth/user', { authenticated: true, user: { id: 'sso' } });
         const onLogin = vi.fn();
-        render(<Page onLogin={onLogin} />);
+        renderWithClient(<Page onLogin={onLogin} />);
         const btn = await screen.findByTestId('sso-google-button');
         vi.useFakeTimers({ toFake: ['setInterval', 'setTimeout', 'clearInterval'] });
         btn.click();

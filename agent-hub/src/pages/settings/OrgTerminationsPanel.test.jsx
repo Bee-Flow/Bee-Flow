@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -26,6 +26,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('../../utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 import OrgTerminationsPanel from './OrgTerminationsPanel';
+import { renderWithClient } from '../../test/render';
 import { authFetch } from '../../utils/helpers';
 
 const API = '/api/terminations/org';
@@ -76,7 +77,7 @@ const urlFor = (fragment) => urls().filter(u => u.includes(fragment));
 /** Mount and wait for the loading card to disappear. */
 async function mount(opts, props = {}) {
     serve(opts);
-    const view = render(<OrgTerminationsPanel {...props} />);
+    const view = renderWithClient(<OrgTerminationsPanel {...props} />);
     await waitFor(() => expect(screen.queryByText('Loading terminations…')).toBeNull());
     return view;
 }
@@ -109,7 +110,7 @@ beforeEach(() => { cleanup(); vi.clearAllMocks(); });
 describe('OrgTerminationsPanel — first paint and the four requests', () => {
     it('shows the header and the loading card until the first responses land', async () => {
         authFetch.mockImplementation(() => new Promise(() => {}));
-        render(<OrgTerminationsPanel />);
+        renderWithClient(<OrgTerminationsPanel />);
         expect(screen.getByRole('heading', { name: 'Terminations' })).toBeInTheDocument();
         expect(screen.getByText('Tasks that ended early — token limits, errors, or aborts')).toBeInTheDocument();
         expect(screen.getByText('Loading terminations…')).toBeInTheDocument();
@@ -158,11 +159,12 @@ describe('OrgTerminationsPanel — first paint and the four requests', () => {
         expect(urlFor('/summary')).toEqual([`${API}/summary?startDate=2026-01-01&endDate=undefined`]);
     });
 
-    it('re-fetches all four when the rangeParams OBJECT identity changes, even with identical values (wart)', async () => {
+    it('keys the read on the range VALUES: a new object with the same values reuses the answer, other values fetch again', async () => {
         serve();
-        const { rerender } = render(<OrgTerminationsPanel rangeParams={{ days: 7 }} />);
+        const { rerender } = renderWithClient(<OrgTerminationsPanel rangeParams={{ days: 7 }} />);
         await waitFor(() => expect(authFetch).toHaveBeenCalledTimes(4));
         rerender(<OrgTerminationsPanel rangeParams={{ days: 7 }} />);
+        rerender(<OrgTerminationsPanel rangeParams={{ days: 30 }} />);
         await waitFor(() => expect(authFetch).toHaveBeenCalledTimes(8));
     });
 

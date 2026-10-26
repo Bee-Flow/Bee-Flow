@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { freeEmailDomainsKey, useFreeEmailDomains, type FreeEmailDomains } from '../../../api/queries/orgAdminReads';
 import type { KeyboardEvent } from 'react';
 import { TranslateParams, useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE } from '../../../utils/helpers';
 import { Loader2, Plus, Trash2, AtSign, ChevronDown, ChevronRight, ShieldCheck } from 'lucide-react';
-import { request, mutate, errorBody, RefusedError } from '../../../api/mutate';
+import { mutate, errorBody, RefusedError } from '../../../api/mutate';
 
 interface DomainMessage {
     type: 'success' | 'error';
@@ -18,14 +20,20 @@ interface DomainMessage {
  * The built-in floor (gmail.com, …) is shown read-only and can never be removed;
  * admins add extra domains, persisted via PUT /auth/free-email-domains.
  */
+/** The error note of a failed first read, or none. */
+function loadFailedNote(failed: boolean, text: string): DomainMessage | null {
+    return failed ? { type: 'error', text } : null;
+}
+
 export default function FreeEmailDomainsPanel() {
     const { t } = useTranslation();
-    const [builtin, setBuiltin] = useState<string[]>([]);
-    const [extra, setExtra] = useState<string[]>([]);
+    const queryClient = useQueryClient();
+    const { builtin, extra, loading, loadFailed } = useFreeEmailDomains();
     const [newDomain, setNewDomain] = useState('');
-    const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [message, setMessage] = useState<DomainMessage | null>(null);
+    const [actionMessage, setMessage] = useState<DomainMessage | null>(null);
+    // A refused or failed read shows its note for as long as the read stays failed.
+    const message = actionMessage ?? loadFailedNote(loadFailed, t('admin.fed_load_failed', 'Failed to load email domains'));
     const [showBuiltin, setShowBuiltin] = useState(false);
 
     const notify = (type: DomainMessage['type'], text: string) => {
@@ -33,28 +41,6 @@ export default function FreeEmailDomainsPanel() {
         setTimeout(() => setMessage(null), 3000);
     };
 
-    const load = useCallback(async () => {
-        setLoading(true);
-        try {
-            const res = await request(`${API_BASE}/auth/free-email-domains`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (res) {
-                const data = await res.json();
-                setBuiltin(Array.isArray(data.builtin) ? data.builtin : []);
-                setExtra(Array.isArray(data.extra) ? data.extra : []);
-            } else {
-                notify('error', t('admin.fed_load_failed', 'Failed to load email domains'));
-            }
-        } catch {
-            notify('error', t('admin.fed_load_failed', 'Failed to load email domains'));
-        } finally {
-            setLoading(false);
-        }
-    }, [t]);
-
-    useEffect(() => { load(); }, [load]);
 
     // Persist a new extra list. Sends {extra} and adopts the server-normalised
     // list from the response so the UI reflects exactly what was stored.
@@ -67,7 +53,7 @@ export default function FreeEmailDomainsPanel() {
                 body: JSON.stringify({ extra: nextExtra }),
             });
             const data = await res.json().catch(() => ({}));
-            setExtra(Array.isArray(data.extra) ? data.extra : nextExtra);
+            queryClient.setQueryData<FreeEmailDomains | null>(freeEmailDomainsKey, (prev) => ({ builtin: prev?.builtin ?? [], extra: Array.isArray(data.extra) ? data.extra : nextExtra }));
             notify('success', t('admin.fed_saved', 'Email-domain blocklist updated'));
             return true;
         } catch (err) {

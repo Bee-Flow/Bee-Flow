@@ -1,5 +1,5 @@
 import { GraduationCap, Search, RefreshCw, Award, ScrollText, Users as UsersIcon, Activity } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { useCan } from '../../components/licensing/Gate';
 import Tabs from '../../components/shared/Tabs';
@@ -9,7 +9,7 @@ import { API_BASE } from '../../utils/helpers';
 import type { SettingsUser } from './shell/settingsShellTypes';
 import AcademyContentEditor from './learning/admin/AcademyContentEditor';
 import RequiredTrainingPanel from './learning/admin/RequiredTrainingPanel';
-import { request, RefusedError } from '../../api/mutate';
+import { useOrgAcademyOverviewQuery } from '../../api/queries/orgReports';
 
 /** GET /ai/learning/org-overview (server/learning/orgOverview.js). */
 interface AcademyMember {
@@ -121,32 +121,14 @@ const MemberAvatar = ({ m }: { m: AcademyMember }) => {
 
 function OrgAcademyOverview() {
     const { t } = useTranslation();
-    const [data, setData] = useState<AcademyOverview | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const overview = useOrgAcademyOverviewQuery<AcademyOverview>();
+    const data = overview.data ?? null;
+    const loading = overview.isFetching;
+    const error = overview.isError ? t('org.academy.load_failed', 'Could not load the learning overview.') : null;
+    const load = () => { overview.refetch(); };
     const [query, setQuery] = useState('');
     const [courseFilter, setCourseFilter] = useState('');
 
-    const load = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            let res: Response;
-            try {
-                res = await request(`${API_BASE}/ai/learning/org-overview`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                throw new Error(`HTTP ${err.status}`);
-            }
-            setData(await res.json());
-        } catch (_) {
-            setError(t('org.academy.load_failed', 'Could not load the learning overview.'));
-        } finally {
-            setLoading(false);
-        }
-    }, [t]);
-
-    useEffect(() => { load(); }, [load]);
 
     const members = useMemo(() => {
         let rows = data?.members || [];

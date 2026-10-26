@@ -1,11 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import * as api from '../../../api/transcriptionsApi';
-
-/** One row of `GET /api/transcriptions/tags`, as the server may send it. */
-interface RawTagCount {
-    tag: string;
-    count: number | string;
-}
+import { useCallback, useMemo } from 'react';
+import { useMeetingTagCountsQuery } from '../../../api/queries/meetingLibrary';
 
 /** A tag with the number of notes carrying it. */
 interface TagCount {
@@ -30,24 +24,8 @@ interface TagCount {
  * Returns `{ tags: [{ tag, count }], fromServer, refetch }`.
  */
 export default function useMeetingTags(meetings: Array<{ tags?: unknown }> | null | undefined, refreshKey: number = 0) {
-    const [server, setServer] = useState<TagCount[] | null>(null); // null → not (yet) answered
-
-    const load = useCallback(async () => {
-        try {
-            const list = await api.listTranscriptionTags();
-            return list
-                .filter((r: RawTagCount) => r && typeof r.tag === 'string' && r.tag)
-                .map((r: RawTagCount) => ({ tag: r.tag, count: Number(r.count) || 0 }));
-        } catch (_) {
-            return null;
-        }
-    }, []);
-
-    useEffect(() => {
-        let alive = true;
-        load().then((list: TagCount[] | null) => { if (alive) setServer(list); });
-        return () => { alive = false; };
-    }, [load, refreshKey]);
+    const query = useMeetingTagCountsQuery(refreshKey);
+    const server: TagCount[] | null = query.data ?? null; // null → not (yet) answered
 
     const fromRows = useMemo(() => {
         const counts = new Map<string, number>();
@@ -59,7 +37,8 @@ export default function useMeetingTags(meetings: Array<{ tags?: unknown }> | nul
             .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag));
     }, [meetings]);
 
-    const refetch = useCallback(() => { load().then(setServer); }, [load]);
+    const { refetch: refetchQuery } = query;
+    const refetch = useCallback(() => { refetchQuery(); }, [refetchQuery]);
 
     return {
         tags: server || fromRows,

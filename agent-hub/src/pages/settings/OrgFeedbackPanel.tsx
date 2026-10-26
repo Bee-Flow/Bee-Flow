@@ -2,13 +2,13 @@ import {
     ThumbsUp, ThumbsDown, MessageCircle, MessageSquare, ChevronRight,
     Search, Cpu, User, Bot, ExternalLink, RefreshCw, Clock, Repeat,
 } from 'lucide-react';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import { shortModel, fmtTime, fmtDuration } from './usage/format';
 import { Card, MetricCard, MetricGrid, MonitorHero, TabHeader, AlertBanner, FilterChipBar, EmptyInline, TOKENS } from './usage/kit';
 import MarkdownRenderer from '../../components/renderers/MarkdownRenderer';
 import { SEMANTIC } from '../../config/analyticsConfig';
 import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { feedbackRangeQuery, useOrgFeedbackQuery } from '../../api/queries/orgReports';
 import type { ChipValue } from './usage/kit.types';
 import type { RangeParams } from '../../utils/usageHelpers';
 
@@ -17,7 +17,7 @@ import type { RangeParams } from '../../utils/usageHelpers';
 const FEEDBACK_POSITIVE_ALERT_PCT = 60;
 const FEEDBACK_MIN_SAMPLE = 5;
 const PAGE_SIZE = 10;
-const FEEDBACK_API = `${API_BASE}/api/feedback/org`;
+const NO_FEEDBACK_SUMMARY = { total: 0, thumbs_up: 0, thumbs_down: 0, with_comments: 0 };
 
 // Palette (no purple/indigo) — reuse the shared semantic colours.
 const C = SEMANTIC;
@@ -60,36 +60,16 @@ interface OrgFeedbackPanelProps {
 
 export default function OrgFeedbackPanel({ rangeParams }: OrgFeedbackPanelProps) {
     const { t } = useTranslation();
-    const [loading, setLoading] = useState(true);
-    const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
-    const [summary, setSummary] = useState({ total: 0, thumbs_up: 0, thumbs_down: 0, with_comments: 0 });
     const [filter, setFilter] = useState<ChipValue>('all');
     const [search, setSearch] = useState('');
     const [pageNum, setPageNum] = useState(0);
     const [expanded, setExpanded] = useState<string | null>(null);
 
-    const fetchData = useCallback(async () => {
-        setLoading(true);
-        try {
-            const filters: Record<string, string> = rangeParams?.startDate ? { startDate: rangeParams.startDate, endDate: String(rangeParams.endDate) } : {};
-            const qs = new URLSearchParams(filters).toString();
-            const q = qs ? `?${qs}` : '';
-            const [listResp, sumResp] = await Promise.all([
-                authFetch(`${FEEDBACK_API}${q}`),
-                authFetch(`${FEEDBACK_API}/summary${q}`),
-            ]);
-            const list = listResp.ok ? await listResp.json() : [];
-            const sum = sumResp.ok ? await sumResp.json() : null;
-            setFeedback(Array.isArray(list) ? list : []);
-            setSummary(sum || { total: 0, thumbs_up: 0, thumbs_down: 0, with_comments: 0 });
-        } catch (e) {
-            console.error('[OrgFeedback] fetch error:', e);
-            setFeedback([]);
-        }
-        setLoading(false);
-    }, [rangeParams]);
-
-    useEffect(() => { fetchData(); }, [fetchData]);
+    const report = useOrgFeedbackQuery<FeedbackItem>(feedbackRangeQuery(rangeParams));
+    const fetchData = () => { report.refetch(); };
+    const loading = report.isFetching;
+    const feedback = useMemo(() => report.data?.feedback ?? [], [report.data]);
+    const summary = report.data?.summary ?? NO_FEEDBACK_SUMMARY;
 
     const filtered = useMemo(() => {
         let data = feedback;

@@ -1,4 +1,4 @@
-import { act, render, waitFor } from '@testing-library/react';
+import { act, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -29,6 +29,7 @@ vi.mock('../../../licensing/LicenseContext', () => ({
 }));
 
 import SolutionDetail from './SolutionDetail';
+import { renderWithClient } from '../../../../test/render';
 
 /**
  * The seam between the Solution and the release track: the two new tabs and the
@@ -86,7 +87,7 @@ beforeEach(() => { globalThis.__stream = null; mockFetch(); });
 
 describe('the update banner', () => {
     it('says a newer version is available when the scoped listing has the Blueprint', async () => {
-        const { findByTestId } = render(<SolutionDetail project={installedProject()} onBack={() => {}} />);
+        const { findByTestId } = renderWithClient(<SolutionDetail project={installedProject()} onBack={() => {}} />);
         expect((await findByTestId('solution-update-available')).textContent).toMatch(/Version 3/);
     });
 
@@ -95,13 +96,13 @@ describe('the update banner', () => {
         // organisation. The screen may then name no version — and also not say that
         // everything is up to date.
         mockFetch({ blueprints: [{ id: 'bp_someone_else', version: 9 }] });
-        const { findByTestId, queryByTestId } = render(<SolutionDetail project={installedProject()} onBack={() => {}} />);
+        const { findByTestId, queryByTestId } = renderWithClient(<SolutionDetail project={installedProject()} onBack={() => {}} />);
         await findByTestId('solution-update-unknown');
         expect(queryByTestId('solution-update-available')).toBeNull();
     });
 
     it('a Solution that came from no Blueprint gets no banner at all', async () => {
-        const { queryByTestId } = render(
+        const { queryByTestId } = renderWithClient(
             <SolutionDetail project={{ id: 'p1', name: 'Quotes', permission: 'owner', installedFromBlueprintId: null, update: null }} onBack={() => {}} />,
         );
         await waitFor(() => expect(globalThis.__authFetch).toHaveBeenCalled());
@@ -110,7 +111,7 @@ describe('the update banner', () => {
     });
 
     it('an unknown installed version is unknown, not "there is an update"', async () => {
-        const { findByTestId, queryByTestId } = render(
+        const { findByTestId, queryByTestId } = renderWithClient(
             <SolutionDetail project={installedProject({ update: { blueprintId: 'bp1', installedVersion: null } })} onBack={() => {}} />,
         );
         await findByTestId('solution-update-unknown');
@@ -126,7 +127,7 @@ describe('the update banner', () => {
             if (url.includes('/completeness')) return ok(CLEAN);
             return ok({});
         });
-        const { findByTestId, queryByTestId } = render(
+        const { findByTestId, queryByTestId } = renderWithClient(
             <SolutionDetail project={installedProject({ permission: 'viewer' })} onBack={() => {}} />,
         );
         await findByTestId('solution-update-available');
@@ -138,7 +139,7 @@ describe('blueprint.published on the live feed', () => {
     it('re-asks the SCOPED listing rather than believing the event', async () => {
         // Eerst niets in de galerij: geen belofte.
         mockFetch({ blueprints: [] });
-        const { findByTestId, queryByTestId } = render(<SolutionDetail project={installedProject()} onBack={() => {}} />);
+        const { findByTestId, queryByTestId } = renderWithClient(<SolutionDetail project={installedProject()} onBack={() => {}} />);
         await findByTestId('solution-update-unknown');
 
         // The event mentions version 9. That number must NOT reach the screen —
@@ -155,7 +156,7 @@ describe('blueprint.published on the live feed', () => {
 
     it('an event about a Blueprint the reader still may not see changes nothing', async () => {
         mockFetch({ blueprints: [] });
-        const { findByTestId, queryByTestId } = render(<SolutionDetail project={installedProject()} onBack={() => {}} />);
+        const { findByTestId, queryByTestId } = renderWithClient(<SolutionDetail project={installedProject()} onBack={() => {}} />);
         await findByTestId('solution-update-unknown');
 
         await act(async () => {
@@ -168,7 +169,7 @@ describe('blueprint.published on the live feed', () => {
 
     it('refreshes the release history too', async () => {
         const user = userEvent.setup();
-        const { findByText } = render(<SolutionDetail project={installedProject()} onBack={() => {}} />);
+        const { findByText } = renderWithClient(<SolutionDetail project={installedProject()} onBack={() => {}} />);
         await user.click(await findByText('Versions'));
         await findByText('Desk');
         const before = globalThis.__authFetch.mock.calls.filter(([u]) => String(u).includes('/package/releases')).length;
@@ -187,7 +188,7 @@ describe('filing on the live feed', () => {
     // content.moved_in / content.moved_out, not as resource_added / _removed;
     // the Solution's contents, graph and publish check must follow either way.
     it.each(['content.moved_in', 'content.moved_out'])('%s refetches the contents, the graph and the check', async (kind) => {
-        render(<SolutionDetail project={installedProject()} onBack={() => {}} />);
+        renderWithClient(<SolutionDetail project={installedProject()} onBack={() => {}} />);
         await waitFor(() => expect(reads('/graph')).toBeGreaterThan(0));
         await waitFor(() => expect(reads('/completeness')).toBeGreaterThan(0));
         const before = { resources: reads('/resources'), graph: reads('/graph'), completeness: reads('/completeness') };
@@ -203,7 +204,7 @@ describe('filing on the live feed', () => {
 describe('the two new tabs', () => {
     it('Versions shows the boolean diff even when no summary line was written', async () => {
         const user = userEvent.setup();
-        const { findByText, findByTestId } = render(<SolutionDetail project={installedProject()} onBack={() => {}} />);
+        const { findByText, findByTestId } = renderWithClient(<SolutionDetail project={installedProject()} onBack={() => {}} />);
         await user.click(await findByText('Versions'));
         expect(await findByTestId('version-group-changed')).toBeTruthy();
         expect(await findByTestId('version-note-nosummary')).toBeTruthy();
@@ -212,7 +213,7 @@ describe('the two new tabs', () => {
     it('a release history that could not be read does not read as "never published"', async () => {
         const user = userEvent.setup();
         mockFetch({ releases: null });
-        const { findByText, findByTestId, queryByTestId } = render(<SolutionDetail project={installedProject()} onBack={() => {}} />);
+        const { findByText, findByTestId, queryByTestId } = renderWithClient(<SolutionDetail project={installedProject()} onBack={() => {}} />);
         await user.click(await findByText('Versions'));
         expect(await findByTestId('versions-unreadable')).toBeTruthy();
         expect(queryByTestId('versions-none')).toBeNull();
@@ -220,14 +221,14 @@ describe('the two new tabs', () => {
 
     it('Installs shows the two counts and says the number is a lower bound', async () => {
         const user = userEvent.setup();
-        const { findByText, findByTestId } = render(<SolutionDetail project={installedProject()} onBack={() => {}} />);
+        const { findByText, findByTestId } = renderWithClient(<SolutionDetail project={installedProject()} onBack={() => {}} />);
         await user.click(await findByText('Installs'));
         expect((await findByTestId('installs-here')).textContent).toMatch(/2 Solutions/);
         expect((await findByTestId('installs-incomplete')).textContent).toMatch(/at least this many/);
     });
 
     it('the install count is asked for as the header paints, not only when the tab opens', async () => {
-        render(<SolutionDetail project={installedProject()} onBack={() => {}} />);
+        renderWithClient(<SolutionDetail project={installedProject()} onBack={() => {}} />);
         await waitFor(() => expect(globalThis.__authFetch.mock.calls.some(([u]) => String(u).includes('/package/installs'))).toBe(true));
     });
 });
@@ -235,7 +236,7 @@ describe('the two new tabs', () => {
 describe('the upgrade dialog', () => {
     it('opens from the banner and asks the plan route for the Blueprint by id', async () => {
         const user = userEvent.setup();
-        const { findByTestId } = render(<SolutionDetail project={installedProject()} onBack={() => {}} />);
+        const { findByTestId } = renderWithClient(<SolutionDetail project={installedProject()} onBack={() => {}} />);
         await user.click(await findByTestId('solution-update-open'));
         await waitFor(() => {
             const call = globalThis.__authFetch.mock.calls.find(([u]) => String(u).includes('/package/upgrade/plan'));
@@ -249,7 +250,7 @@ describe('who can open the Solution', () => {
     const membersReads = () => globalThis.__authFetch.mock.calls.filter(([u]) => String(u).includes('/members')).length;
 
     it('manages access in place instead of sending the builder to the projects pages', async () => {
-        const { findByTestId, queryByText } = render(
+        const { findByTestId, queryByText } = renderWithClient(
             <SolutionDetail project={installedProject()} onBack={() => {}} currentUserId="u1" />,
         );
         expect(await findByTestId('solution-manage-access')).toBeTruthy();
@@ -257,7 +258,7 @@ describe('who can open the Solution', () => {
     });
 
     it('opens the members panel for this Solution, with the caller\'s role', async () => {
-        const { findByTestId } = render(
+        const { findByTestId } = renderWithClient(
             <SolutionDetail project={installedProject()} onBack={() => {}} currentUserId="u1" />,
         );
         // The role comes from the resources read; wait for it before opening.
@@ -267,7 +268,7 @@ describe('who can open the Solution', () => {
     });
 
     it('re-reads the members for the header capsule when the dialog closes', async () => {
-        const { findByTestId, queryByTestId } = render(
+        const { findByTestId, queryByTestId } = renderWithClient(
             <SolutionDetail project={installedProject()} onBack={() => {}} currentUserId="u1" />,
         );
         await userEvent.click(await findByTestId('solution-manage-access'));
@@ -280,7 +281,7 @@ describe('who can open the Solution', () => {
 
     it('leaves the Solution page, and does not re-read its members, once the caller left it', async () => {
         const onBack = vi.fn();
-        const { findByTestId, queryByTestId } = render(
+        const { findByTestId, queryByTestId } = renderWithClient(
             <SolutionDetail project={installedProject({ permission: 'viewer' })} onBack={onBack} currentUserId="u2" />,
         );
         await userEvent.click(await findByTestId('solution-manage-access'));
@@ -298,7 +299,7 @@ describe('who can open the Solution', () => {
         globalThis.__authFetch = vi.fn(async (url, init) => (String(url).includes('/resources')
             ? { ok: true, status: 200, json: async () => ({ role: 'viewer', notebooks: [], apps: [], automations: [], webpages: [], approvals: [] }) }
             : base(url, init)));
-        const { findByTestId } = render(
+        const { findByTestId } = renderWithClient(
             <SolutionDetail project={installedProject({ permission: 'viewer' })} onBack={() => {}} currentUserId="u2" />,
         );
         await waitFor(() => expect(globalThis.__authFetch.mock.calls.some(([u]) => String(u).includes('/resources'))).toBe(true));
@@ -343,14 +344,14 @@ describe('a Solution with stages', () => {
 
     it('shows the stage rail and a Pipeline tab for Dev', async () => {
         mockStages();
-        const { findByTestId, findByText } = render(<SolutionDetail project={project} onBack={() => {}} />);
+        const { findByTestId, findByText } = renderWithClient(<SolutionDetail project={project} onBack={() => {}} />);
         expect(await findByTestId('stage-rail')).toBeTruthy();
         expect(await findByText('Pipeline')).toBeTruthy();
     });
 
     it('a Solution without stages shows the rail with Set up stages, and the stages open nothing', async () => {
         mockStages({ pipeline: { dev: DEV, stages: [], releases: [] } });
-        const { findByTestId } = render(<SolutionDetail project={project} onBack={() => {}} />);
+        const { findByTestId } = renderWithClient(<SolutionDetail project={project} onBack={() => {}} />);
         expect((await findByTestId('stage-rail-action')).textContent).toBe('Set up stages');
         expect((await findByTestId('stage-rail-uat')).tagName).toBe('DIV');
     });
@@ -358,7 +359,7 @@ describe('a Solution with stages', () => {
     it('a pipeline that could not be read keeps Dev and the Pipeline tab, and says so there', async () => {
         mockStages({ pipelineOk: false });
         const user = userEvent.setup();
-        const { findByTestId, findByText, queryByTestId } = render(<SolutionDetail project={project} onBack={() => {}} />);
+        const { findByTestId, findByText, queryByTestId } = renderWithClient(<SolutionDetail project={project} onBack={() => {}} />);
         await findByTestId('solution-publish');
         expect(queryByTestId('stage-rail')).toBeNull();
         await user.click(await findByText('Pipeline'));
@@ -369,14 +370,14 @@ describe('a Solution with stages', () => {
     it('a Solution that is not licensed for stages says so in the Pipeline tab', async () => {
         mockStages({ pipelineOk: false, pipelineStatus: 402 });
         const user = userEvent.setup();
-        const { findByText, findByTestId } = render(<SolutionDetail project={project} onBack={() => {}} />);
+        const { findByText, findByTestId } = renderWithClient(<SolutionDetail project={project} onBack={() => {}} />);
         await user.click(await findByText('Pipeline'));
         expect((await findByTestId('pipeline-read-problem')).getAttribute('data-state')).toBe('no_licence');
     });
 
     it('a pipeline that does not exist for this project (404) has no Pipeline tab', async () => {
         mockStages({ pipelineOk: false, pipelineStatus: 404 });
-        const { findByTestId, queryByText } = render(<SolutionDetail project={project} onBack={() => {}} />);
+        const { findByTestId, queryByText } = renderWithClient(<SolutionDetail project={project} onBack={() => {}} />);
         await findByTestId('solution-publish');
         expect(queryByText('Pipeline')).toBeNull();
     });
@@ -384,7 +385,7 @@ describe('a Solution with stages', () => {
     it('choosing UAT opens its Status, mirrors ?stage= and hides rename, publish and adding', async () => {
         mockStages();
         const user = userEvent.setup();
-        const { findByTestId, queryByTestId } = render(<SolutionDetail project={project} onBack={() => {}} />);
+        const { findByTestId, queryByTestId } = renderWithClient(<SolutionDetail project={project} onBack={() => {}} />);
         // On Dev the name is a rename button.
         expect((await findByTestId('studio-section-title')).tagName).toBe('BUTTON');
 
@@ -405,7 +406,7 @@ describe('a Solution with stages', () => {
         mockStages();
         const user = userEvent.setup();
         window.history.replaceState(null, '', '/?stage=uat');
-        const { findByRole, findByText, queryByTestId, container } = render(<SolutionDetail project={project} onBack={() => {}} currentUserId="u1" />);
+        const { findByRole, findByText, queryByTestId, container } = renderWithClient(<SolutionDetail project={project} onBack={() => {}} currentUserId="u1" />);
         await user.click(await findByRole('radio', { name: /Content/ }));
         expect(await findByText('Check VAT')).toBeTruthy();
         expect(queryByTestId('solution-add-resource')).toBeNull();
@@ -417,7 +418,7 @@ describe('a Solution with stages', () => {
         mockStages();
         window.history.replaceState(null, '', '/?stage=uat');
         const user = userEvent.setup();
-        const { findByText, findAllByTestId } = render(<SolutionDetail project={project} onBack={() => {}} />);
+        const { findByText, findAllByTestId } = renderWithClient(<SolutionDetail project={project} onBack={() => {}} />);
         await user.click(await findByText('History'));
         expect((await findAllByTestId('stage-history-row'))).toHaveLength(1);
         expect(globalThis.__authFetch.mock.calls.some(([u]) => String(u).includes('/api/projects/p1/deployments?stage=uat'))).toBe(true);
@@ -426,14 +427,14 @@ describe('a Solution with stages', () => {
     it('a stage the pipeline does not list falls back to Dev', async () => {
         mockStages({ pipeline: { dev: DEV, stages: [UAT], releases: [] } });
         window.history.replaceState(null, '', '/?stage=prd');
-        const { findByTestId, queryByTestId } = render(<SolutionDetail project={project} onBack={() => {}} />);
+        const { findByTestId, queryByTestId } = renderWithClient(<SolutionDetail project={project} onBack={() => {}} />);
         expect(await findByTestId('solution-publish')).toBeTruthy();
         expect(queryByTestId('stage-status')).toBeNull();
     });
 
     it('a stage-only operator (no Dev role) gets the stage and no Dev option', async () => {
         mockStages({ pipeline: { dev: null, stages: [UAT], releases: null } });
-        const { findByTestId, queryByTestId } = render(
+        const { findByTestId, queryByTestId } = renderWithClient(
             <SolutionDetail project={{ id: 'p1', name: 'Quotes' }} onBack={() => {}} initialStage="uat" />,
         );
         expect(await findByTestId('stage-status')).toBeTruthy();
@@ -474,7 +475,7 @@ describe('the Settings tab', () => {
     it('Settings is a tab on a stage, not on Dev', async () => {
         mockSettings();
         const user = userEvent.setup();
-        const { findByRole, findByTestId, queryByRole } = render(<SolutionDetail project={project} onBack={() => {}} currentUserId="u1" />);
+        const { findByRole, findByTestId, queryByRole } = renderWithClient(<SolutionDetail project={project} onBack={() => {}} currentUserId="u1" />);
         await findByTestId('stage-rail');
         expect(queryByRole('radio', { name: /Settings/ })).toBeNull();
         await user.click(await findByTestId('stage-rail-uat'));
@@ -487,14 +488,14 @@ describe('the Settings tab', () => {
     it('?tab=settings opens it, which is where the managed-part banners link to', async () => {
         mockSettings();
         window.history.replaceState(null, '', '/?stage=uat&tab=settings');
-        const { findByTestId } = render(<SolutionDetail project={project} onBack={() => {}} currentUserId="u1" />);
+        const { findByTestId } = renderWithClient(<SolutionDetail project={project} onBack={() => {}} currentUserId="u1" />);
         expect(await findByTestId('stage-settings')).toBeTruthy();
     });
 
     it('Dev has no stage settings, and its Pipeline tab hosts the variable declarations', async () => {
         mockSettings();
         const user = userEvent.setup();
-        const { findByText, findByTestId, queryByTestId } = render(<SolutionDetail project={project} onBack={() => {}} currentUserId="u1" />);
+        const { findByText, findByTestId, queryByTestId } = renderWithClient(<SolutionDetail project={project} onBack={() => {}} currentUserId="u1" />);
         await user.click(await findByText('Pipeline'));
         expect(await findByTestId('variable-declarations')).toBeTruthy();
         expect(queryByTestId('stage-settings')).toBeNull();
@@ -517,7 +518,7 @@ describe('removing a part from the Content tab', () => {
             if (url.includes('/package/blueprints')) return ok({ blueprints: [] });
             return ok({});
         });
-        const { findByRole, findByTestId, findByText } = render(<SolutionDetail project={project} onBack={() => {}} currentUserId="u1" />);
+        const { findByRole, findByTestId, findByText } = renderWithClient(<SolutionDetail project={project} onBack={() => {}} currentUserId="u1" />);
         await findByText('Check VAT');
         await user.click(await findByRole('button', { name: /: Check VAT$/ }));
         expect((await findByTestId('solution-remove-error')).textContent).toMatch(/Not allowed/);
@@ -533,7 +534,7 @@ describe('the Overview activity band', () => {
                 ? { ok: false, status: 500, json: async () => ({ error: 'boom' }) }
                 : base(url, init)
         ));
-        const { findByText, findAllByText, queryByText } = render(
+        const { findByText, findAllByText, queryByText } = renderWithClient(
             <SolutionDetail project={{ id: 'p1', name: 'Quotes', permission: 'owner', installedFromBlueprintId: null, update: null }} onBack={() => {}} />,
         );
         await userEvent.setup().click(await findByText('Overview'));

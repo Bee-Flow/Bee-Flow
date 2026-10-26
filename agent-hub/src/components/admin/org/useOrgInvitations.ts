@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useOrgInvitationsQuery } from '../../../api/queries/orgAdminReads';
 import type { Dispatch, SetStateAction } from 'react';
 import { API_BASE } from '../../../utils/helpers';
-import { mutate, ApiError, request, RefusedError, errorBody } from '../../../api/mutate';
+import { mutate, ApiError, RefusedError, errorBody } from '../../../api/mutate';
 
 /** One pending invitation, as GET /auth/invitations returns it. */
 export interface Invitation {
@@ -49,6 +50,8 @@ export interface OrgInvitations {
  * share by hand when the mail could not be delivered, and the seat-cap flag
  * that sends an admin to the upgrade flow instead of a dead end.
  */
+const NO_INVITATIONS: Invitation[] = [];
+
 export default function useOrgInvitations(): OrgInvitations {
     // Invitation state
     const [showInviteForm, setShowInviteForm] = useState(false);
@@ -56,26 +59,11 @@ export default function useOrgInvitations(): OrgInvitations {
     const [inviteRole, setInviteRole] = useState('user');
     const [sendingInvite, setSendingInvite] = useState(false);
     const [inviteResult, setInviteResult] = useState<InviteResult | null>(null);
-    const [invitations, setInvitations] = useState<Invitation[]>([]);
-    const [loadingInvitations, setLoadingInvitations] = useState(false);
 
-    // Fetch invitations
-    const fetchInvitations = useCallback(async () => {
-        setLoadingInvitations(true);
-        try {
-            const res = await request(`${API_BASE}/auth/invitations`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (res) setInvitations(await res.json());
-        } catch (err) {
-            console.error('Failed to fetch invitations:', err);
-        } finally {
-            setLoadingInvitations(false);
-        }
-    }, []);
-
-    useEffect(() => { fetchInvitations(); }, [fetchInvitations]);
+    const invitationsQuery = useOrgInvitationsQuery<Invitation>();
+    const invitations = invitationsQuery.data ?? NO_INVITATIONS;
+    const loadingInvitations = invitationsQuery.isFetching;
+    const fetchInvitations = async () => { await invitationsQuery.refetch(); };
 
     // Invitation handlers
     const handleSendInvite = async () => {

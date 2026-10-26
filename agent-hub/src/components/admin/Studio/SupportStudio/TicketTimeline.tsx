@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
+import { useTicketEventsQuery } from '../../../../api/queries/supportPanels';
 import useTranslation from '../../../../hooks/useTranslation';
-import { API_BASE } from '../../../../utils/helpers';
 import { metaFor } from './auditMeta';
 import type { SupportTeammate } from './supportStudio.types';
 import type { SupportEvent } from '../../../support/SupportInboxPanel.types';
-import { request, RefusedError } from '../../../../api/mutate';
+
+const NO_EVENTS: SupportEvent[] = [];
 
 interface TicketTimelineProps {
     threadId: string;
@@ -19,8 +20,9 @@ interface TicketTimelineProps {
  */
 export default function TicketTimeline({ threadId, teammates = [] }: TicketTimelineProps) {
     const { t } = useTranslation();
-    const [events, setEvents] = useState<SupportEvent[]>([]);
-    const [loading, setLoading] = useState(true);
+    const eventsQuery = useTicketEventsQuery<SupportEvent>(threadId);
+    const events = eventsQuery.data ?? NO_EVENTS;
+    const loading = eventsQuery.isFetching;
 
     const nameFor = useCallback((id?: string | null) => {
         if (!id) return '';
@@ -28,17 +30,6 @@ export default function TicketTimeline({ threadId, teammates = [] }: TicketTimel
         return tm ? (tm.name || tm.email || id) : id;
     }, [teammates]);
 
-    const load = useCallback(async () => {
-        setLoading(true);
-        try {
-            const res = await request(`${API_BASE}/api/support-inbox/threads/${threadId}/events`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (res) { const d = await res.json(); setEvents(Array.isArray(d.events) ? d.events : []); }
-        } finally { setLoading(false); }
-    }, [threadId]);
-    useEffect(() => { load(); }, [load]);
 
     if (loading) return <div className="text-[11px] text-[var(--text-tertiary)] italic px-1 py-1">{t('support.common.loading', 'Loading…')}</div>;
     if (events.length === 0) return <div className="text-[11px] text-[var(--text-tertiary)] italic px-1 py-1">{t('support.activity.empty', 'No activity yet.')}</div>;

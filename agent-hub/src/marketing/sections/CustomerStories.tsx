@@ -6,7 +6,9 @@ import SectionHeader from '../components/SectionHeader';
 import { sectionBgClass } from './sectionBg';
 import { resolveGrid, useStories, type SectorChip, type StoryCard } from './storyCards';
 import type { SectionDataBase } from './sectionData.types';
-import './stories.css';
+// Styles: stories.css, imported by extraSections.ts. This block loads lazily and
+// the stylesheet is shared with the eager StoryHeader, so a second import here
+// would split it into its own render-blocking file.
 
 interface CustomerStoriesData extends SectionDataBase {
     limit?: number;

@@ -1,4 +1,5 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, screen, waitFor } from '@testing-library/react';
+import { renderWithClient } from '../../../test/render';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { isMultiTenantId, isTenantIdValid } from './sso/MicrosoftSsoTab';
@@ -35,7 +36,7 @@ afterEach(cleanup);
 describe('SSOConfigPanel', () => {
     it('shows the Nextcloud form with its redirect URI and hides enterprise providers on Community', async () => {
         hasFeature.mockReturnValue(false);
-        render(<SSOConfigPanel />);
+        renderWithClient(<SSOConfigPanel />);
         expect(await screen.findByText('Nextcloud OAuth 2.0')).toBeTruthy();
         expect(screen.getByDisplayValue('https://cloud.example')).toBeTruthy();
         await waitFor(() => expect(screen.getByText('https://flow.example/auth/callback/nextcloud')).toBeTruthy());
@@ -44,7 +45,7 @@ describe('SSOConfigPanel', () => {
 
     it('saves the Microsoft provider with the typed secret and clears it', async () => {
         const user = userEvent.setup();
-        render(<SSOConfigPanel />);
+        renderWithClient(<SSOConfigPanel />);
         await user.click(await screen.findByRole('button', { name: /Microsoft/ }));
         expect(screen.getByText('Microsoft / Azure AD')).toBeTruthy();
         expect(screen.getByTestId('ms-identity')).toBeTruthy();

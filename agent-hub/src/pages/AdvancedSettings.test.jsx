@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -147,6 +147,7 @@ vi.mock('../components/admin/org/OrgInfoPanel', async () => {
 });
 
 import AdvancedSettings from './AdvancedSettings';
+import { renderWithClient } from '../test/render';
 import { authFetch } from '../utils/helpers';
 
 const json = (body, ok = true) => ({ ok, status: ok ? 200 : 500, json: async () => body });
@@ -176,14 +177,14 @@ function serve(over = {}) {
     });
 }
 
-/** Flush the four mount fetches and the effects they trigger. */
+/** Flush the mount reads (the query cache notifies on a timer) and the effects they trigger. */
 async function settle() {
-    for (let i = 0; i < 8; i++) await act(async () => { await Promise.resolve(); });
+    for (let i = 0; i < 8; i++) await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
 }
 
 async function mount({ user = MEMBER, path = '/app/settings', ...props } = {}) {
     window.history.replaceState({}, '', path);
-    const view = render(<AdvancedSettings user={user} {...props} />);
+    const view = renderWithClient(<AdvancedSettings user={user} {...props} />);
     await settle();
     return view;
 }
@@ -646,13 +647,12 @@ describe('AdvancedSettings — the panel a segment opens', () => {
         expect(screen.getByTestId('section-organisation').dataset.active).toBe('license');
     });
 
-    it('hands the agents list straight to Preferences, even when the call failed (wart)', async () => {
-        // fetchAgents never checks res.ok, so a 500 and its error BODY land in
-        // `agents` unfiltered — and PreferencesSection calls agents.map() as
-        // soon as the startup mode is 'specific'.
+    it('hands Preferences an empty list when the agents call is refused, never the error body', async () => {
+        // The old loader never checked res.ok: a 500's error BODY landed in `agents`,
+        // and PreferencesSection calls agents.map() once the startup mode is 'specific'.
         serve({ agentsRes: json({ error: 'boom' }, false) });
         await mount({ path: '/app/settings/preferences' });
-        expect(screen.getByTestId('section-preferences').dataset.agents).toBe('{"error":"boom"}');
+        expect(screen.getByTestId('section-preferences').dataset.agents).toBe('[]');
     });
 });
 

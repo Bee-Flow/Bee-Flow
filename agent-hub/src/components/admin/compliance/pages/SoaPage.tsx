@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useComplianceRead } from '../../../../api/queries/complianceReads';
 import { ChevronDown, Search } from 'lucide-react';
 import { useTranslation, type TranslateParams } from '../../../../hooks/useTranslation';
 import FilterPills, { type PillTone } from '../../../shared/FilterPills';
@@ -236,17 +237,14 @@ interface SoaHistoryTabProps {
     isMobile: boolean;
 }
 
+const parseSoaHistory = (b: unknown) => asArray(Array.isArray(b) ? b : (b as { rows?: unknown; history?: unknown } | null)?.rows ?? (b as { history?: unknown } | null)?.history) as HistoryApiRow[] | null;
+
 function SoaHistoryTab({ orgUsers, t, isMobile }: SoaHistoryTabProps) {
     const { formatStamp } = useDateFormat();
     const stamp = (value: string | number | Date | null | undefined) => formatStamp(value) || '—';
-    const [rows, setRows] = useState<HistoryApiRow[] | null | undefined>(undefined); // undefined = loading · null = failed · [] = nothing yet
-    useEffect(() => {
-        let alive = true;
-        fetchJson(`${API}/iso/soa/history`)
-            .then(b => { if (alive) setRows(asArray(Array.isArray(b) ? b : b?.rows ?? b?.history)); })
-            .catch(() => { if (alive) setRows(null); });
-        return () => { alive = false; };
-    }, []);
+    // undefined = loading · null = failed · [] = nothing yet
+    const historyQuery = useComplianceRead<HistoryApiRow[]>(['soa-history'], `${API}/iso/soa/history`, parseSoaHistory);
+    const rows: HistoryApiRow[] | null | undefined = historyQuery.isError ? null : historyQuery.data;
 
     const columns = [
         { id: 'at', width: '132px', label: t('compliance.soa_hist_col_when', 'When') },

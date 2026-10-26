@@ -10,10 +10,11 @@
  *
  * Run: cd agent-hub && npx vitest run src/marketing/sections/PricingSection.test.jsx
  */
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import Pricing from './PricingSection';
+import { renderWithClient } from '../../test/render';
 
 const plan = (over = {}) => ({
     id: 'p1',
@@ -38,14 +39,14 @@ afterEach(() => vi.unstubAllGlobals());
 describe('the billing-interval toggle', () => {
     it('is hidden when there is only one plan', async () => {
         mockPlans([plan()]);
-        const { container } = render(<Pricing data={{ enabled: true }} />);
+        const { container } = renderWithClient(<Pricing data={{ enabled: true }} />);
         await screen.findByText('Bee Flow - Nextcloud - Free');
         expect(container.querySelector('.pricing-toggle')).toBeNull();
     });
 
     it('is hidden when every plan sits on the same interval', async () => {
         mockPlans([plan(), plan({ id: 'p2', name: 'Team' })]);
-        const { container } = render(<Pricing data={{ enabled: true }} />);
+        const { container } = renderWithClient(<Pricing data={{ enabled: true }} />);
         await screen.findByText('Team');
         expect(container.querySelector('.pricing-toggle')).toBeNull();
     });
@@ -55,7 +56,7 @@ describe('the billing-interval toggle', () => {
             plan(),
             plan({ id: 'p2', name: 'Team yearly', billingInterval: 'yearly', price: 490 }),
         ]);
-        const { container } = render(<Pricing data={{ enabled: true }} />);
+        const { container } = renderWithClient(<Pricing data={{ enabled: true }} />);
         await screen.findByText('Bee Flow - Nextcloud - Free');
         expect(container.querySelector('.pricing-toggle')).not.toBeNull();
     });
@@ -65,7 +66,7 @@ describe('the billing-interval toggle', () => {
         // plan. Without the pin, the page showed the empty-state text while
         // the toggle that could reveal the plan was hidden.
         mockPlans([plan()]);
-        const { container } = render(
+        const { container } = renderWithClient(
             <Pricing data={{ enabled: true, defaultInterval: 'yearly' }} />,
         );
         await screen.findByText('Bee Flow - Nextcloud - Free');

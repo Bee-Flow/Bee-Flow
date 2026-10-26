@@ -1,5 +1,5 @@
 {
   "_comment": "Highest number of files whose useEffect makes a network call (directly, via an api/ helper or a local loader) agent-hub/src may still carry. Lower it with `node scripts/count-ratchet.mjs fetch-in-effect agent-hub --update` after a conversion; raising it is a deliberate edit that belongs in a commit message with a reason.",
-  "_generated": "2026-10-25",
-  "count": 204
+  "_generated": "2026-10-26",
+  "count": 147
 }

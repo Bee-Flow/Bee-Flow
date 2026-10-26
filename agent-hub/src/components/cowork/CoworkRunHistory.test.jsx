@@ -1,8 +1,9 @@
-import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react';
+import { screen, fireEvent, waitFor, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import CoworkRunHistory from './CoworkRunHistory';
+import { renderWithClient } from '../../test/render';
 
 /**
  * The run history: one card, one row per run.
@@ -54,7 +55,7 @@ function deferred() {
 
 async function renderHistory(runs = [], total = null, props = {}) {
     api.listCoworkRuns.mockResolvedValue({ runs, total: total == null ? runs.length : total });
-    const utils = render(<CoworkRunHistory coworkId="w1" reloadKey={0} {...props} />);
+    const utils = renderWithClient(<CoworkRunHistory coworkId="w1" reloadKey={0} {...props} />);
     await waitFor(() => expect(screen.queryByText(/Loading history/)).not.toBeInTheDocument());
     return utils;
 }
@@ -87,14 +88,14 @@ describe('CoworkRunHistory — fetching', () => {
     it('shows a loading line until the first response lands, then replaces it', async () => {
         const d = deferred();
         api.listCoworkRuns.mockReturnValue(d.promise);
-        render(<CoworkRunHistory coworkId="w1" reloadKey={0} />);
+        renderWithClient(<CoworkRunHistory coworkId="w1" reloadKey={0} />);
 
         expect(screen.getByText('Loading history…')).toBeInTheDocument();
         expect(screen.queryByTestId('cowork-run-list')).not.toBeInTheDocument();
 
         await act(async () => { d.resolve({ runs: [run()], total: 1 }); });
+        expect(await screen.findByTestId('cowork-run-list')).toBeInTheDocument();
         expect(screen.queryByText('Loading history…')).not.toBeInTheDocument();
-        expect(screen.getByTestId('cowork-run-list')).toBeInTheDocument();
     });
 
     it('asks for the item by id and passes no paging arguments at all', async () => {
@@ -108,7 +109,7 @@ describe('CoworkRunHistory — fetching', () => {
     });
 
     it('wrat: with no coworkId it never fetches and sits on "Loading history…" for ever', async () => {
-        render(<CoworkRunHistory coworkId={null} reloadKey={0} />);
+        renderWithClient(<CoworkRunHistory coworkId={null} reloadKey={0} />);
         await act(async () => {});
         expect(api.listCoworkRuns).not.toHaveBeenCalled();
         expect(screen.getByText('Loading history…')).toBeInTheDocument();
@@ -127,7 +128,7 @@ describe('CoworkRunHistory — fetching', () => {
         expect(screen.getByText('Loading history…')).toBeInTheDocument();
 
         await act(async () => { d.resolve({ runs: [run({ durationMs: 1200 })], total: 1 }); });
-        expect(screen.getByTestId('cowork-run')).toHaveTextContent('0m 01s');
+        await waitFor(() => expect(screen.getByTestId('cowork-run')).toHaveTextContent('0m 01s'));
         expect(api.listCoworkRuns).toHaveBeenCalledTimes(2);
     });
 
@@ -136,12 +137,12 @@ describe('CoworkRunHistory — fetching', () => {
         api.listCoworkRuns.mockReturnValueOnce(first.promise);
         api.listCoworkRuns.mockResolvedValue({ runs: [run({ id: 'r2', durationMs: 5200 })], total: 1 });
 
-        const { rerender } = render(<CoworkRunHistory coworkId="w1" reloadKey={0} />);
+        const { rerender } = renderWithClient(<CoworkRunHistory coworkId="w1" reloadKey={0} />);
         rerender(<CoworkRunHistory coworkId="w2" reloadKey={0} />);
         await act(async () => { first.resolve({ runs: [run({ id: 'r1', durationMs: 1200 })], total: 1 }); });
 
         expect(api.listCoworkRuns).toHaveBeenLastCalledWith('w2');
-        const rows = screen.getAllByTestId('cowork-run');
+        const rows = await screen.findAllByTestId('cowork-run');
         expect(rows).toHaveLength(1);
         expect(rows[0]).toHaveTextContent('0m 05s');
         expect(rows[0]).not.toHaveTextContent('0m 01s');
@@ -151,7 +152,7 @@ describe('CoworkRunHistory — fetching', () => {
 describe('CoworkRunHistory — the failure path', () => {
     it('shows the API error verbatim, as an alert', async () => {
         api.listCoworkRuns.mockRejectedValue(new Error('Could not load the run history'));
-        render(<CoworkRunHistory coworkId="w1" reloadKey={0} />);
+        renderWithClient(<CoworkRunHistory coworkId="w1" reloadKey={0} />);
         const alert = await screen.findByRole('alert');
         expect(alert).toHaveTextContent('Could not load the run history');
     });

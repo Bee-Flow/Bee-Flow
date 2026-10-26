@@ -1,7 +1,8 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ok, fail } from '@/test/http';
+import { renderWithClient } from '@/test/render';
 import LoginPage from './LoginPage';
 import { opaqueLogin } from '../lib/opaque';
 import { authFetch } from '../utils/helpers';
@@ -85,7 +86,7 @@ afterEach(() => { vi.restoreAllMocks(); });
 
 async function renderLogin() {
     const onLogin = vi.fn();
-    const utils = render(<LoginPage onLogin={onLogin} />);
+    const utils = renderWithClient(<LoginPage onLogin={onLogin} />);
     await screen.findByTestId('login-submit-button');
     return { ...utils, onLogin };
 }
@@ -98,7 +99,7 @@ function signIn(username = 'ada@example.com', password = 'hunter2') {
 
 describe('what the screen asks the server before it draws anything', () => {
     it('shows a spinner instead of a form until the auth settings have landed', async () => {
-        const { container } = render(<LoginPage onLogin={vi.fn()} />);
+        const { container } = renderWithClient(<LoginPage onLogin={vi.fn()} />);
         // Pin the spinner itself, not just the absence of the form. `allowPasswordLogin`
         // starts at null, so the fields also stay away when the spinner branch would
         // disappear entirely.
@@ -142,7 +143,7 @@ describe('what the screen asks the server before it draws anything', () => {
     // Hoort in stage L16 te veranderen.
     it('spins forever, with no error and no form, when setup-status never arrives', async () => {
         route('/auth/setup-status', () => Promise.reject(new Error('offline')));
-        const { container } = render(<LoginPage onLogin={vi.fn()} />);
+        const { container } = renderWithClient(<LoginPage onLogin={vi.fn()} />);
         await waitFor(() => expect(console.error).toHaveBeenCalled());
         expect(container.querySelector('.animate-spin')).not.toBeNull();
         expect(screen.queryByTestId('login-submit-button')).toBeNull();

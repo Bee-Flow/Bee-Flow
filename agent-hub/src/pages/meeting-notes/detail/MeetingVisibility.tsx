@@ -1,5 +1,6 @@
 import { Users } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useOrgGroupsQuery } from '../../../api/queries/orgGroups';
 import VisibilityCapsule from '../../../components/shared/VisibilityCapsule';
 import { toast } from '../../../components/shared/Toast';
 import useTranslation from '../../../hooks/useTranslation';
@@ -7,6 +8,8 @@ import * as api from '../../../api/transcriptionsApi';
 import { errorMessage } from '../../../utils/caughtError';
 import type { OrgGroup } from '../../../components/shared/VisibilityCapsule.types';
 import type { MeetingNote } from './meetingDetailTypes';
+
+const NO_GROUPS: OrgGroup[] = [];
 
 interface MeetingVisibilityProps {
     meeting?: MeetingNote | null;
@@ -34,16 +37,8 @@ export default function MeetingVisibility({ meeting, canManage = true, onChange 
     const { t } = useTranslation();
     const [open, setOpen] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [orgGroups, setOrgGroups] = useState<OrgGroup[]>([]);
+    const orgGroups: OrgGroup[] = useOrgGroupsQuery(canManage).data ?? NO_GROUPS;
 
-    useEffect(() => {
-        if (!canManage) return undefined;
-        let mounted = true;
-        api.listOrgGroups().then((groups) => {
-            if (mounted) setOrgGroups(Array.isArray(groups) ? groups : []);
-        }).catch(() => {});
-        return () => { mounted = false; };
-    }, [canManage]);
 
     // A note in a project is open to the members of that project and to nobody else, so who can see it is not
     // a choice here: it is not Personal, and it cannot be opened to the organisation or to groups.

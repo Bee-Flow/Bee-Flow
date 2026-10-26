@@ -24,8 +24,8 @@
  * existed and is NOT read as false — those rows fall through to their text.
  */
 import { ChevronRight, History } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
-import { listCoworkRuns } from '../../api/coworkApi';
+import React, { useState } from 'react';
+import { useCoworkRunsQuery } from '../../api/queries/coworkReads';
 import { formatDuration, fullTimestamp } from './coworkFormat';
 import { inertMarkdownComponents, neutraliseActiveFences } from './coworkRunMarkdown';
 import { runStatusToken } from './coworkStatus';
@@ -220,6 +220,8 @@ function HistoryCard({ t, children }: HistoryCardProps) {
     );
 }
 
+const NO_RUNS: CoworkRun[] = [];
+
 interface CoworkRunHistoryProps {
     coworkId: string;
     reloadKey: number | undefined;
@@ -231,28 +233,22 @@ export default function CoworkRunHistory({ coworkId, reloadKey }: CoworkRunHisto
     // rather than announced by a setState in the effect body. Switching items
     // therefore shows the spinner immediately on the same render, instead of
     // flashing the previous item's runs for one frame.
-    const key = `${coworkId}:${reloadKey}`;
-    const [state, setState] = useState<{ key: string | null; runs: CoworkRun[]; total: number; error: string | null }>({ key: null, runs: [], total: 0, error: null });
-
-    useEffect(() => {
-        if (!coworkId) return undefined;
-        let cancelled = false;
-        listCoworkRuns(coworkId)
-            .then(({ runs, total }) => {
-                if (!cancelled) setState({ key, runs, total, error: null });
-            })
-            .catch((err) => {
-                if (!cancelled) setState({ key, runs: [], total: 0, error: err.message });
-            });
-        return () => { cancelled = true; };
-    }, [coworkId, key]);
+    const runsQuery = useCoworkRunsQuery(coworkId, reloadKey);
+    // The answer belongs to the item and key it was read for, so switching items
+    // shows the spinner at once instead of the previous item's runs for a frame.
+    const state = {
+        pending: runsQuery.isPending,
+        runs: runsQuery.data?.runs ?? NO_RUNS,
+        total: runsQuery.data?.total ?? 0,
+        error: runsQuery.isError ? runsQuery.error.message : null,
+    };
 
     const note = (children: string, extra: { 'data-testid': string; } | {} = {}) => (
         <p className="text-[12px] px-3.5 py-3 text-[var(--text-tertiary)]" {...extra}>{children}</p>
     );
 
     let body: React.JSX.Element;
-    if (state.key !== key) {
+    if (state.pending) {
         body = note(t('cowork.history.loading', 'Loading history…'));
     } else if (state.error) {
         body = (

@@ -1,10 +1,11 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../api/transcriptionsApi', () => ({ listTranscriptionTags: vi.fn() }));
 
 import useMeetingTags from './useMeetingTags';
 import { listTranscriptionTags } from '../../../api/transcriptionsApi';
+import { renderHookWithClient } from '../../../test/render';
 
 /**
  * The chip vocabulary. The server counts over every note the caller may read;
@@ -33,7 +34,7 @@ describe('useMeetingTags', () => {
             { tag: 'dataweging', count: 41 },
             { tag: 'spelersmonitor', count: '3' },
         ]);
-        const { result } = renderHook(() => useMeetingTags(ROWS));
+        const { result } = renderHookWithClient(() => useMeetingTags(ROWS));
         await waitFor(() => expect(result.current.fromServer).toBe(true));
         expect(result.current.tags).toEqual([
             { tag: 'dataweging', count: 41 },
@@ -43,7 +44,7 @@ describe('useMeetingTags', () => {
 
     it('falls back to the loaded rows when the endpoint fails — never an empty filter row', async () => {
         listTranscriptionTags.mockRejectedValue(Object.assign(new Error('HTTP 404'), { status: 404 }));
-        const { result } = renderHook(() => useMeetingTags(ROWS));
+        const { result } = renderHookWithClient(() => useMeetingTags(ROWS));
         await waitFor(() => expect(result.current.tags.length).toBeGreaterThan(0));
         expect(result.current.fromServer).toBe(false);
         expect(result.current.tags).toEqual([
@@ -54,7 +55,7 @@ describe('useMeetingTags', () => {
 
     it('a row with a non-array or missing tags value counts as no tags', async () => {
         listTranscriptionTags.mockRejectedValue(new Error('offline'));
-        const { result } = renderHook(() => useMeetingTags([{ id: 'x', tags: { a: 1 } }, { id: 'y' }]));
+        const { result } = renderHookWithClient(() => useMeetingTags([{ id: 'x', tags: { a: 1 } }, { id: 'y' }]));
         await waitFor(() => expect(result.current.fromServer).toBe(false));
         expect(result.current.tags).toEqual([]);
     });
@@ -66,14 +67,14 @@ describe('useMeetingTags', () => {
             { tag: 7, count: 5 },
             null,
         ]);
-        const { result } = renderHook(() => useMeetingTags([]));
+        const { result } = renderHookWithClient(() => useMeetingTags([]));
         await waitFor(() => expect(result.current.fromServer).toBe(true));
         expect(result.current.tags).toEqual([{ tag: 'ok', count: 2 }]);
     });
 
     it('re-asks the server when the page bumps the refresh key (a tag was added)', async () => {
         listTranscriptionTags.mockResolvedValue([{ tag: 'one', count: 1 }]);
-        const { result, rerender } = renderHook(({ key }) => useMeetingTags([], key), {
+        const { result, rerender } = renderHookWithClient(({ key }) => useMeetingTags([], key), {
             initialProps: { key: 0 },
         });
         await waitFor(() => expect(result.current.fromServer).toBe(true));

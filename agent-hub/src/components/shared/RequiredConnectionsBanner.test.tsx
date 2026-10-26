@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
+import { renderWithClient } from '../../test/render';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import RequiredConnectionsBanner from './RequiredConnectionsBanner';
 import { authFetch } from '../../utils/helpers';
@@ -28,7 +29,7 @@ describe('RequiredConnectionsBanner', () => {
             ok: true,
             json: async () => ({ requiresConnection: [{ provider: 'google' }] }),
         } as unknown as Response);
-        render(<RequiredConnectionsBanner resourceType="agent" resourceId="a1" providers={['google']} />);
+        renderWithClient(<RequiredConnectionsBanner resourceType="agent" resourceId="a1" providers={['google']} />);
         const link = await screen.findByRole('link', { name: 'Settings → Connections' });
         expect(link).toHaveAttribute('href', '/app/settings/integrations');
         expect(screen.getByText(/Connect google in/)).toBeInTheDocument();
@@ -39,7 +40,7 @@ describe('RequiredConnectionsBanner', () => {
             ok: true,
             json: async () => ({ requiresConnection: [] }),
         } as unknown as Response);
-        const { container } = render(<RequiredConnectionsBanner resourceType="agent" resourceId="a1" providers={['google']} />);
+        const { container } = renderWithClient(<RequiredConnectionsBanner resourceType="agent" resourceId="a1" providers={['google']} />);
         await vi.waitFor(() => expect(mockedFetch).toHaveBeenCalled());
         expect(container).toBeEmptyDOMElement();
     });

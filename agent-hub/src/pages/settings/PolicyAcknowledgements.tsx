@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { usePolicyBodyQuery, usePublishedPoliciesQuery } from '../../api/queries/complianceReads';
 import { FileText, Check, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import { API_BASE } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
-import { logger } from '../../utils/logger';
-import { mutate, ApiError, request, RefusedError } from '../../api/mutate';
+import { mutate, ApiError } from '../../api/mutate';
 
 /**
  * Member-facing ISMS policy acknowledgements (ISO 27001 clause 7.3 awareness).
@@ -16,42 +16,18 @@ import { mutate, ApiError, request, RefusedError } from '../../api/mutate';
  */
 export default function PolicyAcknowledgements() {
     const { t } = useTranslation();
-    const [docs, setDocs] = useState<{ slug: string; title: string; current_version: number; acknowledged?: boolean | string; acknowledged_at: string | null }[] | null>(null);
+    type PolicyDoc = { slug: string; title: string; current_version: number; acknowledged?: boolean | string; acknowledged_at: string | null };
+    const policies = usePublishedPoliciesQuery<PolicyDoc>();
+    // 402/403 (unlicensed or no access) reads as none, so the card stays invisible.
+    const docs: PolicyDoc[] | null = policies.isPending ? null : (policies.data ?? []);
     const [openSlug, setOpenSlug] = useState<string | null>(null);
-    const [body, setBody] = useState<{ body: string } | null>(null);
+    const body = usePolicyBodyQuery(openSlug).data ?? null;
     const [busySlug, setBusySlug] = useState<string | null>(null);
-
-    const refresh = async () => {
-        try {
-            let r: Response;
-            try {
-                r = await request(`${API_BASE}/api/compliance/iso/docs/published/me`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                setDocs([]);
-                return;
-            } // 402/403 → unlicensed or no access; stay invisible
-            const data = await r.json();
-            setDocs(Array.isArray(data) ? data : []);
-        } catch { setDocs([]); }
-    };
-
-    useEffect(() => { refresh(); }, []);
+    const { refetch: refresh } = policies;
 
     if (!docs || docs.length === 0) return null;
 
-    const open = async (slug: string) => {
-        if (openSlug === slug) { setOpenSlug(null); setBody(null); return; }
-        setOpenSlug(slug);
-        setBody(null);
-        try {
-            const r = await request(`${API_BASE}/api/compliance/iso/docs/published/${encodeURIComponent(slug)}/body`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (r) setBody(await r.json());
-        } catch (err) { logger.debug('body stays null; confirm still possible from the list row', err); }
-    };
+    const open = (slug: string) => { setOpenSlug(openSlug === slug ? null : slug); };
 
     const confirm = async (slug: string) => {
         setBusySlug(slug);

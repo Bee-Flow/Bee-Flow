@@ -19,9 +19,10 @@
  * Run: npx vitest run src/components/admin/guardrails/orgShield/OrgShieldEditor.save.test.jsx
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderWithClient } from '@/test/render';
 
 vi.mock('../../../../../utils/helpers', () => ({
     API_BASE: '',
@@ -116,7 +117,7 @@ beforeEach(() => {
 const saveButton = () => screen.getByRole('button', { name: /save/i });
 
 async function renderLoaded() {
-    render(<OrgShieldEditor orgId={ORG_ID} />);
+    renderWithClient(<OrgShieldEditor orgId={ORG_ID} />);
     await waitFor(() => expect(saveButton()).toBeEnabled());
 }
 
@@ -184,7 +185,7 @@ describe('OrgShieldEditor save payload', () => {
 describe('OrgShieldEditor load failure', () => {
     it('shows nothing to edit and nothing to save', async () => {
         shieldStatus = 500;
-        render(<OrgShieldEditor orgId={ORG_ID} />);
+        renderWithClient(<OrgShieldEditor orgId={ORG_ID} />);
 
         const alert = await screen.findByRole('alert');
         expect(alert).toHaveTextContent(/could not load/i);
@@ -201,7 +202,7 @@ describe('OrgShieldEditor load failure', () => {
 
     it('names the access problem specifically on a 403', async () => {
         shieldStatus = 403;
-        render(<OrgShieldEditor orgId={ORG_ID} />);
+        renderWithClient(<OrgShieldEditor orgId={ORG_ID} />);
         const alert = await screen.findByRole('alert');
         expect(alert).toHaveTextContent(/do not have access/i);
         expect(screen.queryByRole('button', { name: /save/i })).toBeNull();

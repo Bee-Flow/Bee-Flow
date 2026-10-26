@@ -1,5 +1,5 @@
 import { Star, Tag, ExternalLink } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useGithubStatsQuery } from '../../api/queries/publicSite';
 import SectionHeader from '../components/SectionHeader';
 import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
@@ -68,21 +68,7 @@ export default function GitHubStats({ data }: { data?: GitHubStatsData }) {
     // Pricing block, the other section that fetches on mount.
     const isDisabled = data && data.enabled === false;
 
-    const [stats, setStats] = useState<RepoStats | null>(null);
-
-    useEffect(() => {
-        let cancelled = false;
-        fetch('/api/public/github-stats', { credentials: 'omit' })
-            .then(r => (r.ok ? r.json() : null))
-            .then(payload => {
-                if (cancelled || !payload || typeof payload !== 'object') return;
-                setStats(payload);
-            })
-            // Fail-soft: the link chip alone is the degraded rendering. No
-            // console.error — a handled degradation is not a browser error.
-            .catch(() => {});
-        return () => { cancelled = true; };
-    }, []);
+    const stats: RepoStats | null = useGithubStatsQuery().data ?? null;
 
     if (isDisabled) return null;
 
