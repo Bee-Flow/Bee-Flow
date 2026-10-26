@@ -1,31 +1,40 @@
 /**
  * The NMBRS page cache at the SOAP boundary: `global.fetch` is scripted, `configStore` is
- * stubbed, and the tools run through executeNmbrsTool exactly as the agent calls them.
+ * the real store over PGlite, and the tools run through executeNmbrsTool exactly as the agent calls them.
  * The point: a full walk over a large company costs ONE SOAP call, not one per page.
  */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const SECRETS = {};
-const configStorePath = require.resolve('../stores/configStore');
-require.cache[configStorePath] = {
-    id: configStorePath,
-    filename: configStorePath,
-    loaded: true,
-    exports: { getSecret: async (key) => SECRETS[key] ?? null },
-};
+// The REAL configStore (encryption included) over an in-process PGlite behind db.js's pool.
+process.env.MASTER_ENCRYPTION_KEY ||= require('node:crypto').randomBytes(32).toString('hex');
+const { usePglitePool } = require('../testUtils/pglitePool');
+const pglite = usePglitePool();
+const configStore = require('../stores/configStore');
 
 const { executeNmbrsTool, clearNmbrsPageCacheForUser } = require('./nmbrsTools');
 const { resetPageCache, getPageCache } = require('./nmbrsPageCache.mts');
 const log = require('../telemetry/log');
 
 const TOKEN = 'a1b2c3d4e5f6a7b8c9d0e1f2';
-function setCreds(userId, { token = TOKEN, subdomain = 'acme' } = {}) {
-    SECRETS[`nmbrs_api_mode_user_${userId}`] = 'soap';
-    SECRETS[`nmbrs_subdomain_user_${userId}`] = subdomain;
-    SECRETS[`nmbrs_email_user_${userId}`] = 'me@acme.nl';
-    SECRETS[`nmbrs_token_user_${userId}`] = token;
-    SECRETS[`nmbrs_env_user_${userId}`] = 'production';
+/**
+ * Store one secret the way configStore.setSecret does (encrypted at rest, same table), minus its
+ * fire-and-forget audit write, which would race this test's one-session PGlite.
+ */
+async function putSecret(key, value) {
+    await configStore.initDB();
+    await pglite.pg.query(
+        'INSERT INTO config (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value',
+        [key, configStore.encryptValue(value, null)],
+    );
+    configStore._applyInvalidation(key);
+}
+async function setCreds(userId, { token = TOKEN, subdomain = 'acme' } = {}) {
+    await putSecret(`nmbrs_api_mode_user_${userId}`, 'soap');
+    await putSecret(`nmbrs_subdomain_user_${userId}`, subdomain);
+    await putSecret(`nmbrs_email_user_${userId}`, 'me@acme.nl');
+    await putSecret(`nmbrs_token_user_${userId}`, token);
+    await putSecret(`nmbrs_env_user_${userId}`, 'production');
 }
 
 let soapCalls = [];
@@ -61,14 +70,14 @@ async function walk(tool, args, userId, ctx = {}) {
     throw new Error('walk did not end');
 }
 
-test.beforeEach(() => {
+test.beforeEach(async () => {
     delete process.env.NMBRS_PAGE_CACHE_TTL_MS;
     delete process.env.NMBRS_PAGE_CACHE_MAX_ENTRIES;
     delete process.env.NMBRS_PAGE_CACHE_MAX_ITEMS;
     resetPageCache();
-    for (const k of Object.keys(SECRETS)) delete SECRETS[k];
-    setCreds('u1');
+    await setCreds('u1');
 });
+test.after(() => pglite.close());
 test.afterEach(() => {
     delete process.env.NMBRS_PAGE_CACHE_TTL_MS;
     resetPageCache();
@@ -125,7 +134,7 @@ test('a later page with no cached entry fetches and then fills the cache', async
 });
 
 test('another company, user, organisation, credentials or argument is a separate entry', async () => {
-    setCreds('u2');
+    await setCreds('u2');
     installFetch(() => CONTRACTS(300));
     const read = (args, user = 'u1', ctx = {}) => executeNmbrsTool(TOOL, { companyId: '9', offset: 100, ...args }, user, ctx);
     await read({});
@@ -158,14 +167,14 @@ test('another company, user, organisation, credentials or argument is a separate
 test('changed credentials do not read the lists fetched under the old ones', async () => {
     installFetch(() => CONTRACTS(300));
     await executeNmbrsTool(TOOL, { companyId: '9', offset: 100 }, 'u1');
-    setCreds('u1', { subdomain: 'other-tenant', token: 'z9y8x7w6v5u4t3s2r1q0p9o8' });
+    await setCreds('u1', { subdomain: 'other-tenant', token: 'z9y8x7w6v5u4t3s2r1q0p9o8' });
     await executeNmbrsTool(TOOL, { companyId: '9', offset: 100 }, 'u1');
     assert.equal(soapCalls.length, 2);
     assert.match(soapCalls[1].body, /<tns:Domain>other-tenant<\/tns:Domain>/);
 });
 
 test('clearNmbrsPageCacheForUser drops that user\'s lists', async () => {
-    setCreds('u2');
+    await setCreds('u2');
     installFetch(() => CONTRACTS(300));
     await executeNmbrsTool(TOOL, { companyId: '9', offset: 100 }, 'u1');
     await executeNmbrsTool(TOOL, { companyId: '9', offset: 100 }, 'u2');
