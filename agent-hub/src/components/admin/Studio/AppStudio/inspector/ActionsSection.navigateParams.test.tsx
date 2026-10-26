@@ -69,7 +69,8 @@ describe('ActionsSection — navigate params', () => {
         const user = userEvent.setup();
         const { lastAction } = renderActions(NAVIGATE);
         await user.click(screen.getByRole('button', { name: 'Carry a value along' }));
-        fireEvent.change(screen.getByLabelText('Value 1 name'), { target: { value: 'recordId' } });
+        await user.clear(screen.getByLabelText('Value 1 name'));
+        await user.type(screen.getByLabelText('Value 1 name'), 'recordId');
         fireEvent.change(screen.getByLabelText('Value 1 formula'), { target: { value: 'item.id' } });
         expect(lastAction().params).toEqual({ recordId: { kind: 'formula', expr: 'item.id' } });
     });
@@ -78,7 +79,8 @@ describe('ActionsSection — navigate params', () => {
         const user = userEvent.setup();
         const { lastAction } = renderActions({ ...NAVIGATE, params: { tab: { kind: 'formula', expr: 'item.tab' } } });
         await user.click(screen.getByRole('button', { name: 'Use a fixed value' }));
-        fireEvent.change(screen.getByLabelText('Value 1'), { target: { value: 'notes' } });
+        await user.clear(screen.getByLabelText('Value 1'));
+        await user.type(screen.getByLabelText('Value 1'), 'notes');
         expect(lastAction().params).toEqual({ tab: { kind: 'static', value: 'notes' } });
     });
 
@@ -96,7 +98,8 @@ describe('ActionsSection — navigate params', () => {
         const user = userEvent.setup();
         const { lastAction } = renderActions({ ...NAVIGATE, params: { a: { kind: 'static', value: '1' } } });
         await user.click(screen.getByRole('button', { name: 'Carry a value along' }));
-        fireEvent.change(screen.getByLabelText('Value 2 name'), { target: { value: 'a' } });
+        await user.clear(screen.getByLabelText('Value 2 name'));
+        await user.type(screen.getByLabelText('Value 2 name'), 'a');
 
         expect(screen.getByText(/already goes by that name/i)).toBeTruthy();
         // The first value is intact — nothing was swallowed.
@@ -123,7 +126,8 @@ describe('ActionsSection — navigate params', () => {
  * the first row's carried value vanished, with nothing said.
  */
 describe('NavigateParamsEditor — a blank name cannot eat another row', () => {
-    it('keeps both rows when two names are cleared', () => {
+    it('keeps both rows when two names are cleared', async () => {
+        const user = userEvent.setup();
         const { lastAction } = renderActions({
             ...NAVIGATE,
             params: {
@@ -131,8 +135,8 @@ describe('NavigateParamsEditor — a blank name cannot eat another row', () => {
                 tab: { kind: 'static', value: 'notes' },
             },
         });
-        fireEvent.change(screen.getByLabelText('Value 1 name'), { target: { value: '' } });
-        fireEvent.change(screen.getByLabelText('Value 2 name'), { target: { value: '' } });
+        await user.clear(screen.getByLabelText('Value 1 name'));
+        await user.clear(screen.getByLabelText('Value 2 name'));
 
         // Both rows are still on screen, waiting to be named…
         expect(screen.getByLabelText('Value 1 name')).toBeTruthy();
@@ -141,10 +145,12 @@ describe('NavigateParamsEditor — a blank name cannot eat another row', () => {
         expect(lastAction()?.params ?? null).toBeNull();
     });
 
-    it('commits a row again as soon as it is named', () => {
+    it('commits a row again as soon as it is named', async () => {
+        const user = userEvent.setup();
         const { lastAction } = renderActions({ ...NAVIGATE, params: { recordId: { kind: 'formula', expr: 'item.id' } } });
-        fireEvent.change(screen.getByLabelText('Value 1 name'), { target: { value: '' } });
-        fireEvent.change(screen.getByLabelText('Value 1 name'), { target: { value: 'ticketId' } });
+        await user.clear(screen.getByLabelText('Value 1 name'));
+        await user.clear(screen.getByLabelText('Value 1 name'));
+        await user.type(screen.getByLabelText('Value 1 name'), 'ticketId');
         expect(lastAction().params).toEqual({ ticketId: { kind: 'formula', expr: 'item.id' } });
     });
 });

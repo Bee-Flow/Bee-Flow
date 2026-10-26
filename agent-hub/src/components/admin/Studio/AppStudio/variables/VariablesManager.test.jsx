@@ -63,11 +63,12 @@ describe('VariablesManager — the list', () => {
 });
 
 describe('VariablesManager — types and starting values', () => {
-    it('changing the type re-coerces the starting value', () => {
+    it('changing the type re-coerces the starting value', async () => {
+        const user = userEvent.setup();
         // Otherwise a text default survives onto a number variable and the
         // server rejects the save with a type error the user never asked for.
         const { last } = renderManager(baseDef([decl('a', { default: 'abc' })]));
-        fireEvent.change(screen.getByLabelText('Type of a'), { target: { value: 'number' } });
+        await user.selectOptions(screen.getByLabelText('Type of a'), 'number');
         expect(last().variables[0]).toMatchObject({ type: 'number', default: 0 });
     });
 
@@ -89,39 +90,48 @@ describe('VariablesManager — types and starting values', () => {
         expect(last().variables[0].default).toBe(null);
     });
 
-    it('a JSON starting value only commits once it parses', () => {
+    it('a JSON starting value only commits once it parses', async () => {
+        const user = userEvent.setup();
         const { last, onCommit } = renderManager(baseDef([decl('cfg', { type: 'record', default: {} })]));
         const input = screen.getByLabelText('Starting value of cfg');
-        fireEvent.change(input, { target: { value: '{"a"' } });
+        await user.clear(input);
+        await user.type(input, '{{"a"');
         expect(screen.getByText(/not valid json yet/i)).toBeTruthy();
         expect(onCommit).not.toHaveBeenCalled();
-        fireEvent.change(input, { target: { value: '{"a":1}' } });
+        await user.clear(input);
+        await user.type(input, '{{"a":1}');
         expect(last().variables[0].default).toEqual({ a: 1 });
     });
 });
 
 describe('VariablesManager — names', () => {
-    it('renames an unused variable', () => {
+    it('renames an unused variable', async () => {
+        const user = userEvent.setup();
         const { last } = renderManager(baseDef([decl('old')]));
         const input = screen.getByLabelText('Name of old');
-        fireEvent.change(input, { target: { value: 'renamed' } });
+        await user.clear(input);
+        await user.type(input, 'renamed');
         fireEvent.blur(input);
         expect(last().variables[0].name).toBe('renamed');
     });
 
-    it('refuses a name no formula could read, and says what is wrong', () => {
+    it('refuses a name no formula could read, and says what is wrong', async () => {
+        const user = userEvent.setup();
         const { onCommit } = renderManager(baseDef([decl('ok')]));
         const input = screen.getByLabelText('Name of ok');
-        fireEvent.change(input, { target: { value: 'my var' } });
+        await user.clear(input);
+        await user.type(input, 'my var');
         fireEvent.blur(input);
         expect(onCommit).not.toHaveBeenCalled();
         expect(screen.getByText(/one word/i)).toBeTruthy();
     });
 
-    it('refuses the filter bar’s reserved name with an explanation', () => {
+    it('refuses the filter bar’s reserved name with an explanation', async () => {
+        const user = userEvent.setup();
         const { onCommit } = renderManager(baseDef([decl('ok')]));
         const input = screen.getByLabelText('Name of ok');
-        fireEvent.change(input, { target: { value: 'filters' } });
+        await user.clear(input);
+        await user.type(input, 'filters');
         fireEvent.blur(input);
         expect(onCommit).not.toHaveBeenCalled();
         expect(screen.getByText(/belongs to the filter bar/i)).toBeTruthy();

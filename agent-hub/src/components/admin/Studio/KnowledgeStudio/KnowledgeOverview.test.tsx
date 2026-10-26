@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -129,6 +129,7 @@ describe('KnowledgeOverview', () => {
     });
 
     it('hides the search box until the list is long enough to need it', async () => {
+        const user = userEvent.setup();
         asMock(knowledgeApi.list).mockResolvedValue([kb()]);
         const { unmount } = render(<KnowledgeOverview {...omitted<ComponentProps<typeof KnowledgeOverview>>()} />);
         await screen.findByTestId('kb-row');
@@ -140,7 +141,8 @@ describe('KnowledgeOverview', () => {
         );
         render(<KnowledgeOverview {...omitted<ComponentProps<typeof KnowledgeOverview>>()} />);
         await waitFor(() => expect(screen.getAllByTestId('kb-row')).toHaveLength(5));
-        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Base 3' } });
+        await user.clear(screen.getByRole('textbox'));
+        await user.type(screen.getByRole('textbox'), 'Base 3');
         expect(screen.getAllByTestId('kb-row')).toHaveLength(1);
     });
 

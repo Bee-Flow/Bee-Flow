@@ -124,26 +124,29 @@ describe('ActionsSection — a multi-step action is no longer invisible', () => 
     });
 
     // The destructive one: this used to happen on the first change, silently.
-    it('asks before throwing the other steps away', () => {
+    it('asks before throwing the other steps away', async () => {
+        const user = userEvent.setup();
         const { onCommit } = renderSection(SEQUENCE);
-        fireEvent.change(screen.getByRole('combobox', { name: 'Action kind' }), { target: { value: 'toast' } });
+        await user.selectOptions(screen.getByRole('combobox', { name: 'Action kind' }), 'toast');
         expect(onCommit).not.toHaveBeenCalled();
         expect(screen.getByText(/keep only one step/i)).toBeTruthy();
     });
 
-    it('a one-step flow switches without a fuss', () => {
+    it('a one-step flow switches without a fuss', async () => {
+        const user = userEvent.setup();
         const { lastAction } = renderSection({ kind: 'sequence', steps: [{ kind: 'toast', message: 'x' }] });
-        fireEvent.change(screen.getByRole('combobox', { name: 'Action kind' }), { target: { value: 'toast' } });
+        await user.selectOptions(screen.getByRole('combobox', { name: 'Action kind' }), 'toast');
         expect(lastAction().kind).toBe('toast');
     });
 });
 
 describe('ActionsSection — turning one action into a flow', () => {
-    it('keeps what was there as the first step', () => {
+    it('keeps what was there as the first step', async () => {
+        const user = userEvent.setup();
         // The old behaviour built a fresh default, so the author's work vanished.
         const { lastAction } = renderSection({ kind: 'toast', message: 'Saved!', tone: 'success' });
         openDisclosures();
-        fireEvent.change(screen.getByRole('combobox', { name: 'Action kind' }), { target: { value: 'sequence' } });
+        await user.selectOptions(screen.getByRole('combobox', { name: 'Action kind' }), 'sequence');
 
         expect(lastAction().kind).toBe('sequence');
         expect(lastAction().steps).toHaveLength(1);
@@ -187,14 +190,15 @@ describe('ActionsSection — the automation contract, when it drifts', () => {
  * nothing happened, and then quietly lost both.
  */
 describe('ActionsSection — turning an action into a flow keeps its effects', () => {
-    it('turns onSuccess into the steps that do the same thing', () => {
+    it('turns onSuccess into the steps that do the same thing', async () => {
+        const user = userEvent.setup();
         const { lastAction } = renderSection({
             kind: 'run_automation',
             automationId: 'auto-1',
             onSuccess: { toast: { message: 'Saved!', tone: 'success' }, navigateTo: 'scr_b' },
         });
         openDisclosures();
-        fireEvent.change(screen.getByLabelText('Action kind'), { target: { value: 'sequence' } });
+        await user.selectOptions(screen.getByLabelText('Action kind'), 'sequence');
 
         const steps = lastAction().steps;
         expect(steps.map((s: { kind: unknown }) => s.kind)).toEqual(['run_automation', 'toast', 'navigate']);
@@ -205,14 +209,15 @@ describe('ActionsSection — turning an action into a flow keeps its effects', (
         expect(steps[0]).not.toHaveProperty('onSuccess');
     });
 
-    it('says so when the on-error part cannot come across', () => {
+    it('says so when the on-error part cannot come across', async () => {
+        const user = userEvent.setup();
         const { lastAction } = renderSection({
             kind: 'run_automation',
             automationId: 'auto-1',
             onError: { toast: { message: 'Oh no', tone: 'danger' } },
         });
         openDisclosures();
-        fireEvent.change(screen.getByLabelText('Action kind'), { target: { value: 'sequence' } });
+        await user.selectOptions(screen.getByLabelText('Action kind'), 'sequence');
 
         // A flow stops at the step that fails, so there is nowhere to put it.
         expect(lastAction().steps.map((s: { kind: unknown }) => s.kind)).toEqual(['run_automation']);

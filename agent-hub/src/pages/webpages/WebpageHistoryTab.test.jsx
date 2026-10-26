@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -361,6 +361,7 @@ describe('WebpageHistoryTab — een momentopname zonder bytes', () => {
 
 describe('WebpageHistoryTab — de teller van de ouder', () => {
     it('roept onLoaded niet aan vanuit een state-updater', async () => {
+        const user = userEvent.setup();
         // An updater runs during render and should be pure; `onLoaded` in the real app
         // is a setState of the PARENT. React logs "Cannot update a component while
         // rendering a different component" there — with a bare vi.fn() as parent that
@@ -380,7 +381,7 @@ describe('WebpageHistoryTab — de teller van de ouder', () => {
                 );
             }
             render(<Parent />);
-            fireEvent.click(await screen.findByText('Load more'));
+            await user.click(await screen.findByText('Load more'));
             await waitFor(() => expect(screen.getByTestId('count')).toHaveTextContent('2'));
             expect(errors.join('\n')).not.toMatch(/while rendering a different component/i);
         } finally {

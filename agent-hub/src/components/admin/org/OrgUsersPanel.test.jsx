@@ -253,11 +253,13 @@ describe('OrgUsersPanel — member list rendering', () => {
     });
 
     it('counts members in the Users tab badge from the unfiltered list', async () => {
+        const actor = userEvent.setup();
         await renderPanel();
         const usersTab = screen.getByText('Users').closest('button');
         expect(within(usersTab).getByText('2')).toBeInTheDocument();
         // Filtering the list down to a single row leaves the badge at 2.
-        fireEvent.change(screen.getByLabelText('Search by name or email…'), { target: { value: 'Eva' } });
+        await actor.clear(screen.getByLabelText('Search by name or email…'));
+        await actor.type(screen.getByLabelText('Search by name or email…'), 'Eva');
         expect(screen.queryByText('Jan de Vries')).not.toBeInTheDocument();
         expect(within(usersTab).getByText('2')).toBeInTheDocument();
     });
@@ -338,8 +340,9 @@ describe('OrgUsersPanel — changing a role', () => {
     });
 
     it('PUTs the new orgRole and closes the editor on success', async () => {
+        const actor = userEvent.setup();
         await renderPanel();
-        fireEvent.change(openRoleEditor('Eva Bakker'), { target: { value: 'agent_admin' } });
+        await actor.selectOptions(openRoleEditor('Eva Bakker'), 'agent_admin');
         await waitFor(() => expect(writes()).toContainEqual({
             url: '/auth/users/u_member', method: 'PUT', body: { orgRole: 'agent_admin' },
         }));
@@ -347,10 +350,11 @@ describe('OrgUsersPanel — changing a role', () => {
     });
 
     it('surfaces a refused role change with the server error text, dismissible', async () => {
+        const actor = userEvent.setup();
         await renderPanel({
             write: () => jsonRes({ error: 'This is the last organisation administrator.', code: 'last_org_admin' }, 409),
         });
-        fireEvent.change(openRoleEditor('Jan de Vries'), { target: { value: 'member' } });
+        await actor.selectOptions(openRoleEditor('Jan de Vries'), 'member');
         const banner = await screen.findByText('This is the last organisation administrator.');
         expect(banner).toBeInTheDocument();
         await userEvent.click(banner.parentElement.querySelector('button'));
@@ -358,25 +362,29 @@ describe('OrgUsersPanel — changing a role', () => {
     });
 
     it('leaves the role dropdown open on a refusal, still showing the role that was not saved (wrat)', async () => {
+        const actor = userEvent.setup();
         await renderPanel({ write: () => jsonRes({ error: 'nope' }, 409) });
-        fireEvent.change(openRoleEditor('Jan de Vries'), { target: { value: 'member' } });
+        await actor.selectOptions(openRoleEditor('Jan de Vries'), 'member');
         await screen.findByText('nope');
         expect(within(row('Jan de Vries')).getByRole('combobox')).toBeInTheDocument();
     });
 
     it('falls back to a generic message when the refusal body is not JSON', async () => {
+        const actor = userEvent.setup();
         await renderPanel({ write: () => notJsonRes(500) });
-        fireEvent.change(openRoleEditor('Jan de Vries'), { target: { value: 'member' } });
+        await actor.selectOptions(openRoleEditor('Jan de Vries'), 'member');
         expect(await screen.findByText('That role change could not be applied.')).toBeInTheDocument();
     });
 
     it('reports a network failure during a role change with the same generic message', async () => {
+        const actor = userEvent.setup();
         await renderPanel({ write: () => Promise.reject(new Error('offline')) });
-        fireEvent.change(openRoleEditor('Jan de Vries'), { target: { value: 'member' } });
+        await actor.selectOptions(openRoleEditor('Jan de Vries'), 'member');
         expect(await screen.findByText('That role change could not be applied.')).toBeInTheDocument();
     });
 
     it('asks for confirmation before a self-demotion and re-sends with confirmSelfDemotion', async () => {
+        const actor = userEvent.setup();
         let calls = 0;
         await renderPanel({
             write: () => {
@@ -386,7 +394,7 @@ describe('OrgUsersPanel — changing a role', () => {
                     : jsonRes({ success: true });
             },
         });
-        fireEvent.change(openRoleEditor('Jan de Vries'), { target: { value: 'member' } });
+        await actor.selectOptions(openRoleEditor('Jan de Vries'), 'member');
 
         expect(await screen.findByText('Give up your admin rights?')).toBeInTheDocument();
         expect(screen.getByText('You are about to remove your own admin rights.')).toBeInTheDocument();
@@ -398,10 +406,11 @@ describe('OrgUsersPanel — changing a role', () => {
     });
 
     it('cancelling the self-demotion dialog sends nothing more', async () => {
+        const actor = userEvent.setup();
         await renderPanel({
             write: () => jsonRes({ code: 'confirm_self_demotion', error: 'Are you sure?' }, 409),
         });
-        fireEvent.change(openRoleEditor('Jan de Vries'), { target: { value: 'member' } });
+        await actor.selectOptions(openRoleEditor('Jan de Vries'), 'member');
         await screen.findByText('Give up your admin rights?');
         await userEvent.click(screen.getByText('Cancel'));
         await waitFor(() => expect(screen.queryByText('Give up your admin rights?')).not.toBeInTheDocument());
@@ -484,9 +493,10 @@ describe('OrgUsersPanel — who may see the controls', () => {
     });
 
     it('lets that same roleless viewer actually fire the role change (no client-side gate)', async () => {
+        const actor = userEvent.setup();
         await renderPanel({}, NOBODY);
         await userEvent.click(within(row('Eva Bakker')).getByTitle('Change role'));
-        fireEvent.change(within(row('Eva Bakker')).getByRole('combobox'), { target: { value: 'org_admin' } });
+        await actor.selectOptions(within(row('Eva Bakker')).getByRole('combobox'), 'org_admin');
         await waitFor(() => expect(writes()).toContainEqual({
             url: '/auth/users/u_member', method: 'PUT', body: { orgRole: 'org_admin' },
         }));
@@ -558,20 +568,24 @@ describe('OrgUsersPanel — invitations', () => {
     const openInvite = () => fireEvent.click(screen.getByText('Invite User'));
 
     it('toggles the invite form and disables Send until an address is typed', async () => {
+        const actor = userEvent.setup();
         await renderPanel();
         expect(screen.queryByPlaceholderText('colleague@example.com')).not.toBeInTheDocument();
         openInvite();
         const email = screen.getByPlaceholderText('colleague@example.com');
         expect(screen.getByText('Send').closest('button')).toBeDisabled();
-        fireEvent.change(email, { target: { value: 'new@acme.nl' } });
+        await actor.clear(email);
+        await actor.type(email, 'new@acme.nl');
         expect(screen.getByText('Send').closest('button')).not.toBeDisabled();
     });
 
     it('POSTs the address and role, then reports delivery', async () => {
+        const actor = userEvent.setup();
         await renderPanel({ write: () => jsonRes({ success: true, emailSent: true }) });
         openInvite();
-        fireEvent.change(screen.getByPlaceholderText('colleague@example.com'), { target: { value: 'new@acme.nl' } });
-        fireEvent.change(screen.getByDisplayValue('User'), { target: { value: 'agent_admin' } });
+        await actor.clear(screen.getByPlaceholderText('colleague@example.com'));
+        await actor.type(screen.getByPlaceholderText('colleague@example.com'), 'new@acme.nl');
+        await actor.selectOptions(screen.getByDisplayValue('User'), 'agent_admin');
         await userEvent.click(screen.getByText('Send'));
         await waitFor(() => expect(writes()).toContainEqual({
             url: '/auth/invitations', method: 'POST', body: { email: 'new@acme.nl', role: 'agent_admin' },
@@ -580,11 +594,13 @@ describe('OrgUsersPanel — invitations', () => {
     });
 
     it('offers a copy-link fallback when the mail could not be delivered', async () => {
+        const actor = userEvent.setup();
         const writeText = vi.fn();
         Object.defineProperty(window.navigator, 'clipboard', { value: { writeText }, configurable: true });
         await renderPanel({ write: () => jsonRes({ success: true, emailSent: false, inviteUrl: 'https://beeflow.nl/invite/abc' }) });
         openInvite();
-        fireEvent.change(screen.getByPlaceholderText('colleague@example.com'), { target: { value: 'new@acme.nl' } });
+        await actor.clear(screen.getByPlaceholderText('colleague@example.com'));
+        await actor.type(screen.getByPlaceholderText('colleague@example.com'), 'new@acme.nl');
         await userEvent.click(screen.getByText('Send'));
         const copy = await screen.findByText('Copy invite link');
         await userEvent.click(copy);
@@ -592,26 +608,32 @@ describe('OrgUsersPanel — invitations', () => {
     });
 
     it('turns a seat-cap refusal into an upgrade link', async () => {
+        const actor = userEvent.setup();
         await renderPanel({ write: () => jsonRes({ error: 'Seat cap reached', code: 'seat_cap_exceeded' }, 402) });
         openInvite();
-        fireEvent.change(screen.getByPlaceholderText('colleague@example.com'), { target: { value: 'new@acme.nl' } });
+        await actor.clear(screen.getByPlaceholderText('colleague@example.com'));
+        await actor.type(screen.getByPlaceholderText('colleague@example.com'), 'new@acme.nl');
         await userEvent.click(screen.getByText('Send'));
         expect(await screen.findByText('Seat cap reached')).toBeInTheDocument();
         expect(screen.getByText('View plans & upgrade').getAttribute('href')).toBe('/app/settings/organisation/license');
     });
 
     it('reports a non-JSON server reply as a network error (wrat)', async () => {
+        const actor = userEvent.setup();
         await renderPanel({ write: () => notJsonRes(502) });
         openInvite();
-        fireEvent.change(screen.getByPlaceholderText('colleague@example.com'), { target: { value: 'new@acme.nl' } });
+        await actor.clear(screen.getByPlaceholderText('colleague@example.com'));
+        await actor.type(screen.getByPlaceholderText('colleague@example.com'), 'new@acme.nl');
         await userEvent.click(screen.getByText('Send'));
         expect(await screen.findByText('Network error — please try again')).toBeInTheDocument();
     });
 
     it('treats a 200 without success:true as a failure', async () => {
+        const actor = userEvent.setup();
         await renderPanel({ write: () => jsonRes({ success: false, error: 'Domain not allowed' }) });
         openInvite();
-        fireEvent.change(screen.getByPlaceholderText('colleague@example.com'), { target: { value: 'new@acme.nl' } });
+        await actor.clear(screen.getByPlaceholderText('colleague@example.com'));
+        await actor.type(screen.getByPlaceholderText('colleague@example.com'), 'new@acme.nl');
         await userEvent.click(screen.getByText('Send'));
         expect(await screen.findByText('Domain not allowed')).toBeInTheDocument();
     });
@@ -737,6 +759,7 @@ describe('OrgUsersPanel — group assignment popover', () => {
     });
 
     it('only shows the search box above five groups', async () => {
+        const actor = userEvent.setup();
         await renderPanel();
         openPopover('Jan de Vries');
         expect(screen.queryByPlaceholderText('Search groups…')).not.toBeInTheDocument();
@@ -748,16 +771,19 @@ describe('OrgUsersPanel — group assignment popover', () => {
         });
         openPopover('Jan de Vries');
         const search = screen.getByPlaceholderText('Search groups…');
-        fireEvent.change(search, { target: { value: 'group 4' } });
+        await actor.clear(search);
+        await actor.type(search, 'group 4');
         expect(screen.getAllByRole('button').filter(b => /^Group \d/.test(b.textContent))).toHaveLength(1);
     });
 
     it('says so when the search matches nothing', async () => {
+        const actor = userEvent.setup();
         await renderPanel({
             groups: Array.from({ length: 6 }, (_, i) => ({ id: `g${i}`, name: `Group ${i}`, organizationId: 'orgA' })),
         });
         openPopover('Jan de Vries');
-        fireEvent.change(screen.getByPlaceholderText('Search groups…'), { target: { value: 'zzz' } });
+        await actor.clear(screen.getByPlaceholderText('Search groups…'));
+        await actor.type(screen.getByPlaceholderText('Search groups…'), 'zzz');
         expect(screen.getByText('No groups match your search.')).toBeInTheDocument();
     });
 
@@ -823,6 +849,7 @@ describe('OrgUsersPanel — groups section', () => {
     });
 
     it('an Azure-synced group hides Delete but keeps Edit and the role selector (wrat)', async () => {
+        const actor = userEvent.setup();
         await renderPanel({
             groups: [{ id: 'g_az', name: 'Azure Sales', organizationId: 'orgA', source: 'azure', lastSyncedAt: '2026-09-01T10:00:00Z' }],
         });
@@ -835,7 +862,7 @@ describe('OrgUsersPanel — groups section', () => {
         await userEvent.click(screen.getByText('Azure Sales'));
         const roleSelect = within(groupCard('Azure Sales')).getByDisplayValue('User (default)');
         expect(roleSelect).not.toBeDisabled();
-        fireEvent.change(roleSelect, { target: { value: 'org_admin' } });
+        await actor.selectOptions(roleSelect, 'org_admin');
         await waitFor(() => expect(writes()).toContainEqual({
             url: '/auth/groups/g_az', method: 'PUT', body: { orgRole: 'org_admin' },
         }));
@@ -862,10 +889,13 @@ describe('OrgUsersPanel — groups section', () => {
     });
 
     it('creates a group and keeps the form open when the server refuses (wrat)', async () => {
+        const actor = userEvent.setup();
         await renderPanel({ write: () => jsonRes({ error: 'nope' }, 400) });
         await userEvent.click(screen.getByText('Create New Group'));
-        fireEvent.change(screen.getByPlaceholderText('Group name'), { target: { value: 'Legal' } });
-        fireEvent.change(screen.getByPlaceholderText('Description (optional)'), { target: { value: 'Legal team' } });
+        await actor.clear(screen.getByPlaceholderText('Group name'));
+        await actor.type(screen.getByPlaceholderText('Group name'), 'Legal');
+        await actor.clear(screen.getByPlaceholderText('Description (optional)'));
+        await actor.type(screen.getByPlaceholderText('Description (optional)'), 'Legal team');
         await userEvent.click(screen.getByText('Create'));
         await waitFor(() => expect(writes()).toContainEqual({
             url: '/auth/groups', method: 'POST', body: { name: 'Legal', description: 'Legal team', organizationId: 'orgA' },
@@ -886,10 +916,12 @@ describe('OrgUsersPanel — groups section', () => {
     });
 
     it('renames the group description inline', async () => {
+        const actor = userEvent.setup();
         await renderPanel();
         await userEvent.click(within(groupCard('Finance')).getByTitle('Edit group settings'));
         const input = screen.getByDisplayValue('Finance team');
-        fireEvent.change(input, { target: { value: 'All things money' } });
+        await actor.clear(input);
+        await actor.type(input, 'All things money');
         fireEvent.keyDown(input, { key: 'Enter' });
         await waitFor(() => expect(writes()).toContainEqual({
             url: '/auth/groups/g_fin', method: 'PUT', body: { description: 'All things money' },

@@ -61,12 +61,14 @@ describe('PlanCard', () => {
     });
 
     it('adds and removes rows before approving', async () => {
+        const user = userEvent.setup();
         const onBuild = vi.fn();
         render(<PlanCard pendingPlan={PLAN} onBuild={onBuild} onDiscuss={vi.fn()} />);
 
         // Add a role via its inline form.
         const addRole = screen.getByPlaceholderText('Add role');
-        fireEvent.change(addRole, { target: { value: 'Technician' } });
+        await user.clear(addRole);
+        await user.type(addRole, 'Technician');
         fireEvent.keyDown(addRole, { key: 'Enter' });
 
         // Remove the "By status" dataset.
@@ -90,6 +92,7 @@ describe('PlanCard', () => {
     });
 
     it('keeps a half-typed "Add field" with its own table when another table is deleted', async () => {
+        const user = userEvent.setup();
         const onBuild = vi.fn();
         const twoTables = {
             planId: 'pl-3',
@@ -105,7 +108,8 @@ describe('PlanCard', () => {
 
         // Start adding a field to the SECOND table, then delete the first one.
         const addField = screen.getAllByPlaceholderText('Add field');
-        fireEvent.change(addField[1], { target: { value: 'phone' } });
+        await user.clear(addField[1]);
+        await user.type(addField[1], 'phone');
         await userEvent.click(screen.getByLabelText('Remove Tasks'));
 
         // The surviving table keeps its own (empty) add box — the typed text
@@ -150,10 +154,12 @@ describe('PlanCard — every edit survives the server-side bounding', () => {
         return { onBuild, approve: () => { fireEvent.click(screen.getByText('Build it')); return approved(onBuild.mock.calls[0][0]); } };
     };
 
-    it('an added table reaches the server', () => {
+    it('an added table reaches the server', async () => {
+        const user = userEvent.setup();
         const { approve } = build(PLAN);
         const add = screen.getByPlaceholderText('Add table');
-        fireEvent.change(add, { target: { value: 'Invoices' } });
+        await user.clear(add);
+        await user.type(add, 'Invoices');
         fireEvent.keyDown(add, { key: 'Enter' });
         expect(approve().tables.map((t: { name: unknown }) => t.name)).toEqual(['Tasks', 'Invoices']);
     });

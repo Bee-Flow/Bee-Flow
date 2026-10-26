@@ -1,4 +1,4 @@
-import { render, fireEvent, screen, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
@@ -119,7 +119,8 @@ describe('ActionsSection — shared actions', () => {
         );
         const { getByRole, getByPlaceholderText, lastDef } = renderActions(def, 'cmp_a');
         await user.click(getByRole('button', { name: /only for this one/i }));
-        fireEvent.change(getByPlaceholderText(/what should the message say/i), { target: { value: 'Sent!' } });
+        await user.clear(getByPlaceholderText(/what should the message say/i));
+        await user.type(getByPlaceholderText(/what should the message say/i), 'Sent!');
 
         const next = lastDef();
         expect(next.actions.act_1.message).toBe('Saved');

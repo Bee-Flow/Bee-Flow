@@ -87,14 +87,16 @@ describe('NodeDetailView — form trigger', () => {
     });
 
     it('survives adding and removing a question (the field list changes length)', async () => {
+        const user = userEvent.setup();
         await act(async () => { render(<NodeDetailView {...props(formTrigger(FIELDS))} />); });
-        await act(async () => { fireEvent.click(screen.getByText('Add a question')); });
+        await act(async () => { await user.click(screen.getByText('Add a question')); });
         expect(screen.getByDisplayValue('New question')).toBeTruthy();
-        await act(async () => { fireEvent.click(screen.getByLabelText('Remove Your name')); });
+        await act(async () => { await user.click(screen.getByLabelText('Remove Your name')); });
         expect(screen.queryByDisplayValue('Your name')).toBeNull();
     });
 
     it('survives toggling the live preview on and off', async () => {
+        const user = userEvent.setup();
         // No onExecuteStep here, so onTestSubmit is null (canExecute requires
         // it) and the preview keeps its old collapsed default — the
         // default-OPEN behaviour is specifically about the trigger's
@@ -102,9 +104,9 @@ describe('NodeDetailView — form trigger', () => {
         // `describe('supplying the trigger's data')` where onExecuteStep is
         // wired. This test just guards the toggle itself still works.
         await act(async () => { render(<NodeDetailView {...props(formTrigger(FIELDS))} />); });
-        await act(async () => { fireEvent.click(screen.getByText('Preview the form')); });
+        await act(async () => { await user.click(screen.getByText('Preview the form')); });
         expect(screen.getByTestId('form-preview')).toBeTruthy();
-        await act(async () => { fireEvent.click(screen.getByText('Hide preview')); });
+        await act(async () => { await user.click(screen.getByText('Hide preview')); });
         expect(screen.queryByTestId('form-preview')).toBeNull();
     });
 
@@ -212,6 +214,7 @@ describe('NodeDetailView — form trigger', () => {
         });
 
         it('leaves the identical preview inert on a form_page step', async () => {
+            const user = userEvent.setup();
             // Same component, same editor — but a mid-run page has no trigger
             // to fire, so it gets no submit handler and stays a picture.
             const page = {
@@ -223,7 +226,7 @@ describe('NodeDetailView — form trigger', () => {
             await act(async () => {
                 render(<NodeDetailView {...withActions(trigger)} step={page} definition={definition} rootDefinition={definition} />);
             });
-            await act(async () => { fireEvent.click(screen.getByText('Preview the form')); });
+            await act(async () => { await user.click(screen.getByText('Preview the form')); });
             const preview = within(screen.getByTestId('form-preview'));
             expect(preview.getByRole('button', { name: 'Next' }).disabled).toBe(true);
         });

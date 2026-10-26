@@ -112,21 +112,23 @@ describe('HouseStylePanel — the master switch', () => {
 
 describe('HouseStylePanel — the logo', () => {
     it('reads a chosen file into a data URL rather than a path', async () => {
+        const user = userEvent.setup();
         // The logo must travel as BYTES: the composer strips every remote url()
         // because the PDF renders in a Chromium on the server.
         await renderPanel();
         const file = new File(['x'], 'logo.png', { type: 'image/png' });
         Object.defineProperty(file, 'size', { value: 1024 });
-        fireEvent.change(screen.getByTestId('house-style-logo-input'), { target: { files: [file] } });
+        await user.upload(screen.getByTestId('house-style-logo-input'), [file]);
         await waitFor(() => expect(api.fileToDataUrl).toHaveBeenCalledWith(file));
         await waitFor(() => expect(screen.getByTestId('house-style-logo')).toBeTruthy());
     });
 
     it('refuses an oversized file before reading it, with the sizes named', async () => {
+        const user = userEvent.setup();
         await renderPanel();
         const file = new File(['x'], 'huge.png', { type: 'image/png' });
         Object.defineProperty(file, 'size', { value: 900 * 1024 });
-        fireEvent.change(screen.getByTestId('house-style-logo-input'), { target: { files: [file] } });
+        await user.upload(screen.getByTestId('house-style-logo-input'), [file]);
         expect(await screen.findByText(/900 KB; the limit is 256 KB/)).toBeTruthy();
         expect(api.fileToDataUrl).not.toHaveBeenCalled();
     });
@@ -175,7 +177,8 @@ describe('HouseStylePanel — presentations', () => {
         await renderPanel();
         await user.click(screen.getByTestId('house-style-deck-preset-clean'));
         await user.selectOptions(screen.getByTestId('house-style-deck-tableStyle'), 'lines');
-        fireEvent.change(screen.getByTestId('house-style-deck-footer'), { target: { value: 'Vertrouwelijk' } });
+        await user.clear(screen.getByTestId('house-style-deck-footer'));
+        await user.type(screen.getByTestId('house-style-deck-footer'), 'Vertrouwelijk');
         await user.click(screen.getByTestId('house-style-deck-numbers'));
         await user.click(screen.getByTestId('house-style-save'));
         await waitFor(() => expect(api.saveHouseStyle).toHaveBeenCalled());
@@ -198,7 +201,7 @@ describe('HouseStylePanel — the template deck', () => {
         api.previewDeckTheme.mockResolvedValue({ ...THEME, template, text: '#FFFFFF', titleStyle: 'plain', background: '#0F96E0' });
         await renderPanel();
         const file = new File(['x'], 'Conf 2026.pptx', { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
-        fireEvent.change(screen.getByTestId('house-style-deck-template-file'), { target: { files: [file] } });
+        await user.upload(screen.getByTestId('house-style-deck-template-file'), [file]);
         await waitFor(() => expect(api.uploadDeckTemplate).toHaveBeenCalledWith('data:image/png;base64,AAA', 'Conf 2026.pptx'));
         expect(await screen.findByText('Conf 2026')).toBeTruthy();
         await waitFor(() => expect(document.querySelector('[data-template="yes"]')).toBeTruthy());
@@ -212,7 +215,7 @@ describe('HouseStylePanel — the template deck', () => {
         const template = { name: 'Conf', aspect: 1.78, cover: { image: 'data:image/jpeg;base64,AAA', overlays: [] }, content: { image: 'data:image/jpeg;base64,AAA', overlays: [] }, background: '#0F96E0', accent: '#0489D2', text: '#FFFFFF', fonts: { title: 'Georgia', body: 'Georgia' } };
         api.uploadDeckTemplate.mockResolvedValue(template);
         await renderPanel();
-        fireEvent.change(screen.getByTestId('house-style-deck-template-file'), { target: { files: [new File(['x'], 'Conf.pptx')] } });
+        await user.upload(screen.getByTestId('house-style-deck-template-file'), [new File(['x'], 'Conf.pptx')]);
         const box = await screen.findByTestId('house-style-template-suggestions');
         expect(box.textContent).toMatch(/#0489D2/);
         expect(box.textContent).toMatch(/Georgia/);
@@ -223,9 +226,10 @@ describe('HouseStylePanel — the template deck', () => {
     });
 
     it('says why a deck could not be used', async () => {
+        const user = userEvent.setup();
         api.uploadDeckTemplate.mockRejectedValue(new Error('No background pictures were found in the first slides of that deck'));
         await renderPanel();
-        fireEvent.change(screen.getByTestId('house-style-deck-template-file'), { target: { files: [new File(['x'], 'plain.pptx')] } });
+        await user.upload(screen.getByTestId('house-style-deck-template-file'), [new File(['x'], 'plain.pptx')]);
         expect(await screen.findByTestId('house-style-deck-template-error')).toBeTruthy();
     });
 });

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -158,12 +158,13 @@ describe('MultiInspector — shared background knob', () => {
         expect(select).toHaveValue('surface');
     });
 
-    it('a mixed selection reads Mixed until one value is committed to all', () => {
+    it('a mixed selection reads Mixed until one value is committed to all', async () => {
+        const user = userEvent.setup();
         const { onCommit, getByRole, getByText } = renderCards();
         expect(getByText('Background · Mixed')).toBeTruthy();
         const select = getByRole('combobox', { name: 'Background' });
         expect(select).toHaveValue('');
-        fireEvent.change(select, { target: { value: 'gradient' } });
+        await user.selectOptions(select, 'gradient');
         const next = onCommit.mock.calls.at(-1)![0];
         const children = next.screens[0].sections[0].children;
         expect(children.map((n: HTMLElement) => n.style.background)).toEqual(['gradient', 'gradient']);

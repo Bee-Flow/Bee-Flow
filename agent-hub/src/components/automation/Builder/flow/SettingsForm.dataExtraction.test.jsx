@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
+import { render, screen, cleanup, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
@@ -154,10 +154,12 @@ describe('SettingsForm — DataExtractionFields', () => {
         expect([...typeSelect.options].map(o => o.value)).toEqual(['string', 'number', 'boolean', 'date']);
     });
 
-    it('coerces the name as it is typed, so the screen shows the key that will be saved', () => {
+    it('coerces the name as it is typed, so the screen shows the key that will be saved', async () => {
+        const user = userEvent.setup();
         renderForm(freshStep());
         const name = screen.getByLabelText('Name');
-        fireEvent.change(name, { target: { value: 'Invoice Date' } });
+        await user.clear(name);
+        await user.type(name, 'Invoice Date');
         expect(name.value).toBe('invoice_date');
     });
 
@@ -166,13 +168,16 @@ describe('SettingsForm — DataExtractionFields', () => {
         const onPatch = vi.fn(async () => {});
         renderForm(freshStep(), { onPatch });
         const rows = () => screen.getAllByTestId('extraction-field-row');
-        fireEvent.change(within(rows()[0]).getByLabelText('Name'), { target: { value: 'datum' } });
-        fireEvent.change(within(rows()[0]).getByLabelText('Type'), { target: { value: 'date' } });
-        fireEvent.change(within(rows()[0]).getByLabelText('What to look for'), { target: { value: 'Invoice date' } });
+        await user.clear(within(rows()[0]).getByLabelText('Name'));
+        await user.type(within(rows()[0]).getByLabelText('Name'), 'datum');
+        await user.selectOptions(within(rows()[0]).getByLabelText('Type'), 'date');
+        await user.clear(within(rows()[0]).getByLabelText('What to look for'));
+        await user.type(within(rows()[0]).getByLabelText('What to look for'), 'Invoice date');
         await user.click(within(rows()[0]).getByRole('checkbox'));
         await user.click(screen.getByText('Add field'));
-        fireEvent.change(within(rows()[1]).getByLabelText('Name'), { target: { value: 'totaal' } });
-        fireEvent.change(within(rows()[1]).getByLabelText('Type'), { target: { value: 'number' } });
+        await user.clear(within(rows()[1]).getByLabelText('Name'));
+        await user.type(within(rows()[1]).getByLabelText('Name'), 'totaal');
+        await user.selectOptions(within(rows()[1]).getByLabelText('Type'), 'number');
         await user.click(screen.getByText('Add field')); // left blank on purpose
         await user.click(screen.getByText('Save'));
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
@@ -191,9 +196,11 @@ describe('SettingsForm — DataExtractionFields', () => {
         const onPatch = vi.fn(async () => {});
         renderForm(freshStep(), { onPatch });
         const rows = () => screen.getAllByTestId('extraction-field-row');
-        fireEvent.change(within(rows()[0]).getByLabelText('Name'), { target: { value: 'datum' } });
+        await user.clear(within(rows()[0]).getByLabelText('Name'));
+        await user.type(within(rows()[0]).getByLabelText('Name'), 'datum');
         await user.click(screen.getByText('Add field'));
-        fireEvent.change(within(rows()[1]).getByLabelText('Name'), { target: { value: 'datum' } });
+        await user.clear(within(rows()[1]).getByLabelText('Name'));
+        await user.type(within(rows()[1]).getByLabelText('Name'), 'datum');
         expect(within(rows()[1]).getByText(/already called datum/)).toBeTruthy();
         expect(within(rows()[0]).queryByText(/already called/)).toBeNull();
         await user.click(screen.getByText('Save'));
@@ -206,11 +213,14 @@ describe('SettingsForm — DataExtractionFields', () => {
         const onPatch = vi.fn(async () => {});
         renderForm(freshStep(), { onPatch });
         const rows = () => screen.getAllByTestId('extraction-field-row');
-        fireEvent.change(within(rows()[0]).getByLabelText('Name'), { target: { value: 'a' } });
+        await user.clear(within(rows()[0]).getByLabelText('Name'));
+        await user.type(within(rows()[0]).getByLabelText('Name'), 'a');
         await user.click(screen.getByText('Add field'));
-        fireEvent.change(within(rows()[1]).getByLabelText('Name'), { target: { value: 'b' } });
+        await user.clear(within(rows()[1]).getByLabelText('Name'));
+        await user.type(within(rows()[1]).getByLabelText('Name'), 'b');
         await user.click(screen.getByText('Add field'));
-        fireEvent.change(within(rows()[2]).getByLabelText('Name'), { target: { value: 'c' } });
+        await user.clear(within(rows()[2]).getByLabelText('Name'));
+        await user.type(within(rows()[2]).getByLabelText('Name'), 'c');
         // The first row cannot move up, the last cannot move down.
         expect(within(rows()[0]).getByLabelText('Move up').disabled).toBe(true);
         expect(within(rows()[2]).getByLabelText('Move down').disabled).toBe(true);

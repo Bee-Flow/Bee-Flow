@@ -64,12 +64,14 @@ describe('SettingsForm — JSON view of the step config (BFSF-481)', () => {
         const user = userEvent.setup();
         const { onPatch } = renderForm(waitStep());
         await user.click(screen.getByTestId('settings-json-toggle'));
-        fireEvent.change(screen.getByLabelText('Step config as JSON'), { target: { value: '{ nope' } });
+        await user.clear(screen.getByLabelText('Step config as JSON'));
+        await user.type(screen.getByLabelText('Step config as JSON'), '{{ nope');
         await user.click(screen.getByText('Apply JSON'));
         expect(screen.getByRole('alert').textContent).toContain('Invalid JSON');
         expect((screen.getByLabelText('Step name') as HTMLInputElement).value).toBe('Hold on');
 
-        fireEvent.change(screen.getByLabelText('Step config as JSON'), { target: { value: '[1, 2]' } });
+        await user.clear(screen.getByLabelText('Step config as JSON'));
+        await user.type(screen.getByLabelText('Step config as JSON'), '[[1, 2]');
         await user.click(screen.getByText('Apply JSON'));
         expect(screen.getByRole('alert').textContent).toContain('must be a JSON object');
         expect(onPatch).not.toHaveBeenCalled();

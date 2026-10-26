@@ -41,7 +41,8 @@ describe('MeetingTagForm', () => {
     it('creates a source from a tag, with summary and decisions by default', async () => {
         const user = userEvent.setup();
         const { onCreate } = await openForm();
-        fireEvent.change(screen.getByTestId('kb-meeting-tag'), { target: { value: 'sales' } });
+        await user.clear(screen.getByTestId('kb-meeting-tag'));
+        await user.type(screen.getByTestId('kb-meeting-tag'), 'sales');
         await user.click(screen.getByTestId('kb-meeting-submit'));
         await waitFor(() => expect(onCreate).toHaveBeenCalledWith({
             kind: 'meeting_tag',
@@ -78,7 +79,8 @@ describe('MeetingTagForm', () => {
     it('adds and removes the optional parts', async () => {
         const user = userEvent.setup();
         const { onCreate } = await openForm();
-        fireEvent.change(screen.getByTestId('kb-meeting-tag'), { target: { value: 'sales' } });
+        await user.clear(screen.getByTestId('kb-meeting-tag'));
+        await user.type(screen.getByTestId('kb-meeting-tag'), 'sales');
         await user.click(screen.getByTestId('kb-meeting-field-decisions'));   // off
         await user.click(screen.getByTestId('kb-meeting-field-questions'));   // on
         await user.click(screen.getByTestId('kb-meeting-submit'));
@@ -89,9 +91,11 @@ describe('MeetingTagForm', () => {
     });
 
     it('will not submit without a tag', async () => {
+        const user = userEvent.setup();
         const { onCreate } = await openForm();
         expect((screen.getByTestId('kb-meeting-submit') as HTMLInputElement).disabled).toBe(true);
-        fireEvent.change(screen.getByTestId('kb-meeting-tag'), { target: { value: '   ' } });
+        await user.clear(screen.getByTestId('kb-meeting-tag'));
+        await user.type(screen.getByTestId('kb-meeting-tag'), '   ');
         expect((screen.getByTestId('kb-meeting-submit') as HTMLInputElement).disabled).toBe(true);
         expect(onCreate).not.toHaveBeenCalled();
     });
@@ -134,7 +138,8 @@ async function openDatatableForm(list = DATATABLE_TABLES, schema = DATATABLE_SCH
 
 /** Pick the table and wait for its columns to arrive. */
 async function pickDatatableColumn(id = 'dt1') {
-    fireEvent.change(screen.getByTestId('kb-datatable-select'), { target: { value: id } });
+    const user = userEvent.setup();
+    await user.selectOptions(screen.getByTestId('kb-datatable-select'), id);
     await screen.findByTestId('kb-datatable-column-name');
 }
 
@@ -231,9 +236,10 @@ describe('DatatableForm — the schema route', () => {
     });
 
     it('a schema that will not load says so, and the button stays off', async () => {
+        const user = userEvent.setup();
         const { datatablesApi } = await openDatatableForm();
         asMock(datatablesApi.getSchema).mockRejectedValue(new Error('down'));
-        fireEvent.change(screen.getByTestId('kb-datatable-select'), { target: { value: 'dt1' } });
+        await user.selectOptions(screen.getByTestId('kb-datatable-select'), 'dt1');
         expect(await screen.findByText(/Could not read this table/i)).toBeTruthy();
         expect((screen.getByTestId('kb-datatable-submit') as HTMLInputElement).disabled).toBe(true);
     });

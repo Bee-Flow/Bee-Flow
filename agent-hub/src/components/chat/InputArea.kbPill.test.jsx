@@ -1,4 +1,4 @@
-import { render as rtlRender, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render as rtlRender, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -98,8 +98,9 @@ function Harness({ onIdsChange, ...props } = {}) {
 }
 
 const openPicker = async () => {
+    const user = userEvent.setup();
     const pill = await screen.findByTestId('composer-pill-kb');
-    fireEvent.click(pill);
+    await user.click(pill);
     return screen.findByTestId('composer-kb-picker');
 };
 

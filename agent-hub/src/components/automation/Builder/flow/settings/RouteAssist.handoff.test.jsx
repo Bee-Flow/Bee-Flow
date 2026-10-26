@@ -30,6 +30,7 @@
  */
 
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const api = { suggestRouteRules: vi.fn() };
@@ -73,9 +74,10 @@ function answers(value) {
 
 /** Get to the state the offer belongs in: the model asked, and it could not. */
 async function askAndFail(answer = NO_FIELD) {
+    const user = userEvent.setup();
     api.suggestRouteRules.mockResolvedValue(answer);
     type(QUESTION);
-    fireEvent.click(screen.getByRole('button', { name: /Ask the AI/i }));
+    await user.click(screen.getByRole('button', { name: /Ask the AI/i }));
     await waitFor(() => expect(api.suggestRouteRules).toHaveBeenCalled());
 }
 
@@ -199,10 +201,11 @@ describe('what it shows before anything happens', () => {
 
 describe('accepting it', () => {
     async function accept(props = {}) {
+        const user = userEvent.setup();
         const handles = setup(props);
         await askAndFail();
         answers('complaint, question, something else');
-        fireEvent.click(await screen.findByRole('button', { name: /Add the step/i }));
+        await user.click(await screen.findByRole('button', { name: /Add the step/i }));
         return handles;
     }
 

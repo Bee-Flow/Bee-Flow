@@ -242,7 +242,8 @@ describe('recovering with the recovery key', () => {
     it('walks back to PIN entry, forgetting what was typed', async () => {
         const user = userEvent.setup();
         openRecovery();
-        fireEvent.change(screen.getByPlaceholderText('Paste your recovery key here'), { target: { value: 'AAAA' } });
+        await user.clear(screen.getByPlaceholderText('Paste your recovery key here'));
+        await user.type(screen.getByPlaceholderText('Paste your recovery key here'), 'AAAA');
         await user.click(screen.getByText('Back to PIN entry'));
         expect(screen.getByText('Unlock Your Data')).toBeInTheDocument();
         await user.click(screen.getByText('Forgot your PIN? Use recovery key'));

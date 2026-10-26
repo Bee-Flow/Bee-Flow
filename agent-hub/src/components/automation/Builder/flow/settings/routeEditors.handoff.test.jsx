@@ -82,11 +82,12 @@ const save = () => fireEvent.click(screen.getByText('Save'));
 
 /** The state the offer belongs in: asked, and the model found no field. */
 async function askAndFail() {
+    const user = userEvent.setup();
     api.suggestRouteRules.mockResolvedValue({
         rules: [], problem: 'None of these fields says what the message is about.',
     });
     describeIt('is this e-mail about a complaint');
-    fireEvent.click(screen.getByRole('button', { name: /Ask the AI/i }));
+    await user.click(screen.getByRole('button', { name: /Ask the AI/i }));
     await screen.findByLabelText('Name the possible answers');
 }
 

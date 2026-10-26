@@ -6,7 +6,7 @@
  * a 220-line block of JSX: what the availability filter actually decides, and
  * that the overlay opens in a direction that fits on screen.
  */
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
@@ -134,7 +134,8 @@ describe('AppsPicker', () => {
         const user = userEvent.setup();
         pickerWith(filterAvailableApps(APP_DEFS, { integrationStatus: GOOGLE }));
         await user.click(screen.getByTestId('apps-picker-button'));
-        fireEvent.change(screen.getByLabelText('Search apps'), { target: { value: 'calendar' } });
+        await user.clear(screen.getByLabelText('Search apps'));
+        await user.type(screen.getByLabelText('Search apps'), 'calendar');
         const ids = screen.getAllByTestId('apps-picker-item').map(el => el.dataset.appId);
         expect(ids).toContain('google-calendar');
         expect(ids).not.toContain('gmail');

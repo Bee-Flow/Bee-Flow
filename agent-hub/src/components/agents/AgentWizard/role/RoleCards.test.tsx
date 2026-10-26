@@ -115,7 +115,8 @@ describe('RoleCards — schrijven levert altijd een VOLLEDIGE persona', () => {
         const card = screen.getByTestId('agent-role-does-not');
         await user.click(card.querySelector('[data-testid="agent-role-bullet-add"]')!);
         const input = card.querySelector('[data-testid="agent-role-bullet-add-input"]');
-        fireEvent.change(input!, { target: { value: 'Change a price' } });
+        await user.clear(input!);
+        await user.type(input!, 'Change a price');
         fireEvent.keyDown(input!, { key: 'Enter' });
         expect(onChange.mock.calls[0][0].doesNot).toEqual(['Promise a discount', 'Change a price']);
     });
@@ -127,7 +128,8 @@ describe('RoleCards — schrijven levert altijd een VOLLEDIGE persona', () => {
         const card = screen.getByTestId('agent-role-does');
         await user.click(card.querySelector('[data-testid="agent-role-bullet-add"]')!);
         const input = card.querySelector('[data-testid="agent-role-bullet-add-input"]');
-        fireEvent.change(input!, { target: { value: 'look up QUOTES' } });
+        await user.clear(input!);
+        await user.type(input!, 'look up QUOTES');
         fireEvent.keyDown(input!, { key: 'Enter' });
         expect(onChange).not.toHaveBeenCalled();
         expect(card.querySelector('[data-testid="agent-role-bullet-rejected"]')).toBeTruthy();

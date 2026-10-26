@@ -12,7 +12,7 @@
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/tests/SuggestedTestForm.test.jsx
  */
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
@@ -65,9 +65,11 @@ describe('SuggestedTestForm — wie schreef dit', () => {
         expect(screen.queryByTestId('agent-tests-field-source-mustNotMention')).toBeNull();
     });
 
-    it('BIJT — zodra jij een veld aanraakt, staat er niet meer dat een AI het schreef', () => {
+    it('BIJT — zodra jij een veld aanraakt, staat er niet meer dat een AI het schreef', async () => {
+        const user = userEvent.setup();
         render(<SuggestedTestForm t={t} turn={TURN} suggestion={SUGGESTION} />);
-        fireEvent.change(screen.getByTestId('agent-tests-field-mustMention'), { target: { value: 'open until six\nfree parking' } });
+        await user.clear(screen.getByTestId('agent-tests-field-mustMention'));
+        await user.type(screen.getByTestId('agent-tests-field-mustMention'), 'open until six\nfree parking');
         expect(screen.queryByTestId('agent-tests-field-source-mustMention')).toBeNull();
         // En de merkjes van de velden die je NIET aanraakte blijven staan.
         expect(screen.getByTestId('agent-tests-field-source-notes')).toBeInTheDocument();
@@ -116,7 +118,8 @@ describe('SuggestedTestForm — bewerken en opslaan', () => {
         const user = userEvent.setup();
         const onSave = vi.fn();
         render(<SuggestedTestForm t={t} turn={TURN} suggestion={SUGGESTION} onSave={onSave} />);
-        fireEvent.change(screen.getByTestId('agent-tests-field-mustMention'), { target: { value: 'open until six on weekdays\n  \nfree parking' } });
+        await user.clear(screen.getByTestId('agent-tests-field-mustMention'));
+        await user.type(screen.getByTestId('agent-tests-field-mustMention'), 'open until six on weekdays\n  \nfree parking');
         await user.clear(screen.getByTestId('agent-tests-field-mustNotMention'));
         await user.type(screen.getByTestId('agent-tests-field-mustNotMention'), 'discount');
         await user.clear(screen.getByTestId('agent-tests-field-toolsExpected'));

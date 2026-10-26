@@ -1,4 +1,5 @@
-import { fireEvent, render } from '@testing-library/react';
+import { render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useCallback, useState } from 'react';
 import { describe, it, expect } from 'vitest';
 import AppRenderer from './AppRenderer';
@@ -239,13 +240,16 @@ describe('AppRenderer — ten forms.* stats inside tabs', () => {
         }
     });
 
-    it('the numbers update live as the form is typed into — binding is not broken', () => {
+    it('the numbers update live as the form is typed into — binding is not broken', async () => {
+        const user = userEvent.setup();
         const { container, getByLabelText, queryAllByText } = render(<Harness definition={tenStatDef()} />);
         // Before anything is typed the tiles are empty, but ALIVE.
         expect(queryAllByText(CRASHED)).toHaveLength(0);
 
-        fireEvent.change(getByLabelText('A'), { target: { value: '7' } });
-        fireEvent.change(getByLabelText('B'), { target: { value: '2' } });
+        await user.clear(getByLabelText('A'));
+        await user.type(getByLabelText('A'), '7');
+        await user.clear(getByLabelText('B'));
+        await user.type(getByLabelText('B'), '2');
 
         expect(queryAllByText(CRASHED)).toHaveLength(0);
         EXPRESSIONS.forEach(([label, , expected], i) => {

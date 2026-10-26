@@ -162,7 +162,8 @@ describe('ConnectorsManager — editing', () => {
 
         // Fill the param key.
         const rerender = renderMgr(withParam);
-        fireEvent.change(rerender.getByRole('textbox', { name: /param 1 key/i }), { target: { value: 'q' } });
+        await user.clear(rerender.getByRole('textbox', { name: /param 1 key/i }));
+        await user.type(rerender.getByRole('textbox', { name: /param 1 key/i }), 'q');
         expect(rerender.last()[0].params[0].key).toBe('q');
     });
 
@@ -184,7 +185,7 @@ describe('ConnectorsManager — editing', () => {
         const user = userEvent.setup();
         const base = [{ id: 'conn_abc123', kind: 'rest', name: 'Items', params: [] }];
         const { last, getByRole, unmount } = renderMgr(stub<Parameters<typeof renderMgr>[0]>(base));
-        fireEvent.change(getByRole('combobox', { name: /connector kind/i }), { target: { value: 'integration_tool' } });
+        await user.selectOptions(getByRole('combobox', { name: /connector kind/i }), 'integration_tool');
         expect(last()[0].kind).toBe('integration_tool');
 
         const switched = last();
@@ -216,16 +217,17 @@ describe('ConnectorsManager — editing', () => {
     });
 
     it('toggles the runAs policy — viewer is persisted, owner drops the field', async () => {
+        const user = userEvent.setup();
         const base = [{ id: 'conn_abc123', kind: 'integration_tool', name: 'Mail', tool: 'gmail_send', params: [] }];
         const first = renderMgr(stub<Parameters<typeof renderMgr>[0]>(base));
 
-        fireEvent.change(first.getByRole('combobox', { name: /connector identity/i }), { target: { value: 'viewer' } });
+        await user.selectOptions(first.getByRole('combobox', { name: /connector identity/i }), 'viewer');
         const withViewer = first.last();
         expect(withViewer[0].runAs).toBe('viewer');
         first.unmount();
 
         const second = renderMgr(withViewer);
-        fireEvent.change(second.getByRole('combobox', { name: /connector identity/i }), { target: { value: 'owner' } });
+        await user.selectOptions(second.getByRole('combobox', { name: /connector identity/i }), 'owner');
         expect('runAs' in second.last()[0]).toBe(false);
     });
 });
@@ -284,7 +286,8 @@ describe('ConnectorsManager — Test it', () => {
         const withParam = [{ ...REST[0], params: [{ key: 'q', type: 'text' }] }];
         const { getByRole, getByLabelText, findByText } = renderMgr(stub<Parameters<typeof renderMgr>[0]>(withParam), { appId: 'app_1' });
 
-        fireEvent.change(getByLabelText('Test value for q'), { target: { value: 'invoices' } });
+        await user.clear(getByLabelText('Test value for q'));
+        await user.type(getByLabelText('Test value for q'), 'invoices');
         await user.click(getByRole('button', { name: /test it/i }));
 
         expect(await findByText(/nothing came back/i)).toBeTruthy();
@@ -444,8 +447,9 @@ describe('ConnectorsManager — the action own parameters', () => {
     });
 
     it('pins a parameter value into fixedArgs', async () => {
+        const user = userEvent.setup();
         const { last, findByRole } = renderMgr(stub<Parameters<typeof renderMgr>[0]>(READ));
-        fireEvent.change(await findByRole('combobox', { name: /where messageId comes from/i }), { target: { value: 'pinned' } });
+        await user.selectOptions(await findByRole('combobox', { name: /where messageId comes from/i }), 'pinned');
         expect(last()[0].fixedArgs).toEqual({ messageId: '' });
 
         const rerender = renderMgr(last());
@@ -454,8 +458,9 @@ describe('ConnectorsManager — the action own parameters', () => {
     });
 
     it('routes a parameter to the viewer instead, declaring it in params[]', async () => {
+        const user = userEvent.setup();
         const { last, findByRole } = renderMgr(stub<Parameters<typeof renderMgr>[0]>(READ));
-        fireEvent.change(await findByRole('combobox', { name: /where messageId comes from/i }), { target: { value: 'viewer' } });
+        await user.selectOptions(await findByRole('combobox', { name: /where messageId comes from/i }), 'viewer');
         expect(last()[0].params).toEqual([{ key: 'messageId', type: 'text', required: true }]);
         expect(last()[0].fixedArgs).toBeUndefined();
     });
@@ -494,20 +499,22 @@ describe('ConnectorsManager — combining actions', () => {
     });
 
     it('a step can be merged into one wide table instead', async () => {
+        const user = userEvent.setup();
         const chained = [{ ...READ[0], chain: [{ tool: 'gmail_search', argsFrom: { messageId: 'id' }, ownTable: true }] }];
         const { last, findByRole } = renderMgr(stub<Parameters<typeof renderMgr>[0]>(chained));
         const select = await findByRole('combobox', { name: /how step 2 folds its result back/i });
-        fireEvent.change(select, { target: { value: '' } });
+        await user.selectOptions(select, '');
         expect(last()[0].chain).toEqual([{ tool: 'gmail_search', argsFrom: { messageId: 'id' } }]);
     });
 
     it('expanding replaces "its own table" rather than sitting alongside it', async () => {
+        const user = userEvent.setup();
         // The model rejects both at once — expanding already gives the step a
         // table of its own — so the control can never leave both set.
         const chained = [{ ...READ[0], chain: [{ tool: 'gmail_search', argsFrom: { messageId: 'id' }, ownTable: true }] }];
         const { last, findByRole } = renderMgr(stub<Parameters<typeof renderMgr>[0]>(chained));
         const select = await findByRole('combobox', { name: /how step 2 folds its result back/i });
-        fireEvent.change(select, { target: { value: 'results' } });
+        await user.selectOptions(select, 'results');
         expect(last()[0].chain).toEqual([{ tool: 'gmail_search', argsFrom: { messageId: 'id' }, expand: 'results' }]);
     });
 
@@ -557,9 +564,10 @@ describe('ConnectorsManager — changing the kind takes the chain with it', () =
         chain: [{ tool: 'gmail_search', argsFrom: { messageId: 'id' } }],
     }];
 
-    it('drops a chain the new kind cannot carry', () => {
+    it('drops a chain the new kind cannot carry', async () => {
+        const user = userEvent.setup();
         const { last, getByLabelText } = renderMgr(stub<Parameters<typeof renderMgr>[0]>(chained));
-        fireEvent.change(getByLabelText('Connector kind'), { target: { value: 'rest' } });
+        await user.selectOptions(getByLabelText('Connector kind'), 'rest');
         const out = last()[0];
         expect(out.kind).toBe('rest');
         // Absent, not merely undefined — code that asks `'chain' in c` must
@@ -567,9 +575,11 @@ describe('ConnectorsManager — changing the kind takes the chain with it', () =
         expect('chain' in out).toBe(false);
     });
 
-    it('keeps the chain while the connector is still an app connector', () => {
+    it('keeps the chain while the connector is still an app connector', async () => {
+        const user = userEvent.setup();
         const { last, getByLabelText } = renderMgr(stub<Parameters<typeof renderMgr>[0]>(chained));
-        fireEvent.change(getByLabelText('Name'), { target: { value: 'Mail' } });
+        await user.clear(getByLabelText('Name'));
+        await user.type(getByLabelText('Name'), 'Mail');
         expect(last()[0].chain).toHaveLength(1);
     });
 });

@@ -91,10 +91,12 @@ describe('BuilderSplit (decomposed layout smoke)', () => {
         expect(screen.getByText('Skills')).toBeTruthy();
     });
 
-    it('routes name edits through the extracted field updaters', () => {
+    it('routes name edits through the extracted field updaters', async () => {
+        const user = userEvent.setup();
         render(<BuilderSplit {...baseProps} />);
         const input = screen.getByDisplayValue('Test Agent');
-        fireEvent.change(input, { target: { value: 'Renamed Agent' } });
+        await user.clear(input);
+        await user.type(input, 'Renamed Agent');
         expect(screen.getByDisplayValue('Renamed Agent')).toBeTruthy();
     });
 
@@ -598,9 +600,8 @@ describe('BuilderSplit — de verfijnde persona bereikt de opslag, precies één
         ]);
         render(<BuilderSplit {...baseProps} agent={{ ...agent, persona: STORED_PERSONA }} />);
 
-        fireEvent.change(screen.getByPlaceholderText('agent_wizard.builder.chat_placeholder'), {
-            target: { value: 'make it brief' },
-        });
+        await user.clear(screen.getByPlaceholderText('agent_wizard.builder.chat_placeholder'));
+        await user.type(screen.getByPlaceholderText('agent_wizard.builder.chat_placeholder'), 'make it brief');
         asMock(authFetch).mockClear();
         await user.click(screen.getByLabelText('Send'));
 
@@ -632,9 +633,8 @@ describe('BuilderSplit — de verfijnde persona bereikt de opslag, precies één
         ]);
         render(<BuilderSplit {...baseProps} />);
 
-        fireEvent.change(screen.getByPlaceholderText('agent_wizard.builder.chat_placeholder'), {
-            target: { value: 'make it brief' },
-        });
+        await user.clear(screen.getByPlaceholderText('agent_wizard.builder.chat_placeholder'));
+        await user.type(screen.getByPlaceholderText('agent_wizard.builder.chat_placeholder'), 'make it brief');
         asMock(authFetch).mockClear();
         await user.click(screen.getByLabelText('Send'));
 
@@ -653,9 +653,8 @@ describe('BuilderSplit — de verfijnde persona bereikt de opslag, precies één
         ]);
         render(<BuilderSplit {...baseProps} agent={{ ...agent, persona: STORED_PERSONA }} />);
 
-        fireEvent.change(screen.getByPlaceholderText('agent_wizard.builder.chat_placeholder'), {
-            target: { value: 'make it brief' },
-        });
+        await user.clear(screen.getByPlaceholderText('agent_wizard.builder.chat_placeholder'));
+        await user.type(screen.getByPlaceholderText('agent_wizard.builder.chat_placeholder'), 'make it brief');
         asMock(authFetch).mockClear();
         await user.click(screen.getByLabelText('Send'));
 
@@ -685,9 +684,8 @@ describe('BuilderSplit — de verfijnde persona bereikt de opslag, precies één
         ]);
         render(<BuilderSplit {...baseProps} agent={{ ...agent, persona: STORED_PERSONA }} />);
 
-        fireEvent.change(screen.getByPlaceholderText('agent_wizard.builder.chat_placeholder'), {
-            target: { value: 'make it brief' },
-        });
+        await user.clear(screen.getByPlaceholderText('agent_wizard.builder.chat_placeholder'));
+        await user.type(screen.getByPlaceholderText('agent_wizard.builder.chat_placeholder'), 'make it brief');
         await user.click(screen.getByLabelText('Send'));
 
         await waitFor(() => expect(putsTo('agent-1').length).toBe(1), { timeout: 3000 });

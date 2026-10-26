@@ -9,6 +9,7 @@
  * Run: cd agent-hub && npx vitest run src/editor/nodeviews/FormulaView.test.jsx
  */
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach } from 'vitest';
 import FormulaView from './FormulaView';
 
@@ -98,12 +99,14 @@ describe('reference picking', () => {
         expect(input().value).toBe('=C3');
     });
 
-    it('a separate gesture after a commit-pick appends again', () => {
+    it('a separate gesture after a commit-pick appends again', async () => {
+        const user = userEvent.setup();
         const view = fakeView();
         render(<FormulaView node={nodeWith('=')} view={view} editable />);
         act(() => view.refPick.onPick('A1'));
         act(() => view.refPick.onCommitPick());
-        fireEvent.change(input(), { target: { value: '=A1+' } });
+        await user.clear(input());
+        await user.type(input(), '=A1+');
         act(() => view.refPick.onPick('B2'));
         expect(input().value).toBe('=A1+B2');
     });
@@ -118,11 +121,13 @@ describe('reference picking', () => {
         expect(screen.queryByRole('textbox')).toBeTruthy();   // still open
     });
 
-    it('a blur that is NOT a pick still commits', () => {
+    it('a blur that is NOT a pick still commits', async () => {
+        const user = userEvent.setup();
         const view = fakeView();
         render(<FormulaView node={nodeWith('=A1')} view={view} editable />);
         openEditor('=A1');
-        fireEvent.change(input(), { target: { value: '=A1*2' } });
+        await user.clear(input());
+        await user.type(input(), '=A1*2');
         fireEvent.blur(input());
         expect(view.updates).toEqual([{ src: '=A1*2' }]);
     });
@@ -152,26 +157,32 @@ describe('reference picking', () => {
 });
 
 describe('committing', () => {
-    it('commits on Enter', () => {
+    it('commits on Enter', async () => {
+        const user = userEvent.setup();
         const view = fakeView();
         render(<FormulaView node={nodeWith('=')} view={view} editable />);
-        fireEvent.change(input(), { target: { value: '=SUM(A1:A3)' } });
+        await user.clear(input());
+        await user.type(input(), '=SUM(A1:A3)');
         fireEvent.keyDown(input(), { key: 'Enter' });
         expect(view.updates).toEqual([{ src: '=SUM(A1:A3)' }]);
     });
 
-    it('commits on Tab', () => {
+    it('commits on Tab', async () => {
+        const user = userEvent.setup();
         const view = fakeView();
         render(<FormulaView node={nodeWith('=')} view={view} editable />);
-        fireEvent.change(input(), { target: { value: '=1+1' } });
+        await user.clear(input());
+        await user.type(input(), '=1+1');
         fireEvent.keyDown(input(), { key: 'Tab' });
         expect(view.updates).toEqual([{ src: '=1+1' }]);
     });
 
-    it('adds the leading = when the user omits it', () => {
+    it('adds the leading = when the user omits it', async () => {
+        const user = userEvent.setup();
         const view = fakeView();
         render(<FormulaView node={nodeWith('=')} view={view} editable />);
-        fireEvent.change(input(), { target: { value: 'A1*2' } });
+        await user.clear(input());
+        await user.type(input(), 'A1*2');
         fireEvent.keyDown(input(), { key: 'Enter' });
         expect(view.updates).toEqual([{ src: '=A1*2' }]);
     });
@@ -184,20 +195,24 @@ describe('committing', () => {
         expect(view.updates).toHaveLength(0);
     });
 
-    it('Escape on a brand-new formula removes it', () => {
+    it('Escape on a brand-new formula removes it', async () => {
+        const user = userEvent.setup();
         const view = fakeView();
         render(<FormulaView node={nodeWith('=')} view={view} editable />);
-        fireEvent.change(input(), { target: { value: '=A1' } });
+        await user.clear(input());
+        await user.type(input(), '=A1');
         fireEvent.keyDown(input(), { key: 'Escape' });
         expect(view.deleted).toBe(1);
         expect(view.updates).toHaveLength(0);
     });
 
-    it('Escape on an existing formula reverts without changing it', () => {
+    it('Escape on an existing formula reverts without changing it', async () => {
+        const user = userEvent.setup();
         const view = fakeView();
         render(<FormulaView node={nodeWith('=A1', { value: '3' })} view={view} editable />);
         fireEvent.doubleClick(screen.getByText('3'));
-        fireEvent.change(input(), { target: { value: '=NONSENSE' } });
+        await user.clear(input());
+        await user.type(input(), '=NONSENSE');
         fireEvent.keyDown(input(), { key: 'Escape' });
         expect(view.updates).toHaveLength(0);
         expect(view.deleted).toBe(0);
@@ -221,11 +236,13 @@ describe('committing', () => {
         expect(screen.queryByRole('textbox')).toBeTruthy();   // still open
     });
 
-    it('stays open when updateAtom reports failure', () => {
+    it('stays open when updateAtom reports failure', async () => {
+        const user = userEvent.setup();
         const view = fakeView();
         view.updateAtom = () => false;
         render(<FormulaView node={nodeWith('=')} view={view} editable />);
-        fireEvent.change(input(), { target: { value: '=1+1' } });
+        await user.clear(input());
+        await user.type(input(), '=1+1');
         fireEvent.keyDown(input(), { key: 'Enter' });
         expect(screen.queryByRole('textbox')).toBeTruthy();
     });

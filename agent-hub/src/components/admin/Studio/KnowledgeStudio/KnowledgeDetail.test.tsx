@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -97,7 +97,7 @@ describe('KnowledgeDetail', () => {
         await screen.findByTestId('kb-tab-sources');
         await user.click(screen.getByTestId('kb-add-kind-upload'));
         const file = new File(['x'], 'a.pdf', { type: 'application/pdf' });
-        fireEvent.change(screen.getByLabelText('Choose files'), { target: { files: [file] } });
+        await user.upload(screen.getByLabelText('Choose files'), [file]);
         await waitFor(() => expect(knowledgeApi.uploadFiles).toHaveBeenCalledWith('kb1', 's1', [file]));
         expect(knowledgeApi.createSource).not.toHaveBeenCalled();
     });
@@ -111,7 +111,7 @@ describe('KnowledgeDetail', () => {
         await screen.findByTestId('kb-tab-sources');
         await user.click(screen.getByTestId('kb-add-kind-upload'));
         const file = new File(['x'], 'a.pdf', { type: 'application/pdf' });
-        fireEvent.change(screen.getByLabelText('Choose files'), { target: { files: [file] } });
+        await user.upload(screen.getByLabelText('Choose files'), [file]);
         await waitFor(() => expect(knowledgeApi.createSource).toHaveBeenCalledWith('kb1', expect.objectContaining({ kind: 'upload' })));
         await waitFor(() => expect(knowledgeApi.uploadFiles).toHaveBeenCalledWith('kb1', 's_new', [file]));
     });
@@ -122,8 +122,10 @@ describe('KnowledgeDetail', () => {
         render(<KnowledgeDetail {...omitted<ComponentProps<typeof KnowledgeDetail>>()} kbId="kb1" canManage />);
         await screen.findByTestId('kb-tab-sources');
         await user.click(screen.getByTestId('kb-add-kind-text'));
-        fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'FAQ' } });
-        fireEvent.change(screen.getByLabelText('Text'), { target: { value: 'Quotes are valid 30 days.' } });
+        await user.clear(screen.getByLabelText('Name'));
+        await user.type(screen.getByLabelText('Name'), 'FAQ');
+        await user.clear(screen.getByLabelText('Text'));
+        await user.type(screen.getByLabelText('Text'), 'Quotes are valid 30 days.');
         await user.click(screen.getByRole('button', { name: 'Add source' }));
         await waitFor(() => expect(knowledgeApi.createSource).toHaveBeenCalledWith('kb1', {
             kind: 'text', name: 'FAQ', config: { text: 'Quotes are valid 30 days.' },
@@ -140,7 +142,8 @@ describe('KnowledgeDetail', () => {
         render(<KnowledgeDetail {...omitted<ComponentProps<typeof KnowledgeDetail>>()} kbId="kb1" canManage />);
         await screen.findByTestId('kb-tab-sources');
         await user.click(screen.getByTestId('kb-add-kind-text'));
-        fireEvent.change(screen.getByLabelText('Text'), { target: { value: 'hello there' } });
+        await user.clear(screen.getByLabelText('Text'));
+        await user.type(screen.getByLabelText('Text'), 'hello there');
         await user.click(screen.getByRole('button', { name: 'Add source' }));
         expect(await screen.findByText(/the most sources your plan allows \(5\)/)).toBeTruthy();
     });

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -122,27 +122,29 @@ describe('QueryBuilder', () => {
 
         // Break the count down by a Tasks-only column…
         await user.click(screen.getByText(/add a breakdown/i));
-        fireEvent.change(screen.getByRole('combobox', { name: 'Break down by' }), { target: { value: 'region' } });
+        await user.selectOptions(screen.getByRole('combobox', { name: 'Break down by' }), 'region');
         await waitFor(() => expect(queryBodies.at(-1).aggregate.groupBy).toEqual([{ field: 'region' }]));
 
         // …then switch tables: nothing may still point at `region`.
-        fireEvent.change(screen.getByRole('combobox', { name: 'Which table' }), { target: { value: 'tbl_orders' } });
+        await user.selectOptions(screen.getByRole('combobox', { name: 'Which table' }), 'tbl_orders');
         await waitFor(() => expect(queryBodies.at(-1).tableId).toBe('tbl_orders'));
         expect(queryBodies.at(-1).aggregate.groupBy).toEqual([]);
         expect(screen.queryByRole('combobox', { name: 'Break down by' })).toBeNull();
     }, 15_000); // several debounced preview round-trips
 
     it('drops the measure field when the measure becomes Count (so NULLs still count)', async () => {
+        const user = userEvent.setup();
         renderBuilder();
         await waitFor(() => expect(screen.getAllByText('EU').length).toBeGreaterThan(0));
 
-        fireEvent.change(screen.getByRole('combobox', { name: 'What to work out' }), { target: { value: 'sum' } });
-        fireEvent.change(screen.getByRole('combobox', { name: 'Which column' }), { target: { value: 'amount' } });
+        await user.selectOptions(screen.getByRole('combobox', { name: 'What to work out' }), 'sum');
+        await user.selectOptions(screen.getByRole('combobox', { name: 'Which column' }), 'amount');
         await waitFor(() => expect(queryBodies.at(-1).aggregate.aggregates[0].field).toBe('amount'));
 
-        fireEvent.change(screen.getByRole('combobox', { name: 'What to work out' }), { target: { value: 'count' } });
+        await user.selectOptions(screen.getByRole('combobox', { name: 'What to work out' }), 'count');
         expect(screen.getByRole('combobox', { name: 'Which column' }).value).toBe('');
-        fireEvent.change(screen.getByPlaceholderText(/call it something else/i), { target: { value: 'Rows' } });
+        await user.clear(screen.getByPlaceholderText(/call it something else/i));
+        await user.type(screen.getByPlaceholderText(/call it something else/i), 'Rows');
 
         await waitFor(() => expect(queryBodies.at(-1).aggregate.aggregates[0].as).toBe('rows'));
         expect(queryBodies.at(-1).aggregate.aggregates[0].fn).toBe('count');
@@ -155,9 +157,10 @@ describe('QueryBuilder', () => {
         await waitFor(() => expect(screen.getAllByText('EU').length).toBeGreaterThan(0));
 
         await user.click(screen.getByText(/add filter/i));
-        fireEvent.change(screen.getByRole('combobox', { name: 'Filter field' }), { target: { value: 'amount' } });
-        fireEvent.change(screen.getByRole('combobox', { name: 'Filter operator' }), { target: { value: 'gt' } });
-        fireEvent.change(screen.getByRole('textbox', { name: 'Filter value' }), { target: { value: '1.234,56' } });
+        await user.selectOptions(screen.getByRole('combobox', { name: 'Filter field' }), 'amount');
+        await user.selectOptions(screen.getByRole('combobox', { name: 'Filter operator' }), 'gt');
+        await user.clear(screen.getByRole('textbox', { name: 'Filter value' }));
+        await user.type(screen.getByRole('textbox', { name: 'Filter value' }), '1.234,56');
 
         await waitFor(() => expect(queryBodies.at(-1).aggregate.filters.length).toBe(1));
         expect(queryBodies.at(-1).aggregate.filters[0]).toEqual({ field: 'amount', op: 'gt', value: 1234.56 });
@@ -174,8 +177,8 @@ describe('QueryBuilder', () => {
         await user.click(screen.getByRole('button', { name: 'total' }));
 
         // A summed measure answers with `revenue` instead of `total`.
-        fireEvent.change(screen.getByRole('combobox', { name: 'What to work out' }), { target: { value: 'sum' } });
-        fireEvent.change(screen.getByRole('combobox', { name: 'Which column' }), { target: { value: 'amount' } });
+        await user.selectOptions(screen.getByRole('combobox', { name: 'What to work out' }), 'sum');
+        await user.selectOptions(screen.getByRole('combobox', { name: 'Which column' }), 'amount');
         await waitFor(() => expect(screen.getAllByText('revenue').length).toBeGreaterThan(0));
 
         await user.click(screen.getByText('Use this'));
@@ -190,7 +193,7 @@ describe('QueryBuilder', () => {
 
         // Editing the measure invalidates the preview; the mapping is only real
         // once the new result lands, so saving must wait for it.
-        fireEvent.change(screen.getByRole('combobox', { name: 'What to work out' }), { target: { value: 'sum' } });
+        await user.selectOptions(screen.getByRole('combobox', { name: 'What to work out' }), 'sum');
         const useThis = screen.getByText('Use this');
         expect(useThis.disabled).toBe(true);
         await user.click(useThis);

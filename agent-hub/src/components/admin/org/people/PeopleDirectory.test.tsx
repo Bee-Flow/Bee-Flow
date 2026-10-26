@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
+import { render, screen, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import PeopleDirectory from './PeopleDirectory';
@@ -57,15 +57,16 @@ describe('PeopleDirectory', () => {
     });
 
     // The trap, end-to-end: Eva has no organizationId at all.
-    it('files a group-only member under their org, and Via=Direct removes them', () => {
+    it('files a group-only member under their org, and Via=Direct removes them', async () => {
+        const user = userEvent.setup();
         renderDir();
         expect(rowNames()).toContain('Eva Bakker');
 
-        fireEvent.change(screen.getByLabelText('Any membership'), { target: { value: 'direct' } });
+        await user.selectOptions(screen.getByLabelText('Any membership'), 'direct');
         expect(rowNames()).not.toContain('Eva Bakker');
         expect(rowNames()).toContain('Jan de Vries');
 
-        fireEvent.change(screen.getByLabelText('Any membership'), { target: { value: 'group' } });
+        await user.selectOptions(screen.getByLabelText('Any membership'), 'group');
         expect(rowNames()).toContain('Eva Bakker');
     });
 
@@ -103,21 +104,25 @@ describe('PeopleDirectory', () => {
         expect(within((acmeHeader as HTMLElement)).queryByText('Suspended')).not.toBeInTheDocument();
     });
 
-    it('filters by search across name and email', () => {
+    it('filters by search across name and email', async () => {
+        const user = userEvent.setup();
         renderDir();
-        fireEvent.change(screen.getByPlaceholderText('Search by name or email…'), { target: { value: 'eva@' } });
+        await user.clear(screen.getByPlaceholderText('Search by name or email…'));
+        await user.type(screen.getByPlaceholderText('Search by name or email…'), 'eva@');
         expect(rowNames()).toEqual(['Eva Bakker']);
     });
 
-    it('filters by organisation', () => {
+    it('filters by organisation', async () => {
+        const user = userEvent.setup();
         renderDir();
-        fireEvent.change(screen.getByLabelText('All organisations'), { target: { value: 'orgB' } });
+        await user.selectOptions(screen.getByLabelText('All organisations'), 'orgB');
         expect(rowNames()).toEqual(['Multi Org']);
     });
 
-    it('filters to people with no organisation', () => {
+    it('filters to people with no organisation', async () => {
+        const user = userEvent.setup();
         renderDir();
-        fireEvent.change(screen.getByLabelText('All organisations'), { target: { value: '__none__' } });
+        await user.selectOptions(screen.getByLabelText('All organisations'), '__none__');
         expect(rowNames()).toEqual(['Loose Leaf']);
     });
 
@@ -129,7 +134,8 @@ describe('PeopleDirectory', () => {
         expect(screen.getByText('Global')).toBeInTheDocument();
     });
 
-    it('distinguishes "no people yet" from "no matches"', () => {
+    it('distinguishes "no people yet" from "no matches"', async () => {
+        const user = userEvent.setup();
         cleanup();
         renderDir({ users: [SYSTEM] });
         expect(screen.getByText('No people yet')).toBeInTheDocument();
@@ -137,7 +143,8 @@ describe('PeopleDirectory', () => {
 
         cleanup();
         renderDir();
-        fireEvent.change(screen.getByPlaceholderText('Search by name or email…'), { target: { value: 'zzzz' } });
+        await user.clear(screen.getByPlaceholderText('Search by name or email…'));
+        await user.type(screen.getByPlaceholderText('Search by name or email…'), 'zzzz');
         expect(screen.getByText('No people match the current filters')).toBeInTheDocument();
         expect(screen.queryByText('No people yet')).not.toBeInTheDocument();
     });
@@ -146,8 +153,9 @@ describe('PeopleDirectory', () => {
         const user = userEvent.setup();
         renderDir();
         const before = rowNames().length;
-        fireEvent.change(screen.getByPlaceholderText('Search by name or email…'), { target: { value: 'eva' } });
-        fireEvent.change(screen.getByLabelText('Any membership'), { target: { value: 'group' } });
+        await user.clear(screen.getByPlaceholderText('Search by name or email…'));
+        await user.type(screen.getByPlaceholderText('Search by name or email…'), 'eva');
+        await user.selectOptions(screen.getByLabelText('Any membership'), 'group');
         expect(rowNames().length).toBeLessThan(before);
 
         await user.click(screen.getAllByText('Clear')[0]);
@@ -155,10 +163,12 @@ describe('PeopleDirectory', () => {
         expect(screen.getByPlaceholderText('Search by name or email…')).toHaveValue('');
     });
 
-    it('reports the filtered count against the total', () => {
+    it('reports the filtered count against the total', async () => {
+        const user = userEvent.setup();
         renderDir();
         expect(screen.getByText('4 of 4 people')).toBeInTheDocument();
-        fireEvent.change(screen.getByPlaceholderText('Search by name or email…'), { target: { value: 'eva' } });
+        await user.clear(screen.getByPlaceholderText('Search by name or email…'));
+        await user.type(screen.getByPlaceholderText('Search by name or email…'), 'eva');
         expect(screen.getByText('1 of 4 people')).toBeInTheDocument();
     });
 

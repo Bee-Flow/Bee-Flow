@@ -173,7 +173,8 @@ describe('step 1 — files', () => {
         open();
         await screen.findByRole('checkbox', { name: 'Planning Q3' });
         expect(screen.getByRole('checkbox', { name: 'Shared with me' })).toBeInTheDocument();
-        fireEvent.change(screen.getByRole('textbox', { name: 'Find a spreadsheet' }), { target: { value: 'fact' } });
+        await user.clear(screen.getByRole('textbox', { name: 'Find a spreadsheet' }));
+        await user.type(screen.getByRole('textbox', { name: 'Find a spreadsheet' }), 'fact');
         await waitFor(() => expect(datatablesApi.browseSpreadsheets).toHaveBeenCalledWith(expect.objectContaining({ folderId: 'root', q: 'fact' })), { timeout: 1500 });
         expect(await screen.findByText('Search results')).toBeInTheDocument();
         await user.click(screen.getByRole('tab', { name: /Nextcloud/ }));

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
+import { render, screen, cleanup, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -201,7 +201,7 @@ describe('TablesRowValuesEditor', () => {
         mockColumns(partial<Parameters<typeof mockColumns>[0]>([{ id: 9, title: 'Company', type: 'text' }]));
         const { onChange } = renderEditor(stub<Parameters<typeof renderEditor>[0]>({ value: {} }));
         await waitFor(() => expect(rows()).toHaveLength(1));
-        fireEvent.change(screen.getByLabelText('Map from'), { target: { value: 's1' } });
+        await user.selectOptions(screen.getByLabelText('Map from'), 's1');
         await user.click(screen.getByText('Auto-map'));
         expect(onChange).toHaveBeenCalledWith({ Company: { kind: 'ref', path: 'steps.s1.output.company' } });
     });
@@ -214,7 +214,8 @@ describe('TablesRowValuesEditor', () => {
         expect(authFetch).not.toHaveBeenCalled();
         expect(rows()).toHaveLength(0);
         // Typing titles adds untyped rows the author can bind.
-        fireEvent.change(screen.getByLabelText('Column titles'), { target: { value: 'Bedrijf, Excl. btw' } });
+        await user.clear(screen.getByLabelText('Column titles'));
+        await user.type(screen.getByLabelText('Column titles'), 'Bedrijf, Excl. btw');
         await user.click(screen.getByText('Add columns'));
         expect(rows()).toHaveLength(2);
         expect(within(rowTitled('Excl. btw')!).queryByTestId('tables-row-type')).toBeNull();

@@ -39,34 +39,40 @@ describe('PxSizeInput', () => {
         expect(onChange).toHaveBeenCalledWith(32);
     });
 
-    it('commits 0 (= inherit) when the field is cleared', () => {
+    it('commits 0 (= inherit) when the field is cleared', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         render(<PxSizeInput value={24} onChange={onChange} ariaLabel="Title size" />);
-        fireEvent.change(screen.getByLabelText('Title size'), { target: { value: '' } });
+        await user.clear(screen.getByLabelText('Title size'));
         expect(onChange).toHaveBeenCalledWith(0);
     });
 });
 
 describe('ColorSwatch', () => {
-    it('does not commit partial hex values, only a complete #RRGGBB', () => {
+    it('does not commit partial hex values, only a complete #RRGGBB', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         render(<ColorSwatch value="" onChange={onChange} title="Badge color" />);
         const hexInput = screen.getByLabelText('Badge color hex');
 
-        fireEvent.change(hexInput, { target: { value: '#F3' } });
+        await user.clear(hexInput);
+        await user.type(hexInput, '#F3');
         expect(onChange).not.toHaveBeenCalled();
         // Partial input is kept locally so the user can keep typing.
         expect(hexInput).toHaveValue('#F3');
 
-        fireEvent.change(hexInput, { target: { value: '#F3A612' } });
+        await user.clear(hexInput);
+        await user.type(hexInput, '#F3A612');
         expect(onChange).toHaveBeenCalledTimes(1);
         expect(onChange).toHaveBeenCalledWith('#F3A612');
     });
 
-    it('prefixes a missing # and strips non-hex characters', () => {
+    it('prefixes a missing # and strips non-hex characters', async () => {
+        const user = userEvent.setup();
         const onChange = vi.fn();
         render(<ColorSwatch value="" onChange={onChange} title="Badge color" />);
-        fireEvent.change(screen.getByLabelText('Badge color hex'), { target: { value: '12ab34' } });
+        await user.clear(screen.getByLabelText('Badge color hex'));
+        await user.type(screen.getByLabelText('Badge color hex'), '12ab34');
         expect(onChange).toHaveBeenCalledWith('#12ab34');
     });
 });

@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -90,7 +90,8 @@ describe('the Nextcloud card', () => {
         open({ onCreated });
         await user.clear(screen.getByPlaceholderText('Customers'));
         await user.type(screen.getByPlaceholderText('Customers'), 'Klanten');
-        fireEvent.change(screen.getByPlaceholderText(/onboarding e-mail/), { target: { value: 'the list' } });
+        await user.clear(screen.getByPlaceholderText(/onboarding e-mail/));
+        await user.type(screen.getByPlaceholderText(/onboarding e-mail/), 'the list');
         await user.click(screen.getByRole('button', { name: /^Create$/ }));
         await waitFor(() => expect(datatablesApi.create).toHaveBeenCalled());
         expect(asMock(datatablesApi.create).mock.calls[0][0]).toMatchObject({ name: 'Klanten', key: 'klanten', scope: 'organisation' });

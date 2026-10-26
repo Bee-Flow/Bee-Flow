@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
+import { render, screen, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
@@ -77,9 +77,11 @@ describe('SoaDrawer — the justification rule', () => {
         const save = screen.getByTestId('soa-drawer-actions-primary');
         expect(save).toBeDisabled();
         expect(screen.getByTestId('soa-drawer-justification-hint')).toBeTruthy();
-        fireEvent.change(screen.getByTestId('soa-drawer-justification'), { target: { value: '   ' } });
+        await user.clear(screen.getByTestId('soa-drawer-justification'));
+        await user.type(screen.getByTestId('soa-drawer-justification'), '   ');
         expect(save).toBeDisabled();
-        fireEvent.change(screen.getByTestId('soa-drawer-justification'), { target: { value: 'Fully cloud — no server room of our own.' } });
+        await user.clear(screen.getByTestId('soa-drawer-justification'));
+        await user.type(screen.getByTestId('soa-drawer-justification'), 'Fully cloud — no server room of our own.');
         expect(save).not.toBeDisabled();
         await user.click(save);
         expect(onSave).toHaveBeenCalledWith('A.5.20', expect.objectContaining({ applicable: false, status: 'todo', justification: 'Fully cloud — no server room of our own.' }));

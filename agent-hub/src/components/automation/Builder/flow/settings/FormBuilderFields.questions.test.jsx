@@ -87,9 +87,10 @@ describe('FormBuilderFields — the question list', () => {
         expect(options.map(o => o.textContent)).toContain('Short text');
     });
 
-    it('keeps the binding name when a question changes type', () => {
+    it('keeps the binding name when a question changes type', async () => {
+        const user = userEvent.setup();
         const { onChange } = renderEditor(form([text('colour', 'Colour')]));
-        fireEvent.change(screen.getByLabelText('Question 1 type'), { target: { value: 'select' } });
+        await user.selectOptions(screen.getByLabelText('Question 1 type'), 'select');
         expect(onChange.mock.calls[0][0].fields[0]).toMatchObject({ name: 'colour', type: 'select' });
     });
 
@@ -123,9 +124,10 @@ describe('FormBuilderFields — the per-type controls', () => {
         expect(onChange.mock.calls[0][0].fields[0].maxSizeMb).toBe(3);
     });
 
-    it('falls back to 10 MB rather than storing a nonsense limit', () => {
+    it('falls back to 10 MB rather than storing a nonsense limit', async () => {
+        const user = userEvent.setup();
         const { onChange } = renderEditor(form([{ name: 'proof', type: 'file', label: 'Proof', maxSizeMb: 5 }]));
-        fireEvent.change(screen.getByText('Max MB').parentElement.querySelector('input'), { target: { value: '' } });
+        await user.clear(screen.getByText('Max MB').parentElement.querySelector('input'));
         expect(onChange.mock.calls[0][0].fields[0].maxSizeMb).toBe(10);
     });
 
@@ -151,7 +153,8 @@ describe('FormBuilderFields — the per-type controls', () => {
         await user.click(screen.getAllByText('Advanced')[0]);
 
         const box = screen.getByLabelText('Binding name for One');
-        fireEvent.change(box, { target: { value: 'contactpersoon' } });
+        await user.clear(box);
+        await user.type(box, 'contactpersoon');
         await user.click(screen.getByRole('button', { name: 'Rename' }));
 
         // The shell rewrites the automation; the panel also renames its own copy,
@@ -168,11 +171,13 @@ describe('FormBuilderFields — the per-type controls', () => {
         await user.click(screen.getAllByText('Advanced')[0]);
         const box = screen.getByLabelText('Binding name for One');
 
-        fireEvent.change(box, { target: { value: '2naam' } });
+        await user.clear(box);
+        await user.type(box, '2naam');
         await user.click(screen.getByRole('button', { name: 'Rename' }));
         expect(screen.getByText(/Start with a letter/)).toBeTruthy();
 
-        fireEvent.change(box, { target: { value: 'two' } });
+        await user.clear(box);
+        await user.type(box, 'two');
         await user.click(screen.getByRole('button', { name: 'Rename' }));
         expect(screen.getByText(/already binds that name/)).toBeTruthy();
 

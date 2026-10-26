@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup, waitFor, within, act } from '@testing-library/react';
+import { render, screen, cleanup, waitFor, within, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
@@ -81,7 +81,8 @@ describe('RisksPage — table', () => {
         await user.click(screen.getByTestId('risk-filter-treating'));
         expect(screen.getAllByTestId(/^risk-table-row-/)).toHaveLength(1);
         await user.click(screen.getByTestId('risk-filter-all'));
-        fireEvent.change(screen.getByTestId('risk-search'), { target: { value: 'shadow' } });
+        await user.clear(screen.getByTestId('risk-search'));
+        await user.type(screen.getByTestId('risk-search'), 'shadow');
         expect(screen.getAllByTestId(/^risk-table-row-/).map(r => r.getAttribute('data-testid'))).toEqual(['risk-table-row-3']);
     });
 
@@ -132,9 +133,10 @@ describe('RisksPage — drawer and create', () => {
         const props = pageProps();
         render(<RisksPage {...props} />);
         await user.click(screen.getByTestId('risk-add'));
-        fireEvent.change(screen.getByTestId('risk-create-title'), { target: { value: 'Model drift' } });
-        fireEvent.change(screen.getByTestId('risk-create-likelihood'), { target: { value: '2' } });
-        fireEvent.change(screen.getByTestId('risk-create-owner'), { target: { value: 'u2' } });
+        await user.clear(screen.getByTestId('risk-create-title'));
+        await user.type(screen.getByTestId('risk-create-title'), 'Model drift');
+        await user.selectOptions(screen.getByTestId('risk-create-likelihood'), '2');
+        await user.selectOptions(screen.getByTestId('risk-create-owner'), 'u2');
         await user.click(screen.getByTestId('risk-create-submit'));
         await waitFor(() => expect(props.data.risks.create).toHaveBeenCalledWith({ title: 'Model drift', description: undefined, category: 'confidentiality', likelihood: 2, impact: 3, owner_user_id: 'u2' }));
         await user.click(screen.getByTestId('risk-seed'));

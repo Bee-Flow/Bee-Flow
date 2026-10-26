@@ -444,7 +444,8 @@ describe('the create dialog can provision one', () => {
         await user.click((await screen.findAllByRole('button', { name: /new table/i }))[0]);
         await user.clear(screen.getByPlaceholderText('Customers'));
         await user.type(screen.getByPlaceholderText('Customers'), 'Leads');
-        fireEvent.change(screen.getByPlaceholderText(/onboarding e-mail/i), { target: { value: 'inbound leads' } });
+        await user.clear(screen.getByPlaceholderText(/onboarding e-mail/i));
+        await user.type(screen.getByPlaceholderText(/onboarding e-mail/i), 'inbound leads');
         await user.click(screen.getByRole('button', { name: /Add a column/ }));
         await user.clear(screen.getAllByLabelText('Column name')[0]);
         await user.type(screen.getAllByLabelText('Column name')[0], 'Company name');
@@ -462,7 +463,8 @@ describe('the create dialog can provision one', () => {
         await user.click((await screen.findAllByRole('button', { name: /new table/i }))[0]);
         await user.clear(screen.getByPlaceholderText('Customers'));
         await user.type(screen.getByPlaceholderText('Customers'), 'Leads');
-        fireEvent.change(screen.getByPlaceholderText(/onboarding e-mail/i), { target: { value: 'inbound leads' } });
+        await user.clear(screen.getByPlaceholderText(/onboarding e-mail/i));
+        await user.type(screen.getByPlaceholderText(/onboarding e-mail/i), 'inbound leads');
         await user.click(screen.getByRole('button', { name: /Add a column/ }));
         // `created_at` is a column every table already has.
         await user.clear(screen.getAllByLabelText('Column name')[0]);

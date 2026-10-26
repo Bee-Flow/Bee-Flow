@@ -4,6 +4,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GMAIL_CATALOG as CATALOG, ndvProps, scheduledStepProps as props } from './ndv/ndvTestProps';
 import { omitted, malformed } from '@/test/mocks';
 import type { ComponentProps } from 'react';
+import userEvent from '@testing-library/user-event';
 
 const { api } = vi.hoisted(() => ({
     api: {
@@ -78,13 +79,14 @@ describe('NodeDetailView — paging through the flow', () => {
     };
 
     it('reports the position in EXECUTION order and moves both ways', async () => {
+        const user = userEvent.setup();
         const p = lineProps('b');
         await act(async () => { render(<NodeDetailView {...omitted<ComponentProps<typeof NodeDetailView>>()} {...p} />); });
         expect(screen.getByText('Step 3 of 4')).toBeTruthy();
 
-        await act(async () => { fireEvent.click(screen.getByLabelText('Previous step')); });
+        await act(async () => { await user.click(screen.getByLabelText('Previous step')); });
         expect(p.onNavigate).toHaveBeenCalledWith('a');
-        await act(async () => { fireEvent.click(screen.getByLabelText('Next step')); });
+        await act(async () => { await user.click(screen.getByLabelText('Next step')); });
         expect(p.onNavigate).toHaveBeenCalledWith('c');
     });
 
@@ -107,6 +109,7 @@ describe('NodeDetailView — paging through the flow', () => {
     });
 
     it('is in the quick view too, in a shorter form (BFSF-332 reopen)', async () => {
+        const user = userEvent.setup();
         // It used to be withheld here — but Alt+←/→ has always worked at both
         // densities, so the shortcut fired while its own buttons were absent.
         // The tester found exactly that, and reopened.
@@ -115,7 +118,7 @@ describe('NodeDetailView — paging through the flow', () => {
         expect(screen.getByLabelText('Next step')).toBeTruthy();
         // The position lives in the kicker at both densities; the pager is arrows only.
         expect(screen.getByText('Step 3 of 4')).toBeTruthy();
-        await act(async () => { fireEvent.click(screen.getByLabelText('Next step')); });
+        await act(async () => { await user.click(screen.getByLabelText('Next step')); });
         expect(p.onNavigate).toHaveBeenCalledWith('c');
     });
 
@@ -136,6 +139,7 @@ describe('NodeDetailView — paging through the flow', () => {
 
 describe('NodeDetailView — save status', () => {
     it('reports a landed save and keeps saying so at rest', async () => {
+        const user = userEvent.setup();
         const onSaveStep = vi.fn().mockResolvedValue(undefined);
         await act(async () => {
             render(<NodeDetailView {...omitted<ComponentProps<typeof NodeDetailView>>()} {...props(gmailStep({ label: 'Find it' }), { onSaveStep })} />);
@@ -144,22 +148,23 @@ describe('NodeDetailView — save status', () => {
         expect(screen.queryByRole('status')).toBeNull();
 
         await act(async () => { makeDirty('Find the invoice'); });
-        await act(async () => { fireEvent.click(saveButton()); });
+        await act(async () => { await user.click(saveButton()); });
         expect(onSaveStep).toHaveBeenCalled();
         // …and unlike the old chip, it does not vanish a second and a half later.
         expect(screen.getByRole('status').textContent).toMatch(/Saved/);
     });
 
     it('offers a retry when the save failed, and re-sends the same patch', async () => {
+        const user = userEvent.setup();
         const onSaveStep = vi.fn().mockRejectedValueOnce(new Error('boom')).mockResolvedValue(undefined);
         await act(async () => {
             render(<NodeDetailView {...omitted<ComponentProps<typeof NodeDetailView>>()} {...props(gmailStep({ label: 'Find it' }), { onSaveStep })} />);
         });
         await act(async () => { makeDirty('Find the invoice'); });
-        await act(async () => { fireEvent.click(saveButton()); });
+        await act(async () => { await user.click(saveButton()); });
 
         const retry = screen.getByRole('button', { name: /save failed/i });
-        await act(async () => { fireEvent.click(retry); });
+        await act(async () => { await user.click(retry); });
         expect(onSaveStep).toHaveBeenCalledTimes(2);
         expect(screen.getByRole('status').textContent).toMatch(/Saved/);
     });

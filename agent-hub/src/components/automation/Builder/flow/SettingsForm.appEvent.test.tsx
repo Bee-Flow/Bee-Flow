@@ -195,7 +195,8 @@ describe('SettingsForm — app_event (dynamic availability-gated providers)', ()
         await user.type(screen.getByPlaceholderText('1AbCDeFgHiJkLmNoPqRsTuV'), 'sheet-1');
         await user.clear(screen.getByPlaceholderText('Budget'));
         await user.type(screen.getByPlaceholderText('Budget'), 'Invoices');
-        fireEvent.change(screen.getByPlaceholderText('A1:D100'), { target: { value: 'A1:D100' } });
+        await user.clear(screen.getByPlaceholderText('A1:D100'));
+        await user.type(screen.getByPlaceholderText('A1:D100'), 'A1:D100');
         await user.click(screen.getByText('Save'));
         expect(onPatch).toHaveBeenCalledTimes(1);
         expect(onPatch.mock.calls[0][0].appEvent.filter).toEqual({ spreadsheetId: 'sheet-1', sheet: 'Invoices', range: 'A1:D100' });

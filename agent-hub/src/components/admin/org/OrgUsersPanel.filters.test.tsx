@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
+import { render, screen, cleanup, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { withQueryClient } from '@/test/render';
@@ -86,14 +86,18 @@ describe('OrgUsersPanel — member filter bar', () => {
     });
 
     it('filters by name', async () => {
+        const user = userEvent.setup();
         await renderPanel();
-        fireEvent.change(screen.getByPlaceholderText('Search by name or email…'), { target: { value: 'eva' } });
+        await user.clear(screen.getByPlaceholderText('Search by name or email…'));
+        await user.type(screen.getByPlaceholderText('Search by name or email…'), 'eva');
         await waitFor(() => expect(names()).toEqual(['Eva Bakker']));
     });
 
     it('filters by email, case-insensitively', async () => {
+        const user = userEvent.setup();
         await renderPanel();
-        fireEvent.change(screen.getByPlaceholderText('Search by name or email…'), { target: { value: 'PIET@ACME' } });
+        await user.clear(screen.getByPlaceholderText('Search by name or email…'));
+        await user.type(screen.getByPlaceholderText('Search by name or email…'), 'PIET@ACME');
         await waitFor(() => expect(names()).toEqual(['Piet Jansen']));
     });
 
@@ -128,17 +132,21 @@ describe('OrgUsersPanel — member filter bar', () => {
     });
 
     it('shows the filtered count against the total', async () => {
+        const user = userEvent.setup();
         await renderPanel();
         expect(screen.getByText('admin.org_showing_count:{"count":3,"total":3}')).toBeInTheDocument();
-        fireEvent.change(screen.getByPlaceholderText('Search by name or email…'), { target: { value: 'eva' } });
+        await user.clear(screen.getByPlaceholderText('Search by name or email…'));
+        await user.type(screen.getByPlaceholderText('Search by name or email…'), 'eva');
         await waitFor(() =>
             expect(screen.getByText('admin.org_showing_count:{"count":1,"total":3}')).toBeInTheDocument(),
         );
     });
 
     it('distinguishes "no matches" from "no users yet"', async () => {
+        const user = userEvent.setup();
         await renderPanel();
-        fireEvent.change(screen.getByPlaceholderText('Search by name or email…'), { target: { value: 'zzzz' } });
+        await user.clear(screen.getByPlaceholderText('Search by name or email…'));
+        await user.type(screen.getByPlaceholderText('Search by name or email…'), 'zzzz');
         expect(await screen.findByText('No users match the current filters.')).toBeInTheDocument();
         expect(screen.queryByText('No users yet')).not.toBeInTheDocument();
     });
@@ -148,7 +156,8 @@ describe('OrgUsersPanel — member filter bar', () => {
         await renderPanel();
         expect(screen.queryByText('Clear')).not.toBeInTheDocument();
 
-        fireEvent.change(screen.getByPlaceholderText('Search by name or email…'), { target: { value: 'eva' } });
+        await user.clear(screen.getByPlaceholderText('Search by name or email…'));
+        await user.type(screen.getByPlaceholderText('Search by name or email…'), 'eva');
         await user.selectOptions(screen.getByDisplayValue('admin.org_all_roles'), 'member');
         const clear = await screen.findByText('Clear');
 

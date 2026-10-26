@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, waitFor } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -119,6 +119,7 @@ describe('AppRunPage — run-view formula scope (GA gate)', () => {
     });
 
     it('(b) visibleWhen "form.email != \'\'" toggles as the input is typed', async () => {
+        const user = userEvent.setup();
         const { findByLabelText, getByLabelText, queryByText, findByText } = renderPage();
         await findByLabelText('Email');
 
@@ -126,11 +127,12 @@ describe('AppRunPage — run-view formula scope (GA gate)', () => {
         // text is hidden in run mode.
         await waitFor(() => expect(queryByText('Email captured')).toBeNull());
 
-        fireEvent.change(getByLabelText('Email'), { target: { value: 'vera@example.test' } });
+        await user.clear(getByLabelText('Email'));
+        await user.type(getByLabelText('Email'), 'vera@example.test');
         expect(await findByText('Email captured')).toBeTruthy();
 
         // Clearing the field hides it again.
-        fireEvent.change(getByLabelText('Email'), { target: { value: '' } });
+        await user.clear(getByLabelText('Email'));
         await waitFor(() => expect(queryByText('Email captured')).toBeNull());
     });
 

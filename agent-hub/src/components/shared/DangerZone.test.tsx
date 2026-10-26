@@ -33,9 +33,11 @@ describe('DangerZone — with dependents', () => {
 
         const confirm = screen.getByRole('button', { name: 'Delete for good' });
         expect(confirm).toBeDisabled();
-        fireEvent.change(screen.getByLabelText(/type the name/i), { target: { value: 'Custom' } });
+        await user.clear(screen.getByLabelText(/type the name/i));
+        await user.type(screen.getByLabelText(/type the name/i), 'Custom');
         expect(confirm).toBeDisabled();
-        fireEvent.change(screen.getByLabelText(/type the name/i), { target: { value: 'Customers' } });
+        await user.clear(screen.getByLabelText(/type the name/i));
+        await user.type(screen.getByLabelText(/type the name/i), 'Customers');
         expect(confirm).toBeEnabled();
 
         await user.click(confirm);
@@ -86,7 +88,8 @@ describe('DangerZone — without dependents', () => {
         expect(screen.getByTestId('danger-checking')).toBeInTheDocument();
         const confirm = screen.getByRole('button', { name: 'Delete for good' });
         expect(confirm).toBeDisabled();
-        fireEvent.change(screen.getByLabelText(/type the name/i), { target: { value: 'Customers' } });
+        await user.clear(screen.getByLabelText(/type the name/i));
+        await user.type(screen.getByLabelText(/type the name/i), 'Customers');
         await user.click(confirm);
         await waitFor(() => expect(onDelete).toHaveBeenCalledWith(false));
     });
@@ -97,7 +100,8 @@ describe('DangerZone — without dependents', () => {
         expect(screen.getByTestId('danger-unused')).toBeInTheDocument();
         const confirm = screen.getByRole('button', { name: 'Delete for good' });
         expect(confirm).toBeDisabled();
-        fireEvent.change(screen.getByLabelText(/type the name/i), { target: { value: 'Customers' } });
+        await user.clear(screen.getByLabelText(/type the name/i));
+        await user.type(screen.getByLabelText(/type the name/i), 'Customers');
         expect(confirm).toBeEnabled();
         await user.click(confirm);
         await waitFor(() => expect(onDelete).toHaveBeenCalledWith(false));
@@ -106,7 +110,8 @@ describe('DangerZone — without dependents', () => {
     it('cancel collapses back to the link and forgets what was typed', async () => {
         const user = userEvent.setup();
         arm({ usage: [DEP] });
-        fireEvent.change(screen.getByLabelText(/type the name/i), { target: { value: 'Customers' } });
+        await user.clear(screen.getByLabelText(/type the name/i));
+        await user.type(screen.getByLabelText(/type the name/i), 'Customers');
         await user.click(screen.getByRole('button', { name: 'Cancel' }));
         expect(screen.getByRole('button', { name: /delete this table/i })).toBeInTheDocument();
         await user.click(screen.getByRole('button', { name: /delete this table/i }));
@@ -136,7 +141,8 @@ describe('DangerZone — the 409 in_use round trip', () => {
         const confirm = screen.getByRole('button', { name: 'Delete for good' });
         expect(confirm).toBeDisabled();
 
-        fireEvent.change(screen.getByLabelText(/type the name/i), { target: { value: 'Customers' } });
+        await user.clear(screen.getByLabelText(/type the name/i));
+        await user.type(screen.getByLabelText(/type the name/i), 'Customers');
         await user.click(confirm);
         await waitFor(() => expect(onDelete).toHaveBeenLastCalledWith(true));
         expect(onDelete).toHaveBeenCalledTimes(2);

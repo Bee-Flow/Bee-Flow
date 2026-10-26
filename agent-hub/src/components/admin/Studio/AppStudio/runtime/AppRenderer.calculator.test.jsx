@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import { act, fireEvent, render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useCallback, useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -202,14 +203,18 @@ describe('the calculator fixture — the finance screen binds live to a form', (
         expect(statValue(container, 'Future value')).toBe((16470.09).toLocaleString());
     });
 
-    it('editing the form moves the tiles, with no Calculate button in sight', () => {
+    it('editing the form moves the tiles, with no Calculate button in sight', async () => {
+        const user = userEvent.setup();
         const { container, getAllByLabelText, getByLabelText, queryAllByText } = render(<Harness screenId={FINANCE_SCREEN.id} />);
 
         // A 100,000 loan at 6% over 20 years: hand-computed below. Both cards
         // have an "Annual interest %" field; [0] is the loan's.
-        fireEvent.change(getByLabelText('Loan amount'), { target: { value: '100000' } });
-        fireEvent.change(getByLabelText('Term (years)'), { target: { value: '20' } });
-        fireEvent.change(getAllByLabelText('Annual interest %')[0], { target: { value: '6' } });
+        await user.clear(getByLabelText('Loan amount'));
+        await user.type(getByLabelText('Loan amount'), '100000');
+        await user.clear(getByLabelText('Term (years)'));
+        await user.type(getByLabelText('Term (years)'), '20');
+        await user.clear(getAllByLabelText('Annual interest %')[0]);
+        await user.type(getAllByLabelText('Annual interest %')[0], '6');
 
         const r = 0.06 / 12;
         const n = 20 * 12;
@@ -220,9 +225,10 @@ describe('the calculator fixture — the finance screen binds live to a form', (
         expect(statValue(container, 'Monthly payment')).toBe(expected.toLocaleString());
     });
 
-    it('emptying the amount gives 0, not NaN — an empty field behaves as zero', () => {
+    it('emptying the amount gives 0, not NaN — an empty field behaves as zero', async () => {
+        const user = userEvent.setup();
         const { container, getByLabelText, queryAllByText } = render(<Harness screenId={FINANCE_SCREEN.id} />);
-        fireEvent.change(getByLabelText('Loan amount'), { target: { value: '' } });
+        await user.clear(getByLabelText('Loan amount'));
         expect(statValue(container, 'Monthly payment')).toBe('0');
         expect(statValue(container, 'Total repaid')).toBe('0');
         expect(queryAllByText(CRASHED)).toHaveLength(0);
@@ -230,13 +236,14 @@ describe('the calculator fixture — the finance screen binds live to a form', (
         expect(statValue(container, 'Future value')).toBe((16470.09).toLocaleString());
     });
 
-    it('emptying the term blanks the tile instead of painting Infinity', () => {
+    it('emptying the term blanks the tile instead of painting Infinity', async () => {
+        const user = userEvent.setup();
         // The degenerate case: n = 0 makes the annuity denominator
         // 1 - pow(1+r, 0) = 0, so the division is Infinity. round() collapses
         // that to null and the stat paints an em-dash — no "Infinity" on
         // screen and no failed node.
         const { container, getByLabelText, queryAllByText } = render(<Harness screenId={FINANCE_SCREEN.id} />);
-        fireEvent.change(getByLabelText('Term (years)'), { target: { value: '' } });
+        await user.clear(getByLabelText('Term (years)'));
         expect(statValue(container, 'Monthly payment')).toBe(EM_DASH);
         expect(queryAllByText(CRASHED)).toHaveLength(0);
     });

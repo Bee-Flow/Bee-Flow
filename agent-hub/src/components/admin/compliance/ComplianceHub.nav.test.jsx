@@ -5,7 +5,7 @@
  * load-bearing in two places. If these tests fail, update the adapter regex in
  * src/pages/settings/complianceNavAdapter.js in the same change.
  */
-import { render, screen, fireEvent, cleanup, waitFor, act } from '@testing-library/react';
+import { render, screen, cleanup, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -187,13 +187,14 @@ describe('ComplianceHub navigation contract', () => {
     });
 
     it('header tabs write ?tab= without a history entry and the section header shows the section title', async () => {
+        const user = userEvent.setup();
         const push = vi.spyOn(window.history, 'pushState');
         const replace = vi.spyOn(window.history, 'replaceState');
         render(<ComplianceHub activeSection="gdpr" onNavigate={vi.fn()} />);
         await waitFor(() => expect(screen.getByTestId('checks-page')).toBeInTheDocument());
         const tab = screen.queryByRole('radio', { name: /compliance\.tab_gdpr_timeline/ });
         if (tab) {
-            fireEvent.click(tab);
+            await user.click(tab);
             expect(replace).toHaveBeenCalled();
             expect(push).not.toHaveBeenCalled();
         }

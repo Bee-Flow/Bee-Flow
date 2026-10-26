@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -137,14 +137,16 @@ describe('setupBody — an allow-list, not a filtered form state', () => {
 describe('SetupStepBody — the four bodies', () => {
     beforeEach(cleanup);
 
-    it('DPO step: picking a member fills the fields, which stay editable', () => {
+    it('DPO step: picking a member fills the fields, which stay editable', async () => {
+        const user = userEvent.setup();
         render(<Host orgUsers={ORG_USERS} step={0} />);
-        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'zoe' } });
+        await user.selectOptions(screen.getByRole('combobox'), 'zoe');
         expect(screen.getByLabelText('Name').value).toBe('Zoë de Vries');
         expect(screen.getByLabelText('E-mail').value).toBe('zoe@acme.nl');
         expect(screen.getByLabelText('Phone').value).toBe('');
         // External-DPO path: the plain inputs remain writable after a pick.
-        fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: 'extern@dpo.example' } });
+        await user.clear(screen.getByLabelText('E-mail'));
+        await user.type(screen.getByLabelText('E-mail'), 'extern@dpo.example');
         expect(screen.getByLabelText('E-mail').value).toBe('extern@dpo.example');
     });
 
@@ -166,18 +168,21 @@ describe('SetupStepBody — the four bodies', () => {
         expect(LEGAL_BASES).toHaveLength(6);
     });
 
-    it('residency step edits residency and retention', () => {
+    it('residency step edits residency and retention', async () => {
+        const user = userEvent.setup();
         let latest = null;
         render(<Host step={2} onData={(d) => { latest = d; }} />);
-        fireEvent.change(screen.getByTestId('setup-step-residency-select'), { target: { value: 'hybrid' } });
-        fireEvent.change(screen.getByTestId('setup-step-retention'), { target: { value: '180' } });
+        await user.selectOptions(screen.getByTestId('setup-step-residency-select'), 'hybrid');
+        await user.clear(screen.getByTestId('setup-step-retention'));
+        await user.type(screen.getByTestId('setup-step-retention'), '180');
         expect(latest.data_residency).toBe('hybrid');
         expect(latest.default_retention_days).toBe('180');
     });
 
     it('breach step: picking a member appends their address, and they leave the dropdown', async () => {
+        const user = userEvent.setup();
         render(<Host orgUsers={ORG_USERS} step={3} />);
-        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'jan' } });
+        await user.selectOptions(screen.getByRole('combobox'), 'jan');
         expect(await screen.findByText('jan@acme.nl')).toBeInTheDocument();
         expect(screen.queryByText('Jan Janssen — jan@acme.nl')).not.toBeInTheDocument();
     });
@@ -187,11 +192,13 @@ describe('SetupStepBody — the four bodies', () => {
         let latest = null;
         render(<Host step={3} onData={(d) => { latest = d; }} />);
         const input = screen.getByTestId('setup-step-recipient-input');
-        fireEvent.change(input, { target: { value: 'security@example.com' } });
+        await user.clear(input);
+        await user.type(input, 'security@example.com');
         await user.click(screen.getByTestId('setup-step-recipient-add'));
         expect(latest.breach_recipients).toEqual(['security@example.com']);
         expect(input.value).toBe('');
-        fireEvent.change(input, { target: { value: 'security@example.com' } });
+        await user.clear(input);
+        await user.type(input, 'security@example.com');
         await user.click(screen.getByTestId('setup-step-recipient-add'));
         expect(latest.breach_recipients).toEqual(['security@example.com']);
         await user.click(screen.getByLabelText('Remove'));

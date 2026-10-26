@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
+import { cleanup, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -115,10 +115,11 @@ describe('VoiceprintEnrollModal timing + consent', () => {
     });
 
     async function openModal(recorderState = {}) {
+        const user = userEvent.setup();
         recorder.current = makeRecorder(recorderState);
         respond(AVAILABLE);
         render(<VoiceprintSection />);
-        fireEvent.click(await screen.findByRole('button', { name: 'Record voice profile' }));
+        await user.click(await screen.findByRole('button', { name: 'Record voice profile' }));
         return screen.findByText(/Read the text below aloud/);
     }
 

@@ -136,7 +136,7 @@ describe('ActionFlowEditor — building', () => {
             { kind: 'toast', message: 'after' },
         ]));
         // fireEvent on the nodes: user.click's mousedown reaches React Flow's d3-zoom, which throws in jsdom (no event.view).
-        fireEvent.click(screen.getByText('If…'));
+        await user.click(screen.getByText('If…'));
         await user.click(screen.getByRole('button', { name: /delete this if/i }));
 
         expect(last().steps).toHaveLength(1);
@@ -213,32 +213,36 @@ describe('ActionFlowEditor — saying which thing, by name', () => {
 
 describe('ActionFlowEditor — editing a step', () => {
     it('selecting a step opens its settings, rendered from the spec', async () => {
+        const user = userEvent.setup();
         renderFlow(seq([{ kind: 'toast', message: 'saved' }]));
-        fireEvent.click(screen.getByText('Show a message'));
+        await user.click(screen.getByText('Show a message'));
         expect(await screen.findByLabelText('Message')).toBeTruthy();
         expect(screen.getByLabelText('Tone')).toBeTruthy();
     });
 
     it('a change to a setting commits the whole action back', async () => {
+        const user = userEvent.setup();
         const { last } = renderFlow(seq([{ kind: 'toast', message: 'old' }]));
-        fireEvent.click(screen.getByText('Show a message'));
+        await user.click(screen.getByText('Show a message'));
         fireEvent.change(await screen.findByLabelText('Message'), { target: { value: 'new' } });
         expect(last().steps[0].message).toBe('new');
     });
 
     it('a screen field is a picker, never a typed id', async () => {
+        const user = userEvent.setup();
         renderFlow(seq([{ kind: 'navigate', screenId: 'scr_b' }]));
-        fireEvent.click(screen.getByText('Go to screen'));
+        await user.click(screen.getByText('Go to screen'));
         const control = await screen.findByLabelText('Screen');
         expect(control.tagName).toBe('SELECT');
         expect([...(control as HTMLSelectElement).options].map((o) => o.textContent)).toContain('Detail');
     });
 
     it('editing a step inside a branch keeps it in that branch', async () => {
+        const user = userEvent.setup();
         const { last } = renderFlow(seq([
             { kind: 'condition', expr: 'x', then: [{ kind: 'toast', message: 'old' }], else: [] },
         ]));
-        fireEvent.click(screen.getByText('Show a message'));
+        await user.click(screen.getByText('Show a message'));
         fireEvent.change(await screen.findByLabelText('Message'), { target: { value: 'new' } });
 
         expect(last().steps[0].then[0].message).toBe('new');
@@ -307,7 +311,7 @@ describe('ActionFlowEditor — the automation builder’s tools', () => {
     it('moves a step later, and back', async () => {
         const user = userEvent.setup();
         const { last } = renderFlow(seqOf('one', 'two', 'three'));
-        fireEvent.click(screen.getByText('one'));
+        await user.click(screen.getByText('one'));
         await user.click(screen.getByRole('button', { name: /move this step later/i }));
         expect(last().steps.map((s: { message: unknown }) => s.message)).toEqual(['two', 'one', 'three']);
 
@@ -316,10 +320,11 @@ describe('ActionFlowEditor — the automation builder’s tools', () => {
     });
 
     it('will not move a step out of its own branch', async () => {
+        const user = userEvent.setup();
         renderFlow(seq([
             { kind: 'condition', expr: 'x', then: [{ kind: 'toast', message: 'only one' }], else: [] },
         ]));
-        fireEvent.click(screen.getByText('only one'));
+        await user.click(screen.getByText('only one'));
         // First and last of its scope, so neither direction is offered.
         expect((screen.getByRole('button', { name: /move this step earlier/i }) as HTMLButtonElement).disabled).toBe(true);
         expect((screen.getByRole('button', { name: /move this step later/i }) as HTMLButtonElement).disabled).toBe(true);
@@ -331,7 +336,7 @@ describe('ActionFlowEditor — the automation builder’s tools', () => {
             { kind: 'condition', expr: 'x', then: [{ kind: 'toast', message: 'a' }, { kind: 'toast', message: 'b' }], else: [] },
             { kind: 'toast', message: 'after' },
         ]));
-        fireEvent.click(screen.getByText('a'));
+        await user.click(screen.getByText('a'));
         await user.click(screen.getByRole('button', { name: /move this step later/i }));
         expect(last().steps[0].then.map((s: { message: unknown }) => s.message)).toEqual(['b', 'a']);
         expect(last().steps[1].message).toBe('after');
@@ -340,7 +345,7 @@ describe('ActionFlowEditor — the automation builder’s tools', () => {
     it('keeps the moved step selected, so you can move it twice', async () => {
         const user = userEvent.setup();
         const { last } = renderFlow(seqOf('one', 'two', 'three'));
-        fireEvent.click(screen.getByText('one'));
+        await user.click(screen.getByText('one'));
         await user.click(screen.getByRole('button', { name: /move this step later/i }));
         await user.click(screen.getByRole('button', { name: /move this step later/i }));
         expect(last().steps.map((s: { message: unknown }) => s.message)).toEqual(['two', 'three', 'one']);

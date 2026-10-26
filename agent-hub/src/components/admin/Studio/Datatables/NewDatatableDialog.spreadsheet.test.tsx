@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -165,7 +165,8 @@ describe('the card', () => {
         await screen.findByRole('radio', { name: CARD });
         await user.clear(screen.getByPlaceholderText('Customers'));
         await user.type(screen.getByPlaceholderText('Customers'), 'Klanten');
-        fireEvent.change(screen.getByPlaceholderText(/onboarding e-mail/), { target: { value: 'the list' } });
+        await user.clear(screen.getByPlaceholderText(/onboarding e-mail/));
+        await user.type(screen.getByPlaceholderText(/onboarding e-mail/), 'the list');
         await user.click(screen.getByRole('button', { name: /^Create$/ }));
         await waitFor(() => expect(datatablesApi.create).toHaveBeenCalled());
         expect(asMock(datatablesApi.create).mock.calls[0][0]).toMatchObject({ name: 'Klanten', key: 'klanten', scope: 'organisation' });

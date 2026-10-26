@@ -1,4 +1,4 @@
-import { screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
+import { screen, cleanup, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import ConnectionsManager from './ConnectionsManager';
@@ -26,10 +26,11 @@ function installFetchMock() {
 }
 
 const openAddForm = async () => {
-    fireEvent.click(await screen.findByText('Add a connection'));
+    const user = userEvent.setup();
+    await user.click(await screen.findByText('Add a connection'));
     // Provider dropdown is the first combobox of the add form.
     const providerSelect = screen.getAllByRole('combobox')[0];
-    fireEvent.change(providerSelect, { target: { value: 'http' } });
+    await user.selectOptions(providerSelect, 'http');
     return providerSelect;
 };
 
@@ -45,6 +46,7 @@ describe('ConnectionsManager — http provider', () => {
     });
 
     it('auth-type switch renders the per-type fields with secrets as password inputs', async () => {
+        const user = userEvent.setup();
         render(<ConnectionsManager />);
         await openAddForm();
 
@@ -52,15 +54,15 @@ describe('ConnectionsManager — http provider', () => {
         // Default: Bearer token — a single write-only secret field.
         expect(byPlaceholder('Token').type).toBe('password');
 
-        fireEvent.change(authTypeSelect, { target: { value: 'header' } });
+        await user.selectOptions(authTypeSelect, 'header');
         expect(byPlaceholder('Header name (e.g. X-API-Key)').type).toBe('text');
         expect(byPlaceholder('Key value').type).toBe('password');
 
-        fireEvent.change(authTypeSelect, { target: { value: 'basic' } });
+        await user.selectOptions(authTypeSelect, 'basic');
         expect(byPlaceholder('Username').type).toBe('text');
         expect(byPlaceholder('Password').type).toBe('password');
 
-        fireEvent.change(authTypeSelect, { target: { value: 'oauth2_cc' } });
+        await user.selectOptions(authTypeSelect, 'oauth2_cc');
         expect(byPlaceholder('Token URL').type).toBe('text');
         expect(byPlaceholder('Client ID').type).toBe('password');
         expect(byPlaceholder('Client secret').type).toBe('password');
@@ -71,12 +73,16 @@ describe('ConnectionsManager — http provider', () => {
         const user = userEvent.setup();
         render(<ConnectionsManager />);
         await openAddForm();
-        fireEvent.change(screen.getByLabelText('Auth type'), { target: { value: 'oauth2_cc' } });
+        await user.selectOptions(screen.getByLabelText('Auth type'), 'oauth2_cc');
 
-        fireEvent.change(byPlaceholder('Token URL'), { target: { value: 'https://auth.example.com/token' } });
-        fireEvent.change(byPlaceholder('Client ID'), { target: { value: 'client-abc' } });
-        fireEvent.change(byPlaceholder('Client secret'), { target: { value: 's3cr3t-value' } });
-        fireEvent.change(byPlaceholder('Scopes (space-separated, optional)'), { target: { value: 'read write' } });
+        await user.clear(byPlaceholder('Token URL'));
+        await user.type(byPlaceholder('Token URL'), 'https://auth.example.com/token');
+        await user.clear(byPlaceholder('Client ID'));
+        await user.type(byPlaceholder('Client ID'), 'client-abc');
+        await user.clear(byPlaceholder('Client secret'));
+        await user.type(byPlaceholder('Client secret'), 's3cr3t-value');
+        await user.clear(byPlaceholder('Scopes (space-separated, optional)'));
+        await user.type(byPlaceholder('Scopes (space-separated, optional)'), 'read write');
         await user.click(screen.getByText('Create connection'));
 
         await waitFor(() => expect(posts.length).toBe(1));
@@ -90,7 +96,8 @@ describe('ConnectionsManager — http provider', () => {
         const user = userEvent.setup();
         render(<ConnectionsManager />);
         await openAddForm();
-        fireEvent.change(byPlaceholder('Token'), { target: { value: 'tok-123' } });
+        await user.clear(byPlaceholder('Token'));
+        await user.type(byPlaceholder('Token'), 'tok-123');
         await user.click(screen.getByText('Create connection'));
 
         await waitFor(() => expect(posts.length).toBe(1));
@@ -103,8 +110,9 @@ describe('ConnectionsManager — http provider', () => {
         const user = userEvent.setup();
         render(<ConnectionsManager />);
         await openAddForm();
-        fireEvent.change(screen.getByLabelText('Auth type'), { target: { value: 'basic' } });
-        fireEvent.change(byPlaceholder('Username'), { target: { value: 'svc-user' } });
+        await user.selectOptions(screen.getByLabelText('Auth type'), 'basic');
+        await user.clear(byPlaceholder('Username'));
+        await user.type(byPlaceholder('Username'), 'svc-user');
         await user.click(screen.getByText('Create connection')); // password missing
         expect(await screen.findByText('Fill in all required fields')).toBeTruthy();
         expect(posts.length).toBe(0);

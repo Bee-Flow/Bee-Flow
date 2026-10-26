@@ -126,8 +126,10 @@ function renderPane({ chrome, queryClient, onAppUpdated } = {}) {
 }
 
 async function sendMessage(text) {
+    const user = userEvent.setup();
     const textarea = screen.getByLabelText('Message the AI builder');
-    fireEvent.change(textarea, { target: { value: text } });
+    await user.clear(textarea);
+    await user.type(textarea, text);
     fireEvent.keyDown(textarea, { key: 'Enter' });
     // The turn waits for the pre-turn flush, so the request (and the lock that
     // rides with it) lands a microtask later — resolve once it is really away.
@@ -456,9 +458,11 @@ describe('BuilderChatPane', () => {
     });
 
     it('Shift+Enter inserts a newline instead of sending', async () => {
+        const user = userEvent.setup();
         renderPane();
         const textarea = screen.getByLabelText('Message the AI builder');
-        fireEvent.change(textarea, { target: { value: 'line one' } });
+        await user.clear(textarea);
+        await user.type(textarea, 'line one');
         fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: true });
         expect(streamCalls()).toHaveLength(0);
         expect(ctxRef.current.streamLock).toBe(false);
@@ -503,7 +507,8 @@ describe('BuilderChatPane', () => {
 
         await sendMessage('Build a tracker');
         const title = await screen.findByDisplayValue('Tracker');
-        fireEvent.change(title, { target: { value: 'My Tracker' } });
+        await user.clear(title);
+        await user.type(title, 'My Tracker');
         await user.click(screen.getByText('Build it'));
 
         await waitFor(() => expect(streamCalls().length).toBe(2));
@@ -575,13 +580,15 @@ describe('BuilderChatPane', () => {
     });
 
     it('waits for the pending edit to save before locking the canvas and sending the turn', async () => {
+        const user = userEvent.setup();
         authFetch.mockResolvedValue(sseResponse([sse('done', { appId: 'app-1', finalized: true })]));
         let finishFlush;
         const flush = vi.fn(() => new Promise((r) => { finishFlush = r; }));
         renderPane({ chrome: { flush, commitTurn: vi.fn(), markSaved: vi.fn() } });
 
         const textarea = screen.getByLabelText('Message the AI builder');
-        fireEvent.change(textarea, { target: { value: 'Add a ping button' } });
+        await user.clear(textarea);
+        await user.type(textarea, 'Add a ping button');
         fireEvent.keyDown(textarea, { key: 'Enter' });
 
         // The edit is still saving: the lock would pause autosave and strand it,
@@ -785,7 +792,7 @@ describe('BuilderChatPane', () => {
         renderPane();
         const input = screen.getByTestId('app-builder-image-input');
         await act(async () => {
-            fireEvent.change(input, { target: { files: [imageFile('one.png'), imageFile('two.png')] } });
+            await user.upload(input, [imageFile('one.png'), imageFile('two.png')]);
         });
         await waitFor(() => expect(thumbs()).toHaveLength(2));
 
@@ -795,6 +802,7 @@ describe('BuilderChatPane', () => {
     });
 
     it('sends staged images as data URLs, shows them in the transcript and clears the composer', async () => {
+        const user = userEvent.setup();
         mockAuthFetchStreams(sseResponse([
             sse('builder_session', { sessionId: 'bs-up', appId: 'app-1' }),
             sse('message', { content: 'I see the layout you want.' }),
@@ -806,7 +814,8 @@ describe('BuilderChatPane', () => {
         pasteImages(textarea, [imageFile('mock.png')]);
         await waitFor(() => expect(thumbs()).toHaveLength(1));
 
-        fireEvent.change(textarea, { target: { value: 'Make it look like this' } });
+        await user.clear(textarea);
+        await user.type(textarea, 'Make it look like this');
         fireEvent.keyDown(textarea, { key: 'Enter' });
         await waitFor(() => expect(streamCalls().length).toBeGreaterThan(0));
 
@@ -839,6 +848,7 @@ describe('BuilderChatPane', () => {
     });
 
     it('a continuation leg does not re-send the images (the model has already seen them)', async () => {
+        const user = userEvent.setup();
         mockAuthFetchStreams(
             sseResponse([
                 sse('builder_session', { sessionId: 'bs-cont', appId: 'app-1' }),
@@ -851,7 +861,8 @@ describe('BuilderChatPane', () => {
         const textarea = screen.getByLabelText('Message the AI builder');
         pasteImages(textarea, [imageFile()]);
         await waitFor(() => expect(thumbs()).toHaveLength(1));
-        fireEvent.change(textarea, { target: { value: 'Build this' } });
+        await user.clear(textarea);
+        await user.type(textarea, 'Build this');
         fireEvent.keyDown(textarea, { key: 'Enter' });
 
         await waitFor(() => expect(streamCalls().length).toBe(2));

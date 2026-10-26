@@ -358,7 +358,8 @@ describe('AppEditorShell', () => {
     // every save and the shell used to drop it on the floor.
     describe('save feedback', () => {
         const addAHeading = async () => {
-            fireEvent.click(screen.getByRole('button', { name: 'Heading' }));
+            const user = userEvent.setup();
+            await user.click(screen.getByRole('button', { name: 'Heading' }));
             await waitFor(() => expect(screen.getByRole('button', { name: 'Undo' })).not.toBeDisabled());
         };
 

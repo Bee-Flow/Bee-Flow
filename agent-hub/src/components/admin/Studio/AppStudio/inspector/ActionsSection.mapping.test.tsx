@@ -116,20 +116,24 @@ describe('ActionsSection — deleting an action', () => {
 });
 
 describe('ActionsSection — renaming an automation parameter', () => {
-    it('keeps focus in the field across a keystroke', () => {
+    it('keeps focus in the field across a keystroke', async () => {
+        const user = userEvent.setup();
         const { getAllByLabelText } = renderActions(MAPPED_FORM, MAPPED_ACTION);
         openDisclosures();
         const field = getAllByLabelText('Parameter name')[0];
         field.focus();
-        fireEvent.change(field, { target: { value: 'alphax' } });
+        await user.clear(field);
+        await user.type(field, 'alphax');
         expect(document.activeElement).toBe(getAllByLabelText('Parameter name')[0]);
         expect((getAllByLabelText('Parameter name')[0] as HTMLInputElement).value).toBe('alphax');
     });
 
-    it('commits the rename', () => {
+    it('commits the rename', async () => {
+        const user = userEvent.setup();
         const { lastDef, getAllByLabelText } = renderActions(MAPPED_FORM, MAPPED_ACTION);
         openDisclosures();
-        fireEvent.change(getAllByLabelText('Parameter name')[0], { target: { value: 'alphax' } });
+        await user.clear(getAllByLabelText('Parameter name')[0]);
+        await user.type(getAllByLabelText('Parameter name')[0], 'alphax');
         expect(Object.keys(lastDef().actions.act1.inputMapping)).toEqual(['alphax', 'beta']);
     });
 

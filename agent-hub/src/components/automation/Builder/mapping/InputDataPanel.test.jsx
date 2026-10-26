@@ -101,9 +101,11 @@ describe('InputDataPanel', () => {
     });
 
     it('searching filters across groups and opens what matched', async () => {
+        const user = userEvent.setup();
         renderPanel();
         await openSearch();
-        fireEvent.change(screen.getByLabelText('Search input fields'), { target: { value: 'email' } });
+        await user.clear(screen.getByLabelText('Search input fields'));
+        await user.type(screen.getByLabelText('Search input fields'), 'email');
         expect(screen.getByText('Email')).toBeTruthy();
         expect(screen.queryByText('Count')).toBeNull();
         // The Gmail group has no match at all, so it drops out entirely.
@@ -111,9 +113,11 @@ describe('InputDataPanel', () => {
     });
 
     it('reports honestly when nothing matches', async () => {
+        const user = userEvent.setup();
         renderPanel();
         await openSearch();
-        fireEvent.change(screen.getByLabelText('Search input fields'), { target: { value: 'zzzz' } });
+        await user.clear(screen.getByLabelText('Search input fields'));
+        await user.type(screen.getByLabelText('Search input fields'), 'zzzz');
         expect(screen.getByText('No matches.')).toBeTruthy();
     });
 
@@ -150,6 +154,7 @@ describe('InputDataPanel — every word on it comes from the dictionary', () => 
     beforeEach(() => { cleanup(); transOverride.current = null; });
 
     it('translates the search box and its clear button', async () => {
+        const user = userEvent.setup();
         transOverride.current = {
             'automations.mapping.search_open': 'Velden zoeken',
             'automations.mapping.search_fields': 'Zoek invoervelden',
@@ -158,15 +163,18 @@ describe('InputDataPanel — every word on it comes from the dictionary', () => 
         renderPanel();
         await openSearch('Velden zoeken');
         const box = screen.getByLabelText('Zoek invoervelden');
-        fireEvent.change(box, { target: { value: 'email' } });
+        await user.clear(box);
+        await user.type(box, 'email');
         expect(screen.getByLabelText('Zoekopdracht wissen')).toBeTruthy();
     });
 
     it('translates the empty-result line', async () => {
+        const user = userEvent.setup();
         transOverride.current = { 'automations.mapping.no_matches': 'Geen treffers.' };
         renderPanel();
         await openSearch();
-        fireEvent.change(screen.getByLabelText('Search input fields'), { target: { value: 'zzzz' } });
+        await user.clear(screen.getByLabelText('Search input fields'));
+        await user.type(screen.getByLabelText('Search input fields'), 'zzzz');
         expect(screen.getByText('Geen treffers.')).toBeTruthy();
     });
 

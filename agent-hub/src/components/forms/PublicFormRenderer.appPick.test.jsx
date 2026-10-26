@@ -9,7 +9,7 @@
  * answer loops over nothing.
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
@@ -50,12 +50,14 @@ function renderForm(fields, { onSearchApp = vi.fn(async () => ({ results })), on
 
 /** Open the picker and wait for its first (debounced) search to land. */
 async function openPicker() {
-    fireEvent.click(screen.getByRole('button', { name: /Fireflies/ }));
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /Fireflies/ }));
     await waitFor(() => expect(screen.getByText('Kickoff met Acme')).toBeInTheDocument());
 }
 
 describe('app_pick — picking a record', () => {
     it('searches the app the question names, passing the field and the typed term', async () => {
+        const user = userEvent.setup();
         const { onSearchApp } = renderForm([CALL]);
         await openPicker();
         // The browser sends a FIELD, never an app and never a tool — which app
@@ -65,7 +67,8 @@ describe('app_pick — picking a record', () => {
         expect(field.name).toBe('call');
         expect(query).toBe('');
 
-        fireEvent.change(screen.getByLabelText('Search Fireflies'), { target: { value: 'kickoff' } });
+        await user.clear(screen.getByLabelText('Search Fireflies'));
+        await user.type(screen.getByLabelText('Search Fireflies'), 'kickoff');
         await waitFor(() => expect(onSearchApp.mock.calls.at(-1)[1]).toBe('kickoff'));
     });
 

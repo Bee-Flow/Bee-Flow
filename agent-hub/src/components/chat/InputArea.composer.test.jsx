@@ -1,4 +1,4 @@
-import { render as rtlRender, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { render as rtlRender, screen, waitFor, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -478,11 +478,13 @@ describe('InputArea — send, stop, and the mic', () => {
     });
 
     it('turns back into Send as soon as there is something to send', async () => {
+        const user = userEvent.setup();
         voiceReady = true;
         render(<Harness />);
         await screen.findByTestId('voice-send-button');
 
-        fireEvent.change(screen.getByTestId('chat-message-input'), { target: { value: 'hello' } });
+        await user.clear(screen.getByTestId('chat-message-input'));
+        await user.type(screen.getByTestId('chat-message-input'), 'hello');
 
         await waitFor(() => expect(screen.getByTestId('send-message-button')).toBeInTheDocument());
         expect(screen.queryByTestId('voice-send-button')).not.toBeInTheDocument();
@@ -511,8 +513,10 @@ describe('InputArea — send, stop, and the mic', () => {
     });
 
     it('Send goes solid as soon as it has something to send', async () => {
+        const user = userEvent.setup();
         render(<Harness />);
-        fireEvent.change(screen.getByTestId('chat-message-input'), { target: { value: 'hi' } });
+        await user.clear(screen.getByTestId('chat-message-input'));
+        await user.type(screen.getByTestId('chat-message-input'), 'hi');
 
         await waitFor(() => {
             const send = screen.getByTestId('send-message-button');

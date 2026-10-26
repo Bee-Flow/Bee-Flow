@@ -101,7 +101,8 @@ describe('NodeDetailView — the output sheet opens on fields, not on JSON text'
         const onSaveStep = vi.fn().mockResolvedValue(undefined);
         render(<NodeDetailView {...omitted<ComponentProps<typeof NodeDetailView>>()} {...baseProps({ onSaveStep })} />);
         await user.click(screen.getByTestId('ndv-edit-output'));
-        fireEvent.change(screen.getByLabelText('Value'), { target: { value: 'Dear Ada,' } });
+        await user.clear(screen.getByLabelText('Value'));
+        await user.type(screen.getByLabelText('Value'), 'Dear Ada,');
         save();
 
         await waitFor(() => expect(onSaveStep).toHaveBeenCalledTimes(1));
@@ -125,9 +126,11 @@ describe('NodeDetailView — the output sheet opens on fields, not on JSON text'
 
 describe('NodeDetailView — editing fields writes the JSON the author never typed', () => {
     it('saves a changed value, and leaves the other fields and their types alone', async () => {
+        const user = userEvent.setup();
         const onSaveStep = openOn({ subject: 'Hi', id: 7 });
 
-        fireEvent.change(screen.getByLabelText('subject value'), { target: { value: 'Invoice 42' } });
+        await user.clear(screen.getByLabelText('subject value'));
+        await user.type(screen.getByLabelText('subject value'), 'Invoice 42');
         save();
 
         await waitFor(() => expect(onSaveStep).toHaveBeenCalledTimes(1));
@@ -148,8 +151,10 @@ describe('NodeDetailView — editing fields writes the JSON the author never typ
         expect(JSON.parse((textarea() as HTMLInputElement).value)).toEqual({ subject: 'Hi' });
 
         const fresh = rows()[1];
-        fireEvent.change(within(fresh).getByLabelText('Name'), { target: { value: 'amount' } });
-        fireEvent.change(within(rows()[1]).getByLabelText('amount value'), { target: { value: '19.5' } });
+        await user.clear(within(fresh).getByLabelText('Name'));
+        await user.type(within(fresh).getByLabelText('Name'), 'amount');
+        await user.clear(within(rows()[1]).getByLabelText('amount value'));
+        await user.type(within(rows()[1]).getByLabelText('amount value'), '19.5');
         await user.selectOptions(within(rows()[1]).getByLabelText('Type'), 'number');
         save();
 
@@ -166,14 +171,17 @@ describe('NodeDetailView — editing fields writes the JSON the author never typ
         expect(savedOutput(onSaveStep)).toEqual({ subject: 'Hi' });
     });
 
-    it('keeps a half-typed number on screen while it is still half-typed', () => {
+    it('keeps a half-typed number on screen while it is still half-typed', async () => {
+        const user = userEvent.setup();
         // `1.` serialises to `1`. A draft rebuilt from the text on every
         // keystroke would put "1" back in the box and delete the dot the author
         // just typed — so the row keeps its own typing buffer.
         openOn({ amount: 1 });
-        fireEvent.change(screen.getByLabelText('amount value'), { target: { value: '1.' } });
+        await user.clear(screen.getByLabelText('amount value'));
+        await user.type(screen.getByLabelText('amount value'), '1.');
         expect((screen.getByLabelText('amount value') as HTMLInputElement).value).toBe('1.');
-        fireEvent.change(screen.getByLabelText('amount value'), { target: { value: '1.5' } });
+        await user.clear(screen.getByLabelText('amount value'));
+        await user.type(screen.getByLabelText('amount value'), '1.5');
         expect(JSON.parse((textarea() as HTMLInputElement).value)).toEqual({ amount: 1.5 });
     });
 
@@ -188,6 +196,7 @@ describe('NodeDetailView — editing fields writes the JSON the author never typ
     });
 
     it('shows a nested value as what it is, and never flattens it into a text box', async () => {
+        const user = userEvent.setup();
         const onSaveStep = openOn({ subject: 'Hi', sender: { name: 'Ada', email: 'ada@example.org' } });
 
         // "[object Object]" in a text box, saved, is a data loss one click
@@ -196,7 +205,8 @@ describe('NodeDetailView — editing fields writes the JSON the author never typ
         expect(screen.getByTestId('ndv-field-nested').textContent).toContain('Ada');
         expect(screen.getAllByTestId('ndv-field-kind').map(el => (el as HTMLInputElement).value ?? el.textContent)).toEqual(['text', 'group']);
 
-        fireEvent.change(screen.getByLabelText('subject value'), { target: { value: 'Bye' } });
+        await user.clear(screen.getByLabelText('subject value'));
+        await user.type(screen.getByLabelText('subject value'), 'Bye');
         save();
         await waitFor(() => expect(onSaveStep).toHaveBeenCalledTimes(1));
         expect(savedOutput(onSaveStep)).toEqual({ subject: 'Bye', sender: { name: 'Ada', email: 'ada@example.org' } });
@@ -205,11 +215,13 @@ describe('NodeDetailView — editing fields writes the JSON the author never typ
 
 describe('NodeDetailView — a list of records edits as records', () => {
     it('gives each record its own block, and saves the list as a list', async () => {
+        const user = userEvent.setup();
         const onSaveStep = openOn([{ name: 'Ada', seats: 2 }, { name: 'Alan', seats: 1 }]);
 
         expect(screen.getAllByTestId('ndv-record-no').map(el => el.textContent)).toEqual(['#1', '#2']);
         const second = screen.getAllByTestId('ndv-output-field')[2]; // record #2, first field
-        fireEvent.change(within(second).getByLabelText('name value'), { target: { value: 'Grace' } });
+        await user.clear(within(second).getByLabelText('name value'));
+        await user.type(within(second).getByLabelText('name value'), 'Grace');
         save();
 
         await waitFor(() => expect(onSaveStep).toHaveBeenCalledTimes(1));
@@ -234,7 +246,8 @@ describe('NodeDetailView — the raw editor survives as the escape hatch', () =>
 
         await user.click(screen.getByTestId('ndv-output-raw-toggle'));
         expect(screen.getByTestId('ndv-output-raw-toggle').getAttribute('aria-expanded')).toBe('true');
-        fireEvent.change(textarea(), { target: { value: '{"subject":"Hi","cc":["a@b.c"]}' } });
+        await user.clear(textarea());
+        await user.type(textarea(), '{{"subject":"Hi","cc":[["a@b.c"]}');
         save();
 
         await waitFor(() => expect(onSaveStep).toHaveBeenCalledTimes(1));
@@ -245,7 +258,8 @@ describe('NodeDetailView — the raw editor survives as the escape hatch', () =>
         const user = userEvent.setup();
         openOn({ subject: 'Hi' });
         await user.click(screen.getByTestId('ndv-output-raw-toggle'));
-        fireEvent.change(textarea(), { target: { value: '{"subject":"Hi","id":7}' } });
+        await user.clear(textarea());
+        await user.type(textarea(), '{{"subject":"Hi","id":7}');
         expect(rows()).toHaveLength(2);
         expect((screen.getByLabelText('id value') as HTMLInputElement).value).toBe('7');
     });

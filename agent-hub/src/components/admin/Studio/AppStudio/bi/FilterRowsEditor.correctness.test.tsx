@@ -85,7 +85,8 @@ describe('FilterRowsEditor — the free-text escape follows the ROW, not its ind
         renderRows([{ field: 'title', op: 'eq', value: '' }, { field: 'done', op: 'eq', value: true }]);
         await user.click(escapeButtons()[0]);
         const box = screen.getAllByLabelText('Filter value')[1];
-        fireEvent.change(box, { target: { value: 'maybe' } });
+        await user.clear(box);
+        await user.type(box, 'maybe');
         expect(restoreButtons()).toHaveLength(1);
     });
 });
@@ -164,10 +165,13 @@ describe('FilterRowsEditor — the ops the server implements are all reachable',
         expect(last()[0].value).toEqual(['open', 'closed']);
     });
 
-    it('“is between” collects a [min, max] pair', () => {
+    it('“is between” collects a [min, max] pair', async () => {
+        const user = userEvent.setup();
         const { last } = renderRows([{ field: 'amount', op: 'between', value: ['', ''] }]);
-        fireEvent.change(screen.getByLabelText('Filter value from'), { target: { value: '10' } });
-        fireEvent.change(screen.getByLabelText('Filter value to'), { target: { value: '20' } });
+        await user.clear(screen.getByLabelText('Filter value from'));
+        await user.type(screen.getByLabelText('Filter value from'), '10');
+        await user.clear(screen.getByLabelText('Filter value to'));
+        await user.type(screen.getByLabelText('Filter value to'), '20');
         expect(last()[0].value).toEqual(['10', '20']);
     });
 
@@ -213,12 +217,14 @@ describe('FilterRowsEditor — the formula row is a real expression editor', () 
         expect(container.querySelector('[data-formula-error]')).toBeTruthy();
     });
 
-    it('still emits the { kind:"formula", expr } shape', () => {
+    it('still emits the { kind:"formula", expr } shape', async () => {
+        const user = userEvent.setup();
         const { last } = renderRows(
             [{ field: 'title', op: 'eq', value: { kind: 'formula', expr: '' } }],
             { allowFormula: true },
         );
-        fireEvent.change(screen.getByLabelText('Filter formula'), { target: { value: 'currentUser.id' } });
+        await user.clear(screen.getByLabelText('Filter formula'));
+        await user.type(screen.getByLabelText('Filter formula'), 'currentUser.id');
         expect(last()[0].value).toEqual({ kind: 'formula', expr: 'currentUser.id' });
     });
 });

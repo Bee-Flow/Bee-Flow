@@ -109,7 +109,8 @@ describe('IncidentsPage — the incidents register', () => {
         const drawer = screen.getByTestId('inc-drawer');
         await user.click(within(drawer).getByTestId('inc-drawer-assess'));
         expect(props.data.incidents.update).toHaveBeenCalledWith(1, { status: 'assessing' });
-        fireEvent.change(within(drawer).getByTestId('inc-drawer-authority-ref'), { target: { value: 'AP-2026-77' } });
+        await user.clear(within(drawer).getByTestId('inc-drawer-authority-ref'));
+        await user.type(within(drawer).getByTestId('inc-drawer-authority-ref'), 'AP-2026-77');
         await user.click(within(drawer).getByTestId('inc-drawer-authority'));
         expect(props.data.incidents.update).toHaveBeenCalledWith(1, { status: 'authority_notified', authority_reference: 'AP-2026-77' });
         await user.click(within(drawer).getByTestId('inc-drawer-notify'));
@@ -124,7 +125,8 @@ describe('IncidentsPage — the incidents register', () => {
         const props = pageProps('incidents');
         render(<IncidentsPage {...props} />);
         await user.click(screen.getByTestId('inc-record'));
-        fireEvent.change(screen.getByTestId('inc-create-title'), { target: { value: 'Misdirected e-mail' } });
+        await user.clear(screen.getByTestId('inc-create-title'));
+        await user.type(screen.getByTestId('inc-create-title'), 'Misdirected e-mail');
         await user.click(screen.getByTestId('inc-create-high-risk'));
         await user.click(screen.getByTestId('inc-create-submit'));
         await waitFor(() => expect(props.data.incidents.create).toHaveBeenCalledTimes(1));
@@ -252,8 +254,10 @@ describe('IncidentsPage — the vulnerability register (CRA Art. 14)', () => {
         await user.click(screen.getByTestId('inc-table-row-9'));
         let drawer = screen.getByTestId('inc-drawer');
         expect(within(drawer).getByTestId('inc-drawer-reporting').querySelectorAll('li')).toHaveLength(4);
-        fireEvent.change(within(drawer).getByTestId('inc-drawer-cra-via'), { target: { value: 'ENISA SRP' } });
-        fireEvent.change(within(drawer).getByTestId('inc-drawer-cra-ref'), { target: { value: 'SRP-1' } });
+        await user.clear(within(drawer).getByTestId('inc-drawer-cra-via'));
+        await user.type(within(drawer).getByTestId('inc-drawer-cra-via'), 'ENISA SRP');
+        await user.clear(within(drawer).getByTestId('inc-drawer-cra-ref'));
+        await user.type(within(drawer).getByTestId('inc-drawer-cra-ref'), 'SRP-1');
         await user.click(within(drawer).getByTestId('inc-drawer-cra-early'));
         expect(props.data.incidents.craReport).toHaveBeenCalledWith(9, { stage: 'early_warning', reported_via: 'ENISA SRP', reference: 'SRP-1' });
         expect(within(drawer).queryByTestId('inc-drawer-cra-full')).toBeNull();
@@ -285,8 +289,10 @@ describe('IncidentsPage — the vulnerability register (CRA Art. 14)', () => {
         const props = pageProps('vulnerabilities');
         render(<IncidentsPage {...props} />);
         await user.click(screen.getByTestId('inc-record'));
-        fireEvent.change(screen.getByTestId('inc-create-title'), { target: { value: 'RCE in export' } });
-        fireEvent.change(screen.getByTestId('inc-create-cve'), { target: { value: 'cve-2026-9 CVE-2026-10' } });
+        await user.clear(screen.getByTestId('inc-create-title'));
+        await user.type(screen.getByTestId('inc-create-title'), 'RCE in export');
+        await user.clear(screen.getByTestId('inc-create-cve'));
+        await user.type(screen.getByTestId('inc-create-cve'), 'cve-2026-9 CVE-2026-10');
         await user.click(screen.getByTestId('inc-create-exploited'));
         await user.click(screen.getByTestId('inc-create-submit'));
         await waitFor(() => expect(props.data.incidents.create).toHaveBeenCalledTimes(1));

@@ -22,6 +22,7 @@ import { READ } from '../canUse/canUseFacts';
 import type { TranslateParams } from '@/hooks/useTranslation';
 import { omitted } from '@/test/mocks';
 import type { ComponentProps } from 'react';
+import userEvent from '@testing-library/user-event';
 
 // Same resolution order as useTranslation: the string fallback wins over the
 // key, and {count} is filled in. Otherwise the counter test would approve a
@@ -119,13 +120,14 @@ describe('AgentHero — de identiteitsrij', () => {
         expect(screen.queryByTestId('agent-hero-avatar-badge')).toBeNull();
     });
 
-    it('toont de categorie als tag naast de naam en geeft een keuze door', () => {
+    it('toont de categorie als tag naast de naam en geeft een keuze door', async () => {
+        const user = userEvent.setup();
         const picked: unknown[] = [];
         render(<AgentHero {...omitted<ComponentProps<typeof AgentHero>>()} {...baseProps} categories={cats} categoryId="c-sales" updateCategory={(v) => picked.push(v)} />);
         const select = screen.getByTestId('agent-category-select');
         expect((select as HTMLInputElement).value).toBe('c-sales');
         expect(screen.getByRole('option', { name: 'Sales' })).toBeTruthy();
-        fireEvent.change(select, { target: { value: 'c-hr' } });
+        await user.selectOptions(select, 'c-hr');
         expect(picked).toEqual(['c-hr']);
     });
 

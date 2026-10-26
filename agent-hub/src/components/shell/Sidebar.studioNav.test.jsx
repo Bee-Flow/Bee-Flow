@@ -434,7 +434,7 @@ describe('Sidebar — Studio flyout (registry-driven)', () => {
         // Click toggles. A bare click event: user.click would hover first, and hover opens the flyout.
         fireEvent.click(row);
         expect(screen.getByTestId('flyout-studio')).toBeTruthy();
-        fireEvent.click(row);
+        await user.click(row);
         expect(screen.queryByTestId('flyout-studio')).toBeNull();
         // Hovering the wrapper opens too (React derives onMouseEnter from
         // native mouseover, which is what fireEvent.mouseOver dispatches).

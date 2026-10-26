@@ -7,7 +7,7 @@
  *   2. the run count is PER USER (`/_runs/facets` is `r.user_id = me`), so the sentence says "of yours", and a failed read shows NOTHING — not 0;
  *   3. a rule that the reader may not open gets no link, because `GET /api/automation/:id` returns 403 there.
  */
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -235,7 +235,8 @@ describe('RulesPanel', () => {
         await screen.findByTestId('rules-empty');
 
         await user.click(screen.getByTestId('rules-composer-toggle'));
-        fireEvent.change(screen.getByLabelText(/Say what should happen/i), { target: { value: 'tell the team' } });
+        await user.clear(screen.getByLabelText(/Say what should happen/i));
+        await user.type(screen.getByLabelText(/Say what should happen/i), 'tell the team');
         await user.click(screen.getByTestId('rules-composer-run'));
 
         await waitFor(() => expect(api.suggestAutomationsStream).toHaveBeenCalled());

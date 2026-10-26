@@ -81,11 +81,13 @@ describe('ThemePanel — AI browsing settings', () => {
         expect(getByLabelText('Sites it may open')).toBeTruthy();
     });
 
-    it('parses the domain list on blur: newlines or commas, lower-cased, blanks dropped', () => {
+    it('parses the domain list on blur: newlines or commas, lower-cased, blanks dropped', async () => {
+        const user = userEvent.setup();
         const on = { ...DEF, aiBrowsing: { enabled: true } };
         const { onCommit, getByLabelText } = renderPanel(on);
         const box = getByLabelText('Sites it may open');
-        fireEvent.change(box, { target: { value: 'NHS.uk\n\n who.int , cdc.gov\n' } });
+        await user.clear(box);
+        await user.type(box, 'NHS.uk\n\n who.int , cdc.gov\n');
         fireEvent.blur(box);
         expect(onCommit.mock.calls.at(-1)![0].aiBrowsing.allowedDomains)
             .toEqual(['nhs.uk', 'who.int', 'cdc.gov']);

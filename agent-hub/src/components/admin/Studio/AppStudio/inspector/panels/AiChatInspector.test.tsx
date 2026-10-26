@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, fireEvent } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import AiChatInspector from './AiChatInspector';
 
@@ -53,10 +53,12 @@ describe('AiChatInspector — starter questions', () => {
 
         await user.clear(field);
         await user.type(field, 'How do I file a return?');
-        fireEvent.change(field, { target: { value: 'How do I file a return?\n' } });
+        await user.clear(field);
+        await user.type(field, 'How do I file a return?\n');
         expect((field as HTMLInputElement).value).toBe('How do I file a return?\n');
 
-        fireEvent.change(field, { target: { value: 'How do I file a return?\nWhere is my order?' } });
+        await user.clear(field);
+        await user.type(field, 'How do I file a return?\nWhere is my order?');
         expect(lastProps().starters).toEqual(['How do I file a return?', 'Where is my order?']);
     });
 });

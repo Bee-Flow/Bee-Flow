@@ -116,7 +116,8 @@ describe('FolderedAutomationList', () => {
             await user.click(screen.getByText('New folder'));
 
             const input = screen.getByLabelText('New folder name');
-            fireEvent.change(input, { target: { value: 'Offertes' } });
+            await user.clear(input);
+            await user.type(input, 'Offertes');
             fireEvent.keyDown(input, { key: 'Enter' });
 
             expect(onCreateFolder).toHaveBeenCalledWith('Offertes');
@@ -129,7 +130,8 @@ describe('FolderedAutomationList', () => {
             const { onCreateFolder } = renderList([]);
             await user.click(screen.getByText('New folder'));
             const input = screen.getByLabelText('New folder name');
-            fireEvent.change(input, { target: { value: '   ' } });
+            await user.clear(input);
+            await user.type(input, '   ');
             fireEvent.keyDown(input, { key: 'Enter' });
             expect(onCreateFolder).not.toHaveBeenCalled();
         });
@@ -139,7 +141,8 @@ describe('FolderedAutomationList', () => {
             const { onCreateFolder } = renderList([]);
             await user.click(screen.getByText('New folder'));
             const input = screen.getByLabelText('New folder name');
-            fireEvent.change(input, { target: { value: 'Nope' } });
+            await user.clear(input);
+            await user.type(input, 'Nope');
             fireEvent.keyDown(input, { key: 'Escape' });
             expect(onCreateFolder).not.toHaveBeenCalled();
             expect(screen.getByText('New folder')).toBeTruthy();
@@ -184,7 +187,8 @@ describe('FolderedAutomationList', () => {
         const { onRenameFolder } = renderList([]);
         await user.click(screen.getByLabelText('Rename Klanten'));
         const input = screen.getByLabelText('Folder name');
-        fireEvent.change(input, { target: { value: 'Klantwerk' } });
+        await user.clear(input);
+        await user.type(input, 'Klantwerk');
         fireEvent.keyDown(input, { key: 'Enter' });
         expect(onRenameFolder).toHaveBeenCalledWith('f1', 'Klantwerk');
     });

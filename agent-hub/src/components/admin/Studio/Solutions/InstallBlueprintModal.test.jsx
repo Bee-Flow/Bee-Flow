@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderWithClient as render } from '@/test/render';
@@ -80,7 +80,8 @@ const installBody = () => JSON.parse(
 );
 
 async function toStep(n) {
-    for (let i = 1; i < n; i++) fireEvent.click(screen.getByTestId('install-next'));
+    const user = userEvent.setup();
+    for (let i = 1; i < n; i++) await user.click(screen.getByTestId('install-next'));
     await waitFor(() => expect(screen.getByTestId(n === 3 ? 'install-confirm' : 'install-next')).toBeTruthy());
 }
 
@@ -170,8 +171,8 @@ describe('step 2 — what the installer supplies', () => {
         await toStep(2);
         await waitFor(() => expect(screen.getByTestId('install-require-table').querySelectorAll('option')).toHaveLength(3));
 
-        fireEvent.change(screen.getByTestId('install-require-table').querySelector('select'), { target: { value: 'tbl_theirs' } });
-        fireEvent.change(screen.getByTestId('install-require-connection').querySelector('select'), { target: { value: 'conn_1' } });
+        await user.selectOptions(screen.getByTestId('install-require-table').querySelector('select'), 'tbl_theirs');
+        await user.selectOptions(screen.getByTestId('install-require-connection').querySelector('select'), 'conn_1');
         await user.click(screen.getByTestId('install-next'));
         await user.click(screen.getByTestId('install-confirm'));
 
@@ -190,8 +191,7 @@ describe('step 2 — what the installer supplies', () => {
             { id: 's1', type: 'datatable', datatableId: '', datatableKey: 'invoices' },
         ])] }) });
         await toStep(2);
-        fireEvent.change(screen.getByTestId('install-require-table').querySelector('select'),
-            { target: { value: '__create_empty__' } });
+        await user.selectOptions(screen.getByTestId('install-require-table').querySelector('select'), '__create_empty__');
         await user.click(screen.getByTestId('install-next'));
         await user.click(screen.getByTestId('install-confirm'));
         await waitFor(() => expect(screen.getByTestId('install-done')).toBeTruthy());
@@ -327,8 +327,8 @@ describe('step 3 and after', () => {
         open({ manifest: manifest({}) });
         await toStep(3);
         await waitFor(() => expect(screen.getByTestId('install-access-add')).toBeTruthy());
-        fireEvent.change(screen.getByLabelText('Who to add'), { target: { value: 'u1' } });
-        fireEvent.change(screen.getByLabelText('What they may do'), { target: { value: 'editor' } });
+        await user.selectOptions(screen.getByLabelText('Who to add'), 'u1');
+        await user.selectOptions(screen.getByLabelText('What they may do'), 'editor');
         await user.click(screen.getByTestId('install-access-add'));
         expect(screen.getByTestId('install-access-list').textContent).toMatch(/ada/);
 

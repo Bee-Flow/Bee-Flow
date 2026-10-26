@@ -142,29 +142,33 @@ describe('SpecPanel — emits usePatch updates with spec-correct shapes', () => 
         expect(committedProps().rowLimit).toBe(50);
     });
 
-    it('int prop (timeline.rowLimit) clamps to the spec range', () => {
+    it('int prop (timeline.rowLimit) clamps to the spec range', async () => {
+        const user = userEvent.setup();
         const { container, committedProps } = renderSpecPanel(nodeFor('timeline'));
         const num = container.querySelector('input[type="number"]');
-        fireEvent.change(num, { target: { value: '500' } });
+        await user.clear(num);
+        await user.type(num, '500');
         expect(committedProps().rowLimit).toBe(100);
     });
 
-    it('enum prop (calendar.view) commits a legal value via select', () => {
+    it('enum prop (calendar.view) commits a legal value via select', async () => {
+        const user = userEvent.setup();
         const { getByLabelText, committedProps } = renderSpecPanel(nodeFor('calendar'));
-        fireEvent.change(getByLabelText('View'), { target: { value: 'list' } });
+        await user.selectOptions(getByLabelText('View'), 'list');
         expect(committedProps().view).toBe('list');
     });
 
     // The look pass: the fallback types' `look` enums need no bespoke panel —
     // the catalog-driven select must list every value, in spec order (the
     // first is the identity default), and commit a non-default one.
-    it.each([['page_header'], ['progress'], ['badge_list']])('%s: look select lists the catalog values and commits one', (type) => {
+    it.each([['page_header'], ['progress'], ['badge_list']])('%s: look select lists the catalog values and commits one', async (type) => {
+        const user = userEvent.setup();
         const spec = COMPONENT_SPECS[type].props.look;
         const { getByLabelText, committedProps } = renderSpecPanel(nodeFor(type));
         const select = getByLabelText('Look');
         expect(Array.from(select.options).map((o) => o.value)).toEqual(spec.values);
         expect(select).toHaveValue(spec.default); // = spec.values[0], the identity
-        fireEvent.change(select, { target: { value: spec.values[1] } });
+        await user.selectOptions(select, spec.values[1]);
         expect(committedProps().look).toBe(spec.values[1]);
     });
 

@@ -152,9 +152,10 @@ describe('SettingsForm — Edit data (set)', () => {
     });
 
     it('“Adjust it” turns a picked value into a formula without anyone typing one', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm(LIST_STEP);
         // The field's own options sit under "More": a plain drag never needs them.
-        fireEvent.change(screen.getByLabelText('Adjust the value'), { target: { value: 'lower' } });
+        await user.selectOptions(screen.getByLabelText('Adjust the value'), 'lower');
         save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         expect(onPatch.mock.calls[0][0].fields.sender).toEqual({ kind: 'expr', value: 'lower(item.from_email)' });
@@ -245,9 +246,10 @@ describe('SettingsForm — Edit data (set)', () => {
     });
 
     it('the Advanced "Works on" select flips modes; leaving list mode warns about table tools', async () => {
+        const user = userEvent.setup();
         const { onPatch } = renderForm(LIST_STEP);
         expect(screen.getByText(/also removes the table tools/)).toBeTruthy();
-        fireEvent.change(screen.getByDisplayValue('Each row of a list'), { target: { value: 'single' } });
+        await user.selectOptions(screen.getByDisplayValue('Each row of a list'), 'single');
         save();
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls[0][0];

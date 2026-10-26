@@ -74,21 +74,25 @@ describe('ToolInputForm — field name commit-on-blur', () => {
         expect(screen.getByText(/reserved name/)).toBeTruthy();
     });
 
-    it('a typed PATH on an empty row adopts it: name = last segment, value = ref (user report)', () => {
+    it('a typed PATH on an empty row adopts it: name = last segment, value = ref (user report)', async () => {
+        const user = userEvent.setup();
         const { onChange } = renderSetFields({ field_1: { kind: 'literal', value: '' } });
         const input = nameInput('field_1');
-        fireEvent.change(input, { target: { value: 'steps.act_4d4307a4.output.results[*].subject' } });
+        await user.clear(input);
+        await user.type(input, 'steps.act_4d4307a4.output.results[[*].subject');
         fireEvent.blur(input);
         expect(onChange).toHaveBeenCalledTimes(1);
         const next = onChange.mock.calls[0][0];
         expect(next).toEqual({ subject: { kind: 'ref', path: 'steps.act_4d4307a4.output.results[*].subject' } });
     });
 
-    it('a typed PATH on a row with a configured value renames only (never clobbers the binding)', () => {
+    it('a typed PATH on a row with a configured value renames only (never clobbers the binding)', async () => {
+        const user = userEvent.setup();
         const bound = { kind: 'ref', path: 'trigger.output.x' };
         const { onChange } = renderSetFields({ field_1: bound });
         const input = nameInput('field_1');
-        fireEvent.change(input, { target: { value: 'steps.s9.output.rows[*].email' } });
+        await user.clear(input);
+        await user.type(input, 'steps.s9.output.rows[[*].email');
         fireEvent.blur(input);
         const next = onChange.mock.calls[0][0];
         expect(next.email).toEqual(bound);

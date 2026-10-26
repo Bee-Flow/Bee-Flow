@@ -1,5 +1,5 @@
 import { createRequire } from 'module';
-import { render, fireEvent, waitFor } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -47,7 +47,7 @@ describe('RowRuleEditor — building a rule without typing code', () => {
         const user = userEvent.setup();
         const { getByText, getByLabelText } = render(<RowRuleEditor appId="a1" />);
         await user.click(getByText('Add a condition'));
-        fireEvent.change(getByLabelText('Compare with, condition 1'), { target: { value: 'viewer.id' } });
+        await user.selectOptions(getByLabelText('Compare with, condition 1'), 'viewer.id');
 
         await user.click(getByText('Save row access'));
         await waitFor(() => expect(saveTableAccess).toHaveBeenCalled());
@@ -61,8 +61,8 @@ describe('RowRuleEditor — building a rule without typing code', () => {
         const user = userEvent.setup();
         const { getByText, getByLabelText } = render(<RowRuleEditor appId="a1" />);
         await user.click(getByText('Add a condition'));
-        fireEvent.change(getByLabelText('Column, condition 1'), { target: { value: 'status' } });
-        fireEvent.change(getByLabelText('Value, condition 1'), { target: { value: 'open' } });
+        await user.selectOptions(getByLabelText('Column, condition 1'), 'status');
+        await user.selectOptions(getByLabelText('Value, condition 1'), 'open');
 
         await user.click(getByText('Save row access'));
         await waitFor(() => expect(saveTableAccess).toHaveBeenCalled());
@@ -82,11 +82,12 @@ describe('RowRuleEditor — building a rule without typing code', () => {
         const user = userEvent.setup();
         const { getByText, getByLabelText } = render(<RowRuleEditor appId="a1" />);
         await user.click(getByText('Add a condition'));
-        fireEvent.change(getByLabelText('Compare with, condition 1'), { target: { value: 'viewer.id' } });
+        await user.selectOptions(getByLabelText('Compare with, condition 1'), 'viewer.id');
         await user.click(getByText('Add a condition'));
-        fireEvent.change(getByLabelText('Column, condition 2'), { target: { value: 'amount' } });
-        fireEvent.change(getByLabelText('Test, condition 2'), { target: { value: '>' } });
-        fireEvent.change(getByLabelText('Value, condition 2'), { target: { value: '100' } });
+        await user.selectOptions(getByLabelText('Column, condition 2'), 'amount');
+        await user.selectOptions(getByLabelText('Test, condition 2'), '>');
+        await user.clear(getByLabelText('Value, condition 2'));
+        await user.type(getByLabelText('Value, condition 2'), '100');
 
         await user.click(getByText('Save row access'));
         await waitFor(() => expect(saveTableAccess).toHaveBeenCalled());
@@ -190,7 +191,7 @@ describe('RowRuleEditor — a role set up in more detail than the presets', () =
         mockRoles([lookOnly()]);
         const { getByText, getByLabelText } = render(<RowRuleEditor appId="a1" />);
         await user.click(getByText('Add a condition'));
-        fireEvent.change(getByLabelText('Compare with, condition 1'), { target: { value: 'viewer.id' } });
+        await user.selectOptions(getByLabelText('Compare with, condition 1'), 'viewer.id');
 
         await user.click(getByText('Save row access'));
         await waitFor(() => expect(saveTableAccess).toHaveBeenCalled());
@@ -229,7 +230,7 @@ describe('RowRuleEditor — unsaved work', () => {
         const { getByLabelText, getByText, queryByText } = render(<RowRuleEditor appId="a1" />);
         await user.click(getByText('Only rows they added themselves'));
 
-        fireEvent.change(getByLabelText('Table'), { target: { value: 't2' } });
+        await user.selectOptions(getByLabelText('Table'), 't2');
         expect(getByText('Discard your unsaved changes?')).toBeTruthy();
         // Nothing switched yet, and the unsaved rule is still on screen.
         expect(getByLabelText('Column, condition 1').value).toBe('created_by');
@@ -238,21 +239,23 @@ describe('RowRuleEditor — unsaved work', () => {
         expect(queryByText('Discard your unsaved changes?')).toBeNull();
         expect(getByLabelText('Table').value).toBe('t1');
 
-        fireEvent.change(getByLabelText('Table'), { target: { value: 't2' } });
+        await user.selectOptions(getByLabelText('Table'), 't2');
         await user.click(getByText('Discard changes'));
         expect(getByLabelText('Table').value).toBe('t2');
         expect(getByText('Add a condition')).toBeTruthy();
     });
 
-    it('switches without asking when nothing was edited', () => {
+    it('switches without asking when nothing was edited', async () => {
+        const user = userEvent.setup();
         mockRoles([tasks(), { ...tasks(), id: 't2', key: 'notes', name: 'Notes' }]);
         const { getByLabelText, queryByText } = render(<RowRuleEditor appId="a1" />);
-        fireEvent.change(getByLabelText('Table'), { target: { value: 't2' } });
+        await user.selectOptions(getByLabelText('Table'), 't2');
         expect(queryByText('Discard your unsaved changes?')).toBeNull();
         expect(getByLabelText('Table').value).toBe('t2');
     });
 
-    it('does not claim unsaved changes for a stored rule it only re-spells', () => {
+    it('does not claim unsaved changes for a stored rule it only re-spells', async () => {
+        const user = userEvent.setup();
         // `===` and a flipped comparison compile to the same SQL, so reading them
         // back into pickers must not look like an edit.
         mockRoles([
@@ -262,7 +265,7 @@ describe('RowRuleEditor — unsaved work', () => {
         const onDirtyChange = vi.fn();
         const { getByLabelText, queryByText } = render(<RowRuleEditor appId="a1" onDirtyChange={onDirtyChange} />);
         expect(onDirtyChange).not.toHaveBeenCalledWith(true);
-        fireEvent.change(getByLabelText('Table'), { target: { value: 't2' } });
+        await user.selectOptions(getByLabelText('Table'), 't2');
         expect(queryByText('Discard your unsaved changes?')).toBeNull();
     });
 });

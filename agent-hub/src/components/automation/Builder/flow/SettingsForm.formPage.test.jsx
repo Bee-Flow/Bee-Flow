@@ -108,7 +108,7 @@ describe('SettingsForm — form page step', () => {
     it('the wait window is editable on an input page and clamped on save', async () => {
         const user = userEvent.setup();
         const { onPatch } = renderStep(inputPage());
-        fireEvent.change(screen.getByRole('combobox', { name: 'Wait for an answer' }), { target: { value: '900' } });
+        await user.selectOptions(screen.getByRole('combobox', { name: 'Wait for an answer' }), '900');
         await user.click(screen.getByText('Save'));
         expect(onPatch.mock.calls.at(-1)[0].waitSeconds).toBe(900);
     });

@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ok, fail } from '@/test/http';
 import LoginPage from './LoginPage';
@@ -113,10 +114,12 @@ describe('the three ids the Playwright login helpers fill and click', () => {
     // a self-hosted stack. A type="email" input would refuse that at submit
     // time and the suite would time out waiting for a sidebar that never comes.
     it('accepts a bare username, not only an e-mail address', async () => {
+        const user = userEvent.setup();
         renderLogin();
         const username = await screen.findByTestId('username');
         expect(username).toHaveAttribute('type', 'text');
-        fireEvent.change(username, { target: { value: 'admin' } });
+        await user.clear(username);
+        await user.type(username, 'admin');
         expect(username).toHaveValue('admin');
         expect(username.checkValidity()).toBe(true);
     });
@@ -205,11 +208,14 @@ describe('de overige ids van dit scherm (deels buiten app-map.md)', () => {
 
 describe('the gates that stand between submit and the app shell', () => {
     it('marks the second-factor prompt with an id global-setup can probe', async () => {
+        const user = userEvent.setup();
         route('/auth/admin-login', () => ok({ mfaRequired: true }));
         renderLogin();
         await screen.findByTestId('login-submit-button');
-        fireEvent.change(screen.getByTestId('username'), { target: { value: 'admin' } });
-        fireEvent.change(screen.getByTestId('password'), { target: { value: 'pw' } });
+        await user.clear(screen.getByTestId('username'));
+        await user.type(screen.getByTestId('username'), 'admin');
+        await user.clear(screen.getByTestId('password'));
+        await user.type(screen.getByTestId('password'), 'pw');
         fireEvent.submit(screen.getByTestId('login-submit-button').closest('form'));
         expect(await screen.findByTestId('mfa-login-step')).toBeInTheDocument();
         expect(screen.getByTestId('mfa-code-input')).toBeInTheDocument();
@@ -217,12 +223,15 @@ describe('the gates that stand between submit and the app shell', () => {
     });
 
     it('marks the recovery-key modal and its only exit', async () => {
+        const user = userEvent.setup();
         route('/auth/setup-status', () => ok({ ...SETUP_STATUS, isSetupComplete: false }));
         route('/auth/setup', () => ok({ recoveryKey: 'AAAA-BBBB' }));
         renderLogin();
         await screen.findByTestId('root-password');
-        fireEvent.change(screen.getByTestId('root-password'), { target: { value: 'Password1' } });
-        fireEvent.change(screen.getByTestId('confirm-password'), { target: { value: 'Password1' } });
+        await user.clear(screen.getByTestId('root-password'));
+        await user.type(screen.getByTestId('root-password'), 'Password1');
+        await user.clear(screen.getByTestId('confirm-password'));
+        await user.type(screen.getByTestId('confirm-password'), 'Password1');
         fireEvent.submit(screen.getByTestId('login-submit-button').closest('form'));
         expect(await screen.findByTestId('recovery-key-modal')).toBeInTheDocument();
         expect(screen.getByTestId('recovery-key-value')).toHaveTextContent('AAAA-BBBB');
@@ -236,11 +245,14 @@ describe('the gates that stand between submit and the app shell', () => {
     // translated stack turns a rejected login into a 60-second timeout with a
     // misleading message. Hoort in stage L16 te veranderen.
     it('gives a failed sign-in no id and no role at all', async () => {
+        const user = userEvent.setup();
         route('/auth/admin-login', () => fail(401, { error: 'Invalid credentials' }));
         const { container } = renderLogin();
         await screen.findByTestId('login-submit-button');
-        fireEvent.change(screen.getByTestId('username'), { target: { value: 'admin' } });
-        fireEvent.change(screen.getByTestId('password'), { target: { value: 'nope' } });
+        await user.clear(screen.getByTestId('username'));
+        await user.type(screen.getByTestId('username'), 'admin');
+        await user.clear(screen.getByTestId('password'));
+        await user.type(screen.getByTestId('password'), 'nope');
         fireEvent.submit(screen.getByTestId('login-submit-button').closest('form'));
         await screen.findByText('Invalid credentials');
         expect(container.querySelector('[data-testid="login-error"]')).toBeNull();
@@ -248,11 +260,14 @@ describe('the gates that stand between submit and the app shell', () => {
     });
 
     it('leaves the sign-in ids on screen after a rejection, which is how the helpers poll', async () => {
+        const user = userEvent.setup();
         route('/auth/admin-login', () => fail(401, { error: 'Invalid credentials' }));
         renderLogin();
         await screen.findByTestId('login-submit-button');
-        fireEvent.change(screen.getByTestId('username'), { target: { value: 'admin' } });
-        fireEvent.change(screen.getByTestId('password'), { target: { value: 'nope' } });
+        await user.clear(screen.getByTestId('username'));
+        await user.type(screen.getByTestId('username'), 'admin');
+        await user.clear(screen.getByTestId('password'));
+        await user.type(screen.getByTestId('password'), 'nope');
         fireEvent.submit(screen.getByTestId('login-submit-button').closest('form'));
         await screen.findByText('Invalid credentials');
         await waitFor(() => expect(screen.getByTestId('login-submit-button')).not.toBeDisabled());

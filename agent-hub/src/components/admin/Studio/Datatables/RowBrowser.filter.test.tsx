@@ -103,7 +103,8 @@ describe('applying a filter', () => {
         await user.click(screen.getByRole('button', { name: /Add a condition/i }));
         await user.selectOptions(await screen.findByLabelText(/Column to filter on/i), 'stage');
         await user.selectOptions(screen.getByLabelText(/Test to apply/i), 'in');
-        fireEvent.change(screen.getByLabelText(/Value to compare with/i), { target: { value: 'new, won' } });
+        await user.clear(screen.getByLabelText(/Value to compare with/i));
+        await user.type(screen.getByLabelText(/Value to compare with/i), 'new, won');
         await user.selectOptions(screen.getByLabelText(/Match all or any condition/i), 'any');
         await user.click(screen.getByRole('button', { name: /Apply/i }));
 
