@@ -54,9 +54,9 @@ interface UseValuePickArgs {
     emit: (parts: ValuePart[]) => void;
     inlineRef: { current: InlineHandle | null };
     /** Which part the open picker will write into (-1 = append a new one). */
-    pickTarget: { current: number };
+    pickTargetRef: { current: number };
     /** The pill a click is re-picking for (inline mode). */
-    pillTarget: { current: HTMLElement | null };
+    pillTargetRef: { current: HTMLElement | null };
     picker: { pickerProps: { anchorEl: HTMLElement | null }; closePicker: () => void };
     /** The field announcing itself to the Input panel; null outside a form. */
     onFocusField: ((handle: FieldHandle) => void) | null;
@@ -90,7 +90,7 @@ interface FieldHandle {
 export default function useValuePick(args: UseValuePickArgs) {
     const {
         value, onChange, onRequestForEach, deepenForEach, expectShape, expectKind, label, allowForEach, sampleRoot,
-        inline, parts, emit, inlineRef, pickTarget, pillTarget, picker, onFocusField, rowLabel,
+        inline, parts, emit, inlineRef, pickTargetRef, pillTargetRef, picker, onFocusField, rowLabel,
     } = args;
     // The list chooser: a pick that resolved to a list, awaiting the user's
     // answer. { path, shape, anchorEl, index } | null.
@@ -113,8 +113,8 @@ export default function useValuePick(args: UseValuePickArgs) {
         // canonical spelling as that same path.
         let clean = canonicalRefPath(String(path || '').trim());
         if (!clean) return;
-        const index = pickTarget.current;
-        pickTarget.current = -1;
+        const index = pickTargetRef.current;
+        pickTargetRef.current = -1;
         if (opts.raw || expectShape !== 'scalar') { insertPath(clean, index, opts.at); return; }
         // WHICH value goes in, and how a list, table or group is shaped when it
         // does not fit, is one pure decision (proposePick.proposePickBinding) the
@@ -186,8 +186,8 @@ export default function useValuePick(args: UseValuePickArgs) {
     };
     const onPick = (path: string, opts: PickOptions = {}) => {
         const anchor = picker.pickerProps?.anchorEl || null;
-        const pill = pillTarget.current;
-        pillTarget.current = null;
+        const pill = pillTargetRef.current;
+        pillTargetRef.current = null;
         picker.closePicker();
         if (pill && inline) {
             const snippet = formatPathForInsert(path, 'fixed');
@@ -239,12 +239,12 @@ export default function useValuePick(args: UseValuePickArgs) {
     const broadcast = () => onFocusField?.({
         id: label || 'value',
         label: label || rowLabel || '',
-        insert: (path, opts) => { pickTarget.current = -1; proposePick(path, null, opts); },
+        insert: (path, opts) => { pickTargetRef.current = -1; proposePick(path, null, opts); },
     });
     const onDrop = (e: DragEvent<HTMLElement>) => {
         const path = getBindingDropPath(e);
         if (!path) return;
-        pickTarget.current = -1;
+        pickTargetRef.current = -1;
         proposePick(path, e.currentTarget, { raw: e.altKey, at: { x: e.clientX, y: e.clientY } });
     };
 
@@ -267,7 +267,7 @@ export function useValueParts(value: Parameters<typeof parseValue>[0], onChange:
     const [composing, setComposing] = useState(false);
     const inlineRef = useRef<InlineHandle | null>(null);
     // The pill a click is re-picking for (inline mode).
-    const pillTarget = useRef<HTMLElement | null>(null);
+    const pillTargetRef = useRef<HTMLElement | null>(null);
     const singleData = parts.length === 1 && parts[0].type === 'data';
     const inline = parsed.supported && !(parts.length === 1 && parts[0].type === 'json') && (composing || !singleData);
     const inlineText = parts.map(p => (p.type === 'data' ? `{{${p.path}}}` : p.text)).join('');
@@ -286,5 +286,5 @@ export function useValueParts(value: Parameters<typeof parseValue>[0], onChange:
         emit(next);
     };
     const removeAt = (index: number) => emit(parts.filter((_, i) => i !== index));
-    return { parsed, parts, setComposing, inline, inlineText, inlineRows, inlineRef, pillTarget, emit, setText, removeAt };
+    return { parsed, parts, setComposing, inline, inlineText, inlineRows, inlineRef, pillTargetRef, emit, setText, removeAt };
 }

@@ -128,14 +128,15 @@ function NoAnswers({ t }: { t: TranslateFn }) {
 }
 
 /** The breakdown a question gets, by its type. */
-export function breakdownFor(q: AnswersQuestion) {
+/** The breakdown a question's type earns; each branch names its component, none is picked at render. */
+export function QuestionBreakdown({ t, q, onSeeAll }: { t: TranslateFn; q: AnswersQuestion; onSeeAll: (() => void) | null }) {
     switch (q.breakdown?.kind) {
-        case 'choice': return ChoiceBreakdown;
-        case 'yesno': return YesNoBreakdown;
-        case 'number': return NumberBreakdown;
-        case 'date': return DateBreakdown;
-        case 'file': return FileBreakdown;
-        case 'text': return TextBreakdown;
-        default: return NoAnswers;
+        case 'choice': return <ChoiceBreakdown t={t} q={q} />;
+        case 'yesno': return <YesNoBreakdown t={t} q={q} />;
+        case 'number': return <NumberBreakdown t={t} q={q} />;
+        case 'date': return <DateBreakdown t={t} q={q} />;
+        case 'file': return <FileBreakdown t={t} q={q} onSeeAll={onSeeAll} />;
+        case 'text': return <TextBreakdown t={t} q={q} onSeeAll={onSeeAll} />;
+        default: return <NoAnswers t={t} />;
     }
 }

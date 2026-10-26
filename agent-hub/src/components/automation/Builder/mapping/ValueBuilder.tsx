@@ -113,7 +113,7 @@ export default function ValueBuilder({
     const picker = useVariablePicker();
     const [rawOpen, setRawOpen] = useState(false);
     // Which part the open picker will write into (-1 = append a new one).
-    const pickTarget = useRef(-1);
+    const pickTargetRef = useRef(-1);
     // "Adjust it", Formula and the other answers for a list/table pick are
     // Advanced: shown inline in the Advanced mode (also outside the step
     // form, where there is no mode), never in Simple. No per-field toggle.
@@ -123,7 +123,7 @@ export default function ValueBuilder({
     // too), so switching editors never changes what the empty box says.
     const ph = placeholder ?? t('automations.builder.type_a_value', 'Type a value…');
     const allowForEach = canForEach ?? !!onRequestForEach;
-    const { parsed, parts, setComposing, inline, inlineText, inlineRows, inlineRef, pillTarget, emit, setText, removeAt } = useValueParts(value, onChange);
+    const { parsed, parts, setComposing, inline, inlineText, inlineRows, inlineRef, pillTargetRef, emit, setText, removeAt } = useValueParts(value, onChange);
     const sampleRoot = previewSample ?? pickerCtx.previewSample;
     const slotListAs = useSlotListAs();
     // Room for a sentence: the line wraps to two (ExampleLine), so the deep
@@ -131,10 +131,10 @@ export default function ValueBuilder({
     const example = previewBinding(value, sampleRoot, { raw: false, listAs: listAs || slotListAs, maxLen: EXAMPLE_MAX });
 
 
-    const openPicker = (el: (EventTarget & HTMLButtonElement) | (EventTarget & HTMLElement), index: number, focusPath: string | undefined = '') => { pickTarget.current = index; picker.openPicker(el, focusPath ? { focusPath } : {}); };
+    const openPicker = (el: (EventTarget & HTMLButtonElement) | (EventTarget & HTMLElement), index: number, focusPath: string | undefined = '') => { pickTargetRef.current = index; picker.openPicker(el, focusPath ? { focusPath } : {}); };
     const pick = useValuePick({
         value, onChange, onRequestForEach, deepenForEach, expectShape, expectKind, label, allowForEach, sampleRoot,
-        inline, parts, emit, inlineRef, pickTarget, pillTarget, picker, onFocusField, rowLabel,
+        inline, parts, emit, inlineRef, pickTargetRef, pillTargetRef, picker, onFocusField, rowLabel,
     });
     const { emitInline, broadcast, onDrop } = pick;
 
@@ -146,7 +146,7 @@ export default function ValueBuilder({
                     groups={pickerCtx.groups}
                     previewSample={sampleRoot}
                     onPick={pick.onPick}
-                    onClose={() => { pillTarget.current = null; picker.closePicker(); }}
+                    onClose={() => { pillTargetRef.current = null; picker.closePicker(); }}
                     title={label
                         ? t('automations.builder.pick_data_for', 'Pick data for {field}', { field: label })
                         : t('automations.builder.pick_data', 'Pick data from a step')}
@@ -247,7 +247,7 @@ export default function ValueBuilder({
                         : t('automations.builder.value_word', 'Value')}
                     stepLabelById={pickerCtx.stepLabelById}
                     stepTypeById={pickerCtx.stepTypeById}
-                    onPillClick={({ el, path }) => { pillTarget.current = el; pickTarget.current = -1; picker.openPicker(el, { focusPath: path }); }}
+                    onPillClick={({ el, path }) => { pillTargetRef.current = el; pickTargetRef.current = -1; picker.openPicker(el, { focusPath: path }); }}
                     className={denseInputClass('w-full')}
                 />
             ) : viewParts.map((part, i) => (part.type === 'text' ? (

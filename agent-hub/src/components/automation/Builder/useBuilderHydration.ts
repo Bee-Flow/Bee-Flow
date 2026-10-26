@@ -96,7 +96,7 @@ export default function useBuilderHydration({
             if (alive) setHasHydrated(true);
         })();
         return () => { alive = false; };
-    }, [state.automationId, automationId, hasHydrated, hydrate]);
+    }, [state.automationId, automationId, hasHydrated, hydrate, isStep]);
 
     // Run data lives only in memory; the snapshot deliberately excludes it
     // (step outputs can be 256 KB each and the server already stores them).

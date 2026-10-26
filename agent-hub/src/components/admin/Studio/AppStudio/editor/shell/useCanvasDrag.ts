@@ -190,7 +190,7 @@ export function useCanvasDrag({ t, dispatch, definitionRef, screenIdRef, commitD
         } else {
             commitDefinition(finalDef);
         }
-    }, [dispatch, commitDefinition, definitionRef, screenIdRef]);
+    }, [dispatch, commitDefinition, screenIdRef]);
 
     return { sensors, handleDragStart, handleDragOver, finishDrag, commitTurn };
 }

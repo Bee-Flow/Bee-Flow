@@ -247,7 +247,6 @@ function FilterChips({ t, value, onChange, source = {} }: FilterChipsProps) {
 function DocRow({ t, rel, doc, last, canManage, kbId, onChanged }: DocRowProps) {
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLButtonElement>(null);
-    const Icon = fileIcon(doc.mime, doc.title);
     const status = statusOfDoc(doc);
 
     return (
@@ -259,7 +258,7 @@ function DocRow({ t, rel, doc, last, canManage, kbId, onChanged }: DocRowProps) 
             data-status={doc.status || 'processed'}
         >
             <span className="flex items-center gap-2 min-w-0">
-                <Icon className="w-3.5 h-3.5 shrink-0 text-[var(--text-secondary)]" aria-hidden="true" />
+                <FileGlyph mime={doc.mime} title={doc.title} />
                 <span className="min-w-0">
                     <span className="block font-medium truncate text-[var(--text-primary)]">{doc.title}</span>
                     <span className="block truncate text-[var(--text-tertiary)]">{sizeLine(t, doc)}</span>
@@ -376,11 +375,13 @@ export function statusOfDoc(doc: KbDocument | null | undefined) {
     }
 }
 
-function fileIcon(mime: string | undefined, title: string = '') {
+/** The file's symbol by type: image, spreadsheet, or a plain document. */
+function FileGlyph({ mime, title = '' }: { mime: string | undefined; title?: string }) {
     const m = String(mime || '');
-    if (m.startsWith('image/')) return ImageIcon;
-    if (/sheet|excel|csv/i.test(m) || /\.(xlsx?|csv)$/i.test(title)) return FileSpreadsheet;
-    return FileText;
+    const cls = 'w-3.5 h-3.5 shrink-0 text-[var(--text-secondary)]';
+    if (m.startsWith('image/')) return <ImageIcon className={cls} aria-hidden="true" />;
+    if (/sheet|excel|csv/i.test(m) || /\.(xlsx?|csv)$/i.test(title)) return <FileSpreadsheet className={cls} aria-hidden="true" />;
+    return <FileText className={cls} aria-hidden="true" />;
 }
 
 /** "14 pagina's" / "3 tabbladen" / "1,8 MB" — whichever the file actually has. */

@@ -6,7 +6,7 @@ import { datatablesApi } from './datatablesApi';
 import NewDatatableDialog from './NewDatatableDialog';
 import useTranslation from '@/hooks/useTranslation';
 import EmptyState from '@/components/shared/EmptyState';
-import { kindIcon, kindTileStyle } from '@/components/shared/kindColors';
+import { KIND_ICON, kindTileStyle } from '@/components/shared/kindColors';
 import StudioSectionHeader, { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import type { TranslateParams } from '@/hooks/useTranslation';
 import type { DtTable } from './rowBrowser/rowBrowserModel';
@@ -293,7 +293,7 @@ interface NoTablesYetProps {
 
 function NoTablesYet({ t, canCreate, onCreate }: NoTablesYetProps) {
     const { tile, glyph } = kindTileStyle('datatable', { size: 44, pct: 14 });
-    const Glyph = kindIcon('datatable');
+    const Glyph = KIND_ICON.datatable;
     return (
         <div className="flex flex-col items-center [border:1px_dashed_var(--border-default)] [border-radius:12px] [background:var(--bg-card)]">
             <EmptyState

@@ -149,9 +149,6 @@
     },
     "max-statements": {
       "count": 1
-    },
-    "react-hooks/immutability": {
-      "count": 1
     }
   },
   "src/components/InitSetupWizard/StepAzureSetup.tsx": {
@@ -299,9 +296,6 @@
   },
   "src/components/admin/Studio/AppStudio/chat/useBuildCue.ts": {
     "complexity": {
-      "count": 1
-    },
-    "react-hooks/exhaustive-deps": {
       "count": 1
     },
     "react-hooks/purity": {
@@ -454,9 +448,6 @@
   },
   "src/components/admin/Studio/AppStudio/editor/shell/useCanvasDrag.ts": {
     "max-lines-per-function": {
-      "count": 1
-    },
-    "react-hooks/exhaustive-deps": {
       "count": 1
     }
   },
@@ -1538,11 +1529,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/AutomationsStudio/TemplateTile.tsx": {
-    "react-hooks/static-components": {
-      "count": 1
-    }
-  },
   "src/components/admin/Studio/AutomationsStudio/automationMenuItems.tsx": {
     "complexity": {
       "count": 1
@@ -1563,11 +1549,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/admin/Studio/Datatables/ChoiceCard.tsx": {
-    "react-hooks/static-components": {
       "count": 1
     }
   },
@@ -1616,9 +1597,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    },
-    "react-hooks/static-components": {
       "count": 1
     }
   },
@@ -1887,11 +1865,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/Forms/answers/QuestionCard.tsx": {
-    "react-hooks/static-components": {
-      "count": 1
-    }
-  },
   "src/components/admin/Studio/Forms/answers/ResponseDrawer.tsx": {
     "complexity": {
       "count": 1
@@ -1951,9 +1924,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/static-components": {
-      "count": 2
     }
   },
   "src/components/admin/Studio/KnowledgeStudio/SettingsTab.tsx": {
@@ -1973,9 +1943,6 @@
     },
     "max-lines-per-function": {
       "count": 2
-    },
-    "react-hooks/static-components": {
-      "count": 1
     }
   },
   "src/components/admin/Studio/KnowledgeStudio/SourcesTab.tsx": {
@@ -2160,9 +2127,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/static-components": {
-      "count": 1
     }
   },
   "src/components/admin/Studio/Playbooks/stages/RegisterPanel.tsx": {
@@ -2325,11 +2289,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/admin/Studio/Solutions/RelatedPartsNotice.tsx": {
-    "react-hooks/static-components": {
       "count": 1
     }
   },
@@ -2500,9 +2459,6 @@
   "src/components/admin/Studio/studioAi/DescribeItPanel.tsx": {
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/static-components": {
-      "count": 2
     }
   },
   "src/components/admin/Studio/studioAi/handoff.ts": {
@@ -3723,14 +3679,6 @@
       "count": 1
     }
   },
-  "src/components/admin/product-website/blog/useBlogEditor.ts": {
-    "react-hooks/exhaustive-deps": {
-      "count": 9
-    },
-    "react-hooks/immutability": {
-      "count": 4
-    }
-  },
   "src/components/admin/product-website/controls/ColorControl.tsx": {
     "complexity": {
       "count": 1
@@ -4374,14 +4322,6 @@
       "count": 1
     }
   },
-  "src/components/agents/AgentWizard/builderSplit/useAgentSave.ts": {
-    "react-hooks/exhaustive-deps": {
-      "count": 1
-    },
-    "react-hooks/immutability": {
-      "count": 1
-    }
-  },
   "src/components/agents/AgentWizard/builderSplit/useBuilderState.ts": {
     "complexity": {
       "count": 1
@@ -4651,9 +4591,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/static-components": {
-      "count": 1
     }
   },
   "src/components/automation/Builder/BuilderShell.tsx": {
@@ -4667,7 +4604,7 @@
       "count": 1
     },
     "react-hooks/immutability": {
-      "count": 3
+      "count": 2
     }
   },
   "src/components/automation/Builder/DiagramPane.tsx": {
@@ -4755,11 +4692,6 @@
       "count": 1
     }
   },
-  "src/components/automation/Builder/build/useAddStep.ts": {
-    "react-hooks/immutability": {
-      "count": 1
-    }
-  },
   "src/components/automation/Builder/build/useBuildCue.ts": {
     "react-hooks/purity": {
       "count": 1
@@ -4802,11 +4734,6 @@
   },
   "src/components/automation/Builder/chat/PlanInlineCard.tsx": {
     "complexity": {
-      "count": 1
-    }
-  },
-  "src/components/automation/Builder/chat/RunProgressBanner.tsx": {
-    "react-hooks/purity": {
       "count": 1
     }
   },
@@ -5645,9 +5572,6 @@
   "src/components/automation/Builder/flow/useNodeOps.ts": {
     "complexity": {
       "count": 1
-    },
-    "react-hooks/immutability": {
-      "count": 1
     }
   },
   "src/components/automation/Builder/flow/useRenderedGraph.ts": {
@@ -5821,9 +5745,6 @@
     },
     "max-statements": {
       "count": 1
-    },
-    "react-hooks/immutability": {
-      "count": 2
     }
   },
   "src/components/automation/Builder/mapping/ValueBuilderParts.tsx": {
@@ -5958,9 +5879,6 @@
     },
     "max-statements": {
       "count": 1
-    },
-    "react-hooks/immutability": {
-      "count": 3
     }
   },
   "src/components/automation/Builder/mapping/valueParts.ts": {
@@ -6002,18 +5920,8 @@
       "count": 1
     }
   },
-  "src/components/automation/Builder/output/ErrorCard.tsx": {
-    "react-hooks/static-components": {
-      "count": 1
-    }
-  },
   "src/components/automation/Builder/output/RecordTable.tsx": {
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/automation/Builder/output/WideOutputView.tsx": {
-    "react-hooks/immutability": {
       "count": 1
     }
   },
@@ -6081,7 +5989,7 @@
       "count": 1
     },
     "react-hooks/exhaustive-deps": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/automation/Builder/useBuilderHotkeys.ts": {
@@ -6089,11 +5997,6 @@
       "count": 1
     },
     "max-statements": {
-      "count": 1
-    }
-  },
-  "src/components/automation/Builder/useBuilderHydration.ts": {
-    "react-hooks/exhaustive-deps": {
       "count": 1
     }
   },
@@ -6121,18 +6024,7 @@
       "count": 1
     }
   },
-  "src/components/automation/Builder/useFlowletActions.ts": {
-    "react-hooks/exhaustive-deps": {
-      "count": 3
-    },
-    "react-hooks/preserve-manual-memoization": {
-      "count": 3
-    }
-  },
   "src/components/automation/Builder/useFlowletScope.ts": {
-    "react-hooks/exhaustive-deps": {
-      "count": 1
-    },
     "react-hooks/set-state-in-effect": {
       "count": 1
     }
@@ -6151,11 +6043,6 @@
     },
     "max-params": {
       "count": 1
-    }
-  },
-  "src/components/automation/Builder/useVisualSave.ts": {
-    "react-hooks/exhaustive-deps": {
-      "count": 2
     }
   },
   "src/components/automation/Builder/webhooks/useWebhooks.ts": {
@@ -6195,14 +6082,6 @@
   "src/components/automation/useAutomationRouting.ts": {
     "complexity": {
       "count": 1
-    }
-  },
-  "src/components/automation/useDesignerShell.ts": {
-    "react-hooks/exhaustive-deps": {
-      "count": 2
-    },
-    "react-hooks/preserve-manual-memoization": {
-      "count": 3
     }
   },
   "src/components/billing/InvoicesPanel.tsx": {
@@ -6528,12 +6407,6 @@
     },
     "max-statements": {
       "count": 1
-    },
-    "react-hooks/exhaustive-deps": {
-      "count": 2
-    },
-    "react-hooks/immutability": {
-      "count": 2
     }
   },
   "src/components/chat/Voice/voiceSessionTurn.ts": {
@@ -7358,9 +7231,6 @@
     },
     "max-statements": {
       "count": 1
-    },
-    "react-hooks/error-boundaries": {
-      "count": 11
     }
   },
   "src/components/renderers/CollapsibleCodeBlock.tsx": {
@@ -7565,9 +7435,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/error-boundaries": {
-      "count": 3
     }
   },
   "src/components/shell/sidebar/FlyoutRow.tsx": {
@@ -7965,22 +7832,6 @@
   },
   "src/editor/react/useEditorInteractions.ts": {
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/editor/react/useEditorSync.ts": {
-    "react-hooks/exhaustive-deps": {
-      "count": 1
-    },
-    "react-hooks/immutability": {
-      "count": 1
-    }
-  },
-  "src/editor/react/useEditorViewLifecycle.ts": {
-    "react-hooks/exhaustive-deps": {
-      "count": 1
-    },
-    "react-hooks/immutability": {
       "count": 1
     }
   },
@@ -8481,11 +8332,6 @@
       "count": 1
     }
   },
-  "src/pages/WebpagesPage.test.jsx": {
-    "react-hooks/immutability": {
-      "count": 3
-    }
-  },
   "src/pages/WebpagesPage.tsx": {
     "max-lines-per-function": {
       "count": 1
@@ -8523,11 +8369,6 @@
   },
   "src/pages/documents/DeckPreview.tsx": {
     "complexity": {
-      "count": 2
-    }
-  },
-  "src/pages/documents/DocumentCanvas.tsx": {
-    "react-hooks/immutability": {
       "count": 2
     }
   },

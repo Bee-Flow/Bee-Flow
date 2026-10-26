@@ -5,7 +5,7 @@ import { knowledgeApi, type KbSuggestion, type KbUsageSummary, type KnowledgeBas
 import { nOf } from './plural';
 import useRelativeTime from '@/hooks/useRelativeTime';
 import useTranslation from '@/hooks/useTranslation';
-import { kindColorVar, kindIcon, kindOf, kindTileStyle } from '@/components/shared/kindColors';
+import { KIND_ICON, kindColorVar, kindIcon, kindOf, kindTileStyle } from '@/components/shared/kindColors';
 import StudioSectionHeader, { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { RelativeTimeInput } from '@/hooks/useRelativeTime';
@@ -208,7 +208,7 @@ function SearchBox({ t, value, onChange }: SearchBoxProps) {
 
 function KbRow({ t, rel, kb, categoryName, usage, onOpen }: KbRowProps) {
     const { tile, glyph } = kindTileStyle('kb', 36);
-    const Icon = kindIcon('kb');
+    const Icon = KIND_ICON.kb;
     const meta = [
         categoryName || t('knowledge.uncategorised', 'uncategorised'),
         nOf(t, 'knowledge.n_sources', kb.sourceCount ?? kb.source_count, '{count} source', '{count} sources'),
@@ -324,7 +324,7 @@ function freshnessFallback(key: string) {
 
 function NoKnowledgeYet({ t, canCreate, onCreate }: NoKnowledgeYetProps) {
     const { tile, glyph } = kindTileStyle('kb', 48);
-    const Icon = kindIcon('kb');
+    const Icon = KIND_ICON.kb;
     return (
         <div className="flex flex-col items-center text-center gap-3 py-12">
             <span style={tile} aria-hidden="true">{Icon && <Icon style={glyph} />}</span>

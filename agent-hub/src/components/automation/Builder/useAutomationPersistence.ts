@@ -273,7 +273,7 @@ export default function useAutomationPersistence({
         // A wholesale replacement may have removed the flowlet we were
         // looking at — exit to root rather than risk a dead scope.
         setScopeKey(null);
-    }, [adoptPersistedDefinition, draftHistory]);
+    }, [adoptPersistedDefinition, draftHistory, setScopeKey, setServerAutomation]);
 
     /**
      * Save automation-level fields (title / description / definition).

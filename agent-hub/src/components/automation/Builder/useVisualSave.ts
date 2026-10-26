@@ -80,7 +80,7 @@ export default function useVisualSave({
             setSavingState('error');
             toast.error(`Save failed — your edits are still on the canvas. ${(e as Error).message || ''}`.trim());
         }
-    }, [api, ensureAutomationCreated, markServerConfirmed, adoptSaveValidation, adoptSaveRejection, noteManagedRefusal]);
+    }, [ensureAutomationCreated, api, setServerAutomation, markServerConfirmed, adoptSaveValidation, setSavingState, savedTimer, noteManagedRefusal, adoptSaveRejection]);
     const performVisualSave = useCallback(async (nextDef: FlowDefinition) => {
         if (saveInFlightRef.current) { queuedSaveRef.current = nextDef; return; }
         saveInFlightRef.current = true;
@@ -125,7 +125,7 @@ export default function useVisualSave({
             pendingSaveRef.current.def = null; // save is firing — nothing left pending
             performVisualSave(nextDef);
         }, 500);
-    }, [setDraft, performVisualSave, readOnlyRef]);
+    }, [readOnlyRef, setDraft, setSavingState, performVisualSave]);
 
     /**
      * Force-flush any pending debounced save. Lets Cmd+S behave the way

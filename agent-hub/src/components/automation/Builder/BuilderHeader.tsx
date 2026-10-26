@@ -132,7 +132,6 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
     const { data: counts } = useAutomationCounts(countsId, stamp);
     const live = liveStateOf(row, counts?.pendingChanges ?? null);
 
-    const TriggerIcon = scope ? Layers : pickTriggerIcon(triggerKind);
     const back = backLabel || t('automations.header.back', 'Back to Automations');
     const menuHidden = useStudioMenuHidden();
     const hideMenu = t('automations.header.hide_menu', 'Hide the Studio menu');
@@ -174,7 +173,7 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
                         />
                     ) : (
                         <div data-testid="trigger-tile" className="@max-[640px]/bar:hidden w-7 h-7 rounded-lg grid place-items-center flex-shrink-0 bg-[color-mix(in_srgb,var(--type-trigger)_16%,transparent)] text-[var(--type-trigger)]">
-                            <TriggerIcon size={14} />
+                            <TriggerGlyph kind={triggerKind} scoped={!!scope} size={14} />
                         </div>
                     )}
                     <TitleField title={title} scope={scope} onRename={onRename} onExitScope={onExitScope} onDeleteLayer={onDeleteLayer} />
@@ -264,13 +263,15 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
     );
 }
 
-function pickTriggerIcon(kind?: string | null) {
-    if (kind === 'schedule') return Clock;
-    if (kind === 'webhook') return Webhook;
-    if (kind === 'form') return ClipboardList;
-    if (kind === 'manual') return MousePointerClick;
-    if (kind === 'app_event') return Mail;
-    if (kind === 'agent_call') return Bot;
-    if (kind === 'file' || kind === 'files') return FolderOpen;
-    return Sparkles;
+/** The trigger's symbol (a flowlet scope shows layers); each branch names its icon. */
+function TriggerGlyph({ kind, scoped, size }: { kind?: string | null; scoped: boolean; size: number }) {
+    if (scoped) return <Layers size={size} />;
+    if (kind === 'schedule') return <Clock size={size} />;
+    if (kind === 'webhook') return <Webhook size={size} />;
+    if (kind === 'form') return <ClipboardList size={size} />;
+    if (kind === 'manual') return <MousePointerClick size={size} />;
+    if (kind === 'app_event') return <Mail size={size} />;
+    if (kind === 'agent_call') return <Bot size={size} />;
+    if (kind === 'file' || kind === 'files') return <FolderOpen size={size} />;
+    return <Sparkles size={size} />;
 }

@@ -21,6 +21,7 @@ import useTranslation from '../../hooks/useTranslation';
 import { deskColour, parseFrameMessage, type FrameKey, type FrameMessage, type FramePeer, type FrameStats, type OutlineItem } from './canvasBridge';
 import { usePreviewHtml } from './documentQueries';
 import { logger } from '../../utils/logger';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 interface InsertParameter { key: string; type?: string; fields?: Array<{ key: string }> }
 
@@ -157,11 +158,13 @@ const DocumentCanvas = forwardRef<CanvasHandle, DocumentCanvasProps>(function Do
     useCanvasHandle(ref, frame, replies, setDraftHtml);
 
     // A reload keeps the reader where they were; another document starts at the top.
-    useEffect(() => { restoreY.current = scrollY.current; setDraftHtml(null); frame.readyRef.current = false; }, [reloadKey, frame.readyRef]);
+    const { readyRef: frameReadyRef } = frame;
+    useAdjustOnChange([reloadKey], () => setDraftHtml(null));
+    useEffect(() => { restoreY.current = scrollY.current; frameReadyRef.current = false; }, [reloadKey, frameReadyRef]);
     useEffect(() => { scrollY.current = 0; restoreY.current = null; }, [documentId]);
 
     const onReady = useEffectEvent((deck: boolean, slideCount = 0) => {
-        frame.readyRef.current = true;
+        frameReadyRef.current = true;
         if (deck) { props.onDeckReady?.(slideCount); return; }
         frame.send({ __beeflowDocEdit: true, editing });
         frame.send({ __beeflowDocTheme: true, desk: deskColour(), fit: true });

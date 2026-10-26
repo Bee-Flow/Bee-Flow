@@ -170,7 +170,7 @@ export default function useAddStep(o: UseAddStepOptions) {
         return position || defaultAddPosition(baseDef, w.sourceId, payload.kind, () => diagramRef.current?.getCenter?.());
     }, [flatDef, inlineSidecar, inlineShift, recordUsage, diagramRef]);
 
-    const addStepAt = useCallback((payload: AddStepPayload | null, opts: AddStepOptions = {}) => {
+    const addStepAt = useCallback(function addStep(payload: AddStepPayload | null, opts: AddStepOptions = {}) {
         if (!payload) return;
         // Fresh automations have no draft yet: seed a minimal skeleton. Shape-
         // normalise, don't just null-check: a poisoned `{}` definition is truthy
@@ -182,7 +182,7 @@ export default function useAddStep(o: UseAddStepOptions) {
         // a confirmed replace re-enters with the answer.
         if (replacesPrimaryTrigger(payload, baseDef)) {
             confirmAction(replaceTriggerQuestion(baseDef, payload))
-                .then((ok) => { if (ok) addStepAt({ ...payload, __confirmedReplace: true }, opts); });
+                .then((ok) => { if (ok) addStep({ ...payload, __confirmedReplace: true }, opts); });
             return;
         }
 
@@ -210,9 +210,8 @@ export default function useAddStep(o: UseAddStepOptions) {
             finalDef = prefixAddedStep(finalDef, insertedId, w.scopePrefix) as FlowDefinition;
         }
         onVisualEditFlat?.(finalDef);
-    // addStepAt calls itself after the replace-trigger confirm resolves; listing
-    // it would be circular, and the identity it closes over is the same one on
-    // both passes.
+    // addStep calls itself (by its own name) after the replace-trigger confirm
+    // resolves; that is the same function on both passes, not a dependency.
     }, [flatDef, rootDef, scopeKey, setScopeKey, onVisualEditFlat, onVisualEditRoot, confirmAction, resolvePosition, mapAndFollow]);
 
     usePendingAutoMapDrain({ pendingAutoMapRef, flatDef, realOutputById, catalog, onVisualEditFlat, t: tr });

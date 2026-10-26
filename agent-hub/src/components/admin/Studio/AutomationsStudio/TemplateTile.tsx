@@ -1,6 +1,5 @@
 import { Download, Sparkles } from 'lucide-react';
 import { useId } from 'react';
-import type { ComponentType } from 'react';
 import type { TemplateCard } from '@/api/queries/automation/templates';
 import useRelativeTime from '@/hooks/useRelativeTime';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -12,20 +11,11 @@ const AppIcon = AppIconJs;
 // Template icon names route through AppIcon, which resolves registry icons
 // synchronously and lazy-loads the full Lucide set for the rest (a wildcard
 // Lucide import here once welded all ~1,900 icons into this chunk; see
-// components/iconRegistry.js). Cached per name: a fresh wrapper per render
-// would be a new component type every time, so React would remount the icon.
-type IconCmp = ComponentType<{ size?: number; className?: string; 'aria-hidden'?: boolean | 'true' }>;
-const iconCache = new Map<string, IconCmp>();
-function pickIcon(name: string | null): IconCmp {
-    if (!name) return Sparkles;
-    let cmp = iconCache.get(name);
-    if (!cmp) {
-        const Wrapped: IconCmp = (props) => <AppIcon name={name} fallback={Sparkles} {...props} />;
-        Wrapped.displayName = `TemplateIcon(${name})`;
-        iconCache.set(name, Wrapped);
-        cmp = Wrapped;
-    }
-    return cmp;
+// components/iconRegistry.js). One component for every name, so render never
+// makes a new component type.
+function TemplateIcon({ name, size }: { name: string | null; size: number }) {
+    if (!name) return <Sparkles size={size} aria-hidden="true" />;
+    return <AppIcon name={name} fallback={Sparkles} size={size} aria-hidden="true" />;
 }
 
 /** "nextcloud" → "Nextcloud", "google-drive" → "Google Drive". */
@@ -78,7 +68,6 @@ export default function TemplateTile({ tmpl, busy = false, disabled = false, onU
     const { t } = useTranslation();
     const relative = useRelativeTime();
     const titleId = useId();
-    const Icon = pickIcon(tmpl.icon);
     const starts = startsLine(tmpl, t);
     const saved = tmpl.source === 'org' ? savedLine(tmpl, t, relative(tmpl.createdAt)) : null;
     return (
@@ -89,7 +78,7 @@ export default function TemplateTile({ tmpl, busy = false, disabled = false, onU
         >
             <div className="flex items-start gap-3">
                 <span className="w-8 h-8 rounded-lg grid place-items-center flex-shrink-0 bg-[color-mix(in_srgb,var(--type-trigger)_14%,transparent)] text-[var(--type-trigger)]">
-                    <Icon size={15} aria-hidden="true" />
+                    <TemplateIcon name={tmpl.icon} size={15} />
                 </span>
                 <div className="min-w-0 flex-1">
                     <h4 id={titleId} className="m-0 text-[13px] font-semibold leading-snug text-[var(--text-primary)]">{tmpl.title}</h4>

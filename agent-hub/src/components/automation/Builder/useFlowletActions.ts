@@ -48,7 +48,7 @@ export default function useFlowletActions({
             return true;
         }
         return false;
-    }, [ensureAutomationCreated, layerAgent, onVisualEditRoot, readOnlyRef]);
+    }, [ensureAutomationCreated, layerAgent, onVisualEditRoot, readOnlyRef, setScopeKey]);
 
     const onRefineLayer = useCallback(async (layerKey: any, instruction: any) => {
         if (!layerKey || !instruction || !instruction.trim() || readOnlyRef.current) return false;
@@ -89,7 +89,7 @@ export default function useFlowletActions({
         };
     }, [scopeKey, effectiveDef]);
 
-    const onExitScope = useCallback(() => setScopeKey(null), []);
+    const onExitScope = useCallback(() => setScopeKey(null), [setScopeKey]);
 
     const onDeleteLayer = useCallback(async () => {
         if (!scopeKey || !effectiveDef?.layers?.[scopeKey]) return;
@@ -110,7 +110,7 @@ export default function useFlowletActions({
         }
         onVisualEditRoot(deleteLayerFromDefinition(effectiveDef, scopeKey));
         setScopeKey(null);
-    }, [scopeKey, effectiveDef, onVisualEditRoot, confirm]);
+    }, [scopeKey, effectiveDef, onVisualEditRoot, setScopeKey, confirm]);
 
     return { layerAgent, onBuildLayer, onRefineLayer, onRename, scope, onExitScope, onDeleteLayer };
 }

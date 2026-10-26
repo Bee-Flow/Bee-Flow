@@ -82,7 +82,7 @@ export default function useFlowletScope({
     // so close it when the user drills into / out of a flowlet.
     useEffect(() => {
         setNdvStepId(null);
-    }, [scopeKey]);
+    }, [scopeKey, setNdvStepId]);
 
     return { scopeKey, setScopeKey, scopedDef };
 }

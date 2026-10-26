@@ -57,7 +57,7 @@ export function useQuickSwitcher({
         setBuilderStepId(null);
         stepUrlAdoptedRef.current = true;
         setBuilderAutomationId(item.id ?? null);
-    }, [stepUrlAdoptedRef]);
+    }, [setBuilderAutomationId, setBuilderInitialTab, setBuilderStepId, stepUrlAdoptedRef]);
 
     return { quickSwitcherOpen, setQuickSwitcherOpen, quickSwitcherItems, onPickFromSwitcher };
 }
@@ -83,7 +83,7 @@ export function useStudioChromeSync(
     // builder) is gone — otherwise re-entering a builder later could flash it.
     useEffect(() => {
         if (!automationEditing) setListFlyoutOpen(false);
-    }, [automationEditing]);
+    }, [automationEditing, setListFlyoutOpen]);
 
     // The Studio menu (and browser fullscreen) may be hidden from inside the
     // builder; the list has to bring them back when the builder closes.

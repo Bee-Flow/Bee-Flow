@@ -50,7 +50,7 @@ export default function FindingRow({
     const isHigh = finding.severity === 'high';
     const target = targetWords(finding, t);
     const to = linkFor(finding, facts);
-    const TargetIcon = (target && KIND_ICON[String(target.kind)]) || null;
+    const TargetIcon = target ? KIND_ICON[String(target.kind)] ?? null : null;
     const canResolve = !!onResolve && isResolvable(finding);
     const [open, setOpen] = useState(false);
 

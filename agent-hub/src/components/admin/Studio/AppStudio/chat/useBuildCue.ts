@@ -88,7 +88,7 @@ export function useBuildCue({
         };
     // Keyed on the toolCalls array identity, the todos list and the turn
     // milestones — deliberately not the streaming text.
-    }, [running, lastToolCalls, todos, currentPhase, engine, turn, toolDraft, reveal, buildStart.at]);
+    }, [running, doneInfoRef, lastToolCalls, definitionRef, buildStart.at, todos, currentPhase, engine, turn, toolDraft, reveal]);
     useEffect(() => { chromeRef.current?.publishBuildCue?.(cue); }, [cue, chromeRef]);
     return { waitingForFirstToken };
 }

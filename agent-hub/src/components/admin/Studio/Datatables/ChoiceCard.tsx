@@ -1,5 +1,5 @@
 import React from 'react';
-import { kindColorVar, kindIcon } from '@/components/shared/kindColors';
+import { KIND_ICON, kindColorVar } from '@/components/shared/kindColors';
 
 interface ChoiceCardProps {
     name: string;
@@ -29,7 +29,7 @@ interface ChoiceCardProps {
  * switch on.
  */
 export default function ChoiceCard({ name, kind, icon, checked, onChange, title, blurb, disabled = false, note = null }: ChoiceCardProps) {
-    const Glyph = kind ? kindIcon(kind) : null;
+    const Glyph = kind ? KIND_ICON[kind] ?? null : null;
     return (
         <label
             className={`flex flex-col gap-1.5 p-3 min-w-0 focus-within:outline focus-within:outline-2 focus-within:outline-offset-1 ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}`}

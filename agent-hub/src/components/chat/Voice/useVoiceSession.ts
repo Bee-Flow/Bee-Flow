@@ -139,6 +139,18 @@ export default function useVoiceSession({ getHistory, onTurnComplete }: UseVoice
         setStateSync(STATES.LISTENING);
     }, [setStateSync]);
 
+    /* ── Turn submission (SSE stream parser) ───────────────── */
+
+    const playTts = useCallback((b64: string, mime: string) => {
+        playTtsAudio(b64, mime, { audioElRef, voiceActiveRef, setStateSync });
+    }, [setStateSync]);
+
+    const submitTurn = useCallback((blob: Blob, mimeType: string) => streamVoiceTurn({
+        sessionRef, getHistoryRef, onTurnCompleteRef, stickyLanguageRef, abortRef, voiceActiveRef,
+        setPartialReply, setPartialTranscript, setTurnTools, setNotice, setError, setLatency, setStateSync,
+        playTts,
+    }, blob, mimeType), [setStateSync, playTts]);
+
     const finishRecording = useCallback(async (submit: boolean) => {
         const recorder = recorderRef.current;
         if (!recorder || recorder.state === 'inactive') return;
@@ -161,7 +173,7 @@ export default function useVoiceSession({ getHistory, onTurnComplete }: UseVoice
         await submitTurn(blob, mimeType);
         // After submission, state transitions are driven by SSE events and
         // the TTS lifecycle. The VAD keeps polling in the background.
-    }, [setStateSync]);
+    }, [setStateSync, submitTurn]);
 
     /* ── VAD loop ──────────────────────────────────────────── */
 
@@ -195,18 +207,6 @@ export default function useVoiceSession({ getHistory, onTurnComplete }: UseVoice
             throw err;
         }
     }, [cleanup, setSessionSync, setStateSync, vadTick]);
-
-    /* ── Turn submission (SSE stream parser) ───────────────── */
-
-    const submitTurn = useCallback((blob: Blob, mimeType: string) => streamVoiceTurn({
-        sessionRef, getHistoryRef, onTurnCompleteRef, stickyLanguageRef, abortRef, voiceActiveRef,
-        setPartialReply, setPartialTranscript, setTurnTools, setNotice, setError, setLatency, setStateSync,
-        playTts: (b64, mime) => playTts(b64, mime),
-    }, blob, mimeType), [setStateSync]);
-
-    const playTts = useCallback((b64: string, mime: string) => {
-        playTtsAudio(b64, mime, { audioElRef, voiceActiveRef, setStateSync });
-    }, [setStateSync]);
 
     const hangup = useCallback(() => {
         cleanup();

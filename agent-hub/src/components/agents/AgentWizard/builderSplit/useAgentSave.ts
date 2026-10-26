@@ -161,14 +161,15 @@ function useEditorAutosave(d: AgentSaveDeps, getSnapshot: () => Loose, sent: Sen
 
     // Public save helpers used by the ~20 edit handlers. queueSave also
     // marks the local dirty flag for the parent's unsaved-changes guard.
+    const { roRef, dirtyRef, setDirty } = d;
     const queueSave = useCallback((immediate = false) => {
         // Read-only: belt-and-braces so any edit handler that slipped through
         // the disabled UI can never mark dirty or fire a save.
-        if (d.roRef.current) return;
-        d.dirtyRef.current = true;
-        d.setDirty(true);
+        if (roRef.current) return;
+        dirtyRef.current = true;
+        setDirty(true);
         hookQueueSave(immediate);
-    }, [hookQueueSave]);
+    }, [hookQueueSave, roRef, dirtyRef, setDirty]);
     const flush = useCallback(() => hookFlush(), [hookFlush]);
     return { queueSave, flush, hookMarkSaved };
 }

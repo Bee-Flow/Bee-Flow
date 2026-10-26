@@ -10,6 +10,12 @@ const VegaLiteRenderer = lazy(() => import('./VegaLiteRenderer'));
 
 const MermaidRenderer = lazy(() => import('./MermaidRenderer'));
 
+const NOT_JSON = Symbol('not json');
+/** The block's parsed JSON, or NOT_JSON while the streamed text is not complete JSON yet. */
+function parseBlock(code: string): unknown {
+    try { return JSON.parse(code); } catch { return NOT_JSON; }
+}
+
 /**
  * Inline loading placeholder shown while a special ```json-*``` block is still
  * streaming or its JSON is incomplete. Extracted from the ~13 identical copies
@@ -75,30 +81,24 @@ export const CodeRenderer = ({ node, className, children, isLoading = false, ...
                 <BlockLoading label="Creating page..." />
             );
         }
-        try {
-            JSON.parse(codeString);
-            return (
-                <div style={{
-                    width: '100%',
-                    maxWidth: '100%',
-                    overflow: 'hidden',
-                    whiteSpace: 'normal', // Override parent <pre> whitespace
-                    fontFamily: 'var(--font-sans)' // Reset font from monospace
-                }}>
-                    <PageRenderer
-                        code={codeString}
-                        // Stub handler: page actions have no chat-side behavior yet;
-                        // trace them in dev so authors can see the action payload.
-                        onAction={(action: { type: string; action?: string }) => logger.debug('Page action:', action)}
-                    />
-                </div>
-            );
-        } catch {
-            // Page JSON is incomplete - show loading indicator
-            return (
-                <BlockLoading label="Creating page..." />
-            );
-        }
+        // Page JSON still incomplete: show the loading indicator.
+        if (parseBlock(codeString) === NOT_JSON) return <BlockLoading label="Creating page..." />;
+        return (
+            <div style={{
+                width: '100%',
+                maxWidth: '100%',
+                overflow: 'hidden',
+                whiteSpace: 'normal', // Override parent <pre> whitespace
+                fontFamily: 'var(--font-sans)' // Reset font from monospace
+            }}>
+                <PageRenderer
+                    code={codeString}
+                    // Stub handler: page actions have no chat-side behavior yet;
+                    // trace them in dev so authors can see the action payload.
+                    onAction={(action: { type: string; action?: string }) => logger.debug('Page action:', action)}
+                />
+            </div>
+        );
     }
 
     // Check if this is a research code block
@@ -112,24 +112,19 @@ export const CodeRenderer = ({ node, className, children, isLoading = false, ...
                 <BlockLoading label="Building research report..." />
             );
         }
-        try {
-            const researchData = JSON.parse(codeString);
-            return (
-                <div style={{
-                    width: '100%',
-                    maxWidth: '100%',
-                    overflow: 'hidden',
-                    whiteSpace: 'normal',
-                    fontFamily: 'var(--font-sans)'
-                }}>
-                    <ResearchRenderer data={researchData} />
-                </div>
-            );
-        } catch {
-            return (
-                <BlockLoading label="Building research report..." />
-            );
-        }
+        const researchData = parseBlock(codeString);
+        if (researchData === NOT_JSON) return <BlockLoading label="Building research report..." />;
+        return (
+            <div style={{
+                width: '100%',
+                maxWidth: '100%',
+                overflow: 'hidden',
+                whiteSpace: 'normal',
+                fontFamily: 'var(--font-sans)'
+            }}>
+                <ResearchRenderer data={researchData as React.ComponentProps<typeof ResearchRenderer>['data']} />
+            </div>
+        );
     }
 
     // Check if this is a test report code block
@@ -143,24 +138,19 @@ export const CodeRenderer = ({ node, className, children, isLoading = false, ...
                 <BlockLoading label="Building test report..." />
             );
         }
-        try {
-            const testData = JSON.parse(codeString);
-            return (
-                <div style={{
-                    width: '100%',
-                    maxWidth: '100%',
-                    overflow: 'hidden',
-                    whiteSpace: 'normal',
-                    fontFamily: 'var(--font-sans)'
-                }}>
-                    <TestReportRenderer data={testData} />
-                </div>
-            );
-        } catch {
-            return (
-                <BlockLoading label="Building test report..." />
-            );
-        }
+        const testData = parseBlock(codeString);
+        if (testData === NOT_JSON) return <BlockLoading label="Building test report..." />;
+        return (
+            <div style={{
+                width: '100%',
+                maxWidth: '100%',
+                overflow: 'hidden',
+                whiteSpace: 'normal',
+                fontFamily: 'var(--font-sans)'
+            }}>
+                <TestReportRenderer data={testData as React.ComponentProps<typeof TestReportRenderer>['data']} />
+            </div>
+        );
     }
 
     // Check if this is a Vega-Lite chart code block
@@ -175,25 +165,19 @@ export const CodeRenderer = ({ node, className, children, isLoading = false, ...
                 <BlockLoading label="Rendering chart..." />
             );
         }
-        try {
-            JSON.parse(codeString);
-            return (
-                <div style={{
-                    width: '100%',
-                    maxWidth: '100%',
-                    overflow: 'visible',
-                    whiteSpace: 'normal',
-                    fontFamily: 'var(--font-sans)'
-                }}>
-                    <Suspense fallback={null}><VegaLiteRenderer spec={codeString} /></Suspense>
-                </div>
-            );
-        } catch {
-            // Vega-Lite JSON is incomplete - show loading
-            return (
-                <BlockLoading label="Rendering chart..." />
-            );
-        }
+        // Vega-Lite JSON still incomplete: show loading.
+        if (parseBlock(codeString) === NOT_JSON) return <BlockLoading label="Rendering chart..." />;
+        return (
+            <div style={{
+                width: '100%',
+                maxWidth: '100%',
+                overflow: 'visible',
+                whiteSpace: 'normal',
+                fontFamily: 'var(--font-sans)'
+            }}>
+                <Suspense fallback={null}><VegaLiteRenderer spec={codeString} /></Suspense>
+            </div>
+        );
     }
 
     // Check if this is a Mermaid diagram code block
@@ -229,28 +213,25 @@ export const CodeRenderer = ({ node, className, children, isLoading = false, ...
                 <BlockLoading label="Loading map..." />
             );
         }
-        try {
-            const mapData = JSON.parse(codeString);
-            return (
-                <div style={{
-                    width: '100%',
-                    maxWidth: '100%',
-                    overflow: 'hidden',
-                    whiteSpace: 'normal',
-                    fontFamily: 'var(--font-sans)'
-                }}>
-                    <MapEmbedRenderer
-                        embedUrl={mapData.embedUrl}
-                        title={mapData.title || 'Map'}
-                        mapsLink={mapData.mapsLink}
-                    />
-                </div>
-            );
-        } catch {
-            return (
-                <BlockLoading label="Loading map..." />
-            );
-        }
+        const parsedMap = parseBlock(codeString);
+        // Incomplete JSON, or a value without fields (null), is still loading.
+        if (parsedMap === NOT_JSON || parsedMap == null) return <BlockLoading label="Loading map..." />;
+        const mapData = parsedMap as { embedUrl?: string; title?: string; mapsLink?: string };
+        return (
+            <div style={{
+                width: '100%',
+                maxWidth: '100%',
+                overflow: 'hidden',
+                whiteSpace: 'normal',
+                fontFamily: 'var(--font-sans)'
+            }}>
+                <MapEmbedRenderer
+                    embedUrl={mapData.embedUrl}
+                    title={mapData.title || 'Map'}
+                    mapsLink={mapData.mapsLink}
+                />
+            </div>
+        );
     }
 
     return inline ? (

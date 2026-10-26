@@ -19,7 +19,7 @@ export default function RunProgressBanner({ run, steps, onStop }: Props) {
     const failed = (steps || []).some((s: { status?: string }) => s.status === 'error')
 ;
     const startedAt = run?.startedAt ? new Date(run.startedAt).getTime() : null;
-    const [elapsed, setElapsed] = useState(startedAt ? Date.now() - startedAt : 0);
+    const [elapsed, setElapsed] = useState(() => (startedAt ? Date.now() - startedAt : 0));
     useEffect(() => {
         if (!startedAt) return;
         const h = setInterval(() => setElapsed(Date.now() - startedAt), 250);

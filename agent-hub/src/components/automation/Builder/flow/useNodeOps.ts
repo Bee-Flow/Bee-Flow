@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useLayoutEffect, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import { prefixAddedStep, parseInlineId } from './inlineFlowlets';
 import { seedPositions } from './layout';
@@ -42,8 +42,9 @@ export interface NodeOps {
  * re-render all 23 node components each time.
  */
 export function useNodeOps(inputs: NodeOpsInputs, runByStep: RunByStep): NodeOps {
-    const nodeOpsRef = useRef<NodeOpsInputs | null>(null) as MutableRefObject<NodeOpsInputs>;
-    nodeOpsRef.current = inputs;
+    // The node callbacks read the latest inputs when they fire; synced after each commit.
+    const nodeOpsRef = useRef<NodeOpsInputs>(inputs);
+    useLayoutEffect(() => { nodeOpsRef.current = inputs; });
 
     const onDeleteNode = useCallback((stepId: StepId) => {
         const { definition: def, editable: ed, structuralEditsBlocked: blocked, onDefinitionChange: emit, inlineTriggerIds: protectedIds } = nodeOpsRef.current!;
@@ -94,6 +95,9 @@ export function useNodeOps(inputs: NodeOpsInputs, runByStep: RunByStep): NodeOps
     // fifth action). Writes exactly the patch NodeDetailView's Pin button
     // writes, so the two cannot drift: pinnedSource stays undefined on both
     // paths — only the Edit-output editor sets it to 'edited'.
+    // The pin reads the run's rows when it is clicked, through a ref synced after each commit.
+    const runByStepRef = useRef(runByStep);
+    useLayoutEffect(() => { runByStepRef.current = runByStep; });
     const onPinNode = useCallback((stepId: StepId) => {
         const { definition: def, editable: ed, structuralEditsBlocked: blocked, onDefinitionChange: emit } = nodeOpsRef.current!;
         if (!ed || blocked || !stepId) return;
@@ -113,8 +117,6 @@ export function useNodeOps(inputs: NodeOpsInputs, runByStep: RunByStep): NodeOps
         if (next === def) return;
         emit?.(next as DiagramDefinition);
     }, []);
-    const runByStepRef = useRef(runByStep);
-    runByStepRef.current = runByStep;
 
     return { nodeOpsRef, onDeleteNode, onDetachNode, onDuplicateNode, onPatchStep, onPinNode };
 }
