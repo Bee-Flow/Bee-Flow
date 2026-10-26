@@ -1,7 +1,7 @@
 // @typecheck
 /**
- * Unit — _evalOrgAdmin pure org-admin predicate (H4). DB-free: stubs the
- * userStore/db module deps so permissions.js loads without the DB chain, then
+ * Unit — _evalOrgAdmin pure org-admin predicate (H4). DB-free: a recording
+ * pool answers whatever permissions.js's module-load dependencies ask, then
  * exercises the pure evaluator with plain user + group data.
  * Run: node --test auth/orgAdmin.test.js
  */
@@ -9,14 +9,10 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 
-const { installResolveStub } = require('../testUtils/stubRequire');
-// Neutralise permissions.js's module-load DB dependencies.
-const restore = installResolveStub({
-    '../stores/userStore': {},
-    '../db': { getRedis: () => null },
-});
+const { recordDb } = require('../testUtils/routeHarness');
+// permissions.js loads userStore and db; a recording pool keeps them off Postgres.
+recordDb();
 const { _evalOrgAdmin } = require('./permissions');
-restore();
 
 const ORG = 'org1';
 const groups = [

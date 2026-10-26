@@ -21,42 +21,22 @@ process.env.NODE_ENV = 'test';
 
 const test = require('node:test');
 const assert = require('node:assert');
-const Module = require('module');
 
 // Every store and side-effect call lands in `touched`. A refused request must
 // leave it empty.
 const touched = [];
-const pass = (req, res, next) => next();
+const h = require('../../testUtils/routeHarness');
 
-const MOCKS = {
-    '../permissions': {
-        requireSuperAdmin: pass,
-        loadConfig: async () => ({ oauth: { nextcloudUrl: 'https://nc.example.test', clientId: 'cid', clientSecret: 'kept' } }),
-        saveConfig: (cfg) => { touched.push({ what: 'saveConfig', args: [cfg] }); return true; },
-    },
-};
-
-const MOCK_IDS = {};
-for (const [request, exportsObj] of Object.entries(MOCKS)) {
-    const mockId = `mock:instance-settings-validation:${request}`;
-    MOCK_IDS[request] = mockId;
-    require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
-}
-const originalResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /login[\\/]instanceSettingsRoutes\.js$/.test(parent.filename)
-        && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
-        return MOCK_IDS[request];
-    }
-    return originalResolve.call(this, request, parent, ...rest);
-};
+// The gates are the harness's session-only ones; the config the route loads and
+// saves is swapped on the shared auth/permissions exports (routeHarness.openGates).
+h.openGates({
+    loadConfig: async () => ({ oauth: { nextcloudUrl: 'https://nc.example.test', clientId: 'cid', clientSecret: 'kept' } }),
+    saveConfig: (cfg) => { touched.push({ what: 'saveConfig', args: [cfg] }); return true; },
+});
 
 const router = require('./instanceSettingsRoutes');
-test.after(() => { Module._resolveFilename = originalResolve; });
 
-const { dispatcher } = require('../../testUtils/routeHarness');
-
-const dispatch = dispatcher(router, { session: () => ({ user: { id: 'root' }, isAdmin: true }) });
+const dispatch = h.dispatcher(router, { session: () => ({ isAuthenticated: true, user: { id: 'root' }, isAdmin: true }) });
 
 test.beforeEach(() => { touched.length = 0; });
 

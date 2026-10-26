@@ -26,40 +26,19 @@ process.env.NODE_ENV = 'test';
 
 const test = require('node:test');
 const assert = require('node:assert');
-const Module = require('module');
 
 // Every store and side-effect call lands in `touched`. A refused request must
 // leave it empty.
 const touched = [];
-const pass = (req, res, next) => next();
 
-const MOCKS = {
-    '../permissions': {
-        requireSuperAdmin: pass,
-        loadConfig: async () => ({ oauth: { nextcloudUrl: 'https://nc.test', clientId: 'cid' }, providers: { microsoft: { tenantId: 'common' } } }),
-        saveConfig: (cfg) => { touched.push({ what: 'saveConfig', args: [cfg] }); return true; },
-        OAUTH_PROVIDERS: { google: {}, microsoft: {}, nextcloud: {} },
-    },
-    '../../telemetry/log': { info() {}, warn() {}, error() {}, debug() {} },
-};
-
-const MOCK_IDS = {};
-for (const [request, exportsObj] of Object.entries(MOCKS)) {
-    const mockId = `mock:sso-config-validation:${request}`;
-    MOCK_IDS[request] = mockId;
-    require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
-}
-const originalResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /oauth[\\/]ssoConfigRoutes\.js$/.test(parent.filename)
-        && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
-        return MOCK_IDS[request];
-    }
-    return originalResolve.call(this, request, parent, ...rest);
-};
+// The gates are the harness's session-only ones; the config the route loads and
+// saves is swapped on the shared auth/permissions exports (routeHarness.openGates).
+require('../../testUtils/routeHarness').openGates({
+    loadConfig: async () => ({ oauth: { nextcloudUrl: 'https://nc.test', clientId: 'cid' }, providers: { microsoft: { tenantId: 'common' } } }),
+    saveConfig: (cfg) => { touched.push({ what: 'saveConfig', args: [cfg] }); return true; },
+});
 
 const router = require('./ssoConfigRoutes');
-test.after(() => { Module._resolveFilename = originalResolve; });
 
 // A schema refusal travels as an error to the terminal handler, so the
 // harness has to answer one the way index.js does.
@@ -72,7 +51,7 @@ function dispatch({ method, url, body = {}, session }) {
         for (const [k, v] of new URLSearchParams(search)) query[k] = v;
         const req = {
             method, url, originalUrl: url, path: pathname, body, query, headers: {},
-            session: session || { user: { id: 'root' }, isAdmin: true }, get() { return undefined; },
+            session: session || { isAuthenticated: true, user: { id: 'root' }, isAdmin: true }, get() { return undefined; },
         };
         const res = {
             statusCode: 200, headersSent: false,
