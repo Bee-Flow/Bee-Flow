@@ -35,6 +35,7 @@ const { createGmailPollers } = require('./triggerBus/pollers/gmail');
 const { createGoogleCalendarPollers } = require('./triggerBus/pollers/googleCalendar');
 const { createGoogleDrivePollers } = require('./triggerBus/pollers/googleDrive');
 const { createNextcloudPollers, _ncNormaliseActivity } = require('./triggerBus/pollers/nextcloud');
+const { createMsGraphPollers } = require('./triggerBus/pollers/msGraphMail.mts');
 const { POLL_FAILURE_THRESHOLD, escalateSubscriptionFailure: escalateWithCtx } = require('./triggerBus/escalation');
 const { getPublicBaseUrl, buildClientState, provisionSubscription, revokeSubscription, renewExpiringSubscriptions: renewWithCtx } = require('./triggerBus/msGraphSubscriptions');
 const latestMatch = require('./triggerBus/latestMatch');
@@ -320,6 +321,9 @@ const ctx = {
     ncScopeGuard: () => require('../core/integrations/ncScopeGuard'),
     notificationStore: () => require('../stores/notificationStore'),
     loadSession: (userId) => loadSession(userId),
+    // The Microsoft-only session for Graph calls (never a Google primary's token).
+    microsoftSession: (session, userId, opts) => require('../auth/microsoftSessionHydration').resolveMicrosoftSession(session, userId, opts),
+    msGraphClient: () => require('../integrations/msGraphClient'),
     escalate: (sub, threshold, errorMsg) => escalateSubscriptionFailure(sub, threshold, errorMsg),
 };
 
@@ -336,6 +340,10 @@ const POLLERS = {
     'google-calendar': createGoogleCalendarPollers(ctx),
     'google-drive': createGoogleDrivePollers(ctx),
     nextcloud: createNextcloudPollers(ctx),
+    // Only polling-mode rows reach a poller: a shared mailbox's mail.new (Graph
+    // has no subscriptions for shared mailboxes on delegated access) and an
+    // own-mailbox row without a PUBLIC_BASE_URL.
+    msgraph: createMsGraphPollers(ctx),
 };
 
 function renewExpiringSubscriptions() {

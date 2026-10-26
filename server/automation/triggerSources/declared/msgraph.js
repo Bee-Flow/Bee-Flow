@@ -22,7 +22,7 @@ module.exports = { TRIGGER_SOURCES: [{
             {
                 id: 'mail.new',
                 label: 'New email (Outlook)',
-                fields: ['subscriptionId', 'changeType', 'resource', 'resourceData'],
+                fields: ['subscriptionId', 'changeType', 'resource', 'resourceData', 'mailbox'],
                 sample: {
                     subscriptionId: 'a1b2c3d4-0000-0000-0000-000000000001',
                     changeType: 'created',
@@ -31,7 +31,19 @@ module.exports = { TRIGGER_SOURCES: [{
                         id: 'AAMkAGI2…',
                         '@odata.type': '#Microsoft.Graph.Message',
                     },
+                    mailbox: 'me',
                 },
+                // filter.mailbox: "me" (or absent) watches the own inbox through a
+                // Graph subscription; a shared mailbox's address is polled instead
+                // (Graph has no change notifications for shared mailboxes on
+                // delegated access), see triggerBus/pollers/msGraphMail.mts.
+                configFields: [
+                    {
+                        key: 'mailbox',
+                        label: 'Mailbox',
+                        hint: 'Empty or "me" for your own inbox, or the address of a shared mailbox you have Full Access to (checked about once a minute).',
+                    },
+                ],
                 scope: 'user',
                 source: {
                     kind: 'push',

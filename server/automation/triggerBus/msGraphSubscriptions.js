@@ -45,6 +45,36 @@ const MSGRAPH_LIFETIME_MS = 50 * 60_000;
 // in this file is untouched.
 const { getPublicBaseUrl } = require('../publicUrl');
 
+/**
+ * The Microsoft bearer token of a trigger session. loadSession's primary is
+ * whichever provider came first (Gmail before Outlook), so a user with Google
+ * AND Microsoft had their Google token sent to Graph, and every subscribe and
+ * renew failed with 401. The Microsoft credential sits under
+ * automationProviders.microsoft then.
+ * @param {any} session
+ * @returns {string | null}
+ */
+function microsoftTokenOf(session) {
+    if (session?.oauthProvider === 'microsoft' && session?.accessToken) return session.accessToken;
+    if (session?.automationProviders?.microsoft?.accessToken) return session.automationProviders.microsoft.accessToken;
+    // A session that names no provider at all is taken as it is (older callers and tests).
+    if (!session?.oauthProvider && session?.accessToken) return session.accessToken;
+    return null;
+}
+
+/**
+ * Is this row a shared mailbox's? Those are never subscribed at Graph (it
+ * refuses change notifications on shared mailboxes for delegated access);
+ * they are polled (pollers/msGraphMail.mts).
+ * @param {{ eventType?: string, filter?: Record<string, unknown> | null }} sub
+ */
+function isSharedMailboxSub(sub) {
+    const mailbox = sub?.filter?.mailbox;
+    if (mailbox === undefined || mailbox === null || !String(sub?.eventType || '').startsWith('mail.')) return false;
+    const { parseMailbox } = require('../../core/integrations/outlookMailbox.mts');
+    try { return parseMailbox(mailbox).shared; } catch { return true; }
+}
+
 function buildClientState(userId, automationId) {
     const secret = process.env.MSGRAPH_CLIENT_STATE_SECRET || process.env.SESSION_SECRET;
     if (!secret || secret.length < 32) {
@@ -72,7 +102,12 @@ async function provisionSubscription(sub, session) {
         log.warn(`[TriggerBus] MS Graph subscription skipped for ${sub.id} — PUBLIC_BASE_URL not set`);
         return null;
     }
-    if (!session?.accessToken) {
+    if (isSharedMailboxSub(sub)) {
+        log.warn(`[TriggerBus] MS Graph subscription skipped for ${sub.id} — a shared mailbox is polled, not subscribed`);
+        return null;
+    }
+    const token = microsoftTokenOf(session);
+    if (!token) {
         log.warn(`[TriggerBus] MS Graph subscription skipped for ${sub.id} — no access token`);
         return null;
     }
@@ -93,7 +128,7 @@ async function provisionSubscription(sub, session) {
     try {
         const r = await fetch('https://graph.microsoft.com/v1.0/subscriptions', {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${session.accessToken}`, 'Content-Type': 'application/json' },
+            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
         });
         if (!r.ok) {
@@ -122,11 +157,12 @@ async function provisionSubscription(sub, session) {
 async function revokeSubscription(sub, session) {
     if (sub.provider !== 'msgraph') return false;
     if (!sub.externalRef) return false;
-    if (!session?.accessToken) return false;
+    const token = microsoftTokenOf(session);
+    if (!token) return false;
     try {
         const r = await fetch(`https://graph.microsoft.com/v1.0/subscriptions/${sub.externalRef}`, {
             method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${session.accessToken}` },
+            headers: { 'Authorization': `Bearer ${token}` },
         });
         // 404 = already gone, treat as success.
         return r.ok || r.status === 404;
@@ -143,16 +179,19 @@ async function renewExpiringSubscriptions(ctx) {
         const subs = await ctx.store().getExpiringSubscriptions({ withinMs: 5 * 60_000 });
         for (const sub of subs) {
             if (sub.provider !== 'msgraph') continue;
+            // Never renewed at Graph: a shared mailbox has no Graph subscription.
+            if (isSharedMailboxSub(sub)) continue;
             try {
                 const session = await ctx.loadSession(sub.userId);
-                if (!session?.accessToken) {
+                const token = microsoftTokenOf(session);
+                if (!token) {
                     await ctx.escalate(sub, RENEW_FAILURE_THRESHOLD, 'no access token');
                     continue;
                 }
                 const newExpiry = new Date(Date.now() + MSGRAPH_LIFETIME_MS).toISOString();
                 const r = await fetch(`https://graph.microsoft.com/v1.0/subscriptions/${sub.externalRef}`, {
                     method: 'PATCH',
-                    headers: { 'Authorization': `Bearer ${session.accessToken}`, 'Content-Type': 'application/json' },
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ expirationDateTime: newExpiry }),
                 });
                 if (!r.ok) {
@@ -178,6 +217,8 @@ module.exports = {
     MSGRAPH_LIFETIME_MS,
     getPublicBaseUrl,
     buildClientState,
+    microsoftTokenOf,
+    isSharedMailboxSub,
     provisionSubscription,
     revokeSubscription,
     renewExpiringSubscriptions,

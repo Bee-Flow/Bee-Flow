@@ -326,7 +326,11 @@ router.post('/events/msgraph', eventsLimiter, express.json({ limit: '128kb' }), 
             await triggerBus.dispatchEvent({
                 provider: 'msgraph',
                 event: sub?.eventType || 'change',
-                payload: n,
+                // Graph subscriptions exist for the OWN mailbox only (a shared
+                // one is polled), so a pushed new mail is always "me". Set here,
+                // never taken from the body: the mail.new matcher keeps an own-
+                // inbox push away from an automation that watches a shared one.
+                payload: sub?.eventType === 'mail.new' ? { ...n, mailbox: 'me' } : n,
                 userId: sub?.userId,
             });
             // A OneDrive drive subscription (a `file.*` automation trigger of

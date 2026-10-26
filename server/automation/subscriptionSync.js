@@ -131,7 +131,9 @@ async function syncOneAppEventTrigger(automationId, userId, trig, prior = null) 
     /** @type {string} */
     let mode;
     if (provider === 'msgraph') {
-        mode = triggerBus.getPublicBaseUrl() ? 'webhook' : 'polling';
+        // A shared mailbox is always polled: Graph refuses change
+        // notifications on it for delegated access (pollers/msGraphMail.mts).
+        mode = !watchesSharedMailbox(event, trig.appEvent?.filter) && triggerBus.getPublicBaseUrl() ? 'webhook' : 'polling';
     } else if (provider === 'github') {
         mode = 'webhook';
     } else if (provider === 'nextcloud') {
@@ -209,6 +211,19 @@ async function syncOneAppEventTrigger(automationId, userId, trig, prior = null) 
             log.warn(`[automation/subscriptionSync] MS Graph provisioning threw for sub ${sub.id}: ${/** @type {Error} */ (e).message}`);
         }
     }
+}
+
+/**
+ * Does this msgraph trigger watch a shared mailbox? An address that does not
+ * parse counts as one too: polled, the poller then reports it every tick
+ * instead of a webhook quietly watching the own inbox.
+ * @param {string} event
+ * @param {Record<string, unknown> | null | undefined} filter
+ */
+function watchesSharedMailbox(event, filter) {
+    if (event !== 'mail.new' || !filter || filter.mailbox === undefined || filter.mailbox === null) return false;
+    const { parseMailbox } = require('../core/integrations/outlookMailbox.mts');
+    try { return parseMailbox(filter.mailbox).shared; } catch { return true; }
 }
 
 module.exports = { syncAppEventSubscription, revokeRemoteSubscriptions, hasAppEventTrigger, appEventFingerprint };
