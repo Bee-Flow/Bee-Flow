@@ -34,10 +34,13 @@
  * job after its init finished) is never touched.
  *
  * A LEDGER THAT LIES IS CAUGHT. Every recorded entry also stores the OID of
- * each table its statements name. When one of them is gone or is a different
- * table now (dropped, recreated, restored from a dump), the whole unit runs
- * again. What the ledger cannot see is a column or index dropped by hand from
- * a table that is still there; BEEFLOW_DDL_LEDGER=off or `db:migrate --force`
+ * each relation its statements name (table, index, sequence, view; null for
+ * one that is gone). When one of them is gone, is a different object now
+ * (dropped, recreated, restored from a dump) or came back (a retired index an
+ * older replica recreated), the whole unit runs again. What the ledger cannot
+ * see is a column, constraint, default or function changed by hand, or by an
+ * older replica that still runs its own DDL during a rolling upgrade, on a
+ * table that is still the same; BEEFLOW_DDL_LEDGER=off or `db:migrate --force`
  * runs every statement again.
  *
  * FAIL-OPEN. The ledger only ever decides to SKIP, so every failure of its own
@@ -149,8 +152,6 @@ function relationsIn(statements) {
 }
 
 /** @param {unknown} e */
-const _code = (e) => (e && typeof e === 'object' && 'code' in e ? String(e.code) : '');
-/** @param {unknown} e */
 const _msg = (e) => (e instanceof Error ? e.message : String(e));
 
 /** @type {Promise<void> | null} */
@@ -190,6 +191,38 @@ function ensureLedgerTable(query) {
     return _bootstrapping;
 }
 
+/**
+ * Make sure the ledger table (with its DDL columns) is there before a read or
+ * write, with a query that cannot fail. That matters beyond tidiness: on a
+ * database with one session (PGlite in the tests) a failing ledger query would
+ * land inside another store's open runDdl transaction and abort it. Asked per
+ * unit, not memoised: one catalog lookup is cheap, and a memo would be wrong
+ * after a test swapped the database underneath the pool.
+ *
+ * @param {LedgerQuery} query
+ */
+async function _ensureReady(query) {
+    const res = await query(
+        `SELECT to_regclass('${LEDGER_TABLE}') IS NOT NULL AS t,
+                (SELECT count(*)::int FROM pg_attribute
+                  WHERE attrelid = to_regclass('${LEDGER_TABLE}')
+                    AND attname IN ('ddl_statements', 'ddl_tables') AND NOT attisdropped) AS n`);
+    const row = res?.rows?.[0];
+    if (!row?.t || Number(row.n) < 2) await ensureLedgerTable(query);
+}
+
+/**
+ * Run a ledger query once the table is known to be there.
+ *
+ * @param {LedgerQuery} query
+ * @param {string} sql
+ * @param {unknown[]} params
+ */
+async function _ledgerQuery(query, sql, params) {
+    await _ensureReady(query);
+    return query(sql, params);
+}
+
 const LOAD_SQL = `
     SELECT m.ddl_statements AS statements,
            NOT EXISTS (
@@ -208,15 +241,7 @@ const LOAD_SQL = `
  * @returns {Promise<Set<string>>}
  */
 async function _load(query, unit) {
-    let res;
-    try {
-        res = await query(LOAD_SQL, [unit]);
-    } catch (e) {
-        // 42P01 no ledger table yet, 42703 one without the DDL columns.
-        if (_code(e) !== '42P01' && _code(e) !== '42703') throw e;
-        await ensureLedgerTable(query);
-        res = await query(LOAD_SQL, [unit]);
-    }
+    const res = await _ledgerQuery(query, LOAD_SQL, [unit]);
     const row = res?.rows?.[0];
     if (!row || !Array.isArray(row.statements)) return new Set();
     if (row.intact === false) {
@@ -242,13 +267,7 @@ async function _record(query, ctx) {
     const keys = [...ctx.applied.keys()].sort();
     const checksum = statementKey(keys.join('\n'));
     const tables = relationsIn(ctx.applied.values());
-    try {
-        await query(RECORD_SQL, [ctx.unit, checksum, keys, tables]);
-    } catch (e) {
-        if (_code(e) !== '42P01' && _code(e) !== '42703') throw e;
-        await ensureLedgerTable(query);
-        await query(RECORD_SQL, [ctx.unit, checksum, keys, tables]);
-    }
+    await _ledgerQuery(query, RECORD_SQL, [ctx.unit, checksum, keys, tables]);
 }
 
 /** @param {Set<string>} a @param {Set<string>} b */

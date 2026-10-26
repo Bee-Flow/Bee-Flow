@@ -130,7 +130,7 @@ test('an unchanged second boot sends no schema statement and keeps the data', as
         pool.query = real;
     }
     assert.deepStrictEqual(sent.filter((s) => ledger.isSchemaOnly(s)), [], 'not one schema statement reaches the database');
-    assert.strictEqual(sent.length, 1, 'one ledger read, and no write when nothing changed');
+    assert.strictEqual(sent.length, 2, 'a catalog check and one ledger read, and no write when nothing changed');
     assert.deepStrictEqual(await q(`SELECT name, note FROM ledger_t1`), [{ name: 'keep', note: 'me' }]);
 });
 
