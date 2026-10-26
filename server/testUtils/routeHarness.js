@@ -49,6 +49,8 @@ const BOOTSTRAP = /^\s*(CREATE|ALTER|DROP|COMMENT|BEGIN|COMMIT|ROLLBACK|SAVEPOIN
  * `{ rows }` result for the query; anything else answers no rows. `queries`
  * holds the ones that read or write data, `calls` the same with their params,
  * `all` every statement.
+ *
+ * @param {(sql: string, params?: any) => any} [answer]
  */
 function recordDb(answer = () => undefined) {
     const db = require('../db');
