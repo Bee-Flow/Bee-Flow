@@ -10,15 +10,24 @@ const { getAgentToolsBatch, getAgentToolsWithParamsBatch } = require('./agentToo
 const { projectRuntime, parseConfig, buildToolParamsFromList } = require('./agentRows');
 const log = require('../../telemetry/log');
 
-async function getPublishedAgents() {
-    await initDB();
-    const agents = await getAll("SELECT * FROM agents WHERE is_published = TRUE AND owner_id NOT IN ('system', 'swarm') ORDER BY name ASC");
+/**
+ * Agent rows as the library serves them: the runtime projection, with each
+ * agent's tools and their parameters.
+ * @param {Array<Parameters<typeof projectRuntime>[0] & { id: string }>} agents
+ */
+async function asLibraryAgents(agents) {
     const twpByAgent = await getAgentToolsWithParamsBatch(agents.map(a => a.id));
-    // The library is what users chat with → the runtime projection.
     return agents.map(agent => {
         const twp = twpByAgent.get(agent.id) || [];
         return { ...parseConfig(projectRuntime(agent)), tools: twp.map(t => t.componentId), tool_params: buildToolParamsFromList(twp) };
     });
+}
+
+async function getPublishedAgents() {
+    await initDB();
+    const agents = await getAll("SELECT * FROM agents WHERE is_published = TRUE AND owner_id NOT IN ('system', 'swarm') ORDER BY name ASC");
+    // The library is what users chat with → the runtime projection.
+    return asLibraryAgents(agents);
 }
 
 /**
@@ -95,12 +104,8 @@ async function getPublishedAgentsForUser(userGroups = [], userOrgId = null, reso
         return true;
     });
 
-    const twpByAgent = await getAgentToolsWithParamsBatch(filtered.map(a => a.id));
     // Same projection as getPublishedAgents: the library serves what runs.
-    return filtered.map(agent => {
-        const twp = twpByAgent.get(agent.id) || [];
-        return { ...parseConfig(projectRuntime(agent)), tools: twp.map(t => t.componentId), tool_params: buildToolParamsFromList(twp) };
-    });
+    return asLibraryAgents(filtered);
 }
 
 async function getAllAgents() {

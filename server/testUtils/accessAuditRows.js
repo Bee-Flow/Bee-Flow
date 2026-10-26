@@ -24,7 +24,7 @@ function useAccessAuditRows() {
     const rows = [];
     let failing = false;
     const db = recordDb((/** @type {string} */ sql, /** @type {any[]} */ params = []) => {
-        if (!/^\s*INSERT INTO access_audit_log/i.test(sql)) return undefined;
+        if (!sql.trimStart().toUpperCase().startsWith('INSERT INTO ACCESS_AUDIT_LOG')) return undefined;
         if (failing) throw new Error('audit table is gone');
         const [, action, targetType, targetId, organizationId, changedBy, oldValues, newValues] = params;
         rows.push({

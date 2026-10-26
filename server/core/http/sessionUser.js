@@ -21,4 +21,19 @@ function sessionUser(req) {
     return user;
 }
 
-module.exports = { sessionUser };
+/**
+ * Middleware for a route that must answer 401 before it validates the body: an
+ * unauthenticated caller reads 401, not a 400 about what it sent.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
+ */
+function requireSessionUser(req, res, next) {
+    if (!req.session?.user?.id) {
+        res.status(401).json({ error: 'Not authenticated' });
+        return;
+    }
+    next();
+}
+
+module.exports = { sessionUser, requireSessionUser };

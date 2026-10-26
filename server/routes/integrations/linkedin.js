@@ -18,7 +18,7 @@ const router = express.Router();
 const configStore = require('../../stores/configStore');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
-const { sessionUser } = require('../../core/http/sessionUser');
+const { sessionUser, requireSessionUser } = require('../../core/http/sessionUser');
 
 const SCOPES = ['openid', 'profile', 'w_member_social'];
 
@@ -160,17 +160,6 @@ const PostBody = z.object({
     text: z.string({ error: TEXT_TEXT }).trim().min(1, TEXT_TEXT),
 }).strict();
 
-// The session gate stays AHEAD of the schema: an unauthenticated caller must
-// still read 401, not a 400 about its body.
-/**
- * @param {import('express').Request} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
- */
-const requireSessionUser = (req, res, next) => {
-    if (!req.session?.user?.id) return res.status(401).json({ error: 'Not authenticated' });
-    next();
-};
 
 // ─── Post to LinkedIn ────────────────────────────────────────────
 router.post('/post', requireSessionUser, validate({ body: PostBody }), async (req, res) => {
