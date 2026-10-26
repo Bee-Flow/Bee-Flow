@@ -8,7 +8,7 @@ import { request, RefusedError } from '../mutate';
 /** GET `url`; the parsed JSON, or null when the server refused. */
 export async function readOrNull<T>(url: string, signal?: AbortSignal): Promise<T | null> {
     try {
-        return (await (await request(url, { signal })).json()) as T;
+        return (await (await request(url, signal ? { signal } : undefined)).json()) as T;
     } catch (err) {
         if (err instanceof RefusedError) return null;
         throw err;

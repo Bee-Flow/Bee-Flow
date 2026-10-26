@@ -11,7 +11,7 @@
  * Every lazy page is stubbed to a probe that records its props; the hub, its
  * sidebar and the precedence between them are the real thing.
  */
-import { render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -176,7 +176,7 @@ describe('AgentHub main content — Studio deep links', () => {
             'initialMeetingId', 'initialApprovalId', 'initialSolutionId', 'initialDatatableId', 'initialFormId',
             'initialPlaybookId', 'initialDocumentId', 'initialTaskId'];
         for (const [section, id, expected] of cases) {
-            document.body.innerHTML = '';
+            cleanup(); // unmount the previous hub: a mounted one would keep re-rendering over `seen`
             const p = await studioWith({ section, id, sub: 'rows' });
             for (const key of KEYS) expect(p[key], `${section}.${key}`).toBe(expected[key] ?? null);
             for (const [k, v] of Object.entries(expected)) expect(p[k], `${section}.${k}`).toBe(v);
