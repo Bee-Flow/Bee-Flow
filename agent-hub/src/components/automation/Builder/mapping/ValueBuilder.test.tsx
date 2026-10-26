@@ -1,0 +1,141 @@
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import ValueBuilder from './ValueBuilder';
+import { VariablePickerProvider } from './VariablePickerContext';
+import { editor, editorValue, typeInEditor } from '../../../../test/refEditor';
+import { type ComponentProps } from 'react';
+import { stub } from '@/test/mocks';
+
+/**
+ * The visual value editor. Its contract in one line: a user who has never seen
+ * `{{ }}` can build every common value, and an internal step id
+ * (`steps.act_4d4307a`) never reaches the screen.
+ */
+
+const RESULTS = [{ subject: 'ISV contract', from_email: 'a@b.nl' }];
+const GROUPS = [{
+    id: 'act_4d4307a',
+    label: 'gmail search',
+    kind: 'integration_action',
+    basePath: 'steps.act_4d4307a.output',
+    sample: { total: 201, results: RESULTS },
+    fields: [
+        { key: 'total', path: 'steps.act_4d4307a.output.total', sample: 201 },
+        { key: 'results', path: 'steps.act_4d4307a.output.results', sample: RESULTS },
+    ],
+}];
+const SAMPLE = { steps: { act_4d4307a: { output: { total: 201, results: RESULTS } } } };
+const LABELS = new Map([['act_4d4307a', 'gmail search']]);
+
+function renderBuilder(value: unknown, props = {}) {
+    const onChange = vi.fn();
+    render(
+        <VariablePickerProvider groups={GROUPS} previewSample={SAMPLE} stepLabelById={LABELS}>
+            <ValueBuilder value={stub<ComponentProps<typeof ValueBuilder>['value']>(value)} onChange={onChange} label="total" {...props} />
+        </VariablePickerProvider>,
+    );
+    return { onChange };
+}
+
+describe('ValueBuilder', () => {
+    beforeEach(cleanup);
+
+    it('shows a picked value as a named chip with its example — no path anywhere', () => {
+        renderBuilder({ kind: 'ref', path: 'steps.act_4d4307a.output.total' });
+        expect(screen.getByText('gmail search')).toBeTruthy();
+        expect(screen.getByText('▸ Total')).toBeTruthy();
+        expect(screen.getByText('201')).toBeTruthy();
+        expect(screen.queryByText(/act_4d4307a/)).toBeNull();
+        expect(screen.queryByText(/\{\{/)).toBeNull();
+    });
+
+    it('typing plain text writes a literal', () => {
+        // The value is ONE text box with pills in it (design 2a), not a row
+        // per part — so typing goes through the ref editor.
+        const { onChange } = renderBuilder(null);
+        typeInEditor(editor(document.body), 'open');
+        expect(onChange).toHaveBeenCalledWith({ kind: 'literal', value: 'open' });
+    });
+
+    it('picking data from a step writes the ref', async () => {
+        const user = userEvent.setup();
+        const { onChange } = renderBuilder(null);
+        await user.click(screen.getByText('Use data from a step'));
+        // 'Total', not 'total': the picker leaf now reads as words like the
+        // chip it produces already did two assertions below. What is asserted
+        // is unchanged — the ref written is still the raw dotted path.
+        await user.click(screen.getByText('Total'));
+        expect(onChange).toHaveBeenCalledWith({ kind: 'ref', path: 'steps.act_4d4307a.output.total' });
+    });
+
+    it('text plus data becomes a template, built by clicking — not by typing braces', async () => {
+        const user = userEvent.setup();
+        const { onChange } = renderBuilder({ kind: 'literal', value: 'Order ' });
+        await user.click(screen.getByText('Use data from a step'));
+        // 'Total', not 'total': the picker leaf now reads as words like the
+        // chip it produces already did two assertions below. What is asserted
+        // is unchanged — the ref written is still the raw dotted path.
+        await user.click(screen.getByText('Total'));
+        expect(onChange).toHaveBeenCalledWith({
+            kind: 'template', value: 'Order {{steps.act_4d4307a.output.total}}',
+        });
+    });
+
+    it('“Adjust it” writes the formula for the user', () => {
+        const { onChange } = renderBuilder({ kind: 'ref', path: 'steps.act_4d4307a.output.total' });
+        // Behind "Advanced": a plain drag never needs it.
+        fireEvent.change(screen.getByLabelText('Adjust the value'), { target: { value: 'round' } });
+        expect(onChange).toHaveBeenCalledWith({
+            kind: 'expr', value: 'round(steps.act_4d4307a.output.total)',
+        });
+        // …and reads back as that same adjustment, not as an opaque formula.
+        cleanup();
+        renderBuilder({ kind: 'expr', value: 'round(steps.act_4d4307a.output.total)' });
+        expect((screen.getByLabelText('Adjust the value') as HTMLInputElement).value).toBe('round');
+    });
+
+    it('the adjust control is hidden once the value is a combination', () => {
+        renderBuilder({ kind: 'template', value: 'Order {{steps.act_4d4307a.output.total}}' });
+        expect(screen.queryByLabelText('Adjust the value')).toBeNull();
+        expect(screen.getByText('▸ Total')).toBeTruthy();
+    });
+
+    it('removing a chip clears the value', async () => {
+        const user = userEvent.setup();
+        const { onChange } = renderBuilder({ kind: 'ref', path: 'steps.act_4d4307a.output.total' });
+        await user.click(screen.getByLabelText('Remove this value'));
+        expect(onChange).toHaveBeenCalledWith({ kind: 'literal', value: '' });
+    });
+
+    it('a hand-written formula is shown with step NAMES and never rewritten', async () => {
+        const user = userEvent.setup();
+        const src = 'concat(steps.act_4d4307a.output.total, " eur")';
+        const { onChange } = renderBuilder({ kind: 'expr', value: src });
+        expect(screen.getByText('Custom formula')).toBeTruthy();
+        expect(screen.getByText('gmail search')).toBeTruthy();
+        expect(screen.queryByText(/act_4d4307a/)).toBeNull();
+        expect(onChange).not.toHaveBeenCalled();
+        await user.click(screen.getByText('Edit the formula'));
+        // Editing keeps the formula byte-identical; the step reference inside it
+        // still reads as a name, so even the raw editor never shows the id.
+        const box = editor(document.body);
+        expect(editorValue(box)).toBe(src);
+        expect(box!.textContent).not.toContain('act_4d4307a');
+    });
+
+    it('a JSON pick is a chip too, and offers nothing to combine it with', () => {
+        renderBuilder({ kind: 'expr', value: 'parseJson(steps.act_4d4307a.output.total, "order.id")' });
+        expect(screen.getByText('gmail search')).toBeTruthy();
+        expect(screen.getByText('· from the JSON: order.id')).toBeTruthy();
+        expect(screen.queryByText('Custom formula')).toBeNull();
+        expect(screen.queryByText('Use data from a step')).toBeNull();
+        expect(screen.queryByText('Add data')).toBeNull();
+    });
+
+    it('the quick view offers no formula escape at all', () => {
+        renderBuilder({ kind: 'ref', path: 'steps.act_4d4307a.output.total' }, { allowRaw: false });
+        expect(screen.queryByLabelText('Write this value as a formula')).toBeNull();
+        expect(screen.getByText('gmail search')).toBeTruthy();
+    });
+});

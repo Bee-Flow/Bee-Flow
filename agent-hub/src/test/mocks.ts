@@ -55,3 +55,14 @@ export function stub<T>(value: unknown): T {
 export function malformed<T>(value: unknown): T {
     return value as T;
 }
+
+/**
+ * The props a test deliberately leaves out of a component whose type marks them
+ * required. Spreads nothing at runtime; it only satisfies the "required" check,
+ * so the omission is visible at the call site instead of hidden in a cast.
+ *
+ *   render(<Panel {...omitted<ComponentProps<typeof Panel>>()} title="x" />);
+ */
+export function omitted<T>(): T {
+    return {} as T;
+}
