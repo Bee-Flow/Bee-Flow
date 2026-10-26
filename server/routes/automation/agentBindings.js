@@ -28,6 +28,7 @@ const { validate } = require('../../core/http/validate');
 const { closedObject } = require('../../core/http/schemaParts');
 const { HttpError } = require('../../core/http/errors');
 const { makeAutomationAccess } = require('../../automation/access');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 const AGENT_IDS_TEXT = 'agentIds is the list of agents that may call this automation, [] for none.';
 const BindingsBody = closedObject({
@@ -82,7 +83,7 @@ function makeAgentBindingsRouter(overrides = {}) {
         const a = await loadAutomation(req, res, 'view');
         if (!a) return;
         res.json(await binding().describeBindings({
-            automation: a, viewerId: req.session.user.id, session: req.session, deps: deps(),
+            automation: a, viewerId: sessionUser(req).id, session: req.session, deps: deps(),
         }));
     });
 
@@ -90,7 +91,7 @@ function makeAgentBindingsRouter(overrides = {}) {
     // THIS agent. Three segments, so it cannot shadow a `/:id/...` route.
     router.get('/by-agent/:agentId/automation-ids', async (req, res) => {
         const automationIds = await binding().linkedAutomationIds({
-            agentId: req.params.agentId, viewerId: req.session.user.id, session: req.session, deps: deps(),
+            agentId: req.params.agentId, viewerId: sessionUser(req).id, session: req.session, deps: deps(),
         });
         if (!automationIds) throw new HttpError(404, 'not_found', 'Not found');
         res.json({ automationIds });
@@ -102,10 +103,10 @@ function makeAgentBindingsRouter(overrides = {}) {
         // The gate decides edit rights on the automation and on each agent; a
         // viewer without any role at all is told the same as one without edit.
         const result = await binding().setAgentBindings({
-            automation: a, agentIds: req.body.agentIds, actorId: req.session.user.id, session: req.session, deps: deps(),
+            automation: a, agentIds: req.body.agentIds, actorId: sessionUser(req).id, session: req.session, deps: deps(),
         });
         const view = await binding().describeBindings({
-            automation: a, viewerId: req.session.user.id, session: req.session, deps: deps(),
+            automation: a, viewerId: sessionUser(req).id, session: req.session, deps: deps(),
         });
         res.json({ ...view, kept: result.kept });
     });

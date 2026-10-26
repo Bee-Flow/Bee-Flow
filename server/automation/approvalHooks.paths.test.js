@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The on_decided hook's `{{path}}` templates, read with the shared grammar.
  *

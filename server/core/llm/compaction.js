@@ -224,8 +224,8 @@ function _foldReason(convMessages, watermark, settings) {
  *
  * @param {Array} messages - Full message array (system + user/assistant/tool messages)
  * @param {object} [options]
- * @param {string} [options.existingSummary] - Previous compaction summary (from meta_json)
- * @param {number} [options.summaryUpTo] - Watermark: how many non-system messages are already folded into existingSummary
+ * @param {string|null} [options.existingSummary] - Previous compaction summary (from meta_json)
+ * @param {number|null} [options.summaryUpTo] - Watermark: how many non-system messages are already folded into existingSummary
  * @param {string} [options.summaryModelId] - Model to use for summary generation (tier:fast)
  * @param {string|null} [options.userOrgId] - Org ID for EU-mode tier overrides
  * @returns {Promise<{ messages: Array, newSummary: string|null, summaryUpTo: number, didSummarize: boolean }>}

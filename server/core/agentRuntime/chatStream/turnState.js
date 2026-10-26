@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The per-turn mutable state the agentic loop (./turnLoop) carries from round
  * to round, and the one-off notebook seed that runs before the first round.

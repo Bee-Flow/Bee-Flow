@@ -114,6 +114,10 @@ function _lazyNotices() {
     return _notices;
 }
 
+/**
+ * @param {string | null} [link]
+ * @param {{ key: string, window: string } | null} [dedupe]
+ */
 async function _notifyAdmins(orgId, category, title, message, link = null, dedupe = null) {
     try {
         await _lazyNotices().notify(orgId, { category, title, message, link, dedupe });

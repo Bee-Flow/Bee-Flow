@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Reading a stored table: authorisation (`openTable`), one page of rows and the
  * CSV export. Rows stream; nothing here loads a whole table.
@@ -137,8 +137,8 @@ function makeTableReader(deps = {}) {
         const ids = await journeyIds({ runId: scope.runId, rootRunId: scope.rootRunId });
         if (ids.includes(row.runId)) return true;
         const [producing, current] = await Promise.all([
-            store().getRun(row.runId).catch((e) => fallback('core/automationRunner/tables/tableReader:mayRead', e, null)),
-            store().getRun(scope.runId).catch((e) => fallback('core/automationRunner/tables/tableReader:mayRead#2', e, null)),
+            store().getRun(row.runId).catch((/** @type {unknown} */ e) => fallback('core/automationRunner/tables/tableReader:mayRead', e, null)),
+            store().getRun(scope.runId).catch((/** @type {unknown} */ e) => fallback('core/automationRunner/tables/tableReader:mayRead#2', e, null)),
         ]);
         if (!producing) return false;
         const viewer = (current && current.startedByUserId) || scope.userId;

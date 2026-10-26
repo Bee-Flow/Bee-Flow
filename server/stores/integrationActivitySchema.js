@@ -2,22 +2,26 @@
 /**
  * Schema upgrades and backfills of the outbound-call ledger
  * (integration_activity_log). The store (integrationActivityStore.js) owns the
- * table itself and its warm-boot probe; this module holds what an EXISTING
- * table needs to reach the current shape:
+ * table itself; this module holds what an EXISTING table needs to reach the
+ * current shape:
  *
  *   upgradeSchema()          the one consolidated column ladder, the batched
  *                            dest_host / pii_scan_level backfills, the indexes
  *   startLocationBackfill()  DETACHED: gives every pre-rework row a location
  *                            state (see integrationLocationSql.js)
  *
- * ⚠ When adding a column below, point the store's warm-boot probe at it, or
- * existing installs skip the new DDL silently.
+ * Every statement here runs inside the store's init, so it goes through the
+ * schema ledger (stores/lib/ddlLedger.js): a create-if-missing statement is
+ * skipped once it succeeded on this database, the DO block and the DROP run
+ * every boot, and a new or changed one runs. The two backfills are one-time
+ * steps of the same ledger (`once`), recorded only when they finished.
  */
 
 'use strict';
 
 const { run, getOne, getAll, exec } = require('../db');
 const { runDdl } = require('./lib/_ddl');
+const { once } = require('./lib/ddlLedger');
 const log = require('../telemetry/log');
 const { LEGACY_STATE_CASE, IS_PRIVATE_PEER, DEST_EXPR } = require('./integrationLocationSql');
 
@@ -91,15 +95,15 @@ async function upgradeSchema() {
 
     // One-time backfills, idempotent (guarded by their own WHERE) and BATCHED:
     // a single whole-table UPDATE hits the pool-wide 30 s statement_timeout on
-    // a production-sized ledger, rolls back entirely, and, because the probed
-    // DDL still succeeded, would never be attempted again. Batches keep every
-    // statement small; a transient failure resumes on the next cold boot, and
+    // a production-sized ledger, rolls back entirely, and, because the DDL
+    // still succeeded, would never be attempted again. Batches keep every
+    // statement small; each step is attempted once per version (_once), and
     // both columns also have read-side fallbacks (DEST_EXPR / the scan-level
     // CASE in the overview) so unbackfilled rows stay correct.
     // dest_host: SQL approximation of destHostFrom for historical rows.
     // The 'i' flag on the scheme strip matches destHostFrom's /^https?:\/\//i;
     // without it 'HTTPS://Host…' rows backfilled to the bogus bucket 'https'.
-    await _batched('dest_host', `
+    await _once('dest_host', `
         UPDATE integration_activity_log SET dest_host = CASE
             WHEN COALESCE(NULLIF(tls_servername, ''), server_endpoint) ILIKE 'mcp-server://%'
                 THEN lower(COALESCE(NULLIF(tls_servername, ''), server_endpoint))
@@ -120,7 +124,7 @@ async function upgradeSchema() {
     // pii_scan_level: historical rows all carried pii_scan_enabled=true and were
     // GLiNER-scanned on the chat paths. New writers always set the level, and set
     // pii_scan_enabled = (level !== 'none'), so this matches historical rows only.
-    await _batched('pii_scan_level', `
+    await _once('pii_scan_level', `
         UPDATE integration_activity_log SET pii_scan_level = 'full'
         WHERE id IN (
             SELECT id FROM integration_activity_log
@@ -145,19 +149,38 @@ async function upgradeSchema() {
         `CREATE INDEX IF NOT EXISTS idx_integ_user ON integration_activity_log(user_id)`,
         // Per-user time window ("Find repeating work" reads one user's last 90
         // days, integrationManualActivity.js). Here for FRESH installs only,
-        // where the build is free: the warm-boot probe is deliberately not
-        // pointed at it, so an existing install never builds it under boot
-        // locks. Runbook for those, once, outside a transaction:
+        // where the build is free; an existing install never builds it under
+        // boot locks. Runbook for those, once, outside a transaction:
         //   CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_integ_user_ts
         //     ON integration_activity_log(user_id, timestamp DESC);
         // Until then idx_integ_user serves the same query.
-        `CREATE INDEX IF NOT EXISTS idx_integ_user_ts ON integration_activity_log(user_id, timestamp DESC)`,
+        // On an EMPTY table only, which keeps that promise now that no probe
+        // hides this list from existing installs: the schema ledger runs every
+        // statement once on an install that has not recorded it yet.
+        `DO $$ BEGIN
+            IF NOT EXISTS (SELECT 1 FROM integration_activity_log LIMIT 1) THEN
+                CREATE INDEX IF NOT EXISTS idx_integ_user_ts ON integration_activity_log(user_id, timestamp DESC);
+            END IF;
+        END $$`,
         `CREATE INDEX IF NOT EXISTS idx_integ_type ON integration_activity_log(integration_type)`,
         `CREATE INDEX IF NOT EXISTS idx_integ_tool ON integration_activity_log(tool_name)`,
         `CREATE INDEX IF NOT EXISTS idx_integ_run ON integration_activity_log(run_id)`,
         `CREATE INDEX IF NOT EXISTS idx_integ_automation ON integration_activity_log(automation_id)`,
         `DROP INDEX IF EXISTS idx_integ_org`,
     ]);
+}
+
+/**
+ * A batched backfill as a one-time step of the schema ledger: attempted once
+ * per version of its SQL, as it was behind the old probe. The read side has a
+ * fallback for every row it did not reach, so a batch that failed costs
+ * nothing but speed; repeating a full scan of a volume table on every boot
+ * would cost the first write of each boot.
+ * @param {string} label
+ * @param {string} sql
+ */
+function _once(label, sql) {
+    return once(`${label} backfill`, sql, () => _batched(label, sql));
 }
 
 /**
@@ -254,7 +277,7 @@ const _LEGACY_PASS = `
  * written after that carry a state already), idempotent through
  * `location_state IS NULL`, so a crash, a second replica or a second boot only
  * repeats the ranges that still have work. Marks itself done in the column
- * comment, which the store's warm-boot probe reads.
+ * comment, which the store's init reads before starting it again.
  *
  * @param {{ batch?: number, geo?: { loadGeoDb: Function, geoDbStatus: Function, locatePeer: Function },
  *           pauseMs?: number }} [opts]

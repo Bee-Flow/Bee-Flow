@@ -6,7 +6,7 @@ const { renderBlocks } = require('./renderBlocks');
 const { sanitizeBlocks } = require('../../stores/cms/pages');
 const { BLOCK_DEFAULTS, BLOCK_TYPE_IDS } = require('../../i18n/defaults/cmsDefaults');
 
-const page = (blocks) => renderBlocks(blocks, { fallbackTitle: 'Page' });
+const page = (/** @type {unknown[]} */ blocks) => renderBlocks(blocks, { fallbackTitle: 'Page' });
 
 test('a scroll story reaches the crawler as ordered headings and prose', () => {
     const html = page([{ type: 'scrollStory', content: {

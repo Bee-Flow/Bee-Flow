@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Embedding-target resolver — picks the right provider/model for an
  * embedding call based on global AI config (`ai.embeddingProviderId` +
@@ -19,7 +19,7 @@ async function resolveEmbedTarget() {
     if (!providerId || !modelId) return null;
 
     const providers = ai.providers || [];
-    const provider = providers.find(p => p.id === providerId);
+    const provider = providers.find((/** @type {{ id: string }} */ p) => p.id === providerId);
     if (!provider) return null;
 
     return {

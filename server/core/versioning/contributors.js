@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Who contributed to a version, in the one shape notebooks, documents and the
  * project change feed share:
@@ -22,7 +22,7 @@ const ID_MAX = 200;
 
 /** @typedef {{ userId: string|null, kind: 'user'|'ai', agentId?: string }} Contributor */
 
-const idOf = (v) => (typeof v === 'string' && v.trim() && v.length <= ID_MAX ? v.trim() : null);
+const idOf = (/** @type {unknown} */ v) => (typeof v === 'string' && v.trim() && v.length <= ID_MAX ? v.trim() : null);
 
 /**
  * One contributor in the canonical shape, or null when it names nobody.

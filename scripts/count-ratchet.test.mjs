@@ -184,6 +184,52 @@ test('module-mock counts test files that reach into the module system, once each
     assert.strictEqual(budgetOf(dir, 'module-mock'), 3);
 });
 
+test('module-mock also counts a test that mocks through a testUtils helper, and nothing that merely names one', () => {
+    const dir = sandbox({
+        files: {
+            'a.test.js': "const { mockModule } = require('../testUtils/moduleMock');\nmockModule(p, { x: 1 });\n",
+            'b.test.js': "const restore = installResolveStub({ '../db': db });\n",
+            'c.test.js': "preloadStubs(require, { '../x': {} });\n",
+            'd.test.js': 'const stub = serverStubber(__dirname);\n',
+            'e.test.js': 'const h = createBuilderStream(test);\n',
+            // A method of the same name on something else, a longer identifier,
+            // and a bare import are not calls to the helper.
+            'clean1.test.js': 'harness.mockModule(p);\nconst remockModule = 1; remockModule(p);\n',
+            'clean2.test.js': "const { mockModule } = require('../testUtils/moduleMock');\n",
+            'clean3.test.js': "// no mockModule( here, and no require.cache either\n/* installResolveStub( */\n",
+            'helper.js': 'mockModule(p, {});\n',
+        },
+        src: false,
+    });
+    assert.strictEqual(run(dir, 'module-mock').code, 0);
+    assert.strictEqual(budgetOf(dir, 'module-mock'), 5);
+});
+
+test('module-mock lists every export of a testUtils helper that writes require.cache or hooks the resolver', () => {
+    const utils = path.join(HERE, '..', 'server', 'testUtils');
+    const script = fs.readFileSync(SCRIPT, 'utf8');
+    const listed = new Set(
+        [...script.match(/MODULE_MOCK_HELPERS = \[([^\]]*)\]/)[1].matchAll(/'(\w+)'/g)].map((m) => m[1]),
+    );
+    const writers = fs.readdirSync(utils).filter((f) => f.endsWith('.js') && !f.endsWith('.test.js'))
+        .map((f) => ({ f, text: fs.readFileSync(path.join(utils, f), 'utf8') }))
+        .map(({ f, text }) => ({ f, text, code: text.split('\n').filter((l) => !/^\s*(?:\*|\/\/|\/\*)/.test(l)).join('\n') }))
+        .filter(({ code }) => /require\.cache\[|_resolveFilename\s*=|\b(?:mockModule|installResolveStub|preloadStubs)\s*\(/.test(code));
+    assert.ok(writers.length >= 5, 'the scan should find the known helpers');
+    const missing = [];
+    for (const { f, text } of writers) {
+        const exp = /module\.exports\s*=\s*\{([^}]*)\}/.exec(text);
+        if (!exp) continue;
+        for (const name of exp[1].split(',').map((x) => x.trim().split(':')[0].trim()).filter(Boolean)) {
+            if (!listed.has(name)) missing.push(`${f}: ${name}`);
+        }
+    }
+    // Exports that are not themselves a stubbing call (parseSse, call, ...) are the
+    // only legitimate gaps; each one is named here so a new helper has to be decided on.
+    const NOT_STUBBERS = new Set(['builderStreamHarness.js: call', 'builderStreamHarness.js: parseSse', 'aiStepHarness.js: runStateWith']);
+    assert.deepStrictEqual(missing.filter((m) => !NOT_STUBBERS.has(m)), [], 'add to MODULE_MOCK_HELPERS in scripts/count-ratchet.mjs');
+});
+
 test('authfetch-effect needs both halves, and leaves tests alone', () => {
     const dir = sandbox({
         files: {

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The throttle under PARALLEL load — the axis two rounds of testing missed.
  *
@@ -73,7 +73,7 @@ describe('parallel attempts cannot outrun the delay', () => {
         // the attacker's throughput.
         const total = waits.reduce((a, b) => a + b, 0);
         assert.ok(total > 3000, `eight failures must cost real time together, got ${total}ms`);
-        assert.ok(waits.at(-1) > waits[0], 'the queue must stagger them');
+        assert.ok((waits.at(-1) ?? 0) > waits[0], 'the queue must stagger them');
     });
 
     test('parallel and serial cost the same — that is what makes it a rate limit', async () => {

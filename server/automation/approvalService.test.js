@@ -44,7 +44,7 @@ test('a member of the assigned group can decide; membership is string-compared',
 });
 
 test('an org admin decides only within their own org', () => {
-    const admin = viewer({ userId: 'admin', isOrgAdminOfOrg: (orgId) => orgId === 'org1' });
+    const admin = viewer({ userId: 'admin', isOrgAdminOfOrg: (/** @type {string} */ orgId) => orgId === 'org1' });
     assert.ok(canDecide(approval(), admin));
     assert.ok(!canDecide(approval({ organizationId: 'org2' }), admin));
     // An approval with NO org (consumer account) is not decidable via the

@@ -22,7 +22,7 @@ const Module = require('module');
 process.env.NODE_ENV = 'test';
 process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'unit-test-session-secret-0123456789abcdef';
 
-function mock(id, exports) {
+function mock(/** @type {string} */ id, /** @type {unknown} */ exports) {
     const p = require.resolve(id);
     const m = new Module(p);
     m.exports = exports;
@@ -39,7 +39,7 @@ mock('../tools/skillInjection', {
 mock('../../stores/houseStyleStore', { getDefaultForOrg: async () => null });
 // The open-document block reads through the store (readable for u1 only).
 mock('../../stores/documentStore', {
-    getDocument: async (id, userId) => (id === 'doc1' && userId === 'u1'
+    getDocument: async (/** @type {string} */ id, /** @type {string} */ userId) => (id === 'doc1' && userId === 'u1'
         ? { id: 'doc1', name: 'Offerte', docType: 'quote', bodyHtml: '<h1>Titel</h1><p>Inhoud <b>hier</b></p>' }
         : null),
 });

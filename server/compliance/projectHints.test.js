@@ -59,18 +59,18 @@ test('a dismissal holds until the count changes; a snooze until its date', () =>
     const list = hints.candidates({ projectId: 'p1', role: 'editor', rows: ROWS, active: ACTIVE, states: [] });
     const fp = hints.hintFingerprint('project_files_unscanned', 5);
     assert.strictEqual(hints.pick(list, { project_files_unscanned: { fingerprint: fp, dismissedAt: 'x' } }, NOW), null);
-    assert.strictEqual(hints.pick(list, { project_files_unscanned: { fingerprint: hints.hintFingerprint('project_files_unscanned', 4), dismissedAt: 'x' } }, NOW).key,
+    assert.strictEqual(hints.pick(list, { project_files_unscanned: { fingerprint: hints.hintFingerprint('project_files_unscanned', 4), dismissedAt: 'x' } }, NOW)?.key,
         'project_files_unscanned', 'one more unscanned file brings it back');
     const snoozed = { project_files_unscanned: { snoozedUntil: new Date(NOW + 86400_000).toISOString() } };
     assert.strictEqual(hints.pick(list, snoozed, NOW), null);
-    assert.strictEqual(hints.pick(list, snoozed, NOW + 2 * 86400_000).key, 'project_files_unscanned');
+    assert.strictEqual(hints.pick(list, snoozed, NOW + 2 * 86400_000)?.key, 'project_files_unscanned');
     assert.strictEqual(hints.pick([], {}, NOW), null);
 });
 
 test('every hint opens a section where the owner can act, never the overview it stands on', () => {
     // Items of people who left: the shared chats when there are any (they are
     // listed under Chats), the notebooks otherwise.
-    const orphaned = (offender) => hints.candidates({
+    const orphaned = (/** @type {unknown} */ offender) => hints.candidates({
         projectId: 'p9', role: 'owner', active: ACTIVE, states: [], now: NOW,
         rows: [{ check_id: 'ISO27001-A.5.18-project-orphaned-content', scope_id: null, status: 'warn', evidence: { offenders: [offender] } }],
     })[0];

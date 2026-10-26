@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Custom sensitive-term scanner for the org Privacy Shield.
  *
@@ -64,7 +64,7 @@ function escapeRegex(str) {
  * @param {CustomTermConfig} term
  */
 function _sourceFor(term) {
-    return term.type === 'literal' ? escapeRegex(term.pattern) : term.pattern;
+    return term.type === 'literal' ? escapeRegex(term.pattern ?? '') : (term.pattern ?? '');
 }
 
 /**

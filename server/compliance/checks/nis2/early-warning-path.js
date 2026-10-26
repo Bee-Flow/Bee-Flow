@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * NIS2 Art. 23(4) — the significant-incident reporting path: early warning
  * within 24 h, incident notification within 72 h, final report within one
@@ -153,7 +153,7 @@ module.exports = {
         }
 
         const recipients = Array.isArray(settings.breach_recipients) ? settings.breach_recipients : [];
-        const recipientsCount = recipients.filter(r => typeof r === 'string' && /@/.test(r)).length;
+        const recipientsCount = recipients.filter((/** @type {unknown} */ r) => typeof r === 'string' && /@/.test(r)).length;
         const channel = typeof settings.nis2_authority_channel === 'string' && settings.nis2_authority_channel.trim()
             ? settings.nis2_authority_channel.trim().slice(0, 200) : null;
         const csirtConfigured = typeof settings.nis2_csirt_contact === 'string' && settings.nis2_csirt_contact.trim().length > 0;

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * GDPR-Art32-encryption-in-transit: an env var set to an "off" word is off.
  *
@@ -22,7 +22,7 @@ test.afterEach(() => {
     }
 });
 
-function env(vars) {
+function env(/** @type {Record<string, string>} */ vars) {
     for (const k of KEYS) delete process.env[k];
     for (const [k, v] of Object.entries(vars)) process.env[k] = v;
 }

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -15,7 +15,7 @@ const assert = require('node:assert');
 
 const MOD = require.resolve('./buildInfo');
 
-function freshBuildInfo(sha) {
+function freshBuildInfo(/** @type {string | undefined} */ sha) {
     delete require.cache[MOD];
     if (sha === undefined) delete process.env.APP_BUILD_SHA;
     else process.env.APP_BUILD_SHA = sha;

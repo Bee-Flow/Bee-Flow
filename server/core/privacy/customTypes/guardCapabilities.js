@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Does the installed guard understand `custom_labels`?
@@ -19,7 +19,11 @@ const MIN_CUSTOM_LABELS_VERSION = '2.3.0';
 /** @type {Map<string, { at: number, version: string|null }>} */
 const _memo = new Map();
 
-/** -1 / 0 / 1; a malformed part counts as 0. */
+/**
+ * -1 / 0 / 1; a malformed part counts as 0.
+ * @param {string} a
+ * @param {string} b
+ */
 function compareVersions(a, b) {
     const pa = String(a || '').split('.').map(n => parseInt(n, 10) || 0);
     const pb = String(b || '').split('.').map(n => parseInt(n, 10) || 0);
@@ -55,7 +59,10 @@ async function supportsCustomLabels(endpoint) {
     return !!v && compareVersions(v, MIN_CUSTOM_LABELS_VERSION) >= 0;
 }
 
-/** Forget what a guard said (after it refused the field, or in tests). */
+/**
+ * Forget what a guard said (after it refused the field, or in tests).
+ * @param {string | null} [url]
+ */
 function clearGuardCapabilities(url = null) {
     if (url) _memo.delete(url); else _memo.clear();
 }

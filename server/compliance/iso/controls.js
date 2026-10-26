@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * ISO/IEC 27001:2022 Annex A — control catalog (93 controls).
  *
@@ -158,7 +158,7 @@ function byRef(ref) {
     return CONTROLS.find((ctrl) => ctrl.ref === ref) || null;
 }
 
-function byTheme(theme) {
+function byTheme(/** @type {unknown} */ theme) {
     return CONTROLS.filter((ctrl) => ctrl.theme === Number(theme));
 }
 

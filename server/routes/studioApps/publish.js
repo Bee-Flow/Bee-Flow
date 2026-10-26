@@ -26,13 +26,14 @@ const appAudience = require('../../appStudio/appAudience');
 const { PublishBody, NextcloudMenuBody } = require('./schemas');
 const { requireManageApps, audienceFor } = require('./access');
 const { loadOwnedAutomations, loadDataRefs } = require('./appHelpers');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 const router = express.Router();
 
 // ── Publish (org/group visibility; freezes the draft) ───────────────
 
 router.patch('/:id/publish', requireAuth, requireManageApps, validate({ body: PublishBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const app = await studioAppStore.getStudioApp(req.params.id);
     if (!app) return res.status(404).json({ error: 'App not found' });
 
@@ -110,7 +111,7 @@ router.patch('/:id/publish', requireAuth, requireManageApps, validate({ body: Pu
  * and "within a few minutes" (the poll backstop) when it is not.
  */
 router.patch('/:id/nextcloud-menu', requireAuth, requireManageApps, validate({ body: NextcloudMenuBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const app = await studioAppStore.getStudioApp(req.params.id);
     if (!app) return res.status(404).json({ error: 'App not found' });
 
@@ -136,7 +137,7 @@ router.patch('/:id/nextcloud-menu', requireAuth, requireManageApps, validate({ b
     // Not an access change on its own — the app is already org-published to
     // get here — but it puts the app in front of everyone in the
     // organisation, so it belongs on the same trail.
-    await publicationAudit.auditNextcloudMenu({ app, actorId: req.session.user.id, enabled });
+    await publicationAudit.auditNextcloudMenu({ app, actorId: sessionUser(req).id, enabled });
 
     // Never throws; a connector that is down or absent is an outcome, not
     // an error — the toggle itself has already been saved.
@@ -155,7 +156,7 @@ router.patch('/:id/nextcloud-menu', requireAuth, requireManageApps, validate({ b
 // ── Publish-version history (owner-only) ────────────────────────────
 
 router.get('/:id/versions', requireAuth, /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const app = await studioAppStore.getStudioApp(req.params.id);
     if (!app || app.userId !== userId) return res.status(404).json({ error: 'App not found' });
     const versions = await studioAppStore.listVersions(req.params.id, userId);
@@ -163,7 +164,7 @@ router.get('/:id/versions', requireAuth, /** @param {import('express').Request<{
 });
 
 router.post('/:id/versions/:versionId/restore', requireAuth, requireManageApps, /** @param {import('express').Request<{ id: string, versionId: string }>} req */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     // restoreVersion is scoped to app AND owner; it bumps definition_version
     // so open editors' CAS saves conflict instead of clobbering the restore.
     const updated = await studioAppStore.restoreVersion(req.params.id, req.params.versionId, userId);

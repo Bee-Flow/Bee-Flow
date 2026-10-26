@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * "Describe it" → a recipe document. One forced tool call on the Fast tier
  * (the same model that builds the phases), then the deterministic repairs
@@ -335,7 +335,7 @@ async function composeRecipe({ description, locale = 'nl', userId = null, userOr
         return { ok: false, code: 'recipe_invalid', status: 422, error: 'The model\'s playbook is not runnable.', errors: check.errors, recipe: doc };
     }
     if (!doc.table) warnings.push('no_table');
-    if (!doc.phases.some(/** @param {{ kind?: string }} p */ (p) => p.kind === 'app')) warnings.push('no_app');
+    if (!doc.phases.some((p) => p.kind === 'app')) warnings.push('no_app');
     return { ok: true, recipe: doc, warnings };
 }
 

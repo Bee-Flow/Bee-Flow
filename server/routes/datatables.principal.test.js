@@ -197,10 +197,15 @@ function routeStack(router, method, routePath) {
 }
 
 function makeRes() {
-    const res = { statusCode: 200, body: null, sent: false };
-    res.status = (c) => { res.statusCode = c; return res; };
-    res.json = (b) => { res.body = b; res.sent = true; return res; };
+    const res = {
+        statusCode: 200,
+        body: null,
+        sent: false,
+        status: (/** @type {number} */ c) => { res.statusCode = c; return res; },
+        json: (/** @type {unknown} */ b) => { res.body = b; res.sent = true; return res; },
+    };
     return res;
+
 }
 
 /**

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Document templates — the filler and the placeholder reader.
  *

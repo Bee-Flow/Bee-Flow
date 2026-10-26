@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * One-time upload tickets for the CMS MCP server.
  *
@@ -77,7 +77,7 @@ const isRecord = (v) => !!v && typeof v === 'object' && !Array.isArray(v) && typ
 /**
  * @param {{ store?: ReturnType<typeof defaultStore>, now?: () => number }} [deps]
  */
-function createUploadTickets({ store = null, now = Date.now } = {}) {
+function createUploadTickets({ store, now = Date.now } = {}) {
     const kv = store || defaultStore();
 
     /**

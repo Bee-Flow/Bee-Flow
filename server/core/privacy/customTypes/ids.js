@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Identity of an org-defined data type ("Your own data").
@@ -30,6 +30,9 @@ function newTypeId() {
     return `cdt_${crypto.randomBytes(5).toString('hex')}`;
 }
 
+/**
+ * @param {string} s
+ */
 const sha256 = (s) => crypto.createHash('sha256').update(s, 'utf8').digest('hex');
 
 /**

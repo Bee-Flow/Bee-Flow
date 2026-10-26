@@ -298,7 +298,7 @@ async function createNewConversation(agentId, userId) {
  * Phase 4 dual-write: persist messages to conversation_messages table (new, fast) AND
  * keep messages_json updated as a backup for rollback safety.
  */
-async function updateConversation(conversationId, messages, encryptionKey = null, userId = null) {
+async function updateConversation(conversationId, messages, encryptionKey = /** @type {string | null | undefined} */ (null), userId = /** @type {string | null | undefined} */ (null)) {
     await initDB();
 
     // ── New table write (Phase 4) ────────────────────────────────────────────
@@ -402,7 +402,7 @@ async function searchConversations(userId, query, filters = {}, encryptionKey) {
     return openTitles(results.sort(byUpdatedDesc).slice(0, 50), 'agent', searchCtx);
 }
 
-async function getConversationById(conversationId, encryptionKey = null, options = {}) {
+async function getConversationById(conversationId, encryptionKey = /** @type {string | null} */ (null), options = /** @type {{ restore?: boolean }} */ ({})) {
     await initDB();
     const row = await getOne('SELECT * FROM agent_conversations WHERE id = $1', [conversationId]);
     if (!row) return null;

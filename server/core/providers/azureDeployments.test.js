@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Contract tests — a custom-named Azure deployment answers as its model.
  *

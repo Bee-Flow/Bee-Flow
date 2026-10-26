@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Nothing may write a transcription's content columns without sealing them.
  *

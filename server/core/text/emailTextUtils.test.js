@@ -1,11 +1,11 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert');
 const { stripHtmlToText } = require('./emailTextUtils');
 
 const SIZE = 200 * 1024;
-const timed = (input) => {
+const timed = (/** @type {string} */ input) => {
     const t = Date.now();
     stripHtmlToText(input);
     return Date.now() - t;

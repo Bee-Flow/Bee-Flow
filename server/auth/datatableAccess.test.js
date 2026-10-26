@@ -286,7 +286,7 @@ test('gradeAtLeast uses the shipped project ROLE_ORDER, not a new one', () => {
 const userStore = require('../stores/userStore');
 
 /** Run `fn` with `users`/`groups` stubbed. The resolver may only read these. */
-async function withDb({ users = {}, groups = [] }, fn) {
+async function withDb(/** @type {{ users?: Record<string, unknown>, groups?: { id: string, organizationId: string | null }[] }} */ { users = {}, groups = [] }, /** @type {() => Promise<unknown>} */ fn) {
     const realUser = userStore.getUser;
     const realGroups = userStore.getAllGroups;
     userStore.getUser = async (id) => users[id] || null;

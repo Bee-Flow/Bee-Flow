@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * How many items of a "run once per item" step may be in flight at once, and
  * the worker pool that runs them (execForEachStep).
@@ -40,7 +40,10 @@ function forEachMaxConcurrency() {
     return Number.isInteger(n) && n >= 0 ? n : DEFAULT_MAX_CONCURRENCY;
 }
 
-/** The step's own `forEach.concurrency` when it is a usable integer, else null. */
+/**
+ * The step's own `forEach.concurrency` when it is a usable integer, else null.
+ * @param {{ forEach?: { concurrency?: unknown } } | null | undefined} step
+ */
 function stepConcurrency(step) {
     const v = Number(step && step.forEach && step.forEach.concurrency);
     if (!Number.isFinite(v) || v < 1) return null;
@@ -57,7 +60,7 @@ function forEachConcurrencyFor(step, mode) {
     if (!step) return 1;
     if (step.type === 'integration_action') {
         return mode === 'live' && PARALLEL_READ_TOOLS.has(step.tool) && !step.askOnce
-            ? PARALLEL_READ_TOOLS.get(step.tool) : 1;
+            ? (PARALLEL_READ_TOOLS.get(step.tool) ?? 1) : 1;
     }
     if (step.type !== 'ai_step' && step.type !== 'data_extraction') return 1;
     if (step.type === 'ai_step' && aiStepCanCallTools(step)) return 1;

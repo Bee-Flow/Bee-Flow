@@ -9,7 +9,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { installResolveStub } = require('../../testUtils/stubRequire');
+const { recordDb } = require('../../testUtils/routeHarness');
 
 const state = {
     rows: {},            // table → rows (or an Error to throw)
@@ -21,23 +21,16 @@ function tableOf(sql) {
     return m ? m[1] : null;
 }
 
-const fakeDb = {
-    async getAll(sql, params) {
-        const flat = String(sql).replace(/\s+/g, ' ').trim();
-        state.queries.push({ sql: flat, params: params || [] });
-        const t = tableOf(flat);
-        const v = state.rows[t];
-        if (v instanceof Error) throw v;
-        return Array.isArray(v) ? v : [];
-    },
-    async getOne() { return null; },
-    async run() { return { rowCount: 0 }; },
-    async exec() {},
-};
-
-const restore = installResolveStub({ '../../db': fakeDb });
+// The real db.js over a recording pool: a SELECT answers the rows of its table (or throws the Error).
+recordDb((sql, params) => {
+    if (!/^\s*SELECT/i.test(sql)) return undefined;
+    const flat = String(sql).replace(/\s+/g, ' ').trim();
+    state.queries.push({ sql: flat, params: params || [] });
+    const v = state.rows[tableOf(flat)];
+    if (v instanceof Error) throw v;
+    return { rows: Array.isArray(v) ? v : [] };
+});
 const det = require('./industrialIntegrations');
-test.after(() => restore());
 
 test.beforeEach(() => { state.rows = {}; state.queries = []; });
 

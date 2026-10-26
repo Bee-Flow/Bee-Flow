@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Built-in step-type detection, and the drift guard that keeps STEP_TYPES in
  * step with ADD_FOR_TYPE.

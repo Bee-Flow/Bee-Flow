@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * The thread-level half of the project comment store (../projectCommentStore.js):
@@ -99,7 +99,7 @@ function makeThreadReads(db, ready, { maxCommentsListed }) {
               ORDER BY created_at ASC, id ASC
               LIMIT $4`,
             params,
-        )).rows.map(rowToThread);
+        )).rows.map(rowToThread).filter((t) => t !== null);
         if (threads.length === 0) return [];
         const perThread = Math.min(MAX_COMMENTS_PER_THREAD,
             Math.max(MIN_COMMENTS_PER_THREAD, Math.floor(maxCommentsListed / threads.length)));

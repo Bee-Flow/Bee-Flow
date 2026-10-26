@@ -245,7 +245,7 @@ test('a complete scan that found nothing is silent — no row, no gap', () => {
 
 // ── 4. Failing automations ─────────────────────────────────────────────────────
 
-const runRow = (id, status, title = 'Invoice reminder') => ({ automationId: id, title, status });
+const runRow = (/** @type {string} */ id, /** @type {string} */ status, title = 'Invoice reminder') => ({ automationId: id, title, status });
 
 test('three failures in a row is a finding; two is not', () => {
     const { findings, gaps } = evaluateAutomationFailing({

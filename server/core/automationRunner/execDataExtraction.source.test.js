@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * A data_extraction `source` that is a bare string, read the way the
  * validator says it is read (validate/refPaths: hasPlaceholder,

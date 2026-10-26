@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The security key as the second factor of a password sign-in — mounted at
  * /auth next to /mfa/verify-login, and gated the same way: by the
@@ -111,7 +111,7 @@ function createSecurityKeyLoginRouter(deps) {
             ? await ceremony.verifyAuthentication({ response, record, key })
             : { ok: false, reason: 'unknown credential' };
 
-        if (!result.ok) {
+        if (!result.ok || !key) {
             log.warn(`[SecurityKeys] sign-in refused for user ${pending.userId}: ${result.reason}`);
             recordAuthEvent({ kind: 'mfa', status: 'fail' });
             await auditLoginFailure(req, {

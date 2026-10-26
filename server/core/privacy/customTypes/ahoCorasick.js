@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * A literal multi-pattern matcher (Aho-Corasick) over UTF-16 code units.
@@ -49,6 +49,7 @@ function foldCode(code) {
 }
 
 /** Fold a whole string (same length as the input, by construction). */
+/** @param {string} s */
 function foldString(s) {
     let out = '';
     for (let i = 0; i < s.length; i++) out += String.fromCharCode(foldCode(s.charCodeAt(i)));

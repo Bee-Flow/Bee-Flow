@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Usage aggregate for the Apps directory (APPS-08) — READ-ONLY, org-scoped.
  *
@@ -77,7 +77,8 @@ router.get('/usage-counts', requireAuth, validate({ query: UsageQuery }), async 
     // want a plain array (same collapse as studioApps.js audienceFor).
     const orgIdArr = orgIds instanceof Set ? [...orgIds] : (Array.isArray(orgIds) ? orgIds : []);
     const apps = await studioAppStore.getAccessibleStudioApps(userId, userGroups, orgIdArr);
-    const counts = await usageStore.getStudioAppRunCounts(apps.map(a => a.id), { window });
+    const counts = await usageStore.getStudioAppRunCounts(apps.map((/** @type {{ id: string }} */ a) => a.id)
+, { window });
     res.json({
         window,
         // Names the measurement in the payload itself — see the docblock.

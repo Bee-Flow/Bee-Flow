@@ -11,7 +11,6 @@ const { test, before, beforeEach, after } = require('node:test');
 const assert = require('node:assert');
 
 const { createRecordingDb } = require('../testUtils/mockDb');
-const { installResolveStub } = require('../testUtils/stubRequire');
 
 const rows = [];
 let nextId = 1;
@@ -33,13 +32,13 @@ const mock = createRecordingDb({
         return undefined;
     },
 });
-const restore = installResolveStub({ '../db': mock.db });
+const restore = mock.attachPool();
 const store = require('./aiActAssessmentStore');
 
 let bootDdl = '';
 before(async () => {
     await store.initDB();
-    bootDdl = mock.calls.exec.map(c => c.sql).join('\n');
+    bootDdl = [...mock.calls.pool, ...mock.calls.client].map(c => c.sql).join('\n');
 });
 after(() => restore());
 beforeEach(() => { rows.length = 0; nextId = 1; mock.reset(); });
@@ -54,7 +53,9 @@ test('boot DDL creates the append-only table and the per-target index', () => {
         assert.ok(bootDdl.includes(col), col);
     }
     assert.match(bootDdl, /CREATE INDEX IF NOT EXISTS idx_ai_act_assess_target ON compliance_ai_act_assessments\(organization_id, target_kind, target_id, created_at DESC\)/);
-    assert.ok(!/UPDATE|DELETE/.test(bootDdl), 'append-only: no mutation of history at boot');
+    // The schema ledger (schema_migrations) records the boot; the assessments
+    // themselves are never updated or deleted.
+    assert.ok(!/UPDATE\s+compliance_ai_act_assessments|DELETE\s+FROM\s+compliance_ai_act_assessments/i.test(bootDdl), 'append-only: no mutation of history at boot');
 });
 
 test('record: inserts org-scoped with jsonb signals/answers, expiry defaults to +12 months', async () => {
@@ -117,21 +118,21 @@ test('record guards: org, kind, target, outcome vocabulary; non-object signals b
 
 test('getLatest / listHistory: newest first, scoped to org + kind + target', async () => {
     await store.getLatest('orgA', 'automation', 7);
-    const q = mock.calls.getOne[0];
+    const q = mock.reads().at(-1);
     assert.match(q.sql, /WHERE organization_id = \$1 AND target_kind = \$2 AND target_id = \$3/);
     assert.match(q.sql, /ORDER BY created_at DESC, id DESC\s+LIMIT 1/);
     assert.deepStrictEqual(q.params, ['orgA', 'automation', '7']);
     await assert.rejects(() => store.getLatest('orgA', 'thing', 7), /invalid target_kind/);
 
     await store.listHistory('orgA', 'agent', 'ag', { limit: 5 });
-    const h = mock.calls.getAll[0];
+    const h = mock.reads().at(-1);
     assert.match(h.sql, /WHERE organization_id = \$1 AND target_kind = \$2 AND target_id = \$3/);
     assert.deepStrictEqual(h.params, ['orgA', 'agent', 'ag', 5]);
 });
 
 test('listForOrg: DISTINCT ON target (kind, id) newest first, org-scoped', async () => {
     await store.listForOrg('orgA');
-    const q = mock.calls.getAll[0];
+    const q = mock.reads().at(-1);
     assert.match(q.sql, /SELECT DISTINCT ON \(target_kind, target_id\)/);
     assert.match(q.sql, /WHERE organization_id = \$1/);
     assert.match(q.sql, /ORDER BY target_kind, target_id, created_at DESC, id DESC/);
@@ -150,7 +151,7 @@ test('isCurrent: needs an attestation stamp; expiry in the past is not current',
 test('stats: attested/expired over the newest row per target; zero defaults', async () => {
     const s = await store.stats('orgA');
     assert.deepStrictEqual(s, { attested: 0, expired: 0 });
-    const q = mock.calls.getOne[0];
+    const q = mock.reads().at(-1);
     assert.match(q.sql, /DISTINCT ON \(target_kind, target_id\) expires_at/);
     assert.match(q.sql, /WHERE organization_id = \$1/);
     assert.match(q.sql, /expires_at IS NULL OR expires_at > NOW\(\)\)::int AS attested/);
@@ -160,14 +161,14 @@ test('stats: attested/expired over the newest row per target; zero defaults', as
 
 test('listExpiring: newest per target, expiring within N days (default 30, garbage → 30)', async () => {
     await store.listExpiring('orgA', 7);
-    let q = mock.calls.getAll[0];
+    let q = mock.reads().at(-1);
     assert.match(q.sql, /DISTINCT ON \(target_kind, target_id\)/);
     assert.match(q.sql, /WHERE organization_id = \$1/);
     assert.match(q.sql, /expires_at IS NOT NULL AND expires_at < NOW\(\) \+ \(\$2 \|\| ' days'\)::interval/);
     assert.deepStrictEqual(q.params, ['orgA', '7']);
     mock.reset();
     await store.listExpiring('orgA', 'lots');
-    q = mock.calls.getAll[0];
+    q = mock.reads().at(-1);
     assert.deepStrictEqual(q.params, ['orgA', '30']);
 });
 

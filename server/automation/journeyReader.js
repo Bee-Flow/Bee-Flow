@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Which runs of a journey the caller may read.
  *
@@ -14,6 +14,7 @@
 const { HttpError } = require('../core/http/errors');
 const { assertCanReadRunData, canReadRunData } = require('../core/automationModel/callerRunVisibility');
 const { fallback } = require('../utils/bestEffort');
+const { sessionUser } = require('../core/http/sessionUser');
 
 /**
  * @param {{ store: () => any, access: { roleFor: Function, runGuard: Function }, what?: string }} deps
@@ -33,13 +34,13 @@ function makeJourneyReader({ store, access, what: defaultWhat = 'see its files' 
      * @param {string} [what]
      */
     return async function readableJourney(req, res, runId, what = defaultWhat) {
-        const me = req.session.user.id;
+        const me = sessionUser(req).id;
         const run = await store().getRun(runId);
         if (!run) throw new HttpError(404, 'run_not_found', 'Not found');
         // Not on this automation at all (another organisation, nobody shared it
         // with them): the run does not exist as far as they can tell.
         if (run.userId !== me) {
-            const automation = await store().getAutomation(run.automationId).catch((e) => fallback('automation/journeyReader:makeJourneyReader', e, null));
+            const automation = await store().getAutomation(run.automationId).catch((/** @type {unknown} */ e) => fallback('automation/journeyReader:makeJourneyReader', e, null));
             const { role } = await access.roleFor(automation, me, { session: req.session });
             if (!role) throw new HttpError(404, 'run_not_found', 'Not found');
         }

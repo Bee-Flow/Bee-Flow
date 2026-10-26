@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Art-44 assessment by location state: outside fails unattested, via_network
  * warns at most, unknown is not a transfer but warns above 5 % of the calls.
@@ -10,7 +10,7 @@ const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { assessTransfers, rowState } = require('./transferAssessment');
 
-const row = (operator, location_state, calls, extra = {}) => ({ operator, location_state, calls, is_eu: location_state === 'eu', is_local: location_state === 'local', ...extra });
+const row = (/** @type {string | null} */ operator, /** @type {string} */ location_state, /** @type {number} */ calls, extra = {}) => ({ operator, location_state, calls, is_eu: location_state === 'eu', is_local: location_state === 'local', ...extra });
 
 test('outside without an attestation fails; attested passes', () => {
     const rows = [row('Amazon AWS', 'outside', 10, { country_code: 'US' }), row(null, 'local', 90)];

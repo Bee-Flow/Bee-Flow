@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * resolveModelId: a saved display name still resolves to the id the API
  * wants, and anything id-shaped passes through untouched.
@@ -36,7 +36,7 @@ test('every model in the Claude catalog resolves by its display name', () => {
     const catalog = listCatalogModels();
     assert.ok(catalog.length > 0);
     for (const m of catalog) {
-        assert.strictEqual(DISPLAY_NAME_TO_ID[m.name], m.id, `catalog entry "${m.name}"`);
+        assert.strictEqual(/** @type {Record<string, string>} */ (DISPLAY_NAME_TO_ID)[m.name], m.id, `catalog entry "${m.name}"`);
         assert.strictEqual(resolveModelId(m.name), m.id);
     }
 });

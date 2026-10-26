@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Head-anchored history window for prefix-cached chat loops.
  *
@@ -39,6 +39,9 @@ const DEFAULT_HISTORY_BUDGET_TOKENS = 6000;
 // the usual chat-template cost and keeps the estimate on the safe side.
 const PER_MESSAGE_OVERHEAD_TOKENS = 4;
 
+/**
+ * @param {{ content?: unknown } | null | undefined} m
+ */
 function messageTokens(m) {
     const content = m && m.content;
     const text = typeof content === 'string'
@@ -55,7 +58,7 @@ function messageTokens(m) {
  *
  * @param {Array<{role:string, content:*}>} messages  oldest first
  * @param {{budgetTokens?: number, block?: number}} [opts]
- * @returns {Array} a new array (the input is not mutated)
+ * @returns {Array<{role:string, content:*}>} a new array (the input is not mutated)
  */
 function windowHistory(messages, { budgetTokens = DEFAULT_HISTORY_BUDGET_TOKENS, block = HISTORY_EVICT_BLOCK } = {}) {
     if (!Array.isArray(messages) || messages.length === 0) return [];

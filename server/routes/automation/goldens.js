@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Golden runs: finished runs kept as the reference a later replay is compared
  * with (automation/testing/goldenReplay.js).
@@ -49,6 +49,7 @@ const { effectiveStatus, anyRunning } = require('../../automation/testing/golden
 const { envCap } = require('../../automation/mcpRunReadCaps');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { fallback } = require('../../utils/bestEffort');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 const LABEL_TEXT = 'label is up to 80 characters.';
 const PATH_TEXT = 'ignorePaths is a list of up to 50 paths, each up to 500 characters.';
@@ -172,7 +173,7 @@ function makeGoldensRouter(overrides = {}) {
             runId: found.root.id,
             label: req.body.label ? req.body.label : null,
             ignorePaths: [...new Set((req.body.ignorePaths || []).filter(Boolean))],
-            createdBy: req.session.user.id,
+            createdBy: sessionUser(req).id,
         });
         return res.status(201).json({ golden: describeGolden(golden, describeRun(found.root, latest)) });
     });
@@ -210,7 +211,7 @@ function makeGoldensRouter(overrides = {}) {
             if (selected.some((/** @type {ReturnType<typeof import('../../stores/lib/automationTestingGoldens').rowToGolden> | undefined} */ g) => !g)) throw new HttpError(404, 'golden_not_found', 'Not found');
         }
         selected = [...new Set(selected)];
-        const userId = req.session.user.id;
+        const userId = sessionUser(req).id;
         const aiAnswers = req.body.aiAnswers || 'live';
         if (!selected.length) return res.status(202).json({ replaying: [] });
 
@@ -223,7 +224,8 @@ function makeGoldensRouter(overrides = {}) {
                 .catch(async (/** @type {{ code?: string }} */ e) => {
                     // replayGoldens records its own failures; this is the net under it.
                     log.warn(`[automation/goldens] replay of ${a.id} failed: ${e.code || 'replay_failed'}`);
-                    await Promise.all(selected.map((g) => Promise.resolve(testing().setGoldenReplay(g.id, { status: 'error', summary: null, replayRunId: null, errorCode: 'replay_failed' })).catch((e) => fallback('routes/automation/goldens:makeGoldensRouter#2', e, null))));
+                    await Promise.all(selected.map((/** @type {{ id: string }} */ g) => Promise.resolve(testing().setGoldenReplay
+(g.id, { status: 'error', summary: null, replayRunId: null, errorCode: 'replay_failed' })).catch((e) => fallback('routes/automation/goldens:makeGoldensRouter#2', e, null))));
                 });
         });
         return res.status(202).json({ replaying: selected.map((/** @type {ReturnType<typeof import('../../stores/lib/automationTestingGoldens').rowToGolden>} */ g) => g.id) });

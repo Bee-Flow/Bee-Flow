@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The "send reminder" rate limit (handoff 5): one manual reminder per approval
  * per window, recorded in the approval's audit log, run for real against

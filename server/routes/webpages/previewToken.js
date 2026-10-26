@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Het kortlevende token waarmee de gesandboxte preview-iframe de API bereikt.
  *
@@ -11,8 +11,11 @@ const { requireAuth } = require('../../auth/permissions');
 const { issuePreviewToken } = require('../../auth/webpagePreviewToken');
 const { validate } = require('../../core/http/validate');
 const { NO_QUERY, NOTHING } = require('./schemas');
+const { sessionUser } = require('../../core/http/sessionUser');
 
+/** @param {import('express').Router} router */
 function register(router) {
+
     // ── Preview token (for sandboxed iframe → API calls) ────────────────
     //
     // The preview iframe runs with `sandbox="allow-scripts"` (no
@@ -25,7 +28,7 @@ function register(router) {
     // the viewer, both taken from the session. A body key that looks as if it could shift
     // that (`userId`, `scope`) should get a 400 and not be ignored.
     router.post('/:id/preview-token', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-        const userId = req.session.user.id;
+        const userId = sessionUser(req).id;
         // Owner OR org/group-published reader — same visibility as GET /:id, so
         // shared-page viewers get a token and their React preview can call the
         // bridges (without it, dbToken=null and the preview renders blank).

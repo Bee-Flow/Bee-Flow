@@ -23,7 +23,7 @@ function turnOf() {
         generatedAudio: [], generatedFiles: [],
     };
 }
-const audio = (name) => ({ _toolName: name, _toolResult: { audioUrl: 'u' } });
+const audio = (/** @type {string} */ name) => ({ _toolName: name, _toolResult: { audioUrl: 'u' } });
 
 test('the stored audio names the tool that produced it, streamed or not', () => {
     for (const streamed of [true, false]) {

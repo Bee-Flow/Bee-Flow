@@ -6,7 +6,7 @@ const { trustedMicrosoftOrg } = require('./microsoftLogin');
 
 const T = '11111111-2222-3333-4444-555555555555';
 const OTHER = '99999999-2222-3333-4444-555555555555';
-const store = (orgs) => ({ getAllOrganizations: async () => orgs });
+const store = (/** @type {unknown[]} */ orgs) => ({ getAllOrganizations: async () => orgs });
 const noBinding = async () => null;
 
 test('a new Microsoft user lands in the org the Azure sync binding names for its tenant', async () => {

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The one door the test-data features (test cases, golden runs, form scenarios,
  * run compare) use to read a finished run.
@@ -65,13 +65,14 @@ function makeRunDataAccess(overrides = {}) {
             throw new HttpError(409, 'caller_run_not_capturable',
                 'This run used the connections of the person who started it, so its data cannot be saved as test data.');
         }
-        const latest = await store().getLatestRunInChain(run.id).catch((e) => fallback('automation/testing/runDataAccess:assertCapturable', e, null));
+        const latest = await store().getLatestRunInChain(run.id).catch((/** @type {unknown} */ e) => fallback('automation/testing/runDataAccess:assertCapturable', e, null));
         const status = (latest || run).status;
         if (!FINISHED.has(status)) throw new HttpError(409, 'run_not_finished', 'This run has not finished yet.');
     }
 
     /** @param {{ projectId?: string|null }|null|undefined} automation */
     async function assertTestDataAllowed(automation) {
+        /** @type {string} */
         let stage;
         try {
             stage = (await managedInfo(automation?.projectId))?.stage;

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * App Studio — an app WITH ITS DATA as a file, so a working app can leave one
  * installation and arrive at another still working.
@@ -142,7 +142,7 @@ function readFiles(rawFiles, dropped) {
         if (!sha256 || !SHA256_RE.test(sha256)) { dropped.files.push(`${name}: no sha256 to check the bytes against`); continue; }
 
         if (typeof raw.data !== 'string' || !raw.data) { dropped.files.push(`${name}: carries no bytes`); continue; }
-        /** @type {Buffer<ArrayBuffer>} */
+        /** @type {Buffer<ArrayBuffer> | null} */
         let buffer;
         try {
             buffer = Buffer.from(raw.data, 'base64');

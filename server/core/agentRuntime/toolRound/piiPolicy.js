@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The data-protection steps on a tool call's ARGUMENTS: the org tool-PII
  * policy for the tool's class, the DLP restore of tokenised values, the regex

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * What an installed Solution is made of: the ref ledger (`allocateRefs`,
  * `refsFor`) that keeps a part's ref stable across captures, and the
@@ -195,7 +195,7 @@ function makeInstallsStore({ db, ready, handle, inTransaction }) {
             if (!isNonEmptyString(v)) throw new TypeError(`upsertStamp: ${name} is required`);
         }
         const versionGiven = row.installedVersion !== undefined;
-        const installedVersion = versionGiven ? row.installedVersion : 1;
+        const installedVersion = row.installedVersion !== undefined ? row.installedVersion : 1;
         if (!Number.isInteger(installedVersion) || installedVersion < 1) {
             throw new TypeError('upsertStamp: installedVersion must be a positive integer');
         }
@@ -229,7 +229,10 @@ function makeInstallsStore({ db, ready, handle, inTransaction }) {
         return mapStampRow(out);
     }
 
-    /** Every stamp for a project, keyed by bundle-local ref (retired ones included). */
+    /**
+     * Every stamp for a project, keyed by bundle-local ref (retired ones included).
+     * @param {string} projectId
+     */
     async function listStamps(projectId, { client = null } = {}) {
         await ready();
         const rows = await handle(client).all(
@@ -256,6 +259,7 @@ function makeInstallsStore({ db, ready, handle, inTransaction }) {
      *
      * O4 replaces this with `projects.installed_version`; the stamps are what the
      * database can already answer today, and the shape of the answer is the same.
+     * @param {string[]} projectIds
      */
     async function listInstalledVersions(projectIds) {
         await ready();

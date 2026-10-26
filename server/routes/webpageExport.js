@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Webpage Export — server-side PDF rendering of a webpage via Playwright.
  *
@@ -73,9 +73,10 @@ function composeInlinedHtml({ html, css, js }) {
 }
 
 const browserProvider = require('../services/browserProvider');
+const { sessionUser } = require('../core/http/sessionUser');
 
 router.post('/:id/export/pdf', requireAuth, validate({ body: NoBody }), require('../compliance/dataPortability/stampExport')('ai_webpages'), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const id = /** @type {string} */ (req.params.id);
 
     const wp = await webpageStore.getWebpage(id, userId);

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * SSE Chat Helpers — Shared utilities for streaming chat routes
  * 
@@ -11,13 +11,31 @@
 // that SSE-only callers — e.g. the automation builder route, which just wants
 // startSseHeartbeat — don't drag in the store (and its DB pool) on load.
 
-/**
- * Set up SSE streaming on a response object.
- * @param {Object} res - Express response
- * @returns {{ sendEvent: Function, abortController: AbortController, markEnded: Function }}
- */
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
+
+/**
+ * What the heartbeat uses of a response: an Express or node:http response fits, and so does a
+ * test double that has no event emitter.
+ * @typedef {object} SseSink
+ * @property {boolean} [writableEnded]
+ * @property {boolean} [destroyed]
+ * @property {(chunk: string) => unknown} write
+ * @property {(event: string, listener: () => void) => unknown} [on]
+ */
+
+/**
+ * What openSse uses of a response (headers not yet sent): the sink plus the head and the end.
+ * @typedef {SseSink & { writeHead: (status: number, headers: Record<string, string>) => unknown,
+ *   setHeader: (name: string, value: string) => unknown, flushHeaders?: () => void,
+ *   end: (chunk?: string | Buffer) => unknown }} SseResponse
+ */
+
+/**
+ * Set up SSE streaming on a response object.
+ * @param {import('express').Response} res - Express response
+ * @returns {{ sendEvent: (event: string, data: unknown) => void, abortController: AbortController, markEnded: () => void }}
+ */
 function setupSSE(res) {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -34,6 +52,10 @@ function setupSSE(res) {
         }
     });
 
+    /**
+     * @param {string} event
+     * @param {unknown} data
+     */
     const sendEvent = (event, data) => {
         if (!res.writableEnded && !abortController.signal.aborted) {
             res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
@@ -62,9 +84,9 @@ function setupSSE(res) {
  * stop() to clear the timer; it is also cleared automatically on res
  * close/finish/error.
  *
- * @param {Object} res - Express response (after headers are written)
+ * @param {SseSink} res - Express response (after headers are written)
  * @param {number} [intervalMs=10000]
- * @param {{ onDead?: Function, frame?: string, maxFailures?: number }} [opts]
+ * @param {{ onDead?: (() => void) | null, frame?: string, maxFailures?: number }} [opts]
  *   onDead — liveness callback fired when the stream is detected dead (the
  *     response already ended, or `maxFailures` consecutive write failures on a
  *     half-closed socket that never emitted 'close'). Lets event-bus streams
@@ -141,13 +163,14 @@ const SSE_HEADERS = Object.freeze({
  *   - end(): stops the heartbeat and ends the response once (returns what
  *     res.end returns, or res when it had already ended).
  *
- * @param {Object} res - Express response (headers not yet sent)
- * @param {{ heartbeat?: boolean|{ intervalMs?: number, frame?: string, onDead?: Function, maxFailures?: number },
- *   intervalMs?: number, tag?: string|null, headers?: Object<string, string|null>, flush?: boolean,
+ * @param {SseResponse} res - Express response (headers not yet sent)
+ * @param {{ heartbeat?: boolean|{ intervalMs?: number, frame?: string, onDead?: (() => void) | null, maxFailures?: number },
+ *   intervalMs?: number, tag?: string|null, headers?: Record<string, string|null>|null, flush?: boolean,
  *   viaSetHeader?: boolean, charset?: string|null }} [opts]
  *   tag — when set, the disconnect is logged with this prefix (e.g. 'TemplateChat').
- * @returns {{ send: (event: string, data: any) => void, sendRaw: (chunk: string) => void,
- *   signal: AbortSignal, isGone: () => boolean, end: Function, stopHeartbeat: Function }}
+ * @returns {{ send: (event: string, data: unknown) => void, sendRaw: (chunk: string) => void,
+ *   signal: AbortSignal, isGone: () => boolean, end: (chunk?: string | Buffer) => unknown, stopHeartbeat: () => void }}
+
  */
 function openSse(res, opts = {}) {
     const { heartbeat = false, intervalMs = 10000, tag = null, headers = null, flush = false, viaSetHeader = false, charset = null } = opts;
@@ -172,6 +195,7 @@ function openSse(res, opts = {}) {
     };
     /**
      * @param {string} event
+     * @param {unknown} data
      */
     const send = (event, data) => sendRaw(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
     const abortController = new AbortController();
@@ -190,18 +214,20 @@ function openSse(res, opts = {}) {
         const { intervalMs: hbInterval = intervalMs, ...hbOpts } = hb;
         stopHeartbeat = startSseHeartbeat(res, hbInterval, hbOpts);
     }
-    const end = (...args) => {
+    /** @param {string | Buffer} [chunk] */
+    const end = (chunk) => {
         stopHeartbeat();
         if (res.writableEnded) return res;
-        return res.end(...args);
+        return chunk === undefined ? res.end() : res.end(chunk);
     };
     return { send, sendRaw, signal: abortController.signal, isGone: () => gone, end, stopHeartbeat };
 }
 
 /**
  * Send an SSE error and end the response (for limit errors etc.)
- * @param {Object} res - Express response
+ * @param {import('express').Response} res - Express response
  * @param {string} error - Error message
+
  */
 function sendSSEError(res, error) {
     res.setHeader('Content-Type', 'text/event-stream');
@@ -216,15 +242,15 @@ function sendSSEError(res, error) {
  * Persist conversation messages and generate/update title.
  * Shared across terminal, security, and browser agent handlers.
  * 
- * @param {Object} options
- * @param {Object}  options.conversation   - Conversation object
- * @param {Array}   options.messages       - Messages array to persist
+ * @param {object} options
+ * @param {{ id: string, title?: string | null }} options.conversation   - Conversation object
+ * @param {ChatMessage[]} options.messages       - Messages array to persist
  * @param {string}  options.encryptionKey  - Encryption key
  * @param {string}  options.userId         - User ID
  * @param {string}  options.userMessage    - Original user message
  * @param {string}  options.orgId          - Organization ID
- * @param {Function} options.sendEvent     - SSE event sender
- * @param {Function} options.generateTitle - Title generation function (agentRuntime.generateChatTitle)
+ * @param {(event: string, data: unknown) => void} options.sendEvent     - SSE event sender
+ * @param {((transcript: string, history: null, orgId: string, userId: string) => Promise<string | null | undefined>) | null | undefined} options.generateTitle - Title generation function (agentRuntime.generateChatTitle)
  * @param {boolean} [options.skipTitle]   - Keep the existing title
  */
 async function persistAndTitle({ conversation, messages, encryptionKey, userId, userMessage, orgId, sendEvent, generateTitle, skipTitle }) {
@@ -252,11 +278,15 @@ async function persistAndTitle({ conversation, messages, encryptionKey, userId, 
     }
 }
 
+/** @typedef {{ role?: string, content?: unknown }} ChatMessage */
+
 /**
- * Short, tool-free transcript (first two user+assistant exchanges) for title
+ * Short, tool-free transcript
+ (first two user+assistant exchanges) for title
  * generation — role + text only, no tool calls/results. Mirrors the direct-
  * chat titler so both surfaces title from the conversation, not just the
  * opening message.
+ * @param {ChatMessage[]} messages
  */
 function _buildTitleTranscript(messages) {
     if (!Array.isArray(messages)) return '';
@@ -288,11 +318,11 @@ function _buildTitleTranscript(messages) {
  * Get or create a conversation for a specialized agent.
  * Shared across terminal, security, and browser agent handlers.
  * 
- * @param {Object} agent - Agent object (id, name, description)
- * @param {string} conversationId - Existing conversation ID (or null)
- * @param {string} userId - User ID 
+ * @param {{ id: string, name: string, description?: string | null }} agent - Agent object (id, name, description)
+ * @param {string | null} conversationId - Existing conversation ID (or null)
+ * @param {string} userId - User ID
  * @param {string} encryptionKey - Encryption key
- * @returns {Promise<Object>} conversation
+ * @returns {Promise<{ id: string }>} conversation
  */
 async function getOrCreateAgentConversation(agent, conversationId, userId, encryptionKey) {
     const agentStore = require('../../stores/agentStore');

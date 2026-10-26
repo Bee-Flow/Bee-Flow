@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The turn's two message arrays, and the one place they are written.
  *

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Decrypt Anomaly Detection
  * 
@@ -33,8 +33,8 @@ const decryptCounts = new Map();
  * Track a decrypt operation for a user.
  * Call this from decryptMessages or at the route level.
  * 
- * @param {string} userId
- * @param {string} [conversationId] - For logging context
+ * @param {string | null | undefined} userId  no user, no tracking
+ * @param {string | null} [conversationId] - For logging context
  */
 function trackDecrypt(userId, conversationId = null) {
     if (!userId) return;

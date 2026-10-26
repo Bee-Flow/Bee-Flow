@@ -11,8 +11,8 @@ const { AI_MODES, MAX_CHATS_LISTED, ProjectChatStoreError, toInt, rowToChat } = 
 /**
  * Reads: one chat, the readers past a seq, the project's chat list.
  * @param {{
- *   query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }>,
- *   tx: <T>(fn: (q: { query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }) => Promise<T>) => Promise<T>,
+ *   query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }>,
+ *   tx: <T>(fn: (q: { query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }> }) => Promise<T>) => Promise<T>,
  * }} db
  * @param {() => Promise<void>} ready
  */
@@ -116,8 +116,8 @@ function makeChatReads(db, ready) {
 /**
  * Writes: create, pause the AI, update, delete. `getChat` comes from makeChatReads.
  * @param {{
- *   query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }>,
- *   tx: <T>(fn: (q: { query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }) => Promise<T>) => Promise<T>,
+ *   query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }>,
+ *   tx: <T>(fn: (q: { query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }> }) => Promise<T>) => Promise<T>,
  * }} db
  * @param {() => Promise<void>} ready
  * @param {Function} getChat

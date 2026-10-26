@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The PII category vocabulary the guard/tokenize rules check a step's
  * `categories` against, read lazily from core/privacy/piiDetection and cached
@@ -16,8 +16,9 @@
  * on a box where that module cannot load. `null` means "cannot check", and the
  * caller then only rejects non-strings rather than inventing a list.
  */
-/** @type {Set<string>} */
+/** @type {Set<string> | null | undefined} */
 let _piiCategoryIds;
+/** @returns {Set<string> | null} */
 function piiCategoryIds() {
     if (_piiCategoryIds !== undefined) return _piiCategoryIds;
     try {

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck
+// @typecheck strict
 /**
  * One-time migration: carry the stored translations along when the "routine"
  * keys became "automation" keys (routines.* → automations.*, routine_editor.*
@@ -87,7 +87,7 @@ async function up() {
     for (const { code } of locales) {
         if (!code) continue;
         let counts = { moved: 0, reworded: 0 };
-        await languageStore.mutateGUITranslations(code, (current) => {
+        await languageStore.mutateGUITranslations(code, (/** @type {Record<string, string>} */ current) => {
             const r = renameBlob(current, { locale: code, english: GUI_DEFAULTS });
             counts = { moved: r.moved, reworded: r.reworded };
             return r.blob;

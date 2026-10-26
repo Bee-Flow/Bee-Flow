@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The guard that runs on an uploaded workbook package (xlsx, xlsm, ods) BEFORE
  * the spreadsheet parser sees a single byte of it.
@@ -134,6 +134,7 @@ function inflateStreaming(entry, onChunk) {
             fail(rejected('This file is not a readable package (a damaged or incomplete upload?), so it was not opened.'));
             return;
         }
+        if (!helper) return; // unreachable: the catch above returned
         helper
             .on('data', (chunk) => {
                 if (settled) return;

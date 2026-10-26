@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * ISO27001-A.5.31-legal-register — the legal register the hub scores against
  * must have been re-checked recently, per framework the organisation uses.
@@ -20,8 +20,8 @@ const check = require('./a5-31-legal-register');
 const frameworks = require('../../frameworks');
 test.after(restore);
 
-const at = (iso) => ({ now: Date.parse(`${iso}T12:00:00Z`) });
-const plus = (iso, days) => new Date(Date.parse(`${iso}T12:00:00Z`) + days * 864e5).toISOString().slice(0, 10);
+const at = (/** @type {string} */ iso) => ({ now: Date.parse(`${iso}T12:00:00Z`) });
+const plus = (/** @type {string} */ iso, /** @type {number} */ days) => new Date(Date.parse(`${iso}T12:00:00Z`) + days * 864e5).toISOString().slice(0, 10);
 const newest = () => frameworks.listBuiltin().map(f => f.legal_status_verified).sort()[0];
 
 test.beforeEach(() => { fx.active = new Set(['GDPR', 'AIA', 'ISO27001']); fx.throws = false; });

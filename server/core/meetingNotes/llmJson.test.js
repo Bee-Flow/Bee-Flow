@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Run: cd server && node --test core/meetingNotes/llmJson.test.js
  */

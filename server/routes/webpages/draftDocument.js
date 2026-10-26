@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * A webpage's draft as one ready-to-run HTML document, for every framework.
  *
@@ -37,6 +37,7 @@ const { buildDraftDocument } = require('../../services/webpageDraftDocument');
 const { buildBridgeHeadScripts } = require('../../shared/webpage/previewBridges.mjs');
 const { readSlotsForReader } = require('./publishedSnapshot');
 const { NO_QUERY } = require('./schemas');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 /**
  * Every `status` this route answers (the phone's reader knows exactly these):
@@ -86,7 +87,7 @@ function requestOrigin(req) {
 /** @type {(router: import('express').Router, deps?: import('./index').WebpageRouteDeps) => void} shared multipart gate is passed by index.js */
 function register(router) {
     router.get('/:id/draft-document', requireAuth, draftDocumentLimiter, validate({ query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
-        const userId = req.session.user.id;
+        const userId = sessionUser(req).id;
         const webpage = await findReadableWebpage(req, userId);
         if (!webpage) throw new HttpError(404, 'not_found', 'Webpage not found');
 

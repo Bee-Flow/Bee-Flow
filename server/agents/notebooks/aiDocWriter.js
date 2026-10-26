@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * How one notebook chat turn persists the AI's document edits without
  * overwriting anyone (routes/ai/notebookChat.js builds one per turn).
@@ -98,7 +98,7 @@ function makeAiDocWriter({ notebookId, userId, baseHtml, expectedVersion, store 
         });
         let saved = await write(casVersion);
         if (!saved.ok && saved.conflict) {
-            const fresh = await store.getNotebook(notebookId, userId).catch((e) => fallback('agents/notebooks/aiDocWriter:writeRow', e, null));
+            const fresh = await store.getNotebook(notebookId, userId).catch((/** @type {unknown} */ e) => fallback('agents/notebooks/aiDocWriter:writeRow', e, null));
             if (fresh && canonicalHtml(fresh.documentContent) === casBase) saved = await write(fresh.version);
         }
         if (saved.ok) {

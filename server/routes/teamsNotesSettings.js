@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Microsoft Teams → Meeting Notes settings API.
  *
@@ -19,6 +19,7 @@ const { validate } = require('../core/http/validate');
 const { HttpError } = require('../core/http/errors');
 const teamsNotes = require('../core/meetingNotes/teamsNotesSettings');
 const { fallback } = require('../utils/bestEffort');
+const { sessionUser } = require('../core/http/sessionUser');
 
 const SettingsBody = bodyOf({
     ...toggleFields,
@@ -31,7 +32,7 @@ const SettingsBody = bodyOf({
 
 // Declared before /:orgId so "user" is not read as an org id.
 router.get('/user/me', requireAuth, async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const config = await teamsNotes.getUserSettings(userId);
     let credential = null;
     try {
@@ -41,7 +42,7 @@ router.get('/user/me', requireAuth, async (req, res) => {
 });
 
 router.put('/user/me', requireAuth, validate({ body: SettingsBody }), async (req, res) => {
-    const config = await teamsNotes.saveUserSettings(req.session.user.id, req.body);
+    const config = await teamsNotes.saveUserSettings(sessionUser(req).id, req.body);
     res.json({ ok: true, config });
 });
 
@@ -59,7 +60,7 @@ router.put('/:orgId', requireAuth, validate({ body: SettingsBody }), async (/** 
     if (!(await isOrgAdmin(req, orgId))) {
         throw new HttpError(403, 'not_org_admin', 'Only organization admins can manage these settings');
     }
-    const config = await teamsNotes.saveOrgSettings(orgId, req.body, req.session.user.id);
+    const config = await teamsNotes.saveOrgSettings(orgId, req.body, sessionUser(req).id);
     res.json({ ok: true, config });
 });
 

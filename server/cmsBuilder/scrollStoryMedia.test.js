@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * scrollStory steps only show images (the sticky panel is inert and hidden from
  * assistive technology, so a clip with controls would be unreachable).

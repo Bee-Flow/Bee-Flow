@@ -443,6 +443,7 @@ const CARD_FIELDS = [
  * so the very same component is a Kanban board (no sprint chosen: everything on
  * the board) and a Scrum sprint board (a sprint chosen on the Sprints screen:
  * just that sprint). One component, both board types, no duplication.
+ * @param {{ field: string, op: string, value: unknown, required?: boolean }[]} [extra]  more filters, appended after the two above
  */
 const boardItemsBinding = (extra = []) => ({
     kind: 'records',

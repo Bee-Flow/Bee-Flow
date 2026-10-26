@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The views of one agent the runtime and the Builder read: the published
  * runtime copy (tools clamped to what the owner still holds) or the draft,
@@ -28,6 +28,8 @@ const { _loadAgentRow, _withPersona } = require('./agentReads');
  * nothing while connection lending is off (the default): the probe returns
  * null without touching the database, and null means "could not check", which
  * downgrades to `viewer`.
+ * @param {AgentWithTools} agent
+ * @returns {Promise<AgentWithTools>}
  */
 async function _clampRuntimeTools(agent) {
     if (!agent || !agent.config || typeof agent.config !== 'object') return agent;
@@ -113,7 +115,7 @@ async function getForRuntime(id, { useDraft = false } = {}) {
  * `tools` / `tool_params` are shared by both views (the component grants are
  * not part of the split); treat them as read-only.
  *
- * @returns {Promise<{draft:object, runtime:object}|null>}
+ * @returns {Promise<{ draft: AgentWithTools, runtime: AgentWithTools } | null>}
  * @param {string} id
  */
 async function getAgentViews(id) {
@@ -136,3 +138,5 @@ async function getAgentViews(id) {
 }
 
 module.exports = { _clampRuntimeTools, getForRuntime, getAgentViews };
+
+/** @typedef {import('./agentRows').AgentWithTools} AgentWithTools */

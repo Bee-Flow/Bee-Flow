@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Indirect prompt-injection framing tests for retrieved notebook sources.
  *

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Webpage screenshot tool — lets the Webpages builder AI render the current
  * page in a real headless browser and SEE it (Claude is vision-capable), plus
@@ -124,6 +124,8 @@ async function executeScreenshotTool(toolName, args, { webpageId, userId, modelS
         if (r.buildError) {
             return { content: `Screenshot skipped — the React app failed to build:\n\n${r.buildError}\n\nFix the build error, then screenshot again.` };
         }
+
+        if (!r.pngBuffer) return { content: 'The page produced no screenshot.' };
 
         // The tool RESULT is always a plain string (provider-portable — Mistral/
         // OpenAI tool messages must be strings). The actual image is delivered

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -102,11 +102,17 @@ const EXEMPT = new Map([
     // Idem: the init memo owns no table; "CREATE TABLE" appears only in the
     // explanation of what the schemaFn of a registered store does.
     ['stores/lib/storeInit.js', 'memo zonder eigen schema — memoïseert de init van geregistreerde stores'],
+    // The schema ledger itself: its one table (schema_migrations, shared with
+    // boot/bootMigrations.js) is created on first use by ensureLedgerTable.
+    ['stores/lib/ddlLedgerTable.js', "the schema ledger's own table, created on first use (ensureLedgerTable)"],
+    ['stores/lib/ddlStatements.js', 'parses statement text for the schema ledger; names CREATE TABLE only to classify it'],
+    ['stores/lib/ddlLedger.js', 'the schema ledger itself; names CREATE TABLE only in its explanation of what it skips'],
 ]);
 
-function ddlOwners(root) {
+function ddlOwners(/** @type {string} */ root) {
+    /** @type {string[]} */
     const out = [];
-    const walk = (dir) => {
+    const walk = (/** @type {string} */ dir) => {
         for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
             const p = path.join(dir, e.name);
             if (e.isDirectory()) { walk(p); continue; }
@@ -159,4 +165,81 @@ test('elke geregistreerde store bestaat en exporteert een awaitbare initDB', () 
             // ready: — mcpStore's vorm; de runner accepteert een ready-promise.
             `${f}: geen initDB te vinden — migrateDb kan hem dan alleen "laden", niet verifiëren`);
     }
+});
+
+// ── One ledger: no store sends schema past it ──────────────────────────────
+//
+// Store schema runs through the schema ledger (stores/lib/ddlLedger.js): db.exec,
+// db.run and runDdl consult it inside a store init. A raw pool/client query does
+// not, so a schema statement sent that way runs on every boot and, worse, is
+// invisible to the ledger's record. boot/schemaLedger.integration.test.js proves
+// the whole fleet against a real database; this is the fast, DB-free half that
+// also sees branches a fresh install never takes.
+
+/** Per-tenant engines: their DDL builds a tenant's own schema on demand, never at boot. */
+const RAW_DDL_EXEMPT = new Map([
+    ['stores/lib/pgAppEngine.js', 'per-tenant engine: DROP SCHEMA of one app, on demand'],
+    ['stores/lib/pgAppEnginePartsTx.js', 'per-tenant engine: CREATE SCHEMA/TABLE of one app, on demand'],
+]);
+
+// `.query(` with a literal that starts with a schema statement, or with a
+// constant named like a schema script, unless it is wrapped in throughLedger.
+const RAW_SCHEMA_QUERY = /\.query\(\s*(?:[`'"]\s*(?:--[^\n]*\n\s*)*(?:CREATE|ALTER|DROP|COMMENT\s+ON|DO\s)|\w*(?:INIT|SCHEMA|DDL)\w*\s*\))/gi;
+
+test('no store sends schema statements past the schema ledger', () => {
+    /** @type {string[]} */
+    const offenders = [];
+    /** @param {string} dir */
+    const walk = (dir) => {
+        for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+            const p = path.join(dir, e.name);
+            if (e.isDirectory()) { walk(p); continue; }
+            if (!/\.(c?js|mts)$/.test(e.name) || e.name.includes('.test.')) continue;
+            const rel = path.relative(__dirname, p).replace(/\\/g, '/');
+            if (RAW_DDL_EXEMPT.has(rel)) continue;
+            const src = fs.readFileSync(p, 'utf8');
+            for (const m of src.matchAll(RAW_SCHEMA_QUERY)) {
+                const lineStart = src.lastIndexOf('\n', m.index) + 1;
+                const lineEnd = src.indexOf('\n', m.index);
+                const line = src.slice(lineStart, lineEnd < 0 ? undefined : lineEnd);
+                if (/throughLedger\(/.test(line)) continue;
+                offenders.push(`${rel}:${src.slice(0, m.index).split('\n').length}: ${line.trim()}`);
+            }
+        }
+    };
+    walk(path.join(__dirname, 'stores'));
+    assert.deepStrictEqual(offenders, [],
+        'schema sent through a raw pool/client query skips the schema ledger. Use db.exec / runDdl\n' +
+        'from the store init, or wrap it: throughLedger(sql, () => pool.query(sql)).');
+});
+
+test('every raw-DDL exemption still names an existing file', () => {
+    for (const f of RAW_DDL_EXEMPT.keys()) {
+        assert.ok(fs.existsSync(path.join(__dirname, f)), `RAW_DDL_EXEMPT wijst naar een verdwenen bestand: ${f}`);
+    }
+});
+
+test('every makeStoreInit tag is unique (it names the store in the schema ledger)', () => {
+    /** Two stores under one tag would overwrite each other's ledger entry. */
+    const seen = new Map();
+    /** @type {string[]} */
+    const dupes = [];
+    /** @param {string} dir */
+    const walk = (dir) => {
+        for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+            const p = path.join(dir, e.name);
+            if (e.isDirectory()) { if (e.name !== 'node_modules') walk(p); continue; }
+            if (!/\.(c?js|mts)$/.test(e.name) || e.name.includes('.test.')) continue;
+            const rel = path.relative(__dirname, p).replace(/\\/g, '/');
+            for (const m of fs.readFileSync(p, 'utf8').matchAll(/makeStoreInit\(\s*['"]([^'"]+)['"]/g)) {
+                if (seen.has(m[1])) dupes.push(`${m[1]}: ${seen.get(m[1])} and ${rel}`);
+                else seen.set(m[1], rel);
+            }
+        }
+    };
+    for (const dir of ['stores', 'modules', 'integrations', 'core']) {
+        if (fs.existsSync(path.join(__dirname, dir))) walk(path.join(__dirname, dir));
+    }
+    assert.ok(seen.size >= 80, `suspiciously few store inits found (${seen.size})`);
+    assert.deepStrictEqual(dupes, []);
 });

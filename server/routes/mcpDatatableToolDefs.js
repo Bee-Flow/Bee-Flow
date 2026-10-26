@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * The datatable row tools as an MCP client sees them (routes/mcpDatatableTools.js):
@@ -15,8 +15,13 @@ const DEFAULT_ROWS_PER_MINUTE_USER = 3000;
 const LIST_MAX_TABLES = 500;
 const MAX_ID_CHARS = 64;
 
-/** A non-negative integer from the environment; 0 = unlimited. */
+/**
+ * A non-negative integer from the environment; 0 = unlimited.
+ * @param {string} name
+ * @param {number} fallback
+ */
 function envCount(name, fallback) {
+
     const raw = process.env[name];
     if (raw == null || String(raw).trim() === '') return fallback;
     const n = Number(raw);

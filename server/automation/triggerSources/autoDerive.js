@@ -58,6 +58,8 @@ const eventIdForTool = (tool) => `${AUTO_PREFIX}${tool}${AUTO_SUFFIX}`;
  * so the polling tick can re-check it without a user session: MCP tools are
  * `mcp_<server>_<tool>` and gate on `mcp:<server>`; everything else gates on the
  * integration that owns the tool.
+ * @param {string} tool
+ * @param {string | null} [integrationId]
  */
 function capabilityForTool(tool, integrationId = null) {
     const server = mcpServerFromTool(tool);

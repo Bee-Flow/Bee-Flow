@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * automation_agent_bindings: which agents may call an `agent_call` automation.
  * The table comes from migrations/automation-agent-bindings-2026-10.js; who may
@@ -36,8 +36,8 @@ function rowToBinding(r) {
 
 /**
  * @param {{
- *   query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }>,
- *   tx: <T>(fn: (q: { query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }) => Promise<T>) => Promise<T>,
+ *   query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }>,
+ *   tx: <T>(fn: (q: { query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }> }) => Promise<T>) => Promise<T>,
  * }} db
  * @param {{ ready?: () => Promise<void> }} [opts]
  */

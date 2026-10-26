@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * ElevenLabs Provider — Music, TTS, and Sound Effects
  *
@@ -21,7 +21,7 @@ class ElevenLabsProvider {
 
     /**
      * Collect a readable stream into a Buffer.
-     * @param {ReadableStream|AsyncIterable} stream
+     * @param {ReadableStream|AsyncIterable<Uint8Array>} stream
      * @returns {Promise<Buffer>}
      */
     async _streamToBuffer(stream) {

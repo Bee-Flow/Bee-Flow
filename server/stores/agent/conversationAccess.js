@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Who may read or write a conversation, and which key opens it.
  *
@@ -114,7 +114,7 @@ async function resolveConversationAccess(conversationId, viewerId, type = 'direc
         projectRole,
         isOwner,
         canRead: true,                     // reaching here already means readable
-        canPost: isOwner || rank[projectRole] >= rank.editor,
+        canPost: isOwner || (projectRole !== null && rank[projectRole] >= rank.editor),
         canManage: isOwner,
         title: row.title ?? null,
         updatedAt: row.updated_at,

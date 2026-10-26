@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * When does a mirror need another look, and who gives it one?
  *
@@ -93,7 +93,7 @@ function makeKickStale({ syncRows, isMirror, TAG }) {
         const timer = setTimeout(() => {
             _kicks.delete(datatable.id);
             Promise.resolve()
-                .then(() => datatableStore.getDatatable(datatable.id, datatable.scope))
+                .then(() => (datatable.scope ? datatableStore.getDatatable(datatable.id, datatable.scope) : null))
                 .then(fresh => (fresh && isStale(fresh.syncState, fresh.source) ? syncRows(fresh, { reason }) : null))
                 .catch(e => log.warn(`${TAG} background refresh of ${datatable.id} failed: ${e && e.message}`));
         }, delayMs);

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * locate — where did the bytes of one outbound call go?
  *
@@ -67,7 +67,24 @@ const MULTI_LABEL_SUFFIXES = new Set([
  * @property {string|null} edge_pop
  */
 
-/** @returns {PeerLocation} */
+/**
+ * @typedef {object} Peer  One peer of the probe snapshot.
+ * @property {string|null} [host]
+ * @property {string|null} [ip]
+ * @property {Record<string, string|null|undefined>|null} [edge]
+ * @property {string} [basis]
+ * @property {boolean} [sentBody]
+ */
+
+/** @typedef {{ lookupIp: (ip: string) => ReturnType<typeof geoDb.lookupIp>, status: () => { available: boolean } }} GeoSource */
+
+/**
+ * @param {PeerLocation['state']} state
+ * @param {string} basis
+ * @param {string | null} [ip]
+ * @param {string | null} [host]
+ * @returns {PeerLocation}
+ */
 function _blank(state, basis, ip = null, host = null) {
     return {
         state, basis, ip, host,
@@ -76,7 +93,10 @@ function _blank(state, basis, ip = null, host = null) {
     };
 }
 
-/** 'https://api.x.com:443/v1 (Label)' → 'api.x.com'. */
+/**
+ * 'https://api.x.com:443/v1 (Label)' → 'api.x.com'.
+ * @param {string | null | undefined} endpoint
+ */
 function hostOf(endpoint) {
     const raw = String(endpoint || '').trim();
     if (!raw) return null;
@@ -85,7 +105,10 @@ function hostOf(endpoint) {
     return host || null;
 }
 
-/** 'api.eu.fireflies.ai' → 'fireflies.ai'; 'a.b.co.uk' → 'b.co.uk'; an IP stays itself. */
+/**
+ * 'api.eu.fireflies.ai' → 'fireflies.ai'; 'a.b.co.uk' → 'b.co.uk'; an IP stays itself.
+ * @param {string | null | undefined} host
+ */
 function registrableDomain(host) {
     const h = String(host || '').toLowerCase().replace(/\.$/, '');
     if (!h || classifyIp(h).ip) return h || null;
@@ -96,8 +119,8 @@ function registrableDomain(host) {
 
 /**
  * Locate one peer.
- * @param {any} peer  { host, ip, edge, basis, sentBody, … } from the probe snapshot
- * @param {{ geo?: { lookupIp: Function, status: Function } }} [opts]
+ * @param {Peer} peer  { host, ip, edge, basis, sentBody, … } from the probe snapshot
+ * @param {{ geo?: GeoSource }} [opts]
  * @returns {PeerLocation}
  */
 function locatePeer(peer, { geo = geoDb } = {}) {
@@ -153,7 +176,11 @@ function locatePeer(peer, { geo = geoDb } = {}) {
     };
 }
 
-/** Index of the primary peer (see the header). */
+/**
+ * Index of the primary peer (see the header).
+ * @param {Array<{ host: string | null, sentBody: boolean }>} peers
+ * @param {string | null | undefined} serverEndpoint
+ */
 function _primaryIndex(peers, serverEndpoint) {
     const target = hostOf(serverEndpoint);
     const domain = target ? registrableDomain(target) : null;
@@ -162,7 +189,7 @@ function _primaryIndex(peers, serverEndpoint) {
         if (exact !== -1) return exact;
     }
     if (domain) {
-        const same = (p) => p.host && !AUTH_HOSTS.has(p.host) && registrableDomain(p.host) === domain;
+        const same = (/** @type {{ host: string | null }} */ p) => p.host && !AUTH_HOSTS.has(p.host) && registrableDomain(p.host) === domain;
         const withBody = peers.findLastIndex(p => same(p) && p.sentBody);
         if (withBody !== -1) return withBody;
         const any = peers.findLastIndex(same);
@@ -174,8 +201,9 @@ function _primaryIndex(peers, serverEndpoint) {
 
 /**
  * Locate a whole call.
- * @param {{ peers?: any[], isLocalHint?: boolean, serverEndpoint?: string|null,
- *           geo?: { lookupIp: Function, status: Function } }} input
+ * @param {{ peers?: Peer[], isLocalHint?: boolean, serverEndpoint?: string|null,
+ *           geo?: GeoSource }} input
+
  * @returns {{ row: PeerLocation, primary: PeerLocation|null, peers: PeerLocation[] }}
  */
 function locateCall({ peers, isLocalHint = false, serverEndpoint = null, geo = geoDb } = {}) {

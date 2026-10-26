@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Webpage Knowledge Search — same shape as notebookKnowledgeSearch.js, scoped
  * to the webpages feature. Reuses the search-service / local-Azure paths and
@@ -153,7 +153,7 @@ async function executeWebpageKBSearchTool(args, userId, kbIds) {
         return { results: /** @type {Array<{ result_number: number, title: string, content: string, score: number }>} */ ([]), message: 'No sources have been added to this webpage yet.' };
     }
 
-    const topK = Math.min(Math.max(parseInt(top_k) || 5, 1), 10);
+    const topK = Math.min(Math.max(parseInt(String(top_k)) || 5, 1), 10);
     const result = await searchWebpageKB({
         userId, kbIds, query,
         options: { topK, rerank: true, minScore: 0.25, maxChunkChars: 1200, preprocessQuery: false },

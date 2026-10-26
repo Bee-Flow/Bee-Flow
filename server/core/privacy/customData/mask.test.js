@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Look-alike properties: same length and class at every position, never the
@@ -19,7 +19,7 @@ const {
 const KEY = Buffer.alloc(32, 7);
 const OPTS = { key: KEY, orgId: 'org-a', typeId: 'cdt_0123456789' };
 
-function classOf(ch) {
+function classOf(/** @type {string} */ ch) {
     if (/\p{Nd}/u.test(ch)) return 'digit';
     if (/\p{Lu}/u.test(ch) || /\p{Lt}/u.test(ch)) return 'upper';
     if (/\p{L}/u.test(ch)) return 'lower';
@@ -83,11 +83,11 @@ test('a set of look-alikes never collides and never equals or contains a real ex
     const looks = pairs.map((p) => p.lookalike);
     assert.ok(looks.every(Boolean));
     assert.equal(new Set(looks).size, looks.length);
-    for (const l of looks) assert.ok(!examples.includes(l), l);
+    for (const l of looks) assert.ok(!examples.includes(String(l)), String(l));
 
     const longer = ['ABC-123', 'abc-124', 'XYZ-900'];
     for (const { lookalike } of maskExamples(longer, OPTS)) {
-        for (const ex of longer) assert.ok(!lookalike.toLowerCase().includes(ex.toLowerCase()));
+        for (const ex of longer) assert.ok(!lookalike?.toLowerCase().includes(ex.toLowerCase()));
     }
 });
 

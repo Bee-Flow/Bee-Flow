@@ -244,6 +244,7 @@ function fieldOf(id, entry) {
  * every type but a checkbox, so "skipped" is `IS NULL` in the dashboard.
  * @param {string | null} pageStepId
  * @param {Record<string, Answer> | null} values
+ * @returns {Record<string, unknown>}
  */
 function rowValuesFor(columnMap, pageStepId, values) {
     const src = values && typeof values === 'object' ? values : {};

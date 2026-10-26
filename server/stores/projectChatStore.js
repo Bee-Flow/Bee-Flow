@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Team chats inside a project: people talking to each other, with the AI
  * answering only when asked, on its own when it can help, always, or never —
@@ -80,8 +80,8 @@ const { makeAuthorErasure } = require('./lib/projectChatErasure');
 
 /**
  * @param {{
- *   query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }>,
- *   tx: <T>(fn: (q: { query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }) => Promise<T>) => Promise<T>,
+ *   query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }>,
+ *   tx: <T>(fn: (q: { query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }> }) => Promise<T>) => Promise<T>,
  * }} db
  * @param {{ ready?: () => Promise<void> }} [opts]
  */

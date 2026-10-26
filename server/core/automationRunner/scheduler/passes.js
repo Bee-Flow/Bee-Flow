@@ -1,5 +1,5 @@
 /** @typedef {import('pg').PoolClient} PoolClient */
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The runner's lock-guarded background passes (extracted from ./ticks.js,
  * which mounts them): event polling and subscription renewal, Talk
@@ -31,7 +31,7 @@ const { bestEffort } = require('../../../utils/bestEffort');
  */
 async function underAdvisoryLock(key, label, run) {
     let acquired = false;
-    /** @type {PoolClient} */
+    /** @type {PoolClient | undefined} */
     let client;
     try {
         client = await pool.connect();

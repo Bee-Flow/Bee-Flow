@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { parseAnswersText } = require('./questionAnswers');

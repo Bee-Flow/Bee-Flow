@@ -10,9 +10,9 @@ const assert = require('node:assert');
 
 const { getClassifierEndpoint, invalidateClassifierEndpointCache } = require('./classifierEndpoint');
 
-const store = (config, secrets = {}) => ({
-    getConfig: async (k) => config[k] ?? null,
-    getSecret: async (k) => secrets[k] ?? null,
+const store = (/** @type {Record<string, unknown>} */ config, /** @type {Record<string, unknown>} */ secrets = {}) => ({
+    getConfig: async (/** @type {string} */ k) => config[k] ?? null,
+    getSecret: async (/** @type {string} */ k) => secrets[k] ?? null,
 });
 
 test.beforeEach(() => invalidateClassifierEndpointCache());

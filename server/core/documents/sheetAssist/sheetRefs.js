@@ -30,7 +30,7 @@ function parseCell(name) {
 /**
  * 'B2:D9' (any corner order), or a single cell, → the rectangle; null when
  * malformed or out of the sheet.
- * @param {string} range
+ * @param {string | null | undefined} range
  * @returns {{ c0: number, r0: number, c1: number, r1: number } | null}
  */
 function parseRange(range) {

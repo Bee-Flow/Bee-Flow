@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The provider-agnostic mechanics every tool-calling build loop shares: what
  * a "cut off at max_tokens" stop looks like across adapters, the retry pairs
@@ -154,6 +154,7 @@ function providerErrorStatus(err) {
  * (prompt_tokens / completion_tokens / cached_tokens / cache_creation_tokens);
  * anything missing counts as 0 so a partial payload never NaNs the totals.
  * @param {{ prompt: number; completion: number; cached: number; cacheCreation: number; rounds: number; }} totals
+ * @param {{ prompt_tokens?: unknown, completion_tokens?: unknown, cached_tokens?: unknown, cache_creation_tokens?: unknown } | null | undefined} u
  */
 function accumulateUsage(totals, u) {
     if (!totals || !u || typeof u !== 'object') return totals;

@@ -141,7 +141,7 @@ async function isEUModeActive({ userOrgId = null, userId = null } = {}) {
  * Apply EU tier overrides to a tiers object if EU mode is active.
  * Shared logic used by resolveModelForTier, getTierConfig, and getEUAwareTiers.
  */
-async function applyEUOverrides(tiers, { userOrgId = null, userId = null } = {}) {
+async function applyEUOverrides(tiers, /** @type {{ userOrgId?: string | null, userId?: string | null }} */ { userOrgId = null, userId = null } = {}) {
     const { isEU } = await isEUModeActive({ userOrgId, userId });
     if (!isEU) return tiers;
 
@@ -448,7 +448,7 @@ function applyReasoningDefaults(merged, userConfig, tierName) {
  * reasoningEffort so users see the model's thought process stream before
  * the final answer (parallel to the typing-dots/phase indicator).
  */
-async function getTierConfig(tierName, { userOrgId = null, userId = null } = {}) {
+async function getTierConfig(tierName, /** @type {{ userOrgId?: string | null, userId?: string | null }} */ { userOrgId = null, userId = null } = {}) {
     // Custom tiers carry their own full config — no TIER_DEFAULTS fallback needed.
     if (tierName && tierName.startsWith('custom:')) {
         const custom = await getCustomTierById(tierName, { userOrgId, userId });
@@ -527,7 +527,7 @@ async function getEUAwareTiers({ userOrgId = null, userId = null } = {}) {
  * ai_step runtime all resolve against it (previously three hand-copied
  * merge blocks that could drift).
  */
-async function getUserTierMap({ userOrgId = null, userId = null } = {}) {
+async function getUserTierMap(/** @type {{ userOrgId?: string | null, userId?: string | null }} */ { userOrgId = null, userId = null } = {}) {
     const tiers = await getEUAwareTiers({ userOrgId, userId });
     try {
         const { isEU } = await isEUModeActive({ userOrgId, userId });

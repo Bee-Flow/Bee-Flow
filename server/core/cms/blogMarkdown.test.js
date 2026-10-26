@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The blog body renderer is the one place stored Markdown becomes public HTML,
  * so these are stored-XSS tests first: raw HTML, unsafe URL schemes and

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Unit tests for the shared server-side data-binding collector
  * (appStudio/collectDataBindings.js).
@@ -10,7 +10,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 const { collectDataBindings } = require('./collectDataBindings');
 
-function def(screens) { return { screens }; }
+function def(/** @type {unknown} */ screens) { return { screens }; }
 
 test('collects record/records/dataset bindings with node id + prop, skips other kinds', () => {
     const d = def([{

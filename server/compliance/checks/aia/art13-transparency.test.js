@@ -9,23 +9,17 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { installResolveStub } = require('../../../testUtils/stubRequire');
+const { recordDb } = require('../../../testUtils/routeHarness');
 
-const fx = { rows: [], error: null, calls: [] };
-const restore = installResolveStub({
-    // Ignores the parameters on purpose: the check's own filter must mirror
-    // the SQL predicate.
-    '../../../db': {
-        getAll: async (sql, params) => {
-            fx.calls.push({ sql, params });
-            if (fx.error) throw fx.error;
-            return fx.rows;
-        },
-    },
+const fx = { rows: [], error: null };
+// The real db.js over a recording pool. It ignores the parameters on purpose:
+// the check's own filter must mirror the SQL predicate.
+const db = recordDb(() => {
+    if (fx.error) throw fx.error;
+    return { rows: fx.rows };
 });
 const check = require('./art13-transparency');
-test.after(restore);
-test.beforeEach(() => { fx.rows = []; fx.error = null; fx.calls.length = 0; });
+test.beforeEach(() => { fx.rows = []; fx.error = null; db.reset(); });
 
 function pgError(message, code) {
     return Object.assign(new Error(message), { code });
@@ -58,8 +52,8 @@ test('a platform agent (no organisation) is the default bucket\'s, never a tenan
     assert.equal(r.evidence.total, 1);
     assert.equal(JSON.stringify(r.evidence).includes('Platform'), false);
     // The SQL carries the predicate and its parameter.
-    assert.match(fx.calls[0].sql.replace(/\s+/g, ' '), /FROM agents WHERE is_published = TRUE AND COALESCE\(NULLIF\(organization_id, ''\), 'default'\) = \$1/);
-    assert.deepEqual(fx.calls[0].params, ['org-a']);
+    assert.match(db.calls[0].sql.replace(/\s+/g, ' '), /FROM agents WHERE is_published = TRUE AND COALESCE\(NULLIF\(organization_id, ''\), 'default'\) = \$1/);
+    assert.deepEqual(db.calls[0].params, ['org-a']);
 
     const def = await check.evaluate('default');
     assert.equal(def.status, 'fail');

@@ -20,61 +20,49 @@
  * Run: cd server && node --test --test-force-exit stores/knowledgeBases.idGuard.test.js
  */
 
-const { test, before, beforeEach, after } = require('node:test');
+const { test, before, beforeEach } = require('node:test');
 const assert = require('node:assert');
 
 process.env.NODE_ENV = 'test';
 
-const { installResolveStub } = require('../testUtils/stubRequire');
+const { recordDb } = require('../testUtils/routeHarness');
 
-const calls = { getOne: [] };
-const stub = {
-    async exec() {},
-    async run() { return { rowCount: 0, rows: [] }; },
-    async getOne(sql, params) {
-        calls.getOne.push({ sql, params });
-        return null;
-    },
-    async getAll() { return []; },
-    async getClient() { return null; },
-};
-
-const restore = installResolveStub({ '../db': stub });
-after(() => restore());
+// The real db.js over a recording pool that answers no rows.
+const db = recordDb();
 
 const kb = require('./knowledgeBases');
 
-before(async () => { await kb.initDB(); calls.getOne.length = 0; });
-beforeEach(() => { calls.getOne.length = 0; });
+before(async () => { await kb.initDB(); db.reset(); });
+beforeEach(db.reset);
 
 const VALID_UUID = '123e4567-e89b-12d3-a456-426614174000';
 
 test('getKB("not-a-uuid") answers null without reaching Postgres', async () => {
     const row = await kb.getKB('not-a-uuid');
     assert.strictEqual(row, null);
-    assert.strictEqual(calls.getOne.length, 0, 'a malformed id must never be sent to the database');
+    assert.strictEqual(db.calls.length, 0, 'a malformed id must never be sent to the database');
 });
 
 test('getKB("") and getKB(undefined) also answer null without a query', async () => {
     assert.strictEqual(await kb.getKB(''), null);
     assert.strictEqual(await kb.getKB(undefined), null);
-    assert.strictEqual(calls.getOne.length, 0);
+    assert.strictEqual(db.calls.length, 0);
 });
 
 test('getKB(<well-formed uuid>) still queries the database', async () => {
     await kb.getKB(VALID_UUID);
-    assert.strictEqual(calls.getOne.length, 1, 'a real lookup must still happen for a UUID-shaped id');
-    assert.deepStrictEqual(calls.getOne[0].params, [VALID_UUID]);
+    assert.strictEqual(db.calls.length, 1, 'a real lookup must still happen for a UUID-shaped id');
+    assert.deepStrictEqual(db.calls[0].params, [VALID_UUID]);
 });
 
 test('getDocument("not-a-uuid") answers null without reaching Postgres', async () => {
     const row = await kb.getDocument('not-a-uuid');
     assert.strictEqual(row, null);
-    assert.strictEqual(calls.getOne.length, 0, 'a malformed id must never be sent to the database');
+    assert.strictEqual(db.calls.length, 0, 'a malformed id must never be sent to the database');
 });
 
 test('getDocument(<well-formed uuid>) still queries the database', async () => {
     await kb.getDocument(VALID_UUID);
-    assert.strictEqual(calls.getOne.length, 1);
-    assert.deepStrictEqual(calls.getOne[0].params, [VALID_UUID]);
+    assert.strictEqual(db.calls.length, 1);
+    assert.deepStrictEqual(db.calls[0].params, [VALID_UUID]);
 });

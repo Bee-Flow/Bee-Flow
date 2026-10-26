@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -19,7 +19,7 @@ const saved = { getConfig: isoEvidenceStore.getConfig, listLatestSnapshots: isoE
 afterEach(() => Object.assign(isoEvidenceStore, saved));
 
 const clean = { critical: 0, high: 0, medium: 0, low: 0 };
-function stub(payloads) {
+function stub(/** @type {{ repo: string, [k: string]: unknown }[]} */ payloads) {
     isoEvidenceStore.getConfig = async () => ({ enabled: true });
     isoEvidenceStore.listLatestSnapshots = async () => payloads.map(p => ({ subject_id: p.repo, payload: p }));
 }

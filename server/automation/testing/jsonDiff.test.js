@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * The structural diff the run compare is built on.
@@ -77,11 +77,11 @@ test('ignorePaths skips an exact path and everything below it, nothing else', as
 test('values are cut to 200 characters of JSON text', async () => {
     const long = 'x'.repeat(500);
     const [c] = await diff({ s: long }, { s: 'short' });
-    assert.ok(c.before.length <= 200);
-    assert.ok(c.before.endsWith('…'));
+    assert.ok((c.before?.length ?? 0) <= 200);
+    assert.ok(c.before?.endsWith('…'));
     assert.strictEqual(c.after, '"short"');
     const [added] = await diff({}, { big: { list: Array.from({ length: 200 }, (_, i) => i) } });
-    assert.ok(added.after.length <= 200);
+    assert.ok((added.after?.length ?? 0) <= 200);
 });
 
 test('the cap stops the walk and sets truncated', async () => {

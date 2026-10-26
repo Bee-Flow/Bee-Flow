@@ -68,7 +68,7 @@ test('de variabelenkiezer krijgt de velden en de voorbeelden zonder extra code',
     const { buildTriggerOutputsCatalog } = require('../../builderTools/triggerCatalog');
     const entry = buildTriggerOutputsCatalog()['meeting-notes.meeting.processed'];
     assert.ok(entry, 'trigger.output.* is bindbaar in de builder');
-    assert.deepStrictEqual(entry.fields.map(f => f.key), EVENT.fields);
+    assert.deepStrictEqual(entry.fields.map((/** @type {{ key: string }} */ f) => f.key), EVENT.fields);
     assert.deepStrictEqual(entry.sample.tags, EVENT.sample.tags);
 });
 
@@ -102,7 +102,7 @@ test('de provider-dropdown vraagt om de check `meeting_notes` — die is GEEN gr
     assert.ok(entry, 'met de check staat de provider in het dropdown');
     assert.strictEqual(entry.label, 'Meeting Notes');
     assert.strictEqual(entry.defaultEvent, 'meeting.processed');
-    assert.deepStrictEqual(entry.events.map(e => e.id), ['meeting.processed']);
+    assert.deepStrictEqual(entry.events.map((/** @type {{ id: string }} */ e) => e.id), ['meeting.processed']);
     // push events have no generic ingest route, but this event is dispatched
     // in-process — so it is simply deliverable and must not show a "does not work
     // yet" warning.

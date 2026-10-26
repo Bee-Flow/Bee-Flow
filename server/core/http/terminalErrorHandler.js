@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * The last middleware in the chain: every error a route throws or passes to
@@ -31,7 +31,7 @@ const OPAQUE_SEGMENT = /^[A-Za-z0-9_\-.~%=+]{24,}$/;
  * (`/auth/invite/:token`), so neither may reach the log: the matched route's
  * pattern when Express knows it, otherwise the path with its query dropped and
  * long opaque segments masked.
- * @param {any} req
+ * @param {import("express").Request | undefined} req
  */
 function loggedPath(req) {
     if (typeof req?.route?.path === 'string') return `${req.baseUrl || ''}${req.route.path}`;
@@ -47,6 +47,7 @@ function createTerminalErrorHandler({ log = defaultLog, now = Date.now } = {}) {
     let badBodyLoggedAt = 0;
     /**
      * @param {string} kind
+     * @param {import('express').Request | undefined} req
      */
     function noteRejectedBody(kind, req) {
         badBodyCount += 1;
@@ -57,6 +58,12 @@ function createTerminalErrorHandler({ log = defaultLog, now = Date.now } = {}) {
         badBodyCount = 0;
     }
 
+    /**
+     * @param {HttpishError | undefined} err
+     * @param {import('express').Request} req
+     * @param {ErrorResponse} res
+     * @param {import('express').NextFunction} next
+     */
     return function terminalErrorHandler(err, req, res, next) {
         // Response already on the wire (SSE streams, sendFile, a proxied
         // response): nothing left to replace, so Express destroys the socket
@@ -95,7 +102,9 @@ function createTerminalErrorHandler({ log = defaultLog, now = Date.now } = {}) {
         const raw = typeof err?.message === 'string' ? err.message.trim() : '';
         const message = raw ? raw.slice(0, 300) : 'Request could not be processed';
         if (status < 500) log.warn(`[HTTP] ${status} ${where} correlationId=${correlationId}: ${safeForLog(message, 300)}`);
+        /** @type {{ error: string, correlationId: string, code?: string, details?: unknown }} */
         const body = { error: message, correlationId };
+
         if (err?.expose === true) {
             if (typeof err.code === 'string') body.code = err.code;
             if (err.details !== undefined) body.details = err.details;
@@ -106,4 +115,6 @@ function createTerminalErrorHandler({ log = defaultLog, now = Date.now } = {}) {
 
 module.exports = { createTerminalErrorHandler, terminalErrorHandler: createTerminalErrorHandler() };
 
-/** @typedef {Error & { type?: string, status?: number, statusCode?: number, expose?: boolean, code?: unknown, details?: unknown }} HttpishError */
+/** @typedef {{ headersSent?: boolean, status: (code: number) => { json: (body: unknown) => unknown } }} ErrorResponse What this handler uses of a response. */
+/** @typedef {Error & { type
+?: string, status?: number, statusCode?: number, expose?: boolean, code?: unknown, details?: unknown }} HttpishError */

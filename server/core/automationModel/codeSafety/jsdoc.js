@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Parameters a code step declares, read from the JSDoc on `main`.
  *
@@ -272,7 +272,7 @@ function parseJsDoc(value, startLine, { inputsName = 'inputs', ctxName = 'ctx' }
 
     const params = [];
     const seen = new Set();
-    /** @type {{ type: string | null; description: string | null; }} */
+    /** @type {{ type: string | null; description: string | null; } | null} */
     let returns = null;
     const prefixes = new Set([inputsName || 'inputs']);
     for (const t of tags) {

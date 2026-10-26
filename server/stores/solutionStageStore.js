@@ -180,8 +180,8 @@ const initDB = makeStoreInit('SolutionStageStore', async () => {
  * The store's functions over one `{ query, tx }` database.
  *
  * @param {{
- *   query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }>,
- *   tx: <T>(fn: (client: { query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }) => Promise<T>) => Promise<T>,
+ *   query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }>,
+ *   tx: <T>(fn: (client: { query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }> }) => Promise<T>) => Promise<T>,
  * }} db
  * @param {{ ready?: () => Promise<unknown>, projectStore?: any }} [opts]
  *        `projectStore`: createStageProject / detachStage (default: the module's own instance)

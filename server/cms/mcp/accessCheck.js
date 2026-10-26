@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The access decision for an upload URL, asked again at PUT time.
  *
@@ -27,7 +27,7 @@
  * @param {Function} deps.evaluateAccessForOrgs auth/mcpAccess/gate
  * @param {(user: object|null) => boolean} deps.isActiveAccount
  * @param {Function} deps.scopeAllowsTool
- * @param {(user: object) => Promise<boolean>} deps.isAdmin
+ * @param {(user: object | null) => Promise<boolean>} deps.isAdmin
  */
 function createAccessCheck(deps) {
     return async function checkAccess(/** @type {{ legacy?: boolean, tokenId?: string, userId?: string, orgId?: string|null }} */ bound, /** @type {string} */ ip) {
@@ -35,6 +35,7 @@ function createAccessCheck(deps) {
             // Upload URLs are not issued to legacy tokens (cms_request_upload says so),
             // so a ticket without a named token behind it is not honoured.
             if (bound.legacy || !bound.tokenId) return { ok: false, reason: 'legacy_ticket' };
+            if (!bound.userId) return { ok: false, reason: 'user_missing' };
             const token = await deps.getTokenById(bound.tokenId);
             if (token && token.userId !== bound.userId) return { ok: false, reason: 'token_user_mismatch' };
             const user = await deps.getUser(bound.userId);

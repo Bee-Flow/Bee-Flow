@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Pure transform for the tool-RESULT DLP step (server/core/agentRuntime/chatStream.js).
  *
@@ -76,9 +76,9 @@ function redactAndTokenizeToolResult(text, entities, blockCats, existingTokenMap
     return {
         content: out,
         tokenMap,
-        redactedLabels: [...new Set(blocked.map(e => e.label))],
+        redactedLabels: [...new Set(blocked.flatMap(e => (e.label ? [e.label] : [])))],
         // For log lines: an org's own type by id, never by its name.
-        redactedLogLabels: [...new Set(blocked.map(e => (isCustomTypeId(e.category) ? e.category : e.label)))],
+        redactedLogLabels: [...new Set(blocked.flatMap(e => { const label = isCustomTypeId(e.category) ? e.category : e.label; return label ? [label] : []; }))],
         blockedCount: blocked.length,
         tokenizedCount: tokenizable.length,
     };

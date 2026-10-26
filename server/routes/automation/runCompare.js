@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Compare two runs of one automation, step by step:
  *
@@ -39,6 +39,7 @@ const { makeAutomationAccess } = require('../../automation/access');
 const { makeRunDataAccess } = require('../../automation/testing/runDataAccess');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { envCap } = require('../../automation/mcpRunReadCaps');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 /** Comparisons per user per minute (a compare can open up to 50 generated files). 0 = unlimited. */
 const compareRpm = () => envCap('AUTOMATION_RUN_COMPARE_RPM', 30);
@@ -78,7 +79,7 @@ function makeRunCompareRouter(overrides = {}) {
         }
         const result = await compare({
             runA: first.root, runB: second.root, legsA: first.legs, legsB: second.legs,
-            viewerId: req.session.user.id, ignorePaths: [], stepId: /** @type {string | undefined} */ (req.query.stepId) || null,
+            viewerId: sessionUser(req).id, ignorePaths: [], stepId: /** @type {string | undefined} */ (req.query.stepId) || null,
         }, { store: overrides.store, storage: overrides.storage });
         res.setHeader('Cache-Control', 'private, no-store');
         return res.json(result);

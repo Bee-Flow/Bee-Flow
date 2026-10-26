@@ -171,8 +171,13 @@ function tri(v) {
  * tri-state. Keys the catalogue does not know are dropped — an allow-list, so
  * a client cannot smuggle free text into the JSONB.
  */
+/**
+ * @param {unknown} input
+ * @returns {Record<string, string>}
+ */
 function normalizeDomainAnswers(input) {
     const src = (input && typeof input === 'object' && !Array.isArray(input)) ? input : {};
+    /** @type {Record<string, string>} */
     const out = {};
     for (const id of ANNEX_III_IDS) out[id] = tri(src[id]);
     return out;

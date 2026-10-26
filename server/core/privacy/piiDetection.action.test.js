@@ -27,19 +27,10 @@ const http = require('http');
 
 process.env.NODE_ENV = 'test';
 
-function stub(id, exports) {
-    const resolved = require.resolve(id);
-    require.cache[resolved] = { id: resolved, filename: resolved, loaded: true, exports };
-    return resolved;
-}
-stub('../aiAgent', {
-    getAIConfig: async () => ({ piiDetectionEnabled: true, piiDetectionAction: 'block' }),
-});
-stub('../../stores/configStore', {
-    getConfig: async () => null,
-    getSecret: async () => '',
-    getAllConfig: async () => ({}),
-});
+// The real configStore and aiAgent over a config table the test fills: the AI config is the 'ai' row.
+const { useConfigRows } = require('../../testUtils/configRows');
+const config = useConfigRows();
+config.rows.ai = { piiDetectionEnabled: true, piiDetectionAction: 'block' };
 
 const SECRET = 'mark.devries@voorbeeld.nl';
 const ENTITY = {

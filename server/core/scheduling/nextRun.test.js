@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The rules that decide when something is retried. Each of the three has a
  * failure mode that only shows up in production:

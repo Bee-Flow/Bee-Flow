@@ -35,6 +35,7 @@ const { isCustomTypeId } = require('../core/privacy/customTypes/ids');
 const { hasCustomDataFeature } = require('../core/privacy/customTypes/resolve');
 const customShieldDoc = require('../core/privacy/customTypes/shieldDoc');
 const customTypeRegistry = require('../core/privacy/customTypes/registry');
+const { sessionUser } = require('../core/http/sessionUser');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -433,7 +434,7 @@ router.put('/:orgId', requireAuth, validate({ body: OrgShieldBody }), async (/**
     const customFeature = await hasCustomDataFeature(orgId, _licenseModule());
     const custom = await customShieldDoc.planPut({
         orgId, body: req.body, storedRow, featureEnabled: customFeature,
-        userId: req.session.user.id, configStore,
+        userId: sessionUser(req).id, configStore,
     });
     const termErrors = custom.termErrors;
     const typeErrors = [...custom.typeErrors];
@@ -526,7 +527,7 @@ router.put('/:orgId', requireAuth, validate({ body: OrgShieldBody }), async (/**
         piiAllowPublicOrgs: piiAllowPublicOrgs !== false,
         showRawPayload: !!showRawPayload,
         updatedAt: new Date().toISOString(),
-        updatedBy: req.session.user.id,
+        updatedBy: sessionUser(req).id,
     };
 
     // Tier-driven clamps: on community tier we force
@@ -581,7 +582,7 @@ router.put('/:orgId', requireAuth, validate({ body: OrgShieldBody }), async (/**
     // Shield redesign.
 
     clampedFields.push(...customClamped.filter(f => !clampedFields.includes(f)));
-    log.info(`[OrgPrivacyShield] Saved config for org ${orgId} by ${req.session.user.id}${termErrors.length ? ` (with ${termErrors.length} invalid term(s))` : ''}${typeErrors.length ? ` (with ${typeErrors.length} data type error(s))` : ''}${clampedFields.length ? ` (clamped ${clampedFields.join(',')} for tier=${clamps.tier})` : ''}`);
+    log.info(`[OrgPrivacyShield] Saved config for org ${orgId} by ${sessionUser(req).id}${termErrors.length ? ` (with ${termErrors.length} invalid term(s))` : ''}${typeErrors.length ? ` (with ${typeErrors.length} data type error(s))` : ''}${clampedFields.length ? ` (clamped ${clampedFields.join(',')} for tier=${clamps.tier})` : ''}`);
     // If some custom terms or types failed, the rest of the shield and the
     // valid ones are still persisted. The client shows per-term errors from
     // `termErrors`, per-type errors from `typeErrors`, and keeps the user's
@@ -600,7 +601,6 @@ router.put('/:orgId', requireAuth, validate({ body: OrgShieldBody }), async (/**
     }
     res.json(response);
 });
-
 
 // GET /:orgId/effective — inspection-only view of the config the runtime
 // actually sees for this org. Useful after a deploy to verify that custom
@@ -682,7 +682,7 @@ router.get('/user/guard-status', requireAuth, async (req, res) => {
 
 // GET /user/me — get user-level shield config (consumer accounts)
 router.get('/user/me', requireAuth, async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const stored = await configStore.getConfig(`user_privacy_shield_${userId}`);
     if (stored) {
         return res.json({ ...USER_SHIELD_DEFAULTS, ...stored });
@@ -704,7 +704,7 @@ router.get('/user/me', requireAuth, async (req, res) => {
 
 // PUT /user/me — save user-level shield config (consumer accounts)
 router.put('/user/me', requireAuth, validate({ body: UserShieldBody }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     refuseStrangers(req.body, await configStore.getConfig(`user_privacy_shield_${userId}`), USER_SHAPE);
     const {
         enabled, euModeEnabled, disableSearchOnUpload,

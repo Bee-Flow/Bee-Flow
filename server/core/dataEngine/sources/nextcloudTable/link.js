@@ -79,7 +79,10 @@ async function callerApi(session, principal) {
     return { api: ncApi.forLinker(auth), guarded: (tool, args, run) => d.guardedNcCall(tool, args, { userId, session, orgId }, run), d };
 }
 
-/** A structured scope denial from the guard → the error the route answers. */
+/**
+ * A structured scope denial from the guard → the error the route answers.
+ * @param {number | null} [ncTableId]
+ */
 function denialToError(res, ncTableId = null) {
     if (res && res.nc_scope_denied) {
         return new NextcloudSourceError(403, 'nc_scope_denied', 'This account does not share that Nextcloud table with Bee Flow.', { ncTableId });

@@ -13,7 +13,10 @@
  * @typedef {{ deps: import('./dispatch').CmsMcpDeps, cmsStore: Record<string, any>, live: import('./dispatch').CmsMcpDeps['live'], resolveSite: SiteContext['resolveSite'], loadDraft: SiteContext['loadDraft'], validationOf: SiteContext['validationOf'] }} HandlerKit  what dispatch hands every handler factory
  */
 
-/** @param {unknown} v */
+/**
+ * @param {unknown} v
+ * @returns {v is Record<string, unknown>}
+ */
 const isPlainObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 /**
  * @param {string} error

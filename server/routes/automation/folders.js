@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('express-serve-static-core').Router} Router */
+// @typecheck strict
 // Automation folders, split out of routes/automation/crud.js: the sidebar's
 // org-wide labels. crud.js registers these routes on its own router, at the
 // place they always had (before `/:id`).
@@ -8,6 +9,7 @@ const { HttpError } = require('../../core/http/errors');
 const automationStore = require('../../stores/automationStore');
 const { MAX_FOLDER_NAME_LEN, FolderError } = require('../../stores/automationStore/folders');
 const { orgOf } = require('./crudContext');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 // ── Folders ───────────────────────────────────────────────────────────────
 // The store trims and truncates a name; the schema says the same thing to the
@@ -35,9 +37,9 @@ const FolderBody = z.object({
 const FolderPatch = FolderBody.partial();
 
 /** A refusal of the folder rules is the caller's to read; anything else stays a 500. */
-const asHttp = (e) => (e instanceof FolderError ? new HttpError(e.status, e.code, e.message) : e);
+const asHttp = (/** @type {unknown} */ e) => (e instanceof FolderError ? new HttpError(e.status, e.code, e.message) : e);
 
-const isDuplicateFolder = (e) => /duplicate key|unique/i.test(e?.message || '');
+const isDuplicateFolder = (/** @type {{ message?: string } | null | undefined} */ e) => /duplicate key|unique/i.test(e?.message || '');
 const duplicateFolder = () => new HttpError(409, 'folder_name_taken', 'A folder with that name already exists.');
 
 // ── Folders ────────────────────────────────────────────────────────────
@@ -49,12 +51,15 @@ const duplicateFolder = () => new HttpError(409, 'folder_name_taken', 'A folder 
 // Folders are org-wide, so they are readable and editable by anyone in the
 // organisation. The automations INSIDE them stay per-user — the list endpoint
 // filters on user_id — so a folder is a shared label, not a shared inbox.
+/**
+ * @param {Router} router
+ */
 function registerFolderRoutes(router) {
     // Folder ids in the URL and the body are untrusted: every handler loads the
     // folder in the CALLER's organisation first, and another organisation's
     // folder answers 404 like one that does not exist.
     router.get('/folders', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-        res.json({ folders: await automationStore.listFolders(await orgOf(req), req.session.user.id) });
+        res.json({ folders: await automationStore.listFolders(await orgOf(req), sessionUser(req).id) });
     });
 
     router.post('/folders', validate({ body: FolderBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
@@ -101,8 +106,12 @@ function registerFolderRoutes(router) {
 /**
  * The folder an automation is filed in, for its update: the folder must exist in
  * the caller's organisation (an id from the client is not trusted). Null = the top level.
+ * @param {string | null | undefined} folderId
+ * @param {string | null} organizationId
  */
-async function folderIdForUpdate(folderId, organizationId) {
+
+async function folderIdForUpdate(
+folderId, organizationId) {
     if (!folderId) return null;
     try {
         return (await automationStore.requireFolderForAutomation(folderId || null, organizationId))?.id ?? null;

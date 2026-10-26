@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * CMS over MCP — JSON-RPC handling and tool dispatch.
  *

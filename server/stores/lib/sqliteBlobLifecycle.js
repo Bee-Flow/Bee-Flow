@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -18,6 +18,8 @@ function createStorageOps({ handles, localPathFor, dbKey, storage, runQuery, met
      * On-disk size of the entity's database in bytes (0 when no db file exists
      * yet). Reads the local materialised file — call after getHandle to be
      * sure it's present, or it returns 0 for a not-yet-loaded entity.
+     * @param {string} ownerId
+     * @param {string} id
      */
     async function sizeBytes(ownerId, id) {
         const entry = handles.get(id);
@@ -51,6 +53,8 @@ function createStorageOps({ handles, localPathFor, dbKey, storage, runQuery, met
     /**
      * Wipe the DB entirely — close the handle, delete the local file and the
      * RustFS object, and zero the Postgres metadata.
+     * @param {string} ownerId
+     * @param {string} id
      */
     async function reset(ownerId, id) {
         const entry = handles.get(id);
@@ -81,6 +85,8 @@ function createCloseOps({ handles, localPathFor, flushNow, logPrefix, entityLabe
      * Force any pending writes to RustFS and close out the debounce. Used
      * before version snapshotting so the snapshot includes everything the
      * user's done.
+     * @param {string} ownerId
+     * @param {string} id
      */
     async function flush(ownerId, id) {
         const entry = handles.get(id);
@@ -105,6 +111,7 @@ function createCloseOps({ handles, localPathFor, flushNow, logPrefix, entityLabe
      * a version restore overwrites the RustFS object out-of-band so the next
      * access re-downloads the restored bytes. Intentionally takes no ownerId
      * (no trust check) — it only discards local state.
+     * @param {string} id
      */
     async function invalidate(id) {
         const entry = handles.get(id);

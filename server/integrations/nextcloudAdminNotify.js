@@ -68,6 +68,7 @@ function explain(status) {
  * clickable) and falls back to v2 plain text on 404/405, which is what an
  * instance below Nextcloud 30 answers.
  *
+ * @param {{ ncFetch: import('./nextcloudClient.types').NcAuth['fetch'], baseUrl: string, ncUid: string, subject: string, message: string, link?: string | null }} opts
  * @returns {Promise<{ok:boolean, apiVersion:('v3'|'v2'|null), status:number, error?:string}>}
  */
 async function sendAdminNotification({ ncFetch, baseUrl, ncUid, subject, message, link = null }) {

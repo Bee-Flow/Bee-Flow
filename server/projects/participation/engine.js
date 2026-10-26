@@ -266,7 +266,7 @@ function makeParticipationEngine(deps) {
                 return await skip('limit_unavailable');
             }
 
-            const lastSeq = messages.reduce((max, m) => (Number.isFinite(m.seq) && m.seq > max ? m.seq : max), 0);
+            const lastSeq = messages.reduce((max, m) => (typeof m.seq === 'number' && Number.isFinite(m.seq) && m.seq > max ? m.seq : max), 0);
             reservation = await store.reserveGate({ ...base, lastSeq });
             // This exact conversation was already put to the gate: nothing new to decide.
             if (!reservation) return { decision: 'skipped', skipReason: 'already_gated' };

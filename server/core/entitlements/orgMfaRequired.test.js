@@ -22,19 +22,10 @@
 const { test, beforeEach } = require('node:test');
 const assert = require('node:assert');
 
-// ── configStore stub via the require.cache seam (house pattern) ────────────
-const blobs = {};
-let throwOnRead = false;
-let reads = 0;
-const configStoreStub = {
-    async getConfig(key) {
-        reads++;
-        if (throwOnRead) throw new Error('boom');
-        return blobs[key] !== undefined ? blobs[key] : null;
-    },
-};
-const csPath = require.resolve('../../stores/configStore');
-require.cache[csPath] = { id: csPath, filename: csPath, loaded: true, exports: configStoreStub };
+// The real configStore over a config table the test fills (testUtils/configRows.js).
+const { useConfigRows } = require('../../testUtils/configRows');
+const config = useConfigRows();
+test.after(config.restore);
 
 const {
     resolveOrgMfaRequired,
@@ -47,9 +38,7 @@ const {
 const ORG = 'org_a3';
 
 beforeEach(() => {
-    for (const k of Object.keys(blobs)) delete blobs[k];
-    throwOnRead = false;
-    reads = 0;
+    config.reset();
     invalidateOrgMfaRequired(ORG);
 });
 
@@ -62,7 +51,7 @@ test('every absent-ish stored value reads as FALSE — never `?? true`', async (
     // real resolution once per shape a store can hand back.
     for (const stored of [null, undefined, false, 0, '', 'true', {}, { required: false }, { required: 'yes' }, { enabled: true }, []]) {
         invalidateOrgMfaRequired(ORG);
-        blobs[orgMfaConfigKey(ORG)] = stored;
+        config.rows[orgMfaConfigKey(ORG)] = stored;
         assert.strictEqual(await resolveOrgMfaRequired(ORG), false,
             `a stored ${JSON.stringify(stored) ?? 'undefined'} must not enable the duty`);
     }
@@ -80,24 +69,24 @@ test('only an explicit true enables the duty', async () => {
 });
 
 test('a stored {required:true} row resolves true; no org resolves false', async () => {
-    blobs[orgMfaConfigKey(ORG)] = { required: true };
+    config.rows[orgMfaConfigKey(ORG)] = { required: true };
     assert.strictEqual(await resolveOrgMfaRequired(ORG), true);
     assert.strictEqual(await resolveOrgMfaRequired(null), false, 'consumer accounts have no org duty');
     assert.strictEqual(await resolveOrgMfaRequired(''), false);
 });
 
 test('a config-store failure degrades to false and does not throw', async () => {
-    throwOnRead = true;
+    config.failOn(true);
     assert.strictEqual(await resolveOrgMfaRequired(ORG), false,
         'the platform flag (missing⇒ON) remains the backstop; the org flag only ever ADDS the duty');
 });
 
 test('resolution is memoised and invalidate busts it', async () => {
     assert.strictEqual(await resolveOrgMfaRequired(ORG), false);
-    const after = reads;
-    blobs[orgMfaConfigKey(ORG)] = { required: true };
+    const after = config.reads.length;
+    config.rows[orgMfaConfigKey(ORG)] = { required: true };
     assert.strictEqual(await resolveOrgMfaRequired(ORG), false, 'within the TTL the memo answers');
-    assert.strictEqual(reads, after, 'no store read on a memo hit');
+    assert.strictEqual(config.reads.length, after, 'no store read on a memo hit');
     invalidateOrgMfaRequired(ORG);
     assert.strictEqual(await resolveOrgMfaRequired(ORG), true, 'after invalidate the new value applies');
 });

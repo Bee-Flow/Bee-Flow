@@ -37,7 +37,7 @@ const agent = (over = {}) => ({
     ...over,
 });
 
-const rowFor = (over, viewer = VIEWER) => agentPickerRows([agent(over)], viewer)[0];
+const rowFor = (/** @type {Record<string, unknown>} */ over, viewer = VIEWER) => agentPickerRows([agent(over)], viewer)[0];
 
 test('een agent zonder gepubliceerde versie staat in de lijst, met de reden', () => {
     const row = rowFor({ id: 'agt_draft', name: 'Draft bot', is_published: false });

@@ -1,4 +1,5 @@
-// @typecheck noImplicitAny
+/** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
+// @typecheck strict
 /**
  * The tables a run produced, as the run page shows them:
  *
@@ -133,13 +134,17 @@ function makeRunTablesRouter(overrides = {}) {
     });
 
     // Read fresh on every request, so changing the variable needs no restart.
-    /** @type {{ rpm: number, run: ReturnType<typeof perUserRateLimit> | null }} */
-    let limiter = { rpm: 0, run: null };
-    /** @type {import('express').RequestHandler} */
+    /** @type {{ rpm: number, run: ReturnType<typeof perUserRateLimit> } | null} */
+    let limiter = null;
+    /**
+     * @type {import('express').RequestHandler}
+     * @param {NextFunction} next
+     */
     const csvLimiter = (req, res, next) => {
         const rpm = limitsNow().csvRpm;
         if (rpm <= 0) return next();
-        if (limiter.rpm !== rpm) limiter = { rpm, run: perUserRateLimit({ windowMs: 60_000, max: rpm }) };
+        if (!limiter || limiter.rpm !== rpm) limiter = { rpm, run: perUserRateLimit({ windowMs: 60_000, max: rpm }) };
+
         return limiter.run(req, res, next);
     };
 

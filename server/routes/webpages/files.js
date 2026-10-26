@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * De extra bestanden van een multi-file project, en de binaire assets ernaast.
  *
@@ -14,6 +14,7 @@ const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded, bodyOf, NO_QUERY } = require('./schemas');
 const log = require('../../telemetry/log');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 // ── What the file routes may carry ─────────────────────────────────
 //
@@ -52,7 +53,7 @@ function register(router, { upload }) {
     // Read content of one extra file. Used by the frontend to fetch the bytes
     // for the live preview and the file-explorer detail view.
     router.get('/:id/files', requireAuth, validate({ query: FileQuery }), /** @param {import('express').Request<{ id: string }, unknown, unknown, { path?: string }>} req @param {import('express').Response} res */ async (req, res) => {
-        const userId = req.session.user.id;
+        const userId = sessionUser(req).id;
         // Owner OR org/group-published reader — same visibility as GET /:id, so
         // shared-page viewers can load the React src/ files their preview needs.
         let wp = await webpageStore.getWebpage(req.params.id, userId);
@@ -86,7 +87,7 @@ function register(router, { upload }) {
     // must keep using the AI tools to mutate files.
     router.put('/:id/files', requireAuth, validate({ body: PutFileBody, query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
         try {
-            const userId = req.session.user.id;
+            const userId = sessionUser(req).id;
             const wp = await webpageStore.getWebpage(req.params.id, userId);
             if (!wp) return res.status(404).json({ error: 'Webpage not found' });
             if (wp.userId !== userId) return res.status(403).json({ error: 'Read-only' });
@@ -116,7 +117,7 @@ function register(router, { upload }) {
 
     // Delete one extra file. Owner-only.
     router.delete('/:id/files', requireAuth, validate({ query: PathQuery }), /** @param {import('express').Request<{ id: string }, unknown, unknown, { path: string }>} req @param {import('express').Response} res */ async (req, res) => {
-        const userId = req.session.user.id;
+        const userId = sessionUser(req).id;
         const wp = await webpageStore.getWebpage(req.params.id, userId);
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });
         if (wp.userId !== userId) return res.status(403).json({ error: 'Read-only' });
@@ -140,7 +141,7 @@ function register(router, { upload }) {
     router.post('/:id/assets', requireAuth, validate({ query: NO_QUERY }), upload.single('file'),
         validate({ body: AssetBody }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
         try {
-            const userId = req.session.user.id;
+            const userId = sessionUser(req).id;
             const wp = await webpageStore.getWebpage(req.params.id, userId);
             if (!wp) return res.status(404).json({ error: 'Webpage not found' });
             if (wp.userId !== userId) return res.status(403).json({ error: 'Read-only' });
@@ -170,7 +171,7 @@ function register(router, { upload }) {
     // path, then deletes the source.
     router.post('/:id/assets/move', requireAuth, validate({ body: MoveBody, query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
         try {
-            const userId = req.session.user.id;
+            const userId = sessionUser(req).id;
             const wp = await webpageStore.getWebpage(req.params.id, userId);
             if (!wp) return res.status(404).json({ error: 'Webpage not found' });
             if (wp.userId !== userId) return res.status(403).json({ error: 'Read-only' });

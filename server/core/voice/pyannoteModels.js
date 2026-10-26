@@ -70,7 +70,7 @@ const PARAKEET_LANGUAGES = new Set([
 /**
  * Pick the transcription model for a meeting.
  *
- * @param {string|null} language   BCP-47-ish code from the capture screen ('nl', 'en-GB', …).
+ * @param {string | null | undefined} language   BCP-47-ish code from the capture screen ('nl', 'en-GB', …).
  * @param {string|null} [override] Admin-pinned model; used when it is a model
  *   pyannote actually accepts. An unknown string is ignored rather than sent —
  *   it would fail the whole job, and a silently weaker model beats no transcript.
@@ -87,7 +87,7 @@ function pickTranscriptionModel(language, override = null) {
 
 /**
  * True when `model` is one pyannoteAI accepts (for admin-input validation).
- * @param {string} model
+ * @param {string | null | undefined} model
  */
 function isValidTranscriptionModel(model) {
     return TRANSCRIPTION_MODELS.includes(String(model || '').trim());

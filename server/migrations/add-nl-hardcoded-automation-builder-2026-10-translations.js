@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck
+// @typecheck strict
 /**
  * Dutch for the automation builder strings that used to be hard-coded
  * English (2026-10): the Builder's panels, the step editors, the trigger
@@ -58,7 +58,7 @@ function applyNl(merged) {
 async function up() {
     const languageStore = require('../stores/languageStore');
     let added = 0;
-    await languageStore.mutateGUITranslations('nl', (current) => {
+    await languageStore.mutateGUITranslations('nl', (/** @type {Record<string, string>} */ current) => {
         const result = applyNl(current);
         added = result.added;
         return result.merged;

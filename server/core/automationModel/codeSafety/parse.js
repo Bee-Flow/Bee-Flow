@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Parsing and fingerprinting of a code step's source.
  *
@@ -83,14 +83,15 @@ function forEachNode(root, fn) {
     /** @type {Array<[import('acorn').AnyNode, import('acorn').AnyNode | null]>} */
     const stack = [[root, null]];
     while (stack.length) {
-        const [node, parent] = stack.pop();
+        const entry = stack.pop();
+        if (!entry) break;
+        const [node, parent] = entry;
         if (!node || typeof node.type !== 'string') continue;
         fn(node, parent);
-        const keys = Object.keys(node);
-        for (let i = keys.length - 1; i >= 0; i--) {
-            const k = keys[i];
+        const entries = Object.entries(node);
+        for (let i = entries.length - 1; i >= 0; i--) {
+            const [k, v] = entries[i];
             if (k === 'loc' || k === 'range' || k === 'start' || k === 'end') continue;
-            const v = node[k];
 
             if (Array.isArray(v)) {
                 for (let j = v.length - 1; j >= 0; j--) {

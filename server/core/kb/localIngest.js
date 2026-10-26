@@ -8,7 +8,7 @@ const { getClient } = require('../../db');
 const log = require('../../telemetry/log');
 const { chunkText, estimateTokens } = require('./chunking');
 const { ensureKBChunksTable, isPgvectorAvailable } = require('./kbChunksSchema');
-const { bestEffort } = require('../../utils/bestEffort');
+const { trackEmbeddingTokens, trackEmbeddingCost } = require('./embeddingCost');
 const { isMissingTable } = require('../../utils/isMissingTable');
 
 // Collaborators that sit in the server's large import cycle are handed in by
@@ -19,34 +19,14 @@ const { isMissingTable } = require('../../utils/isMissingTable');
 // legacy Azure → CPU) from core/embed/dispatch.
 let dispatchEmbedTexts = null;
 let loadEmbeddingMigration = null;
-let loadAzureServiceCosts = null;
 function wire(deps) {
-    ({ dispatchEmbedTexts, loadEmbeddingMigration, loadAzureServiceCosts } = deps);
+    ({ dispatchEmbedTexts, loadEmbeddingMigration } = deps);
 }
 
 // ── Embedding dispatch ──────────────────────────────────────────────
 // `dispatchEmbedTexts` (provider → legacy Azure → CPU) and `azureEmbed` now
 // live in ./embed/dispatch and are imported at the top of this file so the
 // node-search pipeline can share the exact same Azure-aware chain.
-
-// ── Embedding cost tracking (lazy-loaded) ────────────────────────────
-/**
- * @param {number} totalTokensEstimate
- */
-function _trackEmbeddingCost(totalTokensEstimate) {
-    try {
-        const { computeEmbeddingCost } = loadAzureServiceCosts();
-        const azureServiceUsageStore = require('../../stores/azureServiceUsageStore');
-        const cost = computeEmbeddingCost(totalTokensEstimate);
-        azureServiceUsageStore.logAzureServiceUsage({
-            service_type: 'embedding',
-            tokens: totalTokensEstimate,
-            estimated_cost: cost,
-            source: 'kb_upload',
-        }).catch((e) => bestEffort('core/kb/localIngest:_trackEmbeddingCost', e));
-        if (cost > 0) log.info(`[LocalKBIngest] 💰 Embedding cost: $${cost.toFixed(6)} (~${totalTokensEstimate} tokens)`);
-    } catch (_) { log.warn('could not record embedding usage', _); }
-}
 
 // ── Main ingestion function ─────────────────────────────────────────
 
@@ -125,7 +105,7 @@ async function ingestLocally(tenantId, kbId, docId, content, options = {}) {
             // Track cost only when we actually used a paid provider/Azure path.
             if (embedSource === 'provider' || embedSource === 'azure') {
                 const totalTokens = chunkTexts.reduce((sum, t) => sum + estimateTokens(t), 0);
-                _trackEmbeddingCost(totalTokens);
+                trackEmbeddingTokens(totalTokens);
             }
         } else {
             log.warn('[LocalKBIngest] No embeddings produced — falling back to keyword search only for this doc.');
@@ -289,11 +269,6 @@ async function purgeOrphanedChunks() {
         log.warn('[LocalKBIngest] Orphan purge failed:', /** @type {Error} */ (err).message);
         return 0;
     }
-}
-
-/** Cost logging for embedding these texts, as an ingest would log it. */
-function trackEmbeddingCost(texts) {
-    _trackEmbeddingCost((texts || []).reduce((sum, t) => sum + estimateTokens(t), 0));
 }
 
 module.exports = { trackEmbeddingCost, ingestLocally, deleteChunksLocally, getDocumentContent, purgeOrphanedChunks, wire };

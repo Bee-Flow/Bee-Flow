@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * CMS builder — function-calling tool schemas (OpenAI format).
  *
@@ -25,6 +25,7 @@ const { THEME_PRESET_IDS } = require('../i18n/defaults/themePresets');
 
 const LINK_HINT = 'Links are objects: {kind:"page",pageId} | {kind:"external",url,newTab?} | {kind:"anchor",anchor} | {kind:"app",path}. Use REAL page ids from the draft state.';
 
+/** @param {Record<string, string[]>} enums */
 const enumList = (enums) => Object.entries(enums).map(([k, v]) => `${k} (${v.join('|')})`).join(', ');
 
 /**

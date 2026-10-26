@@ -273,10 +273,10 @@ function normalizeTier(tier) {
 }
 
 /**
- * @param {string} tier
+ * @param {string | null | undefined} tier
  */
 function isValidTier(tier) {
-    return TIER_HIERARCHY.includes(normalizeTier(tier));
+    return typeof tier === 'string' && TIER_HIERARCHY.includes(normalizeTier(tier));
 }
 
 /**

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Who may open a hosted form, and what a token or a session id resolves to.
  *
@@ -148,7 +148,7 @@ async function currentRunFor(session) {
 async function journeyRunIds(session) {
     if (!session?.runId) return [];
     const runs = await automationStore.getRunsInChain(session.runId).catch((e) => fallback('routes/automation/formPublic/access:journeyRunIds', e, []));
-    return runs.map(r => r.id);
+    return runs.flatMap(r => (r ? [r.id] : []));
 }
 
 /**
@@ -161,7 +161,8 @@ async function pendingPageFor(session, currentRun = null) {
     const run = currentRun || await currentRunFor(session);
     if (!run || run.status !== 'awaiting_form' || !run.awaitingStepId) return null;
     const steps = await automationStore.getRunSteps(run.id);
-    const row = steps.find(s => s.stepId === run.awaitingStepId && s.status === 'awaiting_form');
+    const row = steps.find(s => s && s.stepId === run.awaitingStepId && s.status === 'awaiting_form');
+
     const form = row?.output?.form;
     if (!form) return null;
     return { session, run, stepId: run.awaitingStepId, form };

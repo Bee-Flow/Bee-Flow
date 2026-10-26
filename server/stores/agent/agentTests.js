@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -55,8 +55,8 @@ const TEST_RUNS_KEEP = 20;
  * from a column that was written as text. Anything this cannot read becomes
  * the empty document — an expectation nobody can parse is not an expectation,
  * and `testSandbox.normaliseExpect` reaches the same answer from the other end.
- * @param {string} value
- * @param {{} | null} fallback
+ * @param {unknown} value
+ * @param {object | null} fallback
  */
 function _json(value, fallback) {
     if (value === null || value === undefined) return fallback;
@@ -70,14 +70,13 @@ function _json(value, fallback) {
     return fallback;
 }
 
-/**
- * @param {string | number | Date} value
- */
+/** @param {string | number | Date} value */
 function _iso(value) {
     if (!value) return null;
     try { return new Date(value).toISOString(); } catch (_) { return null; }
 }
 
+/** @param {DbRow.AgentTests | null | undefined} row */
 function mapTest(row) {
     if (!row) return null;
     return {
@@ -98,6 +97,7 @@ function mapTest(row) {
     };
 }
 
+/** @param {DbRow.AgentTestRuns | null | undefined} row */
 function mapRun(row) {
     if (!row) return null;
     const total = Number(row.total) || 0;
@@ -115,9 +115,7 @@ function mapRun(row) {
     };
 }
 
-/**
- * @param {Pool} db
- */
+/** @param {Pool} db */
 async function _ready(db) {
     // Only when running against the real pool: with an injected db the schema
     // belongs to whoever built it (same contract as agentStats).
@@ -126,6 +124,7 @@ async function _ready(db) {
 
 // ── Tests ────────────────────────────────────────────────────────────
 
+/** @param {string | null | undefined} agentId */
 async function listTests(agentId, { db = pool } = {}) {
     if (!agentId) return [];
     await _ready(db);
@@ -136,6 +135,7 @@ async function listTests(agentId, { db = pool } = {}) {
     return (r.rows || []).map(mapTest);
 }
 
+/** @param {string | null | undefined} agentId */
 async function countTests(agentId, { db = pool } = {}) {
     if (!agentId) return 0;
     await _ready(db);
@@ -146,6 +146,10 @@ async function countTests(agentId, { db = pool } = {}) {
     return Number(r.rows && r.rows[0] && r.rows[0].n) || 0;
 }
 
+/**
+ * @param {string | null | undefined} agentId
+ * @param {string | null | undefined} testId
+ */
 async function getTest(agentId, testId, { db = pool } = {}) {
     if (!agentId || !testId) return null;
     await _ready(db);
@@ -193,9 +197,14 @@ async function createTest(agentId, test, { db = pool } = {}) {
 const TEST_PATCH_COLUMNS = {
     name: 'name',
     question: 'question',
-    expect: { col: 'expect', cast: 'jsonb', transform: (v) => JSON.stringify(v) },
+    expect: { col: 'expect', cast: 'jsonb', transform: (/** @type {unknown} */ v) => JSON.stringify(v) },
 };
 
+/**
+ * @param {string | null | undefined} agentId
+ * @param {string | null | undefined} testId
+ * @param {Record<string, unknown> | null | undefined} patch
+ */
 async function updateTest(agentId, testId, patch, { db = pool } = {}) {
     if (!agentId || !testId) return null;
     await _ready(db);
@@ -219,6 +228,10 @@ async function updateTest(agentId, testId, patch, { db = pool } = {}) {
     return mapTest((r.rows || [])[0]);
 }
 
+/**
+ * @param {string | null | undefined} agentId
+ * @param {string | null | undefined} testId
+ */
 async function deleteTest(agentId, testId, { db = pool } = {}) {
     if (!agentId || !testId) return false;
     await _ready(db);
@@ -277,6 +290,7 @@ async function recordTestRun(run, { db = pool } = {}) {
  * than that exists, because the prune above throws the rest away. A `limit`
  * that exceeds it would therefore promise a list that by definition comes back
  * shorter, and let the screen think it sees the whole history.
+ * @param {string | null | undefined} agentId
  */
 async function listTestRuns(agentId, { limit = TEST_RUNS_KEEP, db = pool } = {}) {
     if (!agentId) return [];
@@ -290,6 +304,7 @@ async function listTestRuns(agentId, { limit = TEST_RUNS_KEEP, db = pool } = {})
     return (r.rows || []).map(mapRun);
 }
 
+/** @param {string | null | undefined} agentId */
 async function getLastTestRun(agentId, { db = pool } = {}) {
     if (!agentId) return null;
     await _ready(db);

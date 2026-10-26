@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * stores/notebook/sources.js — notebook source CRUD (add, list, reorder,
  * update, retry claim, delete, the stuck-ingestion watchdog) and the activity
@@ -55,9 +55,7 @@ const SOURCE_LIST_COLUMNS = `id, notebook_id, type, name, storage_key, file_name
     word_count, created_at, updated_at, sort_order, stage,
     (content_text IS NOT NULL AND content_text <> '') AS has_content`;
 
-/**
- * @param {string} notebookId
- */
+/** @param {string} notebookId */
 async function getSources(notebookId) {
     await initDB();
     const rows = await getAll(
@@ -91,9 +89,7 @@ async function reorderSources(notebookId, orderedIds) {
     return true;
 }
 
-/**
- * @param {string} id
- */
+/** @param {string} id */
 async function getSource(id) {
     await initDB();
     const r = await getOne(`SELECT ${SOURCE_LIST_COLUMNS} FROM notebook_sources WHERE id = $1`, [id]);
@@ -139,7 +135,7 @@ async function updateSource(id, updates, { onlyIfProcessing = false } = {}) {
         });
         if (!built) return false;
         const { rowCount } = await client.query(built.sql, built.params);
-        return rowCount > 0;
+        return (rowCount ?? 0) > 0;
     });
 }
 
@@ -205,7 +201,7 @@ async function deleteSources(ids, notebookId) {
 // anchor — always pass it from a route.
 /**
  * @param {string} id
- * @param {string} notebookId
+ * @param {string | null} [notebookId]
  */
 async function deleteSource(id, notebookId = null) {
     await initDB();

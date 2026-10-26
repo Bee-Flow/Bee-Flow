@@ -165,8 +165,8 @@ function sweepNameOccurrences({ text, spans, seedEntries = [], categoryKeyOf, pa
 
     const covered = new Uint8Array(text.length);
     /** @param {{offset?: number, length?: number}} s */
-    const isInRange = (s) => Number.isFinite(s.offset) && s.offset >= 0
-        && Number.isFinite(s.length) && s.length > 0
+    const isInRange = (s) => typeof s.offset === 'number' && Number.isFinite(s.offset) && s.offset >= 0
+        && typeof s.length === 'number' && Number.isFinite(s.length) && s.length > 0
         && s.offset + s.length <= text.length;
     for (const r of reserved || []) if (isInRange(r)) covered.fill(1, r.offset, r.offset + r.length);
     for (const s of spans || []) {

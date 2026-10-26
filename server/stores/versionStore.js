@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Version Store - PostgreSQL-backed unified version control for all agent types
  * Tracks version history for agents, browser agents, terminal agents, and swarms.
@@ -30,14 +30,15 @@ const VERSION_KINDS = new Set(['autosave', 'published', 'pre_refine']);
 const AUTOSAVE_KEEP = 50;
 
 /**
- * @param {string} str
+ * @param {unknown} str
+ * @param {unknown} fallback
  */
 function safeParseJSON(str, fallback) {
     try { return typeof str === 'string' ? JSON.parse(str) : (str || fallback); } catch { return fallback; }
 }
 
 /**
- * @param {{run: Function, getOne: Function, getAll: Function, exec: Function}} db
+ * @param {Pick<typeof import('../db'), 'run' | 'getOne' | 'getAll' | 'exec'>} db
  * @param {{tag?: string}} [opts] - tag only changes the init error log prefix.
  */
 function createVersionStore(db, { tag = 'VersionStore' } = {}) {
@@ -67,12 +68,16 @@ function createVersionStore(db, { tag = 'VersionStore' } = {}) {
     }
 
     /**
-     * @param {object} [opts]
-     * @param {'autosave'|'published'|'pre_refine'} [opts.kind='autosave']
+     * @param {string} agentId
+     * @param {string} agentType
+     * @param {Record<string, unknown>} snapshot
+     * @param {string | null | undefined} [userId]
+     * @param {string | null | undefined} [changeSummary]
+     * @param {{ kind?: 'autosave' | 'published' | 'pre_refine' }} [opts]
      */
     async function createVersion(agentId, agentType, snapshot, userId = null, changeSummary = null, opts = {}) {
         await initDB();
-        const kind = VERSION_KINDS.has(opts?.kind) ? opts.kind : 'autosave';
+        const kind = typeof opts?.kind === 'string' && VERSION_KINDS.has(opts.kind) ? opts.kind : 'autosave';
         const id = randomUUID();
         const last = await getOne('SELECT MAX(version_number) as max_ver FROM agent_versions WHERE agent_id = $1', [agentId]);
         const versionNumber = (last?.max_ver || 0) + 1;
@@ -89,6 +94,7 @@ function createVersionStore(db, { tag = 'VersionStore' } = {}) {
         return { id, agent_id: agentId, agent_type: agentType, version_number: versionNumber, change_summary: changeSummary, kind, created_at: new Date().toISOString() };
     }
 
+    /** @param {string} agentId */
     async function getVersions(agentId) {
         await initDB();
         return getAll(`
@@ -97,6 +103,7 @@ function createVersionStore(db, { tag = 'VersionStore' } = {}) {
         `, [agentId]);
     }
 
+    /** @param {string} versionId */
     async function getVersion(versionId) {
         await initDB();
         const row = await getOne('SELECT * FROM agent_versions WHERE id = $1', [versionId]);
@@ -104,12 +111,14 @@ function createVersionStore(db, { tag = 'VersionStore' } = {}) {
         return { ...row, snapshot: safeParseJSON(row.snapshot, {}) };
     }
 
+    /** @param {string} versionId */
     async function deleteVersion(versionId) {
         await initDB();
         const { rowCount } = await run('DELETE FROM agent_versions WHERE id = $1', [versionId]);
         return rowCount > 0;
     }
 
+    /** @param {string} agentId */
     async function deleteAllVersions(agentId) {
         await initDB();
         await run('DELETE FROM agent_versions WHERE agent_id = $1', [agentId]);
@@ -119,6 +128,7 @@ function createVersionStore(db, { tag = 'VersionStore' } = {}) {
     // counted and never deleted here.
     /**
      * @param {number} [keepCount]
+     * @param {string} agentId
      */
     async function pruneVersions(agentId, keepCount = AUTOSAVE_KEEP) {
         await initDB();
@@ -133,6 +143,10 @@ function createVersionStore(db, { tag = 'VersionStore' } = {}) {
         `, [agentId, agentId, keepCount]);
     }
 
+    /**
+     * @param {string} agentId
+     * @param {Record<string, unknown>} snapshot
+     */
     async function _autoSummary(agentId, snapshot) {
         try {
             const prev = await getOne(
@@ -141,7 +155,7 @@ function createVersionStore(db, { tag = 'VersionStore' } = {}) {
             );
             if (!prev) return null;
             const before = safeParseJSON(prev.snapshot, {});
-            const norm = (v) => (v && typeof v === 'object') ? JSON.stringify(v) : (v ?? '');
+            const norm = (/** @type {unknown} */ v) => (v && typeof v === 'object') ? JSON.stringify(v) : (v ?? '');
             /** @type {string[]} */
             const changed = [];
             if (norm(before.system_prompt) !== norm(snapshot.system_prompt)) changed.push('system prompt');

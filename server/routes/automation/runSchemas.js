@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // The bodies and queries of the run endpoints (routes/automation/runs.js),
 // split out of it. Every schema is `.strict()`.
 const { z, worded, orEmpty, typeError } = require('../../core/http/schemaParts');
@@ -10,7 +10,11 @@ const { z, worded, orEmpty, typeError } = require('../../core/http/schemaParts')
 // narrowing parameter answers a wider question than the one it was asked —
 // the same failure the trigger-source check in crud.js exists to prevent.
 
-/** A body that also accepts no body at all (schemaParts' orEmpty), closed with zod's own wording. */
+/**
+ * A body that also accepts no body at all (schemaParts' orEmpty), closed with zod's own wording.
+ * @template {import('zod').ZodRawShape} S
+ * @param {S} shape
+ */
 const bodyOf = (shape) => orEmpty(z.object(shape).strict());
 
 /**

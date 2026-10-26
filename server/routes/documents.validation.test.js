@@ -21,7 +21,6 @@ process.env.NODE_ENV = 'test';
 
 const test = require('node:test');
 const assert = require('node:assert');
-const Module = require('module');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -37,29 +36,14 @@ fs.writeFileSync(path.join(OUTPUT_DIR, 'def456_Q3 report.pdf'), '%PDF-1.4 fake')
 // Not a PDF, but in the same directory.
 fs.writeFileSync(path.join(OUTPUT_DIR, 'ghi789_notes.txt'), 'plain text');
 
-const MOCKS = {
-    '../auth': { requireAuth: (req, res, next) => next() },
-    // Builtin interposed so OUTPUT_DIR lands in the private root above.
-    os: { tmpdir: () => TMP_ROOT },
-};
-const MOCK_IDS = {};
-for (const [request, exportsObj] of Object.entries(MOCKS)) {
-    const mockId = `mock:documents-validation:${request}`;
-    MOCK_IDS[request] = mockId;
-    require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
-}
-const originalResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /routes[\\/]documents\.js$/.test(parent.filename)
-        && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
-        return MOCK_IDS[request];
-    }
-    return originalResolve.call(this, request, parent, ...rest);
-};
+// The route reads os.tmpdir() at load; TMPDIR is what os.tmpdir() answers on
+// POSIX, so the private root above is the output directory. The auth gate is
+// the harness's session-only requireAuth (routeHarness.openGates).
+process.env.TMPDIR = TMP_ROOT;
+require('../testUtils/routeHarness').openGates();
 
 const router = require('./documents');
 test.after(() => {
-    Module._resolveFilename = originalResolve;
     fs.rmSync(TMP_ROOT, { recursive: true, force: true });
 });
 

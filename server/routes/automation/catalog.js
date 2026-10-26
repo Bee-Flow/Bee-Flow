@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 // §WS5 #4 — builder catalog endpoints, extracted verbatim from routes/automation.js.
 const express = require('express');
 const log = require('../../telemetry/log');
@@ -14,6 +14,7 @@ const {
     KNOWLEDGE_WRITE_STRATEGIES, DATATABLE_OPS, loadDatatables, loadKnowledgeBases, loadAgents,
 } = require('./catalogPickers');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 /**
  * Can a `code` step an author writes today actually RUN? The palette's copy
@@ -43,7 +44,7 @@ function resolveCodeStepGate() {
 
 // Catalog — auto-introspect existing TOOLS arrays.
 router.get('/catalog', async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     // Gather available apps for the user (best effort: present everything,
     // mark `available: true` if integrationTools.js would expose it).
     const { userToolNames, userToolDefs } = await loadUserTools(req, userId);
@@ -88,7 +89,7 @@ router.get('/catalog', async (req, res) => {
     // builder reads the same function (automation/builderPickerCatalog.js), so
     // the dropdown and the prompt cannot offer different providers. Booleans
     // only; no connection data, no secrets, ever reaches this response.
-    const orgId = req.session.user.organizationId || null;
+    const orgId = sessionUser(req).organizationId || null;
     const appEventProviders = await require('../../automation/builderPickerCatalog').buildAppEventProvidersFor({
         userId, session: req.session, apps, userToolNames, userToolDefs, orgId,
     });
@@ -176,7 +177,7 @@ router.get('/catalog/form-pick-sources', async (req, res) => {
     // everywhere, which greys out a hint and never removes a choice.
     let userToolNames = new Set();
     try {
-        ({ userToolNames } = await loadUserTools(req, req.session.user.id));
+        ({ userToolNames } = await loadUserTools(req, sessionUser(req).id));
     } catch (err) { bestEffort('routes/automation/catalog:anon#2', err); /* a tools module that will not load: every source reads unavailable */ }
     res.json({ sources: buildFormPickSources(userToolNames) });
 });
@@ -220,7 +221,7 @@ router.get('/catalog/nextcloud-tables/:tableId/columns', async (req, res, next) 
         // a transfer for the ledger (the call site's own reason, see
         // core/tools/toolEgress.js).
         const out = await executeTool('nextcloud_tables_list_columns', { tableId }, {
-            userId: req.session.user.id,
+            userId: sessionUser(req).id,
             session: req.session,
             egress: false,
         });

@@ -147,9 +147,9 @@ async function deleteRow(mirror, rowId) {
 async function fallback(mirror, reason) {
     await datatableStore.markSourceStale(mirror.id, reason);
     const fresh = await datatableStore.getDatatable(mirror.id, mirror.scope);
-    // Through the registry: a dependent (staleDependents) may be a mirror of
+    // Through mirror/kickStale (the registry would close an import cycle): a dependent (staleDependents) may be a mirror of
     // another kind, and only its own engine can refresh it.
-    if (fresh) require('../index').kickStale(fresh, { reason });
+    if (fresh) require('../mirror/kickStale').kickStale(fresh, { reason });
 }
 
 /**

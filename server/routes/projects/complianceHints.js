@@ -29,6 +29,7 @@ const { lazyProjectRoleGate } = require('./roleGate');
 const { HttpError } = require('../../core/http/errors');
 const hints = require('../../compliance/projectHints');
 const { fallback } = require('../../utils/bestEffort');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 const DAY_MS = 24 * 3600 * 1000;
 const NO_ORG_ORG_ID = 'default';
@@ -91,7 +92,7 @@ function makeComplianceHintsRouter(deps = {}) {
         try {
             const list = await currentCandidates(req);
             if (list.length) {
-                const dismissals = await complianceStore().getHintDismissals(req.session.user.id, req.params.id);
+                const dismissals = await complianceStore().getHintDismissals(sessionUser(req).id, req.params.id);
                 hint = hints.publicHint(hints.pick(list, dismissals, now()));
             }
         } catch (e) {
@@ -117,7 +118,7 @@ function makeComplianceHintsRouter(deps = {}) {
         // Nothing showing under that key: nothing to put away. The answer is
         // the same, so a stale tab cannot tell a hint from no hint.
         if (current) {
-            await complianceStore().recordHintDismissal(req.session.user.id, req.params.id, req.params.key, {
+            await complianceStore().recordHintDismissal(sessionUser(req).id, req.params.id, req.params.key, {
                 fingerprint: current.fingerprint,
                 snoozedUntil: snoozeDays ? new Date(now() + snoozeDays * DAY_MS).toISOString() : null,
             });

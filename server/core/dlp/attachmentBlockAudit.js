@@ -15,7 +15,7 @@ const { encodeCategories } = require('../privacy/piiCategories');
 const HELD_REASONS = new Set(['overflow', 'timeout', 'degraded']);
 
 /**
- * @param {string} reason
+ * @param {string | undefined} reason
  * @param {string[]} categories
  */
 function attachmentBlockAudit(reason, categories) {

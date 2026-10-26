@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Unit tests for the App Studio builder model profiles: the profile→tool-menu
  * selection (small = core menu, everything Claude-4.5-class and up = FULL menu
@@ -23,7 +23,7 @@ const {
 } = require('./builderModelProfiles');
 const { TOOL_SCHEMAS } = require('./builderTools/schemas');
 
-const namesOf = (menu) => menu.map((t) => t.function.name);
+const namesOf = (/** @type {{ function: { name: string } }[]} */ menu) => menu.map((t) => t.function.name);
 
 // ── Tool menu keys off the capability profile ───────────────────────
 

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * templates.js — organisation templates ("Save as template", Studio →
  * Automations handoff 5). The built-in gallery is static config
@@ -48,7 +48,7 @@ function scopeSql(orgId) {
 }
 
 /**
- * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }} db
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }> }} db
  * @param {{ ready?: () => Promise<void> }} [opts]
  */
 function makeTemplateStore(db, { ready = async () => {} } = {}) {

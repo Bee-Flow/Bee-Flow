@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -11,7 +11,7 @@ const assert = require('node:assert/strict');
 
 const h = require('./holidays');
 
-const dates = (year, opts) => Object.fromEntries(h.dutchHolidays(year, opts).map(x => [x.key, x.date]));
+const dates = (/** @type {number} */ year, /** @type {Record<string, unknown>} */ opts = {}) => Object.fromEntries(h.dutchHolidays(year, opts).map(x => [x.key, x.date]));
 
 test('Easter Sunday matches the published dates across the cycle', () => {
     const known = {

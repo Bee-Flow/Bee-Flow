@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The SVG chart the PDF deck embeds: every type draws, nothing but the
  * theme's colours and escaped text goes in, and a legend appears only when

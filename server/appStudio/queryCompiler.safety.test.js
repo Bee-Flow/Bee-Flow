@@ -15,15 +15,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-
-// Stub the PG-backed data store BEFORE requiring rlsGateway (its module top
-// `require('../stores/studioAppDataStore')` would otherwise open a live PG
-// connection). The gateway's rowFilterToSql needs no store at all.
-const filename = require.resolve('../stores/studioAppDataStore');
-require.cache[filename] = {
-    id: filename, filename, loaded: true,
-    exports: { getMemberRole: async () => null },
-};
+// The real modules over a recording pool, so nothing opens a connection.
+require('../testUtils/routeHarness').recordDb();
 
 const qc = require('./queryCompiler');
 const { rowFilterToSql } = require('./rlsGateway');

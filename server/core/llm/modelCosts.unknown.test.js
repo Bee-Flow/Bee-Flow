@@ -22,7 +22,8 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-const { installResolveStub } = require('../../testUtils/stubRequire');
+const { useConfigRows } = require('../../testUtils/configRows');
+const { loadPricing } = require('../../testUtils/pricingFeed');
 
 const d = (id, vendor, input, output, over = {}) => ({ id, vendor, input, output, cacheRead: null, currency: 'USD', source: 'litellm', ...over });
 const KNOWN = [
@@ -43,24 +44,21 @@ const KNOWN = [
     d('expensive-frontier-model', null, 15, 120),
     d('qwen3-235b', 'scaleway', 0.75, 2.25, { currency: 'EUR' }),
 ];
-const PRICING = Object.fromEntries(KNOWN.map((k) => [k.id, { input: k.input, output: k.output, cacheRead: k.cacheRead || 0 }]));
+const PROVIDER_OF = { openai: 'openai', claude: 'anthropic', scaleway: 'scaleway' };
+const PRICING = Object.fromEntries(KNOWN.map((k) => [k.id, {
+    input: k.input, output: k.output, cacheRead: k.cacheRead || 0,
+    ...(k.vendor ? { provider: PROVIDER_OF[k.vendor] } : {}),
+}]));
 
-const overrides = { value: null };
-const restore = installResolveStub({
-    '../../stores/configStore': {
-        getConfig: async () => overrides.value,
-        mutateConfig: async (_k, fn) => { overrides.value = fn(overrides.value); return overrides.value; },
-        setConfig: () => { },
-    },
-    './pricingService': {
-        getModelPricing: (name) => PRICING[name] || null,
-        getModelPricingDetail: (name) => (PRICING[name] ? { ...PRICING[name], source: 'community', key: name, tiers: {}, longCtx: null } : null),
-        getPricingByKey: () => null,
-        initPricing: () => { },
-        getAllModelPricing: () => PRICING,
-        listKnownPricing: () => KNOWN,
-    },
-});
+// The real configStore over a config table: the admin cost overrides live in one row.
+const config = useConfigRows();
+const OVERRIDES_KEY = 'model_cost_overrides';
+const overrides = {
+    get value() { return Object.prototype.hasOwnProperty.call(config.rows, OVERRIDES_KEY) ? config.rows[OVERRIDES_KEY] : null; },
+    set value(v) { if (v === null) delete config.rows[OVERRIDES_KEY]; else config.rows[OVERRIDES_KEY] = v; },
+};
+// The community pricing data, fed through the fetch the real pricingService uses.
+test.before(() => loadPricing(PRICING));
 
 const catalog = require('../../stores/lib/priceCatalog');
 const costs = require('./modelCosts');
@@ -71,7 +69,7 @@ const log = require('../../telemetry/log');
 const warnings = [];
 const realWarn = log.warn;
 test.before(() => { log.warn = (...a) => { warnings.push(a.join(' ')); }; });
-test.after(() => { log.warn = realWarn; restore(); });
+test.after(() => { log.warn = realWarn; config.restore(); });
 test.beforeEach(async () => {
     catalog.clear();
     overrides.value = null;

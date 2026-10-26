@@ -23,18 +23,8 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-function mock(relPath, exports) {
-    const resolved = require.resolve(relPath);
-    require.cache[resolved] = { id: resolved, filename: resolved, loaded: true, exports };
-}
-
-mock('../../stores/automationStore', { getAutomation: async () => null, recordRunStep: async () => {} });
-mock('../../stores/configStore', {});
-mock('../../stores/notificationStore', {});
-mock('../../db', { pool: {} });
-mock('../aiAgent', { getProviderForModel: async () => null });
-mock('../providers', { getAdapter: () => ({}) });
-mock('../../automation/codeSandbox', { run: async () => ({}) });
+// The real modules over a recording pool, so nothing opens a connection.
+require('../../testUtils/routeHarness').recordDb();
 
 const { runDag } = require('../automationRunner');
 

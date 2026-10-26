@@ -142,7 +142,7 @@ function register(router) {
         const starterPrompts = Array.isArray(body.starterPrompts)
             ? body.starterPrompts
             : (() => {
-                try { return JSON.parse(existing.starter_prompts || '[]'); } catch { return []; }
+                try { return JSON.parse(typeof existing.starter_prompts === 'string' && existing.starter_prompts ? existing.starter_prompts : '[]'); } catch { return []; }
             })();
 
         // Merge config — preserve unknown keys so an upgrade that adds a new

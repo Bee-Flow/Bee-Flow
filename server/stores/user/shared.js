@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // Shared user-store helpers: the dynamic-UPDATE builder and tolerant JSON
 // parsing. `parseJSON` is re-exported so the eight user-store modules that
 // already import it from here keep one import line.
@@ -11,8 +11,10 @@ const { buildUpdate } = require('../lib/sqlBuilder');
 // is stores/lib/sqlBuilder.js, which this signature was the blueprint for.
 /**
  * @param {string} table
- * @param {string} [whereCol]
  * @param {string} id
+ * @param {Record<string, unknown>} updates
+ * @param {Record<string, import('../lib/sqlBuilder').ColumnSpec>} columnMapping
+ * @param {string} [whereCol]
  */
 function dynamicUpdate(table, id, updates, columnMapping, whereCol = 'id') {
     return buildUpdate({

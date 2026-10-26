@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Edit results report validation for the page that was edited, plus one summary
  * line for the other empty pages, instead of an empty_page warning per page.

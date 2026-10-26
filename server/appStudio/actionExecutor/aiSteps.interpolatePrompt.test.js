@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio AI-step prompts: `{{form.x}}` / `{{vars.y}}` / `{{item.z}}` (or
  * a bare `{{name}}`, vars then form), read with the shared path grammar.

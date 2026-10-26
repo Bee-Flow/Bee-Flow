@@ -46,6 +46,7 @@ const { answersFromJourney, answersSize, hasAnswers } = require('../../automatio
 const { envCap } = require('../../automation/mcpRunReadCaps');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { entryDefinitionOf, resolveTriggerStepId } = require('./runEntry');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 const NAME_TEXT = 'name is 1 to 80 characters.';
 const CreateBody = bodyOf({
@@ -151,7 +152,7 @@ function makeFormScenariosRouter(overrides = {}) {
         }
 
         const row = await testing().createFormScenario({
-            automationId: a.id, sourceRunId: found.root.id, name: req.body.name, answers, createdBy: req.session.user.id,
+            automationId: a.id, sourceRunId: found.root.id, name: req.body.name, answers, createdBy: sessionUser(req).id,
         });
         return res.status(201).json({ scenario: describeScenario(row) });
     });
@@ -183,7 +184,7 @@ function makeFormScenariosRouter(overrides = {}) {
             mode: 'dry_run',
             triggerPayload: answers.trigger || null,
             rootStepId: entered.rootStepId,
-            startedByUserId: req.session.user.id,
+            startedByUserId: sessionUser(req).id,
             harness: {
                 source: { kind: 'scenario', id: row.id },
                 formAnswers: { pages: answers.pages || {} },

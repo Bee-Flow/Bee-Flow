@@ -18,7 +18,7 @@ const check = require('./a5-16-identity-hygiene');
 const saved = { getConfig: isoEvidenceStore.getConfig, listLatestSnapshots: isoEvidenceStore.listLatestSnapshots };
 afterEach(() => Object.assign(isoEvidenceStore, saved));
 
-const boom = (code) => { throw Object.assign(new Error('connection terminated'), { code }); };
+const boom = (/** @type {string} */ code) => { throw Object.assign(new Error('connection terminated'), { code }); };
 
 test('a config read that fails warns; it is not "no directory connector enabled"', async () => {
     isoEvidenceStore.getConfig = async () => boom('08006');

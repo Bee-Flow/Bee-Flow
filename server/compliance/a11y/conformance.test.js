@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * conformance.js — locating and shape-checking the CI artefact.
  *
@@ -15,7 +15,7 @@ const { loadConformance, validate, totals, SCHEMA_VERSION, SURFACE_IDS } = requi
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'a11y-conf-'));
 test.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
 
-function write(name, content) {
+function write(/** @type {string} */ name, /** @type {unknown} */ content) {
     const p = path.join(tmp, name);
     fs.writeFileSync(p, typeof content === 'string' ? content : JSON.stringify(content));
     return p;
@@ -47,7 +47,7 @@ test('well-formed artefact → parsed, age computed from generated_at', () => {
     assert.equal(r.found, true);
     assert.deepEqual(r.problems, []);
     assert.equal(r.artefact.build_sha, 'abcdef1234567');
-    assert.equal(Math.round(r.age_days), 4);
+    assert.equal(Math.round(Number(r.age_days)), 4);
 });
 
 test('invalid JSON → found but unusable, with a problem named', () => {

@@ -87,8 +87,8 @@ async function _readBounded(body, maxBytes) {
  * @param {{ maxBytes?: number, timeoutMs?: number, fetchImpl?: Function, headers?: object }} [opts]
  */
 async function probe(url, opts = {}) {
-    const maxBytes = Number.isFinite(opts.maxBytes) && opts.maxBytes > 0 ? opts.maxBytes : DEFAULT_MAX_BYTES;
-    const timeoutMs = Number.isFinite(opts.timeoutMs) && opts.timeoutMs > 0 ? opts.timeoutMs : DEFAULT_TIMEOUT_MS;
+    const maxBytes = typeof opts.maxBytes === 'number' && Number.isFinite(opts.maxBytes) && opts.maxBytes > 0 ? opts.maxBytes : DEFAULT_MAX_BYTES;
+    const timeoutMs = typeof opts.timeoutMs === 'number' && Number.isFinite(opts.timeoutMs) && opts.timeoutMs > 0 ? opts.timeoutMs : DEFAULT_TIMEOUT_MS;
     const fetchImpl = typeof opts.fetchImpl === 'function' ? opts.fetchImpl : safeFetch;
 
     /** @type {URL} */

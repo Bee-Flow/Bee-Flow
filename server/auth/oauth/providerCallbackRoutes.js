@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Multi-provider OAuth callback — GET /callback/:provider: state/PKCE check,
  * token exchange, user-info fetch, SSO provisioning + org binding, and the
@@ -292,7 +292,7 @@ router.get('/callback/:provider', async (req, res) => {
         // Never awaited so it cannot block or fail login.
         if (provider === 'microsoft' && freshUser?.azureUserId && !isLoginBlockedAccount(freshUser)) {
             syncUserGroupsOnLogin(freshUser.id, freshUser.azureUserId, undefined, freshUser.azureTenantId)
-                .catch((e) => bestEffort('oauthCallback:azure-group-sync', e));
+                .catch((/** @type {unknown} */ e) => bestEffort('oauthCallback:azure-group-sync', e));
         }
 
         log.info(`[OAuth/${provider}] Session setup — user: ${user.id} (${user.displayName}), pendingApproval: ${pendingApproval}, userHasOrg: ${userHasOrg}`);

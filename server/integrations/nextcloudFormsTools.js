@@ -361,7 +361,7 @@ async function executeNextcloudFormsTool(toolName, args, userId, session) {
 }
 
 /**
- * @param {string} toolName
+ * @param {string | null | undefined} toolName
  */
 function isNextcloudFormsTool(toolName) {
     return typeof toolName === 'string' && toolName.startsWith('nextcloud_forms_');

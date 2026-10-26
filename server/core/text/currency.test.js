@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 const { test } = require('node:test');
 const assert = require('node:assert');
 
@@ -7,10 +7,10 @@ const currency = require('./currency');
 
 test('getAllConfiguredRates lists every stored rate via listKeysWithPrefix, not only the probe list', async (t) => {
     const stored = { currency_fx_usd_pln: '4.1', currency_fx_usd_eur: '0.92', currency_fx_usd_bogus1: '9' };
-    t.mock.method(configStore, 'listKeysWithPrefix', async (prefix) => {
+    t.mock.method(configStore, 'listKeysWithPrefix', async (/** @type {string} */ prefix) => {
         assert.strictEqual(prefix, 'currency_fx_usd_');
         return Object.keys(stored);
     });
-    t.mock.method(configStore, 'getConfig', async (k) => stored[k] ?? null);
+    t.mock.method(configStore, 'getConfig', async (/** @type {string} */ k) => /** @type {Record<string, unknown>} */ (stored)[k] ?? null);
     assert.deepStrictEqual(await currency.getAllConfiguredRates(), { pln: 4.1, eur: 0.92 });
 });

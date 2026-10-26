@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Settings for the AI that decides by itself when to take part in team chats
  * and comment threads (projects/participation/policy.js holds the rules and
@@ -27,6 +27,7 @@ const { forbidden, unavailable } = require('../core/http/errors');
 const { bodyOf, flag, choice } = require('../core/http/schemaParts');
 
 const { SENSITIVITIES, RANGES } = require('../projects/participation/policy');
+const { sessionUser } = require('../core/http/sessionUser');
 
 /**
  * @param {string} name
@@ -91,13 +92,13 @@ function makeAiParticipationRouter(deps = {}) {
     });
 
     router.get('/me', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-        const pref = await policy().resolveUserPreference(req.session.user.id);
+        const pref = await policy().resolveUserPreference(sessionUser(req).id);
         if (pref.unavailable) throw unavailable('preference_unavailable', 'Your AI participation preference could not be read. Try again in a moment.');
         res.json({ autoJoinOnMyMessages: pref.autoJoinOnMyMessages });
     });
 
     router.put('/me', requireAuth, validate({ body: MyPreferenceBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-        res.json(await policy().saveUserPreference(req.session.user.id, req.body));
+        res.json(await policy().saveUserPreference(sessionUser(req).id, req.body));
     });
 
     return router;

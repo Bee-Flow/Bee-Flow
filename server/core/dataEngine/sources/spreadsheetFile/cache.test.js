@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The download cache: one download per file version however many ask, a
  * parsed value per sub-key, sixty seconds from insertion, a byte budget

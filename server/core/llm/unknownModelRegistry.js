@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Registry of models that were called but that no price source knows.
  *
@@ -80,6 +80,7 @@ function cleanEstimate(estimate) {
 
 /**
  * @param {number} now
+ * @param {{ warnedAt?: number }} entry
  */
 function _mayWarn(entry, now) {
     if (entry.warnedAt && now - entry.warnedAt < WARN_PER_MODEL_MS) return false;
@@ -103,7 +104,7 @@ function _mayWarn(entry, now) {
 function recordUnknownModel(seen, now = Date.now()) {
     const model = cleanModel(seen && seen.model);
     const provider = cleanProvider(seen && seen.provider);
-    const reason = REASONS.includes(seen && seen.reason) ? seen.reason : 'unknown_model';
+    const reason = seen && typeof seen.reason === 'string' && REASONS.includes(seen.reason) ? seen.reason : 'unknown_model';
     const estimate = cleanEstimate(seen && seen.estimate);
     const key = `${provider || ''}|${model}`;
 

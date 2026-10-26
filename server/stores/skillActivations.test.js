@@ -1,7 +1,7 @@
 /**
  * skillActivations — the "last used" write behind the Skills overview.
  *
- * DB-free: ../db is stubbed via require.cache. Pins the natural-key upsert
+ * DB-free: the real db.js runs over a recording pool. Pins the natural-key upsert
  * (the static path fires on EVERY chat turn — a 40-turn chat must be one
  * row, with a current timestamp), the in-process TTL cache that keeps that
  * turn free, the last_used_at stamp, the retention prune and the
@@ -17,27 +17,18 @@ process.env.NODE_ENV = 'test';
 
 const calls = [];
 let failNext = false;
-const dbPath = require.resolve('../db');
-require.cache[dbPath] = {
-    id: dbPath, filename: dbPath, loaded: true,
-    exports: {
-        run: async (sql, params = []) => {
-            if (failNext) { failNext = false; throw new Error('db down'); }
-            calls.push({ sql: sql.replace(/\s+/g, ' ').trim(), params });
-            return { rowCount: 1, rows: [] };
-        },
-        getAll: async (sql, params = []) => {
-            calls.push({ sql: sql.replace(/\s+/g, ' ').trim(), params });
-            if (/DISTINCT ON \(skill_id\)/.test(sql)) {
-                return [{ skill_id: 's1', agent_id: 'a1', source: 'static', at: '2026-09-01T10:00:00.000Z' }];
-            }
-            if (/GROUP BY agent_id/.test(sql)) return [{ agent_id: 'a1', at: '2026-09-02T10:00:00.000Z' }];
-            return [];
-        },
-        exec: async () => undefined,
-        makeStoreInit: (tag, fn) => { let p = null; return () => (p ||= Promise.resolve().then(fn)); },
-    },
-};
+// The real db.js over a recording pool: every data statement lands in `calls`
+// (whitespace collapsed), and the reads answer what the old double did.
+require('../testUtils/routeHarness').recordDb((sql, params = []) => {
+    if (!/^\s*(INSERT|UPDATE|DELETE|SELECT)/i.test(sql)) return undefined;
+    if (failNext && !/^\s*SELECT/i.test(sql)) { failNext = false; throw new Error('db down'); }
+    calls.push({ sql: sql.replace(/\s+/g, ' ').trim(), params });
+    if (/DISTINCT ON \(skill_id\)/.test(sql)) {
+        return { rows: [{ skill_id: 's1', agent_id: 'a1', source: 'static', at: '2026-09-01T10:00:00.000Z' }] };
+    }
+    if (/GROUP BY agent_id/.test(sql)) return { rows: [{ agent_id: 'a1', at: '2026-09-02T10:00:00.000Z' }] };
+    return { rows: [], rowCount: 1 };
+});
 
 const store = require('./skillActivations');
 

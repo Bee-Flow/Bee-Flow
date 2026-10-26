@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 const express = require('express');
@@ -7,6 +7,7 @@ const { bodyOf, choice } = require('../../core/http/schemaParts');
 const { validate } = require('../../core/http/validate');
 const { requireAuth } = require('../../auth/permissions');
 const sharing = require('../../stores/lib/documentSharing');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 const ids = z.array(z.string().trim().min(1).max(200)).max(200).default([]);
 const SharingBody = bodyOf({
@@ -25,13 +26,13 @@ function makeDocumentSharingRouter({ store = sharing, auth = requireAuth, notebo
     for (const [prefix, type] of [['', 'document'], ['/notebooks', 'notebook']]) {
         const middleware = type === 'notebook' ? [auth, gate] : [auth];
         router.get(`${prefix}/:id/sharing`, ...middleware, async (req, res) => {
-            res.json({ sharing: await store.getSharing(type, req.params.id, req.session.user.id) });
+            res.json({ sharing: await store.getSharing(type, req.params.id, sessionUser(req).id) });
         });
         router.get(`${prefix}/:id/sharing/principals`, ...middleware, async (req, res) => {
-            res.json(await store.sharingDirectory(type, req.params.id, req.session.user.id));
+            res.json(await store.sharingDirectory(type, req.params.id, sessionUser(req).id));
         });
         router.put(`${prefix}/:id/sharing`, ...middleware, validate({ body: SharingBody }), async (req, res) => {
-            res.json({ sharing: await store.setSharing(type, /** @type {string} */ (req.params.id), req.session.user.id, req.body) });
+            res.json({ sharing: await store.setSharing(type, /** @type {string} */ (req.params.id), sessionUser(req).id, req.body) });
         });
     }
     return router;

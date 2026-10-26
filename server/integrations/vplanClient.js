@@ -149,7 +149,7 @@ async function vplanFetch(creds, url) {
     }
 }
 
-async function vplanRequest(creds, path, query = null, retried = false) {
+async function vplanRequest(creds, path, /** @type {Record<string, string | undefined> | null} */ query = null, retried = false) {
     const url = buildUrl(path, query);
 
     let response;

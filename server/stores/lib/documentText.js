@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Counting what changed between two document bodies, without reading them
  * twice and without a diff library.
@@ -106,10 +106,11 @@ function countWords(html) {
 /**
  * A stable fingerprint of what a person sees in a document.
  *
- * @param {{ name?: string, docType?: string, description?: string, bodyHtml?: string, css?: string, settings?: object }} doc
+ * @param {{ name?: string, docType?: string, description?: string, bodyHtml?: string, css?: string, settings?: Record<string, unknown> }} doc
  * @returns {string}
  */
 function contentHash(doc) {
+    /** @type {Record<string, unknown>} */
     const settings = { ...(doc?.settings || {}) };
     delete settings.resolvedHouseStyleCss;
     const keys = Object.keys(settings).sort();

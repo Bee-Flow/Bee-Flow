@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Unit tests for utils/semver.js — the dependency-free module compat gate.
  *

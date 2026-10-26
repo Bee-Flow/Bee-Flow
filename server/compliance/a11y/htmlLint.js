@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Static HTML accessibility lint — the cheap half of the EAA Art. 4 check.
  *
@@ -206,8 +206,8 @@ function lint(html, opts = {}) {
     const fragment = !/<html[\s>]/i.test(src);
     const $ = cheerio.load(src);
     const c = new Collector($);
-    const rulesChecked = [];
-    const rulesSkipped = [];
+    const rulesChecked = /** @type {string[]} */ ([]);
+    const rulesSkipped = /** @type {{ rule: string; reason: string; }[]} */ ([]);
 
     // id → text map, for aria-labelledby resolution and duplicate detection.
     const byId = new Map();
@@ -219,7 +219,7 @@ function lint(html, opts = {}) {
         if (!byId.has(id)) byId.set(id, _norm($(el).text()) || _norm(_attr($(el), 'aria-label')) || _norm(_attr($(el), 'alt')));
     });
 
-    let declaredLang = null;
+    let declaredLang = /** @type {string | null} */ (null);
 
     // ── html-lang ──
     if (fragment) {
@@ -330,7 +330,7 @@ function lint(html, opts = {}) {
     // ── tabindex-positive ──
     rulesChecked.push('tabindex-positive');
     $('[tabindex]').each((_, el) => {
-        const v = parseInt(_attr($(el), 'tabindex'), 10);
+        const v = parseInt(_attr($(el), 'tabindex') ?? '', 10);
         if (Number.isFinite(v) && v > 0) c.add('tabindex-positive', el);
     });
 

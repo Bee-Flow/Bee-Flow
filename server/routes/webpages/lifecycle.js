@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The end and the branch of a page: cloning and deleting.
  *
@@ -21,6 +21,7 @@ const { z } = require('../../utils/zod');
 const { worded, bodyOf, flag, NOTHING, NO_QUERY } = require('./schemas');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 const CloneBody = bodyOf({
     name: worded('Een naam is tekst.').trim().max(200, 'Een naam is hoogstens 200 tekens.').optional(),
@@ -64,7 +65,7 @@ function register(router) {
     });
 
     router.delete('/:id', requireAuth, validate({ body: NOTHING, query: DeleteQuery }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
-        const userId = req.session.user.id;
+        const userId = sessionUser(req).id;
         const confirmed = /** @type {{ confirm?: boolean }} */ (req.query).confirm === true;
 
         // Owner-scoped, just like the deletion itself: a non-owner gets the same 404 as always and

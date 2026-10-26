@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * GDPR Art. 44-49 — International transfers / external LLMs.
  *
@@ -129,7 +129,7 @@ module.exports = {
         const settings = await complianceStore.getSettings(orgId);
         const sccConfirmed = new Set(
             (Array.isArray(settings.scc_confirmed_operators) ? settings.scc_confirmed_operators : [])
-                .map(e => String(e?.operator || '').toLowerCase())
+                .map((/** @type {{ operator?: unknown } | null | undefined} */ e) => String(e?.operator || '').toLowerCase())
                 .filter(Boolean)
         );
 

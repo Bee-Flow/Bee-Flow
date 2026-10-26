@@ -12,10 +12,15 @@ const assert = require('assert');
 const { startSseHeartbeat, openSse } = require('./sseHelpers');
 
 function fakeRes() {
-    const r = { writes: [], writableEnded: false, destroyed: false, _handlers: {} };
-    r.write = (s) => { r.writes.push(s); return true; };
-    r.on = (ev, fn) => { r._handlers[ev] = fn; return r; };
-    r.emit = (ev) => { if (r._handlers[ev]) r._handlers[ev](); };
+    const r = {
+        writes: [],
+        writableEnded: false,
+        destroyed: false,
+        _handlers: {},
+        write: (s) => { r.writes.push(s); return true; },
+        on: (ev, fn) => { r._handlers[ev] = fn; return r; },
+        emit: (ev) => { if (r._handlers[ev]) r._handlers[ev](); },
+    };
     return r;
 }
 
@@ -85,11 +90,20 @@ test('a dead socket stops itself on the next tick', () => {
 // ── openSse: headers, guarded send, client stop and the opt-in keep-alive ──
 
 function fakeStreamRes() {
-    const r = fakeRes();
     const handlers = {};
-    r.on = (ev, fn) => { (handlers[ev] = handlers[ev] || []).push(fn); return r; };
-    r.emit = (ev) => { for (const fn of handlers[ev] || []) fn(); };
-    r.writeHead = (status, headers) => { r.status = status; r.headers = headers; return r; };
+    const r = {
+        writes: [],
+        writableEnded: false,
+        destroyed: false,
+        status: 0,
+        headers: null,
+        write: (s) => { r.writes.push(s); return true; },
+        on: (ev, fn) => { (handlers[ev] = handlers[ev] || []).push(fn); return r; },
+        emit: (ev) => { for (const fn of handlers[ev] || []) fn(); },
+        writeHead: (status, headers) => { r.status = status; r.headers = headers; return r; },
+        setHeader: (_name, _value) => {},
+        end: (_chunk) => {},
+    };
     return r;
 }
 
@@ -190,7 +204,8 @@ test('openSse: the heartbeat takes startSseHeartbeat\'s interval and frame, and 
 });
 
 test('openSse tolerates a response stub without event listeners', () => {
-    const res = { writes: [], writeHead() {}, write(s) { this.writes.push(s); return true; } };
+    const res = { writes: [], writeHead() {}, setHeader() {}, end() {}, write(s) { this.writes.push(s); return true; } };
+
     const { send } = openSse(res, { heartbeat: true });
     send('done', { ok: true });
     assert.deepStrictEqual(res.writes, ['event: done\ndata: {"ok":true}\n\n']);

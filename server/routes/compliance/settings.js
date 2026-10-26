@@ -1,5 +1,5 @@
 /** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Compliance — org settings, the onboarding stamp, per-operator SCC
  * attestations and the auto-detect pre-fill the onboarding wizard reads.
@@ -87,7 +87,8 @@ const AI_LITERACY_KEYS = ['ai_literacy_confirmed_at', 'ai_literacy_material_url'
  * @param {{ status?: number, body?: unknown } | null} e
  */
 function fail(res, next, e) {
-    if (e && Number.isInteger(e.status) && e.body) return res.status(e.status).json(e.body);
+    if (e && typeof e.status === 'number' && Number.isInteger(e.status) && e.body) return res.status(e.status).json(e.body);
+
     return next(e);
 }
 

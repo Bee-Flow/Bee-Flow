@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Carrying a writer's change onto a co-edited notebook (agents/notebooks/notebookRebase.js),
  * with the real editor serialization (core/markdown).
@@ -19,8 +19,8 @@ const { markdownToHtml, htmlToMarkdown } = require('../../core/markdown');
 const BASE = '<h2>Plan</h2><p>Intro old.</p><ul><li><p>one</p></li><li><p>two</p></li></ul><p>Para five by team.</p>';
 
 /** What the notebook chat's replace tool makes of BASE. */
-const aiReplace = (find, replace) => executeNotebookDocTool('notebook_doc_replace', { find_text: find, replace_text: replace }, BASE).content;
-const mdOf = (r) => htmlToMarkdown(r.html).trim();
+const aiReplace = (/** @type {string} */ find, /** @type {string} */ replace) => executeNotebookDocTool('notebook_doc_replace', { find_text: find, replace_text: replace }, BASE).content;
+const mdOf = (/** @type {{ html: string }} */ r) => htmlToMarkdown(r.html).trim();
 
 test('the writer\'s change lands next to a colleague\'s edits elsewhere, including the neighbouring block', () => {
     const current = '<h2>Plan</h2><p>Intro old.</p><ul><li><p>one</p></li><li><p>two, and three</p></li></ul><p>Para five by team, EDITED.</p><p>Closing by B.</p>';
@@ -49,8 +49,8 @@ test('blocks the writer left alone stay the live nodes, with what Markdown does 
     const current = BASE.replace('<p>Para five by team.</p>', '<p style="text-align: center">Para five by team.</p>');
     const r = rebaseEdit({ html: BASE }, { html: aiReplace('Intro old.', 'Intro new.') }, current);
     assert.strictEqual(r.conflict, false);
-    assert.match(r.html, /<p[^>]*text-align: ?center[^>]*>Para five by team\.<\/p>/, 'the centred paragraph is still centred');
-    assert.match(r.html, /Intro new\./);
+    assert.match(String(r.html), /<p[^>]*text-align: ?center[^>]*>Para five by team\.<\/p>/, 'the centred paragraph is still centred');
+    assert.match(String(r.html), /Intro new\./);
 });
 
 test('a Markdown base (the workspace tools read Markdown) lines up with the live HTML', () => {

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Single source of truth for the 14 Nextcloud integrations that an org-admin
  * can toggle for a NC-bound organisation.
@@ -40,7 +40,7 @@ function isNcIntegrationId(id) {
     return NC_INTEGRATION_ID_SET.has(id);
 }
 
-function filterToNcIds(list) {
+function filterToNcIds(/** @type {unknown} */ list) {
     if (!Array.isArray(list)) return [];
     return list.filter(isNcIntegrationId);
 }

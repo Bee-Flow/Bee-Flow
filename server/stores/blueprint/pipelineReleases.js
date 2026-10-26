@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Pipeline releases of Solution stages: `cutPipelineRelease`,
  * `listPipelineReleases`, `getReleasePayloads`, and their own prune. Part of
@@ -90,9 +90,7 @@ async function _prunePipelineReleases(h, projectId) {
     return ids;
 }
 
-/**
- * @param {Pick<import('./mappers').BlueprintStoreCtx, 'ready' | 'handle' | 'inTransaction'>} ctx
- */
+/** @param {Pick<import('./mappers').BlueprintStoreCtx, 'ready' | 'handle' | 'inTransaction'>} ctx */
 function makePipelineReleasesStore({ ready, handle, inTransaction }) {
     /**
      * Cut a pipeline release of a Solution's Dev project: one immutable,

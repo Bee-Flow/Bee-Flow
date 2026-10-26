@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio builder — model capability profiles.
  *
@@ -74,6 +74,7 @@ const APP_CORE_TOOL_NAMES = new Set([
  */
 const _coreMenus = new WeakMap();
 /**
+ * @param {{ toolset?: string } | null | undefined} profile
  * @param {{ type: string; function: { name: string; description: string; parameters: object; }; }[]} toolSchemas
  */
 function selectToolMenu(profile, toolSchemas) {
@@ -106,7 +107,7 @@ const AUTO_TIER_TIEBREAK = ['deep_thinking', 'smart', 'pro', 'thinking', 'standa
  * 'custom:*' (separate routing semantics) and 'swarm' (multi-agent runtime),
  * matching the tier filter the chat classifier applies.
  *
- * @param {Object} tiers - tier map from getEUAwareTiers ({ [tier]: { modelId } })
+ * @param {Object | null | undefined} })
  * @returns {{ tier: string, modelId: string } | null} null when nothing is configured
  */
 function selectAutoBuilderTier(tiers) {

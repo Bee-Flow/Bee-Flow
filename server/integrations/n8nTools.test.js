@@ -23,28 +23,8 @@ const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
 
-// ── Stub ../db so configStore.initDB() is a no-op (no Postgres pool) ─────────
-const dbPath = require.resolve('../db');
-const noop = async () => {};
-require.cache[dbPath] = {
-    id: dbPath,
-    filename: dbPath,
-    loaded: true,
-    exports: {
-        pool: { query: async () => ({ rows: [], rowCount: 0 }) },
-        run: async () => ({ rows: [], rowCount: 0 }),
-        getOne: async () => null,
-        getAll: async () => [],
-        exec: noop,
-        getClient: async () => ({ query: async () => ({ rows: [] }), release: () => {} }),
-        withTransaction: async (fn) => fn({ query: async () => ({ rows: [] }) }),
-        makeStoreInit: () => noop,
-        getPoolStats: () => ({}),
-        getRedis: () => null,
-        redisHealthy: () => false,
-        disconnectRedis: noop,
-    },
-};
+// The real db.js over a recording pool, so nothing opens a connection.
+require('../testUtils/routeHarness').recordDb();
 
 const { triggerWebhookWorkflow } = require('./n8nTools');
 

@@ -67,9 +67,7 @@ const _projectKeyCache = new Map(); // `${orgId}|${projectId}` -> { at, key }
 const CACHE_TTL_MS = 5 * 60_000;
 const CACHE_MAX = 500;
 
-/**
- * @param {string} cacheKey
- */
+/** @param {string} cacheKey */
 function _cacheGet(cacheKey) {
     const hit = _projectKeyCache.get(cacheKey);
     if (!hit) return null;
@@ -157,7 +155,7 @@ function deriveProjectKey(ork, orgId, projectId) {
  * keeps the failure upstream of it where the error message is useful.
  *
  * @param {string} projectId
- * @param {string|null} rawOrgId project.organizationId — '' is normal here
+ * @param {string | null | undefined} rawOrgId project.organizationId — '' is normal here
  * @returns {Promise<Buffer>}
  */
 async function getProjectKey(projectId, rawOrgId) {

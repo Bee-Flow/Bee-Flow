@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Unit tests for walkRelativePath — path resolution RELATIVE to an arbitrary
  * value (the parse_json step + /map-json-fields verification both use it;

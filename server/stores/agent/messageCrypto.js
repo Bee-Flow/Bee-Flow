@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Per-conversation crypto context for the message store.
  *
@@ -96,6 +96,7 @@ function messageAad(conversationId, type, field) {
     return `bfmsg:v3:${type || 'agent'}:${conversationId}:${field}`;
 }
 
+/** @param {string | Buffer | null | undefined} encryptionKey */
 function _toKeyBuffer(encryptionKey) {
     if (!encryptionKey) return null;
     if (Buffer.isBuffer(encryptionKey)) return encryptionKey.length === 32 ? encryptionKey : null;
@@ -128,6 +129,12 @@ const _NO_KEY_HINT = {
         + 'and that the org is entitled to the encryption feature.',
 };
 
+/**
+ * @param {string | null | undefined} orgId
+ * @param {string} tier
+ * @param {string | null | undefined} userId
+ * @param {'messages' | 'background' | 'all'} [kind]
+ */
 function _warnNoKey(orgId, tier, userId, kind = 'all') {
     const k = `${orgId}|${tier}|${kind}`;
     const now = Date.now();
@@ -201,6 +208,9 @@ const ZK_ESCROW_SURFACES = Object.freeze([
 /**
  * Resolve the escrowed DEK for a user, or null if it cannot be had.
  * Never throws — a key lookup must not be able to fail a chat request.
+ * @param {string | null | undefined} userId
+ * @param {string | null | undefined} [orgId]
+ * @param {string | Buffer | null} [seedDek]
  */
 async function _escrowKey(userId, orgId, seedDek = null) {
     if (!userId) return null;
@@ -224,7 +234,7 @@ async function _escrowKey(userId, orgId, seedDek = null) {
  * @param {string|null} [opts.userId]
  * @param {string|null} [opts.orgId]           avoids a user lookup when known
  * @param {string|Buffer|null} [opts.encryptionKey]  session DEK, if any
- * @param {{projectId: string, orgId?: string}|null} [opts.projectKeyFor]
+ * @param {{projectId: string, orgId?: string | null}|null} [opts.projectKeyFor]
  *        Set for a conversation whose `crypto_scope` is 'project'. The key then
  *        comes from the project, not the caller — see the PROJECT_SHARED_MESSAGES
  *        note in this file's header. Never inferred: a caller must say so.
@@ -266,7 +276,7 @@ async function resolveCrypto({ userId = null, orgId = undefined, encryptionKey =
                 err.code = PROJECT_KEY_UNAVAILABLE;
                 throw err;
             }
-            const on = (surface) => shouldEncrypt(policy, surface);
+            const on = (/** @type {string} */ surface) => shouldEncrypt(policy, surface);
             return {
                 key,
                 backgroundKey: key,
@@ -328,7 +338,7 @@ async function resolveCrypto({ userId = null, orgId = undefined, encryptionKey =
         // can serve it actually resolved. Without the second half, `zk` with no
         // session would report encryptMessages:true and then write plaintext,
         // which is precisely the silent failure this module exists to avoid.
-        const on = (surface, k) => !!k && shouldEncrypt(policy, surface);
+        const on = (/** @type {string} */ surface, /** @type {Buffer | null} */ k) => !!k && shouldEncrypt(policy, surface);
 
         return {
             key,

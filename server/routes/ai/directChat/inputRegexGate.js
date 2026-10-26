@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Direct Chat input gates, part three: the regex guardrails. The org shield's
  * rules merged with the direct-chat-specific collection, checked against the
@@ -65,7 +65,7 @@ function applyInputRegex({ messages, message, regexConfig, send }) {
     const redactBase = typeof lastMsg?.content === 'string' ? lastMsg.content : (textPart ? textPart.text : message);
     const inputRx = applyRegexGuardrails({ text: message, redactBase, regexConfig, scope: 'userInput', emit: send, direction: 'input' });
     if (inputRx.action !== 'pass') {
-        log.info(`[DirectChat RegexGuard] User input violated rules: ${inputRx.ruleNames}, action: ${regexConfig.action}`);
+        log.info(`[DirectChat RegexGuard] User input violated rules: ${inputRx.ruleNames}, action: ${regexConfig?.action}`);
     }
     if (inputRx.action === 'redact') {
         if (typeof lastMsg.content === 'string') {

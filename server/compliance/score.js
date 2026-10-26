@@ -90,6 +90,7 @@ function forRegulation(results, regulation) {
  * framework whose every row is 'not_applicable': there the entry is the
  * counter object with `score: null` (the n/a tally is still worth showing),
  * which `scoreNumbers` flattens to the same null.
+ * @param {Set<string> | null} [active]  regulations to score; every built-in framework when omitted
  */
 function scoresByFramework(results, active = null) {
     const out = {};

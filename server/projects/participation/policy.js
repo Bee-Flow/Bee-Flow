@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Who allows the AI to take part in a conversation on its own, and how much.
  *
@@ -140,7 +140,7 @@ function normalizeUserPreference(stored) {
  * @param {{ sensitivity?: string } | null | undefined} policy
  */
 function thresholdFor(policy) {
-    return /** @type {Record<string, number>} */ (THRESHOLDS)[policy?.sensitivity] ?? THRESHOLDS.balanced;
+    return (policy?.sensitivity ? /** @type {Record<string, number>} */ (THRESHOLDS)[policy.sensitivity] : undefined) ?? THRESHOLDS.balanced;
 }
 
 /**

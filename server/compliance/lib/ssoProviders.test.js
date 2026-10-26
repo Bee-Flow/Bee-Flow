@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * configuredSsoProviders — the one SSO predicate ISO A.8.5 and NIS2

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The source grammar of a model table is found in THREE places, and this file keeps them
  * tied together.
@@ -41,7 +41,7 @@ const TABLES_MANAGER = path.resolve(
 );
 
 /** De letterlijke `const NAME = ['a', 'b'];` uit een agent-hub-bestand. */
-function arrayLiteral(source, name) {
+function arrayLiteral(/** @type {string} */ source, /** @type {string} */ name) {
     const m = new RegExp(`const\\s+${name}\\s*=\\s*\\[([^\\]]*)\\]`).exec(source);
     assert.ok(m, `${name} niet gevonden in tablesManagerModel.ts — is hij hernoemd?`);
     return m[1].split(',').map((s) => s.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean);

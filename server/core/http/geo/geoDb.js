@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * geoDb — IP → { country, region, city, lat, lon, asn, as_org }, on this box.
  *
@@ -52,7 +52,9 @@ let _state = { city: null, asn: null, cityInfo: null, asnInfo: null };
 let _loadPromise = null;
 /** @type {fs.FSWatcher[]} */
 let _watchers = [];
+/** @type {NodeJS.Timeout | null} */
 let _reloadTimer = null;
+/** @type {NodeJS.Timeout | null} */
 let _updateTimer = null;
 let _warnedMissing = false;
 
@@ -61,19 +63,30 @@ function _sources() {
     return { override: process.env.GEO_DB_DIR || null, dirs: [...new Set([VOLUME_DIR, IMAGE_DIR, DEV_DIR])] };
 }
 
+/**
+ * @param {string} name
+ * @param {string} kind
+ */
 function _matches(name, kind) {
     const lower = String(name).toLowerCase();
     return lower.endsWith('.mmdb') && lower.includes(kind);
 }
 
-/** Newest `kind` file in one directory: { file, mtimeMs } or null. */
+/**
+ * Newest `kind` file in one directory: { file, mtimeMs } or null.
+ * @param {string} dir
+ * @param {string} kind
+ */
 function _newestIn(dir, kind) {
+    /** @type {string[]} */
     let names;
     try { names = fs.readdirSync(dir); } catch { return null; }
+    /** @type {{ file: string, mtimeMs: number } | null} */
     let best = null;
     for (const name of names) {
         if (!_matches(name, kind)) continue;
         const file = path.join(dir, name);
+        /** @type {fs.Stats} */
         let st;
         try { st = fs.statSync(file); } catch { continue; }
         if (!st.isFile() || st.size === 0) continue;
@@ -82,13 +95,17 @@ function _newestIn(dir, kind) {
     return best;
 }
 
-/** The file to load for `kind`, per the source order in the header. */
+/**
+ * The file to load for `kind`, per the source order in the header.
+ * @param {string} kind
+ */
 function _pick(kind) {
     const { override, dirs } = _sources();
     if (override) {
         const hit = _newestIn(override, kind);
         if (hit) return hit.file;
     }
+    /** @type {{ file: string, mtimeMs: number } | null} */
     let best = null;
     for (const dir of dirs) {
         const hit = _newestIn(dir, kind);
@@ -97,7 +114,11 @@ function _pick(kind) {
     return best ? best.file : null;
 }
 
-/** 'DBIP-City-Lite' → 'dbip-city-lite'; buildEpoch → 'YYYY-MM'. */
+/**
+ * 'DBIP-City-Lite' → 'dbip-city-lite'; buildEpoch → 'YYYY-MM'.
+ * @param {string} file
+ * @param {{ databaseType?: string, buildEpoch?: Date } | undefined} metadata
+ */
 function _info(file, metadata) {
     const type = String(metadata?.databaseType || '').split(' ')[0].toLowerCase() || null;
     const built = metadata?.buildEpoch instanceof Date && !Number.isNaN(metadata.buildEpoch.getTime())
@@ -106,6 +127,7 @@ function _info(file, metadata) {
     return { file, edition: type, date: built };
 }
 
+/** @param {string} file */
 async function _open(file) {
     const maxmind = require('maxmind');
     const reader = await maxmind.open(file);
@@ -151,9 +173,10 @@ function _scheduleReload() {
 
 function _watch() {
     const { override, dirs } = _sources();
-    for (const dir of new Set([override, ...dirs].filter(Boolean))) {
+    for (const dir of new Set([override, ...dirs].flatMap((d) => (d ? [d] : [])))) {
         try {
             const w = fs.watch(dir, { persistent: false }, (_event, name) => {
+
                 if (!name || String(name).toLowerCase().endsWith('.mmdb')) _scheduleReload();
             });
             w.on('error', () => { /* directory removed: the next load() re-reads the sources */ });
@@ -168,6 +191,7 @@ function _autoUpdateEnabled() {
     return String(process.env.GEO_DB_AUTO_UPDATE || '').toLowerCase() === 'monthly';
 }
 
+/** @param {import('./geoDbFetch').FetchImpl} [fetchImpl] */
 async function _autoUpdate(fetchImpl) {
     const { fetchGeoDb, monthsToTry } = require('./geoDbFetch');
     const current = monthsToTry()[0];
@@ -206,18 +230,20 @@ function load() {
     return _loadPromise;
 }
 
-const _round2 = (n) => (typeof n === 'number' && Number.isFinite(n) ? Math.round(n * 100) / 100 : null);
-const _en = (o) => (o && o.names && (o.names.en || Object.values(o.names)[0])) || null;
+const _round2 = (/** @type {unknown} */ n) => (typeof n === 'number' && Number.isFinite(n) ? Math.round(n * 100) / 100 : null);
+const _en = (/** @type {{ names?: Record<string, string> } | null | undefined} */ o) => (o && o.names && (o.names.en || Object.values(o.names)[0])) || null;
 /** 'San Francisco (Financial District)' → 'San Francisco'. */
-const _cityName = (s) => (s ? String(s).replace(/\s*\(.*\)\s*$/, '').trim() || null : null);
+const _cityName = (/** @type {string | null | undefined} */ s) => (s ? String(s).replace(/\s*\(.*\)\s*$/, '').trim() || null : null);
 
 /**
  * Synchronous lookup. null when the address is not an IP, is not in either
  * database, or the databases are not loaded (yet).
+ * @param {unknown} ip
  * @returns {{ country_code: string|null, region: string|null, city: string|null,
  *             lat: number|null, lon: number|null, asn: number|null, as_org: string|null } | null}
  */
 function lookupIp(ip) {
+
     if (!_loadPromise) load();
     const addr = canonicalIp(ip);
     if (!addr) return null;

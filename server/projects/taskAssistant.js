@@ -127,7 +127,7 @@ function makeTaskAssistant(deps = {}) {
     const checkLimits = deps.checkLimits
         || ((limitOrgId, userId) => require('../core/entitlements/limits').checkSubscriptionLimits(limitOrgId, 'chat', userId));
     const logUsage = deps.logUsage || ((entry) => require('../stores/usageStore').logUsage(entry));
-    const timeoutMs = Number.isFinite(deps.timeoutMs) && deps.timeoutMs > 0 ? deps.timeoutMs : DEFAULT_TIMEOUT_MS;
+    const timeoutMs = typeof deps.timeoutMs === 'number' && Number.isFinite(deps.timeoutMs) && deps.timeoutMs > 0 ? deps.timeoutMs : DEFAULT_TIMEOUT_MS;
     const newId = deps.newId || (() => crypto.randomUUID());
 
     /** One model call as `userId`, the notes going through their shield; the parsed object out. */

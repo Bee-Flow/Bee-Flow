@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Names a model reaches for that are NOT App Studio component types, mapped
  * to the type it means. Read by the batch normaliser (definitionTools) and by
@@ -12,6 +12,7 @@
 
 'use strict';
 
+/** @type {Readonly<Record<string, string>>} */
 const COMPONENT_TYPE_ALIASES = Object.freeze({
     datatable: 'data_grid', data_table: 'data_grid', grid: 'data_grid', datagrid: 'data_grid', records: 'data_grid',
     textbox: 'input_text', text_input: 'input_text', textfield: 'input_text', input: 'input_text', text_field: 'input_text',
@@ -41,7 +42,7 @@ const COMPONENT_TYPE_ALIASES = Object.freeze({
  * nothing usable. A name written with spaces or hyphens ("data grid",
  * "page-header") is the underscore type it spells — a small model reads the
  * catalog's `data_grid` and writes it back as prose.
- * @param {string} raw
+ * @param {unknown} raw
  */
 function canonicalComponentType(raw) {
     if (typeof raw !== 'string') return null;

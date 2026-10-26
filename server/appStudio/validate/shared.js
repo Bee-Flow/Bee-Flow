@@ -1,16 +1,20 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio validator — helpers shared by the validate/ modules.
  */
 
 'use strict';
 
+/** @param {unknown} v */
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
+
+/** @typedef {{ code: string; severity: string; path: string; message: string; hint: string; }} DataRefRecord */
 
 // Data-reference finding — an error normally (publish), demoted to a warning
 // when the caller opted in via opts.dataRefsAsWarnings (human draft saves).
 /**
- * @param {{ code: string; severity: string; path: string; message: string; hint: string; }} rec
+ * @param {{ dataRefsAsWarnings?: boolean, pushW: (rec: DataRefRecord) => void, pushE: (rec: DataRefRecord) => void }} ctx
+ * @param {DataRefRecord} rec
  */
 function pushDataRef(ctx, rec) {
     if (ctx.dataRefsAsWarnings) ctx.pushW({ ...rec, severity: 'warning' });

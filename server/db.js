@@ -28,6 +28,7 @@ const log = require('./telemetry/log');
 // because `db.makeStoreInit` is the seam a test overrides to neutralise
 // schema creation, and migrateDb reads it from this facade.
 const { makeStoreInit } = require('./stores/lib/storeInit');
+const { throughLedger } = require('./stores/lib/ddlLedger');
 
 // ── PostgreSQL ──────────────────────────────────────────
 // Core database for users, agents, configs, conversations, etc.
@@ -205,6 +206,7 @@ async function _timedQuery(sql, params) {
  * @returns {Promise<{ rowCount: number, rows: any[] }>}
  */
 async function run(sql, params = []) {
+    if (params.length === 0) return throughLedger(sql, () => _timedQuery(sql, params)); // schema via run(): as exec()
     return _timedQuery(sql, params);
 }
 
@@ -231,13 +233,13 @@ async function getAll(sql, params = []) {
 }
 
 /**
- * Execute raw SQL (e.g., schema init).
- * Uses a PostgreSQL advisory lock for CREATE TABLE/ALTER TABLE statements
- * to prevent pg_type_typname_nsp_index race conditions on fresh databases.
+ * Execute raw SQL (e.g., schema init). Inside a store init, a schema statement
+ * that already succeeded there is skipped (stores/lib/ddlLedger.js).
  * @param {string} sql
  */
+const exec = (sql) => throughLedger(sql, () => _exec(sql));
 let _schemaQueue = Promise.resolve();
-async function exec(sql) {
+async function _exec(sql) {
     // CREATE TABLE / ALTER TABLE statements must be serialized to prevent
     // PostgreSQL implicit row-type creation races on fresh DBs.
     // We use a JS-level queue + a dedicated client connection so we don't
@@ -261,18 +263,8 @@ async function exec(sql) {
  * Get a client from the pool for transactions.
  * Prefer withTransaction() below — it guarantees COMMIT/ROLLBACK/release.
  * Use getClient() directly only when you need manual control (e.g. a cursor
- * or advisory-lock lifetime that spans multiple logical steps).
- *   const client = await getClient();
- *   try {
- *     await client.query('BEGIN');
- *     ...
- *     await client.query('COMMIT');
- *   } catch (e) {
- *     await client.query('ROLLBACK');
- *     throw e;
- *   } finally {
- *     client.release();
- *   }
+ * or advisory-lock lifetime that spans multiple logical steps), and then
+ * end any transaction on it and release() it in a `finally`, as withTransaction does.
  */
 async function getClient() {
     return pool.connect();
@@ -453,6 +445,8 @@ module.exports = {
     getClient,
     withTransaction,
     makeStoreInit,
+    // The schema ledger's own queries; late bound to pool.query. A double without it keeps the ledger off.
+    ledgerQuery: (sql, params) => pool.query(sql, params),
     isSqlStateError,
     getPoolStats,
     // internal — exported for unit tests (DB-free)

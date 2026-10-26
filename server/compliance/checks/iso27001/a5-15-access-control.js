@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * ISO 27001 A.5.15 / A.5.18 / A.8.3 — Access control is centrally defined and
  * machine-checked.
@@ -65,8 +65,10 @@ module.exports = {
             rolesError = /** @type {Error} */ (e).message;
         }
         const roleNames = Object.keys(roles);
-        const emptyRoles = roleNames.filter(r =>
-            !Array.isArray(roles[r] && roles[r].permissions) || roles[r].permissions.length === 0);
+        const emptyRoles = roleNames.filter((r) => {
+            const permissions = roles[r]?.permissions;
+            return !Array.isArray(permissions) || permissions.length === 0;
+        });
 
         const driftTestPresent = fs.existsSync(path.join(AUTH_DIR, 'accessRegistry.drift.test.js'));
 

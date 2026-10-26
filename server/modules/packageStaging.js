@@ -61,6 +61,7 @@ function _incompatible(reason) {
  * manifest spellings (snake_case AND the SDK's authored camelCase) only as
  * fallback for packages signed before the payload carried them.
  * @param {PackageManifest | undefined} manifest
+ * @param {{ [claim: string]: unknown } | null} [signedPayload]
  */
 function _compatCheck(manifest, signedPayload = null) {
     const semver = require('../utils/semver');

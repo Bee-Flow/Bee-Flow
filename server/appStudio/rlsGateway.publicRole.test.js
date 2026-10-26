@@ -16,14 +16,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-
-// resolveViewerRole reaches for the PG store at require time — stub it, as the
-// matrix test does, so this file stays a pure unit test.
-const filename = require.resolve('../stores/studioAppDataStore');
-require.cache[filename] = {
-    id: filename, filename, loaded: true,
-    exports: { getMemberRole: async () => null },
-};
+// The real modules over a recording pool, so nothing opens a connection.
+require('../testUtils/routeHarness').recordDb();
 
 const gateway = require('./rlsGateway');
 const { PUBLIC_ROLE_KEY } = require('./dataModel');

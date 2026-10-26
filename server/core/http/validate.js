@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Request validation as middleware, one zod schema per part of the request.
@@ -29,14 +29,41 @@
 
 const { badRequest } = require('./errors');
 
+/**
+ * @param {string} part
+ * @param {import('zod').core.$ZodIssue} issue
+ */
 function describe(part, issue) {
     const where = [part, ...issue.path].join('.');
     return { path: where, message: issue.message };
 }
 
+/** @typedef {'body' | 'query' | 'params'} RequestPart */
+/** @type {readonly string[]} */
+const REQUEST_PARTS = ['body', 'query', 'params'];
+
+/**
+ * @param {[string, import('zod').ZodType | undefined]} entry
+ * @returns {entry is [RequestPart, import('zod').ZodType]}
+ */
+const isRequestPart = (entry) => REQUEST_PARTS.includes(entry[0]) && entry[1] !== undefined;
+
+/**
+ * @param {{ body?: import('zod').ZodType, query?: import('zod').ZodType, params?: import('zod').ZodType }} schemas
+ */
 function validate(schemas) {
-    const parts = Object.entries(schemas);
+    const parts = Object.entries(schemas).filter(isRequestPart);
+    /**
+     * Generic in the route parameters, so the handler after it keeps the `{ id: string }` Express
+     * infers from the path.
+     * @template P
+     * @param {import('express').Request<P>} req
+     * @param {unknown} _res
+     * @param {import('express').NextFunction} next
+     */
+
     return function validateRequest(req, _res, next) {
+
         for (const [part, schema] of parts) {
             const result = schema.safeParse(req[part]);
             if (!result.success) {

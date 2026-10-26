@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The environment an MCP child process is allowed to see.
  *
@@ -66,9 +66,9 @@ const ALLOWED = new Set(ALLOWED_ENV);
 /**
  * Build the environment for an MCP child.
  *
- * @param {object} extra  per-server credentials an operator configured
- * @param {object} [source=process.env]  the parent environment
- * @returns {object} a fresh object — never a reference into process.env
+ * @param {Record<string, string>} extra  per-server credentials an operator configured
+ * @param {NodeJS.ProcessEnv} [source=process.env]  the parent environment
+ * @returns {Record<string, string>} a fresh object — never a reference into process.env
  */
 function buildMcpChildEnv(extra = {}, source = process.env) {
     /** @type {Record<string, string>} */

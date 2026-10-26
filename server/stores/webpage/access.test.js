@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * userHasAnyWebpageAccess on real Postgres (@electric-sql/pglite behind db.js's
  * pool, testUtils/pglitePool.js — no module-system mocking), with the table the

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * versions.js — automationStore aggregate (§WS5, extracted verbatim).
  */
@@ -129,7 +129,7 @@ const COUNTED_RUN_SQL = `
        AND r.mode <> 'dry_run'`;
 
 /**
- * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }} db
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }> }} db
  * @param {{ ready?: () => Promise<void> }} [opts]
  */
 function makeVersionQueries(db, { ready = async () => {} } = {}) {

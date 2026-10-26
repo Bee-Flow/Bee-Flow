@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Fixtures and test cases (stores/automationTestingStore.js is their union with
  * the golden and form-scenario factories).
@@ -16,9 +16,7 @@
 
 const crypto = require('crypto');
 
-/**
- * @param {string} prefix
- */
+/** @param {string} prefix */
 const newId = (prefix) => `${prefix}${crypto.randomUUID().replace(/-/g, '')}`;
 /** @param {Date | string | null | undefined} v */
 const toIso = (v) => (v instanceof Date ? v.toISOString() : v ?? null);
@@ -135,10 +133,11 @@ function makeTestCases(db, ready) {
         const oldFixtureId = rows[0].fixture_id;
         /** @type {string[]} */
         const sets = [];
+        /** @type {unknown[]} */
         const params = [automationId, caseId];
         /**
          * @param {string} sql
-         * @param {string} value
+         * @param {unknown} value
          */
         const add = (sql, value) => { params.push(value); sets.push(sql.replace('?', `$${params.length}`)); };
         if (patch.name !== undefined) add('name = ?', patch.name);

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // Per-language media in the CMS translation layer. A locale override is a
 // sparse patch over a block's content; until now only text got through. The
 // media addresses of a block (image / clip src, its dark twin, the poster and
@@ -18,6 +18,10 @@ const MEDIA_KEYS = ['src', 'srcDark', 'poster', 'captionsSrc'];
 const MEDIA_REF_MAX = 2048;
 const MEDIA_WARNING = 'Some media addresses were not accepted and were dropped (the default language shows there). A media src/srcDark/poster/captionsSrc must be an uploaded asset key (cms/…), a /api/cms/asset/… path or an http(s) URL.';
 
+/**
+ * @param {unknown} v
+ * @returns {v is Record<string, unknown>}
+ */
 function isObject(v) {
     return v !== null && typeof v === 'object' && !Array.isArray(v);
 }

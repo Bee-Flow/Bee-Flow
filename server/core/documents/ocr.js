@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * OCR Module — Mistral OCR API integration for PDF/image text extraction
  * 
@@ -19,6 +19,8 @@ const MISTRAL_OCR_MODEL = 'mistral-ocr-latest';
  * key when the default provider IS Mistral. Using it otherwise would send the
  * documents to api.mistral.ai together with another vendor's key. The explicit
  * `mistral_api_key` secret (`mistralApiKey`) is always a Mistral key.
+ * @param {import('../llm/modelCache').AIConfig} config
+ * @returns {string | null}
  */
 function resolveMistralOcrKey(config) {
     if (config.mistralOcrApiKey) return config.mistralOcrApiKey;

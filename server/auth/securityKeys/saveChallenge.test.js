@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * saveChallenge: the session holding a WebAuthn challenge is saved before the
@@ -12,8 +12,9 @@ const { saveChallenge } = require('./saveChallenge');
 const { HttpError } = require('../../shared/httpErrors');
 
 function recordingLog() {
+    /** @type {string[]} */
     const warnings = [];
-    return { warnings, warn: (...args) => warnings.push(args.join(' ')) };
+    return { warnings, warn: (/** @type {unknown[]} */ ...args) => warnings.push(args.join(' ')) };
 }
 
 test('resolves once the session is saved', async () => {
@@ -26,7 +27,7 @@ test('resolves once the session is saved', async () => {
 
 test('a failed save becomes a 503 session_unavailable and is logged', async () => {
     const log = recordingLog();
-    const req = { session: { save: (cb) => cb(new Error('redis down')) } };
+    const req = { session: { save: (/** @type {(err?: Error) => void} */ cb) => cb(new Error('redis down')) } };
     await assert.rejects(saveChallenge(req, log), (err) => {
         assert.ok(err instanceof HttpError);
         assert.equal(err.status, 503);

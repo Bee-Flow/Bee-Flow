@@ -31,7 +31,7 @@ const API = [
     'decodeRelpos', 'diffDocs', 'diffHtml', 'diffMarkdown', 'hunksFrom', 'anchorsForFragment', 'applyHunks', 'hunkWords',
 ];
 
-function fragmentOf(doc) {
+function fragmentOf(/** @type {import('yjs').Doc} */ doc) {
     return doc.getXmlFragment(C.FRAGMENT_NAME);
 }
 
@@ -41,7 +41,7 @@ test('the bundle exposes the co-editing API and keeps Yjs external', () => {
     // Yjs is required from the server's node_modules, not inlined: the
     // bundle's own module children include the very module `require('yjs')`
     // resolves to here.
-    const children = require.cache[BUNDLE].children.map(m => m.id);
+    const children = (require.cache[BUNDLE]?.children ?? []).map((m) => m.id);
     assert.ok(children.includes(require.resolve('yjs')), 'the bundle requires the server Yjs');
 });
 

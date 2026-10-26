@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * Run: node --test automation/patterns/evidenceCard.test.js
@@ -54,7 +54,7 @@ test('numbers are rounded and the histogram is always seven integers', () => {
 test('a template with an address or url is withheld', () => {
     assert.strictEqual(toEvidenceCard({ ...candidate, template: 'Mail from pieter@example.org' }).template, null);
     assert.strictEqual(toEvidenceCard({ ...candidate, template: 'See https://x.example' }).template, null);
-    assert.strictEqual(safeText('x'.repeat(500)).length, 160);
+    assert.strictEqual(safeText('x'.repeat(500))?.length, 160);
 });
 
 test('unknown enum values fall back to safe defaults', () => {

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The surface question, and the one way it must never fail.
  *

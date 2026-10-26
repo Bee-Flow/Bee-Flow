@@ -11,21 +11,8 @@
 
 const assert = require('assert');
 
-const storePath = require.resolve('../stores/automationStore');
-require.cache[storePath] = {
-    id: storePath,
-    filename: storePath,
-    loaded: true,
-    exports: {
-        getSubscriptionsForProvider: async () => [],
-        updateSubscription: async () => null,
-        getPollingSubscriptions: async () => [],
-        getExpiringSubscriptions: async () => [],
-        incrementSubscriptionFailures: async () => ({ consecutiveFailures: 0, errorNotifiedAt: null }),
-        resetSubscriptionFailures: async () => null,
-        getAutomation: async () => null,
-    },
-};
+// The real modules over a recording pool, so nothing opens a connection.
+require('../testUtils/routeHarness').recordDb();
 
 const tb = require('./triggerBus');
 

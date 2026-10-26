@@ -8,8 +8,7 @@
  *   - getTranscriptionByMeetMeetingCode query shape (owner-scoped, newest first)
  *   - additive meet_meeting_code migration runs at init
  *
- * Stubs ../db via the require-cache (same trick as
- * routes/transcriptions.reprocess.test.js) — no Postgres needed.
+ * The real db.js runs over a recording pool — no Postgres needed.
  *
  * Run: cd server && node --test stores/transcriptionStore.gmeet.test.js
  */
@@ -22,26 +21,28 @@ const path = require('path');
 // Must match the store's uploads root (both files live in server/stores).
 const UPLOADS_ROOT = path.resolve(__dirname, '../data/uploads');
 
-// ── Require-cache stub for ../db (before the store loads) ────────────────────
-function stub(p, exports) {
-    const filename = require.resolve(p);
-    require.cache[filename] = { id: filename, filename, loaded: true, exports };
-}
-
 const execCalls = [];
 const runCalls = [];
 const getOneCalls = [];
 let runResult = { rowCount: 1, rows: [] };
 let getOneResult = null;
 
-stub('../db', {
-    exec: async (sql) => { execCalls.push(sql); },
-    run: async (sql, params) => { runCalls.push({ sql, params }); return runResult; },
-    getOne: async (sql, params) => { getOneCalls.push({ sql, params }); return getOneResult; },
-    getAll: async () => [],
+// ── The real db.js over a recording pool (before the store loads) ────────────
+// Schema statements land in `execCalls`, writes in `runCalls` (answering
+// `runResult`), reads in `getOneCalls` (answering `getOneResult`).
+const db = require('../testUtils/routeHarness').recordDb((sql, params) => {
+    // Schema work, including the boot-time clean-up of dangling project ids, is not a request.
+    if (/^\s*(CREATE|ALTER)/i.test(sql) || /project_id NOT IN \(SELECT id FROM projects\)/.test(sql)) { execCalls.push(sql); return undefined; }
+    if (/^\s*SELECT/i.test(sql)) { getOneCalls.push({ sql, params }); return { rows: getOneResult ? [getOneResult] : [] }; }
+    // The schema ledger records the store's first init; only the store's own writes count here.
+    if (/schema_migrations/.test(sql)) return { rows: [], rowCount: 0 };
+    if (/^\s*(INSERT|UPDATE|DELETE)/i.test(sql)) { runCalls.push({ sql, params }); return runResult; }
+    return undefined;
 });
 
 const store = require('./transcriptionStore');
+// The store's own boot statements arrive a few ticks after load; let them land first.
+test.before(async () => { await db.settle(); runCalls.length = 0; getOneCalls.length = 0; });
 
 // ── fs.promises.unlink spy (store and test share the fs singleton) ───────────
 const unlinkCalls = [];

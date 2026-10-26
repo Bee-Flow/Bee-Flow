@@ -5,34 +5,19 @@
  *
  * Run: node routes/storageProxy.tmp.test.js
  *
- * storageStore is mocked via the require cache; a real express app is
+ * The real storageStore runs on a temp directory; a real express app is
  * exercised over http (same pattern as integrations/connections.test.js).
  */
 
 const assert = require('assert');
-const Module = require('module');
 const express = require('express');
-const { Readable } = require('stream');
 
 process.env.NODE_ENV = 'test';
 process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'unit-test-session-secret-0123456789abcdef';
 
-function mock(id, exports) {
-    const p = require.resolve(id);
-    const m = new Module(p);
-    m.exports = exports;
-    m.loaded = true;
-    require.cache[p] = m;
-}
-
-const served = [];
-mock('../stores/storageStore', {
-    isAvailable: () => true,
-    streamFile: async (key) => {
-        served.push(key);
-        return { stream: Readable.from(['file-bytes']), contentType: 'application/pdf', contentLength: 10 };
-    },
-});
+// The real storageStore on its local-disk backend, in a temp directory.
+const { useLocalStorage } = require('../testUtils/localStorage');
+const storage = useLocalStorage();
 
 const router = require('./storageProxy');
 const { generateTempDownloadUrl, resolveTempDownloadKey } = require('../utils/tempDownloadUrl');
@@ -91,6 +76,8 @@ const ATTACHMENT_KEY = `studio-apps/owner-1/app-1/attachments/${SHA}`;
     }
 
     // ── Route: serves a valid token, enforces prefix/expiry/HMAC ─────
+    await storage.ready();
+    await storage.put(ATTACHMENT_KEY, 'file-bytes', 'application/pdf');
     const app = express();
     app.use('/api/storage', router);
     const server = app.listen(0);
@@ -107,7 +94,6 @@ const ATTACHMENT_KEY = `studio-apps/owner-1/app-1/attachments/${SHA}`;
             const r = await get(tmpPath(url));
             assert.strictEqual(r.status, 200, r.text);
             assert.strictEqual(r.text, 'file-bytes');
-            assert.deepStrictEqual(served, [ATTACHMENT_KEY], 'streamed the attachment key');
         }
         {
             // Forged token for a non-allowed key → 403 before any HMAC math.
@@ -133,6 +119,7 @@ const ATTACHMENT_KEY = `studio-apps/owner-1/app-1/attachments/${SHA}`;
         }
     } finally {
         server.close();
+        storage.close();
     }
 
     console.log('storageProxy.tmp.test.js: all assertions passed');

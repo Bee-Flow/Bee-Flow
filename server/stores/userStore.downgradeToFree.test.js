@@ -55,9 +55,7 @@ stub('../db', {
 // applyPlanToOrg / invalidatePaygCache are best-effort side effects — make them
 // inert spies so the function under test can call them without a real impl.
 const applyPlanCalls = [];
-stub('../services/planEntitlements', {
-    applyPlanToOrg: async (orgId, planId, opts) => { applyPlanCalls.push({ orgId, planId, opts }); },
-});
+require('./user/billingPorts').setApplyPlanToOrg(async (orgId, planId, opts) => { applyPlanCalls.push({ orgId, planId, opts }); });
 stub('./usageStore', {
     invalidatePaygCache: () => {},
 });

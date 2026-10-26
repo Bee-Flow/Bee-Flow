@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The builder prompt must describe the catalog that actually exists.
  *
@@ -69,7 +69,7 @@ test('the provider headings this file slices on are the ones the prompt has', ()
 });
 
 /** The prose of ONE provider: its heading up to the next provider or GENERAL. */
-function providerSection(heading) {
+function providerSection(/** @type {string} */ heading) {
     const raw = promptSource();
     const start = raw.indexOf(`── ${heading} ──`);
     assert.ok(start !== -1, `the prompt has a ${heading} section`);

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * One outbound call inside a capture context, never throwing:
@@ -12,8 +12,11 @@
  *
  * Built on `runWithProbe` alone, looked up per call: that is the one function
  * every test double of outboundProbe provides.
+ * @template T
+ * @param {() => Promise<T> | T} fn
  */
 async function captureCall(fn) {
+
     const { runWithProbe } = require('./outboundProbe');
     const { result, probe } = await runWithProbe(async () => {
         try {

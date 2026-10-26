@@ -1,5 +1,5 @@
 /** @typedef {import('zod').ZodString} ZodString */
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The Stripe Customer Portal hand-off, plus the eligibility rule that decides
  * who may reach it.
@@ -10,6 +10,7 @@
 const express = require('express');
 const stripeService = require('../../services/stripeService');
 const userStore = require('../../stores/userStore');
+const { sessionUser } = require('../../core/http/sessionUser');
 const { requireCloud, requireAuth, resolveOrgIdForUser, getOrigin, stripeIpLimiter, stripeUserLimiter } = require('./shared');
 const { accountLicenseSettingsPath, orgLicenseSettingsPath } = require('../../utils/appPaths');
 const { validate } = require('../../core/http/validate');
@@ -63,7 +64,7 @@ router.post('/portal', requireCloud, stripeIpLimiter, requireAuth, stripeUserLim
     const enabled = await stripeService.isEnabled();
     if (!enabled) return res.status(400).json({ error: 'Stripe payments are not enabled' });
 
-    const user = req.session.user;
+    const user = sessionUser(req);
     const orgId = await resolveOrgIdForUser(req);
     const isConsumer = !!user?.isConsumerAccount || !orgId;
 

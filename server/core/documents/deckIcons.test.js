@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Icons on slides: names resolve (with the spellings people use), the SVG is
  * self-contained, the PNG is a real bitmap the .pptx can carry.

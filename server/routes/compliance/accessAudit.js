@@ -31,6 +31,7 @@ const { requireAuth, requirePermission, isSuperAdmin } = require('../../auth/per
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 // ── What a caller may ask for ───────────────────────────────
 //
@@ -239,7 +240,7 @@ router.get('/access-audit/export', requireAuth, requirePermission('admin_complia
         'access_audit_exported',
         'access_audit_log',
         scopeLabel,
-        req.session.user.id,
+        sessionUser(req).id,
         null,
         {
             rows: total,
@@ -261,7 +262,7 @@ router.get('/access-audit/export', requireAuth, requirePermission('admin_complia
         // away from the screen still states its own scope and filter — an
         // export whose scope has to be remembered is not evidence either.
         generatedAt: new Date().toISOString(),
-        generatedBy: req.session.user.id,
+        generatedBy: sessionUser(req).id,
         scope: scopeLabel,
         filter: {
             actions: filter.actions ?? null,

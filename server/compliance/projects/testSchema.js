@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 /**
@@ -70,7 +70,7 @@ async function applyProjectCheckSchema(pg, { versions = true } = {}) {
 
 /** @param {any} pg  a PGlite handle */
 function queryOf(pg) {
-    return async (/** @type {string} */ sql, /** @type {any[]} */ params) => (await (params && params.length ? pg.query(sql, params) : pg.query(sql))).rows;
+    return async (/** @type {string} */ sql, /** @type {any[] | undefined} */ params) => (await (params && params.length ? pg.query(sql, params) : pg.query(sql))).rows;
 }
 
 /**

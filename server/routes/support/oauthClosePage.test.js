@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The OAuth close page (routes/support/oauthClosePage.js): what it shows and
  * what it hands the opener, for ordinary values and for values that contain
@@ -15,13 +15,13 @@ const assert = require('node:assert');
 const { oauthClosePage, serviceEmailClosePage } = require('./oauthClosePage');
 
 /** The string the page's script posts to the opener, read back as the browser would. */
-function postedPayload(html) {
+function postedPayload(/** @type {string} */ html) {
     const m = /postMessage\(("(?:[^"\\]|\\.)*"),'\*'\)/.exec(html);
     assert.ok(m, 'the page posts a string literal to the opener');
     return JSON.parse(JSON.parse(m[1]));
 }
 
-const paragraph = (html) => /<p>([\s\S]*)<\/p>/.exec(html)[1];
+const paragraph = (/** @type {string} */ html) => /<p>([\s\S]*)<\/p>/.exec(html)?.[1];
 
 test('a successful connect: the fixed text, and the opener learns ok + the address', () => {
     const html = serviceEmailClosePage(true, 'ops@example.com');
@@ -51,7 +51,7 @@ test('the value in the script holds no character that could end the block or bre
     const value = `</script><script>1</script> & ${String.fromCharCode(0x2028)}${String.fromCharCode(0x2029)} >`;
     for (const page of [oauthClosePage, serviceEmailClosePage]) {
         const html = page(false, value);
-        const literal = /postMessage\(("(?:[^"\\]|\\.)*"),'\*'\)/.exec(html)[1];
+        const literal = /postMessage\(("(?:[^"\\]|\\.)*"),'\*'\)/.exec(html)?.[1] ?? '';
         assert.doesNotMatch(literal, /[<>&\u2028\u2029]/);
         assert.strictEqual(html.split('</script>').length, 2, 'exactly one closing tag: the page\'s own');
         assert.strictEqual(postedPayload(html).message, value);

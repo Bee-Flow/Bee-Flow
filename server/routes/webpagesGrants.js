@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Webpage bridge-grant routes — owner-only REST surface for the SAME grants
  * the studio AI manages through webpageBridgeTools (both delegate to
@@ -56,6 +56,7 @@ const { requireAuth } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
+const { sessionUser } = require('../core/http/sessionUser');
 
 const TOOL_TEXT = 'Name the integration action to grant (tool).';
 const FIXED_TEXT = 'fixedArgs is a JSON object of pinned arguments, e.g. { "channel": "#general" }.';
@@ -99,7 +100,7 @@ function sendError(res, err, fallback) {
  * @param {import('express').Response} res
  */
 async function ownedWebpage(req, res) {
-    const wp = await webpageStore.getWebpage(req.params.id, req.session.user.id);
+    const wp = await webpageStore.getWebpage(req.params.id, sessionUser(req).id);
     if (!wp) {
         res.status(404).json({ error: 'Webpage not found' });
         return null;
@@ -111,7 +112,7 @@ router.get('/:id/grants', requireAuth, /** @param {import('express').Request<{ i
     try {
         const wp = await ownedWebpage(req, res);
         if (!wp) return;
-        const { userId } = { userId: req.session.user.id };
+        const { userId } = { userId: sessionUser(req).id };
         const result = await webpageGrants.describeGrants({ webpageId: wp.id, userId, session: req.session });
         res.json(result);
     } catch (err) {
@@ -125,7 +126,7 @@ router.post('/:id/grants/integrations', requireAuth, validate({ body: Integratio
         if (!wp) return;
         const { tool, fixedArgs, label } = req.body;
         const result = await webpageGrants.grantIntegration({
-            webpageId: wp.id, userId: req.session.user.id, session: req.session, tool, fixedArgs, label,
+            webpageId: wp.id, userId: sessionUser(req).id, session: req.session, tool, fixedArgs, label,
         });
         res.json({ success: result.success, tool: result.tool, integrationId: result.integrationId, grants: result.grants });
     } catch (err) {
@@ -138,7 +139,7 @@ router.delete('/:id/grants/integrations/:tool', requireAuth, /** @param {import(
         const wp = await ownedWebpage(req, res);
         if (!wp) return;
         const result = await webpageGrants.revokeIntegration({
-            webpageId: wp.id, userId: req.session.user.id, tool: req.params.tool,
+            webpageId: wp.id, userId: sessionUser(req).id, tool: req.params.tool,
         });
         res.json({ success: result.success, removed: result.removed, grants: result.grants });
     } catch (err) {
@@ -152,7 +153,7 @@ router.post('/:id/grants/automations', requireAuth, validate({ body: AutomationG
         if (!wp) return;
         const { automationId, label } = req.body;
         const result = await webpageGrants.grantAutomation({
-            webpageId: wp.id, userId: req.session.user.id, automationId, label,
+            webpageId: wp.id, userId: sessionUser(req).id, automationId, label,
         });
         res.json({ success: result.success, automationId: result.automationId, title: result.title, grants: result.grants });
     } catch (err) {
@@ -165,7 +166,7 @@ router.delete('/:id/grants/automations/:automationId', requireAuth, /** @param {
         const wp = await ownedWebpage(req, res);
         if (!wp) return;
         const result = await webpageGrants.revokeAutomation({
-            webpageId: wp.id, userId: req.session.user.id, automationId: req.params.automationId,
+            webpageId: wp.id, userId: sessionUser(req).id, automationId: req.params.automationId,
         });
         res.json({ success: result.success, removed: result.removed, grants: result.grants });
     } catch (err) {
@@ -183,7 +184,7 @@ router.get('/:id/data-cards', requireAuth, /** @param {import('express').Request
     try {
         const wp = await ownedWebpage(req, res);
         if (!wp) return;
-        const cards = await webpageDataCards.buildDataCards({ webpageId: wp.id, userId: req.session.user.id });
+        const cards = await webpageDataCards.buildDataCards({ webpageId: wp.id, userId: sessionUser(req).id });
         res.json(cards);
     } catch (err) {
         sendError(res, err, 'Failed to load the data cards');
@@ -201,7 +202,7 @@ router.get('/:id/bindings', requireAuth, /** @param {import('express').Request<{
     try {
         const wp = await ownedWebpage(req, res);
         if (!wp) return;
-        const out = await webpageBindings.describePageActions({ webpageId: wp.id, userId: req.session.user.id });
+        const out = await webpageBindings.describePageActions({ webpageId: wp.id, userId: sessionUser(req).id });
         res.json(out);
     } catch (err) {
         sendError(res, err, 'Failed to read what this page does');

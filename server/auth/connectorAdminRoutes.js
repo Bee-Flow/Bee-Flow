@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Nextcloud Connector — admin routes
  *
@@ -39,6 +39,7 @@ const { requireAuth } = require('./permissions');
 const { invalidateTenantKeyCache } = require('./connectorJwt');
 const { validate } = require('../core/http/validate');
 const { z } = require('../utils/zod');
+const { sessionUser } = require('../core/http/sessionUser');
 
 const TENANT_KEY_PREFIX = 'connector_tenant_key_';
 
@@ -77,7 +78,7 @@ router.post('/admin/connector/tenants/:orgId/key', requireAuth, validate({ body:
     const key = crypto.randomBytes(32).toString('base64url');
     await configStore.setSecret(TENANT_KEY_PREFIX + orgId, key);
     invalidateTenantKeyCache(orgId);
-    log.info(`[ConnectorAdmin] Tenant key issued for org=${orgId} by user=${req.session.user.id}`);
+    log.info(`[ConnectorAdmin] Tenant key issued for org=${orgId} by user=${sessionUser(req).id}`);
     res.json({
         orgId,
         tenantKey: key,
@@ -112,7 +113,7 @@ router.delete('/admin/connector/tenants/:orgId/key', requireAuth, async (/** @ty
     // null; deleteConfig would also work if available.
     await configStore.setSecret(TENANT_KEY_PREFIX + orgId, '');
     invalidateTenantKeyCache(orgId);
-    log.info(`[ConnectorAdmin] Tenant key revoked for org=${orgId} by user=${req.session.user.id}`);
+    log.info(`[ConnectorAdmin] Tenant key revoked for org=${orgId} by user=${sessionUser(req).id}`);
     res.json({ orgId, revoked: true });
 });
 

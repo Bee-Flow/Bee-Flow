@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * EU AI Act Art. 53 — GPAI transparency (in force since Aug 2025).
  *
@@ -88,7 +88,7 @@ module.exports = {
         // through observedOperators.canonical, the fold the DORA register uses.
         const attested = new Set(
             (Array.isArray(settings.scc_confirmed_operators) ? settings.scc_confirmed_operators : [])
-                .map(e => canonical(e?.operator)).filter(Boolean)
+                .map((/** @type {{ operator?: string } | null | undefined} */ e) => canonical(e?.operator)).filter(Boolean)
         );
 
         const providerRows = providers.map(/** @param {Record<string, any>} p */ p => ({

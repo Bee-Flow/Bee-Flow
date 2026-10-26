@@ -21,10 +21,11 @@
  *
  * Usage:
  *   const { createRecordingDb } = require('../testUtils/mockDb');
- *   const { installResolveStub } = require('../testUtils/stubRequire');
  *   const mock = createRecordingDb({ tables: { studio_apps: appRows } });
- *   installResolveStub({ '../db': mock.db });
+ *   const restore = mock.attachPool();   // the real ../db, its pool answered by the double
  *   const store = require('./studioAppStore');
+ * (`mock.db` is the same double as a stand-in for the whole `../db` module, for
+ * code that takes its db injected: `makeStore({ db: mock.db })`.)
  *   ...
  *   mock.reset();
  *   assert.ok(mock.mutations().every(c => /user_id\s*=\s*\$/i.test(c.sql)));
@@ -43,8 +44,8 @@ const { TransactionRollback } = require('../utils/txRollback');
  */
 function createRecordingDb({ tables = {}, matchers = {}, onQuery } = {}) {
     /** @typedef {{ sql: string, params: unknown[] }} RecordedCall */
-    /** @type {{ run: RecordedCall[], getOne: RecordedCall[], getAll: RecordedCall[], client: RecordedCall[], exec: Array<{ sql: string }> }} */
-    const calls = { run: [], getOne: [], getAll: [], client: [], exec: [] };
+    /** @type {{ run: RecordedCall[], getOne: RecordedCall[], getAll: RecordedCall[], client: RecordedCall[], exec: Array<{ sql: string }>, pool: RecordedCall[] }} */
+    const calls = { run: [], getOne: [], getAll: [], client: [], exec: [], pool: [] };
 
     // Route a statement to the first registered table it names.
     /**
@@ -175,10 +176,39 @@ function createRecordingDb({ tables = {}, matchers = {}, onQuery } = {}) {
             calls.getAll = [];
             calls.client = [];
             calls.exec = [];
+            calls.pool = [];
+        },
+        /**
+         * Point the REAL db.js at this dispatcher through the shared pool, the
+         * seam testUtils/routeHarness.js recordDb() and pglitePool.js use, instead
+         * of replacing the `../db` module: the store keeps requiring the real
+         * `../db`, and `run`/`getOne`/`getAll`/`exec`/`withTransaction` all end in
+         * `pool.query` / `pool.connect`. Every statement then lands in
+         * `calls.pool` (one channel: the pool cannot tell run from getOne) and,
+         * inside a transaction or a DDL batch, in `calls.client`. Call it BEFORE
+         * the store is required. Returns the restore function.
+         */
+        attachPool() {
+            const real = require('../db');
+            const saved = { query: real.pool.query, connect: real.pool.connect };
+            const query = async (/** @type {unknown} */ sql, /** @type {unknown[]} */ params = []) => {
+                const text = typeof sql === 'string' ? sql : (typeof sql === 'object' && sql !== null && 'text' in sql ? String(sql.text) : '');
+                calls.pool.push({ sql: text, params });
+                return dispatch(text, params);
+            };
+            Object.assign(real.pool, { query, connect: async () => client });
+            return function restore() {
+                real.pool.query = saved.query;
+                real.pool.connect = saved.connect;
+            };
+        },
+        /** Statements that read, in order, whatever helper sent them (pool mode). */
+        reads() {
+            return calls.pool.filter((c) => /^\s*(SELECT|WITH)\b/i.test(c.sql));
         },
         /** Every recorded mutating statement (across helpers + transaction client). */
         mutations() {
-            return [...calls.run, ...calls.client]
+            return [...calls.run, ...calls.pool, ...calls.client]
                 .filter((c) => /^(UPDATE|DELETE|INSERT)/i.test(String(c.sql).trim()));
         },
         /** Every recorded statement, in the order run per channel. */

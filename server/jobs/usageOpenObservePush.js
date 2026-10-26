@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 /**
@@ -71,7 +71,7 @@ function cfg() {
         salt: process.env.USAGE_HASH_SALT || '',
         currency: resolveCurrency(),
         // Bucket size: 'hour' (prod default) | 'minute' (responsive local test) | 'day'.
-        bucket: /** @type {'minute' | 'hour' | 'day'} */ (['minute', 'hour', 'day'].includes(process.env.USAGE_PUSH_BUCKET) ? process.env.USAGE_PUSH_BUCKET : 'hour'),
+        bucket: process.env.USAGE_PUSH_BUCKET === 'minute' || process.env.USAGE_PUSH_BUCKET === 'day' ? process.env.USAGE_PUSH_BUCKET : 'hour',
         backfillDays: Number(process.env.USAGE_PUSH_BACKFILL_DAYS || 7),
         intervalMs: Number(process.env.USAGE_PUSH_INTERVAL_MS || 900000),
         timeoutMs: Number(process.env.USAGE_PUSH_TIMEOUT_MS || 8000),

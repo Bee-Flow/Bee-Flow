@@ -9,26 +9,21 @@
  * (2026-09-18). The samples below are the real outputs of that model and of
  * the models it was compared against.
  *
- * DB-free: same store cut as llmClient.forcedTool.test.js.
+ * DB-free: same config table double as llmClient.forcedTool.test.js.
  */
 
 const { test, after } = require('node:test');
 const assert = require('node:assert');
 
-const { installResolveStub } = require('../../testUtils/stubRequire');
+const { useConfigRows } = require('../../testUtils/configRows');
 
-const restoreStores = installResolveStub({
-    '../../stores/configStore': {
-        getConfig: async () => null,
-        setConfig: async () => {},
-        getSecret: async () => null,
-        setSecret: async () => {},
-    },
-});
-after(() => restoreStores());
+// The real configStore, its table empty: every key reads as absent.
+const config = useConfigRows();
+
+after(config.restore);
 
 const llmClient = require('./llmClient');
-const t = (raw) => llmClient._sanitiseTitle(raw);
+const t = (/** @type {unknown} */ raw) => llmClient._sanitiseTitle(raw);
 
 test('a plain title passes through, quotes stripped and whitespace collapsed', () => {
     assert.equal(t('Bee Flow Presentation'), 'Bee Flow Presentation');

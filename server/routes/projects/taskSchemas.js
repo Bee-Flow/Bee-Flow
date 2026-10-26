@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * What the task routes accept (routes/projects/tasks.js). Closed bodies, every
@@ -7,6 +7,10 @@
 
 const { z, worded, bodyOf, closedObject, choice, typeError } = require('../../core/http/schemaParts');
 
+/**
+ * @template {import('zod').ZodRawShape} S
+ * @param {S} shape
+ */
 const closedObjectOf = (shape) => closedObject(shape, 'A task');
 
 const TITLE_MAX = 200;

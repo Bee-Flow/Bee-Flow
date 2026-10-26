@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * The message-level half of the project chat store (../projectChatStore.js):
@@ -14,7 +14,7 @@ const { RESET_DERIVED_TITLES, DROP_TRACES } = require('./projectChatSql');
  * @param {string} chatId
  * @param {string} userId
  * @param {number} seq
- * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }} q
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }> }} q
  */
 async function advanceRead(q, chatId, userId, seq) {
     await q.query(
@@ -30,8 +30,8 @@ async function advanceRead(q, chatId, userId, seq) {
 /**
  * Append a message: the next seq under the chat row's lock.
  * @param {{
- *   query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }>,
- *   tx: <T>(fn: (q: { query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }) => Promise<T>) => Promise<T>,
+ *   query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }>,
+ *   tx: <T>(fn: (q: { query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }> }) => Promise<T>) => Promise<T>,
  * }} db
  * @param {() => Promise<void>} ready
  */
@@ -154,8 +154,8 @@ function makeMessageAppend(db, ready) {
 /**
  * Reads: one message, and a page of messages.
  * @param {{
- *   query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }>,
- *   tx: <T>(fn: (q: { query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }) => Promise<T>) => Promise<T>,
+ *   query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }>,
+ *   tx: <T>(fn: (q: { query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }> }) => Promise<T>) => Promise<T>,
  * }} db
  * @param {() => Promise<void>} ready
  */
@@ -232,8 +232,8 @@ function makeMessageReads(db, ready) {
 /**
  * Edits: edit, retitle from, soft-delete, and the read marker.
  * @param {{
- *   query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }>,
- *   tx: <T>(fn: (q: { query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number }> }) => Promise<T>) => Promise<T>,
+ *   query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }>,
+ *   tx: <T>(fn: (q: { query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }> }) => Promise<T>) => Promise<T>,
  * }} db
  * @param {() => Promise<void>} ready
  */
@@ -288,7 +288,7 @@ function makeMessageEdits(db, ready) {
      * its content and mentions. The ciphertext is overwritten, not kept, and
      * so is a title taken from this message (`titleReset` says so).
      *
-     * @returns {Promise<(ReturnType<typeof rowToMessage> & { titleReset: boolean })|null>}
+     * @returns {Promise<(NonNullable<ReturnType<typeof rowToMessage>> & { titleReset: boolean })|null>}
      * @param {string} chatId
      * @param {string} messageId
      */
@@ -312,7 +312,9 @@ function makeMessageEdits(db, ready) {
             );
             await q.query(DROP_TRACES, [[messageId]]);
             const reset = await q.query(RESET_DERIVED_TITLES, [[messageId]]);
-            return { ...rowToMessage(row), titleReset: (reset.rowCount || 0) > 0 };
+            const message = rowToMessage(row);
+            if (!message) return null;
+            return { ...message, titleReset: (reset.rowCount || 0) > 0 };
         });
     }
 

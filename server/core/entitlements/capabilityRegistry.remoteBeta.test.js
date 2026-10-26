@@ -30,24 +30,12 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert');
-const Module = require('module');
 
 process.env.NODE_ENV = 'test';
 process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'test-session-secret-at-least-32-chars-long';
 
-// ── Mock ../db before betaFeatures/stores/registry load ─────────────────────
-const dbPath = require.resolve('../../db');
-require.cache[dbPath] = new Module(dbPath);
-require.cache[dbPath].exports = {
-    exec: async () => ({}),
-    run: async () => ({ rows: [], rowCount: 0 }),
-    getOne: async () => null,
-    getAll: async () => [],
-    getClient: async () => ({ query: async () => ({ rows: [] }), release() {} }),
-    pool: { query: async () => ({ rows: [] }) },
-    getRedis: () => null,
-};
-require.cache[dbPath].loaded = true;
+// The real db.js over a recording pool, so nothing opens a connection.
+require('../../testUtils/routeHarness').recordDb();
 
 const registry = require('./capabilityRegistry');
 const betaFeatures = require('./betaFeatures');
@@ -86,7 +74,7 @@ test('a remote beta whose licenseFeature is a tier feature is NOT shadowed by a 
 });
 
 test('listCapabilities() lists the remote beta exactly once, as a beta', () => {
-    const listed = registry.listCapabilities().filter(c => c.id === TIER_FEATURE);
+    const listed = registry.listCapabilities().filter((/** @type {{ id: string }} */ c) => c.id === TIER_FEATURE);
     assert.strictEqual(listed.length, 1, 'no duplicate/shadow row for the tier-feature id');
     assert.strictEqual(listed[0].kind, 'beta');
 });

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * App Studio run-bridge gates — the ONE copy of "may this viewer see this app"
  * and "may this role reach this action".
@@ -14,6 +14,7 @@
 const studioAppStore = require('../stores/studioAppStore');
 const { resolveAudienceContext } = require('../auth/audience');
 const { EVENT_NAMES } = require('../appStudio/componentSpecs');
+const { sessionUser } = require('../core/http/sessionUser');
 
 // ── App visibility ──────────────────────────────────────────────────
 // Owner always; everyone else needs is_published plus one audience that
@@ -26,7 +27,7 @@ const { EVENT_NAMES } = require('../appStudio/componentSpecs');
  * @param {import('express').Response} res
  */
 async function loadVisibleApp(req, res) {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const app = await studioAppStore.getStudioApp(req.params.id);
     if (!app) {
         res.status(404).json({ error: 'App not found' });

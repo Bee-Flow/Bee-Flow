@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * ipClass — is an address one of ours, and which address does it really name?
  *
@@ -31,6 +31,7 @@ const net = require('node:net');
  * @property {boolean} isPrivate   true for every kind except 'public' and 'invalid'
  */
 
+/** @param {string} ip */
 function _v4ToInt(ip) {
     const parts = ip.split('.');
     if (parts.length !== 4) return null;
@@ -58,7 +59,10 @@ const V4_RANGES = [
     return { start, end: start + 2 ** (32 - Number(bits)) - 1, kind: /** @type {IpKind} */ (kind) };
 });
 
-/** @returns {IpKind} */
+/**
+ * @returns {IpKind}
+ * @param {string} ip
+ */
 function _kindV4(ip) {
     const n = _v4ToInt(ip);
     if (n === null) return 'invalid';
@@ -70,9 +74,11 @@ function _kindV4(ip) {
  * Expand an IPv6 address (already validated by net.isIPv6) to eight 16-bit
  * groups. A trailing dotted IPv4 counts as two groups.
  * @returns {number[]|null}
+ * @param {string} ip
  */
 function _v6Groups(ip) {
     let s = ip;
+    /** @type {number[]} */
     let tail = [];
     const dotted = s.match(/^(.*:)(\d{1,3}(?:\.\d{1,3}){3})$/);
     if (dotted) {
@@ -83,6 +89,9 @@ function _v6Groups(ip) {
     }
     const halves = s.split('::');
     if (halves.length > 2) return null;
+    /**
+     * @param {string} part
+     */
     const parse = (part) => (part ? part.split(':').map(h => parseInt(h, 16)) : []);
     const head = parse(halves[0]);
     const rest = halves.length === 2 ? parse(halves[1]) : [];
@@ -94,11 +103,18 @@ function _v6Groups(ip) {
     return groups;
 }
 
+/**
+ * @param {number} hi
+ * @param {number} lo
+ */
 function _groupsToV4(hi, lo) {
     return [hi >> 8, hi & 0xff, lo >> 8, lo & 0xff].join('.');
 }
 
-/** Strip brackets, a zone id and whitespace; lower-case. */
+/**
+ * Strip brackets, a zone id and whitespace; lower-case.
+ * @param {unknown} raw
+ */
 function _clean(raw) {
     let s = String(raw || '').trim();
     if (s.startsWith('[') && s.includes(']')) s = s.slice(1, s.indexOf(']'));
@@ -123,6 +139,9 @@ function classifyIp(raw) {
     const g = _v6Groups(s);
     if (!g) return { ip: null, family: null, kind: 'invalid', isPrivate: false };
 
+    /**
+     * @param {number} n
+     */
     const zeroTo = (n) => g.slice(0, n).every(x => x === 0);
     // ::ffff:a.b.c.d (IPv4-mapped) and 64:ff9b::a.b.c.d (NAT64 well-known prefix):
     // the IPv4 inside is the real destination.
@@ -143,7 +162,10 @@ function classifyIp(raw) {
     return { ip: s, family: 6, kind, isPrivate: kind !== 'public' };
 }
 
-/** True when the address never leaves the local network (see the ranges above). */
+/**
+ * True when the address never leaves the local network (see the ranges above).
+ * @param {unknown} raw
+ */
 function isPrivateIp(raw) {
     return classifyIp(raw).isPrivate;
 }
@@ -151,8 +173,10 @@ function isPrivateIp(raw) {
 /**
  * The address a lookup should use: zone id stripped, wrapped IPv4 unwrapped.
  * null when the input is not an IP address.
+ * @param {unknown} raw
  */
 function canonicalIp(raw) {
+
     return classifyIp(raw).ip;
 }
 

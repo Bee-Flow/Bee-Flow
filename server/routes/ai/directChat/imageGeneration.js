@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Direct Chat — one-shot image generation (POST /chat/generate-image).
  *
@@ -20,6 +20,7 @@ const { requireAuth } = require('../../../auth/permissions');
 const { validate } = require('../../../core/http/validate');
 const { HttpError } = require('../../../core/http/errors');
 const { z, typeError } = require('../../../utils/zod');
+const { sessionUser } = require('../../../core/http/sessionUser');
 
 const PROMPT_TEXT = 'Prompt is required';
 const RATIO_TEXT = "aspectRatio is width:height, like '1:1' or '16:9'.";
@@ -36,7 +37,7 @@ const GenerateImageBody = z.preprocess((v) => (v === undefined || v === null ? {
 
 router.post('/chat/generate-image', requireAuth, validate({ body: GenerateImageBody }), async (req, res) => {
     const { prompt, aspectRatio, conversationId } = req.body;
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
 
     const googleApiKey = await configStore.getSecret('google_api_key');
     if (!googleApiKey) {

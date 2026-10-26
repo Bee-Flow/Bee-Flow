@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 
 /**
@@ -48,9 +48,9 @@ function createFormRecovery({ automationStore, automationForRun, clearPending, m
         /** @returns {Promise<void>} */
         const restorePage = async () => {
             if (work.kind !== 'resume') return;
-            const parent = await automationStore.getRun(work.parentRunId).catch((e) => fallback('automation/formQueueRecovery:restorePage', e, null));
+            const parent = await automationStore.getRun(work.parentRunId).catch((/** @type {unknown} */ e) => fallback('automation/formQueueRecovery:restorePage', e, null));
             if (parent?.status === 'awaiting_form' && session.runId === work.parentRunId) {
-                await automationStore.updateRun(work.parentRunId, { awaitingStepId: work.stepId }).catch((e) => bestEffort('automation/formQueueRecovery:restorePage#2', e));
+                await automationStore.updateRun(work.parentRunId, { awaitingStepId: work.stepId }).catch((/** @type {unknown} */ e) => bestEffort('automation/formQueueRecovery:restorePage#2', e));
             }
         };
         if ((session.pendingAttempts || 0) > MAX_RECOVERIES) {

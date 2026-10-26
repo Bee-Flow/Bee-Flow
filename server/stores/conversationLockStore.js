@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * One AI run at a time, per conversation.
  *
@@ -63,7 +63,7 @@ async function _initDB() {
  * two replicas racing cannot both win.
  *
  * @param {{ conversationId: string, conversationType?: string, projectId?: string | null, userId: string, runId: string, ttlMs?: number }} opts
- * @returns {Promise<{acquired: true, runId: string}|{acquired: false, holder: object}>}
+ * @returns {Promise<{acquired: true, runId: string}|{acquired: false, holder: Awaited<ReturnType<typeof getTurn>>}>}
  */
 async function acquireTurn({ conversationId, conversationType = 'direct', projectId = null, userId, runId, ttlMs = DEFAULT_TTL_MS }) {
     await initDB();

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * documents.js and sources.js filter a document list on `status`/`pii`
  * against the SAME store vocabulary (stores/knowledgeBases.js's
@@ -34,7 +34,7 @@ test('docFilters exports the status/pii schema builders and the vocabularies the
 // Read through a helper rather than inline: the point below is one compound
 // claim per file (import the shared module, don't redefine its helpers),
 // not three separate text matches.
-function readRouterSource(file) {
+function readRouterSource(/** @type {string} */ file) {
     return fs.readFileSync(path.join(__dirname, file), 'utf8');
 }
 

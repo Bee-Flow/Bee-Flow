@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 const { GUID } = require('../auth/microsoftIdentity');
 /**
@@ -42,7 +42,7 @@ async function graphGetAll(path, token) {
     /** @type {GraphObject[]} */
     const results = [];
     const seen = new Set();
-    for (let next = path; next;) {
+    for (let next = /** @type {string | undefined} */ (path); next;) {
         if (seen.has(next) || seen.size >= 10000) throw new Error('Invalid Graph pagination');
         seen.add(next);
         const data = await graphGet(next, token);

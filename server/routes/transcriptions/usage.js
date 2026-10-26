@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Meeting notes — what happens to one (M2), and how to undo one thing that did.
  *
@@ -42,9 +42,10 @@ const { requireAuth } = require('../../auth/permissions');
 const { resolveAccessContext } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { NOTHING, NO_QUERY } = require('./schemas');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 router.get('/:id/usage', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const transcriptionStore = require('../../stores/transcriptionStore');
     const { usageForMeeting, redactForeign } = require('../../core/meetingNotes/meetingUsage');
 
@@ -114,7 +115,7 @@ router.get('/:id/usage', requireAuth, validate({ query: NO_QUERY }), async (req,
  * must the owner not think that he is clean.
  */
 router.delete('/:id/filed-lines', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const transcriptionStore = require('../../stores/transcriptionStore');
     const { filedTranscriptSources } = require('../../core/meetingNotes/meetingUsage');
 

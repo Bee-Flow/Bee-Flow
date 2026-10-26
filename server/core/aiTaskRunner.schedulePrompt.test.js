@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Scheduled runs must not lecture the user about scheduling.
  *
@@ -27,7 +27,7 @@ const SRC = fs.readFileSync(path.join(__dirname, 'aiTaskRunner.js'), 'utf8');
 // starts background timers on require, which a unit test should not do).
 // Evaluate just the two pure functions in isolation.
 function loadPromptBuilders() {
-    const grab = (name) => {
+    const grab = (/** @type {string} */ name) => {
         const start = SRC.indexOf(`function ${name}(`);
         assert.notStrictEqual(start, -1, `${name} not found — was it renamed?`);
         // Walk braces from the first '{' after the signature to its match.

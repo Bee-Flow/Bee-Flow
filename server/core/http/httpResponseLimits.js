@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Shared ceiling for an outbound HTTP response body (character count of the
  * decoded text — called a "1 MiB" cap throughout, though it is really a
@@ -32,7 +32,10 @@ const { bestEffort } = require('../../utils/bestEffort');
 
 const HTTP_RESPONSE_CAP = 1024 * 1024;
 
-/** Cancel a body or reader we are done with; a failure to cancel changes nothing for the caller. */
+/**
+ * Cancel a body or reader we are done with; a failure to cancel changes nothing for the caller.
+ * @param {ReadableStream<Uint8Array<ArrayBuffer>> | ReadableStreamDefaultReader<Uint8Array<ArrayBuffer>>} target
+ */
 async function cancelQuietly(target) {
     try { await target?.cancel?.(); } catch (e) { bestEffort('core/http/httpResponseLimits:cancelQuietly', e); /* [httpResponseLimits] cancel failed: */ }
 }
@@ -74,6 +77,7 @@ async function readBodyBounded(resp, { charCap = HTTP_RESPONSE_CAP, stopOnOversi
         return text.length > charCap ? { text: text.slice(0, charCap), truncated: true } : { text, truncated: false };
     }
 
+    /** @type {Uint8Array<ArrayBuffer>[]} */
     const chunks = [];
     let received = 0;
     let overBudget = false;
@@ -152,6 +156,7 @@ async function readBytesBounded(resp, { byteCap = Infinity } = {}) {
         const buffer = Buffer.from(await resp.arrayBuffer());
         return buffer.length > cap ? { buffer: null, truncated: true, declaredBytes } : { buffer, truncated: false, declaredBytes };
     }
+    /** @type {Buffer<ArrayBuffer>[]} */
     const chunks = [];
     let received = 0;
     for (;;) {
@@ -178,6 +183,9 @@ async function readBytesBounded(resp, { byteCap = Infinity } = {}) {
  * @returns {Promise<string>}
  */
 async function readTextOrThrowOversize(resp, { byteCap, what, envName }) {
+    /**
+     * @param {string} size
+     */
     const tooBig = (size) => {
         const e = new Error(`${what} is too large to index (${size}; limit ${(byteCap / 1048576).toFixed(0)} MB). An admin can raise the limit with the ${envName} environment variable (0 = no limit).`);
         /** @type {any} */ (e).oversize = true;
@@ -194,10 +202,20 @@ async function readTextOrThrowOversize(resp, { byteCap, what, envName }) {
     return text;
 }
 
-/** A web page for the knowledge base, capped by KB_WEB_PAGE_MAX_BYTES (throws when over). */
-const readKbPage = (resp, url) => readTextOrThrowOversize(resp, { byteCap: kbWebPageMaxBytes(), what: `Page ${url}`, envName: 'KB_WEB_PAGE_MAX_BYTES' });
+/**
+ * A web page for the knowledge base, capped by KB_WEB_PAGE_MAX_BYTES (throws when over).
+ * @param {Response} resp
+ * @param {string} url
+ */
+const readKbPage
+ = (resp, url) => readTextOrThrowOversize(resp, { byteCap: kbWebPageMaxBytes(), what: `Page ${url}`, envName: 'KB_WEB_PAGE_MAX_BYTES' });
 
-/** The message a tool answers with when a file is over the cap. */
+/**
+ * The message a tool answers with when a file is over the cap.
+ * @param {string} name
+ * @param {number | null} sizeBytes
+ * @param {number} capBytes
+ */
 function fileTooLargeMessage(name, sizeBytes, capBytes) {
     const size = sizeBytes == null ? 'larger than the limit' : `${(sizeBytes / 1048576).toFixed(1)} MB`;
     return `${name} is too large to read (${size}; limit ${(capBytes / 1048576).toFixed(0)} MB). An admin can raise the limit with the TOOL_FILE_MAX_BYTES environment variable (0 = no limit).`;

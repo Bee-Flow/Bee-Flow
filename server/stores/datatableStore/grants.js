@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 /**
@@ -51,8 +51,9 @@ async function listGrantsForTables(datatableIds) {
     );
     const out = new Map(ids.map(id => /** @type {[string, ReturnType<typeof rowToGrant>[]]} */ ([id, []])));
     for (const r of (res || [])) {
-        if (!out.has(r.datatable_id)) out.set(r.datatable_id, []);
-        out.get(r.datatable_id).push(rowToGrant(r));
+        let list = out.get(r.datatable_id);
+        if (!list) { list = []; out.set(r.datatable_id, list); }
+        list.push(rowToGrant(r));
     }
     return out;
 }

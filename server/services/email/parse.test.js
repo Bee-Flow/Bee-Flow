@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Characterization tests for the shared Gmail parsing helpers (H6 adoption
  * lock). extractTextBody was folded in VERBATIM from the byte-identical copies
@@ -20,7 +20,7 @@ const {
     extractTextBody,
 } = require('./parse');
 
-const b64 = (s) => Buffer.from(s, 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_');
+const b64 = (/** @type {string} */ s) => Buffer.from(s, 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_');
 
 // ── decodeBase64Url ─────────────────────────────────────────────────
 

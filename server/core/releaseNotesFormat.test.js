@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * releaseNotesFormat — unit tests.
  *

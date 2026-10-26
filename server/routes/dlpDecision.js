@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * DLP decision endpoint — receives the user's choice (redact / block / allow)
  * from the client modal and unblocks the paused chat stream.
@@ -32,6 +32,7 @@ const { worded } = require('../core/http/schemaParts');
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../auth/permissions');
+const { sessionUser } = require('../core/http/sessionUser');
 
 // Cap: this is UI-driven text selection, not a bulk API — a legitimate
 // review never produces hundreds of manual marks in one message.
@@ -74,7 +75,7 @@ router.post('/', requireAuth, validate({ body: DecisionBody }), async (/** @type
         choice,
         rememberForConversation: rememberForConversation === true,
         manualAdditions: manualAdditions || [],
-    }, req.session.user.id);
+    }, sessionUser(req).id);
     if (!ok) {
         return res.status(404).json({ error: 'Decision not found, expired, or not owned by this user.' });
     }
@@ -88,7 +89,7 @@ const TouchBody = z.object({
 // Heartbeat: the review UI POSTs here while it is open so a person editing
 // their redaction is never expired mid-review (see decisionQueue.touch).
 router.post('/touch', requireAuth, validate({ body: TouchBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-    const ok = decisionQueue.touch(req.body.decisionId, req.session.user.id);
+    const ok = decisionQueue.touch(req.body.decisionId, sessionUser(req).id);
     if (!ok) {
         return res.status(404).json({ error: 'Decision not found, expired, or not owned by this user.' });
     }

@@ -15,7 +15,7 @@
  * inbox_id IS NULL and is never represented here.
  */
 
-const { pool } = require('../db');
+const { pool, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { buildUpdate } = require('./lib/sqlBuilder');
 const log = require('../telemetry/log');
@@ -69,10 +69,10 @@ const initDB = makeStoreInit('SupportInboxStore', _initDB);
 
 async function _initDB() {
     try {
-        await pool.query(INIT_SQL);
+        await exec(INIT_SQL);
         // The column was kb_ingest_routine_id until 2026-10 (Automations is the
         // product name): renamed in place, once, before the ADD below.
-        await pool.query(`
+        await exec(`
             DO $$ BEGIN
                 IF EXISTS (SELECT 1 FROM information_schema.columns
                             WHERE table_schema = current_schema() AND table_name = 'support_inboxes' AND column_name = 'kb_ingest_routine_id')
@@ -119,7 +119,7 @@ async function _initDB() {
                END IF;
              END $$;`,
         ]) {
-            await pool.query(sql).catch(e => log.warn('[SupportInboxStore] migration skipped:', e.message));
+            await exec(sql).catch(e => log.warn('[SupportInboxStore] migration skipped:', e.message));
         }
         log.info('[SupportInboxStore] PostgreSQL initialized');
     } catch (err) {

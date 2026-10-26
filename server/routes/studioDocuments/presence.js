@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Who else has this document open, and in which section: the heartbeat of a
  * designed document's editor. Mounted by routes/studioDocuments.js.
@@ -25,6 +25,7 @@ const express = require('express');
 const { validate } = require('../../core/http/validate');
 const { notFound, forbidden } = require('../../core/http/errors');
 const { worded, bodyOf, choice } = require('../../core/http/schemaParts');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 const CLIENT_TEXT = 'clientId identifies this open editor: 8 to 64 letters, digits, - or _.';
 const SECTION_TEXT = 'sectionId is the data-doc-section the caret is in, or null.';
@@ -62,7 +63,7 @@ function makeDocumentPresenceRouter(deps = {}) {
         .perUserRateLimit({ windowMs: 60_000, max: 120, name: 'document-presence' });
 
     router.post('/:id/presence', requireAuth, limiter, validate({ body: Beat }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-        const userId = req.session.user.id;
+        const userId = sessionUser(req).id;
         const doc = await documents().getDocument(req.params.id, userId);
         if (!doc) throw notFound('document_not_found', 'Document not found');
         const { clientId, state } = req.body;
@@ -83,7 +84,7 @@ function makeDocumentPresenceRouter(deps = {}) {
         publishChannel(`doc:${doc.id}`, event).catch(failed);
         const peers = presence().list(doc.id).filter((p) => p.clientId !== clientId)
             .map(({ userId: id, clientId: cid, sectionId: sid, state: st, since }) => ({ userId: id, clientId: cid, sectionId: sid, state: st, since }));
-        const orgId = req.session.connectorOrgId || req.session.user.organizationId || null;
+        const orgId = req.session.connectorOrgId || sessionUser(req).organizationId || null;
         res.json({ peers, ttlMs: presence().PRESENCE_TTL_MS, people: await describePeople(peers.map((p) => p.userId), orgId) });
     });
 

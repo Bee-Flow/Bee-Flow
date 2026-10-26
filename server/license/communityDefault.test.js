@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Unit — community is the free default for a self-hosted install.
  *

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 /**
@@ -35,7 +35,7 @@ const KIND_LIST = SOURCE_KINDS.map(k => `'${k}'`).join(', ');
 const MIRROR_KIND = SOURCE_KINDS[0];
 
 /**
- * @param {string} kind
+ * @param {string | null | undefined} kind
  * @param {string} who
  */
 function assertSourceKind(kind, who) {
@@ -336,9 +336,7 @@ const finishNcSync = finishSourceSync;
 const setNcNextRun = setSourceNextRun;
 const markNcStale = markSourceStale;
 const listDueNcSyncs = listDueSourceSyncs;
-/**
- * @param {{ kind: string, id: string }} scope
- */
+/** @param {{ kind: string, id: string }} scope */
 const listNcMirrorsInScope = (scope) => listSourceMirrorsInScope(scope, { kind: MIRROR_KIND });
 
 module.exports = {

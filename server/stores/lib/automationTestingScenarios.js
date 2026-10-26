@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Form scenarios: the answers of a finished run, kept under a name so the
  * form pages of a dry run can be answered the same way again.
@@ -15,7 +15,10 @@
 const { storeError } = require('./storeError');
 const { newId, toIso, fromJson } = require('./automationTestingCases');
 
-/** @param {unknown} v */
+/**
+ * @param {unknown} v
+ * @returns {v is Record<string, unknown>}
+ */
 const isObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 
 /**

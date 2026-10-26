@@ -47,7 +47,7 @@ test('a failed option removes the half-built question and the options are return
     assert.ok(calls.some(c => c.method === 'DELETE' && c.url.endsWith('/questions/5')));
     calls = install();
     const ok = await executeNextcloudFormsTool('nextcloud_forms_add_question', { formId: 3, text: 'q', type: 'dropdown', options: ['a', 'b'] }, 'u', {});
-    assert.deepEqual(ok.question.options.map(o => o.text), ['a', 'b']);
+    assert.deepEqual(ok.question.options.map((/** @type {{ text: string }} */ o) => o.text), ['a', 'b']);
 });
 
 test('reopening a form (state 0) is sent before the other settings, closing after', async () => {

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 /**
@@ -39,7 +39,7 @@ async function entryDefinitionOf(a) {
  * @param {string | null | undefined} triggerStepId
  */
 function resolveTriggerStepId(def, triggerStepId) {
-    const known = [def?.trigger, ...(Array.isArray(def?.triggers) ? def.triggers : [])].filter(t => t && t.id);
+    const known = [def?.trigger, ...(Array.isArray(def?.triggers) ? def.triggers : [])].flatMap((t) => (t && t.id ? [t] : []));
     if (!triggerStepId) {
         return { trigger: def?.trigger || null, rootStepId: null };
     }

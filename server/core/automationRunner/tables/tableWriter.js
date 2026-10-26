@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Writing a table to Bee Flow's own storage.
  *
@@ -127,7 +127,7 @@ function makeTableWriter(deps = {}) {
             });
         } catch (e) {
             // A blob with no row is unreachable garbage: remove it now.
-            if (uploaded) await storage().deleteFile(key).catch((e) => bestEffort('core/automationRunner/tables/tableWriter:writeTable', e));
+            if (uploaded) await storage().deleteFile(key).catch((/** @type {unknown} */ e) => bestEffort('core/automationRunner/tables/tableWriter:writeTable', e));
             throw e;
         } finally {
             await fs.promises.rm(dir, { recursive: true, force: true }).catch(() => {});

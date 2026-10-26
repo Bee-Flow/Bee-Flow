@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Unit tests for utils/unicodeSanitizer.js — the Unicode smuggling sanitizer.
  *

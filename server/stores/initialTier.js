@@ -48,7 +48,9 @@ const { bestEffort } = require('../utils/bestEffort');
  * simply stays on 'none', which is the state it was already in.
  *
  * @param {string} orgId
- * @param {any} [deps] injection seam for tests
+ * @param {any} [deps] `userStore` ({ updateOrganization, logAccessAudit }) is passed in by
+ *   organizations.js, which this module must not require back (import cycle); the rest
+ *   is an injection seam for tests
  * @returns {Promise<{tier: string, applied: boolean, reason: string}>}
  */
 async function applyDefaultEncryptionTier(orgId, deps = {}) {
@@ -94,7 +96,7 @@ async function applyDefaultEncryptionTier(orgId, deps = {}) {
     }
 
     try {
-        const store = deps.userStore || require('./userStore');
+        const store = deps.userStore;
         const ok = await store.updateOrganization(orgId, { encryptionTier: wanted });
         // updateOrganization signals a DB failure by returning false rather
         // than throwing, so a bare await would swallow it.
@@ -112,7 +114,7 @@ async function applyDefaultEncryptionTier(orgId, deps = {}) {
     // Same persistent trail the admin route writes, so "who put this org on
     // this tier" has one answer whether a human or the default did it.
     try {
-        const store = deps.userStore || require('./userStore');
+        const store = deps.userStore;
         await store.logAccessAudit(
             'org.encryption.update', 'organization', orgId, 'system',
             { tier: 'none', scope: null },

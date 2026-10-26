@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Read-path repair for conversations damaged by BFSF-307.
  *
@@ -42,7 +42,11 @@ const { COMPACTION_MARKERS } = require('../../core/llm/compaction');
  */
 const ATTACHMENT_HEADER_RE = /\n\n\[(?:[^\]\n]*—\s*(?:extracted via|\d+\s+pages?\s+rendered|could not extract text)|Attachment:|Gmail:)/;
 
-/** Longest text block wins? No — the FIRST one. See flattenContent. */
+/**
+ * Longest text block wins? No — the FIRST one. See flattenContent.
+ * @param {unknown} content
+ * @returns {string}
+ */
 function flattenContent(content) {
     if (typeof content === 'string') return content;
     if (content === null || content === undefined) return '';
@@ -59,11 +63,13 @@ function flattenContent(content) {
     return cut === -1 ? first.text : first.text.slice(0, cut);
 }
 
-const textOf = (msg) => flattenContent(msg && msg.content).trimStart();
+const textOf = (/** @type {StoredMessage | null | undefined} */ msg) => flattenContent(msg && msg.content).trimStart();
 
 /**
  * Is this message one of compaction's synthetic priming turns?
  * Returns 'goal' | 'goal_ack' | 'summary' | 'summary_ack' | null.
+ * @param {StoredMessage | null | undefined} msg
+ * @returns {'goal' | 'goal_ack' | 'summary' | 'summary_ack' | null}
  */
 function classifySynthetic(msg) {
     if (!msg) return null;
@@ -82,13 +88,13 @@ function classifySynthetic(msg) {
 /**
  * Repair a stored message array for display.
  *
- * @param {Array}  messages
+ * @param {StoredMessage[]} messages
  * @param {object} [opts]
  * @param {boolean} [opts.wasCompacted=false] Whether this conversation's meta
  *   carries a compaction summary/watermark. Gates synthetic removal entirely:
  *   in a never-compacted conversation the filter cannot fire, so no genuine
  *   message can be hidden by it.
- * @returns {{ messages: Array, hiddenCount: number, summarised: boolean, repairedCount: number }}
+ * @returns {{ messages: StoredMessage[], hiddenCount: number, summarised: boolean, repairedCount: number }}
  */
 function normalizeStoredMessages(messages, opts = {}) {
     if (!Array.isArray(messages) || messages.length === 0) {

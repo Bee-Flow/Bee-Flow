@@ -101,7 +101,7 @@ function scanActions(root) {
  * What the partial arguments of `name` describe so far. Empty for tools whose
  * arguments are not a landing (edits, reads, finalize).
  * @param {string | undefined} name
- * @param {string} partialJson
+ * @param {string | null | undefined} partialJson
  */
 function scanAppToolDraft(name, partialJson) {
     try {

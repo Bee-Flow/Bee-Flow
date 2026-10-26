@@ -23,6 +23,7 @@ const { worded, bodyOf, choice, NOTHING, NO_QUERY } = require('./schemas');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 const { bestEffort } = require('../../utils/bestEffort');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 // ── What a share link may carry ────────────────────────────────────
 //
@@ -121,7 +122,7 @@ function register(router) {
     // links and their status, but not the owner's chosen recipient emails (BFSF-188).
     // Creating/refreshing/revoking links stays owner-only (handlers below).
     router.get('/:id/public-shares', requireAuth, validate({ query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
-        const userId = req.session.user.id;
+        const userId = sessionUser(req).id;
         // Owner-scoped first (preserves owner-only semantics); fall back to the
         // same read-visibility check used by GET /:id for published pages.
         let wp = await webpageStore.getWebpage(req.params.id, userId);
@@ -154,7 +155,7 @@ function register(router) {
     // the server only stores its sha256.
     router.post('/:id/public-shares', requireAuth, validate({ body: ShareBody, query: NO_QUERY }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
         try {
-            const userId = req.session.user.id;
+            const userId = sessionUser(req).id;
             const wp = await webpageStore.getWebpage(req.params.id, userId);
             if (!wp) return res.status(404).json({ error: 'Webpage not found' });
 
@@ -208,7 +209,7 @@ function register(router) {
     // Re-snapshot an existing share so it reflects the current webpage. Keeps
     // the same token (recipients' links stay valid) but refreshes the bytes.
     router.post('/:id/public-shares/:shareId/refresh', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), /** @param {import('express').Request<{ id: string, shareId: string }>} req @param {import('express').Response} res */ async (req, res) => {
-        const userId = req.session.user.id;
+        const userId = sessionUser(req).id;
         const wp = await webpageStore.getWebpage(req.params.id, userId);
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });
         const share = await publicShareStore.getShareById(req.params.shareId);
@@ -226,7 +227,7 @@ function register(router) {
 
     // Update expiry. PATCH body: { expiresAt: ISO|null }
     router.patch('/:id/public-shares/:shareId', requireAuth, validate({ body: ExpiryBody, query: NO_QUERY }), /** @param {import('express').Request<{ id: string, shareId: string }>} req @param {import('express').Response} res */ async (req, res) => {
-        const userId = req.session.user.id;
+        const userId = sessionUser(req).id;
         const wp = await webpageStore.getWebpage(req.params.id, userId);
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });
         const share = await publicShareStore.getShareById(req.params.shareId);
@@ -243,7 +244,7 @@ function register(router) {
 
     // Revoke (soft-delete: marks revoked_at, snapshot is also purged).
     router.delete('/:id/public-shares/:shareId', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), /** @param {import('express').Request<{ id: string, shareId: string }>} req @param {import('express').Response} res */ async (req, res) => {
-        const userId = req.session.user.id;
+        const userId = sessionUser(req).id;
         const wp = await webpageStore.getWebpage(req.params.id, userId);
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });
         const share = await publicShareStore.getShareById(req.params.shareId);

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Redirects of the public marketing site: pure rules, no I/O.
@@ -111,6 +111,7 @@ function normalizeFrom(raw, locales = []) {
  */
 function sanitizeHosts(raw) {
     if (!Array.isArray(raw)) return [];
+    /** @type {string[]} */
     const out = [];
     for (const h of raw) {
         const host = String(h ?? '').trim().toLowerCase();

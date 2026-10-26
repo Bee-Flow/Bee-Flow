@@ -123,9 +123,7 @@ async function componentScopeOf(userId) {
     }
 }
 
-/**
- * @param {string} agentId
- */
+/** @param {string} agentId */
 async function getAgentTools(agentId) {
     const componentIds = await _deps.agentStore().getAgentTools(agentId);
     const allComponents = _deps.componentManager().getComponents();
@@ -176,7 +174,7 @@ async function getAgentTools(agentId) {
     let subworkflowComponents = [];
     try {
         const { agent } = await ownerLookup;
-        const subworkflows = await subworkflowsVisibleTo(agent?.userId);
+        const subworkflows = await subworkflowsVisibleTo(typeof agent?.userId === 'string' ? agent.userId : null);
 
         subworkflowComponents = subworkflows.map(wf => {
             const triggerNode = wf.nodes.find(isSubworkflowTrigger);
@@ -244,7 +242,7 @@ async function getAgentTools(agentId) {
     try {
         const { agent, ownerOrgId } = await ownerLookup;
         let effectiveIntegrations = null;
-        if (agent?.userId) {
+        if (typeof agent?.userId === 'string' && agent.userId) {
             const entitlements = _deps.entitlements();
             const snap = await entitlements.resolveEntitlements({
                 userId: agent.userId,

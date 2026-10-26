@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * PUT /direct/conversations/:id/workspace — the caller identity must reach the
  * store, and the store's validation errors must not become 500s.
@@ -80,7 +80,7 @@ test('the caller id comes from the session, never from the request', () => {
     // A body/param-supplied id would make the owner predicate meaningless —
     // the caller would just name the owner. Guard against that shape landing
     // here later.
-    const call = body.match(/updateDirectConversationWorkspace\([^;]*?\);/s)[0];
+    const call = (body.match(/updateDirectConversationWorkspace\([^;]*?\);/s) ?? [''])[0];
     assert.doesNotMatch(call, /req\.body/, 'the caller id must not come from req.body');
     assert.doesNotMatch(call, /req\.params\.userId/, 'the caller id must not come from req.params');
 });

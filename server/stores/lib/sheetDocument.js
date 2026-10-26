@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * What makes a 'spreadsheet' document different in the document store
  * (stores/documentStore.js): it keeps NOTHING in the body slots — its cells
@@ -16,7 +16,10 @@ const SHEET_DOC_TYPE = 'spreadsheet';
 
 function newTabId() { return crypto.randomBytes(4).toString('hex'); }
 
-/** Build the sheet settings for a brand-new spreadsheet with one tab. */
+/**
+ * Build the sheet settings for a brand-new spreadsheet with one tab.
+ * @param {string} datatableId
+ */
 function singleTabSettings(datatableId, name = 'Sheet1') {
     return { tabs: [{ id: newTabId(), name, datatableId }] };
 }

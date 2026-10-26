@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Agentic AI bridge — POST /:id/ai/ask
  *

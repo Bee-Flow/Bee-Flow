@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Display name → model id.
  *
@@ -59,13 +59,15 @@ const DISPLAY_NAME_TO_ID = {
 /**
  * Resolve a model identifier to a valid API model ID.
  * Handles display names, aliases, and already-valid IDs.
+ * @param {string | null | undefined} modelNameOrId
+ * @returns {string | null}
  */
 function resolveModelId(modelNameOrId) {
     if (!modelNameOrId) return null;
     // If it's already a valid-looking model ID (alphanumeric with dashes/dots/underscores), return as-is
     if (/^[a-zA-Z0-9._-]+$/.test(modelNameOrId)) return modelNameOrId;
     // Try reverse lookup
-    return DISPLAY_NAME_TO_ID[modelNameOrId] || modelNameOrId;
+    return /** @type {Record<string, string>} */ (DISPLAY_NAME_TO_ID)[modelNameOrId] || modelNameOrId;
 }
 
 module.exports = { DISPLAY_NAME_TO_ID, resolveModelId };

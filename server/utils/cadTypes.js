@@ -102,7 +102,7 @@ function cadMimeForName(filename) {
 
 /**
  * Fold a declared mime to its canonical CAD mime (canonical → itself) — or null.
- * @param {string} declared
+ * @param {string | null | undefined} declared
  */
 function canonicalCadMime(declared) {
     const mime = String(declared || '').toLowerCase().trim();

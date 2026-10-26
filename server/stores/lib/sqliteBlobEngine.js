@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * SQLite-blob engine — the shared core behind studioAppDbStore and
  * webpageDbStore (which was forked into the studio store; this factory
@@ -94,6 +94,10 @@ function createSqliteBlobEngine({ workDir, buildKey, metaTable, logPrefix, entit
     // }
     const handles = new Map();
 
+    /**
+     * @param {string} ownerId
+     * @param {string} id
+     */
     function dbKey(ownerId, id) {
         return buildKey(ownerId, id);
     }

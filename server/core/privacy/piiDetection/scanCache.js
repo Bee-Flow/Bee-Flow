@@ -47,7 +47,7 @@ const cache = new Map();
  * exactly the key it always had.
  * @param {string} channel
  * @param {string} text
- * @param {string[]} enabledCategories
+ * @param {string[] | null} enabledCategories
  * @param {number} confidenceThreshold
  * @param {string | null} [customKey]
  */

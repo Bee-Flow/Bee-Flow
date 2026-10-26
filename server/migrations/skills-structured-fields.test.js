@@ -2,7 +2,7 @@
  * skills-structured-fields — idempotent, dry-run writes nothing, only NULL
  * facets are filled, the text columns are never touched.
  *
- * DB-free: ../db is stubbed via require.cache with an in-memory `skills`
+ * DB-free: the real db.js runs over a recording pool with an in-memory `skills`
  * table so the SELECT/UPDATE pair is exercised for real.
  *
  * Run: node --test --test-force-exit migrations/skills-structured-fields.test.js
@@ -17,26 +17,26 @@ process.env.NODE_ENV = 'test';
 
 let table = [];
 const calls = [];
-const dbPath = require.resolve('../db');
-require.cache[dbPath] = {
-    id: dbPath, filename: dbPath, loaded: true,
-    exports: {
-        exec: async (sql) => { calls.push({ kind: 'exec', sql }); },
-        getAll: async (sql, params = []) => {
-            calls.push({ kind: 'getAll', sql, params });
-            return table.filter(r => r.steps === null || r.rules_v2 === null || r.examples_v2 === null).map(r => ({ ...r }));
-        },
-        run: async (sql, params = []) => {
-            calls.push({ kind: 'run', sql, params });
-            const row = table.find(r => r.id === params[0]);
-            if (!row) return { rowCount: 0 };
-            if (row.steps === null) row.steps = JSON.parse(params[1]);
-            if (row.rules_v2 === null) row.rules_v2 = JSON.parse(params[2]);
-            if (row.examples_v2 === null) row.examples_v2 = JSON.parse(params[3]);
-            return { rowCount: 1 };
-        },
-    },
-};
+// The real db.js over a recording pool holding an in-memory `skills` table: a
+// SELECT answers the rows with a facet still NULL, an UPDATE fills only NULL
+// facets. `kind` is how the statement was issued (exec / getAll / run).
+require('../testUtils/routeHarness').recordDb((sql, params = []) => {
+    if (/^\s*(CREATE|ALTER)/i.test(sql)) { calls.push({ kind: 'exec', sql }); return undefined; }
+    if (/^\s*SELECT/i.test(sql)) {
+        calls.push({ kind: 'getAll', sql, params });
+        return { rows: table.filter(r => r.steps === null || r.rules_v2 === null || r.examples_v2 === null).map(r => ({ ...r })) };
+    }
+    if (/^\s*UPDATE/i.test(sql)) {
+        calls.push({ kind: 'run', sql, params });
+        const row = table.find(r => r.id === params[0]);
+        if (!row) return { rows: [], rowCount: 0 };
+        if (row.steps === null) row.steps = JSON.parse(params[1]);
+        if (row.rules_v2 === null) row.rules_v2 = JSON.parse(params[2]);
+        if (row.examples_v2 === null) row.examples_v2 = JSON.parse(params[3]);
+        return { rows: [], rowCount: 1 };
+    }
+    return undefined;
+});
 
 const mig = require('./skills-structured-fields');
 const SRC = fs.readFileSync(path.join(__dirname, 'skills-structured-fields.js'), 'utf8');

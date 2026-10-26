@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 // Project (Solution) membership for webpages: filing a page into a project,
 // taking it back out, and listing the pages a project holds.
 
@@ -13,7 +13,10 @@ const { mapWebpageRow } = require('./shared');
 // a project is still its owner's page, and taking the project away gives it
 // back rather than deleting it.
 
-/** Webpages filed into a project. */
+/**
+ * Webpages filed into a project.
+ * @param {string | null | undefined} projectId
+ */
 async function listProjectWebpages(projectId) {
     await initDB();
     if (!projectId) return [];
@@ -35,6 +38,7 @@ async function listProjectWebpages(projectId) {
  * appears in no row is genuinely EMPTY, which is why the caller distinguishes a
  * missing key (0) from a failed read (the whole call rejects) rather than
  * folding both into a zero.
+ * @param {string[]} projectIds
  */
 async function countProjectWebpages(projectIds) {
     await initDB();
@@ -54,6 +58,9 @@ async function countProjectWebpages(projectIds) {
  * Owner-only, for the same reason setAppProject is: filing a page into a
  * project exposes it to every member without it being org-published, and that
  * is the owner's call. The caller checks the user's role on the TARGET project.
+ * @param {string} webpageId
+ * @param {string} userId
+ * @param {string | null | undefined} projectId
  */
 async function setWebpageProject(webpageId, userId, projectId) {
     await initDB();
@@ -64,7 +71,10 @@ async function setWebpageProject(webpageId, userId, projectId) {
     return rowCount > 0;
 }
 
-/** Detach every webpage from a deleted project. Soft ref — nothing else clears it. */
+/**
+ * Detach every webpage from a deleted project. Soft ref — nothing else clears it.
+ * @param {string} projectId
+ */
 async function clearProjectFromWebpages(projectId) {
     await initDB();
     const { rowCount } = await run(

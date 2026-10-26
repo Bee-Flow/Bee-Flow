@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * One cell, both ways: what the sheet holds ↔ what the mirror stores.
  *
@@ -147,7 +147,7 @@ function parseIsoUtc(value) {
     if (m[8] && m[8] !== 'Z') {
         // An explicit offset is honoured; the result is the instant, in UTC.
         const sign = m[8][0] === '-' ? -1 : 1;
-        const [oh, om] = m[8].slice(1).replace(':', '').match(/\d{2}/g).map(Number);
+        const [oh, om] = Array.from(m[8].slice(1).replace(':', '').matchAll(/\d{2}/g), (pair) => Number(pair[0]));
         t -= sign * (oh * 60 + om) * 60_000;
     }
     return new Date(t);

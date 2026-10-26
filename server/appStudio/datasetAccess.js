@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Whose a LARGE dataset is: the one rule the upload router
  * (routes/studioAppDatasets.js) and the two query paths (the dataset_query
@@ -26,6 +26,8 @@
  * True only for the person who uploaded `ds`. Ids compare as text: the
  * manifest column is TEXT, and a caller that names nobody (a missing viewer)
  * is nobody's uploader.
+ * @param {{ uploaderId?: string | number | null } | null | undefined} ds
+ * @param {string | number | null | undefined} userId
  */
 function isUploaderOf(ds, userId) {
     if (!ds || ds.uploaderId == null || userId == null || userId === '') return false;

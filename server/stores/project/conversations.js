@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * stores/project/conversations.js — the conversations filed in a project:
  * the counts and the shared-thread list a kind change or delete reads, the
@@ -29,9 +29,7 @@ function makeConversationFns({ run, getOne, getAll, initDB }) {
      */
     async function countChatHoldings(projectId) {
         await initDB();
-        /**
-         * @param {string} sql
-         */
+        /** @param {string} sql */
         const count = async (sql) => {
             try {
                 const row = await getOne(sql, [projectId]);
@@ -145,6 +143,9 @@ function makeConversationFns({ run, getOne, getAll, initDB }) {
     // other users' conversations via the project assignment endpoint.
     /**
      * @param {string} [tableName]
+     * @param {string} conversationId
+     * @param {string} projectId
+     * @param {string | null | undefined} userId
      */
     async function assignConversation(conversationId, projectId, userId, tableName = 'direct_conversations') {
         await initDB();
@@ -159,6 +160,8 @@ function makeConversationFns({ run, getOne, getAll, initDB }) {
 
     /**
      * @param {string} [tableName]
+     * @param {string} conversationId
+     * @param {string | null | undefined} userId
      */
     async function unassignConversation(conversationId, userId, tableName = 'direct_conversations') {
         await initDB();

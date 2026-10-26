@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck
+// @typecheck strict
 /**
  * Dutch for the MCP access screens (2026-10): Settings → Security → MCP tokens
  * and Settings → Organisation → MCP access (namespace "mcp_access").
@@ -136,7 +136,7 @@ function applyNl(merged) {
 async function up() {
     const languageStore = require('../stores/languageStore');
     let added = 0;
-    await languageStore.mutateGUITranslations('nl', (current) => {
+    await languageStore.mutateGUITranslations('nl', (/** @type {Record<string, string>} */ current) => {
         const result = applyNl(current);
         added = result.added;
         return result.merged;

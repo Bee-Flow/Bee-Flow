@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The numbers every source mirror runs on — ONE set for every kind, because
  * they describe the engine underneath (what one pass can read back, how many
@@ -20,7 +20,7 @@ const PG = { dialect: 'pg' };
 const ENGINE_READ_CAP = 10_000;
 const DEFAULT_ROW_CAP = Math.min(
     ENGINE_READ_CAP,
-    parseInt(process.env.DATATABLE_MIRROR_ROW_CAP, 10) || parseInt(process.env.DATATABLE_NC_ROW_CAP, 10) || ENGINE_READ_CAP,
+    parseInt(process.env.DATATABLE_MIRROR_ROW_CAP ?? '', 10) || parseInt(process.env.DATATABLE_NC_ROW_CAP ?? '', 10) || ENGINE_READ_CAP,
 );
 // pgAppEngine.batch refuses more than 500 statements per call.
 const WRITE_CHUNK = 500;

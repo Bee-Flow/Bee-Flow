@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 const test = require('node:test');
 const assert = require('node:assert');
 const { preloadStubs } = require('../testUtils/stubRequire');
@@ -11,7 +11,7 @@ const CHUNK = {
 test('kb_search results carry the chunk id kb_fetch resolves, and the source uri', async () => {
     const mods = {
         '../stores/agentStore': { getForRuntime: async () => ({ config: { knowledge_base_ids: ['kb1'] } }) },
-        '../core/agentRuntime/testAs': { visibleKbIdsFor: async (ids) => ids },
+        '../core/agentRuntime/testAs': { visibleKbIdsFor: async (/** @type {string[]} */ ids) => ids },
         '../core/kb/resolveProvider': { resolveKbProvider: async () => 'local' },
         '../core/kb/localKBIngest': { searchLocally: async () => Object.assign([{ ...CHUNK }], { _orphanFiltered: true }) },
     };
