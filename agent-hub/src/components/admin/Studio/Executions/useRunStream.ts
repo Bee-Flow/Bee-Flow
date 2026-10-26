@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useLayoutEffect } from 'react';
 import useAutomationApi from '@/hooks/useAutomationApi';
 import { logger } from '@/utils/logger';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 /** How the updates are arriving: SSE, the 5 s polling fallback, or not at all. */
 export type RunStreamState = 'live' | 'polling' | 'paused';
@@ -53,11 +54,8 @@ export default function useRunStream({ enabled = true, automationId = null, onEv
     const [state, setState] = useState<RunStreamState>(enabled ? 'live' : 'paused');
     // A new stream (another automation, switched on or off) starts from 'live'
     // or 'paused': reset during render, before the effect below reconnects.
-    const [streamKey, setStreamKey] = useState({ enabled, automationId, api });
-    if (streamKey.enabled !== enabled || streamKey.automationId !== automationId || streamKey.api !== api) {
-        setStreamKey({ enabled, automationId, api });
-        setState(enabled ? 'live' : 'paused');
-    }
+    // (The api object is memoised for the session, so it is not part of the key.)
+    useAdjustOnChange([enabled, automationId], () => setState(enabled ? 'live' : 'paused'));
 
     useEffect(() => {
         if (!enabled) return undefined;
