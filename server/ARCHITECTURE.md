@@ -175,7 +175,7 @@ Infrastructure that knows nothing about AI or about any product feature.
 
 | Folder | What lives there |
 |---|---|
-| `db.js`, `migrations/` | Postgres access; `migrations/` holds the loose data migrations and NL catalogues that `boot/bootMigrations.js` runs and records in `schema_migrations`. Store DDL lives in the store itself. |
+| `db.js`, `migrations/` | Postgres access; `migrations/` holds the loose data migrations and NL catalogues that `boot/bootMigrations.js` runs and records in `schema_migrations`. Store DDL lives in the store itself, in its `makeStoreInit` init, and is recorded in the same table per statement (`stores/lib/ddlLedger.js`): no hand-written "is the new column there yet" probes. |
 | `boot/` | Start-up: the migration ladder and its ledger, feature gates, security headers, request timing, background start-up tasks. Listed here for what it holds, but `layering.test.js` classifies it as an **entry** (composition root) beside `index.js`: it wires features together at start-up. |
 | `stores/` | Persistence per aggregate. A store owns its table(s) and its encryption. `stores/lib/sqlBuilder.js` is the only sanctioned way to build a dynamic `UPDATE`. |
 | `auth/` | Sessions, permissions, org membership, OAuth/SSO, MFA, signed tokens. `auth/lib/` holds the shared signing-secret ladder and HMAC envelope used by the token modules. |
