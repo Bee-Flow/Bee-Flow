@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 /**
@@ -10,6 +10,7 @@
 
 const path = require('path');
 const { preloadStubs } = require('./stubRequire');
+const { sessionUser } = require('../core/http/sessionUser');
 
 const SERVER = path.join(__dirname, '..');
 const at = (/** @type {string} */ p) => path.join(SERVER, p);
@@ -37,7 +38,7 @@ function installCrudRouteStubs({ store, orgId = 'org1' }) {
         [at('stores/userStore')]: { getUser: async (/** @type {string} */ id) => ({ id, organizationId: orgId, groups: /** @type {string[]} */ ([]) }) },
         [at('auth/permissions')]: { hasPermission: async () => false, validateSharedGroupsForOrg: async (/** @type {string} */ _o, /** @type {string[]} */ ids) => ids },
         [at('auth/audience')]: {
-            resolveAudienceContext: async (/** @type {import('express').Request} */ req) => ({ userId: req.session.user.id, orgIds: new Set([orgId]), userGroups: /** @type {string[]} */ ([]) }),
+            resolveAudienceContext: async (/** @type {import('express').Request} */ req) => ({ userId: sessionUser(req).id, orgIds: new Set([orgId]), userGroups: /** @type {string[]} */ ([]) }),
             resolveUserGroups: async () => /** @type {string[]} */ ([]),
         },
         [at('utils/perUserRateLimit')]: { perUserRateLimit: () => (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => next() },

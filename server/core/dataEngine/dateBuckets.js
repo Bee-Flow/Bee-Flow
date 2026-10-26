@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The SQL expression a date bucket folds a timestamp column onto (query
  * compiler, aggregate group-by). Pure: returns null for a bucket outside the
@@ -9,7 +9,7 @@
 /**
  * @param {string} col
  */
-function dateBucketSql(col, bucket, dialect) {
+function dateBucketSql(col, /** @type {unknown} */ bucket, /** @type {unknown} */ dialect) {
     if (dialect === 'pg') {
         // ::timestamptz because the column may be DATE or TIMESTAMPTZ; both
         // cast cleanly and to_char then formats one type, not two.

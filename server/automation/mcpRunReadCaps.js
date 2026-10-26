@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Limits of the run reads (mcpRunReads.js). The caps are environment variables
@@ -13,7 +13,11 @@ function envCap(name, fallback) {
     return Number.isFinite(n) && n >= 0 ? Math.floor(n) : fallback;
 }
 
-/** Apply a cap where 0 means "no cap". */
+/**
+ * Apply a cap where 0 means "no cap".
+ * @param {number} n
+ * @param {number} cap
+ */
 const capped = (n, cap) => (cap > 0 ? Math.min(n, cap) : n);
 
 const caps = () => ({

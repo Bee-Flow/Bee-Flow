@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Turning the action items of a meeting note into task suggestions: who an
  * item is for (the note holds a first name, a task needs a member), and what
@@ -13,7 +13,7 @@ const crypto = require('crypto');
 /** What the extractor writes when nobody was named (English and Dutch), and the empty name. */
 const UNASSIGNED = new Set(['', 'unassigned', 'niet toegewezen', 'nobody', 'niemand', 'n/a', '-']);
 
-const norm = (s) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+const norm = (/** @type {unknown} */ s) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
 
 /**
  * The member an action item's name points at, or null when it is empty or
@@ -50,7 +50,7 @@ function itemTextHash(text) {
  * The key a made task is filed under in `created` (store tasksFromMeeting): the id alone when there is no text to pin it.
  * @param {string} itemId
  */
-function itemKey(itemId, text) {
+function itemKey(itemId, /** @type {unknown} */ text) {
     const hash = itemTextHash(text);
     return hash ? `${itemId}#${hash}` : itemId;
 }

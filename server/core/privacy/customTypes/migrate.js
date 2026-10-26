@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * The old "Always hide these" list (`customSensitiveTerms`) as types, and
@@ -104,7 +104,7 @@ function buildLegacyMirror(types) {
         };
         if (t.method === 'words') {
             const values = Array.isArray(t.words?.values) ? t.words.values : [];
-            values.forEach((v, i) => terms.push({
+            values.forEach((/** @type {unknown} */ v, /** @type {unknown} */ i) => terms.push({
                 id: values.length === 1 ? (t.legacyTermId || t.id) : `${t.id}_${i}`,
                 ...common,
                 pattern: String(v).slice(0, 500),

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Regex Guardrails — pattern-based input/output content filtering
  * 
@@ -13,6 +13,10 @@
  * @returns {Array<{ruleName: string, pattern: string}>} Matched rules
  */
 const log = require('../../telemetry/log');
+/**
+ * @param {string} content
+ * @param {{ name: string; pattern: string; }[] | undefined} rulesWithPatterns
+ */
 function checkRegexPatterns(content, rulesWithPatterns) {
     if (!rulesWithPatterns || !Array.isArray(rulesWithPatterns) || rulesWithPatterns.length === 0) {
         return [];
@@ -22,6 +26,7 @@ function checkRegexPatterns(content, rulesWithPatterns) {
         ? content
         : JSON.stringify(content);
 
+    /** @type {{ ruleName: string; pattern: string; }[]} */
     const matches = [];
     for (const { name, pattern } of rulesWithPatterns) {
         if (!pattern || pattern.trim() === '') continue;

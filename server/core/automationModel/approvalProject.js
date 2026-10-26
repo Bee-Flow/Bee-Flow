@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The Solution stamp on an approval.
  *
@@ -13,7 +13,7 @@
  */
 const log = require('../../telemetry/log');
 
-async function projectStamp(projectId) {
+async function projectStamp(/** @type {unknown} */ projectId) {
     if (!projectId) return { projectId: null, projectTitle: '' };
     let projectTitle = '';
     try {

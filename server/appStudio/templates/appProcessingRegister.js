@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio template — Processing register (verwerkingsregister).
  *
@@ -645,7 +645,7 @@ const forOpenProcessor = (tableId, sort, limit) => ({
 });
 
 /** A count of activities matching one extra clause. Always limited — see 14. */
-const activityCount = (extra) => ({
+const activityCount = (/** @type {unknown} */ extra) => ({
     kind: 'aggregate',
     tableId: 'tbl_act001',
     aggregates: [{ fn: 'count', field: '*', as: 'n' }],

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /**
  * Startup task: keep the Learning Center video pack in LEARN_MEDIA_DIR on the
@@ -141,7 +141,7 @@ function createLearnMediaSync({
                 logger.debug('learn media: another run holds the lock, skipping');
                 return 'locked';
             }
-            const result = await sync(pin, dir, { log: (m) => logger.debug(`learn media: ${m}`) });
+            const result = await sync(pin, dir, { log: (/** @type {unknown} */ m) => logger.debug(`learn media: ${m}`) });
             failures = 0;
             if (result.status === 'installed') {
                 logger.info(`learn media installed ${result.version} (${result.downloaded} downloaded, ${result.reused} reused)`);

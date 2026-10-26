@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * core/datasets — BGZF blocks on plain zlib. No native deps, deliberately.
  *
@@ -73,7 +73,7 @@ function writeBlock(uncompressed) {
  *   full member length, i.e. the next block starts at offset + compressedSize.
  * @param {number} [offset]
  */
-function readBlock(buf, offset = 0) {
+function readBlock(/** @type {unknown} */ buf, offset = 0) {
     if (!Buffer.isBuffer(buf) || buf.length < offset + 18) {
         throw new Error('bgzf.readBlock: truncated block header');
     }

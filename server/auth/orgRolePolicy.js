@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Per-organisation role → permission overrides.
  *
@@ -86,7 +86,7 @@ function invalidateOrgRoleCache(orgId) {
 }
 
 /** Drop anything that is not an editable permission id. */
-function sanitizePermissions(list) {
+function sanitizePermissions(/** @type {unknown} */ list) {
     if (!Array.isArray(list)) return [];
     const seen = new Set();
     for (const id of list) {

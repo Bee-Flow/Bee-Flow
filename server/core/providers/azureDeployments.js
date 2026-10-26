@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Azure deployment → model registry.
  *
@@ -34,7 +34,7 @@ function configureAzureDeployments({ readDeploymentList } = {}) {
  * Parse the admin's deployment list. `prod-chat=gpt-5.6-sol, gpt-4.1` →
  * [{ deployment:'prod-chat', model:'gpt-5.6-sol' }, { deployment:'gpt-4.1', model:'gpt-4.1' }].
  */
-function parseDeployments(raw) {
+function parseDeployments(/** @type {unknown} */ raw) {
     return String(raw || '')
         .split(',')
         .map(s => s.trim())

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * core/datasets — rsID → position index, 64 shards.
  *
@@ -57,7 +57,7 @@ function serializeShard(records) {
  * Every record for one rs number. @returns {Array<{contigIdx:number, pos:number}>}
  * @param {number} rsNum
  */
-function lookupShard(shardBuf, rsNum) {
+function lookupShard(/** @type {unknown} */ shardBuf, rsNum) {
     if (!Buffer.isBuffer(shardBuf) || shardBuf.length % RECORD_BYTES !== 0) {
         throw new Error('rsidIndex.lookupShard: malformed shard');
     }

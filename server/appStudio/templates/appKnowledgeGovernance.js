@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio template — Knowledge base governance.
  *
@@ -656,7 +656,7 @@ const basesList = (id, span) => ({
 });
 
 /** Count of `sources` matching a filter. Aggregates cap at 50 without a limit. */
-const sourceCount = (filter) => ({
+const sourceCount = (/** @type {unknown} */ filter) => ({
     kind: 'aggregate',
     tableId: 'tbl_source1',
     aggregates: [{ fn: 'count', field: '*', as: 'n' }],

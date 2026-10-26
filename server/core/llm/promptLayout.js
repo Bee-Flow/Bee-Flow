@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Where the per-turn ("volatile") system block sits in the message list.
  *
@@ -78,7 +78,7 @@ function placeVolatileBlock(messages, volatileMessage) {
  * adapter already handled before this module existed. Same in-place,
  * by-reference, idempotent contract as placeVolatileBlock.
  */
-function hoistVolatileBlock(messages, volatileMessage) {
+function hoistVolatileBlock(/** @type {unknown} */ messages, /** @type {unknown} */ volatileMessage) {
     if (!Array.isArray(messages) || !volatileMessage) return messages;
     const at = messages.indexOf(volatileMessage);
     if (at !== -1) messages.splice(at, 1);
