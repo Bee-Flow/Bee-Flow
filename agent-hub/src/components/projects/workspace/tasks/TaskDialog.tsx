@@ -183,8 +183,8 @@ export default function TaskDialog(props: TaskDialogProps) {
     const plannedLabels = retainSprintLabels(labels, userLabels);
     const labelsOverflow = plannedLabels.length > MAX_LABELS;
     const input: TaskInput = { title: clean, description, status, priority, itemType, parentTaskId, storyPoints: points, labels: plannedLabels, checklist, assigneeIds, links, startDate: startDate || null, dueDate: dueDate || null };
-    const initial = useRef(JSON.stringify(input));
-    const { requestClose, pending, keepEditing } = useDirtyGuard(JSON.stringify(input) !== initial.current, canEdit, busy, onClose);
+    const [initial] = useState(() => JSON.stringify(input));
+    const { requestClose, pending, keepEditing } = useDirtyGuard(JSON.stringify(input) !== initial, canEdit, busy, onClose);
     const invalidDates = !!(startDate && dueDate && startDate > dueDate);
     const newTitles: Record<WorkItemType, string> = {
         epic: t('project_tasks.new_epic', 'New epic'),

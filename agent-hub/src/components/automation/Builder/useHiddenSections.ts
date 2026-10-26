@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState, useLayoutEffect } from 'react';
 import type { FlowStep } from './flow/types';
 import type { FormDensity, FormDensityValue, FormMode } from './flow/settings/formDensity';
 
@@ -31,7 +31,9 @@ export default function useHiddenSections({ step, density, mode }: UseHiddenSect
     // identities stay stable — every section subscribes through a context.
     const hiddenKey = `${step?.id || ''}:${density}:${mode ?? 'gesture'}`;
     const hiddenKeyRef = useRef(hiddenKey);
-    hiddenKeyRef.current = hiddenKey;
+    useLayoutEffect(() => {
+        hiddenKeyRef.current = hiddenKey;
+    });
     const [hiddenByKey, setHiddenByKey] = useState<Record<string, Set<string>>>({});
     const onHiddenSection = useCallback((sectionKey: string) => {
         setHiddenByKey((prev) => {

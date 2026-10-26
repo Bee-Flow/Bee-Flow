@@ -34,7 +34,7 @@ export default function useBeeEditorState(props: BeeEditorProps): EditorShared {
   useLayoutEffect(() => {
       onUploadImageRef.current = onUploadImage;
   });
-  // Assigned every render; the host's keydown listener calls through it.
+  // Assigned after every commit; the host's keydown listener calls through it.
   const runShortcutRef = useRef<(action: string) => boolean>(() => false);
   const facadeRef = useRef<EditorFacade | null>(null);
   const notebookIdRef = useRef(notebookId);

@@ -15,8 +15,8 @@ import type { Dates, Timeline } from './TimelineControls';
 function Handle({ task, mode, disabled, label, className, children, onClick }: {
     task: ProjectTask; mode: DateMove; disabled: boolean; label: string; className: string; children?: React.ReactNode; onClick?: () => void;
 }) {
-    const drag = useDraggable({ id: `${task.id}:${mode}`, data: { task, mode }, disabled });
-    return <button type="button" ref={drag.setNodeRef} {...drag.attributes} {...drag.listeners} onClick={onClick} disabled={disabled} aria-label={label} className={`touch-none ${className}`}>{children}</button>;
+    const { setNodeRef, attributes, listeners } = useDraggable({ id: `${task.id}:${mode}`, data: { task, mode }, disabled });
+    return <button type="button" ref={setNodeRef} {...attributes} {...listeners} onClick={onClick} disabled={disabled} aria-label={label} className={`touch-none ${className}`}>{children}</button>;
 }
 
 const GRIP = <span aria-hidden="true" className="block w-0.5 h-3 mx-auto rounded-full bg-current opacity-50" />;

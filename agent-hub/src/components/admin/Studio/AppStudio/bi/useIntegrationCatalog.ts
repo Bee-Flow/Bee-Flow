@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useLayoutEffect } from 'react';
 import useAutomationApi from '@/hooks/useAutomationApi';
 import type { CatalogAction } from './connectors/connectorModel';
 
@@ -47,7 +47,9 @@ function clearCatalogCache() { catalogPromise = null; catalogFetchedAt = 0; }
 export default function useIntegrationCatalog() {
     const api = useAutomationApi();
     const apiRef = useRef(api);
-    apiRef.current = api;
+    useLayoutEffect(() => {
+        apiRef.current = api;
+    });
 
     const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
     const [failed, setFailed] = useState(false);

@@ -85,9 +85,6 @@
     },
     "no-restricted-syntax": {
       "count": 1
-    },
-    "react-hooks/refs": {
-      "count": 2
     }
   },
   "src/AuthedApp.tsx": {
@@ -251,11 +248,6 @@
   },
   "src/components/admin/Studio/AppStudio/bi/useAppTables.ts": {
     "react-hooks/exhaustive-deps": {
-      "count": 1
-    }
-  },
-  "src/components/admin/Studio/AppStudio/bi/useIntegrationCatalog.ts": {
-    "react-hooks/refs": {
       "count": 1
     }
   },
@@ -443,11 +435,6 @@
     }
   },
   "src/components/admin/Studio/AppStudio/editor/header/useCommandActions.ts": {
-    "react-hooks/refs": {
-      "count": 2
-    }
-  },
-  "src/components/admin/Studio/AppStudio/editor/header/useHeaderView.ts": {
     "react-hooks/refs": {
       "count": 2
     }
@@ -853,14 +840,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/AppStudio/runtime/BrowserRunContext.tsx": {
-    "react-hooks/exhaustive-deps": {
-      "count": 1
-    },
-    "react-hooks/refs": {
-      "count": 2
-    }
-  },
   "src/components/admin/Studio/AppStudio/runtime/RuntimeContext.tsx": {
     "complexity": {
       "count": 1
@@ -1019,9 +998,6 @@
   "src/components/admin/Studio/AppStudio/runtime/components/AppInputHtml.tsx": {
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/refs": {
-      "count": 1
     }
   },
   "src/components/admin/Studio/AppStudio/runtime/components/AppInputNumber.tsx": {
@@ -1037,9 +1013,6 @@
   "src/components/admin/Studio/AppStudio/runtime/components/AppInputRichtext.tsx": {
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/refs": {
-      "count": 4
     }
   },
   "src/components/admin/Studio/AppStudio/runtime/components/AppInputSelect.tsx": {
@@ -1328,11 +1301,6 @@
   "src/components/admin/Studio/AppStudio/runtime/styleResolver.ts": {
     "complexity": {
       "count": 1
-    }
-  },
-  "src/components/admin/Studio/AppStudio/runtime/useActionRunner.ts": {
-    "react-hooks/refs": {
-      "count": 2
     }
   },
   "src/components/admin/Studio/AppStudio/runtime/useAppDataSource.ts": {
@@ -1905,9 +1873,6 @@
   "src/components/admin/Studio/Executions/useRunStream.ts": {
     "max-lines-per-function": {
       "count": 2
-    },
-    "react-hooks/refs": {
-      "count": 1
     }
   },
   "src/components/admin/Studio/Forms/FormPage.tsx": {
@@ -2488,11 +2453,6 @@
   },
   "src/components/admin/Studio/Solutions/pipeline/settings/seatShapes.ts": {
     "complexity": {
-      "count": 1
-    }
-  },
-  "src/components/admin/Studio/Solutions/relatedParts.ts": {
-    "react-hooks/refs": {
       "count": 1
     }
   },
@@ -3882,14 +3842,6 @@
   "src/components/admin/product-website/pageList/PageRow.tsx": {
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/refs": {
-      "count": 1
-    }
-  },
-  "src/components/admin/product-website/panel/PanelStage.tsx": {
-    "react-hooks/refs": {
-      "count": 2
     }
   },
   "src/components/admin/product-website/panel/cmsTurnUndo.ts": {
@@ -4882,16 +4834,6 @@
       "count": 1
     }
   },
-  "src/components/automation/Builder/build/AssistantColumn.tsx": {
-    "react-hooks/refs": {
-      "count": 19
-    }
-  },
-  "src/components/automation/Builder/build/BuildCanvas.tsx": {
-    "react-hooks/refs": {
-      "count": 9
-    }
-  },
   "src/components/automation/Builder/build/useAddStep.ts": {
     "react-hooks/immutability": {
       "count": 1
@@ -5416,11 +5358,6 @@
       "count": 1
     }
   },
-  "src/components/automation/Builder/flow/settings/SourceNotices.tsx": {
-    "react-hooks/refs": {
-      "count": 2
-    }
-  },
   "src/components/automation/Builder/flow/settings/TablesRowValuesEditor.tsx": {
     "complexity": {
       "count": 1
@@ -5942,9 +5879,6 @@
   "src/components/automation/Builder/mapping/LoopBodyEditor.tsx": {
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/refs": {
-      "count": 1
     }
   },
   "src/components/automation/Builder/mapping/LoopOverPicker.tsx": {
@@ -6194,11 +6128,6 @@
       "count": 1
     }
   },
-  "src/components/automation/Builder/ndv/useFormEditor.ts": {
-    "react-hooks/refs": {
-      "count": 1
-    }
-  },
   "src/components/automation/Builder/ndv/useOutputEditor.tsx": {
     "max-lines-per-function": {
       "count": 1
@@ -6281,11 +6210,6 @@
       "count": 1
     }
   },
-  "src/components/automation/Builder/settings/settingsUi.tsx": {
-    "react-hooks/refs": {
-      "count": 1
-    }
-  },
   "src/components/automation/Builder/settings/startChoice.ts": {
     "complexity": {
       "count": 1
@@ -6349,11 +6273,6 @@
       "count": 1
     }
   },
-  "src/components/automation/Builder/useBuilderTabUrl.ts": {
-    "react-hooks/refs": {
-      "count": 1
-    }
-  },
   "src/components/automation/Builder/useFlowletActions.ts": {
     "react-hooks/exhaustive-deps": {
       "count": 3
@@ -6368,16 +6287,6 @@
     },
     "react-hooks/set-state-in-effect": {
       "count": 2
-    }
-  },
-  "src/components/automation/Builder/useHiddenSections.ts": {
-    "react-hooks/refs": {
-      "count": 1
-    }
-  },
-  "src/components/automation/Builder/useManagedPart.ts": {
-    "react-hooks/refs": {
-      "count": 1
     }
   },
   "src/components/automation/Builder/useNdvPanels.ts": {
@@ -6418,9 +6327,6 @@
     },
     "max-lines-per-function": {
       "count": 2
-    },
-    "react-hooks/refs": {
-      "count": 5
     }
   },
   "src/components/automation/taskFormatters.ts": {
@@ -6839,11 +6745,6 @@
     },
     "max-statements": {
       "count": 1
-    }
-  },
-  "src/components/comments/CommentComposer.tsx": {
-    "react-hooks/refs": {
-      "count": 20
     }
   },
   "src/components/comments/useCommentsPanel.ts": {
@@ -7527,14 +7428,6 @@
   "src/components/projects/workspace/ProjectWorkspacePage.tsx": {
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/refs": {
-      "count": 3
-    }
-  },
-  "src/components/projects/workspace/chat/ChatComposer.tsx": {
-    "react-hooks/refs": {
-      "count": 10
     }
   },
   "src/components/projects/workspace/chat/ChatMessageBubble.tsx": {
@@ -7576,11 +7469,6 @@
       "count": 1
     }
   },
-  "src/components/projects/workspace/tasks/BoardCard.tsx": {
-    "react-hooks/refs": {
-      "count": 8
-    }
-  },
   "src/components/projects/workspace/tasks/MeetingTasksDialog.tsx": {
     "complexity": {
       "count": 1
@@ -7603,9 +7491,6 @@
     },
     "max-statements": {
       "count": 1
-    },
-    "react-hooks/refs": {
-      "count": 1
     }
   },
   "src/components/projects/workspace/tasks/TasksTab.tsx": {
@@ -7620,11 +7505,6 @@
     },
     "react-hooks/set-state-in-effect": {
       "count": 1
-    }
-  },
-  "src/components/projects/workspace/tasks/TimelineRow.tsx": {
-    "react-hooks/refs": {
-      "count": 3
     }
   },
   "src/components/projects/workspace/tasks/useTaskDialog.tsx": {
@@ -8213,9 +8093,6 @@
     },
     "max-lines-per-function": {
       "count": 1
-    },
-    "react-hooks/refs": {
-      "count": 48
     }
   },
   "src/editor/react/EditorToolbar.tsx": {
@@ -8277,12 +8154,6 @@
   },
   "src/editor/react/useEditorInteractions.ts": {
     "max-lines-per-function": {
-      "count": 1
-    },
-    "react-hooks/exhaustive-deps": {
-      "count": 1
-    },
-    "react-hooks/refs": {
       "count": 1
     }
   },
@@ -8400,11 +8271,6 @@
     },
     "max-statements": {
       "count": 1
-    }
-  },
-  "src/hooks/useDebouncedCallback.ts": {
-    "react-hooks/refs": {
-      "count": 3
     }
   },
   "src/hooks/useFlowletAgentStream.ts": {
@@ -8802,9 +8668,6 @@
     },
     "react-hooks/exhaustive-deps": {
       "count": 1
-    },
-    "react-hooks/refs": {
-      "count": 2
     }
   },
   "src/pages/TemplatesPage.tsx": {
@@ -8962,9 +8825,6 @@
     },
     "max-statements": {
       "count": 1
-    },
-    "react-hooks/refs": {
-      "count": 36
     }
   },
   "src/pages/documents/notebook/detail/SessionEndedNotice.tsx": {
@@ -9095,14 +8955,6 @@
   "src/pages/documents/spreadsheet/useSheetAssistant.ts": {
     "max-statements": {
       "count": 1
-    }
-  },
-  "src/pages/documents/useDocumentAutosave.ts": {
-    "react-hooks/immutability": {
-      "count": 4
-    },
-    "react-hooks/refs": {
-      "count": 3
     }
   },
   "src/pages/documents/useSectionPresence.ts": {
@@ -9931,11 +9783,6 @@
   "src/pages/webpages/WebpageDbViewer.tsx": {
     "max-lines-per-function": {
       "count": 2
-    }
-  },
-  "src/pages/webpages/WebpageEditorBody.tsx": {
-    "react-hooks/refs": {
-      "count": 20
     }
   },
   "src/pages/webpages/WebpageEditorPage.tsx": {

@@ -88,7 +88,7 @@ export default function BuildDiagramColumn({ p, m, reviewOpen, setReviewOpen, pr
  * OUTSIDE this wrapper, anchored to the row, so they hide off the true screen
  * edge.
  */
-function CanvasRow({ p, m }: { p: BuildTabProps; m: BuildTabModel }) {
+function CanvasRow({ p, m: { diagramRef, ...m } }: { p: BuildTabProps; m: BuildTabModel }) {
     const { state, mode = 'automation', readOnly = false } = p;
     const showChat = p.assistantOpen && mode !== 'step' && !readOnly;
     // The plan exists only once the agent has written one — so this is "while
@@ -116,7 +116,7 @@ function CanvasRow({ p, m }: { p: BuildTabProps; m: BuildTabModel }) {
                 // Remount per scope: fitView re-runs on the new graph and the
                 // drag-mirror state can't leak across scopes.
                 key={p.scopeKey || 'root'}
-                ref={m.diagramRef}
+                ref={diagramRef}
                 {...canvasPaneProps(p, m)}
                 cameraInsetLeft={hasPlan ? PLAN_PANEL_INSET_PX : 0}
             />
@@ -137,13 +137,16 @@ function CanvasRow({ p, m }: { p: BuildTabProps; m: BuildTabModel }) {
     );
 }
 
+/** The model without the canvas's own ref (CanvasRow hands that to the pane itself). */
+type CanvasModel = Omit<BuildTabModel, 'diagramRef'>;
+
 /** Everything the canvas is handed, apart from its key, ref and camera inset. */
-function canvasPaneProps(p: BuildTabProps, m: BuildTabModel): DiagramPaneProps {
+function canvasPaneProps(p: BuildTabProps, m: CanvasModel): DiagramPaneProps {
     return { ...canvasEditProps(p, m), ...canvasRunProps(p, m), ...canvasFlowletProps(p, m) };
 }
 
 /** The run drawn on the canvas, and what the canvas can do about it. */
-function canvasRunProps(p: BuildTabProps, m: BuildTabModel): DiagramPaneProps {
+function canvasRunProps(p: BuildTabProps, m: CanvasModel): DiagramPaneProps {
     const { state, onOpenFormOverlay } = p;
     const dryRunId = state.dryRun?.id;
     return {
@@ -163,7 +166,7 @@ function canvasRunProps(p: BuildTabProps, m: BuildTabModel): DiagramPaneProps {
 }
 
 /** The flowlets: drawn open on the canvas, opened as a scope, or managed. */
-function canvasFlowletProps(p: BuildTabProps, m: BuildTabModel): DiagramPaneProps {
+function canvasFlowletProps(p: BuildTabProps, m: CanvasModel): DiagramPaneProps {
     const { flowlets, manager } = m;
     return {
         onOpenLayer: (k) => p.setScopeKey?.(k),
@@ -181,7 +184,7 @@ function canvasFlowletProps(p: BuildTabProps, m: BuildTabModel): DiagramPaneProp
 }
 
 /** The graph, and every way of editing it from the canvas. */
-function canvasEditProps(p: BuildTabProps, m: BuildTabModel): DiagramPaneProps {
+function canvasEditProps(p: BuildTabProps, m: CanvasModel): DiagramPaneProps {
     const { state, mode = 'automation', readOnly = false, onAskAssistant } = p;
     const assistantReachable = mode !== 'step' && !readOnly;
     return {

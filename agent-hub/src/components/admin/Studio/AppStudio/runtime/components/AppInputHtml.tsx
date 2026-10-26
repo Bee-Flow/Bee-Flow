@@ -239,7 +239,7 @@ export default function AppInputHtml({ node }: NodeProps<InputHtmlProps>) {
                 className="flex flex-col border overflow-hidden"
                 style={{ borderColor: error ? 'var(--error)' : 'var(--border-default)', borderRadius: 'var(--app-radius)', background: 'var(--bg-primary)' }}
             >
-                <AppInputHtmlSection2 t={t} btn={btn} exec={exec} setLinking={setLinking} allowImages={allowImages} fileRef={fileRef} select={select} SIZES={SIZES} COLORS={COLORS} />
+                <AppInputHtmlSection2 t={t} btn={btn} exec={exec} setLinking={setLinking} allowImages={allowImages} pickImage={() => fileRef.current?.click()} select={select} SIZES={SIZES} COLORS={COLORS} />
 
                 {/* An inline field rather than window.prompt: a prompt is blocked
                     outright inside the Nextcloud embedding, where the button
@@ -297,7 +297,7 @@ export default function AppInputHtml({ node }: NodeProps<InputHtmlProps>) {
     );
 }
 
-function AppInputHtmlSection2({ t, btn, exec, setLinking, allowImages, fileRef, select, SIZES, COLORS }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; btn: (key: string, Icon: LucideIcon, onClick: () => void, title: string) => JSX.Element; exec: (cmd: string, arg?: string) => void; setLinking: Dispatch<SetStateAction<boolean>>; allowImages: boolean; fileRef: RefObject<HTMLInputElement | null>; select: (key: string, title: string, options: string[][], onPick: (v: string) => void) => JSX.Element; SIZES: string[][]; COLORS: string[][]; }) {
+function AppInputHtmlSection2({ t, btn, exec, setLinking, allowImages, pickImage, select, SIZES, COLORS }: { t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; btn: (key: string, Icon: LucideIcon, onClick: () => void, title: string) => JSX.Element; exec: (cmd: string, arg?: string) => void; setLinking: Dispatch<SetStateAction<boolean>>; allowImages: boolean; pickImage: () => void; select: (key: string, title: string, options: string[][], onPick: (v: string) => void) => JSX.Element; SIZES: string[][]; COLORS: string[][]; }) {
     return <div
         className="flex items-center flex-wrap gap-0.5 px-1.5 py-1 border-b [border-color:var(--border-default)]! [background:var(--bg-tertiary)]"
         role="toolbar"
@@ -309,7 +309,7 @@ function AppInputHtmlSection2({ t, btn, exec, setLinking, allowImages, fileRef, 
         {btn('ul', List, () => exec('insertUnorderedList'), t('studio_apps_runtime.rich_text.bullets', 'Bulleted list'))}
         {btn('ol', ListOrdered, () => exec('insertOrderedList'), t('studio_apps_runtime.rich_text.numbered', 'Numbered list'))}
         {btn('link', Link2, () => setLinking((v) => !v), t('studio_apps_runtime.rich_text.link', 'Link'))}
-        {allowImages ? btn('img', ImageIcon, () => fileRef.current?.click(), t('studio_apps_runtime.rich_text.image', 'Image')) : null}
+        {allowImages ? btn('img', ImageIcon, pickImage, t('studio_apps_runtime.rich_text.image', 'Image')) : null}
         <span className="w-px h-4 mx-1 [background:var(--border-default)]" aria-hidden="true" />
         {select('font', t('studio_apps_runtime.rich_text.font', 'Font'), FONTS.map((f) => [f, f]), (v) => exec('fontName', v))}
         {select('size', t('studio_apps_runtime.rich_text.size', 'Size'), SIZES, (v) => exec('fontSize', v))}

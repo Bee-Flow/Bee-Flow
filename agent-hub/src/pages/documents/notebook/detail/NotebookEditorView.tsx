@@ -77,8 +77,11 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
 
     const openHistory = useCallback(() => setPanel('versions'), []);
     const doc = useNotebookDocument({ data, user: me, readOnly, onNotice: setNotice, onShowHistory: openHistory });
-    const editorRef = doc.editorRef as React.MutableRefObject<NotebookEditorHandle | null>;
-    const bound = doc.collab.bound;
+    // editorRef is split off so the rest of the document state reads as plain
+    // values: the compiler treats an object holding a ref as a ref.
+    const { editorRef: docEditorRef, ...docState } = doc;
+    const editorRef = docEditorRef as React.MutableRefObject<NotebookEditorHandle | null>;
+    const bound = docState.collab.bound;
 
     const sources = useSourcesPolling({ entityId: nb.id, onError: showError, onChanged: onListChanged });
     const { seedSources } = sources;
@@ -87,9 +90,9 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
 
     const { modelTiers, selectedTier, setSelectedTier } = useModelTiers();
     const { signRequestConfigured, nextcloudConfigured } = useExportTargets();
-    const docRef = useRef(doc.autosave.documentContent);
+    const docRef = useRef(docState.autosave.documentContent);
     useLayoutEffect(() => {
-        docRef.current = doc.autosave.documentContent;
+        docRef.current = docState.autosave.documentContent;
     });
 
     const chat = useNotebookChat({
@@ -97,17 +100,17 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
         selectedTier,
         editorRef,
         getDocument: () => docRef.current,
-        getDocVersion: () => doc.autosave.getKnownVersion(),
+        getDocVersion: () => docState.autosave.getKnownVersion(),
         bound,
-        onDocUpdate: doc.onAiDocUpdate,
+        onDocUpdate: docState.onAiDocUpdate,
         onSourceAdded: (source) => sources.setSources((prev) => [...prev, source as NotebookSource]),
     });
     const exportsApi = useNotebookExports({ notebookId: nb.id, title: nb.name, getContent: () => docRef.current, onNotice: setNotice });
     const aiFill = useAiFill({
         notebookId: nb.id, modelTier: selectedTier, editorRef, onError: showError,
-        onApplied: (html) => { if (!bound) void doc.autosave.handleDocSave(html); },
+        onApplied: (html) => { if (!bound) void docState.autosave.handleDocSave(html); },
     });
-    const importer = useImportFile(nb.id, editorRef, showError);
+    const { inputRef: importInputRef, open: openImport, onChange: onImportChange } = useImportFile(nb.id, editorRef, showError);
     const rename = useRenameNotebook(nb.id);
     // The header's inline rename is fire-and-forget: a failure says so in the
     // notice bar (the name snaps back to the saved one) instead of vanishing.
@@ -142,7 +145,7 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
         if (!tocTouched.current && (items || []).length >= TOC_AUTO_OPEN_AT) { tocTouched.current = true; setTocOpen(true); }
     }, []);
 
-    const empty = isEmptyDocument(doc.autosave.documentContent);
+    const empty = isEmptyDocument(docState.autosave.documentContent);
     const hasExportContent = !empty;
     const showMeetingNotes = user?.featureFlags?.meeting_notes !== false
         && (user?.isAdmin || user?.permissions?.includes('all') || (Array.isArray(user?.betaFeatures) && user.betaFeatures.includes('meeting_notes')));
@@ -164,11 +167,11 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
         onToggleToc: tocItems.length ? toggleToc : undefined,
         onNewChat: () => { void chat.newChat(); },
         onRename: readOnly ? undefined : () => setRenameSignal((n) => n + 1),
-        onImport: readOnly ? undefined : importer.open,
+        onImport: readOnly ? undefined : openImport,
         onFind: () => editorRef.current?.openFind?.(),
         onShortcuts: () => editorRef.current?.openShortcuts?.(),
     }), [editorRef, readOnly, exportsApi.handleExport, exportsApi.handleNextcloudExport, hasExportContent, signRequestConfigured,
-        nextcloudConfigured, openVersions, project, toggleComments, tocItems.length, toggleToc, chat, importer.open]);
+        nextcloudConfigured, openVersions, project, toggleComments, tocItems.length, toggleToc, chat, openImport]);
 
     const headerExtras = [
         {
@@ -182,25 +185,25 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
     const banners = (
         <>
             <NotebookNotice notice={notice} onDismiss={() => setNotice(null)} />
-            {doc.collab.slow && (
+            {docState.collab.slow && (
                 <NotebookNotice
                     notice={{
                         kind: 'info',
                         message: t('notebooks.collab_slow', 'Joining the live session is taking longer than usual. You can wait, or edit on your own; your saves are then checked against everyone else\'s.'),
-                        action: { label: t('notebooks.collab_go_solo', 'Edit on my own'), onClick: doc.collab.goSolo },
+                        action: { label: t('notebooks.collab_go_solo', 'Edit on my own'), onClick: docState.collab.goSolo },
                     }}
-                    onDismiss={doc.collab.goSolo}
+                    onDismiss={docState.collab.goSolo}
                 />
             )}
-            <SessionEndedNotice notebookId={nb.id} collab={doc.collab} editorRef={editorRef} onReload={onReload} />
-            {doc.conflict && (
+            <SessionEndedNotice notebookId={nb.id} collab={docState.collab} editorRef={editorRef} onReload={onReload} />
+            {docState.conflict && (
                 <NotebookConflictPanel
                     notebookId={nb.id}
-                    conflictVersionId={doc.conflict.conflictVersionId}
-                    busy={doc.conflictBusy}
-                    error={doc.conflictError}
-                    onKeepMine={() => { void doc.keepMine(); }}
-                    onUseTheirs={() => { void doc.takeSaved(); }}
+                    conflictVersionId={docState.conflict.conflictVersionId}
+                    busy={docState.conflictBusy}
+                    error={docState.conflictError}
+                    onKeepMine={() => { void docState.keepMine(); }}
+                    onUseTheirs={() => { void docState.takeSaved(); }}
                 />
             )}
         </>
@@ -225,7 +228,7 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
 
     return (
         <>
-            <input type="file" ref={importer.inputRef} className="hidden" onChange={importer.onChange} accept=".pdf,.doc,.docx,.txt,.md,.csv,.xlsx" aria-hidden="true" tabIndex={-1} />
+            <input type="file" ref={importInputRef} className="hidden" onChange={onImportChange} accept=".pdf,.doc,.docx,.txt,.md,.csv,.xlsx" aria-hidden="true" tabIndex={-1} />
             <NotebookWorkspace
                 variant="notebook"
                 kind="document"
@@ -239,8 +242,8 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
                         readOnly={readOnly}
                         project={project}
                         meta={meta}
-                        presence={doc.collab.handle ? <CollabPresence handle={doc.collab.handle} /> : null}
-                        saveStatus={<NotebookSaveStatus mode={doc.saveMode} lastSavedAt={doc.autosave.lastSavedAt} onRetry={doc.autosave.retrySave} />}
+                        presence={docState.collab.handle ? <CollabPresence handle={docState.collab.handle} /> : null}
+                        saveStatus={<NotebookSaveStatus mode={docState.saveMode} lastSavedAt={docState.autosave.lastSavedAt} onRetry={docState.autosave.retrySave} />}
                         onOpenProject={onOpenProject}
                     />
                 )}
@@ -299,37 +302,37 @@ export default function NotebookEditorView({ data, user, onBack, onListChanged, 
                                 baseUrl={`/api/notebooks/${nb.id}`}
                                 canEdit={!readOnly}
                                 managed={nb.managed}
-                                onRestored={doc.onRestored}
+                                onRestored={docState.onRestored}
                                 onClose={() => setPanel(null)}
                                 projectId={nb.projectId}
                                 currentUserId={me?.id || null}
-                                expectedVersion={bound ? null : doc.autosave.getKnownVersion()}
+                                expectedVersion={bound ? null : docState.autosave.getKnownVersion()}
                                 title={nb.name}
                             />
                         ) : null}
                     />
                 )}
             >
-                {!readOnly && empty && !doc.collab.slow && (
+                {!readOnly && empty && !docState.collab.slow && (
                     <NotebookStarters
                         readySourceCount={sources.readySources.length}
                         onDraft={chat.send}
-                        onImport={importer.open}
+                        onImport={openImport}
                         onTemplate={(md) => editorRef.current?.insertContent?.(md)}
                     />
                 )}
                 <RichTextEditor
                     ref={editorRef}
-                    onImportClick={readOnly ? undefined : importer.open}
-                    content={doc.autosave.documentContent}
+                    onImportClick={readOnly ? undefined : openImport}
+                    content={docState.autosave.documentContent}
                     editable={!readOnly}
-                    collab={doc.collab.handle}
-                    onChange={doc.onEditorChange}
-                    onSave={doc.autosave.handleDocSave}
+                    collab={docState.collab.handle}
+                    onChange={docState.onEditorChange}
+                    onSave={docState.autosave.handleDocSave}
                     onAIAction={readOnly ? undefined : chat.onEditorAIAction}
                     onAIFill={readOnly ? undefined : aiFill.handleAIFill}
                     aiFilling={aiFill.aiFilling}
-                    saving={doc.autosave.docSaving}
+                    saving={docState.autosave.docSaving}
                     onTocUpdate={onToc}
                     onWordCountChange={setDocWords}
                     notebookId={nb.id}

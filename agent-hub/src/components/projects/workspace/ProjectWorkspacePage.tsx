@@ -309,17 +309,17 @@ function Workspace(props: WorkspaceProps) {
                     <SegmentedControl
                         size="sm"
                         ariaLabel={t('project_home.rail.label', 'Project sections')}
-                        value={route.tab}
-                        onChange={(tab) => route.go(tab)}
+                        value={plainRoute.tab}
+                        onChange={(tab) => go(tab)}
                         options={groups.flatMap((g) => g.items.map((item) => ({
                             value: item.id,
                             label: item.label,
-                            badge: unread.tabs[item.id] && item.id !== route.tab ? { count: '•', tone: 'neutral' as const } : (counts[item.id] ?? null),
+                            badge: unread.tabs[item.id] && item.id !== plainRoute.tab ? { count: '•', tone: 'neutral' as const } : (counts[item.id] ?? null),
                         })))}
                     />
                 </div>
                 {/* An open team chat shows its own band above its composer. */}
-                {!(route.tab === 'chats' && route.sub) && <ConnectionBand className="px-4 pt-3" />}
+                {!(plainRoute.tab === 'chats' && plainRoute.sub) && <ConnectionBand className="px-4 pt-3" />}
                 {(project.kind === null || project.kind === 'solution') && (
                     <div className="px-4 pt-3">
                         <KindNotice project={project} role={role} onNavigate={onNavigate} />
