@@ -3,6 +3,7 @@ import { useTranslation } from '../../../../hooks/useTranslation';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import type { RunRowData } from '../../../../api/queries/automation/runs';
 import { RunsRequestError, retriedRunId, useFindFailedStep, useRemindApproval, useRetryRun } from '../../../../api/queries/automation/runs';
+import { runStartRefusal } from '../../../../api/queries/automation/runAccess';
 import { toast } from '../../../shared/Toast';
 import { groupRunsByDay } from './runOutcome';
 import RunRow from './RunRow';
@@ -51,8 +52,8 @@ export default function RunList({
             const next = retriedRunId(res);
             if (next) onOpenRun(next);
             else toast.info(t('runs.tab.retry_pending', 'Started again. It shows up in the list in a moment.'));
-        } catch {
-            toast.error(t('runs.tab.retry_failed', 'Could not start the run again.'));
+        } catch (e) {
+            toast.error(runStartRefusal(t, e) || t('runs.tab.retry_failed', 'Could not start the run again.'));
         } finally {
             setBusyId(null);
         }

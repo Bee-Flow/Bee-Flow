@@ -6,6 +6,7 @@
 import React from 'react';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { useTheme } from '@/core/theme/ThemeProvider';
 import { Markdown } from '@/shared/markdown';
 import { Banner, Button, Card, Icon, Section, Text } from '@/shared/ui';
@@ -16,9 +17,37 @@ import { LiveRunCard } from './LiveRunCard';
 import { RecentRunsSection } from './RecentRunsSection';
 import { SetupSection } from './SetupSection';
 import type { useAutomationDetail } from '../hooks/useAutomationDetail';
+import { mayStartRun, VIEW_ONLY_RUN_HINT } from '../model/runAccess';
 import { statusToken } from '../model/status';
 import { formatDuration, runElapsedMs } from '../model/time';
 import type { Automation, AutomationRun } from '../model/types';
+
+/** "Run now", or the reason a viewer cannot: the server decides who may start (canStart). */
+function RunNowButton({ automation, liveRun, pending, onRun }: { automation: Automation; liveRun: boolean; pending: boolean; onRun: () => void }) {
+    const theme = useTheme();
+    const t = useTranslation();
+    const canStart = mayStartRun(automation);
+    const hint = t('automations.run.viewOnlyHint', VIEW_ONLY_RUN_HINT);
+    return (
+        <>
+            <Button
+                label={liveRun ? 'Already running' : 'Run now'}
+                size="lg"
+                fullWidth
+                icon={<Icon name="Play" size={18} color={theme.colors.accentPrimaryFg} />}
+                loading={pending}
+                disabled={liveRun || !canStart}
+                onPress={onRun}
+                accessibilityHint={canStart ? 'Starts this automation immediately, outside its schedule' : hint}
+            />
+            {canStart ? null : (
+                <Text variant="label" tone="tertiary">
+                    {hint}
+                </Text>
+            )}
+        </>
+    );
+}
 
 /** The last run, when it failed with an error worth putting first. */
 function failedRun(run: AutomationRun | null): AutomationRun | null {
@@ -39,7 +68,6 @@ export function AutomationDetailBody({
     onDecided: () => void;
     onEditSchedule: () => void;
 }) {
-    const theme = useTheme();
     const { runs, liveRun, stream, run, runNote, setActive, stop } = state;
     const lastRun = runs.data?.[0] ?? null;
     const awaiting = lastRun?.status === 'awaiting_approval' ? lastRun : null;
@@ -64,16 +92,7 @@ export function AutomationDetailBody({
 
             {run.isError ? <Banner tone="error">{describeError(run.error).message}</Banner> : null}
 
-            <Button
-                label={liveRun ? 'Already running' : 'Run now'}
-                size="lg"
-                fullWidth
-                icon={<Icon name="Play" size={18} color={theme.colors.accentPrimaryFg} />}
-                loading={run.isPending}
-                disabled={Boolean(liveRun)}
-                onPress={() => run.mutate()}
-                accessibilityHint="Starts this automation immediately, outside its schedule"
-            />
+            <RunNowButton automation={automation} liveRun={Boolean(liveRun)} pending={run.isPending} onRun={() => run.mutate()} />
 
             <SetupSection
                 automation={automation}

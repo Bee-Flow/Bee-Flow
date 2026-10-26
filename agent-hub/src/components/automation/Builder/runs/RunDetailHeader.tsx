@@ -3,6 +3,7 @@ import { ArrowLeft, Link as LinkIcon, PenLine, RotateCcw } from 'lucide-react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import type { RunRowData } from '../../../../api/queries/automation/runs';
 import { retriedRunId, useRetryRun } from '../../../../api/queries/automation/runs';
+import { mayStartRun, runStartRefusal, viewOnlyRunHint } from '../../../../api/queries/automation/runAccess';
 import { toast } from '../../../shared/Toast';
 import { runMeta, runSentence, runTone } from './runOutcome';
 import RunStatusIcon from './RunStatusIcon';
@@ -53,8 +54,8 @@ export default function RunDetailHeader({ automationId, run, onOpenRun, onOpenEd
             const next = retriedRunId(await retry.mutateAsync(run.id));
             if (next) onOpenRun(next);
             else toast.info(t('runs.tab.retry_pending', 'Started again. It shows up in the list in a moment.'));
-        } catch {
-            toast.error(t('runs.tab.retry_failed', 'Could not start the run again.'));
+        } catch (e) {
+            toast.error(runStartRefusal(t, e) || t('runs.tab.retry_failed', 'Could not start the run again.'));
         } finally {
             setRetrying(false);
         }
@@ -74,7 +75,7 @@ export default function RunDetailHeader({ automationId, run, onOpenRun, onOpenEd
                 {finished && !dataHidden && onCompare && <CompareWithMenu automationId={automationId} run={run} onCompare={onCompare} />}
                 {finished && !dataHidden && <GoldenControl automationId={automationId} run={run} />}
                 <RunAction icon={LinkIcon} label={t('runs.tab.copy_link', 'Copy link')} onClick={copyLink} />
-                <RunAction icon={RotateCcw} label={t('runs.tab.run_again', 'Run again with this input')} onClick={runAgain} disabled={!finished || retrying} />
+                <RunAction icon={RotateCcw} label={t('runs.tab.run_again', 'Run again with this input')} onClick={runAgain} disabled={!finished || retrying || !mayStartRun(run)} hint={mayStartRun(run) ? undefined : viewOnlyRunHint(t)} />
                 <RunAction icon={PenLine} label={t('runs.tab.open_editor', 'Open in editor')} onClick={() => onOpenEditor?.(null)} />
             </div>
         </header>

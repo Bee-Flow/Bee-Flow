@@ -11,6 +11,7 @@ import type { DatatableField } from '../lib/actionDestinations';
 import type { TranslateFn } from '../../../hooks/useTranslation';
 import type { LucideIcon } from 'lucide-react';
 import { messageOf } from '../../../utils/caughtError';
+import { mayStartRun, runStartRefusal } from '../../../api/queries/automation/runAccess';
 
 type ViewName = typeof VIEW[keyof typeof VIEW];
 type BranchKey = keyof typeof BRANCH_KIND;
@@ -35,6 +36,8 @@ interface AutomationRow {
     id: string;
     title?: string;
     definition?: { trigger?: { kind?: string } };
+    /** The server's answer to "may this caller start it?" (a view share may not). */
+    canStart?: boolean | null;
 }
 
 interface DatatableRow extends MirrorTable {
@@ -62,7 +65,7 @@ interface KnowledgeBaseRow {
  * or that a `number` column cannot hold a sentence.
  *
  * ── EVERY LIST IS A CONVENIENCE, NEVER THE PERMISSION ───────────────
- * `POST /api/automation/:id/run` is owner-only; `POST /api/datatables/:id/rows`
+ * `POST /api/automation/:id/run` needs the right to start a run (owner, edit or run share); `POST /api/datatables/:id/rows`
  * demands the `editor` grade (and answers 404, not 403, for a table the caller
  * cannot see); `POST /api/kb/:id/sources` needs `manage_knowledge` plus per-KB
  * manage. What is narrowed here is what the menu OFFERS; the gate is always
@@ -101,7 +104,7 @@ async function loadBranch(branch: BranchKey, api: ReturnType<typeof useAutomatio
         // PRIMARY trigger, so `definition.trigger` is the whole question — the
         // additional `definition.triggers[]` never holds one of these.
         return (res?.automations || [])
-            .filter((a: AutomationRow) => AUTOMATION_TRIGGERS.includes(a?.definition?.trigger?.kind))
+            .filter((a: AutomationRow) => AUTOMATION_TRIGGERS.includes(a?.definition?.trigger?.kind) && mayStartRun(a))
             .map((a: AutomationRow) => ({ id: a.id, title: a.title || a.id }));
     }
     if (branch === VIEW.TABLE) {
@@ -196,7 +199,7 @@ export function useDestinationBranches({ t }: { t: TranslateFn }) {
             if (alive.current) onSuccess?.();
         } catch (e) {
             if (alive.current) {
-                setError(t('meetings.dest_failed', 'Could not send this action: {message}', { message: messageOf(e, 'error') }));
+                setError(runStartRefusal(t, e) || t('meetings.dest_failed', 'Could not send this action: {message}', { message: messageOf(e, 'error') }));
                 setBusy(false);
             }
         }

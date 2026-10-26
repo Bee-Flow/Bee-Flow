@@ -173,6 +173,16 @@ function makeAutomationAccess(overrides = {}) {
     }
 
     /**
+     * May this caller start a run of the automation with this id (run it again)?
+     * True, false, or null when the automation cannot be read. Asked of the
+     * automation, the retry route's own gate, never of a run.
+     */
+    async function canStartById(automationId, userId, session = null) {
+        const a = await Promise.resolve(store().getAutomation(automationId)).catch((e) => fallback('automation/access:canStartById', e, null));
+        return a ? mayStartRun(await roleFor(a, userId, { session })) : null;
+    }
+
+    /**
      * Route helper: the caller's access, or `null` after answering 403. `need`
      * 'start' is starting a run (mayStartRun); a viewer gets runStartForbidden.
      *
@@ -217,7 +227,7 @@ function makeAutomationAccess(overrides = {}) {
         return null;
     }
 
-    return { roleFor, canAccessAutomation, guard, runGuard, organisationOf };
+    return { roleFor, canAccessAutomation, canStartById, guard, runGuard, organisationOf };
 }
 
 /**
@@ -225,6 +235,9 @@ function makeAutomationAccess(overrides = {}) {
  *
  *   myRole     'owner'|'edit'|'view'|'run' ('owner' for an org admin too)
  *   accessVia  'owner'|'admin'|'share'
+ *   canStart   mayStartRun(access): may this caller start a run (Run now, run
+ *              again)? The client reads this instead of re-deriving it from
+ *              `myRole`, which cannot see a run share beside a view share.
  *
  * Anyone but the owner loses `builderSession` (the owner's own builder chat).
  * A run-only caller gets the TRIGGERS of the copy their run executes (the
@@ -236,7 +249,8 @@ function projectForViewer(automation, access) {
     if (!automation) return automation;
     const role = access?.role || null;
     const via = access?.via || null;
-    const out = { ...automation, myRole: role, accessVia: via };
+    const out = { ...automation, myRole: role, accessVia: via, canStart: mayStartRun(access) };
+    delete out.runShare;
     if (via !== 'owner') out.builderSession = null;
     if (role === 'run') {
         const def = require('../core/automationRunner/definitionForRun')

@@ -190,7 +190,7 @@ router.get('/runs/:id', async (req, res) => {
         const pending = await automationStore.getPendingApprovalIdsForRuns([run.journeyRunId || run.id]).catch((e) => fallback('routes/automation/webhooksAndRunOps:anon#2', e, null));
         run.approvalId = pending?.get(run.journeyRunId || run.id) || null;
     }
-    res.json({ run: redactRunForViewer(run, req.session.user.id) });
+    res.json({ run: { ...redactRunForViewer(run, req.session.user.id), canStart: (await automationAccess.canStartById(run.automationId, req.session.user.id, req.session)) === true } });
 });
 
 router.get('/runs/:id/steps', async (req, res) => {

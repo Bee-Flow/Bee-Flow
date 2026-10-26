@@ -51,6 +51,22 @@ describe('describeError', () => {
         expect(result.retryable).toBe(false);
     });
 
+    it('tells a viewer why they cannot start a run, in the sentence the web shows', () => {
+        // server/automation/access.js runStartForbidden: a view share reads an
+        // automation but does not start it. The server's English names "the run
+        // or edit role"; the person is told what to ask for, in the words the
+        // run button's hint uses on the web.
+        const result = describeError(
+            new ApiError('You can view this automation but not start it. Ask its owner for the run or edit role.', {
+                status: 403,
+                body: { error: 'You can view this automation but not start it.', code: 'automation_run_forbidden' },
+            }),
+        );
+        expect(result.title).toBe('You cannot start this');
+        expect(result.message).toBe('You can view this automation but not start it. Ask the owner for run access.');
+        expect(result.retryable).toBe(false);
+    });
+
     it('sends a training gate to a computer, where the course can be taken', () => {
         // server/learning/requireTraining.js answers every gated write with
         // this 403. Read as a plan refusal it would send the person to an

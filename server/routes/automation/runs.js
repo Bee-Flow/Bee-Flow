@@ -14,7 +14,7 @@ const { entryDefinitionOf, resolveTriggerStepId } = require('./runEntry');
 const { resolveRunPolicy } = require('../../core/automationRunner/runPolicy');
 const { describeNoticeFor } = require('../../core/automationRunner/callerNotice');
 // Handoff 5 sharing: who may start, test and read the runs of an automation.
-const { makeAutomationAccess, roleSatisfies } = require('../../automation/access');
+const { makeAutomationAccess, roleSatisfies, mayStartRun } = require('../../automation/access');
 const automationAccess = makeAutomationAccess({ store: automationStore });
 
 const { SeenBody, RunBody, PartialRunBody, RerunPlanQuery, RunsQuery, FacetsQuery, StreamQuery, SchedulePreviewBody } = require('./runSchemas');
@@ -400,9 +400,9 @@ router.get('/:id/runs', validate({ query: RunsQuery }), async (req, res) => {
         if (counted) facets = segmentCounts(counted.status);
     }
     res.json({
-        runs: await runRows.decorate(runs, { automation: a, viewerId: userId }),
+        runs: await runRows.decorate(runs, { automation: a, viewerId: userId, canStart: mayStartRun(access) }),
         nextCursor,
-        myRole: access.role,
+        myRole: access.role, canStart: mayStartRun(access),
         onlyMine: access.role === 'run',
         ...(facets ? { facets } : {}),
     });
@@ -430,7 +430,7 @@ router.get('/_runs/recent', validate({ query: RunsQuery }), async (req, res) => 
     // callers read `runs`); `nextCursor` is additive.
     const filters = { ...parseRunFilters(req), cursor: req.query.cursor, limit: req.query.limit || 50 };
     const { runs, nextCursor } = await automationStore.listRunsForUser(userId, filters);
-    res.json({ runs: await runRows.decorate(runs, { viewerId: userId }), nextCursor });
+    res.json({ runs: await runRows.decorate(runs, { viewerId: userId, canStartFor: (id) => automationAccess.canStartById(id, userId, req.session) }), nextCursor });
 });
 
 /**

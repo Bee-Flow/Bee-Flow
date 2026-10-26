@@ -19,6 +19,7 @@ import { useAutomationRows } from '../editor/automationTitles';
 import { useScreenValues } from '../editor/ScreenValuesContext';
 import { removeAction, setAction, setNodeEvent } from '../state/definitionOps';
 import { logger } from '../../../../../utils/logger';
+import { runStartRefusal } from '../../../../../api/queries/automation/runAccess';
 
 /** One automation the picker has resolved, as far as this hook reads it. */
 export interface WiredAutomation {
@@ -462,8 +463,7 @@ export default function useEventWiring({
         setConfirmTest(false);
         if (!action?.automationId) return;
         setTest({ status: 'running' });
-        // Outside the try: a failed run still has to be able to say what it
-        // was not carrying — that is often the reason it failed.
+        // Outside the try: a failed run can still say what it was not carrying.
         const { payload, skipped } = testPayloadOf({
             inputMapping: action.inputMapping,
             formFields,
@@ -476,9 +476,9 @@ export default function useEventWiring({
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ triggerPayload: payload }),
             });
-            let body: { error?: string; run?: { id?: unknown } } | null = null;
+            let body: { error?: string; code?: string; run?: { id?: unknown } } | null = null;
             try { body = await r.json(); } catch (err) { logger.debug('empty body', err); }
-            if (!r.ok) throw new Error(body?.error || t('studio_apps_insp.wiring.run_failed', 'Run failed ({status})', { status: r.status }));
+            if (!r.ok) throw new Error(runStartRefusal(t, body) || body?.error || t('studio_apps_insp.wiring.run_failed', 'Run failed ({status})', { status: r.status }));
             // A 200 carries the finished run; a 202 says "still going" and has
             // no id yet, so the link then opens the automation's Runs tab instead
             // of claiming a run that cannot be addressed.

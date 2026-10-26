@@ -5,6 +5,7 @@ import {
     clockTime, formatSeconds, formatWaited, howStartedText, runSentence, runSubject, runTone, stepBars, stepsText,
 } from './runOutcome';
 import RunStatusIcon, { StepBars } from './RunStatusIcon';
+import { mayStartRun, viewOnlyRunHint } from '../../../../api/queries/automation/runAccess';
 
 interface RunRowProps {
     run: RunRowData;
@@ -37,7 +38,14 @@ export default function RunRow({ run, selected, first, onOpen, onFix, onRetry, o
             <button key="fix" type="button" disabled={busy} onClick={(e) => { e.stopPropagation(); onFix(run); }} className={`${LINK} font-semibold text-[var(--text-primary)]`}>
                 {t('runs.tab.fix', 'Fix')}
             </button>,
-            <button key="retry" type="button" disabled={busy} onClick={(e) => { e.stopPropagation(); onRetry(run); }} className={LINK}>
+            <button
+                key="retry"
+                type="button"
+                disabled={busy || !mayStartRun(run)}
+                title={mayStartRun(run) ? undefined : viewOnlyRunHint(t)}
+                onClick={(e) => { e.stopPropagation(); onRetry(run); }}
+                className={LINK}
+            >
                 {t('runs.tab.try_again', 'try again')}
             </button>,
         ];

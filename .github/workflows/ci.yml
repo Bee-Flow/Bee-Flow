@@ -173,6 +173,7 @@ jobs:
               - 'server/stores/automationStore/rowMappers.js'
               - 'server/stores/document/rowMappers.js'
               - 'server/automation/goLive.js'
+              - 'server/automation/access.js'
               - 'server/stores/webpage/shared.js'
               # read as text by src/core/i18n/dictionaryText.ts
               - 'server/i18n/defaults/en/**'

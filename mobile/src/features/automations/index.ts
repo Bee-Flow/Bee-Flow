@@ -34,6 +34,7 @@ export { useCancelRun, useRunListsRefresh, type MutationHandlers } from './hooks
 export { useAutomationUsage, useCreateAutomation, useDeleteAutomation } from './hooks/lifecycle';
 export { useRunStream } from './hooks/useRunStream';
 
+export { mayStartRun, VIEW_ONLY_RUN_HINT } from './model/runAccess';
 export { isLiveStatus, statusLabel, statusToken } from './model/status';
 export { absoluteTime, formatDuration } from './model/time';
 export { errorClassText, errorClassWords, triggerText, triggerWords, type Words } from './model/runWords';

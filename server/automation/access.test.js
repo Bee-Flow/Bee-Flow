@@ -163,6 +163,17 @@ test('projectForViewer: myRole, no builder chat for others, triggers only for ru
     assert.deepStrictEqual(A.definition.steps, [{ id: 's1' }], 'the stored row is not touched');
 });
 
+test('projectForViewer: canStart is the mayStartRun answer, a view share beside a run share included', () => {
+    assert.strictEqual(projectForViewer(A, { role: 'owner', via: 'owner' }).canStart, true);
+    assert.strictEqual(projectForViewer(A, { role: 'owner', via: 'admin' }).canStart, true);
+    assert.strictEqual(projectForViewer(A, { role: 'edit', via: 'share' }).canStart, true);
+    assert.strictEqual(projectForViewer(A, { role: 'run', via: 'share' }).canStart, true);
+    assert.strictEqual(projectForViewer(A, { role: 'view', via: 'share' }).canStart, false);
+    const both = projectForViewer(A, { role: 'view', via: 'share', runShare: true });
+    assert.strictEqual(both.canStart, true);
+    assert.ok(!('runShare' in both), 'the flag is a decision input, not part of the payload');
+});
+
 test('mayReadRun: view reads every run, run only the runs it started', () => {
     const mine = { id: 'r1', startedByUserId: 'ron' };
     const theirs = { id: 'r2', startedByUserId: 'owner' };

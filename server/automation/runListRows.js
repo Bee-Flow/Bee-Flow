@@ -13,6 +13,8 @@
  *   howStarted              'manual'|'schedule'|'file'|'form'|'email'|'app'
  *                           |'webhook'|'agent'|'app_button'
  *   approvalId              the pending approval a waiting run waits on
+ *   canStart                may the reader run it again (mayStartRun)? Only set
+ *                           when known; the client hides "Run again" on false
  *   isTest, version, outcome  normalised (never undefined)
  *
  * One batched read per kind of fact per page (step statuses, definitions,
@@ -113,16 +115,20 @@ function makeRunRowDecorator(deps = {}) {
 
     /**
      * @param {Array<object>} runs  rows from listRunsScoped (journey heads)
-     * @param {{ automation?: object|null, withStarter?: boolean, withApprovals?: boolean }} [opts]
+     * @param {{ automation?: object|null, withStarter?: boolean, withApprovals?: boolean, viewerId?: string|null, canStart?: boolean, canStartFor?: (automationId: string) => Promise<boolean|null|undefined> }} [opts]
      *   automation     the automation when the page is one automation's: its
      *                  current definition stands in for a missing snapshot
      *   withStarter    false on the org-wide log, whose rows carry no identity
      *   withApprovals  false where the caller cannot open approvals anyway
+     *   canStart       the reader may start runs of `automation` (a page of one
+     *                  automation's runs); other pages hand a
+     *                  `canStartFor(automationId)` that is asked once per
+     *                  distinct automation. Unknown = left off the row.
      *   viewerId       who is reading: a run that used its starter's own
      *                  connections shows no data (summary, error, payload) to
      *                  anybody else. Absent = nobody, so it hides.
      */
-    async function decorate(runs, { automation = null, withStarter = true, withApprovals = true, viewerId = null } = {}) {
+    async function decorate(runs, { automation = null, withStarter = true, withApprovals = true, viewerId = null, canStart = undefined, canStartFor = undefined } = {}) {
         const list = Array.isArray(runs) ? runs : [];
         if (!list.length) return list;
         const rootIds = list.map(r => r.id);
@@ -143,6 +149,15 @@ function makeRunRowDecorator(deps = {}) {
                 ? safe(() => store.getPendingApprovalIdsForRuns(waitingLegs), new Map()) : new Map(),
         ]);
         const names = new Map((users || []).map(u => [u.id, displayName(u)]));
+        /** @type {Map<string, boolean>} */
+        const startable = new Map();
+        if (typeof canStart !== 'boolean' && canStartFor) {
+            const ids = [...new Set(list.map(r => r.automationId).filter(Boolean))];
+            await Promise.all(ids.map(async (id) => {
+                const ok = await safe(() => canStartFor(id), null);
+                if (typeof ok === 'boolean') startable.set(id, ok);
+            }));
+        }
 
         return list.map((row) => {
             const def = definitions.get(`${row.automationId}@${row.version}`)
@@ -158,6 +173,8 @@ function makeRunRowDecorator(deps = {}) {
                 version: row.version ?? null,
                 outcome: row.outcome ?? null,
             };
+            const mayStart = typeof canStart === 'boolean' ? canStart : startable.get(row.automationId);
+            if (typeof mayStart === 'boolean') out.canStart = mayStart;
             if (withApprovals && WAITING.has(row.status)) {
                 out.approvalId = approvals.get(row.journeyRunId || row.id) || null;
             }

@@ -157,6 +157,22 @@ test('GET /:id: every role that may see it, with myRole; run-only gets the trigg
     assert.strictEqual(runner.body.summary, null);
 });
 
+test('canStart: the automation, its run list and a single run all say who may start a run', async () => {
+    const expect = { owner: true, adm: true, ed: true, ron: true, vic: false };
+    for (const [who, may] of Object.entries(expect)) {
+        const one = await call('GET', '/a1', { as: who });
+        assert.strictEqual(one.body.automation.canStart, may, `GET /a1 as ${who}`);
+        const runs = await call('GET', '/a1/runs', { as: who });
+        assert.strictEqual(runs.body.canStart, may, `GET /a1/runs as ${who}`);
+        assert.ok(runs.body.runs.every(r => r.canStart === may), `run rows as ${who}`);
+    }
+    assert.strictEqual((await call('GET', '/runs/run-owner', { as: 'vic' })).body.run.canStart, false);
+    assert.strictEqual((await call('GET', '/runs/run-owner', { as: 'ed' })).body.run.canStart, true);
+    assert.strictEqual((await call('GET', '/runs/run-ron', { as: 'ron' })).body.run.canStart, true);
+    const list = await call('GET', '/', { as: 'vic' });
+    assert.strictEqual(list.body.automations[0].canStart, false, 'the shared list says so too');
+});
+
 test('PUT /:id: an editor may not move the automation into a folder', async () => {
     const res = await call('PUT', '/a1', { as: 'ed', body: { folderId: 'f1' } });
     assert.strictEqual(res.status, 403);

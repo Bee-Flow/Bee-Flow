@@ -12,6 +12,7 @@ import type { BuilderTab } from './useBuilderTabUrl';
 import LiveActions, { SavingPill, type SavingState } from './header/LiveActions';
 import LiveStatusPill from './header/LiveStatusPill';
 import { liveStateOf, type LiveRow } from './header/liveState';
+import { mayStartRun } from '../../../api/queries/automation/runAccess';
 import { CategoryField, StepActionCluster, type StepRow, type StepSharing } from './header/StepCluster';
 import TestRunMenu, { type RunTriggerOption } from './header/TestRunMenu';
 import TitleField, { type HeaderScope } from './header/TitleField';
@@ -26,7 +27,7 @@ export interface BuilderHeaderProps {
     title?: string;
     triggerKind?: string | null;
     /** The persisted row (automation mode): live state, versions, counts. */
-    automation?: (LiveRow & { id?: string | null; updatedAt?: string | null }) | null;
+    automation?: (LiveRow & { id?: string | null; updatedAt?: string | null; canStart?: boolean | null }) | null;
     /** Fallbacks for a caller that passes no row. */
     isActive?: boolean;
     isDraft?: boolean;
@@ -242,7 +243,7 @@ export default function BuilderHeader(props: BuilderHeaderProps) {
                                     <Stethoscope size={15} />
                                 </button>
                             )}
-                            <TestRunMenu busy={busy} onDryRun={onDryRun} onRunLive={onRunLive} triggers={triggers} primaryLabel={primaryTriggerLabel} />
+                            <TestRunMenu busy={busy} onDryRun={onDryRun} onRunLive={onRunLive} canRunLive={mayStartRun(automation)} triggers={triggers} primaryLabel={primaryTriggerLabel} />
                             <LiveActions
                                 live={live}
                                 busy={busy}
