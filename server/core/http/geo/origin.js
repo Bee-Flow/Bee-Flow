@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * origin — where this server stands on the map, from BEEFLOW_SERVER_LOCATION.
  *
@@ -23,6 +23,7 @@ const { countryName } = require('./countries');
 
 // Reference point per country: the capital. EU/EEA, CH and GB complete (the
 // countries this product is mostly hosted in), plus the usual cloud regions.
+/** @type {Record<string, number[]>} */
 const CAPITALS = {
     AT: [48.21, 16.37], BE: [50.85, 4.35], BG: [42.7, 23.32], HR: [45.81, 15.98], CY: [35.17, 33.36],
     CZ: [50.08, 14.44], DK: [55.68, 12.57], EE: [59.44, 24.75], FI: [60.17, 24.94], FR: [48.86, 2.35],
@@ -37,8 +38,14 @@ const CAPITALS = {
     UA: [50.45, 30.52], RS: [44.79, 20.45],
 };
 
+/** @type {Set<string>} */
 const _warned = new Set();
+/**
+ * @param {string} value
+ * @param {string} why
+ */
 function _warnOnce(value, why) {
+
     if (_warned.has(value)) return;
     _warned.add(value);
     log.warn(`[geo] BEEFLOW_SERVER_LOCATION='${value}' ignored: ${why}. Use an ISO country code (NL) or "lat,lon[,label]".`);

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * fetch() for endpoints an ADMIN configured (LLM providers, the AI gateway):
  * the target may legitimately sit on a private network (Ollama, vLLM, a
@@ -19,7 +19,10 @@ const canonical = require('./ssrfGuard');
 
 const METADATA_NAMES = new Set(['metadata.google.internal', 'metadata.goog', 'instance-data']);
 
-/** True for an address (literal, any spelling) that must never be dialled. */
+/**
+ * True for an address (literal, any spelling) that must never be dialled.
+ * @param {string} address
+ */
 function isMetadataOrLinkLocal(address) {
     const { kind, canonical: c } = canonical.normalizeHostname(address);
     if (kind === 'name') return false;
@@ -38,6 +41,9 @@ function refusal() {
     return err;
 }
 
+/**
+ * @param {string} host
+ */
 function isBlocked(host) {
     const h = String(host || '').trim().toLowerCase().replace(/^\[|\]$/g, '').replace(/\.$/, '');
     return !h || METADATA_NAMES.has(h) || isMetadataOrLinkLocal(h);
@@ -51,7 +57,7 @@ function createDispatcher() {
             if (isBlocked(hostname)) return process.nextTick(/** @type {any} */ (callback), refusal());
             /** @type {any} */ (dns.lookup)(hostname, { ...(options || {}), all: true }, (/** @type {any} */ err, /** @type {any} */ list) => {
                 if (err) return callback(err);
-                if (list.some((e) => isMetadataOrLinkLocal(e.address))) return callback(refusal());
+                if (list.some((/** @type {{ address: string }} */ e) => isMetadataOrLinkLocal(e.address))) return callback(refusal());
                 if (options && options.all) return callback(null, list);
                 callback(null, list[0].address, list[0].family);
             });

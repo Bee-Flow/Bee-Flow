@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * networks — who runs an address, and is it a global network's edge?
  *
@@ -44,14 +44,22 @@ const OPERATOR_BY_ASN = new Map([
     [399358, 'Anthropic'],
 ]);
 
-/** The global network an ASN belongs to, or null. */
+/**
+ * The global network an ASN belongs to, or null.
+ * @param {number | null | undefined} asn
+ */
 function globalNetworkForAsn(asn) {
-    return (Number.isInteger(asn) && GLOBAL_NETWORK_ASNS.get(asn)) || null;
+    return (asn !== null && asn !== undefined && Number.isInteger(asn) && GLOBAL_NETWORK_ASNS.get(asn)) || null;
 }
 
-/** Operator label for an address: the CIDR override first, then the ASN. null when neither knows. */
+/**
+ * Operator label for an address: the CIDR override first, then the ASN. null when neither knows.
+ * @param {string} ip
+ * @param {number | null | undefined} asn
+ */
 function operatorFor(ip, asn) {
-    return operatorForIp(ip) || (Number.isInteger(asn) && OPERATOR_BY_ASN.get(asn)) || null;
+    return operatorForIp(ip) || (asn !== null && asn !== undefined && Number.isInteger(asn) && OPERATOR_BY_ASN.get(asn)) || null;
 }
+
 
 module.exports = { GLOBAL_NETWORK_ASNS, OPERATOR_BY_ASN, globalNetworkForAsn, operatorFor };
