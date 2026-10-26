@@ -20,6 +20,7 @@ const { securityHeaders, rejectCrossSiteWrites } = require('./security');
 const { registerLifecycle } = require('./heartbeat');
 const { buildApiProxy, buildEmbedProxy, isSpaShellPath } = require('./proxy');
 const log = require('./log');
+const { errMessage } = require('./errors');
 
 // Apply the Nextcloud TLS posture decided at boot (scripts/ncTlsTrust.js) BEFORE
 // any NC-bound fetch runs. No-op when the NC cert is publicly trusted; otherwise
@@ -137,7 +138,7 @@ require('./filesActions').registerRoutes(app);
 const { runInitInBackground } = require('./heartbeat');
 setImmediate(() => {
     runInitInBackground().catch(err => {
-        log.warn(`[Boot] UI re-registration failed (non-fatal): ${err.message}`);
+        log.warn(`[Boot] UI re-registration failed (non-fatal): ${errMessage(err)}`);
     });
 });
 
@@ -164,6 +165,7 @@ app.get(['/api/languages/user/locales', '/api/languages/user/strings/:lang',
 // once had its own copy of the list, and a path missing from it went to the
 // SaaS API proxy and 404'd.
 const CONNECTOR_SETUP = /^\/setup(\/|$)/;
+/** @param {string} urlPath */
 const isConnectorOwned = (urlPath) => CONNECTOR_SETUP.test(urlPath) || isSpaShellPath(urlPath);
 const proxy = buildApiProxy();
 app.use((req, res, next) => {
@@ -344,7 +346,7 @@ app.get('/{*splat}', (_req, res) => {
 // on the next /init lifecycle hit.
 const { bootstrapIfNeeded } = require('./bootstrap');
 bootstrapIfNeeded().catch(err => {
-    log.error(`[Bootstrap] Failed: ${err.message}. Will retry on /init.`);
+    log.error(`[Bootstrap] Failed: ${errMessage(err)}. Will retry on /init.`);
 });
 
 // HaRP-compatible: when HP_SHARED_KEY is set (HaRP daemon mode), bind to a
@@ -372,6 +374,7 @@ if (process.env.HP_SHARED_KEY) {
 // subscriptions don't accumulate after restarts. Re-registered on next
 // /init by registerEventListeners().
 let _shuttingDown = false;
+/** @param {string} signal */
 async function gracefulShutdown(signal) {
     if (_shuttingDown) return;
     _shuttingDown = true;
@@ -380,7 +383,7 @@ async function gracefulShutdown(signal) {
         const { unregisterEventListeners } = require('./heartbeat');
         await unregisterEventListeners();
     } catch (err) {
-        log.warn(`[BeeFlowConnector] Unregister failed: ${err.message}`);
+        log.warn(`[BeeFlowConnector] Unregister failed: ${errMessage(err)}`);
     }
     process.exit(0);
 }

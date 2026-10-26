@@ -18,27 +18,46 @@
 const LEVELS = ['recon', 'passive', 'active', 'offensive'];
 const DEFAULT_AGGRESSION = 'passive';
 
+/**
+ * @param {unknown} level
+ * @returns {number}  position in LEVELS, -1 for an unknown level
+ */
 function rank(level) {
     return LEVELS.indexOf(String(level || '').toLowerCase());
 }
 
+/**
+ * @param {unknown} level
+ * @returns {boolean}
+ */
 function isValid(level) {
     return LEVELS.includes(String(level || '').toLowerCase());
 }
 
-/** The org/install ceiling — the highest level any scan may reach. */
+/**
+ * The org/install ceiling — the highest level any scan may reach.
+ * @returns {string}
+ */
 function ceiling() {
     const c = String(process.env.SECURITY_MAX_AGGRESSION || 'offensive').toLowerCase();
     return isValid(c) ? c : 'offensive';
 }
 
-/** Validate + clamp a requested level to the ceiling. */
+/**
+ * Validate + clamp a requested level to the ceiling.
+ * @param {unknown} chosen
+ * @returns {string}
+ */
 function clamp(chosen) {
     const base = isValid(chosen) ? String(chosen).toLowerCase() : DEFAULT_AGGRESSION;
     return rank(base) > rank(ceiling()) ? ceiling() : base;
 }
 
-/** True when `effective` is at least as aggressive as `required`. */
+/**
+ * True when `effective` is at least as aggressive as `required`.
+ * @param {unknown} effective
+ * @param {unknown} required
+ */
 function atLeast(effective, required) {
     return rank(effective) >= rank(required);
 }

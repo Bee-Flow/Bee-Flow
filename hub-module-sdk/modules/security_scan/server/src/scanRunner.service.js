@@ -28,6 +28,28 @@
 const fs = require('fs');
 const crypto = require('crypto');
 const Docker = require('dockerode');
+const { errMessage, statusCodeOf } = require('./errors');
+
+/**
+ * @typedef {InstanceType<typeof Docker>} DockerClient
+ * @typedef {import('dockerode').Container} DockerContainer
+ *
+ * A line of output goes to a callback like this; null/undefined means nobody listens.
+ * @typedef {((line: string) => void) | null | undefined} LineSink
+ *
+ * One chunk of a command's output, as streamed to `onChunk`.
+ * @typedef {{ stream: 'stdout' | 'stderr', chunk: string }} OutputChunk
+ *
+ * Run a shell command in a container and stream its output.
+ * @typedef {(command: string, options?: { onChunk?: (chunk: OutputChunk) => void, timeoutMs?: number }) => Promise<{ exitCode: number, timedOut: boolean }>} ExecFn
+ *
+ * A live ZAP daemon, as the ZAP client needs to reach it.
+ * @typedef {{ baseUrl: string, apiKey: string }} ZapEndpoint
+ *
+ * A running toolbox: the agent's shell, its ZAP daemon, and the way to tear both down.
+ * @typedef {{ zap: ZapEndpoint, containerId: string, exec: ExecFn, cleanup: () => Promise<void> }} ToolboxHandle
+ * @typedef {'zap' | 'nuclei' | 'testssl'} ScanEngine
+ */
 
 const SCAN_NETWORK = 'beeflow-scan-net';
 const LABEL_KIND = 'bf.kind';
@@ -58,12 +80,14 @@ const TOOLS_MEMORY_MB = parseInt(process.env.SECURITY_TOOLS_MEMORY_MB || '768', 
 const TOOLS_CPUS = parseFloat(process.env.SECURITY_TOOLS_CPUS || '0.5');
 
 // Default images per engine. Each can be overridden via its env var.
+/** @type {Record<string, string>} */
 const DEFAULT_IMAGES = {
     zap: process.env.SECURITY_SCANNER_ZAP_IMAGE || 'ghcr.io/zaproxy/zaproxy:stable',
     nuclei: process.env.SECURITY_SCANNER_NUCLEI_IMAGE || 'projectdiscovery/nuclei:latest',
     testssl: process.env.SECURITY_SCANNER_TESTSSL_IMAGE || 'drwetter/testssl.sh:latest',
 };
 
+/** @returns {DockerClient} */
 function getDocker() {
     return new Docker({ socketPath: '/var/run/docker.sock' });
 }
@@ -72,6 +96,7 @@ function getDocker() {
  * Cheap availability probe — the socket file must exist AND the daemon must
  * answer a ping. The worker uses this to decide whether scans can run at all
  * (there is no host fallback for security scans). Cached after first success.
+ * @type {boolean | null}
  */
 let _available = null;
 async function dockerAvailable() {
@@ -97,12 +122,21 @@ function isServerInContainer() {
     return false;
 }
 
+/**
+ * @param {unknown} scanId
+ * @param {string} engine
+ * @returns {string}
+ */
 function containerName(scanId, engine) {
     const safeId = String(scanId).replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 32);
     const safeEngine = String(engine).replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 12);
     return `bf-scan-${safeId}-${safeEngine}`;
 }
 
+/**
+ * @param {unknown} scanId
+ * @returns {Record<string, string>}
+ */
 function runnerLabels(scanId) {
     return {
         [LABEL_KIND]: LABEL_KIND_VALUE,
@@ -111,6 +145,10 @@ function runnerLabels(scanId) {
     };
 }
 
+/**
+ * @param {import('dockerode').HostConfig} [extra]
+ * @returns {import('dockerode').HostConfig}
+ */
 function hostConfigCaps(extra = {}) {
     return {
         Memory: Math.max(256, MEMORY_MB) * 1024 * 1024,
@@ -126,16 +164,26 @@ function hostConfigCaps(extra = {}) {
 
 // ── Image resolution (mirrors pwtRunner.resolvePwtImage) ────────────────────
 
+/**
+ * @param {DockerClient} docker
+ * @param {string} image
+ * @returns {Promise<boolean>}
+ */
 async function imageExists(docker, image) {
     try {
         await docker.getImage(image).inspect();
         return true;
     } catch (err) {
-        if (err.statusCode === 404) return false;
+        if (statusCodeOf(err) === 404) return false;
         throw err;
     }
 }
 
+/**
+ * @param {DockerClient} docker
+ * @param {string} image
+ * @param {LineSink} [onLine]
+ */
 async function pullImage(docker, image, onLine) {
     await new Promise((resolve, reject) => {
         docker.pull(image, (err, stream) => {
@@ -163,8 +211,14 @@ async function pullImage(docker, image, onLine) {
  * Resolve the image for an engine: honour the per-engine env override, else the
  * baked default tag. Pull it if it isn't present locally. Resolved images are
  * cached per-engine so a multi-engine scan only inspects/pulls once.
+ * @type {Record<string, string>}
  */
 const _resolvedImages = {};
+/**
+ * @param {string} engine
+ * @param {LineSink} [onLine]
+ * @returns {Promise<string>}
+ */
 async function resolveScanImage(engine, onLine) {
     if (_resolvedImages[engine]) return _resolvedImages[engine];
 
@@ -180,23 +234,30 @@ async function resolveScanImage(engine, onLine) {
 
 // ── Network ─────────────────────────────────────────────────────────────────
 
+/**
+ * @param {DockerClient} docker
+ */
 async function ensureScanNetwork(docker) {
     try {
         await docker.getNetwork(SCAN_NETWORK).inspect();
         return;
     } catch (err) {
-        if (err.statusCode !== 404) throw err;
+        if (statusCodeOf(err) !== 404) throw err;
     }
     await docker.createNetwork({ Name: SCAN_NETWORK, Driver: 'bridge' });
 }
 
+/**
+ * @param {DockerClient} docker
+ * @param {string} name
+ */
 async function removeContainerIfExists(docker, name) {
     try {
         const c = docker.getContainer(name);
         try { await c.stop({ t: 10 }); } catch (_) { /* may be stopped */ }
         await c.remove({ force: true });
     } catch (err) {
-        if (err.statusCode !== 404) throw err;
+        if (statusCodeOf(err) !== 404) throw err;
     }
 }
 
@@ -206,6 +267,10 @@ async function removeContainerIfExists(docker, name) {
  * Follow a container's combined stdout/stderr, splitting into trimmed lines and
  * invoking onLine per line. Returns a function that detaches the stream.
  * Uses demuxStream so the 8-byte multiplex headers never corrupt a line.
+ * @param {DockerClient} docker
+ * @param {DockerContainer} container
+ * @param {LineSink} onLine
+ * @returns {() => void}  detaches the stream
  */
 function followLogs(docker, container, onLine) {
     const { Writable } = require('stream');
@@ -222,6 +287,7 @@ function followLogs(docker, container, onLine) {
             cb();
         },
     });
+    /** @type {import('node:stream').Readable | null} */
     let logStream = null;
     container.logs({ follow: true, stdout: true, stderr: true }, (err, stream) => {
         if (err || !stream) return;
@@ -242,6 +308,10 @@ function followLogs(docker, container, onLine) {
  *               report.{json,html,xml,md} into the working dir.
  *   • nuclei  — workdir → /out:rw; -je writes JSON export to /out/report.json.
  *   • testssl — workdir → /out:rw; --jsonfile writes /out/report.json.
+ * @param {string} engine
+ * @param {string | undefined} intensity
+ * @param {string} targetUrl
+ * @returns {{ bind: string, Cmd: string[] }}
  */
 function engineSpec(engine, intensity, targetUrl) {
     switch (engine) {
@@ -277,6 +347,8 @@ function engineSpec(engine, intensity, targetUrl) {
  *
  * This function deliberately does NOT read the report — the worker owns report
  * parsing so this module stays a thin docker lifecycle layer.
+ * @param {{ scanId: string, engine: string, intensity?: string, workdir: string, targetUrl: string, onLine?: LineSink, timeoutMs?: number }} options
+ * @returns {Promise<{ exitCode: number, timedOut: boolean }>}
  */
 async function runEngineContainer({ scanId, engine, intensity, workdir, targetUrl, onLine, timeoutMs }) {
     const docker = getDocker();
@@ -327,6 +399,7 @@ async function runEngineContainer({ scanId, engine, intensity, workdir, targetUr
  * Tear down every engine container for a scan. Used by the worker's cancel
  * poll — a scan may have several engine containers in flight, so we remove all
  * of this scan's containers by label rather than by a single name.
+ * @param {unknown} scanId
  */
 async function killScan(scanId) {
     // Adopted (pre-warmed) containers are labeled bf.prewarm, NOT bf.scanId, so
@@ -357,6 +430,8 @@ async function killScan(scanId) {
  * MAX_AGE_MS, or whose scan is no longer active. Run on worker boot (kills
  * leftovers from a crashed worker) and on an interval. `isScanActive` lets the
  * caller consult the DB so we don't reap a container whose scan is mid-flight.
+ * @param {((scanId: string) => Promise<boolean>) | null} [isScanActive]
+ * @returns {Promise<{ reaped: number }>}
  */
 async function reapStaleRunners(isScanActive = null) {
     if (!(await dockerAvailable())) return { reaped: 0 };
@@ -396,7 +471,7 @@ async function reapStaleRunners(isScanActive = null) {
             }
         }
     } catch (e) {
-        console.warn('[ScanRunner] reap failed:', e.message);
+        console.warn('[ScanRunner] reap failed:', errMessage(e));
     }
     return { reaped };
 }
@@ -408,6 +483,7 @@ async function reapStaleRunners(isScanActive = null) {
  * daemon / tools sandbox by container name (the in-container case). Idempotent —
  * a second connect throws and is ignored. Native (non-container) workers reach
  * the daemon via a published 127.0.0.1 port instead, so this is a no-op there.
+ * @param {DockerClient} docker
  */
 async function connectSelfToNetwork(docker) {
     try {
@@ -422,8 +498,13 @@ async function connectSelfToNetwork(docker) {
  * Resolve the free-form tools sandbox image (SECURITY_TOOLS_IMAGE, default a
  * locally-built tag). Use it if present locally; otherwise try a registry pull;
  * otherwise fail loudly with the build command. Cached after first success.
+ * @type {string | null}
  */
 let _toolsImageResolved = null;
+/**
+ * @param {LineSink} [onLine]
+ * @returns {Promise<string>}
+ */
 async function resolveToolsImage(onLine) {
     if (_toolsImageResolved) return _toolsImageResolved;
     const docker = getDocker();
@@ -431,12 +512,16 @@ async function resolveToolsImage(onLine) {
     try {
         await pullImage(docker, TOOLS_IMAGE, onLine);
     } catch (e) {
-        throw new Error(`security tools image '${TOOLS_IMAGE}' not found locally and pull failed (${e.message}). Build it: docker build -t ${TOOLS_IMAGE} server/terminal-runner`);
+        throw new Error(`security tools image '${TOOLS_IMAGE}' not found locally and pull failed (${errMessage(e)}). Build it: docker build -t ${TOOLS_IMAGE} server/terminal-runner`);
     }
     _toolsImageResolved = TOOLS_IMAGE;
     return TOOLS_IMAGE;
 }
 
+/**
+ * @param {import('dockerode').HostConfig} [extra]
+ * @returns {import('dockerode').HostConfig}
+ */
 function toolsHostConfig(extra = {}) {
     return {
         Memory: Math.max(128, TOOLS_MEMORY_MB) * 1024 * 1024,
@@ -450,6 +535,12 @@ function toolsHostConfig(extra = {}) {
     };
 }
 
+/**
+ * @param {string} baseUrl
+ * @param {string} apiKey
+ * @param {number} timeoutMs
+ * @returns {Promise<true>}
+ */
 async function _awaitDaemonReady(baseUrl, apiKey, timeoutMs) {
     const deadline = Date.now() + timeoutMs;
     let lastErr = 'timeout';
@@ -461,7 +552,7 @@ async function _awaitDaemonReady(baseUrl, apiKey, timeoutMs) {
             const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
             if (res.ok) return true;
             lastErr = `HTTP ${res.status}`;
-        } catch (e) { lastErr = e.message; }
+        } catch (e) { lastErr = errMessage(e); }
         await new Promise((r) => setTimeout(r, 1500));
     }
     throw new Error(`ZAP daemon not ready within ${timeoutMs}ms (${lastErr})`);
@@ -472,6 +563,8 @@ async function _awaitDaemonReady(baseUrl, apiKey, timeoutMs) {
  * per-scan api.key (never logged). Returns { baseUrl, apiKey, containerId,
  * cleanup }. Reachable via the container name on SCAN_NETWORK (worker-in-
  * container) or a published 127.0.0.1 port (native). Caller MUST cleanup().
+ * @param {{ scanId: string, onLine?: LineSink }} options
+ * @returns {Promise<{ baseUrl: string, apiKey: string, containerId: string, cleanup: () => Promise<void> }>}
  */
 async function startZapDaemon({ scanId, onLine }) {
     const docker = getDocker();
@@ -491,7 +584,9 @@ async function startZapDaemon({ scanId, onLine }) {
         '-config', 'api.addrs.addr.name=.*',
         '-config', 'api.addrs.addr.regex=true',
     ];
+    /** @type {import('dockerode').HostConfig} */
     const hostExtra = { NetworkMode: SCAN_NETWORK };
+    /** @type {import('dockerode').ContainerCreateOptions} */
     const createOpts = {
         name, Image: image, Cmd: cmd,
         Labels: runnerLabels(scanId),
@@ -537,6 +632,8 @@ async function startZapDaemon({ scanId, onLine }) {
  * Returns { containerId, exec, cleanup } where
  *   exec(command, { onChunk, timeoutMs }) -> { exitCode, timedOut }
  * streams stdout/stderr to onChunk({ stream, chunk }) per chunk. Caller cleanup().
+ * @param {{ scanId: string, onLine?: LineSink }} options
+ * @returns {Promise<{ containerId: string, exec: ExecFn, cleanup: () => Promise<void> }>}
  */
 async function startToolsSandbox({ scanId, onLine }) {
     const docker = getDocker();
@@ -562,13 +659,15 @@ async function startToolsSandbox({ scanId, onLine }) {
         try { await container.remove({ force: true }); } catch (_) {}
     };
 
-    const exec = async (command, { onChunk, timeoutMs = 30000 } = /** @type {any} */ ({})) => {
+    /** @type {ExecFn} */
+    const exec = async (command, { onChunk, timeoutMs = 30000 } = {}) => {
         const { Writable } = require('stream');
         const ex = await container.exec({
             Cmd: ['sh', '-lc', command],
             AttachStdout: true, AttachStderr: true, Tty: false,
         });
         const stream = await ex.start({ hijack: true, stdin: false });
+        /** @param {'stdout' | 'stderr'} tag */
         const mk = (tag) => new Writable({
             write(chunk, _enc, cb) {
                 try { onChunk && onChunk({ stream: tag, chunk: chunk.toString('utf8') }); } catch (_) {}
@@ -627,8 +726,12 @@ const TOOLBOX_CPUS = parseFloat(process.env.SECURITY_TOOLBOX_CPUS || '1.0');
 const toolboxNetRaw = () => process.env.SECURITY_TOOLBOX_NET_RAW !== 'false';
 const ZAP_PORT = 8080;
 
+/**
+ * @param {import('dockerode').HostConfig} [extra]
+ * @returns {import('dockerode').HostConfig}
+ */
 function toolboxHostConfig(extra = {}) {
-    /** @type {Record<string, any>} */
+    /** @type {import('dockerode').HostConfig} */
     const cfg = {
         Memory: Math.max(512, TOOLBOX_MEMORY_MB) * 1024 * 1024,
         NanoCpus: Math.round(Math.max(0.5, TOOLBOX_CPUS) * 1e9),
@@ -653,15 +756,18 @@ function toolboxHostConfig(extra = {}) {
  * Uses `bash -c` (NOT a login shell) so the image's ENV PATH — which includes
  * /opt/pd/bin and /opt/venv/bin — is inherited intact rather than reset by
  * /etc/profile.
+ * @param {DockerContainer} container
+ * @returns {ExecFn}
  */
 function makeContainerExec(container) {
-    return async (command, { onChunk, timeoutMs = 30000 } = /** @type {any} */ ({})) => {
+    return async (command, { onChunk, timeoutMs = 30000 } = {}) => {
         const { Writable } = require('stream');
         const ex = await container.exec({
             Cmd: ['bash', '-c', command],
             AttachStdout: true, AttachStderr: true, Tty: false,
         });
         const stream = await ex.start({ hijack: true, stdin: false });
+        /** @param {'stdout' | 'stderr'} tag */
         const mk = (tag) => new Writable({
             write(chunk, _enc, cb) {
                 try { onChunk && onChunk({ stream: tag, chunk: chunk.toString('utf8') }); } catch (_) {}
@@ -694,6 +800,10 @@ function makeContainerExec(container) {
 // otherwise listen on 127.0.0.1 only, so the worker (reaching the container by
 // its network IP/name) gets ECONNREFUSED. `-silent` skips the update-check and
 // callhome/telemetry for a faster, deterministic boot on the isolated network.
+/**
+ * @param {string} apiKey
+ * @returns {string}
+ */
 function _zapDaemonCmd(apiKey) {
     return [
         'zaproxy', '-daemon', '-silent',
@@ -716,6 +826,8 @@ function _zapDaemonCmd(apiKey) {
  *   • awaitReady  — () => Promise<handle> that resolves once ZAP answers.
  * Splitting create from await-ready is what lets pre-warm boot in the
  * background and lets a release tear the container down mid-boot.
+ * @param {{ name: string, apiKey: string, labels: Record<string, string>, onLine?: LineSink }} options
+ * @returns {Promise<{ handle: ToolboxHandle, cleanup: () => Promise<void>, awaitReady: () => Promise<ToolboxHandle> }>}
  */
 async function _spawnToolbox({ name, apiKey, labels, onLine }) {
     const docker = getDocker();
@@ -725,9 +837,11 @@ async function _spawnToolbox({ name, apiKey, labels, onLine }) {
     if (inContainer) await connectSelfToNetwork(docker);
     await removeContainerIfExists(docker, name);
 
+    /** @type {import('dockerode').HostConfig} */
     const hostExtra = { NetworkMode: SCAN_NETWORK };
     if (!inContainer) hostExtra.PortBindings = { [`${ZAP_PORT}/tcp`]: [{ HostIp: '127.0.0.1', HostPort: '0' }] };
 
+    /** @type {import('dockerode').ContainerCreateOptions} */
     const createOpts = {
         name, Image: image,
         Cmd: ['sleep', 'infinity'], // idle; ZAP + agent commands arrive via exec
@@ -802,6 +916,8 @@ async function _spawnToolbox({ name, apiKey, labels, onLine }) {
  * Cold path: start one toolbox + ZAP for a scan and wait until ZAP is ready.
  * The container carries the bf.scanId label so killScan()/reapStaleRunners()
  * tear it down too; callers MUST also cleanup() in finally.
+ * @param {{ scanId: string, onLine?: LineSink }} options
+ * @returns {Promise<ToolboxHandle>}
  */
 async function startAgentToolbox({ scanId, onLine }) {
     const apiKey = crypto.randomBytes(24).toString('hex'); // per-scan; never logged
@@ -822,10 +938,28 @@ async function startAgentToolbox({ scanId, onLine }) {
 // adopted container is destroyed after the scan (no cross-scan reuse, so no
 // session reset needed). Best-effort everywhere — if anything fails the worker
 // just cold-starts.
-const _prewarmRegistry = new Map(); // prewarmId -> { promise, cleanup?, userId, createdAt, state, claimed, released }
-const _activeToolboxes = new Map(); // scanId -> handle (cold OR adopted) for cancel/reap
+/**
+ * A toolbox being warmed in the background for a user who has not submitted the scan yet.
+ * @typedef {object} PrewarmEntry
+ * @property {Promise<ToolboxHandle>} promise
+ * @property {(() => Promise<void>) | null} cleanup  set once the container exists
+ * @property {string | null} userId
+ * @property {number} createdAt
+ * @property {'warming' | 'ready' | 'failed'} state
+ * @property {boolean} claimed
+ * @property {boolean} released
+ */
 
-/** Start warming a toolbox in the background; returns a prewarmId immediately. */
+/** @type {Map<string, PrewarmEntry>} */
+const _prewarmRegistry = new Map();
+/** @type {Map<string, ToolboxHandle>} scanId -> handle (cold OR adopted) for cancel/reap */
+const _activeToolboxes = new Map();
+
+/**
+ * Start warming a toolbox in the background; returns a prewarmId immediately.
+ * @param {{ userId?: string | null }} [options]
+ * @returns {string}  the prewarm id
+ */
 function prewarmToolbox({ userId = null } = {}) {
     // One unclaimed warm container per user — release the previous one.
     for (const [pid, e] of _prewarmRegistry) {
@@ -839,7 +973,8 @@ function prewarmToolbox({ userId = null } = {}) {
         [LABEL_PREWARM]: prewarmId,
         [LABEL_BORN]: String(Date.now()),
     };
-    const entry = { userId, createdAt: Date.now(), state: 'warming', claimed: false, released: false, cleanup: null };
+    // `promise` is filled in on the next line: the warm-up closure below reads `entry`.
+    const entry = /** @type {PrewarmEntry} */ ({ userId, createdAt: Date.now(), state: 'warming', claimed: false, released: false, cleanup: null });
     entry.promise = (async () => {
         const spawned = await _spawnToolbox({ name, apiKey, labels, onLine: null });
         entry.cleanup = spawned.cleanup;
@@ -860,7 +995,11 @@ function prewarmToolbox({ userId = null } = {}) {
     return prewarmId;
 }
 
-/** Adopt a warm toolbox (awaiting the remainder of its boot). null → cold-start. */
+/**
+ * Adopt a warm toolbox (awaiting the remainder of its boot). null → cold-start.
+ * @param {string} prewarmId
+ * @returns {Promise<ToolboxHandle | null>}
+ */
 async function adoptToolbox(prewarmId) {
     const entry = prewarmId ? _prewarmRegistry.get(prewarmId) : null;
     if (!entry || entry.released) return null;
@@ -870,7 +1009,10 @@ async function adoptToolbox(prewarmId) {
     catch (_) { return null; }
 }
 
-/** Tear down an unclaimed warm toolbox (e.g. dialog closed without submitting). */
+/**
+ * Tear down an unclaimed warm toolbox (e.g. dialog closed without submitting).
+ * @param {string} prewarmId
+ */
 async function releasePrewarm(prewarmId) {
     const entry = prewarmId ? _prewarmRegistry.get(prewarmId) : null;
     if (!entry) return;
@@ -893,10 +1035,17 @@ function sweepPrewarmRegistry() {
 const _prewarmSweep = setInterval(sweepPrewarmRegistry, 60000);
 _prewarmSweep.unref?.();
 
-/** Track a live toolbox by scanId so cancel/reap can target it (incl. adopted). */
+/**
+ * Track a live toolbox by scanId so cancel/reap can target it (incl. adopted).
+ * @param {unknown} scanId
+ * @param {ToolboxHandle} handle
+ */
 function registerActiveToolbox(scanId, handle) {
     if (scanId && handle) _activeToolboxes.set(String(scanId), handle);
 }
+/**
+ * @param {unknown} scanId
+ */
 function unregisterActiveToolbox(scanId) {
     if (scanId) _activeToolboxes.delete(String(scanId));
 }
@@ -919,6 +1068,7 @@ const SECURITY_TOOLS_PULL_REF = process.env.SECURITY_TOOLS_PULL_REF || null;
  *   image     — the resolved TOOLS_IMAGE tag
  *   canPull   — a pull ref (SECURITY_TOOLS_PULL_REF) is configured
  *   canBuild  — the shipped Dockerfile asset is present next to the module
+ * @param {{ assetsDir?: string | null }} [options]
  */
 async function toolboxStatus({ assetsDir = null } = {}) {
     const dockerOk = await dockerAvailable();
@@ -936,6 +1086,10 @@ async function toolboxStatus({ assetsDir = null } = {}) {
 // Build a one-file tar (just the Dockerfile) as the docker build context. The
 // image bakes its whole arsenal from apt/registry inside the Dockerfile, so the
 // context needs nothing else.
+/**
+ * @param {string} assetsDir
+ * @returns {import('tar-stream').Pack}
+ */
 function _buildContextTar(assetsDir) {
     const tar = require('tar-stream');
     const pack = tar.pack();
@@ -951,8 +1105,10 @@ function _buildContextTar(assetsDir) {
  * with { imageOk } once the image is present under TOOLS_IMAGE.
  *   • build — docker.buildImage over a tar of assets/terminal-runner, tag TOOLS_IMAGE
  *   • pull  — docker.pull(SECURITY_TOOLS_PULL_REF), then retag to TOOLS_IMAGE
+ * @param {{ mode?: string, assetsDir?: string | null, onEvent?: ((event: import('dockerode').ProgressEvent) => void) | null }} [options]
+ * @returns {Promise<{ imageOk: boolean }>}
  */
-async function provisionToolbox({ mode, assetsDir = null, onEvent = null } = /** @type {any} */ ({})) {
+async function provisionToolbox({ mode, assetsDir = null, onEvent = null } = {}) {
     if (!(await dockerAvailable())) throw new Error('docker_unavailable');
     const docker = getDocker();
 
@@ -985,7 +1141,7 @@ async function provisionToolbox({ mode, assetsDir = null, onEvent = null } = /**
         if (SECURITY_TOOLS_PULL_REF !== TOOLS_IMAGE) {
             const [repo, tag] = TOOLS_IMAGE.split(':');
             try { await docker.getImage(SECURITY_TOOLS_PULL_REF).tag({ repo, tag: tag || 'latest' }); }
-            catch (e) { throw new Error(`retag failed: ${e.message}`); }
+            catch (e) { throw new Error(`retag failed: ${errMessage(e)}`); }
         }
     } else {
         throw new Error(`invalid provision mode: ${mode}`);

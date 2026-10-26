@@ -50,7 +50,7 @@
  */
 
 const config = require('./config');
-const { withWarmupRetry } = require('./appApiClient');
+const { withWarmupRetry, appApiHeaders } = require('./appApiClient');
 const log = require('./log');
 
 const UI_API = '/ocs/v2.php/apps/app_api/api/v2/ui/files-actions-menu';
@@ -111,17 +111,6 @@ const ACTIONS = [
         order: 12,
     },
 ];
-
-function appApiHeaders() {
-    return {
-        'Content-Type': 'application/json',
-        'OCS-APIRequest': 'true',
-        Accept: 'application/json',
-        'EX-APP-ID': config.appId,
-        'EX-APP-VERSION': config.appVersion,
-        'AUTHORIZATION-APP-API': Buffer.from(`:${config.appSecret}`).toString('base64'),
-    };
-}
 
 let _registered = false;
 
@@ -184,6 +173,23 @@ async function unregisterFilesActions() {
  * frontend (`buildNodeInfo`), so its exact keys are a moving target across
  * Nextcloud versions, and an entry that throws here would fail the user's click
  * with a console error they never see.
+ *
+ * @typedef {object} NcFileNode
+ * @property {string | number} [fileId]
+ * @property {string | number} [fileid]
+ * @property {string | number} [id]
+ * @property {string} [name]
+ * @property {string} [directory]
+ * @property {string} [path]
+ * @property {string} [mime]
+ * @property {string} [mimetype]
+ * @property {string} [fileType]
+ * @property {string} [type]
+ *
+ * @typedef {{ fileId: string | number | null, name: string | null, path: string | null, mime: string | null, fileType: string | null }} ParsedFile
+ *
+ * @param {{ files?: (NcFileNode | null)[] } | null | undefined} body
+ * @returns {ParsedFile[]}
  */
 function parseFiles(body) {
     const raw = Array.isArray(body?.files) ? body.files : [];
@@ -199,13 +205,19 @@ function parseFiles(body) {
         .filter(f => f.fileId != null);
 }
 
-/** `directory` + `name` as one absolute path, or null when either is missing. */
+/**
+ * `directory` + `name` as one absolute path, or null when either is missing.
+ * @param {unknown} directory
+ * @param {unknown} name
+ * @returns {string | null}
+ */
 function joinPath(directory, name) {
     if (typeof directory !== 'string' || typeof name !== 'string' || !name) return null;
     const dir = directory.startsWith('/') ? directory : `/${directory}`;
     return `${dir.replace(/\/+$/, '')}/${name}`;
 }
 
+/** @param {import('express').Express} app */
 function registerRoutes(app) {
     app.post(HANDLER_PATH, (req, res) => {
         const files = parseFiles(req.body);

@@ -30,11 +30,45 @@
 
 const REQUEST_TIMEOUT_MS = 15000;
 
+/**
+ * A parsed ZAP JSON body. ZAP sends numbers and counts as strings and the shape differs per
+ * endpoint, so a field is read as `unknown` and coerced where it is used.
+ * @typedef {Record<string, unknown>} ZapJson
+ */
+
+/**
+ * One alert as ZAP lists it (the two spellings of name and description are both seen).
+ * @typedef {object} RawZapAlert
+ * @property {string} [name]
+ * @property {string} [alert]
+ * @property {string} [risk]
+ * @property {string} [url]
+ * @property {string | number} [confidence]
+ * @property {string} [description]
+ * @property {string} [desc]
+ * @property {string} [solution]
+ * @property {string} [reference]
+ */
+
+/**
+ * The compact alert the driver and report builder consume.
+ * @typedef {{ name: string, risk: string, url: string, confidence: string, description: string, solution: string, reference: string }} ZapAlert
+ */
+
+/** @typedef {{ high: number, medium: number, low: number, informational: number }} SeverityCounts */
+
+/**
+ * Polling options of the await* helpers. `isCancelled` is asked each tick; `onProgress` gets the live numbers.
+ * @template P
+ * @typedef {{ onProgress?: (progress: P) => void, isCancelled?: () => boolean, pollMs?: number, maxMs?: number }} AwaitOptions
+ */
+
 // ── helpers ───────────────────────────────────────────────────────────
 
 // Promise-wrapped setTimeout. The poll loops await this between status reads
 // — no timestamp/random APIs, so the only clock in play is the loop's own
 // elapsed budget (tracked via the resolved-count, not Date.now()).
+/** @param {number} ms */
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -43,18 +77,24 @@ function sleep(ms) {
 // along in a thrown Error's message (which flows to logs + SSE). Matches both
 // the query-param form (?apikey=… / &apikey=…) and a bare apikey=… token that
 // the daemon might echo back inside a response body.
+/** @param {unknown} s */
 function scrubKey(s) {
     return String(s == null ? '' : s).replace(/apikey=[^&\s]*/gi, 'apikey=***');
 }
 
 // Coerce ZAP's string-typed numerics ("0".."100", "N") to a finite number, or 0.
+/** @param {unknown} v */
 function toNum(v) {
-    const n = parseInt(v, 10);
+    const n = parseInt(String(v), 10);
     return Number.isFinite(n) ? n : 0;
 }
 
 // Normalize whatever ZAP hands back into an array (it always wraps lists in a
 // named key, but be defensive about nulls / single objects).
+/**
+ * @param {unknown} v
+ * @returns {unknown[]}
+ */
 function toArray(v) {
     if (Array.isArray(v)) return v;
     if (v === null || v === undefined) return [];
@@ -66,12 +106,13 @@ function toArray(v) {
 /**
  * Build a ZAP REST client bound to a running daemon.
  *
- * @param {object} opts
- * @param {string} opts.baseUrl    — daemon base, e.g. "http://172.18.0.5:8080"
- * @param {string} opts.apiKey     — required on /action/ endpoints
- * @param {Function} [opts.fetchImpl] - fetch override for tests (defaults to global fetch)
+ * @param {object} [opts]
+ * @param {string} [opts.baseUrl] - daemon base, e.g. "http://172.18.0.5:8080" (required)
+ * @param {string} [opts.apiKey] - required on /action/ endpoints
+ * @param {typeof fetch} [opts.fetchImpl] - fetch override for tests (defaults to global fetch)
  */
-function makeZapClient({ baseUrl, apiKey, fetchImpl = fetch } = /** @type {any} */ ({})) {
+function makeZapClient(opts = {}) {
+    const { baseUrl, apiKey, fetchImpl = fetch } = opts;
     if (!baseUrl) throw new Error('makeZapClient: baseUrl required');
     const root = String(baseUrl).replace(/\/+$/, '');
 
@@ -82,8 +123,9 @@ function makeZapClient({ baseUrl, apiKey, fetchImpl = fetch } = /** @type {any} 
      * AbortController timeout, throws on non-200, and scrubs the apikey out of
      * every error message it raises.
      *
-     * @param {string} path   — e.g. "/JSON/spider/action/scan/"
-     * @param {any} params — query params (values URL-encoded by URLSearchParams)
+     * @param {string} path - e.g. "/JSON/spider/action/scan/"
+     * @param {Record<string, unknown>} [params] - query params (values URL-encoded by URLSearchParams)
+     * @returns {Promise<ZapJson>}
      */
     async function _get(path, params = {}) {
         const qs = new URLSearchParams();
@@ -102,15 +144,14 @@ function makeZapClient({ baseUrl, apiKey, fetchImpl = fetch } = /** @type {any} 
 
         const ctrl = new AbortController();
         const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
+        /** @type {Response} */
         let res;
         try {
             res = await fetchImpl(url, { method: 'GET', signal: ctrl.signal });
         } catch (err) {
             // Network / abort failures: never echo the URL (it may carry the
             // apikey) — scrub the underlying message too.
-            const e = new Error(`ZAP request to ${path} failed: ${scrubKey(err && err.message)}`);
-            e.cause = err;
-            throw e;
+            throw new Error(`ZAP request to ${path} failed: ${scrubKey(err instanceof Error ? err.message : undefined)}`, { cause: err });
         } finally {
             clearTimeout(timer);
         }
@@ -122,7 +163,7 @@ function makeZapClient({ baseUrl, apiKey, fetchImpl = fetch } = /** @type {any} 
 
         const body = await res.text().catch(() => '');
         try {
-            return body ? JSON.parse(body) : {};
+            return body ? /** @type {ZapJson} */ (JSON.parse(body)) : {};
         } catch (_) {
             throw new Error(`ZAP non-JSON response at ${path}: ${scrubKey(body).slice(0, 200)}`);
         }
@@ -137,22 +178,38 @@ function makeZapClient({ baseUrl, apiKey, fetchImpl = fetch } = /** @type {any} 
     }
 
     // Kick off a spider crawl; returns the spider scan id (ZAP gives it as a string).
+    /**
+     * @param {string} url
+     * @returns {Promise<string>}  the spider scan id
+     */
     async function spiderScan(url) {
         const j = await _get('/JSON/spider/action/scan/', { url });
         return j && j.scan !== undefined ? String(j.scan) : '';
     }
 
+    /**
+     * @param {string} spiderId
+     * @returns {Promise<number>}  percent done
+     */
     async function spiderStatus(spiderId) {
         const j = await _get('/JSON/spider/view/status/', { scanId: spiderId });
         return toNum(j && j.status);
     }
 
+    /**
+     * @param {string} spiderId
+     * @returns {Promise<string[]>}
+     */
     async function spiderResults(spiderId) {
         const j = await _get('/JSON/spider/view/results/', { scanId: spiderId });
         return toArray(j && j.results).map(String);
     }
 
     // All URLs ZAP knows about (optionally scoped to a base url).
+    /**
+     * @param {string} [baseurl]
+     * @returns {Promise<string[]>}
+     */
     async function listUrls(baseurl) {
         const j = await _get('/JSON/core/view/urls/', baseurl ? { baseurl } : {});
         return toArray(j && j.urls).map(String);
@@ -166,11 +223,19 @@ function makeZapClient({ baseUrl, apiKey, fetchImpl = fetch } = /** @type {any} 
     }
 
     // Launch the active scanner (recursing the whole tree under url).
+    /**
+     * @param {string} url
+     * @returns {Promise<string>}  the active scan id
+     */
     async function ascanScan(url) {
         const j = await _get('/JSON/ascan/action/scan/', { url, recurse: 'true' });
         return j && j.scan !== undefined ? String(j.scan) : '';
     }
 
+    /**
+     * @param {string} ascanId
+     * @returns {Promise<number>}  percent done
+     */
     async function ascanStatus(ascanId) {
         const j = await _get('/JSON/ascan/view/status/', { scanId: ascanId });
         return toNum(j && j.status);
@@ -180,10 +245,13 @@ function makeZapClient({ baseUrl, apiKey, fetchImpl = fetch } = /** @type {any} 
      * Fetch alerts for a base url and project each onto the compact finding
      * shape the driver/report builder consume. `riskFilter` (a single risk
      * string or an array of them) optionally narrows to e.g. High+Medium.
+     * @param {{ baseurl?: string, riskFilter?: string | string[] }} [opts]
+     * @returns {Promise<ZapAlert[]>}
      */
-    async function listAlerts({ baseurl, riskFilter } = /** @type {any} */ ({})) {
+    async function listAlerts({ baseurl, riskFilter } = {}) {
         const j = await _get('/JSON/core/view/alerts/', baseurl ? { baseurl } : {});
-        let alerts = toArray(j && j.alerts);
+        /** @type {RawZapAlert[]} */
+        let alerts = /** @type {RawZapAlert[]} */ (toArray(j && j.alerts));
 
         if (riskFilter) {
             const wanted = new Set(
@@ -209,10 +277,12 @@ function makeZapClient({ baseUrl, apiKey, fetchImpl = fetch } = /** @type {any} 
      * summary used by the 'scanstat' SSE event. ZAP's risk strings map
      * directly: High/Medium/Low/Informational (anything else falls to
      * informational so nothing is silently dropped).
+     * @param {unknown} alerts
+     * @returns {SeverityCounts}
      */
     function alertCounts(alerts) {
         const counts = { high: 0, medium: 0, low: 0, informational: 0 };
-        for (const a of toArray(alerts)) {
+        for (const a of /** @type {(RawZapAlert | null)[]} */ (toArray(alerts))) {
             if (!a) continue;
             const r = String(a.risk || '').toLowerCase();
             if (r === 'high') counts.high += 1;
@@ -234,8 +304,10 @@ function makeZapClient({ baseUrl, apiKey, fetchImpl = fetch } = /** @type {any} 
      * Poll spider status to 100. onProgress({ crawled, status }) fires each
      * tick with the live crawled-url count + percent. Resolves when complete,
      * cancelled, or the maxMs budget is exhausted.
+     * @param {string} spiderId
+     * @param {AwaitOptions<{ crawled: number, status: number }>} [opts]
      */
-    async function awaitSpider(spiderId, { onProgress, isCancelled, pollMs = 2000, maxMs = 600000 } = /** @type {any} */ ({})) {
+    async function awaitSpider(spiderId, { onProgress, isCancelled, pollMs = 2000, maxMs = 600000 } = {}) {
         const delay = Math.max(250, pollMs | 0);
         const ticks = Math.max(1, Math.ceil(maxMs / delay));
         for (let i = 0; i < ticks; i++) {
@@ -258,8 +330,9 @@ function makeZapClient({ baseUrl, apiKey, fetchImpl = fetch } = /** @type {any} 
      * Poll the passive-scan queue (recordsToScan) down to 0. onProgress({
      * records }) fires each tick. Resolves when drained, cancelled, or timed
      * out.
+     * @param {AwaitOptions<{ records: number }>} [opts]
      */
-    async function awaitPassive({ onProgress, isCancelled, pollMs = 2000, maxMs = 600000 } = /** @type {any} */ ({})) {
+    async function awaitPassive({ onProgress, isCancelled, pollMs = 2000, maxMs = 600000 } = {}) {
         const delay = Math.max(250, pollMs | 0);
         const ticks = Math.max(1, Math.ceil(maxMs / delay));
         for (let i = 0; i < ticks; i++) {
@@ -279,8 +352,10 @@ function makeZapClient({ baseUrl, apiKey, fetchImpl = fetch } = /** @type {any} 
     /**
      * Poll active-scan status to 100. onProgress({ status }) fires each tick.
      * Resolves when complete, cancelled, or timed out.
+     * @param {string} ascanId
+     * @param {AwaitOptions<{ status: number }>} [opts]
      */
-    async function awaitActive(ascanId, { onProgress, isCancelled, pollMs = 2000, maxMs = 600000 } = /** @type {any} */ ({})) {
+    async function awaitActive(ascanId, { onProgress, isCancelled, pollMs = 2000, maxMs = 600000 } = {}) {
         const delay = Math.max(250, pollMs | 0);
         const ticks = Math.max(1, Math.ceil(maxMs / delay));
         for (let i = 0; i < ticks; i++) {

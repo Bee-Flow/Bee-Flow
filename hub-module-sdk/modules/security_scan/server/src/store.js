@@ -23,15 +23,104 @@
 
 const crypto = require('crypto');
 const { EventEmitter } = require('events');
+const { errMessage } = require('./errors');
+
+/**
+ * @typedef {import('../../../../types/host').HostDb} HostDb
+ * @typedef {Record<string, unknown>} JsonObject
+ * @typedef {{ high: number, medium: number, low: number, informational: number }} SeveritySummary
+ *
+ * One engine the requester asked for.
+ * @typedef {{ engine: string, intensity?: string }} EngineDescriptor
+ *
+ * A row of security_scans as the driver returns it. JSONB columns come back parsed or as text
+ * (depending on the driver), timestamps as Date or text, counts as number or text.
+ * @typedef {object} ScanRow
+ * @property {string} id
+ * @property {string} user_id
+ * @property {string | null} organization_id
+ * @property {string} target_url
+ * @property {unknown} engines
+ * @property {string | null} mode
+ * @property {string | null} model_tier
+ * @property {string | null} aggression
+ * @property {string} status
+ * @property {unknown} report_json
+ * @property {string | null} report_webpage_id
+ * @property {unknown} severity_summary
+ * @property {boolean} authorized
+ * @property {unknown} metadata
+ * @property {string | null} error
+ * @property {string | null} stdout_tail
+ * @property {string | Date | null} started_at
+ * @property {string | Date | null} finished_at
+ * @property {number | string | null} duration_ms
+ * @property {string | Date | null} created_at
+ *
+ * A security_scan_artifacts row.
+ * @typedef {object} ArtifactRow
+ * @property {string} id
+ * @property {string} scan_id
+ * @property {string} kind
+ * @property {string | null} storage_key
+ * @property {string | null} mime_type
+ * @property {number | string | null} size_bytes
+ * @property {string | Date | null} created_at
+ *
+ * A job the worker has claimed: the outbox row joined with its scan.
+ * @typedef {object} ClaimedJob
+ * @property {string} job_id
+ * @property {string} scan_id
+ * @property {number} attempt_count
+ * @property {string} user_id
+ * @property {string | null} organization_id
+ * @property {string} target_url
+ * @property {unknown} engines
+ * @property {string | null} mode
+ * @property {string | null} model_tier
+ * @property {string | null} aggression
+ * @property {string} status
+ * @property {boolean} authorized
+ * @property {unknown} metadata
+ * @property {string | Date | null} created_at
+ *
+ * A scan as the routes and the worker see it.
+ * @typedef {object} Scan
+ * @property {string} id
+ * @property {string} userId
+ * @property {string | null} organizationId
+ * @property {string} targetUrl
+ * @property {EngineDescriptor[]} engines
+ * @property {string} mode
+ * @property {string | null} modelTier
+ * @property {string | null} aggression
+ * @property {string} status
+ * @property {JsonObject | null} reportJson
+ * @property {string | null} reportWebpageId
+ * @property {SeveritySummary | null} severitySummary
+ * @property {boolean} authorized
+ * @property {JsonObject | null} metadata
+ * @property {string | null} error
+ * @property {string} stdoutTail
+ * @property {string | null} startedAt
+ * @property {string | null} finishedAt
+ * @property {number | null} durationMs
+ * @property {string | null} createdAt
+ *
+ * @typedef {{ id: string, scanId: string, kind: string, storageKey: string | null, mimeType: string | null, sizeBytes: number | null, createdAt: string | null }} Artifact
+ *
+ * An event pushed to the SSE subscribers of a scan.
+ * @typedef {{ type: string, data: unknown, ts: number }} ScanEvent
+ */
 
 const VALID_STATUSES = new Set(['queued', 'running', 'completed', 'error', 'cancelled']);
 const TERMINAL_STATUSES = new Set(['completed', 'error', 'cancelled']);
 
 /**
- * @param {object} deps
- * @param {{ run:Function, getOne:Function, getAll:Function, exec:Function, getClient:Function }} deps.db
+ * @param {{ db?: HostDb }} [deps]
  */
-function makeSecurityScanStore({ db } = /** @type {any} */ ({})) {
+function makeSecurityScanStore(deps = {}) {
+    const { db } = deps;
     if (!db) throw new Error('makeSecurityScanStore: db required');
     const { run, getOne, getAll, exec, getClient } = db;
 
@@ -126,26 +215,40 @@ function makeSecurityScanStore({ db } = /** @type {any} */ ({})) {
     // SSE endpoint; the worker calls publishEvent() to push progress chunks.
     // We drop the channel on finalization so listeners never leak past the
     // scan's lifetime.
+    /** @type {Map<string, EventEmitter>} */
     const _channels = new Map();
 
+    /** @param {string} scanId */
     function _channel(scanId) {
-        if (!_channels.has(scanId)) _channels.set(scanId, new EventEmitter());
-        return _channels.get(scanId);
+        let ch = _channels.get(scanId);
+        if (!ch) { ch = new EventEmitter(); _channels.set(scanId, ch); }
+        return ch;
     }
 
+    /**
+     * @param {string} scanId
+     * @param {(event: ScanEvent) => void} listener
+     * @returns {() => void}  unsubscribe
+     */
     function subscribe(scanId, listener) {
         const ch = _channel(scanId);
         ch.on('event', listener);
         return () => ch.off('event', listener);
     }
 
+    /**
+     * @param {string} scanId
+     * @param {string} type
+     * @param {unknown} data
+     */
     function publishEvent(scanId, type, data) {
         const ch = _channels.get(scanId);
         if (!ch) return;
         try { ch.emit('event', { type, data, ts: Date.now() }); }
-        catch (e) { console.warn('[SecurityScanStore] publish failed:', e.message); }
+        catch (e) { console.warn('[SecurityScanStore] publish failed:', errMessage(e)); }
     }
 
+    /** @param {string} scanId */
     function _closeChannel(scanId) {
         const ch = _channels.get(scanId);
         if (!ch) return;
@@ -156,12 +259,24 @@ function makeSecurityScanStore({ db } = /** @type {any} */ ({})) {
 
     // ── Mappers ───────────────────────────────────────────────────────
 
+    /**
+     * A JSON column as stored: already parsed, or text. What comes back is the caller's claim about the
+     * column (`fallback` fixes the type); an unreadable value gives `fallback`.
+     * @template T
+     * @param {unknown} v
+     * @param {T} fallback
+     * @returns {T}
+     */
     function parseJSON(v, fallback) {
         if (v === null || v === undefined) return fallback;
-        if (typeof v === 'object') return v;
-        try { return JSON.parse(v); } catch { return fallback; }
+        if (typeof v === 'object') return /** @type {T} */ (v);
+        try { return /** @type {T} */ (JSON.parse(String(v))); } catch { return fallback; }
     }
 
+    /**
+     * @param {ScanRow | null} r
+     * @returns {Scan | null}
+     */
     function mapScanRow(r) {
         if (!r) return null;
         return {
@@ -169,16 +284,16 @@ function makeSecurityScanStore({ db } = /** @type {any} */ ({})) {
             userId: r.user_id,
             organizationId: r.organization_id || null,
             targetUrl: r.target_url,
-            engines: parseJSON(r.engines, []),
+            engines: parseJSON(r.engines, /** @type {EngineDescriptor[]} */ ([])),
             mode: r.mode || 'agent',
             modelTier: r.model_tier || null,
             aggression: r.aggression || null,
             status: r.status,
-            reportJson: parseJSON(r.report_json, null),
+            reportJson: parseJSON(r.report_json, /** @type {JsonObject | null} */ (null)),
             reportWebpageId: r.report_webpage_id || null,
-            severitySummary: parseJSON(r.severity_summary, null),
+            severitySummary: parseJSON(r.severity_summary, /** @type {SeveritySummary | null} */ (null)),
             authorized: !!r.authorized,
-            metadata: parseJSON(r.metadata, null),
+            metadata: parseJSON(r.metadata, /** @type {JsonObject | null} */ (null)),
             error: r.error || null,
             stdoutTail: r.stdout_tail || '',
             startedAt: r.started_at ? new Date(r.started_at).toISOString() : null,
@@ -188,6 +303,10 @@ function makeSecurityScanStore({ db } = /** @type {any} */ ({})) {
         };
     }
 
+    /**
+     * @param {ArtifactRow | null} r
+     * @returns {Artifact | null}
+     */
     function mapArtifactRow(r) {
         if (!r) return null;
         return {
@@ -206,6 +325,17 @@ function makeSecurityScanStore({ db } = /** @type {any} */ ({})) {
     /**
      * Atomically create a scan row + matching outbox row in one transaction.
      * Returns the new scan id.
+     * @param {object} scan
+     * @param {string} scan.userId
+     * @param {string | null} [scan.organizationId]
+     * @param {string} scan.targetUrl
+     * @param {EngineDescriptor[]} scan.engines
+     * @param {boolean} [scan.authorized]
+     * @param {JsonObject | null} [scan.metadata]
+     * @param {string} [scan.mode]
+     * @param {string | null} [scan.modelTier]
+     * @param {string | null} [scan.aggression]
+     * @returns {Promise<string>}  the new scan id
      */
     async function createScan({ userId, organizationId = null, targetUrl, engines, authorized = false, metadata = null, mode = 'agent', modelTier = null, aggression = null }) {
         await initDB();
@@ -238,34 +368,45 @@ function makeSecurityScanStore({ db } = /** @type {any} */ ({})) {
         return scanId;
     }
 
+    /**
+     * @param {string} scanId
+     * @param {string | null} [userId]  when given, only that user's scan is found
+     * @returns {Promise<Scan | null>}
+     */
     async function getScan(scanId, userId = null) {
         await initDB();
         if (userId) {
-            return mapScanRow(await getOne(`SELECT * FROM security_scans WHERE id = $1 AND user_id = $2`, [scanId, userId]));
+            return mapScanRow(/** @type {ScanRow | null} */ (await getOne(`SELECT * FROM security_scans WHERE id = $1 AND user_id = $2`, [scanId, userId])));
         }
-        return mapScanRow(await getOne(`SELECT * FROM security_scans WHERE id = $1`, [scanId]));
+        return mapScanRow(/** @type {ScanRow | null} */ (await getOne(`SELECT * FROM security_scans WHERE id = $1`, [scanId])));
     }
 
     // All in-flight scans (queued + running) for a user — powers the multi-scan
     // sidebar so several concurrent scans are visible at once.
+    /**
+     * @param {string} userId
+     * @returns {Promise<Scan[]>}
+     */
     async function listActiveScansForUser(userId) {
         await initDB();
-        const rows = await getAll(
+        const rows = /** @type {ScanRow[]} */ (await getAll(
             `SELECT * FROM security_scans WHERE user_id = $1 AND status IN ('queued','running')
              ORDER BY created_at DESC LIMIT 50`,
             [userId]
-        );
-        return rows.map(mapScanRow);
+        ));
+        return rows.map((row) => /** @type {Scan} */ (mapScanRow(row)));
     }
 
     /**
      * Count active (claimed-and-undelivered, i.e. queued-claimed or running) scans
      * globally and for the given user/org. Used to decide whether a freshly created
      * scan will start immediately or sit queued, and to surface counts in the UI.
+     * @param {{ userId?: string | null, organizationId?: string | null }} [scope]
+     * @returns {Promise<{ global: number, user: number, org: number }>}
      */
     async function countActiveByScope({ userId = null, organizationId = null } = {}) {
         await initDB();
-        const r = await getOne(
+        const r = /** @type {{ global_active?: number, user_active?: number, org_active?: number } | null} */ (await getOne(
             `SELECT
                 COUNT(*)::int AS global_active,
                 COUNT(*) FILTER (WHERE s.user_id = $1)::int AS user_active,
@@ -274,7 +415,7 @@ function makeSecurityScanStore({ db } = /** @type {any} */ ({})) {
               JOIN security_scans s ON s.id = j.scan_id
              WHERE j.delivered_at IS NULL AND j.claim_token IS NOT NULL`,
             [userId, organizationId]
-        );
+        ));
         return {
             global: r?.global_active || 0,
             user: r?.user_active || 0,
@@ -290,22 +431,37 @@ function makeSecurityScanStore({ db } = /** @type {any} */ ({})) {
     // slot anyway.
     const _cancelRequests = new Set();
 
+    /**
+     * @param {string} scanId
+     */
     function requestCancel(scanId) {
         _cancelRequests.add(scanId);
         publishEvent(scanId, 'progress', { line: '[cancel] cancel requested' });
     }
 
+    /**
+     * @param {string} scanId
+     * @returns {boolean}
+     */
     function isCancelRequested(scanId) {
         return _cancelRequests.has(scanId);
     }
 
+    /**
+     * @param {string} scanId
+     */
     function _clearCancel(scanId) {
         _cancelRequests.delete(scanId);
     }
 
+    /**
+     * @param {string} scanId
+     * @param {string | null} [userId]
+     * @returns {Promise<{ ok: true } | { ok: false, error: 'not_found' | 'forbidden' | 'already_terminal', status?: string }>}
+     */
     async function markCancelled(scanId, userId) {
         await initDB();
-        const cur = await getOne(`SELECT user_id, status, started_at FROM security_scans WHERE id = $1`, [scanId]);
+        const cur = /** @type {Pick<ScanRow, 'user_id' | 'status' | 'started_at'> | null} */ (await getOne(`SELECT user_id, status, started_at FROM security_scans WHERE id = $1`, [scanId]));
         if (!cur) return { ok: false, error: 'not_found' };
         if (userId && cur.user_id !== userId) return { ok: false, error: 'forbidden' };
         if (TERMINAL_STATUSES.has(cur.status)) return { ok: false, error: 'already_terminal', status: cur.status };
@@ -339,13 +495,17 @@ function makeSecurityScanStore({ db } = /** @type {any} */ ({})) {
      * Claim outbox rows whose backoff window has elapsed, respecting concurrency
      * caps. See the built-in store for the full ranking rationale. Uses
      * FOR UPDATE SKIP LOCKED so concurrent workers never grab the same row.
+     * @param {{ batchSize?: number, perUserCap?: number, orgCap?: number, globalCap?: number, targetScanId?: string | null, workerId?: string }} [options]
+     * @returns {Promise<ClaimedJob[]>}
      */
     async function claimDueJobs({ batchSize = 5, perUserCap = 1e9, orgCap = 1e9, globalCap = 1e9, targetScanId = null, workerId = 'inproc' } = {}) {
         await initDB();
         const client = await getClient();
+        /** @type {ClaimedJob[]} */
         let claimed = [];
         try {
             await client.query('BEGIN');
+            /** @type {unknown[]} */
             const params = [perUserCap, orgCap, globalCap];
             let targetFilter = '';
             if (targetScanId) {
@@ -398,7 +558,7 @@ function makeSecurityScanStore({ db } = /** @type {any} */ ({})) {
                  LIMIT ${Math.max(1, batchSize | 0)}
                  FOR UPDATE OF j SKIP LOCKED`;
             const result = await client.query(q, params);
-            claimed = result.rows;
+            claimed = /** @type {ClaimedJob[]} */ (result.rows);
 
             if (claimed.length > 0) {
                 const token = crypto.randomBytes(8).toString('hex');
@@ -415,7 +575,7 @@ function makeSecurityScanStore({ db } = /** @type {any} */ ({})) {
             await client.query('COMMIT');
         } catch (e) {
             try { await client.query('ROLLBACK'); } catch (_) {}
-            console.error('[SecurityScanStore] claim failed:', e.message);
+            console.error('[SecurityScanStore] claim failed:', errMessage(e));
             return [];
         } finally {
             client.release();
@@ -423,9 +583,13 @@ function makeSecurityScanStore({ db } = /** @type {any} */ ({})) {
         return claimed;
     }
 
+    /**
+     * @param {string} scanId
+     * @returns {Promise<boolean>}
+     */
     async function markRunning(scanId) {
         await initDB();
-        const cur = await getOne(`SELECT status FROM security_scans WHERE id = $1`, [scanId]);
+        const cur = /** @type {Pick<ScanRow, 'status'> | null} */ (await getOne(`SELECT status FROM security_scans WHERE id = $1`, [scanId]));
         if (!cur) return false;
         if (TERMINAL_STATUSES.has(cur.status)) return false;
         if (cur.status === 'running') return true;
@@ -433,10 +597,15 @@ function makeSecurityScanStore({ db } = /** @type {any} */ ({})) {
             `UPDATE security_scans SET status = 'running', started_at = COALESCE(started_at, NOW()) WHERE id = $1 AND status = 'queued'`,
             [scanId]
         );
-        if (rowCount > 0) publishEvent(scanId, 'status', { status: 'running' });
-        return rowCount > 0;
+        const updated = (rowCount ?? 0) > 0;
+        if (updated) publishEvent(scanId, 'status', { status: 'running' });
+        return updated;
     }
 
+    /**
+     * @param {string} scanId
+     * @param {unknown} line
+     */
     async function appendProgress(scanId, line) {
         await initDB();
         if (!line) return;
@@ -451,12 +620,17 @@ function makeSecurityScanStore({ db } = /** @type {any} */ ({})) {
         publishEvent(scanId, 'progress', { line: String(line).slice(0, 4000) });
     }
 
+    /**
+     * @param {string} scanId
+     * @param {{ status: string, reportJson?: JsonObject | null, reportWebpageId?: string | null, severitySummary?: SeveritySummary | null, error?: string | null }} outcome
+     * @returns {Promise<boolean>}
+     */
     async function markFinished(scanId, { status, reportJson = null, reportWebpageId = null, severitySummary = null, error = null }) {
         await initDB();
         if (!VALID_STATUSES.has(status) || !TERMINAL_STATUSES.has(status)) {
             throw new Error(`invalid terminal status: ${status}`);
         }
-        const cur = await getOne(`SELECT started_at, status FROM security_scans WHERE id = $1`, [scanId]);
+        const cur = /** @type {Pick<ScanRow, 'started_at' | 'status'> | null} */ (await getOne(`SELECT started_at, status FROM security_scans WHERE id = $1`, [scanId]));
         if (!cur) return false;
         if (TERMINAL_STATUSES.has(cur.status)) return false;
         const startedAt = cur.started_at ? new Date(cur.started_at).getTime() : Date.now();
@@ -485,6 +659,10 @@ function makeSecurityScanStore({ db } = /** @type {any} */ ({})) {
         return true;
     }
 
+    /**
+     * @param {string} scanId
+     * @param {unknown} errorMessage
+     */
     async function markRetryable(scanId, errorMessage) {
         await initDB();
         await run(
@@ -500,6 +678,10 @@ function makeSecurityScanStore({ db } = /** @type {any} */ ({})) {
 
     // ── Artifacts ─────────────────────────────────────────────────────
 
+    /**
+     * @param {{ scanId: string, kind: string, storageKey?: string | null, mimeType?: string | null, sizeBytes?: number | string | null }} artifact
+     * @returns {Promise<{ id: string, scanId: string, kind: string, storageKey?: string | null, mimeType?: string | null, sizeBytes?: number | string | null }>}
+     */
     async function addArtifact({ scanId, kind, storageKey, mimeType, sizeBytes }) {
         await initDB();
         const id = crypto.randomUUID();
@@ -511,21 +693,30 @@ function makeSecurityScanStore({ db } = /** @type {any} */ ({})) {
         return { id, scanId, kind, storageKey, mimeType, sizeBytes };
     }
 
+    /**
+     * @param {string} scanId
+     * @returns {Promise<Artifact[]>}
+     */
     async function listArtifacts(scanId) {
         await initDB();
-        const rows = await getAll(
+        const rows = /** @type {ArtifactRow[]} */ (await getAll(
             `SELECT * FROM security_scan_artifacts WHERE scan_id = $1 ORDER BY created_at ASC`,
             [scanId]
-        );
-        return rows.map(mapArtifactRow);
+        ));
+        return rows.map((row) => /** @type {Artifact} */ (mapArtifactRow(row)));
     }
 
+    /**
+     * @param {string} scanId
+     * @param {string} artifactId
+     * @returns {Promise<Artifact | null>}
+     */
     async function getArtifact(scanId, artifactId) {
         await initDB();
-        return mapArtifactRow(await getOne(
+        return mapArtifactRow(/** @type {ArtifactRow | null} */ (await getOne(
             `SELECT * FROM security_scan_artifacts WHERE id = $1 AND scan_id = $2`,
             [artifactId, scanId]
-        ));
+        )));
     }
 
     return {

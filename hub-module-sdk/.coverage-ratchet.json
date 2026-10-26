@@ -1,7 +1,7 @@
 {
   "_comment": "Lowest line (and branches, functions) coverage (percent) hub-module-sdk may report. Raise it with `node scripts/coverage-ratchet.mjs hub-module-sdk --update` after adding tests; lowering it is a deliberate edit that belongs in a commit message with a reason.",
-  "_generated": "2026-10-24",
-  "lines": 63,
+  "_generated": "2026-10-26",
+  "lines": 67,
   "branches": 58,
   "functions": 42
 }

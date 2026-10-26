@@ -17,6 +17,18 @@
  */
 
 const crypto = require('crypto');
+const { errMessage } = require('./errors');
+
+/**
+ * @typedef {import('../../../../types/host').Host} Host
+ * @typedef {import('./store').ClaimedJob} ClaimedJob
+ * @typedef {import('./store').EngineDescriptor} EngineDescriptor
+ * @typedef {import('./scanRunner.service').ToolboxHandle} ToolboxHandle
+ * @typedef {import('./driver').AgentScanOutcome} AgentScanOutcome
+ * @typedef {ReturnType<typeof import('./store').makeSecurityScanStore>} ScanStore
+ * @typedef {typeof import('./scanRunner.service')} ScanRunnerService
+ * @typedef {ReturnType<typeof import('./driver').makeDriver>} ScanDriver
+ */
 
 const HARD_FAIL_DAYS = 14;
 const ENGINE_TIMEOUT_MS = parseInt(process.env.SECURITY_SCANNER_TIMEOUT_MS || '900000', 10); // 15 min
@@ -27,55 +39,73 @@ const MAX_PER_USER = parseInt(process.env.SECURITY_MAX_CONCURRENT_PER_USER || '1
 const MAX_PER_ORG = parseInt(process.env.SECURITY_MAX_CONCURRENT_PER_ORG || '2', 10);
 const MAX_GLOBAL = parseInt(process.env.SECURITY_MAX_CONCURRENT_GLOBAL || '3', 10);
 
+/**
+ * @param {number} ageMs
+ */
 function isHardFailed(ageMs) {
     return ageMs > HARD_FAIL_DAYS * 86_400_000;
 }
 
 // Shell-quote a value for safe interpolation into a single in-container command.
+/**
+ * @param {unknown} v
+ */
 function shQuote(v) {
     return `'${String(v).replace(/'/g, `'\\''`)}'`;
 }
 
 /**
- * @param {object} deps
- * @param {any} deps.store       — the security scan store instance
- * @param {any} deps.scanRunner  — the scanRunner.service (dockerode lifecycle)
- * @param {any} deps.driver      — the driver instance (makeDriver(...))
- * @param {any} deps.host        — the module host API (net.isPrivateTarget)
+ * @param {{ store?: ScanStore, scanRunner?: ScanRunnerService, driver?: ScanDriver, host?: Host }} [deps]
+ *        store - the security scan store instance; scanRunner - the scanRunner.service (dockerode lifecycle);
+ *        driver - the driver instance (makeDriver(...)); host - the module host API (net.isPrivateTarget)
  */
-function makeWorker({ store, scanRunner, driver, host } = /** @type {any} */ ({})) {
+function makeWorker(deps = {}) {
+    const { store, scanRunner, driver, host } = deps;
     if (!store || !scanRunner || !driver || !host) throw new Error('makeWorker: store, scanRunner, driver and host are required');
     const securityScanStore = store;
+    const securityScanRunner = scanRunner;
     const securityScanDriver = driver;
+    /** @param {string} url */
     const isPrivateTarget = (url) => host.net.isPrivateTarget(url);
 
     // Always 'container' — there is no host fallback. Either a docker socket is
     // reachable and we run in an isolated container, or we hard-error.
     async function resolveExecMode() {
-        const dockerOk = await scanRunner.dockerAvailable();
+        const dockerOk = await securityScanRunner.dockerAvailable();
         return dockerOk ? 'container' : 'error';
     }
 
     // ── Agent mode ─────────────────────────────────────────────────────
+    /**
+     * @param {{ scanId: string, targetUrl: string, engines: EngineDescriptor[], userId: string, organizationId: string | null, modelTier: string | null, aggression: string | null, maxSteps: number | null, prewarmId: string | null }} args
+     * @returns {Promise<AgentScanOutcome>}
+     */
     async function runAgentMode({ scanId, targetUrl, engines, userId, organizationId, modelTier, aggression, maxSteps, prewarmId }) {
+        /** @param {string} line */
         const onLine = (line) => securityScanStore.appendProgress(scanId, line).catch(() => {});
+        /** @type {ToolboxHandle | null} */
         let toolbox = null;
         try {
             // Adopt the pre-warmed toolbox if the dialog warmed one; else cold-start.
             if (prewarmId) {
-                toolbox = await scanRunner.adoptToolbox(prewarmId);
+                toolbox = await securityScanRunner.adoptToolbox(prewarmId);
                 if (toolbox) await securityScanStore.appendProgress(scanId, '[scan] using pre-warmed toolbox + ZAP daemon').catch(() => {});
             }
             if (!toolbox) {
                 await securityScanStore.appendProgress(scanId, '[scan] starting toolbox container + ZAP daemon (this can take ~60s)…').catch(() => {});
-                toolbox = await scanRunner.startAgentToolbox({ scanId, onLine });
+                toolbox = await securityScanRunner.startAgentToolbox({ scanId, onLine });
             }
-            scanRunner.registerActiveToolbox(scanId, toolbox);
+            securityScanRunner.registerActiveToolbox(scanId, toolbox);
 
             // Capture full stdout from an in-container command (for reading reports).
+            const activeToolbox = toolbox;
+            /**
+             * @param {string} command
+             * @param {number} timeoutMs
+             */
             const capture = async (command, timeoutMs) => {
                 let out = '';
-                const r = await toolbox.exec(command, {
+                const r = await activeToolbox.exec(command, {
                     onChunk: (c) => { if (c?.stream === 'stdout' && out.length < 4_000_000) out += String(c.chunk); },
                     timeoutMs,
                 });
@@ -85,8 +115,10 @@ function makeWorker({ store, scanRunner, driver, host } = /** @type {any} */ ({}
             // Adapter the driver calls for its nuclei_run / testssl_run convenience
             // tools. The binaries are baked into the toolbox, so we run them via
             // in-container exec (writing JSON into the workdir) and read it back.
+            /** @type {import('./driver').RunEngine} */
             const runEngine = async (engine, opts = {}) => {
                 const outFile = `/home/scanner/work/agent-${engine}.json`;
+                /** @type {string} */
                 let cmd;
                 if (engine === 'nuclei') {
                     const tags = opts.tags ? ` -tags ${shQuote(opts.tags)}` : '';
@@ -97,8 +129,9 @@ function makeWorker({ store, scanRunner, driver, host } = /** @type {any} */ ({}
                 } else {
                     return { json: null, exitCode: 1, timedOut: false };
                 }
-                const r = await toolbox.exec(`rm -f ${outFile}; ${cmd}`, { onChunk: onLine ? (_c) => {} : undefined, timeoutMs: ENGINE_TIMEOUT_MS });
+                const r = await activeToolbox.exec(`rm -f ${outFile}; ${cmd}`, { onChunk: (_c) => {}, timeoutMs: ENGINE_TIMEOUT_MS });
                 const read = await capture(`cat ${outFile} 2>/dev/null || true`, 30000);
+                /** @type {unknown} */
                 let json = null;
                 try { json = JSON.parse(read.out); } catch (_) { /* missing/corrupt/no findings */ }
                 return { json, exitCode: r.exitCode, timedOut: r.timedOut };
@@ -114,21 +147,27 @@ function makeWorker({ store, scanRunner, driver, host } = /** @type {any} */ ({}
                 runEngine,
             });
         } finally {
-            scanRunner.unregisterActiveToolbox(scanId);
+            securityScanRunner.unregisterActiveToolbox(scanId);
             if (toolbox) { try { await toolbox.cleanup(); } catch (_) {} }
         }
     }
 
     // ── Drain loop ────────────────────────────────────────────────────
 
+    /**
+     * @param {ClaimedJob} claim
+     */
     async function processScan(claim) {
         const { scan_id: scanId, user_id: userId, organization_id: organizationId, target_url: targetUrl, engines: rawEngines, metadata: rawMetadata, model_tier: rawModelTier, aggression: rawAggression } = claim;
         const modelTier = rawModelTier || null;
         const aggression = rawAggression || null;
         // Optional autonomy/step budget + pre-warmed toolbox handle from metadata.
+        /** @type {number | null} */
         let stepBudget = null;
+        /** @type {string | null} */
         let prewarmId = null;
         try {
+            /** @type {{ stepBudget?: unknown, prewarmId?: unknown } | null} */
             const md = typeof rawMetadata === 'string' ? JSON.parse(rawMetadata) : (rawMetadata || null);
             if (md && Number.isFinite(Number(md.stepBudget))) stepBudget = Number(md.stepBudget);
             if (md && typeof md.prewarmId === 'string') prewarmId = md.prewarmId;
@@ -155,6 +194,7 @@ function makeWorker({ store, scanRunner, driver, host } = /** @type {any} */ ({}
 
         // engines is stored as JSONB; the claim may hand it back as a string or an
         // already-parsed array depending on the driver.
+        /** @type {EngineDescriptor[]} */
         let engines = [];
         try { engines = typeof rawEngines === 'string' ? JSON.parse(rawEngines) : (rawEngines || []); } catch (_) {}
         if (!Array.isArray(engines) || engines.length === 0) {
@@ -172,12 +212,13 @@ function makeWorker({ store, scanRunner, driver, host } = /** @type {any} */ ({}
         const cancelPoll = setInterval(() => {
             if (securityScanStore.isCancelRequested) {
                 Promise.resolve(securityScanStore.isCancelRequested(scanId))
-                    .then((c) => { if (c) scanRunner.killScan(scanId).catch(() => {}); })
+                    .then((c) => { if (c) securityScanRunner.killScan(scanId).catch(() => {}); })
                     .catch(() => {});
             }
         }, 2000);
         cancelPoll.unref?.();
 
+        /** @type {AgentScanOutcome} */
         let outcome;
         try {
             outcome = await runAgentMode({
@@ -185,7 +226,7 @@ function makeWorker({ store, scanRunner, driver, host } = /** @type {any} */ ({}
                 modelTier, aggression, maxSteps: stepBudget, prewarmId,
             });
         } catch (e) {
-            outcome = { status: 'error', error: `worker_exception: ${e.message}` };
+            outcome = { status: 'error', error: `worker_exception: ${errMessage(e)}` };
         } finally {
             clearInterval(cancelPoll);
         }
@@ -208,6 +249,9 @@ function makeWorker({ store, scanRunner, driver, host } = /** @type {any} */ ({}
         return { ok: true, status: outcome.status };
     }
 
+    /**
+     * @param {string | null} [targetScanId]
+     */
     async function drainOnce(targetScanId = null) {
         // The loader's host-owned tick already self-gates on isModuleActive, so
         // the built-in's own module-active gate is not needed here.
@@ -235,12 +279,13 @@ function makeWorker({ store, scanRunner, driver, host } = /** @type {any} */ ({}
                 await processScan(claim);
                 processed++;
             } catch (e) {
-                await securityScanStore.markRetryable(claim.scan_id, e.message);
+                await securityScanStore.markRetryable(claim.scan_id, errMessage(e));
             }
         }
         return { processed };
     }
 
+    /** @param {string | null | undefined} scanId */
     async function drainOne(scanId) {
         if (!scanId) return null;
         return drainOnce(scanId);
@@ -249,7 +294,7 @@ function makeWorker({ store, scanRunner, driver, host } = /** @type {any} */ ({}
     // Remove orphaned runner containers. A scan is "active" if its row is still
     // queued/running — anything else is safe to reap. Called on an interval.
     async function reapRunners() {
-        return scanRunner.reapStaleRunners(async (scanId) => {
+        return securityScanRunner.reapStaleRunners(async (/** @type {string} */ scanId) => {
             try {
                 const s = await securityScanStore.getScan(scanId);
                 return !!s && (s.status === 'queued' || s.status === 'running');
