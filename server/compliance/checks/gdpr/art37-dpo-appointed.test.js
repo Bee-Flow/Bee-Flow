@@ -11,17 +11,17 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { installResolveStub } = require('../../../testUtils/stubRequire');
+const { createRecordingDb } = require('../../../testUtils/mockDb');
 
-const fx = { settings: {} };
-const restore = installResolveStub({
-    '../../../stores/complianceStore': { getSettings: async () => ({ ...fx.settings }) },
-});
+// The real complianceStore over a recording pool: compliance_settings is `rows`.
+const rows = [];
+createRecordingDb({ tables: { compliance_settings: rows } }).attachPool();
 const check = require('./art37-dpo-appointed');
-test.after(restore);
+/** @param {Record<string, unknown>} settings */
+const setSettings = (settings) => { rows.length = 0; rows.push({ organization_id: 'org1', ...settings }); };
 
 test('name and e-mail set: pass, and neither value reaches details or evidence', async () => {
-    fx.settings = { dpo_name: 'Marieke de Wit', dpo_email: 'privacy@vandael.example' };
+    setSettings({ dpo_name: 'Marieke de Wit', dpo_email: 'privacy@vandael.example' });
     const r = await check.evaluate('org1');
     assert.equal(r.status, 'pass');
     const out = JSON.stringify(r);
@@ -30,8 +30,8 @@ test('name and e-mail set: pass, and neither value reaches details or evidence',
 });
 
 test('one of the two: warn; none: fail', async () => {
-    fx.settings = { dpo_name: 'Marieke de Wit' };
+    setSettings({ dpo_name: 'Marieke de Wit' });
     assert.equal((await check.evaluate('org1')).status, 'warn');
-    fx.settings = {};
+    setSettings({});
     assert.equal((await check.evaluate('org1')).status, 'fail');
 });
