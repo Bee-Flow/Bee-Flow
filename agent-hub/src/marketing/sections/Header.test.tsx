@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { renderWithClient } from '../../test/render';
 import { describe, it, expect, beforeEach } from 'vitest';
 import Header from './Header.jsx';
 
@@ -12,7 +12,7 @@ const navLinks = [
     { label: 'Pricing', href: '/?slug=pricing' },
 ];
 
-const renderHeader = (activeSlug: string) => render(
+const renderHeader = (activeSlug: string) => renderWithClient(
     <Header data={{ enabled: true, logoText: 'T', navLinks, activeSlug }} />,
 );
 

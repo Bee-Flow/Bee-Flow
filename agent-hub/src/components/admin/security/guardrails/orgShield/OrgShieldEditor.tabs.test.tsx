@@ -12,7 +12,7 @@
  * Run: npx vitest run src/components/admin/guardrails/orgShield/OrgShieldEditor.tabs.test.jsx
  */
 
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -28,6 +28,7 @@ vi.mock('../../../../licensing/LicenseContext', () => ({
 }));
 
 import OrgShieldEditor from './OrgShieldEditor';
+import { renderWithClient } from '../../../../../test/render';
 import { authFetch } from '../../../../../utils/helpers';
 import { asMock } from '@/test/mocks';
 
@@ -60,7 +61,7 @@ beforeEach(() => {
 });
 
 const renderEditor = async (props = {}) => {
-    render(<OrgShieldEditor orgId={ORG_ID} {...props} />);
+    renderWithClient(<OrgShieldEditor orgId={ORG_ID} {...props} />);
     await waitFor(() => expect(screen.getByRole('tab', { name: /Overview/ })).toBeInTheDocument());
 };
 

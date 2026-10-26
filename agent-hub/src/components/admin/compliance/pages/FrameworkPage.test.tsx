@@ -1,10 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import FrameworkPage from './FrameworkPage';
+import { renderWithClient } from '../../../../test/render';
 import { sectionById } from '../sections';
 
 // The transport seam (data/api.js fetchJson → utils/helpers authFetch). The rest of
@@ -39,7 +40,7 @@ function core(overrides = {}) {
 
 function renderPage(props = {}) {
     const navigate = vi.fn();
-    const utils = render(
+    const utils = renderWithClient(
         <FrameworkPage
             section={sectionById('gdpr')}
             tab="checks"

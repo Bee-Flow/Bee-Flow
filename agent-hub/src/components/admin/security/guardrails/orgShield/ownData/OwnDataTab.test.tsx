@@ -1,4 +1,5 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
+import { renderWithClient } from '../../../../../../test/render';
 import type React from 'react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -40,7 +41,7 @@ describe('the list (Enterprise)', () => {
     it('opens on starters when there is nothing yet', async () => {
         const user = userEvent.setup();
         const { ui } = renderableTab();
-        render(ui);
+        renderWithClient(ui);
         expect(screen.getByRole('heading', { name: 'Hide things only your organisation uses' })).toBeInTheDocument();
         expect(screen.getByText(/just like names and email addresses, in chat, agents and automations\./)).toBeInTheDocument();
         expect(screen.getByRole('group', { name: 'Start from an example' })).toBeInTheDocument();
@@ -60,7 +61,7 @@ describe('the list (Enterprise)', () => {
 
     it('says how each type is doing, in words', () => {
         const { ui } = renderableTab({ init: { types: [WORDS_TYPE, PATTERN_TYPE, AI_TYPE, LEGACY_TYPE] } });
-        render(ui);
+        renderWithClient(ui);
         const row = (name: string) => screen.getByRole('rowheader', { name: new RegExp(name) }).closest('tr') as HTMLElement;
         // The result is in its own column and, for a narrow pane, again under
         // "How we find it" (CSS shows one of the two), so it appears twice.
@@ -78,7 +79,7 @@ describe('the list (Enterprise)', () => {
     it('opens the wizard with the sentence typed under Or describe it', async () => {
         const user = userEvent.setup();
         const { ui, form } = renderableTab();
-        render(ui);
+        renderWithClient(ui);
         const create = screen.getByRole('button', { name: 'Create type' });
         expect(create).toBeDisabled();
         await user.type(screen.getByLabelText('Or describe it'), 'Our claim numbers start with SD- and six digits{Enter}');
@@ -93,14 +94,14 @@ describe('the list (Enterprise)', () => {
 
     it('does not promise automations when the shield is off for them', () => {
         const { ui } = renderableTab({ init: { applyToAutomations: false } });
-        render(ui);
+        renderWithClient(ui);
         expect(screen.getByText(/just like names and email addresses, in chat and agents\./)).toBeInTheDocument();
         expect(screen.queryByText(/automations/)).toBeNull();
     });
 
     it('lets a read-only admin look, not start', () => {
         const { ui } = renderableTab({ readOnly: true });
-        render(ui);
+        renderWithClient(ui);
         expect(screen.getByRole('button', { name: 'Project code names' })).toBeDisabled();
         expect(screen.getByLabelText('Or describe it')).toBeDisabled();
         expect(screen.getByRole('button', { name: 'Create type' })).toBeDisabled();
@@ -115,7 +116,7 @@ describe('the list\'s edits to the form', () => {
         const { ui, form } = renderableTab({
             init: { types: [WORDS_TYPE], piiCategories: ['Email', WORDS_TYPE.id] },
         });
-        render(ui);
+        renderWithClient(ui);
         await user.click(screen.getByRole('checkbox', { name: 'Product names, Own server' }));
         await user.click(screen.getByRole('checkbox', { name: 'Product names, Outside tools' }));
         await user.click(screen.getByRole('checkbox', { name: 'Product names, Hide from AI' }));
@@ -126,7 +127,7 @@ describe('the list\'s edits to the form', () => {
 
     it('locks Outside tools without the Enterprise tool guard, like the matrix', () => {
         const { ui } = renderableTab({ init: { types: [WORDS_TYPE] }, canUseWebSearchGuard: false });
-        render(ui);
+        renderWithClient(ui);
         expect(screen.queryByRole('checkbox', { name: 'Product names, Outside tools' })).toBeNull();
         expect(screen.getByRole('checkbox', { name: 'Product names, Own server' })).toBeEnabled();
     });
@@ -141,7 +142,7 @@ describe('the list\'s edits to the form', () => {
                 toolPiiPolicy: { external: { blockCategories: [WORDS_TYPE.id] }, internal: { blockCategories: ['Person', WORDS_TYPE.id] } },
             },
         });
-        render(ui);
+        renderWithClient(ui);
         await user.click(screen.getByRole('button', { name: 'Remove Product names' }));
         await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Remove' }));
         await waitFor(() => expect(form.current?.customDataTypes).toEqual([]));
@@ -154,7 +155,7 @@ describe('the list\'s edits to the form', () => {
     it('keeps the type when the admin cancels the removal', async () => {
         const user = userEvent.setup();
         const { ui, form } = renderableTab({ init: { types: [WORDS_TYPE] } });
-        render(ui);
+        renderWithClient(ui);
         await user.click(screen.getByRole('button', { name: 'Remove Product names' }));
         await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Cancel' }));
         expect(form.current?.customDataTypes).toHaveLength(1);
@@ -162,13 +163,13 @@ describe('the list\'s edits to the form', () => {
 
     it('warns that AI types find nothing while the detection service is down', () => {
         const { ui } = renderableTab({ init: { types: [AI_TYPE] }, guard: { configured: true, reachable: false } });
-        render(ui);
+        renderWithClient(ui);
         expect(screen.getByText(/Types recognised by AI find nothing while the detection service is not running/)).toBeInTheDocument();
     });
 
     it('marks the row the server refused on the last save', () => {
         const { ui } = renderableTab({ init: { types: [WORDS_TYPE] }, typeErrors: [{ id: WORDS_TYPE.id, message: 'Too many words.' }] });
-        render(ui);
+        renderWithClient(ui);
         expect(screen.getByRole('alert')).toHaveTextContent('Not saved: Too many words.');
     });
 });
@@ -177,7 +178,7 @@ describe('the locked view (Community)', () => {
     it('shows migrated types read-only, with Remove as the only change', async () => {
         const user = userEvent.setup();
         const { ui, form } = renderableTab({ licensed: false, init: { types: [LEGACY_TYPE, WORDS_TYPE], piiCategories: ['Email', LEGACY_TYPE.id] } });
-        render(ui);
+        renderWithClient(ui);
         expect(screen.getByText(/Your own data is part of Enterprise/)).toBeInTheDocument();
         expect(screen.getByRole('link', { name: /Upgrade/ })).toHaveAttribute('href', 'https://example.test/upgrade');
         expect(screen.getByText(/These words and patterns were added earlier\. They are still hidden\./)).toBeInTheDocument();
@@ -202,14 +203,14 @@ describe('the locked view (Community)', () => {
 
     it('says what Enterprise adds when there is nothing to show', () => {
         const { ui } = renderableTab({ licensed: false });
-        render(ui);
+        renderWithClient(ui);
         expect(screen.getByText('Add your own kinds of data with Enterprise')).toBeInTheDocument();
     });
 
     it('keeps Never hidden editable: those exceptions are saved on every plan', async () => {
         const user = userEvent.setup();
         const { ui, form } = renderableTab({ licensed: false, init: { allowTerms: ['Kifid'] } });
-        render(ui);
+        renderWithClient(ui);
         expect(screen.getByRole('heading', { name: 'Never hidden' })).toBeInTheDocument();
         await user.type(screen.getByLabelText('Add a name that should stay visible'), 'Van Dael{Enter}');
         expect(form.current?.piiAllowTerms).toEqual(['Kifid', 'Van Dael']);
@@ -240,7 +241,7 @@ describe('inside the editor', () => {
 
     it('puts a switch edit on the Your own data chip of the save bar', async () => {
         const user = userEvent.setup();
-        render(<OrgShieldEditor orgId="org-1" />);
+        renderWithClient(<OrgShieldEditor orgId="org-1" />);
         await user.click(await screen.findByRole('tab', { name: /Your own data/ }));
         await user.click(screen.getByRole('checkbox', { name: 'Product names, Own server' }));
         expect(screen.getByText('Unsaved changes')).toBeInTheDocument();

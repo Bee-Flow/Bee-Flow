@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -31,6 +31,7 @@ vi.mock('../../components/mfa/SecurityKeysCard', async () => {
 });
 
 import SecuritySection from './SecuritySection';
+import { renderWithClient } from '../../test/render';
 import { authFetch } from '../../utils/helpers';
 
 const jsonRes = (body, status = 200) => ({
@@ -66,7 +67,7 @@ const posts = (fragment) => authFetch.mock.calls.filter(c => c[1]?.method === 'P
 /** Mount and wait for the status probe to settle. */
 async function mount(opts) {
     serve(opts);
-    const view = render(<SecuritySection />);
+    const view = renderWithClient(<SecuritySection />);
     await screen.findByRole('heading', { name: 'Security' });
     return view;
 }
@@ -90,7 +91,7 @@ describe('SecuritySection — status probe', () => {
     it('renders only a spinner until the status call resolves', async () => {
         let release;
         authFetch.mockImplementation(() => new Promise(res => { release = () => res(jsonRes(DISABLED)); }));
-        const { container } = render(<SecuritySection />);
+        const { container } = renderWithClient(<SecuritySection />);
 
         expect(screen.queryByRole('heading', { name: 'Security' })).toBeNull();
         expect(container.querySelector('.animate-spin')).toBeTruthy();
@@ -135,7 +136,7 @@ describe('SecuritySection — status probe', () => {
             if (String(url).includes('/auth/mfa/status')) throw new Error('offline');
             return jsonRes({}, 402);
         });
-        render(<SecuritySection />);
+        renderWithClient(<SecuritySection />);
         await screen.findByRole('heading', { name: 'Security' });
 
         expect(screen.getByTestId('mfa-status-error')).toBeInTheDocument();
@@ -338,7 +339,7 @@ describe('SecuritySection — disable and regenerate', () => {
             if (u.includes('/api/compliance/iso/docs')) return jsonRes({}, 402);
             throw new Error(`unrouted: ${u} ${opts.method}`);
         });
-        render(<SecuritySection />);
+        renderWithClient(<SecuritySection />);
         await screen.findByText('Two-factor authentication is on');
 
         await user.click(screen.getByRole('button', { name: 'Disable' }));

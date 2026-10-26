@@ -1,7 +1,8 @@
 import Tabs from './Tabs';
 import StoryHeader from './StoryHeader';
-import CustomerStories from './CustomerStories';
 import lazySection from './lazySection';
+// Shared by StoryHeader (eager) and CustomerStories (lazy); imported here once so it stays in the main stylesheet.
+import './stories.css';
 
 // The motion blocks (issue 244) are never the LCP element and bring their own
 // stylesheets: they load as their own chunks, off the public entry.
@@ -17,6 +18,7 @@ const CustomerSupport = lazySection(() => import('./CustomerSupport'));
 const FeatureDemo = lazySection(() => import('./FeatureDemo'));
 const GitHubStats = lazySection(() => import('./GitHubStats'));
 const ReleaseNotes = lazySection(() => import('./ReleaseNotes'));
+const CustomerStories = lazySection(() => import('./CustomerStories'));
 const CompareTable = lazySection(() => import('./CompareTable'));
 const Roadmap = lazySection(() => import('./Roadmap'));
 

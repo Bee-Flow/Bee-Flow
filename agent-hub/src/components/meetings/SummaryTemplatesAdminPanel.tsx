@@ -1,7 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback } from 'react';
+import { useOrgSummaryTemplatesQuery } from '../../api/queries/meetingLibrary';
 import { FileText } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslation';
-import * as api from '../../api/transcriptionsApi';
 import TemplateManager from '../../pages/meeting-notes/detail/TemplateManager';
 import type { BuiltinTemplate, CustomTemplate, OrgGroup } from '../../pages/meeting-notes/detail/summaryTemplates.types';
 
@@ -11,6 +11,8 @@ interface OrgTemplates {
     groups: OrgGroup[];
 }
 
+const NO_BUILTINS: BuiltinTemplate[] = [];
+
 /**
  * Org-admin panel: manage organization-wide and group summary templates in one
  * place. Mirrors the org-scoped MeetingNotesAdminPanel pattern. Self-hides when
@@ -19,30 +21,14 @@ interface OrgTemplates {
  */
 export default function SummaryTemplatesAdminPanel() {
     const { t } = useTranslation();
-    const [org, setOrg] = useState<OrgTemplates | null>(null);      // { orgId, templates, groups }
-    const [builtins, setBuiltins] = useState<BuiltinTemplate[]>([]);
-    const [available, setAvailable] = useState(true);
-    const [loading, setLoading] = useState(true);
+    const query = useOrgSummaryTemplatesQuery();
+    const org: OrgTemplates | null = query.data?.org ?? null;      // { orgId, templates, groups }
+    const builtins: BuiltinTemplate[] = query.data?.builtins ?? NO_BUILTINS;
+    const { refetch } = query;
+    const reload = useCallback(async () => { await refetch(); }, [refetch]);
 
-    const reload = useCallback(async () => {
-        try {
-            const [orgData, list] = await Promise.all([
-                api.listOrgSummaryTemplates(),
-                api.listSummaryTemplates().catch(() => null),
-            ]);
-            setOrg(orgData);
-            if (list?.builtins) setBuiltins(list.builtins);
-        } catch (_) {
-            setAvailable(false);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => { reload(); }, [reload]);
-
-    if (loading) return null;
-    if (!available) return null;
+    // Hidden while the first answer is pending and when the API refuses (not an org admin, or not licensed).
+    if (query.isPending || query.isError) return null;
 
     return (
         <div>

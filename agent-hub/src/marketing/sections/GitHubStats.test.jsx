@@ -8,10 +8,11 @@
  *
  * Run: cd agent-hub && npx vitest run src/marketing/sections/GitHubStats.test.jsx
  */
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { it, expect, afterEach, vi } from 'vitest';
 import GitHubStats from './GitHubStats';
+import { renderWithClient } from '../../test/render';
 
 const data = {
     enabled: true,
@@ -35,7 +36,7 @@ it('shows the star count and latest release once the endpoint answers', async ()
         latestRelease: { tag: 'v1.8.0', publishedAt: '2026-07-01T00:00:00Z' },
         url: data.repoUrl,
     });
-    render(<GitHubStats data={data} />);
+    renderWithClient(<GitHubStats data={data} />);
 
     // Intl.NumberFormat groups the count (locale decides the separator).
     const stars = await screen.findByText(new Intl.NumberFormat().format(12345));
@@ -47,7 +48,7 @@ it('shows the star count and latest release once the endpoint answers', async ()
 
 it('renders only the link chip when the endpoint fails', async () => {
     vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new Error('down'))));
-    const { container } = render(<GitHubStats data={data} />);
+    const { container } = renderWithClient(<GitHubStats data={data} />);
 
     await waitFor(() => expect(fetch).toHaveBeenCalled());
     expect(screen.getByText('Source on GitHub')).toBeInTheDocument();
@@ -56,7 +57,7 @@ it('renders only the link chip when the endpoint fails', async () => {
 
 it('renders only the link chip on a non-2xx response', async () => {
     mockStats({}, false);
-    const { container } = render(<GitHubStats data={data} />);
+    const { container } = renderWithClient(<GitHubStats data={data} />);
 
     await waitFor(() => expect(fetch).toHaveBeenCalled());
     expect(container.querySelectorAll('.github-stats-chip')).toHaveLength(1);
@@ -64,7 +65,7 @@ it('renders only the link chip on a non-2xx response', async () => {
 
 it('skips the release chip when there is no release', async () => {
     mockStats({ stars: 10, forks: 1, latestRelease: null, url: data.repoUrl });
-    const { container } = render(<GitHubStats data={data} />);
+    const { container } = renderWithClient(<GitHubStats data={data} />);
 
     await screen.findByText(new Intl.NumberFormat().format(10));
     // Stars + link, no release chip.

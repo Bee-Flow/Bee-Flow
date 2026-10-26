@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
+import { usePublicPlansQuery } from '../api/queries/publicSite';
 import {
     Bot, FileText, FilePlus2, Sparkles, Plug, ShieldCheck,
     Search, Mic, PenLine, ArrowRight, type LucideIcon,
@@ -101,26 +102,12 @@ const USE_CASES: { Icon: LucideIcon; eyebrow: string; body: string }[] = [
 ];
 
 export default function HomePage() {
-    const [hasPublicPlans, setHasPublicPlans] = useState(false);
+    const hasPublicPlans = (usePublicPlansQuery<unknown>(API_BASE, false).data?.length ?? 0) > 0;
 
     useEffect(() => {
         const prev = document.title;
         document.title = 'Bee Flow — AI assistants that know your business';
         return () => { document.title = prev; };
-    }, []);
-
-    useEffect(() => {
-        let cancelled = false;
-        fetch(`${API_BASE}/api/billing/public-plans`)
-            .then(r => r.ok ? r.json() : null)
-            .catch(() => null)
-            .then(data => {
-                if (cancelled) return;
-                if (Array.isArray(data?.plans) && data.plans.length > 0) {
-                    setHasPublicPlans(true);
-                }
-            });
-        return () => { cancelled = true; };
     }, []);
 
     return (

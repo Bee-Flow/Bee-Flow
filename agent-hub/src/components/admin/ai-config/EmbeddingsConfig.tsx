@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useEffectEvent } from 'react';
+import React, { useState, useEffect, useEffectEvent, useMemo, useRef } from 'react';
+import { useAiConfigQuery } from '../../../api/queries/aiConfigRead';
+import useDraftOverServer from '../../../hooks/useDraftOverServer';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { API_BASE } from '../../../utils/helpers';
 import type { StatusMessage } from './chatModelTiers/tierTypes';
-import { mutate, ApiError, request, RefusedError } from '../../../api/mutate';
+import { mutate, ApiError } from '../../../api/mutate';
 
 interface EmbeddingProvider {
     id: string;
@@ -24,42 +26,31 @@ interface EmbeddingsConfigProps {
 
 const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsConfigProps) => {
     const { t } = useTranslation();
-    const [config, setConfig] = useState({ embeddingProviderId: '', embeddingModel: '' });
-    const [loading, setLoading] = useState(true);
+    const aiConfig = useAiConfigQuery<{ embeddingProviderId?: string; embeddingModel?: string }>();
+    const stored = aiConfig.data?.config;
+    const serverForm = useMemo(() => ({ embeddingProviderId: stored?.embeddingProviderId || '', embeddingModel: stored?.embeddingModel || '' }), [stored]);
+    const { value: config, patch: patchConfig } = useDraftOverServer(serverForm);
+    const loading = aiConfig.isPending;
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<StatusMessage | null>(null);
 
-    const refreshForProviders = useEffectEvent(() => {
-        fetchConfig();
-        // Ensure models are loaded
-        if (allModels.length === 0 && providers.length > 0) {
-            fetchAllModels();
-        }
+    // Ensure the models are loaded once there are providers to ask about.
+    const loadModelsIfMissing = useEffectEvent(() => {
+        if (allModels.length === 0 && providers.length > 0) fetchAllModels();
     });
-
     useEffect(() => {
-        refreshForProviders();
-    }, [providers]); // Refetch if providers change
+        loadModelsIfMissing();
+    }, [providers]);
 
-    const fetchConfig = async () => {
-        try {
-            const res = await request(`${API_BASE}/ai/config`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (res) {
-                const data = await res.json();
-                setConfig({
-                    embeddingProviderId: data.embeddingProviderId || '',
-                    embeddingModel: data.embeddingModel || ''
-                });
-            }
-        } catch (e) {
-            console.error('Failed to fetch config:', e);
-        } finally {
-            setLoading(false);
-        }
-    };
+    // Read the config again when the set of providers changes.
+    const { refetch: refetchConfig } = aiConfig;
+    const providersKey = providers.map(p => p.id).join(',');
+    const providersSeen = useRef(providersKey);
+    useEffect(() => {
+        if (providersSeen.current === providersKey) return;
+        providersSeen.current = providersKey;
+        refetchConfig();
+    }, [providersKey, refetchConfig]);
 
     const handleSave = async () => {
         setSaving(true);
@@ -126,7 +117,7 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsCo
                     <label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{t('admin_ai_config.embed_provider', 'Embedding Provider')}</label>
                     <select
                         value={config.embeddingProviderId}
-                        onChange={(e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => setConfig({ ...config, embeddingProviderId: e.target.value, embeddingModel: '' })}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => patchConfig({ embeddingProviderId: e.target.value, embeddingModel: '' })}
                         className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] [background:var(--bg-tertiary)] [border-color:var(--border-default)]! [color:var(--text-primary)]"
                     >
                         <option value="">{t('admin_ai_config.embed_select_provider', 'Select Provider...')}</option>
@@ -141,7 +132,7 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsCo
                     {useModelDropdown ? (
                         <select
                             value={config.embeddingModel}
-                            onChange={(e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => setConfig({ ...config, embeddingModel: e.target.value })}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => patchConfig({ embeddingModel: e.target.value })}
                             className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] [background:var(--bg-tertiary)] [border-color:var(--border-default)]! [color:var(--text-primary)]"
                         >
                             <option value="">{t('admin_ai_config.embed_select_model', 'Select Model...')}</option>
@@ -153,7 +144,7 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsCo
                         <input
                             type="text"
                             value={config.embeddingModel}
-                            onChange={(e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => setConfig({ ...config, embeddingModel: e.target.value })}
+                            onChange={(e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => patchConfig({ embeddingModel: e.target.value })}
                             placeholder={isAzure ? t('admin_ai_config.embed_azure_placeholder', 'Your Azure deployment name, e.g. text-embedding-3-small') : t('admin_ai_config.embed_model_placeholder', 'e.g. text-embedding-3-small')}
                             className="w-full px-4 py-2.5 rounded-lg border outline-none focus:border-[var(--accent-primary)] [background:var(--bg-tertiary)] [border-color:var(--border-default)]! [color:var(--text-primary)]"
                         />

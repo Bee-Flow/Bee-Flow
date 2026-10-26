@@ -5,12 +5,13 @@
  * load-bearing in two places. If these tests fail, update the adapter regex in
  * src/pages/settings/complianceNavAdapter.js in the same change.
  */
-import { render, screen, cleanup, waitFor, act } from '@testing-library/react';
+import { screen, cleanup, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import ComplianceHub from './index';
 import { rewriteComplianceNav } from '../../../pages/settings/complianceNavAdapter';
+import { renderWithClient } from '../../../test/render';
 
 // A page that wants a leave guard installs `guard.fn` (see the SettingsPage mock).
 const guard = vi.hoisted(() => ({ fn: null }));
@@ -110,7 +111,7 @@ describe('ComplianceHub navigation contract', () => {
     it('emits admin/compliance/<section> when a sidebar section is clicked', async () => {
         const user = userEvent.setup();
         const onNavigate = vi.fn();
-        render(<ComplianceHub onNavigate={onNavigate} />);
+        renderWithClient(<ComplianceHub onNavigate={onNavigate} />);
         await waitFor(() => expect(global.fetch).toHaveBeenCalled());
         await user.click(screen.getByTitle('compliance.nav_gdpr'));
         expect(onNavigate).toHaveBeenCalledWith('admin/compliance/gdpr');
@@ -120,35 +121,35 @@ describe('ComplianceHub navigation contract', () => {
     });
 
     it('routes activeSection to the matching page', async () => {
-        render(<ComplianceHub activeSection="gdpr" />);
+        renderWithClient(<ComplianceHub activeSection="gdpr" />);
         await waitFor(() => expect(screen.getByTestId('checks-page')).toBeInTheDocument());
         expect(screen.getByTestId('checks-page').dataset.regulation).toBe('GDPR');
     });
 
     it('threads focusCheckId through to the checks page', async () => {
-        render(<ComplianceHub activeSection="aia" focusCheckId="AIA-Art50-ai-disclosure" />);
+        renderWithClient(<ComplianceHub activeSection="aia" focusCheckId="AIA-Art50-ai-disclosure" />);
         await waitFor(() => expect(screen.getByTestId('checks-page')).toBeInTheDocument());
         expect(screen.getByTestId('checks-page').dataset.focus).toBe('AIA-Art50-ai-disclosure');
     });
 
     it('falls back to overview for an unknown section', async () => {
-        render(<ComplianceHub activeSection="not-a-section" />);
+        renderWithClient(<ComplianceHub activeSection="not-a-section" />);
         await waitFor(() => expect(screen.getByTestId('overview-page')).toBeInTheDocument());
     });
 
     it('routes the dsr / ropa / dpia sections to their pages', async () => {
-        render(<ComplianceHub activeSection="dsr" />);
+        renderWithClient(<ComplianceHub activeSection="dsr" />);
         await waitFor(() => expect(screen.getByTestId('dsr-page')).toBeInTheDocument());
         cleanup(); mockFetch();
-        render(<ComplianceHub activeSection="ropa" />);
+        renderWithClient(<ComplianceHub activeSection="ropa" />);
         await waitFor(() => expect(screen.getByTestId('ropa-page')).toBeInTheDocument());
         cleanup(); mockFetch();
-        render(<ComplianceHub activeSection="dpia" />);
+        renderWithClient(<ComplianceHub activeSection="dpia" />);
         await waitFor(() => expect(screen.getByTestId('dpia-page')).toBeInTheDocument());
     });
 
     it('fetches the org-user directory for the settings section and threads it down', async () => {
-        render(<ComplianceHub activeSection="settings" />);
+        renderWithClient(<ComplianceHub activeSection="settings" />);
         await waitFor(() => expect(screen.getByTestId('settings-page')).toBeInTheDocument());
         await waitFor(() =>
             expect(global.fetch.mock.calls.some(([u]) => String(u).endsWith('/org-users'))).toBe(true));
@@ -157,7 +158,7 @@ describe('ComplianceHub navigation contract', () => {
     });
 
     it('does not fetch the directory for sections without a picker', async () => {
-        render(<ComplianceHub activeSection="gdpr" />);
+        renderWithClient(<ComplianceHub activeSection="gdpr" />);
         await waitFor(() => expect(global.fetch).toHaveBeenCalled());
         expect(global.fetch.mock.calls.some(([u]) => String(u).endsWith('/org-users'))).toBe(false);
     });
@@ -165,7 +166,7 @@ describe('ComplianceHub navigation contract', () => {
     // ── Redesign additions (Sep 2026) ──
 
     it('resolves a pre-redesign id: activeSection="iso_soa" renders the SoA page and marks the SoA rail row current', async () => {
-        render(<ComplianceHub activeSection="iso_soa" onNavigate={vi.fn()} />);
+        renderWithClient(<ComplianceHub activeSection="iso_soa" onNavigate={vi.fn()} />);
         await waitFor(() => expect(screen.getByTestId('rail-row-soa')).toHaveAttribute('aria-current', 'page'));
         expect(screen.queryByTestId('rail-row-iso_soa')).toBeNull();
     });
@@ -173,14 +174,14 @@ describe('ComplianceHub navigation contract', () => {
     it('emits the CANONICAL id for a row that used to live under iso_*', async () => {
         const user = userEvent.setup();
         const onNavigate = vi.fn();
-        render(<ComplianceHub onNavigate={onNavigate} />);
+        renderWithClient(<ComplianceHub onNavigate={onNavigate} />);
         await waitFor(() => expect(global.fetch).toHaveBeenCalled());
         await user.click(screen.getByTitle('compliance.rail_soa'));
         expect(onNavigate).toHaveBeenCalledWith('admin/compliance/soa');
     });
 
     it('renders no rail meta and no attention badge while /counts answers the [] mock (unknown ≠ zero)', async () => {
-        render(<ComplianceHub onNavigate={vi.fn()} />);
+        renderWithClient(<ComplianceHub onNavigate={vi.fn()} />);
         await waitFor(() => expect(global.fetch.mock.calls.some(([u]) => String(u).includes('/counts'))).toBe(true));
         expect(screen.queryAllByTestId('rail-meta').filter(el => /\b0\b/.test(el.textContent))).toHaveLength(0);
         expect(screen.queryByTestId('compliance-rail-chain')).toBeNull();
@@ -190,7 +191,7 @@ describe('ComplianceHub navigation contract', () => {
         const user = userEvent.setup();
         const push = vi.spyOn(window.history, 'pushState');
         const replace = vi.spyOn(window.history, 'replaceState');
-        render(<ComplianceHub activeSection="gdpr" onNavigate={vi.fn()} />);
+        renderWithClient(<ComplianceHub activeSection="gdpr" onNavigate={vi.fn()} />);
         await waitFor(() => expect(screen.getByTestId('checks-page')).toBeInTheDocument());
         const tab = screen.queryByRole('radio', { name: /compliance\.tab_gdpr_timeline/ });
         if (tab) {
@@ -202,14 +203,14 @@ describe('ComplianceHub navigation contract', () => {
 
     it('passes onBack to the header only on a phone', async () => {
         const onBack = vi.fn();
-        render(<ComplianceHub onNavigate={vi.fn()} onBack={onBack} />);
+        renderWithClient(<ComplianceHub onNavigate={vi.fn()} onBack={onBack} />);
         await waitFor(() => expect(screen.getByTestId('overview-page')).toBeInTheDocument());
         // Desktop: the hub is embedded in Settings, which has its own back arrow — none here.
         expect(screen.getByTestId('compliance-hub').dataset.layout).toBe('desktop');
         cleanup(); mockFetch();
         viewport.isMobile = true;
         try {
-            render(<ComplianceHub onNavigate={vi.fn()} onBack={onBack} />);
+            renderWithClient(<ComplianceHub onNavigate={vi.fn()} onBack={onBack} />);
             await waitFor(() => expect(screen.getByTestId('compliance-hub').dataset.layout).toBe('mobile'));
             // The lazy phone chunk must actually RENDER: its default export is a
             // function, and handing it to setState unwrapped made React call it
@@ -234,7 +235,7 @@ describe('ComplianceHub navigation — tabs, legacy tabs and the leave guard', (
     it('an obligation deadline row emits admin/compliance/training (the legacy audits tab is aliased)', async () => {
         const user = userEvent.setup();
         const onNavigate = vi.fn();
-        render(<ComplianceHub onNavigate={onNavigate} />);
+        renderWithClient(<ComplianceHub onNavigate={onNavigate} />);
         const rows = await screen.findAllByTestId('deadlines-card-row');
         await user.click(rows[0].querySelector('button'));
         expect(onNavigate).toHaveBeenLastCalledWith('admin/compliance/training');
@@ -247,7 +248,7 @@ describe('ComplianceHub navigation — tabs, legacy tabs and the leave guard', (
         const onNavigate = vi.fn();
         window.history.replaceState({}, '', '/app/settings/organisation/compliance/audits?tab=obligations');
         try {
-            const { rerender } = render(<ComplianceHub activeSection="audits" onNavigate={onNavigate} />);
+            const { rerender } = renderWithClient(<ComplianceHub activeSection="audits" onNavigate={onNavigate} />);
             await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('admin/compliance/training', { replace: true }));
             rerender(<ComplianceHub activeSection="audits" onNavigate={onNavigate} />);
             expect(onNavigate).toHaveBeenCalledTimes(1);
@@ -269,7 +270,7 @@ describe('ComplianceHub navigation — tabs, legacy tabs and the leave guard', (
         }
         window.history.replaceState({}, '', '/app/settings/organisation/compliance/overview');
         try {
-            render(<Host />);
+            renderWithClient(<Host />);
             await user.click(await screen.findByText('open-systems'));
             await waitFor(() => expect(screen.getByTestId('checks-page').dataset.tab).toBe('systems'));
             expect(window.location.pathname + window.location.search).toBe('/app/settings/organisation/compliance/aia?tab=systems');
@@ -285,7 +286,7 @@ describe('ComplianceHub navigation — tabs, legacy tabs and the leave guard', (
         let answer = false;
         guard.fn = vi.fn(async () => answer);
         try {
-            render(<ComplianceHub activeSection="settings" onNavigate={onNavigate} />);
+            renderWithClient(<ComplianceHub activeSection="settings" onNavigate={onNavigate} />);
             await screen.findByTestId('settings-page');
             await user.click(screen.getByTestId('rail-row-gdpr'));
             await waitFor(() => expect(guard.fn).toHaveBeenCalledTimes(1));

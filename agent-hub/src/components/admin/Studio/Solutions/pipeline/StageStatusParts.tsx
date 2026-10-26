@@ -1,10 +1,11 @@
 import { AlertTriangle, Check, Copy, Loader2 } from 'lucide-react';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useStageSettingsQuery } from '../../../../../api/queries/stageReads';
 import { useTranslation } from '../../../../../hooks/useTranslation';
 import { pillStatusOf } from './pipelineModel';
 import { fmt, kindLabel, StatusPill, statusLabel } from './stageText';
 import { useStageLabel } from './StageSwitcher';
-import { getStage, type DeploymentSummary, type StageKey, type StageSettingsSummary } from '../../../../../api/stagesApi';
+import type { DeploymentSummary, StageKey, StageSettingsSummary } from '../../../../../api/stagesApi';
 import { logger } from '../../../../../utils/logger';
 
 /** The lower sections of the Status tab: last deployment and the addresses of a stage. */
@@ -33,12 +34,10 @@ function CopyButton({ value }: { value: string }) {
 
 export function Addresses({ solutionId, stage, refreshKey }: { solutionId: string; stage: StageKey; refreshKey: number }) {
     const { t } = useTranslation();
-    const [state, setState] = useState<{ status: 'loading' | 'ok' | 'error'; data: StageSettingsSummary | null }>({ status: 'loading', data: null });
-    const load = useCallback(async () => {
-        const res = await getStage(solutionId, stage);
-        setState(res.ok ? { status: 'ok', data: res.data } : { status: 'error', data: null });
-    }, [solutionId, stage]);
-    useEffect(() => { load(); }, [load, refreshKey]);
+    const query = useStageSettingsQuery(solutionId, stage, refreshKey);
+    const state: { status: 'loading' | 'ok' | 'error'; data: StageSettingsSummary | null } = query.isError
+        ? { status: 'error', data: null }
+        : (query.isSuccess ? { status: 'ok', data: query.data } : { status: 'loading', data: null });
 
     if (state.status === 'loading') {
         return <Loader2 className="w-4 h-4 animate-spin text-[var(--text-tertiary)]" aria-label={t('solution_stages.loading', 'Loading…')} />;

@@ -5,6 +5,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { API_BASE, authFetch } from '../../utils/helpers';
 import { logger } from '../../utils/logger';
+import { readOrNull } from './refusableRead';
 import { messageOf } from '../../utils/caughtError';
 
 const orgAdminReadKeys = {
@@ -134,4 +135,49 @@ export function useOrgDefaultLanguage() {
         },
     });
     return { data: query.data ?? null, loading: query.isFetching && query.data === undefined };
+}
+
+/** GET /auth/invitations: the pending invitations; a refusal reads as null (the list keeps empty). */
+export function useOrgInvitationsQuery<T>() {
+    return useQuery<T[] | null, Error>({
+        queryKey: ['orgAdmin', 'invitations'] as const,
+        queryFn: ({ signal }) => readOrNull<T[]>(`${API_BASE}/auth/invitations`, signal),
+        staleTime: 0,
+        retry: false,
+    });
+}
+
+export interface FreeEmailDomains { builtin: string[]; extra: string[] }
+
+/** The cache key of the free-email blocklist, for the save that adopts the server-normalised list. */
+export const freeEmailDomainsKey = ['orgAdmin', 'freeEmailDomains'] as const;
+
+/** GET /auth/free-email-domains; a refusal reads as null (the panel says it failed to load). */
+function useFreeEmailDomainsQuery() {
+    return useQuery<FreeEmailDomains | null, Error>({
+        queryKey: freeEmailDomainsKey,
+        queryFn: async ({ signal }) => {
+            const data = await readOrNull<{ builtin?: unknown; extra?: unknown }>(`${API_BASE}/auth/free-email-domains`, signal);
+            if (!data) return null;
+            return {
+                builtin: Array.isArray(data.builtin) ? data.builtin : [],
+                extra: Array.isArray(data.extra) ? data.extra : [],
+            };
+        },
+        staleTime: 0,
+        retry: false,
+    });
+}
+
+const NO_DOMAINS: string[] = [];
+
+/** The blocklist as the panel reads it: both lists (empty until known), whether the first read is pending, and whether it failed or was refused. */
+export function useFreeEmailDomains() {
+    const query = useFreeEmailDomainsQuery();
+    return {
+        builtin: query.data?.builtin ?? NO_DOMAINS,
+        extra: query.data?.extra ?? NO_DOMAINS,
+        loading: query.isPending,
+        loadFailed: query.isError || query.data === null,
+    };
 }

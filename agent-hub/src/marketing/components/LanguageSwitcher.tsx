@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { usePublicLocalesQuery } from '../../api/queries/publicSite';
 import { API_BASE } from '../../utils/helpers';
 import AppIcon from '../../components/icons/AppIcon';
 import { logger } from '../../utils/logger';
@@ -30,7 +31,6 @@ function currentLocale() {
 }
 
 export default function LanguageSwitcher() {
-    const [locales, setLocales] = useState<Locale[]>([]);
     const [open, setOpen] = useState(false);
     const ref = useRef<HTMLDivElement>(null);
     const active = currentLocale();
@@ -38,19 +38,11 @@ export default function LanguageSwitcher() {
     const isPreview = typeof window !== 'undefined'
         && new URLSearchParams(window.location.search).has('preview');
 
-    useEffect(() => {
-        if (isPreview) return;
-        let cancelled = false;
-        fetch(`${API_BASE}/api/languages/public/locales`)
-            .then(r => (r.ok ? r.json() : null))
-            .then(data => {
-                if (cancelled || !data) return;
-                const list = Array.isArray(data) ? data : (data.locales || []);
-                setLocales(list);
-            })
-            .catch(() => { /* non-fatal — switcher just stays hidden */ });
-        return () => { cancelled = true; };
-    }, [isPreview]);
+    const localesAnswer = usePublicLocalesQuery<Locale[] | { locales?: Locale[] }>(API_BASE, !isPreview).data;
+    const locales: Locale[] = useMemo(
+        () => (Array.isArray(localesAnswer) ? localesAnswer : (localesAnswer?.locales || [])),
+        [localesAnswer],
+    );
 
     useEffect(() => {
         const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node | null)) setOpen(false); };

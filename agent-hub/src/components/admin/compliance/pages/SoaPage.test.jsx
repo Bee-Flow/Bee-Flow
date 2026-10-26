@@ -1,8 +1,9 @@
-import { render, screen, cleanup, waitFor, within } from '@testing-library/react';
+import { screen, cleanup, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import SoaPage from './SoaPage';
+import { renderWithClient } from '../../../../test/render';
 import { resolveTab, tabsOf } from '../sections';
 
 vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
@@ -44,7 +45,7 @@ function pageProps(over = {}) {
 
 describe('SoaPage — controls tab', () => {
     it('the theme is one compact select with its counts (93 · 37 · 8 · 14 · 34), beside the decision pills and the search', () => {
-        render(<SoaPage {...pageProps()} />);
+        renderWithClient(<SoaPage {...pageProps()} />);
         const select = screen.getByTestId('soa-theme');
         expect(select.tagName).toBe('SELECT');
         expect(select.getAttribute('aria-label')).toBe('Theme');
@@ -63,7 +64,7 @@ describe('SoaPage — controls tab', () => {
 
     it('pages 12 of 93 client-side; choosing a theme filters and resets the pager', async () => {
         const user = userEvent.setup();
-        render(<SoaPage {...pageProps()} />);
+        renderWithClient(<SoaPage {...pageProps()} />);
         expect(screen.getByTestId('soa-pager-range').textContent).toBe('Rows 1–12 of 93');
         expect(screen.getAllByTestId(/^soa-table-row-/)).toHaveLength(12);
         await user.click(screen.getByTestId('soa-pager-next'));
@@ -75,7 +76,7 @@ describe('SoaPage — controls tab', () => {
 
     it('renders the live-check column: warn with "needs attention", pass with the title, pending, and a muted dash where no check exists', async () => {
         const user = userEvent.setup();
-        render(<SoaPage {...pageProps()} />);
+        renderWithClient(<SoaPage {...pageProps()} />);
         const first = screen.getByTestId('soa-table-row-A.5.1');
         expect(first.textContent).toMatch(/CHK-5/); // the mock t() returns the fallback = check id
         expect(first.textContent).toMatch(/needs attention/);
@@ -103,7 +104,7 @@ describe('SoaPage — controls tab', () => {
         const body = props.data.soa.soa;
         // still applicable, no how_met yet, but a written justification
         body.controls[2].entry = { status: 'todo', applicable: true, how_met: null, justification: 'Bought in as a service — see A.5.20', owner_user_id: null, updated_at: '2026-06-10T09:00:00Z' };
-        render(<SoaPage {...props} />);
+        renderWithClient(<SoaPage {...props} />);
         expect(screen.getByTestId('soa-table-row-A.5.3').textContent).toMatch(/Justification: Bought in as a service/);
         expect(screen.getByTestId('soa-table-row-A.5.1').textContent).not.toMatch(/Justification:/);
     });
@@ -111,7 +112,7 @@ describe('SoaPage — controls tab', () => {
     it('a row click opens the drawer; Save goes through data.soa.update(ref, patch); a second click closes it', async () => {
         const user = userEvent.setup();
         const props = pageProps();
-        render(<SoaPage {...props} />);
+        renderWithClient(<SoaPage {...props} />);
         await user.click(screen.getByTestId('soa-table-row-A.5.1'));
         expect(screen.getByTestId('soa-drawer')).toBeTruthy();
         expect(screen.getByTestId('soa-drawer-decision-approved')).toBeDisabled(); // CHK-5 is warn
@@ -129,7 +130,7 @@ describe('SoaPage — controls tab', () => {
         const refresh = vi.fn();
         props.data.soa = { soa: soaBody(), busyRef: null, refresh };
         fetchJson.mockResolvedValue({ ok: true });
-        render(<SoaPage {...props} />);
+        renderWithClient(<SoaPage {...props} />);
         await user.click(screen.getByTestId('soa-table-row-A.5.1'));
         await user.click(screen.getByTestId('soa-drawer-actions-primary'));
         await waitFor(() => expect(fetchJson).toHaveBeenCalled());
@@ -142,12 +143,12 @@ describe('SoaPage — controls tab', () => {
 
     it('loading shows the skeleton; a failed read is its own state (never an empty table)', () => {
         const loading = pageProps(); loading.data.soa = { soa: null };
-        const { unmount } = render(<SoaPage {...loading} />);
+        const { unmount } = renderWithClient(<SoaPage {...loading} />);
         expect(screen.getAllByTestId('table-skeleton-row').length).toBeGreaterThan(0);
         expect(screen.queryByTestId('soa-pager-range')).toBeNull();
         unmount();
         const failed = pageProps(); failed.data.soa = { soa: { error: '500 boom' } };
-        render(<SoaPage {...failed} />);
+        renderWithClient(<SoaPage {...failed} />);
         expect(screen.getByTestId('soa-failed')).toBeTruthy();
         expect(screen.queryByRole('table')).toBeNull();
     });
@@ -156,7 +157,7 @@ describe('SoaPage — controls tab', () => {
 describe('SoaPage — phone (artboard 1h)', () => {
     it('the drawer is a right-side modal, not a 380px card pinned over the table', async () => {
         const user = userEvent.setup();
-        render(<SoaPage {...pageProps({ isMobile: true })} />);
+        renderWithClient(<SoaPage {...pageProps({ isMobile: true })} />);
         await user.click(screen.getByTestId('soa-table-card-A.5.1'));
         const dialog = document.body.querySelector('[role="dialog"]');
         expect(dialog).not.toBeNull();
@@ -167,7 +168,7 @@ describe('SoaPage — phone (artboard 1h)', () => {
 
     it('desktop keeps the inline card', async () => {
         const user = userEvent.setup();
-        render(<SoaPage {...pageProps()} />);
+        renderWithClient(<SoaPage {...pageProps()} />);
         await user.click(screen.getByTestId('soa-table-row-A.5.1'));
         expect(document.body.querySelector('[role="dialog"]')).toBeNull();
         expect(screen.getByTestId('soa-drawer').dataset.mode).toBe('inline');
@@ -177,12 +178,12 @@ describe('SoaPage — phone (artboard 1h)', () => {
 describe('SoaPage — history; no Export tab', () => {
     it('history: a failed GET /iso/soa/history reads as "could not be read", a list renders rows', async () => {
         fetchJson.mockRejectedValueOnce(new Error('404 Not Found'));
-        const { unmount } = render(<SoaPage {...pageProps({ tab: 'history' })} />);
+        const { unmount } = renderWithClient(<SoaPage {...pageProps({ tab: 'history' })} />);
         await waitFor(() => expect(screen.getByTestId('soa-history-failed')).toBeTruthy());
         expect(fetchJson.mock.calls[0][0]).toMatch(/\/iso\/soa\/history$/);
         unmount();
         fetchJson.mockResolvedValueOnce([{ id: 7, control_ref: 'A.5.1', changed_at: '2026-09-01T10:00:00Z', changed_by: 'u1', status: 'approved', applicable: true }]);
-        render(<SoaPage {...pageProps({ tab: 'history' })} />);
+        renderWithClient(<SoaPage {...pageProps({ tab: 'history' })} />);
         await waitFor(() => expect(screen.getByTestId('soa-history-row-7')).toBeTruthy());
         expect(screen.getByTestId('soa-history-row-7').textContent).toMatch(/A\.5\.1/);
         expect(screen.getByTestId('soa-history-row-7').textContent).toMatch(/T\. Smit/);
@@ -190,7 +191,7 @@ describe('SoaPage — history; no Export tab', () => {
 
     it('history on a phone: the card list, not the four-column grid', async () => {
         fetchJson.mockResolvedValueOnce([{ id: 7, control_ref: 'A.5.1', changed_at: '2026-09-01T10:00:00Z', changed_by: 'u1', status: 'approved', applicable: true }]);
-        render(<SoaPage {...pageProps({ tab: 'history', isMobile: true })} />);
+        renderWithClient(<SoaPage {...pageProps({ tab: 'history', isMobile: true })} />);
         await waitFor(() => expect(screen.getByTestId('soa-history-card-7')).toBeTruthy());
         expect(screen.getByTestId('soa-history-table').dataset.view).toBe('cards');
         expect(screen.queryByTestId('soa-history-row-7')).toBeNull();
@@ -201,7 +202,7 @@ describe('SoaPage — history; no Export tab', () => {
 
     it('history stamps carry the year when it is not this year', async () => {
         fetchJson.mockResolvedValueOnce([{ id: 8, control_ref: 'A.5.2', changed_at: '2024-03-03T09:05:07', changed_by: 'u1', status: 'reviewed', applicable: true }]);
-        render(<SoaPage {...pageProps({ tab: 'history' })} />);
+        renderWithClient(<SoaPage {...pageProps({ tab: 'history' })} />);
         await waitFor(() => expect(screen.getByTestId('soa-history-row-8')).toBeTruthy());
         expect(screen.getByTestId('soa-history-row-8').textContent).toMatch(/3 Mar 2024 09:05:07/);
     });
@@ -209,7 +210,7 @@ describe('SoaPage — history; no Export tab', () => {
     it('there is no Export tab: the downloads live in the header menu, and an old ?tab=export lands on the controls', () => {
         expect(tabsOf('soa')).toEqual(['controls', 'history']);
         expect(resolveTab('soa', 'export')).toEqual({ section: 'soa', tab: 'controls' });
-        render(<SoaPage {...pageProps({ tab: 'export' })} />);
+        renderWithClient(<SoaPage {...pageProps({ tab: 'export' })} />);
         expect(screen.queryByTestId('soa-export')).toBeNull();
         expect(screen.getByTestId('soa-table')).toBeTruthy();
         expect(screen.getByTestId('soa-pager-range').textContent).toBe('Rows 1–12 of 93');

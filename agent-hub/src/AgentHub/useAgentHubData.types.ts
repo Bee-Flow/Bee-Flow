@@ -1,6 +1,5 @@
 import type { AppUserLike } from '../components/projects/workspace/types';
 import type { Dispatch, SetStateAction } from 'react';
-import type { ConversationRow, ConversationLabel } from './useConversationMeta';
 import type { Project } from '../api/queries/projects';
 import type { SessionSkill } from '../components/skills/sessionSkillState';
 import type { GammaPreview } from '../hooks/useChatEngine/sse/gammaPreview';
@@ -39,18 +38,15 @@ export interface HubUser extends AppUserLike {
     [key: string]: unknown;
 }
 
-export interface UseAgentHubDataArgs {
-    user: HubUser | null;
+/** The address the hub was opened on. */
+interface HubRoute {
     initialAgentId: string | null;
     initialConversationId: string | null;
     initialDirectConvId: string | null;
-    showSettings: boolean;
-    showAgentDesigner: boolean;
-    showAgentWizard: boolean;
-    showStudio: boolean;
-    showSkillsPanel: boolean;
-    coworkMode: string;
-    setCoworkMode: Dispatch<SetStateAction<string>>;
+}
+
+/** Which chat is on screen, and the writers that switch it. */
+interface HubChatSelection {
     selectedAgent: AgentLike | null;
     setSelectedAgent: Dispatch<SetStateAction<AgentLike | null>>;
     directChatMode: boolean;
@@ -59,25 +55,27 @@ export interface UseAgentHubDataArgs {
     setCurrentConversation: Dispatch<SetStateAction<IdRef | null>>;
     currentDirectConversation: IdRef | null;
     setCurrentDirectConversation: Dispatch<SetStateAction<IdRef | null>>;
-    setConversations: Dispatch<SetStateAction<ConversationRow[]>>;
-    setDirectConversations: Dispatch<SetStateAction<ConversationRow[]>>;
-    setConversationLabels: Dispatch<SetStateAction<ConversationLabel[]>>;
-    setAgents: Dispatch<SetStateAction<AgentLike[]>>;
-    setAgentCategories: Dispatch<SetStateAction<{ id: string; name: string; description: string; emoji: string }[]>>;
-    setModelTiers: Dispatch<SetStateAction<Record<string, unknown>>>;
     selectedTier: string;
     setSelectedTier: Dispatch<SetStateAction<string>>;
     activeProject: Project | null;
+    coworkMode: string;
+    setCoworkMode: Dispatch<SetStateAction<string>>;
+}
+
+/** The skills and knowledge bases a turn carries. */
+interface HubTurnContext {
     activeSkillIds: string[];
-    setActiveSkillIds: Dispatch<SetStateAction<string[]>>;
-    setChatHistoryMode: Dispatch<SetStateAction<string>>;
-    directChatKBIds: string[];
-    setDirectChatKBIds: Dispatch<SetStateAction<string[]>>;
     directSessionSkills: SessionSkill[];
     setDirectSessionSkills: Dispatch<SetStateAction<SessionSkill[]>>;
     directActivatedSessionSkillIds: string[];
     setDirectActivatedSessionSkillIds: Dispatch<SetStateAction<string[]>>;
     setDirectCompletedSessionSkillIds: Dispatch<SetStateAction<string[]>>;
+    directChatKBIds: string[];
+    setDirectChatKBIds: Dispatch<SetStateAction<string[]>>;
+}
+
+/** The notebook panel's state, as the engine and the conversation loaders use it. */
+interface HubNotebookPanel {
     notebooksEnabled: boolean;
     notebookContent: string;
     setNotebookContent: Dispatch<SetStateAction<string>>;
@@ -86,8 +84,15 @@ export interface UseAgentHubDataArgs {
     showNotebook: boolean;
     setShowNotebook: Dispatch<SetStateAction<boolean>>;
     setNotebookLinkedId: Dispatch<SetStateAction<string | null>>;
+}
+
+interface HubGammaPanel {
     setShowGammaPreview: Dispatch<SetStateAction<boolean>>;
     setGammaPreview: Dispatch<SetStateAction<(GammaPreview & { error?: string; }) | null>>;
+}
+
+/** The webpage / document side panel a direct turn can be attached to. */
+interface HubWebpagePanel {
     sidePanelWebpageId: string | null;
     sidePanelWebpage: WebpageRow | null;
     sidePanelWebpageFiles: { html: string; css: string; js: string; };
@@ -95,7 +100,24 @@ export interface UseAgentHubDataArgs {
     setSidePanelReloadKey: Dispatch<SetStateAction<number>>;
     sidePanelDocumentId: string | null;
     attachedWebpageSelection: PreviewSelection | null;
-    setSidebarOpen: Dispatch<SetStateAction<boolean>>;
-    setShowProjectsStore: Dispatch<SetStateAction<boolean>>;
-    setActiveProjectId: Dispatch<SetStateAction<string | null>>;
+}
+
+/** The loaders of the list slices, for the flows that refresh a list. */
+interface HubListLoaders {
+    refreshAgents: () => Promise<AgentLike[] | null>;
+    loadConversations: (agentId: string) => Promise<void>;
+    loadDirectConversations: () => Promise<void>;
+    loadLabels: () => Promise<void>;
+    loadModelTiers: () => Promise<void>;
+}
+
+export interface UseAgentHubDataArgs {
+    user: HubUser | null;
+    route: HubRoute;
+    chat: HubChatSelection;
+    skills: HubTurnContext;
+    notebook: HubNotebookPanel;
+    gamma: HubGammaPanel;
+    webpage: HubWebpagePanel;
+    lists: HubListLoaders;
 }

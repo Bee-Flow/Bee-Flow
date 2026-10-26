@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -34,6 +34,7 @@ vi.mock('../../../../hooks/useIntegrationStatus', () => ({
 import CanUseCard from './CanUseCard';
 import SkillDetail from './SkillDetail';
 import useSkillPickerData from './useSkillPickerData';
+import { renderWithClient, renderHookWithClient } from '../../../../test/render';
 
 const ok = (body) => ({ ok: true, status: 200, json: async () => body });
 const dead = (status = 500) => ({ ok: false, status, json: async () => ({}) });
@@ -53,7 +54,7 @@ function routeFetch(overrides = {}) {
 }
 
 function card(props = {}) {
-    return render(
+    return renderWithClient(
         <CanUseCard
             enabledIntegrations={[]}
             allowedAutomationIds={[]}
@@ -78,7 +79,7 @@ beforeEach(() => {
 describe('the picker lists', () => {
     it('names a automations list it could not read instead of reporting an empty one', async () => {
         routeFetch({ '/api/automation': dead(500) });
-        const { result } = renderHook(() => useSkillPickerData(true));
+        const { result } = renderHookWithClient(() => useSkillPickerData(true));
 
         await waitFor(() => expect(result.current.loaded).toBe(true));
         expect(result.current.unavailable).toContain('automations');
@@ -92,7 +93,7 @@ describe('the picker lists', () => {
      */
     it('counts a refused read as unread too', async () => {
         routeFetch({ '/api/kb': dead(403) });
-        const { result } = renderHook(() => useSkillPickerData(true));
+        const { result } = renderHookWithClient(() => useSkillPickerData(true));
 
         await waitFor(() => expect(result.current.loaded).toBe(true));
         expect(result.current.unavailable).toContain('kbs');
@@ -100,7 +101,7 @@ describe('the picker lists', () => {
 
     it('counts a 200 that is not a list as unread — an answer nobody can parse is not an answer', async () => {
         routeFetch({ '/api/datatables': ok({ error: 'nope' }) });
-        const { result } = renderHook(() => useSkillPickerData(true));
+        const { result } = renderHookWithClient(() => useSkillPickerData(true));
 
         await waitFor(() => expect(result.current.loaded).toBe(true));
         expect(result.current.unavailable).toContain('tables');
@@ -108,7 +109,7 @@ describe('the picker lists', () => {
     });
 
     it('claims nothing before the first answer', () => {
-        const { result } = renderHook(() => useSkillPickerData(true));
+        const { result } = renderHookWithClient(() => useSkillPickerData(true));
         expect(result.current.loaded).toBe(false);
         expect(result.current.unavailable).toEqual([]);
     });
@@ -128,7 +129,7 @@ describe('the picker lists', () => {
                 ],
             }),
         });
-        const { result } = renderHook(() => useSkillPickerData(true));
+        const { result } = renderHookWithClient(() => useSkillPickerData(true));
 
         await waitFor(() => expect(result.current.loaded).toBe(true));
         expect(result.current.automations.map(a => a.id)).toEqual(['a1']);
@@ -281,7 +282,7 @@ describe('the detail wires the hook to the screens that make the claims', () => 
         examplesV2: [],
     };
 
-    const detail = () => render(<SkillDetail skill={SKILL} canManage onBack={() => {}} />);
+    const detail = () => renderWithClient(<SkillDetail skill={SKILL} canManage onBack={() => {}} />);
 
     it('carries a failed automations read into BOTH the may-use card and the step reference menu', async () => {
         const user = userEvent.setup();

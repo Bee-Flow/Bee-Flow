@@ -1,10 +1,12 @@
 import { GraduationCap, Info, Loader2, Lock, Save } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { trainingRulesKey, useTrainingRulesQuery, type TrainingRulesRead } from '../../../../api/queries/learningReads';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import { API_BASE } from '../../../../utils/helpers';
 import type { TranslateFn } from '../../../../hooks/useTranslation';
 import { errorMessage } from '../../../../utils/caughtError';
-import { mutate, ApiError, request, RefusedError } from '../../../../api/mutate';
+import { mutate, ApiError } from '../../../../api/mutate';
 
 interface TrainingArea {
     id: string;
@@ -19,6 +21,10 @@ interface TrainingCourse {
     own?: boolean;
     lessons: number;
 }
+
+const NO_AREAS_LIST: TrainingArea[] = [];
+const NO_COURSES: TrainingCourse[] = [];
+const NO_AREAS: Record<string, string> = {};
 
 interface TrainingState {
     loading: boolean;
@@ -40,32 +46,29 @@ interface TrainingState {
  * Reads and writes GET/PUT /ai/learning/training-rules. The whole map is sent
  * on save, so clearing a row removes the rule.
  */
+/** What the panel shows of the read: the lists (empty until known) and the error to say, if any. */
+function trainingStateOf(rules: ReturnType<typeof useTrainingRulesQuery<TrainingArea, TrainingCourse>>, saveError: string | null): TrainingState {
+    return {
+        loading: rules.isPending,
+        error: saveError ?? (rules.isError ? errorMessage(rules.error) : null),
+        catalog: rules.data?.catalog ?? NO_AREAS_LIST,
+        courses: rules.data?.courses ?? NO_COURSES,
+        areas: rules.data?.areas ?? NO_AREAS,
+    };
+}
+
 export default function RequiredTrainingPanel() {
     const { t } = useTranslation();
-    const [state, setState] = useState<TrainingState>({ loading: true, error: null, catalog: [], courses: [], areas: {} });
-    const [draft, setDraft] = useState<Record<string, string>>({});
+    const queryClient = useQueryClient();
+    const rules = useTrainingRulesQuery<TrainingArea, TrainingCourse>();
+    const [saveError, setSaveError] = useState<string | null>(null);
+    const state = trainingStateOf(rules, saveError);
+    // The rules as edited; null follows the server's.
+    const [edited, setEdited] = useState<Record<string, string> | null>(null);
+    const draft = edited ?? state.areas;
+    const setDraft = (update: (d: Record<string, string>) => Record<string, string>) => setEdited(update(draft));
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
-
-    const load = useCallback(async () => {
-        setState((s) => ({ ...s, loading: true, error: null }));
-        try {
-            let res: Response;
-            try {
-                res = await request(`${API_BASE}/ai/learning/training-rules`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                throw new Error(String(err.status));
-            }
-            const body = await res.json();
-            setState({ loading: false, error: null, catalog: body.catalog || [], courses: body.courses || [], areas: body.areas || {} });
-            setDraft(body.areas || {});
-        } catch (e) {
-            setState((s) => ({ ...s, loading: false, error: errorMessage(e) }));
-        }
-    }, []);
-
-    useEffect(() => { load(); }, [load]);
 
     const dirty = useMemo(
         () => JSON.stringify(draft) !== JSON.stringify(state.areas),
@@ -87,11 +90,12 @@ export default function RequiredTrainingPanel() {
                 throw new Error(String(err.status));
             }
             const body = await res.json();
-            setState((s) => ({ ...s, areas: body.areas || {} }));
-            setDraft(body.areas || {});
+            queryClient.setQueryData<TrainingRulesRead<TrainingArea, TrainingCourse>>(trainingRulesKey, (prev) => (prev ? { ...prev, areas: body.areas || {} } : prev));
+            setEdited(null);
+            setSaveError(null);
             setSaved(true);
         } catch (_) {
-            setState((s) => ({ ...s, error: t('org.training.save_failed', 'Could not save. Try again.') }));
+            setSaveError(t('org.training.save_failed', 'Could not save. Try again.'));
         } finally {
             setSaving(false);
         }

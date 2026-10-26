@@ -1,10 +1,8 @@
-import { useCallback, useEffect, useEffectEvent, type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useEffectEvent, type Dispatch, type SetStateAction } from 'react';
 import { DEFAULT_AGENT_EMOJI, pickAgentAvatar } from '../utils/agentAvatar';
 import { API_BASE, generateMessageId } from '../utils/helpers';
-import { fetchAllAgentConversations, fetchDirectConversations } from '../api/queries/hubDataFetches';
 import scopedStorage from '../utils/scopedStorage';
 import type { ChatMessage } from '../hooks/useChatEngine/types';
-import type { ConversationRow } from './useConversationMeta';
 import type { AgentLike, IdRef } from './useAgentHubData';
 import { logger } from '../utils/logger';
 import { request, RefusedError } from '../api/mutate';
@@ -14,9 +12,7 @@ import { request, RefusedError } from '../api/mutate';
 // "Open in Direct Chat"). Moved verbatim from AgentHub.jsx and called from
 // the same position, so hook order is unchanged.
 interface UseDirectChatEventsArgs {
-    chatHistoryMode: string;
     setChatHistoryMode: Dispatch<SetStateAction<string>>;
-    setAllAgentConversations: Dispatch<SetStateAction<ConversationRow[]>>;
     isMobile: boolean;
     setSidebarOpen: Dispatch<SetStateAction<boolean>>;
     setDirectChatMode: Dispatch<SetStateAction<boolean>>;
@@ -45,39 +41,13 @@ interface OpenWithContextDetail {
 
 
 const useDirectChatEvents = ({
-    chatHistoryMode, setChatHistoryMode, setAllAgentConversations,
+    setChatHistoryMode,
     isMobile, setSidebarOpen,
     setDirectChatMode, setSelectedAgent,
     setCurrentConversation, setCurrentDirectConversation, setMessages,
     setNotebookContent, setNotebookSelection, setShowNotebook, setNotebookLinkedId,
     updateDirectChatUrl, loadDirectConversations, loadModelTiers, selectConversation,
 }: UseDirectChatEventsArgs) => {
-    // Load ALL conversations across all agents (for "All Chats" mode)
-    const loadAllConversations = useCallback(async () => {
-        try {
-            const [agentRes, directRes] = await Promise.all([
-                fetchAllAgentConversations(),
-                fetchDirectConversations(),
-            ]);
-            let all: ConversationRow[] = [];
-            if (agentRes.ok) {
-                const agentConvs = await agentRes.json();
-                all = [...agentConvs.map((c: ConversationRow) => ({ ...c, _source: 'agent' }))];
-            }
-            if (directRes.ok) {
-                const directConvs = await directRes.json();
-                all = [...all, ...directConvs.map((c: ConversationRow) => ({ ...c, _source: 'direct' }))];
-            }
-            all.sort((a, b) => new Date((b.updated_at || b.created_at) as string).getTime() - new Date((a.updated_at || a.created_at) as string).getTime());
-            setAllAgentConversations(all);
-        } catch (e) { console.error('Failed to load all conversations:', e); }
-    }, [setAllAgentConversations]);
-
-    // Load all conversations when mode is 'all-chats'
-    useEffect(() => {
-        if (chatHistoryMode === 'all-chats') loadAllConversations();
-    }, [chatHistoryMode, loadAllConversations]);
-
     // Listen for mode changes from Settings panel
     useEffect(() => {
         const handler = (e: Event) => {
@@ -162,10 +132,12 @@ const useDirectChatEvents = ({
                 ]);
             }, 100);
     });
+    // The listener is the Effect Event itself (a reference, never called here):
+    // the effect only subscribes, the request happens when the event fires.
+    const onOpenWithContext = useEffectEvent((e: Event) => { openWithContext((e as CustomEvent<OpenWithContextDetail | null | undefined>).detail); });
     useEffect(() => {
-        const handler = (e: Event) => { openWithContext((e as CustomEvent<OpenWithContextDetail | null | undefined>).detail); };
-        window.addEventListener('openDirectChatWithContext', handler);
-        return () => window.removeEventListener('openDirectChatWithContext', handler);
+        window.addEventListener('openDirectChatWithContext', onOpenWithContext);
+        return () => window.removeEventListener('openDirectChatWithContext', onOpenWithContext);
     }, []);
 };
 

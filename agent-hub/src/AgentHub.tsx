@@ -5,11 +5,18 @@ import { AgentDesignerPanel, LazyFallback, MemoryPanel } from './AgentHub/hubLaz
 import HubMainContent from './AgentHub/HubMainContent';
 import { createHubNavigation } from './AgentHub/hubNavigation';
 import { createCloseAllOverlays } from './AgentHub/hubOverlays';
+import { themePreviewHints, updateAgentUrl, updateDirectChatUrl } from './AgentHub/hubUrl';
+import useAgentCatalog from './AgentHub/useAgentCatalog';
+import useAgentFavorites from './AgentHub/useAgentFavorites';
 import useAgentHubActions from './AgentHub/useAgentHubActions';
 import useAgentHubData from './AgentHub/useAgentHubData';
 import useComposerMode from './AgentHub/useComposerMode';
+import useConversationLists from './AgentHub/useConversationLists';
 import useConversationMeta from './AgentHub/useConversationMeta';
 import useDirectChatEvents from './AgentHub/useDirectChatEvents';
+import useHubKnowledgeBases from './AgentHub/useHubKnowledgeBases';
+import useHubOverlays from './AgentHub/useHubOverlays';
+import useHubPrefs from './AgentHub/useHubPrefs';
 import useProjectChatStart from './AgentHub/useProjectChatStart';
 import useSidePanelState from './AgentHub/useSidePanelState';
 import { useProjectsQuery, type Project } from './api/queries/projects';
@@ -116,15 +123,12 @@ const AgentHub = ({
     const notebooksEnabled = !simpleMode && user?.featureFlags?.notebooks !== false && hasLicenseFeature('notebooks') && canUseNotebooksPerm;
     const projectsEnabled = user?.featureFlags?.projects !== false;
     // Core State
-    const [agents, setAgents] = useState<AgentLike[]>([]);
-    const [agentCategories, setAgentCategories] = useState<{ id: string; name: string; description: string; emoji: string }[]>([]);
     const [selectedAgent, setSelectedAgent] = useState<AgentLike | null>(null);
-    const [conversations, setConversations] = useState<ConversationRow[]>([]);
     const [currentConversation, setCurrentConversation] = useState<IdRef | null>(null);
     // Sidebar defaults to its full-width state only on true desktops (>=1280).
     // Default to expanded on anything wider than a tablet; only small screens
     // start in icon-rail mode. The user can still toggle it.
-    const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768);
+    const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768 && !themePreviewHints().collapseSidebar);
     const [studioFullscreen, setStudioFullscreen] = useState(false);
     const [showProjectsStore, setShowProjectsStore] = useState(false);
     // null = closed, '' = create-new, otherwise an existing project id
@@ -231,8 +235,6 @@ const AgentHub = ({
     // Direct Chat State
     const [directChatMode, setDirectChatMode] = useState(() => window.innerWidth < 768);
     const [selectedTier, setSelectedTier] = useState('auto');
-    const [modelTiers, setModelTiers] = useState<{}>({});
-    const [directConversations, setDirectConversations] = useState<ConversationRow[]>([]);
     const [currentDirectConversation, setCurrentDirectConversation] = useState<IdRef | null>(null);
     const [chatInput, setChatInput] = useState('');
     useEffect(() => {
@@ -292,17 +294,10 @@ const AgentHub = ({
         else { setShowProjectsStore(false); setActiveProjectId(null); }
     }, [onCloseProjects]);
 
-    // Conversation Labels State
-    const [conversationLabels, setConversationLabels] = useState<ConversationLabel[]>([]);
-
     // Chat History Mode — "per-agent" (default) or "all-chats" (unified timeline).
     // Initial value is null because scopedStorage isn't populated until App.jsx's
     // setCurrentUser fires. The useEffect below hydrates on first render.
-    const [chatHistoryMode, setChatHistoryMode] = useState('per-agent');
-    const [allAgentConversations, setAllAgentConversations] = useState<ConversationRow[]>([]);
-
-    // Skills State (must be declared before useChatEngine so it can reference activeSkillIds)
-    const [activeSkillIds, setActiveSkillIds] = useState<string[]>([]);
+    const { chatHistoryMode, setChatHistoryMode, activeSkillIds, handleToggleSkill } = useHubPrefs(user?.id);
     const [directSessionSkills, setDirectSessionSkills] = useState<SessionSkill[]>([]);
     const [directActivatedSessionSkillIds, setDirectActivatedSessionSkillIds] = useState<string[]>([]);
     // Knowledge bases attached to the current direct chat. Persisted on the
@@ -312,53 +307,56 @@ const AgentHub = ({
     const [directChatKBIds, setDirectChatKBIds] = useState<string[]>([]);
     const [directCompletedSessionSkillIds, setDirectCompletedSessionSkillIds] = useState<string[]>([]);
 
-    // The data/engine core (per-user hydration, chat engine wiring, UI and
-    // marketplace state, URL helpers, scroll effects, agent/KB stores, startup
-    // logic and selectConversation) lives in useAgentHubData — moved verbatim,
-    // called from the exact position the inline hooks occupied so hook order
-    // and state ownership (AgentHub's fiber) are unchanged.
+    // The lists the hub shows: slices that own their state (AgentHub/use*.ts).
+    const { favorites, setFavorites } = useAgentFavorites(user?.id);
+    const { agents, agentCategories, refreshAgents } = useAgentCatalog();
+    const { directChatKbs } = useHubKnowledgeBases(directChatMode);
+    const {
+        conversations, directConversations, conversationLabels, allAgentConversations, modelTiers,
+        setConversations, setDirectConversations, setConversationLabels, setAllAgentConversations,
+        loadConversations, loadDirectConversations, loadLabels, loadModelTiers,
+    } = useConversationLists({ selectedAgentId: selectedAgent?.id, directChatMode, chatHistoryMode });
+    const {
+        designMode, setDesignMode,
+        showMarketplace, setShowMarketplace,
+        showSearch, setShowSearch,
+        showMemoryPanel, setShowMemoryPanel,
+        showAgentMenu, setShowAgentMenu,
+    } = useHubOverlays({
+        pages: { showSettings, showAgentDesigner, showAgentWizard, showStudio, showSkillsPanel },
+        setShowProjectsStore, setActiveProjectId,
+    });
+    // The chat core: engine, voice turns, scroll, opening conversations.
     const {
         messages, setMessages, isLoading, sendMessage, stopGenerating, retryMessage, editAndRegenerate,
         turnConversation, chatSignals,
         conversationStarted, handleVoiceTurnComplete,
-        handleToggleSkill, agentAttachedSkillIds,
-        designMode, setDesignMode,
-        showMarketplace, setShowMarketplace,
-        directChatKbs,
-        showSearch, setShowSearch,
-        showMemoryPanel, setShowMemoryPanel,
-        showAgentMenu, setShowAgentMenu,
-        favorites, setFavorites,
+        agentAttachedSkillIds,
         messagesEndRef, messagesContainerRef, shouldForceScrollRef, openAtLatest,
-        updateAgentUrl, updateDirectChatUrl,
-        refreshAgents,
-        loadConversations, selectConversation,
-        loadDirectConversations, loadModelTiers,
+        selectConversation,
     } = useAgentHubData({
-        user, initialAgentId, initialConversationId, initialDirectConvId,
-        showSettings, showAgentDesigner, showAgentWizard, showStudio, showSkillsPanel,
-        coworkMode, setCoworkMode,
-        selectedAgent, setSelectedAgent,
-        directChatMode, setDirectChatMode,
-        currentConversation, setCurrentConversation,
-        currentDirectConversation, setCurrentDirectConversation,
-        setConversations, setDirectConversations, setConversationLabels,
-        setAgents, setAgentCategories, setModelTiers,
-        selectedTier, setSelectedTier,
-        activeProject: activeProjectLive,
-        activeSkillIds, setActiveSkillIds, setChatHistoryMode,
-        directSessionSkills, setDirectSessionSkills,
-        directActivatedSessionSkillIds, setDirectActivatedSessionSkillIds, setDirectCompletedSessionSkillIds,
-        directChatKBIds, setDirectChatKBIds,
-        notebooksEnabled,
-        notebookContent, setNotebookContent, notebookSelection, setNotebookSelection,
-        showNotebook, setShowNotebook, setNotebookLinkedId,
-        setShowGammaPreview, setGammaPreview,
-        sidePanelWebpageId, sidePanelWebpage, sidePanelWebpageFiles, setSidePanelWebpageFiles, setSidePanelReloadKey,
-        sidePanelDocumentId,
-        attachedWebpageSelection,
-        setSidebarOpen,
-        setShowProjectsStore, setActiveProjectId,
+        user,
+        route: { initialAgentId, initialConversationId, initialDirectConvId },
+        chat: {
+            selectedAgent, setSelectedAgent, directChatMode, setDirectChatMode,
+            currentConversation, setCurrentConversation, currentDirectConversation, setCurrentDirectConversation,
+            selectedTier, setSelectedTier, activeProject: activeProjectLive, coworkMode, setCoworkMode,
+        },
+        skills: {
+            activeSkillIds, directSessionSkills, directActivatedSessionSkillIds,
+            setDirectSessionSkills, setDirectActivatedSessionSkillIds, setDirectCompletedSessionSkillIds,
+            directChatKBIds, setDirectChatKBIds,
+        },
+        notebook: {
+            notebooksEnabled, notebookContent, setNotebookContent, notebookSelection, setNotebookSelection,
+            showNotebook, setShowNotebook, setNotebookLinkedId,
+        },
+        gamma: { setShowGammaPreview, setGammaPreview },
+        webpage: {
+            sidePanelWebpageId, sidePanelWebpage, sidePanelWebpageFiles, setSidePanelWebpageFiles,
+            setSidePanelReloadKey, sidePanelDocumentId, attachedWebpageSelection,
+        },
+        lists: { refreshAgents, loadConversations, loadDirectConversations, loadLabels, loadModelTiers },
     });
 
 
@@ -366,7 +364,7 @@ const AgentHub = ({
     // switch, NotificationCenter's "Open in Direct Chat"). Same hook order as
     // the inline effects it replaces.
     useDirectChatEvents({
-        chatHistoryMode, setChatHistoryMode, setAllAgentConversations,
+        setChatHistoryMode,
         isMobile, setSidebarOpen,
         setDirectChatMode, setSelectedAgent,
         setCurrentConversation, setCurrentDirectConversation, setMessages,

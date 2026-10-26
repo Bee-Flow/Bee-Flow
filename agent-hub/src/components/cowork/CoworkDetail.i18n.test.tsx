@@ -13,7 +13,7 @@
  * Keys are asserted by SHAPE, not one by one: the property is "this string is
  * reachable from the Languages panel, in a namespace this track owns".
  */
-import { act, render, screen } from '@testing-library/react';
+import { act, screen } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -33,6 +33,7 @@ vi.mock('../../api/coworkApi', () => api);
 
 import CoworkDetail from './CoworkDetail';
 import type { ReactNode } from 'react';
+import { renderWithClient } from '../../test/render';
 
 const item = {
     id: 'w1',
@@ -55,7 +56,7 @@ async function renderPane(runs: Record<string, unknown>[] = []) {
         total: 3, success: 2, failed: 1, avgDurationMs: 72_000, runCount: 3,
         createdAt: new Date(2026, 6, 8).toISOString(),
     });
-    const utils = render(
+    const utils = renderWithClient(
         <CoworkDetail
             item={item}
             agents={[]}

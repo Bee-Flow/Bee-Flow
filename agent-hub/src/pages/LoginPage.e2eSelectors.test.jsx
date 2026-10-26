@@ -1,7 +1,7 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ok, fail } from '@/test/http';
+import { renderWithClient } from '@/test/render';
 import LoginPage from './LoginPage';
 import { authFetch } from '../utils/helpers';
 
@@ -86,7 +86,7 @@ beforeEach(() => {
 
 afterEach(() => { vi.restoreAllMocks(); dropPreferredCookie(); });
 
-const renderLogin = () => render(<LoginPage onLogin={vi.fn()} />);
+const renderLogin = () => renderWithClient(<LoginPage onLogin={vi.fn()} />);
 
 describe('the three ids the Playwright login helpers fill and click', () => {
     it.each(SIGN_IN_IDS)('exposes "%s" on a fresh browser', async (id) => {

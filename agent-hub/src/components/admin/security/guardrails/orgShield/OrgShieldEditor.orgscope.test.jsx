@@ -17,7 +17,7 @@
  * see and change what was chosen.
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../../../../../utils/helpers', () => ({
@@ -32,6 +32,7 @@ vi.mock('../../../../licensing/LicenseContext', () => ({
 }));
 
 import OrgShieldEditor from './OrgShieldEditor';
+import { renderWithClient } from '../../../../../test/render';
 import { authFetch } from '../../../../../utils/helpers';
 
 const ORGS = [
@@ -81,7 +82,7 @@ const shieldCalls = () => requested.filter(u => u.includes('/api/org-privacy-shi
 
 describe('OrgShieldEditor org scoping', () => {
     it('loads the organisation it was given, not the first one in the list', async () => {
-        render(<OrgShieldEditor orgId="org-beta" />);
+        renderWithClient(<OrgShieldEditor orgId="org-beta" />);
 
         await waitFor(() => expect(shieldCalls().length).toBeGreaterThan(0));
 
@@ -91,7 +92,7 @@ describe('OrgShieldEditor org scoping', () => {
     });
 
     it('handles the id arriving after mount (the embedding page resolves it async)', async () => {
-        const { rerender } = render(<OrgShieldEditor orgId={undefined} />);
+        const { rerender } = renderWithClient(<OrgShieldEditor orgId={undefined} />);
 
         // Nothing may be fetched while the target org is unknown — guessing
         // here is exactly what the bug was.
@@ -105,7 +106,7 @@ describe('OrgShieldEditor org scoping', () => {
     });
 
     it('never falls back to another org when no id and no picker are supplied', async () => {
-        render(<OrgShieldEditor />);
+        renderWithClient(<OrgShieldEditor />);
 
         await waitFor(() => expect(requested.some(u => u.includes('/auth/organizations'))).toBe(true));
         // Give any stray async work a chance to fire before asserting absence.
@@ -114,7 +115,7 @@ describe('OrgShieldEditor org scoping', () => {
     });
 
     it('defaults to the first org ONLY when a visible picker is allowed', async () => {
-        render(<OrgShieldEditor allowOrgPicker />);
+        renderWithClient(<OrgShieldEditor allowOrgPicker />);
 
         await waitFor(() => expect(shieldCalls().length).toBeGreaterThan(0));
         expect(shieldCalls()[0]).toContain('org-alpha');
@@ -124,7 +125,7 @@ describe('OrgShieldEditor org scoping', () => {
     });
 
     it('hides the org picker when the org is pinned', async () => {
-        render(<OrgShieldEditor orgId="org-beta" />);
+        renderWithClient(<OrgShieldEditor orgId="org-beta" />);
         await waitFor(() => expect(shieldCalls().length).toBeGreaterThan(0));
 
         // A picker whose choice the prop immediately overrides is worse than none.
@@ -132,7 +133,7 @@ describe('OrgShieldEditor org scoping', () => {
     });
 
     it('an explicit orgId still wins when a picker is also allowed', async () => {
-        render(<OrgShieldEditor orgId="org-beta" allowOrgPicker />);
+        renderWithClient(<OrgShieldEditor orgId="org-beta" allowOrgPicker />);
 
         await waitFor(() => expect(shieldCalls().length).toBeGreaterThan(0));
         expect(shieldCalls().every(u => u.includes('org-beta'))).toBe(true);

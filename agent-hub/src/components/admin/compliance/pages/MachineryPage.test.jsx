@@ -1,8 +1,9 @@
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import MachineryPage, { subjectRows, assessmentPill, signalText, CLASSIFICATIONS, ART18_CHECK_ID } from './MachineryPage';
+import { renderWithClient } from '../../../../test/render';
 
 vi.mock('../../../../hooks/useTranslation', () => import('@/test/useTranslationParamsMock'));
 
@@ -55,7 +56,7 @@ const props = (over = {}) => ({
 describe('MachineryPage — detections table', () => {
     it('lists detections and the hand-added subjects, manual last', async () => {
         fetchJson.mockResolvedValueOnce(detections());
-        render(<MachineryPage {...props()} />);
+        renderWithClient(<MachineryPage {...props()} />);
         await waitFor(() => expect(screen.getAllByTestId('mach-row').length).toBe(4));
         expect(fetchJson.mock.calls[0][0]).toMatch(/\/machinery\/detections$/);
         expect([...screen.getAllByTestId('mach-label')].map(el => el.dataset.subject)).toEqual([
@@ -68,7 +69,7 @@ describe('MachineryPage — detections table', () => {
 
     it('the declaration pill follows the classification, and an expired one warns', async () => {
         fetchJson.mockResolvedValueOnce(detections());
-        render(<MachineryPage {...props()} />);
+        renderWithClient(<MachineryPage {...props()} />);
         await waitFor(() => expect(screen.getAllByTestId('mach-assessment').length).toBe(4));
         const pills = screen.getAllByTestId('mach-assessment');
         expect(pills[0].textContent).toBe('Not assessed');
@@ -83,7 +84,7 @@ describe('MachineryPage — detections table', () => {
 
     it('a 503 says the detector was never installed — that is not "nothing found"', async () => {
         fetchJson.mockRejectedValueOnce(new Error('503 Service Unavailable'));
-        render(<MachineryPage {...props()} />);
+        renderWithClient(<MachineryPage {...props()} />);
         await waitFor(() => expect(screen.getByTestId('machinery-page-unavailable')).toBeTruthy());
         expect(screen.queryByTestId('mach-table')).toBeNull();
         expect(screen.getByTestId('machinery-page-unavailable').textContent).toContain('not installed');
@@ -91,14 +92,14 @@ describe('MachineryPage — detections table', () => {
 
     it('any other failed read is its own state, distinct from the missing detector', async () => {
         fetchJson.mockRejectedValueOnce(new Error('500 Internal Server Error'));
-        render(<MachineryPage {...props()} />);
+        renderWithClient(<MachineryPage {...props()} />);
         await waitFor(() => expect(screen.getByTestId('machinery-page-failed')).toBeTruthy());
         expect(screen.queryByTestId('machinery-page-unavailable')).toBeNull();
     });
 
     it('an empty but successful scan is an empty state, not a failure', async () => {
         fetchJson.mockResolvedValueOnce({ scanned: {}, matches: [], manual_subjects: [], skipped: [] });
-        render(<MachineryPage {...props()} />);
+        renderWithClient(<MachineryPage {...props()} />);
         await waitFor(() => expect(screen.getByText('No machine integrations found')).toBeTruthy());
         expect(screen.queryByTestId('machinery-page-unavailable')).toBeNull();
     });
@@ -113,7 +114,7 @@ describe('MachineryPage — attest drawer', () => {
             .mockResolvedValueOnce({ id: 'new', classification: 'safety_component' })  // attest
             .mockResolvedValueOnce(detections());                                  // refresh
         const p = props();
-        render(<MachineryPage {...p} />);
+        renderWithClient(<MachineryPage {...p} />);
         await waitFor(() => expect(screen.getAllByTestId('mach-row').length).toBe(4));
 
         await user.click(screen.getAllByTestId('mach-attest')[0]);
@@ -152,7 +153,7 @@ describe('MachineryPage — attest drawer', () => {
         fetchJson.mockImplementation((url) => Promise.resolve(/\/attestations$/.test(url)
             ? [{ id: 'h1', classification: 'not_safety_component', attested_at: '2026-01-10T00:00:00Z' }]
             : detections()));
-        render(<MachineryPage {...props({ focusId: 'automation:a-9' })} />);
+        renderWithClient(<MachineryPage {...props({ focusId: 'automation:a-9' })} />);
         await waitFor(() => expect(screen.getByTestId('mach-drawer-title').textContent).toBe('Nightly MES sync'));
         await waitFor(() => expect(screen.getByTestId('mach-drawer-history-row')).toBeTruthy());
         expect(fetchJson.mock.calls.map(c => c[0]).some(u => /\/machinery\/subjects\/automation%3Aa-9\/attestations$/.test(u))).toBe(true);
@@ -160,7 +161,7 @@ describe('MachineryPage — attest drawer', () => {
 
     it('the Signals and Valid columns fold below 900px, not 1180px', async () => {
         fetchJson.mockResolvedValueOnce(detections());
-        render(<MachineryPage {...props()} />);
+        renderWithClient(<MachineryPage {...props()} />);
         await waitFor(() => expect(screen.getAllByTestId('mach-row').length).toBe(4));
         const header = (name) => screen.getAllByRole('columnheader').find(h => h.textContent === name);
         for (const name of ['Signals', 'Valid']) {
@@ -174,7 +175,7 @@ describe('MachineryPage — attest drawer', () => {
         fetchJson
             .mockResolvedValueOnce(detections())
             .mockRejectedValueOnce(new Error('500 boom'));
-        render(<MachineryPage {...props()} />);
+        renderWithClient(<MachineryPage {...props()} />);
         await waitFor(() => expect(screen.getAllByTestId('mach-row').length).toBe(4));
         await user.click(screen.getAllByTestId('mach-attest')[1]);
         await waitFor(() => expect(screen.getByTestId('mach-drawer-history-failed')).toBeTruthy());
@@ -188,7 +189,7 @@ describe('MachineryPage — attest drawer', () => {
             .mockResolvedValueOnce(detections())
             .mockResolvedValueOnce([])
             .mockRejectedValueOnce(new Error('400 invalid_subject'));
-        render(<MachineryPage {...props()} />);
+        renderWithClient(<MachineryPage {...props()} />);
         await waitFor(() => expect(screen.getAllByTestId('mach-row').length).toBe(4));
         await user.click(screen.getAllByTestId('mach-attest')[0]);
         await waitFor(() => expect(screen.getByTestId('mach-drawer-history-empty')).toBeTruthy());
@@ -232,7 +233,7 @@ describe('pure helpers', () => {
 describe('MachineryPage — phone (artboard 1h)', () => {
     it('takes the card path with the row data and a 44px declare button', async () => {
         fetchJson.mockResolvedValueOnce(detections());
-        render(<MachineryPage {...props({ isMobile: true })} />);
+        renderWithClient(<MachineryPage {...props({ isMobile: true })} />);
         await waitFor(() => expect(screen.getAllByTestId('mach-card').length).toBe(4));
         expect(screen.getByTestId('mach-table').dataset.view).toBe('cards');
         expect(screen.queryAllByTestId('mach-row').length).toBe(0);

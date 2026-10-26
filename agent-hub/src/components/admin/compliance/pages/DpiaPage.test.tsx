@@ -1,8 +1,9 @@
-import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import { screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent, { UserEvent } from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import DpiaPage, { dpiaRows, defaultExpiry, DPIA_CHECK_ID } from './DpiaPage';
+import { renderWithClient } from '../../../../test/render';
 import { TABLE_FOLDED_ONLY } from '../../../shared/DataTable';
 import { stub } from '@/test/mocks';
 
@@ -73,7 +74,7 @@ describe('dpiaRows / defaultExpiry', () => {
 
 describe('DpiaPage', () => {
     it('one row per high-risk agent; the pill says "Assessed {date}" or "No DPIA", how and until when in its title', () => {
-        render(<DpiaPage {...pageProps()} />);
+        renderWithClient(<DpiaPage {...pageProps()} />);
         const none = screen.getByTestId('dpia-status-agent_1');
         expect(none.textContent).toBe('No DPIA');
         expect(none.dataset.tone).toBe('error');
@@ -84,14 +85,14 @@ describe('DpiaPage', () => {
     });
 
     it('an expired assessment is not "Assessed"', () => {
-        render(<DpiaPage {...pageProps({ dpia: { dpiaList: [{ ...DPIA_LIST[0], expires_at: '2020-01-01T00:00:00Z' }] } })} />);
+        renderWithClient(<DpiaPage {...pageProps({ dpia: { dpiaList: [{ ...DPIA_LIST[0], expires_at: '2020-01-01T00:00:00Z' }] } })} />);
         const pill = screen.getByTestId('dpia-status-agent_2');
         expect(pill.textContent).toMatch(/^Expired 1 Jan 2020$/);
         expect(pill.dataset.tone).toBe('error');
     });
 
     it('keeps the risk reason under the agent name when its column folds, with no status icon', () => {
-        render(<DpiaPage {...pageProps()} />);
+        renderWithClient(<DpiaPage {...pageProps()} />);
         const line = screen.getByTestId('dpia-reason-line-agent_1');
         expect(line.textContent).toBe('Evaluates applicants');
         for (const cls of TABLE_FOLDED_ONLY[900].split(' ')) expect(line.className).toContain(cls);
@@ -99,18 +100,18 @@ describe('DpiaPage', () => {
     });
 
     it('says nothing needs a DPIA rather than showing an empty table', () => {
-        render(<DpiaPage {...pageProps({ core: { checks: [] } })} />);
+        renderWithClient(<DpiaPage {...pageProps({ core: { checks: [] } })} />);
         expect(screen.getByText('No agent needs a DPIA')).toBeTruthy();
     });
 
     it('shows skeletons while the DPIA list is being read', () => {
-        render(<DpiaPage {...pageProps({ dpia: { dpiaList: null } })} />);
+        renderWithClient(<DpiaPage {...pageProps({ dpia: { dpiaList: null } })} />);
         expect(screen.getAllByTestId('table-skeleton-row').length).toBeGreaterThan(0);
     });
 
     it('an agent with a DPIA on record opens on its summary, not on an empty form', async () => {
         const user = userEvent.setup();
-        render(<DpiaPage {...pageProps()} />);
+        renderWithClient(<DpiaPage {...pageProps()} />);
         await user.click(screen.getByTestId('dpia-row-agent_2'));
         expect(screen.getByTestId('dpia-summary')).toBeTruthy();
         expect(screen.queryByTestId('dpia-form')).toBeNull();
@@ -128,7 +129,7 @@ describe('DpiaPage', () => {
     it('says so when the recorded answers cannot be read', async () => {
         fetchJson.mockRejectedValue(new Error('500 Internal Server Error'));
         const user = userEvent.setup();
-        render(<DpiaPage {...pageProps()} />);
+        renderWithClient(<DpiaPage {...pageProps()} />);
         await user.click(screen.getByTestId('dpia-row-agent_2'));
         expect(await screen.findByTestId('dpia-answers-failed')).toBeTruthy();
         expect(screen.getByTestId('dpia-summary-meta')).toBeTruthy();
@@ -137,7 +138,7 @@ describe('DpiaPage', () => {
     it('Re-assess pre-fills the form from the recorded answers and measures', async () => {
         const save = vi.fn();
         const user = userEvent.setup();
-        render(<DpiaPage {...pageProps({ dpia: { save } })} />);
+        renderWithClient(<DpiaPage {...pageProps({ dpia: { save } })} />);
         await user.click(screen.getByTestId('dpia-row-agent_2'));
         await screen.findByTestId('dpia-answer-purpose');
         await user.click(screen.getByTestId('dpia-reassess'));
@@ -158,7 +159,7 @@ describe('DpiaPage', () => {
     it('Save stays disabled until purpose, data and oversight are filled', async () => {
         const save = vi.fn();
         const user = userEvent.setup();
-        render(<DpiaPage {...pageProps({ dpia: { save } })} />);
+        renderWithClient(<DpiaPage {...pageProps({ dpia: { save } })} />);
         await user.click(screen.getByTestId('dpia-row-agent_1'));
         const submit = screen.getByTestId('dpia-submit');
         expect((submit as HTMLInputElement).disabled).toBe(true);
@@ -178,7 +179,7 @@ describe('DpiaPage', () => {
     it('records a questionnaire as answers plus mitigations, one per line', async () => {
         const save = vi.fn();
         const user = userEvent.setup();
-        render(<DpiaPage {...pageProps({ dpia: { save } })} />);
+        renderWithClient(<DpiaPage {...pageProps({ dpia: { save } })} />);
         await user.click(screen.getByTestId('dpia-row-agent_1'));
         await fillRequired(user);
         await user.click(screen.getByTestId('dpia-q-automated').querySelector('input')!);
@@ -201,7 +202,7 @@ describe('DpiaPage', () => {
     it('an assessment kept elsewhere is a quiet link under the form that records an attestation', async () => {
         const save = vi.fn();
         const user = userEvent.setup();
-        render(<DpiaPage {...pageProps({ dpia: { save } })} />);
+        renderWithClient(<DpiaPage {...pageProps({ dpia: { save } })} />);
         await user.click(screen.getByTestId('dpia-row-agent_1'));
         const link = screen.getByTestId('dpia-attest');
         expect(link.textContent).toBe('Assessed outside Bee Flow? Record an attestation');
@@ -214,7 +215,7 @@ describe('DpiaPage', () => {
 
     it('offers the PDF only for an agent that has a DPIA on record', async () => {
         const user = userEvent.setup();
-        render(<DpiaPage {...pageProps()} />);
+        renderWithClient(<DpiaPage {...pageProps()} />);
         await user.click(screen.getByTestId('dpia-row-agent_1'));
         expect(screen.queryByTestId('dpia-pdf')).toBeNull();
         await user.click(screen.getByTestId('dpia-row-agent_2'));
@@ -222,7 +223,7 @@ describe('DpiaPage', () => {
     });
 
     it('withholds the PDF when downloads are off', async () => {
-        const { container } = render(<DpiaPage {...pageProps()} dl={() => null} />);
+        const { container } = renderWithClient(<DpiaPage {...pageProps()} dl={() => null} />);
         await userEvent.setup().click(screen.getByTestId('dpia-row-agent_2'));
         expect(container.querySelector('a[download]')).toBeNull();
     });
@@ -230,7 +231,7 @@ describe('DpiaPage', () => {
     it('forgets the form when another agent is opened', async () => {
         const user = userEvent.setup();
         const checks = [...CHECKS, { check_id: DPIA_CHECK_ID, scope_id: 'agent_3', status: 'fail', evidence: { agent_name: 'Claims agent' } }];
-        render(<DpiaPage {...pageProps({ core: { checks } })} />);
+        renderWithClient(<DpiaPage {...pageProps({ core: { checks } })} />);
         await user.click(screen.getByTestId('dpia-row-agent_1'));
         await user.type(screen.getByTestId('dpia-q-purpose'), 'Screen applications');
         await user.click(screen.getByTestId('dpia-row-agent_3'));
@@ -239,7 +240,7 @@ describe('DpiaPage', () => {
 
     it('opens straight onto the focused agent, keeps its id as the title tooltip, and closes on a second click', async () => {
         const user = userEvent.setup();
-        render(<DpiaPage {...pageProps(stub<Parameters<typeof pageProps>[0]>({ focusId: 'agent_2' }))} />);
+        renderWithClient(<DpiaPage {...pageProps(stub<Parameters<typeof pageProps>[0]>({ focusId: 'agent_2' }))} />);
         const title = await screen.findByTestId('dpia-drawer-title');
         expect(title.textContent).toBe('Support agent');
         expect(title.getAttribute('title')).toBe('agent_2');
@@ -250,7 +251,7 @@ describe('DpiaPage', () => {
 
     it('disables saving while this agent is being written', async () => {
         const user = userEvent.setup();
-        render(<DpiaPage {...pageProps({ dpia: { savingId: 'agent_1' } })} />);
+        renderWithClient(<DpiaPage {...pageProps({ dpia: { savingId: 'agent_1' } })} />);
         await user.click(screen.getByTestId('dpia-row-agent_1'));
         await fillRequired(user);
         expect((screen.getByTestId('dpia-submit') as HTMLInputElement).disabled).toBe(true);
@@ -261,19 +262,19 @@ describe('DpiaPage', () => {
 describe('DpiaPage — phone (artboard 1h)', () => {
     it('the drawer is a right-side modal; desktop keeps the inline card', async () => {
         const user = userEvent.setup();
-        const { unmount } = render(<DpiaPage {...pageProps(stub<Parameters<typeof pageProps>[0]>({ isMobile: true }))} />);
+        const { unmount } = renderWithClient(<DpiaPage {...pageProps(stub<Parameters<typeof pageProps>[0]>({ isMobile: true }))} />);
         await user.click(screen.getByTestId('dpia-card-agent_1'));
         expect(document.body.querySelector('[role="dialog"]')).not.toBeNull();
         expect(screen.getByTestId('dpia-drawer').dataset.mode).toBe('modal');
         unmount();
-        render(<DpiaPage {...pageProps()} />);
+        renderWithClient(<DpiaPage {...pageProps()} />);
         await user.click(screen.getByTestId('dpia-row-agent_1'));
         expect(document.body.querySelector('[role="dialog"]')).toBeNull();
         expect(screen.getByTestId('dpia-drawer').dataset.mode).toBe('inline');
     });
 
     it('a phone card carries the same pill: a red "No DPIA" for an agent without one', () => {
-        render(<DpiaPage {...pageProps(stub<Parameters<typeof pageProps>[0]>({ isMobile: true }))} />);
+        renderWithClient(<DpiaPage {...pageProps(stub<Parameters<typeof pageProps>[0]>({ isMobile: true }))} />);
         const none = screen.getByTestId('dpia-card-status-agent_1');
         expect(none.textContent).toBe('No DPIA');
         expect(none.dataset.tone).toBe('error');

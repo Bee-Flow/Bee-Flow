@@ -1,5 +1,7 @@
 import { Plus, Save } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useStudioSlaPoliciesQuery } from '../../../../api/queries/supportPanels';
+import useDraftOverServer from '../../../../hooks/useDraftOverServer';
 import type { SupportInbox, SupportKb } from './supportStudio.types';
 import { INPUT_FIELD, PRIMARY_BTN, PRIMARY_BTN_STYLE, GHOST_BTN } from './supportStyles';
 import useTranslation from '../../../../hooks/useTranslation';
@@ -147,30 +149,25 @@ interface SlaPolicy {
 
 function SlaPolicies() {
     const { t } = useTranslation();
-    const [byPriority, setByPriority] = useState<Record<string, SlaRow>>({});
+    const slaQuery = useStudioSlaPoliciesQuery<SlaPolicy>();
+    const serverRows = useMemo(() => {
+        const map: Record<string, SlaRow> = {};
+        (slaQuery.data ?? []).forEach((p: SlaPolicy) => { map[p.priority] = { first: p.first_response_minutes, resolution: p.resolution_minutes, enabled: p.enabled }; });
+        return map;
+    }, [slaQuery.data]);
+    // The targets as typed: the server's rows with the unsaved edits laid over them.
+    const { value: byPriority, patch: patchRows, discard } = useDraftOverServer(serverRows);
+    const { refetch } = slaQuery;
     const [savingP, setSavingP] = useState<string | null>(null);
 
-    const load = async () => {
-        let res: Response;
-        try {
-            res = await request(`${API_BASE}/api/support-inbox/sla-policies`);
-        } catch (err) {
-            if (!(err instanceof RefusedError)) throw err;
-            return;
-        }
-        const d = await res.json().catch(() => ({}));
-        const map: Record<string, SlaRow> = {};
-        (d.policies || []).forEach((p: SlaPolicy) => { map[p.priority] = { first: p.first_response_minutes, resolution: p.resolution_minutes, enabled: p.enabled }; });
-        setByPriority(map);
-    };
-    useEffect(() => { load(); }, []);
+    const load = async () => { await refetch(); discard(); };
 
     const valueFor = (prio: string, key: 'first' | 'resolution') => {
         const row = byPriority[prio];
         if (row && row[key] != null) return row[key];
         return key === 'first' ? SLA_DEFAULTS[prio][0] : SLA_DEFAULTS[prio][1];
     };
-    const setVal = (prio: string, key: 'first' | 'resolution', v: string) => setByPriority(m => ({ ...m, [prio]: { ...(m[prio] || {}), [key]: v } }));
+    const setVal = (prio: string, key: 'first' | 'resolution', v: string) => patchRows({ [prio]: { ...(byPriority[prio] || {}), [key]: v } });
 
     const savePolicy = async (prio: string) => {
         setSavingP(prio);

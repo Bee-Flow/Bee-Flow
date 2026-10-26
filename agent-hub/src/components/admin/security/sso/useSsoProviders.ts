@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useServerUrlQuery, useSsoProvidersQuery } from '../../../../api/queries/adminConfigReads';
 import type { Dispatch, SetStateAction } from 'react';
 import { API_BASE } from '../../../../utils/helpers';
 import { settled } from '../../../../api/settled';
-import { logger } from '../../../../utils/logger';
-import { request, RefusedError } from '../../../../api/mutate';
 
 export type SsoProviderId = 'nextcloud' | 'google' | 'microsoft';
 
@@ -50,6 +49,15 @@ const INITIAL_PROVIDERS: SsoProviders = {
     microsoft: { enabled: false, clientId: '', clientSecretSet: false, tenantId: 'common' }
 };
 
+/** The providers with the form's unsaved edits laid over them. */
+function overlayEdits(base: SsoProviders, edits: Partial<Record<SsoProviderId, Partial<SsoProviderConfig>>>): SsoProviders {
+    const ids = Object.keys(edits) as SsoProviderId[];
+    if (ids.length === 0) return base;
+    const next = { ...base };
+    for (const id of ids) next[id] = { ...base[id], ...edits[id] };
+    return next;
+}
+
 /** The PUT body for one provider: only its own fields, and the secret only when one was typed. */
 function providerBody(provider: SsoProviderId, config: SsoProviderConfig, secret: string): Record<string, string | undefined> {
     const body: Record<string, string | undefined> = {};
@@ -66,53 +74,25 @@ function providerBody(provider: SsoProviderId, config: SsoProviderConfig, secret
     return body;
 }
 
-/** The server's public URL, for the redirect URI instructions ('' until known). */
-function useServerUrl(): string {
-    const [serverUrl, setServerUrl] = useState('');
-    useEffect(() => {
-        (async () => {
-            try {
-                const res = await settled(`${API_BASE}/auth/setup-status`, undefined, 'empty');
-                if (res.ok) {
-                    const data = await res.res.json();
-                    if (data.serverUrl) setServerUrl(data.serverUrl);
-                }
-            } catch (err) { logger.debug('setup status unavailable, server URL stays unset', err); }
-        })();
-    }, []);
-    return serverUrl;
-}
-
 /** The SSO providers' configuration: load, edit, save and test. */
 export default function useSsoProviders(): SsoProvidersState {
-    const [providers, setProviders] = useState<SsoProviders>(INITIAL_PROVIDERS);
+    const providersQuery = useSsoProvidersQuery<SsoProviders>();
+    // The server's configuration with the edits typed since the last read laid over it.
+    const [edits, setEdits] = useState<Partial<Record<SsoProviderId, Partial<SsoProviderConfig>>>>({});
+    const providers = useMemo(() => overlayEdits(providersQuery.data ?? INITIAL_PROVIDERS, edits), [providersQuery.data, edits]);
     const [secrets, setSecrets] = useState<SsoSecrets>({ nextcloud: '', google: '', microsoft: '' });
-    const [loading, setLoading] = useState(true);
+    const loading = providersQuery.isPending;
     const [saving, setSaving] = useState<Partial<Record<SsoProviderId, boolean>>>({});
     const [testing, setTesting] = useState<Partial<Record<SsoProviderId, boolean>>>({});
     const [message, setMessage] = useState<SsoMessage | null>(null);
-    const serverUrl = useServerUrl();
+    const serverUrl = useServerUrlQuery().data;
 
+    // Re-read the configuration; the edits are dropped with the old answer, as the form was refilled before.
+    const { refetch } = providersQuery;
     const fetchProviders = async () => {
-        try {
-            const res = await request(`${API_BASE}/auth/providers`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (res) {
-                const data = await res.json();
-                setProviders(data);
-            }
-        } catch (e) {
-            console.error('Failed to fetch providers:', e);
-        } finally {
-            setLoading(false);
-        }
+        await refetch();
+        setEdits({});
     };
-
-    useEffect(() => {
-        fetchProviders();
-    }, []);
 
     const handleSaveProvider = async (provider: SsoProviderId) => {
         setSaving(prev => ({ ...prev, [provider]: true }));
@@ -158,10 +138,7 @@ export default function useSsoProviders(): SsoProvidersState {
     };
 
     const updateProviderField = (provider: SsoProviderId, field: keyof SsoProviderConfig, value: string) => {
-        setProviders(prev => ({
-            ...prev,
-            [provider]: { ...prev[provider], [field]: value }
-        }));
+        setEdits(prev => ({ ...prev, [provider]: { ...prev[provider], [field]: value } }));
     };
 
     return {

@@ -6,28 +6,23 @@
  * panel pops in once it resolves; refreshAgentSchedules re-fires via its
  * dependency when the flag flips true).
  */
-import { useCallback, useEffect, useState } from 'react';
-import { fetchCoworkSchedules } from '../../../../api/agentEditor';
+import { useCallback, useMemo } from 'react';
+import { useCoworkSchedulesQuery } from '../../../../api/queries/sharedReads';
 import { useCan } from '../../../licensing/Gate';
-import { logger } from '../../../../utils/logger';
 
 export interface Schedule { id: string; title?: string; agentId?: string | number | null; [key: string]: unknown }
 
+const NO_SCHEDULES: Schedule[] = [];
+
 export default function useAgentSchedules(agentId: string | number | null | undefined) {
-    const [agentSchedules, setAgentSchedules] = useState<Schedule[]>([]);
     const schedulesAllowed = useCan('agent_routines');
+    // The Cowork list is per user; this panel shows the items that run as this agent.
+    const query = useCoworkSchedulesQuery<Schedule>(schedulesAllowed && !!agentId);
+    const all = query.data;
+    const agentSchedules = useMemo(() => (all ?? NO_SCHEDULES).filter(s => s.agentId === agentId), [all, agentId]);
+    const { refetch } = query;
     const refreshAgentSchedules = useCallback(async () => {
-        if (!schedulesAllowed || !agentId) return;
-        try {
-            // The Cowork list is per user; this panel shows the items that run as this agent.
-            const res = await fetchCoworkSchedules();
-            if (res.ok) {
-                const data = await res.json();
-                const all: Schedule[] = Array.isArray(data?.schedules) ? data.schedules : [];
-                setAgentSchedules(all.filter(s => s.agentId === agentId));
-            }
-        } catch (err) { logger.debug('non-fatal', err); }
-    }, [schedulesAllowed, agentId]);
-    useEffect(() => { refreshAgentSchedules(); }, [refreshAgentSchedules]);
+        if (schedulesAllowed && agentId) await refetch();
+    }, [schedulesAllowed, agentId, refetch]);
     return { schedulesAllowed, agentSchedules, refreshAgentSchedules };
 }

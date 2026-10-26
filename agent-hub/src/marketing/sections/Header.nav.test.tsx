@@ -11,10 +11,11 @@
  *
  * Run: cd agent-hub && npx vitest run src/marketing/sections/Header.nav.test.jsx
  */
-import { render, fireEvent, within } from '@testing-library/react';
+import { fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Header from './Header.jsx';
+import { renderWithClient } from '../../test/render';
 
 const MEGA = {
     id: 'nav_product',
@@ -46,7 +47,7 @@ const data = {
     activeSlug: '',
 };
 
-const renderHeader = (over = {}) => render(<Header data={{ ...data, ...over }} />);
+const renderHeader = (over = {}) => renderWithClient(<Header data={{ ...data, ...over }} />);
 const drawer = (c: HTMLElement) => c.querySelector('.mobile-nav');
 const megaPanel = (c: HTMLElement) => c.querySelector('.nav-mega');
 

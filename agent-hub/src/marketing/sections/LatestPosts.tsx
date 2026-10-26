@@ -1,4 +1,5 @@
-import { useEffect, useState, type MouseEvent } from 'react';
+import type { MouseEvent } from 'react';
+import { usePublicBlogPostsQuery } from '../../api/queries/publicSite';
 import SectionHeaderJs from '../components/SectionHeader';
 import EditableTextJs from '../components/EditableText';
 import SectionFrameJs from '../components/SectionFrame';
@@ -53,28 +54,18 @@ interface LatestState { posts: BlogPostSummary[]; basePath: string; locale: stri
 
 /** The newest visible posts of the live site, fetched once per limit/tag. */
 function useLatestPosts(limit: number, tag: string): LatestState | null {
-    const [state, setState] = useState<LatestState | null>(null);
-    useEffect(() => {
-        let cancelled = false;
-        const locale = pageLocale();
-        const qs = new URLSearchParams({ limit: String(limit) });
-        if (locale) qs.set('locale', locale);
-        if (tag) qs.set('tag', tag);
-        fetch(`/api/cms/blog/posts?${qs.toString()}`, { credentials: 'omit' })
-            .then(r => (r.ok ? r.json() : null))
-            .then((payload: { posts?: BlogPostSummary[]; basePath?: string; labels?: BlogLabels; locale?: string } | null) => {
-                if (cancelled || !payload || !Array.isArray(payload.posts)) return;
-                setState({
-                    posts: payload.posts,
-                    basePath: payload.basePath || '/blog',
-                    locale: payload.locale || locale || 'en',
-                    labels: payload.labels || {},
-                });
-            })
-            .catch(() => { /* fail-soft: the block renders nothing */ });
-        return () => { cancelled = true; };
-    }, [limit, tag]);
-    return state;
+    const locale = pageLocale();
+    const qs = new URLSearchParams({ limit: String(limit) });
+    if (locale) qs.set('locale', locale);
+    if (tag) qs.set('tag', tag);
+    const payload = usePublicBlogPostsQuery<{ posts?: BlogPostSummary[]; basePath?: string; labels?: BlogLabels; locale?: string }>(qs.toString()).data;
+    if (!payload || !Array.isArray(payload.posts)) return null;
+    return {
+        posts: payload.posts,
+        basePath: payload.basePath || '/blog',
+        locale: payload.locale || locale || 'en',
+        labels: payload.labels || {},
+    };
 }
 
 const EMPTY_STATE: LatestState = { posts: [], basePath: '/blog', locale: 'en', labels: {} };

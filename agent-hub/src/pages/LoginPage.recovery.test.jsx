@@ -1,8 +1,9 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ok, fail } from '@/test/http';
 import LoginPage from './LoginPage';
+import { renderWithClient } from '../test/render';
 import { authFetch } from '../utils/helpers';
 
 /**
@@ -68,7 +69,7 @@ afterEach(() => { vi.restoreAllMocks(); });
 
 const renderLogin = () => {
     const onLogin = vi.fn();
-    return { ...render(<LoginPage onLogin={onLogin} />), onLogin };
+    return { ...renderWithClient(<LoginPage onLogin={onLogin} />), onLogin };
 };
 
 describe('the first-run root password', () => {

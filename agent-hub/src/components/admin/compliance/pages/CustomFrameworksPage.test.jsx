@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup, waitFor, act, within } from '@testing-library/react';
+import { screen, fireEvent, cleanup, waitFor, act, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
@@ -7,6 +7,7 @@ import { indexResults, joinChecks, statusPill, groupBuiltinChecks } from './cust
 import { toBody, validate, CODE_RE, editorErrorText } from './custom/FrameworkEditorDrawer';
 import { parseQuestionnaire, splitLine, detectDelimiter } from './custom/QuestionnaireImport';
 import CustomFrameworksPage, { normaliseFramework, normaliseList, expiringCount, OUTCOMES } from './CustomFrameworksPage';
+import { renderWithClient } from '../../../../test/render';
 
 vi.mock('../../../../hooks/useTranslation', () => {
     // The built-in check titles the "Satisfied by" picker translates.
@@ -104,7 +105,7 @@ function pageProps(over = {}) {
 
 describe('CustomFrameworksPage — list', () => {
     it('renders a card per framework with its score ring, items and what expires soon', () => {
-        render(<CustomFrameworksPage {...pageProps()} />);
+        renderWithClient(<CustomFrameworksPage {...pageProps()} />);
         const cards = screen.getAllByTestId('custom-card');
         expect(cards.map(c => c.dataset.framework)).toEqual([
             '11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222',
@@ -120,7 +121,7 @@ describe('CustomFrameworksPage — list', () => {
 
     it('offers the new-framework action to the header (its primary), not as a second button on the page', () => {
         const p = pageProps();
-        render(<CustomFrameworksPage {...p} />);
+        renderWithClient(<CustomFrameworksPage {...p} />);
         expect(p.setHeaderActions).toHaveBeenCalledWith(expect.objectContaining({ onAddFramework: expect.any(Function) }));
         expect(screen.queryByTestId('custom-new')).toBeNull();
         newFromHeader(p);
@@ -130,20 +131,20 @@ describe('CustomFrameworksPage — list', () => {
 
     it('falls back to GET /custom/frameworks when the hub carries no custom rows, and a failed read is its own state', async () => {
         fetchJson.mockResolvedValueOnce([{ id: '33333333-3333-4333-8333-333333333333', code: 'OWN', name: 'Own', status: 'draft', checks_count: 1 }]);
-        const { unmount } = render(<CustomFrameworksPage {...pageProps({ custom: null })} />);
+        const { unmount } = renderWithClient(<CustomFrameworksPage {...pageProps({ custom: null })} />);
         await waitFor(() => expect(screen.getAllByTestId('custom-card').length).toBe(1));
         expect(fetchJson.mock.calls[0][0]).toMatch(/\/custom\/frameworks$/);
         unmount();
 
         fetchJson.mockReset();
         fetchJson.mockRejectedValueOnce(new Error('403 feature_locked'));
-        render(<CustomFrameworksPage {...pageProps({ custom: null })} />);
+        renderWithClient(<CustomFrameworksPage {...pageProps({ custom: null })} />);
         await waitFor(() => expect(screen.getByTestId('custom-list-failed')).toBeTruthy());
         expect(screen.queryByTestId('custom-grid')).toBeNull();
     });
 
     it('no frameworks at all is an empty state, not a failure', () => {
-        render(<CustomFrameworksPage {...pageProps({ custom: [] })} />);
+        renderWithClient(<CustomFrameworksPage {...pageProps({ custom: [] })} />);
         expect(screen.getByTestId('custom-empty')).toBeTruthy();
         expect(screen.queryByTestId('custom-card')).toBeNull();
     });
@@ -154,7 +155,7 @@ describe('CustomFrameworksPage — list', () => {
             .mockResolvedValueOnce({ id: '44444444-4444-4444-8444-444444444444', code: 'NEW', name: 'New one' })  // POST
             .mockResolvedValueOnce({ id: '44444444-4444-4444-8444-444444444444', code: 'NEW', checks: [] });      // detail
         const p = pageProps();
-        render(<CustomFrameworksPage {...p} />);
+        renderWithClient(<CustomFrameworksPage {...p} />);
         newFromHeader(p);
         fireEvent.change(screen.getByTestId('custom-editor-name'), { target: { value: 'New one' } });
         fireEvent.change(screen.getByTestId('custom-editor-code'), { target: { value: 'new_one' } });
@@ -171,7 +172,7 @@ describe('CustomFrameworksPage — list', () => {
         const user = userEvent.setup();
         fetchJson.mockRejectedValueOnce(new Error('409 custom_framework_code_taken'));
         const p = pageProps();
-        render(<CustomFrameworksPage {...p} />);
+        renderWithClient(<CustomFrameworksPage {...p} />);
         newFromHeader(p);
         fireEvent.change(screen.getByTestId('custom-editor-name'), { target: { value: 'Duplicate' } });
         fireEvent.change(screen.getByTestId('custom-editor-code'), { target: { value: 'NIS2_KLANT' } });
@@ -187,7 +188,7 @@ describe('CustomFrameworksPage — detail', () => {
             .mockResolvedValueOnce(detailBody())
             .mockResolvedValueOnce(registryBody());
         const p = pageProps(over);
-        render(<CustomFrameworksPage {...p} />);
+        renderWithClient(<CustomFrameworksPage {...p} />);
         fireEvent.click(screen.getAllByTestId('custom-card')[0]);
         await waitFor(() => expect(screen.getAllByTestId('custom-checks-row').length).toBe(3));
         return p;
@@ -322,7 +323,7 @@ describe('CustomFrameworksPage — detail', () => {
         fetchJson
             .mockRejectedValueOnce(new Error('500 boom'))
             .mockResolvedValueOnce(registryBody());
-        render(<CustomFrameworksPage {...pageProps()} />);
+        renderWithClient(<CustomFrameworksPage {...pageProps()} />);
         await user.click(screen.getAllByTestId('custom-card')[0]);
         await waitFor(() => expect(screen.getByTestId('custom-detail-failed')).toBeTruthy());
         await user.click(screen.getByTestId('custom-edit'));
@@ -430,7 +431,7 @@ describe('CustomFrameworksPage — phone (artboard 1h)', () => {
         fetchJson
             .mockResolvedValueOnce(detailBody())
             .mockResolvedValueOnce(registryBody());
-        render(<CustomFrameworksPage {...pageProps({ props: { isMobile: true } })} />);
+        renderWithClient(<CustomFrameworksPage {...pageProps({ props: { isMobile: true } })} />);
         await user.click(screen.getAllByTestId('custom-card')[0]);
         await waitFor(() => expect(screen.getAllByTestId('custom-checks-card').length).toBe(3));
         expect(screen.getByTestId('custom-checks').dataset.view).toBe('cards');

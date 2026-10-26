@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useSupportMailboxQuery } from '../../api/queries/supportInbox';
 import { supportInboxApi } from '../../api/supportInboxApi';
 import { errorMessage } from '../../utils/caughtError';
 import { toast } from '../shared/Toast';
@@ -16,22 +17,11 @@ export function useSupportMailbox({ confirm, setSelectedId, fetchThreads }: Mail
     // Mailbox feeding this inbox. The company inbox has no connector of its own,
     // so anything here arrived from a Support-studio mailbox — see
     // GET /api/support/mailbox.
-    const [mailbox, setMailbox] = useState<SupportMailbox | null>(null);
+    const mailboxQuery = useSupportMailboxQuery<SupportMailbox>();
+    const mailbox = mailboxQuery.data ?? null;
     const [disconnecting, setDisconnecting] = useState(false);
-
-    const fetchMailbox = useCallback(async () => {
-        try {
-            const res = await supportInboxApi.mailbox();
-            if (res.ok) {
-                const data = await res.json();
-                setMailbox(data.mailbox || null);
-            }
-        } catch (e) {
-            console.warn('[Support] fetchMailbox:', errorMessage(e));
-        }
-    }, []);
-
-    useEffect(() => { fetchMailbox(); }, [fetchMailbox]);
+    const { refetch } = mailboxQuery;
+    const fetchMailbox = useCallback(async () => { await refetch(); }, [refetch]);
 
     // Unlink the mailbox and delete every ticket it produced. Destructive and
     // unrecoverable, so it asks twice with the exact count.

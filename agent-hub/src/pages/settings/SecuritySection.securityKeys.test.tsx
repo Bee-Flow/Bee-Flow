@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
+import { renderWithClient } from '../../test/render';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -65,7 +66,7 @@ const bodyOf = (fragment: string) => {
 
 async function mount(status: unknown) {
     serve(status);
-    render(<SecuritySection />);
+    renderWithClient(<SecuritySection />);
     await screen.findByRole('heading', { name: 'Security' });
 }
 

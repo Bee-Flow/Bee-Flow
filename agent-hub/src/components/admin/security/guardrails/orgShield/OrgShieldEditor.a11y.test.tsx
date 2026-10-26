@@ -19,9 +19,10 @@
  * Run: npx vitest run src/components/admin/guardrails/orgShield/OrgShieldEditor.a11y.test.jsx
  */
 
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderWithClient } from '@/test/render';
 
 vi.mock('../../../../../utils/helpers', () => ({
     API_BASE: '',
@@ -68,7 +69,7 @@ beforeEach(() => {
 
 async function renderOn(tabName?: string | RegExp) {
     const user = userEvent.setup();
-    render(<OrgShieldEditor orgId={ORG_ID} />);
+    renderWithClient(<OrgShieldEditor orgId={ORG_ID} />);
     await waitFor(() => expect(screen.getByRole('tab', { name: /Overview/ })).toBeInTheDocument());
     if (tabName) await user.click(screen.getByRole('tab', { name: tabName }));
     return user;
@@ -174,7 +175,7 @@ describe('Privacy Shield accessibility', () => {
             if (url.includes('/api/org-privacy-shield/')) return ok(SHIELD);
             return ok({});
         });
-        render(<OrgShieldEditor allowOrgPicker />);
+        renderWithClient(<OrgShieldEditor allowOrgPicker />);
         await waitFor(() => expect(screen.getByRole('combobox')).toBeInTheDocument());
         expect(screen.getByRole('combobox')).toHaveAccessibleName();
     });

@@ -1,72 +1,54 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import * as api from '../../../api/transcriptionsApi';
+import { useCallback, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { meetingNotesKey, useTranscriptionsQuery } from '../../../api/queries/meetingLibrary';
 import type { MeetingNote, MeetingRowPatch } from '../detail/meetingDetailTypes';
 
+const NO_NOTES: MeetingNote[] = [];
+
+/**
+ * The library's notes. The list re-reads itself while any note is still
+ * transcribing (see useTranscriptionsQuery); `reload` is the explicit re-read
+ * that shows the spinner, and the *Local functions edit the cached list in
+ * place (rename, delete, a note that was just created).
+ */
 export default function useTranscriptions() {
-    const [items, setItems] = useState<MeetingNote[]>([]);
-    const [loading, setLoading] = useState<boolean>(true);
-    const [error, setError] = useState<unknown>(null);
-    const mounted = useRef(true);
+    const queryClient = useQueryClient();
+    const query = useTranscriptionsQuery();
+    const { refetch } = query;
+    const [reloading, setReloading] = useState(false);
 
-    // React 18 Strict Mode runs effects mount → unmount → mount in dev. A naïve
-    // `mounted.current = false` on cleanup leaves the ref stuck at false for
-    // the remounted instance, and the in-flight fetch's success branch never
-    // calls setLoading(false) — UI hangs on the spinner forever. Resetting
-    // the ref on every mount keeps the guard correct for the *current*
-    // mounted instance.
-    useEffect(() => {
-        mounted.current = true;
-        return () => { mounted.current = false; };
-    }, []);
+    const reload = useCallback(async () => {
+        setReloading(true);
+        try { await refetch(); } finally { setReloading(false); }
+    }, [refetch]);
 
-    const load = useCallback(async (showSpinner: boolean) => {
-        if (showSpinner) setLoading(true);
-        try {
-            const list = await api.listTranscriptions();
-            if (mounted.current) {
-                setItems(list);
-                setError(null);
-            }
-        } catch (err) {
-            if (mounted.current) setError(err);
-        } finally {
-            if (mounted.current && showSpinner) setLoading(false);
-        }
-    }, []);
-
-    const reload = useCallback(() => load(true), [load]);
-
-    useEffect(() => { reload(); }, [reload]);
-
-    // While any note is still transcribing (async pipeline), poll quietly so the
-    // list flips it from a spinner to the finished note without a manual refresh.
-    // Depend on the derived boolean, not `items`: every poll result is a fresh
-    // array, which used to tear down and recreate the interval every 4s.
-    const hasProcessing = items.some((t: MeetingNote) => t.status === 'processing');
-    useEffect(() => {
-        if (!hasProcessing) return;
-        const interval = setInterval(() => { load(false); }, 4000);
-        return () => clearInterval(interval);
-    }, [hasProcessing, load]);
+    const edit = useCallback((update: (prev: MeetingNote[]) => MeetingNote[]) => {
+        queryClient.setQueryData<MeetingNote[]>(meetingNotesKey, (prev) => update(prev ?? NO_NOTES));
+    }, [queryClient]);
 
     const removeLocal = useCallback((id: string) => {
-        setItems((prev: MeetingNote[]) => prev.filter((t: MeetingNote) => t.id !== id));
-    }, []);
+        edit((prev) => prev.filter((t) => t.id !== id));
+    }, [edit]);
 
     const patchLocal = useCallback((id: string, patch: MeetingRowPatch) => {
-        setItems((prev: MeetingNote[]) => prev.map((t: MeetingNote) => (t.id === id ? { ...t, ...patch } : t)));
-    }, []);
+        edit((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+    }, [edit]);
 
     const upsertLocal = useCallback((item: MeetingNote | null | undefined) => {
         if (!item || !item.id) return;
-        setItems((prev: MeetingNote[]) => {
-            const idx = prev.findIndex((t: MeetingNote) => t.id === item.id);
+        edit((prev) => {
+            const idx = prev.findIndex((t) => t.id === item.id);
             if (idx === -1) return [item, ...prev];
             const next = [...prev];
             next[idx] = { ...next[idx], ...item };
             return next;
         });
-    }, []);
+    }, [edit]);
 
-    return { items, loading, error, reload, removeLocal, patchLocal, upsertLocal };
+    return {
+        items: query.data ?? NO_NOTES,
+        loading: query.isPending || reloading,
+        error: query.error,
+        reload, removeLocal, patchLocal, upsertLocal,
+    };
 }
