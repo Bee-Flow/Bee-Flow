@@ -5,6 +5,7 @@ import DiagramPaneJs, {
     NODE_TYPES, buildStepFromPayload, applyAddNode, createsCycle, branchFromHandle,
 } from './DiagramPane';
 import * as paneModule from './DiagramPane';
+import userEvent from '@testing-library/user-event';
 
 // DiagramPane is a .jsx forwardRef; its props are only guessed from defaults.
 const DiagramPane = DiagramPaneJs as unknown as React.ComponentType<Record<string, unknown>>;
@@ -61,20 +62,22 @@ describe('DiagramPane — characterisation', () => {
         expect(typeof branchFromHandle).toBe('function');
     });
 
-    it('context menu Delete bridges the chain around the removed step', () => {
+    it('context menu Delete bridges the chain around the removed step', async () => {
+        const user = userEvent.setup();
         const { container, onDefinitionChange } = renderCanvas();
         fireEvent.contextMenu(nodeEl(container, 'b'), { clientX: 200, clientY: 200 });
-        fireEvent.click(screen.getByRole('menuitem', { name: /^delete/i }));
+        await user.click(screen.getByRole('menuitem', { name: /^delete/i }));
         expect(onDefinitionChange).toHaveBeenCalledTimes(1);
         const next = lastDef(onDefinitionChange);
         expect(next.steps.map(s => s.id)).toEqual(['a', 'c']);
         expect(next.edges).toEqual(expect.arrayContaining([{ from: 'trg', to: 'a' }, expect.objectContaining({ from: 'a', to: 'c' })]));
     });
 
-    it('context menu Duplicate adds one copy of the step', () => {
+    it('context menu Duplicate adds one copy of the step', async () => {
+        const user = userEvent.setup();
         const { container, onDefinitionChange } = renderCanvas();
         fireEvent.contextMenu(nodeEl(container, 'a'), { clientX: 200, clientY: 200 });
-        fireEvent.click(screen.getByRole('menuitem', { name: /duplicate/i }));
+        await user.click(screen.getByRole('menuitem', { name: /duplicate/i }));
         expect(onDefinitionChange).toHaveBeenCalledTimes(1);
         const next = lastDef(onDefinitionChange);
         expect(next.steps).toHaveLength(4);
@@ -87,7 +90,8 @@ describe('DiagramPane — characterisation', () => {
         expect(screen.queryByRole('menuitem', { name: /duplicate/i })).toBeNull();
     });
 
-    it('letter keys on one selected step: D duplicates, U disconnects, R runs up to it', () => {
+    it('letter keys on one selected step: D duplicates, U disconnects, R runs up to it', async () => {
+        const user = userEvent.setup();
         const onExecuteStep = vi.fn();
         const { container, onDefinitionChange } = renderCanvas({ onExecuteStep });
         fireEvent.click(nodeEl(container, 'b'));
@@ -102,7 +106,8 @@ describe('DiagramPane — characterisation', () => {
         expect(onExecuteStep).toHaveBeenCalledWith('b', { mode: 'upTo' });
     });
 
-    it('P on a selected step with a run output pins it; a modifier combo does nothing', () => {
+    it('P on a selected step with a run output pins it; a modifier combo does nothing', async () => {
+        const user = userEvent.setup();
         const runSteps = [{ stepId: 'a', status: 'success', output: { ok: 1 }, finishedAt: '2026-01-01T00:00:00Z' }];
         const { container, onDefinitionChange } = renderCanvas({ runSteps });
         fireEvent.click(nodeEl(container, 'a'));
@@ -138,7 +143,8 @@ describe('DiagramPane — characterisation', () => {
         expect(Object.keys(ref.current!).sort()).toEqual(['focusStep', 'getCenter']);
     });
 
-    it('a delete while structural edits are blocked emits nothing', () => {
+    it('a delete while structural edits are blocked emits nothing', async () => {
+        const user = userEvent.setup();
         const { container, onDefinitionChange } = renderCanvas({ structuralEditsBlocked: true });
         fireEvent.contextMenu(nodeEl(container, 'a'), { clientX: 200, clientY: 200 });
         expect(screen.queryByRole('menuitem', { name: /^delete/i })).toBeNull();

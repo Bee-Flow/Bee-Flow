@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -41,12 +41,14 @@ const renderStage = (over = {}) => render(<AccessStage playbook={PB} phase={{ ..
 
 describe('AccessStage — proposed, then approved', () => {
     it('a sentence becomes a proposal and NOTHING is written by it', async () => {
+        const user = userEvent.setup();
         playbooksApi.accessPlan.mockResolvedValue({
             plan: { audience: { kind: 'groups', groupIds: ['g_fin'], groupNames: ['Finance'] }, roles: [{ key: 'approver', label: 'Approver' }], defaultRole: null, byGroup: { g_fin: 'approver' }, members: [{ userId: 'u_ann', roleKey: 'approver', name: 'Ann Blok' }], unresolved: [{ kind: 'person', name: 'Piet' }], note: 'Finance approves.', empty: false },
         });
         renderStage();
-        fireEvent.change(screen.getByTestId('playbook-access-ask'), { target: { value: 'Finance approves, Ann too' } });
-        await act(async () => { fireEvent.click(screen.getByTestId('playbook-access-ask-send')); });
+        await user.clear(screen.getByTestId('playbook-access-ask'));
+        await user.type(screen.getByTestId('playbook-access-ask'), 'Finance approves, Ann too');
+        await act(async () => { await user.click(screen.getByTestId('playbook-access-ask-send')); });
         await waitFor(() => expect(playbooksApi.accessPlan).toHaveBeenCalledWith('pb_1', 'access', 'Finance approves, Ann too'));
 
         // It is on screen, with what it could not find…
@@ -70,16 +72,18 @@ describe('AccessStage — proposed, then approved', () => {
     });
 
     it('Approve is what writes — roles, the person, the audience, then the phase lands', async () => {
+        const user = userEvent.setup();
         const dispatch = vi.fn();
         playbooksApi.accessPlan.mockResolvedValue({
             plan: { audience: { kind: 'organisation' }, roles: [{ key: 'approver', label: 'Approver' }], defaultRole: 'approver', byGroup: {}, members: [{ userId: 'u_ann', roleKey: 'approver', name: 'Ann Blok' }], unresolved: [], note: '', empty: false },
         });
         render(<AccessStage playbook={PB} phase={PHASE} dispatch={dispatch} t={t} />);
-        fireEvent.change(screen.getByTestId('playbook-access-ask'), { target: { value: 'everyone, Ann approves' } });
-        await act(async () => { fireEvent.click(screen.getByTestId('playbook-access-ask-send')); });
+        await user.clear(screen.getByTestId('playbook-access-ask'));
+        await user.type(screen.getByTestId('playbook-access-ask'), 'everyone, Ann approves');
+        await act(async () => { await user.click(screen.getByTestId('playbook-access-ask-send')); });
         await waitFor(() => expect(screen.getByTestId('playbook-access-approve').disabled).toBe(false));
 
-        await act(async () => { fireEvent.click(screen.getByTestId('playbook-access-approve')); });
+        await act(async () => { await user.click(screen.getByTestId('playbook-access-approve')); });
         await waitFor(() => expect(saveRoles).toHaveBeenCalledWith(
             [{ key: 'viewer', label: 'Viewer' }, { key: 'approver', label: 'Approver' }],
             { default: 'approver', byGroup: {} },
@@ -101,7 +105,7 @@ describe('AccessStage — proposed, then approved', () => {
         await user.click(screen.getByTestId('playbook-access-audience-private'));
         expect(screen.getByTestId('playbook-access-approve').disabled).toBe(false);
         expect(studioAppsApi.publish).not.toHaveBeenCalled();
-        await act(async () => { fireEvent.click(screen.getByTestId('playbook-access-approve')); });
+        await act(async () => { await user.click(screen.getByTestId('playbook-access-approve')); });
         await waitFor(() => expect(studioAppsApi.publish).toHaveBeenCalledWith('app_1', { isPublished: false }));
     });
 
@@ -109,8 +113,9 @@ describe('AccessStage — proposed, then approved', () => {
         const user = userEvent.setup();
         playbooksApi.accessPlan.mockResolvedValue({ plan: { audience: { kind: 'organisation' }, roles: [], byGroup: {}, members: [], unresolved: [], note: '', empty: false } });
         renderStage();
-        fireEvent.change(screen.getByTestId('playbook-access-ask'), { target: { value: 'everyone' } });
-        await act(async () => { fireEvent.click(screen.getByTestId('playbook-access-ask-send')); });
+        await user.clear(screen.getByTestId('playbook-access-ask'));
+        await user.type(screen.getByTestId('playbook-access-ask'), 'everyone');
+        await act(async () => { await user.click(screen.getByTestId('playbook-access-ask-send')); });
         await waitFor(() => expect(screen.getByTestId('playbook-access-approve').disabled).toBe(false));
         await user.click(screen.getByTestId('playbook-access-discard'));
         expect(screen.getByTestId('playbook-access-approve').disabled).toBe(true);
@@ -129,6 +134,7 @@ describe('AccessStage — proposed, then approved', () => {
     });
 
     it('a role per supplier: the rule is shown before Approve, and saved ON the table with the role', async () => {
+        const user = userEvent.setup();
         // The ask the demo makes: "a role for each supplier, that I can assign
         // to a user or group". The assistant read the values; each role says
         // what it will see BEFORE anything is written.
@@ -145,15 +151,16 @@ describe('AccessStage — proposed, then approved', () => {
         });
         const dispatch = vi.fn();
         render(<AccessStage playbook={PB} phase={PHASE} dispatch={dispatch} t={t} />);
-        fireEvent.change(screen.getByTestId('playbook-access-ask'), { target: { value: 'a role per supplier' } });
-        await act(async () => { fireEvent.click(screen.getByTestId('playbook-access-ask-send')); });
+        await user.clear(screen.getByTestId('playbook-access-ask'));
+        await user.type(screen.getByTestId('playbook-access-ask'), 'a role per supplier');
+        await act(async () => { await user.click(screen.getByTestId('playbook-access-ask-send')); });
 
         const shown = await screen.findByTestId('playbook-access-roles');
         expect(shown.textContent).toContain('sees only rows where supplier is ACME');
         expect(shown.textContent).toContain('sees every row');   // the unscoped one says so too
         expect(saveRoles).not.toHaveBeenCalled();
 
-        await act(async () => { fireEvent.click(screen.getByTestId('playbook-access-approve')); });
+        await act(async () => { await user.click(screen.getByTestId('playbook-access-approve')); });
         await waitFor(() => expect(saveRoles).toHaveBeenCalled());
         const [savedRoles, , savedTables] = saveRoles.mock.calls[0];
         expect(savedRoles.map((r) => r.key)).toEqual(['viewer', 'supplier_acme', 'controller']);
@@ -177,7 +184,7 @@ describe('AccessStage — proposed, then approved', () => {
         expect(box.checked).toBe(false);          // off by default (owner, 2026-09-16)
 
         // Approve without ticking: published, no menu call.
-        await act(async () => { fireEvent.click(screen.getByTestId('playbook-access-approve')); });
+        await act(async () => { await user.click(screen.getByTestId('playbook-access-approve')); });
         expect(studioAppsApi.publish).toHaveBeenCalledWith('app_1', { isPublished: true, sharedGroups: [] });
         expect(studioAppsApi.setNextcloudMenu).not.toHaveBeenCalled();
     });
@@ -189,7 +196,7 @@ describe('AccessStage — proposed, then approved', () => {
         await waitFor(() => expect(studioAppsApi.getApp).toHaveBeenCalled());
         await user.click(screen.getByTestId('playbook-access-audience-organisation'));
         await user.click(screen.getByTestId('playbook-access-nc-menu'));
-        await act(async () => { fireEvent.click(screen.getByTestId('playbook-access-approve')); });
+        await act(async () => { await user.click(screen.getByTestId('playbook-access-approve')); });
         expect(studioAppsApi.publish).toHaveBeenCalledWith('app_1', { isPublished: true, sharedGroups: [] });
         expect(studioAppsApi.setNextcloudMenu).toHaveBeenCalledWith('app_1', true);
         expect(screen.getByTestId('playbook-access-nc-result').textContent).toMatch(/reload Nextcloud/);
@@ -207,7 +214,7 @@ describe('AccessStage — proposed, then approved', () => {
         renderStage();
         await waitFor(() => expect(studioAppsApi.getApp).toHaveBeenCalled());
         await user.click(screen.getByTestId('playbook-access-audience-organisation'));
-        await act(async () => { fireEvent.click(screen.getByTestId('playbook-access-approve')); });
+        await act(async () => { await user.click(screen.getByTestId('playbook-access-approve')); });
         const list = await screen.findByTestId('playbook-access-blockers');
         expect(list.textContent).toContain('Screen "Dashboard" has no data source');
         expect(list.textContent).toContain('Action "save" points at a deleted step');
@@ -250,15 +257,18 @@ describe('AccessStage — a screen you can read', () => {
         expect(screen.getByTestId('playbook-access-approve').disabled).toBe(true);
     });
 
-    it('people are searchable instead of listed with an empty dropdown each', () => {
+    it('people are searchable instead of listed with an empty dropdown each', async () => {
+        const user = userEvent.setup();
         renderStage();
         const search = screen.getByTestId('playbook-access-people-search');
-        fireEvent.change(search, { target: { value: 'zzz' } });
+        await user.clear(search);
+        await user.type(search, 'zzz');
         expect(screen.getByTestId('playbook-access-people').textContent).toContain('Nobody by that name.');
-        fireEvent.change(search, { target: { value: 'ann' } });
+        await user.clear(search);
+        await user.type(search, 'ann');
         expect(screen.getByTestId('playbook-access-people').textContent).toContain('Ann Blok');
         // A role that is chosen says what it lets her SEE.
-        fireEvent.change(screen.getAllByLabelText('Role for Ann Blok')[0], { target: { value: 'app' } });
+        await user.selectOptions(screen.getAllByLabelText('Role for Ann Blok')[0], 'app');
         expect(screen.getByTestId('playbook-access-people').textContent).toContain('Can use the app');
     });
 
@@ -268,8 +278,9 @@ describe('AccessStage — a screen you can read', () => {
             plan: { audience: { kind: 'private' }, roles: [{ key: 'approver', label: 'Approver' }], byGroup: {}, members: [], unresolved: [], note: '', empty: false },
         });
         renderStage();
-        fireEvent.change(screen.getByTestId('playbook-access-ask'), { target: { value: 'me only' } });
-        await act(async () => { fireEvent.click(screen.getByTestId('playbook-access-ask-send')); });
+        await user.clear(screen.getByTestId('playbook-access-ask'));
+        await user.type(screen.getByTestId('playbook-access-ask'), 'me only');
+        await act(async () => { await user.click(screen.getByTestId('playbook-access-ask-send')); });
         // Private: no group can open it, so there is no group role to set.
         expect(screen.queryByTestId('playbook-access-group-roles')).toBeNull();
         await user.click(screen.getByTestId('playbook-access-audience-organisation'));

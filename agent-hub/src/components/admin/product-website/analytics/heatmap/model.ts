@@ -144,7 +144,7 @@ const TYPE_LABEL_KEYS: Record<string, string> = {
     chrome: 'cms_site.analytics.block_type.chrome',
 };
 /** Pass `t` (useTranslation) for a translated label; without it, English. */
-export const blockLabel = (type: string, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) => {
+export const blockLabel = (type: string, t?: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) => {
     if (TYPE_LABELS[type]) return t ? t(TYPE_LABEL_KEYS[type], TYPE_LABELS[type]) : TYPE_LABELS[type];
     if (!type) return t ? t('cms_site.analytics.block_type.block', 'Block') : 'Block';
     return String(type).replace(/[-_]/g, ' ').replace(/^./, c => c.toUpperCase());

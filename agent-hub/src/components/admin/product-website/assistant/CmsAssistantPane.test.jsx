@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -71,7 +71,8 @@ describe('CmsAssistantPane', () => {
             />,
         );
 
-        fireEvent.change(screen.getByPlaceholderText(/Describe what to build/), { target: { value: 'Add a pricing page' } });
+        await user.clear(screen.getByPlaceholderText(/Describe what to build/));
+        await user.type(screen.getByPlaceholderText(/Describe what to build/), 'Add a pricing page');
         await user.click(screen.getByText('Send'));
 
         await waitFor(() => expect(bridge.endTurn).toHaveBeenCalled());
@@ -110,7 +111,8 @@ describe('CmsAssistantPane', () => {
         });
 
         render(<CmsAssistantPane siteId={SITE_ID} bridge={bridge} pages={[]} canUndoTurn />);
-        fireEvent.change(screen.getByPlaceholderText(/Describe what to build/), { target: { value: 'Add pricing to the menu' } });
+        await user.clear(screen.getByPlaceholderText(/Describe what to build/));
+        await user.type(screen.getByPlaceholderText(/Describe what to build/), 'Add pricing to the menu');
         await user.click(screen.getByText('Send'));
 
         await waitFor(() => expect(bridge.endTurn).toHaveBeenCalled());
@@ -139,7 +141,8 @@ describe('CmsAssistantPane', () => {
         });
 
         render(<CmsAssistantPane siteId={SITE_ID} bridge={bridge} pages={[]} canUndoTurn />);
-        fireEvent.change(screen.getByPlaceholderText(/Describe what to build/), { target: { value: 'Make it look like a dark dev tool' } });
+        await user.clear(screen.getByPlaceholderText(/Describe what to build/));
+        await user.type(screen.getByPlaceholderText(/Describe what to build/), 'Make it look like a dark dev tool');
         await user.click(screen.getByText('Send'));
 
         await waitFor(() => expect(bridge.endTurn).toHaveBeenCalled());
@@ -167,7 +170,8 @@ describe('CmsAssistantPane', () => {
         });
 
         render(<CmsAssistantPane siteId={SITE_ID} bridge={bridge} pages={[]} canUndoTurn />);
-        fireEvent.change(screen.getByPlaceholderText(/Describe what to build/), { target: { value: 'Retheme and fix the menu' } });
+        await user.clear(screen.getByPlaceholderText(/Describe what to build/));
+        await user.type(screen.getByPlaceholderText(/Describe what to build/), 'Retheme and fix the menu');
         await user.click(screen.getByText('Send'));
 
         await waitFor(() => expect(bridge.endTurn).toHaveBeenCalled());
@@ -186,7 +190,8 @@ describe('CmsAssistantPane', () => {
             return sseResponse([['error', { message: 'nope', code: 'budget_exhausted' }]]);
         });
         render(<CmsAssistantPane siteId={SITE_ID} bridge={bridge} pages={[]} />);
-        fireEvent.change(screen.getByPlaceholderText(/Describe what to build/), { target: { value: 'go' } });
+        await user.clear(screen.getByPlaceholderText(/Describe what to build/));
+        await user.type(screen.getByPlaceholderText(/Describe what to build/), 'go');
         await user.click(screen.getByText('Send'));
         await screen.findByText(/hit its per-turn limit/);
         expect(bridge.endTurn).toHaveBeenCalledWith({ failed: true });

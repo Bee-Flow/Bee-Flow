@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import ButtonInspector from './ButtonInspector';
 import CardInspector from './CardInspector';
@@ -110,11 +111,12 @@ describe('look selects — bespoke panels in lockstep with the server enums', ()
         expect(spec.values[0]).toBe(spec.default);
     });
 
-    it.each(CASES)('%s: picking a non-default %s commits it', (type, Comp, propKey, name, node) => {
+    it.each(CASES)('%s: picking a non-default %s commits it', async (type, Comp, propKey, name, node) => {
+        const user = userEvent.setup();
         const spec = COMPONENT_SPECS[type].props[propKey];
         const picked = spec.values[spec.values.length - 1];
         const { onCommit, getByRole } = renderInspector(Comp, node);
-        fireEvent.change(getByRole('combobox', { name }), { target: { value: picked } });
+        await user.selectOptions(getByRole('combobox', { name }), picked);
         expect(onCommit).toHaveBeenCalledTimes(1);
         expect(findNode(onCommit.mock.calls[0][0], node.id).node.props[propKey]).toBe(picked);
     });

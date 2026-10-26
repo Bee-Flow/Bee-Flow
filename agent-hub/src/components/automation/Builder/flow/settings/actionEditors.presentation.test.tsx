@@ -1,0 +1,59 @@
+import { render, screen, cleanup } from '@testing-library/react';
+import React from 'react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { SlideFields, PresentationFields } from './actionEditors';
+import userEvent from '@testing-library/user-event';
+
+/**
+ * The slide's Visual picker reveals only the fields of the chosen visual,
+ * and the deck's Look section carries the logo and the "more" options.
+ */
+
+beforeEach(() => cleanup());
+
+describe('SlideFields — visuals', () => {
+    it('opens on the visual the step carries and shows that visual\'s fields only', async () => {
+        const user = userEvent.setup();
+        const set = vi.fn();
+        render(<SlideFields draft={{ title: 'Omzet', visual: 'chart', chartType: 'line', chartData: '{{steps.q.output.rows}}' }} set={set} groups={[]} />);
+        expect((screen.getByTestId('slide-visual') as HTMLInputElement).value).toBe('chart');
+        expect((screen.getByTestId('slide-chart-type') as HTMLInputElement).value).toBe('line');
+        expect(screen.getByTestId('slide-chart-labels')).toBeTruthy();
+        expect(screen.queryByText('Tiles')).toBeNull();
+        await user.selectOptions(screen.getByTestId('slide-chart-type'), 'donut');
+        expect(set).toHaveBeenCalledWith('chartType', 'donut');
+        await user.selectOptions(screen.getByTestId('slide-visual'), 'stats');
+        expect(set).toHaveBeenCalledWith('visual', 'stats');
+    });
+
+    it('stats shows the tiles field, timeline a note, none nothing extra; the slide style select sits under Options', async () => {
+        const user = userEvent.setup();
+        const set = vi.fn();
+        const { rerender } = render(<SlideFields draft={{ title: 'T', visual: 'stats', stats: '' }} set={set} groups={[]} />);
+        expect(screen.getByText('Tiles')).toBeTruthy();
+        rerender(<SlideFields draft={{ title: 'T', visual: 'timeline' }} set={set} groups={[]} />);
+        expect(screen.getByText(/become numbered steps/)).toBeTruthy();
+        rerender(<SlideFields draft={{ title: 'T', visual: 'none', style: 'accent' }} set={set} groups={[]} />);
+        expect(screen.queryByTestId('slide-chart-type')).toBeNull();
+        if (!screen.queryByTestId('slide-style')) await user.click(screen.getByRole('button', { name: /options/i }));
+        expect((screen.getByTestId('slide-style') as HTMLInputElement).value).toBe('accent');
+        await user.selectOptions(screen.getByTestId('slide-style'), 'dark');
+        expect(set).toHaveBeenCalledWith('style', 'dark');
+    });
+});
+
+describe('PresentationFields — look', () => {
+    it('carries logo, placement and the "more" options, each writing its own key', async () => {
+        const user = userEvent.setup();
+        const set = vi.fn();
+        render(<PresentationFields draft={{ slidesMode: 'source', slides: 'x', logo: 'none', logoPlacement: 'corner', slideNumbers: 'false', background: '#16191F' }} set={set} />);
+        expect((screen.getByTestId('presentation-logo-placement') as HTMLInputElement).value).toBe('corner');
+        await user.selectOptions(screen.getByTestId('presentation-logo-placement'), 'footer');
+        expect(set).toHaveBeenCalledWith('logoPlacement', 'footer');
+        expect((screen.getByTestId('presentation-slide-numbers') as HTMLInputElement).value).toBe('false');
+        await user.selectOptions(screen.getByTestId('presentation-slide-numbers'), '');
+        expect(set).toHaveBeenCalledWith('slideNumbers', '');
+        expect((screen.getByLabelText('Background colour') as HTMLInputElement).value).toBe('#16191f');
+        expect(screen.getByText('More look options')).toBeTruthy();
+    });
+});

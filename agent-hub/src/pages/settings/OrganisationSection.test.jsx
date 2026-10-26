@@ -240,7 +240,8 @@ describe('OrganisationSection — the org save bar', () => {
         expect(handleSave).toHaveBeenCalledTimes(1);
     });
 
-    it('does not blow up when the panel reported changes but no handleSave', () => {
+    it('does not blow up when the panel reported changes but no handleSave', async () => {
+        const user = userEvent.setup();
         // React reports an uncaught handler error through reportError(), which
         // jsdom turns into a window 'error' event — asserting on the click
         // returning normally would NOT catch a missing `?.` guard.
@@ -249,7 +250,7 @@ describe('OrganisationSection — the org save bar', () => {
         try {
             mountInfo();
             emit({ hasChanges: true, saving: false, message: null, handleSave: null });
-            fireEvent.click(saveButton());
+            await user.click(saveButton());
         } finally {
             window.removeEventListener('error', onError);
         }
@@ -363,8 +364,9 @@ describe('OrganisationSection — the Integrations section', () => {
     });
 
     const settingsTab = async (over) => {
+        const user = userEvent.setup();
         mountInt(over);
-        fireEvent.click(screen.getByRole('tab', { name: 'Integration settings' }));
+        await user.click(screen.getByRole('tab', { name: 'Integration settings' }));
         await screen.findByText('Configure the integrations themselves — credentials, instance URLs and workflows.');
     };
 
@@ -449,11 +451,12 @@ describe('OrganisationSection — the Meeting templates section', () => {
 
 describe('OrganisationSection — the Google Maps integration row', () => {
     const openMaps = async ({ hasGoogleMapsKey = false } = {}) => {
+        const user = userEvent.setup();
         authFetch.mockImplementation(async (_url, opts = {}) => (
             opts.method === 'POST' ? jsonRes({ ok: true }) : jsonRes({ hasGoogleMapsKey })
         ));
         const view = mount({ user: ORG_ADMIN, activeSection: 'integrations' });
-        fireEvent.click(screen.getByRole('tab', { name: 'Integration settings' }));
+        await user.click(screen.getByRole('tab', { name: 'Integration settings' }));
         await screen.findByText('Google Maps');
         await waitFor(() => expect(authFetch).toHaveBeenCalledWith('/ai/config'));
         return view;
@@ -513,7 +516,8 @@ describe('OrganisationSection — the Google Maps integration row', () => {
         await user.click(mapsToggle());
         const save = screen.getByRole('button', { name: 'Save changes' });
         expect(save).toBeDisabled();
-        fireEvent.change(keyInput(container), { target: { value: '   ' } });
+        await user.clear(keyInput(container));
+        await user.type(keyInput(container), '   ');
         expect(save).toBeDisabled();
         // The button is unclickable, but Enter reaches save() directly.
         fireEvent.keyDown(keyInput(container), { key: 'Enter' });
@@ -525,7 +529,8 @@ describe('OrganisationSection — the Google Maps integration row', () => {
         const user = userEvent.setup();
         const { container } = await openMaps();
         await user.click(mapsToggle());
-        fireEvent.change(keyInput(container), { target: { value: 'AIza-secret' } });
+        await user.clear(keyInput(container));
+        await user.type(keyInput(container), 'AIza-secret');
         await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
         await waitFor(() => expect(posts()).toHaveLength(1));
@@ -542,7 +547,8 @@ describe('OrganisationSection — the Google Maps integration row', () => {
         const user = userEvent.setup();
         const { container } = await openMaps();
         await user.click(mapsToggle());
-        fireEvent.change(keyInput(container), { target: { value: 'k' } });
+        await user.clear(keyInput(container));
+        await user.type(keyInput(container), 'k');
         fireEvent.keyDown(keyInput(container), { key: 'Enter' });
         await waitFor(() => expect(posts()).toHaveLength(1));
     });
@@ -556,7 +562,8 @@ describe('OrganisationSection — the Google Maps integration row', () => {
         await user.click(screen.getByRole('tab', { name: 'Integration settings' }));
         await screen.findByText('Google Maps');
         await user.click(mapsToggle());
-        fireEvent.change(keyInput(container), { target: { value: 'wrong' } });
+        await user.clear(keyInput(container));
+        await user.type(keyInput(container), 'wrong');
         await user.click(screen.getByRole('button', { name: 'Save changes' }));
 
         await waitFor(() => expect(posts()).toHaveLength(1));
@@ -576,7 +583,8 @@ describe('OrganisationSection — the Google Maps integration row', () => {
         await user.click(screen.getByRole('tab', { name: 'Integration settings' }));
         await screen.findByText('Google Maps');
         await user.click(mapsToggle());
-        fireEvent.change(keyInput(container), { target: { value: 'boom' } });
+        await user.clear(keyInput(container));
+        await user.type(keyInput(container), 'boom');
         await user.click(screen.getByRole('button', { name: 'Save changes' }));
         await waitFor(() => expect(screen.getByRole('button', { name: 'Save changes' })).toBeEnabled());
         expect(keyInput(container)).toHaveValue('boom');

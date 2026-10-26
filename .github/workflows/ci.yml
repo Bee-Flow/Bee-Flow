@@ -512,7 +512,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: echo "all=true" >> "$GITHUB_OUTPUT"
       # The published frontend image ships with the RUM beacon OFF (why:
-      # agent-hub/src/telemetry/openobserve.optIn.test.js). Every
+      # agent-hub/src/telemetry/openobserve.optIn.test.ts). Every
       # VITE_OPENOBSERVE_ENABLE= in the release workflow must say exactly
       # `false`, and there must be at least one. This was a vitest case, which
       # put build-push-ghcr.yml in the frontend filter: every edit to it ran

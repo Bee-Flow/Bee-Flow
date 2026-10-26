@@ -176,12 +176,13 @@ describe('PublishModal — the Nextcloud app menu', () => {
     const NC_MENU = /Show in the Nextcloud app menu/i;
 
     async function applyWithMenu(app, { tick = true } = {}) {
+        const user = userEvent.setup();
         const onPublished = vi.fn();
         render(<PublishModal open app={app} onClose={vi.fn()} onPublished={onPublished} />);
-        if (!app.isPublished) fireEvent.click(screen.getByRole('radio', { name: /Entire organization/i }));
+        if (!app.isPublished) await user.click(screen.getByRole('radio', { name: /Entire organization/i }));
         const box = screen.getByRole('checkbox', { name: NC_MENU });
-        if (box.checked !== tick) fireEvent.click(box);
-        fireEvent.click(screen.getByRole('button', { name: 'Apply' }));
+        if (box.checked !== tick) await user.click(box);
+        await user.click(screen.getByRole('button', { name: 'Apply' }));
         await waitFor(() => expect(onPublished).toHaveBeenCalled());
         return onPublished;
     }

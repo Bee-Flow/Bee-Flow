@@ -1,0 +1,85 @@
+/**
+ * useAgentConceptFacts: the draft reading behind the language chip and the role cards.
+ *
+ * The whole hook exists to fetch the persona of the DRAFT, and that is only
+ * possible with `?draft=1`. Without that parameter, `GET /agents/:id` answers with
+ * the runtime projection, and there the persona column has been stripped out.
+ *
+ * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/builderSplit/useAgentConceptFacts.test.jsx
+ */
+import { waitFor, cleanup } from '@testing-library/react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+const calls: unknown[] = [];
+let handler: (url: string, opts?: unknown) => Promise<unknown> = async () => ({ ok: true, json: async () => ({}) });
+
+vi.mock('../../../../utils/helpers', () => ({
+    API_BASE: '',
+    authFetch: vi.fn(async (url, opts = {}) => {
+        calls.push(url);
+        return handler(url, opts);
+    }),
+}));
+
+import { renderHookWithClient as renderHook } from '@/test/render';
+import useAgentConceptFacts from './useAgentConceptFacts';
+import { READ } from '../canUse/canUseFacts';
+
+const PERSONA = { who: 'A colleague.', mode: 'fields', language: 'nl' };
+
+beforeEach(() => {
+    calls.length = 0;
+    handler = async () => ({ ok: true, json: async () => ({ persona: PERSONA, unpublishedChanges: 3 }) });
+});
+afterEach(() => cleanup());
+
+// The hook reads through react-query: every render gets its own client.
+
+describe('useAgentConceptFacts', () => {
+    it('vraagt de CONCEPTweergave op — zonder ?draft=1 komt er nooit een persona mee', async () => {
+        const { result } = renderHook(() => useAgentConceptFacts('ag1'));
+        await waitFor(() => expect(result.current.personaState).toBe(READ.OK));
+        expect(calls).toHaveLength(1);
+        expect(calls[0]).toContain('?draft=1');
+        expect(result.current.persona).toEqual(PERSONA);
+        expect(result.current.unpublishedChanges).toBe(3);
+    });
+
+    it('codeert het agent-id in het pad', async () => {
+        renderHook(() => useAgentConceptFacts('ag/1'));
+        await waitFor(() => expect(calls).toHaveLength(1));
+        expect(calls[0]).toBe('/agents/ag%2F1?draft=1');
+    });
+
+    it('meldt een antwoord ZONDER persona als onbekend, niet als lege rol', async () => {
+        handler = async () => ({ ok: true, json: async () => ({ unpublishedChanges: 0 }) });
+        const { result } = renderHook(() => useAgentConceptFacts('ag1'));
+        await waitFor(() => expect(result.current.personaState).toBe(READ.ERROR));
+        expect(result.current.persona).toBe(null);
+    });
+
+    it('meldt een mislukte lezing als onbekend', async () => {
+        handler = async () => ({ ok: false, json: async () => ({}) });
+        const { result } = renderHook(() => useAgentConceptFacts('ag1'));
+        await waitFor(() => expect(result.current.personaState).toBe(READ.ERROR));
+        expect(result.current.persona).toBe(null);
+        expect(result.current.unpublishedChanges).toBe(null);
+    });
+
+    it('meldt een gooiende lezing als onbekend', async () => {
+        handler = async () => { throw new Error('boom'); };
+        const { result } = renderHook(() => useAgentConceptFacts('ag1'));
+        await waitFor(() => expect(result.current.personaState).toBe(READ.ERROR));
+        expect(result.current.persona).toBe(null);
+    });
+
+    it('geeft de feiten van een VORIGE agent niet door bij het wisselen', async () => {
+        const { result, rerender } = renderHook(({ id }) => useAgentConceptFacts(id), {
+            initialProps: { id: 'ag1' },
+        });
+        await waitFor(() => expect(result.current.persona).toEqual(PERSONA));
+        rerender({ id: 'ag2' });
+        expect(result.current.persona).toBe(null);
+        expect(result.current.personaState).toBe(READ.LOADING);
+    });
+});

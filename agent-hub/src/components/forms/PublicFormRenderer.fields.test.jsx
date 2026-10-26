@@ -77,14 +77,15 @@ describe('PublicFormRenderer — how each declared type renders', () => {
         expect(select.value).toBe('');
     });
 
-    it('shows and picks options stored the way the form builder saves them, as plain strings (BFSF-483)', () => {
+    it('shows and picks options stored the way the form builder saves them, as plain strings (BFSF-483)', async () => {
+        const user = userEvent.setup();
         // "Test this form" hands over the raw declaration: ['Sales', 'Support'].
         // Read as objects they rendered as empty, valueless rows.
         renderForm([{ name: 'topic', type: 'select', label: 'Topic', options: ['Sales', 'Support'] }]);
         const select = screen.getByLabelText('Topic');
         const options = [...select.querySelectorAll('option')];
         expect(options.map(o => [o.value, o.textContent])).toEqual([['', 'Choose…'], ['Sales', 'Sales'], ['Support', 'Support']]);
-        fireEvent.change(select, { target: { value: 'Support' } });
+        await user.selectOptions(select, 'Support');
         expect(select.value).toBe('Support');
     });
 
@@ -158,7 +159,8 @@ describe('PublicFormRenderer — what counts as an answer', () => {
     it('treats spaces as nothing at all', async () => {
         const user = userEvent.setup();
         const { onSubmit } = renderForm([{ name: 'name', type: 'text', label: 'Your name', required: true }]);
-        fireEvent.change(screen.getByLabelText(/Your name/), { target: { value: '   ' } });
+        await user.clear(screen.getByLabelText(/Your name/));
+        await user.type(screen.getByLabelText(/Your name/), '   ');
         await user.click(send());
         expect(await screen.findByText('Your name is required.')).toBeTruthy();
         expect(onSubmit).not.toHaveBeenCalled();
@@ -167,7 +169,8 @@ describe('PublicFormRenderer — what counts as an answer', () => {
     it('accepts a zero as an answer to a required number', async () => {
         const user = userEvent.setup();
         const { onSubmit } = renderForm([{ name: 'count', type: 'number', label: 'How many', required: true }]);
-        fireEvent.change(screen.getByLabelText(/How many/), { target: { value: '0' } });
+        await user.clear(screen.getByLabelText(/How many/));
+        await user.type(screen.getByLabelText(/How many/), '0');
         await user.click(send());
         await waitFor(() => expect(onSubmit).toHaveBeenCalled());
         expect(onSubmit.mock.calls[0][0].count).toBe('0');
@@ -203,7 +206,8 @@ describe('PublicFormRenderer — what counts as an answer', () => {
             { name: 'email', type: 'email', label: 'Your email', required: true },
         ]);
         expect(container.querySelector('form').noValidate).toBe(true);
-        fireEvent.change(screen.getByLabelText(/Your email/), { target: { value: 'nope' } });
+        await user.clear(screen.getByLabelText(/Your email/));
+        await user.type(screen.getByLabelText(/Your email/), 'nope');
         await user.click(send());
         await waitFor(() => expect(onSubmit).toHaveBeenCalled());
         expect(onSubmit.mock.calls[0][0].email).toBe('nope');
@@ -215,7 +219,8 @@ describe('PublicFormRenderer — what counts as an answer', () => {
         await user.click(send());
         await screen.findByText('Your name is required.');
 
-        fireEvent.change(screen.getByLabelText(/Your name/), { target: { value: 'Jane' } });
+        await user.clear(screen.getByLabelText(/Your name/));
+        await user.type(screen.getByLabelText(/Your name/), 'Jane');
         expect(screen.queryByText('Your name is required.')).toBeNull();
     });
 });
@@ -224,12 +229,14 @@ describe('PublicFormRenderer — sending it', () => {
     const one = [{ name: 'name', type: 'text', label: 'Your name' }];
 
     it('sends every declared key plus the empty honeypot', async () => {
+        const user = userEvent.setup();
         const { onSubmit } = renderForm([
             ...one,
             { name: 'agree', type: 'checkbox', label: 'I agree' },
             { name: 'proof', type: 'file', label: 'Proof', maxSizeMb: 5 },
         ]);
-        fireEvent.change(screen.getByLabelText('Your name'), { target: { value: 'Jane' } });
+        await user.clear(screen.getByLabelText('Your name'));
+        await user.type(screen.getByLabelText('Your name'), 'Jane');
         await userEvent.click(send());
 
         await waitFor(() => expect(onSubmit).toHaveBeenCalled());

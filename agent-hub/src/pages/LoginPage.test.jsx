@@ -396,7 +396,8 @@ describe('the second factor', () => {
         const user = userEvent.setup();
         route('/auth/mfa/verify-login', () => ok({ success: true, user: { id: 'u1' } }));
         await arriveAtMfa();
-        fireEvent.change(screen.getByTestId('mfa-code-input'), { target: { value: '123456' } });
+        await user.clear(screen.getByTestId('mfa-code-input'));
+        await user.type(screen.getByTestId('mfa-code-input'), '123456');
         await user.click(screen.getByTestId('mfa-verify-button'));
         await waitFor(() => expect(callTo('/auth/mfa/verify-login')).toBeTruthy());
         expect(bodyOf(callTo('/auth/mfa/verify-login'))).toEqual({ code: '123456' });
@@ -406,7 +407,8 @@ describe('the second factor', () => {
         const user = userEvent.setup();
         route('/auth/mfa/verify-login', () => ok({ success: true, user: { id: 'u1' }, recoveryKey: 'RK-9' }));
         const { onLogin } = await arriveAtMfa();
-        fireEvent.change(screen.getByTestId('mfa-code-input'), { target: { value: '123456' } });
+        await user.clear(screen.getByTestId('mfa-code-input'));
+        await user.type(screen.getByTestId('mfa-code-input'), '123456');
         await user.click(screen.getByTestId('mfa-verify-button'));
         await waitFor(() => expect(onLogin).toHaveBeenCalledWith({ id: 'u1' }, 'RK-9'));
     });
@@ -415,7 +417,8 @@ describe('the second factor', () => {
         const user = userEvent.setup();
         route('/auth/mfa/verify-login', () => fail(401, { error: 'Invalid or expired code' }));
         await arriveAtMfa();
-        fireEvent.change(screen.getByTestId('mfa-code-input'), { target: { value: '000000' } });
+        await user.clear(screen.getByTestId('mfa-code-input'));
+        await user.type(screen.getByTestId('mfa-code-input'), '000000');
         await user.click(screen.getByTestId('mfa-verify-button'));
         expect(await screen.findByText('Invalid or expired code')).toBeInTheDocument();
         expect(screen.getByTestId('mfa-code-input')).toBeInTheDocument();
@@ -425,7 +428,8 @@ describe('the second factor', () => {
         const user = userEvent.setup();
         route('/auth/mfa/verify-login', () => fail(401, {}));
         await arriveAtMfa();
-        fireEvent.change(screen.getByTestId('mfa-code-input'), { target: { value: '000000' } });
+        await user.clear(screen.getByTestId('mfa-code-input'));
+        await user.type(screen.getByTestId('mfa-code-input'), '000000');
         await user.click(screen.getByTestId('mfa-verify-button'));
         expect(await screen.findByText('Invalid code. Please try again.')).toBeInTheDocument();
     });
@@ -434,7 +438,8 @@ describe('the second factor', () => {
         const user = userEvent.setup();
         route('/auth/mfa/verify-login', () => Promise.reject(new Error('offline')));
         await arriveAtMfa();
-        fireEvent.change(screen.getByTestId('mfa-code-input'), { target: { value: '123456' } });
+        await user.clear(screen.getByTestId('mfa-code-input'));
+        await user.type(screen.getByTestId('mfa-code-input'), '123456');
         await user.click(screen.getByTestId('mfa-verify-button'));
         expect(await screen.findByText('login.connection_error')).toBeInTheDocument();
     });

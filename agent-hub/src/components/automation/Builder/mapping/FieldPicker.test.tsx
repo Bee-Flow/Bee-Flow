@@ -52,10 +52,12 @@ describe('FieldPicker', () => {
         expect(screen.getByText('gmail search')).toBeTruthy();
     });
 
-    it('filters as you type', () => {
+    it('filters as you type', async () => {
+        const user = userEvent.setup();
         renderPicker();
         open();
-        fireEvent.change(screen.getByPlaceholderText('Search fields…'), { target: { value: 'from' } });
+        await user.clear(screen.getByPlaceholderText('Search fields…'));
+        await user.type(screen.getByPlaceholderText('Search fields…'), 'from');
         expect(screen.getByText('From email')).toBeTruthy();
         expect(screen.queryByText('Subject')).toBeNull();
     });
@@ -65,7 +67,8 @@ describe('FieldPicker', () => {
         const { onChange } = renderPicker({ options: [], value: null });
         await user.click(screen.getByRole('button', { name: /Choose a field/ }));
         expect(screen.getByText(/No sample data yet/)).toBeTruthy();
-        fireEvent.change(screen.getByPlaceholderText('Search fields…'), { target: { value: 'subject' } });
+        await user.clear(screen.getByPlaceholderText('Search fields…'));
+        await user.type(screen.getByPlaceholderText('Search fields…'), 'subject');
         fireEvent.mouseDown(screen.getByText('Use “subject”'));
         expect(onChange).toHaveBeenCalledWith({ kind: 'ref', path: 'item.subject' });
     });
@@ -74,7 +77,8 @@ describe('FieldPicker', () => {
         const user = userEvent.setup();
         const { onChange } = renderPicker({ options: [], fallbackBase: 'trigger.output' });
         await user.click(screen.getByRole('button', { name: /Choose a field/ }));
-        fireEvent.change(screen.getByPlaceholderText('Search fields…'), { target: { value: 'plan' } });
+        await user.clear(screen.getByPlaceholderText('Search fields…'));
+        await user.type(screen.getByPlaceholderText('Search fields…'), 'plan');
         fireEvent.mouseDown(screen.getByText('Use “plan”'));
         expect(onChange).toHaveBeenCalledWith({ kind: 'ref', path: 'trigger.output.plan' });
     });

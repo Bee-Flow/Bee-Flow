@@ -307,12 +307,13 @@ describe('ExecutionBar — the action buttons', () => {
         expect(screen.queryByRole('button', { name: /Run it again/ })).toBeNull();
     });
 
-    it('offers "Stop it" for running AND for queued', () => {
+    it('offers "Stop it" for running AND for queued', async () => {
+        const user = userEvent.setup();
         for (const status of ['running', 'queued']) {
             cleanup();
             const onCancel = vi.fn().mockResolvedValue(undefined);
             renderBar({ run: baseRun({ status }), onCancel });
-            fireEvent.click(screen.getByRole('button', { name: /Stop it/ }));
+            await user.click(screen.getByRole('button', { name: /Stop it/ }));
             expect(onCancel).toHaveBeenCalledTimes(1);
         }
     });
@@ -425,7 +426,8 @@ describe('ExecutionBar — copy link and open in editor', () => {
         expect(screen.queryByText(/[Cc]opied/)).toBeNull();
     });
 
-    it('swallows a blocked clipboard entirely — the throw never escapes and nothing is said (wrat)', () => {
+    it('swallows a blocked clipboard entirely — the throw never escapes and nothing is said (wrat)', async () => {
+        const user = userEvent.setup();
         // The empty catch means a denied clipboard is indistinguishable from a
         // successful copy: no error escapes the handler, no alert, no message.
         // Asserting only "the button is still there" pinned nothing — the bar
@@ -438,7 +440,7 @@ describe('ExecutionBar — copy link and open in editor', () => {
         });
         renderBar({ run: baseRun({ id: 'r42' }) });
         try {
-            fireEvent.click(screen.getByRole('button', { name: /Copy link/ }));
+            await user.click(screen.getByRole('button', { name: /Copy link/ }));
         } finally {
             window.removeEventListener('error', onError);
         }

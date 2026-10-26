@@ -1,4 +1,4 @@
-import { render, fireEvent } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, it, expect } from 'vitest';
@@ -56,7 +56,8 @@ describe('valueFrom', () => {
         await user.click(getByText('draft one'));
         const area = container.querySelector('textarea');
 
-        fireEvent.change(area, { target: { value: 'mijn eigen tekst' } });
+        await user.clear(area);
+        await user.type(area, 'mijn eigen tekst');
         expect(container.querySelector('textarea').value).toBe('mijn eigen tekst');
 
         // A re-render with the SAME variable value must leave the edit alone.
@@ -68,7 +69,8 @@ describe('valueFrom', () => {
         const user = userEvent.setup();
         const { getByText, container } = render(<Harness />);
         await user.click(getByText('draft one'));
-        fireEvent.change(container.querySelector('textarea'), { target: { value: 'handmatig' } });
+        await user.clear(container.querySelector('textarea'));
+        await user.type(container.querySelector('textarea'), 'handmatig');
         await user.click(getByText('draft two'));
         expect(container.querySelector('textarea').value).toBe('AI-concept 2');
     });
@@ -79,7 +81,8 @@ describe('valueFrom', () => {
         // the composer".
         const { getByText, container } = render(<Harness initialVars={{ draft: 'start' }} />);
         expect(container.querySelector('textarea').value).toBe('start');
-        fireEvent.change(container.querySelector('textarea'), { target: { value: 'getypt' } });
+        await user.clear(container.querySelector('textarea'));
+        await user.type(container.querySelector('textarea'), 'getypt');
         await user.click(getByText('clear var'));
         expect(container.querySelector('textarea').value).toBe('getypt');
     });
@@ -91,7 +94,8 @@ describe('valueFrom', () => {
         // it landed a frame after the first paint: the composer was wiped
         // mid-sentence while the query the field was waiting on came back empty.
         const { getByText, container } = render(<Harness initialVars={{ draft: 'start' }} />);
-        fireEvent.change(container.querySelector('textarea'), { target: { value: 'getypt' } });
+        await user.clear(container.querySelector('textarea'));
+        await user.type(container.querySelector('textarea'), 'getypt');
         await user.click(getByText('null var'));
         expect(container.querySelector('textarea').value).toBe('getypt');
     });

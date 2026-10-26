@@ -204,7 +204,8 @@ describe('TranscriptView — what one line can become', () => {
     it('stores the line\'s real number even when the list is filtered', async () => {
         const user = userEvent.setup();
         const { onAddLineAction } = open();
-        fireEvent.change(screen.getByPlaceholderText('Search transcript…'), { target: { value: 'opzegging' } });
+        await user.clear(screen.getByPlaceholderText('Search transcript…'));
+        await user.type(screen.getByPlaceholderText('Search transcript…'), 'opzegging');
         // One row left, so what is written next is being written from the
         // FIRST rendered row — which is the fourth line of the meeting.
         const rows = screen.getAllByTestId('transcript-row');
@@ -342,7 +343,7 @@ describe('TranscriptView — a line into a knowledge base or a table', () => {
         expect(screen.queryByLabelText('Amount')).toBeNull();
         // The quote lands in the first text column by default; name the
         // speaker into the second by hand.
-        fireEvent.change(screen.getByLabelText('Who'), { target: { value: 'assignee' } });
+        await user.selectOptions(screen.getByLabelText('Who'), 'assignee');
         await user.click(screen.getByText('Add the row'));
         await waitFor(() => expect(addRow).toHaveBeenCalled());
 

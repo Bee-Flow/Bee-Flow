@@ -52,11 +52,13 @@ describe('ToolPicker', () => {
         expect(onToggleApp).toHaveBeenCalledWith(apps[0], false);
     });
 
-    it('filters the app list by search', () => {
+    it('filters the app list by search', async () => {
+        const user = userEvent.setup();
         render(<ToolPicker apps={apps} selected={[]} onToggleTool={vi.fn()} onToggleApp={vi.fn()} onClose={vi.fn()} />);
         // The overlay is shared/AppActionPicker now — same shell as the agent
         // editor's app menu and App Studio's connector picker.
-        fireEvent.change(screen.getByPlaceholderText('Search apps and actions'), { target: { value: 'web' } });
+        await user.clear(screen.getByPlaceholderText('Search apps and actions'));
+        await user.type(screen.getByPlaceholderText('Search apps and actions'), 'web');
         // Left list now matches Web Search only; clicking surfaces its tool.
         expect(screen.getByText('Search the web')).toBeTruthy();
     });

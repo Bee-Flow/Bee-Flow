@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
@@ -95,9 +95,11 @@ describe('SourcesTab', () => {
         expect(screen.getByText(/No sources yet/)).toBeTruthy();
     });
 
-    it('filters by name', () => {
+    it('filters by name', async () => {
+        const user = userEvent.setup();
         render(<SourcesTab sources={[src({ id: 'a', name: 'Quotes' }), src({ id: 'b', name: 'Warranty' })]} />);
-        fireEvent.change(screen.getByRole('textbox'), { target: { value: 'warr' } });
+        await user.clear(screen.getByRole('textbox'));
+        await user.type(screen.getByRole('textbox'), 'warr');
         const rows = screen.getAllByTestId('kb-source-row');
         expect(rows).toHaveLength(1);
         expect(within(rows[0]).getByText('Warranty')).toBeTruthy();

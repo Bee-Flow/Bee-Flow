@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { extractFormState, buildPatch } from './settings/formState';
@@ -86,8 +86,10 @@ describe('SettingsForm — ParseJsonFields', () => {
         await user.click(screen.getByText('Add field'));
         const name = screen.getByLabelText('Field name');
         const path = screen.getByLabelText('Field path');
-        fireEvent.change(name, { target: { value: 'email' } });
-        fireEvent.change(path, { target: { value: 'order.email' } });
+        await user.clear(name);
+        await user.type(name, 'email');
+        await user.clear(path);
+        await user.type(path, 'order.email');
         expect(name.value).toBe('email');
         expect(path.value).toBe('order.email');
         await user.click(screen.getByTitle('Remove field'));
@@ -99,7 +101,8 @@ describe('SettingsForm — ParseJsonFields', () => {
         const onPatch = vi.fn(async () => {});
         renderForm(getStep(), { onPatch });
         await user.click(screen.getByText('Add field'));
-        fireEvent.change(screen.getByLabelText('Field name'), { target: { value: 'pending' } });
+        await user.clear(screen.getByLabelText('Field name'));
+        await user.type(screen.getByLabelText('Field name'), 'pending');
         await user.click(screen.getByText('Save'));
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         expect(onPatch.mock.calls.at(-1)[0].fields).toEqual([{ name: 'pending', path: '' }]);
@@ -116,9 +119,11 @@ describe('SettingsForm — ParseJsonFields', () => {
         expect(onPatch.mock.calls.at(-1)[0].mode).toBe('ai');
     });
 
-    it('Map with AI is disabled without a usable sample (hint shown)', () => {
+    it('Map with AI is disabled without a usable sample (hint shown)', async () => {
+        const user = userEvent.setup();
         renderForm(getStep());
-        fireEvent.change(screen.getByPlaceholderText(/Describe the fields you want/), { target: { value: 'the email' } });
+        await user.clear(screen.getByPlaceholderText(/Describe the fields you want/));
+        await user.type(screen.getByPlaceholderText(/Describe the fields you want/), 'the email');
         const btn = screen.getByRole('button', { name: /Map with AI/ });
         expect(btn.disabled).toBe(true);
         expect(screen.getByText("Run or pin the previous step's output first.")).toBeTruthy();
@@ -128,7 +133,8 @@ describe('SettingsForm — ParseJsonFields', () => {
         const user = userEvent.setup();
         const step = { ...getStep(), sourceRef: 'steps.h1.output.body', fields: [{ name: 'existing', path: 'dupe' }] };
         renderForm(step, { previewSample: SAMPLE });
-        fireEvent.change(screen.getByPlaceholderText(/Describe the fields you want/), { target: { value: 'email + ghost' } });
+        await user.clear(screen.getByPlaceholderText(/Describe the fields you want/));
+        await user.type(screen.getByPlaceholderText(/Describe the fields you want/), 'email + ghost');
         const btn = screen.getByRole('button', { name: /Map with AI/ });
         expect(btn.disabled).toBe(false);
         await user.click(btn);
@@ -254,9 +260,8 @@ describe('parse_json — grouping by list', () => {
             fields: [{ name: 'meeting_title', path: 'title', verified: true, sampleValue: 'Daily Scrum' }],
         });
         renderForm({ id: 'p1', type: 'parse_json', sourceRef: 'steps.c1.output', fields: [] }, { previewSample: CAL_SAMPLE });
-        fireEvent.change(screen.getByPlaceholderText(/Describe the fields/i), {
-            target: { value: 'meeting names with their attendees, grouped per meeting' },
-        });
+        await user.clear(screen.getByPlaceholderText(/Describe the fields/i));
+        await user.type(screen.getByPlaceholderText(/Describe the fields/i), 'meeting names with their attendees, grouped per meeting');
         await user.click(screen.getByRole('button', { name: /Map with AI/i }));
         await waitFor(() => expect(screen.getByPlaceholderText('results').value).toBe('results'));
     });

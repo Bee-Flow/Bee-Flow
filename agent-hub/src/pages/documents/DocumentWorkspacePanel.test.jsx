@@ -22,8 +22,9 @@ it('sends typed false and zero to the same validation endpoint and shows exclusi
     const user = userEvent.setup();
     const p=props();state.request.mockResolvedValue({valid:true,sections:[{id:'cloud-section',title:'Cloud controls',state:'excluded',reason:'cloud equals false'}],html:'<p>Customer</p>'});
     render(<DocumentWorkspacePanel {...p} tab="preview"/>);
-    fireEvent.change(screen.getByLabelText('Cloud services'),{target:{value:'false'}});
-    fireEvent.change(screen.getByLabelText('Device count *'),{target:{value:'0'}});
+    await user.selectOptions(screen.getByLabelText('Cloud services'), 'false');
+    await user.clear(screen.getByLabelText('Device count *'));
+    await user.type(screen.getByLabelText('Device count *'), '0');
     await user.click(screen.getByText('Validate & preview'));
     await screen.findByText('Ready to generate');
     expect(state.request).toHaveBeenCalledWith('/d/validate',{values:{cloud:false,count:0},sectionOverrides:undefined});
@@ -34,7 +35,7 @@ it('keeps a proposed design unapplied until review, then pins its expected revis
     const user = userEvent.setup();
     const p=props();state.request.mockResolvedValue({explanation:'Formal typography',expectedVersionId:'v1',patch:{settings:{contract:doc.contract,design:{font:'serif'}}},html:'<p>Preview</p>'});
     render(<DocumentWorkspacePanel {...p} tab="design"/>);
-    fireEvent.change(screen.getByLabelText('Font'),{target:{value:'serif'}});
+    await user.selectOptions(screen.getByLabelText('Font'), 'serif');
     await user.click(screen.getByText('Preview design changes'));
     await screen.findByRole('dialog',{name:'Review proposal'});
     expect(p.onSave).not.toHaveBeenCalled();
@@ -59,7 +60,8 @@ it('retains failed parameter edits across unmount and rejects saving over a newe
     const user = userEvent.setup();
     const p=props();p.onSave.mockRejectedValue(new Error('Offline'));
     const first=render(<DocumentWorkspacePanel {...p} tab="parameters"/>);
-    fireEvent.change(screen.getByLabelText('Document instructions'),{target:{value:'Recovered instructions'}});
+    await user.clear(screen.getByLabelText('Document instructions'));
+    await user.type(screen.getByLabelText('Document instructions'), 'Recovered instructions');
     await user.click(screen.getByText('Save changes'));
     await screen.findByText('Offline');first.unmount();
     const retry=props();

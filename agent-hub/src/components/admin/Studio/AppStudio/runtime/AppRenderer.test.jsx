@@ -1,4 +1,4 @@
-import { render, fireEvent, within } from '@testing-library/react';
+import { render, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import AppRenderer from './AppRenderer';
@@ -313,7 +313,8 @@ describe('AppRenderer — forms', () => {
         const user = userEvent.setup();
         const runAction = vi.fn();
         const { getByRole, getByLabelText } = renderForm(runAction);
-        fireEvent.change(getByLabelText(/Subject/), { target: { value: 'New laptop' } });
+        await user.clear(getByLabelText(/Subject/));
+        await user.type(getByLabelText(/Subject/), 'New laptop');
         await user.click(getByRole('button', { name: /Send request/ }));
         expect(runAction).toHaveBeenCalledTimes(1);
         const [actionId, opts] = runAction.mock.calls[0];
@@ -329,7 +330,8 @@ describe('AppRenderer — forms', () => {
         const user = userEvent.setup();
         const runAction = vi.fn();
         const { getByRole, getByLabelText } = renderForm(runAction);
-        fireEvent.change(getByLabelText(/Details/), { target: { value: 'It broke' } });
+        await user.clear(getByLabelText(/Details/));
+        await user.type(getByLabelText(/Details/), 'It broke');
         await user.click(getByRole('button', { name: /Send request/ })); // blocked: subject empty
         expect(runAction).not.toHaveBeenCalled();
         expect(getByLabelText(/Details/).value).toBe('It broke');

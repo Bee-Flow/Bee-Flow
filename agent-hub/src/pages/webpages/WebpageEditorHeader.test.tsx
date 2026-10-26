@@ -195,13 +195,15 @@ describe('WebpageEditorHeader — the hoisted IDE buttons', () => {
         renderHeader({ onRename });
         await user.click(screen.getByTestId('studio-section-title'));
         const input = screen.getByTestId('studio-section-title-input');
-        fireEvent.change(input, { target: { value: '   ' } });
+        await user.clear(input);
+        await user.type(input, '   ');
         fireEvent.blur(input);
         expect(onRename).not.toHaveBeenCalled();
 
         await user.click(screen.getByTestId('studio-section-title'));
         const again = screen.getByTestId('studio-section-title-input');
-        fireEvent.change(again, { target: { value: 'Nieuwe naam' } });
+        await user.clear(again);
+        await user.type(again, 'Nieuwe naam');
         fireEvent.blur(again);
         expect(onRename).toHaveBeenCalledWith('Nieuwe naam');
     });

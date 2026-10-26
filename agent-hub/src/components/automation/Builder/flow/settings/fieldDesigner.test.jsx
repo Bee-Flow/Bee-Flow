@@ -88,14 +88,18 @@ describe('the shared field designer — the rename path reaches all three editor
         expect(screen.getByText(/Renamed — 3 bindings in this automation now point at it\./)).toBeTruthy();
     });
 
-    it.each(PARAM_KINDS)('a %s parameter is renamed once, on purpose, not per keystroke', (kind) => {
+    it.each(PARAM_KINDS)('a %s parameter is renamed once, on purpose, not per keystroke', async (kind) => {
+        const user = userEvent.setup();
         const onRenameField = vi.fn(() => 0);
         renderForm(trigger(kind, [{ name: 'email', type: 'string' }]), { onRenameField });
         const box = screen.getByLabelText('Field 1 name');
 
-        fireEvent.change(box, { target: { value: 'e' } });
-        fireEvent.change(box, { target: { value: 'em' } });
-        fireEvent.change(box, { target: { value: 'email_address' } });
+        await user.clear(box);
+        await user.type(box, 'e');
+        await user.clear(box);
+        await user.type(box, 'em');
+        await user.clear(box);
+        await user.type(box, 'email_address');
         // Nothing has been renamed yet — `e` and `em` are not names the author
         // meant, and rewriting the automation to each of them in turn is exactly
         // how a binding walks away from the step that reads it.
@@ -106,12 +110,14 @@ describe('the shared field designer — the rename path reaches all three editor
         expect(onRenameField).toHaveBeenCalledWith('email', 'email_address');
     });
 
-    it('commits on blur too, because clicking away is how most people leave a box', () => {
+    it('commits on blur too, because clicking away is how most people leave a box', async () => {
+        const user = userEvent.setup();
         const onRenameField = vi.fn(() => 1);
         renderForm(trigger('layer_input', [{ name: 'email', type: 'string' }]), { onRenameField });
         const box = screen.getByLabelText('Field 1 name');
 
-        fireEvent.change(box, { target: { value: 'contact' } });
+        await user.clear(box);
+        await user.type(box, 'contact');
         fireEvent.blur(box);
 
         expect(onRenameField).toHaveBeenCalledWith('email', 'contact');
@@ -211,7 +217,8 @@ describe('the shared field designer — the names it refuses', () => {
 describe('the shared field designer — what each editor keeps', () => {
     beforeEach(freshPanel);
 
-    it('a flowlet input carries a description, and it goes BOTH ways', () => {
+    it('a flowlet input carries a description, and it goes BOTH ways', async () => {
+        const user = userEvent.setup();
         // The box is the new half. The description was already persisted for a
         // flowlet input — stepContract.stepParams reads it and
         // CallContractFields renders it as the hint on the caller's row — it
@@ -219,7 +226,8 @@ describe('the shared field designer — what each editor keeps', () => {
         // set, the mirror image of a control that does not save.
         renderForm(trigger('layer_input', [{ name: 'email', type: 'string', required: false, description: 'the sender' }]));
         const box = screen.getByDisplayValue('the sender');
-        fireEvent.change(box, { target: { value: 'the reply-to' } });
+        await user.clear(box);
+        await user.type(box, 'the reply-to');
         expect(screen.getByDisplayValue('the reply-to')).toBeTruthy();
 
         // …and the allow-lists in formState.js read it in both directions, so
@@ -245,10 +253,12 @@ describe('the shared field designer — what each editor keeps', () => {
             .toEqual(['string', 'number', 'boolean', 'object', 'array']);
     });
 
-    it('keeps the Studio App name filter: an identifier, typed or pasted', () => {
+    it('keeps the Studio App name filter: an identifier, typed or pasted', async () => {
+        const user = userEvent.setup();
         renderForm(trigger('app_trigger', [{ name: 'doc', type: 'file' }]));
         const box = screen.getByLabelText('Field 1 name');
-        fireEvent.change(box, { target: { value: 'klant naam-2' } });
+        await user.clear(box);
+        await user.type(box, 'klant naam-2');
         expect(box.value).toBe('klantnaam2');
     });
 });

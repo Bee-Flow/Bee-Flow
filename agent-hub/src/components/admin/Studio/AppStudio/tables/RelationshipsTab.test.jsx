@@ -97,7 +97,7 @@ describe('RelationshipsTab', () => {
         fireEvent.change(screen.getByLabelText('Column name'), { target: { value: 'Its message' } });
         expect(onChange.mock.calls[0][0].find((t) => t.id === 'tbl_att').fields.at(-1).name).toBe('Its message');
 
-        fireEvent.change(screen.getByLabelText('Related table'), { target: { value: 'tbl_thr' } });
+        await user.selectOptions(screen.getByLabelText('Related table'), 'tbl_thr');
         expect(onChange.mock.calls[1][0].find((t) => t.id === 'tbl_att').fields.at(-1).relation).toEqual({ table: 'tbl_thr' });
     });
 

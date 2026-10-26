@@ -99,9 +99,10 @@ describe('StyleSection — per-type knob gating', () => {
         expect(queryByRole('radio', { name: 'Theme' })).toBeNull(); // no color knob
     });
 
-    it('background commits the look-pass values (panel)', () => {
+    it('background commits the look-pass values (panel)', async () => {
+        const user = userEvent.setup();
         const { onCommit, getByRole } = renderNode('cmp_card01');
-        fireEvent.change(getByRole('combobox', { name: 'Background' }), { target: { value: 'panel' } });
+        await user.selectOptions(getByRole('combobox', { name: 'Background' }), 'panel');
         expect(onCommit).toHaveBeenCalledTimes(1);
         expect(findNode(onCommit.mock.calls[0][0], 'cmp_card01').node.style.background).toBe('panel');
     });

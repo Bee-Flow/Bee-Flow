@@ -1,4 +1,4 @@
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -64,14 +64,16 @@ describe('SkillsGrid — the panel speaks through t()', () => {
     expect(screen.queryByText('No skills yet')).toBeNull();
   });
 
-  it('shows the no-match copy, not the no-skills copy, once a search is typed', () => {
+  it('shows the no-match copy, not the no-skills copy, once a search is typed', async () => {
+    const user = userEvent.setup();
     transOverride.current = {
       'agent_skills.no_match': 'Niets gevonden',
       'agent_skills.no_match_help': 'Probeer een andere zoekterm.',
       'agent_skills.search': 'Zoek vaardigheden…',
     };
     renderGrid({ skills: [skill('s1', 'Meeting summary')] });
-    fireEvent.change(screen.getByPlaceholderText('Zoek vaardigheden…'), { target: { value: 'zzz' } });
+    await user.clear(screen.getByPlaceholderText('Zoek vaardigheden…'));
+    await user.type(screen.getByPlaceholderText('Zoek vaardigheden…'), 'zzz');
     expect(screen.getByText('Niets gevonden')).toBeTruthy();
     expect(screen.getByText('Probeer een andere zoekterm.')).toBeTruthy();
   });

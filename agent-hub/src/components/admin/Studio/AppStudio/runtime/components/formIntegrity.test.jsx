@@ -56,7 +56,8 @@ describe('AppInputNumber — bounds and bad input', () => {
         const user = userEvent.setup();
         const node = numberNode({ min: 1, max: 10 });
         const { runAction, getByLabelText, getByText } = renderForm([node], <AppInputNumber node={node} />);
-        fireEvent.change(getByLabelText('Amount'), { target: { value: '500' } });
+        await user.clear(getByLabelText('Amount'));
+        await user.type(getByLabelText('Amount'), '500');
         await user.click(getByText('Send'));
         expect(runAction).not.toHaveBeenCalled();
         expect(getByText('Enter 10 or less.')).toBeTruthy();
@@ -66,7 +67,8 @@ describe('AppInputNumber — bounds and bad input', () => {
         const user = userEvent.setup();
         const node = numberNode({ min: 1, max: 10 });
         const { runAction, getByLabelText, getByText } = renderForm([node], <AppInputNumber node={node} />);
-        fireEvent.change(getByLabelText('Amount'), { target: { value: '7' } });
+        await user.clear(getByLabelText('Amount'));
+        await user.type(getByLabelText('Amount'), '7');
         await user.click(getByText('Send'));
         expect(runAction).toHaveBeenCalledWith('act_submit', expect.objectContaining({
             formValues: expect.objectContaining({ amount: 7 }),
@@ -76,15 +78,17 @@ describe('AppInputNumber — bounds and bad input', () => {
     // A number input reports '' for anything the browser calls bad input, while
     // the box still visibly holds the typed text. jsdom does not run that
     // machinery, so the validity flag is stubbed onto the event target.
-    it('says what is wrong instead of silently storing nothing', () => {
+    it('says what is wrong instead of silently storing nothing', async () => {
+        const user = userEvent.setup();
         const node = numberNode({});
         const { getByLabelText, getByText } = renderForm([node], <AppInputNumber node={node} />);
         const input = getByLabelText('Amount');
-        fireEvent.change(input, { target: { value: '3' } });
+        await user.clear(input);
+        await user.type(input, '3');
         // Now the browser refuses the next keystroke: it reports '' and flags
         // badInput, while the box on screen still reads "3,".
         Object.defineProperty(input, 'validity', { value: { badInput: true }, configurable: true });
-        fireEvent.change(input, { target: { value: '' } });
+        await user.clear(input);
         expect(getByText('Enter a number — use a dot as the decimal separator.')).toBeTruthy();
     });
 });
@@ -141,7 +145,7 @@ describe('AppInputMultiselect — a scalar pushed into a list field', () => {
         const user = userEvent.setup();
         const { runAction } = renderForm([node], <AppInputMultiselect node={node} />);
         await waitFor(() => expect(screen.getByLabelText('Remove Urgent')).toBeTruthy());
-        fireEvent.change(screen.getByLabelText('Add to Tags'), { target: { value: 'vip' } });
+        await user.selectOptions(screen.getByLabelText('Add to Tags'), 'vip');
         await user.click(screen.getByText('Send'));
         expect(runAction).toHaveBeenCalledWith('act_submit', expect.objectContaining({
             formValues: expect.objectContaining({ tags: ['urgent', 'billing', 'vip'] }),
@@ -246,7 +250,8 @@ describe('AppForm — a required field on a tab nobody opened', () => {
         const user = userEvent.setup();
         const runAction = vi.fn();
         render(<AppRenderer definition={tabbedForm()} screenId="scr_t" mode="run" runAction={runAction} />);
-        fireEvent.change(screen.getByLabelText(/^Reference/), { target: { value: 'A-1' } });
+        await user.clear(screen.getByLabelText(/^Reference/));
+        await user.type(screen.getByLabelText(/^Reference/), 'A-1');
         await user.click(screen.getByText('Send'));
 
         expect(runAction).not.toHaveBeenCalled();
@@ -259,9 +264,11 @@ describe('AppForm — a required field on a tab nobody opened', () => {
         const user = userEvent.setup();
         const runAction = vi.fn();
         render(<AppRenderer definition={tabbedForm()} screenId="scr_t" mode="run" runAction={runAction} />);
-        fireEvent.change(screen.getByLabelText(/^Reference/), { target: { value: 'A-1' } });
+        await user.clear(screen.getByLabelText(/^Reference/));
+        await user.type(screen.getByLabelText(/^Reference/), 'A-1');
         await user.click(screen.getByRole('tab', { name: 'Billing' }));
-        fireEvent.change(screen.getByLabelText(/^Invoice reference/), { target: { value: 'INV-9' } });
+        await user.clear(screen.getByLabelText(/^Invoice reference/));
+        await user.type(screen.getByLabelText(/^Invoice reference/), 'INV-9');
         await user.click(screen.getByText('Send'));
 
         expect(runAction).toHaveBeenCalledWith('act_submit', expect.objectContaining({
@@ -418,7 +425,8 @@ describe('AppForm — a required checkbox must actually be ticked', () => {
         // zero keeps the meaning it already had.
         const node = { ...numberNode({}), validations: [{ type: 'required', message: 'Say how many' }] };
         const { runAction, getByLabelText, getByText } = renderForm([node], <AppInputNumber node={node} />);
-        fireEvent.change(getByLabelText('Amount'), { target: { value: '0' } });
+        await user.clear(getByLabelText('Amount'));
+        await user.type(getByLabelText('Amount'), '0');
         await user.click(getByText('Send'));
         expect(runAction).toHaveBeenCalled();
     });
@@ -441,12 +449,13 @@ describe('AppForm — the browser refusing what was typed blocks the submit', ()
         const node = optionalNumber();
         const { runAction, getByLabelText, getByText } = renderForm([node], <AppInputNumber node={node} />);
         const input = getByLabelText('Amount');
-        fireEvent.change(input, { target: { value: '3' } });
+        await user.clear(input);
+        await user.type(input, '3');
         // Now the browser refuses the next keystroke: it reports '' and flags
         // badInput, while the box on screen still reads "3,". jsdom does not
         // run that machinery, so the flag is stubbed as the case above does.
         Object.defineProperty(input, 'validity', { value: { badInput: true }, configurable: true });
-        fireEvent.change(input, { target: { value: '' } });
+        await user.clear(input);
         await user.click(getByText('Send'));
 
         expect(runAction).not.toHaveBeenCalled();
@@ -458,11 +467,13 @@ describe('AppForm — the browser refusing what was typed blocks the submit', ()
         const node = optionalNumber();
         const { runAction, getByLabelText, getByText } = renderForm([node], <AppInputNumber node={node} />);
         const input = getByLabelText('Amount');
-        fireEvent.change(input, { target: { value: '3' } });
+        await user.clear(input);
+        await user.type(input, '3');
         Object.defineProperty(input, 'validity', { value: { badInput: true }, configurable: true });
-        fireEvent.change(input, { target: { value: '' } });
+        await user.clear(input);
         Object.defineProperty(input, 'validity', { value: { badInput: false }, configurable: true });
-        fireEvent.change(input, { target: { value: '7' } });
+        await user.clear(input);
+        await user.type(input, '7');
         await user.click(getByText('Send'));
 
         expect(runAction).toHaveBeenCalledWith('act_submit', expect.objectContaining({

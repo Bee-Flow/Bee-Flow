@@ -1,6 +1,6 @@
 /**
  * The history reducer, through the web hook's own scenarios
- * (agent-hub/src/hooks/useDraftHistory.test.js(x)), with a harness that plays
+ * (agent-hub/src/hooks/useDraftHistory.test.ts(x)), with a harness that plays
  * the editor: a draft, and commit / undo / redo driving it. The web hook is
  * React and cannot run here, so its constants are pinned by reading it.
  */

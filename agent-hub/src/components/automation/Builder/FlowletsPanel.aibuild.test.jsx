@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
+import { render, screen, cleanup, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import FlowletsPanel from './FlowletsPanel';
@@ -56,7 +56,8 @@ describe('FlowletsPanel — AI layer builder', () => {
 
         // Clicking reveals a textarea.
         const textarea = screen.getByRole('textbox');
-        fireEvent.change(textarea, { target: { value: 'Look up a contact by email' } });
+        await user.clear(textarea);
+        await user.type(textarea, 'Look up a contact by email');
 
         await user.click(screen.getByText('Build'));
         expect(props.onBuildLayer).toHaveBeenCalledWith('Look up a contact by email');
@@ -94,7 +95,8 @@ describe('FlowletsPanel — AI layer builder', () => {
         // Reveals a textarea — scope to the layer row to avoid the build composer.
         const row = refineBtn.closest('div.rounded-lg');
         const textarea = within(row).getByRole('textbox');
-        fireEvent.change(textarea, { target: { value: 'also return the company size' } });
+        await user.clear(textarea);
+        await user.type(textarea, 'also return the company size');
 
         await user.click(within(row).getByText('Refine'));
         expect(props.onRefineLayer).toHaveBeenCalledWith('enrich', 'also return the company size');

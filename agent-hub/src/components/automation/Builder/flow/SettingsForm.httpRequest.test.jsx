@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { extractFormState, buildPatch } from './settings/formState';
@@ -140,7 +140,8 @@ describe('SettingsForm — Authentication section (HttpAuthPicker)', () => {
     const getStep = () => buildStepFromPayload({ kind: 'http_request', label: 'HTTP Request' });
 
     const openAuthSection = async () => {
-        fireEvent.click(screen.getByText('Authentication'));
+        const user = userEvent.setup();
+        await user.click(screen.getByText('Authentication'));
         // The picker lazy-loads on expand; wait for the loaded select.
         return waitFor(() => {
             const sel = screen.getAllByRole('combobox').find(s => s.querySelector('option[value=""]')?.textContent === 'None (no credential)');
@@ -166,7 +167,7 @@ describe('SettingsForm — Authentication section (HttpAuthPicker)', () => {
         const onPatch = vi.fn(async () => {});
         renderForm({ ...getStep(), id: 'h1' }, { onPatch });
         const select = await openAuthSection();
-        fireEvent.change(select, { target: { value: 'c-own' } });
+        await user.selectOptions(select, 'c-own');
         await user.click(screen.getByText('Save'));
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         const patch = onPatch.mock.calls.at(-1)[0];
@@ -184,7 +185,7 @@ describe('SettingsForm — Authentication section (HttpAuthPicker)', () => {
             return sel;
         });
         expect(select.value).toBe('c-own');
-        fireEvent.change(select, { target: { value: '' } });
+        await user.selectOptions(select, '');
         await user.click(screen.getByText('Save'));
         await waitFor(() => expect(onPatch).toHaveBeenCalled());
         expect(onPatch.mock.calls.at(-1)[0].auth).toBeNull();
@@ -212,10 +213,12 @@ describe('SettingsForm — Authentication section (HttpAuthPicker)', () => {
         // Default auth type is Bearer token — a single password field.
         const form = screen.getByText('Save credential').closest('div').parentElement;
         const nameInput = form.querySelector('input[type="text"]');
-        fireEvent.change(nameInput, { target: { value: 'My bearer' } });
+        await user.clear(nameInput);
+        await user.type(nameInput, 'My bearer');
         const tokenInput = form.querySelector('input[type="password"]');
         expect(tokenInput).toBeTruthy(); // secrets are never plain text inputs
-        fireEvent.change(tokenInput, { target: { value: 'tok-inline-test' } });
+        await user.clear(tokenInput);
+        await user.type(tokenInput, 'tok-inline-test');
         await user.click(screen.getByText('Save credential'));
         await waitFor(() => expect(api.createHttpConnection).toHaveBeenCalledTimes(1));
         expect(api.createHttpConnection).toHaveBeenCalledWith({

@@ -178,11 +178,12 @@ describe('AppList — look', () => {
         }
     });
 
-    it('rows stay clickable in every look', () => {
+    it('rows stay clickable in every look', async () => {
+        const user = userEvent.setup();
         for (const look of ['cards', 'tiles']) {
             const runAction = vi.fn();
             const { container } = renderList(node({ look }, { onRowClick: 'act_1' }), { runAction });
-            fireEvent.click(container.querySelectorAll('button')[0]);
+            await user.click(container.querySelectorAll('button')[0]);
             expect(runAction).toHaveBeenCalledWith('act_1', { formValues: ROWS[0], item: ROWS[0] });
         }
     });

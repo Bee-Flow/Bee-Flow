@@ -190,11 +190,13 @@ describe('ProductWebsitePanel smoke', () => {
     });
 
     it('opens the Add-block dialog from cms-insert-at and inserts at that index', async () => {
+        const user = userEvent.setup();
         const iframe = await renderLoadedPanel();
         postFromIframe(iframe, { type: 'cms-insert-at', index: 0 });
         const search = await screen.findByPlaceholderText(/Search blocks/);
         // Narrow to a single match, then Enter adds the focused block.
-        fireEvent.change(search, { target: { value: 'Stats' } });
+        await user.clear(search);
+        await user.type(search, 'Stats');
         fireEvent.keyDown(search, { key: 'Enter' });
         // Dialog closes; the new block is spliced at index 0 and persisted.
         expect(screen.queryByPlaceholderText(/Search blocks/)).toBeNull();

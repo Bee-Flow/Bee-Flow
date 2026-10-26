@@ -1176,7 +1176,7 @@ test('the lending gate obeys a recorded actAs, and only a recorded one', () => {
 // nothing has been written down is precisely the fail-open that this layer excludes.
 //
 // The config below is LITERALLY the same as in
-// agent-hub/src/components/agents/AgentWizard/canUse/ToolsCard.test.jsx
+// agent-hub/src/components/agents/AgentWizard/canUse/ToolsCard.test.tsx
 // (A2_2_CURATED) — one state, two sides, one answer.
 const A2_2_CURATED = Object.freeze({
     tools: {

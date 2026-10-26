@@ -295,11 +295,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/AppStudio/chat/QuickActions.test.jsx": {
-    "import/order": {
-      "count": 1
-    }
-  },
   "src/components/admin/Studio/AppStudio/chat/WhatChanged.tsx": {
     "max-lines-per-function": {
       "count": 1
@@ -554,11 +549,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/AppStudio/inspector/ActionsSection.aiActions.test.jsx": {
-    "import/order": {
-      "count": 1
-    }
-  },
   "src/components/admin/Studio/AppStudio/inspector/ActionsSection.tsx": {
     "complexity": {
       "count": 1
@@ -673,21 +663,6 @@
       "count": 1
     }
   },
-  "src/components/admin/Studio/AppStudio/inspector/panels/AiChatInspector.test.jsx": {
-    "import/order": {
-      "count": 1
-    }
-  },
-  "src/components/admin/Studio/AppStudio/inspector/panels/BindingField.chooser.test.jsx": {
-    "import/order": {
-      "count": 1
-    }
-  },
-  "src/components/admin/Studio/AppStudio/inspector/panels/BindingField.kinds.test.jsx": {
-    "import/order": {
-      "count": 1
-    }
-  },
   "src/components/admin/Studio/AppStudio/inspector/panels/BindingField/AggregateBinding.tsx": {
     "complexity": {
       "count": 1
@@ -765,11 +740,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/admin/Studio/AppStudio/inspector/panels/kit.test.jsx": {
-    "import/order": {
       "count": 1
     }
   },
@@ -3260,11 +3230,6 @@
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/components/admin/modules/PermissionConsentDialog.test.jsx": {
-    "import/order": {
       "count": 1
     }
   },
@@ -8460,11 +8425,6 @@
       "count": 1
     }
   },
-  "src/hooks/useIntegrationStatus.test.js": {
-    "import/order": {
-      "count": 2
-    }
-  },
   "src/hooks/useKnowledgeBases.ts": {
     "complexity": {
       "count": 1
@@ -8489,11 +8449,6 @@
   },
   "src/hooks/useProviderConfig.ts": {
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/hooks/useShieldStatus.test.js": {
-    "import/order": {
       "count": 1
     }
   },

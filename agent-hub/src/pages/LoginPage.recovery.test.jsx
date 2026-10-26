@@ -168,9 +168,10 @@ describe('the first-run root password', () => {
 
 describe('forgetting your password', () => {
     const openForgot = async () => {
+        const user = userEvent.setup();
         const rendered = renderLogin();
         await screen.findByTestId('login-submit-button');
-        fireEvent.click(screen.getByText('Forgot password?'));
+        await user.click(screen.getByText('Forgot password?'));
         await screen.findByTestId('forgot-email-input');
         return rendered;
     };
@@ -185,7 +186,8 @@ describe('forgetting your password', () => {
         const user = userEvent.setup();
         route('/auth/forgot-password', () => ok({ success: true }));
         await openForgot();
-        fireEvent.change(screen.getByTestId('forgot-email-input'), { target: { value: 'ada@example.com' } });
+        await user.clear(screen.getByTestId('forgot-email-input'));
+        await user.type(screen.getByTestId('forgot-email-input'), 'ada@example.com');
         await user.click(screen.getByText('Send reset link'));
         await waitFor(() => expect(callTo('/auth/forgot-password')).toBeTruthy());
         expect(bodyOf(callTo('/auth/forgot-password'))).toEqual({ email: 'ada@example.com' });
@@ -195,7 +197,8 @@ describe('forgetting your password', () => {
         const user = userEvent.setup();
         route('/auth/forgot-password', () => ok({ success: true }));
         await openForgot();
-        fireEvent.change(screen.getByTestId('forgot-email-input'), { target: { value: 'nobody@example.com' } });
+        await user.clear(screen.getByTestId('forgot-email-input'));
+        await user.type(screen.getByTestId('forgot-email-input'), 'nobody@example.com');
         await user.click(screen.getByText('Send reset link'));
         expect(await screen.findByText(/If an account exists for that email/)).toBeInTheDocument();
     });
@@ -207,7 +210,8 @@ describe('forgetting your password', () => {
         const user = userEvent.setup();
         route('/auth/forgot-password', () => Promise.reject(new Error('offline')));
         await openForgot();
-        fireEvent.change(screen.getByTestId('forgot-email-input'), { target: { value: 'ada@example.com' } });
+        await user.clear(screen.getByTestId('forgot-email-input'));
+        await user.type(screen.getByTestId('forgot-email-input'), 'ada@example.com');
         await user.click(screen.getByText('Send reset link'));
         expect(await screen.findByText(/If an account exists for that email/)).toBeInTheDocument();
     });
@@ -218,7 +222,8 @@ describe('forgetting your password', () => {
         const user = userEvent.setup();
         route('/auth/forgot-password', () => fail(500, { error: 'mailer down' }));
         await openForgot();
-        fireEvent.change(screen.getByTestId('forgot-email-input'), { target: { value: 'ada@example.com' } });
+        await user.clear(screen.getByTestId('forgot-email-input'));
+        await user.type(screen.getByTestId('forgot-email-input'), 'ada@example.com');
         await user.click(screen.getByText('Send reset link'));
         expect(await screen.findByText(/If an account exists for that email/)).toBeInTheDocument();
         expect(screen.queryByText('mailer down')).toBeNull();
@@ -308,11 +313,14 @@ describe('arriving on a reset link', () => {
 
 describe('the e-mail-verification gate', () => {
     const blockedLogin = async (username = 'ada@example.com') => {
+        const user = userEvent.setup();
         route('/auth/admin-login', () => ok({ emailVerificationRequired: true }));
         const rendered = renderLogin();
         await screen.findByTestId('login-submit-button');
-        fireEvent.change(screen.getByTestId('username'), { target: { value: username } });
-        fireEvent.change(screen.getByTestId('password'), { target: { value: 'hunter2' } });
+        await user.clear(screen.getByTestId('username'));
+        await user.type(screen.getByTestId('username'), username);
+        await user.clear(screen.getByTestId('password'));
+        await user.type(screen.getByTestId('password'), 'hunter2');
         fireEvent.submit(screen.getByTestId('login-submit-button').closest('form'));
         await screen.findByText('Confirm your email address');
         return rendered;

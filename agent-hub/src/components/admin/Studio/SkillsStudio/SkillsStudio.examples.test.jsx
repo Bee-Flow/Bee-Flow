@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render as rtlRender, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, render as rtlRender, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -123,7 +123,8 @@ describe('examples', () => {
         expect(onExamples).not.toHaveBeenCalled();
         expect(screen.getByTestId('skill-example-violates')).toBeTruthy();
         // …and typing into it IS an edit, which does get stored.
-        fireEvent.change(screen.getByLabelText('Not like this'), { target: { value: 'Sure, 40% off.' } });
+        await user.clear(screen.getByLabelText('Not like this'));
+        await user.type(screen.getByLabelText('Not like this'), 'Sure, 40% off.');
         expect(onExamples.mock.calls.at(-1)[0][0].bad).toBe('Sure, 40% off.');
     });
 
@@ -142,7 +143,8 @@ describe('examples', () => {
      * used to read "No specific rule" over a `violatedRuleId` that was still
      * there and still being saved. The screen has to say what the data says.
      */
-    it('names a deleted rule instead of quietly reading as “no rule”', () => {
+    it('names a deleted rule instead of quietly reading as “no rule”', async () => {
+        const user = userEvent.setup();
         const onExamples = vi.fn();
         render(<ExamplesHarness
             initial={[{ id: 'e1', question: 'q', good: 'g', bad: 'nope', violatedRuleId: 'rule_deleted' }]}
@@ -153,7 +155,7 @@ describe('examples', () => {
         expect(select.value).toBe('rule_deleted');
         expect(within(select).getByRole('option', { name: /was removed/ })).toBeTruthy();
         // …and it is a dead end nobody is stuck in: picking a live rule replaces it.
-        fireEvent.change(select, { target: { value: 'r1' } });
+        await user.selectOptions(select, 'r1');
         expect(onExamples.mock.calls.at(-1)[0][0].violatedRuleId).toBe('r1');
     });
 
@@ -185,8 +187,9 @@ describe('examples', () => {
 
 describe('taking an example from a conversation', () => {
     const openPicker = async () => {
+        const user = userEvent.setup();
         render(<ExamplesHarness />);
-        fireEvent.click(screen.getByTestId('skill-example-from-chat'));
+        await user.click(screen.getByTestId('skill-example-from-chat'));
         return screen.findByTestId('skill-example-conversation');
     };
 

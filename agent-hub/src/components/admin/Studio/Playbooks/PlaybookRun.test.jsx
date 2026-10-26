@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -109,7 +109,8 @@ describe('PlaybookRun — the table phase and the handoff', () => {
         renderRun();
         await user.click(await screen.findByTestId('playbook-brief-edit'));
         const ta = screen.getByTestId('playbook-next-brief');
-        fireEvent.change(ta, { target: { value: 'new brief' } });
+        await user.clear(ta);
+        await user.type(ta, 'new brief');
         await user.click(screen.getByTestId('playbook-continue'));
         await waitFor(() => expect(playbooksApi.patch).toHaveBeenCalledWith('pb_1', { expectedVersion: 4, phases: [{ key: 'table', status: 'done' }, { key: 'automation', brief: 'new brief' }] }));
     });
@@ -245,7 +246,8 @@ describe('PlaybookRun — a design redrawn on request', () => {
             app: { brief: 'Build the app.\n\nDESIGN: Screen "Dashboard".' },
         });
         playbooksApi.runPhase.mockResolvedValue({ playbook: redrawn });
-        fireEvent.change(screen.getByTestId('playbook-design-revise-input'), { target: { value: 'Drop the details screen' } });
+        await user.clear(screen.getByTestId('playbook-design-revise-input'));
+        await user.type(screen.getByTestId('playbook-design-revise-input'), 'Drop the details screen');
         await user.click(screen.getByTestId('playbook-design-revise-send'));
         await waitFor(() => expect(playbooksApi.runPhase).toHaveBeenCalledWith('pb_1', 'design', { feedback: 'Drop the details screen' }));
 
@@ -266,7 +268,8 @@ describe('PlaybookRun — a design redrawn on request', () => {
         renderRun();
         await user.click(await screen.findByTestId('playbook-brief-edit'));
         const box = screen.getByTestId('playbook-next-brief');
-        fireEvent.change(box, { target: { value: 'My own brief' } });
+        await user.clear(box);
+        await user.type(box, 'My own brief');
         await user.click(screen.getByTestId('playbook-continue'));
         await waitFor(() => expect(playbooksApi.patch).toHaveBeenCalledWith('pb_1', { expectedVersion: 4, phases: [{ key: 'design', status: 'done' }, { key: 'app', brief: 'My own brief' }] }));
     });

@@ -29,9 +29,11 @@ describe('CommandPalette', () => {
         expect(onClose).toHaveBeenCalledTimes(1);
     });
 
-    it('filters by a label/group substring', () => {
+    it('filters by a label/group substring', async () => {
+        const user = userEvent.setup();
         render(<CommandPalette open onClose={vi.fn()} actions={makeActions()} />);
-        fireEvent.change(screen.getByLabelText('Command palette search'), { target: { value: 'settings' } });
+        await user.clear(screen.getByLabelText('Command palette search'));
+        await user.type(screen.getByLabelText('Command palette search'), 'settings');
 
         expect(screen.getByText('Go to Settings')).toBeInTheDocument();
         expect(screen.queryByText('Open Tables')).not.toBeInTheDocument();

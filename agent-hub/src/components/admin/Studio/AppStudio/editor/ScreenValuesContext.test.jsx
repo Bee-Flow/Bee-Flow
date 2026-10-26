@@ -1,4 +1,5 @@
-import { act, fireEvent, render, renderHook, screen } from '@testing-library/react';
+import { act, render, renderHook, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { useCallback, useState } from 'react';
 import { describe, it, expect } from 'vitest';
 import { ScreenValuesContext, useScreenValues, useScreenValuesStore } from './ScreenValuesContext';
@@ -145,7 +146,8 @@ describe('formNameOf leest onder dezelfde sleutel waaronder AppForm publiceert',
         });
     }
 
-    it('en de waarde die daar staat is wat er getypt is', () => {
+    it('en de waarde die daar staat is wat er getypt is', async () => {
+        const user = userEvent.setup();
         // The whole point: not the default value from the definition, but what is on the screen at that moment.
         const node = formNode('cmp_form01', 'claim');
         const definition = defWithForm(node);
@@ -153,7 +155,8 @@ describe('formNameOf leest onder dezelfde sleutel waaronder AppForm publiceert',
         render(<Harness definition={definition} onKeys={() => {}} onValues={(v) => published.push(v)} />);
         const key = formNameOf(definition, node);
         expect(published.at(-1)).toEqual({ name: key, values: { title: 'seed' } });
-        fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Typed just now' } });
+        await user.clear(screen.getByLabelText('Title'));
+        await user.type(screen.getByLabelText('Title'), 'Typed just now');
         expect(published.at(-1)).toEqual({ name: key, values: { title: 'Typed just now' } });
     });
 });

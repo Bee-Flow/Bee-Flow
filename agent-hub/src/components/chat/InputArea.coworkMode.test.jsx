@@ -22,7 +22,7 @@
  * through the accessibility tree instead, which is the same question the user
  * is asking.
  */
-import { render as rtlRender, screen, fireEvent, within } from '@testing-library/react';
+import { render as rtlRender, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { useState } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -109,7 +109,8 @@ describe('InputArea — Cowork mode', () => {
         render(<Harness cowork={cowork} onSendMessage={onSendMessage} />);
 
         await user.click(screen.getByTestId('cowork-mode-cowork'));
-        fireEvent.change(screen.getByTestId('cowork-brief-input'), { target: { value: 'Do the thing' } });
+        await user.clear(screen.getByTestId('cowork-brief-input'));
+        await user.type(screen.getByTestId('cowork-brief-input'), 'Do the thing');
         await user.click(screen.getByTestId('cowork-send'));
 
         expect(cowork.submit).toHaveBeenCalledWith('Do the thing', expect.any(Object));
@@ -123,7 +124,8 @@ describe('InputArea — Cowork mode', () => {
         render(<Harness cowork={cowork} onSendMessage={onSendMessage} initialMode="cowork" />);
 
         await user.click(screen.getByTestId('cowork-mode-chat'));
-        fireEvent.change(screen.getByTestId('chat-message-input'), { target: { value: 'Hello' } });
+        await user.clear(screen.getByTestId('chat-message-input'));
+        await user.type(screen.getByTestId('chat-message-input'), 'Hello');
         await user.click(screen.getByTestId('send-message-button'));
 
         expect(onSendMessage).toHaveBeenCalled();
@@ -158,9 +160,11 @@ describe('InputArea — Cowork mode', () => {
         expect(screen.getByTestId('chat-message-input')).toBeInTheDocument();
     });
 
-    it('will not send while the schedule is half-picked', () => {
+    it('will not send while the schedule is half-picked', async () => {
+        const user = userEvent.setup();
         render(<Harness cowork={makeCowork({ scheduleReady: false })} onSendMessage={vi.fn()} initialMode="cowork" />);
-        fireEvent.change(screen.getByTestId('cowork-brief-input'), { target: { value: 'Do the thing' } });
+        await user.clear(screen.getByTestId('cowork-brief-input'));
+        await user.type(screen.getByTestId('cowork-brief-input'), 'Do the thing');
         expect(screen.getByTestId('cowork-send')).toBeDisabled();
     });
 
