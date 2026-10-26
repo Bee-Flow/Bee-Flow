@@ -552,7 +552,7 @@ describe('CoworkDetail — the history underneath', () => {
             [{ id: 'r1', status: 'success', startedAt: new Date().toISOString(), triggerKind: 'schedule', durationMs: 900, result: 'ok' }],
         );
         expect(screen.getByTestId('cowork-status')).toHaveTextContent('Running');
-        const row = screen.getByTestId('cowork-run');
+        const row = await screen.findByTestId('cowork-run');
         expect(within(row).getByText('Finished')).toBeInTheDocument();
         expect(row).toHaveTextContent('ok');
     });
