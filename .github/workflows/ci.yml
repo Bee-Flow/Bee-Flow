@@ -173,6 +173,7 @@ jobs:
               - 'server/stores/automationStore/rowMappers.js'
               - 'server/stores/document/rowMappers.js'
               - 'server/automation/goLive.js'
+              - 'server/automation/access.js'
               - 'server/stores/webpage/shared.js'
               # read as text by src/core/i18n/dictionaryText.ts
               - 'server/i18n/defaults/en/**'
@@ -1309,7 +1310,7 @@ jobs:
           directory: nextcloud-connector
       - name: Lint (errors fail, warnings budgeted)
         run: node ../scripts/eslint-budget.mjs nextcloud-connector
-      - name: Typecheck (checkJs, loose) and the strict error budget
+      - name: Typecheck (checkJs, strict) and the strict error budget (0)
         run: |
           npm run typecheck
           node ../scripts/tsc-error-ratchet.mjs nextcloud-connector
@@ -1402,7 +1403,7 @@ jobs:
         run: for m in modules/*/; do (cd "$m" && npm ci); done
       - name: Lint (errors fail, warnings budgeted)
         run: node ../scripts/eslint-budget.mjs hub-module-sdk
-      - name: Typecheck (checkJs, loose) and the strict error budget
+      - name: Typecheck (checkJs, strict) and the strict error budget (0)
         run: |
           npm run typecheck
           node ../scripts/tsc-error-ratchet.mjs hub-module-sdk

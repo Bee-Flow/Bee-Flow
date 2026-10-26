@@ -86,6 +86,7 @@ export function BuildToolbar({
     runs,
     onOpenStep,
     assistant = null,
+    canRunLive = true,
 }: {
     store: DraftStore;
     tab: BuildTab;
@@ -95,6 +96,8 @@ export function BuildToolbar({
     /** Where Run live sends a form trigger that has nothing to run on. */
     onOpenStep: (stepId: string) => void;
     assistant?: ToolbarAssistant | null;
+    /** false when the server says this person may not start a run (a view share). */
+    canRunLive?: boolean;
 }) {
     const styles = useThemedStyles(makeStyles);
     const t = useTranslation();
@@ -148,7 +151,7 @@ export function BuildToolbar({
                 ) : null}
                 {runs ? <RunButtons runs={runs} onMore={() => setMenu(true)} styles={styles} /> : null}
             </View>
-            {runs ? <RunMenu visible={menu} onClose={() => setMenu(false)} runs={runs} definition={definition} onOpenStep={onOpenStep} /> : null}
+            {runs ? <RunMenu visible={menu} onClose={() => setMenu(false)} runs={runs} definition={definition} onOpenStep={onOpenStep} canRunLive={canRunLive} /> : null}
         </>
     );
 }

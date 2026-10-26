@@ -22,6 +22,7 @@ import { RunStepsSection } from '../components/RunStepsSection';
 import { useCancelRun, useDecideRunStep, useRetryRun, useRunRefresh } from '../hooks/mutations';
 import { useRun, useRunSteps } from '../hooks/queries';
 import { useRunStream } from '../hooks/useRunStream';
+import { mayStartRun } from '../model/runAccess';
 import { isLiveStatus, statusLabel, statusToken } from '../model/status';
 import { absoluteTime, runElapsedMs } from '../model/time';
 import type { AutomationRun } from '../model/types';
@@ -130,6 +131,7 @@ export function RunDetailScreen({ automationId, runId }: { automationId: string;
                             decide={{ run: (d) => decide.mutate(d), pending: decide.isPending }}
                             stop={{ run: () => cancel.mutate(runId), pending: cancel.isPending }}
                             retry={{ run: () => retry.mutate(), pending: retry.isPending }}
+                            canRetry={mayStartRun(current)}
                         />
                     </View>
                     <RunStepsSection steps={steps} />

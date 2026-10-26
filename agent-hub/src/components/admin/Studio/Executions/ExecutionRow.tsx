@@ -13,6 +13,7 @@ import { enteredTriggerLabel, runTitle } from './runLanguage';
 import { runLogSentence, sentenceTooltip } from './runLogSentence';
 import type { RunLogRow } from './runLogSentence';
 import { messageOf } from '../../../../utils/caughtError';
+import { mayStartRun, runStartRefusal } from '../../../../api/queries/automation/runAccess';
 import { logger } from '../../../../utils/logger';
 
 /**
@@ -94,7 +95,7 @@ function useRowActions({ run, api, patchRow, refresh, onOpen, onOpenEditor }: Ex
         if (optimistic) patchRow(run.id, optimistic);
         try { await fn(); } catch (e) {
             // Swallowing left the button silently resetting: say what failed.
-            setActionError(t('studio_misc.runrow.couldnt', 'Couldn\'t do that: {message}', { message: messageOf(e, t('studio_misc.runrow.unknown_error', 'unknown error')) }));
+            setActionError(runStartRefusal(t, e) || t('studio_misc.runrow.couldnt', 'Couldn\'t do that: {message}', { message: messageOf(e, t('studio_misc.runrow.unknown_error', 'unknown error')) }));
         } finally { setPending(false); refresh(); }
     };
 
@@ -109,7 +110,8 @@ function useRowActions({ run, api, patchRow, refresh, onOpen, onOpenEditor }: Ex
     const liveId = run.journeyRunId || run.id;
     const automationId = run.automationId || '';
     const items: Array<MenuItem | false | ''> = [
-        run.status === 'error' && { label: t('studio_misc.runrow.run_again', 'Run it again'), icon: <RotateCcw size={14} />, onClick: () => act(() => api.retryRun(automationId, liveId)) },
+        // Left out, like every action the reader may not take, when the server says they may not start a run.
+        run.status === 'error' && mayStartRun(run) && { label: t('studio_misc.runrow.run_again', 'Run it again'), icon: <RotateCcw size={14} />, onClick: () => act(() => api.retryRun(automationId, liveId)) },
         running && { label: t('studio_misc.runrow.stop', 'Stop it'), icon: <Ban size={14} />, onClick: () => act(() => api.cancelRun(liveId), { status: 'cancelled' }), danger: true },
         (isAwaitStep || isAwaitRun) && { label: t('studio_misc.runrow.approve', 'Approve'), icon: <Check size={14} />, onClick: () => act(() => (isAwaitRun ? api.approveRun(liveId, 'approve') : api.approveStep(liveId, 'approve'))) },
         // A STEP rejection needs a reason (server-enforced), so the menu routes

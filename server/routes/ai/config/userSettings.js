@@ -43,7 +43,7 @@ const log = require('../../../telemetry/log');
 const router = express.Router();
 const configStore = require('../../../stores/configStore');
 const { normalizeAfasToken } = require('../../../integrations/afasTools');
-const { SUBDOMAIN_RE: NMBRS_SUBDOMAIN_RE, TOKEN_RE: NMBRS_TOKEN_RE, EMAIL_RE: NMBRS_EMAIL_RE } = require('../../../integrations/nmbrsTools');
+const { SUBDOMAIN_RE: NMBRS_SUBDOMAIN_RE, TOKEN_RE: NMBRS_TOKEN_RE, EMAIL_RE: NMBRS_EMAIL_RE, clearNmbrsPageCacheForUser } = require('../../../integrations/nmbrsTools');
 const { API_KEY_RE: VPLAN_API_KEY_RE, API_ENV_RE: VPLAN_API_ENV_RE } = require('../../../integrations/vplanTools');
 const { SECRET_KEY_RE: SCALEWAY_SECRET_KEY_RE, ORG_ID_RE: SCALEWAY_ORG_ID_RE } = require('../../../integrations/scalewayBillingTools');
 const { sanitizeLearningProgress, mergeLearningProgress } = require('../../../learning/progressValidation');
@@ -396,9 +396,9 @@ router.post('/user-settings', requireAuth, validate({ body: UserSettingsBody }),
         scalewayBillingOrgId: 'scaleway_billing_org_id',
     };
     for (const [field, key] of Object.entries(SECRETS)) {
-        if (req.body[field] !== undefined) {
-            await configStore.setSecret(`${key}_user_${userId}`, req.body[field] || '');
-        }
+        if (req.body[field] === undefined) continue;
+        await configStore.setSecret(`${key}_user_${userId}`, req.body[field] || '');
+        if (key.startsWith('nmbrs_')) clearNmbrsPageCacheForUser(userId); // connection changed or removed: forget its cached lists
     }
 
     if (enabledApps !== undefined) {

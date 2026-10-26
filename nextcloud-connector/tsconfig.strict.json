@@ -1,6 +1,6 @@
 {
-  // The same files under strict. Not a gate by itself: scripts/tsc-error-ratchet.mjs counts its
-  // errors (.tsc-strict-ratchet.json) and the number may only go down.
+  // Counted by scripts/tsc-error-ratchet.mjs (.tsc-strict-ratchet.json). tsconfig.json is strict
+  // itself; this file repeats the flags so loosening tsconfig.json cannot slip past the ratchet.
   "extends": "./tsconfig.json",
-  "compilerOptions": { "strict": true }
+  "compilerOptions": { "strict": true, "noImplicitAny": true, "strictNullChecks": true }
 }

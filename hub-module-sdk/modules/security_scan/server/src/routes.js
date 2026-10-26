@@ -21,10 +21,38 @@
 
 const path = require('path');
 const aggression = require('./aggression');
+const { errMessage } = require('./errors');
 
 // The Kali toolbox Dockerfile ships at <versionDir>/assets/terminal-runner. After
 // esbuild bundles this into <versionDir>/server/entry.cjs, __dirname is
 // <versionDir>/server, so ../assets/terminal-runner resolves to the packaged asset.
+/**
+ * @typedef {{ engine: string, intensity?: string }} EngineDescriptor
+ * @typedef {import('../../../../types/host').HostSession} HostSession
+ *
+ * The JSON body of POST /scans: whatever the client sent, every field checked before use.
+ * @typedef {object} ScanRequestBody
+ * @property {string} [targetUrl]
+ * @property {boolean} [authorized]
+ * @property {Record<string, unknown> | null} [metadata]
+ * @property {unknown} [engines]
+ * @property {string} [modelTier]
+ * @property {string} [aggression]
+ * @property {string} [prewarmId]
+ */
+
+/**
+ * The user requireAuth let through. Every route below is mounted after it, so a missing user is a
+ * wiring mistake, not a request to answer.
+ * @param {import('express').Request} req
+ * @returns {NonNullable<HostSession['user']>}
+ */
+function userOf(req) {
+    const user = req.session?.user;
+    if (!user) throw new Error('security_scan routes: request reached an authenticated route without a user');
+    return user;
+}
+
 const ASSETS_DIR = path.join(__dirname, '..', 'assets', 'terminal-runner');
 
 const VALID_ENGINES = ['zap', 'nuclei', 'testssl'];
@@ -32,14 +60,17 @@ const ZAP_INTENSITIES = ['baseline', 'full'];
 const MODEL_TIER_RE = /^[a-zA-Z0-9_:-]{1,64}$/;
 
 /**
+ * @typedef {ReturnType<typeof import('./store').makeSecurityScanStore>} ScanStore
+ * @typedef {typeof import('./scanRunner.service')} ScanRunnerService
+ * @typedef {ReturnType<typeof import('./worker').makeWorker>} ScanWorker
+ * @typedef {import('../../../../types/host').Host} Host
+ *
  * @param {import('express').Router} router
- * @param {object} deps
- * @param {any} deps.store          — the security scan store instance
- * @param {any} deps.scanRunnerSvc  — the scanRunner.service (docker lifecycle + provisioning)
- * @param {any} deps.worker         — the worker instance (drainOne fast-path)
- * @param {any} deps.host           — the module host API
+ * @param {{ store?: ScanStore, scanRunnerSvc?: ScanRunnerService, worker?: ScanWorker, host?: Host }} [deps]
+ *        store - the security scan store instance; scanRunnerSvc - the scanRunner.service (docker lifecycle + provisioning);
+ *        worker - the worker instance (drainOne fast-path); host - the module host API
  */
-function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = /** @type {any} */ ({})) {
+function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = {}) {
     if (!router || !store || !scanRunnerSvc || !worker || !host) {
         throw new Error('mountSecurityRoutes: router, store, scanRunnerSvc, worker and host are required');
     }
@@ -50,6 +81,7 @@ function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = /*
     // upstream (it guards on req._body), so this is safe under the dispatcher.
     router.use(express.json());
 
+    /** @type {import('express').RequestHandler} */
     function requireAuth(req, res, next) {
         if (req.session?.user) return next();
         return res.status(401).json({ error: 'Unauthorized' });
@@ -57,6 +89,7 @@ function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = /*
 
     // Super-admin gate for the toolbox provisioning routes. Mirrors the product's
     // auth/adminRoutes check (req.session.isAdmin || user.role === 'admin').
+    /** @type {import('express').RequestHandler} */
     function requireSuperAdmin(req, res, next) {
         const isSuper = req.session?.isAdmin || req.session?.user?.role === 'admin';
         if (!isSuper) return res.status(403).json({ error: 'super_admin_required' });
@@ -74,7 +107,7 @@ function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = /*
             res.json(status);
         } catch (err) {
             console.error('[Security] toolbox status failed:', err);
-            res.status(500).json({ error: 'toolbox_status_failed', message: err.message });
+            res.status(500).json({ error: 'toolbox_status_failed', message: errMessage(err) });
         }
     });
 
@@ -88,6 +121,10 @@ function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = /*
             'Connection': 'keep-alive',
             'X-Accel-Buffering': 'no',
         });
+        /**
+         * @param {string} event
+         * @param {unknown} data
+         */
         const send = (event, data) => {
             try { res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`); } catch (_) {}
         };
@@ -100,6 +137,7 @@ function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = /*
             const { imageOk } = await scanRunnerSvc.provisionToolbox({
                 mode,
                 assetsDir: ASSETS_DIR,
+                /** @param {{ stream?: unknown, status?: unknown } | null} evt */
                 onEvent: (evt) => {
                     // Build events carry { stream }; pull events carry { status, progress }.
                     const raw = evt && (evt.stream != null ? evt.stream : (evt.status != null ? evt.status : ''));
@@ -110,7 +148,7 @@ function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = /*
             send('done', { done: true, imageOk });
         } catch (err) {
             console.error('[Security] toolbox provision failed:', err);
-            send('error', { error: err.message || 'provision_failed' });
+            send('error', { error: errMessage(err) || 'provision_failed' });
         } finally {
             clearInterval(ping);
             try { res.end(); } catch (_) {}
@@ -133,10 +171,10 @@ function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = /*
     router.post('/scans/prewarm', async (req, res) => {
         try {
             if (!(await scanRunnerSvc.dockerAvailable())) return res.json({ prewarmId: null });
-            const prewarmId = scanRunnerSvc.prewarmToolbox({ userId: req.session.user.id });
+            const prewarmId = scanRunnerSvc.prewarmToolbox({ userId: userOf(req).id });
             res.json({ prewarmId });
         } catch (err) {
-            console.warn('[Security] prewarm failed:', err.message);
+            console.warn('[Security] prewarm failed:', errMessage(err));
             res.json({ prewarmId: null });
         }
     });
@@ -150,12 +188,14 @@ function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = /*
 
     router.post('/scans', async (req, res) => {
         try {
+            /** @type {ScanRequestBody} */
             const body = req.body || {};
             const { targetUrl, authorized = false, metadata = null } = body;
             // Every scan is AI-agent driven — the model drives the full toolbox
             // inside one container.
             const mode = 'agent';
-            let engines = body.engines;
+            // Whatever the client sent; each element is checked below before it is used.
+            let engines = /** @type {({ engine?: unknown, intensity?: string } | null)[]} */ (body.engines);
             if (!targetUrl || typeof targetUrl !== 'string') {
                 return res.status(400).json({ error: 'targetUrl is required' });
             }
@@ -179,6 +219,7 @@ function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = /*
             }
 
             // Validate the engine descriptors (report header only).
+            /** @type {EngineDescriptor[]} */
             const normalizedEngines = [];
             for (const e of engines) {
                 if (!e || typeof e !== 'object' || typeof e.engine !== 'string') {
@@ -187,6 +228,7 @@ function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = /*
                 if (!VALID_ENGINES.includes(e.engine)) {
                     return res.status(400).json({ error: `invalid engine: ${e.engine}` });
                 }
+                /** @type {EngineDescriptor} */
                 const descriptor = { engine: e.engine };
                 if (e.engine === 'zap' && e.intensity && ZAP_INTENSITIES.includes(e.intensity)) {
                     descriptor.intensity = e.intensity;
@@ -214,14 +256,14 @@ function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = /*
                 : metadata;
 
             // Subscription / plan gate (billed under the 'security' agent type).
-            const orgId = req.session.user.organizationId || null;
-            const limitError = await host.limits.checkSubscription(orgId, 'security', req.session.user.id);
+            const orgId = userOf(req).organizationId || null;
+            const limitError = await host.limits.checkSubscription(orgId, 'security', userOf(req).id);
             if (limitError) {
                 return res.status(403).json({ error: 'limit_reached', message: limitError });
             }
 
             const scanId = await securityScanStore.createScan({
-                userId: req.session.user.id,
+                userId: userOf(req).id,
                 organizationId: orgId,
                 targetUrl,
                 engines: normalizedEngines,
@@ -235,7 +277,7 @@ function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = /*
             // Fast-path: kick the worker once for this row so users don't wait
             // for the periodic tick. Errors are absorbed — the tick picks it up.
             if (process.env.SECURITY_DRAIN_IN_API !== 'false') {
-                worker.drainOne(scanId).catch(err => console.warn('[Security] drainOne failed:', err.message));
+                worker.drainOne(scanId).catch(err => console.warn('[Security] drainOne failed:', errMessage(err)));
             }
 
             // Tell the UI whether this scan will start now or wait for a free slot.
@@ -246,7 +288,7 @@ function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = /*
                     org: parseInt(process.env.SECURITY_MAX_CONCURRENT_PER_ORG || '2', 10),
                     global: parseInt(process.env.SECURITY_MAX_CONCURRENT_GLOBAL || '3', 10),
                 };
-                const active = await securityScanStore.countActiveByScope({ userId: req.session.user.id, organizationId: orgId });
+                const active = await securityScanStore.countActiveByScope({ userId: userOf(req).id, organizationId: orgId });
                 queued = active.user >= caps.perUser || active.org >= caps.org || active.global >= caps.global;
             } catch (_) { /* best-effort hint */ }
 
@@ -259,7 +301,7 @@ function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = /*
 
     router.get('/scans/active', async (req, res) => {
         try {
-            const scans = await securityScanStore.listActiveScansForUser(req.session.user.id);
+            const scans = await securityScanStore.listActiveScansForUser(userOf(req).id);
             // `scan` (most-recent single) retained for backward compatibility.
             res.json({ scans, scan: scans[0] || null });
         } catch (err) {
@@ -270,7 +312,7 @@ function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = /*
 
     router.post('/scans/:id/cancel', async (req, res) => {
         try {
-            const result = await securityScanStore.markCancelled(req.params.id, req.session.user.id);
+            const result = await securityScanStore.markCancelled(req.params.id, userOf(req).id);
             if (!result.ok) {
                 const code = result.error === 'not_found' ? 404
                     : result.error === 'forbidden' ? 403
@@ -286,7 +328,7 @@ function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = /*
 
     router.get('/scans/:id', async (req, res) => {
         try {
-            const s = await securityScanStore.getScan(req.params.id, req.session.user.id);
+            const s = await securityScanStore.getScan(req.params.id, userOf(req).id);
             if (!s) return res.status(404).json({ error: 'Scan not found' });
             res.json({ scan: s });
         } catch (err) {
@@ -297,7 +339,7 @@ function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = /*
 
     router.get('/scans/:id/report', async (req, res) => {
         try {
-            const s = await securityScanStore.getScan(req.params.id, req.session.user.id);
+            const s = await securityScanStore.getScan(req.params.id, userOf(req).id);
             if (!s) return res.status(404).json({ error: 'Scan not found' });
             res.json({
                 report: s.reportJson || null,
@@ -313,7 +355,7 @@ function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = /*
 
     router.get('/scans/:id/events', async (req, res) => {
         const scanId = req.params.id;
-        const s = await securityScanStore.getScan(scanId, req.session.user.id);
+        const s = await securityScanStore.getScan(scanId, userOf(req).id);
         if (!s) return res.status(404).json({ error: 'Scan not found' });
 
         res.writeHead(200, {
@@ -322,6 +364,10 @@ function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = /*
             'Connection': 'keep-alive',
             'X-Accel-Buffering': 'no',
         });
+        /**
+         * @param {string} event
+         * @param {unknown} data
+         */
         const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 
         // Initial snapshot so a late subscriber sees the current state.
@@ -353,7 +399,7 @@ function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = /*
 
     router.get('/scans/:id/artifacts', async (req, res) => {
         try {
-            const s = await securityScanStore.getScan(req.params.id, req.session.user.id);
+            const s = await securityScanStore.getScan(req.params.id, userOf(req).id);
             if (!s) return res.status(404).json({ error: 'Scan not found' });
             const artifacts = await securityScanStore.listArtifacts(s.id);
             res.json({ artifacts });
@@ -365,7 +411,7 @@ function mountSecurityRoutes(router, { store, scanRunnerSvc, worker, host } = /*
 
     router.get('/scans/:id/artifacts/:artifactId', async (req, res) => {
         try {
-            const s = await securityScanStore.getScan(req.params.id, req.session.user.id);
+            const s = await securityScanStore.getScan(req.params.id, userOf(req).id);
             if (!s) return res.status(404).json({ error: 'Scan not found' });
             const artifact = await securityScanStore.getArtifact(s.id, req.params.artifactId);
             if (!artifact || artifact.scanId !== s.id) return res.status(404).json({ error: 'Artifact not found' });

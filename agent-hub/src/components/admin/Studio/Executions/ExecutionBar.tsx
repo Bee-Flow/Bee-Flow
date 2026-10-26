@@ -6,6 +6,7 @@ import { formatDuration, formatRelative, formatExpiry } from '../AutomationsStud
 import { RunStatusBadge, DryRunBadge } from '../AutomationsStudio/RunStatusBits';
 import type { RunLogRow } from './runLogSentence';
 import { logger } from '../../../../utils/logger';
+import { mayStartRun, runStartRefusal, viewOnlyRunHint } from '../../../../api/queries/automation/runAccess';
 
 /** The run the bar describes: a log row, plus the lineage and pause fields only the single-run read carries. */
 export type ExecutionRun = RunLogRow & {
@@ -53,6 +54,8 @@ export default function ExecutionBar({ run, definition = null, onBack, onRetry, 
         } catch (e) {
             // Surface the failure — without a catch this was an unhandled
             // promise rejection and the button just silently reset.
+            const refusal = runStartRefusal(t, e);
+            if (refusal) { setActionError(refusal); return; }
             const message = (e as Error)?.message || t('studio_misc.runbar.unknown_error', 'unknown error');
             const failed = {
                 retry: () => t('studio_misc.runbar.failed_retry', 'retry failed: {message}', { message }),
@@ -150,7 +153,14 @@ export default function ExecutionBar({ run, definition = null, onBack, onRetry, 
 
                     <div className="ml-auto flex items-center gap-2">
                         {isError && onRetry && (
-                            <BarButton onClick={() => act('retry', onRetry)} pending={pending === 'retry'} icon={<RotateCcw size={14} />} tone="primary" title={t('studio_misc.runbar.run_again_title', 'Uses the automation as it is now')}>
+                            <BarButton
+                                onClick={() => act('retry', onRetry)}
+                                pending={pending === 'retry'}
+                                disabled={!mayStartRun(run)}
+                                icon={<RotateCcw size={14} />}
+                                tone="primary"
+                                title={mayStartRun(run) ? t('studio_misc.runbar.run_again_title', 'Uses the automation as it is now') : viewOnlyRunHint(t)}
+                            >
                                 {t('studio_misc.runbar.run_again', 'Run it again')}
                             </BarButton>
                         )}
@@ -208,13 +218,14 @@ const SECONDARY = 'inline-flex items-center gap-1.5 text-xs font-medium px-2 @[7
 interface BarButtonProps {
     onClick: React.MouseEventHandler<HTMLButtonElement>;
     pending: boolean;
+    disabled?: boolean;
     icon: React.ReactNode;
     tone: string;
     title?: string;
     children?: React.ReactNode;
 }
 
-function BarButton({ onClick, pending, icon, tone, title = undefined, children }: BarButtonProps) {
+function BarButton({ onClick, pending, disabled = false, icon, tone, title = undefined, children }: BarButtonProps) {
     const toneCls = tone === 'danger'
         ? 'border-red-500/40 text-red-600 dark:text-red-400 hover:bg-red-500/10'
         : 'text-[var(--accent-primary-fg,#ffffff)] border-transparent';
@@ -222,7 +233,7 @@ function BarButton({ onClick, pending, icon, tone, title = undefined, children }
     return (
         <button
             onClick={onClick}
-            disabled={pending}
+            disabled={pending || disabled}
             style={toneStyle}
             title={title}
             className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition disabled:opacity-50 ${toneCls}`}

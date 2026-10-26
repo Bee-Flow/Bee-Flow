@@ -26449,6 +26449,7 @@ const EN_DEFAULTS = {
     "automations.role.canEdit": "Can edit",
     "automations.role.canRun": "Can run",
     "automations.role.canView": "Can view",
+    "automations.run.viewOnlyHint": "You can view this automation but not start it. Ask the owner for run access.",
     "automations.schedule.custom": "Custom schedule",
     "automations.schedule.day_fri": "Fri",
     "automations.schedule.day_mon": "Mon",

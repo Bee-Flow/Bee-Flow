@@ -54,6 +54,7 @@ const fx = {
     updated: true,        // updateSkill's return
     deleted: true,        // deleteSkill's return
     calls: [],
+    linkRole: null,       // the caller's role on the automation a skill links
 };
 const rec = (name, args) => { fx.calls.push({ name, args }); };
 const lastCall = (name) => [...fx.calls].reverse().find(c => c.name === name);
@@ -98,6 +99,14 @@ const MOCKS = {
     '../core/tools/skillInjection': { sanitizeEnabledIntegrations: (v) => (Array.isArray(v) ? v : []) },
     '../stores/userStore': { getUser: async () => ({ id: fx.userId, organizationId: fx.orgId }) },
     '../stores/agentStore': { scrubSkillFromAllAgents: async () => 0 },
+    // Linking an automation is starting it (its own suite: skills/automationLink.test.js).
+    './skills/automationLink': {
+        assertMayLinkAutomation: async (automationId, userId, current) => {
+            rec('assertMayLinkAutomation', { automationId, userId, current });
+            if (!automationId || automationId === (current || null) || ['run', 'edit', 'owner'].includes(fx.linkRole)) return;
+            throw new (require('../core/http/errors').HttpError)(403, 'automation_link_forbidden', 'You can only link an automation you may start.');
+        },
+    },
 };
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
@@ -139,7 +148,10 @@ async function call(method, routePath, req = {}) {
     for (const handle of routeStack(method, routePath)) {
         let advanced = false;
         let failure = null;
-        await handle(full, res, (err) => { advanced = true; failure = err || null; });
+        // Express 5 hands a rejected async handler to the error handler too.
+        try {
+            await handle(full, res, (err) => { advanced = true; failure = err || null; });
+        } catch (err) { failure = err; }
         if (failure) { terminalErrorHandler(failure, full, res, () => {}); break; }
         if (res.sent || !advanced) break;
     }
@@ -152,6 +164,7 @@ beforeEach(() => {
     fx.userId = 'owner'; fx.orgId = 'org1'; fx.canManage = true;
     fx.skill = SKILL(); fx.list = []; fx.usage = []; fx.uncheckedKinds = [];
     fx.throwOnWrite = null; fx.updated = true; fx.deleted = true;
+    fx.linkRole = null;
     fx.calls.length = 0;
 });
 
@@ -475,4 +488,29 @@ test('DELETE /:id of an unused skill needs no confirmation; a missing row is a 4
     assert.strictEqual((await call('delete', '/:id', { params: { id: 'sk1' } })).statusCode, 200);
     fx.deleted = false;
     assert.strictEqual((await call('delete', '/:id', { params: { id: 'sk1' } })).statusCode, 404);
+});
+
+// ── linking an automation (using the skill starts it) ────────────────
+test('POST / and PUT /:id ask whether the caller may link the automation, and write nothing when not', async () => {
+    fx.linkRole = 'view';
+    const refused = await call('post', '/', { body: { name: 'Runner', automationId: 'au-x' } });
+    assert.strictEqual(refused.statusCode, 403);
+    assert.strictEqual(refused.body.code, 'automation_link_forbidden');
+    assert.strictEqual(lastCall('createSkill'), undefined, 'nothing written');
+    assert.deepStrictEqual(lastCall('assertMayLinkAutomation').args, { automationId: 'au-x', userId: 'owner', current: undefined });
+
+    const put = await call('put', '/:id', { params: { id: 'sk1' }, body: { name: 'x', automationId: 'au-x' } });
+    assert.strictEqual(put.statusCode, 403);
+    assert.strictEqual(lastCall('updateSkill'), undefined, 'nothing written');
+
+    // The link the skill already has goes along, so an autosave resending it passes.
+    fx.skill = SKILL({ automationId: 'au-x' });
+    const resent = await call('put', '/:id', { params: { id: 'sk1' }, body: { name: 'x', automationId: 'au-x' } });
+    assert.strictEqual(resent.statusCode, 200);
+    assert.strictEqual(lastCall('assertMayLinkAutomation').args.current, 'au-x');
+
+    fx.skill = SKILL();
+    fx.linkRole = 'run';
+    assert.strictEqual((await call('post', '/', { body: { name: 'Runner', automationId: 'au-x' } })).statusCode, 201);
+    assert.strictEqual((await call('put', '/:id', { params: { id: 'sk1' }, body: { name: 'x', automationId: 'au-x' } })).statusCode, 200);
 });

@@ -23,28 +23,40 @@
  * storage.getPresignedUrl, webpages.persist and net.isPrivateTarget. This mock
  * keeps the SAME method names/shapes so a module that works here works
  * in-product: inject overrides via opts to assert your module's calls.
+ * The shape of `host` is `Host` in types/host.d.ts.
  *
- * @typedef {Object} Host
- * @property {{ run:Function, getOne:Function, getAll:Function, exec:Function, getClient:Function, tx:Function }} db
- * @property {Function} express
- * @property {{ requireCapability:Function, requirePermission:Function }} middleware
- * @property {{ configStore:object }} stores
- * @property {{ resolveModelForTier:Function, getProviderForModel:Function, getAdapter:Function }} ai
- * @property {{ logUsage:Function }} usage
- * @property {{ checkSubscription:Function }} limits
- * @property {{ getPresignedUrl:Function }} storage
- * @property {{ persist:Function }} webpages
- * @property {{ isPrivateTarget:Function }} net
- * @property {{ debug:Function, info:Function, warn:Function, error:Function }} log
- * @property {Function} isModuleActive
- * @property {Function} fetch
- * @property {number} hostApiVersion
+ * @typedef {import('../types/host.js').Host} Host
+ * @typedef {import('../types/host.js').HostDb} HostDb
+ * @typedef {import('../types/host.js').HostLog} HostLog
+ * @typedef {import('../types/host.js').DbRow} DbRow
+ * @typedef {import('../types/host.js').ConfigStore} ConfigStore
+ *
+ * What a test passes to makeHostMock(): any part of the host to replace, or the
+ * canned rows of the default db mock.
+ * @typedef {object} HostMockOptions
+ * @property {boolean} [active=true]               what isModuleActive() resolves to
+ * @property {HostDb} [db]                         replace the whole db mock
+ * @property {{ one?: DbRow | null, all?: DbRow[] }} [dbSeed]  canned db results
+ * @property {ConfigStore} [configStore]           override the fake configStore
+ * @property {Host['ai']} [ai]                     override the ai.* stubs
+ * @property {Host['usage']} [usage]               override the usage.* stubs
+ * @property {Host['limits']} [limits]             override the limits.* stubs
+ * @property {Host['storage']} [storage]           override the storage.* stubs
+ * @property {Host['webpages']} [webpages]         override the webpages.* stubs
+ * @property {Host['net']} [net]                   override the net.* stubs
+ * @property {HostLog} [log]                       override the logger
  */
 
-/** In-memory stand-in for the injected db. Records calls; returns canned data. */
+/**
+ * In-memory stand-in for the injected db. Records calls; returns canned data.
+ * @param {{ one?: DbRow | null, all?: DbRow[] }} [seed]
+ * @returns {HostDb & { _calls: { fn: string, sql?: string, params?: readonly unknown[] }[] }}
+ */
 export function makeDbMock(seed = {}) {
+    /** @type {{ fn: string, sql?: string, params?: readonly unknown[] }[]} */
     const calls = [];
     // A no-op PoolClient so getClient()/tx() are exercisable without a real pg.
+    /** @type {import('../types/host.js').DbClient} */
     const fakeClient = {
         async query(sql, params = []) { calls.push({ fn: 'query', sql, params }); return { rows: seed.all ?? [], rowCount: 0 }; },
         release() {},
@@ -71,12 +83,15 @@ export function makeDbMock(seed = {}) {
     };
 }
 
-const passthrough = () => (req, res, next) => next();
+/** @type {() => import('express').RequestHandler} */
+const passthrough = () => (_req, _res, next) => next();
 
 // Minimal literal-host private-target check for the net.* stub: mirrors the
 // product predicate's intent (block loopback / RFC1918 / non-http(s)) without
 // the full numeric canonicalizer. Override via opts.net for exotic cases.
+/** @param {string} rawUrl */
 export function defaultIsPrivateTarget(rawUrl) {
+    /** @type {URL} */
     let u;
     try { u = new URL(rawUrl); } catch { return true; }
     if (!/^https?:$/.test(u.protocol)) return true;
@@ -85,7 +100,10 @@ export function defaultIsPrivateTarget(rawUrl) {
         || /^10\./.test(h) || /^192\.168\./.test(h) || /^172\.(1[6-9]|2\d|3[01])\./.test(h);
 }
 
-/** Logger that forwards to the console. */
+/**
+ * Logger that forwards to the console.
+ * @returns {HostLog}
+ */
 export function consoleLog() {
     return {
         debug: (...a) => console.debug(...a),
@@ -95,7 +113,10 @@ export function consoleLog() {
     };
 }
 
-/** Logger that swallows everything. */
+/**
+ * Logger that swallows everything.
+ * @returns {HostLog}
+ */
 export function silentLog() {
     return { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} };
 }
@@ -104,39 +125,31 @@ export function silentLog() {
  * Bind a module's defaults and get its makeHostMock(opts).
  *
  * @param {object}   defaults
- * @param {Function} defaults.express             the module's own express
+ * @param {Host['express']} defaults.express      the module's own express
  * @param {string}   [defaults.moduleId]          set host.moduleId when given
- * @param {Function} [defaults.subscriptionResult=() => ({ allowed: true })]
+ * @param {() => unknown} [defaults.subscriptionResult=() => ({ allowed: true })]
  *                   builds what the default limits.checkSubscription resolves to
- * @param {Function} [defaults.log=consoleLog]    builds the default logger
- * @returns {(opts?: object) => Host}
+ * @param {() => HostLog} [defaults.log=consoleLog]  builds the default logger
+ * @returns {(opts?: HostMockOptions) => Host}
  */
 export function createHostMockFactory({
     express,
     moduleId,
     subscriptionResult = () => ({ allowed: true }),
     log = consoleLog,
-} = /** @type {any} */ ({})) {
+}) {
     /**
-     * @param {object} [opts]
-     * @param {boolean} [opts.active=true]  what isModuleActive() resolves to
-     * @param {any}  [opts.db]           replace the whole db mock
-     * @param {any}  [opts.dbSeed]       { one, all } canned db results
-     * @param {any}  [opts.configStore]  override the fake configStore
-     * @param {any}  [opts.ai]           override the ai.* stubs
-     * @param {any}  [opts.usage]        override the usage.* stubs
-     * @param {any}  [opts.limits]       override the limits.* stubs
-     * @param {any}  [opts.storage]      override the storage.* stubs
-     * @param {any}  [opts.webpages]     override the webpages.* stubs
-     * @param {any}  [opts.net]          override the net.* stubs
-     * @param {any}  [opts.log]          override the logger
+     * @param {HostMockOptions} [opts]
      * @returns {Host} a host mock (not frozen, so tests can spy)
      */
     return function makeHostMock(opts = {}) {
         const active = opts.active !== false;
+        /** @type {Map<string, unknown>} */
         const configValues = new Map();
+        /** @type {Map<string, unknown>} */
         const secrets = new Map();
 
+        /** @type {ConfigStore} */
         const configStore = opts.configStore || {
             async getConfig(key) { return configValues.has(key) ? configValues.get(key) : null; },
             async setConfig(key, value) { configValues.set(key, value); },
@@ -184,7 +197,7 @@ export function createHostMockFactory({
             log: opts.log || log(),
             async isModuleActive(_id) { return active; },
             // Real host wraps fetch with an SSRF guard; the mock is plain fetch.
-            fetch: (/** @type {[any, any?]} */ ...args) => globalThis.fetch(...args),
+            fetch: (...args) => globalThis.fetch(...args),
         };
     };
 }

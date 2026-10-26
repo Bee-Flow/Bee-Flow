@@ -49,17 +49,27 @@ const esbuild = require('esbuild');
 //                         safe because it is never called.
 const EMPTY_STUB = fileURLToPath(new URL('stubs/empty.cjs', import.meta.url));
 
+/**
+ * @typedef {{ external: string[], stub: string[] }} BfmodConfig
+ * @param {string} moduleDir
+ * @returns {BfmodConfig}
+ */
 function readModuleBfmod(moduleDir) {
     try {
-        const pkg = JSON.parse(fs.readFileSync(path.join(moduleDir, 'package.json'), 'utf8'));
+        const pkg = /** @type {{ bfmod?: { external?: unknown, stub?: unknown } } | null} */ (JSON.parse(fs.readFileSync(path.join(moduleDir, 'package.json'), 'utf8')));
         const bf = (pkg && pkg.bfmod) || {};
-        const list = (v) => (Array.isArray(v) ? v.filter((s) => typeof s === 'string' && s) : []);
+        /** @param {unknown} v @returns {string[]} */
+        const list = (v) => (Array.isArray(v) ? v.filter((/** @type {unknown} */ s) => typeof s === 'string' && s) : []);
         return { external: list(bf.external), stub: list(bf.stub) };
     } catch (_) {
         return { external: [], stub: [] };
     }
 }
 
+/**
+ * @param {string} moduleDir
+ * @returns {Promise<string>}  the bundle written
+ */
 async function buildServer(moduleDir) {
     const entry = path.join(moduleDir, 'server', 'src', 'index.js');
     if (!fs.existsSync(entry)) throw new Error(`missing ${entry}`);
@@ -67,6 +77,7 @@ async function buildServer(moduleDir) {
     const { external, stub } = readModuleBfmod(moduleDir);
     if (external.length) console.log('external ->', external.join(', '));
     if (stub.length) console.log('stub     ->', stub.join(', '));
+    /** @type {Record<string, string>} */
     const alias = {};
     for (const name of stub) alias[name] = EMPTY_STUB;
     await esbuild.build({
@@ -88,6 +99,10 @@ async function buildServer(moduleDir) {
     return outfile;
 }
 
+/**
+ * @param {string} moduleDir
+ * @returns {string | null}  the library built, null when the module has no frontend
+ */
 function buildFrontend(moduleDir) {
     const feDir = path.join(moduleDir, 'frontend');
     if (!fs.existsSync(path.join(feDir, 'src'))) {
@@ -110,6 +125,10 @@ function buildFrontend(moduleDir) {
     return path.join(feDir, 'index.js');
 }
 
+/**
+ * @param {string} moduleDir
+ * @returns {string}  path of manifest.json
+ */
 function copyManifest(moduleDir) {
     const src = path.join(moduleDir, 'module.manifest.json');
     const dst = path.join(moduleDir, 'manifest.json');
