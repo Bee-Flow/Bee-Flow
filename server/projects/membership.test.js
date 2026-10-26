@@ -642,6 +642,10 @@ test('a filed template does not appear in listProjectDocuments, and a Solution l
                    INSERT INTO users VALUES ('alice','org1');`);
     const projectStore = require('../stores/projectStore');
     const documentStore = require('../stores/documentStore');
+    // Requiring the user store starts its schema and seeds in the background.
+    // PGlite is ONE session: let that finish before this test opens its own
+    // transactions, or one of its statements lands inside the other's.
+    await require('../stores/userStore').initDB().catch(() => undefined);
     await projectStore.initDB();
     await documentStore.initDB();
     const dev = await projectStore.createProject({ name: 'Quotes', ownerId: 'alice', organizationId: 'org1', kind: 'solution' });
