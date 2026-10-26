@@ -110,6 +110,7 @@ const FIXED_SEEDS: Readonly<Record<string, () => Record<string, unknown>>> = {
     file_intake: () => ({ connectorId: '', threadKey: stat(''), resultVar: 'intake' }),
     dataset_query: () => ({ dataset: stat(''), gene: stat(''), resultVar: 'variants' }),
     ai_browse: () => ({ task: stat(''), resultVar: 'browse' }),
+    copy_document: () => ({ source: formula('form.document'), resultVar: 'copy' }),
     condition: () => ({ expr: '', then: [], else: [] }),
     switch: () => ({ expr: '', cases: [{ value: '', steps: [] }], default: [] }),
     loop: () => ({ source: stat([]), itemVar: 'item', steps: [] }),

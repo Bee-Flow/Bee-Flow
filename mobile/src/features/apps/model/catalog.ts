@@ -54,6 +54,8 @@ export const BROWSER_ONLY_TYPES: Readonly<Record<string, string>> = {
     browser_view: 'A desktop viewport streamed as JPEG and scaled to phone width is unreadable.',
     file_preview: 'Renders through a same-origin blob: URL in an iframe — neither exists in React Native.',
     pdf_compare: 'Two synced pdf.js canvases side by side need a desktop width, and pdf.js needs a DOM worker.',
+    document_viewer: 'Renders the Studio preview in a sandboxed srcDoc iframe (or a wide spreadsheet grid) — neither fits React Native.',
+    document_compare: 'Two documents side by side, slide frames and spreadsheet grids need a desktop width and an iframe.',
 };
 
 export function isSupportedInput(type: string): type is SupportedInput {

@@ -63,6 +63,11 @@ export const STEP_ROWS: readonly StepRow[] = [
         'dataset_query', 'Data', 'Dna', 'Query a dataset',
         'Read a bounded slice out of a large genome file — by gene, region or rsID.', 'server',
     ],
+    [
+        'copy_document', 'Data', 'Copy', 'Copy a document',
+        'Copy a Studio document into your library, a presentation optionally in another template’s look, to compare with the original.',
+        'server',
+    ],
     // AI
     [
         'ai_browse', 'AI', 'Globe', 'Browse the web',
