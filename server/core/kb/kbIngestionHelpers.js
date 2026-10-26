@@ -15,7 +15,8 @@ const { friendlyError } = require('./friendlyError');
 const { assertUrlIsPublic, fetchUrlContent, fetchWithPlaywright } = require('./kbUrlFetch');
 const { extractFileContentWithMeta, extractFileContent } = require('./kbFileExtract');
 const { findDocumentBySourceUri, findDocumentsBySourceUri } = require('./kbDocLookup');
-const { simhash64, getAzureIngestParams, byteLength, isLocalIngest, embedDocumentContent } = require('./kbEmbed');
+const { simhash64, byteLength, embedDocumentContent } = require('./kbEmbed');
+const { getAzureIngestParams, usesLocalIngest } = require('./ingestMode');
 const { purgeDocumentChunks, reingestDocument, deleteDocumentChunks } = require('./kbReingest');
 const { fallback } = require('../../utils/bestEffort');
 
@@ -41,12 +42,6 @@ async function findActiveByHash(kbId, hash) {
     }
     const id = await kbStore.hasContentHash(kbId, hash);
     return id ? { id, source_id: null } : null;
-}
-
-/** Does this instance embed knowledge locally (and so with the configured model)? */
-async function usesLocalIngest() {
-    const { resolveKbProvider } = require('./resolveProvider');
-    return isLocalIngest(await getAzureIngestParams(), await resolveKbProvider());
 }
 
 /**

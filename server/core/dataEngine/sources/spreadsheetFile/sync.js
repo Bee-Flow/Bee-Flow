@@ -15,7 +15,7 @@
 'use strict';
 
 const { makeSync } = require('../mirror/syncPipeline');
-const adapter = require('./adapterCore');
+const adapter = require('./adapter');
 
 /** @type {import('../mirror/syncPipeline').MirrorSync} */
 module.exports = makeSync(adapter);

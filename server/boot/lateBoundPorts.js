@@ -11,6 +11,7 @@
  *   stores/configStore.js (legacy secrets) <- stores/integrationConnectionStore.js
  *   stores/user/billingPorts.js            <- services/planEntitlements.js, services/trialService.js
  *   stores/user/seatSyncPort.js            <- services/stripeService.js
+ *   core/kb/embeddingMigration.js (retry)  <- core/kb/sources/index.js
  */
 
 'use strict';
@@ -27,3 +28,5 @@ require('../stores/user/billingPorts')
     .setMaybeAutoGrantOrgTrial((orgId) => require('../services/trialService').maybeAutoGrantOrgTrial(orgId));
 require('../stores/user/seatSyncPort')
     .setSeatSync((orgId) => require('../services/stripeService').syncSeatQuantityForOrg(orgId));
+require('../core/kb/embeddingMigration')
+    .setSourceSync((...args) => require('../core/kb/sources').syncSource(...args));
