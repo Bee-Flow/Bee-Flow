@@ -48,9 +48,7 @@ export default function useFlowletScope({
 
     // Scope guard: snap back to root when the flowlet disappears out from
     // under us (undo, AI rewrite, JSON save, version restore, hydrate).
-    useEffect(() => {
-        if (scopeKey && !effectiveDef?.layers?.[scopeKey]) setScopeKey(null);
-    }, [scopeKey, effectiveDef]);
+    if (scopeKey && !effectiveDef?.layers?.[scopeKey]) setScopeKey(null);
 
     // ── Flowlet scope ↔ URL ────────────────────────────────────────────────
     // Sync FROM the URL: adopt `initialScopeKey` on first load and on browser

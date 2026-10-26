@@ -9,6 +9,7 @@ import { resolveChatTarget, startReconnect, useNotifications } from './notificat
 import type { AppNotification } from './notifications/useNotifications';
 import useOutsideDismiss from '../../hooks/useOutsideDismiss';
 import { useViewport } from '../../hooks/useViewport';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 /** Hand a finished run to the chat surface, on the thread it belongs to. */
 async function continueInChat(n: AppNotification | null | undefined, title: string | undefined, content: string) {
@@ -41,11 +42,9 @@ export default function NotificationCenter({ variant = 'row' }: { variant?: 'row
     const inbox = useNotifications();
     const { notifications, fetchNotifications, markRead } = inbox;
 
+    useAdjustOnChange([open, fetchNotifications], () => { if (open) setExpandedId(null); });
     useEffect(() => {
-        if (open) {
-            fetchNotifications();
-            setExpandedId(null);
-        }
+        if (open) fetchNotifications();
     }, [open, fetchNotifications]);
 
     useOutsideDismiss(panelRef, () => setOpen(false), { enabled: open, escape: false, defer: false });

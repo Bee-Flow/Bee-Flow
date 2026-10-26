@@ -1,5 +1,5 @@
 import { BarChart3, ClipboardList, Columns3, Rows3, ShieldAlert, Share2, Timer, Workflow } from 'lucide-react';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import ColumnDesigner from './ColumnDesigner';
 import { GRADE_LABEL, gradeAtLeast, isFormAnswers, isSourceMirror, keyFromName, sourceKindSpec, sourceNameOf, tableKindOf } from './datatableDisplay';
 import { datatablesApi } from './datatablesApi';
@@ -24,6 +24,7 @@ import type { DtColumn, DtTable } from './rowBrowser/rowBrowserModel';
 import type { SourceMirror } from './useSourceMirror';
 import type { DatatableDetailProps, DatatableUsageRow, DetailTable } from './DatatableDetail.types';
 import { TableMenu } from './TableMenu';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 export default function DatatableDetail({
     table, canManage, currentUserId = null, onBack, onChanged, onDeleted, onNavigate = null,
@@ -44,13 +45,7 @@ export default function DatatableDetail({
     // the first question about it, not what its columns are.
     const answers = isFormAnswers(table);
     const [tab, setTab] = useState(initialTab || (isMirror ? 'source' : answers ? 'dashboard' : 'columns'));
-    const lastInitialTab = useRef(initialTab);
-    useEffect(() => {
-        if (initialTab !== lastInitialTab.current) {
-            lastInitialTab.current = initialTab;
-            if (initialTab) setTab(initialTab);
-        }
-    }, [initialTab]);
+    useAdjustOnChange([initialTab], () => { if (initialTab) setTab(initialTab); });
     // A mirror is live while somebody LOOKS at it: the rows and the source
     // tab pulse the server, which re-checks the source; the other tabs do not.
     useEffect(() => { mirror?.watch(tab === 'rows' || tab === 'source'); }, [mirror, tab]);

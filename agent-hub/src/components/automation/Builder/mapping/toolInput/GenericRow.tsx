@@ -7,6 +7,7 @@ import { onBindingDragOver, getBindingDropPath } from '../bindingDnd';
 import { AutoMappedPill as AutoMappedPillJs } from '../fieldChrome';
 import ValueBuilderJs from '../ValueBuilder';
 import { useTranslation } from '../../../../../hooks/useTranslation';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 // The two value editors are untyped JS; their props are checked there.
 const BindingField = BindingFieldJs as unknown as ComponentType<Record<string, unknown>>;
@@ -44,7 +45,7 @@ function FieldNameInput({ fieldKey, siblingKeys = [], onCommit, onAdoptPath = nu
     const [text, setText] = useState(fieldKey);
     const [error, setError] = useState<string | null>(null);
     const ref = useRef<HTMLInputElement | null>(null);
-    useEffect(() => { setText(fieldKey); setError(null); }, [fieldKey]);
+    useAdjustOnChange([fieldKey], () => { setText(fieldKey); setError(null); });
     // A freshly added row lands with a generated name: select it so the first
     // keystroke replaces it instead of appending to it.
     useEffect(() => { if (autoFocus) ref.current?.select(); }, [autoFocus]);

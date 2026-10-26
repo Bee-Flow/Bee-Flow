@@ -41,6 +41,45 @@ interface AgentStudioProps {
     startInWizard?: boolean;
 }
 
+/**
+ * The deep-linked agent (`initialAgentId`), opened once the list has loaded.
+ * Returns the id it was resolved for ('none' without one), or null while the
+ * list is still on its way. Runs during render: the flag it sets stops it.
+ */
+function useDeepLinkedAgent(
+    initialAgentId: AgentStudioProps['initialAgentId'],
+    agents: AgentListRow[],
+    loadError: unknown,
+    setSelectedAgent: (agent: AgentListRow | null) => void,
+    setMode: (mode: string) => void,
+) {
+    // Track whether the initial deep-link id has been resolved (matched against
+    // the loaded agents list, or confirmed absent). The reflective URL effect
+    // below is gated on this so a hard-refresh of /app/studio/agents/<id>
+    // doesn't get clobbered to /app/studio/agents before the agent list arrives
+    // and the auto-select effect runs.
+    //
+    // The flag is keyed on the *current* initialAgentId — if the parent passes
+    // a new id (e.g. in-app nav from /studio/agents/A to /B), we re-bootstrap
+    // instead of being stuck on A.
+    const [bootstrappedFor, setBootstrappedFor] = useState(initialAgentId ? null : 'none');
+
+    // Auto-select agent passed in via URL once agents have loaded (during
+    // render: the flag it sets stops it from running again).
+    const awaitingBootstrap = bootstrappedFor !== initialAgentId && bootstrappedFor !== 'none';
+    if (awaitingBootstrap && (agents.length > 0 || loadError)) {
+        const found = initialAgentId ? agents.find(a => a.id === initialAgentId) : null;
+        if (found) { setSelectedAgent(found); setMode('edit'); }
+        else if (initialAgentId) {
+            // Deep-link target no longer exists — drop to list view.
+            setSelectedAgent(null);
+            setMode('idle');
+        }
+        setBootstrappedFor(initialAgentId || 'none');
+    }
+    return bootstrappedFor;
+}
+
 export default function AgentStudio({ user, initialAgentId = null, onClose, onNavigate, hasPermission = () => true, systemMode = false, startInWizard = false, onEditingChange }: AgentStudioProps) {
     const { t } = useTranslation();
 
@@ -57,30 +96,7 @@ export default function AgentStudio({ user, initialAgentId = null, onClose, onNa
         return () => { onEditingChange?.(false); };
     }, [isEditing, onEditingChange]);
 
-    // Track whether the initial deep-link id has been resolved (matched against
-    // the loaded agents list, or confirmed absent). The reflective URL effect
-    // below is gated on this so a hard-refresh of /app/studio/agents/<id>
-    // doesn't get clobbered to /app/studio/agents before the agent list arrives
-    // and the auto-select effect runs.
-    //
-    // The flag is keyed on the *current* initialAgentId — if the parent passes
-    // a new id (e.g. in-app nav from /studio/agents/A to /B), we re-bootstrap
-    // instead of being stuck on A.
-    const [bootstrappedFor, setBootstrappedFor] = useState(initialAgentId ? null : 'none');
-
-    // Auto-select agent passed in via URL once agents have loaded.
-    useEffect(() => {
-        if (bootstrappedFor === initialAgentId || bootstrappedFor === 'none') return;
-        if (agents.length === 0 && !loadError) return; // wait for load
-        const found = initialAgentId ? agents.find(a => a.id === initialAgentId) : null;
-        if (found) { setSelectedAgent(found); setMode('edit'); }
-        else if (initialAgentId) {
-            // Deep-link target no longer exists — drop to list view.
-            setSelectedAgent(null);
-            setMode('idle');
-        }
-        setBootstrappedFor(initialAgentId || 'none');
-    }, [bootstrappedFor, initialAgentId, agents, loadError]);
+    const bootstrappedFor = useDeepLinkedAgent(initialAgentId, agents, loadError, setSelectedAgent, setMode);
 
     // Reflect the open agent in the URL so it's bookmarkable / visible to the user.
     useEffect(() => {

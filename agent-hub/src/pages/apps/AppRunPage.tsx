@@ -26,6 +26,7 @@ import type { NavigateFn } from '../../components/admin/Studio/AppStudio/runtime
 import type { ActionState, RunOpts, Vars } from '../../components/admin/Studio/AppStudio/runtime/actionRunner/core';
 import type { ShellDefinition, RuntimePayload, RuntimeLoadError, RunState, ConnectionsPreflightProps, RunBodyProps, RunSurfaceProps, AppRunPageProps } from './AppRunPage.types';
 import { useDataConnectors } from '../../api/queries/apps';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 export type { ShellDefinition } from './AppRunPage.types';
 
 // Stands in for "this viewer has no role in this app" so role gating stays
@@ -268,8 +269,8 @@ export default function AppRunPage({ appId, draft = false }: AppRunPageProps) {
     // server's published version; when that moves past ours, offer a reload.
     const loadedVersion = state.payload?.appVersion ?? null;
     const [staleVersion, setStaleVersion] = useState(false);
+    useAdjustOnChange([appId, draft, loadedVersion], () => setStaleVersion(false));
     useEffect(() => {
-        setStaleVersion(false);
         if (draft || loadedVersion === null) return undefined;
         return subscribeAppVersion(appId, (version) => {
             if (version !== loadedVersion) setStaleVersion(true);

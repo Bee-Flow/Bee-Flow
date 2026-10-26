@@ -6,6 +6,7 @@ import { stepDragProps } from '../stepDrag';
 import useTranslation from '@/hooks/useTranslation';
 import type { RibbonResult } from './ribbonSearch';
 import type { StepPayload } from './ribbonCategories';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 type AddFn = (payload: StepPayload) => void;
 
@@ -66,7 +67,7 @@ export default function RibbonSearchField({ query, onQueryChange, results, onAdd
     const [active, setActive] = useState(0);
     const showList = open && query.trim().length > 0;
 
-    useEffect(() => { setActive(0); }, [query]);
+    useAdjustOnChange([query], () => setActive(0));
     // Outside click closes. Capture phase: the canvas stops mousedown propagation.
     useEffect(() => {
         if (!showList) return undefined;

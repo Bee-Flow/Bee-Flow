@@ -12,7 +12,7 @@
 // findings, capabilities. When it cannot (offline, an older server), this is
 // the author's view and nothing is lost.
 import { Maximize2 } from 'lucide-react';
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { lazyWithI18n } from '@/utils/lazyWithReload';
 import { useTranslation } from '@/hooks/useTranslation';
 import AccordionSection from '../../AccordionSection';
@@ -78,9 +78,7 @@ function OpenLargeButton({ onOpen }: { onOpen: () => void }) {
 function useStartedWithParams(state: StepCodeAnalysis, initialCode: string): boolean | null {
     const [started, setStarted] = useState<boolean | null>(() => (initialCode.trim() ? null : false));
     const count = state.analysis ? state.analysis.params.length : null;
-    useEffect(() => {
-        if (started === null && count !== null) setStarted(count > 0);
-    }, [started, count]);
+    if (started === null && count !== null) setStarted(count > 0);
     return started;
 }
 

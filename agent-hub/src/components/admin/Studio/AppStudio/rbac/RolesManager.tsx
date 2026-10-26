@@ -242,9 +242,7 @@ export default function RolesManager({ appId, definition = null, onCommit = null
     // ---- member add form ----------------------------------------------------
     const [newMemberUser, setNewMemberUser] = useState('');
     const [newMemberRole, setNewMemberRole] = useState('');
-    useEffect(() => {
-        if (!newMemberRole && draftRoles.length) setNewMemberRole(draftRoles[0].key);
-    }, [draftRoles, newMemberRole]);
+    if (!newMemberRole && draftRoles.length) setNewMemberRole(draftRoles[0].key);
 
     // Only roles the server already knows can take members — assigning a
     // freshly added, unsaved role answers 422 invalid_role.

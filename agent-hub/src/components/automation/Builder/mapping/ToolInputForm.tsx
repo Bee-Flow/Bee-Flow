@@ -1,5 +1,5 @@
 import { Plus, Sparkles, Workflow } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { partitionInputs, isEmptyBinding } from './partitionInputs';
 import GenericRow from './toolInput/GenericRow';
 import MoreOptions from './toolInput/MoreOptions';
@@ -18,6 +18,7 @@ import type { SchemaProp } from './toolInput/toolInputHelpers';
 import type { DeepenHandle } from './deepPick';
 import type { ForEachConfig } from './itemRefs';
 import type { PendingRow, ToolInputFormProps } from './ToolInputForm.types';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 export default function ToolInputForm({
     inputs = {},
@@ -83,11 +84,7 @@ export default function ToolInputForm({
     // this second click". The user's own toggle still works both ways.
     const formMode = useFormMode();
     const [advFieldsOpen, setAdvFieldsOpen] = useState(false);
-    const prevModeRef = useRef(formMode);
-    useEffect(() => {
-        if (prevModeRef.current === 'simple' && formMode === 'advanced') setAdvFieldsOpen(true);
-        prevModeRef.current = formMode;
-    }, [formMode]);
+    useAdjustOnChange([formMode], ([prevMode]) => { if (prevMode === 'simple' && formMode === 'advanced') setAdvFieldsOpen(true); });
 
     // Locally suppress the "auto" pill once the user edits that field. Resets
     // when the step changes (SettingsForm re-keys this subtree by step.id).

@@ -1,8 +1,9 @@
 import { ChevronUp, ListTodo } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import BuilderPlanChecklist from './BuilderPlanChecklist';
 import type { PlanTodo } from './BuilderPlanChecklist';
 import type { TranslateFn } from '@/hooks/useTranslation';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 interface Props {
     todos?: PlanTodo[] | null;
@@ -37,12 +38,8 @@ const PLACEMENT: Record<string, string> = Object.freeze({
 
 export default function CanvasPlanPanel({ todos, running = false, t, idPrefix = 'builder', placement = 'top-left', className = '', style = null }: Props) {
     const [open, setOpen] = useState(running);
-    const wasRunning = useRef(running);
-    useEffect(() => {
-        if (wasRunning.current === running) return;
-        wasRunning.current = running;
-        setOpen(running);   // a new turn opens it; the end of one folds it away
-    }, [running]);
+    // A new turn opens it; the end of one folds it away.
+    useAdjustOnChange([running], () => setOpen(running));
 
     const list = Array.isArray(todos) ? todos : [];
     if (!list.length) return null;

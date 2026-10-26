@@ -8,6 +8,7 @@ import useTranslation from '../../hooks/useTranslation';
 import type { LibraryMeeting } from '../../pages/meeting-notes/library/MeetingRow';
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 declare global {
     interface Window {
@@ -72,10 +73,9 @@ export default function MeetingCommandPalette({ user, onNavigate }: MeetingComma
         return () => document.removeEventListener('keydown', onKey);
     }, [allowed]);
 
+    useAdjustOnChange([open], () => { if (open) { setQuery(''); setActiveIdx(0); } });
     useEffect(() => {
         if (!open) return;
-        setQuery('');
-        setActiveIdx(0);
         api.listTranscriptions().then((list) => setRecent(list.slice(0, 8))).catch(() => {});
         const timer = setTimeout(() => inputRef.current?.focus(), 30);
         return () => clearTimeout(timer);

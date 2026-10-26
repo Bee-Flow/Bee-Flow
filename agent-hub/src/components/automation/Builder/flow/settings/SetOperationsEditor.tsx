@@ -1,5 +1,5 @@
 import { Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { cardClass, inputClass, FormRow } from './formPrimitives';
 import { SET_OP_DEFS, SET_OP_TITLES, columnsAfterOps } from '../setOperations';
 import type { SetOpDef, SetOperation } from '../setOperations';
@@ -9,6 +9,7 @@ import type { FieldKeyOption } from '../../mapping/FieldKeyCombobox';
 import type { OnFocusField } from '../../mapping/focusField.types';
 import AnchoredMenu from '@/components/shared/AnchoredMenu';
 import { useTranslation } from '@/hooks/useTranslation';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 /** An operation as the editor holds it: `start` belongs to the row-number op and may be mid-edit. */
 type EditableOp = SetOperation & { start?: number | '' };
@@ -246,7 +247,7 @@ interface NameInputProps {
  */
 function NameInput({ value, onCommit, placeholder, warning = null }: NameInputProps) {
     const [text, setText] = useState(value || '');
-    useEffect(() => { setText(value || ''); }, [value]);
+    useAdjustOnChange([value], () => setText(value || ''));
     const commit = () => { const v = text.trim(); if (v !== (value || '')) onCommit(v); };
     return (
         <div className="min-w-0">

@@ -2,6 +2,7 @@ import { Search, Sparkles, Bot } from 'lucide-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Modal from '@/components/shared/Modal';
 import { useTranslation } from '@/hooks/useTranslation';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 export interface QuickSwitcherItem {
     id?: string;
@@ -31,9 +32,9 @@ export default function QuickSwitcher({ open, items, onPick, onClose }: QuickSwi
     const inputRef = useRef<HTMLInputElement>(null);
     const selectedRef = useRef<HTMLButtonElement>(null);
 
+    useAdjustOnChange([open], () => { if (open) setQuery(''); });
     useEffect(() => {
         if (!open) return undefined;
-        setQuery('');
         // Focus the search input on open. Defer one tick so the
         // overlay paint completes before we steal focus, and clear the
         // pending timer if the switcher is closed before it fires.

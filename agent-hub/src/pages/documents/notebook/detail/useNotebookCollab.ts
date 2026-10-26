@@ -17,6 +17,7 @@ import { useEffect, useState } from 'react';
 import useCollab, { type CollabHandle } from '@/editor/collab/useCollab';
 import { collabIsActive } from '@/editor/react/useEditorCollab';
 import type { NotebookSaveMode } from './NotebookSaveStatus';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 const SLOW_MS = 8000;
 
@@ -54,8 +55,8 @@ export default function useNotebookCollab({ notebookId, projectId, eligible, use
     const ready = !!handle?.ready;
     const [slow, setSlow] = useState(false);
 
+    useAdjustOnChange([active, ready], () => setSlow(false));
     useEffect(() => {
-        setSlow(false);
         if (!active || ready) return undefined;
         const timer = setTimeout(() => setSlow(true), SLOW_MS);
         return () => clearTimeout(timer);

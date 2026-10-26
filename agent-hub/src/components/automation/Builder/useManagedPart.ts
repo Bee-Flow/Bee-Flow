@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, useLayoutEffect } from 'react';
+import { useCallback, useRef, useState, useLayoutEffect } from 'react';
 import { declaresManaged, managedOf, managedRefusalOf } from '../../shared/managedPart';
 
 /**

@@ -5,6 +5,7 @@ import SectionFrame from '../components/SectionFrame';
 import { sectionBgClass } from './sectionBg';
 import { inlineTextStyle } from './textStyle';
 import type { SectionDataBase, TextStyleBlob } from './sectionData.types';
+import useAdjustOnChange from '../../hooks/useAdjustOnChange';
 
 interface StatItem {
     number?: string;
@@ -31,8 +32,8 @@ const isPreview = () =>
 function CountUpNumber({ text, className, style }: { text: string; className?: string; style?: React.CSSProperties }) {
     const ref = useRef<HTMLDivElement>(null);
     const [display, setDisplay] = useState(text);
+    useAdjustOnChange([text], () => setDisplay(text));
     useEffect(() => {
-        setDisplay(text);
         const m = /^([^0-9]*)([0-9][0-9.,]*)(.*)$/.exec(String(text || ''));
         if (!m) return undefined;
         if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return undefined;
