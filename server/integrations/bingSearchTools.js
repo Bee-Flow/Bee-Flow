@@ -73,7 +73,7 @@ async function executeBingSearchTool(toolName, args) {
             const snippet = page.snippet || '';
             // If deepLinks available, include them
             const deepLinks = page.deepLinks
-                ? '\n\n**Related pages:**\n' + page.deepLinks.slice(0, 3).map(dl => `- [${dl.name}](${dl.url})`).join('\n')
+                ? '\n\n**Related pages:**\n' + page.deepLinks.slice(0, 3).map((/** @type {{ name: unknown; url: unknown; }} */ dl) => `- [${dl.name}](${dl.url})`).join('\n')
                 : '';
             const header = url ? `### [${i + 1}. ${title}](${url})` : `### ${i + 1}. ${title}`;
             return `${header}\n\n${snippet}${deepLinks}`;

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * License Refresh Scheduler
  *
@@ -140,7 +141,7 @@ async function refreshOne(lic) {
                 log.warn(`[License Refresh] license.refresh.bad_new_token license_id=${lic.id} reason=${v.error || 'payload_mismatch'}`);
                 return { ok: false, reason: 'bad_new_token', error: v.error || 'payload_mismatch' };
             }
-            const newExpiresAt = new Date(v.payload.exp * 1000).toISOString();
+            const newExpiresAt = new Date(Number(v.payload.exp) * 1000).toISOString();
             await store.markRefreshSuccess(lic.id, {
                 newToken: body.new_token,
                 newExpiresAt,

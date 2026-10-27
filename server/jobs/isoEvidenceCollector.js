@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * ISO evidence collector — periodic sweep of every enabled evidence connector.
  *
@@ -57,6 +57,7 @@ async function sweepOne(config) {
         }
         try {
             const connStore = require('../stores/integrationConnectionStore');
+            /** @type {import('../stores/integrationConnectionStore').Connection | null} */
             const conn = await connStore.getConnectionWithSecret(config.connection_id);
             secret = conn?.secret || null;
             if (!secret) throw new Error('connection has no secret');

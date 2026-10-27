@@ -14,7 +14,13 @@
 /** The two tenancy kinds. Anything else is a caller bug, not a new feature. */
 const SCOPE_KINDS = Object.freeze(['org', 'user']);
 
-/** A table the ORGANISATION owns. */
+/** @typedef {{ kind: 'org' | 'user', id: string }} DatatableScope  the tenancy address of a table */
+
+/**
+ * A table the ORGANISATION owns.
+ * @param {string} organizationId
+ * @returns {{ kind: 'org', id: string }}
+ */
 function orgScope(organizationId) {
     return { kind: 'org', id: organizationId };
 }
@@ -23,6 +29,8 @@ function orgScope(organizationId) {
  * A PERSONAL table: one account, nobody else, not even an org admin. The
  * privacy rule is enforced in auth/datatableAccess.gradeForPrincipal — this is
  * only the address.
+ * @param {string} userId
+ * @returns {{ kind: 'user', id: string }}
  */
 function userScope(userId) {
     return { kind: 'user', id: userId };

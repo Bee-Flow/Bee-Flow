@@ -26,6 +26,7 @@ const LEGACY_ACTOR_KINDS = new Set(['staff', 'system', 'requester']);
  * unchanged) AND the unified support_audit_log row carrying the PRECISE kind
  * (incl. 'ai'/'automation'). org/inbox are derived from the thread when not
  * supplied. The unified write is best-effort — never breaks the legacy write.
+ * @param {{ threadId: string, actorUserId?: string | null, actorKind: string, action: string, payload?: Record<string, unknown> | null, organizationId?: string | null, inboxId?: string | null, ip?: string | null, ua?: string | null }} event
  */
 async function recordThreadEvent({ threadId, actorUserId = null, actorKind, action, payload = {}, organizationId, inboxId, ip = null, ua = null }) {
     await initDB();

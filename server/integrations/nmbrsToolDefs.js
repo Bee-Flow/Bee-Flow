@@ -1,3 +1,4 @@
+// @typecheck strict
 'use strict';
 
 /**
@@ -12,7 +13,7 @@ const NMBRS_TOOLS = [
         function: {
             name: 'nmbrs_list_debtors',
             description: 'List the NMBRS debtors (top-level payroll administrations) your account can access. Read-only. Call this first to find debtorId values. Works the same whether the connection uses the NMBRS SOAP or REST API.',
-            parameters: { type: 'object', properties: {}, required: [] }
+            parameters: { type: 'object', properties: {}, required: /** @type {string[]} */ ([]) }
         }
     },
     {

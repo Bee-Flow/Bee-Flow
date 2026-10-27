@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * OPAQUE Authentication Routes
  * 
@@ -83,7 +83,7 @@ const _pendingSweep = setInterval(() => {
 if (typeof _pendingSweep.unref === 'function') _pendingSweep.unref();
 
 // Warm the pool at boot so the first absent-user probe does not pay for it.
-buildFakeRecords().catch((err) => {
+buildFakeRecords().catch((/** @type {Error} */ err) => {
     // An unreadable setup fails here too; it has been reported once already.
     if (!isServerSetupUsable()) return;
     log.warn('[OPAQUE] fake-credential pool could not be built yet:', err.message);

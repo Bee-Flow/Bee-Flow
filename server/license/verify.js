@@ -225,7 +225,7 @@ function kidForPem(pem) {
 
 /**
  * Verify the JWT signature and required claims.
- * @returns {{ valid: true, payload: object } | { valid: false, error: string }}
+ * @returns {Promise<OneOf<{ valid: true, payload: Record<string, unknown> }, { valid: false, error: string }>>}
  *
  * Key resolution: if the JWT header carries a `kid`, prefer the matching key
  * from the configured JWKS endpoint, then fall back to the bundled key when
@@ -371,7 +371,7 @@ async function resolvePublicKeyByKid(kid) {
  * @returns {boolean}
  * @param {string} signingInput
  * @param {string} signatureB64url
- * @param {string | crypto.KeyObject | Buffer<ArrayBufferLike> | crypto.JsonWebKey} publicKey
+ * @param {string | crypto.KeyObject | Buffer<ArrayBufferLike>} publicKey
  */
 function verifyCompactRs256(signingInput, signatureB64url, publicKey) {
     if (!publicKey) return false;

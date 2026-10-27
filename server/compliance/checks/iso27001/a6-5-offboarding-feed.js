@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ISO 27001 A.6.5 — an authoritative HR feed behind joiner/leaver handling.
  * Access reviews and offboarding are only as good as the employee list they
@@ -25,6 +26,7 @@ module.exports = {
     remediationKey: 'compliance.checks.iso_offboarding_feed.fix',
     remediationLink: 'admin/compliance/iso_connectors',
 
+    /** @returns {Promise<import('../../lib/connectorEvidence').CheckOutcome>} */
     async evaluate(orgId) {
         const read = await readConnector(isoEvidenceStore, orgId, 'afas');
         if (read.failed) return read.failed;

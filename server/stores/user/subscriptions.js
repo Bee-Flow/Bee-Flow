@@ -1,7 +1,6 @@
-// @typecheck
 // Organization + consumer subscriptions — row CRUD, effective limits, billing
 // periods, manual-override handling and the row-locked update wrappers.
-
+// @typecheck
 const crypto = require('crypto');
 const { run, getOne, getAll, getClient } = require('../../db');
 const { initDB } = require('./schema');
@@ -156,6 +155,7 @@ async function getActiveSeatCount(orgId) {
     return row?.n ?? 0;
 }
 
+/** @type {(orgId: string) => Promise<Subscriptions.EffectiveLimits | null>} */
 async function getEffectiveLimits(orgId) {
     const sub = await getOrgSubscription(orgId);
     if (!sub) return null;
@@ -165,6 +165,7 @@ async function getEffectiveLimits(orgId) {
     // server/license/index.js, which also handles trialing → no-tier.
     const plan = sub.plan_id ? await getPlan(sub.plan_id) : null;
     const LIMIT_FIELDS = ['max_messages_per_month', 'max_tokens_per_month', 'max_cost_per_month', 'max_users', 'max_agents', 'max_knowledge_sources'];
+    /** @type {Subscriptions.EffectiveLimits} */
     const effective = { status: sub.status, billing_cycle_start: sub.billing_cycle_start };
     for (const field of LIMIT_FIELDS) {
         effective[field] = sub[field] !== null && sub[field] !== undefined ? sub[field] : (plan ? plan[field] : null);
@@ -462,8 +463,7 @@ async function clearStripeCustomerIdForConsumer(userId) {
 module.exports = {
     getAllOrgSubscriptions, getOrgSubscription, setOrgSubscription, deleteOrgSubscription,
     getEffectiveLimits, getActiveSeatCount, getBillingPeriod,
-    getConsumerSubscription, setConsumerSubscription, deleteConsumerSubscription, getAllConsumerSubscriptions,
-    isManualOverrideActive,
+    getConsumerSubscription, setConsumerSubscription, deleteConsumerSubscription, getAllConsumerSubscriptions, isManualOverrideActive,
     setOrgSubscriptionRespectingOverride, setConsumerSubscriptionRespectingOverride,
     setOrgSubscriptionWithLock,
     findSubscriptionByStripeCustomerId, clearStripeCustomerIdForOrg, clearStripeCustomerIdForConsumer,

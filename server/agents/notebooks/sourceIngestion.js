@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Source Ingestion — Ingest various source types into a notebook's knowledge base.
  *

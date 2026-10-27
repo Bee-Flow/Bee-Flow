@@ -1,3 +1,4 @@
+// @typecheck strict
 'use strict';
 /**
  * The API key of the guard container the dashboard installs.

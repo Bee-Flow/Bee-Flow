@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Seed the real Bee Flow marketing website into this install's CMS.
  *

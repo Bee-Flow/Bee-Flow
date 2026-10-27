@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Migration: MCP servers ARE integrations.
  *
@@ -39,8 +39,8 @@ function catalogIntegrationIds() {
     try {
         const registry = require('../core/entitlements/capabilityRegistry');
         return registry.listCapabilities()
-            .filter(c => c.kind === 'integration' && !c._mcpServer)
-            .map(c => c.id);
+            .filter((/** @type {{ kind: string; _mcpServer: unknown; }} */ c) => c.kind === 'integration' && !c._mcpServer)
+            .map((/** @type {{ id: unknown; }} */ c) => c.id);
     } catch (_) { return []; }
 }
 

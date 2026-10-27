@@ -124,6 +124,7 @@ const TRANSFER_SIGNAL_TTL_MS = 24 * 60 * 60 * 1000;
  * @typedef {Object} _signalExternalTransferArgs
  * @property {string | null} [operator]
  * @property {string | null} [countryCode]
+ * @property {unknown} orgId
  */
 /**
  * @param {_signalExternalTransferArgs} param0

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The Outlook family opens a SHARED mailbox only with the asker's own
  * Microsoft connection. A lent connection (connection lending) or an acting

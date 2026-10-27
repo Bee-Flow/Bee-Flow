@@ -55,6 +55,7 @@ function _httpUrl(value) {
  * host the probe would refuse anyway (localhost, RFC 1918, bare IPs) yields
  * null: there is nothing an auditor could fetch there either.
  * @param {NodeJS.ProcessEnv} [env]
+ * @param {{ public_base_url: string; }} settings
  */
 function _publicBaseUrl(settings, env = process.env) {
     const fromSettings = _httpUrl(settings?.public_base_url);

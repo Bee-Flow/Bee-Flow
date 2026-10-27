@@ -17,7 +17,7 @@
  */
 const defaultLog = require('../telemetry/log');
 
-/** @param {{ log?: object, proc?: NodeJS.Process }} [opts] */
+/** @param {{ log?: Log, proc?: NodeJS.Process }} [opts] */
 function installProcessErrorHandlers({ log = defaultLog, proc = process } = {}) {
     proc.on('unhandledRejection', (reason, promise) => {
         log.error('Unhandled Rejection at:', promise, 'reason:', reason);
@@ -29,12 +29,24 @@ function installProcessErrorHandlers({ log = defaultLog, proc = process } = {}) 
 }
 
 /**
- * @typedef {Object} StartServerArgs
+ * The collaborators startServer takes from a test instead of requiring them.
+ * @typedef {object} StartServerDeps
+ * @property {typeof import('node:http').createServer} [createServer]
+ * @property {{ initDB(): Promise<unknown> }} [userStore]
+ * @property {{ migrate(): Promise<unknown> }} [authConfigStore]
+ * @property {{ startReaper(): void, isEnabled(): boolean }} [webpageRuntimeManager]
+ * @property {{ mountFullTierProxy(app: Express, server: import('node:http').Server): void }} [fullTierProxy]
+ */
+/**
+ * @typedef {object} StartServerArgs
  * @property {Express} app
  * @property {string | number} port
+ * @property {import('express').ErrorRequestHandler} terminalErrorHandler  re-registered after the full-tier proxy mounts
  * @property {() => void} runStartupChecks
  * @property {() => void} runStartupTasks
+ * @property {Log} [log]
  * @property {NodeJS.Process} [proc]
+ * @property {StartServerDeps} [deps]
  */
 /**
  * Create the HTTP server and start it. Returns the server at once (the webpage

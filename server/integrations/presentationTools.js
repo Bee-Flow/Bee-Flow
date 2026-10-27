@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Presentation Tools — the chat's way to hand the user a real .pptx.
  *

@@ -17,7 +17,7 @@
  *   expired  — past `expires_at` or grace window
  *   revoked  — license server returned status=revoked
  */
-
+// @typecheck
 const { run, getOne, getAll } = require('../db');
 const { logSubscriptionAudit } = require('../stores/user/audit');
 const log = require('../telemetry/log');
@@ -70,7 +70,7 @@ function rowToLicense(row) {
 /**
  * Insert or replace a license activation. Older active licenses for the same
  * scope target are marked expired so only one is "current".
- * @param {UpsertLicenseArgs} param0
+ * @param {UpsertLicenseArgs & { userId?: string | null, metadata?: Record<string, unknown> }} param0
  */
 async function upsertLicense({
     licenseId,
@@ -375,7 +375,7 @@ async function getAdminIssuedLicenses({ organizationId = null, includeInactive =
 /**
  * Extend (or shorten) the expiry on an existing license. Audited.
  * @param {string} licenseId
- * @param {string} newExpiresAt
+ * @param {string | Date} newExpiresAt
  * @param {string | null} changedBy
  */
 async function extendExpiry(licenseId, newExpiresAt, changedBy) {

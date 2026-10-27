@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Language Store - Manages i18n locales, GUI translations, and prompt translations
  * 
@@ -10,7 +9,7 @@
  *   i18n_prompt_{locale}_{promptId}      → "full prompt text"
  *   i18n_email_{locale}                  → {templateId: {subject,title,intro,body,ctaLabel}}
  */
-
+// @typecheck
 const configStore = require('./configStore');
 const { bestEffort } = require('../utils/bestEffort');
 
@@ -199,6 +198,7 @@ async function addMissingGUITranslations(locale, translations) {
  * more than add-only-missing (removing retired keys, forcing through a deliberate
  * rewording). Same advisory lock as addMissingGUITranslations; the mutator gets its own copy,
  * may mutate it, and may run again — so no side effects in it.
+ * @type {(locale: string, mutatorFn: (current: Record<string, string>) => Record<string, string>) => Promise<unknown>}
  */
 async function mutateGUITranslations(locale, mutatorFn) {
     return configStore.mutateConfig(`i18n_gui_${locale}`, (current) => mutatorFn({ ...(current || {}) }));

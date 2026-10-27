@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Outlook steps on a SHARED mailbox: every tool takes `mailbox` ("me" by
  * default), goes to /users/{address}/... instead of /me/..., checks the

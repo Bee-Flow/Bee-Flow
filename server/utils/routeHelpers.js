@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Route Helpers — shared utilities for Express route handlers
  * 

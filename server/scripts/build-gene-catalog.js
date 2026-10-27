@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /**
  * Regenerate core/datasets/data/geneCoords.<build>.tsv.gz from UCSC refGene.
  *

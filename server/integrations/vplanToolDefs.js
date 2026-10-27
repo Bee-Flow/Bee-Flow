@@ -1,3 +1,4 @@
+// @typecheck
 const DEFAULT_LIMIT = 25;
 
 // vPlan allows up to 1000, but a large page blows the model's context budget and

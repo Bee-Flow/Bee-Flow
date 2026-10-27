@@ -119,6 +119,9 @@ function getCircuitState() {
     return { state: _circuit.state, failures: _circuit.failures.length, openedAt: _circuit.openedAt };
 }
 
+/**
+ * @param {number} attempt
+ */
 function backoffMs(attempt) {
     const seconds = Math.min(Math.pow(2, attempt), MAX_BACKOFF_SECONDS);
     return seconds * 1000;
