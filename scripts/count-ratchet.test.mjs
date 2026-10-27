@@ -17,8 +17,17 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
+
+// The parser is the TypeScript compiler API (root typescript-api, else agent-hub's). The
+// workflow-policy job runs these tests without npm ci, so the parser tests skip there.
+let hasTs = false;
+for (const [from, name] of [['../package.json', 'typescript-api'], ['../agent-hub/package.json', 'typescript']]) {
+    try { createRequire(new URL(from, import.meta.url))(name); hasTs = true; break; } catch { /* not installed */ }
+}
+const tsTest = hasTs ? test : test.skip;
 const SCRIPT = path.join(HERE, 'count-ratchet.mjs');
 
 function sandbox({ files = {}, metric = 'inline-style', budget = null, pkg = 'pkg', src = true } = {}) {
@@ -721,7 +730,7 @@ function deepSandbox(files, { budget = null, exclude = [], manifest = { entries:
     return dir;
 }
 
-test('deep-imports counts specifiers the alias can spell, in every import form, and nothing else', () => {
+tsTest('deep-imports counts specifiers the alias can spell, in every import form, and nothing else', () => {
     const dir = deepSandbox({
         // Counted: two static, a dynamic import, a mock, an export-from (a file may count many).
         'components/a/b/c/Deep.tsx': "import { x } from '../../../../utils/x';\nimport y from '../../../y';\nconst Z = lazy(() => import('../../../z'));\nexport { w } from '../../../../w';\n",
@@ -744,7 +753,7 @@ test('deep-imports counts specifiers the alias can spell, in every import form, 
     assert.doesNotMatch(r.stdout, /Ok\.tsx|mobile\.ts|mirrored\.ts/);
 });
 
-test('deep-imports fails a new deep import over the budget and names the alias', () => {
+tsTest('deep-imports fails a new deep import over the budget and names the alias', () => {
     const dir = deepSandbox({ 'components/a/b/c/New.tsx': "import { x } from '../../../utils/x';\n" }, { budget: 0 });
     const r = run(dir, 'deep-imports', [], 'agent-hub');
     assert.strictEqual(r.code, 1);

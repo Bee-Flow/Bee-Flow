@@ -16,8 +16,17 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
 import { aliasFor, applyRewrites, deepSpecifiers, excludedFiles } from './deep-imports.mjs';
+
+// The parser is the TypeScript compiler API (root typescript-api, else agent-hub's). The
+// workflow-policy job runs these tests without npm ci, so the parser tests skip there.
+let hasTs = false;
+for (const [from, name] of [['../package.json', 'typescript-api'], ['../agent-hub/package.json', 'typescript']]) {
+    try { createRequire(new URL(from, import.meta.url))(name); hasTs = true; break; } catch { /* not installed */ }
+}
+const tsTest = hasTs ? test : test.skip;
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
@@ -45,7 +54,7 @@ test('aliasFor leaves shallow specifiers, packages, the alias itself and paths t
     assert.strictEqual(aliasFor('../../../', 'components/a/b/c.ts'), null);
 });
 
-test('every import form is rewritten and only the text between the quotes changes', () => {
+tsTest('every import form is rewritten and only the text between the quotes changes', () => {
     const src = [
         "import a from '../../../a';",
         'import { b } from "../../../b.js";',
@@ -73,7 +82,7 @@ test('every import form is rewritten and only the text between the quotes change
     assert.doesNotMatch(out, /\.\.\//);
 });
 
-test('a path that is not a module specifier is left alone', () => {
+tsTest('a path that is not a module specifier is left alone', () => {
     const src = [
         "// see import x from '../../../x' in the docs",
         "/** @param {import('../../../y').Y} y */",
@@ -88,17 +97,17 @@ test('a path that is not a module specifier is left alone', () => {
     assert.deepStrictEqual(deepSpecifiers(src, 'components/x/y/z.ts'), []);
 });
 
-test('a specifier that leaves src stays, the others in the same file move', () => {
+tsTest('a specifier that leaves src stays, the others in the same file move', () => {
     const src = "import a from '../../../../server/a.js';\nimport b from '../../../b';\n";
     assert.strictEqual(rewrite(src, 'components/x/y/z.ts'), "import a from '../../../../server/a.js';\nimport b from '@/b';\n");
 });
 
-test('several specifiers on one line all move', () => {
+tsTest('several specifiers on one line all move', () => {
     const src = "const [a, b] = await Promise.all([import('../../../a'), import('../../../b')]);\n";
     assert.strictEqual(rewrite(src, 'p/q/r/s.tsx'), "const [a, b] = await Promise.all([import('@/a'), import('@/b')]);\n");
 });
 
-test('JSX and TSX files parse', () => {
+tsTest('JSX and TSX files parse', () => {
     assert.strictEqual(rewrite("import X from '../../../X';\nexport const A = () => <X a={1} />;\n", 'a/b/c/d.jsx'), "import X from '@/X';\nexport const A = () => <X a={1} />;\n");
     assert.strictEqual(rewrite("import X from '../../../X';\nexport const A = <T,>(p: T) => <X />;\n", 'a/b/c/d.tsx'), "import X from '@/X';\nexport const A = <T,>(p: T) => <X />;\n");
 });
@@ -124,7 +133,7 @@ const read = (dir, rel) => fs.readFileSync(path.join(dir, 'agent-hub/src', rel),
 
 const DEEP = "import { x } from '../../../utils/x';\n";
 
-test('the excluded files keep their relative imports: mirror sources, mirror targets and the listed files', () => {
+tsTest('the excluded files keep their relative imports: mirror sources, mirror targets and the listed files', () => {
     const dir = sandbox(
         {
             'a/b/c/plain.ts': DEEP,
@@ -149,7 +158,7 @@ test('the excluded files keep their relative imports: mirror sources, mirror tar
     assert.deepStrictEqual([...excludedFiles(dir)].sort(), ['a/b/c/mapping/one.ts', 'a/b/c/mirrored.ts', 'a/b/c/mobileRuns.ts', 'shared/gen/deep/target.ts']);
 });
 
-test('--dry writes nothing and a second run changes nothing', () => {
+tsTest('--dry writes nothing and a second run changes nothing', () => {
     const dir = sandbox({ 'a/b/c/f.ts': DEEP });
     assert.match(run(dir, ['--dry']), /a\/b\/c\/f\.ts: \.\.\/\.\.\/\.\.\/utils\/x -> @\/utils\/x/);
     assert.strictEqual(read(dir, 'a/b/c/f.ts'), DEEP);
@@ -157,7 +166,7 @@ test('--dry writes nothing and a second run changes nothing', () => {
     assert.match(run(dir), /rewrote 0 specifiers in 0 files/);
 });
 
-test('given files, only those are rewritten', () => {
+tsTest('given files, only those are rewritten', () => {
     const dir = sandbox({ 'a/b/c/f.ts': DEEP, 'a/b/c/g.ts': DEEP });
     run(dir, [path.join(dir, 'agent-hub/src/a/b/c/f.ts')]);
     assert.strictEqual(read(dir, 'a/b/c/f.ts'), "import { x } from '@/utils/x';\n");
