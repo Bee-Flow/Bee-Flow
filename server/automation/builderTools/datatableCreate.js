@@ -39,14 +39,14 @@ const TYPE_ALIASES = { string: 'text', str: 'text', integer: 'number', int: 'num
 
 function defaultDeps() {
     return {
-        createStudioDatatable: (...a) => require('../../core/dataEngine/createStudioDatatable').createStudioDatatable(...a),
+        createStudioDatatable: (/** @type {Parameters<typeof import('../../core/dataEngine/createStudioDatatable').createStudioDatatable>} */ ...a) => require('../../core/dataEngine/createStudioDatatable').createStudioDatatable(...a),
         resolvePrincipal: (userId) => require('../../auth/datatableAccess').resolveDatatablePrincipalForUser(userId),
         hasManageDatatables: async (userId) => {
             const { hasPermission, Permissions } = require('../../auth/permissions');
             return hasPermission(userId, Permissions.MANAGE_DATATABLES).catch(() => false);
         },
         catalogFor: (userId) => require('../builderDatatableCatalog').buildDatatableCatalogForUser(userId),
-        normalizeFields: (...a) => require('../../core/dataEngine/dataModel/datatableFields').normalizeFields(...a),
+        normalizeFields: (/** @type {Parameters<typeof import('../../core/dataEngine/dataModel/datatableFields').normalizeFields>} */ ...a) => require('../../core/dataEngine/dataModel/datatableFields').normalizeFields(...a),
         defaultCreateScope: (principal) => require('../../auth/datatableAccess').defaultCreateScope(principal),
         evaluateForRequest: (req) => require('../../learning/requireTraining').evaluateForRequest(req),
     };

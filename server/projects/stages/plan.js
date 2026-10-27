@@ -104,7 +104,7 @@ function rewriteBundleRefs(value, idByRef, unresolved) {
  * its code replaced by the stage table's (substitutions listed).
  *
  * @param {string} kind
- * @param {object} entity  a manifest entity
+ * @param {unknown} entity  a manifest entity
  * @param {{ idByRef: Map, bindings: Map, slots: object[], tableTokens?: Map }} ctx
  * @returns {{ entity: object, substitutions: object[], unresolved: string[] }}
  */

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The two AI Act questions a definition cannot answer by itself, put to the
  * FAST model tier (handoff 5, "the check should be automatic"):
@@ -197,7 +198,9 @@ function withTimeout(promise, ms) {
 }
 
 /**
- * @typedef {Object} ClassifyArgs
+ * @typedef {object} ClassifyArgs
+ * @property {string} text
+ * @property {string} hash
  * @property {string | null} [orgId]
  * @property {string | null} [userId]
  */

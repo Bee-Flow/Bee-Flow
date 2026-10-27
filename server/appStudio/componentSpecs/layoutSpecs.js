@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio catalog — the container types (tabs/tab, modal, repeater,
  * container, pane) plus the page header and the markdown block they frame.

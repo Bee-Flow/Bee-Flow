@@ -219,7 +219,7 @@ function storedGraph(stepIdMap, graphKey) {
  * whose ids are Dev's) means identity: the definition is returned unchanged
  * and so is the map.
  *
- * @param {object} definition  the newer version, with the Blueprint's own step ids
+ * @param {unknown} definition  the newer version, with the Blueprint's own step ids
  * @param {object|null} stepIdMap  `{ root: {old: new}, layers: {key: {old: new}} }`
  * @returns {{ definition: object, renameMap: object|null }}
  */

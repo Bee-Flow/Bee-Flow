@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * WHO a mailbox connector reads and sends as.
  *
@@ -37,6 +38,7 @@ function sharedModeFor(provider) {
  * @param {number} status
  * @param {string} message
  * @param {string} code
+ * @returns {Error & { provider?: string }}
  */
 function identityError(status, message, code) {
     const err = new Error(message);
@@ -47,14 +49,14 @@ function identityError(status, message, code) {
 
 function defaultDeps() {
     return {
-        getProviderAuth: (...a) => require('../auth/automationAuth').getProviderAuth(...a),
-        upsertCredential: (...a) => require('../stores/automationCredentialStore').upsertCredential(...a),
-        getIntegrationTools: (...a) => require('../core/integrations/integrationTools').getIntegrationTools(...a),
-        resolveConnectionForRun: (...a) => require('../stores/integrationConnectionStore').resolveConnectionForRun(...a),
-        resolveIntegration: (...a) => require('../core/integrations/integrationToolMap').resolveIntegration(...a),
-        getUser: (...a) => require('../stores/userStore').getUser(...a),
-        buildUserSession: (...a) => require('./connectors/session').defaultBuildUserSession(...a),
-        resolveMailboxAddress: (...a) => require('../services/email/fetch').resolveMailboxAddress(...a),
+        getProviderAuth: (/** @type {Parameters<typeof import('../auth/automationAuth').getProviderAuth>} */ ...a) => require('../auth/automationAuth').getProviderAuth(...a),
+        upsertCredential: (/** @type {Parameters<typeof import('../stores/automationCredentialStore').upsertCredential>} */ ...a) => require('../stores/automationCredentialStore').upsertCredential(...a),
+        getIntegrationTools: (/** @type {Parameters<typeof import('../core/integrations/integrationTools').getIntegrationTools>} */ ...a) => require('../core/integrations/integrationTools').getIntegrationTools(...a),
+        resolveConnectionForRun: (/** @type {Parameters<typeof import('../stores/integrationConnectionStore').resolveConnectionForRun>} */ ...a) => require('../stores/integrationConnectionStore').resolveConnectionForRun(...a),
+        resolveIntegration: (/** @type {Parameters<typeof import('../core/integrations/integrationToolMap').resolveIntegration>} */ ...a) => require('../core/integrations/integrationToolMap').resolveIntegration(...a),
+        getUser: (/** @type {Parameters<typeof import('../stores/userStore').getUser>} */ ...a) => require('../stores/userStore').getUser(...a),
+        buildUserSession: (/** @type {Parameters<typeof import('./connectors/session').defaultBuildUserSession>} */ ...a) => require('./connectors/session').defaultBuildUserSession(...a),
+        resolveMailboxAddress: (/** @type {Parameters<typeof import('../services/email/fetch').resolveMailboxAddress>} */ ...a) => require('../services/email/fetch').resolveMailboxAddress(...a),
     };
 }
 
@@ -185,6 +187,8 @@ async function resolveCredential(userId, { oauthProvider, integrationId, orgId, 
 /**
  * Resolve the identity a mailbox connector runs as, plus its credentials.
  *
+ * @param {{ provider?: 'gmail' | 'outlook', runAs?: string, mode?: string, address?: string, displayName?: string } | null | undefined} connector
+ * @param {{ app?: { id?: string, userId?: string, organizationId?: string | null }, viewerId?: string | null, deps?: Partial<ReturnType<typeof defaultDeps>> }} [options]
  * @returns {Promise<{
  *   userId: string, orgId: string|null,
  *   provider: 'gmail'|'outlook', integrationId: string, oauthProvider: 'google'|'microsoft',

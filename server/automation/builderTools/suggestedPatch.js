@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * _suggestedPatch — a rejection that carries its own fix.
  *
@@ -31,7 +32,6 @@
  */
 
 'use strict';
-
 const { readPath } = require('../expr');
 const { sortedKeysJson } = require('../../utils/stableJson');
 

@@ -107,23 +107,23 @@ async function defaultBuildOwnerSession(app, opts = {}) {
 // is overridable via `_deps` on the runConnector opts (test-only seam).
 function defaultDeps() {
     return {
-        executeTool: (...a) => require('../../core/tools/toolDispatcher').executeTool(...a),
-        executeAutomation: (...a) => require('../../core/automationRunner').executeAutomation(...a),
-        getAutomation: (...a) => require('../../stores/automationStore').getAutomation(...a),
-        deriveFinalOutput: (...a) => require('../actionExecutor/automationBridge').deriveFinalOutput(...a),
+        executeTool: (/** @type {[string, unknown, object?]} */ ...a) => require('../../core/tools/toolDispatcher').executeTool(...a),
+        executeAutomation: (/** @type {Parameters<typeof import('../../core/automationRunner').executeAutomation>} */ ...a) => require('../../core/automationRunner').executeAutomation(...a),
+        getAutomation: (/** @type {Parameters<typeof import('../../stores/automationStore').getAutomation>} */ ...a) => require('../../stores/automationStore').getAutomation(...a),
+        deriveFinalOutput: (/** @type {Parameters<typeof import('../actionExecutor/automationBridge').deriveFinalOutput>} */ ...a) => require('../actionExecutor/automationBridge').deriveFinalOutput(...a),
         // getProviderAuth, NOT the raw store read: it refreshes a token with
         // less than five minutes left and refuses a credential that is revoked
         // or needs re-auth. A raw getCredential handed back a stale access
         // token, so every REST connector on a short-lived provider (Withings
         // expires in 3 h) died silently once the first token aged out.
-        getProviderAuth: (...a) => require('../../auth/automationAuth').getProviderAuth(...a),
-        providersForIntegrations: (...a) => require('../../auth/automationAuth').providersForIntegrations(...a),
-        safeFetch: (...a) => require('../../utils/ssrfGuard').safeFetch(...a),
-        isPrivateTarget: (...a) => require('../../utils/isPrivateTarget').isPrivateTarget(...a),
+        getProviderAuth: (/** @type {Parameters<typeof import('../../auth/automationAuth').getProviderAuth>} */ ...a) => require('../../auth/automationAuth').getProviderAuth(...a),
+        providersForIntegrations: (/** @type {Parameters<typeof import('../../auth/automationAuth').providersForIntegrations>} */ ...a) => require('../../auth/automationAuth').providersForIntegrations(...a),
+        safeFetch: (/** @type {Parameters<typeof import('../../utils/ssrfGuard').safeFetch>} */ ...a) => require('../../utils/ssrfGuard').safeFetch(...a),
+        isPrivateTarget: (/** @type {Parameters<typeof import('../../utils/isPrivateTarget').isPrivateTarget>} */ ...a) => require('../../utils/isPrivateTarget').isPrivateTarget(...a),
         buildOwnerSession: defaultBuildOwnerSession,
         buildUserSession: defaultBuildUserSession,
         getIntegrationTools: (/** @type {{ userId: string; session: Object; isAdmin?: boolean | undefined; enabledAppsOverride?: string[] | null | undefined; extraEnabledApps?: string[] | null | undefined; }} */ a) => require('../../core/integrations/integrationTools').getIntegrationTools(a),
-        resolveConnectionForRun: (...a) => require('../../stores/integrationConnectionStore').resolveConnectionForRun(...a),
+        resolveConnectionForRun: (/** @type {Parameters<typeof import('../../stores/integrationConnectionStore').resolveConnectionForRun>} */ ...a) => require('../../stores/integrationConnectionStore').resolveConnectionForRun(...a),
     };
 }
 

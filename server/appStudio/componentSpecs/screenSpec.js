@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio catalog — the screen table, the closed set of node event names,
  * and the section's own style knobs/defaults.

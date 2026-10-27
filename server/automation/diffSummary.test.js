@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Unit tests for automation/diffSummary — the human-readable change summary
  * stored per version and mirrored in the builder's diff modal.

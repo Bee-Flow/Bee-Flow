@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — the steps that reach outside the graph: a web service call
  * (with the two ways its answer is remembered, askOnce and cacheInto), a
@@ -73,7 +74,7 @@ function liftUrlQuery(url, query) {
  * Lives here rather than in stepEditing so BOTH paths can reach it — that file
  * already requires this one, so the reverse would be a cycle — and so an added
  * step and a patched one are byte-identical.
- * @param {boolean} value
+ * @param {boolean | { acrossRuns?: unknown, ttlSeconds?: unknown } | null | undefined} value
  */
 function normalizeAskOnce(value) {
     if (value === true) return true;
@@ -217,6 +218,9 @@ function applyAddNotification(draft, args, draftWrap) {
 function applyAddKnowledgeWrite(draft, args, draftWrap) {
     const { forEach, error: feErr, notes: feNotes } = sanitizeForEach(args.forEach, draft, draftWrap);
     if (feErr) return { error: feErr };
+    // 'skip' is the default and stays IMPLICIT, so a freshly-built step does
+    // not differ from a stored one for no behavioural reason.
+    const keepsStrategy = KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES.includes(args.nearDuplicateStrategy) && args.nearDuplicateStrategy !== 'skip';
     const step = {
         id: newId('kbw'),
         type: 'knowledge_write',
@@ -226,12 +230,8 @@ function applyAddKnowledgeWrite(draft, args, draftWrap) {
         title: bindingToTemplate(args.title),
         content: bindingToTemplate(args.content),
         sourceUri: bindingToTemplate(args.sourceUri),
+        ...(keepsStrategy ? { nearDuplicateStrategy: args.nearDuplicateStrategy } : {}),
     };
-    // 'skip' is the default and stays IMPLICIT, so a freshly-built step does
-    // not differ from a stored one for no behavioural reason.
-    if (KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES.includes(args.nearDuplicateStrategy) && args.nearDuplicateStrategy !== 'skip') {
-        step.nearDuplicateStrategy = args.nearDuplicateStrategy;
-    }
     appendAfter(draft, args.afterStepId, step, { branch: args.branch, caseName: args.caseName, splice: args.splice === true });
     return { added: step, ...(feNotes && feNotes.length ? { _warnings: feNotes } : {}) };
 }

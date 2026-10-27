@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * App Studio catalog — the v2 rich inputs: file and dataset upload, rich text,
  * datetime, relation, person and multiselect.

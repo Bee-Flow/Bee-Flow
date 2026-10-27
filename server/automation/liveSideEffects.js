@@ -82,6 +82,8 @@ function makeLiveSideEffects(deps = {}) {
      * make every automation unsaveable, and the runtime re-checks each id before
      * it searches anyway. A finding this pass cannot produce is a missing
      * warning, not a missing gate.
+     * @param {unknown} definition
+     * @param {{ orgId?: string | null | (() => Promise<string | null | undefined>), userId?: string, stage?: string }} [opts]
      */
     async function kbFindingsFor(definition, { orgId = null, userId, stage } = {}) {
         try {

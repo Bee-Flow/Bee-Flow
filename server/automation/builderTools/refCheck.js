@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — checking a path the AI binds against the shape of what it
  * reads, all the way down, and repairing it when there is exactly one
@@ -43,7 +44,6 @@
  */
 
 'use strict';
-
 const { OUTPUT_SCHEMAS } = require('../outputSchemas');
 const { findStepAnywhere } = require('./draftGraph');
 const { formatPath, appendKey, appendMatch, flattenShape } = require('../expr');
@@ -655,7 +655,7 @@ module.exports = {
 
 /**
  * @typedef {import('./shapeTree').ShapeNode} ShapeNode
- * @typedef {import('../../shared/expr/path.mjs').PathToken} PathToken
+ * @typedef {Expr.PathToken} PathToken
  * @typedef {import('./shapeTree').WalkResult} WalkResult
  * @typedef {{ id?: string, type?: string, layerKey?: string, tool?: string, op?: string, fields?: unknown,
  *   outputSchema?: unknown, arrayRef?: string, operations?: unknown, forEach?: { overRef?: string, itemVar?: string } }} RefStep

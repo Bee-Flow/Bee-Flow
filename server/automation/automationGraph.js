@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation graph helpers — one reading of an automation definition shared by the
  * document runner (which marks a file a model wrote) and by the compliance
@@ -213,6 +214,9 @@ module.exports = {
     formTriggersOf,
     hasFormPage,
 };
+
+/** @typedef {import('./validate/helpers').StepDef} AutomationStep  one step of a stored definition */
+/** @typedef {import('./validate/helpers').GraphDoc} AutomationDefinition  a stored definition: the root graph with its layers */
 
 /**
  * @typedef {{ steps?: AutomationStep[] } & Record<string, unknown>} AutomationGraph

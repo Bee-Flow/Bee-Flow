@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Which steps of an automation touch which datatable.
  *

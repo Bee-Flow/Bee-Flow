@@ -97,11 +97,11 @@ function splitFileValues(values) {
  * installAppContent — rows and files into an app that already has its model.
  *
  * @param {object} opts
- * @param {object} opts.app        the app row (writeRecord needs it for org stamping)
- * @param {object} opts.model      the canonical data model installTemplate wrote
- * @param {object} opts.content    { records: { [tableId]: row[] }, files: entry[] } from sanitizeAppImport
- * @param {object?} opts.deps      { writeRecord, storeDerivedFile } — the injectable
- *                                 edges, appDryRun-style, so the tests run
+ * @param {Awaited<ReturnType<typeof import('../stores/studioAppStore').getStudioApp>>} opts.app  the app row (writeRecord needs it for org stamping)
+ * @param {unknown} opts.model     the canonical data model installTemplate wrote
+ * @param {unknown} opts.content   { records: { [tableId]: row[] }, files: entry[] } from sanitizeAppImport
+ * @param {{ writeRecord?: typeof actionExecutor.writeRecord, storeDerivedFile?: typeof mailboxAttachments.storeDerivedFile }} [opts.deps]
+ *                                 the injectable edges, appDryRun-style, so the tests run
  *                                 DB- and storage-free
  * @returns {Promise<{ok:boolean, rows:number, files:number, skipped:string[], error?:string}>}
  */

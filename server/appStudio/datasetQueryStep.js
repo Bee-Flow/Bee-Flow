@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * dataset_query — the server step that answers "which variants sit in this
  * slice of my genome file" without the file ever being loaded whole.
@@ -103,11 +104,11 @@ function datasetAdapter(ds) {
 /**
  * Resolve + authorize the dataset named by a step/tool argument. Shared with
  * aiRuntime's query_genome_dataset tool so the two paths cannot drift.
- * @param {object} app
+ * @param {{ id: string, userId: string }} app
  * @param {*} rawValue what the binding resolved to (a descriptor or an id)
  * @param {string|null|undefined} actorId the person the step runs as (ctx.viewerId);
  *   only the dataset's uploader resolves it, and naming nobody resolves nothing
- * @returns {Promise<object>} the manifest row — throws a client-safe error otherwise.
+ * @returns {Promise<NonNullable<Awaited<ReturnType<typeof datasetFileStore.getDataset>>>>} the manifest row — throws a client-safe error otherwise.
  */
 async function resolveReadyDataset(app, rawValue, actorId) {
     const id = datasetIdOf(rawValue);

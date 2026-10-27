@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The parts a Solution part needs in order to work, and whether they can come
  * along when it is added.
