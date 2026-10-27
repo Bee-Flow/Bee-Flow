@@ -122,6 +122,7 @@ module.exports = {
     assertScope,
     ...require('./datatableStore/datatables'),
     ...require('./datatableStore/retention'),
+    ...require('./datatableStore/orphanSheets'),
     ...require('./datatableStore/liveChanges'),
     ...require('./datatableStore/grants'),
     ...require('./datatableStore/sourceMirrors'),

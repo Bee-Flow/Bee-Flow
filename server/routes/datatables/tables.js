@@ -17,7 +17,7 @@ const { migrationPlan } = require('../../core/dataEngine/dataModel/migrationPlan
 const { ddlForTable } = require('../../core/dataEngine/dataModel/ddl');
 const { normalizeFields } = require('../../core/dataEngine/dataModel/datatableFields');
 const { managedKindSpec } = require('../../core/dataEngine/dataModel/managedTables');
-const { assertDatatableQuota } = require('../../core/dataEngine/datatableLimits');
+const { assertDatatableQuota, localizeQuotaError } = require('../../core/dataEngine/datatableLimits');
 const { hasProjectRole } = require('../../auth/projectAccess');
 const { provisionManagedTable } = require('../../core/dataEngine/provisionManagedTable');
 const {
@@ -235,6 +235,8 @@ function register(router) {
             // it — otherwise the next call skips the 404 and fails on a schema
             // that does not exist.
             if (scope) datatableDbStore.invalidate(keyOf(scope));
+            // A full scope answers in the caller's language, with what to do about it.
+            await localizeQuotaError(e, req.session?.user?.id);
             if (answerDatatableError(res, e, scope)) return;
             throw e;
         }
@@ -345,6 +347,8 @@ function register(router) {
             res.json({ datatable: publicTable(table, 'owner'), warning: spec.warning });
         } catch (e) {
             if (scope) datatableDbStore.invalidate(keyOf(scope));
+            // A full scope answers in the caller's language, with what to do about it.
+            await localizeQuotaError(e, req.session?.user?.id);
             if (answerDatatableError(res, e, scope)) return;
             throw e;
         }
