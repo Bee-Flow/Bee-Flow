@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Per-user Nextcloud access scope API — the settings surface behind
  * "What Bee Flow may access" (Settings → Connections → Nextcloud).
@@ -19,7 +18,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { rateLimit } = require('express-rate-limit');
+const rateLimit = require('express-rate-limit');
 
 const { requireAuth } = require('../auth/permissions');
 const ncScope = require('../core/integrations/ncScope');

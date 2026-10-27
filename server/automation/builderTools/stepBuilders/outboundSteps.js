@@ -218,9 +218,8 @@ function applyAddNotification(draft, args, draftWrap) {
 function applyAddKnowledgeWrite(draft, args, draftWrap) {
     const { forEach, error: feErr, notes: feNotes } = sanitizeForEach(args.forEach, draft, draftWrap);
     if (feErr) return { error: feErr };
-    // 'skip' is the default and stays IMPLICIT, so a freshly-built step does
-    // not differ from a stored one for no behavioural reason.
-    const keepsStrategy = KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES.includes(args.nearDuplicateStrategy) && args.nearDuplicateStrategy !== 'skip';
+    /** @typedef {ReturnType<typeof bindingToTemplate>} TemplateText */
+    /** @type {{ id: string, type: string, label: string, forEach?: NonNullable<typeof forEach>, knowledgeBaseId: string, title: TemplateText, content: TemplateText, sourceUri: TemplateText, nearDuplicateStrategy?: string }} */
     const step = {
         id: newId('kbw'),
         type: 'knowledge_write',
@@ -230,8 +229,12 @@ function applyAddKnowledgeWrite(draft, args, draftWrap) {
         title: bindingToTemplate(args.title),
         content: bindingToTemplate(args.content),
         sourceUri: bindingToTemplate(args.sourceUri),
-        ...(keepsStrategy ? { nearDuplicateStrategy: args.nearDuplicateStrategy } : {}),
     };
+    // 'skip' is the default and stays IMPLICIT, so a freshly-built step does
+    // not differ from a stored one for no behavioural reason.
+    if (KNOWLEDGE_WRITE_DUPLICATE_STRATEGIES.includes(args.nearDuplicateStrategy) && args.nearDuplicateStrategy !== 'skip') {
+        step.nearDuplicateStrategy = args.nearDuplicateStrategy;
+    }
     appendAfter(draft, args.afterStepId, step, { branch: args.branch, caseName: args.caseName, splice: args.splice === true });
     return { added: step, ...(feNotes && feNotes.length ? { _warnings: feNotes } : {}) };
 }

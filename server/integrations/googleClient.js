@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Google API Client — Shared helper for Google integrations
  *
@@ -258,7 +257,7 @@ const GOOGLE_RETRY_CONFIG = Object.freeze({
  * @param {string}   [opts.notConfiguredError] error message when the Google OAuth app is not configured.
  * @returns {Promise<Object>} google[api] client, or {[api], ...extraApis, oauth2Client}.
  */
-async function createGoogleApiClient(session, { api, version, extraApis = [], exposeOAuth2 = false, onSaved, notConnectedError, notConfiguredError }) {
+async function createGoogleApiClient(session, { api, version, extraApis = [], exposeOAuth2 = false, onSaved, notConnectedError, notConfiguredError } = {}) {
     const config = await loadConfig();
     const providerConfig = config.providers?.google || {};
     if (!providerConfig.clientId || !providerConfig.clientSecret) {

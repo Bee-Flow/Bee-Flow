@@ -26,7 +26,9 @@ function spendStorageBudget(principal) {
             set: (name, value) => { if (String(name).toLowerCase() === 'retry-after') retryAfter = Number(value) || retryAfter; return res; },
             status: () => res,
             json: (body) => {
-                const e = Object.assign(rejected(429, 'rate_limited', (body && body.error) || 'Too many storage calls — try again in a minute.'), { retryAfter });
+                /** @type {ReturnType<typeof rejected> & { retryAfter?: unknown }} */
+                const e = rejected(429, 'rate_limited', (body && body.error) || 'Too many storage calls — try again in a minute.');
+                e.retryAfter = retryAfter;
                 reject(e);
                 return res;
             },

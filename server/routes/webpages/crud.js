@@ -73,6 +73,7 @@ const UpdateBody = bodyOf({
     js: worded(SLOT_TEXT).optional(),
 });
 
+/** @type {(router: import('express').Router, deps?: unknown) => void}  deps is passed to every part; this one does not read it */
 function register(router) {
     router.post('/', requireAuth, validate({ body: CreateBody, query: NO_QUERY }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const userId = sessionUser(req).id;

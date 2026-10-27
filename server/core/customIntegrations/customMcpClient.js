@@ -272,10 +272,11 @@ async function resolveCredential(integration, mcp, userId) {
     const conn = await integrationConnectionStore.getConnectionWithSecret(resolution.connectionId);
     if (!conn) throw new Error('Connection not found.');
 
-    if (conn.orgId !== orgId) {
+    const connOrgId = conn.orgId !== undefined ? conn.orgId : conn.org_id;
+    if (connOrgId !== orgId) {
         throw new Error('Connection is not available for this integration.');
     }
-    const meta = conn.secretMeta || {};
+    const meta = conn.secretMeta || conn.secret_meta || {};
     if (meta.boundOrigin !== new URL(mcp.url).origin) {
         throw new Error('Connection is bound to a different endpoint. Reconnect the integration.');
     }

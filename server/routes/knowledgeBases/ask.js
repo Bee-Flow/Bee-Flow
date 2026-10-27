@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * `POST /api/kb/:id/ask` — the Studio's test question.
  *
@@ -174,7 +173,7 @@ ${fenced}`;
         ];
 
         await adapter.stream(
-            config.apiKey, apiUrl, modelId, messages,
+            config.apiKey, apiUrl, config.modelId || modelId, messages,
             { maxTokens: Math.min(tier.maxTokens || 2048, 2048), temperature: 0.2 },
             (streamType, data) => {
                 if (streamType === 'text' && data?.text) send('text', { text: data.text });

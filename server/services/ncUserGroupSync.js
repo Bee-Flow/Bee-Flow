@@ -306,11 +306,10 @@ async function applyUserDeleted(org, ncUid) {
 }
 
 /**
- * @param {NcOrg} org
- * @param {string} ncUid
- * @param {string | null} [_groupId]  the event names it; the whole user is re-read, so it is not used
+ * The event names the group; the whole user is re-read, so it is not used.
+ * @type {(org: NcOrg, ncUid: string, groupId?: string | null) => ReturnType<typeof _applyGroupMemberChange>}
  */
-async function applyGroupMemberChange(org, ncUid, _groupId) {
+async function applyGroupMemberChange(org, ncUid /* , groupId */) {
     return await _withSyncingUid(org, ncUid, () => _applyGroupMemberChange(org, ncUid));
 }
 

@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * Automation evolution — an automation proposes changes to its OWN definition, a human
  * approves, the change lands as a new version, the next runs are watched, and
@@ -138,11 +137,11 @@ async function applyEvolution(evolutionId, { userId } = {}, deps = defaultDeps()
     const saved = await deps.store.updateAutomation(a.id, updates, a.userId, { goLive: true });
     const nowIso = deps.now().toISOString();
     const out = await deps.store.updateEvolution(evolutionId, {
-        status: 'canary', versionBefore, versionAfter: (saved ? saved.version : null) ?? null, baseline, appliedAt: nowIso, error: null,
+        status: 'canary', versionBefore, versionAfter: saved?.version ?? null, baseline, appliedAt: nowIso, error: null,
     });
     await deps.notify({
         userId: a.userId, category: 'info',
-        title: `🧬 ${a.title}: change applied (v${versionBefore} → v${saved ? saved.version : undefined})`,
+        title: `🧬 ${a.title}: change applied (v${versionBefore} → v${saved?.version})`,
         message: `${row.rationale || 'Evolution applied.'}\n\nThe next ${row.canaryRuns} live runs are watched; a regression rolls back to v${versionBefore} automatically.`,
         link: automationPath(a.id),
     });

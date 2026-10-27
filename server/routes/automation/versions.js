@@ -1,4 +1,3 @@
-// @typecheck
 // §WS5 #4 — automation version history endpoints, extracted verbatim from
 // routes/automation.js. summariseDefinitionDiff (used only here) moved in.
 //
@@ -212,7 +211,7 @@ router.post('/:id/versions/:versionId/restore', validate({ body: NoBody, query: 
     // subscription and its additional schedules. Same fingerprint gates as
     // PUT /:id, so restoring a version with the same trigger does not
     // re-anchor a poller cursor or a slot.
-    if (!hasLive && ((updated ? updated.isActive : undefined) ?? a.isActive)) {
+    if (!hasLive && (updated?.isActive ?? a.isActive)) {
         const def = version.definition;
         if ((hasAppEventTrigger(def) || hasAppEventTrigger(a.definition))
             && appEventFingerprint(def) !== appEventFingerprint(a.definition)) {

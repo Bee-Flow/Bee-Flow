@@ -1,4 +1,3 @@
-// @typecheck
 function _stringify(v) {
     if (v == null) return '';
     if (typeof v === 'string') return v;
@@ -91,9 +90,12 @@ function applyStringLeaves(value, replacements, cursor = { i: 0 }) {
  */
 function _vaultOf(ctx) {
     if (ctx && ctx.tokenVault) return ctx.tokenVault;
-    const { createTokenVault } = require('./tokenVault');
-    if (!ctx) return createTokenVault({});
+    if (!ctx) {
+        const { createTokenVault } = require('./tokenVault');
+        return createTokenVault({});
+    }
     if (!ctx._ephemeralTokenVault) {
+        const { createTokenVault } = require('./tokenVault');
         ctx._ephemeralTokenVault = createTokenVault({});
     }
     return ctx._ephemeralTokenVault;

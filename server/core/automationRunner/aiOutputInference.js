@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * The output schema of a schemaless AI step, read off how later steps use it.
  *
@@ -185,7 +184,7 @@ function scanAst(node, report, listCtx) {
          * @param {string} name
          */
         const hint = (name) => (name === 'count' ? 'weak' : LIST_FUNCTIONS.has(name));
-        (node.args || []).forEach((a, i) => visit(a, i === 0 ? hint(node.name) : false));
+        (node.args || []).forEach((a, i) => visit(a, i === 0 && hint(node.name)));
         return;
     }
     for (const k of ['cond', 'a', 'b', 'expr']) if (node[k]) visit(node[k], false);

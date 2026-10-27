@@ -225,7 +225,7 @@ function kidForPem(pem) {
 
 /**
  * Verify the JWT signature and required claims.
- * @returns {Promise<OneOf<{ valid: true, payload: Record<string, unknown> }, { valid: false, error: string }>>}
+ * @returns {Promise<OneOf<{ valid: true, payload: Record<string, unknown> & { exp: number } }, { valid: false, error: string }>>}  a valid payload has passed the `typeof payload.exp === 'number'` check
  *
  * Key resolution: if the JWT header carries a `kid`, prefer the matching key
  * from the configured JWKS endpoint, then fall back to the bundled key when

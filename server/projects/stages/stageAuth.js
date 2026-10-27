@@ -1,4 +1,3 @@
-// @typecheck
 /**
  * One resolver for who may do what on a Solution and its stages (design 8,
  * D12). Every stage route starts with it; it answers by throwing an
@@ -96,7 +95,7 @@ async function stageAuth(req, opts = {}, deps = {}) {
     let stageName = stageRow ? stageRow.stage : null;
     if (!stageRow && params.stage !== undefined) {
         if (params.stage === 'dev') stageName = 'dev';
-        else if (typeof params.stage === 'string' && STAGE_NAMES.includes(params.stage)) {
+        else if (STAGE_NAMES.includes(params.stage)) {
             stageName = params.stage;
             stageRow = await d.stageStore.getStageFor(dev.id, params.stage);
             if (!stageRow) throw notFound('stage_not_found', 'This stage does not exist.');

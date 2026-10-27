@@ -1,4 +1,3 @@
-// @typecheck
 /** @typedef {import('stream').Readable} Readable */
 /**
  * The Approvals section's API — list, facets, detail, decide, attachment.
@@ -409,7 +408,6 @@ router.get('/approvals/:id/files/:fileId', async (req, res, next) => {
     if (!approval || !approvalService.canView(approval, viewer)) {
         return res.status(404).json({ error: 'Not found' });
     }
-    const storageStore = require('../../stores/storageStore');
     // Two locks, both required: the file must be in THIS approval's
     // snapshot (viewing one approval is not a licence to fish the run's
     // other files), and it must still resolve through the run-scoped
@@ -427,6 +425,7 @@ router.get('/approvals/:id/files/:fileId', async (req, res, next) => {
             .getAttachment(req.params.fileId, approval.studioAppId, approval.ownerId)
             .catch((e) => fallback('routes/automation/approvals:anon#6', e, null));
         if (!att || att.quarantined) return res.status(404).json({ error: 'Not found' });
+        const storageStore = require('../../stores/storageStore');
         /** @type {{ stream: Readable; contentType: string; contentLength: number; totalLength: number; contentRange: string | null; metadata: Object; }} */
         let streamed;
         try {
@@ -453,6 +452,7 @@ router.get('/approvals/:id/files/:fileId', async (req, res, next) => {
     const file = await automationStore.getGeneratedFileForRuns(req.params.fileId, runIds);
     if (!file) return res.status(404).json({ error: 'Not found' });
 
+    const storageStore = require('../../stores/storageStore');
     /** @type {{ stream: Readable; contentType: string; contentLength: number; totalLength: number; contentRange: string | null; metadata: Object; }} */
     let streamed;
     try {

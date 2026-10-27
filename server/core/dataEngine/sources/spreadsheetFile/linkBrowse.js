@@ -113,8 +113,7 @@ function toItem(ref, linked) {
  * @param {unknown} scope
  * @param {{ provider?: string, folderId?: string | null, q?: unknown, shared?: unknown, pageToken?: string | null }} [options]
  */
-async function browse(session, principal, scope, options = {}) {
-    const { provider, folderId = null, q = null, shared = null, pageToken = null } = options;
+async function browse(session, principal, scope, { provider, folderId = null, q = null, shared = null, pageToken = null } = {}) {
     assertProvider(provider);
     const term = typeof q === 'string' ? q.trim() : '';
     const id = folderId === undefined || folderId === null || folderId === '' ? 'root' : String(folderId);

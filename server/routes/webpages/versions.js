@@ -32,6 +32,7 @@ const SummaryBody = bodyOf({
     summary: worded('Een samenvatting is tekst.').trim().max(500, 'Een samenvatting is hoogstens 500 tekens.').optional(),
 });
 
+/** @type {(router: import('express').Router, deps?: unknown) => void}  deps is passed to every part; this one does not read it */
 function register(router) {
     router.get('/:id/versions', requireAuth, validate({ query: ListQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof ListQuery>>} */ req, /** @type {import('express').Response} */ res) => {
         const userId = req.session.user.id;
