@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Document Routes — PDF downloads from the document-renderer component
  *

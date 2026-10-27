@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Make a MANAGED datatable (dataModel/managedTables.js): the metadata row, the
  * scope model and the CREATE TABLE, in one transaction.

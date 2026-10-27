@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Storage Proxy — Auth-protected file streaming from RustFS
  *
