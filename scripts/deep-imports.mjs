@@ -112,6 +112,7 @@ export function findSpecifiers(text, file = 'x.ts') {
 
 /** The `@/…` spelling of a deep relative specifier written in `fromRel` (a path under src), or null. */
 export function aliasFor(spec, fromRel) {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script over import specifiers of source files it reads itself; a fixed literal repeated, no nested quantifier: linear
     if (!DEEP_PREFIX.test(spec)) return null;
     const target = path.posix.normalize(path.posix.join(path.posix.dirname(fromRel), spec));
     if (target === '..' || target.startsWith('../') || target === '.' || target === './' || target === '') return null;
@@ -120,6 +121,7 @@ export function aliasFor(spec, fromRel) {
 
 /** The deep specifiers of one file that the alias can replace: [{ start, end, spec, to }]. */
 export function deepSpecifiers(text, fromRel) {
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- a repo script over source files it reads itself; a fixed literal repeated, no nested quantifier: linear
     if (!DEEP_TEXT.test(text)) return [];
     const found = [];
     for (const s of findSpecifiers(text, fromRel)) {
