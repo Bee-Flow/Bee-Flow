@@ -26,6 +26,7 @@
 import { compareDocuments, familyOf, type CompareResult, type CompareSide, type Family } from '../../core/documents/compare/index.mts';
 import type { AnyDeck } from '../../core/documents/compare/deckCompare.mts';
 import type { SheetSide } from '../../core/documents/compare/sheetCompare.mts';
+import { capFromEnv } from '../../core/documents/compare/limits.mts';
 import { inPool, type DocumentPool, type DocumentRef } from './pool.mts';
 
 export interface StudioDoc {
@@ -52,8 +53,10 @@ export interface AppLike { id: string; userId: string; organizationId?: string |
 export interface ReaderDeps {
     getDocument: (id: string, userId: string) => Promise<StudioDoc | null>;
     getDocumentVersion: (id: string, userId: string, versionId: string) => Promise<StudioDoc | null>;
+    /** At most `limit` revisions, newest first (the real one pages through the store). */
     listVersions: (id: string, userId: string, opts: { limit: number }) => Promise<{ versions: VersionRow[] } | null>;
-    listFolder: (userId: string, folderId: string) => Promise<ListedDoc[]>;
+    /** At most `limit` documents of the folder, by name. */
+    listFolder: (userId: string, folderId: string, limit: number) => Promise<ListedDoc[]>;
     readSheet: (doc: StudioDoc) => Promise<SheetSide>;
     previewHtml: (doc: StudioDoc, app: AppLike) => Promise<string>;
     deckOf: (doc: StudioDoc) => AnyDeck;
@@ -74,10 +77,20 @@ const notFound = () => new AppDocumentError(404, 'document_not_found', 'This doc
 
 /** Kinds a picker can narrow to, by family. */
 const PICKER_KINDS: Readonly<Record<string, Family | null>> = Object.freeze({ any: null, text: 'text', presentation: 'deck', spreadsheet: 'sheet' });
-/** Most documents a picker offers (a folder can hold more; the first ones by name). */
-export const MAX_PICKER_OPTIONS = 200;
-/** Most versions offered for a version compare. */
-export const MAX_VERSIONS = 50;
+/**
+ * The caps of an app's document reads: environment variables with a generous
+ * default, 0 = unlimited, read on every call.
+ *   STUDIO_APP_DOCUMENT_PICKER_OPTIONS  200  most documents one picker offers (a folder: the first by name)
+ *   STUDIO_APP_DOCUMENT_VERSIONS        50   most revisions offered for a version compare
+ *   STUDIO_APP_DOCUMENT_SHEET_TABS      30   most tabs of one spreadsheet read (appDocuments/deps.mts)
+ */
+export function appDocumentLimits(env: Record<string, string | undefined> = process.env): { pickerOptions: number; versions: number; sheetTabs: number } {
+    return {
+        pickerOptions: capFromEnv('STUDIO_APP_DOCUMENT_PICKER_OPTIONS', 200, env),
+        versions: capFromEnv('STUDIO_APP_DOCUMENT_VERSIONS', 50, env),
+        sheetTabs: capFromEnv('STUDIO_APP_DOCUMENT_SHEET_TABS', 30, env),
+    };
+}
 
 /** Rule 1 and 2: may an app show this document at all? */
 export function appMayShow(doc: StudioDoc | null, app: AppLike): doc is StudioDoc {
@@ -148,15 +161,16 @@ export async function pickerOptions(deps: ReaderDeps, app: AppLike, scope: { ids
         const doc = await deps.getDocument(id, app.userId);
         if (appMayShow(doc, app)) add(doc);
     }
+    const max = appDocumentLimits().pickerOptions;
     if (scope.folderId) {
-        for (const d of await deps.listFolder(app.userId, scope.folderId)) {
+        for (const d of await deps.listFolder(app.userId, scope.folderId, max)) {
             if (d.userId === app.userId && d.folderId === scope.folderId && !d.archived && d.kind !== 'section') add(d);
         }
     }
     const q = query.trim().toLowerCase();
     const list = [...seen.values()].filter((o) => !q || o.name.toLowerCase().includes(q));
     // The builder's own order for the listed ids, then the folder by name.
-    return list.slice(0, MAX_PICKER_OPTIONS);
+    return list.slice(0, max);
 }
 
 export interface VersionOption { versionId: string; label: string | null; source: string; createdAt: unknown; current: boolean }
@@ -164,7 +178,7 @@ export interface VersionOption { versionId: string; label: string | null; source
 /** A document's revisions, newest first, for a version compare. */
 export async function documentVersions(deps: ReaderDeps, app: AppLike, doc: StudioDoc): Promise<{ supported: boolean; versions: VersionOption[] }> {
     if (familyOf(doc.docType) === 'sheet') return { supported: false, versions: [] };
-    const page = await deps.listVersions(doc.id, app.userId, { limit: MAX_VERSIONS });
+    const page = await deps.listVersions(doc.id, app.userId, { limit: appDocumentLimits().versions });
     const versions = (page?.versions || []).map((v) => ({
         versionId: v.id,
         // A person's name for a version is the document's own text; who made it is not sent.

@@ -10,10 +10,12 @@
  *
  * The answer carries the blocks as AST nodes; the app runtime draws them
  * with the version-compare renderer (components/versions/DiffBlockView).
- * Above the diff's block limit only the counts come back (`truncated`).
+ * Above the diff's block limit (DOCUMENT_COMPARE_MAX_TEXT_BLOCKS, ./limits.mts)
+ * only the counts come back (`truncated`).
  */
 
 import { createRequire } from 'node:module';
+import { compareLimits } from './limits.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -60,8 +62,6 @@ function domParser(): unknown {
     return parser;
 }
 
-/** Most blocks per side compared in detail. */
-export const MAX_TEXT_BLOCKS = 2000;
 
 function astOf(source: TextSource): AstNode {
     if ('markdown' in source) return editor().markdownToAst(source.markdown || '');
@@ -69,7 +69,7 @@ function astOf(source: TextSource): AstNode {
 }
 
 export function compareText(left: TextSource, right: TextSource): TextCompareResult {
-    const out = editor().diffDocs(astOf(left), astOf(right), { maxBlocks: MAX_TEXT_BLOCKS });
+    const out = editor().diffDocs(astOf(left), astOf(right), { maxBlocks: compareLimits().maxTextBlocks });
     const blocks = Array.isArray(out.blocks) ? out.blocks : [];
     const count = (op: TextDiffBlock['op']) => blocks.filter((b) => b.op === op).length;
     return {

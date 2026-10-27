@@ -15,14 +15,12 @@
 import { createRequire } from 'node:module';
 import type { AnyDeck } from '../../core/documents/compare/deckCompare.mts';
 import type { SheetSide } from '../../core/documents/compare/sheetCompare.mts';
-import type { AppLike, ListedDoc, ReaderDeps, StudioDoc, VersionRow } from './reader.mts';
+import { appDocumentLimits, type AppLike, type ListedDoc, type ReaderDeps, type StudioDoc, type VersionRow } from './reader.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
 /** The Studio preview's CSP (routes/studioDocuments.js PREVIEW_CSP), as a meta tag. */
 const PREVIEW_CSP = "default-src 'none'; img-src data:; font-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; form-action 'none'";
-/** Most tabs of one spreadsheet read for an app. */
-export const MAX_SHEET_TABS = 30;
 
 /** The CSP as the first thing in <head> (or in front of everything when there is none). */
 export function withCsp(html: string): string {
@@ -35,7 +33,7 @@ const EMPTY_DECK_HTML = '<!DOCTYPE html><html><head><meta charset="utf-8"></head
 interface DocumentStore {
     getDocument: (id: string, userId: string) => Promise<StudioDoc | null>;
     getDocumentVersion: (id: string, userId: string, versionId: string) => Promise<StudioDoc | null>;
-    listVersions: (id: string, userId: string, opts: { limit: number }) => Promise<{ versions: VersionRow[] } | null>;
+    listVersions: (id: string, userId: string, opts: { limit: number; cursor?: string | null }) => Promise<{ versions: VersionRow[]; nextCursor?: string | null } | null>;
     listDocuments: (userId: string, opts: Record<string, unknown>) => Promise<ListedDoc[]>;
 }
 
@@ -65,7 +63,7 @@ async function readSheet(doc: StudioDoc): Promise<SheetSide> {
     const { sheetTabsOf } = nodeRequire('../../stores/lib/sheetDocument.js');
     const cells = nodeRequire('../../core/documents/sheetCells.js');
     const { evaluateSheet } = nodeRequire('../../shared/expr/sheet.mjs');
-    const tabs = (sheetTabsOf(doc) as Array<{ name: string; datatableId: string }>).slice(0, MAX_SHEET_TABS);
+    const tabs = (sheetTabsOf(doc) as Array<{ name: string; datatableId: string }>).slice(0, appDocumentLimits().sheetTabs);
     const workbook: Record<string, Record<string, string>> = {};
     for (const t of tabs) workbook[t.name] = (await cells.readSheet(doc.userId, t.datatableId)).cells || {};
     return {
@@ -78,12 +76,41 @@ async function readSheet(doc: StudioDoc): Promise<SheetSide> {
     };
 }
 
+/** The store answers at most this many rows per call; longer lists are read page by page. */
+const STORE_PAGE = { documents: 200, versions: 100 };
+
+/** A folder's documents by name, page by page, up to `limit` (Infinity = all). */
+async function listFolder(userId: string, folderId: string, limit: number): Promise<ListedDoc[]> {
+    const out: ListedDoc[] = [];
+    while (out.length < limit) {
+        const size = Math.min(STORE_PAGE.documents, limit - out.length);
+        const page = await store().listDocuments(userId, { folderId, limit: size, offset: out.length, sort: 'name' });
+        out.push(...page);
+        if (page.length < size) break;
+    }
+    return out;
+}
+
+/** A document's revisions, newest first, page by page, up to `limit` (Infinity = all). */
+async function listVersions(id: string, userId: string, { limit }: { limit: number }): Promise<{ versions: VersionRow[] } | null> {
+    const versions: VersionRow[] = [];
+    let cursor: string | null = null;
+    while (versions.length < limit) {
+        const page = await store().listVersions(id, userId, { limit: Math.min(STORE_PAGE.versions, limit - versions.length), cursor });
+        if (!page) return versions.length ? { versions } : null;
+        versions.push(...page.versions);
+        cursor = page.nextCursor || null;
+        if (!cursor) break;
+    }
+    return { versions };
+}
+
 export function realReaderDeps(): ReaderDeps {
     return {
         getDocument: (id, userId) => store().getDocument(id, userId),
         getDocumentVersion: (id, userId, versionId) => store().getDocumentVersion(id, userId, versionId),
-        listVersions: (id, userId, opts) => store().listVersions(id, userId, opts),
-        listFolder: (userId, folderId) => store().listDocuments(userId, { folderId, limit: 200, sort: 'name' }),
+        listVersions,
+        listFolder,
         readSheet,
         previewHtml,
         deckOf: (doc) => nodeRequire('../../core/documents/deckDocument.js').deckFromDocument(doc).deck as AnyDeck,

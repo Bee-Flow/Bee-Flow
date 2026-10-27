@@ -60,6 +60,7 @@ const DOCS = {
     teamTpl: owned('teamTpl', { userId: 'colleague', kind: 'template', visibility: 'team' }),
 };
 const reads = [];
+const folderLimits = [];
 const readerDeps = {
     async getDocument(id, userId) {
         reads.push(userId);
@@ -75,8 +76,9 @@ const readerDeps = {
             { id: 'v-old', seq: 1, source: 'named', name: 'Sent to the board', summary: '', createdAt: '2026-10-01', createdBy: 'someone', contributors: [] },
         ] };
     },
-    async listFolder(userId, folderId) {
-        return Object.values(DOCS).filter((d) => d.folderId === folderId);
+    async listFolder(userId, folderId, limit) {
+        folderLimits.push(limit);
+        return Object.values(DOCS).filter((d) => d.folderId === folderId).slice(0, limit);
     },
     async readSheet() {
         return { tabs: [{ name: 'Tab', cells: { A1: '1', A2: '=A1+1' }, display: { A1: '1', A2: '2' } }] };
@@ -181,6 +183,19 @@ test('a picker lists its own ids and folder (owner-owned, not archived, by kind)
     const q = await as('member', 'GET', '/app1/documents?node=pick&q=pagef');
     assert.deepStrictEqual(q.body.documents.map((d) => d.id), ['pageF']);
     assert.strictEqual((await as('member', 'GET', '/app1/documents?node=view_fixed')).status, 400, 'only a picker lists');
+});
+
+test('a picker offers at most STUDIO_APP_DOCUMENT_PICKER_OPTIONS documents (default 200, 0 = unlimited)', async (t) => {
+    const before = process.env.STUDIO_APP_DOCUMENT_PICKER_OPTIONS;
+    t.after(() => { if (before === undefined) delete process.env.STUDIO_APP_DOCUMENT_PICKER_OPTIONS; else process.env.STUDIO_APP_DOCUMENT_PICKER_OPTIONS = before; });
+    folderLimits.length = 0;
+    delete process.env.STUDIO_APP_DOCUMENT_PICKER_OPTIONS;
+    assert.strictEqual((await as('member', 'GET', '/app1/documents?node=pick')).body.documents.length, 4);
+    process.env.STUDIO_APP_DOCUMENT_PICKER_OPTIONS = '2';
+    assert.strictEqual((await as('member', 'GET', '/app1/documents?node=pick')).body.documents.length, 2);
+    process.env.STUDIO_APP_DOCUMENT_PICKER_OPTIONS = '0';
+    assert.strictEqual((await as('member', 'GET', '/app1/documents?node=pick')).body.documents.length, 4);
+    assert.deepStrictEqual(folderLimits, [200, 2, Infinity]);
 });
 
 test('a sheet is shown as its computed values; it has no versions to compare', async () => {

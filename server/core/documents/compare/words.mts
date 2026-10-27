@@ -5,10 +5,12 @@
  *
  * The same token rule as the editor's version compare (agent-hub
  * src/editor/diff/words.ts), so a slide line and a paragraph read alike.
- * Pure and bounded: a line past MAX_WORD_TOKENS is reported as replaced.
+ * Pure and bounded: a line past DOCUMENT_COMPARE_MAX_WORD_TOKENS (./limits.mts)
+ * is reported as replaced.
  */
 
 import { alignSequences } from './align.mts';
+import { compareLimits } from './limits.mts';
 
 export type WordOp = 'equal' | 'insert' | 'delete';
 export interface DiffWord { op: WordOp; text: string }
@@ -25,8 +27,6 @@ export interface DiffLine {
 /** Word (letters, digits, marks, with inner ' ’ -), whitespace run, or one other character. */
 const TOKEN = /[\p{L}\p{N}\p{M}]+(?:['’-][\p{L}\p{N}\p{M}]+)*|\s+|[\s\S]/gu;
 const WORDISH = /^[\p{L}\p{N}]/u;
-/** Longest line diffed word by word (tokens per side). */
-export const MAX_WORD_TOKENS = 2000;
 /** Least word overlap for two lines to count as one line, changed. */
 export const LINE_MIN_SIMILARITY = 0.4;
 
@@ -67,7 +67,8 @@ export function diffWords(before: string, after: string): DiffWord[] {
     const a = tokens(before);
     const b = tokens(after);
     const out: DiffWord[] = [];
-    if (a.length > MAX_WORD_TOKENS || b.length > MAX_WORD_TOKENS) {
+    const maxTokens = compareLimits().maxWordTokens;
+    if (a.length > maxTokens || b.length > maxTokens) {
         pushRun(out, 'delete', before);
         pushRun(out, 'insert', after);
         return out;

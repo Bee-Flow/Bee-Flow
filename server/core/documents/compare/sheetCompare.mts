@@ -18,11 +18,13 @@
  * Values are the COMPUTED ones (shared/expr/sheet.mjs evaluateSheet, done by
  * the loader); a cell whose formula changed but whose value did not is still
  * changed. Bounded: every row is listed while the tab has at most
- * MAX_LISTED_ROWS rows, past that only changed rows and their neighbours.
+ * DOCUMENT_COMPARE_MAX_LISTED_ROWS rows (./limits.mts), past that only the
+ * changed rows and their neighbours.
  * Pure: no I/O.
  */
 
 import { alignSequences } from './align.mts';
+import { compareLimits } from './limits.mts';
 
 export interface SheetTabInput {
     name: string;
@@ -72,7 +74,6 @@ export interface SheetCompareResult {
     summary: { tabsChanged: number; tabsAdded: number; tabsRemoved: number; cellsChanged: number; rowsAdded: number; rowsRemoved: number; columnsAdded: number; columnsRemoved: number };
 }
 
-export const MAX_LISTED_ROWS = 500;
 /**
  * Rows in the same gap always pair (best likeness first): a row edited in
  * place is the usual change in a sheet, and reading it as one removed and one
@@ -181,10 +182,11 @@ function similarity(x: string[], y: string[]): number {
 
 /** Changed rows plus one unchanged neighbour each side, the rest counted. */
 function trimRows(rows: RowPair[]): { rows: RowPair[]; hidden: number } {
-    if (rows.length <= MAX_LISTED_ROWS) return { rows, hidden: 0 };
+    const max = compareLimits().maxListedRows;
+    if (rows.length <= max) return { rows, hidden: 0 };
     const keep = rows.map((r) => r.op !== 'equal');
     const near = keep.map((k, i) => k || keep[i - 1] === true || keep[i + 1] === true);
-    const kept = rows.filter((_, i) => near[i]).slice(0, MAX_LISTED_ROWS);
+    const kept = rows.filter((_, i) => near[i]).slice(0, max);
     return { rows: kept, hidden: rows.length - kept.length };
 }
 

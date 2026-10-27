@@ -17,6 +17,7 @@ const { compareDecks, slideLines, compareLook } = require('./deckCompare.mts');
 const { compareSheets, compareTab } = require('./sheetCompare.mts');
 const { compareText } = require('./textCompare.mts');
 const { compareDocuments, familyOf, NotComparableError } = require('./index.mts');
+const { capFromEnv, compareLimits } = require('./limits.mts');
 const { normalizeDeck } = require('../deckModel');
 const { evaluateSheet } = require('../../../shared/expr/sheet.mjs');
 
@@ -231,6 +232,27 @@ test('sheet: a big tab lists only the changed rows and their neighbours', () => 
     assert.ok(t.rows.length <= 3, `listed ${t.rows.length}`);
     assert.ok(t.hiddenRows >= 897);
     assert.strictEqual(t.stats.cellsChanged, 1);
+});
+
+test('limits: env caps with a generous default; 0 is unlimited, garbage keeps the default', () => {
+    assert.strictEqual(capFromEnv('X', 500, {}), 500);
+    assert.strictEqual(capFromEnv('X', 500, { X: '' }), 500);
+    assert.strictEqual(capFromEnv('X', 500, { X: 'lots' }), 500);
+    assert.strictEqual(capFromEnv('X', 500, { X: '-3' }), 500);
+    assert.strictEqual(capFromEnv('X', 500, { X: '12.7' }), 12);
+    assert.strictEqual(capFromEnv('X', 500, { X: '0' }), Infinity);
+    assert.strictEqual(compareLimits({}).maxListedRows, 500);
+});
+
+test('sheet: DOCUMENT_COMPARE_MAX_LISTED_ROWS=0 lists every row of a big tab', (t) => {
+    const before = process.env.DOCUMENT_COMPARE_MAX_LISTED_ROWS;
+    t.after(() => { if (before === undefined) delete process.env.DOCUMENT_COMPARE_MAX_LISTED_ROWS; else process.env.DOCUMENT_COMPARE_MAX_LISTED_ROWS = before; });
+    process.env.DOCUMENT_COMPARE_MAX_LISTED_ROWS = '0';
+    const cells = {};
+    for (let r = 1; r <= 900; r++) cells[`A${r}`] = `row ${r}`;
+    const out = compareTab(tab('S', cells), tab('S', { ...cells, A450: 'changed' }));
+    assert.strictEqual(out.rows.length, 900);
+    assert.strictEqual(out.hiddenRows, 0);
 });
 
 // ── text ──────────────────────────────────────────────────────────────

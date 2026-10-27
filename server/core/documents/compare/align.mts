@@ -10,10 +10,13 @@
  *      (similarity >= minSimilarity) are paired in order, by the best total
  *      similarity; the rest are added (right only) or removed (left only).
  *
- * Bounded: a middle larger than MAX_LCS_CELLS is matched by position instead
- * of by LCS, and a stretch larger than MAX_PAIRING_CELLS pairs by position.
- * Pure: no I/O, no dependencies.
+ * Bounded: a middle larger than DOCUMENT_COMPARE_MAX_LCS_CELLS is matched by
+ * position instead of by LCS, and a stretch larger than
+ * DOCUMENT_COMPARE_MAX_PAIRING_CELLS pairs by position (./limits.mts).
+ * Pure: no I/O.
  */
+
+import { compareLimits } from './limits.mts';
 
 export type AlignStep<A, B> =
     | { op: 'match'; a: A; b: B; ai: number; bi: number }
@@ -29,16 +32,11 @@ export interface AlignOptions<A, B> {
     minSimilarity: number;
 }
 
-/** Most cells of the LCS table (left × right of the middle). */
-export const MAX_LCS_CELLS = 4_000_000;
-/** Most cells of one stretch's pairing table. */
-export const MAX_PAIRING_CELLS = 250_000;
-
 function lcsPairs(ka: Array<string | null>, kb: Array<string | null>): Array<[number, number]> {
     const m = ka.length;
     const n = kb.length;
     if (!m || !n) return [];
-    if (m * n > MAX_LCS_CELLS) return [];
+    if (m * n > compareLimits().maxLcsCells) return [];
     const width = n + 1;
     const table = new Uint32Array((m + 1) * width);
     for (let i = m - 1; i >= 0; i--) {
@@ -68,7 +66,7 @@ function pairStretch<A, B>(as: A[], bs: B[], opts: AlignOptions<A, B>): Array<[n
         const s = opts.similarity(as[i], bs[j]);
         return s >= opts.minSimilarity ? s : 0;
     };
-    if (m * n > MAX_PAIRING_CELLS) {
+    if (m * n > compareLimits().maxPairingCells) {
         const out: Array<[number, number, number]> = [];
         for (let k = 0; k < Math.min(m, n); k++) { const s = sim(k, k); if (s > 0) out.push([k, k, s]); }
         return out;
