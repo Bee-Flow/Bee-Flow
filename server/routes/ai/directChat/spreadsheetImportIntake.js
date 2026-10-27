@@ -7,7 +7,8 @@
  * sees the content this turn; the document is what it edits afterwards.
  *
  * Never fails the turn: any problem is logged and the caller carries on with
- * the old, text-only behaviour.
+ * the old, text-only behaviour. A refusal by a storage limit is also passed
+ * to the model as a note, so it can tell the person what to do.
  */
 
 'use strict';
@@ -74,6 +75,13 @@ async function importUploadedSpreadsheet({ req, send, userId, buffer, att, docum
         return { base: { documentId: result.documentId }, note: `\n${importNote(result)}` };
     } catch (e) {
         log.warn(`[DirectChat] Spreadsheet import failed for ${log.nameForLog(att.name)}, using the text only: ${/** @type {Error} */ (e).message}`);
+        // A limit is something the person can act on, so the model is told
+        // (in the refusal's own words, which say what to do); any other
+        // failure stays the quiet text-only fallback.
+        const err = /** @type {{ code?: unknown, message?: unknown }} */ (e);
+        if (err && err.code === 'quota_exceeded' && typeof err.message === 'string') {
+            return { base: {}, note: `\n[Spreadsheet "${att.name}" could not be opened as a document, only its text is available: ${err.message}]` };
+        }
         return NOTHING;
     }
 }

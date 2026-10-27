@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The storage envelope for ONE datatable tenant, and the single check that
  * enforces it.
@@ -27,22 +28,72 @@
  * so: a live COUNT(*) or pg_total_relation_size on every row write would put a
  * full-table scan on the hot path to save a cap from being a few hundred rows
  * out.
+ *
+ * ── TWO TABLE COUNTS, ONE VOLUME ────────────────────────────────────
+ * A spreadsheet in Documents keeps each tab's cells in a personal datatable
+ * of the managed kind `document_sheet` (core/documents/sheetCells.js), made
+ * by the document, never by a person in Studio → Datatables. Counting those
+ * against the table cap meant a person who opened a handful of multi-tab
+ * workbooks in chat could no longer start a spreadsheet, nor make a single
+ * table of their own, and nothing they could see explained why. So the table
+ * count is split: `maxTablesPerScope` counts the tables people make,
+ * `maxSheetTablesPerScope` the tabs of spreadsheets. The VOLUME guard stays
+ * one: rows and bytes count every table of the scope, sheets included, and a
+ * new sheet tab is refused once the scope is over its byte limit (measured
+ * live for a sheet, see core/dataEngine/provisionManagedTable).
+ *
+ * ── EVERY CAP IS AN ENVIRONMENT VARIABLE ────────────────────────────
+ * Read on every call (so an operator's change needs no code, and a test can
+ * set one for a single case), with a generous default; 0 means unlimited.
+ * Documented in docs/docs/self-hosting/env.md.
  */
 
 'use strict';
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
+
+const MB = 1024 * 1024;
 
 /**
- * The envelope. Rows and bytes are per SCOPE (an organisation, or one account's
- * personal tables) because that is the unit of storage: one Postgres schema,
- * one model document, one row in `datatable_models`.
+ * The defaults, one per environment variable. Rows and bytes are per SCOPE
+ * (an organisation, or one account's personal tables) because that is the
+ * unit of storage: one Postgres schema, one model document, one row in
+ * `datatable_models`.
  */
-const DATATABLE_LIMITS = Object.freeze({
-    MAX_TABLES_PER_SCOPE: 50,
-    MAX_ROWS_PER_TABLE: 100_000,
-    MAX_ROWS_PER_SCOPE: 500_000,
-    MAX_BYTES_PER_SCOPE: 256 * 1024 * 1024,
+const DEFAULTS = Object.freeze({
+    DATATABLE_MAX_TABLES_PER_SCOPE: 200,
+    DATATABLE_MAX_SHEET_TABLES_PER_SCOPE: 2000,
+    DATATABLE_MAX_ROWS_PER_TABLE: 100_000,
+    DATATABLE_MAX_ROWS_PER_SCOPE: 500_000,
+    DATATABLE_MAX_MB_PER_SCOPE: 256,
 });
+
+/**
+ * A whole number >= 0 from the environment; unset, empty or garbage gives
+ * the default (a typo must not silently mean "unlimited").
+ * @param {keyof typeof DEFAULTS} name
+ * @param {Record<string, string|undefined>} env
+ */
+function capFromEnv(name, env) {
+    const raw = env[name];
+    if (raw == null || String(raw).trim() === '') return DEFAULTS[name];
+    const n = Number(raw);
+    return Number.isFinite(n) && n >= 0 ? Math.floor(n) : DEFAULTS[name];
+}
+
+/**
+ * The envelope as configured now. 0 = unlimited for every cap.
+ * @param {Record<string, string|undefined>} [env]
+ */
+function datatableLimits(env = process.env) {
+    return {
+        maxTablesPerScope: capFromEnv('DATATABLE_MAX_TABLES_PER_SCOPE', env),
+        maxSheetTablesPerScope: capFromEnv('DATATABLE_MAX_SHEET_TABLES_PER_SCOPE', env),
+        maxRowsPerTable: capFromEnv('DATATABLE_MAX_ROWS_PER_TABLE', env),
+        maxRowsPerScope: capFromEnv('DATATABLE_MAX_ROWS_PER_SCOPE', env),
+        maxBytesPerScope: capFromEnv('DATATABLE_MAX_MB_PER_SCOPE', env) * MB,
+    };
+}
 
 // Log an ops line from here on up, so a tenant that is about to be refused is
 // visible BEFORE the refusal lands in somebody's nightly run. A cap that first
@@ -54,92 +105,153 @@ const WARN_FRACTION = 0.9;
  * that handles one handles the other:
  *   409 { error, code:'quota_exceeded', limit, used }
  *
+ * The sentence is a catalogue key (i18n/defaults/en/datatables.js), so it is
+ * written once and translated: the message is the English text, and
+ * `messageKey` / `messageVars` let localizeQuotaError put it in the reader's
+ * language where the caller knows who that is.
+ *
  * `errorClass` rides along for the runner, whose on_error branches match on
  * that rather than on an HTTP code — validate/constants.js promises authors a
  * datatable step "fails on … a quota", and until this existed it did not.
- * @param {string} message
+ * @param {string} key
+ * @param {Record<string, string|number>} vars
+ * @param {{ limit: number, used: number }} usage
  */
-function quotaError(message, { limit, used }) {
-    const e = new Error(message);
+function quotaError(key, vars, { limit, used }) {
+    const { GUI_DEFAULTS } = require('../../i18n/defaults/en');
+    const { fill } = require('../../i18n/translate');
+    /** @type {Error & Record<string, any>} */
+    const e = new Error(fill(GUI_DEFAULTS[key] || key, vars));
     e.status = 409;
     e.code = 'quota_exceeded';
+    // A refusal written for the reader: the terminal error handler passes the
+    // code through with the message (a route that answers it itself does too).
+    e.expose = true;
     e.errorClass = 'datatable_quota';
     e.limit = limit;
     e.used = used;
+    e.messageKey = key;
+    e.messageVars = vars;
     return e;
+}
+
+/**
+ * Put a quota refusal in the language of the person who will read it (their
+ * preferred locale). Anything else, or any failure to translate, is left as
+ * it is: the English sentence already says what to do.
+ * @param {any} err
+ * @param {string|null|undefined} userId
+ * @param {{ getUser?: (id: string) => Promise<any>, translate?: (locale: string, key: string, vars: object) => Promise<string> }} [deps]
+ * @returns {Promise<any>} the same error
+ */
+async function localizeQuotaError(err, userId, deps = {}) {
+    if (!err || err.code !== 'quota_exceeded' || !err.messageKey || !userId) return err;
+    try {
+        const getUser = deps.getUser || ((id) => require('../../stores/userStore').getUser(id));
+        const locale = (await getUser(userId))?.preferredLocale || 'en';
+        if (String(locale).toLowerCase().startsWith('en')) return err;
+        const translate = deps.translate || require('../../i18n/translate').translate;
+        const text = await translate(locale, err.messageKey, err.messageVars || {});
+        if (text && text !== err.messageKey) err.message = text;
+    } catch (e) {
+        // The English sentence already says what to do.
+        bestEffort('core/dataEngine/datatableLimits:localizeQuotaError', e);
+    }
+    return err;
 }
 
 /**
  * @param {string} what
  * @param {number} used
- * @param {number} limit
+ * @param {number} limit  0 = unlimited (never warns)
  */
 function warn(what, used, limit) {
-    if (used < limit * WARN_FRACTION) return;
+    if (!limit || used < limit * WARN_FRACTION) return;
     log.warn(`[datatableLimits] ${what}: ${used} of ${limit} (${Math.round((used / limit) * 100)}%)`);
 }
+
+/** Is a cap on (> 0) and would `used + add` go past it? */
+const over = (/** @type {number} */ used, /** @type {number} */ add, /** @type {number} */ limit) => limit > 0 && used + add > limit;
+
+/** @typedef {{ tables?: number, sheetTables?: number, rows?: number, bytes?: number }} ScopeUsage  datatableStore.scopeUsage */
+/** @typedef {{ id?: string, key?: string, name?: string, rowCount?: number }} QuotaTable  the `datatables` row a write goes to */
 
 /**
  * Refuse a write that would take a tenant outside its envelope.
  *
  * @param {{kind:'org'|'user', id:string}} scope
  * @param {object}  [opts]
- * @param {object}  [opts.table]      the `datatables` row being written to, for
+ * @param {QuotaTable|null}  [opts.table]  the `datatables` row being written to, for
  *                                    the per-table row cap. Omit for a create.
  * @param {number}  [opts.addRows]    rows this operation would add (0 for an
  *                                    update or a delete — neither can overflow).
- * @param {number}  [opts.addTables]  tables this operation would add.
- * @param {object}  [opts.usage]      pre-read usage, when the caller already
+ * @param {number}  [opts.addTables]  tables a person (or their automation,
+ *                                    app, link …) would add.
+ * @param {number}  [opts.addSheetTables]  spreadsheet tabs a document would
+ *                                    add (`document_sheet` tables), counted
+ *                                    on their own cap — see the header.
+ * @param {ScopeUsage|null}  [opts.usage]  pre-read usage, when the caller already
  *                                    holds it under a lock (createDatatable
  *                                    counts tables inside its own transaction,
  *                                    where the model row is FOR UPDATE-held —
  *                                    counting outside it let two replicas both
  *                                    see 49).
  * @throws a 409 quota error; returns the usage it read otherwise.
+ * @returns {Promise<ScopeUsage>}
  */
-async function assertDatatableQuota(scope, { table = null, addRows = 0, addTables = 0, usage = null } = {}) {
-    // Lazily required: this module has to stay loadable in the runner suites
-    // that stub the stores, and datatableStore opens a pg pool at load time.
-    const datatableStore = require('../../stores/datatableStore');
-    const used = usage || await datatableStore.scopeUsage(scope);
+async function assertDatatableQuota(scope, { table = null, addRows = 0, addTables = 0, addSheetTables = 0, usage = null } = {}) {
+    // Lazily required, and only when the caller did not read the usage: this
+    // module has to stay loadable in the runner suites that stub the stores,
+    // and datatableStore opens a pg pool at load time.
+    const used = usage || await require('../../stores/datatableStore').scopeUsage(scope);
+    const L = datatableLimits();
+    const usedTables = Number(used.tables) || 0;
+    const usedSheets = Number(used.sheetTables) || 0;
+    const usedRows = Number(used.rows) || 0;
+    const usedBytes = Number(used.bytes) || 0;
 
     if (addTables > 0) {
-        warn('tables in scope', used.tables, DATATABLE_LIMITS.MAX_TABLES_PER_SCOPE);
-        if (used.tables + addTables > DATATABLE_LIMITS.MAX_TABLES_PER_SCOPE) {
-            throw quotaError(
-                `This workspace already has ${used.tables} datatables (the limit is ${DATATABLE_LIMITS.MAX_TABLES_PER_SCOPE}).`,
-                { limit: DATATABLE_LIMITS.MAX_TABLES_PER_SCOPE, used: used.tables },
-            );
+        warn('tables in scope', usedTables, L.maxTablesPerScope);
+        if (over(usedTables, addTables, L.maxTablesPerScope)) {
+            throw quotaError(scope?.kind === 'user' ? 'datatables.quota_tables_user' : 'datatables.quota_tables_org',
+                { used: usedTables, limit: L.maxTablesPerScope },
+                { limit: L.maxTablesPerScope, used: usedTables });
+        }
+    }
+
+    if (addSheetTables > 0) {
+        warn('spreadsheet tabs in scope', usedSheets, L.maxSheetTablesPerScope);
+        if (over(usedSheets, addSheetTables, L.maxSheetTablesPerScope)) {
+            throw quotaError('datatables.quota_sheet_tabs',
+                { used: usedSheets, limit: L.maxSheetTablesPerScope },
+                { limit: L.maxSheetTablesPerScope, used: usedSheets });
         }
     }
 
     if (addRows > 0) {
         const rowsHere = Math.max(0, Number(table?.rowCount) || 0);
-        warn(`rows in "${table?.key || table?.id || '?'}"`, rowsHere, DATATABLE_LIMITS.MAX_ROWS_PER_TABLE);
-        if (rowsHere + addRows > DATATABLE_LIMITS.MAX_ROWS_PER_TABLE) {
-            throw quotaError(
-                `The datatable "${table?.name || table?.key || 'this table'}" is full (${DATATABLE_LIMITS.MAX_ROWS_PER_TABLE} rows).`,
-                { limit: DATATABLE_LIMITS.MAX_ROWS_PER_TABLE, used: rowsHere },
-            );
+        warn(`rows in "${table?.key || table?.id || '?'}"`, rowsHere, L.maxRowsPerTable);
+        if (over(rowsHere, addRows, L.maxRowsPerTable)) {
+            throw quotaError('datatables.quota_rows_table',
+                { name: table?.name || table?.key || 'this table', limit: L.maxRowsPerTable },
+                { limit: L.maxRowsPerTable, used: rowsHere });
         }
-        warn('rows in scope', used.rows, DATATABLE_LIMITS.MAX_ROWS_PER_SCOPE);
-        if (used.rows + addRows > DATATABLE_LIMITS.MAX_ROWS_PER_SCOPE) {
-            throw quotaError(
-                `This workspace holds ${used.rows} datatable rows (the limit is ${DATATABLE_LIMITS.MAX_ROWS_PER_SCOPE}).`,
-                { limit: DATATABLE_LIMITS.MAX_ROWS_PER_SCOPE, used: used.rows },
-            );
+        warn('rows in scope', usedRows, L.maxRowsPerScope);
+        if (over(usedRows, addRows, L.maxRowsPerScope)) {
+            throw quotaError('datatables.quota_rows_scope',
+                { used: usedRows, limit: L.maxRowsPerScope },
+                { limit: L.maxRowsPerScope, used: usedRows });
         }
     }
 
     // Bytes gate every WRITE, adds included — but never a read or a delete, so
     // emptying a table is how a tenant gets back under the ceiling.
-    if (addRows > 0 || addTables > 0) {
-        warn('bytes in scope', used.bytes, DATATABLE_LIMITS.MAX_BYTES_PER_SCOPE);
-        if (used.bytes >= DATATABLE_LIMITS.MAX_BYTES_PER_SCOPE) {
-            throw quotaError(
-                `This workspace's datatables have reached their ${Math.round(DATATABLE_LIMITS.MAX_BYTES_PER_SCOPE / (1024 * 1024))} MB storage limit. Delete some rows to make room.`,
-                { limit: DATATABLE_LIMITS.MAX_BYTES_PER_SCOPE, used: used.bytes },
-            );
+    if ((addRows > 0 || addTables > 0 || addSheetTables > 0) && L.maxBytesPerScope > 0) {
+        warn('bytes in scope', usedBytes, L.maxBytesPerScope);
+        if (usedBytes >= L.maxBytesPerScope) {
+            throw quotaError('datatables.quota_bytes',
+                { limitMb: Math.round(L.maxBytesPerScope / MB) },
+                { limit: L.maxBytesPerScope, used: usedBytes });
         }
     }
 
@@ -147,8 +259,10 @@ async function assertDatatableQuota(scope, { table = null, addRows = 0, addTable
 }
 
 module.exports = {
-    DATATABLE_LIMITS,
+    DEFAULTS,
+    datatableLimits,
     assertDatatableQuota,
+    localizeQuotaError,
     quotaError,
     WARN_FRACTION,
 };
