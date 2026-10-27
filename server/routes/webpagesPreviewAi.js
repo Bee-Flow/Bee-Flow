@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webpage preview AI bridge: the single-shot call (POST /:id/ai/chat, text
  * or JSON schema) and the streamed call (POST /:id/ai/stream, SSE). Both act
@@ -30,7 +31,7 @@ async function resolveBridgeModel(ctx, body) {
         ? body.tier
         : (ctx.bridgeGrants.ai.defaultTier || 'fast');
     const resolved = await resolveModelForTier(`tier:${tierName}`, { userOrgId: ctx.authorOrgId, userId: ctx.authorUserId });
-    const modelId = resolved?.modelId || resolved?.model || resolved;
+    const modelId = resolved;
     const tierDefaults = TIER_DEFAULTS[tierName] || TIER_DEFAULTS['fast'];
     const maxTokens = Math.min(parseInt(body?.maxTokens, 10) || tierDefaults.maxTokens, 16384);
     return { tierName, modelId, tierDefaults, maxTokens };

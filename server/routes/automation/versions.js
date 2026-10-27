@@ -1,3 +1,4 @@
+// @typecheck
 // §WS5 #4 — automation version history endpoints, extracted verbatim from
 // routes/automation.js. summariseDefinitionDiff (used only here) moved in.
 //
@@ -131,7 +132,7 @@ router.get('/:id/versions/:versionId', readsNothing, history.getOne);
  * removed since), then writes it back through the regular updateAutomation
  * path so a new version row gets stamped with this user as the author.
  */
-router.post('/:id/versions/:versionId/restore', validate({ body: NoBody, query: NoQuery }), async (req, res) => {
+router.post('/:id/versions/:versionId/restore', validate({ body: NoBody, query: NoQuery }), async (/** @type {import('express').Request<{ id: string, versionId: string }, any, import('zod').infer<typeof NoBody>, import('zod').infer<typeof NoQuery>>} */ req, res) => {
     const userId = req.session.user.id;
     const a = await automationStore.getAutomation(req.params.id);
     if (!a) return res.status(404).json({ error: 'Not found' });
@@ -211,7 +212,7 @@ router.post('/:id/versions/:versionId/restore', validate({ body: NoBody, query: 
     // subscription and its additional schedules. Same fingerprint gates as
     // PUT /:id, so restoring a version with the same trigger does not
     // re-anchor a poller cursor or a slot.
-    if (!hasLive && (updated?.isActive ?? a.isActive)) {
+    if (!hasLive && ((updated ? updated.isActive : undefined) ?? a.isActive)) {
         const def = version.definition;
         if ((hasAppEventTrigger(def) || hasAppEventTrigger(a.definition))
             && appEventFingerprint(def) !== appEventFingerprint(a.definition)) {

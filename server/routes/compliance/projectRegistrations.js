@@ -111,7 +111,7 @@ function makeProjectRegistrationRouter(overrides = {}) {
         res.json({ projects, complete });
     });
 
-    router.put('/ropa/projects/:projectId', ...gate, validate({ params: ProjectParams, body: RegistrationBody }), async (req, res) => {
+    router.put('/ropa/projects/:projectId', ...gate, validate({ params: ProjectParams, body: RegistrationBody }), async (/** @type {import('express').Request<{ projectId: string }, any, import('zod').infer<typeof RegistrationBody>, import('qs').ParsedQs>} */ req, res) => {
         const orgId = await d.resolveOrgId(req);
         const { projectId } = req.params;
         if (!(await projectInOrg(orgId, projectId))) throw new HttpError(404, 'not_found', 'There is no such project in your organisation.');

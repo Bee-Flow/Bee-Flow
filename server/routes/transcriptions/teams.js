@@ -96,7 +96,7 @@ const FromTeamsBody = bodyOf({
     context_terms: worded('context_terms is text.').optional(),
 });
 
-router.get('/teams-meetings', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
+router.get('/teams-meetings', requireAuth, validate({ query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const userId = sessionUser(req).id;
     const orgId = await resolveUserOrgFromReq(req);
     const settings = await d.settings.resolveTeamsNotesSettings({ orgId, userId });
@@ -188,7 +188,7 @@ router.patch('/teams-meetings/:eventId', requireAuth, validate({ body: TeamsPref
     res.json({ ok: true, eventId, record, effectiveRecord, overridden: effectiveRecord !== record, autoRecordingConfig });
 });
 
-router.get('/teams-imports', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
+router.get('/teams-imports', requireAuth, validate({ query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const jobs = await d.importStore.listRecentJobsForUser(sessionUser(req).id, 7);
     res.json({
         items: jobs.map(j => ({
@@ -207,7 +207,7 @@ router.get('/teams-imports', requireAuth, validate({ query: NO_QUERY }), async (
 // Manual-import listing: the 10 most recent ended meetings the user
 // organized, with whether Teams has a recording or transcript for them
 // ('available' | 'transcript_only' | 'processing' | 'none').
-router.get('/teams-recordings', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
+router.get('/teams-recordings', requireAuth, validate({ query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const userId = sessionUser(req).id;
     const { session, connection } = await resolveTeamsSession(req);
     if (!session || !connection.teamsScopesGranted) return res.json({ connection, items: [] });
@@ -250,7 +250,7 @@ router.get('/teams-recordings', requireAuth, validate({ query: NO_QUERY }), asyn
 
 // Manual import of a finished Teams meeting. 202 { jobId, status } when Teams
 // has not finished processing the recording yet; classified 4xx otherwise.
-router.post('/from-teams', requireAuth, validate({ body: FromTeamsBody, query: NO_QUERY }), async (req, res) => {
+router.post('/from-teams', requireAuth, validate({ body: FromTeamsBody, query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof FromTeamsBody>, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const userId = sessionUser(req).id;
     const { event_id, language, context_terms } = req.body;
     req.setTimeout(600000); res.setTimeout(600000);

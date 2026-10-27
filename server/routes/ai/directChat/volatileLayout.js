@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat — the per-round decisions the streamed turn takes from its own
  * live state: where the volatile system block sits, what the step-machine
@@ -77,7 +78,7 @@ function layoutVolatile(turn) {
  * prompt on a self-hosted model. `capture()` re-reads the base after the block
  * was moved behind the history; a null/empty guard restores exactly that base.
  *
- * @param {object} turn the live turn state (read on every call — the block is
+ * @param {{ volatileMessage?: { content: string } | null }} turn the live turn state (read on every call — the block is
  *   replaced wholesale by a mid-turn adapter swap)
  * @returns {{ set: (text: string|null) => void, capture: () => void }}
  */
@@ -100,6 +101,8 @@ function createVolatileGuard(turn) {
  * Log this turn's cacheable prefix: the same fingerprint on consecutive turns
  * of a conversation is what a prefix cache needs, and a drifting one names the
  * culprit in the app log instead of on the latency.
+ * @param {{ messages: Array<{ content?: unknown }>, volatileMessage?: { content: string } | null, directChatTools?: Parameters<typeof toolSetFingerprint>[0] }} turn
+ * @param {string} label
  */
 function traceStablePrefix(turn, label) {
     const { messages, volatileMessage, directChatTools } = turn;

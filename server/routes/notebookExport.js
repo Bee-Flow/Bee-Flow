@@ -189,7 +189,7 @@ async function renderNotebookPdf(exportHTML, { title = 'Notebook' } = {}) {
     });
 }
 
-router.post('/:id/export/pdf', requireAuth, requireNotebookOwner, validate({ body: PdfBody }), async (req, res, next) => {
+router.post('/:id/export/pdf', requireAuth, requireNotebookOwner, validate({ body: PdfBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof PdfBody>, import('qs').ParsedQs>} */ req, res, next) => {
     const { content, title } = req.body;
 
     const author = req.session.user.name || req.session.user.email || '';
@@ -221,7 +221,7 @@ router.post('/:id/export/pdf', requireAuth, requireNotebookOwner, validate({ bod
 
 // ── DOCX Export (html-to-docx) ──────────────────────────────────────────────
 
-router.post('/:id/export/docx', requireAuth, requireNotebookOwner, validate({ body: DocxBody }), async (req, res, next) => {
+router.post('/:id/export/docx', requireAuth, requireNotebookOwner, validate({ body: DocxBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof DocxBody>, import('qs').ParsedQs>} */ req, res, next) => {
     const { content, title, houseStyleId } = req.body;
 
     try {
@@ -303,7 +303,7 @@ router.post('/:id/export/docx', requireAuth, requireNotebookOwner, validate({ bo
 
 // ── SignRequest Export (PDF → e-Signature) ──────────────────────────────────
 
-router.post('/:id/export/signrequest', requireAuth, requireNotebookOwner, validate({ body: SignRequestBody }), async (req, res, next) => {
+router.post('/:id/export/signrequest', requireAuth, requireNotebookOwner, validate({ body: SignRequestBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof SignRequestBody>, import('qs').ParsedQs>} */ req, res, next) => {
     const { content, title, signers, subject, message } = req.body;
 
     const userId = req.session.user.id;
@@ -361,7 +361,7 @@ router.post('/:id/export/signrequest', requireAuth, requireNotebookOwner, valida
 
 // ── Nextcloud Export (PDF → WebDAV upload) ──────────────────────────────────
 
-router.post('/:id/export/nextcloud', requireAuth, requireNotebookOwner, validate({ body: NextcloudBody }), async (req, res, next) => {
+router.post('/:id/export/nextcloud', requireAuth, requireNotebookOwner, validate({ body: NextcloudBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NextcloudBody>, import('qs').ParsedQs>} */ req, res, next) => {
     const { content, title, folder } = req.body;
 
     const userId = req.session.user.id;

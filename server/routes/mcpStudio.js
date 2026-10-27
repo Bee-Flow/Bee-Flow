@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio as an MCP server — build Bee Flow apps from an external editor.
  *
@@ -187,6 +188,7 @@ async function handleRpc(message, userId, access = null, deps = {}) {
             try {
                 const { result, image, text } = await mcpBuilder.callTool(name, args, { userId });
                 const isError = !!(result && typeof result === 'object' && result.error);
+                /** @type {{ type: string, text?: string, data?: string, mimeType?: string }[]} */
                 const content = [{ type: 'text', text: text ?? JSON.stringify(result ?? null) }];
                 if (image) {
                     content.push({ type: 'image', data: image.data, mimeType: image.mimeType });
@@ -244,9 +246,10 @@ router.get('/', async (req, res) => {
     return res.status(405).json(rpcError(null, -32000, 'This MCP endpoint is POST-only; it does not open an SSE stream.'));
 });
 
-module.exports = router;
-module.exports.handleRpc = handleRpc;
-module.exports.INSTRUCTIONS = INSTRUCTIONS;
 // The same capability test, for routes/mcpTokens.js: a token may not carry the
 // studio server for a user this check would refuse.
-module.exports.assertCapability = assertCapability;
+module.exports = Object.assign(router, {
+    handleRpc,
+    INSTRUCTIONS,
+    assertCapability,
+});

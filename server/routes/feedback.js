@@ -184,7 +184,7 @@ async function lookupConversationContext(conversationId) {
 // the owning org from it), and without a gate anyone could write rows —
 // including an arbitrary conversationSnapshot — into the table the operator
 // dashboard reads.
-router.post('/', requireAuth, validate({ body: FeedbackBody }), async (req, res) => {
+router.post('/', requireAuth, validate({ body: FeedbackBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof FeedbackBody>, import('qs').ParsedQs>} */ req, res) => {
     const {
         conversationId, messageId, agentId, agentName,
         model, modelTier,

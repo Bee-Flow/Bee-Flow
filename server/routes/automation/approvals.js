@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('stream').Readable} Readable */
 /**
  * The Approvals section's API — list, facets, detail, decide, attachment.
@@ -203,7 +204,7 @@ async function backfillOwnPending(userId) {
     }
 }
 
-router.get('/approvals', gate, validate({ query: ApprovalsQuery }), async (req, res) => {
+router.get('/approvals', gate, validate({ query: ApprovalsQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof ApprovalsQuery>>} */ req, res) => {
     const viewer = await resolveApprovalViewer(req);
     if (!viewer.userId) return res.status(401).json({ error: 'Not signed in' });
     const scope = req.query.scope;
@@ -230,7 +231,7 @@ router.get('/approvals', gate, validate({ query: ApprovalsQuery }), async (req, 
     res.json({ approvals, nextCursor, scope });
 });
 
-router.get('/approvals/facets', gate, validate({ query: FacetsQuery }), async (req, res) => {
+router.get('/approvals/facets', gate, validate({ query: FacetsQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof FacetsQuery>>} */ req, res) => {
     const viewer = await resolveApprovalViewer(req);
     if (!viewer.userId) return res.status(401).json({ error: 'Not signed in' });
     const scope = req.query.scope;
@@ -318,7 +319,7 @@ router.get('/approvals/:id', async (req, res) => {
     });
 });
 
-router.post('/approvals/:id/decide', validate({ body: DecideBody }), async (req, res) => {
+router.post('/approvals/:id/decide', validate({ body: DecideBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof DecideBody>, import('qs').ParsedQs>} */ req, res) => {
     const viewer = await resolveApprovalViewer(req);
     if (!viewer.userId) return res.status(401).json({ error: 'Not signed in' });
     const approval = await automationStore.getApproval(req.params.id);
@@ -347,7 +348,7 @@ router.post('/approvals/:id/decide', validate({ body: DecideBody }), async (req,
  * out declines with a reason; letting them silently retract someone else's
  * question would erase the ask from under the owner.
  */
-router.post('/approvals/:id/withdraw', validate({ body: WithdrawBody }), async (req, res) => {
+router.post('/approvals/:id/withdraw', validate({ body: WithdrawBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof WithdrawBody>, import('qs').ParsedQs>} */ req, res) => {
     const viewer = await resolveApprovalViewer(req);
     if (!viewer.userId) return res.status(401).json({ error: 'Not signed in' });
     const approval = await automationStore.getApproval(req.params.id);
@@ -408,6 +409,7 @@ router.get('/approvals/:id/files/:fileId', async (req, res, next) => {
     if (!approval || !approvalService.canView(approval, viewer)) {
         return res.status(404).json({ error: 'Not found' });
     }
+    const storageStore = require('../../stores/storageStore');
     // Two locks, both required: the file must be in THIS approval's
     // snapshot (viewing one approval is not a licence to fish the run's
     // other files), and it must still resolve through the run-scoped
@@ -425,7 +427,6 @@ router.get('/approvals/:id/files/:fileId', async (req, res, next) => {
             .getAttachment(req.params.fileId, approval.studioAppId, approval.ownerId)
             .catch((e) => fallback('routes/automation/approvals:anon#6', e, null));
         if (!att || att.quarantined) return res.status(404).json({ error: 'Not found' });
-        const storageStore = require('../../stores/storageStore');
         /** @type {{ stream: Readable; contentType: string; contentLength: number; totalLength: number; contentRange: string | null; metadata: Object; }} */
         let streamed;
         try {
@@ -452,7 +453,6 @@ router.get('/approvals/:id/files/:fileId', async (req, res, next) => {
     const file = await automationStore.getGeneratedFileForRuns(req.params.fileId, runIds);
     if (!file) return res.status(404).json({ error: 'Not found' });
 
-    const storageStore = require('../../stores/storageStore');
     /** @type {{ stream: Readable; contentType: string; contentLength: number; totalLength: number; contentRange: string | null; metadata: Object; }} */
     let streamed;
     try {

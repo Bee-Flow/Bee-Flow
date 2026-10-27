@@ -33,7 +33,7 @@ const SummaryBody = bodyOf({
 });
 
 function register(router) {
-    router.get('/:id/versions', requireAuth, validate({ query: ListQuery }), async (req, /** @type {import('express').Response} */ res) => {
+    router.get('/:id/versions', requireAuth, validate({ query: ListQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof ListQuery>>} */ req, /** @type {import('express').Response} */ res) => {
         const userId = req.session.user.id;
         const wp = await webpageStore.getWebpage(req.params.id, userId);
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });
@@ -76,7 +76,7 @@ function register(router) {
         });
     });
 
-    router.get('/:id/versions/:vid', requireAuth, validate({ query: NO_QUERY }), async (req, /** @type {import('express').Response} */ res) => {
+    router.get('/:id/versions/:vid', requireAuth, validate({ query: NO_QUERY }), async (/** @type {import('express').Request<{ id: string, vid: string }, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, /** @type {import('express').Response} */ res) => {
         const userId = req.session.user.id;
         const wp = await webpageStore.getWebpage(req.params.id, userId);
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });
@@ -99,7 +99,7 @@ function register(router) {
         });
     });
 
-    router.post('/:id/versions', requireAuth, validate({ body: SummaryBody, query: NO_QUERY }), async (req, /** @type {import('express').Response} */ res) => {
+    router.post('/:id/versions', requireAuth, validate({ body: SummaryBody, query: NO_QUERY }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof SummaryBody>, import('zod').infer<typeof NO_QUERY>>} */ req, /** @type {import('express').Response} */ res) => {
         const userId = req.session.user.id;
         const wp = await webpageStore.getWebpage(req.params.id, userId);
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });
@@ -123,7 +123,7 @@ function register(router) {
      * Restore a version: copy the snapshot's three slot objects back over
      * "current/*" and update the webpage's metadata hashes.
      */
-    router.post('/:id/versions/:vid/restore', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (req, /** @type {import('express').Response} */ res) => {
+    router.post('/:id/versions/:vid/restore', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (/** @type {import('express').Request<{ id: string, vid: string }, any, import('zod').infer<typeof NOTHING>, import('zod').infer<typeof NO_QUERY>>} */ req, /** @type {import('express').Response} */ res) => {
         const userId = req.session.user.id;
         const wp = await webpageStore.getWebpage(req.params.id, userId);
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });
@@ -237,7 +237,7 @@ function register(router) {
         });
     });
 
-    router.delete('/:id/versions/:vid', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (req, /** @type {import('express').Response} */ res) => {
+    router.delete('/:id/versions/:vid', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (/** @type {import('express').Request<{ id: string, vid: string }, any, import('zod').infer<typeof NOTHING>, import('zod').infer<typeof NO_QUERY>>} */ req, /** @type {import('express').Response} */ res) => {
         const userId = req.session.user.id;
         const wp = await webpageStore.getWebpage(req.params.id, userId);
         if (!wp) return res.status(404).json({ error: 'Webpage not found' });

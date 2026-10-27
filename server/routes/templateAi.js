@@ -1,3 +1,4 @@
+// @typecheck
 const fs = require('fs');
 const log = require('../telemetry/log');
 const mammoth = require('mammoth');
@@ -98,6 +99,7 @@ Respond with ONLY a valid JSON array, no other text:
         }
     ];
 
+    /** @type {{ choices?: { message?: { content?: string } }[], content?: unknown } | null} */
     const response = await adapter.chat(config.apiKey, apiUrl, modelId, messages, {
         maxTokens: 4000,
         temperature: 0.1,

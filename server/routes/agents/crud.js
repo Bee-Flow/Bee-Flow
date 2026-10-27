@@ -67,7 +67,7 @@ async function canManageCategory(req, category) {
 // Create a new category. Idempotent on a case-insensitive duplicate: returns
 // the EXISTING row with `existing: true` so clients select it instead of
 // stacking "Sales" next to "sales" (BFSF-272).
-router.post('/categories', requirePermission('manage_agents'), validate({ body: CategoryBody }), async (req, res) => {
+router.post('/categories', requirePermission('manage_agents'), validate({ body: CategoryBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CategoryBody>, import('qs').ParsedQs>} */ req, res) => {
     const { name, icon, color } = req.body;
     const orgIds = await resolveUserOrgIds(req);
     const orgId = orgIds !== null && orgIds.size > 0 ? Array.from(orgIds)[0] : null;
@@ -80,7 +80,7 @@ router.post('/categories', requirePermission('manage_agents'), validate({ body: 
 // Rename/update a category (BFSF-272 — there was no way to fix a typo'd
 // category short of raw SQL). Duplicate names 409 with the conflicting row so
 // the client can offer a merge instead.
-router.patch('/categories/:id', requirePermission('manage_agents'), validate({ body: CategoryPatch }), async (req, res) => {
+router.patch('/categories/:id', requirePermission('manage_agents'), validate({ body: CategoryPatch }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof CategoryPatch>, import('qs').ParsedQs>} */ req, res) => {
     const category = await agentStore.getAgentCategory(req.params.id);
     if (!category) return res.status(404).json({ error: 'Category not found' });
     if (!(await canManageCategory(req, category))) {
@@ -101,7 +101,7 @@ router.patch('/categories/:id', requirePermission('manage_agents'), validate({ b
 // 409s with the live count so the UI can offer the guided flow:
 //   ?reassignTo=none   → uncategorise its agents, then delete
 //   ?reassignTo=<id>   → move its agents to another category (= merge), then delete
-router.delete('/categories/:id', requirePermission('manage_agents'), validate({ query: DeleteCategoryQuery }), async (req, res) => {
+router.delete('/categories/:id', requirePermission('manage_agents'), validate({ query: DeleteCategoryQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof DeleteCategoryQuery>>} */ req, res) => {
     const category = await agentStore.getAgentCategory(req.params.id);
     if (!category) return res.status(404).json({ error: 'Category not found' });
     if (!(await canManageCategory(req, category))) {
@@ -433,7 +433,6 @@ function validateAgentConfigReferences(agent, config) {
     });
 }
 
-
 const { applyConfigValidation } = publishable;
 
 // The edit gate (canModifyAgent) and its prefetch (buildCanModifyContext) live in
@@ -441,7 +440,7 @@ const { applyConfigValidation } = publishable;
 // same question. This router builds its instance from ITS imports, which is what
 // keeps the rules testable here (crud.authz.test.js is their contract).
 const { buildCanModifyContext, canModifyAgent } = makeAgentAccess({
-    hasPermission: (...args) => require('../../auth').hasPermission(...args),
+    hasPermission: (/** @type {Parameters<typeof import('../../auth').hasPermission>} */ ...args) => require('../../auth').hasPermission(...args),
     resolveUserOrgIds: (req) => resolveUserOrgIds(req),
     getUser: (id) => userStore.getUser(id),
     roles: () => ({ SystemRoles, OrgRoles }),
@@ -480,7 +479,7 @@ router.get('/:id/tools', async (req, res) => {
 // require manage_agents + the same canModifyAgent gate the other write
 // endpoints use (covers org admins / agent editors, blocks read-only colleagues
 // in the same org from rewriting credentials).
-router.put('/:id/tools/:componentId/params', requirePermission('manage_agents'), validate({ body: ToolParamsBody }), async (req, res) => {
+router.put('/:id/tools/:componentId/params', requirePermission('manage_agents'), validate({ body: ToolParamsBody }), async (/** @type {import('express').Request<{ id: string, componentId: string }, any, import('zod').infer<typeof ToolParamsBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = getEffectiveUserId(req);
     const agent = await agentStore.getAgent(req.params.id);
     if (!agent) return res.status(404).json({ error: 'Agent not found' });
@@ -502,7 +501,7 @@ router.put('/:id/tools/:componentId/params', requirePermission('manage_agents'),
 // must be a member of the agent's org — otherwise the agent would silently
 // jump tenants. Records an access-audit row so the trail of "who owns
 // what" is preserved across HR events.
-router.put('/:id/transfer', requirePermission('manage_agents'), validate({ body: TransferBody }), async (req, res) => {
+router.put('/:id/transfer', requirePermission('manage_agents'), validate({ body: TransferBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof TransferBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = getEffectiveUserId(req);
     const agent = await agentStore.getAgent(req.params.id);
     if (!agent) return res.status(404).json({ error: 'Agent not found' });
@@ -549,14 +548,15 @@ router.put('/:id/transfer', requirePermission('manage_agents'), validate({ body:
     res.json({ success: true, newOwnerId });
 });
 
-module.exports = router;
-module.exports.canModifyAgent = canModifyAgent;
-module.exports.buildCanModifyContext = buildCanModifyContext;
-module.exports.canReadAgent = canReadAgent;
-module.exports.validateAgentConfigReferences = validateAgentConfigReferences;
-module.exports.applyConfigValidation = applyConfigValidation;
-module.exports.resolvePersonaWrite = resolvePersonaWrite;
-module.exports.verifyHandoffAutomation = verifyHandoffAutomation;
+module.exports = Object.assign(router, {
+    canModifyAgent,
+    buildCanModifyContext,
+    canReadAgent,
+    validateAgentConfigReferences,
+    applyConfigValidation,
+    resolvePersonaWrite,
+    verifyHandoffAutomation,
+});
 
 /**
  * @typedef {object} AgentRow  the agents concept row (`agentStore.getAgent` / `getAgentViews().draft`)

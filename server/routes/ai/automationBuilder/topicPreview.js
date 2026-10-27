@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * POST /topic-preview: score the Condition editor's sample rows for its
  * "is about" rules, so "Check the sample rows" can show how many rows each
@@ -70,7 +71,7 @@ async function previewTopics(body, { classify } = {}) {
     return { texts, labels, scores: result.scores, defaultThreshold: result.defaultThreshold };
 }
 
-router.post('/topic-preview', requireAuth, topicPreviewRateLimit, requireAutomationsBeta, validate({ body: TopicPreviewBody }), async (req, res) => {
+router.post('/topic-preview', requireAuth, topicPreviewRateLimit, requireAutomationsBeta, validate({ body: TopicPreviewBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof TopicPreviewBody>, import('qs').ParsedQs>} */ req, res) => {
     res.json(await previewTopics(req.body));
 });
 

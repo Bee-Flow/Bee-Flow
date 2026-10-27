@@ -253,7 +253,7 @@ router.get('/', async (req, res) => {
 
 // ── Pack CRUD ───────────────────────────────────────────────────
 
-router.post('/', validate({ body: CreateBody }), async (req, res) => {
+router.post('/', validate({ body: CreateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreateBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
     const { name, icons } = req.body;
     const newPack = await iconStore.createIconPack(userId, name, icons);
@@ -347,7 +347,7 @@ async function saveBase64Png(base64, mimeType) {
 }
 
 // POST /api/icons/generate — single-icon generation, returns the saved URL
-router.post('/generate', imageGenLimiter, validate({ body: GenerateBody }), async (req, res) => {
+router.post('/generate', imageGenLimiter, validate({ body: GenerateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof GenerateBody>, import('qs').ParsedQs>} */ req, res) => {
     const { prompt, style, aspectRatio, model } = req.body;
 
     const apiKey = await configStore.getSecret('google_api_key');
@@ -457,7 +457,7 @@ router.get('/:id/export', async (req, res) => {
     res.json(bundle);
 });
 
-router.post('/import', validate({ body: ImportBody }), async (req, res) => {
+router.post('/import', validate({ body: ImportBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ImportBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
     const { name, icons } = req.body;
     const newPack = await iconStore.createIconPack(userId, name, icons);

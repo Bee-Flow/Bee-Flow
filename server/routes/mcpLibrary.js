@@ -117,7 +117,7 @@ router.get('/policy', requireAuth, requireSuperAdmin, async (req, res) => {
     });
 });
 
-router.put('/policy', requireAuth, requireSuperAdmin, validate({ body: PolicyBody }), async (req, res) => {
+router.put('/policy', requireAuth, requireSuperAdmin, validate({ body: PolicyBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof PolicyBody>, import('qs').ParsedQs>} */ req, res) => {
     const bad = req.body.allowedHosts.filter(/** @param {string} h */ h => !policyModule.normalizeHostPattern(h));
     if (bad.length) {
         throw new HttpError(400, 'invalid_host', `Not a host name: ${bad.slice(0, 3).join(', ')}. Use names like mcp.example.com or *.example.com, without https:// or a path.`);
@@ -171,11 +171,11 @@ org.get('/', async (req, res) => {
     res.json(await service.getLibrary({ orgId: req.primaryOrgId, isServerAdmin: isSuperAdmin(req) }));
 });
 
-org.post('/probe', connectLimit, validate({ body: ProbeBody }), async (req, res) => {
+org.post('/probe', connectLimit, validate({ body: ProbeBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ProbeBody>, import('qs').ParsedQs>} */ req, res) => {
     res.json(await service.probe(req.body));
 });
 
-org.post('/servers', connectLimit, validate({ body: InstallBody }), async (req, res) => {
+org.post('/servers', connectLimit, validate({ body: InstallBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof InstallBody>, import('qs').ParsedQs>} */ req, res) => {
     const server = await service.install({ orgId: req.primaryOrgId, actorUserId: sessionUser(req).id, input: req.body });
     res.status(201).json({ server });
 });

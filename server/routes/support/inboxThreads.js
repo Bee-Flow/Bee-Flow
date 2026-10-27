@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Tenant Support Inbox: the tickets (tenant-scoped). List, read, the
  * customer context and audit timeline, a staff reply sent from the

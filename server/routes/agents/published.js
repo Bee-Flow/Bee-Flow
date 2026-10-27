@@ -1,3 +1,4 @@
+// @typecheck
 const express = require('express');
 const agentStore = require('../../stores/agentStore');
 require('../../core/agentRuntime');
@@ -175,7 +176,7 @@ const PublishBody = bodyOf({
 // ============ Published Agents (public access) ============
 
 // Get all published agents (no auth required)
-router.get('/published', validate({ query: ListQuery }), async (req, res) => {
+router.get('/published', validate({ query: ListQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof ListQuery>>} */ req, res) => {
     // Get user's groups and direct org for org-scoped filtering
     const userId = req.session?.user?.id;
     let userGroups = [];
@@ -219,7 +220,7 @@ router.get('/published', validate({ query: ListQuery }), async (req, res) => {
 
 // Get ALL agents (for Admin Dashboard). Requires manage_agents — lower-privileged
 // users would otherwise see unpublished drafts owned by colleagues in their org.
-router.get('/all', requirePermission('manage_agents'), validate({ query: ListQuery }), async (req, res) => {
+router.get('/all', requirePermission('manage_agents'), validate({ query: ListQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof ListQuery>>} */ req, res) => {
     let agents = await agentStore.getAllAgents();
 
     const orgIds = await resolveUserOrgIds(req);

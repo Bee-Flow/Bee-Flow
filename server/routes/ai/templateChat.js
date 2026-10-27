@@ -1,4 +1,4 @@
-/** @typedef {import('../../core/providers').BaseProvider} BaseProvider */
+/** @typedef {import('../../core/providers/base')} BaseProvider */
 /**
  * Template Chat Routes — AI-powered chat for filling Word templates.
  *
@@ -115,7 +115,7 @@ const { fallback } = require('../../utils/bestEffort');
 
 // ─── Streaming Template Chat ─────────────────────────────────────
 
-router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnBody }), async (req, res) => {
+router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof TemplateTurnBody>, import('qs').ParsedQs>} */ req, res) => {
     const { message, templateId, conversationId, history, meetingNoteIds, modelTier, timezone, attachments } = req.body;
     const userId = req.session.user.id;
 
@@ -166,10 +166,6 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
     }
 
     // Resolve provider
-    /** @type {BaseProvider} */
-    /** @type {BaseProvider} */
-    /** @type {BaseProvider} */
-    /** @type {BaseProvider} */
     /** @type {BaseProvider} */
     let config, adapter;
 

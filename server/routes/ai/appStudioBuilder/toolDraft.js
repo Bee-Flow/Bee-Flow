@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio Builder — live "tool draft" scanner.
  *
@@ -124,6 +125,7 @@ function scanAppToolDraft(name, partialJson) {
  * Change key for the draft throttle: the item count, each item's type and
  * whether it is still open, plus the parent — NOT the label text, which
  * changes on every token (the 250 ms interval carries that).
+ * @param {{ items?: Array<{ kind?: string, type?: string, partial?: boolean, label?: string }>, parentId?: string | null }} [draft]
  */
 function deriveAppDraftKey({ items, parentId } = {}) {
     const list = Array.isArray(items) ? items : [];

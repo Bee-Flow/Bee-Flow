@@ -102,7 +102,7 @@ const TalkPrefBody = bodyOf({
     eventUid: worded('eventUid is het id van een agendapunt.').trim().min(1).nullish(),
 });
 
-router.get('/nextcloud-audio-files', requireAuth, validate({ query: FolderQuery }), async (req, res, next) => {
+router.get('/nextcloud-audio-files', requireAuth, validate({ query: FolderQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof FolderQuery>>} */ req, res, next) => {
     const userId = req.session.user.id;
     const folder = /** @type {{folder?: string}} */ (/** @type {unknown} */ (req.query)).folder || '/Recordings';
     try {
@@ -275,7 +275,7 @@ async function mapCapped(items, limit, fn) {
 // Talk stores each call's recording at <recordingFolder>/<roomToken>/<file>
 // (default `/Talk/Recording/<token>/<file>`), so this walks two levels: the
 // recordings root for its per-room folders, then each room folder for files.
-router.get('/nextcloud-talk-recordings', requireAuth, validate({ query: FolderQuery }), async (req, res, next) => {
+router.get('/nextcloud-talk-recordings', requireAuth, validate({ query: FolderQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof FolderQuery>>} */ req, res, next) => {
     const userId = req.session.user.id;
     try {
         const userOrgId = await resolveUserOrgFromReq(req);
@@ -404,7 +404,7 @@ async function decorateRoomNames(rooms, session, userId) {
     } catch (err) { bestEffort('routes/transcriptions/nextcloud:decorateRoomNames', err); /* names are a nicety, the paths are the payload */ }
 }
 
-router.post('/from-nextcloud', requireAuth, validate({ body: FromNextcloudBody, query: NO_QUERY }), async (req, res) => {
+router.post('/from-nextcloud', requireAuth, validate({ body: FromNextcloudBody, query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof FromNextcloudBody>, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const userId = req.session.user.id;
     const userOrgId = await resolveUserOrgFromReq(req);
     const { nextcloud_path, language = 'nl', provider: requestedProvider, title: titleHint, context_terms } = req.body;
@@ -456,7 +456,7 @@ router.post('/from-nextcloud', requireAuth, validate({ body: FromNextcloudBody, 
 // each enriched with whether they moderate it, live call/recording state, the
 // per-meeting record toggle (exclusion), and a status chip.
 
-router.get('/talk-meetings', requireAuth, validate({ query: NO_QUERY }), async (req, res, next) => {
+router.get('/talk-meetings', requireAuth, validate({ query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, res, next) => {
     const userId = req.session.user.id;
     try {
         const userOrgId = await resolveUserOrgFromReq(req);

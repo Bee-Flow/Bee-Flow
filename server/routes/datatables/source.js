@@ -61,7 +61,7 @@ function mirrorCtx(req, meta) {
 
 /** The write-through for whichever kind the context's table is. */
 function mirrorWrites() {
-    const via = (method) => (ctx, ...rest) => sources.writeThrough(ctx.table)[method](ctx, ...rest);
+    const via = (/** @type {string} */ method) => (ctx, ...rest) => sources.writeThrough(ctx.table)[method](ctx, ...rest);
     return { insertRow: via('insertRow'), updateRow: via('updateRow'), deleteRow: via('deleteRow') };
 }
 

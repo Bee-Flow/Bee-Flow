@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * WHAT A PERSON DOES WITH THE COMPLIANCE REVIEW.
  *

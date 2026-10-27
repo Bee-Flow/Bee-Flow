@@ -31,7 +31,7 @@ router.get('/favorites', requireAuth, async (req, res) => {
     res.json(ids);
 });
 
-router.post('/favorites/bulk', requireAuth, validate({ body: BulkFavoritesBody }), async (req, res) => {
+router.post('/favorites/bulk', requireAuth, validate({ body: BulkFavoritesBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof BulkFavoritesBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = getUserId(req);
     for (const id of req.body.kbIds) {
         try { await kbStore.addFavorite(userId, id); } catch (err) { bestEffort('routes/knowledgeBases/favorites:anon', err); /* skip invalid */ }

@@ -27,7 +27,7 @@ const CalendarQuery = z.object({
     all: z.enum(['1', '0', 'true', 'false'], { error: () => ALL_TEXT }).optional(),
 }).strict();
 
-router.get('/calendar', requireAuth, requirePermission('admin_compliance'), validate({ query: CalendarQuery }), async (req, res) => {
+router.get('/calendar', requireAuth, requirePermission('admin_compliance'), validate({ query: CalendarQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof CalendarQuery>>} */ req, res) => {
     const orgId = await requireOrgId(req, res);
     if (!orgId) return;
     res.set('Cache-Control', 'private, no-store');

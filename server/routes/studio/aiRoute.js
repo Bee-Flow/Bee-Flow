@@ -438,7 +438,7 @@ function createAiRouteRouter(deps = null) {
      */
     const limiter = perUserRateLimit({ windowMs: 60_000, max: 10 });
 
-    router.post('/ai/route', limiter, requireSession, validate({ body: RouteBody }), async (req, res) => {
+    router.post('/ai/route', limiter, requireSession, validate({ body: RouteBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof RouteBody>, import('qs').ParsedQs>} */ req, res) => {
         const userId = userIdOf(req);
         res.set('Cache-Control', 'private, no-store');
 

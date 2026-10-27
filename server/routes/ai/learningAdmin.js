@@ -215,7 +215,7 @@ router.get('/courses/:courseId', async (req, res) => {
 
 // POST /courses → create. The id is always minted by the validator (a client
 // can never choose its own course id — the schema has no `id` to send).
-router.post('/courses', validate({ body: NewCourseBody }), async (req, res) => {
+router.post('/courses', validate({ body: NewCourseBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof NewCourseBody>, import('qs').ParsedQs>} */ req, res) => {
     const { doc, error } = store.validateCourseDoc({ ...req.body, id: undefined });
     if (error) return res.status(400).json({ error });
     const saved = await store.saveCourse(req.primaryOrgId, doc);
@@ -227,7 +227,7 @@ router.post('/courses', validate({ body: NewCourseBody }), async (req, res) => {
 // a valid org course id is the course written, whatever else happens. A
 // non-org param (e.g. 'new') makes the validator mint a fresh id — an
 // effective create.
-router.put('/courses/:courseId', validate({ body: CourseBody }), async (req, res) => {
+router.put('/courses/:courseId', validate({ body: CourseBody }), async (/** @type {import('express').Request<{ courseId: string }, any, import('zod').infer<typeof CourseBody>, import('qs').ParsedQs>} */ req, res) => {
     const id = store.isOrgCourseId(req.params.courseId) ? req.params.courseId : undefined;
     const { doc, error } = store.validateCourseDoc({ ...req.body, id });
     if (error) return res.status(400).json({ error });
@@ -252,7 +252,7 @@ router.delete('/courses/:courseId', async (req, res) => {
 // up with PUT /courses/:courseId whose body lessonIds includes the returned
 // lesson.id (in the desired position), otherwise the lesson is orphaned and
 // will never publish.
-router.put('/lessons/:lessonId', validate({ body: LessonBody }), async (req, res) => {
+router.put('/lessons/:lessonId', validate({ body: LessonBody }), async (/** @type {import('express').Request<{ lessonId: string }, any, import('zod').infer<typeof LessonBody>, import('qs').ParsedQs>} */ req, res) => {
     const id = store.isOrgLessonId(req.params.lessonId) ? req.params.lessonId : undefined;
     const { doc, error } = store.validateLessonDoc({ ...req.body, id });
     if (error) return res.status(400).json({ error });

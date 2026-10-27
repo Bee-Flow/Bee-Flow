@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The plan checklist ticks from the tool calls, not from the model's goodwill.
  *

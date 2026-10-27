@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /**
  * Notebooks in the Documents library (stores/notebookLibrary.js). Mounted by
  * routes/studioDocuments.js under /api/studio-documents.
@@ -33,37 +34,40 @@ const Filing = bodyOf({
     categories: z.array(worded(CATEGORY_TEXT).max(80, CATEGORY_TEXT), { error: typeError({ invalid: CATEGORY_TEXT }) }).max(30, CATEGORY_TEXT).optional(),
 }, 'Filing a notebook');
 
+/** @typedef {import('../projects/notebookGate').Middleware} Middleware */
+
 /**
  * @param {object} [deps]
- * @param {any} [deps.library]      stores/notebookLibrary surface ({ setNotebookFiling })
- * @param {any} [deps.documents]    stores/documentStore surface ({ assertFolder })
- * @param {Function} [deps.gate]       the notebook gates as one middleware
- * @param {Function} [deps.requireAuth]
+ * @param {Pick<typeof import('../../stores/notebookLibrary'), 'setNotebookFiling'>} [deps.library]  stores/notebookLibrary surface
+ * @param {Pick<typeof import('../../stores/documentStore'), 'assertFolder'>} [deps.documents]       stores/documentStore surface
+ * @param {Middleware} [deps.gate]       the notebook gates as one middleware
+ * @param {import('express').RequestHandler} [deps.requireAuth]
  */
 function makeNotebookLibraryRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });
     const library = () => deps.library || require('../../stores/notebookLibrary');
     const documents = () => deps.documents || require('../../stores/documentStore');
     const requireAuth = deps.requireAuth || ((req, res, next) => require('../../auth/permissions').requireAuth(req, res, next));
-    /** @type {Function|null} */
+    /** @type {Middleware | null} */
     let boundGate = null;
     const gate = () => {
         if (!boundGate) boundGate = deps.gate || require('../projects/notebookGate').makeNotebookGate();
         return boundGate;
     };
-    const requireNotebooks = (/** @type {any} */ req, /** @type {any} */ res, /** @type {Function} */ next) => gate()(req, res, next);
+    /** @type {Middleware} */
+    const requireNotebooks = (req, res, next) => gate()(req, res, next);
 
     /** Whether this reader's library lists notebooks. Never throws: a refusal or an unknown answer is "no". */
-    async function notebooksVisible(/** @type {any} */ req) {
+    async function notebooksVisible(/** @type {import('express').Request} */ req) {
         try {
-            await require('../projects/notebookGate').passNotebookGate(/** @type {any} */ (gate()), req);
+            await require('../projects/notebookGate').passNotebookGate(gate(), req);
             return true;
         } catch {
             return false;
         }
     }
 
-    router.patch('/notebooks/:id/filing', requireAuth, requireNotebooks, validate({ body: Filing }), async (req, res) => {
+    router.patch('/notebooks/:id/filing', requireAuth, requireNotebooks, validate({ body: Filing }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
         const filed = await library().setNotebookFiling(req.session.user.id, req.params.id, req.body,
             (folderId, userId) => documents().assertFolder(folderId, userId));
         if (!filed) throw notFound('notebook_not_found', 'Notebook not found');

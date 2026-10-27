@@ -1,4 +1,5 @@
-/** @typedef {import('../../../core/providers').BaseProvider} BaseProvider */
+// @typecheck
+/** @typedef {import('../../../core/providers/base')} BaseProvider */
 /**
  * Automation Builder — the model calls: adapter.chat behind a bounded retry,
  * and its streaming counterpart pinned to this route's SSE thinking shapes.

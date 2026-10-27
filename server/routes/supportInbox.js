@@ -78,7 +78,7 @@ router.get('/inboxes', async (req, res) => {
     res.json({ inboxes });
 });
 
-router.post('/inboxes', validate({ body: S.CreateInboxBody }), async (req, res) => {
+router.post('/inboxes', validate({ body: S.CreateInboxBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof S.CreateInboxBody>, import('qs').ParsedQs>} */ req, res) => {
     const scope = await resolveOrgScope(req);
     const organizationId = req.body.organizationId || scope[0];
     if (!organizationId || !scope.includes(organizationId)) {

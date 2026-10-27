@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
 /**
  * Voice Chat Routes (Beta) — Realtime voice conversation with Mistral.
@@ -135,7 +136,6 @@ const HISTORY_TEXT = 'history is a JSON list of { role, content } messages.';
  * @param {number} max
  */
 const boundedText = (message, max) => z.string({ error: typeError({ invalid: message }) }).max(max, message);
-
 const SessionBody = orEmpty(z.object({
     agentId: boundedText(AGENT_TEXT, 200).nullish(),
     voice: boundedText(VOICE_TEXT, 100).nullish(),
@@ -340,7 +340,7 @@ router.get('/availability', requireAuth, async (req, res) => {
 // Resolves the agent (if any) once so the client has the right system
 // prompt and label up-front. The same `agentId` is echoed back on every
 // turn so the server can apply the matching tool restrictions.
-router.post('/session', requireAuth, requireMistralConfigured, validate({ body: SessionBody }), async (req, res) => {
+router.post('/session', requireAuth, requireMistralConfigured, validate({ body: SessionBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof SessionBody>, import('qs').ParsedQs>} */ req, res) => {
     const crypto = require('crypto');
     const sessionId = crypto.randomBytes(16).toString('hex');
     const { agentId = null, voice = null, language = null } = req.body;
@@ -380,7 +380,7 @@ router.post(
     requireMistralConfigured,
     receiveTurnAudio,
     validate({ body: TurnFields }),
-    async (req, res) => {
+    async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof TurnFields>, import('qs').ParsedQs>} */ req, res) => {
         // Everything that can refuse the turn answers before the stream opens.
         if (!req.file) {
             return res.status(400).json({ error: 'Missing audio blob', code: 'no_audio' });

@@ -31,7 +31,7 @@ router.get('/categories', requireAuth, async (req, res) => {
     res.json(categories);
 });
 
-router.post('/categories', requireAuth, requirePermission('manage_knowledge'), validate({ body: CategoryBody }), async (req, res) => {
+router.post('/categories', requireAuth, requirePermission('manage_knowledge'), validate({ body: CategoryBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CategoryBody>, import('qs').ParsedQs>} */ req, res) => {
     const { name, icon, color } = req.body;
     const orgIds = await resolveUserOrgIds(req);
     const orgId = orgIds !== null && orgIds.size > 0 ? Array.from(orgIds)[0] : null;

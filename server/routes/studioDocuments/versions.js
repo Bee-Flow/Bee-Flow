@@ -175,7 +175,7 @@ function makeDocumentVersionsRouter(deps = {}) {
         res.json({ version, people: await peopleOf(req, [version]) });
     });
 
-    router.post('/', requireAuth, validate({ body: S.create }), async (req, res) => {
+    router.post('/', requireAuth, validate({ body: S.create }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof S.create>, import('qs').ParsedQs>} */ req, res) => {
         const doc = await writable(req);
         const live = await liveOf(doc);
         let version;

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio Builder — which model serves this turn.
  *

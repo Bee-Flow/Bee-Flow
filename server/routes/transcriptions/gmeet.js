@@ -7,7 +7,7 @@
  * GET   /gmeet-recordings        — recently ended meetings + recording state
  * POST  /from-gmeet              — manual import of a finished recording
  */
-
+// @typecheck
 const express = require('express');
 const log = require('../../telemetry/log');
 const router = express.Router();
@@ -115,7 +115,7 @@ const FromGmeetBody = bodyOf({
     context_terms: worded('context_terms is tekst.').optional(),
 });
 
-router.get('/gmeet-meetings', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
+router.get('/gmeet-meetings', requireAuth, validate({ query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const userId = req.session.user.id;
     const userOrgId = await resolveUserOrgFromReq(req);
     const { resolveGmeetNotesSettings } = require('../../core/meetingNotes/gmeetNotesSettings');
@@ -192,7 +192,7 @@ router.get('/gmeet-meetings', requireAuth, validate({ query: NO_QUERY }), async 
 // When import is turned ON for a meeting the user organizes, best-effort
 // pre-configure Meet's auto-recording — the outcome is reported in
 // `autoRecordingConfig` and never fails the PATCH.
-router.patch('/gmeet-meetings/:eventId', requireAuth, validate({ body: GmeetPrefBody, query: NO_QUERY }), async (req, res) => {
+router.patch('/gmeet-meetings/:eventId', requireAuth, validate({ body: GmeetPrefBody, query: NO_QUERY }), async (/** @type {import('express').Request<{ eventId: string }, any, import('zod').infer<typeof GmeetPrefBody>, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const userId = req.session.user.id;
     const eventId = req.params.eventId;
     const { record, meetingCode, applyToSeries, organizerSelf } = req.body;
@@ -253,7 +253,7 @@ router.patch('/gmeet-meetings/:eventId', requireAuth, validate({ body: GmeetPref
 });
 
 // Recent import jobs — failure-UX feed + manual-import panel state.
-router.get('/gmeet-imports', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
+router.get('/gmeet-imports', requireAuth, validate({ query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const userId = req.session.user.id;
     const { listRecentJobsForUser } = require('../../stores/gmeetImportStore');
     const jobs = await listRecentJobsForUser(userId, 7);
@@ -273,7 +273,7 @@ router.get('/gmeet-imports', requireAuth, validate({ query: NO_QUERY }), async (
 
 // Manual-import listing: recently ended Meet meetings with their recording
 // state. Capped at the 10 most recent — each row costs 2-3 Meet API calls.
-router.get('/gmeet-recordings', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
+router.get('/gmeet-recordings', requireAuth, validate({ query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const userId = req.session.user.id;
     const { session, connection } = await resolveGmeetSession(req);
     if (!session || !connection.meetScopesGranted) {
@@ -283,7 +283,7 @@ router.get('/gmeet-recordings', requireAuth, validate({ query: NO_QUERY }), asyn
     const { listRecentlyEndedMeetMeetings } = require('../../core/meetingNotes/gmeetCalendar');
     const { getSpaceByMeetingCode, findConferenceRecord, findGeneratedRecording } = require('../../core/meetingNotes/gmeetArtifacts');
     const meetings = await listRecentlyEndedMeetMeetings({ session, lookbackHours: 24 * 7 });
-    meetings.sort((a, b) => new Date(b.end || 0) - new Date(a.end || 0));
+    meetings.sort((a, b) => new Date(b.end || 0).getTime() - new Date(a.end || 0).getTime());
 
     const items = [];
     for (const m of meetings.slice(0, 10)) {
@@ -321,7 +321,7 @@ router.get('/gmeet-recordings', requireAuth, validate({ query: NO_QUERY }), asyn
 // Manual import of a finished Meet recording. Runs the shared inline ingest
 // (parity: /from-nextcloud, 10-minute timeout); responds 202 { jobId, status }
 // when Meet's artifacts aren't ready yet, classified 4xx `code`s otherwise.
-router.post('/from-gmeet', requireAuth, validate({ body: FromGmeetBody, query: NO_QUERY }), async (req, res) => {
+router.post('/from-gmeet', requireAuth, validate({ body: FromGmeetBody, query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof FromGmeetBody>, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const userId = req.session.user.id;
     const { event_id, meeting_code, meet_link, language, title, context_terms } = req.body;
 

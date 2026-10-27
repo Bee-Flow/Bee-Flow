@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Automation Builder Routes
  *
@@ -53,28 +54,29 @@ router.use(require('./automationBuilder/layerAgent'));
 // ─── Conversational build loop (SSE) ─────────────────────────────
 router.use(require('./automationBuilder/chatStream'));
 
-module.exports = router;
 // Internals exposed for unit tests (server/routes/ai/automationBuilder.test.js).
-module.exports._test = {
-    parseToolArgs: chatTurnLoop.parseToolArgs,
-    isTransientChatError,
-    chatWithRetry,
-    applyBuilderTierFloor,
-    validateLayerForSummary: layerSummary.validateLayerForSummary,
-    sanitiseLayerSummary: layerSummary.sanitiseLayerSummary,
-    accumulateUsage: chatTurnLoop.accumulateUsage,
-    renderValidationNote: chatTurnLoop.renderValidationNote,
-    sanitizeHistory: chatTurnLoop.sanitizeHistory,
-    VALIDATION_NOTE_PREFIX: chatTurnLoop.VALIDATION_NOTE_PREFIX,
-    TRUNCATION_PLACEHOLDER: chatTurnLoop.TRUNCATION_PLACEHOLDER,
-    isTruncatedStop: chatTurnLoop.isTruncatedStop,
-    truncationRetryMessages: chatTurnLoop.truncationRetryMessages,
-    applyPlanMarkDone: chatTurnLoop.applyPlanMarkDone,
-    validateMapJsonRequest: mapJsonFields.validateMapJsonRequest,
-    verifyMappedFields: mapJsonFields.verifyMappedFields,
-    verifyMapJsonItemsRef: mapJsonFields.verifyMapJsonItemsRef,
-    MAP_JSON_FIELDS_TOOL: mapJsonFields.MAP_JSON_FIELDS_TOOL,
-};
+module.exports = Object.assign(router, {
+    _test: {
+        parseToolArgs: chatTurnLoop.parseToolArgs,
+        isTransientChatError,
+        chatWithRetry,
+        applyBuilderTierFloor,
+        validateLayerForSummary: layerSummary.validateLayerForSummary,
+        sanitiseLayerSummary: layerSummary.sanitiseLayerSummary,
+        accumulateUsage: chatTurnLoop.accumulateUsage,
+        renderValidationNote: chatTurnLoop.renderValidationNote,
+        sanitizeHistory: chatTurnLoop.sanitizeHistory,
+        VALIDATION_NOTE_PREFIX: chatTurnLoop.VALIDATION_NOTE_PREFIX,
+        TRUNCATION_PLACEHOLDER: chatTurnLoop.TRUNCATION_PLACEHOLDER,
+        isTruncatedStop: chatTurnLoop.isTruncatedStop,
+        truncationRetryMessages: chatTurnLoop.truncationRetryMessages,
+        applyPlanMarkDone: chatTurnLoop.applyPlanMarkDone,
+        validateMapJsonRequest: mapJsonFields.validateMapJsonRequest,
+        verifyMappedFields: mapJsonFields.verifyMappedFields,
+        verifyMapJsonItemsRef: mapJsonFields.verifyMapJsonItemsRef,
+        MAP_JSON_FIELDS_TOOL: mapJsonFields.MAP_JSON_FIELDS_TOOL,
+    },
+});
 
 /**
  * @typedef {import('express').Router & { _test: Record<string, unknown> }} RouterExports

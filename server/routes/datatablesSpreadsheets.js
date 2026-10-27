@@ -220,7 +220,7 @@ function makeSpreadsheetsRouter({ publicTable }) {
     // row, the session's provider, the Nextcloud binding), never a call to
     // the storage itself: the create dialog asks this to decide whether to
     // show the card at all.
-    router.get('/providers', validate({ query: ScopeQuery }), async (req, res) => {
+    router.get('/providers', validate({ query: ScopeQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof ScopeQuery>>} */ req, res) => {
         try {
             const principal = await resolveDatatablePrincipal(req);
             const scope = await resolveScope(req, res, principal, req.query.scope);
@@ -250,7 +250,7 @@ function makeSpreadsheetsRouter({ publicTable }) {
     });
 
     // The columns one sheet would arrive with, before it is linked.
-    router.get('/describe', storageLimiter, validate({ query: DescribeQuery }), async (req, res) => {
+    router.get('/describe', storageLimiter, validate({ query: DescribeQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof DescribeQuery>>} */ req, res) => {
         try {
             const principal = await resolveDatatablePrincipal(req);
             const scope = await resolveScope(req, res, principal, req.query.scope);
@@ -274,7 +274,7 @@ function makeSpreadsheetsRouter({ publicTable }) {
     // Link one or several sheets. The first refresh runs in the background;
     // the answer says `sync.status: 'running'` and the client polls GET /:id.
     // The storage budget is spent inside linkSpreadsheets (see the header).
-    router.post('/link', validate({ body: LinkBody }), async (req, res) => {
+    router.post('/link', validate({ body: LinkBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof LinkBody>, import('qs').ParsedQs>} */ req, res) => {
         try {
             const principal = await resolveDatatablePrincipal(req);
             const body = req.body || {};

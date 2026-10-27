@@ -322,7 +322,7 @@ async function ownsConnection(req, conn) {
 // List the caller's named connections (presence-only; no secrets).
 // ?includeShared=1 (with ?provider=) also returns connections LENT to the
 // caller; each entry then carries `access: 'own' | 'lent'`.
-router.get('/', requireAuth, validate({ query: ListQuery }), async (req, res) => {
+router.get('/', requireAuth, validate({ query: ListQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof ListQuery>>} */ req, res) => {
     const provider = req.query.provider ? String(req.query.provider) : null;
     if (req.query.includeShared === true && provider) {
         const { userId, orgId, groups } = await callerContext(req);
@@ -336,7 +336,7 @@ router.get('/', requireAuth, validate({ query: ListQuery }), async (req, res) =>
 // Pre-flight for a recipient: which providers must they connect (BYO) vs are
 // lent to them. Phase 2 takes an explicit `?providers=a,b`; Phase 3 derives the
 // provider list from the resource server-side.
-router.get('/required', requireAuth, validate({ query: RequiredQuery }), async (req, res) => {
+router.get('/required', requireAuth, validate({ query: RequiredQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof RequiredQuery>>} */ req, res) => {
     const { userId, orgId, groups } = await callerContext(req);
     const providers = String(req.query.providers || '')
         .split(',').map(s => s.trim()).filter(Boolean);
@@ -379,7 +379,7 @@ router.get('/required', requireAuth, validate({ query: RequiredQuery }), async (
 // connectionId was given, so `?mine=<junk>` or `?connectionId=<any uuid>`
 // reached listGrants with an empty filter and returned every grant in the
 // deployment, across all tenants.
-router.get('/grants', requireAuth, validate({ query: GrantsQuery }), async (req, res) => {
+router.get('/grants', requireAuth, validate({ query: GrantsQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof GrantsQuery>>} */ req, res) => {
     const { userId, orgId } = await callerContext(req);
     const mine = req.query.mine || 'outgoing';
     // Principal scope first — the remaining params only narrow it further.
@@ -495,7 +495,7 @@ router.patch('/:id', requireAuth, writeLimit, validate({ body: PatchBody }), asy
 // clears the live session, exactly like POST /api/integrations/<p>/disconnect.
 // An ADMIN deleting someone else's row only removes the row — revoking another
 // user's live third-party access is not what "tidy up a connection" means.
-router.delete('/:id', requireAuth, writeLimit, validate({ query: DeleteQuery }), async (req, res) => {
+router.delete('/:id', requireAuth, writeLimit, validate({ query: DeleteQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof DeleteQuery>>} */ req, res) => {
     const conn = await store.getConnection(req.params.id);
     if (!conn) return res.status(404).json({ error: 'Connection not found' });
     if (!(await ownsConnection(req, conn))) return res.status(403).json({ error: 'Forbidden' });

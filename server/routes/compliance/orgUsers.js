@@ -23,7 +23,7 @@ const NoQuery = z.object({}).strict();
 // pure-DPO caller. Same access story as /auto-detect-settings above:
 // admin_compliance may read org member names/emails, nothing more.
 
-router.get('/org-users', requireAuth, requirePermission('admin_compliance'), validate({ query: NoQuery }), async (req, res) => {
+router.get('/org-users', requireAuth, requirePermission('admin_compliance'), validate({ query: NoQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
     const orgId = await resolveOrgId(req);
     let rows = [];
     try {

@@ -351,7 +351,7 @@ router.get('/kb/:kbId/documents/:documentId/content', validate({ query: ContentQ
 // route on either implementation, which is why the callers in
 // core/kb/kbIngestionHelpers.js and routes/knowledgeBases/detail.js were
 // deleting nothing at all before K1.
-router.delete('/kb/documents/:documentId', validate({ query: DeleteQuery, body: DeleteBody }), async (req, res) => {
+router.delete('/kb/documents/:documentId', validate({ query: DeleteQuery, body: DeleteBody }), async (/** @type {import('express').Request<{ documentId: string }, any, import('zod').infer<typeof DeleteBody>, import('zod').infer<typeof DeleteQuery>>} */ req, res) => {
     const body = req.body;
     const tenantId = req.query.tenant_id || body.tenant_id;
     const kbId = req.query.knowledge_base_id || body.knowledge_base_id;

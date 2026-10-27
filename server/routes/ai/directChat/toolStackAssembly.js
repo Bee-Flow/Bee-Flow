@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat — assembly of the per-turn tool stack: prior tool-group
  * activations, skill-scoped app enablement, the shared direct-chat tool

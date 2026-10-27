@@ -237,7 +237,7 @@ function register(router) {
         });
     });
 
-    router.put('/:id', requireAuth, validate({ body: UpdateBody, query: NO_QUERY }), async (req, /** @type {import('express').Response} */ res) => {
+    router.put('/:id', requireAuth, validate({ body: UpdateBody, query: NO_QUERY }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof UpdateBody>, import('zod').infer<typeof NO_QUERY>>} */ req, /** @type {import('express').Response} */ res) => {
         const userId = req.session.user.id;
         const id = req.params.id;
         const {

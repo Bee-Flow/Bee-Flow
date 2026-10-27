@@ -102,7 +102,7 @@ router.get('/usage', requireAuth, requirePrimaryOrgAdmin(), async (req, res) => 
     });
 });
 
-router.post('/', requireAuth, requireManageApps, validate({ body: CreateAppBody }), async (req, res) => {
+router.post('/', requireAuth, requireManageApps, validate({ body: CreateAppBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreateAppBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = sessionUser(req).id;
     const { name, description, icon, accentColor, templateId } = req.body || {};
     const cleanName = (typeof name === 'string' && name.trim())
@@ -211,7 +211,7 @@ router.get('/:id', requireAuth, async (req, res) => {
  * it" are ANSWERS this screen renders, not failures, and folding them into a
  * 404 would leave the card unable to tell them apart.
  */
-router.get('/:id/ref', requireAuth, validate({ query: RefQuery }), async (req, res) => {
+router.get('/:id/ref', requireAuth, validate({ query: RefQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof RefQuery>>} */ req, res) => {
     const viewerUserId = sessionUser(req).id;
     const app = await studioAppStore.getStudioApp(req.params.id);
     const ref = {
@@ -222,7 +222,7 @@ router.get('/:id/ref', requireAuth, validate({ query: RefQuery }), async (req, r
     res.json(describeAppRef({ app: app || null, ref, viewerUserId }));
 });
 
-router.put('/:id', requireAuth, requireManageApps, validate({ body: UpdateAppBody }), async (req, res) => {
+router.put('/:id', requireAuth, requireManageApps, validate({ body: UpdateAppBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof UpdateAppBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = sessionUser(req).id;
     const { name, description, icon, accentColor, category } = req.body || {};
 
@@ -270,7 +270,7 @@ router.put('/:id', requireAuth, requireManageApps, validate({ body: UpdateAppBod
 });
 
 // Owner-only CAS save of the working definition.
-router.put('/:id/definition', requireAuth, requireManageApps, validate({ body: DefinitionBody }), async (req, res) => {
+router.put('/:id/definition', requireAuth, requireManageApps, validate({ body: DefinitionBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof DefinitionBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = sessionUser(req).id;
     const { definition, baseVersion } = req.body || {};
     if (!definition || typeof definition !== 'object' || Array.isArray(definition)) {

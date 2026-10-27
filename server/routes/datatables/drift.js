@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Is the model what Postgres actually has, and the button that re-emits the
  * DDL when it is not.

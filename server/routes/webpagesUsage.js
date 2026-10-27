@@ -61,7 +61,7 @@ const { sessionUser } = require('../core/http/sessionUser');
 /** Niets. Gezegd in plaats van weggelaten: een genegeerde sleutel is een belofte. */
 const NO_QUERY = z.object({}, { error: onUnknownKeys('This usage list takes no parameters; it always covers every kind.') }).strict();
 
-router.get('/:id/usage', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
+router.get('/:id/usage', requireAuth, validate({ query: NO_QUERY }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     // `usageForWebpage` catches each sub-question separately; if the lookup itself falls over,
     // then a 500 (the terminal handler) — never an empty `usage`, because that is the one sentence
     // that this route must not utter by accident.

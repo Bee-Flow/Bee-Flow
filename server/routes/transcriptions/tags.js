@@ -83,7 +83,7 @@ const TAG_TEXT = `(tag_of.value #>> '{}')`;
 const TAG_COUNT = `COUNT(DISTINCT transcriptions.id)::int AS count`;
 const TAG_FILTER = `jsonb_typeof(tag_of.value) = 'string' AND ${TAG_TEXT} <> ''`;
 
-router.get('/tags', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
+router.get('/tags', requireAuth, validate({ query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const userId = sessionUser(req).id;
     const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
     /** @type {string} */

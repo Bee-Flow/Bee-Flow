@@ -1,3 +1,4 @@
+// @typecheck
 const log = require('../telemetry/log');
 const templateStore = require('../stores/templateStore');
 const configStore = require('../stores/configStore');
@@ -56,6 +57,7 @@ First write the description, then the separator line, then the instructions. Do 
         }
     ];
 
+    /** @type {{ choices?: { message?: { content?: string } }[], content?: unknown } | null} */
     const response = await adapter.chat(config.apiKey, apiUrl, modelId, messages, {
         maxTokens: 1000,
         temperature: 0.3,

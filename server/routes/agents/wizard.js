@@ -486,7 +486,7 @@ function buildPreserved(current) {
     };
 }
 
-router.post('/wizard/draft', requirePermission('manage_agents'), wizardLimiter, validate({ body: DraftBody }), async (req, res, next) => {
+router.post('/wizard/draft', requirePermission('manage_agents'), wizardLimiter, validate({ body: DraftBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof DraftBody>, import('qs').ParsedQs>} */ req, res, next) => {
     try {
         const { prompt, modelTier, locale } = req.body;
         const userId = getEffectiveUserId(req);
@@ -500,7 +500,7 @@ router.post('/wizard/draft', requirePermission('manage_agents'), wizardLimiter, 
     }
 });
 
-router.post('/wizard/refine', requirePermission('manage_agents'), wizardLimiter, validate({ body: RefineBody }), async (req, res, next) => {
+router.post('/wizard/refine', requirePermission('manage_agents'), wizardLimiter, validate({ body: RefineBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof RefineBody>, import('qs').ParsedQs>} */ req, res, next) => {
     try {
         const { prompt, plan, refinement, modelTier, locale, current } = req.body;
         const userId = getEffectiveUserId(req);
@@ -718,9 +718,7 @@ router.post('/wizard/commit', requirePermission('manage_agents'), wizardLimiter,
     res.json({ agent, createdSkills, schedule: createdSchedule });
 });
 
-module.exports = router;
-module.exports.personaFromPlan = personaFromPlan;
-module.exports.planPersonaFields = planPersonaFields;
+module.exports = Object.assign(router, { personaFromPlan, planPersonaFields });
 
 /** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
 

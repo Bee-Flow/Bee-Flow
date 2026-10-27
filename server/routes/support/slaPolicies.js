@@ -47,7 +47,7 @@ function register(router) {
         res.json({ policies });
     });
 
-    router.put('/sla-policies', requireStaffSupport, validate({ body: SlaBody }), async (req, res) => {
+    router.put('/sla-policies', requireStaffSupport, validate({ body: SlaBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof SlaBody>, import('qs').ParsedQs>} */ req, res) => {
         try {
             const { priority, first_response_minutes, resolution_minutes, enabled } = req.body;
             const orgId = await _actingOrgId(req);

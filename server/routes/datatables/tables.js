@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The collection: every table the caller can address, and making a new one.
  *
@@ -261,7 +262,7 @@ function register(router) {
      * window, so jobs/datatableRetention is what removes an old answer. One
      * mechanism, two features: there is no second, invisible clock to reason about.
      */
-    router.post('/managed', validate({ body: ManagedBody }), async (req, res) => {
+    router.post('/managed', validate({ body: ManagedBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ManagedBody>, import('qs').ParsedQs>} */ req, res) => {
         let scope = null;
         try {
             const principal = await resolveDatatablePrincipal(req);

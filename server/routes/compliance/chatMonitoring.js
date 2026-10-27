@@ -195,13 +195,13 @@ async function buildView(req, orgId) {
 
 // ── Routes ──────────────────────────────────────────────────────────────
 
-router.get('/chat-monitoring', requireAuth, requirePermission('admin_compliance'), validate({ query: NoQuery }), async (req, res) => {
+router.get('/chat-monitoring', requireAuth, requirePermission('admin_compliance'), validate({ query: NoQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
     const orgId = await resolveOrgId(req);
     res.set('Cache-Control', 'no-store');
     res.json(await buildView(req, orgId));
 });
 
-router.put('/chat-monitoring', requireAuth, requirePermission('admin_compliance'), validate({ body: PutBody }), async (req, res) => {
+router.put('/chat-monitoring', requireAuth, requirePermission('admin_compliance'), validate({ body: PutBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof PutBody>, import('qs').ParsedQs>} */ req, res) => {
     const orgId = await resolveOrgId(req);
     const actorId = actorOf(req);
     const body = req.body;
@@ -261,7 +261,7 @@ router.put('/chat-monitoring', requireAuth, requirePermission('admin_compliance'
     res.json(await buildView(req, orgId));
 });
 
-router.get('/chat-monitoring/summary', requireAuth, requirePermission('admin_compliance'), validate({ query: SummaryQuery }), async (req, res) => {
+router.get('/chat-monitoring/summary', requireAuth, requirePermission('admin_compliance'), validate({ query: SummaryQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof SummaryQuery>>} */ req, res) => {
     const orgId = await resolveOrgId(req);
     const days = Number(req.query.days || '30');
     const s = await complianceStore.getSettings(orgId);
@@ -301,7 +301,7 @@ router.get('/chat-monitoring/summary', requireAuth, requirePermission('admin_com
     res.json({ window: { days, employee: shape(employee), visitor: shape(visitor) }, surfaces });
 });
 
-router.delete('/chat-monitoring/counts', requireAuth, requirePermission('admin_compliance'), validate({ query: NoQuery }), async (req, res) => {
+router.delete('/chat-monitoring/counts', requireAuth, requirePermission('admin_compliance'), validate({ query: NoQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
     const orgId = await resolveOrgId(req);
     // Counts still waiting in this process would otherwise be written back by
     // the next flush, after the rows are gone.

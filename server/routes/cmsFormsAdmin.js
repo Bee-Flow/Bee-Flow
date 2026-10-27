@@ -98,7 +98,7 @@ function createAdminRouter(deps) {
         return res.json({ automations: out });
     });
 
-    router.put('/form-automations/:automationId', validate({ body: EnableBody }), async (req, res) => {
+    router.put('/form-automations/:automationId', validate({ body: EnableBody }), async (/** @type {import('express').Request<{ automationId: string }, any, import('zod').infer<typeof EnableBody>, import('qs').ParsedQs>} */ req, res) => {
         const { automation, userId, orgId } = await editableAutomation(req);
         const wasEnabled = (await deps.listFormAutomations()).has(automation.id);
         if (req.body.enabled) {
@@ -114,7 +114,7 @@ function createAdminRouter(deps) {
         res.json({ id: automation.id, enabled: req.body.enabled });
     });
 
-    router.put('/form-automations/:automationId/blocks/:blockId', validate({ body: ApproveBody }), async (req, res) => {
+    router.put('/form-automations/:automationId/blocks/:blockId', validate({ body: ApproveBody }), async (/** @type {import('express').Request<{ automationId: string, blockId: string }, any, import('zod').infer<typeof ApproveBody>, import('qs').ParsedQs>} */ req, res) => {
         const { automation, userId, orgId } = await editableAutomation(req);
         const { blockId } = /** @type {{ blockId: string }} */ (req.params);
         if (!ID_RE.test(blockId)) throw notFound('block_not_found', 'Form block not found.');

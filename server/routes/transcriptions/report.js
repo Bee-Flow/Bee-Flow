@@ -62,7 +62,7 @@ function sanitizeEnvelopeAttr(value) {
     return sanitizeEnvelope(value).replace(/"/g, "'");
 }
 
-router.post('/report', requireAuth, validate({ body: ReportBody, query: NO_QUERY }), async (req, res) => {
+router.post('/report', requireAuth, validate({ body: ReportBody, query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ReportBody>, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const userId = sessionUser(req).id;
     const { ids, prompt } = req.body;
     const question = prompt.slice(0, 4000);

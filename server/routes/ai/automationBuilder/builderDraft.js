@@ -1,5 +1,5 @@
 /** @typedef {import('./turnSetup').BuilderDraftWrap} BuilderDraftWrap */
-// @typecheck
+// @typecheck strict
 /**
  * Automation Builder — the in-progress draft: load-or-create for a
  * (userId, builderSessionId) pair, and the write-through persist that every
@@ -58,7 +58,7 @@ async function loadOrCreateDraft({ userId, builderSessionId, automationId, seedM
     return {
         userId,
         builderSessionId: builderSessionId || `bs_${Date.now().toString(36)}`,
-        automationId: null,
+        automationId: /** @type {string | null} */ (null),
         title: seed.title,
         description: seed.description,
         def: emptyDefinition(),

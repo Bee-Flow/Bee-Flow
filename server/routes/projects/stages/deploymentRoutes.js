@@ -77,7 +77,7 @@ function makeDeploymentRouter(d) {
     }
 
     /** POST /:id/stages/:stage/deployments */
-    router.post('/:id/stages/:stage/deployments', packaging, authMw(d, { stage: 'owner' }), validate({ body: S.DeployBody }), async (req, res) => {
+    router.post('/:id/stages/:stage/deployments', packaging, authMw(d, { stage: 'owner' }), validate({ body: S.DeployBody }), async (/** @type {import('express').Request<{ id: string, stage: string }, any, import('zod').infer<typeof S.DeployBody>, import('qs').ParsedQs>} */ req, res) => {
         const { dev, stage, userId } = req.stageCtx;
         const b = req.body;
         if (b.kind !== 'redeploy' && !b.releaseId) throw new HttpError(400, 'release_required', 'Choose the release to deploy.');
@@ -95,7 +95,7 @@ function makeDeploymentRouter(d) {
     });
 
     /** GET /:id/deployments?stage=&cursor=&limit= */
-    router.get('/:id/deployments', gate(d, 'projects'), authMw(d, { dev: 'viewer', anyStage: 'viewer' }), validate({ query: S.DeploymentsQuery }), async (req, res) => {
+    router.get('/:id/deployments', gate(d, 'projects'), authMw(d, { dev: 'viewer', anyStage: 'viewer' }), validate({ query: S.DeploymentsQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof S.DeploymentsQuery>>} */ req, res) => {
         const ctx = req.stageCtx;
         const limit = req.query.limit || 20;
         const rows = (await d.stageStore.listStages(ctx.dev.id)).filter(r => ctx.stageRoles[r.stage]);
@@ -146,7 +146,7 @@ function makeDeploymentRouter(d) {
     });
 
     /** POST /:id/deployments/:depId/cancel: withdraw the approval, then close the row. */
-    router.post('/:id/deployments/:depId/cancel', packaging, authMw(d, { dev: 'viewer', anyStage: 'viewer', orgAdmin: true }), validate({ body: S.EmptyBody }), async (req, res) => {
+    router.post('/:id/deployments/:depId/cancel', packaging, authMw(d, { dev: 'viewer', anyStage: 'viewer', orgAdmin: true }), validate({ body: S.EmptyBody }), async (/** @type {import('express').Request<{ id: string, depId: string }, any, import('zod').infer<typeof S.EmptyBody>, import('qs').ParsedQs>} */ req, res) => {
         const ctx = req.stageCtx;
         const row = await deploymentOf(ctx, req.params.depId);
         assertSteersDeployment(ctx, row);
@@ -174,7 +174,7 @@ function makeDeploymentRouter(d) {
     });
 
     /** POST /:id/deployments/:depId/retry: converge again, or plan the same thing again. */
-    router.post('/:id/deployments/:depId/retry', packaging, authMw(d, { dev: 'viewer', anyStage: 'viewer', orgAdmin: true }), validate({ body: S.EmptyBody }), async (req, res) => {
+    router.post('/:id/deployments/:depId/retry', packaging, authMw(d, { dev: 'viewer', anyStage: 'viewer', orgAdmin: true }), validate({ body: S.EmptyBody }), async (/** @type {import('express').Request<{ id: string, depId: string }, any, import('zod').infer<typeof S.EmptyBody>, import('qs').ParsedQs>} */ req, res) => {
         const ctx = req.stageCtx;
         const row = await deploymentOf(ctx, req.params.depId);
         assertSteersDeployment(ctx, row);

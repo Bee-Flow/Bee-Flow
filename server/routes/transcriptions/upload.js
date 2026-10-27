@@ -66,7 +66,7 @@ const UploadBody = bodyOf({
 
 // ── Upload & transcribe ──────────────────────────────────
 
-router.post('/', requireAuth, upload.single('audio'), validate({ body: UploadBody }), async (req, res) => {
+router.post('/', requireAuth, upload.single('audio'), validate({ body: UploadBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof UploadBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
     const userOrgId = await resolveUserOrgFromReq(req);
 

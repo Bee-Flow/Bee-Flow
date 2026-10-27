@@ -113,7 +113,7 @@ function makeNotebookVersionsRouter(deps = {}) {
     const actor = (/** @type {any} */ req) => req.session.user.id;
     const asContributor = (/** @type {string} */ userId) => [{ userId, kind: 'user' }];
 
-    router.get('/:id/versions', validate({ query: ListQuery }), gate('viewer'), async (req, res) => {
+    router.get('/:id/versions', validate({ query: ListQuery }), gate('viewer'), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof ListQuery>>} */ req, res) => {
         const q = /** @type {any} */ (req.query);
         const { versions, nextCursor } = await store.listVersions(req.params.id, { cursor: q.cursor || null, limit: q.limit || 50 });
         res.json({ versions: versions.map(versionMeta), nextCursor });
@@ -140,7 +140,7 @@ function makeNotebookVersionsRouter(deps = {}) {
         res.json({ version: { ...versionMeta(v), content: { html: v.html, markdown: v.markdown } } });
     });
 
-    router.post('/:id/versions', validate({ body: NameBody }), gate('editor'), writeLimiter, async (req, res) => {
+    router.post('/:id/versions', validate({ body: NameBody }), gate('editor'), writeLimiter, async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NameBody>, import('qs').ParsedQs>} */ req, res) => {
         const nb = /** @type {any} */ (req).notebook;
         const userId = actor(req);
         const current = await notebookCollab.readCurrentContent(nb, collab());
@@ -160,7 +160,7 @@ function makeNotebookVersionsRouter(deps = {}) {
     // version), or while a live session could not be joined. A 'conflict'
     // version like the copy the server keeps of a refused save, so nothing a
     // person typed is dropped without a copy in the history.
-    router.post('/:id/versions/kept', validate({ body: KeptBody }), gate('editor'), writeLimiter, async (req, res) => {
+    router.post('/:id/versions/kept', validate({ body: KeptBody }), gate('editor'), writeLimiter, async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof KeptBody>, import('qs').ParsedQs>} */ req, res) => {
         const nb = /** @type {any} */ (req).notebook;
         const userId = actor(req);
         const v = await store.recordVersion(nb.id, {
@@ -169,7 +169,7 @@ function makeNotebookVersionsRouter(deps = {}) {
         res.status(201).json({ version: versionMeta(v) });
     });
 
-    router.put('/:id/versions/:ref/name', validate({ body: RenameBody }), gate('editor'), writeLimiter, async (req, res) => {
+    router.put('/:id/versions/:ref/name', validate({ body: RenameBody }), gate('editor'), writeLimiter, async (/** @type {import('express').Request<{ id: string, ref: string }, any, import('zod').infer<typeof RenameBody>, import('qs').ParsedQs>} */ req, res) => {
         const nb = /** @type {any} */ (req).notebook;
         const v = await store.nameVersion(nb.id, req.params.ref, req.body.name);
         if (!v) throw new HttpError(404, 'version_not_found', 'Version not found');
@@ -179,7 +179,7 @@ function makeNotebookVersionsRouter(deps = {}) {
         res.json({ version: versionMeta(v) });
     });
 
-    router.post('/:id/versions/:ref/restore', validate({ body: RestoreBody }), gate('editor'), writeLimiter, async (req, res) => {
+    router.post('/:id/versions/:ref/restore', validate({ body: RestoreBody }), gate('editor'), writeLimiter, async (/** @type {import('express').Request<{ id: string, ref: string }, any, import('zod').infer<typeof RestoreBody>, import('qs').ParsedQs>} */ req, res) => {
         const nb = /** @type {any} */ (req).notebook;
         const userId = actor(req);
         if (req.params.ref === 'current') throw new HttpError(400, 'version_is_current', 'The current state cannot be restored over itself.');

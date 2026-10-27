@@ -57,7 +57,7 @@ function register(router) {
             const thread = await supportStore.getThread(req.params.threadId); // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- same-origin path built server-side, id URI-encoded
             if (!thread) return res.status(404).send(_csatHtml({ error: 'Thread not found.' }));
 
-            const numScore = dispute ? 0 : parseInt(score, 10);
+            const numScore = dispute ? 0 : parseInt(String(score), 10);
             if (!Number.isInteger(numScore) || numScore < 0 || numScore > 5) {
                 return res.status(400).send(_csatHtml({ error: 'Invalid request.' }));
             }

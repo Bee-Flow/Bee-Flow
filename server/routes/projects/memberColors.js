@@ -43,7 +43,7 @@ function makeMemberColorsRouter(deps = {}) {
     const emit = deps.emit
         || ((/** @type {string} */ projectId, /** @type {Parameters<typeof import('../../core/projectFeed').emitProjectEvent>[1]} */ event) => require('../../core/projectFeed').emitProjectEvent(projectId, event, { label: 'ProjectMemberColors' }));
 
-    router.put('/:id/members/:userId/color', requireRole('viewer'), validate({ body: Body }), async (req, res) => {
+    router.put('/:id/members/:userId/color', requireRole('viewer'), validate({ body: Body }), async (/** @type {import('express').Request<{ id: string, userId: string }, any, import('zod').infer<typeof Body>, import('qs').ParsedQs>} */ req, res) => {
         const me = sessionUser(req).id;
         const target = req.params.userId;
         if (req.projectRole !== 'owner' && target !== me) {

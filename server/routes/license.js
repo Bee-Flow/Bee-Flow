@@ -159,7 +159,7 @@ router.get('/status', licenseLimiter, async (req, res) => {
 //   - tier ≥ enterprise — a community-tier server licence is meaningless
 //     (community is the default floor for every install). We refuse it
 //     up-front rather than persist a row that does nothing.
-router.post('/activate', licenseLimiter, validate({ body: ActivateBody }), async (req, res, next) => {
+router.post('/activate', licenseLimiter, validate({ body: ActivateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ActivateBody>, import('qs').ParsedQs>} */ req, res, next) => {
     try {
         const { token, scope } = req.body;
         const orgId = getOrgId(req);
@@ -234,7 +234,7 @@ router.post('/activate', licenseLimiter, validate({ body: ActivateBody }), async
 });
 
 // ── POST /refresh ───────────────────────────────────────────────────────
-router.post('/refresh', validate({ body: NoBody }), async (req, res) => {
+router.post('/refresh', validate({ body: NoBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
     if (!(await isOrgAdmin(req))) {
         return res.status(403).json({ error: 'Admin required' });
     }
@@ -292,7 +292,7 @@ router.get('/health', async (req, res) => {
 // Query: ?scope=server removes the install-wide server licence. Same
 // super-admin gate as activate. Org/consumer scope follows the legacy
 // "infer from session" rule.
-router.delete('/deactivate', validate({ query: DeactivateQuery }), async (req, res) => {
+router.delete('/deactivate', validate({ query: DeactivateQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof DeactivateQuery>>} */ req, res) => {
     const orgId = getOrgId(req);
     const userId = getUserId(req);
     if (req.query.scope === 'server') {

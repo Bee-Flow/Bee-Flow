@@ -38,7 +38,7 @@ const NoBody = z.preprocess(
 // the license server call for an existing org subscription. Use when a
 // previous issuance failed (the audit log will have a `license_issuance_failed`
 // row); calling this retries against the current subscription state.
-router.post('/orgs/:orgId/reissue-license', validate({ body: NoBody }), async (req, res, next) => {
+router.post('/orgs/:orgId/reissue-license', validate({ body: NoBody }), async (/** @type {import('express').Request<{ orgId: string }, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res, next) => {
     const orgId = /** @type {string} */ (req.params.orgId);
     const sub = await userStore.getOrgSubscription(orgId);
     if (!sub) return res.status(404).json({ error: 'No subscription found' });
@@ -73,7 +73,7 @@ router.post('/orgs/:orgId/reissue-license', validate({ body: NoBody }), async (r
 
 // POST /api/subscriptions/consumer/:userId/reissue-license — same as above for
 // individual / consumer subscriptions.
-router.post('/consumer/:userId/reissue-license', validate({ body: NoBody }), async (req, res, next) => {
+router.post('/consumer/:userId/reissue-license', validate({ body: NoBody }), async (/** @type {import('express').Request<{ userId: string }, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res, next) => {
     const userId = /** @type {string} */ (req.params.userId);
     const sub = await userStore.getConsumerSubscription(userId);
     if (!sub) return res.status(404).json({ error: 'No subscription found' });

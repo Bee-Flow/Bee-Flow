@@ -284,7 +284,7 @@ function registerFormRoutes(router) {
      * PRIMARY trigger's page row; a rotated link keeps it (the store carries the
      * audience over). Answers with the owner's view of the audience.
      */
-    router.put('/forms/:automationId/audience', validate({ body: AudienceBody }), async (req, res) => {
+    router.put('/forms/:automationId/audience', validate({ body: AudienceBody }), async (/** @type {import('express').Request<{ automationId: string }, any, import('zod').infer<typeof AudienceBody>, import('qs').ParsedQs>} */ req, res) => {
         const a = await automationStore.getAutomation(req.params.automationId);
         if (!a) return res.status(404).json({ error: 'Not found' });
         if (!await automationAccess.guard(req, res, a, 'edit')) return;

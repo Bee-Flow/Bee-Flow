@@ -20,7 +20,7 @@ const { z } = require('../../utils/zod');
 const NoQuery = z.object({}).strict();
 const exportRegistry = require('../../compliance/dataPortability/exportRegistry');
 
-router.get('/portability', requireAuth, requirePermission('admin_compliance'), validate({ query: NoQuery }), async (req, res) => {
+router.get('/portability', requireAuth, requirePermission('admin_compliance'), validate({ query: NoQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
     const orgId = await resolveOrgId(req);
     const matrix = await exportRegistry.coverageMatrix(orgId);
     res.json(matrix);

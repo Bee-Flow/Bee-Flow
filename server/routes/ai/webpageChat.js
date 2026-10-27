@@ -51,7 +51,7 @@ const { WebpageTurnBody } = require('./directChat/turnSchema');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
 const { sessionUser } = require('../../core/http/sessionUser');
 
-router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBody }), async (req, res) => {
+router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof WebpageTurnBody>, import('qs').ParsedQs>} */ req, res) => {
     const {
         message, webpageId, history, modelTier, timezone, attachments,
         htmlContent, cssContent, jsContent, webpageSelection,

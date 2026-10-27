@@ -102,7 +102,7 @@ router.get('/trial-config', async (req, res) => {
 });
 
 // PUT /api/subscriptions/trial-config — pick the default trial plans (org + consumer)
-router.put('/trial-config', validate({ body: TrialConfigBody }), async (req, res) => {
+router.put('/trial-config', validate({ body: TrialConfigBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof TrialConfigBody>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const trialService = require('../../services/trialService');
         const payload = req.body;
@@ -161,7 +161,7 @@ router.get('/currency-rates', async (req, res) => {
 // Each value is a USD → <currency> multiplier. Persists via configStore
 // and audits the diff. Also clears the PAYG resolver cache so the next AI
 // call sees the new rate immediately rather than after the 60s TTL.
-router.put('/currency-rates', validate({ body: CurrencyRatesBody }), async (req, res) => {
+router.put('/currency-rates', validate({ body: CurrencyRatesBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CurrencyRatesBody>, import('qs').ParsedQs>} */ req, res) => {
     try {
         const currency = require('../../core/text/currency');
         const before = await currency.getAllConfiguredRates();

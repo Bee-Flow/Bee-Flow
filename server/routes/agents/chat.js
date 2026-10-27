@@ -244,7 +244,7 @@ function anonymousOutsideEmbed(agent, req) {
 // ============ Chat ============
 
 // Chat with agent
-router.post('/:id/chat', validate({ body: PlainTurnBody }), async (req, res) => {
+router.post('/:id/chat', validate({ body: PlainTurnBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof PlainTurnBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = getEffectiveUserId(req);
     const { message } = req.body;
 
@@ -370,7 +370,7 @@ async function embedComplianceNotice(agent) {
 const checkSubscriptionLimits = checkSubLimits;
 
 // Streaming chat with agent (SSE)
-router.post('/:id/chat/stream', streamLimiter, validate({ body: TurnBody }), async (req, res) => {
+router.post('/:id/chat/stream', streamLimiter, validate({ body: TurnBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof TurnBody>, import('qs').ParsedQs>} */ req, res) => {
     const agent = await agentStore.getAgent(req.params.id);
 
     if (!agent) {

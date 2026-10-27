@@ -53,7 +53,7 @@ const SitemapBody = z.preprocess((v) => (v === undefined || v === null ? {} : v)
 /**
  * Ingest all pages from a website sitemap into a KB
  */
-router.post('/:id/ingest/sitemap', requireAuth, requirePermission('manage_knowledge'), validate({ body: SitemapBody }), async (req, res) => {
+router.post('/:id/ingest/sitemap', requireAuth, requirePermission('manage_knowledge'), validate({ body: SitemapBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof SitemapBody>, import('qs').ParsedQs>} */ req, res) => {
     const kb = await kbStore.getKB(req.params.id);
     if (!kb) return res.status(404).json({ error: 'KB not found' });
     if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });

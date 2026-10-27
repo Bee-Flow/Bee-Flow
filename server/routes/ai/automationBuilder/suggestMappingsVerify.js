@@ -20,7 +20,7 @@
  *
  * Pure: no model, no request, no logging.
  */
-
+// @typecheck
 'use strict';
 
 const {
@@ -661,7 +661,7 @@ module.exports = {
 };
 
 /**
- * @typedef {import('../../../shared/expr/path.mjs').PathToken} PathToken
+ * @typedef {Expr.PathToken} PathToken
  * @typedef {{ root: string, rootTokens: PathToken[], label?: string, real?: boolean, sample: unknown }} MappingSource
  *   one offered source: its root path as the editor spells it, parsed, and its sample
  * @typedef {{ key: string, type?: string | string[], format?: string, enum?: unknown[] }} MappingParam  an input to fill (JSON-schema-ish)

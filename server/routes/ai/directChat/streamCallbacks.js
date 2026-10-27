@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Direct Chat — the two adapter stream callbacks of a turn.
  *
@@ -174,8 +174,8 @@ function createStreamCallbacks(turn) {
         // Image persistence policy stays at this call site: only the
         // primary stream saves generated images (the follow-up stream
         // historically dropped image events).
-        onImage: (data) => persistStreamedImage(turn, data),
-        onUsage: (data) => {
+        onImage: (/** @type {import("./toolExec").StreamEventData & { data?: string; mimeType?: string; }} */ data) => persistStreamedImage(turn, data),
+        onUsage: (/** @type {import("../../../core/providers/usageNormalizer").RawUsage & { stop_reason?: string; }} */ data) => {
             turn.streamUsage = data;
             // llama-server's own numbers: cache_n/prompt_n is the prefix-cache
             // hit rate for THIS request — the measurement the whole prompt

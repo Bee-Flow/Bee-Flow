@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Ticket ↔ YouTrack issue links: the handler bodies of the connection,
  * search and link routes. The route table and the request schemas stay in

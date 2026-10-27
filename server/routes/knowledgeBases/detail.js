@@ -110,7 +110,7 @@ const assertKbDeletable = (/** @type {string} */ kbId) => (typeof kbStore.assert
 /**
  * Get a single KB with documents
  */
-router.get('/:id', requireAuth, validate({ query: NoQuery }), async (req, res) => {
+router.get('/:id', requireAuth, validate({ query: NoQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
     const kb = await kbStore.getKB(req.params.id);
     if (!kb) return res.status(404).json({ error: 'KB not found' });
     if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
@@ -153,7 +153,7 @@ router.get('/:id', requireAuth, validate({ query: NoQuery }), async (req, res) =
 /**
  * Update KB metadata
  */
-router.patch('/:id', requireAuth, requirePermission('manage_knowledge'), validate({ body: UpdateKbBody }), async (req, res) => {
+router.patch('/:id', requireAuth, requirePermission('manage_knowledge'), validate({ body: UpdateKbBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof UpdateKbBody>, import('qs').ParsedQs>} */ req, res) => {
     const kb = await kbStore.getKB(req.params.id);
     if (!kb) return res.status(404).json({ error: 'KB not found' });
     if (!(await canManageKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
@@ -222,7 +222,7 @@ router.patch('/:id', requireAuth, requirePermission('manage_knowledge'), validat
  * Owner can always publish/unpublish; non-owners need same-org
  * manage_knowledge (canManageKB, BFSF-214).
  */
-router.patch('/:id/publish', requireAuth, validate({ body: PublishBody }), async (req, res) => {
+router.patch('/:id/publish', requireAuth, validate({ body: PublishBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof PublishBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = getUserId(req);
     const kb = await kbStore.getKB(req.params.id);
     if (!kb) return res.status(404).json({ error: 'KB not found' });
@@ -254,7 +254,7 @@ router.patch('/:id/publish', requireAuth, validate({ body: PublishBody }), async
 /**
  * Delete a KB (cascades documents, chunks via search-service)
  */
-router.delete('/:id', requireAuth, requirePermission('manage_knowledge'), validate({ query: DeleteQuery, body: NoBody }), async (req, res) => {
+router.delete('/:id', requireAuth, requirePermission('manage_knowledge'), validate({ query: DeleteQuery, body: NoBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NoBody>, import('zod').infer<typeof DeleteQuery>>} */ req, res) => {
     const kb = await kbStore.getKB(req.params.id);
     if (!kb) return res.status(404).json({ error: 'KB not found' });
     /**

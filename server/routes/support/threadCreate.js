@@ -177,6 +177,11 @@ function afterAiReply(result, { thread, userId, requesterEmail, requesterName, s
  * @property {SupportThread} thread
  * @property {string} requesterUrl
  * @property {string} effectiveSource
+ * @property {unknown} firstMsg
+ * @property {unknown} requesterEmail
+ * @property {unknown} requesterName
+ * @property {unknown} subject
+ * @property {unknown} skipOutboundEmail
  */
 /**
  * The confirmation mail, the staff notice, the live event and the chat fan-out for a new ticket.

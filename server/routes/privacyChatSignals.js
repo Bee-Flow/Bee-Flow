@@ -37,7 +37,7 @@ const PreferenceBody = z.object({
 
 // GET /preference: are the caller's chat turns counted? A read error reads as
 // "not counted" (the store's rule: when in doubt, do not count).
-router.get('/preference', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
+router.get('/preference', requireAuth, validate({ query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const objecting = await objections.isObjecting(sessionUser(req).id);
     res.set('Cache-Control', 'no-store');
     res.json({ counted: !objecting });
@@ -46,7 +46,7 @@ router.get('/preference', requireAuth, validate({ query: NO_QUERY }), async (req
 // PUT /preference: object (counted:false) or withdraw the objection
 // (counted:true). A failed write throws: the terminal handler answers with a
 // correlation id, and the switch in the chat says it did not save.
-router.put('/preference', requireAuth, validate({ query: NO_QUERY, body: PreferenceBody }), async (req, res) => {
+router.put('/preference', requireAuth, validate({ query: NO_QUERY, body: PreferenceBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof PreferenceBody>, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const { counted } = req.body;
     await objections.setObjecting(sessionUser(req).id, !counted);
     res.set('Cache-Control', 'no-store');

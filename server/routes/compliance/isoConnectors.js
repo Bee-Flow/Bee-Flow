@@ -105,7 +105,7 @@ router.get('/iso/connectors/:id/connections', requireAuth, requirePermission('ad
     res.json((rows || []).map(r => ({ id: r.id, label: r.label, kind: r.kind, provider: r.provider })));
 });
 
-router.put('/iso/connectors/:id', requireAuth, requirePermission('admin_compliance'), validate({ body: ConnectorConfig }), async (req, res) => {
+router.put('/iso/connectors/:id', requireAuth, requirePermission('admin_compliance'), validate({ body: ConnectorConfig }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof ConnectorConfig>, import('qs').ParsedQs>} */ req, res) => {
     const isoConnectors = require('../../compliance/connectors');
     const connector = isoConnectors.get(String(req.params.id));
     if (!connector) return res.status(404).json({ error: 'unknown connector' });
@@ -117,7 +117,7 @@ router.put('/iso/connectors/:id', requireAuth, requirePermission('admin_complian
 });
 
 // Manual sweep — the connect-flow's "test" button and the admin's refresh.
-router.post('/iso/connectors/:id/sweep', requireAuth, requirePermission('admin_compliance'), validate({ body: NoBody }), async (req, res) => {
+router.post('/iso/connectors/:id/sweep', requireAuth, requirePermission('admin_compliance'), validate({ body: NoBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
     const orgId = await resolveOrgId(req);
     const isoEvidenceStore = require('../../stores/isoEvidenceStore');
     const config = await isoEvidenceStore.getConfig(orgId, String(req.params.id));

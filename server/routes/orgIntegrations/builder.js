@@ -58,7 +58,6 @@ const { isCustomIntegrationsEnabled } = require('../../core/customIntegrations/f
 const { executeCustomIntegrationTool } = require('../../integrations/customIntegrationRunner');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
-
 const router = express.Router({ mergeParams: true });
 
 const KINDS = new Set(['rest', 'mcp_remote']);
@@ -318,7 +317,7 @@ router.get('/', async (req, res) => {
 });
 
 // Create a draft integration.
-router.post('/', validate({ body: CreateBody }), async (req, res) => {
+router.post('/', validate({ body: CreateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreateBody>, import('qs').ParsedQs>} */ req, res) => {
     const { name, kind, description } = req.body;
     const row = await store().createIntegration({
         orgId: req.params.orgId,
@@ -356,7 +355,7 @@ router.put('/:id/definition', validate({ body: DefinitionBody }), async (req, re
 });
 
 // Validate the posted definition (or the stored draft). Read-only — no audit.
-router.post('/:id/validate', validate({ body: ValidateBody }), (req, res) => {
+router.post('/:id/validate', validate({ body: ValidateBody }), (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof ValidateBody>, import('qs').ParsedQs>} */ req, res) => {
     const row = req.customIntegration;
     const def = req.body.definition || row.definition;
     const validation = validateCustomIntegration(def, {
@@ -371,7 +370,7 @@ router.post('/:id/validate', validate({ body: ValidateBody }), (req, res) => {
 // Declared fields + bound origin come from the DRAFT definition; the secret
 // is upserted into integration_connections under provider 'custom:<id>'.
 // The response and the audit row carry field NAMES only — never values.
-router.put('/:id/credentials', validate({ body: CredentialsBody }), async (req, res) => {
+router.put('/:id/credentials', validate({ body: CredentialsBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof CredentialsBody>, import('qs').ParsedQs>} */ req, res) => {
     const row = req.customIntegration;
     const spec = credentialSpecFor(row.kind, row.definition);
     if (spec.error) return res.status(400).json({ error: spec.error });
@@ -406,7 +405,7 @@ router.put('/:id/credentials', validate({ body: CredentialsBody }), async (req, 
 // definition required. The runner enforces the full security spine (org
 // match, origin pin, SSRF, method gate, schema rejection, secret scrub).
 const testCallLimiter = perUserRateLimit({ windowMs: 60_000, max: 10 });
-router.post('/:id/test-call', testCallLimiter, validate({ body: TestCallBody }), async (req, res) => {
+router.post('/:id/test-call', testCallLimiter, validate({ body: TestCallBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof TestCallBody>, import('qs').ParsedQs>} */ req, res) => {
     // Kill-switch re-check: mount-level gate already 404s, but this is the
     // one endpoint that fires real credentialed HTTP calls — re-assert.
     if (!(await isCustomIntegrationsEnabled())) {
@@ -503,7 +502,7 @@ router.post('/:id/activate', validate({ body: ActivateBody }), async (req, res) 
 });
 
 // Deactivate: disable, drop the org capability, best-effort revoke org grants.
-router.post('/:id/deactivate', validate({ body: NoBody }), async (req, res) => {
+router.post('/:id/deactivate', validate({ body: NoBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
     const row = req.customIntegration;
     await store().deactivate(row.id);
     await setOrgCapability(req.params.orgId, row.id, false);
@@ -528,7 +527,7 @@ router.post('/:id/deactivate', validate({ body: NoBody }), async (req, res) => {
 
 // Re-discover remote MCP tools into the DRAFT definition (bumps the version —
 // re-activation required by design; the live activated cache never mutates).
-router.post('/:id/refresh-tools', validate({ body: NoBody }), async (req, res) => {
+router.post('/:id/refresh-tools', validate({ body: NoBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
     const row = req.customIntegration;
     if (row.kind !== 'mcp_remote') {
         return res.status(409).json({ error: 'Tool refresh only applies to mcp_remote integrations.' });
@@ -599,14 +598,15 @@ router.get('/:id/session', async (req, res) => {
     res.json({ session: session ?? null });
 });
 
-module.exports = router;
 // Pure helpers (unit-tested in builder.test.js).
-module.exports.credentialSpecFor = credentialSpecFor;
-module.exports.checkCredentialValues = checkCredentialValues;
-module.exports.safeToolName = safeToolName;
-module.exports.dedupeToolName = dedupeToolName;
-module.exports.buildMcpToolsCache = buildMcpToolsCache;
-module.exports._internals = { KINDS, TOOL_NAME_RE, MAX_TOOL_NAME_CHARS, MAX_CREDENTIAL_VALUE_CHARS };
+module.exports = Object.assign(router, {
+    credentialSpecFor,
+    checkCredentialValues,
+    safeToolName,
+    dedupeToolName,
+    buildMcpToolsCache,
+    _internals: { KINDS, TOOL_NAME_RE, MAX_TOOL_NAME_CHARS, MAX_CREDENTIAL_VALUE_CHARS },
+});
 
 /** @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/orgCustomIntegrationStore').getById>>>} IntegrationRow */
 

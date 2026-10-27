@@ -128,7 +128,7 @@ function makeResourcesRouter(deps) {
      * enforced by the stores (each setter matches on user_id), so a member cannot
      * pull a colleague's notebook into a project, and cannot push one out either.
      */
-    router.put('/:id/resources', requireRole('editor'), validate({ body: S.ResourceBody }), async (req, res) => {
+    router.put('/:id/resources', requireRole('editor'), validate({ body: S.ResourceBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof S.ResourceBody>, import('qs').ParsedQs>} */ req, res) => {
         try {
             const userId = getUserId(req);
             const { kind, id, attach = true } = req.body || {};
@@ -188,7 +188,7 @@ function makeResourcesRouter(deps) {
      * long; it changes nothing. Editor, like the PUT it prepares: the answer names
      * parts of the caller only, but it is only worth asking by someone who can add.
      */
-    router.post('/:id/resources/related', requireRole('editor'), validate({ body: S.RelatedBody }), async (req, res) => {
+    router.post('/:id/resources/related', requireRole('editor'), validate({ body: S.RelatedBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof S.RelatedBody>, import('qs').ParsedQs>} */ req, res) => {
         const project = await projectStore.getProject(req.params.id);
         if (!project) throw notFound();
         for (const { kind } of req.body.items) {

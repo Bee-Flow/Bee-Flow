@@ -38,7 +38,7 @@ const GenerateRegexBody = z.preprocess((v) => (v === undefined || v === null ? {
 }).strict());
 
 // ─── AI Regex Generator ──────────────────────────────────────────
-router.post('/generate-regex', requireAuth, requireAdmin, validate({ body: GenerateRegexBody }), async (req, res) => {
+router.post('/generate-regex', requireAuth, requireAdmin, validate({ body: GenerateRegexBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof GenerateRegexBody>, import('qs').ParsedQs>} */ req, res) => {
     const { prompt, modelTier } = req.body;
 
     // Resolve model from tier config (same system as direct chat)

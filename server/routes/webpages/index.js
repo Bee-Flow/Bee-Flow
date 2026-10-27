@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Webpage Routes — CRUD for webpages + source management + versions.
  *
@@ -84,17 +85,17 @@ router.use(require('../webpagesAudience'));
 // survives no place between the CRUD routes.
 router.use(require('../webpagesUsage'));
 
-require('./crud').register(router, deps);
+require('./crud').register(router);
 require('./publishing').register(router, deps);
 require('./publicShares').register(router, deps);
 require('./files').register(router, deps);
-require('./previewToken').register(router, deps);
+require('./previewToken').register(router);
 require('./draftDocument').register(router, deps);
 require('./pageDatabase').register(router, deps);
 require('./chat').register(router, deps);
 require('./lifecycle').register(router, deps);
 require('./sources').register(router, deps);
-require('./versions').register(router, deps);
+require('./versions').register(router);
 
 module.exports = router;
 

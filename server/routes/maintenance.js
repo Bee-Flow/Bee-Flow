@@ -122,7 +122,7 @@ router.post('/announce', _requireDeployToken, validate({ body: AnnounceBody }), 
 });
 
 // POST /clear — rollout finished ahead of its ETA.
-router.post('/clear', _requireDeployToken, validate({ body: NoBody }), async (req, res) => {
+router.post('/clear', _requireDeployToken, validate({ body: NoBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
     await maintenanceWindow.clear();
     res.json({ success: true });
 });

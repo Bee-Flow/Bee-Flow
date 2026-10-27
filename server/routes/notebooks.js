@@ -133,7 +133,7 @@ router.use(requirePermission('use_notebooks'));
 
 // ── Notebook CRUD ──────────────────────────────────────────────────
 
-router.post('/', requireAuth, validate({ body: CreateBody }), async (req, res) => {
+router.post('/', requireAuth, validate({ body: CreateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreateBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = req.session.user.id;
     const { name, description, instructions } = req.body;
     // Stamped at birth: without it the row stayed org-less until the next

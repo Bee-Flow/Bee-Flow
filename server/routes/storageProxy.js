@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Storage Proxy — Auth-protected file streaming from RustFS
  *
@@ -37,7 +38,7 @@ const storageStore = require('../stores/storageStore');
 const { hasTraversal, verifyTempSignature } = require('../utils/tempDownloadUrl');
 
 // GET /api/storage/tmp/:token — unauthenticated, HMAC-verified temp download
-router.get('/tmp/:token', async (req, res) => {
+router.get('/tmp/:token', async (/** @type {import('express').Request<{ token: string }, any, any, { key?: string, expires?: string }>} */ req, res) => {
     try {
         const { token } = req.params;
         const key = req.query.key;

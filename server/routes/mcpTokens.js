@@ -90,7 +90,7 @@ const callerOf = (req) => {
 };
 
 /** The caller's tokens, and whether they also hold the legacy one. Never a secret. */
-router.get('/', validate({ query: NO_QUERY }), async (req, res) => {
+router.get('/', validate({ query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
     const user = callerOf(req);
     const tokens = (await listTokens(user.id)).map(({ id, name, scopes, ipAllowlist, expiresAt, lastUsedAt, createdAt, revokedAt, disabledAt, enabled }) => ({
         id, name, scopes, ipAllowlist, expiresAt, lastUsedAt, createdAt, revokedAt, disabledAt, enabled,
@@ -108,7 +108,7 @@ router.get('/', validate({ query: NO_QUERY }), async (req, res) => {
     });
 });
 
-router.post('/', validate({ body: CreateBody }), async (req, res) => {
+router.post('/', validate({ body: CreateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreateBody>, import('qs').ParsedQs>} */ req, res) => {
     const user = callerOf(req);
     // The org the token is minted for: the home org, else the org a group grants
     // (a member can have no home org). Read fresh: the session copy has no groups.
@@ -148,7 +148,7 @@ router.post('/', validate({ body: CreateBody }), async (req, res) => {
     res.status(201).json({ token, record });
 });
 
-router.patch('/:id', validate({ params: IdParams, body: PatchBody }), async (req, res) => {
+router.patch('/:id', validate({ params: IdParams, body: PatchBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof PatchBody>, import('qs').ParsedQs>} */ req, res) => {
     const user = callerOf(req);
     const record = await setTokenEnabled(user.id, req.params.id, req.body.enabled);
     if (!record) throw notFound('token_not_found', 'No such token.');
@@ -173,5 +173,6 @@ router.delete('/:id', validate({ params: IdParams }), async (req, res) => {
     res.status(204).end();
 });
 
-module.exports = router;
-module.exports._test = { setEligibility(fn) { eligibilityOverride = fn || null; } };
+module.exports = Object.assign(router, {
+    _test: { setEligibility(fn) { eligibilityOverride = fn || null; } },
+});

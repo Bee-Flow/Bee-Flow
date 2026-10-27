@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The datatable side of one builder chat turn: how the turn is set up so the
  * assistant can stage a new table in a preview (or create it in a direct

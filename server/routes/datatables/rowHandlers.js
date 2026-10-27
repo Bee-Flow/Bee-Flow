@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The rows themselves: the handler bodies of read a page, read one, add,
  * edit, delete one and delete a selection. The route table and the request
@@ -257,7 +257,7 @@ async function bulkDelete(req, res) {
     const statements = ids.map(id => queryCompiler.compileDelete(meta, id, filter, PG));
     const results = await datatableDbStore.batch(req.datatableScopeKey, req.datatableScopeKey,
         statements.map(c => ({ sql: c.sql, params: c.params })));
-    const deleted = results.reduce((n, r) => n + (Number(r?.changes) || 0), 0);
+    const deleted = results.reduce((/** @type {number} */ n, /** @type {{ changes: unknown; }} */ r) => n + (Number(r?.changes) || 0), 0);
     // Same rule as the single delete: the counter moves by what really went,
     // never by what was asked, or N deletes of nothing walk it to 0.
     if (deleted > 0) await datatableStore.bumpAfterWrite(req.datatable.id, req.datatableScope, -deleted);

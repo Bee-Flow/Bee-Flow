@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Agent Favorites Routes
  *
@@ -60,7 +61,7 @@ router.delete('/:id/favorite', async (req, res) => {
 // this an attacker could favourite (and later enumerate via GET /favorites)
 // arbitrary agent IDs they have no business seeing.
 const MAX_BULK_FAVORITES = 200;
-router.post('/favorites/bulk', validate({ body: BulkFavoritesBody }), async (req, res) => {
+router.post('/favorites/bulk', validate({ body: BulkFavoritesBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof BulkFavoritesBody>, import('qs').ParsedQs>} */ req, res) => {
     const userId = requireUser(req, res);
     if (!userId) return;
     const { agentIds } = req.body;
