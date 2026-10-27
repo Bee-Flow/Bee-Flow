@@ -77,7 +77,8 @@ const TabRenameBody = bodyOf({
  */
 function asHttp(e) {
     if (!e || e instanceof HttpError || !(Number(e.status) >= 400 && Number(e.status) < 500)) return e;
-    const code = e.errorClass || (typeof e.code === 'string' ? e.code : 'sheet_refused');
+    // A storage limit keeps its frozen code (core/dataEngine/datatableLimits).
+    const code = e.code === 'quota_exceeded' ? e.code : (e.errorClass || (typeof e.code === 'string' ? e.code : 'sheet_refused'));
     return new HttpError(Number(e.status), code, e.message);
 }
 
@@ -96,19 +97,90 @@ function fileNameOf(name) {
  * @param {any} cellsApi  core/documents/sheetCells
  * @param {any} doc
  * @param {string} userId
+ * @param {string[]} [made]  collects every table made, also when a later tab fails, so the caller can give them back
  * @returns {Promise<{ newTabs: { id: string, name: string, datatableId: string }[], tabIds: Map<string, string> }>}  tabIds: old tab id → the copy's
  */
-async function copyTabs(cellsApi, doc, userId) {
+async function copyTabs(cellsApi, doc, userId, made = []) {
     const newTabs = [];
     const tabIds = new Map();
     for (const t of sheetTabsOf(doc)) {
         const table = await cellsApi.createSheetTable({ ownerUserId: userId, name: `${t.name} — copy` });
+        made.push(table.id);
         await cellsApi.copyCells(doc.userId, t.datatableId, table.id, userId);
         const id = newTabId();
         tabIds.set(t.id, id);
         newTabs.push({ id, name: t.name, datatableId: table.id });
     }
     return { newTabs, tabIds };
+}
+
+/**
+ * Name a new tab's table in the document's tab list. A document that refuses
+ * it (a conflict, gone meanwhile) takes the new, empty table with it: no
+ * document points at it, so nothing else would give it back.
+ * @param {any} cellsApi  core/documents/sheetCells
+ * @param {any} documentsApi  stores/documentStore
+ * @param {any} doc
+ * @param {{ userId: string }} ctx
+ * @param {{ id: string, name: string, datatableId: string }[]} nextTabs
+ * @param {string} tableId
+ */
+async function attachTab(cellsApi, documentsApi, doc, ctx, nextTabs, tableId) {
+    const giveBack = () => cellsApi.dropSheetTable(doc.userId, tableId).catch((/** @type {unknown} */ e) => bestEffort('routes/studioDocuments/sheet:addTab', e));
+    let updated;
+    try {
+        updated = await documentsApi.updateDocument(doc.id, ctx, { settings: settingsWithTabs(doc.settings, nextTabs), expectedVersionId: doc.versionId });
+    } catch (e) {
+        await giveBack();
+        throw e;
+    }
+    if (!updated) {
+        await giveBack();
+        throw notFound('sheet_not_found', 'Spreadsheet not found');
+    }
+}
+
+/**
+ * A copy of `doc` owned by `userId`: every tab in a new table of theirs, the
+ * cells and charts carried over. A copy that cannot finish (the tab cap
+ * half-way, a read error, a refused save) gives back the tables no document
+ * points at, so the failure does not count against the owner.
+ * @param {any} cellsApi  core/documents/sheetCells
+ * @param {any} documentsApi  stores/documentStore
+ * @param {any} doc
+ * @param {string} userId
+ * @param {string} name
+ * @param {{ userId: string }} ctx
+ */
+async function copySheet(cellsApi, documentsApi, doc, userId, name, ctx) {
+    /** @type {string[]} */
+    const made = [];
+    try {
+        const { newTabs, tabIds } = await copyTabs(cellsApi, doc, userId, made);
+        const charts = copiedCharts(doc.settings?.sheet?.charts, tabIds);
+        const copy = await documentsApi.createDocument({
+            userId, name, docType: 'spreadsheet', kind: 'document', visibility: 'private', folderId: null,
+            sheetTableId: newTabs[0].datatableId,
+        });
+        // The copy owns its first tab's table from here on.
+        made.splice(made.indexOf(newTabs[0].datatableId), 1);
+        let updated = null;
+        if (newTabs.length > 1 || charts.length) {
+            const settings = settingsWithTabs(copy.settings, newTabs);
+            updated = await documentsApi.updateDocument(copy.id, ctx, {
+                settings: { ...settings, sheet: { ...settings.sheet, ...(charts.length ? { charts } : {}) } },
+                expectedVersionId: copy.versionId,
+            });
+        }
+        made.length = 0;
+        // The copy as stored now: its tabs, its charts and the version after that save.
+        return updated || copy;
+    } catch (e) {
+        for (const id of made) {
+            await cellsApi.dropSheetTable(userId, id).catch((/** @type {unknown} */ err) => bestEffort('routes/studioDocuments/sheet:duplicateSheet', err));
+        }
+        throw e;
+    }
 }
 
 /**
@@ -243,11 +315,7 @@ function makeSheetRouter(deps = {}) {
         const table = await cells().createSheetTable({ ownerUserId: doc.userId, name });
         const tab = { id: newTabId(), name, datatableId: table.id };
         const nextTabs = [...tabs, tab];
-        const updated = await documents().updateDocument(doc.id, actorContext(req), {
-            settings: settingsWithTabs(doc.settings, nextTabs),
-            expectedVersionId: doc.versionId,
-        });
-        if (!updated) throw notFound('sheet_not_found', 'Spreadsheet not found');
+        await attachTab(cells(), documents(), doc, actorContext(req), nextTabs, table.id);
         res.status(201).json({ tab, tabs: nextTabs });
     }));
 
@@ -306,22 +374,7 @@ function makeSheetRouter(deps = {}) {
         });
         const name = (req.body?.name || `${doc.name} — copy`).slice(0, 200);
         try {
-            const { newTabs, tabIds } = await copyTabs(cells(), doc, req.session.user.id);
-            const charts = copiedCharts(doc.settings?.sheet?.charts, tabIds);
-            const copy = await documents().createDocument({
-                userId: req.session.user.id, name, docType: 'spreadsheet', kind: 'document', visibility: 'private', folderId: null,
-                sheetTableId: newTabs[0].datatableId,
-            });
-            let updated = null;
-            if (newTabs.length > 1 || charts.length) {
-                const settings = settingsWithTabs(copy.settings, newTabs);
-                updated = await documents().updateDocument(copy.id, actorContext(req), {
-                    settings: { ...settings, sheet: { ...settings.sheet, ...(charts.length ? { charts } : {}) } },
-                    expectedVersionId: copy.versionId,
-                });
-            }
-            // The copy as stored now: its tabs, its charts and the version after that save.
-            res.status(201).json({ document: updated || copy });
+            res.status(201).json({ document: await copySheet(cells(), documents(), doc, req.session.user.id, name, actorContext(req)) });
         } catch (e) { throw asHttp(e); }
     }
 
