@@ -1,3 +1,4 @@
+// @typecheck
 const { chartFromAny, statsFromAny, stepsFromAny } = require('./deckChart');
 const { normaliseIconName } = require('./deckIcons');
 const { MAX_CARDS, stripInlineMarkdown, classifyImageRef } = require('./deckBase');

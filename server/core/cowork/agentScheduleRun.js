@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A Cowork schedule run AS ITS AGENT (executeTask in core/aiTaskRunner.js
  * hands it here): dispatch through the full agent runtime so the agent's

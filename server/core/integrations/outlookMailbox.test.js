@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * The one rule for "which Outlook mailbox": the address check, the Graph path
  * for "me" vs a shared mailbox, the scope check and the error wording that

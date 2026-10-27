@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Make a MANAGED datatable (dataModel/managedTables.js): the metadata row, the
  * scope model and the CREATE TABLE, in one transaction.
@@ -30,9 +31,9 @@ const PG = Object.freeze({ dialect: 'pg' });
 
 /**
  * @param {object} o
- * @param {{ kind: string, id: string }} o.scope   an authorised scope (orgScope/userScope)
+ * @param {import('../../stores/datatableStore/scope').DatatableScope} o.scope   an authorised scope (orgScope/userScope)
  * @param {string} o.ownerUserId
- * @param {object} o.spec                          managedKindSpec(kind)
+ * @param {ReturnType<typeof import('./dataModel/managedTables').managedKindSpec>} o.spec  managedKindSpec(kind)
  * @param {string} o.key
  * @param {string} o.name
  * @param {string} o.description                   the Art. 30 purpose

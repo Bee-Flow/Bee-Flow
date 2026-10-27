@@ -23,7 +23,7 @@
  *     (literal + base64/base64url + urlencoded forms) via the canonical
  *     scrubber in customIntegrationRunner.
  */
-
+// @typecheck
 const ssrfGuard = require('./ssrfGuard');
 // The secret scrubber lives in the feature's runner; looked up on use
 // (core/featureModules.js), which also keeps the cycle with the runner lazy.
@@ -272,11 +272,10 @@ async function resolveCredential(integration, mcp, userId) {
     const conn = await integrationConnectionStore.getConnectionWithSecret(resolution.connectionId);
     if (!conn) throw new Error('Connection not found.');
 
-    const connOrgId = conn.orgId !== undefined ? conn.orgId : conn.org_id;
-    if (connOrgId !== orgId) {
+    if (conn.orgId !== orgId) {
         throw new Error('Connection is not available for this integration.');
     }
-    const meta = conn.secretMeta || conn.secret_meta || {};
+    const meta = conn.secretMeta || {};
     if (meta.boundOrigin !== new URL(mcp.url).origin) {
         throw new Error('Connection is bound to a different endpoint. Reconnect the integration.');
     }

@@ -1,3 +1,4 @@
+// @typecheck
 const { DEFAULT_ROW_LIMIT, MAX_ROW_LIMIT, MAX_QUERY_FILTERS, fieldMapOf } = require('./datatableToolDefs');
 
 /** Characters of one cell the model is shown. A note field can be a novel. */

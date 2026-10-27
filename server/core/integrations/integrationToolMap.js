@@ -15,7 +15,7 @@
  * for server endpoints, data categories, and direction.
  * New integrations and MCP servers are detected automatically.
  */
-
+// @typecheck
 // ── Prefix → Integration metadata (auto-detection) ──────────────────
 // When a tool's prefix matches one of these, it's automatically logged
 // as an integration tool. New integrations just need a prefix entry here.

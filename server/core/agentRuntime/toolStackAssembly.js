@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Streaming agent chat — per-turn tool stack assembly.
  *

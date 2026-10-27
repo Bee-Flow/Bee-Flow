@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Every place a Solution part points at another part, in ONE list.
  *
@@ -39,7 +40,6 @@
  */
 
 'use strict';
-
 const { walkAllSteps } = require('./walkers');
 
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
@@ -202,7 +202,7 @@ function visitSkill(payload, fn) {
 
 const VISITORS = { automation: visitAutomation, app: visitApp, webpage: visitWebpage, agent: visitAgent, skill: visitSkill };
 
-/** Call `fn(ptr)` for every pointer location in `payload`. Unknown holder → nothing. */
+/** Call `fn(ptr)` for every pointer location in `payload`. Unknown holder → nothing. @type {(holderKind: string, payload: unknown, fn: PointerVisitor) => void} */
 function visitPointers(holderKind, payload, fn) {
     const visit = VISITORS[holderKind];
     if (!visit || !isObject(payload)) return;

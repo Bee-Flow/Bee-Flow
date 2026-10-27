@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Mid-loop tool refresh — what happens when the model activates a skill.
  *

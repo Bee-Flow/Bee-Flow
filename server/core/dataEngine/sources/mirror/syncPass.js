@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * The steps of ONE FULL PASS over a mirror, for ./syncPipeline.js (which
  * documents the order — it is the correctness — and the adapter contract).
@@ -154,7 +154,7 @@ async function snapshotCopy(withAccess, scopeKey, warnings) {
         // snapshot would sweep live rows — so no deletions this pass.
         warnings.push('The copy holds more rows than one pass can read; nothing was deleted.');
     }
-    return { snapshot: new Set((snap.rows || []).map(r => String(r.id))), snapTruncated: !!snap.truncated };
+    return { snapshot: new Set((snap.rows || []).map((/** @type {Record<string, unknown>} */ r) => String(r.id))), snapTruncated: !!snap.truncated };
 }
 
 /**

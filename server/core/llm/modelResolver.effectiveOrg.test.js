@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * DB-free unit test for resolveEffectiveOrgId (M2a) — the getAllGroups killer.
  *

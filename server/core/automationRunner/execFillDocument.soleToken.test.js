@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * "A value that is exactly one `{{path}}` keeps its real type" — the rule
  * fill_document and the presentation steps share — read with the runner's

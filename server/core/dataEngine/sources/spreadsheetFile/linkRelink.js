@@ -1,3 +1,4 @@
+// @typecheck
 const datatableStore = require('../../../../stores/datatableStore');
 const { perUserRateLimit } = require('../../../../utils/perUserRateLimit');
 const reading = require('./reading');
@@ -18,15 +19,14 @@ const storageLimiter = perUserRateLimit({ windowMs: 60_000, max: 30 });
  */
 function spendStorageBudget(principal) {
     const userId = (principal && principal.userId) || null;
-    return new Promise((resolve, reject) => {
+    return /** @type {Promise<void>} */ (new Promise((resolve, reject) => {
         const req = { session: { user: { id: userId } }, ip: 'engine' };
         let retryAfter = 60;
         const res = {
             set: (name, value) => { if (String(name).toLowerCase() === 'retry-after') retryAfter = Number(value) || retryAfter; return res; },
             status: () => res,
             json: (body) => {
-                const e = rejected(429, 'rate_limited', (body && body.error) || 'Too many storage calls — try again in a minute.');
-                e.retryAfter = retryAfter;
+                const e = Object.assign(rejected(429, 'rate_limited', (body && body.error) || 'Too many storage calls — try again in a minute.'), { retryAfter });
                 reject(e);
                 return res;
             },
@@ -36,7 +36,7 @@ function spendStorageBudget(principal) {
         } catch (e) {
             reject(e);
         }
-    });
+    }));
 }
 
 /** The tab the request names, or the first visible one; a csv has exactly one. */

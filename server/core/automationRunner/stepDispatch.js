@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Step dispatch for one run (moved verbatim out of execution.js's
  * executeAutomation).
@@ -318,7 +319,7 @@ module.exports = { disabledPassThroughBranch, makeStepDispatcher };
 /**
  * The run context a step is dispatched with, as far as dispatch reads it.
  * @typedef {{ runId?: string, stepRecord?: { prefix?: string, parentStepId?: string|null, suppress?: boolean },
- *   _bindingMisses?: Parameters<typeof noteStepBindingMisses>[0]['ctx']['_bindingMisses'] }} DispatchCtx
+ *   _bindingMisses?: import('./bindingMisses').RunBindingMiss[] }} DispatchCtx
  */
 
 /** @typedef {import('../automationModel/bind').BindRunState} BindRunState */

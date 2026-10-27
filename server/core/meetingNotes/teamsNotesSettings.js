@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Microsoft Teams → Meeting Notes settings (org + user dual scope).
  *
@@ -116,14 +116,18 @@ function asLookback(v) {
 async function resolveTeamsNotesSettings({ orgId = null, userId = null } = {}) {
     const org = orgId ? await deps.configStore.getConfig(orgKey(orgId)).catch((e) => fallback('core/meetingNotes/teamsNotesSettings:resolveTeamsNotesSettings', e, null)) : null;
     const user = userId ? await deps.configStore.getConfig(userKey(userId)).catch((e) => fallback('core/meetingNotes/teamsNotesSettings:resolveTeamsNotesSettings#2', e, null)) : null;
+    /** @type {Readonly<Record<string, unknown>>} */
+    const defaultsByKey = DEFAULTS;
     /**
+     * @param {Record<string, unknown> | null | undefined} doc
      * @param {string} k
      */
-    const has = (doc, k) => doc && k in doc && doc[k] !== null && doc[k] !== undefined;
+    const has = (doc, k) => !!doc && k in doc && doc[k] !== null && doc[k] !== undefined;
     /**
      * @param {string} k
+     * @returns {unknown}
      */
-    const pick = (k) => has(org, k) ? org[k] : has(user, k) ? user[k] : DEFAULTS[k];
+    const pick = (k) => has(org, k) ? org[k] : has(user, k) ? user[k] : defaultsByKey[k];
     return {
         autoImport: !!pick('autoImport'),
         autoRecordConfig: !!pick('autoRecordConfig'),

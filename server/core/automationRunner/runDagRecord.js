@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Live dispatch of one step for the DAG walker (runDag.js): the 'running'
  * row, the call into dispatchStep, native error-edge routing of a failure,
@@ -273,6 +274,13 @@ module.exports = { dispatchLiveStep };
 /**
  * A step of the definition as the walker sees it.
  * @typedef {{ id?: string, type?: string, tool?: string, defaultBranch?: string, [key: string]: unknown }} DagStep
+ */
+
+/**
+ * The run context the walker records steps with, as far as it reads it.
+ * @typedef {{ runId?: string, stepRecord?: { prefix?: string, parentStepId?: string | null, suppress?: boolean },
+ *   emitLifecycle?: (event: string, payload: Record<string, unknown>) => void,
+ *   runPolicy?: { retry?: { then?: string } } | null, builderRun?: boolean, [key: string]: unknown }} DagCtx
  */
 
 /**

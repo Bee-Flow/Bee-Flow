@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ncScopeGuard — server-side enforcement of the per-user Nextcloud scope.
  *
@@ -224,7 +225,7 @@ module.exports = {
 
 /**
  * @typedef {'allow' | 'filter' | 'navigate' | 'mail' | 'deny' | { args: string[], allowMissing: boolean }} ToolPolicy  a keyword, or the arguments to check
- * @typedef {Awaited<ReturnType<typeof resolveNcScope>>} EffectiveScope
+ * @typedef {Awaited<ReturnType<typeof import('./ncScope').resolveNcScope>>} EffectiveScope
  * @typedef {EffectiveScope[string]} ScopeEntry
  * @typedef {{ userId?: string | null, orgId?: string | null, agentId?: string | null }} ScopeIds
  * @typedef {{ at: number, mailbox: Set<string>, message: Set<string> }} MailMemo

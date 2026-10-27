@@ -148,7 +148,7 @@ async function uploadMedia(bytes, ext, auth) {
  * biometric templates; even an error path must not spill them.
  *
  * @param {string} pathname  '/diarize' | '/identify' | '/voiceprint'
- * @param {object} body
+ * @param {unknown} body
  * @param {{base: string, headers: object}} auth
  * @returns {Promise<string>} jobId
  */

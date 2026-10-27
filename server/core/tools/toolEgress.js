@@ -31,7 +31,24 @@ function defaultLogToolEgress(o) {
     return require('../integrations/integrationLogging').logToolEgress(o);
 }
 
-/** Row ids from the dispatch context, overridden by what the caller states. */
+/**
+ * The part of the dispatch context the egress row reads.
+ * @typedef {object} ToolEgressContext
+ * @property {false | { source?: string, model?: string | null, isDryRun?: boolean, ids?: Record<string, unknown> }} [egress]  `false`: not a transfer anyone asked for
+ * @property {string | null} [askerUserId]
+ * @property {string | null} [userId]
+ * @property {string | null} [orgId]
+ * @property {string | null} [agentId]
+ * @property {string | null} [conversationId]
+ * @property {string | null} [automationId]
+ * @property {Express.Session | null} [session]
+ */
+
+/**
+ * Row ids from the dispatch context, overridden by what the caller states.
+ * @param {ToolEgressContext} context
+ * @param {Record<string, unknown>} [stated]
+ */
 function idsFrom(context, stated) {
     const asker = context.askerUserId || context.userId || null;
     const acting = context.askerUserId && context.userId && context.askerUserId !== context.userId
@@ -59,6 +76,11 @@ function createEgressChokepoint(dispatch, deps = {}) {
     // stub without currentProbe means "capture is not in play here".
     const probeApi = () => deps.probeApi || require('../http/outboundProbe');
 
+    /**
+     * @param {string} toolName
+     * @param {unknown} toolArgs
+     * @param {ToolEgressContext} [context]
+     */
     return async function executeTool(toolName, toolArgs, context = {}) {
         const ctx = context || {};
         const api = probeApi();

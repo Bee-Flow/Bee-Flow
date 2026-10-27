@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * What a run says about mappings that found nothing.
  *
@@ -23,8 +24,13 @@ const { describeBindingMiss } = require('../automationModel/bind');
 const MAX_RUN_MISSES = 200;
 const SUMMARY_NAMED = 2;
 
+/** @typedef {import('../automationModel/bind').BindingMiss} BindingMiss */
+/** @typedef {import('../automationModel/bind').BindRunState} BindRunState */
+/** @typedef {BindingMiss & { stepId: string }} RunBindingMiss  a miss as the run keeps it: with the step it belongs to */
+
 /**
- * @param {{ stepId: string; }} b
+ * @param {RunBindingMiss} a
+ * @param {RunBindingMiss} b
  */
 const sameMiss = (a, b) => a.stepId === b.stepId && a.kind === b.kind && a.path === b.path
     && a.reason === b.reason && (a.field || null) === (b.field || null);
@@ -33,7 +39,7 @@ const sameMiss = (a, b) => a.stepId === b.stepId && a.kind === b.kind && a.path 
  * Record one step's misses on the run. Returns the entries for the step row,
  * or null when there were none.
  *
- * @param {{ step: object, entries: object[], ctx?: object, runState?: object }} args
+ * @param {{ step?: { id?: unknown } | null, entries: BindingMiss[], ctx?: { _bindingMisses?: RunBindingMiss[] }, runState?: BindRunState }} args
  *   `ctx._bindingMisses` is the run-level list, shared by reference by every
  *   ctx copy (branches, loop bodies, layers).
  */
@@ -43,6 +49,7 @@ function noteStepBindingMisses({ step, entries, ctx, runState }) {
     const run = ctx && Array.isArray(ctx._bindingMisses) ? ctx._bindingMisses : null;
     const warnings = runState && Array.isArray(runState._templateWarnings) ? runState._templateWarnings : null;
     for (const e of entries) {
+        /** @type {RunBindingMiss} */
         const rec = { stepId, ...e };
         if (run) {
             const same = run.find(r => sameMiss(r, rec));
@@ -60,6 +67,7 @@ function noteStepBindingMisses({ step, entries, ctx, runState }) {
 /**
  * The summary's tail for a run's misses: '' for none, else
  * " — N mappings found nothing: s1: …; s2: … (and 3 more)".
+ * @param {RunBindingMiss[] | null | undefined} misses
  */
 function bindingMissSummary(misses) {
     if (!Array.isArray(misses) || !misses.length) return '';

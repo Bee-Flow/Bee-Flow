@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The DAG walker (extracted verbatim from engine.js): fan-in gating,
  * replay/partial-run routing, brancher label resolution and per-step
@@ -20,6 +21,9 @@ const { dispatchLiveStep } = require('./runDagRecord');
 /**
  * @typedef {Object} BuildPartialPlanArgs
  * @property {string} [fromStepId]
+ * @property {unknown} skipUntilStepId
+ * @property {unknown} onlyStepId
+ * @property {unknown} untilStepId
  */
 /**
  * Resume / partial-execution flags:

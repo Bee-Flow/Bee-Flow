@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Test data never travels inside a definition.
  *
@@ -21,8 +21,11 @@ const { walkAllSteps } = require('../packaging/walkers');
 
 const TEST_DATA_KEYS = Object.freeze(['testCases', 'testFixtures', 'goldenRuns', 'formScenarios']);
 
-const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
+const isObject = (/** @type {{ [x: string]: unknown; }} */ v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
+/**
+ * @param {{ [x: string]: unknown; }} node
+ */
 function stripFrom(node) {
     let removed = 0;
     if (!isObject(node)) return removed;
@@ -46,7 +49,7 @@ function stripTestData(def, warnings) {
     if (isObject(def.layers)) {
         for (const layer of Object.values(def.layers)) removed += stripFrom(layer);
     }
-    walkAllSteps(def, (node) => { removed += stripFrom(node); });
+    walkAllSteps(def, (/** @type {{ [x: string]: unknown; }} */ node) => { removed += stripFrom(node); });
     if (removed > 0 && Array.isArray(warnings)) {
         warnings.push('Removed test data from the definition — test cases and captured run data stay with the workspace they were made in and are not portable.');
     }

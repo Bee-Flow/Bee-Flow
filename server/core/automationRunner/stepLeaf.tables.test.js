@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 'use strict';
 /** The leaf switch dispatches the two table steps to the executors RUN_DEPS holds. */
 

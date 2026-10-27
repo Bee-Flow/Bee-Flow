@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * What ./nativeAdapterStream hands the provider adapter, and what it does
  * with the adapter's thinking-part events and its usage afterwards.
@@ -80,7 +80,9 @@ function generationOptions({ agent, modelToUse, messageMetadata, tierSettings },
     const isThinkingModel = modelToUse.includes('magistral');
     const TIER_DEFAULTS = d.tierDefaults();
     const tierName = (agent.model && agent.model.startsWith('tier:')) ? agent.model.substring(5) : 'fast';
-    const tierDefaults = TIER_DEFAULTS[tierName] || TIER_DEFAULTS['fast'];
+    /** @type {Record<string, typeof TIER_DEFAULTS.fast>} */
+    const defaultsByTier = TIER_DEFAULTS;
+    const tierDefaults = defaultsByTier[tierName] || TIER_DEFAULTS.fast;
     const defaultMaxTokens = isThinkingModel ? 40960 : tierDefaults.maxTokens;
 
     // Auto-bump: attachments routinely require long-form output that

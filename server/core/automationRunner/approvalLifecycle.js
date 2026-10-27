@@ -13,7 +13,7 @@
  * automation row). The decider is recorded — approval.decided_by, the audit
  * event, and steps.<id>.output.by — never impersonated.
  */
-
+// @typecheck
 const automationStore = require('../../stores/automationStore');
 require('../../stores/notificationStore');
 const { firstStageKey, stageByKey, collectParticipants } = require('../automationModel/approvalStages');

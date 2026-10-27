@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Rule misses: a path in a Condition, Filter or Switch rule that found
  * nothing on any of the items the rule was asked about.
@@ -219,12 +220,12 @@ module.exports = { rulePaths, createRuleMissCounter };
 
 /**
  * A path token, as shared/expr/path.mjs reads and formats them.
- * @typedef {import('../../shared/expr/path.mjs').PathToken} PathToken
+ * @typedef {Expr.PathToken} PathToken
  */
 
 /**
  * A node of a parsed rule (shared/expr engine AST); only the fields read here.
- * @typedef {import('../../shared/expr/engine.mjs').ExprNode} ExprNode
+ * @typedef {import('./shared').ExprNode} ExprNode
  */
 
 /** @typedef {'fallback'|'tolerant'|'strict'} PathUse */

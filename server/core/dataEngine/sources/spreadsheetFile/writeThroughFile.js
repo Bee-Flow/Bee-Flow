@@ -1,3 +1,4 @@
+// @typecheck
 const datatableStore = require('../../../../stores/datatableStore');
 const { ENGINE_READ_CAP, DEFAULT_ROW_CAP } = require('../mirror/constants');
 const { KIND } = require('./index');

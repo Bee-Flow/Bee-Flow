@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * contextBuilder — prompt-cache split.
  *
