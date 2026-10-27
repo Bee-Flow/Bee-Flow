@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * A Condition that decides for the WHOLE run, reading a list.
  *

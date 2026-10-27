@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio definition tree: the internal helpers (exported for the facades'
  * side-only ops) and the lookups. Part of the shared definition model; the ops

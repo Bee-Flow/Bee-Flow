@@ -1,5 +1,5 @@
 // GENERATED from server/i18n/defaults/cmsDefaults.js by scripts/gen-shared-mirror.mjs — do not edit
-// @typecheck
+// @typecheck strict
 /**
  * CMS Defaults — schema-of-record for the website builder.
  *

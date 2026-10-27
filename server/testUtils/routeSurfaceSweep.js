@@ -1,6 +1,5 @@
-// @typecheck
 'use strict';
-
+// @typecheck
 /**
  * Static route-surface sweep — the parser + pure sweep behind auth/accessRegistry.sweep.test.js
  * (the app-wide successor of the /auth drift test).
@@ -343,7 +342,8 @@ function parseRouterVars(src) {
  * @returns {string | null}
  */
 function exportedRouterVar(src, routerVars) {
-    let m = src.match(/module\.exports\s*=\s*(\w+)\s*;/);
+    // `module.exports = router;` or `module.exports = Object.assign(router, { helper })` (the router with its test seams)
+    let m = src.match(/module\.exports\s*=\s*(?:Object\.assign\(\s*)?(\w+)\s*[;,]/);
     if (m && routerVars.has(m[1])) return m[1];
     m = src.match(/module\.exports\s*=\s*\{[^}]*\brouter\s*:?\s*(\w*)/);
     if (m) {

@@ -39,7 +39,9 @@ declare global {
             primaryOrgId?: string;
             projectRole?: string;
             siteId?: string;
-            _orgScope?: object;
+            /** Set by routes/ai/voice.js: the Mistral key of the caller's organisation. */
+            _mistralKey?: string;
+            _orgScope?: import('../auth/orgScope').OrgScope;
             user?: { id: string; email?: string; name?: string; role?: string; [key: string]: unknown };
             /** Set by attachOrgFilter (usage monitoring); the filters a query is scoped by. */
             usageFilters?: { userId?: string; organizationId?: string; excludeDryRun?: boolean; [key: string]: unknown };

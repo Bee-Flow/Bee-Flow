@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Dates in the spreadsheet engine (sheet.mjs). Excel keeps a date as a serial
  * number (days since its 1900 epoch); Bee Flow keeps what was typed, and an

@@ -19,7 +19,7 @@
  *
  * Pure: every function returns new objects and never mutates its input.
  */
-
+// @typecheck
 import { appendKey, formatPath, parsePath, readPath, replaceTemplate } from './path.mjs';
 
 // ── Paths ────────────────────────────────────────────────────────────────

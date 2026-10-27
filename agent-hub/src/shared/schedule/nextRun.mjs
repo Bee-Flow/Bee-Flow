@@ -1,3 +1,4 @@
+// @typecheck
 // Compute the next-run ISO timestamp for an agent schedule, anchored to a
 // target IANA timezone. The one source for every entry point: the wizard
 // chat (auto-create from chat) and the new-schedule modal in the browser

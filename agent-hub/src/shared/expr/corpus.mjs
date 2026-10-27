@@ -10,7 +10,7 @@
  *
  * Add a case here (not in one runner) whenever the grammar/whitelist changes.
  */
-
+// @typecheck
 export const SCOPE = {
     actions: { search: { status: 'success', result: { count: 3, rows: [{ name: 'A' }, { name: 'B' }] } } },
     form: { amount: 120, email: 'a@b.com', qty: 0 },

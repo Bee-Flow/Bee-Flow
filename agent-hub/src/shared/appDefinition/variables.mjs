@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — definition.variables: the declared shared values, their types,
  * the reserved names, the ceilings and the default coercion BOTH runtimes seed

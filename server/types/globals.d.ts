@@ -31,3 +31,9 @@ interface Window { __bfMounted?: boolean; __bfMountError?: string }
 
 // auth/opaqueRoutes.js caches the OPAQUE server setup on the global object.
 declare var _opaqueServerSetup: string | undefined;
+
+// Two answer shapes of one function, readable without narrowing: every key of the other shape is
+// `undefined` on this one. `r.error` then type-checks at every strictness level (without
+// strictNullChecks a plain union `{ ok: true } | { ok: false, error }` does not narrow on `r.ok`),
+// and with strictNullChecks the discriminant still narrows.
+type OneOf<A, B> = (A & { [K in Exclude<keyof B, keyof A>]?: undefined }) | (B & { [K in Exclude<keyof A, keyof B>]?: undefined });

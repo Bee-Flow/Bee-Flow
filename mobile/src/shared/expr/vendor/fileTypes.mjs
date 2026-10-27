@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * File types for rules — "File type is PDF" instead of a MIME substring,
  * which is wrong for .pptx/.xlsx and for Gmail's application/octet-stream.
