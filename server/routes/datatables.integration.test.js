@@ -1072,11 +1072,10 @@ test('every table is created with the index its default read order needs', async
 // ── The storage envelope ────────────────────────────────────────────────────
 
 test('the 51st table is refused, and the count is taken inside the create transaction', async () => {
-    // MAX_TABLES_PER_APP — a constant named, documented and sized for ONE App
-    // Studio app — used to be spent as the per-organisation cap, and it was
-    // counted by listing every table in the org OUTSIDE any lock: two replicas
-    // could both see 49. createDatatable now counts with the scope's model row
-    // FOR UPDATE-held.
+    // The cap used to be an App Studio constant, counted OUTSIDE any lock (two
+    // replicas could both see 49); createDatatable now counts with the scope's
+    // model row FOR UPDATE-held. DATATABLE_MAX_TABLES_PER_SCOPE is pinned to 50 here.
+    const prevCap = process.env.DATATABLE_MAX_TABLES_PER_SCOPE; process.env.DATATABLE_MAX_TABLES_PER_SCOPE = '50';
     const filler = Array.from({ length: 50 }, (_, i) => `tbl_filler${String(i).padStart(3, '0')}`);
     for (const id of filler) {
         await rawQuery(
@@ -1092,7 +1091,7 @@ test('the 51st table is refused, and the count is taken inside the create transa
         assert.strictEqual(res.statusCode, 409, JSON.stringify(res.body));
         assert.strictEqual(res.body.code, 'quota_exceeded');
         assert.strictEqual(res.body.limit, 50);
-        assert.ok(res.body.used >= 50, 'the refusal has to say how full it is');
+        assert.ok(res.body.used >= 50 && /Delete tables you no longer need .* or ask your administrator to raise the limit/.test(res.body.error), 'the refusal says how full it is, and what to do');
         // And the refusal rolled the whole transaction back — a create that
         // committed the metadata and then refused would leave a table the
         // picker lists and every read 500s on.
@@ -1100,6 +1099,7 @@ test('the 51st table is refused, and the count is taken inside the create transa
         assert.strictEqual(left.rows.length, 0);
     } finally {
         await rawQuery(`DELETE FROM datatables WHERE key LIKE 'filler_%'`);
+        if (prevCap === undefined) delete process.env.DATATABLE_MAX_TABLES_PER_SCOPE; else process.env.DATATABLE_MAX_TABLES_PER_SCOPE = prevCap;
     }
 });
 
