@@ -43,12 +43,15 @@ mock('../stores/datatableStore', {
     // Missing this one silently turned every successful sweep into a "skipped"
     // table: it throws, the per-table catch swallows it, and `deleted` stays 0.
     stampRetentionSweep: async () => {},
+    // The orphaned-sheet half has its own end-to-end suite (datatableRetention.orphanSheets.pg.test.js).
+    listOrphanSheetTables: async () => [],
 });
 
 mock('../stores/datatableDbStore', {
     scopeKey: (scope) => `${scope.kind}:${scope.id}`,
     query: async (_o, _e, sql, params) => (queryImpl ? queryImpl(sql, params) : { rows: [] }),
     sizeBytes: async () => 0,
+    dropDatatable: async () => true,
     batch: async (_o, _e, stmts) => {
         for (const s of stmts) deletedIds.push(s.params && s.params[0]);
         return stmts.map(() => ({ changes: 1 }));

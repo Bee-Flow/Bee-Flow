@@ -71,7 +71,8 @@ const SELECT = `${INPUT} appearance-none`;
 export function messageFor(t: TranslateFn, err: WizardError | null | undefined) {
     switch (err?.code) {
         case 'key_taken': return t('datatables.err_key_taken', 'There is already a table with this key. Pick another one.');
-        case 'quota_exceeded': return t('datatables.err_quota', 'You have reached the limit on tables here.');
+        // The server's refusal says which limit, in the reader's language, and what to do about it.
+        case 'quota_exceeded': return err?.message || t('datatables.err_quota', 'You have reached the limit on tables here.');
         case 'no_organisation': return t('datatables.err_no_org', 'This account is not in an organisation, so it can only make a personal table.');
         default: return err?.message || t('datatables.err_create', 'Could not create the table');
     }
