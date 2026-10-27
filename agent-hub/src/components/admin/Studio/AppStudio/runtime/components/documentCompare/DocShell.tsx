@@ -3,13 +3,13 @@
 
 import { RotateCw } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { documentErrorCode } from '../../../../../../../api/queries/studioAppDocuments';
-import useTranslation from '../../../../../../../hooks/useTranslation';
+import { documentErrorCode } from '@/api/queries/studioAppDocuments';
+import useTranslation from '@/hooks/useTranslation';
 import { useDataContext } from '../../DataContext';
 import { useRuntime } from '../../RuntimeContext';
 import { HEIGHT_PX } from '../../styleResolver.constants';
 import { isFill, resolveHeightCss } from '../../styleResolver.helpers';
-import type { AppNode } from '../../../inspector/appDefinition';
+import type { AppNode } from '@/components/admin/Studio/AppStudio/inspector/appDefinition';
 import { useHasQueryClient } from '../comboBox';
 import type { TFn } from './summary';
 

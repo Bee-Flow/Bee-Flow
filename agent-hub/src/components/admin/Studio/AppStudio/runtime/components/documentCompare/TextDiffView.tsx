@@ -3,10 +3,10 @@
 // renderer Version history uses (components/versions/DiffBody).
 
 import { useMemo, useRef } from 'react';
-import type { TextCompare } from '../../../../../../../api/queries/studioAppDocuments';
-import useTranslation from '../../../../../../../hooks/useTranslation';
-import { DiffBody } from '../../../../../../versions/DiffBody';
-import { normalizeDiff } from '../../../../../../versions/versionDiff';
+import type { TextCompare } from '@/api/queries/studioAppDocuments';
+import useTranslation from '@/hooks/useTranslation';
+import { DiffBody } from '@/components/versions/DiffBody';
+import { normalizeDiff } from '@/components/versions/versionDiff';
 import type { CompareMode } from './CompareToolbar';
 import { useDomStepper, type RegisterStep } from './useStepper';
 

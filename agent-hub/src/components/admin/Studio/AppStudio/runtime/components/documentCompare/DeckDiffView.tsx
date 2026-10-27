@@ -5,9 +5,9 @@
 // colours) is listed above, because it changes every slide at once.
 
 import { useEffect, useMemo, useState } from 'react';
-import type { DeckCompare, DiffLine, SlidePair } from '../../../../../../../api/queries/studioAppDocuments';
-import useTranslation from '../../../../../../../hooks/useTranslation';
-import { DiffWords, DELETE_BLOCK_CLASS, INSERT_BLOCK_CLASS, MODIFY_BLOCK_CLASS } from '../../../../../../versions/DiffBlockView';
+import type { DeckCompare, DiffLine, SlidePair } from '@/api/queries/studioAppDocuments';
+import useTranslation from '@/hooks/useTranslation';
+import { DiffWords, DELETE_BLOCK_CLASS, INSERT_BLOCK_CLASS, MODIFY_BLOCK_CLASS } from '@/components/versions/DiffBlockView';
 import type { CompareMode } from './CompareToolbar';
 import DocumentFrame from './DocumentFrame';
 import { lookLabel, lookValue, type TFn } from './summary';

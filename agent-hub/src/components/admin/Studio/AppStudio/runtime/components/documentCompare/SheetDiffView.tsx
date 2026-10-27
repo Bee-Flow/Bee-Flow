@@ -8,8 +8,8 @@
 // A formula that changed carries both formulas in the cell's tooltip.
 
 import { useMemo, useRef, useState } from 'react';
-import type { CellChange, ColumnPair, RowPair, SheetCompare, TabCompare } from '../../../../../../../api/queries/studioAppDocuments';
-import useTranslation from '../../../../../../../hooks/useTranslation';
+import type { CellChange, ColumnPair, RowPair, SheetCompare, TabCompare } from '@/api/queries/studioAppDocuments';
+import useTranslation from '@/hooks/useTranslation';
 import type { CompareMode } from './CompareToolbar';
 import type { TFn } from './summary';
 import { useDomStepper, type RegisterStep } from './useStepper';

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { useAppDocumentOptions } from '../../../../../../api/queries/studioAppDocuments';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import { useAppDocumentOptions } from '@/api/queries/studioAppDocuments';
+import useTranslation from '@/hooks/useTranslation';
 import { useFormField } from '../formContext';
 import useInputChange from '../useInputChange';
 import type { NodeProps } from './appNode.types';

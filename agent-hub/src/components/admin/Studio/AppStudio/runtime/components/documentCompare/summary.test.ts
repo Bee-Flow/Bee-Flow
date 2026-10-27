@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { CompareResult, LookChange } from '../../../../../../../api/queries/studioAppDocuments';
+import type { CompareResult, LookChange } from '@/api/queries/studioAppDocuments';
 import { parseDocumentRef, sameDocument } from './docRef';
 import { gridExtent } from './SheetGrid';
 import { hasChanges, lookLabel, lookValue, summaryText } from './summary';

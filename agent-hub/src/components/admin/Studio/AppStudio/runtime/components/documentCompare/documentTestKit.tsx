@@ -4,7 +4,7 @@
 import { render } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { vi } from 'vitest';
-import { withQueryClient } from '../../../../../../../test/queryWrapper';
+import { withQueryClient } from '@/test/queryWrapper';
 import { DataProvider } from '../../DataContext';
 import { DEFAULT_RUNTIME, RuntimeProvider } from '../../RuntimeContext';
 

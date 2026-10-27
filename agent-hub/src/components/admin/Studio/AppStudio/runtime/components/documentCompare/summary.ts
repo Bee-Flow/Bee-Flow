@@ -2,7 +2,7 @@
 // 1 slide added, look changed"), per family, and the labels of a deck's look.
 // Every key is written out whole so the i18n tooling can find it.
 
-import type { CompareResult, LookChange } from '../../../../../../../api/queries/studioAppDocuments';
+import type { CompareResult, LookChange } from '@/api/queries/studioAppDocuments';
 
 export type TFn = (key: string, fallback: string, params?: Record<string, unknown>) => string;
 

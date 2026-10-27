@@ -5,8 +5,8 @@
 
 import { ChevronDown, ChevronUp, Columns2, Rows3, ListFilter } from 'lucide-react';
 import type { ReactNode } from 'react';
-import type { AppDocumentVersion } from '../../../../../../../api/queries/studioAppDocuments';
-import useTranslation from '../../../../../../../hooks/useTranslation';
+import type { AppDocumentVersion } from '@/api/queries/studioAppDocuments';
+import useTranslation from '@/hooks/useTranslation';
 
 export type CompareMode = 'side' | 'inline';
 

@@ -1,7 +1,7 @@
 import { FileDiff, Loader2 } from 'lucide-react';
 import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
-import { useAppDocumentCompare, useAppDocumentVersions, type AppDocumentCompare as CompareData, type AppDocumentVersion, type DocumentRef } from '../../../../../../api/queries/studioAppDocuments';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import { useAppDocumentCompare, useAppDocumentVersions, type AppDocumentCompare as CompareData, type AppDocumentVersion, type DocumentRef } from '@/api/queries/studioAppDocuments';
+import useTranslation from '@/hooks/useTranslation';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { EmptyText } from '../uiBits';

@@ -2,7 +2,7 @@
 // column letters and row numbers a person expects. Large tabs show their first
 // MAX_GRID_ROWS rows and say how many more there are.
 
-import useTranslation from '../../../../../../../hooks/useTranslation';
+import useTranslation from '@/hooks/useTranslation';
 
 const MAX_GRID_ROWS = 500;
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');

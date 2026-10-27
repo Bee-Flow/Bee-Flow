@@ -1,7 +1,7 @@
 import { FileText, Loader2, Presentation, Sheet } from 'lucide-react';
 import { useState } from 'react';
-import { useAppDocument, type DocumentFamily } from '../../../../../../api/queries/studioAppDocuments';
-import useTranslation from '../../../../../../hooks/useTranslation';
+import { useAppDocument, type DocumentFamily } from '@/api/queries/studioAppDocuments';
+import useTranslation from '@/hooks/useTranslation';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import { EmptyText } from '../uiBits';

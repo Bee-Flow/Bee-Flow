@@ -3,7 +3,7 @@
 // "id", "id@versionId", { documentId, versionId? } (copy_document's result) or
 // { id }. A list (a record field holding several) takes its first entry.
 
-import type { DocumentRef } from '../../../../../../../api/queries/studioAppDocuments';
+import type { DocumentRef } from '@/api/queries/studioAppDocuments';
 
 const ID_RE = /^[A-Za-z0-9_-]{1,100}$/;
 
