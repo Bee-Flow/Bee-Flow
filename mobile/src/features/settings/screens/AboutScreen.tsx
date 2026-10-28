@@ -13,6 +13,7 @@
 
 import React from 'react';
 
+import { useTranslation } from '@/core/i18n';
 import { GroupedScroll, Screen, ScreenHeader } from '@/shared/ui';
 
 import { AboutCard } from '../components/AboutCard';
@@ -23,10 +24,14 @@ import { SourceGroups } from '../components/SourceGroups';
 import { buildInfo } from '../model/buildInfo';
 
 export function AboutScreen() {
+    const t = useTranslation();
     const info = buildInfo();
     return (
         <Screen edges={['top']} inset>
-            <ScreenHeader title="About" subtitle="Bee Flow for Android" />
+            <ScreenHeader
+                title={t('mobile.settings.about_title', 'About')}
+                subtitle={t('mobile.settings.about_subtitle', 'Bee Flow for Android')}
+            />
 
             <GroupedScroll>
                 <AboutCard profile={info.profile} />

@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { describeError } from '@/core/api/errors';
 import { useAuth } from '@/core/auth/AuthProvider';
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Avatar, Button, Icon, Text, useToast } from '@/shared/ui';
 
@@ -14,13 +15,14 @@ import { usePickAvatar } from '../hooks/usePickAvatar';
 export function AvatarBlock() {
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
+    const t = useTranslation();
     const { toast } = useToast();
     const { user } = useAuth();
     const save = useUpdateProfile();
     const pick = usePickAvatar((dataUri) =>
         save.mutate(
             { avatar: dataUri, avatarType: 'image' },
-            { onSuccess: () => toast('Photo updated', 'success') },
+            { onSuccess: () => toast(t('mobile.account.photo_updated', 'Photo updated'), 'success') },
         ),
     );
 
@@ -28,7 +30,7 @@ export function AvatarBlock() {
         <View style={styles.block}>
             <Avatar name={user?.displayName || '?'} uri={user?.avatar ?? null} size={88} />
             <Button
-                label={save.isPending ? 'Saving…' : 'Change photo'}
+                label={save.isPending ? t('common.saving', 'Saving…') : t('mobile.account.change_photo', 'Change photo')}
                 variant="secondary"
                 loading={save.isPending}
                 onPress={() => void pick()}

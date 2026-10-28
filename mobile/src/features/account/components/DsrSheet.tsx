@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 
+import { useTranslation } from '@/core/i18n';
 import { useSubmitDsrRequest } from '@/features/org';
 import { Button, Sheet } from '@/shared/ui';
 
@@ -25,6 +26,7 @@ export function DsrSheet({
 }) {
     const [draft, setDraft] = useState<DsrDraft>({ type: 'access', email: defaultEmail, notes: '' });
     const [reference, setReference] = useState<number | null>(null);
+    const t = useTranslation();
     const submit = useSubmitDsrRequest();
 
     const file = () =>
@@ -53,14 +55,14 @@ export function DsrSheet({
         <Sheet
             visible={visible}
             onClose={close}
-            title={filed ? 'Request received' : 'Request your data'}
-            subtitle={filed ? undefined : 'Handled by your organisation within thirty days'}
+            title={filed ? t('dsr_public.submitted_title', 'Request received') : t('mobile.account.dsr_title', 'Request your data')}
+            subtitle={filed ? undefined : t('mobile.account.dsr_subtitle', 'Handled by your organisation within thirty days')}
             footer={
                 filed ? (
-                    <Button label="Done" variant="secondary" onPress={close} fullWidth />
+                    <Button label={t('automations.sharing.done', 'Done')} variant="secondary" onPress={close} fullWidth />
                 ) : (
                     <Button
-                        label="File request"
+                        label={t('mobile.account.dsr_file', 'File request')}
                         onPress={file}
                         disabled={!looksLikeEmail(draft.email)}
                         loading={submit.isPending}

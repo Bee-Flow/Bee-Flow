@@ -6,7 +6,9 @@
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
+import { nOf } from '@/shared/lib/plural';
 import { QueryList } from '@/shared/patterns';
 import { Spinner, Text } from '@/shared/ui';
 
@@ -37,6 +39,7 @@ export function MemoryList({
     onClearFilter: () => void;
 }) {
     const styles = useThemedStyles(makeStyles);
+    const t = useTranslation();
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const memories = useMemo(() => (list.data?.pages ?? []).flatMap((page) => page.memories), [list.data]);
     const matchCount = list.data?.pages[0]?.total ?? memories.length;
@@ -68,7 +71,7 @@ export function MemoryList({
             ListHeaderComponent={
                 filtered ? (
                     <Text variant="caption" tone="tertiary" style={styles.matches}>
-                        {matchCount === 1 ? '1 match' : `${matchCount} matches`}
+                        {nOf(t, 'mobile.memory.matches', matchCount, ['{count} match', '{count} matches'])}
                     </Text>
                 ) : null
             }
@@ -87,11 +90,16 @@ export function MemoryList({
             }}
             empty={{
                 icon: 'Cpu',
-                title: filtered ? 'Nothing matches that' : 'Nothing remembered yet',
+                title: filtered
+                    ? t('mobile.memory.no_match', 'Nothing matches that')
+                    : t('mobile.memory.nothing_yet', 'Nothing remembered yet'),
                 message: filtered
-                    ? 'Try another word, or clear the filter.'
-                    : 'Bee Flow writes things down as you chat — a preference, a project, how you like an answer — and reuses them later. Anything it stores will show up here, and you can delete it.',
-                actionLabel: filtered ? 'Clear the filter' : undefined,
+                    ? t('mobile.memory.try_other_word_or_clear', 'Try another word, or clear the filter.')
+                    : t(
+                          'mobile.memory.empty_message',
+                          'Bee Flow writes things down as you chat — a preference, a project, how you like an answer — and reuses them later. Anything it stores will show up here, and you can delete it.',
+                      ),
+                actionLabel: filtered ? t('mobile.memory.clear_filter', 'Clear the filter') : undefined,
                 onAction: filtered ? onClearFilter : undefined,
             }}
         />

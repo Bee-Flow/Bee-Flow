@@ -11,6 +11,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { useTranslation, type TranslateFn } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Icon, IconButton, Text } from '@/shared/ui';
 
@@ -32,9 +33,11 @@ const makeStyles = (theme: Theme) =>
         body: { flex: 1, gap: theme.spacing.xs },
     });
 
-function hintFor(selecting: boolean, expanded: boolean): string {
-    if (selecting) return 'Double tap to select or deselect';
-    return expanded ? 'Double tap to collapse' : 'Double tap to read it in full';
+function hintFor(t: TranslateFn, selecting: boolean, expanded: boolean): string {
+    if (selecting) return t('mobile.memory.hint_select', 'Double tap to select or deselect');
+    return expanded
+        ? t('mobile.memory.hint_collapse', 'Double tap to collapse')
+        : t('mobile.memory.hint_expand', 'Double tap to read it in full');
 }
 
 export function MemoryRow({
@@ -56,6 +59,7 @@ export function MemoryRow({
     onDelete: () => void;
 }) {
     const theme = useTheme();
+    const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
     const line = memoryLine(memory);
     const idle = selected ? theme.colors.itemActiveBg : 'transparent';
@@ -66,7 +70,7 @@ export function MemoryRow({
             onLongPress={onLongPress}
             accessibilityRole={selecting ? 'checkbox' : 'button'}
             accessibilityLabel={line}
-            accessibilityHint={hintFor(selecting, expanded)}
+            accessibilityHint={hintFor(t, selecting, expanded)}
             accessibilityState={selecting ? { checked: selected } : { expanded }}
             style={({ pressed }) => [
                 styles.row,
@@ -92,7 +96,7 @@ export function MemoryRow({
             {selecting ? null : (
                 <IconButton
                     icon={<Icon name="Trash2" size={18} color={theme.colors.textMuted} />}
-                    accessibilityLabel={`Forget: ${line.slice(0, 60)}`}
+                    accessibilityLabel={t('mobile.memory.forget_line', 'Forget: {line}', { line: line.slice(0, 60) })}
                     tone="danger"
                     onPress={onDelete}
                 />

@@ -4,6 +4,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Banner, OptionRow, TextField } from '@/shared/ui';
 
@@ -25,6 +26,7 @@ export function DsrForm({
     error: unknown;
 }) {
     const styles = useThemedStyles(makeStyles);
+    const t = useTranslation();
     const badEmail = draft.email.length > 0 && !looksLikeEmail(draft.email);
     return (
         <View style={styles.body}>
@@ -34,8 +36,8 @@ export function DsrForm({
                 {DSR_TYPES.map((option) => (
                     <OptionRow
                         key={option.id}
-                        label={option.label}
-                        description={option.description}
+                        label={t(option.label.i18nKey, option.label.en)}
+                        description={t(option.description.i18nKey, option.description.en)}
                         selected={draft.type === option.id}
                         onPress={() => onChange({ type: option.id })}
                     />
@@ -43,22 +45,22 @@ export function DsrForm({
             </View>
 
             <TextField
-                label="Your email"
+                label={t('dsr_public.check_email', 'Your email')}
                 value={draft.email}
                 onChangeText={(email) => onChange({ email })}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
-                hint="The organisation is identified from this address, so use the one your account is under."
-                error={badEmail ? 'That does not look like an email address.' : null}
+                hint={t('mobile.account.dsr_email_hint', 'The organisation is identified from this address, so use the one your account is under.')}
+                error={badEmail ? t('mobile.account.dsr_email_invalid', 'That does not look like an email address.') : null}
             />
             <TextField
-                label="Anything to add (optional)"
+                label={t('mobile.account.dsr_notes', 'Anything to add (optional)')}
                 value={draft.notes}
                 onChangeText={(notes) => onChange({ notes })}
                 multiline
                 maxLines={5}
-                placeholder="Which data, or which period, if it helps narrow the request."
+                placeholder={t('mobile.account.dsr_notes_placeholder', 'Which data, or which period, if it helps narrow the request.')}
             />
         </View>
     );

@@ -3,10 +3,11 @@
 import React from 'react';
 import { FlatList, StyleSheet } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Chip } from '@/shared/ui';
 
-import { capitalise } from '../model/format';
+import { memoryTypeSingular } from '../model/format';
 import { MEMORY_TYPES } from '../model/types';
 
 const makeStyles = (theme: Theme) =>
@@ -16,6 +17,7 @@ const makeStyles = (theme: Theme) =>
 
 export function SheetTypeChips({ type, onChange }: { type: string | null; onChange: (type: string | null) => void }) {
     const styles = useThemedStyles(makeStyles);
+    const t = useTranslation();
     return (
         <FlatList
             horizontal
@@ -25,7 +27,7 @@ export function SheetTypeChips({ type, onChange }: { type: string | null; onChan
             contentContainerStyle={styles.content}
             renderItem={({ item }) => (
                 <Chip
-                    label={item === 'all' ? 'All' : capitalise(item)}
+                    label={item === 'all' ? t('common.all', 'All') : memoryTypeSingular(item)}
                     selected={item === 'all' ? type === null : type === item}
                     onPress={() => onChange(item === 'all' ? null : item)}
                 />

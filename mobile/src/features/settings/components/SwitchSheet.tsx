@@ -31,7 +31,7 @@ export function SwitchSheet({
 
     const verifyAndSwitch = async () => {
         if (!normalised) {
-            setError('That does not look like a web address.');
+            setError(t('mobile.settings.switch_bad_address', 'That does not look like a web address.'));
             return;
         }
         setError(null);
@@ -39,12 +39,16 @@ export function SwitchSheet({
         const result = await checkHealth(normalised);
         setProbing(false);
         if (!result.ok) {
-            setError(result.error ?? 'That address did not answer.');
+            setError(result.error ?? t('mobile.onboarding.server_no_answer', 'That address did not answer.'));
             return;
         }
         const ok = await confirm({
-            title: 'Switch server?',
-            message: `You will be signed out and this phone’s cached data and encryption key will be removed before connecting to ${hostOf(normalised)}.`,
+            title: t('mobile.settings.switch_confirm_title', 'Switch server?'),
+            message: t(
+                'mobile.settings.switch_confirm_message',
+                'You will be signed out and this phone’s cached data and encryption key will be removed before connecting to {host}.',
+                { host: hostOf(normalised) ?? normalised },
+            ),
             confirmLabel: t('mobile.settings.switch_server', 'Switch'),
         });
         if (ok) void onConfirmed(normalised);
@@ -54,32 +58,37 @@ export function SwitchSheet({
         <FormSheet
             visible={visible}
             onClose={onClose}
-            title="Connect to a different server"
-            subtitle="Bee Flow checks the address before it remembers it"
-            submitLabel="Check and switch"
+            title={t('mobile.settings.connect_other', 'Connect to a different server')}
+            subtitle={t('mobile.settings.switch_subtitle', 'Bee Flow checks the address before it remembers it')}
+            submitLabel={t('mobile.settings.switch_submit', 'Check and switch')}
             onSubmit={() => void verifyAndSwitch()}
             canSubmit={input.trim().length > 0}
             submitting={probing}
         >
             <TextField
-                label="Server address"
+                label={t('mobile.onboarding.server_address', 'Server address')}
                 value={input}
                 onChangeText={setInput}
-                placeholder="beeflow.nl"
+                placeholder={t('mobile.settings.switch_placeholder', 'beeflow.nl')}
                 keyboardType="url"
                 autoCapitalize="none"
                 autoCorrect={false}
                 hint={
                     normalised
-                        ? `Will connect to ${normalised}`
-                        : 'Type a host name. https:// is assumed unless you type http:// yourself.'
+                        ? t('mobile.settings.switch_hint_url', 'Will connect to {url}', { url: normalised })
+                        : t(
+                              'mobile.settings.switch_hint',
+                              'Type a host name. https:// is assumed unless you type http:// yourself.',
+                          )
                 }
                 error={error}
             />
             {normalised && isInsecure(normalised) && !isPrivateHost(normalised) ? (
                 <Banner tone="warning">
-                    That is a plain HTTP address on the public internet. Your password and
-                    session would travel in the clear.
+                    {t(
+                        'mobile.settings.switch_insecure',
+                        'That is a plain HTTP address on the public internet. Your password and session would travel in the clear.',
+                    )}
                 </Banner>
             ) : null}
         </FormSheet>

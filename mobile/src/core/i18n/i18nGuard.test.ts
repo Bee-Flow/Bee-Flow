@@ -226,9 +226,6 @@ const UNCONVERTED = new Map<string, number>([
     // drawn once (shared toasts, QueryScreen headers, content duplicates),
     // and 1655 -> 1649 where dead code went (cowork's unused WHEN_PRESETS).
     ['app/(root)', 1],
-    // 24 -> 22: the avatar picker's "Photos not allowed" dialog, gone with the
-    // media-library permission the Photo Picker never needed.
-    ['src/features/account', 22],
     // 42 -> 33: the conversation list's rename sheet and its actions' toasts went
     // through t() when the long-press menu became the kit's ActionMenu.
     ['src/features/agents', 33],
@@ -243,9 +240,7 @@ const UNCONVERTED = new Map<string, number>([
     ['src/features/cowork', 17],
     ['src/features/coworkHub', 20],
     ['src/features/documents', 10],
-    ['src/features/memory', 24],
     ['src/features/search', 9],
-    ['src/features/settings', 21],
     // Not new debt: the sitemap's destination labels and hints, moved out of
     // features/shell (98) when the drawer replaced the More tab. The shell
     // itself is now clean, and the move left 16 fewer strings than it took.
@@ -259,8 +254,6 @@ const UNCONVERTED = new Map<string, number>([
     // for either).
     ['src/features/sitemap', 100],
 
-    // 16 -> 13: the template chat's words, when it learned to avoid the keyboard.
-    ['src/features/templates', 13],
     ['src/features/voice', 8],
 ]);
 
