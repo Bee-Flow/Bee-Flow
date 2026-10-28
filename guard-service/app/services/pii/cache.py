@@ -150,9 +150,11 @@ def _cache_ttl_seconds() -> int:
     return max(0, ttl)
 
 
-def _to_cache_entry(result: dict) -> dict:
+def _to_cache_entry(result: dict[str, Any]) -> dict[str, Any]:
     """The cacheable part of a result, built from the allow-lists above."""
-    entry: dict = {k: result[k] for k in _CACHED_ENVELOPE_FIELDS if k in result}
+    entry: dict[str, Any] = {
+        k: result[k] for k in _CACHED_ENVELOPE_FIELDS if k in result
+    }
     for list_key in _ENTITY_LISTS:
         if list_key in result:
             entry[list_key] = [
@@ -162,7 +164,7 @@ def _to_cache_entry(result: dict) -> dict:
     return entry
 
 
-def _from_cache_entry(entry: dict, text: str) -> dict:
+def _from_cache_entry(entry: dict[str, Any], text: str) -> dict[str, Any]:
     """Rebuild a result from a cached entry: each span's text from ``text``.
 
     ``text`` is the request text, which the HMAC key binds exactly, so the
@@ -233,10 +235,10 @@ def _cache_key(req: ScanRequest) -> str:
     return f"guard:pii:v{_CACHE_SCHEMA_VERSION}:{digest}"
 
 
-def _unscanned(reason: str | None, custom: _CustomSpec | None) -> dict:
+def _unscanned(reason: str | None, custom: _CustomSpec | None) -> dict[str, Any]:
     """The envelope for input that was never scanned: trivial (reason None) or
     refused. A request with custom labels still gets its (empty) list."""
-    out: dict = {
+    out: dict[str, Any] = {
         "hasPii": False,
         "entities": [],
         "degraded": reason is not None,
@@ -256,8 +258,8 @@ class _CacheAware(_PiiState):
         confidence_threshold: float = 0.7,
         enabled_categories: list[str] | None = None,
         enabled_regions: list[str] | None = None,
-        custom_labels: list[dict] | None = None,
-    ) -> dict:
+        custom_labels: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
         """Cache-aware async wrapper around ``detect()``.
 
         Identical inputs return identical outputs, so cache the response

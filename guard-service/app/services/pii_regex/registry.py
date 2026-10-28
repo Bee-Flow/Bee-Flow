@@ -9,6 +9,9 @@ Order in ``_SPECS`` is load-bearing where two specs share a shape.
 from __future__ import annotations
 
 from collections.abc import Iterable
+from typing import Any
+
+from app.services.pii_validators import is_valid_iban
 
 from . import at, be, de, es, fr, gb, generic, it, nl, pl, se, us
 from .spec import (
@@ -308,7 +311,7 @@ _SPECS: tuple[PatternSpec, ...] = (
         "InternationalBankingAccountNumber",
         _ANY,
         generic._IBAN_SPACED_RE,
-        validate=generic._is_valid_iban,
+        validate=is_valid_iban,
         complete=True,
         near_miss=True,
     ),
@@ -316,7 +319,7 @@ _SPECS: tuple[PatternSpec, ...] = (
         "InternationalBankingAccountNumber",
         _ANY,
         generic._IBAN_RE,
-        validate=generic._is_valid_iban,
+        validate=is_valid_iban,
         complete=True,
         near_miss=True,
     ),
@@ -335,7 +338,7 @@ _SPECS: tuple[PatternSpec, ...] = (
         "InternationalBankingAccountNumber",
         _ANY,
         generic._IBAN_CONTIG_ANYCASE_RE,
-        validate=generic._is_valid_iban,
+        validate=is_valid_iban,
         post_filter=_digit_count_between(10, 32),
         counts_near_miss=False,
     ),
@@ -535,8 +538,8 @@ def detect_regex_pii(
     text: str,
     enabled_categories: frozenset[str] | set[str] | None = None,
     enabled_regions: Iterable[str] | None = None,
-    stats: dict | None = None,
-) -> list[dict]:
+    stats: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     """Run the applicable regex detectors and return entity dicts.
 
     *enabled_categories* (if provided) restricts which detectors run —
@@ -551,7 +554,7 @@ def detect_regex_pii(
 
     regions = normalise_regions(enabled_regions)
     near_miss = stats.setdefault("near_miss", {}) if stats is not None else None
-    entities: list[dict] = []
+    entities: list[dict[str, Any]] = []
     for spec in _SPECS:
         if enabled_categories is not None and spec.category not in enabled_categories:
             continue

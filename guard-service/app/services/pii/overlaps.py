@@ -23,7 +23,7 @@ class _OverlapResolution(_PiiState):
 
     @staticmethod
     def _finalise(  # noqa: C901, PLR0913, PLR0915
-        entities: list[dict],
+        entities: list[dict[str, Any]],
         degraded: bool = False,
         degraded_reason: str | None = None,
         degraded_categories: list[str] | None = None,
@@ -31,9 +31,9 @@ class _OverlapResolution(_PiiState):
         total_chars: int | None = None,
         tier_mode: str | None = None,
         text: str | None = None,
-        near_miss_counts: dict | None = None,
-        scan_stats: dict | None = None,
-    ) -> dict:
+        near_miss_counts: dict[str, Any] | None = None,
+        scan_stats: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Resolve overlaps and wrap in the response envelope.
 
         Overlap resolution used to be "keep the higher-confidence span",
@@ -92,7 +92,7 @@ class _OverlapResolution(_PiiState):
         oversize input: only ``[0, processed_chars)`` was covered.
         """
 
-        def _wrap(has_pii: bool, ents: list[dict]) -> dict:
+        def _wrap(has_pii: bool, ents: list[dict[str, Any]]) -> dict[str, Any]:
             out = {
                 "hasPii": has_pii,
                 "entities": ents,
@@ -125,7 +125,7 @@ class _OverlapResolution(_PiiState):
                 out["scan_stats"] = dict(scan_stats)
             return out
 
-        def _retext(ent: dict) -> dict:
+        def _retext(ent: dict[str, Any]) -> dict[str, Any]:
             """Force ``ent["text"] == text[offset:offset+length]``.
 
             Applied to EVERY emitted entity, not just merged ones, so the
@@ -159,8 +159,8 @@ class _OverlapResolution(_PiiState):
         # one — fine at 780 spans, not at 21 active categories over a
         # multi-hundred-chunk document.)
         ordered = sorted(entities, key=lambda e: (e["offset"], -(e["length"])))
-        clusters: list[list[dict]] = []
-        cur: list[dict] = []
+        clusters: list[list[dict[str, Any]]] = []
+        cur: list[dict[str, Any]] = []
         cur_end = -1
         for ent in ordered:
             start = ent["offset"]
@@ -176,7 +176,7 @@ class _OverlapResolution(_PiiState):
         if cur:
             clusters.append(cur)
 
-        kept: list[dict] = []
+        kept: list[dict[str, Any]] = []
         for cluster in clusters:
             if len(cluster) == 1:
                 kept.append(_retext(cluster[0]))
@@ -230,11 +230,11 @@ class _OverlapResolution(_PiiState):
         return _wrap(True, kept)
 
 
-def _custom_clusters(entities: list[dict]) -> list[list[dict]]:
+def _custom_clusters(entities: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
     """Transitively-overlapping clusters, in offset order (same sweep as
     _finalise, kept separate so the built-in resolver stays untouched)."""
     ordered = sorted(entities, key=lambda e: (e["offset"], -(e["length"])))
-    clusters: list[list[dict]] = []
+    clusters: list[list[dict[str, Any]]] = []
     cur_end = -1
     for ent in ordered:
         end = ent["offset"] + ent["length"]
@@ -247,7 +247,9 @@ def _custom_clusters(entities: list[dict]) -> list[list[dict]]:
     return clusters
 
 
-def _finalise_custom(entities: list[dict], text: str, spec: Any) -> list[dict]:
+def _finalise_custom(
+    entities: list[dict[str, Any]], text: str, spec: Any
+) -> list[dict[str, Any]]:
     """Resolve a request's CUSTOM spans among themselves into a disjoint list.
 
     Never together with the built-in candidates, and that is the contract, not
@@ -265,7 +267,7 @@ def _finalise_custom(entities: list[dict], text: str, spec: Any) -> list[dict]:
 
     ``spec`` is the request's _CustomSpec (``floor_for`` / ``rank``).
     """
-    kept: list[dict] = []
+    kept: list[dict[str, Any]] = []
     for cluster in _custom_clusters(entities):
         start = min(e["offset"] for e in cluster)
         end = max(e["offset"] + e["length"] for e in cluster)

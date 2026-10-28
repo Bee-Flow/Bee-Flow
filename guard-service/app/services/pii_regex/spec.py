@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
+from typing import Any
 
 # The demotion factor near-miss emission shares with _apply_validators —
 # IMPORTED, not copied: a drifted copy would give the two tiers different
@@ -71,7 +72,7 @@ def _make_entity(
     offset: int,
     length: int,
     confidence: float,
-) -> dict:
+) -> dict[str, Any]:
     return {
         "text": text,
         "category": category,
@@ -93,7 +94,7 @@ def _scan(  # noqa: PLR0913
     context_anchor: re.Pattern[str] | None = None,
     near_miss_counts: dict[str, int] | None = None,
     near_miss: bool = False,
-) -> Iterable[dict]:
+) -> Iterable[dict[str, Any]]:
     # ``near_miss_counts`` receives one increment per dropped candidate, keyed
     # "<Category>:<reason>". Counts only — never the value, offset or any text,
     # the same privacy stance as the by_category log field. A shape that
@@ -178,7 +179,7 @@ class PatternSpec:
     # decision that can silently lose recall, so it has to be asked for.
     complete: bool = False
     # Extra accept/reject on the finished entity (digit counts, ranges).
-    post_filter: Callable[[dict], bool] | None = None
+    post_filter: Callable[[dict[str, Any]], bool] | None = None
     # Demote-never-drop for checksum failures: emit the match at confidence x
     # REFUTED_CONFIDENCE_FACTOR instead of silently dropping it. OPT-IN, and
     # only defensible for DISTINCTIVE shapes: a mod-97-failing
@@ -218,8 +219,8 @@ class PatternSpec:
             raise ValueError(f"{self.category}: a spec must declare its regions")
 
 
-def _digit_count_between(low: int, high: int) -> Callable[[dict], bool]:
-    def _check(ent: dict) -> bool:
+def _digit_count_between(low: int, high: int) -> Callable[[dict[str, Any]], bool]:
+    def _check(ent: dict[str, Any]) -> bool:
         return low <= _count_digits(ent["text"]) <= high
 
     return _check

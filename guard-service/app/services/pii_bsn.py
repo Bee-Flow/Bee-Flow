@@ -51,6 +51,7 @@ Nothing else depends on it.
 from __future__ import annotations
 
 import re
+from typing import Any
 
 CATEGORY = "NationalIdentificationNumber"
 LABEL = "National ID"
@@ -80,7 +81,7 @@ def is_valid_bsn(digits: str) -> bool:
 
 def detect_bsn(
     text: str, enabled_categories: frozenset[str] | None = None
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Return checksum-valid BSN spans, in the same shape GLiNER spans use.
 
     Emits nothing when the category is disabled for the org. Overlap with a
@@ -91,7 +92,7 @@ def detect_bsn(
     if not text:
         return []
 
-    out: list[dict] = []
+    out: list[dict[str, Any]] = []
     for m in _NINE_DIGITS.finditer(text):
         value = m.group(0)
         if not is_valid_bsn(value):

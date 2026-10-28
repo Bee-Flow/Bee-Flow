@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import logging
 import threading
+from typing import Any
 
 from . import anchors as _anchors
 from .encoder import SentenceEncoder
@@ -132,7 +133,7 @@ class DisclosureService:
             logger.exception("[Disclosure] anchor bank failed to embed: %s", exc)
 
     # ── classification ───────────────────────────────────────────────────
-    def _no_opinion(self, reason: str, segment_count: int = 0) -> dict:
+    def _no_opinion(self, reason: str, segment_count: int = 0) -> dict[str, Any]:
         return {
             "disclosed": None,
             "similarity": None,
@@ -146,7 +147,7 @@ class DisclosureService:
 
     def classify(
         self, text: str, *, floor: float, margin: float, max_chars: int
-    ) -> dict:
+    ) -> dict[str, Any]:
         """One text → the verdict envelope the router returns verbatim."""
         if not self._ready:
             return self._no_opinion(self._load_error or "classifier_unavailable")

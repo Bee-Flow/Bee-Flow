@@ -6,6 +6,7 @@ stdlib IP parsers). Every pattern here is compiled once at import.
 from __future__ import annotations
 
 import re
+from typing import Any
 
 from app.services.pii_validators import (
     is_valid_iban as _is_valid_iban,
@@ -86,7 +87,7 @@ _PHONE_RE = re.compile(
 )
 
 
-def _phone_digits_ok(ent: dict) -> bool:
+def _phone_digits_ok(ent: dict[str, Any]) -> bool:
     """8-15 digits after a `+`, 9-15 otherwise.
 
     E.164 caps a number at 15 digits. The lower bound is one higher without a

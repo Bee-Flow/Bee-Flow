@@ -26,6 +26,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass, field
+from typing import Any
 
 from .thresholds import _ABSOLUTE_CEIL, _ABSOLUTE_FLOOR, _UI_DEFAULT_THRESHOLD
 
@@ -60,7 +61,7 @@ class _CustomSpec:
 
     @classmethod
     def from_request(
-        cls, custom_labels: list[dict] | None, confidence_threshold: float
+        cls, custom_labels: list[dict[str, Any]] | None, confidence_threshold: float
     ) -> _CustomSpec | None:
         """``None`` for an absent or EMPTY list: an empty list is no request
         for custom labels, and must behave (and key, and fingerprint) exactly
@@ -109,7 +110,7 @@ class _CustomSpec:
         shifted = base + (self.confidence_threshold - _UI_DEFAULT_THRESHOLD)
         return min(_ABSOLUTE_CEIL, max(_ABSOLUTE_FLOOR, shifted))
 
-    def cache_material(self) -> list[list]:
+    def cache_material(self) -> list[list[Any]]:
         """What decides a custom answer, canonically: id, prompt, base floor.
 
         The slider is NOT in here; it is already a component of the cache key
@@ -124,7 +125,7 @@ class _CustomSpec:
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
 
 
-def custom_label_digest(custom_labels: list[dict] | None) -> str | None:
+def custom_label_digest(custom_labels: list[dict[str, Any]] | None) -> str | None:
     """The fingerprint component for a request's custom labels, or None."""
     spec = _CustomSpec.from_request(custom_labels, _UI_DEFAULT_THRESHOLD)
     return spec.digest if spec is not None else None
