@@ -1,3 +1,4 @@
+/** @typedef {import('./chatStream/turnState').ToolCall} ToolCall */
 // @typecheck
 /**
  * Streaming agent chat — one tool round of the agentic loop.
@@ -90,6 +91,9 @@ const log = require('../../telemetry/log');
 
 // Lazy, like the per-call require below: orgShield is where tool classes are
 // decided, and loading it here would pull the shield into this module's graph.
+/**
+ * @param {string} name
+ */
 const _toolClassOf = (name) => require('../privacy/orgShield').classifyToolClass(name);
 
 // What the ./toolRound/ modules use from the import cycle. The getters are
@@ -116,6 +120,8 @@ const testChatMod = require('./testChat');
  * object (a blocked sentinel for every refusal). Nothing here awaits unless
  * the original closure did — an argument PII scan or the dispatch — so the
  * calls of one batch interleave exactly as before.
+ * @param {ToolRoundContext} rc
+ * @param {ToolCall} toolCall
  */
 async function runToolCall(rc, toolCall) {
     const { signal, onEvent, toolParamsMap } = rc;

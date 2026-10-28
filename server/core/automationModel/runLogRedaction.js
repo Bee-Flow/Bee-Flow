@@ -31,6 +31,7 @@
  * mapStringLeavesAsync in core/automationRunner/safety.js). Two passes per
  * string leaf: (a) exact-substring masking of the provided secretValues,
  * (b) secret-shaped pattern masking.
+ * @param {string} kind
  */
 
 const marker = (kind) => `«redacted:${kind}»`;
@@ -129,6 +130,7 @@ function walk(value, secrets, counter, allow, pub) {
         // flattened to `{}` by a key walk — pass them through untouched.
         const proto = Object.getPrototypeOf(value);
         if (proto !== Object.prototype && proto !== null) return value;
+        /** @type {Record<string, string>} */
         const out = {};
         for (const k of Object.keys(value)) {
             const v = value[k];

@@ -115,6 +115,7 @@ function shapePreview(value, opts = {}) {
 function truncatePayload(value, opts = {}) {
     const maxBytes = opts.maxBytes || DEFAULT_MAX_BYTES;
     let originalBytes = 0;
+    /** @type {string} */
     let serialized;
     try {
         serialized = JSON.stringify(value);
@@ -189,6 +190,7 @@ function fullOutputRefOf(value) {
  * behaviour — including the resume failure for a later step that reads such
  * an output (core/automationRunner/replayGaps.js). Anything unparseable falls
  * back to the default rather than silently switching the copies off.
+ * @param {NodeJS.ProcessEnv} [env]
  */
 function fullOutputMaxBytes(env = process.env) {
     const raw = env?.AUTOMATION_RUN_FULL_OUTPUT_MAX_BYTES;

@@ -36,7 +36,10 @@ const DEFAULT_CODE = Object.freeze({
     onApproval: 'automation.notify.approval_needed',
 });
 
-/** An automation name fit for one line: trimmed, no line breaks, capped. */
+/**
+ * An automation name fit for one line: trimmed, no line breaks, capped.
+ * @param {string} title
+ */
 function automationName(title) {
     const clean = String(title || '').replace(/\s+/g, ' ').trim();
     if (!clean) return 'An automation';
@@ -71,6 +74,11 @@ function talkText(line, url) {
     return url ? `${line}\n${url}` : line;
 }
 
+/**
+ * @param {number} n
+ * @param {string} one
+ * @param {string} many
+ */
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
 /**

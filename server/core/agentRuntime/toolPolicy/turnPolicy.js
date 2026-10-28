@@ -55,6 +55,7 @@ function buildToolPolicy({ agentConfig, tools, unattended = false, automationCon
     const confirmByTool = new Map();
     const effectByTool = new Map();
     const gatedTools = new Set();
+    /** @type {string[]} */
     const droppedForUnattended = [];
     let sawOverride = false;
 
