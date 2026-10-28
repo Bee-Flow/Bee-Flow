@@ -62,7 +62,7 @@ function assertManaged(projectId, changedKeys, { managedWrite = null, client = n
  * passes it); without it the write is taken to change the content.
  *
  * @template {{ row: any }} L
- * @param {any} client
+ * @param {DbQueryable} client
  * @param {L} locked
  * @param {{ changedKeysOf?: (row: any) => string[], managedWrite?: { deploymentId?: string }|null }} a
  * @returns {Promise<L>}
@@ -269,7 +269,7 @@ function carriedFields(fields) {
  * `solution_project_id`); with `id` the row filed in `projectId` is updated.
  * Each write is a new revision ('import'), which becomes the current one.
  *
- * @param {any} client  a transaction client ({ query })
+ * @param {DbQueryable} client  a transaction client ({ query })
  * @param {{ id?: string|null, ownerId: string, orgId?: string|null, projectId: string, fields: object }} input
  * @param {{ managedWrite?: { deploymentId?: string }|null }} [opts]
  * @returns {Promise<{ id: string, versionId: string, created: boolean }>}

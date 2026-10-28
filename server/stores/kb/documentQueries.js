@@ -123,12 +123,10 @@ function makeDocumentQueryFns(ctx) {
          * List documents of a KB — PROJECTED (never original_content).
          *
          * @param {string} kbId
-         * @param {object} [opts]
-         * @param {number} [opts.limit=200]
-         * @param {number} [opts.offset=0]
-         * @param {object} [opts.filters] - sender, threadId, hasAttachment, dateFrom, dateTo,
-         *   sourceType (legacy metadata filters) plus K1: sourceId, status (string|string[]),
-         *   pii ('found' = found|redacted, or an exact pii_status), q (title ILIKE)
+         * @param {{ limit?: number, offset?: number, filters?: Record<string, unknown> }} [opts]
+         *   filters: sender, threadId, hasAttachment, dateFrom, dateTo, sourceType (legacy
+         *   metadata filters) plus K1: sourceId, status (string|string[]), pii ('found' =
+         *   found|redacted, or an exact pii_status), q (title ILIKE)
          */
         listDocuments: async (kbId, opts = {}) => {
             await initDB();

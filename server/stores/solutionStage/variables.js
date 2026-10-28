@@ -84,8 +84,8 @@ const nameError = (name) => storeError(400, 'variable_name_invalid',
 /**
  * A stored value as its declared type, or undefined when it does not fit.
  * @param {string} type
- * @param {any} value
- * @param {any} choices
+ * @param {unknown} value
+ * @param {unknown} choices
  */
 function coerceValue(type, value, choices) {
     if (value === null || value === undefined) return undefined;

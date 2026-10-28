@@ -148,7 +148,7 @@ function entryOf(m, id) {
  * now equals the table row's own name, which reconcile copies over). Anything
  * else the save touches on a stage table still needs the deploy's capability.
  *
- * @param {any} c  the transaction client
+ * @param {DbQueryable} c  the transaction client
  * @param {any} before  the model read under the lock
  * @param {any} next    the model being saved
  * @param {string[]} ids   the changed table ids
@@ -183,7 +183,7 @@ async function mirrorReconcileExemptIds(c, before, next, ids) {
  * the caller already holds FOR UPDATE in the same transaction; a scope without
  * a model row, or a model without the entry, is left as it is.
  *
- * @param {any} c
+ * @param {DbQueryable} c
  * @param {{kind: string, id: string}} scope
  * @param {{rows: any[]}} locked
  * @param {string} tableId

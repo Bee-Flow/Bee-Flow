@@ -21,18 +21,20 @@ function makeAccessFns(ctx) {
          * @param {string} tenantId - The user's ID
          * @param {Set|null} orgIds - User's org IDs from resolveUserOrgIds().
          *   null = super admin (see all), Set with values = org member, empty Set = no org
-         * @param {object} [opts]
-         * @param {string|string[]|null} [opts.sourceKind='manual'] - Filter by source kind.
-         *   Pass a string for one kind, an array for several, or null to include all kinds.
-         * @param {string|null} [opts.usageContext=null] - When set, only KBs whose `usage_contexts`
-         *   array contains this value are returned ('agent' | 'direct_chat' | 'webpage').
-         * @param {string|null} [opts.excludeContext=null] - Inverse of `usageContext`. KBs whose
-         *   `usage_contexts` array contains this value are excluded.
-         * @param {string[]} [opts.systemSlugs=null] - When provided, system-managed KBs whose
-         *   `system_slug` is in this list are included in addition to the normal personal/org
-         *   results. Used by the chat layer to surface system KBs whose beta feature is enabled
-         *   for the requesting user's org.
-         * @param {boolean} [opts.isOrgAdmin] - server-resolved; org admins also see draft org KBs.
+         * @param {{
+         *   sourceKind?: string|string[]|null, usageContext?: string|null, excludeContext?: string|null,
+         *   systemSlugs?: string[], isOrgAdmin?: boolean,
+         * }} [opts]
+         *   sourceKind: Filter by source kind. Pass a string for one kind, an array for several, or null to include
+         *     all kinds.
+         *   usageContext: When set, only KBs whose `usage_contexts` array contains this value are returned ('agent'
+         *     | 'direct_chat' | 'webpage').
+         *   excludeContext: Inverse of `usageContext`. KBs whose `usage_contexts` array contains this value are
+         *     excluded.
+         *   systemSlugs: When provided, system-managed KBs whose `system_slug` is in this list are included in
+         *     addition to the normal personal/org results. Used by the chat layer to surface system KBs whose beta
+         *     feature is enabled for the requesting user's org.
+         *   isOrgAdmin: server-resolved; org admins also see draft org KBs.
          */
         listKBs: async (tenantId, orgIds = undefined, opts = {}) => {
             await initDB();
@@ -178,7 +180,7 @@ function makeAccessFns(ctx) {
          * Used both by the list filter and by per-id route guards so the two
          * paths can never drift.
          *
-         * @param {any} kb - Row from knowledge_bases
+         * @param {DbRow.KnowledgeBases} kb - Row from knowledge_bases
          * @param {string} userId - The requesting user's id
          * @param {Set|null|undefined} orgIds - User's org ids; null = super admin.
          *   When undefined, org membership is not considered (list-path callers
@@ -226,7 +228,7 @@ function makeAccessFns(ctx) {
          * KB's org AND hold manage_knowledge (checked by the caller via
          * hasPermission and passed in as a boolean so this stays pure/testable).
          *
-         * @param {any} kb - Row from knowledge_bases
+         * @param {DbRow.KnowledgeBases} kb - Row from knowledge_bases
          * @param {string} userId - Requesting user's id
          * @param {Set|null} orgIds - resolveUserOrgIds(req) result; null = super admin
          * @param {boolean} hasManagePermission - hasPermission(userId,'manage_knowledge')

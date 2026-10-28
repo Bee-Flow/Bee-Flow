@@ -136,11 +136,10 @@ const MAX_ORG_ID_LENGTH = 48;
 
 /**
  * @param {any} orgData
- * @param {object} [opts]
- * @param {boolean} [opts.autoGrantTrial=true] Grant the configured org trial here.
- *   Web signup passes false and grants it from accountProvisioning.finalizeAccount
- *   instead, so org and consumer trials are granted at the same layer. Defaults to
- *   true so the connector bootstrap and admin org creation are unchanged.
+ * @param {{ autoGrantTrial?: boolean }} [opts]
+ *   autoGrantTrial: Grant the configured org trial here. Web signup passes false and grants it from
+ *     accountProvisioning.finalizeAccount instead, so org and consumer trials are granted at the same layer.
+ *     Defaults to true so the connector bootstrap and admin org creation are unchanged.
  * @throws when `id` is longer than MAX_ORG_ID_LENGTH.
  */
 async function createOrganization(orgData, { autoGrantTrial = true } = {}) {

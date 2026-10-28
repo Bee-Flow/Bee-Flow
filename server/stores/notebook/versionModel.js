@@ -145,7 +145,7 @@ function mapVersionRow(r) {
 /**
  * JSONB arrives parsed from pg and as text from some drivers.
  * @param {string | null} v
- * @param {any} fallback
+ * @param {unknown} fallback
  */
 function parseJSONValue(v, fallback) {
     if (v == null) return fallback;
