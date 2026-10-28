@@ -197,13 +197,12 @@ function slugKey(title) {
 /**
  * Link one or more Nextcloud tables/views as mirrors in `scope`.
  *
- * @param {object} args
- * @param {{kind,id}} args.scope
- * @param {object} args.principal   resolveDatatablePrincipal's answer (userId, orgId)
- * @param {object} args.session     the caller's request session
- * @param {Array}  args.tables      [{ ncTableId?, ncViewId?, name?, key?, description? }]
- * @param {Array}  [args.relations] [{ from:{ncTableId, ncColumnId}, to:{ncTableId, ncColumnId} }]
- * @param {unknown} [args.schedule]  accepted for compatibility and ignored
+ * @param {{ scope: {kind,id}, principal: Awaited<ReturnType<typeof import('../../../../auth/datatableAccess').resolveDatatablePrincipal>>,
+ *   session: Express.Session, tables: Array, relations?: Array,
+ *   schedule?: unknown }} args `principal`: resolveDatatablePrincipal's answer (userId, orgId);
+ *   `session`: the caller's request session; `tables`: [{ ncTableId?, ncViewId?, name?, key?,
+ *   description? }]; `relations`: [{ from:{ncTableId, ncColumnId}, to:{ncTableId, ncColumnId} }];
+ *   `schedule`: accepted for compatibility and ignored
  * @returns {Promise<{ datatables:Array, warnings:string[], partial:boolean }>}
  */
 async function linkTables({ scope, principal, session, tables, relations = [], schedule = null }) {

@@ -39,15 +39,11 @@ const { fallback } = require('../../utils/bestEffort');
 const PG = Object.freeze({ dialect: 'pg' });
 
 /**
- * @param {object} o
- * @param {import('../../stores/datatableStore/scope').DatatableScope} o.scope   an authorised scope (orgScope/userScope)
- * @param {string} o.ownerUserId
- * @param {ReturnType<typeof import('./dataModel/managedTables').managedKindSpec>} o.spec  managedKindSpec(kind)
- * @param {string} o.key
- * @param {string} o.name
- * @param {string} o.description                   the Art. 30 purpose
- * @param {number|null} [o.retentionDays]
- * @param {string|null} [o.projectId]
+ * @param {{ scope: import('../../stores/datatableStore/scope').DatatableScope, ownerUserId: string,
+ *   spec: ReturnType<typeof import('./dataModel/managedTables').managedKindSpec>, key: string, name: string,
+ *   description: string, retentionDays?: number|null, projectId?: string|null }} o `scope`: an
+ *   authorised scope (orgScope/userScope); `spec`: managedKindSpec(kind); `description`: the Art. 30
+ *   purpose
  * @returns {Promise<object>} the datatable row
  */
 async function provisionManagedTable({ scope, ownerUserId, spec, key, name, description, retentionDays = null, projectId = null }) {

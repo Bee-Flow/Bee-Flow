@@ -321,9 +321,9 @@ function formatOfNumFmt(numFmt) {
 
 /**
  * What the mirror stores for one cell.
- * @param {*} raw          what the reader gave: string | number | boolean | Date | null
+ * @param {unknown} raw          what the reader gave: string | number | boolean | Date | null
  * @param {{ type?:string, dateFormat?:string|null }} entry   the columnMap entry ({ type, dateFormat? })
- * @returns {*}            the value for the declared type, or null when it does not fit
+ * @returns {string | number | boolean | null}            the value for the declared type, or null when it does not fit
  */
 function readCell(raw, entry) {
     if (isBlank(raw)) return null;

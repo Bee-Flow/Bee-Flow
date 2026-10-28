@@ -257,7 +257,7 @@ async function upload(d, file, buffer, { ifMatch = null, contentType = null } = 
 
 /**
  * @param {{ save?: () => unknown }} cred
- * @param {object} [ctx]
+ * @param {unknown} [ctx]  unused (the FileApi signature)
  */
 function makeApi(cred, ctx = {}) {
     void ctx;

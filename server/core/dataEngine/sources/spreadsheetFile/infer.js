@@ -103,12 +103,10 @@ function sampleText(raw) {
 /**
  * @param {Array<unknown>} header     the header cells (raw)
  * @param {Array<Array<unknown>>} rows  the data rows (raw cells), the FULL read
- * @param {object} [opts]
- * @param {Set<number>} [opts.dateCols]     columns where the reader saw a date number format
- * @param {Set<number>} [opts.formulaCols]  columns where the reader saw a formula
- * @param {Map<number,string>} [opts.numFmts]  dominant Excel number format per column
- * @param {number} [opts.sampleRows]
- * @param {number} [opts.threshold]
+ * @param {{ dateCols?: Set<number>, formulaCols?: Set<number>, numFmts?: Map<number,string>,
+ *   sampleRows?: number, threshold?: number }} [opts] `dateCols`: columns where the reader saw a date
+ *   number format; `formulaCols`: columns where the reader saw a formula; `numFmts`: dominant Excel
+ *   number format per column
  * @returns {{ columns:InferredColumn[], keyCandidates:number[], warnings:string[] }}
  */
 function inferColumns(header, rows, {

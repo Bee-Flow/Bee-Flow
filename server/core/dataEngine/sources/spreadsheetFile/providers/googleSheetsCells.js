@@ -381,7 +381,8 @@ function makeSheetCells(d) {
         readSheet: (...a) => readSheet(d, ...a),
         /** @param {[FileRef, SheetArg, number|string]} a */
         readRow: (...a) => readRow(d, ...a),
-        updateCells: (...a) => /** @type {Function} */ (updateCells)(d, ...a),
+        /** @param {[FileRef, SheetArg, number|string, CellWrite[], { ifMatch?: DriveMarker|null }?]} a */
+        updateCells: (...a) => /** @type {typeof updateCells} */ (updateCells)(d, ...a),
         appendRow: (...a) => appendRow(d, ...a),
         /** @param {[FileRef, SheetArg, number|string, { ifMatch?: DriveMarker|null }?]} a */
         deleteRow: (...a) => deleteRow(d, ...a),

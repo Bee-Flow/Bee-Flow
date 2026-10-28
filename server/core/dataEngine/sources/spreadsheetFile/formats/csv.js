@@ -361,7 +361,7 @@ function formatDate(d, dateFormat, withTime) {
 
 /**
  * One value (the write codec's output) as the text this file spells it in.
- * @param {*} value            string | number | boolean | Date | null
+ * @param {unknown} value            string | number | boolean | Date | null
  * @param {{ type?: string, dateFormat?: string }} [column]    the columnMap entry
  * @param {{ decimal?: string }} [csv]       the sniffed facts
  */
