@@ -17,6 +17,7 @@ const { bestEffort } = require('../../utils/bestEffort');
 /**
  * Get the cache READ discount multiplier for a model's provider.
  * Cached input tokens are billed at this fraction of the normal input rate.
+ * @param {string} model
  */
 function getCacheDiscount(model) {
     if (!model) return 1;

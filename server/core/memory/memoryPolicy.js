@@ -64,7 +64,10 @@ function asMaxPerUser(v) {
     return Math.min(MAX_PER_USER_MAX, Math.max(MAX_PER_USER_MIN, n));
 }
 
-/** Sanitise a stored doc into the three known fields; anything else is dropped. */
+/**
+ * Sanitise a stored doc into the three known fields; anything else is dropped.
+ * @param {{ enabled: boolean; sensitiveOptInAllowed: boolean; maxPerUser: number; }} doc
+ */
 function sanitizeOrgMemory(doc) {
     const d = doc && typeof doc === 'object' ? doc : {};
     return {
@@ -78,6 +81,7 @@ function sanitizeOrgMemory(doc) {
 /**
  * The org-settings accessors over a config store. `configStore` below is the
  * real one; routes/orgMemory.test.js builds them over an in-memory store.
+ * @param {typeof configStore} store
  */
 function createOrgMemorySettings(store) {
     /** Effective org settings; defaults when the org has never saved any. */
@@ -99,13 +103,16 @@ function createOrgMemorySettings(store) {
 
 const { getOrgMemorySettings, setOrgMemorySettings } = createOrgMemorySettings(configStore);
 
-/** Fail open on a config outage, like the per-user switch. */
+/**
+ * Fail open on a config outage, like the per-user switch.
+ * @param {string | undefined} orgId
+ */
 async function isMemoryEnabledForOrg(orgId) {
     if (!orgId) return true;
     try {
         return (await getOrgMemorySettings(orgId)).enabled;
     } catch (err) {
-        log.warn('[memoryPolicy] org config read failed, defaulting to enabled:', err.message);
+        log.warn('[memoryPolicy] org config read failed, defaulting to enabled:', /** @type {Error} */ (err).message);
         return true;
     }
 }
@@ -122,6 +129,7 @@ function memoryEnabledKey(userId) {
  * `!== false`. `configStore.getConfig` returns null for an absent key, and the
  * neighbouring `simpleMode` preference reads `!!value` — copying that here
  * would silently disable memory for every existing user on deploy.
+ * @param {string | undefined} userId
  */
 async function isMemoryEnabledForUser(userId) {
     if (isAnonymousUserId(userId)) return false;
@@ -130,12 +138,15 @@ async function isMemoryEnabledForUser(userId) {
     } catch (err) {
         // A config outage must not silently wipe everyone's memory. Fail open:
         // the switch defaults to on, so on-error means on.
-        log.warn('[memoryPolicy] config read failed, defaulting to enabled:', err.message);
+        log.warn('[memoryPolicy] config read failed, defaulting to enabled:', /** @type {Error} */ (err).message);
         return true;
     }
 }
 
-/** Config key holding the per-user sensitive-data (art. 9) opt-in. */
+/**
+ * Config key holding the per-user sensitive-data (art. 9) opt-in.
+ * @param {string} userId
+ */
 function memorySensitiveOptInKey(userId) {
     return `memory_sensitive_opt_in_user_${userId}`;
 }
@@ -143,6 +154,8 @@ function memorySensitiveOptInKey(userId) {
 /**
  * Sensitive memories may be stored only when the user opted in AND the org
  * allows it. Fails closed: any error, anonymous user or missing key means no.
+ * @param {string | undefined} userId
+ * @param {string | null | undefined} orgId
  */
 async function isSensitiveOptInForUser(userId, orgId) {
     if (!userId || isAnonymousUserId(userId)) return false;
@@ -150,7 +163,7 @@ async function isSensitiveOptInForUser(userId, orgId) {
         if ((await configStore.getConfig(memorySensitiveOptInKey(userId))) !== true) return false;
         return (await getOrgMemorySettings(orgId)).sensitiveOptInAllowed === true;
     } catch (err) {
-        log.warn('[memoryPolicy] sensitive opt-in read failed, defaulting to off:', err.message);
+        log.warn('[memoryPolicy] sensitive opt-in read failed, defaulting to off:', /** @type {Error} */ (err).message);
         return false;
     }
 }
