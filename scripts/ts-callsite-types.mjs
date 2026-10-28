@@ -1146,7 +1146,7 @@ export function inferFile(ts, service, abs, observed = null, banned = new Set())
             // alias, whose implicit index signature lets it be passed where a
             // `Record<string, unknown>` or a looser shape is expected.
             const decl = isComponent ? `interface ${iname} {\n${lines.join('\n')}\n}\n\n` : `type ${iname} = {\n${lines.join('\n')}\n};\n\n`;
-            edits.push({ start: at, end: at, text: decl, kind: 'interface', name: iname, members: lines.map((l) => { const m = l.match(/^\s+([\w$]+)(\??): (.*);$/); return { key: m[1], optional: !!m[2], type: m[3] }; }) });
+            edits.push({ start: at, end: at, text: decl, kind: 'interface', name: iname, members: lines.map((l) => { const m = l.match(/^\s+([\w$]+)(\??): (.*);$/); return { key: m[1], optional: !!m[2], type: m[3] }; }), open: open.map((o) => o.replace(/ \[.*$/, '')) });
             edits.push({ start: first.name.getEnd(), end: first.name.getEnd(), text: `: ${iname}`, kind: 'param', name: null, index: 0, optional: !!first.initializer, type: iname, host: jsdocHost(ts, fn).getStart(sf) });
             if (lines.some((l) => l.includes('React.'))) local.push(['React', null]);
             for (const l of local) imports.set(l[0], l[1]);

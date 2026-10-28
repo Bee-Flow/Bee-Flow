@@ -76,6 +76,21 @@ export function safeInferenceEdits(edits) {
     return { edits: edits.filter((e) => !bad.has(e)), dropped: [...bad].map((e) => `${e.kind} ${e.name || e.type || ''} (forbidden type)`) };
 }
 
+/**
+ * A typedef for a destructured options object that leaves a bound name out is
+ * dropped, with the `@param` that would point at it. On the TypeScript side an
+ * incomplete interface is a to-do list (the destructure then names the missing
+ * members as errors for an agent). In a JavaScript file that already passes the
+ * server's typecheck it is a regression: TS2339 on every name the typedef lacks,
+ * and typecheck-settle then reverts the whole file, the good edits with it. The
+ * slot stays open instead, for the next source of types.
+ */
+export function completeOptionsEdits(edits) {
+    const partial = new Set(edits.filter((e) => e.kind === 'interface' && e.open && e.open.length));
+    const names = new Set([...partial].map((e) => e.name));
+    for (const e of edits) if (e.kind === 'param' && names.has(e.type)) partial.add(e);
+    return { edits: edits.filter((e) => !partial.has(e)), dropped: [...partial].map((e) => `${e.kind} ${e.name || e.type || ''} (typedef leaves ${e.kind === 'interface' ? e.open.join(', ') : 'members'} untyped)`) };
+}
 /** Puts `// @typecheck` on the first line that may hold it (after a shebang). */
 export function addMark(text) {
     if (/^\s*\/\/\s*@typecheck\b/m.test(text)) return text;
@@ -135,7 +150,9 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
                 const inf = inferFile(ts, svc.service, f, observed[rel] || observed[path.relative(ROOT, f)] || null, bans.get(f));
                 for (const c of inf.chosen || []) chosen.get(f).set(c.slot, c.source);
                 const text = svc.service.getProgram().getSourceFile(f).text;
-                const { edits: kept, dropped: forbidden } = safeInferenceEdits(inf.edits);
+                const complete = completeOptionsEdits(inf.edits);
+                const { edits: kept, dropped: forbidden } = safeInferenceEdits(complete.edits);
+                forbidden.unshift(...complete.dropped);
                 const { edits, dropped } = lowerToJsDoc(text, kept);
                 const safe = edits.filter((e) => !forbiddenJsDoc(e.text));
                 report.get(f).push(...inf.report.map((l) => `[${attempt + 1}.${pass + 1}] ${l}`), ...[...forbidden, ...dropped].map((d) => `dropped ${d}`));
