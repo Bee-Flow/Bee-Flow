@@ -150,7 +150,7 @@ COPY --from=buildx-build /out/docker-buildx /usr/libexec/docker/cli-plugins/dock
 # The runtime uses npm for administrator-authorized component installs.
 # Update its bundled dependency tree independently of the pinned Node runtime.
 RUN npm install --global npm@12.2.0 --no-audit --no-fund \
-    && npm install --prefix /tmp/npm-security-patches --ignore-scripts --no-save --no-package-lock --no-audit --no-fund brace-expansion@5.0.11 undici@6.28.1 \
+    && npm install --prefix /tmp/npm-security-patches --ignore-scripts --no-save --no-package-lock --no-audit --no-fund brace-expansion@5.0.11 undici@6.29.1 \
     && rm -rf /usr/local/lib/node_modules/npm/node_modules/brace-expansion /usr/local/lib/node_modules/npm/node_modules/undici \
     && cp -a /tmp/npm-security-patches/node_modules/. /usr/local/lib/node_modules/npm/node_modules/ \
     && rm -rf /tmp/npm-security-patches
