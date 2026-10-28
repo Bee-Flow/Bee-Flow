@@ -65,7 +65,7 @@ const toSet = (v) => (v instanceof Set ? v : new Set(Array.isArray(v) ? v : []))
 
 /**
  * The LISTABLE providers, catalog-ready:
- * [{ id, label, defaultEvent, events: [{ id, label, deliverability, deliverabilityNote? }] }]
+ * [{ id, label, defaultEvent, events: [{ id, label, deliverability, deliverabilityNote?, colleagues? }] }]
  */
 function buildAppEventProviders(ctx = {}) {
     const resolved = {
@@ -96,6 +96,8 @@ function buildAppEventProviders(ctx = {}) {
                 label: ev.label,
                 deliverability: ev.deliverability || 'ok',
                 ...(ev.deliverabilityNote ? { deliverabilityNote: ev.deliverabilityNote } : {}),
+                // The event may reach a colleague's automation (filter.includeColleagues).
+                ...(ev.colleagues === true ? { colleagues: true } : {}),
             })),
         });
     }

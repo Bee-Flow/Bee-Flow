@@ -39,6 +39,8 @@ interface ProviderEvent {
     label?: string;
     deliverability?: string;
     deliverabilityNote?: string;
+    /** A colleague's automation may receive this event (filter.includeColleagues). */
+    colleagues?: boolean;
 }
 
 /** One app that can start an automation (a stale backend still serves bare ids). */

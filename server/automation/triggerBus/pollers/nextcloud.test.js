@@ -99,3 +99,87 @@ test('notification.new: anchors on the first non-empty poll, then emits only new
     assert.deepStrictEqual(out.map(n => n.notificationId), [8]);
     assert.deepStrictEqual(next.updates, [{ id: 'n1', lastCursor: '8' }]);
 });
+
+// ── calendar.event.upcoming: every calendar, a configurable lead cap (#193) ──
+
+const { upcomingLeadMinutes, upcomingCalendars } = require('./nextcloud');
+
+/** A calendar ctx: `byCal` maps a calendar URI to its events; `list` is the calendar list. */
+function calCtx({ byCal = {}, list = null, failing = [] } = {}) {
+    const asked = [];
+    const updates = [];
+    const ctx = {
+        store: () => ({ updateSubscription: async (id, u) => { updates.push({ id, ...u }); } }),
+        ncScopeGuard: () => ({ guardedNcCall: async (_name, _args, _c, run) => run() }),
+        nextcloudCalendarTools: () => ({
+            executeNextcloudCalendarTool: async (name, args) => {
+                if (name === 'nextcloud_calendar_list') return list ? { calendars: list } : { error: 'no list' };
+                asked.push(args.calendar);
+                if (failing.includes(args.calendar)) return { error: 'Calendar not found' };
+                return { events: byCal[args.calendar] || [] };
+            },
+        }),
+    };
+    return { ctx, asked, updates };
+}
+
+const inMinutes = (m) => new Date(Date.now() + m * 60_000).toISOString();
+
+test('upcoming: with no calendar named, every calendar the user has is read', async () => {
+    const { ctx, asked } = calCtx({
+        list: [{ slug: 'personal' }, { slug: 'work' }, { slug: 'team_shared_by_bob' }],
+        byCal: { work: [{ uid: 'w1', dtstart: inMinutes(10), summary: 'Standup' }], team_shared_by_bob: [{ uid: 't1', dtstart: inMinutes(5) }] },
+    });
+    const out = await createNextcloudPollers(ctx)['calendar.event.upcoming']({ id: 's', userId: 'u', lastCursor: null, filter: {} }, {});
+    assert.deepStrictEqual(asked, ['personal', 'work', 'team_shared_by_bob']);
+    assert.deepStrictEqual(out.map(e => [e.uid, e.calendarUri, e.calendarId]), [['w1', 'work', 'work'], ['t1', 'team_shared_by_bob', 'team_shared_by_bob']]);
+});
+
+test('upcoming: a named calendar (or a list of them) narrows the read; the list cannot be read → personal', async () => {
+    const one = calCtx({ list: [{ slug: 'personal' }, { slug: 'work' }] });
+    await createNextcloudPollers(one.ctx)['calendar.event.upcoming']({ id: 's', userId: 'u', lastCursor: null, filter: { calendarId: 'work' } }, {});
+    assert.deepStrictEqual(one.asked, ['work']);
+    const many = calCtx();
+    await createNextcloudPollers(many.ctx)['calendar.event.upcoming']({ id: 's', userId: 'u', lastCursor: null, filter: { calendars: ['a', 'b', 'a'] } }, {});
+    assert.deepStrictEqual(many.asked, ['a', 'b']);
+    const fallback = calCtx({ list: null });
+    await createNextcloudPollers(fallback.ctx)['calendar.event.upcoming']({ id: 's', userId: 'u', lastCursor: null, filter: {} }, {});
+    assert.deepStrictEqual(fallback.asked, ['personal']);
+});
+
+test('upcoming: one event in two calendars fires once; one failing calendar does not stop the others', async () => {
+    const ev = { uid: 'same', dtstart: inMinutes(3) };
+    const { ctx, updates } = calCtx({ list: [{ slug: 'a' }, { slug: 'b' }, { slug: 'broken' }], byCal: { a: [ev], b: [ev] }, failing: ['broken'] });
+    const out = await createNextcloudPollers(ctx)['calendar.event.upcoming']({ id: 's', userId: 'u', lastCursor: null, filter: {} }, {});
+    assert.strictEqual(out.length, 1);
+    assert.strictEqual(JSON.parse(updates[0].lastCursor).firedIds.length, 1);
+});
+
+test('upcoming: every calendar failing leaves the cursor alone', async () => {
+    const { ctx, updates } = calCtx({ list: [{ slug: 'a' }], failing: ['a'] });
+    const out = await createNextcloudPollers(ctx)['calendar.event.upcoming']({ id: 's', userId: 'u', lastCursor: null, filter: {} }, {});
+    assert.deepStrictEqual(out, []);
+    assert.deepStrictEqual(updates, []);
+});
+
+test('upcoming: leadMinutes is capped by AUTOMATION_NC_UPCOMING_MAX_LEAD_MINUTES (default a day, 0 = no cap)', () => {
+    const saved = process.env.AUTOMATION_NC_UPCOMING_MAX_LEAD_MINUTES;
+    try {
+        delete process.env.AUTOMATION_NC_UPCOMING_MAX_LEAD_MINUTES;
+        assert.strictEqual(upcomingLeadMinutes(undefined), 15);
+        assert.strictEqual(upcomingLeadMinutes(600), 600, 'no longer clamped to 240');
+        assert.strictEqual(upcomingLeadMinutes(5000), 1440);
+        assert.strictEqual(upcomingLeadMinutes(-3), 15);
+        process.env.AUTOMATION_NC_UPCOMING_MAX_LEAD_MINUTES = '0';
+        assert.strictEqual(upcomingLeadMinutes(5000), 5000);
+        process.env.AUTOMATION_NC_UPCOMING_MAX_LEAD_MINUTES = '60';
+        assert.strictEqual(upcomingLeadMinutes(90), 60);
+    } finally {
+        if (saved === undefined) delete process.env.AUTOMATION_NC_UPCOMING_MAX_LEAD_MINUTES;
+        else process.env.AUTOMATION_NC_UPCOMING_MAX_LEAD_MINUTES = saved;
+    }
+});
+
+test('upcomingCalendars: a failing list call falls back to personal', async () => {
+    assert.deepStrictEqual(await upcomingCalendars({}, async () => { throw new Error('down'); }), ['personal']);
+});
