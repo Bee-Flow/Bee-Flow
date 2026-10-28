@@ -13,12 +13,12 @@ import { HubRows } from './HubRows';
 import { HubSection } from './HubSection';
 
 function DocumentHubRow({ doc }: { doc: OwnedDocument }) {
-    useTranslation(); // re-render when the language changes: timeAgo speaks it
+    const t = useTranslation(); // also re-renders when the language changes: timeAgo speaks it
     const theme = useTheme();
     const router = useRouter();
     return (
         <ListRow
-            title={doc.title || 'Untitled document'}
+            title={doc.title || t('mobile.knowledge.untitled_document', 'Untitled document')}
             subtitle={doc.kbName}
             meta={timeAgo(doc.created_at)}
             wrapTitle
@@ -38,19 +38,20 @@ export function DocumentsHubSection({
     /** The fan-out waits for the bases, so their loading is this section's too. */
     basesLoading: boolean;
 }) {
+    const t = useTranslation();
     const router = useRouter();
     return (
         <HubSection
-            title="Documents"
+            title={t('mobile.knowledge.tab_documents', 'Documents')}
             icon="FileText"
             onSeeAll={() => router.push('/knowledge/documents')}
             loading={documents.isLoading || basesLoading}
             error={documents.isError ? documents.error : undefined}
             onRetry={() => void documents.refetch()}
             isEmpty={(documents.data?.documents.length ?? 0) === 0}
-            emptyTitle="No documents yet"
-            emptyMessage="Upload a file or scan a page and it becomes searchable across your knowledge bases."
-            emptyActionLabel="Add a document"
+            emptyTitle={t('mobile.knowledge.no_documents', 'No documents yet')}
+            emptyMessage={t('mobile.library.docs_empty_hint', 'Upload a file or scan a page and it becomes searchable across your knowledge bases.')}
+            emptyActionLabel={t('automations.approval_editors.add_a_document', 'Add a document')}
             onEmptyAction={() => router.push('/knowledge/documents')}
         >
             <HubRows items={documents.data?.documents ?? []} renderRow={(doc) => <DocumentHubRow doc={doc} />} />

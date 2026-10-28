@@ -33,10 +33,10 @@ export function HouseStyleRow({
             }
             trailing={
                 style.isDefault ? (
-                    <Badge label="Default" tone="accent" />
+                    <Badge label={t('automations.library.default', 'Default')} tone="accent" />
                 ) : (
                     <Text variant="label" tone="accent">
-                        Make default
+                        {t('mobile.library.make_default', 'Make default')}
                     </Text>
                 )
             }

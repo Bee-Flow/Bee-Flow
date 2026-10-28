@@ -8,6 +8,7 @@ import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { describeError } from '@/core/api/errors';
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Icon, Text } from '@/shared/ui';
 
@@ -19,6 +20,7 @@ const makeStyles = (theme: Theme) =>
     });
 
 export function HubSectionProblem({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     const { title, message, retryable } = describeError(error);
@@ -34,9 +36,9 @@ export function HubSectionProblem({ error, onRetry }: { error: unknown; onRetry?
                 {message}
             </Text>
             {retryable && onRetry ? (
-                <Pressable onPress={onRetry} accessibilityRole="button" accessibilityLabel="Try again" style={styles.retry}>
+                <Pressable onPress={onRetry} accessibilityRole="button" accessibilityLabel={t('mobile.error.retry', 'Try again')} style={styles.retry}>
                     <Text variant="caption" tone="accent" weight="medium">
-                        Try again
+                        {t('mobile.error.retry', 'Try again')}
                     </Text>
                 </Pressable>
             ) : null}

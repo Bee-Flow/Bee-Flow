@@ -252,7 +252,6 @@ const UNCONVERTED = new Map<string, number>([
     ['src/features/coworkHub', 20],
     ['src/features/documents', 10],
     ['src/features/integrations', 134],
-    ['src/features/library', 27],
     ['src/features/mcp', 33],
     ['src/features/memory', 24],
     // 34 -> 33: the row body's "Tap to read the full result", with the reauth

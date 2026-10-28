@@ -14,6 +14,7 @@
 import React, { type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { useTranslation } from '@/core/i18n';
 import { useTheme, useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
 import { Icon, Skeleton, Text, type IconName } from '@/shared/ui';
 
@@ -82,7 +83,8 @@ function HubSectionBody(props: HubSectionProps) {
 }
 
 export function HubSection(props: HubSectionProps) {
-    const { title, icon, count, onSeeAll, seeAllLabel = 'See all' } = props;
+    const { title, icon, count, onSeeAll, seeAllLabel } = props;
+    const t = useTranslation();
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
 
@@ -103,11 +105,15 @@ export function HubSection(props: HubSectionProps) {
                         onPress={onSeeAll}
                         hitSlop={theme.hitSlop}
                         accessibilityRole="button"
-                        accessibilityLabel={`${seeAllLabel} ${title.toLowerCase()}`}
+                        accessibilityLabel={
+                            seeAllLabel
+                                ? `${seeAllLabel} ${title.toLowerCase()}`
+                                : t('mobile.library.see_all_section', 'See all {title}', { title: title.toLowerCase() })
+                        }
                         style={styles.seeAll}
                     >
                         <Text variant="caption" tone="accent" weight="medium">
-                            {seeAllLabel}
+                            {seeAllLabel ?? t('mobile.library.see_all', 'See all')}
                         </Text>
                     </Pressable>
                 ) : null}
