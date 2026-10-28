@@ -235,7 +235,7 @@ async function updateSiteChrome(siteId, patch, { expectedRev, report } = {}) {
 }
 
 // Touch the index so listProjects() reflects the new name + updatedAt. Under
-// the index lock: a plain read-modify-write here used to restore a stale index
+// the index lock: a plain read-modify-write here would restore a stale index
 // and drop a site created or imported at the same moment.
 async function touchProjectsIndexEntry(siteId, sanitized) {
     await mutateProjectsIndex((index) => {

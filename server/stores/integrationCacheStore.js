@@ -59,9 +59,9 @@ const log = require('../telemetry/log');
 const TABLE = 'integration_response_cache';
 
 /**
- * The per-entry ceiling a caller gets when it does not name one. It used to be
- * optional (`if (maxBytes && …)`), so a caller that simply forgot the argument
- * had NO size limit at all — one 40 MB response and the org's whole budget is
+ * The per-entry ceiling a caller gets when it does not name one. It must not be
+ * optional (`if (maxBytes && …)`): a caller that simply forgot the argument
+ * would have NO size limit at all — one 40 MB response and the org's whole budget is
  * one row. Mirrors toolMemo's MAX_ENTRY_BYTES; kept as a literal rather than
  * imported so a store does not reach up into the runner.
  */

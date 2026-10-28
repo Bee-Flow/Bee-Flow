@@ -3,7 +3,7 @@
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
 //
-// Privacy Shield (round 3), Overview: the review card, the four step cards and the right-hand column.
+// Privacy Shield, Overview: the review card, the four step cards and the right-hand column.
 // Plain English for non-technical admins. Setting names stay as they are elsewhere.
 module.exports = {
     "shield_overview.add_step": "Add to {step}",

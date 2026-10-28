@@ -1801,7 +1801,7 @@ module.exports = {
     "automations.templates.beeFlow": "Bee Flow templates",
     "automations.templates.yourOrganisation": "Your organisation",
 
-    // Studio → Automations, handoff 5 round 2 (2026-09-28): the split + with its
+    // Studio → Automations: the split + with its
     // create menu, the "Building blocks" group in the list, the Templates tab and
     // Find repeating work.
     "automations.library.automations": "Automations",

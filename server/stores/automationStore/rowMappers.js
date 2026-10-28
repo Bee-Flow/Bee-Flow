@@ -216,7 +216,7 @@ function rowToRunStep(r) {
     };
     // A failed row from before the runner wrote error_info still gets the
     // plain-language card, classified from its message, its step type and its
-    // recorded inputs (the tool name was never stored, so it is less precise).
+    // recorded inputs (the tool name is not stored, so it is less precise).
     if (!out.errorInfo && r.error && (r.status === 'error' || r.status === 'handled_error')) {
         try {
             out.errorInfo = require('../../utils/stepErrorInfo').legacyStepErrorInfo(r.error, r.step_type, out.input);

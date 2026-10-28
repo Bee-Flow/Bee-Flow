@@ -43,7 +43,7 @@ function rowToSchedule(r) {
  *
  * `next_run_at` is the A12 discipline in table form: a save that does not
  * change the cron/tz must NOT move the next slot (nudging a node on the canvas
- * used to re-anchor pollers; the same mistake here would re-anchor a schedule
+ * must not re-anchor pollers; the same mistake here would re-anchor a schedule
  * to "now + one period" on every save). Pass `rearm: true` — activation does —
  * to recompute it unconditionally, so an automation re-activated after a month
  * does not fire a month's worth of catch-up on the first tick.

@@ -6,8 +6,8 @@
  * core), so the error carries its own `{status, code, errorClass, expose,
  * details}`, which the terminal handler passes through.
  *
- * A leaf on purpose: stores/lib/managedParts.js used to define it, so every
- * store that only wanted the error pulled in the stage write guard (and its
+ * A leaf on purpose: defining it in stores/lib/managedParts.js would make every
+ * store that only wants the error pull in the stage write guard (and its
  * reach into projectStore and solutionStageStore) with it.
  */
 

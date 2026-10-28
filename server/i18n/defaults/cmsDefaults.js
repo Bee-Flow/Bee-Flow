@@ -378,8 +378,8 @@ const BLOCK_DEFAULTS = {
         toggleLabelYearly: 'Jaarlijks',
         ctaLabel: 'Kies plan',
         emptyText: 'Geen plannen beschikbaar',
-        // Previously hardcoded Dutch strings — now content fields (and so
-        // translatable). Absent fields fall back to the old literals.
+        // Content fields rather than hardcoded Dutch strings (and so
+        // translatable). Absent fields fall back to the Dutch literals.
         suffixMonthly: '/maand',
         suffixYearly: '/jaar',
         customPriceText: 'Op aanvraag',

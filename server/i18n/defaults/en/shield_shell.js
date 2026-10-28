@@ -3,7 +3,7 @@
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
 //
-// Privacy Shield (round 3): the header, the path strip and the save bar shared by every pane.
+// Privacy Shield: the header, the path strip and the save bar shared by every pane.
 // Plain English for non-technical admins. Setting names stay as they are elsewhere.
 module.exports = {
     // The header's detection pill, healthy state. "checked", not "last check":

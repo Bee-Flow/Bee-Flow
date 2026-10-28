@@ -3,7 +3,7 @@
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
 //
-// Privacy Shield (round 3), "When we find something" (step 3) + "Leaving your org" (step 4): one card each.
+// Privacy Shield, "When we find something" (step 3) + "Leaving your org" (step 4): one card each.
 // Plain English for non-technical admins. Setting names stay as they are elsewhere.
 module.exports = {
     // Step 3: on every message.

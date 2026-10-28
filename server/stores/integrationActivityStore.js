@@ -88,7 +88,7 @@ async function _doInit() {
 
     // Cross-replica debounce claims for compliance signals: the in-process
     // Map below only debounces within ONE pod, so an N-replica deployment
-    // used to emit up to N notification storms per operator per day.
+    // would emit up to N notification storms per operator per day.
     await exec(`
         CREATE TABLE IF NOT EXISTS compliance_signal_debounce (
             org_id TEXT NOT NULL,

@@ -3,7 +3,7 @@
 // Merged into GUI_DEFAULTS by ./index.js. The frontend copy (agent-hub/src/i18n/en-defaults.js)
 // is GENERATED from these files: after an edit, run `node scripts/gen-i18n-defaults.mjs`.
 //
-// Privacy Shield (round 3), "What happened": in short, worth a look, the KPIs, day by day, the log.
+// Privacy Shield, "What happened": in short, worth a look, the KPIs, day by day, the log.
 // Plain English for non-technical admins. Setting names stay as they are elsewhere.
 module.exports = {
     "shield_activity.action_held": "File held back",
