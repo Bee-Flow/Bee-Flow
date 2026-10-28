@@ -16,6 +16,7 @@ import React, { useState } from 'react';
 
 import { describeError } from '@/core/api/errors';
 import { useAuth } from '@/core/auth/AuthProvider';
+import { useTranslation } from '@/core/i18n';
 import { useUserRefresh } from '@/shared/patterns';
 import {
     Banner,
@@ -36,6 +37,7 @@ import { ThreadSheet } from '../components/ThreadSheet';
 import { useMySupportThreads } from '../hooks/queries';
 
 export function SupportScreen() {
+    const t = useTranslation();
     const { toast } = useToast();
     const { user } = useAuth();
     const [composing, setComposing] = useState(false);
@@ -51,11 +53,11 @@ export function SupportScreen() {
     return (
         <Screen edges={['top']} inset>
             <ScreenHeader
-                title="Help"
+                title={t('mobile.support.title', 'Help')}
                 subtitle={user?.email ?? undefined}
                 actions={
                     supportUnavailable ? undefined : (
-                        <Button label="Ask" onPress={() => setComposing(true)} size="md" />
+                        <Button label={t('mobile.support.ask', 'Ask')} onPress={() => setComposing(true)} size="md" />
                     )
                 }
             />
@@ -74,9 +76,9 @@ export function SupportScreen() {
                 ) : (
                     <EmptyState
                         icon="LifeBuoy"
-                        title="No requests yet"
-                        message="Ask anything — how something works, or what went wrong. Bee Flow attaches your version details so nobody has to ask for them."
-                        actionLabel="Ask a question"
+                        title={t('mobile.support.empty_title', 'No requests yet')}
+                        message={t('mobile.support.empty_message', 'Ask anything — how something works, or what went wrong. Bee Flow attaches your version details so nobody has to ask for them.')}
+                        actionLabel={t('mobile.support.empty_action', 'Ask a question')}
                         onAction={() => setComposing(true)}
                     />
                 )}
@@ -87,7 +89,7 @@ export function SupportScreen() {
                 onClose={() => setComposing(false)}
                 onFiled={() => {
                     setComposing(false);
-                    toast('Request sent', 'success');
+                    toast(t('automations.builder.wait.sent', 'Request sent'), 'success');
                 }}
             />
 

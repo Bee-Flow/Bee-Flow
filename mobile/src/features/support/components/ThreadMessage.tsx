@@ -11,7 +11,7 @@ import { authorName } from '../model/status';
 import type { SupportMessage } from '../model/types';
 
 export function ThreadMessage({ entry }: { entry: SupportMessage }) {
-    useTranslation(); // re-render when the language changes: timeAgo speaks it
+    const t = useTranslation(); // also re-renders when the language changes: timeAgo speaks it
     const theme = useTheme();
     const styles = useThemedStyles(makeStyles);
     const mine = entry.author_kind === 'requester';
@@ -21,7 +21,7 @@ export function ThreadMessage({ entry }: { entry: SupportMessage }) {
                 <Text variant="caption" weight="semibold">
                     {authorName(entry.author_kind, entry.author_display)}
                 </Text>
-                {entry.author_kind === 'ai' ? <Badge label="Automated" tone="accent" /> : null}
+                {entry.author_kind === 'ai' ? <Badge label={t('mobile.support.automated', 'Automated')} tone="accent" /> : null}
                 <Text variant="label" tone="tertiary">
                     {timeAgo(entry.created_at)}
                 </Text>
