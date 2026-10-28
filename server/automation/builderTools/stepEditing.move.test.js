@@ -37,7 +37,7 @@ test('run-6 shape: a loop appended at the tail moves after list_files and the ch
     // Make the spreadsheet depend on the loop, as in the real build — a
     // FORWARD ref while the loop sits behind it.
     await applyToolCall('builder_update_step', { stepId: sheet.id, patch: { inputs: { rows: { kind: 'ref', path: `steps.${loop.id}.output.results` } } } }, dw);
-    assert.ok(validateDefinition(dw.def).warnings.some(w => w.code === 'ref.forward'), 'precondition: the spreadsheet reads the loop before it runs');
+    assert.ok(validateDefinition(dw.def).errors.some(w => w.code === 'ref.forward'), 'precondition: the spreadsheet reads the loop before it runs');
 
     const r = await applyToolCall('builder_update_step', { stepId: loop.id, patch: { afterStepId: list.id } }, dw);
     assert.ok(!r.error, r.error);
@@ -45,7 +45,7 @@ test('run-6 shape: a loop appended at the tail moves after list_files and the ch
     assert.deepStrictEqual(edges(dw.def), [`${list.id}→${loop.id}`, `${loop.id}→${sheet.id}`, `${sheet.id}→${notif.id}`, `trg→${list.id}`].sort());
     assert.deepStrictEqual(order(dw.def), [list.id, loop.id, sheet.id, notif.id], 'array order follows the chain so the default tail is still the notification');
     const v = validateDefinition(dw.def);
-    assert.ok(!v.warnings.some(w => w.code === 'ref.forward'), 'the forward ref is a plain ref now');
+    assert.ok(![...v.errors, ...v.warnings].some(w => w.code === 'ref.forward'), 'the forward ref is a plain ref now');
     assert.ok(!v.errors.some(e => e.code === 'ref.unknown_step'), 'the id survived, so nothing dangles');
 });
 

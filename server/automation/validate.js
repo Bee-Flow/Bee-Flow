@@ -14,10 +14,11 @@
  *     references resolve, required layer params are bound, and the
  *     layer-reference graph is acyclic and within the depth cap.
  *
- * Reference paths (`{{steps.x.output.y}}`) are NOT validated as blocking
- * errors. The runtime resolves missing refs to `undefined` safely, and
- * forward refs / typos there shouldn't stop the user from saving or
- * running their automation. They are returned as warnings instead.
+ * Reference paths (`{{steps.x.output.y}}`) never stop a DRAFT save: a read
+ * of an unknown step or of a step that has not run yet (`ref.unknown_step`,
+ * `ref.forward`) is a completeness error, a warning at the draft stage and
+ * blocking at finalize and go-live, because it can only resolve to nothing.
+ * Path spelling and the rest are warnings.
  *
  * The rules themselves live in validate/: constants.js (the vocabularies and
  * ceilings), completenessCodes.js (the draft/activate ladder), helpers.js

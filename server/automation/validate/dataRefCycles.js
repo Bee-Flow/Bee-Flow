@@ -5,7 +5,7 @@
  * Edges are checked for cycles (graph.cycle), but a DATA reference is a second
  * kind of dependency: step A reading `steps.B.output.x` while B reads
  * `steps.A.output.y` has no edge cycle, and ran green with both reads empty.
- * Each such read is already a `ref.forward` warning on its own; this is the
+ * Each such read is already a `ref.forward` finding on its own; this is the
  * error for the pair (or longer chain), because no order can ever satisfy it.
  */
 'use strict';
