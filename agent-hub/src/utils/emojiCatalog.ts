@@ -18,10 +18,10 @@ import { EMOJI_BY_ID } from './emojiCatalog.generated.mjs';
 
 export { EMOJI_CATEGORIES,   } from './emojiCatalog.generated.mjs';
 
-export function defaultEmojiFor(id) {
-    return EMOJI_BY_ID[id]?.defaultEmoji || null;
+export function defaultEmojiFor(id: string | undefined) {
+    return EMOJI_BY_ID[id as string]?.defaultEmoji || null;
 }
 
-export function labelFor(id) {
-    return EMOJI_BY_ID[id]?.label || id;
+export function labelFor(id: string | undefined) {
+    return EMOJI_BY_ID[id as string]?.label || id;
 }
