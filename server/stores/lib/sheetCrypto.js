@@ -1,3 +1,4 @@
+/** @typedef {import('../../core/dataEngine/datatableRuntime').ResolvedTable} ResolvedTable */
 // @typecheck
 'use strict';
 
@@ -6,7 +7,13 @@ const content = require('./documentCrypto');
 const { sheetTabsOf } = require('./sheetDocument');
 const { HttpError } = require('../../shared/httpErrors');
 const COLUMNS = 'abcdefghijklmnopqrstuvwxyz'.split('');
+/**
+ * @param {ResolvedTable} resolved
+ */
 const isSheet = (resolved) => (resolved.table.managedKind || resolved.table.managed_kind) === 'document_sheet';
+/**
+ * @param {string} value
+ */
 const quote = (value) => `"${String(value).replace(/"/g, '""')}"`;
 
 async function attach(client, document) {
@@ -26,6 +33,9 @@ function resourceFor(row, tableId) {
         cryptoContext: content.envelopeOf(row.settings)?.documentContext || row._contentCryptoContext };
 }
 
+/**
+ * @param {ResolvedTable} resolved
+ */
 async function withWrite(resolved, fn) {
     if (!isSheet(resolved)) return fn();
     const document = await documentFor(resolved.table.id);
@@ -36,6 +46,9 @@ async function withWrite(resolved, fn) {
     });
 }
 
+/**
+ * @param {string[]} fields
+ */
 async function assertQuery(resolved, fields) {
     if (!isSheet(resolved) || !fields.some((field) => COLUMNS.includes(field))) return;
     const document = await documentFor(resolved.table.id);
@@ -46,6 +59,9 @@ async function assertQuery(resolved, fields) {
     throw error;
 }
 
+/**
+ * @param {string} tableId
+ */
 async function openRow(tableId, row, keys = new Map()) {
     if (!row) return row;
     const out = { ...row };
@@ -64,6 +80,9 @@ async function openRow(tableId, row, keys = new Map()) {
     return out;
 }
 
+/**
+ * @param {string} tableId
+ */
 async function openRows(tableId, rows) {
     const keys = new Map();
     return Promise.all(rows.map((row) => openRow(tableId, row, keys)));

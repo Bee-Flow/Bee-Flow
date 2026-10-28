@@ -90,6 +90,7 @@ function tsvectorExpr(placeholder) {
  * text — `to_tsquery` raises a syntax error on an unbalanced quote, a colon or
  * a stray ampersand, which in a retrieval path means an exception on a normal
  * sentence. `websearch_to_tsquery` cannot throw on user input.
+ * @param {string} placeholder
  */
 function tsqueryExpr(placeholder) {
     if (!lexicalMultilingual) {

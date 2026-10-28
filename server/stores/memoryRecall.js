@@ -69,7 +69,9 @@ async function _scopeState(scope) {
  * @param {{ vector: number[], dim: number } | null} q
  */
 async function _retrieveInSql(scope, queryText, q) {
+    /** @type {number | null} */
     let dim = null;
+    /** @type {number[] | null} */
     let queryVector = null;
     if (q && await memoryIndex.ensureVectorColumn(q.dim)) { dim = q.dim; queryVector = q.vector; }
     const candidates = await retrieveCandidates({ ...scope, dim, queryVector, queryText });

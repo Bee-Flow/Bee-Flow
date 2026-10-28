@@ -128,6 +128,9 @@ function _prefix(sql) {
     return String(sql).replace(/\s+/g, ' ').trim().slice(0, 160);
 }
 
+/**
+ * @param {string | { sql: string; tolerate?: (string | RegExp) | Array<string | RegExp>; reden?: string; }} s
+ */
 function _normalize(s) {
     if (typeof s === 'string') return { sql: s, tolerate: [] };
     if (s && typeof s.sql === 'string') {
@@ -141,6 +144,10 @@ function _isTolerated(tolerate, err) {
     return tolerate.some((t) => (t instanceof RegExp ? t.test(err.message || '') : t === err.code));
 }
 
+/**
+ * @param {string} tag
+ * @param {string} lockTimeout
+ */
 async function _runLocked(tag, list, lockTimeout) {
     const db = _dbFacade();
     const isSqlStateError = typeof db.isSqlStateError === 'function' ? db.isSqlStateError : _isSqlStateErrorFallback;
@@ -159,13 +166,13 @@ async function _runLocked(tag, list, lockTimeout) {
                 const entry = {
                     sql: _prefix(stmt.sql),
                     code: err.code,
-                    message: err.message,
+                    message: /** @type {Error} */ (err).message,
                     ...(stmt.reden ? { reden: stmt.reden } : {}),
                 };
                 if (_isTolerated(stmt.tolerate, err)) tolerated.push(entry);
                 else {
                     failures.push(entry);
-                    log.error(`[DDL:${tag}] statement gefaald (SQLSTATE ${err.code}): ${entry.sql} — ${err.message}`);
+                    log.error(`[DDL:${tag}] statement gefaald (SQLSTATE ${err.code}): ${entry.sql} — ${/** @type {Error} */ (err).message}`);
                 }
             }
         }
@@ -197,14 +204,14 @@ async function _runLocked(tag, list, lockTimeout) {
                 const entry = {
                     sql: _prefix(stmt.sql),
                     code: err.code,
-                    message: err.message,
+                    message: /** @type {Error} */ (err).message,
                     ...(stmt.reden ? { reden: stmt.reden } : {}),
                 };
                 if (_isTolerated(stmt.tolerate, err)) {
                     tolerated.push(entry);
                 } else {
                     failures.push(entry);
-                    log.error(`[DDL:${tag}] statement gefaald (SQLSTATE ${err.code}): ${entry.sql} — ${err.message}`);
+                    log.error(`[DDL:${tag}] statement gefaald (SQLSTATE ${err.code}): ${entry.sql} — ${/** @type {Error} */ (err).message}`);
                 }
             }
         }

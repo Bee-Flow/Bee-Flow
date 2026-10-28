@@ -108,6 +108,9 @@ async function createServer({ id, name, command, args = [], required_credentials
     );
 }
 
+/**
+ * @param {string} id
+ */
 async function getServer(id) {
     await initDB();
     const row = await db.getOne(`SELECT * FROM ${TABLE} WHERE id = $1`, [id]);
@@ -144,6 +147,9 @@ const MCP_UPDATE_COLS = {
     source: 'source',
 };
 
+/**
+ * @param {string} id
+ */
 async function updateServer(id, updates) {
     await initDB();
     const { buildUpdate } = require('./lib/sqlBuilder');
@@ -158,6 +164,9 @@ async function updateServer(id, updates) {
     await db.run(built.sql, built.params);
 }
 
+/**
+ * @param {string} id
+ */
 async function deleteServer(id) {
     await initDB();
     await db.run(`DELETE FROM ${TABLE} WHERE id = $1`, [id]);

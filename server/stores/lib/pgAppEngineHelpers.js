@@ -43,6 +43,7 @@ function validateSql(sql) {
  * compiler and its params drifted apart, which must throw rather than bind
  * values one position off.
  * @param {number} expectedCount
+ * @param {string} sql
  */
 function toDollarParams(sql, expectedCount) {
     let out = '';

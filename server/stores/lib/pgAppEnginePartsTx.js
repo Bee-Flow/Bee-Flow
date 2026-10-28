@@ -86,7 +86,10 @@ function makeTx({ getClient, entityLabel, schemaFor, assertAccessFn, ownershipCa
 function makeStatements({ withAppTx }) {
     // ── Facade contract ─────────────────────────────────────────────
 
-    /** Read-only SELECT → { rows, columns, truncated } (rows capped at 10k). */
+    /**
+     * Read-only SELECT → { rows, columns, truncated } (rows capped at 10k).
+     * @param {string} sql
+     */
     async function query(ownerId, appId, sql, params = []) {
         validateSql(sql);
         const safeParams = normalizeParams(params);
@@ -112,6 +115,7 @@ function makeStatements({ withAppTx }) {
      * multi-statement string (compiler-joined DDL), runs it raw over the
      * simple protocol → { changes: 0, multi: true } — mirroring the sqlite
      * engine's db.exec path.
+     * @param {string} sql
      */
     async function exec(ownerId, appId, sql, params = []) {
         validateSql(sql);
@@ -193,6 +197,7 @@ function makeMigration({ logPrefix, schemaIdent, assertOwnership, withAppTx }) {
             // would fall through to pg_temp and CREATE TABLE would land in a
             // TEMPORARY schema — a silent data-loss trap.
             await c.query(`CREATE SCHEMA IF NOT EXISTS ${schemaIdent(appId)}`);
+            /** @type {{ sql: string; reason: string; }[]} */
             const skipped = [];
             let applied = 0;
             for (const ddl of orderedDDL) {
